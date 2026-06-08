@@ -12,8 +12,11 @@ export interface PumpfunAlphaTrendToken {
   athMarketCapTimestampMs: number | null;
   updatedAtMs: number | null;
   lastTradeTimestampMs: number | null;
+  createdTimestampMs: number | null;
   anchorTsMs: number | null;
 }
+
+export type PumpfunAlphaFeedMode = "trend" | "experiment";
 
 export interface PumpfunAlphaTrendAnalysis {
   trendTitle: string;
@@ -43,9 +46,13 @@ function assertResponseShape(v: unknown): v is PumpfunAlphaTrendResponse {
   return true;
 }
 
-export async function fetchPumpfunAlphaTrend(period: PumpfunAlphaPeriod): Promise<PumpfunAlphaTrendResponse> {
+export async function fetchPumpfunAlphaTrend(
+  period: PumpfunAlphaPeriod,
+  options?: { mode?: PumpfunAlphaFeedMode },
+): Promise<PumpfunAlphaTrendResponse> {
   const base = `${getApiBaseUrl().replace(/\/$/, "")}/agent/pumpfun-alpha`;
-  const url = `${base}/trend?period=${encodeURIComponent(period)}`;
+  const mode = options?.mode ?? "trend";
+  const url = `${base}/trend?period=${encodeURIComponent(period)}&mode=${encodeURIComponent(mode)}`;
   const res = await fetch(url, { headers: { Accept: "application/json" } });
 
   const body = (await res.json().catch(() => ({}))) as { success?: boolean; data?: unknown; error?: string; message?: string };

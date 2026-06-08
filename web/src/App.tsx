@@ -39,6 +39,22 @@ import StakingAdminDashboardPage from "@/pages/staking/StakingAdminDashboardPage
 import DeckPage from "@/pages/DeckPage";
 import InfoPage from "@/pages/InfoPage";
 import PostPage from "@/pages/PostPage";
+import PostVideoPage from "@/pages/PostVideoPage";
+import PostPhotoPage from "@/pages/PostPhotoPage";
+import { MarketingLayout } from "@/components/marketing/MarketingLayout";
+import { RedirectToUponlyApp } from "@/components/marketing/RedirectToUponlyApp";
+import MarketingHome from "@/pages/marketing/MarketingHome";
+import MarketingBrand from "@/pages/marketing/Brand";
+import MarketingIdentity from "@/pages/marketing/Identity";
+import MarketingTeams from "@/pages/marketing/Teams";
+import MarketingPartner from "@/pages/marketing/Partner";
+import MarketingPartnerDetail from "@/pages/marketing/PartnerDetail";
+import MarketingArticles from "@/pages/marketing/Articles";
+import MarketingAnalytics from "@/pages/marketing/Analytics";
+import MarketingLeaderboard from "@/pages/marketing/Leaderboard";
+import MarketingPrivacyPolicy from "@/pages/marketing/PrivacyPolicy";
+import MarketingTermsOfService from "@/pages/marketing/TermsOfService";
+import MarketingCookiePolicy from "@/pages/marketing/CookiePolicy";
 
 function DashboardLayoutRoute() {
   return (
@@ -90,7 +106,6 @@ function AppRoutes() {
 
           <Route path="/marketplace" element={<LegacyMarketplaceRedirect />} />
           <Route path="/marketplace/*" element={<LegacyMarketplaceRedirect />} />
-          <Route path="/leaderboard" element={<Navigate to="/overview" replace />} />
           <Route path="/dashboard/*" element={<LegacyDashboardPrefixRedirect />} />
           <Route path="/experiment/trading-agent" element={<LegacyTradingExperimentPageRedirect />} />
           <Route path="/experiment/trading-agent/agent/:agentId" element={<LegacyTradingExperimentAgentRedirect />} />
@@ -116,6 +131,29 @@ const App = () => (
         <Route path="/deck" element={<DeckPage />} />
         <Route path="/info" element={<InfoPage />} />
         <Route path="/post" element={<PostPage />} />
+        <Route path="/post/video" element={<PostVideoPage />} />
+        <Route path="/post/photo" element={<PostPhotoPage />} />
+
+        <Route element={<MarketingLayout />}>
+          <Route path="/home" element={<MarketingHome />} />
+          <Route path="/brand" element={<MarketingBrand />} />
+          <Route path="/identity" element={<MarketingIdentity />} />
+          <Route path="/teams" element={<MarketingTeams />} />
+          <Route path="/partner" element={<MarketingPartner />} />
+          <Route path="/partner/:slug" element={<MarketingPartnerDetail />} />
+          <Route path="/articles" element={<MarketingArticles />} />
+          <Route path="/analytics" element={<MarketingAnalytics />} />
+          <Route path="/leaderboard" element={<MarketingLeaderboard />} />
+          <Route path="/privacy" element={<MarketingPrivacyPolicy />} />
+          <Route path="/terms" element={<MarketingTermsOfService />} />
+          <Route path="/cookies" element={<MarketingCookiePolicy />} />
+          <Route path="/uponly" element={<RedirectToUponlyApp path="/" />} />
+          <Route path="/uponly/overview" element={<RedirectToUponlyApp path="/uponly/overview" />} />
+          <Route path="/uponly/fund" element={<RedirectToUponlyApp path="/" />} />
+          <Route path="/uponly/rise" element={<RedirectToUponlyApp path="/uponly/rise" />} />
+          <Route path="/rise" element={<RedirectToUponlyApp path="/" />} />
+        </Route>
+
         <Route
           path="*"
           element={

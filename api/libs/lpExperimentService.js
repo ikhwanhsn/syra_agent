@@ -10,6 +10,19 @@ import { resolveLpExperimentStrategies, resolveLpStrategyById } from "./lpExperi
 import { fetchMeteoraPoolDetail, fetchMeteoraPools } from "./meteoraDlmmClient.js";
 import { isSolMint } from "./meteoraDlmmExecutor.js";
 import { scorePool } from "./lpExperimentScoring.js";
+import {
+  computeFeeYieldPct,
+  computeLpNetPnlPct,
+  computePriceDriftPct,
+  computeSimTransactionCostsSol,
+  isPositionOutOfRange,
+  mergeRealExitRules,
+  resolveEffectiveBins,
+  shouldCloseByOor,
+  strategyLikelyNeedsSidecarSwap,
+} from "./lpEconomicsModel.js";
+
+export { computeLpNetPnlPct, isPositionOutOfRange };
 
 const OPEN_POSITION_COOLDOWN_MS = 90 * 60 * 1000;
 const DEFAULT_LIST_LIMIT = 50;
@@ -66,10 +79,6 @@ function mergedSimConfig(stateDoc) {
     openFeeBps: toNum(s.openFeeBps, LP_AGENT_EXPERIMENT_DEFAULTS.openFeeBps),
     closeFeeBps: toNum(s.closeFeeBps, LP_AGENT_EXPERIMENT_DEFAULTS.closeFeeBps),
   };
-}
-
-function feeSolFromBps(depositSol, bps) {
-  return (toNum(depositSol) * toNum(bps)) / 10_000;
 }
 
 export async function fetchSolPriceUsd() {
@@ -137,53 +146,14 @@ function deriveSyntheticSignals(pool) {
   return derivePoolSignals(pool);
 }
 
-function computePriceDriftPct(entry, current) {
-  if (!Number.isFinite(entry) || entry <= 0 || !Number.isFinite(current) || current <= 0) return 0;
-  return (current / entry - 1) * 100;
-}
-
-function computeFeeYieldPct(feeTvlRatio, hoursElapsed) {
-  const f = toNum(feeTvlRatio, 0);
-  if (f <= 0 || hoursElapsed <= 0) return 0;
-  return f * (hoursElapsed / 24) * 100;
-}
-
-export function isPositionOutOfRange(activeAtOpen, activeNow, binsBelow, binsAbove) {
-  const delta = toNum(activeNow, activeAtOpen) - toNum(activeAtOpen, activeNow);
-  const overBelow = Math.abs(Math.min(0, delta)) > toNum(binsBelow);
-  const overAbove = Math.max(0, delta) > toNum(binsAbove);
-  return overBelow || overAbove;
-}
-
-function shouldCloseByOor(run, detail, strategyExit, hoursElapsed) {
-  const activeNow = toNum(detail.activeBinId, run.activeBinAtOpen);
-  const activeAtOpen = toNum(run.activeBinAtOpen, activeNow);
-  if (!isPositionOutOfRange(activeAtOpen, activeNow, run.binsBelow, run.binsAbove)) return false;
-  const minHoldMin = toNum(strategyExit.minHoldMin, 30);
-  if (hoursElapsed * 60 < minHoldMin) return false;
-  return hoursElapsed * 60 >= toNum(strategyExit.oorWaitMin, 30);
-}
-
-/**
- * LP economics: fees accrue in-range; OOR exits realize impermanent loss from price drift.
- */
-export function computeLpNetPnlPct(priceDriftPct, feeYieldPct, inRange) {
-  if (inRange) {
-    return priceDriftPct * 0.15 + feeYieldPct;
-  }
-  const ilPenalty = -Math.abs(priceDriftPct) * 0.55 - Math.max(0, -priceDriftPct) * 0.2;
-  return ilPenalty + feeYieldPct * 0.35;
-}
-
 /**
  * @param {import("mongoose").LeanDocument<any>} run
  * @param {Record<string, unknown>} detail
  * @param {Record<string, unknown>} strategyExit
  * @param {number} hoursElapsed
  * @param {typeof LP_AGENT_EXPERIMENT_DEFAULTS} simDefaults
- * @param {{ openFeeBps: number; closeFeeBps: number }} feeCfg
  */
-function evaluateRunResolution(run, detail, strategyExit, hoursElapsed, simDefaults, feeCfg) {
+function evaluateRunResolution(run, detail, strategyExit, hoursElapsed, simDefaults) {
   const priceDriftPct = computePriceDriftPct(toNum(run.entryPriceUsd), toNum(detail.currentPrice));
   const inRange = !isPositionOutOfRange(
     run.activeBinAtOpen,
@@ -197,7 +167,7 @@ function evaluateRunResolution(run, detail, strategyExit, hoursElapsed, simDefau
   const netPnlPct = computeLpNetPnlPct(priceDriftPct, feeYieldPct, inRange);
   const simFeesEarnedSol = toNum(run.depositSol) * (feeYieldPct / 100);
 
-  const exit = strategyExit || {};
+  const exit = mergeRealExitRules(strategyExit || {});
   let status = "open";
   let resolution = null;
   if (priceDriftPct <= toNum(exit.stopLossPct, -15)) {
@@ -214,11 +184,13 @@ function evaluateRunResolution(run, detail, strategyExit, hoursElapsed, simDefau
     resolution = "time_expiry";
   }
 
+  const needsSidecar = strategyLikelyNeedsSidecarSwap(run.binsBelow, run.binsAbove);
+  const txCosts = computeSimTransactionCostsSol(run.depositSol, { needsSidecarSwap: needsSidecar });
   const openFeeSol =
     run.simOpenFeeSol != null && Number.isFinite(run.simOpenFeeSol) && toNum(run.simOpenFeeSol) > 0
       ? toNum(run.simOpenFeeSol)
-      : feeSolFromBps(run.depositSol, feeCfg.openFeeBps);
-  const closeFeeSol = feeSolFromBps(run.depositSol, feeCfg.closeFeeBps);
+      : txCosts.openFeeSol;
+  const closeFeeSol = txCosts.closeFeeSol;
   const grossPnlSol = toNum(run.depositSol) * (netPnlPct / 100);
   const simNetPnlSol = grossPnlSol - openFeeSol - closeFeeSol;
 
@@ -301,8 +273,11 @@ export async function ensureLpExperimentBootstrapped() {
       }).lean();
       let cash = startingBank;
       for (const r of settled) {
-        const openFee = toNum(r.simOpenFeeSol, feeSolFromBps(r.depositSol, cfg.openFeeBps));
-        const closeFee = toNum(r.simCloseFeeSol, feeSolFromBps(r.depositSol, cfg.closeFeeBps));
+        const txFallback = computeSimTransactionCostsSol(r.depositSol, {
+          needsSidecarSwap: strategyLikelyNeedsSidecarSwap(r.binsBelow, r.binsAbove),
+        });
+        const openFee = toNum(r.simOpenFeeSol, txFallback.openFeeSol);
+        const closeFee = toNum(r.simCloseFeeSol, txFallback.closeFeeSol);
         const net =
           Number.isFinite(r.simNetPnlSol) && r.simNetPnlSol !== 0
             ? toNum(r.simNetPnlSol)
@@ -310,7 +285,10 @@ export async function ensureLpExperimentBootstrapped() {
         cash += net;
       }
       for (const r of openRuns) {
-        const openFee = toNum(r.simOpenFeeSol, feeSolFromBps(r.depositSol, cfg.openFeeBps));
+        const txFallback = computeSimTransactionCostsSol(r.depositSol, {
+          needsSidecarSwap: strategyLikelyNeedsSidecarSwap(r.binsBelow, r.binsAbove),
+        });
+        const openFee = toNum(r.simOpenFeeSol, txFallback.openFeeSol);
         cash -= toNum(r.depositSol) + openFee;
       }
       await LpExperimentAgentState.create({
@@ -676,7 +654,10 @@ export async function runLpRealMirrorSignalCycle() {
   const solPrice = await fetchSolPriceUsd();
   const depositSol = simCfg.maxPositionSol;
   const depositUsd = depositSol * solPrice;
-  const openFeeSol = feeSolFromBps(depositSol, simCfg.openFeeBps);
+  const leaderBins = resolveEffectiveBins(leader.binsBelow, leader.binsAbove);
+  const openFeeSol = computeSimTransactionCostsSol(depositSol, {
+    needsSidecarSwap: strategyLikelyNeedsSidecarSwap(leaderBins.binsBelow, leaderBins.binsAbove),
+  }).openFeeSol;
   const mirrorStrategy = await resolveLpStrategyById(mirrorId);
   const poolDetail = await fetchMeteoraPoolDetail(poolCandidate.poolAddress);
   const pool = {
@@ -710,8 +691,8 @@ export async function runLpRealMirrorSignalCycle() {
       holderCount: synthetic.holderCount,
       mcapUsd: synthetic.mcapUsd,
       feeTvlRatio: pool.feeTvlRatio,
-      binsBelow: leader.binsBelow,
-      binsAbove: leader.binsAbove,
+      binsBelow: leaderBins.binsBelow,
+      binsAbove: leaderBins.binsAbove,
       activeBinAtOpen: pool.activeBinId,
       entryPriceUsd: pool.currentPrice,
       depositSol,
@@ -723,6 +704,7 @@ export async function runLpRealMirrorSignalCycle() {
         leaderStrategyId: leader.id,
         leaderStrategyName: leader.name,
         followMode: "real_mirror",
+        binsClamped: leaderBins.clamped,
       },
       status: "open",
       openedAt: new Date(),
@@ -766,13 +748,15 @@ export async function runLpExperimentSignalCycle() {
   }
   const simCfg = mergedSimConfig(state);
   const strategies = await resolveLpExperimentStrategies();
-  const pools = await fetchMeteoraPools({
-    page: 1,
-    limit: Math.max(30, LP_AGENT_EXPERIMENT_DEFAULTS.minCandidateCount),
-    sortKey: "fee",
-    order: "desc",
-    hideLowTvl: true,
-  });
+  const pools = (
+    await fetchMeteoraPools({
+      page: 1,
+      limit: 120,
+      sortKey: "fee",
+      order: "desc",
+      hideLowTvl: true,
+    })
+  ).filter((p) => passesRealPoolScreen(p) && isSolPairPool(p));
   const solPrice = await fetchSolPriceUsd();
   const opened = [];
   const skipped = [];
@@ -794,7 +778,10 @@ export async function runLpExperimentSignalCycle() {
       const agent = await LpExperimentAgentState.findOne({ experimentId, strategyId: strategy.id }).lean();
       const cashSol = toNum(agent?.cashSol, 0);
       const depositSol = simCfg.maxPositionSol;
-      const openFeeSol = feeSolFromBps(depositSol, simCfg.openFeeBps);
+      const effectiveBins = resolveEffectiveBins(strategy.binsBelow, strategy.binsAbove);
+      const openFeeSol = computeSimTransactionCostsSol(depositSol, {
+        needsSidecarSwap: strategyLikelyNeedsSidecarSwap(effectiveBins.binsBelow, effectiveBins.binsAbove),
+      }).openFeeSol;
       if (cashSol < depositSol + openFeeSol - 1e-12) {
         skipped.push({ strategyId: strategy.id, reason: "insufficient_cash" });
         continue;
@@ -849,14 +836,18 @@ export async function runLpExperimentSignalCycle() {
           holderCount: best.synthetic.holderCount,
           mcapUsd: best.synthetic.mcapUsd,
           feeTvlRatio: best.pool.feeTvlRatio,
-          binsBelow: strategy.binsBelow,
-          binsAbove: strategy.binsAbove,
+          binsBelow: effectiveBins.binsBelow,
+          binsAbove: effectiveBins.binsAbove,
           activeBinAtOpen: best.pool.activeBinId,
           entryPriceUsd: best.pool.currentPrice,
           depositSol,
           depositUsd,
           signalSnapshot: best.signalSnapshot,
-          screeningSnapshot: { ...best.synthetic, score: best.score },
+          screeningSnapshot: {
+            ...best.synthetic,
+            score: best.score,
+            binsClamped: effectiveBins.clamped,
+          },
           status: "open",
           openedAt: new Date(),
           simOpenFeeSol: openFeeSol,
@@ -898,7 +889,6 @@ export async function resolveOpenLpRuns() {
   await ensureLpExperimentBootstrapped();
   const state = await getSingletonStateDoc();
   const experimentId = state?.activeExperimentId;
-  const feeCfg = mergedSimConfig(state);
   if (!experimentId) {
     return { resolved: 0, openChecked: 0, errors: [], rows: [] };
   }
@@ -939,7 +929,7 @@ export async function resolveOpenLpRuns() {
       const now = Date.now();
       const openedAt = new Date(run.openedAt || run.createdAt || Date.now()).getTime();
       const hoursElapsed = Math.max(0, (now - openedAt) / 3_600_000);
-      const fields = evaluateRunResolution(run, detail, strategy.exit, hoursElapsed, LP_AGENT_EXPERIMENT_DEFAULTS, feeCfg);
+      const fields = evaluateRunResolution(run, detail, strategy.exit, hoursElapsed, LP_AGENT_EXPERIMENT_DEFAULTS);
 
       const expId = run.experimentId || experimentId;
       if (fields.status !== "open" && expId && run.strategyId !== LP_REAL_MIRROR_STRATEGY_ID) {

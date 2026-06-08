@@ -37,9 +37,9 @@ export const LP_AGENT_EXPERIMENT_DEFAULTS = Object.freeze({
   maxPositionSol: 1,
   /** Max concurrent positions per agent (10 × 1 SOL = full deployment) */
   maxConcurrentPositions: 10,
-  /** Chain + priority fee model: bps of notional per open */
+  /** @deprecated Legacy bps fields — tx costs now use lpEconomicsModel.computeSimTransactionCostsSol */
   openFeeBps: 12,
-  /** Same model on close */
+  /** @deprecated Legacy bps fields — tx costs now use lpEconomicsModel.computeSimTransactionCostsSol */
   closeFeeBps: 12,
 });
 

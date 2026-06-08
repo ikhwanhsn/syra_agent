@@ -92,8 +92,51 @@ export async function fetchPartnershipScoutLatest(): Promise<PartnershipScoutLat
   return fetchInternalJson<PartnershipScoutLatestResponse>("/internal/partnership-scout/latest-run");
 }
 
+export interface GrowthAction {
+  title: string;
+  why: string;
+  channel: string;
+  effort: "low" | "medium" | "high";
+  priority: "high" | "medium" | "low";
+  expectedImpact: string;
+}
 
-export type InternalAgentLatestResponse = TrendScoutLatestResponse | PartnershipScoutLatestResponse;
+export interface GrowthMetricHighlight {
+  label: string;
+  value: string;
+  trend?: string;
+}
+
+export interface GrowthScoutPayload {
+  growthSummary?: string;
+  metricHighlights?: GrowthMetricHighlight[];
+  userAcquisitionActions?: GrowthAction[];
+  tvlGrowthActions?: GrowthAction[];
+  productPriorities?: GrowthAction[];
+  risksOrCaveats?: string[];
+  generatedAt?: string;
+  sourceStats?: {
+    metricCount?: number;
+    socialTweetCount?: number;
+    sectorTweetCount?: number;
+  };
+}
+
+export interface GrowthScoutLatestResponse {
+  success: boolean;
+  data: GrowthScoutPayload | null;
+  savedAt?: string;
+}
+
+export async function fetchGrowthScoutLatest(): Promise<GrowthScoutLatestResponse> {
+  return fetchInternalJson<GrowthScoutLatestResponse>("/internal/growth-scout/latest");
+}
+
+
+export type InternalAgentLatestResponse =
+  | TrendScoutLatestResponse
+  | PartnershipScoutLatestResponse
+  | GrowthScoutLatestResponse;
 
 export async function fetchInternalAgentLatest(
   slug: InternalAgentSlug,
@@ -103,6 +146,8 @@ export async function fetchInternalAgentLatest(
       return fetchTrendScoutLatest();
     case "partnership-scout":
       return fetchPartnershipScoutLatest();
+    case "growth-scout":
+      return fetchGrowthScoutLatest();
     default: {
       const _exhaustive: never = slug;
       return _exhaustive;

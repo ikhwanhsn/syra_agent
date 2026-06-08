@@ -1,52 +1,178 @@
 import type { PumpfunAlphaTrendToken } from "@/lib/pumpfunAlphaTrendApi";
+import type { RiseMarketRow } from "@/lib/riseMarketsTypes";
 
 export const RISE_EXPERIMENT_ENTRY_SOL = 1;
 export const RISE_EXPERIMENT_START_SOL = 10;
-/** Max principal borrowed per desk (SOL) — Rise-style lever cap for the paper sim. */
 export const RISE_EXPERIMENT_MAX_BORROW_SOL = 5;
-/** Variable borrow APR used for interest accrual (simple linear rate). */
 export const RISE_EXPERIMENT_BORROW_APR = 0.14;
-/** Bump when the experiment tape source changes (v3 = RISE markets; v2/v1 included Pumpfun). */
-export const RISE_EXPERIMENT_FEED_VERSION = 3;
+/** v4 = multi-strategy matrix (8×8); v3 = two-desk ledger. */
+export const RISE_EXPERIMENT_FEED_VERSION = 4;
 export const RISE_EXPERIMENT_TAPE_SOURCE = "rise-markets" as const;
-/** Legacy browser keys — migrated once to MongoDB on first API load. */
-export const RISE_EXPERIMENT_LEGACY_STORAGE_KEY = "syra.riseExperiment.v3";
+export const RISE_EXPERIMENT_PERSONALITY_COUNT = 8;
+export const RISE_EXPERIMENT_EXIT_COUNT = 8;
+
+export const RISE_EXPERIMENT_LEGACY_STORAGE_KEY = "syra.riseExperiment.v4";
 const RISE_EXPERIMENT_LEGACY_STORAGE_KEYS = [
   "syra.riseExperiment.v1",
   "syra.riseExperiment.v2",
+  "syra.riseExperiment.v3",
   RISE_EXPERIMENT_LEGACY_STORAGE_KEY,
 ] as const;
 
-export type RiseExperimentAgentId = "universal" | "riseAlpha";
+/** Aggressive buy styles deploy more SOL per token. */
+export const RISE_PERSONALITY_ENTRY_SOL: Readonly<Record<number, number>> = {
+  0: 2.5,
+  1: 2.5,
+  2: 2,
+  4: 2,
+  5: 2.5,
+  7: 3,
+};
+
+export const SNIPER_PERSONALITY_IDS = new Set([0, 1, 2]);
+export const AGGRESSIVE_PERSONALITY_IDS = new Set([0, 1, 2, 5, 7]);
+export const AGGRESSIVE_EXIT_IDS = new Set([1, 4, 5, 6, 7]);
+
+export interface RisePersonalityMeta {
+  id: number;
+  short: string;
+  name: string;
+  description: string;
+}
+
+export interface RiseExitMeta {
+  id: number;
+  short: string;
+  name: string;
+  description: string;
+}
+
+export const RISE_PERSONALITIES: readonly RisePersonalityMeta[] = [
+  {
+    id: 0,
+    short: "R0",
+    name: "Fresh mint sniper",
+    description:
+      "Snipes brand-new RISE listings on first sight — MC $8k–$300k, launched <12h. Deploys 2.5 SOL.",
+  },
+  {
+    id: 1,
+    short: "R1",
+    name: "Rise Alpha ready",
+    description:
+      "Only agent-ready tier tokens — verified, strong alpha score, real volume. Deploys 2.5 SOL.",
+  },
+  {
+    id: 2,
+    short: "R2",
+    name: "Rise Alpha watch",
+    description: "Watch-tier RISE names with solid alpha and liquidity. Deploys 2 SOL.",
+  },
+  {
+    id: 3,
+    short: "R3",
+    name: "Micro gem",
+    description: "Market cap under $50k with minimum $2.5k 24h volume — early upside.",
+  },
+  {
+    id: 4,
+    short: "R4",
+    name: "Verified momentum",
+    description: "Verified tokens with $5k+ volume and positive 24h price action.",
+  },
+  {
+    id: 5,
+    short: "R5",
+    name: "Hot tape",
+    description: "High-activity names — $10k+ 24h volume. Deploys 2.5 SOL.",
+  },
+  {
+    id: 6,
+    short: "R6",
+    name: "Mid lane",
+    description: "Established RISE tokens between $50k and $800k market cap.",
+  },
+  {
+    id: 7,
+    short: "R7",
+    name: "Full send",
+    description: "Enters every new RISE listing with 3 SOL — maximum aggression.",
+  },
+] as const;
+
+export const RISE_EXIT_STRATEGIES: readonly RiseExitMeta[] = [
+  { id: 0, short: "E0", name: "Quick 2×", description: "Full exit at 2× — lock gains fast." },
+  { id: 1, short: "E1", name: "5× take", description: "Full exit when market cap hits 5× vs entry." },
+  { id: 2, short: "E2", name: "Scale 50 / 50", description: "Sells half at 1.5×, remainder at 3×." },
+  { id: 3, short: "E3", name: "Skim + swing", description: "Sells 10% at 1.2×, remainder at 2.5×." },
+  { id: 4, short: "E4", name: "Trailing 25%", description: "Tracks peak MC ratio, exits on 25% drawdown from peak." },
+  {
+    id: 5,
+    short: "E5",
+    name: "Rocket scale",
+    description: "20% at 3×, 30% at 10×, remainder at 50×.",
+  },
+  {
+    id: 6,
+    short: "E6",
+    name: "Super moon",
+    description: "70% off at 10×, remainder rides to 100× or −65%.",
+  },
+  {
+    id: 7,
+    short: "E7",
+    name: "Moon runner",
+    description: "After 5 days, exits at 20× or −45% — patience for parabolic moves.",
+  },
+] as const;
+
+export function cellKey(personalityId: number, exitStrategyId: number): string {
+  return `p${personalityId}_e${exitStrategyId}`;
+}
+
+export function isSniperPersonality(personalityId: number): boolean {
+  return SNIPER_PERSONALITY_IDS.has(personalityId);
+}
+
+export function entrySolForPersonality(personalityId: number): number {
+  const v = RISE_PERSONALITY_ENTRY_SOL[personalityId];
+  const size = v != null && v > 0 ? v : RISE_EXPERIMENT_ENTRY_SOL;
+  return Math.min(size, RISE_EXPERIMENT_START_SOL);
+}
+
+export function isAggressiveStrategy(personalityId: number, exitStrategyId: number): boolean {
+  return AGGRESSIVE_PERSONALITY_IDS.has(personalityId) || AGGRESSIVE_EXIT_IDS.has(exitStrategyId);
+}
 
 export interface RiseOpenPosition {
   mint: string;
   symbol: string;
   entryMc: number;
   entryAtMs: number;
+  personalityId: number;
+  exitStrategyId: number;
   solNotional: number;
-  /** SOL borrowed from Rise vault specifically to fund this clip (principal tagged per leg). */
   borrowedForLegSol: number;
   peakRatio: number;
   prevRatio: number | null;
+  exitScratch: Record<string, number>;
 }
 
 export interface RiseClosedTrade {
   closedAtMs: number;
   mint: string;
   symbol: string;
-  agentId: RiseExperimentAgentId;
+  personalityId: number;
+  exitStrategyId: number;
   reason: string;
   solIn: number;
   solOut: number;
   pnlSol: number;
-  /** Interest paid from this exit’s proceeds (SOL). */
   interestPaidSol: number;
-  /** Principal repaid to Rise from this exit (SOL). */
   principalRepaidSol: number;
 }
 
-export interface RiseAgentState {
+export interface RiseCellState {
   balanceSol: number;
   borrowedPrincipalSol: number;
   interestOwedSol: number;
@@ -58,21 +184,27 @@ export interface RiseAgentState {
 
 export interface RiseExperimentPersisted {
   v: 1;
-  /** Tape schema version — mismatch triggers a full reset on load. */
   feedVersion: number;
-  /** Origin of price/discovery tape (`rise-markets` only after v3). */
   tapeSource: typeof RISE_EXPERIMENT_TAPE_SOURCE;
   feedBootstrapped: boolean;
   seenMints: string[];
-  agents: Record<RiseExperimentAgentId, RiseAgentState>;
+  cells: Record<string, RiseCellState>;
   discoveries: Array<{ atMs: number; mint: string; symbol: string; marketCapUsd: number | null }>;
   mcByMint: Record<string, number | null>;
   lastTickMs: number | null;
 }
 
+/** @deprecated v3 agent id — kept for type migration references only. */
+export type RiseExperimentAgentId = "universal" | "riseAlpha";
+
 function safeMc(mc: number | null | undefined): number {
   if (mc == null || !Number.isFinite(mc) || mc <= 0) return 1;
   return mc;
+}
+
+function safeVol(v: number | null | undefined): number {
+  if (v == null || !Number.isFinite(v)) return 0;
+  return v;
 }
 
 export function positionMarkValueSol(pos: RiseOpenPosition, currentMc: number | null): number {
@@ -80,16 +212,16 @@ export function positionMarkValueSol(pos: RiseOpenPosition, currentMc: number | 
   return pos.solNotional * ratio;
 }
 
-export function agentEquitySol(agent: RiseAgentState, mcByMint: Record<string, number | null>): number {
+export function cellEquitySol(cell: RiseCellState, mcByMint: Record<string, number | null>): number {
   let open = 0;
-  for (const pos of agent.open) {
+  for (const pos of cell.open) {
     const mc = mcByMint[pos.mint] ?? pos.entryMc;
     open += positionMarkValueSol(pos, mc);
   }
-  return agent.balanceSol + open - agent.borrowedPrincipalSol - agent.interestOwedSol;
+  return cell.balanceSol + open - cell.borrowedPrincipalSol - cell.interestOwedSol;
 }
 
-function createEmptyAgent(): RiseAgentState {
+function createEmptyCell(): RiseCellState {
   return {
     balanceSol: RISE_EXPERIMENT_START_SOL,
     borrowedPrincipalSol: 0,
@@ -101,168 +233,359 @@ function createEmptyAgent(): RiseAgentState {
   };
 }
 
-function isValidRiseExperimentPersisted(parsed: RiseExperimentPersisted | null | undefined): parsed is RiseExperimentPersisted {
-  if (!parsed || parsed.v !== 1) return false;
-  if (parsed.feedVersion !== RISE_EXPERIMENT_FEED_VERSION) return false;
-  if (parsed.tapeSource !== RISE_EXPERIMENT_TAPE_SOURCE) return false;
-  if (!parsed.agents?.universal || !parsed.agents?.riseAlpha) return false;
-  return true;
-}
-
 export function createInitialRiseExperiment(): RiseExperimentPersisted {
+  const cells: Record<string, RiseCellState> = {};
+  for (let p = 0; p < RISE_EXPERIMENT_PERSONALITY_COUNT; p++) {
+    for (let e = 0; e < RISE_EXPERIMENT_EXIT_COUNT; e++) {
+      cells[cellKey(p, e)] = createEmptyCell();
+    }
+  }
   return {
     v: 1,
     feedVersion: RISE_EXPERIMENT_FEED_VERSION,
     tapeSource: RISE_EXPERIMENT_TAPE_SOURCE,
     feedBootstrapped: false,
     seenMints: [],
-    agents: {
-      universal: createEmptyAgent(),
-      riseAlpha: createEmptyAgent(),
-    },
+    cells,
     discoveries: [],
     mcByMint: {},
     lastTickMs: null,
   };
 }
 
-function deskHasEverTradedMint(agent: RiseAgentState, mint: string): boolean {
-  if (agent.boughtMints[mint]) return true;
-  if (agent.open.some((o) => o.mint === mint)) return true;
-  if (agent.closed.some((c) => c.mint === mint)) return true;
+function isValidRiseExperimentPersisted(parsed: RiseExperimentPersisted | null | undefined): parsed is RiseExperimentPersisted {
+  if (!parsed || parsed.v !== 1) return false;
+  if (parsed.feedVersion !== RISE_EXPERIMENT_FEED_VERSION) return false;
+  if (parsed.tapeSource !== RISE_EXPERIMENT_TAPE_SOURCE) return false;
+  if (!parsed.cells || typeof parsed.cells !== "object") return false;
+  const expected = RISE_EXPERIMENT_PERSONALITY_COUNT * RISE_EXPERIMENT_EXIT_COUNT;
+  if (Object.keys(parsed.cells).length < expected) return false;
+  return true;
+}
+
+function deskHasEverTradedMint(cell: RiseCellState, mint: string): boolean {
+  if (cell.boughtMints[mint]) return true;
+  if (cell.open.some((o) => o.mint === mint)) return true;
+  if (cell.closed.some((c) => c.mint === mint)) return true;
   return false;
 }
 
-function pushClosed(agent: RiseAgentState, trade: RiseClosedTrade, maxClosed = 300): void {
-  agent.closed.push(trade);
-  if (agent.closed.length > maxClosed) {
-    agent.closed.splice(0, agent.closed.length - maxClosed);
+function pushClosed(cell: RiseCellState, trade: RiseClosedTrade, maxClosed = 300): void {
+  cell.closed.push(trade);
+  if (cell.closed.length > maxClosed) {
+    cell.closed.splice(0, cell.closed.length - maxClosed);
   }
 }
 
-function accrueInterest(agent: RiseAgentState, nowMs: number, lastTickMs: number | null): void {
-  if (agent.borrowedPrincipalSol <= 0) return;
+function accrueInterest(cell: RiseCellState, nowMs: number, lastTickMs: number | null): void {
+  if (cell.borrowedPrincipalSol <= 0) return;
   if (lastTickMs == null || !Number.isFinite(lastTickMs)) return;
   const dt = Math.max(0, nowMs - lastTickMs);
   if (dt <= 0) return;
   const year = 365 * 24 * 60 * 60 * 1000;
-  agent.interestOwedSol += agent.borrowedPrincipalSol * RISE_EXPERIMENT_BORROW_APR * (dt / year);
+  cell.interestOwedSol += cell.borrowedPrincipalSol * RISE_EXPERIMENT_BORROW_APR * (dt / year);
 }
 
-function settleDebtFromProceeds(agent: RiseAgentState, grossProceeds: number): { netToBalance: number; interestPaid: number; principalRepaid: number } {
+function settleDebtFromProceeds(
+  cell: RiseCellState,
+  grossProceeds: number,
+): { netToBalance: number; interestPaid: number; principalRepaid: number } {
   let pool = grossProceeds;
-  const interestPaid = Math.min(pool, agent.interestOwedSol);
+  const interestPaid = Math.min(pool, cell.interestOwedSol);
   pool -= interestPaid;
-  agent.interestOwedSol -= interestPaid;
-  agent.interestPaidAllTimeSol += interestPaid;
+  cell.interestOwedSol -= interestPaid;
+  cell.interestPaidAllTimeSol += interestPaid;
 
-  const principalRepaid = Math.min(pool, agent.borrowedPrincipalSol);
+  const principalRepaid = Math.min(pool, cell.borrowedPrincipalSol);
   pool -= principalRepaid;
-  agent.borrowedPrincipalSol -= principalRepaid;
+  cell.borrowedPrincipalSol -= principalRepaid;
 
   return { netToBalance: pool, interestPaid, principalRepaid };
 }
 
-/** Sniper exits: +100% take profit, −28% hard stop (paper). */
-function applySniperExit(pos: RiseOpenPosition, ratio: number, nowMs: number): "hold" | "close" {
-  if (ratio >= 2) return "close";
-  if (ratio <= 0.72) return "close";
-  if (pos.prevRatio != null && ratio < pos.prevRatio * 0.985 && ratio > 1.08) return "close";
-  void nowMs;
-  return "hold";
+export interface RiseEntryContext {
+  nowMs: number;
+  newDiscoveryMints: ReadonlySet<string>;
+  riseReadyMints: ReadonlySet<string>;
+  riseWatchMints: ReadonlySet<string>;
+  marketByMint: ReadonlyMap<string, RiseMarketRow>;
 }
 
-function runExitPass(
-  agent: RiseAgentState,
-  tokenByMint: Map<string, PumpfunAlphaTrendToken>,
-  mcByMint: Record<string, number | null>,
-  nowMs: number,
-  agentId: RiseExperimentAgentId,
-): void {
-  const nextOpen: RiseOpenPosition[] = [];
+const FRESH_MINT_MAX_AGE_MS = 12 * 60 * 60 * 1000;
 
-  for (let pos of agent.open) {
-    const live = tokenByMint.get(pos.mint);
-    const currentMc = live?.marketCapUsd ?? mcByMint[pos.mint] ?? pos.entryMc;
-    const ratio = safeMc(currentMc) / pos.entryMc;
-    if (ratio > pos.peakRatio) pos.peakRatio = ratio;
+function hasRecentLaunch(createdMs: number | null, nowMs: number, maxAgeMs: number): boolean {
+  return createdMs != null && nowMs - createdMs <= maxAgeMs;
+}
 
-    const decision = applySniperExit(pos, ratio, nowMs);
-    pos.prevRatio = ratio;
+function parseCreatedMs(row: RiseMarketRow | undefined, token: PumpfunAlphaTrendToken): number | null {
+  if (row?.createdAt) {
+    const ms = Date.parse(row.createdAt);
+    if (Number.isFinite(ms)) return ms;
+  }
+  return token.anchorTsMs ?? null;
+}
 
-    if (decision === "close") {
-      const gross = pos.solNotional * ratio;
-      const { netToBalance, interestPaid, principalRepaid } = settleDebtFromProceeds(agent, gross);
-      agent.balanceSol += netToBalance;
-      const pnl = gross - pos.solNotional;
-      let reason = "Sniper exit";
-      if (ratio >= 2) reason = "Take profit 2×";
-      else if (ratio <= 0.72) reason = "Stop −28%";
-      else reason = "Momentum fade";
+export function personalityAllowsEntry(
+  personalityId: number,
+  token: PumpfunAlphaTrendToken,
+  ctx: RiseEntryContext,
+): boolean {
+  const row = ctx.marketByMint.get(token.mint);
+  const mc = token.marketCapUsd;
+  const vol = safeVol(row?.volume24hUsd);
+  const createdMs = parseCreatedMs(row, token);
 
-      pushClosed(agent, {
-        closedAtMs: nowMs,
-        mint: pos.mint,
-        symbol: pos.symbol,
-        agentId,
-        reason,
-        solIn: pos.solNotional,
-        solOut: gross,
-        pnlSol: pnl,
-        interestPaidSol: interestPaid,
-        principalRepaidSol: principalRepaid,
-      });
-      continue;
+  switch (personalityId) {
+    case 0:
+      return (
+        ctx.newDiscoveryMints.has(token.mint) &&
+        hasRecentLaunch(createdMs, ctx.nowMs, FRESH_MINT_MAX_AGE_MS) &&
+        mc != null &&
+        mc >= 8_000 &&
+        mc <= 300_000 &&
+        vol >= 1_500
+      );
+    case 1:
+      return ctx.riseReadyMints.has(token.mint);
+    case 2:
+      return ctx.riseWatchMints.has(token.mint);
+    case 3:
+      return mc != null && mc < 50_000 && vol >= 2_500;
+    case 4:
+      return (
+        row?.isVerified === true &&
+        vol >= 5_000 &&
+        (row.priceChange24hPct ?? 0) > 0
+      );
+    case 5:
+      return vol >= 10_000;
+    case 6:
+      return mc != null && mc >= 50_000 && mc <= 800_000;
+    case 7:
+      return ctx.newDiscoveryMints.has(token.mint);
+    default:
+      return false;
+  }
+}
+
+function applyExitStrategy(args: {
+  pos: RiseOpenPosition;
+  ratio: number;
+  nowMs: number;
+  onFullClose: (reason: string) => void;
+  onPartial: (fraction: number, reason: string) => void;
+}): RiseOpenPosition {
+  const { pos, ratio, nowMs, onFullClose, onPartial } = args;
+  const s = pos.exitScratch;
+  const heldMs = nowMs - pos.entryAtMs;
+
+  const sellFrac = (fraction: number, reason: string) => {
+    if (fraction <= 0 || pos.solNotional <= 0) return;
+    onPartial(Math.min(1, fraction), reason);
+  };
+
+  switch (pos.exitStrategyId) {
+    case 0:
+      if (ratio >= 2) onFullClose("Quick 2× take profit");
+      else if (ratio <= 0.75) onFullClose("Quick 2× stop −25%");
+      break;
+    case 1:
+      if (ratio >= 5) onFullClose("Take profit 5×");
+      else if (ratio <= 0.65) onFullClose("Stop −35%");
+      break;
+    case 2: {
+      const leg1 = s.l1 ?? 0;
+      if (leg1 < 1 && ratio >= 1.5) {
+        s.l1 = 1;
+        sellFrac(0.5, "Partial 1.5× (50%)");
+      }
+      if ((s.l1 ?? 0) >= 1 && ratio >= 3) onFullClose("Final 3×");
+      else if (ratio <= 0.7) onFullClose("Scale stop −30%");
+      break;
     }
-
-    nextOpen.push(pos);
+    case 3: {
+      const skim = s.skim ?? 0;
+      if (skim < 1 && ratio >= 1.2) {
+        s.skim = 1;
+        sellFrac(0.1, "Skim 10% @1.2×");
+      }
+      if ((s.skim ?? 0) >= 1 && ratio >= 2.5) onFullClose("Swing 2.5×");
+      else if (ratio <= 0.72) onFullClose("Skim stop −28%");
+      break;
+    }
+    case 4: {
+      if (ratio > pos.peakRatio) pos.peakRatio = ratio;
+      if (pos.peakRatio >= 1.08 && ratio <= pos.peakRatio * 0.75) onFullClose("Trailing 25% off peak");
+      else if (ratio <= 0.68) onFullClose("Trailing stop −32%");
+      break;
+    }
+    case 5: {
+      const r3 = s.r3 ?? 0;
+      const r10 = s.r10 ?? 0;
+      if (r3 < 1 && ratio >= 3) {
+        s.r3 = 1;
+        sellFrac(0.2, "Rocket scale 20% @3×");
+      }
+      if (r3 >= 1 && r10 < 1 && ratio >= 10) {
+        s.r10 = 1;
+        sellFrac(0.3, "Rocket scale 30% @10×");
+      }
+      if (r10 >= 1 && ratio >= 50) onFullClose("Rocket scale 50× (rest)");
+      else if (ratio <= 0.55) onFullClose("Rocket stop −45%");
+      break;
+    }
+    case 6: {
+      const moon = s.moon ?? 0;
+      if (moon < 1 && ratio >= 10) {
+        s.moon = 1;
+        sellFrac(0.7, "Super moon 70% @10×");
+      }
+      if ((s.moon ?? 0) >= 1) {
+        if (ratio >= 100) onFullClose("Super moon 100×");
+        if (ratio <= 0.35) onFullClose("Super moon stop −65%");
+      } else if (ratio <= 0.6) {
+        onFullClose("Super moon stop −40%");
+      }
+      break;
+    }
+    case 7:
+      if (heldMs >= 5 * 24 * 60 * 60 * 1000) {
+        if (ratio >= 20) onFullClose("Moon runner 20×");
+        else if (ratio <= 0.55) onFullClose("Moon runner −45%");
+      } else if (ratio <= 0.6) {
+        onFullClose("Moon runner early stop −40%");
+      }
+      break;
+    default:
+      break;
   }
 
-  agent.open = nextOpen;
+  pos.prevRatio = ratio;
+  return pos;
 }
 
-function maybeBorrowForEntry(agent: RiseAgentState, entrySol: number): { borrowed: number } {
-  if (agent.balanceSol >= entrySol) return { borrowed: 0 };
-  const shortfall = entrySol - agent.balanceSol;
-  const room = Math.max(0, RISE_EXPERIMENT_MAX_BORROW_SOL - agent.borrowedPrincipalSol);
+function maybeBorrowForEntry(cell: RiseCellState, entrySol: number): { borrowed: number } {
+  if (cell.balanceSol >= entrySol) return { borrowed: 0 };
+  const shortfall = entrySol - cell.balanceSol;
+  const room = Math.max(0, RISE_EXPERIMENT_MAX_BORROW_SOL - cell.borrowedPrincipalSol);
   const borrowed = Math.min(shortfall, room);
   if (borrowed <= 0) return { borrowed: 0 };
-  agent.borrowedPrincipalSol += borrowed;
-  agent.balanceSol += borrowed;
+  cell.borrowedPrincipalSol += borrowed;
+  cell.balanceSol += borrowed;
   return { borrowed };
 }
 
-function tryOpenOnToken(args: {
-  agent: RiseAgentState;
+function runExitPassOnCells(
+  cells: Record<string, RiseCellState>,
+  tokenByMint: Map<string, PumpfunAlphaTrendToken>,
+  mcByMint: Record<string, number | null>,
+  nowMs: number,
+): void {
+  for (const cell of Object.values(cells)) {
+    const nextOpen: RiseOpenPosition[] = [];
+
+    for (let pos of cell.open) {
+      const live = tokenByMint.get(pos.mint);
+      const currentMc = live?.marketCapUsd ?? mcByMint[pos.mint] ?? pos.entryMc;
+      const ratio = safeMc(currentMc) / pos.entryMc;
+      if (ratio > pos.peakRatio) pos.peakRatio = ratio;
+
+      let alive = true;
+
+      const closeFull = (reason: string) => {
+        const gross = pos.solNotional * ratio;
+        const { netToBalance, interestPaid, principalRepaid } = settleDebtFromProceeds(cell, gross);
+        cell.balanceSol += netToBalance;
+        pushClosed(cell, {
+          closedAtMs: nowMs,
+          mint: pos.mint,
+          symbol: pos.symbol,
+          personalityId: pos.personalityId,
+          exitStrategyId: pos.exitStrategyId,
+          reason,
+          solIn: pos.solNotional,
+          solOut: gross,
+          pnlSol: gross - pos.solNotional,
+          interestPaidSol: interestPaid,
+          principalRepaidSol: principalRepaid,
+        });
+        alive = false;
+      };
+
+      const partial = (fraction: number, reason: string) => {
+        const f = Math.min(1, Math.max(0, fraction));
+        if (f <= 0 || pos.solNotional <= 0) return;
+        const chunk = pos.solNotional * f;
+        const gross = chunk * ratio;
+        const { netToBalance, interestPaid, principalRepaid } = settleDebtFromProceeds(cell, gross);
+        cell.balanceSol += netToBalance;
+        pos.solNotional -= chunk;
+        pushClosed(cell, {
+          closedAtMs: nowMs,
+          mint: pos.mint,
+          symbol: pos.symbol,
+          personalityId: pos.personalityId,
+          exitStrategyId: pos.exitStrategyId,
+          reason,
+          solIn: chunk,
+          solOut: gross,
+          pnlSol: gross - chunk,
+          interestPaidSol: interestPaid,
+          principalRepaidSol: principalRepaid,
+        });
+      };
+
+      pos = applyExitStrategy({
+        pos,
+        ratio,
+        nowMs,
+        onFullClose: closeFull,
+        onPartial: partial,
+      });
+
+      if (alive && pos.solNotional > 1e-9) {
+        nextOpen.push(pos);
+      }
+    }
+
+    cell.open = nextOpen;
+  }
+}
+
+function tryOpenOnCell(args: {
+  cell: RiseCellState;
   token: PumpfunAlphaTrendToken;
   nowMs: number;
-  allow: boolean;
+  personalityId: number;
+  exitStrategyId: number;
   mcByMint: Record<string, number | null>;
 }): void {
-  const { agent, token, nowMs, allow, mcByMint } = args;
-  if (!allow) return;
-  if (deskHasEverTradedMint(agent, token.mint)) return;
-  if (agent.balanceSol < RISE_EXPERIMENT_ENTRY_SOL) {
-    const eq = agentEquitySol(agent, mcByMint);
-    if (eq < RISE_EXPERIMENT_ENTRY_SOL * 1.2) return;
+  const { cell, token, nowMs, personalityId, exitStrategyId, mcByMint } = args;
+  if (deskHasEverTradedMint(cell, token.mint)) return;
+
+  const entrySol = entrySolForPersonality(personalityId);
+  if (cell.balanceSol < entrySol) {
+    const eq = cellEquitySol(cell, mcByMint);
+    if (eq < entrySol * 1.15) return;
   }
 
-  const borrowedBefore = maybeBorrowForEntry(agent, RISE_EXPERIMENT_ENTRY_SOL);
-  if (agent.balanceSol < RISE_EXPERIMENT_ENTRY_SOL) return;
+  const borrowedBefore = maybeBorrowForEntry(cell, entrySol);
+  if (cell.balanceSol < entrySol) return;
 
-  agent.boughtMints = { ...agent.boughtMints, [token.mint]: true };
-  agent.balanceSol -= RISE_EXPERIMENT_ENTRY_SOL;
-  const entryMc = safeMc(token.marketCapUsd);
-  const borrowedForLegSol = borrowedBefore.borrowed;
-  agent.open.push({
+  cell.boughtMints = { ...cell.boughtMints, [token.mint]: true };
+  cell.balanceSol -= entrySol;
+  cell.open.push({
     mint: token.mint,
     symbol: token.symbol,
-    entryMc,
+    entryMc: safeMc(token.marketCapUsd),
     entryAtMs: nowMs,
-    solNotional: RISE_EXPERIMENT_ENTRY_SOL,
-    borrowedForLegSol,
+    personalityId,
+    exitStrategyId,
+    solNotional: entrySol,
+    borrowedForLegSol: borrowedBefore.borrowed,
     peakRatio: 1,
     prevRatio: null,
+    exitScratch: {},
   });
 }
 
@@ -270,45 +593,39 @@ export interface ProcessRiseTickInput {
   persisted: RiseExperimentPersisted;
   tokens: readonly PumpfunAlphaTrendToken[];
   nowMs: number;
-  riseAlphaMintTargets: ReadonlySet<string>;
+  entryCtx: RiseEntryContext;
 }
 
 export function processRiseExperimentTick(input: ProcessRiseTickInput): RiseExperimentPersisted {
-  const { tokens, nowMs, riseAlphaMintTargets } = input;
+  const { tokens, nowMs, entryCtx } = input;
   const persisted: RiseExperimentPersisted = {
     v: 1,
     feedVersion: RISE_EXPERIMENT_FEED_VERSION,
     tapeSource: RISE_EXPERIMENT_TAPE_SOURCE,
     feedBootstrapped: input.persisted.feedBootstrapped,
     seenMints: [...input.persisted.seenMints],
-    agents: {
-      universal: {
-        balanceSol: input.persisted.agents.universal.balanceSol,
-        borrowedPrincipalSol: input.persisted.agents.universal.borrowedPrincipalSol,
-        interestOwedSol: input.persisted.agents.universal.interestOwedSol,
-        interestPaidAllTimeSol: input.persisted.agents.universal.interestPaidAllTimeSol,
-        open: input.persisted.agents.universal.open.map((o) => ({ ...o })),
-        closed: [...input.persisted.agents.universal.closed],
-        boughtMints: { ...input.persisted.agents.universal.boughtMints },
-      },
-      riseAlpha: {
-        balanceSol: input.persisted.agents.riseAlpha.balanceSol,
-        borrowedPrincipalSol: input.persisted.agents.riseAlpha.borrowedPrincipalSol,
-        interestOwedSol: input.persisted.agents.riseAlpha.interestOwedSol,
-        interestPaidAllTimeSol: input.persisted.agents.riseAlpha.interestPaidAllTimeSol,
-        open: input.persisted.agents.riseAlpha.open.map((o) => ({ ...o })),
-        closed: [...input.persisted.agents.riseAlpha.closed],
-        boughtMints: { ...input.persisted.agents.riseAlpha.boughtMints },
-      },
-    },
+    cells: {},
     discoveries: [...input.persisted.discoveries],
     mcByMint: { ...input.persisted.mcByMint },
     lastTickMs: nowMs,
   };
 
+  for (const [k, cell] of Object.entries(input.persisted.cells)) {
+    persisted.cells[k] = {
+      balanceSol: cell.balanceSol,
+      borrowedPrincipalSol: cell.borrowedPrincipalSol,
+      interestOwedSol: cell.interestOwedSol,
+      interestPaidAllTimeSol: cell.interestPaidAllTimeSol,
+      open: cell.open.map((o) => ({ ...o, exitScratch: { ...o.exitScratch } })),
+      closed: [...cell.closed],
+      boughtMints: { ...(cell.boughtMints ?? {}) },
+    };
+  }
+
   const lastTick = input.persisted.lastTickMs;
-  accrueInterest(persisted.agents.universal, nowMs, lastTick);
-  accrueInterest(persisted.agents.riseAlpha, nowMs, lastTick);
+  for (const cell of Object.values(persisted.cells)) {
+    accrueInterest(cell, nowMs, lastTick);
+  }
 
   const tokenByMint = new Map(tokens.map((t) => [t.mint, t] as const));
   for (const t of tokens) {
@@ -339,8 +656,7 @@ export function processRiseExperimentTick(input: ProcessRiseTickInput): RiseExpe
     persisted.feedBootstrapped = true;
     persisted.seenMints = Array.from(seen);
     seedDiscoveriesFromTape(tokens);
-    runExitPass(persisted.agents.universal, tokenByMint, persisted.mcByMint, nowMs, "universal");
-    runExitPass(persisted.agents.riseAlpha, tokenByMint, persisted.mcByMint, nowMs, "riseAlpha");
+    runExitPassOnCells(persisted.cells, tokenByMint, persisted.mcByMint, nowMs);
     return persisted;
   }
 
@@ -348,8 +664,7 @@ export function processRiseExperimentTick(input: ProcessRiseTickInput): RiseExpe
     seedDiscoveriesFromTape(tokens);
   }
 
-  runExitPass(persisted.agents.universal, tokenByMint, persisted.mcByMint, nowMs, "universal");
-  runExitPass(persisted.agents.riseAlpha, tokenByMint, persisted.mcByMint, nowMs, "riseAlpha");
+  runExitPassOnCells(persisted.cells, tokenByMint, persisted.mcByMint, nowMs);
 
   for (const t of newTokens) {
     persisted.discoveries.unshift({
@@ -363,48 +678,48 @@ export function processRiseExperimentTick(input: ProcessRiseTickInput): RiseExpe
   persisted.seenMints = Array.from(seen);
 
   for (const t of newTokens) {
-    tryOpenOnToken({
-      agent: persisted.agents.universal,
-      token: t,
-      nowMs,
-      allow: true,
-      mcByMint: persisted.mcByMint,
-    });
-    tryOpenOnToken({
-      agent: persisted.agents.riseAlpha,
-      token: t,
-      nowMs,
-      allow: riseAlphaMintTargets.has(t.mint),
-      mcByMint: persisted.mcByMint,
-    });
+    for (let p = 0; p < RISE_EXPERIMENT_PERSONALITY_COUNT; p++) {
+      if (!personalityAllowsEntry(p, t, entryCtx)) continue;
+      for (let e = 0; e < RISE_EXPERIMENT_EXIT_COUNT; e++) {
+        const key = cellKey(p, e);
+        const cell = persisted.cells[key];
+        if (!cell) continue;
+        tryOpenOnCell({
+          cell,
+          token: t,
+          nowMs,
+          personalityId: p,
+          exitStrategyId: e,
+          mcByMint: persisted.mcByMint,
+        });
+      }
+    }
   }
 
-  runExitPass(persisted.agents.universal, tokenByMint, persisted.mcByMint, nowMs, "universal");
-  runExitPass(persisted.agents.riseAlpha, tokenByMint, persisted.mcByMint, nowMs, "riseAlpha");
-
+  runExitPassOnCells(persisted.cells, tokenByMint, persisted.mcByMint, nowMs);
   return persisted;
 }
 
-function normalizeAgent(agent: RiseAgentState, fallback: RiseAgentState): RiseAgentState {
-  if (!Array.isArray(agent.open)) agent.open = [];
-  if (!Array.isArray(agent.closed)) agent.closed = [];
-  if (!agent.boughtMints || typeof agent.boughtMints !== "object") agent.boughtMints = {};
-  if (typeof agent.borrowedPrincipalSol !== "number") agent.borrowedPrincipalSol = 0;
-  if (typeof agent.interestOwedSol !== "number") agent.interestOwedSol = 0;
-  if (typeof agent.interestPaidAllTimeSol !== "number") agent.interestPaidAllTimeSol = 0;
-  if (typeof agent.balanceSol !== "number" || !Number.isFinite(agent.balanceSol)) {
-    agent.balanceSol = fallback.balanceSol;
+function normalizeCell(cell: RiseCellState, fallback: RiseCellState): RiseCellState {
+  if (!Array.isArray(cell.open)) cell.open = [];
+  if (!Array.isArray(cell.closed)) cell.closed = [];
+  if (!cell.boughtMints || typeof cell.boughtMints !== "object") cell.boughtMints = {};
+  if (typeof cell.borrowedPrincipalSol !== "number") cell.borrowedPrincipalSol = 0;
+  if (typeof cell.interestOwedSol !== "number") cell.interestOwedSol = 0;
+  if (typeof cell.interestPaidAllTimeSol !== "number") cell.interestPaidAllTimeSol = 0;
+  if (typeof cell.balanceSol !== "number" || !Number.isFinite(cell.balanceSol)) {
+    cell.balanceSol = fallback.balanceSol;
   }
-  for (const o of agent.open) {
-    agent.boughtMints[o.mint] = true;
+  for (const o of cell.open) {
+    if (!o.exitScratch || typeof o.exitScratch !== "object") o.exitScratch = {};
+    cell.boughtMints[o.mint] = true;
   }
-  for (const c of agent.closed) {
-    agent.boughtMints[c.mint] = true;
+  for (const c of cell.closed) {
+    cell.boughtMints[c.mint] = true;
   }
-  return agent;
+  return cell;
 }
 
-/** Normalize ledger from API / migration payload. */
 export function normalizeRiseLedger(raw: unknown): RiseExperimentPersisted {
   const fresh = createInitialRiseExperiment();
   const parsed = raw as RiseExperimentPersisted | null | undefined;
@@ -412,8 +727,15 @@ export function normalizeRiseLedger(raw: unknown): RiseExperimentPersisted {
     return fresh;
   }
 
-  for (const id of ["universal", "riseAlpha"] as const) {
-    parsed.agents[id] = normalizeAgent(parsed.agents[id], fresh.agents[id]);
+  for (const [k, cell] of Object.entries(parsed.cells)) {
+    parsed.cells[k] = normalizeCell(cell, fresh.cells[k] ?? createEmptyCell());
+  }
+
+  for (let p = 0; p < RISE_EXPERIMENT_PERSONALITY_COUNT; p++) {
+    for (let e = 0; e < RISE_EXPERIMENT_EXIT_COUNT; e++) {
+      const k = cellKey(p, e);
+      if (!parsed.cells[k]) parsed.cells[k] = createEmptyCell();
+    }
   }
 
   if (typeof parsed.feedBootstrapped !== "boolean") parsed.feedBootstrapped = false;
@@ -428,7 +750,11 @@ export function normalizeRiseLedger(raw: unknown): RiseExperimentPersisted {
   return parsed;
 }
 
-/** One-time read of legacy localStorage ledger (caller should persist to API and remove keys). */
+/** @deprecated Use cellEquitySol — kept for dashboard migration. */
+export function agentEquitySol(cell: RiseCellState, mcByMint: Record<string, number | null>): number {
+  return cellEquitySol(cell, mcByMint);
+}
+
 export function readLegacyRiseExperimentFromLocalStorage(): RiseExperimentPersisted | null {
   if (typeof window === "undefined") return null;
   for (const key of RISE_EXPERIMENT_LEGACY_STORAGE_KEYS) {

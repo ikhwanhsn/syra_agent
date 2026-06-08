@@ -17,7 +17,8 @@ export function PostRecordStage({ children, showGuides }: PostRecordStageProps) 
         )}
         aria-hidden={!showGuides}
       >
-        Record area · 16∶9 · crop screen capture to the frame below
+        <span className="hidden sm:inline">Record area · 16∶9 · crop screen capture to the frame below</span>
+        <span className="sm:hidden">16∶9 record frame</span>
       </p>
 
       <div className="post-record-stage">

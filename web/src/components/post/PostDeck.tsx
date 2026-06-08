@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { ACTIVE_POST, POST_SLIDE_COUNT } from "@/content/posts";
 import { PostSlideView } from "@/components/post/PostSlideView";
 import { PostRecordStage } from "@/components/post/PostRecordStage";
+import { PostShareCopyPanel } from "@/components/post/PostShareCopyPanel";
 import { cn } from "@/lib/utils";
-import { Pause, Play, RotateCcw } from "lucide-react";
+import { ImageIcon, Pause, Play, RotateCcw, Video } from "lucide-react";
 
 /** Time each slide stays visible (tuned for entrance animations). */
 const SLIDE_INTERVAL_MS = 5200;
@@ -75,69 +77,90 @@ export function PostDeck() {
   return (
     <div
       ref={containerRef}
-      className="post-root relative flex min-h-[100dvh] flex-col overflow-hidden bg-[#030303] text-white"
+      className="post-root relative flex min-h-[100dvh] w-full min-w-0 flex-col overflow-x-hidden bg-[#030303] text-white"
     >
-      <header className="relative z-20 flex shrink-0 items-center justify-between gap-3 px-5 py-4 sm:px-8">
-        <div className="flex items-center gap-3">
+      <header className="post-chrome-header relative z-20 flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 px-3 py-3 sm:px-6 sm:py-4 md:px-8">
+        <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
           <img
             src="/images/logo.jpg"
             alt=""
-            className="h-8 w-8 rounded-lg border border-white/10 object-cover"
+            className="h-7 w-7 shrink-0 rounded-lg border border-white/10 object-cover sm:h-8 sm:w-8"
           />
-          <div>
+          <div className="min-w-0">
             <span className="font-display text-sm font-medium tracking-tight text-white/90">Syra</span>
-            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/35">{meta.published}</p>
+            <p className="truncate font-mono text-[10px] uppercase tracking-[0.16em] text-white/35">
+              {meta.published} · Video
+            </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+          <nav className="post-photo-mode-nav flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] p-0.5">
+            <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[#F3BA2F]/15 px-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-[#F3BA2F] sm:px-3">
+              <Video className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Video</span>
+            </span>
+            <Link
+              to="/post/photo"
+              className="inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-white/45 transition-colors hover:text-white/70 sm:px-3"
+            >
+              <ImageIcon className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Photo</span>
+            </Link>
+          </nav>
+
+          <PostShareCopyPanel meta={meta} format="video" />
+
           <button
             type="button"
             onClick={() => setShowGuides((v) => !v)}
             className={cn(
-              "inline-flex h-9 items-center rounded-full border px-3 font-mono text-[10px] uppercase tracking-[0.12em] transition-colors",
+              "inline-flex h-9 items-center rounded-full border px-2.5 font-mono text-[10px] uppercase tracking-[0.12em] transition-colors sm:px-3",
               showGuides
                 ? "border-[#F3BA2F]/25 bg-[#F3BA2F]/10 text-[#F3BA2F]/80"
                 : "border-white/10 bg-white/5 text-white/45 hover:text-white/70",
             )}
             aria-pressed={showGuides}
+            aria-label={showGuides ? "Hide 16:9 frame guides" : "Show 16:9 frame guides"}
           >
-            Frame
+            <span className="hidden sm:inline">Frame</span>
+            <span className="sm:hidden">16:9</span>
           </button>
           {finished ? (
             <button
               type="button"
               onClick={replay}
-              className="inline-flex h-10 items-center gap-2 rounded-full border border-[#F3BA2F]/25 bg-[#F3BA2F]/10 px-4 font-mono text-[10px] uppercase tracking-[0.14em] text-[#F3BA2F] transition-colors hover:bg-[#F3BA2F]/20"
+              className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[#F3BA2F]/25 bg-[#F3BA2F]/10 px-3 font-mono text-[10px] uppercase tracking-[0.14em] text-[#F3BA2F] transition-colors hover:bg-[#F3BA2F]/20 sm:h-10 sm:gap-2 sm:px-4"
+              aria-label="Replay slideshow"
             >
-              <RotateCcw className="h-4 w-4" />
-              Replay
+              <RotateCcw className="h-4 w-4 shrink-0" />
+              <span className="hidden sm:inline">Replay</span>
             </button>
           ) : isPlaying ? (
             <button
               type="button"
               onClick={pausePlayback}
-              className="inline-flex h-10 items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 font-mono text-[10px] uppercase tracking-[0.14em] text-white/80 transition-colors hover:bg-white/15"
+              className="inline-flex h-9 items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 font-mono text-[10px] uppercase tracking-[0.14em] text-white/80 transition-colors hover:bg-white/15 sm:h-10 sm:gap-2 sm:px-4"
               aria-label="Pause playback"
             >
-              <Pause className="h-4 w-4" />
-              Pause
+              <Pause className="h-4 w-4 shrink-0" />
+              <span className="hidden sm:inline">Pause</span>
             </button>
           ) : (
             <button
               type="button"
               onClick={startPlayback}
-              className="post-play-btn inline-flex h-10 items-center gap-2 rounded-full border border-[#F3BA2F]/30 bg-[#F3BA2F]/15 px-5 font-mono text-[10px] uppercase tracking-[0.14em] text-[#F3BA2F] transition-colors hover:bg-[#F3BA2F]/25"
+              className="post-play-btn inline-flex h-9 items-center gap-1.5 rounded-full border border-[#F3BA2F]/30 bg-[#F3BA2F]/15 px-3.5 font-mono text-[10px] uppercase tracking-[0.14em] text-[#F3BA2F] transition-colors hover:bg-[#F3BA2F]/25 sm:h-10 sm:gap-2 sm:px-5"
               aria-label="Play slideshow"
             >
-              <Play className="h-4 w-4 fill-current" />
-              Play
+              <Play className="h-4 w-4 shrink-0 fill-current" />
+              <span className="hidden sm:inline">Play</span>
             </button>
           )}
         </div>
       </header>
 
-      <div className="relative z-10 flex min-h-0 flex-1 items-center justify-center px-4 py-3 sm:px-6">
+      <div className="post-chrome-stage relative z-10 flex min-h-0 w-full min-w-0 flex-1 items-center justify-center px-2 py-2 sm:px-4 sm:py-3 md:px-6">
         <PostRecordStage showGuides={showGuides}>
           {slides.map((slide, slideIndex) => (
             <PostSlideView
@@ -150,9 +173,9 @@ export function PostDeck() {
         </PostRecordStage>
       </div>
 
-      <footer className="relative z-20 shrink-0 px-5 pb-6 pt-2 sm:px-8 sm:pb-8">
-        <div className="flex items-center gap-4">
-          <div className="post-progress-track relative h-1 flex-1 overflow-hidden rounded-full">
+      <footer className="post-chrome-footer relative z-20 shrink-0 px-3 pb-[max(1rem,env(safe-area-inset-bottom,0px))] pt-2 sm:px-6 sm:pb-6 md:px-8 md:pb-8">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <div className="post-progress-track relative h-1 min-w-0 flex-1 overflow-hidden rounded-full">
             <div
               className="post-progress-fill h-full rounded-full transition-[width] duration-700 ease-out"
               style={{ width: `${progress}%` }}
@@ -166,11 +189,11 @@ export function PostDeck() {
               />
             ) : null}
           </div>
-          <p className="font-mono text-xs tabular-nums text-white/45">
+          <p className="shrink-0 font-mono text-[11px] tabular-nums text-white/45 sm:text-xs">
             {String(index + 1).padStart(2, "0")} / {String(POST_SLIDE_COUNT).padStart(2, "0")}
           </p>
         </div>
-        <p className="post-footer-hint mt-3 text-center font-mono text-[10px] text-white/30">
+        <p className="post-footer-hint mt-2 hidden text-center font-mono text-[10px] text-white/30 sm:mt-3 sm:block">
           Hit Play to auto-advance slides for screen recording
         </p>
       </footer>

@@ -14,10 +14,9 @@ import {
   UsersRound,
   Wallet,
 } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -26,31 +25,29 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { cn } from "@/lib/utils";
 import { DASHBOARD_CONTENT_SHELL, PAGE_PADDING_TOP_MEDIUM, PAGE_SAFE_AREA_BOTTOM } from "@/lib/layoutConstants";
 import { formatCompactUsd, formatSol } from "@/lib/dashboardOverviewAggregates";
-import { fetchPartnershipScoutLatest, fetchTrendScoutLatest } from "@/lib/internalTeamAgentsApi";
+import { fetchGrowthScoutLatest, fetchPartnershipScoutLatest, fetchTrendScoutLatest } from "@/lib/internalTeamAgentsApi";
 import { useQueries } from "@tanstack/react-query";
 import { OverviewStatCard } from "@/components/dashboard/overview/OverviewStatCard";
 import { OverviewGroupLabel } from "@/components/dashboard/overview/OverviewGroupLabel";
 import { OverviewPageBackdrop } from "@/components/dashboard/overview/OverviewPageBackdrop";
-import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
-import { UserOverviewConnectHero, UserOverviewHero } from "@/components/dashboard/overview/UserOverviewHero";
+import { OverviewTreasuryAllocationChart } from "@/components/dashboard/overview/OverviewTreasuryAllocationChart";
+import { OverviewTradingAnalyticsPanel } from "@/components/dashboard/overview/OverviewTradingAnalyticsPanel";
+import { OverviewLpAnalyticsPanel } from "@/components/dashboard/overview/OverviewLpAnalyticsPanel";
+import { overviewCardShell, overviewKickerClass } from "@/components/dashboard/overview/overviewStyles";
+import { UserOverviewConnectHero } from "@/components/dashboard/overview/UserOverviewHero";
+import { OverviewPortfolioCommandBar } from "@/components/dashboard/overview/OverviewPortfolioCommandBar";
 import { TreasurySplitCardGrid } from "@/components/dashboard/overview/TreasurySplitCard";
 import { useWalletContext } from "@/contexts/WalletContext";
 import { useConnectModal } from "@/contexts/ConnectModalContext";
 import { isInternalTeamMonitorWallet } from "@/constants/internalTeamMonitorWallet";
 import { INTERNAL_AGENTS } from "@/lib/internalAgentsCatalog";
 import { useUserDashboardOverview } from "@/hooks/useUserDashboardOverview";
-import { AnimatedMetric } from "@/components/assets/AnimatedMetric";
+import { useTreasuryBalanceChange } from "@/hooks/useTreasuryBalanceChange";
 
 const STALE_MS = 45_000;
-
-const wlChartConfig = {
-  wins: { label: "Wins", color: "hsl(var(--foreground))" },
-  losses: { label: "Losses", color: "hsl(var(--destructive) / 0.65)" },
-} satisfies ChartConfig;
 
 export interface DashboardOverviewProps {
   embedded?: boolean;
@@ -61,6 +58,22 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
   const { openConnectModal } = useConnectModal();
   const showInternal = isInternalTeamMonitorWallet(address);
   const overview = useUserDashboardOverview();
+  const balanceChanges = useTreasuryBalanceChange(
+    overview.address,
+    {
+      userUsdc: overview.treasury.userUsdc,
+      userSol: overview.treasury.userSol,
+      chatUsdc: overview.treasury.chatUsdc,
+      chatSol: overview.treasury.chatSol,
+      lpUsdc: overview.treasury.lpUsdc,
+      lpSol: overview.treasury.lpSol,
+      totalUsd: overview.treasury.totalUsd,
+      totalUsdc: overview.treasury.totalUsdc,
+      agentUsdc: overview.treasury.agentUsdc,
+      solPriceUsd: overview.treasury.solPriceUsd,
+    },
+    overview.balancesLoading,
+  );
 
   const internalQueries = useQueries({
     queries: [
@@ -76,15 +89,21 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
         staleTime: STALE_MS,
         enabled: showInternal,
       },
+      {
+        queryKey: ["dashboard-overview", "internal-growth-scout"],
+        queryFn: () => fetchGrowthScoutLatest(),
+        staleTime: STALE_MS,
+        enabled: showInternal,
+      },
     ],
   });
 
-  const [trendScoutQ, partnershipScoutQ] = internalQueries;
+  const [trendScoutQ, partnershipScoutQ, growthScoutQ] = internalQueries;
 
   const internalPipelineCount = useMemo(() => {
     if (!showInternal) return 0;
-    return [trendScoutQ.data?.data, partnershipScoutQ.data?.data].filter(Boolean).length;
-  }, [showInternal, trendScoutQ.data, partnershipScoutQ.data]);
+    return [trendScoutQ.data?.data, partnershipScoutQ.data?.data, growthScoutQ.data?.data].filter(Boolean).length;
+  }, [showInternal, trendScoutQ.data, partnershipScoutQ.data, growthScoutQ.data]);
 
   const lpSummary = overview.lpSummaryQ.data;
   const lpState = overview.lpStateQ.data;
@@ -101,16 +120,13 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
     <div className={cn("relative flex flex-col min-h-0", embedded ? "flex-1 min-h-0" : "min-h-screen")}>
       <OverviewPageBackdrop />
       <div
-        className={cn(DASHBOARD_CONTENT_SHELL, "relative flex-1 space-y-8", PAGE_PADDING_TOP_MEDIUM, PAGE_SAFE_AREA_BOTTOM)}
+        className={cn(DASHBOARD_CONTENT_SHELL, "relative flex-1 space-y-6", PAGE_PADDING_TOP_MEDIUM, PAGE_SAFE_AREA_BOTTOM)}
       >
         {!showPortfolio ? (
           <UserOverviewConnectHero onConnect={() => openConnectModal()} />
         ) : (
-          <UserOverviewHero
+          <OverviewPortfolioCommandBar
             walletLabel={walletLabel}
-            totalUsd={overview.treasury.totalUsd}
-            totalUsdc={overview.treasury.totalUsdc}
-            totalSol={overview.treasury.totalSol}
             isLoading={overview.balancesLoading}
             refreshing={overview.refreshing}
             onRefresh={() => void overview.refreshAll()}
@@ -121,21 +137,21 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
                   className="rounded-lg border border-border/50 bg-background/40 px-2.5 py-1 font-medium backdrop-blur-md"
                 >
                   <Activity className="mr-1.5 h-3 w-3 opacity-80" aria-hidden />
-                  Live balances
+                  Live
                 </Badge>
                 {overview.wallets.managedChatWallet ? (
                   <Badge
                     variant="outline"
                     className="rounded-lg border-border/50 bg-background/25 px-2.5 py-1 font-medium backdrop-blur-md"
                   >
-                    Trading agent ready
+                    Trading ready
                   </Badge>
                 ) : (
                   <Badge
                     variant="outline"
                     className="rounded-lg border-amber-500/30 bg-amber-500/5 px-2.5 py-1 font-medium text-amber-700 dark:text-amber-400 backdrop-blur-md"
                   >
-                    Set up trading agent
+                    Set up agent
                   </Badge>
                 )}
               </>
@@ -145,13 +161,51 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
 
         {showPortfolio ? (
           <>
+            {/* Charts first — primary bento */}
+            <OverviewTreasuryAllocationChart
+              loading={overview.balancesLoading}
+              totalChange={balanceChanges.total}
+              historyPoints={balanceChanges.chartPoints}
+              treasury={{
+                userUsdc: overview.treasury.userUsdc,
+                userSol: overview.treasury.userSol,
+                chatUsdc: overview.treasury.chatUsdc,
+                chatSol: overview.treasury.chatSol,
+                lpUsdc: overview.treasury.lpUsdc,
+                lpSol: overview.treasury.lpSol,
+                totalUsd: overview.treasury.totalUsd,
+                totalUsdc: overview.treasury.totalUsdc,
+                totalSol: overview.treasury.totalSol,
+                solPriceUsd: overview.treasury.solPriceUsd,
+              }}
+            />
+
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
+              <OverviewTradingAnalyticsPanel
+                className="xl:col-span-7"
+                agents={tradingAgents}
+                wins={overview.tradingTotals.wins}
+                losses={overview.tradingTotals.losses}
+                open={overview.tradingTotals.open}
+                loading={overview.tradingStatsQ.isLoading}
+                error={overview.tradingStatsQ.isError}
+              />
+              <OverviewLpAnalyticsPanel
+                className="xl:col-span-5"
+                summary={lpSummary ?? undefined}
+                loading={overview.lpSummaryQ.isLoading}
+              />
+            </div>
+
             <OverviewGroupLabel icon={Wallet}>Treasury</OverviewGroupLabel>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <OverviewStatCard
+                compact
                 label="Total assets"
                 icon={Wallet}
                 accent="marketplace"
                 isLoading={overview.balancesLoading}
+                change={balanceChanges.total}
                 value={
                   overview.treasury.totalUsd != null
                     ? formatCompactUsd(overview.treasury.totalUsd)
@@ -161,16 +215,18 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
                 }
                 hint={
                   overview.treasury.totalSol != null
-                    ? `${formatSol(overview.treasury.totalSol)} SOL across wallet + agents`
-                    : "Wallet + agent treasuries"
+                    ? `${formatSol(overview.treasury.totalSol)} SOL total`
+                    : "All wallets"
                 }
                 href="/wallet"
               />
               <OverviewStatCard
-                label="Trading agent balance"
+                compact
+                label="Trading agent"
                 icon={Bot}
                 accent="experiment"
                 isLoading={overview.balancesLoading}
+                change={balanceChanges.trading}
                 value={
                   overview.treasury.chatUsdc != null
                     ? formatCompactUsd(overview.treasury.chatUsdc)
@@ -178,37 +234,41 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
                 }
                 hint={
                   overview.treasury.chatSol != null
-                    ? `${formatSol(overview.treasury.chatSol)} SOL · fund for spot strategies`
-                    : "Chat agent treasury"
+                    ? `${formatSol(overview.treasury.chatSol)} SOL`
+                    : "Spot treasury"
                 }
                 href="/wallet?wallet=chat"
               />
               <OverviewStatCard
-                label="LP agent balance"
+                compact
+                label="LP agent"
                 icon={Droplets}
                 accent="experiment"
                 isLoading={overview.balancesLoading}
+                change={balanceChanges.lp}
                 value={
                   overview.treasury.lpUsdc != null ? formatCompactUsd(overview.treasury.lpUsdc) : "—"
                 }
                 hint={
                   overview.treasury.lpSol != null
-                    ? `${formatSol(overview.treasury.lpSol)} SOL · Meteora DLMM`
-                    : "LP treasury"
+                    ? `${formatSol(overview.treasury.lpSol)} SOL`
+                    : "Meteora DLMM"
                 }
                 href="/wallet?wallet=lp"
               />
               <OverviewStatCard
-                label="Agent capital (combined)"
+                compact
+                label="Agent capital"
                 icon={TrendingUp}
                 accent="neutral"
                 isLoading={overview.balancesLoading}
+                change={balanceChanges.agent}
                 value={
                   overview.treasury.agentUsdc != null
                     ? formatCompactUsd(overview.treasury.agentUsdc)
                     : "—"
                 }
-                hint="Trading + LP agent USDC"
+                hint="Trading + LP USDC"
                 href="/agents"
               />
             </div>
@@ -227,12 +287,89 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
                 usdc: overview.treasury.lpUsdc,
                 sol: overview.treasury.lpSol,
               }}
+              changes={{
+                user: balanceChanges.user,
+                trading: balanceChanges.trading,
+                lp: balanceChanges.lp,
+              }}
             />
 
-            <OverviewGroupLabel icon={FlaskConical}>Your agents</OverviewGroupLabel>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <OverviewGroupLabel icon={FlaskConical}>Performance</OverviewGroupLabel>
+            <article className={cn(overviewCardShell, "overflow-hidden")}>
+              <div className="relative p-5 sm:p-6">
+                <header className="mb-4 flex items-start justify-between gap-2">
+                  <div>
+                    <p className={overviewKickerClass}>Leaderboard</p>
+                    <h2 className="mt-1 text-base font-semibold tracking-tight text-foreground">Top strategies</h2>
+                    <p className="mt-0.5 text-xs text-muted-foreground">Ranked by win count</p>
+                  </div>
+                  <Button variant="ghost" size="sm" className="shrink-0 rounded-lg gap-1" asChild>
+                    <Link to="/trading-experiment">
+                      <Plus className="h-3.5 w-3.5" />
+                      New
+                    </Link>
+                  </Button>
+                </header>
+                {overview.tradingStatsQ.isLoading ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-10 animate-pulse rounded-lg bg-muted/30" />
+                    ))}
+                  </div>
+                ) : topStrategies.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-border/60 bg-muted/10 px-4 py-10 text-center">
+                    <p className="text-sm text-muted-foreground">No strategies yet.</p>
+                    <Button size="sm" variant="outline" className="mt-3 rounded-xl" asChild>
+                      <Link to="/trading-experiment">Create your first strategy</Link>
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="overflow-hidden rounded-xl border border-border/50">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="hover:bg-transparent">
+                          <TableHead className="text-[11px] uppercase tracking-wider">Strategy</TableHead>
+                          <TableHead className="text-right text-[11px] uppercase tracking-wider">W/L</TableHead>
+                          <TableHead className="text-right text-[11px] uppercase tracking-wider">Open</TableHead>
+                          <TableHead className="text-right text-[11px] uppercase tracking-wider">Win %</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {topStrategies.map((a, idx) => (
+                          <TableRow key={a.strategyId} className="group">
+                            <TableCell>
+                              <div className="flex items-center gap-2.5">
+                                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-muted/50 font-mono text-[10px] font-semibold tabular-nums text-muted-foreground">
+                                  {idx + 1}
+                                </span>
+                                <div className="min-w-0">
+                                  <span className="font-medium">{a.name}</span>
+                                  <p className="text-[11px] text-muted-foreground">{a.token}</p>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-xs tabular-nums">
+                              {a.wins}/{a.losses}
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-xs tabular-nums text-muted-foreground">
+                              {a.openPositions}
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-xs tabular-nums">
+                              {a.decided > 0 && a.winRatePct != null ? `${a.winRatePct.toFixed(0)}%` : "—"}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
+            </article>
+
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <OverviewStatCard
-                label="Trading strategies"
+                compact
+                label="Strategies"
                 icon={FlaskConical}
                 accent="experiment"
                 isLoading={overview.tradingStatsQ.isLoading}
@@ -250,6 +387,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
                 error={overview.tradingStatsQ.isError}
               />
               <OverviewStatCard
+                compact
                 label="LP performance"
                 icon={Droplets}
                 accent="experiment"
@@ -270,6 +408,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
                 error={overview.lpSummaryQ.isError}
               />
               <OverviewStatCard
+                compact
                 label="LP deployed"
                 icon={Scale}
                 accent="experiment"
@@ -284,6 +423,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
                 error={overview.lpStateQ.isError}
               />
               <OverviewStatCard
+                compact
                 label="Alpha intel"
                 icon={Telescope}
                 accent="alpha"
@@ -291,152 +431,6 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
                 hint="Market signals & graduate candidates"
                 href="/alpha"
               />
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <Card className={overviewCardShell}>
-                <CardHeader className="flex flex-row items-start justify-between gap-2 pb-2">
-                  <div>
-                    <CardTitle className="text-base">Trading strategies</CardTitle>
-                    <CardDescription>Your custom agents — resolved outcomes</CardDescription>
-                  </div>
-                  <Button variant="ghost" size="sm" className="shrink-0 rounded-lg gap-1" asChild>
-                    <Link to="/trading-experiment">
-                      <Plus className="h-3.5 w-3.5" />
-                      New
-                    </Link>
-                  </Button>
-                </CardHeader>
-                <CardContent className="h-[240px]">
-                  {overview.tradingStatsQ.isError ? (
-                    <p className="text-sm text-destructive">Sign in and connect your wallet to load strategies.</p>
-                  ) : overview.tradingTotals.wins + overview.tradingTotals.losses === 0 ? (
-                    <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
-                      <p className="text-sm text-muted-foreground">No resolved trades yet.</p>
-                      <Button size="sm" className="rounded-xl" asChild>
-                        <Link to="/trading-experiment">Launch trading experiment</Link>
-                      </Button>
-                    </div>
-                  ) : (
-                    <ChartContainer config={wlChartConfig} className="h-full w-full aspect-auto">
-                      <BarChart
-                        data={[
-                          {
-                            label: "Your agents",
-                            wins: overview.tradingTotals.wins,
-                            losses: overview.tradingTotals.losses,
-                          },
-                        ]}
-                        margin={{ left: 8, right: 8, top: 8, bottom: 8 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
-                        <XAxis dataKey="label" tickLine={false} axisLine={false} />
-                        <YAxis tickLine={false} axisLine={false} width={48} allowDecimals={false} />
-                        <ChartTooltip content={<ChartTooltipContent />} />
-                        <Bar dataKey="wins" stackId="a" fill="var(--color-wins)" radius={[0, 0, 0, 0]} />
-                        <Bar dataKey="losses" stackId="a" fill="var(--color-losses)" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ChartContainer>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card className={cn(overviewCardShell, "overflow-hidden")}>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Top strategies</CardTitle>
-                  <CardDescription>By win count</CardDescription>
-                </CardHeader>
-                <CardContent className="p-0">
-                  {overview.tradingStatsQ.isLoading ? (
-                    <p className="px-4 pb-4 text-sm text-muted-foreground">Loading…</p>
-                  ) : topStrategies.length === 0 ? (
-                    <div className="px-4 pb-6 pt-2">
-                      <p className="text-sm text-muted-foreground">No strategies yet.</p>
-                      <Button size="sm" variant="outline" className="mt-3 rounded-xl" asChild>
-                        <Link to="/trading-experiment">Create your first strategy</Link>
-                      </Button>
-                    </div>
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Strategy</TableHead>
-                          <TableHead className="text-right">W/L</TableHead>
-                          <TableHead className="text-right">Open</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {topStrategies.map((a) => (
-                          <TableRow key={a.strategyId}>
-                            <TableCell>
-                              <span className="font-medium">{a.name}</span>
-                              <p className="text-[11px] text-muted-foreground">{a.token}</p>
-                            </TableCell>
-                            <TableCell className="text-right font-mono text-xs tabular-nums">
-                              {a.wins}/{a.losses}
-                            </TableCell>
-                            <TableCell className="text-right font-mono text-xs tabular-nums text-muted-foreground">
-                              {a.openPositions}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  )}
-                </CardContent>
-              </Card>
-
-              {lpSummary ? (
-                <Card className={cn(overviewCardShell, "lg:col-span-2")}>
-                  <CardHeader>
-                    <CardTitle className="text-base">LP agent snapshot</CardTitle>
-                    <CardDescription>Realized and book P&amp;L for your LP treasury</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                      {(
-                        [
-                          {
-                            label: "Total return",
-                            value: lpSummary.totalReturnSol,
-                            format: formatSol,
-                            suffix: " SOL",
-                          },
-                          {
-                            label: "Realized PnL",
-                            value: lpSummary.realizedNetPnlSol,
-                            format: formatSol,
-                            suffix: " SOL",
-                          },
-                          {
-                            label: "Unrealized",
-                            value: lpSummary.unrealizedPnlSol,
-                            format: formatSol,
-                            suffix: " SOL",
-                          },
-                          {
-                            label: "Fees claimed",
-                            value: lpSummary.totalFeesClaimedSol,
-                            format: formatSol,
-                            suffix: " SOL",
-                          },
-                        ] as const
-                      ).map((stat) => (
-                        <div
-                          key={stat.label}
-                          className="rounded-2xl border border-border/50 bg-muted/15 px-4 py-3.5"
-                        >
-                          <p className="text-[11px] font-medium text-muted-foreground">{stat.label}</p>
-                          <p className="mt-1 font-mono text-xl font-semibold tabular-nums tracking-tight">
-                            <AnimatedMetric value={stat.value} format={stat.format} />
-                            {stat.suffix}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : null}
             </div>
 
             <OverviewGroupLabel icon={Bot}>Quick actions</OverviewGroupLabel>
@@ -502,7 +496,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
                 label="Pipelines with data"
                 accent="internal"
                 value={`${internalPipelineCount} / ${INTERNAL_AGENTS.length}`}
-                hint="Trend scout + partnership scout"
+                hint="Trend · growth · partnership scouts"
                 href="/internal-team-agents"
               />
               <OverviewStatCard
@@ -530,7 +524,9 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
                     ? trendScoutQ
                     : agent.slug === "partnership-scout"
                       ? partnershipScoutQ
-                      : null;
+                      : agent.slug === "growth-scout"
+                        ? growthScoutQ
+                        : null;
                 const hasData = q ? Boolean(q.data?.data) : false;
                 const savedAt = q?.data?.savedAt;
 

@@ -683,6 +683,7 @@ app.use(
         isX402Route(p) ||
         p.startsWith("/internal/tester-agent") ||
         p.startsWith("/internal/trend-scout/run") ||
+        p.startsWith("/internal/growth-scout/run") ||
         p.startsWith("/internal/s3labs-news/run") ||
         p.startsWith("/internal/s3labs-developer/run") ||
         p.startsWith("/internal/s3labs-event/run") ||
@@ -729,6 +730,16 @@ app.use(
       const secret = (process.env.SYRA_TREND_SCOUT_CRON_SECRET || "").trim();
       if (secret) {
         const got = (req.get("x-syra-trend-scout-cron-secret") || "").trim();
+        if (got === secret) return true;
+      }
+    }
+    if (
+      p === "/internal/growth-scout/run" &&
+      String(req.method || "").toUpperCase() === "POST"
+    ) {
+      const secret = (process.env.SYRA_GROWTH_SCOUT_CRON_SECRET || "").trim();
+      if (secret) {
+        const got = (req.get("x-syra-growth-scout-cron-secret") || "").trim();
         if (got === secret) return true;
       }
     }
@@ -1698,6 +1709,17 @@ app.listen(PORT, () => {
     .catch((e) =>
       console.warn(
         "[syra-partnership-scout] load failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
+
+  import("./libs/syraGrowthScoutScheduler.js")
+    .then(({ startSyraGrowthScoutScheduler }) => {
+      startSyraGrowthScoutScheduler();
+    })
+    .catch((e) =>
+      console.warn(
+        "[syra-growth-scout] load failed:",
         e instanceof Error ? e.message : e,
       ),
     );

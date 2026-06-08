@@ -16,8 +16,10 @@ export interface PostUpdateMeta {
   title: string;
   published: string;
   tagline: string;
-  /** Pre-filled text for X / Twitter intent (without URL — appended at share time). */
-  shareTweet: string;
+  /** Ready-to-post X copy when sharing the video deck (screen recording). */
+  shareCopyVideo: string;
+  /** Ready-to-post X copy when sharing a photo card. */
+  shareCopyPhoto: string;
 }
 
 export interface PostSlideBase {

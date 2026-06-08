@@ -1,541 +1,1552 @@
-import { useMemo } from "react";
-import { PremiumTablePagination } from "@/components/experiment/PremiumTablePagination";
-import { useTablePagination } from "@/hooks/useTablePagination";
-import {
-  Activity,
-  ArrowUpRight,
-  Crosshair,
-  Landmark,
-  Loader2,
-  RefreshCw,
-  Sparkles,
-  TrendingUp,
-} from "lucide-react";
+import { useMemo, useState } from "react";
+
+import { ArrowUpRight, ChevronDown, TrendingUp } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
+
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
+import { Card, CardContent } from "@/components/ui/card";
+
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
+  Select,
+
+  SelectContent,
+
+  SelectItem,
+
+  SelectTrigger,
+
+  SelectValue,
+
+} from "@/components/ui/select";
+
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+
 import { cn } from "@/lib/utils";
+
 import {
+
   DASHBOARD_CONTENT_SHELL,
-  PAGE_PADDING_TOP_STANDARD,
+
   PAGE_SAFE_AREA_BOTTOM_COMPACT,
+
 } from "@/lib/layoutConstants";
+
 import { buildRiseTradeUrl } from "@/lib/riseToken";
+
 import {
-  RISE_EXPERIMENT_BORROW_APR,
-  RISE_EXPERIMENT_ENTRY_SOL,
-  RISE_EXPERIMENT_MAX_BORROW_SOL,
+
+  RISE_EXIT_STRATEGIES,
+
+  RISE_EXPERIMENT_EXIT_COUNT,
+
+  RISE_EXPERIMENT_PERSONALITY_COUNT,
+
   RISE_EXPERIMENT_START_SOL,
-  agentEquitySol,
+
+  RISE_PERSONALITIES,
+
+  cellEquitySol,
+
+  cellKey,
+
+  entrySolForPersonality,
+
+  isAggressiveStrategy,
+
+  isSniperPersonality,
+
   positionMarkValueSol,
-  type RiseExperimentAgentId,
-  type RiseExperimentPersisted,
+
+  type RiseCellState,
+
+  type RiseClosedTrade,
+
 } from "@/lib/riseExperimentModel";
+
 import { useRiseExperimentRunner } from "@/hooks/useRiseExperimentRunner";
 
+import { useTablePagination } from "@/hooks/useTablePagination";
+
+import { PremiumTablePagination } from "@/components/experiment/PremiumTablePagination";
+
+import { LpSectionHeader } from "@/components/experiment/lp/LpSectionHeader";
+
+import { RiseExperimentHero } from "@/components/experiment/rise/RiseExperimentHero";
+
+import {
+
+  RiseExperimentStats,
+
+  formatRiseStrategyLabel,
+
+} from "@/components/experiment/rise/RiseExperimentStats";
+
+import { RiseHowItWorks } from "@/components/experiment/rise/RiseHowItWorks";
+
+import { RiseSniperAgents } from "@/components/experiment/rise/RiseSniperAgents";
+
+import { RiseRecommendedStrategies } from "@/components/experiment/rise/RiseRecommendedStrategies";
+
+import { ExperimentTabShell, type ExperimentTabId } from "@/components/experiment/shared/ExperimentTabShell";
+
+import { ExperimentBeginnerBanner } from "@/components/experiment/shared/ExperimentBeginnerBanner";
+
+import { ExperimentLeaderboardList } from "@/components/experiment/shared/ExperimentLeaderboardList";
+
+import { ExperimentTradeFeed } from "@/components/experiment/shared/ExperimentTradeFeed";
+
+import { ExperimentAgentBalancePanel } from "@/components/experiment/shared/ExperimentAgentBalancePanel";
+
+import { buildEquityHistoryFromCell, formatExperimentSol } from "@/lib/experimentEquityHistory";
+
+import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
+
+
+
 function formatSol(n: number): string {
+
   if (!Number.isFinite(n)) return "—";
+
   const sign = n < 0 ? "−" : "";
+
   const v = Math.abs(n);
+
   return `${sign}${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 3 })}`;
+
 }
+
+
 
 function formatPct(n: number): string {
+
   if (!Number.isFinite(n)) return "—";
+
   const sign = n > 0 ? "+" : "";
+
   return `${sign}${n.toFixed(1)}%`;
+
 }
+
+
 
 function formatCompactUsd(n: number | null | undefined): string {
+
   if (n == null || !Number.isFinite(n)) return "—";
+
   const abs = Math.abs(n);
+
   if (abs >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(1)}B`;
+
   if (abs >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+
   if (abs >= 10_000) return `$${Math.round(n / 1000)}k`;
+
   return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+
 }
+
+
 
 function formatTs(tsMs: number | null | undefined): string {
+
   if (tsMs == null || !Number.isFinite(tsMs)) return "—";
+
   try {
+
     return new Date(tsMs).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+
   } catch {
+
     return "—";
+
   }
+
 }
 
-const AGENT_META: Record<
-  RiseExperimentAgentId,
-  { title: string; subtitle: string; badge: string }
-> = {
-  universal: {
-    title: "Universal sniper",
-    subtitle: "Enters every new listing on the live RISE markets tape.",
-    badge: "All RISE listings",
-  },
-  riseAlpha: {
-    title: "Rise Alpha sniper",
-    subtitle: "Only trades RISE tokens that pass agent-ready or watch-tier gates (alpha score + liquidity).",
-    badge: "Alpha-ready RISE",
-  },
-};
 
-function AgentDeskCard({
-  agentId,
-  persisted,
+
+function heatClass(retPct: number): string {
+
+  if (retPct >= 8) return "border-emerald-500/35 bg-emerald-500/[0.14] text-emerald-100";
+
+  if (retPct >= 2) return "border-emerald-500/20 bg-emerald-500/[0.08] text-foreground";
+
+  if (retPct >= -2) return "border-border/50 bg-muted/[0.12] text-foreground";
+
+  if (retPct >= -8) return "border-amber-500/25 bg-amber-500/[0.08] text-foreground";
+
+  return "border-red-500/30 bg-red-500/[0.12] text-foreground";
+
+}
+
+
+
+function strategyBadge(p: number, e: number) {
+
+  if (isSniperPersonality(p)) {
+
+    return {
+
+      text: "Sniper",
+
+      className: "border-sky-500/35 bg-sky-500/10 text-sky-700 dark:text-sky-300",
+
+    };
+
+  }
+
+  if (isAggressiveStrategy(p, e)) {
+
+    return {
+
+      text: "Aggressive",
+
+      className: "border-amber-500/35 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+
+    };
+
+  }
+
+  return null;
+
+}
+
+
+
+function StrategyDetailCard({
+
+  cell,
+
+  mcByMint,
+
+  personalityId,
+
+  exitId,
+
 }: {
-  agentId: RiseExperimentAgentId;
-  persisted: RiseExperimentPersisted;
+
+  cell: RiseCellState;
+
+  mcByMint: Record<string, number | null>;
+
+  personalityId: number;
+
+  exitId: number;
+
 }) {
-  const agent = persisted.agents[agentId];
-  const meta = AGENT_META[agentId];
-  const equity = agentEquitySol(agent, persisted.mcByMint);
+
+  const equity = cellEquitySol(cell, mcByMint);
+
   const retPct = (equity / RISE_EXPERIMENT_START_SOL - 1) * 100;
 
-  const openNotional = agent.open.reduce((s, p) => s + positionMarkValueSol(p, persisted.mcByMint[p.mint]), 0);
+
 
   return (
-    <Card className="border-border/55 bg-card/55 backdrop-blur-md">
-      <CardHeader className="space-y-3 pb-4">
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div className="space-y-1">
-            <CardTitle className="text-lg tracking-tight">{meta.title}</CardTitle>
-            <CardDescription className="text-[13px] leading-relaxed">{meta.subtitle}</CardDescription>
-          </div>
-          <Badge variant="secondary" className="shrink-0 rounded-lg border border-border/55 bg-background/40 font-medium">
-            {meta.badge}
-          </Badge>
+
+    <div className="space-y-4 rounded-2xl border border-border/50 bg-background/40 p-4 sm:p-5">
+
+      <div className="flex flex-wrap items-end justify-between gap-4">
+
+        <div>
+
+          <p className="text-xs font-medium text-muted-foreground">Total balance</p>
+
+          <p className="font-mono text-3xl font-semibold tabular-nums tracking-tight">
+
+            {formatSol(equity)} SOL
+
+          </p>
+
+          <p className="mt-1 text-xs text-muted-foreground">
+
+            Started with {RISE_EXPERIMENT_START_SOL} SOL · {entrySolForPersonality(personalityId)} SOL per trade
+
+          </p>
+
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-2xl border border-border/45 bg-muted/[0.08] p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/75">Equity</p>
-            <p className="mt-1 font-mono text-2xl font-semibold tabular-nums tracking-tight">{formatSol(equity)} SOL</p>
-            <p className="mt-1 text-[11px] text-muted-foreground/85">Return {formatPct(retPct)} vs {RISE_EXPERIMENT_START_SOL}&nbsp;SOL start</p>
-          </div>
-          <div className="rounded-2xl border border-border/45 bg-muted/[0.08] p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/75">Cash · marks</p>
-            <p className="mt-1 font-mono text-sm font-semibold tabular-nums text-foreground">
-              {formatSol(agent.balanceSol)} cash · {formatSol(openNotional)} open
-            </p>
-            <p className="mt-1 text-[11px] text-muted-foreground/85">
-              Each clip {RISE_EXPERIMENT_ENTRY_SOL}&nbsp;SOL · borrow cap {RISE_EXPERIMENT_MAX_BORROW_SOL}&nbsp;SOL
-            </p>
-          </div>
+
+        <div className="text-right">
+
+          <p className="text-xs font-medium text-muted-foreground">Return</p>
+
+          <p
+
+            className={cn(
+
+              "font-mono text-2xl font-semibold tabular-nums",
+
+              retPct > 0 ? "text-emerald-600 dark:text-emerald-400" : retPct < 0 ? "text-red-600 dark:text-red-400" : "text-foreground",
+
+            )}
+
+          >
+
+            {formatPct(retPct)}
+
+          </p>
+
         </div>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.06] p-3">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-200/80">Borrowed</p>
-            <p className="mt-1 font-mono text-lg font-semibold tabular-nums">{formatSol(agent.borrowedPrincipalSol)} SOL</p>
-          </div>
-          <div className="rounded-xl border border-border/45 bg-background/25 p-3">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/75">Interest owed</p>
-            <p className="mt-1 font-mono text-lg font-semibold tabular-nums">{formatSol(agent.interestOwedSol)} SOL</p>
-          </div>
-          <div className="rounded-xl border border-border/45 bg-background/25 p-3">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/75">Interest paid</p>
-            <p className="mt-1 font-mono text-lg font-semibold tabular-nums">{formatSol(agent.interestPaidAllTimeSol)} SOL</p>
-          </div>
+
+      </div>
+
+
+
+      <div className="grid gap-3 sm:grid-cols-2">
+
+        <div className="rounded-xl border border-border/40 bg-muted/[0.06] px-3 py-2.5">
+
+          <p className="text-[11px] font-medium text-muted-foreground">Cash available</p>
+
+          <p className="font-mono text-sm font-semibold tabular-nums">{formatSol(cell.balanceSol)} SOL</p>
+
         </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-semibold text-foreground">Open positions</p>
-          <p className="text-[11px] font-medium text-muted-foreground">{agent.open.length} live</p>
+
+        <div className="rounded-xl border border-border/40 bg-muted/[0.06] px-3 py-2.5">
+
+          <p className="text-[11px] font-medium text-muted-foreground">Borrowed (leverage)</p>
+
+          <p className="font-mono text-sm font-semibold tabular-nums text-amber-700 dark:text-amber-300">
+
+            {formatSol(cell.borrowedPrincipalSol)} SOL
+
+          </p>
+
         </div>
-        {agent.open.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No open clips — waiting for the next qualifying mint.</p>
-        ) : (
-          <div className="overflow-x-auto rounded-xl border border-border/45">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-border/50 hover:bg-transparent">
-                  <TableHead className="text-[11px] uppercase text-muted-foreground">Symbol</TableHead>
-                  <TableHead className="text-right text-[11px] uppercase text-muted-foreground">Clip</TableHead>
-                  <TableHead className="text-right text-[11px] uppercase text-muted-foreground">Borrow leg</TableHead>
-                  <TableHead className="text-right text-[11px] uppercase text-muted-foreground">Mark</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {agent.open.map((p) => {
-                  const mc = persisted.mcByMint[p.mint];
-                  const mark = positionMarkValueSol(p, mc);
-                  return (
-                    <TableRow key={`${agentId}-${p.mint}`} className="border-border/40">
-                      <TableCell>
-                        <div className="min-w-0">
-                          <p className="font-semibold tracking-tight">{p.symbol}</p>
-                          <p className="truncate font-mono text-[11px] text-muted-foreground">{p.mint}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-sm tabular-nums">{formatSol(p.solNotional)}</TableCell>
-                      <TableCell className="text-right font-mono text-sm tabular-nums text-amber-200/90">
-                        {p.borrowedForLegSol > 0 ? formatSol(p.borrowedForLegSol) : "—"}
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-sm tabular-nums">{formatSol(mark)}</TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+
+        <div className="rounded-xl border border-border/40 bg-muted/[0.06] px-3 py-2.5">
+
+          <p className="text-[11px] font-medium text-muted-foreground">Open positions</p>
+
+          <p className="font-mono text-sm font-semibold tabular-nums">{cell.open.length}</p>
+
+        </div>
+
+        <div className="rounded-xl border border-border/40 bg-muted/[0.06] px-3 py-2.5">
+
+          <p className="text-[11px] font-medium text-muted-foreground">Sell style</p>
+
+          <p className="text-sm font-medium">{RISE_EXIT_STRATEGIES[exitId]?.name}</p>
+
+        </div>
+
+      </div>
+
+
+
+      {cell.open.length > 0 ? (
+
+        <div className="space-y-2">
+
+          <p className="text-xs font-medium text-muted-foreground">Current holdings</p>
+
+          <ul className="max-h-48 space-y-2 overflow-y-auto pr-1">
+
+            {cell.open.map((o) => {
+
+              const mc = mcByMint[o.mint] ?? o.entryMc;
+
+              const mark = positionMarkValueSol(o, mc);
+
+              const r = ((mc ?? o.entryMc) / o.entryMc - 1) * 100;
+
+              return (
+
+                <li
+
+                  key={`${o.mint}-${o.entryAtMs}`}
+
+                  className="flex items-center justify-between gap-3 rounded-xl border border-border/40 bg-muted/[0.06] px-3 py-2.5"
+
+                >
+
+                  <div className="min-w-0">
+
+                    <p className="truncate text-sm font-medium">{o.symbol}</p>
+
+                    <p className="text-xs text-muted-foreground">Bought for {formatSol(o.solNotional)} SOL</p>
+
+                  </div>
+
+                  <div className="shrink-0 text-right">
+
+                    <p className="font-mono text-sm tabular-nums">{formatSol(mark)} SOL</p>
+
+                    <p
+
+                      className={cn(
+
+                        "font-mono text-xs tabular-nums",
+
+                        r >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400",
+
+                      )}
+
+                    >
+
+                      {formatPct(r)}
+
+                    </p>
+
+                  </div>
+
+                </li>
+
+              );
+
+            })}
+
+          </ul>
+
+        </div>
+
+      ) : (
+
+        <p className="rounded-xl border border-dashed border-border/50 bg-muted/[0.04] px-4 py-6 text-center text-sm text-muted-foreground">
+
+          No open positions — waiting for the next listing that matches this buy style.
+
+        </p>
+
+      )}
+
+    </div>
+
   );
+
 }
+
+
 
 export default function RiseExperiment({ embedded = false }: { embedded?: boolean }) {
+
   const { persisted, intelQ, markets, ledgerReady } = useRiseExperimentRunner();
 
-  const discoveryRows = useMemo(() => {
-    if (persisted.discoveries.length > 0) {
-      return persisted.discoveries;
+  const [activeTab, setActiveTab] = useState<ExperimentTabId>("start");
+
+  const [selP, setSelP] = useState(1);
+
+  const [selE, setSelE] = useState(0);
+
+  const [gridOpen, setGridOpen] = useState(false);
+
+  const [aggressiveOnly, setAggressiveOnly] = useState(false);
+
+
+
+  const leaderboard = useMemo(() => {
+
+    const rows: Array<{
+
+      key: string;
+
+      p: number;
+
+      e: number;
+
+      equity: number;
+
+      retPct: number;
+
+      cell: RiseCellState;
+
+    }> = [];
+
+    for (let p = 0; p < RISE_EXPERIMENT_PERSONALITY_COUNT; p++) {
+
+      for (let e = 0; e < RISE_EXPERIMENT_EXIT_COUNT; e++) {
+
+        const key = cellKey(p, e);
+
+        const cell = persisted.cells[key];
+
+        if (!cell) continue;
+
+        const equity = cellEquitySol(cell, persisted.mcByMint);
+
+        rows.push({
+
+          key,
+
+          p,
+
+          e,
+
+          equity,
+
+          retPct: (equity / RISE_EXPERIMENT_START_SOL - 1) * 100,
+
+          cell,
+
+        });
+
+      }
+
     }
-    if (markets.length === 0) return [];
-    const nowMs = intelQ.data?.nowMs ?? Date.now();
-    return [...markets]
-      .sort((a, b) => {
-        const aMs = a.createdAt ? Date.parse(a.createdAt) : 0;
-        const bMs = b.createdAt ? Date.parse(b.createdAt) : 0;
-        return bMs - aMs;
-      })
-      .map((m) => ({
-        atMs: nowMs,
-        mint: m.mint,
-        symbol: m.symbol?.trim() || "—",
-        marketCapUsd: m.marketCapUsd,
-      }));
-  }, [persisted.discoveries, markets, intelQ.data?.nowMs]);
+
+    rows.sort((a, b) => b.equity - a.equity);
+
+    return rows;
+
+  }, [persisted]);
+
+
 
   const mergedTrades = useMemo(() => {
-    const all = [...persisted.agents.universal.closed, ...persisted.agents.riseAlpha.closed];
-    all.sort((a, b) => b.closedAtMs - a.closedAtMs);
-    return all;
-  }, [persisted.agents.riseAlpha.closed, persisted.agents.universal.closed]);
 
-  const discoveriesPagination = useTablePagination(discoveryRows, 10);
-  const tradesPagination = useTablePagination(mergedTrades, 15);
+    const all: RiseClosedTrade[] = [];
+
+    for (const cell of Object.values(persisted.cells)) {
+
+      all.push(...cell.closed);
+
+    }
+
+    all.sort((a, b) => b.closedAtMs - a.closedAtMs);
+
+    return all;
+
+  }, [persisted]);
+
+
+
+  const discoveryRows = useMemo(() => {
+
+    if (persisted.discoveries.length > 0) return persisted.discoveries;
+
+    if (markets.length === 0) return [];
+
+    const nowMs = intelQ.data?.nowMs ?? Date.now();
+
+    return [...markets]
+
+      .sort((a, b) => {
+
+        const aMs = a.createdAt ? Date.parse(a.createdAt) : 0;
+
+        const bMs = b.createdAt ? Date.parse(b.createdAt) : 0;
+
+        return bMs - aMs;
+
+      })
+
+      .slice(0, 120)
+
+      .map((m) => ({
+
+        atMs: nowMs,
+
+        mint: m.mint,
+
+        symbol: m.symbol?.trim() || "—",
+
+        marketCapUsd: m.marketCapUsd,
+
+      }));
+
+  }, [persisted.discoveries, markets, intelQ.data?.nowMs]);
+
+
+
+  const tradesPagination = useTablePagination(mergedTrades, 10);
+
+  const discoveriesPagination = useTablePagination(discoveryRows, 8);
+
+  const selectedCell = persisted.cells[cellKey(selP, selE)];
+
+
+
+  const summary = useMemo(() => {
+
+    let sumEq = 0;
+
+    let winners = 0;
+
+    for (const r of leaderboard) {
+
+      sumEq += r.equity;
+
+      if (r.retPct > 0) winners += 1;
+
+    }
+
+    const avgRet = leaderboard.length
+
+      ? (sumEq / leaderboard.length / RISE_EXPERIMENT_START_SOL - 1) * 100
+
+      : 0;
+
+    return { avgRet, winners, totalCells: leaderboard.length };
+
+  }, [leaderboard]);
+
+
+
+  const topRow = leaderboard[0];
+
+  const topAggressiveRow = useMemo(
+
+    () => leaderboard.find((r) => isAggressiveStrategy(r.p, r.e)) ?? null,
+
+    [leaderboard],
+
+  );
+
+
+
+  const featuredAgent = topRow ?? null;
+
+  const featuredHistory = useMemo(() => {
+
+    const nowMs = intelQ.data?.nowMs ?? Date.now();
+
+    if (!featuredAgent) {
+
+      return buildEquityHistoryFromCell({
+
+        startSol: RISE_EXPERIMENT_START_SOL,
+
+        closedTrades: [],
+
+        currentEquitySol: RISE_EXPERIMENT_START_SOL,
+
+        nowMs,
+
+      });
+
+    }
+
+    return buildEquityHistoryFromCell({
+
+      startSol: RISE_EXPERIMENT_START_SOL,
+
+      closedTrades: featuredAgent.cell.closed,
+
+      currentEquitySol: featuredAgent.equity,
+
+      nowMs,
+
+    });
+
+  }, [featuredAgent, intelQ.data?.nowMs]);
+
+
+
+
+
+  const visibleLeaderboard = useMemo(
+
+    () => (aggressiveOnly ? leaderboard.filter((r) => isAggressiveStrategy(r.p, r.e)) : leaderboard),
+
+    [leaderboard, aggressiveOnly],
+
+  );
+
+
+
+  const selectStrategy = (p: number, e: number, switchTab = false) => {
+
+    setSelP(p);
+
+    setSelE(e);
+
+    if (switchTab) setActiveTab("results");
+
+  };
+
+
+
+  const leaderboardCards = visibleLeaderboard.slice(0, 8).map((r, i) => ({
+
+    key: r.key,
+
+    rank: i + 1,
+
+    label: formatRiseStrategyLabel(r.p, r.e),
+
+    equityLabel: `${formatSol(r.equity)} SOL`,
+
+    retPct: r.retPct,
+
+    openCount: r.cell.open.length,
+
+    badge: strategyBadge(r.p, r.e),
+
+    selected: selP === r.p && selE === r.e,
+
+  }));
+
+
+
+  const tradeFeedItems = tradesPagination.slice.map((t) => ({
+
+    id: `${t.closedAtMs}-${t.mint}-${t.reason}`,
+
+    timeLabel: formatTs(t.closedAtMs),
+
+    strategyLabel: formatRiseStrategyLabel(t.personalityId, t.exitStrategyId),
+
+    tokenLabel: t.symbol,
+
+    reasonLabel: t.reason,
+
+    pnlLabel: `${formatSol(t.pnlSol)} SOL`,
+
+    pnlPositive: t.pnlSol > 0,
+
+    pnlNegative: t.pnlSol < 0,
+
+    href: buildRiseTradeUrl(t.mint) ?? `https://rise.rich/trade/${encodeURIComponent(t.mint)}`,
+
+    hrefLabel: "Trade on RISE",
+
+  }));
+
+
+
+  const discoveryFeedItems = discoveriesPagination.slice.map((d) => ({
+
+    id: `${d.atMs}-${d.mint}`,
+
+    timeLabel: formatTs(d.atMs),
+
+    strategyLabel: d.marketCapUsd != null ? `Market cap ${formatCompactUsd(d.marketCapUsd)}` : "New listing",
+
+    tokenLabel: d.symbol,
+
+    reasonLabel: "Spotted on live RISE tape",
+
+    pnlLabel: "",
+
+    pnlPositive: false,
+
+    pnlNegative: false,
+
+    href: buildRiseTradeUrl(d.mint) ?? `https://rise.rich/trade/${encodeURIComponent(d.mint)}`,
+
+    hrefLabel: "Trade on RISE",
+
+  }));
+
+
 
   return (
+
     <TooltipProvider delayDuration={200}>
+
       <div
+
         className={cn(
-          "bg-background text-foreground",
-          embedded ? "w-full min-w-0" : "flex min-h-screen min-w-0 flex-col",
+
+          "relative text-foreground",
+
+          embedded ? "w-full min-w-0" : "flex min-h-screen min-w-0 flex-col bg-background",
+
         )}
+
       >
+
         <main
+
           className={cn(
+
             DASHBOARD_CONTENT_SHELL,
-            PAGE_PADDING_TOP_STANDARD,
+
+            "pt-2 sm:pt-3",
+
             PAGE_SAFE_AREA_BOTTOM_COMPACT,
-            "flex min-h-0 flex-col space-y-8",
-            !embedded && "min-h-0 flex-1",
+
+            "space-y-6",
+
           )}
+
         >
-        <div
-          className={cn(
-            "relative overflow-hidden rounded-3xl border border-border/55 bg-gradient-to-br from-sky-950/30 via-card/90 to-background shadow-[0_28px_90px_-52px_rgba(0,0,0,0.9)]",
-            "px-5 py-6 sm:px-6 sm:py-7",
-            !embedded && "mb-2 sm:py-8",
-          )}
-        >
-          <div
-            className="pointer-events-none absolute inset-0 opacity-[0.45]"
-            style={{
-              backgroundImage: `
-                linear-gradient(to right, hsl(var(--border) / 0.18) 1px, transparent 1px),
-                linear-gradient(to bottom, hsl(var(--border) / 0.18) 1px, transparent 1px)
-              `,
-              backgroundSize: "48px 48px",
-            }}
+
+          <ExperimentAgentBalancePanel
+            platformLabel="RISE"
+            bankLabel="10 SOL paper agent"
+            strategyLabel={featuredAgent ? formatRiseStrategyLabel(featuredAgent.p, featuredAgent.e) : "Warming up…"}
+            startBalance={RISE_EXPERIMENT_START_SOL}
+            currentBalance={featuredAgent?.equity ?? RISE_EXPERIMENT_START_SOL}
+            retPct={featuredAgent?.retPct ?? 0}
+            closedCount={featuredAgent?.cell?.closed.length ?? 0}
+            openCount={featuredAgent?.cell?.open.length ?? 0}
+            historyPoints={featuredHistory}
+            formatBalance={formatExperimentSol}
+            formatAxis={(n) => `${n.toFixed(1)}`}
+            accent="alpha"
           />
-          <div
-            className="pointer-events-none absolute -right-16 top-0 h-[260px] w-[260px] rounded-full blur-3xl"
-            style={{ background: "radial-gradient(circle, hsl(var(--primary)/0.2), transparent 65%)" }}
+
+
+
+          <RiseExperimentHero
+
+            embedded={embedded}
+
+            loading={intelQ.isFetching || !ledgerReady}
+
+            failed={intelQ.isError}
+
+            onRefresh={() => void intelQ.refetch()}
+
           />
-          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="min-w-0 space-y-3">
-              <div className="inline-flex items-center gap-2 rounded-full border border-border/55 bg-background/40 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground backdrop-blur-md">
-                <Crosshair className="h-3.5 w-3.5 text-sky-300" aria-hidden />
-                Rise trading desk
-              </div>
-              {embedded ? (
-                <h2 className="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Rise experiment</h2>
-              ) : (
-                <h1 className="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">Rise experiment</h1>
-              )}
-              <p className="max-w-2xl text-pretty text-[15px] leading-relaxed text-muted-foreground sm:text-base">
-                Two isolated snipers on the live RISE tape — Universal enters every new RISE listing; Rise Alpha only
-                allocates to agent-ready or watch-tier names. Each desk starts with {RISE_EXPERIMENT_START_SOL}&nbsp;SOL,
-                deploys {RISE_EXPERIMENT_ENTRY_SOL}&nbsp;SOL per entry, and may draw up to {RISE_EXPERIMENT_MAX_BORROW_SOL}
-                &nbsp;SOL from the Rise vault at {(RISE_EXPERIMENT_BORROW_APR * 100).toFixed(0)}% APR when cash is tight.
-                Interest accrues continuously and is paid from exits before principal.
-              </p>
-              <div className="flex flex-wrap gap-2 pt-1">
-                <Badge variant="secondary" className="rounded-lg border border-border/50 bg-background/40 font-medium">
-                  <Sparkles className="mr-1.5 h-3 w-3 opacity-80" aria-hidden />
-                  RISE markets tape
-                </Badge>
-                <Badge variant="secondary" className="rounded-lg border border-border/50 bg-background/40 font-medium">
-                  <Landmark className="mr-1.5 h-3 w-3 opacity-80" aria-hidden />
-                  Borrow + interest ledger
-                </Badge>
-                <Badge variant="outline" className="rounded-lg border-emerald-500/25 text-emerald-200/90">
-                  Live execution
-                </Badge>
-              </div>
-            </div>
 
-            <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-9 gap-2 rounded-xl border-border/70"
-                onClick={() => void intelQ.refetch()}
-                disabled={intelQ.isFetching}
-              >
-                {intelQ.isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                Refresh
-              </Button>
-            </div>
-          </div>
-        </div>
 
-        {intelQ.isLoading ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-[104px] rounded-2xl" />
-            ))}
-          </div>
-        ) : intelQ.data ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Card className="border-border/55 bg-card/60">
-              <CardContent className="space-y-1 p-5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/75">Borrow pool</p>
-                <p className="font-mono text-xl font-semibold tabular-nums">{formatCompactUsd(intelQ.data.rise.borrowPoolUsd)}</p>
-                <p className="text-[11px] text-muted-foreground/80">Rise vault depth (USD)</p>
+
+          <RiseExperimentStats
+
+            loading={intelQ.isLoading || !ledgerReady}
+
+            avgRetPct={summary.avgRet}
+
+            winners={summary.winners}
+
+            totalStrategies={summary.totalCells}
+
+            topStrategyLabel={
+
+              topAggressiveRow
+
+                ? formatRiseStrategyLabel(topAggressiveRow.p, topAggressiveRow.e)
+
+                : topRow
+
+                  ? formatRiseStrategyLabel(topRow.p, topRow.e)
+
+                  : null
+
+            }
+
+            topRetPct={topAggressiveRow?.retPct ?? topRow?.retPct ?? null}
+
+            newListings={persisted.discoveries.length}
+
+            borrowAprPct={intelQ.data?.rise.borrowAprPct}
+
+          />
+
+
+
+          {intelQ.isError ? (
+
+            <Card className="border-destructive/25 bg-destructive/[0.04]">
+
+              <CardContent className="space-y-3 p-5">
+
+                <p className="text-sm font-medium">Could not load RISE markets feed</p>
+
+                <p className="text-sm text-muted-foreground">{(intelQ.error as Error)?.message}</p>
+
+                <Button type="button" variant="secondary" size="sm" className="rounded-xl" onClick={() => void intelQ.refetch()}>
+
+                  Try again
+
+                </Button>
+
               </CardContent>
-            </Card>
-            <Card className="border-border/55 bg-card/60">
-              <CardContent className="space-y-1 p-5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/75">Utilization</p>
-                <p className="font-mono text-xl font-semibold tabular-nums">{intelQ.data.rise.utilizationPct.toFixed(1)}%</p>
-                <p className="text-[11px] text-muted-foreground/80">Borrow demand vs pool capacity</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border/55 bg-card/60">
-              <CardContent className="space-y-1 p-5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/75">Borrow APR</p>
-                <p className="font-mono text-xl font-semibold tabular-nums">{intelQ.data.rise.borrowAprPct.toFixed(2)}%</p>
-                <p className="text-[11px] text-muted-foreground/80">Variable borrow</p>
-              </CardContent>
-            </Card>
-            <Card className="border-border/55 bg-card/60">
-              <CardContent className="space-y-1 p-5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/75">$UPONLY MC</p>
-                <p className="font-mono text-xl font-semibold tabular-nums">
-                  {formatCompactUsd(intelQ.data.token.marketCapUsd)}
-                </p>
-                <p className="text-[11px] text-muted-foreground/80">
-                  RISE tape: {intelQ.data.marketCount} markets · {formatTs(intelQ.data.nowMs)}
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        ) : null}
 
-        {intelQ.isError ? (
-          <Card className="border-destructive/25 bg-destructive/[0.04]">
-            <CardContent className="space-y-3 p-5">
-              <p className="text-sm font-medium">Unable to load experiment feeds</p>
-              <p className="text-sm text-muted-foreground">{(intelQ.error as Error)?.message}</p>
-              <Button type="button" variant="secondary" size="sm" className="rounded-xl" onClick={() => void intelQ.refetch()}>
-                Retry
-              </Button>
-            </CardContent>
-          </Card>
-        ) : null}
+            </Card>
 
-        <div className="mt-8 grid gap-6 xl:grid-cols-2">
-          <AgentDeskCard agentId="universal" persisted={persisted} />
-          <AgentDeskCard agentId="riseAlpha" persisted={persisted} />
-        </div>
+          ) : null}
 
-        <Card className="mt-8 border-border/55 bg-card/50 backdrop-blur-md">
-          <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0 pb-2">
-            <div>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Activity className="h-4 w-4 text-primary" aria-hidden />
-                Trade ledger
-              </CardTitle>
-              <CardDescription>Unified log — interest and principal repayments are captured per fill.</CardDescription>
-            </div>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Badge variant="outline" className="cursor-default rounded-lg border-border/60 font-mono text-[11px]">
-                  {tradesPagination.totalItems.toLocaleString()} rows
-                </Badge>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs text-xs leading-relaxed">
-                Exits route proceeds through Rise settlement: pay accrued interest first, knock down borrow principal, then
-                credit remaining SOL to the desk wallet.
-              </TooltipContent>
-            </Tooltip>
-          </CardHeader>
-          <CardContent className="p-0">
-            <ScrollArea className="h-[min(420px,48vh)] px-5 pr-3">
-              {mergedTrades.length === 0 ? (
-                <p className="py-10 text-sm text-muted-foreground">
-                  No closed trades yet — feed needs fresh mints after bootstrap.
-                </p>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-border/50 hover:bg-transparent">
-                      <TableHead className="text-[11px] uppercase text-muted-foreground">Time</TableHead>
-                      <TableHead className="text-[11px] uppercase text-muted-foreground">Desk</TableHead>
-                      <TableHead className="text-[11px] uppercase text-muted-foreground">Symbol</TableHead>
-                      <TableHead className="text-[11px] uppercase text-muted-foreground">Reason</TableHead>
-                      <TableHead className="text-right text-[11px] uppercase text-muted-foreground">PnL</TableHead>
-                      <TableHead className="text-right text-[11px] uppercase text-muted-foreground">Interest</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {tradesPagination.slice.map((t) => (
-                      <TableRow key={`${t.closedAtMs}-${t.mint}-${t.reason}`} className="border-border/40">
-                        <TableCell className="whitespace-nowrap font-mono text-xs text-muted-foreground">
-                          {formatTs(t.closedAtMs)}
-                        </TableCell>
-                        <TableCell className="text-xs font-semibold text-foreground">
-                          {t.agentId === "universal" ? "Universal" : "Rise Alpha"}
-                        </TableCell>
-                        <TableCell className="font-medium">{t.symbol}</TableCell>
-                        <TableCell className="max-w-[220px] truncate text-xs text-muted-foreground">{t.reason}</TableCell>
-                        <TableCell
-                          className={cn(
-                            "text-right font-mono text-sm tabular-nums",
-                            t.pnlSol >= 0 ? "text-emerald-200/90" : "text-red-200/90",
-                          )}
-                        >
-                          {formatSol(t.pnlSol)}
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-xs tabular-nums text-amber-200/85">
-                          {formatSol(t.interestPaidSol)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </ScrollArea>
-            <PremiumTablePagination
-              page={tradesPagination.page}
-              pageSize={tradesPagination.pageSize}
-              totalItems={tradesPagination.totalItems}
-              onPageChange={tradesPagination.setPage}
-              onPageSizeChange={tradesPagination.setPageSize}
-              pageSizeOptions={[10, 15, 25, 50]}
-              loading={intelQ.isFetching}
-              itemLabel="trades"
-              className="rounded-b-xl"
-            />
-          </CardContent>
-        </Card>
 
-        <Card className="mt-6 border-border/55 bg-card/45 backdrop-blur-md">
-          <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0 pb-3">
-            <div>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <TrendingUp className="h-4 w-4 text-primary" aria-hidden />
-                Fresh mint discoveries
-              </CardTitle>
-              <CardDescription>
-                Chronological RISE listings — Universal reads all; Rise Alpha only agent-ready or watch-tier mints.
-              </CardDescription>
-            </div>
-            <Badge variant="outline" className="rounded-lg border-border/60 font-mono text-[11px]">
-              {discoveriesPagination.totalItems.toLocaleString()} listings
-            </Badge>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto px-5">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-border/50 hover:bg-transparent">
-                    <TableHead className="text-[11px] uppercase text-muted-foreground">Time</TableHead>
-                    <TableHead className="text-[11px] uppercase text-muted-foreground">Symbol</TableHead>
-                    <TableHead className="text-right text-[11px] uppercase text-muted-foreground">Market cap</TableHead>
-                    <TableHead className="w-12 pr-4 text-right text-[11px] uppercase text-muted-foreground">Link</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {discoveryRows.length === 0 ? (
-                    <TableRow className="border-border/40 hover:bg-transparent">
-                      <TableCell colSpan={4} className="py-10 text-center text-sm text-muted-foreground">
-                        {!ledgerReady || intelQ.isLoading
-                          ? "Loading RISE markets tape…"
-                          : intelQ.isError
-                            ? "RISE markets feed unavailable — use Refresh after the API is reachable."
-                            : "No RISE listings on the tape yet."}
-                      </TableCell>
-                    </TableRow>
-                  ) : null}
-                  {discoveriesPagination.slice.map((d) => (
-                    <TableRow key={`${d.atMs}-${d.mint}`} className="border-border/40">
-                      <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">{formatTs(d.atMs)}</TableCell>
-                      <TableCell>
-                        <div className="min-w-0">
-                          <p className="font-semibold tracking-tight">{d.symbol}</p>
-                          <p className="truncate font-mono text-[11px] text-muted-foreground">{d.mint}</p>
+
+          <ExperimentTabShell
+
+            activeTab={activeTab}
+
+            onTabChange={setActiveTab}
+
+            accentClass="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+
+            startContent={
+
+              <>
+
+                <ExperimentBeginnerBanner
+
+                  title="This is a simulator — no real money"
+
+                  description="Every strategy trades with fake SOL on live RISE listings. Some use vault leverage to amplify bets — still all simulated."
+
+                  accentIconClass="text-sky-500"
+
+                />
+
+
+
+                <section className="space-y-4">
+
+                  <LpSectionHeader
+
+                    kicker="Step 1"
+
+                    title="How it works"
+
+                    description="Three steps. No trading experience needed."
+
+                  />
+
+                  <RiseHowItWorks />
+
+                </section>
+
+
+
+                <section className="space-y-4">
+
+                  <LpSectionHeader
+
+                    kicker="Step 2"
+
+                    title="Pick a recommended strategy"
+
+                    description="Curated combos with quality filters and sensible exits."
+
+                  />
+
+                  <RiseRecommendedStrategies
+
+                    selectedPersonalityId={selP}
+
+                    selectedExitId={selE}
+
+                    onSelect={(p, e) => selectStrategy(p, e, true)}
+
+                  />
+
+                </section>
+
+
+
+                <section className="space-y-4">
+
+                  <LpSectionHeader
+
+                    kicker="Step 3"
+
+                    title="Or try a sniper"
+
+                    description="Snipers target specific listing stages — fresh launch, high quality, or watchlist."
+
+                  />
+
+                  <RiseSniperAgents
+
+                    selectedPersonalityId={selP}
+
+                    onSelect={(p) => {
+
+                      setSelP(p);
+
+                      setActiveTab("results");
+
+                    }}
+
+                  />
+
+                </section>
+
+              </>
+
+            }
+
+            resultsContent={
+
+              <>
+
+                <section className="space-y-4">
+
+                  <LpSectionHeader
+
+                    kicker="Leaderboard"
+
+                    title="Who is winning right now"
+
+                    description="Tap any strategy to see its balance and open positions."
+
+                    action={
+
+                      <Button
+
+                        type="button"
+
+                        size="sm"
+
+                        variant={aggressiveOnly ? "secondary" : "outline"}
+
+                        className="h-9 rounded-xl"
+
+                        onClick={() => setAggressiveOnly((v) => !v)}
+
+                      >
+
+                        {aggressiveOnly ? "Showing aggressive" : "Aggressive only"}
+
+                      </Button>
+
+                    }
+
+                  />
+
+                  <ExperimentLeaderboardList
+
+                    rows={leaderboardCards}
+
+                    emptyMessage={
+
+                      aggressiveOnly
+
+                        ? "No aggressive strategies in profit yet — they need a big runner first."
+
+                        : "Strategies are warming up. Check back once new listings appear."
+
+                    }
+
+                    accentRingClass="ring-sky-500/30 border-sky-500/35"
+
+                    onSelect={(key) => {
+
+                      const row = visibleLeaderboard.find((r) => r.key === key);
+
+                      if (row) selectStrategy(row.p, row.e);
+
+                    }}
+
+                  />
+
+                </section>
+
+
+
+                <section id="explore-strategy" className="scroll-mt-8 space-y-4">
+
+                  <LpSectionHeader
+
+                    kicker="Your pick"
+
+                    title="Strategy details"
+
+                    description="Change buy and sell styles to explore any combination."
+
+                  />
+
+
+
+                  <div className={cn(overviewCardShell, "rounded-3xl p-5 sm:p-6")}>
+
+                    <div className="grid gap-4 lg:grid-cols-2">
+
+                      <div className="space-y-2">
+
+                        <label className="text-sm font-medium text-foreground" htmlFor="rise-buy-style">
+
+                          When to buy
+
+                        </label>
+
+                        <Select value={String(selP)} onValueChange={(v) => setSelP(Number(v))}>
+
+                          <SelectTrigger id="rise-buy-style" className="h-11 rounded-xl border-border/60">
+
+                            <SelectValue />
+
+                          </SelectTrigger>
+
+                          <SelectContent className="max-h-72 rounded-xl">
+
+                            {RISE_PERSONALITIES.map((p) => (
+
+                              <SelectItem key={p.id} value={String(p.id)}>
+
+                                {p.name}
+
+                              </SelectItem>
+
+                            ))}
+
+                          </SelectContent>
+
+                        </Select>
+
+                        <p className="text-xs leading-relaxed text-muted-foreground">
+
+                          {RISE_PERSONALITIES[selP]?.description}
+
+                        </p>
+
+                      </div>
+
+                      <div className="space-y-2">
+
+                        <label className="text-sm font-medium text-foreground" htmlFor="rise-sell-style">
+
+                          When to sell
+
+                        </label>
+
+                        <Select value={String(selE)} onValueChange={(v) => setSelE(Number(v))}>
+
+                          <SelectTrigger id="rise-sell-style" className="h-11 rounded-xl border-border/60">
+
+                            <SelectValue />
+
+                          </SelectTrigger>
+
+                          <SelectContent className="max-h-72 rounded-xl">
+
+                            {RISE_EXIT_STRATEGIES.map((e) => (
+
+                              <SelectItem key={e.id} value={String(e.id)}>
+
+                                {e.name}
+
+                              </SelectItem>
+
+                            ))}
+
+                          </SelectContent>
+
+                        </Select>
+
+                        <p className="text-xs leading-relaxed text-muted-foreground">
+
+                          {RISE_EXIT_STRATEGIES[selE]?.description}
+
+                        </p>
+
+                      </div>
+
+                    </div>
+
+
+
+                    {selectedCell ? (
+
+                      <div className="mt-5">
+
+                        <StrategyDetailCard
+
+                          cell={selectedCell}
+
+                          mcByMint={persisted.mcByMint}
+
+                          personalityId={selP}
+
+                          exitId={selE}
+
+                        />
+
+                      </div>
+
+                    ) : null}
+
+                  </div>
+
+                </section>
+
+
+
+                <Collapsible open={gridOpen} onOpenChange={setGridOpen}>
+
+                  <CollapsibleTrigger asChild>
+
+                    <button
+
+                      type="button"
+
+                      className={cn(
+
+                        overviewCardShell,
+
+                        "flex w-full items-center justify-between gap-4 rounded-2xl p-5 text-left transition-all duration-200",
+
+                        "hover:border-sky-500/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+
+                      )}
+
+                    >
+
+                      <div className="min-w-0 space-y-1">
+
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/75">
+
+                          Advanced
+
+                        </p>
+
+                        <p className="text-base font-semibold tracking-tight text-foreground">
+
+                          View all 64 strategies
+
+                        </p>
+
+                        <p className="text-sm text-muted-foreground">
+
+                          Full grid — green is profit, red is loss.
+
+                        </p>
+
+                      </div>
+
+                      <ChevronDown
+
+                        className={cn("h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200", gridOpen && "rotate-180")}
+
+                        aria-hidden
+
+                      />
+
+                    </button>
+
+                  </CollapsibleTrigger>
+
+
+
+                  <CollapsibleContent className="mt-4 outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0">
+
+                    <Card className={cn(overviewCardShell, "rounded-2xl border-border/50")}>
+
+                      <CardContent className="space-y-4 overflow-x-auto p-5">
+
+                        <div className="min-w-[640px] space-y-1">
+
+                          <div
+
+                            className="grid gap-1"
+
+                            style={{
+
+                              gridTemplateColumns: `72px repeat(${RISE_EXPERIMENT_EXIT_COUNT}, minmax(0,1fr))`,
+
+                            }}
+
+                          >
+
+                            <div />
+
+                            {RISE_EXIT_STRATEGIES.map((e) => (
+
+                              <Tooltip key={e.id}>
+
+                                <TooltipTrigger asChild>
+
+                                  <div className="flex h-10 items-center justify-center rounded-lg border border-border/40 bg-muted/20 px-0.5 text-center text-[10px] font-semibold leading-tight text-muted-foreground">
+
+                                    {e.short}
+
+                                  </div>
+
+                                </TooltipTrigger>
+
+                                <TooltipContent side="bottom" className="max-w-xs rounded-xl">
+
+                                  <p className="font-semibold">{e.name}</p>
+
+                                  <p className="text-xs text-muted-foreground">{e.description}</p>
+
+                                </TooltipContent>
+
+                              </Tooltip>
+
+                            ))}
+
+                            {RISE_PERSONALITIES.map((p) => (
+
+                              <div key={p.id} className="contents">
+
+                                <Tooltip>
+
+                                  <TooltipTrigger asChild>
+
+                                    <div className="flex h-12 items-center rounded-lg border border-border/40 bg-muted/20 px-2 text-[11px] font-semibold leading-snug text-muted-foreground">
+
+                                      {p.short}
+
+                                    </div>
+
+                                  </TooltipTrigger>
+
+                                  <TooltipContent side="left" className="max-w-xs rounded-xl">
+
+                                    <p className="font-semibold">{p.name}</p>
+
+                                    <p className="text-xs text-muted-foreground">{p.description}</p>
+
+                                  </TooltipContent>
+
+                                </Tooltip>
+
+                                {RISE_EXIT_STRATEGIES.map((e) => {
+
+                                  const cell = persisted.cells[cellKey(p.id, e.id)];
+
+                                  const equity = cell ? cellEquitySol(cell, persisted.mcByMint) : 0;
+
+                                  const ret = (equity / RISE_EXPERIMENT_START_SOL - 1) * 100;
+
+                                  const active = selP === p.id && selE === e.id;
+
+                                  return (
+
+                                    <button
+
+                                      key={e.id}
+
+                                      type="button"
+
+                                      onClick={() => selectStrategy(p.id, e.id)}
+
+                                      className={cn(
+
+                                        "flex h-12 flex-col items-center justify-center rounded-lg border px-0.5 text-center transition-all hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+
+                                        heatClass(ret),
+
+                                        active && "ring-2 ring-sky-500 ring-offset-2 ring-offset-background",
+
+                                      )}
+
+                                    >
+
+                                      <span className="font-mono text-[11px] font-semibold tabular-nums leading-none">
+
+                                        {formatPct(ret)}
+
+                                      </span>
+
+                                      <span className="mt-0.5 text-[9px] font-medium uppercase tracking-wide text-muted-foreground/80">
+
+                                        {cell?.open.length ? `${cell.open.length} open` : "flat"}
+
+                                      </span>
+
+                                    </button>
+
+                                  );
+
+                                })}
+
+                              </div>
+
+                            ))}
+
+                          </div>
+
                         </div>
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-sm tabular-nums">
-                        {d.marketCapUsd != null ? formatCompactUsd(d.marketCapUsd) : "—"}
-                      </TableCell>
-                      <TableCell className="pr-4 text-right">
-                        <a
-                          href={buildRiseTradeUrl(d.mint) ?? `https://rise.rich/trade/${encodeURIComponent(d.mint)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border/60 bg-background/30 text-primary transition-colors hover:bg-background/60"
-                          aria-label={`Trade ${d.symbol} on RISE`}
-                        >
-                          <ArrowUpRight className="h-3.5 w-3.5" />
-                        </a>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-            <PremiumTablePagination
-              page={discoveriesPagination.page}
-              pageSize={discoveriesPagination.pageSize}
-              totalItems={discoveriesPagination.totalItems}
-              onPageChange={discoveriesPagination.setPage}
-              onPageSizeChange={discoveriesPagination.setPageSize}
-              pageSizeOptions={[10, 20, 50]}
-              loading={intelQ.isFetching || !ledgerReady}
-              itemLabel="listings"
-              className="rounded-b-xl"
-            />
-          </CardContent>
-        </Card>
-      </main>
+
+                      </CardContent>
+
+                    </Card>
+
+                  </CollapsibleContent>
+
+                </Collapsible>
+
+              </>
+
+            }
+
+            activityContent={
+
+              <>
+
+                <section className="space-y-4">
+
+                  <LpSectionHeader
+
+                    kicker="Recent"
+
+                    title="Completed trades"
+
+                    description="Every sell across all strategies — newest first."
+
+                  />
+
+                  <ExperimentTradeFeed
+
+                    items={tradeFeedItems}
+
+                    emptyMessage="No completed trades yet. They will appear here once strategies start selling."
+
+                  />
+
+                  {mergedTrades.length > 0 ? (
+
+                    <PremiumTablePagination
+
+                      page={tradesPagination.page}
+
+                      pageSize={tradesPagination.pageSize}
+
+                      totalItems={tradesPagination.totalItems}
+
+                      onPageChange={tradesPagination.setPage}
+
+                      onPageSizeChange={tradesPagination.setPageSize}
+
+                      pageSizeOptions={[10, 15, 25]}
+
+                      loading={intelQ.isFetching}
+
+                      itemLabel="trades"
+
+                      className="rounded-2xl border border-border/50 bg-muted/20 px-4 py-3"
+
+                    />
+
+                  ) : null}
+
+                </section>
+
+
+
+                <section className="space-y-4">
+
+                  <LpSectionHeader
+
+                    kicker="Discoveries"
+
+                    title="Fresh RISE listings"
+
+                    description="New tokens spotted on the live tape."
+
+                    action={
+
+                      intelQ.data ? (
+
+                        <Badge variant="outline" className="rounded-lg border-border/60 font-mono text-[11px]">
+
+                          {intelQ.data.marketCount.toLocaleString()} markets
+
+                        </Badge>
+
+                      ) : null
+
+                    }
+
+                  />
+
+                  {discoveryRows.length === 0 ? (
+
+                    <div className={cn(overviewCardShell, "rounded-2xl px-6 py-14 text-center text-sm text-muted-foreground")}>
+
+                      {!ledgerReady || intelQ.isLoading
+
+                        ? "Loading RISE markets…"
+
+                        : intelQ.isError
+
+                          ? "RISE markets feed unavailable — try Refresh."
+
+                          : "No RISE listings on the tape yet."}
+
+                    </div>
+
+                  ) : (
+
+                    <>
+
+                      <ul className="space-y-2">
+
+                        {discoveryFeedItems.map((d) => (
+
+                          <li
+
+                            key={d.id}
+
+                            className={cn(
+
+                              overviewCardShell,
+
+                              "flex items-center justify-between gap-3 rounded-2xl p-4 transition-[border-color] duration-200 hover:border-border/70",
+
+                            )}
+
+                          >
+
+                            <div className="min-w-0">
+
+                              <p className="text-sm font-semibold tracking-tight text-foreground">{d.tokenLabel}</p>
+
+                              <p className="text-xs text-muted-foreground">{d.strategyLabel}</p>
+
+                            </div>
+
+                            {d.href ? (
+
+                              <a
+
+                                href={d.href}
+
+                                target="_blank"
+
+                                rel="noopener noreferrer"
+
+                                className="inline-flex h-9 items-center gap-1 rounded-xl border border-border/60 bg-background/30 px-3 text-xs font-medium text-primary transition-colors hover:bg-background/60"
+
+                              >
+
+                                Trade
+
+                                <ArrowUpRight className="h-3 w-3" aria-hidden />
+
+                              </a>
+
+                            ) : null}
+
+                          </li>
+
+                        ))}
+
+                      </ul>
+
+                      <PremiumTablePagination
+
+                        page={discoveriesPagination.page}
+
+                        pageSize={discoveriesPagination.pageSize}
+
+                        totalItems={discoveriesPagination.totalItems}
+
+                        onPageChange={discoveriesPagination.setPage}
+
+                        onPageSizeChange={discoveriesPagination.setPageSize}
+
+                        pageSizeOptions={[8, 16, 32]}
+
+                        loading={intelQ.isFetching || !ledgerReady}
+
+                        itemLabel="listings"
+
+                        className="rounded-2xl border border-border/50 bg-muted/20 px-4 py-3"
+
+                      />
+
+                    </>
+
+                  )}
+
+                </section>
+
+              </>
+
+            }
+
+          />
+
+        </main>
+
       </div>
+
     </TooltipProvider>
+
   );
+
 }
+
+

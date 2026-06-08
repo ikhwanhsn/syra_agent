@@ -5,6 +5,8 @@ import { AnimatedMetric } from "@/components/assets/AnimatedMetric";
 import { cn } from "@/lib/utils";
 import { formatSol } from "@/lib/dashboardOverviewAggregates";
 import { overviewCardShell, overviewKickerClass } from "@/components/dashboard/overview/overviewStyles";
+import { BalanceChangeIndicator } from "@/components/dashboard/overview/BalanceChangeIndicator";
+import type { BalanceChangeResult } from "@/lib/treasuryBalanceHistory";
 
 export interface TreasurySplitCardProps {
   title: string;
@@ -15,6 +17,7 @@ export interface TreasurySplitCardProps {
   href: string;
   isLoading?: boolean;
   accentClass?: string;
+  change?: BalanceChangeResult | null;
 }
 
 function formatUsdc(n: number): string {
@@ -30,6 +33,7 @@ export function TreasurySplitCard({
   href,
   isLoading,
   accentClass,
+  change,
 }: TreasurySplitCardProps) {
   return (
     <Link
@@ -74,6 +78,7 @@ export function TreasurySplitCard({
             <p className="mt-1 text-sm tabular-nums text-muted-foreground">
               {sol != null ? <AnimatedMetric value={sol} format={formatSol} /> : "—"} SOL
             </p>
+            <BalanceChangeIndicator change={change} className="mt-2" />
           </>
         )}
         <span className="mt-auto inline-flex items-center gap-1 pt-4 text-[11px] font-medium text-muted-foreground transition-colors group-hover:text-foreground">
@@ -90,11 +95,17 @@ export function TreasurySplitCardGrid({
   trading,
   lp,
   loading,
+  changes,
 }: {
   connectedWallet: { usdc: number | null; sol: number | null };
   trading: { usdc: number | null; sol: number | null };
   lp: { usdc: number | null; sol: number | null };
   loading?: boolean;
+  changes?: {
+    user?: BalanceChangeResult | null;
+    trading?: BalanceChangeResult | null;
+    lp?: BalanceChangeResult | null;
+  };
 }) {
   return (
     <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -107,6 +118,7 @@ export function TreasurySplitCardGrid({
         href="/wallet"
         isLoading={loading}
         accentClass="bg-gradient-to-br from-[#9945FF]/10 to-transparent"
+        change={changes?.user}
       />
       <TreasurySplitCard
         title="Trading agent"
@@ -117,6 +129,7 @@ export function TreasurySplitCardGrid({
         href="/wallet?wallet=chat"
         isLoading={loading}
         accentClass="bg-gradient-to-br from-primary/10 to-transparent"
+        change={changes?.trading}
       />
       <TreasurySplitCard
         title="LP agent"
@@ -127,6 +140,7 @@ export function TreasurySplitCardGrid({
         href="/wallet?wallet=lp"
         isLoading={loading}
         accentClass="bg-gradient-to-br from-cyan-500/8 to-transparent"
+        change={changes?.lp}
       />
     </div>
   );

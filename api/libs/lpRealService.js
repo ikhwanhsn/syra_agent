@@ -9,26 +9,34 @@ import AgentWallet from "../models/agent/AgentWallet.js";
 import { LP_AGENT_EXPERIMENT_DEFAULTS } from "../config/lpAgentExperimentStrategies.js";
 import { resolveLpStrategyById } from "./lpExperimentStrategyResolve.js";
 import {
-  computeLpNetPnlPct,
   ensureLpExperimentBootstrapped,
-  isPositionOutOfRange,
   pickBestNetPnlStrategy,
   rankLpExperimentStrategiesByNetPnl,
   selectQualifiedStrategiesForReal,
   selectRealStylePoolCandidate,
 } from "./lpExperimentService.js";
+import {
+  applyRealBinOverrides,
+  clampPositionBinRange,
+  computeFeeYieldPct,
+  computeLpNetPnlPct,
+  computePriceDriftPct,
+  isPositionOutOfRange,
+  mergeRealExitRules,
+  MAX_METEORA_POSITION_BINS,
+  REAL_CLAIM_FEES_BEFORE_CLOSE_SOL,
+  shouldCloseByOor,
+} from "./lpEconomicsModel.js";
 import { executeIntent } from "../services/walletBroker.js";
 import {
   buildOpenPositionTx,
   buildClosePositionTx,
   buildClaimFeesTx,
-  clampPositionBinRange,
   computeCloseProceedsSol,
   fetchOnChainPosition,
   getAgentSolBalance,
   getAgentWalletEquitySol,
   isSolMint,
-  MAX_METEORA_POSITION_BINS,
   snapshotAgentWalletForPool,
 } from "./meteoraDlmmExecutor.js";
 import { isSolanaTxConfirmedOnAnyRpc } from "./solanaConfirm.js";
@@ -61,14 +69,6 @@ const LP_REAL_TX_CONFIRM_TIMEOUT_MS = (() => {
 /** Poll Meteora position index after broker timeout / RPC lag. */
 const LP_REAL_POSITION_RECOVERY = { attempts: 20, delayMs: 3000 };
 const LP_REAL_TX_CONFIRM_POLL = { attempts: 20, delayMs: 3000 };
-/** Real LP: minimum minutes in-range before OOR exit is allowed (collect fees first). */
-const REAL_MIN_HOLD_MINUTES = 45;
-/** Real LP: floor on strategy oorWaitMin — avoids 15–20m churn seen in production. */
-const REAL_MIN_OOR_WAIT_MIN = 90;
-/** Real LP: minimum bins each side after overrides (wider = fewer OOR exits). */
-const REAL_MIN_BINS_PER_SIDE = 22;
-/** Claim accumulated swap fees before close when above this SOL threshold. */
-const REAL_CLAIM_FEES_BEFORE_CLOSE_SOL = 0.000_05;
 const DEFAULT_LIST_LIMIT = 50;
 const MAX_LIST_LIMIT = 200;
 const LP_REAL_TOOL_IDS = ["lp_real_open", "lp_real_close", "lp_real_claim", "lp_real_swap"];
@@ -327,23 +327,6 @@ function envSlippageBps() {
   return Number.isFinite(n) && n > 0 ? Math.min(300, n) : 100;
 }
 
-/** Widen bin range for on-chain positions — sim strategies can be too tight for mainnet volatility. */
-function applyRealBinOverrides(binsBelow, binsAbove) {
-  return {
-    binsBelow: Math.max(toNum(binsBelow, 0), REAL_MIN_BINS_PER_SIDE),
-    binsAbove: Math.max(toNum(binsAbove, 0), REAL_MIN_BINS_PER_SIDE),
-  };
-}
-
-function mergeRealExitRules(strategyExit = {}) {
-  return {
-    ...strategyExit,
-    minHoldMin: Math.max(toNum(strategyExit.minHoldMin, 0), REAL_MIN_HOLD_MINUTES),
-    oorWaitMin: Math.max(toNum(strategyExit.oorWaitMin, 30), REAL_MIN_OOR_WAIT_MIN),
-    claimFeesAtSol: REAL_CLAIM_FEES_BEFORE_CLOSE_SOL,
-  };
-}
-
 export function isRealCronEnabled() {
   const raw = (process.env.LP_AGENT_REAL_ENABLED || "").trim().toLowerCase();
   return raw !== "false" && raw !== "0";
@@ -420,28 +403,6 @@ async function fetchSolPriceUsd() {
     // fallback
   }
   return cachedSolPrice.value || 150;
-}
-
-function computePriceDriftPct(entry, current) {
-  if (!Number.isFinite(entry) || entry <= 0 || !Number.isFinite(current) || current <= 0) return 0;
-  return (current / entry - 1) * 100;
-}
-
-function computeFeeYieldPct(feeTvlRatio, hoursElapsed) {
-  const f = toNum(feeTvlRatio, 0);
-  if (f <= 0 || hoursElapsed <= 0) return 0;
-  return f * (hoursElapsed / 24) * 100;
-}
-
-function shouldCloseByOor(position, detail, exitRules, hoursElapsed) {
-  const activeNow = toNum(detail.activeBinId, position.activeBinAtOpen);
-  const activeAtOpen = toNum(position.activeBinAtOpen, activeNow);
-  if (!isPositionOutOfRange(activeAtOpen, activeNow, position.binsBelow, position.binsAbove)) {
-    return false;
-  }
-  const minHoldMin = toNum(exitRules?.minHoldMin, REAL_MIN_HOLD_MINUTES);
-  if (hoursElapsed * 60 < minHoldMin) return false;
-  return hoursElapsed * 60 >= toNum(exitRules?.oorWaitMin, REAL_MIN_OOR_WAIT_MIN);
 }
 
 function evaluateRealPositionExit(position, detail, hoursElapsed) {

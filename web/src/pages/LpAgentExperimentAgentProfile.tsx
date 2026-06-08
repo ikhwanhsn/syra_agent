@@ -167,8 +167,8 @@ export default function LpAgentExperimentAgentProfile({ embedded = false }: { em
             <AgentBackgroundLiveIndicator openPositions={stats?.openPositions || 0} />
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            Strategy profile, Meteora pool candidates, and live LP runs for this agent. Capital, fees, and cohort context
-            track the active experiment ledger.
+            Strategy profile, Meteora pool candidates, and paper-trading runs for this agent. PnL is modeled from live
+            Meteora pool data — not on-chain wallet balance. For real positions, use Live LP on the experiment desk.
           </p>
         </div>
         <Button
@@ -236,13 +236,13 @@ export default function LpAgentExperimentAgentProfile({ embedded = false }: { em
               ) : null}
             </div>
             <div className="rounded-xl border border-border bg-card p-4">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Avg PnL</p>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Avg sim PnL</p>
               <p className={cn("mt-1 text-2xl font-semibold tabular-nums", pnlNumberClass(stats.avgPnlPct))}>
                 {stats.avgPnlPct.toFixed(2)}%
               </p>
             </div>
             <div className="rounded-xl border border-border bg-card p-4">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Net PnL Σ</p>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Sim net PnL Σ</p>
               <p className={cn("mt-1 text-2xl font-semibold tabular-nums", pnlNumberClass(stats.sumNetPnlSol ?? 0))}>
                 {(stats.sumNetPnlSol ?? 0).toFixed(4)} SOL
               </p>
@@ -454,7 +454,13 @@ export default function LpAgentExperimentAgentProfile({ embedded = false }: { em
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-sm font-semibold">Run history</h2>
+            <div>
+              <h2 className="text-sm font-semibold">Run history (paper sim)</h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                PnL uses live Meteora price, active bin, and 24h fee/TVL — extrapolated by the LP economics model. No
+                wallet transactions; not comparable to Live LP on-chain returns.
+              </p>
+            </div>
             <div className="overflow-hidden rounded-xl border border-border/70 bg-card/70">
               <Table>
                 <TableHeader>
@@ -462,9 +468,9 @@ export default function LpAgentExperimentAgentProfile({ embedded = false }: { em
                     <TableHead>Pool</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Size (SOL)</TableHead>
-                    <TableHead className="text-right">PnL %</TableHead>
-                    <TableHead className="text-right">Net PnL (SOL + USD)</TableHead>
-                    <TableHead className="text-right">LP fees (SOL)</TableHead>
+                    <TableHead className="text-right">Sim PnL %</TableHead>
+                    <TableHead className="text-right">Sim net PnL</TableHead>
+                    <TableHead className="text-right">Sim LP fees</TableHead>
                     <TableHead className="text-right">Open fee</TableHead>
                     <TableHead className="text-right">Close fee</TableHead>
                     <TableHead>Resolution</TableHead>

@@ -8,6 +8,7 @@ import { ApiResponse, RequestStatus, PaymentDetails } from '@/types/api';
 import { cn } from '@/lib/utils';
 import type { PlaygroundPaymentLane } from '@/lib/paymentLane';
 import { shouldShowNonX402Hint } from '@/lib/nonX402ResponseHint';
+import { isLocalApiUnreachableBody } from '@/lib/devApiProxyHint';
 import { BRAND_NAME } from '@/lib/branding';
 
 interface ResponseViewerProps {
@@ -41,7 +42,10 @@ function getStatusIcon(status: number) {
   return Clock;
 }
 
-function getStatusMessage(status: number): string {
+function getStatusMessage(status: number, body?: string): string {
+  if (isLocalApiUnreachableBody(body)) {
+    return 'Local API not running — start cd api && npm run dev, or disable VITE_USE_LOCAL_API';
+  }
   if (status === 402) return 'Payment required to access this resource';
   if (status >= 200 && status < 300) return 'Request completed successfully';
   if (status >= 400 && status < 500) return 'Client error - check your request';
@@ -187,7 +191,7 @@ export function ResponseViewer({
           </div>
           <div className="min-w-0">
             <h2 className="font-display text-lg font-semibold tracking-tight text-foreground">Response</h2>
-            <p className="text-[11px] text-muted-foreground truncate mt-0.5">{getStatusMessage(response.status)}</p>
+            <p className="text-[11px] text-muted-foreground truncate mt-0.5">{getStatusMessage(response.status, response.body)}</p>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">

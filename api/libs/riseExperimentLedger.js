@@ -1,8 +1,14 @@
 export const RISE_EXPERIMENT_START_SOL = 10;
-export const RISE_EXPERIMENT_FEED_VERSION = 3;
+export const RISE_EXPERIMENT_FEED_VERSION = 4;
 export const RISE_EXPERIMENT_TAPE_SOURCE = "rise-markets";
+export const RISE_EXPERIMENT_PERSONALITY_COUNT = 8;
+export const RISE_EXPERIMENT_EXIT_COUNT = 8;
 
-function createEmptyAgent() {
+function cellKey(personalityId, exitStrategyId) {
+  return `p${personalityId}_e${exitStrategyId}`;
+}
+
+function createEmptyCell() {
   return {
     balanceSol: RISE_EXPERIMENT_START_SOL,
     borrowedPrincipalSol: 0,
@@ -15,16 +21,19 @@ function createEmptyAgent() {
 }
 
 export function createInitialRiseLedger() {
+  const cells = {};
+  for (let p = 0; p < RISE_EXPERIMENT_PERSONALITY_COUNT; p++) {
+    for (let e = 0; e < RISE_EXPERIMENT_EXIT_COUNT; e++) {
+      cells[cellKey(p, e)] = createEmptyCell();
+    }
+  }
   return {
     v: 1,
     feedVersion: RISE_EXPERIMENT_FEED_VERSION,
     tapeSource: RISE_EXPERIMENT_TAPE_SOURCE,
     feedBootstrapped: false,
     seenMints: [],
-    agents: {
-      universal: createEmptyAgent(),
-      riseAlpha: createEmptyAgent(),
-    },
+    cells,
     discoveries: [],
     mcByMint: {},
     lastTickMs: null,
@@ -35,28 +44,31 @@ function isValidRiseLedger(parsed) {
   if (!parsed || parsed.v !== 1) return false;
   if (parsed.feedVersion !== RISE_EXPERIMENT_FEED_VERSION) return false;
   if (parsed.tapeSource !== RISE_EXPERIMENT_TAPE_SOURCE) return false;
-  if (!parsed.agents?.universal || !parsed.agents?.riseAlpha) return false;
+  if (!parsed.cells || typeof parsed.cells !== "object") return false;
+  const expected = RISE_EXPERIMENT_PERSONALITY_COUNT * RISE_EXPERIMENT_EXIT_COUNT;
+  if (Object.keys(parsed.cells).length < expected) return false;
   return true;
 }
 
-function normalizeAgent(a, fallback) {
-  const agent = a && typeof a === "object" ? { ...a } : { ...fallback };
-  if (typeof agent.balanceSol !== "number" || !Number.isFinite(agent.balanceSol)) {
-    agent.balanceSol = fallback.balanceSol;
+function normalizeCell(a, fallback) {
+  const cell = a && typeof a === "object" ? { ...a } : { ...fallback };
+  if (typeof cell.balanceSol !== "number" || !Number.isFinite(cell.balanceSol)) {
+    cell.balanceSol = fallback.balanceSol;
   }
-  if (!Array.isArray(agent.open)) agent.open = [];
-  if (!Array.isArray(agent.closed)) agent.closed = [];
-  if (!agent.boughtMints || typeof agent.boughtMints !== "object") agent.boughtMints = {};
-  if (typeof agent.borrowedPrincipalSol !== "number") agent.borrowedPrincipalSol = 0;
-  if (typeof agent.interestOwedSol !== "number") agent.interestOwedSol = 0;
-  if (typeof agent.interestPaidAllTimeSol !== "number") agent.interestPaidAllTimeSol = 0;
-  for (const o of agent.open) {
-    if (o?.mint) agent.boughtMints[o.mint] = true;
+  if (!Array.isArray(cell.open)) cell.open = [];
+  if (!Array.isArray(cell.closed)) cell.closed = [];
+  if (!cell.boughtMints || typeof cell.boughtMints !== "object") cell.boughtMints = {};
+  if (typeof cell.borrowedPrincipalSol !== "number") cell.borrowedPrincipalSol = 0;
+  if (typeof cell.interestOwedSol !== "number") cell.interestOwedSol = 0;
+  if (typeof cell.interestPaidAllTimeSol !== "number") cell.interestPaidAllTimeSol = 0;
+  for (const o of cell.open) {
+    if (o?.mint) cell.boughtMints[o.mint] = true;
+    if (o && (!o.exitScratch || typeof o.exitScratch !== "object")) o.exitScratch = {};
   }
-  for (const c of agent.closed) {
-    if (c?.mint) agent.boughtMints[c.mint] = true;
+  for (const c of cell.closed) {
+    if (c?.mint) cell.boughtMints[c.mint] = true;
   }
-  return agent;
+  return cell;
 }
 
 /** Normalize persisted ledger from DB or API body. */
@@ -66,9 +78,16 @@ export function normalizeRiseLedger(raw) {
     return fresh;
   }
 
-  const parsed = { ...raw, agents: { ...raw.agents } };
-  for (const id of ["universal", "riseAlpha"]) {
-    parsed.agents[id] = normalizeAgent(parsed.agents[id], fresh.agents[id]);
+  const parsed = { ...raw, cells: { ...raw.cells } };
+  for (const [k, cell] of Object.entries(parsed.cells)) {
+    parsed.cells[k] = normalizeCell(cell, fresh.cells[k] ?? createEmptyCell());
+  }
+
+  for (let p = 0; p < RISE_EXPERIMENT_PERSONALITY_COUNT; p++) {
+    for (let e = 0; e < RISE_EXPERIMENT_EXIT_COUNT; e++) {
+      const k = cellKey(p, e);
+      if (!parsed.cells[k]) parsed.cells[k] = createEmptyCell();
+    }
   }
 
   if (typeof parsed.feedBootstrapped !== "boolean") parsed.feedBootstrapped = false;

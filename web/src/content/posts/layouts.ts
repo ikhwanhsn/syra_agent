@@ -8,6 +8,12 @@ import {
   POST_SLIDE_LAYOUTS_EXTENDED,
   type PostSlideLayoutTemplateExtended,
 } from "./layoutsExtended";
+import {
+  POST_LAYOUT_KIND_BATCH3,
+  POST_LAYOUT_LABELS_BATCH3,
+  POST_SLIDE_LAYOUTS_BATCH3,
+  type PostSlideLayoutTemplateBatch3,
+} from "./layoutsBatch3";
 
 export const POST_SLIDE_LAYOUTS_BASE = [
   "cover-spotlight",
@@ -92,20 +98,29 @@ const POST_LAYOUT_KIND_BASE: Record<PostSlideLayoutTemplateBase, string> = {
   "compare-columns": "statement",
 };
 
-export const POST_SLIDE_LAYOUTS = [...POST_SLIDE_LAYOUTS_BASE, ...POST_SLIDE_LAYOUTS_EXTENDED] as const;
+export const POST_SLIDE_LAYOUTS = [
+  ...POST_SLIDE_LAYOUTS_BASE,
+  ...POST_SLIDE_LAYOUTS_EXTENDED,
+  ...POST_SLIDE_LAYOUTS_BATCH3,
+] as const;
 
-export type PostSlideLayoutTemplate = PostSlideLayoutTemplateBase | PostSlideLayoutTemplateExtended;
+export type PostSlideLayoutTemplate =
+  | PostSlideLayoutTemplateBase
+  | PostSlideLayoutTemplateExtended
+  | PostSlideLayoutTemplateBatch3;
 
 export const POST_LAYOUT_TEMPLATE_COUNT = POST_SLIDE_LAYOUTS.length;
 
 export const POST_LAYOUT_LABELS: Record<PostSlideLayoutTemplate, string> = {
   ...POST_LAYOUT_LABELS_BASE,
   ...POST_LAYOUT_LABELS_EXTENDED,
+  ...POST_LAYOUT_LABELS_BATCH3,
 };
 
 export const POST_LAYOUT_KIND: Record<PostSlideLayoutTemplate, string> = {
   ...POST_LAYOUT_KIND_BASE,
   ...POST_LAYOUT_KIND_EXTENDED,
+  ...POST_LAYOUT_KIND_BATCH3,
 };
 
 export {
@@ -113,4 +128,8 @@ export {
   POST_LAYOUT_LABELS_EXTENDED,
   POST_LAYOUT_KIND_EXTENDED,
   type PostSlideLayoutTemplateExtended,
+  POST_SLIDE_LAYOUTS_BATCH3,
+  POST_LAYOUT_LABELS_BATCH3,
+  POST_LAYOUT_KIND_BATCH3,
+  type PostSlideLayoutTemplateBatch3,
 };

@@ -9,6 +9,7 @@ import {
   resolveInternalPipelineModel,
   INTERNAL_PIPELINE_MAX_COMPLETION_TOKENS,
 } from "../config/internalPipelineAgents.js";
+import { linkHostKey, normalizeScoutLabel } from "../libs/internalScoutDedupe.js";
 
 /**
  * @typedef {import("../libs/onchainPartnershipSignals.js").PartnershipCandidate} PartnershipCandidate
@@ -132,15 +133,80 @@ const SYSTEM = `You are **Syra Partnership Scout**, an internal BD analyst for S
    - collaborationIdea (concrete: co-marketing, x402 route, agent tool, LP, signal share, 8004 cross-listing, etc.)
    - onchainSignals (array of strings from input — do not invent metrics)
    - priority (high|medium|low)
-   - link (optional, from input)
-4. **quickIntegrations** — 3–5 smaller integration ideas Syra could ship without a full partnership (wire their API as agent tool, list in docs, etc.).
+   - link (required when present in input — the external project's site, API, or registry profile URL)
+4. **quickIntegrations** — 3–5 smaller integration ideas Syra could ship without a full partnership (wire their API as agent tool, list in docs, etc.). Name the **other** project being integrated — never describe the target as Syra.
 5. **risksOrCaveats** — scams, thin utility, data gaps, regulatory noise.
 
 **Rules:**
 - Only recommend projects grounded in the candidate list. Prefer AI agents, x402, trading data, and real utility over pure meme tokens.
 - Do NOT recommend partnering with direct Syra clones; prefer complementary stacks.
 - Do NOT output projects listed in **alreadyKnown** (same name or same link host) — they are already saved in Syra's database.
+- **link** must point to the partnership target (candidate project), never to syraa.fun / agent.syraa.fun / api.syraa.fun unless the candidate itself is Syra.
+- **name** must be the external project/agent name from candidates — not "Syra" and not a generic placeholder.
 - Valid JSON only, no markdown.`;
+
+const SYRA_LINK_HOSTS = new Set([
+  "syraa.fun",
+  "api.syraa.fun",
+  "agent.syraa.fun",
+  "docs.syraa.fun",
+  "playground.syraa.fun",
+  "dashboard.syraa.fun",
+]);
+
+/**
+ * @param {PartnershipTarget[]} targets
+ * @param {PartnershipCandidate[]} candidates
+ * @returns {PartnershipTarget[]}
+ */
+function repairPartnershipTargetLinks(targets, candidates) {
+  const byName = new Map();
+  /** @type {Map<string, string>} */
+  const byAssetPrefix = new Map();
+  for (const c of candidates) {
+    const key = normalizeScoutLabel(c.name);
+    if (key && c.link) byName.set(key, c.link);
+    const id = String(c.id || "");
+    if (id.startsWith("8004:") && c.link) {
+      byAssetPrefix.set(id.slice(5), c.link);
+    }
+  }
+
+  /**
+   * @param {string | undefined} hint
+   * @returns {string | null}
+   */
+  function linkForAssetHint(hint) {
+    const token = String(hint || "").trim();
+    if (!token) return null;
+    if (byAssetPrefix.has(token)) return byAssetPrefix.get(token) ?? null;
+    for (const [asset, link] of byAssetPrefix) {
+      if (asset.startsWith(token) || token.startsWith(asset)) return link;
+    }
+    return null;
+  }
+
+  return targets.map((target) => {
+    const host = linkHostKey(target.link);
+    const linkLooksLikeSyra = host && SYRA_LINK_HOSTS.has(host);
+    if (!linkLooksLikeSyra && target.link) return target;
+
+    const nameKey = normalizeScoutLabel(target.name);
+    const fromName = byName.get(nameKey);
+    if (fromName) return { ...target, link: fromName };
+
+    const fromTargetName = linkForAssetHint(target.name);
+    if (fromTargetName) return { ...target, link: fromTargetName };
+
+    for (const signal of target.onchainSignals ?? []) {
+      const m = String(signal).match(/asset:([A-Za-z0-9]+)/);
+      const fromSignal = linkForAssetHint(m?.[1]);
+      if (fromSignal) return { ...target, link: fromSignal };
+    }
+
+    return linkLooksLikeSyra ? { ...target, link: null } : target;
+  });
+}
 
 /**
  * @param {{
@@ -199,5 +265,7 @@ export async function runSyraPartnershipScoutAgent(input) {
   });
 
   const parsed = parseJsonObjectFromLlm(result.response);
-  return coerceOutput(parsed, stats);
+  const out = coerceOutput(parsed, stats);
+  out.partnershipTargets = repairPartnershipTargetLinks(out.partnershipTargets, input.candidates);
+  return out;
 }

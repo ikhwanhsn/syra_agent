@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNo
 import { Link } from "@/lib/navigation";
 import {
   ArrowDown,
-  ArrowLeft,
   ArrowUp,
   ArrowUpDown,
   BarChart3,
@@ -13,8 +12,6 @@ import {
   Loader2,
   Trophy,
   RefreshCw,
-  Sun,
-  Moon,
   Users,
   Trash2,
   Crown,
@@ -24,7 +21,6 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { WalletNav } from "@/components/chat/WalletNav";
 import {
   decodeExperimentLabAgentId,
   fetchTradingExperimentStatsAll,
@@ -98,6 +94,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { TradingExperimentChartsPanel } from "@/components/experiment/TradingExperimentChartsPanel";
+import { ExperimentAgentBalancePanel } from "@/components/experiment/shared/ExperimentAgentBalancePanel";
+import { buildEquityHistoryFromRuns, formatExperimentUsd } from "@/lib/experimentEquityHistory";
 import { ExperimentTokenCombobox } from "@/components/experiment/ExperimentTokenCombobox";
 import { AgentBackgroundLiveIndicator } from "@/components/experiment/AgentBackgroundLiveIndicator";
 import { CoingeckoBatchImageProvider } from "@/contexts/CoingeckoBatchImageContext";
@@ -766,9 +764,6 @@ function ExperimentTablePagination(props: {
 }
 
 export default function TradingAgentExperiment({ embedded = false }: { embedded?: boolean }) {
-  const [isDarkMode, setIsDarkMode] = useState(
-    () => !document.documentElement.classList.contains("light"),
-  );
   const [agents, setAgents] = useState<TradingExperimentAgentStats[]>([]);
   const [pageView, setPageView] = useState<PageView>("lab");
   const [loading, setLoading] = useState(true);
@@ -842,6 +837,8 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
   const [explorerSymbol, setExplorerSymbol] = useState("");
   const [explorerAgentId, setExplorerAgentId] = useState("");
 
+  const [featuredRuns, setFeaturedRuns] = useState<TradingExperimentRunRow[]>([]);
+
   const isSmUp = useMatchMediaMinWidth(SM_BREAKPOINT_PX);
   const [mobileLabFiltersOpen, setMobileLabFiltersOpen] = useState(false);
   const [mobileLbFiltersOpen, setMobileLbFiltersOpen] = useState(false);
@@ -849,6 +846,51 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
   const [mobileExplorerFiltersOpen, setMobileExplorerFiltersOpen] = useState(false);
   const [mobileMyWinFiltersOpen, setMobileMyWinFiltersOpen] = useState(false);
   const [mobileMyRunsFiltersOpen, setMobileMyRunsFiltersOpen] = useState(false);
+
+  const featuredAgent = useMemo(() => {
+    if (agents.length === 0) return null;
+    return [...agents].sort((a, b) => (b.returnPct ?? -Infinity) - (a.returnPct ?? -Infinity))[0];
+  }, [agents]);
+
+  const featuredStartUsd = featuredAgent?.startingBankUsd ?? 1000;
+  const featuredEquityUsd = featuredAgent?.equityUsd ?? featuredStartUsd;
+  const featuredRetPct = featuredAgent?.returnPct ?? 0;
+
+  const featuredHistory = useMemo(
+    () =>
+      buildEquityHistoryFromRuns({
+        startBalance: featuredStartUsd,
+        currentBalance: featuredEquityUsd,
+        runs: featuredRuns.map((r) => ({
+          status: r.status,
+          resolvedAt: r.resolvedAt,
+          pnl: r.simPnlUsd,
+        })),
+      }),
+    [featuredRuns, featuredStartUsd, featuredEquityUsd],
+  );
+
+  useEffect(() => {
+    if (!featuredAgent) {
+      setFeaturedRuns([]);
+      return;
+    }
+    let cancelled = false;
+    void fetchTradingExperimentRuns({
+      agentId: featuredAgent.agentId,
+      suite: featuredAgent.experimentSuite ?? "lab_all",
+      limit: 50,
+    })
+      .then(({ runs }) => {
+        if (!cancelled) setFeaturedRuns(runs);
+      })
+      .catch(() => {
+        if (!cancelled) setFeaturedRuns([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [featuredAgent?.agentId, featuredAgent?.experimentSuite]);
 
   const load = useCallback(async () => {
     if (pageView === "my_agents" || pageView === "explorer") {
@@ -1187,15 +1229,6 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
     load();
   }, [load]);
 
-  useEffect(() => {
-    if (embedded) return;
-    if (isDarkMode) {
-      document.documentElement.classList.remove("light");
-    } else {
-      document.documentElement.classList.add("light");
-    }
-  }, [embedded, isDarkMode]);
-
   const onLabSort = useCallback((key: string) => {
     const k = key as LabSortKey;
     setLabSortKey((prev) => {
@@ -1325,60 +1358,30 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
   }, [walletAddress, myAgents.length, toast]);
 
   return (
-    <div
+    <main
       className={cn(
-        "bg-background text-foreground",
-        /* Match Arbitrage: avoid `flex-1` on the Outlet root so `<main>` bottom padding extends scroll height. */
-        embedded ? "w-full min-w-0" : "flex min-h-screen min-w-0 flex-col",
+        DASHBOARD_CONTENT_SHELL,
+        "min-w-0 space-y-8 bg-background text-foreground",
+        PAGE_PADDING_TOP_STANDARD,
+        PAGE_SAFE_AREA_BOTTOM_COMPACT,
+        embedded && "w-full",
       )}
     >
-      {!embedded && (
-        <header className="flex items-center justify-between gap-2 sm:gap-4 px-2 py-2 sm:px-4 sm:py-3 border-b border-border bg-background/80 backdrop-blur-xl min-h-[52px] shrink-0 sticky top-0 z-20">
-          <div className={cn(DASHBOARD_CONTENT_SHELL, "flex items-center justify-between gap-2 sm:gap-4")}>
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <Link to="/">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 shrink-0"
-                  title="Back to chat"
-                  aria-label="Back to chat"
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                </Button>
-              </Link>
-              <div className="flex items-center gap-2 min-w-0">
-                <FlaskConical className="w-5 h-5 text-primary shrink-0" />
-                <h1 className="text-sm font-bold text-foreground truncate">Trading agent experiment</h1>
-              </div>
-            </div>
-            <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 min-w-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="hidden h-9 w-9 shrink-0 lg:inline-flex"
-                onClick={() => setIsDarkMode((d) => !d)}
-                title={isDarkMode ? "Light mode" : "Dark mode"}
-                aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
-              >
-                {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-              </Button>
-              <WalletNav isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode((d) => !d)} />
-            </div>
-          </div>
-        </header>
-      )}
-
-      <main
-        className={cn(
-          DASHBOARD_CONTENT_SHELL,
-          "min-w-0 space-y-8",
-          PAGE_PADDING_TOP_STANDARD,
-          PAGE_SAFE_AREA_BOTTOM_COMPACT,
-          !embedded && "min-h-0 flex-1",
-        )}
-      >
         <CoingeckoBatchImageProvider symbols={coingeckoBatchSymbols}>
+        <ExperimentAgentBalancePanel
+          platformLabel="Trading lab"
+          bankLabel="$1,000 paper agent"
+          strategyLabel={featuredAgent?.name ?? "Warming up…"}
+          startBalance={featuredStartUsd}
+          currentBalance={featuredEquityUsd}
+          retPct={featuredRetPct}
+          closedCount={featuredAgent?.closedTrades ?? 0}
+          openCount={featuredAgent?.openPositions ?? 0}
+          historyPoints={featuredHistory}
+          formatBalance={formatExperimentUsd}
+          formatAxis={(n) => `$${Math.round(n)}`}
+          accent="marketplace"
+        />
         <Tabs
           value={pageView}
           onValueChange={(v) => setPageView(v as PageView)}
@@ -3368,7 +3371,6 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
           </TabsContent>
         </Tabs>
         </CoingeckoBatchImageProvider>
-      </main>
-    </div>
+    </main>
   );
 }

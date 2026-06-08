@@ -6,11 +6,9 @@ import {
   ArrowUpDown,
   ExternalLink,
   Handshake,
-  Layers,
   Loader2,
   RefreshCw,
   Search,
-  SlidersHorizontal,
   Sparkles,
   X,
   Zap,
@@ -81,15 +79,20 @@ const STATUS_TABS: { id: string; label: string }[] = [
   { id: "interested", label: "Interested" },
   { id: "participate", label: "In progress" },
   { id: "applied", label: "Applied" },
-  { id: "skip", label: "Skip" },
+  { id: "skip", label: "Skipped" },
   { id: "archived", label: "Archived" },
 ];
 
-const PRIORITY_TABS = [
-  { id: "all", label: "All priorities" },
-  { id: "high", label: "High" },
-  { id: "medium", label: "Medium" },
-  { id: "low", label: "Low" },
+const PRIORITY_OPTIONS = [
+  { id: "all", label: "Any priority" },
+  { id: "high", label: "High priority" },
+  { id: "medium", label: "Medium priority" },
+  { id: "low", label: "Low priority" },
+] as const;
+
+const VIEW_TABS = [
+  { id: "targets", label: "Projects to partner with" },
+  { id: "integrations", label: "Fast wins" },
 ] as const;
 
 function statusBadgeClass(status: PartnershipLeadStatus): string {
@@ -110,11 +113,6 @@ function statusBadgeClass(status: PartnershipLeadStatus): string {
       return "";
   }
 }
-
-const VIEW_TABS = [
-  { id: "targets", label: "Partnership targets" },
-  { id: "integrations", label: "Quick integrations" },
-] as const;
 
 type ViewTab = (typeof VIEW_TABS)[number]["id"];
 
@@ -440,19 +438,19 @@ export function InternalPartnershipBoard() {
   const kpis = useMemo(
     () => [
       {
-        label: "Partnership targets",
+        label: "Partners",
         value: counts.target ?? 0,
-        hint: "Saved in database",
+        hint: "Saved projects",
       },
       {
-        label: "Quick integrations",
+        label: "Fast wins",
         value: counts.integration ?? 0,
-        hint: "Saved ideas",
+        hint: "Quick ideas",
       },
       {
-        label: "New",
+        label: "Needs review",
         value: counts.new ?? 0,
-        hint: "Needs review",
+        hint: "New this week",
       },
       {
         label: "In progress",
@@ -479,11 +477,11 @@ export function InternalPartnershipBoard() {
         <div>
           <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight sm:text-xl">
             <Handshake className="h-5 w-5 text-primary" />
-            Partnership Scout
+            Partnership board
           </h2>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Surfaces AI agents, x402 APIs, and on-chain utility projects for Syra partnerships and quick
-            integrations — sourced from 8004, Jupiter, pay.sh, and registry feeds.
+          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            Review projects the scout found. Mark ones you like, skip the rest, and open any row for
+            full details.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -517,11 +515,11 @@ export function InternalPartnershipBoard() {
 
       {scanMutation.isSuccess && scanMutation.data?.data ? (
         <Alert className="border-primary/30 bg-primary/5">
-          <AlertTitle>Scout complete</AlertTitle>
+          <AlertTitle>Scout finished</AlertTitle>
           <AlertDescription>
             {scanMutation.data.data.newSaved ?? 0} new saved ·{" "}
-            {scanMutation.data.data.skippedExisting ?? 0} skipped (already in DB) ·{" "}
-            {scanMutation.data.data.candidatesScanned ?? 0} candidates scanned
+            {scanMutation.data.data.skippedExisting ?? 0} already in list ·{" "}
+            {scanMutation.data.data.candidatesScanned ?? 0} scanned
           </AlertDescription>
         </Alert>
       ) : null}
@@ -541,76 +539,46 @@ export function InternalPartnershipBoard() {
         ))}
       </div>
 
-      {savedAt || payload?.generatedAt ? (
+      {savedAt ? (
         <p className="text-xs text-muted-foreground">
-          Last saved: {formatShortDate(savedAt)}
-          {payload?.generatedAt ? <> · Generated {formatShortDate(payload.generatedAt)}</> : null}
+          Board last updated {formatShortDate(savedAt)}
         </p>
       ) : null}
 
-      {payload?.ecosystemSummary ? (
-        <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
-          <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-foreground">
-            <Layers className="h-3.5 w-3.5" aria-hidden />
-            Ecosystem summary
-          </p>
-          <p className="text-sm text-muted-foreground leading-relaxed">{payload.ecosystemSummary}</p>
-          {payload.onchainThemes?.length ? (
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {payload.onchainThemes.map((theme) => (
-                <Badge key={theme} variant="secondary" className="text-[10px] font-normal">
-                  {theme}
-                </Badge>
-              ))}
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-
-      <Tabs value={viewTab} onValueChange={(v) => setViewTab(v as ViewTab)}>
-        <TabsList className="flex h-auto flex-wrap gap-1 bg-muted/40 p-1 rounded-xl">
-          {VIEW_TABS.map((t) => (
-            <TabsTrigger key={t.id} value={t.id} className="text-xs sm:text-sm rounded-lg gap-1.5">
-              {t.id === "targets" ? (
-                <Handshake className="h-3.5 w-3.5 hidden sm:inline" />
-              ) : (
-                <Zap className="h-3.5 w-3.5 hidden sm:inline" />
-              )}
-              {t.label}
-              <span className="rounded-full bg-background/80 px-1.5 py-0.5 text-[10px] tabular-nums">
-                {t.id === "targets" ? counts.target ?? 0 : counts.integration ?? 0}
-              </span>
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
-
-      <Tabs value={statusTab} onValueChange={setStatusTab}>
-        <TabsList className="flex h-auto flex-wrap gap-1 bg-muted/40 p-1 rounded-xl">
-          {STATUS_TABS.map((t) => (
-            <TabsTrigger key={t.id} value={t.id} className="text-xs sm:text-sm rounded-lg">
-              {t.label}
-              {counts[t.id] != null ? (
-                <span className="ml-1.5 rounded-full bg-background/80 px-1.5 py-0.5 text-[10px] tabular-nums">
-                  {counts[t.id]}
-                </span>
-              ) : null}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
-
-      {viewTab === "targets" ? (
-        <Tabs value={priorityTab} onValueChange={setPriorityTab}>
-          <TabsList className="flex h-auto flex-wrap gap-1 bg-muted/25 p-1 rounded-lg">
-            {PRIORITY_TABS.map((t) => (
-              <TabsTrigger key={t.id} value={t.id} className="text-xs rounded-md">
+      <div className="space-y-3">
+        <Tabs value={viewTab} onValueChange={(v) => setViewTab(v as ViewTab)}>
+          <TabsList className="flex h-auto w-full flex-wrap gap-1 rounded-xl bg-muted/40 p-1 sm:w-auto">
+            {VIEW_TABS.map((t) => (
+              <TabsTrigger key={t.id} value={t.id} className="rounded-lg text-sm gap-1.5">
+                {t.id === "targets" ? (
+                  <Handshake className="h-3.5 w-3.5 hidden sm:inline" />
+                ) : (
+                  <Zap className="h-3.5 w-3.5 hidden sm:inline" />
+                )}
                 {t.label}
+                <span className="rounded-full bg-background/80 px-1.5 py-0.5 text-[10px] tabular-nums">
+                  {t.id === "targets" ? counts.target ?? 0 : counts.integration ?? 0}
+                </span>
               </TabsTrigger>
             ))}
           </TabsList>
         </Tabs>
-      ) : null}
+
+        <Tabs value={statusTab} onValueChange={setStatusTab}>
+          <TabsList className="flex h-auto flex-wrap gap-1 rounded-xl bg-muted/25 p-1">
+            {STATUS_TABS.map((t) => (
+              <TabsTrigger key={t.id} value={t.id} className="rounded-lg text-xs sm:text-sm">
+                {t.label}
+                {counts[t.id] != null ? (
+                  <span className="ml-1.5 rounded-full bg-background/80 px-1.5 py-0.5 text-[10px] tabular-nums">
+                    {counts[t.id]}
+                  </span>
+                ) : null}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+      </div>
 
       <div className={cn(overviewCardShell, "overflow-hidden")}>
         <div
@@ -620,23 +588,9 @@ export function InternalPartnershipBoard() {
         />
 
         <div className="relative border-b border-border/45 px-4 py-4 sm:px-5">
-          <div className="mb-4 flex items-start gap-2">
-            <SlidersHorizontal className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-            <div>
-              <h3 className="text-sm font-semibold tracking-tight text-foreground">
-                {viewTab === "targets" ? "Filter partnership targets" : "Filter integration ideas"}
-              </h3>
-              <p className="text-xs text-muted-foreground/90">
-                {viewTab === "targets"
-                  ? "Search project name, utility, collaboration idea, or on-chain signals."
-                  : "Search quick integration ideas Syra can ship without a full partnership."}
-              </p>
-            </div>
-          </div>
-
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-12 lg:items-end">
             <div className="space-y-1.5 sm:col-span-2 lg:col-span-5">
-              <Label htmlFor="partnership-search" className="text-[11px] font-semibold uppercase tracking-wide text-foreground/80">
+              <Label htmlFor="partnership-search" className="text-xs font-medium text-foreground">
                 Search
               </Label>
               <div className="relative">
@@ -647,8 +601,8 @@ export function InternalPartnershipBoard() {
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder={
                     viewTab === "targets"
-                      ? "Project, utility, x402, agent…"
-                      : "API wire, agent tool, docs…"
+                      ? "Search by name or description…"
+                      : "Search integration ideas…"
                   }
                   className="h-10 border-border/80 bg-background/80 pl-10 text-sm shadow-sm focus-visible:ring-2 focus-visible:ring-primary/25"
                 />
@@ -656,24 +610,39 @@ export function InternalPartnershipBoard() {
             </div>
 
             {viewTab === "targets" ? (
-              <div className="space-y-1.5 lg:col-span-3">
-                <Label className="text-[11px] font-semibold uppercase tracking-wide text-foreground/80">
-                  Project type
-                </Label>
-                <Select value={typeFilter} onValueChange={setTypeFilter} disabled={projectTypes.length === 0}>
-                  <SelectTrigger className="h-10 border-border/80 bg-background/80 shadow-sm">
-                    <SelectValue placeholder="All types" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl border-border/60">
-                    <SelectItem value="all">All types</SelectItem>
-                    {projectTypes.map((pt) => (
-                      <SelectItem key={pt} value={pt} className="capitalize">
-                        {pt}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <>
+                <div className="space-y-1.5 lg:col-span-3">
+                  <Label className="text-xs font-medium text-foreground">Project type</Label>
+                  <Select value={typeFilter} onValueChange={setTypeFilter} disabled={projectTypes.length === 0}>
+                    <SelectTrigger className="h-10 border-border/80 bg-background/80 shadow-sm">
+                      <SelectValue placeholder="All types" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-border/60">
+                      <SelectItem value="all">All types</SelectItem>
+                      {projectTypes.map((pt) => (
+                        <SelectItem key={pt} value={pt} className="capitalize">
+                          {pt}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5 lg:col-span-2">
+                  <Label className="text-xs font-medium text-foreground">Priority</Label>
+                  <Select value={priorityTab} onValueChange={setPriorityTab}>
+                    <SelectTrigger className="h-10 border-border/80 bg-background/80 shadow-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-border/60">
+                      {PRIORITY_OPTIONS.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
             ) : null}
 
             <div className="flex gap-2 sm:col-span-2 lg:col-span-2 lg:justify-end">
@@ -723,6 +692,19 @@ export function InternalPartnershipBoard() {
                   </button>
                 </Badge>
               ) : null}
+              {priorityTab !== "all" && viewTab === "targets" ? (
+                <Badge variant="secondary" className="gap-1 rounded-lg font-normal">
+                  {PRIORITY_OPTIONS.find((p) => p.id === priorityTab)?.label ?? priorityTab}
+                  <button
+                    type="button"
+                    className="ml-0.5 rounded-sm hover:bg-muted"
+                    onClick={() => setPriorityTab("all")}
+                    aria-label="Clear priority filter"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -744,11 +726,11 @@ export function InternalPartnershipBoard() {
         ) : viewTab === "targets" ? (
           sortedTargets.length === 0 ? (
             <div className="relative px-6 py-14 text-center">
-              <p className="font-medium text-foreground">No partnership targets match</p>
+              <p className="font-medium text-foreground">No projects match your filters</p>
               <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
                 {activeFilterCount > 0
-                  ? "Try clearing filters."
-                  : 'No targets in this bucket. Run "Run scout now" to discover new projects.'}
+                  ? "Try clearing filters to see more results."
+                  : 'Nothing here yet. Tap "Run scout now" to discover new projects.'}
               </p>
               {activeFilterCount > 0 ? (
                 <Button variant="outline" size="sm" className="mt-4 rounded-xl" onClick={clearFilters}>
@@ -890,11 +872,11 @@ export function InternalPartnershipBoard() {
           )
         ) : filteredIntegrationLeads.length === 0 ? (
           <div className="relative px-6 py-14 text-center">
-            <p className="font-medium text-foreground">No quick integrations match</p>
+            <p className="font-medium text-foreground">No integration ideas match</p>
             <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
-                {activeFilterCount > 0
-                  ? "Try clearing filters."
-                  : 'No integration ideas saved yet. Run "Run scout now".'}
+              {activeFilterCount > 0
+                ? "Try clearing filters to see more results."
+                : 'Nothing here yet. Tap "Run scout now" to find quick wins.'}
             </p>
           </div>
         ) : (
@@ -953,7 +935,7 @@ export function InternalPartnershipBoard() {
       {payload?.risksOrCaveats?.length ? (
         <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-300 mb-2">
-            Caveats
+            Things to keep in mind
           </p>
           <ul className="space-y-1 text-sm text-muted-foreground">
             {payload.risksOrCaveats.map((c) => (

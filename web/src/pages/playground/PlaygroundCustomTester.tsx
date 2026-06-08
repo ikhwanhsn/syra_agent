@@ -1,20 +1,24 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useNavigate } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
-import { History } from "lucide-react";
+import { History, Wallet } from "lucide-react";
 import { HistoryPanel } from "@/components/HistoryPanel";
 import { RequestBuilder } from "@/components/RequestBuilder";
-import { ResponseViewer } from "@/components/ResponseViewer";
+import { PlaygroundResponseSheet } from "@/components/playground/PlaygroundResponseSheet";
 import { usePlaygroundSession } from "@/contexts/PlaygroundSessionContext";
+import { useConnectModal } from "@/contexts/ConnectModalContext";
 import { MppLaneStrip } from "@/components/MppLaneStrip";
 import { resolvePlaygroundPaymentLane } from "@/lib/paymentLane";
+import { getPlaygroundSyraPathname } from "@/lib/playgroundUrl";
 import { MAIN_CONTENT_PB_SAFE_CLASS } from "@/lib/branding";
 import { playgroundSectionEnter } from "@/components/playground/playgroundMotion";
+import { PLAYGROUND_PAGE_CLASS } from "@/components/playground/playgroundStyles";
 import { cn } from "@/lib/utils";
 
-/** Free-form x402 tester — scrollable stacked layout. */
+/** Free-form x402 tester — full-width layout aligned with Syra APIs tab. */
 export function PlaygroundCustomTester() {
   const navigate = useNavigate();
+  const { openConnectModal } = useConnectModal();
   const {
     method,
     setMethod,
@@ -55,33 +59,18 @@ export function PlaygroundCustomTester() {
     setIsResponsePanelOpen,
   } = usePlaygroundSession();
 
-  const responseSectionRef = useRef<HTMLElement>(null);
-  const [responseHighlight, setResponseHighlight] = useState(false);
-
   const paymentLane = useMemo(() => {
     try {
-      if (typeof resolvePlaygroundPaymentLane === "function") {
-        return resolvePlaygroundPaymentLane(url, response);
-      }
+      return resolvePlaygroundPaymentLane(url, response);
     } catch {
-      // ignore
+      return "x402" as const;
     }
-    return "x402" as const;
   }, [url, response]);
 
   useEffect(() => {
     if (paymentLane !== "mpp") return;
     if (selectedPaymentChain !== "solana") selectPaymentChain("solana");
   }, [paymentLane, selectedPaymentChain, selectPaymentChain]);
-
-  useEffect(() => {
-    if (!isResponsePanelOpen) return;
-    responseSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    setResponseHighlight(true);
-    setIsResponsePanelOpen(false);
-    const timer = window.setTimeout(() => setResponseHighlight(false), 2500);
-    return () => window.clearTimeout(timer);
-  }, [isResponsePanelOpen, setIsResponsePanelOpen]);
 
   const handleAfterShare = (link: string) => {
     try {
@@ -93,34 +82,35 @@ export function PlaygroundCustomTester() {
     }
   };
 
+  const requestPath = useMemo(() => {
+    try {
+      return getPlaygroundSyraPathname(url) || url.trim() || "/";
+    } catch {
+      return url.trim() || "/";
+    }
+  }, [url]);
+
+  const handleSend = useCallback(() => {
+    setIsResponsePanelOpen(true);
+    void sendRequest();
+  }, [sendRequest, setIsResponsePanelOpen]);
+
+  const handleTryDemo = useCallback(() => {
+    setIsResponsePanelOpen(true);
+    tryDemo();
+  }, [tryDemo, setIsResponsePanelOpen]);
+
   const effectivePaymentDetails =
     paymentDetails ||
     (status === "payment_required"
       ? { amount: "0", token: "USDC", recipient: "Unknown", network: "Solana" }
       : undefined);
 
+  const isLoading = status === "loading";
+
   return (
     <div className={cn("relative w-full", MAIN_CONTENT_PB_SAFE_CLASS)}>
-      <div className={cn("border-b border-border/60 px-4 py-3 sm:px-6", playgroundSectionEnter)}>
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">Custom API</h2>
-            <p className="text-sm text-muted-foreground">Test any payment-gated URL</p>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="lg:hidden"
-            onClick={() => setIsSidebarOpen(true)}
-          >
-            <History className="mr-1.5 h-4 w-4" />
-            History
-          </Button>
-        </div>
-      </div>
-
-      <div className="mx-auto flex w-full max-w-[1400px] gap-0 lg:gap-4">
+      <div className={cn(PLAYGROUND_PAGE_CLASS, "flex gap-0 lg:items-start lg:gap-4")}>
         <HistoryPanel
           history={history}
           selectedId={selectedHistoryId}
@@ -137,14 +127,49 @@ export function PlaygroundCustomTester() {
           onSidebarWidthChange={setSidebarWidth}
         />
 
-        <div className="min-w-0 flex-1 space-y-4 px-4 py-4 pb-16 sm:px-6 sm:py-6">
-          <section
+        <div className="min-w-0 flex-1 space-y-5">
+          <div
             className={cn(
-              "rounded-xl border border-border/60 bg-card p-4 sm:p-5",
+              "flex flex-wrap items-center justify-between gap-3",
               playgroundSectionEnter,
             )}
-            style={{ animationDelay: "80ms" }}
           >
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">Custom API</h2>
+              <p className="text-sm text-muted-foreground">
+                Test any payment-gated URL · Send opens response panel
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {wallet.connected ? (
+                <span className="text-sm font-medium tabular-nums text-foreground">
+                  {wallet.balance || "0 USDC"}
+                </span>
+              ) : (
+                <Button
+                  variant="neon"
+                  size="sm"
+                  className="rounded-lg"
+                  onClick={() => openConnectModal()}
+                >
+                  <Wallet className="mr-1.5 h-4 w-4" />
+                  Connect
+                </Button>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="lg:hidden"
+                onClick={() => setIsSidebarOpen(true)}
+              >
+                <History className="mr-1.5 h-4 w-4" />
+                History
+              </Button>
+            </div>
+          </div>
+
+          <div className={playgroundSectionEnter} style={{ animationDelay: "60ms" }}>
             {paymentLane === "mpp" ? (
               <div className="mb-3">
                 <MppLaneStrip />
@@ -156,7 +181,7 @@ export function PlaygroundCustomTester() {
               headers={headers}
               body={body}
               params={params}
-              isLoading={status === "loading"}
+              isLoading={isLoading}
               isAutoDetecting={isAutoDetecting}
               allowedMethods={allowedMethods}
               wallet={wallet}
@@ -166,38 +191,32 @@ export function PlaygroundCustomTester() {
               onHeadersChange={setHeaders}
               onBodyChange={setBody}
               onParamsChange={setParams}
-              onSend={sendRequest}
-              onTryDemo={tryDemo}
+              onSend={handleSend}
+              onTryDemo={handleTryDemo}
               onCreateShareLink={createShareLink}
               onAfterShare={handleAfterShare}
             />
-          </section>
-
-          <section
-            ref={responseSectionRef}
-            className={cn(
-              "rounded-xl border bg-card p-4 transition-[box-shadow,border-color] duration-500 sm:p-5",
-              responseHighlight
-                ? "border-emerald-500/40 ring-2 ring-emerald-500/25"
-                : "border-border/60",
-              playgroundSectionEnter,
-            )}
-            style={{ animationDelay: "140ms" }}
-          >
-            <h3 className="mb-3 text-sm font-semibold text-foreground">Response</h3>
-            <ResponseViewer
-              response={response}
-              status={status}
-              paymentDetails={effectivePaymentDetails}
-              paymentLane={paymentLane}
-              onPayAndRetry={() => setIsPaymentModalOpen(true)}
-              onResend={() => {
-                void sendRequest();
-              }}
-            />
-          </section>
+          </div>
         </div>
       </div>
+
+      <PlaygroundResponseSheet
+        open={isResponsePanelOpen}
+        onOpenChange={setIsResponsePanelOpen}
+        title={requestPath}
+        subtitle={`${method} request`}
+        status={status}
+        response={response}
+        paymentDetails={effectivePaymentDetails}
+        paymentLane={paymentLane}
+        isLoading={isLoading}
+        onRunAgain={handleSend}
+        onPayAndRetry={() => setIsPaymentModalOpen(true)}
+        onResend={() => {
+          setIsResponsePanelOpen(true);
+          void sendRequest();
+        }}
+      />
     </div>
   );
 }

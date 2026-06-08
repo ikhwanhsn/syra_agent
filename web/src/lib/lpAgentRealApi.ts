@@ -181,6 +181,18 @@ export async function fetchLpRealPositions(options?: {
   return parseJson<LpRealPositionsPage>(res);
 }
 
+const LIVE_POSITION_STATUSES = ["open", "opening", "closing"] as const;
+
+/** Count positions that are open, opening, or closing (matches closable live slots). */
+export async function fetchLpRealLivePositionsCount(anonymousId?: string | null): Promise<number> {
+  const pages = await Promise.all(
+    LIVE_POSITION_STATUSES.map((status) =>
+      fetchLpRealPositions({ limit: 1, offset: 0, status, anonymousId }),
+    ),
+  );
+  return pages.reduce((sum, page) => sum + Math.max(0, page.total ?? 0), 0);
+}
+
 export async function enableLpReal(anonymousId?: string | null): Promise<LpRealState> {
   const res = await syraFetch(`${base()}/enable`, {
     method: "POST",

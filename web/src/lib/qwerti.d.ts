@@ -13,7 +13,7 @@ export type QwertiEventHandler = (payload?: unknown) => void;
 
 export interface QwertiSdk {
   openWidget: () => void;
-  closeWidget: () => void;
+  closeWidget?: () => void;
   refreshWidget: () => void;
   updateWidget?: (cfg: { token?: string; chain?: string }) => void;
   destroy: () => void;

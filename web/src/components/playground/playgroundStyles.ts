@@ -4,6 +4,14 @@ import { cn } from "@/lib/utils";
 export const PLAYGROUND_DRAWER_Z = "z-[250]";
 export const PLAYGROUND_MODAL_Z = "z-[500]";
 
+/** Shared playground page width + padding (Syra APIs + Custom API). */
+export const PLAYGROUND_PAGE_CLASS =
+  "mx-auto w-full max-w-[1800px] px-4 py-4 pb-16 sm:px-6 sm:py-6";
+
+/** Sticky history sidebar max height (below nav + tab bar). */
+export const PLAYGROUND_SIDEBAR_STICKY_CLASS =
+  "lg:sticky lg:top-[calc(var(--syra-global-nav-height,3.5rem)+var(--playground-tab-bar-height,3.25rem)+1rem)] lg:max-h-[calc(100dvh-var(--syra-global-nav-height,3.5rem)-var(--playground-tab-bar-height,3.25rem)-2rem)] lg:self-start";
+
 export const playgroundApiCardClass = (active: boolean) =>
   cn(
     "relative flex flex-col rounded-xl border border-border/60 bg-card p-3.5",

@@ -11,6 +11,10 @@ import {
   runSyraTrendScoutPipeline,
   SYRA_TREND_SCOUT_DB_ID,
 } from "../libs/syraTrendScoutPipeline.js";
+import {
+  runSyraGrowthScoutPipeline,
+  SYRA_GROWTH_SCOUT_DB_ID,
+} from "../libs/syraGrowthScoutPipeline.js";
 import { runCoingeckoAlphaPipeline } from "../libs/coingeckoAlphaPipeline.js";
 import { COINGECKO_ALPHA_DB_ID } from "../config/coingeckoAlphaConfig.js";
 import {
@@ -126,6 +130,36 @@ export async function createInternalResearchRouter() {
       return res.status(500).json({
         success: false,
         error: "Syra trend scout pipeline failed",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  router.get("/growth-scout/latest", async (_req, res) => {
+    try {
+      const doc = await DashboardResearch.findOne({ id: SYRA_GROWTH_SCOUT_DB_ID }).lean();
+      if (!doc?.payload) {
+        return res.json({ success: true, data: null, savedAt: undefined });
+      }
+      const savedAt = doc.savedAt ? new Date(doc.savedAt).toISOString() : undefined;
+      return res.json({ success: true, data: doc.payload, savedAt });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  router.post("/growth-scout/run", async (_req, res) => {
+    try {
+      const out = await runSyraGrowthScoutPipeline();
+      return res.json(out);
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: "Syra growth scout pipeline failed",
         message: error instanceof Error ? error.message : String(error),
       });
     }

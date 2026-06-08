@@ -3,11 +3,23 @@
  * Each source is best-effort; failures are logged and omitted.
  */
 
+import pLimit from "p-limit";
 import { fetchTrendingJupiter } from "./analyticsFetchers.js";
 import { run8004Leaderboard, run8004AgentsSearch } from "./8004ReadApi.js";
 import { searchAgents as search8004scanAgents, getStats as get8004scanStats } from "./8004scanClient.js";
 import { fetchCatalog as fetchPayshCatalog } from "./payshClient.js";
 import { PARTNERSHIP_SCOUT_MAX_CANDIDATES } from "../config/syraPartnershipScoutConfig.js";
+
+const REGISTRATION_FETCH_LIMIT = pLimit(6);
+
+const SYRA_LINK_HOSTS = new Set([
+  "syraa.fun",
+  "api.syraa.fun",
+  "agent.syraa.fun",
+  "docs.syraa.fun",
+  "playground.syraa.fun",
+  "dashboard.syraa.fun",
+]);
 
 /**
  * @typedef {{
@@ -29,6 +41,128 @@ import { PARTNERSHIP_SCOUT_MAX_CANDIDATES } from "../config/syraPartnershipScout
  */
 function errMsg(err) {
   return err instanceof Error ? err.message : String(err);
+}
+
+/**
+ * @param {string} url
+ * @returns {boolean}
+ */
+function isSyraOwnedUrl(url) {
+  try {
+    const host = new URL(url.trim()).hostname.toLowerCase().replace(/^www\./, "");
+    return SYRA_LINK_HOSTS.has(host);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * @param {unknown[]} values
+ * @returns {string | null}
+ */
+function pickExternalHttpUrl(...values) {
+  for (const v of values) {
+    const s = String(v ?? "").trim();
+    if (!s.startsWith("http://") && !s.startsWith("https://")) continue;
+    if (isSyraOwnedUrl(s)) continue;
+    return s.slice(0, 200);
+  }
+  return null;
+}
+
+/**
+ * @param {unknown} json
+ * @returns {string | null}
+ */
+function extractProjectLinkFromRegistrationJson(json) {
+  if (!json || typeof json !== "object") return null;
+  const o = /** @type {Record<string, unknown>} */ (json);
+  const services = Array.isArray(o.services) ? o.services : [];
+  for (const service of services) {
+    if (!service || typeof service !== "object") continue;
+    const url = pickExternalHttpUrl(/** @type {Record<string, unknown>} */ (service).value);
+    if (url) return url;
+  }
+  return pickExternalHttpUrl(o.external_url, o.website, o.homepage, o.url);
+}
+
+/**
+ * @param {string} uri
+ * @returns {Promise<{ name?: string; description?: string; link?: string | null } | null>}
+ */
+async function fetchRegistrationFields(uri) {
+  if (!uri || typeof uri !== "string") return null;
+  try {
+    const trimmed = String(uri).trim();
+    const gateway = (process.env.IPFS_GATEWAY && String(process.env.IPFS_GATEWAY).trim())
+      ? String(process.env.IPFS_GATEWAY).trim().replace(/\/$/, "")
+      : "https://ipfs.io";
+    let url = trimmed;
+    if (trimmed.startsWith("ipfs://")) {
+      const cid = trimmed.slice(7).replace(/^\/+/, "");
+      url = `${gateway}/ipfs/${cid}`;
+    } else if (trimmed.startsWith("/ipfs/")) {
+      url = `${gateway}${trimmed}`;
+    }
+    if (!url.startsWith("http")) return null;
+    const timeoutMs = Number(process.env.IPFS_GATEWAY_TIMEOUT_MS) || 10000;
+    const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+    if (!res.ok) return null;
+    const json = await res.json();
+    if (!json || typeof json !== "object") return null;
+    return {
+      name: typeof json.name === "string" ? json.name.trim() : undefined,
+      description: typeof json.description === "string" ? json.description.trim() : undefined,
+      link: extractProjectLinkFromRegistrationJson(json),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * @param {unknown} agentId
+ * @returns {string | null}
+ */
+function solana8004MarketLink(agentId) {
+  const id = String(agentId ?? "").trim();
+  if (!id) return null;
+  return `https://8004market.io/agent/solana/mainnet-beta/${encodeURIComponent(id)}`;
+}
+
+/**
+ * @param {unknown} chainId
+ * @param {unknown} tokenId
+ * @returns {string | null}
+ */
+function erc8004scanAgentLink(chainId, tokenId) {
+  if (chainId == null || tokenId == null) return null;
+  return `https://www.8004scan.io/agents/${chainId}/${tokenId}`;
+}
+
+/**
+ * @param {Record<string, unknown>} x
+ * @returns {Promise<string | null>}
+ */
+async function resolveSolana8004AgentLink(x) {
+  const services = Array.isArray(x.services) ? x.services : [];
+  for (const service of services) {
+    if (!service || typeof service !== "object") continue;
+    const url = pickExternalHttpUrl(/** @type {Record<string, unknown>} */ (service).value);
+    if (url) return url;
+  }
+
+  const inline = pickExternalHttpUrl(x.external_url, x.website, x.homepage, x.url);
+  if (inline) return inline;
+
+  const agentUri = typeof x.agent_uri === "string" ? x.agent_uri.trim() : null;
+  if (agentUri) {
+    const reg = await REGISTRATION_FETCH_LIMIT(() => fetchRegistrationFields(agentUri));
+    if (reg?.link) return reg.link;
+    if (agentUri.startsWith("http") && !isSyraOwnedUrl(agentUri)) return agentUri.slice(0, 200);
+  }
+
+  return solana8004MarketLink(x.agent_id);
 }
 
 /**
@@ -69,6 +203,8 @@ function addCandidate(c, byId) {
     signals: [...new Set([...(prev.signals || []), ...(c.signals || [])])].slice(0, 8),
     utility: c.utility || prev.utility,
     score: c.score ?? prev.score,
+    link: c.link || prev.link,
+    name: prev.name.length < c.name.length ? c.name : prev.name,
   });
 }
 
@@ -86,28 +222,51 @@ async function collect8004Solana() {
     { raw: leaderboard, source: "8004-leaderboard" },
     { raw: search?.agents ?? search, source: "8004-search" },
   ];
+  /** @type {{ raw: Record<string, unknown>; source: string }[]} */
+  const pending = [];
   for (const { raw, source } of lists) {
     for (const a of asArray(raw)) {
       if (!a || typeof a !== "object") continue;
       const x = /** @type {Record<string, unknown>} */ (a);
       const asset = String(x.asset || x.pubkey || "").trim();
+      if (!asset && !x.nft_name && !x.name) continue;
+      pending.push({ raw: x, source });
+    }
+  }
+
+  const enriched = await Promise.all(
+    pending.map(async ({ raw: x, source }) => {
+      const asset = String(x.asset || x.pubkey || "").trim();
+      const agentUri = typeof x.agent_uri === "string" ? x.agent_uri.trim() : null;
+      const reg = agentUri
+        ? await REGISTRATION_FETCH_LIMIT(() => fetchRegistrationFields(agentUri))
+        : null;
+
       const name =
-        String(x.nft_name || x.name || x.description || "").trim().slice(0, 120) ||
+        String(reg?.name || x.nft_name || x.name || "").trim().slice(0, 120) ||
         (asset ? asset.slice(0, 12) : "");
-      if (!name && !asset) continue;
+      if (!name && !asset) return null;
+
       const tier = x.tier != null ? String(x.tier) : "";
-      const score = typeof x.score === "number" ? x.score : typeof x.reputation === "number" ? x.reputation : null;
-      out.push({
+      const score =
+        typeof x.score === "number" ? x.score : typeof x.reputation === "number" ? x.reputation : null;
+      const link = await resolveSolana8004AgentLink(x);
+
+      return {
         id: asset ? `8004:${asset}` : `8004:${name.toLowerCase().slice(0, 32)}`,
         name: name || asset,
         source,
         category: "8004-agent-registry",
-        utility: String(x.description || "Solana ERC-8004 registered agent").slice(0, 400),
+        utility: String(reg?.description || x.description || "Solana ERC-8004 registered agent").slice(0, 400),
         signals: [tier ? `tier:${tier}` : "", asset ? `asset:${asset.slice(0, 16)}…` : ""].filter(Boolean),
         score,
-        link: asset ? `https://syraa.fun` : null,
-      });
-    }
+        link,
+      };
+    }),
+  );
+
+  for (const candidate of enriched) {
+    if (candidate) out.push(candidate);
   }
   return out;
 }
@@ -131,6 +290,9 @@ async function collect8004scanSearch(q) {
       chainId != null && tokenId != null
         ? `8004scan:${chainId}:${tokenId}`
         : `8004scan:${name.toLowerCase().replace(/\s+/g, "-")}`;
+    const scanLink =
+      pickExternalHttpUrl(x.endpoint, x.url, x.website, x.service_url) ??
+      erc8004scanAgentLink(chainId, tokenId);
     out.push({
       id,
       name,
@@ -142,7 +304,7 @@ async function collect8004scanSearch(q) {
         chainId != null ? `chain:${chainId}` : "",
       ].filter(Boolean),
       score: typeof x.feedbackScore === "number" ? x.feedbackScore : null,
-      link: "https://www.8004scan.io",
+      link: scanLink,
     });
   }
   return out;

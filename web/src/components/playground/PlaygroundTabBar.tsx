@@ -12,7 +12,10 @@ interface PlaygroundTabBarProps {
 
 export function PlaygroundTabBar({ active, onChange }: PlaygroundTabBarProps) {
   return (
-    <div className="sticky top-0 z-20 shrink-0 border-b border-border/60 bg-background/95 backdrop-blur-sm">
+    <div
+      className="playground-tab-bar sticky top-0 z-20 shrink-0 border-b border-border/60 bg-background/95 backdrop-blur-sm"
+      style={{ ["--playground-tab-bar-height" as string]: "3.25rem" }}
+    >
       <div className="mx-auto flex w-full max-w-[1800px] gap-1 px-4 py-2">
         <TabButton
           active={active === "syra"}

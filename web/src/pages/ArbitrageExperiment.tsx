@@ -1,9 +1,10 @@
-import { Link } from "@/lib/navigation";
 import { useMemo } from "react";
+import { ExperimentAgentBalancePanel } from "@/components/experiment/shared/ExperimentAgentBalancePanel";
+import { useArbitrageSpreadHistory } from "@/hooks/useArbitrageSpreadHistory";
+import { formatExperimentSpreadPct } from "@/lib/experimentEquityHistory";
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
-  ArrowLeft,
   ArrowRightLeft,
   Clock,
   Loader2,
@@ -20,7 +21,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { WalletNav } from "@/components/chat/WalletNav";
 import {
   Table,
   TableBody,
@@ -583,6 +583,23 @@ export default function ArbitrageExperiment({
   const bestArb = rankedArbitrage[0];
   const runnerUpArbs = rankedArbitrage.slice(1, 4);
 
+  const spreadHistory = useArbitrageSpreadHistory(
+    bestArb?.spreadPct,
+    bestArb ? bestArb.asset.symbol : null,
+  );
+
+  const spreadStart = spreadHistory[0]?.value ?? bestArb?.spreadPct ?? 0;
+  const spreadCurrent = bestArb?.spreadPct ?? spreadStart;
+  const spreadRetPct =
+    spreadStart > 0 ? ((spreadCurrent - spreadStart) / spreadStart) * 100 : 0;
+
+  const venuesReporting = useMemo(() => {
+    return snapshotQueries.reduce((sum, q) => {
+      const ok = q.data?.venues.filter((v) => v.ok).length ?? 0;
+      return sum + ok;
+    }, 0);
+  }, [snapshotQueries]);
+
   const bestStrategyPanelLoading =
     cmcQuery.isLoading ||
     (assets.length > 0 &&
@@ -591,58 +608,15 @@ export default function ArbitrageExperiment({
 
   return (
     <TooltipProvider delayDuration={250}>
-      <div
+      <main
         className={cn(
-          "bg-background text-foreground",
-          /* Dashboard `Outlet` sits in a flex+overflow-auto shell; avoid flex-1 here or `<main>` is
-           viewport-capped and bottom padding does not extend scroll height (content stays flush). */
-          embedded ? "w-full min-w-0" : "flex min-h-screen flex-col",
+          DASHBOARD_CONTENT_SHELL,
+          PAGE_PADDING_TOP_STANDARD,
+          PAGE_SAFE_AREA_BOTTOM_COMPACT,
+          "min-w-0 space-y-3 bg-background text-foreground",
+          embedded && "w-full",
         )}
       >
-        {!embedded && (
-          <header className="flex items-center justify-between gap-2 sm:gap-4 px-2 py-2 sm:px-4 sm:py-3 border-b border-border bg-background/80 backdrop-blur-xl min-h-[52px] shrink-0 sticky top-0 z-20">
-            <div
-              className={cn(
-                DASHBOARD_CONTENT_SHELL,
-                "flex items-center justify-between gap-2 sm:gap-4",
-              )}
-            >
-              <div className="flex items-center gap-2 min-w-0 flex-1">
-                <Link to="/">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 shrink-0"
-                    title="Back to chat"
-                    aria-label="Back to chat"
-                  >
-                    <ArrowLeft className="w-5 h-5" />
-                  </Button>
-                </Link>
-                <div className="flex items-center gap-2 min-w-0">
-                  <Scale
-                    className="w-5 h-5 text-primary shrink-0"
-                    aria-hidden
-                  />
-                  <h1 className="text-sm font-bold text-foreground truncate">
-                    Arbitrage experiment
-                  </h1>
-                </div>
-              </div>
-              <WalletNav />
-            </div>
-          </header>
-        )}
-
-        <main
-          className={cn(
-            DASHBOARD_CONTENT_SHELL,
-            PAGE_PADDING_TOP_STANDARD,
-            PAGE_SAFE_AREA_BOTTOM_COMPACT,
-            "space-y-3",
-            !embedded && "min-h-0 flex-1",
-          )}
-        >
           <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-br from-card via-card to-muted/25 p-5 shadow-sm dark:to-muted/10 sm:p-6">
             <div
               className="pointer-events-none absolute -left-20 top-0 h-40 w-40 rounded-full bg-primary/[0.08] blur-3xl"
@@ -723,6 +697,30 @@ export default function ArbitrageExperiment({
                 : String(cmcQuery.error)}
             </p>
           )}
+
+          <ExperimentAgentBalancePanel
+            platformLabel="Arbitrage"
+            bankLabel="Best cross-CEX spread"
+            strategyLabel={
+              bestArb
+                ? `${bestArb.asset.symbol} · ${bestArb.buyAt.source} → ${bestArb.sellAt.source}`
+                : "Scanning venues…"
+            }
+            startBalance={spreadStart}
+            currentBalance={spreadCurrent}
+            retPct={spreadRetPct}
+            closedCount={rankedArbitrage.length}
+            openCount={venuesReporting}
+            closedStatLabel="Opportunities"
+            openStatLabel="Venues live"
+            closedStatSuffix=""
+            openStatSuffix={null}
+            historyPoints={spreadHistory}
+            formatBalance={formatExperimentSpreadPct}
+            formatAxis={(n) => `${n.toFixed(3)}%`}
+            startBalanceLabel={formatExperimentSpreadPct(spreadStart)}
+            accent="marketplace"
+          />
 
           <CoingeckoBatchImageProvider symbols={arbCoinSymbols}>
             <BestArbitragePanel
@@ -997,8 +995,7 @@ export default function ArbitrageExperiment({
               )}
             </div>
           </footer>
-        </main>
-      </div>
+      </main>
     </TooltipProvider>
   );
 }

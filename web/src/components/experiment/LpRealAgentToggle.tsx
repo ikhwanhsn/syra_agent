@@ -203,7 +203,7 @@ export function LpRealAgentToggle({ state, solUsd, isLoading, className, layout 
 
   return (
 
-    <div className={cn("flex w-full flex-col gap-2", className)}>
+    <div className={cn("flex w-full min-w-[200px] max-w-[240px] flex-col gap-2", className)}>
 
       {enabled ? (
 

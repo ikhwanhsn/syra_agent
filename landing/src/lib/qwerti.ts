@@ -74,5 +74,5 @@ export async function openQwertiBuyWidget(): Promise<void> {
 }
 
 export function closeQwertiBuyWidget(): void {
-  getSdk()?.closeWidget();
+  getSdk()?.closeWidget?.();
 }

@@ -9,9 +9,10 @@ import {
   type PumpfunExperimentPersisted,
 } from "@/lib/pumpfunExperimentModel";
 import {
-  agentEquitySol,
+  cellEquitySol,
+  RISE_EXPERIMENT_EXIT_COUNT,
+  RISE_EXPERIMENT_PERSONALITY_COUNT,
   RISE_EXPERIMENT_START_SOL,
-  type RiseExperimentAgentId,
   type RiseExperimentPersisted,
 } from "@/lib/riseExperimentModel";
 import type { XProjectsBatchItem } from "@/lib/xProjectsAnalyzeApi";
@@ -64,23 +65,41 @@ export function aggregatePumpfunExperiment(persisted: PumpfunExperimentPersisted
 }
 
 export function aggregateRiseExperiment(persisted: RiseExperimentPersisted) {
-  const agentIds: RiseExperimentAgentId[] = ["universal", "riseAlpha"];
-  const byAgent = agentIds.map((id) => {
-    const agent = persisted.agents[id];
-    const equity = agentEquitySol(agent, persisted.mcByMint);
-    const retPct = (equity / RISE_EXPERIMENT_START_SOL - 1) * 100;
-    return {
-      id,
-      equity,
-      retPct,
-      openCount: agent.open.length,
-      closedCount: agent.closed.length,
-      borrowedSol: agent.borrowedPrincipalSol,
-    };
-  });
-  const totalEquity = byAgent.reduce((s, a) => s + a.equity, 0);
-  const openPositions = byAgent.reduce((s, a) => s + a.openCount, 0);
-  return { byAgent, totalEquity, openPositions, discoveries: persisted.discoveries.length };
+  const rows: Array<{ key: string; equity: number; retPct: number; openCount: number }> = [];
+  let openPositions = 0;
+  let closedTrades = 0;
+
+  for (let p = 0; p < RISE_EXPERIMENT_PERSONALITY_COUNT; p++) {
+    for (let e = 0; e < RISE_EXPERIMENT_EXIT_COUNT; e++) {
+      const key = cellKey(p, e);
+      const cell = persisted.cells[key];
+      if (!cell) continue;
+      const equity = cellEquitySol(cell, persisted.mcByMint);
+      openPositions += cell.open.length;
+      closedTrades += cell.closed.length;
+      rows.push({
+        key,
+        equity,
+        retPct: (equity / RISE_EXPERIMENT_START_SOL - 1) * 100,
+        openCount: cell.open.length,
+      });
+    }
+  }
+
+  rows.sort((a, b) => b.equity - a.equity);
+  const totalEquity = rows.reduce((s, r) => s + r.equity, 0);
+  const winners = rows.filter((r) => r.retPct > 0).length;
+
+  return {
+    activeCells: rows.length,
+    totalEquity,
+    avgReturnPct: rows.length ? (totalEquity / rows.length / RISE_EXPERIMENT_START_SOL - 1) * 100 : 0,
+    winners,
+    openPositions,
+    closedTrades,
+    discoveries: persisted.discoveries.length,
+    topDesk: rows[0] ?? null,
+  };
 }
 
 export function aggregateLpAgents(agents: LpAgentStats[]) {

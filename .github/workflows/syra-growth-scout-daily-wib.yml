@@ -1,0 +1,41 @@
+# Daily Syra Growth Scout at 06:30 WIB (Asia/Jakarta, UTC+7).
+# Wall-clock time is 23:30 UTC on the previous calendar date.
+#
+# Repository secrets:
+#   SYRA_GROWTH_SCOUT_BASE_URL — e.g. https://api.syraa.fun (no trailing slash)
+#   SYRA_GROWTH_SCOUT_CRON_SECRET — must match SYRA_GROWTH_SCOUT_CRON_SECRET on the API host
+name: Syra growth scout daily (06:30 WIB)
+
+on:
+  schedule:
+    - cron: "30 23 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  run-growth-scout:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /internal/growth-scout/run
+        env:
+          BASE_URL: ${{ secrets.SYRA_GROWTH_SCOUT_BASE_URL }}
+          SYRA_GROWTH_SCOUT_CRON_SECRET: ${{ secrets.SYRA_GROWTH_SCOUT_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BASE_URL:-}" ] || [ -z "${SYRA_GROWTH_SCOUT_CRON_SECRET:-}" ]; then
+            echo "::warning::Set SYRA_GROWTH_SCOUT_BASE_URL and SYRA_GROWTH_SCOUT_CRON_SECRET in repo secrets to enable this job."
+            exit 0
+          fi
+          ORIGIN="${BASE_URL%/}"
+          echo "Running growth scout at ${ORIGIN}/internal/growth-scout/run"
+          HTTP_CODE=$(curl -sS -o /tmp/growth-scout.json -w "%{http_code}" -X POST "${ORIGIN}/internal/growth-scout/run" \
+            -H "x-syra-growth-scout-cron-secret: ${SYRA_GROWTH_SCOUT_CRON_SECRET}" \
+            -H "Accept: application/json" \
+            -H "Content-Type: application/json" \
+            -d "{}")
+          echo "HTTP ${HTTP_CODE}"
+          cat /tmp/growth-scout.json
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::Growth scout returned HTTP ${HTTP_CODE}"
+            exit 1
+          fi
+          node -e "const r=require('/tmp/growth-scout.json'); if(!r.success){console.error(r); process.exit(1)}"

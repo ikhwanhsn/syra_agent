@@ -44,6 +44,11 @@ import {
   mergePumpfunChainExecutionIntoResponseBody,
 } from "@/lib/pumpfunPlaygroundChainSubmit";
 import { BRAND_NAME } from "@/lib/branding";
+import { enrichEmptyDevProxy500 } from "@/lib/devApiProxyHint";
+import {
+  isPlaygroundX402FlowUrl,
+  isPublicSyraX402Path,
+} from "@/lib/publicX402Routes";
 import {
   getPlaygroundSyraPathname,
   isValidPlaygroundRequestUrl,
@@ -2174,7 +2179,10 @@ export function getExampleFlows(): ExampleFlowPreset[] {
 
 /** Curated x402 examples only (explicit alias for Examples x402 tab and batch tests). */
 export function getExampleFlowsX402(): ExampleFlowPreset[] {
-  return getExampleFlows();
+  const base = getApiBaseUrl();
+  return getExampleFlows().filter((flow) =>
+    isPlaygroundX402FlowUrl(flow.url, base),
+  );
 }
 
 /** Group slug and display name for example flow grouping on /examples. */
@@ -2301,14 +2309,14 @@ export function getExampleFlowGroupsFromFlows(
 
 /** All groups with flow counts for the Examples x402 tab (curated flows). */
 export function getExampleFlowGroups(): ExampleFlowGroup[] {
-  return getExampleFlowGroupsFromFlows(getExampleFlows());
+  return getExampleFlowGroupsFromFlows(getExampleFlowsX402());
 }
 
 /** Flows for a single group (for /examples/:groupSlug detail page). */
 export function getExampleFlowsForGroup(
   groupSlug: string,
 ): ExampleFlowPreset[] {
-  const flows = getExampleFlows();
+  const flows = getExampleFlowsX402();
   return flows.filter((f) => getFlowGroup(f).slug === groupSlug);
 }
 
@@ -2358,11 +2366,10 @@ function getPlaygroundProxyUrl(_targetUrl: string): string {
   return `${getApiBaseUrl()}/api/playground-proxy`;
 }
 
-// API endpoints list (unversioned paths; resolved at runtime for dev localhost). Nansen: Syra /nansen/* (Try demo).
-// Aligned with api/index.js x402Paths and /.well-known/x402 discovery.
+// Public x402 endpoints only (Try demo). Agent-direct tools use POST /agent/tools/call.
 function getApiEndpoints(): string[] {
   const base = getApiBaseUrl();
-  return [
+  const candidates = [
     `${base}/brain`,
     `${base}/news`,
     `${base}/signal`,
@@ -2372,41 +2379,14 @@ function getApiEndpoints(): string[] {
     `${base}/sundown-digest`,
     `${base}/health`,
     `${base}/mpp/v1/health`,
-    `${base}/exa-search`,
-    `${base}/crawl`,
-    `${base}/browser-use`,
     `${base}/arbitrage`,
     `${base}/analytics/summary`,
-    `${base}/smart-money`,
-    `${base}/token-god-mode`,
-    `${base}/trending-jupiter`,
-    `${base}/pumpfun/agents/swap`,
-    `${base}/pumpfun/agents/create-coin`,
-    `${base}/pumpfun/agents/collect-fees`,
-    `${base}/pumpfun/agents/sharing-config`,
-    `${base}/pumpfun/coin`,
-    `${base}/pumpfun/sol-price`,
-    `${base}/pumpfun/agent-payments/build-accept`,
-    `${base}/pumpfun/agent-payments/verify`,
-    `${base}/squid/route`,
-    `${base}/squid/status`,
-    `${base}/bubblemaps/maps`,
+    `${base}/x/feed`,
     `${base}/8004/stats`,
     `${base}/8004/leaderboard`,
     `${base}/8004/agents/search`,
     `${base}/8004/register-agent`,
     `${base}/8004/agent-by-wallet`,
-    `${base}/8004scan/stats`,
-    `${base}/8004scan/chains`,
-    `${base}/8004scan/agents`,
-    `${base}/8004scan/agents/search`,
-    `${base}/8004scan/agent`,
-    `${base}/8004scan/feedbacks`,
-    `${base}/heylol/feed`,
-    `${base}/heylol/profile/me`,
-    `${base}/heylol/search`,
-    `${base}/agent/tools`,
-    `${base}/agent/tools/call`,
     `${base}/nansen/profiler/address/current-balance`,
     `${base}/nansen/smart-money/netflow`,
     `${base}/nansen/smart-money/holdings`,
@@ -2443,10 +2423,10 @@ function getApiEndpoints(): string[] {
     `${base}/nansen/profiler/address/counterparties`,
     `${base}/nansen/profiler/perp-positions`,
     `${base}/nansen/profiler/perp-trades`,
-    `${base}/quicknode/balance`,
-    `${base}/quicknode/transaction`,
-    `${base}/quicknode/rpc`,
   ];
+  return candidates.filter((url) =>
+    isPublicSyraX402Path(getPlaygroundSyraPathname(url)),
+  );
 }
 
 // x402 only supports GET and POST methods
@@ -4875,7 +4855,11 @@ export function useApiPlayground() {
         }
 
         // Get response body (store raw so Pretty/Raw toggle works in ResponseViewer)
-        const responseText = await fetchResponse.text();
+        const responseText = enrichEmptyDevProxy500(
+          fetchResponse.status,
+          await fetchResponse.text(),
+          finalUrl,
+        );
 
         // Get response headers
         const responseHeaders: Record<string, string> = {};
@@ -5399,7 +5383,7 @@ export function useApiPlayground() {
 
   const runExampleFlow = useCallback(
     (flowId: string, paramsOverride?: RequestParam[]) => {
-      const preset = getExampleFlows().find((f) => f.id === flowId);
+      const preset = getExampleFlowsX402().find((f) => f.id === flowId);
       if (!preset) return;
       runExampleFlowFromPreset(preset, paramsOverride);
     },

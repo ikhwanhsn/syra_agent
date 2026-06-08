@@ -11,11 +11,14 @@ import {
   overviewMetricValueClass,
   type OverviewAccent,
 } from "@/components/dashboard/overview/overviewStyles";
+import { BalanceChangeIndicator } from "@/components/dashboard/overview/BalanceChangeIndicator";
+import type { BalanceChangeResult } from "@/lib/treasuryBalanceHistory";
 
 export interface OverviewStatCardProps {
   label: ReactNode;
   value: ReactNode;
   hint?: ReactNode;
+  change?: BalanceChangeResult | null;
   href?: string;
   icon?: LucideIcon;
   accent?: OverviewAccent;
@@ -24,12 +27,15 @@ export interface OverviewStatCardProps {
   className?: string;
   /** Override inner content padding (default p-5 sm:p-6). */
   contentClassName?: string;
+  /** Tighter KPI strip layout — smaller type, no footer link. */
+  compact?: boolean;
 }
 
 export function OverviewStatCard({
   label,
   value,
   hint,
+  change,
   href,
   icon: Icon,
   accent = "neutral",
@@ -37,6 +43,7 @@ export function OverviewStatCard({
   error,
   className,
   contentClassName,
+  compact = false,
 }: OverviewStatCardProps) {
   const body = (
     <article
@@ -56,15 +63,21 @@ export function OverviewStatCard({
       />
       <div
         className={cn(
-          "relative z-[1] flex h-full min-w-0 flex-col p-5 sm:p-6",
+          "relative z-[1] flex h-full min-w-0 flex-col",
+          compact ? "p-4" : "p-5 sm:p-6",
           contentClassName,
         )}
       >
-        <header className="mb-3 flex items-start justify-between gap-3">
+        <header className={cn("flex items-start justify-between gap-3", compact ? "mb-2" : "mb-3")}>
           <p className={cn(overviewKickerClass, "min-w-0 flex-1 pr-1")}>{label}</p>
           {Icon ? (
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-background/40 text-muted-foreground transition-colors group-hover:border-border/70 group-hover:text-foreground">
-              <Icon className="h-4 w-4" aria-hidden />
+            <span
+              className={cn(
+                "flex shrink-0 items-center justify-center rounded-xl border border-border/50 bg-background/40 text-muted-foreground transition-colors group-hover:border-border/70 group-hover:text-foreground",
+                compact ? "h-8 w-8" : "h-9 w-9",
+              )}
+            >
+              <Icon className={cn(compact ? "h-3.5 w-3.5" : "h-4 w-4")} aria-hidden />
             </span>
           ) : null}
         </header>
@@ -76,16 +89,25 @@ export function OverviewStatCard({
           </div>
         ) : (
           <>
-            <p className={cn(overviewMetricValueClass, error && "text-muted-foreground")}>
+            <p
+              className={cn(
+                overviewMetricValueClass,
+                compact && "text-xl sm:text-2xl",
+                error && "text-muted-foreground",
+              )}
+            >
               {value}
             </p>
+            {!isLoading ? <BalanceChangeIndicator change={change} className="mt-1" /> : null}
             {hint ? (
-              <p className="mt-2 text-[11px] leading-snug text-muted-foreground/85">{hint}</p>
+              <p className={cn("leading-snug text-muted-foreground/85", compact ? "mt-1.5 text-[10px]" : "mt-2 text-[11px]")}>
+                {hint}
+              </p>
             ) : null}
           </>
         )}
 
-        {href && !isLoading ? (
+        {href && !isLoading && !compact ? (
           <span className="mt-auto inline-flex items-center gap-1 pt-4 text-[11px] font-medium text-muted-foreground transition-colors group-hover:text-foreground">
             Open workspace
             <ArrowUpRight className="h-3.5 w-3.5 opacity-60 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:opacity-100" />

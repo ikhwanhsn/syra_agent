@@ -10,12 +10,15 @@ import {
   overviewKickerClass,
   overviewMetricValueClass,
 } from "@/components/dashboard/overview/overviewStyles";
+import { BalanceChangeIndicator } from "@/components/dashboard/overview/BalanceChangeIndicator";
+import type { BalanceChangeResult } from "@/lib/treasuryBalanceHistory";
 
 export interface UserOverviewHeroProps {
   walletLabel?: string;
   totalUsd: number | null;
   totalUsdc: number | null;
   totalSol: number | null;
+  totalChange?: BalanceChangeResult | null;
   isLoading?: boolean;
   liveSignals?: ReactNode;
   onRefresh?: () => void;
@@ -32,6 +35,7 @@ export function UserOverviewHero({
   totalUsd,
   totalUsdc,
   totalSol,
+  totalChange,
   isLoading,
   liveSignals,
   onRefresh,
@@ -112,9 +116,10 @@ export function UserOverviewHero({
                 <div className="mt-2 h-9 w-36 animate-pulse rounded-lg bg-muted/50" />
               ) : (
                 <p className={cn(overviewMetricValueClass, "mt-1")}>
-                  <AnimatedMetric value={primaryValue} format={primaryFormat} />
+                  <AnimatedMetric value={primaryValue} format={primaryFormat} deltaMode />
                 </p>
               )}
+              {!isLoading ? <BalanceChangeIndicator change={totalChange} size="md" className="mt-2" /> : null}
               <p className="mt-1.5 text-sm tabular-nums text-muted-foreground">
                 {isLoading ? (
                   <span className="inline-block h-4 w-28 animate-pulse rounded bg-muted/40" />

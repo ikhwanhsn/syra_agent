@@ -12,7 +12,7 @@ import { QueryParamsModal } from "@/components/QueryParamsModal";
 import { SyraApiCard } from "@/components/playground/SyraApiCard";
 import { PlaygroundResponseSheet } from "@/components/playground/PlaygroundResponseSheet";
 import { playgroundSectionEnter } from "@/components/playground/playgroundMotion";
-import { playgroundChipClass } from "@/components/playground/playgroundStyles";
+import { PLAYGROUND_PAGE_CLASS, playgroundChipClass } from "@/components/playground/playgroundStyles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { flowNeedsParamModal } from "@/lib/playgroundFlow";
@@ -126,7 +126,7 @@ export function SyraApiCatalog() {
   );
 
   return (
-    <div className="mx-auto w-full max-w-[1800px] space-y-5 px-4 py-4 pb-16 sm:px-6 sm:py-6">
+    <div className={cn(PLAYGROUND_PAGE_CLASS, "space-y-5")}>
       {/* Header */}
       <div className={cn("flex flex-wrap items-center justify-between gap-3", playgroundSectionEnter)}>
         <div>
@@ -186,7 +186,11 @@ export function SyraApiCatalog() {
             "animate-in fade-in duration-300 fill-mode-both",
           )}
         >
-          No APIs match your search.
+          {allFlows.length === 0
+            ? "No x402 APIs are available right now."
+            : search.trim() || activeGroup
+              ? "No APIs match your search."
+              : "No APIs match the current filter."}
         </p>
       ) : (
         <div

@@ -114,6 +114,7 @@ export const GROWTH_SECTOR_MAX_TWEETS_LLM = 32;
  *   growthSyraMarket: number;
  *   growthSyraSocial: number;
  *   growthSectorNarrative: number;
+ *   growthScout: number;
  *   x402XTrends: number;
  *   hrTeamCoach: number;
  *   uponlyFundDevSpecialists: number;
@@ -126,6 +127,7 @@ export const INTERNAL_PIPELINE_MAX_COMPLETION_TOKENS = Object.freeze({
   growthSyraMarket: 1150,
   growthSyraSocial: 1200,
   growthSectorNarrative: 1200,
+  growthScout: 1400,
   x402XTrends: 1250,
   hackathonScout: 1200,
   hrTeamCoach: 300,

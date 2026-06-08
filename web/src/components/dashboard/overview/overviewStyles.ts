@@ -39,3 +39,14 @@ export const overviewKickerClass =
 
 export const overviewMetricValueClass =
   "font-mono text-2xl font-semibold tabular-nums tracking-tight text-foreground sm:text-[1.65rem]";
+
+/** Inner chart surface inside overview cards. */
+export const overviewChartPanelShell = cn(
+  "relative overflow-hidden rounded-2xl border border-border/55",
+  "bg-gradient-to-br from-card/90 via-card/75 to-muted/[0.06]",
+  "shadow-[inset_0_1px_0_0_hsl(var(--border)/0.35)]",
+  "backdrop-blur-sm",
+);
+
+export const overviewChartTopShine =
+  "pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-foreground/10 to-transparent";

@@ -204,9 +204,15 @@ export default function DashboardLayout({ children }: { children?: ReactNode }) 
   }, [sidebarOpen]);
 
   const pageTitle = dashboardPageTitle(location.pathname, location.search);
+  const hideTopbarRule = location.pathname.startsWith("/pumpfun-experiment");
 
   const topbar = (
-    <header className="flex shrink-0 items-center gap-3 border-b border-border/80 bg-background/85 px-3 py-2.5 shadow-[0_1px_0_0_hsl(var(--border)/0.5)] backdrop-blur-xl backdrop-saturate-150 sm:gap-4 sm:px-4 sm:py-3 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] pt-[max(0.5rem,env(safe-area-inset-top))]">
+    <header
+      className={cn(
+        "flex shrink-0 items-center gap-3 bg-background/85 px-3 py-2.5 backdrop-blur-xl backdrop-saturate-150 sm:gap-4 sm:px-4 sm:py-3 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] pt-[max(0.5rem,env(safe-area-inset-top))]",
+        !hideTopbarRule && "border-b border-border/80 shadow-[0_1px_0_0_hsl(var(--border)/0.5)]",
+      )}
+    >
       <div className="flex min-w-0 flex-1 items-center gap-3 overflow-hidden">
         <div className="flex shrink-0 items-center lg:hidden">
           <SidebarPanelToggle mode="menu" onClick={() => setSidebarOpen(true)} />

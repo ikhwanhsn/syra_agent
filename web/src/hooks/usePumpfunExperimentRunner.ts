@@ -84,7 +84,7 @@ export function usePumpfunExperimentRunner(period: PumpfunAlphaPeriod) {
 
   const trendQ = useQuery({
     queryKey: ["alpha", "pumpfun-trend", period, "experiment"],
-    queryFn: () => fetchPumpfunAlphaTrend(period),
+    queryFn: () => fetchPumpfunAlphaTrend(period, { mode: "experiment" }),
     staleTime: STALE_MS,
   });
 
@@ -93,7 +93,7 @@ export function usePumpfunExperimentRunner(period: PumpfunAlphaPeriod) {
   useEffect(() => {
     const d = trendQ.data;
     if (!d || !hydrated.current) return;
-    const sig = `${d.nowMs}|${d.tokens.map((t) => `${t.mint}:${t.marketCapUsd ?? ""}`).join(";")}`;
+    const sig = `${d.nowMs}|${d.tokens.map((t) => `${t.mint}:${t.complete}:${t.marketCapUsd ?? ""}`).join(";")}`;
     if (sig === lastSigRef.current) return;
     lastSigRef.current = sig;
 

@@ -74,7 +74,7 @@ export async function openQwertiBuyWidget(): Promise<void> {
 }
 
 export function closeQwertiBuyWidget(): void {
-  getSdk()?.closeWidget();
+  getSdk()?.closeWidget?.();
 }
 
 /** Removes launcher + widget DOM (use when leaving routes that show Qwerti). */

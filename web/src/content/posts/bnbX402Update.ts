@@ -13,13 +13,28 @@ export const BNB_X402_POST: PostUpdate = {
     title: "x402 on BNB Smart Chain",
     published: "June 2026",
     tagline: "Binance B402 settlement for Syra intelligence APIs",
-    shareTweet: `Syra now accepts x402 payments on BNB Smart Chain (B402).
+    shareCopyVideo: `SHIP LOG · Syra just shipped x402 on BNB Smart Chain.
 
-• 402 → sign on BSC (MetaMask)
-• USD1, U, USDC, USDT
-• Playground + agent wallet + chat tools
+Binance B402 settlement is live, end to end. Payment Required on BSC, MetaMask signing, verify and settle through Binance's facilitator, wired into the same x402 pipeline as Solana and Base.
 
-Multi-chain agents. Same pay-per-call intelligence.`,
+→ eip155:56 in every 402 accept
+→ USD1, U, USDC, USDT on mainnet
+→ Live in Playground, agent wallet, and chat tools
+
+Your agents should not leave their chain to pay for intelligence. Now they do not have to.
+
+Multi-chain treasuries. One Syra brain. Pay per call, not per seat.
+
+Full breakdown in the video ↓`,
+    shareCopyPhoto: `MAJOR SHIP · x402 is live on BNB Smart Chain through Binance B402.
+
+Syra intelligence APIs now settle natively on BSC. Hit a paid endpoint, get 402, sign with MetaMask, unlock the response. No bridge. No subscription. No compromise.
+
+402 → sign on BSC → intelligence delivered.
+
+3 chains live. 4 BSC stables. HTTP-native micropayments for autonomous agents.
+
+If you build on BNB, this is the stack your agents have been waiting for.`,
   },
   slides: [
     {

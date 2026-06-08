@@ -195,6 +195,8 @@ export function createPumpfunAlphaTrendRouter() {
   router.get("/trend", async (req, res) => {
     try {
       const period = typeof req.query.period === "string" ? req.query.period.trim() : "week";
+      const mode = typeof req.query.mode === "string" ? req.query.mode.trim() : "trend";
+      const isExperimentMode = mode === "experiment";
       const periodMs = getPeriodMs(period);
       const nowMs = Date.now();
       const startMs = nowMs - periodMs;
@@ -244,7 +246,7 @@ export function createPumpfunAlphaTrendRouter() {
       }
 
       /** @type {Array<ReturnType<typeof normalizePumpfunMeta> & { anchorTsMs: number | null }>} */
-      const completeAll = [];
+      const pumpMetas = [];
 
       await mapLimit(candidates, 5, async (mint) => {
         const ctrlLocalTimeout = new AbortController();
@@ -252,10 +254,9 @@ export function createPumpfunAlphaTrendRouter() {
         try {
           const raw = await fetchPumpfunCoinMeta(mint, ctrlLocalTimeout.signal);
           const meta = normalizePumpfunMeta(raw);
-          if (!meta.complete) return;
           if (meta.program && meta.program !== "pump") return;
           const anchorTsMs = meta.createdTimestampMs ?? meta.athMarketCapTimestampMs ?? meta.lastTradeTimestampMs ?? meta.updatedAtMs;
-          completeAll.push({ ...meta, anchorTsMs: anchorTsMs ?? null });
+          pumpMetas.push({ ...meta, anchorTsMs: anchorTsMs ?? null });
         } catch {
           // Ignore per-token errors; we only need enough sample to ground the trend.
         } finally {
@@ -263,11 +264,56 @@ export function createPumpfunAlphaTrendRouter() {
         }
       });
 
+      const relaxedStartMs = nowMs - getRelaxedLookbackMs(period);
+
+      if (isExperimentMode) {
+        const experimentTokens = pumpMetas
+          .filter((t) => {
+            if (!t.createdTimestampMs) return false;
+            return t.createdTimestampMs >= relaxedStartMs && t.createdTimestampMs <= nowMs;
+          })
+          .sort((a, b) => (b.createdTimestampMs ?? 0) - (a.createdTimestampMs ?? 0))
+          .slice(0, 80)
+          .map((t) => ({
+            mint: t.mint,
+            symbol: t.symbol,
+            name: t.name,
+            complete: t.complete,
+            marketCapUsd: t.marketCapUsd,
+            athMarketCapUsd: t.athMarketCapUsd,
+            athMarketCapTimestampMs: t.athMarketCapTimestampMs,
+            updatedAtMs: t.updatedAtMs,
+            lastTradeTimestampMs: t.lastTradeTimestampMs,
+            createdTimestampMs: t.createdTimestampMs,
+            anchorTsMs: t.anchorTsMs,
+          }));
+
+        return res.json({
+          success: true,
+          data: {
+            period,
+            startMs,
+            nowMs,
+            candidatePool: candidates.length,
+            matchedCount: experimentTokens.length,
+            tokens: experimentTokens,
+            analysis: {
+              trendTitle: "Experiment feed",
+              metaSummary: "Bonding and graduated pump.fun tokens for paper-trading snipers.",
+              signals: [],
+              watchlist: [],
+              riskCaveats: [],
+            },
+          },
+        });
+      }
+
+      const completeAll = pumpMetas.filter((t) => t.complete);
+
       const strictMatched = completeAll.filter((t) => {
         if (!t.createdTimestampMs) return false;
         return t.createdTimestampMs >= startMs && t.createdTimestampMs <= nowMs;
       });
-      const relaxedStartMs = nowMs - getRelaxedLookbackMs(period);
       const relaxedMatched = completeAll.filter((t) => {
         if (!t.createdTimestampMs) return false;
         return t.createdTimestampMs >= relaxedStartMs && t.createdTimestampMs <= nowMs;
