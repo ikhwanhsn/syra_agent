@@ -1,16 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { Link } from "react-router-dom";
 import { ACTIVE_POST, POST_SLIDE_COUNT } from "@/content/posts";
 import { PostSlideView } from "@/components/post/PostSlideView";
 import { PostRecordStage } from "@/components/post/PostRecordStage";
 import { PostShareCopyPanel } from "@/components/post/PostShareCopyPanel";
+import { PostVideoExportStage } from "@/components/post/PostVideoExportStage";
+import {
+  exportPostVideoWebm,
+  getSlideDwellMs,
+  SLIDE_INTERVAL_MS,
+} from "@/components/post/postVideoExport";
 import { cn } from "@/lib/utils";
-import { ImageIcon, Pause, Play, RotateCcw, Video } from "lucide-react";
-
-/** Time each slide stays visible (tuned for entrance animations). */
-const SLIDE_INTERVAL_MS = 5200;
-/** Extra hold on the final slide before stopping. */
-const LAST_SLIDE_DWELL_MS = 7000;
+import { Download, ImageIcon, Pause, Play, RotateCcw, Video } from "lucide-react";
+import { toast } from "sonner";
 
 export function PostDeck() {
   const { meta, slides } = ACTIVE_POST;
@@ -19,7 +22,11 @@ export function PostDeck() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [slideTick, setSlideTick] = useState(0);
   const [showGuides, setShowGuides] = useState(true);
+  const [exporting, setExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
+  const [exportSlideIndex, setExportSlideIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const exportRef = useRef<HTMLDivElement>(null);
 
   const goNext = useCallback(() => {
     setIndex((current) => {
@@ -44,6 +51,31 @@ export function PostDeck() {
     setSlideTick((t) => t + 1);
     setIsPlaying(true);
   }, []);
+
+  const handleDownloadVideo = useCallback(async () => {
+    const node = exportRef.current;
+    if (!node || exporting) return;
+
+    setExporting(true);
+    setExportProgress(0);
+    setExportSlideIndex(0);
+    pausePlayback();
+
+    try {
+      await exportPostVideoWebm(node, POST_SLIDE_COUNT, meta.id, {
+        onSlideChange: (nextIndex) => {
+          flushSync(() => setExportSlideIndex(nextIndex));
+        },
+        onProgress: (progress) => setExportProgress(progress),
+      });
+      toast.success("Video downloaded");
+    } catch {
+      toast.error("Video download failed");
+    } finally {
+      setExporting(false);
+      setExportProgress(0);
+    }
+  }, [exporting, meta.id, pausePlayback]);
 
   useEffect(() => {
     document.title = `Syra · ${meta.title} · ${index + 1}/${POST_SLIDE_COUNT}`;
@@ -72,7 +104,7 @@ export function PostDeck() {
 
   const progress = ((index + 1) / POST_SLIDE_COUNT) * 100;
   const finished = !isPlaying && index === POST_SLIDE_COUNT - 1;
-  const dwellMs = index >= POST_SLIDE_COUNT - 1 ? LAST_SLIDE_DWELL_MS : SLIDE_INTERVAL_MS;
+  const dwellMs = getSlideDwellMs(index, POST_SLIDE_COUNT);
 
   return (
     <div
@@ -113,7 +145,20 @@ export function PostDeck() {
 
           <button
             type="button"
+            onClick={handleDownloadVideo}
+            disabled={exporting || isPlaying}
+            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 font-mono text-[10px] uppercase tracking-[0.12em] text-white/80 transition-colors hover:bg-white/15 disabled:opacity-50 sm:h-10 sm:gap-2 sm:px-4"
+          >
+            <Download className="h-4 w-4 shrink-0" />
+            <span className="hidden sm:inline">
+              {exporting ? `${Math.round(exportProgress * 100)}%` : "Download"}
+            </span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setShowGuides((v) => !v)}
+            disabled={exporting}
             className={cn(
               "inline-flex h-9 items-center rounded-full border px-2.5 font-mono text-[10px] uppercase tracking-[0.12em] transition-colors sm:px-3",
               showGuides
@@ -130,6 +175,7 @@ export function PostDeck() {
             <button
               type="button"
               onClick={replay}
+              disabled={exporting}
               className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[#F3BA2F]/25 bg-[#F3BA2F]/10 px-3 font-mono text-[10px] uppercase tracking-[0.14em] text-[#F3BA2F] transition-colors hover:bg-[#F3BA2F]/20 sm:h-10 sm:gap-2 sm:px-4"
               aria-label="Replay slideshow"
             >
@@ -140,6 +186,7 @@ export function PostDeck() {
             <button
               type="button"
               onClick={pausePlayback}
+              disabled={exporting}
               className="inline-flex h-9 items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 font-mono text-[10px] uppercase tracking-[0.14em] text-white/80 transition-colors hover:bg-white/15 sm:h-10 sm:gap-2 sm:px-4"
               aria-label="Pause playback"
             >
@@ -150,6 +197,7 @@ export function PostDeck() {
             <button
               type="button"
               onClick={startPlayback}
+              disabled={exporting}
               className="post-play-btn inline-flex h-9 items-center gap-1.5 rounded-full border border-[#F3BA2F]/30 bg-[#F3BA2F]/15 px-3.5 font-mono text-[10px] uppercase tracking-[0.14em] text-[#F3BA2F] transition-colors hover:bg-[#F3BA2F]/25 sm:h-10 sm:gap-2 sm:px-5"
               aria-label="Play slideshow"
             >
@@ -194,9 +242,38 @@ export function PostDeck() {
           </p>
         </div>
         <p className="post-footer-hint mt-2 hidden text-center font-mono text-[10px] text-white/30 sm:mt-3 sm:block">
-          Hit Play to auto-advance slides for screen recording
+          Download renders Full HD 30fps WebM with frame-perfect animations, or hit Play to screen record
         </p>
       </footer>
+
+      <PostVideoExportStage slides={slides} slideIndex={exportSlideIndex} exportRef={exportRef} />
+
+      {exporting ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#030303]/80 px-4 backdrop-blur-sm"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 text-center shadow-2xl">
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#F3BA2F]/80">
+              Exporting video
+            </p>
+            <p className="mt-2 font-display text-lg text-white/90">Full HD · 30fps · WebM</p>
+            <div className="post-progress-track mx-auto mt-5 h-1.5 w-full overflow-hidden rounded-full">
+              <div
+                className="post-progress-fill h-full rounded-full transition-[width] duration-300 ease-out"
+                style={{ width: `${Math.round(exportProgress * 100)}%` }}
+              />
+            </div>
+            <p className="mt-3 font-mono text-xs tabular-nums text-white/45">
+              {Math.round(exportProgress * 100)}% · slide{" "}
+              {String(exportSlideIndex + 1).padStart(2, "0")} /{" "}
+              {String(POST_SLIDE_COUNT).padStart(2, "0")}
+            </p>
+            <p className="mt-2 text-xs text-white/35">Keep this tab open until the download starts</p>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

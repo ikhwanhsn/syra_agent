@@ -2960,6 +2960,28 @@ body.syra-qwerti-active #qwerti-widget-root {
   container-name: post-stage;
 }
 
+.post-video-export-root {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: -1;
+}
+
+.post-video-export-stage {
+  aspect-ratio: auto;
+  max-height: none;
+  border-radius: 0;
+  flex-shrink: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: geometricPrecision;
+}
+
 .post-record-guides {
   border: 2px solid hsl(45 92% 55% / 0.35);
   border-radius: inherit;
