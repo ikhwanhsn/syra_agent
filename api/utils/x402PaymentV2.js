@@ -66,17 +66,31 @@ function x402Log(event, detail) {
 }
 
 let b402StartupLogged = false;
-function logB402StartupOnce() {
-  if (b402StartupLogged || !isB402Enabled()) return;
+async function logB402StartupOnce() {
+  if (b402StartupLogged) return;
   b402StartupLogged = true;
-  console.log(
-    "[b402] merchant inbound enabled",
+  const { getB402PublicStatus } = await import("../libs/b402KeyMaterial.js");
+  const status = getB402PublicStatus();
+  if (isB402Enabled()) {
+    console.log(
+      "[b402] merchant inbound enabled",
+      JSON.stringify({
+        token: process.env.B402_TOKEN || "USD1",
+        payTo: getB402PayTo(),
+        baseUrl: process.env.B402_BASE_URL || "https://api.commonservice.io",
+        keySource: status.keySource,
+        debug: isX402Debug() ? "X402_DEBUG=true" : "set X402_DEBUG=true for verbose x402 logs",
+      }),
+    );
+    return;
+  }
+  console.warn(
+    "[b402] merchant inbound disabled — Binance (eip155:56) will not appear in 402 accepts",
     JSON.stringify({
-      token: process.env.B402_TOKEN || "USD1",
-      payTo: getB402PayTo(),
-      baseUrl: process.env.B402_BASE_URL || "https://api.commonservice.io",
-      debug: isX402Debug() ? "X402_DEBUG=true" : "set X402_DEBUG=true for verbose x402 logs",
-    })
+      missing: status.missing,
+      keySource: status.keySource,
+      hint: "Set B402_PRIVATE_KEY_B64 on the API host (node api/scripts/exportB402PrivateKeyB64.js), then restart. Check GET /x402/capabilities",
+    }),
   );
 }
 

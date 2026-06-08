@@ -5,11 +5,10 @@
  */
 import crypto from "node:crypto";
 import { readFileSync, existsSync } from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DEFAULT_PRIVATE_KEY_FILE = path.resolve(__dirname, "../.keys/b402_private.pem");
+import {
+  loadPrivateKeyPemFromEnv,
+  resolveB402PrivateKeyFilePath,
+} from "./b402KeyMaterial.js";
 
 function env(name) {
   return String(process.env[name] || "").trim();
@@ -80,14 +79,7 @@ export function isB402Configured() {
 }
 
 function loadPrivateKeyPem() {
-  const fallbackSyra =
-    process.env.USERPROFILE || process.env.HOME
-      ? path.join(process.env.USERPROFILE || process.env.HOME, ".syra", "qa-api-rsa", "private.pem")
-      : "";
-  const fromFile =
-    env("B402_PRIVATE_KEY_FILE") ||
-    (fallbackSyra && existsSync(fallbackSyra) ? fallbackSyra : "") ||
-    DEFAULT_PRIVATE_KEY_FILE;
+  const fromFile = resolveB402PrivateKeyFilePath();
   if (existsSync(fromFile)) {
     try {
       const pem = readFileSync(fromFile, "utf8").trim();
@@ -97,30 +89,7 @@ function loadPrivateKeyPem() {
     }
   }
 
-  const pem = env("B402_PRIVATE_KEY_PEM");
-  if (pem) {
-    if (pem.includes("BEGIN")) {
-      return pem.includes("\\n") ? pem.replace(/\\n/g, "\n") : pem;
-    }
-    // Single-line base64 PKCS#8 body (no PEM headers) — common in .env
-    try {
-      const der = Buffer.from(pem.replace(/\s/g, ""), "base64");
-      const keyObject = crypto.createPrivateKey({ key: der, format: "der", type: "pkcs8" });
-      return keyObject.export({ type: "pkcs8", format: "pem" });
-    } catch {
-      /* fall through to B64 env */
-    }
-  }
-
-  const b64 = env("B402_PRIVATE_KEY_B64");
-  if (!b64) return "";
-  try {
-    const der = Buffer.from(b64.replace(/\s/g, ""), "base64");
-    const keyObject = crypto.createPrivateKey({ key: der, format: "der", type: "pkcs8" });
-    return keyObject.export({ type: "pkcs8", format: "pem" });
-  } catch {
-    return "";
-  }
+  return loadPrivateKeyPemFromEnv() || "";
 }
 
 /**

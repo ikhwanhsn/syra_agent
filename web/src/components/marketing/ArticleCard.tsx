@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import type { TargetAndTransition, Transition } from "framer-motion";
-import { ExternalLink, Clock } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ArrowRight, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ArticleItem } from "@/data/marketing/articles";
 
@@ -84,8 +85,8 @@ export function ArticleCard({
         <div className="h-5 shrink-0" aria-hidden />
       ) : (
         <span className="inline-flex items-center gap-2 text-sm font-medium text-primary">
-          Read more
-          <ExternalLink className="h-4 w-4 shrink-0" />
+          Read article
+          <ArrowRight className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
         </span>
       )}
     </>
@@ -106,16 +107,24 @@ export function ArticleCard({
           <ArticleMedia article={article} />
           <div className="flex flex-1 flex-col p-6">{body}</div>
         </div>
-      ) : (
+      ) : article.external ? (
         <a
           href={article.href}
-          target={article.external ? "_blank" : undefined}
-          rel={article.external ? "noopener noreferrer" : undefined}
+          target="_blank"
+          rel="noopener noreferrer"
           className="flex h-full flex-col outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           <ArticleMedia article={article} />
           <div className="flex flex-1 flex-col p-6">{body}</div>
         </a>
+      ) : (
+        <Link
+          to={article.href}
+          className="flex h-full flex-col outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        >
+          <ArticleMedia article={article} />
+          <div className="flex flex-1 flex-col p-6">{body}</div>
+        </Link>
       )}
     </motion.div>
   );

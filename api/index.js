@@ -108,6 +108,11 @@ import { buildGatewayOpenApi } from "./libs/gatewayOpenApi.js";
 import { X402_DISCOVERY_RESOURCE_PATHS } from "./config/x402DiscoveryResourcePaths.js";
 import { buildShadowfeedFeedsManifest } from "./config/shadowfeedDiscovery.js";
 import { shadowfeedPartnerMiddleware } from "./utils/shadowfeedPartner.js";
+import {
+  bootstrapB402PrivateKeyFromEnv,
+  getB402PublicStatus,
+} from "./libs/b402KeyMaterial.js";
+import { isB402Enabled } from "./config/b402Networks.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -117,6 +122,22 @@ dotenv.config({ path: path.resolve(__dirname, ".env") });
 // Dev: web/.env.local often defines VITE_ADMIN_DASHBOARD_WALLET — mirror for staking admin gate.
 if (process.env.NODE_ENV !== "production") {
   dotenv.config({ path: path.resolve(__dirname, "../web/.env.local") });
+}
+
+const b402KeyBootstrap = bootstrapB402PrivateKeyFromEnv();
+if (b402KeyBootstrap.wrote) {
+  console.log(
+    `[b402] bootstrapped private key from ${b402KeyBootstrap.source} → ${b402KeyBootstrap.path}`,
+  );
+}
+const b402BootStatus = getB402PublicStatus();
+if (b402BootStatus.enabled) {
+  console.log("[b402] credentials loaded", JSON.stringify({ keySource: b402BootStatus.keySource }));
+} else {
+  console.warn(
+    "[b402] not ready at boot",
+    JSON.stringify({ missing: b402BootStatus.missing, keySource: b402BootStatus.keySource }),
+  );
 }
 
 // SECURITY P0.1 — refuse to boot if agent wallet encryption is not configured.
@@ -1240,6 +1261,17 @@ app.get("/.well-known/x402", (req, res) => {
     (p) => `${X402_BASE}/${p}`,
   );
 
+  const b402Token = (process.env.B402_TOKEN || "USD1").trim();
+  const paymentNetworkLines = [
+    "- **Base Mainnet (EVM)**: `eip155:8453` - USDC payments",
+    "- **Solana Mainnet (SVM)**: `solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp` - USDC payments",
+  ];
+  if (isB402Enabled()) {
+    paymentNetworkLines.push(
+      `- **BNB Smart Chain (B402)**: \`eip155:56\` - ${b402Token} payments via Binance OnchainPay`,
+    );
+  }
+
   res.json({
     version: 1, // Discovery document version (not x402 protocol version)
     resources,
@@ -1253,8 +1285,7 @@ Visit https://docs.syraa.fun for full documentation.
 
 ## Supported Payment Networks
 
-- **Base Mainnet (EVM)**: \`eip155:8453\` - USDC payments
-- **Solana Mainnet (SVM)**: \`solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp\` - USDC payments
+${paymentNetworkLines.join("\n")}
 
 ## Rate Limits (per IP)
 
@@ -1272,6 +1303,22 @@ No API key required for the resources listed above — all are gated by the x402
 
 - Documentation: https://docs.syraa.fun
 - Twitter: @syraa_ai`,
+  });
+});
+
+// Public x402 payment network status (no secrets) — verify Binance/B402 before playground testing.
+app.get("/x402/capabilities", (_req, res) => {
+  const b402 = getB402PublicStatus();
+  res.json({
+    success: true,
+    data: {
+      networks: {
+        solana: true,
+        base: true,
+        binance: b402.enabled,
+      },
+      b402,
+    },
   });
 });
 

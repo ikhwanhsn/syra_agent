@@ -161,7 +161,11 @@ export function renderStatementExtended(slide: PostStatementSlide, isActive: boo
         </PostSlideLayout>
       );
     default:
-      return renderStatementBatch3(slide, isActive);(slide: PostHeroSlide, isActive: boolean): ReactNode {
+      return renderStatementBatch3(slide, isActive);
+  }
+}
+
+export function renderHeroExtended(slide: PostHeroSlide, isActive: boolean): ReactNode {
   const layout = slide.layout as PostSlideLayoutTemplateExtended;
   switch (layout) {
     case "hero-masonry":
@@ -213,7 +217,11 @@ export function renderStatementExtended(slide: PostStatementSlide, isActive: boo
         </PostSlideLayout>
       );
     default:
-      return renderHeroBatch3(slide, isActive);(slide: PostFlowSlide, isActive: boolean): ReactNode {
+      return renderHeroBatch3(slide, isActive);
+  }
+}
+
+export function renderFlowExtended(slide: PostFlowSlide, isActive: boolean): ReactNode {
   const layout = slide.layout as PostSlideLayoutTemplateExtended;
   switch (layout) {
     case "flow-zigzag":
@@ -272,7 +280,11 @@ export function renderStatementExtended(slide: PostStatementSlide, isActive: boo
         </PostSlideLayout>
       );
     default:
-      return renderFlowBatch3(slide, isActive);(slide: PostCardsSlide, isActive: boolean): ReactNode {
+      return renderFlowBatch3(slide, isActive);
+  }
+}
+
+export function renderCardsExtended(slide: PostCardsSlide, isActive: boolean): ReactNode {
   const layout = slide.layout as PostSlideLayoutTemplateExtended;
   switch (layout) {
     case "cards-stack":
@@ -322,7 +334,11 @@ export function renderStatementExtended(slide: PostStatementSlide, isActive: boo
         </PostSlideLayout>
       );
     default:
-      return renderCardsBatch3(slide, isActive);(slide: PostSurfacesSlide, isActive: boolean): ReactNode {
+      return renderCardsBatch3(slide, isActive);
+  }
+}
+
+export function renderSurfacesExtended(slide: PostSurfacesSlide, isActive: boolean): ReactNode {
   const layout = slide.layout as PostSlideLayoutTemplateExtended;
   const featured = slide.items[0];
   const FeaturedIcon = featured?.icon;
@@ -454,7 +470,11 @@ export function renderImpactExtended(slide: PostImpactSlide, isActive: boolean):
         </PostSlideLayout>
       );
     default:
-      return renderImpactBatch3(slide, isActive);(slide: PostClosingSlide, isActive: boolean): ReactNode {
+      return renderImpactBatch3(slide, isActive);
+  }
+}
+
+export function renderClosingExtended(slide: PostClosingSlide, isActive: boolean): ReactNode {
   const layout = slide.layout as PostSlideLayoutTemplateExtended;
   switch (layout) {
     case "closing-split-cta":
