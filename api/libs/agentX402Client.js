@@ -564,13 +564,20 @@ async function callX402V2WithKeypair(keypair, opts, fetchFn = globalThis.fetch) 
  * @returns {Promise<{ success: true; data: any } | { success: false; error: string; budgetExceeded?: boolean }>}
  */
 export async function pay402AndRetry(keypair, opts, fetchFn = globalThis.fetch) {
-  const { url, method = 'POST', body, connectedWalletAddress } = opts;
+  const { url, method = 'POST', body, connectedWalletAddress, extraHeaders } = opts;
   const headers = { Accept: 'application/json' };
   if (method === 'POST' || (body && method !== 'GET' && method !== 'HEAD')) {
     headers['Content-Type'] = 'application/json';
   }
   if (connectedWalletAddress && typeof connectedWalletAddress === 'string' && connectedWalletAddress.trim()) {
     headers['X-Connected-Wallet'] = connectedWalletAddress.trim();
+  }
+  if (extraHeaders && typeof extraHeaders === 'object') {
+    for (const [k, v] of Object.entries(extraHeaders)) {
+      if (typeof k === 'string' && typeof v === 'string' && v.trim()) {
+        headers[k] = v.trim();
+      }
+    }
   }
   addInternalApiKeyIfOwnUrl(url, headers);
   const init = {

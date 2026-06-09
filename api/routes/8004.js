@@ -25,6 +25,7 @@ import { run8004Stats, run8004Leaderboard, run8004AgentsSearch } from "../libs/8
 import { registerAgentAndAttachToCollection } from "../libs/register8004Agent.js";
 import { getSolanaAgentKeypair, getAgentBalances } from "../libs/agentWallet.js";
 import User8004Agent, { MAX_AGENTS_PER_USER } from "../models/agent/User8004Agent.js";
+import { createConditionalAgentscoreGate } from "../libs/agentscoreGate.js";
 
 /**
  * Perform 8004 agent registration (same logic as POST /8004/register-agent).
@@ -351,11 +352,15 @@ export async function create8004Router() {
   });
 
   // --- Write: register new agent and optionally attach to collection (x402 payment required) ---
+  const registerAgentGate = createConditionalAgentscoreGate({
+    context: '8004-register-agent',
+    productName: 'Syra 8004 Agent Registration',
+  });
   const registerAgentHandler = async (req) => {
     const body = req.body && typeof req.body === "object" ? req.body : {};
     return performRegisterAgent(body);
   };
-  router.post("/register-agent", async (req, res, next) => {
+  router.post("/register-agent", registerAgentGate, async (req, res, next) => {
     try {
       const data = await registerAgentHandler(req);
       if (res.headersSent) return;

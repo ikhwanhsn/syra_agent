@@ -1010,6 +1010,11 @@ export async function settlePaymentAndSetResponse(res, req) {
   res.setHeader("Payment-Response", encodePaymentResponseHeader(settle));
   req._requestInsightPaid = true;
   runAfterResponse(() => recordPaidApiCall(req));
+  runAfterResponse(() => {
+    import("../libs/agentscoreGate.js")
+      .then(({ captureAgentscoreWalletAfterSettle }) => captureAgentscoreWalletAfterSettle(req, settle))
+      .catch(() => {});
+  });
   const priceUsd = req.x402Payment?.priceUsd;
   if (
     typeof priceUsd === "number" &&

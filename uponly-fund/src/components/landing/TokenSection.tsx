@@ -28,17 +28,16 @@ export function TokenSection({ className }: TokenSectionProps) {
 
   return (
     <section id="landing-token" className={cn("mb-20 scroll-mt-24 sm:mb-24", className)} aria-labelledby="landing-token-heading">
-      <p className="text-[0.65rem] font-semibold uppercase tracking-[0.26em] text-muted-foreground">Liquid sleeve</p>
-      <h2 id="landing-token-heading" className="landing-section-title mt-3 text-foreground">
-        Align with <span className="uof-wordmark">$UPONLY</span>
+      <p className="landing-eyebrow">Liquid sleeve</p>
+      <h2 id="landing-token-heading" className="landing-section-title mt-4 text-foreground">
+        Align with <span className="font-mono text-foreground">$UPONLY</span>
       </h2>
       <p className="mt-4 max-w-3xl text-pretty text-sm text-muted-foreground sm:text-base md:text-[1.0625rem] md:leading-relaxed">
         The liquid <span className="font-mono text-foreground/88">$UPONLY</span> sleeve lets markets participate alongside
-        our Solana allocator mandate—venue-native liquidity with on-chain verification. Confirm the mint, then trade or
-        prep inside the command dashboard.
+        our high-conviction mandate—venue-native liquidity with on-chain verification. Confirm the mint, then trade on RISE.
       </p>
 
-      <Card className="landing-token-panel mt-10 grid gap-0 overflow-hidden rounded-xl border border-border/50 bg-card/45 p-0 sm:mt-12 lg:grid-cols-[1.15fr_minmax(0,0.95fr)]">
+      <Card className="landing-institutional-panel mt-10 grid gap-0 overflow-hidden rounded-md border-0 bg-transparent p-0 shadow-none sm:mt-12 lg:grid-cols-[1.15fr_minmax(0,0.95fr)]">
         <div className="min-w-0 border-border/45 p-6 sm:p-8 lg:border-r lg:py-10">
           <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Token mint</p>
           <code className="mt-3 block break-all rounded-lg border border-border/55 bg-background/50 px-3.5 py-2.5 font-mono text-[0.8125rem] leading-relaxed text-foreground/92">
@@ -78,7 +77,7 @@ export function TokenSection({ className }: TokenSectionProps) {
             </Button>
           )}
           <Button asChild variant="outline" size="lg" className="min-h-12 rounded-lg border-border/60 bg-background/60 font-medium">
-            <Link to="/terminal">Open dashboard first</Link>
+            <Link to="/#mandate">Review mandate</Link>
           </Button>
           <p className="text-xs text-muted-foreground">Not financial advice. Tokens are volatile; only risk what you can afford to lose.</p>
         </div>

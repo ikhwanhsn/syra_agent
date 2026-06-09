@@ -1,13 +1,12 @@
 import type { MouseEvent } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 type BrandMarkProps = {
   className?: string;
   /** When false, only the symbol (for compact mobile). */
   showWordmark?: boolean;
-  /** Shorter lockup: hides the Smart Agent Fund subline (e.g. navbar). */
+  /** Shorter lockup: hides the tagline subline (e.g. navbar). */
   compact?: boolean;
   /**
    * Navbar: primary click forces full document navigation to `/` (hard refresh behavior).
@@ -45,11 +44,7 @@ export function BrandMark({
 
   const inner = (
     <>
-      <motion.div
-        className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/50 bg-black shadow-[0_1px_0_0_hsl(0_0%_100%_/_0.06)_inset,0_8px_32px_-8px_hsl(0_0%_0%_/_0.5),0_0_0_1px_hsl(var(--uof)/0.2)] sm:h-10 sm:w-10"
-        whileHover={{ scale: 1.02 }}
-        transition={{ type: "spring", stiffness: 400, damping: 28 }}
-      >
+      <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border/50 bg-black sm:h-10 sm:w-10">
         <img
           src="/images/experiment/rise_uponly.png"
           alt=""
@@ -59,16 +54,16 @@ export function BrandMark({
           height={40}
           decoding="async"
         />
-      </motion.div>
+      </div>
       {showWordmark ? (
         <div className="min-w-0 truncate text-left">
-          <div className="text-[0.875rem] font-semibold leading-tight tracking-[-0.02em] min-[400px]:text-[0.95rem] sm:text-base">
-            <span className="uof-wordmark">Up Only</span>
-            <span className="text-muted-foreground/90"> Fund</span>
+          <div className="text-[0.875rem] font-semibold leading-tight tracking-[-0.03em] min-[400px]:text-[0.95rem] sm:text-base">
+            <span className="text-foreground">Up Only</span>
+            <span className="text-muted-foreground"> Fund</span>
           </div>
           {!compact ? (
             <p className="mt-0.5 hidden text-[0.6rem] font-medium uppercase tracking-[0.18em] text-muted-foreground/80 sm:block">
-              Smart Agent Fund · Solana
+              Onchain Capital · Solana
             </p>
           ) : null}
         </div>

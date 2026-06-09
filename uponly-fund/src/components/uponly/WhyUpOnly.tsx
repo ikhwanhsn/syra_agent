@@ -20,10 +20,10 @@ export function WhyUpOnly({ className }: WhyUpOnlyProps) {
           id="why-uponly-heading"
           className="landing-section-title mt-3 text-balance text-foreground [overflow-wrap:anywhere]"
         >
-          The <span className="neon-text">$UPONLY</span> thesis: structure over hype
+          The <span className="neon-text">$UPONLY</span> thesis: liquid sleeve for conviction bets
         </h2>
         <p className="mt-5 text-pretty text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere] sm:text-base md:text-lg md:leading-relaxed">
-          ${RISE_UP_ONLY.symbol} is our dedicated liquid sleeve on RISE—built to track how{" "}
+          ${RISE_UP_ONLY.symbol} is the liquid expression of our high-conviction mandate on RISE—built on{" "}
           <ExternalLink href={RISE_DOCS.intro} className="text-foreground/90 text-sm sm:text-base">
             floor pricing
           </ExternalLink>
@@ -34,10 +34,10 @@ export function WhyUpOnly({ className }: WhyUpOnlyProps) {
           , and{" "}
           <ExternalLink href={RISE_DOCS.bondingCurve} className="text-foreground/90 text-sm sm:text-base">
             protocol-owned liquidity
-          </ExternalLink>{" "}
-          behave under institutional mandates—not a sandbox, but a published milestone toward a{" "}
-          <span className="font-medium text-foreground/90">$100M</span> fully diluted reference that keeps founders,
-          markets, and allocators aligned.
+          </ExternalLink>
+          . It sits alongside our 80/20 allocation book—not a memecoin gamble, but a structured milestone toward a{" "}
+          <span className="font-medium text-foreground/90">$100M</span> fully diluted reference for markets and allocators
+          who share our conviction thesis.
         </p>
       </div>
       <motion.div

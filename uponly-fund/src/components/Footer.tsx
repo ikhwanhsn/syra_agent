@@ -13,6 +13,8 @@ import {
   LINK_X,
 } from "../../config/global";
 import { SITE_ORIGIN } from "@/config/site";
+import { LATEST_POST_UPDATE_NUMBER } from "@/content/posts";
+import { getPostRoutePath } from "@/lib/postRoutes";
 
 export const Footer = () => {
   return (
@@ -23,16 +25,12 @@ export const Footer = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="relative overflow-hidden rounded-2xl border border-border/50 bg-card/25 p-6 min-[400px]:rounded-3xl sm:p-10 md:p-12"
+          className="landing-institutional-panel relative overflow-hidden p-8 sm:p-12 md:p-14"
         >
-          <div
-            className="pointer-events-none absolute inset-0 uof-hero-mesh opacity-80"
-            aria-hidden
-          />
           <div className="relative z-10 mx-auto max-w-2xl text-center">
-            <h2 className="font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl md:text-4xl">
-              Underwrite{" "}
-              <span className="uof-wordmark">Up Only Fund</span> like a venture allocator—not a headline.
+            <p className="landing-eyebrow">Institutional allocator</p>
+            <h2 className="landing-section-title mt-5 text-foreground">
+              Underwrite <span className="text-foreground">Up Only Fund</span> like a venture allocator—not a headline.
             </h2>
             <p className="mt-4 text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
               We publish how capital and strategy are aimed at Solana-native growth; execution, venue rules, and token risk
@@ -41,13 +39,13 @@ export const Footer = () => {
             <div className="mt-8 flex min-w-0 flex-col items-stretch justify-center gap-3 min-[400px]:flex-row min-[400px]:flex-wrap min-[400px]:items-center min-[400px]:justify-center">
               <Link
                 to="/"
-                className="inline-flex min-h-12 w-full min-w-0 items-center justify-center rounded-xl bg-foreground px-4 text-sm font-semibold text-background transition hover:opacity-90 min-[400px]:w-auto min-[400px]:px-6"
+                className="inline-flex min-h-12 w-full min-w-0 items-center justify-center rounded-md bg-foreground px-4 text-sm font-semibold text-background transition hover:opacity-90 min-[400px]:w-auto min-[400px]:px-6"
               >
                 Landing overview
               </Link>
               <a
                 href={`mailto:${EMAIL_SUPPORT}`}
-                className="inline-flex min-h-12 w-full min-w-0 items-center justify-center gap-2 break-all rounded-xl border border-border/60 bg-background/50 px-3 text-sm font-medium text-foreground backdrop-blur-sm transition hover:border-border min-[400px]:w-auto min-[400px]:px-6 sm:break-normal"
+                className="inline-flex min-h-12 w-full min-w-0 items-center justify-center gap-2 break-all rounded-md border border-border/60 bg-transparent px-3 text-sm font-medium text-foreground transition hover:border-border min-[400px]:w-auto min-[400px]:px-6 sm:break-normal"
               >
                 <Mail className="h-4 w-4 shrink-0" />
                 Email support
@@ -77,7 +75,7 @@ export const Footer = () => {
           <div className="min-w-0 md:col-span-4">
             <BrandMark className="text-foreground" compact />
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">
-              Smart Agent Fund on Solana — mandate-first, disclosure-heavy, and structurally separate from the liquid{" "}
+              Onchain capital for high conviction bets — mandate-first, disclosure-heavy, and structurally separate from the liquid{" "}
               <span className="font-mono text-foreground/90">$UPONLY</span> tranche. Not an offer. Not financial advice.
             </p>
             <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -114,8 +112,21 @@ export const Footer = () => {
                   </Link>
                 </li>
                 <li>
-                  <Link to="/terminal" className="text-muted-foreground transition hover:text-foreground">
-                    Dashboard
+                  <Link to="/#thesis" className="text-muted-foreground transition hover:text-foreground">
+                    Allocation thesis
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to={getPostRoutePath("video", LATEST_POST_UPDATE_NUMBER)}
+                    className="text-muted-foreground transition hover:text-foreground"
+                  >
+                    Investor brief
+                  </Link>
+                </li>
+                <li>
+                  <Link to={getPostRoutePath("hub")} className="text-muted-foreground transition hover:text-foreground">
+                    All fund updates
                   </Link>
                 </li>
               </ul>
@@ -196,7 +207,7 @@ export const Footer = () => {
 
         <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-border/40 pt-8 text-xs text-muted-foreground sm:flex-row">
           <p>© {new Date().getFullYear()} Up Only Fund program. All rights reserved.</p>
-          <p className="text-center sm:text-right">Smart Agent Fund · Solana</p>
+          <p className="text-center sm:text-right">Onchain Capital · Solana</p>
         </div>
       </div>
     </footer>

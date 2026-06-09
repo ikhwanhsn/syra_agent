@@ -2,12 +2,12 @@ Up Only Fund — machine-readable summary
 ========================================
 
 Name: Up Only Fund
-Tagline: Smart Agent Fund on Solana
-Focus: Venture & strategic capital on Solana, live portfolio disclosures, $UPONLY liquid sleeve, and command dashboard for market intelligence.
+Tagline: Onchain Capital for High Conviction Bets
+Focus: Solana allocator with 80/20 thesis—80% high-conviction utility tokens, 20% clean onchain memecoins with verified liquidity. Published mandate, portfolio disclosures, and $UPONLY liquid sleeve.
 
 What this site is
 -----------------
-Up Only Fund is an independent allocator brand with a published mandate, profitable operating book, and institutional-grade dashboard. It is not financial advice or a guarantee of returns.
+Up Only Fund is an independent allocator brand with a published mandate and conviction-based allocation thesis. It is not financial advice or a guarantee of returns.
 
 Where to follow
 ---------------
@@ -16,9 +16,14 @@ Where to follow
 
 App routes (typical)
 --------------------
-- / — fund landing (marketing, mandate, portfolio)
+- / — fund landing (marketing, mandate, portfolio, thesis)
 - /terminal — command dashboard / terminal layout
 - /overview — markets overview
 - /market, /wallet, /simulator, /insights, /create-token — dashboard modules
+- /post — investor brief studio (lists all fund updates)
+- /post/video/:updateNumber — numbered video brief deck (e.g. /post/video/1)
+- /post/photo/:updateNumber — numbered photo card export (e.g. /post/photo/1)
+
+Fund updates are numbered permanently. The registry keeps the latest 10; older numbers 404 and redirect to the latest.
 
 Set the public origin for metadata with VITE_PUBLIC_SITE_ORIGIN (see src/config/site.ts).

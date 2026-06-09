@@ -47,6 +47,7 @@ import {
   findProvider,
   parsePayshForceRefresh,
 } from '../../libs/payshClient.js';
+import { runAgentscoreToolForAgent } from '../../libs/agentscoreClient.js';
 import { resolveAgentBaseUrl } from './utils.js';
 import { requireSession } from '../../utils/requireSession.js';
 
@@ -224,6 +225,37 @@ router.post('/call', requireSession({ allowGuest: true }), async (req, res) => {
       });
     }
 
+    // AgentScore: discover / check / passport-status — no USDC balance check
+    if (
+      tool.agentscore === 'discover' ||
+      tool.agentscore === 'check' ||
+      tool.agentscore === 'passport-status'
+    ) {
+      const agentscoreParams = Object.fromEntries(
+        Object.entries(rawParams || {}).filter(
+          ([k, v]) => typeof k === 'string' && v != null && v !== ''
+        ).map(([k, v]) => [k, typeof v === 'string' ? v : String(v)])
+      );
+      const agentscoreOut = await runAgentscoreToolForAgent(tool.agentscore, agentscoreParams, {
+        anonymousId,
+        connectedWalletAddress: undefined,
+      });
+      if (!agentscoreOut.success) {
+        return res.status(agentscoreOut.status ?? 502).json({
+          success: false,
+          error: agentscoreOut.error,
+          toolId: tool.id,
+          ...(agentscoreOut.identityRequired ? { identityRequired: true, data: agentscoreOut.data } : {}),
+          ...(agentscoreOut.budgetExceeded ? { budgetExceeded: true } : {}),
+        });
+      }
+      return res.json({
+        success: true,
+        toolId: tool.id,
+        data: agentscoreOut.data,
+      });
+    }
+
     // Normalize params to string key-value (same as chat flow) so GET query is built correctly
     let params = Object.fromEntries(
       Object.entries(rawParams).filter(
@@ -350,6 +382,58 @@ router.post('/call', requireSession({ allowGuest: true }), async (req, res) => {
         success: true,
         toolId: tool.id,
         data: payshCallOut.data,
+      });
+    }
+
+    // AgentScore pay — balance must cover tool price floor
+    if (tool.agentscore === 'pay') {
+      const balanceResultAgentscore = await getAgentUsdcBalance(anonymousId);
+      if (!balanceResultAgentscore) {
+        return res.status(404).json({
+          success: false,
+          insufficientBalance: true,
+          error: 'Agent wallet not found',
+          message:
+            'You do not have an agent wallet yet. Create one (e.g. connect wallet or start a chat) and deposit USDC to use paid tools.',
+        });
+      }
+      const connectedWalletAgentscore = await getConnectedWalletAddress(anonymousId);
+      const effectivePriceAgentscore =
+        getEffectivePriceUsd(tool.priceUsd, connectedWalletAgentscore) ?? tool.priceUsd;
+      const usdcAgentscore = balanceResultAgentscore.usdcBalance;
+      if (usdcAgentscore <= 0 || usdcAgentscore < effectivePriceAgentscore) {
+        return res.status(402).json({
+          success: false,
+          insufficientBalance: true,
+          usdcBalance: usdcAgentscore,
+          requiredUsdc: effectivePriceAgentscore,
+          toolId: tool.id,
+          toolName: tool.name,
+          message:
+            usdcAgentscore <= 0
+              ? `Your agent wallet has 0 USDC balance. ${tool.name} requires at least $${effectivePriceAgentscore.toFixed(4)} USDC.`
+              : `Your agent wallet balance ($${usdcAgentscore.toFixed(4)} USDC) is lower than $${effectivePriceAgentscore.toFixed(4)} required for ${tool.name}.`,
+        });
+      }
+      const agentscorePayOut = await runAgentscoreToolForAgent('pay', params, {
+        anonymousId,
+        connectedWalletAddress: connectedWalletAgentscore || undefined,
+      });
+      if (!agentscorePayOut.success) {
+        return res.status(agentscorePayOut.status ?? 502).json({
+          success: false,
+          error: agentscorePayOut.error,
+          toolId: tool.id,
+          ...(agentscorePayOut.identityRequired
+            ? { identityRequired: true, data: agentscorePayOut.data }
+            : {}),
+          ...(agentscorePayOut.budgetExceeded ? { budgetExceeded: true } : {}),
+        });
+      }
+      return res.json({
+        success: true,
+        toolId: tool.id,
+        data: agentscorePayOut.data,
       });
     }
 

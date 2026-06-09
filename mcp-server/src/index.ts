@@ -443,6 +443,63 @@ async function main() {
     },
   );
 
+  server.tool(
+    "syra_agentscore_discover",
+    "AgentScore: list gated merchants and x402 bazaar resources (Martin Estate, Sayer & Stone, etc.). Free public route.",
+    {
+      q: z.string().optional().describe("Search keyword"),
+      chain: z.string().optional().describe("Filter rails: base, solana, tempo"),
+      maxPrice: z.number().optional().describe("Max price USD filter"),
+      limit: z.number().optional().describe("Max results (default 25)"),
+    },
+    async ({ q, chain, maxPrice, limit }) => {
+      const params: Record<string, string> = {};
+      if (q) params.q = q;
+      if (chain) params.chain = chain;
+      if (maxPrice != null) params.maxPrice = String(maxPrice);
+      if (limit != null) params.limit = String(limit);
+      const { status, body } = await fetchV2("/agentscore/discover", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_agentscore_check",
+    "AgentScore: probe a merchant URL without paying — returns HTTP 402 pricing or 403 identity bootstrap (verify_url). Free public route.",
+    {
+      url: z.string().describe("Merchant URL to probe (https://...)"),
+      method: z.string().optional().default("GET").describe("HTTP method"),
+    },
+    async ({ url, method }) => {
+      const params: Record<string, string> = { url, method: method ?? "GET" };
+      const { status, body } = await fetchV2("/agentscore/check", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_agentscore_pay_note",
+    "AgentScore pay + Passport: use Syra agent tools agentscore-pay / agentscore-passport-status via POST /agent/tools/call (requires agent.syraa.fun session + USDC). Or install @agent-score/pay CLI for multi-rail checkout.",
+    {
+      merchantUrl: z.string().optional().describe("Example merchant purchase URL"),
+    },
+    async ({ merchantUrl }) => {
+      const text = [
+        "AgentScore buyer integration on Syra:",
+        "- Free: GET /agentscore/discover, GET /agentscore/check",
+        "- Paid (agent wallet): toolId agentscore-pay via POST /agent/tools/call",
+        "- Passport: agentscore-passport-status or `agentscore-pay passport login`",
+        "- Multi-rail (Base/MPP): npm i -g @agent-score/pay",
+        merchantUrl ? `Example URL: ${merchantUrl}` : "",
+        "Docs: https://docs.agentscore.sh/passport",
+        "Syra skill: GET /skill.md",
+      ]
+        .filter(Boolean)
+        .join("\n");
+      return { content: [{ type: "text" as const, text }] };
+    },
+  );
+
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }

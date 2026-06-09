@@ -478,7 +478,7 @@ export type DashboardDictionary = {
 
 export const DASHBOARD_COPY: Record<Language, DashboardDictionary> = {
   en: {
-    sidebar: "Smart Agent Fund · Solana",
+    sidebar: "Onchain Capital · Solana",
     showSidebar: "Show sidebar",
     hideSidebar: "Hide sidebar",
     openMenu: "Open menu",

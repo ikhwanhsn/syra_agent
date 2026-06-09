@@ -10,11 +10,16 @@
  */
 import express from "express";
 import { sendTempoPayout } from "../../libs/tempoPayout.js";
+import { createConditionalAgentscoreGate } from "../../libs/agentscoreGate.js";
 
 export function createTempoPayoutRouter() {
   const router = express.Router();
+  const payoutGate = createConditionalAgentscoreGate({
+    context: 'tempo-payout',
+    productName: 'Syra Tempo Payout',
+  });
 
-  router.post("/tempo", async (req, res) => {
+  router.post("/tempo", payoutGate, async (req, res) => {
     try {
       const { to, amountUsd, memo } = req.body || {};
 

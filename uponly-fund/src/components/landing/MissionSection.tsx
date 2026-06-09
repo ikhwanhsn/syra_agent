@@ -1,6 +1,6 @@
 import { useReducedMotion, motion } from "framer-motion";
-import { Target, Telescope } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LandingSectionHeader } from "./LandingSectionHeader";
 
 const fade = (reduce: boolean) => ({
   initial: reduce ? false : { opacity: 0, y: 14 },
@@ -17,64 +17,36 @@ export function MissionSection({ className }: MissionSectionProps) {
   const reduceMotion = useReducedMotion() ?? false;
   return (
     <section
-      className={cn("scroll-mt-24 mb-20 sm:mb-28", className)}
+      className={cn("scroll-mt-24", className)}
       aria-labelledby="uof-mission"
     >
-      <p className="text-[0.65rem] font-semibold uppercase tracking-[0.26em] text-uof">Mission</p>
-      <h2
+      <LandingSectionHeader
+        eyebrow="Mission"
+        title="Conviction-first allocation on Solana"
         id="uof-mission"
-        className="landing-section-title mt-3 max-w-4xl text-foreground"
-      >
-        Back Solana-native winners with{" "}
-        <span className="text-foreground/78">capital and strategy at institutional rigor.</span>
-      </h2>
-      <div className="mt-12 grid gap-6 md:grid-cols-2 md:gap-8 lg:gap-10">
+      />
+      <div className="mt-12 grid gap-px overflow-hidden rounded-md border border-border/50 bg-border/40 md:grid-cols-2">
         <motion.div
           {...fade(reduceMotion)}
-          className="landing-mission-card relative overflow-hidden rounded-xl border border-border/55 bg-card/40 p-7 sm:p-8"
+          className="bg-card/45 px-8 py-10 sm:px-10 sm:py-12"
         >
-          <div
-            className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-[radial-gradient(closest-side,hsl(var(--uof)/0.2),transparent)]"
-            aria-hidden
-          />
-          <div className="flex items-start gap-3">
-            <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-background/60">
-              <Target className="h-4 w-4 text-uof" aria-hidden />
-            </span>
-            <div>
-              <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                North star
-              </h3>
-              <p className="mt-3 text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
-                Identify teams with structural edges on Solana—then fund distribution, liquidity, and integrations so they
-                scale like venture-backed companies, not one-off launches.
-              </p>
-            </div>
-          </div>
+          <p className="landing-eyebrow">North star</p>
+          <p className="mt-4 text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
+            80% of capital backs utility tokens with working products, real onchain demand, and structural edges on
+            Solana—projects we would hold with conviction, not chase for momentum.
+          </p>
         </motion.div>
         <motion.div
           {...fade(reduceMotion)}
-          className="landing-mission-card relative overflow-hidden rounded-xl border border-border/55 bg-card/40 p-7 sm:p-8"
+          className="bg-card/45 px-8 py-10 sm:px-10 sm:py-12"
         >
-          <div
-            className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[radial-gradient(closest-side,hsl(var(--ring)/0.18),transparent)]"
-            aria-hidden
-          />
-          <div className="flex items-start gap-3">
-            <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-background/60">
-              <Telescope className="h-4 w-4 text-foreground/80" aria-hidden />
-            </span>
-            <div>
-              <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                How we work
-              </h3>
-              <p className="mt-3 text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
-                Publish mandate and treasury intent like a GP memo; separate the liquid <span className="font-mono text-foreground/85">$UPONLY</span>{" "}
-                sleeve from program wallets; route execution through venues you can verify on-chain. Up Only Fund owns
-                allocator narrative and disclosures here.
-              </p>
-            </div>
-          </div>
+          <p className="landing-eyebrow">Asymmetric sleeve</p>
+          <p className="mt-4 text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
+            20% targets clean onchain memecoins—verified liquidity, no-rug mechanics, and genuine momentum. Small
+            sizing, high selectivity. The liquid{" "}
+            <span className="font-mono text-foreground/85">$UPONLY</span> sleeve sits alongside, not inside, the
+            allocation book.
+          </p>
         </motion.div>
       </div>
     </section>

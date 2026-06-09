@@ -10,11 +10,10 @@ import { ScrollReveal } from "./ScrollReveal";
  */
 const VARIANTS = {
   transparent: "",
-  muted: "border-y border-border/40 bg-muted/[0.22] dark:bg-muted/[0.12]",
-  surface:
-    "border-y border-border/35 bg-gradient-to-b from-card/50 via-card/25 to-transparent",
-  deep: "border-y border-border/30 bg-[linear-gradient(180deg,hsl(var(--card)/0.55)_0%,hsl(var(--background)/0.92)_55%,transparent_100%)]",
-  cta: "border-t border-border/40 bg-gradient-to-b from-muted/25 via-background to-muted/[0.15]",
+  muted: "border-y border-border/35 bg-muted/[0.14] dark:bg-muted/[0.08]",
+  surface: "border-y border-border/30 bg-card/[0.18]",
+  deep: "border-y border-border/25 bg-card/[0.28]",
+  cta: "border-t border-border/35 bg-muted/[0.1]",
 } as const;
 
 export type LandingBandVariant = keyof typeof VARIANTS;
@@ -39,7 +38,7 @@ export function LandingBand({
     <div
       className={cn(
         siteShell,
-        "py-14 md:py-[4.5rem] lg:py-24",
+        "py-16 md:py-20 lg:py-28",
         contentClassName,
       )}
     >

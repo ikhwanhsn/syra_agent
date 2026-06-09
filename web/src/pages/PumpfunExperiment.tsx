@@ -344,7 +344,7 @@ export default function PumpfunExperiment({ embedded = false }: { embedded?: boo
 
   const featuredHistory = useMemo(() => {
 
-    const nowMs = trendQ.data?.nowMs ?? Date.now();
+    const nowMs = trendQ.data?.data?.nowMs ?? Date.now();
 
     if (!featuredAgent) {
 
@@ -374,7 +374,7 @@ export default function PumpfunExperiment({ embedded = false }: { embedded?: boo
 
     });
 
-  }, [featuredAgent, trendQ.data?.nowMs]);
+  }, [featuredAgent, trendQ.data?.data?.nowMs]);
 
   const visibleLeaderboard = useMemo(() => {
 

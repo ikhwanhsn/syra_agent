@@ -280,8 +280,8 @@ export const PUMPFUN_PERSONALITIES: readonly PumpfunPersonalityMeta[] = [
   {
     id: 11,
     short: "P11",
-    name: "Alpha watchlist",
-    description: "Alpha model watchlist + quality score ≥48. Model-guided entries only.",
+    name: "Beta play",
+    description: "Beta watchlist + aligned follower candidates from alpha radar. Model-guided entries only.",
   },
   {
     id: 12,

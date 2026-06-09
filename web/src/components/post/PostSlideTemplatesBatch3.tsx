@@ -9,7 +9,7 @@ import type {
   PostStatementSlide,
   PostSurfacesSlide,
 } from "@/content/posts/types";
-import { PostHeader, PostSlideGrid, PostSlideLayout } from "@/components/post/PostSlideLayout";
+import { PostHeader, PostSlideContent, PostSlideGrid, PostSlideLayout } from "@/components/post/PostSlideLayout";
 import { PostReveal } from "@/components/post/PostStagger";
 import { cn } from "@/lib/utils";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
@@ -85,23 +85,30 @@ export function renderCoverBatch3(slide: PostCoverSlide, isActive: boolean): Rea
       );
     case "cover-corner-logo":
       return (
-        <PostSlideLayout isActive={isActive} template={layout} variant="cover" className="post-batch3-corner-logo">
-          <PostReveal isActive={isActive} delayMs={0}>
-            <div className="post-batch3-corner-anchor">
-              <img src="/images/logo.jpg" alt="" className="post-batch3-corner-logo-img h-10 w-10 rounded-lg border border-[#F3BA2F]/20 object-cover sm:h-12 sm:w-12" />
-              <span className="post-batch3-corner-line" aria-hidden />
-            </div>
-          </PostReveal>
-          <PostReveal isActive={isActive} delayMs={100}>
-            <p className="post-slide-kicker text-left">{slide.eyebrow}</p>
-          </PostReveal>
-          <PostReveal isActive={isActive} delayMs={180}>
-            <h1 className="post-slide-title post-slide-title--xl post-slide-balance text-left">{slide.title}</h1>
-          </PostReveal>
-          <CoverBadge text={slide.badge} isActive={isActive} delayMs={260} />
-          <PostReveal isActive={isActive} delayMs={340}>
-            <p className="post-slide-lead post-slide-prose text-left">{slide.subtitle}</p>
-          </PostReveal>
+        <PostSlideLayout
+          isActive={isActive}
+          template={layout}
+          variant="cover"
+          className="post-batch3-corner-logo post-slide-body--align-left"
+        >
+          <PostSlideContent align="left">
+            <PostReveal isActive={isActive} delayMs={0}>
+              <div className="post-batch3-corner-anchor">
+                <img src="/images/logo.jpg" alt="" className="post-batch3-corner-logo-img h-10 w-10 rounded-lg border border-[#F3BA2F]/20 object-cover sm:h-12 sm:w-12" />
+                <span className="post-batch3-corner-line" aria-hidden />
+              </div>
+            </PostReveal>
+            <PostReveal isActive={isActive} delayMs={100}>
+              <p className="post-slide-kicker">{slide.eyebrow}</p>
+            </PostReveal>
+            <PostReveal isActive={isActive} delayMs={180}>
+              <h1 className="post-slide-title post-slide-title--xl post-slide-balance">{slide.title}</h1>
+            </PostReveal>
+            <CoverBadge text={slide.badge} isActive={isActive} delayMs={260} />
+            <PostReveal isActive={isActive} delayMs={340}>
+              <p className="post-slide-lead post-slide-prose">{slide.subtitle}</p>
+            </PostReveal>
+          </PostSlideContent>
         </PostSlideLayout>
       );
     case "cover-dual-badge":

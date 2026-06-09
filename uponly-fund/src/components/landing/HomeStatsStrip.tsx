@@ -4,19 +4,19 @@ import { landingViewport, staggerContainerRaise, staggerItem } from "./landingMo
 
 const stats = [
   {
-    label: "Model",
-    value: "Venture + strategic",
-    hint: "Capital & operator leverage",
+    label: "Strategy",
+    value: "80 / 20",
+    hint: "Conviction utility · asymmetric memecoin",
   },
   {
-    label: "Universe",
-    value: "RISE stack",
-    hint: "Native liquidity venues",
+    label: "Network",
+    value: "Solana",
+    hint: "Onchain-native allocation",
   },
   {
-    label: "Transparency",
-    value: "GP-grade",
-    hint: "Mandate & sleeves published",
+    label: "Disclosure",
+    value: "Published",
+    hint: "Mandate, thesis & sleeves",
   },
 ] as const;
 
@@ -24,14 +24,13 @@ type HomeStatsStripProps = {
   className?: string;
 };
 
-/** Institutional ticker — columns stagger in on scroll */
 export function HomeStatsStrip({ className }: HomeStatsStripProps) {
   const reduce = useReducedMotion() ?? false;
 
   return (
     <motion.div
       className={cn(
-        "landing-stats-ticker grid grid-cols-1 overflow-hidden rounded-xl border border-border/45 bg-background/40 shadow-[inset_0_1px_0_0_hsl(var(--foreground)/0.04)] backdrop-blur-sm sm:grid-cols-3",
+        "grid grid-cols-1 overflow-hidden rounded-md border border-border/50 bg-card/30 sm:grid-cols-3",
         className,
       )}
       variants={reduce ? undefined : staggerContainerRaise}
@@ -44,18 +43,15 @@ export function HomeStatsStrip({ className }: HomeStatsStripProps) {
           key={s.label}
           variants={reduce ? undefined : staggerItem}
           className={cn(
-            "relative flex flex-col justify-center px-6 py-8 sm:px-8 md:px-10 md:py-10",
-            i > 0 &&
-              "border-t border-border/45 sm:border-l sm:border-t-0 sm:border-border/45",
+            "flex flex-col justify-center px-5 py-6 sm:px-6",
+            i > 0 && "border-t border-border/45 sm:border-l sm:border-t-0",
           )}
         >
-          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-            {s.label}
-          </p>
-          <p className="mt-2 font-display text-xl font-semibold tracking-[-0.02em] text-foreground sm:text-2xl md:text-[1.65rem]">
+          <p className="landing-eyebrow">{s.label}</p>
+          <p className="mt-2 font-display text-lg font-semibold tracking-[-0.02em] text-foreground sm:text-xl">
             {s.value}
           </p>
-          <p className="mt-2 text-sm leading-snug text-muted-foreground/95">{s.hint}</p>
+          <p className="mt-1.5 text-xs leading-snug text-muted-foreground">{s.hint}</p>
         </motion.div>
       ))}
     </motion.div>

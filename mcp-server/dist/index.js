@@ -138,17 +138,18 @@ async function main() {
         return { content: [{ type: "text", text: formatToolResult(status, body) }] };
     });
     // --- Query param (required or optional) ---
-    server.tool("syra_v2_jupiter_swap_order", "Get a Jupiter Ultra swap order (buy/sell token on Solana). Returns a transaction to sign and submit. Requires inputMint, outputMint, amount (smallest units), taker (wallet pubkey)." + PAYMENT_NOTE, {
-        inputMint: z.string().describe("Input token mint address (e.g. SOL: So11111111111111111111111111111111111111112)"),
-        outputMint: z.string().describe("Output token mint address (e.g. USDC: EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v)"),
-        amount: z.string().describe("Amount in smallest units (e.g. lamports for SOL)"),
-        taker: z.string().describe("Wallet public key that will execute the swap"),
-    }, async ({ inputMint, outputMint, amount, taker }) => {
-        const { status, body } = await fetchV2("/jupiter/swap/order", {
+    server.tool("syra_v2_pumpfun_agents_swap", "pump.fun fun-block swap (buy/sell on bonding curve or AMM). POST /pumpfun/agents/swap; returns base64 VersionedTransaction. Requires inputMint, outputMint, amount (smallest units), user (trader pubkey)." +
+        PAYMENT_NOTE, {
+        inputMint: z.string().describe("Input token mint (e.g. wrapped SOL So11111111111111111111111111111111111111112)"),
+        outputMint: z.string().describe("Output token mint"),
+        amount: z.string().describe("Amount in smallest units of the input mint"),
+        user: z.string().describe("Trader / fee payer Solana pubkey"),
+    }, async ({ inputMint, outputMint, amount, user }) => {
+        const { status, body } = await fetchPost("/pumpfun/agents/swap", {
             inputMint,
             outputMint,
             amount,
-            taker,
+            user,
         });
         return { content: [{ type: "text", text: formatToolResult(status, body) }] };
     });
@@ -310,6 +311,49 @@ async function main() {
         }
         const { status, body } = await fetchPost("/quicknode/rpc", bodyObj);
         return { content: [{ type: "text", text: formatToolResult(status, body) }] };
+    });
+    server.tool("syra_agentscore_discover", "AgentScore: list gated merchants and x402 bazaar resources (Martin Estate, Sayer & Stone, etc.). Free public route.", {
+        q: z.string().optional().describe("Search keyword"),
+        chain: z.string().optional().describe("Filter rails: base, solana, tempo"),
+        maxPrice: z.number().optional().describe("Max price USD filter"),
+        limit: z.number().optional().describe("Max results (default 25)"),
+    }, async ({ q, chain, maxPrice, limit }) => {
+        const params = {};
+        if (q)
+            params.q = q;
+        if (chain)
+            params.chain = chain;
+        if (maxPrice != null)
+            params.maxPrice = String(maxPrice);
+        if (limit != null)
+            params.limit = String(limit);
+        const { status, body } = await fetchV2("/agentscore/discover", params);
+        return { content: [{ type: "text", text: formatToolResult(status, body) }] };
+    });
+    server.tool("syra_agentscore_check", "AgentScore: probe a merchant URL without paying — returns HTTP 402 pricing or 403 identity bootstrap (verify_url). Free public route.", {
+        url: z.string().describe("Merchant URL to probe (https://...)"),
+        method: z.string().optional().default("GET").describe("HTTP method"),
+    }, async ({ url, method }) => {
+        const params = { url, method: method ?? "GET" };
+        const { status, body } = await fetchV2("/agentscore/check", params);
+        return { content: [{ type: "text", text: formatToolResult(status, body) }] };
+    });
+    server.tool("syra_agentscore_pay_note", "AgentScore pay + Passport: use Syra agent tools agentscore-pay / agentscore-passport-status via POST /agent/tools/call (requires agent.syraa.fun session + USDC). Or install @agent-score/pay CLI for multi-rail checkout.", {
+        merchantUrl: z.string().optional().describe("Example merchant purchase URL"),
+    }, async ({ merchantUrl }) => {
+        const text = [
+            "AgentScore buyer integration on Syra:",
+            "- Free: GET /agentscore/discover, GET /agentscore/check",
+            "- Paid (agent wallet): toolId agentscore-pay via POST /agent/tools/call",
+            "- Passport: agentscore-passport-status or `agentscore-pay passport login`",
+            "- Multi-rail (Base/MPP): npm i -g @agent-score/pay",
+            merchantUrl ? `Example URL: ${merchantUrl}` : "",
+            "Docs: https://docs.agentscore.sh/passport",
+            "Syra skill: GET /skill.md",
+        ]
+            .filter(Boolean)
+            .join("\n");
+        return { content: [{ type: "text", text }] };
     });
     const transport = new StdioServerTransport();
     await server.connect(transport);

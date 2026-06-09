@@ -9,6 +9,7 @@ import type { PostUpdate } from "./types";
  */
 export const BNB_X402_POST: PostUpdate = {
   meta: {
+    updateNumber: 2,
     id: "bnb-x402-b402",
     title: "x402 on BNB Smart Chain",
     published: "June 2026",

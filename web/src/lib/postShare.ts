@@ -1,11 +1,16 @@
+import { LATEST_POST_UPDATE_NUMBER } from "@/content/posts";
 import type { PostUpdateMeta } from "@/content/posts/types";
+import { getPostRoutePath, type PostRouteFormat } from "@/lib/postRoutes";
 
 export type PostShareFormat = "video" | "photo";
 
 export type PostFormat = "hub" | PostShareFormat;
 
-export function getPostPageUrl(format: PostFormat = "hub"): string {
-  const path = format === "hub" ? "/post" : `/post/${format}`;
+export function getPostPageUrl(
+  format: PostFormat = "hub",
+  updateNumber: number = LATEST_POST_UPDATE_NUMBER,
+): string {
+  const path = getPostRoutePath(format as PostRouteFormat, updateNumber);
   if (typeof window !== "undefined") {
     return `${window.location.origin}${path}`;
   }
@@ -18,7 +23,7 @@ export function getPostShareCopy(meta: PostUpdateMeta, format: PostShareFormat):
 
 /** Full paste-ready post: copy body + page URL. */
 export function getPostShareCopyWithUrl(meta: PostUpdateMeta, format: PostShareFormat): string {
-  return `${getPostShareCopy(meta, format).trim()}\n\n${getPostPageUrl(format)}`;
+  return `${getPostShareCopy(meta, format).trim()}\n\n${getPostPageUrl(format, meta.updateNumber)}`;
 }
 
 export function buildPostOnXUrl(meta: PostUpdateMeta, format: PostShareFormat = "video"): string {
@@ -35,9 +40,12 @@ export async function copyPostShareText(meta: PostUpdateMeta, format: PostShareF
   }
 }
 
-export async function copyPostLink(format: PostFormat = "hub"): Promise<boolean> {
+export async function copyPostLink(
+  format: PostFormat = "hub",
+  updateNumber: number = LATEST_POST_UPDATE_NUMBER,
+): Promise<boolean> {
   try {
-    await navigator.clipboard.writeText(getPostPageUrl(format));
+    await navigator.clipboard.writeText(getPostPageUrl(format, updateNumber));
     return true;
   } catch {
     return false;

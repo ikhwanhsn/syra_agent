@@ -98,7 +98,7 @@ export function DashboardAccessSection({ className }: DashboardAccessSectionProp
                 className="h-12 rounded-lg bg-uof !text-[hsl(var(--uof-foreground))] px-8 font-semibold shadow-[0_10px_36px_-8px_hsl(var(--uof)/0.5)] hover:bg-uof/92"
               >
                 <Link to="/terminal" className="inline-flex items-center gap-2">
-                  {FUND_LANDING.dashboardCta}
+                  {FUND_LANDING.thesisCta}
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>

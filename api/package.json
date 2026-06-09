@@ -25,6 +25,8 @@
     "test-stableenrich": "node -r dotenv/config scripts/testStableenrichFlow.js"
   },
   "dependencies": {
+    "@agent-score/commerce": "^2.5.0",
+    "@agent-score/sdk": "^2.5.0",
     "@bitget-ai/getagent-skill": "^0.2.1",
     "@coral-xyz/anchor": "^0.31.1",
     "@didtools/siwx": "^2.0.0",

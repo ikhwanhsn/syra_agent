@@ -71,7 +71,7 @@ import {
   getStableenrichParamsHintForLlm,
 } from './stableenrichAgentTools.js';
 
-/** @typedef {{ id: string; path: string; method: string; priceUsd: number; displayPriceUsd?: number; name: string; description: string; nansenPath?: string; zerionPath?: string; birdeyePath?: string; stablecryptoPath?: string; stablesocialPath?: string; stableenrichPath?: string; stableenrichMethod?: 'GET' | 'POST'; stableenrichAsync?: boolean; purchVaultPath?: string; agentDirect?: boolean; tempoPayout?: boolean; tempoPublic?: 'tokenlist' | 'networks'; paysh?: 'discover' | 'endpoints' | 'call' }} AgentTool */
+/** @typedef {{ id: string; path: string; method: string; priceUsd: number; displayPriceUsd?: number; name: string; description: string; nansenPath?: string; zerionPath?: string; birdeyePath?: string; stablecryptoPath?: string; stablesocialPath?: string; stableenrichPath?: string; stableenrichMethod?: 'GET' | 'POST'; stableenrichAsync?: boolean; purchVaultPath?: string; agentDirect?: boolean; tempoPayout?: boolean; tempoPublic?: 'tokenlist' | 'networks'; paysh?: 'discover' | 'endpoints' | 'call'; agentscore?: 'discover' | 'check' | 'passport-status' | 'pay' }} AgentTool */
 
 /**
  * List of agent tools (x402 endpoints). Path is relative to API base (e.g. /news). Nansen calls api.nansen.ai; Zerion calls api.zerion.io (x402); Birdeye uses birdeyePath on public-api.birdeye.so (x402).
@@ -1073,6 +1073,28 @@ export const AGENT_TOOLS = [
     description: 'Verify invoice paid on-chain (agentMint, user, currencyMint, amount, memo, startTime, endTime as numbers)',
   },
   {
+    id: 'pumpfun-utility-scout',
+    agentDirect: false,
+    path: '/agent/pumpfun-utility-scout/brief',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_PUMP_FUN_READ_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_PUMP_FUN_READ_USD,
+    name: 'Pump.fun Utility Scout',
+    description:
+      'Separate agent for tech/utility projects: product metadata, infra narratives, and ecosystem registry picks — not meme runners',
+  },
+  {
+    id: 'pumpfun-alpha-scout',
+    agentDirect: false,
+    path: '/agent/pumpfun-alpha-scout/brief',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_PUMP_FUN_READ_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_PUMP_FUN_READ_USD,
+    name: 'Pump.fun Alpha Scout',
+    description:
+      'Separate learning agent: past alpha memory, learned narrative/MC patterns, and predicted new alpha tokens on pump.fun',
+  },
+  {
     id: 'squid-route',
     agentDirect: true,
     path: '/squid/route',
@@ -1444,6 +1466,50 @@ export const AGENT_TOOLS = [
     name: 'pay.sh call provider',
     description:
       'Call a pay.sh-listed provider gateway via x402 (agent wallet pays upstream). Params: fqn (required), path (required, e.g. /civicinfo/v2/elections or for quicknode/rpc: /solana-mainnet/), method (omit or POST for JSON-RPC; GET only if the OpenAPI route is GET), query (JSON object string), body (JSON object string for POST/JSON-RPC). Optional forceRefresh true — refresh catalog/skills before resolving route. For StableCrypto use fqn merit-systems/stablecrypto/market-data and POST paths like /api/coingecko/global.',
+  },
+  {
+    id: 'agentscore-discover',
+    agentscore: 'discover',
+    path: '/agentscore/discover',
+    method: 'GET',
+    priceUsd: 0,
+    displayPriceUsd: 0,
+    name: 'AgentScore merchant discover',
+    description:
+      'List AgentScore-gated merchants (Martin Estate, Sayer & Stone) plus optional x402 bazaar resources. Params: q, chain, maxPrice, limit. No USDC charge.',
+  },
+  {
+    id: 'agentscore-check',
+    agentscore: 'check',
+    path: '/agentscore/check',
+    method: 'GET',
+    priceUsd: 0,
+    displayPriceUsd: 0,
+    name: 'AgentScore merchant check',
+    description:
+      'Probe a merchant URL without paying — returns 402 pricing or 403 identity bootstrap (verify_url, session_id). Params: url (required), method, body JSON, optional operatorToken.',
+  },
+  {
+    id: 'agentscore-passport-status',
+    agentscore: 'passport-status',
+    path: '/agentscore/passport-status',
+    method: 'GET',
+    priceUsd: 0,
+    displayPriceUsd: 0,
+    name: 'AgentScore Passport status',
+    description:
+      'Check operator token / assess decision. Params: optional operatorToken (else AGENTSCORE_OPERATOR_TOKEN env). No USDC charge.',
+  },
+  {
+    id: 'agentscore-pay',
+    agentscore: 'pay',
+    path: '/agentscore/pay',
+    method: 'POST',
+    priceUsd: 0.01,
+    displayPriceUsd: 0.01,
+    name: 'AgentScore merchant pay',
+    description:
+      'Pay an AgentScore-gated or x402 merchant from the agent Solana wallet. Params: url (required), method (default POST), body JSON, optional operatorToken for Passport. Returns 403 + verify_url when KYC required.',
   },
   ...STABLECRYPTO_AGENT_TOOLS,
   ...STABLESOCIAL_AGENT_TOOLS,
@@ -2559,6 +2625,14 @@ export function getCapabilitiesList() {
       ''
     );
   }
+  const agentscoreTools = AGENT_TOOLS.filter((t) => t.agentscore).map((t) => t.id);
+  if (agentscoreTools.length) {
+    lines.push(
+      'AgentScore commerce (Passport identity + pay gated merchants — wine, regulated checkout):',
+      ...fmt(agentscoreTools),
+      ''
+    );
+  }
 
   return lines;
 }
@@ -2641,6 +2715,22 @@ export function getToolsForLlmSelection() {
     if (t.id === 'paysh-call') {
       out.paramsHint =
         'Params: fqn (required), path (required — OpenAPI path from paysh-endpoints e.g. QuickNode quicknode/rpc: /solana-mainnet/), method POST for JSON-RPC chains (default is GET unless body is set, then POST); query/body JSON strings. forceRefresh optional. Agent USDC balance must cover provider min_price_usd (see discover). StableCrypto: fqn merit-systems/stablecrypto/market-data, path /api/coingecko/price with body {"ids":["bitcoin"],"vs_currencies":["usd"]}.';
+    }
+    if (t.id === 'agentscore-discover') {
+      out.paramsHint =
+        'Optional: q (search), chain (base|solana|tempo), maxPrice, limit (max 100). Lists Martin Estate, Sayer & Stone, x402 bazaar. No USDC charge.';
+    }
+    if (t.id === 'agentscore-check') {
+      out.paramsHint =
+        'Params: url (required). Optional: method, body (JSON string), operatorToken. Probes 402/403 without paying.';
+    }
+    if (t.id === 'agentscore-passport-status') {
+      out.paramsHint =
+        'Optional operatorToken — else server AGENTSCORE_OPERATOR_TOKEN. Runs AgentScore assess when API key configured.';
+    }
+    if (t.id === 'agentscore-pay') {
+      out.paramsHint =
+        'Params: url (required), method (default POST), body (JSON string), operatorToken (Passport). Agent USDC pays Solana x402 leg; complete KYC via verify_url if 403.';
     }
     if (t.stablecryptoPath) {
       const hint = getStablecryptoParamsHintForLlm(t.id);

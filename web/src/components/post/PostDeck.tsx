@@ -1,22 +1,28 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { Link } from "react-router-dom";
-import { ACTIVE_POST, POST_SLIDE_COUNT } from "@/content/posts";
+import type { PostUpdate } from "@/content/posts";
 import { PostSlideView } from "@/components/post/PostSlideView";
 import { PostRecordStage } from "@/components/post/PostRecordStage";
 import { PostShareCopyPanel } from "@/components/post/PostShareCopyPanel";
+import { PostUpdateNav } from "@/components/post/PostUpdateNav";
+import { PostXStatusControl } from "@/components/post/PostXStatusControl";
 import { PostVideoExportStage } from "@/components/post/PostVideoExportStage";
 import {
   exportPostVideoWebm,
   getSlideDwellMs,
-  SLIDE_INTERVAL_MS,
 } from "@/components/post/postVideoExport";
 import { cn } from "@/lib/utils";
 import { Download, ImageIcon, Pause, Play, RotateCcw, Video } from "lucide-react";
 import { toast } from "sonner";
 
-export function PostDeck() {
-  const { meta, slides } = ACTIVE_POST;
+interface PostDeckProps {
+  post: PostUpdate;
+}
+
+export function PostDeck({ post }: PostDeckProps) {
+  const { meta, slides } = post;
+  const slideCount = slides.length;
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState<"forward" | "back">("forward");
   const [isPlaying, setIsPlaying] = useState(false);
@@ -30,11 +36,11 @@ export function PostDeck() {
 
   const goNext = useCallback(() => {
     setIndex((current) => {
-      const next = Math.min(POST_SLIDE_COUNT - 1, current + 1);
+      const next = Math.min(slideCount - 1, current + 1);
       if (next !== current) setDirection("forward");
       return next;
     });
-  }, []);
+  }, [slideCount]);
 
   const startPlayback = useCallback(() => {
     setSlideTick((t) => t + 1);
@@ -62,7 +68,7 @@ export function PostDeck() {
     pausePlayback();
 
     try {
-      await exportPostVideoWebm(node, POST_SLIDE_COUNT, meta.id, {
+      await exportPostVideoWebm(node, slideCount, meta.id, {
         onSlideChange: (nextIndex) => {
           flushSync(() => setExportSlideIndex(nextIndex));
         },
@@ -75,20 +81,20 @@ export function PostDeck() {
       setExporting(false);
       setExportProgress(0);
     }
-  }, [exporting, meta.id, pausePlayback]);
+  }, [exporting, meta.id, pausePlayback, slideCount]);
 
   useEffect(() => {
-    document.title = `Syra · ${meta.title} · ${index + 1}/${POST_SLIDE_COUNT}`;
+    document.title = `Syra · ${meta.title} · ${index + 1}/${slideCount}`;
     return () => {
       document.title = "Syra | Smart Intelligence Agent for Traders";
     };
-  }, [index, meta.title]);
+  }, [index, meta.title, slideCount]);
 
   useEffect(() => {
     if (!isPlaying) return;
 
-    const isLast = index >= POST_SLIDE_COUNT - 1;
-    const delay = isLast ? LAST_SLIDE_DWELL_MS : SLIDE_INTERVAL_MS;
+    const isLast = index >= slideCount - 1;
+    const delay = getSlideDwellMs(index, slideCount);
 
     const timer = window.setTimeout(() => {
       if (isLast) {
@@ -100,11 +106,11 @@ export function PostDeck() {
     }, delay);
 
     return () => window.clearTimeout(timer);
-  }, [isPlaying, index, goNext]);
+  }, [isPlaying, index, goNext, slideCount]);
 
-  const progress = ((index + 1) / POST_SLIDE_COUNT) * 100;
-  const finished = !isPlaying && index === POST_SLIDE_COUNT - 1;
-  const dwellMs = getSlideDwellMs(index, POST_SLIDE_COUNT);
+  const progress = ((index + 1) / slideCount) * 100;
+  const finished = !isPlaying && index === slideCount - 1;
+  const dwellMs = getSlideDwellMs(index, slideCount);
 
   return (
     <div
@@ -126,14 +132,17 @@ export function PostDeck() {
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5 sm:gap-2">
+          <PostUpdateNav updateNumber={meta.updateNumber} format="video" />
+          <PostXStatusControl updateNumber={meta.updateNumber} defaultPosted={meta.postedOnX} />
+
           <nav className="post-photo-mode-nav flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] p-0.5">
             <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[#F3BA2F]/15 px-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-[#F3BA2F] sm:px-3">
               <Video className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Video</span>
             </span>
             <Link
-              to="/post/photo"
+              to={`/post/photo/${meta.updateNumber}`}
               className="inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-white/45 transition-colors hover:text-white/70 sm:px-3"
             >
               <ImageIcon className="h-3.5 w-3.5" />
@@ -238,11 +247,11 @@ export function PostDeck() {
             ) : null}
           </div>
           <p className="shrink-0 font-mono text-[11px] tabular-nums text-white/45 sm:text-xs">
-            {String(index + 1).padStart(2, "0")} / {String(POST_SLIDE_COUNT).padStart(2, "0")}
+            {String(index + 1).padStart(2, "0")} / {String(slideCount).padStart(2, "0")}
           </p>
         </div>
         <p className="post-footer-hint mt-2 hidden text-center font-mono text-[10px] text-white/30 sm:mt-3 sm:block">
-          Download renders Full HD 30fps WebM with frame-perfect animations, or hit Play to screen record
+          Download renders Full HD 30fps WebM with entrance animations, or hit Play to screen record
         </p>
       </footer>
 
@@ -268,7 +277,7 @@ export function PostDeck() {
             <p className="mt-3 font-mono text-xs tabular-nums text-white/45">
               {Math.round(exportProgress * 100)}% · slide{" "}
               {String(exportSlideIndex + 1).padStart(2, "0")} /{" "}
-              {String(POST_SLIDE_COUNT).padStart(2, "0")}
+              {String(slideCount).padStart(2, "0")}
             </p>
             <p className="mt-2 text-xs text-white/35">Keep this tab open until the download starts</p>
           </div>

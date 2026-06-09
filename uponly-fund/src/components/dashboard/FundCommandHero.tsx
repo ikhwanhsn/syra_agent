@@ -59,7 +59,7 @@ export function FundCommandHero() {
             <div className="space-y-3">
               <p className="inline-flex w-fit items-center gap-2 rounded-full border border-border/55 bg-background/45 px-3 py-1 text-[0.65rem] font-medium uppercase tracking-[0.16em] text-foreground/85 sm:text-xs">
                 <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden />
-                {isZh ? "实时 · 智能代理基金 · RISE 生态" : "Live · Smart Agent Fund · RISE Ecosystem"}
+                {isZh ? "实时 · 链上资本 · RISE 生态" : "Live · Onchain Capital · RISE Ecosystem"}
               </p>
               <div>
                 <h1 className="text-balance text-2xl font-semibold tracking-[-0.02em] text-foreground sm:text-3xl lg:text-[2rem]">

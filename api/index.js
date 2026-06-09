@@ -21,6 +21,8 @@ import { createAgentChartRouter } from "./routes/agent/chart.js";
 import { createAgentPumpfunCoinRouter } from "./routes/agent/pumpfunCoin.js";
 import { createPumpfunAlphaTrendRouter } from "./routes/agent/pumpfunAlphaTrend.js";
 import { createCoingeckoAlphaRouter } from "./routes/agent/coingeckoAlpha.js";
+import { createPumpfunAlphaScoutRouter } from "./routes/agent/pumpfunAlphaScout.js";
+import { createPumpfunUtilityScoutRouter } from "./routes/agent/pumpfunUtilityScout.js";
 import { createTokensDossierRouter } from "./routes/agent/tokensDossier.js";
 import { createAgentWalletRouter } from "./routes/agent/wallet.js";
 import { createAgentToolsRouter } from "./routes/agent/tools.js";
@@ -96,6 +98,7 @@ import { createPlaygroundShareRouter } from "./routes/playgroundShare.js";
 import { createStreamflowLocksRouter } from "./routes/streamflowLocks.js";
 import { createStakingAppRouter } from "./routes/stakingApp.js";
 import { createTempoPayoutRouter } from "./routes/payouts/tempo.js";
+import { createAgentscoreRouter } from "./routes/agentscore/index.js";
 import { getV2Payment } from "./utils/getV2Payment.js";
 import { sendTempoPayout } from "./libs/tempoPayout.js";
 import {
@@ -833,6 +836,7 @@ app.use(
       p === "/favicon.ico" ||
       p.startsWith("/og") ||
       p.startsWith("/info") ||
+      p.startsWith("/agentscore/") ||
       p.startsWith("/playground") ||
       p.startsWith("/prediction-game")
     );
@@ -1146,6 +1150,8 @@ app.use("/agent/chat", await createAgentChatRouter());
 app.use("/agent/chart", createAgentChartRouter());
 app.use("/agent/pumpfun", createAgentPumpfunCoinRouter());
 app.use("/agent/pumpfun-alpha", createPumpfunAlphaTrendRouter());
+app.use("/agent/pumpfun-alpha-scout", createPumpfunAlphaScoutRouter());
+app.use("/agent/pumpfun-utility-scout", createPumpfunUtilityScoutRouter());
 app.use("/agent/coingecko-alpha", createCoingeckoAlphaRouter());
 app.use("/agent/tokens", createTokensDossierRouter());
 app.use("/agent/wallet", await createAgentWalletRouter());
@@ -1203,6 +1209,8 @@ app.use("/x", await createXApiRouter());
 
 // Tempo payout rail: POST /payouts/tempo (API key required). Env: TEMPO_RPC_URL, TEMPO_PAYOUT_PRIVATE_KEY, TEMPO_PAYOUT_TOKEN.
 app.use("/payouts", createTempoPayoutRouter());
+// AgentScore buyer discovery (public metadata; pay via POST /agent/tools/call)
+app.use("/agentscore", createAgentscoreRouter());
 
 // Prediction Game API routes
 app.use("/prediction-game", createPredictionGameRouter());
@@ -1789,6 +1797,39 @@ app.listen(PORT, () => {
     .catch((e) =>
       console.warn(
         "[coingecko-alpha] load failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
+
+  import("./libs/pumpfunAlphaScoutScheduler.js")
+    .then(({ startPumpfunAlphaScoutScheduler }) => {
+      startPumpfunAlphaScoutScheduler();
+    })
+    .catch((e) =>
+      console.warn(
+        "[pumpfun-alpha-scout] load failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
+
+  import("./libs/pumpfunAlphaTrendScheduler.js")
+    .then(({ startPumpfunAlphaTrendScheduler }) => {
+      startPumpfunAlphaTrendScheduler();
+    })
+    .catch((e) =>
+      console.warn(
+        "[pumpfun-alpha-trend] load failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
+
+  import("./libs/pumpfunUtilityScoutScheduler.js")
+    .then(({ startPumpfunUtilityScoutScheduler }) => {
+      startPumpfunUtilityScoutScheduler();
+    })
+    .catch((e) =>
+      console.warn(
+        "[pumpfun-utility-scout] load failed:",
         e instanceof Error ? e.message : e,
       ),
     );

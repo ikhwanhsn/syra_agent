@@ -26,6 +26,8 @@
  * @property {string=} programId   - Solana program touched
  * @property {string=} contract    - EVM contract touched
  * @property {boolean=} guest
+ * @property {boolean=} agentscoreKycVerified — Passport / assess allow decision
+ * @property {number=} agentscoreReputationScore — 0–100 trust score boost
  *
  * @typedef {Object} WalletConfig
  * @property {string} anonymousId
@@ -170,6 +172,11 @@ export function evaluate(intent, walletConfig, history) {
 
   const isLpAuto = intent.toolId && LP_REAL_AUTO_TOOLS.has(intent.toolId);
 
+  const agentscoreBoost =
+    intent.agentscoreKycVerified === true ||
+    (Number.isFinite(intent.agentscoreReputationScore) &&
+      Number(intent.agentscoreReputationScore) >= 75);
+
   // Velocity (too many signs in a short window) — skipped for LP cron tools --
   const now = Date.now();
   const recent = (history || []).filter((h) => {
@@ -187,9 +194,9 @@ export function evaluate(intent, walletConfig, history) {
     add('no_estimated_amount');
   }
 
-  const perTxCap = numOr(walletConfig.perTxCapUsd, DEFAULT_PER_TX_CAP);
-  const dailyCap = numOr(walletConfig.dailySpendCapUsd, DEFAULT_DAILY_CAP);
-  const hourlyCap = numOr(walletConfig.hourlySpendCapUsd, DEFAULT_HOURLY_CAP);
+  const perTxCap = numOr(walletConfig.perTxCapUsd, DEFAULT_PER_TX_CAP) * (agentscoreBoost ? 1.5 : 1);
+  const dailyCap = numOr(walletConfig.dailySpendCapUsd, DEFAULT_DAILY_CAP) * (agentscoreBoost ? 1.5 : 1);
+  const hourlyCap = numOr(walletConfig.hourlySpendCapUsd, DEFAULT_HOURLY_CAP) * (agentscoreBoost ? 1.25 : 1);
 
   const sumLast24h = sumAmount(history, now - ANOMALY_LOOKBACK_MS);
   const sumLast1h = sumAmount(history, now - 60 * 60 * 1000);
@@ -217,6 +224,10 @@ export function evaluate(intent, walletConfig, history) {
     // We don't ship a static allowlist here; any contract that isn't on a per-wallet allowlist is unknown.
     const allowList = Array.isArray(walletConfig.destinationAllowlist) ? walletConfig.destinationAllowlist : [];
     if (!allowList.includes(intent.contract)) add('unknown_contract', intent.contract);
+  }
+
+  if (agentscoreBoost && riskScore > 0) {
+    riskScore = Math.max(0, riskScore - 15);
   }
 
   if (riskScore >= 70) return { outcome: 'deny', reasons, riskScore };

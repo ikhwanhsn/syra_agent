@@ -45,7 +45,7 @@ export function buildMppDiscoveryOpenApi() {
         'Syra is the smart intelligence agent for traders on Solana—real-time market data, on-chain signals, news, sentiment, and research',
       // Required by MPP / AgentCash discovery — without this, registries may return not_found / no resources
       guidance:
-        'Call an operation without payment → HTTP 402. Pay with x402 (Solana or Base USDC), retry with payment proof. Docs: https://docs.syraa.fun',
+        'Call an operation without payment → HTTP 402. Pay with x402 (Solana or Base USDC), retry with payment proof. Docs: https://docs.syraa.fun. Identity-gated routes (POST /8004/register-agent, POST /payouts/tempo; gate on by default): attach X-Operator-Token from AgentScore Passport on the paid retry — see GET /skill.md. Disable with AGENTSCORE_GATE_ENABLED=false.',
     },
     servers: [{ url: serverUrl }],
     paths,

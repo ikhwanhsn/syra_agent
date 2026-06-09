@@ -52,9 +52,9 @@ export const UP_ONLY_FUND: UpOnlyFundData = {
   name: "Up Only Fund",
   shortName: "UOF",
   publicSummary:
-    "Smart Agent Fund on Solana—an independent venture allocator with a published mandate and selective project disclosures. Operator leverage across agent infrastructure and Solana-native teams; treasury address publishes when set. No public LP subscriptions in v1.",
+    "Onchain capital for high conviction bets—an independent Solana allocator with a published 80/20 thesis: 80% into utility tokens with real traction, 20% into clean onchain memecoins with verified liquidity. Treasury address publishes when set. No public LP subscriptions in v1.",
   mandate:
-    "A venture and strategic hedge desk focused on Solana-native teams—capital for liquidity and distribution, plus operator support where agent-grade data and execution tooling compound outcomes. Nothing here promises returns: markets are uncertain and any sleeve should be treated as high risk.",
+    "A conviction allocator on Solana—80% deployed into high-conviction utility tokens with working products and durable onchain demand, 20% into asymmetric memecoin plays with clear onchain structure, no-rug mechanics, and small sizing. Nothing here promises returns: markets are uncertain and any sleeve should be treated as high risk.",
   treasuryAddress: null,
   stats: {
     aumUsd: null,

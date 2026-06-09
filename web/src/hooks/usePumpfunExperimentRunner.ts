@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { fetchPumpfunAlphaTrend, type PumpfunAlphaPeriod } from "@/lib/pumpfunAlphaTrendApi";
+import { fetchPumpfunAlphaTrend, PUMPFUN_ALPHA_TREND_CLIENT_STALE_MS, type PumpfunAlphaPeriod } from "@/lib/pumpfunAlphaTrendApi";
 import { fetchPumpfunExperimentLedger, savePumpfunExperimentLedger } from "@/lib/pumpfunExperimentApi";
 import {
   clearLegacyPumpfunExperimentLocalStorage,
@@ -10,7 +10,7 @@ import {
   type PumpfunExperimentPersisted,
 } from "@/lib/pumpfunExperimentModel";
 
-const STALE_MS = 120_000;
+const STALE_MS = PUMPFUN_ALPHA_TREND_CLIENT_STALE_MS;
 const SAVE_DEBOUNCE_MS = 450;
 
 export function usePumpfunExperimentRunner(period: PumpfunAlphaPeriod) {
@@ -86,18 +86,22 @@ export function usePumpfunExperimentRunner(period: PumpfunAlphaPeriod) {
     queryKey: ["alpha", "pumpfun-trend", period, "experiment"],
     queryFn: () => fetchPumpfunAlphaTrend(period, { mode: "experiment" }),
     staleTime: STALE_MS,
+    refetchOnWindowFocus: false,
   });
 
   const lastSigRef = useRef<string>("");
 
   useEffect(() => {
-    const d = trendQ.data;
+    const d = trendQ.data?.data;
     if (!d || !hydrated.current) return;
     const sig = `${d.nowMs}|${d.tokens.map((t) => `${t.mint}:${t.complete}:${t.marketCapUsd ?? ""}`).join(";")}`;
     if (sig === lastSigRef.current) return;
     lastSigRef.current = sig;
 
-    const watch = new Set(d.analysis.watchlist.map((w) => w.mint));
+    const watch = new Set([
+      ...d.analysis.watchlist.map((w) => w.mint),
+      ...(d.betaTokens ?? []).map((b) => b.mint),
+    ]);
     setPersisted((prev) => {
       const next = processPumpfunExperimentTick({
         persisted: prev,

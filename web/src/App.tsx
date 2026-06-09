@@ -132,8 +132,8 @@ const App = () => (
         <Route path="/deck" element={<DeckPage />} />
         <Route path="/info" element={<InfoPage />} />
         <Route path="/post" element={<PostPage />} />
-        <Route path="/post/video" element={<PostVideoPage />} />
-        <Route path="/post/photo" element={<PostPhotoPage />} />
+        <Route path="/post/video/:updateNumber?" element={<PostVideoPage />} />
+        <Route path="/post/photo/:updateNumber?" element={<PostPhotoPage />} />
 
         <Route element={<MarketingLayout />}>
           <Route path="/home" element={<MarketingHome />} />

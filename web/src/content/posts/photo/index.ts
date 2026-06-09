@@ -1,5 +1,4 @@
-import { BNB_X402_PHOTO } from "./bnbX402Photo";
-import { validatePostPhotoUpdate } from "./validatePostPhotoUpdate";
+import { getPhotoPostByNumber, LATEST_POST_UPDATE_NUMBER } from "../registry";
 
 export type { PostPhotoLayoutTemplate } from "./layouts";
 export {
@@ -23,7 +22,5 @@ export {
   validatePostPhotoUpdate,
 } from "./validatePostPhotoUpdate";
 
-/** Swap this export when publishing the next photo-format ship log. */
-export const ACTIVE_PHOTO_POST = BNB_X402_PHOTO;
-
-validatePostPhotoUpdate(ACTIVE_PHOTO_POST);
+/** Latest ship-log photo update (convenience for legacy imports). */
+export const ACTIVE_PHOTO_POST = getPhotoPostByNumber(LATEST_POST_UPDATE_NUMBER)!;

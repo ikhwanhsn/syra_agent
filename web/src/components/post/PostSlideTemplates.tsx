@@ -11,6 +11,7 @@ import type {
 } from "@/content/posts/types";
 import {
   PostHeader,
+  PostSlideContent,
   PostSlideGrid,
   PostSlideLayout,
 } from "@/components/post/PostSlideLayout";
@@ -87,22 +88,27 @@ function renderCover(slide: PostCoverSlide, isActive: boolean): ReactNode {
 
     case "cover-split":
       return (
-        <PostSlideLayout isActive={isActive} template={slide.layout} variant="cover" className="post-tmpl-split-cols">
-          <PostReveal isActive={isActive} delayMs={0}>
-            <p className="post-slide-kicker text-left">{slide.eyebrow}</p>
-          </PostReveal>
-          <div className="post-tmpl-split-main">
+        <PostSlideLayout
+          isActive={isActive}
+          template={slide.layout}
+          variant="cover"
+          className="post-slide-body--align-left"
+        >
+          <PostSlideContent align="left">
+            <PostReveal isActive={isActive} delayMs={0}>
+              <p className="post-slide-kicker">{slide.eyebrow}</p>
+            </PostReveal>
             <PostReveal isActive={isActive} delayMs={100}>
               <div className="flex items-center gap-3">
                 <img src="/images/logo.jpg" alt="" className="h-11 w-11 rounded-xl border border-white/10 object-cover" />
-                <h1 className="post-slide-title post-slide-balance text-left">{slide.title}</h1>
+                <h1 className="post-slide-title post-slide-balance">{slide.title}</h1>
               </div>
             </PostReveal>
             <CoverBadge text={slide.badge} isActive={isActive} delayMs={180} />
-          </div>
-          <PostReveal isActive={isActive} delayMs={260}>
-            <p className="post-slide-lead post-slide-prose text-left">{slide.subtitle}</p>
-          </PostReveal>
+            <PostReveal isActive={isActive} delayMs={260}>
+              <p className="post-slide-lead post-slide-prose">{slide.subtitle}</p>
+            </PostReveal>
+          </PostSlideContent>
         </PostSlideLayout>
       );
 
@@ -169,18 +175,25 @@ function renderStatement(slide: PostStatementSlide, isActive: boolean): ReactNod
 
     case "compare-columns":
       return (
-        <PostSlideLayout isActive={isActive} template={slide.layout} variant="stack" className="post-tmpl-split-cols">
-          <PostReveal isActive={isActive} delayMs={0}>
-            <p className="post-slide-kicker text-left">{slide.kicker}</p>
-          </PostReveal>
-          <div className="post-tmpl-split-main post-tmpl-split-main--balanced">
-            <PostReveal isActive={isActive} delayMs={100}>
-              <h2 className="post-slide-headline text-left">{slide.headline}</h2>
+        <PostSlideLayout
+          isActive={isActive}
+          template={slide.layout}
+          variant="stack"
+          className="post-slide-body--align-left"
+        >
+          <PostSlideContent align="left" className="post-slide-content--wide">
+            <PostReveal isActive={isActive} delayMs={0}>
+              <p className="post-slide-kicker">{slide.kicker}</p>
             </PostReveal>
-            <PostReveal isActive={isActive} delayMs={200}>
-              <p className="post-slide-copy post-slide-prose text-left">{slide.body}</p>
-            </PostReveal>
-          </div>
+            <div className="post-tmpl-split-main post-tmpl-split-main--balanced">
+              <PostReveal isActive={isActive} delayMs={100}>
+                <h2 className="post-slide-headline">{slide.headline}</h2>
+              </PostReveal>
+              <PostReveal isActive={isActive} delayMs={200}>
+                <p className="post-slide-copy post-slide-prose">{slide.body}</p>
+              </PostReveal>
+            </div>
+          </PostSlideContent>
         </PostSlideLayout>
       );
 

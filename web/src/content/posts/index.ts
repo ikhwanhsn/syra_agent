@@ -1,14 +1,27 @@
-import { BNB_X402_POST } from "./bnbX402Update";
+import {
+  getVideoPostByNumber,
+  LATEST_POST_UPDATE_NUMBER,
+  POST_REGISTRY,
+} from "./registry";
 
 export type { PostSlideLayoutTemplate } from "./layouts";
 export { POST_SLIDE_LAYOUTS, POST_LAYOUT_LABELS, POST_LAYOUT_TEMPLATE_COUNT } from "./layouts";
 
-import { validatePostUpdate } from "./validatePostUpdate";
+export {
+  MAX_POST_UPDATES,
+  POST_REGISTRY,
+  LATEST_POST_UPDATE_NUMBER,
+  getPostBundleByNumber,
+  getVideoPostByNumber,
+  getPhotoPostByNumber,
+  getNextUpdateNumber,
+  getPostUpdateNumbers,
+  getAdjacentPostUpdateNumbers,
+} from "./registry";
+export type { PostUpdateBundle } from "./registry";
 
-/** Swap this export when publishing the next ship-log post. */
-export const ACTIVE_POST = BNB_X402_POST;
-
-validatePostUpdate(ACTIVE_POST);
+/** Latest ship-log video update (convenience for legacy imports). */
+export const ACTIVE_POST = getVideoPostByNumber(LATEST_POST_UPDATE_NUMBER)!;
 
 export const POST_SLIDE_COUNT = ACTIVE_POST.slides.length;
 

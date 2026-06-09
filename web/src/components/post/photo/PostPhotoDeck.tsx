@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  ACTIVE_PHOTO_POST,
   getPostPhotoLibraryRest,
   getPostPhotoPicks,
   POST_PHOTO_LAYOUT_COUNT,
   POST_PHOTO_LAYOUT_LABELS,
   type PostPhotoLayoutTemplate,
+  type PostPhotoUpdate,
 } from "@/content/posts/photo";
 import { PostPhotoFrame } from "@/components/post/photo/PostPhotoFrame";
 import { PostShareCopyPanel } from "@/components/post/PostShareCopyPanel";
+import { PostUpdateNav } from "@/components/post/PostUpdateNav";
+import { PostXStatusControl } from "@/components/post/PostXStatusControl";
 import { renderPostPhotoTemplate } from "@/components/post/photo/PostPhotoTemplates";
 import {
   buildPostPhotoFilename,
@@ -50,8 +52,11 @@ function TemplateButton({
   );
 }
 
-export function PostPhotoDeck() {
-  const post = ACTIVE_PHOTO_POST;
+interface PostPhotoDeckProps {
+  post: PostPhotoUpdate;
+}
+
+export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
   const { meta, content } = post;
   const picks = getPostPhotoPicks(post);
   const libraryRest = getPostPhotoLibraryRest(post);
@@ -132,10 +137,13 @@ export function PostPhotoDeck() {
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5 sm:gap-2">
+          <PostUpdateNav updateNumber={meta.updateNumber} format="photo" />
+          <PostXStatusControl updateNumber={meta.updateNumber} defaultPosted={meta.postedOnX} />
+
           <nav className="post-photo-mode-nav flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] p-0.5">
             <Link
-              to="/post/video"
+              to={`/post/video/${meta.updateNumber}`}
               className="inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-white/45 transition-colors hover:text-white/70 sm:px-3"
             >
               <Video className="h-3.5 w-3.5" />

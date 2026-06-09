@@ -1,3 +1,5 @@
+@import "./styles/post.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -230,8 +232,8 @@
     scroll-behavior: smooth;
     /* Fixed navbar — align with hero top padding so hash links aren’t under the bar */
     scroll-padding-top: max(
-      7rem,
-      calc(env(safe-area-inset-top, 0px) + 5.75rem)
+      5.5rem,
+      calc(env(safe-area-inset-top, 0px) + 4.5rem)
     );
     overflow-x: clip;
   }
@@ -239,8 +241,8 @@
   @media (min-width: 640px) {
     html {
       scroll-padding-top: max(
-        7.5rem,
-        calc(env(safe-area-inset-top, 0px) + 6.25rem)
+        6rem,
+        calc(env(safe-area-inset-top, 0px) + 5rem)
       );
     }
   }
@@ -248,8 +250,8 @@
   @media (min-width: 1024px) {
     html {
       scroll-padding-top: max(
-        8rem,
-        calc(env(safe-area-inset-top, 0px) + 6.75rem)
+        6.5rem,
+        calc(env(safe-area-inset-top, 0px) + 5.5rem)
       );
     }
   }
@@ -333,22 +335,9 @@
   }
 
   .uof-wordmark {
-    @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(
-      135deg,
-      hsl(0 0% 100%) 0%,
-      hsl(var(--uof)) 52%,
-      hsl(0 0% 88%) 100%
-    );
-  }
-
-  html:not(.dark) .uof-wordmark {
-    background-image: linear-gradient(
-      135deg,
-      hsl(0 0% 8%) 0%,
-      hsl(var(--uof)) 55%,
-      hsl(0 0% 22%) 100%
-    );
+    color: hsl(var(--foreground));
+    font-weight: 600;
+    letter-spacing: -0.03em;
   }
 
   .uof-hero-mesh {
@@ -504,18 +493,90 @@
 
   .landing-display {
     font-family: "Outfit", "Rethink Sans", "Inter", system-ui, sans-serif;
-    font-size: clamp(2.125rem, 4.5vw + 1rem, 3.75rem);
-    font-weight: 600;
-    letter-spacing: -0.035em;
-    line-height: 1.05;
+    font-size: clamp(2.5rem, 5vw + 0.75rem, 4.25rem);
+    font-weight: 500;
+    letter-spacing: -0.04em;
+    line-height: 1.04;
   }
 
   .landing-section-title {
     font-family: "Outfit", "Rethink Sans", "Inter", system-ui, sans-serif;
-    font-size: clamp(1.5rem, 2vw + 1rem, 2.25rem);
+    font-size: clamp(1.625rem, 2.2vw + 0.85rem, 2.5rem);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1.14;
+  }
+
+  .landing-eyebrow {
+    font-size: 0.6875rem;
     font-weight: 600;
-    letter-spacing: -0.025em;
-    line-height: 1.18;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: hsl(var(--muted-foreground));
+  }
+
+  .landing-stat-numeral {
+    font-family: "Outfit", "Rethink Sans", "Inter", system-ui, sans-serif;
+    font-size: clamp(1.375rem, 1.5vw + 0.75rem, 1.875rem);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+
+  .landing-institutional-panel {
+    border: 1px solid hsl(var(--border) / 0.55);
+    border-radius: 0.5rem;
+    background: linear-gradient(
+      180deg,
+      hsl(var(--card) / 0.72) 0%,
+      hsl(var(--card) / 0.38) 100%
+    );
+    box-shadow:
+      0 0 0 1px hsl(var(--foreground) / 0.04) inset,
+      0 32px 64px -40px hsl(0 0% 0% / 0.55);
+    overflow: hidden;
+  }
+
+  html:not(.dark) .landing-institutional-panel {
+    background: linear-gradient(
+      180deg,
+      hsl(0 0% 100% / 0.95) 0%,
+      hsl(var(--card) / 0.65) 100%
+    );
+    box-shadow:
+      0 0 0 1px hsl(var(--foreground) / 0.05) inset,
+      0 24px 48px -28px hsl(0 0% 0% / 0.12);
+  }
+
+  .landing-vc-card {
+    border-radius: 0.5rem;
+    border: 1px solid hsl(var(--border) / 0.55);
+    background: hsl(var(--card) / 0.35);
+    box-shadow: 0 1px 0 0 hsl(var(--foreground) / 0.04) inset;
+    transition:
+      border-color 0.25s ease,
+      background-color 0.25s ease;
+  }
+
+  .landing-vc-card:hover {
+    border-color: hsl(var(--border) / 0.85);
+    background: hsl(var(--card) / 0.5);
+  }
+
+  html:not(.dark) .landing-vc-card {
+    background: hsl(var(--card) / 0.7);
+  }
+
+  .uof-institutional-nav {
+    border-bottom: 1px solid hsl(var(--border) / 0.45);
+    background: hsl(var(--background) / 0.88);
+    backdrop-filter: blur(16px);
+    box-shadow: none;
+  }
+
+  html:not(.dark) .uof-institutional-nav {
+    background: hsl(var(--background) / 0.92);
   }
 
   .landing-hero-accent {

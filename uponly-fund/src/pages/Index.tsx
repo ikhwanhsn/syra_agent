@@ -3,7 +3,7 @@ import { Footer } from "@/components/Footer";
 import { ScrollToTopButton } from "@/components/ScrollToTopButton";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { PortfolioSection } from "@/components/landing/PortfolioSection";
-import { DashboardAccessSection } from "@/components/landing/DashboardAccessSection";
+import { ThesisAllocationSection } from "@/components/landing/ThesisAllocationSection";
 import { SolanaEcosystemStrip } from "@/components/landing/SolanaEcosystemStrip";
 import { StrategicAnchorSection } from "@/components/landing/StrategicAnchorSection";
 import { MissionSection } from "@/components/landing/MissionSection";
@@ -11,7 +11,6 @@ import { WhatIsUof } from "@/components/landing/WhatIsUof";
 import { RiskDisclosure } from "@/components/landing/RiskDisclosure";
 import { FinalCta } from "@/components/landing/FinalCta";
 import { TokenSection } from "@/components/landing/TokenSection";
-import { LandingBackdropArt } from "@/components/landing/LandingBackdropArt";
 import { LandingBand, LandingRule } from "@/components/landing/LandingLayout";
 import { WhyUpOnly } from "@/components/uponly/WhyUpOnly";
 import { MandateSection } from "@/components/uponly/fund/MandateSection";
@@ -21,9 +20,9 @@ import { siteShell } from "@/lib/siteLayout";
 import { cn } from "@/lib/utils";
 
 const PAGE_TITLE =
-  "Up Only Fund | Smart Agent Fund on Solana — Venture & Strategic Capital" as const;
+  "Up Only Fund | Onchain Capital for High Conviction Bets" as const;
 const PAGE_DESC =
-  "Up Only Fund is a Smart Agent Fund on Solana—venture and strategic capital with a published mandate, backed-project disclosures, and a command dashboard for on-chain diligence. DYOR — not financial advice." as const;
+  "Up Only Fund is onchain capital for high conviction bets on Solana—80% utility tokens with real traction, 20% clean onchain memecoins with verified liquidity. Published mandate and portfolio disclosures. DYOR — not financial advice." as const;
 
 const Index = () => {
   useDocumentMeta({
@@ -35,87 +34,70 @@ const Index = () => {
   return (
     <div className="relative min-h-dvh w-full min-w-0 max-w-full overflow-x-clip bg-background">
       <div
-        className="uof-grain pointer-events-none fixed inset-0 z-[1] opacity-[0.35] dark:opacity-[0.18]"
+        className="uof-grain pointer-events-none fixed inset-0 z-[1] opacity-[0.15] dark:opacity-[0.08]"
         aria-hidden
       />
-      <LandingBackdropArt className="fixed inset-0 z-[3]" />
       <Navbar />
       <main
         className="relative z-10 w-full min-w-0 scroll-mt-16 pb-16 md:pb-24"
         id="uof-landing-main"
       >
         <div className="pointer-events-none absolute inset-0 -z-10">
-          <div className="absolute inset-0 uof-hero-mesh opacity-[0.52]" />
-          <div className="absolute inset-0 bg-gradient-to-b from-background/95 via-background/48 to-muted/[0.1] dark:via-background/38" />
+          <div className="absolute inset-0 bg-gradient-to-b from-background via-background to-muted/[0.08]" />
           <div
-            className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_110%_70%_at_50%_-15%,hsl(var(--foreground)/0.045),transparent_58%)]"
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,hsl(var(--foreground)/0.03),transparent_60%)]"
             aria-hidden
           />
-          <div
-            className="absolute -left-[20%] top-0 h-[min(90vh,48rem)] w-[min(95vw,52rem)] rounded-full opacity-[0.38] blur-3xl"
-            style={{
-              background:
-                "radial-gradient(closest-side, hsl(var(--uof) / 0.14), transparent 68%)",
-            }}
-          />
-          <div
-            className="absolute bottom-0 right-0 h-[26rem] w-[26rem] translate-x-1/4 opacity-[0.18] blur-3xl"
-            style={{
-              background:
-                "radial-gradient(closest-side, hsl(var(--ring) / 0.16), transparent 72%)",
-            }}
-          />
-          <div className="absolute inset-0 grid-pattern-accent opacity-[0.07] dark:opacity-[0.11]" />
         </div>
 
         <section
           id="uof-landing-hero-zone"
-          className="relative scroll-mt-[7.5rem] border-b border-border/30 sm:scroll-mt-[8rem] lg:scroll-mt-[8.5rem]"
+          className="relative scroll-mt-[5.5rem] border-b border-border/35"
         >
           <div
             className={cn(
               siteShell,
-              "min-h-[min(88vh,50rem)] pb-16 pt-[max(7rem,calc(env(safe-area-inset-top,0px)+5.75rem))] sm:pb-20 sm:pt-[max(7.5rem,calc(env(safe-area-inset-top,0px)+6.25rem))] md:min-h-0 md:pb-24 lg:pb-28 lg:pt-[max(8rem,calc(env(safe-area-inset-top,0px)+6.75rem))]",
+              "pb-20 pt-[max(6rem,calc(env(safe-area-inset-top,0px)+4.75rem))] sm:pb-24 sm:pt-[max(6.5rem,calc(env(safe-area-inset-top,0px)+5.25rem))] lg:pb-28 lg:pt-[max(7rem,calc(env(safe-area-inset-top,0px)+5.75rem))]",
             )}
           >
             <HeroSection />
           </div>
         </section>
 
+        <LandingBand variant="surface">
+          <ThesisAllocationSection />
+        </LandingBand>
+
         <LandingBand variant="transparent">
           <PortfolioSection />
         </LandingBand>
 
-        <LandingBand variant="surface">
-          <DashboardAccessSection />
-        </LandingBand>
-
-        <LandingBand variant="muted" contentClassName="!py-14 md:!py-20">
+        <LandingBand variant="muted" contentClassName="!py-12 md:!py-16">
           <SolanaEcosystemStrip />
         </LandingBand>
 
         <LandingBand variant="transparent">
-          <StrategicAnchorSection className="mb-0 sm:mb-0" />
+          <StrategicAnchorSection className="mb-0" />
           <LandingRule />
-          <MissionSection className="mb-0 sm:mb-0" />
+          <MissionSection className="mb-0" />
         </LandingBand>
 
         <LandingBand variant="surface">
-          <WhatIsUof className="mb-0 sm:mb-0" />
+          <WhatIsUof className="mb-0" />
         </LandingBand>
 
         <LandingBand variant="transparent">
-          <TokenSection className="mb-0 sm:mb-0" />
+          <TokenSection className="mb-0" />
         </LandingBand>
 
         <LandingBand variant="muted">
-          <WhyUpOnly className="mb-0 sm:mb-0" />
+          <WhyUpOnly className="mb-0" />
         </LandingBand>
 
         <LandingBand variant="deep">
-          <MandateSection className="mb-0 sm:mb-0" />
+          <MandateSection className="mb-0" />
           <LandingRule />
-          <TreasurySourceSection className="mb-0 sm:mb-0" />
+          <TreasurySourceSection className="mb-0" />
         </LandingBand>
 
         <LandingBand variant="transparent" contentClassName="!py-12 md:!py-16">
@@ -123,7 +105,7 @@ const Index = () => {
         </LandingBand>
 
         <LandingBand variant="cta" contentClassName="!pb-20 md:!pb-28">
-          <FinalCta className="mb-0 sm:mb-0" />
+          <FinalCta className="mb-0" />
         </LandingBand>
       </main>
       <Footer />

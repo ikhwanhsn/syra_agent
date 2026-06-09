@@ -1,11 +1,17 @@
 import { toCanvas } from "html-to-image";
 
+/** Final encoded video resolution. */
 export const POST_VIDEO_WIDTH = 1920;
 export const POST_VIDEO_HEIGHT = 1080;
+/** Matches `.post-record-wrap` max width — same container-query context as the preview. */
+export const POST_VIDEO_LAYOUT_WIDTH = 960;
+export const POST_VIDEO_LAYOUT_HEIGHT = 540;
 export const POST_VIDEO_FPS = 30;
-/** Supersample capture (3840×2160) then downscale to 1080p for crisp text. */
-export const POST_VIDEO_CAPTURE_RATIO = 2;
 export const POST_VIDEO_BITRATE = 16_000_000;
+/** Full DOM capture while stagger/reveal + slide-fit animations run. */
+const ENTRANCE_CAPTURE_MS = 1600;
+/** Re-snapshot ambient motion (orbs/grid) during static hold — avoids per-frame DOM walks. */
+const HOLD_CAPTURE_INTERVAL_MS = 500;
 
 /** Time each slide stays visible (tuned for entrance animations). */
 export const SLIDE_INTERVAL_MS = 5200;
@@ -14,22 +20,69 @@ export const LAST_SLIDE_DWELL_MS = 7000;
 
 const MIN_FIT_SCALE = 0.68;
 
-const EXPORT_OPTIONS = {
-  width: POST_VIDEO_WIDTH,
-  height: POST_VIDEO_HEIGHT,
-  pixelRatio: POST_VIDEO_CAPTURE_RATIO,
-  cacheBust: true,
-  skipFonts: false,
-  backgroundColor: "#030303",
-  style: {
-    transform: "none",
-    transformOrigin: "top left",
-    margin: "0",
-    padding: "0",
-    width: `${POST_VIDEO_WIDTH}px`,
-    height: `${POST_VIDEO_HEIGHT}px`,
-  },
-} as const;
+export interface PostVideoLayoutSize {
+  width: number;
+  height: number;
+}
+
+/** Read the on-screen preview stage so export matches what the user sees. */
+export function resolvePostVideoLayoutSize(): PostVideoLayoutSize {
+  const preview = document.querySelector<HTMLElement>(
+    ".post-chrome-stage .post-record-stage:not(.post-video-export-stage)",
+  );
+  if (preview) {
+    const { width } = preview.getBoundingClientRect();
+    if (width > 0) {
+      const layoutWidth = Math.round(width);
+      const layoutHeight = Math.round((layoutWidth * POST_VIDEO_HEIGHT) / POST_VIDEO_WIDTH);
+      return { width: layoutWidth, height: layoutHeight };
+    }
+  }
+
+  return {
+    width: POST_VIDEO_LAYOUT_WIDTH,
+    height: POST_VIDEO_LAYOUT_HEIGHT,
+  };
+}
+
+function computeCapturePixelRatio(layout: PostVideoLayoutSize): number {
+  const widthRatio = POST_VIDEO_WIDTH / layout.width;
+  const heightRatio = POST_VIDEO_HEIGHT / layout.height;
+  return Math.max(widthRatio, heightRatio);
+}
+
+function applyExportLayoutSize(target: HTMLElement, layout: PostVideoLayoutSize): void {
+  target.style.width = `${layout.width}px`;
+  target.style.height = `${layout.height}px`;
+
+  const root = target.closest<HTMLElement>(".post-video-export-root");
+  if (root) {
+    root.style.width = `${layout.width}px`;
+    root.style.height = `${layout.height}px`;
+  }
+}
+
+function buildExportOptions(layout: PostVideoLayoutSize) {
+  const pixelRatio = computeCapturePixelRatio(layout);
+
+  return {
+    width: layout.width,
+    height: layout.height,
+    pixelRatio,
+    cacheBust: false,
+    skipFonts: true,
+    backgroundColor: "#030303",
+    filter: (node: Node) => !(node instanceof HTMLElement && node.classList.contains("post-slide-idle")),
+    style: {
+      transform: "none",
+      transformOrigin: "top left",
+      margin: "0",
+      padding: "0",
+      width: `${layout.width}px`,
+      height: `${layout.height}px`,
+    },
+  } as const;
+}
 
 export interface PostVideoExportCallbacks {
   onSlideChange: (index: number) => void | Promise<void>;
@@ -54,13 +107,20 @@ function sleep(ms: number): Promise<void> {
   });
 }
 
-async function waitForPaint(): Promise<void> {
+async function waitForPaint(full = true): Promise<void> {
   await new Promise<void>((resolve) => {
     requestAnimationFrame(() => resolve());
   });
-  await new Promise<void>((resolve) => {
-    requestAnimationFrame(() => resolve());
-  });
+  if (full) {
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve());
+    });
+  }
+}
+
+function shouldRefreshDomCapture(slideElapsedMs: number, lastCaptureMs: number): boolean {
+  if (slideElapsedMs < ENTRANCE_CAPTURE_MS) return true;
+  return slideElapsedMs - lastCaptureMs >= HOLD_CAPTURE_INTERVAL_MS;
 }
 
 function pickMimeType(): string {
@@ -210,7 +270,10 @@ export async function exportPostVideoWebm(
   }
 
   const target = resolvePostVideoExportNode(node);
+  const layout = resolvePostVideoLayoutSize();
+  applyExportLayoutSize(target, layout);
   await preloadExportAssets(target);
+  await waitForPaint();
 
   const canvas = document.createElement("canvas");
   canvas.width = POST_VIDEO_WIDTH;
@@ -250,10 +313,15 @@ export async function exportPostVideoWebm(
   }
 
   let capturedFrames = 0;
+  const exportOptions = buildExportOptions(layout);
+  let cachedFrame: HTMLCanvasElement | null = null;
+  let lastDomCaptureMs = -HOLD_CAPTURE_INTERVAL_MS;
 
   try {
     for (let slideIndex = 0; slideIndex < slideCount; slideIndex += 1) {
       await prepareSlideCapture(target, callbacks, slideIndex);
+      cachedFrame = null;
+      lastDomCaptureMs = -HOLD_CAPTURE_INTERVAL_MS;
 
       const dwellMs = getSlideDwellMs(slideIndex, slideCount);
       const slideFrames = Math.ceil(dwellMs / frameIntervalMs);
@@ -261,10 +329,26 @@ export async function exportPostVideoWebm(
       for (let frame = 0; frame < slideFrames; frame += 1) {
         const slideElapsedMs = frame * frameIntervalMs;
         seekExportAnimations(target, slideElapsedMs);
-        await waitForPaint();
 
-        const frameCanvas = await toCanvas(target, EXPORT_OPTIONS);
-        ctx.drawImage(frameCanvas, 0, 0, POST_VIDEO_WIDTH, POST_VIDEO_HEIGHT);
+        const refreshDom = shouldRefreshDomCapture(slideElapsedMs, lastDomCaptureMs);
+        await waitForPaint(refreshDom);
+
+        if (refreshDom || !cachedFrame) {
+          cachedFrame = await toCanvas(target, exportOptions);
+          lastDomCaptureMs = slideElapsedMs;
+        }
+
+        ctx.drawImage(
+          cachedFrame,
+          0,
+          0,
+          cachedFrame.width,
+          cachedFrame.height,
+          0,
+          0,
+          POST_VIDEO_WIDTH,
+          POST_VIDEO_HEIGHT,
+        );
         requestVideoFrame(track);
 
         capturedFrames += 1;

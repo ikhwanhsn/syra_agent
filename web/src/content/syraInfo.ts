@@ -220,8 +220,8 @@ export const SYRA_HIDDEN_ROUTES = [
   { path: "/info", description: "This page — full internal Syra reference (not in nav)" },
   { path: "/deck", description: "Investor pitch deck (keyboard/swipe navigation)" },
   { path: "/post", description: "Ship-log social post studio (video + photo)" },
-  { path: "/post/video", description: "Ship-log video slide deck for screen recording" },
-  { path: "/post/photo", description: "Ship-log photo templates for X posts" },
+  { path: "/post/video/:updateNumber", description: "Ship-log video slide deck for screen recording (numbered updates, max 10)" },
+  { path: "/post/photo/:updateNumber", description: "Ship-log photo templates for X posts (numbered updates, max 10)" },
 ];
 
 export const SYRA_INFO_SECTIONS = [
