@@ -45,4 +45,11 @@ export function validatePostPhotoUpdate(post: PostPhotoUpdate): void {
   if (post.picks.length === 0) {
     console.warn(`[post/photo] "${post.meta.id}" has no picks — UI will show the full template library.`);
   }
+
+  const missingShareCopy = post.picks.filter((pick) => !post.shareCopyByLayout?.[pick]?.trim());
+  if (missingShareCopy.length > 0) {
+    console.warn(
+      `[post/photo] "${post.meta.id}" missing shareCopyByLayout for pick(s): ${missingShareCopy.join(", ")}`,
+    );
+  }
 }

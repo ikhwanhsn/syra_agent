@@ -22,5 +22,7 @@ export {
   validatePostPhotoUpdate,
 } from "./validatePostPhotoUpdate";
 
+export { getPostPhotoShareCopy } from "./getPostPhotoShareCopy";
+
 /** Latest ship-log photo update (convenience for legacy imports). */
 export const ACTIVE_PHOTO_POST = getPhotoPostByNumber(LATEST_POST_UPDATE_NUMBER)!;

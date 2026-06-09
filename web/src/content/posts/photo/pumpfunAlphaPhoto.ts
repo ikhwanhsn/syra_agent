@@ -1,4 +1,5 @@
 import { PUMPFUN_ALPHA_POST } from "../pumpfunAlphaUpdate";
+import { PUMPFUN_ALPHA_PHOTO_SHARE_COPIES } from "./shareCopies/pumpfunAlphaShareCopies";
 import type { PostPhotoUpdate } from "./types";
 
 /** Photo-format content for the Pump.fun alpha agents ship log. */
@@ -12,6 +13,7 @@ export const PUMPFUN_ALPHA_PHOTO: PostPhotoUpdate = {
     "photo-metric-strip",
     "photo-terminal",
   ],
+  shareCopyByLayout: PUMPFUN_ALPHA_PHOTO_SHARE_COPIES,
   content: {
     eyebrow: "Ship log",
     badge: "Radar · Scout · Utility",

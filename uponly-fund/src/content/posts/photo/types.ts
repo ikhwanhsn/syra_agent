@@ -56,4 +56,9 @@ export interface PostPhotoUpdate {
    * The photo UI surfaces these first; the full library stays available under "More templates".
    */
   picks: PostPhotoLayoutTemplate[];
+  /**
+   * Ready-to-post X copy per photo template. Keys should cover `picks`; library templates
+   * fall back to generated copy from card content when omitted.
+   */
+  shareCopyByLayout?: Partial<Record<PostPhotoLayoutTemplate, string>>;
 }

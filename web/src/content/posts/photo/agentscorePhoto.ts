@@ -1,4 +1,5 @@
 import { AGENTSCORE_POST } from "../agentscoreUpdate";
+import { AGENTSCORE_PHOTO_SHARE_COPIES } from "./shareCopies/agentscoreShareCopies";
 import type { PostPhotoUpdate } from "./types";
 
 /** Photo-format content for the AgentScore ship log. */
@@ -12,6 +13,7 @@ export const AGENTSCORE_PHOTO: PostPhotoUpdate = {
     "photo-comparison",
     "photo-closing-cta",
   ],
+  shareCopyByLayout: AGENTSCORE_PHOTO_SHARE_COPIES,
   content: {
     eyebrow: "Ship log",
     badge: "Passport · Gate · Pay",

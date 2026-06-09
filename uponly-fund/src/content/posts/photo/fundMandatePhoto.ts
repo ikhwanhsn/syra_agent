@@ -1,4 +1,5 @@
 import { FUND_MANDATE_POST } from "../fundMandateUpdate";
+import { FUND_MANDATE_PHOTO_SHARE_COPIES } from "./shareCopies/fundMandateShareCopies";
 import type { PostPhotoUpdate } from "./types";
 
 /** Photo-format content for the fund mandate investor brief. */
@@ -12,6 +13,7 @@ export const FUND_MANDATE_PHOTO: PostPhotoUpdate = {
     "photo-comparison",
     "photo-closing-cta",
   ],
+  shareCopyByLayout: FUND_MANDATE_PHOTO_SHARE_COPIES,
   content: {
     eyebrow: "Investor brief",
     badge: "Solana · 80/20 Mandate",

@@ -1,4 +1,5 @@
 import { BNB_X402_POST } from "../bnbX402Update";
+import { BNB_X402_PHOTO_SHARE_COPIES } from "./shareCopies/bnbX402ShareCopies";
 import type { PostPhotoUpdate } from "./types";
 
 /**
@@ -17,6 +18,7 @@ export const BNB_X402_PHOTO: PostPhotoUpdate = {
     "photo-comparison",
     "photo-closing-cta",
   ],
+  shareCopyByLayout: BNB_X402_PHOTO_SHARE_COPIES,
   content: {
     eyebrow: "Ship log",
     badge: "B402 · eip155:56",

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import {
   getPostPhotoLibraryRest,
   getPostPhotoPicks,
+  getPostPhotoShareCopy,
   POST_PHOTO_LAYOUT_COUNT,
   POST_PHOTO_LAYOUT_LABELS,
   type PostPhotoLayoutTemplate,
@@ -70,6 +71,7 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
   const visibleTemplates = showLibrary ? [...picks, ...libraryRest] : picks;
   const layoutIndexInView = visibleTemplates.indexOf(layout) + 1;
   const layoutCountInView = visibleTemplates.length;
+  const layoutShareBody = getPostPhotoShareCopy(post, layout);
 
   useEffect(() => {
     if (libraryRest.includes(layout)) {
@@ -155,7 +157,7 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
             </span>
           </nav>
 
-          <PostShareCopyPanel meta={meta} format="photo" />
+          <PostShareCopyPanel meta={meta} format="photo" photoPost={post} photoLayout={layout} />
 
           <button
             type="button"
@@ -232,6 +234,18 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
                   : null}
               </div>
             ) : null}
+          </div>
+
+          <div className="border-t border-white/[0.06] px-3 py-3 sm:px-4">
+            <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[#F3BA2F]/70">
+              X post for this card
+            </p>
+            <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-white/55">
+              {layoutShareBody}
+            </p>
+            <p className="mt-2 truncate font-mono text-[10px] text-white/25">
+              + page link appended on copy
+            </p>
           </div>
         </aside>
 

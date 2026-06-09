@@ -1,4 +1,5 @@
 import { LP_AGENT_POST } from "../lpAgentUpdate";
+import { LP_AGENT_PHOTO_SHARE_COPIES } from "./shareCopies/lpAgentShareCopies";
 import type { PostPhotoUpdate } from "./types";
 
 /**
@@ -17,6 +18,7 @@ export const LP_AGENT_PHOTO: PostPhotoUpdate = {
     "photo-comparison",
     "photo-closing-cta",
   ],
+  shareCopyByLayout: LP_AGENT_PHOTO_SHARE_COPIES,
   content: {
     eyebrow: "Ship log",
     badge: "Meteora DLMM · Sim + Live",
