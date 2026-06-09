@@ -6,11 +6,9 @@ import { siteShell } from "@/lib/siteLayout";
 import { cn } from "@/lib/utils";
 import { UpOnlyFundJsonLd } from "@/components/uponly/fund/UpOnlyFundJsonLd";
 import { HeroSection } from "@/components/uponly/fund/HeroSection";
-import { StatsStrip } from "@/components/uponly/fund/StatsStrip";
 import { MandateSection } from "@/components/uponly/fund/MandateSection";
 import { TreasurySourceSection } from "@/components/uponly/fund/TreasurySourceSection";
 import { StrategySection } from "@/components/uponly/fund/StrategySection";
-import { HoldingsSection } from "@/components/uponly/fund/HoldingsSection";
 import { UtilityRoadmap } from "@/components/uponly/fund/UtilityRoadmap";
 import { RiskDisclosuresSection } from "@/components/uponly/fund/RiskDisclosuresSection";
 import { FaqSection } from "@/components/uponly/fund/FaqSection";
@@ -67,11 +65,9 @@ export default function UpOnlyFund() {
         </div>
         <div className={cn("relative", siteShell)}>
           <HeroSection />
-          <StatsStrip />
           <MandateSection />
           <TreasurySourceSection />
           <StrategySection />
-          <HoldingsSection />
           <UtilityRoadmap />
           <RiskDisclosuresSection />
           <FaqSection />

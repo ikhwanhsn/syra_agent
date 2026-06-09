@@ -17,7 +17,6 @@ import { siteShell } from "@/lib/siteLayout";
 const navLinks = [
   { label: "Fund", href: "/#uof-landing-hero", desc: "Overview" },
   { label: "Thesis", href: "/#thesis", desc: "80/20 allocation" },
-  { label: "Portfolio", href: "/#portfolio", desc: "Backed projects" },
   { label: "Mandate", href: "/#mandate", desc: "Strategy" },
   { label: "Risk", href: "/#risk-disclosure", desc: "Legal" },
 ] as const;
@@ -46,14 +45,19 @@ export const Navbar = () => {
         className="uof-institutional-nav"
         aria-label="Main"
       >
-        <div className={cn(siteShell, "flex min-w-0 items-center justify-between gap-4 py-4 lg:py-5")}>
+        <div
+          className={cn(
+            siteShell,
+            "grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-3.5 sm:py-4 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:py-5",
+          )}
+        >
           <BrandMark
-            className="min-w-0 max-w-[55%] shrink sm:max-w-[60%] lg:max-w-none"
+            className="min-w-0 max-w-full justify-self-start md:max-w-none"
             compact
             hardRefreshHome
           />
 
-          <div className="hidden min-w-0 items-center gap-8 lg:flex lg:flex-1 lg:justify-center">
+          <div className="hidden min-w-0 items-center justify-center gap-6 md:flex lg:gap-8">
             {navLinks.map((link) => {
               const active = isActiveLink(link.href);
               return (
@@ -74,7 +78,7 @@ export const Navbar = () => {
             })}
           </div>
 
-          <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
+          <div className="flex shrink-0 items-center justify-self-end gap-0.5 sm:gap-1 md:col-start-3">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -95,7 +99,7 @@ export const Navbar = () => {
 
             <button
               onClick={() => setIsOpen((o) => !o)}
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-foreground hover:bg-foreground/[0.05] lg:hidden"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-foreground hover:bg-foreground/[0.05] md:hidden"
               type="button"
               aria-expanded={isOpen}
               aria-controls="uof-nav-drawer"
@@ -107,7 +111,7 @@ export const Navbar = () => {
         </div>
 
         {isOpen ? (
-          <div id="uof-nav-drawer" className="border-t border-border/50 lg:hidden">
+          <div id="uof-nav-drawer" className="border-t border-border/50 md:hidden">
             <div
               className={cn(
                 siteShell,

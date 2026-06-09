@@ -1,8 +1,9 @@
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 type LandingSectionHeaderProps = {
   eyebrow: string;
-  title: string;
+  title: ReactNode;
   description?: string;
   id?: string;
   className?: string;
@@ -22,7 +23,10 @@ export function LandingSectionHeader({
       <p className="landing-eyebrow">{eyebrow}</p>
       <h2
         id={id}
-        className={cn("landing-section-title mt-4 text-foreground", titleClassName)}
+        className={cn(
+          "landing-section-title mt-4 text-foreground",
+          titleClassName,
+        )}
       >
         {title}
       </h2>

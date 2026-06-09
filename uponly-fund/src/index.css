@@ -240,10 +240,7 @@
 
   @media (min-width: 640px) {
     html {
-      scroll-padding-top: max(
-        6rem,
-        calc(env(safe-area-inset-top, 0px) + 5rem)
-      );
+      scroll-padding-top: max(6rem, calc(env(safe-area-inset-top, 0px) + 5rem));
     }
   }
 
@@ -493,10 +490,10 @@
 
   .landing-display {
     font-family: "Outfit", "Rethink Sans", "Inter", system-ui, sans-serif;
-    font-size: clamp(2.5rem, 5vw + 0.75rem, 4.25rem);
+    font-size: clamp(2rem, 3.8vw + 0.85rem, 3.75rem);
     font-weight: 500;
     letter-spacing: -0.04em;
-    line-height: 1.04;
+    line-height: 1.08;
   }
 
   .landing-section-title {
@@ -587,14 +584,58 @@
     content: "";
     pointer-events: none;
     position: absolute;
-    inset: -12%;
-    border-radius: 1.5rem;
+    inset: -8%;
+    border-radius: 1rem;
     background: radial-gradient(
       closest-side,
-      hsl(var(--uof) / 0.08) 0%,
-      transparent 70%
+      hsl(var(--uof) / 0.1) 0%,
+      transparent 72%
     );
-    z-index: 0;
+    z-index: -1;
+  }
+
+  .landing-liquid-sleeve-panel {
+    position: relative;
+    overflow: hidden;
+    border-radius: 0.625rem;
+    border: 1px solid hsl(var(--border) / 0.55);
+    background: linear-gradient(
+      165deg,
+      hsl(var(--card) / 0.82) 0%,
+      hsl(var(--card) / 0.42) 52%,
+      hsl(var(--uof) / 0.07) 100%
+    );
+    box-shadow:
+      0 0 0 1px hsl(var(--foreground) / 0.04) inset,
+      0 36px 88px -52px hsl(0 0% 0% / 0.58);
+  }
+
+  html:not(.dark) .landing-liquid-sleeve-panel {
+    background: linear-gradient(
+      165deg,
+      hsl(0 0% 100% / 0.96) 0%,
+      hsl(var(--card) / 0.72) 55%,
+      hsl(var(--uof) / 0.06) 100%
+    );
+    box-shadow:
+      0 0 0 1px hsl(var(--foreground) / 0.05) inset,
+      0 28px 64px -36px hsl(0 0% 0% / 0.14);
+  }
+
+  .landing-liquid-sleeve-visual {
+    background: linear-gradient(
+      180deg,
+      hsl(var(--uof) / 0.06) 0%,
+      hsl(var(--background) / 0.35) 100%
+    );
+  }
+
+  html:not(.dark) .landing-liquid-sleeve-visual {
+    background: linear-gradient(
+      180deg,
+      hsl(var(--uof) / 0.05) 0%,
+      hsl(var(--muted) / 0.12) 100%
+    );
   }
 
   .landing-dashboard-panel {
@@ -751,8 +792,27 @@
   }
 }
 
+@keyframes partner-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
 @layer utilities {
   .animate-rise-marquee {
     animation: rise-marquee 34s linear infinite;
+  }
+
+  .animate-partner-marquee {
+    animation: partner-marquee 38s linear infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-partner-marquee {
+    animation: none;
   }
 }

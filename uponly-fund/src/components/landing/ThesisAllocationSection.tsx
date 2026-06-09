@@ -44,12 +44,12 @@ export function ThesisAllocationSection({ className }: ThesisAllocationSectionPr
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2">
+        <div className="grid min-w-0 grid-cols-1 lg:grid-cols-2">
           {FUND_THESIS.sleeves.map((sleeve, i) => (
             <motion.article
               key={sleeve.id}
               className={cn(
-                "px-7 py-9 sm:px-10 sm:py-11",
+                "min-w-0 px-5 py-8 min-[400px]:px-7 min-[400px]:py-9 sm:px-10 sm:py-11",
                 i > 0 && "border-t border-border/45 lg:border-l lg:border-t-0",
               )}
               initial={reduceMotion ? false : { opacity: 0, y: 16 }}

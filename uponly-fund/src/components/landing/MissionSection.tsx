@@ -25,10 +25,10 @@ export function MissionSection({ className }: MissionSectionProps) {
         title="Conviction-first allocation on Solana"
         id="uof-mission"
       />
-      <div className="mt-12 grid gap-px overflow-hidden rounded-md border border-border/50 bg-border/40 md:grid-cols-2">
+      <div className="mt-12 grid min-w-0 gap-px overflow-hidden rounded-md border border-border/50 bg-border/40 md:grid-cols-2">
         <motion.div
           {...fade(reduceMotion)}
-          className="bg-card/45 px-8 py-10 sm:px-10 sm:py-12"
+          className="min-w-0 bg-card/45 px-5 py-8 min-[400px]:px-8 min-[400px]:py-10 sm:px-10 sm:py-12"
         >
           <p className="landing-eyebrow">North star</p>
           <p className="mt-4 text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
@@ -38,7 +38,7 @@ export function MissionSection({ className }: MissionSectionProps) {
         </motion.div>
         <motion.div
           {...fade(reduceMotion)}
-          className="bg-card/45 px-8 py-10 sm:px-10 sm:py-12"
+          className="min-w-0 bg-card/45 px-5 py-8 min-[400px]:px-8 min-[400px]:py-10 sm:px-10 sm:py-12"
         >
           <p className="landing-eyebrow">Asymmetric sleeve</p>
           <p className="mt-4 text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">

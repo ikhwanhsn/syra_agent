@@ -2,7 +2,6 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { ScrollToTopButton } from "@/components/ScrollToTopButton";
 import { HeroSection } from "@/components/landing/HeroSection";
-import { PortfolioSection } from "@/components/landing/PortfolioSection";
 import { ThesisAllocationSection } from "@/components/landing/ThesisAllocationSection";
 import { SolanaEcosystemStrip } from "@/components/landing/SolanaEcosystemStrip";
 import { StrategicAnchorSection } from "@/components/landing/StrategicAnchorSection";
@@ -22,7 +21,7 @@ import { cn } from "@/lib/utils";
 const PAGE_TITLE =
   "Up Only Fund | Onchain Capital for High Conviction Bets" as const;
 const PAGE_DESC =
-  "Up Only Fund is onchain capital for high conviction bets on Solana—80% utility tokens with real traction, 20% clean onchain memecoins with verified liquidity. Published mandate and portfolio disclosures. DYOR — not financial advice." as const;
+  "Up Only Fund is onchain capital for high conviction bets on Solana—80% utility tokens with real traction, 20% clean onchain memecoins with verified liquidity. Published mandate and allocation thesis. DYOR — not financial advice." as const;
 
 const Index = () => {
   useDocumentMeta({
@@ -39,7 +38,7 @@ const Index = () => {
       />
       <Navbar />
       <main
-        className="relative z-10 w-full min-w-0 scroll-mt-16 pb-16 md:pb-24"
+        className="relative z-10 w-full min-w-0 max-w-full scroll-mt-16 overflow-x-clip pb-16 max-sm:pb-[max(4rem,calc(3rem+env(safe-area-inset-bottom,0px)))] md:pb-24"
         id="uof-landing-main"
       >
         <div className="pointer-events-none absolute inset-0 -z-10">
@@ -57,7 +56,7 @@ const Index = () => {
           <div
             className={cn(
               siteShell,
-              "pb-20 pt-[max(6rem,calc(env(safe-area-inset-top,0px)+4.75rem))] sm:pb-24 sm:pt-[max(6.5rem,calc(env(safe-area-inset-top,0px)+5.25rem))] lg:pb-28 lg:pt-[max(7rem,calc(env(safe-area-inset-top,0px)+5.75rem))]",
+              "pb-16 pt-[max(5.5rem,calc(env(safe-area-inset-top,0px)+4.25rem))] min-[400px]:pb-20 min-[400px]:pt-[max(6rem,calc(env(safe-area-inset-top,0px)+4.75rem))] sm:pb-24 sm:pt-[max(6.5rem,calc(env(safe-area-inset-top,0px)+5.25rem))] lg:pb-28 lg:pt-[max(7rem,calc(env(safe-area-inset-top,0px)+5.75rem))]",
             )}
           >
             <HeroSection />
@@ -66,10 +65,6 @@ const Index = () => {
 
         <LandingBand variant="surface">
           <ThesisAllocationSection />
-        </LandingBand>
-
-        <LandingBand variant="transparent">
-          <PortfolioSection />
         </LandingBand>
 
         <LandingBand variant="muted" contentClassName="!py-12 md:!py-16">

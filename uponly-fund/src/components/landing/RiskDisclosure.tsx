@@ -10,7 +10,7 @@ export function RiskDisclosure({ className }: RiskDisclosureProps) {
     <aside
       id="risk-disclosure"
       className={cn(
-        "mb-16 scroll-mt-24 rounded-xl border border-border/50 bg-muted/[0.18] p-6 sm:mb-20 sm:rounded-[1.05rem] sm:p-8 md:p-10",
+        "mb-16 min-w-0 scroll-mt-24 rounded-xl border border-border/50 bg-muted/[0.18] p-5 min-[400px]:p-6 sm:mb-20 sm:rounded-[1.05rem] sm:p-8 md:p-10",
         className,
       )}
       role="note"

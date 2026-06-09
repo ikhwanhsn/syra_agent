@@ -30,7 +30,7 @@ export function HomeStatsStrip({ className }: HomeStatsStripProps) {
   return (
     <motion.div
       className={cn(
-        "grid grid-cols-1 overflow-hidden rounded-md border border-border/50 bg-card/30 sm:grid-cols-3",
+        "grid min-w-0 grid-cols-1 overflow-hidden rounded-md border border-border/50 bg-card/30 min-[480px]:grid-cols-3",
         className,
       )}
       variants={reduce ? undefined : staggerContainerRaise}
@@ -43,8 +43,8 @@ export function HomeStatsStrip({ className }: HomeStatsStripProps) {
           key={s.label}
           variants={reduce ? undefined : staggerItem}
           className={cn(
-            "flex flex-col justify-center px-5 py-6 sm:px-6",
-            i > 0 && "border-t border-border/45 sm:border-l sm:border-t-0",
+            "flex min-w-0 flex-col justify-center px-4 py-5 min-[480px]:px-5 min-[480px]:py-6 sm:px-6",
+            i > 0 && "border-t border-border/45 min-[480px]:border-l min-[480px]:border-t-0",
           )}
         >
           <p className="landing-eyebrow">{s.label}</p>

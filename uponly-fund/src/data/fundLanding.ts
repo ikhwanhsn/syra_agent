@@ -9,7 +9,7 @@ export const FUND_LANDING = {
   heroSubtitle:
     "Onchain capital for high conviction bets—80% into utility tokens with real product traction, 20% into clean onchain memecoins with verified liquidity and no-rug structure.",
   heroBody:
-    "We publish our mandate, allocation thesis, and portfolio disclosures on Solana. No retail hype—just conviction sizing, on-chain verification, and asymmetric upside where the structure is clear.",
+    "We publish our mandate and allocation thesis on Solana. No retail hype—just conviction sizing, on-chain verification, and asymmetric upside where the structure is clear.",
   thesisCta: "Read the thesis",
   mandateCta: "Investment mandate",
 } as const;

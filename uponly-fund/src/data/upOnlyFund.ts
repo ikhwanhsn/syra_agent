@@ -68,10 +68,10 @@ export const UP_ONLY_FUND: UpOnlyFundData = {
   utilityRoadmap: [
     {
       id: "uof-transparency",
-      title: "Public mandate & backed projects",
+      title: "Public mandate & transparency",
       status: "in-progress",
       description:
-        "This page: mandate, future treasury address, and backed projects as they are published—without sizing or returns. No public deposits in v1.",
+        "This page: mandate and future treasury address—without sizing, returns, or project listings. No public deposits in v1.",
     },
     {
       id: "uof-analytics-tools",

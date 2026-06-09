@@ -4,7 +4,7 @@ import { ArrowRight, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FUND_LANDING } from "@/data/fundLanding";
 import { cn } from "@/lib/utils";
-import { InstitutionalHeroMetrics } from "./InstitutionalHeroMetrics";
+import { HeroIllustration } from "./HeroIllustration";
 import { HomeStatsStrip } from "./HomeStatsStrip";
 import { LANDING_EASE } from "./landingMotion";
 
@@ -39,9 +39,9 @@ export function HeroSection({ className }: HeroSectionProps) {
   return (
     <div className={cn("relative", className)}>
       <header className="relative" aria-labelledby="uof-landing-hero">
-        <div className="grid grid-cols-1 items-start gap-14 lg:grid-cols-12 lg:gap-16 xl:gap-20">
+        <div className="grid min-w-0 grid-cols-1 items-center gap-8 sm:gap-10 lg:grid-cols-2 lg:gap-x-12 xl:gap-x-16">
           <motion.div
-            className="min-w-0 lg:col-span-7 xl:col-span-7"
+            className="flex min-w-0 w-full flex-col justify-center"
             variants={v}
             initial={reduceMotion ? false : "hidden"}
             animate={reduceMotion ? false : "show"}
@@ -53,38 +53,38 @@ export function HeroSection({ className }: HeroSectionProps) {
             <motion.h1
               variants={item}
               id="uof-landing-hero"
-              className="landing-display mt-5 max-w-[20ch] text-balance text-foreground sm:max-w-none"
+              className="landing-display mt-4 text-balance text-foreground sm:mt-5"
             >
               {FUND_LANDING.brandLine}
             </motion.h1>
 
             <motion.div
               variants={item}
-              className="mt-8 h-px w-full max-w-lg bg-gradient-to-r from-border via-border/60 to-transparent"
+              className="mt-6 h-px w-full max-w-lg bg-gradient-to-r from-border via-border/60 to-transparent sm:mt-7"
             />
 
             <motion.p
               variants={item}
-              className="mt-8 max-w-2xl text-pretty text-base leading-[1.7] text-foreground/85 sm:text-lg sm:leading-relaxed"
+              className="mt-6 max-w-xl text-pretty text-base leading-[1.65] text-foreground/85 sm:mt-7 sm:max-w-2xl sm:text-lg sm:leading-relaxed"
             >
               {FUND_LANDING.heroSubtitle}
             </motion.p>
 
             <motion.p
               variants={item}
-              className="mt-5 max-w-xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-[0.9375rem] md:max-w-2xl"
+              className="mt-4 max-w-xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-[0.9375rem] lg:max-w-[36rem]"
             >
               {FUND_LANDING.heroBody}
             </motion.p>
 
             <motion.div
               variants={item}
-              className="mt-10 flex flex-col gap-3 min-[480px]:flex-row min-[480px]:flex-wrap"
+              className="mt-7 flex w-full min-w-0 flex-col gap-3 min-[480px]:flex-row min-[480px]:flex-wrap sm:mt-8"
             >
               <Button
                 asChild
                 size="lg"
-                className="h-12 min-h-[3rem] rounded-md bg-foreground px-8 font-semibold text-background shadow-none hover:bg-foreground/90 sm:min-w-[13rem]"
+                className="h-11 min-h-[2.75rem] w-full rounded-md bg-foreground px-7 font-semibold text-background shadow-none hover:bg-foreground/90 min-[480px]:w-auto sm:h-12 sm:min-h-[3rem] sm:px-8 sm:min-w-[13rem]"
               >
                 <Link to="/#thesis" className="inline-flex items-center justify-center gap-2">
                   {FUND_LANDING.thesisCta}
@@ -95,7 +95,7 @@ export function HeroSection({ className }: HeroSectionProps) {
                 asChild
                 variant="outline"
                 size="lg"
-                className="h-12 min-h-[3rem] rounded-md border-border/70 bg-transparent px-8 font-medium hover:bg-foreground/[0.04]"
+                className="h-11 min-h-[2.75rem] w-full rounded-md border-border/70 bg-transparent px-7 font-medium hover:bg-foreground/[0.04] min-[480px]:w-auto sm:h-12 sm:min-h-[3rem] sm:px-8"
               >
                 <Link to="/#mandate" className="inline-flex items-center justify-center gap-2">
                   {FUND_LANDING.mandateCta}
@@ -103,14 +103,10 @@ export function HeroSection({ className }: HeroSectionProps) {
                 </Link>
               </Button>
             </motion.div>
-
-            <motion.div variants={item} className="mt-12 lg:mt-14">
-              <HomeStatsStrip />
-            </motion.div>
           </motion.div>
 
           <motion.div
-            className="min-w-0 lg:col-span-5 xl:col-span-5 lg:sticky lg:top-32"
+            className="flex min-w-0 w-full items-center justify-center lg:max-w-none lg:justify-end"
             initial={reduceMotion ? false : { opacity: 0, y: 28 }}
             animate={reduceMotion ? false : { opacity: 1, y: 0 }}
             transition={{
@@ -119,9 +115,18 @@ export function HeroSection({ className }: HeroSectionProps) {
               ease: LANDING_EASE,
             }}
           >
-            <InstitutionalHeroMetrics />
+            <HeroIllustration className="w-full max-w-[18rem] sm:max-w-[19.5rem] lg:max-w-[21rem] xl:max-w-[23rem]" />
           </motion.div>
         </div>
+
+        <motion.div
+          className="mt-8 sm:mt-10 lg:mt-12"
+          initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+          animate={reduceMotion ? false : { opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, delay: reduceMotion ? 0 : 0.35, ease: LANDING_EASE }}
+        >
+          <HomeStatsStrip />
+        </motion.div>
       </header>
     </div>
   );

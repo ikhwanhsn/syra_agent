@@ -41,10 +41,10 @@ export function WhatIsUof({ className }: WhatIsUofProps) {
         description="We speak LP- and founder-clean: risk budgets, sleeves, and disclosures before hype—because allocator reputations are earned when markets stress-test them."
         id="what-is-uof-heading"
       />
-      <div className="mt-12 grid grid-cols-1 gap-px overflow-hidden rounded-md border border-border/50 bg-border/40 sm:grid-cols-3">
+      <div className="mt-12 grid min-w-0 grid-cols-1 gap-px overflow-hidden rounded-md border border-border/50 bg-border/40 min-[640px]:grid-cols-3">
         {cards.map((c) => (
           <motion.div key={c.title} {...fade(reduceMotion)}>
-            <article className="h-full bg-card/45 px-7 py-9 sm:px-8 sm:py-10">
+            <article className="h-full min-w-0 bg-card/45 px-5 py-8 min-[400px]:px-7 min-[400px]:py-9 sm:px-8 sm:py-10">
               <h3 className="font-display text-base font-medium text-foreground">{c.title}</h3>
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{c.body}</p>
             </article>
