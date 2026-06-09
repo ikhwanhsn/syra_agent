@@ -6,6 +6,7 @@ import {
   VersionedTransaction,
 } from "@solana/web3.js";
 import bs58 from "bs58";
+import { resolveReferralFee } from "../libs/jupiterReferral.js";
 
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -110,33 +111,38 @@ export async function buybackSYRAFromRevenue(revenueAmountUSD) {
     "x-api-key": process.env.JUPITER_API_KEY,
   };
 
+  const { platformFeeBps, feeAccount } = await resolveReferralFee(connection, syraMint.toString());
+
   const quoteUrl = new URL(JUPITER_QUOTE_API);
   quoteUrl.searchParams.append("inputMint", usdcMint.toString());
   quoteUrl.searchParams.append("outputMint", syraMint.toString());
   quoteUrl.searchParams.append("amount", buybackAmountLamports.toString());
   quoteUrl.searchParams.append("slippageBps", "100");
+  if (platformFeeBps > 0) {
+    quoteUrl.searchParams.append("platformFeeBps", String(platformFeeBps));
+  }
 
   const quoteResponse = await axios.get(quoteUrl.toString(), { headers });
   const outAmount = String(quoteResponse.data?.outAmount ?? "");
 
-  const swapResponse = await axios.post(
-    JUPITER_SWAP_API,
-    {
-      quoteResponse: quoteResponse.data,
-      userPublicKey: agentKeypair.publicKey.toString(),
-      wrapAndUnwrapSol: false,
-      skipPreflight: true,
-      dynamicComputeUnitLimit: true,
-      dynamicSlippage: true,
-      prioritizationFeeLamports: {
-        priorityLevelWithMaxLamports: {
-          maxLamports: 100000,
-          priorityLevel: "medium",
-        },
+  const swapBody = {
+    quoteResponse: quoteResponse.data,
+    userPublicKey: agentKeypair.publicKey.toString(),
+    wrapAndUnwrapSol: false,
+    skipPreflight: true,
+    dynamicComputeUnitLimit: true,
+    dynamicSlippage: true,
+    prioritizationFeeLamports: {
+      priorityLevelWithMaxLamports: {
+        maxLamports: 100000,
+        priorityLevel: "medium",
       },
     },
-    { headers },
-  );
+  };
+  if (platformFeeBps > 0 && feeAccount) {
+    swapBody.feeAccount = feeAccount;
+  }
+  const swapResponse = await axios.post(JUPITER_SWAP_API, swapBody, { headers });
 
   const { swapTransaction } = swapResponse.data;
 

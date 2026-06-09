@@ -269,6 +269,30 @@ The **`/erc8004`** path is an alias for the same 8004scan router used at `/8004s
 
 ---
 
+## Jupiter Swap API — referral / platform fees
+
+Direct Jupiter V1 swaps (`api.jup.ag/swap/v1`) used by **LP agent live sidecar swaps** (`api/libs/lpRealSidecarSwap.js`) and **SYRA buyback** (`api/utils/buybackSYRA.js`) can route a platform fee to your Jupiter referral account.
+
+**Env (optional — defaults are set in code):**
+
+| Variable | Description |
+|----------|-------------|
+| `JUPITER_API_KEY` | Jupiter API key for `api.jup.ag` (recommended in production) |
+| `JUPITER_REFERRAL_ACCOUNT` | Your Jupiter referral account pubkey (default: Syra referral key) |
+| `JUPITER_PLATFORM_FEE_BPS` | Platform fee in basis points, 0–255 (default: `100` = 1.00%) |
+
+**One-time setup:** Create referral token accounts on [referral.jup.ag](https://referral.jup.ag) for each **output** mint you want to collect fees on. Jupiter takes the fee on the swap output (ExactIn). Syra applies the fee only when the matching on-chain referral token account exists — otherwise the swap proceeds without a fee so LP opens are never blocked.
+
+Recommended mints to register:
+
+- **wSOL** (`So11111111111111111111111111111111111111112`) — LP close sweeps and idle token→SOL
+- **SYRA** (`SYRA_TOKEN_MINT`) — x402 revenue buyback (USDC→SYRA)
+- **USDC** — if you add swaps with USDC output later
+
+Logic lives in `api/libs/jupiterReferral.js`. Jupiter Ultra agent tool (`jupiter-swap-order` via Corbits) is unchanged.
+
+---
+
 ## API key and trusted origins
 
 - **Never embed `API_KEY` or `API_KEYS` in client-side code.** The API injects the key for requests from trusted origins (syraa.fun, dashboard, agent, playground) so frontends do not need to send it.

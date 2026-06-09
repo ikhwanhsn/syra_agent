@@ -6,6 +6,7 @@ import BN from "bn.js";
 import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { executeIntent } from "../services/walletBroker.js";
+import { resolveReferralFee } from "./jupiterReferral.js";
 import { getConnection, isSolMint, WRAPPED_SOL_MINT } from "./meteoraDlmmExecutor.js";
 
 const JUPITER_API_BASE = "https://api.jup.ag";
@@ -91,11 +92,17 @@ async function executeJupiterSwap({
   }
 
   const headers = jupiterHeaders();
+  const connection = getConnection();
+  const { platformFeeBps, feeAccount } = await resolveReferralFee(connection, outputMint);
+
   const quoteUrl = new URL(JUPITER_QUOTE_API);
   quoteUrl.searchParams.append("inputMint", inputMint);
   quoteUrl.searchParams.append("outputMint", outputMint);
   quoteUrl.searchParams.append("amount", amountStr);
   quoteUrl.searchParams.append("slippageBps", String(slippageBps));
+  if (platformFeeBps > 0) {
+    quoteUrl.searchParams.append("platformFeeBps", String(platformFeeBps));
+  }
 
   const quoteResponse = await axios.get(quoteUrl.toString(), { headers });
   let policyUsd = toNum(estimatedUsd, 1);
@@ -103,16 +110,16 @@ async function executeJupiterSwap({
     const outLamports = toNum(quoteResponse.data?.outAmount, 0);
     policyUsd = Math.max(policyUsd, (outLamports / LAMPORTS_PER_SOL) * toNum(solPriceUsd, 150));
   }
-  const swapResponse = await axios.post(
-    JUPITER_SWAP_API,
-    {
-      quoteResponse: quoteResponse.data,
-      userPublicKey: agentAddress,
-      wrapAndUnwrapSol: true,
-      dynamicComputeUnitLimit: true,
-    },
-    { headers },
-  );
+  const swapBody = {
+    quoteResponse: quoteResponse.data,
+    userPublicKey: agentAddress,
+    wrapAndUnwrapSol: true,
+    dynamicComputeUnitLimit: true,
+  };
+  if (platformFeeBps > 0 && feeAccount) {
+    swapBody.feeAccount = feeAccount;
+  }
+  const swapResponse = await axios.post(JUPITER_SWAP_API, swapBody, { headers });
 
   const swapTxBase64 = swapResponse.data?.swapTransaction;
   if (!swapTxBase64) {

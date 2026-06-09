@@ -4,17 +4,23 @@
  */
 
 export const LP_AGENT_EXPERIMENT_DEFAULT_SIGNAL_WEIGHTS = Object.freeze({
-  organic_score: 1.15,
-  fee_tvl_ratio: 1.2,
-  volume: 1.1,
-  holder_count: 1.05,
-  smart_wallets_present: 1.15,
-  narrative_quality: 1.0,
-  study_win_rate: 1.1,
-  hive_consensus: 0.95,
-  volatility: 0.9,
+  organic_score: 0.82,
+  fee_tvl_ratio: 1.55,
+  volume: 1.15,
+  holder_count: 0.85,
+  smart_wallets_present: 1.05,
+  narrative_quality: 0.95,
+  study_win_rate: 1.0,
+  hive_consensus: 0.9,
+  volatility: 0.95,
   /** High volume relative to TVL — proxy for fresh / hot pools */
-  freshness_score: 1.0,
+  freshness_score: 1.35,
+  /** fee/TVL × vol/TVL — fee-earning velocity on thin pools */
+  fee_velocity: 1.45,
+  /** Expected fee yield vs IL budget — core risk/reward signal */
+  risk_reward: 1.75,
+  /** Lower pool risk score = safer entry */
+  safety_score: 1.35,
 });
 
 /** Static roster: ids 0–19 (+ mirror 98). Dynamic evo agents use ids 20–97 via overrides. */
@@ -50,7 +56,7 @@ export const LP_AGENT_EXPERIMENT_STRATEGIES = Object.freeze([
     lpShape: "spot",
     binsBelow: 30,
     binsAbove: 30,
-    screeningOverrides: { minOrganic: 70, minFeeTvlRatio: 0.06, minVolume24hUsd: 75_000 },
+    screeningOverrides: { minOrganic: 70, minFeeTvlRatio: 0.06, minVolume24hUsd: 75_000, minRiskRewardRatio: 0.72, maxRiskScore: 0.52 },
     signalGate: {
       all: [{ field: "smart_wallets_present", op: "eq", value: true }],
       any: [
@@ -319,6 +325,8 @@ export const LP_AGENT_EXPERIMENT_STRATEGIES = Object.freeze([
       minVolume24hUsd: 180_000,
       maxTvlUsd: 420_000,
       minVolTvlRatio: 1.4,
+      minRiskRewardRatio: 0.85,
+      maxRiskScore: 0.74,
     },
     signalGate: {
       any: [

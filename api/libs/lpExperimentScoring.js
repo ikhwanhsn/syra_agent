@@ -1,4 +1,7 @@
 import { getDefaultSignalWeights } from "../config/lpAgentExperimentStrategies.js";
+import {
+  LP_MIN_SIM_RISK_REWARD_RATIO,
+} from "./lpEconomicsModel.js";
 
 function toNum(value, fallback = 0) {
   const n = Number(value);
@@ -71,12 +74,19 @@ function applySignalGate(strategy, signals) {
   return { pass: reasons.length === 0, reasons };
 }
 
+/** Screening thresholds are authored as Meteora percent points (0.05 = 0.05%/day). */
+function toFeeTvlDecimalThreshold(threshold) {
+  const t = Number(threshold);
+  if (!Number.isFinite(t)) return 0;
+  return t >= 0.01 ? t / 100 : t;
+}
+
 function passesScreeningOverrides(strategy, pool) {
   const s = strategy.screeningOverrides || {};
   if (s.minOrganic != null && toNum(pool.organicScore) < Number(s.minOrganic)) {
     return { pass: false, reason: "organic" };
   }
-  if (s.minFeeTvlRatio != null && toNum(pool.feeTvlRatio) < Number(s.minFeeTvlRatio)) {
+  if (s.minFeeTvlRatio != null && toNum(pool.feeTvlRatio) < toFeeTvlDecimalThreshold(s.minFeeTvlRatio)) {
     return { pass: false, reason: "fee_tvl_ratio" };
   }
   if (s.minVolume24hUsd != null && toNum(pool.volume24hUsd) < Number(s.minVolume24hUsd)) {
@@ -105,6 +115,12 @@ function passesScreeningOverrides(strategy, pool) {
   if (s.minVolatilityScore != null && toNum(pool.volatilityScore) < Number(s.minVolatilityScore)) {
     return { pass: false, reason: "minVolatilityScore" };
   }
+  if (s.minRiskRewardRatio != null && toNum(pool.riskRewardRatio) < Number(s.minRiskRewardRatio)) {
+    return { pass: false, reason: "minRiskRewardRatio" };
+  }
+  if (s.maxRiskScore != null && toNum(pool.riskScore) > Number(s.maxRiskScore)) {
+    return { pass: false, reason: "maxRiskScore" };
+  }
   return { pass: true, reason: null };
 }
 
@@ -114,6 +130,7 @@ export function buildLpSignals(pool) {
   const volTvlRatio = tvl > 0 ? vol / tvl : vol > 0 ? 8 : 0;
   const organic = normalizeLinear(toNum(pool.organicScore), 0, 100);
   const feeTvl = normalizeLinear(toNum(pool.feeTvlRatio), 0, 0.15);
+  const feeVelocity = normalizeLinear(toNum(pool.feeTvlRatio) * volTvlRatio, 0, 0.35);
   const volume = normalizeLinear(vol, 0, 300_000);
   const holders = normalizeLinear(toNum(pool.holderCount), 0, 10_000);
   const studyWinRate = normalizeLinear(toNum(pool.studyWinRate), 0, 1);
@@ -124,6 +141,8 @@ export function buildLpSignals(pool) {
   const freshnessScore = clamp01(
     normalizeLinear(volTvlRatio, 0.8, 6) * 0.65 + normalizeInverse(tvl, 60_000, 550_000) * 0.35,
   );
+  const riskReward = normalizeLinear(toNum(pool.riskRewardRatio), LP_MIN_SIM_RISK_REWARD_RATIO, 2.4);
+  const safetyScore = 1 - clamp01(toNum(pool.riskScore));
   return {
     organic_score: organic,
     fee_tvl_ratio: feeTvl,
@@ -135,6 +154,9 @@ export function buildLpSignals(pool) {
     hive_consensus: hiveConsensus,
     volatility,
     freshness_score: freshnessScore,
+    fee_velocity: feeVelocity,
+    risk_reward: riskReward,
+    safety_score: safetyScore,
     // Raw helpers for rule gates
     narrative_quality_raw: toNum(pool.narrativeScore),
     study_win_rate_raw: toNum(pool.studyWinRate),
@@ -185,6 +207,9 @@ export function scorePool(strategy, pool, externalSignals = {}) {
     hive_consensus: toNum(signalSnapshot.hive_consensus),
     volatility: toNum(signalSnapshot.volatility),
     freshness_score: toNum(signalSnapshot.freshness_score),
+    fee_velocity: toNum(signalSnapshot.fee_velocity),
+    risk_reward: toNum(signalSnapshot.risk_reward),
+    safety_score: toNum(signalSnapshot.safety_score),
     directional_penalty: directionalPenalty,
   };
 

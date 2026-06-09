@@ -32,6 +32,24 @@ function toNum(value, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+/**
+ * Daily fee yield as a decimal ratio (e.g. 0.00448 = 0.448%/day on deployed TVL).
+ * Meteora fee_tvl_ratio["24h"] is the same number in percent points (0.448 = 0.448%/day).
+ * Prefer fees_24h / TVL when both are present — always the correct decimal.
+ */
+export function resolvePoolFeeTvlRatio(raw, fee24hUsd, tvlUsd) {
+  const tvl = toNum(tvlUsd);
+  const fee24 = toNum(fee24hUsd);
+  if (tvl > 0 && fee24 > 0) {
+    return fee24 / tvl;
+  }
+  const apiPct = toNum(raw?.fee_tvl_ratio?.["24h"]);
+  if (apiPct > 0) {
+    return apiPct / 100;
+  }
+  return 0;
+}
+
 async function fetchJson(path, init = {}) {
   const url = `${METEORA_BASE_URL}${path}`;
   const ctrl = new AbortController();
@@ -85,8 +103,7 @@ function normalizePool(raw) {
     toNum(raw?.volume24h) ||
     toNum(raw?.volume24hUsd) ||
     0;
-  const feeTvlRatio =
-    toNum(raw?.fee_tvl_ratio?.["24h"]) || (tvlUsd > 0 ? fee24hUsd / tvlUsd : 0);
+  const feeTvlRatio = resolvePoolFeeTvlRatio(raw, fee24hUsd, tvlUsd);
   const currentPrice =
     toNum(raw?.current_price) || toNum(raw?.price) || toNum(raw?.spotPrice) || toNum(raw?.lastPrice) || 0;
 
@@ -108,6 +125,27 @@ function normalizePool(raw) {
     currentPrice,
     raw,
   };
+}
+
+/**
+ * Fetch and dedupe pools across multiple Meteora pages (sim lab scans beyond page-1 mega pools).
+ */
+export async function fetchMeteoraPoolPages({
+  pages = 4,
+  limit = 100,
+  sortKey = "fee",
+  order = "desc",
+  hideLowTvl = false,
+} = {}) {
+  const seen = new Map();
+  for (let page = 1; page <= pages; page += 1) {
+    const batch = await fetchMeteoraPools({ page, limit, sortKey, order, hideLowTvl });
+    if (!batch.length) break;
+    for (const pool of batch) {
+      if (pool.poolAddress) seen.set(pool.poolAddress, pool);
+    }
+  }
+  return [...seen.values()];
 }
 
 export async function fetchMeteoraPools({

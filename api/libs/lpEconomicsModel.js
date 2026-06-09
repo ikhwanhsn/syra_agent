@@ -31,15 +31,192 @@ function toNum(value, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function clamp01(n) {
+  return Math.max(0, Math.min(1, Number(n) || 0));
+}
+
+/** Minimum expected-fee : IL-budget ratio for sim pool eligibility. */
+export const LP_MIN_SIM_RISK_REWARD_RATIO = 0.38;
+
+/** Extreme-risk pools need a higher reward hurdle. */
+export const LP_MIN_EXTREME_RISK_REWARD_RATIO = 0.72;
+
 export function computePriceDriftPct(entry, current) {
   if (!Number.isFinite(entry) || entry <= 0 || !Number.isFinite(current) || current <= 0) return 0;
   return (current / entry - 1) * 100;
 }
 
+/** @param {number} feeTvlRatio Daily fee/TVL as decimal ratio (fees_24h / TVL), e.g. 0.00448 = 0.448%/day */
 export function computeFeeYieldPct(feeTvlRatio, hoursElapsed) {
   const f = toNum(feeTvlRatio, 0);
   if (f <= 0 || hoursElapsed <= 0) return 0;
   return f * (hoursElapsed / 24) * 100;
+}
+
+/**
+ * DLMM active-bin share boost — narrow positions on hot, thin pools earn above pool-average fee/TVL.
+ * @param {{ volTvlRatio?: number, tvlUsd?: number, binsBelow?: number, binsAbove?: number, inRange?: boolean }} params
+ */
+export function computeDlmmFeeShareMultiplier({
+  volTvlRatio = 0,
+  tvlUsd = 0,
+  binsBelow = 30,
+  binsAbove = 30,
+  inRange = true,
+} = {}) {
+  if (!inRange) return 0.25;
+  const width = Math.max(1, toNum(binsBelow) + toNum(binsAbove) + 1);
+  const narrowBoost = Math.min(3.5, Math.max(1, 42 / width));
+  const hotBoost = Math.min(2.8, 1 + Math.log1p(Math.max(0, toNum(volTvlRatio))) * 0.38);
+  const tvl = toNum(tvlUsd);
+  const smallPoolBoost =
+    tvl > 0 && tvl < 280_000 ? Math.min(2.2, 1 + 110_000 / Math.max(tvl, 18_000)) : 1;
+  return narrowBoost * hotBoost * smallPoolBoost;
+}
+
+/**
+ * Pool IL / churn risk proxy (0–1). Higher = more impermanent-loss exposure.
+ * @param {{ tvlUsd?: number, volume24hUsd?: number, feeTvlRatio?: number, volatilityScore?: number, binsBelow?: number, binsAbove?: number }} params
+ */
+export function computePoolRiskScore(params = {}) {
+  const tvl = toNum(params.tvlUsd);
+  const vol = toNum(params.volume24hUsd);
+  const feeTvl = toNum(params.feeTvlRatio);
+  const volTvl = tvl > 0 ? vol / tvl : vol > 0 ? 8 : 0;
+  const volScore = clamp01(toNum(params.volatilityScore, 0.45));
+
+  const thinTvlRisk = clamp01(1 - (tvl - 12_000) / 380_000);
+  const churnRisk = clamp01(volTvl / 14);
+  const feeSpikeRisk = clamp01(feeTvl / 0.07);
+  const binsBelow = toNum(params.binsBelow, 30);
+  const binsAbove = toNum(params.binsAbove, 30);
+  const singleSidedRisk = binsBelow === 0 || binsAbove === 0 ? 0.22 : 0;
+  const narrowRangeRisk = binsBelow + binsAbove < 36 ? 0.12 : 0;
+
+  return clamp01(
+    thinTvlRisk * 0.26 +
+      churnRisk * 0.3 +
+      feeSpikeRisk * 0.2 +
+      volScore * 0.14 +
+      singleSidedRisk +
+      narrowRangeRisk,
+  );
+}
+
+export function classifyPoolRiskTier(riskScore) {
+  const r = clamp01(riskScore);
+  if (r < 0.32) return "low";
+  if (r < 0.52) return "medium";
+  if (r < 0.72) return "high";
+  return "extreme";
+}
+
+/**
+ * Risk/reward profile for LP pool selection and adaptive exits.
+ * @param {{ tvlUsd?: number, volume24hUsd?: number, feeTvlRatio?: number, volatilityScore?: number, binsBelow?: number, binsAbove?: number, holdHours?: number }} params
+ */
+export function computeLpRiskRewardProfile(params = {}) {
+  const holdHours = Math.max(0.5, toNum(params.holdHours, 4));
+  const riskScore = computePoolRiskScore(params);
+  const tier = classifyPoolRiskTier(riskScore);
+  const feeTvl = toNum(params.feeTvlRatio);
+  const tvl = toNum(params.tvlUsd);
+  const vol = toNum(params.volume24hUsd);
+  const volTvl = tvl > 0 ? vol / tvl : 0;
+
+  const feeShareMult = computeDlmmFeeShareMultiplier({
+    volTvlRatio: volTvl,
+    tvlUsd: tvl,
+    binsBelow: params.binsBelow,
+    binsAbove: params.binsAbove,
+    inRange: true,
+  });
+  const adjustedMult = applyRiskAdjustedFeeMultiplier(feeShareMult, riskScore);
+  const expectedFeePct = computeFeeYieldPct(feeTvl, holdHours) * adjustedMult;
+  const ilBudgetPct =
+    (0.75 + riskScore * 4.2 + Math.log1p(Math.max(0, volTvl)) * 0.58) * (holdHours / 24);
+  const ratio = expectedFeePct / Math.max(ilBudgetPct, 0.12);
+
+  return {
+    riskScore,
+    tier,
+    expectedFeePct,
+    ilBudgetPct,
+    ratio,
+    feeShareMult: adjustedMult,
+  };
+}
+
+/** Cap fee boost on degen pools — keeps sim PnL realistic while still rewarding hot pools. */
+export function applyRiskAdjustedFeeMultiplier(rawMultiplier, riskScore) {
+  const mult = toNum(rawMultiplier, 1);
+  const risk = clamp01(riskScore);
+  if (risk >= 0.72) return mult * 0.62;
+  if (risk >= 0.52) return mult * 0.8;
+  if (risk >= 0.32) return mult * 0.92;
+  return mult;
+}
+
+/**
+ * Pool-aware exits: tighter stops on risky pools, take-profit scaled to fee potential, min R:R ~1.4:1.
+ */
+export function resolveAdaptiveExitRules(strategyExit = {}, poolContext = {}, binsBelow = 30, binsAbove = 30) {
+  const rr = computeLpRiskRewardProfile({
+    ...poolContext,
+    binsBelow,
+    binsAbove,
+    holdHours: 4,
+  });
+  const base = strategyExit && typeof strategyExit === "object" ? { ...strategyExit } : {};
+
+  let stopLossPct = toNum(base.stopLossPct, -12);
+  let takeProfitPct = toNum(base.takeProfitPct, 10);
+  let minHoldMin = toNum(base.minHoldMin, 0);
+  let oorWaitMin = toNum(base.oorWaitMin, 30);
+  let trailingTriggerPct = toNum(base.trailingTriggerPct, 0);
+
+  if (rr.tier === "extreme") {
+    stopLossPct = Math.max(stopLossPct, -7);
+    takeProfitPct = Math.min(takeProfitPct, Math.max(3.5, rr.expectedFeePct * 2.2));
+    minHoldMin = Math.max(minHoldMin, 22);
+    oorWaitMin = Math.max(oorWaitMin, 18);
+    trailingTriggerPct = trailingTriggerPct > 0 ? Math.min(trailingTriggerPct, takeProfitPct * 0.65) : takeProfitPct * 0.55;
+  } else if (rr.tier === "high") {
+    stopLossPct = Math.max(stopLossPct, -9);
+    takeProfitPct = Math.min(takeProfitPct, Math.max(4.5, rr.expectedFeePct * 2.8));
+    minHoldMin = Math.max(minHoldMin, 18);
+    oorWaitMin = Math.max(oorWaitMin, 24);
+    trailingTriggerPct =
+      trailingTriggerPct > 0 ? Math.min(trailingTriggerPct, takeProfitPct * 0.7) : takeProfitPct * 0.5;
+  } else if (rr.tier === "medium") {
+    stopLossPct = Math.max(stopLossPct, -11);
+    takeProfitPct = Math.max(takeProfitPct, Math.min(rr.expectedFeePct * 3.2, 12));
+    trailingTriggerPct = trailingTriggerPct > 0 ? trailingTriggerPct : takeProfitPct * 0.45;
+  } else {
+    stopLossPct = Math.min(stopLossPct, -10);
+    takeProfitPct = Math.max(takeProfitPct, 5.5);
+    trailingTriggerPct = trailingTriggerPct > 0 ? trailingTriggerPct : takeProfitPct * 0.4;
+  }
+
+  const stopAbs = Math.abs(stopLossPct);
+  takeProfitPct = Math.max(takeProfitPct, stopAbs * 1.45);
+  const trailingGivebackPct = Math.max(
+    toNum(base.trailingGivebackPct, 0),
+    Math.max(1.2, takeProfitPct * 0.32),
+  );
+
+  return {
+    ...base,
+    stopLossPct,
+    takeProfitPct,
+    minHoldMin,
+    oorWaitMin,
+    trailingTriggerPct,
+    trailingGivebackPct,
+    riskTier: rr.tier,
+    riskRewardRatio: rr.ratio,
+    riskScore: rr.riskScore,
+  };
 }
 
 export function isPositionOutOfRange(activeAtOpen, activeNow, binsBelow, binsAbove) {
@@ -51,12 +228,15 @@ export function isPositionOutOfRange(activeAtOpen, activeNow, binsBelow, binsAbo
 
 /**
  * LP economics: fees accrue in-range; OOR exits realize impermanent loss from price drift.
+ * @param {number} [riskScore] 0–1 pool risk — scales IL on out-of-range exits.
  */
-export function computeLpNetPnlPct(priceDriftPct, feeYieldPct, inRange) {
+export function computeLpNetPnlPct(priceDriftPct, feeYieldPct, inRange, riskScore = 0.35) {
   if (inRange) {
     return priceDriftPct * 0.15 + feeYieldPct;
   }
-  const ilPenalty = -Math.abs(priceDriftPct) * 0.55 - Math.max(0, -priceDriftPct) * 0.2;
+  const ilScale = 1 + clamp01(riskScore) * 0.7;
+  const ilPenalty =
+    (-Math.abs(priceDriftPct) * 0.55 - Math.max(0, -priceDriftPct) * 0.2) * ilScale;
   return ilPenalty + feeYieldPct * 0.35;
 }
 

@@ -7,16 +7,23 @@ import {
   LP_REAL_MIRROR_STRATEGY_ID,
 } from "../config/lpAgentExperimentStrategies.js";
 import { resolveLpExperimentStrategies, resolveLpStrategyById } from "./lpExperimentStrategyResolve.js";
-import { fetchMeteoraPoolDetail, fetchMeteoraPools } from "./meteoraDlmmClient.js";
+import { fetchMeteoraPoolDetail, fetchMeteoraPoolPages, fetchMeteoraPools } from "./meteoraDlmmClient.js";
 import { isSolMint } from "./meteoraDlmmExecutor.js";
 import { scorePool } from "./lpExperimentScoring.js";
 import {
+  applyRiskAdjustedFeeMultiplier,
+  computeDlmmFeeShareMultiplier,
   computeFeeYieldPct,
   computeLpNetPnlPct,
+  computeLpRiskRewardProfile,
+  computePoolRiskScore,
   computePriceDriftPct,
   computeSimTransactionCostsSol,
   isPositionOutOfRange,
+  LP_MIN_EXTREME_RISK_REWARD_RATIO,
+  LP_MIN_SIM_RISK_REWARD_RATIO,
   mergeRealExitRules,
+  resolveAdaptiveExitRules,
   resolveEffectiveBins,
   shouldCloseByOor,
   strategyLikelyNeedsSidecarSwap,
@@ -24,7 +31,9 @@ import {
 
 export { computeLpNetPnlPct, isPositionOutOfRange };
 
-const OPEN_POSITION_COOLDOWN_MS = 90 * 60 * 1000;
+const OPEN_POSITION_COOLDOWN_MS = 45 * 60 * 1000;
+const SIM_POOL_SCAN_PAGES = 4;
+const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const DEFAULT_LIST_LIMIT = 50;
 const MAX_LIST_LIMIT = 200;
 
@@ -116,12 +125,15 @@ function poolFingerprint(pool) {
  */
 export function derivePoolSignals(pool) {
   const feeTvl = toNum(pool.feeTvlRatio);
+  /** Signal formulas were tuned on Meteora percent points (0.448 = 0.448%/day). */
+  const feeTvlPts = feeTvl * 100;
   const tvl = toNum(pool.tvlUsd);
   const vol = toNum(pool.volume24hUsd);
   const fp = poolFingerprint(pool);
   const volTvlRatio = tvl > 0 ? vol / tvl : vol > 0 ? 8 : 0;
-  const volatilityScore = Math.max(0, Math.min(1, feeTvl * 6 + vol / 400_000 + volTvlRatio * 0.08));
-  const organicBase = 42 + feeTvl * 280 + Math.min(28, tvl / 12_000);
+  const volatilityScore = Math.max(0, Math.min(1, feeTvlPts * 6 + vol / 400_000 + volTvlRatio * 0.08));
+  const organicBase =
+    36 + feeTvlPts * 180 + Math.min(24, volTvlRatio * 2.6) + Math.min(8, tvl / 45_000);
   const freshnessScore = Math.max(
     0,
     Math.min(1, Math.min(1, volTvlRatio / 6) * 0.65 + Math.max(0, 1 - tvl / 550_000) * 0.35),
@@ -130,10 +142,10 @@ export function derivePoolSignals(pool) {
     organicScore: Math.max(0, Math.min(100, organicBase + fp * 8)),
     holderCount: Math.floor(400 + tvl / 200 + vol / 500),
     mcapUsd: Math.floor(Math.max(120_000, tvl * (5 + fp * 4))),
-    smartWalletsPresent: feeTvl > 0.05 && vol > 100_000,
-    narrativeScore: Math.max(1, Math.min(10, 4 + feeTvl * 12 + fp * 2)),
-    studyWinRate: Math.max(0.32, Math.min(0.72, 0.38 + feeTvl * 1.6 + fp * 0.12)),
-    hiveConsensus: Math.max(0.25, Math.min(0.95, 0.35 + feeTvl * 2.5 + fp * 0.2)),
+    smartWalletsPresent: (feeTvlPts > 0.04 || volTvlRatio > 2) && vol > 40_000,
+    narrativeScore: Math.max(1, Math.min(10, 4 + feeTvlPts * 12 + fp * 2)),
+    studyWinRate: Math.max(0.32, Math.min(0.72, 0.38 + feeTvlPts * 1.6 + fp * 0.12)),
+    hiveConsensus: Math.max(0.25, Math.min(0.95, 0.35 + feeTvlPts * 2.5 + fp * 0.2)),
     volatilityScore,
     freshnessScore,
     volTvlRatio,
@@ -161,13 +173,48 @@ function evaluateRunResolution(run, detail, strategyExit, hoursElapsed, simDefau
     run.binsBelow,
     run.binsAbove,
   );
-  const feeYieldPct = inRange
-    ? computeFeeYieldPct(toNum(detail.feeTvlRatio, run.feeTvlRatio), hoursElapsed)
-    : computeFeeYieldPct(toNum(detail.feeTvlRatio, run.feeTvlRatio), hoursElapsed) * 0.25;
-  const netPnlPct = computeLpNetPnlPct(priceDriftPct, feeYieldPct, inRange);
+  const tvlUsd = toNum(detail.tvlUsd, run.tvlUsd);
+  const volume24hUsd = toNum(detail.volume24hUsd, run.volume24hUsd);
+  const volTvlRatio = tvlUsd > 0 ? volume24hUsd / tvlUsd : 0;
+  const feeTvlRatio = toNum(detail.feeTvlRatio, run.feeTvlRatio);
+  const snapshot =
+    run.screeningSnapshot != null && typeof run.screeningSnapshot === "object"
+      ? run.screeningSnapshot
+      : {};
+  const volatilityScore = toNum(snapshot.volatilityScore, 0.45);
+  const riskScore = toNum(
+    snapshot.riskScore,
+    computePoolRiskScore({
+      tvlUsd,
+      volume24hUsd,
+      feeTvlRatio,
+      volatilityScore,
+      binsBelow: run.binsBelow,
+      binsAbove: run.binsAbove,
+    }),
+  );
+
+  const poolContext = { tvlUsd, volume24hUsd, feeTvlRatio, volatilityScore };
+  const adaptiveExit =
+    snapshot.adaptiveExit && typeof snapshot.adaptiveExit === "object"
+      ? snapshot.adaptiveExit
+      : resolveAdaptiveExitRules(strategyExit || {}, poolContext, run.binsBelow, run.binsAbove);
+  const exit = mergeRealExitRules(adaptiveExit);
+
+  const baseFeeYieldPct = computeFeeYieldPct(feeTvlRatio, hoursElapsed);
+  const rawFeeShareMult = computeDlmmFeeShareMultiplier({
+    volTvlRatio,
+    tvlUsd,
+    binsBelow: run.binsBelow,
+    binsAbove: run.binsAbove,
+    inRange,
+  });
+  const feeShareMult = applyRiskAdjustedFeeMultiplier(rawFeeShareMult, riskScore);
+  const feeYieldPct = inRange ? baseFeeYieldPct * feeShareMult : baseFeeYieldPct * feeShareMult * 0.25;
+  const netPnlPct = computeLpNetPnlPct(priceDriftPct, feeYieldPct, inRange, riskScore);
   const simFeesEarnedSol = toNum(run.depositSol) * (feeYieldPct / 100);
 
-  const exit = mergeRealExitRules(strategyExit || {});
+  const peakPnlPct = Math.max(toNum(snapshot.peakPnlPct), netPnlPct);
   let status = "open";
   let resolution = null;
   if (priceDriftPct <= toNum(exit.stopLossPct, -15)) {
@@ -176,12 +223,23 @@ function evaluateRunResolution(run, detail, strategyExit, hoursElapsed, simDefau
   } else if (netPnlPct >= toNum(exit.takeProfitPct, 10)) {
     status = "win";
     resolution = "take_profit";
-  } else if (shouldCloseByOor(run, detail, exit, hoursElapsed)) {
-    status = netPnlPct >= simDefaults.winThresholdPct ? "win" : "loss";
-    resolution = "oor";
-  } else if (hoursElapsed >= simDefaults.maxRunAgeHours) {
-    status = netPnlPct >= simDefaults.winThresholdPct ? "win" : "expired";
-    resolution = "time_expiry";
+  } else {
+    const trailingTrigger = toNum(exit.trailingTriggerPct);
+    const trailingGiveback = Math.max(toNum(exit.trailingGivebackPct, trailingTrigger * 0.4), 1.1);
+    if (
+      trailingTrigger > 0 &&
+      peakPnlPct >= trailingTrigger &&
+      netPnlPct <= peakPnlPct - trailingGiveback
+    ) {
+      status = netPnlPct >= simDefaults.winThresholdPct ? "win" : "loss";
+      resolution = "trailing_stop";
+    } else if (shouldCloseByOor(run, detail, exit, hoursElapsed)) {
+      status = netPnlPct >= simDefaults.winThresholdPct ? "win" : "loss";
+      resolution = "oor";
+    } else if (hoursElapsed >= simDefaults.maxRunAgeHours) {
+      status = netPnlPct >= simDefaults.winThresholdPct ? "win" : "expired";
+      resolution = "time_expiry";
+    }
   }
 
   const needsSidecar = strategyLikelyNeedsSidecarSwap(run.binsBelow, run.binsAbove);
@@ -207,6 +265,9 @@ function evaluateRunResolution(run, detail, strategyExit, hoursElapsed, simDefau
     simOpenFeeSol: openFeeSol,
     simCloseFeeSol: closeFeeSol,
     simNetPnlSol,
+    peakPnlPct,
+    riskScore,
+    adaptiveExit,
   };
 }
 
@@ -522,13 +583,127 @@ export async function selectRealStylePoolCandidate({
   return null;
 }
 
+/** USDC-quoted pools — sim-only (paper); real LP still requires a SOL leg. */
+export function isUsdcPairPool(pool) {
+  const base = String(pool?.baseMint || "");
+  const quote = String(pool?.quoteMint || "");
+  return base === USDC_MINT || quote === USDC_MINT;
+}
+
+/** Paper sim: SOL or USDC pairs (captures memecoin-USDC fee farms). */
+export function isSimTradablePool(pool) {
+  return isSolPairPool(pool) || isUsdcPairPool(pool);
+}
+
+/** Aggressive sim screen with minimum risk/reward hurdle. */
+export function passesSimPoolScreen(pool, { binsBelow = 30, binsAbove = 30 } = {}) {
+  const feeTvl = toNum(pool.feeTvlRatio);
+  const tvl = toNum(pool.tvlUsd);
+  const vol = toNum(pool.volume24hUsd);
+  if (tvl < 8_000 || vol < 15_000) return false;
+  if (feeTvl < 0.00015) return false;
+  const volTvl = tvl > 0 ? vol / tvl : 0;
+  if (volTvl < 0.35 && feeTvl < 0.0008) return false;
+
+  const rr = computeLpRiskRewardProfile({
+    tvlUsd: tvl,
+    volume24hUsd: vol,
+    feeTvlRatio: feeTvl,
+    volatilityScore: toNum(pool.volatilityScore, 0.45),
+    binsBelow,
+    binsAbove,
+    holdHours: 4,
+  });
+  if (rr.ratio < LP_MIN_SIM_RISK_REWARD_RATIO) return false;
+  if (rr.tier === "extreme" && rr.ratio < LP_MIN_EXTREME_RISK_REWARD_RATIO) return false;
+  return true;
+}
+
+/** Fee-earning velocity: fee/TVL × vol/TVL — higher on thin, high-flow pools. */
+export function computeFeeVelocityScore(pool) {
+  const tvl = toNum(pool.tvlUsd);
+  const vol = toNum(pool.volume24hUsd);
+  const feeTvl = toNum(pool.feeTvlRatio);
+  if (tvl <= 0) return 0;
+  return feeTvl * (vol / tvl);
+}
+
+/** Penalize mega pools — sim chases fee density, not blue-chip TVL. */
+function simPoolSizeMultiplier(tvlUsd) {
+  const tvl = toNum(tvlUsd);
+  if (tvl > 2_500_000) return 0.78;
+  if (tvl > 900_000) return 0.88;
+  if (tvl > 450_000) return 0.94;
+  if (tvl <= 320_000) return 1.08;
+  return 1;
+}
+
+/** Risk-adjusted ranking boost for signal cycle (profit potential × safety). */
+function simRiskRewardBoost(pool, synthetic, binsBelow, binsAbove) {
+  const rr = computeLpRiskRewardProfile({
+    tvlUsd: pool.tvlUsd,
+    volume24hUsd: pool.volume24hUsd,
+    feeTvlRatio: pool.feeTvlRatio,
+    volatilityScore: synthetic.volatilityScore,
+    binsBelow,
+    binsAbove,
+    holdHours: 4,
+  });
+  if (rr.ratio < LP_MIN_SIM_RISK_REWARD_RATIO) return { eligible: false, boost: 0, profile: rr };
+  if (rr.tier === "extreme" && rr.ratio < LP_MIN_EXTREME_RISK_REWARD_RATIO) {
+    return { eligible: false, boost: 0, profile: rr };
+  }
+  const rewardBoost = 0.72 + Math.min(1.45, rr.ratio * 0.52);
+  const safetyBoost = 0.88 + (1 - rr.riskScore) * 0.28;
+  return { eligible: true, boost: rewardBoost * safetyBoost, profile: rr };
+}
+
+async function fetchSimCandidatePools() {
+  const [byFee, byVolume] = await Promise.all([
+    fetchMeteoraPoolPages({
+      pages: SIM_POOL_SCAN_PAGES,
+      limit: 100,
+      sortKey: "fee",
+      order: "desc",
+      hideLowTvl: false,
+    }),
+    fetchMeteoraPoolPages({
+      pages: 2,
+      limit: 100,
+      sortKey: "volume",
+      order: "desc",
+      hideLowTvl: false,
+    }),
+  ]);
+  const seen = new Map();
+  for (const pool of [...byFee, ...byVolume]) {
+    if (pool.poolAddress) seen.set(pool.poolAddress, pool);
+  }
+  return [...seen.values()]
+    .filter((p) => passesSimPoolScreen(p) && isSimTradablePool(p))
+    .sort((a, b) => {
+      const rrA = computeLpRiskRewardProfile({
+        tvlUsd: a.tvlUsd,
+        volume24hUsd: a.volume24hUsd,
+        feeTvlRatio: a.feeTvlRatio,
+      }).ratio;
+      const rrB = computeLpRiskRewardProfile({
+        tvlUsd: b.tvlUsd,
+        volume24hUsd: b.volume24hUsd,
+        feeTvlRatio: b.feeTvlRatio,
+      }).ratio;
+      return rrB - rrA;
+    });
+}
+
 /** Stricter pool filters for on-chain LP (reduces IL-heavy memecoin / thin pools). */
 export function passesRealPoolScreen(pool) {
   const feeTvl = toNum(pool.feeTvlRatio);
   const tvl = toNum(pool.tvlUsd);
   const vol = toNum(pool.volume24hUsd);
   if (tvl < 40_000 || vol < 60_000) return false;
-  if (feeTvl < 0.035) return false;
+  // 0.035% daily minimum (thresholds elsewhere use Meteora percent points; stored ratio is decimal).
+  if (feeTvl < 0.00035) return false;
   return true;
 }
 
@@ -540,15 +715,15 @@ export function isSolPairPool(pool) {
 export async function getLpCandidatePools({ realMode = false } = {}) {
   await ensureLpExperimentBootstrapped();
   const strategies = await resolveLpExperimentStrategies();
-  const pools = await fetchMeteoraPools({
-    page: 1,
-    limit: realMode
-      ? 120
-      : Math.max(30, LP_AGENT_EXPERIMENT_DEFAULTS.minCandidateCount),
-    sortKey: "fee",
-    order: "desc",
-    hideLowTvl: true,
-  });
+  const pools = realMode
+    ? await fetchMeteoraPools({
+        page: 1,
+        limit: 120,
+        sortKey: "fee",
+        order: "desc",
+        hideLowTvl: true,
+      })
+    : await fetchSimCandidatePools();
   const poolList = realMode
     ? pools.filter((p) => passesRealPoolScreen(p) && isSolPairPool(p))
     : pools;
@@ -748,15 +923,7 @@ export async function runLpExperimentSignalCycle() {
   }
   const simCfg = mergedSimConfig(state);
   const strategies = await resolveLpExperimentStrategies();
-  const pools = (
-    await fetchMeteoraPools({
-      page: 1,
-      limit: 120,
-      sortKey: "fee",
-      order: "desc",
-      hideLowTvl: true,
-    })
-  ).filter((p) => passesRealPoolScreen(p) && isSolPairPool(p));
+  const pools = await fetchSimCandidatePools();
   const solPrice = await fetchSolPriceUsd();
   const opened = [];
   const skipped = [];
@@ -790,9 +957,50 @@ export async function runLpExperimentSignalCycle() {
       const scored = pools
         .map((pool) => {
           const synthetic = derivePoolSignals(pool);
-          const scoredRow = scorePool(strategy, { ...pool, ...synthetic });
-          const compoundBoost = 1 + Math.log1p(Math.max(0, cashSol - simCfg.startingBankSol)) / 25;
-          return { pool, synthetic, ...scoredRow, score: scoredRow.score * compoundBoost };
+          const rrMeta = simRiskRewardBoost(
+            pool,
+            synthetic,
+            effectiveBins.binsBelow,
+            effectiveBins.binsAbove,
+          );
+          if (!rrMeta.eligible) {
+            return {
+              pool,
+              synthetic,
+              score: 0,
+              gatePassed: false,
+              gateReasons: ["risk_reward:below_minimum"],
+              signalSnapshot: null,
+            };
+          }
+          const enriched = {
+            ...pool,
+            ...synthetic,
+            riskScore: rrMeta.profile.riskScore,
+            riskRewardRatio: rrMeta.profile.ratio,
+            riskTier: rrMeta.profile.tier,
+          };
+          const scoredRow = scorePool(strategy, enriched);
+          const compoundBoost = 1 + Math.log1p(Math.max(0, cashSol - simCfg.startingBankSol)) / 20;
+          const sizeBoost = simPoolSizeMultiplier(pool.tvlUsd);
+          const adaptiveExit = resolveAdaptiveExitRules(
+            strategy.exit || {},
+            {
+              tvlUsd: pool.tvlUsd,
+              volume24hUsd: pool.volume24hUsd,
+              feeTvlRatio: pool.feeTvlRatio,
+              volatilityScore: synthetic.volatilityScore,
+            },
+            effectiveBins.binsBelow,
+            effectiveBins.binsAbove,
+          );
+          return {
+            pool,
+            synthetic: enriched,
+            adaptiveExit,
+            ...scoredRow,
+            score: scoredRow.score * compoundBoost * rrMeta.boost * sizeBoost,
+          };
         })
         .filter((x) => x.gatePassed)
         .sort((a, b) => b.score - a.score);
@@ -847,6 +1055,11 @@ export async function runLpExperimentSignalCycle() {
             ...best.synthetic,
             score: best.score,
             binsClamped: effectiveBins.clamped,
+            adaptiveExit: best.adaptiveExit,
+            riskTier: best.synthetic.riskTier,
+            riskScore: best.synthetic.riskScore,
+            riskRewardRatio: best.synthetic.riskRewardRatio,
+            peakPnlPct: 0,
           },
           status: "open",
           openedAt: new Date(),
@@ -959,6 +1172,9 @@ export async function resolveOpenLpRuns() {
             simNetPnlSol: fields.simNetPnlSol,
             lastEvaluatedAt: new Date(),
             ...(fields.status !== "open" ? { resolvedAt: new Date() } : {}),
+            ...(fields.status === "open"
+              ? { "screeningSnapshot.peakPnlPct": fields.peakPnlPct }
+              : {}),
           },
         },
       );
