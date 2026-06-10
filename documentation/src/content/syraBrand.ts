@@ -1,9 +1,9 @@
 /** Shared Syra brand copy for the documentation site. */
 
-export const SYRA_TAGLINE = "Machine money for AI agents";
+export const SYRA_TAGLINE = "Machine money for AI trading agents";
 export const SYRA_DOCS_TITLE = `Syra Docs — ${SYRA_TAGLINE}`;
 export const SYRA_DOCS_DESCRIPTION =
-  "Documentation for Syra: machine money infrastructure on Solana—autonomous revenue, treasury, DeFi, x402 APIs, and agent workflows.";
+  "Documentation for Syra: the financial + intelligence rail for autonomous trading agents on Solana — x402 APIs, agent wallets, treasury policy, and execution.";
 
 export const SYRA_MISSION =
   "Syra enables autonomous agents to generate revenue, hold treasury assets, participate in DeFi, and distribute value on Solana — so agents become independent economic actors, not tools waiting on humans for every financial decision.";
@@ -12,7 +12,7 @@ export const SYRA_VISION =
   "Our vision is an economy where millions of AI agents become productive economic actors powered by Solana.";
 
 export const SYRA_HIGHLIGHT =
-  "Syra is not building another AI agent. We are building machine money infrastructure that lets AI agents operate as independent economic actors on Solana.";
+  "Syra is not building another chatbot. We are building the rail agents pay to think and trade on Solana — intelligence APIs plus agent money infrastructure.";
 
 export const SYRA_DOCS_BADGE = "Machine money · Solana";
 

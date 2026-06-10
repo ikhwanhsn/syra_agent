@@ -4,19 +4,31 @@
 
 # **Syra MCP Server**
 
-### Expose the Syra API as MCP tools for Cursor, Claude Desktop, and other AI assistants
+### Machine money for AI trading agents — MCP distribution for Cursor, Claude, and agent frameworks
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-docs.syraa.fun-0ea5e9)](https://docs.syraa.fun)
-[![API](https://img.shields.io/badge/API-Syra-26a5e4)](https://api.syraa.fun)
+[![API Playground](https://img.shields.io/badge/build-playground.syraa.fun-26a5e4)](https://playground.syraa.fun)
 
-**[Documentation](https://docs.syraa.fun)** · **[API Playground](https://playground.syraa.fun)** · **[Agent](https://agent.syraa.fun)** · **[Telegram Bot](https://t.me/syra_trading_bot)**
+**[Documentation](https://docs.syraa.fun)** · **[API Playground](https://playground.syraa.fun)** · **[SDK](../syra-sdk)** · **[Agent demo](https://agent.syraa.fun)**
 
 </div>
 
 ---
 
-A **Model Context Protocol (MCP)** server that exposes the **Syra API** as tools for AI assistants. Use it from **Cursor**, **Claude Desktop**, or any other MCP-compatible client to fetch crypto news, events, sentiment, signals, research, token reports, memecoin screens, and more—all from inside your AI chat.
+## One-line install (Cursor / Claude Desktop)
+
+Copy from [`integrations/cursor.mcp.json`](integrations/cursor.mcp.json) or run:
+
+```bash
+npx -y @syra/mcp-server
+```
+
+Set `SYRA_API_BASE_URL=https://api.syraa.fun`. For ElizaOS and custom agents, see [`integrations/elizaos.md`](integrations/elizaos.md).
+
+---
+
+A **Model Context Protocol (MCP)** server that exposes the **Syra intelligence + execution rail** as tools for AI assistants. Use it from **Cursor**, **Claude Desktop**, **ElizaOS**, or any MCP-compatible client to fetch crypto news, sentiment, signals, smart-money flow, and more — agents pay per call via x402 when using production routes.
 
 ---
 

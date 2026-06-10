@@ -7,8 +7,8 @@
  *   offset: number;
  *   length: number;
  *   type: string;
+ *   user?: TelegramUser;
  * }} TelegramMessageEntity
- */
 
 /**
  * @typedef {{

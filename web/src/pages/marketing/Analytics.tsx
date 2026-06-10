@@ -124,14 +124,14 @@ export default function Analytics() {
             <div className="inline-flex items-center gap-2 px-4 py-2 mb-6 glass-card">
               <Activity className="w-4 h-4 text-primary" />
               <span className="text-sm text-muted-foreground">
-                Grant KPI dashboard
+                Syra rail credibility · live paid API volume
               </span>
             </div>
             <h1 className="mb-4 text-4xl font-bold sm:text-5xl">
-              <span className="neon-text">Analytics</span>
+              <span className="neon-text">Rail analytics</span>
             </h1>
             <p className="text-lg text-muted-foreground">
-              Paid API usage and AI agent adoption
+              Public proof of paid x402 usage on the Syra intelligence + execution rail — updated live from production.
             </p>
           </motion.div>
 

@@ -3,6 +3,11 @@ import {
   POST_PHOTO_LAYOUT_LABELS_BATCH2,
   type PostPhotoLayoutTemplateBatch2,
 } from "./layoutsBatch2";
+import {
+  POST_PHOTO_LAYOUTS_BATCH3,
+  POST_PHOTO_LAYOUT_LABELS_BATCH3,
+  type PostPhotoLayoutTemplateBatch3,
+} from "./layoutsBatch3";
 
 /** Batch 1 — original 25 photo templates */
 export const POST_PHOTO_LAYOUTS_BASE = [
@@ -63,19 +68,30 @@ const POST_PHOTO_LAYOUT_LABELS_BASE: Record<PostPhotoLayoutTemplateBase, string>
   "photo-terminal": "Terminal",
 };
 
-export const POST_PHOTO_LAYOUTS = [...POST_PHOTO_LAYOUTS_BASE, ...POST_PHOTO_LAYOUTS_BATCH2] as const;
+export const POST_PHOTO_LAYOUTS = [
+  ...POST_PHOTO_LAYOUTS_BASE,
+  ...POST_PHOTO_LAYOUTS_BATCH2,
+  ...POST_PHOTO_LAYOUTS_BATCH3,
+] as const;
 
-export type PostPhotoLayoutTemplate = PostPhotoLayoutTemplateBase | PostPhotoLayoutTemplateBatch2;
+export type PostPhotoLayoutTemplate =
+  | PostPhotoLayoutTemplateBase
+  | PostPhotoLayoutTemplateBatch2
+  | PostPhotoLayoutTemplateBatch3;
 
 export const POST_PHOTO_LAYOUT_COUNT = POST_PHOTO_LAYOUTS.length;
 
 export const POST_PHOTO_LAYOUT_LABELS: Record<PostPhotoLayoutTemplate, string> = {
   ...POST_PHOTO_LAYOUT_LABELS_BASE,
   ...POST_PHOTO_LAYOUT_LABELS_BATCH2,
+  ...POST_PHOTO_LAYOUT_LABELS_BATCH3,
 };
 
 export {
   POST_PHOTO_LAYOUTS_BATCH2,
   POST_PHOTO_LAYOUT_LABELS_BATCH2,
   type PostPhotoLayoutTemplateBatch2,
+  POST_PHOTO_LAYOUTS_BATCH3,
+  POST_PHOTO_LAYOUT_LABELS_BATCH3,
+  type PostPhotoLayoutTemplateBatch3,
 };

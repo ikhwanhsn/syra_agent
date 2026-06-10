@@ -32,23 +32,28 @@ export function SyraApiCard({
       className={playgroundApiCardClass(active)}
       style={playgroundStaggerStyle(staggerIndex)}
     >
-      <div className="mb-2 flex items-center justify-between gap-2">
+      <div className="mb-3 flex items-center justify-between gap-2">
         <Badge
           variant="secondary"
           className={cn(
-            "font-mono text-[10px] uppercase",
-            !isGet && "bg-primary/10 text-foreground",
+            "rounded-md border-0 font-mono text-[10px] font-semibold uppercase tracking-wide",
+            isGet
+              ? "bg-muted/80 text-muted-foreground"
+              : "bg-primary/12 text-primary",
           )}
         >
           {flow.method}
         </Badge>
       </div>
 
-      <h3 className="mb-1 line-clamp-2 text-sm font-medium leading-snug text-foreground">
+      <h3 className="mb-1.5 line-clamp-2 text-sm font-semibold leading-snug tracking-tight text-foreground">
         {detail}
       </h3>
 
-      <p className="mb-3 truncate font-mono text-[11px] text-muted-foreground" title={path}>
+      <p
+        className="mb-4 truncate rounded-md bg-muted/30 px-2 py-1 font-mono text-[10px] text-muted-foreground"
+        title={path}
+      >
         {path}
       </p>
 
@@ -58,10 +63,7 @@ export function SyraApiCard({
         size="sm"
         disabled={isLoading && active}
         className={cn(
-          "mt-auto h-8 w-full gap-1.5 rounded-lg text-xs font-semibold",
-          "transition-[background-color,box-shadow,transform] duration-200",
-          "hover:bg-primary/90 hover:shadow-glow-sm hover:brightness-105",
-          "active:scale-[0.98]",
+          "playground-try-btn mt-auto h-9 w-full gap-1.5 rounded-lg text-xs font-semibold",
           isLoading && active && "opacity-80",
         )}
         onClick={() => onTry()}
@@ -69,9 +71,9 @@ export function SyraApiCard({
         {isLoading && active ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
         ) : (
-          <Play className="h-3.5 w-3.5" aria-hidden />
+          <Play className="playground-try-icon h-3.5 w-3.5 transition-transform" aria-hidden />
         )}
-        Try
+        Try endpoint
       </Button>
     </article>
   );

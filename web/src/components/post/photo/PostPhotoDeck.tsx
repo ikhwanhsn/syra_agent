@@ -4,6 +4,9 @@ import {
   getPostPhotoLibraryRest,
   getPostPhotoPicks,
   getPostPhotoShareCopy,
+  POST_PHOTO_CONTEXT_BY_TEMPLATE,
+  POST_PHOTO_CONTEXT_COUNT,
+  POST_PHOTO_CONTEXTS,
   POST_PHOTO_LAYOUT_COUNT,
   POST_PHOTO_LAYOUT_LABELS,
   type PostPhotoLayoutTemplate,
@@ -25,32 +28,44 @@ import { toast } from "sonner";
 
 function TemplateButton({
   template,
-  index,
+  label,
+  sublabel,
   active,
   onSelect,
+  compact,
 }: {
   template: PostPhotoLayoutTemplate;
-  index: number;
+  label: string;
+  sublabel?: string;
   active: boolean;
   onSelect: () => void;
+  compact?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onSelect}
       className={cn(
-        "post-photo-template-btn flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors",
+        "post-photo-template-btn flex w-full items-center gap-2 rounded-lg text-left transition-colors",
+        compact ? "px-2 py-1.5" : "px-2.5 py-2",
         active
           ? "bg-[#F3BA2F]/12 text-[#F3BA2F]"
           : "text-white/60 hover:bg-white/[0.04] hover:text-white/85",
       )}
     >
-      <span className="font-mono text-[10px] tabular-nums text-white/30">
-        {String(index + 1).padStart(2, "0")}
-      </span>
-      <span className="text-xs">{POST_PHOTO_LAYOUT_LABELS[template]}</span>
+      <span className={cn("min-w-0 flex-1", compact ? "text-[11px]" : "text-xs")}>{label}</span>
+      {sublabel ? (
+        <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.12em] text-white/30">{sublabel}</span>
+      ) : null}
     </button>
   );
+}
+
+function getTemplateStyleLabel(template: PostPhotoLayoutTemplate): string {
+  const context = POST_PHOTO_CONTEXT_BY_TEMPLATE.get(template);
+  if (!context) return POST_PHOTO_LAYOUT_LABELS[template];
+  const variant = context.variants.find((v) => v.template === template);
+  return variant?.style ?? POST_PHOTO_LAYOUT_LABELS[template];
 }
 
 interface PostPhotoDeckProps {
@@ -185,7 +200,7 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
         <aside className="post-photo-sidebar shrink-0 border-b border-white/[0.06] lg:w-72 lg:border-b-0 lg:border-r">
           <div className="px-3 py-3 sm:px-4">
             <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#F3BA2F]/70">
-              {picks.length} picks · {POST_PHOTO_LAYOUT_COUNT} in library
+              {picks.length} picks · {POST_PHOTO_CONTEXT_COUNT} contexts · {POST_PHOTO_LAYOUT_COUNT} styles
             </p>
             <p className="mt-1 text-xs text-white/50">{meta.tagline}</p>
           </div>
@@ -194,15 +209,19 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
             <p className="px-2.5 pb-1.5 font-mono text-[9px] uppercase tracking-[0.16em] text-white/30">
               Best for this update
             </p>
-            {picks.map((template, i) => (
-              <TemplateButton
-                key={template}
-                template={template}
-                index={i}
-                active={layout === template}
-                onSelect={() => setLayout(template)}
-              />
-            ))}
+            {picks.map((template) => {
+              const context = POST_PHOTO_CONTEXT_BY_TEMPLATE.get(template);
+              return (
+                <TemplateButton
+                  key={template}
+                  template={template}
+                  label={context?.label ?? POST_PHOTO_LAYOUT_LABELS[template]}
+                  sublabel={getTemplateStyleLabel(template)}
+                  active={layout === template}
+                  onSelect={() => setLayout(template)}
+                />
+              );
+            })}
 
             {libraryRest.length > 0 ? (
               <div className="mt-2 border-t border-white/[0.06] pt-2">
@@ -212,7 +231,7 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
                   className="flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-white/[0.04]"
                 >
                   <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-white/35">
-                    More templates ({libraryRest.length})
+                    All contexts ({libraryRest.length} more)
                   </span>
                   <ChevronDown
                     className={cn(
@@ -222,15 +241,29 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
                   />
                 </button>
                 {showLibrary
-                  ? libraryRest.map((template, i) => (
-                      <TemplateButton
-                        key={template}
-                        template={template}
-                        index={picks.length + i}
-                        active={layout === template}
-                        onSelect={() => setLayout(template)}
-                      />
-                    ))
+                  ? POST_PHOTO_CONTEXTS.map((context) => {
+                      const libraryVariants = context.variants.filter((v) => libraryRest.includes(v.template));
+                      if (libraryVariants.length === 0) return null;
+                      return (
+                        <div key={context.id} className="mt-1.5 px-1">
+                          <p className="px-1.5 pb-1 font-mono text-[9px] uppercase tracking-[0.14em] text-white/40">
+                            {context.label}
+                          </p>
+                          <p className="px-1.5 pb-1.5 text-[10px] leading-snug text-white/35">{context.description}</p>
+                          {libraryVariants.map((variant) => (
+                            <TemplateButton
+                              key={variant.template}
+                              template={variant.template}
+                              label={variant.style}
+                              sublabel="style"
+                              compact
+                              active={layout === variant.template}
+                              onSelect={() => setLayout(variant.template)}
+                            />
+                          ))}
+                        </div>
+                      );
+                    })
                   : null}
               </div>
             ) : null}
@@ -251,7 +284,9 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
 
         <div className="post-chrome-stage flex min-h-0 min-w-0 flex-1 flex-col items-center justify-center px-2 py-3 sm:px-6 sm:py-4">
           <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/35">
-            {POST_PHOTO_LAYOUT_LABELS[layout]}
+            {POST_PHOTO_CONTEXT_BY_TEMPLATE.get(layout)?.label ?? POST_PHOTO_LAYOUT_LABELS[layout]}
+            {" · "}
+            {getTemplateStyleLabel(layout)}
             {picks.includes(layout) ? " · pick" : " · library"}
             {" · "}
             {layoutIndexInView > 0

@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { useMounted } from "@/hooks/useMounted";
 import {
   SITE_NAV_GROUPS,
+  SITE_NAV_ADMIN_MORE,
   SITE_NAV_MORE,
   type NavGroup,
   type NavLinkItem,
@@ -257,6 +258,18 @@ export function GlobalNavMobileSheet({
                 </li>
               ))}
             </ul>
+            {isAdmin ? (
+              <section className="px-1">
+                <MobileSectionLabel>Internal</MobileSectionLabel>
+                <ul className="flex flex-col gap-0.5">
+                  {SITE_NAV_ADMIN_MORE.map((item) => (
+                    <li key={item.href}>
+                      <MobileNavItem item={item} pathname={pathname} onNavigate={close} />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
           </section>
         </nav>
 

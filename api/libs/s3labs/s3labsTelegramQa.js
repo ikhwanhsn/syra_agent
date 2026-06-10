@@ -36,21 +36,62 @@ function isUserRateLimited(userId) {
 /**
  * @param {import("./s3labsTelegramTypes.js").TelegramMessage | undefined} message
  * @param {string} botUsername
+ * @param {number} [botId]
  * @returns {boolean}
  */
-export function isBotMentionedInMessage(message, botUsername) {
+export function isBotMentionedInMessage(message, botUsername, botId) {
   if (!message?.text && !message?.caption) return false;
   const text = String(message.text || message.caption || "");
   const entities = message.entities || message.caption_entities || [];
   const needle = `@${botUsername}`.toLowerCase();
 
   for (const e of entities) {
+    if (e.type === "text_mention" && botId != null && e.user?.id === botId) {
+      return true;
+    }
     if (e.type !== "mention") continue;
     const slice = text.slice(e.offset, e.offset + e.length).toLowerCase();
     if (slice === needle) return true;
   }
 
   return text.toLowerCase().includes(needle);
+}
+
+/**
+ * Remove @username and text_mention segments that reference the bot.
+ * @param {string} text
+ * @param {import("./s3labsTelegramTypes.js").TelegramMessageEntity[]} entities
+ * @param {string} botUsername
+ * @param {number} [botId]
+ * @returns {string}
+ */
+export function stripBotMentionFromText(text, entities, botUsername, botId) {
+  const needle = `@${botUsername}`.toLowerCase();
+  /** @type {Array<[number, number]>} */
+  const spans = [];
+
+  for (const e of entities) {
+    if (e.type === "text_mention" && botId != null && e.user?.id === botId) {
+      spans.push([e.offset, e.offset + e.length]);
+      continue;
+    }
+    if (e.type !== "mention") continue;
+    const slice = text.slice(e.offset, e.offset + e.length).toLowerCase();
+    if (slice === needle) {
+      spans.push([e.offset, e.offset + e.length]);
+    }
+  }
+
+  if (spans.length === 0) {
+    const re = new RegExp(`@${botUsername}\\b`, "gi");
+    return text.replace(re, "").replace(/\s+/g, " ").trim();
+  }
+
+  let out = text;
+  for (const [start, end] of spans.sort((a, b) => b[0] - a[0])) {
+    out = out.slice(0, start) + out.slice(end);
+  }
+  return out.replace(/\s+/g, " ").trim();
 }
 
 /**
@@ -66,11 +107,13 @@ export function stripBotMention(text, botUsername) {
 /**
  * @param {import("./s3labsTelegramTypes.js").TelegramMessage} message
  * @param {string} botUsername
+ * @param {number} [botId]
  * @returns {string}
  */
-function extractQuestion(message, botUsername) {
+export function extractQuestion(message, botUsername, botId) {
   const raw = String(message.text || message.caption || "").trim();
-  return stripBotMention(raw, botUsername);
+  const entities = message.entities || message.caption_entities || [];
+  return stripBotMentionFromText(raw, entities, botUsername, botId);
 }
 
 /**
@@ -118,47 +161,61 @@ export async function handleS3labsTelegramUpdate(update) {
   const chatType = message.chat.type;
   if (chatType !== "group" && chatType !== "supergroup") return;
 
-  const allowed = await isAllowedS3labsChat(message.chat.id);
-  if (!allowed) {
-    return;
-  }
-
-  const bot = await getS3labsBotMeta();
-  if (!bot?.username) {
-    console.warn("[s3labs-telegram-qa] bot username unknown (getMe failed)");
-    return;
-  }
-
-  if (!isBotMentionedInMessage(message, bot.username)) return;
-
-  const question = extractQuestion(message, bot.username);
-  if (!question) return;
-
-  if (isUserRateLimited(message.from.id)) {
-    await sendS3labsTelegramReply(
-      "⏳ Kamu sudah banyak bertanya dalam satu jam. Coba lagi nanti ya.",
-      {
-        replyToMessageId: message.message_id,
-        messageThreadId: message.message_thread_id,
-      },
-    );
-    return;
-  }
-
-  let replyText;
-  try {
-    replyText = await answerS3labsQuestion(question);
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    console.error("[s3labs-telegram-qa] LLM failed:", msg);
-    replyText = "Maaf, ada gangguan sementara. Coba lagi beberapa menit lagi.";
-  }
-
-  const sent = await sendS3labsTelegramReply(replyText, {
+  const replyOpts = {
     replyToMessageId: message.message_id,
     messageThreadId: message.message_thread_id,
-  });
-  if (!sent) {
-    console.warn("[s3labs-telegram-qa] failed to send reply");
+  };
+
+  try {
+    const allowed = await isAllowedS3labsChat(message.chat.id);
+    if (!allowed) {
+      return;
+    }
+
+    const bot = await getS3labsBotMeta();
+    if (!bot?.username) {
+      console.warn("[s3labs-telegram-qa] bot username unknown (getMe failed)");
+      return;
+    }
+
+    if (!isBotMentionedInMessage(message, bot.username, bot.id)) return;
+
+    const question = extractQuestion(message, bot.username, bot.id);
+    if (!question) {
+      await sendS3labsTelegramReply(
+        "Tag bot lalu tulis pertanyaanmu — contoh: `@s3labs_bot apa itu Claude Fable 5?`",
+        replyOpts,
+      );
+      return;
+    }
+
+    if (isUserRateLimited(message.from.id)) {
+      await sendS3labsTelegramReply(
+        "⏳ Kamu sudah banyak bertanya dalam satu jam. Coba lagi nanti ya.",
+        replyOpts,
+      );
+      return;
+    }
+
+    let replyText;
+    try {
+      replyText = await answerS3labsQuestion(question);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error("[s3labs-telegram-qa] LLM failed:", msg);
+      replyText = "Maaf, ada gangguan sementara. Coba lagi beberapa menit lagi.";
+    }
+
+    const sent = await sendS3labsTelegramReply(replyText, replyOpts);
+    if (!sent) {
+      console.warn("[s3labs-telegram-qa] failed to send reply");
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[s3labs-telegram-qa] handler failed:", msg);
+    await sendS3labsTelegramReply(
+      "Maaf, ada gangguan sementara. Coba lagi beberapa menit lagi.",
+      replyOpts,
+    ).catch(() => {});
   }
 }

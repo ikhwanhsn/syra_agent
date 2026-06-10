@@ -33,6 +33,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { INTERNAL_BASE_PATH, internalPartnershipBoardPath } from "@/lib/internalRoutes";
 
 const STALE_MS = 45_000;
 
@@ -484,11 +485,11 @@ export default function InternalAgentDetailPage() {
   }
 
   if (slug === "partnership-scout") {
-    return <Navigate to="/internal-team-agents#partnership-board" replace />;
+    return <Navigate to={internalPartnershipBoardPath()} replace />;
   }
 
   if (!slug || !meta) {
-    return <Navigate to="/internal-team-agents" replace />;
+    return <Navigate to={INTERNAL_BASE_PATH} replace />;
   }
 
   return (

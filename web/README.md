@@ -1,6 +1,6 @@
 # Syra main website (Vite)
 
-Unified Syra web app: AI agent, dashboard, staking, API playground.
+**Machine money for AI trading agents** — the unified Syra web app: API playground (Build), agent wallet, operator dashboard, and proof demos.
 
 ## Setup
 
@@ -15,6 +15,15 @@ npm run dev
 Dev server: http://localhost:8080
 
 On localhost, API calls go through **`/api`** (Vite proxies to `https://api.syraa.fun`) so you avoid CORS errors. To use a local gateway instead, run `cd api && npm run dev` and set `VITE_USE_LOCAL_API=true` in `.env.local`.
+
+## Product surfaces
+
+| Surface | Route | Role |
+|---------|-------|------|
+| **Build** | `/playground` | Primary front door — x402 API catalog, SDK/MCP quickstart |
+| **Agent Wallet** | `/wallet` | Treasury, deposits, policy caps |
+| **Dashboard** | `/overview` | Usage, spend, agent monitoring |
+| **Proof** | experiments, `/`, `/alpha` | Live demos powered by the Syra rail |
 
 ## Build
 

@@ -15,6 +15,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { DrawerDismissButton } from "@/components/ui/drawer-dismiss-button";
 import { SidebarPanelToggle } from "@/components/layout/SidebarPanelToggle";
 import { cn } from "@/lib/utils";
+import { INTERNAL_BASE_PATH } from "@/lib/internalRoutes";
 
 const EXPERIMENTS_STORAGE_KEY = "syra.dashboard.experimentsOpen";
 
@@ -178,7 +179,7 @@ export function SidebarIconRail({
           {showInternalTeamMonitor ? (
             <>
               <SidebarDivider className="my-2 w-8" />
-              <SidebarIconNavLink to="/internal-team-agents" icon={UsersRound} label="Internal agents" />
+              <SidebarIconNavLink to={INTERNAL_BASE_PATH} icon={UsersRound} label="Internal" />
             </>
           ) : null}
         </nav>

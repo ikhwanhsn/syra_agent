@@ -19,6 +19,7 @@ import {
 } from "@/lib/layoutConstants";
 import { cn } from "@/lib/utils";
 import type { AgentWalletPurpose } from "@/lib/agentWalletCatalog";
+import { AgentBillingDashboard } from "@/components/wallet/AgentBillingDashboard";
 
 function parseFlowTab(value: string | null): "deposit" | "withdraw" {
   return value === "withdraw" ? "withdraw" : "deposit";
@@ -99,9 +100,13 @@ export default function AgentWalletPage() {
           <header className="space-y-2">
             <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Wallets</h1>
             <p className="max-w-lg text-sm leading-relaxed text-muted-foreground">
-              Agent treasuries hold the SOL and USDC your AI uses. Deposit or withdraw from any active wallet.
+              Agent treasuries hold the SOL and USDC your AI uses. Track spend, caps, and policy on the Syra rail.
             </p>
           </header>
+
+          {wallets.connected && treasuryReady ? (
+            <AgentBillingDashboard compact />
+          ) : null}
 
           {!wallets.connected ? (
             <WalletPageMessage

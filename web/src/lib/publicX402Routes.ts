@@ -39,6 +39,8 @@ export function isPublicSyraX402Path(pathname: string): boolean {
   if (p.startsWith("/siwa/")) return true;
 
   if (p === "/8004" || p.startsWith("/8004/")) return true;
+  if (p === "/smart-money" || p.startsWith("/smart-money/")) return true;
+  if (p === "/token-god-mode" || p.startsWith("/token-god-mode/")) return true;
 
   return false;
 }

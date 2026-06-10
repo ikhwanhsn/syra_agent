@@ -44,8 +44,10 @@ import { useWalletContext } from "@/contexts/WalletContext";
 import { useConnectModal } from "@/contexts/ConnectModalContext";
 import { isInternalTeamMonitorWallet } from "@/constants/internalTeamMonitorWallet";
 import { INTERNAL_AGENTS } from "@/lib/internalAgentsCatalog";
+import { INTERNAL_BASE_PATH, internalAgentPath, internalPartnershipBoardPath } from "@/lib/internalRoutes";
 import { useUserDashboardOverview } from "@/hooks/useUserDashboardOverview";
 import { useTreasuryBalanceChange } from "@/hooks/useTreasuryBalanceChange";
+import { AgentBillingDashboard } from "@/components/wallet/AgentBillingDashboard";
 
 const STALE_MS = 45_000;
 
@@ -161,6 +163,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
 
         {showPortfolio ? (
           <>
+            <AgentBillingDashboard />
             {/* Charts first — primary bento */}
             <OverviewTreasuryAllocationChart
               loading={overview.balancesLoading}
@@ -497,7 +500,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
                 accent="internal"
                 value={`${internalPipelineCount} / ${INTERNAL_AGENTS.length}`}
                 hint="Trend · growth · partnership scouts"
-                href="/internal-team-agents"
+                href={INTERNAL_BASE_PATH}
               />
               <OverviewStatCard
                 label="Access"
@@ -509,7 +512,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
                   </span>
                 }
                 hint="Internal monitor allowlist"
-                href="/internal-team-agents"
+                href={INTERNAL_BASE_PATH}
               />
             </div>
 
@@ -517,8 +520,8 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
               {INTERNAL_AGENTS.map((agent) => {
                 const href =
                   agent.slug === "partnership-scout"
-                    ? "/internal-team-agents#partnership-board"
-                    : `/internal-team-agents/${agent.slug}`;
+                    ? internalPartnershipBoardPath()
+                    : internalAgentPath(agent.slug);
                 const q =
                   agent.slug === "trend-scout"
                     ? trendScoutQ

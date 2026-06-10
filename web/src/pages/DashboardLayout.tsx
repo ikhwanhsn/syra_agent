@@ -32,6 +32,7 @@ import {
 } from "@/components/dashboard/SidebarPrimitives";
 import { useWalletContext } from "@/contexts/WalletContext";
 import { isInternalTeamMonitorWallet } from "@/constants/internalTeamMonitorWallet";
+import { INTERNAL_BASE_PATH } from "@/lib/internalRoutes";
 import { getInternalAgentMeta, isInternalAgentSlug } from "@/lib/internalAgentsCatalog";
 
 const EXPERIMENT_NAV_ITEMS: readonly SidebarExperimentItem[] = [
@@ -99,7 +100,7 @@ function dashboardPageTitle(pathname: string, search: string): string {
   if (parts[0] === "trading-experiment") return "Trading experiment";
   if (parts[0] === "arbitrage-experiment") return "Arbitrage experiment";
   if (parts[0] === "lp-experiment") return "LP agent experiment";
-  if (parts[0] === "internal-team-agents") {
+  if (parts[0] === "internal") {
     if (parts[1]) {
       const slug = parts[1];
       if (isInternalAgentSlug(slug)) {
@@ -108,7 +109,7 @@ function dashboardPageTitle(pathname: string, search: string): string {
       }
       return "Internal agent";
     }
-    return "Internal agents";
+    return "Internal";
   }
   return "Overview";
 }
@@ -164,8 +165,8 @@ function DashboardSidebarContent({
 
           <SidebarExperimentsNav items={EXPERIMENT_NAV_ITEMS} />
           {showInternalTeamMonitor ? (
-            <SidebarNavLink to="/internal-team-agents" icon={UsersRound}>
-              Internal agents
+            <SidebarNavLink to={INTERNAL_BASE_PATH} icon={UsersRound}>
+              Internal
             </SidebarNavLink>
           ) : null}
         </div>

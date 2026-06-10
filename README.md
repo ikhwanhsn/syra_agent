@@ -4,13 +4,13 @@
 
 # **Syra**
 
-### Smart Intelligence Agent for Traders
+### Machine Money for AI Trading Agents
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-docs.syraa.fun-0ea5e9)](https://docs.syraa.fun)
-[![Telegram](https://img.shields.io/badge/Telegram-Bot-26a5e4)](https://t.me/syra_trading_bot)
+[![API Playground](https://img.shields.io/badge/build-playground.syraa.fun-26a5e4)](https://playground.syraa.fun)
 
-**[Documentation](https://docs.syraa.fun)** · **[Telegram Bot](https://t.me/syra_trading_bot)** · **[X (Twitter)](https://x.com/syra_agent)** · **[Agent](https://agent.syraa.fun)**
+**[Documentation](https://docs.syraa.fun)** · **[API Playground](https://playground.syraa.fun)** · **[Agent demo](https://agent.syraa.fun)** · **[X (Twitter)](https://x.com/syra_agent)**
 
 </div>
 
@@ -18,16 +18,12 @@
 
 ## What Is Syra?
 
-**Syra** is the **smart intelligence agent for traders** on Solana. It helps traders, analysts, and builders make smarter, data-based decisions by combining:
+**Syra** is the **financial + intelligence rail for autonomous trading agents** on Solana — *Stripe + Plaid for AI trading agents*. Two inseparable halves:
 
-- **Real-time market data** — Live technical and contextual indicators
-- **On-chain activity signals** — Holder flows, smart money, DEX activity
-- **Narrative & sentiment intelligence** — News, trends, and market mood
-- **Structured AI-driven research** — Clear, actionable insights with reasoning
+- **Intelligence + execution APIs** — agents pay per call (USDC via x402) for sentiment, risk, smart-money flow, signals, charts, and swaps
+- **Agent money layer** — wallets, treasury, and a deterministic policy engine so agents hold and spend autonomously with caps and allowlists
 
-Syra is used across **Telegram**, **API workflows**, and autonomous agents—including the **x402 Agent** on x402scan.
-
-Syra is designed as a **trader-grade intelligence stack**, not just a signal bot: it enhances understanding with structured research, risk-aware perspectives, and learning-oriented explanations.
+Integrate via **SDK**, **MCP**, or the **API playground**. The web chat agent is a reference client — the product is the rail.
 
 ---
 
@@ -86,36 +82,26 @@ Syra runs as an autonomous research agent on **x402scan** for automated research
 
 | Package | Description |
 |---------|-------------|
-| **`api`** | Backend API and services |
-| **`landing`** | Marketing/landing site (Vite + React) |
-| **`ai-agent`** | AI agent web app (chat, marketplace, x402) |
-| **`documentation`** | Documentation site (Vite + React; deployed at docs.syraa.fun) |
-| **`api-playground`** | API testing and exploration UI |
-| **`dashboard`** | Internal KPI dashboard (paid calls vs grant targets) |
-| **`staking`** | Staking program (scripts and app) |
-| **`prediction-game`** | Prediction game app and server |
-| **`mcp-server`** | MCP server exposing Syra API tools |
-| **`terminal`** | Terminal-related package in the monorepo |
-| **`openclaw`** | OpenClaw / x402 agent HTTP tool examples |
+| **`web`** | Unified Syra app — Build (playground), agent wallet, dashboard, proof demos |
+| **`api`** | Backend API — x402 intelligence rail, agent wallets, policy engine |
+| **`syra-sdk`** | Typed `@syra/sdk` client for x402 API integration |
+| **`mcp-server`** | MCP server — Cursor, Claude, ElizaOS distribution |
+| **`documentation`** | Docs site (docs.syraa.fun) |
+| **`landing`** | Marketing landing site |
+| **`uponly-fund`** | Up Only Fund — flagship case study on Syra rails |
 
 ---
 
 ## Colosseum Frontier — hackathon submission
 
-**Hero product (what to demo):** [`api`](./api) + [`ai-agent`](./ai-agent) — Solana **x402** pay-per-call intelligence. Treat other packages (prediction-game, staking, terminal, internal dashboard) as **ecosystem**, not equal demo time.
-
-### Bitget Hackathon — Syra Alpha Arena
-
-- **Demo:** [agent.syraa.fun/arena](https://agent.syraa.fun/arena) — NL agents, Playbook backtest, on-chain overlay, leaderboard
-- **Docs:** [documentation/SYRA_ALPHA_ARENA.md](./documentation/SYRA_ALPHA_ARENA.md)
-- **API:** `POST /experiment/arena/agents` · `GET /experiment/arena/leaderboard`
+**Hero product (what to demo):** [`api`](./api) + [`web`](./web) — the **Syra rail**: x402 intelligence + agent money layer. Treat experiments, Up Only Fund, and the chat reference agent as **proof**, not equal demo time.
 
 ### Golden path (live)
 
-1. Open **[agent.syraa.fun](https://agent.syraa.fun)** → connect wallet (**Phantom** recommended via Privy).
-2. Open **Marketplace** (or chat) → run a **paid** tool or flow that returns **HTTP 402** first, then settles after payment.
-3. Confirm the Solana transaction on **[Solscan](https://solscan.io)** (paste signature from the UI or network tab).
-4. Discovery for integrators: **[api.syraa.fun](https://api.syraa.fun)** — `/.well-known/x402`, `/openapi.json`, `/mpp-openapi.json` (see [api README](./api/README.md)).
+1. Open **[playground.syraa.fun](https://playground.syraa.fun)** → connect wallet → try a paid x402 route.
+2. Integrate via **`@syra/sdk`** or **`@syra/mcp-server`** (see [syra-sdk](./syra-sdk) and [mcp-server](./mcp-server)).
+3. Fund **[agent.syraa.fun/wallet](https://agent.syraa.fun/wallet)** → view spend dashboard and policy caps.
+4. Discovery: **[api.syraa.fun](https://api.syraa.fun)** — `/.well-known/x402`, `/openapi.json` (see [api README](./api/README.md)).
 
 ### Architecture (hero stack)
 

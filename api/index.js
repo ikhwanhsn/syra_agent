@@ -25,6 +25,7 @@ import { createPumpfunAlphaScoutRouter } from "./routes/agent/pumpfunAlphaScout.
 import { createPumpfunUtilityScoutRouter } from "./routes/agent/pumpfunUtilityScout.js";
 import { createTokensDossierRouter } from "./routes/agent/tokensDossier.js";
 import { createAgentWalletRouter } from "./routes/agent/wallet.js";
+import { createAgentBillingRouter } from "./routes/agent/billing.js";
 import { createAgentToolsRouter } from "./routes/agent/tools.js";
 import { createAgentMarketplaceRouter } from "./routes/agent/marketplace.js";
 import { createAgentLeaderboardRouter } from "./routes/agent/leaderboard.js";
@@ -1154,6 +1155,7 @@ app.use("/agent/pumpfun-alpha-scout", createPumpfunAlphaScoutRouter());
 app.use("/agent/pumpfun-utility-scout", createPumpfunUtilityScoutRouter());
 app.use("/agent/coingecko-alpha", createCoingeckoAlphaRouter());
 app.use("/agent/tokens", createTokensDossierRouter());
+app.use("/agent/wallet/billing", await createAgentBillingRouter());
 app.use("/agent/wallet", await createAgentWalletRouter());
 app.use("/agent/tools", await createAgentToolsRouter());
 app.use("/agent/marketplace/prompts", await createUserPromptsRouter());

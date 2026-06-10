@@ -84,7 +84,7 @@ export function PostPhotoStatGrid({
 }: {
   stats: PostPhotoStat[];
   featured?: boolean;
-  variant?: "default" | "counter" | "orbit";
+  variant?: "default" | "counter" | "orbit" | "facet" | "halo" | "podium";
 }) {
   return (
     <div
@@ -93,6 +93,9 @@ export function PostPhotoStatGrid({
         featured && "post-photo-stat-grid--featured",
         variant === "counter" && "post-photo-stat-grid--counter",
         variant === "orbit" && "post-photo-stat-grid--orbit",
+        variant === "facet" && "post-photo-stat-grid--facet",
+        variant === "halo" && "post-photo-stat-grid--halo",
+        variant === "podium" && "post-photo-stat-grid--podium",
       )}
     >
       {stats.map((stat, i) => (
@@ -118,7 +121,7 @@ export function PostPhotoCardGrid({
 }: {
   cards: { title: string; subtitle?: string; detail?: string; accent?: "gold" | "default" }[];
   cols?: 2 | 4;
-  variant?: "default" | "stack" | "bento" | "spotlight";
+  variant?: "default" | "stack" | "bento" | "spotlight" | "glass" | "marquee";
 }) {
   return (
     <div
@@ -127,6 +130,8 @@ export function PostPhotoCardGrid({
         variant === "stack" && "post-photo-card-grid--stack",
         variant === "bento" && "post-photo-card-grid--bento",
         variant === "spotlight" && "post-photo-card-grid--spotlight",
+        variant === "glass" && "post-photo-card-grid--glass",
+        variant === "marquee" && "post-photo-card-grid--marquee",
       )}
       data-cols={cols}
     >

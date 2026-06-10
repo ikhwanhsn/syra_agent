@@ -1,44 +1,46 @@
 import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef } from "react";
-import { Brain, Shield, Zap, Globe, Lock, BarChart3 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Brain, Shield, Zap, Globe, Lock, BarChart3, ArrowRight } from "lucide-react";
+import { SYRA_ONE_LINER, SYRA_USP } from "@/content/syraFocus";
 
 const features = [
   {
-    icon: Brain,
-    title: "Agent-Grade Intelligence",
+    icon: Globe,
+    title: "Intelligence + execution APIs",
     description:
-      "Models and workflows tuned for trading decisions—not generic chat",
+      "Pay-per-call x402 routes — sentiment, risk, smart-money flow, signals, and swaps agents fund autonomously",
   },
   {
     icon: Shield,
-    title: "Security for Agent Capital",
+    title: "Agent money layer",
     description:
-      "Hardened flows for agents that route funds: explicit approvals and auditable actions",
+      "Wallets, treasury, and policy engine — caps, allowlists, and auditable spend for autonomous agents",
   },
   {
     icon: Zap,
     title: "Fast on Solana",
     description:
-      "Low-latency reads and execution paths on Solana DEXs, with x402 when you need paid tools",
+      "Low-latency reads and execution paths with x402 micropayments — no subscription walls",
   },
   {
-    icon: Globe,
-    title: "Agentic Payments",
+    icon: Brain,
+    title: "Agent-native discovery",
     description:
-      "HTTP 402 + x402 / MPP so agents discover APIs, pay per call, and stay composable",
+      "HTTP 402 + x402 + 8004 registry so agents discover APIs, pay per call, and stay composable",
   },
   {
     icon: Lock,
-    title: "Non-Custodial",
+    title: "Non-custodial",
     description:
-      "You keep the keys; Syra never custodies your wallet or moves funds without your sign-off",
+      "You keep the keys; Syra coordinates intelligence and flows — it does not custody user wallets",
   },
   {
     icon: BarChart3,
-    title: "Live market surface",
+    title: "Usage that compounds",
     description:
-      "Dashboards and signals built for operators who ship size, not slides",
+      "North-star is paid API calls and net revenue per agent — the rail grows as your agents transact more",
   },
 ];
 
@@ -68,7 +70,7 @@ export const WhatIsSyra = () => {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6"
           >
-            Your <span className="neon-text">trading agent</span> on Solana
+            The <span className="neon-text">rail</span> for agent economies
           </motion.h2>
 
           <motion.p
@@ -77,11 +79,30 @@ export const WhatIsSyra = () => {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="text-lg text-muted-foreground max-w-3xl mx-auto"
           >
-            Syra is the smart intelligence agent for traders: it reasons over
-            live Solana markets, pulls in paid data and tools when needed, and
-            keeps you in the loop with clear, actionable output—so you can fund
-            your stack once and iterate on strategy instead of glue code.
+            {SYRA_USP} {SYRA_ONE_LINER} Integrate via SDK, MCP, or the API playground —
+            ship agents that pay for intelligence and execution on every call.
           </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={isInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.5, delay: 0.25 }}
+            className="mt-6 flex flex-wrap items-center justify-center gap-3"
+          >
+            <Link
+              to="/playground"
+              className="btn-primary inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold no-underline"
+            >
+              Build on the rail
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 rounded-xl border border-border/60 px-5 py-2.5 text-sm font-medium text-muted-foreground no-underline transition-colors hover:text-foreground"
+            >
+              Try reference agent
+            </Link>
+          </motion.div>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">

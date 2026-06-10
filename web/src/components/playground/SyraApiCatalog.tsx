@@ -12,7 +12,15 @@ import { QueryParamsModal } from "@/components/QueryParamsModal";
 import { SyraApiCard } from "@/components/playground/SyraApiCard";
 import { PlaygroundResponseSheet } from "@/components/playground/PlaygroundResponseSheet";
 import { playgroundSectionEnter } from "@/components/playground/playgroundMotion";
-import { PLAYGROUND_PAGE_CLASS, playgroundChipClass } from "@/components/playground/playgroundStyles";
+import {
+  PLAYGROUND_PAGE_CLASS,
+  playgroundChipClass,
+  playgroundSearchClass,
+  playgroundSectionHeaderClass,
+  playgroundSectionSubtitleClass,
+  playgroundSectionTitleClass,
+  playgroundStatPillClass,
+} from "@/components/playground/playgroundStyles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { flowNeedsParamModal } from "@/lib/playgroundFlow";
@@ -126,35 +134,43 @@ export function SyraApiCatalog() {
   );
 
   return (
-    <div className={cn(PLAYGROUND_PAGE_CLASS, "space-y-5")}>
+    <div className={cn(PLAYGROUND_PAGE_CLASS, "space-y-6")}>
       {/* Header */}
-      <div className={cn("flex flex-wrap items-center justify-between gap-3", playgroundSectionEnter)}>
+      <div className={cn(playgroundSectionHeaderClass, playgroundSectionEnter)}>
         <div>
-          <h2 className="text-lg font-semibold text-foreground">Syra x402 APIs</h2>
-          <p className="text-sm text-muted-foreground">
-            {filteredFlows.length} endpoints · connect wallet · Try opens response panel
+          <h2 className={playgroundSectionTitleClass}>Syra x402 API rail</h2>
+          <p className={playgroundSectionSubtitleClass}>
+            Pay-per-call endpoints — connect a wallet to test live on Solana.
           </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <span className={playgroundStatPillClass}>
+              {filteredFlows.length} endpoint{filteredFlows.length === 1 ? "" : "s"}
+            </span>
+            <span className={playgroundStatPillClass}>x402 v2</span>
+            <span className={playgroundStatPillClass}>USDC on Solana</span>
+          </div>
         </div>
         {wallet.connected ? (
-          <span className="text-sm font-medium tabular-nums text-foreground">
+          <span className={playgroundStatPillClass}>
+            <Wallet className="h-3.5 w-3.5 text-primary" aria-hidden />
             {wallet.balance || "0 USDC"}
           </span>
         ) : (
-          <Button variant="neon" size="sm" className="rounded-lg" onClick={() => openConnectModal()}>
+          <Button variant="neon" size="sm" className="rounded-xl px-4" onClick={() => openConnectModal()}>
             <Wallet className="mr-1.5 h-4 w-4" />
-            Connect
+            Connect wallet
           </Button>
         )}
       </div>
 
       {/* Search */}
       <div className={cn("relative", playgroundSectionEnter)} style={{ animationDelay: "60ms" }}>
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search APIs…"
-          className="h-10 pl-9"
+          placeholder="Search by name, path, or ID…"
+          className={playgroundSearchClass}
         />
       </div>
 
@@ -195,7 +211,7 @@ export function SyraApiCatalog() {
       ) : (
         <div
           key={activeGroup ?? "all"}
-          className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5"
+          className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
         >
           {filteredFlows.map((flow, index) => {
             const { detail } = splitFlowLabel(flow.label);

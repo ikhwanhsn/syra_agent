@@ -12,7 +12,7 @@ import {
   Zap,
 } from "lucide-react";
 
-export const SYRA_TAGLINE = "Machine money for AI agents";
+export const SYRA_TAGLINE = "Machine money for AI trading agents";
 export const SYRA_MISSION =
   "Syra enables autonomous agents to generate revenue, hold treasury assets, participate in DeFi, and distribute value on Solana — so agents become independent economic actors, not tools waiting on humans for every financial decision.";
 
@@ -20,7 +20,7 @@ export const SYRA_VISION =
   "Our vision is an economy where millions of AI agents become productive economic actors powered by Solana — reasoning, earning, managing capital, and coordinating value in real time.";
 
 export const SYRA_HIGHLIGHT =
-  "Syra is not building another AI agent. We are building machine money infrastructure that lets AI agents operate as independent economic actors on Solana.";
+  "Syra is not building another chatbot. We are building the financial + intelligence rail — x402 APIs plus agent wallets and policy — so autonomous trading agents think, pay, and trade on Solana without glue code.";
 
 export interface SyraStat {
   label: string;

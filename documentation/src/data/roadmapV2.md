@@ -2,7 +2,9 @@
 
 **Live product:** The gateway at [api.syraa.fun](https://api.syraa.fun) and the [API Reference](https://docs.syraa.fun/docs/api-reference) describe the current x402 surface (`GET /.well-known/x402`, OpenAPI catalogs). The quarters below are **directional** plans.
 
-Our 2025–2027 Syra Roadmap — scaling machine money for autonomous agents on Solana with x402 payments:
+Our 2025–2027 Syra Roadmap — **the financial + intelligence rail for autonomous trading agents on Solana** with x402 payments, agent wallets, and policy:
+
+**North-star metrics:** paid API calls per day · net revenue per agent
 
 ## Q4 2025
 

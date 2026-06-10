@@ -7,7 +7,7 @@
  * HTTP /8004 remains for registration and non-agent marketplace flows; not advertised as a single x402 resource.
  */
 export const X402_DISCOVERY_RESOURCE_PATHS = [
-  // Core
+  // Core intelligence rail
   "brain",
   "news",
   "signal",
@@ -17,10 +17,20 @@ export const X402_DISCOVERY_RESOURCE_PATHS = [
   "sundown-digest",
   "health",
   "mpp/v1/health",
-  // Search & automation
+  // Execution & automation
   "arbitrage",
-  // Analytics (internal: Jupiter + Nansen + Binance correlation math; no public /binance routes)
+  // Analytics bundle (Jupiter + Nansen smart money + Binance correlation)
   "analytics/summary",
+  // Social & research
   "x",
   "x-analyzer",
+  // High-value: smart money + risk (Nansen tier)
+  "nansen/smart-money/netflow",
+  "nansen/smart-money/holdings",
+  "nansen/smart-money/dex-trades",
+  "nansen/token-god-mode",
+  // 8004 agent registry discovery
+  "8004/stats",
+  "8004/leaderboard",
+  "8004/agents/search",
 ];

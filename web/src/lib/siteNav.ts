@@ -3,6 +3,7 @@ import {
   Bot,
   LayoutDashboard,
   Users,
+  UsersRound,
   Telescope,
   FileSearch,
   FlaskConical,
@@ -15,8 +16,11 @@ import {
   Lock,
   Code2,
   BookOpen,
+  BookMarked,
   ExternalLink,
   Info,
+  Megaphone,
+  Presentation,
 } from "lucide-react";
 
 export type NavLinkItem = {
@@ -51,7 +55,8 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
       !p.includes("-experiment") &&
       !p.startsWith("/alpha") &&
       !p.startsWith("/assets") &&
-      !p.startsWith("/internal-team"),
+      !p.startsWith("/internal-team") &&
+      !p.startsWith("/internal"),
   },
   {
     id: "dashboard",
@@ -68,7 +73,7 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
       p.startsWith("/vibe-trading") ||
       p.startsWith("/arena") ||
       p.startsWith("/arbitrage") ||
-      p.startsWith("/internal-team-agents"),
+      p.startsWith("/internal"),
     items: [
       { href: "/overview", label: "Overview", icon: LayoutDashboard },
       { href: "/agents", label: "Agents", icon: Users },
@@ -81,6 +86,13 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
       { href: "/lp-experiment", label: "LP agents", icon: Droplets },
       { href: "/pumpfun-experiment", label: "Pumpfun", icon: Rocket },
       { href: "/rise-experiment", label: "Rise", icon: Crosshair },
+      {
+        href: "/internal",
+        label: "Internal hub",
+        icon: UsersRound,
+        description: "Team agent monitor & scouts",
+        adminOnly: true,
+      },
     ],
   },
   {
@@ -129,3 +141,40 @@ export const SITE_NAV_MORE: NavLinkItem[] = [
     external: true,
   },
 ];
+
+/** Hidden routes — visible in More when admin wallet is connected. */
+export const SITE_NAV_ADMIN_MORE: NavLinkItem[] = [
+  {
+    href: "/post",
+    label: "Ship log",
+    icon: Megaphone,
+    description: "Social post studio — video & photo decks",
+    adminOnly: true,
+  },
+  {
+    href: "/deck",
+    label: "Pitch deck",
+    icon: Presentation,
+    description: "Investor deck viewer",
+    adminOnly: true,
+  },
+  {
+    href: "/info",
+    label: "Syra reference",
+    icon: BookMarked,
+    description: "Full internal product reference",
+    adminOnly: true,
+  },
+  {
+    href: "/internal",
+    label: "Internal hub",
+    icon: UsersRound,
+    description: "Team agent monitor & scouts",
+    adminOnly: true,
+  },
+];
+
+export function getSiteNavMoreItems(isAdmin: boolean): NavLinkItem[] {
+  if (!isAdmin) return SITE_NAV_MORE;
+  return [...SITE_NAV_MORE, ...SITE_NAV_ADMIN_MORE];
+}

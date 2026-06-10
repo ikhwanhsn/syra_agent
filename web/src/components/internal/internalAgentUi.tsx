@@ -9,6 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { INTERNAL_BASE_PATH } from "@/lib/internalRoutes";
 
 export type AgentRunStatus = "ready" | "waiting" | "error" | "loading";
 
@@ -101,15 +102,15 @@ export function InternalAgentsHero({
         <div className="min-w-0 space-y-3">
           <div className="inline-flex items-center gap-2 rounded-full border border-border/55 bg-background/35 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground backdrop-blur-md">
             <Bot className="h-3.5 w-3.5 text-foreground/80" aria-hidden />
-            Team tools
+            Syra internal
           </div>
           <div>
             <h1 className="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-              Internal agents
+              Internal hub
             </h1>
             <p className="mt-2 max-w-xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-[15px]">
-              Automated research that runs every morning. Each agent scans the market, writes a short
-              summary, and saves ideas you can act on — no setup required.
+              Product growth metrics, scout agents, and partnership pipeline — one place for the team to
+              understand traction and decide what to ship next.
             </p>
           </div>
           <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -231,7 +232,7 @@ export function InternalDetailHero({
   lastRun,
   onRefresh,
   refreshing,
-  backTo = "/internal-team-agents",
+  backTo = INTERNAL_BASE_PATH,
 }: {
   name: string;
   description: string;

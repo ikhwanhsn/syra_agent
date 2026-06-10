@@ -13,8 +13,9 @@ import DashboardOverview from "@/pages/DashboardOverview";
 import DashboardSettings from "@/pages/DashboardSettings";
 import AgentWalletPage from "@/pages/AgentWalletPage";
 import Index from "@/pages/Index";
-import InternalAgentDetailPage from "@/pages/InternalAgentDetailPage";
 import InternalTeamAgentsMonitor from "@/pages/InternalTeamAgentsMonitor";
+import InternalAgentDetailPage from "@/pages/InternalAgentDetailPage";
+import { LegacyInternalTeamAgentsRedirect } from "@/pages/LegacyInternalRedirect";
 import {
   LegacyDashboardPrefixRedirect,
   LegacyAgentWalletRedirect,
@@ -92,8 +93,9 @@ function AppRoutes() {
             <Route path="/trading-experiment/agent/:agentId" element={<TradingAgentExperimentAgentProfile />} />
             <Route path="/vibe-trading" element={<BitgetVibeTrader />} />
             <Route path="/arena" element={<AlphaArena />} />
-            <Route path="/internal-team-agents" element={<InternalTeamAgentsMonitor />} />
-            <Route path="/internal-team-agents/:agentSlug" element={<InternalAgentDetailPage />} />
+            <Route path="/internal" element={<InternalTeamAgentsMonitor />} />
+            <Route path="/internal/:agentSlug" element={<InternalAgentDetailPage />} />
+            <Route path="/internal-team-agents/*" element={<LegacyInternalTeamAgentsRedirect />} />
           </Route>
 
           <Route path="/playground" element={<PlaygroundHub />} />
@@ -115,7 +117,7 @@ function AppRoutes() {
           <Route path="/alpha/x/:username" element={<Navigate to="/alpha" replace />} />
           <Route path="/token-check" element={<Navigate to="/assets" replace />} />
           <Route path="/dossier" element={<Navigate to="/assets" replace />} />
-          <Route path="/internal-hackathons" element={<Navigate to="/internal-team-agents" replace />} />
+          <Route path="/internal-hackathons" element={<Navigate to="/internal" replace />} />
           <Route path="/staking/dashboard/internal" element={<Navigate to="/staking/admin" replace />} />
           <Route path="/mpp" element={<Navigate to="/playground" replace />} />
           <Route path="/playground/mpp" element={<Navigate to="/playground" replace />} />

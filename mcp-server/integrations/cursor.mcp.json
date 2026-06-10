@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "syra": {
+      "command": "npx",
+      "args": ["-y", "@syra/mcp-server"],
+      "env": {
+        "SYRA_API_BASE_URL": "https://api.syraa.fun"
+      }
+    }
+  }
+}

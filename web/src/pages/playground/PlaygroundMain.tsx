@@ -1,16 +1,27 @@
 import { Navigate, useSearchParams } from "@/lib/navigation";
 import { PlaygroundPageShell } from "@/components/playground/PlaygroundPageShell";
-import { PlaygroundTabBar, type PlaygroundTab } from "@/components/playground/PlaygroundTabBar";
+import { PlaygroundQuickstart } from "@/components/playground/PlaygroundQuickstart";
+import {
+  PlaygroundTabBar,
+  parsePlaygroundTab,
+  playgroundTabToParam,
+  type PlaygroundTab,
+} from "@/components/playground/PlaygroundTabBar";
 import { SyraApiCatalog } from "@/components/playground/SyraApiCatalog";
 import { PlaygroundModals } from "@/components/playground/PlaygroundModals";
 import { PlaygroundCustomTester } from "@/pages/playground/PlaygroundCustomTester";
 import { PlaygroundSessionProvider } from "@/contexts/PlaygroundSessionContext";
+import { playgroundTabPanelEnter } from "@/components/playground/playgroundMotion";
+import { cn } from "@/lib/utils";
+
 function PlaygroundMainInner() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const tab: PlaygroundTab = searchParams.get("tab") === "custom" ? "custom" : "syra";
+  const tab = parsePlaygroundTab(searchParams.get("tab"));
+
   const setTab = (next: PlaygroundTab) => {
     const params = new URLSearchParams(searchParams);
-    if (next === "custom") params.set("tab", "custom");
+    const param = playgroundTabToParam(next);
+    if (param) params.set("tab", param);
     else params.delete("tab");
     setSearchParams(params, { replace: true });
   };
@@ -18,15 +29,25 @@ function PlaygroundMainInner() {
   return (
     <PlaygroundPageShell>
       <PlaygroundTabBar active={tab} onChange={setTab} />
-      <div key={tab} className="relative z-[1]">
-        {tab === "syra" ? <SyraApiCatalog /> : <PlaygroundCustomTester />}
+
+      <div
+        key={tab}
+        id={`playground-panel-${tab}`}
+        role="tabpanel"
+        aria-labelledby={`playground-tab-${tab}`}
+        className={cn("relative z-[1]", playgroundTabPanelEnter)}
+      >
+        {tab === "syra" ? <SyraApiCatalog /> : null}
+        {tab === "build" ? <PlaygroundQuickstart /> : null}
+        {tab === "custom" ? <PlaygroundCustomTester /> : null}
       </div>
+
       <PlaygroundModals />
     </PlaygroundPageShell>
   );
 }
 
-/** Default `/playground` — Syra API catalog + custom API tab. */
+/** Default `/playground` — Syra API catalog + build + custom API tabs. */
 export default function PlaygroundMain() {
   const [searchParams] = useSearchParams();
   if (searchParams.has("view")) {

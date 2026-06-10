@@ -151,15 +151,15 @@ export default function Leaderboard() {
             <div className="inline-flex items-center gap-2 px-4 py-2 mb-6 glass-card">
               <Trophy className="w-4 h-4 gold-text" />
               <span className="text-sm text-muted-foreground">
-                Powered by x402 Technology
+                Agents on the Syra rail · x402 volume
               </span>
             </div>
 
             <h1 className="mb-4 text-4xl font-bold sm:text-5xl">
-              <span className="neon-text">Leaderboard</span>
+              <span className="neon-text">Agent leaderboard</span>
             </h1>
             <p className="text-lg text-muted-foreground">
-              Compete with the best traders and earn rewards
+              Auditable rankings by x402 spend and tool usage — proof that agents run on Syra infrastructure.
             </p>
           </motion.div>
 
@@ -176,10 +176,16 @@ export default function Leaderboard() {
               ← Back to Home
             </Link>
             <Link
+              to="/playground"
+              className="px-6 py-3 text-sm font-medium transition-all rounded-xl btn-secondary"
+            >
+              Build on the rail
+            </Link>
+            <Link
               to={LINK_AGENT}
               className="px-6 py-3 text-sm font-medium btn-primary"
             >
-              Launch Agent →
+              Reference agent →
             </Link>
           </motion.div>
 

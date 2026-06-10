@@ -12,7 +12,13 @@ import { resolvePlaygroundPaymentLane } from "@/lib/paymentLane";
 import { getPlaygroundSyraPathname } from "@/lib/playgroundUrl";
 import { MAIN_CONTENT_PB_SAFE_CLASS } from "@/lib/branding";
 import { playgroundSectionEnter } from "@/components/playground/playgroundMotion";
-import { PLAYGROUND_PAGE_CLASS } from "@/components/playground/playgroundStyles";
+import {
+  PLAYGROUND_PAGE_CLASS,
+  playgroundSectionHeaderClass,
+  playgroundSectionSubtitleClass,
+  playgroundSectionTitleClass,
+  playgroundStatPillClass,
+} from "@/components/playground/playgroundStyles";
 import { cn } from "@/lib/utils";
 
 /** Free-form x402 tester — full-width layout aligned with Syra APIs tab. */
@@ -130,37 +136,38 @@ export function PlaygroundCustomTester() {
         <div className="min-w-0 flex-1 space-y-5">
           <div
             className={cn(
-              "flex flex-wrap items-center justify-between gap-3",
+              playgroundSectionHeaderClass,
               playgroundSectionEnter,
             )}
           >
             <div>
-              <h2 className="text-lg font-semibold text-foreground">Custom API</h2>
-              <p className="text-sm text-muted-foreground">
-                Test any payment-gated URL · Send opens response panel
+              <h2 className={playgroundSectionTitleClass}>Custom API</h2>
+              <p className={playgroundSectionSubtitleClass}>
+                Send any payment-gated URL — full control over method, headers, and body.
               </p>
             </div>
             <div className="flex items-center gap-2">
               {wallet.connected ? (
-                <span className="text-sm font-medium tabular-nums text-foreground">
+                <span className={playgroundStatPillClass}>
+                  <Wallet className="h-3.5 w-3.5 text-primary" aria-hidden />
                   {wallet.balance || "0 USDC"}
                 </span>
               ) : (
                 <Button
                   variant="neon"
                   size="sm"
-                  className="rounded-lg"
+                  className="rounded-xl px-4"
                   onClick={() => openConnectModal()}
                 >
                   <Wallet className="mr-1.5 h-4 w-4" />
-                  Connect
+                  Connect wallet
                 </Button>
               )}
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                className="lg:hidden"
+                className="rounded-xl lg:hidden"
                 onClick={() => setIsSidebarOpen(true)}
               >
                 <History className="mr-1.5 h-4 w-4" />

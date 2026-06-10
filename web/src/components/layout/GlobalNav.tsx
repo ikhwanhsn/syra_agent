@@ -9,6 +9,7 @@ import { ArrowUpRight, Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   SITE_NAV_GROUPS,
+  SITE_NAV_ADMIN_MORE,
   SITE_NAV_MORE,
   type NavGroup,
   type NavLinkItem,
@@ -261,6 +262,19 @@ export function GlobalNav() {
                   {SITE_NAV_MORE.map((item) => (
                     <NavMenuLink key={item.href} item={item} pathname={pathname} />
                   ))}
+                  {isAdmin ? (
+                    <>
+                      <li className="mx-2.5 my-1.5 h-px bg-border/50" role="separator" aria-hidden />
+                      <li className="px-2.5 pb-1 pt-0.5">
+                        <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/55">
+                          Internal
+                        </span>
+                      </li>
+                      {SITE_NAV_ADMIN_MORE.map((item) => (
+                        <NavMenuLink key={item.href} item={item} pathname={pathname} />
+                      ))}
+                    </>
+                  ) : null}
                 </ul>
               </NavigationMenuContent>
             </NavigationMenuItem>

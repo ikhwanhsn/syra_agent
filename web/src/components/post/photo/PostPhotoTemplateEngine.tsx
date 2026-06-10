@@ -18,6 +18,24 @@ import { POST_PHOTO_LAYOUT_REGISTRY_MAP } from "@/components/post/photo/postPhot
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
+function statGridVariant(def: PhotoTemplateDef): "default" | "counter" | "orbit" | "facet" | "halo" | "podium" {
+  if (def.id === "photo-stat-counter-row") return "counter";
+  if (def.id === "photo-stat-orbit") return "orbit";
+  if (def.id === "photo-stat-facet") return "facet";
+  if (def.id === "photo-stat-halo") return "halo";
+  if (def.id === "photo-stat-podium") return "podium";
+  return "default";
+}
+
+function cardGridVariant(def: PhotoTemplateDef): "default" | "stack" | "bento" | "spotlight" | "glass" | "marquee" {
+  if (def.id === "photo-cards-stack") return "stack";
+  if (def.id === "photo-cards-bento") return "bento";
+  if (def.id === "photo-cards-spotlight") return "spotlight";
+  if (def.id === "photo-cards-glass-duo" || def.id === "photo-cards-glass-quad") return "glass";
+  if (def.id === "photo-cards-marquee") return "marquee";
+  return "default";
+}
+
 function renderBlock(block: PhotoBlockId, content: PostPhotoContent, def: PhotoTemplateDef): ReactNode {
   switch (block) {
     case "eyebrow":
@@ -35,7 +53,11 @@ function renderBlock(block: PhotoBlockId, content: PostPhotoContent, def: PhotoT
         <PostPhotoHeadline
           key={block}
           large={def.id.includes("large") || def.id.includes("type-hero") || def.id.includes("editorial")}
-          className={def.id === "photo-statement-underline" ? "post-photo-headline--underline" : undefined}
+          className={
+            def.id === "photo-statement-underline" || def.id === "photo-statement-neon"
+              ? "post-photo-headline--underline"
+              : undefined
+          }
         >
           {content.headline}
         </PostPhotoHeadline>
@@ -46,7 +68,11 @@ function renderBlock(block: PhotoBlockId, content: PostPhotoContent, def: PhotoT
       return (
         <blockquote
           key={block}
-          className={cn("post-photo-quote", def.id === "photo-quote-centered" && "post-photo-quote--centered")}
+          className={cn(
+            "post-photo-quote",
+            def.id === "photo-quote-centered" && "post-photo-quote--centered",
+            def.id === "photo-quote-gilded" && "post-photo-quote--gilded",
+          )}
         >
           {content.quote}
         </blockquote>
@@ -77,7 +103,15 @@ function renderBlock(block: PhotoBlockId, content: PostPhotoContent, def: PhotoT
         <PostPhotoHighlightList
           key={block}
           items={content.highlights.slice(0, 4)}
-          className={def.id === "photo-hero-numbered" ? "post-photo-list--numbered" : def.id === "photo-hero-masonry" ? "post-photo-list--masonry" : undefined}
+          className={
+            def.id === "photo-hero-numbered"
+              ? "post-photo-list--numbered"
+              : def.id === "photo-hero-masonry"
+                ? "post-photo-list--masonry"
+                : def.id === "photo-hero-tiered"
+                  ? "post-photo-list--tiered"
+                  : undefined
+          }
         />
       );
     case "stats-all":
@@ -86,7 +120,7 @@ function renderBlock(block: PhotoBlockId, content: PostPhotoContent, def: PhotoT
           key={block}
           stats={content.stats}
           featured={def.id === "photo-stat-featured"}
-          variant={def.id === "photo-stat-counter-row" ? "counter" : def.id === "photo-stat-orbit" ? "orbit" : "default"}
+          variant={statGridVariant(def)}
         />
       );
     case "stats-2":
@@ -110,7 +144,7 @@ function renderBlock(block: PhotoBlockId, content: PostPhotoContent, def: PhotoT
           key={block}
           cards={content.cards.slice(0, 2)}
           cols={2}
-          variant={def.id === "photo-cards-stack" ? "stack" : "default"}
+          variant={cardGridVariant(def)}
         />
       );
     case "cards-4":
@@ -119,7 +153,7 @@ function renderBlock(block: PhotoBlockId, content: PostPhotoContent, def: PhotoT
           key={block}
           cards={content.cards.slice(0, 4)}
           cols={4}
-          variant={def.id === "photo-cards-bento" ? "bento" : def.id === "photo-cards-spotlight" ? "spotlight" : "default"}
+          variant={cardGridVariant(def)}
         />
       );
     case "steps-timeline":
@@ -134,7 +168,14 @@ function renderBlock(block: PhotoBlockId, content: PostPhotoContent, def: PhotoT
       return <PostPhotoSteps key={block} steps={content.steps} variant="arrows" />;
     case "compare":
       return (
-        <div key={block} className="post-photo-compare">
+        <div
+          key={block}
+          className={cn(
+            "post-photo-compare",
+            def.id === "photo-compare-gradient" && "post-photo-compare--gradient",
+            def.id === "photo-compare-slide" && "post-photo-compare--slide",
+          )}
+        >
           <div className="post-photo-compare-col">
             <p className="post-photo-compare-label">{content.compareLeft.title}</p>
             <PostPhotoBody>{content.compareLeft.body}</PostPhotoBody>

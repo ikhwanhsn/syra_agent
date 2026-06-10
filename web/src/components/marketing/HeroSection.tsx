@@ -51,10 +51,9 @@ export const HeroSection = () => {
             >
               <span className="h-2 w-2 shrink-0 rounded-full bg-success/90 shadow-[0_0_8px_hsl(var(--success)/0.45)] animate-pulse" />
               <span className="text-sm text-muted-foreground">
-                Solana-native agent ·{" "}
+                Financial + intelligence rail ·{" "}
                 <span className="font-medium text-foreground/90">x402</span>
-                {" & "}
-                <span className="font-medium text-foreground/90">MPP</span>
+                {" on Solana"}
               </span>
             </motion.div>
 
@@ -64,9 +63,9 @@ export const HeroSection = () => {
               transition={{ duration: 0.6, delay: 0.1 }}
               className="mb-6 text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl"
             >
-              <span className="text-foreground">Smart Intelligence</span>
+              <span className="text-foreground">Machine Money</span>
               <br />
-              <span className="neon-text">Agent for Traders</span>
+              <span className="neon-text">for AI Trading Agents</span>
               <br />
               <span className="text-foreground">on Solana</span>
             </motion.h1>
@@ -77,10 +76,9 @@ export const HeroSection = () => {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="mx-auto mb-8 w-full max-w-xl text-base text-muted-foreground sm:text-lg lg:mx-0"
             >
-              One agent stack for research, risk, smart-money flow, and
-              execution-ready workflows—wired to pay-per-call tools via x402 so
-              your agent only spends when it acts. You fund and approve; Syra
-              does the heavy lifting on-chain.
+              The rail agents pay to think and trade — intelligence and execution
+              APIs via x402, plus agent wallets and treasury policy. Build once;
+              your agents discover, fund, and call tools autonomously.
             </motion.p>
 
             <motion.form
@@ -93,7 +91,7 @@ export const HeroSection = () => {
               <Input
                 value={askDraft}
                 onChange={(e) => setAskDraft(e.target.value)}
-                placeholder="Ask Syra anything…"
+                placeholder="Try the reference agent…"
                 enterKeyHint="go"
                 autoComplete="off"
                 name="syra-ask"
