@@ -6,13 +6,48 @@ import { S3LABS_TELEGRAM_QA_ENABLED, S3LABS_TELEGRAM_QA_MAX_PER_USER_PER_HOUR } 
 import { resolveInternalPipelineModel, INTERNAL_PIPELINE_MAX_COMPLETION_TOKENS } from "../../config/internalPipelineAgents.js";
 import { callOpenRouter } from "../openrouter.js";
 import { sanitizeUserMessage } from "../promptSanitizer.js";
-import { sendS3labsTelegramReply } from "../s3labsTelegramNotifier.js";
+import {
+  deleteS3labsTelegramMessage,
+  sendS3labsTelegramReply,
+  sendS3labsTelegramTyping,
+} from "../s3labsTelegramNotifier.js";
 import { isAllowedS3labsChat } from "./s3labsTelegramAllowlist.js";
 import { getS3labsBotMeta } from "./s3labsTelegramBotMeta.js";
 import { buildS3labsQaSystemPrompt } from "./s3labsQaKnowledge.js";
 
 /** @type {Map<string, number[]>} */
 const userRequestTimestamps = new Map();
+
+/** Instant ack so users see a reply before the LLM finishes. */
+const S3LABS_QA_ACK_TEXT = "⏳ Sedang memproses pertanyaanmu, tunggu sebentar ya...";
+
+/** Telegram typing indicator expires after ~5s — refresh while waiting on LLM. */
+const S3LABS_QA_TYPING_REFRESH_MS = 4200;
+
+/**
+ * Keep typing indicator alive until `work` completes.
+ * @template T
+ * @param {{ messageThreadId?: number }} replyOpts
+ * @param {() => Promise<T>} work
+ * @returns {Promise<T>}
+ */
+async function withS3labsTypingIndicator(replyOpts, work) {
+  let active = true;
+  const pump = (async () => {
+    while (active) {
+      await sendS3labsTelegramTyping(replyOpts).catch(() => {});
+      if (!active) break;
+      await new Promise((resolve) => setTimeout(resolve, S3LABS_QA_TYPING_REFRESH_MS));
+    }
+  })();
+
+  try {
+    return await work();
+  } finally {
+    active = false;
+    await pump.catch(() => {});
+  }
+}
 
 /**
  * @param {number | string} userId
@@ -167,8 +202,13 @@ export async function handleS3labsTelegramUpdate(update) {
   };
 
   try {
-    const allowed = await isAllowedS3labsChat(message.chat.id);
+    const allowed = await isAllowedS3labsChat(message.chat.id, message.chat.username);
     if (!allowed) {
+      console.warn(
+        "[s3labs-telegram-qa] chat not allowed:",
+        message.chat.id,
+        message.chat.username ?? "(no username)",
+      );
       return;
     }
 
@@ -197,17 +237,25 @@ export async function handleS3labsTelegramUpdate(update) {
       return;
     }
 
+    const ack = await sendS3labsTelegramReply(S3LABS_QA_ACK_TEXT, replyOpts);
+
     let replyText;
     try {
-      replyText = await answerS3labsQuestion(question);
+      replyText = await withS3labsTypingIndicator(replyOpts, () =>
+        answerS3labsQuestion(question),
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       console.error("[s3labs-telegram-qa] LLM failed:", msg);
       replyText = "Maaf, ada gangguan sementara. Coba lagi beberapa menit lagi.";
     }
 
+    if (ack.ok && ack.messageId != null && ack.chatId) {
+      await deleteS3labsTelegramMessage(ack.chatId, ack.messageId).catch(() => {});
+    }
+
     const sent = await sendS3labsTelegramReply(replyText, replyOpts);
-    if (!sent) {
+    if (!sent.ok) {
       console.warn("[s3labs-telegram-qa] failed to send reply");
     }
   } catch (e) {

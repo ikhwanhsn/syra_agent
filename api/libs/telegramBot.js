@@ -6,6 +6,33 @@
 /** Telegram max message length (UTF-16 code units; we use JS string length as safe proxy). */
 export const TELEGRAM_MESSAGE_MAX_LEN = 4096;
 
+/** Forum "General" topic id — sendMessage rejects message_thread_id=1 ("thread not found"). */
+export const TELEGRAM_GENERAL_FORUM_TOPIC_ID = 1;
+
+/**
+ * Telegram rejects sendMessage with message_thread_id=1 (General forum topic).
+ * Omit the param; reply_to_message_id still anchors the thread when present.
+ * @param {number | undefined | null} threadId
+ * @returns {number | undefined}
+ */
+export function normalizeTelegramForumThreadId(threadId) {
+  if (threadId == null || !Number.isFinite(threadId)) return undefined;
+  const id = Math.trunc(threadId);
+  if (id <= 0 || id === TELEGRAM_GENERAL_FORUM_TOPIC_ID) return undefined;
+  return id;
+}
+
+/**
+ * sendChatAction needs message_thread_id=1 for General forum topic (opposite of sendMessage).
+ * @param {number | undefined | null} threadId
+ * @returns {number | undefined}
+ */
+export function resolveTelegramTypingThreadId(threadId) {
+  if (threadId == null || !Number.isFinite(threadId)) return undefined;
+  const id = Math.trunc(threadId);
+  return id > 0 ? id : undefined;
+}
+
 /**
  * @typedef {'Markdown' | 'MarkdownV2' | 'HTML'} TelegramParseMode
  */
@@ -20,6 +47,23 @@ export const TELEGRAM_MESSAGE_MAX_LEN = 4096;
  *   messageThreadId?: number | null;
  *   replyToMessageId?: number | null;
  * }} SendTelegramMessageOptions
+ */
+
+/**
+ * @typedef {{
+ *   token: string;
+ *   chatId: string;
+ *   action?: 'typing' | 'upload_photo' | 'record_video' | 'upload_video' | 'record_voice' | 'upload_voice' | 'upload_document' | 'choose_sticker' | 'find_location' | 'record_video_note' | 'upload_video_note';
+ *   messageThreadId?: number | null;
+ * }} SendTelegramChatActionOptions
+ */
+
+/**
+ * @typedef {{
+ *   token: string;
+ *   chatId: string;
+ *   messageId: number;
+ * }} DeleteTelegramMessageOptions
  */
 
 /**
@@ -52,9 +96,81 @@ export function chunkTelegramText(text, maxLen = TELEGRAM_MESSAGE_MAX_LEN) {
 }
 
 /**
+ * Show typing / upload indicator in a chat or forum topic.
+ * @param {SendTelegramChatActionOptions} options
+ * @returns {Promise<{ ok: boolean; error?: string }>}
+ */
+export async function sendTelegramChatAction(options) {
+  const token = String(options.token || "").trim();
+  const chatId = String(options.chatId || "").trim();
+  if (!token || !chatId) {
+    return { ok: false, error: "token and chatId are required" };
+  }
+
+  const body = {
+    chat_id: chatId,
+    action: options.action || "typing",
+  };
+  const threadId = resolveTelegramTypingThreadId(options.messageThreadId);
+  if (threadId != null) {
+    body.message_thread_id = threadId;
+  }
+
+  const url = `https://api.telegram.org/bot${encodeURIComponent(token)}/sendChatAction`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const t = await res.text().catch(() => "");
+    const err = `Telegram chat action failed ${res.status}: ${t.slice(0, 200)}`;
+    console.warn("[telegram-bot]", err);
+    return { ok: false, error: err };
+  }
+
+  return { ok: true };
+}
+
+/**
+ * Delete a message the bot sent (or can moderate) in a chat.
+ * @param {DeleteTelegramMessageOptions} options
+ * @returns {Promise<{ ok: boolean; error?: string }>}
+ */
+export async function deleteTelegramMessage(options) {
+  const token = String(options.token || "").trim();
+  const chatId = String(options.chatId || "").trim();
+  const messageId = options.messageId;
+
+  if (!token || !chatId || messageId == null || !Number.isFinite(messageId)) {
+    return { ok: false, error: "token, chatId, and messageId are required" };
+  }
+
+  const url = `https://api.telegram.org/bot${encodeURIComponent(token)}/deleteMessage`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      message_id: Math.trunc(messageId),
+    }),
+  });
+
+  if (!res.ok) {
+    const t = await res.text().catch(() => "");
+    const err = `Telegram delete failed ${res.status}: ${t.slice(0, 200)}`;
+    console.warn("[telegram-bot]", err);
+    return { ok: false, error: err };
+  }
+
+  return { ok: true };
+}
+
+/**
  * Send one or more Telegram messages (chunked if needed).
  * @param {SendTelegramMessageOptions} options
- * @returns {Promise<{ ok: boolean; error?: string }>}
+ * @returns {Promise<{ ok: boolean; messageId?: number; error?: string }>}
  */
 export async function sendTelegramMessage(options) {
   const token = String(options.token || "").trim();
@@ -72,6 +188,8 @@ export async function sendTelegramMessage(options) {
   if (parts.length === 0) return { ok: true };
 
   const url = `https://api.telegram.org/bot${encodeURIComponent(token)}/sendMessage`;
+  /** @type {number | undefined} */
+  let firstMessageId;
 
   for (let i = 0; i < parts.length; i++) {
     const body = {
@@ -79,12 +197,9 @@ export async function sendTelegramMessage(options) {
       text: parts[i],
       disable_web_page_preview: disableWebPagePreview,
     };
-    if (
-      options.messageThreadId != null &&
-      Number.isFinite(options.messageThreadId) &&
-      options.messageThreadId > 0
-    ) {
-      body.message_thread_id = options.messageThreadId;
+    const threadId = normalizeTelegramForumThreadId(options.messageThreadId);
+    if (threadId != null) {
+      body.message_thread_id = threadId;
     }
     if (parseMode != null && parseMode !== "") {
       body.parse_mode = parseMode;
@@ -103,13 +218,20 @@ export async function sendTelegramMessage(options) {
       body: JSON.stringify(body),
     });
 
+    const data = await res.json().catch(() => ({}));
+
     if (!res.ok) {
-      const t = await res.text().catch(() => "");
-      const err = `Telegram send failed ${res.status}: ${t.slice(0, 300)} (chunk ${i + 1}/${parts.length})`;
+      const t = JSON.stringify(data).slice(0, 300);
+      const err = `Telegram send failed ${res.status}: ${t} (chunk ${i + 1}/${parts.length})`;
       console.warn("[telegram-bot]", err);
       return { ok: false, error: err };
     }
+
+    const messageId = data?.result?.message_id;
+    if (i === 0 && typeof messageId === "number" && Number.isFinite(messageId)) {
+      firstMessageId = messageId;
+    }
   }
 
-  return { ok: true };
+  return firstMessageId != null ? { ok: true, messageId: firstMessageId } : { ok: true };
 }

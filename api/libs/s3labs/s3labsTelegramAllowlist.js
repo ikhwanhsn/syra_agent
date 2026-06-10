@@ -49,19 +49,25 @@ export async function getAllowedS3labsChatId() {
 
 /**
  * @param {number | string | undefined | null} incomingChatId
+ * @param {string | undefined | null} [chatUsername]
  * @returns {Promise<boolean>}
  */
-export async function isAllowedS3labsChat(incomingChatId) {
+export async function isAllowedS3labsChat(incomingChatId, chatUsername) {
   if (incomingChatId == null) return false;
+
+  const configured = getS3labsTelegramConfig().chatId.trim();
+  if (configured.startsWith("@") && chatUsername) {
+    const expected = configured.slice(1).toLowerCase();
+    if (chatUsername.toLowerCase() === expected) return true;
+  }
+
   const allowed = await getAllowedS3labsChatId();
   if (!allowed) return false;
 
   const incoming = String(incomingChatId);
-  const configured = getS3labsTelegramConfig().chatId.trim();
 
   if (incoming === allowed) return true;
   if (incoming === configured) return true;
-  if (configured.startsWith("@") && incoming === configured) return false;
 
   return false;
 }

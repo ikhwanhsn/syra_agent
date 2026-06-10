@@ -6,7 +6,13 @@
  * @see https://core.telegram.org/bots/api#sendmessage
  */
 
-import { sendTelegramMessage } from "./telegramBot.js";
+import {
+  deleteTelegramMessage,
+  normalizeTelegramForumThreadId,
+  sendTelegramChatAction,
+  sendTelegramMessage,
+} from "./telegramBot.js";
+import { getAllowedS3labsChatId } from "./s3labs/s3labsTelegramAllowlist.js";
 
 /**
  * @typedef {'Markdown' | 'MarkdownV2' | 'HTML'} TelegramParseMode
@@ -67,25 +73,78 @@ export async function sendS3labsTelegram(text, options) {
 }
 
 /**
+ * @typedef {{
+ *   ok: boolean;
+ *   messageId?: number;
+ *   chatId?: string;
+ * }} S3labsTelegramReplyResult
+ */
+
+/**
  * Reply in the S3Labs group (any topic). Used for @mention Q&A.
  * @param {string} text
  * @param {{ messageThreadId?: number; replyToMessageId?: number; disableWebPagePreview?: boolean }} options
- * @returns {Promise<boolean>}
+ * @returns {Promise<S3labsTelegramReplyResult>}
  */
 export async function sendS3labsTelegramReply(text, options = {}) {
-  const { token, chatId } = getS3labsTelegramConfig();
-  if (!token || !chatId) return false;
+  const { token, chatId: configuredChatId } = getS3labsTelegramConfig();
+  if (!token) return { ok: false };
 
-  const result = await sendTelegramMessage({
+  const chatId = (await getAllowedS3labsChatId()) || configuredChatId.trim();
+  if (!chatId) return { ok: false };
+
+  const threadId = normalizeTelegramForumThreadId(options.messageThreadId);
+  const base = {
     token,
     chatId,
     text,
     disableWebPagePreview: options.disableWebPagePreview !== false,
-    messageThreadId:
-      options.messageThreadId != null && Number.isFinite(options.messageThreadId)
-        ? options.messageThreadId
-        : undefined,
     replyToMessageId: options.replyToMessageId,
+  };
+
+  let result = await sendTelegramMessage({ ...base, messageThreadId: threadId });
+  if (!result.ok && threadId != null) {
+    result = await sendTelegramMessage({ ...base, messageThreadId: undefined });
+  }
+
+  return {
+    ok: result.ok,
+    messageId: result.messageId,
+    chatId: result.ok ? chatId : undefined,
+  };
+}
+
+/**
+ * Delete a bot message in the S3Labs group (e.g. remove "processing" placeholder).
+ * @param {string} chatId
+ * @param {number} messageId
+ * @returns {Promise<boolean>}
+ */
+export async function deleteS3labsTelegramMessage(chatId, messageId) {
+  const { token } = getS3labsTelegramConfig();
+  if (!token || !chatId || messageId == null) return false;
+
+  const result = await deleteTelegramMessage({ token, chatId, messageId });
+  return result.ok;
+}
+
+/**
+ * Show "typing…" in the S3Labs group while the LLM is working.
+ * @param {{ messageThreadId?: number }} [options]
+ * @returns {Promise<boolean>}
+ */
+export async function sendS3labsTelegramTyping(options = {}) {
+  const { token, chatId: configuredChatId } = getS3labsTelegramConfig();
+  if (!token) return false;
+
+  const chatId = (await getAllowedS3labsChatId()) || configuredChatId.trim();
+  if (!chatId) return false;
+
+  const result = await sendTelegramChatAction({
+    token,
+    chatId,
+    action: "typing",
+    messageThreadId: options.messageThreadId,
   });
 
   return result.ok;
