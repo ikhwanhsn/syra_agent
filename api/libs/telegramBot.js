@@ -210,6 +210,8 @@ export async function sendTelegramMessage(options) {
       options.replyToMessageId > 0
     ) {
       body.reply_to_message_id = options.replyToMessageId;
+      // Don't fail when the quoted message was deleted ("message to be replied not found").
+      body.allow_sending_without_reply = true;
     }
 
     const res = await fetch(url, {

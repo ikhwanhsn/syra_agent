@@ -15,13 +15,30 @@ export async function startS3labsTelegramQa() {
     return;
   }
 
-  await registerS3labsTelegramWebhookIfConfigured();
+  const webhookRegistered = await registerS3labsTelegramWebhookIfConfigured();
 
   if (S3LABS_TELEGRAM_POLLING_ENABLED) {
-    startS3labsTelegramPolling();
-  } else {
-    console.log(
-      "[s3labs-telegram-qa] on — set S3LABS_TELEGRAM_WEBHOOK_URL (+ secret) or S3LABS_TELEGRAM_POLLING_ENABLED=true for dev",
-    );
+    await startS3labsTelegramPolling();
+    return;
   }
+
+  if (webhookRegistered) {
+    console.log("[s3labs-telegram-qa] on — webhook mode");
+    return;
+  }
+
+  // Without a registered webhook the bot would silently receive nothing —
+  // fall back to long-polling outside production so dev keeps working.
+  if (process.env.NODE_ENV !== "production") {
+    console.warn(
+      "[s3labs-telegram-qa] webhook not registered — falling back to long-polling (dev)",
+    );
+    await startS3labsTelegramPolling({ force: true });
+    return;
+  }
+
+  console.warn(
+    "[s3labs-telegram-qa] webhook not registered and polling disabled — bot will NOT receive messages.",
+    "Set a public HTTPS S3LABS_TELEGRAM_WEBHOOK_URL (+ secret) or S3LABS_TELEGRAM_POLLING_ENABLED=true.",
+  );
 }

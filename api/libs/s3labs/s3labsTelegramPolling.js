@@ -4,6 +4,7 @@
 
 import { S3LABS_TELEGRAM_POLLING_ENABLED, S3LABS_TELEGRAM_QA_ENABLED } from "../../config/s3labsAgentsConfig.js";
 import { getS3labsTelegramConfig, isS3labsTelegramConfigured } from "../s3labsTelegramNotifier.js";
+import { deleteS3labsTelegramWebhook } from "./s3labsTelegramBotMeta.js";
 import { handleS3labsTelegramUpdate } from "./s3labsTelegramQa.js";
 
 /** @type {number} */
@@ -43,11 +44,16 @@ async function pollOnce() {
 
 /**
  * Start long-polling loop when enabled.
+ * @param {{ force?: boolean }} [options] force bypasses the env flag (bootstrap fallback)
  */
-export function startS3labsTelegramPolling() {
-  if (!S3LABS_TELEGRAM_QA_ENABLED || !S3LABS_TELEGRAM_POLLING_ENABLED) return;
+export async function startS3labsTelegramPolling(options = {}) {
+  if (!S3LABS_TELEGRAM_QA_ENABLED) return;
+  if (!S3LABS_TELEGRAM_POLLING_ENABLED && !options.force) return;
   if (!isS3labsTelegramConfigured()) return;
   if (polling) return;
+
+  // getUpdates conflicts (409) with a registered webhook — clear it first.
+  await deleteS3labsTelegramWebhook().catch(() => {});
 
   polling = true;
   console.log("[s3labs-telegram] long-polling enabled (dev)");

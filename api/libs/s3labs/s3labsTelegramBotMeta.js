@@ -35,12 +35,36 @@ export async function getS3labsBotMeta() {
 }
 
 /**
+ * Telegram only accepts public HTTPS webhook URLs.
+ * @param {string} webhookUrl
+ * @returns {boolean}
+ */
+function isPublicHttpsUrl(webhookUrl) {
+  try {
+    const parsed = new URL(webhookUrl);
+    if (parsed.protocol !== "https:") return false;
+    const host = parsed.hostname.toLowerCase();
+    return host !== "localhost" && host !== "127.0.0.1" && host !== "::1";
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Register Telegram webhook when S3LABS_TELEGRAM_WEBHOOK_URL is set.
  * @returns {Promise<boolean>}
  */
 export async function registerS3labsTelegramWebhookIfConfigured() {
   const webhookUrl = S3LABS_TELEGRAM_WEBHOOK_URL.trim();
   if (!webhookUrl) return false;
+
+  if (!isPublicHttpsUrl(webhookUrl)) {
+    console.warn(
+      "[s3labs-telegram] setWebhook skipped — S3LABS_TELEGRAM_WEBHOOK_URL must be a public HTTPS URL",
+      "(got a localhost/non-HTTPS URL). Use S3LABS_TELEGRAM_POLLING_ENABLED=true for local dev.",
+    );
+    return false;
+  }
 
   const { token } = getS3labsTelegramConfig();
   if (!token) return false;
@@ -69,6 +93,24 @@ export async function registerS3labsTelegramWebhookIfConfigured() {
 
   console.log("[s3labs-telegram] webhook registered:", webhookUrl);
   return true;
+}
+
+/**
+ * Remove any registered webhook (required before getUpdates long-polling).
+ * @returns {Promise<boolean>}
+ */
+export async function deleteS3labsTelegramWebhook() {
+  const { token } = getS3labsTelegramConfig();
+  if (!token) return false;
+
+  const url = `https://api.telegram.org/bot${encodeURIComponent(token)}/deleteWebhook`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ drop_pending_updates: false }),
+  });
+
+  return res.ok;
 }
 
 /** @internal */
