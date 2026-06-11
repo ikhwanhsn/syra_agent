@@ -12,6 +12,7 @@ import {
   type PostPhotoLayoutTemplate,
   type PostPhotoUpdate,
 } from "@/content/posts/photo";
+import { PostBackLink } from "@/components/post/PostBackLink";
 import { PostPhotoFrame } from "@/components/post/photo/PostPhotoFrame";
 import { PostShareCopyPanel } from "@/components/post/PostShareCopyPanel";
 import { PostUpdateNav } from "@/components/post/PostUpdateNav";
@@ -141,6 +142,7 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
     <div className="post-root post-photo-root relative flex min-h-[100dvh] w-full min-w-0 flex-col overflow-x-hidden bg-[#050807] text-white">
       <header className="post-chrome-header relative z-20 flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 px-3 py-3 sm:px-6 sm:py-4 md:px-8">
         <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+          <PostBackLink />
           <img
             src="/images/experiment/rise_uponly.png"
             alt=""

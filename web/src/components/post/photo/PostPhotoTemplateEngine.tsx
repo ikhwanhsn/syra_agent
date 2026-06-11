@@ -7,6 +7,7 @@ import {
   PostPhotoChrome,
   PostPhotoHeadline,
   PostPhotoHighlightList,
+  PostPhotoItemList,
   PostPhotoKicker,
   PostPhotoLinks,
   PostPhotoStatGrid,
@@ -103,15 +104,16 @@ function renderBlock(block: PhotoBlockId, content: PostPhotoContent, def: PhotoT
         <PostPhotoHighlightList
           key={block}
           items={content.highlights.slice(0, 4)}
-          className={
-            def.id === "photo-hero-numbered"
-              ? "post-photo-list--numbered"
-              : def.id === "photo-hero-masonry"
-                ? "post-photo-list--masonry"
+          variant={
+            def.id === "photo-hero-checklist"
+              ? "checklist"
+              : def.id === "photo-hero-numbered"
+                ? "numbered"
                 : def.id === "photo-hero-tiered"
-                  ? "post-photo-list--tiered"
-                  : undefined
+                  ? "tiered"
+                  : "default"
           }
+          className={def.id === "photo-hero-masonry" ? "post-photo-list--masonry" : undefined}
         />
       );
     case "stats-all":
@@ -166,12 +168,15 @@ function renderBlock(block: PhotoBlockId, content: PostPhotoContent, def: PhotoT
       return <PostPhotoSteps key={block} steps={content.steps} variant="zigzag" />;
     case "steps-arrows":
       return <PostPhotoSteps key={block} steps={content.steps} variant="arrows" />;
+    case "items-numbered":
+      return <PostPhotoItemList key={block} items={content.items} />;
     case "compare":
       return (
         <div
           key={block}
           className={cn(
             "post-photo-compare",
+            def.id === "photo-comparison" && "post-photo-compare--enhanced",
             def.id === "photo-compare-gradient" && "post-photo-compare--gradient",
             def.id === "photo-compare-slide" && "post-photo-compare--slide",
           )}

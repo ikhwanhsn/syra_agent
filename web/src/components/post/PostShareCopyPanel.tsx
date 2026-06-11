@@ -1,6 +1,5 @@
 import { useCallback, useState } from "react";
-import type { PostPhotoLayoutTemplate } from "@/content/posts/photo/layouts";
-import { POST_PHOTO_LAYOUT_LABELS } from "@/content/posts/photo/layouts";
+import { POST_PHOTO_CARD_SLOT_BY_ROLE } from "@/content/posts/photo/photoCardSlots";
 import type { PostPhotoUpdate } from "@/content/posts/photo/types";
 import type { PostUpdateMeta } from "@/content/posts/types";
 import {
@@ -23,9 +22,9 @@ import { toast } from "sonner";
 interface PostShareCopyPanelProps {
   meta: PostUpdateMeta;
   format: PostShareFormat;
-  /** When format is photo, copy is tailored to the active template. */
+  /** When format is photo, copy is tailored to the active card. */
   photoPost?: PostPhotoUpdate;
-  photoLayout?: PostPhotoLayoutTemplate;
+  photoCardIndex?: number;
   className?: string;
 }
 
@@ -46,26 +45,26 @@ export function PostShareCopyPanel({
   meta,
   format,
   photoPost,
-  photoLayout,
+  photoCardIndex,
   className,
 }: PostShareCopyPanelProps) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const copyText = getPostShareCopyWithUrl(
-    meta,
-    format,
-    format === "photo" && photoPost && photoLayout ? { photoPost, photoLayout } : undefined,
-  );
+  const photoOptions =
+    format === "photo" && photoPost && photoCardIndex !== undefined
+      ? { photoPost, photoCardIndex }
+      : undefined;
+  const copyText = getPostShareCopyWithUrl(meta, format, photoOptions);
   const labels = FORMAT_LABELS[format];
+  const activeCard =
+    photoPost && photoCardIndex !== undefined ? photoPost.cards[photoCardIndex] : undefined;
   const photoTitle =
-    format === "photo" && photoLayout
-      ? `${labels.title} · ${POST_PHOTO_LAYOUT_LABELS[photoLayout]}`
+    format === "photo" && activeCard
+      ? `${labels.title} · ${POST_PHOTO_CARD_SLOT_BY_ROLE.get(activeCard.role)?.label ?? activeCard.role}`
       : labels.title;
 
   const handleCopy = useCallback(async () => {
-    const options =
-      format === "photo" && photoPost && photoLayout ? { photoPost, photoLayout } : undefined;
-    const ok = await copyPostShareText(meta, format, options);
+    const ok = await copyPostShareText(meta, format, photoOptions);
     if (ok) {
       setCopied(true);
       toast.success("Post copy ready — paste on X");
@@ -73,7 +72,7 @@ export function PostShareCopyPanel({
     } else {
       toast.error("Could not copy to clipboard");
     }
-  }, [meta, format, photoPost, photoLayout]);
+  }, [meta, format, photoOptions]);
 
   return (
     <>
@@ -102,11 +101,7 @@ export function PostShareCopyPanel({
 
           <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
             <a
-              href={buildPostOnXUrl(
-                meta,
-                format,
-                format === "photo" && photoPost && photoLayout ? { photoPost, photoLayout } : undefined,
-              )}
+              href={buildPostOnXUrl(meta, format, photoOptions)}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-4 font-mono text-[10px] uppercase tracking-[0.12em] text-white/70 transition-colors hover:border-white/25 hover:text-white/90"

@@ -1,10 +1,12 @@
 import { AGENTSCORE_POST } from "./agentscoreUpdate";
 import { BNB_X402_POST } from "./bnbX402Update";
 import { LP_AGENT_POST } from "./lpAgentUpdate";
+import { LP_REAL_PROFITABILITY_POST } from "./lpRealProfitabilityUpdate";
 import { PUMPFUN_ALPHA_POST } from "./pumpfunAlphaUpdate";
 import { AGENTSCORE_PHOTO } from "./photo/agentscorePhoto";
 import { BNB_X402_PHOTO } from "./photo/bnbX402Photo";
 import { LP_AGENT_PHOTO } from "./photo/lpAgentPhoto";
+import { LP_REAL_PROFITABILITY_PHOTO } from "./photo/lpRealProfitabilityPhoto";
 import { PUMPFUN_ALPHA_PHOTO } from "./photo/pumpfunAlphaPhoto";
 import type { PostPhotoUpdate } from "./photo/types";
 import type { PostUpdate } from "./types";
@@ -27,6 +29,7 @@ const POST_UPDATE_BUNDLES: PostUpdateBundle[] = [
   { video: BNB_X402_POST, photo: BNB_X402_PHOTO },
   { video: AGENTSCORE_POST, photo: AGENTSCORE_PHOTO },
   { video: PUMPFUN_ALPHA_POST, photo: PUMPFUN_ALPHA_PHOTO },
+  { video: LP_REAL_PROFITABILITY_POST, photo: LP_REAL_PROFITABILITY_PHOTO },
 ];
 
 function assertBundleMeta(bundle: PostUpdateBundle): void {

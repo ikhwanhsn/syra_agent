@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { ImageIcon, Video } from "lucide-react";
+import { PostBackLink } from "@/components/post/PostBackLink";
 import { PostXStatusLabel } from "@/components/post/PostXStatusControl";
 import { LATEST_POST_UPDATE_NUMBER, POST_REGISTRY } from "@/content/posts";
 
@@ -14,6 +15,10 @@ export default function PostPage() {
       <div className="post-orb post-orb-b pointer-events-none absolute rounded-full" aria-hidden />
 
       <div className="relative z-10 w-full max-w-lg text-center">
+        <div className="mb-4 flex justify-start">
+          <PostBackLink />
+        </div>
+
         <div className="mb-6 flex items-center justify-center gap-3">
           <img
             src="/images/logo.jpg"

@@ -1,79 +1,211 @@
 import { AGENTSCORE_POST } from "../agentscoreUpdate";
+import { definePhotoUpdate } from "./photoDeck";
+import { photoContent } from "./photoContent";
 import { AGENTSCORE_PHOTO_SHARE_COPIES } from "./shareCopies/agentscoreShareCopies";
-import type { PostPhotoUpdate } from "./types";
 
-/** Photo-format content for the AgentScore ship log. */
-export const AGENTSCORE_PHOTO: PostPhotoUpdate = {
-  meta: AGENTSCORE_POST.meta,
-  picks: [
-    "photo-cover-spotlight",
-    "photo-flow-pipeline",
-    "photo-cards-quad",
-    "photo-stat-trio",
-    "photo-comparison",
-    "photo-closing-cta",
-  ],
-  shareCopyByLayout: AGENTSCORE_PHOTO_SHARE_COPIES,
-  content: {
-    eyebrow: "Ship log",
-    badge: "Passport · Gate · Pay",
-    title: "AgentScore × Syra",
-    subtitle: "Identity, compliance, and agent commerce wired into Syra's x402 stack.",
-    kicker: "Why this matters",
-    headline: "Agents need to pay and comply.",
-    body: "Syra sells intelligence over x402. Regulated merchants need KYC before checkout. AgentScore closes the gap with merchant gates and buyer Passport tools without replacing our payment middleware.",
-    quote: "402 for price. Passport for identity. Same Syra agent brain.",
-    highlights: [
-      "AgentScore Gate on 8004 registration + Tempo payouts",
-      "agentscore-discover, check, passport-status, pay",
-      "Public /agentscore routes, MCP, and skill.md",
-      "Policy engine boost for verified operators",
-    ],
-    steps: [
-      { step: "01", title: "Anonymous 402", description: "First request returns x402 pricing. Permissionless unchanged." },
-      { step: "02", title: "Pay with x402", description: "Payment-Signature verified via existing facilitator." },
-      { step: "03", title: "Gate if required", description: "Assess on paid retry. 403 + verify_url without Passport." },
-      { step: "04", title: "Buy merchants", description: "agentscore-pay with X-Operator-Token from agent wallet." },
-    ],
-    cards: [
-      { title: "Gate", subtitle: "Merchant", detail: "KYC, sanctions, age, jurisdiction on paid retry.", accent: "gold" },
-      { title: "Passport", subtitle: "Buyer", detail: "Verify once. Works at every gated merchant.", accent: "gold" },
-      { title: "Pay tools", subtitle: "4 tools", detail: "Discover, check, status, pay from agent chat." },
-      { title: "Policy", subtitle: "Boost", detail: "Higher caps for KYC-verified operators." },
-    ],
-    stats: [
-      { value: "4", label: "New agent tools" },
-      { value: "2", label: "Gated routes" },
-      { value: "1", label: "Passport, many merchants" },
-    ],
-    narrative: "Sell intelligence with optional compliance. Buy from regulated merchants with one Passport.",
-    links: [
-      { label: "Agent chat", value: "syraa.fun/chat", href: "https://www.syraa.fun/chat" },
-      { label: "skill.md", value: "api.syraa.fun/skill.md", href: "https://api.syraa.fun/skill.md" },
-      { label: "AgentScore", value: "docs.agentscore.sh", href: "https://docs.agentscore.sh" },
-    ],
-    items: [
-      "Agent tools: agentscore-discover through agentscore-pay",
-      "Public GET /agentscore/discover and /check",
-      "Gate on 8004 register-agent and Tempo payouts",
-      "MCP syra_agentscore_* tools for external agents",
-    ],
-    compareLeft: {
-      title: "Before",
-      body: "No KYC gates on Syra. Agents could not checkout at AgentScore-gated merchants.",
-    },
-    compareRight: {
-      title: "Now",
-      body: "Optional Gate on sensitive routes. Passport + pay tools for regulated agent commerce.",
-    },
-    terminalLines: [
-      "$ curl api.syraa.fun/agentscore/discover",
-      "< merchants: Martin Estate, Sayer & Stone, …",
-      "$ agentscore-pay passport login",
-      "> verify_url opened · KYC complete · opc_… saved",
-      "$ syra agent tools call agentscore-pay --url https://agents.martinestate.com/purchase",
-      "> 402 → pay USDC → X-Operator-Token attached",
-      "< HTTP/200 · order confirmed",
-    ],
+const copies = AGENTSCORE_PHOTO_SHARE_COPIES;
+
+/** Photo-format content for the AgentScore ship log — 15 cards, 15 X posts. */
+export const AGENTSCORE_PHOTO = definePhotoUpdate(AGENTSCORE_POST.meta, [
+  {
+    role: "cover",
+    layout: "photo-cover-spotlight",
+    shareCopy: copies.cover,
+    content: photoContent({
+      eyebrow: "Ship log",
+      badge: "Passport · Gate · Pay",
+      title: "AgentScore × Syra",
+      subtitle: "Identity, compliance, and agent commerce wired into Syra's x402 stack.",
+    }),
   },
-};
+  {
+    role: "thesis",
+    layout: "photo-statement-accent",
+    shareCopy: copies.thesis,
+    content: photoContent({
+      kicker: "Why this matters",
+      headline: "Agents need to pay and comply.",
+      body: "Syra sells intelligence over x402. Regulated merchants need KYC before checkout. AgentScore closes the gap with merchant gates and buyer Passport tools without replacing our payment middleware.",
+    }),
+  },
+  {
+    role: "quote",
+    layout: "photo-quote",
+    shareCopy: copies.quote,
+    content: photoContent({
+      quote: "402 for price. Passport for identity. Same Syra agent brain.",
+      narrative: "Permissionless x402 stays unchanged. Compliance is optional, route-specific, and buyer-side with one Passport.",
+    }),
+  },
+  {
+    role: "flow",
+    layout: "photo-flow-pipeline",
+    shareCopy: copies.flow,
+    content: photoContent({
+      kicker: "Agent commerce flow",
+      headline: "From anonymous 402 to gated checkout.",
+      steps: [
+        { step: "01", title: "Anonymous 402", description: "First request returns x402 pricing. Permissionless unchanged." },
+        { step: "02", title: "Pay with x402", description: "Payment-Signature verified via existing facilitator." },
+        { step: "03", title: "Gate if required", description: "Assess on paid retry. 403 + verify_url without Passport." },
+        { step: "04", title: "Buy merchants", description: "agentscore-pay with X-Operator-Token from agent wallet." },
+      ],
+    }),
+  },
+  {
+    role: "timeline",
+    layout: "photo-timeline",
+    shareCopy: copies.timeline,
+    content: photoContent({
+      kicker: "Checkout path",
+      headline: "One Passport. Every gated merchant.",
+      steps: [
+        { step: "01", title: "Discover merchant", description: "agentscore-discover from agent chat or GET /agentscore/discover." },
+        { step: "02", title: "Pay with x402", description: "402 pricing → USDC Payment-Signature on paid retry." },
+        { step: "03", title: "Passport if gated", description: "403 + verify_url. Complete KYC once, save operator token." },
+        { step: "04", title: "Order confirmed", description: "Retry with X-Operator-Token. HTTP/200 from gated merchant." },
+      ],
+    }),
+  },
+  {
+    role: "pillars",
+    layout: "photo-cards-quad",
+    shareCopy: copies.pillars,
+    content: photoContent({
+      headline: "Four pillars of agent commerce.",
+      cards: [
+        { title: "Gate", subtitle: "Merchant", detail: "KYC, sanctions, age, jurisdiction on paid retry.", accent: "gold" },
+        { title: "Passport", subtitle: "Buyer", detail: "Verify once. Works at every gated merchant.", accent: "gold" },
+        { title: "Pay tools", subtitle: "4 tools", detail: "Discover, check, status, pay from agent chat." },
+        { title: "Policy", subtitle: "Boost", detail: "Higher caps for KYC-verified operators." },
+      ],
+    }),
+  },
+  {
+    role: "checklist",
+    layout: "photo-hero-checklist",
+    shareCopy: copies.checklist,
+    content: photoContent({
+      headline: "What's new in Syra × AgentScore.",
+      highlights: [
+        "AgentScore Gate on 8004 registration + Tempo payouts",
+        "agentscore-discover, check, passport-status, pay",
+        "Public /agentscore routes, MCP, and skill.md",
+        "Policy engine boost for verified operators",
+      ],
+    }),
+  },
+  {
+    role: "metrics",
+    layout: "photo-stat-trio",
+    shareCopy: copies.metrics,
+    content: photoContent({
+      headline: "Identity + payments + intelligence.",
+      stats: [
+        { value: "4", label: "New agent tools" },
+        { value: "2", label: "Gated routes" },
+        { value: "1", label: "Passport, many merchants" },
+      ],
+      narrative: "Sell intelligence with optional compliance. Buy from regulated merchants with one Passport.",
+    }),
+  },
+  {
+    role: "featured",
+    layout: "photo-stat-featured",
+    shareCopy: copies.featured,
+    content: photoContent({
+      headline: "Verify once. Checkout everywhere.",
+      stats: [{ value: "1", label: "Passport · every gated merchant" }],
+      narrative: "Martin Estate, Sayer & Stone, and the full AgentScore network — one identity, no re-KYC per checkout.",
+    }),
+  },
+  {
+    role: "comparison",
+    layout: "photo-comparison",
+    shareCopy: copies.comparison,
+    content: photoContent({
+      headline: "Before vs now.",
+      compareLeft: {
+        title: "Before",
+        body: "No KYC gates on Syra. Agents could not checkout at AgentScore-gated merchants.",
+      },
+      compareRight: {
+        title: "Now",
+        body: "Optional Gate on sensitive routes. Passport + pay tools for regulated agent commerce.",
+      },
+    }),
+  },
+  {
+    role: "launch",
+    layout: "photo-announcement",
+    shareCopy: copies.launch,
+    content: photoContent({
+      badge: "Now live",
+      title: "AgentScore × Syra",
+      subtitle: "Merchant gates. Buyer Passport. Pay tools in agent chat.",
+      body: "Syra is now both an x402 merchant with optional compliance gates and an x402 buyer for regulated commerce.",
+    }),
+  },
+  {
+    role: "deepDive",
+    layout: "photo-numbered-list",
+    shareCopy: copies.deepDive,
+    content: photoContent({
+      kicker: "Technical surface",
+      headline: "Built for agents. API-first.",
+      items: [
+        "Agent tools: agentscore-discover through agentscore-pay",
+        "Public GET /agentscore/discover and /check",
+        "Gate on 8004 register-agent and Tempo payouts",
+        "MCP syra_agentscore_* tools for external agents",
+      ],
+    }),
+  },
+  {
+    role: "split",
+    layout: "photo-hero-split",
+    shareCopy: copies.split,
+    content: photoContent({
+      badge: "Two sides",
+      headline: "Sell intelligence. Buy from regulated merchants.",
+      body: "Merchant side: optional Gate on high-risk routes. Buyer side: Passport + agentscore-pay from agent wallet.",
+      highlights: [
+        "Gate: KYC, sanctions, age, jurisdiction",
+        "Passport: verify once, many merchants",
+        "Pay tools: discover → check → pay",
+        "Policy boost for verified operators",
+      ],
+    }),
+  },
+  {
+    role: "terminal",
+    layout: "photo-terminal",
+    shareCopy: copies.terminal,
+    content: photoContent({
+      headline: "AgentScore checkout from CLI.",
+      terminalLines: [
+        "$ curl api.syraa.fun/agentscore/discover",
+        "< merchants: Martin Estate, Sayer & Stone, …",
+        "$ agentscore-pay passport login",
+        "> verify_url opened · KYC complete · opc_… saved",
+        "$ syra agent tools call agentscore-pay --url https://agents.martinestate.com/purchase",
+        "> 402 → pay USDC → X-Operator-Token attached",
+        "< HTTP/200 · order confirmed",
+      ],
+    }),
+  },
+  {
+    role: "cta",
+    layout: "photo-closing-cta",
+    shareCopy: copies.cta,
+    content: photoContent({
+      headline: "Agent commerce is here.",
+      subtitle: "Verify once with Passport. Pay per call. Gate when it matters.",
+      links: [
+        { label: "Agent chat", value: "syraa.fun/chat", href: "https://www.syraa.fun/chat" },
+        { label: "skill.md", value: "api.syraa.fun/skill.md", href: "https://api.syraa.fun/skill.md" },
+        { label: "AgentScore", value: "docs.agentscore.sh", href: "https://docs.agentscore.sh" },
+      ],
+    }),
+  },
+]);

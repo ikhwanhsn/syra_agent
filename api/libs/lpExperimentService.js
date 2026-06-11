@@ -21,8 +21,10 @@ import {
   computeSimTransactionCostsSol,
   isPositionOutOfRange,
   LP_MIN_EXTREME_RISK_REWARD_RATIO,
+  LP_MIN_REAL_RISK_REWARD_RATIO,
   LP_MIN_SIM_RISK_REWARD_RATIO,
   mergeRealExitRules,
+  REAL_MIN_BINS_PER_SIDE,
   resolveAdaptiveExitRules,
   resolveEffectiveBins,
   shouldCloseByOor,
@@ -704,6 +706,19 @@ export function passesRealPoolScreen(pool) {
   if (tvl < 40_000 || vol < 60_000) return false;
   // 0.035% daily minimum (thresholds elsewhere use Meteora percent points; stored ratio is decimal).
   if (feeTvl < 0.00035) return false;
+
+  // Risk/reward hurdle at real bin geometry — expected fees must justify the IL budget,
+  // and extreme-risk pools never qualify for on-chain capital.
+  const rr = computeLpRiskRewardProfile({
+    tvlUsd: tvl,
+    volume24hUsd: vol,
+    feeTvlRatio: feeTvl,
+    binsBelow: REAL_MIN_BINS_PER_SIDE,
+    binsAbove: REAL_MIN_BINS_PER_SIDE,
+    holdHours: 4,
+  });
+  if (rr.tier === "extreme") return false;
+  if (rr.ratio < LP_MIN_REAL_RISK_REWARD_RATIO) return false;
   return true;
 }
 
@@ -1312,7 +1327,11 @@ function filterQualifiedRealStrategyRows(ranked) {
     return [...qualified].sort((a, b) => b.realLeaderScore - a.realLeaderScore);
   }
 
-  if (ranked.length > 0 && ranked[0].decided < LP_REAL_MIN_DECIDED_FOR_PROFIT_GATE) {
+  if (
+    ranked.length > 0 &&
+    ranked[0].decided < LP_REAL_MIN_DECIDED_FOR_PROFIT_GATE &&
+    ranked[0].sumNetPnlSol >= 0
+  ) {
     return [ranked[0]];
   }
 

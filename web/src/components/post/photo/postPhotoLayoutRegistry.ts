@@ -30,6 +30,7 @@ export type PhotoBlockId =
   | "compare"
   | "links"
   | "items-all"
+  | "items-numbered"
   | "terminal"
   | "url-inline";
 
@@ -83,7 +84,7 @@ export const POST_PHOTO_LAYOUT_REGISTRY: PhotoTemplateDef[] = [
   { id: "photo-announcement", bodyClassName: "post-photo-tmpl-announcement", align: "center", blocks: ["badge", "headline", "body"] },
 
   { id: "photo-hero-checklist", bodyClassName: "post-photo-tmpl-hero-checklist", align: "center", blocks: ["kicker", "headline", "highlights-4"] },
-  { id: "photo-hero-split", bodyClassName: "post-photo-tmpl-hero-split", align: "split-balanced", blocks: ["kicker", "headline", "body"], asideBlocks: ["highlights-3"] },
+  { id: "photo-hero-split", bodyClassName: "post-photo-tmpl-hero-split", align: "split-balanced", blocks: ["badge", "headline", "body"], asideBlocks: ["highlights-3"] },
   { id: "photo-hero-compact", bodyClassName: "post-photo-tmpl-hero-compact", align: "center", blocks: ["badge", "headline", "highlights-3"] },
   { id: "photo-hero-numbered", bodyClassName: "post-photo-tmpl-hero-numbered", align: "center", blocks: ["kicker", "headline", "highlights-4"] },
   { id: "photo-hero-masonry", bodyClassName: "post-photo-tmpl-hero-masonry", align: "center", blocks: ["kicker", "headline", "highlights-4"] },
@@ -103,13 +104,13 @@ export const POST_PHOTO_LAYOUT_REGISTRY: PhotoTemplateDef[] = [
   { id: "photo-cards-bento", bodyClassName: "post-photo-tmpl-cards-bento", align: "center", blocks: ["kicker", "headline", "cards-4"] },
   { id: "photo-cards-spotlight", bodyClassName: "post-photo-tmpl-cards-spotlight", align: "center", blocks: ["kicker", "headline", "cards-4"] },
 
-  { id: "photo-timeline", bodyClassName: "post-photo-tmpl-timeline", align: "left", blocks: ["kicker", "headline", "steps-timeline"] },
+  { id: "photo-timeline", bodyClassName: "post-photo-tmpl-timeline", align: "center", blocks: ["kicker", "headline", "steps-timeline"] },
   { id: "photo-flow-pipeline", bodyClassName: "post-photo-tmpl-flow-pipeline", align: "center", blocks: ["kicker", "headline", "steps-pipeline"] },
-  { id: "photo-numbered-list", bodyClassName: "post-photo-tmpl-numbered-list", align: "left", blocks: ["kicker", "headline", "steps-numbered"] },
+  { id: "photo-numbered-list", bodyClassName: "post-photo-tmpl-numbered-list", align: "center", blocks: ["kicker", "headline", "items-numbered"] },
   { id: "photo-flow-zigzag", bodyClassName: "post-photo-tmpl-flow-zigzag", align: "left", blocks: ["kicker", "headline", "steps-zigzag"] },
   { id: "photo-flow-arrow-chain", bodyClassName: "post-photo-tmpl-flow-arrow-chain", align: "center", blocks: ["kicker", "headline", "steps-arrows"] },
 
-  { id: "photo-comparison", bodyClassName: "post-photo-tmpl-comparison", align: "compare", blocks: ["kicker", "headline", "compare"] },
+  { id: "photo-comparison", bodyClassName: "post-photo-tmpl-comparison", align: "center", blocks: ["kicker", "headline", "compare"] },
   { id: "photo-items-grid", bodyClassName: "post-photo-tmpl-items-grid", align: "center", blocks: ["kicker", "headline", "items-all"] },
 
   { id: "photo-closing-cta", bodyClassName: "post-photo-tmpl-closing-cta", align: "center", blocks: ["headline", "subtitle", "links"] },

@@ -186,6 +186,7 @@ export function formatLpPositionError(
 const RESOLUTION_LABELS: Record<string, string> = {
   take_profit: "Take profit",
   stop_loss: "Stop loss",
+  trailing_stop: "Trailing stop",
   oor: "Out of range",
   time_expiry: "Time expired",
   manual_close: "Manual close",
@@ -199,6 +200,8 @@ export function formatLpResolutionLabel(resolution: string | null | undefined): 
 const RESOLUTION_DETAILS: Record<string, string> = {
   take_profit: "Strategy hit its take-profit threshold. Liquidity was removed and SOL returned to the agent wallet.",
   stop_loss: "Price moved against the position beyond the stop-loss rule. The agent closed to limit further loss.",
+  trailing_stop:
+    "PnL pulled back from its peak beyond the trailing rule. The agent closed to lock in earned fees.",
   oor: "Price stayed outside your bin range long enough. The agent exited per the out-of-range wait rule.",
   time_expiry: "Position reached the maximum hold time for this strategy and was closed automatically.",
   manual_close: "You requested stop-all. The agent closed this position and returned funds to the wallet.",

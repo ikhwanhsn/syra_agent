@@ -1,5 +1,17 @@
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
+
+function PostPhotoStepConnector({ variant }: { variant: "pipeline" | "timeline" }) {
+  return (
+    <div
+      className={cn("post-photo-step-connector", `post-photo-step-connector--${variant}`)}
+      aria-hidden
+    >
+      <span className="post-photo-step-connector-line" />
+      <span className="post-photo-step-connector-chevron" />
+    </div>
+  );
+}
 
 interface PostPhotoChromeProps {
   children: ReactNode;
@@ -60,13 +72,31 @@ export function PostPhotoBody({ children, className }: { children: ReactNode; cl
   return <p className={cn("post-photo-copy", className)}>{children}</p>;
 }
 
-export function PostPhotoHighlightList({ items, className }: { items: string[]; className?: string }) {
+export function PostPhotoHighlightList({
+  items,
+  className,
+  variant = "default",
+}: {
+  items: string[];
+  className?: string;
+  variant?: "default" | "checklist" | "numbered" | "tiered";
+}) {
   return (
-    <ul className={cn("post-photo-list", className)}>
+    <ul
+      className={cn(
+        "post-photo-list",
+        variant === "checklist" && "post-photo-list--checklist",
+        variant === "numbered" && "post-photo-list--numbered",
+        variant === "tiered" && "post-photo-list--tiered",
+        className,
+      )}
+    >
       {items.map((item, i) => (
         <li key={item} className="post-photo-list-item">
-          {className?.includes("numbered") ? (
+          {variant === "numbered" ? (
             <span className="post-photo-numbered-index">{String(i + 1).padStart(2, "0")}</span>
+          ) : variant === "checklist" ? (
+            <span className="post-photo-list-check" aria-hidden />
           ) : (
             <span className="post-photo-list-dot" aria-hidden />
           )}
@@ -74,6 +104,19 @@ export function PostPhotoHighlightList({ items, className }: { items: string[]; 
         </li>
       ))}
     </ul>
+  );
+}
+
+export function PostPhotoItemList({ items }: { items: string[] }) {
+  return (
+    <ol className="post-photo-item-list">
+      {items.map((item, i) => (
+        <li key={item} className="post-photo-item-list-row">
+          <span className="post-photo-item-list-index">{String(i + 1).padStart(2, "0")}</span>
+          <span className="post-photo-item-list-text">{item}</span>
+        </li>
+      ))}
+    </ol>
   );
 }
 
@@ -192,14 +235,21 @@ export function PostPhotoSteps({
   }
   if (variant === "pipeline") {
     return (
-      <div className="post-photo-pipeline">
-        {steps.map((step, i) => (
-          <div key={step.step} className="post-photo-pipeline-seg">
-            <div className="post-photo-pipeline-node">{step.step}</div>
-            <p className="post-photo-pipeline-title">{step.title}</p>
-            {i < steps.length - 1 ? <span className="post-photo-pipeline-arrow" aria-hidden /> : null}
-          </div>
-        ))}
+      <div className="post-photo-pipeline post-photo-pipeline--tracked">
+        <div className="post-photo-pipeline-row">
+          {steps.map((step, i) => (
+            <Fragment key={step.step}>
+              <div className="post-photo-pipeline-col">
+                <div className="post-photo-pipeline-node">{step.step}</div>
+                <div className="post-photo-pipeline-card">
+                  <p className="post-photo-pipeline-title">{step.title}</p>
+                  {step.description ? <p className="post-photo-pipeline-desc">{step.description}</p> : null}
+                </div>
+              </div>
+              {i < steps.length - 1 ? <PostPhotoStepConnector variant="pipeline" /> : null}
+            </Fragment>
+          ))}
+        </div>
       </div>
     );
   }
@@ -221,17 +271,22 @@ export function PostPhotoSteps({
   }
 
   return (
-    <ul className="post-photo-timeline">
-      {steps.map((step) => (
-        <li key={step.step} className="post-photo-timeline-item">
-          <span className="post-photo-timeline-dot">{step.step}</span>
-          <div>
-            <p className="post-photo-timeline-title">{step.title}</p>
-            <p className="post-photo-timeline-desc">{step.description}</p>
-          </div>
-        </li>
-      ))}
-    </ul>
+    <div className="post-photo-timeline post-photo-timeline--horizontal">
+      <div className="post-photo-timeline-h-row">
+        {steps.map((step, i) => (
+          <Fragment key={step.step}>
+            <div className="post-photo-timeline-h-col">
+              <span className="post-photo-timeline-dot">{step.step}</span>
+              <div className="post-photo-timeline-h-card">
+                <p className="post-photo-timeline-title">{step.title}</p>
+                <p className="post-photo-timeline-desc">{step.description}</p>
+              </div>
+            </div>
+            {i < steps.length - 1 ? <PostPhotoStepConnector variant="timeline" /> : null}
+          </Fragment>
+        ))}
+      </div>
+    </div>
   );
 }
 

@@ -17,15 +17,24 @@ import {
 } from "./lpExperimentService.js";
 import {
   applyRealBinOverrides,
+  applyRiskAdjustedFeeMultiplier,
   clampPositionBinRange,
+  computeDlmmFeeShareMultiplier,
   computeFeeYieldPct,
   computeLpNetPnlPct,
+  computeLpRiskRewardProfile,
+  computePoolRiskScore,
   computePriceDriftPct,
+  computeSimTransactionCostsSol,
   isPositionOutOfRange,
+  LP_REAL_HARD_STOP_MULT,
+  LP_REAL_MIN_FEE_TO_COST_RATIO,
   mergeRealExitRules,
   MAX_METEORA_POSITION_BINS,
   REAL_CLAIM_FEES_BEFORE_CLOSE_SOL,
+  resolveAdaptiveExitRules,
   shouldCloseByOor,
+  strategyLikelyNeedsSidecarSwap,
 } from "./lpEconomicsModel.js";
 import { executeIntent } from "../services/walletBroker.js";
 import {
@@ -405,7 +414,13 @@ async function fetchSolPriceUsd() {
   return cachedSolPrice.value || 150;
 }
 
-function evaluateRealPositionExit(position, detail, hoursElapsed) {
+/**
+ * Exit decision for a live position. Grounds fee yield in real on-chain fees when available,
+ * extends the price stop by fees already earned (bounded by a hard stop), and locks winners
+ * via trailing stop — same economics model as the sim lab.
+ * @param {object|null} [onChain] fetchOnChainPosition result (unclaimedFeeSol) when available
+ */
+function evaluateRealPositionExit(position, detail, hoursElapsed, onChain = null) {
   const exit = position.exitRules || {};
   const priceDriftPct = computePriceDriftPct(toNum(position.entryPriceUsd), toNum(detail.currentPrice));
   const inRange = !isPositionOutOfRange(
@@ -414,34 +429,92 @@ function evaluateRealPositionExit(position, detail, hoursElapsed) {
     position.binsBelow,
     position.binsAbove,
   );
-  const feeYieldPct = inRange
-    ? computeFeeYieldPct(toNum(detail.feeTvlRatio, 0), hoursElapsed)
-    : computeFeeYieldPct(toNum(detail.feeTvlRatio, 0), hoursElapsed) * 0.25;
-  const netPnlPct = computeLpNetPnlPct(priceDriftPct, feeYieldPct, inRange);
+
+  const tvlUsd = toNum(detail.tvlUsd, position.screeningSnapshot?.tvlUsd);
+  const volume24hUsd = toNum(detail.volume24hUsd, position.screeningSnapshot?.volume24hUsd);
+  const feeTvlRatio = toNum(detail.feeTvlRatio, position.screeningSnapshot?.feeTvlRatio);
+  const volTvlRatio = tvlUsd > 0 ? volume24hUsd / tvlUsd : 0;
+  const riskScore = toNum(
+    position.screeningSnapshot?.riskScore,
+    computePoolRiskScore({
+      tvlUsd,
+      volume24hUsd,
+      feeTvlRatio,
+      binsBelow: position.binsBelow,
+      binsAbove: position.binsAbove,
+    }),
+  );
+
+  // Modeled fee yield with DLMM bin-share boost (aligned with the sim lab model).
+  const baseFeeYieldPct = computeFeeYieldPct(feeTvlRatio, hoursElapsed);
+  const feeShareMult = applyRiskAdjustedFeeMultiplier(
+    computeDlmmFeeShareMultiplier({
+      volTvlRatio,
+      tvlUsd,
+      binsBelow: position.binsBelow,
+      binsAbove: position.binsAbove,
+      inRange,
+    }),
+    riskScore,
+  );
+  const modeledFeeYieldPct = inRange
+    ? baseFeeYieldPct * feeShareMult
+    : baseFeeYieldPct * feeShareMult * 0.25;
+
+  // Ground with real fees (claimed + unclaimed on-chain) when we have them.
+  const depositSol = toNum(position.depositSol);
+  const realFeeSol = toNum(position.realFeesClaimedSol, 0) + toNum(onChain?.unclaimedFeeSol, 0);
+  const feeYieldPct =
+    depositSol > 0 && realFeeSol > 0 ? (realFeeSol / depositSol) * 100 : modeledFeeYieldPct;
+
+  const netPnlPct = computeLpNetPnlPct(priceDriftPct, feeYieldPct, inRange, riskScore);
+  const peakPnlPct = Math.max(toNum(position.peakPnlPct), netPnlPct);
+  const winThresholdPct = LP_AGENT_EXPERIMENT_DEFAULTS.winThresholdPct;
+
+  // Fee-aware stop: fees already earned extend the price stop (up to half its distance),
+  // bounded by a hard stop so catastrophic IL is always capped.
+  const stopLossPct = toNum(exit.stopLossPct, -15);
+  const feeOffsetPct = Math.min(Math.max(feeYieldPct, 0), Math.abs(stopLossPct) * 0.5);
+  const effectiveStopPct = Math.max(
+    stopLossPct - feeOffsetPct,
+    stopLossPct * LP_REAL_HARD_STOP_MULT,
+  );
 
   let shouldClose = false;
   let resolution = null;
   let finalStatus = "open";
 
-  if (priceDriftPct <= toNum(exit.stopLossPct, -15)) {
+  if (priceDriftPct <= effectiveStopPct) {
     shouldClose = true;
-    finalStatus = "closed_loss";
+    finalStatus = netPnlPct >= winThresholdPct ? "closed_win" : "closed_loss";
     resolution = "stop_loss";
   } else if (netPnlPct >= toNum(exit.takeProfitPct, 10)) {
     shouldClose = true;
     finalStatus = "closed_win";
     resolution = "take_profit";
-  } else if (shouldCloseByOor(position, detail, exit, hoursElapsed)) {
-    shouldClose = true;
-    finalStatus = netPnlPct >= LP_AGENT_EXPERIMENT_DEFAULTS.winThresholdPct ? "closed_win" : "closed_loss";
-    resolution = "oor";
-  } else if (hoursElapsed >= LP_AGENT_EXPERIMENT_DEFAULTS.maxRunAgeHours) {
-    shouldClose = true;
-    finalStatus = netPnlPct >= LP_AGENT_EXPERIMENT_DEFAULTS.winThresholdPct ? "closed_win" : "expired";
-    resolution = "time_expiry";
+  } else {
+    const trailingTrigger = toNum(exit.trailingTriggerPct);
+    const trailingGiveback = Math.max(toNum(exit.trailingGivebackPct, trailingTrigger * 0.4), 1.1);
+    if (
+      trailingTrigger > 0 &&
+      peakPnlPct >= trailingTrigger &&
+      netPnlPct <= peakPnlPct - trailingGiveback
+    ) {
+      shouldClose = true;
+      finalStatus = netPnlPct >= winThresholdPct ? "closed_win" : "closed_loss";
+      resolution = "trailing_stop";
+    } else if (shouldCloseByOor(position, detail, exit, hoursElapsed)) {
+      shouldClose = true;
+      finalStatus = netPnlPct >= winThresholdPct ? "closed_win" : "closed_loss";
+      resolution = "oor";
+    } else if (hoursElapsed >= LP_AGENT_EXPERIMENT_DEFAULTS.maxRunAgeHours) {
+      shouldClose = true;
+      finalStatus = netPnlPct >= winThresholdPct ? "closed_win" : "expired";
+      resolution = "time_expiry";
+    }
   }
 
-  return { shouldClose, resolution, finalStatus, netPnlPct, priceDriftPct, feeYieldPct };
+  return { shouldClose, resolution, finalStatus, netPnlPct, priceDriftPct, feeYieldPct, peakPnlPct };
 }
 
 /** Ensures sim lab is ready; per-agent LP real configs are created on demand. */
@@ -1331,6 +1404,34 @@ async function attemptOpenLpRealPosition({
     return { opened: false, stop: true };
   }
 
+  const poolContext = {
+    tvlUsd: toNum(poolCandidate.tvlUsd ?? poolDetail.tvlUsd),
+    volume24hUsd: toNum(poolCandidate.volume24hUsd ?? poolDetail.volume24hUsd),
+    feeTvlRatio: toNum(poolCandidate.feeTvlRatio ?? poolDetail.feeTvlRatio),
+  };
+  const riskReward = computeLpRiskRewardProfile({
+    ...poolContext,
+    binsBelow: clampedRange.binsBelow,
+    binsAbove: clampedRange.binsAbove,
+    holdHours: 4,
+  });
+
+  // Chain-cost viability gate (before any sidecar swap spends real SOL):
+  // expected fees over the projected hold must beat round-trip tx costs with margin.
+  const needsSidecar = strategyLikelyNeedsSidecarSwap(strategy.binsBelow, strategy.binsAbove);
+  const txCostEstimate = computeSimTransactionCostsSol(depositSol, { needsSidecarSwap: needsSidecar });
+  const roundTripCostSol = txCostEstimate.openFeeSol + txCostEstimate.closeFeeSol;
+  const expectedFeeSol = depositSol * (riskReward.expectedFeePct / 100);
+  if (expectedFeeSol < roundTripCostSol * LP_REAL_MIN_FEE_TO_COST_RATIO) {
+    skipped.push({
+      reason: "fees_below_chain_costs",
+      pool: poolCandidate.poolAddress,
+      expectedFeeSol,
+      roundTripCostSol,
+    });
+    return { opened: false, stop: false };
+  }
+
   let sidecar = {};
   try {
     const sidecarResult = await ensureSidecarTokenForPool({
@@ -1396,13 +1497,24 @@ async function attemptOpenLpRealPosition({
     positionSecretEnc: txBuild.positionSecretEnc,
     depositSol,
     depositUsd,
-    exitRules: mergeRealExitRules(strategy.exit),
+    exitRules: mergeRealExitRules(
+      resolveAdaptiveExitRules(
+        strategy.exit,
+        poolContext,
+        txBuild.effectiveBinsBelow,
+        txBuild.effectiveBinsAbove,
+      ),
+    ),
     signalSnapshot: poolCandidate.signalSnapshot,
     screeningSnapshot: {
       score: poolCandidate.score,
-      tvlUsd: poolCandidate.tvlUsd ?? poolDetail.tvlUsd,
-      volume24hUsd: poolCandidate.volume24hUsd ?? poolDetail.volume24hUsd,
-      feeTvlRatio: poolCandidate.feeTvlRatio ?? poolDetail.feeTvlRatio,
+      tvlUsd: poolContext.tvlUsd,
+      volume24hUsd: poolContext.volume24hUsd,
+      feeTvlRatio: poolContext.feeTvlRatio,
+      riskScore: riskReward.riskScore,
+      riskTier: riskReward.tier,
+      riskRewardRatio: riskReward.ratio,
+      expectedFeePct: riskReward.expectedFeePct,
     },
     status: "opening",
     depositLocked: false,
@@ -1855,7 +1967,7 @@ async function resolveLpRealPositionsForConfig(config, { forceCloseAll = false }
         errors.push(`onchain:${String(position._id)}:${chainErr instanceof Error ? chainErr.message : String(chainErr)}`);
       }
 
-      const exitEval = evaluateRealPositionExit(position, poolDetail, hoursElapsed);
+      const exitEval = evaluateRealPositionExit(position, poolDetail, hoursElapsed, onChain);
       const claimThreshold = toNum(position.exitRules?.claimFeesAtSol, REAL_CLAIM_FEES_BEFORE_CLOSE_SOL);
       const unclaimedFees = toNum(onChain?.unclaimedFeeSol, 0);
 
@@ -1896,7 +2008,10 @@ async function resolveLpRealPositionsForConfig(config, { forceCloseAll = false }
         isOrphanedLiveLpPosition(position);
 
       if (!shouldClose) {
-        await LpRealPosition.updateOne({ _id: position._id }, { $set: { processing: false } });
+        await LpRealPosition.updateOne(
+          { _id: position._id },
+          { $set: { processing: false, peakPnlPct: exitEval.peakPnlPct } },
+        );
         continue;
       }
 

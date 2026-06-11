@@ -58,6 +58,6 @@ export async function copyPostPhotoToClipboard(node: HTMLElement): Promise<boole
   }
 }
 
-export function buildPostPhotoFilename(postId: string, layout: string): string {
-  return `syra-post-${sanitizeFilename(postId)}-${sanitizeFilename(layout)}.png`;
+export function buildPostPhotoFilename(postId: string, cardRole: string): string {
+  return `syra-post-${sanitizeFilename(postId)}-${sanitizeFilename(cardRole)}.png`;
 }

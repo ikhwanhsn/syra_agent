@@ -41,6 +41,15 @@ export const LP_MIN_SIM_RISK_REWARD_RATIO = 0.38;
 /** Extreme-risk pools need a higher reward hurdle. */
 export const LP_MIN_EXTREME_RISK_REWARD_RATIO = 0.72;
 
+/** Real LP: stricter expected-fee : IL-budget hurdle than sim — real chain costs and slippage. */
+export const LP_MIN_REAL_RISK_REWARD_RATIO = 0.55;
+
+/** Real LP: hard price stop multiplier vs strategy stop — caps catastrophic IL even when fees offset the soft stop. */
+export const LP_REAL_HARD_STOP_MULT = 1.4;
+
+/** Real LP: expected fees over the projected hold must exceed round-trip chain costs by this factor before open. */
+export const LP_REAL_MIN_FEE_TO_COST_RATIO = 1.6;
+
 export function computePriceDriftPct(entry, current) {
   if (!Number.isFinite(entry) || entry <= 0 || !Number.isFinite(current) || current <= 0) return 0;
   return (current / entry - 1) * 100;

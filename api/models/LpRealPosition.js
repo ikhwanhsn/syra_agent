@@ -58,6 +58,9 @@ const lpRealPositionSchema = new mongoose.Schema(
     closeTxSig: { type: String, default: null },
     claimTxSigs: { type: [String], default: [] },
 
+    /** Highest modeled net PnL % seen while open — drives the trailing stop. */
+    peakPnlPct: { type: Number, default: 0 },
+
     realFeesClaimedSol: { type: Number, default: 0 },
     realFinalSolOut: { type: Number, default: null },
     realNetPnlSol: { type: Number, default: null },
