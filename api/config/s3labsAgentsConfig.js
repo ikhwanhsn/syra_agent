@@ -2,6 +2,7 @@
  * S3Labs Telegram agents — forum topics, schedules, and per-agent settings.
  *
  * Topics: News https://t.me/s3labs/402 | Developer https://t.me/s3labs/4 | Event https://t.me/s3labs/158
+ * Jobs https://t.me/s3labs/513
  */
 
 /** Master switch for all S3Labs in-process schedulers. */
@@ -68,7 +69,19 @@ export const S3LABS_SENT_HISTORY_HOURS = Math.min(
   Math.max(12, Number.parseInt(process.env.S3LABS_SENT_HISTORY_HOURS || "24", 10)),
 );
 
-/** @typedef {'news' | 'developer' | 'event'} S3labsAgentKind */
+/** Hours to skip re-sending the same job listing (roles stay open longer than news). */
+export const S3LABS_JOB_SENT_HISTORY_HOURS = Math.min(
+  336,
+  Math.max(72, Number.parseInt(process.env.S3LABS_JOB_SENT_HISTORY_HOURS || "168", 10)),
+);
+
+/** Fixed interval for the jobs agent (minutes). */
+export const S3LABS_JOB_INTERVAL_MINUTES = Math.min(
+  60,
+  Math.max(10, Number.parseInt(process.env.S3LABS_JOB_INTERVAL_MINUTES || "15", 10)),
+);
+
+/** @typedef {'news' | 'developer' | 'event' | 'job'} S3labsAgentKind */
 
 /**
  * @typedef {{
@@ -137,14 +150,69 @@ export const S3LABS_AGENT_DEFINITIONS = Object.freeze([
 ]);
 
 /**
+ * Jobs agent — fixed 15-minute interval, topic https://t.me/s3labs/513
+ * @type {Readonly<{
+ *   kind: 'job';
+ *   dbId: string;
+ *   threadId: number;
+ *   topicLabel: string;
+ *   headerEmoji: string;
+ *   agentId: string;
+ *   agentName: string;
+ *   agentTag: string;
+ *   lookbackHours: number;
+ *   candidateLimit: number;
+ *   intervalMinutes: number;
+ *   bootDelayMinutes: number;
+ * }>}
+ */
+export const S3LABS_JOB_AGENT = Object.freeze({
+  kind: "job",
+  dbId: "s3labs-job",
+  threadId: 513,
+  topicLabel: "Lowongan Kerja",
+  headerEmoji: "💼",
+  agentId: "s3labs-agent-jobs",
+  agentName: "S3Labs Jobs Bot",
+  agentTag: "JOBS",
+  lookbackHours: 336,
+  candidateLimit: 40,
+  intervalMinutes: S3LABS_JOB_INTERVAL_MINUTES,
+  bootDelayMinutes: 5,
+});
+
+/**
  * @param {S3labsAgentKind} kind
- * @returns {S3labsAgentDefinition}
+ * @returns {S3labsAgentDefinition | typeof S3LABS_JOB_AGENT}
  */
 export function getS3labsAgentDefinition(kind) {
+  if (kind === "job") return S3LABS_JOB_AGENT;
   const def = S3LABS_AGENT_DEFINITIONS.find((a) => a.kind === kind);
   if (!def) throw new Error(`Unknown S3Labs agent kind: ${kind}`);
   return def;
 }
+
+/** Tech / remote job RSS feeds (web3 + crypto + engineering). */
+export const S3LABS_JOB_RSS_SOURCES = Object.freeze([
+  {
+    id: "wwr-programming",
+    name: "WeWorkRemotely",
+    url: "https://weworkremotely.com/categories/remote-programming-jobs.rss",
+    category: "tech",
+  },
+  {
+    id: "wwr-devops",
+    name: "WeWorkRemotely DevOps",
+    url: "https://weworkremotely.com/categories/remote-devops-sysadmin-jobs.rss",
+    category: "tech",
+  },
+  {
+    id: "hn-jobs",
+    name: "Hacker News Jobs",
+    url: "https://hnrss.org/jobs",
+    category: "tech",
+  },
+]);
 
 /** Developer / tech RSS — used only by developer agent. */
 export const S3LABS_DEV_RSS_SOURCES = Object.freeze([

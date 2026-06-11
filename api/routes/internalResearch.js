@@ -23,8 +23,10 @@ import {
 } from "../libs/s3labsNewsPipeline.js";
 import { runS3labsDeveloperPipeline } from "../libs/s3labsDeveloperPipeline.js";
 import { runS3labsEventPipeline } from "../libs/s3labsEventPipeline.js";
+import { runS3labsJobPipeline } from "../libs/s3labs/s3labsJobPipeline.js";
 import {
   getS3labsAgentDefinition,
+  S3LABS_JOB_AGENT,
 } from "../config/s3labsAgentsConfig.js";
 
 /** Max tokens for internal research resume (OpenRouter). Higher than default for full summaries. */
@@ -252,6 +254,36 @@ export async function createInternalResearchRouter() {
       return res.status(500).json({
         success: false,
         error: "S3Labs event pipeline failed",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  router.get("/s3labs-job/latest", async (_req, res) => {
+    try {
+      const doc = await DashboardResearch.findOne({ id: S3LABS_JOB_AGENT.dbId }).lean();
+      if (!doc?.payload) {
+        return res.json({ success: true, data: null, savedAt: undefined });
+      }
+      const savedAt = doc.savedAt ? new Date(doc.savedAt).toISOString() : undefined;
+      return res.json({ success: true, data: doc.payload, savedAt });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  router.post("/s3labs-job/run", async (_req, res) => {
+    try {
+      const out = await runS3labsJobPipeline();
+      return res.json(out);
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: "S3Labs jobs pipeline failed",
         message: error instanceof Error ? error.message : String(error),
       });
     }
