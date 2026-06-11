@@ -12,6 +12,7 @@ import {
   sendTelegramChatAction,
   sendTelegramMessage,
 } from "./telegramBot.js";
+import { isTelegramParseEntityError } from "./telegramFormat.js";
 import { getAllowedS3labsChatId } from "./s3labs/s3labsTelegramAllowlist.js";
 
 /**
@@ -83,7 +84,13 @@ export async function sendS3labsTelegram(text, options) {
 /**
  * Reply in the S3Labs group (any topic). Used for @mention Q&A.
  * @param {string} text
- * @param {{ messageThreadId?: number; replyToMessageId?: number; disableWebPagePreview?: boolean }} options
+ * @param {{
+ *   messageThreadId?: number;
+ *   replyToMessageId?: number;
+ *   disableWebPagePreview?: boolean;
+ *   parseMode?: TelegramParseMode | null;
+ *   plainTextFallback?: string;
+ * }} options
  * @returns {Promise<S3labsTelegramReplyResult>}
  */
 export async function sendS3labsTelegramReply(text, options = {}) {
@@ -100,11 +107,30 @@ export async function sendS3labsTelegramReply(text, options = {}) {
     text,
     disableWebPagePreview: options.disableWebPagePreview !== false,
     replyToMessageId: options.replyToMessageId,
+    parseMode: options.parseMode,
   };
 
   let result = await sendTelegramMessage({ ...base, messageThreadId: threadId });
+  if (!result.ok && options.parseMode && isTelegramParseEntityError(result.error)) {
+    const fallbackText = options.plainTextFallback ?? text;
+    result = await sendTelegramMessage({
+      ...base,
+      text: fallbackText,
+      parseMode: null,
+      messageThreadId: threadId,
+    });
+  }
   if (!result.ok && threadId != null) {
     result = await sendTelegramMessage({ ...base, messageThreadId: undefined });
+    if (!result.ok && options.parseMode && isTelegramParseEntityError(result.error)) {
+      const fallbackText = options.plainTextFallback ?? text;
+      result = await sendTelegramMessage({
+        ...base,
+        text: fallbackText,
+        parseMode: null,
+        messageThreadId: undefined,
+      });
+    }
   }
 
   return {

@@ -10,6 +10,7 @@ import {
   sendS3labsTelegramReply,
   sendS3labsTelegramTyping,
 } from "../s3labsTelegramNotifier.js";
+import { markdownToTelegramHtml } from "../telegramFormat.js";
 import { isAllowedS3labsChat } from "./s3labsTelegramAllowlist.js";
 import { getS3labsBotMeta } from "./s3labsTelegramBotMeta.js";
 import { buildS3labsQaSystemPrompt } from "./s3labsQaKnowledge.js";
@@ -244,7 +245,11 @@ export async function handleS3labsTelegramUpdate(update) {
       replyText = "Maaf, ada gangguan sementara. Coba lagi beberapa menit lagi.";
     }
 
-    const sent = await sendS3labsTelegramReply(replyText, replyOpts);
+    const sent = await sendS3labsTelegramReply(markdownToTelegramHtml(replyText), {
+      ...replyOpts,
+      parseMode: "HTML",
+      plainTextFallback: replyText,
+    });
     if (!sent.ok) {
       console.warn("[s3labs-telegram-qa] failed to send reply");
     }
