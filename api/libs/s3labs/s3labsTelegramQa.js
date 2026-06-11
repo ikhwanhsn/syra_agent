@@ -7,7 +7,6 @@ import { resolveInternalPipelineModel, INTERNAL_PIPELINE_MAX_COMPLETION_TOKENS }
 import { callOpenRouter } from "../openrouter.js";
 import { sanitizeUserMessage } from "../promptSanitizer.js";
 import {
-  deleteS3labsTelegramMessage,
   sendS3labsTelegramReply,
   sendS3labsTelegramTyping,
 } from "../s3labsTelegramNotifier.js";
@@ -17,9 +16,6 @@ import { buildS3labsQaSystemPrompt } from "./s3labsQaKnowledge.js";
 
 /** @type {Map<string, number[]>} */
 const userRequestTimestamps = new Map();
-
-/** Instant ack so users see a reply before the LLM finishes. */
-const S3LABS_QA_ACK_TEXT = "⏳ Sedang memproses pertanyaanmu, tunggu sebentar ya...";
 
 /** Telegram typing indicator expires after ~5s — refresh while waiting on LLM. */
 const S3LABS_QA_TYPING_REFRESH_MS = 4200;
@@ -237,8 +233,6 @@ export async function handleS3labsTelegramUpdate(update) {
       return;
     }
 
-    const ack = await sendS3labsTelegramReply(S3LABS_QA_ACK_TEXT, replyOpts);
-
     let replyText;
     try {
       replyText = await withS3labsTypingIndicator(replyOpts, () =>
@@ -248,10 +242,6 @@ export async function handleS3labsTelegramUpdate(update) {
       const msg = e instanceof Error ? e.message : String(e);
       console.error("[s3labs-telegram-qa] LLM failed:", msg);
       replyText = "Maaf, ada gangguan sementara. Coba lagi beberapa menit lagi.";
-    }
-
-    if (ack.ok && ack.messageId != null && ack.chatId) {
-      await deleteS3labsTelegramMessage(ack.chatId, ack.messageId).catch(() => {});
     }
 
     const sent = await sendS3labsTelegramReply(replyText, replyOpts);
