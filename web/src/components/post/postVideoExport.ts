@@ -1,8 +1,8 @@
 import { getFontEmbedCSS, toCanvas } from "html-to-image";
 import type { PostSlide } from "@/content/posts/types";
 import {
-  applyPostSlideFitToRoot,
   POST_SLIDE_SETTLED_MS,
+  syncExportFitFromPreview,
 } from "@/components/post/postSlideFitMeasure";
 import { getEntranceCaptureMs, getSlideDwellMs } from "@/components/post/postSlideTiming";
 
@@ -54,6 +54,19 @@ function applyExportLayoutSize(target: HTMLElement, layout: PostVideoLayoutSize)
   target.style.width = `${layout.width}px`;
   target.style.height = `${layout.height}px`;
 
+  const cqw = layout.width / 100;
+  const cqh = layout.height / 100;
+  target.style.setProperty("--post-export-cqw", `${cqw}px`);
+  target.style.setProperty("--post-export-cqh", `${cqh}px`);
+  target.style.setProperty(
+    "--post-frame-inset-inline",
+    `${Math.min(104, Math.max(18, cqw * 7))}px`,
+  );
+  target.style.setProperty(
+    "--post-frame-inset-block",
+    `${Math.min(84, Math.max(16, cqh * 8.5))}px`,
+  );
+
   const root = target.closest<HTMLElement>(".post-video-export-root");
   if (root) {
     root.style.width = `${layout.width}px`;
@@ -69,8 +82,8 @@ function buildExportOptions(layout: PostVideoLayoutSize, fontEmbedCSS: string) {
     height: layout.height,
     pixelRatio,
     cacheBust: false,
-    skipFonts: true,
-    fontEmbedCSS,
+    skipFonts: Boolean(fontEmbedCSS),
+    fontEmbedCSS: fontEmbedCSS || undefined,
     backgroundColor: "#030303",
     filter: (node: Node) => !(node instanceof HTMLElement && node.classList.contains("post-slide-idle")),
     style: {
@@ -226,7 +239,7 @@ async function prepareSlideCapture(target: HTMLElement, callbacks: PostVideoExpo
   await waitForPaint();
   pauseExportAnimations(target);
   seekExportAnimations(target, POST_SLIDE_SETTLED_MS);
-  applyPostSlideFitToRoot(target);
+  syncExportFitFromPreview(target);
   await waitForPaint(false);
 }
 
@@ -245,7 +258,10 @@ export async function exportPostVideoWebm(
   const layout = resolvePostVideoLayoutSize();
   applyExportLayoutSize(target, layout);
   await preloadExportAssets(target);
-  const fontEmbedCSS = await getFontEmbedCSS(target);
+  const previewStage = document.querySelector<HTMLElement>(
+    ".post-chrome-stage .post-record-stage:not(.post-video-export-stage)",
+  );
+  const fontEmbedCSS = await getFontEmbedCSS(previewStage ?? target);
   await waitForPaint();
 
   const canvas = document.createElement("canvas");
@@ -312,9 +328,7 @@ export async function exportPostVideoWebm(
         );
 
         if (refreshDom || !cachedFrame) {
-          if (slideElapsedMs >= 450) {
-            applyPostSlideFitToRoot(target);
-          }
+          syncExportFitFromPreview(target);
           flushAnimationState(target);
           await waitForPaint(false);
           cachedFrame = await toCanvas(target, exportOptions);

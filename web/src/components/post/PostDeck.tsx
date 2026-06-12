@@ -69,7 +69,10 @@ export function PostDeck({ post }: PostDeckProps) {
     try {
       await exportPostVideoWebm(node, slides, meta.id, {
         onSlideChange: (nextIndex) => {
-          flushSync(() => setExportSlideIndex(nextIndex));
+          flushSync(() => {
+            setExportSlideIndex(nextIndex);
+            setIndex(nextIndex);
+          });
         },
         onProgress: (progress) => setExportProgress(progress),
       });
