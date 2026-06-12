@@ -4,14 +4,14 @@ import type { PostSlide } from "@/content/posts/types";
 export const REVEAL_ANIMATION_MS = 750;
 /** Time for PostSlideFit to settle after stagger/reveal. */
 export const SLIDE_FIT_SETTLE_MS = 950;
-/** Reading hold after entrance completes (non-last slides). */
-export const SLIDE_READ_HOLD_MS = 3400;
-/** Extra hold on the final slide. */
-export const LAST_SLIDE_EXTRA_HOLD_MS = 1200;
-
-/** Legacy fixed interval — kept for tests/fallback only. */
+/** Minimum dwell per slide — matches natural preview pacing. */
 export const SLIDE_INTERVAL_MS = 5200;
+/** Minimum dwell on the final slide. */
 export const LAST_SLIDE_DWELL_MS = 7000;
+/** Read hold once entrance finishes (non-last slides). */
+export const POST_ENTRANCE_HOLD_MS = 4000;
+/** Read hold on the final slide. */
+export const LAST_SLIDE_POST_ENTRANCE_HOLD_MS = 5500;
 
 function entranceFromStagger(baseDelayMs: number, itemCount: number, staggerMs: number): number {
   if (itemCount <= 0) return baseDelayMs + REVEAL_ANIMATION_MS;
@@ -42,14 +42,19 @@ export function estimateSlideEntranceMs(slide: PostSlide): number {
   }
 }
 
-export function getSlideDwellMs(slideIndex: number, slides: PostSlide[]): number {
-  const slide = slides[slideIndex];
-  if (!slide) {
-    return slideIndex >= slides.length - 1 ? LAST_SLIDE_DWELL_MS : SLIDE_INTERVAL_MS;
-  }
+/** How long export captures entrance frame-by-frame for a slide. */
+export function getEntranceCaptureMs(slide: PostSlide): number {
+  return Math.min(2400, Math.max(1600, estimateSlideEntranceMs(slide) + 350));
+}
 
-  const entranceMs = estimateSlideEntranceMs(slide);
+export function getSlideDwellMs(slideIndex: number, slides: PostSlide[]): number {
   const isLast = slideIndex >= slides.length - 1;
-  const holdMs = SLIDE_READ_HOLD_MS + (isLast ? LAST_SLIDE_EXTRA_HOLD_MS : 0);
-  return entranceMs + SLIDE_FIT_SETTLE_MS + holdMs;
+  const floor = isLast ? LAST_SLIDE_DWELL_MS : SLIDE_INTERVAL_MS;
+  const slide = slides[slideIndex];
+
+  if (!slide) return floor;
+
+  const hold = isLast ? LAST_SLIDE_POST_ENTRANCE_HOLD_MS : POST_ENTRANCE_HOLD_MS;
+  const contentBased = estimateSlideEntranceMs(slide) + hold;
+  return Math.max(floor, contentBased);
 }

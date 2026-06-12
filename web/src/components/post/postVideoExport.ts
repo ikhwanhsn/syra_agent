@@ -4,7 +4,7 @@ import {
   applyPostSlideFitToRoot,
   POST_SLIDE_SETTLED_MS,
 } from "@/components/post/postSlideFitMeasure";
-import { getSlideDwellMs } from "@/components/post/postSlideTiming";
+import { getEntranceCaptureMs, getSlideDwellMs } from "@/components/post/postSlideTiming";
 
 /** Final encoded video resolution. */
 export const POST_VIDEO_WIDTH = 1920;
@@ -14,12 +14,8 @@ export const POST_VIDEO_LAYOUT_WIDTH = 960;
 export const POST_VIDEO_LAYOUT_HEIGHT = 540;
 export const POST_VIDEO_FPS = 30;
 export const POST_VIDEO_BITRATE = 16_000_000;
-/** Full DOM capture while stagger/reveal animations run. */
-const ENTRANCE_CAPTURE_MS = 1600;
-/** Snapshot interval during entrance — fewer DOM walks than per-frame capture. */
-const ENTRANCE_CAPTURE_INTERVAL_MS = 120;
 /** Re-snapshot ambient motion (orbs/grid) during static hold — avoids per-frame DOM walks. */
-const HOLD_CAPTURE_INTERVAL_MS = 800;
+const HOLD_CAPTURE_INTERVAL_MS = 500;
 
 export { getSlideDwellMs } from "@/components/post/postSlideTiming";
 
@@ -112,11 +108,14 @@ async function waitForPaint(full = true): Promise<void> {
   }
 }
 
-function shouldRefreshDomCapture(slideElapsedMs: number, lastCaptureMs: number): boolean {
+function shouldRefreshDomCapture(
+  slideElapsedMs: number,
+  lastCaptureMs: number,
+  entranceCaptureMs: number,
+): boolean {
   if (lastCaptureMs < 0) return true;
-  if (slideElapsedMs < ENTRANCE_CAPTURE_MS) {
-    return slideElapsedMs - lastCaptureMs >= ENTRANCE_CAPTURE_INTERVAL_MS;
-  }
+  // Capture every frame while reveals run so motion stays in sync with the timeline.
+  if (slideElapsedMs < entranceCaptureMs) return true;
   return slideElapsedMs - lastCaptureMs >= HOLD_CAPTURE_INTERVAL_MS;
 }
 
@@ -210,8 +209,12 @@ function seekExportAnimations(root: HTMLElement, slideElapsedMs: number): void {
     }
 
     const endMs = delay + duration * iterations;
-    animation.currentTime = Math.min(slideElapsedMs, endMs);
+    animation.currentTime = Math.min(Math.max(0, slideElapsedMs), endMs);
   }
+}
+
+function flushAnimationState(root: HTMLElement): void {
+  void root.offsetHeight;
 }
 
 async function prepareSlideCapture(target: HTMLElement, callbacks: PostVideoExportCallbacks, slideIndex: number): Promise<void> {
@@ -293,19 +296,26 @@ export async function exportPostVideoWebm(
       cachedFrame = null;
       lastDomCaptureMs = -HOLD_CAPTURE_INTERVAL_MS;
 
+      const slide = slides[slideIndex];
       const dwellMs = getSlideDwellMs(slideIndex, slides);
+      const entranceCaptureMs = slide ? getEntranceCaptureMs(slide) : 1600;
       const slideFrames = Math.ceil(dwellMs / frameIntervalMs);
 
       for (let frame = 0; frame < slideFrames; frame += 1) {
         const slideElapsedMs = frame * frameIntervalMs;
         seekExportAnimations(target, slideElapsedMs);
 
-        const refreshDom = shouldRefreshDomCapture(slideElapsedMs, lastDomCaptureMs);
+        const refreshDom = shouldRefreshDomCapture(
+          slideElapsedMs,
+          lastDomCaptureMs,
+          entranceCaptureMs,
+        );
 
         if (refreshDom || !cachedFrame) {
           if (slideElapsedMs >= 450) {
             applyPostSlideFitToRoot(target);
           }
+          flushAnimationState(target);
           await waitForPaint(false);
           cachedFrame = await toCanvas(target, exportOptions);
           lastDomCaptureMs = slideElapsedMs;
