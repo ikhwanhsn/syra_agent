@@ -4,12 +4,14 @@ import { LP_AGENT_POST } from "./lpAgentUpdate";
 import { LP_REAL_PROFITABILITY_POST } from "./lpRealProfitabilityUpdate";
 import { PUMPFUN_ALPHA_POST } from "./pumpfunAlphaUpdate";
 import { SPCX_POST } from "./spcxUpdate";
+import { WALLET_PORTFOLIO_POST } from "./walletPortfolioUpdate";
 import { AGENTSCORE_PHOTO } from "./photo/agentscorePhoto";
 import { BNB_X402_PHOTO } from "./photo/bnbX402Photo";
 import { LP_AGENT_PHOTO } from "./photo/lpAgentPhoto";
 import { LP_REAL_PROFITABILITY_PHOTO } from "./photo/lpRealProfitabilityPhoto";
 import { PUMPFUN_ALPHA_PHOTO } from "./photo/pumpfunAlphaPhoto";
 import { SPCX_PHOTO } from "./photo/spcxPhoto";
+import { WALLET_PORTFOLIO_PHOTO } from "./photo/walletPortfolioPhoto";
 import type { PostPhotoUpdate } from "./photo/types";
 import type { PostUpdate } from "./types";
 import { validatePostUpdate } from "./validatePostUpdate";
@@ -33,6 +35,7 @@ const POST_UPDATE_BUNDLES: PostUpdateBundle[] = [
   { video: PUMPFUN_ALPHA_POST, photo: PUMPFUN_ALPHA_PHOTO },
   { video: LP_REAL_PROFITABILITY_POST, photo: LP_REAL_PROFITABILITY_PHOTO },
   { video: SPCX_POST, photo: SPCX_PHOTO },
+  { video: WALLET_PORTFOLIO_POST, photo: WALLET_PORTFOLIO_PHOTO },
 ];
 
 function assertBundleMeta(bundle: PostUpdateBundle): void {

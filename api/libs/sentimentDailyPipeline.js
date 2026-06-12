@@ -6,6 +6,7 @@ import { isMongooseConnected } from "../config/mongoose.js";
 import NewsSentimentDaily from "../models/NewsSentimentDaily.js";
 import { getArticlesWithinHours } from "./newsAggregator.js";
 import { keywordsForTicker, INTERNAL_NEWS_SENTIMENT_BATCH_SIZE, INTERNAL_NEWS_SENTIMENT_CRON_MS } from "../config/internalNewsConfig.js";
+import { startupVerbose } from "../utils/startupLog.js";
 import { TICKER_KEYWORD_MAP } from "../config/internalNewsConfig.js";
 import {
   classifyArticleSentiments,
@@ -114,7 +115,7 @@ export async function runDailySentimentTick() {
       count += 1;
     }
 
-    console.info(`[internal-news] sentiment tick complete: ${count} sections`);
+    startupVerbose(`[internal-news] sentiment tick complete: ${count} sections`);
     return { success: true, sections: count };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -132,7 +133,7 @@ export function startSentimentDailyScheduler() {
   if (cronHandle) return;
   const ms = INTERNAL_NEWS_SENTIMENT_CRON_MS;
   if (!Number.isFinite(ms) || ms <= 0) {
-    console.info("[internal-news] sentiment scheduler disabled (INTERNAL_NEWS_SENTIMENT_CRON_MS=0)");
+    startupVerbose("[internal-news] sentiment scheduler disabled (INTERNAL_NEWS_SENTIMENT_CRON_MS=0)");
     return;
   }
 
@@ -146,7 +147,7 @@ export function startSentimentDailyScheduler() {
     cronHandle.unref();
   }
 
-  console.info(`[internal-news] sentiment scheduler started (every ${Math.round(ms / 60000)} min)`);
+  startupVerbose(`[internal-news] sentiment scheduler started (every ${Math.round(ms / 60000)} min)`);
 
   setTimeout(() => {
     runDailySentimentTick().catch(() => {});

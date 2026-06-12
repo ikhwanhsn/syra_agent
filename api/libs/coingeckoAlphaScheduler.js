@@ -4,6 +4,7 @@
 
 import { isMongooseConnected } from "../config/mongoose.js";
 import { COINGECKO_ALPHA_CRON_MS, COINGECKO_ALPHA_DB_ID } from "../config/coingeckoAlphaConfig.js";
+import { startupVerbose } from "../utils/startupLog.js";
 import { loadAlphaXBatchSnapshot } from "./alphaXBatchPipeline.js";
 import {
   isCoingeckoAlphaBriefStale,
@@ -34,7 +35,7 @@ export async function runCoingeckoAlphaTick() {
   tickInFlight = true;
   try {
     const out = await runCoingeckoAlphaPipeline();
-    console.log(
+    startupVerbose(
       `[coingecko-alpha] pipeline OK top=${out.data.topGainer?.symbol} +${out.data.topGainer?.priceChange24hPct?.toFixed?.(1)}% savedAt=${out.savedAt}`,
     );
     return { success: true, ...out };
@@ -52,7 +53,7 @@ export function startCoingeckoAlphaScheduler() {
 
   const ms = COINGECKO_ALPHA_CRON_MS;
   if (!Number.isFinite(ms) || ms <= 0) {
-    console.info("[coingecko-alpha] scheduler disabled (COINGECKO_ALPHA_CRON_MS=0)");
+    startupVerbose("[coingecko-alpha] scheduler disabled (COINGECKO_ALPHA_CRON_MS=0)");
     return;
   }
 
@@ -64,7 +65,7 @@ export function startCoingeckoAlphaScheduler() {
     cronHandle.unref();
   }
 
-  console.info(
+  startupVerbose(
     `[coingecko-alpha] scheduler started (every ${Math.round(ms / 3_600_000)}h)`,
   );
 
@@ -73,7 +74,7 @@ export function startCoingeckoAlphaScheduler() {
     try {
       const existing = await loadAlphaXBatchSnapshot(COINGECKO_ALPHA_DB_ID);
       if (!existing || isCoingeckoAlphaBriefStale(existing.savedAt)) {
-        console.info("[coingecko-alpha] running initial or stale refresh");
+        startupVerbose("[coingecko-alpha] running initial or stale refresh");
         await runCoingeckoAlphaTick();
       }
     } catch (e) {

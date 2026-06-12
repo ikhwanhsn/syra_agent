@@ -4,6 +4,7 @@
 
 import { isMongooseConnected } from "../config/mongoose.js";
 import { PUMPFUN_ALPHA_SCOUT_CRON_MS } from "../config/pumpfunAlphaScoutConfig.js";
+import { startupVerbose } from "../utils/startupLog.js";
 import {
   getPumpfunAlphaScoutBriefForRead,
   isPumpfunAlphaScoutBriefStale,
@@ -32,11 +33,11 @@ export async function runPumpfunAlphaScoutTick() {
   try {
     const out = await runPumpfunAlphaScoutAgent();
     if (out.skipped) {
-      console.info("[pumpfun-alpha-scout] tick skipped — snapshot fresh");
+      startupVerbose("[pumpfun-alpha-scout] tick skipped — snapshot fresh");
       return { success: true, skipped: true, ...out };
     }
     const top = out.data?.predictedAlphas?.[0]?.symbol ?? out.data?.currentAlphaRunners?.[0]?.symbol ?? "—";
-    console.log(
+    startupVerbose(
       `[pumpfun-alpha-scout] OK top=${top} history=${out.data?.pastAlphaHistory?.length ?? 0} savedAt=${out.savedAt}`,
     );
     return { success: true, ...out };
@@ -54,7 +55,7 @@ export function startPumpfunAlphaScoutScheduler() {
 
   const ms = PUMPFUN_ALPHA_SCOUT_CRON_MS;
   if (!Number.isFinite(ms) || ms <= 0) {
-    console.info("[pumpfun-alpha-scout] scheduler disabled (PUMPFUN_AGENTS_REFRESH_MS=0)");
+    startupVerbose("[pumpfun-alpha-scout] scheduler disabled (PUMPFUN_AGENTS_REFRESH_MS=0)");
     return;
   }
 
@@ -66,14 +67,14 @@ export function startPumpfunAlphaScoutScheduler() {
     cronHandle.unref();
   }
 
-  console.info(`[pumpfun-alpha-scout] scheduler started (every ${Math.round(ms / 60_000)}m)`);
+  startupVerbose(`[pumpfun-alpha-scout] scheduler started (every ${Math.round(ms / 60_000)}m)`);
 
   setTimeout(async () => {
     if (!isMongooseConnected()) return;
     try {
       const existing = await getPumpfunAlphaScoutBriefForRead();
       if (!existing || isPumpfunAlphaScoutBriefStale(existing.savedAt)) {
-        console.info("[pumpfun-alpha-scout] running initial or stale refresh");
+        startupVerbose("[pumpfun-alpha-scout] running initial or stale refresh");
         await runPumpfunAlphaScoutTick();
       }
     } catch (e) {

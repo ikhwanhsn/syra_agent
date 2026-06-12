@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { ArrowRightLeft, Loader2, RefreshCw, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +12,17 @@ import {
   type SpcxIntelligenceReport,
 } from "@/lib/spcxApi";
 import { spcxKickerClass } from "@/components/spcx/spcxStyles";
+
+function formatUpdatedAgo(computedAt: string | undefined): string | null {
+  if (!computedAt) return null;
+  const ts = new Date(computedAt).getTime();
+  if (!Number.isFinite(ts)) return null;
+  const seconds = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+  if (seconds < 60) return `Updated ${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `Updated ${minutes}m ago`;
+  return `Updated ${new Date(ts).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}`;
+}
 
 export function SpcxHero({
   config,
@@ -26,10 +38,18 @@ export function SpcxHero({
   onBuyClick?: () => void;
 }) {
   const bias = report?.agentBias;
-  const updatedAt = report?.computedAt
-    ? new Date(report.computedAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })
-    : null;
   const nasdaqFallback = report ? isNasdaqReferenceFallback(report) : false;
+  const [updatedAgo, setUpdatedAgo] = useState<string | null>(() =>
+    formatUpdatedAgo(report?.computedAt),
+  );
+
+  useEffect(() => {
+    setUpdatedAgo(formatUpdatedAgo(report?.computedAt));
+    const id = setInterval(() => {
+      setUpdatedAgo(formatUpdatedAgo(report?.computedAt));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [report?.computedAt]);
 
   return (
     <div className="relative mb-6 overflow-hidden rounded-3xl border border-border/50 bg-gradient-to-br from-card via-card/95 to-muted/[0.06] shadow-[0_24px_80px_-48px_rgba(0,0,0,0.85)]">
@@ -82,11 +102,13 @@ export function SpcxHero({
               </p>
             </div>
 
-            {config?.ipoReferencePriceUsd != null ? (
+            {config ? (
               <p className="text-xs text-muted-foreground/90">
-                IPO reference ${config.ipoReferencePriceUsd} · Ticker {config.nasdaqTicker ?? "SPCX"}
-                {updatedAt ? ` · Updated ${updatedAt}` : ""}
-                {nasdaqFallback ? " · Using reference price (Nasdaq feed offline)" : ""}
+                Ticker {config.nasdaqTicker ?? "SPCX"}
+                {updatedAgo ? ` · ${updatedAgo}` : ""}
+                {nasdaqFallback && config.ipoReferencePriceUsd != null
+                  ? ` · IPO reference $${config.ipoReferencePriceUsd} (Nasdaq feed offline)`
+                  : ""}
               </p>
             ) : null}
           </div>

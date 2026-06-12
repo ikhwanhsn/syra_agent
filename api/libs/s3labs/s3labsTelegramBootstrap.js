@@ -6,10 +6,11 @@ import { S3LABS_TELEGRAM_POLLING_ENABLED, S3LABS_TELEGRAM_QA_ENABLED } from "../
 import { isS3labsTelegramConfigured } from "../s3labsTelegramNotifier.js";
 import { registerS3labsTelegramWebhookIfConfigured } from "./s3labsTelegramBotMeta.js";
 import { startS3labsTelegramPolling } from "./s3labsTelegramPolling.js";
+import { startupVerbose } from "../../utils/startupLog.js";
 
 export async function startS3labsTelegramQa() {
   if (!S3LABS_TELEGRAM_QA_ENABLED || !isS3labsTelegramConfigured()) {
-    console.log(
+    startupVerbose(
       "[s3labs-telegram-qa] off (QA disabled or missing S3LABS_TELEGRAM_BOT_TOKEN / CHAT_ID)",
     );
     return;
@@ -23,7 +24,7 @@ export async function startS3labsTelegramQa() {
   }
 
   if (webhookRegistered) {
-    console.log("[s3labs-telegram-qa] on — webhook mode");
+    startupVerbose("[s3labs-telegram-qa] on — webhook mode");
     return;
   }
 

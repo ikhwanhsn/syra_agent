@@ -4,6 +4,7 @@
 
 import { isMongooseConnected } from "../config/mongoose.js";
 import { PUMPFUN_UTILITY_SCOUT_CRON_MS } from "../config/pumpfunUtilityScoutConfig.js";
+import { startupVerbose } from "../utils/startupLog.js";
 import {
   getPumpfunUtilityScoutBriefForRead,
   isPumpfunUtilityScoutBriefStale,
@@ -32,11 +33,11 @@ export async function runPumpfunUtilityScoutTick() {
   try {
     const out = await runPumpfunUtilityScoutAgent();
     if (out.skipped) {
-      console.info("[pumpfun-utility-scout] tick skipped — snapshot fresh");
+      startupVerbose("[pumpfun-utility-scout] tick skipped — snapshot fresh");
       return { success: true, skipped: true, ...out };
     }
     const top = out.data?.pumpfunUtilityPicks?.[0]?.symbol ?? "—";
-    console.log(
+    startupVerbose(
       `[pumpfun-utility-scout] OK top=${top} history=${out.data?.pastUtilityHistory?.length ?? 0} savedAt=${out.savedAt}`,
     );
     return { success: true, ...out };
@@ -54,7 +55,7 @@ export function startPumpfunUtilityScoutScheduler() {
 
   const ms = PUMPFUN_UTILITY_SCOUT_CRON_MS;
   if (!Number.isFinite(ms) || ms <= 0) {
-    console.info("[pumpfun-utility-scout] scheduler disabled (PUMPFUN_AGENTS_REFRESH_MS=0)");
+    startupVerbose("[pumpfun-utility-scout] scheduler disabled (PUMPFUN_AGENTS_REFRESH_MS=0)");
     return;
   }
 
@@ -66,14 +67,14 @@ export function startPumpfunUtilityScoutScheduler() {
     cronHandle.unref();
   }
 
-  console.info(`[pumpfun-utility-scout] scheduler started (every ${Math.round(ms / 60_000)}m)`);
+  startupVerbose(`[pumpfun-utility-scout] scheduler started (every ${Math.round(ms / 60_000)}m)`);
 
   setTimeout(async () => {
     if (!isMongooseConnected()) return;
     try {
       const existing = await getPumpfunUtilityScoutBriefForRead();
       if (!existing || isPumpfunUtilityScoutBriefStale(existing.savedAt)) {
-        console.info("[pumpfun-utility-scout] running initial or stale refresh");
+        startupVerbose("[pumpfun-utility-scout] running initial or stale refresh");
         await runPumpfunUtilityScoutTick();
       }
     } catch (e) {

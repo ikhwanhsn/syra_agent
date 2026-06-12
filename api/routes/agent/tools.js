@@ -36,6 +36,7 @@ import {
   getAgentAddress,
   getConnectedWalletAddress,
   getTempoPayoutRecipientAddress,
+  ensureSwapToolsAllowed,
 } from '../../libs/agentWallet.js';
 import { sendTempoPayout } from '../../libs/tempoPayout.js';
 import { TEMPO_PUBLIC_REFERENCE, fetchTempoTokenList } from '../../libs/tempoPublic.js';
@@ -98,6 +99,20 @@ router.post('/call', requireSession({ allowGuest: true }), async (req, res) => {
         success: false,
         error: `Unknown tool: ${toolId}. Use GET /agent/tools to list available tools.`,
       });
+    }
+
+    const requiresTxSign =
+      tool.id === 'jupiter-swap-order' || PUMPFUN_TX_TOOL_IDS.has(tool.id);
+    if (requiresTxSign && req.user?.guest) {
+      return res.status(403).json({
+        success: false,
+        error: 'auth_required',
+        message:
+          'Sign in with your wallet to complete swaps. Approve the Syra session signature when prompted.',
+      });
+    }
+    if (requiresTxSign && !req.user?.guest) {
+      await ensureSwapToolsAllowed(anonymousId);
     }
 
     // Tempo public: token list + network reference (no wallet spend, no USDC balance check)

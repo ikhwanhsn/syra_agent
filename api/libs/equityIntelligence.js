@@ -109,7 +109,7 @@ async function buildVenueQuote(entry, nasdaqPrice, xstocksMeta = null) {
       mint,
       status: "halted",
       statusNote:
-        "Official xStocks (Backed) marks SPCXx trading as halted during IPO window — no public DEX spread yet.",
+        "Official xStocks (Backed) marks SPCXx trading as halted — no public DEX spread yet.",
       priceUsd: null,
       priceSource: "xstocks_registry",
       spreadPct: null,
@@ -158,7 +158,7 @@ async function buildVenueQuote(entry, nasdaqPrice, xstocksMeta = null) {
       venue: entry.venue,
       mint,
       status: "no_dex_liquidity",
-      statusNote: "Official mint has no verified DEX liquidity near Nasdaq price yet — normal on IPO day.",
+      statusNote: "Official mint has no verified DEX liquidity near Nasdaq price yet.",
       priceUsd: null,
       priceSource: onchain?.source ?? null,
       spreadPct: null,
@@ -229,9 +229,9 @@ function deriveAgentContext(venues, nasdaqPrice) {
       parts.push(`Nasdaq ${SPCX_NASDAQ_TICKER} is live at ~$${nasdaqPrice.toFixed(2)}.`);
     }
     if (halted.length) {
-      parts.push("Official xStocks SPCXx is halted / not on public DEX yet (expected during IPO).");
+      parts.push("Official xStocks SPCXx is halted / not on public DEX yet.");
     }
-    parts.push("On-chain spread will populate when Backpack, xStocks, or Ondo venues list liquid pools.");
+    parts.push("On-chain spread updates as Backpack, xStocks, or Ondo venues list liquid pools.");
     parts.push("Agent observes; execution requires explicit wallet confirmation.");
 
     riskNotes.push(

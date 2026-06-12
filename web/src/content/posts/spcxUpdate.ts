@@ -10,7 +10,7 @@ import {
 import type { PostUpdate } from "./types";
 
 /**
- * Ship log: SpaceX IPO Agent (SPCX) — Nasdaq vs on-chain premium tracker.
+ * Ship log: SpaceX IPO Agent (SPCX) — live Nasdaq vs on-chain premium tracker with buy/sell trading.
  * Slide copy: avoid em dashes; use commas, periods, or colons instead.
  */
 export const SPCX_POST: PostUpdate = {
@@ -19,26 +19,26 @@ export const SPCX_POST: PostUpdate = {
     id: "spcx-ipo-agent",
     title: "SpaceX IPO Agent",
     published: "June 2026",
-    tagline: "Live Nasdaq vs on-chain SPCX premium tracker with scam radar and safe buy paths",
-    shareCopyVideo: `SHIP LOG · Syra just shipped the SpaceX IPO Agent.
+    tagline: "Live Nasdaq vs SPCXx tracking with realtime buy and sell trading on Solana",
+    shareCopyVideo: `SHIP LOG · Syra just shipped buy and sell for the SpaceX IPO Agent.
 
-SpaceX is going public as SPCX. We built a live hub that tracks the stock price vs tokenized versions on Solana, flags fake tokens, and shows three safe ways to buy.
+SpaceX is live as SPCX on Nasdaq. Syra tracks the stock vs tokenized SPCXx on Solana in realtime, then lets you buy or sell from one Trade tab with a live price chart.
 
-→ Live Nasdaq vs SPCXx spread tracking
-→ Scam radar + mint verifier before you swap
-→ 3 buy paths: wallet, exchange, brokerage
-→ Agent bias, venue quotes, and public API
+→ Realtime Nasdaq vs SPCXx spread tracking (~10s refresh)
+→ Buy or sell SPCXx with USDC or SOL from your wallet
+→ Live price chart and premium trade card UI
+→ Jupiter swap with auth fixes and reliable fallback routing
 
-Never overpay. Never buy a fake. One page for the IPO window.
+Never overpay. Never buy a fake. Trade the spread on one page.
 
 Full breakdown in the video ↓`,
-    shareCopyPhoto: `MAJOR SHIP · SpaceX IPO Agent is live on Syra.
+    shareCopyPhoto: `MAJOR UPDATE · SpaceX IPO Agent now supports buy and sell.
 
-Track SPCX stock vs SPCXx on Solana. Compare venues. Avoid scam tokens. Buy safely from your wallet.
+SPCX is live on Nasdaq. Track realtime spreads vs SPCXx on Solana. Buy or sell from the Trade tab with a live chart and wallet swap.
 
-Live spreads. Scam radar. Mint verifier. Three buy paths in plain English.
+Realtime prices. Buy + sell. Venue comparison. Scam protection built in.
 
-The IPO window is noisy. Syra makes it legible.
+The IPO is live. Syra makes trading it legible.
 
 Try it at syraa.fun/spcx`,
   },
@@ -51,8 +51,8 @@ Try it at syraa.fun/spcx`,
       eyebrow: "Ship log",
       title: "SpaceX IPO Agent",
       subtitle:
-        "Live Nasdaq vs on-chain SPCX tracker with scam radar, venue comparison, and safe buy paths for the IPO window.",
-      badge: "Spreads · Scam radar · Buy safely",
+        "Live Nasdaq vs SPCXx tracking with realtime buy and sell trading, live price chart, and venue comparison.",
+      badge: "Realtime · Buy + sell · Live chart",
     },
     {
       id: "context",
@@ -60,8 +60,8 @@ Try it at syraa.fun/spcx`,
       layout: "statement-highlight-line",
       label: "Context",
       kicker: "Why this matters",
-      headline: "The IPO window is noisy and full of fakes.",
-      body: "SpaceX is going public as SPCX on Nasdaq. Traders also buy tokenized exposure as SPCXx on Solana, through xStocks, Backpack, and Ondo. Scammers copy the name with fake tokens. Prices diverge. Most people cannot tell what is real or whether they are overpaying.",
+      headline: "The IPO is live. Trading it should not be guesswork.",
+      body: "SpaceX is public as SPCX on Nasdaq. Traders also buy and sell tokenized SPCXx on Solana through xStocks, Backpack, and Ondo. Spreads move fast. Scammers still copy the name. Most people need one place to see live prices, compare venues, and trade without overpaying or buying a fake.",
     },
     {
       id: "shipped",
@@ -69,12 +69,12 @@ Try it at syraa.fun/spcx`,
       layout: "hero-numbered-cards",
       label: "Shipped",
       kicker: "What we built",
-      headline: "One hub for SpaceX IPO intelligence",
-      body: "Syra's SpaceX IPO Agent tracks live Nasdaq quotes against verified on-chain venues, surfaces agent bias, and walks users through safe buy paths with scam protection built in.",
+      headline: "One hub to track, compare, and trade SpaceX exposure",
+      body: "Syra's SpaceX IPO Agent now refreshes Nasdaq and on-chain quotes in realtime, surfaces agent bias on stretched spreads, and ships a premium Trade tab where users buy or sell SPCXx directly from their wallet.",
       highlights: [
-        "Live Nasdaq vs SPCXx spread and premium/discount",
-        "Scam radar flags impersonator tokens off-price",
-        "Mint verifier before any swap",
+        "Realtime Nasdaq vs SPCXx spread with ~10s polling",
+        "Trade tab: buy or sell SPCXx with USDC or SOL",
+        "Live price chart and compact safety checks before swap",
         "Public /experiment/spcx API for agents and integrators",
       ],
     },
@@ -84,31 +84,31 @@ Try it at syraa.fun/spcx`,
       layout: "flow-arrow-chain",
       label: "Flow",
       kicker: "How to use it",
-      headline: "Understand, verify, then buy",
+      headline: "Check the spread, then trade",
       steps: [
         {
           step: "01",
-          title: "Check the spread",
+          title: "Watch live prices",
           description:
-            "Compare Nasdaq SPCX against live SPCXx quotes from xStocks, Backpack, and Ondo. See premium or discount at a glance.",
+            "Compare Nasdaq SPCX against live SPCXx quotes from xStocks, Backpack, and Ondo. Premium or discount updates every ~10 seconds.",
         },
         {
           step: "02",
           title: "Read agent bias",
           description:
-            "Syra's agent take summarizes whether spreads look fair, stretched, or worth watching before you act.",
+            "Syra's agent take summarizes whether spreads look fair, stretched, or worth watching before you trade.",
         },
         {
           step: "03",
-          title: "Verify the mint",
+          title: "Open Trade tab",
           description:
-            "Run the scam radar and mint verifier. We hide tokens whose price is wildly off the real stock price.",
+            "Toggle Buy or Sell. See your wallet balance, pick a quick amount, and review estimated output on the live chart.",
         },
         {
           step: "04",
-          title: "Pick your path",
+          title: "Confirm swap",
           description:
-            "Swap from wallet, trade on an exchange via xStocks, or use a brokerage track. All three routes in one page.",
+            "Swap USDC or SOL for SPCXx on buy, or sell SPCXx back to USDC or SOL. Safety checks run before execution.",
         },
       ],
     },
@@ -118,33 +118,33 @@ Try it at syraa.fun/spcx`,
       layout: "cards-mosaic",
       label: "Features",
       kicker: "Under the hood",
-      headline: "Four layers of IPO protection",
+      headline: "Four layers of live-market trading",
       cards: [
         {
-          title: "Price compare",
+          title: "Realtime tracking",
           subtitle: "Nasdaq vs on-chain",
           detail:
-            "Live Yahoo Finance Nasdaq feed with $135 IPO reference fallback when the feed is offline.",
+            "Live Yahoo Finance Nasdaq feed with ~10s frontend polling and lazy backend ticks on every /latest request.",
           accent: "gold",
         },
         {
-          title: "Scam radar",
-          subtitle: "Fake token filter",
+          title: "Buy + sell",
+          subtitle: "Wallet swap",
           detail:
-            "Impersonator pools flagged when price diverges too far from the real stock reference.",
+            "Trade tab supports both directions: pay USDC/SOL to buy SPCXx, or sell SPCXx back with balance presets and Max.",
           accent: "gold",
         },
         {
-          title: "Venue playbook",
-          subtitle: "3 buy paths",
+          title: "Live chart",
+          subtitle: "Premium trade UI",
           detail:
-            "Crypto wallet swap, xStocks exchange route, and Backpack/Ondo brokerage tracks compared side by side.",
+            "Compact realtime price chart, quick amount chips, estimated output, and collapsible safety strip on the Trade tab.",
         },
         {
-          title: "Agent API",
-          subtitle: "Experiment rail",
+          title: "Reliable routing",
+          subtitle: "Jupiter swaps",
           detail:
-            "GET /latest, /feed, /config plus POST /tick for autonomous agents and Telegram previews.",
+            "Jupiter Ultra with V1 fallback, authenticated wallet signing, and swap tools enabled for agent wallets.",
         },
       ],
     },
@@ -160,26 +160,26 @@ Try it at syraa.fun/spcx`,
           icon: Rocket,
           title: "SPCX hub",
           description:
-            "Full IPO guide with tabs for overview, buy safely, venues, and learn. Plain English for first-time buyers.",
+            "Full IPO guide with tabs for overview, trade, venues, and learn. Plain English for first-time buyers and sellers.",
           href: "https://www.syraa.fun/spcx",
         },
         {
           icon: LineChart,
-          title: "Spread chart",
+          title: "Live price chart",
           description:
-            "Historical premium/discount between Nasdaq and best live on-chain venue.",
+            "Realtime chart on the Trade tab with Nasdaq and best on-chain venue prices side by side.",
+        },
+        {
+          icon: Wallet,
+          title: "Buy + sell swap",
+          description:
+            "Connect wallet and trade SPCXx both ways: USDC/SOL in, or SPCXx out, with balance-aware presets.",
         },
         {
           icon: ShieldCheck,
-          title: "Mint verifier",
+          title: "Safety strip",
           description:
-            "Paste any mint address. We check it against the verified catalog before you swap.",
-        },
-        {
-          icon: AlertTriangle,
-          title: "Scam radar",
-          description:
-            "Automatic detection of copycat tokens with prices too far from the real stock.",
+            "Collapsible scam and mint checks on the Trade tab so protection stays visible without clutter.",
         },
         {
           icon: Building2,
@@ -188,17 +188,17 @@ Try it at syraa.fun/spcx`,
             "xStocks, Backpack, and Ondo quotes with status, spread, and access notes.",
         },
         {
+          icon: AlertTriangle,
+          title: "Scam radar",
+          description:
+            "Automatic detection of copycat tokens with prices too far from the live stock.",
+        },
+        {
           icon: Code2,
           title: "Public API",
           description:
             "Experiment endpoints at /experiment/spcx for agents, bots, and share intel.",
           href: "https://api.syraa.fun/experiment/spcx/latest",
-        },
-        {
-          icon: Wallet,
-          title: "In-page swap",
-          description:
-            "Connect wallet and swap USDC or SOL for SPCXx after verification passes.",
         },
       ],
     },
@@ -208,23 +208,23 @@ Try it at syraa.fun/spcx`,
       layout: "impact-counter-row",
       label: "Impact",
       kicker: "For traders",
-      headline: "Never overpay. Never buy a fake.",
+      headline: "Track live. Trade both ways. Stay protected.",
       stats: [
-        { value: "3", label: "Verified buy paths" },
+        { value: "Buy + Sell", label: "Two-way wallet trading" },
+        { value: "~10s", label: "Realtime price refresh" },
         { value: "24/7", label: "On-chain tracking" },
-        { value: "$135", label: "IPO reference fallback" },
       ],
       narrative:
-        "The SpaceX IPO will attract hype, copycat tokens, and wide spreads. Syra gives you one place to compare real prices, verify mints, and choose the route that fits how you already invest.",
+        "The SpaceX IPO is live and spreads will move. Syra gives you realtime Nasdaq vs on-chain comparison, a premium Trade tab to buy or sell SPCXx, and built-in scam protection so you never overpay or trade a fake token.",
     },
     {
       id: "closing",
       kind: "closing",
       layout: "closing-banner",
       label: "Try it",
-      headline: "Track the SpaceX IPO on Syra today.",
+      headline: "Trade SpaceX exposure on Syra today.",
       subline:
-        "Open the hub, check the spread, verify the mint, then buy from wallet, exchange, or brokerage. Not financial advice. Do your own research.",
+        "Open the hub, watch live spreads, then buy or sell SPCXx from the Trade tab. Compare venues, verify mints, and choose the route that fits how you invest. Not financial advice. Do your own research.",
       links: [
         { label: "SPCX hub", value: "syraa.fun/spcx", href: "https://www.syraa.fun/spcx" },
         { label: "Latest report", value: "api.syraa.fun/experiment/spcx/latest", href: "https://api.syraa.fun/experiment/spcx/latest" },

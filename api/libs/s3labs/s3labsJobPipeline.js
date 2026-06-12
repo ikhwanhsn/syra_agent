@@ -72,12 +72,17 @@ export async function runS3labsJobPipeline() {
 
   let telegramSent = false;
   if (isS3labsTelegramConfigured()) {
-    telegramSent = await sendS3labsTelegram(message, {
-      messageThreadId: def.threadId,
-      parseMode: "HTML",
-      disableWebPagePreview: false,
-    });
-    if (!telegramSent) console.warn("[s3labs-job] Telegram send failed");
+    try {
+      telegramSent = await sendS3labsTelegram(message, {
+        messageThreadId: def.threadId,
+        parseMode: "HTML",
+        disableWebPagePreview: false,
+      });
+      if (!telegramSent) console.warn("[s3labs-job] Telegram send failed");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.warn("[s3labs-job] Telegram send error:", msg);
+    }
   }
 
   const data = {

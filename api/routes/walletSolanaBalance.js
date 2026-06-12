@@ -1,6 +1,7 @@
 import express from "express";
 import { PublicKey } from "@solana/web3.js";
 import { pickSolanaConnectionForReads } from "../libs/solanaServerRpc.js";
+import { fetchAgentWalletPortfolio } from "../libs/agentWalletPortfolio.js";
 
 const USDC_MAINNET = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
 const LAMPORTS_PER_SOL = 1e9;
@@ -55,6 +56,34 @@ export function createWalletSolanaBalanceRouter() {
     } catch (err) {
       const message = err?.message || "Failed to fetch wallet balance";
       console.error("[wallet/solana/balance]", message);
+      return res.status(503).json({ success: false, error: message });
+    }
+  });
+
+  /**
+   * GET /wallet/solana/portfolio?address=<base58>
+   * Full SPL holdings + SOL for agent treasuries (server RPC).
+   */
+  router.get("/portfolio", async (req, res) => {
+    const address = typeof req.query.address === "string" ? req.query.address.trim() : "";
+    if (!address) {
+      return res.status(400).json({ success: false, error: "address query param is required" });
+    }
+
+    try {
+      // Validate address early
+      // eslint-disable-next-line no-new
+      new PublicKey(address);
+    } catch {
+      return res.status(400).json({ success: false, error: "Invalid Solana address" });
+    }
+
+    try {
+      const portfolio = await fetchAgentWalletPortfolio(address);
+      return res.json({ success: true, ...portfolio });
+    } catch (err) {
+      const message = err?.message || "Failed to fetch wallet portfolio";
+      console.error("[wallet/solana/portfolio]", message);
       return res.status(503).json({ success: false, error: message });
     }
   });

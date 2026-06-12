@@ -13,10 +13,10 @@ export const SPCX_PHOTO = definePhotoUpdate(SPCX_POST.meta, [
     shareCopy: copies.cover,
     content: photoContent({
       eyebrow: "Ship log",
-      badge: "Spreads · Scam radar · Buy safely",
+      badge: "Realtime · Buy + sell · Live chart",
       title: "SpaceX IPO Agent",
       subtitle:
-        "Live Nasdaq vs on-chain SPCX tracker with scam radar, venue comparison, and safe buy paths.",
+        "Live Nasdaq vs SPCXx tracking with realtime buy and sell trading and a live price chart.",
     }),
   },
   {
@@ -25,8 +25,8 @@ export const SPCX_PHOTO = definePhotoUpdate(SPCX_POST.meta, [
     shareCopy: copies.thesis,
     content: photoContent({
       kicker: "Why this matters",
-      headline: "The IPO window is noisy and full of fakes.",
-      body: "SpaceX goes public as SPCX. Traders buy tokenized SPCXx on Solana. Scammers copy the name. Syra built one hub to compare real prices, verify mints, and buy safely.",
+      headline: "The IPO is live. Trading it should not be guesswork.",
+      body: "SpaceX is public as SPCX on Nasdaq. Traders buy and sell SPCXx on Solana. Spreads move fast. Syra built realtime tracking plus two-way wallet trading on one page.",
     }),
   },
   {
@@ -34,9 +34,9 @@ export const SPCX_PHOTO = definePhotoUpdate(SPCX_POST.meta, [
     layout: "photo-quote",
     shareCopy: copies.quote,
     content: photoContent({
-      quote: "Never overpay. Never buy a fake.",
+      quote: "Track live. Trade both ways. Stay protected.",
       narrative:
-        "Track the real stock price. Compare verified on-chain venues. Verify the mint before you swap. The IPO window needs legibility.",
+        "Realtime Nasdaq vs SPCXx spreads. Buy or sell from your wallet. Safety checks before every swap. The live IPO market needs legibility.",
     }),
   },
   {
@@ -45,12 +45,12 @@ export const SPCX_PHOTO = definePhotoUpdate(SPCX_POST.meta, [
     shareCopy: copies.flow,
     content: photoContent({
       kicker: "How to use it",
-      headline: "Understand, verify, then buy.",
+      headline: "Check the spread, then trade.",
       steps: [
-        { step: "01", title: "Check spread", description: "Nasdaq SPCX vs live SPCXx from verified venues." },
-        { step: "02", title: "Read agent bias", description: "Fair, stretched, or watch before you act." },
-        { step: "03", title: "Verify mint", description: "Scam radar and mint checker before any swap." },
-        { step: "04", title: "Pick your path", description: "Wallet, exchange via xStocks, or brokerage track." },
+        { step: "01", title: "Watch live prices", description: "Nasdaq SPCX vs SPCXx with ~10s refresh." },
+        { step: "02", title: "Read agent bias", description: "Fair, stretched, or watch before you trade." },
+        { step: "03", title: "Open Trade tab", description: "Toggle Buy or Sell with live chart and presets." },
+        { step: "04", title: "Confirm swap", description: "USDC/SOL in, or SPCXx out via Jupiter." },
       ],
     }),
   },
@@ -59,13 +59,13 @@ export const SPCX_PHOTO = definePhotoUpdate(SPCX_POST.meta, [
     layout: "photo-timeline",
     shareCopy: copies.timeline,
     content: photoContent({
-      kicker: "Safe buy path",
-      headline: "From spread check to confirmed buy.",
+      kicker: "Live trading path",
+      headline: "From spread check to confirmed trade.",
       steps: [
-        { step: "01", title: "Open the hub", description: "syraa.fun/spcx with live Nasdaq vs on-chain quotes." },
+        { step: "01", title: "Open the hub", description: "syraa.fun/spcx with realtime Nasdaq vs on-chain quotes." },
         { step: "02", title: "Read agent take", description: "Premium/discount summary and venue status." },
-        { step: "03", title: "Run verification", description: "Scam radar flags fakes. Mint verifier confirms catalog match." },
-        { step: "04", title: "Buy your way", description: "Swap USDC/SOL, use xStocks, or compare brokerage tracks." },
+        { step: "03", title: "Pick Buy or Sell", description: "Trade tab with balance presets and live chart." },
+        { step: "04", title: "Confirm swap", description: "Jupiter routing with safety checks before execution." },
       ],
     }),
   },
@@ -74,12 +74,12 @@ export const SPCX_PHOTO = definePhotoUpdate(SPCX_POST.meta, [
     layout: "photo-cards-quad",
     shareCopy: copies.pillars,
     content: photoContent({
-      headline: "Four layers of IPO protection.",
+      headline: "Four layers of live-market trading.",
       cards: [
-        { title: "Price compare", subtitle: "Nasdaq vs on-chain", detail: "Live feed with $135 IPO reference fallback.", accent: "gold" },
-        { title: "Scam radar", subtitle: "Fake filter", detail: "Impersonator tokens flagged when price diverges.", accent: "gold" },
-        { title: "Venue playbook", subtitle: "3 buy paths", detail: "Wallet, xStocks exchange, Backpack/Ondo brokerage." },
-        { title: "Agent API", subtitle: "Experiment rail", detail: "/experiment/spcx for bots and integrators." },
+        { title: "Realtime tracking", subtitle: "Nasdaq vs on-chain", detail: "Live feed with ~10s polling and lazy API ticks.", accent: "gold" },
+        { title: "Buy + sell", subtitle: "Wallet swap", detail: "Trade SPCXx both ways with USDC, SOL, and Max preset.", accent: "gold" },
+        { title: "Live chart", subtitle: "Premium trade UI", detail: "Quick amount chips, estimated output, compact safety strip." },
+        { title: "Reliable routing", subtitle: "Jupiter swaps", detail: "Ultra with V1 fallback and authenticated signing." },
       ],
     }),
   },
@@ -90,9 +90,9 @@ export const SPCX_PHOTO = definePhotoUpdate(SPCX_POST.meta, [
     content: photoContent({
       headline: "SpaceX IPO Agent — what's live.",
       highlights: [
-        "Live Nasdaq vs SPCXx spread tracking",
-        "Scam radar + mint verifier before swap",
-        "3 buy paths: wallet, exchange, brokerage",
+        "Realtime Nasdaq vs SPCXx spread tracking",
+        "Buy and sell SPCXx from the Trade tab",
+        "Live price chart and compact safety checks",
         "Agent bias, venue quotes, and public API",
       ],
     }),
@@ -102,13 +102,13 @@ export const SPCX_PHOTO = definePhotoUpdate(SPCX_POST.meta, [
     layout: "photo-metric-strip",
     shareCopy: copies.metrics,
     content: photoContent({
-      headline: "Three numbers for the IPO window.",
+      headline: "Three numbers for live SpaceX trading.",
       stats: [
-        { value: "3", label: "Verified buy paths" },
+        { value: "Buy + Sell", label: "Two-way wallet trading" },
+        { value: "~10s", label: "Realtime price refresh" },
         { value: "24/7", label: "On-chain tracking" },
-        { value: "$135", label: "IPO reference fallback" },
       ],
-      narrative: "Compare spreads before you buy. Verify mints. Choose the route that fits how you invest.",
+      narrative: "Watch spreads move in realtime. Trade both ways. Stay protected from fake tokens.",
     }),
   },
   {
@@ -116,10 +116,10 @@ export const SPCX_PHOTO = definePhotoUpdate(SPCX_POST.meta, [
     layout: "photo-stat-featured",
     shareCopy: copies.featured,
     content: photoContent({
-      headline: "One page. Every SpaceX exposure route.",
-      stats: [{ value: "1", label: "Hub for stock + on-chain + brokerage" }],
+      headline: "One page. Track and trade SpaceX exposure.",
+      stats: [{ value: "1", label: "Hub for live prices + wallet trading" }],
       narrative:
-        "Nasdaq SPCX, SPCXx on Solana, xStocks on exchanges, and Backpack/Ondo tracks compared in plain English.",
+        "Nasdaq SPCX live, SPCXx on Solana, buy or sell from your wallet, and venue comparison in plain English.",
     }),
   },
   {
@@ -130,11 +130,11 @@ export const SPCX_PHOTO = definePhotoUpdate(SPCX_POST.meta, [
       headline: "Before vs now.",
       compareLeft: {
         title: "Before",
-        body: "Scattered prices, fake tokens, no way to compare Nasdaq vs on-chain spreads.",
+        body: "Buy-only swap, slower refresh, pre-IPO framing, and cluttered safety UI on the trade flow.",
       },
       compareRight: {
         title: "Now",
-        body: "Live tracker, scam radar, mint verifier, and three safe buy paths on one page.",
+        body: "Realtime tracking, buy and sell, live price chart, premium Trade tab, and reliable Jupiter routing.",
       },
     }),
   },
@@ -144,9 +144,9 @@ export const SPCX_PHOTO = definePhotoUpdate(SPCX_POST.meta, [
     shareCopy: copies.launch,
     content: photoContent({
       badge: "Now live",
-      title: "SpaceX IPO Agent",
-      subtitle: "Track spreads. Verify mints. Buy safely.",
-      body: "Syra's IPO hub compares Nasdaq and on-chain venues so you never overpay or buy a fake token.",
+      title: "Buy and sell SpaceX",
+      subtitle: "Realtime spreads. Wallet trading. Live chart.",
+      body: "Syra's IPO hub tracks Nasdaq and on-chain venues in realtime, then lets you buy or sell SPCXx from one Trade tab.",
     }),
   },
   {
@@ -154,14 +154,14 @@ export const SPCX_PHOTO = definePhotoUpdate(SPCX_POST.meta, [
     layout: "photo-numbered-list",
     shareCopy: copies.deepDive,
     content: photoContent({
-      kicker: "Technical surface",
-      headline: "Public experiment API.",
+      kicker: "System update",
+      headline: "Backend and swap reliability.",
       items: [
-        "GET /experiment/spcx/config — IPO reference + catalog meta",
-        "GET /experiment/spcx/latest — latest intelligence report",
-        "GET /experiment/spcx/feed — historical ticks",
-        "POST /experiment/spcx/tick — force intelligence refresh",
-        "GET /experiment/spcx/telegram-preview — formatted share message",
+        "GET /experiment/spcx/latest — lazy tick on poll (~10s cooldown)",
+        "Frontend polling: latest every 10s, feed every 15s",
+        "Jupiter Ultra with V1 fallback for USDC/SOL ↔ SPCXx swaps",
+        "Auth-required tx_sign: guest wallets blocked from swap signing",
+        "Swap tools enabled on agent wallet allowlists",
       ],
     }),
   },
@@ -172,12 +172,12 @@ export const SPCX_PHOTO = definePhotoUpdate(SPCX_POST.meta, [
     content: photoContent({
       badge: "Two markets",
       headline: "Nasdaq stock vs Solana tokens.",
-      body: "SPCX on Nasdaq via live Yahoo Finance. SPCXx on Solana via xStocks, Backpack, and Ondo. Syra tracks the spread.",
+      body: "SPCX on Nasdaq via live Yahoo Finance. SPCXx on Solana via xStocks, Backpack, and Ondo. Syra tracks the spread in realtime and supports buy and sell.",
       highlights: [
-        "Live Nasdaq quote with reference fallback",
+        "Live Nasdaq quote with realtime refresh",
         "Verified on-chain venue quotes",
         "Premium/discount at a glance",
-        "Agent bias on stretched spreads",
+        "Two-way wallet trading on Trade tab",
       ],
     }),
   },
@@ -189,11 +189,10 @@ export const SPCX_PHOTO = definePhotoUpdate(SPCX_POST.meta, [
       headline: "SPCX intelligence from CLI.",
       terminalLines: [
         "$ curl api.syraa.fun/experiment/spcx/latest",
-        "< nasdaqTicker: SPCX · nasdaqPriceUsd: 135.00",
-        "< venues: [{ symbol: SPCXx, venue: xstocks, spreadPct: 2.1 }]",
-        "< agentBias: observe",
-        "$ curl api.syraa.fun/experiment/spcx/telegram-preview",
-        "< formatted share message ready to post",
+        "< nasdaqTicker: SPCX · nasdaqPriceUsd: live",
+        "< venues: [{ symbol: SPCXx, venue: xstocks, spreadPct: live }]",
+        "< agentBias: observe · refreshedAt: ~10s ago",
+        "$ open syraa.fun/spcx → Trade tab → Buy or Sell",
       ],
     }),
   },
@@ -202,8 +201,8 @@ export const SPCX_PHOTO = definePhotoUpdate(SPCX_POST.meta, [
     layout: "photo-closing-cta",
     shareCopy: copies.cta,
     content: photoContent({
-      headline: "Track the SpaceX IPO on Syra.",
-      subtitle: "Check spreads. Verify mints. Buy safely. Not financial advice.",
+      headline: "Trade SpaceX exposure on Syra.",
+      subtitle: "Watch live spreads. Buy or sell SPCXx. Not financial advice.",
       links: [
         { label: "SPCX hub", value: "syraa.fun/spcx", href: "https://www.syraa.fun/spcx" },
         { label: "Latest report", value: "api.syraa.fun/experiment/spcx/latest", href: "https://api.syraa.fun/experiment/spcx/latest" },

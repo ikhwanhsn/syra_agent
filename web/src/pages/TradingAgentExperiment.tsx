@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import { Link } from "@/lib/navigation";
 import {
   ArrowDown,
@@ -95,7 +102,10 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { TradingExperimentChartsPanel } from "@/components/experiment/TradingExperimentChartsPanel";
 import { ExperimentAgentBalancePanel } from "@/components/experiment/shared/ExperimentAgentBalancePanel";
-import { buildEquityHistoryFromRuns, formatExperimentUsd } from "@/lib/experimentEquityHistory";
+import {
+  buildEquityHistoryFromRuns,
+  formatExperimentUsd,
+} from "@/lib/experimentEquityHistory";
 import { ExperimentTokenCombobox } from "@/components/experiment/ExperimentTokenCombobox";
 import { AgentBackgroundLiveIndicator } from "@/components/experiment/AgentBackgroundLiveIndicator";
 import { CoingeckoBatchImageProvider } from "@/contexts/CoingeckoBatchImageContext";
@@ -106,7 +116,9 @@ const SM_BREAKPOINT_PX = 640;
 
 function useMatchMediaMinWidth(minWidthPx: number): boolean {
   const [matches, setMatches] = useState(() =>
-    typeof window !== "undefined" ? window.matchMedia(`(min-width: ${minWidthPx}px)`).matches : false,
+    typeof window !== "undefined"
+      ? window.matchMedia(`(min-width: ${minWidthPx}px)`).matches
+      : false,
   );
   useEffect(() => {
     const mq = window.matchMedia(`(min-width: ${minWidthPx}px)`);
@@ -141,11 +153,19 @@ function MobileExperimentFiltersToggle({
       aria-expanded={expanded}
     >
       <span className="inline-flex min-w-0 items-center gap-2">
-        <SlidersHorizontal className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-        <span className="truncate">{expanded ? `Hide ${label}` : `Show ${label}`}</span>
+        <SlidersHorizontal
+          className="h-4 w-4 shrink-0 text-muted-foreground"
+          aria-hidden
+        />
+        <span className="truncate">
+          {expanded ? `Hide ${label}` : `Show ${label}`}
+        </span>
       </span>
       <ChevronDown
-        className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200", expanded && "rotate-180")}
+        className={cn(
+          "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200",
+          expanded && "rotate-180",
+        )}
         aria-hidden
       />
     </Button>
@@ -161,7 +181,11 @@ function MobileCollapsibleFilters({
   expanded: boolean;
   children: ReactNode;
 }) {
-  return <div className={cn("min-w-0", !isDesktop && !expanded && "hidden")}>{children}</div>;
+  return (
+    <div className={cn("min-w-0", !isDesktop && !expanded && "hidden")}>
+      {children}
+    </div>
+  );
 }
 
 /** Resolved wins+losses at or above this count use full win-rate ranking. */
@@ -181,8 +205,14 @@ function randomStrategyFormValues(): {
   limit: string;
   lookAhead: string;
 } {
-  const tokenEntry = EXPERIMENT_SUPPORTED_TOKENS[Math.floor(Math.random() * EXPERIMENT_SUPPORTED_TOKENS.length)]!;
-  const bar = RANDOM_STRATEGY_BARS[Math.floor(Math.random() * RANDOM_STRATEGY_BARS.length)]!;
+  const tokenEntry =
+    EXPERIMENT_SUPPORTED_TOKENS[
+      Math.floor(Math.random() * EXPERIMENT_SUPPORTED_TOKENS.length)
+    ]!;
+  const bar =
+    RANDOM_STRATEGY_BARS[
+      Math.floor(Math.random() * RANDOM_STRATEGY_BARS.length)
+    ]!;
   const limit = 100 + Math.floor(Math.random() * 301);
   const maxLook = Math.min(168, Math.max(12, limit - 24));
   const lookAhead = 12 + Math.floor(Math.random() * (maxLook - 12 + 1));
@@ -201,19 +231,20 @@ function randomStrategyFormValues(): {
 /** Paginated merged run history on the Explorer tab. */
 const EXPLORER_PAGE_SIZE = 25;
 
-function labAgentProfileHref(a: Pick<TradingExperimentAgentStats, "agentId" | "experimentSuite">): string {
+function labAgentProfileHref(
+  a: Pick<TradingExperimentAgentStats, "agentId" | "experimentSuite">,
+): string {
   const suite = a.experimentSuite ?? "primary";
   return `${TRADING_EXPERIMENT_ROUTE_BASE}/agent/${a.agentId}?suite=${encodeURIComponent(suite)}`;
 }
 
 function labAgentRowKey(a: TradingExperimentAgentStats): string {
-  return a.experimentSuite != null ? `${a.experimentSuite}-${a.agentId}` : String(a.agentId);
+  return a.experimentSuite != null
+    ? `${a.experimentSuite}-${a.agentId}`
+    : String(a.agentId);
 }
 
-function formatPairLabel(
-  token: string,
-  watchTokens?: string[] | null,
-): string {
+function formatPairLabel(token: string, watchTokens?: string[] | null): string {
   return formatExperimentWatchlist(token, watchTokens);
 }
 
@@ -288,7 +319,9 @@ function wilsonLowerBound(wins: number, total: number, z = 1.96): number {
  * sample-size confidence so "more trades + higher win rate" wins.
  * Untested agents return -1 so they always sort to the bottom on desc.
  */
-function leaderboardScore(row: Pick<LeaderboardViewRow, "wins" | "decided">): number {
+function leaderboardScore(
+  row: Pick<LeaderboardViewRow, "wins" | "decided">,
+): number {
   if (row.decided === 0) return -1;
   return wilsonLowerBound(row.wins, row.decided);
 }
@@ -329,17 +362,32 @@ type LeaderboardSortKey =
   | "return"
   | "sample";
 
-type MyAgentsWinSortKey = "name" | "pair" | "bar" | "wins" | "losses" | "winRate" | "open";
+type MyAgentsWinSortKey =
+  | "name"
+  | "pair"
+  | "bar"
+  | "wins"
+  | "losses"
+  | "winRate"
+  | "open";
 
 type MyRunsSortKey = "time" | "status" | "signal" | "symbol";
 
 function defaultOrderLab(key: LabSortKey): SortOrder {
-  if (key === "name" || key === "pair" || key === "bar" || key === "cex" || key === "suite") return "asc";
+  if (
+    key === "name" ||
+    key === "pair" ||
+    key === "bar" ||
+    key === "cex" ||
+    key === "suite"
+  )
+    return "asc";
   return "desc";
 }
 
 function defaultOrderLeaderboard(key: LeaderboardSortKey): SortOrder {
-  if (key === "agent" || key === "pair" || key === "bar" || key === "ledger") return "asc";
+  if (key === "agent" || key === "pair" || key === "bar" || key === "ledger")
+    return "asc";
   return "desc";
 }
 
@@ -366,7 +414,8 @@ function sortLabAgents(
     let cmp = 0;
     switch (key) {
       case "id": {
-        const lr = ledgerRank(x.experimentSuite) - ledgerRank(y.experimentSuite);
+        const lr =
+          ledgerRank(x.experimentSuite) - ledgerRank(y.experimentSuite);
         cmp = lr !== 0 ? lr : x.agentId - y.agentId;
         break;
       }
@@ -466,7 +515,8 @@ function sortLeaderboardRows(
         break;
       case "ledger":
         cmp = a.ledgerRank - b.ledgerRank;
-        if (scope === "global" && cmp === 0) cmp = Number(a.idLabel) - Number(b.idLabel);
+        if (scope === "global" && cmp === 0)
+          cmp = Number(a.idLabel) - Number(b.idLabel);
         break;
       case "agent":
         cmp = a.name.localeCompare(b.name);
@@ -514,7 +564,9 @@ function sortLeaderboardRows(
         break;
       }
       case "sample":
-        cmp = leaderboardTierFromDecided(a.decided) - leaderboardTierFromDecided(b.decided);
+        cmp =
+          leaderboardTierFromDecided(a.decided) -
+          leaderboardTierFromDecided(b.decided);
         break;
       default:
         cmp = 0;
@@ -569,7 +621,11 @@ function sortMyAgentsWinList(
   });
 }
 
-function sortMyRunsRows(list: TradingExperimentRunRow[], key: MyRunsSortKey, order: SortOrder): TradingExperimentRunRow[] {
+function sortMyRunsRows(
+  list: TradingExperimentRunRow[],
+  key: MyRunsSortKey,
+  order: SortOrder,
+): TradingExperimentRunRow[] {
   return [...list].sort((x, y) => {
     let cmp = 0;
     switch (key) {
@@ -643,7 +699,15 @@ function SortableTableHead(props: {
   align?: "left" | "right";
   className?: string;
 }) {
-  const { label, sortKey, activeKey, order, onSort, align = "left", className } = props;
+  const {
+    label,
+    sortKey,
+    activeKey,
+    order,
+    onSort,
+    align = "left",
+    className,
+  } = props;
   const isActive = activeKey === sortKey;
   return (
     <TableHead className={cn(align === "right" && "text-right", className)}>
@@ -661,12 +725,21 @@ function SortableTableHead(props: {
         <span>{label}</span>
         {isActive ? (
           order === "desc" ? (
-            <ArrowDown className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
+            <ArrowDown
+              className="h-3.5 w-3.5 shrink-0 text-primary"
+              aria-hidden
+            />
           ) : (
-            <ArrowUp className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
+            <ArrowUp
+              className="h-3.5 w-3.5 shrink-0 text-primary"
+              aria-hidden
+            />
           )
         ) : (
-          <ArrowUpDown className="h-3.5 w-3.5 shrink-0 opacity-35" aria-hidden />
+          <ArrowUpDown
+            className="h-3.5 w-3.5 shrink-0 opacity-35"
+            aria-hidden
+          />
         )}
       </button>
     </TableHead>
@@ -701,7 +774,9 @@ function normalizeTableSearch(s: string): string {
 }
 
 function sortedUniqueStrings(values: string[]): string[] {
-  return [...new Set(values)].filter(Boolean).sort((a, b) => a.localeCompare(b));
+  return [...new Set(values)]
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b));
 }
 
 function ExperimentTablePagination(props: {
@@ -713,7 +788,14 @@ function ExperimentTablePagination(props: {
   /** Omit default `mb-8` when the parent shell supplies outer margin (e.g. lab footer card). */
   className?: string;
 }) {
-  const { page, pageSize, totalItems, loading = false, onPageChange, className } = props;
+  const {
+    page,
+    pageSize,
+    totalItems,
+    loading = false,
+    onPageChange,
+    className,
+  } = props;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const start = totalItems === 0 ? 0 : (page - 1) * pageSize + 1;
   const end = Math.min(page * pageSize, totalItems);
@@ -763,7 +845,11 @@ function ExperimentTablePagination(props: {
   );
 }
 
-export default function TradingAgentExperiment({ embedded = false }: { embedded?: boolean }) {
+export default function TradingAgentExperiment({
+  embedded = false,
+}: {
+  embedded?: boolean;
+}) {
   const [agents, setAgents] = useState<TradingExperimentAgentStats[]>([]);
   const [pageView, setPageView] = useState<PageView>("lab");
   const [loading, setLoading] = useState(true);
@@ -772,7 +858,8 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
   const { publicKey } = useWalletContext();
   const { openConnectModal } = useConnectModal();
   const { toast } = useToast();
-  const [connectWalletForCreateAgentOpen, setConnectWalletForCreateAgentOpen] = useState(false);
+  const [connectWalletForCreateAgentOpen, setConnectWalletForCreateAgentOpen] =
+    useState(false);
   const walletAddress = useMemo(() => {
     if (publicKey) return publicKey.toBase58();
     return null;
@@ -791,7 +878,8 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
   const [creating, setCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [leaderboardScope, setLeaderboardScope] = useState<LeaderboardScope>("global");
+  const [leaderboardScope, setLeaderboardScope] =
+    useState<LeaderboardScope>("global");
   const [leaderboardPage, setLeaderboardPage] = useState(1);
   const [labPage, setLabPage] = useState(1);
   const [myAgentsTablePage, setMyAgentsTablePage] = useState(1);
@@ -801,7 +889,8 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
   const [labSortOrder, setLabSortOrder] = useState<SortOrder>("desc");
   const [lbSortKey, setLbSortKey] = useState<LeaderboardSortKey>("rank");
   const [lbSortOrder, setLbSortOrder] = useState<SortOrder>("desc");
-  const [myWinSortKey, setMyWinSortKey] = useState<MyAgentsWinSortKey>("winRate");
+  const [myWinSortKey, setMyWinSortKey] =
+    useState<MyAgentsWinSortKey>("winRate");
   const [myWinSortOrder, setMyWinSortOrder] = useState<SortOrder>("desc");
   const [myRunsSortKey, setMyRunsSortKey] = useState<MyRunsSortKey>("time");
   const [myRunsSortOrder, setMyRunsSortOrder] = useState<SortOrder>("desc");
@@ -810,12 +899,16 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
   const [labFilterToken, setLabFilterToken] = useState<string>("all");
   const [labFilterBar, setLabFilterBar] = useState<string>("all");
   const [labFilterCex, setLabFilterCex] = useState<string>("all");
-  const [labFilterOpen, setLabFilterOpen] = useState<"any" | "open" | "flat">("any");
+  const [labFilterOpen, setLabFilterOpen] = useState<"any" | "open" | "flat">(
+    "any",
+  );
 
   const [lbFilterSearch, setLbFilterSearch] = useState("");
   const [lbFilterToken, setLbFilterToken] = useState<string>("all");
   const [lbFilterBar, setLbFilterBar] = useState<string>("all");
-  const [lbFilterSample, setLbFilterSample] = useState<"any" | "0" | "1" | "2">("any");
+  const [lbFilterSample, setLbFilterSample] = useState<"any" | "0" | "1" | "2">(
+    "any",
+  );
 
   const [myWinSearch, setMyWinSearch] = useState("");
   const [myWinToken, setMyWinToken] = useState<string>("all");
@@ -828,7 +921,9 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
   const [chartFilterToken, setChartFilterToken] = useState<string>("all");
   const [chartFilterBar, setChartFilterBar] = useState<string>("all");
 
-  const [explorerRuns, setExplorerRuns] = useState<TradingExperimentRunRow[]>([]);
+  const [explorerRuns, setExplorerRuns] = useState<TradingExperimentRunRow[]>(
+    [],
+  );
   const [explorerTotal, setExplorerTotal] = useState(0);
   const [explorerPage, setExplorerPage] = useState(1);
   const [explorerLoading, setExplorerLoading] = useState(false);
@@ -837,19 +932,24 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
   const [explorerSymbol, setExplorerSymbol] = useState("");
   const [explorerAgentId, setExplorerAgentId] = useState("");
 
-  const [featuredRuns, setFeaturedRuns] = useState<TradingExperimentRunRow[]>([]);
+  const [featuredRuns, setFeaturedRuns] = useState<TradingExperimentRunRow[]>(
+    [],
+  );
 
   const isSmUp = useMatchMediaMinWidth(SM_BREAKPOINT_PX);
   const [mobileLabFiltersOpen, setMobileLabFiltersOpen] = useState(false);
   const [mobileLbFiltersOpen, setMobileLbFiltersOpen] = useState(false);
   const [mobileChartFiltersOpen, setMobileChartFiltersOpen] = useState(false);
-  const [mobileExplorerFiltersOpen, setMobileExplorerFiltersOpen] = useState(false);
+  const [mobileExplorerFiltersOpen, setMobileExplorerFiltersOpen] =
+    useState(false);
   const [mobileMyWinFiltersOpen, setMobileMyWinFiltersOpen] = useState(false);
   const [mobileMyRunsFiltersOpen, setMobileMyRunsFiltersOpen] = useState(false);
 
   const featuredAgent = useMemo(() => {
     if (agents.length === 0) return null;
-    return [...agents].sort((a, b) => (b.returnPct ?? -Infinity) - (a.returnPct ?? -Infinity))[0];
+    return [...agents].sort(
+      (a, b) => (b.returnPct ?? -Infinity) - (a.returnPct ?? -Infinity),
+    )[0];
   }, [agents]);
 
   const featuredStartUsd = featuredAgent?.startingBankUsd ?? 1000;
@@ -921,11 +1021,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
     } finally {
       setLoading(false);
     }
-  }, [
-    pageView,
-    leaderboardScope,
-    walletAddress,
-  ]);
+  }, [pageView, leaderboardScope, walletAddress]);
 
   const loadMyAgents = useCallback(async () => {
     if (!walletAddress) {
@@ -962,7 +1058,9 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
       const rawAid = explorerAgentId.trim();
       const parsedAid = rawAid === "" ? NaN : parseInt(rawAid, 10);
       const agentIdFilter =
-        Number.isInteger(parsedAid) && parsedAid >= 0 && parsedAid <= 99 ? parsedAid : undefined;
+        Number.isInteger(parsedAid) && parsedAid >= 0 && parsedAid <= 99
+          ? parsedAid
+          : undefined;
       const runData = await fetchTradingExperimentRuns({
         limit: EXPLORER_PAGE_SIZE,
         offset: (explorerPage - 1) * EXPLORER_PAGE_SIZE,
@@ -1060,15 +1158,30 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
         `${row.name} ${row.subLabel} ${row.idLabel} ${row.token} ${row.bar} ${row.experimentSuite ?? ""}`.toLowerCase();
       return hay.includes(q);
     });
-  }, [baseLeaderboardRows, lbFilterSearch, lbFilterToken, lbFilterBar, lbFilterSample]);
+  }, [
+    baseLeaderboardRows,
+    lbFilterSearch,
+    lbFilterToken,
+    lbFilterBar,
+    lbFilterSample,
+  ]);
 
   const sortedLeaderboardRows = useMemo(
-    () => sortLeaderboardRows(filteredLeaderboardRows, lbSortKey, lbSortOrder, leaderboardScope),
+    () =>
+      sortLeaderboardRows(
+        filteredLeaderboardRows,
+        lbSortKey,
+        lbSortOrder,
+        leaderboardScope,
+      ),
     [filteredLeaderboardRows, lbSortKey, lbSortOrder, leaderboardScope],
   );
 
   const labCexOptions = useMemo(
-    () => sortedUniqueStrings(agents.map((a) => (a.cexSource ?? "").trim()).filter(Boolean)),
+    () =>
+      sortedUniqueStrings(
+        agents.map((a) => (a.cexSource ?? "").trim()).filter(Boolean),
+      ),
     [agents],
   );
   const showLabCexUi = labCexOptions.length > 1;
@@ -1086,11 +1199,23 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
       if (labFilterOpen === "open" && a.openPositions <= 0) return false;
       if (labFilterOpen === "flat" && a.openPositions > 0) return false;
       if (!q) return true;
-      const suiteHay = a.experimentSuite != null ? String(a.experimentSuite).toLowerCase() : "";
-      const hay = `${a.name} ${a.agentId} ${a.token} ${a.bar} ${suiteHay}`.toLowerCase();
+      const suiteHay =
+        a.experimentSuite != null
+          ? String(a.experimentSuite).toLowerCase()
+          : "";
+      const hay =
+        `${a.name} ${a.agentId} ${a.token} ${a.bar} ${suiteHay}`.toLowerCase();
       return hay.includes(q);
     });
-  }, [agents, labFilterSearch, labFilterToken, labFilterBar, labFilterCex, labFilterOpen, showLabCexUi]);
+  }, [
+    agents,
+    labFilterSearch,
+    labFilterToken,
+    labFilterBar,
+    labFilterCex,
+    labFilterOpen,
+    showLabCexUi,
+  ]);
 
   const sortedLabAgents = useMemo(
     () => sortLabAgents(filteredLabAgents, labSortKey, labSortOrder),
@@ -1109,7 +1234,8 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
   }, [myAgents, myWinSearch, myWinToken, myWinBar]);
 
   const sortedMyAgentsWin = useMemo(
-    () => sortMyAgentsWinList(filteredMyAgentsWin, myWinSortKey, myWinSortOrder),
+    () =>
+      sortMyAgentsWinList(filteredMyAgentsWin, myWinSortKey, myWinSortOrder),
     [filteredMyAgentsWin, myWinSortKey, myWinSortOrder],
   );
 
@@ -1118,8 +1244,14 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
     [myRuns, myRunsSortKey, myRunsSortOrder],
   );
 
-  const labTokenOptions = useMemo(() => sortedUniqueStrings(agents.map((a) => a.token)), [agents]);
-  const labBarOptions = useMemo(() => sortedUniqueStrings(agents.map((a) => a.bar)), [agents]);
+  const labTokenOptions = useMemo(
+    () => sortedUniqueStrings(agents.map((a) => a.token)),
+    [agents],
+  );
+  const labBarOptions = useMemo(
+    () => sortedUniqueStrings(agents.map((a) => a.bar)),
+    [agents],
+  );
 
   const lbTokenOptions = useMemo(
     () => sortedUniqueStrings(baseLeaderboardRows.map((r) => r.token)),
@@ -1130,20 +1262,37 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
     [baseLeaderboardRows],
   );
 
-  const myWinTokenOptions = useMemo(() => sortedUniqueStrings(myAgents.map((a) => a.token)), [myAgents]);
-  const myWinBarOptions = useMemo(() => sortedUniqueStrings(myAgents.map((a) => a.bar)), [myAgents]);
+  const myWinTokenOptions = useMemo(
+    () => sortedUniqueStrings(myAgents.map((a) => a.token)),
+    [myAgents],
+  );
+  const myWinBarOptions = useMemo(
+    () => sortedUniqueStrings(myAgents.map((a) => a.bar)),
+    [myAgents],
+  );
 
-  const chartTokenOptions = useMemo(() => sortedUniqueStrings(agents.map((a) => a.token)), [agents]);
-  const chartBarOptions = useMemo(() => sortedUniqueStrings(agents.map((a) => a.bar)), [agents]);
+  const chartTokenOptions = useMemo(
+    () => sortedUniqueStrings(agents.map((a) => a.token)),
+    [agents],
+  );
+  const chartBarOptions = useMemo(
+    () => sortedUniqueStrings(agents.map((a) => a.bar)),
+    [agents],
+  );
 
   const filteredChartAgents = useMemo(() => {
     const q = normalizeTableSearch(chartFilterSearch);
     return agents.filter((a) => {
-      if (chartFilterToken !== "all" && a.token !== chartFilterToken) return false;
+      if (chartFilterToken !== "all" && a.token !== chartFilterToken)
+        return false;
       if (chartFilterBar !== "all" && a.bar !== chartFilterBar) return false;
       if (!q) return true;
-      const suiteHay = a.experimentSuite != null ? String(a.experimentSuite).toLowerCase() : "";
-      const hay = `${a.name} ${a.agentId} ${a.token} ${a.bar} ${suiteHay}`.toLowerCase();
+      const suiteHay =
+        a.experimentSuite != null
+          ? String(a.experimentSuite).toLowerCase()
+          : "";
+      const hay =
+        `${a.name} ${a.agentId} ${a.token} ${a.bar} ${suiteHay}`.toLowerCase();
       return hay.includes(q);
     });
   }, [agents, chartFilterSearch, chartFilterToken, chartFilterBar]);
@@ -1175,16 +1324,32 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
 
   useEffect(() => {
     setLeaderboardPage(1);
-  }, [leaderboardScope, lbFilterSearch, lbFilterToken, lbFilterBar, lbFilterSample]);
+  }, [
+    leaderboardScope,
+    lbFilterSearch,
+    lbFilterToken,
+    lbFilterBar,
+    lbFilterSample,
+  ]);
 
   useEffect(() => {
-    const maxP = Math.max(1, Math.ceil(sortedLeaderboardRows.length / TABLE_PAGE_SIZE));
+    const maxP = Math.max(
+      1,
+      Math.ceil(sortedLeaderboardRows.length / TABLE_PAGE_SIZE),
+    );
     setLeaderboardPage((p) => Math.min(Math.max(1, p), maxP));
   }, [sortedLeaderboardRows.length]);
 
   useEffect(() => {
     setLabPage(1);
-  }, [labFilterSearch, labFilterToken, labFilterBar, labFilterCex, labFilterOpen, showLabCexUi]);
+  }, [
+    labFilterSearch,
+    labFilterToken,
+    labFilterBar,
+    labFilterCex,
+    labFilterOpen,
+    showLabCexUi,
+  ]);
 
   useEffect(() => {
     setLabPage(1);
@@ -1199,7 +1364,10 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
   }, [myWinSortKey, myWinSortOrder]);
 
   useEffect(() => {
-    const maxP = Math.max(1, Math.ceil(sortedLabAgents.length / TABLE_PAGE_SIZE));
+    const maxP = Math.max(
+      1,
+      Math.ceil(sortedLabAgents.length / TABLE_PAGE_SIZE),
+    );
     setLabPage((p) => Math.min(Math.max(1, p), maxP));
   }, [sortedLabAgents.length]);
 
@@ -1208,7 +1376,10 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
   }, [walletAddress, myAgents.length, myWinSearch, myWinToken, myWinBar]);
 
   useEffect(() => {
-    const maxP = Math.max(1, Math.ceil(sortedMyAgentsWin.length / TABLE_PAGE_SIZE));
+    const maxP = Math.max(
+      1,
+      Math.ceil(sortedMyAgentsWin.length / TABLE_PAGE_SIZE),
+    );
     setMyAgentsTablePage((p) => Math.min(Math.max(1, p), maxP));
   }, [sortedMyAgentsWin.length]);
 
@@ -1367,7 +1538,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
         embedded && "w-full",
       )}
     >
-        <CoingeckoBatchImageProvider symbols={coingeckoBatchSymbols}>
+      <CoingeckoBatchImageProvider symbols={coingeckoBatchSymbols}>
         <ExperimentAgentBalancePanel
           platformLabel="Trading lab"
           bankLabel="$1,000 paper agent"
@@ -1394,52 +1565,67 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                 aria-hidden
               />
               <TabsList className="relative grid h-11 w-full grid-cols-5 gap-0.5 rounded-xl bg-transparent p-0 sm:gap-0.5 md:w-[40rem] md:max-w-full">
-              <TabsTrigger
-                value="lab"
-                aria-label="Lab"
-                title="Lab"
-                className="min-w-0 justify-center gap-0 rounded-lg px-1 text-xs transition-all duration-200 sm:gap-1.5 sm:px-2.5 sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=active]:shadow-black/8 data-[state=active]:ring-1 data-[state=active]:ring-border/55 dark:data-[state=active]:shadow-black/45"
-              >
-                <FlaskConical className="h-4 w-4 shrink-0 opacity-80 sm:h-3.5 sm:w-3.5 sm:opacity-70" aria-hidden />
-                <span className="hidden truncate sm:inline">Lab</span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="leaderboard"
-                aria-label="Leaderboard"
-                title="Leaderboard"
-                className="min-w-0 justify-center gap-0 rounded-lg px-1 text-xs transition-all duration-200 sm:gap-1.5 sm:px-2.5 sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=active]:shadow-black/8 data-[state=active]:ring-1 data-[state=active]:ring-border/55 dark:data-[state=active]:shadow-black/45"
-              >
-                <Trophy className="h-4 w-4 shrink-0 opacity-80 sm:h-3.5 sm:w-3.5 sm:opacity-70" aria-hidden />
-                <span className="hidden truncate sm:inline">Leaderboard</span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="charts"
-                aria-label="Charts"
-                title="Charts"
-                className="min-w-0 justify-center gap-0 rounded-lg px-1 text-xs transition-all duration-200 sm:gap-1.5 sm:px-2.5 sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=active]:shadow-black/8 data-[state=active]:ring-1 data-[state=active]:ring-border/55 dark:data-[state=active]:shadow-black/45"
-              >
-                <BarChart3 className="h-4 w-4 shrink-0 opacity-80 sm:h-3.5 sm:w-3.5 sm:opacity-70" aria-hidden />
-                <span className="hidden truncate sm:inline">Charts</span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="explorer"
-                aria-label="Explorer"
-                title="Explorer"
-                className="min-w-0 justify-center gap-0 rounded-lg px-1 text-xs transition-all duration-200 sm:gap-1.5 sm:px-2.5 sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=active]:shadow-black/8 data-[state=active]:ring-1 data-[state=active]:ring-border/55 dark:data-[state=active]:shadow-black/45"
-              >
-                <Compass className="h-4 w-4 shrink-0 opacity-80 sm:h-3.5 sm:w-3.5 sm:opacity-70" aria-hidden />
-                <span className="hidden truncate sm:inline">Explorer</span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="my_agents"
-                aria-label="My agents"
-                title="My agents"
-                className="min-w-0 justify-center gap-0 rounded-lg px-1 text-xs transition-all duration-200 sm:gap-1.5 sm:px-2.5 sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=active]:shadow-black/8 data-[state=active]:ring-1 data-[state=active]:ring-border/55 dark:data-[state=active]:shadow-black/45"
-              >
-                <Users className="h-4 w-4 shrink-0 opacity-80 sm:h-3.5 sm:w-3.5 sm:opacity-70" aria-hidden />
-                <span className="hidden truncate sm:inline">My agents</span>
-              </TabsTrigger>
-            </TabsList>
+                <TabsTrigger
+                  value="lab"
+                  aria-label="Lab"
+                  title="Lab"
+                  className="min-w-0 justify-center gap-0 rounded-lg px-1 text-xs transition-all duration-200 sm:gap-1.5 sm:px-2.5 sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=active]:shadow-black/8 data-[state=active]:ring-1 data-[state=active]:ring-border/55 dark:data-[state=active]:shadow-black/45"
+                >
+                  <FlaskConical
+                    className="h-4 w-4 shrink-0 opacity-80 sm:h-3.5 sm:w-3.5 sm:opacity-70"
+                    aria-hidden
+                  />
+                  <span className="hidden truncate sm:inline">Lab</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="leaderboard"
+                  aria-label="Leaderboard"
+                  title="Leaderboard"
+                  className="min-w-0 justify-center gap-0 rounded-lg px-1 text-xs transition-all duration-200 sm:gap-1.5 sm:px-2.5 sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=active]:shadow-black/8 data-[state=active]:ring-1 data-[state=active]:ring-border/55 dark:data-[state=active]:shadow-black/45"
+                >
+                  <Trophy
+                    className="h-4 w-4 shrink-0 opacity-80 sm:h-3.5 sm:w-3.5 sm:opacity-70"
+                    aria-hidden
+                  />
+                  <span className="hidden truncate sm:inline">Leaderboard</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="charts"
+                  aria-label="Charts"
+                  title="Charts"
+                  className="min-w-0 justify-center gap-0 rounded-lg px-1 text-xs transition-all duration-200 sm:gap-1.5 sm:px-2.5 sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=active]:shadow-black/8 data-[state=active]:ring-1 data-[state=active]:ring-border/55 dark:data-[state=active]:shadow-black/45"
+                >
+                  <BarChart3
+                    className="h-4 w-4 shrink-0 opacity-80 sm:h-3.5 sm:w-3.5 sm:opacity-70"
+                    aria-hidden
+                  />
+                  <span className="hidden truncate sm:inline">Charts</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="explorer"
+                  aria-label="Explorer"
+                  title="Explorer"
+                  className="min-w-0 justify-center gap-0 rounded-lg px-1 text-xs transition-all duration-200 sm:gap-1.5 sm:px-2.5 sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=active]:shadow-black/8 data-[state=active]:ring-1 data-[state=active]:ring-border/55 dark:data-[state=active]:shadow-black/45"
+                >
+                  <Compass
+                    className="h-4 w-4 shrink-0 opacity-80 sm:h-3.5 sm:w-3.5 sm:opacity-70"
+                    aria-hidden
+                  />
+                  <span className="hidden truncate sm:inline">Explorer</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="my_agents"
+                  aria-label="My agents"
+                  title="My agents"
+                  className="min-w-0 justify-center gap-0 rounded-lg px-1 text-xs transition-all duration-200 sm:gap-1.5 sm:px-2.5 sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=active]:shadow-black/8 data-[state=active]:ring-1 data-[state=active]:ring-border/55 dark:data-[state=active]:shadow-black/45"
+                >
+                  <Users
+                    className="h-4 w-4 shrink-0 opacity-80 sm:h-3.5 sm:w-3.5 sm:opacity-70"
+                    aria-hidden
+                  />
+                  <span className="hidden truncate sm:inline">My agents</span>
+                </TabsTrigger>
+              </TabsList>
             </div>
             <div className="flex min-w-0 w-full flex-wrap items-center justify-end gap-2 py-0.5 sm:flex-nowrap sm:gap-2 sm:overflow-x-auto sm:overscroll-x-contain sm:py-0.5 sm:[scrollbar-width:thin] md:min-w-0 md:flex-1">
               <Button
@@ -1448,15 +1634,20 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                 className="h-9 shrink-0 gap-1.5 rounded-xl border-0 bg-accent px-2.5 text-xs font-medium text-accent-foreground shadow-sm hover:bg-accent/90 sm:px-3 sm:text-sm"
                 onClick={beginCreateAgent}
                 disabled={
-                  Boolean(walletAddress) && myAgents.length >= MAX_USER_CUSTOM_STRATEGIES_PER_WALLET
+                  Boolean(walletAddress) &&
+                  myAgents.length >= MAX_USER_CUSTOM_STRATEGIES_PER_WALLET
                 }
                 title={
-                  walletAddress && myAgents.length >= MAX_USER_CUSTOM_STRATEGIES_PER_WALLET
+                  walletAddress &&
+                  myAgents.length >= MAX_USER_CUSTOM_STRATEGIES_PER_WALLET
                     ? "Maximum custom agents for this wallet"
                     : "Create a custom trading agent"
                 }
               >
-                <Plus className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden />
+                <Plus
+                  className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4"
+                  aria-hidden
+                />
                 <span className="truncate">Create agent</span>
               </Button>
               {pageView !== "my_agents" ? (
@@ -1502,7 +1693,11 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                     title="Refresh"
                     aria-label="Refresh"
                   >
-                    {myLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                    {myLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4" />
+                    )}
                     <span className="hidden sm:inline">Refresh</span>
                   </Button>
                 </div>
@@ -1515,8 +1710,10 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
               <DialogHeader>
                 <DialogTitle>Create strategy agent</DialogTitle>
                 <DialogDescription>
-                  Build one custom strategy for this wallet. Limit: {MAX_USER_CUSTOM_STRATEGIES_PER_WALLET} agents. Use
-                  Random strategy to auto-fill a sample setup—then adjust or submit as-is.
+                  Build one custom strategy for this wallet. Limit:{" "}
+                  {MAX_USER_CUSTOM_STRATEGIES_PER_WALLET} agents. Use Random
+                  strategy to auto-fill a sample setup—then adjust or submit
+                  as-is.
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={onCreateMyStrategy} className="space-y-4">
@@ -1588,7 +1785,10 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                     size="sm"
                     className="w-full gap-2 rounded-lg sm:w-auto"
                     onClick={applyRandomStrategy}
-                    disabled={creating || myAgents.length >= MAX_USER_CUSTOM_STRATEGIES_PER_WALLET}
+                    disabled={
+                      creating ||
+                      myAgents.length >= MAX_USER_CUSTOM_STRATEGIES_PER_WALLET
+                    }
                   >
                     <Shuffle className="h-4 w-4 shrink-0" aria-hidden />
                     Random strategy
@@ -1596,9 +1796,14 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                   <Button
                     type="submit"
                     className="w-full gap-2 rounded-lg sm:w-auto"
-                    disabled={creating || myAgents.length >= MAX_USER_CUSTOM_STRATEGIES_PER_WALLET}
+                    disabled={
+                      creating ||
+                      myAgents.length >= MAX_USER_CUSTOM_STRATEGIES_PER_WALLET
+                    }
                   >
-                    {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                    {creating ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : null}
                     Create agent
                   </Button>
                 </div>
@@ -1606,12 +1811,16 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
             </DialogContent>
           </Dialog>
 
-          <AlertDialog open={connectWalletForCreateAgentOpen} onOpenChange={setConnectWalletForCreateAgentOpen}>
+          <AlertDialog
+            open={connectWalletForCreateAgentOpen}
+            onOpenChange={setConnectWalletForCreateAgentOpen}
+          >
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Connect your wallet</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Connect a Solana wallet to create a custom trading strategy agent and track its experiment runs.
+                  Connect a Solana wallet to create a custom trading strategy
+                  agent and track its experiment runs.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter className="gap-2 sm:gap-2">
@@ -1630,427 +1839,618 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
             </AlertDialogContent>
           </AlertDialog>
 
-        {error ? (
-          <div className="mt-4 rounded-xl border border-destructive/45 bg-destructive/10 px-4 py-3 text-sm text-destructive shadow-sm">
-            {error}
-          </div>
-        ) : null}
+          {error ? (
+            <div className="mt-4 rounded-xl border border-destructive/45 bg-destructive/10 px-4 py-3 text-sm text-destructive shadow-sm">
+              {error}
+            </div>
+          ) : null}
 
           <TabsContent value="lab" className="mt-6 space-y-5 outline-none">
             <div className="space-y-5">
-            {agents.length > 0 ? (
-              <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-br from-card via-card to-muted/25 p-4 shadow-sm sm:p-5 dark:to-muted/10">
-                <div
-                  className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-primary/[0.07] blur-2xl"
-                  aria-hidden
-                />
-                <div className="relative mb-4 space-y-1">
-                  <h3 className="text-base font-semibold tracking-tight text-foreground">Roster filters</h3>
-                  <p className="text-xs text-foreground/75 sm:text-sm">
-                    Public lab runs three ledgers (algorithm, scalper, opportunity hunters)—each expands on its own. Every
-                    day, agents at or below $900 equity (–10% from $1,000) are culled and replaced, and 15 new agents
-                    spawn per ledger (up to 1,000 agents per ledger). Opportunity hunters are included: new scouts get
-                    random watchlists and pick modes after spawn.
-                    Search by name or ID, then slice by market, timeframe, and open exposure.
-                  </p>
-                </div>
-                <MobileExperimentFiltersToggle
-                  isDesktop={isSmUp}
-                  expanded={mobileLabFiltersOpen}
-                  onToggle={() => setMobileLabFiltersOpen((v) => !v)}
-                  label="roster filters"
-                />
-                <MobileCollapsibleFilters isDesktop={isSmUp} expanded={mobileLabFiltersOpen}>
-                <div className="relative flex flex-wrap items-end gap-2 sm:gap-3">
-                  <div className="space-y-1.5 min-w-[140px] flex-1 sm:max-w-[260px]">
-                    <Label htmlFor="lab-search" className="text-[11px] font-semibold uppercase tracking-wide text-foreground/80">
-                      Search
-                    </Label>
-                    <Input
-                      id="lab-search"
-                      value={labFilterSearch}
-                      onChange={(e) => setLabFilterSearch(e.target.value)}
-                      placeholder="Name, ID, pair…"
-                      className="h-10 border-border/80 bg-background/80 shadow-sm transition-shadow focus-visible:ring-2 focus-visible:ring-primary/25"
-                    />
+              {agents.length > 0 ? (
+                <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-br from-card via-card to-muted/25 p-4 shadow-sm sm:p-5 dark:to-muted/10">
+                  <div
+                    className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-primary/[0.07] blur-2xl"
+                    aria-hidden
+                  />
+                  <div className="relative mb-4 space-y-1">
+                    <h3 className="text-base font-semibold tracking-tight text-foreground">
+                      Roster filters
+                    </h3>
+                    <p className="text-xs text-foreground/75 sm:text-sm">
+                      Public lab runs three ledgers (algorithm, scalper,
+                      opportunity hunters)—each expands on its own. Every day,
+                      agents at or below $900 equity (–10% from $1,000) are
+                      culled and replaced, and 15 new agents spawn per ledger
+                      (up to 1,000 agents per ledger). Opportunity hunters are
+                      included: new scouts get random watchlists and pick modes
+                      after spawn. Search by name or ID, then slice by market,
+                      timeframe, and open exposure.
+                    </p>
                   </div>
-                  <div className="space-y-1.5 w-[min(100%,148px)] sm:w-[148px]">
-                    <Label className="text-[11px] font-semibold uppercase tracking-wide text-foreground/80">Pair</Label>
-                    <Select value={labFilterToken} onValueChange={setLabFilterToken}>
-                      <SelectTrigger className="h-10 border-border/80 bg-background/80 shadow-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All pairs</SelectItem>
-                        {labTokenOptions.map((t) => (
-                          <SelectItem key={t} value={t}>
-                            {t}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5 w-[min(100%,124px)] sm:w-[124px]">
-                    <Label className="text-[11px] font-semibold uppercase tracking-wide text-foreground/80">Bar</Label>
-                    <Select value={labFilterBar} onValueChange={setLabFilterBar}>
-                      <SelectTrigger className="h-10 border-border/80 bg-background/80 shadow-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All</SelectItem>
-                        {labBarOptions.map((b) => (
-                          <SelectItem key={b} value={b}>
-                            {b}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {showLabCexUi ? (
-                    <div className="space-y-1.5 w-[min(100%,148px)] sm:w-[148px]">
-                      <Label className="text-[11px] font-semibold uppercase tracking-wide text-foreground/80">CEX</Label>
-                      <Select value={labFilterCex} onValueChange={setLabFilterCex}>
-                        <SelectTrigger className="h-10 border-border/80 bg-background/80 shadow-sm">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All</SelectItem>
-                          {labCexOptions.map((c) => (
-                            <SelectItem key={c} value={c}>
-                              {c}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  ) : null}
-                  <div className="space-y-1.5 min-w-[min(100%,172px)] sm:min-w-[176px]">
-                    <Label className="text-[11px] font-semibold uppercase tracking-wide text-foreground/80">Open positions</Label>
-                    <Select
-                      value={labFilterOpen}
-                      onValueChange={(v) => setLabFilterOpen(v as "any" | "open" | "flat")}
-                    >
-                      <SelectTrigger className="h-10 border-border/80 bg-background/80 shadow-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="any">Any</SelectItem>
-                        <SelectItem value="open">Has open</SelectItem>
-                        <SelectItem value="flat">None open</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-10 w-full shrink-0 border-dashed border-border/80 text-muted-foreground hover:text-foreground sm:w-auto"
-                    onClick={() => {
-                      setLabFilterSearch("");
-                      setLabFilterToken("all");
-                      setLabFilterBar("all");
-                      setLabFilterCex("all");
-                      setLabFilterOpen("any");
-                    }}
+                  <MobileExperimentFiltersToggle
+                    isDesktop={isSmUp}
+                    expanded={mobileLabFiltersOpen}
+                    onToggle={() => setMobileLabFiltersOpen((v) => !v)}
+                    label="roster filters"
+                  />
+                  <MobileCollapsibleFilters
+                    isDesktop={isSmUp}
+                    expanded={mobileLabFiltersOpen}
                   >
-                    Clear all
-                  </Button>
-                </div>
-                </MobileCollapsibleFilters>
-              </div>
-            ) : null}
-            <div
-              className={cn(
-                "relative overflow-hidden rounded-xl border px-4 py-3.5 sm:px-5",
-                error
-                  ? "border-destructive/40 bg-destructive/[0.08] text-destructive"
-                  : loading
-                    ? "border-amber-500/35 bg-muted/50 dark:bg-muted/30"
-                    : "border-border bg-muted/50 text-foreground dark:bg-muted/30",
-              )}
-              role="status"
-              aria-live="polite"
-              aria-label={
-                error
-                  ? "Experiment service error"
-                  : loading
-                    ? "Experiment data syncing"
-                    : "Experiment service online"
-              }
-            >
-              {!error && !loading ? (
-                <div
-                  className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-emerald-500 to-emerald-600"
-                  aria-hidden
-                />
-              ) : null}
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-4">
-                {error ? (
-                  <>
-                    <span className="relative mt-0.5 flex h-2.5 w-2.5 shrink-0 rounded-full bg-destructive" aria-hidden />
-                    <div className="min-w-0 space-y-1">
-                      <p className="text-sm font-semibold">Experiment API unavailable</p>
-                      <p className="text-xs leading-relaxed text-destructive/90 sm:text-sm">
-                        Use Refresh after checking your connection.
-                      </p>
-                    </div>
-                  </>
-                ) : loading ? (
-                  <>
-                    <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-amber-600 dark:text-amber-400" aria-hidden />
-                    <div className="min-w-0 space-y-1">
-                      <p className="text-sm font-semibold text-foreground">Syncing experiment data…</p>
-                      <p className="text-xs leading-relaxed text-foreground/70 sm:text-sm">
-                        Tables update when the request finishes.
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <span className="relative mt-1 flex h-2.5 w-2.5 shrink-0" aria-hidden>
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/50 opacity-60" />
-                      <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(34,197,94,0.45)]" />
-                    </span>
-                    <div className="min-w-0 space-y-1">
-                      <p className="text-sm font-semibold text-foreground">Experiment service online</p>
-                      <p className="text-xs leading-relaxed text-foreground/75 sm:text-sm">
-                        $1,000 starting bank per agent; each spot-long entry deploys full free cash (bank + compounded
-                        P/L). Agents only open when free cash is available (capital in open positions is reserved).
-                        TP/SL
-                        checks continue in the background.
-                      </p>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-            <div className="overflow-hidden rounded-2xl border border-border/70 bg-card/40 shadow-md shadow-black/[0.04] backdrop-blur-sm dark:shadow-black/25">
-              <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
-                <Table className="min-w-[1180px] w-full">
-                  <TableHeader className="sticky top-0 z-10 [&_tr]:border-b [&_tr]:border-border/80 [&_tr]:bg-card [&_tr]:backdrop-blur-md [&_tr:hover]:bg-card">
-                    <TableRow className="border-0 hover:bg-transparent">
-                      <SortableTableHead label="#" sortKey="id" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} />
-                      <SortableTableHead label="Name" sortKey="name" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} />
+                    <div className="relative flex flex-wrap items-end gap-2 sm:gap-3">
+                      <div className="space-y-1.5 min-w-[140px] flex-1 sm:max-w-[260px]">
+                        <Label
+                          htmlFor="lab-search"
+                          className="text-[11px] font-semibold uppercase tracking-wide text-foreground/80"
+                        >
+                          Search
+                        </Label>
+                        <Input
+                          id="lab-search"
+                          value={labFilterSearch}
+                          onChange={(e) => setLabFilterSearch(e.target.value)}
+                          placeholder="Name, ID, pair…"
+                          className="h-10 border-border/80 bg-background/80 shadow-sm transition-shadow focus-visible:ring-2 focus-visible:ring-primary/25"
+                        />
+                      </div>
+                      <div className="space-y-1.5 w-[min(100%,148px)] sm:w-[148px]">
+                        <Label className="text-[11px] font-semibold uppercase tracking-wide text-foreground/80">
+                          Pair
+                        </Label>
+                        <Select
+                          value={labFilterToken}
+                          onValueChange={setLabFilterToken}
+                        >
+                          <SelectTrigger className="h-10 border-border/80 bg-background/80 shadow-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All pairs</SelectItem>
+                            {labTokenOptions.map((t) => (
+                              <SelectItem key={t} value={t}>
+                                {t}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5 w-[min(100%,124px)] sm:w-[124px]">
+                        <Label className="text-[11px] font-semibold uppercase tracking-wide text-foreground/80">
+                          Bar
+                        </Label>
+                        <Select
+                          value={labFilterBar}
+                          onValueChange={setLabFilterBar}
+                        >
+                          <SelectTrigger className="h-10 border-border/80 bg-background/80 shadow-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All</SelectItem>
+                            {labBarOptions.map((b) => (
+                              <SelectItem key={b} value={b}>
+                                {b}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                       {showLabCexUi ? (
-                        <SortableTableHead label="CEX" sortKey="cex" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} />
+                        <div className="space-y-1.5 w-[min(100%,148px)] sm:w-[148px]">
+                          <Label className="text-[11px] font-semibold uppercase tracking-wide text-foreground/80">
+                            CEX
+                          </Label>
+                          <Select
+                            value={labFilterCex}
+                            onValueChange={setLabFilterCex}
+                          >
+                            <SelectTrigger className="h-10 border-border/80 bg-background/80 shadow-sm">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All</SelectItem>
+                              {labCexOptions.map((c) => (
+                                <SelectItem key={c} value={c}>
+                                  {c}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       ) : null}
-                      <SortableTableHead label="Pair" sortKey="pair" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} />
-                      <SortableTableHead label="Bar" sortKey="bar" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} />
-                      <SortableTableHead label="W" sortKey="wins" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} align="right" />
-                      <SortableTableHead label="L" sortKey="losses" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} align="right" />
-                      <SortableTableHead label="Win %" sortKey="winRate" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} align="right" />
-                      <SortableTableHead label="Closed" sortKey="closed" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} align="right" />
-                      <SortableTableHead label="P/L" sortKey="pnl" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} align="right" />
-                      <SortableTableHead label="Return" sortKey="return" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} align="right" />
-                      <SortableTableHead label="Equity" sortKey="equity" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} align="right" />
-                      <SortableTableHead label="Free" sortKey="cash" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} align="right" />
-                      <SortableTableHead label="In trade" sortKey="deployed" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} align="right" />
-                      <SortableTableHead label="Open" sortKey="open" activeKey={labSortKey} order={labSortOrder} onSort={onLabSort} align="right" />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {loading && agents.length === 0 ? (
-                      <TableRow className="hover:bg-transparent">
-                        <TableCell
-                          colSpan={labTableColSpan}
-                          className="py-14 text-center text-muted-foreground"
+                      <div className="space-y-1.5 min-w-[min(100%,172px)] sm:min-w-[176px]">
+                        <Label className="text-[11px] font-semibold uppercase tracking-wide text-foreground/80">
+                          Open positions
+                        </Label>
+                        <Select
+                          value={labFilterOpen}
+                          onValueChange={(v) =>
+                            setLabFilterOpen(v as "any" | "open" | "flat")
+                          }
                         >
-                          <span className="inline-flex flex-col items-center gap-3">
-                            <Loader2 className="h-8 w-8 animate-spin shrink-0 text-primary/60" aria-hidden />
-                            <span className="text-sm font-medium">Loading lab agents…</span>
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    ) : null}
-                    {!loading && agents.length === 0 ? (
-                      <TableRow className="hover:bg-transparent">
-                        <TableCell
-                          colSpan={labTableColSpan}
-                          className="py-14 text-center"
-                        >
-                          <p className="text-sm font-medium text-foreground">No agents loaded</p>
-                          <p className="mt-1 text-xs text-muted-foreground">Try Refresh or check the experiment API.</p>
-                        </TableCell>
-                      </TableRow>
-                    ) : null}
-                    {!loading && agents.length > 0 && filteredLabAgents.length === 0 ? (
-                      <TableRow className="hover:bg-transparent">
-                        <TableCell
-                          colSpan={labTableColSpan}
-                          className="py-14 text-center text-muted-foreground"
-                        >
-                          No agents match these filters.{" "}
-                          <button
-                            type="button"
-                            className="font-medium text-primary underline underline-offset-4 hover:text-primary/90"
-                            onClick={() => {
-                              setLabFilterSearch("");
-                              setLabFilterToken("all");
-                              setLabFilterBar("all");
-                              setLabFilterCex("all");
-                              setLabFilterOpen("any");
-                            }}
-                          >
-                            Clear filters
-                          </button>
-                        </TableCell>
-                      </TableRow>
-                    ) : null}
-                    {pagedLabAgents.map((a) => {
-                      const filterTags = experimentAgentFilterBadges(a);
-                      return (
-                      <TableRow
-                        key={labAgentRowKey(a)}
-                        className="group border-border/40 transition-colors hover:bg-muted/35"
+                          <SelectTrigger className="h-10 border-border/80 bg-background/80 shadow-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="any">Any</SelectItem>
+                            <SelectItem value="open">Has open</SelectItem>
+                            <SelectItem value="flat">None open</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-10 w-full shrink-0 border-dashed border-border/80 text-muted-foreground hover:text-foreground sm:w-auto"
+                        onClick={() => {
+                          setLabFilterSearch("");
+                          setLabFilterToken("all");
+                          setLabFilterBar("all");
+                          setLabFilterCex("all");
+                          setLabFilterOpen("any");
+                        }}
                       >
-                        <TableCell className="font-mono text-xs text-muted-foreground tabular-nums sm:text-sm">{a.agentId}</TableCell>
-                        <TableCell className="font-medium">
-                          <div className="flex min-w-0 flex-col gap-1.5">
-                            <span className="inline-flex min-w-0 items-center gap-2">
-                              <Link
-                                to={labAgentProfileHref(a)}
-                                className="min-w-0 truncate font-medium text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
-                              >
-                                {a.name}
-                              </Link>
-                              <AgentBackgroundLiveIndicator openPositions={a.openPositions} />
-                            </span>
-                            {filterTags.length > 0 ? (
-                              <span className="flex flex-wrap gap-1">
-                                {filterTags.map((tag) => (
-                                  <Badge
-                                    key={tag}
-                                    variant="outline"
-                                    className="h-5 border-border/60 px-1.5 py-0 text-[10px] font-normal text-muted-foreground"
-                                  >
-                                    {tag}
-                                  </Badge>
-                                ))}
-                              </span>
-                            ) : null}
-                          </div>
-                        </TableCell>
+                        Clear all
+                      </Button>
+                    </div>
+                  </MobileCollapsibleFilters>
+                </div>
+              ) : null}
+              <div
+                className={cn(
+                  "relative overflow-hidden rounded-xl border px-4 py-3.5 sm:px-5",
+                  error
+                    ? "border-destructive/40 bg-destructive/[0.08] text-destructive"
+                    : loading
+                      ? "border-amber-500/35 bg-muted/50 dark:bg-muted/30"
+                      : "border-border bg-muted/50 text-foreground dark:bg-muted/30",
+                )}
+                role="status"
+                aria-live="polite"
+                aria-label={
+                  error
+                    ? "Experiment service error"
+                    : loading
+                      ? "Experiment data syncing"
+                      : "Experiment service online"
+                }
+              >
+                {!error && !loading ? (
+                  <div
+                    className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-emerald-500 to-emerald-600"
+                    aria-hidden
+                  />
+                ) : null}
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-4">
+                  {error ? (
+                    <>
+                      <span
+                        className="relative mt-0.5 flex h-2.5 w-2.5 shrink-0 rounded-full bg-destructive"
+                        aria-hidden
+                      />
+                      <div className="min-w-0 space-y-1">
+                        <p className="text-sm font-semibold">
+                          Experiment API unavailable
+                        </p>
+                        <p className="text-xs leading-relaxed text-destructive/90 sm:text-sm">
+                          Use Refresh after checking your connection.
+                        </p>
+                      </div>
+                    </>
+                  ) : loading ? (
+                    <>
+                      <Loader2
+                        className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-amber-600 dark:text-amber-400"
+                        aria-hidden
+                      />
+                      <div className="min-w-0 space-y-1">
+                        <p className="text-sm font-semibold text-foreground">
+                          Syncing experiment data…
+                        </p>
+                        <p className="text-xs leading-relaxed text-foreground/70 sm:text-sm">
+                          Tables update when the request finishes.
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <span
+                        className="relative mt-1 flex h-2.5 w-2.5 shrink-0"
+                        aria-hidden
+                      >
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/50 opacity-60" />
+                        <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(34,197,94,0.45)]" />
+                      </span>
+                      <div className="min-w-0 space-y-1">
+                        <p className="text-sm font-semibold text-foreground">
+                          Experiment service online
+                        </p>
+                        <p className="text-xs leading-relaxed text-foreground/75 sm:text-sm">
+                          $1,000 starting bank per agent; each spot-long entry
+                          deploys full free cash (bank + compounded P/L). Agents
+                          only open when free cash is available (capital in open
+                          positions is reserved). TP/SL checks continue in the
+                          background.
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+              <div className="overflow-hidden rounded-2xl border border-border/70 bg-card/40 shadow-md shadow-black/[0.04] backdrop-blur-sm dark:shadow-black/25">
+                <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
+                  <Table className="min-w-[1180px] w-full">
+                    <TableHeader className="sticky top-0 z-10 [&_tr]:border-b [&_tr]:border-border/80 [&_tr]:bg-card [&_tr]:backdrop-blur-md [&_tr:hover]:bg-card">
+                      <TableRow className="border-0 hover:bg-transparent">
+                        <SortableTableHead
+                          label="#"
+                          sortKey="id"
+                          activeKey={labSortKey}
+                          order={labSortOrder}
+                          onSort={onLabSort}
+                        />
+                        <SortableTableHead
+                          label="Name"
+                          sortKey="name"
+                          activeKey={labSortKey}
+                          order={labSortOrder}
+                          onSort={onLabSort}
+                        />
                         {showLabCexUi ? (
-                          <TableCell className="font-mono text-xs text-muted-foreground">
-                            {a.cexSource ?? "—"}
-                          </TableCell>
+                          <SortableTableHead
+                            label="CEX"
+                            sortKey="cex"
+                            activeKey={labSortKey}
+                            order={labSortOrder}
+                            onSort={onLabSort}
+                          />
                         ) : null}
-                        <TableCell>
-                          <span className="inline-flex min-w-0 items-center gap-2.5">
-                            <CoinLogo symbol={a.token} size="md" fallbackSeed={a.token} />
-                            <span
-                              className="truncate text-sm font-medium text-foreground"
-                              title={
-                                a.watchTokens?.length
-                                  ? a.watchTokens.join(", ")
-                                  : undefined
-                              }
-                            >
-                              {formatPairLabel(a.token, a.watchTokens)}
-                            </span>
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary" className="font-mono text-xs font-semibold tabular-nums">
-                            {a.bar}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-                          {a.wins}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums text-sm font-semibold text-rose-600 dark:text-rose-400">
-                          {a.losses}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {a.winRatePct != null ? (
-                            <div className="ml-auto flex max-w-[7.5rem] flex-col items-end gap-1.5">
-                              <span className={cn("text-sm font-semibold tabular-nums", winRateVisualClass(a.winRatePct))}>
-                                {a.winRatePct}%
-                              </span>
-                              <Progress value={a.winRatePct} className="h-1.5 w-full bg-border" />
-                            </div>
-                          ) : (
-                            <span className="text-sm text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right text-sm tabular-nums text-muted-foreground">
-                          {(a.closedTrades ?? 0) > 0 ? (
-                            <span title={`${a.decided} win/loss · ${(a.closedTrades ?? 0) - a.decided} other closes`}>
-                              {a.closedTrades}
-                            </span>
-                          ) : (
-                            "0"
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span
-                            className={cn(
-                              "text-sm font-semibold tabular-nums",
-                              experimentPnlVisualClass(a.realizedPnlUsd),
-                            )}
-                          >
-                            {formatExperimentPnlUsd(a.realizedPnlUsd)}
-                          </span>
-                          <p className="mt-0.5 text-[10px] text-muted-foreground">vs $1k start</p>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span
-                            className={cn(
-                              "text-sm font-semibold tabular-nums",
-                              experimentReturnVisualClass(a.returnPct),
-                            )}
-                          >
-                            {formatExperimentReturnPct(a.returnPct)}
-                          </span>
-                          <p className="mt-0.5 text-[10px] text-muted-foreground">total return</p>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span className="text-sm font-semibold tabular-nums text-foreground">
-                            {formatUsd(a.equityUsd)}
-                          </span>
-                          <p className="mt-0.5 text-[10px] text-muted-foreground">bank value</p>
-                        </TableCell>
-                        <TableCell className="text-right text-sm tabular-nums text-muted-foreground">
-                          {formatUsd(a.cashUsd)}
-                        </TableCell>
-                        <TableCell className="text-right text-sm tabular-nums text-muted-foreground">
-                          {formatUsd(a.deployedUsd)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {a.openPositions > 0 ? (
-                            <Badge
-                              variant="outline"
-                              className="border-primary/50 bg-primary/10 font-mono text-xs font-semibold text-primary hover:bg-primary/15"
-                            >
-                              {a.openPositions}
-                            </Badge>
-                          ) : (
-                            <span className="text-sm tabular-nums text-muted-foreground">0</span>
-                          )}
-                        </TableCell>
+                        <SortableTableHead
+                          label="Pair"
+                          sortKey="pair"
+                          activeKey={labSortKey}
+                          order={labSortOrder}
+                          onSort={onLabSort}
+                        />
+                        <SortableTableHead
+                          label="Bar"
+                          sortKey="bar"
+                          activeKey={labSortKey}
+                          order={labSortOrder}
+                          onSort={onLabSort}
+                        />
+                        <SortableTableHead
+                          label="W"
+                          sortKey="wins"
+                          activeKey={labSortKey}
+                          order={labSortOrder}
+                          onSort={onLabSort}
+                          align="right"
+                        />
+                        <SortableTableHead
+                          label="L"
+                          sortKey="losses"
+                          activeKey={labSortKey}
+                          order={labSortOrder}
+                          onSort={onLabSort}
+                          align="right"
+                        />
+                        <SortableTableHead
+                          label="Win %"
+                          sortKey="winRate"
+                          activeKey={labSortKey}
+                          order={labSortOrder}
+                          onSort={onLabSort}
+                          align="right"
+                        />
+                        <SortableTableHead
+                          label="Closed"
+                          sortKey="closed"
+                          activeKey={labSortKey}
+                          order={labSortOrder}
+                          onSort={onLabSort}
+                          align="right"
+                        />
+                        <SortableTableHead
+                          label="P/L"
+                          sortKey="pnl"
+                          activeKey={labSortKey}
+                          order={labSortOrder}
+                          onSort={onLabSort}
+                          align="right"
+                        />
+                        <SortableTableHead
+                          label="Return"
+                          sortKey="return"
+                          activeKey={labSortKey}
+                          order={labSortOrder}
+                          onSort={onLabSort}
+                          align="right"
+                        />
+                        <SortableTableHead
+                          label="Equity"
+                          sortKey="equity"
+                          activeKey={labSortKey}
+                          order={labSortOrder}
+                          onSort={onLabSort}
+                          align="right"
+                        />
+                        <SortableTableHead
+                          label="Free"
+                          sortKey="cash"
+                          activeKey={labSortKey}
+                          order={labSortOrder}
+                          onSort={onLabSort}
+                          align="right"
+                        />
+                        <SortableTableHead
+                          label="In trade"
+                          sortKey="deployed"
+                          activeKey={labSortKey}
+                          order={labSortOrder}
+                          onSort={onLabSort}
+                          align="right"
+                        />
+                        <SortableTableHead
+                          label="Open"
+                          sortKey="open"
+                          activeKey={labSortKey}
+                          order={labSortOrder}
+                          onSort={onLabSort}
+                          align="right"
+                        />
                       </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {loading && agents.length === 0 ? (
+                        <TableRow className="hover:bg-transparent">
+                          <TableCell
+                            colSpan={labTableColSpan}
+                            className="py-14 text-center text-muted-foreground"
+                          >
+                            <span className="inline-flex flex-col items-center gap-3">
+                              <Loader2
+                                className="h-8 w-8 animate-spin shrink-0 text-primary/60"
+                                aria-hidden
+                              />
+                              <span className="text-sm font-medium">
+                                Loading lab agents…
+                              </span>
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      ) : null}
+                      {!loading && agents.length === 0 ? (
+                        <TableRow className="hover:bg-transparent">
+                          <TableCell
+                            colSpan={labTableColSpan}
+                            className="py-14 text-center"
+                          >
+                            <p className="text-sm font-medium text-foreground">
+                              No agents loaded
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              Try Refresh or check the experiment API.
+                            </p>
+                          </TableCell>
+                        </TableRow>
+                      ) : null}
+                      {!loading &&
+                      agents.length > 0 &&
+                      filteredLabAgents.length === 0 ? (
+                        <TableRow className="hover:bg-transparent">
+                          <TableCell
+                            colSpan={labTableColSpan}
+                            className="py-14 text-center text-muted-foreground"
+                          >
+                            No agents match these filters.{" "}
+                            <button
+                              type="button"
+                              className="font-medium text-primary underline underline-offset-4 hover:text-primary/90"
+                              onClick={() => {
+                                setLabFilterSearch("");
+                                setLabFilterToken("all");
+                                setLabFilterBar("all");
+                                setLabFilterCex("all");
+                                setLabFilterOpen("any");
+                              }}
+                            >
+                              Clear filters
+                            </button>
+                          </TableCell>
+                        </TableRow>
+                      ) : null}
+                      {pagedLabAgents.map((a) => {
+                        const filterTags = experimentAgentFilterBadges(a);
+                        return (
+                          <TableRow
+                            key={labAgentRowKey(a)}
+                            className="group border-border/40 transition-colors hover:bg-muted/35"
+                          >
+                            <TableCell className="font-mono text-xs text-muted-foreground tabular-nums sm:text-sm">
+                              {a.agentId}
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              <div className="flex min-w-0 flex-col gap-1.5">
+                                <span className="inline-flex min-w-0 items-center gap-2">
+                                  <Link
+                                    to={labAgentProfileHref(a)}
+                                    className="min-w-0 truncate font-medium text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
+                                  >
+                                    {a.name}
+                                  </Link>
+                                  <AgentBackgroundLiveIndicator
+                                    openPositions={a.openPositions}
+                                  />
+                                </span>
+                                {filterTags.length > 0 ? (
+                                  <span className="flex flex-wrap gap-1">
+                                    {filterTags.map((tag) => (
+                                      <Badge
+                                        key={tag}
+                                        variant="outline"
+                                        className="h-5 border-border/60 px-1.5 py-0 text-[10px] font-normal text-muted-foreground"
+                                      >
+                                        {tag}
+                                      </Badge>
+                                    ))}
+                                  </span>
+                                ) : null}
+                              </div>
+                            </TableCell>
+                            {showLabCexUi ? (
+                              <TableCell className="font-mono text-xs text-muted-foreground">
+                                {a.cexSource ?? "—"}
+                              </TableCell>
+                            ) : null}
+                            <TableCell>
+                              <span className="inline-flex min-w-0 items-center gap-2.5">
+                                <CoinLogo
+                                  symbol={a.token}
+                                  size="md"
+                                  fallbackSeed={a.token}
+                                />
+                                <span
+                                  className="truncate text-sm font-medium text-foreground"
+                                  title={
+                                    a.watchTokens?.length
+                                      ? a.watchTokens.join(", ")
+                                      : undefined
+                                  }
+                                >
+                                  {formatPairLabel(a.token, a.watchTokens)}
+                                </span>
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant="secondary"
+                                className="font-mono text-xs font-semibold tabular-nums"
+                              >
+                                {a.bar}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                              {a.wins}
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums text-sm font-semibold text-rose-600 dark:text-rose-400">
+                              {a.losses}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {a.winRatePct != null ? (
+                                <div className="ml-auto flex max-w-[7.5rem] flex-col items-end gap-1.5">
+                                  <span
+                                    className={cn(
+                                      "text-sm font-semibold tabular-nums",
+                                      winRateVisualClass(a.winRatePct),
+                                    )}
+                                  >
+                                    {a.winRatePct}%
+                                  </span>
+                                  <Progress
+                                    value={a.winRatePct}
+                                    className="h-1.5 w-full bg-border"
+                                  />
+                                </div>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">
+                                  —
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right text-sm tabular-nums text-muted-foreground">
+                              {(a.closedTrades ?? 0) > 0 ? (
+                                <span
+                                  title={`${a.decided} win/loss · ${(a.closedTrades ?? 0) - a.decided} other closes`}
+                                >
+                                  {a.closedTrades}
+                                </span>
+                              ) : (
+                                "0"
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <span
+                                className={cn(
+                                  "text-sm font-semibold tabular-nums",
+                                  experimentPnlVisualClass(a.realizedPnlUsd),
+                                )}
+                              >
+                                {formatExperimentPnlUsd(a.realizedPnlUsd)}
+                              </span>
+                              <p className="mt-0.5 text-[10px] text-muted-foreground">
+                                vs $1k start
+                              </p>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <span
+                                className={cn(
+                                  "text-sm font-semibold tabular-nums",
+                                  experimentReturnVisualClass(a.returnPct),
+                                )}
+                              >
+                                {formatExperimentReturnPct(a.returnPct)}
+                              </span>
+                              <p className="mt-0.5 text-[10px] text-muted-foreground">
+                                total return
+                              </p>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <span className="text-sm font-semibold tabular-nums text-foreground">
+                                {formatUsd(a.equityUsd)}
+                              </span>
+                              <p className="mt-0.5 text-[10px] text-muted-foreground">
+                                bank value
+                              </p>
+                            </TableCell>
+                            <TableCell className="text-right text-sm tabular-nums text-muted-foreground">
+                              {formatUsd(a.cashUsd)}
+                            </TableCell>
+                            <TableCell className="text-right text-sm tabular-nums text-muted-foreground">
+                              {formatUsd(a.deployedUsd)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {a.openPositions > 0 ? (
+                                <Badge
+                                  variant="outline"
+                                  className="border-primary/50 bg-primary/10 font-mono text-xs font-semibold text-primary hover:bg-primary/15"
+                                >
+                                  {a.openPositions}
+                                </Badge>
+                              ) : (
+                                <span className="text-sm tabular-nums text-muted-foreground">
+                                  0
+                                </span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
-            </div>
-            {filteredLabAgents.length > 0 ? (
-              <div className="mb-8 rounded-xl border border-border/50 bg-muted/15 px-4 sm:px-5">
-                <ExperimentTablePagination
-                  className="mb-0"
-                  page={labPage}
-                  pageSize={TABLE_PAGE_SIZE}
-                  totalItems={filteredLabAgents.length}
-                  loading={loading}
-                  onPageChange={setLabPage}
-                />
-              </div>
-            ) : null}
+              {filteredLabAgents.length > 0 ? (
+                <div className="mb-8 rounded-xl border border-border/50 bg-muted/15 px-4 sm:px-5">
+                  <ExperimentTablePagination
+                    className="mb-0"
+                    page={labPage}
+                    pageSize={TABLE_PAGE_SIZE}
+                    totalItems={filteredLabAgents.length}
+                    loading={loading}
+                    onPageChange={setLabPage}
+                  />
+                </div>
+              ) : null}
             </div>
           </TabsContent>
 
-          <TabsContent value="leaderboard" className="mt-6 space-y-5 outline-none">
+          <TabsContent
+            value="leaderboard"
+            className="mt-6 space-y-5 outline-none"
+          >
             <div className="space-y-5">
               <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-br from-card via-card to-muted/25 p-4 shadow-lg shadow-black/[0.06] sm:p-5 dark:to-muted/10 dark:shadow-black/35">
                 <div
@@ -2066,9 +2466,12 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                   aria-hidden
                 />
                 <div className="relative mb-4 hidden sm:block">
-                  <h3 className="text-sm font-semibold tracking-tight text-foreground">Rankings</h3>
+                  <h3 className="text-sm font-semibold tracking-tight text-foreground">
+                    Rankings
+                  </h3>
                   <p className="mt-0.5 max-w-xl text-xs leading-relaxed text-muted-foreground sm:text-[13px]">
-                    Compare agents by resolved sample, win rate, and exposure. Filters apply instantly on this page.
+                    Compare agents by resolved sample, win rate, and exposure.
+                    Filters apply instantly on this page.
                   </p>
                 </div>
                 <MobileExperimentFiltersToggle
@@ -2077,110 +2480,133 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                   onToggle={() => setMobileLbFiltersOpen((v) => !v)}
                   label="ranking filters"
                 />
-                <MobileCollapsibleFilters isDesktop={isSmUp} expanded={mobileLbFiltersOpen}>
-                <div className="relative flex flex-wrap items-end gap-3 sm:gap-4">
-                  <div className="space-y-1.5 w-[min(100%,168px)] sm:w-[11rem]">
-                    <Label
-                      htmlFor="leaderboard-scope"
-                      className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
-                    >
-                      Ranking
-                    </Label>
-                    <Select value={leaderboardScope} onValueChange={onLeaderboardScopeChange}>
-                      <SelectTrigger
-                        id="leaderboard-scope"
-                        className="h-10 border-border/80 bg-background/80 text-sm shadow-sm transition-shadow focus:ring-2 focus:ring-primary/20 [&>span]:truncate"
-                        aria-label="Ranking scope"
-                        title="All lab agents or your wallet agents only"
+                <MobileCollapsibleFilters
+                  isDesktop={isSmUp}
+                  expanded={mobileLbFiltersOpen}
+                >
+                  <div className="relative flex flex-wrap items-end gap-3 sm:gap-4">
+                    <div className="space-y-1.5 w-[min(100%,168px)] sm:w-[11rem]">
+                      <Label
+                        htmlFor="leaderboard-scope"
+                        className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
                       >
-                        <SelectValue placeholder="Ranking" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="global">All agents</SelectItem>
-                        <SelectItem value="mine">My agents</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {baseLeaderboardRows.length > 0 ? (
-                    <>
-                      <div className="space-y-1.5 min-w-[140px] flex-1 sm:max-w-[260px]">
-                        <Label htmlFor="lb-search" className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                          Search
-                        </Label>
-                        <Input
-                          id="lb-search"
-                          value={lbFilterSearch}
-                          onChange={(e) => setLbFilterSearch(e.target.value)}
-                          placeholder="Agent, pair, ID…"
-                          className="h-10 border-border/80 bg-background/80 shadow-sm transition-shadow focus-visible:ring-2 focus-visible:ring-primary/20"
-                        />
-                      </div>
-                      <div className="space-y-1.5 w-[min(100%,148px)] sm:w-[148px]">
-                        <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Pair</Label>
-                        <Select value={lbFilterToken} onValueChange={setLbFilterToken}>
-                          <SelectTrigger className="h-10 border-border/80 bg-background/80 shadow-sm">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All pairs</SelectItem>
-                            {lbTokenOptions.map((t) => (
-                              <SelectItem key={t} value={t}>
-                                {t}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1.5 w-[min(100%,124px)] sm:w-[124px]">
-                        <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Bar</Label>
-                        <Select value={lbFilterBar} onValueChange={setLbFilterBar}>
-                          <SelectTrigger className="h-10 border-border/80 bg-background/80 shadow-sm">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All</SelectItem>
-                            {lbBarOptions.map((b) => (
-                              <SelectItem key={b} value={b}>
-                                {b}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1.5 min-w-[min(100%,220px)] sm:min-w-[220px]">
-                        <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Sample size</Label>
-                        <Select
-                          value={lbFilterSample}
-                          onValueChange={(v) => setLbFilterSample(v as "any" | "0" | "1" | "2")}
+                        Ranking
+                      </Label>
+                      <Select
+                        value={leaderboardScope}
+                        onValueChange={onLeaderboardScopeChange}
+                      >
+                        <SelectTrigger
+                          id="leaderboard-scope"
+                          className="h-10 border-border/80 bg-background/80 text-sm shadow-sm transition-shadow focus:ring-2 focus:ring-primary/20 [&>span]:truncate"
+                          aria-label="Ranking scope"
+                          title="All lab agents or your wallet agents only"
                         >
-                          <SelectTrigger className="h-10 border-border/80 bg-background/80 shadow-sm">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="any">Any</SelectItem>
-                            <SelectItem value="0">{`${LEADERBOARD_MIN_DECIDED}+ resolved`}</SelectItem>
-                            <SelectItem value="1">{`<${LEADERBOARD_MIN_DECIDED} resolved`}</SelectItem>
-                            <SelectItem value="2">No resolved yet</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-10 w-full shrink-0 border-border/80 bg-background/60 px-4 text-xs font-medium shadow-sm sm:w-auto"
-                        onClick={() => {
-                          setLbFilterSearch("");
-                          setLbFilterToken("all");
-                          setLbFilterBar("all");
-                          setLbFilterSample("any");
-                        }}
-                      >
-                        Clear
-                      </Button>
-                    </>
-                  ) : null}
-                </div>
+                          <SelectValue placeholder="Ranking" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="global">All agents</SelectItem>
+                          <SelectItem value="mine">My agents</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {baseLeaderboardRows.length > 0 ? (
+                      <>
+                        <div className="space-y-1.5 min-w-[140px] flex-1 sm:max-w-[260px]">
+                          <Label
+                            htmlFor="lb-search"
+                            className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+                          >
+                            Search
+                          </Label>
+                          <Input
+                            id="lb-search"
+                            value={lbFilterSearch}
+                            onChange={(e) => setLbFilterSearch(e.target.value)}
+                            placeholder="Agent, pair, ID…"
+                            className="h-10 border-border/80 bg-background/80 shadow-sm transition-shadow focus-visible:ring-2 focus-visible:ring-primary/20"
+                          />
+                        </div>
+                        <div className="space-y-1.5 w-[min(100%,148px)] sm:w-[148px]">
+                          <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            Pair
+                          </Label>
+                          <Select
+                            value={lbFilterToken}
+                            onValueChange={setLbFilterToken}
+                          >
+                            <SelectTrigger className="h-10 border-border/80 bg-background/80 shadow-sm">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All pairs</SelectItem>
+                              {lbTokenOptions.map((t) => (
+                                <SelectItem key={t} value={t}>
+                                  {t}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1.5 w-[min(100%,124px)] sm:w-[124px]">
+                          <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            Bar
+                          </Label>
+                          <Select
+                            value={lbFilterBar}
+                            onValueChange={setLbFilterBar}
+                          >
+                            <SelectTrigger className="h-10 border-border/80 bg-background/80 shadow-sm">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All</SelectItem>
+                              {lbBarOptions.map((b) => (
+                                <SelectItem key={b} value={b}>
+                                  {b}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1.5 min-w-[min(100%,220px)] sm:min-w-[220px]">
+                          <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            Sample size
+                          </Label>
+                          <Select
+                            value={lbFilterSample}
+                            onValueChange={(v) =>
+                              setLbFilterSample(v as "any" | "0" | "1" | "2")
+                            }
+                          >
+                            <SelectTrigger className="h-10 border-border/80 bg-background/80 shadow-sm">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="any">Any</SelectItem>
+                              <SelectItem value="0">{`${LEADERBOARD_MIN_DECIDED}+ resolved`}</SelectItem>
+                              <SelectItem value="1">{`<${LEADERBOARD_MIN_DECIDED} resolved`}</SelectItem>
+                              <SelectItem value="2">No resolved yet</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-10 w-full shrink-0 border-border/80 bg-background/60 px-4 text-xs font-medium shadow-sm sm:w-auto"
+                          onClick={() => {
+                            setLbFilterSearch("");
+                            setLbFilterToken("all");
+                            setLbFilterBar("all");
+                            setLbFilterSample("any");
+                          }}
+                        >
+                          Clear
+                        </Button>
+                      </>
+                    ) : null}
+                  </div>
                 </MobileCollapsibleFilters>
               </div>
 
@@ -2192,226 +2618,364 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                       aria-hidden
                     />
                     <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
-                    <Table className="min-w-[1120px] [&_td]:px-4 [&_td]:py-3.5 [&_th]:px-4 [&_th]:py-3">
-                      <TableHeader>
-                        <TableRow className="border-border/40 bg-muted/30 hover:bg-muted/30 [&>th]:align-middle">
-                          <SortableTableHead
-                            className="w-[4.5rem] pl-5 sm:pl-6"
-                            label="Rank"
-                            sortKey="rank"
-                            activeKey={lbSortKey}
-                            order={lbSortOrder}
-                            onSort={onLbSort}
-                          />
-                          <SortableTableHead label="Agent" sortKey="agent" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} />
-                          <SortableTableHead label="Pair" sortKey="pair" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} />
-                          <SortableTableHead label="Bar" sortKey="bar" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} />
-                          <SortableTableHead label="W" sortKey="wins" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
-                          <SortableTableHead label="L" sortKey="losses" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
-                          <SortableTableHead label="Win %" sortKey="winRate" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
-                          <SortableTableHead label="Closed" sortKey="closed" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
-                          <SortableTableHead label="P/L" sortKey="pnl" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
-                          <SortableTableHead label="Return" sortKey="return" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
-                          <SortableTableHead label="Open" sortKey="open" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
-                          <SortableTableHead label="Equity" sortKey="equity" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
-                          <SortableTableHead
-                            className="pr-5 sm:pr-6"
-                            label="Sample"
-                            sortKey="sample"
-                            activeKey={lbSortKey}
-                            order={lbSortOrder}
-                            onSort={onLbSort}
-                            align="right"
-                          />
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredLeaderboardRows.length === 0 ? (
-                          <TableRow className="hover:bg-transparent">
-                            <TableCell colSpan={13} className="py-16 text-center">
-                              <div className="mx-auto flex max-w-md flex-col items-center gap-2 px-4">
-                                <Trophy className="h-10 w-10 text-muted-foreground/35" aria-hidden />
-                                <p className="text-sm font-medium text-foreground">No matches</p>
-                                <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">
-                                  No agents match these filters.{" "}
-                                  <button
-                                    type="button"
-                                    className="font-medium text-primary underline-offset-4 hover:underline"
-                                    onClick={() => {
-                                      setLbFilterSearch("");
-                                      setLbFilterToken("all");
-                                      setLbFilterBar("all");
-                                      setLbFilterSample("any");
-                                    }}
-                                  >
-                                    Clear filters
-                                  </button>
-                                </p>
-                              </div>
-                            </TableCell>
+                      <Table className="min-w-[1120px] [&_td]:px-4 [&_td]:py-3.5 [&_th]:px-4 [&_th]:py-3">
+                        <TableHeader>
+                          <TableRow className="border-border/40 bg-muted/30 hover:bg-muted/30 [&>th]:align-middle">
+                            <SortableTableHead
+                              className="w-[4.5rem] pl-5 sm:pl-6"
+                              label="Rank"
+                              sortKey="rank"
+                              activeKey={lbSortKey}
+                              order={lbSortOrder}
+                              onSort={onLbSort}
+                            />
+                            <SortableTableHead
+                              label="Agent"
+                              sortKey="agent"
+                              activeKey={lbSortKey}
+                              order={lbSortOrder}
+                              onSort={onLbSort}
+                            />
+                            <SortableTableHead
+                              label="Pair"
+                              sortKey="pair"
+                              activeKey={lbSortKey}
+                              order={lbSortOrder}
+                              onSort={onLbSort}
+                            />
+                            <SortableTableHead
+                              label="Bar"
+                              sortKey="bar"
+                              activeKey={lbSortKey}
+                              order={lbSortOrder}
+                              onSort={onLbSort}
+                            />
+                            <SortableTableHead
+                              label="W"
+                              sortKey="wins"
+                              activeKey={lbSortKey}
+                              order={lbSortOrder}
+                              onSort={onLbSort}
+                              align="right"
+                            />
+                            <SortableTableHead
+                              label="L"
+                              sortKey="losses"
+                              activeKey={lbSortKey}
+                              order={lbSortOrder}
+                              onSort={onLbSort}
+                              align="right"
+                            />
+                            <SortableTableHead
+                              label="Win %"
+                              sortKey="winRate"
+                              activeKey={lbSortKey}
+                              order={lbSortOrder}
+                              onSort={onLbSort}
+                              align="right"
+                            />
+                            <SortableTableHead
+                              label="Closed"
+                              sortKey="closed"
+                              activeKey={lbSortKey}
+                              order={lbSortOrder}
+                              onSort={onLbSort}
+                              align="right"
+                            />
+                            <SortableTableHead
+                              label="P/L"
+                              sortKey="pnl"
+                              activeKey={lbSortKey}
+                              order={lbSortOrder}
+                              onSort={onLbSort}
+                              align="right"
+                            />
+                            <SortableTableHead
+                              label="Return"
+                              sortKey="return"
+                              activeKey={lbSortKey}
+                              order={lbSortOrder}
+                              onSort={onLbSort}
+                              align="right"
+                            />
+                            <SortableTableHead
+                              label="Open"
+                              sortKey="open"
+                              activeKey={lbSortKey}
+                              order={lbSortOrder}
+                              onSort={onLbSort}
+                              align="right"
+                            />
+                            <SortableTableHead
+                              label="Equity"
+                              sortKey="equity"
+                              activeKey={lbSortKey}
+                              order={lbSortOrder}
+                              onSort={onLbSort}
+                              align="right"
+                            />
+                            <SortableTableHead
+                              className="pr-5 sm:pr-6"
+                              label="Sample"
+                              sortKey="sample"
+                              activeKey={lbSortKey}
+                              order={lbSortOrder}
+                              onSort={onLbSort}
+                              align="right"
+                            />
                           </TableRow>
-                        ) : null}
-                        {filteredLeaderboardRows.length > 0 &&
-                          pagedLeaderboardRows.map((row, idx) => {
-                            const tier = leaderboardTierFromDecided(row.decided);
-                            const tierLabel =
-                              tier === 0 ? `${LEADERBOARD_MIN_DECIDED}+` : tier === 1 ? `<${LEADERBOARD_MIN_DECIDED}` : "—";
-                            const idDisplay =
-                              leaderboardScope === "global" ? `#${row.idLabel}` : `…${row.idLabel.slice(-6)}`;
-                            const globalRank = (leaderboardPage - 1) * TABLE_PAGE_SIZE + idx + 1;
-                            return (
-                              <TableRow
-                                key={row.key}
-                                className={cn(
-                                  "group border-border/35 transition-colors duration-150 hover:bg-muted/[0.28]",
-                                  globalRank === 1 &&
-                                    "bg-gradient-to-r from-amber-500/[0.08] via-transparent to-transparent dark:from-amber-500/[0.1]",
-                                  globalRank === 2 &&
-                                    "bg-gradient-to-r from-zinc-400/[0.07] via-transparent to-transparent dark:from-zinc-400/[0.09]",
-                                  globalRank === 3 &&
-                                    "bg-gradient-to-r from-amber-950/[0.18] via-transparent to-transparent dark:from-amber-950/[0.22]",
-                                )}
+                        </TableHeader>
+                        <TableBody>
+                          {filteredLeaderboardRows.length === 0 ? (
+                            <TableRow className="hover:bg-transparent">
+                              <TableCell
+                                colSpan={13}
+                                className="py-16 text-center"
                               >
-                                <TableCell className="pl-5 sm:pl-6">
-                                  <LeaderboardRankDisplay rank={globalRank} />
-                                </TableCell>
-                                <TableCell>
-                                  <span className="inline-flex min-w-0 flex-col gap-0.5">
-                                    <span className="inline-flex min-w-0 items-center gap-2">
-                                      {row.profileHref ? (
-                                        <Link
-                                          to={row.profileHref}
-                                          className="min-w-0 truncate text-sm font-semibold tracking-tight text-foreground decoration-primary/40 underline-offset-4 transition-colors hover:text-primary hover:underline"
-                                        >
-                                          {row.name}
-                                        </Link>
-                                      ) : (
-                                        <span className="min-w-0 truncate text-sm font-semibold tracking-tight text-foreground">
-                                          {row.name}
-                                        </span>
-                                      )}
-                                      <AgentBackgroundLiveIndicator openPositions={row.openPositions} />
-                                    </span>
-                                    <span
-                                      className="inline-block max-w-[10rem] truncate font-mono text-[11px] text-muted-foreground"
-                                      title={leaderboardScope === "mine" ? row.idLabel : undefined}
+                                <div className="mx-auto flex max-w-md flex-col items-center gap-2 px-4">
+                                  <Trophy
+                                    className="h-10 w-10 text-muted-foreground/35"
+                                    aria-hidden
+                                  />
+                                  <p className="text-sm font-medium text-foreground">
+                                    No matches
+                                  </p>
+                                  <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">
+                                    No agents match these filters.{" "}
+                                    <button
+                                      type="button"
+                                      className="font-medium text-primary underline-offset-4 hover:underline"
+                                      onClick={() => {
+                                        setLbFilterSearch("");
+                                        setLbFilterToken("all");
+                                        setLbFilterBar("all");
+                                        setLbFilterSample("any");
+                                      }}
                                     >
-                                      {idDisplay}
-                                    </span>
-                                  </span>
-                                </TableCell>
-                                <TableCell>
-                                  <span className="inline-flex min-w-0 max-w-[11rem] items-center gap-2.5">
-                                    <CoinLogo symbol={row.token} size="sm" fallbackSeed={row.token} />
-                                    <span
-                                      className="truncate text-sm font-medium text-foreground/90"
-                                      title={
-                                        row.experimentSuite === "multi_token" && row.watchTokens?.length
-                                          ? row.watchTokens.join(", ")
-                                          : undefined
-                                      }
-                                    >
-                                      {formatPairLabel(row.token, row.watchTokens)}
-                                    </span>
-                                  </span>
-                                </TableCell>
-                                <TableCell>
-                                  <Badge variant="secondary" className="font-mono text-xs font-semibold tabular-nums">
-                                    {row.bar}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell className="text-right text-sm font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
-                                  {row.wins}
-                                </TableCell>
-                                <TableCell className="text-right text-sm font-semibold tabular-nums text-rose-600 dark:text-rose-400">
-                                  {row.losses}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  {row.winRatePct != null ? (
-                                    <div className="ml-auto flex max-w-[5.75rem] flex-col items-end gap-1">
-                                      <span
-                                        className={cn("text-sm font-semibold tabular-nums", winRateVisualClass(row.winRatePct))}
-                                      >
-                                        {row.winRatePct}%
+                                      Clear filters
+                                    </button>
+                                  </p>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ) : null}
+                          {filteredLeaderboardRows.length > 0 &&
+                            pagedLeaderboardRows.map((row, idx) => {
+                              const tier = leaderboardTierFromDecided(
+                                row.decided,
+                              );
+                              const tierLabel =
+                                tier === 0
+                                  ? `${LEADERBOARD_MIN_DECIDED}+`
+                                  : tier === 1
+                                    ? `<${LEADERBOARD_MIN_DECIDED}`
+                                    : "—";
+                              const idDisplay =
+                                leaderboardScope === "global"
+                                  ? `#${row.idLabel}`
+                                  : `…${row.idLabel.slice(-6)}`;
+                              const globalRank =
+                                (leaderboardPage - 1) * TABLE_PAGE_SIZE +
+                                idx +
+                                1;
+                              return (
+                                <TableRow
+                                  key={row.key}
+                                  className={cn(
+                                    "group border-border/35 transition-colors duration-150 hover:bg-muted/[0.28]",
+                                    globalRank === 1 &&
+                                      "bg-gradient-to-r from-amber-500/[0.08] via-transparent to-transparent dark:from-amber-500/[0.1]",
+                                    globalRank === 2 &&
+                                      "bg-gradient-to-r from-zinc-400/[0.07] via-transparent to-transparent dark:from-zinc-400/[0.09]",
+                                    globalRank === 3 &&
+                                      "bg-gradient-to-r from-amber-950/[0.18] via-transparent to-transparent dark:from-amber-950/[0.22]",
+                                  )}
+                                >
+                                  <TableCell className="pl-5 sm:pl-6">
+                                    <LeaderboardRankDisplay rank={globalRank} />
+                                  </TableCell>
+                                  <TableCell>
+                                    <span className="inline-flex min-w-0 flex-col gap-0.5">
+                                      <span className="inline-flex min-w-0 items-center gap-2">
+                                        {row.profileHref ? (
+                                          <Link
+                                            to={row.profileHref}
+                                            className="min-w-0 truncate text-sm font-semibold tracking-tight text-foreground decoration-primary/40 underline-offset-4 transition-colors hover:text-primary hover:underline"
+                                          >
+                                            {row.name}
+                                          </Link>
+                                        ) : (
+                                          <span className="min-w-0 truncate text-sm font-semibold tracking-tight text-foreground">
+                                            {row.name}
+                                          </span>
+                                        )}
+                                        <AgentBackgroundLiveIndicator
+                                          openPositions={row.openPositions}
+                                        />
                                       </span>
-                                      <Progress value={row.winRatePct} className="h-1.5 w-full bg-border/70" />
-                                    </div>
-                                  ) : (
-                                    <span className="text-sm text-muted-foreground">—</span>
-                                  )}
-                                </TableCell>
-                                <TableCell className="text-right text-sm tabular-nums text-muted-foreground">
-                                  {leaderboardScope === "global" ? (row.closedTrades ?? 0) : "—"}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  {leaderboardScope === "global" ? (
-                                    <span
-                                      className={cn(
-                                        "text-sm font-semibold tabular-nums",
-                                        experimentPnlVisualClass(row.realizedPnlUsd),
-                                      )}
-                                    >
-                                      {formatExperimentPnlUsd(row.realizedPnlUsd)}
+                                      <span
+                                        className="inline-block max-w-[10rem] truncate font-mono text-[11px] text-muted-foreground"
+                                        title={
+                                          leaderboardScope === "mine"
+                                            ? row.idLabel
+                                            : undefined
+                                        }
+                                      >
+                                        {idDisplay}
+                                      </span>
                                     </span>
-                                  ) : (
-                                    <span className="text-sm text-muted-foreground">—</span>
-                                  )}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  {leaderboardScope === "global" ? (
-                                    <span
-                                      className={cn(
-                                        "text-sm font-semibold tabular-nums",
-                                        experimentReturnVisualClass(row.returnPct),
-                                      )}
-                                    >
-                                      {formatExperimentReturnPct(row.returnPct)}
+                                  </TableCell>
+                                  <TableCell>
+                                    <span className="inline-flex min-w-0 max-w-[11rem] items-center gap-2.5">
+                                      <CoinLogo
+                                        symbol={row.token}
+                                        size="sm"
+                                        fallbackSeed={row.token}
+                                      />
+                                      <span
+                                        className="truncate text-sm font-medium text-foreground/90"
+                                        title={
+                                          row.experimentSuite ===
+                                            "multi_token" &&
+                                          row.watchTokens?.length
+                                            ? row.watchTokens.join(", ")
+                                            : undefined
+                                        }
+                                      >
+                                        {formatPairLabel(
+                                          row.token,
+                                          row.watchTokens,
+                                        )}
+                                      </span>
                                     </span>
-                                  ) : (
-                                    <span className="text-sm text-muted-foreground">—</span>
-                                  )}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  {row.openPositions > 0 ? (
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge
+                                      variant="secondary"
+                                      className="font-mono text-xs font-semibold tabular-nums"
+                                    >
+                                      {row.bar}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-right text-sm font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+                                    {row.wins}
+                                  </TableCell>
+                                  <TableCell className="text-right text-sm font-semibold tabular-nums text-rose-600 dark:text-rose-400">
+                                    {row.losses}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    {row.winRatePct != null ? (
+                                      <div className="ml-auto flex max-w-[5.75rem] flex-col items-end gap-1">
+                                        <span
+                                          className={cn(
+                                            "text-sm font-semibold tabular-nums",
+                                            winRateVisualClass(row.winRatePct),
+                                          )}
+                                        >
+                                          {row.winRatePct}%
+                                        </span>
+                                        <Progress
+                                          value={row.winRatePct}
+                                          className="h-1.5 w-full bg-border/70"
+                                        />
+                                      </div>
+                                    ) : (
+                                      <span className="text-sm text-muted-foreground">
+                                        —
+                                      </span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-right text-sm tabular-nums text-muted-foreground">
+                                    {leaderboardScope === "global"
+                                      ? (row.closedTrades ?? 0)
+                                      : "—"}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    {leaderboardScope === "global" ? (
+                                      <span
+                                        className={cn(
+                                          "text-sm font-semibold tabular-nums",
+                                          experimentPnlVisualClass(
+                                            row.realizedPnlUsd,
+                                          ),
+                                        )}
+                                      >
+                                        {formatExperimentPnlUsd(
+                                          row.realizedPnlUsd,
+                                        )}
+                                      </span>
+                                    ) : (
+                                      <span className="text-sm text-muted-foreground">
+                                        —
+                                      </span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    {leaderboardScope === "global" ? (
+                                      <span
+                                        className={cn(
+                                          "text-sm font-semibold tabular-nums",
+                                          experimentReturnVisualClass(
+                                            row.returnPct,
+                                          ),
+                                        )}
+                                      >
+                                        {formatExperimentReturnPct(
+                                          row.returnPct,
+                                        )}
+                                      </span>
+                                    ) : (
+                                      <span className="text-sm text-muted-foreground">
+                                        —
+                                      </span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    {row.openPositions > 0 ? (
+                                      <Badge
+                                        variant="outline"
+                                        className="border-primary/45 bg-primary/[0.08] font-mono text-xs font-semibold tabular-nums text-primary hover:bg-primary/[0.12]"
+                                      >
+                                        {row.openPositions}
+                                      </Badge>
+                                    ) : (
+                                      <span className="tabular-nums text-sm text-muted-foreground">
+                                        0
+                                      </span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    {leaderboardScope === "global" ? (
+                                      <span className="text-sm font-semibold tabular-nums text-foreground">
+                                        {formatUsd(row.equityUsd)}
+                                      </span>
+                                    ) : (
+                                      <span className="text-sm text-muted-foreground">
+                                        —
+                                      </span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="pr-5 text-right sm:pr-6">
                                     <Badge
                                       variant="outline"
-                                      className="border-primary/45 bg-primary/[0.08] font-mono text-xs font-semibold tabular-nums text-primary hover:bg-primary/[0.12]"
+                                      className={cn(
+                                        "font-mono text-[10px] font-semibold tabular-nums",
+                                        tier === 0 &&
+                                          "border-emerald-500/30 bg-emerald-500/[0.08] text-emerald-800 dark:text-emerald-300",
+                                        tier === 1 &&
+                                          "border-amber-500/30 bg-amber-500/[0.08] text-amber-900 dark:text-amber-300",
+                                        tier === 2 &&
+                                          "border-border/60 text-muted-foreground",
+                                      )}
                                     >
-                                      {row.openPositions}
+                                      {tierLabel}
                                     </Badge>
-                                  ) : (
-                                    <span className="tabular-nums text-sm text-muted-foreground">0</span>
-                                  )}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  {leaderboardScope === "global" ? (
-                                    <span className="text-sm font-semibold tabular-nums text-foreground">
-                                      {formatUsd(row.equityUsd)}
-                                    </span>
-                                  ) : (
-                                    <span className="text-sm text-muted-foreground">—</span>
-                                  )}
-                                </TableCell>
-                                <TableCell className="pr-5 text-right sm:pr-6">
-                                  <Badge
-                                    variant="outline"
-                                    className={cn(
-                                      "font-mono text-[10px] font-semibold tabular-nums",
-                                      tier === 0 &&
-                                        "border-emerald-500/30 bg-emerald-500/[0.08] text-emerald-800 dark:text-emerald-300",
-                                      tier === 1 &&
-                                        "border-amber-500/30 bg-amber-500/[0.08] text-amber-900 dark:text-amber-300",
-                                      tier === 2 && "border-border/60 text-muted-foreground",
-                                    )}
-                                  >
-                                    {tierLabel}
-                                  </Badge>
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                      </TableBody>
-                    </Table>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                        </TableBody>
+                      </Table>
                     </div>
                   </div>
                   <div className="overflow-hidden rounded-xl border border-border/50 bg-muted/10 shadow-sm">
@@ -2443,17 +3007,91 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                             order={lbSortOrder}
                             onSort={onLbSort}
                           />
-                          <SortableTableHead label="Agent" sortKey="agent" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} />
-                          <SortableTableHead label="Pair" sortKey="pair" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} />
-                          <SortableTableHead label="Bar" sortKey="bar" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} />
-                          <SortableTableHead label="W" sortKey="wins" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
-                          <SortableTableHead label="L" sortKey="losses" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
-                          <SortableTableHead label="Win %" sortKey="winRate" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
-                          <SortableTableHead label="Closed" sortKey="closed" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
-                          <SortableTableHead label="P/L" sortKey="pnl" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
-                          <SortableTableHead label="Return" sortKey="return" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
-                          <SortableTableHead label="Open" sortKey="open" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
-                          <SortableTableHead label="Equity" sortKey="equity" activeKey={lbSortKey} order={lbSortOrder} onSort={onLbSort} align="right" />
+                          <SortableTableHead
+                            label="Agent"
+                            sortKey="agent"
+                            activeKey={lbSortKey}
+                            order={lbSortOrder}
+                            onSort={onLbSort}
+                          />
+                          <SortableTableHead
+                            label="Pair"
+                            sortKey="pair"
+                            activeKey={lbSortKey}
+                            order={lbSortOrder}
+                            onSort={onLbSort}
+                          />
+                          <SortableTableHead
+                            label="Bar"
+                            sortKey="bar"
+                            activeKey={lbSortKey}
+                            order={lbSortOrder}
+                            onSort={onLbSort}
+                          />
+                          <SortableTableHead
+                            label="W"
+                            sortKey="wins"
+                            activeKey={lbSortKey}
+                            order={lbSortOrder}
+                            onSort={onLbSort}
+                            align="right"
+                          />
+                          <SortableTableHead
+                            label="L"
+                            sortKey="losses"
+                            activeKey={lbSortKey}
+                            order={lbSortOrder}
+                            onSort={onLbSort}
+                            align="right"
+                          />
+                          <SortableTableHead
+                            label="Win %"
+                            sortKey="winRate"
+                            activeKey={lbSortKey}
+                            order={lbSortOrder}
+                            onSort={onLbSort}
+                            align="right"
+                          />
+                          <SortableTableHead
+                            label="Closed"
+                            sortKey="closed"
+                            activeKey={lbSortKey}
+                            order={lbSortOrder}
+                            onSort={onLbSort}
+                            align="right"
+                          />
+                          <SortableTableHead
+                            label="P/L"
+                            sortKey="pnl"
+                            activeKey={lbSortKey}
+                            order={lbSortOrder}
+                            onSort={onLbSort}
+                            align="right"
+                          />
+                          <SortableTableHead
+                            label="Return"
+                            sortKey="return"
+                            activeKey={lbSortKey}
+                            order={lbSortOrder}
+                            onSort={onLbSort}
+                            align="right"
+                          />
+                          <SortableTableHead
+                            label="Open"
+                            sortKey="open"
+                            activeKey={lbSortKey}
+                            order={lbSortOrder}
+                            onSort={onLbSort}
+                            align="right"
+                          />
+                          <SortableTableHead
+                            label="Equity"
+                            sortKey="equity"
+                            activeKey={lbSortKey}
+                            order={lbSortOrder}
+                            onSort={onLbSort}
+                            align="right"
+                          />
                           <SortableTableHead
                             className="pr-5 sm:pr-6"
                             label="Sample"
@@ -2469,35 +3107,40 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                         <TableRow className="hover:bg-transparent">
                           <TableCell colSpan={13} className="py-16 text-center">
                             {loading ? (
-                            <span className="inline-flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                              <Loader2 className="h-4 w-4 animate-spin shrink-0" aria-hidden />
-                              Loading…
-                            </span>
-                          ) : leaderboardScope === "mine" && !walletAddress ? (
-                            <p className="mx-auto max-w-md text-sm leading-relaxed text-muted-foreground">
-                              Connect your Solana wallet to see your agents here.
-                            </p>
-                          ) : leaderboardScope === "mine" && walletAddress ? (
-                            <p className="mx-auto max-w-md text-sm leading-relaxed text-muted-foreground">
-                              No custom agents yet. Open the{" "}
-                              <button
-                                type="button"
-                                className="font-medium text-primary underline-offset-4 hover:underline"
-                                onClick={() => setPageView("my_agents")}
-                              >
-                                My agents
-                              </button>{" "}
-                              tab to create one.
-                            </p>
-                          ) : (
-                            <p className="mx-auto max-w-md text-sm leading-relaxed text-muted-foreground">
-                              No agents loaded for this experiment yet.
-                            </p>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
+                              <span className="inline-flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                                <Loader2
+                                  className="h-4 w-4 animate-spin shrink-0"
+                                  aria-hidden
+                                />
+                                Loading…
+                              </span>
+                            ) : leaderboardScope === "mine" &&
+                              !walletAddress ? (
+                              <p className="mx-auto max-w-md text-sm leading-relaxed text-muted-foreground">
+                                Connect your Solana wallet to see your agents
+                                here.
+                              </p>
+                            ) : leaderboardScope === "mine" && walletAddress ? (
+                              <p className="mx-auto max-w-md text-sm leading-relaxed text-muted-foreground">
+                                No custom agents yet. Open the{" "}
+                                <button
+                                  type="button"
+                                  className="font-medium text-primary underline-offset-4 hover:underline"
+                                  onClick={() => setPageView("my_agents")}
+                                >
+                                  My agents
+                                </button>{" "}
+                                tab to create one.
+                              </p>
+                            ) : (
+                              <p className="mx-auto max-w-md text-sm leading-relaxed text-muted-foreground">
+                                No agents loaded for this experiment yet.
+                              </p>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
                   </div>
                 </div>
               )}
@@ -2506,118 +3149,143 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
 
           <TabsContent value="charts" className="mt-6 space-y-5 outline-none">
             <div className="space-y-5">
-            {agents.length > 0 ? (
-              <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-br from-card via-card to-muted/25 p-4 shadow-lg shadow-black/[0.06] sm:p-5 dark:to-muted/10 dark:shadow-black/35">
-                <div
-                  className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-primary/[0.06] blur-3xl"
-                  aria-hidden
-                />
-                <div
-                  className="pointer-events-none absolute -bottom-14 -left-10 h-36 w-36 rounded-full bg-primary/[0.04] blur-2xl"
-                  aria-hidden
-                />
-                <div
-                  className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-primary/15 to-transparent"
-                  aria-hidden
-                />
-                <div className="relative mb-4 hidden sm:block">
-                  <h3 className="text-sm font-semibold tracking-tight text-foreground">Chart data filters</h3>
-                  <p className="mt-0.5 max-w-xl text-xs leading-relaxed text-muted-foreground sm:text-[13px]">
-                    Narrow which agents feed the bubble map and charts. Same roster as the Lab tab, scoped here for visualization.
-                  </p>
-                </div>
-                <MobileExperimentFiltersToggle
-                  isDesktop={isSmUp}
-                  expanded={mobileChartFiltersOpen}
-                  onToggle={() => setMobileChartFiltersOpen((v) => !v)}
-                  label="chart filters"
-                />
-                <MobileCollapsibleFilters isDesktop={isSmUp} expanded={mobileChartFiltersOpen}>
-                <div className="relative flex flex-wrap items-end gap-3 sm:gap-4">
-                  <div className="space-y-1.5 min-w-[140px] flex-1 sm:max-w-[260px]">
-                    <Label htmlFor="chart-search" className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                      Search
-                    </Label>
-                    <Input
-                      id="chart-search"
-                      value={chartFilterSearch}
-                      onChange={(e) => setChartFilterSearch(e.target.value)}
-                      placeholder="Name, ID, pair…"
-                      className="h-10 border-border/80 bg-background/80 shadow-sm transition-shadow focus-visible:ring-2 focus-visible:ring-primary/20"
-                    />
+              {agents.length > 0 ? (
+                <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-br from-card via-card to-muted/25 p-4 shadow-lg shadow-black/[0.06] sm:p-5 dark:to-muted/10 dark:shadow-black/35">
+                  <div
+                    className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-primary/[0.06] blur-3xl"
+                    aria-hidden
+                  />
+                  <div
+                    className="pointer-events-none absolute -bottom-14 -left-10 h-36 w-36 rounded-full bg-primary/[0.04] blur-2xl"
+                    aria-hidden
+                  />
+                  <div
+                    className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-primary/15 to-transparent"
+                    aria-hidden
+                  />
+                  <div className="relative mb-4 hidden sm:block">
+                    <h3 className="text-sm font-semibold tracking-tight text-foreground">
+                      Chart data filters
+                    </h3>
+                    <p className="mt-0.5 max-w-xl text-xs leading-relaxed text-muted-foreground sm:text-[13px]">
+                      Narrow which agents feed the bubble map and charts. Same
+                      roster as the Lab tab, scoped here for visualization.
+                    </p>
                   </div>
-                  <div className="space-y-1.5 w-[min(100%,148px)] sm:w-[148px]">
-                    <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Pair</Label>
-                    <Select value={chartFilterToken} onValueChange={setChartFilterToken}>
-                      <SelectTrigger className="h-10 border-border/80 bg-background/80 shadow-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All pairs</SelectItem>
-                        {chartTokenOptions.map((t) => (
-                          <SelectItem key={t} value={t}>
-                            {t}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5 w-[min(100%,124px)] sm:w-[124px]">
-                    <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Bar</Label>
-                    <Select value={chartFilterBar} onValueChange={setChartFilterBar}>
-                      <SelectTrigger className="h-10 border-border/80 bg-background/80 shadow-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All</SelectItem>
-                        {chartBarOptions.map((b) => (
-                          <SelectItem key={b} value={b}>
-                            {b}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-10 w-full shrink-0 border-border/80 bg-background/60 px-4 text-xs font-medium shadow-sm sm:w-auto"
-                    onClick={() => {
-                      setChartFilterSearch("");
-                      setChartFilterToken("all");
-                      setChartFilterBar("all");
-                    }}
+                  <MobileExperimentFiltersToggle
+                    isDesktop={isSmUp}
+                    expanded={mobileChartFiltersOpen}
+                    onToggle={() => setMobileChartFiltersOpen((v) => !v)}
+                    label="chart filters"
+                  />
+                  <MobileCollapsibleFilters
+                    isDesktop={isSmUp}
+                    expanded={mobileChartFiltersOpen}
                   >
-                    Clear
-                  </Button>
+                    <div className="relative flex flex-wrap items-end gap-3 sm:gap-4">
+                      <div className="space-y-1.5 min-w-[140px] flex-1 sm:max-w-[260px]">
+                        <Label
+                          htmlFor="chart-search"
+                          className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+                        >
+                          Search
+                        </Label>
+                        <Input
+                          id="chart-search"
+                          value={chartFilterSearch}
+                          onChange={(e) => setChartFilterSearch(e.target.value)}
+                          placeholder="Name, ID, pair…"
+                          className="h-10 border-border/80 bg-background/80 shadow-sm transition-shadow focus-visible:ring-2 focus-visible:ring-primary/20"
+                        />
+                      </div>
+                      <div className="space-y-1.5 w-[min(100%,148px)] sm:w-[148px]">
+                        <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          Pair
+                        </Label>
+                        <Select
+                          value={chartFilterToken}
+                          onValueChange={setChartFilterToken}
+                        >
+                          <SelectTrigger className="h-10 border-border/80 bg-background/80 shadow-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All pairs</SelectItem>
+                            {chartTokenOptions.map((t) => (
+                              <SelectItem key={t} value={t}>
+                                {t}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5 w-[min(100%,124px)] sm:w-[124px]">
+                        <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          Bar
+                        </Label>
+                        <Select
+                          value={chartFilterBar}
+                          onValueChange={setChartFilterBar}
+                        >
+                          <SelectTrigger className="h-10 border-border/80 bg-background/80 shadow-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All</SelectItem>
+                            {chartBarOptions.map((b) => (
+                              <SelectItem key={b} value={b}>
+                                {b}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-10 w-full shrink-0 border-border/80 bg-background/60 px-4 text-xs font-medium shadow-sm sm:w-auto"
+                        onClick={() => {
+                          setChartFilterSearch("");
+                          setChartFilterToken("all");
+                          setChartFilterBar("all");
+                        }}
+                      >
+                        Clear
+                      </Button>
+                    </div>
+                  </MobileCollapsibleFilters>
                 </div>
-                </MobileCollapsibleFilters>
-              </div>
-            ) : null}
-            <TradingExperimentChartsPanel
-              agents={filteredChartAgents}
-              chartRuns={[]}
-              loading={loading}
-              agentProfileHref={(encodedId) => {
-                const { experimentSuite, agentId } = decodeExperimentLabAgentId(encodedId);
-                return `${TRADING_EXPERIMENT_ROUTE_BASE}/agent/${agentId}?suite=${encodeURIComponent(experimentSuite)}`;
-              }}
-              emptyMessage={
-                !loading && agents.length > 0 && filteredChartAgents.length === 0
-                  ? "No agents match these filters."
-                  : undefined
-              }
-            />
+              ) : null}
+              <TradingExperimentChartsPanel
+                agents={filteredChartAgents}
+                chartRuns={[]}
+                loading={loading}
+                agentProfileHref={(encodedId) => {
+                  const { experimentSuite, agentId } =
+                    decodeExperimentLabAgentId(encodedId);
+                  return `${TRADING_EXPERIMENT_ROUTE_BASE}/agent/${agentId}?suite=${encodeURIComponent(experimentSuite)}`;
+                }}
+                emptyMessage={
+                  !loading &&
+                  agents.length > 0 &&
+                  filteredChartAgents.length === 0
+                    ? "No agents match these filters."
+                    : undefined
+                }
+              />
             </div>
           </TabsContent>
 
           <TabsContent value="explorer" className="mt-6 space-y-5 outline-none">
             <div className="space-y-5 [&_.text-muted-foreground]:text-zinc-400 light:[&_.text-muted-foreground]:text-muted-foreground">
               <div className="rounded-xl border border-border/50 bg-muted/10 px-4 py-3.5 shadow-sm sm:px-5 sm:py-4">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Run explorer</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Run explorer
+                </p>
                 <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-                  Full history for the unified lab (all experiment ledgers merged), newest first. Wallet-built agents live under{" "}
+                  Full history for the unified lab (all experiment ledgers
+                  merged), newest first. Wallet-built agents live under{" "}
                   <button
                     type="button"
                     className="font-medium text-foreground underline decoration-primary/50 underline-offset-4 transition-colors hover:text-primary hover:decoration-primary"
@@ -2639,9 +3307,12 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                   aria-hidden
                 />
                 <div className="relative mb-3 hidden sm:block">
-                  <h3 className="text-sm font-semibold tracking-tight text-foreground">Run history filters</h3>
+                  <h3 className="text-sm font-semibold tracking-tight text-foreground">
+                    Run history filters
+                  </h3>
                   <p className="mt-0.5 text-xs text-muted-foreground sm:text-[13px]">
-                    Same merged lab as Lab and Leaderboard. Filter by status, agent id, or symbol.
+                    Same merged lab as Lab and Leaderboard. Filter by status,
+                    agent id, or symbol.
                   </p>
                 </div>
                 <MobileExperimentFiltersToggle
@@ -2650,66 +3321,83 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                   onToggle={() => setMobileExplorerFiltersOpen((v) => !v)}
                   label="run filters"
                 />
-                <MobileCollapsibleFilters isDesktop={isSmUp} expanded={mobileExplorerFiltersOpen}>
-                <div className="relative flex flex-wrap items-end gap-3 sm:gap-4">
-                  <div className="space-y-1.5 w-[min(100%,168px)] sm:w-[188px]">
-                    <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Status</Label>
-                    <Select
-                      value={explorerStatus.trim() ? explorerStatus : "all"}
-                      onValueChange={(v) => setExplorerStatus(v === "all" ? "" : v)}
+                <MobileCollapsibleFilters
+                  isDesktop={isSmUp}
+                  expanded={mobileExplorerFiltersOpen}
+                >
+                  <div className="relative flex flex-wrap items-end gap-3 sm:gap-4">
+                    <div className="space-y-1.5 w-[min(100%,168px)] sm:w-[188px]">
+                      <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Status
+                      </Label>
+                      <Select
+                        value={explorerStatus.trim() ? explorerStatus : "all"}
+                        onValueChange={(v) =>
+                          setExplorerStatus(v === "all" ? "" : v)
+                        }
+                      >
+                        <SelectTrigger className="h-10 border-border/80 bg-background/80 shadow-sm">
+                          <SelectValue placeholder="All statuses" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All statuses</SelectItem>
+                          {TRADING_EXPERIMENT_RUN_STATUSES.map((s) => (
+                            <SelectItem key={s} value={s}>
+                              {statusOptionLabel(s)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5 min-w-[min(100%,140px)] sm:min-w-[160px] flex-1 sm:max-w-[200px]">
+                      <Label
+                        htmlFor="explorer-agent-id"
+                        className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+                      >
+                        Agent ID
+                      </Label>
+                      <Input
+                        id="explorer-agent-id"
+                        value={explorerAgentId}
+                        onChange={(e) =>
+                          setExplorerAgentId(
+                            e.target.value.replace(/\D/g, "").slice(0, 2),
+                          )
+                        }
+                        placeholder="0–99"
+                        className="h-10 border-border/80 bg-background/80 font-mono shadow-sm focus-visible:ring-2 focus-visible:ring-primary/20"
+                        inputMode="numeric"
+                      />
+                    </div>
+                    <div className="space-y-1.5 min-w-[min(100%,160px)] flex-1 sm:max-w-[260px]">
+                      <Label
+                        htmlFor="explorer-symbol"
+                        className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+                      >
+                        Symbol contains
+                      </Label>
+                      <Input
+                        id="explorer-symbol"
+                        value={explorerSymbol}
+                        onChange={(e) => setExplorerSymbol(e.target.value)}
+                        placeholder="e.g. BTCUSDT"
+                        className="h-10 border-border/80 bg-background/80 font-mono text-sm shadow-sm focus-visible:ring-2 focus-visible:ring-primary/20"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-10 w-full shrink-0 border-border/80 bg-background/60 px-4 text-xs font-medium shadow-sm sm:w-auto"
+                      onClick={() => {
+                        setExplorerStatus("");
+                        setExplorerAgentId("");
+                        setExplorerSymbol("");
+                      }}
                     >
-                      <SelectTrigger className="h-10 border-border/80 bg-background/80 shadow-sm">
-                        <SelectValue placeholder="All statuses" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All statuses</SelectItem>
-                        {TRADING_EXPERIMENT_RUN_STATUSES.map((s) => (
-                          <SelectItem key={s} value={s}>
-                            {statusOptionLabel(s)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      Clear
+                    </Button>
                   </div>
-                  <div className="space-y-1.5 min-w-[min(100%,140px)] sm:min-w-[160px] flex-1 sm:max-w-[200px]">
-                    <Label htmlFor="explorer-agent-id" className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                      Agent ID
-                    </Label>
-                    <Input
-                      id="explorer-agent-id"
-                      value={explorerAgentId}
-                      onChange={(e) => setExplorerAgentId(e.target.value.replace(/\D/g, "").slice(0, 2))}
-                      placeholder="0–99"
-                      className="h-10 border-border/80 bg-background/80 font-mono shadow-sm focus-visible:ring-2 focus-visible:ring-primary/20"
-                      inputMode="numeric"
-                    />
-                  </div>
-                  <div className="space-y-1.5 min-w-[min(100%,160px)] flex-1 sm:max-w-[260px]">
-                    <Label htmlFor="explorer-symbol" className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                      Symbol contains
-                    </Label>
-                    <Input
-                      id="explorer-symbol"
-                      value={explorerSymbol}
-                      onChange={(e) => setExplorerSymbol(e.target.value)}
-                      placeholder="e.g. BTCUSDT"
-                      className="h-10 border-border/80 bg-background/80 font-mono text-sm shadow-sm focus-visible:ring-2 focus-visible:ring-primary/20"
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-10 w-full shrink-0 border-border/80 bg-background/60 px-4 text-xs font-medium shadow-sm sm:w-auto"
-                    onClick={() => {
-                      setExplorerStatus("");
-                      setExplorerAgentId("");
-                      setExplorerSymbol("");
-                    }}
-                  >
-                    Clear
-                  </Button>
-                </div>
                 </MobileCollapsibleFilters>
               </div>
               <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-card/50 shadow-[0_24px_48px_-20px_rgba(0,0,0,0.45)] backdrop-blur-sm dark:bg-card/35 dark:shadow-[0_28px_56px_-18px_rgba(0,0,0,0.65)]">
@@ -2719,54 +3407,93 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                 />
                 <div className="flex flex-col gap-0.5 border-b border-border/45 bg-muted/20 px-4 py-3 sm:flex-row sm:items-end sm:justify-between sm:px-6 sm:py-3.5">
                   <div>
-                    <h3 className="text-sm font-semibold tracking-tight text-foreground">Run log</h3>
-                    <p className="text-xs text-muted-foreground">Signals and resolutions from the merged ledger feed.</p>
+                    <h3 className="text-sm font-semibold tracking-tight text-foreground">
+                      Run log
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      Signals and resolutions from the merged ledger feed.
+                    </p>
                   </div>
                   <p className="text-xs font-medium tabular-nums text-muted-foreground sm:text-right">
-                    <span className="text-foreground/80">{explorerTotal.toLocaleString()}</span> runs
-                    {explorerLoading ? <span className="ml-2 inline-flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" aria-hidden /> updating</span> : null}
+                    <span className="text-foreground/80">
+                      {explorerTotal.toLocaleString()}
+                    </span>{" "}
+                    runs
+                    {explorerLoading ? (
+                      <span className="ml-2 inline-flex items-center gap-1">
+                        <Loader2 className="h-3 w-3 animate-spin" aria-hidden />{" "}
+                        updating
+                      </span>
+                    ) : null}
                   </p>
                 </div>
                 <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
-                <Table className="min-w-[900px] [&_td]:px-4 [&_td]:py-3.5 [&_td:first-child]:pl-5 sm:[&_td:first-child]:pl-6 [&_td:last-child]:pr-5 sm:[&_td:last-child]:pr-6 [&_th]:px-4 [&_th]:py-3.5 [&_th:first-child]:pl-5 sm:[&_th:first-child]:pl-6 [&_th:last-child]:pr-5 sm:[&_th:last-child]:pr-6">
-                  <TableHeader className="sticky top-0 z-10 border-b border-border/50 bg-muted/90 shadow-sm backdrop-blur-md dark:bg-muted/85 [&_tr]:border-b-0 [&_tr]:hover:bg-transparent">
-                    <TableRow className="border-0 hover:bg-transparent">
-                      <TableHead className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        Time
-                      </TableHead>
-                      <TableHead className="whitespace-nowrap text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        Agent
-                      </TableHead>
-                      <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Name</TableHead>
-                      <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Symbol</TableHead>
-                      <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Signal</TableHead>
-                      <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Status</TableHead>
-                      <TableHead className="text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Entry</TableHead>
-                      <TableHead className="text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">SL</TableHead>
-                      <TableHead className="text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">TP1</TableHead>
-                      <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Resolution</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {explorerLoading && explorerRuns.length === 0 ? (
-                      <TableRow className="hover:bg-transparent">
-                        <TableCell colSpan={10} className="py-16 text-center text-muted-foreground">
-                          <span className="inline-flex items-center gap-2 text-sm">
-                            <Loader2 className="h-4 w-4 animate-spin shrink-0" aria-hidden />
-                            Loading history…
-                          </span>
-                        </TableCell>
+                  <Table className="min-w-[900px] [&_td]:px-4 [&_td]:py-3.5 [&_td:first-child]:pl-5 sm:[&_td:first-child]:pl-6 [&_td:last-child]:pr-5 sm:[&_td:last-child]:pr-6 [&_th]:px-4 [&_th]:py-3.5 [&_th:first-child]:pl-5 sm:[&_th:first-child]:pl-6 [&_th:last-child]:pr-5 sm:[&_th:last-child]:pr-6">
+                    <TableHeader className="sticky top-0 z-10 border-b border-border/50 bg-muted/90 shadow-sm backdrop-blur-md dark:bg-muted/85 [&_tr]:border-b-0 [&_tr]:hover:bg-transparent">
+                      <TableRow className="border-0 hover:bg-transparent">
+                        <TableHead className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          Time
+                        </TableHead>
+                        <TableHead className="whitespace-nowrap text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          Agent
+                        </TableHead>
+                        <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          Name
+                        </TableHead>
+                        <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          Symbol
+                        </TableHead>
+                        <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          Signal
+                        </TableHead>
+                        <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          Status
+                        </TableHead>
+                        <TableHead className="text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          Entry
+                        </TableHead>
+                        <TableHead className="text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          SL
+                        </TableHead>
+                        <TableHead className="text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          TP1
+                        </TableHead>
+                        <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          Resolution
+                        </TableHead>
                       </TableRow>
-                    ) : null}
-                    {!explorerLoading && explorerRuns.length === 0 ? (
-                      <TableRow className="hover:bg-transparent">
-                        <TableCell colSpan={10} className="py-16 text-center text-sm text-muted-foreground">
-                          No runs match these filters.
-                        </TableCell>
-                      </TableRow>
-                    ) : null}
-                    {explorerRuns.map((r) => {
-                        const suiteNorm = normalizeExperimentSuite(r.suite ?? undefined);
+                    </TableHeader>
+                    <TableBody>
+                      {explorerLoading && explorerRuns.length === 0 ? (
+                        <TableRow className="hover:bg-transparent">
+                          <TableCell
+                            colSpan={10}
+                            className="py-16 text-center text-muted-foreground"
+                          >
+                            <span className="inline-flex items-center gap-2 text-sm">
+                              <Loader2
+                                className="h-4 w-4 animate-spin shrink-0"
+                                aria-hidden
+                              />
+                              Loading history…
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      ) : null}
+                      {!explorerLoading && explorerRuns.length === 0 ? (
+                        <TableRow className="hover:bg-transparent">
+                          <TableCell
+                            colSpan={10}
+                            className="py-16 text-center text-sm text-muted-foreground"
+                          >
+                            No runs match these filters.
+                          </TableCell>
+                        </TableRow>
+                      ) : null}
+                      {explorerRuns.map((r) => {
+                        const suiteNorm = normalizeExperimentSuite(
+                          r.suite ?? undefined,
+                        );
                         return (
                           <TableRow
                             key={r._id}
@@ -2780,7 +3507,10 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                             </TableCell>
                             <TableCell className="max-w-[min(200px,28vw)]">
                               <Link
-                                to={labAgentProfileHref({ agentId: r.agentId, experimentSuite: suiteNorm })}
+                                to={labAgentProfileHref({
+                                  agentId: r.agentId,
+                                  experimentSuite: suiteNorm,
+                                })}
                                 className="block truncate text-sm font-semibold tracking-tight text-foreground decoration-primary/35 underline-offset-4 transition-colors hover:text-primary hover:underline"
                               >
                                 {r.agentName}
@@ -2788,7 +3518,11 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                             </TableCell>
                             <TableCell>
                               <span className="inline-flex min-w-0 max-w-[140px] items-center gap-2">
-                                <CoinLogo symbol={r.symbol} size="sm" fallbackSeed={r.symbol} />
+                                <CoinLogo
+                                  symbol={r.symbol}
+                                  size="sm"
+                                  fallbackSeed={r.symbol}
+                                />
                                 <span className="truncate font-mono text-xs font-medium text-zinc-100 light:text-foreground/90">
                                   {r.symbol}
                                 </span>
@@ -2824,7 +3558,9 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                               {r.stopLoss != null ? r.stopLoss.toFixed(4) : "—"}
                             </TableCell>
                             <TableCell className="text-right font-mono text-xs tabular-nums text-zinc-200 light:text-foreground/85">
-                              {r.firstTarget != null ? r.firstTarget.toFixed(4) : "—"}
+                              {r.firstTarget != null
+                                ? r.firstTarget.toFixed(4)
+                                : "—"}
                             </TableCell>
                             <TableCell className="max-w-[240px]">
                               <span
@@ -2836,9 +3572,9 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                             </TableCell>
                           </TableRow>
                         );
-                    })}
-                  </TableBody>
-                </Table>
+                      })}
+                    </TableBody>
+                  </Table>
                 </div>
               </div>
               <div className="overflow-hidden rounded-xl border border-border/50 bg-muted/10 shadow-sm">
@@ -2854,7 +3590,10 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
             </div>
           </TabsContent>
 
-          <TabsContent value="my_agents" className="mt-6 space-y-8 outline-none">
+          <TabsContent
+            value="my_agents"
+            className="mt-6 space-y-8 outline-none"
+          >
             {!walletAddress ? (
               <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-card/50 shadow-xl shadow-black/[0.06] backdrop-blur-sm dark:shadow-black/40">
                 <div
@@ -2862,45 +3601,106 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                   aria-hidden
                 />
                 <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
-                <Table className="min-w-[720px] [&_td]:px-4 [&_td]:py-3.5 [&_th]:px-4 [&_th]:py-3.5">
-                  <TableHeader className="sticky top-0 z-10 border-b border-border/50 bg-muted/90 backdrop-blur-md dark:bg-muted/85 [&_tr]:hover:bg-transparent">
-                    <TableRow className="border-0 hover:bg-transparent">
-                      <SortableTableHead label="Name" sortKey="name" activeKey={myWinSortKey} order={myWinSortOrder} onSort={onMyWinSort} />
-                      <SortableTableHead label="Pair" sortKey="pair" activeKey={myWinSortKey} order={myWinSortOrder} onSort={onMyWinSort} />
-                      <SortableTableHead label="Bar" sortKey="bar" activeKey={myWinSortKey} order={myWinSortOrder} onSort={onMyWinSort} />
-                      <SortableTableHead label="W" sortKey="wins" activeKey={myWinSortKey} order={myWinSortOrder} onSort={onMyWinSort} align="right" />
-                      <SortableTableHead label="L" sortKey="losses" activeKey={myWinSortKey} order={myWinSortOrder} onSort={onMyWinSort} align="right" />
-                      <SortableTableHead label="Win %" sortKey="winRate" activeKey={myWinSortKey} order={myWinSortOrder} onSort={onMyWinSort} align="right" />
-                      <SortableTableHead label="Open" sortKey="open" activeKey={myWinSortKey} order={myWinSortOrder} onSort={onMyWinSort} align="right" />
-                      <TableHead className="w-12 text-right">
-                        <span className="sr-only">Actions</span>
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow className="hover:bg-transparent">
-                      <TableCell colSpan={8} className="py-16 text-center">
-                        <div className="mx-auto flex max-w-md flex-col items-center gap-3 px-4">
-                          <Users className="h-10 w-10 text-muted-foreground/35" aria-hidden />
-                          <p className="text-sm font-semibold tracking-tight text-foreground">Connect a wallet</p>
-                          <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">
-                            Connect your Solana wallet to create agents and view stats.
-                          </p>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
+                  <Table className="min-w-[720px] [&_td]:px-4 [&_td]:py-3.5 [&_th]:px-4 [&_th]:py-3.5">
+                    <TableHeader className="sticky top-0 z-10 border-b border-border/50 bg-muted/90 backdrop-blur-md dark:bg-muted/85 [&_tr]:hover:bg-transparent">
+                      <TableRow className="border-0 hover:bg-transparent">
+                        <SortableTableHead
+                          label="Name"
+                          sortKey="name"
+                          activeKey={myWinSortKey}
+                          order={myWinSortOrder}
+                          onSort={onMyWinSort}
+                        />
+                        <SortableTableHead
+                          label="Pair"
+                          sortKey="pair"
+                          activeKey={myWinSortKey}
+                          order={myWinSortOrder}
+                          onSort={onMyWinSort}
+                        />
+                        <SortableTableHead
+                          label="Bar"
+                          sortKey="bar"
+                          activeKey={myWinSortKey}
+                          order={myWinSortOrder}
+                          onSort={onMyWinSort}
+                        />
+                        <SortableTableHead
+                          label="W"
+                          sortKey="wins"
+                          activeKey={myWinSortKey}
+                          order={myWinSortOrder}
+                          onSort={onMyWinSort}
+                          align="right"
+                        />
+                        <SortableTableHead
+                          label="L"
+                          sortKey="losses"
+                          activeKey={myWinSortKey}
+                          order={myWinSortOrder}
+                          onSort={onMyWinSort}
+                          align="right"
+                        />
+                        <SortableTableHead
+                          label="Win %"
+                          sortKey="winRate"
+                          activeKey={myWinSortKey}
+                          order={myWinSortOrder}
+                          onSort={onMyWinSort}
+                          align="right"
+                        />
+                        <SortableTableHead
+                          label="Open"
+                          sortKey="open"
+                          activeKey={myWinSortKey}
+                          order={myWinSortOrder}
+                          onSort={onMyWinSort}
+                          align="right"
+                        />
+                        <TableHead className="w-12 text-right">
+                          <span className="sr-only">Actions</span>
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow className="hover:bg-transparent">
+                        <TableCell colSpan={8} className="py-16 text-center">
+                          <div className="mx-auto flex max-w-md flex-col items-center gap-3 px-4">
+                            <Users
+                              className="h-10 w-10 text-muted-foreground/35"
+                              aria-hidden
+                            />
+                            <p className="text-sm font-semibold tracking-tight text-foreground">
+                              Connect a wallet
+                            </p>
+                            <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">
+                              Connect your Solana wallet to create agents and
+                              view stats.
+                            </p>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
                 </div>
               </div>
             ) : (
               <div className="space-y-10">
                 <div className="rounded-xl border border-border/50 bg-muted/10 px-4 py-3.5 shadow-sm sm:px-5 sm:py-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">My workspace</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    My workspace
+                  </p>
                   <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-                    Up to {MAX_USER_CUSTOM_STRATEGIES_PER_WALLET} custom strategies per wallet. Use{" "}
-                    <span className="font-medium text-foreground">Create agent</span> in the toolbar, then track outcomes in{" "}
-                    <span className="font-medium text-foreground">Experiment runs</span> below.
+                    Up to {MAX_USER_CUSTOM_STRATEGIES_PER_WALLET} custom
+                    strategies per wallet. Use{" "}
+                    <span className="font-medium text-foreground">
+                      Create agent
+                    </span>{" "}
+                    in the toolbar, then track outcomes in{" "}
+                    <span className="font-medium text-foreground">
+                      Experiment runs
+                    </span>{" "}
+                    below.
                   </p>
                 </div>
 
@@ -2912,8 +3712,12 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                         aria-hidden
                       />
                       <div className="relative mb-3 hidden sm:block">
-                        <h3 className="text-sm font-semibold tracking-tight text-foreground">Agent list filters</h3>
-                        <p className="mt-0.5 text-xs text-muted-foreground sm:text-[13px]">Search and slice your roster before sorting columns.</p>
+                        <h3 className="text-sm font-semibold tracking-tight text-foreground">
+                          Agent list filters
+                        </h3>
+                        <p className="mt-0.5 text-xs text-muted-foreground sm:text-[13px]">
+                          Search and slice your roster before sorting columns.
+                        </p>
                       </div>
                       <MobileExperimentFiltersToggle
                         isDesktop={isSmUp}
@@ -2921,66 +3725,82 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                         onToggle={() => setMobileMyWinFiltersOpen((v) => !v)}
                         label="agent filters"
                       />
-                      <MobileCollapsibleFilters isDesktop={isSmUp} expanded={mobileMyWinFiltersOpen}>
-                      <div className="relative flex flex-wrap items-end gap-3 sm:gap-4">
-                        <div className="space-y-1.5 min-w-[140px] flex-1 sm:max-w-[260px]">
-                          <Label htmlFor="my-win-search" className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                            Search
-                          </Label>
-                          <Input
-                            id="my-win-search"
-                            value={myWinSearch}
-                            onChange={(e) => setMyWinSearch(e.target.value)}
-                            placeholder="Name, strategy ID…"
-                            className="h-10 border-border/80 bg-background/80 shadow-sm focus-visible:ring-2 focus-visible:ring-primary/20"
-                          />
+                      <MobileCollapsibleFilters
+                        isDesktop={isSmUp}
+                        expanded={mobileMyWinFiltersOpen}
+                      >
+                        <div className="relative flex flex-wrap items-end gap-3 sm:gap-4">
+                          <div className="space-y-1.5 min-w-[140px] flex-1 sm:max-w-[260px]">
+                            <Label
+                              htmlFor="my-win-search"
+                              className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+                            >
+                              Search
+                            </Label>
+                            <Input
+                              id="my-win-search"
+                              value={myWinSearch}
+                              onChange={(e) => setMyWinSearch(e.target.value)}
+                              placeholder="Name, strategy ID…"
+                              className="h-10 border-border/80 bg-background/80 shadow-sm focus-visible:ring-2 focus-visible:ring-primary/20"
+                            />
+                          </div>
+                          <div className="space-y-1.5 w-[min(100%,148px)] sm:w-[148px]">
+                            <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                              Pair
+                            </Label>
+                            <Select
+                              value={myWinToken}
+                              onValueChange={setMyWinToken}
+                            >
+                              <SelectTrigger className="h-10 border-border/80 bg-background/80 shadow-sm">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">All pairs</SelectItem>
+                                {myWinTokenOptions.map((t) => (
+                                  <SelectItem key={t} value={t}>
+                                    {t}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1.5 w-[min(100%,124px)] sm:w-[124px]">
+                            <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                              Bar
+                            </Label>
+                            <Select
+                              value={myWinBar}
+                              onValueChange={setMyWinBar}
+                            >
+                              <SelectTrigger className="h-10 border-border/80 bg-background/80 shadow-sm">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">All</SelectItem>
+                                {myWinBarOptions.map((b) => (
+                                  <SelectItem key={b} value={b}>
+                                    {b}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-10 w-full shrink-0 border-border/80 bg-background/60 px-4 text-xs font-medium shadow-sm sm:w-auto"
+                            onClick={() => {
+                              setMyWinSearch("");
+                              setMyWinToken("all");
+                              setMyWinBar("all");
+                            }}
+                          >
+                            Clear
+                          </Button>
                         </div>
-                        <div className="space-y-1.5 w-[min(100%,148px)] sm:w-[148px]">
-                          <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Pair</Label>
-                          <Select value={myWinToken} onValueChange={setMyWinToken}>
-                            <SelectTrigger className="h-10 border-border/80 bg-background/80 shadow-sm">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">All pairs</SelectItem>
-                              {myWinTokenOptions.map((t) => (
-                                <SelectItem key={t} value={t}>
-                                  {t}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-1.5 w-[min(100%,124px)] sm:w-[124px]">
-                          <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Bar</Label>
-                          <Select value={myWinBar} onValueChange={setMyWinBar}>
-                            <SelectTrigger className="h-10 border-border/80 bg-background/80 shadow-sm">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">All</SelectItem>
-                              {myWinBarOptions.map((b) => (
-                                <SelectItem key={b} value={b}>
-                                  {b}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-10 w-full shrink-0 border-border/80 bg-background/60 px-4 text-xs font-medium shadow-sm sm:w-auto"
-                          onClick={() => {
-                            setMyWinSearch("");
-                            setMyWinToken("all");
-                            setMyWinBar("all");
-                          }}
-                        >
-                          Clear
-                        </Button>
-                      </div>
                       </MobileCollapsibleFilters>
                     </div>
                   ) : null}
@@ -2991,171 +3811,291 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                     />
                     <div className="flex flex-col gap-0.5 border-b border-border/45 bg-muted/20 px-4 py-3 sm:flex-row sm:items-end sm:justify-between sm:px-6 sm:py-3.5">
                       <div>
-                        <h3 className="text-sm font-semibold tracking-tight text-foreground">Your agents</h3>
-                        <p className="text-xs text-muted-foreground">Performance and open exposure for this wallet.</p>
+                        <h3 className="text-sm font-semibold tracking-tight text-foreground">
+                          Your agents
+                        </h3>
+                        <p className="text-xs text-muted-foreground">
+                          Performance and open exposure for this wallet.
+                        </p>
                       </div>
                       <p className="text-xs font-medium tabular-nums text-muted-foreground sm:text-right">
-                        <span className="text-foreground/80">{filteredMyAgentsWin.length}</span> shown
+                        <span className="text-foreground/80">
+                          {filteredMyAgentsWin.length}
+                        </span>{" "}
+                        shown
                         {myAgents.length > 0 ? (
                           <>
                             {" "}
-                            · <span className="text-foreground/80">{myAgents.length}</span> total
+                            ·{" "}
+                            <span className="text-foreground/80">
+                              {myAgents.length}
+                            </span>{" "}
+                            total
                           </>
                         ) : null}
                         {myLoading ? (
                           <span className="ml-2 inline-flex items-center gap-1">
-                            <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+                            <Loader2
+                              className="h-3 w-3 animate-spin"
+                              aria-hidden
+                            />
                             updating
                           </span>
                         ) : null}
                       </p>
                     </div>
                     <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
-                    <Table className="min-w-[800px] [&_td]:px-4 [&_td]:py-3.5 [&_td:first-child]:pl-5 sm:[&_td:first-child]:pl-6 [&_td:last-child]:pr-5 sm:[&_td:last-child]:pr-6 [&_th]:px-4 [&_th]:py-3.5 [&_th:first-child]:pl-5 sm:[&_th:first-child]:pl-6 [&_th:last-child]:pr-5 sm:[&_th:last-child]:pr-6">
-                      <TableHeader className="sticky top-0 z-10 border-b border-border/50 bg-muted/90 shadow-sm backdrop-blur-md dark:bg-muted/85 [&_tr]:border-b-0 [&_tr]:hover:bg-transparent">
-                        <TableRow className="border-0 hover:bg-transparent">
-                          <SortableTableHead label="Name" sortKey="name" activeKey={myWinSortKey} order={myWinSortOrder} onSort={onMyWinSort} />
-                          <SortableTableHead label="Pair" sortKey="pair" activeKey={myWinSortKey} order={myWinSortOrder} onSort={onMyWinSort} />
-                          <SortableTableHead label="Bar" sortKey="bar" activeKey={myWinSortKey} order={myWinSortOrder} onSort={onMyWinSort} />
-                          <SortableTableHead label="W" sortKey="wins" activeKey={myWinSortKey} order={myWinSortOrder} onSort={onMyWinSort} align="right" />
-                          <SortableTableHead label="L" sortKey="losses" activeKey={myWinSortKey} order={myWinSortOrder} onSort={onMyWinSort} align="right" />
-                          <SortableTableHead label="Win %" sortKey="winRate" activeKey={myWinSortKey} order={myWinSortOrder} onSort={onMyWinSort} align="right" />
-                          <SortableTableHead label="Open" sortKey="open" activeKey={myWinSortKey} order={myWinSortOrder} onSort={onMyWinSort} align="right" />
-                          <TableHead className="w-14 text-right">
-                            <span className="sr-only">Actions</span>
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {myLoading && myAgents.length === 0 ? (
-                          <TableRow className="hover:bg-transparent">
-                            <TableCell colSpan={8} className="py-16 text-center text-muted-foreground">
-                              <span className="inline-flex items-center justify-center gap-2 text-sm">
-                                <Loader2 className="h-4 w-4 animate-spin shrink-0" aria-hidden />
-                                Loading…
-                              </span>
-                            </TableCell>
+                      <Table className="min-w-[800px] [&_td]:px-4 [&_td]:py-3.5 [&_td:first-child]:pl-5 sm:[&_td:first-child]:pl-6 [&_td:last-child]:pr-5 sm:[&_td:last-child]:pr-6 [&_th]:px-4 [&_th]:py-3.5 [&_th:first-child]:pl-5 sm:[&_th:first-child]:pl-6 [&_th:last-child]:pr-5 sm:[&_th:last-child]:pr-6">
+                        <TableHeader className="sticky top-0 z-10 border-b border-border/50 bg-muted/90 shadow-sm backdrop-blur-md dark:bg-muted/85 [&_tr]:border-b-0 [&_tr]:hover:bg-transparent">
+                          <TableRow className="border-0 hover:bg-transparent">
+                            <SortableTableHead
+                              label="Name"
+                              sortKey="name"
+                              activeKey={myWinSortKey}
+                              order={myWinSortOrder}
+                              onSort={onMyWinSort}
+                            />
+                            <SortableTableHead
+                              label="Pair"
+                              sortKey="pair"
+                              activeKey={myWinSortKey}
+                              order={myWinSortOrder}
+                              onSort={onMyWinSort}
+                            />
+                            <SortableTableHead
+                              label="Bar"
+                              sortKey="bar"
+                              activeKey={myWinSortKey}
+                              order={myWinSortOrder}
+                              onSort={onMyWinSort}
+                            />
+                            <SortableTableHead
+                              label="W"
+                              sortKey="wins"
+                              activeKey={myWinSortKey}
+                              order={myWinSortOrder}
+                              onSort={onMyWinSort}
+                              align="right"
+                            />
+                            <SortableTableHead
+                              label="L"
+                              sortKey="losses"
+                              activeKey={myWinSortKey}
+                              order={myWinSortOrder}
+                              onSort={onMyWinSort}
+                              align="right"
+                            />
+                            <SortableTableHead
+                              label="Win %"
+                              sortKey="winRate"
+                              activeKey={myWinSortKey}
+                              order={myWinSortOrder}
+                              onSort={onMyWinSort}
+                              align="right"
+                            />
+                            <SortableTableHead
+                              label="Open"
+                              sortKey="open"
+                              activeKey={myWinSortKey}
+                              order={myWinSortOrder}
+                              onSort={onMyWinSort}
+                              align="right"
+                            />
+                            <TableHead className="w-14 text-right">
+                              <span className="sr-only">Actions</span>
+                            </TableHead>
                           </TableRow>
-                        ) : null}
-                        {!myLoading && myAgents.length === 0 ? (
-                          <TableRow className="hover:bg-transparent">
-                            <TableCell colSpan={8} className="py-16 text-center">
-                              <div className="mx-auto flex max-w-md flex-col items-center gap-3 px-4">
-                                <FlaskConical className="h-10 w-10 text-muted-foreground/35" aria-hidden />
-                                <p className="text-sm font-semibold tracking-tight text-foreground">No custom agents yet</p>
-                                <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">
-                                  Use Create agent in the toolbar to deploy a strategy from this wallet.
-                                </p>
-                                <Button type="button" size="sm" variant="outline" className="mt-1 rounded-lg shadow-sm" onClick={beginCreateAgent}>
-                                  Create agent
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ) : null}
-                        {!myLoading && myAgents.length > 0 && filteredMyAgentsWin.length === 0 ? (
-                          <TableRow className="hover:bg-transparent">
-                            <TableCell colSpan={8} className="py-16 text-center">
-                              <div className="mx-auto flex max-w-md flex-col items-center gap-2 px-4">
-                                <p className="text-sm font-medium text-foreground">No matches</p>
-                                <p className="text-xs text-muted-foreground sm:text-sm">
-                                  No agents match these filters.{" "}
-                                  <button
-                                    type="button"
-                                    className="font-medium text-primary underline-offset-4 hover:underline"
-                                    onClick={() => {
-                                      setMyWinSearch("");
-                                      setMyWinToken("all");
-                                      setMyWinBar("all");
-                                    }}
-                                  >
-                                    Clear filters
-                                  </button>
-                                </p>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ) : null}
-                        {!myLoading &&
-                          myAgents.length > 0 &&
-                          filteredMyAgentsWin.length > 0 &&
-                          pagedMyAgentsWin.map((a: UserCustomStrategyAgentStats) => (
-                            <TableRow
-                              key={a.strategyId}
-                              className="group border-border/25 transition-colors duration-150 hover:bg-muted/[0.22]"
-                            >
-                              <TableCell>
-                                <span className="inline-flex min-w-0 items-center gap-2">
-                                  <span className="truncate text-sm font-semibold tracking-tight text-foreground">{a.name}</span>
-                                  <AgentBackgroundLiveIndicator openPositions={a.openPositions} />
+                        </TableHeader>
+                        <TableBody>
+                          {myLoading && myAgents.length === 0 ? (
+                            <TableRow className="hover:bg-transparent">
+                              <TableCell
+                                colSpan={8}
+                                className="py-16 text-center text-muted-foreground"
+                              >
+                                <span className="inline-flex items-center justify-center gap-2 text-sm">
+                                  <Loader2
+                                    className="h-4 w-4 animate-spin shrink-0"
+                                    aria-hidden
+                                  />
+                                  Loading…
                                 </span>
-                              </TableCell>
-                              <TableCell>
-                                <span className="inline-flex min-w-0 max-w-[220px] items-center gap-2">
-                                  <CoinLogo symbol={a.token} size="sm" fallbackSeed={a.token} />
-                                  <span className="truncate text-sm font-medium text-foreground/90">{formatPairLabel(a.token)}</span>
-                                </span>
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant="secondary" className="font-mono text-xs font-semibold tabular-nums">
-                                  {a.bar}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-right text-sm font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
-                                {a.wins}
-                              </TableCell>
-                              <TableCell className="text-right text-sm font-semibold tabular-nums text-rose-600 dark:text-rose-400">
-                                {a.losses}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {a.winRatePct != null ? (
-                                  <div className="ml-auto flex max-w-[5.75rem] flex-col items-end gap-1">
-                                    <span className={cn("text-sm font-semibold tabular-nums", winRateVisualClass(a.winRatePct))}>
-                                      {a.winRatePct}%
-                                    </span>
-                                    <Progress value={a.winRatePct} className="h-1.5 w-full bg-border/70" />
-                                  </div>
-                                ) : (
-                                  <span className="text-sm text-muted-foreground">—</span>
-                                )}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {a.openPositions > 0 ? (
-                                  <Badge
-                                    variant="outline"
-                                    className="border-primary/45 bg-primary/[0.08] font-mono text-xs font-semibold tabular-nums text-primary hover:bg-primary/[0.12]"
-                                  >
-                                    {a.openPositions}
-                                  </Badge>
-                                ) : (
-                                  <span className="tabular-nums text-sm text-muted-foreground">0</span>
-                                )}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-9 w-9 rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                  title={
-                                    a.openPositions > 0
-                                      ? "Delete disabled while a run is open"
-                                      : "Delete agent"
-                                  }
-                                  disabled={deletingId === a.strategyId || a.openPositions > 0}
-                                  onClick={() => onDeleteMyStrategy(a.strategyId)}
-                                >
-                                  {deletingId === a.strategyId ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <Trash2 className="h-4 w-4" />
-                                  )}
-                                </Button>
                               </TableCell>
                             </TableRow>
-                          ))}
-                      </TableBody>
-                    </Table>
+                          ) : null}
+                          {!myLoading && myAgents.length === 0 ? (
+                            <TableRow className="hover:bg-transparent">
+                              <TableCell
+                                colSpan={8}
+                                className="py-16 text-center"
+                              >
+                                <div className="mx-auto flex max-w-md flex-col items-center gap-3 px-4">
+                                  <FlaskConical
+                                    className="h-10 w-10 text-muted-foreground/35"
+                                    aria-hidden
+                                  />
+                                  <p className="text-sm font-semibold tracking-tight text-foreground">
+                                    No custom agents yet
+                                  </p>
+                                  <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">
+                                    Use Create agent in the toolbar to deploy a
+                                    strategy from this wallet.
+                                  </p>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="mt-1 rounded-lg shadow-sm"
+                                    onClick={beginCreateAgent}
+                                  >
+                                    Create agent
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ) : null}
+                          {!myLoading &&
+                          myAgents.length > 0 &&
+                          filteredMyAgentsWin.length === 0 ? (
+                            <TableRow className="hover:bg-transparent">
+                              <TableCell
+                                colSpan={8}
+                                className="py-16 text-center"
+                              >
+                                <div className="mx-auto flex max-w-md flex-col items-center gap-2 px-4">
+                                  <p className="text-sm font-medium text-foreground">
+                                    No matches
+                                  </p>
+                                  <p className="text-xs text-muted-foreground sm:text-sm">
+                                    No agents match these filters.{" "}
+                                    <button
+                                      type="button"
+                                      className="font-medium text-primary underline-offset-4 hover:underline"
+                                      onClick={() => {
+                                        setMyWinSearch("");
+                                        setMyWinToken("all");
+                                        setMyWinBar("all");
+                                      }}
+                                    >
+                                      Clear filters
+                                    </button>
+                                  </p>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ) : null}
+                          {!myLoading &&
+                            myAgents.length > 0 &&
+                            filteredMyAgentsWin.length > 0 &&
+                            pagedMyAgentsWin.map(
+                              (a: UserCustomStrategyAgentStats) => (
+                                <TableRow
+                                  key={a.strategyId}
+                                  className="group border-border/25 transition-colors duration-150 hover:bg-muted/[0.22]"
+                                >
+                                  <TableCell>
+                                    <span className="inline-flex min-w-0 items-center gap-2">
+                                      <span className="truncate text-sm font-semibold tracking-tight text-foreground">
+                                        {a.name}
+                                      </span>
+                                      <AgentBackgroundLiveIndicator
+                                        openPositions={a.openPositions}
+                                      />
+                                    </span>
+                                  </TableCell>
+                                  <TableCell>
+                                    <span className="inline-flex min-w-0 max-w-[220px] items-center gap-2">
+                                      <CoinLogo
+                                        symbol={a.token}
+                                        size="sm"
+                                        fallbackSeed={a.token}
+                                      />
+                                      <span className="truncate text-sm font-medium text-foreground/90">
+                                        {formatPairLabel(a.token)}
+                                      </span>
+                                    </span>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge
+                                      variant="secondary"
+                                      className="font-mono text-xs font-semibold tabular-nums"
+                                    >
+                                      {a.bar}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-right text-sm font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+                                    {a.wins}
+                                  </TableCell>
+                                  <TableCell className="text-right text-sm font-semibold tabular-nums text-rose-600 dark:text-rose-400">
+                                    {a.losses}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    {a.winRatePct != null ? (
+                                      <div className="ml-auto flex max-w-[5.75rem] flex-col items-end gap-1">
+                                        <span
+                                          className={cn(
+                                            "text-sm font-semibold tabular-nums",
+                                            winRateVisualClass(a.winRatePct),
+                                          )}
+                                        >
+                                          {a.winRatePct}%
+                                        </span>
+                                        <Progress
+                                          value={a.winRatePct}
+                                          className="h-1.5 w-full bg-border/70"
+                                        />
+                                      </div>
+                                    ) : (
+                                      <span className="text-sm text-muted-foreground">
+                                        —
+                                      </span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    {a.openPositions > 0 ? (
+                                      <Badge
+                                        variant="outline"
+                                        className="border-primary/45 bg-primary/[0.08] font-mono text-xs font-semibold tabular-nums text-primary hover:bg-primary/[0.12]"
+                                      >
+                                        {a.openPositions}
+                                      </Badge>
+                                    ) : (
+                                      <span className="tabular-nums text-sm text-muted-foreground">
+                                        0
+                                      </span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-9 w-9 rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                      title={
+                                        a.openPositions > 0
+                                          ? "Delete disabled while a run is open"
+                                          : "Delete agent"
+                                      }
+                                      disabled={
+                                        deletingId === a.strategyId ||
+                                        a.openPositions > 0
+                                      }
+                                      onClick={() =>
+                                        onDeleteMyStrategy(a.strategyId)
+                                      }
+                                    >
+                                      {deletingId === a.strategyId ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                      ) : (
+                                        <Trash2 className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              ),
+                            )}
+                        </TableBody>
+                      </Table>
                     </div>
                   </div>
                   {myAgents.length > 0 ? (
@@ -3174,9 +4114,12 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
 
                 <div className="space-y-4 border-t border-border/40 pt-8">
                   <div>
-                    <h3 className="text-base font-semibold tracking-tight text-foreground">Experiment runs</h3>
+                    <h3 className="text-base font-semibold tracking-tight text-foreground">
+                      Experiment runs
+                    </h3>
                     <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted-foreground sm:text-[13px]">
-                      Live and historical executions for your wallet strategies. Filter by outcome or strategy, then page through results.
+                      Live and historical executions for your wallet strategies.
+                      Filter by outcome or strategy, then page through results.
                     </p>
                   </div>
                   <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-br from-card via-card to-muted/25 p-4 shadow-lg shadow-black/[0.06] sm:p-5 dark:to-muted/10 dark:shadow-black/35">
@@ -3190,59 +4133,79 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                       onToggle={() => setMobileMyRunsFiltersOpen((v) => !v)}
                       label="run filters"
                     />
-                    <MobileCollapsibleFilters isDesktop={isSmUp} expanded={mobileMyRunsFiltersOpen}>
-                    <div className="relative flex flex-wrap items-end gap-3 sm:gap-4">
-                      <div className="space-y-1.5 w-[min(100%,200px)] sm:w-[220px]">
-                        <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Status</Label>
-                        <Select
-                          value={myRunsStatus.trim() ? myRunsStatus : "all"}
-                          onValueChange={(v) => setMyRunsStatus(v === "all" ? "" : v)}
-                        >
-                          <SelectTrigger className="h-10 border-border/80 bg-background/80 shadow-sm">
-                            <SelectValue placeholder="All statuses" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All statuses</SelectItem>
-                            {TRADING_EXPERIMENT_RUN_STATUSES.map((s) => (
-                              <SelectItem key={s} value={s}>
-                                {statusOptionLabel(s)}
+                    <MobileCollapsibleFilters
+                      isDesktop={isSmUp}
+                      expanded={mobileMyRunsFiltersOpen}
+                    >
+                      <div className="relative flex flex-wrap items-end gap-3 sm:gap-4">
+                        <div className="space-y-1.5 w-[min(100%,200px)] sm:w-[220px]">
+                          <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            Status
+                          </Label>
+                          <Select
+                            value={myRunsStatus.trim() ? myRunsStatus : "all"}
+                            onValueChange={(v) =>
+                              setMyRunsStatus(v === "all" ? "" : v)
+                            }
+                          >
+                            <SelectTrigger className="h-10 border-border/80 bg-background/80 shadow-sm">
+                              <SelectValue placeholder="All statuses" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All statuses</SelectItem>
+                              {TRADING_EXPERIMENT_RUN_STATUSES.map((s) => (
+                                <SelectItem key={s} value={s}>
+                                  {statusOptionLabel(s)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1.5 min-w-[min(100%,220px)] flex-1 sm:max-w-[360px]">
+                          <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            Strategy
+                          </Label>
+                          <Select
+                            value={
+                              myRunsStrategyId.trim() ? myRunsStrategyId : "all"
+                            }
+                            onValueChange={(v) =>
+                              setMyRunsStrategyId(v === "all" ? "" : v)
+                            }
+                          >
+                            <SelectTrigger className="h-10 border-border/80 bg-background/80 shadow-sm [&>span]:truncate">
+                              <SelectValue placeholder="All strategies" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">
+                                All strategies
                               </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1.5 min-w-[min(100%,220px)] flex-1 sm:max-w-[360px]">
-                        <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Strategy</Label>
-                        <Select
-                          value={myRunsStrategyId.trim() ? myRunsStrategyId : "all"}
-                          onValueChange={(v) => setMyRunsStrategyId(v === "all" ? "" : v)}
+                              {myAgents.map((a) => (
+                                <SelectItem
+                                  key={a.strategyId}
+                                  value={a.strategyId}
+                                >
+                                  {a.name.length > 40
+                                    ? `${a.name.slice(0, 38)}…`
+                                    : a.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-10 w-full shrink-0 border-border/80 bg-background/60 px-4 text-xs font-medium shadow-sm sm:w-auto"
+                          onClick={() => {
+                            setMyRunsStatus("");
+                            setMyRunsStrategyId("");
+                          }}
                         >
-                          <SelectTrigger className="h-10 border-border/80 bg-background/80 shadow-sm [&>span]:truncate">
-                            <SelectValue placeholder="All strategies" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All strategies</SelectItem>
-                            {myAgents.map((a) => (
-                              <SelectItem key={a.strategyId} value={a.strategyId}>
-                                {a.name.length > 40 ? `${a.name.slice(0, 38)}…` : a.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          Clear
+                        </Button>
                       </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-10 w-full shrink-0 border-border/80 bg-background/60 px-4 text-xs font-medium shadow-sm sm:w-auto"
-                        onClick={() => {
-                          setMyRunsStatus("");
-                          setMyRunsStrategyId("");
-                        }}
-                      >
-                        Clear
-                      </Button>
-                    </div>
                     </MobileCollapsibleFilters>
                   </div>
                   <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-card/50 shadow-[0_24px_48px_-20px_rgba(0,0,0,0.45)] backdrop-blur-sm dark:bg-card/35 dark:shadow-[0_28px_56px_-18px_rgba(0,0,0,0.65)]">
@@ -3252,107 +4215,163 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
                     />
                     <div className="flex flex-col gap-0.5 border-b border-border/45 bg-muted/20 px-4 py-3 sm:flex-row sm:items-end sm:justify-between sm:px-6 sm:py-3.5">
                       <div>
-                        <h3 className="text-sm font-semibold tracking-tight text-foreground">Run log</h3>
-                        <p className="text-xs text-muted-foreground">Newest first · same statuses as the lab explorer.</p>
+                        <h3 className="text-sm font-semibold tracking-tight text-foreground">
+                          Run log
+                        </h3>
+                        <p className="text-xs text-muted-foreground">
+                          Newest first · same statuses as the lab explorer.
+                        </p>
                       </div>
                       <p className="text-xs font-medium tabular-nums text-muted-foreground sm:text-right">
-                        <span className="text-foreground/80">{myRunsTotal.toLocaleString()}</span> runs
+                        <span className="text-foreground/80">
+                          {myRunsTotal.toLocaleString()}
+                        </span>{" "}
+                        runs
                         {myLoading ? (
                           <span className="ml-2 inline-flex items-center gap-1">
-                            <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+                            <Loader2
+                              className="h-3 w-3 animate-spin"
+                              aria-hidden
+                            />
                             updating
                           </span>
                         ) : null}
                       </p>
                     </div>
                     <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
-                    <Table className="min-w-[640px] [&_td]:px-4 [&_td]:py-3.5 [&_td:first-child]:pl-5 sm:[&_td:first-child]:pl-6 [&_td:last-child]:pr-5 sm:[&_td:last-child]:pr-6 [&_th]:px-4 [&_th]:py-3.5 [&_th:first-child]:pl-5 sm:[&_th:first-child]:pl-6 [&_th:last-child]:pr-5 sm:[&_th:last-child]:pr-6">
-                      <TableHeader className="sticky top-0 z-10 border-b border-border/50 bg-muted/90 shadow-sm backdrop-blur-md dark:bg-muted/85 [&_tr]:border-b-0 [&_tr]:hover:bg-transparent">
-                        <TableRow className="border-0 hover:bg-transparent">
-                          <SortableTableHead label="Time" sortKey="time" activeKey={myRunsSortKey} order={myRunsSortOrder} onSort={onMyRunsSort} />
-                          <SortableTableHead label="Status" sortKey="status" activeKey={myRunsSortKey} order={myRunsSortOrder} onSort={onMyRunsSort} />
-                          <SortableTableHead label="Signal" sortKey="signal" activeKey={myRunsSortKey} order={myRunsSortOrder} onSort={onMyRunsSort} />
-                          <SortableTableHead label="Symbol" sortKey="symbol" activeKey={myRunsSortKey} order={myRunsSortOrder} onSort={onMyRunsSort} />
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {myLoading && myRuns.length === 0 ? (
-                          <TableRow className="hover:bg-transparent">
-                            <TableCell colSpan={4} className="py-14 text-center text-muted-foreground">
-                              <span className="inline-flex items-center justify-center gap-2 text-sm">
-                                <Loader2 className="h-4 w-4 animate-spin shrink-0" aria-hidden />
-                                Loading runs…
-                              </span>
-                            </TableCell>
+                      <Table className="min-w-[640px] [&_td]:px-4 [&_td]:py-3.5 [&_td:first-child]:pl-5 sm:[&_td:first-child]:pl-6 [&_td:last-child]:pr-5 sm:[&_td:last-child]:pr-6 [&_th]:px-4 [&_th]:py-3.5 [&_th:first-child]:pl-5 sm:[&_th:first-child]:pl-6 [&_th:last-child]:pr-5 sm:[&_th:last-child]:pr-6">
+                        <TableHeader className="sticky top-0 z-10 border-b border-border/50 bg-muted/90 shadow-sm backdrop-blur-md dark:bg-muted/85 [&_tr]:border-b-0 [&_tr]:hover:bg-transparent">
+                          <TableRow className="border-0 hover:bg-transparent">
+                            <SortableTableHead
+                              label="Time"
+                              sortKey="time"
+                              activeKey={myRunsSortKey}
+                              order={myRunsSortOrder}
+                              onSort={onMyRunsSort}
+                            />
+                            <SortableTableHead
+                              label="Status"
+                              sortKey="status"
+                              activeKey={myRunsSortKey}
+                              order={myRunsSortOrder}
+                              onSort={onMyRunsSort}
+                            />
+                            <SortableTableHead
+                              label="Signal"
+                              sortKey="signal"
+                              activeKey={myRunsSortKey}
+                              order={myRunsSortOrder}
+                              onSort={onMyRunsSort}
+                            />
+                            <SortableTableHead
+                              label="Symbol"
+                              sortKey="symbol"
+                              activeKey={myRunsSortKey}
+                              order={myRunsSortOrder}
+                              onSort={onMyRunsSort}
+                            />
                           </TableRow>
-                        ) : null}
-                        {!myLoading && myRunsTotal === 0 ? (
-                          <TableRow className="hover:bg-transparent">
-                            <TableCell colSpan={4} className="py-14 text-center">
-                              <div className="mx-auto flex max-w-md flex-col items-center gap-2 px-4">
-                                <p className="text-sm font-medium text-foreground">
-                                  {myRunsStatus.trim() || myRunsStrategyId.trim()
-                                    ? "No runs match these filters"
-                                    : "No experiment runs yet"}
-                                </p>
-                                <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">
-                                  {myRunsStatus.trim() || myRunsStrategyId.trim()
-                                    ? "Try clearing filters or pick another strategy."
-                                    : "When your agents execute, their runs will appear here."}
-                                </p>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ) : null}
-                        {!myLoading && myRunsTotal > 0 && myRuns.length === 0 ? (
-                          <TableRow className="hover:bg-transparent">
-                            <TableCell colSpan={4} className="py-14 text-center text-sm text-muted-foreground">
-                              No runs on this page match the current filters.
-                            </TableCell>
-                          </TableRow>
-                        ) : null}
-                        {!myLoading &&
-                          sortedMyRuns.map((r) => (
-                            <TableRow
-                              key={r._id}
-                              className="group border-border/25 transition-colors duration-150 hover:bg-muted/[0.22]"
-                            >
-                              <TableCell className="whitespace-nowrap font-mono text-[11px] tabular-nums text-muted-foreground">
-                                {formatTime(r.createdAt)}
-                              </TableCell>
-                              <TableCell>
-                                <Badge
-                                  variant="outline"
-                                  className={cn(
-                                    "max-w-[14rem] truncate font-mono text-[10px] font-semibold normal-case tracking-normal",
-                                    explorerRunStatusBadgeClass(r.status),
-                                  )}
-                                  title={r.status}
-                                >
-                                  {statusOptionLabel(r.status)}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <Badge
-                                  variant="outline"
-                                  className={cn(
-                                    "font-mono text-[10px] font-semibold tabular-nums",
-                                    explorerSignalBadgeClass(r.clearSignal),
-                                  )}
-                                >
-                                  {r.clearSignal}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <span className="inline-flex min-w-0 max-w-[180px] items-center gap-2">
-                                  <CoinLogo symbol={r.symbol} size="sm" fallbackSeed={r.symbol} />
-                                  <span className="truncate font-mono text-xs font-medium text-foreground/90">{r.symbol}</span>
+                        </TableHeader>
+                        <TableBody>
+                          {myLoading && myRuns.length === 0 ? (
+                            <TableRow className="hover:bg-transparent">
+                              <TableCell
+                                colSpan={4}
+                                className="py-14 text-center text-muted-foreground"
+                              >
+                                <span className="inline-flex items-center justify-center gap-2 text-sm">
+                                  <Loader2
+                                    className="h-4 w-4 animate-spin shrink-0"
+                                    aria-hidden
+                                  />
+                                  Loading runs…
                                 </span>
                               </TableCell>
                             </TableRow>
-                          ))}
-                      </TableBody>
-                    </Table>
+                          ) : null}
+                          {!myLoading && myRunsTotal === 0 ? (
+                            <TableRow className="hover:bg-transparent">
+                              <TableCell
+                                colSpan={4}
+                                className="py-14 text-center"
+                              >
+                                <div className="mx-auto flex max-w-md flex-col items-center gap-2 px-4">
+                                  <p className="text-sm font-medium text-foreground">
+                                    {myRunsStatus.trim() ||
+                                    myRunsStrategyId.trim()
+                                      ? "No runs match these filters"
+                                      : "No experiment runs yet"}
+                                  </p>
+                                  <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">
+                                    {myRunsStatus.trim() ||
+                                    myRunsStrategyId.trim()
+                                      ? "Try clearing filters or pick another strategy."
+                                      : "When your agents execute, their runs will appear here."}
+                                  </p>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ) : null}
+                          {!myLoading &&
+                          myRunsTotal > 0 &&
+                          myRuns.length === 0 ? (
+                            <TableRow className="hover:bg-transparent">
+                              <TableCell
+                                colSpan={4}
+                                className="py-14 text-center text-sm text-muted-foreground"
+                              >
+                                No runs on this page match the current filters.
+                              </TableCell>
+                            </TableRow>
+                          ) : null}
+                          {!myLoading &&
+                            sortedMyRuns.map((r) => (
+                              <TableRow
+                                key={r._id}
+                                className="group border-border/25 transition-colors duration-150 hover:bg-muted/[0.22]"
+                              >
+                                <TableCell className="whitespace-nowrap font-mono text-[11px] tabular-nums text-muted-foreground">
+                                  {formatTime(r.createdAt)}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge
+                                    variant="outline"
+                                    className={cn(
+                                      "max-w-[14rem] truncate font-mono text-[10px] font-semibold normal-case tracking-normal",
+                                      explorerRunStatusBadgeClass(r.status),
+                                    )}
+                                    title={r.status}
+                                  >
+                                    {statusOptionLabel(r.status)}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge
+                                    variant="outline"
+                                    className={cn(
+                                      "font-mono text-[10px] font-semibold tabular-nums",
+                                      explorerSignalBadgeClass(r.clearSignal),
+                                    )}
+                                  >
+                                    {r.clearSignal}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <span className="inline-flex min-w-0 max-w-[180px] items-center gap-2">
+                                    <CoinLogo
+                                      symbol={r.symbol}
+                                      size="sm"
+                                      fallbackSeed={r.symbol}
+                                    />
+                                    <span className="truncate font-mono text-xs font-medium text-foreground/90">
+                                      {r.symbol}
+                                    </span>
+                                  </span>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                        </TableBody>
+                      </Table>
                     </div>
                   </div>
                   <div className="overflow-hidden rounded-xl border border-border/50 bg-muted/10 shadow-sm">
@@ -3370,7 +4389,7 @@ export default function TradingAgentExperiment({ embedded = false }: { embedded?
             )}
           </TabsContent>
         </Tabs>
-        </CoingeckoBatchImageProvider>
+      </CoingeckoBatchImageProvider>
     </main>
   );
 }

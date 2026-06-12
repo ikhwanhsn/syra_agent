@@ -6,7 +6,6 @@ import {
   Building2,
   GraduationCap,
   LayoutDashboard,
-  ShieldCheck,
   ShoppingCart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -32,10 +31,8 @@ import { SpcxQuickStart } from "@/components/spcx/SpcxQuickStart";
 import { SpcxPriceCompare } from "@/components/spcx/SpcxPriceCompare";
 import { SpcxMetricsRow } from "@/components/spcx/SpcxMetricsRow";
 import { SpcxVenueStatusSummary } from "@/components/spcx/SpcxVenueStatusSummary";
-import { SpcxScamRadar } from "@/components/spcx/SpcxScamRadar";
-import { SpcxMintVerifier } from "@/components/spcx/SpcxMintVerifier";
+import { SpcxBuyTab } from "@/components/spcx/SpcxBuyTab";
 import { SpcxIpoPlaybook } from "@/components/spcx/SpcxIpoPlaybook";
-import { SpcxSwapPanel } from "@/components/spcx/SpcxSwapPanel";
 import { SpcxSpreadChart } from "@/components/spcx/SpcxSpreadChart";
 import { SpcxAgentTake } from "@/components/spcx/SpcxAgentTake";
 import { SpcxVenueCard } from "@/components/spcx/SpcxVenueCard";
@@ -69,8 +66,8 @@ const TABS: {
   },
   {
     value: "buy",
-    label: "Buy safely",
-    hint: "Trade step-by-step",
+    label: "Trade",
+    hint: "Buy or sell",
     icon: ShoppingCart,
   },
   {
@@ -101,13 +98,13 @@ export default function SpcxAgent() {
   const latestQ = useQuery({
     queryKey: ["spcx-latest"],
     queryFn: fetchSpcxLatest,
-    refetchInterval: 30_000,
+    refetchInterval: 10_000,
   });
 
   const feedQ = useQuery({
     queryKey: ["spcx-feed"],
     queryFn: () => fetchSpcxFeed(50),
-    refetchInterval: 45_000,
+    refetchInterval: 15_000,
   });
 
   const tickMut = useMutation({
@@ -226,7 +223,12 @@ export default function SpcxAgent() {
           )}
 
           <div className="grid gap-6 xl:grid-cols-12">
-            <div className="space-y-6 xl:col-span-8">
+            <div
+              className={cn(
+                "space-y-6",
+                activeTab === "buy" ? "xl:col-span-12" : "xl:col-span-8",
+              )}
+            >
               <TabsContent value="overview" className="mt-0 space-y-6">
                 <SpcxQuickStart onGetStarted={goToBuy} />
                 <SpcxPriceCompare report={report} />
@@ -237,17 +239,11 @@ export default function SpcxAgent() {
               </TabsContent>
 
               <TabsContent value="buy" className="mt-0 space-y-6">
-                <div className="flex items-start gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3.5 text-sm">
-                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                  <p className="text-muted-foreground">
-                    <strong className="text-foreground">Buy in 3 steps:</strong>{" "}
-                    Check for fake tokens below, verify your token ID, then
-                    complete the purchase. Never skip step 1 or 2.
-                  </p>
-                </div>
-                <SpcxScamRadar report={report} />
-                <SpcxMintVerifier report={report} />
-                <SpcxSwapPanel report={report} />
+                <SpcxBuyTab
+                  report={report}
+                  spreadHistory={spreadHistory}
+                  refreshing={latestQ.isFetching || tickMut.isPending}
+                />
               </TabsContent>
 
               <TabsContent value="venues" className="mt-0 space-y-6">
@@ -277,24 +273,26 @@ export default function SpcxAgent() {
               </TabsContent>
             </div>
 
-            <SpcxSidebar
-              entries={feedQ.data?.entries ?? []}
-              loading={feedQ.isLoading || feedQ.isFetching}
-              error={
-                feedQ.isError
-                  ? feedQ.error instanceof Error
-                    ? feedQ.error.message
-                    : "Failed to load feed"
-                  : null
-              }
-              onRetry={() => feedQ.refetch()}
-              retrying={feedQ.isFetching}
-            />
+            {activeTab !== "buy" ? (
+              <SpcxSidebar
+                entries={feedQ.data?.entries ?? []}
+                loading={feedQ.isLoading || feedQ.isFetching}
+                error={
+                  feedQ.isError
+                    ? feedQ.error instanceof Error
+                      ? feedQ.error.message
+                      : "Failed to load feed"
+                    : null
+                }
+                onRetry={() => feedQ.refetch()}
+                retrying={feedQ.isFetching}
+              />
+            ) : null}
           </div>
         </Tabs>
       )}
 
-      <div className="mt-8 flex flex-col gap-3 rounded-2xl border border-border/50 bg-muted/[0.04] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+      <div className="mt-8 mb-6 flex flex-col gap-3 rounded-2xl border border-border/50 bg-muted/[0.04] px-4 py-4 sm:mb-8 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <p className="text-sm text-muted-foreground">
           Your one-stop SpaceX IPO page — prices, safety checks, and buying
           guides in plain English.

@@ -13,6 +13,7 @@ import {
   SYRA_GROWTH_SCOUT_WIB_HOUR,
   SYRA_GROWTH_SCOUT_WIB_MINUTE,
 } from "../config/syraGrowthScoutConfig.js";
+import { startupVerbose } from "../utils/startupLog.js";
 
 export function startSyraGrowthScoutScheduler() {
   let running = false;
@@ -27,7 +28,7 @@ export function startSyraGrowthScoutScheduler() {
     running = true;
     try {
       await runSyraGrowthScoutPipeline();
-      console.log("[syra-growth-scout] pipeline completed OK");
+      startupVerbose("[syra-growth-scout] pipeline completed OK");
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       console.error("[syra-growth-scout] pipeline failed:", msg);
@@ -50,7 +51,7 @@ export function startSyraGrowthScoutScheduler() {
       SYRA_GROWTH_SCOUT_WIB_MINUTE ?? INTERNAL_AGENT_PIPELINES_WIB_MINUTE,
     );
     const nextAt = new Date(Date.now() + delayMs).toISOString();
-    console.log(
+    startupVerbose(
       `[syra-growth-scout] next run in ${Math.round(delayMs / 1000)}s (~${nextAt} UTC; daily ${String(SYRA_GROWTH_SCOUT_WIB_HOUR).padStart(2, "0")}:${String(SYRA_GROWTH_SCOUT_WIB_MINUTE).padStart(2, "0")} Asia/Jakarta)`,
     );
     nextTimer = setTimeout(async () => {
@@ -62,12 +63,12 @@ export function startSyraGrowthScoutScheduler() {
   scheduleNextWibAnchor();
 
   if (!isDevTelegramConfigured()) {
-    console.warn(
+    startupVerbose(
       "[syra-growth-scout] Telegram disabled: set SYRA_DEV_BOT_TOKEN and SYRA_DEV_BOT_CHAT_ID",
     );
   }
 
-  console.log(
+  startupVerbose(
     `[syra-growth-scout] enabled; WIB daily ${String(SYRA_GROWTH_SCOUT_WIB_HOUR).padStart(2, "0")}:${String(SYRA_GROWTH_SCOUT_WIB_MINUTE).padStart(2, "0")} Asia/Jakarta; Telegram=${isDevTelegramConfigured() ? "on" : "off"}`,
   );
 }

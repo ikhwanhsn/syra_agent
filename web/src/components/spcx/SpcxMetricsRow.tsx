@@ -53,7 +53,7 @@ export function SpcxMetricsRow({ report }: { report: SpcxIntelligenceReport }) {
       <MetricTile
         label="Stock price"
         helpTerm="Nasdaq"
-        helpText="The US stock exchange where SpaceX shares (SPCX) will trade."
+        helpText="The US stock exchange where SpaceX shares (SPCX) trade."
         value={report.nasdaqPriceUsd != null ? `$${report.nasdaqPriceUsd.toFixed(2)}` : "—"}
         hint={
           nasdaqFallback
@@ -80,7 +80,7 @@ export function SpcxMetricsRow({ report }: { report: SpcxIntelligenceReport }) {
               : topVenue.spreadLabel === "discount"
                 ? "Token costs less than stock"
                 : "Prices are aligned"
-            : "Updates when token goes live"
+            : "Updates live as prices move"
         }
       />
       <MetricTile

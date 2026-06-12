@@ -80,8 +80,8 @@ export function SpcxVenueStatusSummary({ report }: { report: SpcxIntelligenceRep
           <div className="flex items-start gap-3 rounded-xl border border-amber-500/25 bg-amber-500/5 px-4 py-3.5 text-sm text-amber-800 dark:text-amber-200">
             <PauseCircle className="mt-0.5 h-4 w-4 shrink-0" />
             <p>
-              No live buying pool yet — this is normal during the IPO window. Check the 3 ways to
-              buy above for exchange and brokerage options.
+              No verified on-chain DEX pool yet — use exchange or brokerage routes below. Check the
+              3 ways to buy above for live options.
             </p>
           </div>
         )}

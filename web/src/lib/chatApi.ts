@@ -1086,7 +1086,7 @@ export const agentToolsApi = {
         error?: string;
       }
   > {
-    const res = await fetch(agentToolsBase() + "/call", {
+    const res = await syraFetch(agentToolsBase() + "/call", {
       method: "POST",
       headers: { "Content-Type": "application/json", ...getApiHeaders() },
       body: JSON.stringify({

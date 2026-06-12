@@ -13,6 +13,7 @@ import { getNansenPaymentFetch } from "./sentinelPayer.js";
 import { runPaidSchemaProbe } from "./testerAgent/tests.js";
 import { SYRA_PROBE_BASE_URL, TESTER_AGENT_CONFIG } from "./testerAgent/testerAgentConfig.js";
 import { isDevTelegramConfigured, sendDevTelegram } from "./devTelegramNotifier.js";
+import { startupVerbose } from "../utils/startupLog.js";
 
 const HEALTH_PROBE = { id: "health_x402_monitor", method: "GET", path: "/health" };
 
@@ -36,11 +37,11 @@ function formatFailureMessage(baseUrl, result) {
  */
 export function startHealthX402Monitor() {
   if (TESTER_AGENT_CONFIG.healthX402MonitorEnabled !== true) {
-    console.log("[health-x402-monitor] disabled (testerAgentConfig.healthX402MonitorEnabled)");
+    startupVerbose("[health-x402-monitor] disabled (testerAgentConfig.healthX402MonitorEnabled)");
     return;
   }
   if (TESTER_AGENT_CONFIG.paidX402ProbesEnabled !== true) {
-    console.log("[health-x402-monitor] disabled (testerAgentConfig.paidX402ProbesEnabled)");
+    startupVerbose("[health-x402-monitor] disabled (testerAgentConfig.paidX402ProbesEnabled)");
     return;
   }
   const baseUrl = SYRA_PROBE_BASE_URL.replace(/\/+$/, "");
@@ -105,7 +106,7 @@ export function startHealthX402Monitor() {
     void tick();
   }
   setInterval(tick, intervalMs);
-  console.log(
-    `[health-x402-monitor] enabled: every ${intervalMs}ms → ${baseUrl}/health (x402). Telegram: first failure after success only.`
+  startupVerbose(
+    `[health-x402-monitor] enabled: every ${intervalMs}ms → ${baseUrl}/health (x402). Telegram: first failure after success only.`,
   );
 }

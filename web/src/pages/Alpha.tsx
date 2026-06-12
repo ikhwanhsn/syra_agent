@@ -18,7 +18,13 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -35,17 +41,35 @@ import {
   PAGE_PADDING_TOP_STANDARD,
   PAGE_SAFE_AREA_BOTTOM,
 } from "@/lib/layoutConstants";
-import { fetchPumpfunAlphaTrend, PUMPFUN_ALPHA_TREND_CLIENT_STALE_MS, type PumpfunAlphaPeriod, type PumpfunAlphaPlay } from "@/lib/pumpfunAlphaTrendApi";
+import {
+  fetchPumpfunAlphaTrend,
+  PUMPFUN_ALPHA_TREND_CLIENT_STALE_MS,
+  type PumpfunAlphaPeriod,
+  type PumpfunAlphaPlay,
+} from "@/lib/pumpfunAlphaTrendApi";
 import { RiseAlphaTabPanel } from "@/components/alpha/RiseAlphaTabPanel";
 import { CoinGeckoAlphaTabPanel } from "@/components/alpha/CoinGeckoAlphaTabPanel";
 import { PumpfunAlphaScoutTabPanel } from "@/components/alpha/PumpfunAlphaScoutTabPanel";
 import { PumpfunUtilityScoutTabPanel } from "@/components/alpha/PumpfunUtilityScoutTabPanel";
 
-const ALPHA_TABS = ["pumpfun", "scout", "utility", "rise", "coingecko"] as const;
+const ALPHA_TABS = [
+  "pumpfun",
+  "scout",
+  "utility",
+  "rise",
+  "coingecko",
+] as const;
 type AlphaTab = (typeof ALPHA_TABS)[number];
 
 function parseAlphaTab(raw: string | null): AlphaTab {
-  if (raw === "pumpfun" || raw === "scout" || raw === "utility" || raw === "rise" || raw === "coingecko") return raw;
+  if (
+    raw === "pumpfun" ||
+    raw === "scout" ||
+    raw === "utility" ||
+    raw === "rise" ||
+    raw === "coingecko"
+  )
+    return raw;
   return "pumpfun";
 }
 
@@ -78,11 +102,17 @@ function KpiTile({
         }}
       />
       <CardContent className="relative p-4 sm:p-5">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/70">{label}</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/70">
+          {label}
+        </p>
         <p className="mt-2 font-mono text-2xl font-semibold tabular-nums tracking-tight text-foreground sm:text-[1.65rem]">
           {value}
         </p>
-        {hint ? <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground/80">{hint}</p> : null}
+        {hint ? (
+          <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground/80">
+            {hint}
+          </p>
+        ) : null}
       </CardContent>
     </Card>
   );
@@ -94,13 +124,20 @@ function formatCompactUsd(n: number | null | undefined): string {
   if (abs >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(1)}B`;
   if (abs >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
   if (abs >= 10_000) return `$${Math.round(n / 1000)}k`;
-  return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(n);
 }
 
 function formatTs(tsMs: number | null | undefined): string {
   if (tsMs == null || !Number.isFinite(tsMs)) return "—";
   try {
-    return new Date(tsMs).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+    return new Date(tsMs).toLocaleString(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
   } catch {
     return "—";
   }
@@ -129,10 +166,14 @@ function AlphaPlayCard({ play }: { play: PumpfunAlphaPlay }) {
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="truncate font-mono text-sm font-semibold text-foreground">{play.symbol}</p>
+            <p className="truncate font-mono text-sm font-semibold text-foreground">
+              {play.symbol}
+            </p>
             <PlayRoleBadge role={play.playRole} />
           </div>
-          <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">{play.mint}</p>
+          <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
+            {play.mint}
+          </p>
         </div>
         <a
           href={`https://pump.fun/coin/${encodeURIComponent(play.mint)}`}
@@ -160,7 +201,9 @@ function AlphaPlayCard({ play }: { play: PumpfunAlphaPlay }) {
           </span>
         ) : null}
       </div>
-      <p className="mt-3 text-sm leading-relaxed text-muted-foreground/95">{play.reason}</p>
+      <p className="mt-3 text-sm leading-relaxed text-muted-foreground/95">
+        {play.reason}
+      </p>
     </div>
   );
 }
@@ -200,13 +243,23 @@ function PumpfunAlphaTabPanel() {
                 <TrendingUp className="h-3.5 w-3.5 text-primary" aria-hidden />
                 Pumpfun Intelligence
               </div>
-              <h2 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">Alpha / Beta Play Radar</h2>
+              <h2 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+                Alpha / Beta Play Radar
+              </h2>
               <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground/90">
-                Finds tokens running hard right now (alpha), then surfaces aligned beta plays that may pump on the same meta.
+                Finds tokens running hard right now (alpha), then surfaces
+                aligned beta plays that may pump on the same meta.
               </p>
               <p className="text-xs text-muted-foreground/75">
-                Updated {savedAt ? formatTs(Date.parse(savedAt)) : trend?.nowMs ? formatTs(trend.nowMs) : "—"}
-                {nextRefreshAt ? ` · next scan ~${formatTs(Date.parse(nextRefreshAt))}` : null}
+                Updated{" "}
+                {savedAt
+                  ? formatTs(Date.parse(savedAt))
+                  : trend?.nowMs
+                    ? formatTs(trend.nowMs)
+                    : "—"}
+                {nextRefreshAt
+                  ? ` · next scan ~${formatTs(Date.parse(nextRefreshAt))}`
+                  : null}
               </p>
             </div>
 
@@ -243,7 +296,11 @@ function PumpfunAlphaTabPanel() {
                 onClick={() => void batchQ.refetch()}
                 disabled={batchQ.isFetching}
               >
-                {batchQ.isFetching ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <RefreshCw className="h-4 w-4" aria-hidden />}
+                {batchQ.isFetching ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                ) : (
+                  <RefreshCw className="h-4 w-4" aria-hidden />
+                )}
                 Refresh
               </Button>
             </div>
@@ -276,15 +333,26 @@ function PumpfunAlphaTabPanel() {
             value={
               trend.alphaTokens?.[0]?.pumpScore != null
                 ? String(trend.alphaTokens[0].pumpScore)
-                : trend.tokens.find((t) => t.pumpScore != null)?.pumpScore != null
-                  ? String(trend.tokens.find((t) => t.pumpScore != null)?.pumpScore)
+                : trend.tokens.find((t) => t.pumpScore != null)?.pumpScore !=
+                    null
+                  ? String(
+                      trend.tokens.find((t) => t.pumpScore != null)?.pumpScore,
+                    )
                   : "—"
             }
-            hint={trend.alphaTokens?.[0]?.symbol ?? "Leading alpha tape strength"}
+            hint={
+              trend.alphaTokens?.[0]?.symbol ?? "Leading alpha tape strength"
+            }
           />
           <KpiTile
             label="Last scan"
-            value={savedAt ? formatTs(Date.parse(savedAt)) : trend.nowMs ? formatTs(trend.nowMs) : "—"}
+            value={
+              savedAt
+                ? formatTs(Date.parse(savedAt))
+                : trend.nowMs
+                  ? formatTs(trend.nowMs)
+                  : "—"
+            }
             hint="Hourly DB snapshot"
           />
         </div>
@@ -293,9 +361,12 @@ function PumpfunAlphaTabPanel() {
       {batchQ.isError ? (
         <Card className="border-destructive/25 bg-destructive/[0.03]">
           <CardContent className="space-y-3 p-5">
-            <p className="text-sm font-medium text-foreground">Unable to load Pump.fun trend</p>
+            <p className="text-sm font-medium text-foreground">
+              Unable to load Pump.fun trend
+            </p>
             <p className="text-sm text-muted-foreground">
-              {(batchQ.error as Error)?.message || "Request failed. Confirm the gateway can reach the market endpoints."}
+              {(batchQ.error as Error)?.message ||
+                "Request failed. Confirm the gateway can reach the market endpoints."}
             </p>
             <Button
               type="button"
@@ -314,10 +385,16 @@ function PumpfunAlphaTabPanel() {
         trend.tokens.length === 0 ? (
           <Card className="border-border/55 bg-card/55">
             <CardContent className="flex flex-col items-center justify-center gap-3 py-12 text-center">
-              <TrendingUp className="h-8 w-8 text-muted-foreground/70" aria-hidden />
-              <p className="text-sm font-medium text-foreground">No alpha runners in this window yet</p>
+              <TrendingUp
+                className="h-8 w-8 text-muted-foreground/70"
+                aria-hidden
+              />
+              <p className="text-sm font-medium text-foreground">
+                No alpha runners in this window yet
+              </p>
               <p className="max-w-lg text-sm text-muted-foreground">
-                Switch to another time lens or refresh — Syra scans for hot tape and pairs beta followers when an alpha emerges.
+                Switch to another time lens or refresh — Syra scans for hot tape
+                and pairs beta followers when an alpha emerges.
               </p>
               <Button
                 type="button"
@@ -339,7 +416,9 @@ function PumpfunAlphaTabPanel() {
                     <Flame className="h-4 w-4 text-amber-500" aria-hidden />
                     Alpha — running hard
                   </CardTitle>
-                  <CardDescription>Leaders pumping on hot tape in the selected window.</CardDescription>
+                  <CardDescription>
+                    Leaders pumping on hot tape in the selected window.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {trend.alphaTokens?.length ? (
@@ -349,7 +428,9 @@ function PumpfunAlphaTabPanel() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-muted-foreground">No alpha flagged yet — waiting for stronger momentum.</p>
+                    <p className="text-sm text-muted-foreground">
+                      No alpha flagged yet — waiting for stronger momentum.
+                    </p>
                   )}
                 </CardContent>
               </Card>
@@ -360,7 +441,10 @@ function PumpfunAlphaTabPanel() {
                     <Target className="h-4 w-4 text-sky-500" aria-hidden />
                     Beta — aligned plays
                   </CardTitle>
-                  <CardDescription>Potential followers with narrative overlap and room vs alpha MC.</CardDescription>
+                  <CardDescription>
+                    Potential followers with narrative overlap and room vs alpha
+                    MC.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {trend.betaTokens?.length ? (
@@ -370,7 +454,10 @@ function PumpfunAlphaTabPanel() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-muted-foreground">No beta pairs yet — they appear once an alpha runner is flagged.</p>
+                    <p className="text-sm text-muted-foreground">
+                      No beta pairs yet — they appear once an alpha runner is
+                      flagged.
+                    </p>
                   )}
                 </CardContent>
               </Card>
@@ -383,35 +470,52 @@ function PumpfunAlphaTabPanel() {
                     <TrendingUp className="h-4 w-4 text-primary" aria-hidden />
                     {trend.analysis.trendTitle || "Meta read"}
                   </CardTitle>
-                  <CardDescription>Why alpha and beta may move together — from the hourly snapshot.</CardDescription>
+                  <CardDescription>
+                    Why alpha and beta may move together — from the hourly
+                    snapshot.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-5">
                   <div className="rounded-2xl border border-border/40 bg-muted/[0.08] p-5">
-                    <p className="text-sm leading-relaxed text-foreground/95">{trend.analysis.metaSummary}</p>
+                    <p className="text-sm leading-relaxed text-foreground/95">
+                      {trend.analysis.metaSummary}
+                    </p>
                   </div>
 
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-2 rounded-xl border border-border/35 bg-background/30 p-4">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/75">Signals</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/75">
+                        Signals
+                      </p>
                       <ul className="space-y-2">
                         {trend.analysis.signals.map((s, i) => (
-                          <li key={`${s}-${i}`} className="text-sm text-muted-foreground/95">
+                          <li
+                            key={`${s}-${i}`}
+                            className="text-sm text-muted-foreground/95"
+                          >
                             {s}
                           </li>
                         ))}
                       </ul>
                     </div>
                     <div className="space-y-2 rounded-xl border border-border/35 bg-background/30 p-4">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/75">Caveats</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/75">
+                        Caveats
+                      </p>
                       <ul className="space-y-2">
                         {trend.analysis.riskCaveats.length ? (
                           trend.analysis.riskCaveats.map((s, i) => (
-                            <li key={`${s}-${i}`} className="text-sm text-muted-foreground/95">
+                            <li
+                              key={`${s}-${i}`}
+                              className="text-sm text-muted-foreground/95"
+                            >
                               {s}
                             </li>
                           ))
                         ) : (
-                          <li className="text-sm text-muted-foreground/95">No caveats provided.</li>
+                          <li className="text-sm text-muted-foreground/95">
+                            No caveats provided.
+                          </li>
                         )}
                       </ul>
                     </div>
@@ -422,17 +526,26 @@ function PumpfunAlphaTabPanel() {
               <Card className="border-border/55 bg-card/60 backdrop-blur-md">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg">Beta watchlist</CardTitle>
-                  <CardDescription>Model-prioritized beta entries with concrete reasons.</CardDescription>
+                  <CardDescription>
+                    Model-prioritized beta entries with concrete reasons.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {trend.analysis.watchlist.length ? (
                     <div className="space-y-3">
                       {trend.analysis.watchlist.map((w) => (
-                        <div key={w.mint} className="rounded-xl border border-border/45 bg-muted/[0.08] p-4">
+                        <div
+                          key={w.mint}
+                          className="rounded-xl border border-border/45 bg-muted/[0.08] p-4"
+                        >
                           <div className="flex items-center justify-between gap-2">
                             <div className="min-w-0">
-                              <p className="truncate font-mono text-sm font-semibold text-foreground">{w.symbol}</p>
-                              <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">{w.mint}</p>
+                              <p className="truncate font-mono text-sm font-semibold text-foreground">
+                                {w.symbol}
+                              </p>
+                              <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
+                                {w.mint}
+                              </p>
                             </div>
                             <a
                               href={`https://pump.fun/coin/${encodeURIComponent(w.mint)}`}
@@ -443,12 +556,16 @@ function PumpfunAlphaTabPanel() {
                               Open
                             </a>
                           </div>
-                          <p className="mt-3 text-sm leading-relaxed text-muted-foreground/95">{w.reason}</p>
+                          <p className="mt-3 text-sm leading-relaxed text-muted-foreground/95">
+                            {w.reason}
+                          </p>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-muted-foreground">No watchlist generated.</p>
+                    <p className="text-sm text-muted-foreground">
+                      No watchlist generated.
+                    </p>
                   )}
                 </CardContent>
               </Card>
@@ -457,16 +574,24 @@ function PumpfunAlphaTabPanel() {
             <Card className="border-border/55 bg-card/55 backdrop-blur-md">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg">All flagged plays</CardTitle>
-                <CardDescription>Alpha and beta tokens from the current scan.</CardDescription>
+                <CardDescription>
+                  Alpha and beta tokens from the current scan.
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow className="border-border/50 hover:bg-transparent">
-                        <TableHead className="w-12 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">#</TableHead>
-                        <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Role</TableHead>
-                        <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Token</TableHead>
+                        <TableHead className="w-12 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          #
+                        </TableHead>
+                        <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          Role
+                        </TableHead>
+                        <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          Token
+                        </TableHead>
                         <TableHead className="hidden text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground sm:table-cell">
                           Score
                         </TableHead>
@@ -478,7 +603,10 @@ function PumpfunAlphaTabPanel() {
                         </TableHead>
                         <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                           <span className="inline-flex items-center justify-end gap-2">
-                            <Clock className="h-3.5 w-3.5 opacity-70" aria-hidden />
+                            <Clock
+                              className="h-3.5 w-3.5 opacity-70"
+                              aria-hidden
+                            />
                             Anchor
                           </span>
                         </TableHead>
@@ -489,19 +617,30 @@ function PumpfunAlphaTabPanel() {
                     </TableHeader>
                     <TableBody>
                       {trend.tokens.map((t, i) => (
-                        <TableRow key={t.mint} className="group border-border/40 transition-colors hover:bg-muted/20">
-                          <TableCell className="font-mono text-xs text-muted-foreground">{i + 1}</TableCell>
+                        <TableRow
+                          key={t.mint}
+                          className="group border-border/40 transition-colors hover:bg-muted/20"
+                        >
+                          <TableCell className="font-mono text-xs text-muted-foreground">
+                            {i + 1}
+                          </TableCell>
                           <TableCell>
                             {t.playRole === "alpha" || t.playRole === "beta" ? (
                               <PlayRoleBadge role={t.playRole} />
                             ) : (
-                              <span className="text-xs text-muted-foreground">—</span>
+                              <span className="text-xs text-muted-foreground">
+                                —
+                              </span>
                             )}
                           </TableCell>
                           <TableCell>
                             <div className="min-w-0">
-                              <p className="truncate font-semibold tracking-tight text-foreground">{t.symbol}</p>
-                              <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">{t.mint}</p>
+                              <p className="truncate font-semibold tracking-tight text-foreground">
+                                {t.symbol}
+                              </p>
+                              <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
+                                {t.mint}
+                              </p>
                             </div>
                           </TableCell>
                           <TableCell className="hidden text-right font-mono text-sm tabular-nums text-foreground sm:table-cell">
@@ -512,12 +651,18 @@ function PumpfunAlphaTabPanel() {
                                 : "—"}
                           </TableCell>
                           <TableCell className="hidden text-right font-mono text-sm tabular-nums text-foreground sm:table-cell">
-                            {t.marketCapUsd != null ? formatCompactUsd(t.marketCapUsd) : "—"}
+                            {t.marketCapUsd != null
+                              ? formatCompactUsd(t.marketCapUsd)
+                              : "—"}
                           </TableCell>
                           <TableCell className="hidden text-right font-mono text-sm tabular-nums text-foreground lg:table-cell">
-                            {t.athMarketCapUsd != null ? formatCompactUsd(t.athMarketCapUsd) : "—"}
+                            {t.athMarketCapUsd != null
+                              ? formatCompactUsd(t.athMarketCapUsd)
+                              : "—"}
                           </TableCell>
-                          <TableCell className="text-right font-mono text-xs tabular-nums text-muted-foreground">{formatTs(t.anchorTsMs)}</TableCell>
+                          <TableCell className="text-right font-mono text-xs tabular-nums text-muted-foreground">
+                            {formatTs(t.anchorTsMs)}
+                          </TableCell>
                           <TableCell className="pr-4 text-right text-muted-foreground">
                             <a
                               href={`https://pump.fun/coin/${encodeURIComponent(t.mint)}`}
@@ -526,7 +671,10 @@ function PumpfunAlphaTabPanel() {
                               className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 bg-background/30 text-primary transition-colors hover:bg-background/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                               aria-label={`Open ${t.symbol} on pump.fun`}
                             >
-                              <ArrowUpRight className="h-3.5 w-3.5 opacity-85 transition-transform group-hover:translate-x-[1px] group-hover:-translate-y-[1px]" aria-hidden />
+                              <ArrowUpRight
+                                className="h-3.5 w-3.5 opacity-85 transition-transform group-hover:translate-x-[1px] group-hover:-translate-y-[1px]"
+                                aria-hidden
+                              />
                             </a>
                           </TableCell>
                         </TableRow>
@@ -550,7 +698,12 @@ function formatSignedCompactUsd(n: number | null | undefined): string {
   let body: string;
   if (v >= 1_000_000) body = `$${(v / 1_000_000).toFixed(1)}M`;
   else if (v >= 10_000) body = `$${Math.round(v / 1000)}k`;
-  else body = new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(v);
+  else
+    body = new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
+    }).format(v);
   return `${sign}${body}`;
 }
 
@@ -611,7 +764,10 @@ export default function Alpha() {
           />
           <div
             className="pointer-events-none absolute -right-24 -top-28 h-[340px] w-[340px] rounded-full blur-3xl"
-            style={{ background: "radial-gradient(circle, hsl(var(--primary)/0.14), transparent 62%)" }}
+            style={{
+              background:
+                "radial-gradient(circle, hsl(var(--primary)/0.14), transparent 62%)",
+            }}
           />
           <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0 space-y-3">
@@ -619,15 +775,27 @@ export default function Alpha() {
                 <Sparkles className="h-3.5 w-3.5 text-primary" aria-hidden />
                 Intelligence
               </div>
-              <h1 className="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">Alpha</h1>
+              <h1 className="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                Alpha
+              </h1>
               <p className="max-w-xl text-pretty text-[15px] leading-relaxed text-muted-foreground sm:text-base">
-                Early product-grade feeds curated by Syra — structured signals you can scan in seconds, built for teams
-                shipping at full velocity.
+                Early product-grade feeds curated by Syra — structured signals
+                you can scan in seconds, built for teams shipping at full
+                velocity.
               </p>
             </div>
             <div className="flex shrink-0 flex-wrap gap-2 lg:flex-col lg:items-end">
-              <Button variant="secondary" size="sm" className="rounded-xl gap-2 border border-border/60 bg-background/50" asChild>
-                <a href="https://docs.syraa.fun" target="_blank" rel="noopener noreferrer">
+              <Button
+                variant="secondary"
+                size="sm"
+                className="rounded-xl gap-2 border border-border/60 bg-background/50"
+                asChild
+              >
+                <a
+                  href="https://docs.syraa.fun"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   API docs
                   <ArrowUpRight className="h-4 w-4 opacity-70" aria-hidden />
                 </a>
@@ -636,7 +804,11 @@ export default function Alpha() {
           </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(parseAlphaTab(v))} className="min-h-0 flex-1 space-y-8">
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(parseAlphaTab(v))}
+          className="min-h-0 flex-1 space-y-8"
+        >
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <TabsList className="h-auto w-full justify-start gap-1 rounded-2xl border border-border/55 bg-muted/35 p-1.5 shadow-inner backdrop-blur-md sm:w-auto">
               <TabsTrigger
@@ -676,23 +848,39 @@ export default function Alpha() {
               </TabsTrigger>
             </TabsList>
             <p className="text-[12px] font-medium text-muted-foreground/75 sm:text-right">
-              More institutional feeds are queued — this workspace grows with your roadmap.
+              More institutional feeds are queued — this workspace grows with
+              your roadmap.
             </p>
           </div>
 
-          <TabsContent value="pumpfun" className="mt-0 outline-none focus-visible:outline-none">
+          <TabsContent
+            value="pumpfun"
+            className="mt-0 outline-none focus-visible:outline-none"
+          >
             <PumpfunAlphaTabPanel />
           </TabsContent>
-          <TabsContent value="scout" className="mt-0 outline-none focus-visible:outline-none">
+          <TabsContent
+            value="scout"
+            className="mt-0 outline-none focus-visible:outline-none"
+          >
             <PumpfunAlphaScoutTabPanel />
           </TabsContent>
-          <TabsContent value="utility" className="mt-0 outline-none focus-visible:outline-none">
+          <TabsContent
+            value="utility"
+            className="mt-0 outline-none focus-visible:outline-none"
+          >
             <PumpfunUtilityScoutTabPanel />
           </TabsContent>
-          <TabsContent value="rise" className="mt-0 outline-none focus-visible:outline-none">
+          <TabsContent
+            value="rise"
+            className="mt-0 outline-none focus-visible:outline-none"
+          >
             <RiseAlphaTabPanel />
           </TabsContent>
-          <TabsContent value="coingecko" className="mt-0 outline-none focus-visible:outline-none">
+          <TabsContent
+            value="coingecko"
+            className="mt-0 outline-none focus-visible:outline-none"
+          >
             <CoinGeckoAlphaTabPanel />
           </TabsContent>
         </Tabs>

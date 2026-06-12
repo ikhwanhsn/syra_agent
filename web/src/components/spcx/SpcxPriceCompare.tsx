@@ -46,7 +46,7 @@ export function SpcxPriceCompare({ report }: { report: SpcxIntelligenceReport })
 
   const spreadExplanation =
     !hasLive || spreadPct == null
-      ? "Waiting for a verified token price to compare."
+      ? "No verified on-chain price yet — compare exchange or brokerage routes below."
       : spreadPct > 2
         ? "The token costs more than the stock — you are paying a premium."
         : spreadPct < -2
@@ -95,8 +95,8 @@ export function SpcxPriceCompare({ report }: { report: SpcxIntelligenceReport })
 
         <PriceBlock
           label="Token on Solana"
-          sublabel={hasLive ? `${liveVenue!.symbol} · verified pool` : "Not live yet"}
-          price={hasLive ? formatUsd(liveVenue!.priceUsd) : "Pending"}
+          sublabel={hasLive ? `${liveVenue!.symbol} · verified pool` : "No verified DEX pool"}
+          price={hasLive ? formatUsd(liveVenue!.priceUsd) : "—"}
           muted={!hasLive}
         />
       </div>

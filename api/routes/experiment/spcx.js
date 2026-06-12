@@ -32,10 +32,7 @@ export function createSpcxExperimentRouter() {
 
   router.get("/latest", async (req, res) => {
     try {
-      let report = getLatestSpcxReport();
-      if (!report) {
-        report = await tickSpcxAgent({ force: true });
-      }
+      const report = await tickSpcxAgent({ force: false });
       res.json({
         success: true,
         data: report,

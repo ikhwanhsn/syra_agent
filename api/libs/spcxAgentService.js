@@ -6,7 +6,7 @@
 import { buildSpcxIntelligence } from "./spcxIntelligence.js";
 
 const MAX_FEED_ENTRIES = 100;
-const TICK_COOLDOWN_MS = 25_000;
+const TICK_COOLDOWN_MS = 10_000;
 
 /** @type {import('./equityIntelligence.js').EquityIntelligenceReport[]} */
 let feed = [];

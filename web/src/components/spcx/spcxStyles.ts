@@ -18,7 +18,8 @@ export const spcxKickerClass =
 export const spcxSectionTitleClass =
   "font-display text-lg font-semibold tracking-[-0.02em] text-foreground sm:text-xl";
 
-export const spcxSectionDescClass = "text-sm leading-relaxed text-muted-foreground";
+export const spcxSectionDescClass =
+  "text-sm leading-relaxed text-muted-foreground";
 
 export const spcxMetricValueClass =
   "font-display text-2xl font-semibold tabular-nums tracking-tight text-foreground sm:text-[1.65rem]";

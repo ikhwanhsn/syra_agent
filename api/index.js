@@ -121,6 +121,7 @@ import {
   getB402PublicStatus,
 } from "./libs/b402KeyMaterial.js";
 import { isB402Enabled } from "./config/b402Networks.js";
+import { startupInfo, startupVerbose, startupWarn } from "./utils/startupLog.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -134,15 +135,18 @@ if (process.env.NODE_ENV !== "production") {
 
 const b402KeyBootstrap = bootstrapB402PrivateKeyFromEnv();
 if (b402KeyBootstrap.wrote) {
-  console.log(
+  startupVerbose(
     `[b402] bootstrapped private key from ${b402KeyBootstrap.source} → ${b402KeyBootstrap.path}`,
   );
 }
 const b402BootStatus = getB402PublicStatus();
 if (b402BootStatus.enabled) {
-  console.log("[b402] credentials loaded", JSON.stringify({ keySource: b402BootStatus.keySource }));
+  startupVerbose(
+    "[b402] credentials loaded",
+    JSON.stringify({ keySource: b402BootStatus.keySource }),
+  );
 } else {
-  console.warn(
+  startupWarn(
     "[b402] not ready at boot",
     JSON.stringify({ missing: b402BootStatus.missing, keySource: b402BootStatus.keySource }),
   );
@@ -1390,6 +1394,8 @@ import("./utils/x402ResourceServer.js").then(
 );
 
 app.listen(PORT, () => {
+  startupInfo(`[syra-api] listening on port ${PORT}`);
+
   const LP_AGENT_SIGNAL_INTERVAL_MS = 120_000;
   const LP_AGENT_RESOLVE_INTERVAL_MS = 15_000;
   const legacyMs = Number(process.env.TRADING_EXPERIMENT_CRON_MS || 0);
@@ -1583,7 +1589,7 @@ app.listen(PORT, () => {
           resolveLpRealPositions,
         }) => {
           if (!isRealCronEnabled()) return null;
-          console.info("[LP real] boot signal+resolve tick");
+          startupVerbose("[LP real] boot signal+resolve tick");
           return Promise.all([
             runLpRealSignalCycle(),
             resolveLpRealPositions(),
@@ -1611,10 +1617,10 @@ app.listen(PORT, () => {
           .then((out) => {
             if (!out.ok) return;
             if (out.skipped) {
-              console.info("[LP experiment evolution] skipped:", out.skipped);
+              startupVerbose("[LP experiment evolution] skipped:", out.skipped);
               return;
             }
-            console.info(
+            startupVerbose(
               "[LP experiment evolution]",
               "culled",
               out.culled?.length ?? 0,
@@ -1653,7 +1659,7 @@ app.listen(PORT, () => {
               );
               continue;
             }
-            console.info(
+            startupVerbose(
               "[Trading experiment evolution]",
               out.suite,
               "culled",
@@ -1679,7 +1685,7 @@ app.listen(PORT, () => {
           maybeBootstrapMultiTokenEvolution()
             .then((boot) => {
               if (boot.dailySpawned?.length) {
-                console.info(
+                startupVerbose(
                   "[Trading experiment evolution]",
                   "multi_token bootstrap daily spawned",
                   boot.dailySpawned.length,

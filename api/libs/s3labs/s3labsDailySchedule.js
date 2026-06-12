@@ -10,6 +10,7 @@ import {
   S3LABS_SCHEDULE_HOUR_START_WIB,
   S3LABS_SCHEDULE_MIN_GAP_MINUTES,
 } from "../../config/s3labsAgentsConfig.js";
+import { startupVerbose } from "../../utils/startupLog.js";
 
 const AGENT_TEAM_TIMEZONE = "Asia/Jakarta";
 
@@ -122,7 +123,7 @@ export function getOrRefreshDailySchedule(kind) {
   );
 
   scheduleByAgent.set(kind, { wibDateKey, slots, slotIndex: 0 });
-  console.log(
+  startupVerbose(
     `[s3labs-${kind}] daily schedule (${wibDateKey} WIB): ${slots.length} posts at ${slots.map(([h, m]) => `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`).join(", ")}`,
   );
 

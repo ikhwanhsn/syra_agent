@@ -3,6 +3,8 @@
  * @see https://core.telegram.org/bots/api#sendmessage
  */
 
+import { fetchWithRetry } from "../utils/resilientFetch.js";
+
 /** Telegram max message length (UTF-16 code units; we use JS string length as safe proxy). */
 export const TELEGRAM_MESSAGE_MAX_LEN = 4096;
 
@@ -117,11 +119,18 @@ export async function sendTelegramChatAction(options) {
   }
 
   const url = `https://api.telegram.org/bot${encodeURIComponent(token)}/sendChatAction`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  let res;
+  try {
+    res = await fetchWithRetry(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  } catch (e) {
+    const err = e instanceof Error ? e.message : String(e);
+    console.warn("[telegram-bot] sendChatAction network error:", err);
+    return { ok: false, error: err };
+  }
 
   if (!res.ok) {
     const t = await res.text().catch(() => "");
@@ -148,14 +157,21 @@ export async function deleteTelegramMessage(options) {
   }
 
   const url = `https://api.telegram.org/bot${encodeURIComponent(token)}/deleteMessage`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      chat_id: chatId,
-      message_id: Math.trunc(messageId),
-    }),
-  });
+  let res;
+  try {
+    res = await fetchWithRetry(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        message_id: Math.trunc(messageId),
+      }),
+    });
+  } catch (e) {
+    const err = e instanceof Error ? e.message : String(e);
+    console.warn("[telegram-bot] deleteMessage network error:", err);
+    return { ok: false, error: err };
+  }
 
   if (!res.ok) {
     const t = await res.text().catch(() => "");
@@ -214,11 +230,18 @@ export async function sendTelegramMessage(options) {
       body.allow_sending_without_reply = true;
     }
 
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    let res;
+    try {
+      res = await fetchWithRetry(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    } catch (e) {
+      const err = e instanceof Error ? e.message : String(e);
+      console.warn("[telegram-bot] sendMessage network error:", err);
+      return { ok: false, error: err };
+    }
 
     const data = await res.json().catch(() => ({}));
 

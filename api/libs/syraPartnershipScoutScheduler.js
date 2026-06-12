@@ -9,6 +9,7 @@ import {
   SYRA_PARTNERSHIP_SCOUT_WIB_HOUR,
   SYRA_PARTNERSHIP_SCOUT_WIB_MINUTE,
 } from "../config/syraPartnershipScoutConfig.js";
+import { startupVerbose } from "../utils/startupLog.js";
 
 export function startSyraPartnershipScoutScheduler() {
   let running = false;
@@ -23,7 +24,7 @@ export function startSyraPartnershipScoutScheduler() {
     running = true;
     try {
       await runSyraPartnershipScoutPipeline();
-      console.log("[syra-partnership-scout] pipeline completed OK");
+      startupVerbose("[syra-partnership-scout] pipeline completed OK");
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       console.error("[syra-partnership-scout] pipeline failed:", msg);
@@ -46,7 +47,7 @@ export function startSyraPartnershipScoutScheduler() {
       SYRA_PARTNERSHIP_SCOUT_WIB_MINUTE,
     );
     const nextAt = new Date(Date.now() + delayMs).toISOString();
-    console.log(
+    startupVerbose(
       `[syra-partnership-scout] next run in ${Math.round(delayMs / 1000)}s (~${nextAt} UTC; daily ${String(SYRA_PARTNERSHIP_SCOUT_WIB_HOUR).padStart(2, "0")}:${String(SYRA_PARTNERSHIP_SCOUT_WIB_MINUTE).padStart(2, "0")} Asia/Jakarta)`,
     );
     nextTimer = setTimeout(async () => {
@@ -58,12 +59,12 @@ export function startSyraPartnershipScoutScheduler() {
   scheduleNextWibAnchor();
 
   if (!isDevTelegramConfigured()) {
-    console.warn(
+    startupVerbose(
       "[syra-partnership-scout] Telegram disabled: set SYRA_DEV_BOT_TOKEN and SYRA_DEV_BOT_CHAT_ID",
     );
   }
 
-  console.log(
+  startupVerbose(
     `[syra-partnership-scout] enabled; WIB ${String(SYRA_PARTNERSHIP_SCOUT_WIB_HOUR).padStart(2, "0")}:${String(SYRA_PARTNERSHIP_SCOUT_WIB_MINUTE).padStart(2, "0")}; Telegram=${isDevTelegramConfigured() ? "on" : "off"}`,
   );
 }

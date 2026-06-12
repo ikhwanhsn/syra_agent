@@ -7,6 +7,7 @@ import {
   S3LABS_TELEGRAM_WEBHOOK_URL,
 } from "../../config/s3labsAgentsConfig.js";
 import { getS3labsTelegramConfig } from "../s3labsTelegramNotifier.js";
+import { startupVerbose } from "../../utils/startupLog.js";
 
 /** @type {{ id: number; username: string } | null} */
 let botMeta = null;
@@ -91,7 +92,7 @@ export async function registerS3labsTelegramWebhookIfConfigured() {
     return false;
   }
 
-  console.log("[s3labs-telegram] webhook registered:", webhookUrl);
+  startupVerbose("[s3labs-telegram] webhook registered:", webhookUrl);
   return true;
 }
 

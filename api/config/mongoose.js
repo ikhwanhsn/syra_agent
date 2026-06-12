@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import { startupInfo, startupVerbose } from '../utils/startupLog.js';
 
 dotenv.config();
 
@@ -104,7 +105,7 @@ const connectMongoose = async (options = {}) => {
       })
       .then(async () => {
         isConnected = true;
-        console.log('[mongoose] Connected');
+        startupInfo('[mongoose] Connected');
         await fireOnConnectedHandlers();
         return true;
       })
@@ -156,7 +157,7 @@ export function startMongooseConnectionLoop() {
     reconnectTimer.unref();
   }
 
-  console.info(`[mongoose] connection retry every ${Math.round(retryMs / 1000)}s until connected`);
+  startupVerbose(`[mongoose] connection retry every ${Math.round(retryMs / 1000)}s until connected`);
 }
 
 /** Express middleware — responds 503 when MongoDB is unavailable. */

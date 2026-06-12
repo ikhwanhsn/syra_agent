@@ -5,7 +5,7 @@ const STEPS = [
   {
     icon: BookOpen,
     title: "What is this page?",
-    body: "SpaceX is going public as stock ticker SPCX. This page tracks the stock price vs tokenized versions you can buy on crypto — so you never overpay or buy a fake token.",
+    body: "SpaceX now trades live on Nasdaq as SPCX. This page tracks the stock price vs tokenized versions you can buy on crypto — so you never overpay or buy a fake token.",
   },
   {
     icon: MapPin,

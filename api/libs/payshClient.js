@@ -3,6 +3,7 @@
  * Catalog: https://pay.sh/api/catalog — skills: https://storage.googleapis.com/pay-skills/v1/providers/{fqn}.json
  */
 import { callX402V2WithAgent } from './agentX402Client.js';
+import { startupVerbose } from '../utils/startupLog.js';
 
 /** @typedef {{ fqn: string; title: string; description: string; use_case: string; category: string; service_url: string; endpoint_count: number; has_metering: boolean; has_free_tier: boolean; min_price_usd: number; max_price_usd: number; sha?: string }} PayshCatalogProvider */
 
@@ -124,7 +125,7 @@ export async function fetchCatalog(opts = {}) {
   const providers = Array.isArray(body?.providers) ? body.providers : [];
   evictStaleSkillsAfterCatalogFetch(providers);
   _catalogCache = { at: now, body: /** @type {Record<string, unknown> & { providers: PayshCatalogProvider[] }} */ ({ ...body, providers }) };
-  console.log(
+  startupVerbose(
     JSON.stringify({
       paysh: 'catalog_fetched',
       providerCount: providers.length,
@@ -597,7 +598,7 @@ export function startPayshCatalogAutoRefresh() {
       console.warn('[paysh] auto-refresh catalog failed:', msg);
     });
   }, ms);
-  console.log(`[paysh] catalog auto-refresh enabled (every ${ms}ms)`);
+  startupVerbose(`[paysh] catalog auto-refresh enabled (every ${ms}ms)`);
   fetchCatalog({ forceRefresh: true }).catch((e) => {
     const msg = e instanceof Error ? e.message : String(e);
     console.warn('[paysh] initial catalog refresh failed:', msg);

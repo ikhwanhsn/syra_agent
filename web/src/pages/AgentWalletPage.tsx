@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Loader2, RefreshCw, ShieldCheck, Wallet } from "lucide-react";
+import { useNavigate } from "@/lib/navigation";
+import { Layers, Loader2, PieChart, RefreshCw, ShieldCheck, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FuelAgentModal } from "@/components/chat/FuelAgentModal";
 import { AgentWalletsManager } from "@/components/settings/AgentWalletsManager";
@@ -20,6 +21,11 @@ import {
 import { cn } from "@/lib/utils";
 import type { AgentWalletPurpose } from "@/lib/agentWalletCatalog";
 import { AgentBillingDashboard } from "@/components/wallet/AgentBillingDashboard";
+import { AgentPortfolioPanel } from "@/components/wallet/AgentPortfolioPanel";
+import {
+  walletPageSegmentedRoot,
+  walletPageSegmentedTrigger,
+} from "@/components/wallet/walletPageStyles";
 
 function parseFlowTab(value: string | null): "deposit" | "withdraw" {
   return value === "withdraw" ? "withdraw" : "deposit";
@@ -27,6 +33,12 @@ function parseFlowTab(value: string | null): "deposit" | "withdraw" {
 
 function parseWalletPurpose(value: string | null): AgentWalletPurpose {
   return value === "lp" ? "lp" : "chat";
+}
+
+type WalletPageView = "treasuries" | "portfolio";
+
+function parsePageView(value: string | null): WalletPageView {
+  return value === "portfolio" ? "portfolio" : "treasuries";
 }
 
 function WalletPageMessage({
@@ -54,12 +66,28 @@ function WalletPageMessage({
 
 export default function AgentWalletPage() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { openConnectModal } = useConnectModal();
   const wallets = useManagedAgentWallets();
   const [moveFundsOpen, setMoveFundsOpen] = useState(false);
 
   const urlTab = useMemo(() => parseFlowTab(searchParams.get("tab")), [searchParams]);
   const urlWallet = useMemo(() => parseWalletPurpose(searchParams.get("wallet")), [searchParams]);
+  const urlView = useMemo(() => parsePageView(searchParams.get("view")), [searchParams]);
+  const [pageView, setPageView] = useState<WalletPageView>(urlView);
+
+  useEffect(() => {
+    setPageView(urlView);
+  }, [urlView]);
+
+  const selectPageView = (view: WalletPageView) => {
+    setPageView(view);
+    const next = new URLSearchParams(searchParams);
+    if (view === "portfolio") next.set("view", "portfolio");
+    else next.delete("view");
+    const qs = next.toString();
+    navigate(qs ? `/wallet?${qs}` : "/wallet", { replace: true });
+  };
 
   const treasuryReady =
     wallets.connected && !wallets.setupLoading && !wallets.setupLoadError && !wallets.authPending;
@@ -97,14 +125,51 @@ export default function AgentWalletPage() {
         )}
       >
         <div className="mx-auto w-full max-w-3xl space-y-8">
-          <header className="space-y-2">
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Wallets</h1>
-            <p className="max-w-lg text-sm leading-relaxed text-muted-foreground">
-              Agent treasuries hold the SOL and USDC your AI uses. Track spend, caps, and policy on the Syra rail.
-            </p>
+          <header className="space-y-4">
+            <div className="space-y-2">
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Wallets</h1>
+              <p className="max-w-lg text-sm leading-relaxed text-muted-foreground">
+                {pageView === "portfolio"
+                  ? "Every token your agent wallets hold — SOL, USDC, and anything your agents trade or receive."
+                  : "Agent treasuries hold the SOL and USDC your AI uses. Track spend, caps, and policy on the Syra rail."}
+              </p>
+            </div>
+
+            {treasuryReady ? (
+              <div
+                className={walletPageSegmentedRoot(2)}
+                role="tablist"
+                aria-label="Wallet page sections"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={pageView === "treasuries"}
+                  id="wallet-view-treasuries"
+                  aria-controls="wallet-panel-treasuries"
+                  onClick={() => selectPageView("treasuries")}
+                  className={walletPageSegmentedTrigger(pageView === "treasuries")}
+                >
+                  <Layers className="h-3.5 w-3.5 opacity-70" aria-hidden />
+                  Treasuries
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={pageView === "portfolio"}
+                  id="wallet-view-portfolio"
+                  aria-controls="wallet-panel-portfolio"
+                  onClick={() => selectPageView("portfolio")}
+                  className={walletPageSegmentedTrigger(pageView === "portfolio")}
+                >
+                  <PieChart className="h-3.5 w-3.5 opacity-70" aria-hidden />
+                  Portfolio
+                </button>
+              </div>
+            ) : null}
           </header>
 
-          {wallets.connected && treasuryReady ? (
+          {wallets.connected && treasuryReady && pageView === "treasuries" ? (
             <AgentBillingDashboard compact />
           ) : null}
 
@@ -149,8 +214,16 @@ export default function AgentWalletPage() {
                 </Button>
               }
             />
+          ) : pageView === "portfolio" ? (
+            <div id="wallet-panel-portfolio" role="tabpanel" aria-labelledby="wallet-view-portfolio">
+              <AgentPortfolioPanel
+                chatAddress={wallets.managedChatWallet?.agentAddress}
+                lpAddress={wallets.managedLpWallet?.agentAddress}
+                enabled={treasuryReady}
+              />
+            </div>
           ) : (
-            <>
+            <div id="wallet-panel-treasuries" role="tabpanel" aria-labelledby="wallet-view-treasuries">
               <section
                 className={cn(
                   overviewCardShell,
@@ -244,7 +317,7 @@ export default function AgentWalletPage() {
                   creatingLp={wallets.creatingLp}
                 />
               </section>
-            </>
+            </div>
           )}
         </div>
       </div>

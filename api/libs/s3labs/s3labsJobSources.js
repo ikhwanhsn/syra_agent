@@ -2,6 +2,7 @@
  * Job sources for S3Labs Jobs agent — web3.career HTML + tech RSS feeds.
  */
 
+import { fetchWithRetry } from "../../utils/resilientFetch.js";
 import { fetchRssSource } from "../newsSources/rssParser.js";
 import { S3LABS_JOB_RSS_SOURCES } from "../../config/s3labsAgentsConfig.js";
 import {
@@ -29,7 +30,7 @@ async function fetchHtml(url) {
     typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function"
       ? AbortSignal.timeout(FETCH_TIMEOUT_MS)
       : undefined;
-  const res = await fetch(url, {
+  const res = await fetchWithRetry(url, {
     headers: {
       Accept: "text/html,application/xhtml+xml",
       "User-Agent": "Mozilla/5.0 (compatible; SyraJobBot/1.0; +https://syra.ai)",

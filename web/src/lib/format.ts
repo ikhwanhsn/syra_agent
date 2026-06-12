@@ -61,6 +61,90 @@ export function formatCompactAmountFloor(value: string | number): string {
   return num.toLocaleString("en-US", { maximumFractionDigits: 2 });
 }
 
+const SUBSCRIPT_DIGITS: Record<string, string> = {
+  "0": "₀",
+  "1": "₁",
+  "2": "₂",
+  "3": "₃",
+  "4": "₄",
+  "5": "₅",
+  "6": "₆",
+  "7": "₇",
+  "8": "₈",
+  "9": "₉",
+};
+
+function toSubscriptCount(n: number): string {
+  return String(n)
+    .split("")
+    .map((d) => SUBSCRIPT_DIGITS[d] ?? d)
+    .join("");
+}
+
+function trimTrailingZeros(value: string): string {
+  if (!value.includes(".")) return value;
+  return value.replace(/(\.\d*?[1-9])0+$/u, "$1").replace(/\.0+$/u, "").replace(/\.$/u, "");
+}
+
+/** Full-precision string for tooltips / copy — never scientific notation. */
+export function formatPortfolioTokenAmountFull(amount: number): string {
+  if (!Number.isFinite(amount) || amount <= 0) return "0";
+  if (amount >= 1) {
+    return trimTrailingZeros(
+      amount.toLocaleString("en-US", { maximumFractionDigits: 9, useGrouping: false }),
+    );
+  }
+  const fixed = amount.toFixed(12);
+  return trimTrailingZeros(fixed);
+}
+
+export interface FormattedPortfolioTokenAmount {
+  display: string;
+  ariaLabel: string;
+  full: string;
+}
+
+/**
+ * Human-readable token balance for portfolio rows.
+ * Never uses scientific notation; uses zero-subscript for micro amounts.
+ */
+export function formatPortfolioTokenAmount(amount: number): FormattedPortfolioTokenAmount {
+  const full = formatPortfolioTokenAmountFull(amount);
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return { display: "0", ariaLabel: "0", full: "0" };
+  }
+
+  if (amount >= 1_000_000) {
+    const display = formatCompactAmount(amount);
+    return { display, ariaLabel: full, full };
+  }
+
+  if (amount >= 1) {
+    const display = amount.toLocaleString(undefined, { maximumFractionDigits: 4 });
+    return { display, ariaLabel: full, full };
+  }
+
+  if (amount >= 0.01) {
+    const display = amount.toLocaleString(undefined, { maximumFractionDigits: 6 });
+    return { display, ariaLabel: full, full };
+  }
+
+  const fixed = amount.toFixed(20);
+  const match = fixed.match(/^0\.(0*)([1-9]\d*)/u);
+  if (match) {
+    const leadingZeros = match[1].length;
+    const significant = match[2].replace(/0+$/u, "").slice(0, 4);
+    if (leadingZeros >= 3 && significant) {
+      const display = `0.0${toSubscriptCount(leadingZeros)}${significant}`;
+      return { display, ariaLabel: full, full };
+    }
+  }
+
+  const display = trimTrailingZeros(amount.toPrecision(8));
+  return { display, ariaLabel: full, full };
+}
+
 export function parseUnits(value: string, decimals: number): bigint {
   const [whole = "0", fraction = ""] = value.split(".");
   const paddedFraction = fraction.padEnd(decimals, "0").slice(0, decimals);

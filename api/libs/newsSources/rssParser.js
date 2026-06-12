@@ -4,6 +4,7 @@
 
 import { XMLParser } from "fast-xml-parser";
 import { INTERNAL_NEWS_RSS_TIMEOUT_MS } from "../../config/internalNewsConfig.js";
+import { fetchWithRetry } from "../../utils/resilientFetch.js";
 
 /**
  * @typedef {{
@@ -124,7 +125,7 @@ async function fetchFeedXml(url, timeoutMs = INTERNAL_NEWS_RSS_TIMEOUT_MS) {
     typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function"
       ? AbortSignal.timeout(timeoutMs)
       : undefined;
-  const res = await fetch(url, {
+  const res = await fetchWithRetry(url, {
     method: "GET",
     headers: {
       Accept: "application/rss+xml, application/atom+xml, application/xml, text/xml, */*",

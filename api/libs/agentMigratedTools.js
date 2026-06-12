@@ -36,6 +36,9 @@ import {
   listChains as scanListChains,
 } from "./8004scanClient.js";
 import { payer, getSentinelPayerFetch, getNansenPaymentFetch } from "./sentinelPayer.js";
+import { fetchWithRetry } from "../utils/resilientFetch.js";
+import { resolveReferralFee } from "./jupiterReferral.js";
+import { getConnection } from "./meteoraDlmmExecutor.js";
 import { smartMoneyRequests } from "../request/nansen/smart-money.request.js";
 import { tokenGodModeRequests } from "../request/nansen/token-god-mode.js";
 import { createHeyLolClient, createHeyLolPaymentFetch } from "./heylol.js";
@@ -49,6 +52,8 @@ import { run8004Stats, run8004Leaderboard, run8004AgentsSearch } from "./8004Rea
 
 const JUPITER_TRENDING_URL = "https://jupiter.api.corbits.dev/tokens/v2/content/cooking";
 const JUPITER_ULTRA_ORDER_URL = "https://jupiter.api.corbits.dev/ultra/v1/order";
+const JUPITER_QUOTE_API = "https://api.jup.ag/swap/v1/quote";
+const JUPITER_SWAP_API = "https://api.jup.ag/swap/v1/swap";
 const BUBBLEMAPS_BASE = "https://api.bubblemaps.io";
 const SQUID_ROUTE_URL = "https://v2.api.squidrouter.com/v2/route";
 const SQUID_STATUS_URL = "https://v2.api.squidrouter.com/v2/status";
@@ -891,6 +896,14 @@ async function handlePumpfun(toolId, params) {
   }
 }
 
+function jupiterV1Headers() {
+  const headers = { "Content-Type": "application/json" };
+  if (process.env.JUPITER_API_KEY) {
+    headers["x-api-key"] = process.env.JUPITER_API_KEY;
+  }
+  return headers;
+}
+
 async function fetchJupiterUltraOrderJson(inputMint, outputMint, amount, taker) {
   await ensureSentinelPayer();
   const params = new URLSearchParams();
@@ -902,12 +915,93 @@ async function fetchJupiterUltraOrderJson(inputMint, outputMint, amount, taker) 
   const response = await getSentinelPayerFetch()(url, {
     method: "GET",
     headers: { "Content-Type": "application/json" },
+    signal: AbortSignal.timeout(15_000),
   });
   if (!response.ok) {
     const text = await response.text().catch(() => "");
-    throw new Error(`Jupiter order failed: HTTP ${response.status} ${response.statusText} ${text}`);
+    throw new Error(`Jupiter Ultra order failed: HTTP ${response.status} ${response.statusText} ${text}`);
   }
-  return response.json();
+  const data = await response.json();
+  return { ...data, source: "jupiter_ultra" };
+}
+
+async function fetchJupiterSwapV1OrderJson(inputMint, outputMint, amount, taker) {
+  const headers = jupiterV1Headers();
+  const quoteUrl = new URL(JUPITER_QUOTE_API);
+  quoteUrl.searchParams.set("inputMint", String(inputMint));
+  quoteUrl.searchParams.set("outputMint", String(outputMint));
+  quoteUrl.searchParams.set("amount", String(amount));
+  quoteUrl.searchParams.set("slippageBps", "100");
+
+  let platformFeeBps = 0;
+  let feeAccount = null;
+  try {
+    const fee = await resolveReferralFee(getConnection(), outputMint);
+    platformFeeBps = fee.platformFeeBps;
+    feeAccount = fee.feeAccount;
+    if (platformFeeBps > 0) {
+      quoteUrl.searchParams.set("platformFeeBps", String(platformFeeBps));
+    }
+  } catch (e) {
+    console.warn("[jupiter-swap-order] referral fee skipped:", e?.message || e);
+  }
+
+  const quoteRes = await fetchWithRetry(quoteUrl.toString(), {
+    method: "GET",
+    headers,
+    signal: AbortSignal.timeout(20_000),
+  });
+  if (!quoteRes.ok) {
+    const text = await quoteRes.text().catch(() => "");
+    throw new Error(`Jupiter quote failed: HTTP ${quoteRes.status} ${text || quoteRes.statusText}`);
+  }
+  const quoteResponse = await quoteRes.json();
+
+  const swapBody = {
+    quoteResponse,
+    userPublicKey: String(taker),
+    wrapAndUnwrapSol: true,
+    dynamicComputeUnitLimit: true,
+  };
+  if (platformFeeBps > 0 && feeAccount) {
+    swapBody.feeAccount = feeAccount;
+  }
+
+  const swapRes = await fetchWithRetry(JUPITER_SWAP_API, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(swapBody),
+    signal: AbortSignal.timeout(20_000),
+  });
+  if (!swapRes.ok) {
+    const text = await swapRes.text().catch(() => "");
+    throw new Error(`Jupiter swap failed: HTTP ${swapRes.status} ${text || swapRes.statusText}`);
+  }
+  const swapData = await swapRes.json();
+  const transaction = swapData?.swapTransaction;
+  if (typeof transaction !== "string") {
+    throw new Error("Jupiter swap returned no transaction");
+  }
+  return {
+    transaction,
+    outAmount: quoteResponse?.outAmount,
+    source: "jupiter_swap_v1",
+  };
+}
+
+async function fetchJupiterSwapOrderJson(inputMint, outputMint, amount, taker) {
+  const hasPayer = Boolean((process.env.PAYER_KEYPAIR || "").trim());
+  if (hasPayer) {
+    try {
+      return await fetchJupiterUltraOrderJson(inputMint, outputMint, amount, taker);
+    } catch (ultraErr) {
+      console.warn(
+        "[jupiter-swap-order] Ultra unavailable, using Swap V1:",
+        ultraErr instanceof Error ? ultraErr.message : ultraErr,
+      );
+    }
+  }
+  return fetchJupiterSwapV1OrderJson(inputMint, outputMint, amount, taker);
 }
 
 async function handleBrowserUse(params) {
@@ -965,11 +1059,8 @@ async function handleJupiterSwapOrder(params) {
       status: 400,
     };
   }
-  if (!(process.env.PAYER_KEYPAIR || "").trim()) {
-    return { ok: false, error: "PAYER_KEYPAIR must be set for Jupiter Ultra (Sentinel payer)", status: 503 };
-  }
   try {
-    const data = await fetchJupiterUltraOrderJson(inputMint, outputMint, amount, taker);
+    const data = await fetchJupiterSwapOrderJson(inputMint, outputMint, amount, taker);
     const out = { ...data };
     if (typeof out.transaction !== "string" && typeof out.swapTransaction === "string") {
       out.transaction = out.swapTransaction;

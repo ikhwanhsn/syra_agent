@@ -27,6 +27,8 @@ const CHAT_GUEST_TOOLS = Object.freeze([
   'analytics-summary',
   'arbitrage',
   'trending-jupiter',
+  'jupiter-swap-order',
+  'pumpfun-agents-swap',
 ]);
 
 const LP_DEFAULT_TOOLS = Object.freeze([...LP_REAL_TOOL_IDS, 'lp_real_swap']);

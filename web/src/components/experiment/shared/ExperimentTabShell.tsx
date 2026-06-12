@@ -4,7 +4,11 @@ import { cn } from "@/lib/utils";
 
 export type ExperimentTabId = "start" | "results" | "activity";
 
-const TAB_ITEMS: ReadonlyArray<{ id: ExperimentTabId; label: string; hint: string }> = [
+const TAB_ITEMS: ReadonlyArray<{
+  id: ExperimentTabId;
+  label: string;
+  hint: string;
+}> = [
   { id: "start", label: "Get started", hint: "Learn and pick a strategy" },
   { id: "results", label: "Live results", hint: "See what's winning" },
   { id: "activity", label: "Activity", hint: "Recent trades" },
@@ -53,7 +57,9 @@ export function ExperimentTabShell({
                 accentClass,
               )}
             >
-              <span className="text-sm font-semibold tracking-tight">{label}</span>
+              <span className="text-sm font-semibold tracking-tight">
+                {label}
+              </span>
               <span className="hidden text-[10px] font-normal leading-tight text-muted-foreground sm:block">
                 {hint}
               </span>

@@ -35,7 +35,7 @@ export function SpcxSpreadChart({ data }: { data: SpreadHistoryPoint[] }) {
       <CardContent className="pt-4">
         {!hasEnough ? (
           <p className="py-10 text-center text-sm text-muted-foreground">
-            Not enough data yet. Hit &ldquo;Refresh prices&rdquo; a few times to build the chart.
+            History builds automatically as live prices update.
           </p>
         ) : (
           <ChartContainer config={chartConfig} className="aspect-auto h-[260px] w-full">

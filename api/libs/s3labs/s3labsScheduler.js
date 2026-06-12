@@ -17,6 +17,8 @@ import {
   runS3labsEventPipeline,
 } from "./s3labsPipeline.js";
 import { consumeNextDailySlot, getOrRefreshDailySchedule, hasMoreSlotsToday } from "./s3labsDailySchedule.js";
+import { startupVerbose } from "../../utils/startupLog.js";
+import { isTransientNetworkError } from "../../utils/resilientFetch.js";
 
 /** @type {Record<string, () => Promise<unknown>>} */
 const PIPELINES = {
@@ -59,7 +61,7 @@ function scheduleAgentNext(def) {
 
   if (!slot) {
     const waitMs = getMsUntilNextWibWallClock(new Date(), 0, 5) + randomJitterMs();
-    console.log(
+    startupVerbose(
       `[s3labs-${def.kind}] all slots done for today; next window in ${Math.round(waitMs / 60000)} min`,
     );
     setTimeout(() => scheduleAgentNext(def), waitMs);
@@ -70,7 +72,7 @@ function scheduleAgentNext(def) {
   const jitterMs = delayMs - (getWibWallClockUtcMsToday(new Date(), hour, minute) - now);
   const nextAt = new Date(Date.now() + delayMs).toISOString();
 
-  console.log(
+  startupVerbose(
     `[s3labs-${def.kind}] next post in ${Math.round(delayMs / 60000)} min (~${nextAt}; WIB ${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")} +${Math.round(jitterMs / 60000)}m jitter) → topic ${def.threadId}`,
   );
 
@@ -79,20 +81,29 @@ function scheduleAgentNext(def) {
     try {
       const result = await run();
       if (result.skipped) {
-        console.log(`[s3labs-${def.kind}] skipped: ${result.reason || "unknown"}`);
+        startupVerbose(`[s3labs-${def.kind}] skipped: ${result.reason || "unknown"}`);
       } else {
-        console.log(
+        startupVerbose(
           `[s3labs-${def.kind}] posted: ${result.data.pick?.title?.slice(0, 55) || "(none)"}`,
         );
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      console.error(`[s3labs-${def.kind}] failed:`, msg);
-      if (isS3labsTelegramConfigured()) {
-        await sendS3labsTelegram(`⚠️ S3Labs ${def.kind} agent gagal\n${msg.slice(0, 500)}`, {
-          messageThreadId: def.threadId,
-          disableWebPagePreview: true,
-        });
+      if (isTransientNetworkError(e)) {
+        console.warn(`[s3labs-${def.kind}] transient network error (will retry next slot):`, msg);
+      } else {
+        console.error(`[s3labs-${def.kind}] failed:`, msg);
+        if (isS3labsTelegramConfigured()) {
+          try {
+            await sendS3labsTelegram(`⚠️ S3Labs ${def.kind} agent gagal\n${msg.slice(0, 500)}`, {
+              messageThreadId: def.threadId,
+              disableWebPagePreview: true,
+            });
+          } catch (notifyErr) {
+            const notifyMsg = notifyErr instanceof Error ? notifyErr.message : String(notifyErr);
+            console.warn(`[s3labs-${def.kind}] failure notification send error:`, notifyMsg);
+          }
+        }
       }
     }
 
@@ -108,7 +119,7 @@ function scheduleAgentNext(def) {
 /** Start all S3Labs forum agents with desynced boot delays. */
 export function startS3labsAgentsScheduler() {
   if (!S3LABS_AGENTS_SCHEDULER_ENABLED) {
-    console.log("[s3labs-agents] scheduler disabled (S3LABS_AGENTS_SCHEDULER_ENABLED=false)");
+    startupVerbose("[s3labs-agents] scheduler disabled (S3LABS_AGENTS_SCHEDULER_ENABLED=false)");
     return;
   }
 
@@ -119,7 +130,7 @@ export function startS3labsAgentsScheduler() {
     }, bootMs);
   }
 
-  console.log(
+  startupVerbose(
     `[s3labs-agents] scheduler on: ${S3LABS_AGENT_DEFINITIONS.length} agents × ${S3LABS_POSTS_PER_DAY_MIN}–${S3LABS_POSTS_PER_DAY_MAX} random posts/day; jitter 0–${S3LABS_SCHEDULE_JITTER_MAX_MINUTES}m; Telegram=${isS3labsTelegramConfigured() ? "on" : "off"}`,
   );
 }

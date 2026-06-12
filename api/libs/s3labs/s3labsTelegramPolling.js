@@ -6,6 +6,7 @@ import { S3LABS_TELEGRAM_POLLING_ENABLED, S3LABS_TELEGRAM_QA_ENABLED } from "../
 import { getS3labsTelegramConfig, isS3labsTelegramConfigured } from "../s3labsTelegramNotifier.js";
 import { deleteS3labsTelegramWebhook } from "./s3labsTelegramBotMeta.js";
 import { handleS3labsTelegramUpdate } from "./s3labsTelegramQa.js";
+import { startupVerbose } from "../../utils/startupLog.js";
 
 /** @type {number} */
 let offset = 0;
@@ -56,7 +57,7 @@ export async function startS3labsTelegramPolling(options = {}) {
   await deleteS3labsTelegramWebhook().catch(() => {});
 
   polling = true;
-  console.log("[s3labs-telegram] long-polling enabled (dev)");
+  startupVerbose("[s3labs-telegram] long-polling enabled (dev)");
 
   const loop = async () => {
     while (polling) {

@@ -239,3 +239,29 @@ export async function getTempoPayoutRecipientAddress(anonymousId) {
   }
   return null;
 }
+
+const SWAP_TOOL_IDS = Object.freeze(['jupiter-swap-order', 'pumpfun-agents-swap']);
+
+/**
+ * Ensure authenticated users can sign swap txs on chat wallets provisioned with read-only defaults.
+ * Empty allowedTools already permits all tools — only expands restrictive allowlists.
+ * @param {string} anonymousId
+ */
+export async function ensureSwapToolsAllowed(anonymousId) {
+  const id = String(anonymousId || '').trim();
+  if (!id) return;
+  const wallet = await AgentWallet.findOne({ anonymousId: id }).select('allowedTools').lean();
+  if (!wallet) return;
+  const current = Array.isArray(wallet.allowedTools) ? wallet.allowedTools : [];
+  if (current.length === 0) return;
+  const merged = new Set(current);
+  let changed = false;
+  for (const toolId of SWAP_TOOL_IDS) {
+    if (!merged.has(toolId)) {
+      merged.add(toolId);
+      changed = true;
+    }
+  }
+  if (!changed) return;
+  await AgentWallet.updateOne({ anonymousId: id }, { $set: { allowedTools: [...merged] } });
+}
