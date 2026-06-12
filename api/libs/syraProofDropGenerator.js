@@ -12,6 +12,7 @@ import {
   SYRA_PROOF_SYSTEM_RULES,
 } from "../config/syraProofDropConfig.js";
 import { formatMetricsForLlm, gatherProofDropMetrics } from "./syraProofDropMetrics.js";
+import { trimInternalToolHistory, INTERNAL_TOOLS_HISTORY_MAX } from "./internalToolsHistory.js";
 
 function normalizeText(text) {
   return String(text || "")
@@ -128,6 +129,7 @@ export async function createUniqueProofDrop({ wallet, angleId }) {
         metricsSnapshot: metrics,
         createdByWallet: wallet ? String(wallet).trim() : null,
       });
+      await trimInternalToolHistory(InternalProofDrop);
       return { success: true, data: mapDoc(doc) };
     } catch (e) {
       if (e?.code === 11000) {
@@ -150,7 +152,7 @@ export async function getProofDropMetricsPreview() {
 
 export async function listRecentProofDrops(opts = {}) {
   assertMongo();
-  const limit = Math.min(Math.max(opts.limit ?? 20, 1), 50);
+  const limit = Math.min(Math.max(opts.limit ?? INTERNAL_TOOLS_HISTORY_MAX, 1), INTERNAL_TOOLS_HISTORY_MAX);
   const docs = await InternalProofDrop.find({})
     .sort({ createdAt: -1 })
     .limit(limit)

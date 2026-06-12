@@ -11,6 +11,7 @@ import {
   SYRA_NARRATIVE_THEMES,
 } from "../config/syraNarrativeConfig.js";
 import { buildTrendingNarrativeContext } from "./syraNarrativeTrendContext.js";
+import { trimInternalToolHistory, INTERNAL_TOOLS_HISTORY_MAX } from "./internalToolsHistory.js";
 
 /**
  * @param {string} text
@@ -249,6 +250,8 @@ export async function createUniqueNarrativePost(opts = {}) {
         createdByWallet: opts.wallet ? String(opts.wallet).trim() : null,
       });
 
+      await trimInternalToolHistory(InternalNarrativePost);
+
       return {
         success: true,
         data: mapNarrativeDoc(doc),
@@ -301,7 +304,7 @@ function isValidNarrativeId(id) {
 
 export async function listRecentNarrativePosts(opts = {}) {
   assertMongoConnected();
-  const limit = Math.min(Math.max(opts.limit ?? 20, 1), 50);
+  const limit = Math.min(Math.max(opts.limit ?? INTERNAL_TOOLS_HISTORY_MAX, 1), INTERNAL_TOOLS_HISTORY_MAX);
   const docs = await InternalNarrativePost.find({})
     .sort({ createdAt: -1 })
     .limit(limit)

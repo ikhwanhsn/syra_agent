@@ -26,6 +26,17 @@ import {
   getProofDropMetricsPreview,
   listRecentProofDrops,
 } from "../libs/syraProofDropGenerator.js";
+import {
+  createUniqueCopyPolish,
+  deleteCopyPolish,
+  listRecentCopyPolishes,
+} from "../libs/syraCopyPolisherGenerator.js";
+import {
+  createUniqueImagePrompt,
+  deleteImagePrompt,
+  listRecentImagePrompts,
+} from "../libs/syraImagePromptGenerator.js";
+import { INTERNAL_TOOLS_HISTORY_MAX } from "../libs/internalToolsHistory.js";
 
 function toolsErrorResponse(res, error) {
   const code = error?.code;
@@ -107,7 +118,7 @@ export function createInternalToolsRouter() {
 
   router.get("/tools/narrative/recent", async (req, res) => {
     try {
-      const limit = Number.parseInt(String(req.query.limit ?? "20"), 10);
+      const limit = Number.parseInt(String(req.query.limit ?? String(INTERNAL_TOOLS_HISTORY_MAX)), 10);
       const result = await listRecentNarrativePosts({ limit });
       return res.json(result);
     } catch (error) {
@@ -152,7 +163,7 @@ export function createInternalToolsRouter() {
 
   router.get("/tools/quote-response/recent", async (req, res) => {
     try {
-      const limit = Number.parseInt(String(req.query.limit ?? "20"), 10);
+      const limit = Number.parseInt(String(req.query.limit ?? String(INTERNAL_TOOLS_HISTORY_MAX)), 10);
       const result = await listRecentQuoteResponses({ limit });
       return res.json(result);
     } catch (error) {
@@ -190,7 +201,7 @@ export function createInternalToolsRouter() {
 
   router.get("/tools/thread-expander/recent", async (req, res) => {
     try {
-      const limit = Number.parseInt(String(req.query.limit ?? "20"), 10);
+      const limit = Number.parseInt(String(req.query.limit ?? String(INTERNAL_TOOLS_HISTORY_MAX)), 10);
       const result = await listRecentThreadExpands({ limit });
       return res.json(result);
     } catch (error) {
@@ -232,7 +243,7 @@ export function createInternalToolsRouter() {
 
   router.get("/tools/proof-drop/recent", async (req, res) => {
     try {
-      const limit = Number.parseInt(String(req.query.limit ?? "20"), 10);
+      const limit = Number.parseInt(String(req.query.limit ?? String(INTERNAL_TOOLS_HISTORY_MAX)), 10);
       const result = await listRecentProofDrops({ limit });
       return res.json(result);
     } catch (error) {
@@ -243,6 +254,86 @@ export function createInternalToolsRouter() {
   router.delete("/tools/proof-drop/:id", async (req, res) => {
     try {
       const result = await deleteProofDrop(req.params.id);
+      return res.json(result);
+    } catch (error) {
+      return toolsErrorResponse(res, error);
+    }
+  });
+
+  router.post("/tools/copy-polisher/generate", async (req, res) => {
+    try {
+      const originalText = typeof req.body?.originalText === "string" ? req.body.originalText : "";
+      const tone = typeof req.body?.tone === "string" ? req.body.tone.trim() : null;
+      const direction = typeof req.body?.direction === "string" ? req.body.direction : "";
+      const wallet =
+        typeof req.body?.wallet === "string" && req.body.wallet.trim()
+          ? req.body.wallet.trim()
+          : null;
+      const result = await createUniqueCopyPolish({
+        originalText,
+        wallet,
+        toneId: tone,
+        direction,
+      });
+      return res.json(result);
+    } catch (error) {
+      return toolsErrorResponse(res, error);
+    }
+  });
+
+  router.get("/tools/copy-polisher/recent", async (req, res) => {
+    try {
+      const limit = Number.parseInt(String(req.query.limit ?? String(INTERNAL_TOOLS_HISTORY_MAX)), 10);
+      const result = await listRecentCopyPolishes({ limit });
+      return res.json(result);
+    } catch (error) {
+      return toolsErrorResponse(res, error);
+    }
+  });
+
+  router.delete("/tools/copy-polisher/:id", async (req, res) => {
+    try {
+      const result = await deleteCopyPolish(req.params.id);
+      return res.json(result);
+    } catch (error) {
+      return toolsErrorResponse(res, error);
+    }
+  });
+
+  router.post("/tools/image-prompt/generate", async (req, res) => {
+    try {
+      const sourcePrompt = typeof req.body?.sourcePrompt === "string" ? req.body.sourcePrompt : "";
+      const style = typeof req.body?.style === "string" ? req.body.style.trim() : null;
+      const direction = typeof req.body?.direction === "string" ? req.body.direction : "";
+      const wallet =
+        typeof req.body?.wallet === "string" && req.body.wallet.trim()
+          ? req.body.wallet.trim()
+          : null;
+      const result = await createUniqueImagePrompt({
+        sourcePrompt,
+        wallet,
+        styleId: style,
+        direction,
+      });
+      return res.json(result);
+    } catch (error) {
+      return toolsErrorResponse(res, error);
+    }
+  });
+
+  router.get("/tools/image-prompt/recent", async (req, res) => {
+    try {
+      const limit = Number.parseInt(String(req.query.limit ?? String(INTERNAL_TOOLS_HISTORY_MAX)), 10);
+      const result = await listRecentImagePrompts({ limit });
+      return res.json(result);
+    } catch (error) {
+      return toolsErrorResponse(res, error);
+    }
+  });
+
+  router.delete("/tools/image-prompt/:id", async (req, res) => {
+    try {
+      const result = await deleteImagePrompt(req.params.id);
       return res.json(result);
     } catch (error) {
       return toolsErrorResponse(res, error);

@@ -3,6 +3,8 @@
 import type { ReactNode } from "react";
 import { useLocation, useNavigate, useSearchParams } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
+import { InternalCopyPolisherTool } from "@/components/internal/InternalCopyPolisherTool";
+import { InternalImagePromptTool } from "@/components/internal/InternalImagePromptTool";
 import { InternalNarrativeTool } from "@/components/internal/InternalNarrativeTool";
 import { InternalProofDropTool } from "@/components/internal/InternalProofDropTool";
 import { InternalQuoteResponseTool } from "@/components/internal/InternalQuoteResponseTool";
@@ -29,6 +31,10 @@ function renderToolPanel(id: InternalToolId, wallet?: string | null): ReactNode 
       return <InternalQuoteResponseTool wallet={wallet} />;
     case "thread-expander":
       return <InternalThreadExpanderTool wallet={wallet} />;
+    case "copy-polisher":
+      return <InternalCopyPolisherTool wallet={wallet} />;
+    case "image-prompt":
+      return <InternalImagePromptTool wallet={wallet} />;
     case "proof-drop":
       return <InternalProofDropTool wallet={wallet} />;
     default:

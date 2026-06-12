@@ -11,6 +11,7 @@ import {
   SYRA_QUOTE_SYSTEM_RULES,
   SYRA_QUOTE_TONES,
 } from "../config/syraQuoteResponseConfig.js";
+import { trimInternalToolHistory, INTERNAL_TOOLS_HISTORY_MAX } from "./internalToolsHistory.js";
 
 function normalizeText(text) {
   return String(text || "")
@@ -172,6 +173,8 @@ export async function createUniqueQuoteResponse({ sourcePost, wallet, toneId }) 
         createdByWallet: wallet ? String(wallet).trim() : null,
       });
 
+      await trimInternalToolHistory(InternalQuoteResponse);
+
       return { success: true, data: mapQuoteDoc(doc) };
     } catch (e) {
       if (e?.code === 11000) {
@@ -189,7 +192,7 @@ export async function createUniqueQuoteResponse({ sourcePost, wallet, toneId }) 
 
 export async function listRecentQuoteResponses(opts = {}) {
   assertMongoConnected();
-  const limit = Math.min(Math.max(opts.limit ?? 20, 1), 50);
+  const limit = Math.min(Math.max(opts.limit ?? INTERNAL_TOOLS_HISTORY_MAX, 1), INTERNAL_TOOLS_HISTORY_MAX);
   const docs = await InternalQuoteResponse.find({})
     .sort({ createdAt: -1 })
     .limit(limit)

@@ -72,7 +72,7 @@ export async function fetchTrendingNarrativePreview(): Promise<TrendingPreviewRe
   return fetchInternalJson<TrendingPreviewResponse>("/internal/tools/narrative/trending-preview");
 }
 
-export async function fetchRecentNarrativePosts(limit = 20): Promise<RecentNarrativesResponse> {
+export async function fetchRecentNarrativePosts(limit = 15): Promise<RecentNarrativesResponse> {
   return fetchInternalJson<RecentNarrativesResponse>(
     `/internal/tools/narrative/recent?limit=${encodeURIComponent(String(limit))}`,
   );
@@ -144,7 +144,7 @@ export async function generateQuoteResponse(
   });
 }
 
-export async function fetchRecentQuoteResponses(limit = 20): Promise<RecentQuoteResponsesResponse> {
+export async function fetchRecentQuoteResponses(limit = 15): Promise<RecentQuoteResponsesResponse> {
   return fetchInternalJson<RecentQuoteResponsesResponse>(
     `/internal/tools/quote-response/recent?limit=${encodeURIComponent(String(limit))}`,
   );
@@ -194,7 +194,7 @@ export async function generateThreadExpand(
   });
 }
 
-export async function fetchRecentThreadExpands(limit = 20): Promise<RecentThreadsResponse> {
+export async function fetchRecentThreadExpands(limit = 15): Promise<RecentThreadsResponse> {
   return fetchInternalJson<RecentThreadsResponse>(
     `/internal/tools/thread-expander/recent?limit=${encodeURIComponent(String(limit))}`,
   );
@@ -267,7 +267,7 @@ export async function generateProofDrop(
   });
 }
 
-export async function fetchRecentProofDrops(limit = 20): Promise<RecentProofDropsResponse> {
+export async function fetchRecentProofDrops(limit = 15): Promise<RecentProofDropsResponse> {
   return fetchInternalJson<RecentProofDropsResponse>(
     `/internal/tools/proof-drop/recent?limit=${encodeURIComponent(String(limit))}`,
   );
@@ -276,6 +276,121 @@ export async function fetchRecentProofDrops(limit = 20): Promise<RecentProofDrop
 export async function deleteProofDrop(id: string): Promise<DeleteNarrativeResponse> {
   return fetchInternalJson<DeleteNarrativeResponse>(
     `/internal/tools/proof-drop/${encodeURIComponent(id)}`,
+    { method: "DELETE" },
+  );
+}
+
+export type CopyPolishToneId = "polish" | "hype" | "narrative" | "punchy" | "syra-brand" | "cta";
+
+export interface CopyPolishItem {
+  id: string;
+  originalText: string;
+  polishedText: string;
+  tone: string;
+  direction: string;
+  createdAt?: string;
+  createdByWallet?: string | null;
+}
+
+export interface GenerateCopyPolishResponse {
+  success: boolean;
+  data: CopyPolishItem;
+}
+
+export interface RecentCopyPolishesResponse {
+  success: boolean;
+  data: CopyPolishItem[];
+  total: number;
+}
+
+export async function generateCopyPolish(
+  originalText: string,
+  wallet?: string | null,
+  tone?: CopyPolishToneId | null,
+  direction?: string,
+): Promise<GenerateCopyPolishResponse> {
+  return fetchInternalJson<GenerateCopyPolishResponse>("/internal/tools/copy-polisher/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      originalText,
+      ...(tone ? { tone } : {}),
+      ...(direction?.trim() ? { direction: direction.trim() } : {}),
+      ...(wallet ? { wallet } : {}),
+    }),
+  });
+}
+
+export async function fetchRecentCopyPolishes(limit = 15): Promise<RecentCopyPolishesResponse> {
+  return fetchInternalJson<RecentCopyPolishesResponse>(
+    `/internal/tools/copy-polisher/recent?limit=${encodeURIComponent(String(limit))}`,
+  );
+}
+
+export async function deleteCopyPolish(id: string): Promise<DeleteNarrativeResponse> {
+  return fetchInternalJson<DeleteNarrativeResponse>(
+    `/internal/tools/copy-polisher/${encodeURIComponent(id)}`,
+    { method: "DELETE" },
+  );
+}
+
+export type ImagePromptStyleId =
+  | "data-chart"
+  | "ai-agent"
+  | "bull-bear-split"
+  | "transformation"
+  | "ecosystem-hub"
+  | "minimal-poster";
+
+export interface ImagePromptItem {
+  id: string;
+  sourcePrompt: string;
+  imagePrompt: string;
+  caption: string;
+  style: string;
+  direction: string;
+  createdAt?: string;
+  createdByWallet?: string | null;
+}
+
+export interface GenerateImagePromptResponse {
+  success: boolean;
+  data: ImagePromptItem;
+}
+
+export interface RecentImagePromptsResponse {
+  success: boolean;
+  data: ImagePromptItem[];
+  total: number;
+}
+
+export async function generateImagePrompt(
+  sourcePrompt: string,
+  wallet?: string | null,
+  style?: ImagePromptStyleId | null,
+  direction?: string,
+): Promise<GenerateImagePromptResponse> {
+  return fetchInternalJson<GenerateImagePromptResponse>("/internal/tools/image-prompt/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      sourcePrompt,
+      ...(style ? { style } : {}),
+      ...(direction?.trim() ? { direction: direction.trim() } : {}),
+      ...(wallet ? { wallet } : {}),
+    }),
+  });
+}
+
+export async function fetchRecentImagePrompts(limit = 15): Promise<RecentImagePromptsResponse> {
+  return fetchInternalJson<RecentImagePromptsResponse>(
+    `/internal/tools/image-prompt/recent?limit=${encodeURIComponent(String(limit))}`,
+  );
+}
+
+export async function deleteImagePrompt(id: string): Promise<DeleteNarrativeResponse> {
+  return fetchInternalJson<DeleteNarrativeResponse>(
+    `/internal/tools/image-prompt/${encodeURIComponent(id)}`,
     { method: "DELETE" },
   );
 }
