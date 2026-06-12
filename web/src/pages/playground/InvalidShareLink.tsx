@@ -97,7 +97,7 @@ export function InvalidShareLink({ slug }: InvalidShareLinkProps) {
                 </div>
               </div>
               <Button asChild variant="outline" size="sm" className="w-full gap-1.5 shrink-0 sm:w-auto">
-                <a href="https://agent.syraa.fun" target="_blank" rel="noopener noreferrer">
+                <a href="/">
                   Open
                 </a>
               </Button>

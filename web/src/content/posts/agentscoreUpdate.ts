@@ -32,7 +32,7 @@ Verify once with Passport. Pay per call. Gate when regulation matters.
 
 402 for price. Passport for identity. Same Syra agent brain.
 
-Try the tools at agent.syraa.fun · skill.md at api.syraa.fun/skill.md`,
+Try the tools at syraa.fun · skill.md at api.syraa.fun/skill.md`,
   },
   slides: [
     {

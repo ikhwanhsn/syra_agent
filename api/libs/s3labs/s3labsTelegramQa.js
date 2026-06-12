@@ -14,6 +14,7 @@ import { markdownToTelegramHtml } from "../telegramFormat.js";
 import { isAllowedS3labsChat } from "./s3labsTelegramAllowlist.js";
 import { getS3labsBotMeta } from "./s3labsTelegramBotMeta.js";
 import { buildS3labsQaSystemPrompt } from "./s3labsQaKnowledge.js";
+import { buildS3labsQaContext } from "./s3labsQaContext.js";
 
 /** @type {Map<string, number[]>} */
 const userRequestTimestamps = new Map();
@@ -161,9 +162,14 @@ async function answerS3labsQuestion(question) {
     console.warn("[s3labs-telegram-qa] sanitization flags:", flagged.join(", "));
   }
 
+  const { intent, contextBlock } = await buildS3labsQaContext(text);
+
   const model = resolveInternalPipelineModel(null);
   const messages = [
-    { role: "system", content: buildS3labsQaSystemPrompt() },
+    {
+      role: "system",
+      content: buildS3labsQaSystemPrompt({ contextBlock, intent }),
+    },
     { role: "user", content: text.slice(0, 4000) },
   ];
 

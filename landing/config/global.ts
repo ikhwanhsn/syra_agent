@@ -1,4 +1,4 @@
-const LINK_AGENT = "https://agent.syraa.fun";
+const LINK_AGENT = "https://syraa.fun";
 
 /** Opens the Syra agent with a prefilled question (`?q=`). Agent app auto-sends after load. */
 function getAgentAskUrl(question: string): string {

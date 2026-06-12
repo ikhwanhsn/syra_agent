@@ -332,7 +332,7 @@ export const SYRA_PITCH_DECK: DeckSlide[] = [
       {
         label: "Experience",
         items: [
-          "Web agent · agent.syraa.fun",
+          "Web agent · syraa.fun",
           "Telegram · @syra_trading_bot",
           "Docs & operator guides · docs.syraa.fun",
         ],
@@ -416,8 +416,8 @@ export const SYRA_PITCH_DECK: DeckSlide[] = [
       {
         icon: Bot,
         title: "Web agent",
-        description: "Research, treasury workflows, and onchain actions at agent.syraa.fun.",
-        href: "https://agent.syraa.fun",
+        description: "Research, treasury workflows, and onchain actions at syraa.fun.",
+        href: "https://syraa.fun",
       },
       {
         icon: MessageSquare,
@@ -524,7 +524,7 @@ export const SYRA_PITCH_DECK: DeckSlide[] = [
     subline: "Syra — enabling AI agents to become independent economic actors on Solana.",
     contacts: [
       { label: "Website", value: "syraa.fun", href: "https://syraa.fun" },
-      { label: "Product", value: "agent.syraa.fun", href: "https://agent.syraa.fun" },
+      { label: "Product", value: "syraa.fun", href: "https://syraa.fun" },
       { label: "API", value: "api.syraa.fun", href: "https://api.syraa.fun" },
       { label: "Docs", value: "docs.syraa.fun", href: "https://docs.syraa.fun" },
       { label: "Email", value: "support@syraa.fun", href: "mailto:support@syraa.fun" },

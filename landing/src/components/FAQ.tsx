@@ -37,7 +37,7 @@ const faqs = [
   {
     question: "How do I get started with Syra?",
     answer:
-      "Open agent.syraa.fun and connect a wallet to run the agent and paid tools. Try the API at playground.syraa.fun, read docs at docs.syraa.fun, and join the community on Telegram (t.me/syra_ai) or X (@syra_agent). For deeper product access, stake $SYRA where premium tiers apply.",
+      "Open syraa.fun and connect a wallet to run the agent and paid tools. Try the API at playground.syraa.fun, read docs at docs.syraa.fun, and join the community on Telegram (t.me/syra_ai) or X (@syra_agent). For deeper product access, stake $SYRA where premium tiers apply.",
   },
   {
     question: "Is there an API for developers?",
@@ -47,7 +47,7 @@ const faqs = [
   {
     question: "Why does api.syraa.fun ask for a key or payment, but the website works fine?",
     answer:
-      "They are different surfaces. api.syraa.fun is the JSON API: non-paid routes expect an API key or Bearer token, and paid routes use x402 micropayments. syraa.fun, docs.syraa.fun, agent.syraa.fun, and playground.syraa.fun are normal web apps—open them in a browser without pasting keys. Syra frontends never embed API keys; the gateway injects server-side auth only for trusted origins. If an automated monitor or crawler reports “401” on the marketing sites, it may be hitting deployment protection or API docs—not a broken product for real visitors.",
+      "They are different surfaces. api.syraa.fun is the JSON API: non-paid routes expect an API key or Bearer token, and paid routes use x402 micropayments. syraa.fun, docs.syraa.fun, and playground.syraa.fun are normal web apps—open them in a browser without pasting keys. Syra frontends never embed API keys; the gateway injects server-side auth only for trusted origins. If an automated monitor or crawler reports “401” on the marketing sites, it may be hitting deployment protection or API docs—not a broken product for real visitors.",
   },
   {
     question: "What are the fees?",

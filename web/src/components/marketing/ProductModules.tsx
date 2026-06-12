@@ -9,6 +9,7 @@ import {
   Wallet,
   Bot,
   Code2,
+  Rocket,
 } from "lucide-react";
 import { SYRA_RAIL_MODULES } from "@/content/syraFocus";
 
@@ -43,6 +44,13 @@ const intelligenceModules = [
     title: "Execution surfaces",
     description: "Strategy-aware swaps and routing on Solana with policy guardrails.",
     features: ["Multi-DEX", "Slippage protection", "Agent approval flows"],
+  },
+  {
+    icon: Rocket,
+    title: "Tokenized Equity Intelligence",
+    description:
+      "Live SPCX SpaceX IPO spread — Nasdaq vs on-chain premium/discount across xStocks venues.",
+    features: ["SPCX launch", "Spread tracker", "Agent execution"],
   },
 ];
 
@@ -171,32 +179,47 @@ export const ProductModules = () => {
         </motion.div>
 
         <div className="grid md:grid-cols-2 gap-6">
-          {intelligenceModules.map((module, index) => (
-            <motion.div
-              key={module.title}
-              initial={{ opacity: 0, y: 24 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.5, delay: 0.55 + index * 0.08 }}
-              className={`glass-card rounded-2xl p-6 ${hoverStyles[index % hoverStyles.length]}`}
-            >
-              <module.icon
-                className={`w-8 h-8 mb-3 ${iconColors[index % iconColors.length]}`}
-                strokeWidth={2}
-              />
-              <h4 className="text-lg font-semibold text-foreground mb-2">{module.title}</h4>
-              <p className="text-sm text-muted-foreground mb-3">{module.description}</p>
-              <div className="flex flex-wrap gap-2">
-                {module.features.map((f, fi) => (
-                  <span
-                    key={f}
-                    className={`rounded-full px-2.5 py-0.5 text-xs ${chipStyles[(index + fi) % chipStyles.length]}`}
+          {intelligenceModules.map((module, index) => {
+            const isSpcx = module.title === "Tokenized Equity Intelligence";
+            const CardWrapper = isSpcx ? Link : "div";
+            const cardProps = isSpcx
+              ? { to: "/spcx", className: "block no-underline" }
+              : {};
+            return (
+              <motion.div
+                key={module.title}
+                initial={{ opacity: 0, y: 24 }}
+                animate={isInView ? { opacity: 1, y: 0 } : {}}
+                transition={{ duration: 0.5, delay: 0.55 + index * 0.08 }}
+              >
+                <CardWrapper {...cardProps}>
+                  <div
+                    className={`glass-card rounded-2xl p-6 ${hoverStyles[index % hoverStyles.length]} ${isSpcx ? "cursor-pointer" : ""}`}
                   >
-                    {f}
-                  </span>
-                ))}
-              </div>
-            </motion.div>
-          ))}
+                    <module.icon
+                      className={`w-8 h-8 mb-3 ${iconColors[index % iconColors.length]}`}
+                      strokeWidth={2}
+                    />
+                    <h4 className="text-lg font-semibold text-foreground mb-2">{module.title}</h4>
+                    <p className="text-sm text-muted-foreground mb-3">{module.description}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {module.features.map((f, fi) => (
+                        <span
+                          key={f}
+                          className={`rounded-full px-2.5 py-0.5 text-xs ${chipStyles[(index + fi) % chipStyles.length]}`}
+                        >
+                          {f}
+                        </span>
+                      ))}
+                    </div>
+                    {isSpcx ? (
+                      <p className="mt-3 text-xs font-medium text-primary">Open SPCX hub →</p>
+                    ) : null}
+                  </div>
+                </CardWrapper>
+              </motion.div>
+            );
+          })}
         </div>
 
         <motion.div

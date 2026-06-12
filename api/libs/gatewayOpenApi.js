@@ -707,6 +707,32 @@ export function buildGatewayOpenApi() {
         responses: responsesFor(false),
       },
     },
+
+    '/spcx': {
+      get: {
+        tags: ['Equity (x402)'],
+        summary: 'SPCX / SpaceX IPO intelligence',
+        description:
+          'Nasdaq vs on-chain SPCX premium/discount spread. x402 revenue routes to $SYRA buybacks in production.',
+        operationId: 'getSpcxIntelligence',
+        parameters: [
+          { name: 'symbol', in: 'query', schema: { type: 'string', default: 'SPCXx' } },
+        ],
+        responses: responsesFor(true),
+      },
+    },
+    '/equity': {
+      get: {
+        tags: ['Equity (x402)'],
+        summary: 'Tokenized equity intelligence (xStocks catalog)',
+        description: 'Parametric symbol → Nasdaq vs on-chain spread for TSLAx, NVDAx, etc.',
+        operationId: 'getEquityIntelligence',
+        parameters: [
+          { name: 'symbol', in: 'query', schema: { type: 'string' }, required: true },
+        ],
+        responses: responsesFor(true),
+      },
+    },
   };
 
   return {
@@ -741,6 +767,10 @@ export function buildGatewayOpenApi() {
       {
         name: 'Social (batch)',
         description: 'Batch X project analysis — API key when configured; no x402',
+      },
+      {
+        name: 'Equity (x402)',
+        description: 'Tokenized equity intelligence — SPCX SpaceX IPO + xStocks catalog',
       },
     ],
     components: {

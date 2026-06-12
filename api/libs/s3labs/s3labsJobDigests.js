@@ -32,6 +32,23 @@ function categoryLabel(category) {
 }
 
 /**
+ * @param {string} raw
+ * @returns {string}
+ */
+function plainJobSummary(raw) {
+  return String(raw || "")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
  * @param {JobListing} job
  * @returns {string}
  */
@@ -43,8 +60,8 @@ export function formatS3labsJobTelegram(job) {
   const salary = escapeTelegramHtml(job.salaryLabel);
   const cat = escapeTelegramHtml(categoryLabel(job.category));
   const source = escapeTelegramHtml(job.source);
-  const summary = escapeTelegramHtml(job.description.slice(0, 280));
-  const identity = escapeTelegramHtml(job.jobIdentityKey);
+  const summary = escapeTelegramHtml(plainJobSummary(job.description).slice(0, 280));
+  const identity = escapeTelegramHtml(job.dedupeKey || job.jobIdentityKey);
 
   const lines = [
     `${def.headerEmoji} <b>${escapeTelegramHtml(def.topicLabel)}</b> · S3Labs`,

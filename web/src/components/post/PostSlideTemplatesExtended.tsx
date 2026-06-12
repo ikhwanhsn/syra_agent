@@ -300,19 +300,26 @@ export function renderCardsExtended(slide: PostCardsSlide, isActive: boolean): R
           </div>
         </PostSlideLayout>
       );
-    case "cards-mosaic":
+    case "cards-mosaic": {
+      const isQuad = slide.cards.length === 4;
       return (
         <PostSlideLayout isActive={isActive} template={layout} variant="grid" itemCount={slide.cards.length}>
           <PostHeader isActive={isActive} kicker={slide.kicker} headline={slide.headline} compact centered />
-          <div className="post-mosaic">
+          <div className={cn("post-mosaic", isQuad && "post-mosaic--quad")}>
             {slide.cards.map((card, index) => (
-              <PostReveal key={card.title} isActive={isActive} delayMs={160 + index * 70} className={cn(index === 0 && "post-mosaic-lead")}>
+              <PostReveal
+                key={card.title}
+                isActive={isActive}
+                delayMs={160 + index * 70}
+                className={cn(!isQuad && index === 0 && "post-mosaic-lead")}
+              >
                 <TokenCard card={card} />
               </PostReveal>
             ))}
           </div>
         </PostSlideLayout>
       );
+    }
     case "cards-spotlight-one":
       return (
         <PostSlideLayout isActive={isActive} template={layout} variant="grid" itemCount={slide.cards.length}>

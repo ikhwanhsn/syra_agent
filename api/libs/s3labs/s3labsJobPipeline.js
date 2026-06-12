@@ -8,6 +8,7 @@ import { fetchS3labsJobCandidates } from "./s3labsJobAggregator.js";
 import { formatS3labsJobTelegram } from "./s3labsJobDigests.js";
 import {
   appendJobSentHistory,
+  loadRecentSentJobDedupeKeys,
   loadRecentSentJobKeys,
   loadRecentSentJobUrls,
 } from "./s3labsJobSentHistory.js";
@@ -42,6 +43,7 @@ export async function runS3labsJobPipeline() {
 
   const excludes = {
     jobIdentityKeys: loadRecentSentJobKeys(existingPayload),
+    dedupeKeys: loadRecentSentJobDedupeKeys(existingPayload),
     urls: loadRecentSentJobUrls(existingPayload),
   };
 

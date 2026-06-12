@@ -6,6 +6,7 @@
  * Add tokens to STATIC_TOKENS below to support "buy $SYMBOL $amount" in the agent.
  */
 import { SYRA_TOKEN_MINT } from "./syraToken.js";
+import { SPCX_VENUES } from "../config/equityTokens.js";
 
 /** Supported tokens for agent "buy $TOKEN $amount". No fetch — avoids "fetch failed" errors. */
 const STATIC_TOKENS = [
@@ -21,7 +22,34 @@ const STATIC_TOKENS = [
     decimals: 5,
     verified: true,
   },
+  // Tokenized SpaceX — xStocks SPCXx (Backed Finance on Solana)
+  {
+    symbol: "SPCXx",
+    address: "Xs3oZwbHvqis4NYcf4YKWmEia2eC84wSiVrcYcTqpH8",
+    decimals: 8,
+    verified: true,
+  },
+  {
+    symbol: "SPCX",
+    address:
+      process.env.SPCX_XSTOCKS_MINT ||
+      "Xs3oZwbHvqis4NYcf4YKWmEia2eC84wSiVrcYcTqpH8",
+    decimals: 8,
+    verified: true,
+  },
 ];
+
+// Register Backpack/Ondo mints when env configured
+for (const v of SPCX_VENUES) {
+  if (v.mint && v.mint.length > 30 && !STATIC_TOKENS.some((t) => t.symbol === v.symbol)) {
+    STATIC_TOKENS.push({
+      symbol: v.symbol,
+      address: v.mint,
+      decimals: v.decimals,
+      verified: true,
+    });
+  }
+}
 
 /**
  * Resolve a symbol or mint address to a known token (static list only).

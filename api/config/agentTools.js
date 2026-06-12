@@ -28,6 +28,8 @@ import {
   X402_API_PRICE_BANKR_USD,
   X402_API_PRICE_NEYNAR_USD,
   X402_API_PRICE_SIWA_USD,
+  X402_API_PRICE_SPCX_USD,
+  X402_API_PRICE_EQUITY_USD,
 } from './x402Pricing.js';
 import {
   X402_DISPLAY_PRICE_USD,
@@ -55,6 +57,8 @@ import {
   X402_DISPLAY_PRICE_BANKR_USD,
   X402_DISPLAY_PRICE_NEYNAR_USD,
   X402_DISPLAY_PRICE_SIWA_USD,
+  X402_DISPLAY_PRICE_SPCX_USD,
+  X402_DISPLAY_PRICE_EQUITY_USD,
 } from './x402Pricing.js';
 import { BIRDEYE_AGENT_TOOLS, getBirdeyeParamsHintForLlm } from './birdeyeAgentTools.js';
 import { TOKENS_AGENT_TOOLS, getTokensParamsHintForLlm } from './tokensAgentTools.js';
@@ -107,6 +111,26 @@ export const AGENT_TOOLS = [
     name: 'Trading signal',
     description:
       'Spot OHLC + technical signal; Syra Agent chat uses CoinGecko by default (set source for CEX or n8n|webhook)',
+  },
+  {
+    id: 'spcx-intelligence',
+    path: '/spcx',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_SPCX_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_SPCX_USD,
+    name: 'SPCX / SpaceX IPO intelligence',
+    description:
+      'Tokenized SpaceX equity intel — Nasdaq vs on-chain SPCX/SPCXx premium/discount spread, liquidity, agent bias',
+  },
+  {
+    id: 'equity-intelligence',
+    path: '/equity',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_EQUITY_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_EQUITY_USD,
+    name: 'Tokenized equity intelligence',
+    description:
+      'Parametric xStocks intel — Nasdaq vs on-chain premium/discount for TSLAx, NVDAx, AAPLx, and catalog symbols',
   },
   {
     id: 'sentiment',
@@ -2374,6 +2398,24 @@ export function matchToolFromUserMessage(userMessage) {
       },
     },
     {
+      toolId: 'spcx-intelligence',
+      test: () =>
+        /^\/spcx\b|\$SPCX|spcx\s*intel|spacex\s*ipo|tokenized\s*spacex|spcx\s*spread|spcx\s*premium|nasdaq\s*vs\s*on.?chain\s*spcx/i.test(
+          text,
+        ),
+    },
+    {
+      toolId: 'equity-intelligence',
+      test: () =>
+        /tokenized\s*(stock|equity)|xstock|xstocks|\bTSLAx\b|\bNVDAx\b|\bAAPLx\b|\bSPYx\b|equity\s*intel|premium\s*discount\s*spread/i.test(
+          text,
+        ),
+      params: () => {
+        const m = text.match(/\b(TSLAx|NVDAx|AAPLx|SPYx|SPCXx|SPCX)\b/i);
+        return m ? { symbol: m[1] } : { symbol: 'SPCXx' };
+      },
+    },
+    {
       toolId: 'signal',
       test: () =>
         /trading\s*signal|create\s*signal|signal\s*data|get\s*signal|give\s*(me\s*)?(a\s*)?(solana|btc|eth|bitcoin|ethereum|crypto)?\s*signal|(solana|btc|eth|bitcoin|ethereum|crypto|token)\s*signal|signal\s*(for|on)?\s*(solana|btc|eth|bitcoin|ethereum|crypto)?/i.test(
@@ -2453,6 +2495,8 @@ export function getCapabilitiesList() {
   const core = [
     'news',
     'signal',
+    'spcx-intelligence',
+    'equity-intelligence',
     'sentiment',
     'event',
     'exa-search',

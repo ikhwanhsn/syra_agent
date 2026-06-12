@@ -93,7 +93,7 @@ The API and MCP expose [8004 Trustless Agent Registry](https://docs.syraa.fun/do
 | Main site + machine-readable pack | https://syraa.fun (see `/llms.txt`, `/docs.md`, `/skills.md`) |
 | Docs | https://docs.syraa.fun |
 | API | https://api.syraa.fun |
-| Web agent | https://agent.syraa.fun |
+| Web agent | https://syraa.fun |
 | Playground | https://playground.syraa.fun |
 | Telegram | https://t.me/syra_trading_bot |
 

@@ -22,11 +22,11 @@ export function rankJobsByPay(jobs) {
 }
 
 /**
- * @param {{ excludes?: { jobIdentityKeys?: Set<string>; urls?: Set<string> } }} [opts]
+ * @param {{ excludes?: { jobIdentityKeys?: Set<string>; dedupeKeys?: Set<string>; urls?: Set<string> } }} [opts]
  */
 export async function fetchS3labsJobCandidates(opts = {}) {
   const def = getS3labsAgentDefinition("job");
-  const excludes = opts.excludes ?? { jobIdentityKeys: new Set(), urls: new Set() };
+  const excludes = opts.excludes ?? { jobIdentityKeys: new Set(), dedupeKeys: new Set(), urls: new Set() };
 
   const raw = await fetchAllJobListings();
   const deduped = dedupeJobListings(raw);

@@ -5,13 +5,13 @@
 import { fetchRssSource } from "../newsSources/rssParser.js";
 import { S3LABS_JOB_RSS_SOURCES } from "../../config/s3labsAgentsConfig.js";
 import {
+  buildJobDedupeKey,
   buildJobIdentityKey,
   inferJobCategory,
   isRelevantTechOrCryptoJob,
   parseCompanyFromTitle,
 } from "./s3labsJobIdentity.js";
 import { parseSalaryFromText, formatSalaryLabel } from "./s3labsJobSalary.js";
-import { normalizeArticleUrl } from "./s3labsScoring.js";
 
 /**
  * @typedef {import("./s3labsJobIdentity.js").JobListing} JobListing
@@ -79,6 +79,7 @@ export function parseWeb3CareerJobs(html) {
 
     jobs.push({
       jobIdentityKey: buildJobIdentityKey(partial),
+      dedupeKey: buildJobDedupeKey(partial),
       externalId,
       title,
       company,
@@ -133,7 +134,6 @@ function rssArticleToJob(article, feedCategory) {
 
   const partial = {
     sourceId,
-    externalId: normalizeArticleUrl(article.url).slice(-64) || article.id,
     company,
     title,
     url: article.url,
@@ -141,7 +141,8 @@ function rssArticleToJob(article, feedCategory) {
 
   return {
     jobIdentityKey: buildJobIdentityKey(partial),
-    externalId: partial.externalId,
+    dedupeKey: buildJobDedupeKey(partial),
+    externalId: undefined,
     title,
     company,
     location,
@@ -198,7 +199,8 @@ export async function fetchAllJobListings() {
  * @returns {JobListing[]}
  */
 export function dedupeJobListings(jobs) {
-  const seen = new Set();
+  const seenIdentity = new Set();
+  const seenDedupe = new Set();
   /** @type {JobListing[]} */
   const out = [];
 
@@ -207,9 +209,12 @@ export function dedupeJobListings(jobs) {
   );
 
   for (const job of sorted) {
-    const key = job.jobIdentityKey;
-    if (!key || seen.has(key)) continue;
-    seen.add(key);
+    const identity = job.jobIdentityKey;
+    const dedupe = job.dedupeKey;
+    if (identity && seenIdentity.has(identity)) continue;
+    if (dedupe && seenDedupe.has(dedupe)) continue;
+    if (identity) seenIdentity.add(identity);
+    if (dedupe) seenDedupe.add(dedupe);
     out.push(job);
   }
 

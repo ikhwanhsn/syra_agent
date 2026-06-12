@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { BarChart3, Bot } from "lucide-react";
+import { BarChart3, Bot, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   INTERNAL_TAB_ORDER,
@@ -25,6 +25,11 @@ const TAB_CONFIG: Record<
     label: "Agents",
     description: "Scouts & partnership pipeline",
     icon: <Bot className="h-4 w-4 shrink-0" aria-hidden />,
+  },
+  tools: {
+    label: "Tools",
+    description: "Internal utilities & generators",
+    icon: <Wrench className="h-4 w-4 shrink-0" aria-hidden />,
   },
 };
 

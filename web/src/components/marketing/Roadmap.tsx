@@ -133,6 +133,7 @@ const roadmapData = [
           "Agent Reputation Scoring system",
           "Multi-chain expansion (Base)",
           "Cross-agent learning network",
+          "Tokenized Equity Intelligence — $SPCX SpaceX IPO live",
         ],
         status: "current",
       },

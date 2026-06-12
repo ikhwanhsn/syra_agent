@@ -54,6 +54,12 @@ export const PROOF_NAV_ITEMS: ProofNavItem[] = [
     icon: Trophy,
   },
   {
+    href: "/spcx",
+    label: "SpaceX IPO Agent",
+    description: "Live SPCX Nasdaq vs on-chain spread intel",
+    icon: Rocket,
+  },
+  {
     href: "/vibe-trading",
     label: "Bitget Vibe Trader",
     description: "NL → compiled perp strategies",
@@ -101,6 +107,7 @@ export function isProofRoute(pathname: string): boolean {
     "/assets",
     "/trading-experiment",
     "/arena",
+    "/spcx",
     "/vibe-trading",
     "/arbitrage-experiment",
     "/lp-experiment",

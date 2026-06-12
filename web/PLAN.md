@@ -65,7 +65,7 @@ Use this inventory so the plan builds on reality, not slides.
 | Asset | Location | Scale role |
 |-------|----------|------------|
 | x402 API gateway | `api.syraa.fun` | Revenue engine |
-| Web app | `agent.syraa.fun` | Operator UI + proof |
+| Web app | `syraa.fun` | Operator UI + proof |
 | API playground | `/playground` | Developer activation |
 | `@syra/sdk` | `syra-sdk/` | Programmatic integration |
 | `@syra/mcp-server` | `mcp-server/` | Cursor / Claude distribution |

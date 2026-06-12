@@ -45,6 +45,7 @@ import {
 } from "@/components/internal/InternalTabBar";
 
 import { InfoLiveMetricsDashboard } from "@/components/info/InfoLiveMetricsDashboard";
+import { InternalToolsHub } from "@/components/internal/tools/InternalToolsHub";
 
 import {
 
@@ -553,6 +554,10 @@ export default function InternalTeamAgentsMonitor() {
           </div>
 
         ) : null}
+
+
+
+        {tab === "tools" ? <InternalToolsHub wallet={address} /> : null}
 
       </div>
 

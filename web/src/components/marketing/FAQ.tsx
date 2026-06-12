@@ -30,6 +30,11 @@ const faqs = [
       "$SYRA is the utility and governance token: holders vote on protocol direction, feature prioritization, and treasury use. Staking unlocks premium modules, higher API limits, and exclusive signals. Stakers receive 10% of protocol revenue (distributed weekly in SOL/USDC). A portion of x402-driven fees funds programmatic buybacks of $SYRA, held for future community airdrops.",
   },
   {
+    question: "What is Syra's $SPCX / SpaceX IPO feature?",
+    answer:
+      "Syra tracks tokenized SpaceX shares ($SPCX, SPCXx) on Solana against the Nasdaq listing — surfacing live premium/discount spreads, liquidity context, and agent bias. Use the SpaceX IPO Agent at syraa.fun/spcx, ask /spcx in chat, or call the x402 API. Execution via agent wallet requires explicit confirmation; this is probabilistic intelligence, not investment advice.",
+  },
+  {
     question: "How is Syra related to pay.sh, x402, and agent payments?",
     answer:
       "Ecosystem initiatives like pay.sh highlight how agents can discover services and pay on-chain. Syra leans into the same pattern: HTTP 402 plus x402 / MPP so an agent (or your scripts) can pay per successful API call on Solana instead of juggling subscriptions—useful when the agent needs external data or compute mid-workflow.",
@@ -37,7 +42,7 @@ const faqs = [
   {
     question: "How do I get started with Syra?",
     answer:
-      "Open agent.syraa.fun and connect a wallet to run the agent and paid tools. Try the API at playground.syraa.fun, read docs at docs.syraa.fun, and join the community on Telegram (t.me/syra_ai) or X (@syra_agent). For deeper product access, stake $SYRA where premium tiers apply.",
+      "Open syraa.fun and connect a wallet to run the agent and paid tools. Try the API at playground.syraa.fun, read docs at docs.syraa.fun, and join the community on Telegram (t.me/syra_ai) or X (@syra_agent). For deeper product access, stake $SYRA where premium tiers apply.",
   },
   {
     question: "Is there an API for developers?",
@@ -47,7 +52,7 @@ const faqs = [
   {
     question: "Why does api.syraa.fun ask for a key or payment, but the website works fine?",
     answer:
-      "They are different surfaces. api.syraa.fun is the JSON API: non-paid routes expect an API key or Bearer token, and paid routes use x402 micropayments. syraa.fun, docs.syraa.fun, agent.syraa.fun, and playground.syraa.fun are normal web apps—open them in a browser without pasting keys. Syra frontends never embed API keys; the gateway injects server-side auth only for trusted origins. If an automated monitor or crawler reports “401” on the marketing sites, it may be hitting deployment protection or API docs—not a broken product for real visitors.",
+      "They are different surfaces. api.syraa.fun is the JSON API: non-paid routes expect an API key or Bearer token, and paid routes use x402 micropayments. syraa.fun, docs.syraa.fun, and playground.syraa.fun are normal web apps—open them in a browser without pasting keys. Syra frontends never embed API keys; the gateway injects server-side auth only for trusted origins. If an automated monitor or crawler reports “401” on the marketing sites, it may be hitting deployment protection or API docs—not a broken product for real visitors.",
   },
   {
     question: "What are the fees?",

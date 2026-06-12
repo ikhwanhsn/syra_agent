@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, Copy, Download, ImageIcon, Loader2 } from "lucide-react";
+import { Check, Copy, Download, ExternalLink, ImageIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -24,6 +24,11 @@ import {
   type MetricShareSectionBundle,
   type MetricShareVariantIndex,
 } from "@/components/info/metricsShare/types";
+import {
+  buildMetricShareOnXUrl,
+  copyMetricShareText,
+  getMetricShareCopyWithUrl,
+} from "@/components/info/metricsShare/metricsShareCopy";
 import { getSectionVariants, getVariantMeta } from "@/components/info/metricsShare/variantRegistry";
 
 type MetricsShareModalProps = {
@@ -66,20 +71,37 @@ export function MetricsShareModal({ bundle, onClose }: MetricsShareModalProps) {
   const [copying, setCopying] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [textCopied, setTextCopied] = useState(false);
 
   useEffect(() => {
     if (bundle?.cards[0]) {
       setCardId(bundle.cards[0].id);
       setVariantIndex(0);
       setCopied(false);
+      setTextCopied(false);
     }
   }, [bundle]);
+
+  useEffect(() => {
+    setTextCopied(false);
+  }, [cardId, variantIndex]);
 
   const sectionVariants = bundle ? getSectionVariants(bundle.sectionId) : [];
   const variantMeta = bundle ? getVariantMeta(bundle.sectionId, variantIndex) : null;
 
   const selectedCard = bundle?.cards.find((c) => c.id === cardId) ?? bundle?.cards[0];
   const isPerItem = bundle?.mode === "per-item";
+
+  const shareCopyContext =
+    bundle && selectedCard && bundle.section
+      ? {
+          bundle,
+          section: bundle.section,
+          item: selectedCard.item,
+          cardLabel: selectedCard.label,
+        }
+      : null;
+  const shareCopyText = shareCopyContext ? getMetricShareCopyWithUrl(shareCopyContext) : "";
 
   const handleOpenChange = (open: boolean) => {
     if (!open) onClose();
@@ -120,6 +142,22 @@ export function MetricsShareModal({ bundle, onClose }: MetricsShareModalProps) {
       setDownloading(false);
     }
   }, [bundle, selectedCard, variantIndex, variantMeta]);
+
+  const handleCopyText = useCallback(async () => {
+    if (!shareCopyContext) return;
+    try {
+      const ok = await copyMetricShareText(shareCopyContext);
+      if (ok) {
+        setTextCopied(true);
+        toast.success("Post copy ready — paste on X");
+        window.setTimeout(() => setTextCopied(false), 2200);
+      } else {
+        toast.error("Could not copy to clipboard");
+      }
+    } catch {
+      toast.error("Could not copy to clipboard");
+    }
+  }, [shareCopyContext]);
 
   const scale = 0.38;
   const cardCount = bundle?.cards.length ?? 0;
@@ -233,6 +271,49 @@ export function MetricsShareModal({ bundle, onClose }: MetricsShareModalProps) {
                   Download PNG
                 </Button>
               </div>
+
+              {shareCopyContext ? (
+                <div className="mt-5 min-h-0 flex-1">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[#F3BA2F]/70">
+                      X post copy
+                    </p>
+                    <p className="text-[10px] text-white/35">Paste after attaching image</p>
+                  </div>
+                  <pre className="post-share-modal-body max-h-[min(28vh,12rem)] text-[12px] leading-relaxed">
+                    {shareCopyText}
+                  </pre>
+                  <div className="mt-2 flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1 rounded-xl border-white/15 bg-white/5 text-white hover:bg-white/10"
+                      asChild
+                    >
+                      <a
+                        href={buildMetricShareOnXUrl(shareCopyContext)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <ExternalLink className="mr-2 h-4 w-4" aria-hidden />
+                        Open on X
+                      </a>
+                    </Button>
+                    <Button
+                      type="button"
+                      className="flex-1 rounded-xl border-[#F3BA2F]/30 bg-[#F3BA2F]/15 text-[#F3BA2F] hover:bg-[#F3BA2F]/25"
+                      onClick={() => void handleCopyText()}
+                    >
+                      {textCopied ? (
+                        <Check className="mr-2 h-4 w-4" aria-hidden />
+                      ) : (
+                        <Copy className="mr-2 h-4 w-4" aria-hidden />
+                      )}
+                      {textCopied ? "Copied" : "Copy post text"}
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             <div className="border-t border-white/[0.08] p-3 lg:border-t-0 lg:border-l">

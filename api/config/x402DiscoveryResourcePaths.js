@@ -11,6 +11,8 @@ export const X402_DISCOVERY_RESOURCE_PATHS = [
   "brain",
   "news",
   "signal",
+  "spcx",
+  "equity",
   "sentiment",
   "event",
   "trending-headline",

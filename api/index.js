@@ -41,6 +41,7 @@ import { createAnalyticsRouter } from "./routes/analytics.js";
 import { createInternalResearchRouter } from "./routes/internalResearch.js";
 import { createS3labsTelegramWebhookRouter } from "./routes/s3labsTelegramWebhook.js";
 import { createInternalPartnershipScoutRouter } from "./routes/internalPartnershipScout.js";
+import { createInternalToolsRouter } from "./routes/internalTools.js";
 import { createInternalTesterAgentRouter } from "./routes/internalTesterAgent.js";
 import {
   SYRA_PROBE_BASE_URL,
@@ -49,6 +50,9 @@ import {
 import { createTradingExperimentRouter } from "./routes/tradingExperiment.js";
 import { createBitgetVibeRouter } from "./routes/bitgetVibe.js";
 import { createArenaRouter } from "./routes/arena.js";
+import { createSpcxRouter, createEquityRouter } from "./routes/spcx.js";
+import { createSpcxExperimentRouter } from "./routes/experiment/spcx.js";
+import { createSyraTradingTelegramWebhookRouter } from "./routes/syraTradingTelegramWebhook.js";
 import { createSentinelDashboardRouter } from "./routes/sentinelDashboard.js";
 import { createDashboardSummaryRouterRegular } from "./routes/dashboardSummary.js";
 import {
@@ -336,6 +340,8 @@ function isX402Route(p) {
   if (p.startsWith("/.well-known")) return true;
   if (p.startsWith("/news")) return true;
   if (p.startsWith("/signal")) return true;
+  if (p.startsWith("/spcx")) return true;
+  if (p.startsWith("/equity")) return true;
   if (p === "/arbitrage" || p.startsWith("/arbitrage/")) return true;
   if (p.startsWith("/health")) return true;
   if (
@@ -1107,6 +1113,8 @@ app.use("/v1", (req, res) => {
 // x402 routes (unversioned; CAIP-2, PAYMENT-SIGNATURE header)
 app.use("/api/signal", await createPublicSignalApiRouter());
 app.use("/signal", await createV2SignalRouter());
+app.use("/spcx", await createSpcxRouter());
+app.use("/equity", await createEquityRouter());
 app.use("/arbitrage", await createArbitrageExperimentX402Router());
 // Legacy /check-status → /health (308). Agent + discovery use /health.
 app.use((req, res, next) => {
@@ -1180,8 +1188,10 @@ app.use("/internal/sentinel", await createSentinelDashboardRouter());
 app.use("/internal/tester-agent", createInternalTesterAgentRouter());
 // S3Labs Telegram @mention Q&A (webhook secret; no API key)
 app.use("/internal", createS3labsTelegramWebhookRouter());
+app.use("/internal", createSyraTradingTelegramWebhookRouter());
 // Internal dashboard: research-store + scouts (API key auth, no x402)
 app.use("/internal", createInternalPartnershipScoutRouter());
+app.use("/internal", createInternalToolsRouter());
 app.use("/internal", await createInternalResearchRouter());
 // Trading agent experiment lab (API key auth, no x402; optional cron secret on POST run-cycle)
 app.use("/experiment/trading-agent", createTradingExperimentRouter());
@@ -1193,6 +1203,7 @@ app.use("/experiment/bitget-vibe", bitgetVibeRouter);
 const arenaRouter = createArenaRouter();
 app.use("/arena", arenaRouter);
 app.use("/experiment/arena", arenaRouter);
+app.use("/experiment/spcx", createSpcxExperimentRouter());
 // LP agent experiment lab (Meteora DLMM dry-run simulation only)
 app.use("/experiment/lp-agent", createLpAgentExperimentRouter());
 // LP real agent — on-chain Meteora DLMM from backend-custodied agent wallet

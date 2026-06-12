@@ -1,5 +1,5 @@
 /**
- * S3Labs Jobs agent — fixed interval scheduler (default every 15 minutes).
+ * S3Labs Jobs agent — fixed interval scheduler (default every 45 minutes).
  */
 
 import {

@@ -4,11 +4,15 @@ export const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 export const SYRA_MINT = "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump";
 export const BONK_MINT = "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263";
 
+/** xStocks SPCXx — Backed Finance on Solana (override via live report mint when swapping). */
+export const SPCXX_MINT = "Xs3oZwbHvqis4NYcf4YKWmEia2eC84wSiVrcYcTqpH8";
+
 export const SWAP_PRESET_TOKENS = [
   { label: "SOL", mint: WSOL_MINT, decimals: 9 },
   { label: "USDC", mint: USDC_MINT, decimals: 6 },
   { label: "SYRA", mint: SYRA_MINT, decimals: 9 },
   { label: "BONK", mint: BONK_MINT, decimals: 5 },
+  { label: "SPCXx", mint: SPCXX_MINT, decimals: 8 },
 ] as const;
 
 export type SwapPresetId = (typeof SWAP_PRESET_TOKENS)[number]["label"] | "custom";

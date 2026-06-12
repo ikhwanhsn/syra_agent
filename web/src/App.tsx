@@ -33,6 +33,7 @@ import TradingAgentExperiment from "@/pages/TradingAgentExperiment";
 import TradingAgentExperimentAgentProfile from "@/pages/TradingAgentExperimentAgentProfile";
 import BitgetVibeTrader from "@/pages/BitgetVibeTrader";
 import AlphaArena from "@/pages/AlphaArena";
+import SpcxAgent from "@/pages/SpcxAgent";
 import PlaygroundHub from "@/pages/playground/PlaygroundHub";
 import PlaygroundShareRoute from "@/pages/playground/PlaygroundShareRoute";
 import StreamflowPage from "@/pages/staking/StreamflowPage";
@@ -93,6 +94,7 @@ function AppRoutes() {
             <Route path="/trading-experiment/agent/:agentId" element={<TradingAgentExperimentAgentProfile />} />
             <Route path="/vibe-trading" element={<BitgetVibeTrader />} />
             <Route path="/arena" element={<AlphaArena />} />
+            <Route path="/spcx" element={<SpcxAgent />} />
             <Route path="/internal" element={<InternalTeamAgentsMonitor />} />
             <Route path="/internal/:agentSlug" element={<InternalAgentDetailPage />} />
             <Route path="/internal-team-agents/*" element={<LegacyInternalTeamAgentsRedirect />} />

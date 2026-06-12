@@ -77,8 +77,8 @@ export const S3LABS_JOB_SENT_HISTORY_HOURS = Math.min(
 
 /** Fixed interval for the jobs agent (minutes). */
 export const S3LABS_JOB_INTERVAL_MINUTES = Math.min(
-  60,
-  Math.max(10, Number.parseInt(process.env.S3LABS_JOB_INTERVAL_MINUTES || "15", 10)),
+  90,
+  Math.max(10, Number.parseInt(process.env.S3LABS_JOB_INTERVAL_MINUTES || "45", 10)),
 );
 
 /** @typedef {'news' | 'developer' | 'event' | 'job'} S3labsAgentKind */
@@ -150,7 +150,7 @@ export const S3LABS_AGENT_DEFINITIONS = Object.freeze([
 ]);
 
 /**
- * Jobs agent — fixed 15-minute interval, topic https://t.me/s3labs/513
+ * Jobs agent — fixed 45-minute interval, topic https://t.me/s3labs/513
  * @type {Readonly<{
  *   kind: 'job';
  *   dbId: string;

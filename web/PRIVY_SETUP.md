@@ -13,10 +13,8 @@ SIWS / Phantom login returns **403** when the site origin is not allowlisted.
 1. Open [Privy Dashboard](https://dashboard.privy.io) → your app.
 2. **Without** `VITE_PRIVY_CLIENT_ID`: **Configuration → Domains → Allowed origins** — add:
    - `http://localhost:8080` (local dev port)
-   - `https://syraa.fun` (main web app — former landing domain)
+   - `https://syraa.fun` (main web app — agent, dashboard, experiments)
    - `https://www.syraa.fun`
-   - `https://agent.syraa.fun` (if still used)
-   - `https://www.agent.syraa.fun`
    - `https://dashboard.syraa.fun` (if used)
 3. **With** `VITE_PRIVY_CLIENT_ID` in Vercel: client settings **override** app domains. Also add the same origins under **Configuration → Clients → [your client] → Allowed origins**.
 

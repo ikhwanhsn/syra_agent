@@ -190,7 +190,7 @@ export const SYRA_PLATFORMS: SyraPlatform[] = [
   {
     icon: Bot,
     name: "Web agent",
-    description: "Research, tools, treasury workflows, and onchain actions at agent.syraa.fun.",
+    description: "Research, tools, treasury workflows, and onchain actions at syraa.fun.",
     href: "/",
     external: false,
   },

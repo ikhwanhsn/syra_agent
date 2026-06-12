@@ -165,7 +165,7 @@ export const SYRA_STACK_LAYERS = [
   {
     label: "Experience",
     items: [
-      "Web agent · agent.syraa.fun (this app)",
+      "Web agent · syraa.fun (this app)",
       "Telegram · @syra_trading_bot",
       "Docs · docs.syraa.fun",
       "API Playground · playground.syraa.fun",
@@ -204,7 +204,7 @@ export interface SyraMonorepoApp {
 }
 
 export const SYRA_MONOREPO_APPS: SyraMonorepoApp[] = [
-  { package: "web", role: "Syra Agent UI — chat, dashboard, experiments", url: "https://agent.syraa.fun" },
+  { package: "web", role: "Syra Agent UI — chat, dashboard, experiments", url: "https://syraa.fun" },
   { package: "api", role: "Backend — x402 routes, agent sessions, partner tools", url: "https://api.syraa.fun" },
   { package: "documentation", role: "Public docs site", url: "https://docs.syraa.fun" },
   { package: "landing", role: "Marketing site", url: "https://syraa.fun" },

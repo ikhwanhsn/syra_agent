@@ -117,7 +117,7 @@ This file mirrors the **structure of the public documentation** published at [do
 ## Related technical sources (not the docs app)
 
 - API base: [https://api.syraa.fun](https://api.syraa.fun) — `/.well-known/x402`, `openapi.json`, `mpp-openapi.json`
-- Web agent: [https://agent.syraa.fun](https://agent.syraa.fun)
+- Web agent: [https://syraa.fun](https://syraa.fun)
 - API playground: [https://playground.syraa.fun](https://playground.syraa.fun)
 
 ---

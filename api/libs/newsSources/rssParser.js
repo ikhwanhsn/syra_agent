@@ -56,8 +56,28 @@ function textContent(node) {
  * @param {string} raw
  * @returns {string}
  */
-function stripHtml(raw) {
+function decodeHtmlEntities(raw) {
   return String(raw || "")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&apos;/gi, "'")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCharCode(parseInt(h, 16)));
+}
+
+/**
+ * @param {string} raw
+ * @returns {string}
+ */
+function stripHtml(raw) {
+  let text = decodeHtmlEntities(raw);
+  // Some feeds double-encode entities (e.g. &amp;lt;p&amp;gt;).
+  text = decodeHtmlEntities(text);
+  return text
     .replace(/<[^>]+>/g, " ")
     .replace(/\s+/g, " ")
     .trim();

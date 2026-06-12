@@ -25,7 +25,7 @@ Where Syra runs
 - API gateway (x402 pay-per-use on many routes): https://api.syraa.fun
 - API discovery: GET https://api.syraa.fun/.well-known/x402
 - API specs: GET https://api.syraa.fun/openapi.json and GET https://api.syraa.fun/mpp-openapi.json
-- Web agent: https://agent.syraa.fun
+- Web agent: https://syraa.fun
 - Telegram: https://t.me/syra_trading_bot
 - X (Twitter): https://x.com/syra_agent
 - Marketing site: https://syraa.fun
@@ -37,7 +37,7 @@ Many API routes use HTTP 402 and the x402 (micropayment) model on Solana. Client
 API vs browsable web apps
 --------------------------
 - **api.syraa.fun** — programmatic JSON/HTTP API. Non-paid routes require API key or Bearer token; paid routes require x402 settlement. Public discovery without a key: GET /.well-known/x402 and GET /openapi.json. Never embed API keys in client-side JavaScript bundles.
-- **syraa.fun, docs.syraa.fun, agent.syraa.fun, playground.syraa.fun, stake.syraa.fun** — ordinary web applications. End users open them in a browser without API credentials. Syra-owned frontends rely on server-side trusted-origin auth injection (not keys shipped to the browser).
+- **syraa.fun, docs.syraa.fun, playground.syraa.fun, stake.syraa.fun** — ordinary web applications. End users open them in a browser without API credentials. Syra-owned frontends rely on server-side trusted-origin auth injection (not keys shipped to the browser).
 - **Crawlers / monitors** — headless crawlers from datacenter IPs may see Vercel Deployment Protection or API 401/402 responses that real browsers do not. That is not the same as the product being down for users.
 
 Ecosystem

@@ -11,6 +11,7 @@ import { normalizeArticleUrl, normalizeTitleKey } from "./s3labsScoring.js";
 /**
  * @typedef {{
  *   jobIdentityKey: string;
+ *   dedupeKey: string;
  *   externalId?: string;
  *   title: string;
  *   company: string;
@@ -40,19 +41,87 @@ export function normalizeCompanyKey(s) {
 }
 
 /**
+ * Strip hiring noise so minor title edits still match the same role.
+ * @param {string} s
+ * @returns {string}
+ */
+export function normalizeJobTitleKey(s) {
+  return normalizeTitleKey(s)
+    .replace(/\b(m w d|m f d|remote|hybrid|onsite|on site|full time|part time|contract|internship)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Canonical slug from listing URL — stable across RSS feeds for the same role.
+ * @param {string} url
+ * @returns {string}
+ */
+export function extractCanonicalJobSlug(url) {
+  try {
+    const u = new URL(String(url || "").trim());
+    const host = u.hostname.replace(/^www\./, "").toLowerCase();
+    const path = u.pathname.replace(/\/+$/, "");
+    const parts = path.split("/").filter(Boolean);
+    const last = parts[parts.length - 1] || "";
+
+    if (host.includes("weworkremotely.com") && last.length > 5) {
+      return `wwr:${last}`;
+    }
+
+    if (host.includes("web3.career")) {
+      const m = path.match(/\/([^/]+)\/(\d+)$/);
+      if (m) return `web3career:${m[2]}`;
+    }
+
+    if (host.includes("ycombinator.com") || host.includes("hnrss.org")) {
+      const id = u.searchParams.get("id") || last;
+      if (id) return `hn:${id}`;
+    }
+
+    if (last.length > 8) return `slug:${host}:${last}`;
+    return "";
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Cross-source dedupe key — same company + role even if URL or feed differs.
+ * @param {{ company: string; title: string; url?: string }} job
+ * @returns {string}
+ */
+export function buildJobDedupeKey(job) {
+  const company = normalizeCompanyKey(job.company);
+  const title = normalizeJobTitleKey(job.title);
+  if (company && title) return `${company}|${title}`;
+
+  const slug = extractCanonicalJobSlug(job.url || "");
+  if (slug) return slug;
+
+  const urlKey = normalizeArticleUrl(job.url || "");
+  if (urlKey) return `url:${urlKey}`;
+  return `title:${title || "unknown"}`;
+}
+
+/**
  * @param {{ sourceId: string; externalId?: string; company: string; title: string; url: string }} job
  * @returns {string}
  */
 export function buildJobIdentityKey(job) {
-  if (job.externalId) {
-    return `${job.sourceId}:${String(job.externalId).trim()}`;
+  const slug = extractCanonicalJobSlug(job.url);
+  if (slug) return slug;
+
+  if (job.sourceId === "web3career" && job.externalId) {
+    return `web3career:${String(job.externalId).trim()}`;
   }
-  const company = normalizeCompanyKey(job.company);
-  const title = normalizeTitleKey(job.title);
-  if (company && title) return `${company}|${title}`;
+
+  const dedupe = buildJobDedupeKey(job);
+  if (dedupe && !dedupe.startsWith("title:")) return dedupe;
+
   const urlKey = normalizeArticleUrl(job.url);
   if (urlKey) return `url:${urlKey}`;
-  return `title:${title || "unknown"}`;
+  return dedupe;
 }
 
 /**

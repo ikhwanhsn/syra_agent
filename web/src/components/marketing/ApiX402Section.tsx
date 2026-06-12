@@ -217,8 +217,7 @@ export const ApiX402Section = () => {
                 <span className="font-mono text-foreground/90">api.syraa.fun</span> is the
                 programmatic gateway: most routes need an API key or x402 payment.{" "}
                 <span className="text-foreground/90">syraa.fun</span>,{" "}
-                <span className="text-foreground/90">docs.syraa.fun</span>,{" "}
-                <span className="text-foreground/90">agent.syraa.fun</span>, and{" "}
+                <span className="text-foreground/90">docs.syraa.fun</span>, and{" "}
                 <span className="text-foreground/90">playground.syraa.fun</span> are ordinary
                 sites you open in a browser—no API credentials in the page. Syra-owned frontends
                 never ship API keys; the server injects auth for trusted origins only.

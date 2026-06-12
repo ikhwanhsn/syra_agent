@@ -10,7 +10,7 @@
 [![Documentation](https://img.shields.io/badge/docs-docs.syraa.fun-0ea5e9)](https://docs.syraa.fun)
 [![Website](https://img.shields.io/badge/Website-syraa.fun-26a5e4)](https://syraa.fun)
 
-**[Documentation](https://docs.syraa.fun)** · **[Telegram Bot](https://t.me/syra_trading_bot)** · **[Agent](https://agent.syraa.fun)** · **[X (Twitter)](https://x.com/syra_agent)**
+**[Documentation](https://docs.syraa.fun)** · **[Telegram Bot](https://t.me/syra_trading_bot)** · **[Agent](https://syraa.fun)** · **[X (Twitter)](https://x.com/syra_agent)**
 
 </div>
 
@@ -25,7 +25,7 @@ The **landing** package is Syra's **marketing and landing website**. It is a sta
 - **Public leaderboard** — leaderboard page for discovery and social proof.
 - **Drives signups** — CTA to Telegram bot, docs, and main app.
 
-It is **not** the full product app (e.g. **ai-agent** at agent.syraa.fun). It’s the first page visitors see (e.g. syraa.fun).
+It is **not** the full product app (the agent lives at syraa.fun). It’s the first page visitors see (e.g. syraa.fun).
 
 ---
 

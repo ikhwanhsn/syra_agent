@@ -13,6 +13,7 @@ import {
   Crosshair,
   Sparkles,
   Trophy,
+  TrendingUp,
   Lock,
   Code2,
   BookOpen,
@@ -72,6 +73,7 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
       p.includes("-experiment") ||
       p.startsWith("/vibe-trading") ||
       p.startsWith("/arena") ||
+      p.startsWith("/spcx") ||
       p.startsWith("/arbitrage") ||
       p.startsWith("/internal"),
     items: [
@@ -81,6 +83,7 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
       { href: "/assets", label: "Assets", icon: FileSearch },
       { href: "/trading-experiment", label: "Trading experiment", icon: FlaskConical },
       { href: "/arena", label: "Alpha Arena", icon: Trophy },
+      { href: "/spcx", label: "SpaceX IPO Agent", icon: TrendingUp },
       { href: "/vibe-trading", label: "Bitget Vibe Trader", icon: Sparkles },
       { href: "/arbitrage-experiment", label: "Arbitrage", icon: Scale },
       { href: "/lp-experiment", label: "LP agents", icon: Droplets },

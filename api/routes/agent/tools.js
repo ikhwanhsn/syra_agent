@@ -635,7 +635,11 @@ router.post('/call', requireSession({ allowGuest: true }), async (req, res) => {
       }
 
       let data = out.data;
-      if (PUMPFUN_TX_TOOL_IDS.has(tool.id) && data && typeof data.transaction === 'string') {
+      const shouldSubmitSerializedTx =
+        data &&
+        typeof data.transaction === 'string' &&
+        (PUMPFUN_TX_TOOL_IDS.has(tool.id) || tool.id === 'jupiter-swap-order');
+      if (shouldSubmitSerializedTx) {
         try {
           const { signature } = await signAndSubmitSerializedTransaction(anonymousId, data.transaction, {
             toolId: tool.id,

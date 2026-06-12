@@ -546,6 +546,8 @@ QUICK ROUTING GUIDE (use this to pick the right tool fast):
 — News / latest updates → news
 — Market sentiment → sentiment
 — Trading signal → signal
+— SpaceX IPO / $SPCX / tokenized SpaceX spread → spcx-intelligence
+— Tokenized stocks (TSLAx, xStocks, premium/discount vs Nasdaq) → equity-intelligence (params: symbol)
 — Smart money / whale activity → smart-money or nansen-smart-money-* (and other nansen-* tools as appropriate)
 — Same-chain Solana swap / pump.fun (SPL, bonding curve or AMM) → pumpfun-agents-swap. Cross-chain bridge or route (many chains) → squid-route. If the user says "swap" or "trade" without Solana vs cross-chain/Squid/bridge context, return {"tools": []} (see OVERLAPPING CAPABILITIES below).
 — pump.fun: SOL/USD → pumpfun-sol-price; coin metadata → pumpfun-coin or pumpfun-coin-query (param mint); launch token → pumpfun-agents-create-coin; claim creator fees → pumpfun-collect-fees; fee sharing → pumpfun-sharing-config; tokenized agent invoice tx → pumpfun-agent-payments-build; verify invoice → pumpfun-agent-payments-verify
@@ -567,6 +569,8 @@ PARAM RULES:
 - For the "exa-search" tool set "params": {"query": "<search phrase from user>"} when the user asks for Exa search, web search, or insights on a topic (e.g. "bitcoin insight", "latest Nvidia news", "crypto market analysis"). The query should be the user's topic or question.
 - For the "website-crawl" tool set "params": {"url": "<starting URL from user>"} when the user asks to crawl a website, summarize a site, get content from a URL, or ingest a docs site (e.g. "crawl https://example.com/docs", "summarize this website"). Extract the URL from the message; if no URL is given, do not select this tool. Optional: "limit" (e.g. 20), "depth" (e.g. 2).
 - For the "signal" tool set "params": {"token": "bitcoin"} or {"token": "ethereum"} or {"token": "solana"} when the user asks for a signal for a specific coin.
+- For "spcx-intelligence" set "params": {} when the user asks about SpaceX IPO, $SPCX, SPCX spread, Nasdaq vs on-chain SpaceX, or /spcx.
+- For "equity-intelligence" set "params": {"symbol": "TSLAx"} or {"symbol": "SPCXx"} when the user asks about tokenized stocks, xStocks, or premium/discount vs Nasdaq for a specific symbol.
 - For "trending-jupiter" set "params": {} when the user asks for trending tokens on Jupiter / Solana momentum (this endpoint has no query params).
 - For "analytics-summary" set "params": {} when the user wants a combined view: Jupiter trending, Nansen smart money, Binance correlation.
 - For "arbitrage" set "params": {} or {"limit": "10"} when the user asks for cross-exchange arbitrage, CEX spread ranking, best buy/sell venue among top market-cap assets, or the same data as the Syra arbitrage experiment. Optional "limit" (string integer 1–25) for how many top CMC assets to scan; omit for default 10.
@@ -672,6 +676,20 @@ const HARDCODED_JUPITER_TOKENS = {
     address: 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263',
     decimals: 5,
     symbol: 'BONK',
+    verified: true,
+  },
+  SPCXx: {
+    address: 'Xs3oZwbHvqis4NYcf4YKWmEia2eC84wSiVrcYcTqpH8',
+    decimals: 8,
+    symbol: 'SPCXx',
+    verified: true,
+  },
+  SPCX: {
+    address:
+      process.env.SPCX_XSTOCKS_MINT ||
+      'Xs3oZwbHvqis4NYcf4YKWmEia2eC84wSiVrcYcTqpH8',
+    decimals: 8,
+    symbol: 'SPCX',
     verified: true,
   },
 };
@@ -1305,7 +1323,7 @@ router.post('/completion', requireSession({ allowGuest: true }), async (req, res
     if (lastUserMessage) {
       const heuristic = matchToolFromUserMessage(lastUserMessage);
       if (heuristic?.toolId && getAgentTool(heuristic.toolId)) {
-        const forceHeuristic = ['news', 'signal', 'sentiment'].includes(heuristic.toolId);
+        const forceHeuristic = ['news', 'signal', 'sentiment', 'spcx-intelligence'].includes(heuristic.toolId);
         if (forceHeuristic || !matchedTools?.length) {
           matchedTools = [
             {
