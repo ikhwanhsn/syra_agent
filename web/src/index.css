@@ -3144,6 +3144,14 @@ body.syra-qwerti-active #qwerti-widget-root {
   text-rendering: geometricPrecision;
 }
 
+/* Export captures seek animations — disable live slide transitions that desync from the timeline. */
+.post-video-export-stage .post-slide {
+  transition: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+  filter: none !important;
+}
+
 .post-record-guides {
   border: 2px solid hsl(45 92% 55% / 0.35);
   border-radius: inherit;

@@ -1,4 +1,10 @@
-import { toCanvas } from "html-to-image";
+import { getFontEmbedCSS, toCanvas } from "html-to-image";
+import type { PostSlide } from "@/content/posts/types";
+import {
+  applyPostSlideFitToRoot,
+  POST_SLIDE_SETTLED_MS,
+} from "@/components/post/postSlideFitMeasure";
+import { getSlideDwellMs } from "@/components/post/postSlideTiming";
 
 /** Final encoded video resolution. */
 export const POST_VIDEO_WIDTH = 1920;
@@ -8,17 +14,14 @@ export const POST_VIDEO_LAYOUT_WIDTH = 960;
 export const POST_VIDEO_LAYOUT_HEIGHT = 540;
 export const POST_VIDEO_FPS = 30;
 export const POST_VIDEO_BITRATE = 16_000_000;
-/** Full DOM capture while stagger/reveal + slide-fit animations run. */
+/** Full DOM capture while stagger/reveal animations run. */
 const ENTRANCE_CAPTURE_MS = 1600;
+/** Snapshot interval during entrance — fewer DOM walks than per-frame capture. */
+const ENTRANCE_CAPTURE_INTERVAL_MS = 120;
 /** Re-snapshot ambient motion (orbs/grid) during static hold — avoids per-frame DOM walks. */
-const HOLD_CAPTURE_INTERVAL_MS = 500;
+const HOLD_CAPTURE_INTERVAL_MS = 800;
 
-/** Time each slide stays visible (tuned for entrance animations). */
-export const SLIDE_INTERVAL_MS = 5200;
-/** Extra hold on the final slide before stopping. */
-export const LAST_SLIDE_DWELL_MS = 7000;
-
-const MIN_FIT_SCALE = 0.68;
+export { getSlideDwellMs } from "@/components/post/postSlideTiming";
 
 export interface PostVideoLayoutSize {
   width: number;
@@ -62,7 +65,7 @@ function applyExportLayoutSize(target: HTMLElement, layout: PostVideoLayoutSize)
   }
 }
 
-function buildExportOptions(layout: PostVideoLayoutSize) {
+function buildExportOptions(layout: PostVideoLayoutSize, fontEmbedCSS: string) {
   const pixelRatio = computeCapturePixelRatio(layout);
 
   return {
@@ -71,6 +74,7 @@ function buildExportOptions(layout: PostVideoLayoutSize) {
     pixelRatio,
     cacheBust: false,
     skipFonts: true,
+    fontEmbedCSS,
     backgroundColor: "#030303",
     filter: (node: Node) => !(node instanceof HTMLElement && node.classList.contains("post-slide-idle")),
     style: {
@@ -97,16 +101,6 @@ export function buildPostVideoFilename(postId: string): string {
   return `syra-post-${sanitizeFilename(postId)}.webm`;
 }
 
-export function getSlideDwellMs(slideIndex: number, slideCount: number): number {
-  return slideIndex >= slideCount - 1 ? LAST_SLIDE_DWELL_MS : SLIDE_INTERVAL_MS;
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, ms);
-  });
-}
-
 async function waitForPaint(full = true): Promise<void> {
   await new Promise<void>((resolve) => {
     requestAnimationFrame(() => resolve());
@@ -119,7 +113,10 @@ async function waitForPaint(full = true): Promise<void> {
 }
 
 function shouldRefreshDomCapture(slideElapsedMs: number, lastCaptureMs: number): boolean {
-  if (slideElapsedMs < ENTRANCE_CAPTURE_MS) return true;
+  if (lastCaptureMs < 0) return true;
+  if (slideElapsedMs < ENTRANCE_CAPTURE_MS) {
+    return slideElapsedMs - lastCaptureMs >= ENTRANCE_CAPTURE_INTERVAL_MS;
+  }
   return slideElapsedMs - lastCaptureMs >= HOLD_CAPTURE_INTERVAL_MS;
 }
 
@@ -215,37 +212,6 @@ function seekExportAnimations(root: HTMLElement, slideElapsedMs: number): void {
     const endMs = delay + duration * iterations;
     animation.currentTime = Math.min(slideElapsedMs, endMs);
   }
-
-  applyExportSlideFit(root, slideElapsedMs);
-}
-
-/** Mirror PostSlideFit reflow at 450ms / 950ms without waiting on real time. */
-function applyExportSlideFit(root: HTMLElement, slideElapsedMs: number): void {
-  const activeFit = root.querySelector<HTMLElement>(".post-slide-active .post-slide-fit");
-  if (!activeFit) return;
-
-  const inner = activeFit.querySelector<HTMLElement>(".post-slide-fit-inner");
-  if (!inner) return;
-
-  if (slideElapsedMs < 450) {
-    inner.style.transform = "none";
-    return;
-  }
-
-  inner.style.transform = "none";
-  const contentHeight = inner.scrollHeight;
-  const contentWidth = inner.scrollWidth;
-  const availHeight = activeFit.clientHeight;
-  const availWidth = activeFit.clientWidth;
-
-  if (contentHeight <= 0 || contentWidth <= 0 || availHeight <= 0 || availWidth <= 0) {
-    inner.style.transform = "none";
-    return;
-  }
-
-  const next = Math.min(1, availHeight / contentHeight, availWidth / contentWidth);
-  const scale = Math.max(MIN_FIT_SCALE, next);
-  inner.style.transform = scale === 1 ? "none" : `scale(${scale})`;
 }
 
 async function prepareSlideCapture(target: HTMLElement, callbacks: PostVideoExportCallbacks, slideIndex: number): Promise<void> {
@@ -255,16 +221,19 @@ async function prepareSlideCapture(target: HTMLElement, callbacks: PostVideoExpo
 
   await callbacks.onSlideChange(slideIndex);
   await waitForPaint();
-  await sleep(32);
   pauseExportAnimations(target);
+  seekExportAnimations(target, POST_SLIDE_SETTLED_MS);
+  applyPostSlideFitToRoot(target);
+  await waitForPaint(false);
 }
 
 export async function exportPostVideoWebm(
   node: HTMLElement,
-  slideCount: number,
+  slides: PostSlide[],
   postId: string,
   callbacks: PostVideoExportCallbacks,
 ): Promise<void> {
+  const slideCount = slides.length;
   if (typeof MediaRecorder === "undefined") {
     throw new Error("Video export is not supported in this browser");
   }
@@ -273,6 +242,7 @@ export async function exportPostVideoWebm(
   const layout = resolvePostVideoLayoutSize();
   applyExportLayoutSize(target, layout);
   await preloadExportAssets(target);
+  const fontEmbedCSS = await getFontEmbedCSS(target);
   await waitForPaint();
 
   const canvas = document.createElement("canvas");
@@ -309,11 +279,11 @@ export async function exportPostVideoWebm(
   const frameIntervalMs = 1000 / POST_VIDEO_FPS;
   let totalFrames = 0;
   for (let slideIndex = 0; slideIndex < slideCount; slideIndex += 1) {
-    totalFrames += Math.ceil(getSlideDwellMs(slideIndex, slideCount) / frameIntervalMs);
+    totalFrames += Math.ceil(getSlideDwellMs(slideIndex, slides) / frameIntervalMs);
   }
 
   let capturedFrames = 0;
-  const exportOptions = buildExportOptions(layout);
+  const exportOptions = buildExportOptions(layout, fontEmbedCSS);
   let cachedFrame: HTMLCanvasElement | null = null;
   let lastDomCaptureMs = -HOLD_CAPTURE_INTERVAL_MS;
 
@@ -323,7 +293,7 @@ export async function exportPostVideoWebm(
       cachedFrame = null;
       lastDomCaptureMs = -HOLD_CAPTURE_INTERVAL_MS;
 
-      const dwellMs = getSlideDwellMs(slideIndex, slideCount);
+      const dwellMs = getSlideDwellMs(slideIndex, slides);
       const slideFrames = Math.ceil(dwellMs / frameIntervalMs);
 
       for (let frame = 0; frame < slideFrames; frame += 1) {
@@ -331,9 +301,12 @@ export async function exportPostVideoWebm(
         seekExportAnimations(target, slideElapsedMs);
 
         const refreshDom = shouldRefreshDomCapture(slideElapsedMs, lastDomCaptureMs);
-        await waitForPaint(refreshDom);
 
         if (refreshDom || !cachedFrame) {
+          if (slideElapsedMs >= 450) {
+            applyPostSlideFitToRoot(target);
+          }
+          await waitForPaint(false);
           cachedFrame = await toCanvas(target, exportOptions);
           lastDomCaptureMs = slideElapsedMs;
         }

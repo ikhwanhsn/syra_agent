@@ -15,6 +15,7 @@ import {
   humanToBaseUnits,
 } from "@/lib/swapPresets";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 type TradeMode = "buy" | "sell";
 type QuoteAsset = "USDC" | "SOL";
@@ -85,6 +86,7 @@ async function fetchMintBalance(
 }
 
 export function SpcxSwapPanel({ report }: { report: SpcxIntelligenceReport }) {
+  const { toast } = useToast();
   const { connected, openLoginModal, connection } = useWalletContext();
   const { requestSyraAuth } = useSyraAuth();
   const { ready, anonymousId, agentAddress, agentUsdcBalance } = useAgentWallet();
@@ -230,6 +232,21 @@ export function SpcxSwapPanel({ report }: { report: SpcxIntelligenceReport }) {
         setError("Extra wallet approval needed. Open agent chat to finish this swap.");
       } else if (data.submittedSignature) {
         void refreshTokenBalance();
+        const receiveLabel =
+          estimatedReceive != null
+            ? mode === "buy"
+              ? `~${formatTokenAmount(estimatedReceive)} ${tokenSymbol}`
+              : quoteAsset === "USDC"
+                ? `~$${formatUsdAmount(estimatedReceive)}`
+                : `~${formatTokenAmount(estimatedReceive)} SOL`
+            : outputSymbol;
+        toast({
+          title: mode === "buy" ? `${tokenSymbol} purchased` : `${tokenSymbol} sold`,
+          description:
+            mode === "buy"
+              ? `Swapped ${amount} ${inputSymbol} for ${receiveLabel}.`
+              : `Sold ${amount} ${inputSymbol} for ${receiveLabel}.`,
+        });
       }
       setShowConfirm(false);
     } catch (e) {
@@ -241,13 +258,19 @@ export function SpcxSwapPanel({ report }: { report: SpcxIntelligenceReport }) {
     agentAddress,
     amount,
     anonymousId,
+    estimatedReceive,
     inputDecimals,
     inputMint,
+    inputSymbol,
     mode,
     outputMint,
+    outputSymbol,
+    quoteAsset,
     quoteMeta,
     refreshTokenBalance,
     requestSyraAuth,
+    toast,
+    tokenSymbol,
   ]);
 
   const swapShellClass = cn(

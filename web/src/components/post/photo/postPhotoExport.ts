@@ -10,21 +10,61 @@ export function resolvePostPhotoExportNode(node: HTMLElement): HTMLElement {
   return canvas ?? node;
 }
 
-const EXPORT_OPTIONS = {
-  width: POST_PHOTO_WIDTH,
-  height: POST_PHOTO_HEIGHT,
-  pixelRatio: POST_PHOTO_PIXEL_RATIO,
-  cacheBust: true,
-  skipFonts: false,
-  style: {
-    transform: "none",
-    transformOrigin: "top left",
-    margin: "0",
-    padding: "0",
-    width: `${POST_PHOTO_WIDTH}px`,
-    height: `${POST_PHOTO_HEIGHT}px`,
-  },
-} as const;
+function buildExportOptions() {
+  return {
+    width: POST_PHOTO_WIDTH,
+    height: POST_PHOTO_HEIGHT,
+    pixelRatio: POST_PHOTO_PIXEL_RATIO,
+    cacheBust: false,
+    skipFonts: false,
+    backgroundColor: "#030303",
+    style: {
+      transform: "none",
+      transformOrigin: "top left",
+      margin: "0",
+      padding: "0",
+      width: `${POST_PHOTO_WIDTH}px`,
+      height: `${POST_PHOTO_HEIGHT}px`,
+    },
+  } as const;
+}
+
+async function preloadExportAssets(root: HTMLElement): Promise<void> {
+  const images = Array.from(root.querySelectorAll("img"));
+  await Promise.all(
+    images.map(
+      (img) =>
+        new Promise<void>((resolve) => {
+          if (img.complete) {
+            resolve();
+            return;
+          }
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
+        }),
+    ),
+  );
+
+  if (document.fonts?.ready) {
+    await document.fonts.ready;
+  }
+}
+
+async function waitForPaint(): Promise<void> {
+  await new Promise<void>((resolve) => {
+    requestAnimationFrame(() => resolve());
+  });
+  await new Promise<void>((resolve) => {
+    requestAnimationFrame(() => resolve());
+  });
+}
+
+async function preparePhotoCapture(node: HTMLElement): Promise<HTMLElement> {
+  const target = resolvePostPhotoExportNode(node);
+  await preloadExportAssets(target);
+  await waitForPaint();
+  return target;
+}
 
 function sanitizeFilename(name: string): string {
   return name.replace(/[^a-z0-9-]+/gi, "-").replace(/-+/g, "-").toLowerCase();
@@ -34,8 +74,8 @@ export async function exportPostPhotoPng(
   node: HTMLElement,
   filename: string,
 ): Promise<void> {
-  const target = resolvePostPhotoExportNode(node);
-  const dataUrl = await toPng(target, EXPORT_OPTIONS);
+  const target = await preparePhotoCapture(node);
+  const dataUrl = await toPng(target, buildExportOptions());
   const link = document.createElement("a");
   link.download = sanitizeFilename(filename);
   link.href = dataUrl;
@@ -48,8 +88,8 @@ export async function copyPostPhotoToClipboard(node: HTMLElement): Promise<boole
   }
 
   try {
-    const target = resolvePostPhotoExportNode(node);
-    const blob = await toBlob(target, EXPORT_OPTIONS);
+    const target = await preparePhotoCapture(node);
+    const blob = await toBlob(target, buildExportOptions());
     if (!blob) return false;
     await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
     return true;

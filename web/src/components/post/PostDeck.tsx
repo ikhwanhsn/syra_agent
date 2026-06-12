@@ -9,10 +9,8 @@ import { PostShareCopyPanel } from "@/components/post/PostShareCopyPanel";
 import { PostUpdateNav } from "@/components/post/PostUpdateNav";
 import { PostXStatusControl } from "@/components/post/PostXStatusControl";
 import { PostVideoExportStage } from "@/components/post/PostVideoExportStage";
-import {
-  exportPostVideoWebm,
-  getSlideDwellMs,
-} from "@/components/post/postVideoExport";
+import { exportPostVideoWebm } from "@/components/post/postVideoExport";
+import { getSlideDwellMs } from "@/components/post/postSlideTiming";
 import { cn } from "@/lib/utils";
 import { Download, ImageIcon, Pause, Play, RotateCcw, Video } from "lucide-react";
 import { toast } from "sonner";
@@ -69,7 +67,7 @@ export function PostDeck({ post }: PostDeckProps) {
     pausePlayback();
 
     try {
-      await exportPostVideoWebm(node, slideCount, meta.id, {
+      await exportPostVideoWebm(node, slides, meta.id, {
         onSlideChange: (nextIndex) => {
           flushSync(() => setExportSlideIndex(nextIndex));
         },
@@ -82,7 +80,7 @@ export function PostDeck({ post }: PostDeckProps) {
       setExporting(false);
       setExportProgress(0);
     }
-  }, [exporting, meta.id, pausePlayback, slideCount]);
+  }, [exporting, meta.id, pausePlayback, slides]);
 
   useEffect(() => {
     document.title = `Syra · ${meta.title} · ${index + 1}/${slideCount}`;
@@ -95,7 +93,7 @@ export function PostDeck({ post }: PostDeckProps) {
     if (!isPlaying) return;
 
     const isLast = index >= slideCount - 1;
-    const delay = getSlideDwellMs(index, slideCount);
+    const delay = getSlideDwellMs(index, slides);
 
     const timer = window.setTimeout(() => {
       if (isLast) {
@@ -107,11 +105,11 @@ export function PostDeck({ post }: PostDeckProps) {
     }, delay);
 
     return () => window.clearTimeout(timer);
-  }, [isPlaying, index, goNext, slideCount]);
+  }, [isPlaying, index, goNext, slides]);
 
   const progress = ((index + 1) / slideCount) * 100;
   const finished = !isPlaying && index === slideCount - 1;
-  const dwellMs = getSlideDwellMs(index, slideCount);
+  const dwellMs = getSlideDwellMs(index, slides);
 
   return (
     <div

@@ -1,7 +1,6 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-
-const MIN_SCALE = 0.68;
+import { computePostSlideFitScale } from "@/components/post/postSlideFitMeasure";
 
 interface PostSlideFitProps {
   isActive: boolean;
@@ -22,19 +21,7 @@ export function PostSlideFit({ isActive, children }: PostSlideFitProps) {
     const inner = innerRef.current;
     if (!outer || !inner) return;
 
-    inner.style.transform = "none";
-    const contentHeight = inner.scrollHeight;
-    const contentWidth = inner.scrollWidth;
-    const availHeight = outer.clientHeight;
-    const availWidth = outer.clientWidth;
-
-    if (contentHeight <= 0 || contentWidth <= 0 || availHeight <= 0 || availWidth <= 0) {
-      setScale(1);
-      return;
-    }
-
-    const next = Math.min(1, availHeight / contentHeight, availWidth / contentWidth);
-    setScale(Math.max(MIN_SCALE, next));
+    setScale(computePostSlideFitScale(outer, inner));
   }, []);
 
   useLayoutEffect(() => {
