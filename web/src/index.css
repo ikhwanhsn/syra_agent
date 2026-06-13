@@ -3144,47 +3144,36 @@ body.syra-qwerti-active #qwerti-widget-root {
   text-rendering: geometricPrecision;
 }
 
-/* Export captures seek animations — disable live slide transitions that desync from the timeline. */
-.post-video-export-stage .post-slide {
+/* Hide chrome overlays while capturing the visible preview. */
+.post-export-active .post-record-guides,
+.post-export-active .post-record-hint {
+  visibility: hidden !important;
+}
+
+.post-export-active .post-slide {
   transition: none !important;
+}
+
+/* Let export code drive reveal motion via inline styles (fixes slide 0 skipping entrance). */
+.post-export-active .post-reveal,
+.post-export-active .post-reveal-active {
+  animation: none !important;
+}
+
+/* Static photo/video hold frames — flatten reveal transforms that confuse html-to-image. */
+.post-export-capturing .post-reveal,
+.post-export-capturing .post-reveal-active {
+  animation: none !important;
   opacity: 1 !important;
   transform: none !important;
-  filter: none !important;
 }
 
-/* Pin container-query typography for html-to-image clones (cqw/cqh often fail off-screen). */
-.post-video-export-stage .post-slide-kicker {
-  font-size: min(0.6875rem, max(0.5625rem, calc(var(--post-export-cqw, 9.6px) * 2.2)));
+.post-export-capturing .post-slide-fit-inner {
+  transform: none !important;
 }
 
-.post-video-export-stage .post-slide-title {
-  font-size: min(2.375rem, max(1.5rem, calc(var(--post-export-cqw, 9.6px) * 7.5)));
-}
-
-.post-video-export-stage .post-slide-title--xl {
-  font-size: min(2.75rem, max(1.75rem, calc(var(--post-export-cqw, 9.6px) * 8.5)));
-}
-
-.post-video-export-stage .post-slide-headline {
-  font-size: min(1.625rem, max(1.125rem, calc(var(--post-export-cqw, 9.6px) * 5.2)));
-}
-
-.post-video-export-stage .post-slide-lead {
-  font-size: min(1.125rem, max(0.875rem, calc(var(--post-export-cqw, 9.6px) * 3.4)));
-}
-
-.post-video-export-stage .post-slide-copy {
-  font-size: min(0.875rem, max(0.6875rem, calc(var(--post-export-cqw, 9.6px) * 2.6)));
-}
-
-.post-video-export-stage .post-slide-body--cover,
-.post-video-export-stage .post-slide-body--stack,
-.post-video-export-stage .post-slide-body--grid {
-  gap: min(1rem, max(0.4375rem, calc(var(--post-export-cqh, 5.4px) * 2.2)));
-}
-
-.post-video-export-stage .post-tmpl-tight-stack {
-  gap: min(0.625rem, max(0.375rem, calc(var(--post-export-cqh, 5.4px) * 1.5)));
+.post-export-capturing .post-slide-active .post-slide-fit-inner {
+  transform: var(--post-export-fit-transform, none) !important;
 }
 
 .post-record-guides {

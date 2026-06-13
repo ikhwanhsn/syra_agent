@@ -15,7 +15,6 @@ export function PostSlideFit({ isActive, children }: PostSlideFitProps) {
   const outerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
-  const [exportLocked, setExportLocked] = useState(false);
 
   const measure = useCallback(() => {
     const outer = outerRef.current;
@@ -23,10 +22,6 @@ export function PostSlideFit({ isActive, children }: PostSlideFitProps) {
     if (!outer || !inner) return;
 
     setScale(computePostSlideFitScale(outer, inner));
-  }, []);
-
-  useLayoutEffect(() => {
-    setExportLocked(Boolean(outerRef.current?.closest(".post-video-export-root")));
   }, []);
 
   useLayoutEffect(() => {
@@ -63,13 +58,9 @@ export function PostSlideFit({ isActive, children }: PostSlideFitProps) {
       <div
         ref={innerRef}
         className="post-slide-fit-inner"
-        style={
-          exportLocked
-            ? undefined
-            : {
-                transform: scale === 1 ? undefined : `scale(${scale})`,
-              }
-        }
+        style={{
+          transform: scale === 1 ? undefined : `scale(${scale})`,
+        }}
       >
         {children}
       </div>

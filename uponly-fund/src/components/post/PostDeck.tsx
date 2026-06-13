@@ -8,11 +8,8 @@ import { PostBackLink } from "@/components/post/PostBackLink";
 import { PostShareCopyPanel } from "@/components/post/PostShareCopyPanel";
 import { PostUpdateNav } from "@/components/post/PostUpdateNav";
 import { PostXStatusControl } from "@/components/post/PostXStatusControl";
-import { PostVideoExportStage } from "@/components/post/PostVideoExportStage";
-import {
-  exportPostVideoWebm,
-  getSlideDwellMs,
-} from "@/components/post/postVideoExport";
+import { exportPostVideoWebm } from "@/components/post/postVideoExport";
+import { getSlideDwellMs } from "@/components/post/postSlideTiming";
 import { cn } from "@/lib/utils";
 import { Download, ImageIcon, Pause, Play, RotateCcw, Video } from "lucide-react";
 import { toast } from "sonner";
@@ -31,9 +28,7 @@ export function PostDeck({ post }: PostDeckProps) {
   const [showGuides, setShowGuides] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
-  const [exportSlideIndex, setExportSlideIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
-  const exportRef = useRef<HTMLDivElement>(null);
 
   const goNext = useCallback(() => {
     setIndex((current) => {
@@ -60,18 +55,16 @@ export function PostDeck({ post }: PostDeckProps) {
   }, []);
 
   const handleDownloadVideo = useCallback(async () => {
-    const node = exportRef.current;
-    if (!node || exporting) return;
+    if (exporting) return;
 
     setExporting(true);
     setExportProgress(0);
-    setExportSlideIndex(0);
     pausePlayback();
 
     try {
-      await exportPostVideoWebm(node, slideCount, meta.id, {
+      await exportPostVideoWebm(slides, meta.id, {
         onSlideChange: (nextIndex) => {
-          flushSync(() => setExportSlideIndex(nextIndex));
+          flushSync(() => setIndex(nextIndex));
         },
         onProgress: (progress) => setExportProgress(progress),
       });
@@ -82,7 +75,7 @@ export function PostDeck({ post }: PostDeckProps) {
       setExporting(false);
       setExportProgress(0);
     }
-  }, [exporting, meta.id, pausePlayback, slideCount]);
+  }, [exporting, meta.id, pausePlayback, slides]);
 
   useEffect(() => {
     document.title = `Up Only Fund · ${meta.title} · ${index + 1}/${slideCount}`;
@@ -95,7 +88,7 @@ export function PostDeck({ post }: PostDeckProps) {
     if (!isPlaying) return;
 
     const isLast = index >= slideCount - 1;
-    const delay = getSlideDwellMs(index, slideCount);
+    const delay = getSlideDwellMs(index, slides);
 
     const timer = window.setTimeout(() => {
       if (isLast) {
@@ -107,11 +100,11 @@ export function PostDeck({ post }: PostDeckProps) {
     }, delay);
 
     return () => window.clearTimeout(timer);
-  }, [isPlaying, index, goNext, slideCount]);
+  }, [isPlaying, index, goNext, slides]);
 
   const progress = ((index + 1) / slideCount) * 100;
   const finished = !isPlaying && index === slideCount - 1;
-  const dwellMs = getSlideDwellMs(index, slideCount);
+  const dwellMs = getSlideDwellMs(index, slides);
 
   return (
     <div
@@ -257,8 +250,6 @@ export function PostDeck({ post }: PostDeckProps) {
         </p>
       </footer>
 
-      <PostVideoExportStage slides={slides} slideIndex={exportSlideIndex} exportRef={exportRef} />
-
       {exporting ? (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-[#030303]/80 px-4 backdrop-blur-sm"
@@ -278,7 +269,7 @@ export function PostDeck({ post }: PostDeckProps) {
             </div>
             <p className="mt-3 font-mono text-xs tabular-nums text-white/45">
               {Math.round(exportProgress * 100)}% · slide{" "}
-              {String(exportSlideIndex + 1).padStart(2, "0")} /{" "}
+              {String(index + 1).padStart(2, "0")} /{" "}
               {String(slideCount).padStart(2, "0")}
             </p>
             <p className="mt-2 text-xs text-white/35">Keep this tab open until the download starts</p>

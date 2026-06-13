@@ -14,9 +14,10 @@ export function PostPhotoFrame({ children, exportRef }: PostPhotoFrameProps) {
 
   const setFrameRef = useCallback(
     (node: HTMLDivElement | null) => {
-      if (exportRef) {
-        (exportRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
-      }
+      if (!exportRef) return;
+      const canvas = node?.querySelector<HTMLElement>(".post-photo-canvas");
+      (exportRef as React.MutableRefObject<HTMLDivElement | null>).current =
+        (canvas as HTMLDivElement | null) ?? node;
     },
     [exportRef],
   );

@@ -1883,6 +1883,38 @@
   line-height: 1rem;
 }
 
+/* Hide chrome overlays while capturing the visible preview. */
+.post-export-active .post-record-guides,
+.post-export-active .post-record-hint {
+  visibility: hidden !important;
+}
+
+.post-export-active .post-slide {
+  transition: none !important;
+}
+
+/* Let export code drive reveal motion via inline styles (fixes slide 0 skipping entrance). */
+.post-export-active .post-reveal,
+.post-export-active .post-reveal-active {
+  animation: none !important;
+}
+
+/* Static photo/video hold frames — flatten reveal transforms that confuse html-to-image. */
+.post-export-capturing .post-reveal,
+.post-export-capturing .post-reveal-active {
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+.post-export-capturing .post-slide-fit-inner {
+  transform: none !important;
+}
+
+.post-export-capturing .post-slide-active .post-slide-fit-inner {
+  transform: var(--post-export-fit-transform, none) !important;
+}
+
 .post-record-stage {
   position: relative;
   width: 100%;
