@@ -171,11 +171,10 @@
 
 import { motion, useReducedMotion } from "framer-motion";
 import { useInView } from "framer-motion";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Gift, Vote, Lock, TrendingUp, Trophy, Copy, Check, ExternalLink, ShoppingCart, Loader2, Sparkles } from "lucide-react";
+import { Gift, Vote, Lock, TrendingUp, Trophy, Copy, Check, ExternalLink, ShoppingCart, Sparkles } from "lucide-react";
 import { QwertiIcon } from "@/components/marketing/QwertiIcon";
-import { toast } from "sonner";
 import syraLogo from "/images/logo.jpg";
 import { cn } from "@/lib/utils";
 import { getSyraApiBase, LINK_STAKING } from "@/lib/marketing/global";
@@ -192,7 +191,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { QWERTI_MAGIC_LINK } from "@/data/marketing/qwerti";
-import { openQwertiBuyWidget } from "@/lib/qwerti";
 
 /** Native SOL mint for Raydium / swap deep links */
 const WSOL_MINT = "So11111111111111111111111111111111111111112";
@@ -207,6 +205,7 @@ const QWERTI_BUY_VENUE = {
   id: "qwerti",
   label: "Qwerti",
   description: "Cross-chain · Card · Apple Pay · embedded wallet",
+  href: QWERTI_MAGIC_LINK,
   recommended: true,
 } as const;
 
@@ -287,23 +286,7 @@ export const TokenSection = () => {
   const isInView = useInView(ref, { once: true, margin: "-100px" });
   const [copied, setCopied] = useState(false);
   const [buyOpen, setBuyOpen] = useState(false);
-  const [qwertiLoading, setQwertiLoading] = useState(false);
   const reduceMotion = useReducedMotion();
-
-  const openQwertiFromModal = useCallback(async () => {
-    setQwertiLoading(true);
-    try {
-      await openQwertiBuyWidget();
-      setBuyOpen(false);
-    } catch {
-      window.open(QWERTI_MAGIC_LINK, "_blank", "noopener,noreferrer");
-      toast.error("Opened Qwerti in a new tab", {
-        description: "The embedded widget could not start on this page.",
-      });
-    } finally {
-      setQwertiLoading(false);
-    }
-  }, []);
 
   const { data: stakingSummary, isPending: isPendingStaking } = useQuery({
     queryKey: ["syra-staking-summary"],
@@ -519,11 +502,11 @@ export const TokenSection = () => {
                 animate={buyOpen ? "show" : "hidden"}
               >
                 <motion.li variants={buyModalMotion.listItem}>
-                  <button
-                    type="button"
-                    disabled={qwertiLoading}
-                    onClick={() => void openQwertiFromModal()}
-                    className="flex w-full items-center justify-between gap-3 rounded-lg border border-neon-gold/50 bg-neon-gold/10 px-4 py-3 text-left transition-colors hover:border-neon-gold/70 hover:bg-neon-gold/15 disabled:opacity-70"
+                  <a
+                    href={QWERTI_BUY_VENUE.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex w-full items-center justify-between gap-3 rounded-lg border border-neon-gold/50 bg-neon-gold/10 px-4 py-3 text-left transition-colors hover:border-neon-gold/70 hover:bg-neon-gold/15"
                   >
                     <span className="min-w-0">
                       <span className="flex flex-wrap items-center gap-2">
@@ -535,12 +518,8 @@ export const TokenSection = () => {
                       </span>
                       <span className="block text-xs text-muted-foreground">{QWERTI_BUY_VENUE.description}</span>
                     </span>
-                    {qwertiLoading ? (
-                      <Loader2 className="h-4 w-4 shrink-0 animate-spin text-neon-gold" aria-hidden />
-                    ) : (
-                      <QwertiIcon size="sm" />
-                    )}
-                  </button>
+                    <QwertiIcon size="sm" />
+                  </a>
                 </motion.li>
                 {SYRA_BUY_VENUES.map((venue) => (
                   <motion.li key={venue.id} variants={buyModalMotion.listItem}>

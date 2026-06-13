@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { DrawerDismissButton } from "@/components/ui/drawer-dismiss-button";
 import { GlobalNavAssetSearch } from "@/components/layout/GlobalNavAssetSearch";
+import { SyraBuyButton } from "@/components/syra/SyraBuyButton";
 
 function isItemActive(pathname: string, href: string) {
   if (href === "/playground") {
@@ -32,7 +33,10 @@ function MobileSectionLabel({ children }: { children: string }) {
       <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/45">
         {children}
       </span>
-      <span className="h-px min-w-0 flex-1 bg-gradient-to-r from-border/40 to-transparent" aria-hidden />
+      <span
+        className="h-px min-w-0 flex-1 bg-gradient-to-r from-border/40 to-transparent"
+        aria-hidden
+      />
     </div>
   );
 }
@@ -77,12 +81,18 @@ function MobileNavItem({
       ) : null}
       {Icon ? (
         <span className={mobileNavIconClasses(active)}>
-          <Icon className="h-4 w-4" strokeWidth={active ? 2.25 : 2} aria-hidden />
+          <Icon
+            className="h-4 w-4"
+            strokeWidth={active ? 2.25 : 2}
+            aria-hidden
+          />
         </span>
       ) : null}
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5">
-          <span className="truncate text-[13px] font-medium tracking-tight">{item.label}</span>
+          <span className="truncate text-[13px] font-medium tracking-tight">
+            {item.label}
+          </span>
           {item.external ? (
             <ArrowUpRight className="h-3 w-3 shrink-0 opacity-60" aria-hidden />
           ) : null}
@@ -150,7 +160,11 @@ function MobileNavGroupSection({
           ) : null}
           {GroupIcon ? (
             <span className={mobileNavIconClasses(active)}>
-              <GroupIcon className="h-4 w-4" strokeWidth={active ? 2.25 : 2} aria-hidden />
+              <GroupIcon
+                className="h-4 w-4"
+                strokeWidth={active ? 2.25 : 2}
+                aria-hidden
+              />
             </span>
           ) : null}
           <span className="min-w-0 flex-1 truncate text-[13px] font-medium tracking-tight">
@@ -169,7 +183,11 @@ function MobileNavGroupSection({
       <ul className="flex flex-col gap-0.5">
         {items.map((item) => (
           <li key={item.href}>
-            <MobileNavItem item={item} pathname={pathname} onNavigate={onNavigate} />
+            <MobileNavItem
+              item={item}
+              pathname={pathname}
+              onNavigate={onNavigate}
+            />
           </li>
         ))}
       </ul>
@@ -223,7 +241,9 @@ export function GlobalNavMobileSheet({
         />
 
         <header className="relative z-10 flex shrink-0 items-center justify-between gap-3 border-b border-sidebar-border/60 px-4 py-3.5">
-          <p className="truncate text-[15px] font-semibold tracking-tight text-foreground">Menu</p>
+          <p className="truncate text-[15px] font-semibold tracking-tight text-foreground">
+            Menu
+          </p>
           <DrawerDismissButton label="Close menu" onClick={close} />
         </header>
 
@@ -254,7 +274,11 @@ export function GlobalNavMobileSheet({
             <ul className="flex flex-col gap-0.5">
               {SITE_NAV_MORE.map((item) => (
                 <li key={item.href}>
-                  <MobileNavItem item={item} pathname={pathname} onNavigate={close} />
+                  <MobileNavItem
+                    item={item}
+                    pathname={pathname}
+                    onNavigate={close}
+                  />
                 </li>
               ))}
             </ul>
@@ -264,7 +288,11 @@ export function GlobalNavMobileSheet({
                 <ul className="flex flex-col gap-0.5">
                   {SITE_NAV_ADMIN_MORE.map((item) => (
                     <li key={item.href}>
-                      <MobileNavItem item={item} pathname={pathname} onNavigate={close} />
+                      <MobileNavItem
+                        item={item}
+                        pathname={pathname}
+                        onNavigate={close}
+                      />
                     </li>
                   ))}
                 </ul>
@@ -273,12 +301,15 @@ export function GlobalNavMobileSheet({
           </section>
         </nav>
 
-        <footer className="relative z-10 shrink-0 border-t border-sidebar-border/60 bg-gradient-to-t from-muted/25 to-transparent px-4 py-4">
+        <footer className="relative z-10 shrink-0 space-y-2 border-t border-sidebar-border/60 bg-gradient-to-t from-muted/25 to-transparent px-4 py-4">
+          <SyraBuyButton variant="nav" fullWidth className="h-10" />
           <Button
             type="button"
             variant="ghost"
             className="h-10 w-full justify-start gap-3 rounded-xl px-2.5 text-muted-foreground hover:bg-muted/45 hover:text-foreground"
-            onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+            onClick={() =>
+              setTheme(resolvedTheme === "dark" ? "light" : "dark")
+            }
             suppressHydrationWarning
           >
             <span className={mobileNavIconClasses(false)}>
@@ -289,7 +320,9 @@ export function GlobalNavMobileSheet({
               )}
             </span>
             <span className="text-[13px] font-medium">
-              {!mounted || resolvedTheme !== "light" ? "Light mode" : "Dark mode"}
+              {!mounted || resolvedTheme !== "light"
+                ? "Light mode"
+                : "Dark mode"}
             </span>
           </Button>
         </footer>

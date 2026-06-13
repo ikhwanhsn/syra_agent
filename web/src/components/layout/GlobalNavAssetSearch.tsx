@@ -51,7 +51,10 @@ function PageSuggestionRow({
         <span className="flex items-center gap-1.5">
           <span className="truncate text-sm font-medium">{page.label}</span>
           {page.external ? (
-            <ArrowUpRight className="h-3 w-3 shrink-0 text-muted-foreground" aria-hidden />
+            <ArrowUpRight
+              className="h-3 w-3 shrink-0 text-muted-foreground"
+              aria-hidden
+            />
           ) : null}
         </span>
         <span className="mt-0.5 block truncate text-xs text-muted-foreground">
@@ -242,11 +245,15 @@ export function GlobalNavAssetSearch({
           </ul>
           <div className="flex items-center justify-between gap-2 border-t border-border/40 bg-muted/20 px-3 py-2 text-[11px] text-muted-foreground">
             <span>
-              <kbd className="rounded border border-border/50 bg-background/50 px-1 font-mono">↑↓</kbd>{" "}
+              <kbd className="rounded border border-border/50 bg-background/50 px-1 font-mono">
+                ↑↓
+              </kbd>{" "}
               navigate
             </span>
             <span>
-              <kbd className="rounded border border-border/50 bg-background/50 px-1 font-mono">↵</kbd>{" "}
+              <kbd className="rounded border border-border/50 bg-background/50 px-1 font-mono">
+                ↵
+              </kbd>{" "}
               open
             </span>
           </div>

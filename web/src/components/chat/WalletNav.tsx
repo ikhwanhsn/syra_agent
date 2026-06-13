@@ -35,6 +35,8 @@ import { cn } from "@/lib/utils";
 import { shortenAgentAddress } from "@/lib/agentWalletCatalog";
 import { formatTreasuryUsd } from "@/lib/agentWalletBalanceDisplay";
 import { formatSol } from "@/lib/dashboardOverviewAggregates";
+import { useSyraHolderBalance } from "@/hooks/useSyraHolderBalance";
+import { SyraHolderProgressCard } from "@/components/syra/SyraHolderProgressCard";
 
 export interface WalletNavProps {
   isDarkMode?: boolean;
@@ -76,6 +78,16 @@ export function WalletNav(props: WalletNavProps = {}) {
   const [disconnecting, setDisconnecting] = useState(false);
   const [addressCopied, setAddressCopied] = useState(false);
 
+  const walletAddress = publicKey?.toBase58() ?? null;
+  const {
+    balance: syraBalance,
+    loading: syraBalanceLoading,
+    progressPct: syraProgressPct,
+    isEligible: syraHolderEligible,
+    threshold: syraHolderThreshold,
+    refresh: refreshSyraBalance,
+  } = useSyraHolderBalance(walletAddress, { enabled: open && connected });
+
   const walletLabel = publicKey
     ? (connectedWalletShort ?? shortenAgentAddress(publicKey.toBase58()))
     : "…";
@@ -90,6 +102,7 @@ export function WalletNav(props: WalletNavProps = {}) {
     void refreshTreasuryBalances().finally(() => {
       if (!cancelled) setBalanceRefreshing(false);
     });
+    void refreshSyraBalance();
     return () => {
       cancelled = true;
     };
@@ -113,14 +126,14 @@ export function WalletNav(props: WalletNavProps = {}) {
   const handleRefreshBalances = useCallback(async () => {
     setBalanceRefreshing(true);
     try {
-      await refreshTreasuryBalances();
+      await Promise.all([refreshTreasuryBalances(), refreshSyraBalance()]);
       notify.success("Balances updated");
     } catch {
       notify.error("Could not refresh balances");
     } finally {
       setBalanceRefreshing(false);
     }
-  }, [refreshTreasuryBalances]);
+  }, [refreshTreasuryBalances, refreshSyraBalance]);
 
   const copyAddress = useCallback(
     (text: string, label: string) => {
@@ -280,6 +293,15 @@ export function WalletNav(props: WalletNavProps = {}) {
                 )}
               </Button>
             </div>
+
+            <SyraHolderProgressCard
+              className="relative mt-3"
+              balance={syraBalance}
+              loading={syraBalanceLoading}
+              progressPct={syraProgressPct}
+              isEligible={syraHolderEligible}
+              threshold={syraHolderThreshold}
+            />
 
             <div className="relative mt-4 rounded-xl border border-border/50 bg-card/80 px-3.5 py-3 ring-1 ring-inset ring-white/[0.04]">
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">

@@ -1,17 +1,26 @@
 "use client";
 
 import { Link } from "@/lib/navigation";
-import { ArrowUpRight, BookOpen, Terminal } from "lucide-react";
+import { ArrowUpRight, BookOpen, ShoppingBag, Terminal } from "lucide-react";
+import { QWERTI_MAGIC_LINK } from "@/data/qwerti";
 import { cn } from "@/lib/utils";
 
 interface EmptyStateProps {
   agentName?: string;
 }
 
-const RESOURCES = [
+const RESOURCE_LINKS = [
   { href: "/playground", label: "API playground", icon: Terminal, external: false },
   { href: "https://docs.syraa.fun", label: "Documentation", icon: BookOpen, external: true },
 ] as const;
+
+const chipClass = cn(
+  "group inline-flex items-center gap-1.5 rounded-full border border-border/50 bg-background/40 px-3.5 py-2",
+  "text-[12.5px] font-medium text-muted-foreground/80 backdrop-blur-md",
+  "transition-[border-color,background-color,color,box-shadow] duration-200",
+  "hover:border-border/80 hover:bg-card/50 hover:text-foreground hover:shadow-[0_4px_20px_-10px_rgba(0,0,0,0.35)]",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+);
 
 export function EmptyState({ agentName = "Syra Agent" }: EmptyStateProps) {
   return (
@@ -98,20 +107,26 @@ export function EmptyState({ agentName = "Syra Agent" }: EmptyStateProps) {
           className="animate-in fade-in slide-in-from-bottom-2 fill-mode-both mt-8 flex flex-wrap items-center justify-center gap-2 duration-500"
           style={{ animationDelay: "180ms" }}
         >
-          {RESOURCES.map(({ href, label, icon: Icon, external }) => (
+          <a
+            href={QWERTI_MAGIC_LINK}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(
+              chipClass,
+              "border-neon-gold/35 bg-neon-gold/8 text-neon-gold hover:border-neon-gold/50 hover:bg-neon-gold/12 hover:text-neon-gold",
+            )}
+          >
+            <ShoppingBag className="h-3.5 w-3.5 opacity-80" strokeWidth={2} aria-hidden />
+            Get $SYRA
+          </a>
+          {RESOURCE_LINKS.map(({ href, label, icon: Icon, external }) => (
             <Link
               key={href}
               to={href}
               {...(external
                 ? { target: "_blank", rel: "noopener noreferrer" }
                 : {})}
-              className={cn(
-                "group inline-flex items-center gap-1.5 rounded-full border border-border/50 bg-background/40 px-3.5 py-2",
-                "text-[12.5px] font-medium text-muted-foreground/80 backdrop-blur-md",
-                "transition-[border-color,background-color,color,box-shadow] duration-200",
-                "hover:border-border/80 hover:bg-card/50 hover:text-foreground hover:shadow-[0_4px_20px_-10px_rgba(0,0,0,0.35)]",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-              )}
+              className={chipClass}
             >
               <Icon className="h-3.5 w-3.5 text-muted-foreground/60 transition-colors group-hover:text-foreground/70" strokeWidth={2} aria-hidden />
               {label}

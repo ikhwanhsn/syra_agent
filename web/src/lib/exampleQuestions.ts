@@ -25,6 +25,7 @@ export const EXAMPLE_QUESTIONS = [
   "What is a rug pull?",
   "Explain gas fees on Solana",
   "What can Syra Agent help me with?",
+  "Buy $10 of $SYRA",
 ] as const;
 
 export type ExampleQuestion = (typeof EXAMPLE_QUESTIONS)[number];

@@ -29,6 +29,7 @@ import { isAdminWallet } from "@/constants/adminWallet";
 import { useWalletContext } from "@/contexts/WalletContext";
 import { NavbarLogo } from "@/components/NavbarLogo";
 import { GlobalNavMobileSheet } from "@/components/layout/GlobalNavMobileSheet";
+import { SyraBuyButton } from "@/components/syra/SyraBuyButton";
 
 const navDropdownPanelClass = cn(
   "overflow-hidden rounded-2xl border border-border/50 bg-popover/95 text-popover-foreground",
@@ -84,7 +85,9 @@ function NavMenuLink({
       ) : null}
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1">
-          <span className="truncate text-sm font-medium leading-tight">{item.label}</span>
+          <span className="truncate text-sm font-medium leading-tight">
+            {item.label}
+          </span>
           {item.external ? (
             <ArrowUpRight className="h-3 w-3 shrink-0 text-muted-foreground opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
           ) : null}
@@ -207,7 +210,11 @@ export function GlobalNav() {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
       const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable)
+      if (
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        (e.target as HTMLElement)?.isContentEditable
+      )
         return;
       e.preventDefault();
       searchRef.current?.focus();
@@ -222,7 +229,11 @@ export function GlobalNav() {
       style={{ height: "var(--syra-global-nav-height, 3.5rem)" }}
     >
       <div className="flex h-full w-full items-center gap-2 px-3 sm:gap-3 sm:px-4 lg:px-6">
-        <GlobalNavMobileSheet pathname={pathname} isAdmin={isAdmin} searchRef={searchRef} />
+        <GlobalNavMobileSheet
+          pathname={pathname}
+          isAdmin={isAdmin}
+          searchRef={searchRef}
+        />
 
         <Link
           to="/"
@@ -254,24 +265,38 @@ export function GlobalNav() {
             ))}
 
             <NavigationMenuItem value="more">
-              <NavigationMenuTrigger className={cn(navTriggerClass, "bg-transparent")}>
+              <NavigationMenuTrigger
+                className={cn(navTriggerClass, "bg-transparent")}
+              >
                 More
               </NavigationMenuTrigger>
               <NavigationMenuContent className={navDropdownContentClass}>
                 <ul className="w-[min(100vw-2rem,17.5rem)] p-2">
                   {SITE_NAV_MORE.map((item) => (
-                    <NavMenuLink key={item.href} item={item} pathname={pathname} />
+                    <NavMenuLink
+                      key={item.href}
+                      item={item}
+                      pathname={pathname}
+                    />
                   ))}
                   {isAdmin ? (
                     <>
-                      <li className="mx-2.5 my-1.5 h-px bg-border/50" role="separator" aria-hidden />
+                      <li
+                        className="mx-2.5 my-1.5 h-px bg-border/50"
+                        role="separator"
+                        aria-hidden
+                      />
                       <li className="px-2.5 pb-1 pt-0.5">
                         <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/55">
                           Internal
                         </span>
                       </li>
                       {SITE_NAV_ADMIN_MORE.map((item) => (
-                        <NavMenuLink key={item.href} item={item} pathname={pathname} />
+                        <NavMenuLink
+                          key={item.href}
+                          item={item}
+                          pathname={pathname}
+                        />
                       ))}
                     </>
                   ) : null}
@@ -287,7 +312,9 @@ export function GlobalNav() {
             variant="ghost"
             size="icon"
             className="h-9 w-9 shrink-0 rounded-lg text-muted-foreground hover:text-foreground"
-            onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+            onClick={() =>
+              setTheme(resolvedTheme === "dark" ? "light" : "dark")
+            }
             aria-label="Toggle theme"
             suppressHydrationWarning
           >
@@ -303,6 +330,8 @@ export function GlobalNav() {
             isAdmin={isAdmin}
             className="hidden w-44 min-w-0 sm:w-52 md:flex lg:w-64"
           />
+
+          <SyraBuyButton variant="nav" />
 
           <WalletNav />
         </div>

@@ -5,7 +5,9 @@ import { ChevronDown } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-type NavigationMenuProps = React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Root> & {
+type NavigationMenuProps = React.ComponentPropsWithoutRef<
+  typeof NavigationMenuPrimitive.Root
+> & {
   /** Shared viewport morphs between menus; disable for per-trigger dropdown alignment. */
   viewport?: boolean;
 };
@@ -16,7 +18,10 @@ const NavigationMenu = React.forwardRef<
 >(({ className, children, viewport = true, ...props }, ref) => (
   <NavigationMenuPrimitive.Root
     ref={ref}
-    className={cn("relative z-10 flex w-max max-w-max items-center justify-start", className)}
+    className={cn(
+      "relative z-10 flex w-max max-w-max items-center justify-start",
+      className,
+    )}
     {...props}
   >
     {children}
@@ -31,7 +36,10 @@ const NavigationMenuList = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <NavigationMenuPrimitive.List
     ref={ref}
-    className={cn("group flex list-none items-center justify-start gap-1", className)}
+    className={cn(
+      "group flex list-none items-center justify-start gap-1",
+      className,
+    )}
     {...props}
   />
 ));
@@ -41,7 +49,11 @@ const NavigationMenuItem = React.forwardRef<
   React.ElementRef<typeof NavigationMenuPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Item>
 >(({ className, ...props }, ref) => (
-  <NavigationMenuPrimitive.Item ref={ref} className={cn("relative", className)} {...props} />
+  <NavigationMenuPrimitive.Item
+    ref={ref}
+    className={cn("relative", className)}
+    {...props}
+  />
 ));
 NavigationMenuItem.displayName = NavigationMenuPrimitive.Item.displayName;
 
@@ -102,7 +114,8 @@ const NavigationMenuViewport = React.forwardRef<
     />
   </div>
 ));
-NavigationMenuViewport.displayName = NavigationMenuPrimitive.Viewport.displayName;
+NavigationMenuViewport.displayName =
+  NavigationMenuPrimitive.Viewport.displayName;
 
 const NavigationMenuIndicator = React.forwardRef<
   React.ElementRef<typeof NavigationMenuPrimitive.Indicator>,
@@ -119,7 +132,8 @@ const NavigationMenuIndicator = React.forwardRef<
     <div className="relative top-[60%] h-2 w-2 rotate-45 rounded-tl-sm bg-border shadow-md" />
   </NavigationMenuPrimitive.Indicator>
 ));
-NavigationMenuIndicator.displayName = NavigationMenuPrimitive.Indicator.displayName;
+NavigationMenuIndicator.displayName =
+  NavigationMenuPrimitive.Indicator.displayName;
 
 export {
   navigationMenuTriggerStyle,

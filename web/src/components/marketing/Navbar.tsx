@@ -16,7 +16,7 @@ const navLinks = [
   { label: "Product", href: "/home#product" },
   { label: "API", href: "/home#api" },
   { label: "Token", href: "/home#token" },
-  // { label: "Staking", href: "/home#staking" },
+  { label: "Staking", href: "/home#staking" },
   { label: "Roadmap", href: "/home#roadmap" },
   { label: "FAQ", href: "/home#faq" },
 ];
