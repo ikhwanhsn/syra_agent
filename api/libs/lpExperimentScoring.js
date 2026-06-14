@@ -101,6 +101,9 @@ function passesScreeningOverrides(strategy, pool) {
   if (s.minStudyWinRate != null && toNum(pool.studyWinRate) < Number(s.minStudyWinRate)) {
     return { pass: false, reason: "studyWinRate" };
   }
+  if (s.minTvlUsd != null && toNum(pool.tvlUsd) < Number(s.minTvlUsd)) {
+    return { pass: false, reason: "minTvlUsd" };
+  }
   if (s.maxTvlUsd != null && toNum(pool.tvlUsd) > Number(s.maxTvlUsd)) {
     return { pass: false, reason: "maxTvlUsd" };
   }

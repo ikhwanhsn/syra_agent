@@ -1,4 +1,9 @@
 import { Fragment, type ReactNode } from "react";
+import {
+  getPostPhotoBgSignalTag,
+  getPostPhotoBgWatermark,
+  type PostPhotoBgVariant,
+} from "@/components/post/photo/postPhotoBgVariants";
 import { cn } from "@/lib/utils";
 
 function PostPhotoStepConnector({ variant }: { variant: "pipeline" | "timeline" }) {
@@ -16,19 +21,63 @@ function PostPhotoStepConnector({ variant }: { variant: "pipeline" | "timeline" 
 interface PostPhotoChromeProps {
   children: ReactNode;
   className?: string;
+  /** Per-card background style (15 roles → 15 variants). */
+  bgVariant?: PostPhotoBgVariant;
   /** Hide footer URL bar (some templates include their own). */
   hideFooter?: boolean;
   /** Hide top brand strip. */
   hideBrand?: boolean;
 }
 
-/** Fixed 1200×675 branded canvas shared by all photo templates. */
-export function PostPhotoChrome({ children, className, hideFooter, hideBrand }: PostPhotoChromeProps) {
+function PostPhotoAlphaUnderlay({ variant }: { variant: PostPhotoBgVariant }) {
+  const watermark = getPostPhotoBgWatermark(variant);
+  const signalTag = getPostPhotoBgSignalTag(variant);
+
   return (
-    <div className={cn("post-photo-canvas", className)}>
+    <div className={cn("post-photo-alpha-underlay", `post-photo-bg--${variant}`)} aria-hidden>
+      <div className="post-photo-alpha-conic" />
+      <div className="post-photo-alpha-radial-top" />
+      <div className="post-photo-alpha-radial-bl" />
+      <div className="post-photo-alpha-radial-tr" />
+      <div className="post-photo-alpha-beam" />
+      <div className="post-photo-alpha-spotlight" />
+      <div className="post-photo-alpha-grid" />
+      <div className="post-photo-alpha-rail" />
+      <div className="post-photo-alpha-stripes" />
+      <div className="post-photo-alpha-layer post-photo-alpha-layer--halo" />
+      <div className="post-photo-alpha-layer post-photo-alpha-layer--scanlines" />
+      <div className="post-photo-alpha-layer post-photo-alpha-layer--prism-split" />
+      <div className="post-photo-alpha-layer post-photo-alpha-layer--flow-track" />
+      <div className="post-photo-alpha-layer post-photo-alpha-layer--vault-glow" />
+      <div className="post-photo-alpha-layer post-photo-alpha-layer--gilded-frame" />
+      <div className="post-photo-alpha-layer post-photo-alpha-layer--diagonal-fill" />
+      <div className="post-photo-alpha-layer post-photo-alpha-layer--aurora-bloom" />
+      <span className="post-photo-bracket post-photo-bracket--tl" />
+      <span className="post-photo-bracket post-photo-bracket--tr" />
+      <span className="post-photo-bracket post-photo-bracket--bl" />
+      <span className="post-photo-bracket post-photo-bracket--br" />
+      {watermark ? <span className="post-photo-alpha-watermark">{watermark}</span> : null}
+      {signalTag ? <span className="post-photo-alpha-signal">{signalTag}</span> : null}
+      <span className="post-photo-alpha-tag">SYRA</span>
+    </div>
+  );
+}
+
+/** Fixed 1200×675 branded canvas shared by all photo templates. */
+export function PostPhotoChrome({
+  children,
+  className,
+  bgVariant = "brag",
+  hideFooter,
+  hideBrand,
+}: PostPhotoChromeProps) {
+  return (
+    <div className={cn("post-photo-canvas", `post-photo-bg--${bgVariant}`, className)}>
+      <PostPhotoAlphaUnderlay variant={bgVariant} />
       <div className="post-photo-ambient" aria-hidden />
       <div className="post-photo-orb post-photo-orb-a" aria-hidden />
       <div className="post-photo-orb post-photo-orb-b" aria-hidden />
+      <div className="post-photo-orb post-photo-orb-c" aria-hidden />
       <div className="post-photo-grid" aria-hidden />
 
       {!hideBrand ? (

@@ -13,7 +13,7 @@ export const REAL_MIN_HOLD_MINUTES = 45;
 export const REAL_MIN_OOR_WAIT_MIN = 90;
 
 /** Real LP: minimum bins each side after overrides (wider = fewer OOR exits). */
-export const REAL_MIN_BINS_PER_SIDE = 22;
+export const REAL_MIN_BINS_PER_SIDE = 28;
 
 /** Claim accumulated swap fees before close when above this SOL threshold. */
 export const REAL_CLAIM_FEES_BEFORE_CLOSE_SOL = 0.000_05;
@@ -245,8 +245,8 @@ export function computeLpNetPnlPct(priceDriftPct, feeYieldPct, inRange, riskScor
   }
   const ilScale = 1 + clamp01(riskScore) * 0.7;
   const ilPenalty =
-    (-Math.abs(priceDriftPct) * 0.55 - Math.max(0, -priceDriftPct) * 0.2) * ilScale;
-  return ilPenalty + feeYieldPct * 0.35;
+    (-Math.abs(priceDriftPct) * 0.45 - Math.max(0, -priceDriftPct) * 0.2) * ilScale;
+  return ilPenalty + feeYieldPct * 0.55;
 }
 
 /** Widen bin range for on-chain positions — sim strategies can be too tight for mainnet volatility. */

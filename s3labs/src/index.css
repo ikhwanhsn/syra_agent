@@ -1,0 +1,426 @@
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 20% 98%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 166 100% 40%;
+    --primary-foreground: 222 47% 8%;
+
+    --secondary: 210 20% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 20% 94%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 166 80% 45%;
+    --accent-foreground: 222 47% 8%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214 20% 88%;
+    --input: 214 20% 88%;
+    --ring: 166 100% 40%;
+
+    --radius: 0.875rem;
+
+    /* Custom tokens */
+    --gradient-primary: linear-gradient(135deg, hsl(166, 100%, 38%), hsl(192, 85%, 42%));
+    --gradient-subtle: linear-gradient(180deg, hsl(210, 22%, 99%), hsl(210, 18%, 96%));
+    --gradient-card: linear-gradient(160deg, hsl(0, 0%, 100%) 0%, hsl(210, 25%, 98%) 100%);
+    --gradient-mesh: radial-gradient(ellipse 80% 50% at 50% -20%, hsl(166, 100%, 40%, 0.12), transparent 60%);
+    --glass-bg: hsl(0, 0%, 100%, 0.72);
+    --glass-border: hsl(214, 20%, 88%, 0.8);
+    --shadow-glow: 0 0 80px hsl(166, 100%, 40%, 0.18);
+    --shadow-card: 0 1px 2px hsl(222, 47%, 11%, 0.04), 0 8px 32px hsl(222, 47%, 11%, 0.06);
+    --shadow-elevated: 0 4px 8px hsl(222, 47%, 11%, 0.04), 0 24px 64px hsl(222, 47%, 11%, 0.1);
+    --shadow-inner-glow: inset 0 1px 0 0 hsl(0, 0%, 100%, 0.6);
+  }
+
+  .dark {
+    --background: 222 47% 6%;
+    --foreground: 210 20% 98%;
+
+    --card: 222 47% 9%;
+    --card-foreground: 210 20% 98%;
+
+    --popover: 222 47% 9%;
+    --popover-foreground: 210 20% 98%;
+
+    --primary: 166 100% 50%;
+    --primary-foreground: 222 47% 6%;
+
+    --secondary: 222 30% 14%;
+    --secondary-foreground: 210 20% 98%;
+
+    --muted: 222 30% 16%;
+    --muted-foreground: 215 16% 65%;
+
+    --accent: 166 80% 55%;
+    --accent-foreground: 222 47% 6%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 222 30% 18%;
+    --input: 222 30% 18%;
+    --ring: 166 100% 50%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(166, 100%, 48%), hsl(192, 80%, 50%));
+    --gradient-subtle: linear-gradient(180deg, hsl(222, 47%, 5%), hsl(222, 40%, 8%));
+    --gradient-card: linear-gradient(160deg, hsl(222, 40%, 11%) 0%, hsl(222, 47%, 8%) 100%);
+    --gradient-mesh: radial-gradient(ellipse 80% 50% at 50% -20%, hsl(166, 100%, 50%, 0.14), transparent 55%);
+    --glass-bg: hsl(222, 47%, 9%, 0.65);
+    --glass-border: hsl(222, 30%, 22%, 0.9);
+    --shadow-glow: 0 0 100px hsl(166, 100%, 50%, 0.22);
+    --shadow-card: 0 1px 2px hsl(0, 0%, 0%, 0.2), 0 12px 40px hsl(0, 0%, 0%, 0.35);
+    --shadow-elevated: 0 4px 12px hsl(0, 0%, 0%, 0.25), 0 32px 80px hsl(0, 0%, 0%, 0.45);
+    --shadow-inner-glow: inset 0 1px 0 0 hsl(0, 0%, 100%, 0.06);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sora antialiased;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: var(--gradient-primary);
+  }
+
+  .bg-gradient-primary {
+    background-image: var(--gradient-primary);
+  }
+
+  .bg-gradient-subtle {
+    background-image: var(--gradient-subtle);
+  }
+
+  .bg-gradient-card {
+    background-image: var(--gradient-card);
+  }
+
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+
+  .shadow-elevated {
+    box-shadow: var(--shadow-elevated);
+  }
+
+  .bg-gradient-mesh {
+    background-image: var(--gradient-mesh);
+  }
+
+  .eyebrow {
+    @apply inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-primary;
+  }
+
+  .heading-display {
+    @apply text-[2.5rem] sm:text-5xl lg:text-6xl xl:text-[4.25rem] font-semibold tracking-[-0.03em] leading-[1.05];
+  }
+
+  .heading-section {
+    @apply text-3xl sm:text-4xl lg:text-[2.65rem] font-semibold tracking-[-0.025em] leading-[1.12];
+  }
+
+  .section-shell {
+    @apply py-24 sm:py-28 lg:py-36 relative overflow-hidden;
+  }
+
+  .section-divider {
+    @apply absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-border/70 to-transparent pointer-events-none;
+  }
+
+  .card-premium {
+    @apply rounded-2xl border border-border/70 bg-card/60 backdrop-blur-xl shadow-card;
+    box-shadow: var(--shadow-card), var(--shadow-inner-glow);
+  }
+
+  .card-premium-hover {
+    @apply card-premium transition-all duration-300 ease-out;
+  }
+
+  .card-premium-hover:hover {
+    @apply border-primary/35 -translate-y-0.5;
+    box-shadow: var(--shadow-elevated), var(--shadow-inner-glow);
+  }
+
+  .panel-glass {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    @apply backdrop-blur-2xl rounded-2xl;
+    box-shadow: var(--shadow-card), var(--shadow-inner-glow);
+  }
+
+  .nav-link-premium {
+    @apply relative text-sm font-medium text-muted-foreground transition-colors duration-200 hover:text-foreground;
+  }
+
+  .nav-link-premium::after {
+    content: "";
+    @apply absolute -bottom-1 left-0 h-px w-0 bg-primary transition-all duration-300;
+  }
+
+  .nav-link-premium:hover::after {
+    @apply w-full;
+  }
+
+  .grid-pattern {
+    background-image: 
+      linear-gradient(to right, hsl(var(--border) / 0.3) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--border) / 0.3) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  /* Light mode landing: gradient + soft glow orbs for depth */
+  .landing-light-bg {
+    background-color: hsl(210, 22%, 97%);
+    background-image:
+      radial-gradient(ellipse 100% 80% at 10% 0%, hsl(166, 100%, 40%, 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse 80% 60% at 90% 10%, hsl(180, 80%, 40%, 0.06) 0%, transparent 50%),
+      radial-gradient(ellipse 70% 70% at 50% 100%, hsl(166, 80%, 45%, 0.05) 0%, transparent 50%),
+      linear-gradient(180deg, hsl(210, 25%, 99%) 0%, hsl(210, 20%, 96%) 50%, hsl(210, 18%, 95%) 100%);
+    background-attachment: fixed;
+    background-size: 100% 100%;
+  }
+
+  /* Hide scrollbar on desktop (md and up); scroll still works via wheel/drag */
+  @media (min-width: 768px) {
+    .scrollbar-hide-md::-webkit-scrollbar {
+      display: none;
+    }
+    .scrollbar-hide-md {
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+  }
+}
+
+@layer components {
+  .animate-fade-up {
+    animation: fadeUp 0.6s ease-out forwards;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.4s ease-out forwards;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.5s ease-out forwards;
+  }
+
+  .hover-lift {
+    @apply transition-all duration-300;
+  }
+
+  .hover-lift:hover {
+    @apply -translate-y-1 border-primary/30;
+    box-shadow: var(--shadow-elevated), var(--shadow-inner-glow);
+  }
+
+  .hover-glow:hover {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .btn-premium {
+    @apply rounded-full shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300;
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px hsl(166, 100%, 50%, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px hsl(166, 100%, 50%, 0.5);
+  }
+}
+
+/* Meteor effect – soft diagonal streaks */
+.meteor-container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.meteor {
+  position: absolute;
+  top: -8%;
+  height: 1.5px;
+  border-radius: 2px;
+  background: linear-gradient(
+    90deg,
+    hsl(var(--primary) / 0.75) 0%,
+    hsl(180 80% 55% / 0.35) 25%,
+    transparent 65%
+  );
+  box-shadow: 0 0 8px hsl(var(--primary) / 0.25);
+  filter: blur(0.5px);
+  animation: meteor-fall linear infinite;
+  will-change: transform, opacity;
+}
+
+.dark .meteor {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--primary) / 0.7) 0%,
+    hsl(180 80% 50% / 0.3) 28%,
+    transparent 65%
+  );
+  box-shadow: 0 0 10px hsl(var(--primary) / 0.22);
+}
+
+@keyframes meteor-fall {
+  0% {
+    transform: translate(0, 0) rotate(var(--meteor-tilt, -25deg));
+    opacity: 0;
+  }
+  8% {
+    opacity: var(--meteor-opacity, 0.2);
+  }
+  80% {
+    opacity: var(--meteor-opacity, 0.2);
+  }
+  100% {
+    transform: translate(-110vw, 110vh) rotate(var(--meteor-tilt, -25deg));
+    opacity: 0;
+  }
+}
+
+/* Mouse-follow glow – soft spotlight in brand color */
+.mouse-glow {
+  position: fixed;
+  pointer-events: none;
+  z-index: 5;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    hsl(var(--primary) / 0.12) 0%,
+    hsl(180 80% 50% / 0.06) 40%,
+    transparent 70%
+  );
+  filter: blur(40px);
+  transition: left 0.2s ease-out, top 0.2s ease-out;
+  will-change: left, top;
+}
+
+.dark .mouse-glow {
+  background: radial-gradient(
+    circle,
+    hsl(var(--primary) / 0.18) 0%,
+    hsl(180 80% 50% / 0.08) 40%,
+    transparent 70%
+  );
+  filter: blur(48px);
+}
+
+/* Click ripple – expanding ring that fades */
+.click-ripple {
+  position: fixed;
+  pointer-events: none;
+  z-index: 10;
+  width: 24px;
+  height: 24px;
+  margin-left: -12px;
+  margin-top: -12px;
+  border-radius: 50%;
+  border: 2px solid hsl(var(--primary) / 0.6);
+  box-shadow: 0 0 20px hsl(var(--primary) / 0.25);
+  animation: click-ripple 0.7s ease-out forwards;
+}
+
+@keyframes click-ripple {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(8);
+    opacity: 0;
+  }
+}

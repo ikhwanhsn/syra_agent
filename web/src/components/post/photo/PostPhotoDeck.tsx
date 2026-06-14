@@ -205,8 +205,11 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
           </div>
         </aside>
 
-        <div className="post-chrome-stage flex min-h-0 min-w-0 flex-1 flex-col items-center justify-center px-2 py-3 sm:px-6 sm:py-4">
-          <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/35">
+        <div className="post-chrome-stage relative flex min-h-0 min-w-0 flex-1 flex-col items-center justify-center overflow-hidden px-2 py-3 sm:px-6 sm:py-4">
+          <div className="post-ambient pointer-events-none absolute inset-0" aria-hidden />
+          <div className="post-orb post-orb-a pointer-events-none absolute rounded-full scale-75" aria-hidden />
+          <div className="post-orb post-orb-b pointer-events-none absolute rounded-full scale-75" aria-hidden />
+          <p className="relative z-10 mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/35">
             {slotLabel}
             {" · "}
             {POST_PHOTO_LAYOUT_LABELS[activeCard.layout]}
@@ -214,10 +217,12 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
             {String(cardIndex + 1).padStart(2, "0")}/{String(POST_PHOTO_CARD_COUNT).padStart(2, "0")}
             {" · 1200×675"}
           </p>
-          <PostPhotoFrame exportRef={exportRef}>
-            {renderPostPhotoTemplate(activeCard.layout, activeCard.content)}
-          </PostPhotoFrame>
-          <p className="post-footer-hint mt-3 hidden text-center font-mono text-[10px] text-white/30 sm:block">
+          <div className="relative z-10 w-full">
+            <PostPhotoFrame exportRef={exportRef}>
+              {renderPostPhotoTemplate(activeCard.layout, activeCard.content, activeCard.role)}
+            </PostPhotoFrame>
+          </div>
+          <p className="post-footer-hint relative z-10 mt-3 hidden text-center font-mono text-[10px] text-white/30 sm:block">
             Export each card as PNG, then paste the matching X post — 15 posts per ship log
           </p>
         </div>
