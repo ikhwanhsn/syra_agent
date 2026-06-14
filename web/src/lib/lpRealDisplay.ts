@@ -82,8 +82,8 @@ export function formatLpLastError(
       return `Wallet needs more liquid SOL for the next ${formatSol(1)} slot (reserve kept for fees)`;
     case "insufficient_available_sol":
       return available != null
-        ? `Only ${formatSol(available)} liquid for the next 1 SOL slot`
-        : "Not enough liquid SOL in wallet for a new position";
+        ? `Only ${formatSol(available)} SOL available after fee reserve — need more liquid SOL for the next pool (deposit + tx fees)`
+        : "Not enough liquid SOL in wallet for a new position (deposit + tx fees)";
     case "low_wallet_fee_reserve":
       return "Wallet SOL low — add ~0.2 SOL for close/claim fees";
     case "no_best_strategy":

@@ -43,6 +43,7 @@ import {
 import {
   buildLpPositionTimeline,
   formatPoolPairLabel,
+  formatLpLastError,
   formatSolWithUsd,
   isActiveLpRealPosition,
   isOrphanedLiveLpRealPosition,
@@ -173,6 +174,13 @@ export function LpRealSection() {
   const totalCapitalSol = stateQ.data?.totalCapitalSol ?? walletEquitySol + deployedSol;
   const totalReturnSol = stateQ.data?.totalReturnSol ?? summaryQ.data?.totalReturnSol ?? 0;
   const enabled = Boolean(config?.enabled);
+  const lastErrorMsg = enabled && config?.lastError
+    ? formatLpLastError(config.lastError, {
+        totalCapitalSol,
+        minBankSol: minBank,
+        availableSol: stateQ.data?.availableSol,
+      })
+    : "";
   const hasAgentWallet = Boolean(agentAddr || lpAnonymousId);
   const loading = Boolean(lpAnonymousId) && (stateQ.isLoading || summaryQ.isLoading);
   const failed = stateQ.isError;
@@ -182,7 +190,6 @@ export function LpRealSection() {
       return {
         ...stateQ.data,
         onChainBalanceSol,
-        isOperator: true,
         config: stateQ.data.config ?? (agentAddr ? buildPreviewConfig(agentAddr, minBank) : null),
       };
     }
@@ -350,6 +357,12 @@ export function LpRealSection() {
               />
             </div>
 
+            {lastErrorMsg ? (
+              <p className="rounded-xl border border-amber-500/25 bg-amber-500/[0.06] px-4 py-3 text-sm text-amber-900 dark:text-amber-200">
+                {lastErrorMsg}
+              </p>
+            ) : null}
+
             {config?.experimentId ? (
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -389,7 +402,8 @@ export function LpRealSection() {
                 ) : positionTotal === 0 ? (
                   <p className="rounded-2xl border border-dashed border-border/50 bg-background/20 px-4 py-6 text-sm text-muted-foreground">
                     {enabled
-                      ? "No positions yet — the agent will open pools automatically."
+                      ? lastErrorMsg ||
+                        "No positions yet — the agent will open pools on the next signal tick (~2 min)."
                       : "Turn on the agent to start earning fees."}
                   </p>
                 ) : (

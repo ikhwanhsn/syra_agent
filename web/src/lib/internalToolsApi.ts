@@ -394,3 +394,486 @@ export async function deleteImagePrompt(id: string): Promise<DeleteNarrativeResp
     { method: "DELETE" },
   );
 }
+
+export type EngagementTopicId =
+  | "solana"
+  | "ai-agents"
+  | "x402"
+  | "agent-economy"
+  | "defi-agents"
+  | "autonomous";
+
+export type EngagementWindowId = "6h" | "12h" | "24h" | "48h";
+
+export type EngagementQueryType = "Latest" | "Top";
+
+export type EngagementReplyToneId =
+  | "insight"
+  | "builder"
+  | "amplify"
+  | "question"
+  | "contrast"
+  | "hype";
+
+export interface EngagementAuthor {
+  userName: string;
+  name: string;
+  followers: number;
+  verified: boolean;
+}
+
+export interface EngagementMetrics {
+  likeCount: number;
+  retweetCount: number;
+  replyCount: number;
+  quoteCount: number;
+  viewCount: number;
+}
+
+export interface EngagementOpportunity {
+  id: string;
+  text: string;
+  url: string;
+  createdAt: string | null;
+  author: EngagementAuthor;
+  metrics: EngagementMetrics;
+  score: number;
+}
+
+export interface EngagementSearchMeta {
+  query: string;
+  topicIds: string[];
+  window: string;
+  minFaves: number;
+  queryType: EngagementQueryType;
+  rawCount: number;
+  validatedCount: number;
+  returnedCount: number;
+}
+
+export interface EngagementSearchResponse {
+  success: boolean;
+  data: {
+    opportunities: EngagementOpportunity[];
+    meta: EngagementSearchMeta;
+  };
+}
+
+export interface EngagementReplyItem {
+  id: string;
+  text: string;
+  sourceTweetId: string;
+  sourceTweetText: string;
+  authorHandle: string;
+  tone: string;
+  createdAt?: string;
+  createdByWallet?: string | null;
+}
+
+export interface DraftEngagementReplyResponse {
+  success: boolean;
+  data: EngagementReplyItem;
+}
+
+export interface RecentEngagementRepliesResponse {
+  success: boolean;
+  data: EngagementReplyItem[];
+  total: number;
+}
+
+export async function searchEngagementOpportunities(opts?: {
+  topics?: EngagementTopicId[];
+  keyword?: string;
+  minFaves?: number;
+  window?: EngagementWindowId;
+  queryType?: EngagementQueryType;
+}): Promise<EngagementSearchResponse> {
+  return fetchInternalJson<EngagementSearchResponse>("/internal/tools/engagement-radar/search", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      ...(opts?.topics?.length ? { topics: opts.topics } : {}),
+      ...(opts?.keyword?.trim() ? { keyword: opts.keyword.trim() } : {}),
+      ...(opts?.minFaves != null ? { minFaves: opts.minFaves } : {}),
+      ...(opts?.window ? { window: opts.window } : {}),
+      ...(opts?.queryType ? { queryType: opts.queryType } : {}),
+    }),
+  });
+}
+
+export async function draftEngagementReply(
+  tweetId: string,
+  tweetText: string,
+  authorHandle: string,
+  wallet?: string | null,
+  tone?: EngagementReplyToneId | null,
+): Promise<DraftEngagementReplyResponse> {
+  return fetchInternalJson<DraftEngagementReplyResponse>("/internal/tools/engagement-radar/draft-reply", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      tweetId,
+      tweetText,
+      authorHandle,
+      ...(tone ? { tone } : {}),
+      ...(wallet ? { wallet } : {}),
+    }),
+  });
+}
+
+export async function fetchRecentEngagementReplies(
+  limit = 15,
+): Promise<RecentEngagementRepliesResponse> {
+  return fetchInternalJson<RecentEngagementRepliesResponse>(
+    `/internal/tools/engagement-radar/recent?limit=${encodeURIComponent(String(limit))}`,
+  );
+}
+
+export async function deleteEngagementReply(id: string): Promise<DeleteNarrativeResponse> {
+  return fetchInternalJson<DeleteNarrativeResponse>(
+    `/internal/tools/engagement-radar/${encodeURIComponent(id)}`,
+    { method: "DELETE" },
+  );
+}
+
+export function buildReplyOnXUrl(tweetId: string, text: string): string {
+  const params = new URLSearchParams({
+    in_reply_to: tweetId,
+    text,
+  });
+  return `https://twitter.com/intent/tweet?${params.toString()}`;
+}
+
+export function buildTweetOnXUrl(text: string): string {
+  const params = new URLSearchParams({ text });
+  return `https://twitter.com/intent/tweet?${params.toString()}`;
+}
+
+// --- Holder Pulse ---
+
+export type HolderPulseAngleId =
+  | "holder-growth"
+  | "staking"
+  | "concentration"
+  | "price-momentum"
+  | "liquidity";
+
+export interface HolderPulseSnapshot {
+  mint: string;
+  updatedAt: string;
+  holders: {
+    mint: string;
+    decimals?: number;
+    supplyHuman: number;
+    holders: Array<{ rank: number; wallet: string; balanceHuman: number; sharePct: number }>;
+    top10ConcentrationPct: number | null;
+  };
+  price: {
+    priceUsd: number | null;
+    liquidityUsd?: number;
+    volume24h?: number;
+    priceChange24h?: number;
+    source: string;
+  } | null;
+  marketCapUsd: number | null;
+  staking: {
+    uniqueWallets: number;
+    openLockCount: number;
+    totalStakedFormatted: string;
+    closedLockCount: number;
+  } | null;
+}
+
+export interface HolderPulsePost {
+  id: string;
+  text: string;
+  angle: string;
+  snapshot: HolderPulseSnapshot;
+  createdAt?: string;
+  createdByWallet?: string | null;
+}
+
+export async function fetchHolderPulseSnapshot(): Promise<{ success: boolean; data: HolderPulseSnapshot }> {
+  return fetchInternalJson("/internal/tools/holder-pulse/snapshot");
+}
+
+export async function generateHolderPulsePost(
+  wallet?: string | null,
+  angle?: HolderPulseAngleId | null,
+): Promise<{ success: boolean; data: HolderPulsePost }> {
+  return fetchInternalJson("/internal/tools/holder-pulse/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...(angle ? { angle } : {}), ...(wallet ? { wallet } : {}) }),
+  });
+}
+
+export async function fetchRecentHolderPulsePosts(
+  limit = 15,
+): Promise<{ success: boolean; data: HolderPulsePost[]; total: number }> {
+  return fetchInternalJson(`/internal/tools/holder-pulse/recent?limit=${encodeURIComponent(String(limit))}`);
+}
+
+export async function deleteHolderPulsePost(id: string): Promise<DeleteNarrativeResponse> {
+  return fetchInternalJson(`/internal/tools/holder-pulse/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+// --- Trend Scanner ---
+
+export type TrendScannerWoeidId = "worldwide" | "usa" | "uk";
+
+export interface TrendScanItem {
+  name: string;
+  rank: number | null;
+  relevanceScore: number;
+  angle: string;
+  syraFit: "high" | "medium" | "low";
+  sampleTweet: { id: string; text: string; url: string; author: string } | null;
+}
+
+export interface TrendScanPost {
+  id: string;
+  text: string;
+  trendText: string;
+  angle: string;
+  relevanceScore: number;
+  createdAt?: string;
+  createdByWallet?: string | null;
+}
+
+export async function scanNarrativeTrends(
+  woeid?: TrendScannerWoeidId | number,
+): Promise<{ success: boolean; data: { trends: TrendScanItem[]; meta: Record<string, unknown> } }> {
+  return fetchInternalJson("/internal/tools/trend-scanner/scan", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...(woeid != null ? { woeid } : {}) }),
+  });
+}
+
+export async function generateTrendPost(
+  trendText: string,
+  angle: string,
+  relevanceScore: number,
+  wallet?: string | null,
+): Promise<{ success: boolean; data: TrendScanPost }> {
+  return fetchInternalJson("/internal/tools/trend-scanner/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ trendText, angle, relevanceScore, ...(wallet ? { wallet } : {}) }),
+  });
+}
+
+export async function fetchRecentTrendScanPosts(
+  limit = 15,
+): Promise<{ success: boolean; data: TrendScanPost[]; total: number }> {
+  return fetchInternalJson(`/internal/tools/trend-scanner/recent?limit=${encodeURIComponent(String(limit))}`);
+}
+
+export async function deleteTrendScanPost(id: string): Promise<DeleteNarrativeResponse> {
+  return fetchInternalJson(`/internal/tools/trend-scanner/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+// --- Founder Pulse ---
+
+export interface FounderPulseAnalytics {
+  avgEngagement: number;
+  totalEngagement: number;
+  tweetsAnalyzed: number;
+  tweetsPerDay: number | null;
+  topTweets: Array<{
+    id: string;
+    text: string;
+    url: string;
+    createdAt: string | null;
+    engagement: number;
+    metrics: EngagementMetrics;
+  }>;
+  bestHours: Array<{ hour: number; avgEngagement: number; count: number }>;
+  bestDays: Array<{ day: number; avgEngagement: number; count: number }>;
+  profile: {
+    userName: string;
+    name: string;
+    followers: number;
+    following: number;
+    tweetCount: number;
+    verified: boolean;
+  };
+  insight?: string | null;
+  followerDelta?: number | null;
+}
+
+export interface FounderPulseSnapshot {
+  id: string;
+  handle: string;
+  followers: number;
+  following: number;
+  tweetCount: number;
+  analytics: FounderPulseAnalytics;
+  capturedAt?: string;
+  createdByWallet?: string | null;
+  followerDelta?: number | null;
+  insight?: string | null;
+}
+
+export async function analyzeFounderPulse(
+  handle?: string,
+  wallet?: string | null,
+): Promise<{ success: boolean; data: FounderPulseSnapshot }> {
+  return fetchInternalJson("/internal/tools/founder-pulse/analyze", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      ...(handle?.trim() ? { handle: handle.trim() } : {}),
+      ...(wallet ? { wallet } : {}),
+    }),
+  });
+}
+
+export async function fetchRecentFounderPulseSnapshots(
+  limit = 15,
+  handle?: string,
+): Promise<{ success: boolean; data: FounderPulseSnapshot[]; total: number }> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (handle?.trim()) params.set("handle", handle.trim());
+  return fetchInternalJson(`/internal/tools/founder-pulse/recent?${params.toString()}`);
+}
+
+// --- Mention Triage ---
+
+export type MentionCategory = "question" | "opportunity" | "fud" | "praise" | "spam";
+export type MentionPriority = "high" | "medium" | "low";
+export type MentionReplyToneId = "helpful" | "hype" | "builder" | "clarify";
+
+export interface MentionTriageItem {
+  id: string;
+  text: string;
+  url: string;
+  createdAt: string | null;
+  author: EngagementAuthor;
+  metrics: EngagementMetrics;
+  category: MentionCategory;
+  priority: MentionPriority;
+  summary: string;
+  engagement: number;
+}
+
+export interface MentionReplyItem {
+  id: string;
+  text: string;
+  sourceTweetId: string;
+  sourceTweetText: string;
+  authorHandle: string;
+  category: string;
+  tone: string;
+  createdAt?: string;
+  createdByWallet?: string | null;
+}
+
+export async function scanMentionTriage(
+  handle?: string,
+): Promise<{ success: boolean; data: { mentions: MentionTriageItem[]; meta: Record<string, unknown> } }> {
+  return fetchInternalJson("/internal/tools/mention-triage/scan", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...(handle?.trim() ? { handle: handle.trim() } : {}) }),
+  });
+}
+
+export async function draftMentionReply(
+  tweetId: string,
+  tweetText: string,
+  authorHandle: string,
+  category: MentionCategory,
+  wallet?: string | null,
+  tone?: MentionReplyToneId | null,
+): Promise<{ success: boolean; data: MentionReplyItem }> {
+  return fetchInternalJson("/internal/tools/mention-triage/draft-reply", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      tweetId,
+      tweetText,
+      authorHandle,
+      category,
+      ...(tone ? { tone } : {}),
+      ...(wallet ? { wallet } : {}),
+    }),
+  });
+}
+
+export async function fetchRecentMentionReplies(
+  limit = 15,
+): Promise<{ success: boolean; data: MentionReplyItem[]; total: number }> {
+  return fetchInternalJson(`/internal/tools/mention-triage/recent?limit=${encodeURIComponent(String(limit))}`);
+}
+
+export async function deleteMentionReply(id: string): Promise<DeleteNarrativeResponse> {
+  return fetchInternalJson(`/internal/tools/mention-triage/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+// --- KOL Tracker ---
+
+export type KolEngagementModeId = "reply" | "quote" | "amplify";
+
+export interface KolOpportunity {
+  id: string;
+  text: string;
+  url: string;
+  createdAt: string | null;
+  author: EngagementAuthor;
+  metrics: EngagementMetrics;
+  kolHandle: string;
+  score: number;
+}
+
+export interface KolEngagementItem {
+  id: string;
+  text: string;
+  sourceTweetId: string;
+  sourceTweetText: string;
+  authorHandle: string;
+  mode: string;
+  createdAt?: string;
+  createdByWallet?: string | null;
+}
+
+export async function trackKolOpportunities(
+  handles?: string[],
+): Promise<{ success: boolean; data: { opportunities: KolOpportunity[]; meta: Record<string, unknown> } }> {
+  return fetchInternalJson("/internal/tools/kol-tracker/track", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...(handles?.length ? { handles } : {}) }),
+  });
+}
+
+export async function draftKolEngagement(
+  tweetId: string,
+  tweetText: string,
+  authorHandle: string,
+  wallet?: string | null,
+  mode?: KolEngagementModeId | null,
+): Promise<{ success: boolean; data: KolEngagementItem }> {
+  return fetchInternalJson("/internal/tools/kol-tracker/draft", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      tweetId,
+      tweetText,
+      authorHandle,
+      ...(mode ? { mode } : {}),
+      ...(wallet ? { wallet } : {}),
+    }),
+  });
+}
+
+export async function fetchRecentKolEngagements(
+  limit = 15,
+): Promise<{ success: boolean; data: KolEngagementItem[]; total: number }> {
+  return fetchInternalJson(`/internal/tools/kol-tracker/recent?limit=${encodeURIComponent(String(limit))}`);
+}
+
+export async function deleteKolEngagement(id: string): Promise<DeleteNarrativeResponse> {
+  return fetchInternalJson(`/internal/tools/kol-tracker/${encodeURIComponent(id)}`, { method: "DELETE" });
+}

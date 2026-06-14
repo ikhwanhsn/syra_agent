@@ -3,6 +3,12 @@
 import type { ReactNode } from "react";
 import { useLocation, useNavigate, useSearchParams } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
+import { InternalEngagementRadarTool } from "@/components/internal/InternalEngagementRadarTool";
+import { InternalFounderPulseTool } from "@/components/internal/InternalFounderPulseTool";
+import { InternalHolderPulseTool } from "@/components/internal/InternalHolderPulseTool";
+import { InternalKolTrackerTool } from "@/components/internal/InternalKolTrackerTool";
+import { InternalMentionTriageTool } from "@/components/internal/InternalMentionTriageTool";
+import { InternalTrendScannerTool } from "@/components/internal/InternalTrendScannerTool";
 import { InternalCopyPolisherTool } from "@/components/internal/InternalCopyPolisherTool";
 import { InternalImagePromptTool } from "@/components/internal/InternalImagePromptTool";
 import { InternalNarrativeTool } from "@/components/internal/InternalNarrativeTool";
@@ -37,6 +43,18 @@ function renderToolPanel(id: InternalToolId, wallet?: string | null): ReactNode 
       return <InternalImagePromptTool wallet={wallet} />;
     case "proof-drop":
       return <InternalProofDropTool wallet={wallet} />;
+    case "engagement-radar":
+      return <InternalEngagementRadarTool wallet={wallet} />;
+    case "holder-pulse":
+      return <InternalHolderPulseTool wallet={wallet} />;
+    case "trend-scanner":
+      return <InternalTrendScannerTool wallet={wallet} />;
+    case "founder-pulse":
+      return <InternalFounderPulseTool wallet={wallet} />;
+    case "mention-triage":
+      return <InternalMentionTriageTool wallet={wallet} />;
+    case "kol-tracker":
+      return <InternalKolTrackerTool wallet={wallet} />;
     default:
       return null;
   }

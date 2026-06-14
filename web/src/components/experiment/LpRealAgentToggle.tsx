@@ -11,7 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 
 import { cn } from "@/lib/utils";
 
-import { disableLpReal, enableLpReal, type LpRealState } from "@/lib/lpAgentRealApi";
+import { enableLpReal, disableLpReal, type LpRealState } from "@/lib/lpAgentRealApi";
+import { lpAnonymousIdFromChat } from "@/lib/agentWalletPurpose";
 
 import { formatSol } from "@/lib/dashboardOverviewAggregates";
 import { formatSolWithUsd } from "@/lib/lpRealDisplay";
@@ -89,7 +90,7 @@ export function LpRealAgentToggle({ state, solUsd, isLoading, className, layout 
         throw new Error("wallet_sign_in_required");
       }
 
-      const lpId = lpAnonymousId ?? `${auth!.anonymousId}:lp`;
+      const lpId = lpAnonymousId ?? lpAnonymousIdFromChat(auth!.anonymousId);
 
       if (nextEnabled) return enableLpReal(lpId);
 

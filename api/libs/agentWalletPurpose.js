@@ -38,9 +38,9 @@ export function chatAnonymousIdFrom(id) {
  * @returns {string | null}
  */
 export function lpAnonymousIdFromChat(chatAnonymousId) {
-  const chat = chatAnonymousIdFrom(chatAnonymousId);
+  let chat = chatAnonymousIdFrom(chatAnonymousId);
   if (!chat || typeof chat !== 'string') return null;
-  if (chat.endsWith(':lp')) return chat;
+  while (chat.endsWith(':lp')) chat = chat.slice(0, -3);
   return `${chat}:lp`;
 }
 
@@ -52,7 +52,7 @@ export function lpAnonymousIdFromChat(chatAnonymousId) {
  */
 export function resolveLpViewerAnonymousId(user, requested) {
   const explicit = typeof requested === 'string' && requested.trim() ? requested.trim() : null;
-  if (explicit) return explicit;
+  if (explicit) return lpAnonymousIdFromChat(explicit);
   if (user?.anonymousId) return lpAnonymousIdFromChat(user.anonymousId);
   return null;
 }

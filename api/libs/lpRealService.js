@@ -65,6 +65,7 @@ import {
   getLpRealMinDepositSol,
   getLpRealMinWalletWhileLiveSol,
 } from "../config/lpRealAgentAccess.js";
+import { lpAnonymousIdFromChat } from "./agentWalletPurpose.js";
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
 const OPEN_POSITION_COOLDOWN_MS = 90 * 60 * 1000;
@@ -218,8 +219,37 @@ function configAgentFilter(config) {
 }
 
 async function getViewerAgentWallet(anonymousId) {
-  if (!anonymousId) return null;
-  return AgentWallet.findOne({ anonymousId }).select("anonymousId agentAddress chain status").lean();
+  const lpId = lpAnonymousIdFromChat(anonymousId);
+  if (!lpId) return null;
+  let wallet = await AgentWallet.findOne({ anonymousId: lpId, purpose: "lp" })
+    .select("anonymousId agentAddress chain status")
+    .lean();
+  if (!wallet) {
+    wallet = await AgentWallet.findOne({ anonymousId: lpId })
+      .select("anonymousId agentAddress chain status")
+      .lean();
+  }
+  return wallet;
+}
+
+/** Keep LpRealConfig.anonymousId aligned with the LP AgentWallet row (broker signs by anonymousId). */
+async function syncConfigAnonymousId(config) {
+  if (!config?.agentAddress) return config;
+  let wallet = await AgentWallet.findOne({ agentAddress: config.agentAddress, purpose: "lp" })
+    .select("anonymousId")
+    .lean();
+  if (!wallet) {
+    wallet = await AgentWallet.findOne({ agentAddress: config.agentAddress })
+      .select("anonymousId")
+      .lean();
+  }
+  if (!wallet?.anonymousId || wallet.anonymousId === config.anonymousId) return config;
+  const agentFilter = configAgentFilter(config);
+  if (agentFilter) {
+    await LpRealConfig.updateOne(agentFilter, { $set: { anonymousId: wallet.anonymousId } });
+  }
+  config.anonymousId = wallet.anonymousId;
+  return config;
 }
 
 /**
@@ -835,10 +865,16 @@ function buildCapitalMetrics({ config, walletEquitySol, nativeSolBalanceSol, dep
   };
 }
 
+/** SOL that must stay liquid after a deposit for sidecar swap + Meteora open/close tx fees. */
+function lpOpenFeeHeadroomSol() {
+  return getLpRealFeeBufferSol();
+}
+
 /** Liquid wallet SOL required to fund at least one dynamically sized slot. */
 function canAffordPoolEntry({ onChainBalanceSol, config }) {
   const availableSol = computeAvailableSol(onChainBalanceSol, config?.reserveSolForFees);
-  return availableSol >= getLpRealMinDepositSol() - 1e-9;
+  const minForOpen = getLpRealMinDepositSol() + lpOpenFeeHeadroomSol();
+  return availableSol >= minForOpen - 1e-9;
 }
 
 function canOpenNewPosition({ onChainBalanceSol, config }) {
@@ -853,11 +889,14 @@ function canTurnOnAgent({ onChainBalanceSol, openPositions, config }) {
 /** How many concurrent slots deployable capital can support (schema max 20). */
 function computeEffectiveMaxConcurrent(_config, availableSol) {
   const minDeposit = getLpRealMinDepositSol();
-  return Math.min(20, Math.max(1, Math.floor(toNum(availableSol) / minDeposit)));
+  const feeHeadroom = lpOpenFeeHeadroomSol();
+  const deployable = Math.max(0, toNum(availableSol) - feeHeadroom);
+  return Math.min(20, Math.max(1, Math.floor(deployable / minDeposit)));
 }
 
 /**
  * Split remaining deployable SOL across open slots — targets full utilization up to per-slot cap.
+ * Reserves fee headroom so sidecar swap + Meteora open txs do not fail with spl_insufficient_funds.
  */
 function computeCapitalDeploymentPlan({ config, availableSol, remainingSlots }) {
   const slots = Math.max(0, Math.floor(remainingSlots));
@@ -865,7 +904,9 @@ function computeCapitalDeploymentPlan({ config, availableSol, remainingSlots }) 
   const configuredMax = toNum(config?.maxPositionSol, 1);
   const slotCap = Math.max(configuredMax, getLpRealMaxPositionCapSol());
   const util = getLpRealCapitalUtilization();
-  const deployableSol = Math.max(0, toNum(availableSol) * util);
+  const feeHeadroom = lpOpenFeeHeadroomSol();
+  const maxDeployable = Math.max(0, toNum(availableSol) - feeHeadroom);
+  const deployableSol = Math.max(0, Math.min(maxDeployable, toNum(availableSol) * util));
 
   if (slots <= 0 || deployableSol < minDeposit - 1e-9) {
     return { depositSol: 0, affordableSlots: 0, deployableSol };
@@ -874,6 +915,7 @@ function computeCapitalDeploymentPlan({ config, availableSol, remainingSlots }) 
   const affordableSlots = Math.min(slots, Math.max(1, Math.floor(deployableSol / minDeposit)));
   const depositSol = Math.min(
     slotCap,
+    maxDeployable,
     Math.max(minDeposit, deployableSol / affordableSlots),
   );
 
@@ -1693,6 +1735,7 @@ async function attemptOpenLpRealPosition({
 }
 
 async function runLpRealSignalCycleForConfig(config) {
+  await syncConfigAnonymousId(config);
   const agentFilter = configAgentFilter(config);
   const errors = [];
   const opened = [];
@@ -1797,12 +1840,30 @@ async function runLpRealSignalCycleForConfig(config) {
       const strategyLeader = pickStrategyForSlot(qualified, openPositions, opensThisTick);
       if (!strategyLeader) break;
 
+      const feeHeadroom = lpOpenFeeHeadroomSol();
+      const cappedDepositSol = Math.min(
+        plan.depositSol,
+        Math.max(0, availableSol - feeHeadroom),
+      );
+      if (cappedDepositSol < getLpRealMinDepositSol() - 1e-9) {
+        if (opensThisTick === 0) {
+          skipped.push({
+            reason: "insufficient_available_sol",
+            availableSol,
+            deployableSol: plan.deployableSol,
+            feeHeadroom,
+          });
+          await noteLpRealSignalSkip(agentFilter, "insufficient_available_sol");
+        }
+        break;
+      }
+
       const result = await attemptOpenLpRealPosition({
         config,
         agentFilter,
         strategyLeader,
         rankedIds,
-        depositSol: plan.depositSol,
+        depositSol: cappedDepositSol,
         opened,
         skipped,
         errors,
