@@ -5,6 +5,7 @@
 import { AgentScore } from '@agent-score/sdk';
 import { getAgentKeypair } from './agentWallet.js';
 import { pay402AndRetry } from './agentX402Client.js';
+import { getAgentFetch } from './agentFetch.js';
 import { getAgentscoreApiKey, getAgentscoreOperatorToken } from './agentscoreConfig.js';
 
 /** @typedef {{ success: true; data: unknown } | { success: false; error: string; status?: number; identityRequired?: boolean; budgetExceeded?: boolean }} AgentscoreToolResult */
@@ -302,6 +303,7 @@ export async function runAgentscoreToolForAgent(kind, params, ctx) {
       }
     }
 
+    const fetchFn = await getAgentFetch(ctx.anonymousId);
     const result = await pay402AndRetry(
       keypair,
       {
@@ -311,7 +313,7 @@ export async function runAgentscoreToolForAgent(kind, params, ctx) {
         connectedWalletAddress: ctx.connectedWalletAddress,
         extraHeaders,
       },
-      globalThis.fetch
+      fetchFn
     );
 
     if (!result.success) {

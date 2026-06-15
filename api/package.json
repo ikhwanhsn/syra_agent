@@ -22,7 +22,8 @@
     "migrate-agent-wallet-secrets": "node -r dotenv/config scripts/migrate-agent-wallet-secrets.js",
     "test-paysh": "node -r dotenv/config scripts/testPayshFlows.js",
     "test-stablesocial": "node -r dotenv/config scripts/testStablesocialFlow.js",
-    "test-stableenrich": "node -r dotenv/config scripts/testStableenrichFlow.js"
+    "test-stableenrich": "node -r dotenv/config scripts/testStableenrichFlow.js",
+    "validate-pact": "node -r dotenv/config scripts/validatePactIntegration.js"
   },
   "dependencies": {
     "@agent-score/commerce": "^2.5.0",
@@ -38,6 +39,7 @@
     "@meteora-ag/dlmm": "^1.9.10",
     "@oobe-protocol-labs/synapse-sap-sdk": "^0.6.3",
     "@pump-fun/agent-payments-sdk": "^3.0.2",
+    "@q3labs/pact-sdk": "^0.3.0",
     "@solana/pay": "^0.2.6",
     "@solana/spl-token": "^0.4.14",
     "@solana/web3.js": "^1.98.4",

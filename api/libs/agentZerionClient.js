@@ -5,7 +5,7 @@
  */
 import { getAgentKeypair } from './agentWallet.js';
 import { getTreasuryKeypair, pay402AndRetry } from './agentX402Client.js';
-import { getSentinelFetch, SentinelBudgetError } from './sentinelFetch.js';
+import { getAgentFetch, SentinelBudgetError } from './agentFetch.js';
 
 const ZERION_BASE = (process.env.ZERION_API_BASE_URL || 'https://api.zerion.io').replace(/\/$/, '');
 
@@ -191,7 +191,7 @@ export async function callZerionWithAgent(anonymousId, pathTemplate, method, par
     if (!keypair) {
       return { success: false, error: 'Agent wallet not found for this user' };
     }
-    const sentinelFetch = getSentinelFetch(anonymousId);
+    const sentinelFetch = await getAgentFetch(anonymousId);
     return await callZerionWithKeypair(keypair, sentinelFetch, pathTemplate, method, params);
   } catch (e) {
     const msg = e?.message || String(e);
@@ -212,7 +212,7 @@ export async function callZerionWithTreasury(pathTemplate, method, params) {
     if (!keypair) {
       return { success: false, error: 'Treasury wallet not configured (AGENT_PRIVATE_KEY)' };
     }
-    const sentinelFetch = getSentinelFetch('treasury');
+    const sentinelFetch = await getAgentFetch('treasury');
     return await callZerionWithKeypair(keypair, sentinelFetch, pathTemplate, method, params);
   } catch (e) {
     const msg = e?.message || String(e);

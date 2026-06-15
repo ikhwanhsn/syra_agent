@@ -5,11 +5,18 @@ import LpExperimentAgentState from "../models/LpExperimentAgentState.js";
 import {
   LP_AGENT_EXPERIMENT_DEFAULTS,
   LP_REAL_MIRROR_STRATEGY_ID,
+  isLpRealEligibleStrategyId,
 } from "../config/lpAgentExperimentStrategies.js";
 import { resolveLpExperimentStrategies, resolveLpStrategyById } from "./lpExperimentStrategyResolve.js";
 import { fetchMeteoraPoolDetail, fetchMeteoraPoolPages, fetchMeteoraPools } from "./meteoraDlmmClient.js";
 import { isSolMint } from "./meteoraDlmmExecutor.js";
 import { scorePool } from "./lpExperimentScoring.js";
+import {
+  getLpRealMaxFeeTvlRatio,
+  getLpRealMaxVolTvlRatio,
+  getLpRealMinTvlUsd,
+  getLpRealMinVol24hUsd,
+} from "../config/lpRealAgentAccess.js";
 import {
   applyRiskAdjustedFeeMultiplier,
   computeDlmmFeeShareMultiplier,
@@ -703,12 +710,20 @@ export function passesRealPoolScreen(pool) {
   const feeTvl = toNum(pool.feeTvlRatio);
   const tvl = toNum(pool.tvlUsd);
   const vol = toNum(pool.volume24hUsd);
-  if (tvl < 40_000 || vol < 60_000) return false;
+  const minTvl = getLpRealMinTvlUsd();
+  const minVol = getLpRealMinVol24hUsd();
+  const maxVolTvl = getLpRealMaxVolTvlRatio();
+  const maxFeeTvl = getLpRealMaxFeeTvlRatio();
+
+  if (tvl < minTvl || vol < minVol) return false;
   // 0.035% daily minimum (thresholds elsewhere use Meteora percent points; stored ratio is decimal).
   if (feeTvl < 0.00035) return false;
+  // Reject one-off fee spikes and hyper-churn meme pools.
+  if (feeTvl > maxFeeTvl) return false;
+  const volTvl = tvl > 0 ? vol / tvl : vol > 0 ? maxVolTvl + 1 : 0;
+  if (volTvl > maxVolTvl) return false;
 
-  // Risk/reward hurdle at real bin geometry — expected fees must justify the IL budget,
-  // and extreme-risk pools never qualify for on-chain capital.
+  // Risk/reward hurdle at real bin geometry — expected fees must exceed IL budget (positive EV).
   const rr = computeLpRiskRewardProfile({
     tvlUsd: tvl,
     volume24hUsd: vol,
@@ -717,7 +732,8 @@ export function passesRealPoolScreen(pool) {
     binsAbove: REAL_MIN_BINS_PER_SIDE,
     holdHours: 4,
   });
-  if (rr.tier === "extreme") return false;
+  // Conservative grind: only low/medium risk tiers qualify for on-chain capital.
+  if (rr.tier === "extreme" || rr.tier === "high") return false;
   if (rr.ratio < LP_MIN_REAL_RISK_REWARD_RATIO) return false;
   return true;
 }
@@ -734,7 +750,7 @@ export async function getLpCandidatePools({ realMode = false } = {}) {
     ? await fetchMeteoraPools({
         page: 1,
         limit: 120,
-        sortKey: "fee",
+        sortKey: "tvl",
         order: "desc",
         hideLowTvl: true,
       })
@@ -1220,9 +1236,15 @@ export async function resolveOpenLpRuns() {
 }
 
 /** Min settled sim runs before real agent refuses a negative-PnL leader. */
-export const LP_REAL_MIN_DECIDED_FOR_PROFIT_GATE = 6;
+export const LP_REAL_MIN_DECIDED_FOR_PROFIT_GATE = (() => {
+  const n = Number(process.env.LP_AGENT_REAL_MIN_DECIDED);
+  return Number.isFinite(n) && n >= 1 ? Math.floor(n) : 12;
+})();
 /** Real LP requires this win rate when enough sim history exists. */
-export const LP_REAL_MIN_WIN_RATE = 0.52;
+export const LP_REAL_MIN_WIN_RATE = (() => {
+  const n = Number(process.env.LP_AGENT_REAL_MIN_WIN_RATE);
+  return Number.isFinite(n) && n > 0 && n <= 1 ? n : 0.58;
+})();
 
 /**
  * Composite score for real-agent leader: rewards high net PnL and high win rate together.
@@ -1317,7 +1339,9 @@ export async function rankLpExperimentStrategiesByNetPnl(experimentId) {
 }
 
 function filterQualifiedRealStrategyRows(ranked) {
-  const qualified = ranked.filter(
+  const eligible = ranked.filter((row) => isLpRealEligibleStrategyId(row.strategyId));
+
+  const qualified = eligible.filter(
     (row) =>
       row.decided >= LP_REAL_MIN_DECIDED_FOR_PROFIT_GATE &&
       row.sumNetPnlSol > 0 &&
@@ -1328,15 +1352,15 @@ function filterQualifiedRealStrategyRows(ranked) {
   }
 
   if (
-    ranked.length > 0 &&
-    ranked[0].decided < LP_REAL_MIN_DECIDED_FOR_PROFIT_GATE &&
-    ranked[0].sumNetPnlSol >= 0
+    eligible.length > 0 &&
+    eligible[0].decided < LP_REAL_MIN_DECIDED_FOR_PROFIT_GATE &&
+    eligible[0].sumNetPnlSol >= 0
   ) {
-    return [ranked[0]];
+    return [eligible[0]];
   }
 
-  const warming = ranked.filter(
-    (row) => row.sumNetPnlSol > 0 && row.decided >= 3 && (row.winRate ?? 0) >= 0.48,
+  const warming = eligible.filter(
+    (row) => row.sumNetPnlSol > 0 && row.decided >= 6 && (row.winRate ?? 0) >= 0.55,
   );
   if (warming.length > 0) {
     return [...warming].sort((a, b) => b.realLeaderScore - a.realLeaderScore);
@@ -1359,6 +1383,7 @@ export async function selectQualifiedStrategiesForReal(ranked, { maxCount = 8 } 
   const rows = filterQualifiedRealStrategyRows(ranked).slice(0, Math.max(1, maxCount));
   const out = [];
   for (const stats of rows) {
+    if (!isLpRealEligibleStrategyId(stats.strategyId)) continue;
     const strategy = await resolveLpStrategyById(stats.strategyId);
     if (!strategy) continue;
     out.push({

@@ -27,6 +27,7 @@ import {
   computePriceDriftPct,
   computeSimTransactionCostsSol,
   isPositionOutOfRange,
+  LP_MIN_REAL_RISK_REWARD_RATIO,
   LP_REAL_HARD_STOP_MULT,
   LP_REAL_MIN_FEE_TO_COST_RATIO,
   mergeRealExitRules,
@@ -494,17 +495,17 @@ function evaluateRealPositionExit(position, detail, hoursElapsed, onChain = null
   // Ground with real fees (claimed + unclaimed on-chain) when we have them.
   const depositSol = toNum(position.depositSol);
   const realFeeSol = toNum(position.realFeesClaimedSol, 0) + toNum(onChain?.unclaimedFeeSol, 0);
+  const realFeeYieldPct = depositSol > 0 && realFeeSol > 0 ? (realFeeSol / depositSol) * 100 : 0;
   const feeYieldPct =
-    depositSol > 0 && realFeeSol > 0 ? (realFeeSol / depositSol) * 100 : modeledFeeYieldPct;
+    realFeeYieldPct > 0 ? realFeeYieldPct : modeledFeeYieldPct;
 
   const netPnlPct = computeLpNetPnlPct(priceDriftPct, feeYieldPct, inRange, riskScore);
   const peakPnlPct = Math.max(toNum(position.peakPnlPct), netPnlPct);
   const winThresholdPct = LP_AGENT_EXPERIMENT_DEFAULTS.winThresholdPct;
 
-  // Fee-aware stop: fees already earned extend the price stop (up to half its distance),
-  // bounded by a hard stop so catastrophic IL is always capped.
+  // Fee-aware stop: only extend stop with *real* on-chain fees — never modeled optimism.
   const stopLossPct = toNum(exit.stopLossPct, -15);
-  const feeOffsetPct = Math.min(Math.max(feeYieldPct, 0), Math.abs(stopLossPct) * 0.5);
+  const feeOffsetPct = Math.min(Math.max(realFeeYieldPct, 0), Math.abs(stopLossPct) * 0.5);
   const effectiveStopPct = Math.max(
     stopLossPct - feeOffsetPct,
     stopLossPct * LP_REAL_HARD_STOP_MULT,
@@ -1464,15 +1465,42 @@ async function attemptOpenLpRealPosition({
   const txCostEstimate = computeSimTransactionCostsSol(depositSol, { needsSidecarSwap: needsSidecar });
   const roundTripCostSol = txCostEstimate.openFeeSol + txCostEstimate.closeFeeSol;
   const expectedFeeSol = depositSol * (riskReward.expectedFeePct / 100);
+
+  const evDecision = {
+    pool: poolCandidate.poolAddress,
+    poolName: poolCandidate.poolName || poolDetail.poolName,
+    strategyId: strategy.id,
+    strategyName: strategy.name,
+    depositSol,
+    riskTier: riskReward.tier,
+    riskRewardRatio: riskReward.ratio,
+    expectedFeePct: riskReward.expectedFeePct,
+    ilBudgetPct: riskReward.ilBudgetPct,
+    expectedFeeSol,
+    roundTripCostSol,
+    minFeeToCostRatio: LP_REAL_MIN_FEE_TO_COST_RATIO,
+    minRiskRewardRatio: LP_MIN_REAL_RISK_REWARD_RATIO,
+  };
+
+  if (riskReward.ratio < LP_MIN_REAL_RISK_REWARD_RATIO) {
+    skipped.push({
+      reason: "risk_reward_below_threshold",
+      ...evDecision,
+    });
+    console.info("[lpReal] ev_skip", { reason: "risk_reward_below_threshold", ...evDecision });
+    return { opened: false, stop: false };
+  }
+
   if (expectedFeeSol < roundTripCostSol * LP_REAL_MIN_FEE_TO_COST_RATIO) {
     skipped.push({
       reason: "fees_below_chain_costs",
-      pool: poolCandidate.poolAddress,
-      expectedFeeSol,
-      roundTripCostSol,
+      ...evDecision,
     });
+    console.info("[lpReal] ev_skip", { reason: "fees_below_chain_costs", ...evDecision });
     return { opened: false, stop: false };
   }
+
+  console.info("[lpReal] ev_open", evDecision);
 
   let sidecar = {};
   try {
@@ -1885,6 +1913,19 @@ async function runLpRealSignalCycleForConfig(config) {
     const msg = err instanceof Error ? err.message : String(err);
     errors.push(msg);
     await LpRealConfig.updateOne(agentFilter, { $set: { lastError: msg, lastSignalAt: new Date() } });
+  }
+
+  if (skipped.length > 0) {
+    const skipCounts = skipped.reduce((acc, row) => {
+      const key = row?.reason || "unknown";
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+    console.info("[lpReal] signal_cycle_skip_summary", {
+      agentAddress: config.agentAddress,
+      opened: opened.length,
+      skipCounts,
+    });
   }
 
   return {

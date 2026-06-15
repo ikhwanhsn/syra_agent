@@ -5,7 +5,7 @@
  */
 import { getAgentKeypair } from './agentWallet.js';
 import { pay402AndRetry } from './agentX402Client.js';
-import { getSentinelFetch, SentinelBudgetError } from './sentinelFetch.js';
+import { getAgentFetch, SentinelBudgetError } from './agentFetch.js';
 
 const PURCH_VAULT_BASE = process.env.PURCH_VAULT_API_BASE_URL || 'https://api.purch.xyz';
 
@@ -57,7 +57,7 @@ function parse402FromPurch(res, body) {
  * @returns {Promise<{ success: true; data?: any; blob?: ArrayBuffer } | { success: false; error: string }>}
  */
 async function purchVaultRequest(keypair, url, method, body, anonymousId) {
-  const sentinelFetch = getSentinelFetch(anonymousId);
+  const sentinelFetch = await getAgentFetch(anonymousId);
   const opts = {
     method,
     headers: { Accept: 'application/json', 'Content-Type': 'application/json' },

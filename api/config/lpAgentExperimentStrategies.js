@@ -547,6 +547,17 @@ export const LP_AGENT_EXPERIMENT_STRATEGIES = Object.freeze([
 /** Sim agent that mirrors on-chain LP selection (excluded from leader ranking). */
 export const LP_REAL_MIRROR_STRATEGY_ID = 98;
 
+/**
+ * Conservative strategy archetypes allowed for on-chain LP deployment.
+ * Degen / single-sided / sniper strategies (ids 3, 15–19) remain sim-only.
+ */
+export const LP_REAL_ELIGIBLE_STRATEGY_IDS = Object.freeze([0, 2, 4, 9, 14]);
+
+export function isLpRealEligibleStrategyId(strategyId) {
+  const id = Number(strategyId);
+  return Number.isInteger(id) && LP_REAL_ELIGIBLE_STRATEGY_IDS.includes(id);
+}
+
 export function getDefaultSignalWeights() {
   return { ...LP_AGENT_EXPERIMENT_DEFAULT_SIGNAL_WEIGHTS };
 }

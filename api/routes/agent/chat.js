@@ -56,6 +56,7 @@ import {
   purchVaultDownload,
 } from '../../libs/agentPurchVaultClient.js';
 import { getEffectivePriceUsd } from '../../config/x402Pricing.js';
+import { getEffectiveAgentToolPriceUsd } from '../../libs/pactPricing.js';
 import { SYRA_TOKEN_MINT, isSyraHolderEligible } from '../../libs/syraToken.js';
 import { findVerifiedJupiterToken } from '../../libs/jupiterTokens.js';
 import { resolveAgentBaseUrl } from './utils.js';
@@ -1534,7 +1535,7 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
           ).map(([k, v]) => [k, typeof v === 'string' ? v : String(v)])
         );
         if (!tool) continue;
-        const effectivePrice = getEffectivePriceUsd(tool.priceUsd, connectedWallet) ?? tool.priceUsd;
+        const effectivePrice = getEffectiveAgentToolPriceUsd(tool, connectedWallet);
         const requiredUsdc = effectivePrice;
         // pump.fun swap (fun-block): only call upstream after the user confirms via the inline form template.
         if (matched.toolId === 'pumpfun-agents-swap') {
@@ -1837,7 +1838,10 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
             result = { status: 400, error: e instanceof Error ? e.message : String(e) };
           }
           if (!result) {
-            const payshRequired = getEffectivePriceUsd(providerMinUsd, connectedWalletFromDb) ?? providerMinUsd;
+            const payshRequired = getEffectiveAgentToolPriceUsd(
+              { priceUsd: providerMinUsd, paysh: 'call' },
+              connectedWalletFromDb
+            );
             if (!useTreasury && payshRequired > 0 && (usdcBalance <= 0 || usdcBalance < payshRequired)) {
               const msg =
                 usdcBalance <= 0

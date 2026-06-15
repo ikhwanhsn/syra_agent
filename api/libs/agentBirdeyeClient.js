@@ -5,7 +5,7 @@
  */
 import { getAgentKeypair } from './agentWallet.js';
 import { getTreasuryKeypair, pay402AndRetry } from './agentX402Client.js';
-import { getSentinelFetch, SentinelBudgetError } from './sentinelFetch.js';
+import { getAgentFetch, SentinelBudgetError } from './agentFetch.js';
 
 const BIRDEYE_BASE = (process.env.BIRDEYE_API_BASE_URL || 'https://public-api.birdeye.so').replace(/\/$/, '');
 
@@ -239,7 +239,7 @@ export async function callBirdeyeWithAgent(
     if (!keypair) {
       return { success: false, error: 'Agent wallet not found for this user' };
     }
-    const fetchFn = getSentinelFetch(anonymousId, { budget: false });
+    const fetchFn = await getAgentFetch(anonymousId, { budget: false });
     return await callBirdeyeWithKeypair(keypair, fetchFn, pathTemplate, method, params, connectedWalletAddress);
   } catch (e) {
     const msg = e?.message || String(e);
@@ -259,7 +259,7 @@ export async function callBirdeyeWithTreasury(pathTemplate, method, params) {
     if (!keypair) {
       return { success: false, error: 'Treasury wallet not configured (AGENT_PRIVATE_KEY)' };
     }
-    const fetchFn = getSentinelFetch('treasury', { budget: false });
+    const fetchFn = await getAgentFetch('treasury', { budget: false });
     return await callBirdeyeWithKeypair(keypair, fetchFn, pathTemplate, method, params, undefined);
   } catch (e) {
     return { success: false, error: e?.message || String(e) };

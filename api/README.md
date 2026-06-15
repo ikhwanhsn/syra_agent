@@ -293,6 +293,30 @@ Logic lives in `api/libs/jupiterReferral.js`. Jupiter Ultra agent tool (`jupiter
 
 ---
 
+## Pact Network (agent x402 refund coverage)
+
+When enabled, Syra wraps agent outbound paid `fetch()` with [`@q3labs/pact-sdk`](https://www.pactnetwork.io/docs) so failed x402 upstream calls (5xx, timeout, malformed body) can be refunded on-chain to the agent wallet.
+
+**Env** (see [`api/.env.example`](.env.example)):
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PACT_ENABLED` | `false` | Master switch |
+| `PACT_API_KEY` | — | Optional beta/proxy key |
+| `PACT_NETWORK` | `mainnet` | `mainnet` \| `devnet` \| `localnet` |
+| `PACT_MODE` | `market` | `market` (curated proxy) \| `network` |
+| `PACT_PREMIUM_USD_DEFAULT` | `0.001` | Added to balance checks for Pact-eligible tools |
+| `PACT_PROVIDER_ALLOWLIST` | — | Comma-separated hosts for phased rollout |
+| `PACT_AUTO_SETUP` | `false` | Auto `pact.setup()` SPL approve on first use |
+
+**Rollout:** `node -r dotenv/config scripts/validatePactIntegration.js --agent <anonymousId>`
+
+**API:** `GET /agent/pact/status`, `GET /agent/pact/refunds?anonymousId=...`
+
+Composition: `globalThis.fetch` → Sentinel (if on) → Pact (if on) via `api/libs/agentFetch.js`.
+
+---
+
 ## API key and trusted origins
 
 - **Never embed `API_KEY` or `API_KEYS` in client-side code.** The API injects the key for requests from trusted origins (syraa.fun, dashboard, agent, playground) so frontends do not need to send it.

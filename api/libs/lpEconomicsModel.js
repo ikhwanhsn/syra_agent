@@ -6,14 +6,19 @@
 /** Meteora DLMM legacy Position accounts encode at most 70 bins. */
 export const MAX_METEORA_POSITION_BINS = 70;
 
+function envNum(key, fallback) {
+  const n = Number(process.env[key]);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
 /** Real LP: minimum minutes in-range before OOR exit is allowed (collect fees first). */
-export const REAL_MIN_HOLD_MINUTES = 45;
+export const REAL_MIN_HOLD_MINUTES = envNum("LP_AGENT_REAL_MIN_HOLD_MINUTES", 120);
 
 /** Real LP: floor on strategy oorWaitMin — avoids 15–20m churn seen in production. */
-export const REAL_MIN_OOR_WAIT_MIN = 90;
+export const REAL_MIN_OOR_WAIT_MIN = envNum("LP_AGENT_REAL_MIN_OOR_WAIT_MIN", 90);
 
 /** Real LP: minimum bins each side after overrides (wider = fewer OOR exits). */
-export const REAL_MIN_BINS_PER_SIDE = 28;
+export const REAL_MIN_BINS_PER_SIDE = envNum("LP_AGENT_REAL_MIN_BINS_PER_SIDE", 34);
 
 /** Claim accumulated swap fees before close when above this SOL threshold. */
 export const REAL_CLAIM_FEES_BEFORE_CLOSE_SOL = 0.000_05;
@@ -41,14 +46,14 @@ export const LP_MIN_SIM_RISK_REWARD_RATIO = 0.38;
 /** Extreme-risk pools need a higher reward hurdle. */
 export const LP_MIN_EXTREME_RISK_REWARD_RATIO = 0.72;
 
-/** Real LP: stricter expected-fee : IL-budget hurdle than sim — real chain costs and slippage. */
-export const LP_MIN_REAL_RISK_REWARD_RATIO = 0.55;
+/** Real LP: stricter expected-fee : IL-budget hurdle than sim — fees must exceed IL budget (positive EV). */
+export const LP_MIN_REAL_RISK_REWARD_RATIO = envNum("LP_AGENT_REAL_MIN_RR_RATIO", 1.1);
 
 /** Real LP: hard price stop multiplier vs strategy stop — caps catastrophic IL even when fees offset the soft stop. */
-export const LP_REAL_HARD_STOP_MULT = 1.4;
+export const LP_REAL_HARD_STOP_MULT = envNum("LP_AGENT_REAL_HARD_STOP_MULT", 1.4);
 
 /** Real LP: expected fees over the projected hold must exceed round-trip chain costs by this factor before open. */
-export const LP_REAL_MIN_FEE_TO_COST_RATIO = 1.6;
+export const LP_REAL_MIN_FEE_TO_COST_RATIO = envNum("LP_AGENT_REAL_MIN_FEE_TO_COST_RATIO", 3.0);
 
 export function computePriceDriftPct(entry, current) {
   if (!Number.isFinite(entry) || entry <= 0 || !Number.isFinite(current) || current <= 0) return 0;
@@ -75,11 +80,12 @@ export function computeDlmmFeeShareMultiplier({
 } = {}) {
   if (!inRange) return 0.25;
   const width = Math.max(1, toNum(binsBelow) + toNum(binsAbove) + 1);
-  const narrowBoost = Math.min(3.5, Math.max(1, 42 / width));
-  const hotBoost = Math.min(2.8, 1 + Math.log1p(Math.max(0, toNum(volTvlRatio))) * 0.38);
+  // Conservative caps — combined boost ~3–4x max (was ~21x), aligned with on-chain fee accrual.
+  const narrowBoost = Math.min(1.8, Math.max(1, 42 / width));
+  const hotBoost = Math.min(1.5, 1 + Math.log1p(Math.max(0, toNum(volTvlRatio))) * 0.28);
   const tvl = toNum(tvlUsd);
   const smallPoolBoost =
-    tvl > 0 && tvl < 280_000 ? Math.min(2.2, 1 + 110_000 / Math.max(tvl, 18_000)) : 1;
+    tvl > 0 && tvl < 280_000 ? Math.min(1.4, 1 + 55_000 / Math.max(tvl, 18_000)) : 1;
   return narrowBoost * hotBoost * smallPoolBoost;
 }
 
@@ -241,12 +247,13 @@ export function isPositionOutOfRange(activeAtOpen, activeNow, binsBelow, binsAbo
  */
 export function computeLpNetPnlPct(priceDriftPct, feeYieldPct, inRange, riskScore = 0.35) {
   if (inRange) {
-    return priceDriftPct * 0.15 + feeYieldPct;
+    // Less optimistic price drift attribution — fees dominate in-range PnL on conservative pools.
+    return priceDriftPct * 0.12 + feeYieldPct;
   }
-  const ilScale = 1 + clamp01(riskScore) * 0.7;
+  const ilScale = 1 + clamp01(riskScore) * 0.85;
   const ilPenalty =
-    (-Math.abs(priceDriftPct) * 0.45 - Math.max(0, -priceDriftPct) * 0.2) * ilScale;
-  return ilPenalty + feeYieldPct * 0.55;
+    (-Math.abs(priceDriftPct) * 0.52 - Math.max(0, -priceDriftPct) * 0.24) * ilScale;
+  return ilPenalty + feeYieldPct * 0.45;
 }
 
 /** Widen bin range for on-chain positions — sim strategies can be too tight for mainnet volatility. */

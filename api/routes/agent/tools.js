@@ -7,6 +7,13 @@ import express from 'express';
 import { AGENT_TOOLS, getAgentTool, normalizeJupiterSwapParams } from '../../config/agentTools.js';
 import { getEffectivePriceUsd } from '../../config/x402Pricing.js';
 import {
+  getDisplayAgentToolPriceUsd,
+  getEffectiveAgentToolPriceUsd,
+  getPactPremiumUsd,
+  isPactEligibleAgentTool,
+} from '../../libs/pactPricing.js';
+import { isPactEnabled } from '../../libs/pactConfig.js';
+import {
   callX402V2WithAgent,
   signAndSubmitSerializedTransaction,
   signAndSubmitSwapTransaction,
@@ -65,11 +72,19 @@ router.get('/', async (req, res) => {
       id: t.id,
       name: t.name,
       description: t.description,
-      priceUsd: t.displayPriceUsd ?? t.priceUsd,
+      priceUsd: getDisplayAgentToolPriceUsd(t),
+      pactEligible: isPactEligibleAgentTool(t),
+      pactPremiumUsd: isPactEligibleAgentTool(t) ? getPactPremiumUsd() : 0,
       path: t.path,
       method: t.method,
     }));
-    return res.json({ success: true, tools });
+    return res.json({
+      success: true,
+      tools,
+      pact: isPactEnabled()
+        ? { enabled: true, premiumUsdDefault: getPactPremiumUsd() }
+        : { enabled: false },
+    });
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
   }
@@ -364,8 +379,10 @@ router.post('/call', requireSession({ allowGuest: true }), async (req, res) => {
         });
       }
       const basePriceCall = Math.max(tool.priceUsd, providerMinUsd);
-      const effectivePriceCall =
-        getEffectivePriceUsd(basePriceCall, connectedWalletCall) ?? basePriceCall;
+      const effectivePriceCall = getEffectiveAgentToolPriceUsd(
+        { ...tool, priceUsd: basePriceCall },
+        connectedWalletCall
+      );
       const { usdcBalance: usdcCall } = balanceResultCall;
       if (usdcCall <= 0 || usdcCall < effectivePriceCall) {
         return res.status(402).json({
@@ -413,8 +430,7 @@ router.post('/call', requireSession({ allowGuest: true }), async (req, res) => {
         });
       }
       const connectedWalletAgentscore = await getConnectedWalletAddress(anonymousId);
-      const effectivePriceAgentscore =
-        getEffectivePriceUsd(tool.priceUsd, connectedWalletAgentscore) ?? tool.priceUsd;
+      const effectivePriceAgentscore = getEffectiveAgentToolPriceUsd(tool, connectedWalletAgentscore);
       const usdcAgentscore = balanceResultAgentscore.usdcBalance;
       if (usdcAgentscore <= 0 || usdcAgentscore < effectivePriceAgentscore) {
         return res.status(402).json({
@@ -464,7 +480,7 @@ router.post('/call', requireSession({ allowGuest: true }), async (req, res) => {
     }
 
     const connectedWallet = await getConnectedWalletAddress(anonymousId);
-    const effectivePrice = getEffectivePriceUsd(tool.priceUsd, connectedWallet) ?? tool.priceUsd;
+    const effectivePrice = getEffectiveAgentToolPriceUsd(tool, connectedWallet);
     const { usdcBalance } = balanceResult;
     const requiredUsdc = effectivePrice;
     if (usdcBalance <= 0 || usdcBalance < requiredUsdc) {

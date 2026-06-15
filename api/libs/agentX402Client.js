@@ -10,7 +10,7 @@ import bs58 from 'bs58';
 import { Keypair } from '@solana/web3.js';
 import { randomBytes } from 'node:crypto';
 import { getAgentKeypair } from './agentWallet.js';
-import { getSentinelFetch, SentinelBudgetError } from './sentinelFetch.js';
+import { getAgentFetch, SentinelBudgetError } from './agentFetch.js';
 
 /** Server API key (first of API_KEYS or API_KEY) for internal x402 requests so they are not rejected with 403. */
 function getServerApiKey() {
@@ -75,20 +75,9 @@ function chooseFetch(url, sentinelFetch) {
   return isOwnApiUrl(url) ? globalThis.fetch : sentinelFetch;
 }
 
-/**
- * Get treasury keypair from AGENT_PRIVATE_KEY (base58). Used to pay for tool calls when user is a 1M+ SYRA holder.
- * @returns {import('@solana/web3.js').Keypair | null}
- */
-export function getTreasuryKeypair() {
-  const raw = process.env.AGENT_PRIVATE_KEY;
-  if (!raw || typeof raw !== 'string' || !raw.trim()) return null;
-  try {
-    const secretKey = bs58.decode(raw.trim());
-    return Keypair.fromSecretKey(secretKey);
-  } catch {
-    return null;
-  }
-}
+import { getTreasuryKeypair } from './agentTreasuryKey.js';
+
+export { getTreasuryKeypair };
 
 // Prefer RPC that allows blockchain access (getAccountInfo, sendRawTransaction, etc.).
 // Alchemy / some providers return 403 + -32052 when the key is not allowed to use "blockchain" JSON-RPC
@@ -418,8 +407,8 @@ export async function callX402V2WithAgent(opts) {
     if (!keypair) {
       return { success: false, error: 'Agent wallet not found for this user' };
     }
-    const sentinelFetch = getSentinelFetch(anonymousId);
-    const fetchFn = chooseFetch(url, sentinelFetch);
+    const agentFetchFn = await getAgentFetch(anonymousId);
+    const fetchFn = chooseFetch(url, agentFetchFn);
     return await callX402V2WithKeypair(keypair, { url, method, query, body, connectedWalletAddress }, fetchFn);
   } catch (e) {
     const msg = e?.message || String(e);
@@ -442,8 +431,8 @@ export async function callX402V2WithTreasury(opts) {
     if (!keypair) {
       return { success: false, error: 'Treasury wallet not configured (AGENT_PRIVATE_KEY)' };
     }
-    const sentinelFetch = getSentinelFetch('treasury');
-    const fetchFn = chooseFetch(opts.url, sentinelFetch);
+    const agentFetchFn = await getAgentFetch('treasury');
+    const fetchFn = chooseFetch(opts.url, agentFetchFn);
     return await callX402V2WithKeypair(keypair, opts, fetchFn);
   } catch (e) {
     const msg = e?.message || String(e);

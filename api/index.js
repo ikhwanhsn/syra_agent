@@ -27,6 +27,7 @@ import { createTokensDossierRouter } from "./routes/agent/tokensDossier.js";
 import { createAgentWalletRouter } from "./routes/agent/wallet.js";
 import { createAgentBillingRouter } from "./routes/agent/billing.js";
 import { createAgentToolsRouter } from "./routes/agent/tools.js";
+import { createAgentPactRouter } from "./routes/agent/pact.js";
 import { createAgentMarketplaceRouter } from "./routes/agent/marketplace.js";
 import { createAgentLeaderboardRouter } from "./routes/agent/leaderboard.js";
 import { createBnb8183Router } from "./routes/agent/bnb8183.js";
@@ -79,7 +80,7 @@ import { createPumpfunExperimentRouter } from "./routes/pumpfunExperiment.js";
 import { createRiseExperimentRouter } from "./routes/riseExperiment.js";
 import { createHealthRouter } from "./routes/health.js";
 import { createMppV1Router } from "./routes/mpp/v1.js";
-import { getSentinelFetch, SentinelBudgetError } from "./libs/sentinelFetch.js";
+import { getAgentFetch, SentinelBudgetError } from "./libs/agentFetch.js";
 import { createNansenEndpointsRouter } from "./routes/partner/nansen/nansenEndpoints.js";
 import { createBinanceSpotRouter } from "./routes/partner/binance/spot.js";
 import { createBinanceCorrelationRouter } from "./routes/partner/binance/correlation.js";
@@ -500,7 +501,7 @@ app.post(
       });
       return;
     }
-    const sentinelFetch = getSentinelFetch("playground");
+    const sentinelFetch = await getAgentFetch("playground");
     const controller = new AbortController();
     const timeoutId = setTimeout(
       () => controller.abort(),
@@ -1178,6 +1179,7 @@ app.use("/agent/tokens", createTokensDossierRouter());
 app.use("/agent/wallet/billing", await createAgentBillingRouter());
 app.use("/agent/wallet", await createAgentWalletRouter());
 app.use("/agent/tools", await createAgentToolsRouter());
+app.use("/agent/pact", createAgentPactRouter());
 app.use("/agent/marketplace/prompts", await createUserPromptsRouter());
 app.use("/agent/marketplace", await createAgentMarketplaceRouter());
 app.use("/agent/leaderboard", await createAgentLeaderboardRouter());

@@ -4,7 +4,7 @@
  */
 import { getAgentKeypair } from './agentWallet.js';
 import { pay402AndRetry } from './agentX402Client.js';
-import { getSentinelFetch, SentinelBudgetError } from './sentinelFetch.js';
+import { getAgentFetch, SentinelBudgetError } from './agentFetch.js';
 
 const NANSEN_BASE = process.env.NANSEN_API_BASE_URL || 'https://api.nansen.ai';
 
@@ -87,7 +87,7 @@ export async function callNansenWithAgent(anonymousId, nansenPath, params) {
 
     const url = `${NANSEN_BASE.replace(/\/$/, '')}${nansenPath}`;
     const body = paramsToBody(params);
-    const sentinelFetch = getSentinelFetch(anonymousId);
+    const sentinelFetch = await getAgentFetch(anonymousId);
 
     const res = await sentinelFetch(url, {
       method: 'POST',
