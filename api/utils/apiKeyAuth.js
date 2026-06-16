@@ -28,7 +28,10 @@ export function getKeyFromRequest(req) {
   if (apiKey) return apiKey.trim();
   const auth = req.get("authorization");
   if (auth && /^Bearer\s+/i.test(auth)) {
-    return auth.replace(/^Bearer\s+/i, "").trim();
+    const bearer = auth.replace(/^Bearer\s+/i, "").trim();
+    // Syra wallet sessions use Authorization: Bearer <JWT>. Only treat Bearer as gateway auth
+    // when it matches a configured API key (trusted-origin injection sets X-API-Key instead).
+    if (VALID_KEYS.has(bearer)) return bearer;
   }
   return null;
 }

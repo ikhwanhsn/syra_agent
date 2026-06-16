@@ -3,8 +3,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   deletePostStudioUpdates,
   fetchPostStudioState,
+  isPostStudioAuthError,
   migratePostStudioState,
   patchPostStudioPosted,
+  type PostStudioState,
 } from "@/lib/postStudioApi";
 import {
   applyPostStudioState,
@@ -25,17 +27,33 @@ function isServerStateEmpty(state: { postedOnX: Record<string, boolean>; deleted
   return Object.keys(state.postedOnX).length === 0 && state.deleted.length === 0;
 }
 
+function fallbackPostStudioState(): PostStudioState {
+  const legacy = readLegacyLocalStorageState();
+  return {
+    postedOnX: legacy.postedOnX,
+    deleted: legacy.deleted,
+    updatedAt: null,
+  };
+}
+
 async function loadPostStudioState() {
-  let state = await fetchPostStudioState();
+  try {
+    let state = await fetchPostStudioState();
 
-  if (isServerStateEmpty(state) && hasLegacyLocalData()) {
-    const legacy = readLegacyLocalStorageState();
-    state = await migratePostStudioState(legacy);
-    clearLegacyLocalStorageState();
+    if (isServerStateEmpty(state) && hasLegacyLocalData()) {
+      const legacy = readLegacyLocalStorageState();
+      state = await migratePostStudioState(legacy);
+      clearLegacyLocalStorageState();
+    }
+
+    applyPostStudioState(state);
+    return state;
+  } catch (err) {
+    if (!isPostStudioAuthError(err)) throw err;
+    const state = fallbackPostStudioState();
+    applyPostStudioState(state);
+    return state;
   }
-
-  applyPostStudioState(state);
-  return state;
 }
 
 export function usePostStudioQuery() {
@@ -43,7 +61,7 @@ export function usePostStudioQuery() {
     queryKey: POST_STUDIO_QUERY_KEY,
     queryFn: loadPostStudioState,
     staleTime: 15_000,
-    retry: 2,
+    retry: (failureCount, error) => !isPostStudioAuthError(error) && failureCount < 2,
   });
 }
 

@@ -143,6 +143,9 @@ export function SyraAuthProvider({ children }: { children: ReactNode }) {
       const token = await ensureAccessToken();
       const session = getSyraSessionWallet() ?? (token ? getWalletFromAccessToken(token) : null);
       if (!token || !session || !walletMatchesSession(session, address)) {
+        if (token && session && !walletMatchesSession(session, address)) {
+          setSyraAuthenticated(false);
+        }
         return null;
       }
 

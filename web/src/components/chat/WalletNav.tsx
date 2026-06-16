@@ -94,15 +94,17 @@ export function WalletNav(props: WalletNavProps = {}) {
 
   useEffect(() => {
     if (!open || !connected || !publicKey) return;
-    if (syraAuthReady && !syraAuthenticated) {
-      void ensureSyraAuth();
-    }
     let cancelled = false;
     setBalanceRefreshing(true);
-    void refreshTreasuryBalances().finally(() => {
+    void (async () => {
+      if (syraAuthReady && !syraAuthenticated) {
+        await ensureSyraAuth();
+      }
+      if (cancelled) return;
+      await Promise.all([refreshTreasuryBalances(), refreshSyraBalance()]);
+    })().finally(() => {
       if (!cancelled) setBalanceRefreshing(false);
     });
-    void refreshSyraBalance();
     return () => {
       cancelled = true;
     };

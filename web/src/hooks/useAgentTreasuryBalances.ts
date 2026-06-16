@@ -42,7 +42,6 @@ export function useAgentTreasuryBalances(options: UseAgentTreasuryBalancesOption
 
   const chatAnonymousId = chatAnonymousIdOverride ?? contextAnonymousId;
   const walletQueriesEnabled = syraAuthReady && syraAuthenticated;
-  const authPending = connected && syraAuthReady && !syraAuthenticated;
   const hasAgentTreasury = Boolean(agentAddress || lpAgentAddress);
 
   const isContextAgent =
@@ -113,7 +112,6 @@ export function useAgentTreasuryBalances(options: UseAgentTreasuryBalancesOption
 
   const onChainBalancesPending =
     !walletQueriesEnabled &&
-    !authPending &&
     totalsUnresolved &&
     agentUsdcBalance == null &&
     agentSolBalance == null &&
@@ -122,7 +120,7 @@ export function useAgentTreasuryBalances(options: UseAgentTreasuryBalancesOption
   const balancesLoading =
     connected &&
     hasAgentTreasury &&
-    (authPending || !contextReady || apiBalancesPending || onChainBalancesPending);
+    (!contextReady || apiBalancesPending || onChainBalancesPending);
 
   useEffect(() => {
     if (!connected || !contextReady || !agentAddress) return;
@@ -162,7 +160,6 @@ export function useAgentTreasuryBalances(options: UseAgentTreasuryBalancesOption
 
   return {
     contextReady,
-    authPending,
     syraAuthReady,
     syraAuthenticated,
     hasAgentTreasury,

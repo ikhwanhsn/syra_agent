@@ -19,6 +19,26 @@ function getApiBase(): string {
   return (fromEnv || `${API_BASE}/`).replace(/\/$/, "");
 }
 
+export class PostStudioApiError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "PostStudioApiError";
+    this.status = status;
+  }
+}
+
+export function isPostStudioAuthError(err: unknown): boolean {
+  if (err instanceof PostStudioApiError) {
+    return err.status === 401 || err.status === 403;
+  }
+  if (err instanceof Error) {
+    return /401|403|missing api key|invalid api key|auth_required/i.test(err.message);
+  }
+  return false;
+}
+
 async function fetchPostStudioJson<T>(path: string, init?: RequestInit): Promise<T> {
   const url = `${getApiBase()}${path}`;
   const res = await fetch(url, { ...init, credentials: "include" });
@@ -28,7 +48,7 @@ async function fetchPostStudioJson<T>(path: string, init?: RequestInit): Promise
       (typeof body.error === "string" && body.error) ||
       (typeof body.message === "string" && body.message) ||
       `HTTP ${res.status}`;
-    throw new Error(msg);
+    throw new PostStudioApiError(msg, res.status);
   }
   return body as T;
 }
