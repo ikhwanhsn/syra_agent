@@ -1231,24 +1231,24 @@ body.syra-qwerti-active #qwerti-widget-root {
   background:
     radial-gradient(
       ellipse 90% 55% at 50% -15%,
-      hsl(45 90% 50% / 0.08),
+      hsl(45 90% 50% / 0.1),
       transparent 50%
     ),
     radial-gradient(
       ellipse 70% 45% at 100% 100%,
-      hsl(0 0% 18% / 0.45),
+      hsl(0 0% 18% / 0.48),
       transparent 55%
     ),
     radial-gradient(
       ellipse 55% 40% at 0% 85%,
-      hsl(0 0% 12% / 0.4),
+      hsl(0 0% 12% / 0.42),
       transparent 50%
     );
 }
 
 .post-orb {
-  filter: blur(80px);
-  opacity: 0.35;
+  filter: blur(72px);
+  opacity: 0.4;
   animation: post-orb-drift 18s ease-in-out infinite alternate;
 }
 
@@ -1465,7 +1465,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   font-size: clamp(0.5625rem, 2.2cqw, 0.6875rem);
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: hsl(0 0% 100% / 0.5);
+  color: hsl(45 90% 55% / 0.55);
 }
 
 .post-slide-headline {
@@ -1517,9 +1517,16 @@ body.syra-qwerti-active #qwerti-widget-root {
 
 .post-slide-card {
   border-radius: 0.625rem;
-  border: 1px solid hsl(0 0% 100% / 0.1);
+  border: 1px solid hsl(0 0% 100% / 0.12);
   padding: clamp(0.5rem, 2.2cqh, 0.75rem) clamp(0.5rem, 2.2cqw, 0.75rem);
-  background: hsl(0 0% 100% / 0.02);
+  background: linear-gradient(
+    165deg,
+    hsl(0 0% 100% / 0.045) 0%,
+    hsl(0 0% 100% / 0.015) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.06),
+    0 8px 24px hsl(0 0% 0% / 0.22);
 }
 
 .post-slide-card-title {
@@ -3224,6 +3231,10 @@ body.syra-qwerti-active #qwerti-widget-root {
   flex-shrink: 1;
   container-type: size;
   container-name: post-stage;
+  box-shadow:
+    inset 0 0 0 1px hsl(0 0% 100% / 0.05),
+    inset 0 0 80px hsl(0 0% 0% / 0.25),
+    0 24px 80px hsl(0 0% 0% / 0.45);
   /* Broadcast-style safe area — keeps copy off frame edges in preview + export */
   --post-frame-inset-inline: clamp(1.125rem, 7cqw, 6.5rem);
   --post-frame-inset-block: clamp(1rem, 8.5cqh, 5.25rem);
@@ -3231,11 +3242,10 @@ body.syra-qwerti-active #qwerti-widget-root {
 
 .post-video-export-root {
   position: fixed;
-  left: 0;
+  left: -10000px;
   top: 0;
   width: 960px;
   height: 540px;
-  opacity: 0;
   pointer-events: none;
   overflow: hidden;
   z-index: -1;
@@ -3246,9 +3256,53 @@ body.syra-qwerti-active #qwerti-widget-root {
   max-height: none;
   border-radius: 0;
   flex-shrink: 0;
+  width: 960px;
+  height: 540px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: geometricPrecision;
+  box-shadow:
+    inset 0 0 0 1px hsl(0 0% 100% / 0.04),
+    inset 0 0 120px hsl(0 0% 0% / 0.35);
+}
+
+.post-video-export-stage .post-ambient {
+  background:
+    radial-gradient(
+      ellipse 90% 55% at 50% -15%,
+      hsl(45 90% 50% / 0.11),
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse 70% 45% at 100% 100%,
+      hsl(0 0% 18% / 0.5),
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 55% 40% at 0% 85%,
+      hsl(0 0% 12% / 0.45),
+      transparent 50%
+    );
+}
+
+.post-video-export-stage .post-orb-a {
+  width: 420px;
+  height: 420px;
+}
+
+.post-video-export-stage .post-orb-b {
+  width: 320px;
+  height: 320px;
+}
+
+.post-export-active .post-video-export-stage .post-slide {
+  transition: none !important;
+  filter: none !important;
+}
+
+.post-export-active .post-video-export-stage .post-slide-active {
+  opacity: 1 !important;
+  transform: none !important;
 }
 
 /* Hide chrome overlays while capturing the visible preview. */

@@ -9,6 +9,7 @@ import { PostShareCopyPanel } from "@/components/post/PostShareCopyPanel";
 import { PostUpdateNav } from "@/components/post/PostUpdateNav";
 import { PostXStatusControl } from "@/components/post/PostXStatusControl";
 import { PostVideoExportModal } from "@/components/post/PostVideoExportModal";
+import { PostVideoExportStage } from "@/components/post/PostVideoExportStage";
 import { exportPostVideo, type PostVideoExportFormat } from "@/components/post/postVideoExport";
 import { getSlideDwellMs } from "@/components/post/postSlideTiming";
 import { cn } from "@/lib/utils";
@@ -31,6 +32,7 @@ export function PostDeck({ post }: PostDeckProps) {
   const [exportProgress, setExportProgress] = useState(0);
   const [exportFormat, setExportFormat] = useState<PostVideoExportFormat>("webm");
   const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [exportSlideIndex, setExportSlideIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const goNext = useCallback(() => {
@@ -62,6 +64,7 @@ export function PostDeck({ post }: PostDeckProps) {
       if (exporting) return;
 
       setExportFormat(format);
+      setExportSlideIndex(0);
       setExporting(true);
       setExportProgress(0);
       pausePlayback();
@@ -69,7 +72,7 @@ export function PostDeck({ post }: PostDeckProps) {
       try {
         await exportPostVideo(slides, meta.id, format, {
           onSlideChange: (nextIndex) => {
-            flushSync(() => setIndex(nextIndex));
+            flushSync(() => setExportSlideIndex(nextIndex));
           },
           onProgress: (progress) => setExportProgress(progress),
         });
@@ -263,6 +266,8 @@ export function PostDeck({ post }: PostDeckProps) {
         onExport={handleExportVideo}
       />
 
+      <PostVideoExportStage slides={slides} slideIndex={exportSlideIndex} />
+
       {exporting ? (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-[#030303]/80 px-4 backdrop-blur-sm"
@@ -284,7 +289,7 @@ export function PostDeck({ post }: PostDeckProps) {
             </div>
             <p className="mt-3 font-mono text-xs tabular-nums text-white/45">
               {Math.round(exportProgress * 100)}% · slide{" "}
-              {String(index + 1).padStart(2, "0")} /{" "}
+              {String(exportSlideIndex + 1).padStart(2, "0")} /{" "}
               {String(slideCount).padStart(2, "0")}
             </p>
             <p className="mt-2 text-xs text-white/35">Keep this tab open until the download starts</p>

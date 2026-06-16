@@ -4,11 +4,12 @@ import {
   postExportNodeFilter,
   preloadExportAssets,
   resolveFontEmbedCSS,
-  resolvePostVideoPreviewStage,
+  resolvePostVideoExportStage,
   setPostExportActive,
   setPostExportCapturing,
   waitForPaint,
 } from "@/components/post/postHtmlCapture";
+import { applyPostSlideFitToRoot } from "@/components/post/postSlideFitMeasure";
 import {
   canvasToJpegBlob,
   recordScheduledFrames,
@@ -33,7 +34,7 @@ export const POST_VIDEO_BITRATE = 16_000_000;
 const REVEAL_OFFSET_Y = 20;
 
 export { getSlideDwellMs, getTotalVideoDurationMs, getTotalVideoFrameCount } from "@/components/post/postSlideTiming";
-export { resolvePostVideoPreviewStage } from "@/components/post/postHtmlCapture";
+export { resolvePostVideoExportStage, resolvePostVideoPreviewStage } from "@/components/post/postHtmlCapture";
 
 export interface PostVideoLayoutSize {
   width: number;
@@ -41,16 +42,6 @@ export interface PostVideoLayoutSize {
 }
 
 export function resolvePostVideoLayoutSize(): PostVideoLayoutSize {
-  const preview = resolvePostVideoPreviewStage();
-  if (preview) {
-    const { width } = preview.getBoundingClientRect();
-    if (width > 0) {
-      const layoutWidth = Math.round(width);
-      const layoutHeight = Math.round((layoutWidth * POST_VIDEO_HEIGHT) / POST_VIDEO_WIDTH);
-      return { width: layoutWidth, height: layoutHeight };
-    }
-  }
-
   return {
     width: POST_VIDEO_LAYOUT_WIDTH,
     height: POST_VIDEO_LAYOUT_HEIGHT,
@@ -91,9 +82,9 @@ export function buildPostVideoFilename(postId: string, format: PostVideoExportFo
   return `syra-post-${sanitizeFilename(postId)}.${format}`;
 }
 
-/** @deprecated Export captures the visible preview directly. */
+/** @deprecated Export captures the fixed off-screen stage. */
 export function resolvePostVideoExportNode(node: HTMLElement): HTMLElement {
-  return resolvePostVideoPreviewStage() ?? node;
+  return resolvePostVideoExportStage() ?? node;
 }
 
 function parseRevealDelayMs(el: HTMLElement): number {
@@ -179,12 +170,17 @@ function pinHoldFitTransform(target: HTMLElement): void {
   }
 }
 
+async function syncExportLayout(target: HTMLElement): Promise<void> {
+  applyPostSlideFitToRoot(target);
+  flushAnimationState(target);
+  await waitForPaint(false);
+}
+
 async function captureFrameBlob(
   target: HTMLElement,
   exportOptions: ReturnType<typeof buildExportOptions>,
 ): Promise<Blob> {
-  flushAnimationState(target);
-  await waitForPaint(false);
+  await syncExportLayout(target);
   const canvas = await toCanvas(target, exportOptions);
   return canvasToJpegBlob(canvas);
 }
@@ -200,8 +196,7 @@ async function prepareSlideCapture(
   pauseExportAnimations(target);
   applyExportRevealFrame(target, 0);
   seekAmbientAnimations(target, 0);
-  flushAnimationState(target);
-  await waitForPaint(false);
+  await syncExportLayout(target);
 }
 
 async function buildSlideSchedule(
@@ -237,6 +232,7 @@ async function buildSlideSchedule(
     const settledMs = entranceMs + 80;
     applyExportRevealFrame(target, settledMs);
     seekAmbientAnimations(target, settledMs);
+    applyPostSlideFitToRoot(target);
     pinHoldFitTransform(target);
     setPostExportCapturing(true);
     const holdBlob = await captureFrameBlob(target, exportOptions);
@@ -259,8 +255,8 @@ export async function exportPostVideo(
     throw new Error("Video export is not supported in this browser");
   }
 
-  const target = resolvePostVideoPreviewStage();
-  if (!target) throw new Error("Preview stage not found");
+  const target = resolvePostVideoExportStage();
+  if (!target) throw new Error("Export stage not found");
 
   const layout = resolvePostVideoLayoutSize();
   const totalFrames = getTotalVideoFrameCount(slides);

@@ -147,7 +147,7 @@ export async function recordScheduledFramesToWebm(
 
 export async function canvasToJpegBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   const blob = await new Promise<Blob | null>((resolve) => {
-    canvas.toBlob(resolve, "image/jpeg", 0.92);
+    canvas.toBlob(resolve, "image/jpeg", 0.96);
   });
   if (!blob) throw new Error("Failed to encode frame");
   return blob;
