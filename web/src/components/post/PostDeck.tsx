@@ -8,7 +8,8 @@ import { PostBackLink } from "@/components/post/PostBackLink";
 import { PostShareCopyPanel } from "@/components/post/PostShareCopyPanel";
 import { PostUpdateNav } from "@/components/post/PostUpdateNav";
 import { PostXStatusControl } from "@/components/post/PostXStatusControl";
-import { exportPostVideoWebm } from "@/components/post/postVideoExport";
+import { PostVideoExportModal } from "@/components/post/PostVideoExportModal";
+import { exportPostVideo, type PostVideoExportFormat } from "@/components/post/postVideoExport";
 import { getSlideDwellMs } from "@/components/post/postSlideTiming";
 import { cn } from "@/lib/utils";
 import { Download, ImageIcon, Pause, Play, RotateCcw, Video } from "lucide-react";
@@ -28,6 +29,8 @@ export function PostDeck({ post }: PostDeckProps) {
   const [showGuides, setShowGuides] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
+  const [exportFormat, setExportFormat] = useState<PostVideoExportFormat>("webm");
+  const [exportModalOpen, setExportModalOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const goNext = useCallback(() => {
@@ -54,28 +57,32 @@ export function PostDeck({ post }: PostDeckProps) {
     setIsPlaying(true);
   }, []);
 
-  const handleDownloadVideo = useCallback(async () => {
-    if (exporting) return;
+  const handleExportVideo = useCallback(
+    async (format: PostVideoExportFormat) => {
+      if (exporting) return;
 
-    setExporting(true);
-    setExportProgress(0);
-    pausePlayback();
-
-    try {
-      await exportPostVideoWebm(slides, meta.id, {
-        onSlideChange: (nextIndex) => {
-          flushSync(() => setIndex(nextIndex));
-        },
-        onProgress: (progress) => setExportProgress(progress),
-      });
-      toast.success("Video downloaded");
-    } catch {
-      toast.error("Video download failed");
-    } finally {
-      setExporting(false);
+      setExportFormat(format);
+      setExporting(true);
       setExportProgress(0);
-    }
-  }, [exporting, meta.id, pausePlayback, slides]);
+      pausePlayback();
+
+      try {
+        await exportPostVideo(slides, meta.id, format, {
+          onSlideChange: (nextIndex) => {
+            flushSync(() => setIndex(nextIndex));
+          },
+          onProgress: (progress) => setExportProgress(progress),
+        });
+        toast.success(`${format.toUpperCase()} downloaded`);
+      } catch {
+        toast.error("Video download failed");
+      } finally {
+        setExporting(false);
+        setExportProgress(0);
+      }
+    },
+    [exporting, meta.id, pausePlayback, slides],
+  );
 
   useEffect(() => {
     document.title = `Syra · ${meta.title} · ${index + 1}/${slideCount}`;
@@ -149,7 +156,7 @@ export function PostDeck({ post }: PostDeckProps) {
 
           <button
             type="button"
-            onClick={handleDownloadVideo}
+            onClick={() => setExportModalOpen(true)}
             disabled={exporting || isPlaying}
             className="inline-flex h-9 items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 font-mono text-[10px] uppercase tracking-[0.12em] text-white/80 transition-colors hover:bg-white/15 disabled:opacity-50 sm:h-10 sm:gap-2 sm:px-4"
           >
@@ -246,9 +253,15 @@ export function PostDeck({ post }: PostDeckProps) {
           </p>
         </div>
         <p className="post-footer-hint mt-2 hidden text-center font-mono text-[10px] text-white/30 sm:mt-3 sm:block">
-          Download renders Full HD 30fps WebM with entrance animations, or hit Play to screen record
+          Download renders Full HD 30fps WebM or MP4 with entrance animations, or hit Play to screen record
         </p>
       </footer>
+
+      <PostVideoExportModal
+        open={exportModalOpen}
+        onOpenChange={setExportModalOpen}
+        onExport={handleExportVideo}
+      />
 
       {exporting ? (
         <div
@@ -260,7 +273,9 @@ export function PostDeck({ post }: PostDeckProps) {
             <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#F3BA2F]/80">
               Exporting video
             </p>
-            <p className="mt-2 font-display text-lg text-white/90">Full HD · 30fps · WebM</p>
+            <p className="mt-2 font-display text-lg text-white/90">
+              Full HD · 30fps · {exportFormat.toUpperCase()}
+            </p>
             <div className="post-progress-track mx-auto mt-5 h-1.5 w-full overflow-hidden rounded-full">
               <div
                 className="post-progress-fill h-full rounded-full transition-[width] duration-300 ease-out"

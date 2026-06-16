@@ -1,16 +1,36 @@
 import { POST_VIDEO_FPS } from "@/components/post/postSlideTiming";
 
+export type PostVideoExportFormat = "webm" | "mp4";
+
+const WEBM_MIME_CANDIDATES = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"] as const;
+
+const MP4_MIME_CANDIDATES = [
+  'video/mp4;codecs="avc1.42E01E,mp4a.40.2"',
+  "video/mp4;codecs=avc1",
+  "video/mp4",
+] as const;
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
     window.setTimeout(resolve, ms);
   });
 }
 
-function pickMimeType(): string {
-  for (const type of ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"]) {
+export function isPostVideoFormatSupported(format: PostVideoExportFormat): boolean {
+  if (typeof MediaRecorder === "undefined") return false;
+
+  const candidates = format === "mp4" ? MP4_MIME_CANDIDATES : WEBM_MIME_CANDIDATES;
+  return candidates.some((type) => MediaRecorder.isTypeSupported(type));
+}
+
+function pickMimeType(format: PostVideoExportFormat): string {
+  const candidates = format === "mp4" ? MP4_MIME_CANDIDATES : WEBM_MIME_CANDIDATES;
+
+  for (const type of candidates) {
     if (MediaRecorder.isTypeSupported(type)) return type;
   }
-  return "video/webm";
+
+  throw new Error(`${format.toUpperCase()} export is not supported in this browser`);
 }
 
 function requestVideoFrame(track: MediaStreamTrack): void {
@@ -33,11 +53,12 @@ interface DecodedScheduledFrame {
  * Encode scheduled frames at a fixed fps so playback duration matches frame count,
  * independent of how long DOM capture took (fixes 2min+ videos from slow toCanvas).
  */
-export async function recordScheduledFramesToWebm(
+export async function recordScheduledFrames(
   schedule: ScheduledFrame[],
   width: number,
   height: number,
   bitrate: number,
+  format: PostVideoExportFormat,
   onProgress?: (progress: number) => void,
 ): Promise<Blob> {
   const totalFrames = schedule.reduce((sum, entry) => sum + entry.repeat, 0);
@@ -63,7 +84,7 @@ export async function recordScheduledFramesToWebm(
 
   const stream = canvas.captureStream(0);
   const track = stream.getVideoTracks()[0];
-  const mimeType = pickMimeType();
+  const mimeType = pickMimeType(format);
   const recorder = new MediaRecorder(stream, {
     mimeType,
     videoBitsPerSecond: bitrate,
@@ -74,9 +95,11 @@ export async function recordScheduledFramesToWebm(
     if (event.data.size > 0) chunks.push(event.data);
   };
 
+  const containerType = format === "mp4" ? "video/mp4" : "video/webm";
+
   const recorded = new Promise<Blob>((resolve, reject) => {
     recorder.onstop = () => {
-      resolve(new Blob(chunks, { type: mimeType.split(";")[0] ?? "video/webm" }));
+      resolve(new Blob(chunks, { type: containerType }));
     };
     recorder.onerror = () => reject(new Error("Recording failed"));
   });
@@ -109,6 +132,17 @@ export async function recordScheduledFramesToWebm(
       entry.bitmap.close();
     }
   }
+}
+
+/** @deprecated Use recordScheduledFrames with format "webm". */
+export async function recordScheduledFramesToWebm(
+  schedule: ScheduledFrame[],
+  width: number,
+  height: number,
+  bitrate: number,
+  onProgress?: (progress: number) => void,
+): Promise<Blob> {
+  return recordScheduledFrames(schedule, width, height, bitrate, "webm", onProgress);
 }
 
 export async function canvasToJpegBlob(canvas: HTMLCanvasElement): Promise<Blob> {

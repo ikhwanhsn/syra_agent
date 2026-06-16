@@ -11,7 +11,8 @@ import {
 } from "@/components/post/postHtmlCapture";
 import {
   canvasToJpegBlob,
-  recordScheduledFramesToWebm,
+  recordScheduledFrames,
+  type PostVideoExportFormat,
   type ScheduledFrame,
 } from "@/components/post/postVideoRecord";
 import {
@@ -75,6 +76,8 @@ function buildExportOptions(layout: PostVideoLayoutSize, fontEmbedCSS: string) {
   } as const;
 }
 
+export type { PostVideoExportFormat } from "@/components/post/postVideoRecord";
+
 export interface PostVideoExportCallbacks {
   onSlideChange: (index: number) => void | Promise<void>;
   onProgress?: (progress: number) => void;
@@ -84,8 +87,8 @@ function sanitizeFilename(name: string): string {
   return name.replace(/[^a-z0-9-]+/gi, "-").replace(/-+/g, "-").toLowerCase();
 }
 
-export function buildPostVideoFilename(postId: string): string {
-  return `syra-post-${sanitizeFilename(postId)}.webm`;
+export function buildPostVideoFilename(postId: string, format: PostVideoExportFormat = "webm"): string {
+  return `syra-post-${sanitizeFilename(postId)}.${format}`;
 }
 
 /** @deprecated Export captures the visible preview directly. */
@@ -246,9 +249,10 @@ async function buildSlideSchedule(
   return { schedule, rendered };
 }
 
-export async function exportPostVideoWebm(
+export async function exportPostVideo(
   slides: PostSlide[],
   postId: string,
+  format: PostVideoExportFormat,
   callbacks: PostVideoExportCallbacks,
 ): Promise<void> {
   if (typeof MediaRecorder === "undefined") {
@@ -294,11 +298,12 @@ export async function exportPostVideoWebm(
 
     callbacks.onProgress?.(renderWeight);
 
-    const blob = await recordScheduledFramesToWebm(
+    const blob = await recordScheduledFrames(
       schedule,
       POST_VIDEO_WIDTH,
       POST_VIDEO_HEIGHT,
       POST_VIDEO_BITRATE,
+      format,
       (encodeProgress) => {
         callbacks.onProgress?.(renderWeight + encodeProgress * (1 - renderWeight));
       },
@@ -310,7 +315,7 @@ export async function exportPostVideoWebm(
 
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.download = buildPostVideoFilename(postId);
+    link.download = buildPostVideoFilename(postId, format);
     link.href = url;
     link.click();
     URL.revokeObjectURL(url);
@@ -320,4 +325,13 @@ export async function exportPostVideoWebm(
     clearExportRevealStyles(target);
     throw error;
   }
+}
+
+/** @deprecated Use exportPostVideo with format "webm". */
+export async function exportPostVideoWebm(
+  slides: PostSlide[],
+  postId: string,
+  callbacks: PostVideoExportCallbacks,
+): Promise<void> {
+  return exportPostVideo(slides, postId, "webm", callbacks);
 }
