@@ -92,23 +92,35 @@ function renderCover(slide: PostCoverSlide, isActive: boolean): ReactNode {
           isActive={isActive}
           template={slide.layout}
           variant="cover"
-          className="post-slide-body--align-left"
+          className="post-tmpl-cover-split"
         >
-          <PostSlideContent align="left">
-            <PostReveal isActive={isActive} delayMs={0}>
-              <p className="post-slide-kicker">{slide.eyebrow}</p>
-            </PostReveal>
-            <PostReveal isActive={isActive} delayMs={100}>
-              <div className="flex items-center gap-3">
-                <img src="/images/experiment/rise_uponly.png" alt="" className="h-11 w-11 rounded-xl border border-white/10 object-cover" />
-                <h1 className="post-slide-title post-slide-balance">{slide.title}</h1>
-              </div>
-            </PostReveal>
-            <CoverBadge text={slide.badge} isActive={isActive} delayMs={180} />
-            <PostReveal isActive={isActive} delayMs={260}>
-              <p className="post-slide-lead post-slide-prose">{slide.subtitle}</p>
-            </PostReveal>
-          </PostSlideContent>
+          <div className="post-cover-split">
+            <div className="post-cover-split-copy">
+              <PostReveal isActive={isActive} delayMs={0}>
+                <p className="post-slide-kicker">{slide.eyebrow}</p>
+              </PostReveal>
+              <PostReveal isActive={isActive} delayMs={100}>
+                <h1 className="post-slide-title post-cover-split-title">{slide.title}</h1>
+              </PostReveal>
+              <PostReveal isActive={isActive} delayMs={220}>
+                <p className="post-slide-lead post-cover-split-lead">{slide.subtitle}</p>
+              </PostReveal>
+            </div>
+            <div className="post-cover-split-visual">
+              <CoverBadge text={slide.badge} isActive={isActive} delayMs={160} />
+              <PostReveal isActive={isActive} delayMs={280}>
+                <div className="post-cover-hero-lockup">
+                  <div className="post-cover-hero-glow" aria-hidden />
+                  <div className="post-cover-hero-ring" aria-hidden />
+                  <img
+                    src="/images/experiment/rise_uponly.png"
+                    alt=""
+                    className="post-cover-hero-logo"
+                  />
+                </div>
+              </PostReveal>
+            </div>
+          </div>
         </PostSlideLayout>
       );
 

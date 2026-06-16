@@ -58,7 +58,7 @@ export function WalletNav(props: WalletNavProps = {}) {
   const { publicKey, disconnect, connected } = useWalletContext();
   const { openConnectModal } = useConnectModal();
   const { ready, agentAddress, connectedWalletShort, lpAgentAddress } = useAgentWallet();
-  const { syraAuthReady, syraAuthenticated, requestSyraAuth } = useSyraAuth();
+  const { syraAuthReady, syraAuthenticated, ensureSyraAuth } = useSyraAuth();
   const {
     hasAgentTreasury,
     chatUsdcBalance,
@@ -95,7 +95,7 @@ export function WalletNav(props: WalletNavProps = {}) {
   useEffect(() => {
     if (!open || !connected || !publicKey) return;
     if (syraAuthReady && !syraAuthenticated) {
-      void requestSyraAuth();
+      void ensureSyraAuth();
     }
     let cancelled = false;
     setBalanceRefreshing(true);

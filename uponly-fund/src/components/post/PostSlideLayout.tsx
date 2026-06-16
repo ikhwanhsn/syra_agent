@@ -33,6 +33,7 @@ export function PostSlideLayout({
       className={cn(
         "post-slide-body",
         `post-tmpl-${template}`,
+        `post-uof-slide--${template}`,
         variant === "cover" && "post-slide-body--cover",
         variant === "grid" && "post-slide-body--grid",
         variant === "stack" && "post-slide-body--stack",

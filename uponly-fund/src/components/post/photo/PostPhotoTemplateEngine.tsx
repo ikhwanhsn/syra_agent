@@ -7,6 +7,7 @@ import {
   PostPhotoCardGrid,
   PostPhotoChrome,
   PostPhotoHeadline,
+  PostPhotoHeroLogo,
   PostPhotoHighlightList,
   PostPhotoKicker,
   PostPhotoLinks,
@@ -14,6 +15,7 @@ import {
   PostPhotoSteps,
   PostPhotoTitle,
 } from "@/components/post/photo/PostPhotoChrome";
+import { getPostPhotoBgVariant } from "@/components/post/photo/postPhotoBgVariants";
 import type { PhotoBlockId, PhotoTemplateDef } from "@/components/post/photo/postPhotoLayoutRegistry";
 import { POST_PHOTO_LAYOUT_REGISTRY_MAP } from "@/components/post/photo/postPhotoLayoutRegistry";
 import { cn } from "@/lib/utils";
@@ -88,7 +90,7 @@ function renderBlock(block: PhotoBlockId, content: PostPhotoContent, def: PhotoT
         </div>
       );
     case "logo-hero":
-      return <img key={block} src="/images/experiment/rise_uponly.png" alt="" className="post-photo-cover-logo post-photo-cover-logo--lg" />;
+      return <PostPhotoHeroLogo key={block} />;
     case "brand-name":
       return (
         <p key={block} className="post-photo-brand-hero-name">
@@ -273,13 +275,17 @@ function renderBody(def: PhotoTemplateDef, content: PostPhotoContent): ReactNode
 export function renderPostPhotoTemplate(
   layout: PostPhotoLayoutTemplate,
   content: PostPhotoContent,
-  _role?: PostPhotoCardRole,
+  role?: PostPhotoCardRole,
 ): ReactNode {
   const def = POST_PHOTO_LAYOUT_REGISTRY_MAP.get(layout);
   if (!def) return null;
 
+  const bgVariant = role ? getPostPhotoBgVariant(role) : "mandate";
+
   return (
     <PostPhotoChrome
+      bgVariant={bgVariant}
+      role={role}
       hideBrand={def.chrome?.hideBrand}
       hideFooter={def.chrome?.hideFooter}
       className={def.chrome?.className}

@@ -100,6 +100,35 @@ function hasSessionHints(): boolean {
   return getSyraSessionWallet() != null;
 }
 
+/** Read wallet address + chain from a Syra access JWT (no signature verify — token came from our API). */
+export function getWalletFromAccessToken(token: string): { address: string; chain: AgentChain } | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length < 2) return null;
+    const payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const json = JSON.parse(atob(payload)) as { sub?: string; chain?: string };
+    const address = json.sub?.trim();
+    if (!address) return null;
+    return { address, chain: normalizeAgentChain(json.chain) };
+  } catch {
+    return null;
+  }
+}
+
+/** Backfill session wallet from JWT when sessionStorage was cleared but the access token remains. */
+export function hydrateSyraSessionWalletFromToken(token: string, expiresAt?: number): void {
+  if (getSyraSessionWallet()) return;
+  const wallet = getWalletFromAccessToken(token);
+  if (!wallet) return;
+  const stored = readStoredAccessToken();
+  const exp = expiresAt ?? stored?.expiresAt ?? memoryExpiresAt ?? Date.now() + 3_600_000;
+  persistAccessToken(token, exp, wallet);
+}
+
+function resolveSessionWalletFromToken(token: string): { address: string; chain: AgentChain } | null {
+  return getSyraSessionWallet() ?? getWalletFromAccessToken(token);
+}
+
 export async function refreshAccessToken(): Promise<string | null> {
   if (refreshInFlight) return refreshInFlight;
   refreshInFlight = (async () => {
@@ -127,7 +156,7 @@ export async function refreshAccessToken(): Promise<string | null> {
         clearSyraSession();
         return null;
       }
-      const wallet = getSyraSessionWallet();
+      const wallet = resolveSessionWalletFromToken(data.accessToken);
       persistAccessToken(data.accessToken, data.expiresAt, wallet ?? undefined);
       return data.accessToken;
     } catch {
@@ -142,7 +171,10 @@ export async function refreshAccessToken(): Promise<string | null> {
 
 export async function ensureAccessToken(): Promise<string | null> {
   const cached = getCachedAccessToken();
-  if (cached) return cached;
+  if (cached) {
+    hydrateSyraSessionWalletFromToken(cached);
+    return cached;
+  }
   // Guest users have no refresh cookie — skip the network round-trip.
   if (!hasSessionHints()) return null;
   return refreshAccessToken();

@@ -1,0 +1,260 @@
+/* UOF photo + video content layouts — structurally different from Syra ship log */
+
+/* —— Photo: diagonal cover (editorial split) —— */
+.post-uof-role--cover .post-photo-tmpl-cover-diagonal.post-photo-split--balanced {
+  width: 100%;
+  max-width: 1080px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.88fr);
+  gap: 36px;
+  align-items: center;
+}
+
+.post-uof-role--cover .post-photo-tmpl-cover-diagonal {
+  position: relative;
+}
+
+.post-uof-role--cover .post-photo-tmpl-cover-diagonal::before {
+  content: "";
+  position: absolute;
+  inset: -8% -4%;
+  background: linear-gradient(135deg, hsl(158 58% 48% / 0.05), transparent 48%);
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+.post-uof-role--cover .post-photo-tmpl-cover-diagonal .post-photo-title {
+  font-size: 54px;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+
+.post-uof-role--cover .post-photo-tmpl-cover-diagonal .post-photo-split-aside {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid hsl(158 58% 48% / 0.15);
+  background: hsl(158 58% 48% / 0.04);
+}
+
+/* —— Photo: neon accent statement (thesis) —— */
+.post-uof-role--thesis .post-photo-accent-panel {
+  max-width: 720px;
+  border-left-width: 4px;
+  border-image: linear-gradient(to bottom, hsl(158 58% 48%), hsl(158 58% 48% / 0.15)) 1;
+  padding: 28px 32px;
+  background: linear-gradient(90deg, hsl(158 58% 48% / 0.08), transparent 72%);
+}
+
+.post-uof-role--thesis .post-photo-headline {
+  font-size: 44px;
+}
+
+/* —— Photo: gilded quote —— */
+.post-uof-role--quote .post-photo-quote--gilded,
+.post-uof-role--quote .post-photo-quote {
+  max-width: 36ch;
+  padding: 28px 36px;
+  border-radius: 8px;
+  border: 1px solid hsl(158 58% 48% / 0.28);
+  background: linear-gradient(145deg, hsl(158 58% 48% / 0.1), hsl(0 0% 100% / 0.02));
+  border-left: none;
+  text-align: center;
+  font-size: 26px;
+  font-style: normal;
+}
+
+/* —— Photo: conduit flow —— */
+.post-uof-role--flow .post-photo-tmpl-flow-conduit .post-photo-pipeline {
+  border-radius: 12px;
+  border: 1px solid hsl(158 58% 48% / 0.2);
+  background: hsl(0 0% 0% / 0.35);
+  padding: 20px 16px;
+}
+
+/* —— Photo: rail timeline —— */
+.post-uof-role--timeline .post-photo-tmpl-flow-rail .post-photo-timeline {
+  border-left: 2px solid hsl(158 58% 48% / 0.4);
+  padding-left: 20px;
+}
+
+.post-uof-role--timeline .post-photo-tmpl-flow-rail .post-photo-timeline-dot {
+  position: absolute;
+  left: -31px;
+  background: hsl(158 58% 48% / 0.15);
+}
+
+.post-uof-role--timeline .post-photo-tmpl-flow-rail .post-photo-timeline-item {
+  position: relative;
+}
+
+/* —— Photo: marquee pillars —— */
+.post-uof-role--pillars .post-photo-card-grid--marquee .post-photo-card:first-child {
+  border-color: hsl(158 58% 48% / 0.35);
+  background: linear-gradient(135deg, hsl(158 58% 48% / 0.16), hsl(0 0% 100% / 0.03));
+}
+
+.post-uof-role--pillars .post-photo-card--gold {
+  border-color: hsl(158 58% 48% / 0.3);
+  background: linear-gradient(135deg, hsl(158 58% 48% / 0.14), hsl(0 0% 100% / 0.03));
+}
+
+/* —— Photo: tiered checklist —— */
+.post-uof-role--checklist .post-photo-list--tiered .post-photo-list-item:first-child {
+  background: linear-gradient(135deg, hsl(158 58% 48% / 0.16), hsl(0 0% 100% / 0.03));
+  border-color: hsl(158 58% 48% / 0.28);
+}
+
+/* —— Photo: podium metrics —— */
+.post-uof-role--metrics .post-photo-stat-grid--podium .post-photo-stat:nth-child(2) {
+  background: linear-gradient(180deg, hsl(158 58% 48% / 0.18), hsl(0 0% 100% / 0.03));
+  border-color: hsl(158 58% 48% / 0.35);
+}
+
+/* —— Photo: monolith featured stat —— */
+.post-uof-role--featured .post-photo-stat-grid--featured .post-photo-stat-value {
+  font-size: 112px;
+  background: linear-gradient(180deg, hsl(0 0% 100%), hsl(158 58% 48% / 0.7));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* —— Photo: slide comparison —— */
+.post-uof-role--comparison .post-photo-compare--slide .post-photo-compare-col--now {
+  background: hsl(158 58% 48% / 0.12);
+}
+
+/* —— Photo: editorial launch —— */
+.post-uof-role--launch .post-photo-editorial {
+  border-top: 3px solid hsl(158 58% 48% / 0.5);
+  padding-top: 28px;
+  max-width: 680px;
+}
+
+.post-uof-role--launch .post-photo-editorial .post-photo-headline {
+  font-size: 48px;
+}
+
+/* —— Photo: ledger deep dive —— */
+.post-uof-role--deepDive .post-photo-numbered {
+  border-radius: 10px;
+  border: 1px solid hsl(158 58% 48% / 0.15);
+  background: hsl(0 0% 0% / 0.35);
+  padding: 16px 20px;
+}
+
+.post-uof-role--deepDive .post-photo-numbered-index {
+  border: 1px solid hsl(158 58% 48% / 0.3);
+  border-radius: 6px;
+  padding: 4px 8px;
+  background: hsl(158 58% 48% / 0.08);
+}
+
+/* —— Photo: frost split hero —— */
+.post-uof-role--split .post-photo-split-aside {
+  border-radius: 12px;
+  border: 1px solid hsl(158 58% 48% / 0.15);
+  background: hsl(0 0% 100% / 0.03);
+  backdrop-filter: blur(8px);
+  padding: 20px;
+}
+
+/* —— Photo: terminal —— */
+.post-uof-role--terminal .post-photo-terminal-wrap {
+  border-color: hsl(158 58% 48% / 0.25);
+  box-shadow: 0 0 32px hsl(158 58% 48% / 0.08);
+}
+
+.post-uof-role--terminal .post-photo-terminal {
+  color: hsl(158 72% 52% / 0.9);
+}
+
+/* —— Photo: closing banner —— */
+.post-uof-role--cta .post-photo-closing-banner {
+  border-color: hsl(158 58% 48% / 0.4);
+  background: linear-gradient(135deg, hsl(158 58% 48% / 0.18), hsl(0 0% 100% / 0.04));
+  padding: 36px 40px;
+}
+
+/* —— Video: accent statement —— */
+.post-uof-slide--statement-accent-bar .post-accent-panel {
+  max-width: 48ch;
+  border-left-width: 4px;
+  padding: clamp(0.75rem, 3cqh, 1.25rem) clamp(0.875rem, 3cqw, 1.5rem);
+  background: linear-gradient(90deg, hsl(158 58% 48% / 0.1), transparent);
+}
+
+/* —— Video: numbered flow —— */
+.post-uof-slide--flow-numbered .post-numbered-flow-item {
+  border-color: hsl(158 58% 48% / 0.12);
+}
+
+/* —— Video: surface tiles —— */
+.post-uof-slide--surfaces-tiles .post-surface-card {
+  border-color: hsl(158 58% 48% / 0.15);
+  background: hsl(158 58% 48% / 0.04);
+}
+
+/* —— Video: closing minimal —— */
+.post-uof-slide--closing-minimal .post-closing-banner {
+  border-color: hsl(158 58% 48% / 0.35);
+  background: linear-gradient(135deg, hsl(158 58% 48% / 0.14), hsl(0 0% 100% / 0.03));
+}
+
+/* —— Video: cover split —— */
+.post-uof-slide--cover-split .post-cover-split-title {
+  font-size: clamp(2rem, 9cqw, 3.25rem);
+  letter-spacing: -0.05em;
+}
+
+.post-uof-slide--cover-split .post-cover-split-lead {
+  border-left: 3px solid hsl(158 58% 48% / 0.5);
+  padding-left: 1rem;
+}
+
+/* —— Video: hero mandate —— */
+.post-uof-slide--hero-split .post-tmpl-hero-split {
+  gap: clamp(1rem, 3cqh, 1.75rem);
+}
+
+.post-uof-slide--hero-split .post-slide-list {
+  border: 1px solid hsl(158 58% 48% / 0.18);
+  background: hsl(158 58% 48% / 0.04);
+  border-radius: 0.75rem;
+  padding: clamp(0.5rem, 2cqh, 0.875rem);
+}
+
+.post-uof-slide--hero-split .post-highlight-row {
+  border-color: hsl(158 58% 48% / 0.12);
+}
+
+/* —— Video: bento sleeves —— */
+.post-uof-slide--cards-bento .post-bento-featured .post-slide-card {
+  border-color: hsl(158 58% 48% / 0.35);
+  background: linear-gradient(145deg, hsl(158 58% 48% / 0.12), hsl(0 0% 0% / 0.2));
+}
+
+/* —— Video: impact stat —— */
+.post-uof-slide--impact-featured-stat .post-slide-stat--xl {
+  font-size: clamp(2.5rem, 12cqw, 4.5rem);
+  color: hsl(158 72% 52%);
+  text-shadow: 0 0 40px hsl(158 58% 48% / 0.35);
+}
+
+/* Body padding shift per role — magazine feel */
+.post-uof-role--thesis .post-photo-body,
+.post-uof-role--quote .post-photo-body {
+  padding-left: 64px;
+}
+
+.post-uof-role--timeline .post-photo-body,
+.post-uof-role--deepDive .post-photo-body {
+  padding-left: 72px;
+}
+
+.post-uof-role--terminal .post-photo-body {
+  padding: 40px 48px;
+}

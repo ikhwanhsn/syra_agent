@@ -27,6 +27,7 @@ const Footer = () => {
     { href: "#benefits", label: t("Manfaat", "Benefits") },
     { href: "#how-it-works", label: t("Cara Kerja", "How It Works") },
     { href: "/events", label: t("Event", "Events") },
+    { href: "/post", label: t("Signal Studio", "Signal Studio") },
     { href: "#faq", label: "FAQ" },
   ];
 

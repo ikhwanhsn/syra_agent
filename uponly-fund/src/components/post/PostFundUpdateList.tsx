@@ -25,6 +25,8 @@ import { cn } from "@/lib/utils";
 
 interface PostFundUpdateListProps {
   updates: PostUpdateBundle[];
+  /** Hub page uses terminal-style rows inside the glass panel. */
+  variant?: "default" | "hub";
 }
 
 function formatDeleteList(numbers: number[], updates: PostUpdateBundle[]): string {
@@ -37,7 +39,8 @@ function formatDeleteList(numbers: number[], updates: PostUpdateBundle[]): strin
     .join(", ");
 }
 
-export function PostFundUpdateList({ updates }: PostFundUpdateListProps) {
+export function PostFundUpdateList({ updates, variant = "default" }: PostFundUpdateListProps) {
+  const isHub = variant === "hub";
   const refreshTick = usePostRegistryRefresh();
   const deleteM = useDeletePosts();
   const latestVisible = useMemo(() => getLatestVisiblePostUpdateNumber(), [refreshTick, updates]);
@@ -100,9 +103,14 @@ export function PostFundUpdateList({ updates }: PostFundUpdateListProps) {
 
   return (
     <>
-      <div className="mt-8 text-left">
+      <div className={cn("text-left", !isHub && "mt-8")}>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/35">
+          <p
+            className={cn(
+              "font-mono text-[10px] uppercase tracking-[0.16em]",
+              isHub ? "text-emerald-400/70" : "text-white/35",
+            )}
+          >
             Fund updates
           </p>
           <div className="flex flex-wrap items-center gap-2">
@@ -161,10 +169,13 @@ export function PostFundUpdateList({ updates }: PostFundUpdateListProps) {
               <li key={meta.updateNumber}>
                 <div
                   className={cn(
-                    "flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5",
+                    "flex items-center justify-between gap-3 border px-3 py-2.5",
+                    isHub ? "post-hub-update-row" : "rounded-lg",
                     isSelected
                       ? "border-red-500/25 bg-red-500/[0.04]"
-                      : "border-white/8 bg-white/[0.02]",
+                      : isHub
+                        ? undefined
+                        : "border-white/8 bg-white/[0.02]",
                   )}
                 >
                   <div className="flex min-w-0 items-center gap-2.5">

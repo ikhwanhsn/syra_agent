@@ -15,6 +15,7 @@ export default {
     extend: {
       fontFamily: {
         sora: ['Sora', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
       },
       colors: {
         border: "hsl(var(--border))",

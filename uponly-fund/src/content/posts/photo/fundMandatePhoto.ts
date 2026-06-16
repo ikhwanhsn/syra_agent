@@ -13,10 +13,10 @@ const footers = FUND_MANDATE_PHOTO_SHARE_FOOTERS;
 export const FUND_MANDATE_PHOTO = definePhotoUpdate(FUND_MANDATE_POST.meta, [
   {
     role: "cover",
-    layout: "photo-cover-split",
+    layout: "photo-cover-diagonal",
     shareCopy: copies.cover,
     content: photoContent({
-      eyebrow: "Investor brief",
+      kicker: "Investor brief",
       badge: "Solana · 80/20 Mandate",
       title: "Up Only Fund",
       subtitle:
@@ -25,7 +25,7 @@ export const FUND_MANDATE_PHOTO = definePhotoUpdate(FUND_MANDATE_POST.meta, [
   },
   {
     role: "thesis",
-    layout: "photo-statement-center",
+    layout: "photo-statement-neon",
     shareCopy: copies.thesis,
     shareCopyFooter: footers.thesis,
     content: photoContent({
@@ -36,17 +36,18 @@ export const FUND_MANDATE_PHOTO = definePhotoUpdate(FUND_MANDATE_POST.meta, [
   },
   {
     role: "quote",
-    layout: "photo-quote",
+    layout: "photo-quote-gilded",
     shareCopy: copies.quote,
     shareCopyFooter: footers.quote,
     content: photoContent({
+      kicker: "Allocator principle",
       quote: "Conviction first. Structure always. No hidden rugs.",
       narrative: "Every position passes onchain verification. Published mandate. Transparent disclosures.",
     }),
   },
   {
     role: "flow",
-    layout: "photo-flow-pipeline",
+    layout: "photo-flow-conduit",
     shareCopy: copies.flow,
     content: photoContent({
       kicker: "How we allocate",
@@ -61,7 +62,7 @@ export const FUND_MANDATE_PHOTO = definePhotoUpdate(FUND_MANDATE_POST.meta, [
   },
   {
     role: "timeline",
-    layout: "photo-timeline",
+    layout: "photo-flow-rail",
     shareCopy: copies.timeline,
     content: photoContent({
       kicker: "Published mandate",
@@ -76,10 +77,11 @@ export const FUND_MANDATE_PHOTO = definePhotoUpdate(FUND_MANDATE_POST.meta, [
   },
   {
     role: "pillars",
-    layout: "photo-cards-quad",
+    layout: "photo-cards-marquee",
     shareCopy: copies.pillars,
     shareCopyFooter: footers.pillars,
     content: photoContent({
+      kicker: "Mandate pillars",
       headline: "Four pillars of the mandate.",
       cards: [
         { title: "High conviction", subtitle: "80% sleeve", detail: "Utility tokens with real traction on Solana.", accent: "gold" },
@@ -91,10 +93,11 @@ export const FUND_MANDATE_PHOTO = definePhotoUpdate(FUND_MANDATE_POST.meta, [
   },
   {
     role: "checklist",
-    layout: "photo-hero-checklist",
+    layout: "photo-hero-tiered",
     shareCopy: copies.checklist,
     shareCopyFooter: footers.checklist,
     content: photoContent({
+      kicker: "Now live",
       headline: "Fund mandate is live.",
       highlights: [
         "Public fund landing with mandate and thesis",
@@ -106,10 +109,11 @@ export const FUND_MANDATE_PHOTO = definePhotoUpdate(FUND_MANDATE_POST.meta, [
   },
   {
     role: "metrics",
-    layout: "photo-metric-strip",
+    layout: "photo-stat-podium",
     shareCopy: copies.metrics,
     shareCopyFooter: footers.metrics,
     content: photoContent({
+      kicker: "By the numbers",
       headline: "Three numbers that define us.",
       stats: [
         { value: "80/20", label: "Published allocation thesis" },
@@ -121,10 +125,11 @@ export const FUND_MANDATE_PHOTO = definePhotoUpdate(FUND_MANDATE_POST.meta, [
   },
   {
     role: "featured",
-    layout: "photo-stat-featured",
+    layout: "photo-stat-monolith",
     shareCopy: copies.featured,
     shareCopyFooter: footers.featured,
     content: photoContent({
+      kicker: "Structure",
       headline: "The mandate in one number.",
       stats: [{ value: "80/20", label: "Published allocation thesis" }],
       narrative: "Utility with traction. Asymmetric with verification. Zero hidden mechanics.",
@@ -132,10 +137,11 @@ export const FUND_MANDATE_PHOTO = definePhotoUpdate(FUND_MANDATE_POST.meta, [
   },
   {
     role: "comparison",
-    layout: "photo-comparison",
+    layout: "photo-compare-slide",
     shareCopy: copies.comparison,
     shareCopyFooter: footers.comparison,
     content: photoContent({
+      kicker: "Allocator contrast",
       headline: "Typical fund vs Up Only Fund.",
       compareLeft: {
         title: "Typical fund",
@@ -149,18 +155,18 @@ export const FUND_MANDATE_PHOTO = definePhotoUpdate(FUND_MANDATE_POST.meta, [
   },
   {
     role: "launch",
-    layout: "photo-announcement",
+    layout: "photo-editorial",
     shareCopy: copies.launch,
     content: photoContent({
       eyebrow: "Investor brief",
       badge: "Now live · Mandate · Disclosures",
       headline: "Up Only Fund mandate",
-      subtitle: "Onchain capital for high conviction bets on Solana — published thesis, verification gates, transparent disclosures.",
+      body: "Onchain capital for high conviction bets on Solana — published thesis, verification gates, transparent disclosures.",
     }),
   },
   {
     role: "deepDive",
-    layout: "photo-numbered-list",
+    layout: "photo-items-grid",
     shareCopy: copies.deepDive,
     shareCopyFooter: footers.deepDive,
     content: photoContent({
@@ -176,11 +182,11 @@ export const FUND_MANDATE_PHOTO = definePhotoUpdate(FUND_MANDATE_POST.meta, [
   },
   {
     role: "split",
-    layout: "photo-hero-split",
+    layout: "photo-hero-frost",
     shareCopy: copies.split,
     shareCopyFooter: footers.split,
     content: photoContent({
-      badge: "Two sleeves",
+      kicker: "Two sleeves",
       headline: "Utility vs asymmetric.",
       body: "The 80% sleeve targets real traction. The 20% sleeve targets asymmetric upside — but only after structure clears verification.",
       highlights: [
@@ -210,7 +216,7 @@ export const FUND_MANDATE_PHOTO = definePhotoUpdate(FUND_MANDATE_POST.meta, [
   },
   {
     role: "cta",
-    layout: "photo-closing-cta",
+    layout: "photo-closing-banner",
     shareCopy: copies.cta,
     content: photoContent({
       headline: "Follow a conviction allocator.",

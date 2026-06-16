@@ -47,7 +47,7 @@ export function useManagedAgentWallets() {
     lpAnonymousId,
     lpAgentAddress,
   } = useAgentWallet();
-  const { syraAuthReady, syraAuthenticated, requestSyraAuth } = useSyraAuth();
+  const { syraAuthReady, syraAuthenticated, ensureSyraAuth } = useSyraAuth();
 
   const hasSolana = Boolean(solanaAddress);
   const walletQueriesEnabled = syraAuthReady && syraAuthenticated;
@@ -106,8 +106,8 @@ export function useManagedAgentWallets() {
 
   useEffect(() => {
     if (!hasSolana || !syraAuthReady || syraAuthenticated) return;
-    void requestSyraAuth();
-  }, [hasSolana, syraAuthReady, syraAuthenticated, requestSyraAuth]);
+    void ensureSyraAuth();
+  }, [hasSolana, syraAuthReady, syraAuthenticated, ensureSyraAuth]);
 
   const setupLoading =
     hasSolana

@@ -1,4 +1,6 @@
 @import "./styles/post.css";
+@import "./styles/postPhotoUofBg.css";
+@import "./styles/postUofLayouts.css";
 
 @tailwind base;
 @tailwind components;

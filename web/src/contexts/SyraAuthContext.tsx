@@ -9,11 +9,12 @@ import {
 } from "react";
 import { useWalletContext } from "@/contexts/WalletContext";
 import {
-  clearSyraSession,
   encodeSolanaSignature,
   ensureAccessToken,
   fetchAuthNonce,
   getSyraSessionWallet,
+  hydrateSyraSessionWalletFromToken,
+  getWalletFromAccessToken,
   refreshAccessToken,
   signInWithWallet,
   signOutSyraSession,
@@ -93,7 +94,7 @@ function signInResultFromSession(
 }
 
 export function SyraAuthProvider({ children }: { children: ReactNode }) {
-  const { address: solanaAddress, connected, signMessage } = useWalletContext();
+  const { address: solanaAddress, connected, connecting, signMessage } = useWalletContext();
 
   const [syraAuthReady, setSyraAuthReady] = useState(false);
   const [syraAuthenticated, setSyraAuthenticated] = useState(false);
@@ -101,7 +102,7 @@ export function SyraAuthProvider({ children }: { children: ReactNode }) {
   const signInFlightRef = useRef<Promise<SyraSignInResult | null> | null>(null);
   const lastSignedWalletRef = useRef<string | null>(null);
   const lastSignInRef = useRef<SyraSignInResult | null>(null);
-  const autoSignInAttemptedRef = useRef<string | null>(null);
+  const wasConnectedRef = useRef(false);
 
   const activeWallet =
     connected && solanaAddress ? { address: solanaAddress, chain: "solana" as const } : null;
@@ -116,7 +117,8 @@ export function SyraAuthProvider({ children }: { children: ReactNode }) {
       const token = await refreshAccessToken();
       if (cancelled) return;
       if (token) {
-        const session = getSyraSessionWallet();
+        hydrateSyraSessionWalletFromToken(token);
+        const session = getSyraSessionWallet() ?? getWalletFromAccessToken(token);
         if (session) {
           lastSignedWalletRef.current = `solana:${session.address}`;
           const restored = signInResultFromSession(token, { address: session.address });
@@ -139,7 +141,7 @@ export function SyraAuthProvider({ children }: { children: ReactNode }) {
 
       const walletKey = `solana:${address}`;
       const token = await ensureAccessToken();
-      const session = getSyraSessionWallet();
+      const session = getSyraSessionWallet() ?? (token ? getWalletFromAccessToken(token) : null);
       if (!token || !session || !walletMatchesSession(session, address)) {
         return null;
       }
@@ -229,49 +231,29 @@ export function SyraAuthProvider({ children }: { children: ReactNode }) {
     [signInForWalletInteractive],
   );
 
-  /** Restore refresh cookie or prompt wallet sign-in once per connected Solana wallet (incl. Privy auto-reconnect). */
+  /** Silently restore Syra session when Privy reconnects a previously linked wallet. */
   useEffect(() => {
-    if (!syraAuthReady) return;
-    if (!connected || !activeWallet) {
-      if (syraAuthenticated) {
-        void signOutSyraSession();
-      }
-      setSyraAuthenticated(false);
-      lastSignedWalletRef.current = null;
-      autoSignInAttemptedRef.current = null;
-      return;
-    }
+    if (!syraAuthReady || !connected || !activeWallet) return;
 
     const walletKey = `solana:${activeWallet.address}`;
     if (lastSignedWalletRef.current === walletKey && syraAuthenticated) return;
 
     let cancelled = false;
     void (async () => {
-      const restored = await restoreSessionForWallet(activeWallet.address);
-      if (cancelled || restored) return;
-      if (autoSignInAttemptedRef.current === walletKey) return;
-      autoSignInAttemptedRef.current = walletKey;
-      await signInForWalletInteractive(activeWallet.address, { notifyOnSuccess: false });
+      await restoreSessionForWallet(activeWallet.address);
+      if (cancelled) return;
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [
-    syraAuthReady,
-    connected,
-    activeWallet,
-    restoreSessionForWallet,
-    signInForWalletInteractive,
-    syraAuthenticated,
-  ]);
+  }, [syraAuthReady, connected, activeWallet, restoreSessionForWallet, syraAuthenticated]);
 
-  /** Explicit Connect wallet — retry sign-in if auto path has not run yet. */
+  /** Explicit Connect wallet — prompt sign-in only after user-initiated connect. */
   useEffect(() => {
     if (!syraAuthReady || !activeWallet) return;
 
     const onWalletConnected = () => {
-      autoSignInAttemptedRef.current = null;
       void signInForWalletInteractive(activeWallet.address, { notifyOnSuccess: true });
     };
 
@@ -280,15 +262,22 @@ export function SyraAuthProvider({ children }: { children: ReactNode }) {
   }, [syraAuthReady, activeWallet, signInForWalletInteractive]);
 
   useEffect(() => {
-    if (!connected) {
+    if (connected) {
+      wasConnectedRef.current = true;
+      return;
+    }
+    // Privy reports disconnected while still initializing — don't wipe session yet.
+    if (connecting) return;
+
+    if (wasConnectedRef.current) {
+      wasConnectedRef.current = false;
       lastSignedWalletRef.current = null;
       lastSignInRef.current = null;
-      autoSignInAttemptedRef.current = null;
       setLastSignIn(null);
-      clearSyraSession();
+      void signOutSyraSession();
       setSyraAuthenticated(false);
     }
-  }, [connected]);
+  }, [connected, connecting]);
 
   const value: SyraAuthState = {
     syraAuthReady,

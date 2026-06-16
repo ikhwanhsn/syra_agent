@@ -1,23 +1,80 @@
 import type { ReactNode } from "react";
+import type { PostPhotoCardRole } from "@/content/posts/photo/photoCardSlots";
+import {
+  getPostPhotoBgSignalTag,
+  getPostPhotoBgWatermark,
+  type PostPhotoBgVariant,
+} from "@/components/post/photo/postPhotoBgVariants";
 import { cn } from "@/lib/utils";
 
 interface PostPhotoChromeProps {
   children: ReactNode;
   className?: string;
-  /** Hide footer URL bar (some templates include their own). */
+  bgVariant?: PostPhotoBgVariant;
+  role?: PostPhotoCardRole;
   hideFooter?: boolean;
-  /** Hide top brand strip. */
   hideBrand?: boolean;
 }
 
-/** Fixed 1200×675 branded canvas shared by all photo templates. */
-export function PostPhotoChrome({ children, className, hideFooter, hideBrand }: PostPhotoChromeProps) {
+function PostPhotoUofUnderlay({ variant }: { variant: PostPhotoBgVariant }) {
+  const watermark = getPostPhotoBgWatermark(variant);
+  const signalTag = getPostPhotoBgSignalTag(variant);
+
   return (
-    <div className={cn("post-photo-canvas", className)}>
-      <div className="post-photo-ambient" aria-hidden />
-      <div className="post-photo-orb post-photo-orb-a" aria-hidden />
-      <div className="post-photo-orb post-photo-orb-b" aria-hidden />
-      <div className="post-photo-grid" aria-hidden />
+    <div className={cn("post-uof-alpha", `post-photo-bg--${variant}`)} aria-hidden>
+      <div className="post-uof-alpha-base" />
+      <div className="post-uof-alpha-conic" />
+      <div className="post-uof-alpha-radial-tr" />
+      <div className="post-uof-alpha-radial-bl" />
+      <div className="post-uof-alpha-radial-tl" />
+      <div className="post-uof-alpha-radial-center" />
+      <div className="post-uof-alpha-beam" />
+      <div className="post-uof-alpha-beam-left" />
+      <div className="post-uof-alpha-grid" />
+      <div className="post-uof-alpha-grid-dense" />
+      <div className="post-uof-alpha-scanlines" />
+      <div className="post-uof-alpha-stripes" />
+      <div className="post-uof-alpha-ring" />
+      <div className="post-uof-alpha-halo" />
+      <div className="post-uof-alpha-spotlight" />
+      <div className="post-uof-alpha-slash" />
+      <div className="post-uof-alpha-aurora" />
+      <div className="post-uof-alpha-layer post-uof-alpha-layer--vault" />
+      <div className="post-uof-alpha-layer post-uof-alpha-layer--prism" />
+      <div className="post-uof-alpha-layer post-uof-alpha-layer--flow" />
+      <div className="post-uof-alpha-layer post-uof-alpha-layer--matrix" />
+      <div className="post-uof-alpha-layer post-uof-alpha-layer--ledger" />
+      <div className="post-uof-alpha-layer post-uof-alpha-layer--banner" />
+      <span className="post-uof-bracket post-uof-bracket--tl" />
+      <span className="post-uof-bracket post-uof-bracket--tr" />
+      <span className="post-uof-bracket post-uof-bracket--bl" />
+      <span className="post-uof-bracket post-uof-bracket--br" />
+      <span className="post-uof-watermark">{watermark}</span>
+      <span className="post-uof-signal">{signalTag}</span>
+      <span className="post-uof-alpha-tag">UOF</span>
+    </div>
+  );
+}
+
+/** Fixed 1200×675 branded canvas — Up Only Fund vault aesthetic. */
+export function PostPhotoChrome({
+  children,
+  className,
+  bgVariant = "mandate",
+  role,
+  hideFooter,
+  hideBrand,
+}: PostPhotoChromeProps) {
+  return (
+    <div
+      className={cn(
+        "post-photo-canvas",
+        `post-photo-bg--${bgVariant}`,
+        role && `post-uof-role--${role}`,
+        className,
+      )}
+    >
+      <PostPhotoUofUnderlay variant={bgVariant} />
 
       {!hideBrand ? (
         <div className="post-photo-brand">
@@ -48,8 +105,20 @@ export function PostPhotoKicker({ children }: { children: ReactNode }) {
   return <p className="post-photo-kicker">{children}</p>;
 }
 
-export function PostPhotoHeadline({ children, className, large }: { children: ReactNode; className?: string; large?: boolean }) {
-  return <h2 className={cn("post-photo-headline", large && "post-photo-headline--lg", className)}>{children}</h2>;
+export function PostPhotoHeadline({
+  children,
+  className,
+  large,
+}: {
+  children: ReactNode;
+  className?: string;
+  large?: boolean;
+}) {
+  return (
+    <h2 className={cn("post-photo-headline", large && "post-photo-headline--lg", className)}>
+      {children}
+    </h2>
+  );
 }
 
 export function PostPhotoTitle({ children, className }: { children: ReactNode; className?: string }) {
@@ -190,6 +259,7 @@ export function PostPhotoSteps({
       </ul>
     );
   }
+
   if (variant === "pipeline") {
     return (
       <div className="post-photo-pipeline">
@@ -244,6 +314,21 @@ export function PostPhotoLinks({ links }: { links: { label: string; value: strin
           <span className="post-photo-link-value">{link.value}</span>
         </div>
       ))}
+    </div>
+  );
+}
+
+/** Hero logo with emerald vault glow — cover split aside. */
+export function PostPhotoHeroLogo({ className }: { className?: string }) {
+  return (
+    <div className={cn("post-photo-hero-lockup", className)}>
+      <div className="post-photo-hero-glow" aria-hidden />
+      <div className="post-photo-hero-ring" aria-hidden />
+      <img
+        src="/images/experiment/rise_uponly.png"
+        alt=""
+        className="post-photo-hero-logo"
+      />
     </div>
   );
 }
