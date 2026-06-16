@@ -73,7 +73,8 @@ export function isBrowserCallablePath(path) {
     path.startsWith("/api/signal/") ||
     path.startsWith("/streamflow-locks") ||
     path.startsWith("/staking") ||
-    path.startsWith("/wallet")
+    path.startsWith("/wallet") ||
+    path.startsWith("/post/studio")
   );
 }
 
