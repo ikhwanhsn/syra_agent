@@ -33,7 +33,6 @@ async function getOrCreatePactInstance(agentId, keypair) {
     const pact = await createPact({
       network: cfg.network,
       signer: keypair,
-      apiKey: cfg.apiKey,
       rpcUrl: cfg.rpcUrl,
       proxyBaseUrl: cfg.proxyBaseUrl,
       indexerBaseUrl: cfg.indexerBaseUrl,

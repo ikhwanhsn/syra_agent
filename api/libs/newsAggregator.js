@@ -161,6 +161,94 @@ export async function getAggregatedNews(opts = {}) {
 }
 
 /**
+ * @param {string} kw
+ */
+function escapeRegExp(kw) {
+  return kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * @param {string} blob
+ * @param {string} kw
+ */
+function articleMatchesKeyword(blob, kw) {
+  const k = kw.toLowerCase();
+  if (k.length >= 4) return blob.includes(k);
+  return new RegExp(`\\b${escapeRegExp(k)}\\b`, "i").test(blob);
+}
+
+/**
+ * @param {import("./newsSources/rssParser.js").RawArticle} article
+ * @param {string[]} keywords
+ */
+function articleTickerMatches(article, keywords) {
+  if (!Array.isArray(article.tickers) || article.tickers.length === 0) return false;
+  const kws = keywords.map((k) => k.toUpperCase());
+  return article.tickers.some((t) => {
+    const upper = String(t).toUpperCase();
+    return kws.some((kw) => upper === kw || upper.includes(kw));
+  });
+}
+
+/**
+ * Strict asset-related filter — requires a primary keyword when provided.
+ * @param {import("./newsSources/rssParser.js").RawArticle[]} articles
+ * @param {{ primary?: string[]; all?: string[] }} keywordQuery
+ * @returns {import("./newsSources/rssParser.js").RawArticle[]}
+ */
+export function filterArticlesByAssetKeywords(articles, keywordQuery = {}) {
+  const primary = (keywordQuery.primary || [])
+    .map((k) => String(k || "").trim().toLowerCase())
+    .filter((k) => k.length >= 2);
+  const all = (keywordQuery.all || primary)
+    .map((k) => String(k || "").trim().toLowerCase())
+    .filter((k) => k.length >= 2);
+
+  if (primary.length === 0 && all.length === 0) return [];
+
+  return articles.filter((a) => {
+    const blob = `${a.title} ${a.description}`.toLowerCase();
+    if (primary.length > 0) {
+      if (primary.some((kw) => articleMatchesKeyword(blob, kw))) return true;
+      if (articleTickerMatches(a, primary)) return true;
+      return false;
+    }
+    if (all.some((kw) => articleMatchesKeyword(blob, kw))) return true;
+    return articleTickerMatches(a, all);
+  });
+}
+
+/**
+ * @param {RawArticle[]} articles
+ * @param {string[]} keywords
+ * @returns {RawArticle[]}
+ */
+export function filterArticlesByKeywords(articles, keywords) {
+  return filterArticlesByAssetKeywords(articles, { all: keywords, primary: keywords });
+}
+
+/**
+ * @param {{ keywords?: string[]; keywordQuery?: { primary?: string[]; all?: string[] }; items?: number }} [opts]
+ * @returns {Promise<CryptonewsArticle[]>}
+ */
+export async function getAggregatedNewsByKeywords(opts = {}) {
+  const keywordQuery = opts.keywordQuery ?? {
+    all: Array.isArray(opts.keywords) ? opts.keywords : [],
+    primary: Array.isArray(opts.keywords) ? opts.keywords : [],
+  };
+  const items = Math.min(200, Math.max(1, Number(opts.items) || 100));
+  const cacheKey = `news:asset:${keywordQuery.primary?.join("|")}:${keywordQuery.all?.join("|")}:${items}`;
+
+  const cached = getCached(cacheKey);
+  if (cached) return cached;
+
+  const raw = filterArticlesByAssetKeywords(await fetchAllRawArticles(), keywordQuery);
+  const shaped = raw.slice(0, items).map(toCryptonewsShape);
+  if (shaped.length > 0) setCached(cacheKey, shaped);
+  return shaped;
+}
+
+/**
  * Articles from the last N hours (for sentiment / sundown).
  * @param {number} hours
  * @returns {Promise<RawArticle[]>}

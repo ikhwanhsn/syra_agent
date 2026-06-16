@@ -26,6 +26,7 @@ import { formatCompactUsd, formatPct } from "@/lib/dashboardOverviewAggregates";
 import {
   askSyraPrompt,
   dossierSharePath,
+  type AssetIntelligencePayload,
   type TokensDossierPayload,
   type TokensMarketScore,
 } from "@/lib/tokensDossierApi";
@@ -56,9 +57,15 @@ export interface MintDossierViewProps {
   className?: string;
   /** Hides redundant kicker when parent page already shows breadcrumb nav. */
   embeddedInDetail?: boolean;
+  intelligence?: AssetIntelligencePayload | null;
 }
 
-export function MintDossierView({ data, className, embeddedInDetail = false }: MintDossierViewProps) {
+export function MintDossierView({
+  data,
+  className,
+  embeddedInDetail = false,
+  intelligence = null,
+}: MintDossierViewProps) {
   const asset = data.asset;
   const stats = asset?.stats;
   const canonical = asset?.canonicalMarket;
@@ -71,7 +78,7 @@ export function MintDossierView({ data, className, embeddedInDetail = false }: M
       ? data.includes.markets.data!.markets!.slice(0, 8)
       : [];
   const mint = data.chartMint;
-  const syraPrompt = encodeURIComponent(askSyraPrompt(data));
+  const syraPrompt = encodeURIComponent(askSyraPrompt(data, intelligence));
   const shareUrl =
     typeof window !== "undefined"
       ? `${window.location.origin}${dossierSharePath(data)}`

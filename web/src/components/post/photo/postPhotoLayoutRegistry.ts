@@ -32,7 +32,8 @@ export type PhotoBlockId =
   | "items-all"
   | "items-numbered"
   | "terminal"
-  | "url-inline";
+  | "url-inline"
+  | "partnership-lockup";
 
 export type PhotoBodyAlign =
   | "center"
@@ -297,6 +298,23 @@ export const POST_PHOTO_LAYOUT_REGISTRY: PhotoTemplateDef[] = [
     align: "compare",
     chrome: { className: "post-photo-canvas--compare-slide" },
     blocks: ["kicker", "headline", "compare"],
+  },
+
+  /* Batch 4 — partnership & integration dual-brand lockups */
+  {
+    id: "photo-partnership-union",
+    bodyClassName: "post-photo-tmpl-partnership-union",
+    align: "center",
+    chrome: { hideBrand: true, hideFooter: true, className: "post-photo-canvas--partnership" },
+    blocks: ["eyebrow", "partnership-lockup", "badge", "headline", "subtitle"],
+  },
+  {
+    id: "photo-partnership-beacon",
+    bodyClassName: "post-photo-tmpl-partnership-beacon",
+    align: "split-balanced",
+    chrome: { hideBrand: true, hideFooter: true, className: "post-photo-canvas--partnership-beacon" },
+    blocks: ["eyebrow", "badge", "headline", "subtitle"],
+    asideBlocks: ["partnership-lockup"],
   },
 ];
 

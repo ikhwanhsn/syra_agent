@@ -88,8 +88,8 @@
         "all x402 routes (see GET /.well-known/x402)",
         "/internal/tester-agent*",
         "/internal/trend-scout/run",
+        "/internal/growth-scout/run",
         "/internal/partnership-scout/run",
-        "/internal/hackathon-scout/run",
         "/uponly-rise-market*",
         "/uponly-rise-portfolio*"
       ]
@@ -101,7 +101,7 @@
         "tags": [
           "Signal"
         ],
-        "summary": "Fetch public trading signal without x402 payment",
+        "summary": "Public signal (no x402)",
         "description": "Same engine as /signal without micropayment. API key if server sets API_KEY.",
         "operationId": "getPublicSignal",
         "parameters": [
@@ -213,7 +213,7 @@
         "tags": [
           "Signal"
         ],
-        "summary": "Fetch public trading signal via JSON request body",
+        "summary": "Public signal via JSON body",
         "operationId": "postPublicSignal",
         "requestBody": {
           "required": false,
@@ -306,7 +306,7 @@
         "tags": [
           "Info"
         ],
-        "summary": "Get Syra gateway info and service metadata",
+        "summary": "Gateway info",
         "operationId": "getInfo",
         "responses": {
           "200": {
@@ -362,7 +362,7 @@
         "tags": [
           "Info"
         ],
-        "summary": "Get public API usage stats and rate limits",
+        "summary": "Public usage stats",
         "operationId": "getInfoStats",
         "responses": {
           "200": {
@@ -418,7 +418,7 @@
         "tags": [
           "Preview"
         ],
-        "summary": "Preview crypto news headlines without payment",
+        "summary": "News preview (no x402)",
         "operationId": "getPreviewNews",
         "parameters": [
           {
@@ -486,7 +486,7 @@
         "tags": [
           "Preview"
         ],
-        "summary": "Preview market sentiment scores without payment",
+        "summary": "Sentiment preview (no x402)",
         "operationId": "getPreviewSentiment",
         "parameters": [
           {
@@ -554,7 +554,7 @@
         "tags": [
           "Preview"
         ],
-        "summary": "Preview trading signal output without payment",
+        "summary": "Signal preview (no x402)",
         "operationId": "getPreviewSignal",
         "parameters": [
           {
@@ -658,7 +658,7 @@
         "tags": [
           "Dashboard"
         ],
-        "summary": "Get dashboard KPI summary for Syra markets",
+        "summary": "Dashboard KPI summary",
         "operationId": "getDashboardSummary",
         "responses": {
           "200": {
@@ -714,7 +714,7 @@
         "tags": [
           "Dashboard"
         ],
-        "summary": "Get Binance spot ticker prices for symbols",
+        "summary": "Binance ticker prices",
         "operationId": "getBinanceTicker",
         "responses": {
           "200": {
@@ -770,7 +770,7 @@
         "tags": [
           "Prediction game"
         ],
-        "summary": "Check prediction game API health and status",
+        "summary": "Prediction game health",
         "operationId": "getPredictionGameHealth",
         "responses": {
           "200": {
@@ -826,7 +826,7 @@
         "tags": [
           "Market data (x402)"
         ],
-        "summary": "Fetch curated crypto news headlines by ticker",
+        "summary": "Crypto news",
         "operationId": "getNews",
         "parameters": [
           {
@@ -895,7 +895,7 @@
         "tags": [
           "Market data (x402)"
         ],
-        "summary": "Fetch curated crypto news via JSON request body",
+        "summary": "Crypto news (POST)",
         "operationId": "postNews",
         "requestBody": {
           "required": false,
@@ -966,7 +966,7 @@
         "tags": [
           "Market data (x402)"
         ],
-        "summary": "Fetch 30-day crypto market sentiment by ticker",
+        "summary": "Sentiment",
         "operationId": "getSentiment",
         "parameters": [
           {
@@ -1035,7 +1035,7 @@
         "tags": [
           "Market data (x402)"
         ],
-        "summary": "Fetch market sentiment via JSON request body",
+        "summary": "Sentiment (POST)",
         "operationId": "postSentiment",
         "requestBody": {
           "required": false,
@@ -1106,7 +1106,7 @@
         "tags": [
           "Market data (x402)"
         ],
-        "summary": "Fetch upcoming and recent crypto event calendar",
+        "summary": "Crypto events",
         "operationId": "getEvent",
         "parameters": [
           {
@@ -1175,7 +1175,7 @@
         "tags": [
           "Market data (x402)"
         ],
-        "summary": "Fetch crypto events via JSON request body",
+        "summary": "Crypto events (POST)",
         "operationId": "postEvent",
         "requestBody": {
           "required": false,
@@ -1246,7 +1246,7 @@
         "tags": [
           "Gateway (x402)"
         ],
-        "summary": "Check Syra API health and x402 liveness probe",
+        "summary": "API health (x402 liveness)",
         "operationId": "getHealth",
         "responses": {
           "200": {
@@ -1303,7 +1303,7 @@
         "tags": [
           "Gateway (x402)"
         ],
-        "summary": "Check API health via JSON POST liveness probe",
+        "summary": "API health (POST)",
         "operationId": "postHealth",
         "requestBody": {
           "required": false,
@@ -1374,7 +1374,7 @@
         "tags": [
           "AI (x402)"
         ],
-        "summary": "Answer crypto questions with Syra Brain tools",
+        "summary": "Syra Brain (GET)",
         "operationId": "getBrain",
         "parameters": [
           {
@@ -1442,7 +1442,7 @@
         "tags": [
           "AI (x402)"
         ],
-        "summary": "Answer crypto questions via Syra Brain POST body",
+        "summary": "Syra Brain (POST)",
         "operationId": "postBrain",
         "requestBody": {
           "required": false,
@@ -1513,7 +1513,7 @@
         "tags": [
           "Market data (x402)"
         ],
-        "summary": "Get cross-CEX arbitrage snapshots and ranked routes",
+        "summary": "Arbitrage — CMC top + cross-CEX snapshots + ranked routes (x402)",
         "operationId": "getArbitrage",
         "parameters": [
           {
@@ -1584,7 +1584,7 @@
         "tags": [
           "Market data (x402)"
         ],
-        "summary": "Get arbitrage routes with optional limit in body",
+        "summary": "Arbitrage — POST body may include { limit } (x402)",
         "operationId": "postArbitrage",
         "requestBody": {
           "required": false,
@@ -1655,7 +1655,7 @@
         "tags": [
           "Social (x402)"
         ],
-        "summary": "Analyze X project profile, tweets, and score",
+        "summary": "X Project Analyzer — profile + tweets + score (x402)",
         "description": "Micropayment via x402. Returns deterministic 0–100 score, category breakdown, signals, red flags; optional `includeAiSummary` adds grounded LLM bullets. Example `200` body is maintained at `api/docs/examples/x-analyzer-response.example.json`.",
         "operationId": "getXAnalyzer",
         "parameters": [
@@ -1827,7 +1827,7 @@
         "tags": [
           "Social (x402)"
         ],
-        "summary": "Analyze X project profile via JSON request body",
+        "summary": "X Project Analyzer — POST body (x402)",
         "description": "Same as GET; body may include `username`, `max_results`, `includeAiSummary`. Example response identical to GET.",
         "operationId": "postXAnalyzer",
         "requestBody": {
@@ -2019,7 +2019,7 @@
         "tags": [
           "Social (batch)"
         ],
-        "summary": "Analyze single allowlisted X account Alpha signals",
+        "summary": "Single-account Alpha analysis (allowlisted)",
         "description": "`username` must belong to the configured `type` handle list. Returns full score payload, optional AI summary (default on), and `recentTweets` sample. API key when API_KEY is set.",
         "operationId": "getXProjectsAnalyzeAccount",
         "parameters": [
@@ -2129,7 +2129,7 @@
         "tags": [
           "Social (batch)"
         ],
-        "summary": "Analyze allowlisted X account via JSON body",
+        "summary": "Single-account Alpha analysis — POST",
         "operationId": "postXProjectsAnalyzeAccount",
         "requestBody": {
           "required": false,
@@ -2227,8 +2227,8 @@
         "tags": [
           "Social (batch)"
         ],
-        "summary": "Run batch X project analyzer without payment",
-        "description": "Runs the same deterministic analysis as /x-analyzer for all X handles configured for `type` (default `x402`). Handles are not client-supplied. See GET /x-projects-analyze/types.",
+        "summary": "Batch X project analyzer (no x402)",
+        "description": "Returns the latest persisted batch snapshot for `type` (default `x402`). Scores are refreshed by the Alpha X agent about once every 24 hours (POST /internal/alpha-x-batch/run). Handles are not client-supplied. See GET /x-projects-analyze/types.",
         "operationId": "getXProjectsAnalyze",
         "parameters": [
           {
@@ -2316,7 +2316,7 @@
         "tags": [
           "Social (batch)"
         ],
-        "summary": "Run batch X project analyzer via JSON body",
+        "summary": "Batch X project analyzer — POST body",
         "operationId": "postXProjectsAnalyze",
         "requestBody": {
           "required": false,
@@ -2353,6 +2353,352 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds the client must wait before retrying.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Too many requests. Please slow down."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/spcx": {
+      "get": {
+        "tags": [
+          "Equity (x402)"
+        ],
+        "summary": "SPCX / SpaceX IPO intelligence",
+        "description": "Nasdaq vs on-chain SPCX premium/discount spread. x402 revenue routes to $SYRA buybacks in production.",
+        "operationId": "getSpcxIntelligence",
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "SPCXx"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
+          },
+          "429": {
+            "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds the client must wait before retrying.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Too many requests. Please slow down."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/equity": {
+      "get": {
+        "tags": [
+          "Equity (x402)"
+        ],
+        "summary": "Tokenized equity intelligence (xStocks catalog)",
+        "description": "Parametric symbol → Nasdaq vs on-chain spread for TSLAx, NVDAx, etc.",
+        "operationId": "getEquityIntelligence",
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
+          },
+          "429": {
+            "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds the client must wait before retrying.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Too many requests. Please slow down."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/indicator": {
+      "get": {
+        "tags": [
+          "Technical indicators (x402)"
+        ],
+        "summary": "OHLCV technical indicators — combine RSI, MACD, EMA, Bollinger, and 20+ more in one agent-readable call",
+        "operationId": "getIndicator",
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "BTCUSDT"
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "binance"
+            }
+          },
+          {
+            "name": "interval",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "1h"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 200
+            }
+          },
+          {
+            "name": "series",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "indicators",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "rsi"
+            },
+            "description": "Comma-separated ids e.g. rsi,macd. Per-indicator params: rsi.period=21"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
+          },
+          "429": {
+            "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds the client must wait before retrying.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Too many requests. Please slow down."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Technical indicators (x402)"
+        ],
+        "summary": "Technical indicators (POST, combinable)",
+        "description": "Same as GET /indicator with JSON body for complex multi-indicator requests.",
+        "operationId": "postIndicator",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "symbol": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "string"
+                  },
+                  "interval": {
+                    "type": "string"
+                  },
+                  "limit": {
+                    "type": "integer"
+                  },
+                  "series": {
+                    "type": "boolean"
+                  },
+                  "indicators": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
           },
           "429": {
             "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
@@ -2432,6 +2778,10 @@
     {
       "name": "Social (batch)",
       "description": "Batch X project analysis — API key when configured; no x402"
+    },
+    {
+      "name": "Equity (x402)",
+      "description": "Tokenized equity intelligence — SPCX SpaceX IPO + xStocks catalog"
     }
   ],
   "components": {

@@ -11,7 +11,7 @@ import {
   CommandList,
   CommandShortcut,
 } from "@/components/ui/command";
-import { parseAssetLookupInput } from "@/lib/tokensDossierApi";
+import { assetLookupPath } from "@/lib/assetsSearchApi";
 import { assetDetailPath, type AssetTableRow } from "@/lib/assetsHub";
 
 interface AssetsCommandPaletteProps {
@@ -53,15 +53,8 @@ export function AssetsCommandPalette({ rows, onOpenChange }: AssetsCommandPalett
   }, [rows, query]);
 
   const runLookup = (raw: string) => {
-    const parsed = parseAssetLookupInput(raw);
-    if (!parsed) return;
-    const sp = new URLSearchParams();
-    if (parsed.ref) sp.set("ref", parsed.ref);
-    if (parsed.assetId) sp.set("assetId", parsed.assetId);
-    if (parsed.mint) sp.set("mint", parsed.mint);
-    if (parsed.q) sp.set("q", parsed.q);
     handleOpenChange(false);
-    navigate(`/assets/lookup?${sp.toString()}`);
+    navigate(assetLookupPath(raw));
   };
 
   return (

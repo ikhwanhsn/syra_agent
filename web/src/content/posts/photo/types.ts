@@ -47,6 +47,10 @@ export interface PostPhotoContent {
   compareLeft: { title: string; body: string };
   compareRight: { title: string; body: string };
   terminalLines: string[];
+  /** Partner brand for integration / partnership lockup templates */
+  partnerName: string;
+  /** Public path, e.g. /images/partners/jupiter.png */
+  partnerLogo: string;
 }
 
 export interface PostPhotoCardDef {
@@ -54,6 +58,8 @@ export interface PostPhotoCardDef {
   layout: PostPhotoLayoutTemplate;
   content: PostPhotoContent;
   shareCopy: string;
+  /** Optional unique link appended on copy when shareCopy has no URL of its own. */
+  shareCopyFooter?: string;
 }
 
 export interface PostPhotoUpdate {

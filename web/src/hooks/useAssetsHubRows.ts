@@ -1,43 +1,59 @@
 import { useQuery } from "@tanstack/react-query";
-import { ASSET_PRESETS } from "@/lib/assetPresets";
-import type { AssetClass, AssetTableRow } from "@/lib/assetsHub";
-import { fetchMintDossier } from "@/lib/tokensDossierApi";
+import type { AssetTableRow } from "@/lib/assetsHub";
+import {
+  fetchAssetsBoard,
+  type AssetsBoardItem,
+  type TokensDossierPayload,
+} from "@/lib/tokensDossierApi";
 
-export const ASSETS_HUB_QUERY_KEY = ["assets-hub", "table-v2"] as const;
+export const ASSETS_HUB_QUERY_KEY = ["assets-hub", "board-v1"] as const;
 
-function classifyAsset(category: string | undefined, fallback: AssetClass): AssetClass {
-  const c = category?.toLowerCase() ?? "";
-  if (c.includes("stock") || c.includes("equity")) return "equity";
-  return fallback;
+function boardItemToRow(item: AssetsBoardItem): AssetTableRow {
+  const payload: TokensDossierPayload = {
+    query: { ref: item.ref, ...(item.mint && { mint: item.mint }), assetId: item.assetId },
+    assetId: item.assetId,
+    chartMint: item.mint ?? null,
+    asset: {
+      assetId: item.assetId,
+      name: item.name,
+      symbol: item.symbol,
+      category: item.category,
+      imageUrl: item.imageUrl,
+      stats: {
+        price: item.price,
+        marketCap: item.marketCap,
+        volume24hUSD: item.volume24h,
+        priceChange24hPercent: item.change24h,
+        liquidity: item.liquidity,
+      },
+    },
+    includes: null,
+    ohlcv: { interval: "1H", mint: item.mint ?? null, candles: [] },
+    fetchedAt: new Date().toISOString(),
+  };
+
+  return {
+    key: item.key,
+    ref: item.ref,
+    name: item.name,
+    symbol: item.symbol,
+    assetClass: item.assetClass,
+    price: item.price,
+    change24h: item.change24h,
+    marketCap: item.marketCap,
+    volume24h: item.volume24h,
+    liquidity: item.liquidity,
+    imageUrl: item.imageUrl,
+    payload,
+  };
 }
 
 export function useAssetsHubRows() {
   return useQuery({
     queryKey: ASSETS_HUB_QUERY_KEY,
-    queryFn: async (): Promise<AssetTableRow[]> => {
-      const settled = await Promise.allSettled(
-        ASSET_PRESETS.map(async (preset) => {
-          const payload = await fetchMintDossier({ ref: preset.ref });
-          const stats = payload.asset?.stats;
-          return {
-            key: payload.assetId,
-            ref: preset.ref,
-            name: payload.asset?.name || preset.label,
-            symbol: payload.asset?.symbol || preset.ref.toUpperCase(),
-            assetClass: classifyAsset(payload.asset?.category, preset.assetClass),
-            price: stats?.price ?? payload.asset?.canonicalMarket?.price,
-            change24h: stats?.priceChange24hPercent,
-            marketCap: stats?.marketCap ?? payload.asset?.canonicalMarket?.marketCap,
-            volume24h: stats?.volume24hUSD ?? payload.asset?.canonicalMarket?.volume24hUSD,
-            liquidity: stats?.liquidity,
-            imageUrl: payload.asset?.imageUrl,
-            payload,
-          } satisfies AssetTableRow;
-        }),
-      );
-      return settled
-        .filter((item): item is PromiseFulfilledResult<AssetTableRow> => item.status === "fulfilled")
-        .map((item) => item.value);
+    queryFn: async ({ signal }): Promise<AssetTableRow[]> => {
+      const board = await fetchAssetsBoard({ list: "all", groupBy: "asset", signal });
+      return board.items.map(boardItemToRow);
     },
     staleTime: 120_000,
   });

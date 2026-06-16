@@ -1,12 +1,13 @@
 import { Link } from "react-router-dom";
+import { useMemo } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import {
-  getAdjacentPostUpdateNumbers,
-  getPostBundleByNumber,
-  getPostUpdateNumbers,
-} from "@/content/posts";
+import { getPostBundleByNumber } from "@/content/posts";
 import { getPostRoutePath } from "@/lib/postRoutes";
+import {
+  getVisiblePostUpdateNumbers,
+} from "@/lib/postRegistryVisibility";
 import { usePostXStatus } from "@/lib/postXStatus";
+import { usePostRegistryRefresh } from "@/lib/usePostRegistryRefresh";
 import { cn } from "@/lib/utils";
 
 interface PostUpdateNavProps {
@@ -53,10 +54,22 @@ function PostUpdateNavPill({
 }
 
 export function PostUpdateNav({ updateNumber, format }: PostUpdateNavProps) {
-  const numbers = getPostUpdateNumbers();
-  const { prev, next } = getAdjacentPostUpdateNumbers(updateNumber);
+  const statusTick = usePostRegistryRefresh();
+  const numbers = useMemo(() => getVisiblePostUpdateNumbers(), [statusTick]);
+  const { prev, next } = useMemo(() => {
+    const index = numbers.indexOf(updateNumber);
+    if (index === -1) return { prev: null, next: null };
+    return {
+      prev: index > 0 ? numbers[index - 1]! : null,
+      next: index < numbers.length - 1 ? numbers[index + 1]! : null,
+    };
+  }, [numbers, updateNumber]);
 
   if (numbers.length <= 1) return null;
+
+  if (!numbers.includes(updateNumber)) {
+    return null;
+  }
 
   return (
     <nav

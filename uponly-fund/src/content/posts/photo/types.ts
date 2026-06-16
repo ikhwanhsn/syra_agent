@@ -1,5 +1,6 @@
 import type { PostUpdateMeta } from "@/content/posts/types";
 import type { PostPhotoLayoutTemplate } from "./layouts";
+import type { PostPhotoCardRole } from "./photoCardSlots";
 
 export interface PostPhotoCard {
   title: string;
@@ -25,7 +26,7 @@ export interface PostPhotoLink {
   href?: string;
 }
 
-/** Shared fields templates pull from when rendering a photo post update. */
+/** Fields templates pull from when rendering a photo card. */
 export interface PostPhotoContent {
   eyebrow: string;
   badge: string;
@@ -41,24 +42,25 @@ export interface PostPhotoContent {
   stats: PostPhotoStat[];
   narrative: string;
   links: PostPhotoLink[];
-  /** Short list items for numbered / comparison templates */
   items: string[];
   compareLeft: { title: string; body: string };
   compareRight: { title: string; body: string };
   terminalLines: string[];
+  partnerName: string;
+  partnerLogo: string;
+}
+
+export interface PostPhotoCardDef {
+  role: PostPhotoCardRole;
+  layout: PostPhotoLayoutTemplate;
+  content: PostPhotoContent;
+  shareCopy: string;
+  /** Optional unique link appended on copy when shareCopy has no URL of its own. */
+  shareCopyFooter?: string;
 }
 
 export interface PostPhotoUpdate {
   meta: PostUpdateMeta;
-  content: PostPhotoContent;
-  /**
-   * Curated best templates for this ship log (typically 4–6).
-   * The photo UI surfaces these first; the full library stays available under "More templates".
-   */
-  picks: PostPhotoLayoutTemplate[];
-  /**
-   * Ready-to-post X copy per photo template. Keys should cover `picks`; library templates
-   * fall back to generated copy from card content when omitted.
-   */
-  shareCopyByLayout?: Partial<Record<PostPhotoLayoutTemplate, string>>;
+  /** Exactly 15 cards — one per narrative slot in POST_PHOTO_CARD_SLOTS order. */
+  cards: PostPhotoCardDef[];
 }

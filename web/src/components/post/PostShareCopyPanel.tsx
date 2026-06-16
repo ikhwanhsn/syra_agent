@@ -37,7 +37,7 @@ const FORMAT_LABELS: Record<PostShareFormat, { button: string; title: string; hi
   photo: {
     button: "Post copy",
     title: "X post · photo",
-    hint: "Tailored to the card you are viewing. Copy after attaching your exported image to X.",
+    hint: "Unique copy per card — paste after attaching your exported image to X.",
   },
 };
 

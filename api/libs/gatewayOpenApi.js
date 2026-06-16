@@ -733,6 +733,61 @@ export function buildGatewayOpenApi() {
         responses: responsesFor(true),
       },
     },
+    '/indicator': {
+      get: opGet(
+        'Technical indicators (x402)',
+        'OHLCV technical indicators — combine RSI, MACD, EMA, Bollinger, and 20+ more in one agent-readable call',
+        'getIndicator',
+        [
+          { name: 'symbol', in: 'query', schema: { type: 'string', default: 'BTCUSDT' } },
+          { name: 'source', in: 'query', schema: { type: 'string', default: 'binance' } },
+          { name: 'interval', in: 'query', schema: { type: 'string', default: '1h' } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 200 } },
+          { name: 'series', in: 'query', schema: { type: 'boolean', default: false } },
+          {
+            name: 'indicators',
+            in: 'query',
+            schema: { type: 'string', default: 'rsi' },
+            description: 'Comma-separated ids e.g. rsi,macd. Per-indicator params: rsi.period=21',
+          },
+        ],
+        true,
+      ),
+      post: {
+        tags: ['Technical indicators (x402)'],
+        summary: 'Technical indicators (POST, combinable)',
+        description:
+          'Same as GET /indicator with JSON body for complex multi-indicator requests.',
+        operationId: 'postIndicator',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  symbol: { type: 'string' },
+                  source: { type: 'string' },
+                  interval: { type: 'string' },
+                  limit: { type: 'integer' },
+                  series: { type: 'boolean' },
+                  indicators: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'string' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: responsesFor(true),
+      },
+    },
   };
 
   return {

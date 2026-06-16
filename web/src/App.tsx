@@ -40,6 +40,7 @@ import StreamflowPage from "@/pages/staking/StreamflowPage";
 import StakingAdminDashboardPage from "@/pages/staking/StakingAdminDashboardPage";
 import DeckPage from "@/pages/DeckPage";
 import InfoPage from "@/pages/InfoPage";
+import { PostStudioLayout } from "@/components/post/PostStudioLayout";
 import PostPage from "@/pages/PostPage";
 import PostVideoPage from "@/pages/PostVideoPage";
 import PostPhotoPage from "@/pages/PostPhotoPage";
@@ -135,9 +136,11 @@ const App = () => (
       <Routes>
         <Route path="/deck" element={<DeckPage />} />
         <Route path="/info" element={<InfoPage />} />
-        <Route path="/post" element={<PostPage />} />
-        <Route path="/post/video/:updateNumber?" element={<PostVideoPage />} />
-        <Route path="/post/photo/:updateNumber?" element={<PostPhotoPage />} />
+        <Route element={<PostStudioLayout />}>
+          <Route path="/post" element={<PostPage />} />
+          <Route path="/post/video/:updateNumber?" element={<PostVideoPage />} />
+          <Route path="/post/photo/:updateNumber?" element={<PostPhotoPage />} />
+        </Route>
 
         <Route element={<MarketingLayout />}>
           <Route path="/home" element={<MarketingHome />} />

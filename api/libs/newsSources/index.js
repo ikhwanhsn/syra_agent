@@ -2,7 +2,7 @@
  * Aggregate all RSS news sources in parallel (allSettled — one failure won't break the feed).
  */
 
-import { INTERNAL_NEWS_RSS_SOURCES } from "../../config/internalNewsConfig.js";
+import { getInternalNewsRssSources } from "../../config/internalNewsConfig.js";
 import { fetchRssSource } from "./rssParser.js";
 
 /**
@@ -13,15 +13,16 @@ import { fetchRssSource } from "./rssParser.js";
  * @returns {Promise<RawArticle[]>}
  */
 export async function fetchAllSources() {
+  const sources = getInternalNewsRssSources();
   const results = await Promise.allSettled(
-    INTERNAL_NEWS_RSS_SOURCES.map((source) => fetchRssSource(source)),
+    sources.map((source) => fetchRssSource(source)),
   );
 
   /** @type {RawArticle[]} */
   const articles = [];
   for (let i = 0; i < results.length; i++) {
     const r = results[i];
-    const source = INTERNAL_NEWS_RSS_SOURCES[i];
+    const source = sources[i];
     if (r.status === "fulfilled") {
       articles.push(...r.value);
     } else {
@@ -30,4 +31,11 @@ export async function fetchAllSources() {
     }
   }
   return articles;
+}
+
+/**
+ * @returns {number}
+ */
+export function getRssSourceCount() {
+  return getInternalNewsRssSources().length;
 }

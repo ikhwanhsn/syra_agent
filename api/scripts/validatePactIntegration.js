@@ -7,7 +7,7 @@
  *   node scripts/validatePactIntegration.js --agent <anonymousId>
  */
 import '../config/mongoose.js';
-import { getPactResolvedConfig, isPactEnabled } from '../libs/pactConfig.js';
+import { getPactResolvedConfig } from '../libs/pactConfig.js';
 import { getAgentKeypair } from '../libs/agentWallet.js';
 import { getPactInstanceForAgent } from '../libs/pactFetch.js';
 
@@ -28,19 +28,10 @@ async function main() {
   const cfg = getPactResolvedConfig();
 
   console.log('=== Pact Network integration status ===');
-  console.log('PACT_ENABLED:', isPactEnabled());
-  console.log('Config:', JSON.stringify({ ...cfg, apiKey: cfg.apiKey ? '(set)' : '(unset)' }, null, 2));
+  console.log('Enabled: always (hardcoded on)');
+  console.log('Config:', JSON.stringify(cfg, null, 2));
 
-  if (!isPactEnabled()) {
-    console.log('\nPact is disabled. Set PACT_ENABLED=true after beta access + API key.');
-    process.exit(0);
-  }
-
-  if (!cfg.apiKey) {
-    console.warn('\nWarning: PACT_API_KEY is not set (optional for mainnet but may be required for beta proxy).');
-  }
-
-  const host = args.host || cfg.providerAllowlist[0] || 'api.nansen.ai';
+  const host = args.host || 'api.nansen.ai';
   const agentId = args.agentId;
 
   if (agentId) {
@@ -67,28 +58,18 @@ async function main() {
     } catch (e) {
       console.warn('claims() failed:', e?.message || e);
     }
-  }
-
-  if (agentId) {
-    const keypair = await getAgentKeypair(agentId);
-    const pact = keypair ? await getPactInstanceForAgent(agentId, keypair) : null;
-    if (pact) {
-      try {
-        const estimate = await pact.estimate(host);
-        console.log(`\nEstimate for ${host}:`, JSON.stringify(estimate, (_k, v) => (typeof v === 'bigint' ? v.toString() : v), 2));
-      } catch (e) {
-        console.warn(`estimate(${host}) failed:`, e?.message || e);
-      }
+    try {
+      const estimate = await pact.estimate(host);
+      console.log(`\nEstimate for ${host}:`, JSON.stringify(estimate, (_k, v) => (typeof v === 'bigint' ? v.toString() : v), 2));
+    } catch (e) {
+      console.warn(`estimate(${host}) failed:`, e?.message || e);
     }
   } else {
     console.log(`\nTip: pass --agent <anonymousId> to probe policy/estimate for ${host}`);
   }
 
-  console.log('\nRollout checklist:');
-  console.log('  1. PACT_ENABLED=true');
-  console.log('  2. PACT_PROVIDER_ALLOWLIST=<one-host> for phased rollout');
-  console.log('  3. Run pact.setup once per agent (or PACT_AUTO_SETUP=true)');
-  console.log('  4. Force a covered failure; confirm refund via GET /agent/pact/refunds');
+  console.log('\nPact auto-setup runs on first covered fetch per agent (SPL approve).');
+  console.log('Confirm refunds via GET /agent/pact/refunds?anonymousId=...');
   process.exit(0);
 }
 

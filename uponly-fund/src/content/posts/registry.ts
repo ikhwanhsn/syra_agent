@@ -54,6 +54,9 @@ function buildRegistry(bundles: PostUpdateBundle[]): PostUpdateBundle[] {
   return trimmed;
 }
 
+/** All fund brief bundles defined in source (visibility/delete handled in postRegistryVisibility). */
+export const ALL_POST_UPDATE_BUNDLES: PostUpdateBundle[] = POST_UPDATE_BUNDLES;
+
 export const POST_REGISTRY = buildRegistry(POST_UPDATE_BUNDLES);
 
 export const LATEST_POST_UPDATE_NUMBER =

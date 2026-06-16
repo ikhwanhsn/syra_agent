@@ -6008,6 +6008,318 @@ body.syra-qwerti-active #qwerti-widget-root {
   z-index: 2;
 }
 
+/* —— Photo template batch 4 — partnership & integration dual-brand lockups —— */
+.post-photo-canvas--partnership {
+  background:
+    radial-gradient(
+      ellipse 70% 55% at 22% 38%,
+      hsl(45 92% 55% / 0.14),
+      transparent 58%
+    ),
+    radial-gradient(
+      ellipse 60% 50% at 78% 62%,
+      hsl(48 96% 53% / 0.08),
+      transparent 55%
+    ),
+    linear-gradient(168deg, hsl(0 0% 3.5%) 0%, hsl(0 0% 2%) 52%, hsl(0 0% 3%) 100%);
+}
+
+.post-photo-canvas--partnership::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      ellipse 90% 40% at 50% 0%,
+      hsl(0 0% 100% / 0.05),
+      transparent 62%
+    ),
+    linear-gradient(
+      90deg,
+      transparent 0%,
+      hsl(45 92% 55% / 0.04) 50%,
+      transparent 100%
+    );
+}
+
+.post-photo-canvas--partnership-beacon::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 55% 70% at 78% 50%,
+    hsl(45 92% 55% / 0.1),
+    transparent 62%
+  );
+}
+
+.post-photo-tmpl-partnership-union {
+  gap: 22px;
+}
+
+.post-photo-tmpl-partnership-union .post-photo-kicker {
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  color: hsl(45 92% 55% / 0.82);
+}
+
+.post-photo-tmpl-partnership-union .post-photo-headline {
+  max-width: 24ch;
+  font-size: 42px;
+  letter-spacing: -0.035em;
+}
+
+.post-photo-tmpl-partnership-union .post-photo-copy {
+  max-width: 44ch;
+  font-size: 17px;
+  color: hsl(0 0% 100% / 0.68);
+}
+
+.post-photo-tmpl-partnership-beacon {
+  align-items: center;
+  gap: 40px;
+}
+
+.post-photo-tmpl-partnership-beacon .post-photo-stack--left {
+  gap: 14px;
+  text-align: left;
+}
+
+.post-photo-tmpl-partnership-beacon .post-photo-headline {
+  max-width: 16ch;
+  font-size: 38px;
+  text-align: left;
+}
+
+.post-photo-tmpl-partnership-beacon .post-photo-copy {
+  text-align: left;
+  max-width: 34ch;
+}
+
+.post-photo-partnership {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  margin-inline: auto;
+}
+
+.post-photo-partnership--compact {
+  max-width: 320px;
+}
+
+.post-photo-partnership-stage {
+  position: absolute;
+  inset: -24px -16px;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: 28px;
+}
+
+.post-photo-partnership-glow {
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  border-radius: 9999px;
+  filter: blur(48px);
+  opacity: 0.85;
+}
+
+.post-photo-partnership-glow--syra {
+  top: 50%;
+  left: 12%;
+  transform: translate(-50%, -50%);
+  background: hsl(45 92% 55% / 0.22);
+}
+
+.post-photo-partnership-glow--partner {
+  top: 50%;
+  right: 12%;
+  transform: translate(50%, -50%);
+  background: hsl(48 96% 53% / 0.16);
+}
+
+.post-photo-partnership-grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0.35;
+  background-image:
+    linear-gradient(hsl(0 0% 100% / 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(0 0% 100% / 0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
+  mask-image: radial-gradient(ellipse 85% 75% at 50% 50%, black 20%, transparent 72%);
+}
+
+.post-photo-partnership-panel {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 28px 36px;
+  border-radius: 24px;
+  border: 1px solid hsl(0 0% 100% / 0.12);
+  background:
+    linear-gradient(
+      145deg,
+      hsl(0 0% 100% / 0.08) 0%,
+      hsl(0 0% 100% / 0.02) 42%,
+      hsl(0 0% 0% / 0.28) 100%
+    );
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.1),
+    0 28px 80px hsl(0 0% 0% / 0.55),
+    0 0 0 1px hsl(45 92% 55% / 0.06);
+}
+
+.post-photo-partnership--compact .post-photo-partnership-panel {
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px 24px;
+}
+
+.post-photo-partnership--compact .post-photo-partnership-connector {
+  flex-direction: column;
+  gap: 8px;
+  min-width: auto;
+}
+
+.post-photo-partnership--compact .post-photo-partnership-connector-line {
+  width: 2px;
+  height: 28px;
+}
+
+.post-photo-partnership-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  min-width: 108px;
+}
+
+.post-photo-partnership-logo-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  height: 88px;
+  border-radius: 22px;
+  border: 1px solid hsl(0 0% 100% / 0.14);
+  background:
+    linear-gradient(
+      160deg,
+      hsl(0 0% 100% / 0.1),
+      hsl(0 0% 100% / 0.02) 55%,
+      hsl(0 0% 0% / 0.35)
+    );
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.12),
+    0 18px 48px hsl(0 0% 0% / 0.45);
+}
+
+.post-photo-partnership--compact .post-photo-partnership-logo-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+}
+
+.post-photo-partnership-logo-wrap--syra {
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.12),
+    0 0 0 1px hsl(45 92% 55% / 0.22),
+    0 20px 56px hsl(45 92% 55% / 0.14);
+}
+
+.post-photo-partnership-logo-wrap--partner {
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.12),
+    0 0 0 1px hsl(0 0% 100% / 0.08),
+    0 20px 56px hsl(0 0% 0% / 0.4);
+}
+
+.post-photo-partnership-logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  object-fit: cover;
+}
+
+.post-photo-partnership--compact .post-photo-partnership-logo {
+  width: 52px;
+  height: 52px;
+  border-radius: 13px;
+}
+
+.post-photo-partnership-name {
+  font-family: var(--font-space), sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: hsl(0 0% 100% / 0.88);
+}
+
+.post-photo-partnership--compact .post-photo-partnership-name {
+  font-size: 13px;
+}
+
+.post-photo-partnership-connector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 96px;
+  flex-shrink: 0;
+}
+
+.post-photo-partnership-connector-line {
+  flex: 1;
+  height: 2px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    hsl(45 92% 55% / 0.55) 35%,
+    hsl(45 92% 55% / 0.85) 50%,
+    hsl(45 92% 55% / 0.55) 65%,
+    transparent
+  );
+}
+
+.post-photo-partnership-connector-node {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 9999px;
+  border: 1px solid hsl(45 92% 55% / 0.45);
+  background:
+    radial-gradient(
+      circle at 50% 35%,
+      hsl(45 92% 55% / 0.22),
+      hsl(0 0% 4% / 0.92) 68%
+    );
+  box-shadow:
+    0 0 28px hsl(45 92% 55% / 0.28),
+    inset 0 1px 0 hsl(0 0% 100% / 0.08);
+}
+
+.post-photo-partnership-connector-icon {
+  display: block;
+  width: 10px;
+  height: 10px;
+  transform: rotate(45deg);
+  border-radius: 2px;
+  background: linear-gradient(
+    135deg,
+    hsl(45 92% 62%),
+    hsl(45 92% 48%)
+  );
+  box-shadow: 0 0 12px hsl(45 92% 55% / 0.65);
+}
+
 .post-photo-item-list {
   display: grid;
   width: 100%;

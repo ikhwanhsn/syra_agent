@@ -137,13 +137,15 @@ export const BNB_X402_PHOTO = definePhotoUpdate(BNB_X402_POST.meta, [
   },
   {
     role: "launch",
-    layout: "photo-announcement",
+    layout: "photo-partnership-union",
     shareCopy: copies.launch,
     content: photoContent({
-      badge: "Now live",
-      title: "x402 on BNB",
-      subtitle: "B402 settlement on eip155:56. Four stablecoins. One checkout.",
-      body: "Pay-per-call intelligence APIs settle natively on BNB Smart Chain via Binance B402.",
+      eyebrow: "Integration",
+      badge: "Now live · B402 · eip155:56",
+      partnerName: "Binance",
+      partnerLogo: "/images/partners/binance.png",
+      headline: "Syra × Binance B402",
+      subtitle: "Pay-per-call intelligence APIs settle natively on BNB Smart Chain.",
     }),
   },
   {

@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  getPostPhotoShareCopy,
   POST_PHOTO_CARD_COUNT,
   POST_PHOTO_CARD_SLOT_BY_ROLE,
   POST_PHOTO_LAYOUT_LABELS,
+  shareCopyHasLink,
   type PostPhotoUpdate,
 } from "@/content/posts/photo";
+import { getPostShareCopyWithUrl } from "@/lib/postShare";
 import { PostBackLink } from "@/components/post/PostBackLink";
 import { PostPhotoFrame } from "@/components/post/photo/PostPhotoFrame";
 import { PostShareCopyPanel } from "@/components/post/PostShareCopyPanel";
@@ -63,7 +64,10 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
   const exportRef = useRef<HTMLDivElement | null>(null);
 
   const activeCard = cards[cardIndex];
-  const cardShareBody = getPostPhotoShareCopy(post, cardIndex);
+  const cardShareText = getPostShareCopyWithUrl(post.meta, "photo", {
+    photoPost: post,
+    photoCardIndex: cardIndex,
+  });
   const slotLabel = POST_PHOTO_CARD_SLOT_BY_ROLE.get(activeCard.role)?.label ?? activeCard.role;
 
   useEffect(() => {
@@ -200,8 +204,10 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
             <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[#F3BA2F]/70">
               X post for this card
             </p>
-            <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-white/55">{cardShareBody}</p>
-            <p className="mt-2 truncate font-mono text-[10px] text-white/25">+ page link appended on copy</p>
+            <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-white/55">{cardShareText}</p>
+            <p className="mt-2 font-mono text-[10px] text-white/25">
+              {shareCopyHasLink(cardShareText) ? "Each card uses its own copy + link" : "Unique footer link on copy"}
+            </p>
           </div>
         </aside>
 

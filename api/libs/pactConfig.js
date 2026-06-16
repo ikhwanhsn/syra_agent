@@ -1,113 +1,71 @@
 /**
  * Pact Network — x402 refund / risk layer for agent outbound paid calls.
- * Default: off. Set PACT_ENABLED=true to wrap agent fetch with @q3labs/pact-sdk.
+ * Always enabled; no API key required (V1 proxy uses ed25519 request signing only).
  * @see https://www.pactnetwork.io/docs
  */
 
 /** @typedef {'mainnet' | 'devnet' | 'localnet'} PactNetwork */
 /** @typedef {'network' | 'market'} PactMode */
 
-function trimEnv(name) {
-  return String(process.env[name] || '').trim();
-}
-
-/**
- * Whether Pact refund coverage is active for agent outbound x402 calls.
- */
+/** Pact refund coverage is always on for agent outbound x402 calls. */
 export function isPactEnabled() {
-  const raw = trimEnv('PACT_ENABLED').toLowerCase();
-  return raw === 'true' || raw === '1';
+  return true;
 }
 
-/**
- * Optional beta / proxy API key (maps to createPact apiKey).
- */
-export function getPactApiKey() {
-  return trimEnv('PACT_API_KEY') || undefined;
-}
-
-/**
- * @returns {PactNetwork}
- */
+/** @returns {PactNetwork} */
 export function getPactNetwork() {
-  const raw = trimEnv('PACT_NETWORK').toLowerCase();
-  if (raw === 'devnet' || raw === 'localnet') return raw;
   return 'mainnet';
 }
 
-/**
- * network = protocol rails; market = curated proxy (default proxyBaseUrl).
- * @returns {PactMode}
- */
+/** @returns {PactMode} */
 export function getPactMode() {
-  const raw = trimEnv('PACT_MODE').toLowerCase();
-  return raw === 'network' ? 'network' : 'market';
+  return 'market';
 }
 
+/** Solana RPC for on-chain setup/top-up — reuse server blockchain RPC when set. */
 export function getPactRpcUrl() {
   return (
-    trimEnv('PACT_RPC_URL') ||
-    trimEnv('SOLANA_RPC_BLOCKCHAIN_URL') ||
-    trimEnv('SOLANA_RPC_URL') ||
+    String(process.env.SOLANA_RPC_BLOCKCHAIN_URL || '').trim() ||
+    String(process.env.SOLANA_RPC_URL || '').trim() ||
     undefined
   );
 }
 
 export function getPactProxyBaseUrl() {
-  const explicit = trimEnv('PACT_PROXY_BASE_URL');
-  if (explicit) return explicit;
-  if (getPactMode() === 'market') {
-    return trimEnv('PACT_MARKET_URL') || 'https://market.pactnetwork.io';
-  }
-  return undefined;
+  return 'https://market.pactnetwork.io';
 }
 
 export function getPactIndexerBaseUrl() {
-  return trimEnv('PACT_INDEXER_BASE_URL') || undefined;
+  return 'https://indexer.pactnetwork.io';
 }
 
 export function getPactProject() {
-  return trimEnv('PACT_PROJECT') || 'syra';
+  return 'syra';
 }
 
 export function getPactDefaultAllowanceUsdc() {
-  const n = Number(trimEnv('PACT_DEFAULT_ALLOWANCE_USDC') || '5');
-  return Number.isFinite(n) && n > 0 ? n : 5;
+  return 5;
 }
 
-/**
- * Estimated per-call premium (USDC) added to balance checks when Pact is on.
- * Override via PACT_PREMIUM_USD_DEFAULT; actual premium is endpoint-fixed on-chain.
- */
+/** Estimated per-call premium (USDC) for balance checks; actual premium is endpoint-fixed on-chain. */
 export function getPactPremiumUsdDefault() {
-  const n = Number(trimEnv('PACT_PREMIUM_USD_DEFAULT') || '0.001');
-  return Number.isFinite(n) && n >= 0 ? n : 0.001;
+  return 0.001;
 }
 
-/**
- * Comma-separated hostnames for phased rollout (e.g. api.nansen.ai).
- * Empty = all registered providers when Pact is enabled.
- * @returns {string[]}
- */
+/** Empty = all registered providers. */
 export function getPactProviderAllowlist() {
-  const raw = trimEnv('PACT_PROVIDER_ALLOWLIST');
-  if (!raw) return [];
-  return raw
-    .split(',')
-    .map((h) => h.trim().toLowerCase())
-    .filter(Boolean);
+  return [];
 }
 
+/** Auto-run pact.setup() SPL approve on first covered fetch per agent. */
 export function isPactAutoSetupEnabled() {
-  const raw = trimEnv('PACT_AUTO_SETUP').toLowerCase();
-  return raw === 'true' || raw === '1';
+  return true;
 }
 
 /**
  * @param {string} hostname
  */
 export function isHostnamePactEligible(hostname) {
-  if (!isPactEnabled()) return false;
   const host = String(hostname || '').trim().toLowerCase();
   if (!host) return false;
   const allowlist = getPactProviderAllowlist();
@@ -115,13 +73,10 @@ export function isHostnamePactEligible(hostname) {
   return allowlist.some((entry) => host === entry || host.endsWith(`.${entry}`));
 }
 
-/**
- * Resolved config snapshot for createPact().
- */
+/** Resolved config snapshot for createPact(). */
 export function getPactResolvedConfig() {
   return {
     network: getPactNetwork(),
-    apiKey: getPactApiKey(),
     rpcUrl: getPactRpcUrl(),
     proxyBaseUrl: getPactProxyBaseUrl(),
     indexerBaseUrl: getPactIndexerBaseUrl(),

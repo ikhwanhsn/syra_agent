@@ -8,8 +8,8 @@ export type { PostSlideLayoutTemplate } from "./layouts";
 export { POST_SLIDE_LAYOUTS, POST_LAYOUT_LABELS, POST_LAYOUT_TEMPLATE_COUNT } from "./layouts";
 
 export {
-  MAX_POST_UPDATES,
   POST_REGISTRY,
+  ALL_POST_UPDATE_BUNDLES,
   LATEST_POST_UPDATE_NUMBER,
   getPostBundleByNumber,
   getVideoPostByNumber,

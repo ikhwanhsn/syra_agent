@@ -1,7 +1,6 @@
 import { useEffect, useMemo } from "react";
-import { Link, Navigate, useParams, useSearchParams } from "@/lib/navigation";
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from "@/lib/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { AssetDetailNav } from "@/components/assets/AssetDetailNav";
@@ -15,27 +14,79 @@ import { OverviewPageBackdrop } from "@/components/dashboard/overview/OverviewPa
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 import { MintDossierView } from "@/components/dossier/MintDossierView";
 import { AssetDetailSkeleton } from "@/components/assets/AssetDetailSkeleton";
-import { fetchMintDossier, parseDossierQueryParams, type TokensDossierQuery } from "@/lib/tokensDossierApi";
+import { AssetIntelligenceSection } from "@/components/assets/intelligence/AssetIntelligenceSection";
+import { AssetIntelligenceSkeleton } from "@/components/assets/intelligence/AssetIntelligenceSkeleton";
+import { useAssetIntelligence } from "@/hooks/useAssetIntelligence";
+import {
+  assetPathFromQuery,
+  fetchMintDossier,
+  parseDossierQueryParams,
+  slugToDossierQuery,
+  type TokensDossierQuery,
+} from "@/lib/tokensDossierApi";
 
 function resolveLookup(params: URLSearchParams, slug?: string): TokensDossierQuery | null {
   const parsed = parseDossierQueryParams(params);
   if (parsed) return parsed;
-  if (!slug || slug === "lookup") return null;
-  return { ref: slug };
+  return slugToDossierQuery(slug);
+}
+
+function canonicalDetailPath(params: URLSearchParams, slug?: string): string | null {
+  const parsed = parseDossierQueryParams(params);
+  if (!parsed) return null;
+  if (parsed.q?.trim()) return null;
+
+  const clean = assetPathFromQuery(parsed);
+  const current = slug && slug !== "lookup" ? `/assets/${encodeURIComponent(slug)}` : null;
+  if (clean === "/assets") return null;
+  if (current && clean === current) return null;
+  if (slug === "lookup" || params.has("assetId") || params.has("mint") || params.has("ref")) {
+    return clean;
+  }
+  return null;
 }
 
 export default function AssetDetailPage({ embedded }: { embedded?: boolean }) {
+  const navigate = useNavigate();
   const { assetKey } = useParams<{ assetKey: string }>();
   const [searchParams] = useSearchParams();
+  const canonicalPath = useMemo(
+    () => canonicalDetailPath(searchParams, assetKey),
+    [assetKey, searchParams],
+  );
   const lookup = useMemo(() => resolveLookup(searchParams, assetKey), [assetKey, searchParams]);
 
   const dossierQ = useQuery({
     queryKey: ["asset-detail", lookup],
     queryFn: () => fetchMintDossier(lookup!),
-    enabled: lookup != null,
+    enabled: lookup != null && canonicalPath == null,
     staleTime: 60_000,
     retry: 1,
   });
+
+  const intelligenceLookup = useMemo(() => {
+    if (canonicalPath != null || lookup == null) return null;
+    return {
+      ...lookup,
+      ...(dossierQ.data?.asset?.symbol ? { symbol: dossierQ.data.asset.symbol } : {}),
+      ...(dossierQ.data?.asset?.name ? { name: dossierQ.data.asset.name } : {}),
+    };
+  }, [canonicalPath, lookup, dossierQ.data?.asset?.symbol, dossierQ.data?.asset?.name]);
+
+  const intelligenceQ = useAssetIntelligence(intelligenceLookup);
+
+  const intelligencePending =
+    intelligenceQ.isLoading || (intelligenceQ.isFetching && !intelligenceQ.data);
+  const showInitialSkeleton = dossierQ.isLoading && !dossierQ.data;
+
+  useEffect(() => {
+    if (!dossierQ.data?.assetId || !assetKey || assetKey === "lookup") return;
+    const canonical = assetPathFromQuery({ assetId: dossierQ.data.assetId });
+    const current = `/assets/${encodeURIComponent(assetKey)}`;
+    if (canonical !== current) {
+      navigate(canonical, { replace: true });
+    }
+  }, [assetKey, dossierQ.data, navigate]);
 
   useEffect(() => {
     if (!dossierQ.data?.asset?.name) return;
@@ -45,6 +96,7 @@ export default function AssetDetailPage({ embedded }: { embedded?: boolean }) {
     };
   }, [dossierQ.data]);
 
+  if (canonicalPath) return <Navigate to={canonicalPath} replace />;
   if (!lookup) return <Navigate to="/assets" replace />;
 
   return (
@@ -64,14 +116,12 @@ export default function AssetDetailPage({ embedded }: { embedded?: boolean }) {
           name={dossierQ.data?.asset?.name ?? assetKey}
         />
 
-        {dossierQ.isFetching && !dossierQ.isLoading ? (
-          <p className="mb-3 inline-flex items-center gap-2 text-xs text-muted-foreground animate-in fade-in">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
-            Syncing live market data…
-          </p>
+        {showInitialSkeleton ? (
+          <div className="space-y-6">
+            <AssetDetailSkeleton />
+            <AssetIntelligenceSkeleton />
+          </div>
         ) : null}
-
-        {dossierQ.isLoading ? <AssetDetailSkeleton /> : null}
 
         {dossierQ.isError ? (
           <Card className={cn(overviewCardShell, "max-w-xl border-destructive/40 animate-in fade-in")}>
@@ -92,8 +142,17 @@ export default function AssetDetailPage({ embedded }: { embedded?: boolean }) {
         ) : null}
 
         {dossierQ.data ? (
-          <div className="animate-in fade-in slide-in-from-bottom-3 duration-500 fill-mode-both">
-            <MintDossierView data={dossierQ.data} embeddedInDetail />
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-3 duration-500 fill-mode-both">
+            <MintDossierView
+              data={dossierQ.data}
+              embeddedInDetail
+              intelligence={intelligenceQ.data ?? null}
+            />
+            <AssetIntelligenceSection
+              data={intelligenceQ.data}
+              isLoading={intelligencePending}
+              isError={intelligenceQ.isError}
+            />
           </div>
         ) : null}
       </div>

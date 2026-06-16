@@ -1,17 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  getPostPhotoLibraryRest,
-  getPostPhotoPicks,
-  getPostPhotoShareCopy,
-  POST_PHOTO_CONTEXT_BY_TEMPLATE,
-  POST_PHOTO_CONTEXT_COUNT,
-  POST_PHOTO_CONTEXTS,
-  POST_PHOTO_LAYOUT_COUNT,
+  POST_PHOTO_CARD_COUNT,
+  POST_PHOTO_CARD_SLOT_BY_ROLE,
   POST_PHOTO_LAYOUT_LABELS,
-  type PostPhotoLayoutTemplate,
+  shareCopyHasLink,
   type PostPhotoUpdate,
 } from "@/content/posts/photo";
+import { getPostShareCopyWithUrl } from "@/lib/postShare";
 import { PostBackLink } from "@/components/post/PostBackLink";
 import { PostPhotoFrame } from "@/components/post/photo/PostPhotoFrame";
 import { PostShareCopyPanel } from "@/components/post/PostShareCopyPanel";
@@ -24,49 +20,35 @@ import {
   exportPostPhotoPng,
 } from "@/components/post/photo/postPhotoExport";
 import { cn } from "@/lib/utils";
-import { Check, ChevronDown, Copy, Download, ImageIcon, Video } from "lucide-react";
+import { Check, Copy, Download, ImageIcon, Video } from "lucide-react";
 import { toast } from "sonner";
 
-function TemplateButton({
-  template,
+function CardButton({
   label,
   sublabel,
   active,
   onSelect,
-  compact,
 }: {
-  template: PostPhotoLayoutTemplate;
   label: string;
-  sublabel?: string;
+  sublabel: string;
   active: boolean;
   onSelect: () => void;
-  compact?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onSelect}
       className={cn(
-        "post-photo-template-btn flex w-full items-center gap-2 rounded-lg text-left transition-colors",
-        compact ? "px-2 py-1.5" : "px-2.5 py-2",
+        "post-photo-template-btn flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors",
         active
           ? "bg-uof/12 text-uof"
           : "text-white/60 hover:bg-white/[0.04] hover:text-white/85",
       )}
     >
-      <span className={cn("min-w-0 flex-1", compact ? "text-[11px]" : "text-xs")}>{label}</span>
-      {sublabel ? (
-        <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.12em] text-white/30">{sublabel}</span>
-      ) : null}
+      <span className="min-w-0 flex-1 text-xs">{label}</span>
+      <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.12em] text-white/30">{sublabel}</span>
     </button>
   );
-}
-
-function getTemplateStyleLabel(template: PostPhotoLayoutTemplate): string {
-  const context = POST_PHOTO_CONTEXT_BY_TEMPLATE.get(template);
-  if (!context) return POST_PHOTO_LAYOUT_LABELS[template];
-  const variant = context.variants.find((v) => v.template === template);
-  return variant?.style ?? POST_PHOTO_LAYOUT_LABELS[template];
 }
 
 interface PostPhotoDeckProps {
@@ -74,26 +56,19 @@ interface PostPhotoDeckProps {
 }
 
 export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
-  const { meta, content } = post;
-  const picks = getPostPhotoPicks(post);
-  const libraryRest = getPostPhotoLibraryRest(post);
+  const { meta, cards } = post;
 
-  const [layout, setLayout] = useState<PostPhotoLayoutTemplate>(picks[0]);
-  const [showLibrary, setShowLibrary] = useState(false);
+  const [cardIndex, setCardIndex] = useState(0);
   const [exporting, setExporting] = useState(false);
   const [imageCopied, setImageCopied] = useState(false);
   const exportRef = useRef<HTMLDivElement | null>(null);
 
-  const visibleTemplates = showLibrary ? [...picks, ...libraryRest] : picks;
-  const layoutIndexInView = visibleTemplates.indexOf(layout) + 1;
-  const layoutCountInView = visibleTemplates.length;
-  const layoutShareBody = getPostPhotoShareCopy(post, layout);
-
-  useEffect(() => {
-    if (libraryRest.includes(layout)) {
-      setShowLibrary(true);
-    }
-  }, [layout, libraryRest]);
+  const activeCard = cards[cardIndex];
+  const cardShareText = getPostShareCopyWithUrl(post.meta, "photo", {
+    photoPost: post,
+    photoCardIndex: cardIndex,
+  });
+  const slotLabel = POST_PHOTO_CARD_SLOT_BY_ROLE.get(activeCard.role)?.label ?? activeCard.role;
 
   useEffect(() => {
     document.title = `Up Only Fund · ${meta.title} · Photo`;
@@ -109,14 +84,14 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
     if (!node || exporting) return;
     setExporting(true);
     try {
-      await exportPostPhotoPng(node, buildPostPhotoFilename(meta.id, layout));
+      await exportPostPhotoPng(node, buildPostPhotoFilename(meta.id, activeCard.role));
       toast.success("Image downloaded");
     } catch {
       toast.error("Download failed");
     } finally {
       setExporting(false);
     }
-  }, [exporting, getExportNode, layout, meta.id]);
+  }, [exporting, getExportNode, activeCard.role, meta.id]);
 
   const handleCopy = useCallback(async () => {
     const node = getExportNode();
@@ -174,7 +149,7 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
             </span>
           </nav>
 
-          <PostShareCopyPanel meta={meta} format="photo" photoPost={post} photoLayout={layout} />
+          <PostShareCopyPanel meta={meta} format="photo" photoPost={post} photoCardIndex={cardIndex} />
 
           <button
             type="button"
@@ -202,105 +177,59 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
         <aside className="post-photo-sidebar shrink-0 border-b border-white/[0.06] lg:w-72 lg:border-b-0 lg:border-r">
           <div className="px-3 py-3 sm:px-4">
             <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-uof/70">
-              {picks.length} picks · {POST_PHOTO_CONTEXT_COUNT} contexts · {POST_PHOTO_LAYOUT_COUNT} styles
+              {POST_PHOTO_CARD_COUNT} cards · {POST_PHOTO_CARD_COUNT} X posts
             </p>
             <p className="mt-1 text-xs text-white/50">{meta.tagline}</p>
           </div>
 
           <div className="post-photo-template-list max-h-56 overflow-y-auto px-2 pb-2 lg:max-h-none lg:flex-1">
             <p className="px-2.5 pb-1.5 font-mono text-[9px] uppercase tracking-[0.16em] text-white/30">
-              Best for this update
+              Investor brief deck
             </p>
-            {picks.map((template) => {
-              const context = POST_PHOTO_CONTEXT_BY_TEMPLATE.get(template);
+            {cards.map((card, index) => {
+              const slot = POST_PHOTO_CARD_SLOT_BY_ROLE.get(card.role);
               return (
-                <TemplateButton
-                  key={template}
-                  template={template}
-                  label={context?.label ?? POST_PHOTO_LAYOUT_LABELS[template]}
-                  sublabel={getTemplateStyleLabel(template)}
-                  active={layout === template}
-                  onSelect={() => setLayout(template)}
+                <CardButton
+                  key={card.role}
+                  label={slot?.label ?? card.role}
+                  sublabel={POST_PHOTO_LAYOUT_LABELS[card.layout]}
+                  active={cardIndex === index}
+                  onSelect={() => setCardIndex(index)}
                 />
               );
             })}
-
-            {libraryRest.length > 0 ? (
-              <div className="mt-2 border-t border-white/[0.06] pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowLibrary((v) => !v)}
-                  className="flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-white/[0.04]"
-                >
-                  <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-white/35">
-                    All contexts ({libraryRest.length} more)
-                  </span>
-                  <ChevronDown
-                    className={cn(
-                      "h-3.5 w-3.5 text-white/35 transition-transform",
-                      showLibrary && "rotate-180",
-                    )}
-                  />
-                </button>
-                {showLibrary
-                  ? POST_PHOTO_CONTEXTS.map((context) => {
-                      const libraryVariants = context.variants.filter((v) => libraryRest.includes(v.template));
-                      if (libraryVariants.length === 0) return null;
-                      return (
-                        <div key={context.id} className="mt-1.5 px-1">
-                          <p className="px-1.5 pb-1 font-mono text-[9px] uppercase tracking-[0.14em] text-white/40">
-                            {context.label}
-                          </p>
-                          <p className="px-1.5 pb-1.5 text-[10px] leading-snug text-white/35">{context.description}</p>
-                          {libraryVariants.map((variant) => (
-                            <TemplateButton
-                              key={variant.template}
-                              template={variant.template}
-                              label={variant.style}
-                              sublabel="style"
-                              compact
-                              active={layout === variant.template}
-                              onSelect={() => setLayout(variant.template)}
-                            />
-                          ))}
-                        </div>
-                      );
-                    })
-                  : null}
-              </div>
-            ) : null}
           </div>
 
           <div className="border-t border-white/[0.06] px-3 py-3 sm:px-4">
             <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-uof/70">
               X post for this card
             </p>
-            <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-white/55">
-              {layoutShareBody}
-            </p>
-            <p className="mt-2 truncate font-mono text-[10px] text-white/25">
-              + page link appended on copy
+            <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-white/55">{cardShareText}</p>
+            <p className="mt-2 font-mono text-[10px] text-white/25">
+              {shareCopyHasLink(cardShareText) ? "Each card uses its own copy + link" : "Unique footer link on copy"}
             </p>
           </div>
         </aside>
 
-        <div className="post-chrome-stage flex min-h-0 min-w-0 flex-1 flex-col items-center justify-center px-2 py-3 sm:px-6 sm:py-4">
-          <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/35">
-            {POST_PHOTO_CONTEXT_BY_TEMPLATE.get(layout)?.label ?? POST_PHOTO_LAYOUT_LABELS[layout]}
+        <div className="post-chrome-stage relative flex min-h-0 min-w-0 flex-1 flex-col items-center justify-center overflow-hidden px-2 py-3 sm:px-6 sm:py-4">
+          <div className="post-ambient pointer-events-none absolute inset-0" aria-hidden />
+          <div className="post-orb post-orb-a pointer-events-none absolute rounded-full scale-75" aria-hidden />
+          <div className="post-orb post-orb-b pointer-events-none absolute rounded-full scale-75" aria-hidden />
+          <p className="relative z-10 mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/35">
+            {slotLabel}
             {" · "}
-            {getTemplateStyleLabel(layout)}
-            {picks.includes(layout) ? " · pick" : " · library"}
+            {POST_PHOTO_LAYOUT_LABELS[activeCard.layout]}
             {" · "}
-            {layoutIndexInView > 0
-              ? `${String(layoutIndexInView).padStart(2, "0")}/${String(layoutCountInView).padStart(2, "0")}`
-              : "—"}
+            {String(cardIndex + 1).padStart(2, "0")}/{String(POST_PHOTO_CARD_COUNT).padStart(2, "0")}
             {" · 1200×675"}
           </p>
-          <PostPhotoFrame exportRef={exportRef}>
-            {renderPostPhotoTemplate(layout, content)}
-          </PostPhotoFrame>
-          <p className="post-footer-hint mt-3 hidden text-center font-mono text-[10px] text-white/30 sm:block">
-            Start with the picks for this update, then copy or download as PNG for X
+          <div className="relative z-10 w-full">
+            <PostPhotoFrame exportRef={exportRef}>
+              {renderPostPhotoTemplate(activeCard.layout, activeCard.content, activeCard.role)}
+            </PostPhotoFrame>
+          </div>
+          <p className="post-footer-hint relative z-10 mt-3 hidden text-center font-mono text-[10px] text-white/30 sm:block">
+            Export each card as PNG, then paste the matching X post — 15 posts per fund brief
           </p>
         </div>
       </div>

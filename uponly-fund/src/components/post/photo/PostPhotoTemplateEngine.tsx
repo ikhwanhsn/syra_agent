@@ -1,5 +1,6 @@
 import type { PostPhotoContent } from "@/content/posts/photo/types";
 import type { PostPhotoLayoutTemplate } from "@/content/posts/photo/layouts";
+import type { PostPhotoCardRole } from "@/content/posts/photo/photoCardSlots";
 import {
   PostPhotoBadge,
   PostPhotoBody,
@@ -269,7 +270,11 @@ function renderBody(def: PhotoTemplateDef, content: PostPhotoContent): ReactNode
   }
 }
 
-export function renderPostPhotoTemplate(layout: PostPhotoLayoutTemplate, content: PostPhotoContent): ReactNode {
+export function renderPostPhotoTemplate(
+  layout: PostPhotoLayoutTemplate,
+  content: PostPhotoContent,
+  _role?: PostPhotoCardRole,
+): ReactNode {
   const def = POST_PHOTO_LAYOUT_REGISTRY_MAP.get(layout);
   if (!def) return null;
 

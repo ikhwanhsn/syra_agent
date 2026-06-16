@@ -351,3 +351,48 @@ export function PostPhotoLinks({ links }: { links: { label: string; value: strin
     </div>
   );
 }
+
+/** Dual-brand lockup — Syra × partner for integration / partnership cards. */
+export function PostPhotoPartnershipLockup({
+  partnerName,
+  partnerLogo,
+  compact,
+}: {
+  partnerName: string;
+  partnerLogo: string;
+  compact?: boolean;
+}) {
+  return (
+    <div className={cn("post-photo-partnership", compact && "post-photo-partnership--compact")}>
+      <div className="post-photo-partnership-stage" aria-hidden>
+        <div className="post-photo-partnership-glow post-photo-partnership-glow--syra" />
+        <div className="post-photo-partnership-glow post-photo-partnership-glow--partner" />
+        <div className="post-photo-partnership-grid" />
+      </div>
+
+      <div className="post-photo-partnership-panel">
+        <div className="post-photo-partnership-brand">
+          <div className="post-photo-partnership-logo-wrap post-photo-partnership-logo-wrap--syra">
+            <img src="/images/logo.jpg" alt="" className="post-photo-partnership-logo" />
+          </div>
+          <span className="post-photo-partnership-name">Syra</span>
+        </div>
+
+        <div className="post-photo-partnership-connector" aria-hidden>
+          <span className="post-photo-partnership-connector-line" />
+          <span className="post-photo-partnership-connector-node">
+            <span className="post-photo-partnership-connector-icon" />
+          </span>
+          <span className="post-photo-partnership-connector-line" />
+        </div>
+
+        <div className="post-photo-partnership-brand">
+          <div className="post-photo-partnership-logo-wrap post-photo-partnership-logo-wrap--partner">
+            <img src={partnerLogo} alt="" className="post-photo-partnership-logo" />
+          </div>
+          <span className="post-photo-partnership-name">{partnerName}</span>
+        </div>
+      </div>
+    </div>
+  );
+}

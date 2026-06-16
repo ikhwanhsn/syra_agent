@@ -28,6 +28,9 @@ const TokenDetailPage = lazy(() => import("./pages/token/TokenDetail"));
 const PostPage = lazy(() => import("./pages/PostPage"));
 const PostVideoPage = lazy(() => import("./pages/PostVideoPage"));
 const PostPhotoPage = lazy(() => import("./pages/PostPhotoPage"));
+const PostStudioLayout = lazy(() =>
+  import("./components/post/PostStudioLayout").then((m) => ({ default: m.PostStudioLayout })),
+);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -111,29 +114,16 @@ const App = () => (
               <Route path="/tranche" element={<Navigate to="/#landing-token" replace />} />
               <Route path="/treasury" element={<Navigate to="/#mandate" replace />} />
               <Route
-                path="/post"
                 element={
                   <Suspense fallback={<LandingRouteFallback />}>
-                    <PostPage />
+                    <PostStudioLayout />
                   </Suspense>
                 }
-              />
-              <Route
-                path="/post/video/:updateNumber?"
-                element={
-                  <Suspense fallback={<LandingRouteFallback />}>
-                    <PostVideoPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="/post/photo/:updateNumber?"
-                element={
-                  <Suspense fallback={<LandingRouteFallback />}>
-                    <PostPhotoPage />
-                  </Suspense>
-                }
-              />
+              >
+                <Route path="/post" element={<PostPage />} />
+                <Route path="/post/video/:updateNumber?" element={<PostVideoPage />} />
+                <Route path="/post/photo/:updateNumber?" element={<PostPhotoPage />} />
+              </Route>
               <Route
                 path="*"
                 element={

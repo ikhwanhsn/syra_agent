@@ -16,13 +16,14 @@ export function PostXStatusControl({
   variant = "badge",
   className,
 }: PostXStatusControlProps) {
-  const { posted, toggle } = usePostXStatus(updateNumber, defaultPosted);
+  const { posted, toggle, isPending } = usePostXStatus(updateNumber, defaultPosted);
 
   if (variant === "dot") {
     return (
       <button
         type="button"
-        onClick={toggle}
+        onClick={() => void toggle()}
+        disabled={isPending}
         className={cn(
           "inline-flex h-2 w-2 shrink-0 rounded-full transition-colors",
           posted ? "bg-emerald-400/90" : "bg-amber-400/70",
@@ -37,7 +38,8 @@ export function PostXStatusControl({
   return (
     <button
       type="button"
-      onClick={toggle}
+      onClick={() => void toggle()}
+      disabled={isPending}
       className={cn(
         "inline-flex h-8 items-center gap-1.5 rounded-full border px-2.5 font-mono text-[10px] uppercase tracking-[0.12em] transition-colors sm:px-3",
         posted
@@ -67,12 +69,13 @@ export function PostXStatusLabel({
   updateNumber: number;
   defaultPosted?: boolean;
 }) {
-  const { posted, toggle } = usePostXStatus(updateNumber, defaultPosted);
+  const { posted, toggle, isPending } = usePostXStatus(updateNumber, defaultPosted);
 
   return (
     <button
       type="button"
-      onClick={toggle}
+      onClick={() => void toggle()}
+      disabled={isPending}
       className={cn(
         "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] transition-colors",
         posted

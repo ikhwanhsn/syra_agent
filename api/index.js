@@ -52,6 +52,7 @@ import { createTradingExperimentRouter } from "./routes/tradingExperiment.js";
 import { createBitgetVibeRouter } from "./routes/bitgetVibe.js";
 import { createArenaRouter } from "./routes/arena.js";
 import { createSpcxRouter, createEquityRouter } from "./routes/spcx.js";
+import { createIndicatorRouter } from "./routes/indicator.js";
 import { createSpcxExperimentRouter } from "./routes/experiment/spcx.js";
 import { createSyraTradingTelegramWebhookRouter } from "./routes/syraTradingTelegramWebhook.js";
 import { createSentinelDashboardRouter } from "./routes/sentinelDashboard.js";
@@ -78,6 +79,7 @@ import { createLpAgentExperimentRouter } from "./routes/lpAgentExperiment.js";
 import { createLpAgentRealRouter } from "./routes/lpAgentReal.js";
 import { createPumpfunExperimentRouter } from "./routes/pumpfunExperiment.js";
 import { createRiseExperimentRouter } from "./routes/riseExperiment.js";
+import { createShipLogStudioRouter } from "./routes/shipLogStudio.js";
 import { createHealthRouter } from "./routes/health.js";
 import { createMppV1Router } from "./routes/mpp/v1.js";
 import { getAgentFetch, SentinelBudgetError } from "./libs/agentFetch.js";
@@ -347,6 +349,7 @@ function isX402Route(p) {
   if (p.startsWith("/signal")) return true;
   if (p.startsWith("/spcx")) return true;
   if (p.startsWith("/equity")) return true;
+  if (p === "/indicator" || p.startsWith("/indicator/")) return true;
   if (p === "/arbitrage" || p.startsWith("/arbitrage/")) return true;
   if (p.startsWith("/health")) return true;
   if (
@@ -1120,6 +1123,7 @@ app.use("/api/signal", await createPublicSignalApiRouter());
 app.use("/signal", await createV2SignalRouter());
 app.use("/spcx", await createSpcxRouter());
 app.use("/equity", await createEquityRouter());
+app.use("/indicator", await createIndicatorRouter());
 app.use("/arbitrage", await createArbitrageExperimentX402Router());
 // Legacy /check-status → /health (308). Agent + discovery use /health.
 app.use((req, res, next) => {
@@ -1216,6 +1220,7 @@ app.use("/experiment/lp-agent", createLpAgentExperimentRouter());
 app.use("/experiment/lp-agent-real", createLpAgentRealRouter());
 app.use("/experiment/pumpfun", createPumpfunExperimentRouter());
 app.use("/experiment/rise", createRiseExperimentRouter());
+app.use("/post/studio", createShipLogStudioRouter());
 // Analytics: KPI (/analytics/kpi, /analytics/errors) and x402 summary (/analytics/summary)
 app.use("/analytics", await createAnalyticsRouter());
 

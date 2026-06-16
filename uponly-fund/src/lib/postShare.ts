@@ -1,6 +1,8 @@
 import { LATEST_POST_UPDATE_NUMBER } from "@/content/posts";
-import type { PostPhotoLayoutTemplate } from "@/content/posts/photo/layouts";
-import { getPostPhotoShareCopy } from "@/content/posts/photo/getPostPhotoShareCopy";
+import {
+  getPostPhotoShareCopy,
+  getPostPhotoShareCopyWithUrl,
+} from "@/content/posts/photo/getPostPhotoShareCopy";
 import type { PostPhotoUpdate } from "@/content/posts/photo/types";
 import type { PostUpdateMeta } from "@/content/posts/types";
 import { getPostRoutePath, type PostRouteFormat } from "@/lib/postRoutes";
@@ -22,7 +24,7 @@ export function getPostPageUrl(
 
 export interface PostShareCopyOptions {
   photoPost?: PostPhotoUpdate;
-  photoLayout?: PostPhotoLayoutTemplate;
+  photoCardIndex?: number;
 }
 
 export function getPostShareCopy(
@@ -31,18 +33,26 @@ export function getPostShareCopy(
   options?: PostShareCopyOptions,
 ): string {
   if (format === "video") return meta.shareCopyVideo;
-  if (options?.photoPost && options.photoLayout) {
-    return getPostPhotoShareCopy(options.photoPost, options.photoLayout);
+  if (options?.photoPost && options.photoCardIndex !== undefined) {
+    return getPostPhotoShareCopy(options.photoPost, options.photoCardIndex);
   }
   return meta.shareCopyPhoto;
 }
 
-/** Full paste-ready post: copy body + page URL. */
+/** Full paste-ready post: copy body + optional URL footer. */
 export function getPostShareCopyWithUrl(
   meta: PostUpdateMeta,
   format: PostShareFormat,
   options?: PostShareCopyOptions,
 ): string {
+  if (
+    format === "photo" &&
+    options?.photoPost &&
+    options.photoCardIndex !== undefined
+  ) {
+    return getPostPhotoShareCopyWithUrl(options.photoPost, options.photoCardIndex);
+  }
+
   return `${getPostShareCopy(meta, format, options).trim()}\n\n${getPostPageUrl(format, meta.updateNumber)}`;
 }
 

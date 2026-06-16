@@ -40,7 +40,7 @@ export async function getS3labsBotMeta() {
  * @param {string} webhookUrl
  * @returns {boolean}
  */
-function isPublicHttpsUrl(webhookUrl) {
+export function isPublicHttpsUrl(webhookUrl) {
   try {
     const parsed = new URL(webhookUrl);
     if (parsed.protocol !== "https:") return false;
@@ -94,6 +94,59 @@ export async function registerS3labsTelegramWebhookIfConfigured() {
 
   startupVerbose("[s3labs-telegram] webhook registered:", webhookUrl);
   return true;
+}
+
+/**
+ * @returns {Promise<{ url: string; pending_update_count?: number } | null>}
+ */
+export async function getS3labsTelegramWebhookInfo() {
+  const { token } = getS3labsTelegramConfig();
+  if (!token) return null;
+
+  const url = `https://api.telegram.org/bot${encodeURIComponent(token)}/getWebhookInfo`;
+  const res = await fetch(url);
+  if (!res.ok) return null;
+
+  const data = await res.json();
+  const result = data?.result;
+  if (!result || typeof result !== "object") return null;
+
+  return {
+    url: typeof result.url === "string" ? result.url : "",
+    pending_update_count:
+      typeof result.pending_update_count === "number"
+        ? result.pending_update_count
+        : undefined,
+  };
+}
+
+/**
+ * True when Telegram already delivers updates elsewhere (production webhook).
+ * @returns {Promise<{ blocked: boolean; webhookUrl?: string }>}
+ */
+export async function getS3labsTelegramPollingBlockReason() {
+  const info = await getS3labsTelegramWebhookInfo();
+  const webhookUrl = info?.url?.trim() || "";
+  if (!webhookUrl) return { blocked: false };
+
+  if (!isPublicHttpsUrl(webhookUrl)) {
+    return { blocked: false };
+  }
+
+  const configured = S3LABS_TELEGRAM_WEBHOOK_URL.trim();
+  if (configured && webhookUrl === configured) {
+    return {
+      blocked: true,
+      webhookUrl,
+      reason: "configured_webhook_active",
+    };
+  }
+
+  return {
+    blocked: true,
+    webhookUrl,
+    reason: "remote_webhook_active",
+  };
 }
 
 /**

@@ -37,6 +37,7 @@ import {
   X402_DISPLAY_PRICE_BRAIN_USD,
   X402_DISPLAY_PRICE_X_USD,
   X402_DISPLAY_PRICE_X_ANALYZER_USD,
+  X402_DISPLAY_PRICE_INDICATOR_USD,
 } from '../config/x402Pricing.js';
 
 /** @param {number} n */
@@ -114,6 +115,7 @@ function displayPriceForDiscoveryOnlyPath(apiPath) {
   if (p.startsWith('/bankr/')) return X402_DISPLAY_PRICE_BANKR_USD;
   if (p.startsWith('/neynar/')) return X402_DISPLAY_PRICE_NEYNAR_USD;
   if (p.startsWith('/siwa/')) return X402_DISPLAY_PRICE_SIWA_USD;
+  if (p === '/indicator' || p.startsWith('/indicator/')) return X402_DISPLAY_PRICE_INDICATOR_USD;
   if (p.startsWith('/jupiter/swap/order')) return X402_DISPLAY_PRICE_JUPITER_SWAP_USD;
   if (p.startsWith('/pumpfun/agent-payments/verify')) return X402_DISPLAY_PRICE_PUMP_FUN_READ_USD;
   if (p.startsWith('/pumpfun/agent-payments')) return X402_DISPLAY_PRICE_PUMP_FUN_TX_USD;

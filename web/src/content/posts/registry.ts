@@ -1,23 +1,27 @@
 import { AGENTSCORE_POST } from "./agentscoreUpdate";
+import { INDICATOR_POST } from "./indicatorUpdate";
 import { BNB_X402_POST } from "./bnbX402Update";
 import { LP_AGENT_POST } from "./lpAgentUpdate";
 import { LP_REAL_PROFITABILITY_POST } from "./lpRealProfitabilityUpdate";
 import { PUMPFUN_ALPHA_POST } from "./pumpfunAlphaUpdate";
 import { SPCX_POST } from "./spcxUpdate";
+import { ASSETS_HUB_POST } from "./assetsHubUpdate";
+import { PACT_NETWORK_POST } from "./pactNetworkUpdate";
 import { WALLET_PORTFOLIO_POST } from "./walletPortfolioUpdate";
 import { AGENTSCORE_PHOTO } from "./photo/agentscorePhoto";
+import { INDICATOR_PHOTO } from "./photo/indicatorPhoto";
 import { BNB_X402_PHOTO } from "./photo/bnbX402Photo";
 import { LP_AGENT_PHOTO } from "./photo/lpAgentPhoto";
 import { LP_REAL_PROFITABILITY_PHOTO } from "./photo/lpRealProfitabilityPhoto";
 import { PUMPFUN_ALPHA_PHOTO } from "./photo/pumpfunAlphaPhoto";
 import { SPCX_PHOTO } from "./photo/spcxPhoto";
+import { ASSETS_HUB_PHOTO } from "./photo/assetsHubPhoto";
+import { PACT_NETWORK_PHOTO } from "./photo/pactNetworkPhoto";
 import { WALLET_PORTFOLIO_PHOTO } from "./photo/walletPortfolioPhoto";
 import type { PostPhotoUpdate } from "./photo/types";
 import type { PostUpdate } from "./types";
 import { validatePostUpdate } from "./validatePostUpdate";
 import { validatePostPhotoUpdate } from "./photo/validatePostPhotoUpdate";
-
-export const MAX_POST_UPDATES = 10;
 
 export interface PostUpdateBundle {
   video: PostUpdate;
@@ -25,8 +29,9 @@ export interface PostUpdateBundle {
 }
 
 /**
- * Append new ship-log updates here (oldest first). The registry keeps only the latest
- * MAX_POST_UPDATES entries — when an 11th is added, the oldest is dropped automatically.
+ * Append new ship-log updates here (oldest first). Remove published entries from the
+ * studio via the delete control on /post (localStorage); source files stay in repo
+ * until you clean them up manually.
  */
 const POST_UPDATE_BUNDLES: PostUpdateBundle[] = [
   { video: LP_AGENT_POST, photo: LP_AGENT_PHOTO },
@@ -36,6 +41,9 @@ const POST_UPDATE_BUNDLES: PostUpdateBundle[] = [
   { video: LP_REAL_PROFITABILITY_POST, photo: LP_REAL_PROFITABILITY_PHOTO },
   { video: SPCX_POST, photo: SPCX_PHOTO },
   { video: WALLET_PORTFOLIO_POST, photo: WALLET_PORTFOLIO_PHOTO },
+  { video: INDICATOR_POST, photo: INDICATOR_PHOTO },
+  { video: ASSETS_HUB_POST, photo: ASSETS_HUB_PHOTO },
+  { video: PACT_NETWORK_POST, photo: PACT_NETWORK_PHOTO },
 ];
 
 function assertBundleMeta(bundle: PostUpdateBundle): void {
@@ -51,10 +59,9 @@ function assertBundleMeta(bundle: PostUpdateBundle): void {
 
 function buildRegistry(bundles: PostUpdateBundle[]): PostUpdateBundle[] {
   const sorted = [...bundles].sort((a, b) => a.video.meta.updateNumber - b.video.meta.updateNumber);
-  const trimmed = sorted.slice(-MAX_POST_UPDATES);
 
   const seen = new Set<number>();
-  for (const bundle of trimmed) {
+  for (const bundle of sorted) {
     assertBundleMeta(bundle);
     const n = bundle.video.meta.updateNumber;
     if (seen.has(n)) {
@@ -65,10 +72,13 @@ function buildRegistry(bundles: PostUpdateBundle[]): PostUpdateBundle[] {
     validatePostPhotoUpdate(bundle.photo);
   }
 
-  return trimmed;
+  return sorted;
 }
 
 export const POST_REGISTRY = buildRegistry(POST_UPDATE_BUNDLES);
+
+/** All ship-log bundles defined in source (visibility/delete handled in postRegistryVisibility). */
+export const ALL_POST_UPDATE_BUNDLES: PostUpdateBundle[] = POST_UPDATE_BUNDLES;
 
 export const LATEST_POST_UPDATE_NUMBER =
   POST_REGISTRY[POST_REGISTRY.length - 1]?.video.meta.updateNumber ?? 1;

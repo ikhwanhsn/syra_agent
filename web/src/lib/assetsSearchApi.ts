@@ -1,8 +1,5 @@
 import { getApiBaseUrl } from "@/lib/chatApi";
-import {
-  dossierQueryToSearchParams,
-  parseAssetLookupInput,
-} from "@/lib/tokensDossierApi";
+import { assetPathFromQuery, parseAssetLookupInput } from "@/lib/tokensDossierApi";
 
 export interface AssetSearchHit {
   assetId: string;
@@ -83,12 +80,11 @@ export async function fetchAssetsSearch(q: string, limit = 8): Promise<AssetSear
 }
 
 export function assetSearchHitPath(hit: AssetSearchHit): string {
-  const symbol = hit.symbol.toLowerCase() || hit.assetId;
-  return `/assets/${encodeURIComponent(symbol)}?assetId=${encodeURIComponent(hit.assetId)}`;
+  return assetPathFromQuery({ assetId: hit.assetId });
 }
 
 export function assetLookupPath(raw: string): string {
   const parsed = parseAssetLookupInput(raw);
   if (!parsed) return "/assets";
-  return `/assets/lookup?${dossierQueryToSearchParams(parsed).toString()}`;
+  return assetPathFromQuery(parsed);
 }

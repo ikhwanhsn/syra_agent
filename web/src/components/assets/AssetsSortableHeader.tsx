@@ -24,7 +24,7 @@ export function AssetsSortableHeader({
   return (
     <TableHead
       className={cn(
-        "sticky top-0 z-20 h-11 border-b border-border/50 bg-card/95 px-3 backdrop-blur-md supports-[backdrop-filter]:bg-card/90",
+        "h-10 border-b border-border/50 bg-muted/20 px-3 text-xs font-medium text-muted-foreground",
         align === "right" && "text-right",
         className,
       )}
@@ -32,10 +32,8 @@ export function AssetsSortableHeader({
       <button
         type="button"
         className={cn(
-          "inline-flex min-h-[40px] items-center gap-1.5 rounded-lg px-2 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] transition-colors duration-150",
-          isActive
-            ? "bg-primary/[0.08] text-foreground ring-1 ring-border/60"
-            : "text-muted-foreground/90 hover:bg-muted/50 hover:text-foreground",
+          "inline-flex items-center gap-1 transition-colors hover:text-foreground",
+          isActive && "text-foreground",
           align === "right" ? "ml-auto" : "",
         )}
         onClick={() => onSort(sortKey)}
@@ -44,12 +42,12 @@ export function AssetsSortableHeader({
         <span>{label}</span>
         {isActive ? (
           order === "desc" ? (
-            <ArrowDown className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
+            <ArrowDown className="h-3.5 w-3.5 shrink-0" aria-hidden />
           ) : (
-            <ArrowUp className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
+            <ArrowUp className="h-3.5 w-3.5 shrink-0" aria-hidden />
           )
         ) : (
-          <ArrowUpDown className="h-3.5 w-3.5 shrink-0 opacity-40" aria-hidden />
+          <ArrowUpDown className="h-3.5 w-3.5 shrink-0 opacity-30" aria-hidden />
         )}
       </button>
     </TableHead>

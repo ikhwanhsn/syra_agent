@@ -1,5 +1,7 @@
 import express from 'express';
 import { buildMintDossier } from '../../libs/tokensDossierService.js';
+import { buildAssetIntelligence } from '../../libs/assetIntelligenceService.js';
+import { fetchAssetsBoard } from '../../libs/tokensBoardService.js';
 import { runTokensAgentTool } from '../../libs/tokensAgentService.js';
 
 /** @param {unknown} raw */
@@ -86,6 +88,64 @@ export function createTokensDossierRouter() {
       return res.json({ success: true, data: { items } });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Asset search failed';
+      return res.status(500).json({ success: false, error: message });
+    }
+  });
+
+  router.get('/board', async (req, res) => {
+    try {
+      const list = typeof req.query.list === 'string' ? req.query.list.trim() : 'all';
+      const groupBy = typeof req.query.groupBy === 'string' ? req.query.groupBy.trim() : 'asset';
+      const maxPagesRaw =
+        typeof req.query.maxPages === 'string' ? parseInt(req.query.maxPages, 10) : undefined;
+      const maxPages = Number.isFinite(maxPagesRaw) ? maxPagesRaw : undefined;
+
+      const result = await fetchAssetsBoard({ list, groupBy, maxPages });
+      if (!result.ok) {
+        return res.status(result.status ?? 502).json({
+          success: false,
+          error: result.error || 'Assets board failed',
+          ...(result.requestId && { requestId: result.requestId }),
+        });
+      }
+      return res.json({ success: true, data: result.data });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Assets board failed';
+      return res.status(500).json({ success: false, error: message });
+    }
+  });
+
+  router.get('/intelligence', async (req, res) => {
+    try {
+      const ref = typeof req.query.ref === 'string' ? req.query.ref : undefined;
+      const mint = typeof req.query.mint === 'string' ? req.query.mint : undefined;
+      const assetId = typeof req.query.assetId === 'string' ? req.query.assetId : undefined;
+      const symbol = typeof req.query.symbol === 'string' ? req.query.symbol : undefined;
+      const name = typeof req.query.name === 'string' ? req.query.name : undefined;
+      const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+
+      let input = { ref, mint, assetId, symbol, name };
+      if (!ref && !mint && !assetId && q) {
+        if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(q)) {
+          input = { mint: q };
+        } else if (q.includes('-') && q.startsWith('solana-')) {
+          input = { assetId: q };
+        } else {
+          input = { ref: q };
+        }
+      }
+
+      const result = await buildAssetIntelligence(input);
+      if (!result.ok) {
+        return res.status(result.status ?? 502).json({
+          success: false,
+          error: result.error || 'Asset intelligence failed',
+          ...(result.requestId && { requestId: result.requestId }),
+        });
+      }
+      return res.json({ success: true, data: result.data });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Asset intelligence failed';
       return res.status(500).json({ success: false, error: message });
     }
   });

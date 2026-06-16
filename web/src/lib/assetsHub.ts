@@ -1,4 +1,4 @@
-import type { TokensDossierPayload } from "@/lib/tokensDossierApi";
+import { assetPathFromQuery, type TokensDossierPayload } from "@/lib/tokensDossierApi";
 
 export type AssetClass = "crypto" | "equity";
 
@@ -20,8 +20,8 @@ export interface AssetTableRow {
   payload: TokensDossierPayload;
 }
 
-export function assetDetailPath(row: Pick<AssetTableRow, "symbol" | "payload">): string {
-  return `/assets/${encodeURIComponent(row.symbol.toLowerCase())}?assetId=${encodeURIComponent(row.payload.assetId)}`;
+export function assetDetailPath(row: Pick<AssetTableRow, "payload">): string {
+  return assetPathFromQuery({ assetId: row.payload.assetId });
 }
 
 export function defaultAssetSortOrder(key: AssetSortKey): AssetSortOrder {

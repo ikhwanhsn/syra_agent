@@ -1,13 +1,30 @@
 import { Link } from "react-router-dom";
+import { useMemo } from "react";
 import { ImageIcon, Video } from "lucide-react";
 import { BrandMark } from "@/components/BrandMark";
 import { PostBackLink } from "@/components/post/PostBackLink";
-import { PostXStatusLabel } from "@/components/post/PostXStatusControl";
-import { LATEST_POST_UPDATE_NUMBER, POST_REGISTRY } from "@/content/posts";
+import { PostFundUpdateList } from "@/components/post/PostFundUpdateList";
+import { getVisiblePostBundles, getLatestVisiblePostUpdateNumber } from "@/lib/postRegistryVisibility";
+import { usePostRegistryRefresh } from "@/lib/usePostRegistryRefresh";
+import { usePostStudioQuery } from "@/hooks/usePostStudio";
 
 /** Hub for fund brief social formats — video deck or photo templates. */
 export default function PostPage() {
-  const updates = [...POST_REGISTRY].reverse();
+  const { isLoading } = usePostStudioQuery();
+  const statusTick = usePostRegistryRefresh();
+  const latestVisible = useMemo(() => getLatestVisiblePostUpdateNumber(), [statusTick]);
+  const updates = useMemo(
+    () => [...getVisiblePostBundles()].reverse(),
+    [statusTick],
+  );
+
+  if (isLoading) {
+    return (
+      <div className="post-root flex min-h-[100dvh] items-center justify-center bg-[#050807] text-white/40">
+        <p className="font-mono text-xs uppercase tracking-[0.16em]">Loading investor brief studio…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="post-root relative flex min-h-[100dvh] w-full flex-col items-center justify-center overflow-x-hidden bg-[#050807] px-4 py-8 text-white">
@@ -34,12 +51,12 @@ export default function PostPage() {
           VC · Fundraiser format
         </p>
         <p className="mb-8 text-sm text-white/55">
-          Choose a format for your fund update. Record the video brief or export a branded photo card for X.
+          Choose a format for your fund update. Record the video brief or export branded photo cards for X.
         </p>
 
         <div className="grid gap-3 sm:grid-cols-2">
           <Link
-            to={`/post/video/${LATEST_POST_UPDATE_NUMBER}`}
+            to={`/post/video/${latestVisible}`}
             className="group flex flex-col items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-6 transition-colors hover:border-uof/30 hover:bg-uof/[0.06]"
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-full border border-uof/25 bg-uof/10 text-uof">
@@ -52,68 +69,20 @@ export default function PostPage() {
           </Link>
 
           <Link
-            to={`/post/photo/${LATEST_POST_UPDATE_NUMBER}`}
+            to={`/post/photo/${latestVisible}`}
             className="group flex flex-col items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-6 transition-colors hover:border-uof/30 hover:bg-uof/[0.06]"
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-full border border-uof/25 bg-uof/10 text-uof">
               <ImageIcon className="h-5 w-5" />
             </div>
             <div>
-              <p className="font-display text-sm font-medium text-white/90">Photo card</p>
-              <p className="mt-1 text-xs text-white/45">Curated templates · PNG export</p>
+              <p className="font-display text-sm font-medium text-white/90">Photo cards</p>
+              <p className="mt-1 text-xs text-white/45">15 cards · unique X copy each</p>
             </div>
           </Link>
         </div>
 
-        {updates.length > 0 ? (
-          <div className="mt-8 text-left">
-            <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.16em] text-white/35">
-              Fund updates
-            </p>
-            <ul className="space-y-2">
-              {updates.map((bundle) => {
-                const { meta } = bundle.video;
-                const isLatest = meta.updateNumber === LATEST_POST_UPDATE_NUMBER;
-
-                return (
-                  <li key={meta.updateNumber}>
-                    <div className="flex items-center justify-between gap-3 rounded-lg border border-white/8 bg-white/[0.02] px-3 py-2.5">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm text-white/85">
-                          #{meta.updateNumber} · {meta.title}
-                          {isLatest ? (
-                            <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.12em] text-uof/80">
-                              Latest
-                            </span>
-                          ) : null}
-                        </p>
-                        <p className="truncate font-mono text-[10px] text-white/35">{meta.published}</p>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-2">
-                        <PostXStatusLabel
-                          updateNumber={meta.updateNumber}
-                          defaultPosted={meta.postedOnX}
-                        />
-                        <Link
-                          to={`/post/video/${meta.updateNumber}`}
-                          className="font-mono text-[10px] uppercase tracking-[0.12em] text-white/45 transition-colors hover:text-uof/80"
-                        >
-                          Video
-                        </Link>
-                        <Link
-                          to={`/post/photo/${meta.updateNumber}`}
-                          className="font-mono text-[10px] uppercase tracking-[0.12em] text-white/45 transition-colors hover:text-uof/80"
-                        >
-                          Photo
-                        </Link>
-                      </div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ) : null}
+        <PostFundUpdateList updates={updates} />
 
         <Link
           to="/"

@@ -12,6 +12,7 @@ import {
   PostPhotoItemList,
   PostPhotoKicker,
   PostPhotoLinks,
+  PostPhotoPartnershipLockup,
   PostPhotoStatGrid,
   PostPhotoSteps,
   PostPhotoTitle,
@@ -226,6 +227,15 @@ function renderBlock(block: PhotoBlockId, content: PostPhotoContent, def: PhotoT
         <p key={block} className="post-photo-url post-photo-url--inline">
           syraa.fun
         </p>
+      );
+    case "partnership-lockup":
+      return (
+        <PostPhotoPartnershipLockup
+          key={block}
+          partnerName={content.partnerName}
+          partnerLogo={content.partnerLogo}
+          compact={def.id === "photo-partnership-beacon"}
+        />
       );
     default:
       return null;

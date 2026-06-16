@@ -13,6 +13,7 @@ export const X402_DISCOVERY_RESOURCE_PATHS = [
   "signal",
   "spcx",
   "equity",
+  "indicator",
   "sentiment",
   "event",
   "trending-headline",

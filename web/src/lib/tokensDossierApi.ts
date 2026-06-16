@@ -89,6 +89,9 @@ export interface TokensDossierQuery {
   mint?: string;
   assetId?: string;
   q?: string;
+  /** Optional dossier hints for intelligence keyword resolution */
+  symbol?: string;
+  name?: string;
 }
 
 export function parseAssetLookupInput(raw: string): TokensDossierQuery | null {
@@ -151,22 +154,196 @@ export async function fetchMintDossier(params: TokensDossierQuery): Promise<Toke
   return body.data;
 }
 
+export interface AssetsBoardItem {
+  key: string;
+  ref: string;
+  assetId: string;
+  name: string;
+  symbol: string;
+  assetClass: "crypto" | "equity";
+  category?: string;
+  price?: number;
+  change24h?: number;
+  marketCap?: number;
+  volume24h?: number;
+  liquidity?: number;
+  imageUrl?: string;
+  mint?: string;
+}
+
+export interface AssetsBoardPayload {
+  items: AssetsBoardItem[];
+  total: number;
+  list: string;
+  groupBy: string;
+  pagesFetched: number;
+}
+
+export async function fetchAssetsBoard(opts?: {
+  list?: string;
+  groupBy?: string;
+  signal?: AbortSignal;
+}): Promise<AssetsBoardPayload> {
+  const base = getApiBaseUrl().replace(/\/$/, "");
+  const sp = new URLSearchParams({
+    list: opts?.list?.trim() || "all",
+    groupBy: opts?.groupBy?.trim() || "asset",
+  });
+  const res = await fetch(`${base}/agent/tokens/board?${sp}`, {
+    headers: { Accept: "application/json" },
+    signal: opts?.signal,
+  });
+  const body = (await res.json().catch(() => ({}))) as {
+    success?: boolean;
+    data?: AssetsBoardPayload;
+    error?: string;
+    message?: string;
+  };
+  if (!res.ok || body.success !== true || !body.data?.items) {
+    throw new Error(body.error || body.message || "Failed to load assets board");
+  }
+  return body.data;
+}
+
 /** Shareable dashboard URL for an asset dossier result. */
 export const ASSETS_PATH = "/assets";
 
-export function dossierSharePath(data: TokensDossierPayload): string {
-  const q = data.query;
-  if (q.mint) return `${ASSETS_PATH}?mint=${encodeURIComponent(q.mint)}`;
-  if (q.assetId) return `${ASSETS_PATH}?assetId=${encodeURIComponent(q.assetId)}`;
-  if (q.ref) return `${ASSETS_PATH}?ref=${encodeURIComponent(q.ref)}`;
-  return `${ASSETS_PATH}?assetId=${encodeURIComponent(data.assetId)}`;
+/** Clean detail path, e.g. `/assets/solana` or `/assets/<mint>`. */
+export function assetPathFromQuery(query: TokensDossierQuery): string {
+  const assetId = query.assetId?.trim();
+  const mint = query.mint?.trim();
+  const ref = query.ref?.trim();
+  const q = query.q?.trim();
+  if (assetId) return `/assets/${encodeURIComponent(assetId)}`;
+  if (mint) return `/assets/${encodeURIComponent(mint)}`;
+  if (ref) return `/assets/${encodeURIComponent(ref.toLowerCase())}`;
+  if (q) return `/assets/lookup?${dossierQueryToSearchParams({ q }).toString()}`;
+  return ASSETS_PATH;
 }
 
-export function askSyraPrompt(data: TokensDossierPayload): string {
+export function slugToDossierQuery(slug: string | undefined): TokensDossierQuery | null {
+  if (!slug || slug === "lookup") return null;
+  const decoded = decodeURIComponent(slug);
+  if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(decoded)) return { mint: decoded };
+  if (decoded.startsWith("solana-")) return { assetId: decoded };
+  return { ref: decoded };
+}
+
+export function dossierSharePath(data: TokensDossierPayload): string {
+  return assetPathFromQuery({
+    assetId: data.assetId,
+    mint: data.query.mint ?? data.chartMint ?? undefined,
+    ref: data.query.ref,
+  });
+}
+
+export function askSyraPrompt(
+  data: TokensDossierPayload,
+  intelligence?: AssetIntelligencePayload | null,
+): string {
   const name = data.asset?.name || data.asset?.symbol || data.assetId;
   const mint = data.chartMint;
+  const intelHint =
+    intelligence?.signal?.ok && intelligence.signal.tradingSignal
+      ? ` Recent Syra signal: ${intelligence.signal.tradingSignal} (${intelligence.signal.strength ?? "—"}).`
+      : intelligence?.sentiment?.ok
+        ? ` Recent news sentiment score: ${intelligence.sentiment.total["Sentiment Score"]?.toFixed(2) ?? "n/a"}.`
+        : "";
   if (mint) {
-    return `Analyze ${name} (${data.assetId}) on Solana mint ${mint}: summarize Tokens.xyz risk, liquidity, and whether it's reasonable to trade. Use tokens tools if needed.`;
+    return `Analyze ${name} (${data.assetId}) on Solana mint ${mint}: summarize Tokens.xyz risk, liquidity, recent news, and whether it's reasonable to trade.${intelHint} Use tokens tools if needed.`;
   }
-  return `Analyze ${name} (${data.assetId}): summarize canonical price, risk grade, and key markets from Tokens.xyz data.`;
+  return `Analyze ${name} (${data.assetId}): summarize canonical price, risk grade, key markets, and recent news/sentiment from Syra data.${intelHint}`;
+}
+
+export interface AssetIntelligenceNewsItem {
+  title?: string;
+  news_url?: string;
+  url?: string;
+  link?: string;
+  source_name?: string;
+  date?: string;
+  published_at?: string;
+  text?: string;
+  tickers?: string[];
+}
+
+export interface AssetIntelligenceEventItem {
+  event_name?: string;
+  event_text?: string;
+  ticker?: string;
+  source?: string;
+  date?: string;
+}
+
+export interface AssetIntelligencePayload {
+  query: {
+    assetId: string;
+    ticker: string;
+    signalToken: string | null;
+    ref?: string;
+    mint?: string;
+  };
+  news: {
+    ok: boolean;
+    items: AssetIntelligenceNewsItem[];
+    error?: string;
+  };
+  sentiment: {
+    ok: boolean;
+    data: Record<string, { Positive?: number; Negative?: number; Neutral?: number; sentiment_score?: number }>;
+    total: {
+      "Total Positive": number;
+      "Total Negative": number;
+      "Total Neutral": number;
+      "Sentiment Score": number;
+    };
+    error?: string;
+  };
+  events: {
+    ok: boolean;
+    items: AssetIntelligenceEventItem[];
+    error?: string;
+  };
+  signal: {
+    ok: boolean;
+    tradingSignal: string | null;
+    strength: string | null;
+    source: string | null;
+    error?: string;
+  };
+  fetchedAt: string;
+}
+
+function buildIntelligenceUrl(params: TokensDossierQuery): string {
+  const base = `${getApiBaseUrl().replace(/\/$/, "")}/agent/tokens/intelligence`;
+  const sp = new URLSearchParams();
+  if (params.q?.trim()) sp.set("q", params.q.trim());
+  if (params.ref?.trim()) sp.set("ref", params.ref.trim());
+  if (params.mint?.trim()) sp.set("mint", params.mint.trim());
+  if (params.assetId?.trim()) sp.set("assetId", params.assetId.trim());
+  if (params.symbol?.trim()) sp.set("symbol", params.symbol.trim());
+  if (params.name?.trim()) sp.set("name", params.name.trim());
+  const qs = sp.toString();
+  return qs ? `${base}?${qs}` : base;
+}
+
+export async function fetchAssetIntelligence(
+  params: TokensDossierQuery,
+  opts?: { signal?: AbortSignal },
+): Promise<AssetIntelligencePayload> {
+  const url = buildIntelligenceUrl(params);
+  const res = await fetch(url, {
+    headers: { Accept: "application/json" },
+    signal: opts?.signal,
+  });
+  const body = (await res.json().catch(() => ({}))) as {
+    success?: boolean;
+    data?: AssetIntelligencePayload;
+    error?: string;
+    message?: string;
+  };
+  if (!res.ok || body.success !== true || !body.data) {
+    throw new Error(body.error || body.message || "Failed to load asset intelligence");
+  }
+  return body.data;
 }
