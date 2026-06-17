@@ -1,5 +1,5 @@
 /**
- * PayAI facilitator auth beyond free tier (1k settlements/mo).
+ * PayAI facilitator auth beyond free tier (10k settlements/mo).
  * @see https://docs.payai.network/x402/facilitators/authentication
  * @see https://docs.payai.network/x402/facilitators/pricing
  *

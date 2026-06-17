@@ -10,12 +10,15 @@ const paidApiCallSchema = new mongoose.Schema(
     path: { type: String, required: true },
     /** Optional: 'api' | 'agent' when known (e.g. from agent tools). */
     source: { type: String, default: 'api' },
+    /** CAIP-2 network when known (e.g. algorand:..., solana:..., eip155:8453). */
+    network: { type: String, default: null },
   },
   { timestamps: true }
 );
 
 paidApiCallSchema.index({ createdAt: 1 });
 paidApiCallSchema.index({ path: 1, createdAt: 1 });
+paidApiCallSchema.index({ network: 1, createdAt: 1 });
 
 const PaidApiCall = mongoose.model('PaidApiCall', paidApiCallSchema);
 export default PaidApiCall;

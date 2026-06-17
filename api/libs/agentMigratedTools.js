@@ -50,8 +50,11 @@ import {
 import { runBrowserTask } from "./browserUseClient.js";
 import { run8004Stats, run8004Leaderboard, run8004AgentsSearch } from "./8004ReadApi.js";
 
-const JUPITER_TRENDING_URL = "https://jupiter.api.corbits.dev/tokens/v2/content/cooking";
-const JUPITER_ULTRA_ORDER_URL = "https://jupiter.api.corbits.dev/ultra/v1/order";
+const JUPITER_API_BASE = process.env.JUPITER_API_KEY
+  ? "https://api.jup.ag"
+  : "https://lite-api.jup.ag";
+const JUPITER_TRENDING_URL = `${JUPITER_API_BASE}/tokens/v2/toporganicscore/24h`;
+const JUPITER_ULTRA_ORDER_URL = `${JUPITER_API_BASE}/ultra/v1/order`;
 const JUPITER_QUOTE_API = "https://api.jup.ag/swap/v1/quote";
 const JUPITER_SWAP_API = "https://api.jup.ag/swap/v1/swap";
 const BUBBLEMAPS_BASE = "https://api.bubblemaps.io";
@@ -62,6 +65,14 @@ const FRONTEND_API_BASE = (process.env.PUMP_FUN_FRONTEND_API_URL || "https://fro
 
 const MAX_CRAWL_CONTENT_CHARS = 80_000;
 const MAX_RECORDS_RESPONSE = 50;
+
+function jupiterV1Headers() {
+  const headers = { "Content-Type": "application/json" };
+  if (process.env.JUPITER_API_KEY) {
+    headers["x-api-key"] = process.env.JUPITER_API_KEY;
+  }
+  return headers;
+}
 
 function isLikelySolanaPubkey(s) {
   const t = String(s || "").trim();
@@ -381,10 +392,10 @@ async function ensureSentinelPayer() {
 
 async function handleTrendingJupiter() {
   try {
-    await ensureSentinelPayer();
-    const response = await getSentinelPayerFetch()(JUPITER_TRENDING_URL, {
+    const response = await fetchWithRetry(JUPITER_TRENDING_URL, {
       method: "GET",
-      headers: { "Content-Type": "application/json" },
+      headers: jupiterV1Headers(),
+      signal: AbortSignal.timeout(20_000),
     });
     if (!response.ok) {
       const text = await response.text().catch(() => "");
@@ -395,13 +406,18 @@ async function handleTrendingJupiter() {
       };
     }
     const data = await response.json();
-    const contractAddresses = data?.data?.map((item) => item.mint);
-    const content = data?.data?.map((item) => item.contents?.map((i) => i.content));
-    const tokenSummary = data?.data?.map((item) => item.tokenSummary);
-    const newsSummary = data?.data?.map((item) => item.newsSummary);
+    const items = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
+    const contractAddresses = items
+      .map((item) => item?.id || item?.mint || item?.address)
+      .filter(Boolean);
     return {
       ok: true,
-      data: { contractAddresses, content, tokenSummary, newsSummary },
+      data: {
+        contractAddresses,
+        content: null,
+        tokenSummary: null,
+        newsSummary: null,
+      },
     };
   } catch (err) {
     return { ok: false, error: err?.message || "Jupiter trending failed", status: 502 };
@@ -896,16 +912,7 @@ async function handlePumpfun(toolId, params) {
   }
 }
 
-function jupiterV1Headers() {
-  const headers = { "Content-Type": "application/json" };
-  if (process.env.JUPITER_API_KEY) {
-    headers["x-api-key"] = process.env.JUPITER_API_KEY;
-  }
-  return headers;
-}
-
 async function fetchJupiterUltraOrderJson(inputMint, outputMint, amount, taker) {
-  await ensureSentinelPayer();
   const params = new URLSearchParams();
   params.set("inputMint", String(inputMint));
   params.set("outputMint", String(outputMint));
@@ -919,9 +926,9 @@ async function fetchJupiterUltraOrderJson(inputMint, outputMint, amount, taker) 
   }
 
   const url = `${JUPITER_ULTRA_ORDER_URL}?${params}`;
-  const response = await getSentinelPayerFetch()(url, {
+  const response = await fetchWithRetry(url, {
     method: "GET",
-    headers: { "Content-Type": "application/json" },
+    headers: jupiterV1Headers(),
     signal: AbortSignal.timeout(15_000),
   });
   if (!response.ok) {

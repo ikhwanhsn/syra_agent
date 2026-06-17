@@ -146,3 +146,28 @@ export async function getBaseX402PaymentFetch() {
 }
 
 export { payer };
+
+let cachedAlgorandX402PaymentFetch = null;
+
+/**
+ * x402-paying fetch for **Algorand (AVM) USDC** — selects algorand:* accept from 402 offers.
+ * Requires `ALGORAND_AGENT_PRIVATE_KEY` or `AVM_PRIVATE_KEY` (base64 64-byte key).
+ * Settlements route through GoPlausible facilitator (challenge leaderboard).
+ */
+export async function getAlgorandX402PaymentFetch() {
+  if (cachedAlgorandX402PaymentFetch) return cachedAlgorandX402PaymentFetch;
+
+  const { createAlgorandX402WrapFetch } = await import("./agentAvmX402Client.js");
+  const paymentFetch = await createAlgorandX402WrapFetch(globalThis.fetch);
+
+  if (!isSentinelEnabled()) {
+    cachedAlgorandX402PaymentFetch = paymentFetch;
+    return cachedAlgorandX402PaymentFetch;
+  }
+  cachedAlgorandX402PaymentFetch = wrapWithSentinel(paymentFetch, {
+    agentId: process.env.SENTINEL_AGENT_ID || "x402-api-tester-algorand",
+    budget: standardPolicy(),
+    audit: { enabled: true, storage: getSentinelStorage() },
+  });
+  return cachedAlgorandX402PaymentFetch;
+}

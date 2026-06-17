@@ -1,6 +1,7 @@
 /**
  * Resource path segments for GET /.well-known/x402 (no leading slash).
  * Keep in sync with actual x402 mounts in index.js.
+ * Payment networks advertised in discovery instructions: Solana, Base, B402 (optional), Algorand (GoPlausible).
  * Note: Binance, Giza, Bankr, Neynar, SIWA, and agent-direct tools (exa-search, crawl, browser-use,
  * jupiter/swap/order, 8004 stats/leaderboard/search, smart-money, token-god-mode, trending-jupiter,
  * pumpfun, squid, bubblemaps, 8004scan, heylol, quicknode, GMGN (gmgn-*) are not listed here — use POST /agent/tools/call.

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="Algorand">
+  <rect width="64" height="64" rx="14" fill="#0D0D0D"/>
+  <path fill="#FFFFFF" d="M32 10 54 52H44.5L39.2 40.5H24.8L19.5 52H10L32 10Zm0 14.2-6.8 13.6h13.6L32 24.2Z"/>
+  <path fill="#00C2FF" opacity="0.85" d="M32 10 54 52H48L32 24.2 16 52H10L32 10Z"/>
+</svg>

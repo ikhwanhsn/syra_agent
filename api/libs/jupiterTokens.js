@@ -2,7 +2,7 @@
  * Jupiter token helpers: resolve symbols/mints to token info for swap params.
  *
  * Token resolution is STATIC ONLY — no network calls to Jupiter's public token list.
- * Swap execution uses Corbits (jupiter.api.corbits.dev) via the jupiter-swap-order agent tool (in-process).
+ * Swap execution uses direct Jupiter Ultra API (api.jup.ag / lite-api.jup.ag) via the jupiter-swap-order agent tool (in-process).
  * Add tokens to STATIC_TOKENS below to support "buy $SYMBOL $amount" in the agent.
  */
 import { SYRA_TOKEN_MINT } from "./syraToken.js";

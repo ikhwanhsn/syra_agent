@@ -29,6 +29,10 @@ import {
   getEnabledCorbitsNetworks,
 } from "../config/corbitsX402Networks.js";
 import {
+  getPayaiPayToAddresses,
+  getEnabledPayaiNetworks,
+} from "../config/payaiX402Networks.js";
+import {
   BSC_CAIP2,
   getActiveB402PaymentKind,
   getB402PayTo,
@@ -37,6 +41,17 @@ import {
   isB402Network,
   x402MicroToBscTokenAtomic,
 } from "../config/b402Networks.js";
+import {
+  getAlgorandPayTo,
+  getEnabledAlgorandNetworks,
+  isAlgorandEnabled,
+  isAlgorandNetwork,
+  USDC_DECIMALS,
+} from "../config/algorandX402Networks.js";
+import {
+  ensureX402AvmResourceServerInitialized,
+  getX402AvmResourceServer,
+} from "./x402AvmResourceServer.js";
 import {
   verifyPayment as b402VerifyPayment,
   settlePayment as b402SettlePayment,
@@ -66,6 +81,33 @@ function x402Log(event, detail) {
 }
 
 let b402StartupLogged = false;
+let algorandStartupLogged = false;
+
+async function logAlgorandStartupOnce() {
+  if (algorandStartupLogged) return;
+  algorandStartupLogged = true;
+  const { getAlgorandPublicStatus } = await import("../config/algorandX402Networks.js");
+  const status = getAlgorandPublicStatus();
+  if (isAlgorandEnabled()) {
+    console.log(
+      "[algorand-x402] merchant inbound enabled",
+      JSON.stringify({
+        payTo: status.payTo,
+        facilitatorUrl: status.facilitatorUrl,
+        networks: status.networks?.map((n) => n.id),
+      }),
+    );
+    return;
+  }
+  console.warn(
+    "[algorand-x402] merchant inbound disabled — Algorand will not appear in 402 accepts",
+    JSON.stringify({
+      missing: status.missing,
+      hint: "Set ALGORAND_PAYTO (or AVM_ADDRESS), then restart. Check GET /x402/capabilities",
+    }),
+  );
+}
+
 async function logB402StartupOnce() {
   if (b402StartupLogged) return;
   b402StartupLogged = true;
@@ -248,6 +290,101 @@ async function ensureB402AcceptInRequirements(requirements, microUnits, maxTimeo
   return list;
 }
 
+/**
+ * GoPlausible facilitator does not list Algorand on PayAI/Corbits — append AVM accepts when enabled.
+ * Uses AVM resource server so feePayer and other facilitator extras are included.
+ * @param {object[]} requirements
+ * @param {string} microUnits
+ * @param {number} maxTimeoutSeconds
+ * @param {object} ctx
+ */
+async function ensureAlgorandAcceptInRequirements(requirements, microUnits, maxTimeoutSeconds, ctx) {
+  if (!isAlgorandEnabled()) return requirements;
+  const list = Array.isArray(requirements) ? [...requirements] : [];
+  if (list.some((r) => r && isAlgorandNetwork(r.network))) return list;
+
+  const payTo = getAlgorandPayTo();
+  const networks = getEnabledAlgorandNetworks();
+  if (!payTo || networks.length === 0) return list;
+
+  await ensureX402AvmResourceServerInitialized();
+  const { resourceServer } = getX402AvmResourceServer();
+
+  for (const net of networks) {
+    const paymentOptions = [
+      {
+        scheme: "exact",
+        price: { asset: net.usdcAsa, amount: microUnits },
+        network: net.caip2,
+        payTo,
+        maxTimeoutSeconds,
+      },
+    ];
+    try {
+      const algorandReqs = await resourceServer.buildPaymentRequirementsFromOptions(
+        paymentOptions,
+        ctx
+      );
+      if (Array.isArray(algorandReqs)) {
+        for (const r of algorandReqs) {
+          if (r && !list.some((x) => x?.network === r.network)) {
+            list.push(r);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn(
+        "[algorand-x402] buildPaymentRequirementsFromOptions failed, using manual accept:",
+        e?.message || e
+      );
+      list.push({
+        scheme: "exact",
+        network: net.caip2,
+        amount: microUnits,
+        asset: net.usdcAsa,
+        payTo,
+        maxTimeoutSeconds,
+        extra: { decimals: USDC_DECIMALS },
+      });
+    }
+  }
+  return list;
+}
+
+/** Append Algorand accepted options for paid-request validation (must mirror 402 offers). */
+function appendAlgorandAcceptedOption(acceptedOptions, expectedMicroUnits) {
+  if (!isAlgorandEnabled()) return acceptedOptions;
+  if (acceptedOptions.some((o) => o && isAlgorandNetwork(o.network))) return acceptedOptions;
+  const payTo = getAlgorandPayTo();
+  for (const net of getEnabledAlgorandNetworks()) {
+    acceptedOptions.push({
+      network: net.caip2,
+      payTo,
+      asset: net.usdcAsa,
+      isEvm: false,
+      isAlgorand: true,
+      amount: expectedMicroUnits,
+    });
+  }
+  return acceptedOptions;
+}
+
+/** True when payload.accepted matches configured Algorand merchant offer (amount checked separately). */
+function paymentAcceptedMatchesAlgorand(acc) {
+  if (!acc || !isAlgorandNetwork(acc.network)) return false;
+  if ((acc.scheme || "exact") !== "exact") return false;
+  const payTo = getAlgorandPayTo();
+  if (!payTo) return false;
+  const net = getEnabledAlgorandNetworks().find((n) => n.caip2 === acc.network);
+  if (!net) return false;
+  return String(acc.payTo) === String(payTo) && String(acc.asset) === String(net.usdcAsa);
+}
+
+/** Route verify/settle to GoPlausible AVM when network is Algorand CAIP-2. */
+function shouldUseAlgorandFacilitator(acc) {
+  return Boolean(acc && isAlgorandNetwork(acc.network));
+}
+
 /** Merge B402 /supported extra into BSC payment requirements for buyer signing. */
 async function enrichB402Requirements(requirements) {
   const kind = await getActiveB402PaymentKind();
@@ -335,20 +472,32 @@ function paymentAcceptedMatchesB402(acc) {
   );
 }
 
+/** @param {'payai'|'corbits'} profile */
+function getPayToAddressesForProfile(profile) {
+  return profile === "corbits" ? getCorbitsPayToAddresses() : getPayaiPayToAddresses();
+}
+
+/** @param {'payai'|'corbits'} profile */
+function getEnabledNetworksForProfile(profile) {
+  return profile === "corbits" ? getEnabledCorbitsNetworks() : getEnabledPayaiNetworks();
+}
+
 /**
- * Build x402 payment options for a request (Corbits multi-network or legacy Solana+Base).
+ * Build x402 payment options for a request (multi-network PayAI/Corbits or legacy Solana+Base).
  * @param {object} bundle
  * @param {string} microUnits
  * @param {number} maxTimeout
  */
 function buildPaymentOptionsForBundle(bundle, microUnits, maxTimeout) {
   const { config, assets } = bundle;
-  if (config.corbitsMultiNetwork) {
-    const { solanaPayTo: solFromEnv, evmPayTo: evmFromEnv } = getCorbitsPayToAddresses();
+  if (config.multiNetwork && config.networkProfile) {
+    const { solanaPayTo: solFromEnv, evmPayTo: evmFromEnv } = getPayToAddressesForProfile(
+      config.networkProfile
+    );
     const solanaPayTo = config.solanaPayTo || solFromEnv;
     const evmPayTo = config.basePayTo || evmFromEnv;
     const options = [];
-    for (const net of getEnabledCorbitsNetworks()) {
+    for (const net of getEnabledNetworksForProfile(config.networkProfile)) {
       if (net.kind === "solana" && solanaPayTo) {
         options.push({
           scheme: "exact",
@@ -399,12 +548,14 @@ function buildPaymentOptionsForBundle(bundle, microUnits, maxTimeout) {
  */
 function buildAcceptedOptionsForBundle(bundle, expectedMicroUnits) {
   const { config, assets } = bundle;
-  if (config.corbitsMultiNetwork) {
-    const { solanaPayTo: solFromEnv, evmPayTo: evmFromEnv } = getCorbitsPayToAddresses();
+  if (config.multiNetwork && config.networkProfile) {
+    const { solanaPayTo: solFromEnv, evmPayTo: evmFromEnv } = getPayToAddressesForProfile(
+      config.networkProfile
+    );
     const solanaPayTo = config.solanaPayTo || solFromEnv;
     const evmPayTo = config.basePayTo || evmFromEnv;
     const out = [];
-    for (const net of getEnabledCorbitsNetworks()) {
+    for (const net of getEnabledNetworksForProfile(config.networkProfile)) {
       if (net.kind === "solana" && solanaPayTo) {
         out.push({
           network: net.caip2,
@@ -422,7 +573,10 @@ function buildAcceptedOptionsForBundle(bundle, expectedMicroUnits) {
       }
     }
     const withAmount = out.map((o) => ({ ...o, amount: expectedMicroUnits }));
-    return appendB402AcceptedOption(withAmount, expectedMicroUnits);
+    return appendAlgorandAcceptedOption(
+      appendB402AcceptedOption(withAmount, expectedMicroUnits),
+      expectedMicroUnits
+    );
   }
 
   const acceptedOptions = [
@@ -444,7 +598,10 @@ function buildAcceptedOptionsForBundle(bundle, expectedMicroUnits) {
     });
   }
 
-  return appendB402AcceptedOption(acceptedOptions, expectedMicroUnits);
+  return appendAlgorandAcceptedOption(
+    appendB402AcceptedOption(acceptedOptions, expectedMicroUnits),
+    expectedMicroUnits
+  );
 }
 
 /** @param {object} acc - payload.accepted */
@@ -458,12 +615,18 @@ function paymentAcceptedMatchesOption(acc, opt, expectedMicroUnits) {
   const amountOk =
     accAmt === expectedNative ||
     accAmt === optAmt ||
-    (opt.isB402 && paymentAcceptedMatchesB402(acc));
+    (opt.isB402 && paymentAcceptedMatchesB402(acc)) ||
+    (opt.isAlgorand && paymentAcceptedMatchesAlgorand(acc));
   if (!amountOk) return false;
   if (opt.isEvm) {
     return (
       normalizeEvmAddress(acc.payTo) === normalizeEvmAddress(opt.payTo) &&
       normalizeEvmAddress(acc.asset) === normalizeEvmAddress(opt.asset)
+    );
+  }
+  if (opt.isAlgorand || isAlgorandNetwork(opt.network)) {
+    return (
+      String(acc.payTo) === String(opt.payTo) && String(acc.asset) === String(opt.asset)
     );
   }
   return String(acc.payTo) === String(opt.payTo) && String(acc.asset) === String(opt.asset);
@@ -487,27 +650,23 @@ function getPayerOrConnectedWalletForPrice(req) {
 }
 
 /**
- * Default x402 verify/settle: Corbits (https://facilitator.corbits.dev, override CORBITS_FACILITATOR_URL).
- * Opt out to PayAI / FACILITATOR_URL stack: X402_USE_PAYAI_FACILITATOR=true, or X402_USE_CORBITS_FACILITATOR=false,
- * or set req.x402ResourceServerProfile = "payai" | "default" before requirePayment.
- * Force Corbits: req.x402ResourceServerProfile = "corbits".
+ * Default x402 verify/settle: PayAI (https://facilitator.payai.network).
+ * Opt in to legacy Corbits: X402_USE_CORBITS_FACILITATOR=true or req.x402ResourceServerProfile = "corbits".
  */
 function useCorbitsProfile(req) {
-  if (req?.x402ResourceServerProfile === "payai" || req?.x402ResourceServerProfile === "default") {
+  if (req?.x402ResourceServerProfile === "corbits") return true;
+  if (
+    req?.x402ResourceServerProfile === "payai" ||
+    req?.x402ResourceServerProfile === "default"
+  ) {
     return false;
   }
-  if (req?.x402ResourceServerProfile === "corbits") return true;
   const truthy = (v) => {
     const s = String(v || "").trim().toLowerCase();
     return s === "true" || s === "1";
   };
-  const falsy = (v) => {
-    const s = String(v || "").trim().toLowerCase();
-    return s === "false" || s === "0";
-  };
-  if (truthy(process.env.X402_USE_PAYAI_FACILITATOR)) return false;
-  if (falsy(process.env.X402_USE_CORBITS_FACILITATOR)) return false;
-  return true;
+  if (truthy(process.env.X402_USE_CORBITS_FACILITATOR)) return true;
+  return false;
 }
 
 function getX402BundleForReq(req) {
@@ -579,6 +738,12 @@ async function buildPaymentRequired(bundle, req, options, error) {
     requirements = [];
   }
   requirements = await ensureB402AcceptInRequirements(requirements, microUnits, maxTimeout);
+  requirements = await ensureAlgorandAcceptInRequirements(
+    requirements,
+    microUnits,
+    maxTimeout,
+    ctx
+  );
   requirements = ensureEvmEip712Domain(requirements);
   requirements = await enrichB402Requirements(requirements);
 
@@ -709,6 +874,7 @@ export function requirePayment(options) {
       const bundle = getX402BundleForReq(req);
       const { resourceServer, config, assets } = bundle;
       logB402StartupOnce();
+      logAlgorandStartupOnce();
 
       const paymentHeader = getPaymentSignatureHeaderFromReq(req);
       if (!paymentHeader) {
@@ -761,6 +927,21 @@ export function requirePayment(options) {
         }
       }
 
+      if (!matchingOption && paymentAcceptedMatchesAlgorand(acc)) {
+        const payTo = getAlgorandPayTo();
+        const net = getEnabledAlgorandNetworks().find((n) => n.caip2 === acc.network);
+        if (payTo && net) {
+          matchingOption = {
+            network: net.caip2,
+            payTo,
+            asset: net.usdcAsa,
+            isEvm: false,
+            isAlgorand: true,
+            amount: String(acc.amount ?? expectedMicroUnits),
+          };
+        }
+      }
+
       if (!matchingOption) {
         x402Log("payment_mismatch", {
           method: req.method,
@@ -775,7 +956,9 @@ export function requirePayment(options) {
       }
 
       let verify;
-      const useB402Facilitator = shouldUseB402Facilitator(acc, payload);
+      const useAlgorandFacilitator = shouldUseAlgorandFacilitator(acc);
+      const useB402Facilitator =
+        !useAlgorandFacilitator && shouldUseB402Facilitator(acc, payload);
       const payloadForB402 =
         useB402Facilitator && !normalizeResourceInfo(payload?.resource)
           ? enrichB402PayloadResource(payload, req, options)
@@ -786,13 +969,22 @@ export function requirePayment(options) {
         network: acc?.network,
         amount: acc?.amount,
         b402: useB402Facilitator,
+        algorand: useAlgorandFacilitator,
         resourceUrl:
           normalizeResourceInfo(payloadForB402?.resource)?.url ??
           normalizeResourceInfo(acc?.resource)?.url,
         hasHeader: true,
       });
       try {
-        if (useB402Facilitator) {
+        if (useAlgorandFacilitator) {
+          await ensureX402AvmResourceServerInitialized();
+          const { resourceServer: avmServer } = getX402AvmResourceServer();
+          verify = await withTimeout(
+            avmServer.verifyPayment(payload, acc),
+            X402_VERIFY_FACILITATOR_TIMEOUT_MS,
+            "verify_timeout"
+          );
+        } else if (useB402Facilitator) {
           verify = await withTimeout(
             b402VerifyPayment(payloadForB402, acc),
             X402_VERIFY_FACILITATOR_TIMEOUT_MS,
@@ -837,6 +1029,7 @@ export function requirePayment(options) {
           method: req.method,
           path: req.path,
           b402: useB402Facilitator,
+          algorand: useAlgorandFacilitator,
           reason: verify?.invalidReason || "Payment verification failed",
         });
         const pr = await buildPaymentRequired(
@@ -853,13 +1046,15 @@ export function requirePayment(options) {
         payload: useB402Facilitator ? payloadForB402 : payload,
         accepted: acc,
         priceUsd,
-        resourceServerProfile: useCorbitsProfile(req) ? "corbits" : "default",
+        resourceServerProfile: useCorbitsProfile(req) ? "corbits" : "payai",
         useB402Facilitator,
+        useAlgorandFacilitator,
       };
       x402Log("verify_ok", {
         method: req.method,
         path: req.path,
         b402: useB402Facilitator,
+        algorand: useAlgorandFacilitator,
         network: acc?.network,
       });
       next();
@@ -877,6 +1072,31 @@ export function requirePayment(options) {
  * So the client always gets the resource when payment was already verified.
  */
 async function tryFacilitatorThenLocalSettle(payload, accepted, req) {
+  const useAlgorand =
+    req?.x402Payment?.useAlgorandFacilitator || shouldUseAlgorandFacilitator(accepted);
+  if (useAlgorand) {
+    await ensureX402AvmResourceServerInitialized();
+    const { resourceServer: avmServer } = getX402AvmResourceServer();
+    const settle = await withTimeout(
+      avmServer.settlePayment(payload, accepted),
+      X402_SETTLE_FACILITATOR_TIMEOUT_MS,
+      "settle_timeout"
+    );
+    if (settle?.success) {
+      return {
+        success: true,
+        payer: settle.payer,
+        transaction: settle.transaction,
+        network: settle.network ?? accepted?.network,
+      };
+    }
+    return {
+      success: false,
+      errorReason: settle?.errorReason || settle?.error || "Algorand settlement failed",
+      error: settle?.errorReason || settle?.error || "Algorand settlement failed",
+    };
+  }
+
   if (req?.x402Payment?.useB402Facilitator || shouldUseB402Facilitator(accepted, payload)) {
     const settle = await withTimeout(
       b402SettlePayment(payload, accepted),
@@ -1030,6 +1250,7 @@ export async function settlePaymentAndSetResponse(res, req) {
 export { encodePaymentResponseHeader };
 export { getX402ResourceServer };
 export { isB402Network };
+export { isAlgorandNetwork };
 
 export function usdToMicroUsdc(usd) {
   const n = Number(usd);
@@ -1078,6 +1299,11 @@ export function getX402Handler(req) {
   const { resourceServer } = getX402BundleForReq(req);
   return {
     async settlePayment(payload, accepted) {
+      if (req?.x402Payment?.useAlgorandFacilitator || shouldUseAlgorandFacilitator(accepted)) {
+        await ensureX402AvmResourceServerInitialized();
+        const { resourceServer: avmServer } = getX402AvmResourceServer();
+        return avmServer.settlePayment(payload, accepted);
+      }
       if (req?.x402Payment?.useB402Facilitator || shouldUseB402Facilitator(accepted, payload)) {
         return b402SettlePayment(payload, accepted);
       }

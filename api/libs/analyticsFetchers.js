@@ -9,8 +9,10 @@ import {
 } from "../routes/partner/binance/correlation.js";
 import { fetchBinanceOhlcBatch } from "./binanceOhlcBatch.js";
 
-const JUPITER_TRENDING_URL =
-  "https://jupiter.api.corbits.dev/tokens/v2/content/cooking";
+const JUPITER_API_BASE = process.env.JUPITER_API_KEY
+  ? "https://api.jup.ag"
+  : "https://lite-api.jup.ag";
+const JUPITER_TRENDING_URL = `${JUPITER_API_BASE}/tokens/v2/toporganicscore/24h`;
 const DEFAULT_CORRELATION_SYMBOL = "BTCUSDT";
 const DEFAULT_CORRELATION_LIMIT = 10;
 
@@ -29,16 +31,16 @@ function outboundSignal(ms) {
 const JUPITER_FETCH_MS = Number.parseInt(process.env.ANALYTICS_JUPITER_FETCH_MS || "16000", 10);
 const NANSEN_FETCH_MS = Number.parseInt(process.env.ANALYTICS_NANSEN_FETCH_MS || "22000", 10);
 
-/** Jupiter trending tokens (no params). Requires PAYER_KEYPAIR. */
+/** Jupiter trending tokens (no params). Uses direct Jupiter API (JUPITER_API_KEY optional). */
 export async function fetchTrendingJupiter() {
-  const { payer, getSentinelPayerFetch } = await import("./sentinelPayer.js");
-  const PAYER_KEYPAIR = process.env.PAYER_KEYPAIR;
-  if (!PAYER_KEYPAIR) throw new Error("PAYER_KEYPAIR must be set");
-  await payer.addLocalWallet(PAYER_KEYPAIR);
+  const headers = { "Content-Type": "application/json" };
+  if (process.env.JUPITER_API_KEY) {
+    headers["x-api-key"] = process.env.JUPITER_API_KEY;
+  }
 
-  const response = await getSentinelPayerFetch()(JUPITER_TRENDING_URL, {
+  const response = await fetch(JUPITER_TRENDING_URL, {
     method: "GET",
-    headers: { "Content-Type": "application/json" },
+    headers,
     signal: outboundSignal(JUPITER_FETCH_MS),
   });
   if (!response.ok) {
@@ -46,13 +48,15 @@ export async function fetchTrendingJupiter() {
     throw new Error(`Jupiter ${response.status}: ${text}`);
   }
   const data = await response.json();
+  const items = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
+  const contractAddresses = items
+    .map((item) => item?.id || item?.mint || item?.address)
+    .filter(Boolean);
   return {
-    contractAddresses: data?.data?.map((item) => item.mint),
-    content: data?.data?.map((item) =>
-      item.contents.map((i) => i.content)
-    ),
-    tokenSummary: data?.data?.map((item) => item.tokenSummary),
-    newsSummary: data?.data?.map((item) => item.newsSummary),
+    contractAddresses,
+    content: null,
+    tokenSummary: null,
+    newsSummary: null,
   };
 }
 

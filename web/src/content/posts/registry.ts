@@ -9,6 +9,8 @@ import { ASSETS_HUB_POST } from "./assetsHubUpdate";
 import { PACT_NETWORK_POST } from "./pactNetworkUpdate";
 import { WALLET_PORTFOLIO_POST } from "./walletPortfolioUpdate";
 import { BTC_INTELLIGENCE_POST } from "./btcIntelligenceUpdate";
+import { PAYAI_X402_POST } from "./payaiX402Update";
+import { ALGORAND_X402_POST } from "./algorandX402Update";
 import { AGENTSCORE_PHOTO } from "./photo/agentscorePhoto";
 import { INDICATOR_PHOTO } from "./photo/indicatorPhoto";
 import { BNB_X402_PHOTO } from "./photo/bnbX402Photo";
@@ -20,6 +22,8 @@ import { ASSETS_HUB_PHOTO } from "./photo/assetsHubPhoto";
 import { PACT_NETWORK_PHOTO } from "./photo/pactNetworkPhoto";
 import { WALLET_PORTFOLIO_PHOTO } from "./photo/walletPortfolioPhoto";
 import { BTC_INTELLIGENCE_PHOTO } from "./photo/btcIntelligencePhoto";
+import { PAYAI_X402_PHOTO } from "./photo/payaiX402Photo";
+import { ALGORAND_X402_PHOTO } from "./photo/algorandX402Photo";
 import type { PostPhotoUpdate } from "./photo/types";
 import type { PostUpdate } from "./types";
 import { validatePostUpdate } from "./validatePostUpdate";
@@ -47,6 +51,8 @@ const POST_UPDATE_BUNDLES: PostUpdateBundle[] = [
   { video: ASSETS_HUB_POST, photo: ASSETS_HUB_PHOTO },
   { video: PACT_NETWORK_POST, photo: PACT_NETWORK_PHOTO },
   { video: BTC_INTELLIGENCE_POST, photo: BTC_INTELLIGENCE_PHOTO },
+  { video: PAYAI_X402_POST, photo: PAYAI_X402_PHOTO },
+  { video: ALGORAND_X402_POST, photo: ALGORAND_X402_PHOTO },
 ];
 
 function assertBundleMeta(bundle: PostUpdateBundle): void {

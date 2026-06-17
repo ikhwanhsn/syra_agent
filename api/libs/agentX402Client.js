@@ -76,6 +76,7 @@ function chooseFetch(url, sentinelFetch) {
 }
 
 import { getTreasuryKeypair } from './agentTreasuryKey.js';
+import { shouldUseAlgorandX402 } from '../utils/x402NetworkPreference.js';
 
 export { getTreasuryKeypair };
 
@@ -445,6 +446,11 @@ export async function callX402V2WithTreasury(opts) {
 }
 
 async function callX402V2WithKeypair(keypair, opts, fetchFn = globalThis.fetch) {
+  if (shouldUseAlgorandX402()) {
+    const { callX402AlgorandWithOpts } = await import('./agentAvmX402Client.js');
+    return callX402AlgorandWithOpts(opts, fetchFn);
+  }
+
   const { url, method = 'GET', query = {}, body, connectedWalletAddress } = opts;
 
   const buildUrl = () => {
@@ -553,6 +559,11 @@ async function callX402V2WithKeypair(keypair, opts, fetchFn = globalThis.fetch) 
  * @returns {Promise<{ success: true; data: any } | { success: false; error: string; budgetExceeded?: boolean }>}
  */
 export async function pay402AndRetry(keypair, opts, fetchFn = globalThis.fetch) {
+  if (shouldUseAlgorandX402()) {
+    const { callX402AlgorandWithOpts } = await import('./agentAvmX402Client.js');
+    return callX402AlgorandWithOpts(opts, fetchFn);
+  }
+
   const { url, method = 'POST', body, connectedWalletAddress, extraHeaders } = opts;
   const headers = { Accept: 'application/json' };
   if (method === 'POST' || (body && method !== 'GET' && method !== 'HEAD')) {

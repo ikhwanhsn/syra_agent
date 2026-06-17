@@ -4,7 +4,7 @@
  * Tuning: `testerAgentConfig.js` (not `.env`).
  */
 
-import { getBaseX402PaymentFetch, getNansenPaymentFetch } from "../sentinelPayer.js";
+import { getAlgorandX402PaymentFetch, getBaseX402PaymentFetch, getNansenPaymentFetch } from "../sentinelPayer.js";
 import { getX402SmokeProbes } from "./x402ProbeRegistry.js";
 import { assertPaidJsonShape } from "./paidResponseAssert.js";
 import { bucketProbesByExampleGroup, getX402SmokeProbeGroup } from "./x402ProbeGroup.js";
@@ -243,6 +243,22 @@ export async function testNewsPaidE2EBase(baseUrl, signal) {
     expect: "200 + non-empty news[] (Base USDC x402)",
     baseUrl,
     getPaymentFetch: getBaseX402PaymentFetch,
+    signal,
+  });
+}
+
+/**
+ * GET /news with x402 payment on **Algorand Mainnet USDC** (GoPlausible facilitator).
+ * Requires `ALGORAND_AGENT_PRIVATE_KEY` or `AVM_PRIVATE_KEY` and API `ALGORAND_PAYTO`.
+ * @param {string} baseUrl
+ * @param {AbortSignal} [signal]
+ */
+export async function testNewsPaidE2EAlgorand(baseUrl, signal) {
+  return runPaidNewsE2E({
+    id: "news_paid_e2e_algorand",
+    expect: "200 + non-empty news[] (Algorand USDC x402)",
+    baseUrl,
+    getPaymentFetch: getAlgorandX402PaymentFetch,
     signal,
   });
 }
@@ -595,12 +611,16 @@ function summarizePaidRows(sub) {
  * @param {string} baseUrl
  * @param {AbortSignal} [signal]
  */
-export async function testAllPaidResponseProbes(baseUrl, signal) {
+export async function testAllPaidResponseProbes(baseUrl, signal, paymentFetchFactory = getNansenPaymentFetch) {
   const started = Date.now();
+  const probeId =
+    paymentFetchFactory === getAlgorandX402PaymentFetch
+      ? "x402_paid_responses_algorand"
+      : "x402_paid_responses_all";
   /** @type {Record<string, unknown>[]} */
   const sub = [];
   try {
-    const paymentFetch = wrapPaymentFetchWithFacilitator429Backoff(await getNansenPaymentFetch());
+    const paymentFetch = wrapPaymentFetchWithFacilitator429Backoff(await paymentFetchFactory());
     const allProbes = getX402SmokeProbes();
     const interProbe = getInterProbeDelayMs();
 
@@ -609,7 +629,7 @@ export async function testAllPaidResponseProbes(baseUrl, signal) {
       sub.push(...rows);
       const s = summarizePaidRows(sub);
       return {
-        id: "x402_paid_responses_all",
+        id: probeId,
         ok: s.failed.length === 0 && !stoppedDueTo429,
         expect: "200 + route-specific JSON (e.g. news[], event[])",
         probeCount: allProbes.length,
@@ -666,7 +686,7 @@ export async function testAllPaidResponseProbes(baseUrl, signal) {
 
     const tot = summarizePaidRows(sub);
     return {
-      id: "x402_paid_responses_all",
+      id: probeId,
       grouped: true,
       interGroupDelayMs: inter,
       ok: tot.failed.length === 0 && !stoppedDueTo429,
@@ -687,7 +707,7 @@ export async function testAllPaidResponseProbes(baseUrl, signal) {
     const msg = e instanceof Error ? e.message : String(e);
     const s = summarizePaidRows(sub);
     return {
-      id: "x402_paid_responses_all",
+      id: probeId,
       ok: false,
       grouped: isTesterAgentGroupedRun(),
       interGroupDelayMs: isTesterAgentGroupedRun() ? getInterGroupDelayMs() : 0,
@@ -822,41 +842,100 @@ const includeBasePaidNews =
   TESTER_AGENT_CONFIG.includeBasePaidNewsE2E === true &&
   Boolean(String(process.env.CMC_PAYER_PRIVATE_KEY || "").trim());
 const runPaidSchema = includePaidNews && shouldRunPaidResponseChecks();
+const includeAlgorandPaid =
+  paidProbesOn &&
+  TESTER_AGENT_CONFIG.includeAlgorandPaidProbes !== false &&
+  Boolean(
+    String(process.env.ALGORAND_AGENT_PRIVATE_KEY || process.env.AVM_PRIVATE_KEY || "").trim()
+  );
+const runAlgorandPaidSchema = includeAlgorandPaid && shouldRunPaidResponseChecks();
 
-/** @type {TesterDefinition[]} */
-export const TEST_REGISTRY = [
-  {
-    id: "x402_smoke_all",
-    name: "All x402 routes — unpaid 402 smoke (full catalog)",
-    run: testAllX402SmokeProbes,
-  },
-  ...(includeBasePaidNews
-    ? [
-        {
-          id: "news_paid_e2e_base",
-          name: "GET /news — paid E2E on Base (eip155 USDC); set CMC_PAYER_PRIVATE_KEY; API must expose Base accept (BASE_PAYTO)",
-          run: testNewsPaidE2EBase,
-        },
-      ]
-    : []),
-  ...(runPaidSchema
-    ? [
-        {
-          id: "x402_paid_responses_all",
-          name: "All x402 routes — paid 200 + JSON shape (news/event/signal/…); toggle `paidResponseChecksWhenPayerSet` in testerAgentConfig.js",
-          run: testAllPaidResponseProbes,
-        },
-      ]
-    : includePaidNews
+/** Flip paid-network order on each suite when both Solana + Algorand keys are configured. */
+let algorandProbeRotationFlip = false;
+
+function buildSolanaPaidTests() {
+  if (runPaidSchema) {
+    return [
+      {
+        id: "x402_paid_responses_all",
+        name: "All x402 routes — paid 200 + JSON shape (Solana); toggle `paidResponseChecksWhenPayerSet`",
+        run: testAllPaidResponseProbes,
+      },
+    ];
+  }
+  if (includePaidNews) {
+    return [
+      {
+        id: "news_paid_e2e",
+        name: "GET /news paid E2E only (Solana)",
+        run: testNewsPaidE2E,
+      },
+    ];
+  }
+  return [];
+}
+
+function buildAlgorandPaidTests() {
+  if (runAlgorandPaidSchema) {
+    return [
+      {
+        id: "x402_paid_responses_algorand",
+        name: "All x402 routes — paid 200 + JSON shape (Algorand USDC / GoPlausible)",
+        run: (baseUrl, signal) => testAllPaidResponseProbes(baseUrl, signal, getAlgorandX402PaymentFetch),
+      },
+    ];
+  }
+  if (includeAlgorandPaid) {
+    return [
+      {
+        id: "news_paid_e2e_algorand",
+        name: "GET /news paid E2E only (Algorand USDC / GoPlausible)",
+        run: testNewsPaidE2EAlgorand,
+      },
+    ];
+  }
+  return [];
+}
+
+function buildPaidNetworkTests() {
+  const solana = buildSolanaPaidTests();
+  const algorand = buildAlgorandPaidTests();
+  if (
+    TESTER_AGENT_CONFIG.algorandProbeRotationEnabled === true &&
+    solana.length > 0 &&
+    algorand.length > 0
+  ) {
+    algorandProbeRotationFlip = !algorandProbeRotationFlip;
+    return algorandProbeRotationFlip
+      ? [...algorand, ...solana]
+      : [...solana, ...algorand];
+  }
+  return [...solana, ...algorand];
+}
+
+/** @returns {TesterDefinition[]} */
+export function getTestRegistry() {
+  return [
+    {
+      id: "x402_smoke_all",
+      name: "All x402 routes — unpaid 402 smoke (full catalog)",
+      run: testAllX402SmokeProbes,
+    },
+    ...(includeBasePaidNews
       ? [
           {
-            id: "news_paid_e2e",
-            name: "GET /news paid E2E only (enable full paid catalog via `paidResponseChecksWhenPayerSet` in testerAgentConfig.js)",
-            run: testNewsPaidE2E,
+            id: "news_paid_e2e_base",
+            name: "GET /news — paid E2E on Base (eip155 USDC); set CMC_PAYER_PRIVATE_KEY",
+            run: testNewsPaidE2EBase,
           },
         ]
       : []),
-];
+    ...buildPaidNetworkTests(),
+  ];
+}
+
+/** @deprecated Use getTestRegistry() for rotation-aware ordering. */
+export const TEST_REGISTRY = getTestRegistry();
 
 /**
  * @param {string} baseUrl - e.g. https://api.syraa.fun
@@ -864,9 +943,10 @@ export const TEST_REGISTRY = [
  */
 export async function runTesterAgentSuite(baseUrl, opts = {}) {
   const { signal } = opts;
+  const registry = getTestRegistry();
   const results = [];
   let skipDueTo429 = false;
-  for (const t of TEST_REGISTRY) {
+  for (const t of registry) {
     const started = Date.now();
     if (skipDueTo429) {
       results.push({
@@ -894,12 +974,16 @@ export async function runTesterAgentSuite(baseUrl, opts = {}) {
   const smoke = results.find((r) => r.id === "x402_smoke_all");
   const paidNews = results.find((r) => r.id === "news_paid_e2e");
   const paidNewsBase = results.find((r) => r.id === "news_paid_e2e_base");
+  const paidNewsAlgorand = results.find((r) => r.id === "news_paid_e2e_algorand");
   const paidAll = results.find((r) => r.id === "x402_paid_responses_all");
+  const paidAllAlgorand = results.find((r) => r.id === "x402_paid_responses_algorand");
   const stopped429 =
     smoke?.stoppedDueTo429 === true ||
     paidAll?.stoppedDueTo429 === true ||
+    paidAllAlgorand?.stoppedDueTo429 === true ||
     paidNews?.stoppedDueTo429 === true ||
-    paidNewsBase?.stoppedDueTo429 === true;
+    paidNewsBase?.stoppedDueTo429 === true ||
+    paidNewsAlgorand?.stoppedDueTo429 === true;
   return {
     success: results.every((r) => r.ok === true),
     ranAt: new Date().toISOString(),
@@ -914,7 +998,10 @@ export async function runTesterAgentSuite(baseUrl, opts = {}) {
       stoppedDueTo429: stopped429,
       paidResponseChecksEnabled: shouldRunPaidResponseChecks(),
       paidResponsesAllOk: paidAll ? paidAll.ok === true : undefined,
+      paidResponsesAlgorandOk: paidAllAlgorand ? paidAllAlgorand.ok === true : undefined,
       paidResponseProbeCount: typeof paidAll?.probeCount === "number" ? paidAll.probeCount : undefined,
+      paidResponseAlgorandProbeCount:
+        typeof paidAllAlgorand?.probeCount === "number" ? paidAllAlgorand.probeCount : undefined,
       paidResponseCompletedCount:
         typeof paidAll?.completedProbeCount === "number" ? paidAll.completedProbeCount : undefined,
       paidResponseFailedCount: typeof paidAll?.failedCount === "number" ? paidAll.failedCount : undefined,
@@ -923,6 +1010,7 @@ export async function runTesterAgentSuite(baseUrl, opts = {}) {
       paidResponseLossCount: typeof paidAll?.lossCount === "number" ? paidAll.lossCount : undefined,
       paidNewsOk: paidNews ? paidNews.ok === true : undefined,
       paidBaseNewsOk: paidNewsBase ? paidNewsBase.ok === true : undefined,
+      paidAlgorandNewsOk: paidNewsAlgorand ? paidNewsAlgorand.ok === true : undefined,
     },
   };
 }

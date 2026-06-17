@@ -7,6 +7,7 @@
  *
  * Still read from environment (secrets only, when paid probes are enabled):
  * - `PAYER_KEYPAIR` — enables paid Solana x402 JSON checks when set.
+ * - `ALGORAND_AGENT_PRIVATE_KEY` / `AVM_PRIVATE_KEY` — enables paid Algorand x402 probes (GoPlausible).
  * - `CMC_PAYER_PRIVATE_KEY` — required for Base GET /news E2E when `includeBasePaidNewsE2E` is true.
  * - `TESTER_AGENT_CRON_SECRET` / `TESTER_AGENT_SKIP_BUYBACK_SECRET` — auth + buyback skip for probes.
  *
@@ -19,13 +20,23 @@
 /** Public API origin for scheduled probes and health x402 monitor (no trailing slash). */
 export const SYRA_PROBE_BASE_URL = "https://api.syraa.fun";
 
-/** @type {Readonly<{ paidX402ProbesEnabled: boolean; smokeConcurrency: number; paidDelayBetweenProbesMs: number; interProbeDelayMs: number; runByExampleGroup: boolean; interGroupDelayMsWhenGrouped: number; defaultSuiteTimeoutMs: number; paidResponseChecksWhenPayerSet: boolean; includeBasePaidNewsE2E: boolean; inProcessScheduleEnabled: boolean; scheduleIntervalMs: number; scheduleRunOnStart: boolean; stopSuiteOnRateLimit429: boolean; facilitatorRetryMaxAttempts: number; facilitatorRetryBaseDelayMs: number; healthX402MonitorEnabled: boolean; healthX402MonitorIntervalMs: number; healthX402MonitorTimeoutMs: number; healthX402MonitorRunOnStart: boolean }>} */
+/** @type {Readonly<{ paidX402ProbesEnabled: boolean; includeAlgorandPaidProbes: boolean; algorandProbeRotationEnabled: boolean; smokeConcurrency: number; paidDelayBetweenProbesMs: number; interProbeDelayMs: number; runByExampleGroup: boolean; interGroupDelayMsWhenGrouped: number; defaultSuiteTimeoutMs: number; paidResponseChecksWhenPayerSet: boolean; includeBasePaidNewsE2E: boolean; inProcessScheduleEnabled: boolean; scheduleIntervalMs: number; scheduleRunOnStart: boolean; stopSuiteOnRateLimit429: boolean; facilitatorRetryMaxAttempts: number; facilitatorRetryBaseDelayMs: number; healthX402MonitorEnabled: boolean; healthX402MonitorIntervalMs: number; healthX402MonitorTimeoutMs: number; healthX402MonitorRunOnStart: boolean }>} */
 export const TESTER_AGENT_CONFIG = Object.freeze({
   /**
-   * Master switch for all x402 payment/settlement probes (Solana + Base).
+   * Master switch for all x402 payment/settlement probes (Solana + Base + Algorand).
    * When false: no paid catalog, no GET /news E2E, no health x402 monitor — only unpaid 402 smoke if invoked manually.
    */
   paidX402ProbesEnabled: false,
+  /**
+   * When true and `ALGORAND_AGENT_PRIVATE_KEY` (or `AVM_PRIVATE_KEY`) is set, run a full paid JSON
+   * catalog on Algorand Mainnet via GoPlausible (Global x402 Challenge leaderboard).
+   */
+  includeAlgorandPaidProbes: true,
+  /**
+   * When true and both Solana + Algorand payer keys are set, alternate which network runs first
+   * on each scheduled suite (increases organic-looking diversity on the facilitator).
+   */
+  algorandProbeRotationEnabled: true,
   /**
    * Parallel unpaid smoke fetches per batch when not using inter-probe throttling or grouped smoke batches.
    * 3× baseline (was 8): higher fan-out against the API smoke catalog.

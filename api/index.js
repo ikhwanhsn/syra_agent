@@ -127,6 +127,7 @@ import {
   getB402PublicStatus,
 } from "./libs/b402KeyMaterial.js";
 import { isB402Enabled } from "./config/b402Networks.js";
+import { getAlgorandPublicStatus, isAlgorandEnabled } from "./config/algorandX402Networks.js";
 import { startupInfo, startupVerbose, startupWarn } from "./utils/startupLog.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -155,6 +156,22 @@ if (b402BootStatus.enabled) {
   startupWarn(
     "[b402] not ready at boot",
     JSON.stringify({ missing: b402BootStatus.missing, keySource: b402BootStatus.keySource }),
+  );
+}
+const algorandBootStatus = getAlgorandPublicStatus();
+if (algorandBootStatus.enabled) {
+  startupVerbose(
+    "[algorand-x402] ready at boot",
+    JSON.stringify({
+      payTo: algorandBootStatus.payTo,
+      facilitatorUrl: algorandBootStatus.facilitatorUrl,
+      networks: algorandBootStatus.networks?.map((n) => n.id),
+    }),
+  );
+} else {
+  startupWarn(
+    "[algorand-x402] not ready at boot",
+    JSON.stringify({ missing: algorandBootStatus.missing }),
   );
 }
 
@@ -1317,6 +1334,11 @@ app.get("/.well-known/x402", (req, res) => {
       `- **BNB Smart Chain (B402)**: \`eip155:56\` - ${b402Token} payments via Binance OnchainPay`,
     );
   }
+  if (isAlgorandEnabled()) {
+    paymentNetworkLines.push(
+      "- **Algorand Mainnet (AVM)**: `algorand:wGHE2Pwdvd7S12BL5FaOP20EGYesN73ktiC1qzkkit8=` - USDC ASA (31566704) via GoPlausible facilitator",
+    );
+  }
 
   res.json({
     version: 1, // Discovery document version (not x402 protocol version)
@@ -1355,6 +1377,7 @@ No API key required for the resources listed above — all are gated by the x402
 // Public x402 payment network status (no secrets) — verify Binance/B402 before playground testing.
 app.get("/x402/capabilities", (_req, res) => {
   const b402 = getB402PublicStatus();
+  const algorand = getAlgorandPublicStatus();
   res.json({
     success: true,
     data: {
@@ -1362,8 +1385,10 @@ app.get("/x402/capabilities", (_req, res) => {
         solana: true,
         base: true,
         binance: b402.enabled,
+        algorand: algorand.enabled,
       },
       b402,
+      algorand,
     },
   });
 });
@@ -1399,12 +1424,10 @@ onMongooseConnected(() => {
   ]);
 });
 
-// Eager-init x402 V2 Corbits bundle (default facilitator) so first paid request doesn't wait for /supported
-import("./utils/x402ResourceServer.js").then(
-  ({ ensureX402CorbitsResourceServerInitialized }) => {
-    ensureX402CorbitsResourceServerInitialized().catch(() => {});
-  },
-);
+// Eager-init x402 V2 PayAI bundle (default facilitator) so first paid request doesn't wait for /supported
+import("./utils/x402ResourceServer.js").then(({ ensureX402ResourceServerInitialized }) => {
+  ensureX402ResourceServerInitialized().catch(() => {});
+});
 
 app.listen(PORT, () => {
   startupInfo(`[syra-api] listening on port ${PORT}`);
