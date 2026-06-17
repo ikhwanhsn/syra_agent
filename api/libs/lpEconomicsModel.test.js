@@ -10,6 +10,7 @@ import {
   computePoolRiskScore,
   LP_MIN_SIM_RISK_REWARD_RATIO,
   resolveAdaptiveExitRules,
+  shouldCloseByFastOor,
 } from "./lpEconomicsModel.js";
 
 test("computePoolRiskScore ranks thin high-churn pools above mega pools", () => {
@@ -67,4 +68,10 @@ test("computeLpNetPnlPct scales IL with pool risk when out of range", () => {
   const lowRiskIl = computeLpNetPnlPct(-8, 0.5, false, 0.2);
   const highRiskIl = computeLpNetPnlPct(-8, 0.5, false, 0.8);
   assert.ok(highRiskIl < lowRiskIl);
+});
+
+test("shouldCloseByFastOor triggers on deep drift while out of range", () => {
+  assert.equal(shouldCloseByFastOor(-14, false), true);
+  assert.equal(shouldCloseByFastOor(-14, true), false);
+  assert.equal(shouldCloseByFastOor(-4, false), false);
 });

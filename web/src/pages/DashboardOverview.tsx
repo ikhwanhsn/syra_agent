@@ -272,7 +272,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
                     : "—"
                 }
                 hint="Trading + LP USDC"
-                href="/agents"
+                href="/wallet"
               />
             </div>
 
@@ -441,7 +441,6 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
               {(
                 [
                   { label: "Agent wallets", desc: "Deposit & withdraw", to: "/wallet", icon: Wallet },
-                  { label: "My agents", desc: "Profiles & addresses", to: "/agents", icon: Bot },
                   { label: "Trading lab", desc: "Custom strategies", to: "/trading-experiment", icon: FlaskConical },
                   { label: "LP experiment", desc: "Meteora agents", to: "/lp-experiment", icon: Droplets },
                   { label: "Alpha", desc: "Signals & trends", to: "/alpha", icon: Telescope },

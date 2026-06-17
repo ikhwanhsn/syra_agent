@@ -3,7 +3,6 @@ import { NavLink, useLocation, useNavLinkActive } from "@/lib/navigation";
 import {
   ChevronRight,
   FlaskConical,
-  Bot,
   LayoutDashboard,
   Telescope,
   UsersRound,
@@ -154,7 +153,6 @@ export function SidebarIconRail({
 
         <nav className="relative z-10 flex min-h-0 flex-1 flex-col items-center gap-0.5 overflow-y-auto overflow-x-hidden px-2 py-3 scrollbar-thin">
           <SidebarIconNavLink to="/overview" icon={LayoutDashboard} label="Overview" end />
-          <SidebarIconNavLink to="/agents" icon={Bot} label="Agents" end />
           <SidebarDivider className="my-2 w-8" />
           <SidebarIconNavLink to="/alpha" icon={Telescope} label="Alpha" end matchActive={matchAlphaIntel} />
           <SidebarDivider className="my-2 w-8" />

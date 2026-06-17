@@ -30,10 +30,6 @@ export function normalizeAgentChain(raw?: string | null): AgentChain {
   return "solana";
 }
 
-export function agentDetailPath(anonymousId: string): string {
-  return `/agents/${encodeURIComponent(anonymousId)}`;
-}
-
 export function shortenAddress(addr: string, isEvm = false): string {
   if (!addr) return "—";
   if (isEvm || addr.startsWith("0x")) {

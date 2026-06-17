@@ -2,7 +2,6 @@ import type { LucideIcon } from "lucide-react";
 import {
   Bot,
   LayoutDashboard,
-  Users,
   UsersRound,
   Telescope,
   FileSearch,
@@ -51,11 +50,11 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
     match: (p) =>
       (p === "/" || p === "/settings" || p.startsWith("/c/") || p === "/wallet") &&
       !p.startsWith("/overview") &&
-      !p.startsWith("/agents") &&
       !p.startsWith("/agent-setup") &&
       !p.includes("-experiment") &&
       !p.startsWith("/alpha") &&
       !p.startsWith("/assets") &&
+      !p.startsWith("/pumpfun") &&
       !p.startsWith("/internal-team") &&
       !p.startsWith("/internal"),
   },
@@ -66,10 +65,10 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
     icon: LayoutDashboard,
     match: (p) =>
       p.startsWith("/overview") ||
-      p.startsWith("/agents") ||
       p.startsWith("/agent-setup") ||
       p.startsWith("/alpha") ||
       p.startsWith("/assets") ||
+      p.startsWith("/pumpfun") ||
       p.includes("-experiment") ||
       p.startsWith("/vibe-trading") ||
       p.startsWith("/arena") ||
@@ -78,9 +77,9 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
       p.startsWith("/internal"),
     items: [
       { href: "/overview", label: "Overview", icon: LayoutDashboard },
-      { href: "/agents", label: "Agents", icon: Users },
       { href: "/alpha", label: "Alpha intel", icon: Telescope },
       { href: "/assets", label: "Assets", icon: FileSearch },
+      { href: "/pumpfun", label: "Pumpfun Alpha", icon: Rocket },
       { href: "/trading-experiment", label: "Trading experiment", icon: FlaskConical },
       { href: "/arena", label: "Alpha Arena", icon: Trophy },
       { href: "/spcx", label: "SpaceX IPO Agent", icon: TrendingUp },

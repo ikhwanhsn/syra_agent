@@ -81,6 +81,15 @@ export function readLegacyLocalStorageState(): {
   return { postedOnX, deleted };
 }
 
+export function writeLegacyLocalStorageState(state: {
+  postedOnX: Record<string, boolean>;
+  deleted: number[];
+}): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(LEGACY_POSTED_KEY, JSON.stringify(state.postedOnX));
+  window.localStorage.setItem(LEGACY_DELETED_KEY, JSON.stringify(state.deleted));
+}
+
 export function clearLegacyLocalStorageState(): void {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(LEGACY_POSTED_KEY);

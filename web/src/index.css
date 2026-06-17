@@ -1380,6 +1380,11 @@ body.syra-qwerti-active #qwerti-widget-root {
   gap: clamp(0.4375rem, 1.8cqh, 0.875rem);
 }
 
+.post-slide-body--stack:not(.post-slide-body--align-left),
+.post-slide-body--grid:not(.post-slide-body--align-left) {
+  text-align: center;
+}
+
 .post-slide-body--grid {
   align-items: center;
   justify-content: center;
@@ -3305,6 +3310,10 @@ body.syra-qwerti-active #qwerti-widget-root {
   transform: none !important;
 }
 
+.post-export-active .post-video-export-stage .post-slide-active .post-slide-fit-inner {
+  transform: var(--post-export-fit-transform, none) !important;
+}
+
 /* Hide chrome overlays while capturing the visible preview. */
 .post-export-active .post-record-guides,
 .post-export-active .post-record-hint {
@@ -3335,6 +3344,56 @@ body.syra-qwerti-active #qwerti-widget-root {
 
 .post-export-capturing .post-slide-active .post-slide-fit-inner {
   transform: var(--post-export-fit-transform, none) !important;
+}
+
+/* Batch 3 templates — html-to-image misses backdrop-filter, masks, and nested transforms */
+.post-export-active .post-video-export-stage .post-batch3-glass-card,
+.post-export-capturing .post-batch3-glass-card {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: hsl(0 0% 100% / 0.08) !important;
+}
+
+.post-export-active .post-video-export-stage .post-batch3-diamond-inner,
+.post-export-capturing .post-batch3-diamond-inner {
+  transform: none !important;
+}
+
+.post-export-active .post-video-export-stage .post-batch3-orbit,
+.post-export-capturing .post-batch3-orbit {
+  position: static;
+  display: grid;
+  gap: clamp(0.375rem, 1.5cqh, 0.625rem);
+  min-height: 0;
+  padding: 0;
+}
+
+.post-export-active .post-video-export-stage .post-batch3-orbit-core,
+.post-export-capturing .post-batch3-orbit-core {
+  max-width: none;
+  border-radius: 0.625rem;
+  order: -1;
+}
+
+.post-export-active .post-video-export-stage .post-batch3-orbit-node,
+.post-export-capturing .post-batch3-orbit-node {
+  position: static;
+  min-width: 0;
+}
+
+.post-export-active .post-video-export-stage .post-batch3-ring-glow,
+.post-export-capturing .post-batch3-ring-glow {
+  opacity: 0.85;
+}
+
+.post-export-active .post-video-export-stage .post-batch3-step-cards,
+.post-export-capturing .post-batch3-step-cards {
+  max-width: none;
+}
+
+.post-export-active .post-video-export-stage .post-batch3-highlight-cards,
+.post-export-capturing .post-batch3-highlight-cards {
+  max-width: none;
 }
 
 .post-record-guides {

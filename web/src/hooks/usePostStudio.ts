@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   deletePostStudioUpdates,
   fetchPostStudioState,
-  isPostStudioAuthError,
+  isPostStudioFallbackError,
   migratePostStudioState,
   patchPostStudioPosted,
   type PostStudioState,
@@ -11,8 +11,10 @@ import {
 import {
   applyPostStudioState,
   clearLegacyLocalStorageState,
+  getPostStudioState,
   getPostXStatus,
   readLegacyLocalStorageState,
+  writeLegacyLocalStorageState,
 } from "@/lib/postStudioState";
 import { usePostRegistryRefresh } from "@/lib/usePostRegistryRefresh";
 
@@ -36,6 +38,54 @@ function fallbackPostStudioState(): PostStudioState {
   };
 }
 
+function persistLocalPostStudioState(state: PostStudioState): PostStudioState {
+  const next = { ...state, updatedAt: state.updatedAt ?? new Date().toISOString() };
+  applyPostStudioState(next);
+  writeLegacyLocalStorageState(next);
+  return next;
+}
+
+function patchPostedLocally(updateNumber: number, posted: boolean): PostStudioState {
+  const current = getPostStudioState();
+  return persistLocalPostStudioState({
+    ...current,
+    postedOnX: { ...current.postedOnX, [String(updateNumber)]: posted },
+  });
+}
+
+function deleteUpdatesLocally(updateNumbers: number[]): PostStudioState {
+  const current = getPostStudioState();
+  return persistLocalPostStudioState({
+    ...current,
+    deleted: [...new Set([...current.deleted, ...updateNumbers])].sort((a, b) => a - b),
+  });
+}
+
+async function patchPostStudioPostedWithFallback(
+  updateNumber: number,
+  posted: boolean,
+): Promise<PostStudioState> {
+  try {
+    return await patchPostStudioPosted(updateNumber, posted);
+  } catch (err) {
+    if (!isPostStudioFallbackError(err)) throw err;
+    return patchPostedLocally(updateNumber, posted);
+  }
+}
+
+async function deletePostStudioUpdatesWithFallback(updateNumbers: number[]): Promise<PostStudioState> {
+  try {
+    return await deletePostStudioUpdates(updateNumbers);
+  } catch (err) {
+    if (!isPostStudioFallbackError(err)) throw err;
+    return deleteUpdatesLocally(updateNumbers);
+  }
+}
+
+function getCachedPostStudioQueryState(): PostStudioState {
+  return getPostStudioState();
+}
+
 async function loadPostStudioState() {
   try {
     let state = await fetchPostStudioState();
@@ -49,7 +99,7 @@ async function loadPostStudioState() {
     applyPostStudioState(state);
     return state;
   } catch (err) {
-    if (!isPostStudioAuthError(err)) throw err;
+    if (!isPostStudioFallbackError(err)) throw err;
     const state = fallbackPostStudioState();
     applyPostStudioState(state);
     return state;
@@ -61,7 +111,7 @@ export function usePostStudioQuery() {
     queryKey: POST_STUDIO_QUERY_KEY,
     queryFn: loadPostStudioState,
     staleTime: 15_000,
-    retry: (failureCount, error) => !isPostStudioAuthError(error) && failureCount < 2,
+    retry: (failureCount, error) => !isPostStudioFallbackError(error) && failureCount < 2,
   });
 }
 
@@ -70,12 +120,13 @@ export function useSetPostPostedMutation() {
 
   return useMutation({
     mutationFn: ({ updateNumber, posted }: { updateNumber: number; posted: boolean }) =>
-      patchPostStudioPosted(updateNumber, posted),
+      patchPostStudioPostedWithFallback(updateNumber, posted),
     onMutate: async ({ updateNumber, posted }) => {
       await queryClient.cancelQueries({ queryKey: POST_STUDIO_QUERY_KEY });
-      const previous = queryClient.getQueryData<Awaited<ReturnType<typeof loadPostStudioState>>>(
-        POST_STUDIO_QUERY_KEY,
-      );
+      const previous =
+        queryClient.getQueryData<Awaited<ReturnType<typeof loadPostStudioState>>>(
+          POST_STUDIO_QUERY_KEY,
+        ) ?? getCachedPostStudioQueryState();
       if (previous) {
         const optimistic = {
           ...previous,
@@ -103,12 +154,13 @@ export function useDeletePostStudioUpdatesMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (updateNumbers: number[]) => deletePostStudioUpdates(updateNumbers),
+    mutationFn: (updateNumbers: number[]) => deletePostStudioUpdatesWithFallback(updateNumbers),
     onMutate: async (updateNumbers) => {
       await queryClient.cancelQueries({ queryKey: POST_STUDIO_QUERY_KEY });
-      const previous = queryClient.getQueryData<Awaited<ReturnType<typeof loadPostStudioState>>>(
-        POST_STUDIO_QUERY_KEY,
-      );
+      const previous =
+        queryClient.getQueryData<Awaited<ReturnType<typeof loadPostStudioState>>>(
+          POST_STUDIO_QUERY_KEY,
+        ) ?? getCachedPostStudioQueryState();
       if (previous) {
         const optimistic = {
           ...previous,

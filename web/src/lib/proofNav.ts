@@ -120,7 +120,6 @@ export function isProofRoute(pathname: string): boolean {
 export function isDashboardRoute(pathname: string): boolean {
   return (
     pathname.startsWith("/overview") ||
-    pathname.startsWith("/agents") ||
     pathname.startsWith("/agent-setup")
   );
 }

@@ -18,7 +18,6 @@ import type { PostUpdateBundle } from "@/content/posts";
 import { useDeletePosts } from "@/lib/postDeleted";
 import {
   getLatestVisiblePostUpdateNumber,
-  isBundlePostedForDisplay,
 } from "@/lib/postRegistryVisibility";
 import { usePostRegistryRefresh } from "@/lib/usePostRegistryRefresh";
 import { cn } from "@/lib/utils";
@@ -45,14 +44,9 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
   const [singleDeleteTarget, setSingleDeleteTarget] = useState<PostUpdateBundle | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
-  const postedUpdates = useMemo(
-    () => updates.filter((bundle) => isBundlePostedForDisplay(bundle)),
-    [updates],
-  );
-
-  const selectedPosted = useMemo(
-    () => [...selected].filter((n) => postedUpdates.some((bundle) => bundle.video.meta.updateNumber === n)),
-    [selected, postedUpdates],
+  const selectedVisible = useMemo(
+    () => [...selected].filter((n) => updates.some((bundle) => bundle.video.meta.updateNumber === n)),
+    [selected, updates],
   );
 
   const toggleSelected = (updateNumber: number, checked: boolean) => {
@@ -62,10 +56,6 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
       else next.delete(updateNumber);
       return next;
     });
-  };
-
-  const selectAllPosted = () => {
-    setSelected(new Set(postedUpdates.map((bundle) => bundle.video.meta.updateNumber)));
   };
 
   const clearSelection = () => setSelected(new Set());
@@ -86,9 +76,9 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
   };
 
   const confirmBulkDelete = async () => {
-    if (selectedPosted.length === 0 || deleteM.isPending) return;
+    if (selectedVisible.length === 0 || deleteM.isPending) return;
     try {
-      await deleteM.mutateAsync(selectedPosted);
+      await deleteM.mutateAsync(selectedVisible);
       clearSelection();
       setBulkDeleteOpen(false);
     } catch (error) {
@@ -111,16 +101,16 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
               <span className="mx-1.5 text-white/20">·</span>
               <span className="text-amber-300/70">● Not posted</span>
             </p>
-            {postedUpdates.length > 0 ? (
+            {updates.length > 0 ? (
               <>
                 <button
                   type="button"
-                  onClick={selectAllPosted}
+                  onClick={() => setSelected(new Set(updates.map((bundle) => bundle.video.meta.updateNumber)))}
                   className="font-mono text-[9px] uppercase tracking-[0.12em] text-white/40 transition-colors hover:text-white/70"
                 >
-                  Select all posted
+                  Select all
                 </button>
-                {selectedPosted.length > 0 ? (
+                {selectedVisible.length > 0 ? (
                   <button
                     type="button"
                     onClick={clearSelection}
@@ -134,7 +124,7 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
           </div>
         </div>
 
-        {selectedPosted.length > 0 ? (
+        {selectedVisible.length > 0 ? (
           <div className="mb-3 flex justify-end">
             <Button
               type="button"
@@ -145,7 +135,7 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
               onClick={() => setBulkDeleteOpen(true)}
             >
               <Trash2 className="h-3.5 w-3.5" />
-              Delete selected ({selectedPosted.length})
+              Delete selected ({selectedVisible.length})
             </Button>
           </div>
         ) : null}
@@ -154,7 +144,6 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
           {updates.map((bundle) => {
             const { meta } = bundle.video;
             const isLatest = meta.updateNumber === latestVisible;
-            const posted = isBundlePostedForDisplay(bundle);
             const isSelected = selected.has(meta.updateNumber);
 
             return (
@@ -168,16 +157,12 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
                   )}
                 >
                   <div className="flex min-w-0 items-center gap-2.5">
-                    {posted ? (
-                      <Checkbox
-                        checked={isSelected}
-                        onCheckedChange={(checked) => toggleSelected(meta.updateNumber, checked === true)}
-                        className="border-white/25 data-[state=checked]:border-red-500/50 data-[state=checked]:bg-red-500/80"
-                        aria-label={`Select update #${meta.updateNumber} for bulk delete`}
-                      />
-                    ) : (
-                      <span className="inline-flex h-4 w-4 shrink-0" aria-hidden />
-                    )}
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={(checked) => toggleSelected(meta.updateNumber, checked === true)}
+                      className="border-white/25 data-[state=checked]:border-red-500/50 data-[state=checked]:bg-red-500/80"
+                      aria-label={`Select update #${meta.updateNumber} for bulk delete`}
+                    />
                     <div className="min-w-0">
                       <p className="truncate text-sm text-white/85">
                         #{meta.updateNumber} · {meta.title}
@@ -204,17 +189,15 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
                     >
                       Photo
                     </Link>
-                    {posted ? (
-                      <button
-                        type="button"
-                        onClick={() => setSingleDeleteTarget(bundle)}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-white/35 transition-colors hover:bg-red-500/10 hover:text-red-400/90"
-                        aria-label={`Delete update #${meta.updateNumber}`}
-                        title="Delete from studio"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => setSingleDeleteTarget(bundle)}
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-md text-white/35 transition-colors hover:bg-red-500/10 hover:text-red-400/90"
+                      aria-label={`Delete update #${meta.updateNumber}`}
+                      title="Delete from studio"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                 </div>
               </li>
@@ -252,10 +235,10 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
         <AlertDialogContent className="border-border/60 bg-background sm:max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Delete {selectedPosted.length} ship log{selectedPosted.length === 1 ? "" : "s"}?
+              Delete {selectedVisible.length} ship log{selectedVisible.length === 1 ? "" : "s"}?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Removes {formatDeleteList(selectedPosted, updates)} from the studio. This cannot be undone from the UI.
+              Removes {formatDeleteList(selectedVisible, updates)} from the studio. This cannot be undone from the UI.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -267,7 +250,7 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
               onClick={() => void confirmBulkDelete()}
             >
               {deleteM.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Delete {selectedPosted.length}
+              Delete {selectedVisible.length}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

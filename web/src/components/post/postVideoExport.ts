@@ -179,9 +179,19 @@ async function syncExportLayout(target: HTMLElement): Promise<void> {
 async function captureFrameBlob(
   target: HTMLElement,
   exportOptions: ReturnType<typeof buildExportOptions>,
+  options?: { flattenReveals?: boolean },
 ): Promise<Blob> {
-  await syncExportLayout(target);
+  applyPostSlideFitToRoot(target);
+  pinHoldFitTransform(target);
+  flushAnimationState(target);
+  if (options?.flattenReveals) {
+    setPostExportCapturing(true);
+  }
+  await waitForPaint(false);
   const canvas = await toCanvas(target, exportOptions);
+  if (options?.flattenReveals) {
+    setPostExportCapturing(false);
+  }
   return canvasToJpegBlob(canvas);
 }
 
@@ -234,9 +244,7 @@ async function buildSlideSchedule(
     seekAmbientAnimations(target, settledMs);
     applyPostSlideFitToRoot(target);
     pinHoldFitTransform(target);
-    setPostExportCapturing(true);
-    const holdBlob = await captureFrameBlob(target, exportOptions);
-    setPostExportCapturing(false);
+    const holdBlob = await captureFrameBlob(target, exportOptions, { flattenReveals: true });
     schedule.push({ blob: holdBlob, repeat: holdFrames });
     rendered += holdFrames;
     onRenderProgress(rendered, totalFrames);

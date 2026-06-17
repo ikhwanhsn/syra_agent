@@ -11,11 +11,16 @@ import { resolveLpExperimentStrategies, resolveLpStrategyById } from "./lpExperi
 import { fetchMeteoraPoolDetail, fetchMeteoraPoolPages, fetchMeteoraPools } from "./meteoraDlmmClient.js";
 import { isSolMint } from "./meteoraDlmmExecutor.js";
 import { scorePool } from "./lpExperimentScoring.js";
+import { derivePoolSignals } from "./lpPoolSignalsSynthetic.js";
+import { enrichPoolsWithRealSignals } from "./lpRealSignals.js";
+import { passesRealTokenSafety } from "./lpRealTokenSafety.js";
 import {
   getLpRealMaxFeeTvlRatio,
   getLpRealMaxVolTvlRatio,
   getLpRealMinTvlUsd,
+  getLpRealMinValidatedSimRuns,
   getLpRealMinVol24hUsd,
+  getLpRealUseRealSignals,
 } from "../config/lpRealAgentAccess.js";
 import {
   applyRiskAdjustedFeeMultiplier,
@@ -119,53 +124,7 @@ export async function fetchSolPriceUsd() {
   return cachedSolPrice.value || 150;
 }
 
-/** Deterministic pool fingerprint — avoids random sim boosts that mislead real strategy selection. */
-function poolFingerprint(pool) {
-  const key = String(pool.poolAddress || pool.poolName || "");
-  let h = 0;
-  for (let i = 0; i < key.length; i += 1) {
-    h = (h * 31 + key.charCodeAt(i)) >>> 0;
-  }
-  return (h % 10_000) / 10_000;
-}
-
-/**
- * Pool-derived signals only (no Math.random). Shared by sim lab and real agent scoring.
- */
-export function derivePoolSignals(pool) {
-  const feeTvl = toNum(pool.feeTvlRatio);
-  /** Signal formulas were tuned on Meteora percent points (0.448 = 0.448%/day). */
-  const feeTvlPts = feeTvl * 100;
-  const tvl = toNum(pool.tvlUsd);
-  const vol = toNum(pool.volume24hUsd);
-  const fp = poolFingerprint(pool);
-  const volTvlRatio = tvl > 0 ? vol / tvl : vol > 0 ? 8 : 0;
-  const volatilityScore = Math.max(0, Math.min(1, feeTvlPts * 6 + vol / 400_000 + volTvlRatio * 0.08));
-  const organicBase =
-    36 + feeTvlPts * 180 + Math.min(24, volTvlRatio * 2.6) + Math.min(8, tvl / 45_000);
-  const freshnessScore = Math.max(
-    0,
-    Math.min(1, Math.min(1, volTvlRatio / 6) * 0.65 + Math.max(0, 1 - tvl / 550_000) * 0.35),
-  );
-  return {
-    organicScore: Math.max(0, Math.min(100, organicBase + fp * 8)),
-    holderCount: Math.floor(400 + tvl / 200 + vol / 500),
-    mcapUsd: Math.floor(Math.max(120_000, tvl * (5 + fp * 4))),
-    smartWalletsPresent: (feeTvlPts > 0.04 || volTvlRatio > 2) && vol > 40_000,
-    narrativeScore: Math.max(1, Math.min(10, 4 + feeTvlPts * 12 + fp * 2)),
-    studyWinRate: Math.max(0.32, Math.min(0.72, 0.38 + feeTvlPts * 1.6 + fp * 0.12)),
-    hiveConsensus: Math.max(0.25, Math.min(0.95, 0.35 + feeTvlPts * 2.5 + fp * 0.2)),
-    volatilityScore,
-    freshnessScore,
-    volTvlRatio,
-    priceVsAthPct: Math.max(22, Math.min(92, 38 + volatilityScore * 48 + fp * 14)),
-  };
-}
-
-/** @deprecated use derivePoolSignals */
-function deriveSyntheticSignals(pool) {
-  return derivePoolSignals(pool);
-}
+export { derivePoolSignals } from "./lpPoolSignalsSynthetic.js";
 
 /**
  * @param {import("mongoose").LeanDocument<any>} run
@@ -706,7 +665,7 @@ async function fetchSimCandidatePools() {
 }
 
 /** Stricter pool filters for on-chain LP (reduces IL-heavy memecoin / thin pools). */
-export function passesRealPoolScreen(pool) {
+export function passesRealPoolScreen(pool, { tokenSignals = null } = {}) {
   const feeTvl = toNum(pool.feeTvlRatio);
   const tvl = toNum(pool.tvlUsd);
   const vol = toNum(pool.volume24hUsd);
@@ -735,6 +694,12 @@ export function passesRealPoolScreen(pool) {
   // Conservative grind: only low/medium risk tiers qualify for on-chain capital.
   if (rr.tier === "extreme" || rr.tier === "high") return false;
   if (rr.ratio < LP_MIN_REAL_RISK_REWARD_RATIO) return false;
+
+  if (tokenSignals) {
+    const safety = passesRealTokenSafety(tokenSignals);
+    if (!safety.pass) return false;
+  }
+
   return true;
 }
 
@@ -755,14 +720,28 @@ export async function getLpCandidatePools({ realMode = false } = {}) {
         hideLowTvl: true,
       })
     : await fetchSimCandidatePools();
-  const poolList = realMode
+
+  let poolList = realMode
     ? pools.filter((p) => passesRealPoolScreen(p) && isSolPairPool(p))
     : pools;
+
+  if (realMode && getLpRealUseRealSignals()) {
+    poolList = await enrichPoolsWithRealSignals(poolList, { maxPools: 48 });
+    poolList = poolList.filter((p) => passesRealPoolScreen(p, { tokenSignals: p }));
+  } else if (realMode) {
+    poolList = poolList.map((pool) => ({
+      ...pool,
+      ...derivePoolSignals(pool),
+      realSignalsAvailable: false,
+    }));
+  }
+
   const candidates = [];
   for (const strategy of strategies) {
     const scored = poolList.map((pool) => {
-      const synthetic = derivePoolSignals(pool);
-      const scoredRow = scorePool(strategy, { ...pool, ...synthetic });
+      const synthetic = realMode && pool.realSignalsAvailable ? pool : derivePoolSignals(pool);
+      const merged = { ...pool, ...synthetic };
+      const scoredRow = scorePool(strategy, merged);
       return {
         strategyId: strategy.id,
         strategyName: strategy.name,
@@ -779,6 +758,10 @@ export async function getLpCandidatePools({ realMode = false } = {}) {
         tvlUsd: pool.tvlUsd,
         volume24hUsd: pool.volume24hUsd,
         feeTvlRatio: pool.feeTvlRatio,
+        realSignalsAvailable: Boolean(pool.realSignalsAvailable),
+        tokenSafety: pool.realSignalsAvailable
+          ? passesRealTokenSafety(pool)
+          : { pass: true, reasons: [] },
       };
     });
     const top = scored
@@ -1338,7 +1321,51 @@ export async function rankLpExperimentStrategiesByNetPnl(experimentId) {
     });
 }
 
-function filterQualifiedRealStrategyRows(ranked) {
+async function countRealComparableSimDecisions(experimentId, strategyId) {
+  const minValidated = getLpRealMinValidatedSimRuns();
+  if (minValidated <= 0) return minValidated;
+
+  const runs = await LpExperimentRun.find({
+    experimentId,
+    strategyId,
+    status: { $in: ["closed_win", "closed_loss", "expired", "win", "loss"] },
+  })
+    .select("tvlUsd volume24hUsd feeTvlRatio baseMint quoteMint")
+    .sort({ resolvedAt: -1, updatedAt: -1 })
+    .limit(60)
+    .lean();
+
+  let count = 0;
+  for (const run of runs) {
+    const pool = {
+      tvlUsd: run.tvlUsd,
+      volume24hUsd: run.volume24hUsd,
+      feeTvlRatio: run.feeTvlRatio,
+      baseMint: run.baseMint,
+      quoteMint: run.quoteMint,
+    };
+    if (!isSolPairPool(pool)) continue;
+    if (!passesRealPoolScreen(pool)) continue;
+    count += 1;
+  }
+  return count;
+}
+
+async function applyRealShadowGate(rows, experimentId) {
+  const minValidated = getLpRealMinValidatedSimRuns();
+  if (minValidated <= 0 || !experimentId) return rows;
+
+  const validated = [];
+  for (const row of rows) {
+    const comparable = await countRealComparableSimDecisions(experimentId, row.strategyId);
+    if (comparable >= minValidated) {
+      validated.push({ ...row, realValidatedSimRuns: comparable });
+    }
+  }
+  return validated.length > 0 ? validated : [];
+}
+
+async function filterQualifiedRealStrategyRows(ranked, experimentId) {
   const eligible = ranked.filter((row) => isLpRealEligibleStrategyId(row.strategyId));
 
   const qualified = eligible.filter(
@@ -1348,7 +1375,9 @@ function filterQualifiedRealStrategyRows(ranked) {
       (row.winRate ?? 0) >= LP_REAL_MIN_WIN_RATE,
   );
   if (qualified.length > 0) {
-    return [...qualified].sort((a, b) => b.realLeaderScore - a.realLeaderScore);
+    const sorted = [...qualified].sort((a, b) => b.realLeaderScore - a.realLeaderScore);
+    const shadowed = await applyRealShadowGate(sorted, experimentId);
+    return shadowed.length > 0 ? shadowed : sorted;
   }
 
   if (
@@ -1356,21 +1385,25 @@ function filterQualifiedRealStrategyRows(ranked) {
     eligible[0].decided < LP_REAL_MIN_DECIDED_FOR_PROFIT_GATE &&
     eligible[0].sumNetPnlSol >= 0
   ) {
-    return [eligible[0]];
+    const warming = [eligible[0]];
+    const shadowed = await applyRealShadowGate(warming, experimentId);
+    return shadowed.length > 0 ? shadowed : warming;
   }
 
   const warming = eligible.filter(
     (row) => row.sumNetPnlSol > 0 && row.decided >= 6 && (row.winRate ?? 0) >= 0.55,
   );
   if (warming.length > 0) {
-    return [...warming].sort((a, b) => b.realLeaderScore - a.realLeaderScore);
+    const sorted = [...warming].sort((a, b) => b.realLeaderScore - a.realLeaderScore);
+    const shadowed = await applyRealShadowGate(sorted, experimentId);
+    return shadowed.length > 0 ? shadowed : sorted;
   }
 
   return [];
 }
 
-function selectProfitableStrategyLeader(ranked) {
-  const qualified = filterQualifiedRealStrategyRows(ranked);
+async function selectProfitableStrategyLeader(ranked, experimentId) {
+  const qualified = await filterQualifiedRealStrategyRows(ranked, experimentId);
   return qualified[0] ?? null;
 }
 
@@ -1379,8 +1412,11 @@ function selectProfitableStrategyLeader(ranked) {
  * @param {Awaited<ReturnType<typeof rankLpExperimentStrategiesByNetPnl>>} ranked
  * @param {{ maxCount?: number }} [opts]
  */
-export async function selectQualifiedStrategiesForReal(ranked, { maxCount = 8 } = {}) {
-  const rows = filterQualifiedRealStrategyRows(ranked).slice(0, Math.max(1, maxCount));
+export async function selectQualifiedStrategiesForReal(ranked, { maxCount = 8, experimentId = null } = {}) {
+  const expId =
+    experimentId ??
+    (await getSingletonStateDoc().then((s) => s?.activeExperimentId ?? null).catch(() => null));
+  const rows = (await filterQualifiedRealStrategyRows(ranked, expId)).slice(0, Math.max(1, maxCount));
   const out = [];
   for (const stats of rows) {
     if (!isLpRealEligibleStrategyId(stats.strategyId)) continue;
@@ -1420,7 +1456,7 @@ export async function pickBestNetPnlStrategy() {
     return { strategy: null, stats: null, failureReason: "no_best_strategy", ranked };
   }
 
-  const selected = selectProfitableStrategyLeader(ranked);
+  const selected = await selectProfitableStrategyLeader(ranked, experimentId);
   if (!selected) {
     return { strategy: null, stats: null, failureReason: "no_profitable_strategy", ranked };
   }

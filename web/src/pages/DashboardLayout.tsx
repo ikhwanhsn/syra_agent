@@ -10,9 +10,9 @@ import {
   Crosshair,
   FileSearch,
   LayoutDashboard,
-  Bot,
   UsersRound,
   TrendingUp,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SidebarPanelToggle } from "@/components/layout/SidebarPanelToggle";
@@ -104,6 +104,7 @@ function dashboardPageTitle(pathname: string, search: string): string {
   if (parts[0] === "alpha") return "Alpha";
   if (parts[0] === "assets" && parts[1]) return "Asset detail";
   if (parts[0] === "assets") return "Assets";
+  if (parts[0] === "pumpfun") return "Pumpfun Alpha";
   if (parts[0] === "pumpfun-experiment") return "Pumpfun experiment";
   if (parts[0] === "rise-experiment") return "Rise experiment";
   if (parts[0] === "trading-experiment") return "Trading experiment";
@@ -153,9 +154,6 @@ function DashboardSidebarContent({
           <SidebarNavLink to="/overview" icon={LayoutDashboard} end>
             Overview
           </SidebarNavLink>
-          <SidebarNavLink to="/agents" icon={Bot} end>
-            Agents
-          </SidebarNavLink>
 
           <SidebarDivider className="my-2" />
 
@@ -169,6 +167,14 @@ function DashboardSidebarContent({
             matchActive={(pathname) => pathname.startsWith("/assets")}
           >
             Assets
+          </SidebarNavLink>
+          <SidebarNavLink
+            to="/pumpfun"
+            icon={Search}
+            end
+            matchActive={(pathname) => pathname.startsWith("/pumpfun") && !pathname.startsWith("/pumpfun-experiment")}
+          >
+            Pumpfun Alpha
           </SidebarNavLink>
 
           <SidebarDivider className="my-2" />

@@ -63,6 +63,41 @@ export type AgentChartSeriesOpts = {
 };
 
 /**
+ * pump.fun swap-api USD candles (bonding curve + graduated) via Syra API proxy.
+ */
+async function fetchPumpfunUsdSeriesFromApi(
+  mint: string,
+  range: PumpChartRange,
+  signal?: AbortSignal,
+): Promise<{ time: number; value: number }[]> {
+  const trimmed = mint.trim();
+  if (!trimmed) return [];
+
+  const base = getApiBaseUrl().replace(/\/$/, "");
+  const qs = new URLSearchParams({ mint: trimmed, range });
+  const url = `${base}/agent/chart/pumpfun?${qs}`;
+  try {
+    const res = await fetch(url, { signal, headers: { Accept: "application/json" } });
+    if (!res.ok) return [];
+    const data: unknown = await res.json().catch(() => null);
+    if (!isRecord(data) || data.success !== true || !Array.isArray(data.points)) return [];
+    const out: { time: number; value: number }[] = [];
+    for (const p of data.points) {
+      if (!isRecord(p)) continue;
+      const t = p.time;
+      const v = p.value;
+      if (typeof t !== "number" || typeof v !== "number" || !Number.isFinite(t) || !Number.isFinite(v) || v <= 0) {
+        continue;
+      }
+      out.push({ time: t, value: v });
+    }
+    return out.sort((a, b) => a.time - b.time);
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Primary path: Syra API proxies CoinGecko `/coins/{id}/ohlc` (USD).
  */
 async function fetchCoinGeckoUsdSeriesFromApi(
@@ -278,6 +313,11 @@ export async function fetchAgentChartUsdSeries(
 
   const primary = await fetchCoinGeckoUsdSeriesFromApi({ mint: mint || undefined, coinId: coinId || undefined }, range, signal);
   if (primary.length > 0) return primary;
+
+  if (mint) {
+    const pumpfun = await fetchPumpfunUsdSeriesFromApi(mint, range, signal);
+    if (pumpfun.length > 0) return pumpfun;
+  }
 
   if (!mint) return [];
 

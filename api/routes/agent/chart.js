@@ -5,6 +5,7 @@
  */
 import express from 'express';
 import { getCoingeckoDataApiBaseUrl, coingeckoDataApiHeaders } from '../../utils/coingeckoAPI.js';
+import { fetchPumpfunChartSeries } from '../../libs/pumpfunChartService.js';
 
 const WSOL_MINT = 'So11111111111111111111111111111111111111112';
 
@@ -46,6 +47,30 @@ function normalizeCoinIdParam(raw) {
 
 export function createAgentChartRouter() {
   const router = express.Router();
+
+  router.get('/pumpfun', async (req, res) => {
+    const mint = typeof req.query.mint === 'string' ? req.query.mint.trim() : '';
+    const rangeRaw = typeof req.query.range === 'string' ? req.query.range.trim() : '1D';
+    const allowed = new Set(['1D', '1W', '1M', '1Y']);
+    const range = allowed.has(rangeRaw.toUpperCase()) ? rangeRaw.toUpperCase() : '1D';
+
+    if (!mint || mint.length < 32 || mint.length > 64) {
+      return res.status(400).json({ success: false, error: 'Provide a valid Solana mint via ?mint=' });
+    }
+
+    try {
+      const { points, source } = await fetchPumpfunChartSeries(mint, range);
+      return res.json({
+        success: true,
+        points,
+        source,
+        listed: points.length > 0,
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Pump.fun chart error';
+      return res.status(500).json({ success: false, error: msg });
+    }
+  });
 
   router.get('/ohlc', async (req, res) => {
     const mint = typeof req.query.mint === 'string' ? req.query.mint.trim() : '';

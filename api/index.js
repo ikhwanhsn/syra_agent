@@ -1403,6 +1403,15 @@ import("./utils/x402ResourceServer.js").then(
 app.listen(PORT, () => {
   startupInfo(`[syra-api] listening on port ${PORT}`);
 
+  import("./libs/solanaServerRpc.js")
+    .then(({ logSolanaRpcStartupProbe }) => logSolanaRpcStartupProbe())
+    .catch((e) =>
+      console.warn(
+        "[solanaServerRpc] startup probe load failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
+
   const LP_AGENT_SIGNAL_INTERVAL_MS = 120_000;
   const LP_AGENT_RESOLVE_INTERVAL_MS = 15_000;
   const legacyMs = Number(process.env.TRADING_EXPERIMENT_CRON_MS || 0);
@@ -1643,6 +1652,46 @@ app.listen(PORT, () => {
               err?.message || err,
             ),
           ),
+      );
+      setInterval(tick, evo.ms);
+    })
+    .catch(() => {});
+
+  import("./libs/lpRealEvolution.js")
+    .then(({ lpRealEvolutionConfigFromEnv, runLpRealEvolution }) => {
+      const evo = lpRealEvolutionConfigFromEnv();
+      if (!evo.enabled || evo.ms < 60_000) return;
+      const tick = runIfMongoConnected(() =>
+        import("./libs/lpRealService.js")
+          .then(({ isRealCronEnabled }) => {
+            if (!isRealCronEnabled()) return null;
+            return runLpRealEvolution();
+          })
+          .then((out) => {
+            if (!out || out.skipped) return;
+            startupVerbose("[LP real evolution]", out.summary || "completed");
+          })
+          .catch((err) => console.warn("[LP real evolution failed]", err?.message || err)),
+      );
+      setInterval(tick, evo.ms);
+    })
+    .catch(() => {});
+
+  import("./libs/lpRealEvolution.js")
+    .then(({ lpRealEvolutionConfigFromEnv, runLpRealEvolution }) => {
+      const evo = lpRealEvolutionConfigFromEnv();
+      if (!evo.enabled || evo.ms < 60_000) return;
+      const tick = runIfMongoConnected(() =>
+        import("./libs/lpRealService.js")
+          .then(({ isRealCronEnabled }) => {
+            if (!isRealCronEnabled()) return null;
+            return runLpRealEvolution();
+          })
+          .then((out) => {
+            if (!out || out.skipped) return;
+            startupVerbose("[LP real evolution]", out.summary || "completed");
+          })
+          .catch((err) => console.warn("[LP real evolution failed]", err?.message || err)),
       );
       setInterval(tick, evo.ms);
     })

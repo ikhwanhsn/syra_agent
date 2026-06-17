@@ -34,6 +34,7 @@ import {
   MAX_METEORA_POSITION_BINS,
   REAL_CLAIM_FEES_BEFORE_CLOSE_SOL,
   resolveAdaptiveExitRules,
+  shouldCloseByFastOor,
   shouldCloseByOor,
   strategyLikelyNeedsSidecarSwap,
 } from "./lpEconomicsModel.js";
@@ -60,12 +61,17 @@ import { fetchMeteoraPoolDetail } from "./meteoraDlmmClient.js";
 import {
   getLpRealCapitalUtilization,
   getLpRealDefaultTargetBankSol,
+  getLpRealDryRun,
   getLpRealFeeBufferSol,
   getLpRealMaxOpensPerTick,
   getLpRealMaxPositionCapSol,
   getLpRealMinDepositSol,
   getLpRealMinWalletWhileLiveSol,
+  getLpRealSafetyThresholds,
+  getLpRealStrictExits,
 } from "../config/lpRealAgentAccess.js";
+import { appendLpRealDecision, listLpRealDecisions } from "./lpRealDecisionLog.js";
+import { getLpRealEvolutionSnapshot, isPoolOnEvolutionCooldown } from "./lpRealEvolution.js";
 import { lpAnonymousIdFromChat } from "./agentWalletPurpose.js";
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
@@ -453,6 +459,7 @@ async function fetchSolPriceUsd() {
  */
 function evaluateRealPositionExit(position, detail, hoursElapsed, onChain = null) {
   const exit = position.exitRules || {};
+  const strictExits = getLpRealStrictExits();
   const priceDriftPct = computePriceDriftPct(toNum(position.entryPriceUsd), toNum(detail.currentPrice));
   const inRange = !isPositionOutOfRange(
     position.activeBinAtOpen,
@@ -476,7 +483,6 @@ function evaluateRealPositionExit(position, detail, hoursElapsed, onChain = null
     }),
   );
 
-  // Modeled fee yield with DLMM bin-share boost (aligned with the sim lab model).
   const baseFeeYieldPct = computeFeeYieldPct(feeTvlRatio, hoursElapsed);
   const feeShareMult = applyRiskAdjustedFeeMultiplier(
     computeDlmmFeeShareMultiplier({
@@ -492,18 +498,25 @@ function evaluateRealPositionExit(position, detail, hoursElapsed, onChain = null
     ? baseFeeYieldPct * feeShareMult
     : baseFeeYieldPct * feeShareMult * 0.25;
 
-  // Ground with real fees (claimed + unclaimed on-chain) when we have them.
   const depositSol = toNum(position.depositSol);
   const realFeeSol = toNum(position.realFeesClaimedSol, 0) + toNum(onChain?.unclaimedFeeSol, 0);
   const realFeeYieldPct = depositSol > 0 && realFeeSol > 0 ? (realFeeSol / depositSol) * 100 : 0;
-  const feeYieldPct =
-    realFeeYieldPct > 0 ? realFeeYieldPct : modeledFeeYieldPct;
+  const feeYieldPct = realFeeYieldPct > 0 ? realFeeYieldPct : modeledFeeYieldPct;
 
-  const netPnlPct = computeLpNetPnlPct(priceDriftPct, feeYieldPct, inRange, riskScore);
+  let netPnlPct = computeLpNetPnlPct(priceDriftPct, feeYieldPct, inRange, riskScore);
+
+  const positionValueSol = toNum(onChain?.positionValueSol, 0);
+  const realValuePnlPct =
+    strictExits && depositSol > 0 && positionValueSol > 0
+      ? ((positionValueSol + toNum(position.realFeesClaimedSol, 0) - depositSol) / depositSol) * 100
+      : null;
+  if (realValuePnlPct != null && Number.isFinite(realValuePnlPct)) {
+    netPnlPct = realValuePnlPct;
+  }
+
   const peakPnlPct = Math.max(toNum(position.peakPnlPct), netPnlPct);
   const winThresholdPct = LP_AGENT_EXPERIMENT_DEFAULTS.winThresholdPct;
 
-  // Fee-aware stop: only extend stop with *real* on-chain fees — never modeled optimism.
   const stopLossPct = toNum(exit.stopLossPct, -15);
   const feeOffsetPct = Math.min(Math.max(realFeeYieldPct, 0), Math.abs(stopLossPct) * 0.5);
   const effectiveStopPct = Math.max(
@@ -515,11 +528,20 @@ function evaluateRealPositionExit(position, detail, hoursElapsed, onChain = null
   let resolution = null;
   let finalStatus = "open";
 
-  if (priceDriftPct <= effectiveStopPct) {
+  const hardStopTriggered =
+    strictExits &&
+    realValuePnlPct != null &&
+    Number.isFinite(realValuePnlPct) &&
+    realValuePnlPct <= effectiveStopPct;
+
+  if (hardStopTriggered || priceDriftPct <= effectiveStopPct) {
     shouldClose = true;
     finalStatus = netPnlPct >= winThresholdPct ? "closed_win" : "closed_loss";
-    resolution = "stop_loss";
-  } else if (netPnlPct >= toNum(exit.takeProfitPct, 10)) {
+    resolution = hardStopTriggered ? "real_value_stop" : "stop_loss";
+  } else if (
+    netPnlPct >= toNum(exit.takeProfitPct, 10) &&
+    (!strictExits || realFeeYieldPct > 0)
+  ) {
     shouldClose = true;
     finalStatus = "closed_win";
     resolution = "take_profit";
@@ -534,6 +556,10 @@ function evaluateRealPositionExit(position, detail, hoursElapsed, onChain = null
       shouldClose = true;
       finalStatus = netPnlPct >= winThresholdPct ? "closed_win" : "closed_loss";
       resolution = "trailing_stop";
+    } else if (strictExits && shouldCloseByFastOor(priceDriftPct, inRange)) {
+      shouldClose = true;
+      finalStatus = netPnlPct >= winThresholdPct ? "closed_win" : "closed_loss";
+      resolution = "fast_oor";
     } else if (shouldCloseByOor(position, detail, exit, hoursElapsed)) {
       shouldClose = true;
       finalStatus = netPnlPct >= winThresholdPct ? "closed_win" : "closed_loss";
@@ -545,7 +571,17 @@ function evaluateRealPositionExit(position, detail, hoursElapsed, onChain = null
     }
   }
 
-  return { shouldClose, resolution, finalStatus, netPnlPct, priceDriftPct, feeYieldPct, peakPnlPct };
+  return {
+    shouldClose,
+    resolution,
+    finalStatus,
+    netPnlPct,
+    priceDriftPct,
+    feeYieldPct,
+    realFeeYieldPct,
+    realValuePnlPct,
+    peakPnlPct,
+  };
 }
 
 /** Ensures sim lab is ready; per-agent LP real configs are created on demand. */
@@ -1086,6 +1122,13 @@ export async function getLpRealState({ viewerAnonymousId } = {}) {
   }
 
   let currentStrategy = null;
+  const [evolution, recentDecisions] = await Promise.all([
+    getLpRealEvolutionSnapshot().catch(() => null),
+    config?.experimentId
+      ? listLpRealDecisions({ experimentId: config.experimentId, limit: 12 }).catch(() => [])
+      : Promise.resolve([]),
+  ]);
+
   if (config.currentStrategyId != null) {
     const s = await resolveLpStrategyById(config.currentStrategyId);
     if (s) {
@@ -1138,6 +1181,28 @@ export async function getLpRealState({ viewerAnonymousId } = {}) {
     canTurnOn,
     canOpenNewPositions,
     isOperator,
+    safetyThresholds: getLpRealSafetyThresholds(),
+    evolution,
+    recentDecisions,
+  };
+}
+
+export async function getLpRealObservability({ viewerAnonymousId } = {}) {
+  const wallet = viewerAnonymousId ? await getViewerAgentWallet(viewerAnonymousId) : null;
+  const config = wallet ? await getOrCreateConfigForWallet(wallet, { createIfMissing: false }) : null;
+  const experimentId = config?.experimentId;
+  const [evolution, decisions] = await Promise.all([
+    getLpRealEvolutionSnapshot(),
+    listLpRealDecisions({
+      experimentId: experimentId ?? undefined,
+      agentAddress: config?.agentAddress,
+      limit: 40,
+    }),
+  ]);
+  return {
+    safetyThresholds: getLpRealSafetyThresholds(),
+    evolution,
+    decisions,
   };
 }
 
@@ -1415,6 +1480,29 @@ async function attemptOpenLpRealPosition({
 
   if (!poolCandidate) {
     skipped.push({ reason: "no_candidate", strategyId: leaderId, rankedTried: rankedIds.length });
+    await appendLpRealDecision({
+      experimentId: config.experimentId,
+      agentAddress: config.agentAddress,
+      action: "no_deploy",
+      strategyId: leaderId,
+      summary: "No eligible pool after real screening",
+      reason: "no_candidate",
+    });
+    return { opened: false, stop: false };
+  }
+
+  if (await isPoolOnEvolutionCooldown(poolCandidate.poolAddress)) {
+    skipped.push({ reason: "evolution_pool_cooldown", pool: poolCandidate.poolAddress });
+    await appendLpRealDecision({
+      experimentId: config.experimentId,
+      agentAddress: config.agentAddress,
+      action: "skip",
+      poolAddress: poolCandidate.poolAddress,
+      poolName: poolCandidate.poolName,
+      strategyId: leaderId,
+      summary: "Pool on evolution cooldown after repeated real losses",
+      reason: "evolution_pool_cooldown",
+    });
     return { opened: false, stop: false };
   }
 
@@ -1488,6 +1576,18 @@ async function attemptOpenLpRealPosition({
       ...evDecision,
     });
     console.info("[lpReal] ev_skip", { reason: "risk_reward_below_threshold", ...evDecision });
+    await appendLpRealDecision({
+      experimentId: config.experimentId,
+      agentAddress: config.agentAddress,
+      action: "skip",
+      poolAddress: poolCandidate.poolAddress,
+      poolName: evDecision.poolName,
+      strategyId: strategy.id,
+      summary: "Skipped deploy — risk/reward below threshold",
+      reason: "risk_reward_below_threshold",
+      metrics: evDecision,
+      signals: poolCandidate.signalSnapshot,
+    });
     return { opened: false, stop: false };
   }
 
@@ -1497,10 +1597,39 @@ async function attemptOpenLpRealPosition({
       ...evDecision,
     });
     console.info("[lpReal] ev_skip", { reason: "fees_below_chain_costs", ...evDecision });
+    await appendLpRealDecision({
+      experimentId: config.experimentId,
+      agentAddress: config.agentAddress,
+      action: "skip",
+      poolAddress: poolCandidate.poolAddress,
+      poolName: evDecision.poolName,
+      strategyId: strategy.id,
+      summary: "Skipped deploy — expected fees below chain costs",
+      reason: "fees_below_chain_costs",
+      metrics: evDecision,
+      signals: poolCandidate.signalSnapshot,
+    });
     return { opened: false, stop: false };
   }
 
   console.info("[lpReal] ev_open", evDecision);
+
+  if (getLpRealDryRun()) {
+    await appendLpRealDecision({
+      experimentId: config.experimentId,
+      agentAddress: config.agentAddress,
+      action: "deploy",
+      poolAddress: poolCandidate.poolAddress,
+      poolName: evDecision.poolName,
+      strategyId: strategy.id,
+      summary: `[DRY RUN] Would deploy ${depositSol} SOL into ${evDecision.poolName}`,
+      reason: "dry_run",
+      metrics: evDecision,
+      signals: poolCandidate.signalSnapshot,
+    });
+    skipped.push({ reason: "dry_run", ...evDecision });
+    return { opened: false, stop: false };
+  }
 
   let sidecar = {};
   try {
@@ -1644,6 +1773,19 @@ async function attemptOpenLpRealPosition({
         openTxSig: recoveredSig,
         recoveredAfterTimeout: true,
       });
+      await appendLpRealDecision({
+        experimentId: config.experimentId,
+        agentAddress: config.agentAddress,
+        action: "deploy",
+        poolAddress: poolCandidate.poolAddress,
+        poolName: poolCandidate.poolName,
+        positionId: String(pending._id),
+        strategyId: strategy.id,
+        summary: `Deployed ${depositSol} SOL into ${poolCandidate.poolName} (recovered)`,
+        reason: "open_recovered",
+        metrics: evDecision,
+        signals: poolCandidate.signalSnapshot,
+      });
       await LpRealConfig.updateOne(agentFilter, { $set: { lastError: null, lastSignalAt: new Date() } });
       return { opened: true, stop: false };
     }
@@ -1759,6 +1901,19 @@ async function attemptOpenLpRealPosition({
     txSig: submit.signature,
     txSigs: submit.signatures,
   });
+  await appendLpRealDecision({
+    experimentId: config.experimentId,
+    agentAddress: config.agentAddress,
+    action: "deploy",
+    poolAddress: poolCandidate.poolAddress,
+    poolName: poolCandidate.poolName,
+    positionId: String(pending._id),
+    strategyId: strategy.id,
+    summary: `Deployed ${depositSol} SOL into ${poolCandidate.poolName}`,
+    reason: "open_confirmed",
+    metrics: evDecision,
+    signals: poolCandidate.signalSnapshot,
+  });
   return { opened: true, stop: false };
 }
 
@@ -1811,6 +1966,7 @@ async function runLpRealSignalCycleForConfig(config) {
     const pick = await pickBestStrategyWithReason();
     const qualified = await selectQualifiedStrategiesForReal(pick.ranked || [], {
       maxCount: Math.min(10, toNum(config.maxConcurrentPositions, 10)),
+      experimentId: config.experimentId,
     });
 
     if (qualified.length === 0) {
@@ -2260,6 +2416,25 @@ async function resolveLpRealPositionsForConfig(config, { forceCloseAll = false }
           },
         },
       );
+
+      await appendLpRealDecision({
+        experimentId: config.experimentId,
+        agentAddress: config.agentAddress,
+        action: "close",
+        poolAddress: position.poolAddress,
+        poolName: position.poolName,
+        positionId: String(position._id),
+        strategyId: position.strategyId,
+        summary: `Closed ${position.poolName} — ${finalStatus} (${exitEval.resolution})`,
+        reason: exitEval.resolution,
+        metrics: {
+          realNetPnlSol,
+          realNetPnlUsd,
+          netPnlPct: exitEval.netPnlPct,
+          priceDriftPct: exitEval.priceDriftPct,
+          realFeeYieldPct: exitEval.realFeeYieldPct,
+        },
+      });
 
       resolvedRows.push({
         positionId: String(position._id),

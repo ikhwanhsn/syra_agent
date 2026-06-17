@@ -33,6 +33,19 @@ export function isPostStudioAuthError(err: unknown): boolean {
   return false;
 }
 
+/** Errors where ship-log studio should read/write local fallback state instead of the API. */
+export function isPostStudioFallbackError(err: unknown): boolean {
+  if (isPostStudioAuthError(err)) return true;
+  if (err instanceof PostStudioApiError) {
+    return err.status === 503;
+  }
+  if (err instanceof TypeError) return true;
+  if (err instanceof Error) {
+    return /503|database unavailable|failed to fetch|networkerror|network error/i.test(err.message);
+  }
+  return false;
+}
+
 async function fetchPostStudioJson<T>(path: string, init?: RequestInit): Promise<T> {
   const url = `${getApiBaseUrl()}${path}`;
   const res = await fetch(url, { ...init, credentials: "include" });

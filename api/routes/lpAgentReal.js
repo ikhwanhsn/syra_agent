@@ -4,12 +4,14 @@ import { resolveLpViewerAnonymousId } from "../libs/agentWalletPurpose.js";
 import {
   disableLpReal,
   enableLpReal,
+  getLpRealObservability,
   getLpRealState,
   getLpRealSummary,
   listLpRealPositions,
   resolveLpRealPositions,
   runLpRealSignalCycle,
 } from "../libs/lpRealService.js";
+import { runLpRealEvolution } from "../libs/lpRealEvolution.js";
 
 function requireCronSecret(req, res, next) {
   const secret = (process.env.LP_AGENT_EXPERIMENT_CRON_SECRET || "").trim();
@@ -165,6 +167,35 @@ export function createLpAgentRealRouter() {
   router.post("/resolve-tick", requireCronSecret, async (_req, res) => {
     try {
       const data = await resolveLpRealPositions();
+      res.json({ success: true, data });
+    } catch (e) {
+      res.status(500).json({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  });
+
+  router.get("/observability", optionalWalletSession(), async (req, res) => {
+    try {
+      const queryAid =
+        typeof req.query.anonymousId === "string" && req.query.anonymousId.trim()
+          ? req.query.anonymousId.trim()
+          : null;
+      const viewerAnonymousId = resolveLpViewerAnonymousId(req.user ?? {}, queryAid);
+      const data = await getLpRealObservability({ viewerAnonymousId });
+      res.json({ success: true, data });
+    } catch (e) {
+      res.status(500).json({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  });
+
+  router.post("/evolve-tick", requireCronSecret, async (_req, res) => {
+    try {
+      const data = await runLpRealEvolution();
       res.json({ success: true, data });
     } catch (e) {
       res.status(500).json({

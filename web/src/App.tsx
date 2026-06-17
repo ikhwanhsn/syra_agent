@@ -6,8 +6,6 @@ import Alpha from "@/pages/Alpha";
 import ArbitrageExperiment from "@/pages/ArbitrageExperiment";
 import AssetDetailPage from "@/pages/AssetDetailPage";
 import AssetsPage from "@/pages/AssetsPage";
-import DashboardAgentDetail from "@/pages/DashboardAgentDetail";
-import DashboardAgents from "@/pages/DashboardAgents";
 import DashboardLayout from "@/pages/DashboardLayout";
 import DashboardOverview from "@/pages/DashboardOverview";
 import DashboardSettings from "@/pages/DashboardSettings";
@@ -27,6 +25,7 @@ import LpAgentExperiment from "@/pages/LpAgentExperiment";
 import LpAgentExperimentAgentProfile from "@/pages/LpAgentExperimentAgentProfile";
 import NotFound from "@/pages/NotFound";
 import PumpfunExperiment from "@/pages/PumpfunExperiment";
+import PumpfunAnalyzer from "@/pages/PumpfunAnalyzer";
 import RiseExperiment from "@/pages/RiseExperiment";
 import ShareableChatRoute from "@/pages/ShareableChatRoute";
 import TradingAgentExperiment from "@/pages/TradingAgentExperiment";
@@ -81,11 +80,11 @@ function AppRoutes() {
           <Route element={<DashboardLayoutRoute />}>
             <Route path="/overview" element={<DashboardOverview />} />
             <Route path="/agent-setup" element={<DashboardSettings />} />
-            <Route path="/agents" element={<DashboardAgents />} />
-            <Route path="/agents/:anonymousId" element={<DashboardAgentDetail />} />
+            <Route path="/agents/*" element={<Navigate to="/overview" replace />} />
             <Route path="/alpha" element={<Alpha />} />
             <Route path="/assets" element={<AssetsPage />} />
             <Route path="/assets/:assetKey" element={<AssetDetailPage />} />
+            <Route path="/pumpfun" element={<PumpfunAnalyzer />} />
             <Route path="/arbitrage-experiment" element={<ArbitrageExperiment />} />
             <Route path="/pumpfun-experiment" element={<PumpfunExperiment />} />
             <Route path="/rise-experiment" element={<RiseExperiment />} />

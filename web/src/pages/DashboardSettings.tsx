@@ -2,7 +2,6 @@
 import { Link, useNavigate } from "@/lib/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  ArrowUpRight,
   Bot,
   ExternalLink,
   Droplets,
@@ -41,7 +40,6 @@ import { useSyraAuth } from "@/contexts/SyraAuthContext";
 import { useAgentWallet } from "@/contexts/AgentWalletContext";
 import { useToast } from "@/hooks/use-toast";
 import { agentWalletApi } from "@/lib/chatApi";
-import { agentDetailPath } from "@/lib/agentWalletUi";
 import { DEFAULT_SYSTEM_PROMPT } from "@/lib/systemPrompt";
 import {
   LS_AGENT_DISPLAY_NAME,
@@ -445,14 +443,6 @@ export default function DashboardSettings({ embedded = false }: DashboardSetting
                 desks from your profile when you&apos;re ready to deploy capital.
               </p>
             </div>
-            {activeAgent ? (
-              <Button variant="outline" size="sm" className="shrink-0 rounded-xl gap-2" asChild>
-                <Link to={agentDetailPath(activeAgent.anonymousId)}>
-                  View profile
-                  <ArrowUpRight className="h-4 w-4" aria-hidden />
-                </Link>
-              </Button>
-            ) : null}
           </div>
         </header>
 
@@ -853,9 +843,6 @@ function AgentSetupSections({
       <div className="flex flex-wrap gap-3">
         <Button type="button" className="rounded-xl" onClick={onSave}>
           Save agent setup
-        </Button>
-        <Button type="button" variant="outline" className="rounded-xl" asChild>
-          <Link to={agentDetailPath(activeAgent.anonymousId)}>Open agent profile</Link>
         </Button>
       </div>
     </div>

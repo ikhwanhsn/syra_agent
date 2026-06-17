@@ -1,8 +1,22 @@
 import express from 'express';
 import { buildMintDossier } from '../../libs/tokensDossierService.js';
 import { buildAssetIntelligence } from '../../libs/assetIntelligenceService.js';
+import { buildMemecoinAnalysis } from '../../libs/memecoinAnalysisService.js';
+import {
+  getMemecoinAnalysisQuotaStatus,
+  tryConsumeMemecoinAnalysisScan,
+  buildMemecoinAnalysisDailyLimitMessage,
+} from '../../libs/memecoinAnalysisDailyLimit.js';
+import { optionalWalletSession } from '../../utils/requireSession.js';
 import { fetchAssetsBoard } from '../../libs/tokensBoardService.js';
 import { runTokensAgentTool } from '../../libs/tokensAgentService.js';
+
+/** @param {string} s */
+function isLikelySolanaMint(s) {
+  const t = typeof s === 'string' ? s.trim() : '';
+  if (t.length < 32 || t.length > 44) return false;
+  return /^[1-9A-HJ-NP-Za-km-z]+$/.test(t);
+}
 
 /** @param {unknown} raw */
 function normalizeSearchHit(raw) {
@@ -60,6 +74,7 @@ function extractSearchHits(body) {
  */
 export function createTokensDossierRouter() {
   const router = express.Router();
+  router.use(optionalWalletSession());
 
   router.get('/search', async (req, res) => {
     try {
@@ -146,6 +161,73 @@ export function createTokensDossierRouter() {
       return res.json({ success: true, data: result.data });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Asset intelligence failed';
+      return res.status(500).json({ success: false, error: message });
+    }
+  });
+
+  router.get('/memecoin-analysis/quota', async (req, res) => {
+    try {
+      const quota = await getMemecoinAnalysisQuotaStatus(req);
+      return res.json({ success: true, data: quota });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Quota check failed';
+      return res.status(500).json({ success: false, error: message });
+    }
+  });
+
+  router.get('/memecoin-analysis', async (req, res) => {
+    try {
+      const mint = typeof req.query.mint === 'string' ? req.query.mint.trim() : '';
+      if (!mint || !isLikelySolanaMint(mint)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Provide a valid Solana mint address via ?mint=',
+        });
+      }
+
+      const quota = await tryConsumeMemecoinAnalysisScan(req);
+      if (!quota.allowed) {
+        return res.status(429).json({
+          success: false,
+          error: buildMemecoinAnalysisDailyLimitMessage(quota),
+          quota: {
+            limit: quota.limit,
+            used: quota.used,
+            remaining: quota.remaining,
+            tier: quota.tier,
+            resetAt: quota.resetAt,
+          },
+        });
+      }
+
+      const result = await buildMemecoinAnalysis({ mint });
+      if (!result.ok) {
+        return res.status(result.status ?? 502).json({
+          success: false,
+          error: result.error || 'Memecoin analysis failed',
+          ...(result.partial && { partial: result.partial }),
+          quota: {
+            limit: quota.limit,
+            used: quota.used,
+            remaining: quota.remaining,
+            tier: quota.tier,
+            resetAt: quota.resetAt,
+          },
+        });
+      }
+      return res.json({
+        success: true,
+        data: result.data,
+        quota: {
+          limit: quota.limit,
+          used: quota.used,
+          remaining: quota.remaining,
+          tier: quota.tier,
+          resetAt: quota.resetAt,
+        },
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Memecoin analysis failed';
       return res.status(500).json({ success: false, error: message });
     }
   });

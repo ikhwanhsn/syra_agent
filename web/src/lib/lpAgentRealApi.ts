@@ -78,6 +78,42 @@ export interface LpRealState {
   canOpenNewPositions: boolean;
   /** True when signed-in session has an active Solana agent wallet. */
   isOperator: boolean;
+  safetyThresholds?: LpRealSafetyThresholds;
+  evolution?: LpRealEvolutionSnapshot | null;
+  recentDecisions?: LpRealDecisionLogEntry[];
+}
+
+export interface LpRealSafetyThresholds {
+  useRealSignals: boolean;
+  strictExits: boolean;
+  dryRun: boolean;
+  minHolders: number;
+  maxTop10Pct: number;
+  maxBotHoldersPct: number;
+  minMcapUsd: number;
+  maxMcapUsd: number;
+  blockedLaunchpads: string[];
+  minValidatedSimRuns: number;
+}
+
+export interface LpRealEvolutionSnapshot {
+  lessons: string[];
+  thresholdOverrides: Record<string, number>;
+  lastEvolutionAt: string | null;
+  lastEvolutionSummary: string | null;
+  closedPositionsAnalyzed: number;
+  safetyThresholds: LpRealSafetyThresholds;
+}
+
+export interface LpRealDecisionLogEntry {
+  _id?: string;
+  action: "deploy" | "close" | "skip" | "no_deploy" | "evolve";
+  poolAddress?: string | null;
+  poolName?: string | null;
+  strategyId?: number | null;
+  summary: string;
+  reason?: string | null;
+  createdAt?: string;
 }
 
 export interface LpRealSummary {
@@ -153,6 +189,15 @@ function lpRealQuery(anonymousId?: string | null): string {
   if (anonymousId?.trim()) q.set("anonymousId", anonymousId.trim());
   const qs = q.toString();
   return qs ? `?${qs}` : "";
+}
+
+export async function fetchLpRealObservability(anonymousId?: string | null): Promise<{
+  safetyThresholds: LpRealSafetyThresholds;
+  evolution: LpRealEvolutionSnapshot;
+  decisions: LpRealDecisionLogEntry[];
+}> {
+  const res = await syraFetch(`${base()}/observability${lpRealQuery(anonymousId)}`);
+  return parseJson(res);
 }
 
 export async function fetchLpRealState(anonymousId?: string | null): Promise<LpRealState> {

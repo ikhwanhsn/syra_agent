@@ -358,14 +358,35 @@ async function fetchOnChainPositionWithConnection(connection, positionPubkey, lb
   const activeBin = await dlmmPool.getActiveBin();
 
   let unclaimedFeeSol = 0;
+  let positionLiquiditySol = 0;
   try {
     const data = position?.positionData || position || {};
     const feeX = toNum(data.feeX?.toString?.() ?? data.feeX, 0);
     const feeY = toNum(data.feeY?.toString?.() ?? data.feeY, 0);
     const solIsX = isSolMint(dlmmPool.tokenX.publicKey.toBase58());
     const solIsY = isSolMint(dlmmPool.tokenY.publicKey.toBase58());
+    const decX = toNum(dlmmPool.tokenX?.decimal ?? dlmmPool.tokenX?.decimals, 9);
+    const decY = toNum(dlmmPool.tokenY?.decimal ?? dlmmPool.tokenY?.decimals, 9);
     if (solIsX) unclaimedFeeSol += feeX / LAMPORTS_PER_SOL;
     if (solIsY) unclaimedFeeSol += feeY / LAMPORTS_PER_SOL;
+
+    const binData = Array.isArray(data.positionBinData) ? data.positionBinData : [];
+    let totalX = 0;
+    let totalY = 0;
+    for (const bin of binData) {
+      totalX += toNum(bin.positionXAmount?.toString?.() ?? bin.positionXAmount, 0);
+      totalY += toNum(bin.positionYAmount?.toString?.() ?? bin.positionYAmount, 0);
+    }
+    const xHuman = totalX / 10 ** decX;
+    const yHuman = totalY / 10 ** decY;
+    const tokenPrice = toNum(activeBin.pricePerToken ?? activeBin.price, 0);
+    if (solIsX) {
+      const tokenSolEquiv = tokenPrice > 0 ? yHuman * tokenPrice : 0;
+      positionLiquiditySol = xHuman + tokenSolEquiv;
+    } else if (solIsY) {
+      const tokenSolEquiv = tokenPrice > 0 ? xHuman / Math.max(tokenPrice, 1e-12) : 0;
+      positionLiquiditySol = yHuman + tokenSolEquiv;
+    }
   } catch {
   }
 
@@ -374,6 +395,8 @@ async function fetchOnChainPositionWithConnection(connection, positionPubkey, lb
     activeBinId: activeBin.binId,
     currentPrice: toNum(activeBin.pricePerToken ?? activeBin.price, 0),
     unclaimedFeeSol,
+    positionLiquiditySol,
+    positionValueSol: positionLiquiditySol + unclaimedFeeSol,
     lbPairAddress,
   };
 }

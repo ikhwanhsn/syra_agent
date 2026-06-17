@@ -12,10 +12,13 @@ function envNum(key, fallback) {
 }
 
 /** Real LP: minimum minutes in-range before OOR exit is allowed (collect fees first). */
-export const REAL_MIN_HOLD_MINUTES = envNum("LP_AGENT_REAL_MIN_HOLD_MINUTES", 120);
+export const REAL_MIN_HOLD_MINUTES = envNum("LP_AGENT_REAL_MIN_HOLD_MINUTES", 20);
 
-/** Real LP: floor on strategy oorWaitMin — avoids 15–20m churn seen in production. */
-export const REAL_MIN_OOR_WAIT_MIN = envNum("LP_AGENT_REAL_MIN_OOR_WAIT_MIN", 90);
+/** Real LP: floor on strategy oorWaitMin — faster OOR rotation on mainnet. */
+export const REAL_MIN_OOR_WAIT_MIN = envNum("LP_AGENT_REAL_MIN_OOR_WAIT_MIN", 12);
+
+/** Deep OOR price drift (%): exit immediately regardless of OOR timers when strict exits enabled. */
+export const REAL_FAST_OOR_DRIFT_PCT = envNum("LP_AGENT_REAL_FAST_OOR_DRIFT_PCT", -12);
 
 /** Real LP: minimum bins each side after overrides (wider = fewer OOR exits). */
 export const REAL_MIN_BINS_PER_SIDE = envNum("LP_AGENT_REAL_MIN_BINS_PER_SIDE", 34);
@@ -321,6 +324,16 @@ export function shouldCloseByOor(position, detail, exitRules, hoursElapsed) {
   const minHoldMin = toNum(exitRules?.minHoldMin, REAL_MIN_HOLD_MINUTES);
   if (hoursElapsed * 60 < minHoldMin) return false;
   return hoursElapsed * 60 >= toNum(exitRules?.oorWaitMin, REAL_MIN_OOR_WAIT_MIN);
+}
+
+/**
+ * Fast OOR exit when price has drifted far beyond the bin range (operator-grade cut).
+ * @param {number} priceDriftPct
+ * @param {boolean} inRange
+ */
+export function shouldCloseByFastOor(priceDriftPct, inRange) {
+  if (inRange) return false;
+  return priceDriftPct <= -Math.abs(REAL_FAST_OOR_DRIFT_PCT);
 }
 
 /** Single-sided LP shapes often require a Jupiter sidecar swap before open. */

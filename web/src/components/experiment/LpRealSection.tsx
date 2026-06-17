@@ -239,6 +239,9 @@ export function LpRealSection() {
   const hasLivePositions = livePositionsCountQ.isSuccess
     ? livePositionsCount > 0
     : liveOnCurrentPage > 0;
+  const recentDecisions = lpState?.recentDecisions ?? [];
+  const evolution = lpState?.evolution;
+  const safetyThresholds = lpState?.safetyThresholds;
   const positionTotalPages = Math.max(1, Math.ceil(positionTotal / POSITION_PAGE_SIZE));
   const safePositionPage = Math.min(positionPage, positionTotalPages);
 
@@ -323,7 +326,7 @@ export function LpRealSection() {
                 Fund it with at least {formatSolWithUsd(minEntry, refSolUsd)} to start earning fees.
               </p>
               <Button type="button" variant="outline" size="sm" className="mt-5 rounded-xl" asChild>
-                <Link to="/agents">
+                <Link to="/wallet">
                   Create wallet
                   <ArrowUpRight className="ml-1.5 h-3.5 w-3.5" aria-hidden />
                 </Link>
@@ -483,6 +486,77 @@ export function LpRealSection() {
                     ) : null}
                   </div>
                 )}
+              </div>
+            ) : null}
+
+            {(recentDecisions.length > 0 || evolution?.lessons?.length || safetyThresholds) ? (
+              <div className="space-y-4 border-t border-border/40 px-5 py-6 sm:px-8">
+                <div className="space-y-1">
+                  <h3 className="text-sm font-semibold text-foreground">Agent intelligence</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Real-data screening, exit discipline, and lessons from closed positions.
+                  </p>
+                </div>
+
+                {safetyThresholds ? (
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="outline" className="text-[11px]">
+                      Real signals: {safetyThresholds.useRealSignals ? "on" : "off"}
+                    </Badge>
+                    <Badge variant="outline" className="text-[11px]">
+                      Strict exits: {safetyThresholds.strictExits ? "on" : "off"}
+                    </Badge>
+                    {safetyThresholds.dryRun ? (
+                      <Badge variant="outline" className="text-[11px] text-amber-700 dark:text-amber-300">
+                        Dry run
+                      </Badge>
+                    ) : null}
+                    <Badge variant="outline" className="text-[11px]">
+                      Min holders: {safetyThresholds.minHolders}
+                    </Badge>
+                    <Badge variant="outline" className="text-[11px]">
+                      Max top-10: {safetyThresholds.maxTop10Pct}%
+                    </Badge>
+                  </div>
+                ) : null}
+
+                {evolution?.lessons?.length ? (
+                  <div className="rounded-2xl border border-border/50 bg-background/35 px-4 py-3">
+                    <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Lessons
+                    </p>
+                    <ul className="space-y-1.5 text-sm text-foreground/90">
+                      {evolution.lessons.slice(0, 4).map((lesson) => (
+                        <li key={lesson} className="leading-snug">
+                          {lesson}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                {recentDecisions.length > 0 ? (
+                  <div className="rounded-2xl border border-border/50 bg-background/35 px-4 py-3">
+                    <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Recent decisions
+                    </p>
+                    <ul className="space-y-2">
+                      {recentDecisions.slice(0, 6).map((row) => (
+                        <li key={row._id ?? `${row.summary}-${row.createdAt}`} className="text-sm">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant="secondary" className="text-[10px] uppercase">
+                              {row.action}
+                            </Badge>
+                            {row.reason ? (
+                              <span className="text-[11px] text-muted-foreground">{row.reason}</span>
+                            ) : null}
+                          </div>
+                          <p className="mt-0.5 leading-snug text-foreground/90">{row.summary}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </div>

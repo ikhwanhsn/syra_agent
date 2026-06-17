@@ -22,7 +22,6 @@ const sections = [
 function isDashboardRoute(pathname: string): boolean {
   return [
     "/overview",
-    "/agents",
     "/agent-setup",
     "/trading-experiment",
     "/vibe-trading",
@@ -31,6 +30,7 @@ function isDashboardRoute(pathname: string): boolean {
     "/lp-experiment",
     "/alpha",
     "/assets",
+    "/pumpfun",
     "/pumpfun-experiment",
     "/rise-experiment",
     INTERNAL_BASE_PATH,

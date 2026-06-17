@@ -86,3 +86,89 @@ export function getLpRealMaxFeeTvlRatio() {
   const n = Number(process.env.LP_AGENT_REAL_MAX_FEE_TVL_RATIO || LP_REAL_DEFAULT_MAX_FEE_TVL_RATIO);
   return Number.isFinite(n) && n > 0 ? n : LP_REAL_DEFAULT_MAX_FEE_TVL_RATIO;
 }
+
+/** Meridian-style token safety defaults (mirrors Agent Meridian user-config). */
+export const LP_REAL_DEFAULT_MIN_HOLDERS = 500;
+export const LP_REAL_DEFAULT_MAX_TOP10_PCT = 60;
+export const LP_REAL_DEFAULT_MAX_BOT_HOLDERS_PCT = 30;
+export const LP_REAL_DEFAULT_MIN_MCAP_USD = 150_000;
+export const LP_REAL_DEFAULT_MAX_MCAP_USD = 10_000_000;
+
+function envFlagOn(key, defaultOn = true) {
+  const raw = (process.env[key] || "").trim().toLowerCase();
+  if (!raw) return defaultOn;
+  return raw === "true" || raw === "1" || raw === "on" || raw === "yes";
+}
+
+/** Use real on-chain/API signals instead of synthetic derivePoolSignals (default on). */
+export function getLpRealUseRealSignals() {
+  return envFlagOn("LP_AGENT_REAL_USE_REAL_SIGNALS", true);
+}
+
+/** Stricter exit discipline: real fees for TP, faster OOR, on-chain value stop (default on). */
+export function getLpRealStrictExits() {
+  return envFlagOn("LP_AGENT_REAL_STRICT_EXITS", true);
+}
+
+/** Dry-run: run screening/decisions but skip on-chain open/close (default off). */
+export function getLpRealDryRun() {
+  return envFlagOn("LP_AGENT_REAL_DRY_RUN", false);
+}
+
+export function getLpRealMinHolders() {
+  const n = Number(process.env.LP_AGENT_REAL_MIN_HOLDERS || LP_REAL_DEFAULT_MIN_HOLDERS);
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : LP_REAL_DEFAULT_MIN_HOLDERS;
+}
+
+export function getLpRealMaxTop10Pct() {
+  const n = Number(process.env.LP_AGENT_REAL_MAX_TOP10_PCT || LP_REAL_DEFAULT_MAX_TOP10_PCT);
+  return Number.isFinite(n) && n > 0 ? n : LP_REAL_DEFAULT_MAX_TOP10_PCT;
+}
+
+export function getLpRealMaxBotHoldersPct() {
+  const n = Number(process.env.LP_AGENT_REAL_MAX_BOT_HOLDERS_PCT || LP_REAL_DEFAULT_MAX_BOT_HOLDERS_PCT);
+  return Number.isFinite(n) && n >= 0 ? n : LP_REAL_DEFAULT_MAX_BOT_HOLDERS_PCT;
+}
+
+export function getLpRealMinMcapUsd() {
+  const n = Number(process.env.LP_AGENT_REAL_MIN_MCAP_USD || LP_REAL_DEFAULT_MIN_MCAP_USD);
+  return Number.isFinite(n) && n >= 0 ? n : LP_REAL_DEFAULT_MIN_MCAP_USD;
+}
+
+export function getLpRealMaxMcapUsd() {
+  const n = Number(process.env.LP_AGENT_REAL_MAX_MCAP_USD || LP_REAL_DEFAULT_MAX_MCAP_USD);
+  return Number.isFinite(n) && n > 0 ? n : LP_REAL_DEFAULT_MAX_MCAP_USD;
+}
+
+export function getLpRealBlockedLaunchpads() {
+  const raw = (process.env.LP_AGENT_REAL_BLOCKED_LAUNCHPADS || "").trim();
+  if (!raw) return [];
+  return raw.split(",").map((s) => s.trim()).filter(Boolean);
+}
+
+/** Min sim runs that pass real pool screen before strategy can deploy live capital. */
+export function getLpRealMinValidatedSimRuns() {
+  const n = Number(process.env.LP_AGENT_REAL_MIN_REAL_VALIDATED || 3);
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 3;
+}
+
+/** Real evolution: min closed positions before threshold nudge. */
+export function getLpRealEvolutionMinClosed() {
+  const n = Number(process.env.LP_AGENT_REAL_EVOLUTION_MIN_CLOSED || 10);
+  return Number.isFinite(n) && n >= 5 ? Math.floor(n) : 10;
+}
+
+export function getLpRealSafetyThresholds() {
+  return {
+    useRealSignals: getLpRealUseRealSignals(),
+    strictExits: getLpRealStrictExits(),
+    dryRun: getLpRealDryRun(),
+    minHolders: getLpRealMinHolders(),
+    maxTop10Pct: getLpRealMaxTop10Pct(),
+    maxBotHoldersPct: getLpRealMaxBotHoldersPct(),
+    minMcapUsd: getLpRealMinMcapUsd(),
+    maxMcapUsd: getLpRealMaxMcapUsd(),
+    blockedLaunchpads: getLpRealBlockedLaunchpads(),
+    minValidatedSimRuns: getLpRealMinValidatedSimRuns(),
+  };
+}

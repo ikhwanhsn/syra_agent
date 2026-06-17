@@ -162,10 +162,10 @@ function renderStatement(slide: PostStatementSlide, isActive: boolean): ReactNod
       return (
         <PostSlideLayout isActive={isActive} template={slide.layout} variant="stack">
           <PostReveal isActive={isActive} delayMs={0}>
-            <p className="post-slide-kicker">{slide.kicker}</p>
+            <p className="post-slide-kicker text-center">{slide.kicker}</p>
           </PostReveal>
           <PostReveal isActive={isActive} delayMs={100}>
-            <h2 className="post-slide-headline post-slide-headline--display post-slide-balance">{slide.headline}</h2>
+            <h2 className="post-slide-headline post-slide-headline--display post-slide-balance text-center">{slide.headline}</h2>
           </PostReveal>
           <PostReveal isActive={isActive} delayMs={220}>
             <p className="post-slide-copy post-slide-prose text-center">{slide.body}</p>
