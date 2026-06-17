@@ -1,5 +1,5 @@
 /**
- * S3Labs News Agent — pick the single hottest web3/crypto/developer headline (Bahasa Indonesia).
+ * S3Labs News Agent — pick the single hottest web3/crypto/developer headline (English).
  * Grounded only on provided article payloads; JSON-validated output.
  */
 
@@ -51,7 +51,7 @@ import {
 
 const VALID_CATEGORIES = new Set(["crypto", "web3", "developer"]);
 
-const CATEGORY_LABEL_ID = {
+const CATEGORY_LABEL = {
   crypto: "Crypto",
   web3: "Web3",
   developer: "Developer",
@@ -77,8 +77,8 @@ function articleToFallbackPick(article) {
     title: article.title.slice(0, 200),
     summary:
       article.description.slice(0, 220) ||
-      "Berita terbaru dari sumber terpercaya di ekosistem web3 dan teknologi.",
-    whyItMatters: "Isu ini sedang ramai dibahas dan berpotensi mempengaruhi pasar atau developer.",
+      "Latest headline from a trusted source in the web3 and technology ecosystem.",
+    whyItMatters: "This issue is trending and could affect markets or developers.",
     url: article.url,
     source: article.source,
   };
@@ -141,7 +141,7 @@ function buildFallbackOutput(articles, sourceStats) {
 }
 
 /**
- * Pick the single hottest headline for S3Labs Telegram (Bahasa Indonesia).
+ * Pick the single hottest headline for S3Labs Telegram (English).
  * @param {S3labsNewsAgentInput} input
  * @returns {Promise<S3labsNewsOutput>}
  */
@@ -172,32 +172,32 @@ export async function runS3labsNewsAgent(input) {
   const messages = [
     {
       role: "system",
-      content: `Kamu adalah kurator berita untuk komunitas S3Labs (web3, crypto, developer).
-Dari daftar artikel yang diberikan, pilih SATU berita TERPANAS (paling viral, dampak pasar/ekosistem besar, atau sangat relevan untuk builder).
+      content: `You curate news for the S3Labs community (web3, crypto, developer).
+From the article list provided, pick ONE HOTTEST story (most viral, largest market/ecosystem impact, or highly relevant for builders).
 
-Output HANYA JSON:
+Output ONLY JSON:
 {
   "pick": {
     "category": "crypto" | "web3" | "developer",
-    "title": string (judul dalam Bahasa Indonesia, natural),
-    "summary": string (2 kalimat ringkas dalam Bahasa Indonesia),
-    "whyItMatters": string (1 kalimat: mengapa komunitas harus tahu),
-    "url": string (harus persis dari artikel sumber),
+    "title": string (natural English headline),
+    "summary": string (2 concise English sentences),
+    "whyItMatters": string (1 sentence: why the community should know),
+    "url": string (must match source article exactly),
     "source": string,
-    "heatScore": number (0-1, estimasi seberapa panas beritanya)
+    "heatScore": number (0-1, estimated heat)
   }
 }
 
-Aturan:
-- Hanya SATU pick. Jangan kirim daftar.
-- Semua teks (title, summary, whyItMatters) dalam Bahasa Indonesia yang natural.
-- Jangan mengarang fakta di luar judul/deskripsi artikel.
-- Prioritaskan berita terbaru dan berdampak tinggi.
-- Tanpa markdown fence.`,
+Rules:
+- Only ONE pick. Do not return a list.
+- All text (title, summary, whyItMatters) in natural English.
+- Do not invent facts beyond article title/description.
+- Prioritize recent, high-impact news.
+- No markdown fence.`,
     },
     {
       role: "user",
-      content: JSON.stringify({ articles, instruction: "Pilih 1 berita terpanas saja." }),
+      content: JSON.stringify({ articles, instruction: "Pick exactly 1 hottest story." }),
     },
   ];
 
@@ -235,4 +235,4 @@ Aturan:
 }
 
 /** @type {Record<S3labsNewsCategory, string>} */
-export { CATEGORY_LABEL_ID };
+export { CATEGORY_LABEL };

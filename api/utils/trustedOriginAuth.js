@@ -74,7 +74,8 @@ export function isBrowserCallablePath(path) {
     path.startsWith("/streamflow-locks") ||
     path.startsWith("/staking") ||
     path.startsWith("/wallet") ||
-    path.startsWith("/post/studio")
+    path.startsWith("/post/studio") ||
+    path.startsWith("/kol")
   );
 }
 

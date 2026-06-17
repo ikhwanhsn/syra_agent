@@ -193,6 +193,53 @@ function normalizeTweet(tweetRaw) {
 
   const createdAt = extractCreatedAt(tweetRaw?.createdAt ?? tweetRaw?.created_at);
 
+  let inReplyToId = extractTweetId(
+    tweetRaw?.inReplyToId ??
+      tweetRaw?.in_reply_to_status_id ??
+      tweetRaw?.in_reply_to_status_id_str,
+  );
+  let quotedTweetId = extractTweetId(
+    tweetRaw?.quotedTweetId ??
+      tweetRaw?.quoted_status_id ??
+      tweetRaw?.quoted_status_id_str,
+  );
+
+  if (Array.isArray(tweetRaw?.referenced_tweets)) {
+    for (const ref of tweetRaw.referenced_tweets) {
+      if (!ref || typeof ref !== "object") continue;
+      const refObj = /** @type {Record<string, unknown>} */ (ref);
+      const refType = String(refObj.type ?? "").trim();
+      const refId = extractTweetId(refObj.id);
+      if (!refId) continue;
+      if (refType === "replied_to") inReplyToId = refId;
+      if (refType === "quoted") quotedTweetId = refId;
+    }
+  }
+
+  if (!quotedTweetId && tweetRaw?.quoted_status && typeof tweetRaw.quoted_status === "object") {
+    quotedTweetId = extractTweetId(
+      /** @type {Record<string, unknown>} */ (tweetRaw.quoted_status).id,
+    );
+  }
+
+  const quotedTweetRaw =
+    tweetRaw?.quoted_tweet ??
+    tweetRaw?.quotedTweet ??
+    tweetRaw?.quoteTweet;
+  if (!quotedTweetId && quotedTweetRaw && typeof quotedTweetRaw === "object") {
+    quotedTweetId = extractTweetId(
+      /** @type {Record<string, unknown>} */ (quotedTweetRaw).id ??
+        /** @type {Record<string, unknown>} */ (quotedTweetRaw).tweetId ??
+        /** @type {Record<string, unknown>} */ (quotedTweetRaw).tweet_id,
+    );
+  }
+
+  if (!inReplyToId && tweetRaw?.isReply === true) {
+    inReplyToId = extractTweetId(
+      tweetRaw?.inReplyToId ?? tweetRaw?.in_reply_to_status_id_str ?? tweetRaw?.conversationId,
+    );
+  }
+
   return {
     id,
     text,
@@ -206,6 +253,8 @@ function normalizeTweet(tweetRaw) {
       quoteCount,
       viewCount,
     },
+    inReplyToId,
+    quotedTweetId,
   };
 }
 
@@ -479,4 +528,32 @@ export async function getTrends(woeid = 1) {
     .filter(Boolean);
 
   return { trends, woeid: w, rawCount: trendsRaw.length, validatedCount: trends.length };
+}
+
+/**
+ * Fetch one or more tweets by ID.
+ * @param {string} tweetId
+ */
+export async function getTweetById(tweetId) {
+  const id = String(tweetId ?? "").trim();
+  if (!id) {
+    const err = new Error("tweetId is required");
+    err.code = "invalid_tweet_id";
+    throw err;
+  }
+
+  const body = await twitterApiIoGet("/twitter/tweets", { tweet_ids: id });
+  const rawTweets = extractTweetsArray(body);
+  const tweets = rawTweets
+    .map((t) => (t && typeof t === "object" ? normalizeTweet(/** @type {Record<string, unknown>} */ (t)) : null))
+    .filter(Boolean);
+
+  const tweet = tweets.find((t) => t.id === id) ?? tweets[0] ?? null;
+  if (!tweet) {
+    const err = new Error(`Tweet ${id} not found`);
+    err.code = "tweet_not_found";
+    throw err;
+  }
+
+  return { tweet };
 }

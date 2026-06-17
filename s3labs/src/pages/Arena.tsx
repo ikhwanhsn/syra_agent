@@ -17,9 +17,9 @@ import {
   MoreHorizontal,
   Trophy,
 } from "lucide-react";
-import { useLanguage } from "@/contexts/LanguageContext";
+
 import { ThemeProvider } from "@/contexts/ThemeContext";
-import { LanguageProvider } from "@/contexts/LanguageContext";
+
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ApplicationModal from "@/components/ApplicationModal";
@@ -323,12 +323,12 @@ function ArenaTablePagination({
     <div
       className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-t border-border/60 bg-muted/15 px-3 py-4 sm:px-4"
       role="navigation"
-      aria-label={t("Navigasi halaman tabel", "Table pagination")}
+      aria-label={"Table pagination"}
     >
       <p className="text-sm text-muted-foreground tabular-nums text-center sm:text-left order-2 sm:order-1">
         {totalCount === 0
-          ? t("Tidak ada baris", "No rows")
-          : t(`Menampilkan ${from}–${to} dari ${totalCount}`, `Showing ${from}–${to} of ${totalCount}`)}
+          ? "No rows"
+          : `Showing ${from}–${to} of ${totalCount}`}
       </p>
       <div className="flex flex-wrap items-center justify-center gap-1 order-1 sm:order-2">
         <Button
@@ -338,10 +338,10 @@ function ArenaTablePagination({
           className="h-9 gap-1 px-2.5"
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
-          aria-label={t("Halaman sebelumnya", "Previous page")}
+          aria-label={"Previous page"}
         >
           <ChevronLeft className="h-4 w-4 shrink-0" aria-hidden />
-          <span className="hidden sm:inline">{t("Sebelumnya", "Prev")}</span>
+          <span className="hidden sm:inline">{"Prev"}</span>
         </Button>
         <div className="flex items-center gap-0.5 mx-1">
           {visible.map((item, idx) =>
@@ -361,7 +361,7 @@ function ArenaTablePagination({
                 size="icon"
                 className={cn("h-9 w-9", item === page && "pointer-events-none")}
                 onClick={() => onPageChange(item)}
-                aria-label={t(`Halaman ${item}`, `Page ${item}`)}
+                aria-label={`Page ${item}`}
                 aria-current={item === page ? "page" : undefined}
               >
                 {item}
@@ -376,9 +376,9 @@ function ArenaTablePagination({
           className="h-9 gap-1 px-2.5"
           disabled={page >= totalPages}
           onClick={() => onPageChange(page + 1)}
-          aria-label={t("Halaman berikutnya", "Next page")}
+          aria-label={"Next page"}
         >
-          <span className="hidden sm:inline">{t("Berikutnya", "Next")}</span>
+          <span className="hidden sm:inline">{"Next"}</span>
           <ChevronRight className="h-4 w-4 shrink-0" aria-hidden />
         </Button>
       </div>
@@ -387,7 +387,6 @@ function ArenaTablePagination({
 }
 
 const ArenaPageContent = () => {
-  const { t } = useLanguage();
   const { theme } = useTheme();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [page, setPage] = useState(1);
@@ -470,7 +469,7 @@ const ArenaPageContent = () => {
                 className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary mb-6 transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
-                {t("Kembali ke beranda", "Back to home")}
+                {"Back to home"}
               </Link>
               <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
                 <div>
@@ -481,27 +480,24 @@ const ArenaPageContent = () => {
                     </span>
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
                       <Trophy className="w-3.5 h-3.5" aria-hidden />
-                      {t("Papan peringkat", "Leaderboard")}
+                      {"Leaderboard"}
                     </span>
                   </div>
                   <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3">
                     <span className="text-gradient">Arena</span>
                     <span className="text-foreground"> — </span>
                     <span className="text-foreground">
-                      {t("Ekosistem", "Ecosystem")}
+                      {"Ecosystem"}
                     </span>
                   </h1>
                   <p className="text-muted-foreground text-lg max-w-2xl">
-                    {t(
-                      "Peringkat proyek S3Labs berdasarkan metrik pasar (urutkan kolom sesuai kebutuhan). Data real-time dari DexScreener.",
-                      "S3Labs project rankings by market metrics — sort any column. Live data from DexScreener.",
-                    )}
+                    {"S3Labs project rankings by market metrics — sort any column. Live data from DexScreener."}
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                   {dataUpdatedAt > 0 && (
                     <span className="text-xs text-muted-foreground">
-                      {t("Diperbarui", "Updated")}{" "}
+                      {"Updated"}{" "}
                       {new Intl.DateTimeFormat(undefined, {
                         timeStyle: "short",
                         dateStyle: "short",
@@ -516,7 +512,7 @@ const ArenaPageContent = () => {
                     disabled={isFetching}
                   >
                     <RefreshCw className={cn("w-4 h-4", isFetching && "animate-spin")} />
-                    {t("Muat ulang", "Refresh")}
+                    {"Refresh"}
                   </Button>
                 </div>
               </div>
@@ -533,15 +529,15 @@ const ArenaPageContent = () => {
                   <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
                   <div>
                     <p className="font-medium text-foreground">
-                      {t("Gagal memuat data", "Could not load market data")}
+                      {"Could not load market data"}
                     </p>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {error instanceof Error ? error.message : t("Coba lagi.", "Please try again.")}
+                      {error instanceof Error ? error.message : "Please try again."}
                     </p>
                   </div>
                 </div>
                 <Button variant="outline" onClick={() => void refetch()}>
-                  {t("Coba lagi", "Retry")}
+                  {"Retry"}
                 </Button>
               </div>
             )}
@@ -561,9 +557,9 @@ const ArenaPageContent = () => {
                           sortDir={sort.dir}
                           onSort={handleSort}
                           className="min-w-[200px]"
-                          sortLabel={t("Urutkan kolom Proyek", "Sort by Project")}
+                          sortLabel={"Sort by Project"}
                         >
-                          {t("Proyek", "Project")}
+                          {"Project"}
                         </SortableTableHead>
                         <SortableTableHead
                           columnKey="price"
@@ -571,9 +567,9 @@ const ArenaPageContent = () => {
                           sortDir={sort.dir}
                           onSort={handleSort}
                           className="whitespace-nowrap"
-                          sortLabel={t("Urutkan kolom Harga", "Sort by Price")}
+                          sortLabel={"Sort by Price"}
                         >
-                          {t("Harga", "Price")}
+                          {"Price"}
                         </SortableTableHead>
                         <SortableTableHead
                           columnKey="change24"
@@ -581,7 +577,7 @@ const ArenaPageContent = () => {
                           sortDir={sort.dir}
                           onSort={handleSort}
                           className="whitespace-nowrap"
-                          sortLabel={t("Urutkan kolom perubahan 24 jam", "Sort by 24h change")}
+                          sortLabel={"Sort by 24h change"}
                         >
                           24h
                         </SortableTableHead>
@@ -591,7 +587,7 @@ const ArenaPageContent = () => {
                           sortDir={sort.dir}
                           onSort={handleSort}
                           className="whitespace-nowrap hidden md:table-cell"
-                          sortLabel={t("Urutkan kolom volume 24 jam", "Sort by 24h volume")}
+                          sortLabel={"Sort by 24h volume"}
                         >
                           Vol 24h
                         </SortableTableHead>
@@ -601,9 +597,9 @@ const ArenaPageContent = () => {
                           sortDir={sort.dir}
                           onSort={handleSort}
                           className="whitespace-nowrap hidden lg:table-cell"
-                          sortLabel={t("Urutkan kolom likuiditas", "Sort by Liquidity")}
+                          sortLabel={"Sort by Liquidity"}
                         >
-                          {t("Likuiditas", "Liquidity")}
+                          {"Liquidity"}
                         </SortableTableHead>
                         <SortableTableHead
                           columnKey="marketCap"
@@ -611,7 +607,7 @@ const ArenaPageContent = () => {
                           sortDir={sort.dir}
                           onSort={handleSort}
                           className="whitespace-nowrap hidden xl:table-cell"
-                          sortLabel={t("Urutkan kolom kapitalisasi pasar", "Sort by Market cap")}
+                          sortLabel={"Sort by Market cap"}
                         >
                           MCap
                         </SortableTableHead>
@@ -621,7 +617,7 @@ const ArenaPageContent = () => {
                           sortDir={sort.dir}
                           onSort={handleSort}
                           className="whitespace-nowrap hidden sm:table-cell"
-                          sortLabel={t("Urutkan kolom DEX", "Sort by DEX")}
+                          sortLabel={"Sort by DEX"}
                         >
                           DEX
                         </SortableTableHead>
@@ -632,9 +628,9 @@ const ArenaPageContent = () => {
                           onSort={handleSort}
                           className="text-right min-w-[120px]"
                           buttonClassName="w-full justify-end"
-                          sortLabel={t("Urutkan kolom tautan", "Sort by Links")}
+                          sortLabel={"Sort by Links"}
                         >
-                          {t("Tautan", "Links")}
+                          {"Links"}
                         </SortableTableHead>
                       </TableRow>
                     </TableHeader>
@@ -701,10 +697,7 @@ const ArenaPageContent = () => {
             </div>
 
             <p className="text-center text-xs text-muted-foreground mt-8 max-w-xl mx-auto">
-              {t(
-                "Data disediakan oleh DexScreener. Harga dan metrik dapat berubah setiap saat; ini bukan saran keuangan.",
-                "Data provided by DexScreener. Prices and metrics change frequently; not financial advice.",
-              )}
+              {"Data provided by DexScreener. Prices and metrics change frequently; not financial advice."}
             </p>
           </div>
         </main>
@@ -729,7 +722,6 @@ function ArenaRow({
   project: { name: string; mint: string };
   pair: DexScreenerPair | null;
 }) {
-  const { t } = useLanguage();
   const change24 = pair?.priceChange?.h24;
   const up = change24 !== undefined && change24 > 0;
   const down = change24 !== undefined && change24 < 0;
@@ -756,7 +748,7 @@ function ArenaRow({
         <Link
           to={detailHref}
           className="flex items-center gap-2 min-w-0 -m-2 p-2 rounded-xl hover:bg-muted/60 transition-colors group/detail focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          aria-label={t("Detail proyek", "Project details")}
+          aria-label={"Project details"}
         >
           <div className="flex items-center gap-3 min-w-0 flex-1">
             {imageUrl ? (
@@ -842,7 +834,7 @@ function ArenaRow({
           </Button>
         ) : (
           <span className="text-xs text-muted-foreground">
-            {t("Data tidak tersedia", "Data not available")}
+            {"Data not available"}
           </span>
         )}
       </TableCell>
@@ -852,10 +844,8 @@ function ArenaRow({
 
 const Arena = () => (
   <ThemeProvider>
-    <LanguageProvider>
-      <ArenaPageContent />
-    </LanguageProvider>
-  </ThemeProvider>
+    <ArenaPageContent />
+    </ThemeProvider>
 );
 
 export default Arena;

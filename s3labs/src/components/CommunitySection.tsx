@@ -1,37 +1,27 @@
-import { useLanguage } from "@/contexts/LanguageContext";
+
 import SectionHeader from "@/components/landing/SectionHeader";
 import { Button } from "@/components/ui/button";
 import { Send, MessageCircle, Calendar, Users } from "lucide-react";
 
 const TELEGRAM_COMMUNITY_URL = "https://t.me/s3labs";
 
-const CommunitySection = () => {
-  const { t } = useLanguage();
+const CommunitySection = () => {
 
   const perks = [
     {
       icon: MessageCircle,
-      title: t("Diskusi Langsung", "Direct Discussions"),
-      description: t(
-        "Berbagi ide dan bertanya dengan builder lain di ekosistem Solana.",
-        "Share ideas and ask questions with other builders in the Solana ecosystem.",
-      ),
+      title: "Direct Discussions",
+      description: "Share ideas and ask questions with other builders in the Solana ecosystem.",
     },
     {
       icon: Calendar,
-      title: t("Update Event", "Event Updates"),
-      description: t(
-        "Dapatkan info workshop, meetup, dan acara S3Labs lebih dulu.",
-        "Get early info on workshops, meetups, and S3Labs events.",
-      ),
+      title: "Event Updates",
+      description: "Get early info on workshops, meetups, and S3Labs events.",
     },
     {
       icon: Users,
-      title: t("Peluang Kolaborasi", "Collaboration Opportunities"),
-      description: t(
-        "Temukan partner dan kesempatan kolaborasi yang relevan.",
-        "Discover relevant partners and collaboration opportunities.",
-      ),
+      title: "Collaboration Opportunities",
+      description: "Discover relevant partners and collaboration opportunities.",
     },
   ];
 
@@ -43,19 +33,16 @@ const CommunitySection = () => {
 
       <div className="container relative z-10 max-w-6xl mx-auto">
         <SectionHeader
-          eyebrow={t("Komunitas", "Community")}
+          eyebrow={"Community"}
           title={
             <>
-              {t("Komunitas S3Labs", "S3Labs Community")}
+              {"S3Labs Community"}
               <span className="text-gradient block mt-1">
-                {t("di Telegram", "on Telegram")}
+                {"on Telegram"}
               </span>
             </>
           }
-          description={t(
-            "Gabung ke grup Telegram kami—tempat developer dan founder Solana berbagi, belajar, dan berkolaborasi.",
-            "Join our Telegram group—where Solana developers and founders share, learn, and collaborate.",
-          )}
+          description={"Join our Telegram group—where Solana developers and founders share, learn, and collaborate."}
         />
 
         <div className="grid md:grid-cols-3 gap-5 max-w-4xl mx-auto mb-12">
@@ -79,10 +66,7 @@ const CommunitySection = () => {
             <div className="absolute inset-0 bg-gradient-to-br from-primary/8 to-transparent pointer-events-none" />
             <div className="relative">
               <p className="text-sm text-muted-foreground mb-5 max-w-sm mx-auto">
-                {t(
-                  "Terbuka untuk developer, founder, dan siapa pun yang ingin membangun di Solana.",
-                  "Open for developers, founders, and anyone interested in building on Solana.",
-                )}
+                {"Open for developers, founders, and anyone interested in building on Solana."}
               </p>
               <Button asChild variant="hero" size="lg" className="btn-premium group">
                 <a
@@ -91,7 +75,7 @@ const CommunitySection = () => {
                   rel="noopener noreferrer"
                 >
                   <Send className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                  {t("Gabung di Telegram", "Join on Telegram")}
+                  {"Join on Telegram"}
                 </a>
               </Button>
             </div>

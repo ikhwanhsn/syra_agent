@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { Link } from "react-router-dom";
+
 import { useTheme } from "@/contexts/ThemeContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,17 +18,17 @@ const TELEGRAM_CONTACTS = [
 ];
 
 const Footer = () => {
-  const { t } = useLanguage();
+
   const { theme, toggleTheme } = useTheme();
   const [telegramOpen, setTelegramOpen] = useState(false);
 
   const navLinks = [
-    { href: "#who-we-help", label: t("Untuk Siapa", "Who We Help") },
-    { href: "#mission", label: t("Misi", "Mission") },
-    { href: "#benefits", label: t("Manfaat", "Benefits") },
-    { href: "#how-it-works", label: t("Cara Kerja", "How It Works") },
-    { href: "/events", label: t("Event", "Events") },
-    { href: "/post", label: t("Signal Studio", "Signal Studio") },
+    { href: "#who-we-help", label: "Who We Help" },
+    { href: "#mission", label: "Mission" },
+    { href: "#benefits", label: "Benefits" },
+    { href: "#how-it-works", label: "How It Works" },
+    { href: "/post", label: "Signal Studio", isRoute: true },
+    { href: "/kol", label: "KOL Marketplace", isRoute: true },
     { href: "#faq", label: "FAQ" },
   ];
 
@@ -49,10 +50,7 @@ const Footer = () => {
                 <span className="font-semibold text-lg tracking-tight">S3 Labs</span>
               </div>
               <p className="text-muted-foreground text-sm leading-relaxed max-w-sm mb-6">
-                {t(
-                  "Mitra pertumbuhan untuk developer Solana. Kami membantu project dengan MVP atau pemenang hackathon untuk scale dan generate revenue.",
-                  "Growth partner for Solana developers. We help projects with MVPs or hackathon winners to scale and generate revenue.",
-                )}
+                {"Growth partner for Solana developers. We help projects with MVPs or hackathon winners to scale and generate revenue."}
               </p>
               <div className="flex items-center gap-2">
                 {[
@@ -75,7 +73,7 @@ const Footer = () => {
                   <DialogTrigger asChild>
                     <button
                       type="button"
-                      aria-label={t("Telegram", "Telegram")}
+                      aria-label={"Telegram"}
                       className="w-10 h-10 rounded-full bg-muted/40 border border-border/60 flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/30 transition-colors"
                     >
                       <Send className="w-4 h-4" />
@@ -84,7 +82,7 @@ const Footer = () => {
                   <DialogContent className="sm:max-w-md panel-glass">
                     <DialogHeader>
                       <DialogTitle>
-                        {t("Hubungi kami di Telegram", "Contact us on Telegram")}
+                        {"Contact us on Telegram"}
                       </DialogTitle>
                     </DialogHeader>
                     <div className="grid gap-2 py-2">
@@ -115,17 +113,26 @@ const Footer = () => {
 
             <div className="lg:col-span-4">
               <h4 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">
-                {t("Navigasi", "Navigation")}
+                {"Navigation"}
               </h4>
               <ul className="grid grid-cols-2 gap-x-4 gap-y-2.5">
                 {navLinks.map((link) => (
                   <li key={link.href}>
-                    <a
-                      href={link.href}
-                      className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                    >
-                      {link.label}
-                    </a>
+                    {"isRoute" in link && link.isRoute ? (
+                      <Link
+                        to={link.href}
+                        className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        {link.label}
+                      </Link>
+                    ) : (
+                      <a
+                        href={link.href}
+                        className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        {link.label}
+                      </a>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -133,7 +140,7 @@ const Footer = () => {
 
             <div className="lg:col-span-3">
               <h4 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">
-                {t("Pengaturan", "Settings")}
+                {"Settings"}
               </h4>
               <Button
                 variant="outline"
@@ -144,12 +151,12 @@ const Footer = () => {
                 {theme === "dark" ? (
                   <>
                     <Sun className="w-4 h-4" />
-                    {t("Mode Terang", "Light Mode")}
+                    {"Light Mode"}
                   </>
                 ) : (
                   <>
                     <Moon className="w-4 h-4" />
-                    {t("Mode Gelap", "Dark Mode")}
+                    {"Dark Mode"}
                   </>
                 )}
               </Button>
@@ -159,10 +166,10 @@ const Footer = () => {
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-1">
           <p className="text-xs text-muted-foreground">
-            © 2024 S3 Labs. {t("Hak Cipta Dilindungi.", "All Rights Reserved.")}
+            © 2024 S3 Labs. {"All Rights Reserved."}
           </p>
           <p className="text-xs text-muted-foreground">
-            {t("Dibangun untuk ekosistem Solana", "Built for the Solana ecosystem")}
+            {"Built for the Solana ecosystem"}
           </p>
         </div>
       </div>

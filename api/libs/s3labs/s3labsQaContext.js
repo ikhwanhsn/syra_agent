@@ -51,12 +51,12 @@ export function classifyS3labsQaIntent(question) {
  */
 function formatRelativeTime(iso) {
   const ms = Date.now() - new Date(iso).getTime();
-  if (Number.isNaN(ms)) return "baru saja";
+  if (Number.isNaN(ms)) return "just now";
   const h = Math.floor(ms / (60 * 60 * 1000));
-  if (h < 1) return "< 1 jam lalu";
-  if (h < 24) return `${h} jam lalu`;
+  if (h < 1) return "< 1 hour ago";
+  if (h < 24) return `${h} hours ago`;
   const d = Math.floor(h / 24);
-  return `${d} hari lalu`;
+  return `${d} days ago`;
 }
 
 /**
@@ -66,7 +66,7 @@ function formatRelativeTime(iso) {
  */
 function formatNewsContextBlock(articles, limit = 8) {
   if (articles.length === 0) {
-    return "## Live context\nTidak ada headline RSS fresh dalam 24 jam terakhir — jelaskan tren umum dari pengetahuanmu, jangan arahkan ke website sebagai jawaban utama.";
+    return "## Live context\nNo fresh RSS headlines in the last 24 hours — explain general trends from your knowledge; do not redirect to websites as the main answer.";
   }
 
   const lines = articles.slice(0, limit).map((a, i) => {
@@ -74,7 +74,7 @@ function formatNewsContextBlock(articles, limit = 8) {
     return `${i + 1}. **${a.title}** — ${a.source}, ${formatRelativeTime(a.publishedAt)}${desc ? `\n   ${desc}` : ""}\n   ${a.url}`;
   });
 
-  return `## Live context — berita crypto/web3/tech (RSS komunitas, di-fetch ${new Date().toISOString()})\nGunakan data ini sebagai sumber utama jawaban. Ringkas 3–6 headline paling relevan untuk user.\n\n${lines.join("\n\n")}`;
+  return `## Live context — crypto/web3/tech news (community RSS, fetched ${new Date().toISOString()})\nUse this as the primary answer source. Summarize 3–6 headlines most relevant to the user.\n\n${lines.join("\n\n")}`;
 }
 
 /**
@@ -94,13 +94,13 @@ async function buildNewsContext() {
 async function buildEventsContext() {
   const { hotCandidates } = await fetchS3labsEventCandidates({ excludes: { urls: new Set(), titleKeys: new Set() } });
   if (hotCandidates.length === 0) {
-    return "## Live context\nTidak ada event fresh di feed — jawab dari pengetahuan umum tentang hackathon/konferensi tech-crypto.";
+    return "## Live context\nNo fresh events in feeds — answer from general knowledge about tech/crypto hackathons and conferences.";
   }
   const lines = hotCandidates.slice(0, 6).map((a, i) => {
     const desc = String(a.description || "").slice(0, 160).trim();
     return `${i + 1}. **${a.title}** — ${a.source}${desc ? `\n   ${desc}` : ""}\n   ${a.url}`;
   });
-  return `## Live context — event tech/crypto terdekat\n${lines.join("\n\n")}`;
+  return `## Live context — upcoming tech/crypto events\n${lines.join("\n\n")}`;
 }
 
 /**
@@ -111,12 +111,12 @@ async function buildJobsContext() {
     excludes: { jobIdentityKeys: new Set(), dedupeKeys: new Set(), urls: new Set() },
   });
   if (candidates.length === 0) {
-    return "## Live context\nTidak ada lowongan fresh di feed — arahkan ke topik Lowongan Kerja (thread 513).";
+    return "## Live context\nNo fresh job listings in feeds — point users to the Jobs topic (thread 513).";
   }
   const lines = candidates.slice(0, 5).map((j, i) => {
     return `${i + 1}. **${j.title}** @ ${j.company} — ${j.location}, ${j.salaryLabel}\n   ${j.url}`;
   });
-  return `## Live context — lowongan remote tech/web3\n${lines.join("\n\n")}`;
+  return `## Live context — remote tech/web3 jobs\n${lines.join("\n\n")}`;
 }
 
 /**
@@ -127,13 +127,13 @@ async function buildDeveloperContext() {
     excludes: { urls: new Set(), titleKeys: new Set() },
   });
   if (hotCandidates.length === 0) {
-    return "## Live context\nTidak ada artikel dev fresh — jawab langsung dari pengetahuan programming/dev tools.";
+    return "## Live context\nNo fresh dev articles — answer directly from programming/dev tools knowledge.";
   }
   const lines = hotCandidates.slice(0, 6).map((a, i) => {
     const desc = String(a.description || "").slice(0, 160).trim();
     return `${i + 1}. **${a.title}** — ${a.source}${desc ? `\n   ${desc}` : ""}\n   ${a.url}`;
   });
-  return `## Live context — highlight developer/engineering\n${lines.join("\n\n")}`;
+  return `## Live context — developer/engineering highlights\n${lines.join("\n\n")}`;
 }
 
 /**
@@ -192,7 +192,7 @@ export async function buildS3labsQaContext(question) {
     return {
       intent,
       contextBlock:
-        "## Live context\nFetch RSS gagal — jawab langsung dari pengetahuan umum tech/crypto, jangan pakai disclaimer off-topic.",
+        "## Live context\nRSS fetch failed — answer directly from general tech/crypto knowledge; do not use off-topic disclaimers.",
     };
   }
 }

@@ -1,5 +1,7 @@
 import { S3_GROWTH_BRIEF_POST } from "./s3GrowthBriefUpdate";
 import { S3_GROWTH_BRIEF_PHOTO } from "./photo/s3GrowthBriefPhoto";
+import { KOL_MARKETPLACE_POST } from "./kolMarketplaceUpdate";
+import { KOL_MARKETPLACE_PHOTO } from "./photo/kolMarketplacePhoto";
 import type { PostPhotoUpdate } from "./photo/types";
 import type { PostUpdate } from "./types";
 import { validatePostUpdate } from "./validatePostUpdate";
@@ -14,6 +16,7 @@ export interface PostUpdateBundle {
 
 const POST_UPDATE_BUNDLES: PostUpdateBundle[] = [
   { video: S3_GROWTH_BRIEF_POST, photo: S3_GROWTH_BRIEF_PHOTO },
+  { video: KOL_MARKETPLACE_POST, photo: KOL_MARKETPLACE_PHOTO },
 ];
 
 function assertBundleMeta(bundle: PostUpdateBundle): void {

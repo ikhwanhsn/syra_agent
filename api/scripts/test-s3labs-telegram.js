@@ -15,11 +15,11 @@ const arg = (process.argv[2] || "all").toLowerCase();
 
 async function sendTest(def) {
   const text = [
-    `${def.headerEmoji} Tes ${def.topicLabel}`,
+    `${def.headerEmoji} Test: ${def.topicLabel}`,
     "",
-    `Topik forum: t.me/s3labs/${def.threadId}`,
+    `Forum topic: t.me/s3labs/${def.threadId}`,
     `Agent: ${def.kind}`,
-    `Waktu: ${new Date().toISOString()}`,
+    `Time: ${new Date().toISOString()}`,
   ].join("\n");
 
   const ok = await sendS3labsTelegram(text, {

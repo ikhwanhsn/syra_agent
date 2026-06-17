@@ -106,6 +106,7 @@ import { createPlaygroundShareRouter } from "./routes/playgroundShare.js";
 import { createStreamflowLocksRouter } from "./routes/streamflowLocks.js";
 import { createStakingAppRouter } from "./routes/stakingApp.js";
 import { createTempoPayoutRouter } from "./routes/payouts/tempo.js";
+import { createKolRouter } from "./routes/kol/index.js";
 import { createAgentscoreRouter } from "./routes/agentscore/index.js";
 import { getV2Payment } from "./utils/getV2Payment.js";
 import { sendTempoPayout } from "./libs/tempoPayout.js";
@@ -741,6 +742,9 @@ app.use(
 // server API key so frontends never need to embed it in client bundles (security fix).
 app.use(injectTrustedOriginApiKey);
 
+// KOL marketplace — public, no API key (s3labs /kol). Mount before requireApiKey.
+app.use("/kol", createKolRouter());
+
 // API key / Bearer auth when API_KEY or API_KEYS is set in env.
 // Skip auth for:
 //   - x402 routes (paid, gated by 402 instead)
@@ -861,7 +865,8 @@ app.use(
       p.startsWith("/info") ||
       p.startsWith("/agentscore/") ||
       p.startsWith("/playground") ||
-      p.startsWith("/prediction-game")
+      p.startsWith("/prediction-game") ||
+      p.startsWith("/kol")
     );
   }),
 );
@@ -1241,6 +1246,7 @@ app.use("/x", await createXApiRouter());
 
 // Tempo payout rail: POST /payouts/tempo (API key required). Env: TEMPO_RPC_URL, TEMPO_PAYOUT_PRIVATE_KEY, TEMPO_PAYOUT_TOKEN.
 app.use("/payouts", createTempoPayoutRouter());
+
 // AgentScore buyer discovery (public metadata; pay via POST /agent/tools/call)
 app.use("/agentscore", createAgentscoreRouter());
 
@@ -1880,6 +1886,17 @@ app.listen(PORT, () => {
     .catch((e) =>
       console.warn(
         "[internal-news] sentiment scheduler load failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
+
+  import("./libs/kolDailyScheduler.js")
+    .then(({ startKolDailyScheduler }) => {
+      startKolDailyScheduler();
+    })
+    .catch((e) =>
+      console.warn(
+        "[kol] daily scheduler load failed:",
         e instanceof Error ? e.message : e,
       ),
     );

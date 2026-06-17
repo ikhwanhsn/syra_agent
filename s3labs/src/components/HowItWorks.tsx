@@ -1,46 +1,33 @@
-import { useLanguage } from '@/contexts/LanguageContext';
+
 import SectionHeader from '@/components/landing/SectionHeader';
 import { Search, CheckCircle, BarChart3, Globe } from 'lucide-react';
 
-const HowItWorks = () => {
-  const { t } = useLanguage();
+const HowItWorks = () => {
 
   const steps = [
     {
       number: '01',
       icon: Search,
-      title: t('Evaluasi Project', 'Project Evaluation'),
-      description: t(
-        'Kami mengevaluasi project Anda berdasarkan kriteria yang ketat',
-        'We evaluate your project based on strict criteria'
-      ),
+      title: 'Project Evaluation',
+      description: 'We evaluate your project based on strict criteria',
     },
     {
       number: '02',
       icon: CheckCircle,
-      title: t('Validasi Produk & Market Fit', 'Product & Market Validation'),
-      description: t(
-        'Validasi produk dan kesesuaian dengan kebutuhan pasar',
-        'Validate product and market needs alignment'
-      ),
+      title: 'Product & Market Validation',
+      description: 'Validate product and market needs alignment',
     },
     {
       number: '03',
       icon: BarChart3,
-      title: t('Strategi Revenue & Growth', 'Revenue & Growth Strategy'),
-      description: t(
-        'Menyusun strategi revenue dan pertumbuhan yang terukur',
-        'Develop measured revenue and growth strategies'
-      ),
+      title: 'Revenue & Growth Strategy',
+      description: 'Develop measured revenue and growth strategies',
     },
     {
       number: '04',
       icon: Globe,
-      title: t('Partnership & Ekspansi', 'Partnerships & Expansion'),
-      description: t(
-        'Membangun partnership dan ekspansi ke pasar yang lebih luas',
-        'Build partnerships and expand to broader markets'
-      ),
+      title: 'Partnerships & Expansion',
+      description: 'Build partnerships and expand to broader markets',
     },
   ];
 
@@ -51,12 +38,9 @@ const HowItWorks = () => {
 
       <div className="container relative z-10">
         <SectionHeader
-          eyebrow={t('Proses', 'Process')}
-          title={t('Cara Kami Bekerja', 'How We Work')}
-          description={t(
-            'Proses terstruktur untuk membantu pertumbuhan project Anda',
-            'A structured process to help your project grow'
-          )}
+          eyebrow={'Process'}
+          title={'How We Work'}
+          description={'A structured process to help your project grow'}
         />
 
         <div className="max-w-4xl mx-auto">

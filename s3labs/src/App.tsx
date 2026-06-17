@@ -5,10 +5,11 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
-import Events from "./pages/Events";
 import Arena from "./pages/Arena";
 import ArenaTokenDetail from "./pages/ArenaTokenDetail";
 import NotFound from "./pages/NotFound";
+
+const Kol = lazy(() => import("./pages/Kol"));
 
 const PostPage = lazy(() => import("./pages/PostPage"));
 const PostVideoPage = lazy(() => import("./pages/PostVideoPage"));
@@ -36,9 +37,9 @@ const App = () => (
         <Suspense fallback={<PostRouteFallback />}>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/events" element={<Events />} />
             <Route path="/arenass" element={<Arena />} />
             <Route path="/arenass/:mint" element={<ArenaTokenDetail />} />
+            <Route path="/kol" element={<Kol />} />
             <Route path="/post" element={<PostPage />} />
             <Route element={<PostStudioLayout />}>
               <Route path="/post/video/:updateNumber?" element={<PostVideoPage />} />

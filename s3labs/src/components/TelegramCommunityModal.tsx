@@ -1,4 +1,4 @@
-import { useLanguage } from "@/contexts/LanguageContext";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,8 +21,7 @@ const TelegramCommunityModal = ({
   open,
   onOpenChange,
   onDismiss,
-}: TelegramCommunityModalProps) => {
-  const { t } = useLanguage();
+}: TelegramCommunityModalProps) => {
 
   const handleClose = (next: boolean) => {
     if (!next) onDismiss();
@@ -44,13 +43,10 @@ const TelegramCommunityModal = ({
       >
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-foreground">
-            {t("Gabung Komunitas S3Labs", "Join S3Labs Community")}
+            {"Join S3Labs Community"}
           </DialogTitle>
           <DialogDescription className="text-left">
-            {t(
-              "Bergabung dengan komunitas Telegram kami untuk update event, diskusi dengan builder, dan peluang kolaborasi di ekosistem Solana.",
-              "Join our Telegram community for event updates, discussions with builders, and collaboration opportunities in the Solana ecosystem."
-            )}
+            {"Join our Telegram community for event updates, discussions with builders, and collaboration opportunities in the Solana ecosystem."}
           </DialogDescription>
         </DialogHeader>
 
@@ -62,10 +58,10 @@ const TelegramCommunityModal = ({
             onClick={handleJoinClick}
           >
             <Send className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-            {t("Buka Telegram", "Open Telegram")}
+            {"Open Telegram"}
           </Button>
           <p className="text-xs text-center text-muted-foreground">
-            {t("Link: t.me/s3labs", "Link: t.me/s3labs")}
+            {"Link: t.me/s3labs"}
           </p>
         </div>
       </DialogContent>

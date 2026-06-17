@@ -1,5 +1,5 @@
 /**
- * Shared LLM pick-one for S3Labs agents (Bahasa Indonesia).
+ * Shared LLM pick-one for S3Labs agents (English).
  */
 
 import { callOpenRouter } from "../openrouter.js";
@@ -36,26 +36,26 @@ import { getS3labsAgentDefinition } from "../../config/s3labsAgentsConfig.js";
  */
 
 const SYSTEM_PROMPTS = {
-  news: `Kamu kurator berita untuk topik News di komunitas S3Labs (agent NEWS).
-Pilih SATU berita TERPANAS seputar crypto, web3, pasar aset digital, regulasi, atau ekosistem blockchain.
-JANGAN pilih artikel yang URL atau judulnya sudah ada di daftar excluded (sudah dipost agent lain).
-Output HANYA JSON:
-{ "pick": { "title": string (ID), "summary": string (2 kalimat ID), "whyItMatters": string (1 kalimat ID), "url": string, "source": string, "category": "crypto"|"web3", "heatScore": number } }
-Tanpa mengarang fakta. Bahasa Indonesia natural.`,
+  news: `You curate news for the S3Labs News topic (NEWS agent).
+Pick ONE HOTTEST story about crypto, web3, digital assets, regulation, or the blockchain ecosystem.
+Do NOT pick articles whose URL or title appears in the excluded list (already posted by another agent).
+Output ONLY JSON:
+{ "pick": { "title": string (EN), "summary": string (2 sentences EN), "whyItMatters": string (1 sentence EN), "url": string, "source": string, "category": "crypto"|"web3", "heatScore": number } }
+Do not invent facts. Natural English.`,
 
-  developer: `Kamu kurator untuk topik Developer di komunitas S3Labs (agent DEV).
-Pilih SATU artikel/tool/riset TERPANAS untuk developer: engineering, open source, AI dev tools, infra, security, programming.
-JANGAN pilih artikel yang URL atau judulnya sudah ada di daftar excluded.
-Output HANYA JSON:
-{ "pick": { "title": string (ID), "summary": string (2 kalimat ID), "whyItMatters": string (1 kalimat: relevansi untuk developer), "url": string, "source": string, "category": "developer", "heatScore": number } }
-Tanpa mengarang fakta. Bahasa Indonesia natural.`,
+  developer: `You curate for the S3Labs Developer topic (DEV agent).
+Pick ONE HOTTEST article/tool/research for developers: engineering, open source, AI dev tools, infra, security, programming.
+Do NOT pick articles whose URL or title appears in the excluded list.
+Output ONLY JSON:
+{ "pick": { "title": string (EN), "summary": string (2 sentences EN), "whyItMatters": string (1 sentence: relevance for developers), "url": string, "source": string, "category": "developer", "heatScore": number } }
+Do not invent facts. Natural English.`,
 
-  event: `Kamu kurator untuk topik Event di komunitas S3Labs (agent EVENT).
-Pilih SATU event TERPENTING (hackathon, konferensi, TGE, listing, mainnet, meetup, AMA, deadline) yang paling relevan untuk komunitas crypto/web3.
-JANGAN pilih event yang URL atau judulnya sudah ada di daftar excluded.
-Output HANYA JSON:
-{ "pick": { "title": string (ID), "summary": string (2 kalimat ID), "whyItMatters": string (1 kalimat: kenapa wajib dicatat), "url": string, "source": string, "category": "event", "eventDate": "YYYY-MM-DD", "heatScore": number } }
-Prioritaskan event mendatang. Tanpa mengarang fakta. Bahasa Indonesia natural.`,
+  event: `You curate for the S3Labs Event topic (EVENT agent).
+Pick ONE IMPORTANT event (hackathon, conference, TGE, listing, mainnet, meetup, AMA, deadline) most relevant to the crypto/web3 community.
+Do NOT pick events whose URL or title appears in the excluded list.
+Output ONLY JSON:
+{ "pick": { "title": string (EN), "summary": string (2 sentences EN), "whyItMatters": string (1 sentence: why it belongs on the calendar), "url": string, "source": string, "category": "event", "eventDate": "YYYY-MM-DD", "heatScore": number } }
+Prioritize upcoming events. Do not invent facts. Natural English.`,
 };
 
 /**
@@ -110,10 +110,10 @@ function fallbackOutput(kind, articles, sourceStats) {
       summary: a.description.slice(0, 220) || a.title,
       whyItMatters:
         kind === "event"
-          ? "Event ini relevan untuk kalender komunitas S3Labs."
+          ? "This event is relevant for the S3Labs community calendar."
           : kind === "developer"
-            ? "Wajib dibaca oleh builder dan engineer di ekosistem."
-            : "Berpotensi mempengaruhi pasar dan ekosistem web3.",
+            ? "Must-read for builders and engineers in the ecosystem."
+            : "Could move markets and the web3 ecosystem.",
       url: a.url,
       source: a.source,
       category: kind === "news" ? "web3" : kind,
@@ -151,7 +151,7 @@ export async function runS3labsPickAgent(kind, articles, sourceStats, model = nu
       role: "user",
       content: JSON.stringify({
         articles,
-        instruction: "Pilih tepat 1 item terpanas yang BELUM pernah dipost.",
+        instruction: "Pick exactly 1 hottest item that has NOT been posted before.",
         excludedUrls: dedupeHints.excludedUrls?.slice(0, 40) ?? [],
         excludedTitleSamples: dedupeHints.excludedTitles?.slice(0, 20) ?? [],
       }),

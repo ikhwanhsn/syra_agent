@@ -12,9 +12,9 @@ import {
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
-import { useLanguage } from "@/contexts/LanguageContext";
+
 import { ThemeProvider } from "@/contexts/ThemeContext";
-import { LanguageProvider } from "@/contexts/LanguageContext";
+
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ApplicationModal from "@/components/ApplicationModal";
@@ -102,8 +102,7 @@ function Stat({
 }
 
 const ArenaTokenDetailContent = () => {
-  const { mint: mintParam } = useParams<{ mint: string }>();
-  const { t } = useLanguage();
+  const { mint: mintParam } = useParams<{ mint: string }>();
   const { theme } = useTheme();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { open: telegramOpen, dismiss: dismissTelegram, setOpen: setTelegramOpen } = useTelegramPopup();
@@ -159,9 +158,9 @@ const ArenaTokenDetailContent = () => {
   const copyMint = async () => {
     try {
       await navigator.clipboard.writeText(mint);
-      toast.success(t("Alamat disalin", "Address copied"));
+      toast.success("Address copied");
     } catch {
-      toast.error(t("Gagal menyalin", "Could not copy"));
+      toast.error("Could not copy");
     }
   };
 
@@ -184,7 +183,7 @@ const ArenaTokenDetailContent = () => {
                 className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary mb-6 transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
-                {t("Kembali ke Arena", "Back to Arena")}
+                {"Back to Arena"}
               </Link>
               {isLoading ? (
                 <div className="space-y-4">
@@ -226,7 +225,7 @@ const ArenaTokenDetailContent = () => {
                   <div className="flex flex-wrap gap-2 w-full sm:w-auto sm:ml-auto">
                     <Button variant="outline" size="sm" className="gap-2" onClick={() => void copyMint()}>
                       <Copy className="w-4 h-4" />
-                      {t("Salin mint", "Copy mint")}
+                      {"Copy mint"}
                     </Button>
                     {pair?.url ? (
                       <Button size="sm" className="gap-2" asChild>
@@ -244,7 +243,7 @@ const ArenaTokenDetailContent = () => {
                       disabled={isFetching}
                     >
                       <RefreshCw className={cn("w-4 h-4", isFetching && "animate-spin")} />
-                      {t("Muat ulang", "Refresh")}
+                      {"Refresh"}
                     </Button>
                   </div>
                 </div>
@@ -271,15 +270,15 @@ const ArenaTokenDetailContent = () => {
               <Card className="border-destructive/30 bg-destructive/5">
                 <CardHeader>
                   <CardTitle className="text-destructive">
-                    {t("Gagal memuat data", "Could not load data")}
+                    {"Could not load data"}
                   </CardTitle>
                   <CardDescription>
-                    {error instanceof Error ? error.message : t("Coba lagi.", "Please try again.")}
+                    {error instanceof Error ? error.message : "Please try again."}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Button variant="outline" onClick={() => void refetch()}>
-                    {t("Coba lagi", "Retry")}
+                    {"Retry"}
                   </Button>
                 </CardContent>
               </Card>
@@ -287,9 +286,9 @@ const ArenaTokenDetailContent = () => {
 
             <Card className="border-border/60 bg-card/80 backdrop-blur-sm shadow-card overflow-hidden">
               <CardHeader>
-                <CardTitle className="text-lg">{t("Alamat kontrak", "Contract address")}</CardTitle>
+                <CardTitle className="text-lg">{"Contract address"}</CardTitle>
                 <CardDescription>
-                  {t("Mint token Solana (base58).", "Solana token mint (base58).")}
+                  {"Solana token mint (base58)."}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -302,12 +301,9 @@ const ArenaTokenDetailContent = () => {
             {!isLoading && !pair && !isError && (
               <Card className="border-border/60 bg-muted/20">
                 <CardHeader>
-                  <CardTitle>{t("Data pasar belum tersedia", "Market data not available")}</CardTitle>
+                  <CardTitle>{"Market data not available"}</CardTitle>
                   <CardDescription>
-                    {t(
-                      "DexScreener belum memiliki pasangan terdaftar untuk mint ini. Cek lagi nanti atau buka explorer.",
-                      "DexScreener has no listed pair for this mint yet. Check back later or use an explorer.",
-                    )}
+                    {"DexScreener has no listed pair for this mint yet. Check back later or use an explorer."}
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -317,15 +313,15 @@ const ArenaTokenDetailContent = () => {
               <>
                 <div>
                   <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
-                    {t("Ringkasan pasar", "Market overview")}
+                    {"Market overview"}
                   </h2>
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                     <Stat
-                      label={t("Harga (USD)", "Price (USD)")}
+                      label={"Price (USD)"}
                       value={Number.isFinite(priceUsd) ? formatUsd(priceUsd) : "—"}
                     />
                     <Stat
-                      label={t("Harga (native)", "Price (native)")}
+                      label={"Price (native)"}
                       value={
                         pair.quoteToken.symbol
                           ? `${pair.priceNative} ${pair.quoteToken.symbol}`
@@ -339,9 +335,9 @@ const ArenaTokenDetailContent = () => {
                         change24 === undefined
                           ? undefined
                           : up
-                            ? t("Naik", "Up")
+                            ? "Up"
                             : down
-                              ? t("Turun", "Down")
+                              ? "Down"
                               : undefined
                       }
                       className={cn(
@@ -354,20 +350,20 @@ const ArenaTokenDetailContent = () => {
                       )}
                     />
                     <Stat
-                      label={t("Kapitalisasi pasar", "Market cap")}
+                      label={"Market cap"}
                       value={formatCompactUsd(pair.marketCap)}
                     />
                     <Stat label="FDV" value={formatCompactUsd(pair.fdv)} />
                     <Stat
-                      label={t("Likuiditas", "Liquidity")}
+                      label={"Liquidity"}
                       value={formatCompactUsd(pair.liquidity?.usd)}
                     />
                     <Stat
-                      label={t("Volume 24j", "Volume 24h")}
+                      label={"Volume 24h"}
                       value={formatCompactUsd(pair.volume?.h24)}
                     />
                     <Stat
-                      label={t("Pasangan dibuat", "Pair created")}
+                      label={"Pair created"}
                       value={formatPairAge(pair.pairCreatedAt, t)}
                     />
                   </div>
@@ -375,12 +371,12 @@ const ArenaTokenDetailContent = () => {
 
                 <div>
                   <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
-                    {t("Volume & transaksi", "Volume & transactions")}
+                    {"Volume & transactions"}
                   </h2>
                   <div className="grid sm:grid-cols-2 gap-4">
                     <Card className="border-border/60 bg-card/60">
                       <CardHeader className="pb-2">
-                        <CardTitle className="text-base">{t("Volume", "Volume")}</CardTitle>
+                        <CardTitle className="text-base">{"Volume"}</CardTitle>
                       </CardHeader>
                       <CardContent className="grid grid-cols-2 gap-3 text-sm">
                         <div>
@@ -403,7 +399,7 @@ const ArenaTokenDetailContent = () => {
                     </Card>
                     <Card className="border-border/60 bg-card/60">
                       <CardHeader className="pb-2">
-                        <CardTitle className="text-base">{t("Beli / jual", "Buys / sells")}</CardTitle>
+                        <CardTitle className="text-base">{"Buys / sells"}</CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-3 text-sm">
                         {(
@@ -430,7 +426,7 @@ const ArenaTokenDetailContent = () => {
 
                 <div>
                   <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
-                    {t("Perubahan harga", "Price change")}
+                    {"Price change"}
                   </h2>
                   <div className="flex flex-wrap gap-3">
                     {(
@@ -473,9 +469,9 @@ const ArenaTokenDetailContent = () => {
 
                 <Card className="border-border/60 bg-card/60">
                   <CardHeader>
-                    <CardTitle className="text-base">{t("Pasangan", "Pair")}</CardTitle>
+                    <CardTitle className="text-base">{"Pair"}</CardTitle>
                     <CardDescription>
-                      {t("Token kutipan dan alamat pasangan.", "Quote token and pair address.")}
+                      {"Quote token and pair address."}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4 text-sm">
@@ -488,12 +484,12 @@ const ArenaTokenDetailContent = () => {
                     </div>
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div>
-                        <p className="text-xs text-muted-foreground mb-1">{t("Token kutipan", "Quote token")}</p>
+                        <p className="text-xs text-muted-foreground mb-1">{"Quote token"}</p>
                         <p className="font-medium">{pair.quoteToken.name}</p>
                         <p className="font-mono text-xs text-muted-foreground">{pair.quoteToken.symbol}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground mb-1">{t("Alamat pasangan", "Pair address")}</p>
+                        <p className="text-xs text-muted-foreground mb-1">{"Pair address"}</p>
                         <code className="text-xs break-all font-mono">{pair.pairAddress}</code>
                       </div>
                     </div>
@@ -507,7 +503,7 @@ const ArenaTokenDetailContent = () => {
                         <CardHeader>
                           <CardTitle className="text-base flex items-center gap-2">
                             <Globe className="w-4 h-4 text-primary" />
-                            {t("Situs & dokumen", "Websites & docs")}
+                            {"Websites & docs"}
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-2">
@@ -531,7 +527,7 @@ const ArenaTokenDetailContent = () => {
                         <CardHeader>
                           <CardTitle className="text-base flex items-center gap-2">
                             <MessageCircle className="w-4 h-4 text-primary" />
-                            {t("Sosial", "Social")}
+                            {"Social"}
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-2">
@@ -547,7 +543,7 @@ const ArenaTokenDetailContent = () => {
                               >
                                 <span className="flex items-center gap-2 min-w-0">
                                   <Icon className="w-4 h-4 shrink-0 text-muted-foreground" />
-                                  <span className="truncate capitalize">{s.type ?? t("Tautan", "Link")}</span>
+                                  <span className="truncate capitalize">{s.type ?? "Link"}</span>
                                 </span>
                                 <ExternalLink className="w-4 h-4 shrink-0 opacity-50 group-hover:opacity-100" />
                               </a>
@@ -563,7 +559,7 @@ const ArenaTokenDetailContent = () => {
                   <Card className="border-border/60 bg-card/60 overflow-hidden">
                     <CardHeader>
                       <CardTitle className="text-base">Open Graph</CardTitle>
-                      <CardDescription>{t("Pratinjau gambar dari DexScreener.", "Preview image from DexScreener.")}</CardDescription>
+                      <CardDescription>{"Preview image from DexScreener."}</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <a
@@ -582,10 +578,7 @@ const ArenaTokenDetailContent = () => {
 
             <Separator className="opacity-50" />
             <p className="text-center text-xs text-muted-foreground max-w-2xl mx-auto">
-              {t(
-                "Data dari DexScreener. Bukan saran keuangan; verifikasi sendiri sebelum bertindak.",
-                "Data from DexScreener. Not financial advice; verify before acting.",
-              )}
+              {"Data from DexScreener. Not financial advice; verify before acting."}
             </p>
           </div>
         </main>
@@ -603,10 +596,8 @@ const ArenaTokenDetailContent = () => {
 
 const ArenaTokenDetail = () => (
   <ThemeProvider>
-    <LanguageProvider>
-      <ArenaTokenDetailContent />
-    </LanguageProvider>
-  </ThemeProvider>
+    <ArenaTokenDetailContent />
+    </ThemeProvider>
 );
 
 export default ArenaTokenDetail;

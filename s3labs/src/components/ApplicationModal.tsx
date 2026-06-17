@@ -1,4 +1,4 @@
-import { useLanguage } from "@/contexts/LanguageContext";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,23 +13,13 @@ interface ApplicationModalProps {
   onClose: () => void;
 }
 
-const ApplicationModal = ({ isOpen, onClose }: ApplicationModalProps) => {
-  const { t } = useLanguage();
+const ApplicationModal = ({ isOpen, onClose }: ApplicationModalProps) => {
 
   const requirements = [
-    t(
-      "Produk sudah MVP (Ready di Devnet/Mainnet), atau",
-      "MVP live on Devnet/Mainnet, or",
-    ),
-    t(
-      "Produk masih on-going dengan tim yang proper",
-      "On-going product with a solid team",
-    ),
-    t(
-      "Tim berkomitmen untuk membangun & bertumbuh",
-      "Committed & growth-focused founders",
-    ),
-    t("Fokus pada ekosistem Web3", "Web3 ecosystem oriented"),
+    "MVP live on Devnet/Mainnet, or",
+    "On-going product with a solid team",
+    "Committed & growth-focused founders",
+    "Web3 ecosystem oriented",
   ];
 
   const handleContinue = () => {
@@ -43,10 +33,7 @@ const ApplicationModal = ({ isOpen, onClose }: ApplicationModalProps) => {
       <DialogContent className="sm:max-w-lg bg-card border-border">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-foreground">
-            {t(
-              "Syarat Project untuk Bergabung dengan S3 Labs",
-              "Project Requirements to Join S3 Labs",
-            )}
+            {"Project Requirements to Join S3 Labs"}
           </DialogTitle>
         </DialogHeader>
 
@@ -61,10 +48,7 @@ const ApplicationModal = ({ isOpen, onClose }: ApplicationModalProps) => {
 
         <div className="mt-6 p-4 rounded-xl bg-secondary/50 border border-border">
           <p className="text-sm text-muted-foreground">
-            {t(
-              "Kami fokus pada project yang siap dieksekusi & memiliki arah yang jelas.",
-              "We focus on projects that are ready to execute & have a clear direction.",
-            )}
+            {"We focus on projects that are ready to execute & have a clear direction."}
           </p>
         </div>
 
@@ -75,11 +59,11 @@ const ApplicationModal = ({ isOpen, onClose }: ApplicationModalProps) => {
             className="flex-1 group h-auto sm:h-12 py-3 sm:py-0"
             onClick={handleContinue}
           >
-            {t("Lanjutkan ke Form Pengajuan", "Continue to Submission Form")}
+            {"Continue to Submission Form"}
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </Button>
           <Button variant="outline" size="lg" onClick={onClose}>
-            {t("Batalkan", "Cancel")}
+            {"Cancel"}
           </Button>
         </div>
       </DialogContent>

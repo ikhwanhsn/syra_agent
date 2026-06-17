@@ -1,4 +1,4 @@
-import { useLanguage } from "@/contexts/LanguageContext";
+
 import SectionHeader from "@/components/landing/SectionHeader";
 import StatMetric from "@/components/landing/StatMetric";
 import { X, Check, TrendingDown, TrendingUp, Clock, Zap } from "lucide-react";
@@ -8,108 +8,71 @@ interface ComparisonSectionProps {
   onApplyClick: () => void;
 }
 
-const ComparisonSection = ({ onApplyClick }: ComparisonSectionProps) => {
-  const { t } = useLanguage();
+const ComparisonSection = ({ onApplyClick }: ComparisonSectionProps) => {
 
   const withoutS3Labs = [
     {
       icon: Clock,
-      title: t("6-12 Bulan ke Revenue Pertama", "6-12 Months to First Revenue"),
-      description: t(
-        "Trial & error sendiri, pivot berkali-kali tanpa guidance",
-        "Trial & error alone, multiple pivots without guidance",
-      ),
+      title: "6-12 Months to First Revenue",
+      description: "Trial & error alone, multiple pivots without guidance",
     },
     {
       icon: TrendingDown,
-      title: t("Burn Rate Tinggi", "High Burn Rate"),
-      description: t(
-        "Budget habis untuk eksperimen yang tidak efektif",
-        "Budget wasted on ineffective experiments",
-      ),
+      title: "High Burn Rate",
+      description: "Budget wasted on ineffective experiments",
     },
     {
       icon: X,
-      title: t("Network Terbatas", "Limited Network"),
-      description: t(
-        "Susah dapat akses ke investor, partners, dan early adopters",
-        "Difficult to access investors, partners, and early adopters",
-      ),
+      title: "Limited Network",
+      description: "Difficult to access investors, partners, and early adopters",
     },
     {
       icon: X,
-      title: t("Marketing Trial & Error", "Marketing Trial & Error"),
-      description: t(
-        "Spend iklan tanpa tahu channel mana yang work",
-        "Ad spend without knowing which channels work",
-      ),
+      title: "Marketing Trial & Error",
+      description: "Ad spend without knowing which channels work",
     },
     {
       icon: X,
-      title: t("GTM Strategy Tidak Jelas", "Unclear GTM Strategy"),
-      description: t(
-        "Bingung positioning produk dan target market",
-        "Confused about product positioning and target market",
-      ),
+      title: "Unclear GTM Strategy",
+      description: "Confused about product positioning and target market",
     },
     {
       icon: X,
-      title: t("Solo Founder Syndrome", "Solo Founder Syndrome"),
-      description: t(
-        "Keputusan bisnis tanpa feedback dari expert",
-        "Business decisions without expert feedback",
-      ),
+      title: "Solo Founder Syndrome",
+      description: "Business decisions without expert feedback",
     },
   ];
 
   const withS3Labs = [
     {
       icon: Zap,
-      title: t("30-90 Hari ke Revenue Pertama", "30-90 Days to First Revenue"),
-      description: t(
-        "Framework terbukti untuk monetization dan product-market fit",
-        "Proven framework for monetization and product-market fit",
-      ),
+      title: "30-90 Days to First Revenue",
+      description: "Proven framework for monetization and product-market fit",
     },
     {
       icon: TrendingUp,
-      title: t("Efisiensi Budget 3x Lebih Baik", "3x Better Budget Efficiency"),
-      description: t(
-        "Focus pada channel dan strategy yang sudah validated",
-        "Focus on validated channels and strategies",
-      ),
+      title: "3x Better Budget Efficiency",
+      description: "Focus on validated channels and strategies",
     },
     {
       icon: Check,
-      title: t("Akses Network Eksklusif", "Exclusive Network Access"),
-      description: t(
-        "Direct connection ke VCs, angels, dan 500+ founder community",
-        "Direct connection to VCs, angels, and 500+ founder community",
-      ),
+      title: "Exclusive Network Access",
+      description: "Direct connection to VCs, angels, and 500+ founder community",
     },
     {
       icon: Check,
-      title: t("Growth Marketing Playbook", "Growth Marketing Playbook"),
-      description: t(
-        "Strategi marketing yang sudah terbukti work di Solana ecosystem",
-        "Marketing strategies proven to work in Solana ecosystem",
-      ),
+      title: "Growth Marketing Playbook",
+      description: "Marketing strategies proven to work in Solana ecosystem",
     },
     {
       icon: Check,
-      title: t("Clear GTM Roadmap", "Clear GTM Roadmap"),
-      description: t(
-        "Step-by-step guidance dari MVP ke product-market fit",
-        "Step-by-step guidance from MVP to product-market fit",
-      ),
+      title: "Clear GTM Roadmap",
+      description: "Step-by-step guidance from MVP to product-market fit",
     },
     {
       icon: Check,
-      title: t("Weekly Mentorship", "Weekly Mentorship"),
-      description: t(
-        "1-on-1 session dengan expert yang sudah build & exit",
-        "1-on-1 sessions with experts who have built & exited",
-      ),
+      title: "Weekly Mentorship",
+      description: "1-on-1 sessions with experts who have built & exited",
     },
   ];
 
@@ -121,19 +84,16 @@ const ComparisonSection = ({ onApplyClick }: ComparisonSectionProps) => {
 
       <div className="container relative z-10">
         <SectionHeader
-          eyebrow={t("Perbandingan", "Comparison")}
+          eyebrow={"Comparison"}
           title={
             <>
-              {t("Perjalanan Founder:", "The Founder Journey:")}
+              {"The Founder Journey:"}
               <span className="text-gradient block mt-1">
-                {t("Dengan vs Tanpa S3 Labs", "With vs Without S3 Labs")}
+                {"With vs Without S3 Labs"}
               </span>
             </>
           }
-          description={t(
-            "Lihat perbedaan signifikan antara go-to-market sendiri vs dengan mentorship & network kami",
-            "See the significant difference between going solo vs having our mentorship & network",
-          )}
+          description={"See the significant difference between going solo vs having our mentorship & network"}
         />
 
         <div className="grid lg:grid-cols-2 gap-6 max-w-6xl mx-auto mb-10">
@@ -145,10 +105,10 @@ const ComparisonSection = ({ onApplyClick }: ComparisonSectionProps) => {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold tracking-tight">
-                    {t("Tanpa S3 Labs", "Without S3 Labs")}
+                    {"Without S3 Labs"}
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    {t("Jalan yang lebih panjang & mahal", "Longer & costlier path")}
+                    {"Longer & costlier path"}
                   </p>
                 </div>
               </div>
@@ -182,10 +142,10 @@ const ComparisonSection = ({ onApplyClick }: ComparisonSectionProps) => {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold tracking-tight text-white">
-                    {t("Dengan S3 Labs", "With S3 Labs")}
+                    {"With S3 Labs"}
                   </h3>
                   <p className="text-xs text-white/80">
-                    {t("Jalur cepat ke revenue & growth", "Fast track to revenue & growth")}
+                    {"Fast track to revenue & growth"}
                   </p>
                 </div>
               </div>
@@ -209,18 +169,15 @@ const ComparisonSection = ({ onApplyClick }: ComparisonSectionProps) => {
 
         <div className="panel-glass max-w-4xl mx-auto px-6 py-8 mb-12">
           <div className="grid md:grid-cols-3 gap-6 divide-y md:divide-y-0 md:divide-x divide-border/60">
-            <StatMetric value="3x" label={t("Lebih Cepat ke Revenue", "Faster to Revenue")} />
-            <StatMetric value="5x" label={t("ROI dari Marketing", "Marketing ROI")} />
-            <StatMetric value="10x" label={t("Network & Opportunities", "Network & Opportunities")} />
+            <StatMetric value="3x" label={"Faster to Revenue"} />
+            <StatMetric value="5x" label={"Marketing ROI"} />
+            <StatMetric value="10x" label={"Network & Opportunities"} />
           </div>
         </div>
 
         <div className="text-center">
           <p className="text-muted-foreground mb-6 text-sm md:text-base">
-            {t(
-              "Pilih jalan yang lebih cepat dan efisien",
-              "Choose the faster and more efficient path",
-            )}
+            {"Choose the faster and more efficient path"}
           </p>
           <Button
             variant="hero"
@@ -228,7 +185,7 @@ const ComparisonSection = ({ onApplyClick }: ComparisonSectionProps) => {
             onClick={onApplyClick}
             className="group btn-premium"
           >
-            {t("Mulai Perjalanan dengan S3 Labs", "Start Your Journey with S3 Labs")}
+            {"Start Your Journey with S3 Labs"}
             <TrendingUp className="w-5 h-5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
           </Button>
         </div>

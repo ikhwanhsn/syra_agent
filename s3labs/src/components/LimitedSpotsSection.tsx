@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useLanguage } from "@/contexts/LanguageContext";
+
 import { AlertCircle, Clock, Users, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -7,26 +7,25 @@ interface LimitedSpotsSectionProps {
   onApplyClick: () => void;
 }
 
-const LimitedSpotsSection = ({ onApplyClick }: LimitedSpotsSectionProps) => {
-  const { t } = useLanguage();
+const LimitedSpotsSection = ({ onApplyClick }: LimitedSpotsSectionProps) => {
   const [spotsRemaining] = useState(5);
   const totalSpots = 10;
 
   const urgencyFeatures = [
     {
       icon: Clock,
-      title: t("Program Dimulai", "Program Starts"),
-      value: t("15 Februari 2025", "February 15, 2025"),
+      title: "Program Starts",
+      value: "February 15, 2025",
     },
     {
       icon: Users,
-      title: t("Kapasitas Terbatas", "Limited Capacity"),
-      value: t("Hanya 10 Project/Batch", "Only 10 Projects/Batch"),
+      title: "Limited Capacity",
+      value: "Only 10 Projects/Batch",
     },
     {
       icon: Flame,
-      title: t("Pendaftaran Ditutup", "Registration Closes"),
-      value: t("31 Januari 2025", "31 January 2025"),
+      title: "Registration Closes",
+      value: "31 January 2025",
     },
   ];
 
@@ -55,16 +54,10 @@ const LimitedSpotsSection = ({ onApplyClick }: LimitedSpotsSectionProps) => {
                 <AlertCircle className="w-8 h-8 text-white" />
               </div>
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-2">
-                {t(
-                  "⚡ Slot Terbatas untuk Q1 2025",
-                  "⚡ Limited Spots for Q1 2025"
-                )}
+                {"⚡ Limited Spots for Q1 2025"}
               </h2>
               <p className="text-white/90 text-lg">
-                {t(
-                  "Program akselerator kami memiliki kapasitas terbatas",
-                  "Our accelerator program has limited capacity"
-                )}
+                {"Our accelerator program has limited capacity"}
               </p>
             </div>
 
@@ -77,13 +70,10 @@ const LimitedSpotsSection = ({ onApplyClick }: LimitedSpotsSectionProps) => {
                     {spotsRemaining}
                   </div>
                   <p className="text-xl md:text-2xl font-semibold text-foreground mb-2">
-                    {t("Slot Tersisa", "Spots Remaining")}
+                    {"Spots Remaining"}
                   </p>
                   <p className="text-muted-foreground">
-                    {t(
-                      "dari total 10 project yang kami terima per batch",
-                      "out of 10 projects we accept per batch"
-                    )}
+                    {"out of 10 projects we accept per batch"}
                   </p>
                 </div>
               </div>
@@ -92,7 +82,7 @@ const LimitedSpotsSection = ({ onApplyClick }: LimitedSpotsSectionProps) => {
               <div className="mb-12">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm font-medium text-muted-foreground">
-                    {t("Slot Terisi", "Spots Filled")}
+                    {"Spots Filled"}
                   </span>
                   <span className="text-sm font-bold text-foreground">
                     {totalSpots - spotsRemaining}/{totalSpots}
@@ -135,7 +125,7 @@ const LimitedSpotsSection = ({ onApplyClick }: LimitedSpotsSectionProps) => {
               {/* Why Limited */}
               <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 md:p-8 mb-8">
                 <h3 className="text-xl font-bold text-foreground mb-4">
-                  {t("Kenapa Kami Membatasi Slot?", "Why Do We Limit Spots?")}
+                  {"Why Do We Limit Spots?"}
                 </h3>
                 <ul className="space-y-3">
                   <li className="flex items-start gap-3">
@@ -143,10 +133,7 @@ const LimitedSpotsSection = ({ onApplyClick }: LimitedSpotsSectionProps) => {
                       <span className="text-primary text-xs font-bold">✓</span>
                     </div>
                     <p className="text-muted-foreground">
-                      {t(
-                        "Setiap founder mendapat dedicated mentor dan weekly 1-on-1 session",
-                        "Every founder gets a dedicated mentor and weekly 1-on-1 sessions"
-                      )}
+                      {"Every founder gets a dedicated mentor and weekly 1-on-1 sessions"}
                     </p>
                   </li>
                   <li className="flex items-start gap-3">
@@ -154,10 +141,7 @@ const LimitedSpotsSection = ({ onApplyClick }: LimitedSpotsSectionProps) => {
                       <span className="text-primary text-xs font-bold">✓</span>
                     </div>
                     <p className="text-muted-foreground">
-                      {t(
-                        "Kami fokus pada quality over quantity untuk hasil maksimal",
-                        "We focus on quality over quantity for maximum results"
-                      )}
+                      {"We focus on quality over quantity for maximum results"}
                     </p>
                   </li>
                   <li className="flex items-start gap-3">
@@ -165,10 +149,7 @@ const LimitedSpotsSection = ({ onApplyClick }: LimitedSpotsSectionProps) => {
                       <span className="text-primary text-xs font-bold">✓</span>
                     </div>
                     <p className="text-muted-foreground">
-                      {t(
-                        "Network dan resources kami dibagi secara eksklusif untuk cohort members",
-                        "Our network and resources are exclusively shared with cohort members"
-                      )}
+                      {"Our network and resources are exclusively shared with cohort members"}
                     </p>
                   </li>
                 </ul>
@@ -182,14 +163,11 @@ const LimitedSpotsSection = ({ onApplyClick }: LimitedSpotsSectionProps) => {
                   size="xl"
                   className="group mb-4"
                 >
-                  {t("Secure Slot Anda Sekarang", "Secure Your Spot Now")}
+                  {"Secure Your Spot Now"}
                   <Flame className="w-5 h-5 ml-2 group-hover:scale-110 transition-transform" />
                 </Button>
                 <p className="text-sm text-muted-foreground">
-                  {t(
-                    "Proses seleksi memakan waktu 7-14 hari. Daftar sekarang!",
-                    "Selection process takes 7-14 days. Apply now!"
-                  )}
+                  {"Selection process takes 7-14 days. Apply now!"}
                 </p>
               </div>
             </div>

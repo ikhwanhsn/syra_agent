@@ -1,19 +1,15 @@
-import { useLanguage } from "@/contexts/LanguageContext";
+
 import SectionHeader from "@/components/landing/SectionHeader";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Linkedin, Send, Twitter } from "lucide-react";
 
-const TeamSection = () => {
-  const { t } = useLanguage();
+const TeamSection = () => {
 
   const team = [
     {
       name: "Destriani Rahayu",
-      role: t("Pendiri & CEO", "Founder & CEO"),
-      tagline: t(
-        "Digital Strategy & Web3 Tech Innovation",
-        "Digital Strategy & Web3 Tech Innovation",
-      ),
+      role: "Founder & CEO",
+      tagline: "Digital Strategy & Web3 Tech Innovation",
       avatar: "/images/rara.jpg",
       linkedin: "https://www.linkedin.com/in/destriani-rahayu-a39417247/",
       telegram: "https://t.me/raraverse",
@@ -22,8 +18,8 @@ const TeamSection = () => {
     },
     {
       name: "Ikhwanul Husna",
-      role: t("Pendiri & CTO", "Founder & CTO"),
-      tagline: t("Fintech & DeFi · Cracked Dev", "Fintech & DeFi · Cracked Dev"),
+      role: "Founder & CTO",
+      tagline: "Fintech & DeFi · Cracked Dev",
       avatar: "/images/ikhwan.PNG",
       linkedin: "https://www.linkedin.com/in/ikhwanhsn",
       telegram: "https://t.me/ikhwanhsn",
@@ -45,12 +41,9 @@ const TeamSection = () => {
       <div className="section-divider" />
       <div className="container relative z-10">
         <SectionHeader
-          eyebrow={t("Tim Kami", "Our Team")}
-          title={t("Kenali Pendiri", "Meet the Founders")}
-          description={t(
-            "Tim berpengalaman yang mendorong pertumbuhan ekosistem Solana",
-            "The experienced team driving Solana ecosystem growth",
-          )}
+          eyebrow={"Our Team"}
+          title={"Meet the Founders"}
+          description={"The experienced team driving Solana ecosystem growth"}
         />
 
         <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">

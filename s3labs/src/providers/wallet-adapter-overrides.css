@@ -1,0 +1,7 @@
+.wallet-adapter-modal-wrapper {
+  z-index: 10000 !important;
+}
+
+.wallet-adapter-dropdown {
+  z-index: 10000 !important;
+}

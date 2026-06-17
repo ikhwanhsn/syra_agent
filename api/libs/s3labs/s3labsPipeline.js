@@ -62,10 +62,10 @@ function ensureFreshPick(data, articles, excludes, kind) {
         summary: a.description.slice(0, 220) || a.title,
         whyItMatters:
           kind === "event"
-            ? "Event ini belum dibagikan ke komunitas."
+            ? "This event has not been shared with the community yet."
             : kind === "developer"
-              ? "Artikel dev ini relevan dan belum pernah dipost."
-              : "Berita ini belum pernah dibagikan ke komunitas.",
+              ? "This dev article is relevant and has not been posted before."
+              : "This story has not been shared with the community yet.",
         url: a.url,
         source: a.source,
         category: kind === "news" ? "web3" : kind,

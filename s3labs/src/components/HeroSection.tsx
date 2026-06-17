@@ -1,4 +1,4 @@
-import { useLanguage } from "@/contexts/LanguageContext";
+
 import { Button } from "@/components/ui/button";
 import StatMetric from "@/components/landing/StatMetric";
 import { ArrowRight, Sparkles } from "lucide-react";
@@ -7,8 +7,7 @@ interface HeroSectionProps {
   onApplyClick: () => void;
 }
 
-const HeroSection = ({ onApplyClick }: HeroSectionProps) => {
-  const { t } = useLanguage();
+const HeroSection = ({ onApplyClick }: HeroSectionProps) => {
 
   const stats = [
     { value: "$65K+", label: "Revenue Generated" },
@@ -32,7 +31,7 @@ const HeroSection = ({ onApplyClick }: HeroSectionProps) => {
           <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full panel-glass mb-8 animate-fade-up">
             <Sparkles className="w-3.5 h-3.5 text-primary" />
             <span className="text-xs font-semibold tracking-wide text-foreground/90 uppercase">
-              {t("Ekosistem Solana", "Solana Ecosystem")}
+              {"Solana Ecosystem"}
             </span>
           </div>
 
@@ -42,10 +41,10 @@ const HeroSection = ({ onApplyClick }: HeroSectionProps) => {
           >
             <span className="block">S3 Labs — </span>
             <span className="text-gradient">
-              {t("Mitra Pertumbuhan", "Growth Partner")}
+              {"Growth Partner"}
             </span>
             <span className="block mt-1 text-foreground/95">
-              {t("untuk Developer Solana", "for Solana Developers")}
+              {"for Solana Developers"}
             </span>
           </h1>
 
@@ -53,10 +52,7 @@ const HeroSection = ({ onApplyClick }: HeroSectionProps) => {
             className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed animate-fade-up"
             style={{ animationDelay: "0.2s" }}
           >
-            {t(
-              "Kami membantu developer yang telah memenangkan hackathon atau memiliki produk MVP untuk mendapatkan revenue, mempercepat adopsi, dan berkembang di ekosistem Solana.",
-              "We help developers who have won hackathons or already built an MVP to generate revenue, accelerate adoption, and scale within the Solana ecosystem.",
-            )}
+            {"We help developers who have won hackathons or already built an MVP to generate revenue, accelerate adoption, and scale within the Solana ecosystem."}
           </p>
 
           <div
@@ -69,12 +65,12 @@ const HeroSection = ({ onApplyClick }: HeroSectionProps) => {
               onClick={onApplyClick}
               className="group btn-premium min-w-[220px]"
             >
-              {t("Ajukan Project ke S3 Labs", "Apply Your Project to S3 Labs")}
+              {"Apply Your Project to S3 Labs"}
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Button>
             <Button variant="heroOutline" size="xl" asChild className="rounded-full min-w-[220px]">
               <a href="#how-it-works">
-                {t("Pelajari Program Kami", "Explore Our Programs")}
+                {"Explore Our Programs"}
               </a>
             </Button>
           </div>
@@ -94,10 +90,7 @@ const HeroSection = ({ onApplyClick }: HeroSectionProps) => {
             className="text-sm text-muted-foreground/80 mt-8 animate-fade-up"
             style={{ animationDelay: "0.5s" }}
           >
-            {t(
-              "Fokus pada project yang siap bertumbuh — bukan sekadar ide.",
-              "Focused on growth-ready projects — not just ideas.",
-            )}
+            {"Focused on growth-ready projects — not just ideas."}
           </p>
         </div>
       </div>

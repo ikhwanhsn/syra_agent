@@ -156,7 +156,7 @@ export function extractQuestion(message, botUsername, botId) {
 async function answerS3labsQuestion(question) {
   const { text, flagged } = sanitizeUserMessage(question);
   if (!text.trim()) {
-    return "Pertanyaannya kosong — tag bot lalu tulis pertanyaanmu.";
+    return "Your question is empty — tag the bot and type your question.";
   }
   if (flagged.length > 0) {
     console.warn("[s3labs-telegram-qa] sanitization flags:", flagged.join(", "));
@@ -181,7 +181,7 @@ async function answerS3labsQuestion(question) {
 
   const reply = (result.response || "").trim();
   if (!reply) {
-    return "Maaf, aku belum bisa menjawab itu sekarang. Coba lagi sebentar ya.";
+    return "Sorry, I couldn't answer that right now. Please try again in a moment.";
   }
   return reply.length > 3900 ? `${reply.slice(0, 3900)}…` : reply;
 }
@@ -226,7 +226,7 @@ export async function handleS3labsTelegramUpdate(update) {
     const question = extractQuestion(message, bot.username, bot.id);
     if (!question) {
       await sendS3labsTelegramReply(
-        "Tag bot lalu tulis pertanyaanmu — contoh: `@s3labs_bot apa itu Claude Fable 5?`",
+        "Tag the bot and type your question — e.g. `@s3labs_bot what is Claude Fable 5?`",
         replyOpts,
       );
       return;
@@ -234,7 +234,7 @@ export async function handleS3labsTelegramUpdate(update) {
 
     if (isUserRateLimited(message.from.id)) {
       await sendS3labsTelegramReply(
-        "⏳ Kamu sudah banyak bertanya dalam satu jam. Coba lagi nanti ya.",
+        "⏳ You've asked a lot in the past hour. Please try again later.",
         replyOpts,
       );
       return;
@@ -248,7 +248,7 @@ export async function handleS3labsTelegramUpdate(update) {
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       console.error("[s3labs-telegram-qa] LLM failed:", msg);
-      replyText = "Maaf, ada gangguan sementara. Coba lagi beberapa menit lagi.";
+      replyText = "Sorry, there's a temporary issue. Please try again in a few minutes.";
     }
 
     const sent = await sendS3labsTelegramReply(markdownToTelegramHtml(replyText), {
@@ -263,7 +263,7 @@ export async function handleS3labsTelegramUpdate(update) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error("[s3labs-telegram-qa] handler failed:", msg);
     await sendS3labsTelegramReply(
-      "Maaf, ada gangguan sementara. Coba lagi beberapa menit lagi.",
+      "Sorry, there's a temporary issue. Please try again in a few minutes.",
       replyOpts,
     ).catch(() => {});
   }

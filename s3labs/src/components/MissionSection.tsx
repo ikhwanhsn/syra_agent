@@ -1,34 +1,24 @@
-import { useLanguage } from '@/contexts/LanguageContext';
+
 import SectionHeader from '@/components/landing/SectionHeader';
 import { Crosshair, Eye, Compass } from 'lucide-react';
 
-const MissionSection = () => {
-  const { t } = useLanguage();
+const MissionSection = () => {
 
   const items = [
     {
       icon: Crosshair,
-      label: t('Purpose', 'Purpose'),
-      content: t(
-        'S3 Labs membantu project untuk mendapatkan revenue di ekosistem Solana.',
-        'S3 Labs helps projects generate real revenue within the Solana ecosystem.'
-      ),
+      label: 'Purpose',
+      content: 'S3 Labs helps projects generate real revenue within the Solana ecosystem.',
     },
     {
       icon: Eye,
-      label: t('Visi', 'Vision'),
-      content: t(
-        'Menjadi partner utama dalam membantu project Solana bertumbuh dan berkembang.',
-        'To become the primary growth partner for Solana projects.'
-      ),
+      label: 'Vision',
+      content: 'To become the primary growth partner for Solana projects.',
     },
     {
       icon: Compass,
-      label: t('Misi', 'Mission'),
-      content: t(
-        'Memberdayakan project dan ekosistem Solana melalui kolaborasi, validasi, dan akselerasi pertumbuhan.',
-        'Empowering projects and the Solana ecosystem through collaboration, validation, and growth acceleration.'
-      ),
+      label: 'Mission',
+      content: 'Empowering projects and the Solana ecosystem through collaboration, validation, and growth acceleration.',
     },
   ];
 
@@ -39,12 +29,9 @@ const MissionSection = () => {
 
       <div className="container relative z-10">
         <SectionHeader
-          eyebrow={t('Visi & Misi', 'Vision & Mission')}
-          title={t('Tujuan & Misi Kami', 'Our Purpose & Mission')}
-          description={t(
-            'Komitmen kami untuk ekosistem Solana',
-            'Our commitment to the Solana ecosystem'
-          )}
+          eyebrow={'Vision & Mission'}
+          title={'Our Purpose & Mission'}
+          description={'Our commitment to the Solana ecosystem'}
         />
 
         <div className="grid lg:grid-cols-3 gap-5 max-w-5xl mx-auto">

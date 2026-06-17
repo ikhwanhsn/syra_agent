@@ -1,5 +1,5 @@
 /**
- * Telegram formatters per S3Labs forum topic (Bahasa Indonesia + agent identity).
+ * Telegram formatters per S3Labs forum topic (English + agent identity).
  */
 
 import { getS3labsAgentDefinition } from "../../config/s3labsAgentsConfig.js";
@@ -15,9 +15,9 @@ import { getS3labsAgentDefinition } from "../../config/s3labsAgentsConfig.js";
 /**
  * @returns {string}
  */
-function formatWibNow() {
-  return new Intl.DateTimeFormat("id-ID", {
-    timeZone: "Asia/Jakarta",
+function formatUtcNow() {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "UTC",
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date());
@@ -53,28 +53,28 @@ export function formatS3labsAgentTelegram(kind, data) {
   } else if (kind === "event") {
     if (pick.eventDate && /^\d{4}-\d{2}-\d{2}$/.test(pick.eventDate)) {
       const d = new Date(`${pick.eventDate}T12:00:00Z`);
-      const tanggal = new Intl.DateTimeFormat("id-ID", {
+      const eventDate = new Intl.DateTimeFormat("en-US", {
         day: "numeric",
         month: "long",
         year: "numeric",
       }).format(d);
-      lines.push(`📌 Tanggal event: ${tanggal}`, "");
+      lines.push(`📌 Event date: ${eventDate}`, "");
     } else {
-      lines.push("📌 Kalender Event", "");
+      lines.push("📌 Event Calendar", "");
     }
   }
 
-  lines.push(pick.title, "", pick.summary, "", "💡 Kenapa penting:", pick.whyItMatters, "");
+  lines.push(pick.title, "", pick.summary, "", "💡 Why it matters:", pick.whyItMatters, "");
 
   if (pick.url) {
-    lines.push("🔗 Info lengkap:", pick.url, "");
+    lines.push("🔗 Full details:", pick.url, "");
   }
 
   lines.push(
-    `📰 Sumber: ${pick.source}`,
-    `🕐 ${formatWibNow()} WIB`,
+    `📰 Source: ${pick.source}`,
+    `🕐 ${formatUtcNow()} UTC`,
     "",
-    `— ${agentTag} · topik t.me/s3labs/${def.threadId}`,
+    `— ${agentTag} · topic t.me/s3labs/${def.threadId}`,
   );
 
   return lines.join("\n").trim();

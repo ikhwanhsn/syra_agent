@@ -1,4 +1,4 @@
-import { useLanguage } from "@/contexts/LanguageContext";
+
 import SectionHeader from "@/components/landing/SectionHeader";
 import { ExternalLink, TrendingUp, Users, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,51 +7,41 @@ interface ProjectsShowcaseProps {
   onApplyClick: () => void;
 }
 
-const ProjectsShowcase = ({ onApplyClick }: ProjectsShowcaseProps) => {
-  const { t } = useLanguage();
+const ProjectsShowcase = ({ onApplyClick }: ProjectsShowcaseProps) => {
 
   const projects = [
     {
       name: "AI Agents",
-      category: t("AI Agents", "AI Agents"),
-      description: t(
-        "Platform AI Agents dengan revenue $30K+ dalam bulan pertama",
-        "AI Agents platform with $30K+ revenue in the first month",
-      ),
+      category: "AI Agents",
+      description: "AI Agents platform with $30K+ revenue in the first month",
       metrics: [
-        { icon: DollarSign, label: t("Revenue", "Revenue"), value: "$30K+" },
-        { icon: Users, label: t("Pengguna", "Users"), value: "700+" },
-        { icon: TrendingUp, label: t("Pertumbuhan", "Growth"), value: "+300%" },
+        { icon: DollarSign, label: "Revenue", value: "$30K+" },
+        { icon: Users, label: "Users", value: "700+" },
+        { icon: TrendingUp, label: "Growth", value: "+300%" },
       ],
       image:
         "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=600&h=400&fit=crop",
     },
     {
       name: "Smart Contract Auditor",
-      category: t("Auditor", "Auditor"),
-      description: t(
-        "Platform audit smart contract dengan revenue $1K+ dalam minggu pertama",
-        "Smart contract auditing platform with $1K+ revenue in the first week",
-      ),
+      category: "Auditor",
+      description: "Smart contract auditing platform with $1K+ revenue in the first week",
       metrics: [
-        { icon: DollarSign, label: t("Revenue", "Revenue"), value: "$1K+" },
-        { icon: Users, label: t("Pengikut", "Followers"), value: "210+" },
-        { icon: TrendingUp, label: t("Pertumbuhan", "Growth"), value: "100%" },
+        { icon: DollarSign, label: "Revenue", value: "$1K+" },
+        { icon: Users, label: "Followers", value: "210+" },
+        { icon: TrendingUp, label: "Growth", value: "100%" },
       ],
       image:
         "https://images.unsplash.com/photo-1620321023374-d1a68fbc720d?w=600&h=400&fit=crop",
     },
     {
       name: "Swarm Protocol",
-      category: t("Protocol", "Protocol"),
-      description: t(
-        "x402 autonomous logic protocol dengan revenue $35K+ dalam minggu pertama",
-        "x402 autonomous logic protocol with $35K+ revenue in the first week",
-      ),
+      category: "Protocol",
+      description: "x402 autonomous logic protocol with $35K+ revenue in the first week",
       metrics: [
-        { icon: DollarSign, label: t("Revenue", "Revenue"), value: "$35K+" },
-        { icon: Users, label: t("Pengikut", "Followers"), value: "680+" },
-        { icon: TrendingUp, label: t("MoM Growth", "MoM Growth"), value: "+900%" },
+        { icon: DollarSign, label: "Revenue", value: "$35K+" },
+        { icon: Users, label: "Followers", value: "680+" },
+        { icon: TrendingUp, label: "MoM Growth", value: "+900%" },
       ],
       image:
         "https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=600&h=400&fit=crop",
@@ -63,19 +53,16 @@ const ProjectsShowcase = ({ onApplyClick }: ProjectsShowcaseProps) => {
       <div className="section-divider" />
       <div className="container relative z-10">
         <SectionHeader
-          eyebrow={t("Portfolio", "Portfolio")}
+          eyebrow={"Portfolio"}
           title={
             <>
-              {t("Project yang", "Projects We")}
+              {"Projects We"}
               <span className="text-gradient block mt-1">
-                {t("Sudah Kami Bantu", "Have Helped")}
+                {"Have Helped"}
               </span>
             </>
           }
-          description={t(
-            "Dari hackathon winners hingga revenue-generating products di Solana",
-            "From hackathon winners to revenue-generating products on Solana",
-          )}
+          description={"From hackathon winners to revenue-generating products on Solana"}
         />
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
@@ -128,10 +115,7 @@ const ProjectsShowcase = ({ onApplyClick }: ProjectsShowcaseProps) => {
 
         <div className="text-center mt-16">
           <p className="text-muted-foreground mb-6">
-            {t(
-              "Project Anda selanjutnya untuk bergabung?",
-              "Will your project be next?",
-            )}
+            {"Will your project be next?"}
           </p>
           <Button
             variant="hero"
@@ -139,7 +123,7 @@ const ProjectsShowcase = ({ onApplyClick }: ProjectsShowcaseProps) => {
             className="group btn-premium"
             onClick={onApplyClick}
           >
-            {t("Ajukan Project Anda", "Apply Your Project")}
+            {"Apply Your Project"}
             <ExternalLink className="w-5 h-5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
           </Button>
         </div>

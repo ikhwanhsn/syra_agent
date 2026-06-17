@@ -1,6 +1,5 @@
-import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
-import { LanguageProvider } from "@/contexts/LanguageContext";
+import { useState } from "react";
+
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";
@@ -14,9 +13,6 @@ import ApplicationModal from "@/components/ApplicationModal";
 import FAQSection from "@/components/FAQSection";
 import Footer from "@/components/Footer";
 import ProjectsShowcase from "@/components/ProjectsShowcase";
-import EventsSection from "@/components/EventsSection";
-import FounderTestimonials from "@/components/FounderTestimonials";
-import TeamSection from "@/components/TeamSection";
 import LimitedSpotsSection from "@/components/LimitedSpotsSection";
 import ComparisonSection from "@/components/ComparisonSectionProps";
 import ScrollToTop from "@/components/ScrollToTop";
@@ -30,20 +26,10 @@ const LandingContent = () => {
   const { theme } = useTheme();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { open: telegramOpen, dismiss: dismissTelegram, setOpen: setTelegramOpen } = useTelegramPopup();
-  const location = useLocation();
 
   const handleApplyClick = () => {
     setIsModalOpen(true);
   };
-
-  // When navigating to /#events (e.g. back from events page), scroll to events section
-  useEffect(() => {
-    if (location.hash !== "#events") return;
-    const timeoutId = setTimeout(() => {
-      document.getElementById("events")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 100);
-    return () => clearTimeout(timeoutId);
-  }, [location.pathname, location.hash]);
 
   return (
     <div className={`relative min-h-screen ${theme === "light" ? "landing-light-bg" : "bg-background"}`}>
@@ -59,10 +45,7 @@ const LandingContent = () => {
         <ComparisonSection onApplyClick={handleApplyClick} />
         <HowItWorks />
         <ProjectsShowcase onApplyClick={handleApplyClick} />
-        <EventsSection />
         <CommunitySection />
-        <FounderTestimonials />
-        <TeamSection />
         <WhyUsSection />
         {/* <LimitedSpotsSection onApplyClick={handleApplyClick} /> */}
         <CTASection onApplyClick={handleApplyClick} />
@@ -87,10 +70,8 @@ const LandingContent = () => {
 const Index = () => {
   return (
     <ThemeProvider>
-      <LanguageProvider>
-        <LandingContent />
-      </LanguageProvider>
-    </ThemeProvider>
+      <LandingContent />
+      </ThemeProvider>
   );
 };
 

@@ -13,9 +13,9 @@ import { escapeTelegramHtml } from "../telegramFormat.js";
 /**
  * @returns {string}
  */
-function formatWibNow() {
-  return new Intl.DateTimeFormat("id-ID", {
-    timeZone: "Asia/Jakarta",
+function formatUtcNow() {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "UTC",
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date());
@@ -55,8 +55,8 @@ function plainJobSummary(raw) {
 export function formatS3labsJobTelegram(job) {
   const def = S3LABS_JOB_AGENT;
   const title = escapeTelegramHtml(job.title);
-  const company = escapeTelegramHtml(job.company || "Perusahaan tidak disebutkan");
-  const location = escapeTelegramHtml(job.location || (job.remote ? "Remote" : "Tidak disebutkan"));
+  const company = escapeTelegramHtml(job.company || "Company not listed");
+  const location = escapeTelegramHtml(job.location || (job.remote ? "Remote" : "Not specified"));
   const salary = escapeTelegramHtml(job.salaryLabel);
   const cat = escapeTelegramHtml(categoryLabel(job.category));
   const source = escapeTelegramHtml(job.source);
@@ -75,10 +75,10 @@ export function formatS3labsJobTelegram(job) {
     "",
     summary,
     "",
-    `🔗 <a href="${job.url}">Lamar / lihat detail</a>`,
-    `📰 Sumber: ${source}`,
+    `🔗 <a href="${job.url}">Apply / view details</a>`,
+    `📰 Source: ${source}`,
     `🆔 <code>${identity}</code>`,
-    `🕐 ${formatWibNow()} WIB`,
+    `🕐 ${formatUtcNow()} UTC`,
     "",
     `— ${def.agentTag} · t.me/s3labs/${def.threadId}`,
   ];
