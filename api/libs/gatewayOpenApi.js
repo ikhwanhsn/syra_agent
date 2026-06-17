@@ -166,14 +166,12 @@ const RATE_LIMIT_INFO = {
   responseBody: { success: false, message: 'Too many requests. Please slow down.' },
   skip: {
     description:
-      'Routes excluded from this throttle. x402 paid routes are gated by HTTP 402 instead. OpenAPI free routes (/api/signal, /preview/*, /dashboard-summary, /binance-ticker, /x-projects-analyze/*) are public for discovery. Internal cron paths require a shared secret. RISE proxies are skipped because one user session can fan out across many list pages.',
+      'Routes excluded from this throttle. x402 paid routes are gated by HTTP 402 instead. OpenAPI free routes (/info, /prediction-game/health) are public for discovery. Internal cron paths require a shared secret. RISE proxies are skipped because one user session can fan out across many list pages.',
     paths: [
       'all x402 routes (see GET /.well-known/x402)',
-      '/api/signal',
-      '/preview/*',
-      '/dashboard-summary',
-      '/binance-ticker',
-      '/x-projects-analyze/*',
+      '/info',
+      '/info/*',
+      '/prediction-game/health',
       '/internal/tester-agent*',
       '/internal/trend-scout/run',
       '/internal/growth-scout/run',
@@ -290,17 +288,10 @@ function discoveryOwnershipProofs() {
   return proofs;
 }
 
-const SIGNAL_SUCCESS_SCHEMA = {
+const SIGNAL_X402_RESPONSE_SCHEMA = {
   type: 'object',
-  required: ['success'],
   properties: {
-    success: { type: 'boolean' },
-    data: {
-      type: 'object',
-      properties: { signal: { type: 'object', additionalProperties: true } },
-    },
-    meta: { type: 'object', additionalProperties: true },
-    error: { type: 'string' },
+    signal: { type: 'object', additionalProperties: true },
   },
   additionalProperties: true,
 };
@@ -365,19 +356,22 @@ export function buildGatewayOpenApi() {
 
   /** @type {Record<string, Record<string, unknown>>} */
   const paths = {
-    '/api/signal': {
+    '/signal': {
       get: {
-        tags: ['Signal'],
-        summary: 'Public signal (no x402)',
-        description: 'Same engine as /signal without micropayment. Free — no payment or API key required.',
-        operationId: 'getPublicSignal',
-        security: SECURITY_FREE,
+        tags: ['Market data (x402)'],
+        summary: 'AI trading signal (x402)',
+        description:
+          'Spot OHLC + technical signal engine. Default source: binance with CEX fallbacks (coinbase, okx, kraken). Use source=n8n|webhook for legacy webhook.',
+        operationId: 'getSignal',
+        security: SECURITY_PAID,
+        'x-payment-info': xPaymentInfo(X402_DISPLAY_PRICE_USD),
         parameters: SIGNAL_QUERY,
         responses: {
           '200': {
             description: 'Signal result',
-            content: { 'application/json': { schema: SIGNAL_SUCCESS_SCHEMA } },
+            content: { 'application/json': { schema: SIGNAL_X402_RESPONSE_SCHEMA } },
           },
+          '402': PAID_402_RESPONSE,
           '429': RATE_LIMIT_429_RESPONSE,
           '500': {
             description: 'Upstream or configuration error',
@@ -385,7 +379,7 @@ export function buildGatewayOpenApi() {
               'application/json': {
                 schema: {
                   type: 'object',
-                  properties: { success: { type: 'boolean', const: false }, error: { type: 'string' } },
+                  properties: { error: { type: 'string' } },
                 },
               },
             },
@@ -393,10 +387,11 @@ export function buildGatewayOpenApi() {
         },
       },
       post: {
-        tags: ['Signal'],
-        summary: 'Public signal via JSON body',
-        operationId: 'postPublicSignal',
-        security: SECURITY_FREE,
+        tags: ['Market data (x402)'],
+        summary: 'AI trading signal via JSON body (x402)',
+        operationId: 'postSignal',
+        security: SECURITY_PAID,
+        'x-payment-info': xPaymentInfo(X402_DISPLAY_PRICE_USD),
         requestBody: {
           required: false,
           content: {
@@ -418,8 +413,9 @@ export function buildGatewayOpenApi() {
         responses: {
           '200': {
             description: 'Signal result',
-            content: { 'application/json': { schema: SIGNAL_SUCCESS_SCHEMA } },
+            content: { 'application/json': { schema: SIGNAL_X402_RESPONSE_SCHEMA } },
           },
+          '402': PAID_402_RESPONSE,
           '429': RATE_LIMIT_429_RESPONSE,
           '500': {
             description: 'Error',
@@ -427,7 +423,7 @@ export function buildGatewayOpenApi() {
               'application/json': {
                 schema: {
                   type: 'object',
-                  properties: { success: { type: 'boolean', const: false }, error: { type: 'string' } },
+                  properties: { error: { type: 'string' } },
                 },
               },
             },
@@ -438,23 +434,6 @@ export function buildGatewayOpenApi() {
 
     '/info': { get: opGet('Info', 'Gateway info', 'getInfo', [], false) },
     '/info/stats': { get: opGet('Info', 'Public usage stats', 'getInfoStats', [], false) },
-
-    '/preview/news': {
-      get: opGet('Preview', 'News preview (no x402)', 'getPreviewNews', TICKER_QUERY, false),
-    },
-    '/preview/sentiment': {
-      get: opGet('Preview', 'Sentiment preview (no x402)', 'getPreviewSentiment', TICKER_QUERY, false),
-    },
-    '/preview/signal': {
-      get: opGet('Preview', 'Signal preview (no x402)', 'getPreviewSignal', SIGNAL_QUERY, false),
-    },
-
-    '/dashboard-summary': {
-      get: opGet('Dashboard', 'Dashboard KPI summary', 'getDashboardSummary', [], false),
-    },
-    '/binance-ticker': {
-      get: opGet('Dashboard', 'Binance ticker prices', 'getBinanceTicker', [], false),
-    },
 
     '/prediction-game/health': {
       get: opGet('Prediction game', 'Prediction game health', 'getPredictionGameHealth', [], false),
@@ -634,156 +613,6 @@ export function buildGatewayOpenApi() {
       },
     },
 
-    '/x-projects-analyze/types': {
-      get: {
-        tags: ['Social (batch)'],
-        summary: 'List batch analyzer types',
-        description:
-          'Returns configured `type` ids (labels, provider). X accounts per type are fixed server-side. No X API calls.',
-        operationId: 'getXProjectsAnalyzeTypes',
-        security: SECURITY_FREE,
-        responses: {
-          '200': OK_JSON,
-          '429': RATE_LIMIT_429_RESPONSE,
-        },
-      },
-    },
-
-    '/x-projects-analyze/account': {
-      get: {
-        tags: ['Social (batch)'],
-        summary: 'Single-account Alpha analysis (allowlisted)',
-        description:
-          '`username` must belong to the configured `type` handle list. Returns full score payload, optional AI summary (default on), and `recentTweets` sample.',
-        operationId: 'getXProjectsAnalyzeAccount',
-        security: SECURITY_FREE,
-        parameters: [
-          {
-            name: 'username',
-            in: 'query',
-            required: true,
-            schema: { type: 'string', example: 'syra_agent' },
-            description: 'X handle without @.',
-          },
-          {
-            name: 'type',
-            in: 'query',
-            required: false,
-            schema: { type: 'string', default: 'x402' },
-            description: 'Feed type key.',
-          },
-          {
-            name: 'max_results',
-            in: 'query',
-            required: false,
-            schema: { type: 'integer', minimum: 10, maximum: 50, default: 35 },
-            description: 'Tweet sample size.',
-          },
-          {
-            name: 'includeAiSummary',
-            in: 'query',
-            required: false,
-            schema: { type: 'boolean', default: true },
-            description: 'Grounded LLM bullets (OpenRouter).',
-          },
-        ],
-        responses: {
-          ...responsesFor(false),
-          '403': { description: 'Username not in feed type allowlist' },
-          '404': { description: 'X user not found' },
-          '502': { description: 'X API upstream error' },
-          '503': { description: 'Server missing X_BEARER_TOKEN' },
-        },
-      },
-      post: {
-        tags: ['Social (batch)'],
-        summary: 'Single-account Alpha analysis — POST',
-        operationId: 'postXProjectsAnalyzeAccount',
-        security: SECURITY_FREE,
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                properties: {
-                  username: { type: 'string', example: 'syra_agent' },
-                  type: { type: 'string', default: 'x402' },
-                  max_results: { type: 'integer', minimum: 10, maximum: 50 },
-                  includeAiSummary: { type: 'boolean' },
-                },
-                required: ['username'],
-              },
-            },
-          },
-        },
-        responses: {
-          ...responsesFor(false),
-          '403': { description: 'Username not in feed type allowlist' },
-          '404': { description: 'X user not found' },
-          '502': { description: 'X API upstream error' },
-          '503': { description: 'Server missing X_BEARER_TOKEN' },
-        },
-      },
-    },
-
-    '/x-projects-analyze': {
-      get: {
-        tags: ['Social (batch)'],
-        summary: 'Batch X project analyzer (no x402)',
-        description:
-          'Returns the latest persisted batch snapshot for `type` (default `x402`). Scores are refreshed by the Alpha X agent about once every 24 hours (POST /internal/alpha-x-batch/run). Handles are not client-supplied. See GET /x-projects-analyze/types.',
-        operationId: 'getXProjectsAnalyze',
-        security: SECURITY_FREE,
-        parameters: [
-          {
-            name: 'type',
-            in: 'query',
-            required: false,
-            schema: { type: 'string', default: 'x402' },
-            description: 'Analyzer type key (e.g. x402).',
-          },
-          {
-            name: 'max_results',
-            in: 'query',
-            required: false,
-            schema: { type: 'integer', minimum: 5, maximum: 50, default: 20 },
-            description: 'Tweet sample per account.',
-          },
-          {
-            name: 'includeAiSummary',
-            in: 'query',
-            required: false,
-            schema: { type: 'boolean', default: false },
-            description: 'Optional grounded LLM summary per account (OpenRouter).',
-          },
-        ],
-        responses: responsesFor(false),
-      },
-      post: {
-        tags: ['Social (batch)'],
-        summary: 'Batch X project analyzer — POST body',
-        operationId: 'postXProjectsAnalyze',
-        security: SECURITY_FREE,
-        requestBody: {
-          required: false,
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                properties: {
-                  type: { type: 'string', default: 'x402' },
-                  max_results: { type: 'integer', minimum: 5, maximum: 50 },
-                  includeAiSummary: { type: 'boolean' },
-                },
-              },
-            },
-          },
-        },
-        responses: responsesFor(false),
-      },
-    },
-
     '/spcx': {
       get: {
         tags: ['Equity (x402)'],
@@ -883,9 +712,9 @@ export function buildGatewayOpenApi() {
       version: '1.0.0',
       contact: { email: 'support@syraa.fun' },
       'x-guidance':
-        'Free routes (security: []) include /api/signal, /preview/*, /dashboard-summary, /binance-ticker, /info, and /x-projects-analyze/*. Paid routes return HTTP 402 until settled via x402 (Solana/Base USDC) — pay an offer from the 402 body accepts array and retry with PAYMENT-SIGNATURE or X-PAYMENT. Docs: https://docs.syraa.fun',
+        'Free routes (security: []) include /info and /prediction-game/health. Paid routes return HTTP 402 until settled via x402 (Solana/Base USDC) — pay an offer from the 402 body accepts array and retry with PAYMENT-SIGNATURE or X-PAYMENT. Docs: https://docs.syraa.fun',
       description: [
-        'Syra gateway: routes with `security: []` are free (no payment or API key).',
+        'Syra gateway: routes with `security: []` are free (no payment). Trading signals are at **GET/POST /signal** (x402).',
         '**x402** routes return **HTTP 402** until paid (Solana/Base USDC). The full payment offer (network, asset, price in micro-USDC, `payTo`, etc.) is returned at runtime in the 402 response body\'s `accepts` array and the `Payment-Required` header (x402 v2). Pay one offer and retry with `PAYMENT-SIGNATURE` or `X-PAYMENT`. See https://docs.syraa.fun/docs/api/x402-api-standard for the wire format and signing examples.',
         'Paid operations declare `x-payment-info` (catalog hint) and `security: [{ x402: [] }]`. The **MPP discovery** document at `GET /mpp-openapi.json` mirrors the full x402 catalog.',
         '**Rate limits** (per IP, applied to non-x402 / non-cron routes not listed as free in this spec): burst **25 req / 10s** + sustained **100 req / 60s**. Exceeding either returns **HTTP 429** with `Retry-After: <seconds>` and `{ success: false, message }`. x402 paid routes and openapi free routes bypass this throttle. See the `x-ratelimit` extension below.',
@@ -896,21 +725,14 @@ export function buildGatewayOpenApi() {
     'x-ratelimit': RATE_LIMIT_INFO,
     paths,
     tags: [
-      { name: 'Signal', description: 'GET/POST /api/signal — no x402' },
       { name: 'Info', description: 'Public info' },
-      { name: 'Preview', description: 'No x402 mirrors of news/sentiment/signal' },
-      { name: 'Dashboard', description: 'Dashboard helpers' },
       { name: 'Prediction game', description: 'Prediction game API' },
-      { name: 'Market data (x402)', description: 'Cryptonews-backed; payment via x402' },
+      { name: 'Market data (x402)', description: 'Cryptonews-backed and signal engine; payment via x402' },
       { name: 'Gateway (x402)', description: 'Health and gateway checks' },
       { name: 'AI (x402)', description: 'Syra Brain Q&A' },
       {
         name: 'Social (x402)',
         description: 'X (Twitter) analysis — pay-per-call via x402',
-      },
-      {
-        name: 'Social (batch)',
-        description: 'Batch X project analysis — free public routes; no x402',
       },
       {
         name: 'Equity (x402)',

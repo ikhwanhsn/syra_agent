@@ -6,8 +6,8 @@
     "contact": {
       "email": "support@syraa.fun"
     },
-    "x-guidance": "Free routes (security: []) include /api/signal, /preview/*, /dashboard-summary, /binance-ticker, /info, and /x-projects-analyze/*. Paid routes return HTTP 402 until settled via x402 (Solana/Base USDC) — pay an offer from the 402 body accepts array and retry with PAYMENT-SIGNATURE or X-PAYMENT. Docs: https://docs.syraa.fun",
-    "description": "Syra gateway: routes with `security: []` are free (no payment or API key).\n\n**x402** routes return **HTTP 402** until paid (Solana/Base USDC). The full payment offer (network, asset, price in micro-USDC, `payTo`, etc.) is returned at runtime in the 402 response body's `accepts` array and the `Payment-Required` header (x402 v2). Pay one offer and retry with `PAYMENT-SIGNATURE` or `X-PAYMENT`. See https://docs.syraa.fun/docs/api/x402-api-standard for the wire format and signing examples.\n\nPaid operations declare `x-payment-info` (catalog hint) and `security: [{ x402: [] }]`. The **MPP discovery** document at `GET /mpp-openapi.json` mirrors the full x402 catalog.\n\n**Rate limits** (per IP, applied to non-x402 / non-cron routes not listed as free in this spec): burst **25 req / 10s** + sustained **100 req / 60s**. Exceeding either returns **HTTP 429** with `Retry-After: <seconds>` and `{ success: false, message }`. x402 paid routes and openapi free routes bypass this throttle. See the `x-ratelimit` extension below."
+    "x-guidance": "Free routes (security: []) include /info and /prediction-game/health. Paid routes return HTTP 402 until settled via x402 (Solana/Base USDC) — pay an offer from the 402 body accepts array and retry with PAYMENT-SIGNATURE or X-PAYMENT. Docs: https://docs.syraa.fun",
+    "description": "Syra gateway: routes with `security: []` are free (no payment). Trading signals are at **GET/POST /signal** (x402).\n\n**x402** routes return **HTTP 402** until paid (Solana/Base USDC). The full payment offer (network, asset, price in micro-USDC, `payTo`, etc.) is returned at runtime in the 402 response body's `accepts` array and the `Payment-Required` header (x402 v2). Pay one offer and retry with `PAYMENT-SIGNATURE` or `X-PAYMENT`. See https://docs.syraa.fun/docs/api/x402-api-standard for the wire format and signing examples.\n\nPaid operations declare `x-payment-info` (catalog hint) and `security: [{ x402: [] }]`. The **MPP discovery** document at `GET /mpp-openapi.json` mirrors the full x402 catalog.\n\n**Rate limits** (per IP, applied to non-x402 / non-cron routes not listed as free in this spec): burst **25 req / 10s** + sustained **100 req / 60s**. Exceeding either returns **HTTP 429** with `Retry-After: <seconds>` and `{ success: false, message }`. x402 paid routes and openapi free routes bypass this throttle. See the `x-ratelimit` extension below."
   },
   "servers": [
     {
@@ -120,14 +120,12 @@
       "message": "Too many requests. Please slow down."
     },
     "skip": {
-      "description": "Routes excluded from this throttle. x402 paid routes are gated by HTTP 402 instead. OpenAPI free routes (/api/signal, /preview/*, /dashboard-summary, /binance-ticker, /x-projects-analyze/*) are public for discovery. Internal cron paths require a shared secret. RISE proxies are skipped because one user session can fan out across many list pages.",
+      "description": "Routes excluded from this throttle. x402 paid routes are gated by HTTP 402 instead. OpenAPI free routes (/info, /prediction-game/health) are public for discovery. Internal cron paths require a shared secret. RISE proxies are skipped because one user session can fan out across many list pages.",
       "paths": [
         "all x402 routes (see GET /.well-known/x402)",
-        "/api/signal",
-        "/preview/*",
-        "/dashboard-summary",
-        "/binance-ticker",
-        "/x-projects-analyze/*",
+        "/info",
+        "/info/*",
+        "/prediction-game/health",
         "/internal/tester-agent*",
         "/internal/trend-scout/run",
         "/internal/growth-scout/run",
@@ -138,15 +136,38 @@
     }
   },
   "paths": {
-    "/api/signal": {
+    "/signal": {
       "get": {
         "tags": [
-          "Signal"
+          "Market data (x402)"
         ],
-        "summary": "Public signal (no x402)",
-        "description": "Same engine as /signal without micropayment. Free — no payment or API key required.",
-        "operationId": "getPublicSignal",
-        "security": [],
+        "summary": "AI trading signal (x402)",
+        "description": "Spot OHLC + technical signal engine. Default source: binance with CEX fallbacks (coinbase, okx, kraken). Use source=n8n|webhook for legacy webhook.",
+        "operationId": "getSignal",
+        "security": [
+          {
+            "x402": []
+          }
+        ],
+        "x-payment-info": {
+          "protocols": [
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
+          ],
+          "price": {
+            "mode": "fixed",
+            "currency": "USD",
+            "amount": "0.1"
+          }
+        },
         "parameters": [
           {
             "name": "token",
@@ -202,31 +223,24 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "success"
-                  ],
                   "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "signal": {
-                          "type": "object",
-                          "additionalProperties": true
-                        }
-                      }
-                    },
-                    "meta": {
+                    "signal": {
                       "type": "object",
                       "additionalProperties": true
-                    },
-                    "error": {
-                      "type": "string"
                     }
                   },
                   "additionalProperties": true
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.",
+            "headers": {
+              "Payment-Required": {
+                "description": "x402 v2 encoded payment requirements",
+                "schema": {
+                  "type": "string"
                 }
               }
             }
@@ -272,10 +286,6 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "const": false
-                    },
                     "error": {
                       "type": "string"
                     }
@@ -288,11 +298,34 @@
       },
       "post": {
         "tags": [
-          "Signal"
+          "Market data (x402)"
         ],
-        "summary": "Public signal via JSON body",
-        "operationId": "postPublicSignal",
-        "security": [],
+        "summary": "AI trading signal via JSON body (x402)",
+        "operationId": "postSignal",
+        "security": [
+          {
+            "x402": []
+          }
+        ],
+        "x-payment-info": {
+          "protocols": [
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
+          ],
+          "price": {
+            "mode": "fixed",
+            "currency": "USD",
+            "amount": "0.1"
+          }
+        },
         "requestBody": {
           "required": false,
           "content": {
@@ -328,31 +361,24 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "success"
-                  ],
                   "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "signal": {
-                          "type": "object",
-                          "additionalProperties": true
-                        }
-                      }
-                    },
-                    "meta": {
+                    "signal": {
                       "type": "object",
                       "additionalProperties": true
-                    },
-                    "error": {
-                      "type": "string"
                     }
                   },
                   "additionalProperties": true
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.",
+            "headers": {
+              "Payment-Required": {
+                "description": "x402 v2 encoded payment requirements",
+                "schema": {
+                  "type": "string"
                 }
               }
             }
@@ -398,10 +424,6 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "const": false
-                    },
                     "error": {
                       "type": "string"
                     }
@@ -477,363 +499,6 @@
         ],
         "summary": "Public usage stats",
         "operationId": "getInfoStats",
-        "security": [],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
-            "headers": {
-              "Retry-After": {
-                "description": "Seconds the client must wait before retrying.",
-                "schema": {
-                  "type": "integer",
-                  "minimum": 1
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "success",
-                    "message"
-                  ],
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "const": false
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Too many requests. Please slow down."
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/preview/news": {
-      "get": {
-        "tags": [
-          "Preview"
-        ],
-        "summary": "News preview (no x402)",
-        "operationId": "getPreviewNews",
-        "security": [],
-        "parameters": [
-          {
-            "name": "ticker",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "default": "general"
-            },
-            "description": "Ticker symbol or general for broad feed."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
-            "headers": {
-              "Retry-After": {
-                "description": "Seconds the client must wait before retrying.",
-                "schema": {
-                  "type": "integer",
-                  "minimum": 1
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "success",
-                    "message"
-                  ],
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "const": false
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Too many requests. Please slow down."
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/preview/sentiment": {
-      "get": {
-        "tags": [
-          "Preview"
-        ],
-        "summary": "Sentiment preview (no x402)",
-        "operationId": "getPreviewSentiment",
-        "security": [],
-        "parameters": [
-          {
-            "name": "ticker",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "default": "general"
-            },
-            "description": "Ticker symbol or general for broad feed."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
-            "headers": {
-              "Retry-After": {
-                "description": "Seconds the client must wait before retrying.",
-                "schema": {
-                  "type": "integer",
-                  "minimum": 1
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "success",
-                    "message"
-                  ],
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "const": false
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Too many requests. Please slow down."
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/preview/signal": {
-      "get": {
-        "tags": [
-          "Preview"
-        ],
-        "summary": "Signal preview (no x402)",
-        "operationId": "getPreviewSignal",
-        "security": [],
-        "parameters": [
-          {
-            "name": "token",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "default": "bitcoin"
-            },
-            "description": "Asset name for signal routing (e.g. bitcoin, solana)."
-          },
-          {
-            "name": "source",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Data source. Default: binance. CEX: binance, coinbase, coingecko, okx, bybit, kraken, bitget, kucoin, upbit, cryptocom (alias: crypto.com → cryptocom). n8n | webhook for legacy webhook."
-          },
-          {
-            "name": "instId",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Venue symbol override (e.g. BTCUSDT, BTC-USDT)."
-          },
-          {
-            "name": "bar",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Candle interval (e.g. 1m, 1h, 4h, 1d)."
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Candle count (default ~200)."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
-            "headers": {
-              "Retry-After": {
-                "description": "Seconds the client must wait before retrying.",
-                "schema": {
-                  "type": "integer",
-                  "minimum": 1
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "success",
-                    "message"
-                  ],
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "const": false
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Too many requests. Please slow down."
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/dashboard-summary": {
-      "get": {
-        "tags": [
-          "Dashboard"
-        ],
-        "summary": "Dashboard KPI summary",
-        "operationId": "getDashboardSummary",
-        "security": [],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
-            "headers": {
-              "Retry-After": {
-                "description": "Seconds the client must wait before retrying.",
-                "schema": {
-                  "type": "integer",
-                  "minimum": 1
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "success",
-                    "message"
-                  ],
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "const": false
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Too many requests. Please slow down."
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/binance-ticker": {
-      "get": {
-        "tags": [
-          "Dashboard"
-        ],
-        "summary": "Binance ticker prices",
-        "operationId": "getBinanceTicker",
         "security": [],
         "responses": {
           "200": {
@@ -2559,447 +2224,6 @@
         }
       }
     },
-    "/x-projects-analyze/types": {
-      "get": {
-        "tags": [
-          "Social (batch)"
-        ],
-        "summary": "List batch analyzer types",
-        "description": "Returns configured `type` ids (labels, provider). X accounts per type are fixed server-side. No X API calls.",
-        "operationId": "getXProjectsAnalyzeTypes",
-        "security": [],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
-            "headers": {
-              "Retry-After": {
-                "description": "Seconds the client must wait before retrying.",
-                "schema": {
-                  "type": "integer",
-                  "minimum": 1
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "success",
-                    "message"
-                  ],
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "const": false
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Too many requests. Please slow down."
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/x-projects-analyze/account": {
-      "get": {
-        "tags": [
-          "Social (batch)"
-        ],
-        "summary": "Single-account Alpha analysis (allowlisted)",
-        "description": "`username` must belong to the configured `type` handle list. Returns full score payload, optional AI summary (default on), and `recentTweets` sample.",
-        "operationId": "getXProjectsAnalyzeAccount",
-        "security": [],
-        "parameters": [
-          {
-            "name": "username",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "example": "syra_agent"
-            },
-            "description": "X handle without @."
-          },
-          {
-            "name": "type",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "default": "x402"
-            },
-            "description": "Feed type key."
-          },
-          {
-            "name": "max_results",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "minimum": 10,
-              "maximum": 50,
-              "default": 35
-            },
-            "description": "Tweet sample size."
-          },
-          {
-            "name": "includeAiSummary",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "boolean",
-              "default": true
-            },
-            "description": "Grounded LLM bullets (OpenRouter)."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Username not in feed type allowlist"
-          },
-          "404": {
-            "description": "X user not found"
-          },
-          "429": {
-            "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
-            "headers": {
-              "Retry-After": {
-                "description": "Seconds the client must wait before retrying.",
-                "schema": {
-                  "type": "integer",
-                  "minimum": 1
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "success",
-                    "message"
-                  ],
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "const": false
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Too many requests. Please slow down."
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "502": {
-            "description": "X API upstream error"
-          },
-          "503": {
-            "description": "Server missing X_BEARER_TOKEN"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "Social (batch)"
-        ],
-        "summary": "Single-account Alpha analysis — POST",
-        "operationId": "postXProjectsAnalyzeAccount",
-        "security": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "username": {
-                    "type": "string",
-                    "example": "syra_agent"
-                  },
-                  "type": {
-                    "type": "string",
-                    "default": "x402"
-                  },
-                  "max_results": {
-                    "type": "integer",
-                    "minimum": 10,
-                    "maximum": 50
-                  },
-                  "includeAiSummary": {
-                    "type": "boolean"
-                  }
-                },
-                "required": [
-                  "username"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Username not in feed type allowlist"
-          },
-          "404": {
-            "description": "X user not found"
-          },
-          "429": {
-            "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
-            "headers": {
-              "Retry-After": {
-                "description": "Seconds the client must wait before retrying.",
-                "schema": {
-                  "type": "integer",
-                  "minimum": 1
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "success",
-                    "message"
-                  ],
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "const": false
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Too many requests. Please slow down."
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "502": {
-            "description": "X API upstream error"
-          },
-          "503": {
-            "description": "Server missing X_BEARER_TOKEN"
-          }
-        }
-      }
-    },
-    "/x-projects-analyze": {
-      "get": {
-        "tags": [
-          "Social (batch)"
-        ],
-        "summary": "Batch X project analyzer (no x402)",
-        "description": "Returns the latest persisted batch snapshot for `type` (default `x402`). Scores are refreshed by the Alpha X agent about once every 24 hours (POST /internal/alpha-x-batch/run). Handles are not client-supplied. See GET /x-projects-analyze/types.",
-        "operationId": "getXProjectsAnalyze",
-        "security": [],
-        "parameters": [
-          {
-            "name": "type",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "default": "x402"
-            },
-            "description": "Analyzer type key (e.g. x402)."
-          },
-          {
-            "name": "max_results",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "minimum": 5,
-              "maximum": 50,
-              "default": 20
-            },
-            "description": "Tweet sample per account."
-          },
-          {
-            "name": "includeAiSummary",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "boolean",
-              "default": false
-            },
-            "description": "Optional grounded LLM summary per account (OpenRouter)."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
-            "headers": {
-              "Retry-After": {
-                "description": "Seconds the client must wait before retrying.",
-                "schema": {
-                  "type": "integer",
-                  "minimum": 1
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "success",
-                    "message"
-                  ],
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "const": false
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Too many requests. Please slow down."
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "Social (batch)"
-        ],
-        "summary": "Batch X project analyzer — POST body",
-        "operationId": "postXProjectsAnalyze",
-        "security": [],
-        "requestBody": {
-          "required": false,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "default": "x402"
-                  },
-                  "max_results": {
-                    "type": "integer",
-                    "minimum": 5,
-                    "maximum": 50
-                  },
-                  "includeAiSummary": {
-                    "type": "boolean"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
-            "headers": {
-              "Retry-After": {
-                "description": "Seconds the client must wait before retrying.",
-                "schema": {
-                  "type": "integer",
-                  "minimum": 1
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "success",
-                    "message"
-                  ],
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "const": false
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Too many requests. Please slow down."
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/spcx": {
       "get": {
         "tags": [
@@ -3477,20 +2701,8 @@
   },
   "tags": [
     {
-      "name": "Signal",
-      "description": "GET/POST /api/signal — no x402"
-    },
-    {
       "name": "Info",
       "description": "Public info"
-    },
-    {
-      "name": "Preview",
-      "description": "No x402 mirrors of news/sentiment/signal"
-    },
-    {
-      "name": "Dashboard",
-      "description": "Dashboard helpers"
     },
     {
       "name": "Prediction game",
@@ -3498,7 +2710,7 @@
     },
     {
       "name": "Market data (x402)",
-      "description": "Cryptonews-backed; payment via x402"
+      "description": "Cryptonews-backed and signal engine; payment via x402"
     },
     {
       "name": "Gateway (x402)",
@@ -3511,10 +2723,6 @@
     {
       "name": "Social (x402)",
       "description": "X (Twitter) analysis — pay-per-call via x402"
-    },
-    {
-      "name": "Social (batch)",
-      "description": "Batch X project analysis — free public routes; no x402"
     },
     {
       "name": "Equity (x402)",

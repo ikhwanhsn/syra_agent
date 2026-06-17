@@ -4,9 +4,7 @@
  */
 export function isGatewayOpenApiFreeRoute(p) {
   const path = String(p || '');
-  if (path === '/dashboard-summary' || path === '/binance-ticker') return true;
-  if (path.startsWith('/api/signal')) return true;
-  if (path.startsWith('/preview/')) return true;
-  if (path.startsWith('/x-projects-analyze')) return true;
+  if (path.startsWith('/info')) return true;
+  if (path.startsWith('/prediction-game/health')) return true;
   return false;
 }

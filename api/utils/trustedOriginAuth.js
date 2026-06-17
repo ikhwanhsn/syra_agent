@@ -69,8 +69,6 @@ export function isBrowserCallablePath(path) {
     path.startsWith("/uponly-rise-portfolio") ||
     path.startsWith("/uponly-rise-create") ||
     path === "/api/playground-proxy" ||
-    path === "/api/signal" ||
-    path.startsWith("/api/signal/") ||
     path.startsWith("/streamflow-locks") ||
     path.startsWith("/staking") ||
     path.startsWith("/wallet") ||

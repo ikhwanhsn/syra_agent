@@ -241,59 +241,6 @@ export async function createSignalRouter() {
   return router;
 }
 
-/**
- * Public REST signal API at /api/signal — no x402 (optional API key when server sets API_KEY).
- * Same engine as /signal; distinct path so gateways and OpenAPI stay schema-friendly.
- */
-export async function createPublicSignalApiRouter() {
-  const router = express.Router();
-
-  router.get("/", async (req, res) => {
-    try {
-      const { token, source, instId, bar, limit } = req.query;
-      const out = await loadSignal({ token, source, instId, bar, limit });
-      if (out?.signal) {
-        res.json({
-          success: true,
-          data: { signal: out.signal },
-          meta: {
-            token: token || "bitcoin",
-            ...(source ? { source: String(source) } : {}),
-          },
-        });
-      } else {
-        res.status(500).json({ success: false, error: "Failed to fetch signal" });
-      }
-    } catch (error) {
-      const msg = error?.message || "Server error";
-      res.status(500).json({ success: false, error: msg });
-    }
-  });
-
-  router.post("/", async (req, res) => {
-    try {
-      const { token, source, instId, bar, limit } = req.body || {};
-      const out = await loadSignal({ token, source, instId, bar, limit });
-      if (!out?.signal) {
-        return res.status(500).json({ success: false, error: "Failed to fetch signal" });
-      }
-      res.json({
-        success: true,
-        data: { signal: out.signal },
-        meta: {
-          token: token || "bitcoin",
-          ...(source ? { source: String(source) } : {}),
-        },
-      });
-    } catch (error) {
-      const msg = error?.message || "Server error";
-      res.status(500).json({ success: false, error: msg });
-    }
-  });
-
-  return router;
-}
-
 /** Preview (no x402) signal router for /preview/signal – same data, no payment. */
 export async function createSignalRouterRegular() {
   const router = express.Router();

@@ -7,10 +7,7 @@ import { isGatewayOpenApiFreeRoute } from "./config/gatewayOpenApiFreeRoutes.js"
 import { injectTrustedOriginApiKey } from "./utils/trustedOriginAuth.js";
 import path from "path";
 import { fileURLToPath } from "url";
-import {
-  createPublicSignalApiRouter,
-  createSignalRouterRegular,
-} from "./routes/signal.js";
+import { createSignalRouterRegular } from "./routes/signal.js";
 import { createCheckStatusAgentRouter } from "./agents/check-status.js";
 import { createXProjectAnalyzerRouter } from "./agents/x-project-analyzer.js";
 import { createXProjectsBatchAnalyzerRouter } from "./agents/x-projects-batch-analyzer.js";
@@ -399,7 +396,7 @@ function isX402Route(p) {
 
 /**
  * NOTE on the preview / dashboard / openapi-free tier:
- *   /preview/*, /dashboard-summary, /binance-ticker, /api/signal, /x-projects-analyze/*
+ *   /preview/*, /dashboard-summary, /binance-ticker (internal Syra frontends only; not in OpenAPI free catalog)
  *
  * Listed in GET /openapi.json with security: [] for x402scan / tryponcho discovery.
  * Publicly reachable (no API key) and exempt from rate limits so discovery probes succeed.
@@ -1134,14 +1131,22 @@ app.use("/v1", (req, res) => {
   res.status(410).json({
     success: false,
     error:
-      "v1 API is no longer available. Use /dashboard-summary, /preview/* (free) or x402 paths (e.g. /x, /news, /signal).",
+      "v1 API is no longer available. Use x402 paths (e.g. /x, /news, /signal) or trusted-origin preview helpers.",
     migration: "https://api.syraa.fun",
     docs: "https://docs.syraa.fun",
   });
 });
 
-// x402 routes (unversioned; CAIP-2, PAYMENT-SIGNATURE header)
-app.use("/api/signal", await createPublicSignalApiRouter());
+// Legacy free /api/signal — removed; signal is x402-only at /signal
+app.use("/api/signal", (req, res) => {
+  res.status(410).json({
+    success: false,
+    error:
+      "GET/POST /api/signal is no longer free. Use GET/POST /signal with x402 payment.",
+    migration: "/signal",
+    docs: "https://docs.syraa.fun/docs/api/signal",
+  });
+});
 app.use("/signal", await createV2SignalRouter());
 app.use("/spcx", await createSpcxRouter());
 app.use("/equity", await createEquityRouter());
