@@ -18,8 +18,6 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ApplicationModal from "@/components/ApplicationModal";
-import TelegramCommunityModal from "@/components/TelegramCommunityModal";
-import { useTelegramPopup } from "@/hooks/useTelegramPopup";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -102,10 +100,9 @@ function Stat({
 }
 
 const ArenaTokenDetailContent = () => {
-  const { mint: mintParam } = useParams<{ mint: string }>();
+  const { mint: mintParam } = useParams<{ mint: string }>();
   const { theme } = useTheme();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { open: telegramOpen, dismiss: dismissTelegram, setOpen: setTelegramOpen } = useTelegramPopup();
 
   const mint = useMemo(() => {
     if (!mintParam) return null;
@@ -584,11 +581,6 @@ const ArenaTokenDetailContent = () => {
         </main>
         <Footer />
         <ApplicationModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
-        <TelegramCommunityModal
-          open={telegramOpen}
-          onOpenChange={setTelegramOpen}
-          onDismiss={dismissTelegram}
-        />
       </div>
     </div>
   );

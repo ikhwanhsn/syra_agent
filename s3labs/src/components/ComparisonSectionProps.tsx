@@ -3,12 +3,9 @@ import SectionHeader from "@/components/landing/SectionHeader";
 import StatMetric from "@/components/landing/StatMetric";
 import { X, Check, TrendingDown, TrendingUp, Clock, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
-interface ComparisonSectionProps {
-  onApplyClick: () => void;
-}
-
-const ComparisonSection = ({ onApplyClick }: ComparisonSectionProps) => {
+const ComparisonSection = () => {
 
   const withoutS3Labs = [
     {
@@ -182,11 +179,13 @@ const ComparisonSection = ({ onApplyClick }: ComparisonSectionProps) => {
           <Button
             variant="hero"
             size="xl"
-            onClick={onApplyClick}
+            asChild
             className="group btn-premium"
           >
-            {"Start Your Journey with S3 Labs"}
-            <TrendingUp className="w-5 h-5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+            <Link to="/apply">
+              {"Start Your Journey with S3 Labs"}
+              <TrendingUp className="w-5 h-5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+            </Link>
           </Button>
         </div>
       </div>

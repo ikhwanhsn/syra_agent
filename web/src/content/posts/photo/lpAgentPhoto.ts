@@ -15,7 +15,7 @@ export const LP_AGENT_PHOTO = definePhotoUpdate(LP_AGENT_POST.meta, [
       eyebrow: "Ship log",
       badge: "Meteora DLMM · Sim + Live",
       title: "LP Agent System",
-      subtitle: "Autonomous Meteora DLMM agents: sim lab competition, then live SOL deployment when you are ready.",
+      subtitle: "78 strategies compete in sim. Your agent deploys SOL on Meteora DLMM only when a leader proves out.",
     }),
   },
   {
@@ -23,9 +23,9 @@ export const LP_AGENT_PHOTO = definePhotoUpdate(LP_AGENT_POST.meta, [
     layout: "photo-statement-accent",
     shareCopy: copies.thesis,
     content: photoContent({
-      kicker: "Why this matters",
-      headline: "Manual LP is a full-time job.",
-      body: "Meteora DLMM pools move fast. Fee yield, impermanent loss, and out-of-range exits need constant attention. Syra LP agents screen pools, size positions, and manage exits so you can deploy capital without babysitting bins.",
+      kicker: "The problem",
+      headline: "Meteora bins don't wait for you.",
+      body: "Fee yield, impermanent loss, and out-of-range exits demand constant attention. Syra LP agents screen pools, size positions, and manage exits — so you deploy capital without watching charts all day.",
     }),
   },
   {
@@ -33,8 +33,8 @@ export const LP_AGENT_PHOTO = definePhotoUpdate(LP_AGENT_POST.meta, [
     layout: "photo-quote",
     shareCopy: copies.quote,
     content: photoContent({
-      quote: "Sim first. Deploy when convinced. Same economics, zero guesswork.",
-      narrative: "Paper winners and live deployment used to run on different math. Syra unified the economics model so trust earned in sim transfers to real SOL.",
+      quote: "Prove it in sim. Deploy the same math on-chain.",
+      narrative: "Paper winners and live LP used different economics. Syra unified the model — trust earned in the lab transfers directly to real SOL.",
     }),
   },
   {
@@ -42,13 +42,13 @@ export const LP_AGENT_PHOTO = definePhotoUpdate(LP_AGENT_POST.meta, [
     layout: "photo-flow-pipeline",
     shareCopy: copies.flow,
     content: photoContent({
-      kicker: "LP agent flow",
-      headline: "Screen → compete → deploy → earn.",
+      kicker: "How it works",
+      headline: "Screen. Compete. Deploy. Earn.",
       steps: [
-        { step: "01", title: "Screen Meteora pools", description: "Fee/TVL, organic score, smart money, risk/reward." },
-        { step: "02", title: "Compete in the sim lab", description: "78 strategies evolve daily with no SOL at risk." },
-        { step: "03", title: "Enable your real agent", description: "Fund LP wallet, accept terms, toggle live mode." },
-        { step: "04", title: "Earn and sweep", description: "DLMM bins, fee collection, Jupiter sidecar exits." },
+        { step: "01", title: "Screen Meteora pools", description: "Fee/TVL, organic score, smart money, risk/reward ranked." },
+        { step: "02", title: "Run the sim lab", description: "78 strategies evolve daily. Zero SOL at risk." },
+        { step: "03", title: "Flip live when ready", description: "Fund LP wallet, pass profit gate, toggle on." },
+        { step: "04", title: "Collect and sweep", description: "DLMM bins earn fees. Jupiter sidecar handles exits." },
       ],
     }),
   },
@@ -58,12 +58,12 @@ export const LP_AGENT_PHOTO = definePhotoUpdate(LP_AGENT_POST.meta, [
     shareCopy: copies.timeline,
     content: photoContent({
       kicker: "Sim to live",
-      headline: "Deploy only when a leader proves out.",
+      headline: "No live deploy until the leader earns it.",
       steps: [
         { step: "01", title: "Pool screen", description: "Meteora SOL pools ranked on fee/TVL and smart money." },
-        { step: "02", title: "Sim competition", description: "78 strategies compete daily. Real mirror tracks leader." },
-        { step: "03", title: "Profit gate", description: "Live opens pause until leader clears win rate threshold." },
-        { step: "04", title: "DLMM execution", description: "Open bins, earn fees, claim yield, Jupiter sidecar sweep." },
+        { step: "02", title: "Daily sim race", description: "78 strategies compete. Real mirror tracks PnL leader." },
+        { step: "03", title: "Profit gate", description: "Live opens blocked until leader clears 52% win rate." },
+        { step: "04", title: "On-chain execution", description: "Open bins, earn fees, claim yield, Jupiter sweep." },
       ],
     }),
   },
@@ -72,12 +72,12 @@ export const LP_AGENT_PHOTO = definePhotoUpdate(LP_AGENT_POST.meta, [
     layout: "photo-cards-quad",
     shareCopy: copies.pillars,
     content: photoContent({
-      headline: "Four things that make LP agents different.",
+      headline: "Built for real LP, not paper trading.",
       cards: [
-        { title: "Real mirror", subtitle: "Strategy 98", detail: "Sim follows PnL leader and real pool screen.", accent: "gold" },
-        { title: "Hold guards", subtitle: "45m · 90m OOR", detail: "Collect fees before out-of-range exits.", accent: "gold" },
-        { title: "Profit gate", subtitle: "52% · 6+ closes", detail: "Live opens pause until leader clears win rate." },
-        { title: "Jupiter fees", subtitle: "Sidecar only", detail: "Platform fee when referral accounts exist." },
+        { title: "Real mirror", subtitle: "Strategy 98", detail: "Sim tracks live PnL leader and pool screen.", accent: "gold" },
+        { title: "Hold guards", subtitle: "45m · 90m OOR", detail: "Collect fees before out-of-range exits fire.", accent: "gold" },
+        { title: "Profit gate", subtitle: "52% · 6+ closes", detail: "Live blocked until leader clears win rate." },
+        { title: "Jupiter sweep", subtitle: "Sidecar only", detail: "Exit positions on-chain. Fee on referral accounts." },
       ],
     }),
   },
@@ -86,10 +86,10 @@ export const LP_AGENT_PHOTO = definePhotoUpdate(LP_AGENT_POST.meta, [
     layout: "photo-hero-checklist",
     shareCopy: copies.checklist,
     content: photoContent({
-      headline: "LP agent system highlights.",
+      headline: "What ships with LP agents.",
       highlights: [
         "78 strategies: static roster + daily evo spawns + real mirror",
-        "Unified lpEconomicsModel for sim and live agents",
+        "One lpEconomicsModel — same math in sim and live",
         "Meteora DLMM open, hold, claim, close on-chain",
         "Jupiter sidecar sweeps with optional platform fees",
       ],
@@ -100,13 +100,13 @@ export const LP_AGENT_PHOTO = definePhotoUpdate(LP_AGENT_POST.meta, [
     layout: "photo-stat-trio",
     shareCopy: copies.metrics,
     content: photoContent({
-      headline: "Same economics. Sim and live.",
+      headline: "One model. Sim proof. Live deploy.",
       stats: [
         { value: "78", label: "Evolving LP strategies" },
         { value: "DLMM", label: "Meteora on-chain execution" },
         { value: "1", label: "Shared economics model" },
       ],
-      narrative: "Run the lab until a strategy earns your trust, then flip live with the same signals and exit rules.",
+      narrative: "Watch strategies compete in sim. When a leader clears the profit gate, flip live with identical signals and exit rules.",
     }),
   },
   {
@@ -114,9 +114,9 @@ export const LP_AGENT_PHOTO = definePhotoUpdate(LP_AGENT_POST.meta, [
     layout: "photo-stat-featured",
     shareCopy: copies.featured,
     content: photoContent({
-      headline: "Zero SOL at risk until you're ready.",
+      headline: "Test 78 strategies. Risk zero SOL.",
       stats: [{ value: "78", label: "Strategies compete daily in sim" }],
-      narrative: "The lab runs Meteora screens and evolves strategies. Live deployment only when a leader earns your trust.",
+      narrative: "The lab screens Meteora pools and evolves strategies daily. Your SOL only deploys when a leader clears the profit gate.",
     }),
   },
   {
@@ -124,14 +124,14 @@ export const LP_AGENT_PHOTO = definePhotoUpdate(LP_AGENT_POST.meta, [
     layout: "photo-comparison",
     shareCopy: copies.comparison,
     content: photoContent({
-      headline: "Before vs now.",
+      headline: "Paper winners ≠ live confidence.",
       compareLeft: {
         title: "Before",
-        body: "Sim and live LP used different math. Hard to trust paper winners before deploying SOL.",
+        body: "Sim and live ran different math. Deploying SOL meant guessing if paper PnL would hold.",
       },
       compareRight: {
         title: "Now",
-        body: "One economics model, mirror agent, profit gates, and Meteora DLMM execution end to end.",
+        body: "One economics model. Mirror agent. Profit gates. Meteora DLMM execution — sim to live, same rules.",
       },
     }),
   },
@@ -142,8 +142,8 @@ export const LP_AGENT_PHOTO = definePhotoUpdate(LP_AGENT_POST.meta, [
     content: photoContent({
       badge: "Now live",
       title: "LP Agent System",
-      subtitle: "Sim lab competition → live Meteora DLMM deployment.",
-      body: "78 strategies. Real mirror. Profit gates. Non-custodial on-chain execution.",
+      subtitle: "Sim lab → profit gate → live Meteora DLMM.",
+      body: "78 strategies compete daily. Real mirror. Profit gates. Non-custodial on-chain execution.",
     }),
   },
   {
@@ -151,8 +151,8 @@ export const LP_AGENT_PHOTO = definePhotoUpdate(LP_AGENT_POST.meta, [
     layout: "photo-numbered-list",
     shareCopy: copies.deepDive,
     content: photoContent({
-      kicker: "Technical surface",
-      headline: "End-to-end LP agent stack.",
+      kicker: "Under the hood",
+      headline: "Full LP stack. API to on-chain.",
       items: [
         "LP experiment lab with 78-strategy leaderboard",
         "Live Meteora DLMM agent with position tracking",
@@ -167,12 +167,12 @@ export const LP_AGENT_PHOTO = definePhotoUpdate(LP_AGENT_POST.meta, [
     shareCopy: copies.split,
     content: photoContent({
       badge: "Sim + Live",
-      headline: "Same signals. Same exit rules.",
-      body: "Sim lab runs zero-risk competition. Live agent deploys on identical economics when profit gate clears.",
+      headline: "Sim proves it. Live runs it.",
+      body: "Zero-risk sim competition. Live agent deploys on identical economics once the profit gate clears.",
       highlights: [
         "78 strategies evolve daily in sim",
         "Real mirror tracks PnL leader",
-        "Profit gate before live opens",
+        "Profit gate blocks premature live opens",
         "Meteora DLMM + Jupiter sidecar",
       ],
     }),
@@ -182,7 +182,7 @@ export const LP_AGENT_PHOTO = definePhotoUpdate(LP_AGENT_POST.meta, [
     layout: "photo-terminal",
     shareCopy: copies.terminal,
     content: photoContent({
-      headline: "LP agents from CLI.",
+      headline: "Run LP agents from terminal.",
       terminalLines: [
         "$ syra lp lab --cohort active",
         "> 78 strategies screening Meteora SOL pools…",
@@ -199,8 +199,8 @@ export const LP_AGENT_PHOTO = definePhotoUpdate(LP_AGENT_POST.meta, [
     layout: "photo-closing-cta",
     shareCopy: copies.cta,
     content: photoContent({
-      headline: "Ready to earn Meteora fees without babysitting bins?",
-      subtitle: "78 strategies compete daily. Your real agent deploys when a leader proves out.",
+      headline: "Stop babysitting bins. Start the sim lab.",
+      subtitle: "78 strategies compete daily. Fund your wallet. Deploy live when a leader clears the gate.",
       links: [
         { label: "LP experiment", value: "syraa.fun/lp-experiment", href: "https://www.syraa.fun/lp-experiment" },
         { label: "Dashboard", value: "syraa.fun/overview", href: "https://www.syraa.fun/overview" },

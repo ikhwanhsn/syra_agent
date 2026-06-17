@@ -12,6 +12,7 @@ import {
   getPlatformFeeBps,
   getReferralAccount,
   resolveReferralFee,
+  resolveUltraReferralParams,
 } from "./jupiterReferral.js";
 
 const WRAPPED_SOL_MINT = "So11111111111111111111111111111111111111112";
@@ -108,6 +109,23 @@ test("resolveReferralFee returns fee when referral token account exists", async 
   const result = await resolveReferralFee(connection, WRAPPED_SOL_MINT);
   assert.equal(result.platformFeeBps, 100);
   assert.equal(result.feeAccount, derived.referralTokenAccount.toBase58());
+});
+
+test("resolveUltraReferralParams returns account and clamps fee to Ultra minimum", () => {
+  delete process.env.JUPITER_REFERRAL_ACCOUNT;
+  delete process.env.JUPITER_PLATFORM_FEE_BPS;
+  const result = resolveUltraReferralParams();
+  assert.equal(result.referralAccount, REFERRAL_ACCOUNT);
+  assert.equal(result.referralFeeBps, 100);
+
+  process.env.JUPITER_PLATFORM_FEE_BPS = "25";
+  const bumped = resolveUltraReferralParams();
+  assert.equal(bumped.referralFeeBps, 50);
+
+  process.env.JUPITER_PLATFORM_FEE_BPS = "0";
+  const zero = resolveUltraReferralParams();
+  assert.equal(zero.referralAccount, null);
+  assert.equal(zero.referralFeeBps, 0);
 });
 
 test("resolveReferralFee skips when platform fee bps is zero", async () => {

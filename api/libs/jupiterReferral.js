@@ -8,6 +8,8 @@ export const JUPITER_REFERRAL_PROGRAM_ID = "REFER4ZgmyYx9c6He5XfaTMiGfdLwRnkV4RP
 
 const DEFAULT_REFERRAL_ACCOUNT = "9zFnqSZiJkAqaj5o4eFsSacgb6k2YzD8HEECS3ssgLBZ";
 const DEFAULT_PLATFORM_FEE_BPS = 100;
+/** Jupiter Ultra `/order` accepts referralFee in 50–255 bps only. */
+const ULTRA_MIN_REFERRAL_FEE_BPS = 50;
 const EXISTENCE_CACHE_TTL_MS = 5 * 60 * 1000;
 
 /** @type {Map<string, { exists: boolean; ts: number }>} */
@@ -146,6 +148,29 @@ export async function resolveReferralFee(connection, outputMint) {
     referralAccount: referralAccount.toBase58(),
   });
   return { platformFeeBps: bps, feeAccount };
+}
+
+/**
+ * Referral params for Jupiter Ultra `/order` (fee mint chosen by Jupiter; no pre-check).
+ * @returns {{ referralAccount: string | null; referralFeeBps: number }}
+ */
+export function resolveUltraReferralParams() {
+  const referralAccount = getReferralAccount();
+  const bps = getPlatformFeeBps();
+  if (!referralAccount || bps <= 0) {
+    logReferral("ultra_skipped", {
+      reason: !referralAccount ? "no_referral_account" : "fee_bps_zero",
+    });
+    return { referralAccount: null, referralFeeBps: 0 };
+  }
+
+  const referralFeeBps = Math.max(
+    ULTRA_MIN_REFERRAL_FEE_BPS,
+    Math.min(255, bps),
+  );
+  const account = referralAccount.toBase58();
+  logReferral("ultra_applied", { referralAccount: account, referralFeeBps });
+  return { referralAccount: account, referralFeeBps };
 }
 
 /** Clear existence cache (for tests). */

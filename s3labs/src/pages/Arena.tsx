@@ -23,8 +23,6 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ApplicationModal from "@/components/ApplicationModal";
-import TelegramCommunityModal from "@/components/TelegramCommunityModal";
-import { useTelegramPopup } from "@/hooks/useTelegramPopup";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -394,8 +392,6 @@ const ArenaPageContent = () => {
     key: "marketCap",
     dir: "desc",
   });
-  const { open: telegramOpen, dismiss: dismissTelegram, setOpen: setTelegramOpen } = useTelegramPopup();
-
   const handleSort = useCallback((key: ArenaSortKey) => {
     setSort((prev) =>
       prev.key === key
@@ -703,11 +699,6 @@ const ArenaPageContent = () => {
         </main>
         <Footer />
         <ApplicationModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
-        <TelegramCommunityModal
-          open={telegramOpen}
-          onOpenChange={setTelegramOpen}
-          onDismiss={dismissTelegram}
-        />
       </div>
     </div>
   );

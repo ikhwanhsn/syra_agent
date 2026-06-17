@@ -15,7 +15,7 @@ export const AGENTSCORE_PHOTO = definePhotoUpdate(AGENTSCORE_POST.meta, [
       eyebrow: "Ship log",
       badge: "Passport · Gate · Pay",
       title: "AgentScore × Syra",
-      subtitle: "Identity, compliance, and agent commerce wired into Syra's x402 stack.",
+      subtitle: "Pay with x402. Comply with Passport. Gate when regulation matters.",
     }),
   },
   {
@@ -23,9 +23,9 @@ export const AGENTSCORE_PHOTO = definePhotoUpdate(AGENTSCORE_POST.meta, [
     layout: "photo-statement-accent",
     shareCopy: copies.thesis,
     content: photoContent({
-      kicker: "Why this matters",
-      headline: "Agents need to pay and comply.",
-      body: "Syra sells intelligence over x402. Regulated merchants need KYC before checkout. AgentScore closes the gap with merchant gates and buyer Passport tools without replacing our payment middleware.",
+      kicker: "The gap",
+      headline: "Payments worked. Identity didn't.",
+      body: "Syra sells intelligence over x402. Regulated merchants need KYC before checkout. AgentScore adds merchant gates and buyer Passport — without replacing payment middleware.",
     }),
   },
   {
@@ -33,7 +33,7 @@ export const AGENTSCORE_PHOTO = definePhotoUpdate(AGENTSCORE_POST.meta, [
     layout: "photo-quote",
     shareCopy: copies.quote,
     content: photoContent({
-      quote: "402 for price. Passport for identity. Same Syra agent brain.",
+      quote: "402 for price. Passport for identity.",
       narrative: "Permissionless x402 stays unchanged. Compliance is optional, route-specific, and buyer-side with one Passport.",
     }),
   },
@@ -42,8 +42,8 @@ export const AGENTSCORE_PHOTO = definePhotoUpdate(AGENTSCORE_POST.meta, [
     layout: "photo-flow-pipeline",
     shareCopy: copies.flow,
     content: photoContent({
-      kicker: "Agent commerce flow",
-      headline: "From anonymous 402 to gated checkout.",
+      kicker: "How it works",
+      headline: "Anonymous 402 → pay → gate → buy.",
       steps: [
         { step: "01", title: "Anonymous 402", description: "First request returns x402 pricing. Permissionless unchanged." },
         { step: "02", title: "Pay with x402", description: "Payment-Signature verified via existing facilitator." },
@@ -58,7 +58,7 @@ export const AGENTSCORE_PHOTO = definePhotoUpdate(AGENTSCORE_POST.meta, [
     shareCopy: copies.timeline,
     content: photoContent({
       kicker: "Checkout path",
-      headline: "One Passport. Every gated merchant.",
+      headline: "Verify once. Buy everywhere.",
       steps: [
         { step: "01", title: "Discover merchant", description: "agentscore-discover from agent chat or GET /agentscore/discover." },
         { step: "02", title: "Pay with x402", description: "402 pricing → USDC Payment-Signature on paid retry." },
@@ -72,7 +72,7 @@ export const AGENTSCORE_PHOTO = definePhotoUpdate(AGENTSCORE_POST.meta, [
     layout: "photo-cards-quad",
     shareCopy: copies.pillars,
     content: photoContent({
-      headline: "Four pillars of agent commerce.",
+      headline: "Compliance when it matters. Permissionless when it doesn't.",
       cards: [
         { title: "Gate", subtitle: "Merchant", detail: "KYC, sanctions, age, jurisdiction on paid retry.", accent: "gold" },
         { title: "Passport", subtitle: "Buyer", detail: "Verify once. Works at every gated merchant.", accent: "gold" },
@@ -86,7 +86,7 @@ export const AGENTSCORE_PHOTO = definePhotoUpdate(AGENTSCORE_POST.meta, [
     layout: "photo-hero-checklist",
     shareCopy: copies.checklist,
     content: photoContent({
-      headline: "What's new in Syra × AgentScore.",
+      headline: "What's live in Syra × AgentScore.",
       highlights: [
         "AgentScore Gate on 8004 registration + Tempo payouts",
         "agentscore-discover, check, passport-status, pay",
@@ -114,9 +114,9 @@ export const AGENTSCORE_PHOTO = definePhotoUpdate(AGENTSCORE_POST.meta, [
     layout: "photo-stat-featured",
     shareCopy: copies.featured,
     content: photoContent({
-      headline: "Verify once. Checkout everywhere.",
+      headline: "One Passport. No re-KYC per checkout.",
       stats: [{ value: "1", label: "Passport · every gated merchant" }],
-      narrative: "Martin Estate, Sayer & Stone, and the full AgentScore network — one identity, no re-KYC per checkout.",
+      narrative: "Martin Estate, Sayer & Stone, and the full AgentScore network — verify once, buy anywhere.",
     }),
   },
   {
@@ -124,10 +124,10 @@ export const AGENTSCORE_PHOTO = definePhotoUpdate(AGENTSCORE_POST.meta, [
     layout: "photo-comparison",
     shareCopy: copies.comparison,
     content: photoContent({
-      headline: "Before vs now.",
+      headline: "Pay for data vs. buy from merchants.",
       compareLeft: {
         title: "Before",
-        body: "No KYC gates on Syra. Agents could not checkout at AgentScore-gated merchants.",
+        body: "No KYC gates on Syra. Agents couldn't checkout at AgentScore-gated merchants.",
       },
       compareRight: {
         title: "Now",
@@ -143,7 +143,7 @@ export const AGENTSCORE_PHOTO = definePhotoUpdate(AGENTSCORE_POST.meta, [
       badge: "Now live",
       title: "AgentScore × Syra",
       subtitle: "Merchant gates. Buyer Passport. Pay tools in agent chat.",
-      body: "Syra is now both an x402 merchant with optional compliance gates and an x402 buyer for regulated commerce.",
+      body: "Syra is an x402 merchant with optional compliance gates — and an x402 buyer for regulated commerce.",
     }),
   },
   {
@@ -151,7 +151,7 @@ export const AGENTSCORE_PHOTO = definePhotoUpdate(AGENTSCORE_POST.meta, [
     layout: "photo-numbered-list",
     shareCopy: copies.deepDive,
     content: photoContent({
-      kicker: "Technical surface",
+      kicker: "Under the hood",
       headline: "Built for agents. API-first.",
       items: [
         "Agent tools: agentscore-discover through agentscore-pay",
@@ -167,7 +167,7 @@ export const AGENTSCORE_PHOTO = definePhotoUpdate(AGENTSCORE_POST.meta, [
     shareCopy: copies.split,
     content: photoContent({
       badge: "Two sides",
-      headline: "Sell intelligence. Buy from regulated merchants.",
+      headline: "Sell intelligence. Buy from merchants.",
       body: "Merchant side: optional Gate on high-risk routes. Buyer side: Passport + agentscore-pay from agent wallet.",
       highlights: [
         "Gate: KYC, sanctions, age, jurisdiction",
@@ -182,7 +182,7 @@ export const AGENTSCORE_PHOTO = definePhotoUpdate(AGENTSCORE_POST.meta, [
     layout: "photo-terminal",
     shareCopy: copies.terminal,
     content: photoContent({
-      headline: "AgentScore checkout from CLI.",
+      headline: "AgentScore checkout from terminal.",
       terminalLines: [
         "$ curl api.syraa.fun/agentscore/discover",
         "< merchants: Martin Estate, Sayer & Stone, …",
@@ -199,7 +199,7 @@ export const AGENTSCORE_PHOTO = definePhotoUpdate(AGENTSCORE_POST.meta, [
     layout: "photo-closing-cta",
     shareCopy: copies.cta,
     content: photoContent({
-      headline: "Agent commerce is here.",
+      headline: "Ship compliant agent commerce.",
       subtitle: "Verify once with Passport. Pay per call. Gate when it matters.",
       links: [
         { label: "Agent chat", value: "syraa.fun/chat", href: "https://www.syraa.fun/chat" },

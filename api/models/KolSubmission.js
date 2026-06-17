@@ -24,9 +24,12 @@ const kolSubmissionSchema = new mongoose.Schema(
     tweetUrl: { type: String, required: true },
     mode: { type: String, enum: ["reply", "quote"], required: true },
     authorHandle: { type: String, required: true, index: true },
+    authorHandleKey: { type: String, required: true, index: true },
     verified: { type: Boolean, default: true },
     latestMetrics: { type: metricsSchema, default: () => ({}) },
     latestScore: { type: Number, default: 0 },
+    finalScore: { type: Number, default: null },
+    reputationCreditedAt: { type: Date, default: null },
     projectedLamports: { type: Number, default: 0 },
   },
   { timestamps: true },
@@ -34,6 +37,7 @@ const kolSubmissionSchema = new mongoose.Schema(
 
 kolSubmissionSchema.index({ campaignId: 1, tweetId: 1 }, { unique: true });
 kolSubmissionSchema.index({ campaignId: 1, kolWallet: 1 }, { unique: true });
+kolSubmissionSchema.index({ campaignId: 1, authorHandleKey: 1 }, { unique: true });
 kolSubmissionSchema.index({ campaignId: 1, latestScore: -1 });
 
 const KolSubmission =

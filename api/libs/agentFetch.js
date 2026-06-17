@@ -6,11 +6,18 @@ import { getSentinelFetch, SentinelBudgetError } from './sentinelFetch.js';
 import { wrapFetchWithPact } from './pactFetch.js';
 import { getAgentKeypair } from './agentWallet.js';
 import { getTreasuryKeypair } from './agentTreasuryKey.js';
+import connectMongoose, { isMongooseConnected } from '../config/mongoose.js';
 
 export { SentinelBudgetError };
 
 /** IDs that are not user agent wallets — skip keypair lookup. */
-const SYSTEM_AGENT_IDS = new Set(['playground', 'syra-api']);
+const SYSTEM_AGENT_IDS = new Set([
+  'playground',
+  'syra-api',
+  'x402-api',
+  'x402-api-nansen',
+  'x402-api-tester-base',
+]);
 
 /**
  * Resolve keypair for Pact signer attribution / refunds.
@@ -23,6 +30,10 @@ async function resolveKeypairForAgent(agentId) {
   }
   if (!agentId || SYSTEM_AGENT_IDS.has(agentId)) {
     return null;
+  }
+  if (!isMongooseConnected()) {
+    const ok = await connectMongoose({ required: false });
+    if (!ok) return null;
   }
   return getAgentKeypair(agentId);
 }
@@ -39,8 +50,3 @@ export async function getAgentFetch(agentId, opts = {}) {
   const keypair = await resolveKeypairForAgent(id);
   return wrapFetchWithPact(sentinelFetch, { agentId: id, keypair });
 }
-
-/**
- * Default fetch for API-wide outbound calls (Sentinel + Pact when configured).
- */
-export const agentFetch = getAgentFetch(undefined, { budget: true });

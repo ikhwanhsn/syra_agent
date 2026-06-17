@@ -15,7 +15,7 @@ export const INDICATOR_PHOTO = definePhotoUpdate(INDICATOR_POST.meta, [
       eyebrow: "Ship log",
       badge: "x402 · /indicator",
       title: "Indicator API",
-      subtitle: "27 TradingView-style indicators from OHLCV. Combinable in one agent call.",
+      subtitle: "27 TA indicators as agent-readable JSON. RSI, MACD, Bollinger — one x402 call.",
     }),
   },
   {
@@ -23,9 +23,9 @@ export const INDICATOR_PHOTO = definePhotoUpdate(INDICATOR_POST.meta, [
     layout: "photo-statement-accent",
     shareCopy: copies.thesis,
     content: photoContent({
-      kicker: "Why this matters",
-      headline: "Charts are for humans. Agents need JSON.",
-      body: "Autonomous agents cannot parse TradingView screenshots. They need structured latest values, descriptive signals, and optional per-bar series from live candles.",
+      kicker: "The gap",
+      headline: "Agents can't read chart screenshots.",
+      body: "Autonomous agents need structured latest values, descriptive signals, and optional per-bar series — not TradingView pixels. One candle fetch, many indicators, one micropayment.",
     }),
   },
   {
@@ -33,8 +33,8 @@ export const INDICATOR_PHOTO = definePhotoUpdate(INDICATOR_POST.meta, [
     layout: "photo-quote",
     shareCopy: copies.quote,
     content: photoContent({
-      quote: "One candle fetch. Many indicators. One micropayment.",
-      narrative: "Combine RSI, MACD, and Bollinger in a single x402 call without refetching OHLCV or paying twice for data.",
+      quote: "One candle fetch. Many indicators. One checkout.",
+      narrative: "Combine RSI, MACD, and Bollinger in a single x402 call. No double-fetching OHLCV. No paying twice for the same candles.",
     }),
   },
   {
@@ -58,7 +58,7 @@ export const INDICATOR_PHOTO = definePhotoUpdate(INDICATOR_POST.meta, [
     shareCopy: copies.timeline,
     content: photoContent({
       kicker: "Request flow",
-      headline: "From catalog to combined analytics.",
+      headline: "Catalog to combined analytics.",
       steps: [
         { step: "01", title: "Catalog (free)", description: "GET /indicator/catalog lists all 27 ids and params." },
         { step: "02", title: "Configure", description: "Dotted GET params or POST JSON for complex combos." },
@@ -72,7 +72,7 @@ export const INDICATOR_PHOTO = definePhotoUpdate(INDICATOR_POST.meta, [
     layout: "photo-cards-quad",
     shareCopy: copies.pillars,
     content: photoContent({
-      headline: "Four indicator families.",
+      headline: "Four families. Twenty-seven indicators.",
       cards: [
         { title: "Momentum", subtitle: "RSI · MACD", detail: "RSI, MACD, Stochastic, StochRSI, Williams %R, CCI, ROC, TRIX, KST, AO.", accent: "gold" },
         { title: "Trend", subtitle: "MA · ADX", detail: "SMA, EMA, WMA, WEMA, ADX, PSAR, Ichimoku Cloud.", accent: "gold" },
@@ -86,7 +86,7 @@ export const INDICATOR_PHOTO = definePhotoUpdate(INDICATOR_POST.meta, [
     layout: "photo-hero-checklist",
     shareCopy: copies.checklist,
     content: photoContent({
-      headline: "Indicator API is live.",
+      headline: "Indicator API is live now.",
       highlights: [
         "GET + POST /indicator (x402 gated)",
         "Combine multiple indicators per call",
@@ -101,13 +101,13 @@ export const INDICATOR_PHOTO = definePhotoUpdate(INDICATOR_POST.meta, [
     layout: "photo-stat-trio",
     shareCopy: copies.metrics,
     content: photoContent({
-      headline: "Built for agent pipelines.",
+      headline: "One fetch. Full TA stack.",
       stats: [
         { value: "27", label: "Indicators" },
         { value: "10", label: "CEX sources" },
         { value: "1", label: "Fetch per call" },
       ],
-      narrative: "Momentum, trend, volatility, and volume metrics from the same candle series in one checkout.",
+      narrative: "Momentum, trend, volatility, and volume from the same candle series — structured for agent pipelines.",
     }),
   },
   {
@@ -115,9 +115,9 @@ export const INDICATOR_PHOTO = definePhotoUpdate(INDICATOR_POST.meta, [
     layout: "photo-stat-featured",
     shareCopy: copies.featured,
     content: photoContent({
-      headline: "Combine freely.",
+      headline: "Stack indicators in one call.",
       stats: [{ value: "2+", label: "Indicators per request" }],
-      narrative: "Request rsi,macd,bollinger together. Each returns its own latest, signal, and resolved params.",
+      narrative: "Request rsi,macd,bollinger together. Each returns latest, signal, and resolved params. Descriptive output — not trade directives.",
     }),
   },
   {
@@ -146,7 +146,7 @@ export const INDICATOR_PHOTO = definePhotoUpdate(INDICATOR_POST.meta, [
       partnerName: "TradingView",
       partnerLogo: "/images/partners/tradingview.png",
       headline: "Syra × TradingView-class TA",
-      subtitle: "Agent-readable indicators from OHLCV. Combinable in one x402 call.",
+      subtitle: "Agent-readable indicators from live OHLCV. Combinable in one x402 call.",
     }),
   },
   {
@@ -155,7 +155,7 @@ export const INDICATOR_PHOTO = definePhotoUpdate(INDICATOR_POST.meta, [
     shareCopy: copies.deepDive,
     content: photoContent({
       kicker: "Technical surface",
-      headline: "API contract.",
+      headline: "API contract for builders.",
       items: [
         "GET ?symbol=BTCUSDT&indicators=rsi,macd&rsi.period=21",
         "POST { symbol, interval, indicators: [{ id, ...params }] }",
@@ -171,8 +171,8 @@ export const INDICATOR_PHOTO = definePhotoUpdate(INDICATOR_POST.meta, [
     shareCopy: copies.split,
     content: photoContent({
       badge: "Two formats",
-      headline: "GET for agents. POST for complex combos.",
-      body: "Dotted query params are URL-friendly for simple multi-indicator calls. POST JSON handles nested param objects and longer indicator lists.",
+      headline: "GET for speed. POST for depth.",
+      body: "Dotted query params for simple multi-indicator calls. POST JSON for nested param objects and longer indicator lists.",
       highlights: [
         "GET: indicators=rsi,macd&macd.fastPeriod=12",
         "POST: indicators array with per-id params",
@@ -186,7 +186,7 @@ export const INDICATOR_PHOTO = definePhotoUpdate(INDICATOR_POST.meta, [
     layout: "photo-terminal",
     shareCopy: copies.terminal,
     content: photoContent({
-      headline: "Combined RSI + MACD request.",
+      headline: "RSI + MACD in one request.",
       terminalLines: [
         "$ curl api.syraa.fun/indicator \\",
         "    ?symbol=BTCUSDT&interval=1h \\",
@@ -204,8 +204,8 @@ export const INDICATOR_PHOTO = definePhotoUpdate(INDICATOR_POST.meta, [
     layout: "photo-closing-cta",
     shareCopy: copies.cta,
     content: photoContent({
-      headline: "Give your agents readable indicators.",
-      subtitle: "Explore the catalog, then wire /indicator into your x402 agent stack.",
+      headline: "Wire TA into your agent stack.",
+      subtitle: "Browse the free catalog. Combine indicators. Pay per call via x402.",
       links: [
         { label: "Catalog", value: "api.syraa.fun/indicator/catalog", href: "https://api.syraa.fun/indicator/catalog" },
         { label: "Playground", value: "syraa.fun/playground", href: "https://www.syraa.fun/playground" },

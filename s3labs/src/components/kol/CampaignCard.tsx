@@ -53,6 +53,16 @@ export function CampaignCard({ campaign, onSelect }: CampaignCardProps) {
         </Badge>
       </div>
 
+      {campaign.sourceAuthorHandle ? (
+        <Link
+          to={`/kol/${encodeURIComponent(campaign.sourceAuthorHandle)}`}
+          className="text-xs text-primary hover:underline w-fit"
+        >
+          @{campaign.sourceAuthorHandle}
+          {campaign.sourceAuthorVerified ? " ✓" : ""}
+        </Link>
+      ) : null}
+
       {campaign.sourceTweetText ? (
         <p className="text-sm text-muted-foreground line-clamp-2">{campaign.sourceTweetText}</p>
       ) : null}

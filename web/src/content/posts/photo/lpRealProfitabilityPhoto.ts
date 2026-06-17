@@ -16,7 +16,7 @@ export const LP_REAL_PROFITABILITY_PHOTO = definePhotoUpdate(LP_REAL_PROFITABILI
       badge: "Fee-aware · Pool gates · Trailing stop",
       title: "LP Real Profitability",
       subtitle:
-        "Live Meteora LP agents now use fee-aware exits, stricter pool gates, and trailing stops so profitable positions stay open longer.",
+        "Live Meteora LP agents now hold fee winners, skip unprofitable pools, and exit on net economics — not price drift alone.",
     }),
   },
   {
@@ -26,7 +26,7 @@ export const LP_REAL_PROFITABILITY_PHOTO = definePhotoUpdate(LP_REAL_PROFITABILI
     content: photoContent({
       kicker: "The problem",
       headline: "Price stops were ignoring fees already earned.",
-      body: "In the sim lab, positions could show Loss while Sim PnL stayed green. The live agent used the same blunt rule and closed fee-positive trades on raw price drift.",
+      body: "In the sim lab, positions could show Loss while Sim PnL stayed green. The live agent used the same blunt rule — and closed fee-positive trades on raw price drift.",
     }),
   },
   {
@@ -60,7 +60,7 @@ export const LP_REAL_PROFITABILITY_PHOTO = definePhotoUpdate(LP_REAL_PROFITABILI
     shareCopy: copies.timeline,
     content: photoContent({
       kicker: "Sim to live",
-      headline: "From lab insight to production fix.",
+      headline: "From lab proof to production enforcement.",
       steps: [
         { step: "01", title: "Sim exposed gap", description: "Loss status with green PnL on fee-heavy pools." },
         { step: "02", title: "Fee-aware stop", description: "Fees extend price stop up to half its distance." },
@@ -74,7 +74,7 @@ export const LP_REAL_PROFITABILITY_PHOTO = definePhotoUpdate(LP_REAL_PROFITABILI
     layout: "photo-cards-quad",
     shareCopy: copies.pillars,
     content: photoContent({
-      headline: "Four gates that protect real SOL.",
+      headline: "Four gates between your wallet and bad LP trades.",
       cards: [
         { title: "Fee-aware stop", subtitle: "Fees extend stop", detail: "Hard stop at 1.4× caps tail IL.", accent: "gold" },
         { title: "Cost gate", subtitle: "1.6× tx costs", detail: "No open until expected fees justify spend.", accent: "gold" },
@@ -88,7 +88,7 @@ export const LP_REAL_PROFITABILITY_PHOTO = definePhotoUpdate(LP_REAL_PROFITABILI
     layout: "photo-hero-compact",
     shareCopy: copies.checklist,
     content: photoContent({
-      headline: "LP real profitability upgrade.",
+      headline: "LP real profitability — what changed.",
       highlights: [
         "Fee-aware stop loss with hard IL cap",
         "Chain-cost viability gate before every open",
@@ -102,7 +102,7 @@ export const LP_REAL_PROFITABILITY_PHOTO = definePhotoUpdate(LP_REAL_PROFITABILI
     layout: "photo-stat-trio",
     shareCopy: copies.metrics,
     content: photoContent({
-      headline: "Three numbers that guard real capital.",
+      headline: "Three thresholds that guard real capital.",
       stats: [
         { value: "1.6×", label: "Min fee-to-cost at open" },
         { value: "0.55", label: "Real pool R:R hurdle" },
@@ -119,7 +119,7 @@ export const LP_REAL_PROFITABILITY_PHOTO = definePhotoUpdate(LP_REAL_PROFITABILI
       headline: "Fee-positive positions stay open longer.",
       stats: [{ value: "Net", label: "Economics drive every exit" }],
       narrative:
-        "When LP fees outweigh price drift, the agent holds. When fees cannot cover chain costs, it never opens.",
+        "When LP fees outweigh price drift, the agent holds. When fees can't cover chain costs, it never opens.",
     }),
   },
   {
@@ -146,7 +146,7 @@ export const LP_REAL_PROFITABILITY_PHOTO = definePhotoUpdate(LP_REAL_PROFITABILI
       badge: "Now live",
       title: "LP Real Profitability",
       subtitle: "Fee-aware exits, pool gates, and trailing stops for live Meteora LP.",
-      body: "The sim lab bug is fixed for real SOL. Hold fee winners. Skip unprofitable pools.",
+      body: "The sim lab bug is fixed for real SOL. Hold fee winners. Skip pools that can't pay for themselves.",
     }),
   },
   {
@@ -170,8 +170,8 @@ export const LP_REAL_PROFITABILITY_PHOTO = definePhotoUpdate(LP_REAL_PROFITABILI
     shareCopy: copies.split,
     content: photoContent({
       badge: "Sim → Live",
-      headline: "Same economics. Smarter exits.",
-      body: "Sim exposed Loss + green PnL. Live agent now extends stops by fees earned and trails peak net PnL.",
+      headline: "Sim exposed the gap. Live agent closes it.",
+      body: "Sim showed Loss + green PnL. Live agent now extends stops by fees earned and trails peak net PnL.",
       highlights: [
         "On-chain fees ground exit decisions",
         "Hard stop caps catastrophic IL",
@@ -201,8 +201,8 @@ export const LP_REAL_PROFITABILITY_PHOTO = definePhotoUpdate(LP_REAL_PROFITABILI
     layout: "photo-closing-cta",
     shareCopy: copies.cta,
     content: photoContent({
-      headline: "Enable your LP agent with smarter exits.",
-      subtitle: "Watch sim leaders prove out, then deploy with fee-aware protection.",
+      headline: "Prove the edge in sim. Deploy with fee-aware protection.",
+      subtitle: "Watch sim leaders prove out, then enable your LP agent with smarter exits on real SOL.",
       links: [
         { label: "LP experiment", value: "syraa.fun/lp-experiment", href: "https://www.syraa.fun/lp-experiment" },
         { label: "Real agent", value: "Live positions", href: "https://www.syraa.fun/lp-experiment#real-agent" },

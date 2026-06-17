@@ -6,21 +6,21 @@ import type { PostPhotoCardRole } from "../photoCardSlots";
  * does not read like the same caption pasted 15 times.
  */
 export const ASSETS_HUB_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `We stopped hardcoding eight assets.
+  cover: `Eight hardcoded assets wasn't a research product.
 
-Syra now lists the entire Tokens.xyz board — search, filter, paginate — then opens clean /assets/{id} pages with live intelligence underneath.
+Syra now lists the full Tokens.xyz board — search, filter, paginate — with dossier + intelligence on every /assets/{id} page.
 
 Start here → syraa.fun/assets`,
 
-  thesis: `Honest question for researchers:
+  thesis: `How many tabs do you open to check sentiment, news, and signal on one token?
 
-How many tabs do you open to check sentiment, news, and signal on one token?
+We folded all four into a single asset page. Dossier above. Intelligence below. No tab hopping.`,
 
-We folded all four into a single asset page. No tab hopping.`,
+  quote: `"Find the asset. Read the conviction. One scroll."
 
-  quote: `"Discovery and conviction belong on one page."
+Board → detail → dossier → sentiment, signal, news, events.
 
-Board → detail → dossier → intelligence. That's the whole idea.`,
+That's the whole research loop.`,
 
   flow: `Try it in 30 seconds:
 
@@ -31,27 +31,32 @@ Board → detail → dossier → intelligence. That's the whole idea.`,
 
 Sentiment, signal, news, events — all on that page.`,
 
-  timeline: `June ship log — what actually landed:
+  timeline: `What shipped in Assets Hub:
 
 • Full Tokens.xyz catalog on /assets
 • Canonical routes like /assets/solana
-• New /agent/tokens/intelligence endpoint
+• GET /agent/tokens/intelligence endpoint
 • 35+ RSS feeds matched per asset name
 • Parallel loading skeletons on detail pages`,
 
-  pillars: `Sentiment — headline tone from matched news
-Signal — CoinGecko OHLC recommendation
-News — keyword-scoped, no random crypto filler
-Events — calendar + headline-derived rows
+  pillars: `Four intel blocks. One asset page:
 
-Four blocks. One scroll on /assets/{id}.`,
+→ Sentiment — headline tone from matched news
+→ Signal — CoinGecko OHLC recommendation
+→ News — keyword-scoped, no random crypto filler
+→ Events — calendar + headline-derived rows
 
-  checklist: `What's done:
-— Full universe (not a preset list)
-— 10-row pagination
-— Simpler table UI
+Scroll once. Read everything.`,
+
+  checklist: `Assets Hub — what's live:
+
+— Full Tokens.xyz universe (not a preset list)
+— 10-row pagination + search/filters
 — Intelligence panels with empty states
-— Dossier + intel load together`,
+— Dossier + intel load in parallel
+— Ask Syra pulls intel context
+
+Open the board → syraa.fun/assets`,
 
   metrics: `4 intel blocks
 35+ RSS sources
@@ -59,7 +64,7 @@ Four blocks. One scroll on /assets/{id}.`,
 
 Crypto and tokenized equities share the same research surface now.`,
 
-  featured: `One detail page. Every research block.
+  featured: `Dossier plus intel. One URL.
 
 Price chart, risk, sentiment, signal, news, and events — without leaving /assets/{assetId}.
 
@@ -68,16 +73,19 @@ Open SOL and count the panels below the chart.`,
   comparison: `Old Syra assets page:
 8 hardcoded rows. Query strings. Dossier only.
 
-Today's:
-Full board. /assets/rblxx URLs. Sentiment + signal + news + events baked in.`,
+Today's Assets Hub:
+Full board. /assets/rblxx URLs. Sentiment + signal + news + events baked in.
 
-  launch: `LIVE NOW — browse every Tokens.xyz asset on Syra.
+Same product. Actual research workflow.`,
+
+  launch: `LIVE — browse every Tokens.xyz asset on Syra.
 
 Detail pages ship intelligence free. No x402 from the dashboard.
 
-syraa.fun/assets/solana`,
+→ syraa.fun/assets
+→ syraa.fun/assets/solana`,
 
-  deepDive: `For builders:
+  deepDive: `For builders — Assets Hub APIs:
 
 GET /agent/tokens/board?list=all
 GET /agent/tokens/dossier?assetId=
@@ -85,11 +93,13 @@ GET /agent/tokens/intelligence?assetId=
 
 Resolver is name-first. "Roblox" → roblox keywords. Google News RSS on demand.`,
 
-  split: `BOARD side: discovery at scale. Search crypto vs equity. Paginate ten at a time.
+  split: `BOARD: discovery at scale.
+Search crypto vs equity. Paginate ten at a time.
 
-DETAIL side: conviction without leaving. Dossier loads next to four intel panels in parallel.
+DETAIL: conviction without leaving.
+Dossier loads next to four intel panels in parallel.
 
-Same product. Two jobs.`,
+Two surfaces. One research product.`,
 
   terminal: `$ curl -s syraa.fun/agent/tokens/intelligence?assetId=solana
 
@@ -99,11 +109,12 @@ Same product. Two jobs.`,
 > query.primaryKeywords: ["solana","sol"]
 < 200 ok · free aggregate`,
 
-  cta: `Pick any ticker — SOL, BTC, RBLXX — and open its dossier.
+  cta: `Research any asset in one place.
 
-If you're building research workflows, this is the page to bookmark.
+Pick SOL, BTC, or RBLXX — dossier and intelligence on the same page.
 
-syraa.fun/assets`,
+→ syraa.fun/assets
+→ syraa.fun/assets/solana`,
 };
 
 /** Unique footer links for cards whose copy has no embedded URL. */

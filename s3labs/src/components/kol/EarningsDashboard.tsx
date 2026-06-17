@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { ExternalLink, Loader2 } from "lucide-react";
 
 import { fetchWalletEarnings } from "@/lib/kolApi";
@@ -35,11 +34,10 @@ export function EarningsDashboard() {
               Projected rewards update daily. Final payout is sent automatically at campaign snapshot.
             </p>
           </div>
-          <WalletMultiButton className="!rounded-full !bg-primary !h-10 shrink-0" />
         </div>
 
         {!address ? (
-          <p className="text-sm text-muted-foreground mt-6">Connect a Solana wallet to view earnings.</p>
+          <p className="text-sm text-muted-foreground mt-6">Connect your wallet from the navbar to view earnings.</p>
         ) : isLoading ? (
           <div className="flex items-center gap-2 text-muted-foreground mt-6">
             <Loader2 className="w-4 h-4 animate-spin" />

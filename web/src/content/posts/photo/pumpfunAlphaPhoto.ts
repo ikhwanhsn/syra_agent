@@ -15,7 +15,7 @@ export const PUMPFUN_ALPHA_PHOTO = definePhotoUpdate(PUMPFUN_ALPHA_POST.meta, [
       eyebrow: "Ship log",
       badge: "Radar · Scout · Utility",
       title: "Pump.fun Alpha Agents",
-      subtitle: "Three specialized agents with hourly MongoDB snapshots and calm frontend reads.",
+      subtitle: "Three specialized agents. Hourly MongoDB snapshots. Calm frontend reads — no live rescans on every visit.",
     }),
   },
   {
@@ -23,9 +23,9 @@ export const PUMPFUN_ALPHA_PHOTO = definePhotoUpdate(PUMPFUN_ALPHA_POST.meta, [
     layout: "photo-statement-accent",
     shareCopy: copies.thesis,
     content: photoContent({
-      kicker: "Why this matters",
-      headline: "Pump.fun moves faster than manual tabs.",
-      body: "Meme runners, beta followers, and utility projects need different lenses. Syra runs three agents on a shared 1-hour cadence and serves /alpha from saved snapshots, not live rescans on every visit.",
+      kicker: "The problem",
+      headline: "Manual tabs lose the tape. Pump.fun doesn't wait.",
+      body: "Meme runners, beta followers, and utility builds need different lenses — not one mixed feed. Syra runs three agents on a shared 1-hour cadence and serves /alpha from saved snapshots, not live rescans on every visit.",
     }),
   },
   {
@@ -34,7 +34,7 @@ export const PUMPFUN_ALPHA_PHOTO = definePhotoUpdate(PUMPFUN_ALPHA_POST.meta, [
     shareCopy: copies.quote,
     content: photoContent({
       quote: "Compute once per hour. Read many times from DB.",
-      narrative: "Live pump.fun + LLM on every dashboard load doesn't scale. Hourly snapshots power calm frontend reads and agent tools.",
+      narrative: "Live pump.fun + LLM on every dashboard load doesn't scale. Hourly snapshots power fast UI reads and agent tools — without hammering APIs.",
     }),
   },
   {
@@ -58,7 +58,7 @@ export const PUMPFUN_ALPHA_PHOTO = definePhotoUpdate(PUMPFUN_ALPHA_POST.meta, [
     shareCopy: copies.timeline,
     content: photoContent({
       kicker: "Hourly cadence",
-      headline: "No live rescans on every visit.",
+      headline: "Fresh intel. Fast frontend. No live rescans on every click.",
       steps: [
         { step: "01", title: "Stale check", description: "Scheduler compares now vs PUMPFUN_AGENTS_REFRESH_MS." },
         { step: "02", title: "Agent run", description: "Radar + Scout + Utility compute and persist to Mongo." },
@@ -72,7 +72,7 @@ export const PUMPFUN_ALPHA_PHOTO = definePhotoUpdate(PUMPFUN_ALPHA_POST.meta, [
     layout: "photo-cards-quad",
     shareCopy: copies.pillars,
     content: photoContent({
-      headline: "Three agents. One cadence.",
+      headline: "Three agents. One cadence. No mixed signals.",
       cards: [
         { title: "Radar", subtitle: "Alpha + Beta", detail: "pumpScore + alignmentScore pairing.", accent: "gold" },
         { title: "Scout", subtitle: "Learning", detail: "Learned-fit from past alpha history.", accent: "gold" },
@@ -86,11 +86,11 @@ export const PUMPFUN_ALPHA_PHOTO = definePhotoUpdate(PUMPFUN_ALPHA_POST.meta, [
     layout: "photo-hero-checklist",
     shareCopy: copies.checklist,
     content: photoContent({
-      headline: "Pump.fun alpha agent highlights.",
+      headline: "What shipped on the Pump.fun alpha desk.",
       highlights: [
         "Alpha / Beta Play Radar: hot tape + aligned beta plays",
         "Alpha Scout: past alpha memory → predicted runners",
-        "Utility Scout: tech/metadata signals, meme penalties",
+        "Utility Scout: tech/metadata signals, meme penalties filtered",
         "Shared PUMPFUN_AGENTS_REFRESH_MS (default 1h)",
       ],
     }),
@@ -100,7 +100,7 @@ export const PUMPFUN_ALPHA_PHOTO = definePhotoUpdate(PUMPFUN_ALPHA_POST.meta, [
     layout: "photo-stat-trio",
     shareCopy: copies.metrics,
     content: photoContent({
-      headline: "Fast UI. Fresh intel.",
+      headline: "Fast UI. Fresh intel. Predictable load.",
       stats: [
         { value: "3", label: "Agents" },
         { value: "1h", label: "Refresh" },
@@ -116,7 +116,7 @@ export const PUMPFUN_ALPHA_PHOTO = definePhotoUpdate(PUMPFUN_ALPHA_POST.meta, [
     content: photoContent({
       headline: "Database reads only.",
       stats: [{ value: "1h", label: "Refresh · anti-spam gated" }],
-      narrative: "Frontend stays fast even when pump.fun doesn't. Snapshots persist. Agents and UI read from Mongo.",
+      narrative: "Syra doesn't hammer pump.fun on every visit. Snapshots persist. Frontend stays fast even when the tape doesn't.",
     }),
   },
   {
@@ -127,11 +127,11 @@ export const PUMPFUN_ALPHA_PHOTO = definePhotoUpdate(PUMPFUN_ALPHA_POST.meta, [
       headline: "Before vs now.",
       compareLeft: {
         title: "Before",
-        body: "Live pump.fun + LLM on every dashboard load. Mixed meme and utility signals in one feed.",
+        body: "Live pump.fun + LLM on every dashboard load. Meme and utility signals mixed in one feed.",
       },
       compareRight: {
         title: "Now",
-        body: "Three agents, hourly DB snapshots, dedicated Alpha tabs, anti-spam refresh gates.",
+        body: "Three specialized agents. Hourly DB snapshots. Dedicated Alpha tabs. Anti-spam refresh gates.",
       },
     }),
   },
@@ -143,7 +143,7 @@ export const PUMPFUN_ALPHA_PHOTO = definePhotoUpdate(PUMPFUN_ALPHA_POST.meta, [
       badge: "Now live",
       title: "Pump.fun Alpha Agents",
       subtitle: "Radar · Scout · Utility — hourly snapshots.",
-      body: "Dedicated /alpha tabs. Calm frontend reads. Agent tools wired in.",
+      body: "Dedicated /alpha tabs. Calm frontend reads. Agent tools wired in. Stop chasing tabs.",
     }),
   },
   {
@@ -167,7 +167,7 @@ export const PUMPFUN_ALPHA_PHOTO = definePhotoUpdate(PUMPFUN_ALPHA_POST.meta, [
     shareCopy: copies.split,
     content: photoContent({
       badge: "Three lenses",
-      headline: "Split the tape. See runners and utility separately.",
+      headline: "One feed can't track meme runners and utility builds.",
       body: "Radar and Scout track meme alpha. Utility Scout filters tech/metadata signals with meme penalties.",
       highlights: [
         "Radar: hot tape + aligned beta plays",
@@ -199,7 +199,7 @@ export const PUMPFUN_ALPHA_PHOTO = definePhotoUpdate(PUMPFUN_ALPHA_POST.meta, [
     shareCopy: copies.cta,
     content: photoContent({
       headline: "Your Pump.fun alpha desk is live.",
-      subtitle: "Hourly snapshots. Database source. Agent tools wired in.",
+      subtitle: "Hourly snapshots. Database source. Agent tools wired in. Stop chasing tabs.",
       links: [
         { label: "Alpha", value: "syraa.fun/alpha", href: "https://www.syraa.fun/alpha" },
         { label: "Scout API", value: "/agent/pumpfun-alpha-scout/brief", href: "https://api.syraa.fun/agent/pumpfun-alpha-scout/brief" },

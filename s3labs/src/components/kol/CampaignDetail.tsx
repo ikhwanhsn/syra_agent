@@ -1,4 +1,5 @@
 import { ExternalLink, X } from "lucide-react";
+import { Link } from "react-router-dom";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,13 @@ export function CampaignDetail({ campaign, leaderboard, onClose, onRefresh }: Ca
           <Badge variant="outline" className="capitalize">
             {campaign.status.replace("_", " ")}
           </Badge>
+          {campaign.sourceAuthorHandle ? (
+            <Badge variant="outline" asChild>
+              <Link to={`/kol/${encodeURIComponent(campaign.sourceAuthorHandle)}`}>
+                @{campaign.sourceAuthorHandle}
+              </Link>
+            </Badge>
+          ) : null}
           <Badge variant="outline">
             {formatSol(getKolRewardSol(campaign))} SOL reward
           </Badge>

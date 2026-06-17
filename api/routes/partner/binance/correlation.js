@@ -2,118 +2,15 @@ import express from "express";
 import { getV2Payment } from "../../../utils/getV2Payment.js";
 import { X402_API_PRICE_USD } from "../../../config/x402Pricing.js";
 import { fetchBinanceOhlcBatch } from "../../../libs/binanceOhlcBatch.js";
+import {
+  BINANCE_CORRELATION_TICKER,
+  computeCorrelationFromOHLC,
+} from "../../../libs/btcCorrelationMatrix.js";
 
 const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 
-// ---------- HELPERS ----------
-
-// Convert string OHLC to numbers
-function normalizeOHLC(data) {
-  if (!Array.isArray(data)) return [];
-  return data.map((c) => ({
-    time: c.time,
-    close: parseFloat(c.close),
-  }));
-}
-
-// Compute log returns
-function calculateReturns(prices) {
-  const returns = [];
-  for (let i = 1; i < prices.length; i++) {
-    const r = Math.log(prices[i].close / prices[i - 1].close);
-    returns.push({ time: prices[i].time, value: r });
-  }
-  return returns;
-}
-
-// Align multiple return series by timestamp
-function alignSeries(seriesMap) {
-  const keys = Object.keys(seriesMap);
-  if (keys.length === 0) return {};
-  const firstSeries = seriesMap[keys[0]];
-  if (!Array.isArray(firstSeries)) return {};
-  const timestamps = firstSeries.map((p) => p.time);
-  const aligned = {};
-
-  for (const [symbol, series] of Object.entries(seriesMap)) {
-    const map = new Map(series.map((p) => [p.time, p.value]));
-    aligned[symbol] = timestamps
-      .map((t) => map.get(t))
-      .filter((v) => v !== undefined);
-  }
-
-  return aligned;
-}
-
-// Pearson correlation
-function pearsonCorrelation(x, y) {
-  const n = x.length;
-  const meanX = x.reduce((a, b) => a + b, 0) / n;
-  const meanY = y.reduce((a, b) => a + b, 0) / n;
-
-  let num = 0;
-  let denX = 0;
-  let denY = 0;
-
-  for (let i = 0; i < n; i++) {
-    const dx = x[i] - meanX;
-    const dy = y[i] - meanY;
-    num += dx * dy;
-    denX += dx * dx;
-    denY += dy * dy;
-  }
-
-  return num / Math.sqrt(denX * denY);
-}
-
-// Build correlation matrix
-function buildCorrelationMatrix(returnsMap) {
-  const tokens = Object.keys(returnsMap);
-  const matrix = {};
-
-  for (let i = 0; i < tokens.length; i++) {
-    const t1 = tokens[i];
-    matrix[t1] = {};
-
-    for (let j = i; j < tokens.length; j++) {
-      const t2 = tokens[j];
-      const corr =
-        t1 === t2 ? 1 : pearsonCorrelation(returnsMap[t1], returnsMap[t2]);
-
-      matrix[t1][t2] = +corr.toFixed(4);
-      if (!matrix[t2]) matrix[t2] = {};
-      matrix[t2][t1] = +corr.toFixed(4);
-    }
-  }
-
-  return matrix;
-}
-
-// ---------- CORE PIPELINE ----------
-
-/** Default ticker list for correlation (exported for summary/fetchers). */
-export const BINANCE_CORRELATION_TICKER =
-  "BTCUSDT,ETHUSDT,BNBUSDT,SOLUSDT,XRPUSDT,ADAUSDT,AVAXUSDT,DOGEUSDT,DOTUSDT,LINKUSDT,MATICUSDT,OPUSDT,ARBUSDT,NEARUSDT,ATOMUSDT,FTMUSDT,INJUSDT,SUIUSDT,SEIUSDT,APTUSDT,RNDRUSDT,FETUSDT,UNIUSDT,AAVEUSDT,LDOUSDT,PENDLEUSDT,MKRUSDT,SNXUSDT,LTCUSDT,BCHUSDT,ETCUSDT,TRXUSDT,XLMUSDT,SHIBUSDT,PEPEUSDT,TIAUSDT,ORDIUSDT,STXUSDT,FILUSDT,ICPUSDT,HBARUSDT,VETUSDT,GRTUSDT,THETAUSDT,EGLDUSDT,ALGOUSDT,FLOWUSDT,SANDUSDT,MANAUSDT,AXSUSDT";
-
-export function computeCorrelationFromOHLC(ohlcPayload) {
-  const results = ohlcPayload?.results;
-  if (!Array.isArray(results)) return null;
-
-  const seriesMap = {};
-  for (const item of results) {
-    if (!item || !item.success || !item.data) continue;
-    const prices = normalizeOHLC(item.data);
-    if (prices.length < 2) continue; // need at least 2 points for returns
-    const returns = calculateReturns(prices);
-    seriesMap[item.symbol] = returns;
-  }
-
-  const alignedReturns = alignSeries(seriesMap);
-  const tokens = Object.keys(alignedReturns);
-  if (tokens.length === 0) return null;
-
-  return buildCorrelationMatrix(alignedReturns);
-}
+// Re-export for analytics fetchers
+export { BINANCE_CORRELATION_TICKER, computeCorrelationFromOHLC };
 
 export async function createBinanceCorrelationRouter() {
   const router = express.Router();

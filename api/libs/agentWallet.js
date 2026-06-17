@@ -6,8 +6,15 @@ import { Keypair, PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58';
 import { getAddress } from 'viem';
 import AgentWallet from '../models/agent/AgentWallet.js';
+import connectMongoose, { isMongooseConnected } from '../config/mongoose.js';
 import { decryptAgentSecretFromStorage } from './agentWalletSecretCrypto.js';
 import { pickSolanaConnectionForReads } from './solanaServerRpc.js';
+
+/** bufferCommands=false — never query before connect (Render boots HTTP before Atlas is ready). */
+async function ensureAgentWalletDbReady() {
+  if (isMongooseConnected()) return true;
+  return connectMongoose({ required: false });
+}
 
 /** Legacy rows omit `chain`; schema default is solana. Base agents use chain === 'base'. */
 function isSolanaChainDoc(doc) {
@@ -22,6 +29,7 @@ function isSolanaChainDoc(doc) {
 async function findSolanaAgentDocByWallet(walletAddress) {
   const w = String(walletAddress || '').trim();
   if (!w) return null;
+  if (!(await ensureAgentWalletDbReady())) return null;
   let row = await AgentWallet.findOne({ walletAddress: w, chain: 'solana' })
     .select('+agentSecretKey custody status chain walletAddress agentAddress')
     .lean();
@@ -45,6 +53,7 @@ async function findSolanaAgentDocByWallet(walletAddress) {
  */
 export async function getAgentKeypair(anonymousId) {
   if (!anonymousId || typeof anonymousId !== 'string') return null;
+  if (!(await ensureAgentWalletDbReady())) return null;
   const doc = await AgentWallet.findOne({ anonymousId: anonymousId.trim() })
     .select('+agentSecretKey custody status chain')
     .lean();
@@ -72,6 +81,7 @@ export async function getAgentKeypair(anonymousId) {
  */
 export async function getSolanaAgentAddress(anonymousId) {
   if (!anonymousId || typeof anonymousId !== 'string') return null;
+  if (!(await ensureAgentWalletDbReady())) return null;
   let doc = await AgentWallet.findOne({ anonymousId: anonymousId.trim() }).select('agentAddress chain walletAddress').lean();
   if (!doc) return null;
   if (isSolanaChainDoc(doc) && doc.agentAddress) return doc.agentAddress;
@@ -90,6 +100,7 @@ export async function getSolanaAgentAddress(anonymousId) {
  */
 export async function getSolanaAgentKeypair(anonymousId) {
   if (!anonymousId || typeof anonymousId !== 'string') return null;
+  if (!(await ensureAgentWalletDbReady())) return null;
   let doc = await AgentWallet.findOne({ anonymousId: anonymousId.trim() })
     .select('+agentSecretKey custody status chain walletAddress agentAddress')
     .lean();
@@ -137,6 +148,7 @@ export async function getSolanaAgentKeypair(anonymousId) {
  */
 export async function getAgentAddress(anonymousId) {
   if (!anonymousId || typeof anonymousId !== 'string') return null;
+  if (!(await ensureAgentWalletDbReady())) return null;
   const doc = await AgentWallet.findOne({ anonymousId: anonymousId.trim() })
     .select('agentAddress')
     .lean();
@@ -151,6 +163,7 @@ export async function getAgentAddress(anonymousId) {
  */
 export async function getConnectedWalletAddress(anonymousId) {
   if (!anonymousId || typeof anonymousId !== 'string') return null;
+  if (!(await ensureAgentWalletDbReady())) return null;
   const doc = await AgentWallet.findOne({ anonymousId: anonymousId.trim() })
     .select('walletAddress')
     .lean();
@@ -179,6 +192,7 @@ export async function getAgentUsdcBalance(anonymousId) {
  */
 export async function getAgentBalances(anonymousId) {
   if (!anonymousId || typeof anonymousId !== 'string') return null;
+  if (!(await ensureAgentWalletDbReady())) return null;
   const doc = await AgentWallet.findOne({ anonymousId: anonymousId.trim() }).lean();
   if (!doc || !doc.agentAddress) return null;
   try {
@@ -217,6 +231,7 @@ export async function getAgentBalances(anonymousId) {
  */
 export async function getTempoPayoutRecipientAddress(anonymousId) {
   if (!anonymousId || typeof anonymousId !== "string") return null;
+  if (!(await ensureAgentWalletDbReady())) return null;
   const doc = await AgentWallet.findOne({ anonymousId: anonymousId.trim() }).lean();
   if (!doc?.walletAddress) return null;
   const w = doc.walletAddress.trim();
@@ -250,6 +265,7 @@ const SWAP_TOOL_IDS = Object.freeze(['jupiter-swap-order', 'pumpfun-agents-swap'
 export async function ensureSwapToolsAllowed(anonymousId) {
   const id = String(anonymousId || '').trim();
   if (!id) return;
+  if (!(await ensureAgentWalletDbReady())) return;
   const wallet = await AgentWallet.findOne({ anonymousId: id }).select('allowedTools').lean();
   if (!wallet) return;
   const current = Array.isArray(wallet.allowedTools) ? wallet.allowedTools : [];

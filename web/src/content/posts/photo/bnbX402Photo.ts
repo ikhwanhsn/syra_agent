@@ -15,7 +15,7 @@ export const BNB_X402_PHOTO = definePhotoUpdate(BNB_X402_POST.meta, [
       eyebrow: "Ship log",
       badge: "B402 · eip155:56",
       title: "x402 on BNB",
-      subtitle: "Pay-per-call intelligence APIs now settle on BNB Smart Chain via Binance B402.",
+      subtitle: "Pay-per-call intelligence APIs settle on BSC via Binance B402. Your treasury stays on BNB.",
     }),
   },
   {
@@ -23,9 +23,9 @@ export const BNB_X402_PHOTO = definePhotoUpdate(BNB_X402_POST.meta, [
     layout: "photo-statement-accent",
     shareCopy: copies.thesis,
     content: photoContent({
-      kicker: "Why this matters",
-      headline: "Agents don't stop at one chain.",
-      body: "Syra already powers autonomous traders on Solana and Base. BNB Smart Chain is one of the largest EVM ecosystems — our APIs needed native x402 settlement there, not a bridge workaround.",
+      kicker: "The problem",
+      headline: "BNB builders shouldn't bridge to pay.",
+      body: "Syra agents trade on Solana and Base. BNB Smart Chain is one of the largest EVM ecosystems — intelligence APIs needed native x402 settlement there, not a bridge workaround.",
     }),
   },
   {
@@ -33,7 +33,7 @@ export const BNB_X402_PHOTO = definePhotoUpdate(BNB_X402_POST.meta, [
     layout: "photo-quote",
     shareCopy: copies.quote,
     content: photoContent({
-      quote: "List once on x402 directories, settle where your treasury lives.",
+      quote: "List once. Settle where your treasury lives.",
       narrative: "Solana, Base, and BSC — one intelligence stack, three native payment rails.",
     }),
   },
@@ -42,13 +42,13 @@ export const BNB_X402_PHOTO = definePhotoUpdate(BNB_X402_POST.meta, [
     layout: "photo-flow-pipeline",
     shareCopy: copies.flow,
     content: photoContent({
-      kicker: "BNB settlement flow",
-      headline: "402 → sign on BSC → unlock intelligence.",
+      kicker: "How it works",
+      headline: "402 → sign on BSC → unlock data.",
       steps: [
         { step: "01", title: "Call the API", description: "Agent or playground hits a paid Syra endpoint." },
         { step: "02", title: "402 + BSC option", description: "Server returns Payment Required with B402 on eip155:56." },
-        { step: "03", title: "Sign on BSC", description: "Wallet signs EIP-3009 or Permit2 via MetaMask on BSC." },
-        { step: "04", title: "Unlock intelligence", description: "B402 verifies and settles; Syra returns the result." },
+        { step: "03", title: "Sign on BSC", description: "Wallet signs EIP-3009 or Permit2 via MetaMask." },
+        { step: "04", title: "Payload unlocked", description: "B402 verifies and settles. Intelligence returned." },
       ],
     }),
   },
@@ -58,12 +58,12 @@ export const BNB_X402_PHOTO = definePhotoUpdate(BNB_X402_POST.meta, [
     shareCopy: copies.timeline,
     content: photoContent({
       kicker: "Checkout path",
-      headline: "Native BSC treasury. No bridge.",
+      headline: "Native BSC treasury. Zero bridges.",
       steps: [
         { step: "01", title: "Paid endpoint", description: "Agent chat or playground calls a Syra intelligence API." },
         { step: "02", title: "HTTP 402", description: "B402 accept header with eip155:56 and stablecoin options." },
         { step: "03", title: "Sign on BSC", description: "MetaMask EIP-3009 or Permit2 — USD1, U, USDC, or USDT." },
-        { step: "04", title: "Payload unlocked", description: "B402 verify + settle. Intelligence returned natively." },
+        { step: "04", title: "Settled natively", description: "B402 verify + settle. Payload unlocked on BSC." },
       ],
     }),
   },
@@ -72,7 +72,7 @@ export const BNB_X402_PHOTO = definePhotoUpdate(BNB_X402_POST.meta, [
     layout: "photo-cards-quad",
     shareCopy: copies.pillars,
     content: photoContent({
-      headline: "Four BSC stablecoins. One checkout.",
+      headline: "Pay with the stable your treasury holds.",
       cards: [
         { title: "USD1", subtitle: "EIP-3009", detail: "World Liberty Financial USD with transfer authorization.", accent: "gold" },
         { title: "U", subtitle: "EIP-3009", detail: "United Stables. Same signing flow as USD1.", accent: "gold" },
@@ -86,7 +86,7 @@ export const BNB_X402_PHOTO = definePhotoUpdate(BNB_X402_POST.meta, [
     layout: "photo-hero-checklist",
     shareCopy: copies.checklist,
     content: photoContent({
-      headline: "What's live for BNB builders.",
+      headline: "Live for BNB builders today.",
       highlights: [
         "BSC network id eip155:56 in 402 accepts",
         "B402 verify + settle on paid API calls",
@@ -100,13 +100,13 @@ export const BNB_X402_PHOTO = definePhotoUpdate(BNB_X402_POST.meta, [
     layout: "photo-stat-trio",
     shareCopy: copies.metrics,
     content: photoContent({
-      headline: "Multi-chain treasuries deserve multi-chain checkout.",
+      headline: "Your treasury's chain. Native checkout.",
       stats: [
         { value: "3", label: "Payment chains live" },
         { value: "4", label: "BSC stable options" },
         { value: "402", label: "HTTP-native micropayments" },
       ],
-      narrative: "BNB-native agents can now pay for Nansen-grade flows, market data, and research tools without leaving their chain.",
+      narrative: "BNB-native agents pay for Nansen-grade flows, market data, and research — without bridging or leaving BSC.",
     }),
   },
   {
@@ -114,9 +114,9 @@ export const BNB_X402_PHOTO = definePhotoUpdate(BNB_X402_POST.meta, [
     layout: "photo-stat-featured",
     shareCopy: copies.featured,
     content: photoContent({
-      headline: "HTTP-native micropayments.",
-      stats: [{ value: "402", label: "Pay per call · no subscription" }],
-      narrative: "Hit an endpoint, get a price, sign on your chain, unlock intelligence. Now native on BSC via Binance B402.",
+      headline: "Pay per call. Not per month.",
+      stats: [{ value: "402", label: "HTTP-native micropayments" }],
+      narrative: "Hit an endpoint, get a price, sign on BSC, unlock intelligence. No API keys. No subscriptions.",
     }),
   },
   {
@@ -124,7 +124,7 @@ export const BNB_X402_PHOTO = definePhotoUpdate(BNB_X402_POST.meta, [
     layout: "photo-comparison",
     shareCopy: copies.comparison,
     content: photoContent({
-      headline: "Before vs now.",
+      headline: "Bridge to pay vs. pay on BNB.",
       compareLeft: {
         title: "Before",
         body: "BNB agents bridged or skipped paid Syra APIs. No native B402 settlement path.",
@@ -145,7 +145,7 @@ export const BNB_X402_PHOTO = definePhotoUpdate(BNB_X402_POST.meta, [
       partnerName: "Binance",
       partnerLogo: "/images/partners/binance.png",
       headline: "Syra × Binance B402",
-      subtitle: "Pay-per-call intelligence APIs settle natively on BNB Smart Chain.",
+      subtitle: "Intelligence APIs settle natively on BNB Smart Chain. Pay per call.",
     }),
   },
   {
@@ -153,8 +153,8 @@ export const BNB_X402_PHOTO = definePhotoUpdate(BNB_X402_POST.meta, [
     layout: "photo-numbered-list",
     shareCopy: copies.deepDive,
     content: photoContent({
-      kicker: "Technical surface",
-      headline: "Shared x402 v2 core across three chains.",
+      kicker: "Under the hood",
+      headline: "Shared x402 v2 core. Three chains.",
       items: [
         "API Playground with Binance chain tab",
         "Agent wallet BSC funding and signing",
@@ -170,7 +170,7 @@ export const BNB_X402_PHOTO = definePhotoUpdate(BNB_X402_POST.meta, [
     content: photoContent({
       badge: "Multi-chain",
       headline: "One stack. Three native treasuries.",
-      body: "Solana and Base x402 rails for existing agents. B402 on eip155:56 for BNB builders — no bridge workaround.",
+      body: "Solana and Base x402 for existing agents. B402 on eip155:56 for BNB builders — no bridge workaround.",
       highlights: [
         "Solana: autonomous traders + x402",
         "Base: agent wallet + facilitator",
@@ -184,7 +184,7 @@ export const BNB_X402_PHOTO = definePhotoUpdate(BNB_X402_POST.meta, [
     layout: "photo-terminal",
     shareCopy: copies.terminal,
     content: photoContent({
-      headline: "x402 on BSC from CLI.",
+      headline: "x402 checkout from terminal.",
       terminalLines: [
         "$ curl api.syraa.fun/v1/intelligence",
         "< HTTP/402 Payment Required",
@@ -200,7 +200,7 @@ export const BNB_X402_PHOTO = definePhotoUpdate(BNB_X402_POST.meta, [
     layout: "photo-closing-cta",
     shareCopy: copies.cta,
     content: photoContent({
-      headline: "BNB-native agents: your payment rail is live.",
+      headline: "Build on BNB. Pay on BNB. Stay on BNB.",
       subtitle: "Hit a paid endpoint. Get 402. Sign with MetaMask. Unlock intelligence.",
       links: [
         { label: "Playground", value: "syraa.fun/playground", href: "https://www.syraa.fun/playground" },

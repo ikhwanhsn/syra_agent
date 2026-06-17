@@ -3,7 +3,11 @@
   "info": {
     "title": "Syra API",
     "version": "1.0.0",
-    "description": "Syra gateway: preview and dashboard routes may require `X-API-Key` / Bearer when the server sets `API_KEY`.\n\n**x402** routes return **HTTP 402** until paid (Solana/Base USDC). The full payment offer (network, asset, price in micro-USDC, `payTo`, etc.) is returned at runtime in the 402 response body's `accepts` array — that is the canonical x402 V1 wire spec; pay one offer and retry with `X-PAYMENT`. See https://docs.syraa.fun/docs/api/x402-api-standard for the wire format and signing examples.\n\nSome x402 ecosystems (MPP / AgentCash registries) expect a per-operation OpenAPI extension named `x-payment-info` carrying registry metadata (protocols, pricingMode, price). This **gateway** spec deliberately omits it for strict-schema friendliness; the **MPP discovery** document at `GET /mpp-openapi.json` emits it on every paid operation. The exact shape Syra uses is described in the `x-payment-info-spec` extension at the root of this document.\n\n**Rate limits** (per IP, applied to every non-x402 / non-cron route): burst **25 req / 10s** + sustained **100 req / 60s**. Exceeding either returns **HTTP 429** with `Retry-After: <seconds>` and `{ success: false, message }`. x402 paid routes are gated by HTTP 402 instead and bypass this throttle. See the `x-ratelimit` extension below for the machine-readable spec."
+    "contact": {
+      "email": "support@syraa.fun"
+    },
+    "x-guidance": "Free routes (security: []) include /api/signal, /preview/*, /dashboard-summary, /binance-ticker, /info, and /x-projects-analyze/*. Paid routes return HTTP 402 until settled via x402 (Solana/Base USDC) — pay an offer from the 402 body accepts array and retry with PAYMENT-SIGNATURE or X-PAYMENT. Docs: https://docs.syraa.fun",
+    "description": "Syra gateway: routes with `security: []` are free (no payment or API key).\n\n**x402** routes return **HTTP 402** until paid (Solana/Base USDC). The full payment offer (network, asset, price in micro-USDC, `payTo`, etc.) is returned at runtime in the 402 response body's `accepts` array and the `Payment-Required` header (x402 v2). Pay one offer and retry with `PAYMENT-SIGNATURE` or `X-PAYMENT`. See https://docs.syraa.fun/docs/api/x402-api-standard for the wire format and signing examples.\n\nPaid operations declare `x-payment-info` (catalog hint) and `security: [{ x402: [] }]`. The **MPP discovery** document at `GET /mpp-openapi.json` mirrors the full x402 catalog.\n\n**Rate limits** (per IP, applied to non-x402 / non-cron routes not listed as free in this spec): burst **25 req / 10s** + sustained **100 req / 60s**. Exceeding either returns **HTTP 429** with `Retry-After: <seconds>` and `{ success: false, message }`. x402 paid routes and openapi free routes bypass this throttle. See the `x-ratelimit` extension below."
   },
   "servers": [
     {
@@ -11,41 +15,62 @@
     }
   ],
   "x-payment-info-spec": {
-    "emittedHere": false,
-    "reason": "Strict-schema friendly. Canonical payment metadata for paid (x402) routes is returned at runtime in the 402 response body's `accepts` array (V1 wire format: scheme, network, asset, maxAmountRequired in micro-USDC, payTo, resource, maxTimeoutSeconds, outputSchema). Pay one of those offers and retry with `X-PAYMENT`. See: https://docs.syraa.fun/docs/api/x402-api-standard",
+    "emittedHere": true,
+    "reason": "Each paid operation in this document includes x-payment-info (catalog hint for x402scan / tryponcho). Canonical payment metadata is still returned at runtime in the HTTP 402 response body `accepts` array and the Payment-Required header (x402 v2). Pay one offer and retry with PAYMENT-SIGNATURE or X-PAYMENT. See: https://docs.syraa.fun/docs/api/x402-api-standard",
     "alsoEmittedAt": {
       "document": "https://api.syraa.fun/mpp-openapi.json",
-      "description": "MPP / AgentCash discovery document. Each paid operation includes an `x-payment-info` extension with the shape below. Settlement is still x402 V1 (HTTP 402 + `accepts`); `x-payment-info` is registry metadata only."
+      "description": "MPP / AgentCash discovery document with the full x402 catalog. Settlement is x402 v2 (HTTP 402 + accepts); x-payment-info is registry metadata."
     },
     "shape": {
       "type": "object",
       "required": [
         "protocols",
-        "pricingMode",
         "price"
       ],
       "properties": {
         "protocols": {
           "type": "array",
           "items": {
-            "type": "string"
+            "type": "object"
           },
-          "description": "Supported payment protocols. Syra emits `[\"mpp\"]` in the MPP doc.",
+          "description": "Protocol objects, e.g. [{ \"x402\": {} }, { \"mpp\": { ... } }].",
           "example": [
-            "mpp"
-          ]
-        },
-        "pricingMode": {
-          "type": "string",
-          "description": "Always `\"fixed\"` for Syra (per-call USD price, no auction or tiering).",
-          "enum": [
-            "fixed"
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
           ]
         },
         "price": {
-          "type": "string",
-          "description": "USD price as a decimal string (e.g. \"0.01\"). The runtime 402 response converts this to USDC micro-units (USDC has 6 decimals) and exposes it as `accepts[i].maxAmountRequired`.",
-          "example": "0.01"
+          "type": "object",
+          "required": [
+            "mode",
+            "currency",
+            "amount"
+          ],
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": [
+                "fixed"
+              ]
+            },
+            "currency": {
+              "type": "string",
+              "example": "USD"
+            },
+            "amount": {
+              "type": "string",
+              "description": "USD price as decimal string",
+              "example": "0.01"
+            }
+          }
         }
       },
       "additionalProperties": true
@@ -53,10 +78,22 @@
     "example": {
       "x-payment-info": {
         "protocols": [
-          "mpp"
+          {
+            "x402": {}
+          },
+          {
+            "mpp": {
+              "method": "",
+              "intent": "",
+              "currency": ""
+            }
+          }
         ],
-        "pricingMode": "fixed",
-        "price": "0.01"
+        "price": {
+          "mode": "fixed",
+          "currency": "USD",
+          "amount": "0.01"
+        }
       }
     }
   },
@@ -83,9 +120,14 @@
       "message": "Too many requests. Please slow down."
     },
     "skip": {
-      "description": "Routes excluded from this throttle. x402 paid routes (`/news`, `/signal`, `/sentiment`, `/event`, `/health`, `/brain`, `/x*`, `/8004*`, etc.) are gated by HTTP 402 instead. Internal cron paths require a shared secret. RISE proxies are skipped because one user session can fan out across many list pages.",
+      "description": "Routes excluded from this throttle. x402 paid routes are gated by HTTP 402 instead. OpenAPI free routes (/api/signal, /preview/*, /dashboard-summary, /binance-ticker, /x-projects-analyze/*) are public for discovery. Internal cron paths require a shared secret. RISE proxies are skipped because one user session can fan out across many list pages.",
       "paths": [
         "all x402 routes (see GET /.well-known/x402)",
+        "/api/signal",
+        "/preview/*",
+        "/dashboard-summary",
+        "/binance-ticker",
+        "/x-projects-analyze/*",
         "/internal/tester-agent*",
         "/internal/trend-scout/run",
         "/internal/growth-scout/run",
@@ -102,8 +144,9 @@
           "Signal"
         ],
         "summary": "Public signal (no x402)",
-        "description": "Same engine as /signal without micropayment. API key if server sets API_KEY.",
+        "description": "Same engine as /signal without micropayment. Free — no payment or API key required.",
         "operationId": "getPublicSignal",
+        "security": [],
         "parameters": [
           {
             "name": "token",
@@ -188,6 +231,40 @@
               }
             }
           },
+          "429": {
+            "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds the client must wait before retrying.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Too many requests. Please slow down."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
           "500": {
             "description": "Upstream or configuration error",
             "content": {
@@ -215,6 +292,7 @@
         ],
         "summary": "Public signal via JSON body",
         "operationId": "postPublicSignal",
+        "security": [],
         "requestBody": {
           "required": false,
           "content": {
@@ -279,6 +357,40 @@
               }
             }
           },
+          "429": {
+            "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds the client must wait before retrying.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Too many requests. Please slow down."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
           "500": {
             "description": "Error",
             "content": {
@@ -308,6 +420,7 @@
         ],
         "summary": "Gateway info",
         "operationId": "getInfo",
+        "security": [],
         "responses": {
           "200": {
             "description": "OK",
@@ -364,6 +477,7 @@
         ],
         "summary": "Public usage stats",
         "operationId": "getInfoStats",
+        "security": [],
         "responses": {
           "200": {
             "description": "OK",
@@ -420,6 +534,7 @@
         ],
         "summary": "News preview (no x402)",
         "operationId": "getPreviewNews",
+        "security": [],
         "parameters": [
           {
             "name": "ticker",
@@ -488,6 +603,7 @@
         ],
         "summary": "Sentiment preview (no x402)",
         "operationId": "getPreviewSentiment",
+        "security": [],
         "parameters": [
           {
             "name": "ticker",
@@ -556,6 +672,7 @@
         ],
         "summary": "Signal preview (no x402)",
         "operationId": "getPreviewSignal",
+        "security": [],
         "parameters": [
           {
             "name": "token",
@@ -660,6 +777,7 @@
         ],
         "summary": "Dashboard KPI summary",
         "operationId": "getDashboardSummary",
+        "security": [],
         "responses": {
           "200": {
             "description": "OK",
@@ -716,6 +834,7 @@
         ],
         "summary": "Binance ticker prices",
         "operationId": "getBinanceTicker",
+        "security": [],
         "responses": {
           "200": {
             "description": "OK",
@@ -772,6 +891,7 @@
         ],
         "summary": "Prediction game health",
         "operationId": "getPredictionGameHealth",
+        "security": [],
         "responses": {
           "200": {
             "description": "OK",
@@ -828,6 +948,30 @@
         ],
         "summary": "Crypto news",
         "operationId": "getNews",
+        "security": [
+          {
+            "x402": []
+          }
+        ],
+        "x-payment-info": {
+          "protocols": [
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
+          ],
+          "price": {
+            "mode": "fixed",
+            "currency": "USD",
+            "amount": "0.1"
+          }
+        },
         "parameters": [
           {
             "name": "ticker",
@@ -853,7 +997,15 @@
             }
           },
           "402": {
-            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
+            "description": "Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.",
+            "headers": {
+              "Payment-Required": {
+                "description": "x402 v2 encoded payment requirements",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "429": {
             "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
@@ -897,6 +1049,30 @@
         ],
         "summary": "Crypto news (POST)",
         "operationId": "postNews",
+        "security": [
+          {
+            "x402": []
+          }
+        ],
+        "x-payment-info": {
+          "protocols": [
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
+          ],
+          "price": {
+            "mode": "fixed",
+            "currency": "USD",
+            "amount": "0.1"
+          }
+        },
         "requestBody": {
           "required": false,
           "content": {
@@ -922,7 +1098,15 @@
             }
           },
           "402": {
-            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
+            "description": "Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.",
+            "headers": {
+              "Payment-Required": {
+                "description": "x402 v2 encoded payment requirements",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "429": {
             "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
@@ -968,6 +1152,30 @@
         ],
         "summary": "Sentiment",
         "operationId": "getSentiment",
+        "security": [
+          {
+            "x402": []
+          }
+        ],
+        "x-payment-info": {
+          "protocols": [
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
+          ],
+          "price": {
+            "mode": "fixed",
+            "currency": "USD",
+            "amount": "0.1"
+          }
+        },
         "parameters": [
           {
             "name": "ticker",
@@ -993,7 +1201,15 @@
             }
           },
           "402": {
-            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
+            "description": "Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.",
+            "headers": {
+              "Payment-Required": {
+                "description": "x402 v2 encoded payment requirements",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "429": {
             "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
@@ -1037,6 +1253,30 @@
         ],
         "summary": "Sentiment (POST)",
         "operationId": "postSentiment",
+        "security": [
+          {
+            "x402": []
+          }
+        ],
+        "x-payment-info": {
+          "protocols": [
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
+          ],
+          "price": {
+            "mode": "fixed",
+            "currency": "USD",
+            "amount": "0.1"
+          }
+        },
         "requestBody": {
           "required": false,
           "content": {
@@ -1062,7 +1302,15 @@
             }
           },
           "402": {
-            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
+            "description": "Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.",
+            "headers": {
+              "Payment-Required": {
+                "description": "x402 v2 encoded payment requirements",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "429": {
             "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
@@ -1108,6 +1356,30 @@
         ],
         "summary": "Crypto events",
         "operationId": "getEvent",
+        "security": [
+          {
+            "x402": []
+          }
+        ],
+        "x-payment-info": {
+          "protocols": [
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
+          ],
+          "price": {
+            "mode": "fixed",
+            "currency": "USD",
+            "amount": "0.1"
+          }
+        },
         "parameters": [
           {
             "name": "ticker",
@@ -1133,7 +1405,15 @@
             }
           },
           "402": {
-            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
+            "description": "Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.",
+            "headers": {
+              "Payment-Required": {
+                "description": "x402 v2 encoded payment requirements",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "429": {
             "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
@@ -1177,6 +1457,30 @@
         ],
         "summary": "Crypto events (POST)",
         "operationId": "postEvent",
+        "security": [
+          {
+            "x402": []
+          }
+        ],
+        "x-payment-info": {
+          "protocols": [
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
+          ],
+          "price": {
+            "mode": "fixed",
+            "currency": "USD",
+            "amount": "0.1"
+          }
+        },
         "requestBody": {
           "required": false,
           "content": {
@@ -1202,7 +1506,15 @@
             }
           },
           "402": {
-            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
+            "description": "Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.",
+            "headers": {
+              "Payment-Required": {
+                "description": "x402 v2 encoded payment requirements",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "429": {
             "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
@@ -1248,6 +1560,30 @@
         ],
         "summary": "API health (x402 liveness)",
         "operationId": "getHealth",
+        "security": [
+          {
+            "x402": []
+          }
+        ],
+        "x-payment-info": {
+          "protocols": [
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
+          ],
+          "price": {
+            "mode": "fixed",
+            "currency": "USD",
+            "amount": "0.0001"
+          }
+        },
         "responses": {
           "200": {
             "description": "OK",
@@ -1261,7 +1597,15 @@
             }
           },
           "402": {
-            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
+            "description": "Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.",
+            "headers": {
+              "Payment-Required": {
+                "description": "x402 v2 encoded payment requirements",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "429": {
             "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
@@ -1305,6 +1649,30 @@
         ],
         "summary": "API health (POST)",
         "operationId": "postHealth",
+        "security": [
+          {
+            "x402": []
+          }
+        ],
+        "x-payment-info": {
+          "protocols": [
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
+          ],
+          "price": {
+            "mode": "fixed",
+            "currency": "USD",
+            "amount": "0.0001"
+          }
+        },
         "requestBody": {
           "required": false,
           "content": {
@@ -1330,7 +1698,15 @@
             }
           },
           "402": {
-            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
+            "description": "Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.",
+            "headers": {
+              "Payment-Required": {
+                "description": "x402 v2 encoded payment requirements",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "429": {
             "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
@@ -1376,6 +1752,30 @@
         ],
         "summary": "Syra Brain (GET)",
         "operationId": "getBrain",
+        "security": [
+          {
+            "x402": []
+          }
+        ],
+        "x-payment-info": {
+          "protocols": [
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
+          ],
+          "price": {
+            "mode": "fixed",
+            "currency": "USD",
+            "amount": "0.5"
+          }
+        },
         "parameters": [
           {
             "name": "question",
@@ -1400,7 +1800,15 @@
             }
           },
           "402": {
-            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
+            "description": "Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.",
+            "headers": {
+              "Payment-Required": {
+                "description": "x402 v2 encoded payment requirements",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "429": {
             "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
@@ -1444,6 +1852,30 @@
         ],
         "summary": "Syra Brain (POST)",
         "operationId": "postBrain",
+        "security": [
+          {
+            "x402": []
+          }
+        ],
+        "x-payment-info": {
+          "protocols": [
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
+          ],
+          "price": {
+            "mode": "fixed",
+            "currency": "USD",
+            "amount": "0.5"
+          }
+        },
         "requestBody": {
           "required": false,
           "content": {
@@ -1469,7 +1901,15 @@
             }
           },
           "402": {
-            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
+            "description": "Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.",
+            "headers": {
+              "Payment-Required": {
+                "description": "x402 v2 encoded payment requirements",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "429": {
             "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
@@ -1515,6 +1955,30 @@
         ],
         "summary": "Arbitrage — CMC top + cross-CEX snapshots + ranked routes (x402)",
         "operationId": "getArbitrage",
+        "security": [
+          {
+            "x402": []
+          }
+        ],
+        "x-payment-info": {
+          "protocols": [
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
+          ],
+          "price": {
+            "mode": "fixed",
+            "currency": "USD",
+            "amount": "0.4"
+          }
+        },
         "parameters": [
           {
             "name": "limit",
@@ -1542,7 +2006,15 @@
             }
           },
           "402": {
-            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
+            "description": "Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.",
+            "headers": {
+              "Payment-Required": {
+                "description": "x402 v2 encoded payment requirements",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "429": {
             "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
@@ -1586,6 +2058,30 @@
         ],
         "summary": "Arbitrage — POST body may include { limit } (x402)",
         "operationId": "postArbitrage",
+        "security": [
+          {
+            "x402": []
+          }
+        ],
+        "x-payment-info": {
+          "protocols": [
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
+          ],
+          "price": {
+            "mode": "fixed",
+            "currency": "USD",
+            "amount": "0.4"
+          }
+        },
         "requestBody": {
           "required": false,
           "content": {
@@ -1611,7 +2107,15 @@
             }
           },
           "402": {
-            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
+            "description": "Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.",
+            "headers": {
+              "Payment-Required": {
+                "description": "x402 v2 encoded payment requirements",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "429": {
             "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
@@ -1658,6 +2162,30 @@
         "summary": "X Project Analyzer — profile + tweets + score (x402)",
         "description": "Micropayment via x402. Returns deterministic 0–100 score, category breakdown, signals, red flags; optional `includeAiSummary` adds grounded LLM bullets. Example `200` body is maintained at `api/docs/examples/x-analyzer-response.example.json`.",
         "operationId": "getXAnalyzer",
+        "security": [
+          {
+            "x402": []
+          }
+        ],
+        "x-payment-info": {
+          "protocols": [
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
+          ],
+          "price": {
+            "mode": "fixed",
+            "currency": "USD",
+            "amount": "0.2"
+          }
+        },
         "parameters": [
           {
             "name": "username",
@@ -1810,7 +2338,15 @@
             }
           },
           "402": {
-            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
+            "description": "Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.",
+            "headers": {
+              "Payment-Required": {
+                "description": "x402 v2 encoded payment requirements",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "404": {
             "description": "X user not found"
@@ -1830,6 +2366,30 @@
         "summary": "X Project Analyzer — POST body (x402)",
         "description": "Same as GET; body may include `username`, `max_results`, `includeAiSummary`. Example response identical to GET.",
         "operationId": "postXAnalyzer",
+        "security": [
+          {
+            "x402": []
+          }
+        ],
+        "x-payment-info": {
+          "protocols": [
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
+          ],
+          "price": {
+            "mode": "fixed",
+            "currency": "USD",
+            "amount": "0.2"
+          }
+        },
         "requestBody": {
           "required": false,
           "content": {
@@ -1977,7 +2537,15 @@
             }
           },
           "402": {
-            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
+            "description": "Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.",
+            "headers": {
+              "Payment-Required": {
+                "description": "x402 v2 encoded payment requirements",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "404": {
             "description": "X user not found"
@@ -1997,8 +2565,9 @@
           "Social (batch)"
         ],
         "summary": "List batch analyzer types",
-        "description": "Returns configured `type` ids (labels, provider). X accounts per type are fixed server-side. No X API calls. API key when server sets API_KEY.",
+        "description": "Returns configured `type` ids (labels, provider). X accounts per type are fixed server-side. No X API calls.",
         "operationId": "getXProjectsAnalyzeTypes",
+        "security": [],
         "responses": {
           "200": {
             "description": "OK",
@@ -2007,6 +2576,40 @@
                 "schema": {
                   "type": "object",
                   "additionalProperties": true
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds the client must wait before retrying.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Too many requests. Please slow down."
+                    }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
@@ -2020,15 +2623,17 @@
           "Social (batch)"
         ],
         "summary": "Single-account Alpha analysis (allowlisted)",
-        "description": "`username` must belong to the configured `type` handle list. Returns full score payload, optional AI summary (default on), and `recentTweets` sample. API key when API_KEY is set.",
+        "description": "`username` must belong to the configured `type` handle list. Returns full score payload, optional AI summary (default on), and `recentTweets` sample.",
         "operationId": "getXProjectsAnalyzeAccount",
+        "security": [],
         "parameters": [
           {
             "name": "username",
             "in": "query",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "syra_agent"
             },
             "description": "X handle without @."
           },
@@ -2131,15 +2736,17 @@
         ],
         "summary": "Single-account Alpha analysis — POST",
         "operationId": "postXProjectsAnalyzeAccount",
+        "security": [],
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
                 "properties": {
                   "username": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "syra_agent"
                   },
                   "type": {
                     "type": "string",
@@ -2230,6 +2837,7 @@
         "summary": "Batch X project analyzer (no x402)",
         "description": "Returns the latest persisted batch snapshot for `type` (default `x402`). Scores are refreshed by the Alpha X agent about once every 24 hours (POST /internal/alpha-x-batch/run). Handles are not client-supplied. See GET /x-projects-analyze/types.",
         "operationId": "getXProjectsAnalyze",
+        "security": [],
         "parameters": [
           {
             "name": "type",
@@ -2318,6 +2926,7 @@
         ],
         "summary": "Batch X project analyzer — POST body",
         "operationId": "postXProjectsAnalyze",
+        "security": [],
         "requestBody": {
           "required": false,
           "content": {
@@ -2399,6 +3008,30 @@
         "summary": "SPCX / SpaceX IPO intelligence",
         "description": "Nasdaq vs on-chain SPCX premium/discount spread. x402 revenue routes to $SYRA buybacks in production.",
         "operationId": "getSpcxIntelligence",
+        "security": [
+          {
+            "x402": []
+          }
+        ],
+        "x-payment-info": {
+          "protocols": [
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
+          ],
+          "price": {
+            "mode": "fixed",
+            "currency": "USD",
+            "amount": "0.2"
+          }
+        },
         "parameters": [
           {
             "name": "symbol",
@@ -2422,7 +3055,15 @@
             }
           },
           "402": {
-            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
+            "description": "Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.",
+            "headers": {
+              "Payment-Required": {
+                "description": "x402 v2 encoded payment requirements",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "429": {
             "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
@@ -2469,6 +3110,30 @@
         "summary": "Tokenized equity intelligence (xStocks catalog)",
         "description": "Parametric symbol → Nasdaq vs on-chain spread for TSLAx, NVDAx, etc.",
         "operationId": "getEquityIntelligence",
+        "security": [
+          {
+            "x402": []
+          }
+        ],
+        "x-payment-info": {
+          "protocols": [
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
+          ],
+          "price": {
+            "mode": "fixed",
+            "currency": "USD",
+            "amount": "0.2"
+          }
+        },
         "parameters": [
           {
             "name": "symbol",
@@ -2492,7 +3157,15 @@
             }
           },
           "402": {
-            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
+            "description": "Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.",
+            "headers": {
+              "Payment-Required": {
+                "description": "x402 v2 encoded payment requirements",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "429": {
             "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
@@ -2538,6 +3211,30 @@
         ],
         "summary": "OHLCV technical indicators — combine RSI, MACD, EMA, Bollinger, and 20+ more in one agent-readable call",
         "operationId": "getIndicator",
+        "security": [
+          {
+            "x402": []
+          }
+        ],
+        "x-payment-info": {
+          "protocols": [
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
+          ],
+          "price": {
+            "mode": "fixed",
+            "currency": "USD",
+            "amount": "0.1"
+          }
+        },
         "parameters": [
           {
             "name": "symbol",
@@ -2602,7 +3299,15 @@
             }
           },
           "402": {
-            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
+            "description": "Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.",
+            "headers": {
+              "Payment-Required": {
+                "description": "x402 v2 encoded payment requirements",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "429": {
             "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
@@ -2647,6 +3352,30 @@
         "summary": "Technical indicators (POST, combinable)",
         "description": "Same as GET /indicator with JSON body for complex multi-indicator requests.",
         "operationId": "postIndicator",
+        "security": [
+          {
+            "x402": []
+          }
+        ],
+        "x-payment-info": {
+          "protocols": [
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
+          ],
+          "price": {
+            "mode": "fixed",
+            "currency": "USD",
+            "amount": "0.1"
+          }
+        },
         "requestBody": {
           "required": true,
           "content": {
@@ -2698,7 +3427,15 @@
             }
           },
           "402": {
-            "description": "Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body."
+            "description": "Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.",
+            "headers": {
+              "Payment-Required": {
+                "description": "x402 v2 encoded payment requirements",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "429": {
             "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
@@ -2777,7 +3514,7 @@
     },
     {
       "name": "Social (batch)",
-      "description": "Batch X project analysis — API key when configured; no x402"
+      "description": "Batch X project analysis — free public routes; no x402"
     },
     {
       "name": "Equity (x402)",
@@ -2786,11 +3523,17 @@
   ],
   "components": {
     "securitySchemes": {
+      "x402": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "PAYMENT-SIGNATURE",
+        "description": "x402 v2 payment proof (also accepts X-PAYMENT header). Obtain by paying an offer from the HTTP 402 response."
+      },
       "SyraApiKey": {
         "type": "apiKey",
         "in": "header",
         "name": "X-API-Key",
-        "description": "When API_KEY is set: also `api-key` or `Authorization: Bearer`. x402 routes do not use this."
+        "description": "Legacy internal routes only — openapi-listed free and x402 routes do not use this."
       }
     }
   }

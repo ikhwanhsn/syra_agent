@@ -271,7 +271,7 @@ The **`/erc8004`** path is an alias for the same 8004scan router used at `/8004s
 
 ## Jupiter Swap API — referral / platform fees
 
-Direct Jupiter V1 swaps (`api.jup.ag/swap/v1`) used by **LP agent live sidecar swaps** (`api/libs/lpRealSidecarSwap.js`) and **SYRA buyback** (`api/utils/buybackSYRA.js`) can route a platform fee to your Jupiter referral account.
+Direct Jupiter V1 swaps (`api.jup.ag/swap/v1`) used by **LP agent live sidecar swaps** (`api/libs/lpRealSidecarSwap.js`), **SYRA buyback** (`api/utils/buybackSYRA.js`), and the **jupiter-swap-order** Swap V1 fallback can route a platform fee to your Jupiter referral account. The same referral account is passed to **Jupiter Ultra** (`jupiter-swap-order` primary path via Corbits) as `referralAccount` + `referralFee`.
 
 **Env (optional — defaults are set in code):**
 
@@ -289,7 +289,7 @@ Recommended mints to register:
 - **SYRA** (`SYRA_TOKEN_MINT`) — x402 revenue buyback (USDC→SYRA)
 - **USDC** — if you add swaps with USDC output later
 
-Logic lives in `api/libs/jupiterReferral.js`. Jupiter Ultra agent tool (`jupiter-swap-order` via Corbits) is unchanged.
+Logic lives in `api/libs/jupiterReferral.js`. The **jupiter-swap-order** agent tool applies the same referral account on both Jupiter Ultra (`referralAccount` + `referralFee`) and Swap V1 fallback (`platformFeeBps` + `feeAccount`).
 
 ---
 

@@ -2,101 +2,103 @@ import type { PostPhotoCardRole } from "../photoCardSlots";
 
 /** Per-card X copy for Wallet Portfolio photo deck — 15 distinct topics. */
 export const WALLET_PORTFOLIO_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `Agent Wallet Portfolio is live on Syra.
+  cover: `Ship log: Wallet Portfolio is live on Syra.
 
-New tab on Wallets: see every token your Chat and LP agent wallets hold, with USD value and allocation.
+One tab shows every SPL token across Chat and LP agent wallets — live USD, allocation %, and Solscan links.
 
-Treasuries for funding. Portfolio for the full bag.
+Treasuries fund ops. Portfolio proves what you actually hold.
 
 → syraa.fun/wallet?view=portfolio`,
 
-  thesis: `Treasuries showed SOL and USDC for operations.
+  thesis: `Treasuries answer: "Can my agents keep running?"
 
-But agent wallets also hold memecoins, swap dust, and tokens agents pick up while trading.
+Portfolio answers: "What did they actually accumulate?"
 
-Portfolio answers: what do I actually own across every agent wallet?`,
+Memecoins, swap receipts, LP dust — all surfaced in one auditable view across Chat + LP wallets.`,
 
-  quote: `"Treasuries show funding. Portfolio shows the bag."
+  quote: `"You cannot rebalance what you cannot see."
 
-One page. Two tabs. Full SPL holdings with names, prices, and Solscan links.`,
+Wallet Portfolio lists every SPL holding with names, USD value, allocation bars, and Solscan proof — one page, two tabs.`,
 
-  flow: `How to use Wallet Portfolio:
+  flow: `Audit your agent bag in 4 steps:
 
-1. Connect on syraa.fun
-2. Open Wallets → Portfolio tab
+1. Connect your Solana wallet on syraa.fun
+2. Wallets → Portfolio (or ?view=portfolio)
 3. Filter All, Chat, or LP
-4. Hide dust, refresh, verify on Solscan
+4. Hide dust, refresh prices, verify on Solscan
 
-Your agents' full holdings in one view.`,
+Full holdings. No explorer tab hopping.`,
 
-  timeline: `Portfolio tab shipped:
+  timeline: `Wallet Portfolio shipped end to end:
 
-→ Segmented Treasuries / Portfolio on /wallet
-→ Server-side SPL scan for Chat + LP wallets
-→ Multi-source token names and USD prices
-→ Merged All wallets view with allocation %
-→ Shareable ?view=portfolio URL`,
+→ Treasuries / Portfolio tabs on /wallet
+→ Server-side SPL scan per agent wallet
+→ DexScreener + Jupiter + pump.fun + on-chain metadata
+→ Merged All-wallets view with allocation %
+→ Shareable ?view=portfolio deep link`,
 
-  pillars: `4 things Portfolio gives you:
+  pillars: `4 primitives operators actually use:
 
-→ Total USD value across agent wallets
-→ Per-token balance with readable formatting
-→ Chat / LP / All wallet filters
-→ Hide dust + Solscan verify links`,
+→ USD total + asset count at a glance
+→ Per-token rows: logo, balance, price, allocation bar
+→ Wallet filter: All · Chat · LP with treasury badges
+→ Dust toggle + Solscan verify per mint`,
 
-  checklist: `Wallet Portfolio checklist:
+  checklist: `Wallet Portfolio is live — verify it yourself:
 
-→ Portfolio tab next to Treasuries
-→ Real token symbols from DEX + on-chain metadata
-→ Live USD value and allocation bars
-→ Refresh without page reload`,
+→ Portfolio tab beside Treasuries on /wallet
+→ Real symbols from DEX + on-chain metadata (not raw mints)
+→ Human-readable balances, live USD, allocation bars
+→ On-demand refresh without reload
+→ Shareable /wallet?view=portfolio URL`,
 
-  metrics: `2 wallet filters. 5+ metadata sources. 1 merged view.
+  metrics: `2 agent wallet types. 5+ metadata sources. 1 merged audit view.
 
-Portfolio turns agent wallet chaos into an auditable holdings table operators can trust.`,
+Portfolio turns scattered SPL balances into a holdings table operators can verify before they rebalance or withdraw.`,
 
-  featured: `One tab. Every agent token.
+  featured: `100% of SPL holdings surfaced — not just SOL/USDC totals.
 
-SOL, USDC, memecoins, LP receipts: all in one portfolio with USD totals and wallet badges.`,
+Every token your Chat and LP agents picked up: named, priced in USD, tagged by wallet, linked to Solscan.`,
 
   comparison: `Before:
-Treasuries showed SOL/USDC totals. Swap leftovers and agent trades were invisible until you checked explorers manually.
+Treasuries showed operational SOL/USDC. Swap leftovers and agent trades stayed invisible until you opened explorers wallet by wallet.
 
 Now:
-Portfolio tab lists every SPL holding, USD value, allocation %, and Solscan links.`,
+Portfolio tab — every SPL token, live USD, allocation %, wallet filter, and one-click Solscan proof.`,
 
   launch: `SHIP LOG · Wallet Portfolio is live.
 
-See every token in your Chat and LP agent wallets. USD value. Allocation. Filters. Refresh.
+See the full agent bag: every SPL token, USD value, allocation %, Chat/LP filters, dust toggle, refresh on demand.
 
 syraa.fun/wallet?view=portfolio`,
 
-  deepDive: `Portfolio data pipeline:
+  deepDive: `Portfolio data pipeline (production surface):
 
-→ GET /wallet/solana/portfolio per agent address
-→ DexScreener + Jupiter + pump.fun metadata
-→ On-chain Metaplex fallback for bare mints
-→ Client merge for All wallets view`,
+→ GET /wallet/solana/portfolio?address= per agent wallet
+→ DexScreener + Jupiter + pump.fun for price + metadata
+→ Metaplex on-chain fallback for unlisted mints
+→ Client-side merge + USD recompute for All wallets`,
 
-  split: `Treasuries vs Portfolio:
+  split: `Same page. Two jobs.
 
-Treasuries: fund, withdraw, billing caps, SOL/USDC totals.
+Treasuries: deposit, withdraw, billing caps, operational SOL/USDC.
 
-Portfolio: full SPL bag, USD value, per-token rows, dust filter.
+Portfolio: full SPL bag audit — per-token USD, allocation bars, dust filter, refresh.
 
-Same page. Different job.`,
+Fund in one tab. Verify in the other.`,
 
-  terminal: `Portfolio API surface:
+  terminal: `Portfolio API — real response shape:
 
-$ curl syraa.fun/wallet/solana/portfolio?address=...
-> SOL 8.33 · $565
-> PUMP 14,879 · $22.65
-> USDC 8.26 · $8.27
-> totalValueUsd: 587.92`,
+$ syra wallet portfolio --lp
+> SOL     8.3321   $565.25   96.1%
+> PUMP   14,879    $22.66    3.9%
+> totalValueUsd: 587.92
 
-  cta: `Open Portfolio on Wallets today.
+Operators get structured data, not explorer archaeology.`,
 
-Connect → Wallets → Portfolio → see what your agents hold.
+  cta: `Stop guessing what your agents hold.
+
+Connect → Wallets → Portfolio → audit every SPL token with live USD and Solscan links.
 
 syraa.fun/wallet?view=portfolio`,
 };

@@ -7,9 +7,16 @@ import {
   confirmCampaignDeposit,
   createCampaign,
   createSubmission,
+  enrichMissingCampaignAuthors,
+  backfillSubmissionAuthorKeys,
+  backfillKolReputations,
   getCampaignDetail,
+  getMarketplaceStats,
+  getProfile,
   getWalletEarnings,
   listCampaigns,
+  listKols,
+  listProjects,
 } from "../../libs/kolMarketplaceService.js";
 import { getPoolWalletAddress } from "../../services/kolPoolWallet.js";
 import {
@@ -31,10 +38,13 @@ function handleServiceError(res, error) {
     invalid_tweet_url: 400,
     invalid_tx: 400,
     invalid_id: 400,
+    invalid_handle: 400,
     wallet_mismatch: 400,
     invalid_status: 400,
     campaign_ended: 400,
     duplicate_submission: 409,
+    duplicate_kol_handle: 409,
+    duplicate_post: 409,
     submission_not_related: 400,
     deposit_tx_invalid: 400,
     deposit_sender_mismatch: 400,
@@ -67,6 +77,76 @@ export function createKolRouter() {
         platformFeeWallet: getS3labsFeeWallet(),
       },
     });
+  });
+
+  router.get("/stats", requireMongooseConnection, async (_req, res) => {
+    try {
+      const result = await getMarketplaceStats();
+      return res.json({ success: true, data: result });
+    } catch (e) {
+      return handleServiceError(res, e);
+    }
+  });
+
+  router.get("/projects", requireMongooseConnection, async (req, res) => {
+    try {
+      const limit = typeof req.query.limit === "string" ? Number(req.query.limit) : undefined;
+      const sort = typeof req.query.sort === "string" ? req.query.sort : undefined;
+      const result = await listProjects({ limit, sort });
+      return res.json({ success: true, data: result });
+    } catch (e) {
+      return handleServiceError(res, e);
+    }
+  });
+
+  router.get("/kols", requireMongooseConnection, async (req, res) => {
+    try {
+      const limit = typeof req.query.limit === "string" ? Number(req.query.limit) : undefined;
+      const sort = typeof req.query.sort === "string" ? req.query.sort : undefined;
+      const result = await listKols({ limit, sort });
+      return res.json({ success: true, data: result });
+    } catch (e) {
+      return handleServiceError(res, e);
+    }
+  });
+
+  router.get("/profiles/:username", requireMongooseConnection, async (req, res) => {
+    try {
+      const result = await getProfile(req.params.username);
+      return res.json({ success: true, data: result });
+    } catch (e) {
+      return handleServiceError(res, e);
+    }
+  });
+
+  router.post("/admin/enrich-authors", requireMongooseConnection, async (req, res) => {
+    try {
+      const limit = typeof req.body?.limit === "number" ? req.body.limit : undefined;
+      const result = await enrichMissingCampaignAuthors({ limit });
+      return res.json({ success: true, data: result });
+    } catch (e) {
+      return handleServiceError(res, e);
+    }
+  });
+
+  router.post("/admin/backfill-submission-keys", requireMongooseConnection, async (req, res) => {
+    try {
+      const limit = typeof req.body?.limit === "number" ? req.body.limit : undefined;
+      const result = await backfillSubmissionAuthorKeys({ limit });
+      return res.json({ success: true, data: result });
+    } catch (e) {
+      return handleServiceError(res, e);
+    }
+  });
+
+  router.post("/admin/backfill-reputations", requireMongooseConnection, async (req, res) => {
+    try {
+      const limit = typeof req.body?.limit === "number" ? req.body.limit : undefined;
+      const result = await backfillKolReputations({ limit });
+      return res.json({ success: true, data: result });
+    } catch (e) {
+      return handleServiceError(res, e);
+    }
   });
 
   router.post("/campaigns", requireMongooseConnection, async (req, res) => {

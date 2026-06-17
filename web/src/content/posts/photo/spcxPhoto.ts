@@ -16,7 +16,7 @@ export const SPCX_PHOTO = definePhotoUpdate(SPCX_POST.meta, [
       badge: "Realtime · Buy + sell · Live chart",
       title: "SpaceX IPO Agent",
       subtitle:
-        "Live Nasdaq vs SPCXx tracking with realtime buy and sell trading and a live price chart.",
+        "Realtime Nasdaq vs SPCXx spreads. Buy and sell from your wallet. Safety checks before every swap.",
     }),
   },
   {
@@ -24,9 +24,9 @@ export const SPCX_PHOTO = definePhotoUpdate(SPCX_POST.meta, [
     layout: "photo-statement-center",
     shareCopy: copies.thesis,
     content: photoContent({
-      kicker: "Why this matters",
-      headline: "The IPO is live. Trading it should not be guesswork.",
-      body: "SpaceX is public as SPCX on Nasdaq. Traders buy and sell SPCXx on Solana. Spreads move fast. Syra built realtime tracking plus two-way wallet trading on one page.",
+      kicker: "The problem",
+      headline: "The IPO is live. Trading it shouldn't mean guessing spreads.",
+      body: "SPCX trades on Nasdaq. SPCXx trades on Solana. Spreads move fast. Fake tokens still copy the ticker. Syra built realtime tracking plus two-way wallet trading on one page.",
     }),
   },
   {
@@ -45,7 +45,7 @@ export const SPCX_PHOTO = definePhotoUpdate(SPCX_POST.meta, [
     shareCopy: copies.flow,
     content: photoContent({
       kicker: "How to use it",
-      headline: "Check the spread, then trade.",
+      headline: "See the spread. Read the bias. Trade with checks.",
       steps: [
         { step: "01", title: "Watch live prices", description: "Nasdaq SPCX vs SPCXx with ~10s refresh." },
         { step: "02", title: "Read agent bias", description: "Fair, stretched, or watch before you trade." },
@@ -74,7 +74,7 @@ export const SPCX_PHOTO = definePhotoUpdate(SPCX_POST.meta, [
     layout: "photo-cards-quad",
     shareCopy: copies.pillars,
     content: photoContent({
-      headline: "Four layers of live-market trading.",
+      headline: "Four layers between you and a bad SpaceX trade.",
       cards: [
         { title: "Realtime tracking", subtitle: "Nasdaq vs on-chain", detail: "Live feed with ~10s polling and lazy API ticks.", accent: "gold" },
         { title: "Buy + sell", subtitle: "Wallet swap", detail: "Trade SPCXx both ways with USDC, SOL, and Max preset.", accent: "gold" },
@@ -119,7 +119,7 @@ export const SPCX_PHOTO = definePhotoUpdate(SPCX_POST.meta, [
       headline: "One page. Track and trade SpaceX exposure.",
       stats: [{ value: "1", label: "Hub for live prices + wallet trading" }],
       narrative:
-        "Nasdaq SPCX live, SPCXx on Solana, buy or sell from your wallet, and venue comparison in plain English.",
+        "Nasdaq SPCX live. SPCXx on Solana. Buy or sell from your wallet. Venues compared in plain English.",
     }),
   },
   {
@@ -171,8 +171,8 @@ export const SPCX_PHOTO = definePhotoUpdate(SPCX_POST.meta, [
     shareCopy: copies.split,
     content: photoContent({
       badge: "Two markets",
-      headline: "Nasdaq stock vs Solana tokens.",
-      body: "SPCX on Nasdaq via live Yahoo Finance. SPCXx on Solana via xStocks, Backpack, and Ondo. Syra tracks the spread in realtime and supports buy and sell.",
+      headline: "Two markets. One spread. Trade both ways.",
+      body: "SPCX on Nasdaq via live Yahoo Finance. SPCXx on Solana via xStocks, Backpack, and Ondo. Syra tracks the gap in realtime and supports buy and sell.",
       highlights: [
         "Live Nasdaq quote with realtime refresh",
         "Verified on-chain venue quotes",
@@ -202,7 +202,7 @@ export const SPCX_PHOTO = definePhotoUpdate(SPCX_POST.meta, [
     shareCopy: copies.cta,
     content: photoContent({
       headline: "Trade SpaceX exposure on Syra.",
-      subtitle: "Watch live spreads. Buy or sell SPCXx. Not financial advice.",
+      subtitle: "Watch live spreads. Buy or sell SPCXx. Safety checks before every swap. Not financial advice.",
       links: [
         { label: "SPCX hub", value: "syraa.fun/spcx", href: "https://www.syraa.fun/spcx" },
         { label: "Latest report", value: "api.syraa.fun/experiment/spcx/latest", href: "https://api.syraa.fun/experiment/spcx/latest" },

@@ -41,6 +41,7 @@ export function buildMppDiscoveryOpenApi() {
     info: {
       title: 'Syra API',
       version: '1.0.0',
+      contact: { email: 'support@syraa.fun' },
       description:
         'Syra is the smart intelligence agent for traders on Solana—real-time market data, on-chain signals, news, sentiment, and research',
       // Required by MPP / AgentCash discovery — without this, registries may return not_found / no resources

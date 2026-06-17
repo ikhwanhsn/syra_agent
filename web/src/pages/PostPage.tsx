@@ -49,7 +49,7 @@ export default function PostPage() {
         </div>
 
         <p className="mb-8 text-sm text-white/55">
-          Choose a format for your X update. Record the video deck or export a branded photo.
+          Turn each ship log into a growth-ready X post. Record the video deck or export branded photos with one-click share copy.
         </p>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -62,7 +62,7 @@ export default function PostPage() {
             </div>
             <div>
               <p className="font-display text-sm font-medium text-white/90">Video</p>
-              <p className="mt-1 text-xs text-white/45">16:9 slide deck · 74 templates in library</p>
+              <p className="mt-1 text-xs text-white/45">16:9 slide deck · proof-first narrative · 74 templates</p>
             </div>
           </Link>
 
@@ -75,7 +75,7 @@ export default function PostPage() {
             </div>
             <div>
               <p className="font-display text-sm font-medium text-white/90">Photo</p>
-              <p className="mt-1 text-xs text-white/45">50 templates in library · curated picks per update</p>
+              <p className="mt-1 text-xs text-white/45">15 cards per update · matched X copy · 50 templates</p>
             </div>
           </Link>
         </div>

@@ -35,27 +35,30 @@ import { getS3labsAgentDefinition } from "../../config/s3labsAgentsConfig.js";
  * @typedef {import("../../config/s3labsAgentsConfig.js").S3labsAgentKind} S3labsAgentKind
  */
 
+const ENGLISH_ONLY_RULE =
+  "CRITICAL: All user-facing text (title, summary, whyItMatters) MUST be in English only. Never use Indonesian or other languages.";
+
 const SYSTEM_PROMPTS = {
   news: `You curate news for the S3Labs News topic (NEWS agent).
 Pick ONE HOTTEST story about crypto, web3, digital assets, regulation, or the blockchain ecosystem.
 Do NOT pick articles whose URL or title appears in the excluded list (already posted by another agent).
 Output ONLY JSON:
-{ "pick": { "title": string (EN), "summary": string (2 sentences EN), "whyItMatters": string (1 sentence EN), "url": string, "source": string, "category": "crypto"|"web3", "heatScore": number } }
-Do not invent facts. Natural English.`,
+{ "pick": { "title": string, "summary": string (2 sentences), "whyItMatters": string (1 sentence), "url": string, "source": string, "category": "crypto"|"web3", "heatScore": number } }
+Do not invent facts. ${ENGLISH_ONLY_RULE}`,
 
   developer: `You curate for the S3Labs Developer topic (DEV agent).
 Pick ONE HOTTEST article/tool/research for developers: engineering, open source, AI dev tools, infra, security, programming.
 Do NOT pick articles whose URL or title appears in the excluded list.
 Output ONLY JSON:
-{ "pick": { "title": string (EN), "summary": string (2 sentences EN), "whyItMatters": string (1 sentence: relevance for developers), "url": string, "source": string, "category": "developer", "heatScore": number } }
-Do not invent facts. Natural English.`,
+{ "pick": { "title": string, "summary": string (2 sentences), "whyItMatters": string (1 sentence: relevance for developers), "url": string, "source": string, "category": "developer", "heatScore": number } }
+Do not invent facts. ${ENGLISH_ONLY_RULE}`,
 
   event: `You curate for the S3Labs Event topic (EVENT agent).
 Pick ONE IMPORTANT event (hackathon, conference, TGE, listing, mainnet, meetup, AMA, deadline) most relevant to the crypto/web3 community.
 Do NOT pick events whose URL or title appears in the excluded list.
 Output ONLY JSON:
-{ "pick": { "title": string (EN), "summary": string (2 sentences EN), "whyItMatters": string (1 sentence: why it belongs on the calendar), "url": string, "source": string, "category": "event", "eventDate": "YYYY-MM-DD", "heatScore": number } }
-Prioritize upcoming events. Do not invent facts. Natural English.`,
+{ "pick": { "title": string, "summary": string (2 sentences), "whyItMatters": string (1 sentence: why it belongs on the calendar), "url": string, "source": string, "category": "event", "eventDate": "YYYY-MM-DD", "heatScore": number } }
+Prioritize upcoming events. Do not invent facts. ${ENGLISH_ONLY_RULE}`,
 };
 
 /**
@@ -74,7 +77,7 @@ function coercePick(obj, articles) {
   if (!raw || typeof raw !== "object") return null;
 
   const x = /** @type {Record<string, unknown>} */ (raw);
-  const title = String(x.title || x.judul || "").trim();
+  const title = String(x.title || "").trim();
   if (!title) return null;
 
   const url = String(x.url || "").trim();
@@ -83,12 +86,12 @@ function coercePick(obj, articles) {
 
   return {
     title: title.slice(0, 200),
-    summary: String(x.summary || x.ringkasan || "").slice(0, 350),
-    whyItMatters: String(x.whyItMatters || x.mengapaPenting || "").slice(0, 250),
+    summary: String(x.summary || "").slice(0, 350),
+    whyItMatters: String(x.whyItMatters || "").slice(0, 250),
     url: url || src?.url || "",
-    source: String(x.source || x.sumber || src?.source || "unknown").slice(0, 80),
-    category: String(x.category || x.kategori || "").slice(0, 32) || undefined,
-    eventDate: String(x.eventDate || x.tanggal || src?.eventDate || "").slice(0, 10) || undefined,
+    source: String(x.source || src?.source || "unknown").slice(0, 80),
+    category: String(x.category || "").slice(0, 32) || undefined,
+    eventDate: String(x.eventDate || src?.eventDate || "").slice(0, 10) || undefined,
     heatScore: typeof x.heatScore === "number" ? x.heatScore : undefined,
   };
 }

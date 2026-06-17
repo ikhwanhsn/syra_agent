@@ -6,6 +6,17 @@ import { readFileSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { SIGNAL_CEX_SOURCES } from './cexSignalAnalysis.js';
+import {
+  X402_DISPLAY_PRICE_USD,
+  X402_DISPLAY_PRICE_CHECK_STATUS_USD,
+  X402_DISPLAY_PRICE_NEWS_USD,
+  X402_DISPLAY_PRICE_BRAIN_USD,
+  X402_DISPLAY_PRICE_X_ANALYZER_USD,
+  X402_DISPLAY_PRICE_ARBITRAGE_EXPERIMENT_USD,
+  X402_DISPLAY_PRICE_SPCX_USD,
+  X402_DISPLAY_PRICE_EQUITY_USD,
+  X402_DISPLAY_PRICE_INDICATOR_USD,
+} from '../config/x402Pricing.js';
 
 const GATEWAY_DIR = path.dirname(fileURLToPath(import.meta.url));
 
@@ -91,43 +102,40 @@ const RATE_LIMIT_429_RESPONSE = {
  * read the explanation programmatically instead of scraping `info.description`.
  */
 const X_PAYMENT_INFO_SPEC = {
-  emittedHere: false,
+  emittedHere: true,
   reason:
-    "Strict-schema friendly. Canonical payment metadata for paid (x402) routes is returned at runtime in the 402 response body's `accepts` array (V1 wire format: scheme, network, asset, maxAmountRequired in micro-USDC, payTo, resource, maxTimeoutSeconds, outputSchema). Pay one of those offers and retry with `X-PAYMENT`. See: https://docs.syraa.fun/docs/api/x402-api-standard",
+    'Each paid operation in this document includes x-payment-info (catalog hint for x402scan / tryponcho). Canonical payment metadata is still returned at runtime in the HTTP 402 response body `accepts` array and the Payment-Required header (x402 v2). Pay one offer and retry with PAYMENT-SIGNATURE or X-PAYMENT. See: https://docs.syraa.fun/docs/api/x402-api-standard',
   alsoEmittedAt: {
     document: 'https://api.syraa.fun/mpp-openapi.json',
     description:
-      'MPP / AgentCash discovery document. Each paid operation includes an `x-payment-info` extension with the shape below. Settlement is still x402 V1 (HTTP 402 + `accepts`); `x-payment-info` is registry metadata only.',
+      'MPP / AgentCash discovery document with the full x402 catalog. Settlement is x402 v2 (HTTP 402 + accepts); x-payment-info is registry metadata.',
   },
   shape: {
     type: 'object',
-    required: ['protocols', 'pricingMode', 'price'],
+    required: ['protocols', 'price'],
     properties: {
       protocols: {
         type: 'array',
-        items: { type: 'string' },
-        description: 'Supported payment protocols. Syra emits `["mpp"]` in the MPP doc.',
-        example: ['mpp'],
-      },
-      pricingMode: {
-        type: 'string',
-        description: 'Always `"fixed"` for Syra (per-call USD price, no auction or tiering).',
-        enum: ['fixed'],
+        items: { type: 'object' },
+        description: 'Protocol objects, e.g. [{ "x402": {} }, { "mpp": { ... } }].',
+        example: [{ x402: {} }, { mpp: { method: '', intent: '', currency: '' } }],
       },
       price: {
-        type: 'string',
-        description:
-          'USD price as a decimal string (e.g. "0.01"). The runtime 402 response converts this to USDC micro-units (USDC has 6 decimals) and exposes it as `accepts[i].maxAmountRequired`.',
-        example: '0.01',
+        type: 'object',
+        required: ['mode', 'currency', 'amount'],
+        properties: {
+          mode: { type: 'string', enum: ['fixed'] },
+          currency: { type: 'string', example: 'USD' },
+          amount: { type: 'string', description: 'USD price as decimal string', example: '0.01' },
+        },
       },
     },
     additionalProperties: true,
   },
   example: {
     'x-payment-info': {
-      protocols: ['mpp'],
-      pricingMode: 'fixed',
-      price: '0.01',
+      protocols: [{ x402: {} }, { mpp: { method: '', intent: '', currency: '' } }],
+      price: { mode: 'fixed', currency: 'USD', amount: '0.01' },
     },
   },
 };
@@ -158,9 +166,14 @@ const RATE_LIMIT_INFO = {
   responseBody: { success: false, message: 'Too many requests. Please slow down.' },
   skip: {
     description:
-      'Routes excluded from this throttle. x402 paid routes (`/news`, `/signal`, `/sentiment`, `/event`, `/health`, `/brain`, `/x*`, `/8004*`, etc.) are gated by HTTP 402 instead. Internal cron paths require a shared secret. RISE proxies are skipped because one user session can fan out across many list pages.',
+      'Routes excluded from this throttle. x402 paid routes are gated by HTTP 402 instead. OpenAPI free routes (/api/signal, /preview/*, /dashboard-summary, /binance-ticker, /x-projects-analyze/*) are public for discovery. Internal cron paths require a shared secret. RISE proxies are skipped because one user session can fan out across many list pages.',
     paths: [
       'all x402 routes (see GET /.well-known/x402)',
+      '/api/signal',
+      '/preview/*',
+      '/dashboard-summary',
+      '/binance-ticker',
+      '/x-projects-analyze/*',
       '/internal/tester-agent*',
       '/internal/trend-scout/run',
       '/internal/growth-scout/run',
@@ -232,6 +245,51 @@ const JSON_BODY_LOOSE = {
   },
 };
 
+/** @param {number} n */
+function usdPriceString(n) {
+  const x = Number(n);
+  if (!Number.isFinite(x) || x < 0) return '0';
+  const s = x.toFixed(6).replace(/\.?0+$/, '');
+  return s === '' ? '0' : s;
+}
+
+/** @param {number} usd */
+function xPaymentInfo(usd) {
+  const amount = usdPriceString(usd);
+  return {
+    protocols: [{ x402: {} }, { mpp: { method: '', intent: '', currency: '' } }],
+    price: { mode: 'fixed', currency: 'USD', amount },
+  };
+}
+
+const SECURITY_FREE = [];
+const SECURITY_PAID = [{ x402: [] }];
+
+const PAID_402_RESPONSE = {
+  description:
+    'Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.',
+  headers: {
+    'Payment-Required': {
+      description: 'x402 v2 encoded payment requirements',
+      schema: { type: 'string' },
+    },
+  },
+};
+
+function discoveryOwnershipProofs() {
+  const proofs = [];
+  if (process.env.X402_OWNERSHIP_PROOF_EVM?.trim()) {
+    proofs.push(process.env.X402_OWNERSHIP_PROOF_EVM.trim());
+  }
+  if (process.env.X402_OWNERSHIP_PROOF_SVM?.trim()) {
+    proofs.push(process.env.X402_OWNERSHIP_PROOF_SVM.trim());
+  }
+  if (proofs.length === 0 && process.env.X402_OWNERSHIP_PROOF?.trim()) {
+    proofs.push(process.env.X402_OWNERSHIP_PROOF.trim());
+  }
+  return proofs;
+}
+
 const SIGNAL_SUCCESS_SCHEMA = {
   type: 'object',
   required: ['success'],
@@ -248,19 +306,14 @@ const SIGNAL_SUCCESS_SCHEMA = {
 };
 
 /**
- * @param {boolean} x402
+ * @param {boolean} paid
  */
-function responsesFor(x402) {
+function responsesFor(paid) {
   /** @type {Record<string, unknown>} */
   const r = { '200': OK_JSON };
-  if (x402) {
-    r['402'] = {
-      description: 'Payment required — x402 (Solana/Base USDC). Retry with payment proof per response body.',
-    };
+  if (paid) {
+    r['402'] = PAID_402_RESPONSE;
   }
-  // Every operation in this gateway shares the same rate-limit envelope (x402 routes are skipped
-  // at runtime — see RATE_LIMIT_INFO.skip — but advertising 429 here is harmless and lets clients
-  // generate uniform error handling).
   r['429'] = RATE_LIMIT_429_RESPONSE;
   return r;
 }
@@ -270,15 +323,18 @@ function responsesFor(x402) {
  * @param {string} summary
  * @param {string} operationId
  * @param {unknown[]} [parameters]
- * @param {boolean} [x402]
+ * @param {boolean} [paid]
+ * @param {number} [priceUsd]
  */
-function opGet(tag, summary, operationId, parameters = [], x402 = false) {
+function opGet(tag, summary, operationId, parameters = [], paid = false, priceUsd = X402_DISPLAY_PRICE_USD) {
   return {
     tags: [tag],
     summary,
     operationId,
+    security: paid ? SECURITY_PAID : SECURITY_FREE,
+    ...(paid ? { 'x-payment-info': xPaymentInfo(priceUsd) } : {}),
     ...(parameters.length ? { parameters } : {}),
-    responses: responsesFor(x402),
+    responses: responsesFor(paid),
   };
 }
 
@@ -286,15 +342,18 @@ function opGet(tag, summary, operationId, parameters = [], x402 = false) {
  * @param {string} tag
  * @param {string} summary
  * @param {string} operationId
- * @param {boolean} [x402]
+ * @param {boolean} [paid]
+ * @param {number} [priceUsd]
  */
-function opPost(tag, summary, operationId, x402 = false) {
+function opPost(tag, summary, operationId, paid = false, priceUsd = X402_DISPLAY_PRICE_USD) {
   return {
     tags: [tag],
     summary,
     operationId,
+    security: paid ? SECURITY_PAID : SECURITY_FREE,
+    ...(paid ? { 'x-payment-info': xPaymentInfo(priceUsd) } : {}),
     requestBody: JSON_BODY_LOOSE,
-    responses: responsesFor(x402),
+    responses: responsesFor(paid),
   };
 }
 
@@ -310,14 +369,16 @@ export function buildGatewayOpenApi() {
       get: {
         tags: ['Signal'],
         summary: 'Public signal (no x402)',
-        description: 'Same engine as /signal without micropayment. API key if server sets API_KEY.',
+        description: 'Same engine as /signal without micropayment. Free — no payment or API key required.',
         operationId: 'getPublicSignal',
+        security: SECURITY_FREE,
         parameters: SIGNAL_QUERY,
         responses: {
           '200': {
             description: 'Signal result',
             content: { 'application/json': { schema: SIGNAL_SUCCESS_SCHEMA } },
           },
+          '429': RATE_LIMIT_429_RESPONSE,
           '500': {
             description: 'Upstream or configuration error',
             content: {
@@ -335,6 +396,7 @@ export function buildGatewayOpenApi() {
         tags: ['Signal'],
         summary: 'Public signal via JSON body',
         operationId: 'postPublicSignal',
+        security: SECURITY_FREE,
         requestBody: {
           required: false,
           content: {
@@ -358,6 +420,7 @@ export function buildGatewayOpenApi() {
             description: 'Signal result',
             content: { 'application/json': { schema: SIGNAL_SUCCESS_SCHEMA } },
           },
+          '429': RATE_LIMIT_429_RESPONSE,
           '500': {
             description: 'Error',
             content: {
@@ -398,20 +461,20 @@ export function buildGatewayOpenApi() {
     },
 
     '/news': {
-      get: opGet('Market data (x402)', 'Crypto news', 'getNews', TICKER_QUERY, true),
-      post: opPost('Market data (x402)', 'Crypto news (POST)', 'postNews', true),
+      get: opGet('Market data (x402)', 'Crypto news', 'getNews', TICKER_QUERY, true, X402_DISPLAY_PRICE_NEWS_USD),
+      post: opPost('Market data (x402)', 'Crypto news (POST)', 'postNews', true, X402_DISPLAY_PRICE_NEWS_USD),
     },
     '/sentiment': {
-      get: opGet('Market data (x402)', 'Sentiment', 'getSentiment', TICKER_QUERY, true),
-      post: opPost('Market data (x402)', 'Sentiment (POST)', 'postSentiment', true),
+      get: opGet('Market data (x402)', 'Sentiment', 'getSentiment', TICKER_QUERY, true, X402_DISPLAY_PRICE_NEWS_USD),
+      post: opPost('Market data (x402)', 'Sentiment (POST)', 'postSentiment', true, X402_DISPLAY_PRICE_NEWS_USD),
     },
     '/event': {
-      get: opGet('Market data (x402)', 'Crypto events', 'getEvent', TICKER_QUERY, true),
-      post: opPost('Market data (x402)', 'Crypto events (POST)', 'postEvent', true),
+      get: opGet('Market data (x402)', 'Crypto events', 'getEvent', TICKER_QUERY, true, X402_DISPLAY_PRICE_NEWS_USD),
+      post: opPost('Market data (x402)', 'Crypto events (POST)', 'postEvent', true, X402_DISPLAY_PRICE_NEWS_USD),
     },
     '/health': {
-      get: opGet('Gateway (x402)', 'API health (x402 liveness)', 'getHealth', [], true),
-      post: opPost('Gateway (x402)', 'API health (POST)', 'postHealth', true),
+      get: opGet('Gateway (x402)', 'API health (x402 liveness)', 'getHealth', [], true, X402_DISPLAY_PRICE_CHECK_STATUS_USD),
+      post: opPost('Gateway (x402)', 'API health (POST)', 'postHealth', true, X402_DISPLAY_PRICE_CHECK_STATUS_USD),
     },
     '/brain': {
       get: opGet(
@@ -428,8 +491,9 @@ export function buildGatewayOpenApi() {
           },
         ],
         true,
+        X402_DISPLAY_PRICE_BRAIN_USD,
       ),
-      post: opPost('AI (x402)', 'Syra Brain (POST)', 'postBrain', true),
+      post: opPost('AI (x402)', 'Syra Brain (POST)', 'postBrain', true, X402_DISPLAY_PRICE_BRAIN_USD),
     },
 
     '/arbitrage': {
@@ -447,12 +511,14 @@ export function buildGatewayOpenApi() {
           },
         ],
         true,
+        X402_DISPLAY_PRICE_ARBITRAGE_EXPERIMENT_USD,
       ),
       post: opPost(
         'Market data (x402)',
         'Arbitrage — POST body may include { limit } (x402)',
         'postArbitrage',
         true,
+        X402_DISPLAY_PRICE_ARBITRAGE_EXPERIMENT_USD,
       ),
     },
 
@@ -463,6 +529,8 @@ export function buildGatewayOpenApi() {
         description:
           'Micropayment via x402. Returns deterministic 0–100 score, category breakdown, signals, red flags; optional `includeAiSummary` adds grounded LLM bullets. Example `200` body is maintained at `api/docs/examples/x-analyzer-response.example.json`.',
         operationId: 'getXAnalyzer',
+        security: SECURITY_PAID,
+        'x-payment-info': xPaymentInfo(X402_DISPLAY_PRICE_X_ANALYZER_USD),
         parameters: [
           {
             name: 'username',
@@ -505,7 +573,7 @@ export function buildGatewayOpenApi() {
               },
             },
           },
-          '402': responsesFor(true)['402'],
+          '402': PAID_402_RESPONSE,
           '404': { description: 'X user not found' },
           '502': { description: 'X API upstream error' },
           '503': { description: 'Server missing X_BEARER_TOKEN' },
@@ -517,6 +585,8 @@ export function buildGatewayOpenApi() {
         description:
           'Same as GET; body may include `username`, `max_results`, `includeAiSummary`. Example response identical to GET.',
         operationId: 'postXAnalyzer',
+        security: SECURITY_PAID,
+        'x-payment-info': xPaymentInfo(X402_DISPLAY_PRICE_X_ANALYZER_USD),
         requestBody: {
           required: false,
           content: {
@@ -556,7 +626,7 @@ export function buildGatewayOpenApi() {
               },
             },
           },
-          '402': responsesFor(true)['402'],
+          '402': PAID_402_RESPONSE,
           '404': { description: 'X user not found' },
           '502': { description: 'X API upstream error' },
           '503': { description: 'Server missing X_BEARER_TOKEN' },
@@ -569,10 +639,12 @@ export function buildGatewayOpenApi() {
         tags: ['Social (batch)'],
         summary: 'List batch analyzer types',
         description:
-          'Returns configured `type` ids (labels, provider). X accounts per type are fixed server-side. No X API calls. API key when server sets API_KEY.',
+          'Returns configured `type` ids (labels, provider). X accounts per type are fixed server-side. No X API calls.',
         operationId: 'getXProjectsAnalyzeTypes',
+        security: SECURITY_FREE,
         responses: {
           '200': OK_JSON,
+          '429': RATE_LIMIT_429_RESPONSE,
         },
       },
     },
@@ -582,14 +654,15 @@ export function buildGatewayOpenApi() {
         tags: ['Social (batch)'],
         summary: 'Single-account Alpha analysis (allowlisted)',
         description:
-          '`username` must belong to the configured `type` handle list. Returns full score payload, optional AI summary (default on), and `recentTweets` sample. API key when API_KEY is set.',
+          '`username` must belong to the configured `type` handle list. Returns full score payload, optional AI summary (default on), and `recentTweets` sample.',
         operationId: 'getXProjectsAnalyzeAccount',
+        security: SECURITY_FREE,
         parameters: [
           {
             name: 'username',
             in: 'query',
             required: true,
-            schema: { type: 'string' },
+            schema: { type: 'string', example: 'syra_agent' },
             description: 'X handle without @.',
           },
           {
@@ -626,14 +699,15 @@ export function buildGatewayOpenApi() {
         tags: ['Social (batch)'],
         summary: 'Single-account Alpha analysis — POST',
         operationId: 'postXProjectsAnalyzeAccount',
+        security: SECURITY_FREE,
         requestBody: {
-          required: false,
+          required: true,
           content: {
             'application/json': {
               schema: {
                 type: 'object',
                 properties: {
-                  username: { type: 'string' },
+                  username: { type: 'string', example: 'syra_agent' },
                   type: { type: 'string', default: 'x402' },
                   max_results: { type: 'integer', minimum: 10, maximum: 50 },
                   includeAiSummary: { type: 'boolean' },
@@ -660,6 +734,7 @@ export function buildGatewayOpenApi() {
         description:
           'Returns the latest persisted batch snapshot for `type` (default `x402`). Scores are refreshed by the Alpha X agent about once every 24 hours (POST /internal/alpha-x-batch/run). Handles are not client-supplied. See GET /x-projects-analyze/types.',
         operationId: 'getXProjectsAnalyze',
+        security: SECURITY_FREE,
         parameters: [
           {
             name: 'type',
@@ -689,6 +764,7 @@ export function buildGatewayOpenApi() {
         tags: ['Social (batch)'],
         summary: 'Batch X project analyzer — POST body',
         operationId: 'postXProjectsAnalyze',
+        security: SECURITY_FREE,
         requestBody: {
           required: false,
           content: {
@@ -715,6 +791,8 @@ export function buildGatewayOpenApi() {
         description:
           'Nasdaq vs on-chain SPCX premium/discount spread. x402 revenue routes to $SYRA buybacks in production.',
         operationId: 'getSpcxIntelligence',
+        security: SECURITY_PAID,
+        'x-payment-info': xPaymentInfo(X402_DISPLAY_PRICE_SPCX_USD),
         parameters: [
           { name: 'symbol', in: 'query', schema: { type: 'string', default: 'SPCXx' } },
         ],
@@ -727,6 +805,8 @@ export function buildGatewayOpenApi() {
         summary: 'Tokenized equity intelligence (xStocks catalog)',
         description: 'Parametric symbol → Nasdaq vs on-chain spread for TSLAx, NVDAx, etc.',
         operationId: 'getEquityIntelligence',
+        security: SECURITY_PAID,
+        'x-payment-info': xPaymentInfo(X402_DISPLAY_PRICE_EQUITY_USD),
         parameters: [
           { name: 'symbol', in: 'query', schema: { type: 'string' }, required: true },
         ],
@@ -752,6 +832,7 @@ export function buildGatewayOpenApi() {
           },
         ],
         true,
+        X402_DISPLAY_PRICE_INDICATOR_USD,
       ),
       post: {
         tags: ['Technical indicators (x402)'],
@@ -759,6 +840,8 @@ export function buildGatewayOpenApi() {
         description:
           'Same as GET /indicator with JSON body for complex multi-indicator requests.',
         operationId: 'postIndicator',
+        security: SECURITY_PAID,
+        'x-payment-info': xPaymentInfo(X402_DISPLAY_PRICE_INDICATOR_USD),
         requestBody: {
           required: true,
           content: {
@@ -790,16 +873,22 @@ export function buildGatewayOpenApi() {
     },
   };
 
-  return {
+  const ownershipProofs = discoveryOwnershipProofs();
+
+  /** @type {Record<string, unknown>} */
+  const doc = {
     openapi: '3.1.0',
     info: {
       title: 'Syra API',
       version: '1.0.0',
+      contact: { email: 'support@syraa.fun' },
+      'x-guidance':
+        'Free routes (security: []) include /api/signal, /preview/*, /dashboard-summary, /binance-ticker, /info, and /x-projects-analyze/*. Paid routes return HTTP 402 until settled via x402 (Solana/Base USDC) — pay an offer from the 402 body accepts array and retry with PAYMENT-SIGNATURE or X-PAYMENT. Docs: https://docs.syraa.fun',
       description: [
-        'Syra gateway: preview and dashboard routes may require `X-API-Key` / Bearer when the server sets `API_KEY`.',
-        '**x402** routes return **HTTP 402** until paid (Solana/Base USDC). The full payment offer (network, asset, price in micro-USDC, `payTo`, etc.) is returned at runtime in the 402 response body\'s `accepts` array — that is the canonical x402 V1 wire spec; pay one offer and retry with `X-PAYMENT`. See https://docs.syraa.fun/docs/api/x402-api-standard for the wire format and signing examples.',
-        'Some x402 ecosystems (MPP / AgentCash registries) expect a per-operation OpenAPI extension named `x-payment-info` carrying registry metadata (protocols, pricingMode, price). This **gateway** spec deliberately omits it for strict-schema friendliness; the **MPP discovery** document at `GET /mpp-openapi.json` emits it on every paid operation. The exact shape Syra uses is described in the `x-payment-info-spec` extension at the root of this document.',
-        '**Rate limits** (per IP, applied to every non-x402 / non-cron route): burst **25 req / 10s** + sustained **100 req / 60s**. Exceeding either returns **HTTP 429** with `Retry-After: <seconds>` and `{ success: false, message }`. x402 paid routes are gated by HTTP 402 instead and bypass this throttle. See the `x-ratelimit` extension below for the machine-readable spec.',
+        'Syra gateway: routes with `security: []` are free (no payment or API key).',
+        '**x402** routes return **HTTP 402** until paid (Solana/Base USDC). The full payment offer (network, asset, price in micro-USDC, `payTo`, etc.) is returned at runtime in the 402 response body\'s `accepts` array and the `Payment-Required` header (x402 v2). Pay one offer and retry with `PAYMENT-SIGNATURE` or `X-PAYMENT`. See https://docs.syraa.fun/docs/api/x402-api-standard for the wire format and signing examples.',
+        'Paid operations declare `x-payment-info` (catalog hint) and `security: [{ x402: [] }]`. The **MPP discovery** document at `GET /mpp-openapi.json` mirrors the full x402 catalog.',
+        '**Rate limits** (per IP, applied to non-x402 / non-cron routes not listed as free in this spec): burst **25 req / 10s** + sustained **100 req / 60s**. Exceeding either returns **HTTP 429** with `Retry-After: <seconds>` and `{ success: false, message }`. x402 paid routes and openapi free routes bypass this throttle. See the `x-ratelimit` extension below.',
       ].join('\n\n'),
     },
     servers: [{ url: serverUrl }],
@@ -821,7 +910,7 @@ export function buildGatewayOpenApi() {
       },
       {
         name: 'Social (batch)',
-        description: 'Batch X project analysis — API key when configured; no x402',
+        description: 'Batch X project analysis — free public routes; no x402',
       },
       {
         name: 'Equity (x402)',
@@ -830,13 +919,26 @@ export function buildGatewayOpenApi() {
     ],
     components: {
       securitySchemes: {
+        x402: {
+          type: 'apiKey',
+          in: 'header',
+          name: 'PAYMENT-SIGNATURE',
+          description:
+            'x402 v2 payment proof (also accepts X-PAYMENT header). Obtain by paying an offer from the HTTP 402 response.',
+        },
         SyraApiKey: {
           type: 'apiKey',
           in: 'header',
           name: 'X-API-Key',
-          description: 'When API_KEY is set: also `api-key` or `Authorization: Bearer`. x402 routes do not use this.',
+          description: 'Legacy internal routes only — openapi-listed free and x402 routes do not use this.',
         },
       },
     },
   };
+
+  if (ownershipProofs.length > 0) {
+    doc['x-discovery'] = { ownershipProofs };
+  }
+
+  return doc;
 }

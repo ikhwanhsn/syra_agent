@@ -37,7 +37,7 @@ import {
 } from "./8004scanClient.js";
 import { payer, getSentinelPayerFetch, getNansenPaymentFetch } from "./sentinelPayer.js";
 import { fetchWithRetry } from "../utils/resilientFetch.js";
-import { resolveReferralFee } from "./jupiterReferral.js";
+import { resolveReferralFee, resolveUltraReferralParams } from "./jupiterReferral.js";
 import { getConnection } from "./meteoraDlmmExecutor.js";
 import { smartMoneyRequests } from "../request/nansen/smart-money.request.js";
 import { tokenGodModeRequests } from "../request/nansen/token-god-mode.js";
@@ -911,6 +911,13 @@ async function fetchJupiterUltraOrderJson(inputMint, outputMint, amount, taker) 
   params.set("outputMint", String(outputMint));
   params.set("amount", String(amount));
   params.set("taker", String(taker));
+
+  const { referralAccount, referralFeeBps } = resolveUltraReferralParams();
+  if (referralAccount && referralFeeBps > 0) {
+    params.set("referralAccount", referralAccount);
+    params.set("referralFee", String(referralFeeBps));
+  }
+
   const url = `${JUPITER_ULTRA_ORDER_URL}?${params}`;
   const response = await getSentinelPayerFetch()(url, {
     method: "GET",

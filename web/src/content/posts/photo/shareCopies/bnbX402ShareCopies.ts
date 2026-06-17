@@ -2,43 +2,43 @@ import type { PostPhotoCardRole } from "../photoCardSlots";
 
 /** Per-card X copy for BNB x402 photo deck — 15 distinct topics. */
 export const BNB_X402_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `Agents don't stop at one chain. Neither does Syra.
+  cover: `Your agents build on BNB. Your treasury should stay there.
 
 x402 intelligence APIs now settle natively on BNB Smart Chain via Binance B402. Pay-per-call. No bridge. No subscription.
 
-Solana. Base. BSC. One brain. Your treasury stays where your agents live.
+Solana. Base. BSC. One brain. Three native rails.
 
 Try it → syraa.fun/playground`,
 
-  thesis: `BNB Smart Chain is one of the largest EVM ecosystems. Syra agents already trade on Solana and Base — they shouldn't bridge just to pay for intelligence.
+  thesis: `BNB builders shouldn't bridge just to pay for intelligence.
 
-Native B402 settlement means your treasury stays on BSC. Same x402 checkout. Same Syra agent brain.
+Syra agents already trade on Solana and Base. BNB Smart Chain is one of the largest EVM ecosystems — APIs needed native x402 settlement, not a workaround.
 
-Agents don't stop at one chain. Neither does Syra.`,
+Your treasury stays on BSC. Same checkout. Same agent brain.`,
 
-  quote: `"List once on x402 directories, settle where your treasury lives."
+  quote: `"List once on x402 directories. Settle where your treasury lives."
 
 Solana, Base, and BSC — one intelligence stack, three native payment rails.
 
-402 for price. Sign on your chain. Get the data your agents need.`,
+402 for price. Sign on your chain. Get the data.`,
 
-  flow: `How x402 works on BNB — end to end:
+  flow: `x402 on BNB — 4 steps, zero bridges:
 
 1. Agent hits a paid Syra API
 2. Server returns 402 with B402 on eip155:56
 3. Wallet signs EIP-3009 or Permit2 on BSC
 4. Intelligence unlocked. Settled natively.
 
-BNB builders shouldn't leave their chain to pay for research and market data. Now they don't have to.`,
+BNB builders stay on BNB. Test it → syraa.fun/playground`,
 
-  timeline: `BNB x402 checkout — step by step:
+  timeline: `BNB x402 checkout — native treasury, no bridge:
 
 → Call a paid Syra endpoint from agent or playground
 → Receive HTTP 402 with B402 accept on eip155:56
 → MetaMask signs EIP-3009 or Permit2 on BSC
 → B402 verifies and settles — payload unlocked
 
-No bridge. No subscription. Native BSC treasury.`,
+Your treasury never leaves BSC.`,
 
   pillars: `4 BSC stablecoins. One x402 checkout:
 
@@ -47,57 +47,65 @@ No bridge. No subscription. Native BSC treasury.`,
 → USDC on BSC (Permit2)
 → USDT on BSC (Permit2)
 
-List once on x402 directories. Settle where your treasury lives.`,
+List once. Settle where your treasury lives.`,
 
-  checklist: `What's live for BNB builders:
+  checklist: `Live for BNB builders today:
 
 → BSC network id eip155:56 in 402 accepts
 → B402 verify + settle on paid API calls
 → Micro-unit pricing mapped to 18-decimal BSC stables
-→ Full merchant inbound on BSC via Binance B402`,
+→ Full merchant inbound on BSC via Binance B402
 
-  metrics: `3 chains live. 4 BSC stables. HTTP-native micropayments.
+Test in playground → syraa.fun/playground`,
 
-Syra intelligence APIs settle on Solana, Base, and now BNB Smart Chain — through Binance B402, not a bridge workaround.
+  metrics: `3 chains. 4 BSC stables. HTTP-native micropayments.
+
+Syra intelligence APIs settle on Solana, Base, and BNB Smart Chain — through Binance B402, not a bridge.
 
 Multi-chain treasuries deserve multi-chain checkout.`,
 
-  featured: `402 — HTTP-native micropayments across 3 chains.
+  featured: `402 — pay per call, not per month.
 
-No API keys. No monthly bills. Hit an endpoint, get a price, sign on your chain, unlock intelligence.
+No API keys. No subscriptions. Hit an endpoint, get a price, sign on your chain, unlock intelligence.
 
-The payment primitive agents were built for — now on BSC.`,
+The payment primitive agents were built for — now native on BSC.`,
 
-  comparison: `Before: BNB agents bridged or skipped paid Syra APIs. No native settlement path.
+  comparison: `Before: BNB agents bridged or skipped paid Syra APIs. No native settlement.
 
 Now: 402 → sign on BSC → verify/settle via Binance B402. Same brain, BNB-native treasury.
 
-The friction between "I build on BNB" and "I need Syra intelligence" just disappeared.`,
+The friction between "I build on BNB" and "I need Syra data" just disappeared.
+
+→ syraa.fun/playground`,
 
   launch: `SHIP LOG · x402 on BNB Smart Chain is live.
 
-Pay-per-call intelligence APIs now settle natively via Binance B402 on eip155:56.
+Pay-per-call intelligence APIs settle natively via Binance B402 on eip155:56.
 
-USD1, U, USDC, USDT — four stable options. One checkout flow.
+USD1, U, USDC, USDT — four stables. One checkout. No bridge.
 
-Test in the playground → syraa.fun/playground`,
+Test now → syraa.fun/playground`,
 
   deepDive: `BNB x402 integration — technical surface:
 
 → API Playground with Binance chain tab
 → Agent wallet BSC funding and signing
 → Agent chat tools with x402 injection
-→ Shared x402 v2 core across Solana, Base, BSC`,
+→ Shared x402 v2 core across Solana, Base, BSC
 
-  split: `Multi-chain intelligence. Chain-native settlement.
+Docs → docs.syraa.fun`,
+
+  split: `One stack. Three native treasuries.
 
 SOLANA + BASE
 Existing x402 rails for autonomous traders and agents.
 
 BNB SMART CHAIN
-B402 on eip155:56. EIP-3009 and Permit2 signing via MetaMask.
+B402 on eip155:56. EIP-3009 and Permit2 via MetaMask.
 
-One Syra stack. Three treasuries. No bridge workaround.`,
+Same intelligence APIs. No bridge workaround.
+
+→ syraa.fun/playground`,
 
   terminal: `x402 on BSC from the terminal:
 

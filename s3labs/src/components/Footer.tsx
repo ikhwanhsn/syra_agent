@@ -23,13 +23,12 @@ const Footer = () => {
   const [telegramOpen, setTelegramOpen] = useState(false);
 
   const navLinks = [
-    { href: "#who-we-help", label: "Who We Help" },
-    { href: "#mission", label: "Mission" },
-    { href: "#benefits", label: "Benefits" },
-    { href: "#how-it-works", label: "How It Works" },
-    { href: "/post", label: "Signal Studio", isRoute: true },
+    { href: "/programs", label: "Programs", isRoute: true },
+    { href: "/portfolio", label: "Portfolio", isRoute: true },
+    { href: "/community", label: "Community", isRoute: true },
     { href: "/kol", label: "KOL Marketplace", isRoute: true },
-    { href: "#faq", label: "FAQ" },
+    { href: "/about", label: "About", isRoute: true },
+    { href: "/apply", label: "Apply", isRoute: true },
   ];
 
   return (

@@ -2,62 +2,64 @@ import type { PostPhotoCardRole } from "../photoCardSlots";
 
 /** Per-card X copy for Pact Network photo deck — 15 distinct topics. */
 export const PACT_NETWORK_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `Agent payments had no buyer protection. Until now.
+  cover: `Your agent pays $0.05 for Nansen. The API 500s. USDC is gone.
 
-Syra × Pact Network: automatic x402 refunds when paid API calls fail. 5xx, timeout, bad payload — principal + premium back on-chain.
+Not anymore.
 
-Nansen. Birdeye. Zerion. Covered.
+Syra × Pact Network: automatic x402 refunds when paid calls fail. 5xx, timeout, bad payload — principal + premium back on-chain.
 
 Try it → syraa.fun/chat`,
 
-  thesis: `Your agent pays Nansen $0.05. The API returns 500. The USDC is gone.
+  thesis: `Credit cards have chargebacks. Agent wallets didn't.
 
-Credit cards have chargebacks. Agent wallets didn't. Pact Network fixes that for every Syra outbound x402 call.
+Your agent pays Nansen $0.05. The API returns 500. The USDC is gone.
 
-Pay for intelligence. Get refunded when providers fail.`,
+Pact Network adds buyer protection to every Syra outbound x402 call. Pay for intelligence. Get refunded when providers fail.`,
 
-  quote: `"402 for price. Pact for recourse. Same Syra agent brain."
+  quote: `"402 settles the bill. Pact settles the refund."
 
-Agents still pay providers. Pact watches underneath and settles refunds on-chain when a covered call goes sideways.
+Same Syra agent brain. Same upstream checkout.
 
-No dispute form. No API key. Just buyer protection for the agent economy.`,
+Pact watches underneath and returns principal + premium on-chain when a covered call goes sideways.
+
+No dispute form. No ticket queue.`,
 
   flow: `How Pact refunds work on Syra:
 
-1. Agent pays x402 upstream (Nansen, Birdeye, etc.)
+1. Agent pays x402 upstream (Nansen, Birdeye, Zerion…)
 2. Pact Market proxy classifies the call
 3. 5xx / timeout / bad body = covered breach
 4. Refund settles to agent wallet on Solana
 
-Automatic. On-chain. No claim form.`,
+Pay. Fail. Refund. On-chain.`,
 
-  timeline: `Pact coverage path — step by step:
+  timeline: `Same checkout you already use. New recourse layer:
 
-→ Agent chat invokes a paid tool (e.g. nansen-profiler)
+→ Agent chat invokes a paid tool (nansen-profiler, etc.)
 → USDC settles via existing @x402/fetch pipeline
 → Pact wraps fetch and routes covered calls through proxy
 → Failure classified → SettleBatch refunds agent wallet
 
-Same checkout. New recourse layer.`,
+No new payment flow. Just buyer protection underneath.`,
 
-  pillars: `Four pillars of Syra × Pact:
+  pillars: `Four layers. One fetch resolver:
 
 → agentFetch: Sentinel + Pact composition
-→ @q3labs/pact-sdk drop-in fetch wrapper
-→ All agent*Client upstream calls covered
+→ @q3labs/pact-sdk drop-in wrapper
+→ 10+ agent*Client upstream calls covered
 → GET /agent/pact/refunds transparency ledger
 
 Buyer protection without rewriting x402.`,
 
-  checklist: `What's live with Pact on Syra:
+  checklist: `Pact is live on Syra today:
 
-✓ Pact always on for agent outbound paid fetch
+✓ Always on for agent outbound paid fetch
 ✓ Nansen, Birdeye, Zerion, Stableenrich covered
 ✓ Auto pact.setup() SPL approve on first use
 ✓ Refund events in MongoDB + read API
 ✓ Premium accounted in balance checks
 
-Your agents pay with confidence now.`,
+Pay upstream with confidence → syraa.fun/chat`,
 
   metrics: `Pact by the numbers on Syra:
 
@@ -68,11 +70,11 @@ Your agents pay with confidence now.`,
 
 402 for price. Pact for recourse.`,
 
-  featured: `Zero dispute forms.
+  featured: `Zero manual claims.
 
-When a covered Syra agent call fails after x402 payment, Pact refunds principal + premium on-chain at the next settlement window.
+Covered Syra agent call fails after x402 payment → Pact refunds principal + premium on-chain at the next settlement window.
 
-No negotiation. No ticket. The protocol decides.`,
+The protocol classifies the breach. Not a support desk.`,
 
   comparison: `Before Pact:
 Agent pays → API fails → money gone.
@@ -80,26 +82,27 @@ Agent pays → API fails → money gone.
 With Pact on Syra:
 Agent pays → API fails → automatic on-chain refund.
 
-Same x402 checkout. Same agent wallet. New buyer protection.`,
+Same x402 checkout. Same agent wallet. Buyer protection underneath.`,
 
-  launch: `INTEGRATION LIVE · Syra × Pact Network
+  launch: `LIVE — Syra × Pact Network
 
-Automatic x402 refunds for agent paid API calls. Chargebacks for the agent economy.
+Failed paid API call? USDC returns on-chain.
 
 Nansen. Birdeye. Zerion. Stable suite. All covered.
 
-pactnetwork.io/docs`,
+→ syraa.fun/chat
+→ pactnetwork.io/docs`,
 
-  deepDive: `Technical surface — Pact on Syra:
+  deepDive: `For builders — Pact on Syra:
 
 → api/libs/agentFetch.js composes fetch stack
 → pactFetch.js wraps @q3labs/pact-sdk per agent
 → agentX402Client + all agent*Clients migrated
 → models/PactRefund.js + GET /agent/pact/refunds
 
-Built for production. Default on.`,
+Default on. Production wired.`,
 
-  split: `Two layers. One fetch.
+  split: `Two layers. One fetch stack.
 
 Sentinel (optional): audit + budget caps when enabled.
 Pact (always): refund coverage for failed paid calls.
@@ -108,7 +111,7 @@ globalThis.fetch → Sentinel → Pact → upstream x402 provider.
 
 Composable. Never breaks the call.`,
 
-  terminal: `Pact refund check from CLI:
+  terminal: `Verify Pact refunds from CLI:
 
 $ curl api.syraa.fun/agent/pact/status
 { "enabled": true, "network": "mainnet" }
@@ -116,11 +119,11 @@ $ curl api.syraa.fun/agent/pact/status
 $ curl api.syraa.fun/agent/pact/refunds?anonymousId=...
 { "refunds": [{ "refundUsd": 0.05, "providerHost": "api.nansen.ai" }] }
 
-Transparency built in.`,
+On-chain settlement. API transparency.`,
 
-  cta: `Your agents deserve buyer protection.
+  cta: `Pay upstream APIs. Get refunded on failure.
 
-Syra × Pact Network is live. Pay upstream x402 APIs from agent chat. If a covered call fails, get refunded on-chain.
+Syra × Pact Network is live. Run agent chat with x402 tools — covered call fails, principal + premium return on-chain.
 
 → syraa.fun/chat
 → pactnetwork.io/docs

@@ -2,12 +2,9 @@
 import { Button } from "@/components/ui/button";
 import StatMetric from "@/components/landing/StatMetric";
 import { ArrowRight, Sparkles } from "lucide-react";
+import { Link } from "react-router-dom";
 
-interface HeroSectionProps {
-  onApplyClick: () => void;
-}
-
-const HeroSection = ({ onApplyClick }: HeroSectionProps) => {
+const HeroSection = () => {
 
   const stats = [
     { value: "$65K+", label: "Revenue Generated" },
@@ -62,16 +59,18 @@ const HeroSection = ({ onApplyClick }: HeroSectionProps) => {
             <Button
               variant="hero"
               size="xl"
-              onClick={onApplyClick}
+              asChild
               className="group btn-premium min-w-[220px]"
             >
-              {"Apply Your Project to S3 Labs"}
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              <Link to="/apply">
+                {"Apply Your Project to S3 Labs"}
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </Link>
             </Button>
             <Button variant="heroOutline" size="xl" asChild className="rounded-full min-w-[220px]">
-              <a href="#how-it-works">
+              <Link to="/programs">
                 {"Explore Our Programs"}
-              </a>
+              </Link>
             </Button>
           </div>
 

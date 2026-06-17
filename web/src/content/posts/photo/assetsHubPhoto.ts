@@ -19,7 +19,7 @@ export const ASSETS_HUB_PHOTO = definePhotoUpdate(ASSETS_HUB_POST.meta, [
       eyebrow: "Ship log",
       badge: "Board · Detail · Intel",
       title: "Assets Hub",
-      subtitle: "Full Tokens.xyz board, clean detail URLs, and Syra intelligence on every asset page.",
+      subtitle: "Full Tokens.xyz board. One page for dossier, sentiment, signal, news, and events.",
     }),
   },
   {
@@ -28,9 +28,9 @@ export const ASSETS_HUB_PHOTO = definePhotoUpdate(ASSETS_HUB_POST.meta, [
     shareCopy: copies.thesis,
     shareCopyFooter: footers.thesis,
     content: photoContent({
-      kicker: "Why this matters",
-      headline: "Discovery and conviction belong on one page.",
-      body: "Traders needed the whole Tokens.xyz universe in Syra — not eight hardcoded rows. They also needed dossier data plus news, sentiment, events, and signal without leaving the asset.",
+      kicker: "The gap",
+      headline: "Research shouldn't need six tabs.",
+      body: "Traders needed the full Tokens.xyz universe — not eight hardcoded rows. They needed dossier data plus news, sentiment, events, and signal on the same asset page.",
     }),
   },
   {
@@ -39,8 +39,8 @@ export const ASSETS_HUB_PHOTO = definePhotoUpdate(ASSETS_HUB_POST.meta, [
     shareCopy: copies.quote,
     shareCopyFooter: footers.quote,
     content: photoContent({
-      quote: "Discovery and conviction belong on one page.",
-      narrative: "Board → detail → dossier → sentiment, signal, news, events.",
+      quote: "Find the asset. Read the conviction. One scroll.",
+      narrative: "Board → detail → dossier → sentiment, signal, news, events. Discovery and research on one page.",
     }),
   },
   {
@@ -49,7 +49,7 @@ export const ASSETS_HUB_PHOTO = definePhotoUpdate(ASSETS_HUB_POST.meta, [
     shareCopy: copies.flow,
     content: photoContent({
       kicker: "How it works",
-      headline: "From board to conviction.",
+      headline: "Board to conviction in four steps.",
       steps: [
         { step: "01", title: "Open Assets", description: "Browse /assets with search, filters, and pagination." },
         { step: "02", title: "Pick an asset", description: "Tap any row — navigates to /assets/{assetId}." },
@@ -79,7 +79,7 @@ export const ASSETS_HUB_PHOTO = definePhotoUpdate(ASSETS_HUB_POST.meta, [
     shareCopy: copies.pillars,
     shareCopyFooter: footers.pillars,
     content: photoContent({
-      headline: "Four intelligence blocks.",
+      headline: "Four intel blocks per asset.",
       cards: [
         { title: "Sentiment", subtitle: "Headline tone", detail: "Bullish / bearish / neutral from asset-matched news.", accent: "gold" },
         { title: "Signal", subtitle: "OHLC engine", detail: "CoinGecko recommendation with confidence meter.", accent: "gold" },
@@ -94,7 +94,7 @@ export const ASSETS_HUB_PHOTO = definePhotoUpdate(ASSETS_HUB_POST.meta, [
     shareCopy: copies.checklist,
     shareCopyFooter: footers.checklist,
     content: photoContent({
-      headline: "Assets Hub is live.",
+      headline: "Assets Hub is live now.",
       highlights: [
         "Full Tokens.xyz universe with 10-row pagination",
         "Simplified board table UI",
@@ -109,7 +109,7 @@ export const ASSETS_HUB_PHOTO = definePhotoUpdate(ASSETS_HUB_POST.meta, [
     shareCopy: copies.metrics,
     shareCopyFooter: footers.metrics,
     content: photoContent({
-      headline: "Built for any asset.",
+      headline: "One page. Any asset.",
       stats: [
         { value: "4", label: "Intel blocks" },
         { value: "35+", label: "RSS sources" },
@@ -124,7 +124,7 @@ export const ASSETS_HUB_PHOTO = definePhotoUpdate(ASSETS_HUB_POST.meta, [
     shareCopy: copies.featured,
     shareCopyFooter: footers.featured,
     content: photoContent({
-      headline: "One detail page. Every block.",
+      headline: "Dossier plus intel. One URL.",
       stats: [{ value: "4", label: "Intelligence panels" }],
       narrative: "Price chart, risk, sentiment, signal, news, and events — without leaving /assets/{assetId}.",
     }),
@@ -138,7 +138,7 @@ export const ASSETS_HUB_PHOTO = definePhotoUpdate(ASSETS_HUB_POST.meta, [
       headline: "Before vs now.",
       compareLeft: {
         title: "Before",
-        body: "Hardcoded asset list. Query-string URLs. Dossier only — no news or signal on the page.",
+        body: "Eight hardcoded assets. Query-string URLs. Dossier only — no news or signal on page.",
       },
       compareRight: {
         title: "Now",
@@ -156,7 +156,7 @@ export const ASSETS_HUB_PHOTO = definePhotoUpdate(ASSETS_HUB_POST.meta, [
       partnerName: "Tokens.xyz",
       partnerLogo: "/images/partners/tokens.png",
       headline: "Syra × Tokens.xyz",
-      subtitle: "Full asset board, dossier detail, and per-asset intelligence on Syra.",
+      subtitle: "Full asset board, dossier detail, and per-asset intelligence — one research page.",
     }),
   },
   {
@@ -166,7 +166,7 @@ export const ASSETS_HUB_PHOTO = definePhotoUpdate(ASSETS_HUB_POST.meta, [
     shareCopyFooter: footers.deepDive,
     content: photoContent({
       kicker: "Technical surface",
-      headline: "Intelligence data pipeline.",
+      headline: "Intelligence pipeline for builders.",
       items: [
         "GET /agent/tokens/intelligence?assetId= aggregates four blocks",
         "assetIntelligenceResolver maps name → keywordQuery",
@@ -182,7 +182,7 @@ export const ASSETS_HUB_PHOTO = definePhotoUpdate(ASSETS_HUB_POST.meta, [
     shareCopyFooter: footers.split,
     content: photoContent({
       badge: "Two surfaces",
-      headline: "Board discovers. Detail convinces.",
+      headline: "Board finds. Detail convinces.",
       body: "The board paginates the full catalog. The detail page loads dossier market data and four intelligence panels in parallel.",
       highlights: [
         "Search + crypto/equity filters",
@@ -197,7 +197,7 @@ export const ASSETS_HUB_PHOTO = definePhotoUpdate(ASSETS_HUB_POST.meta, [
     layout: "photo-terminal",
     shareCopy: copies.terminal,
     content: photoContent({
-      headline: "Intelligence API response.",
+      headline: "Pull intel from the API.",
       terminalLines: [
         "$ curl syraa.fun/agent/tokens/intelligence?assetId=solana",
         "> sentiment: ok · bullish 42% · bearish 18%",
@@ -213,8 +213,8 @@ export const ASSETS_HUB_PHOTO = definePhotoUpdate(ASSETS_HUB_POST.meta, [
     layout: "photo-closing-cta",
     shareCopy: copies.cta,
     content: photoContent({
-      headline: "Open the Assets board today.",
-      subtitle: "Pick any asset, read the dossier, and scroll into intelligence.",
+      headline: "Research any asset in one place.",
+      subtitle: "Browse the board, open a detail page, scroll into sentiment, signal, news, and events.",
       links: [
         { label: "Assets", value: "syraa.fun/assets", href: "https://www.syraa.fun/assets" },
         { label: "SOL", value: "/assets/solana", href: "https://www.syraa.fun/assets/solana" },

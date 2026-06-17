@@ -103,7 +103,7 @@ function coercePick(obj, articles) {
   if (!raw || typeof raw !== "object") return null;
 
   const x = /** @type {Record<string, unknown>} */ (raw);
-  const title = String(x.title || x.judul || "").trim();
+  const title = String(x.title || "").trim();
   if (!title) return null;
 
   const url = String(x.url || "").trim();
@@ -111,12 +111,12 @@ function coercePick(obj, articles) {
   const sourceArticle = url ? articleByUrl.get(url.toLowerCase()) : undefined;
 
   return {
-    category: coerceCategory(x.category || x.kategori),
+    category: coerceCategory(x.category),
     title: title.slice(0, 200),
-    summary: String(x.summary || x.ringkasan || "").slice(0, 350),
-    whyItMatters: String(x.whyItMatters || x.mengapaPenting || x.kenapaPenting || "").slice(0, 250),
+    summary: String(x.summary || "").slice(0, 350),
+    whyItMatters: String(x.whyItMatters || "").slice(0, 250),
     url: url || sourceArticle?.url || "",
-    source: String(x.source || x.sumber || sourceArticle?.source || "unknown").slice(0, 80),
+    source: String(x.source || sourceArticle?.source || "unknown").slice(0, 80),
     heatScore: typeof x.heatScore === "number" ? x.heatScore : undefined,
   };
 }
@@ -190,7 +190,7 @@ Output ONLY JSON:
 
 Rules:
 - Only ONE pick. Do not return a list.
-- All text (title, summary, whyItMatters) in natural English.
+- CRITICAL: All text (title, summary, whyItMatters) MUST be in English only. Never use Indonesian or other languages.
 - Do not invent facts beyond article title/description.
 - Prioritize recent, high-impact news.
 - No markdown fence.`,

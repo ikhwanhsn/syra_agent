@@ -7,6 +7,7 @@ import KolCampaign from "../models/KolCampaign.js";
 import KolSubmission from "../models/KolSubmission.js";
 import KolEngagementSnapshot from "../models/KolEngagementSnapshot.js";
 import KolPayout from "../models/KolPayout.js";
+import KolReputation from "../models/KolReputation.js";
 import {
   computeProRataPayouts,
   fetchSourceTweet,
@@ -26,10 +27,100 @@ import {
   sendPayout,
   verifyDeposit,
 } from "../services/kolPoolWallet.js";
-import { isTwitterApiIoConfigured } from "./twitterApiIoClient.js";
+import { getTweetById, getUserInfo, isTwitterApiIoConfigured } from "./twitterApiIoClient.js";
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
 const MIN_REWARD_LAMPORTS = 10_000_000; // 0.01 SOL
+
+/**
+ * @param {string} handle
+ */
+function normalizeHandle(handle) {
+  return String(handle || "")
+    .trim()
+    .replace(/^@/, "")
+    .toLowerCase();
+}
+
+/**
+ * @param {{ userName?: string; name?: string; followers?: number; verified?: boolean } | null | undefined} author
+ */
+function authorFieldsFromTweet(author) {
+  const handle = String(author?.userName || "")
+    .trim()
+    .replace(/^@/, "");
+  if (!handle) {
+    return {
+      sourceAuthorHandle: null,
+      sourceAuthorName: null,
+      sourceAuthorFollowers: null,
+      sourceAuthorVerified: false,
+    };
+  }
+  return {
+    sourceAuthorHandle: handle,
+    sourceAuthorName: String(author?.name || handle).trim() || handle,
+    sourceAuthorFollowers:
+      author?.followers != null && Number.isFinite(Number(author.followers))
+        ? Number(author.followers)
+        : null,
+    sourceAuthorVerified: Boolean(author?.verified),
+  };
+}
+
+/**
+ * @param {{ likeCount?: number; retweetCount?: number; replyCount?: number; quoteCount?: number; viewCount?: number } | null | undefined} metrics
+ */
+function sumEngagementMetrics(metrics) {
+  return {
+    likes: metrics?.likeCount ?? 0,
+    retweets: metrics?.retweetCount ?? 0,
+    replies: metrics?.replyCount ?? 0,
+    quotes: metrics?.quoteCount ?? 0,
+    views: metrics?.viewCount ?? 0,
+  };
+}
+
+/**
+ * @param {{ likes: number; retweets: number; replies: number; quotes: number; views: number }} totals
+ */
+function engagementTotal(totals) {
+  return totals.likes + totals.retweets + totals.replies + totals.quotes + totals.views;
+}
+
+/**
+ * @param {unknown} error
+ */
+function throwIfDuplicateSubmissionError(error) {
+  if (!error || typeof error !== "object" || !("code" in error) || error.code !== 11000) {
+    throw error;
+  }
+
+  const mongoErr = /** @type {{ keyPattern?: Record<string, unknown>; keyValue?: Record<string, unknown> }} */ (
+    error
+  );
+  const keyPattern = mongoErr.keyPattern ?? {};
+
+  if (keyPattern.tweetId) {
+    const dup = new Error("This post was already submitted to this campaign");
+    dup.code = "duplicate_post";
+    throw dup;
+  }
+  if (keyPattern.authorHandleKey) {
+    const dup = new Error("This X account already submitted one post for this campaign");
+    dup.code = "duplicate_kol_handle";
+    throw dup;
+  }
+  if (keyPattern.kolWallet) {
+    const dup = new Error("This wallet already submitted for this campaign");
+    dup.code = "duplicate_submission";
+    throw dup;
+  }
+
+  const dup = new Error("This submission already exists for this campaign");
+  dup.code = "duplicate_submission";
+  throw dup;
+}
 
 function assertMongo() {
   if (!isMongooseConnected()) {
@@ -96,6 +187,10 @@ function serializeCampaign(campaign) {
     sourceTweetId: doc.sourceTweetId,
     sourceTweetUrl: doc.sourceTweetUrl,
     sourceTweetText: doc.sourceTweetText || "",
+    sourceAuthorHandle: doc.sourceAuthorHandle ?? null,
+    sourceAuthorName: doc.sourceAuthorName ?? null,
+    sourceAuthorFollowers: doc.sourceAuthorFollowers ?? null,
+    sourceAuthorVerified: Boolean(doc.sourceAuthorVerified),
     title: doc.title,
     description: doc.description || "",
     rewardLamports: doc.rewardLamports,
@@ -134,9 +229,14 @@ function serializeSubmission(submission) {
     tweetUrl: doc.tweetUrl,
     mode: doc.mode,
     authorHandle: doc.authorHandle,
+    authorHandleKey: doc.authorHandleKey ?? normalizeHandle(doc.authorHandle),
     verified: doc.verified,
     latestMetrics: doc.latestMetrics || {},
     latestScore: doc.latestScore ?? 0,
+    finalScore: doc.finalScore ?? null,
+    reputationCreditedAt: doc.reputationCreditedAt
+      ? new Date(doc.reputationCreditedAt).toISOString()
+      : null,
     projectedLamports: doc.projectedLamports ?? 0,
     projectedSol: (doc.projectedLamports ?? 0) / LAMPORTS_PER_SOL,
     createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : null,
@@ -186,12 +286,14 @@ export async function createCampaign(input) {
   }
 
   const sourceTweet = await fetchSourceTweet(input.sourceTweetUrl);
+  const authorFields = authorFieldsFromTweet(sourceTweet.author);
 
   const campaign = await KolCampaign.create({
     projectWallet,
     sourceTweetId: sourceTweet.id,
     sourceTweetUrl: sourceTweet.url,
     sourceTweetText: sourceTweet.text,
+    ...authorFields,
     title,
     description: String(input.description || "").trim(),
     rewardLamports,
@@ -384,29 +486,62 @@ export async function createSubmission(campaignId, input) {
   }
 
   const validated = await validateSubmissionTweet(campaign.sourceTweetId, input.tweetUrl);
+  const authorHandle = validated.authorHandle;
+  const authorHandleKey = normalizeHandle(authorHandle);
+  const tweetId = validated.tweetId;
+
+  const existingByTweet = await KolSubmission.findOne({
+    campaignId: campaign._id,
+    tweetId,
+  });
+  if (existingByTweet) {
+    const err = new Error("This post was already submitted to this campaign");
+    err.code = "duplicate_post";
+    throw err;
+  }
+
+  const handleRegex = new RegExp(
+    `^${authorHandleKey.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
+    "i",
+  );
+  const existingByHandle = await KolSubmission.findOne({
+    campaignId: campaign._id,
+    $or: [{ authorHandleKey }, { authorHandle: handleRegex }],
+  });
+  if (existingByHandle) {
+    const err = new Error("This X account already submitted one post for this campaign");
+    err.code = "duplicate_kol_handle";
+    throw err;
+  }
 
   const existingWallet = await KolSubmission.findOne({
     campaignId: campaign._id,
     kolWallet,
   });
   if (existingWallet) {
-    const err = new Error("You already submitted for this campaign");
+    const err = new Error("This wallet already submitted for this campaign");
     err.code = "duplicate_submission";
     throw err;
   }
 
-  const submission = await KolSubmission.create({
-    campaignId: campaign._id,
-    kolWallet,
-    tweetId: validated.tweetId,
-    tweetUrl: validated.tweetUrl,
-    mode: validated.mode,
-    authorHandle: validated.authorHandle,
-    verified: true,
-    latestMetrics: validated.metrics,
-    latestScore: validated.score,
-    projectedLamports: 0,
-  });
+  let submission;
+  try {
+    submission = await KolSubmission.create({
+      campaignId: campaign._id,
+      kolWallet,
+      tweetId,
+      tweetUrl: validated.tweetUrl,
+      mode: validated.mode,
+      authorHandle,
+      authorHandleKey,
+      verified: true,
+      latestMetrics: validated.metrics,
+      latestScore: validated.score,
+      projectedLamports: 0,
+    });
+  } catch (e) {
+    throwIfDuplicateSubmissionError(e);
+  }
 
   await refreshCampaignProjections(campaign._id);
 
@@ -454,6 +589,7 @@ export async function refreshCampaignMetrics(campaignId) {
       submission.latestMetrics = metrics.metrics;
       submission.latestScore = metrics.score;
       submission.authorHandle = metrics.authorHandle;
+      submission.authorHandleKey = normalizeHandle(metrics.authorHandle);
       await submission.save();
 
       await KolEngagementSnapshot.create({
@@ -480,6 +616,46 @@ export async function refreshCampaignMetrics(campaignId) {
 }
 
 /**
+ * Credit final engagement scores to KOL reputation when a campaign completes.
+ * @param {import("mongoose").Types.ObjectId | string} campaignId
+ * @param {Array<import("../models/KolSubmission.js").default | Record<string, unknown>>} submissions
+ */
+async function creditKolReputationsForCampaign(campaignId, submissions) {
+  const credited = [];
+
+  for (const row of submissions) {
+    const submission = await KolSubmission.findById(row._id);
+    if (!submission || submission.reputationCreditedAt) continue;
+
+    const handleKey =
+      submission.authorHandleKey || normalizeHandle(submission.authorHandle);
+    const finalScore = submission.latestScore ?? 0;
+
+    await KolReputation.findOneAndUpdate(
+      { handleKey },
+      {
+        $setOnInsert: { handle: submission.authorHandle },
+        $inc: { reputationScore: finalScore, campaignsCompleted: 1 },
+        $set: { lastScoreAt: new Date() },
+      },
+      { upsert: true },
+    );
+
+    submission.finalScore = finalScore;
+    submission.reputationCreditedAt = new Date();
+    await submission.save();
+
+    credited.push({
+      submissionId: String(submission._id),
+      handle: submission.authorHandle,
+      finalScore,
+    });
+  }
+
+  return { campaignId: String(campaignId), credited };
+}
+
+/**
  * @param {import("mongoose").Types.ObjectId | string} campaignId
  */
 export async function finalizeCampaign(campaignId) {
@@ -499,6 +675,7 @@ export async function finalizeCampaign(campaignId) {
   await refreshCampaignMetrics(campaign._id);
 
   const submissions = await KolSubmission.find({ campaignId: campaign._id }).lean();
+  const reputationResults = await creditKolReputationsForCampaign(campaign._id, submissions);
   const kolPool = getCampaignKolPoolLamports(campaign);
   const payoutRows = computeProRataPayouts(submissions, kolPool);
   const platformFeeLamports = getCampaignPlatformFeeLamports(campaign);
@@ -594,7 +771,7 @@ export async function finalizeCampaign(campaignId) {
   campaign.finalizedAt = new Date();
   await campaign.save();
 
-  return { success: true, payouts: results };
+  return { success: true, payouts: results, reputation: reputationResults };
 }
 
 /**
@@ -696,4 +873,587 @@ export async function runKolDailyTick() {
   }
 
   return { success: true, refreshed, finalized };
+}
+
+/**
+ * Backfill source tweet author fields for legacy campaigns.
+ * @param {{ limit?: number }} [opts]
+ */
+export async function enrichMissingCampaignAuthors(opts = {}) {
+  assertMongo();
+  if (!isTwitterApiIoConfigured()) {
+    return { enriched: 0, skipped: true, reason: "twitterapi_unavailable" };
+  }
+
+  const limit = Math.min(Math.max(Number(opts.limit) || 50, 1), 200);
+  const campaigns = await KolCampaign.find({
+    $or: [{ sourceAuthorHandle: null }, { sourceAuthorHandle: "" }],
+  })
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .lean();
+
+  let enriched = 0;
+  for (const campaign of campaigns) {
+    try {
+      const { tweet } = await getTweetById(campaign.sourceTweetId);
+      const fields = authorFieldsFromTweet(tweet.author);
+      if (!fields.sourceAuthorHandle) continue;
+      await KolCampaign.updateOne({ _id: campaign._id }, { $set: fields });
+      enriched += 1;
+    } catch (e) {
+      console.warn(
+        `[kol] author backfill failed campaign=${campaign._id}:`,
+        e instanceof Error ? e.message : e,
+      );
+    }
+  }
+
+  return { enriched, attempted: campaigns.length };
+}
+
+/**
+ * Backfill authorHandleKey on legacy submissions (required for one-KOL-per-campaign index).
+ * @param {{ limit?: number }} [opts]
+ */
+export async function backfillSubmissionAuthorKeys(opts = {}) {
+  assertMongo();
+
+  const limit = Math.min(Math.max(Number(opts.limit) || 200, 1), 500);
+  const submissions = await KolSubmission.find({
+    $or: [
+      { authorHandleKey: null },
+      { authorHandleKey: "" },
+      { authorHandleKey: { $exists: false } },
+    ],
+  })
+    .limit(limit)
+    .lean();
+
+  let updated = 0;
+  for (const submission of submissions) {
+    const authorHandleKey = normalizeHandle(submission.authorHandle);
+    if (!authorHandleKey) continue;
+    await KolSubmission.updateOne({ _id: submission._id }, { $set: { authorHandleKey } });
+    updated += 1;
+  }
+
+  return { updated, attempted: submissions.length };
+}
+
+/**
+ * Credit reputation for completed campaigns that were finalized before reputation tracking.
+ * @param {{ limit?: number }} [opts]
+ */
+export async function backfillKolReputations(opts = {}) {
+  assertMongo();
+
+  const limit = Math.min(Math.max(Number(opts.limit) || 20, 1), 50);
+  const campaigns = await KolCampaign.find({ status: "completed" })
+    .sort({ finalizedAt: -1 })
+    .limit(limit)
+    .lean();
+
+  const results = [];
+  for (const campaign of campaigns) {
+    const submissions = await KolSubmission.find({ campaignId: campaign._id }).lean();
+    const credited = await creditKolReputationsForCampaign(campaign._id, submissions);
+    if (credited.credited.length > 0) results.push(credited);
+  }
+
+  return { campaignsProcessed: campaigns.length, credited: results };
+}
+
+/**
+ * Marketplace-wide aggregate statistics.
+ */
+export async function getMarketplaceStats() {
+  assertMongo();
+
+  const [
+    campaignStatusCounts,
+    uniqueKols,
+    uniqueProjects,
+    rewardAgg,
+    paidAgg,
+    submissionCount,
+    engagementAgg,
+  ] = await Promise.all([
+    KolCampaign.aggregate([
+      {
+        $group: {
+          _id: "$status",
+          count: { $sum: 1 },
+        },
+      },
+    ]),
+    KolSubmission.distinct("authorHandle"),
+    KolCampaign.distinct("sourceAuthorHandle", {
+      sourceAuthorHandle: { $nin: [null, ""] },
+    }),
+    KolCampaign.aggregate([
+      { $match: { status: { $in: ["active", "completed"] } } },
+      {
+        $group: {
+          _id: null,
+          totalRewardLamports: { $sum: "$rewardLamports" },
+          totalKolPoolLamports: {
+            $sum: {
+              $cond: [
+                { $gt: ["$kolRewardPoolLamports", 0] },
+                "$kolRewardPoolLamports",
+                { $multiply: ["$rewardLamports", 0.8] },
+              ],
+            },
+          },
+        },
+      },
+    ]),
+    KolPayout.aggregate([
+      { $match: { status: "confirmed" } },
+      { $group: { _id: null, totalPaidLamports: { $sum: "$lamports" } } },
+    ]),
+    KolSubmission.countDocuments(),
+    KolSubmission.aggregate([
+      {
+        $group: {
+          _id: null,
+          likes: { $sum: { $ifNull: ["$latestMetrics.likeCount", 0] } },
+          retweets: { $sum: { $ifNull: ["$latestMetrics.retweetCount", 0] } },
+          replies: { $sum: { $ifNull: ["$latestMetrics.replyCount", 0] } },
+          quotes: { $sum: { $ifNull: ["$latestMetrics.quoteCount", 0] } },
+          views: { $sum: { $ifNull: ["$latestMetrics.viewCount", 0] } },
+        },
+      },
+    ]),
+  ]);
+
+  const statusMap = new Map(campaignStatusCounts.map((r) => [r._id, r.count]));
+  const totalCampaigns = [...statusMap.values()].reduce((a, b) => a + b, 0);
+  const totalRewardLamports = rewardAgg[0]?.totalRewardLamports ?? 0;
+  const totalKolPoolLamports = Math.floor(rewardAgg[0]?.totalKolPoolLamports ?? 0);
+  const totalPaidLamports = paidAgg[0]?.totalPaidLamports ?? 0;
+  const engagement = engagementAgg[0] ?? {
+    likes: 0,
+    retweets: 0,
+    replies: 0,
+    quotes: 0,
+    views: 0,
+  };
+
+  return {
+    totalCampaigns,
+    activeCampaigns: statusMap.get("active") ?? 0,
+    completedCampaigns: statusMap.get("completed") ?? 0,
+    pendingDepositCampaigns: statusMap.get("pending_deposit") ?? 0,
+    uniqueKols: uniqueKols.filter(Boolean).length,
+    uniqueProjects: uniqueProjects.filter(Boolean).length,
+    totalSubmissions: submissionCount,
+    totalRewardLamports,
+    totalRewardSol: totalRewardLamports / LAMPORTS_PER_SOL,
+    totalKolPoolLamports,
+    totalKolPoolSol: totalKolPoolLamports / LAMPORTS_PER_SOL,
+    totalPaidLamports,
+    totalPaidSol: totalPaidLamports / LAMPORTS_PER_SOL,
+    engagement: {
+      likes: engagement.likes,
+      retweets: engagement.retweets,
+      replies: engagement.replies,
+      quotes: engagement.quotes,
+      views: engagement.views,
+      total: engagementTotal(engagement),
+    },
+  };
+}
+
+/**
+ * @param {{ limit?: number; sort?: string }} [opts]
+ */
+export async function listProjects(opts = {}) {
+  assertMongo();
+
+  const limit = Math.min(Math.max(Number(opts.limit) || 50, 1), 100);
+  const sortKey = String(opts.sort || "funded").trim();
+
+  const projectAgg = await KolCampaign.aggregate([
+    { $match: { sourceAuthorHandle: { $nin: [null, ""] } } },
+    {
+      $group: {
+        _id: { $toLower: "$sourceAuthorHandle" },
+        handle: { $first: "$sourceAuthorHandle" },
+        name: { $first: "$sourceAuthorName" },
+        followers: { $first: "$sourceAuthorFollowers" },
+        verified: { $first: "$sourceAuthorVerified" },
+        campaignCount: { $sum: 1 },
+        activeCampaignCount: {
+          $sum: { $cond: [{ $eq: ["$status", "active"] }, 1, 0] },
+        },
+        completedCampaignCount: {
+          $sum: { $cond: [{ $eq: ["$status", "completed"] }, 1, 0] },
+        },
+        totalFundedLamports: {
+          $sum: {
+            $cond: [
+              { $in: ["$status", ["active", "completed"]] },
+              "$rewardLamports",
+              0,
+            ],
+          },
+        },
+        totalKolPoolLamports: {
+          $sum: {
+            $cond: [
+              { $in: ["$status", ["active", "completed"]] },
+              {
+                $cond: [
+                  { $gt: ["$kolRewardPoolLamports", 0] },
+                  "$kolRewardPoolLamports",
+                  { $multiply: ["$rewardLamports", 0.8] },
+                ],
+              },
+              0,
+            ],
+          },
+        },
+        lastActivityAt: { $max: "$updatedAt" },
+        campaignIds: { $push: "$_id" },
+      },
+    },
+  ]);
+
+  const allCampaignIds = projectAgg.flatMap((p) => p.campaignIds);
+  const kolReachAgg =
+    allCampaignIds.length > 0
+      ? await KolSubmission.aggregate([
+          { $match: { campaignId: { $in: allCampaignIds } } },
+          {
+            $group: {
+              _id: "$campaignId",
+              kols: { $addToSet: "$authorHandle" },
+            },
+          },
+        ])
+      : [];
+
+  const kolsByCampaign = new Map(
+    kolReachAgg.map((r) => [String(r._id), r.kols.length]),
+  );
+
+  let projects = projectAgg.map((p) => {
+    const kolsReached = p.campaignIds.reduce(
+      (sum, id) => sum + (kolsByCampaign.get(String(id)) ?? 0),
+      0,
+    );
+    return {
+      handle: p.handle,
+      name: p.name || p.handle,
+      followers: p.followers ?? null,
+      verified: Boolean(p.verified),
+      campaignCount: p.campaignCount,
+      activeCampaignCount: p.activeCampaignCount,
+      completedCampaignCount: p.completedCampaignCount,
+      totalFundedLamports: p.totalFundedLamports,
+      totalFundedSol: p.totalFundedLamports / LAMPORTS_PER_SOL,
+      totalKolPoolLamports: Math.floor(p.totalKolPoolLamports),
+      totalKolPoolSol: Math.floor(p.totalKolPoolLamports) / LAMPORTS_PER_SOL,
+      kolsReached,
+      lastActivityAt: p.lastActivityAt ? new Date(p.lastActivityAt).toISOString() : null,
+    };
+  });
+
+  const sortFns = {
+    funded: (a, b) => b.totalFundedLamports - a.totalFundedLamports,
+    campaigns: (a, b) => b.campaignCount - a.campaignCount,
+    kols: (a, b) => b.kolsReached - a.kolsReached,
+    recent: (a, b) =>
+      new Date(b.lastActivityAt || 0).getTime() - new Date(a.lastActivityAt || 0).getTime(),
+  };
+  projects.sort(sortFns[sortKey] ?? sortFns.funded);
+  projects = projects.slice(0, limit);
+
+  return { projects };
+}
+
+/**
+ * @param {{ limit?: number; sort?: string }} [opts]
+ */
+export async function listKols(opts = {}) {
+  assertMongo();
+
+  const limit = Math.min(Math.max(Number(opts.limit) || 50, 1), 100);
+  const sortKey = String(opts.sort || "earned").trim();
+
+  const kolAgg = await KolSubmission.aggregate([
+    {
+      $lookup: {
+        from: "kolcampaigns",
+        localField: "campaignId",
+        foreignField: "_id",
+        as: "campaignDoc",
+      },
+    },
+    {
+      $addFields: {
+        campaignStatus: { $arrayElemAt: ["$campaignDoc.status", 0] },
+      },
+    },
+    {
+      $group: {
+        _id: { $toLower: "$authorHandle" },
+        handle: { $first: "$authorHandle" },
+        submissionCount: { $sum: 1 },
+        campaignIds: { $addToSet: "$campaignId" },
+        activeScore: {
+          $sum: {
+            $cond: [
+              { $eq: ["$campaignStatus", "active"] },
+              { $ifNull: ["$latestScore", 0] },
+              0,
+            ],
+          },
+        },
+        likes: { $sum: { $ifNull: ["$latestMetrics.likeCount", 0] } },
+        retweets: { $sum: { $ifNull: ["$latestMetrics.retweetCount", 0] } },
+        replies: { $sum: { $ifNull: ["$latestMetrics.replyCount", 0] } },
+        quotes: { $sum: { $ifNull: ["$latestMetrics.quoteCount", 0] } },
+        views: { $sum: { $ifNull: ["$latestMetrics.viewCount", 0] } },
+        projectedLamports: { $sum: { $ifNull: ["$projectedLamports", 0] } },
+        submissionIds: { $push: "$_id" },
+        lastActivityAt: { $max: "$updatedAt" },
+      },
+    },
+  ]);
+
+  const allSubmissionIds = kolAgg.flatMap((k) => k.submissionIds);
+  const paidAgg =
+    allSubmissionIds.length > 0
+      ? await KolPayout.aggregate([
+          {
+            $match: {
+              submissionId: { $in: allSubmissionIds },
+              status: "confirmed",
+            },
+          },
+          {
+            $group: {
+              _id: "$submissionId",
+              lamports: { $first: "$lamports" },
+            },
+          },
+        ])
+      : [];
+  const paidBySubmission = new Map(paidAgg.map((p) => [String(p._id), p.lamports]));
+
+  const handleKeys = kolAgg.map((k) => normalizeHandle(k.handle));
+  const reputations = await KolReputation.find({ handleKey: { $in: handleKeys } }).lean();
+  const repMap = new Map(reputations.map((r) => [r.handleKey, r]));
+
+  let kols = kolAgg.map((k) => {
+    const earnedLamports = k.submissionIds.reduce(
+      (sum, id) => sum + (paidBySubmission.get(String(id)) ?? 0),
+      0,
+    );
+    const engagement = {
+      likes: k.likes,
+      retweets: k.retweets,
+      replies: k.replies,
+      quotes: k.quotes,
+      views: k.views,
+    };
+    const handleKey = normalizeHandle(k.handle);
+    const reputation = repMap.get(handleKey);
+    const reputationScore = reputation?.reputationScore ?? 0;
+    const activeScore = k.activeScore ?? 0;
+    return {
+      handle: k.handle,
+      campaignCount: k.campaignIds.length,
+      submissionCount: k.submissionCount,
+      reputationScore: Math.round(reputationScore * 10) / 10,
+      activeScore: Math.round(activeScore * 10) / 10,
+      totalScore: Math.round((reputationScore + activeScore) * 10) / 10,
+      campaignsCompleted: reputation?.campaignsCompleted ?? 0,
+      engagement: { ...engagement, total: engagementTotal(engagement) },
+      projectedLamports: k.projectedLamports,
+      projectedSol: k.projectedLamports / LAMPORTS_PER_SOL,
+      earnedLamports,
+      earnedSol: earnedLamports / LAMPORTS_PER_SOL,
+      lastActivityAt: k.lastActivityAt ? new Date(k.lastActivityAt).toISOString() : null,
+    };
+  });
+
+  const sortFns = {
+    earned: (a, b) => b.earnedLamports - a.earnedLamports || b.totalScore - a.totalScore,
+    score: (a, b) => b.totalScore - a.totalScore || b.reputationScore - a.reputationScore,
+    engagement: (a, b) => b.engagement.total - a.engagement.total,
+    campaigns: (a, b) => b.campaignCount - a.campaignCount,
+    recent: (a, b) =>
+      new Date(b.lastActivityAt || 0).getTime() - new Date(a.lastActivityAt || 0).getTime(),
+  };
+  kols.sort(sortFns[sortKey] ?? sortFns.earned);
+  kols = kols.slice(0, limit);
+
+  return { kols };
+}
+
+/**
+ * Unified profile by X username (project + KOL roles).
+ * @param {string} username
+ */
+export async function getProfile(username) {
+  assertMongo();
+
+  const handle = normalizeHandle(username);
+  if (!handle) {
+    const err = new Error("username is required");
+    err.code = "invalid_handle";
+    throw err;
+  }
+
+  const handleRegex = new RegExp(`^${handle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i");
+
+  const [campaigns, submissions, reputation] = await Promise.all([
+    KolCampaign.find({ sourceAuthorHandle: handleRegex })
+      .sort({ createdAt: -1 })
+      .lean(),
+    KolSubmission.find({ authorHandle: handleRegex })
+      .sort({ createdAt: -1 })
+      .lean(),
+    KolReputation.findOne({ handleKey: handle }).lean(),
+  ]);
+
+  if (campaigns.length === 0 && submissions.length === 0) {
+    const err = new Error("Profile not found");
+    err.code = "not_found";
+    throw err;
+  }
+
+  const submissionIds = submissions.map((s) => s._id);
+  const campaignIds = [...new Set(submissions.map((s) => String(s.campaignId)))];
+  const relatedCampaigns =
+    campaignIds.length > 0
+      ? await KolCampaign.find({ _id: { $in: campaignIds } }).lean()
+      : [];
+  const campaignMap = new Map(relatedCampaigns.map((c) => [String(c._id), c]));
+
+  const payouts =
+    submissionIds.length > 0
+      ? await KolPayout.find({
+          submissionId: { $in: submissionIds },
+          status: "confirmed",
+        }).lean()
+      : [];
+  const payoutMap = new Map(payouts.map((p) => [String(p.submissionId), p]));
+
+  const projectFundedLamports = campaigns
+    .filter((c) => c.status === "active" || c.status === "completed")
+    .reduce((sum, c) => sum + (c.rewardLamports ?? 0), 0);
+
+  const projectKolPoolLamports = campaigns
+    .filter((c) => c.status === "active" || c.status === "completed")
+    .reduce((sum, c) => sum + getCampaignKolPoolLamports(c), 0);
+
+  let kolEngagement = { likes: 0, retweets: 0, replies: 0, quotes: 0, views: 0 };
+  let kolActiveScore = 0;
+  let kolEarnedLamports = 0;
+  let kolProjectedLamports = 0;
+
+  const engagementRows = submissions.map((s) => {
+    const m = sumEngagementMetrics(s.latestMetrics);
+    kolEngagement.likes += m.likes;
+    kolEngagement.retweets += m.retweets;
+    kolEngagement.replies += m.replies;
+    kolEngagement.quotes += m.quotes;
+    kolEngagement.views += m.views;
+
+    const payout = payoutMap.get(String(s._id));
+    const campaign = campaignMap.get(String(s.campaignId));
+    if (campaign?.status === "active") {
+      kolActiveScore += s.latestScore ?? 0;
+    }
+
+    if (payout) {
+      kolEarnedLamports += payout.lamports;
+    } else if (campaign?.status === "active") {
+      kolProjectedLamports += s.projectedLamports ?? 0;
+    }
+
+    return {
+      submission: serializeSubmission(s),
+      campaign: campaign ? serializeCampaign(campaign) : null,
+      payout: payout
+        ? {
+            lamports: payout.lamports,
+            sol: payout.lamports / LAMPORTS_PER_SOL,
+            txSignature: payout.txSignature,
+            status: payout.status,
+          }
+        : null,
+    };
+  });
+
+  const displayHandle =
+    campaigns[0]?.sourceAuthorHandle ?? submissions[0]?.authorHandle ?? handle;
+  const displayName = campaigns[0]?.sourceAuthorName ?? displayHandle;
+
+  let enrichment = null;
+  if (isTwitterApiIoConfigured()) {
+    try {
+      const { user } = await getUserInfo(displayHandle);
+      enrichment = {
+        name: user.name,
+        followers: user.followers,
+        following: user.following,
+        verified: user.verified,
+        description: user.description,
+        profilePicture: user.profilePicture,
+        tweetCount: user.tweetCount,
+      };
+    } catch (e) {
+      console.warn(
+        `[kol] profile enrichment failed @${displayHandle}:`,
+        e instanceof Error ? e.message : e,
+      );
+    }
+  }
+
+  const reputationScore = reputation?.reputationScore ?? 0;
+  const activeScore = Math.round(kolActiveScore * 10) / 10;
+
+  const roles = [];
+  if (campaigns.length > 0) roles.push("project");
+  if (submissions.length > 0) roles.push("kol");
+
+  return {
+    handle: displayHandle,
+    name: enrichment?.name ?? displayName,
+    followers: enrichment?.followers ?? campaigns[0]?.sourceAuthorFollowers ?? null,
+    verified: enrichment?.verified ?? Boolean(campaigns[0]?.sourceAuthorVerified),
+    description: enrichment?.description ?? null,
+    profilePicture: enrichment?.profilePicture ?? null,
+    roles,
+    asProject: {
+      campaignCount: campaigns.length,
+      activeCampaignCount: campaigns.filter((c) => c.status === "active").length,
+      completedCampaignCount: campaigns.filter((c) => c.status === "completed").length,
+      totalFundedLamports: projectFundedLamports,
+      totalFundedSol: projectFundedLamports / LAMPORTS_PER_SOL,
+      totalKolPoolLamports: projectKolPoolLamports,
+      totalKolPoolSol: projectKolPoolLamports / LAMPORTS_PER_SOL,
+      campaigns: campaigns.map((c) => serializeCampaign(c)),
+    },
+    asKol: {
+      campaignCount: new Set(submissions.map((s) => String(s.campaignId))).size,
+      submissionCount: submissions.length,
+      reputationScore: Math.round(reputationScore * 10) / 10,
+      activeScore,
+      totalScore: Math.round((reputationScore + activeScore) * 10) / 10,
+      campaignsCompleted: reputation?.campaignsCompleted ?? 0,
+      engagement: { ...kolEngagement, total: engagementTotal(kolEngagement) },
+      earnedLamports: kolEarnedLamports,
+      earnedSol: kolEarnedLamports / LAMPORTS_PER_SOL,
+      projectedLamports: kolProjectedLamports,
+      projectedSol: kolProjectedLamports / LAMPORTS_PER_SOL,
+      engagements: engagementRows,
+    },
+  };
 }

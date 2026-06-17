@@ -1,12 +1,9 @@
 
 import { Button } from '@/components/ui/button';
 import { ArrowRight, MessageCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
-interface CTASectionProps {
-  onApplyClick: () => void;
-}
-
-const CTASection = ({ onApplyClick }: CTASectionProps) => {
+const CTASection = () => {
 
   return (
     <section className="section-shell relative overflow-hidden">
@@ -29,15 +26,17 @@ const CTASection = ({ onApplyClick }: CTASectionProps) => {
               {'If your team is ready to grow and committed, we want to work with you.'}
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Button variant="cta" size="xl" onClick={onApplyClick} className="group btn-premium min-w-[220px]">
-                {'Apply Your Project Now'}
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              <Button variant="cta" size="xl" asChild className="group btn-premium min-w-[220px]">
+                <Link to="/apply">
+                  {'Apply Your Project Now'}
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </Link>
               </Button>
               <Button variant="heroOutline" size="xl" asChild className="rounded-full min-w-[220px]">
-                <a href="#contact">
+                <Link to="/community">
                   <MessageCircle className="w-5 h-5" />
                   {'Contact Us'}
-                </a>
+                </Link>
               </Button>
             </div>
           </div>

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useMutation } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -50,11 +49,14 @@ export function SubmitEngagementForm({
         <p className="eyebrow mb-1">Submit engagement</p>
         <h3 className="font-semibold">{campaignTitle}</h3>
         <p className="text-sm text-muted-foreground mt-1">
-          Paste your reply or quote tweet URL. Rewards go to your connected wallet.
+          Paste your reply or quote tweet URL. One X account and one unique post per campaign —
+          duplicate posts are rejected.
         </p>
       </div>
 
-      <WalletMultiButton className="!rounded-full !bg-primary !h-10" />
+      {!wallet.publicKey ? (
+        <p className="text-sm text-muted-foreground">Connect your wallet from the navbar to submit.</p>
+      ) : null}
 
       <div className="space-y-2">
         <Label htmlFor="kol-submission-url">Your reply / quote URL</Label>

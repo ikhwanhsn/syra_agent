@@ -13,6 +13,10 @@ export interface KolCampaign {
   sourceTweetId: string;
   sourceTweetUrl: string;
   sourceTweetText: string;
+  sourceAuthorHandle?: string | null;
+  sourceAuthorName?: string | null;
+  sourceAuthorFollowers?: number | null;
+  sourceAuthorVerified?: boolean;
   title: string;
   description: string;
   rewardLamports: number;
@@ -46,6 +50,7 @@ export interface KolSubmission {
   tweetUrl: string;
   mode: "reply" | "quote";
   authorHandle: string;
+  authorHandleKey?: string;
   verified: boolean;
   latestMetrics: {
     likeCount: number;
@@ -55,6 +60,8 @@ export interface KolSubmission {
     viewCount: number;
   };
   latestScore: number;
+  finalScore?: number | null;
+  reputationCreditedAt?: string | null;
   projectedLamports: number;
   projectedSol: number;
   createdAt: string | null;
@@ -70,6 +77,107 @@ export interface KolPayoutInfo {
 export interface KolLeaderboardEntry extends KolSubmission {
   payout: KolPayoutInfo | null;
 }
+
+export interface KolEngagementTotals {
+  likes: number;
+  retweets: number;
+  replies: number;
+  quotes: number;
+  views: number;
+  total: number;
+}
+
+export interface KolMarketplaceStats {
+  totalCampaigns: number;
+  activeCampaigns: number;
+  completedCampaigns: number;
+  pendingDepositCampaigns: number;
+  uniqueKols: number;
+  uniqueProjects: number;
+  totalSubmissions: number;
+  totalRewardLamports: number;
+  totalRewardSol: number;
+  totalKolPoolLamports: number;
+  totalKolPoolSol: number;
+  totalPaidLamports: number;
+  totalPaidSol: number;
+  engagement: KolEngagementTotals;
+}
+
+export interface KolProjectSummary {
+  handle: string;
+  name: string;
+  followers: number | null;
+  verified: boolean;
+  campaignCount: number;
+  activeCampaignCount: number;
+  completedCampaignCount: number;
+  totalFundedLamports: number;
+  totalFundedSol: number;
+  totalKolPoolLamports: number;
+  totalKolPoolSol: number;
+  kolsReached: number;
+  lastActivityAt: string | null;
+}
+
+export interface KolSummary {
+  handle: string;
+  campaignCount: number;
+  submissionCount: number;
+  reputationScore: number;
+  activeScore: number;
+  totalScore: number;
+  campaignsCompleted: number;
+  engagement: KolEngagementTotals;
+  projectedLamports: number;
+  projectedSol: number;
+  earnedLamports: number;
+  earnedSol: number;
+  lastActivityAt: string | null;
+}
+
+export type KolProfileRole = "project" | "kol";
+
+export interface KolProfile {
+  handle: string;
+  name: string;
+  followers: number | null;
+  verified: boolean;
+  description: string | null;
+  profilePicture: string | null;
+  roles: KolProfileRole[];
+  asProject: {
+    campaignCount: number;
+    activeCampaignCount: number;
+    completedCampaignCount: number;
+    totalFundedLamports: number;
+    totalFundedSol: number;
+    totalKolPoolLamports: number;
+    totalKolPoolSol: number;
+    campaigns: KolCampaign[];
+  };
+  asKol: {
+    campaignCount: number;
+    submissionCount: number;
+    reputationScore: number;
+    activeScore: number;
+    totalScore: number;
+    campaignsCompleted: number;
+    engagement: KolEngagementTotals;
+    earnedLamports: number;
+    earnedSol: number;
+    projectedLamports: number;
+    projectedSol: number;
+    engagements: Array<{
+      submission: KolSubmission;
+      campaign: KolCampaign | null;
+      payout: KolPayoutInfo | null;
+    }>;
+  };
+}
+
+export type ProjectSortKey = "funded" | "campaigns" | "kols" | "recent";
+export type KolSortKey = "earned" | "score" | "engagement" | "campaigns" | "recent";
 
 export interface KolConfig {
   poolWalletAddress: string;
@@ -188,4 +296,35 @@ export function fetchWalletEarnings(wallet: string): Promise<{
   };
 }> {
   return kolFetch(`/kol/wallets/${encodeURIComponent(wallet)}/earnings`);
+}
+
+export function fetchKolStats(): Promise<KolMarketplaceStats> {
+  return kolFetch<KolMarketplaceStats>("/kol/stats");
+}
+
+export function fetchProjects(opts?: {
+  limit?: number;
+  sort?: ProjectSortKey;
+}): Promise<{ projects: KolProjectSummary[] }> {
+  const params = new URLSearchParams();
+  if (opts?.limit != null) params.set("limit", String(opts.limit));
+  if (opts?.sort) params.set("sort", opts.sort);
+  const qs = params.toString() ? `?${params.toString()}` : "";
+  return kolFetch<{ projects: KolProjectSummary[] }>(`/kol/projects${qs}`);
+}
+
+export function fetchKols(opts?: {
+  limit?: number;
+  sort?: KolSortKey;
+}): Promise<{ kols: KolSummary[] }> {
+  const params = new URLSearchParams();
+  if (opts?.limit != null) params.set("limit", String(opts.limit));
+  if (opts?.sort) params.set("sort", opts.sort);
+  const qs = params.toString() ? `?${params.toString()}` : "";
+  return kolFetch<{ kols: KolSummary[] }>(`/kol/kols${qs}`);
+}
+
+export function fetchKolProfile(username: string): Promise<KolProfile> {
+  const clean = username.trim().replace(/^@/, "");
+  return kolFetch<KolProfile>(`/kol/profiles/${encodeURIComponent(clean)}`);
 }

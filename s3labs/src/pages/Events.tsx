@@ -9,12 +9,9 @@ import { Calendar, MapPin, Sparkles, ArrowLeft, ExternalLink } from "lucide-reac
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import ApplicationModal from "@/components/ApplicationModal";
-import TelegramCommunityModal from "@/components/TelegramCommunityModal";
-import { useTelegramPopup } from "@/hooks/useTelegramPopup";
 
 const EventsPageContent = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { open: telegramOpen, dismiss: dismissTelegram, setOpen: setTelegramOpen } = useTelegramPopup();
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -28,11 +25,11 @@ const EventsPageContent = () => {
         <div className="border-b border-border bg-muted/20">
           <div className="container py-12 lg:py-16">
             <Link
-              to="/#events"
+              to="/"
               className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary mb-6 transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
-              {"Back to Events"}
+              {"Back to Home"}
             </Link>
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
               {"All Events"}
@@ -117,11 +114,6 @@ const EventsPageContent = () => {
       </main>
       <Footer />
       <ApplicationModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
-      <TelegramCommunityModal
-        open={telegramOpen}
-        onOpenChange={setTelegramOpen}
-        onDismiss={dismissTelegram}
-      />
     </div>
   );
 };

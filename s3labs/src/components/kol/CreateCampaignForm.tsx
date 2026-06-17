@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useMutation } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -119,12 +118,13 @@ export function CreateCampaignForm({
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <WalletMultiButton className="!rounded-full !bg-primary !h-10" />
         {wallet.publicKey ? (
           <span className="text-xs text-muted-foreground font-mono">
             {wallet.publicKey.toBase58()}
           </span>
-        ) : null}
+        ) : (
+          <p className="text-sm text-muted-foreground">Connect your wallet from the navbar to continue.</p>
+        )}
       </div>
 
       <div className="grid gap-4">

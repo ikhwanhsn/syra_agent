@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 import {
   Table,
   TableBody,
@@ -57,7 +59,12 @@ export function CampaignLeaderboard({ entries, campaignStatus }: CampaignLeaderb
                 <TableCell className="font-mono text-muted-foreground">{index + 1}</TableCell>
                 <TableCell>
                   <div className="flex flex-col gap-0.5">
-                    <span className="font-medium">@{entry.authorHandle}</span>
+                    <Link
+                      to={`/kol/${encodeURIComponent(entry.authorHandle)}`}
+                      className="font-medium hover:text-primary transition-colors"
+                    >
+                      @{entry.authorHandle}
+                    </Link>
                     <span className="text-xs text-muted-foreground font-mono">
                       {shortenAddress(entry.kolWallet, 6)}
                     </span>

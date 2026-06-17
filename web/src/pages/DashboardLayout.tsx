@@ -13,6 +13,7 @@ import {
   UsersRound,
   TrendingUp,
   Search,
+  Bitcoin,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SidebarPanelToggle } from "@/components/layout/SidebarPanelToggle";
@@ -111,6 +112,7 @@ function dashboardPageTitle(pathname: string, search: string): string {
   if (parts[0] === "arbitrage-experiment") return "Arbitrage experiment";
   if (parts[0] === "lp-experiment") return "LP agent experiment";
   if (parts[0] === "spcx") return "SpaceX IPO Agent";
+  if (parts[0] === "btc") return "Bitcoin";
   if (parts[0] === "internal") {
     if (parts[1]) {
       const slug = parts[1];
@@ -175,6 +177,14 @@ function DashboardSidebarContent({
             matchActive={(pathname) => pathname.startsWith("/pumpfun") && !pathname.startsWith("/pumpfun-experiment")}
           >
             Pumpfun Alpha
+          </SidebarNavLink>
+          <SidebarNavLink
+            to="/btc"
+            icon={Bitcoin}
+            end
+            matchActive={(pathname) => pathname.startsWith("/btc")}
+          >
+            Bitcoin
           </SidebarNavLink>
 
           <SidebarDivider className="my-2" />
@@ -247,7 +257,10 @@ export default function DashboardLayout({ children }: { children?: ReactNode }) 
   );
 
   const scrollableContent = (
-    <div className="flex-1 min-h-0 min-w-0 overflow-auto overflow-x-hidden scrollbar-thin flex flex-col">
+    <div
+      data-dashboard-scroll-root
+      className="flex-1 min-h-0 min-w-0 overflow-auto overflow-x-hidden scrollbar-thin flex flex-col"
+    >
       {children}
     </div>
   );

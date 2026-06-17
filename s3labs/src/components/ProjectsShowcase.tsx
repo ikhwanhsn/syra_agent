@@ -2,12 +2,9 @@
 import SectionHeader from "@/components/landing/SectionHeader";
 import { ExternalLink, TrendingUp, Users, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
-interface ProjectsShowcaseProps {
-  onApplyClick: () => void;
-}
-
-const ProjectsShowcase = ({ onApplyClick }: ProjectsShowcaseProps) => {
+const ProjectsShowcase = () => {
 
   const projects = [
     {
@@ -121,10 +118,12 @@ const ProjectsShowcase = ({ onApplyClick }: ProjectsShowcaseProps) => {
             variant="hero"
             size="lg"
             className="group btn-premium"
-            onClick={onApplyClick}
+            asChild
           >
-            {"Apply Your Project"}
-            <ExternalLink className="w-5 h-5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+            <Link to="/apply">
+              {"Apply Your Project"}
+              <ExternalLink className="w-5 h-5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+            </Link>
           </Button>
         </div>
       </div>

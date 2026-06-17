@@ -2,49 +2,49 @@ import type { PostPhotoCardRole } from "../photoCardSlots";
 
 /** Per-card X copy for LP Real Profitability photo deck — 15 distinct topics. */
 export const LP_REAL_PROFITABILITY_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `Live LP agents just got a profitability overhaul.
+  cover: `Your live LP agent was closing winners on price drift alone. Fixed.
 
 Fee-aware stops. Stricter pool gates. Trailing exits. On-chain fee grounding.
 
-Your real agent will not dump a fee-positive position just because price drifted.
+Fee-positive positions stay open. Unprofitable pools never open.
 
 Explore → syraa.fun/lp-experiment`,
 
-  thesis: `The sim lab exposed a bug: Loss status with positive PnL.
+  thesis: `The sim lab caught it first: Loss status with positive PnL.
 
-Price hit stop loss, but LP fees outweighed the move. The live agent used the same blunt rule.
+Price hit stop loss. LP fees still outweighed the move. The live agent used the same blunt rule — and dumped fee-positive trades.
 
-Now real exits use net economics, not price drift alone.`,
+Real exits now follow net economics, not price drift alone.`,
 
   quote: `"LP profitability is net economics, not price direction alone."
 
-Fees earned extend the stop. Trailing rules lock winners. On-chain fees ground every exit decision.`,
+Fees earned extend the stop. Trailing rules lock winners. On-chain fees ground every exit on live Meteora positions.`,
 
-  flow: `How live LP exits work now:
+  flow: `How live LP exits protect real SOL:
 
 1. Track claimed + unclaimed on-chain fees
 2. Extend price stop by fees already earned
 3. Trail peak PnL and close on giveback
 4. Mark win or loss by net PnL, not drift alone
 
-Fee-positive trades stay open longer.`,
+Fee-positive trades stay open longer. Tail risk stays capped.`,
 
-  timeline: `From sim insight to live fix:
+  timeline: `From sim bug to live fix:
 
 → Sim showed Loss + green PnL on fee-heavy pools
 → Fee-aware stop: fees extend the price stop
 → Hard stop at 1.4× caps catastrophic IL
 → Trailing stop locks fee winners before giveback
-→ Chain-cost gate blocks unprofitable opens`,
+→ Chain-cost gate blocks opens that can't pay for themselves`,
 
-  pillars: `4 gates that protect real SOL:
+  pillars: `4 gates between your wallet and bad LP trades:
 
 → Fee-aware stop: fees extend stop, hard cap on tail risk
 → Cost gate: expected fees must beat 1.6× tx costs
 → Pool screen: 0.55 R:R hurdle, extreme pools banned
 → Adaptive exits: pool-aware rules frozen at open`,
 
-  checklist: `LP real profitability upgrade:
+  checklist: `LP real profitability — what changed:
 
 → Fee-aware stop loss with hard IL cap
 → Chain-cost viability gate before every open
@@ -53,18 +53,18 @@ Fee-positive trades stay open longer.`,
 
   metrics: `1.6× min fee-to-cost at open. 0.55 real pool R:R hurdle. 1.4× hard stop multiplier.
 
-Three numbers that keep live LP capital out of fee-negative and IL-heavy pools.
+Three thresholds that keep live LP capital out of fee-negative and IL-heavy pools.
 
-Sim proved the edge case. Real agent now closes the gap.`,
+Sim proved the edge case. Real agent now enforces it.`,
 
   featured: `Fee-positive positions no longer close as losses.
 
-When LP fees outweigh price drift, the live agent holds. When fees cannot cover chain costs, it never opens.
+When LP fees outweigh price drift, the live agent holds. When fees can't cover chain costs, it never opens.
 
-Net economics drive every exit.`,
+Net economics drive every exit — not raw price alone.`,
 
   comparison: `Before:
-Live agent closed on raw price drift. Fee-positive positions exited as losses. Extreme pools could qualify.
+Closed on raw price drift. Fee-positive positions exited as losses. Extreme pools could qualify.
 
 Now:
 Fee-aware stops. Trailing exits. Stricter pool screen. On-chain fees ground PnL.
@@ -75,7 +75,7 @@ The sim lab bug is fixed for real SOL.`,
 
 Fee-aware exits. Pool gates. Trailing stops. On-chain fee grounding.
 
-Your Meteora LP agent just got smarter about when to hold and when to close.
+Your Meteora LP agent now holds fee winners and skips pools that can't pay for themselves.
 
 Try it → syraa.fun/lp-experiment`,
 
@@ -84,12 +84,14 @@ Try it → syraa.fun/lp-experiment`,
 → evaluateRealPositionExit: fee-aware stop + trailing
 → passesRealPoolScreen: 0.55 R:R, extreme tier banned
 → Chain-cost gate in attemptOpenLpRealPosition
-→ peakPnlPct persisted on LpRealPosition for trailing`,
+→ peakPnlPct persisted on LpRealPosition for trailing
 
-  split: `Sim insight vs live fix.
+Sim logic. Live enforcement. On-chain proof.`,
+
+  split: `Sim exposed the gap. Live agent closes it.
 
 SIM LAB
-Loss + green PnL when fees beat price drift. Exposed the exit logic gap.
+Loss + green PnL when fees beat price drift. Proof the exit logic was wrong.
 
 LIVE AGENT
 Fee-aware stop. Trailing exit. Cost gate. On-chain fee grounding.
@@ -112,5 +114,5 @@ Net economics, not price alone.`,
 → Real agent: syraa.fun/lp-experiment#real-agent
 → Fund wallet: syraa.fun/settings
 
-Fee-aware stops. Trailing protection. Pools that pay for themselves.`,
+Prove the edge in sim. Deploy with fee-aware protection on real SOL.`,
 };

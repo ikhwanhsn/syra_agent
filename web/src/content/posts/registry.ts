@@ -8,6 +8,7 @@ import { SPCX_POST } from "./spcxUpdate";
 import { ASSETS_HUB_POST } from "./assetsHubUpdate";
 import { PACT_NETWORK_POST } from "./pactNetworkUpdate";
 import { WALLET_PORTFOLIO_POST } from "./walletPortfolioUpdate";
+import { BTC_INTELLIGENCE_POST } from "./btcIntelligenceUpdate";
 import { AGENTSCORE_PHOTO } from "./photo/agentscorePhoto";
 import { INDICATOR_PHOTO } from "./photo/indicatorPhoto";
 import { BNB_X402_PHOTO } from "./photo/bnbX402Photo";
@@ -18,6 +19,7 @@ import { SPCX_PHOTO } from "./photo/spcxPhoto";
 import { ASSETS_HUB_PHOTO } from "./photo/assetsHubPhoto";
 import { PACT_NETWORK_PHOTO } from "./photo/pactNetworkPhoto";
 import { WALLET_PORTFOLIO_PHOTO } from "./photo/walletPortfolioPhoto";
+import { BTC_INTELLIGENCE_PHOTO } from "./photo/btcIntelligencePhoto";
 import type { PostPhotoUpdate } from "./photo/types";
 import type { PostUpdate } from "./types";
 import { validatePostUpdate } from "./validatePostUpdate";
@@ -44,6 +46,7 @@ const POST_UPDATE_BUNDLES: PostUpdateBundle[] = [
   { video: INDICATOR_POST, photo: INDICATOR_PHOTO },
   { video: ASSETS_HUB_POST, photo: ASSETS_HUB_PHOTO },
   { video: PACT_NETWORK_POST, photo: PACT_NETWORK_PHOTO },
+  { video: BTC_INTELLIGENCE_POST, photo: BTC_INTELLIGENCE_PHOTO },
 ];
 
 function assertBundleMeta(bundle: PostUpdateBundle): void {

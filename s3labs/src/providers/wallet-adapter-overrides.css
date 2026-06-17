@@ -1,7 +1,63 @@
+/* S3 Labs — wallet adapter theme overrides */
+
 .wallet-adapter-modal-wrapper {
   z-index: 10000 !important;
 }
 
 .wallet-adapter-dropdown {
   z-index: 10000 !important;
+}
+
+/* Navbar wallet — connected glass pill */
+.navbar-wallet-btn--connected {
+  border-color: hsl(var(--border) / 0.8) !important;
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(16px);
+  box-shadow: var(--shadow-card), var(--shadow-inner-glow);
+}
+
+.navbar-wallet-btn--connected:hover {
+  border-color: hsl(var(--primary) / 0.4) !important;
+  background: hsl(var(--primary) / 0.06) !important;
+}
+
+.wallet-adapter-modal {
+  font-family: var(--font-sora), system-ui, sans-serif !important;
+}
+
+.wallet-adapter-modal-container {
+  border-radius: 1.25rem !important;
+  border: 1px solid var(--glass-border) !important;
+  background: hsl(var(--card)) !important;
+  box-shadow: var(--shadow-elevated) !important;
+}
+
+.wallet-adapter-modal-title {
+  font-weight: 600 !important;
+  letter-spacing: -0.02em !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+.wallet-adapter-modal-list .wallet-adapter-button {
+  border-radius: 0.875rem !important;
+  border: 1px solid hsl(var(--border)) !important;
+  background: hsl(var(--muted) / 0.5) !important;
+  color: hsl(var(--foreground)) !important;
+  font-family: var(--font-sora), system-ui, sans-serif !important;
+  font-weight: 500 !important;
+  transition: border-color 0.15s ease, background 0.15s ease !important;
+}
+
+.wallet-adapter-modal-list .wallet-adapter-button:hover {
+  border-color: hsl(var(--primary) / 0.4) !important;
+  background: hsl(var(--primary) / 0.08) !important;
+}
+
+.wallet-adapter-modal-button-close {
+  background: hsl(var(--muted)) !important;
+  border-radius: 9999px !important;
+}
+
+.wallet-adapter-modal-button-close:hover {
+  background: hsl(var(--primary) / 0.12) !important;
 }

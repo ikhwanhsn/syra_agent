@@ -3,6 +3,7 @@ import express from "express";
 import rateLimit from "./utils/rateLimit.js";
 import { securityHeaders } from "./utils/security.js";
 import { requireApiKey } from "./utils/apiKeyAuth.js";
+import { isGatewayOpenApiFreeRoute } from "./config/gatewayOpenApiFreeRoutes.js";
 import { injectTrustedOriginApiKey } from "./utils/trustedOriginAuth.js";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -53,6 +54,7 @@ import { createBitgetVibeRouter } from "./routes/bitgetVibe.js";
 import { createArenaRouter } from "./routes/arena.js";
 import { createSpcxRouter, createEquityRouter } from "./routes/spcx.js";
 import { createIndicatorRouter } from "./routes/indicator.js";
+import { createBtcRouter } from "./routes/btc.js";
 import { createSpcxExperimentRouter } from "./routes/experiment/spcx.js";
 import { createSyraTradingTelegramWebhookRouter } from "./routes/syraTradingTelegramWebhook.js";
 import { createSentinelDashboardRouter } from "./routes/sentinelDashboard.js";
@@ -379,17 +381,12 @@ function isX402Route(p) {
 }
 
 /**
- * NOTE on the preview / dashboard / "no-x402" tier:
- *   /preview/*, /dashboard-summary, /binance-ticker, /streamflow-locks, /staking,
- *   /uponly-rise-market*, /uponly-rise-portfolio*, /uponly-rise-create*
+ * NOTE on the preview / dashboard / openapi-free tier:
+ *   /preview/*, /dashboard-summary, /binance-ticker, /api/signal, /x-projects-analyze/*
  *
- * These used to be advertised as a free public preview. Per security policy they are now
- * Syra-internal only — they reach this server but get gated by:
- *   1) CORS allowlist (only Syra origins, see CORS_OPTIONS_REGULAR), and
- *   2) requireApiKey() — Syra frontends get the key auto-injected by
- *      injectTrustedOriginApiKey, external callers do not.
- * No dedicated isPreviewRoute() helper is needed: the default (CORS_OPTIONS_REGULAR +
- * requireApiKey enforced) is exactly the desired behavior for these paths.
+ * Listed in GET /openapi.json with security: [] for x402scan / tryponcho discovery.
+ * Publicly reachable (no API key) and exempt from rate limits so discovery probes succeed.
+ * Syra browser frontends may still use trusted-origin API-key injection when calling other routes.
  */
 
 // SECURITY: only x402 (paid + public discovery JSON like /.well-known/x402, /openapi.json,
@@ -721,6 +718,7 @@ app.use(
         p.startsWith("/agent/auth/") ||
         p === "/agent/wallet/connect" ||
         isX402Route(p) ||
+        isGatewayOpenApiFreeRoute(p) ||
         p.startsWith("/internal/tester-agent") ||
         p.startsWith("/internal/trend-scout/run") ||
         p.startsWith("/internal/growth-scout/run") ||
@@ -859,6 +857,7 @@ app.use(
     }
     return (
       isX402Route(p) ||
+      isGatewayOpenApiFreeRoute(p) ||
       p === "/" ||
       p === "/favicon.ico" ||
       p.startsWith("/og") ||
@@ -1112,6 +1111,7 @@ app.use("/uponly-rise-markets", createUponlyRiseMarketsRouter());
 app.use("/uponly-rise-portfolio", createUponlyRisePortfolioRouter());
 app.use("/uponly-rise-create", createUponlyRiseCreateRouter());
 app.use("/binance-ticker", await createBinanceTickerPriceRouter());
+app.use("/btc", await createBtcRouter());
 // Legacy /v1 → 410
 app.use("/v1", (req, res) => {
   res.status(410).json({
@@ -1897,6 +1897,17 @@ app.listen(PORT, () => {
     .catch((e) =>
       console.warn(
         "[kol] daily scheduler load failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
+
+  import("./libs/btcIntelligenceScheduler.js")
+    .then(({ startBtcIntelligenceScheduler }) => {
+      startBtcIntelligenceScheduler();
+    })
+    .catch((e) =>
+      console.warn(
+        "[btc-intelligence] scheduler load failed:",
         e instanceof Error ? e.message : e,
       ),
     );

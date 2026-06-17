@@ -15,7 +15,7 @@ export const WALLET_PORTFOLIO_PHOTO = definePhotoUpdate(WALLET_PORTFOLIO_POST.me
       eyebrow: "Ship log",
       badge: "Portfolio · Chat + LP",
       title: "Wallet Portfolio",
-      subtitle: "See every token your agent wallets hold, with live USD value and allocation.",
+      subtitle: "Audit every SPL token your agent wallets hold — live USD, allocation %, Solscan proof.",
     }),
   },
   {
@@ -23,9 +23,9 @@ export const WALLET_PORTFOLIO_PHOTO = definePhotoUpdate(WALLET_PORTFOLIO_POST.me
     layout: "photo-statement-large",
     shareCopy: copies.thesis,
     content: photoContent({
-      kicker: "Why this matters",
-      headline: "Treasuries show funding. Portfolio shows the bag.",
-      body: "Agent wallets pick up SOL, USDC, memecoins, and swap leftovers. Portfolio lists every SPL holding across Chat and LP in one auditable view.",
+      kicker: "The gap",
+      headline: "Funding is not the same as holdings.",
+      body: "Treasuries track SOL and USDC for ops. Agent wallets still accumulate swap receipts, memecoins, and LP dust. Portfolio unifies Chat + LP SPL balances into one operator-grade audit.",
     }),
   },
   {
@@ -33,8 +33,8 @@ export const WALLET_PORTFOLIO_PHOTO = definePhotoUpdate(WALLET_PORTFOLIO_POST.me
     layout: "photo-quote",
     shareCopy: copies.quote,
     content: photoContent({
-      quote: "Treasuries show funding. Portfolio shows the bag.",
-      narrative: "One Wallets page. Two tabs. Full holdings with names, USD value, and Solscan links.",
+      quote: "You cannot rebalance what you cannot see.",
+      narrative: "Portfolio surfaces every SPL balance — names, USD value, allocation bars, and Solscan links — across Chat and LP on one page.",
     }),
   },
   {
@@ -42,13 +42,13 @@ export const WALLET_PORTFOLIO_PHOTO = definePhotoUpdate(WALLET_PORTFOLIO_POST.me
     layout: "photo-flow-pipeline",
     shareCopy: copies.flow,
     content: photoContent({
-      kicker: "How to use it",
-      headline: "Connect → Wallets → Portfolio.",
+      kicker: "Operator flow",
+      headline: "Connect. Open Portfolio. Verify.",
       steps: [
-        { step: "01", title: "Connect wallet", description: "Sign in with your Solana wallet on Syra." },
-        { step: "02", title: "Open Portfolio", description: "Wallets page → Portfolio tab or ?view=portfolio." },
-        { step: "03", title: "Filter wallets", description: "All wallets, Chat only, or LP only." },
-        { step: "04", title: "Audit holdings", description: "Hide dust, refresh, open Solscan per token." },
+        { step: "01", title: "Connect wallet", description: "Sign in with Solana on Syra — your operator identity." },
+        { step: "02", title: "Open Portfolio", description: "Wallets → Portfolio tab, or land directly at ?view=portfolio." },
+        { step: "03", title: "Filter wallets", description: "All wallets, Chat only, or LP only — see which treasury holds each token." },
+        { step: "04", title: "Audit holdings", description: "Hide dust, refresh prices, open Solscan per mint for on-chain proof." },
       ],
     }),
   },
@@ -58,12 +58,12 @@ export const WALLET_PORTFOLIO_PHOTO = definePhotoUpdate(WALLET_PORTFOLIO_POST.me
     shareCopy: copies.timeline,
     content: photoContent({
       kicker: "What shipped",
-      headline: "Portfolio tab end to end.",
+      headline: "Portfolio tab, end to end.",
       steps: [
-        { step: "01", title: "UI tabs", description: "Treasuries and Portfolio on /wallet." },
-        { step: "02", title: "SPL scan", description: "Server RPC reads all token accounts per agent wallet." },
-        { step: "03", title: "Enrichment", description: "DexScreener, Jupiter, pump.fun, on-chain metadata." },
-        { step: "04", title: "Merged view", description: "All wallets combines Chat + LP with allocation %." },
+        { step: "01", title: "UI tabs", description: "Segmented Treasuries / Portfolio on /wallet." },
+        { step: "02", title: "SPL scan", description: "Server RPC reads every token account per agent wallet." },
+        { step: "03", title: "Enrichment", description: "DexScreener, Jupiter, pump.fun, plus on-chain metadata." },
+        { step: "04", title: "Merged view", description: "All wallets combines Chat + LP with live allocation %." },
       ],
     }),
   },
@@ -72,12 +72,12 @@ export const WALLET_PORTFOLIO_PHOTO = definePhotoUpdate(WALLET_PORTFOLIO_POST.me
     layout: "photo-cards-quad",
     shareCopy: copies.pillars,
     content: photoContent({
-      headline: "Four portfolio primitives.",
+      headline: "Four primitives operators use daily.",
       cards: [
-        { title: "USD total", subtitle: "Portfolio value", detail: "Hero card with asset count and refresh.", accent: "gold" },
-        { title: "Token rows", subtitle: "Logo + balance", detail: "Symbol, price, value, allocation bar per asset.", accent: "gold" },
-        { title: "Wallet filter", subtitle: "All · Chat · LP", detail: "Pills show which treasury holds each token." },
-        { title: "Dust toggle", subtitle: "< $0.01", detail: "Focus on meaningful positions only." },
+        { title: "USD total", subtitle: "Portfolio value", detail: "Hero card: total value, asset count, one-click refresh.", accent: "gold" },
+        { title: "Token rows", subtitle: "Logo + balance", detail: "Symbol, live price, USD value, allocation bar per asset.", accent: "gold" },
+        { title: "Wallet filter", subtitle: "All · Chat · LP", detail: "Pills tag which agent treasury holds each token." },
+        { title: "Dust toggle", subtitle: "< $0.01", detail: "Cut noise — focus on positions that matter." },
       ],
     }),
   },
@@ -86,12 +86,12 @@ export const WALLET_PORTFOLIO_PHOTO = definePhotoUpdate(WALLET_PORTFOLIO_POST.me
     layout: "photo-hero-compact",
     shareCopy: copies.checklist,
     content: photoContent({
-      headline: "Wallet Portfolio is live.",
+      headline: "Wallet Portfolio is live — verify it.",
       highlights: [
-        "Portfolio tab on the Wallets page",
-        "Real token names from multi-source metadata",
-        "Readable balances (no scientific notation)",
-        "Shareable /wallet?view=portfolio URL",
+        "Portfolio tab beside Treasuries on /wallet",
+        "Real token symbols from DEX + on-chain metadata",
+        "Human-readable balances with live USD and allocation bars",
+        "Shareable /wallet?view=portfolio deep link",
       ],
     }),
   },
@@ -100,13 +100,13 @@ export const WALLET_PORTFOLIO_PHOTO = definePhotoUpdate(WALLET_PORTFOLIO_POST.me
     layout: "photo-stat-trio",
     shareCopy: copies.metrics,
     content: photoContent({
-      headline: "Built for agent operators.",
+      headline: "Built for operators who verify before they act.",
       stats: [
         { value: "2", label: "Agent wallet types" },
         { value: "5+", label: "Metadata sources" },
-        { value: "1", label: "Merged portfolio view" },
+        { value: "1", label: "Merged audit view" },
       ],
-      narrative: "Chat and LP treasuries in one holdings table with live USD pricing.",
+      narrative: "Chat and LP treasuries in one holdings table — priced in USD, filterable, refreshable.",
     }),
   },
   {
@@ -114,9 +114,9 @@ export const WALLET_PORTFOLIO_PHOTO = definePhotoUpdate(WALLET_PORTFOLIO_POST.me
     layout: "photo-stat-featured",
     shareCopy: copies.featured,
     content: photoContent({
-      headline: "Every agent token. One tab.",
-      stats: [{ value: "100%", label: "SPL holdings surfaced" }],
-      narrative: "No more guessing what agents picked up while trading. Portfolio shows the full bag.",
+      headline: "Zero blind spots on agent holdings.",
+      stats: [{ value: "100%", label: "SPL balances surfaced" }],
+      narrative: "Not just SOL/USDC totals — every token your agents picked up, named and priced.",
     }),
   },
   {
@@ -124,14 +124,14 @@ export const WALLET_PORTFOLIO_PHOTO = definePhotoUpdate(WALLET_PORTFOLIO_POST.me
     layout: "photo-comparison",
     shareCopy: copies.comparison,
     content: photoContent({
-      headline: "Before vs now.",
+      headline: "Explorer tabs vs one audit view.",
       compareLeft: {
         title: "Before",
-        body: "Treasuries showed SOL/USDC. Swap leftovers required manual explorer checks.",
+        body: "Treasuries showed operational SOL/USDC. Swap leftovers required wallet-by-wallet explorer checks.",
       },
       compareRight: {
         title: "Now",
-        body: "Portfolio lists every SPL token, USD value, allocation %, and Solscan links.",
+        body: "Portfolio lists every SPL token — live USD, allocation %, wallet filter, Solscan links.",
       },
     }),
   },
@@ -142,8 +142,8 @@ export const WALLET_PORTFOLIO_PHOTO = definePhotoUpdate(WALLET_PORTFOLIO_POST.me
     content: photoContent({
       badge: "Now live",
       title: "Wallet Portfolio",
-      subtitle: "Full agent holdings on the Wallets page.",
-      body: "Switch to Portfolio to audit Chat and LP tokens with live USD value.",
+      subtitle: "Full agent holdings audit on the Wallets page.",
+      body: "Switch to Portfolio — see every SPL token across Chat and LP with live USD and on-chain proof.",
     }),
   },
   {
@@ -152,12 +152,12 @@ export const WALLET_PORTFOLIO_PHOTO = definePhotoUpdate(WALLET_PORTFOLIO_POST.me
     shareCopy: copies.deepDive,
     content: photoContent({
       kicker: "Technical surface",
-      headline: "Portfolio data pipeline.",
+      headline: "How Portfolio is built.",
       items: [
         "GET /wallet/solana/portfolio?address= per agent wallet",
-        "DexScreener + Jupiter + pump.fun price and metadata",
-        "On-chain Metaplex metadata for unlisted mints",
-        "Client merge + recompute USD value for All wallets",
+        "DexScreener + Jupiter + pump.fun for price and metadata",
+        "Metaplex on-chain fallback for unlisted mints",
+        "Client merge + USD recompute for the All wallets view",
       ],
     }),
   },
@@ -167,13 +167,13 @@ export const WALLET_PORTFOLIO_PHOTO = definePhotoUpdate(WALLET_PORTFOLIO_POST.me
     shareCopy: copies.split,
     content: photoContent({
       badge: "Two tabs",
-      headline: "Treasuries fund. Portfolio audits.",
-      body: "Treasuries handles deposit, withdraw, and billing. Portfolio surfaces every token the agents actually hold.",
+      headline: "Fund in Treasuries. Verify in Portfolio.",
+      body: "Treasuries handles deposit, withdraw, and billing caps. Portfolio surfaces every SPL token your agents actually hold — with proof.",
       highlights: [
         "Segmented Treasuries / Portfolio tabs",
         "Wallet filter: All, Chat, LP",
         "Hide dust under one cent",
-        "Refresh on demand",
+        "Refresh prices on demand",
       ],
     }),
   },
@@ -182,7 +182,7 @@ export const WALLET_PORTFOLIO_PHOTO = definePhotoUpdate(WALLET_PORTFOLIO_POST.me
     layout: "photo-terminal",
     shareCopy: copies.terminal,
     content: photoContent({
-      headline: "Portfolio API response.",
+      headline: "Real API. Real balances.",
       terminalLines: [
         "$ syra wallet portfolio --lp",
         "> SOL     8.3321   $565.25   96.1%",
@@ -198,8 +198,8 @@ export const WALLET_PORTFOLIO_PHOTO = definePhotoUpdate(WALLET_PORTFOLIO_POST.me
     layout: "photo-closing-cta",
     shareCopy: copies.cta,
     content: photoContent({
-      headline: "See what your agents hold.",
-      subtitle: "Open Wallets, switch to Portfolio, and audit the full bag.",
+      headline: "Stop guessing what your agents hold.",
+      subtitle: "Open Wallets → Portfolio. Audit every SPL token with live USD and Solscan links.",
       links: [
         { label: "Wallets", value: "syraa.fun/wallet", href: "https://www.syraa.fun/wallet" },
         { label: "Portfolio", value: "?view=portfolio", href: "https://www.syraa.fun/wallet?view=portfolio" },
