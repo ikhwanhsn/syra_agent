@@ -3,6 +3,7 @@
  * Supports combining multiple indicators in one call (GET dotted params or POST JSON).
  */
 import express from "express";
+import { getResourceDescription } from "../config/x402ResourceCatalog.js";
 import { getV2Payment } from "../utils/getV2Payment.js";
 import { X402_API_PRICE_INDICATOR_USD } from "../config/x402Pricing.js";
 import { buildIndicatorResponse, parseIndicatorRequest } from "../libs/indicators/indicatorEngine.js";
@@ -43,8 +44,7 @@ function paidHandler(method) {
     (req, res, next) =>
       requirePayment({
         price: X402_API_PRICE_INDICATOR_USD,
-        description:
-          "Technical indicators from OHLCV candles — combine multiple indicators (RSI, MACD, EMA, Bollinger, etc.) in one agent-readable call",
+        description: getResourceDescription("indicator"),
         method,
         discoverable: true,
         resource: "/indicator",

@@ -122,6 +122,7 @@ export interface KolProjectSummary {
 
 export interface KolSummary {
   handle: string;
+  name?: string;
   campaignCount: number;
   submissionCount: number;
   reputationScore: number;
@@ -145,6 +146,7 @@ export interface KolProfile {
   verified: boolean;
   description: string | null;
   profilePicture: string | null;
+  xProfileRefreshedAt?: string | null;
   roles: KolProfileRole[];
   asProject: {
     campaignCount: number;

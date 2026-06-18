@@ -1,6 +1,6 @@
 # Syra Agent Commerce (AgentScore)
 
-Syra is a pay-per-call trading intelligence API on Solana. Most routes are **permissionless x402** (pay with USDC, no identity).
+Syra is machine money for AI trading agents on Solana — a pay-per-call x402 API rail. Most routes are **permissionless x402** (pay with USDC, no identity).
 
 ## Identity-gated routes (optional)
 
@@ -42,5 +42,5 @@ Public (no session): `GET /agentscore/discover`, `GET /agentscore/check?url=...`
 ## Discovery
 
 - x402: `GET /.well-known/x402`, `GET /openapi.json`, `GET /mpp-openapi.json`
-- MPP: `GET /mpp/v1/health`
+- MPP: `GET /mpp/health` (legacy `/mpp/v1/health` → 308 redirect)
 - This file: `GET /skill.md`

@@ -29,9 +29,9 @@ export interface ArticleDetail {
 
 const SYRA_AUTHOR: ArticleAuthor = {
   name: "Syra",
-  role: "Smart Intelligence Agent",
+  role: "Machine Money for Agents",
   avatar: "/images/logo.jpg",
-  bio: "Real-time market intelligence, sentiment analysis, and execution-ready workflows for the agent economy on Solana.",
+  bio: "Machine money for AI trading agents on Solana — x402 pay-per-call APIs, agent wallets, and treasury policy.",
   xHandle: "@syra_agent",
   xUrl: "https://x.com/syra_agent",
 };
@@ -156,11 +156,11 @@ The shift from "sign up and subscribe" to "pay and proceed" isn't cosmetic — i
   {
     id: "syra-x",
     slug: "syra-explained-smart-intelligence-agent",
-    title: "Syra Explained: The Smart Intelligence Agent for Traders on Solana",
+    title: "Syra Explained: Machine Money for AI Trading Agents on Solana",
     description:
-      "How Syra delivers real-time market intelligence, sentiment analysis, and execution-ready workflows for the agent economy on Solana.",
+      "How Syra delivers machine money infrastructure—x402 APIs, agent wallets, treasury policy, and execution-ready workflows for the agent economy on Solana.",
     excerpt:
-      "From market pulse to execution-ready signals — how Syra combines on-chain data, social sentiment, and agent workflows for Solana traders.",
+      "From machine money infrastructure to execution-ready signals — how Syra combines x402 APIs, agent wallets, and agent workflows on Solana.",
     coverImage: "/images/articles/article-two.webp",
     publishedAt: "2026-02-18",
     readingTimeMinutes: 7,
@@ -168,9 +168,9 @@ The shift from "sign up and subscribe" to "pay and proceed" isn't cosmetic — i
     category: "Product",
     author: SYRA_AUTHOR,
     externalUrl: "https://x.com/syra_agent/status/2021064952765874204",
-    content: `## Intelligence, not just data
+    content: `## Machine money, not just data
 
-Crypto markets move faster than any human can parse. Syra is a **smart intelligence agent** — not a dashboard, not a chatbot toy — built to synthesize on-chain activity, social sentiment, and market structure into **actionable context** for traders and autonomous agents on Solana.
+Crypto markets move faster than any human can parse. Syra is **machine money for AI trading agents** — not a dashboard, not a chatbot toy — built to give agents x402 pay-per-call APIs, wallets, treasury policy, and actionable market context on Solana.
 
 > [!NOTE]
 > Syra separates *analysis* from *execution*. We surface probabilistic intelligence; you (or your agent) decide whether and how to act.

@@ -3,6 +3,7 @@
  * Revenue → $SYRA buybacks via settlePaymentAndSetResponse (production).
  */
 import express from "express";
+import { getResourceDescription } from "../config/x402ResourceCatalog.js";
 import { getV2Payment } from "../utils/getV2Payment.js";
 import {
   X402_API_PRICE_SPCX_USD,
@@ -30,12 +31,12 @@ const outputSchema = {
  * @param {{ priceUsd: number; resource: string }} opts
  */
 function paidGetHandler(opts) {
+  const catalogSegment = opts.resource === "/spcx" ? "spcx" : "equity";
   return [
     (req, res, next) =>
       requirePayment({
         price: opts.priceUsd,
-        description:
-          "Tokenized equity intelligence — Nasdaq vs on-chain SPCX/xStocks premium/discount spread",
+        description: getResourceDescription(catalogSegment),
         method: "GET",
         discoverable: true,
         resource: opts.resource,

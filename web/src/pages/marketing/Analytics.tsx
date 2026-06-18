@@ -131,7 +131,7 @@ export default function Analytics() {
               <span className="neon-text">Rail analytics</span>
             </h1>
             <p className="text-lg text-muted-foreground">
-              Public proof of paid x402 usage on the Syra intelligence + execution rail — updated live from production.
+              Public proof of paid x402 usage on the Syra machine money rail — updated live from production.
             </p>
           </motion.div>
 

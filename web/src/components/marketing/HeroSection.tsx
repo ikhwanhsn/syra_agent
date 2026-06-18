@@ -8,6 +8,7 @@ import { DashboardPreview } from "./DashboardPreview";
 import { Input } from "@/components/ui/input";
 import { getAgentAskUrl } from "@/lib/marketing/global";
 import { cn } from "@/lib/utils";
+import { SYRA_TAGLINE_SHORT } from "@/lib/syraBranding";
 
 export const HeroSection = () => {
   const [askDraft, setAskDraft] = useState("");
@@ -51,7 +52,7 @@ export const HeroSection = () => {
             >
               <span className="h-2 w-2 shrink-0 rounded-full bg-success/90 shadow-[0_0_8px_hsl(var(--success)/0.45)] animate-pulse" />
               <span className="text-sm text-muted-foreground">
-                Financial + intelligence rail ·{" "}
+                {SYRA_TAGLINE_SHORT} ·{" "}
                 <span className="font-medium text-foreground/90">x402</span>
                 {" on Solana"}
               </span>

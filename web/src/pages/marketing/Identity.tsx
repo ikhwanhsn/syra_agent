@@ -174,7 +174,7 @@ export default function Identity() {
               On-chain <span className="neon-text">identity</span>
             </h1>
             <p className="mt-6 max-w-3xl text-lg text-muted-foreground text-balance">
-              Syra is built as a verifiable trading-intelligence agent: discoverable APIs, x402-native
+              Syra is built as verifiable machine money for agents: discoverable APIs, x402-native
               payments, and Solana-first registries. Independent explorers and indexers can validate
               capabilities without trusting a single dashboard.
             </p>

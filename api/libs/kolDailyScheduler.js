@@ -32,6 +32,11 @@ export async function runKolDailySchedulerTick() {
   tickInFlight = true;
   try {
     const result = await runKolDailyTick();
+    if (result.profiles && !result.profiles.skipped) {
+      startupVerbose(
+        `[kol] X profiles refreshed=${result.profiles.refreshed} failed=${result.profiles.failed}`,
+      );
+    }
     return result;
   } catch (e) {
     console.warn("[kol] daily scheduler tick failed:", e instanceof Error ? e.message : e);

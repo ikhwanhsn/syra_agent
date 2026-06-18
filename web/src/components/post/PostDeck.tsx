@@ -13,6 +13,7 @@ import { PostVideoExportStage } from "@/components/post/PostVideoExportStage";
 import { exportPostVideo, type PostVideoExportFormat } from "@/components/post/postVideoExport";
 import { getSlideDwellMs } from "@/components/post/postSlideTiming";
 import { cn } from "@/lib/utils";
+import { SYRA_TAGLINE } from "@/lib/syraBranding";
 import { Download, ImageIcon, Pause, Play, RotateCcw, Video } from "lucide-react";
 import { toast } from "sonner";
 
@@ -90,7 +91,7 @@ export function PostDeck({ post }: PostDeckProps) {
   useEffect(() => {
     document.title = `Syra · ${meta.title} · ${index + 1}/${slideCount}`;
     return () => {
-      document.title = "Syra | Smart Intelligence Agent for Traders";
+      document.title = `Syra | ${SYRA_TAGLINE}`;
     };
   }, [index, meta.title, slideCount]);
 

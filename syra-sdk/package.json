@@ -1,7 +1,7 @@
 {
   "name": "@syra/sdk",
   "version": "0.1.0",
-  "description": "Typed client for the Syra x402 intelligence + execution API rail on Solana",
+  "description": "Typed client for Syra machine money — x402 pay-per-call APIs, agent wallets, and treasury on Solana",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

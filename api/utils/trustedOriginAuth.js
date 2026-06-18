@@ -77,7 +77,8 @@ export function isBrowserCallablePath(path) {
     path.startsWith("/staking") ||
     path.startsWith("/wallet") ||
     path.startsWith("/post/studio") ||
-    path.startsWith("/kol")
+    path.startsWith("/kol") ||
+    path.startsWith("/btc")
   );
 }
 

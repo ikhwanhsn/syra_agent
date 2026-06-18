@@ -1,4 +1,5 @@
 import express from "express";
+import { getResourceDescription } from "../config/x402ResourceCatalog.js";
 import { getV2Payment } from "../utils/getV2Payment.js";
 import { X402_API_PRICE_CHECK_STATUS_USD } from "../config/x402Pricing.js";
 import {
@@ -26,7 +27,7 @@ export async function createHealthRouter() {
 
   const paymentOptions = {
     price: X402_API_PRICE_CHECK_STATUS_USD,
-    description: "API health: verify server status and connectivity (x402)",
+    description: getResourceDescription("health"),
     discoverable: true,
     resource: "/health",
     outputSchema: {

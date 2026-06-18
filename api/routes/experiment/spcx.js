@@ -21,7 +21,7 @@ export function createSpcxExperimentRouter() {
       data: {
         title: "SpaceX IPO Agent",
         description:
-          "Live Nasdaq vs on-chain SPCX premium/discount tracker powered by Syra intelligence rail",
+          "Live Nasdaq vs on-chain SPCX premium/discount tracker powered by Syra machine money APIs",
         nasdaqTicker: SPCX_NASDAQ_TICKER,
         ipoReferencePriceUsd: SPCX_IPO_REFERENCE_PRICE_USD,
         demoUrl: "https://agent.syraa.fun/spcx",

@@ -1,0 +1,47 @@
+/**
+ * Resource path segments for GET /.well-known/x402 (no leading slash).
+ * Keep in sync with api/config/x402DiscoveryResourcePaths.js.
+ */
+export const X402_DISCOVERY_RESOURCE_PATHS = [
+  "brain",
+  "news",
+  "signal",
+  "spcx",
+  "equity",
+  "indicator",
+  "sentiment",
+  "event",
+  "trending-headline",
+  "sundown-digest",
+  "health",
+  "mpp/health",
+  "arbitrage",
+  "jupiter/quote",
+  "pumpfun/trending",
+  "pumpfun/movers",
+  "pumpfun/analyzer",
+  "assets",
+  "assets/detail",
+  "bitcoin",
+  "8004/stats",
+  "8004/leaderboard",
+  "8004/agents/search",
+] as const;
+
+export type X402DiscoveryResourcePath = (typeof X402_DISCOVERY_RESOURCE_PATHS)[number];
+
+export function normalizeSyraApiPath(pathname: string): string {
+  let p = pathname.trim().toLowerCase();
+  if (!p) return "/";
+  if (!p.startsWith("/")) p = `/${p}`;
+  return p.replace(/\/+$/, "") || "/";
+}
+
+/** True when pathname is a Syra resource listed in GET /.well-known/x402. */
+export function isSyraX402DiscoveryPath(pathname: string): boolean {
+  const p = normalizeSyraApiPath(pathname);
+  return X402_DISCOVERY_RESOURCE_PATHS.some((segment) => {
+    const base = `/${segment}`;
+    return p === base || p.startsWith(`${base}/`);
+  });
+}

@@ -93,11 +93,29 @@ export const X402_API_PRICE_STABLEENRICH_10_USD = price(0.1);
 /** Jupiter swap order (buy/sell token via Corbits Jupiter Ultra) */
 export const X402_API_PRICE_JUPITER_SWAP_USD = price(0.02);
 
+/** Jupiter Swap V1 quote with referral platform fee — $0.03/call in production */
+export const X402_API_PRICE_JUPITER_QUOTE_USD = price(0.003);
+
 /** pump.fun fun-block tx builders — swap: PUMPFUN_SWAP_* (swapX402Price.js); create-coin: PUMPFUN_CREATE_COIN_* (createCoinX402Price.js) */
 export const X402_API_PRICE_PUMP_FUN_TX_USD = price(0.02);
 
 /** pump.fun read-only (coins-v2, sol-price) via frontend-api proxy; coin route may add mcap-based surcharge (coinReadX402Price.js) */
 export const X402_API_PRICE_PUMP_FUN_READ_USD = price(0.01);
+
+/** pump.fun trending / movers market lists — $0.05/call in production */
+export const X402_API_PRICE_PUMP_FUN_MARKET_LIST_USD = price(0.005);
+
+/** pump.fun memecoin analyzer (Pumpfun Alpha page) — $0.10/call in production */
+export const X402_API_PRICE_PUMP_FUN_ANALYZER_USD = price(0.01);
+
+/** Tokens.xyz curated assets board (Assets page) — $0.05/call in production */
+export const X402_API_PRICE_ASSETS_BOARD_USD = price(0.005);
+
+/** Tokens.xyz asset detail / mint dossier (Asset detail page) — $0.05/call in production */
+export const X402_API_PRICE_ASSETS_DETAIL_USD = price(0.005);
+
+/** Bitcoin Intelligence Hub (full /btc page) — $0.10/call in production */
+export const X402_API_PRICE_BITCOIN_USD = price(0.01);
 
 /** Squid Router cross-chain route (quote + transactionRequest for first leg) */
 export const X402_API_PRICE_SQUID_ROUTE_USD = price(0.02);
@@ -195,8 +213,14 @@ export const X402_DISPLAY_PRICE_STABLEENRICH_0495_USD = 0.0495 * PRODUCTION_MULT
 export const X402_DISPLAY_PRICE_STABLEENRICH_05_USD = 0.05 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_STABLEENRICH_10_USD = 0.1 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_JUPITER_SWAP_USD = 0.02 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_JUPITER_QUOTE_USD = 0.003 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_PUMP_FUN_TX_USD = 0.02 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_PUMP_FUN_READ_USD = 0.01 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_PUMP_FUN_MARKET_LIST_USD = 0.005 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_PUMP_FUN_ANALYZER_USD = 0.01 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_ASSETS_BOARD_USD = 0.005 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_ASSETS_DETAIL_USD = 0.005 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_BITCOIN_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_SQUID_ROUTE_USD = 0.02 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_SQUID_STATUS_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_EXA_SEARCH_USD = 0.01 * PRODUCTION_MULT;

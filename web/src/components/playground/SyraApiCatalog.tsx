@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { flowNeedsParamModal } from "@/lib/playgroundFlow";
 import { getPlaygroundSyraPathname } from "@/lib/playgroundUrl";
 import { resolvePlaygroundPaymentLane } from "@/lib/paymentLane";
+import { X402_DISCOVERY_RESOURCE_PATHS } from "@/lib/x402DiscoveryResourcePaths";
 import type { RequestParam } from "@/types/api";
 import { cn } from "@/lib/utils";
 import { Search, Wallet } from "lucide-react";
@@ -140,7 +141,7 @@ export function SyraApiCatalog() {
         <div>
           <h2 className={playgroundSectionTitleClass}>Syra x402 API rail</h2>
           <p className={playgroundSectionSubtitleClass}>
-            Pay-per-call endpoints — connect a wallet to test live on Solana.
+            {X402_DISCOVERY_RESOURCE_PATHS.length} pay-per-call resources from GET /.well-known/x402 — connect a wallet to test live.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <span className={playgroundStatPillClass}>

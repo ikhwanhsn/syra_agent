@@ -4,7 +4,7 @@
 
 # **Syra API**
 
-### Backend services for the Syra smart intelligence agent (traders on Solana)
+### Backend services for Syra — machine money for AI trading agents on Solana
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-docs.syraa.fun-0ea5e9)](https://docs.syraa.fun)
@@ -207,6 +207,56 @@ If your agent shows low scores (e.g. 50/100, 33/100) with tags like **reachable*
    node scripts/give-8004-feedback-reachable.js <AGENT_ASSET_BASE58>
    ```
    Requires: `SOLANA_PRIVATE_KEY` (or `AGENT_PRIVATE_KEY`), and either `PINATA_JWT` (to upload feedback to IPFS) or `FEEDBACK_URI` (e.g. `https://yoursite.com/8004-reachable.json`). See [8004 skill §5 and §23](https://8004.qnt.sh/skill.md).
+
+---
+
+## Register Syra on SAID Protocol
+
+[SAID Protocol](https://www.saidprotocol.com/docs) provides persistent, verifiable on-chain identity for AI agents on Solana (program `5dpw6KEQPn248pnkkaYyWfHwu2nfb3LUMbTucb6LaA8G`).
+
+### Prerequisites
+
+1. **Solana signer** — same as 8004: `SOLANA_PRIVATE_KEY`, `PAYER_KEYPAIR`, or `AGENT_PRIVATE_KEY` in `.env`.
+2. **Pinata** — `PINATA_JWT` for AgentCard metadata upload to IPFS.
+3. **SOL** — at least ~0.012 SOL on mainnet (0.01 SOL verification fee + tx fees).
+4. **RPC** — `SOLANA_RPC_URL` with full blockchain access (Helius, QuickNode, Alchemy).
+
+### Run registration + verification
+
+```bash
+cd api
+npm run register-said
+```
+
+The script registers Syra on-chain, pays the 0.01 SOL verification badge, syncs the off-chain SAID directory, and prints the identity wallet. Add it to `.env`:
+
+```bash
+SAID_AGENT_WALLET=<printed-wallet-address>
+```
+
+Optional env:
+
+- `SAID_API_BASE_URL` — default `https://api.saidprotocol.com`
+- `SYRA_SAID_NAME`, `SYRA_SAID_DESCRIPTION` — override agent metadata (defaults from `config/syraBranding.js`)
+- `SYRA_AGENT_IMAGE_URI`, `SYRA_COLLECTION_X_URL`, `SYRA_COLLECTION_EXTERNAL_URL` — branding
+
+After changing Syra branding, refresh the SAID profile:
+
+```bash
+cd api
+npm run sync-said-metadata
+```
+
+This pins a new AgentCard to IPFS and calls SAID `update_agent` on-chain.
+
+### Runtime routes (API key required)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/said/status` | Syra's own SAID identity (`SAID_AGENT_WALLET`) |
+| GET | `/said/verify/:wallet` | Full verification + reputation |
+| GET | `/said/trust/:wallet` | Minimal trust tier |
+| GET | `/said/agent/:wallet` | Full agent details |
 
 ---
 

@@ -3,6 +3,7 @@
  * Arbitrage Experiment page (CMC top + per-asset CEX snapshots + ranked best routes).
  */
 import express from "express";
+import { getResourceDescription } from "../config/x402ResourceCatalog.js";
 import { getV2Payment } from "../utils/getV2Payment.js";
 import { X402_API_PRICE_ARBITRAGE_EXPERIMENT_USD } from "../config/x402Pricing.js";
 import {
@@ -20,8 +21,7 @@ const LIMIT_PARAM = {
 
 const paymentOptionsBase = {
   price: X402_API_PRICE_ARBITRAGE_EXPERIMENT_USD,
-  description:
-    "Arbitrage experiment — CoinMarketCap-style top tradable assets plus live cross-CEX USDT spot snapshots and ranked best buy/sell routes (gross spread before fees; not financial advice).",
+  description: getResourceDescription("arbitrage"),
   discoverable: true,
   resource: "/arbitrage",
   outputSchema: {

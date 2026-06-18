@@ -2,11 +2,11 @@ Syra — machine-readable product summary
 ========================================
 
 Name: Syra
-Tagline: The intelligence layer for autonomous trading agents (Solana ecosystem).
+Tagline: Machine money for AI trading agents (Solana ecosystem).
 
 What Syra is
 ------------
-Syra is a research-driven AI trading intelligence system. It is not a promise of returns or financial advice. It helps traders, analysts, and builders interpret markets using structured, risk-aware context and explanations—not hype or blind execution.
+Syra is machine money for AI trading agents on Solana — x402 pay-per-call APIs, agent wallets, treasury policy, and autonomous execution. It is not a promise of returns or financial advice. Agents and operators use Syra to pay for intelligence, coordinate capital, and execute workflows — not hype or blind automation.
 
 Core value
 ------------
@@ -17,7 +17,7 @@ Core value
 
 Design stance
 -------------
-Syra is built as an intelligence and research layer: clarity, explainability, and multi-platform access. It augments human decisions; it does not replace the user’s responsibility for risk, compliance, and execution.
+Syra is built as machine money infrastructure: clarity, explainability, and multi-platform access. It augments agent and operator decisions; it does not replace the user’s responsibility for risk, compliance, and execution.
 
 Where Syra runs
 ----------------
@@ -53,4 +53,4 @@ Public URLs (main Syra domain):
 - Documentation index (Markdown): https://syraa.fun/docs.md
 - Agent capability list (Markdown): https://syraa.fun/skills.md
 
-Last updated: 2026-04-23 (repository snapshot).
+Last updated: 2026-06-18 (repository snapshot).

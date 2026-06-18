@@ -1,48 +1,23 @@
 import {
+  isSyraX402DiscoveryPath,
+  X402_DISCOVERY_RESOURCE_PATHS,
+} from "@/lib/x402DiscoveryResourcePaths";
+import {
   getPlaygroundSyraPathname,
   parsePlaygroundRequestUrl,
 } from "@/lib/playgroundUrl";
 
+export { X402_DISCOVERY_RESOURCE_PATHS, isSyraX402DiscoveryPath };
+
 /**
- * Public Syra HTTP routes that accept x402 payment (mirrors api/index.js isX402Route).
- * Agent-direct tools (exa-search, crawl, pumpfun, 8004scan, heylol, quicknode, etc.)
- * were removed from HTTP — use POST /agent/tools/call instead.
+ * Public Syra HTTP routes advertised in GET /.well-known/x402.
+ * Partner gateway paths (/binance/*, most /nansen/*, etc.) and agent-direct tools
+ * are x402 on the wire but not listed in discovery — use POST /agent/tools/call instead.
  *
- * Keep in sync with api/config/x402DiscoveryResourcePaths.js and isX402Route in api/index.js.
+ * Keep in sync with api/config/x402DiscoveryResourcePaths.js.
  */
 export function isPublicSyraX402Path(pathname: string): boolean {
-  const p = pathname.toLowerCase();
-  if (!p) return false;
-
-  // Shares /binance prefix but is internal preview, not x402.
-  if (p === "/binance-ticker" || p.startsWith("/binance-ticker/")) return false;
-
-  if (p === "/brain" || p.startsWith("/brain/")) return true;
-  if (p === "/news" || p.startsWith("/news/")) return true;
-  if (p === "/signal" || p.startsWith("/signal/")) return true;
-  if (p === "/sentiment" || p.startsWith("/sentiment/")) return true;
-  if (p === "/event" || p.startsWith("/event/")) return true;
-  if (p.startsWith("/trending-headline")) return true;
-  if (p.startsWith("/sundown-digest")) return true;
-  if (p === "/health" || p.startsWith("/health/")) return true;
-  if (p.startsWith("/mpp/v1")) return true;
-  if (p === "/arbitrage" || p.startsWith("/arbitrage/")) return true;
-  if (p.startsWith("/analytics/summary")) return true;
-  if (p === "/x" || p.startsWith("/x/")) return true;
-  if (p === "/x-analyzer" || p.startsWith("/x-analyzer/")) return true;
-
-  if (p.startsWith("/nansen/")) return true;
-  if (p.startsWith("/binance/")) return true;
-  if (p.startsWith("/bankr/")) return true;
-  if (p.startsWith("/giza/")) return true;
-  if (p.startsWith("/neynar/")) return true;
-  if (p.startsWith("/siwa/")) return true;
-
-  if (p === "/8004" || p.startsWith("/8004/")) return true;
-  if (p === "/smart-money" || p.startsWith("/smart-money/")) return true;
-  if (p === "/token-god-mode" || p.startsWith("/token-god-mode/")) return true;
-
-  return false;
+  return isSyraX402DiscoveryPath(pathname);
 }
 
 /** Whether a playground example flow targets a public x402 route (Syra or external origin). */

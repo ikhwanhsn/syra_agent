@@ -55,7 +55,7 @@ export function MarketplaceStats() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["kol-stats"],
     queryFn: fetchKolStats,
-    staleTime: 60_000,
+    staleTime: 24 * 60 * 60 * 1000,
     retry: 1,
   });
 

@@ -16,7 +16,14 @@ import {
   X402_DISPLAY_PRICE_SPCX_USD,
   X402_DISPLAY_PRICE_EQUITY_USD,
   X402_DISPLAY_PRICE_INDICATOR_USD,
+  X402_DISPLAY_PRICE_JUPITER_QUOTE_USD,
+  X402_DISPLAY_PRICE_PUMP_FUN_MARKET_LIST_USD,
+  X402_DISPLAY_PRICE_PUMP_FUN_ANALYZER_USD,
+  X402_DISPLAY_PRICE_ASSETS_BOARD_USD,
+  X402_DISPLAY_PRICE_ASSETS_DETAIL_USD,
+  X402_DISPLAY_PRICE_BITCOIN_USD,
 } from '../config/x402Pricing.js';
+import { getResourceDescription, getResourceSummary } from '../config/x402ResourceCatalog.js';
 
 const GATEWAY_DIR = path.dirname(fileURLToPath(import.meta.url));
 
@@ -316,11 +323,13 @@ function responsesFor(paid) {
  * @param {unknown[]} [parameters]
  * @param {boolean} [paid]
  * @param {number} [priceUsd]
+ * @param {string} [description]
  */
-function opGet(tag, summary, operationId, parameters = [], paid = false, priceUsd = X402_DISPLAY_PRICE_USD) {
+function opGet(tag, summary, operationId, parameters = [], paid = false, priceUsd = X402_DISPLAY_PRICE_USD, description) {
   return {
     tags: [tag],
     summary,
+    ...(description ? { description } : {}),
     operationId,
     security: paid ? SECURITY_PAID : SECURITY_FREE,
     ...(paid ? { 'x-payment-info': xPaymentInfo(priceUsd) } : {}),
@@ -335,17 +344,28 @@ function opGet(tag, summary, operationId, parameters = [], paid = false, priceUs
  * @param {string} operationId
  * @param {boolean} [paid]
  * @param {number} [priceUsd]
+ * @param {string} [description]
  */
-function opPost(tag, summary, operationId, paid = false, priceUsd = X402_DISPLAY_PRICE_USD) {
+function opPost(tag, summary, operationId, paid = false, priceUsd = X402_DISPLAY_PRICE_USD, description) {
   return {
     tags: [tag],
     summary,
+    ...(description ? { description } : {}),
     operationId,
     security: paid ? SECURITY_PAID : SECURITY_FREE,
     ...(paid ? { 'x-payment-info': xPaymentInfo(priceUsd) } : {}),
     requestBody: JSON_BODY_LOOSE,
     responses: responsesFor(paid),
   };
+}
+
+/** Discovery catalog helper — summary + description from x402ResourceCatalog. */
+function opGetCat(segment, tag, operationId, parameters = [], paid = false, priceUsd = X402_DISPLAY_PRICE_USD) {
+  return opGet(tag, getResourceSummary(segment), operationId, parameters, paid, priceUsd, getResourceDescription(segment));
+}
+
+function opPostCat(segment, tag, operationId, paid = false, priceUsd = X402_DISPLAY_PRICE_USD) {
+  return opPost(tag, getResourceSummary(segment), operationId, paid, priceUsd, getResourceDescription(segment));
 }
 
 /**
@@ -359,9 +379,8 @@ export function buildGatewayOpenApi() {
     '/signal': {
       get: {
         tags: ['Market data (x402)'],
-        summary: 'AI trading signal (x402)',
-        description:
-          'Spot OHLC + technical signal engine. Default source: binance with CEX fallbacks (coinbase, okx, kraken). Use source=n8n|webhook for legacy webhook.',
+        summary: getResourceSummary('signal'),
+        description: getResourceDescription('signal'),
         operationId: 'getSignal',
         security: SECURITY_PAID,
         'x-payment-info': xPaymentInfo(X402_DISPLAY_PRICE_USD),
@@ -388,7 +407,8 @@ export function buildGatewayOpenApi() {
       },
       post: {
         tags: ['Market data (x402)'],
-        summary: 'AI trading signal via JSON body (x402)',
+        summary: `${getResourceSummary('signal')} (POST)`,
+        description: getResourceDescription('signal'),
         operationId: 'postSignal',
         security: SECURITY_PAID,
         'x-payment-info': xPaymentInfo(X402_DISPLAY_PRICE_USD),
@@ -440,25 +460,25 @@ export function buildGatewayOpenApi() {
     },
 
     '/news': {
-      get: opGet('Market data (x402)', 'Crypto news', 'getNews', TICKER_QUERY, true, X402_DISPLAY_PRICE_NEWS_USD),
-      post: opPost('Market data (x402)', 'Crypto news (POST)', 'postNews', true, X402_DISPLAY_PRICE_NEWS_USD),
+      get: opGetCat('news', 'Market data (x402)', 'getNews', TICKER_QUERY, true, X402_DISPLAY_PRICE_NEWS_USD),
+      post: opPostCat('news', 'Market data (x402)', 'postNews', true, X402_DISPLAY_PRICE_NEWS_USD),
     },
     '/sentiment': {
-      get: opGet('Market data (x402)', 'Sentiment', 'getSentiment', TICKER_QUERY, true, X402_DISPLAY_PRICE_NEWS_USD),
-      post: opPost('Market data (x402)', 'Sentiment (POST)', 'postSentiment', true, X402_DISPLAY_PRICE_NEWS_USD),
+      get: opGetCat('sentiment', 'Market data (x402)', 'getSentiment', TICKER_QUERY, true, X402_DISPLAY_PRICE_NEWS_USD),
+      post: opPostCat('sentiment', 'Market data (x402)', 'postSentiment', true, X402_DISPLAY_PRICE_NEWS_USD),
     },
     '/event': {
-      get: opGet('Market data (x402)', 'Crypto events', 'getEvent', TICKER_QUERY, true, X402_DISPLAY_PRICE_NEWS_USD),
-      post: opPost('Market data (x402)', 'Crypto events (POST)', 'postEvent', true, X402_DISPLAY_PRICE_NEWS_USD),
+      get: opGetCat('event', 'Market data (x402)', 'getEvent', TICKER_QUERY, true, X402_DISPLAY_PRICE_NEWS_USD),
+      post: opPostCat('event', 'Market data (x402)', 'postEvent', true, X402_DISPLAY_PRICE_NEWS_USD),
     },
     '/health': {
-      get: opGet('Gateway (x402)', 'API health (x402 liveness)', 'getHealth', [], true, X402_DISPLAY_PRICE_CHECK_STATUS_USD),
-      post: opPost('Gateway (x402)', 'API health (POST)', 'postHealth', true, X402_DISPLAY_PRICE_CHECK_STATUS_USD),
+      get: opGetCat('health', 'Gateway (x402)', 'getHealth', [], true, X402_DISPLAY_PRICE_CHECK_STATUS_USD),
+      post: opPostCat('health', 'Gateway (x402)', 'postHealth', true, X402_DISPLAY_PRICE_CHECK_STATUS_USD),
     },
     '/brain': {
-      get: opGet(
+      get: opGetCat(
+        'brain',
         'AI (x402)',
-        'Syra Brain (GET)',
         'getBrain',
         [
           {
@@ -472,13 +492,13 @@ export function buildGatewayOpenApi() {
         true,
         X402_DISPLAY_PRICE_BRAIN_USD,
       ),
-      post: opPost('AI (x402)', 'Syra Brain (POST)', 'postBrain', true, X402_DISPLAY_PRICE_BRAIN_USD),
+      post: opPostCat('brain', 'AI (x402)', 'postBrain', true, X402_DISPLAY_PRICE_BRAIN_USD),
     },
 
     '/arbitrage': {
-      get: opGet(
+      get: opGetCat(
+        'arbitrage',
         'Market data (x402)',
-        'Arbitrage — CMC top + cross-CEX snapshots + ranked routes (x402)',
         'getArbitrage',
         [
           {
@@ -492,13 +512,7 @@ export function buildGatewayOpenApi() {
         true,
         X402_DISPLAY_PRICE_ARBITRAGE_EXPERIMENT_USD,
       ),
-      post: opPost(
-        'Market data (x402)',
-        'Arbitrage — POST body may include { limit } (x402)',
-        'postArbitrage',
-        true,
-        X402_DISPLAY_PRICE_ARBITRAGE_EXPERIMENT_USD,
-      ),
+      post: opPostCat('arbitrage', 'Market data (x402)', 'postArbitrage', true, X402_DISPLAY_PRICE_ARBITRAGE_EXPERIMENT_USD),
     },
 
     '/x-analyzer': {
@@ -616,9 +630,8 @@ export function buildGatewayOpenApi() {
     '/spcx': {
       get: {
         tags: ['Equity (x402)'],
-        summary: 'SPCX / SpaceX IPO intelligence',
-        description:
-          'Nasdaq vs on-chain SPCX premium/discount spread. x402 revenue routes to $SYRA buybacks in production.',
+        summary: getResourceSummary('spcx'),
+        description: getResourceDescription('spcx'),
         operationId: 'getSpcxIntelligence',
         security: SECURITY_PAID,
         'x-payment-info': xPaymentInfo(X402_DISPLAY_PRICE_SPCX_USD),
@@ -631,8 +644,8 @@ export function buildGatewayOpenApi() {
     '/equity': {
       get: {
         tags: ['Equity (x402)'],
-        summary: 'Tokenized equity intelligence (xStocks catalog)',
-        description: 'Parametric symbol → Nasdaq vs on-chain spread for TSLAx, NVDAx, etc.',
+        summary: getResourceSummary('equity'),
+        description: getResourceDescription('equity'),
         operationId: 'getEquityIntelligence',
         security: SECURITY_PAID,
         'x-payment-info': xPaymentInfo(X402_DISPLAY_PRICE_EQUITY_USD),
@@ -642,10 +655,186 @@ export function buildGatewayOpenApi() {
         responses: responsesFor(true),
       },
     },
+    '/jupiter/quote': {
+      get: opGetCat(
+        'jupiter/quote',
+        'Jupiter quote (x402)',
+        'getJupiterQuote',
+        [
+          {
+            name: 'inputMint',
+            in: 'query',
+            schema: { type: 'string' },
+            required: true,
+            description: 'Input token mint',
+          },
+          {
+            name: 'outputMint',
+            in: 'query',
+            schema: { type: 'string' },
+            required: true,
+            description: 'Output token mint (referral fee taken on output)',
+          },
+          {
+            name: 'amount',
+            in: 'query',
+            schema: { type: 'string' },
+            required: true,
+            description: 'Input amount in raw token units',
+          },
+          { name: 'slippageBps', in: 'query', schema: { type: 'integer', default: 50 } },
+          { name: 'swapMode', in: 'query', schema: { type: 'string' } },
+        ],
+        true,
+        X402_DISPLAY_PRICE_JUPITER_QUOTE_USD,
+      ),
+      post: {
+        tags: ['Jupiter quote (x402)'],
+        summary: `${getResourceSummary('jupiter/quote')} (POST)`,
+        description: getResourceDescription('jupiter/quote'),
+        operationId: 'postJupiterQuote',
+        security: SECURITY_PAID,
+        'x-payment-info': xPaymentInfo(X402_DISPLAY_PRICE_JUPITER_QUOTE_USD),
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['inputMint', 'outputMint', 'amount'],
+                properties: {
+                  inputMint: { type: 'string' },
+                  outputMint: { type: 'string' },
+                  amount: { type: 'string' },
+                  slippageBps: { type: 'integer' },
+                  swapMode: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+        responses: responsesFor(true),
+      },
+    },
+    '/pumpfun/trending': {
+      get: opGetCat(
+        'pumpfun/trending',
+        'pump.fun trending (x402)',
+        'getPumpfunTrending',
+        [
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 20 } },
+          { name: 'offset', in: 'query', schema: { type: 'integer', default: 0 } },
+          { name: 'includeNsfw', in: 'query', schema: { type: 'boolean', default: false } },
+        ],
+        true,
+        X402_DISPLAY_PRICE_PUMP_FUN_MARKET_LIST_USD,
+      ),
+    },
+    '/pumpfun/movers': {
+      get: opGetCat(
+        'pumpfun/movers',
+        'pump.fun movers (x402)',
+        'getPumpfunMovers',
+        [
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 20 } },
+          { name: 'offset', in: 'query', schema: { type: 'integer', default: 0 } },
+          { name: 'includeNsfw', in: 'query', schema: { type: 'boolean', default: false } },
+        ],
+        true,
+        X402_DISPLAY_PRICE_PUMP_FUN_MARKET_LIST_USD,
+      ),
+    },
+    '/pumpfun/analyzer': {
+      get: opGetCat(
+        'pumpfun/analyzer',
+        'pump.fun analyzer (x402)',
+        'getPumpfunAnalyzer',
+        [
+          {
+            name: 'mint',
+            in: 'query',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Solana token mint (base58)',
+          },
+        ],
+        true,
+        X402_DISPLAY_PRICE_PUMP_FUN_ANALYZER_USD,
+      ),
+    },
+    '/assets': {
+      get: opGetCat(
+        'assets',
+        'Assets board (x402)',
+        'getAssetsBoard',
+        [
+          {
+            name: 'list',
+            in: 'query',
+            schema: {
+              type: 'string',
+              default: 'all',
+              enum: ['all', 'majors', 'lsts', 'currencies', 'rwas', 'etfs', 'metals', 'stocks'],
+            },
+          },
+          { name: 'groupBy', in: 'query', schema: { type: 'string', default: 'asset', enum: ['asset', 'mint'] } },
+          { name: 'assetClass', in: 'query', schema: { type: 'string', default: 'all', enum: ['all', 'crypto', 'equity'] } },
+          { name: 'q', in: 'query', schema: { type: 'string' }, description: 'Search name, symbol, ref, or assetId' },
+          {
+            name: 'sort',
+            in: 'query',
+            schema: {
+              type: 'string',
+              default: 'marketCap',
+              enum: ['marketCap', 'name', 'symbol', 'price', 'change24h', 'volume24h', 'assetClass'],
+            },
+          },
+          { name: 'order', in: 'query', schema: { type: 'string', enum: ['asc', 'desc'] } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 20, maximum: 100 } },
+          { name: 'offset', in: 'query', schema: { type: 'integer', default: 0 } },
+          { name: 'maxPages', in: 'query', schema: { type: 'integer', default: 20, maximum: 20 } },
+        ],
+        true,
+        X402_DISPLAY_PRICE_ASSETS_BOARD_USD,
+      ),
+    },
+    '/assets/detail': {
+      get: opGetCat(
+        'assets/detail',
+        'Asset detail (x402)',
+        'getAssetsDetail',
+        [
+          { name: 'ref', in: 'query', schema: { type: 'string' }, description: 'Ref e.g. btc, solana, apple' },
+          { name: 'mint', in: 'query', schema: { type: 'string' }, description: 'Solana mint (base58)' },
+          { name: 'assetId', in: 'query', schema: { type: 'string' }, description: 'assetId e.g. bitcoin' },
+          { name: 'q', in: 'query', schema: { type: 'string' }, description: 'Freeform lookup (ref, mint, or assetId)' },
+        ],
+        true,
+        X402_DISPLAY_PRICE_ASSETS_DETAIL_USD,
+      ),
+    },
+    '/bitcoin': {
+      get: opGetCat(
+        'bitcoin',
+        'Bitcoin Intelligence Hub (x402)',
+        'getBitcoinHub',
+        [
+          { name: 'exchange', in: 'query', schema: { type: 'string', default: 'binance', enum: ['binance', 'coinbase'] } },
+          {
+            name: 'interval',
+            in: 'query',
+            schema: { type: 'string', default: '1h', enum: ['1m', '5m', '15m', '1h', '4h', '1d'] },
+          },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 200, minimum: 20, maximum: 500 } },
+        ],
+        true,
+        X402_DISPLAY_PRICE_BITCOIN_USD,
+      ),
+    },
     '/indicator': {
-      get: opGet(
+      get: opGetCat(
+        'indicator',
         'Technical indicators (x402)',
-        'OHLCV technical indicators — combine RSI, MACD, EMA, Bollinger, and 20+ more in one agent-readable call',
         'getIndicator',
         [
           { name: 'symbol', in: 'query', schema: { type: 'string', default: 'BTCUSDT' } },

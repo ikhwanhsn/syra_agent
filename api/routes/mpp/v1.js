@@ -8,6 +8,7 @@
  * @see https://docs.stripe.com/payments/machine/x402 (machine payments ecosystem)
  */
 import express from "express";
+import { getResourceDescription } from "../../config/x402ResourceCatalog.js";
 import { getV2Payment } from "../../utils/getV2Payment.js";
 import { X402_API_PRICE_CHECK_STATUS_USD } from "../../config/x402Pricing.js";
 
@@ -33,10 +34,9 @@ export async function createMppV1Router() {
 
   const paymentOptions = {
     price: X402_API_PRICE_CHECK_STATUS_USD,
-    description:
-      "MPP v1 test — machine-payment style health check (x402 v2 compatible; use for Tempo/Stripe MPP client experiments)",
+    description: getResourceDescription("mpp/health"),
     discoverable: true,
-    resource: "/mpp/v1/health",
+    resource: "/mpp/health",
     outputSchema: {
       ok: { type: "boolean", description: "Request succeeded" },
       status: { type: "string", description: "health: healthy" },

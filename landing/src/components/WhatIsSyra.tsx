@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef } from "react";
 import { Brain, Shield, Zap, Globe, Lock, BarChart3 } from "lucide-react";
+import { SYRA_AGENT_DESCRIPTION } from "@/lib/syraBranding";
 
 const features = [
   {
@@ -77,10 +78,7 @@ export const WhatIsSyra = () => {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="text-lg text-muted-foreground max-w-3xl mx-auto"
           >
-            Syra is the smart intelligence agent for traders: it reasons over
-            live Solana markets, pulls in paid data and tools when needed, and
-            keeps you in the loop with clear, actionable output—so you can fund
-            your stack once and iterate on strategy instead of glue code.
+            {SYRA_AGENT_DESCRIPTION} Fund your stack once and iterate on strategy instead of glue code.
           </motion.p>
         </div>
 

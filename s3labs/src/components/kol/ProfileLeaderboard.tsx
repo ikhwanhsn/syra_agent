@@ -157,7 +157,7 @@ export function ProfileLeaderboard({ variant }: ProfileLeaderboardProps) {
     queryKey: ["kol-projects", sortKey],
     queryFn: () => fetchProjects({ limit: 50, sort: sortKey as ProjectSortKey }),
     enabled: variant === "projects",
-    staleTime: 60_000,
+    staleTime: 24 * 60 * 60 * 1000,
     retry: 1,
   });
 
@@ -165,7 +165,7 @@ export function ProfileLeaderboard({ variant }: ProfileLeaderboardProps) {
     queryKey: ["kol-kols", sortKey],
     queryFn: () => fetchKols({ limit: 50, sort: sortKey as KolSortKey }),
     enabled: variant === "kols",
-    staleTime: 60_000,
+    staleTime: 24 * 60 * 60 * 1000,
     retry: 1,
   });
 
@@ -379,7 +379,7 @@ export function ProfileLeaderboard({ variant }: ProfileLeaderboardProps) {
                     to={`/kol/${encodeURIComponent(kol.handle)}`}
                     className="flex items-center gap-2 -m-2 p-2 rounded-xl hover:bg-muted/60 transition-colors group"
                   >
-                    <ProfileCell handle={kol.handle} name={kol.handle} />
+                    <ProfileCell handle={kol.handle} name={kol.name ?? kol.handle} />
                     <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-70 transition-opacity ml-auto" />
                   </Link>
                 </TableCell>

@@ -3,10 +3,11 @@
  * @see https://www.mppscan.com/discovery — openapi, info.description, info.guidance (required), paths with x-payment-info + 402.
  *
  * Paths mirror **canonical x402 URLs** (same as GET /.well-known/x402). Settlement is x402 v2 (HTTP 402);
- * `protocols: ["mpp"]` is discovery metadata for MPPscan / AgentCash. `/mpp/v1/health` is included
+ * `protocols: ["mpp"]` is discovery metadata for MPPscan / AgentCash. `/mpp/health` is included
  * as the MPP-branded health check (also listed under x402 discovery).
  */
 import { buildMppOpenApiPaths } from './mppOpenApiPaths.js';
+import { SYRA_META_DESCRIPTION } from '../config/syraBranding.js';
 
 const DEFAULT_SERVER = 'https://api.syraa.fun';
 
@@ -42,8 +43,7 @@ export function buildMppDiscoveryOpenApi() {
       title: 'Syra API',
       version: '1.0.0',
       contact: { email: 'support@syraa.fun' },
-      description:
-        'Syra is the smart intelligence agent for traders on Solana—real-time market data, on-chain signals, news, sentiment, and research',
+      description: SYRA_META_DESCRIPTION,
       // Required by MPP / AgentCash discovery — without this, registries may return not_found / no resources
       guidance:
         'Call an operation without payment → HTTP 402. Pay with x402 (Solana or Base USDC), retry with payment proof. Docs: https://docs.syraa.fun. Identity-gated routes (POST /8004/register-agent, POST /payouts/tempo; gate on by default): attach X-Operator-Token from AgentScore Passport on the paid retry — see GET /skill.md. Disable with AGENTSCORE_GATE_ENABLED=false.',

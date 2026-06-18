@@ -1,6 +1,6 @@
 # @syra/sdk
 
-Typed client for the **Syra financial + intelligence rail** — pay-per-call x402 APIs on Solana.
+Typed client for **Syra machine money** — pay-per-call x402 APIs, agent wallets, and treasury policy on Solana.
 
 ## Install
 

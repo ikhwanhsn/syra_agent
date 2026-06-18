@@ -84,23 +84,23 @@ export function exampleFlowsFromMppOpenApi(
   return out.sort((a, b) => a.url.localeCompare(b.url) || a.method.localeCompare(b.method));
 }
 
-/** Syra-hosted MPP lane URLs (`/mpp/v1/*`). Included in discovery; kept explicit for clarity. */
-export function getMppV1LaneExampleFlows(syraBase: string): MppCatalogExampleFlowPreset[] {
+/** Syra-hosted MPP lane URLs (`/mpp/*`). Included in discovery; kept explicit for clarity. */
+export function getMppLaneExampleFlows(syraBase: string): MppCatalogExampleFlowPreset[] {
   const b = syraBase.replace(/\/$/, '');
   return [
     {
-      id: 'mpp-v1-health-get',
-      label: 'MPP v1: check status (GET)',
+      id: 'mpp-health-get',
+      label: 'MPP: health (GET)',
       method: 'GET',
-      url: `${b}/mpp/v1/health`,
+      url: `${b}/mpp/health`,
       params: [],
       examplePaymentCatalog: 'mpp',
     },
     {
-      id: 'mpp-v1-health-post',
-      label: 'MPP v1: check status (POST)',
+      id: 'mpp-health-post',
+      label: 'MPP: health (POST)',
       method: 'POST',
-      url: `${b}/mpp/v1/health`,
+      url: `${b}/mpp/health`,
       params: [],
       body: '{\n  \n}',
       examplePaymentCatalog: 'mpp',
@@ -108,14 +108,14 @@ export function getMppV1LaneExampleFlows(syraBase: string): MppCatalogExampleFlo
   ];
 }
 
-/** Full MPP example list: OpenAPI catalog plus `/mpp/v1/health` if missing from the doc. */
+/** Full MPP example list: OpenAPI catalog plus `/mpp/health` if missing from the doc. */
 export function buildFullMppExampleFlowList(
   doc: unknown,
   syraBase: string,
   purchBase: string
 ): MppCatalogExampleFlowPreset[] {
   const fromDoc = exampleFlowsFromMppOpenApi(doc, syraBase, purchBase);
-  const hasMppV1 = fromDoc.some((f) => f.url.toLowerCase().includes('/mpp/v1/health'));
-  if (hasMppV1) return fromDoc;
-  return [...getMppV1LaneExampleFlows(syraBase), ...fromDoc];
+  const hasMppHealth = fromDoc.some((f) => f.url.toLowerCase().includes('/mpp/health'));
+  if (hasMppHealth) return fromDoc;
+  return [...getMppLaneExampleFlows(syraBase), ...fromDoc];
 }

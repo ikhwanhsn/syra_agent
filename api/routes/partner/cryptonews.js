@@ -3,6 +3,7 @@
  * Powered by the internal news agent (RSS + OpenRouter LLM + Mongo sentiment).
  */
 import express from "express";
+import { getResourceDescription } from "../../config/x402ResourceCatalog.js";
 import { getV2Payment } from "../../utils/getV2Payment.js";
 import { X402_API_PRICE_NEWS_USD } from "../../config/x402Pricing.js";
 import { resolveTickerFromCoingecko } from "../../utils/coingeckoAPI.js";
@@ -273,7 +274,7 @@ export async function createCryptonewsRouter() {
     "/news",
     requirePayment({
       price: X402_API_PRICE_NEWS_USD,
-      description: "Get latest crypto news and market updates",
+      description: getResourceDescription("news"),
       method: "GET",
       discoverable: true,
       resource: "/news",
@@ -312,7 +313,7 @@ export async function createCryptonewsRouter() {
     "/news",
     requirePayment({
       price: X402_API_PRICE_NEWS_USD,
-      description: "Get latest crypto news and market updates",
+      description: getResourceDescription("news"),
       method: "POST",
       discoverable: true,
       resource: "/news",
@@ -361,7 +362,7 @@ export async function createCryptonewsRouter() {
   router.get(
     "/sentiment",
     requirePayment({
-      description: "Get market sentiment analysis for crypto assets over last 30 days",
+      description: getResourceDescription("sentiment"),
       method: "GET",
       discoverable: true,
       resource: "/sentiment",
@@ -392,7 +393,7 @@ export async function createCryptonewsRouter() {
   router.post(
     "/sentiment",
     requirePayment({
-      description: "Get market sentiment analysis for crypto assets over last 30 days",
+      description: getResourceDescription("sentiment"),
       method: "POST",
       discoverable: true,
       resource: "/sentiment",
@@ -436,7 +437,7 @@ export async function createCryptonewsRouter() {
   router.get(
     "/event",
     requirePayment({
-      description: "Get upcoming and recent crypto events, conferences, and launches",
+      description: getResourceDescription("event"),
       method: "GET",
       discoverable: true,
       resource: "/event",
@@ -468,7 +469,7 @@ export async function createCryptonewsRouter() {
   router.post(
     "/event",
     requirePayment({
-      description: "Get upcoming and recent crypto events, conferences, and launches",
+      description: getResourceDescription("event"),
       method: "POST",
       discoverable: true,
       resource: "/event",
@@ -513,7 +514,7 @@ export async function createCryptonewsRouter() {
   router.get(
     "/trending-headline",
     requirePayment({
-      description: "Get trending headlines and top stories in the crypto market",
+      description: getResourceDescription("trending-headline"),
       method: "GET",
       discoverable: true,
       resource: "/trending-headline",
@@ -544,7 +545,7 @@ export async function createCryptonewsRouter() {
   router.post(
     "/trending-headline",
     requirePayment({
-      description: "Get trending headlines and top stories in the crypto market",
+      description: getResourceDescription("trending-headline"),
       method: "POST",
       discoverable: true,
       resource: "/trending-headline",
@@ -586,7 +587,7 @@ export async function createCryptonewsRouter() {
   router.get(
     "/sundown-digest",
     requirePayment({
-      description: "Daily end-of-day summary of key crypto market events and movements",
+      description: getResourceDescription("sundown-digest"),
       method: "GET",
       discoverable: true,
       resource: "/sundown-digest",
@@ -612,7 +613,7 @@ export async function createCryptonewsRouter() {
   router.post(
     "/sundown-digest",
     requirePayment({
-      description: "Daily end-of-day summary of key crypto market events and movements",
+      description: getResourceDescription("sundown-digest"),
       method: "POST",
       discoverable: true,
       resource: "/sundown-digest",

@@ -1,6 +1,6 @@
 # Syra MCP — ElizaOS / agent framework integration
 
-Add Syra intelligence tools to any ElizaOS agent via HTTP tools or subprocess MCP.
+Add Syra machine money tools (x402 APIs, wallets, treasury) to any ElizaOS agent via HTTP tools or subprocess MCP.
 
 ## Option A: MCP subprocess (recommended)
 

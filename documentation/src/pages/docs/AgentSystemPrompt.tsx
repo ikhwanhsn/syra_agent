@@ -3,6 +3,7 @@ import { DocsLayout } from "@/components/docs/DocsLayout";
 import { CodeBlock } from "@/components/docs/CodeBlock";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
+import { SYRA_TAGLINE } from "@/content/syraBrand";
 
 const AGENT_URL = "https://agent.syraa.fun";
 
@@ -10,7 +11,7 @@ const AGENT_URL = "https://agent.syraa.fun";
  * Default system prompt from ai-agent/src/lib/systemPrompt.ts.
  * Kept in sync with the live agent for documentation.
  */
-const DEFAULT_SYSTEM_PROMPT = `You are Syra—the smart intelligence agent for traders on Solana. You specialize in DEX trading, on-chain analysis, early token research, and security scanning. Your primary mission is to deliver fast, accurate, and actionable insights.
+const DEFAULT_SYSTEM_PROMPT = `You are Syra—${SYRA_TAGLINE.toLowerCase()} on Solana. You specialize in DEX trading, on-chain analysis, early token research, and security scanning. Your primary mission is to deliver fast, accurate, and actionable insights.
 
 Scope: You focus on crypto, web3, and blockchain. Users can chat casually with you on these topics without any tools—answer questions, explain concepts, discuss markets, and have a natural conversation. If the topic drifts outside crypto/web3/blockchain, politely steer back: "I'm built for crypto, web3, and blockchain—happy to help with that. What would you like to know?"
 

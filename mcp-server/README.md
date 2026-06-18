@@ -28,7 +28,7 @@ Set `SYRA_API_BASE_URL=https://api.syraa.fun`. For ElizaOS and custom agents, se
 
 ---
 
-A **Model Context Protocol (MCP)** server that exposes the **Syra intelligence + execution rail** as tools for AI assistants. Use it from **Cursor**, **Claude Desktop**, **ElizaOS**, or any MCP-compatible client to fetch crypto news, sentiment, signals, smart-money flow, and more — agents pay per call via x402 when using production routes.
+A **Model Context Protocol (MCP)** server that exposes **Syra machine money** — x402 APIs, agent wallets, and treasury — as tools for AI assistants. Use it from **Cursor**, **Claude Desktop**, **ElizaOS**, or any MCP-compatible client to fetch crypto news, sentiment, signals, smart-money flow, and more — agents pay per call via x402 when using production routes.
 
 ---
 

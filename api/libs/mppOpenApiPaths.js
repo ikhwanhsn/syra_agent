@@ -4,6 +4,7 @@
  */
 import { AGENT_TOOLS } from '../config/agentTools.js';
 import { X402_DISCOVERY_RESOURCE_PATHS } from '../config/x402DiscoveryResourcePaths.js';
+import { getResourceDescription } from '../config/x402ResourceCatalog.js';
 /**
  * OpenAPI `price` is a catalog hint for MPPscan / AgentCash (2-decimal UIs).
  * Use production-scale display amounts so dashboards are not all $0.00 when NODE_ENV !== production
@@ -19,6 +20,11 @@ import {
   X402_DISPLAY_PRICE_JUPITER_SWAP_USD,
   X402_DISPLAY_PRICE_PUMP_FUN_TX_USD,
   X402_DISPLAY_PRICE_PUMP_FUN_READ_USD,
+  X402_DISPLAY_PRICE_PUMP_FUN_MARKET_LIST_USD,
+  X402_DISPLAY_PRICE_PUMP_FUN_ANALYZER_USD,
+  X402_DISPLAY_PRICE_ASSETS_BOARD_USD,
+  X402_DISPLAY_PRICE_ASSETS_DETAIL_USD,
+  X402_DISPLAY_PRICE_BITCOIN_USD,
   X402_DISPLAY_PRICE_SQUID_ROUTE_USD,
   X402_DISPLAY_PRICE_SQUID_STATUS_USD,
   X402_DISPLAY_PRICE_EXA_SEARCH_USD,
@@ -38,6 +44,9 @@ import {
   X402_DISPLAY_PRICE_X_USD,
   X402_DISPLAY_PRICE_X_ANALYZER_USD,
   X402_DISPLAY_PRICE_INDICATOR_USD,
+  X402_DISPLAY_PRICE_JUPITER_QUOTE_USD,
+  X402_DISPLAY_PRICE_SPCX_USD,
+  X402_DISPLAY_PRICE_EQUITY_USD,
 } from '../config/x402Pricing.js';
 
 /** @param {number} n */
@@ -95,7 +104,7 @@ const JSON_BODY_REQUEST = {
  */
 function displayPriceForDiscoveryOnlyPath(apiPath) {
   const p = apiPath.replace(/\/+$/, '') || '/';
-  if (p === '/health' || p === '/mpp/v1/health') return X402_DISPLAY_PRICE_CHECK_STATUS_USD;
+  if (p === '/health' || p === '/mpp/health' || p === '/mpp/v1/health') return X402_DISPLAY_PRICE_CHECK_STATUS_USD;
   if (p.startsWith('/news') || p.startsWith('/sentiment') || p.startsWith('/event') || p.startsWith('/trending-headline') || p.startsWith('/sundown-digest')) {
     return X402_DISPLAY_PRICE_NEWS_USD;
   }
@@ -116,7 +125,21 @@ function displayPriceForDiscoveryOnlyPath(apiPath) {
   if (p.startsWith('/neynar/')) return X402_DISPLAY_PRICE_NEYNAR_USD;
   if (p.startsWith('/siwa/')) return X402_DISPLAY_PRICE_SIWA_USD;
   if (p === '/indicator' || p.startsWith('/indicator/')) return X402_DISPLAY_PRICE_INDICATOR_USD;
+  if (p === '/spcx' || p.startsWith('/spcx/')) return X402_DISPLAY_PRICE_SPCX_USD;
+  if (p === '/equity' || p.startsWith('/equity/')) return X402_DISPLAY_PRICE_EQUITY_USD;
+  if (p.startsWith('/jupiter/quote')) return X402_DISPLAY_PRICE_JUPITER_QUOTE_USD;
   if (p.startsWith('/jupiter/swap/order')) return X402_DISPLAY_PRICE_JUPITER_SWAP_USD;
+  if (p.startsWith('/pumpfun/trending') || p.startsWith('/pumpfun/movers')) {
+    return X402_DISPLAY_PRICE_PUMP_FUN_MARKET_LIST_USD;
+  }
+  if (p === '/pumpfun/analyzer' || p.startsWith('/pumpfun/analyzer/')) {
+    return X402_DISPLAY_PRICE_PUMP_FUN_ANALYZER_USD;
+  }
+  if (p === '/assets/detail' || p.startsWith('/assets/detail/')) {
+    return X402_DISPLAY_PRICE_ASSETS_DETAIL_USD;
+  }
+  if (p === '/bitcoin' || p.startsWith('/bitcoin/')) return X402_DISPLAY_PRICE_BITCOIN_USD;
+  if (p === '/assets' || p.startsWith('/assets/')) return X402_DISPLAY_PRICE_ASSETS_BOARD_USD;
   if (p.startsWith('/pumpfun/agent-payments/verify')) return X402_DISPLAY_PRICE_PUMP_FUN_READ_USD;
   if (p.startsWith('/pumpfun/agent-payments')) return X402_DISPLAY_PRICE_PUMP_FUN_TX_USD;
   if (p.startsWith('/pumpfun/agents')) return X402_DISPLAY_PRICE_PUMP_FUN_TX_USD;
@@ -204,7 +227,7 @@ export function buildMppOpenApiPaths() {
 
     const catalogUsd = displayPriceForDiscoveryOnlyPath(key);
     const priceStr = usdPriceString(catalogUsd);
-    const desc = `Syra x402 resource /${segment.replace(/^\/+/, '')}. Same URL as /.well-known/x402 catalog; HTTP 402 + x402 v2 settlement. See https://docs.syraa.fun`;
+    const desc = getResourceDescription(segment);
 
     const pathItem = {
       get: operationObject('GET', `${desc} (GET)`, priceStr),

@@ -3,6 +3,7 @@
  * For external developers to integrate Syra brain chat with one paid request.
  */
 import express from "express";
+import { getResourceDescription } from "../config/x402ResourceCatalog.js";
 import { getV2Payment } from "../utils/getV2Payment.js";
 import { X402_API_PRICE_BRAIN_USD } from "../config/x402Pricing.js";
 import {
@@ -67,7 +68,7 @@ async function runBrain(req, res, question) {
     const capabilitiesList = getCapabilitiesList().join("\n");
 
     const systemContent = [
-      "You are Syra, a smart AI agent for crypto, web3, and blockchain. You answer using ONLY data from paid tools — never from training data for real-time information.",
+      "You are Syra — machine money for AI trading agents on Solana. You answer using ONLY data from paid tools — never from training data for real-time information.",
       `Syra's paid tools:\n${capabilitiesList}`,
       `CRITICAL — NEVER FABRICATE REAL-TIME DATA:
 You MUST NEVER make up, guess, or use training data for: prices, market caps, volumes, token metrics, news headlines, trending tokens, wallet balances, smart money flows, trading signals, on-chain data, or ANY information that changes over time.
@@ -214,7 +215,7 @@ export async function createBrainRouter() {
 
   const getPaymentOptions = {
     price: X402_API_PRICE_BRAIN_USD,
-    description: "Syra Brain: single-question API (AI selects and runs tools, returns one answer)",
+    description: getResourceDescription("brain"),
     method: "GET",
     discoverable: true,
     resource: "/brain",
@@ -232,7 +233,7 @@ export async function createBrainRouter() {
 
   const postPaymentOptions = {
     price: X402_API_PRICE_BRAIN_USD,
-    description: "Syra Brain: single-question API (AI selects and runs tools, returns one answer)",
+    description: getResourceDescription("brain"),
     method: "POST",
     discoverable: true,
     resource: "/brain",

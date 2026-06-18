@@ -20,7 +20,7 @@ export const SYRA_VISION =
   "Our vision is an economy where millions of AI agents become productive economic actors powered by Solana — reasoning, earning, managing capital, and coordinating value in real time.";
 
 export const SYRA_HIGHLIGHT =
-  "Syra is not building another chatbot. We are building the financial + intelligence rail — x402 APIs plus agent wallets and policy — so autonomous trading agents think, pay, and trade on Solana without glue code.";
+  "Syra is not building another chatbot. We are building machine money for AI trading agents — x402 pay-per-call APIs plus agent wallets and treasury policy — so autonomous agents think, pay, and trade on Solana without glue code.";
 
 export interface SyraStat {
   label: string;
@@ -47,7 +47,7 @@ export const SYRA_PROBLEM = {
 export const SYRA_SOLUTION = {
   title: "Machine money on Solana",
   body: [
-    "Syra provides the financial operating layer for autonomous agents — revenue generation, asset custody patterns, DeFi participation, rewards distribution, and coordinated value transfer.",
+    "Syra is machine money for autonomous agents — revenue generation, asset custody patterns, DeFi participation, rewards distribution, and coordinated value transfer.",
     "Agents use Solana's speed and composability to hold assets, execute strategies, and interact economically in real time — not as demos, but as production infrastructure.",
   ],
 };

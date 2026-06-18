@@ -44,10 +44,11 @@ import {
   mergePumpfunChainExecutionIntoResponseBody,
 } from "@/lib/pumpfunPlaygroundChainSubmit";
 import { BRAND_NAME } from "@/lib/branding";
+import { SYRA_AGENT_DESCRIPTION } from "@/lib/syraBranding";
 import { enrichEmptyDevProxy500 } from "@/lib/devApiProxyHint";
+import { X402_DISCOVERY_RESOURCE_PATHS } from "@/lib/x402DiscoveryResourcePaths";
 import {
   isPlaygroundX402FlowUrl,
-  isPublicSyraX402Path,
 } from "@/lib/publicX402Routes";
 import {
   getPlaygroundSyraPathname,
@@ -186,11 +187,18 @@ export function getExampleFlows(): ExampleFlowPreset[] {
   return [
     // Featured (shown on main builder)
     {
-      id: "analytics-summary",
-      label: "Analytics summary",
+      id: "spcx",
+      label: "SPCX / SpaceX IPO intelligence",
       method: "GET",
-      url: `${base}/analytics/summary`,
-      params: [],
+      url: `${base}/spcx`,
+      params: [
+        {
+          key: "symbol",
+          value: "SPCXx",
+          enabled: true,
+          description: "Tokenized equity symbol (default SPCXx)",
+        },
+      ],
     },
     {
       id: "arbitrage",
@@ -514,8 +522,7 @@ export function getExampleFlows(): ExampleFlowPreset[] {
       body: JSON.stringify(
         {
           name: "Syra",
-          description:
-            "Smart intelligence agent for traders on Solana. Real-time signals, crypto news, sentiment, deep research, token reports, and x402-native API.",
+          description: SYRA_AGENT_DESCRIPTION,
           image: "https://syraa.fun/images/logo.jpg",
           services: [{ type: "MCP", value: "https://api.syraa.fun" }],
           skills: [
@@ -816,6 +823,161 @@ export function getExampleFlows(): ExampleFlowPreset[] {
       method: "GET",
       url: `${base}/sundown-digest`,
       params: [],
+    },
+    {
+      id: "equity",
+      label: "Tokenized equity intelligence",
+      method: "GET",
+      url: `${base}/equity`,
+      params: [
+        {
+          key: "symbol",
+          value: "TSLAx",
+          enabled: true,
+          description: "e.g. TSLAx, NVDAx, AAPLx",
+        },
+      ],
+    },
+    {
+      id: "indicator",
+      label: "Technical indicators (RSI, MACD, …)",
+      method: "GET",
+      url: `${base}/indicator`,
+      params: [
+        {
+          key: "symbol",
+          value: "BTCUSDT",
+          enabled: true,
+          description: "Trading pair",
+        },
+        {
+          key: "indicators",
+          value: "rsi,macd",
+          enabled: true,
+          description: "Comma-separated ids (see GET /indicator/catalog)",
+        },
+        {
+          key: "interval",
+          value: "1h",
+          enabled: false,
+          description: "Candle interval",
+        },
+      ],
+    },
+    {
+      id: "jupiter-quote",
+      label: "Jupiter: swap quote (referral fee)",
+      method: "GET",
+      url: `${base}/jupiter/quote`,
+      params: [
+        {
+          key: "inputMint",
+          value: "So11111111111111111111111111111111111111112",
+          enabled: true,
+          description: "Input mint (wSOL)",
+        },
+        {
+          key: "outputMint",
+          value: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          enabled: true,
+          description: "Output mint (USDC)",
+        },
+        {
+          key: "amount",
+          value: "10000000",
+          enabled: true,
+          description: "Raw input amount (0.01 SOL)",
+        },
+        {
+          key: "slippageBps",
+          value: "50",
+          enabled: false,
+          description: "Slippage bps (default 50)",
+        },
+      ],
+    },
+    {
+      id: "pumpfun-trending",
+      label: "pump.fun: trending coins",
+      method: "GET",
+      url: `${base}/pumpfun/trending`,
+      params: [
+        { key: "limit", value: "10", enabled: true, description: "Max coins (default 20, max 50)" },
+        { key: "offset", value: "0", enabled: false, description: "Pagination offset" },
+        { key: "includeNsfw", value: "false", enabled: false, description: "Include NSFW coins" },
+      ],
+    },
+    {
+      id: "pumpfun-movers",
+      label: "pump.fun: market movers",
+      method: "GET",
+      url: `${base}/pumpfun/movers`,
+      params: [
+        { key: "limit", value: "10", enabled: true, description: "Max coins (default 20, max 50)" },
+        { key: "offset", value: "0", enabled: false, description: "Pagination offset" },
+        { key: "includeNsfw", value: "false", enabled: false, description: "Include NSFW coins" },
+      ],
+    },
+    {
+      id: "pumpfun-analyzer",
+      label: "pump.fun: memecoin analyzer",
+      method: "GET",
+      url: `${base}/pumpfun/analyzer`,
+      params: [
+        {
+          key: "mint",
+          value: "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump",
+          enabled: true,
+          description: "Solana token mint (base58)",
+        },
+      ],
+    },
+    {
+      id: "assets-board",
+      label: "Assets: Tokens.xyz board",
+      method: "GET",
+      url: `${base}/assets`,
+      params: [
+        { key: "list", value: "all", enabled: true, description: "Curated list (all, majors, stocks, …)" },
+        { key: "assetClass", value: "all", enabled: true, description: "all | crypto | equity" },
+        { key: "sort", value: "marketCap", enabled: true, description: "Sort key (default marketCap)" },
+        { key: "order", value: "desc", enabled: true, description: "asc | desc" },
+        { key: "limit", value: "10", enabled: true, description: "Page size (max 100)" },
+        { key: "offset", value: "0", enabled: false, description: "Pagination offset" },
+        { key: "q", value: "", enabled: false, description: "Search name/symbol/ref" },
+        { key: "groupBy", value: "asset", enabled: false, description: "asset | mint" },
+      ],
+    },
+    {
+      id: "assets-detail",
+      label: "Assets: mint dossier (detail)",
+      method: "GET",
+      url: `${base}/assets/detail`,
+      params: [
+        { key: "ref", value: "btc", enabled: true, description: "Ref e.g. btc, solana, apple" },
+        { key: "mint", value: "", enabled: false, description: "Solana mint address" },
+        { key: "assetId", value: "", enabled: false, description: "Tokens.xyz assetId" },
+        { key: "q", value: "", enabled: false, description: "Freeform lookup" },
+      ],
+    },
+    {
+      id: "bitcoin-hub",
+      label: "Bitcoin: intelligence hub",
+      method: "GET",
+      url: `${base}/bitcoin`,
+      params: [
+        { key: "exchange", value: "binance", enabled: true, description: "binance | coinbase" },
+        { key: "interval", value: "1h", enabled: true, description: "Bubblemap interval" },
+        { key: "limit", value: "200", enabled: false, description: "Bubblemap points (20–500)" },
+      ],
+    },
+    {
+      id: "mpp-health",
+      label: "MPP health",
+      method: "GET",
+      url: `${base}/mpp/health`,
+      params: [],
+      examplePaymentCatalog: "mpp",
     },
     {
       id: "brain",
@@ -2208,6 +2370,15 @@ export function getFlowGroup(flow: ExampleFlowPreset): {
     const b = new URL(syraBase);
     if (u.origin === b.origin) {
       const p = u.pathname.toLowerCase();
+      if (p.startsWith("/spcx") || p.startsWith("/equity")) {
+        return { slug: "equity", name: "Equity (x402)" };
+      }
+      if (p.startsWith("/indicator")) {
+        return { slug: "indicator", name: "Indicators" };
+      }
+      if (p.startsWith("/x-analyzer")) {
+        return { slug: "x-analyzer", name: "X Analyzer" };
+      }
       if (p.startsWith("/pumpfun/")) {
         return { slug: "pumpfun", name: "pump.fun" };
       }
@@ -2217,8 +2388,23 @@ export function getFlowGroup(flow: ExampleFlowPreset): {
       if (p.startsWith("/quicknode/")) {
         return { slug: "quicknode", name: "Quicknode" };
       }
-      if (p.startsWith("/mpp/v1/")) {
-        return { slug: "mpp-lane", name: "MPP v1 lane" };
+      if (p.startsWith("/jupiter/quote")) {
+        return { slug: "jupiter", name: "Jupiter" };
+      }
+      if (p.startsWith("/pumpfun/trending") || p.startsWith("/pumpfun/movers")) {
+        return { slug: "pumpfun", name: "pump.fun" };
+      }
+      if (p.startsWith("/pumpfun/analyzer")) {
+        return { slug: "pumpfun", name: "pump.fun" };
+      }
+      if (p === "/assets" || p.startsWith("/assets/")) {
+        return { slug: "assets", name: "Assets" };
+      }
+      if (p === "/bitcoin" || p.startsWith("/bitcoin/")) {
+        return { slug: "bitcoin", name: "Bitcoin" };
+      }
+      if (p.startsWith("/mpp/")) {
+        return { slug: "mpp-lane", name: "MPP lane" };
       }
       if (
         p.startsWith("/nansen/") ||
@@ -2254,6 +2440,8 @@ export function getFlowGroup(flow: ExampleFlowPreset): {
     return { slug: "x", name: "X (Twitter)" };
   if (id.startsWith("jupiter-")) return { slug: "jupiter", name: "Jupiter" };
   if (id.startsWith("pumpfun-")) return { slug: "pumpfun", name: "pump.fun" };
+  if (id.startsWith("assets-")) return { slug: "assets", name: "Assets" };
+  if (id.startsWith("bitcoin-")) return { slug: "bitcoin", name: "Bitcoin" };
   if (id.startsWith("squid-")) return { slug: "squid", name: "Squid" };
   if (id.startsWith("quicknode-"))
     return { slug: "quicknode", name: "Quicknode" };
@@ -2280,6 +2468,12 @@ export function getExampleFlowGroupsFromFlows(
   const order = [
     "mpp-lane",
     "syra-core",
+    "equity",
+    "indicator",
+    "jupiter",
+    "pumpfun",
+    "assets",
+    "bitcoin",
     "preview",
     "tokens-dex",
     "agent",
@@ -2289,6 +2483,7 @@ export function getExampleFlowGroupsFromFlows(
     "8004scan",
     "nansen",
     "x",
+    "x-analyzer",
     "jupiter",
     "squid",
     "purch-vault",
@@ -2366,67 +2561,10 @@ function getPlaygroundProxyUrl(_targetUrl: string): string {
   return `${getApiBaseUrl()}/api/playground-proxy`;
 }
 
-// Public x402 endpoints only (Try demo). Agent-direct tools use POST /agent/tools/call.
+// Public x402 endpoints from GET /.well-known/x402 (Try demo).
 function getApiEndpoints(): string[] {
-  const base = getApiBaseUrl();
-  const candidates = [
-    `${base}/brain`,
-    `${base}/news`,
-    `${base}/signal`,
-    `${base}/sentiment`,
-    `${base}/event`,
-    `${base}/trending-headline`,
-    `${base}/sundown-digest`,
-    `${base}/health`,
-    `${base}/mpp/v1/health`,
-    `${base}/arbitrage`,
-    `${base}/analytics/summary`,
-    `${base}/x/feed`,
-    `${base}/8004/stats`,
-    `${base}/8004/leaderboard`,
-    `${base}/8004/agents/search`,
-    `${base}/8004/register-agent`,
-    `${base}/8004/agent-by-wallet`,
-    `${base}/nansen/profiler/address/current-balance`,
-    `${base}/nansen/smart-money/netflow`,
-    `${base}/nansen/smart-money/holdings`,
-    `${base}/binance/correlation`,
-    `${base}/binance/spot/ticker/24hr`,
-    `${base}/bankr/balances`,
-    `${base}/bankr/prompt`,
-    `${base}/giza/protocols`,
-    `${base}/neynar/user`,
-    `${base}/neynar/search`,
-    `${base}/siwa/nonce`,
-    `${base}/nansen/smart-money/dex-trades`,
-    `${base}/nansen/smart-money/historical-holdings`,
-    `${base}/nansen/smart-money/dcas`,
-    `${base}/nansen/tgm/holders`,
-    `${base}/nansen/tgm/flow-intelligence`,
-    `${base}/nansen/tgm/flows`,
-    `${base}/nansen/tgm/who-bought-sold`,
-    `${base}/nansen/tgm/dex-trades`,
-    `${base}/nansen/tgm/transfers`,
-    `${base}/nansen/tgm/jup-dca`,
-    `${base}/nansen/tgm/pnl-leaderboard`,
-    `${base}/nansen/tgm/perp-positions`,
-    `${base}/nansen/tgm/perp-trades`,
-    `${base}/nansen/tgm/perp-pnl-leaderboard`,
-    `${base}/nansen/token-screener`,
-    `${base}/nansen/perp-screener`,
-    `${base}/nansen/perp-leaderboard`,
-    `${base}/nansen/profiler/address/historical-balances`,
-    `${base}/nansen/profiler/address/transactions`,
-    `${base}/nansen/profiler/address/related-wallets`,
-    `${base}/nansen/profiler/address/pnl-summary`,
-    `${base}/nansen/profiler/address/pnl`,
-    `${base}/nansen/profiler/address/counterparties`,
-    `${base}/nansen/profiler/perp-positions`,
-    `${base}/nansen/profiler/perp-trades`,
-  ];
-  return candidates.filter((url) =>
-    isPublicSyraX402Path(getPlaygroundSyraPathname(url)),
-  );
+  const base = getApiBaseUrl().replace(/\/$/, "");
+  return X402_DISCOVERY_RESOURCE_PATHS.map((segment) => `${base}/${segment}`);
 }
 
 // x402 only supports GET and POST methods
@@ -2584,7 +2722,7 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
       ],
       "/sundown-digest": [],
       "/health": [],
-      "/mpp/v1/health": [],
+      "/mpp/health": [],
       "/brain": [
         {
           key: "question",

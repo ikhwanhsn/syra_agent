@@ -51,6 +51,7 @@ function KolProfileContent() {
     queryKey: ["kol-profile", username],
     queryFn: () => fetchKolProfile(username!),
     enabled: Boolean(username),
+    staleTime: 24 * 60 * 60 * 1000,
     retry: 1,
   });
 
@@ -125,6 +126,15 @@ function KolProfileContent() {
                   {profile.followers != null ? (
                     <p className="text-sm text-muted-foreground mt-2">
                       {formatFollowers(profile.followers)} followers on X
+                      {profile.xProfileRefreshedAt ? (
+                        <span className="text-border">
+                          {" "}
+                          · updated{" "}
+                          {new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(
+                            new Date(profile.xProfileRefreshedAt),
+                          )}
+                        </span>
+                      ) : null}
                     </p>
                   ) : null}
 

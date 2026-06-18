@@ -11,6 +11,7 @@ import {
   LINK_TELEGRAM,
   LINK_X,
 } from "../../config/global";
+import { SYRA_META_DESCRIPTION } from "@/lib/syraBranding";
 
 const footerLinks = {
   product: [
@@ -92,8 +93,7 @@ export const Footer = () => {
           <div className="col-span-2 md:col-span-1">
             <SyraLogo className="mb-4" />
             <p className="mb-4 text-sm text-muted-foreground">
-              Smart intelligence agent for traders—Solana-native, x402-ready,
-              built for desks that ship real size.
+              {SYRA_META_DESCRIPTION}
             </p>
             <div className="flex gap-3">
               {socials.map((social) => (

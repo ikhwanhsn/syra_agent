@@ -17,6 +17,7 @@
 
 import "dotenv/config";
 import { Keypair } from "@solana/web3.js";
+import { SYRA_AGENT_DESCRIPTION } from "../config/syraBranding.js";
 import {
   SolanaSDK,
   IPFSClient,
@@ -61,8 +62,7 @@ async function main() {
 
   const metadata = buildRegistrationFileJson({
     name: "Syra",
-    description:
-      "Smart intelligence agent for traders on Solana, Base, and BNB Chain. Real-time signals, crypto news, sentiment, deep research, token reports, memecoin screens, x402-native API, and ERC-8183 on BSC. Used by Telegram bot, Cursor/Claude MCP, and autonomous agents.",
+    description: SYRA_AGENT_DESCRIPTION,
     image: imageUri,
     services: [
       { type: ServiceType.MCP, value: "https://api.syraa.fun" },

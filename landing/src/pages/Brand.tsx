@@ -16,6 +16,11 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { SyraLogo } from "@/components/SyraLogo";
 import logoMark from "/images/logo.jpg";
+import {
+  SYRA_META_DESCRIPTION,
+  SYRA_TAGLINE,
+  SYRA_TAGLINE_SHORT,
+} from "@/lib/syraBranding";
 
 function SectionNumber({ n }: { n: string }) {
   return (
@@ -122,8 +127,8 @@ export default function Brand() {
               <span className="text-foreground"> identity</span>
             </h1>
             <p className="mt-6 text-lg text-muted-foreground text-balance">
-              Visual and verbal identity for Syra — the smart intelligence agent for traders on
-              Solana. Use this system so every touchpoint feels precise, neutral, and built for desks
+              Visual and verbal identity for Syra — {SYRA_TAGLINE.toLowerCase()} on
+              Solana. Use this system so every touchpoint feels precise, neutral, and built for agents
               that ship.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
@@ -348,7 +353,7 @@ export default function Brand() {
                 <div className="grid gap-6 p-6 md:grid-cols-[140px_1fr] md:items-center">
                   <span className="font-mono text-xs text-muted-foreground">H1 / 48</span>
                   <p className="text-4xl font-bold tracking-tight sm:text-5xl">
-                    Smart intelligence for traders
+                    {SYRA_TAGLINE}
                   </p>
                 </div>
                 <div className="grid gap-6 p-6 md:grid-cols-[140px_1fr] md:items-center">
@@ -362,8 +367,7 @@ export default function Brand() {
                 <div className="grid gap-6 p-6 md:grid-cols-[140px_1fr] md:items-center">
                   <span className="font-mono text-xs text-muted-foreground">Body / 16</span>
                   <p className="text-base text-muted-foreground">
-                    Syra combines live Solana market data, trader-grade agent tooling, and pay-per-use
-                    APIs so desks ship faster without sacrificing clarity.
+                    {SYRA_META_DESCRIPTION}
                   </p>
                 </div>
                 <div className="grid gap-6 p-6 md:grid-cols-[140px_1fr] md:items-center">
@@ -429,7 +433,7 @@ export default function Brand() {
 
               <DoDont
                 dos={[
-                  "Smart intelligence agent for traders — Solana-native, x402-ready.",
+                  `${SYRA_TAGLINE_SHORT} — Solana-native, x402-ready.`,
                   "Built for Solana with programmable payments — use what you need.",
                   "Your agent returned ranked signals in under three seconds.",
                 ]}
@@ -609,7 +613,7 @@ export default function Brand() {
                         Tagline
                       </dt>
                       <dd className="mt-1 text-foreground">
-                        Smart intelligence agent for traders.
+                        {SYRA_TAGLINE}.
                       </dd>
                     </div>
                   </dl>

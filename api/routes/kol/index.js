@@ -18,6 +18,7 @@ import {
   listKols,
   listProjects,
 } from "../../libs/kolMarketplaceService.js";
+import { refreshAllMarketplaceXProfiles } from "../../libs/kolXProfileCache.js";
 import { getPoolWalletAddress } from "../../services/kolPoolWallet.js";
 import {
   KOL_PLATFORM_FEE_BPS,
@@ -143,6 +144,17 @@ export function createKolRouter() {
     try {
       const limit = typeof req.body?.limit === "number" ? req.body.limit : undefined;
       const result = await backfillKolReputations({ limit });
+      return res.json({ success: true, data: result });
+    } catch (e) {
+      return handleServiceError(res, e);
+    }
+  });
+
+  router.post("/admin/refresh-x-profiles", requireMongooseConnection, async (req, res) => {
+    try {
+      const force = Boolean(req.body?.force);
+      const limit = typeof req.body?.limit === "number" ? req.body.limit : undefined;
+      const result = await refreshAllMarketplaceXProfiles({ force, limit });
       return res.json({ success: true, data: result });
     } catch (e) {
       return handleServiceError(res, e);

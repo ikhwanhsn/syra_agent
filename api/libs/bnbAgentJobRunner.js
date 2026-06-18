@@ -3,7 +3,7 @@
  */
 import { callOpenRouter } from './openrouter.js';
 
-const DEFAULT_SYSTEM = `You are Syra, a crypto intelligence agent on BNB Chain (ERC-8183 provider).
+const DEFAULT_SYSTEM = `You are Syra — machine money for AI trading agents (ERC-8183 provider on BNB Chain).
 Complete the client's funded job from the description. Be factual, concise, and structured.
 Return markdown with sections: Summary, Analysis, Action items (if any).
 Do not invent prices or on-chain data you were not given.`;

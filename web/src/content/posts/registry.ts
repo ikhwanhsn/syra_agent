@@ -11,6 +11,7 @@ import { WALLET_PORTFOLIO_POST } from "./walletPortfolioUpdate";
 import { BTC_INTELLIGENCE_POST } from "./btcIntelligenceUpdate";
 import { PAYAI_X402_POST } from "./payaiX402Update";
 import { ALGORAND_X402_POST } from "./algorandX402Update";
+import { SAID_PROTOCOL_POST } from "./saidProtocolUpdate";
 import { AGENTSCORE_PHOTO } from "./photo/agentscorePhoto";
 import { INDICATOR_PHOTO } from "./photo/indicatorPhoto";
 import { BNB_X402_PHOTO } from "./photo/bnbX402Photo";
@@ -24,6 +25,7 @@ import { WALLET_PORTFOLIO_PHOTO } from "./photo/walletPortfolioPhoto";
 import { BTC_INTELLIGENCE_PHOTO } from "./photo/btcIntelligencePhoto";
 import { PAYAI_X402_PHOTO } from "./photo/payaiX402Photo";
 import { ALGORAND_X402_PHOTO } from "./photo/algorandX402Photo";
+import { SAID_PROTOCOL_PHOTO } from "./photo/saidProtocolPhoto";
 import type { PostPhotoUpdate } from "./photo/types";
 import type { PostUpdate } from "./types";
 import { validatePostUpdate } from "./validatePostUpdate";
@@ -53,6 +55,7 @@ const POST_UPDATE_BUNDLES: PostUpdateBundle[] = [
   { video: BTC_INTELLIGENCE_POST, photo: BTC_INTELLIGENCE_PHOTO },
   { video: PAYAI_X402_POST, photo: PAYAI_X402_PHOTO },
   { video: ALGORAND_X402_POST, photo: ALGORAND_X402_PHOTO },
+  { video: SAID_PROTOCOL_POST, photo: SAID_PROTOCOL_PHOTO },
 ];
 
 function assertBundleMeta(bundle: PostUpdateBundle): void {

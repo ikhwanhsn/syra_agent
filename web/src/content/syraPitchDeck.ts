@@ -216,7 +216,7 @@ export const SYRA_PITCH_DECK: DeckSlide[] = [
     label: "Solution",
     kicker: "Our answer",
     headline: "Machine money infrastructure on Solana",
-    body: "Syra is the financial operating layer for autonomous agents — revenue generation, treasury management, DeFi participation, rewards distribution, and real-time value coordination on Solana.",
+    body: "Syra is machine money for autonomous agents — revenue generation, treasury management, DeFi participation, rewards distribution, and real-time value coordination on Solana.",
     bullets: [
       "Syra is not building another AI agent — we build the economic layer agents run on",
       "Solana: low latency, high throughput, composable financial primitives",

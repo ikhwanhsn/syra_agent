@@ -1,4 +1,5 @@
 import express from "express";
+import { getResourceDescription } from "../config/x402ResourceCatalog.js";
 import { getV2Payment } from "../utils/getV2Payment.js";
 import { X402_API_PRICE_USD } from "../config/x402Pricing.js";
 import {
@@ -175,7 +176,7 @@ export async function createSignalRouter() {
     (req, res, next) =>
       requirePayment({
         price: X402_API_PRICE_USD,
-        description: "Get AI-generated trading signals with entry/exit recommendations",
+        description: getResourceDescription("signal"),
         method: "GET",
         discoverable: true,
         resource: "/signal",
@@ -210,7 +211,7 @@ export async function createSignalRouter() {
     (req, res, next) =>
       requirePayment({
         price: X402_API_PRICE_USD,
-        description: "Get AI-generated trading signals with entry/exit recommendations",
+        description: getResourceDescription("signal"),
         method: "POST",
         discoverable: true,
         resource: "/signal",

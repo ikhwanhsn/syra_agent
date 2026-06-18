@@ -4,6 +4,7 @@ import rateLimit from "./utils/rateLimit.js";
 import { securityHeaders } from "./utils/security.js";
 import { requireApiKey } from "./utils/apiKeyAuth.js";
 import { isGatewayOpenApiFreeRoute } from "./config/gatewayOpenApiFreeRoutes.js";
+import { SYRA_META_DESCRIPTION, SYRA_TAGLINE } from "./config/syraBranding.js";
 import { injectTrustedOriginApiKey } from "./utils/trustedOriginAuth.js";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -74,6 +75,15 @@ import { createSignalRouter as createV2SignalRouter } from "./routes/signal.js";
 // exa-search, crawl, browser-use, jupiter/swap/order, smart-money, token-god-mode, trending-jupiter, pumpfun, squid, bubblemaps,
 // 8004scan, heylol, quicknode: agent-direct (POST /agent/tools/call); public HTTP routes removed for those.
 import { createArbitrageExperimentX402Router } from "./routes/arbitrageExperimentX402.js";
+import { createJupiterQuoteRouter } from "./routes/jupiter/quote.js";
+import {
+  createPumpfunTrendingRouter,
+  createPumpfunMoversRouter,
+} from "./routes/pumpfun/marketLists.js";
+import { createPumpfunAnalyzerRouter } from "./routes/pumpfun/analyzer.js";
+import { createAssetsX402Router } from "./routes/assets/index.js";
+import { createAssetsDetailX402Router } from "./routes/assets/detail.js";
+import { createBitcoinX402Router } from "./routes/bitcoin/index.js";
 import { createLpAgentExperimentRouter } from "./routes/lpAgentExperiment.js";
 import { createLpAgentRealRouter } from "./routes/lpAgentReal.js";
 import { createPumpfunExperimentRouter } from "./routes/pumpfunExperiment.js";
@@ -100,6 +110,7 @@ import { assertAgentWalletSecretEncryptionConfigured } from "./libs/agentWalletS
 import { metricsHandler } from "./utils/metrics.js";
 import { createPredictionGameRouter } from "./routes/prediction-game/index.js";
 import { create8004Router } from "./routes/8004.js";
+import { createSaidRouter } from "./routes/said/index.js";
 import { createBrainRouter } from "./routes/brain.js";
 import { createPlaygroundShareRouter } from "./routes/playgroundShare.js";
 import { createStreamflowLocksRouter } from "./routes/streamflowLocks.js";
@@ -117,6 +128,11 @@ import {
 import { buildMppDiscoveryOpenApi } from "./libs/mppDiscoveryOpenApi.js";
 import { buildGatewayOpenApi } from "./libs/gatewayOpenApi.js";
 import { X402_DISCOVERY_RESOURCE_PATHS } from "./config/x402DiscoveryResourcePaths.js";
+import {
+  getResourceDescription,
+  getResourceMeta,
+  getResourceName,
+} from "./config/x402ResourceCatalog.js";
 import { buildShadowfeedFeedsManifest } from "./config/shadowfeedDiscovery.js";
 import { shadowfeedPartnerMiddleware } from "./utils/shadowfeedPartner.js";
 import {
@@ -372,13 +388,19 @@ function isX402Route(p) {
   if (p.startsWith("/equity")) return true;
   if (p === "/indicator" || p.startsWith("/indicator/")) return true;
   if (p === "/arbitrage" || p.startsWith("/arbitrage/")) return true;
+  if (p === "/jupiter/quote" || p.startsWith("/jupiter/quote/")) return true;
+  if (p === "/pumpfun/trending" || p.startsWith("/pumpfun/trending/")) return true;
+  if (p === "/pumpfun/movers" || p.startsWith("/pumpfun/movers/")) return true;
+  if (p === "/pumpfun/analyzer" || p.startsWith("/pumpfun/analyzer/")) return true;
+  if (p === "/assets" || p.startsWith("/assets/")) return true;
+  if (p === "/bitcoin" || p.startsWith("/bitcoin/")) return true;
   if (p.startsWith("/health")) return true;
   if (
     p === "/check-status" ||
     (p.startsWith("/check-status/") && !p.startsWith("/check-status-agent"))
   )
     return true;
-  if (p.startsWith("/mpp/v1")) return true;
+  if (p.startsWith("/mpp")) return true;
   if (p.startsWith("/solana-agent")) return true;
   if (p.startsWith("/analytics/summary")) return true;
   if (p.startsWith("/sentiment")) return true;
@@ -1049,7 +1071,7 @@ app.get("/", (req, res) => {
 
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║                                                                              ║
-║      "The Market Never Sleeps. Neither Does Your Smart Intelligence Agent."  ║
+║      "The Market Never Sleeps. Neither Does Machine Money for Agents."       ║
 ║                                                                              ║
 ║              © 2026 SYRA AI Labs. All Rights Reserved.                       ║
 ║         Documentation & API Access • https://docs.syraa.fun                  ║
@@ -1070,21 +1092,21 @@ app.get("/", (req, res) => {
 
       <!-- OG Metadata -->
       <meta property="og:title" content="Syra API Gateway" />
-      <meta property="og:description" content="Smart intelligence agent for traders on Solana—x402 pay-per-call APIs, research, and tools." />
+      <meta property="og:description" content="${SYRA_META_DESCRIPTION}" />
       <meta property="og:image" content="${ogImageUrl}" />
       <meta property="og:image:type" content="image/png" />
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="628" />
-      <meta property="og:image:alt" content="Syra — Smart Intelligence Agent for Traders" />
+      <meta property="og:image:alt" content="Syra — ${SYRA_TAGLINE}" />
       <meta property="og:type" content="website" />
 
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:site" content="@syra_agent" />
       <meta name="twitter:creator" content="@syra_agent" />
       <meta name="twitter:title" content="Syra API Gateway" />
-      <meta name="twitter:description" content="Smart intelligence agent for traders on Solana—x402 pay-per-call APIs, research, and tools." />
+      <meta name="twitter:description" content="${SYRA_META_DESCRIPTION}" />
       <meta name="twitter:image" content="${ogImageUrl}" />
-      <meta name="twitter:image:alt" content="Syra — Smart Intelligence Agent for Traders" />
+      <meta name="twitter:image:alt" content="Syra — ${SYRA_TAGLINE}" />
 
       <!-- Favicon -->
       <link rel="icon" href="/favicon.ico" />
@@ -1156,6 +1178,13 @@ app.use("/spcx", await createSpcxRouter());
 app.use("/equity", await createEquityRouter());
 app.use("/indicator", await createIndicatorRouter());
 app.use("/arbitrage", await createArbitrageExperimentX402Router());
+app.use("/jupiter/quote", await createJupiterQuoteRouter());
+app.use("/pumpfun/analyzer", createPumpfunAnalyzerRouter());
+app.use("/pumpfun/trending", createPumpfunTrendingRouter());
+app.use("/pumpfun/movers", createPumpfunMoversRouter());
+app.use("/assets/detail", await createAssetsDetailX402Router());
+app.use("/assets", await createAssetsX402Router());
+app.use("/bitcoin", await createBitcoinX402Router());
 // Legacy /check-status → /health (308). Agent + discovery use /health.
 app.use((req, res, next) => {
   const p = req.path || "";
@@ -1169,16 +1198,23 @@ app.use((req, res, next) => {
   }
   next();
 });
-// Legacy /mpp/v1/check-status → /mpp/v1/health
+// Legacy MPP paths → canonical /mpp/health
 app.use((req, res, next) => {
   const p = req.path || "";
-  if (p === "/mpp/v1/check-status" || p.startsWith("/mpp/v1/check-status/")) {
+  if (
+    p === "/mpp/v1/check-status" ||
+    p.startsWith("/mpp/v1/check-status/") ||
+    p === "/mpp/v1/health" ||
+    p.startsWith("/mpp/v1/health/")
+  ) {
     const rest =
-      p === "/mpp/v1/check-status"
+      p === "/mpp/v1/check-status" || p === "/mpp/v1/health"
         ? ""
-        : p.slice("/mpp/v1/check-status".length);
+        : p.startsWith("/mpp/v1/check-status/")
+          ? p.slice("/mpp/v1/check-status".length)
+          : p.slice("/mpp/v1/health".length);
     const q = req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : "";
-    return res.redirect(308, `/mpp/v1/health${rest}${q}`);
+    return res.redirect(308, `/mpp/health${rest}${q}`);
   }
   next();
 });
@@ -1192,7 +1228,7 @@ app.get("/metrics", (req, res, next) => {
   if (got !== expected) return res.status(401).end();
   return metricsHandler(req, res).catch(next);
 });
-app.use("/mpp/v1", await createMppV1Router());
+app.use("/mpp", await createMppV1Router());
 app.use("/check-status-agent", await createCheckStatusAgentRouter());
 app.use("/x-analyzer", await createXProjectAnalyzerRouter());
 app.use("/x-projects-analyze", createXProjectsBatchAnalyzerRouter());
@@ -1267,6 +1303,8 @@ app.use("/siwa", await createSiwaRouter());
 
 // 8004 Trustless Agent Registry (read-only: liveness, integrity, discovery, introspection)
 app.use("/8004", await create8004Router());
+// SAID Protocol agent identity (verification, trust, agent details)
+app.use("/said", await createSaidRouter());
 // X (Twitter) API proxy (x402) – user lookup, search recent, user tweets, feed. GET and POST supported.
 app.use("/x", await createXApiRouter());
 
@@ -1333,6 +1371,16 @@ app.get("/.well-known/x402", (req, res) => {
     (p) => `${X402_BASE}/${p}`,
   );
 
+  const resourceDetails = X402_DISCOVERY_RESOURCE_PATHS.map((p) => {
+    const meta = getResourceMeta(p);
+    return {
+      url: `${X402_BASE}/${p}`,
+      name: getResourceName(p),
+      description: getResourceDescription(p),
+      price: meta?.suggestedPriceStx ?? null,
+    };
+  });
+
   const b402Token = (process.env.B402_TOKEN || "USD1").trim();
   const paymentNetworkLines = [
     "- **Base Mainnet (EVM)**: `eip155:8453` - USDC payments",
@@ -1352,6 +1400,7 @@ app.get("/.well-known/x402", (req, res) => {
   res.json({
     version: 1, // Discovery document version (not x402 protocol version)
     resources,
+    resourceDetails,
     // IMPORTANT: Generate ownership proofs by running: node scripts/generateOwnershipProof.js
     // Sign "https://api.syraa.fun" with both EVM_PRIVATE_KEY and SVM_PRIVATE_KEY
     // Set X402_OWNERSHIP_PROOF_EVM and X402_OWNERSHIP_PROOF_SVM environment variables

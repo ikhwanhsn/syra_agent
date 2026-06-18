@@ -27,7 +27,13 @@ import {
   sendPayout,
   verifyDeposit,
 } from "../services/kolPoolWallet.js";
-import { getTweetById, getUserInfo, isTwitterApiIoConfigured } from "./twitterApiIoClient.js";
+import { getTweetById, isTwitterApiIoConfigured } from "./twitterApiIoClient.js";
+import {
+  getCachedXProfile,
+  getCachedXProfiles,
+  refreshAllMarketplaceXProfiles,
+  seedXProfileFromAuthor,
+} from "./kolXProfileCache.js";
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
 const MIN_REWARD_LAMPORTS = 10_000_000; // 0.01 SOL
@@ -287,6 +293,7 @@ export async function createCampaign(input) {
 
   const sourceTweet = await fetchSourceTweet(input.sourceTweetUrl);
   const authorFields = authorFieldsFromTweet(sourceTweet.author);
+  await seedXProfileFromAuthor(sourceTweet.author).catch(() => {});
 
   const campaign = await KolCampaign.create({
     projectWallet,
@@ -543,6 +550,7 @@ export async function createSubmission(campaignId, input) {
     throwIfDuplicateSubmissionError(e);
   }
 
+  await seedXProfileFromAuthor({ userName: authorHandle, verified: true }).catch(() => {});
   await refreshCampaignProjections(campaign._id);
 
   return { submission: serializeSubmission(submission) };
@@ -872,7 +880,17 @@ export async function runKolDailyTick() {
     }
   }
 
-  return { success: true, refreshed, finalized };
+  let profiles = { refreshed: 0, failed: 0, skipped: true };
+  try {
+    profiles = await refreshAllMarketplaceXProfiles();
+  } catch (e) {
+    console.warn(
+      "[kol] daily X profile refresh failed:",
+      e instanceof Error ? e.message : e,
+    );
+  }
+
+  return { success: true, refreshed, finalized, profiles };
 }
 
 /**
@@ -1171,6 +1189,18 @@ export async function listProjects(opts = {}) {
   projects.sort(sortFns[sortKey] ?? sortFns.funded);
   projects = projects.slice(0, limit);
 
+  const profileMap = await getCachedXProfiles(projects.map((p) => p.handle));
+  projects = projects.map((p) => {
+    const cached = profileMap.get(normalizeHandle(p.handle));
+    if (!cached) return p;
+    return {
+      ...p,
+      name: cached.name ?? p.name,
+      followers: cached.followers ?? p.followers,
+      verified: cached.verified ?? p.verified,
+    };
+  });
+
   return { projects };
 }
 
@@ -1292,7 +1322,17 @@ export async function listKols(opts = {}) {
   kols.sort(sortFns[sortKey] ?? sortFns.earned);
   kols = kols.slice(0, limit);
 
-  return { kols };
+  const profileMap = await getCachedXProfiles(kols.map((k) => k.handle));
+
+  return {
+    kols: kols.map((k) => {
+      const cached = profileMap.get(normalizeHandle(k.handle));
+      return {
+        ...k,
+        name: cached?.name ?? k.handle,
+      };
+    }),
+  };
 }
 
 /**
@@ -1395,26 +1435,7 @@ export async function getProfile(username) {
     campaigns[0]?.sourceAuthorHandle ?? submissions[0]?.authorHandle ?? handle;
   const displayName = campaigns[0]?.sourceAuthorName ?? displayHandle;
 
-  let enrichment = null;
-  if (isTwitterApiIoConfigured()) {
-    try {
-      const { user } = await getUserInfo(displayHandle);
-      enrichment = {
-        name: user.name,
-        followers: user.followers,
-        following: user.following,
-        verified: user.verified,
-        description: user.description,
-        profilePicture: user.profilePicture,
-        tweetCount: user.tweetCount,
-      };
-    } catch (e) {
-      console.warn(
-        `[kol] profile enrichment failed @${displayHandle}:`,
-        e instanceof Error ? e.message : e,
-      );
-    }
-  }
+  const cachedProfile = await getCachedXProfile(displayHandle);
 
   const reputationScore = reputation?.reputationScore ?? 0;
   const activeScore = Math.round(kolActiveScore * 10) / 10;
@@ -1425,11 +1446,12 @@ export async function getProfile(username) {
 
   return {
     handle: displayHandle,
-    name: enrichment?.name ?? displayName,
-    followers: enrichment?.followers ?? campaigns[0]?.sourceAuthorFollowers ?? null,
-    verified: enrichment?.verified ?? Boolean(campaigns[0]?.sourceAuthorVerified),
-    description: enrichment?.description ?? null,
-    profilePicture: enrichment?.profilePicture ?? null,
+    name: cachedProfile?.name ?? displayName,
+    followers: cachedProfile?.followers ?? campaigns[0]?.sourceAuthorFollowers ?? null,
+    verified: cachedProfile?.verified ?? Boolean(campaigns[0]?.sourceAuthorVerified),
+    description: cachedProfile?.description ?? null,
+    profilePicture: cachedProfile?.profilePicture ?? null,
+    xProfileRefreshedAt: cachedProfile?.refreshedAt ?? null,
     roles,
     asProject: {
       campaignCount: campaigns.length,

@@ -45,8 +45,7 @@ def main() -> None:
         name=os.getenv("SYRA_AGENT_NAME", "Syra"),
         description=os.getenv(
             "SYRA_AGENT_DESCRIPTION",
-            "Smart intelligence agent for traders. Solana, Base, and BNB Chain. "
-            "Signals, research, memecoin screens, x402 API, and ERC-8183 agent commerce.",
+            "Machine money for AI trading agents on Solana — x402 pay-per-call APIs, agent wallets, treasury policy, and autonomous execution. Multi-chain: Solana, Base, BNB Chain with ERC-8183 on BSC.",
         ),
         endpoints=endpoints,
     )

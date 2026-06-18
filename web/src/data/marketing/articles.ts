@@ -41,9 +41,9 @@ export const articles: ArticleItem[] = [
     id: "syra-x",
     slug: "syra-explained-smart-intelligence-agent",
     title:
-      "Syra Explained: The Smart Intelligence Agent for Traders on Solana",
+      "Syra Explained: Machine Money for AI Trading Agents on Solana",
     description:
-      "How Syra delivers real-time market intelligence, sentiment analysis, and execution-ready workflows for the agent economy on Solana.",
+      "How Syra delivers machine money infrastructure—x402 APIs, agent wallets, treasury policy, and execution-ready workflows for the agent economy on Solana.",
     href: "/articles/syra-explained-smart-intelligence-agent",
     external: false,
     comingSoon: false,
@@ -58,7 +58,7 @@ export const articles: ArticleItem[] = [
     slug: "coming-soon",
     title: "More from Syra on X",
     description:
-      "The next article is in the works. Follow @syra_agent on X for release notes, API updates, and how we're building the smart intelligence agent for traders.",
+      "The next article is in the works. Follow @syra_agent on X for release notes, API updates, and how we're building machine money for AI trading agents.",
     href: "#",
     external: false,
     comingSoon: true,

@@ -42,6 +42,7 @@ function KolPageContent() {
   const campaignsQuery = useQuery({
     queryKey: ["kol-campaigns"],
     queryFn: () => fetchCampaigns(),
+    staleTime: 24 * 60 * 60 * 1000,
     retry: 1,
   });
 

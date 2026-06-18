@@ -20,6 +20,7 @@ import {
   exportPostPhotoPng,
 } from "@/components/post/photo/postPhotoExport";
 import { cn } from "@/lib/utils";
+import { SYRA_TAGLINE } from "@/lib/syraBranding";
 import { Check, Copy, Download, ImageIcon, Video } from "lucide-react";
 import { toast } from "sonner";
 
@@ -73,7 +74,7 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
   useEffect(() => {
     document.title = `Syra · ${meta.title} · Photo`;
     return () => {
-      document.title = "Syra | Smart Intelligence Agent for Traders";
+      document.title = `Syra | ${SYRA_TAGLINE}`;
     };
   }, [meta.title]);
 

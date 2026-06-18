@@ -18,12 +18,12 @@
 
 ## What Is Syra?
 
-**Syra** is the **financial + intelligence rail for autonomous trading agents** on Solana — *Stripe + Plaid for AI trading agents*. Two inseparable halves:
+**Syra** is **machine money for AI trading agents** on Solana — x402 pay-per-call APIs, agent wallets, treasury policy, and autonomous execution. Two inseparable halves:
 
-- **Intelligence + execution APIs** — agents pay per call (USDC via x402) for sentiment, risk, smart-money flow, signals, charts, and swaps
+- **Pay-per-call APIs** — agents pay per call (USDC via x402) for sentiment, risk, smart-money flow, signals, charts, and swaps
 - **Agent money layer** — wallets, treasury, and a deterministic policy engine so agents hold and spend autonomously with caps and allowlists
 
-Integrate via **SDK**, **MCP**, or the **API playground**. The web chat agent is a reference client — the product is the rail.
+Integrate via **SDK**, **MCP**, or the **API playground**. The web chat agent is a reference client — the product is machine money for agents.
 
 ---
 
@@ -83,7 +83,7 @@ Syra runs as an autonomous research agent on **x402scan** for automated research
 | Package | Description |
 |---------|-------------|
 | **`web`** | Unified Syra app — Build (playground), agent wallet, dashboard, proof demos |
-| **`api`** | Backend API — x402 intelligence rail, agent wallets, policy engine |
+| **`api`** | Backend API — machine money for AI trading agents: x402 APIs, agent wallets, policy engine |
 | **`syra-sdk`** | Typed `@syra/sdk` client for x402 API integration |
 | **`mcp-server`** | MCP server — Cursor, Claude, ElizaOS distribution |
 | **`documentation`** | Docs site (docs.syraa.fun) |
@@ -94,7 +94,7 @@ Syra runs as an autonomous research agent on **x402scan** for automated research
 
 ## Colosseum Frontier — hackathon submission
 
-**Hero product (what to demo):** [`api`](./api) + [`web`](./web) — the **Syra rail**: x402 intelligence + agent money layer. Treat experiments, Up Only Fund, and the chat reference agent as **proof**, not equal demo time.
+**Hero product (what to demo):** [`api`](./api) + [`web`](./web) — the **Syra rail**: machine money for AI trading agents (x402 APIs + agent wallets + treasury). Treat experiments, Up Only Fund, and the chat reference agent as **proof**, not equal demo time.
 
 ### Golden path (live)
 

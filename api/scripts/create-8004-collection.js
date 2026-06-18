@@ -21,6 +21,7 @@
 
 import "dotenv/config";
 import { Keypair, PublicKey } from "@solana/web3.js";
+import { SYRA_AGENT_DESCRIPTION } from "../config/syraBranding.js";
 import { SolanaSDK, IPFSClient } from "8004-solana";
 import bs58 from "bs58";
 
@@ -91,8 +92,7 @@ async function main() {
   const collectionData = {
     name: "Syra Agents",
     symbol: "SYRA",
-    description:
-      "Smart intelligence agents for traders on Solana. Real-time signals, crypto news, sentiment, deep research, token reports, and x402-native API. Used by Telegram bot, Cursor/Claude MCP, and autonomous agents.",
+    description: SYRA_AGENT_DESCRIPTION,
     ...(imageUri && { image: imageUri }),
     ...(bannerUri && { banner_image: bannerUri }),
     external_url: externalUrl,

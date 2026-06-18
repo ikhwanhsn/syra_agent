@@ -34,7 +34,7 @@ export const X402_PROBE_GROUP_ORDER = [
 export function getX402SmokeProbeGroup(probe) {
   const p = String(probe.path || "").toLowerCase();
   if (p.startsWith("/preview/")) return { slug: "preview", name: "Free preview" };
-  if (p.startsWith("/mpp/v1/")) return { slug: "mpp-lane", name: "MPP v1 lane" };
+  if (p.startsWith("/mpp/")) return { slug: "mpp-lane", name: "MPP lane" };
   if (p.startsWith("/nansen/")) return { slug: "nansen", name: "Nansen" };
   if (p.startsWith("/quicknode/")) return { slug: "quicknode", name: "Quicknode" };
   if (p.startsWith("/heylol/")) return { slug: "heylol", name: "HeyLol" };

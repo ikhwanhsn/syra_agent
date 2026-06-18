@@ -7,12 +7,13 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { SYRA_AGENT_DESCRIPTION } from "@/lib/syraBranding";
 
 const faqs = [
   {
     question: "What is Syra and how does it work?",
     answer:
-      "Syra is the smart intelligence agent for traders on Solana. It combines real-time sentiment, risk scoring, smart-money and whale flow, and on-chain news signals—surfaced in the web agent and as pay-per-call HTTP APIs (HTTP 402 with x402 and MPP). You fund your wallet and approve actions; the agent researches, calls paid tools when useful, and can support execution workflows alongside non-custodial guardrails.",
+      `${SYRA_AGENT_DESCRIPTION} You fund your wallet and approve actions; agents research, call paid tools when useful, and can support execution workflows alongside non-custodial guardrails.`,
   },
   {
     question: "Is Syra custodial? Do you hold my funds?",

@@ -27,6 +27,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, "..", ".env") });
 
 import { Keypair } from "@solana/web3.js";
+import { SYRA_AGENT_DESCRIPTION } from "../config/syraBranding.js";
 import {
   SolanaSDK,
   IPFSClient,
@@ -82,8 +83,7 @@ async function main() {
 
   const metadata = buildRegistrationFileJson({
     name: "Syra",
-    description:
-      "Smart intelligence agent for traders on Solana. Real-time signals, crypto news, sentiment, deep research, token reports, memecoin screens, and x402-native API. Used by Telegram bot, Cursor/Claude MCP, and autonomous agents.",
+    description: SYRA_AGENT_DESCRIPTION,
     image: imageUri,
     services: [{ type: ServiceType.MCP, value: "https://api.syraa.fun" }],
     skills: [
@@ -157,8 +157,7 @@ async function main() {
     const collectionData = {
       name: "Syra Agents",
       symbol: "SYRA",
-      description:
-        "Smart intelligence agents for traders on Solana. Real-time signals, crypto news, sentiment, deep research, token reports, and x402-native API. Used by Telegram bot, Cursor/Claude MCP, and autonomous agents.",
+      description: SYRA_AGENT_DESCRIPTION,
       ...(imageUriCol && { image: imageUriCol }),
       ...(bannerUri && { banner_image: bannerUri }),
       external_url: externalUrl,

@@ -1368,7 +1368,7 @@ router.post('/completion', requireSession({ allowGuest: true }), async (req, res
 
     let systemParts = [];
     systemParts.push(
-      `You are Syra, a smart AI agent for crypto, web3, and blockchain. You can chat naturally and also use paid tools when the user asks for specific data.`
+      `You are Syra — machine money for AI trading agents on Solana. You can chat naturally and also use paid tools when the user asks for specific data.`
     );
     systemParts.push(
       `Syra's paid tools (user pays from agent wallet when a tool is used):\n${capabilitiesList}`

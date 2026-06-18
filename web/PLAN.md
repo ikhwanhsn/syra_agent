@@ -8,7 +8,7 @@
 
 ## Executive summary
 
-Syra’s path to multi-billion-dollar scale is **not** “win the AI chatbot race.” It is to become the **default financial + intelligence rail for autonomous trading agents** — the infrastructure layer agents pay to think, pay to trade, and pay repeatedly as they scale.
+Syra’s path to multi-billion-dollar scale is **not** “win the AI chatbot race.” It is to become the **default machine money rail for autonomous trading agents** — the infrastructure layer agents pay to think, pay to trade, and pay repeatedly as they scale.
 
 **One-line positioning:** Machine money for AI trading agents on Solana — *Stripe + Plaid for the agent economy.*
 
@@ -54,7 +54,7 @@ Two inseparable halves of one product:
 - **Monetization:** Take-rate on every paid call scales linearly with agent activity, then super-linearly as agents run 24/7.
 - **Timing:** x402, agent frameworks (Cursor, Claude, ElizaOS), and Solana micropayments are converging now — picks-and-shovels wins in platform shifts.
 
-Comparable mental models (not exact comps): Stripe (~$100B+), Plaid (~$10B+ acquisition), Chainlink (oracle/network effects), Bloomberg Terminal (data monopoly for a profession). Syra aims at the **intersection**: agent-native payments + trading intelligence.
+Comparable mental models (not exact comps): Stripe (~$100B+), Plaid (~$10B+ acquisition), Chainlink (oracle/network effects), Bloomberg Terminal (data monopoly for a profession). Syra aims at the **intersection**: agent-native payments + machine money infrastructure.
 
 ---
 

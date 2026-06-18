@@ -44,6 +44,19 @@ export function assertPaidJsonShape(path, method, data) {
     return { ok: true, summary: hit };
   };
 
+  /** Syra routes that return { success, data: { ... } } */
+  const syraData = () => {
+    if (
+      d.success === true &&
+      d.data != null &&
+      typeof d.data === 'object' &&
+      !Array.isArray(d.data)
+    ) {
+      return /** @type {Record<string, unknown>} */ (d.data);
+    }
+    return d;
+  };
+
   // --- Cryptonews bundle ---
   if (path === "/news") return arr("news", 1);
   if (path === "/sentiment") return arr("sentimentAnalysis", 1);
@@ -63,7 +76,7 @@ export function assertPaidJsonShape(path, method, data) {
     return { ok: true, summary: `response len ${d.response.length}` };
   }
 
-  if (path === "/health" || path === "/mpp/v1/health") {
+  if (path === "/health" || path === "/mpp/health" || path === "/mpp/v1/health") {
     if (d.ok !== true) return { ok: false, detail: `expected ok true, got ${String(d.ok)}` };
     if (d.status !== "healthy") return { ok: false, detail: `expected status healthy, got ${String(d.status)}` };
     if (typeof d.message !== "string" || !d.message) return { ok: false, detail: "expected message string" };
@@ -98,6 +111,66 @@ export function assertPaidJsonShape(path, method, data) {
     const keys = Object.keys(d);
     if (keys.length < 2) return { ok: false, detail: "expected multiple token-god-mode sections" };
     return { ok: true, summary: `${keys.length} keys` };
+  }
+
+  if (path === "/jupiter/quote") {
+    const p = syraData();
+    const r =
+      p.quote != null && p.referral != null
+        ? { ok: true, summary: 'quote' }
+        : { ok: false, detail: 'expected quote + referral in data' };
+    if (!r.ok) return r;
+    return { ok: true, summary: 'jupiter quote' };
+  }
+
+  if (path === "/pumpfun/trending" || path === "/pumpfun/movers") {
+    const p = syraData();
+    const r =
+      p.coins != null || p.count != null || p.upstream != null
+        ? { ok: true, summary: 'coins' }
+        : { ok: false, detail: 'expected coins list payload in data' };
+    if (!r.ok) return r;
+    return { ok: true, summary: path };
+  }
+
+  if (path === "/pumpfun/analyzer") {
+    const p = syraData();
+    if (typeof p.mint !== 'string' || !p.mint) {
+      return { ok: false, detail: 'expected mint in data' };
+    }
+    if (p.syraAlpha == null || typeof p.syraAlpha !== 'object') {
+      return { ok: false, detail: 'expected syraAlpha in data' };
+    }
+    return { ok: true, summary: `analyzer:${p.mint.slice(0, 8)}` };
+  }
+
+  if (path === "/assets") {
+    const p = syraData();
+    if (!Array.isArray(p.items)) return { ok: false, detail: 'expected items array in data' };
+    if (typeof p.total !== 'number') return { ok: false, detail: 'expected total in data' };
+    return { ok: true, summary: `assets[${p.items.length}]` };
+  }
+
+  if (path === "/assets/detail") {
+    const p = syraData();
+    if (typeof p.assetId !== 'string' || !p.assetId) {
+      return { ok: false, detail: 'expected assetId in data' };
+    }
+    if (p.asset == null || typeof p.asset !== 'object') {
+      return { ok: false, detail: 'expected asset object in data' };
+    }
+    return { ok: true, summary: `detail:${p.assetId}` };
+  }
+
+  if (path === "/bitcoin") {
+    const p = syraData();
+    if (p.dashboard == null && p.bubblemap == null) {
+      return { ok: false, detail: 'expected dashboard or bubblemap in data' };
+    }
+    const parts = [];
+    if (p.dashboard?.overview) parts.push('dashboard');
+    if (p.bubblemap?.points) parts.push('bubblemap');
+    return { ok: true, summary: parts.join('+') || 'bitcoin' };
   }
 
   if (path === "/trending-jupiter") {

@@ -13,6 +13,12 @@ test("isBrowserCallablePath allows ship log post studio routes", () => {
   assert.equal(isBrowserCallablePath("/post/studio/updates/delete"), true);
 });
 
+test("isBrowserCallablePath allows BTC intelligence routes", () => {
+  assert.equal(isBrowserCallablePath("/btc/overview"), true);
+  assert.equal(isBrowserCallablePath("/btc/dashboard"), true);
+  assert.equal(isBrowserCallablePath("/btc/bubblemap"), true);
+});
+
 test("isBrowserCallablePath rejects unrelated paths", () => {
   assert.equal(isBrowserCallablePath("/post/other"), false);
   assert.equal(isBrowserCallablePath("/"), false);

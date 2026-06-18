@@ -100,7 +100,7 @@ export function EmptyState({ agentName = "Syra Agent" }: EmptyStateProps) {
           )}
           style={{ animationDelay: "140ms" }}
         >
-          Markets, Solana, and trading intelligence — ask anything or pick a suggestion below.
+          Markets, Solana, and machine money for agents — ask anything or pick a suggestion below.
         </p>
 
         <div
