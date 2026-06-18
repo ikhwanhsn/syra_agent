@@ -40,6 +40,10 @@ const TRUSTED_ORIGINS = [
   "https://www.predict.syraa.fun",
   "https://uponlyfund.com",
   "https://www.uponlyfund.com",
+  "https://s3labs.id",
+  "https://www.s3labs.id",
+  "https://s3labs.io",
+  "https://www.s3labs.io",
   ...(process.env.CORS_EXTRA_ORIGINS || "")
     .split(",")
     .map((o) => o.trim())

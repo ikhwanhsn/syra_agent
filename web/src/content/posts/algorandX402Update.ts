@@ -6,7 +6,7 @@ import type { PostUpdate } from "./types";
  */
 export const ALGORAND_X402_POST: PostUpdate = {
   meta: {
-    updateNumber: 12,
+    updateNumber: 13,
     id: "algorand-x402-goplausible",
     title: "x402 on Algorand",
     published: "June 2026",

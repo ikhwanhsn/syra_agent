@@ -6,7 +6,7 @@ import type { PostUpdate } from "./types";
  */
 export const PAYAI_X402_POST: PostUpdate = {
   meta: {
-    updateNumber: 11,
+    updateNumber: 12,
     id: "payai-x402-all-networks",
     title: "PayAI × All Networks",
     published: "June 2026",
