@@ -6,7 +6,7 @@ import express from "express";
 import { getResourceDescription } from "../../config/x402ResourceCatalog.js";
 import { getV2Payment } from "../../utils/getV2Payment.js";
 import { X402_API_PRICE_NEWS_USD } from "../../config/x402Pricing.js";
-import { resolveTickerFromCoingecko } from "../../utils/coingeckoAPI.js";
+import { resolveTickerLocal } from "../../utils/coingeckoAPI.js";
 import {
   fetchNewsCategoryGeneral,
   fetchNewsCategoryAllTickers,
@@ -245,20 +245,9 @@ function setPaymentResponseAndSendTrending(res, data, settle) {
   res.json({ trendingHeadline: data });
 }
 
-// --- Resolve ticker helper ---
-async function safeResolveTicker(rawTicker) {
-  const ticker = rawTicker || "general";
-  if (ticker === "general" || !ticker) return "general";
-  try {
-    const resolved = await resolveTickerFromCoingecko(ticker);
-    if (resolved?.symbol) return resolved.symbol.toUpperCase();
-    const upper = String(ticker).trim().toUpperCase();
-    return /^[A-Z]{1,12}$/.test(upper) ? upper : "general";
-  } catch (err) {
-    console.warn("[internal-news] resolveTicker failed:", err?.message || err);
-    const upper = String(ticker).trim().toUpperCase();
-    return /^[A-Z]{1,12}$/.test(upper) ? upper : "general";
-  }
+// --- Resolve ticker helper (RSS news only needs a symbol label — no CoinGecko network call) ---
+function resolveNewsTicker(rawTicker) {
+  return resolveTickerLocal(rawTicker);
 }
 
 /** @type {Map<string, { expires: number; data: Array<{ date: string; general?: object; ticker?: object }> }>} */
@@ -313,7 +302,7 @@ export async function createCryptonewsRouter() {
   if (process.env.NODE_ENV !== "production") {
     router.get("/news/dev", async (req, res) => {
       let ticker = req.query.ticker || "general";
-      ticker = await safeResolveTicker(ticker);
+      ticker = await resolveNewsTicker(ticker);
       const news = await getNewsForRequest(ticker);
       if (!news) return res.status(404).json({ error: "News not found" });
       if (news.length === 0) return res.status(500).json({ error: "Failed to fetch news" });
@@ -337,7 +326,7 @@ export async function createCryptonewsRouter() {
     }),
     async (req, res) => {
       try {
-        const ticker = await safeResolveTicker(req.query.ticker || "general");
+        const ticker = await resolveNewsTicker(req.query.ticker || "general");
         const news = await getNewsForRequest(ticker);
         if (!news) return res.status(404).json({ error: "News not found" });
         if (news.length === 0) return res.status(500).json({ error: "Failed to fetch news" });
@@ -374,7 +363,7 @@ export async function createCryptonewsRouter() {
     }),
     async (req, res) => {
       try {
-        const ticker = await safeResolveTicker(req.body.ticker || "general");
+        const ticker = await resolveNewsTicker(req.body.ticker || "general");
         const news = await getNewsForRequest(ticker);
         if (!news) return res.status(404).json({ error: "News not found" });
         if (news.length === 0) return res.status(500).json({ error: "Failed to fetch news" });
@@ -400,7 +389,7 @@ export async function createCryptonewsRouter() {
   if (process.env.NODE_ENV !== "production") {
     router.get("/sentiment/dev", async (req, res) => {
       let ticker = req.query.ticker || "general";
-      ticker = await safeResolveTicker(ticker);
+      ticker = await resolveNewsTicker(ticker);
       const sentimentAnalysis = await getSentimentForTicker(ticker);
       if (!sentimentAnalysis) return res.status(404).json({ error: "Sentiment analysis not found" });
       if (sentimentAnalysis.length === 0) return res.status(500).json({ error: "Failed to fetch sentiment analysis" });
@@ -421,7 +410,7 @@ export async function createCryptonewsRouter() {
     }),
     async (req, res) => {
       try {
-        const ticker = await safeResolveTicker(req.query.ticker || "general");
+        const ticker = await resolveNewsTicker(req.query.ticker || "general");
         const sentimentAnalysis = await getSentimentForTicker(ticker);
         if (!sentimentAnalysis) return res.status(404).json({ error: "Sentiment analysis not found" });
         if (sentimentAnalysis.length === 0) {
@@ -452,7 +441,7 @@ export async function createCryptonewsRouter() {
     }),
     async (req, res) => {
       try {
-        const ticker = await safeResolveTicker(req.body.ticker || "general");
+        const ticker = await resolveNewsTicker(req.body.ticker || "general");
         const sentimentAnalysis = await getSentimentForTicker(ticker);
         if (!sentimentAnalysis) return res.status(404).json({ error: "Sentiment analysis not found" });
         if (sentimentAnalysis.length === 0) {
@@ -473,7 +462,7 @@ export async function createCryptonewsRouter() {
   if (process.env.NODE_ENV !== "production") {
     router.get("/event/dev", async (req, res) => {
       let ticker = req.query.ticker || "general";
-      ticker = await safeResolveTicker(ticker);
+      ticker = await resolveNewsTicker(ticker);
       const event = await getEventForTicker(ticker);
       if (!event) return res.status(404).json({ error: "Event not found" });
       if (event.length === 0) return res.status(500).json({ error: "Failed to fetch event" });
@@ -494,7 +483,7 @@ export async function createCryptonewsRouter() {
     }),
     async (req, res) => {
       let ticker = req.query.ticker || "general";
-      ticker = await safeResolveTicker(ticker);
+      ticker = await resolveNewsTicker(ticker);
       try {
         const event = await getEventForTicker(ticker);
         if (!event) return res.status(404).json({ error: "Event not found" });
@@ -527,7 +516,7 @@ export async function createCryptonewsRouter() {
     }),
     async (req, res) => {
       let ticker = req.body.ticker || "general";
-      ticker = await safeResolveTicker(ticker);
+      ticker = await resolveNewsTicker(ticker);
       try {
         const event = await getEventForTicker(ticker);
         if (!event) return res.status(404).json({ error: "Event not found" });
@@ -550,7 +539,7 @@ export async function createCryptonewsRouter() {
   if (process.env.NODE_ENV !== "production") {
     router.get("/trending-headline/dev", async (req, res) => {
       let ticker = req.query.ticker || "general";
-      ticker = await safeResolveTicker(ticker);
+      ticker = await resolveNewsTicker(ticker);
       const trendingHeadline = await getTrendingForTicker(ticker);
       if (!trendingHeadline) return res.status(404).json({ error: "Trending headline not found" });
       if (trendingHeadline.length === 0) return res.status(500).json({ error: "Failed to fetch trending headline" });
@@ -571,7 +560,7 @@ export async function createCryptonewsRouter() {
     }),
     async (req, res) => {
       let ticker = req.query.ticker || "general";
-      ticker = await safeResolveTicker(ticker);
+      ticker = await resolveNewsTicker(ticker);
       try {
         const { payload, accepted } = req.x402Payment;
         const [trendingHeadline, settle] = await Promise.all([
@@ -603,7 +592,7 @@ export async function createCryptonewsRouter() {
     }),
     async (req, res) => {
       let ticker = req.body.ticker || "general";
-      ticker = await safeResolveTicker(ticker);
+      ticker = await resolveNewsTicker(ticker);
       try {
         const { payload, accepted } = req.x402Payment;
         const [trendingHeadline, settle] = await Promise.all([
@@ -692,7 +681,7 @@ export async function createNewsRouterRegular() {
   router.get("/", async (req, res) => {
     try {
       let ticker = req.query.ticker || "general";
-      ticker = await safeResolveTicker(ticker);
+      ticker = await resolveNewsTicker(ticker);
       const news = await getNewsForRequest(ticker);
       if (!news) return res.status(404).json({ error: "News not found" });
       if (news.length === 0) {
@@ -765,7 +754,7 @@ export async function createSentimentRouterRegular() {
   router.get("/", async (req, res) => {
     try {
       let ticker = req.query.ticker || "general";
-      ticker = await safeResolveTicker(ticker);
+      ticker = await resolveNewsTicker(ticker);
 
       let result;
       let source = "series";

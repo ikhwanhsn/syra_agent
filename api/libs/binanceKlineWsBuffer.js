@@ -12,7 +12,11 @@ const BINANCE_WS_DATA =
   (process.env.BINANCE_WS_DATA_URL || "wss://data-stream.binance.vision").replace(/\/$/, "");
 
 const PREWARM_SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"];
-const WS_CONNECT_TIMEOUT_MS = 12_000;
+const WS_CONNECT_TIMEOUT_MS = Math.min(
+  8_000,
+  Math.max(2_000, Number.parseInt(process.env.BINANCE_WS_KLINE_TIMEOUT_MS || "4000", 10)),
+);
+const WS_MIN_CANDLES = 20;
 const BUFFER_MAX_CANDLES = 1000;
 
 /** @type {Map<string, { candles: unknown[][]; updatedAt: number }>} */
@@ -85,7 +89,7 @@ function collectKlinesFromWs(url, symbol, interval, limit) {
       const rows = [...byOpenTime.entries()]
         .sort((a, b) => a[0] - b[0])
         .map(([, row]) => row);
-      if (rows.length >= Math.min(limit, 10)) {
+      if (rows.length >= Math.min(limit, WS_MIN_CANDLES)) {
         resolve(rows.slice(-limit));
       } else {
         reject(new Error("Binance WS kline buffer: insufficient candles"));
@@ -109,7 +113,7 @@ function collectKlinesFromWs(url, symbol, interval, limit) {
         const row = wsKlineToRestRow(k);
         if (!row) return;
         byOpenTime.set(Number(row[0]), row);
-        if (k.x === true && byOpenTime.size >= limit) {
+        if (k.x === true && byOpenTime.size >= Math.min(limit, WS_MIN_CANDLES)) {
           if (settled) return;
           settled = true;
           clearTimeout(timer);
@@ -176,7 +180,7 @@ export async function getBinanceKlinesFromWsBuffer(symbol, interval, limit) {
   const sym = symbol.toUpperCase();
   const key = bufferKey(sym, interval);
   const hit = buffers.get(key);
-  const minNeeded = Math.min(limit, 50);
+  const minNeeded = Math.min(limit, WS_MIN_CANDLES);
   if (hit?.candles?.length >= minNeeded) {
     return hit.candles.slice(-limit);
   }

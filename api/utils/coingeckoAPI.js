@@ -7,8 +7,9 @@ import { btcRateLimitedFetch } from '../libs/btcProviderRateLimiter.js';
 
 const DEFAULT_COINGECKO_DATA_API = 'https://api.coingecko.com/api/v3';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
-const LIST_FETCH_MAX_ATTEMPTS = 3;
-const LIST_FETCH_BASE_DELAY_MS = 800;
+const LIST_FETCH_MAX_ATTEMPTS = 2;
+const LIST_FETCH_BASE_DELAY_MS = 400;
+const LIST_FETCH_TIMEOUT_MS = 6_000;
 
 /** Static fallback for top tickers when CoinGecko list is unavailable. */
 const COMMON_TICKER_MAP = Object.freeze({
@@ -125,7 +126,7 @@ async function fetchCoinListFromApi() {
     try {
       const listSignal =
         typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
-          ? AbortSignal.timeout(12_000)
+          ? AbortSignal.timeout(LIST_FETCH_TIMEOUT_MS)
           : undefined;
       const res = await btcRateLimitedFetch(url, {
         headers,
@@ -258,6 +259,18 @@ export async function searchCoins(query, limit = 20) {
   } catch {
     return staticHit ? [staticHit] : [];
   }
+}
+
+export function resolveTickerLocal(tickerOrName) {
+  if (!tickerOrName || typeof tickerOrName !== 'string' || !tickerOrName.trim()) return 'general';
+  const input = tickerOrName.trim();
+  if (input.toLowerCase() === 'general') return 'general';
+  const staticHit = resolveFromStaticMap(input);
+  if (staticHit?.symbol && staticHit.id !== 'general') {
+    return staticHit.symbol.toUpperCase();
+  }
+  const upper = input.toUpperCase();
+  return /^[A-Z0-9]{1,12}$/.test(upper) ? upper : 'general';
 }
 
 /**

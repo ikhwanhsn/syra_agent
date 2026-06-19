@@ -57,29 +57,58 @@ async function nansenOptions() {
 }
 
 /**
+ * Nansen expects list fields (e.g. chains) as arrays, not plain query strings.
+ * @param {Record<string, unknown>} payload
+ * @param {string} [reqPath]
+ */
+function normalizeNansenPayload(payload, reqPath = "") {
+  const out = { ...payload };
+  if (out.chains != null && !Array.isArray(out.chains)) {
+    const s = String(out.chains).trim();
+    if (s.startsWith("[")) {
+      try {
+        out.chains = JSON.parse(s);
+      } catch {
+        out.chains = [s];
+      }
+    } else if (s.includes(",")) {
+      out.chains = s.split(",").map((x) => x.trim()).filter(Boolean);
+    } else {
+      out.chains = [s];
+    }
+  }
+  if (/\/smart-money\//.test(reqPath) && out.chains == null) {
+    out.chains = ["solana"];
+  }
+  return out;
+}
+
+/**
  * Build request payload from req. POST: use req.body. GET: build from req.query;
  * query values that look like JSON ({...} or [...]) are parsed.
  */
 function getPayload(req) {
+  let raw;
   if (req.method === "POST" && req.body && Object.keys(req.body).length > 0) {
-    return req.body;
-  }
-  const q = req.query ?? {};
-  const out = {};
-  for (const [key, value] of Object.entries(q)) {
-    if (value === undefined || value === "") continue;
-    const s = typeof value === "string" ? value.trim() : String(value);
-    if (s.startsWith("{") || s.startsWith("[")) {
-      try {
-        out[key] = JSON.parse(s);
-      } catch {
-        out[key] = value;
+    raw = req.body;
+  } else {
+    const q = req.query ?? {};
+    raw = {};
+    for (const [key, value] of Object.entries(q)) {
+      if (value === undefined || value === "") continue;
+      const s = typeof value === "string" ? value.trim() : String(value);
+      if (s.startsWith("{") || s.startsWith("[")) {
+        try {
+          raw[key] = JSON.parse(s);
+        } catch {
+          raw[key] = value;
+        }
+      } else {
+        raw[key] = value;
       }
-    } else {
-      out[key] = value;
     }
   }
-  return out;
+  return normalizeNansenPayload(raw, req.path || req.originalUrl || "");
 }
 
 /** Factory: handler that runs fn(payload) with x402 payment fetch and settles payment */

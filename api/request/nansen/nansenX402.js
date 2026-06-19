@@ -42,11 +42,31 @@ export function parseNansenErrorStatus(message) {
  * @param {{ fetch?: typeof fetch; baseUrl?: string; apiKey?: string }} [options]
  * @returns {Promise<object>} Parsed JSON response
  */
+function normalizeNansenRequestPayload(payload) {
+  const out = { ...(payload ?? {}) };
+  if (out.chains != null && !Array.isArray(out.chains)) {
+    const s = String(out.chains).trim();
+    if (s.startsWith("[")) {
+      try {
+        out.chains = JSON.parse(s);
+      } catch {
+        out.chains = [s];
+      }
+    } else if (s.includes(",")) {
+      out.chains = s.split(",").map((x) => x.trim()).filter(Boolean);
+    } else {
+      out.chains = [s];
+    }
+  }
+  return out;
+}
+
 async function nansenPost(path, payload, options = {}) {
   const baseUrl = options.baseUrl ?? process.env.NANSEN_API_BASE_URL ?? DEFAULT_BASE_URL;
   const apiKey = options.apiKey ?? process.env.NANSEN_API_KEY?.trim() ?? "";
   const fetchFn = options.fetch ?? globalThis.fetch;
   const url = `${baseUrl.replace(/\/$/, "")}${path}`;
+  const body = normalizeNansenRequestPayload(payload);
   const headers = {
     Accept: "application/json",
     "Content-Type": "application/json",
@@ -58,7 +78,7 @@ async function nansenPost(path, payload, options = {}) {
     const response = await fetchFn(url, {
       method: "POST",
       headers,
-      body: JSON.stringify(payload ?? {}),
+      body: JSON.stringify(body),
     });
 
     if (response.ok) {

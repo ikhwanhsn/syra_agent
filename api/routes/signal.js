@@ -68,9 +68,8 @@ export async function loadSignal(input) {
       const { source, meta, report } = await buildCexSignalReport(cexKey, params);
       return { signal: { ...report, source, ...meta } };
     } catch (firstErr) {
-      if (raw === "" && cexKey === "binance" && isBinanceThrottleOrTransient(firstErr)) {
-        // Same order as increasing chance when Binance is blocked (geo/network): Coinbase → OKX → Kraken.
-        const fallbacks = ["coinbase", "okx", "kraken"];
+      if (cexKey === "binance" && isBinanceThrottleOrTransient(firstErr)) {
+        const fallbacks = ["coinbase", "okx", "kraken", "bybit"];
         for (const venue of fallbacks) {
           try {
             const { source, meta, report } = await buildCexSignalReport(venue, {

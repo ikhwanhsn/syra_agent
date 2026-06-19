@@ -29,6 +29,13 @@ import { getBinanceKlinesFromWsBuffer } from "./binanceKlineWsBuffer.js";
 const BINANCE_API = process.env.BINANCE_API_BASE_URL || "https://api.binance.com/api/v3";
 const BINANCE_DATA_API =
   process.env.BINANCE_DATA_API_BASE_URL || "https://data-api.binance.vision/api/v3";
+const BINANCE_REST_FETCH_TIMEOUT_MS = Number.parseInt(
+  process.env.BINANCE_KLINE_FETCH_TIMEOUT_MS || "8000",
+  10,
+);
+
+/** Prefer data-api (separate weight pool) over main api.binance.com. */
+const BINANCE_REST_BASES = [...new Set([BINANCE_DATA_API, BINANCE_API].filter(Boolean))];
 
 const TOKEN_TO_SYMBOL = {
   bitcoin: "BTCUSDT",
@@ -172,6 +179,10 @@ async function fetchBinanceKlinesFromBase(baseUrl, symbol, interval, limit, opts
   }
 
   const urlStr = url.toString();
+  const timeoutSignal =
+    typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function"
+      ? AbortSignal.timeout(BINANCE_REST_FETCH_TIMEOUT_MS)
+      : undefined;
   let lastError;
 
   for (let attempt = 0; attempt < BINANCE_KLINES_MAX_ATTEMPTS; attempt++) {
@@ -179,6 +190,7 @@ async function fetchBinanceKlinesFromBase(baseUrl, symbol, interval, limit, opts
       const res = await btcRateLimitedFetch(urlStr, {
         headers: { Accept: "application/json" },
         ...(opts.signal && { signal: opts.signal }),
+        ...(timeoutSignal && !opts.signal ? { signal: timeoutSignal } : {}),
       });
       const body = await res.json().catch(() => null);
 
@@ -246,41 +258,29 @@ export async function fetchBinanceKlinesJson(symbol, opts = {}) {
   if (cached) return cached;
 
   const fetchOpts = { startTime, endTime, signal: opts.signal };
+  let lastError;
 
-  try {
-    const body = await fetchBinanceKlinesFromBase(BINANCE_API, symbol, interval, limit, fetchOpts);
-    setCachedBinanceKlines(cacheKey, body);
-    return body;
-  } catch (primaryErr) {
-    const msg = String(primaryErr?.message || primaryErr);
-    const isBan = isIpBanStatus(418, msg) || /\[418\]/.test(msg) || /\[429\]/.test(msg);
-
-    if (isBan && BINANCE_DATA_API !== BINANCE_API) {
-      try {
-        const body = await fetchBinanceKlinesFromBase(
-          BINANCE_DATA_API,
-          symbol,
-          interval,
-          limit,
-          fetchOpts,
-        );
-        setCachedBinanceKlines(cacheKey, body);
-        return body;
-      } catch {
-        /* fall through to WS buffer */
+  for (const baseUrl of BINANCE_REST_BASES) {
+    try {
+      const body = await fetchBinanceKlinesFromBase(baseUrl, symbol, interval, limit, fetchOpts);
+      setCachedBinanceKlines(cacheKey, body);
+      return body;
+    } catch (err) {
+      lastError = err;
+      const msg = String(err?.message || err);
+      if (!isIpBanStatus(418, msg) && !/\[418\]/.test(msg) && !/\[429\]/.test(msg)) {
+        throw err;
       }
     }
-
-    if (isBan) {
-      const wsBody = await getBinanceKlinesFromWsBuffer(symbol, interval, limit);
-      if (wsBody?.length) {
-        setCachedBinanceKlines(cacheKey, wsBody);
-        return wsBody;
-      }
-    }
-
-    throw primaryErr;
   }
+
+  const wsBody = await getBinanceKlinesFromWsBuffer(symbol, interval, limit);
+  if (wsBody?.length) {
+    setCachedBinanceKlines(cacheKey, wsBody);
+    return wsBody;
+  }
+
+  throw lastError instanceof Error ? lastError : new Error(String(lastError ?? "Binance klines failed"));
 }
 
 /**
