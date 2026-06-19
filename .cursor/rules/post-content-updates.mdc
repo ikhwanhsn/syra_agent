@@ -1,0 +1,52 @@
+---
+description: Guardrails for Syra ship-log post page content — photo/video cards must export without layout breaks
+globs: web/src/content/posts/**/*
+alwaysApply: false
+---
+
+# Ship log post content updates
+
+When editing ship-log **photo** or **video** content under `web/src/content/posts/`, follow these rules so preview, copy-image, and download PNG/WebM match.
+
+## Photo cards (1200×675)
+
+1. **Only change copy in content files** — `*Photo.ts`, `*Update.ts`, `shareCopies/*`. Do not edit layout CSS or template components unless fixing a systemic export bug.
+
+2. **Respect export-safe character limits** — validated at import by `validatePhotoPostContent.ts` via `definePhotoUpdate()`:
+   - `title` ≤ 36 chars (cover lockup titles — keep short, e.g. `PayAI × Syra`)
+   - `headline` ≤ 64 chars
+   - `subtitle` / `body` / `narrative` ≤ 180–240 chars (see `POST_PHOTO_FIELD_LIMITS`)
+   - `badge` ≤ 42 chars
+   - List items (highlights, steps, cards, stats) have per-item limits — check the validator
+
+3. **Do not change `layout` on existing cards** unless explicitly asked. Each of the 15 cards has a fixed role → layout mapping in `photoCardSlots.ts`.
+
+4. **Prefer shorter copy over smaller CSS** — if text overflows in preview, shorten the string; do not shrink fonts or remove spacing.
+
+5. **Cover spotlight (`photo-cover-spotlight`)** — blocks: eyebrow, badge, logo-lockup (logo + title), subtitle. Title sits beside the logo; long titles wrap and break PNG export. Keep titles under ~28 chars and subtitles under ~160 chars.
+
+6. **After content edits**, run `npm run test -- validateAllPhotoPosts` — validates all 14 ship-log photo decks (210 cards).
+
+7. **Export architecture** — PNG copy/download captures `PostPhotoExportStage` (off-screen 1200×675), not the scaled preview frame. Export-safe CSS lives on `.post-photo-export-root` and applies to every ship log automatically. Never point export refs at CSS-scaled preview nodes.
+
+## Video slides (960×540 → 1080p export)
+
+1. Same copy discipline — shorter beats restyling.
+2. Video export uses `PostVideoExportStage` off-screen; do not capture the scaled preview stage.
+3. Slides use unique layouts per slide when possible (`validatePostUpdate` warns on duplicates in dev).
+
+## Verification checklist
+
+Before marking a post content task done:
+
+- [ ] Preview card/slide readable at default zoom
+- [ ] Download PNG (photo) or WebM (video) matches preview — no overlapping title/body
+- [ ] No validation errors from `definePhotoUpdate` / `validatePostUpdate`
+- [ ] Share copy files updated alongside card content when applicable
+
+## What breaks exports (avoid)
+
+- `text-wrap: balance` on long multi-line titles (handled in CSS for capture, but still avoid very long titles)
+- Capturing nodes inside `transform: scale(...)` wrappers
+- Adding blocks to a layout registry entry without checking the template supports them
+- Exceeding field limits in `POST_PHOTO_FIELD_LIMITS`

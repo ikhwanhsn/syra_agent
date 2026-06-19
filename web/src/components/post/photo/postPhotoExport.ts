@@ -5,6 +5,10 @@ import {
   setPostExportCapturing,
   waitForPaint,
 } from "@/components/post/postHtmlCapture";
+import {
+  applyPostPhotoExportFit,
+  assertPostPhotoExportDimensions,
+} from "@/components/post/photo/postPhotoExportFit";
 
 export const POST_PHOTO_WIDTH = 1200;
 export const POST_PHOTO_HEIGHT = 675;
@@ -26,19 +30,30 @@ function buildExportOptions(fontEmbedCSS: string) {
     skipFonts: Boolean(fontEmbedCSS),
     fontEmbedCSS: fontEmbedCSS || undefined,
     backgroundColor: "#030303",
+    style: {
+      transform: "none",
+      transformOrigin: "top left",
+      margin: "0",
+      padding: "0",
+      width: `${POST_PHOTO_WIDTH}px`,
+      height: `${POST_PHOTO_HEIGHT}px`,
+    },
   } as const;
 }
 
 async function preparePhotoCapture(node: HTMLElement): Promise<{
   target: HTMLElement;
   options: ReturnType<typeof buildExportOptions>;
+  restoreFit: () => void;
 }> {
   const target = resolvePostPhotoExportNode(node);
   setPostExportCapturing(true);
   await preloadExportAssets(target);
+  assertPostPhotoExportDimensions(target);
+  const restoreFit = applyPostPhotoExportFit(target);
   const fontEmbedCSS = await resolveFontEmbedCSS(target);
   await waitForPaint();
-  return { target, options: buildExportOptions(fontEmbedCSS) };
+  return { target, options: buildExportOptions(fontEmbedCSS), restoreFit };
 }
 
 function sanitizeFilename(name: string): string {
@@ -49,14 +64,17 @@ export async function exportPostPhotoPng(
   node: HTMLElement,
   filename: string,
 ): Promise<void> {
+  let restoreFit = () => {};
   try {
     const prepared = await preparePhotoCapture(node);
+    restoreFit = prepared.restoreFit;
     const dataUrl = await toPng(prepared.target, prepared.options);
     const link = document.createElement("a");
     link.download = sanitizeFilename(filename);
     link.href = dataUrl;
     link.click();
   } finally {
+    restoreFit();
     setPostExportCapturing(false);
   }
 }
@@ -66,8 +84,10 @@ export async function copyPostPhotoToClipboard(node: HTMLElement): Promise<boole
     return false;
   }
 
+  let restoreFit = () => {};
   try {
     const prepared = await preparePhotoCapture(node);
+    restoreFit = prepared.restoreFit;
     const blob = await toBlob(prepared.target, prepared.options);
     if (!blob) return false;
     await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
@@ -75,6 +95,7 @@ export async function copyPostPhotoToClipboard(node: HTMLElement): Promise<boole
   } catch {
     return false;
   } finally {
+    restoreFit();
     setPostExportCapturing(false);
   }
 }

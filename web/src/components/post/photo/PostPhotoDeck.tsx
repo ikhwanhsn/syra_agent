@@ -9,6 +9,7 @@ import {
 } from "@/content/posts/photo";
 import { getPostShareCopyWithUrl } from "@/lib/postShare";
 import { PostBackLink } from "@/components/post/PostBackLink";
+import { PostPhotoExportStage } from "@/components/post/photo/PostPhotoExportStage";
 import { PostPhotoFrame } from "@/components/post/photo/PostPhotoFrame";
 import { PostShareCopyPanel } from "@/components/post/PostShareCopyPanel";
 import { PostUpdateNav } from "@/components/post/PostUpdateNav";
@@ -225,7 +226,7 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
             {" · 1200×675"}
           </p>
           <div className="relative z-10 w-full">
-            <PostPhotoFrame exportRef={exportRef}>
+            <PostPhotoFrame>
               {renderPostPhotoTemplate(activeCard.layout, activeCard.content, activeCard.role)}
             </PostPhotoFrame>
           </div>
@@ -234,6 +235,8 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
           </p>
         </div>
       </div>
+
+      <PostPhotoExportStage card={activeCard} exportRef={exportRef} />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import type { PostUpdateMeta } from "@/content/posts/types";
 import { POST_PHOTO_CARD_SLOTS } from "./photoCardSlots";
 import type { PostPhotoCardDef, PostPhotoUpdate } from "./types";
+import { assertPhotoPostContentValid } from "./validatePhotoPostContent";
 
 /** Build a photo update with exactly 15 cards in slot order. Throws at import if misconfigured. */
 export function definePhotoUpdate(meta: PostUpdateMeta, cards: PostPhotoCardDef[]): PostPhotoUpdate {
@@ -21,6 +22,8 @@ export function definePhotoUpdate(meta: PostUpdateMeta, cards: PostPhotoCardDef[
       );
     }
   }
+
+  assertPhotoPostContentValid(meta.id, cards);
 
   return { meta, cards };
 }

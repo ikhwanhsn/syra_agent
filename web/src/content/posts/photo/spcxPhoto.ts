@@ -104,7 +104,7 @@ export const SPCX_PHOTO = definePhotoUpdate(SPCX_POST.meta, [
     content: photoContent({
       headline: "Three numbers for live SpaceX trading.",
       stats: [
-        { value: "Buy + Sell", label: "Two-way wallet trading" },
+        { value: "2-Way", label: "Two-way wallet trading" },
         { value: "~10s", label: "Realtime price refresh" },
         { value: "24/7", label: "On-chain tracking" },
       ],
@@ -117,7 +117,7 @@ export const SPCX_PHOTO = definePhotoUpdate(SPCX_POST.meta, [
     shareCopy: copies.featured,
     content: photoContent({
       headline: "One page. Track and trade SpaceX exposure.",
-      stats: [{ value: "1", label: "Hub for live prices + wallet trading" }],
+      stats: [{ value: "1", label: "Live prices + wallet trading" }],
       narrative:
         "Nasdaq SPCX live. SPCXx on Solana. Buy or sell from your wallet. Venues compared in plain English.",
     }),

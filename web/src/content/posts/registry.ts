@@ -30,6 +30,7 @@ import type { PostPhotoUpdate } from "./photo/types";
 import type { PostUpdate } from "./types";
 import { validatePostUpdate } from "./validatePostUpdate";
 import { validatePostPhotoUpdate } from "./photo/validatePostPhotoUpdate";
+import { validatePhotoCardContent } from "./photo/validatePhotoPostContent";
 
 export interface PostUpdateBundle {
   video: PostUpdate;
@@ -82,6 +83,14 @@ function buildRegistry(bundles: PostUpdateBundle[]): PostUpdateBundle[] {
     seen.add(n);
     validatePostUpdate(bundle.video);
     validatePostPhotoUpdate(bundle.photo);
+    for (const card of bundle.photo.cards) {
+      const contentErrors = validatePhotoCardContent(card.layout, card.content, card.role);
+      if (contentErrors.length > 0 && import.meta.env.DEV) {
+        console.warn(
+          `[post/photo] "${bundle.photo.meta.id}" card "${card.role}":\n${contentErrors.join("\n")}`,
+        );
+      }
+    }
   }
 
   return sorted;
