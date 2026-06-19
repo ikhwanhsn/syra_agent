@@ -1991,6 +1991,17 @@ app.listen(PORT, () => {
       ),
     );
 
+  import("./libs/binanceKlineWsBuffer.js")
+    .then(({ prewarmBinanceKlineWsBuffers }) => {
+      prewarmBinanceKlineWsBuffers();
+    })
+    .catch((e) =>
+      console.warn(
+        "[binance-kline-ws] prewarm load failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
+
   import("./libs/sentimentDailyPipeline.js")
     .then(({ startSentimentDailyScheduler }) => {
       startSentimentDailyScheduler();

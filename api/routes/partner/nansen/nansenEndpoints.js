@@ -35,18 +35,24 @@ import {
   smartMoneyDcas,
   tgmPerpPositions,
   tgmPerpTrades,
+  parseNansenErrorStatus,
 } from "../../../request/nansen/nansenX402.js";
 
 const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 
 let _nansenFetch = null;
 
-/** Build options for Nansen calls: @x402/fetch-based payment fetch (reads Payment-Required header) + optional baseUrl from env */
+/** Build options for Nansen calls: API key when set, else x402 payment fetch */
 async function nansenOptions() {
+  const apiKey = process.env.NANSEN_API_KEY?.trim();
+  const baseUrlOpt = process.env.NANSEN_API_BASE_URL ? { baseUrl: process.env.NANSEN_API_BASE_URL } : {};
+  if (apiKey) {
+    return { apiKey, ...baseUrlOpt };
+  }
   if (!_nansenFetch) _nansenFetch = await getNansenPaymentFetch();
   return {
     fetch: _nansenFetch,
-    ...(process.env.NANSEN_API_BASE_URL ? { baseUrl: process.env.NANSEN_API_BASE_URL } : {}),
+    ...baseUrlOpt,
   };
 }
 
@@ -86,9 +92,16 @@ function handler(fn) {
       await settlePaymentAndSetResponse(res, req);
       res.status(200).json(data);
     } catch (err) {
-      res.status(500).json({
-        error: "Internal server error",
-        message: err instanceof Error ? err.message : "Unknown error",
+      const message = err instanceof Error ? err.message : "Unknown error";
+      const upstreamStatus =
+        /** @type {{ status?: number }} */ (err)?.status ?? parseNansenErrorStatus(message);
+      const httpStatus =
+        upstreamStatus === 502 || upstreamStatus === 503 || upstreamStatus === 429
+          ? upstreamStatus
+          : 500;
+      res.status(httpStatus).json({
+        error: httpStatus === 500 ? "Internal server error" : "Upstream service error",
+        message,
       });
     }
   };

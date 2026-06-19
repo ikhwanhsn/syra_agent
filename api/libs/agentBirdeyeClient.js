@@ -93,6 +93,26 @@ function birdeyeErrorMessage(status, body) {
 }
 
 /**
+ * @param {unknown} data
+ * @returns {boolean}
+ */
+export function isEmptyBirdeyePayload(data) {
+  if (data == null) return true;
+  if (typeof data !== 'object') return false;
+  if (Array.isArray(data)) return data.length === 0;
+  const obj = /** @type {Record<string, unknown>} */ (data);
+  if (obj.success === false) return true;
+  if (obj.data == null && Object.keys(obj).length === 0) return true;
+  if (obj.data != null) {
+    if (Array.isArray(obj.data) && obj.data.length === 0) return true;
+    if (typeof obj.data === 'object' && !Array.isArray(obj.data) && Object.keys(obj.data).length === 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Build final URL (with query) and optional JSON body for Birdeye.
  * @returns {{ url: string; method: string; body?: object }}
  */
@@ -181,6 +201,9 @@ async function callBirdeyeWithKeypair(keypair, fetchFn, pathTemplate, method, pa
     if (!res.ok) {
       return { success: false, error: birdeyeErrorMessage(res.status, data) };
     }
+    if (isEmptyBirdeyePayload(data)) {
+      return { success: false, error: 'Birdeye returned an empty response for this query' };
+    }
     return { success: true, data };
   }
 
@@ -203,7 +226,7 @@ async function callBirdeyeWithKeypair(keypair, fetchFn, pathTemplate, method, pa
   }
   if (solana.length) accepts = solana;
 
-  return pay402AndRetry(
+  const paid = await pay402AndRetry(
     keypair,
     {
       url,
@@ -217,6 +240,10 @@ async function callBirdeyeWithKeypair(keypair, fetchFn, pathTemplate, method, pa
     },
     fetchFn
   );
+  if (paid.success && isEmptyBirdeyePayload(paid.data)) {
+    return { success: false, error: 'Birdeye returned an empty response for this query' };
+  }
+  return paid;
 }
 
 /**

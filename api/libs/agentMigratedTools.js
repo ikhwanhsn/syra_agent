@@ -536,17 +536,40 @@ async function handleSquidStatus(params) {
   }
 }
 
+/**
+ * Run async tasks with limited concurrency.
+ * @template T
+ * @param {T[]} items
+ * @param {number} limit
+ * @param {(item: T) => Promise<unknown>} fn
+ */
+async function mapWithConcurrency(items, limit, fn) {
+  const results = [];
+  const batchSize = Math.max(1, limit);
+  for (let i = 0; i < items.length; i += batchSize) {
+    const chunk = items.slice(i, i + batchSize);
+    const chunkResults = await Promise.all(chunk.map(fn));
+    results.push(...chunkResults);
+  }
+  return results;
+}
+
 async function handleNansenSmartMoney() {
   try {
-    const nansenFetch = await getNansenPaymentFetch();
-    const responses = await Promise.all(
-      smartMoneyRequests.map(({ url, payload }) =>
-        nansenFetch(url, {
-          method: "POST",
-          headers: { Accept: "application/json", "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }),
-      ),
+    const apiKey = process.env.NANSEN_API_KEY?.trim();
+    const fetchFn = apiKey ? globalThis.fetch.bind(globalThis) : await getNansenPaymentFetch();
+    const headers = {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...(apiKey ? { apiKey } : {}),
+    };
+
+    const responses = await mapWithConcurrency(smartMoneyRequests, 2, ({ url, payload }) =>
+      fetchFn(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload),
+      }),
     );
     for (const response of responses) {
       if (!response.ok) {
@@ -554,7 +577,7 @@ async function handleNansenSmartMoney() {
         return {
           ok: false,
           error: `Nansen smart-money HTTP ${response.status}: ${text || response.statusText}`,
-          status: 502,
+          status: response.status === 429 ? 429 : 502,
         };
       }
     }
@@ -578,15 +601,23 @@ async function handleNansenTokenGodMode(params) {
   const tokenAddress = (params.tokenAddress || "").toString().trim();
   if (!tokenAddress) return { ok: false, error: "tokenAddress is required", status: 400 };
   try {
-    const nansenFetch = await getNansenPaymentFetch();
-    const responses = await Promise.all(
-      tokenGodModeRequests.map(({ url, payload }) =>
-        nansenFetch(url, {
+    const apiKey = process.env.NANSEN_API_KEY?.trim();
+    const fetchFn = apiKey ? globalThis.fetch.bind(globalThis) : await getNansenPaymentFetch();
+    const headers = {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...(apiKey ? { apiKey } : {}),
+    };
+
+    const responses = await mapWithConcurrency(
+      tokenGodModeRequests,
+      2,
+      ({ url, payload }) =>
+        fetchFn(url, {
           method: "POST",
-          headers: { Accept: "application/json", "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify({ token_address: tokenAddress, ...payload }),
         }),
-      ),
     );
     for (const response of responses) {
       if (!response.ok) {
@@ -594,7 +625,7 @@ async function handleNansenTokenGodMode(params) {
         return {
           ok: false,
           error: `Nansen token-god-mode HTTP ${response.status}: ${text || response.statusText}`,
-          status: 502,
+          status: response.status === 429 ? 429 : 502,
         };
       }
     }

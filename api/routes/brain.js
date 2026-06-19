@@ -15,7 +15,8 @@ import {
 import { getAgentTool, getCapabilitiesList } from "../config/agentTools.js";
 import { OPENROUTER_DEFAULT_MODEL } from "../config/openrouterModels.js";
 import { callZerionWithTreasury } from "../libs/agentZerionClient.js";
-import { callBirdeyeWithTreasury } from "../libs/agentBirdeyeClient.js";
+import { callBirdeyeWithTreasury, isEmptyBirdeyePayload } from "../libs/agentBirdeyeClient.js";
+import { getBirdeyeGateMissing } from "../config/birdeyeAgentTools.js";
 import { callOpenRouter } from "../libs/openrouter.js";
 import { resolveAgentBaseUrl } from "./agent/utils.js";
 import { runAgentPartnerDirectTool } from "../libs/agentPartnerDirectTools.js";
@@ -130,14 +131,30 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
                 budgetExceeded: zr.budgetExceeded,
               };
         } else if (tool.birdeyePath) {
-          const br = await callBirdeyeWithTreasury(tool.birdeyePath, method, params);
-          result = br.success
-            ? { status: 200, data: br.data }
-            : {
-                status: br.budgetExceeded ? 402 : 502,
-                error: br.error,
-                budgetExceeded: br.budgetExceeded,
+          const birdeyeMissing = getBirdeyeGateMissing(tool.id, params);
+          if (birdeyeMissing?.length) {
+            result = {
+              status: 502,
+              error: `Missing Birdeye params: ${birdeyeMissing.join(", ")}`,
+            };
+          } else {
+            if (!params.chain) params = { ...params, chain: "solana" };
+            const br = await callBirdeyeWithTreasury(tool.birdeyePath, method, params);
+            if (br.success && isEmptyBirdeyePayload(br.data)) {
+              result = {
+                status: 502,
+                error: "Birdeye returned an empty response for this query",
               };
+            } else {
+              result = br.success
+                ? { status: 200, data: br.data }
+                : {
+                    status: br.budgetExceeded ? 402 : 502,
+                    error: br.error,
+                    budgetExceeded: br.budgetExceeded,
+                  };
+            }
+          }
         } else if (tool.agentDirect) {
           const out = await runAgentPartnerDirectTool(tool.id, params, { host: req.get("host") });
           result = out.ok

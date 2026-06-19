@@ -145,8 +145,13 @@ async function getSentimentForTicker(ticker) {
       allTicker: allTicker[date],
     }));
   }
-  if (Array.isArray(result) && result.length > 0) setCachedSentiment(ticker, result);
-  return result;
+  if (Array.isArray(result) && result.length > 0) {
+    setCachedSentiment(ticker, result);
+    return result;
+  }
+  const live = await computeLivePreviewSentiment(ticker);
+  if (live.length > 0) setCachedSentiment(ticker, live);
+  return live;
 }
 
 function setPaymentResponseAndSendSentiment(res, data, settle) {
@@ -241,10 +246,55 @@ function setPaymentResponseAndSendTrending(res, data, settle) {
 }
 
 // --- Resolve ticker helper ---
-async function resolveTicker(ticker, fromQuery) {
+async function safeResolveTicker(rawTicker) {
+  const ticker = rawTicker || "general";
   if (ticker === "general" || !ticker) return "general";
-  const resolved = await resolveTickerFromCoingecko(ticker);
-  return resolved ? resolved.symbol.toUpperCase() : "general";
+  try {
+    const resolved = await resolveTickerFromCoingecko(ticker);
+    if (resolved?.symbol) return resolved.symbol.toUpperCase();
+    const upper = String(ticker).trim().toUpperCase();
+    return /^[A-Z]{1,12}$/.test(upper) ? upper : "general";
+  } catch (err) {
+    console.warn("[internal-news] resolveTicker failed:", err?.message || err);
+    const upper = String(ticker).trim().toUpperCase();
+    return /^[A-Z]{1,12}$/.test(upper) ? upper : "general";
+  }
+}
+
+/** @type {Map<string, { expires: number; data: Array<{ date: string; general?: object; ticker?: object }> }>} */
+const previewSentimentLiveCache = new Map();
+
+/**
+ * When Mongo series is empty, classify recent RSS articles once (cached).
+ * @param {string} ticker
+ * @returns {Promise<Array<{ date: string; general?: object; ticker?: object }>>}
+ */
+async function computeLivePreviewSentiment(ticker) {
+  const key = cacheKey(ticker);
+  const hit = previewSentimentLiveCache.get(key);
+  if (hit && Date.now() < hit.expires) return hit.data;
+
+  try {
+    const articles = await getArticlesWithinHours(24);
+    const batch = articles.slice(0, INTERNAL_NEWS_SENTIMENT_BATCH_SIZE);
+    if (batch.length === 0) return [];
+
+    const classifications = await classifyArticleSentiments(batch);
+    const stats = aggregateSentimentStats(classifications);
+    const date = new Date().toISOString().slice(0, 10);
+    const row =
+      ticker !== "general"
+        ? { date, ticker: stats }
+        : { date, general: stats };
+
+    const data = [row];
+    previewSentimentLiveCache.set(key, { data, expires: Date.now() + CACHE_TTL_MS });
+    return data;
+  } catch (err) {
+    const msg = err?.message || String(err);
+    console.warn("[internal-news] live sentiment fallback failed:", msg);
+    return [];
+  }
 }
 
 /**
@@ -263,7 +313,7 @@ export async function createCryptonewsRouter() {
   if (process.env.NODE_ENV !== "production") {
     router.get("/news/dev", async (req, res) => {
       let ticker = req.query.ticker || "general";
-      ticker = await resolveTicker(ticker);
+      ticker = await safeResolveTicker(ticker);
       const news = await getNewsForRequest(ticker);
       if (!news) return res.status(404).json({ error: "News not found" });
       if (news.length === 0) return res.status(500).json({ error: "Failed to fetch news" });
@@ -286,9 +336,8 @@ export async function createCryptonewsRouter() {
       outputSchema: { news: { type: "array", description: "News articles" } },
     }),
     async (req, res) => {
-      let ticker = req.query.ticker || "general";
-      ticker = await resolveTicker(ticker);
       try {
+        const ticker = await safeResolveTicker(req.query.ticker || "general");
         const news = await getNewsForRequest(ticker);
         if (!news) return res.status(404).json({ error: "News not found" });
         if (news.length === 0) return res.status(500).json({ error: "Failed to fetch news" });
@@ -324,9 +373,8 @@ export async function createCryptonewsRouter() {
       outputSchema: { news: { type: "array", description: "News articles" } },
     }),
     async (req, res) => {
-      let ticker = req.body.ticker || "general";
-      ticker = await resolveTicker(ticker);
       try {
+        const ticker = await safeResolveTicker(req.body.ticker || "general");
         const news = await getNewsForRequest(ticker);
         if (!news) return res.status(404).json({ error: "News not found" });
         if (news.length === 0) return res.status(500).json({ error: "Failed to fetch news" });
@@ -352,7 +400,7 @@ export async function createCryptonewsRouter() {
   if (process.env.NODE_ENV !== "production") {
     router.get("/sentiment/dev", async (req, res) => {
       let ticker = req.query.ticker || "general";
-      ticker = await resolveTicker(ticker);
+      ticker = await safeResolveTicker(ticker);
       const sentimentAnalysis = await getSentimentForTicker(ticker);
       if (!sentimentAnalysis) return res.status(404).json({ error: "Sentiment analysis not found" });
       if (sentimentAnalysis.length === 0) return res.status(500).json({ error: "Failed to fetch sentiment analysis" });
@@ -372,16 +420,15 @@ export async function createCryptonewsRouter() {
       outputSchema: { sentimentAnalysis: { type: "array", description: "Daily sentiment scores" } },
     }),
     async (req, res) => {
-      let ticker = req.query.ticker || "general";
-      ticker = await resolveTicker(ticker);
       try {
-        const { payload, accepted } = req.x402Payment;
-        const [sentimentAnalysis, settle] = await Promise.all([
-          getSentimentForTicker(ticker),
-          settlePaymentWithFallback(payload, accepted, req),
-        ]);
+        const ticker = await safeResolveTicker(req.query.ticker || "general");
+        const sentimentAnalysis = await getSentimentForTicker(ticker);
         if (!sentimentAnalysis) return res.status(404).json({ error: "Sentiment analysis not found" });
-        if (sentimentAnalysis.length === 0) return res.status(500).json({ error: "Failed to fetch sentiment analysis" });
+        if (sentimentAnalysis.length === 0) {
+          return res.status(503).json({ error: "Sentiment service is temporarily unavailable. Please try again later." });
+        }
+        const { payload, accepted } = req.x402Payment;
+        const settle = await settlePaymentWithFallback(payload, accepted, req);
         setPaymentResponseAndSendSentiment(res, sentimentAnalysis, settle);
         runBuybackForRequest(req);
       } catch (err) {
@@ -404,16 +451,15 @@ export async function createCryptonewsRouter() {
       outputSchema: { sentimentAnalysis: { type: "array", description: "Daily sentiment scores" } },
     }),
     async (req, res) => {
-      let ticker = req.body.ticker || "general";
-      ticker = await resolveTicker(ticker);
       try {
-        const { payload, accepted } = req.x402Payment;
-        const [sentimentAnalysis, settle] = await Promise.all([
-          getSentimentForTicker(ticker),
-          settlePaymentWithFallback(payload, accepted, req),
-        ]);
+        const ticker = await safeResolveTicker(req.body.ticker || "general");
+        const sentimentAnalysis = await getSentimentForTicker(ticker);
         if (!sentimentAnalysis) return res.status(404).json({ error: "Sentiment analysis not found" });
-        if (sentimentAnalysis.length === 0) return res.status(500).json({ error: "Failed to fetch sentiment analysis" });
+        if (sentimentAnalysis.length === 0) {
+          return res.status(503).json({ error: "Sentiment service is temporarily unavailable. Please try again later." });
+        }
+        const { payload, accepted } = req.x402Payment;
+        const settle = await settlePaymentWithFallback(payload, accepted, req);
         setPaymentResponseAndSendSentiment(res, sentimentAnalysis, settle);
         runBuybackForRequest(req);
       } catch (err) {
@@ -427,7 +473,7 @@ export async function createCryptonewsRouter() {
   if (process.env.NODE_ENV !== "production") {
     router.get("/event/dev", async (req, res) => {
       let ticker = req.query.ticker || "general";
-      ticker = await resolveTicker(ticker);
+      ticker = await safeResolveTicker(ticker);
       const event = await getEventForTicker(ticker);
       if (!event) return res.status(404).json({ error: "Event not found" });
       if (event.length === 0) return res.status(500).json({ error: "Failed to fetch event" });
@@ -448,7 +494,7 @@ export async function createCryptonewsRouter() {
     }),
     async (req, res) => {
       let ticker = req.query.ticker || "general";
-      ticker = await resolveTicker(ticker);
+      ticker = await safeResolveTicker(ticker);
       try {
         const event = await getEventForTicker(ticker);
         if (!event) return res.status(404).json({ error: "Event not found" });
@@ -481,7 +527,7 @@ export async function createCryptonewsRouter() {
     }),
     async (req, res) => {
       let ticker = req.body.ticker || "general";
-      ticker = await resolveTicker(ticker);
+      ticker = await safeResolveTicker(ticker);
       try {
         const event = await getEventForTicker(ticker);
         if (!event) return res.status(404).json({ error: "Event not found" });
@@ -504,7 +550,7 @@ export async function createCryptonewsRouter() {
   if (process.env.NODE_ENV !== "production") {
     router.get("/trending-headline/dev", async (req, res) => {
       let ticker = req.query.ticker || "general";
-      ticker = await resolveTicker(ticker);
+      ticker = await safeResolveTicker(ticker);
       const trendingHeadline = await getTrendingForTicker(ticker);
       if (!trendingHeadline) return res.status(404).json({ error: "Trending headline not found" });
       if (trendingHeadline.length === 0) return res.status(500).json({ error: "Failed to fetch trending headline" });
@@ -525,7 +571,7 @@ export async function createCryptonewsRouter() {
     }),
     async (req, res) => {
       let ticker = req.query.ticker || "general";
-      ticker = await resolveTicker(ticker);
+      ticker = await safeResolveTicker(ticker);
       try {
         const { payload, accepted } = req.x402Payment;
         const [trendingHeadline, settle] = await Promise.all([
@@ -557,7 +603,7 @@ export async function createCryptonewsRouter() {
     }),
     async (req, res) => {
       let ticker = req.body.ticker || "general";
-      ticker = await resolveTicker(ticker);
+      ticker = await safeResolveTicker(ticker);
       try {
         const { payload, accepted } = req.x402Payment;
         const [trendingHeadline, settle] = await Promise.all([
@@ -646,7 +692,7 @@ export async function createNewsRouterRegular() {
   router.get("/", async (req, res) => {
     try {
       let ticker = req.query.ticker || "general";
-      ticker = await resolveTicker(ticker);
+      ticker = await safeResolveTicker(ticker);
       const news = await getNewsForRequest(ticker);
       if (!news) return res.status(404).json({ error: "News not found" });
       if (news.length === 0) {
@@ -664,42 +710,6 @@ export async function createNewsRouterRegular() {
     }
   });
   return router;
-}
-
-/** @type {Map<string, { expires: number; data: Array<{ date: string; general?: object; ticker?: object }> }>} */
-const previewSentimentLiveCache = new Map();
-
-/**
- * When Mongo series is empty, classify recent RSS articles once (cached) for landing preview.
- * @param {string} ticker
- * @returns {Promise<Array<{ date: string; general?: object; ticker?: object }>>}
- */
-async function computeLivePreviewSentiment(ticker) {
-  const key = cacheKey(ticker);
-  const hit = previewSentimentLiveCache.get(key);
-  if (hit && Date.now() < hit.expires) return hit.data;
-
-  try {
-    const articles = await getArticlesWithinHours(24);
-    const batch = articles.slice(0, INTERNAL_NEWS_SENTIMENT_BATCH_SIZE);
-    if (batch.length === 0) return [];
-
-    const classifications = await classifyArticleSentiments(batch);
-    const stats = aggregateSentimentStats(classifications);
-    const date = new Date().toISOString().slice(0, 10);
-    const row =
-      ticker !== "general"
-        ? { date, ticker: stats }
-        : { date, general: stats };
-
-    const data = [row];
-    previewSentimentLiveCache.set(key, { data, expires: Date.now() + CACHE_TTL_MS });
-    return data;
-  } catch (err) {
-    const msg = err?.message || String(err);
-    console.warn("[internal-news] live preview sentiment failed:", msg);
-    return [];
-  }
 }
 
 function emptyPreviewSentimentPayload() {
@@ -755,12 +765,7 @@ export async function createSentimentRouterRegular() {
   router.get("/", async (req, res) => {
     try {
       let ticker = req.query.ticker || "general";
-      try {
-        ticker = await resolveTicker(ticker);
-      } catch (resolveErr) {
-        console.warn("[internal-news] /preview/sentiment resolveTicker:", resolveErr?.message || resolveErr);
-        ticker = "general";
-      }
+      ticker = await safeResolveTicker(ticker);
 
       let result;
       let source = "series";

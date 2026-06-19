@@ -77,7 +77,7 @@ export async function loadSignal(input) {
               ...params,
               instId: undefined,
             });
-            return { signal: { ...report, source, ...meta } };
+            return { signal: { ...report, source, ...meta, fallbackFrom: "binance" } };
           } catch {
             /* try next venue */
           }

@@ -13,6 +13,28 @@
  */
 
 const DEFAULT_BASE_URL = "https://api.nansen.ai";
+const NANSEN_POST_MAX_RETRIES = 2;
+const NANSEN_POST_BASE_DELAY_MS = 600;
+
+function sleepMs(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isNansenRetryableStatus(status) {
+  return status === 429 || status === 502 || status === 503;
+}
+
+/**
+ * @param {string} message
+ * @returns {number | undefined}
+ */
+export function parseNansenErrorStatus(message) {
+  const m = String(message || "");
+  const hit = m.match(/Nansen\s+\S+:\s+(\d{3})\b/);
+  if (!hit) return undefined;
+  const code = Number.parseInt(hit[1], 10);
+  return Number.isFinite(code) ? code : undefined;
+}
 
 /**
  * @param {string} path - e.g. '/api/v1/profiler/address/current-balance'
@@ -22,23 +44,44 @@ const DEFAULT_BASE_URL = "https://api.nansen.ai";
  */
 async function nansenPost(path, payload, options = {}) {
   const baseUrl = options.baseUrl ?? process.env.NANSEN_API_BASE_URL ?? DEFAULT_BASE_URL;
+  const apiKey = options.apiKey ?? process.env.NANSEN_API_KEY?.trim() ?? "";
   const fetchFn = options.fetch ?? globalThis.fetch;
   const url = `${baseUrl.replace(/\/$/, "")}${path}`;
   const headers = {
     Accept: "application/json",
     "Content-Type": "application/json",
-    ...(options.apiKey ? { apiKey: options.apiKey } : {}),
+    ...(apiKey ? { apiKey } : {}),
   };
-  const response = await fetchFn(url, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(payload ?? {}),
-  });
-  if (!response.ok) {
+
+  let lastError;
+  for (let attempt = 0; attempt <= NANSEN_POST_MAX_RETRIES; attempt++) {
+    const response = await fetchFn(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload ?? {}),
+    });
+
+    if (response.ok) {
+      return response.json();
+    }
+
     const text = await response.text().catch(() => "");
-    throw new Error(`Nansen ${path}: ${response.status} ${response.statusText} ${text}`);
+    const err = new Error(`Nansen ${path}: ${response.status} ${response.statusText} ${text}`);
+    /** @type {Error & { status?: number }} */ (err).status = response.status;
+    lastError = err;
+
+    if (isNansenRetryableStatus(response.status) && attempt < NANSEN_POST_MAX_RETRIES) {
+      const retryAfter = Number.parseInt(response.headers.get("retry-after") || "", 10);
+      const waitMs = Number.isFinite(retryAfter) && retryAfter > 0
+        ? retryAfter * 1000
+        : NANSEN_POST_BASE_DELAY_MS * 2 ** attempt;
+      await sleepMs(waitMs);
+      continue;
+    }
+    throw err;
   }
-  return response.json();
+
+  throw lastError instanceof Error ? lastError : new Error(String(lastError ?? "Nansen request failed"));
 }
 
 // -----------------------------------------------------------------------------

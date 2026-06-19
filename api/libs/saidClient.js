@@ -146,6 +146,27 @@ export async function lookupOnChainAgent(wallet) {
 }
 
 /**
+ * SAID expects a handle (e.g. "@syra_agent"), not a full URL — their UI prefixes twitter.com/.
+ * @param {string | null | undefined} raw
+ * @returns {string}
+ */
+export function normalizeSaidTwitterHandle(raw) {
+  const fallback = "@syra_agent";
+  if (!raw || typeof raw !== "string") return fallback;
+
+  const trimmed = raw.trim();
+  if (!trimmed) return fallback;
+
+  const fromUrl = trimmed.match(/(?:twitter\.com|x\.com)\/([A-Za-z0-9_]{1,15})/i);
+  if (fromUrl?.[1]) return `@${fromUrl[1].replace(/^@/, "")}`;
+
+  const handle = trimmed.replace(/^@/, "").trim();
+  if (/^[A-Za-z0-9_]{1,15}$/.test(handle)) return `@${handle}`;
+
+  return fallback;
+}
+
+/**
  * @param {string} wallet
  * @returns {import('said-sdk').AgentCard}
  */
@@ -155,9 +176,7 @@ export function buildSyraAgentCard(wallet) {
     "https://syraa.fun/images/logo.jpg";
 
   const rawTwitter = process.env.SYRA_COLLECTION_X_URL?.trim() || "@syra_agent";
-  const twitter = rawTwitter.includes("x.com/")
-    ? `@${rawTwitter.split("/").filter(Boolean).pop()}`
-    : rawTwitter;
+  const twitter = normalizeSaidTwitterHandle(rawTwitter);
 
   return {
     name: process.env.SYRA_SAID_NAME?.trim() || "Syra",
@@ -392,19 +411,22 @@ export async function isRegisteredOnChain(wallet) {
 }
 
 /**
- * Sync Syra into SAID off-chain directory (free, instant).
- * @param {{ wallet: string; name: string; description: string; twitter?: string; website?: string }} input
+ * Host / refresh Syra AgentCard on SAID (POST /api/cards).
+ * SAID expects twitter as a handle (e.g. "@syra_agent"), not a full x.com URL.
+ *
+ * @param {{ wallet: string; name: string; description: string; twitter?: string; website?: string; capabilities?: string[] }} input
  */
 export async function registerOffChain(input) {
-  return saidApiFetch("/api/agents/register", {
+  return saidApiFetch("/api/cards", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       wallet: input.wallet,
       name: input.name,
       description: input.description,
-      twitter: input.twitter,
+      twitter: input.twitter ? normalizeSaidTwitterHandle(input.twitter) : undefined,
       website: input.website,
+      capabilities: input.capabilities || ["x402", "mcp"],
     }),
   });
 }
@@ -425,6 +447,7 @@ export async function syncSyraSaidMetadata(wallet) {
     description: card.description || SYRA_TAGLINE_SHORT,
     twitter: card.twitter,
     website: card.website,
+    capabilities: card.capabilities,
   });
 }
 
