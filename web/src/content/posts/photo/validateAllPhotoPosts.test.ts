@@ -15,6 +15,7 @@ const PHOTO_MODULES = [
   () => import("./payaiX402Photo"),
   () => import("./algorandX402Photo"),
   () => import("./saidProtocolPhoto"),
+  () => import("./covenantPhoto"),
 ];
 
 describe("all ship-log photo decks", () => {
