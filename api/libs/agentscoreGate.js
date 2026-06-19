@@ -73,7 +73,7 @@ export async function captureAgentscoreWalletAfterSettle(req, settle) {
 
     if (paymentHeader) {
       try {
-        const signer = extractPaymentSigner(paymentHeader);
+        const signer = await extractPaymentSigner(req, paymentHeader);
         if (signer?.address) {
           walletAddress = signer.address;
           network = signer.network === 'evm' ? 'evm' : 'solana';

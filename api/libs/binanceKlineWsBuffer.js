@@ -1,6 +1,6 @@
 /**
- * Rolling Binance kline buffer via public WebSocket streams.
- * Used when REST klines return 418/429 (IP ban / rate limit).
+ * Rolling Binance kline buffer via data-api REST seed + persistent WebSocket streams.
+ * Used when main REST klines return 418/429 (IP ban / rate limit).
  *
  * Stream: wss://stream.binance.com:9443/ws/{symbol}@kline_{interval}
  */
@@ -10,14 +10,21 @@ const BINANCE_WS_PRIMARY =
   (process.env.BINANCE_WS_BASE_URL || "wss://stream.binance.com:9443").replace(/\/$/, "");
 const BINANCE_WS_DATA =
   (process.env.BINANCE_WS_DATA_URL || "wss://data-stream.binance.vision").replace(/\/$/, "");
+const BINANCE_DATA_API =
+  (process.env.BINANCE_DATA_API_BASE_URL || "https://data-api.binance.vision/api/v3").replace(
+    /\/$/,
+    "",
+  );
 
 const PREWARM_SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"];
-const WS_CONNECT_TIMEOUT_MS = Math.min(
+const WS_MIN_CANDLES = 20;
+const BUFFER_MAX_CANDLES = 1000;
+const REST_SEED_TIMEOUT_MS = Math.min(
   8_000,
   Math.max(2_000, Number.parseInt(process.env.BINANCE_WS_KLINE_TIMEOUT_MS || "4000", 10)),
 );
-const WS_MIN_CANDLES = 20;
-const BUFFER_MAX_CANDLES = 1000;
+const WS_FAILURE_COOLDOWN_MS = 60_000;
+const WARN_THROTTLE_MS = 60_000;
 
 /** @type {Map<string, { candles: unknown[][]; updatedAt: number }>} */
 const buffers = new Map();
@@ -25,12 +32,33 @@ const buffers = new Map();
 /** @type {Map<string, Promise<void>>} */
 const inflightSubscribe = new Map();
 
+/** @type {Map<string, number>} */
+const failureCooldownUntil = new Map();
+
+/** @type {Map<string, number>} */
+const lastWarnAt = new Map();
+
+/** @type {Map<string, { ws: import('ws'); baseUrl: string }>} */
+const persistentSubs = new Map();
+
 function bufferKey(symbol, interval) {
   return `${symbol.toUpperCase()}|${interval}`;
 }
 
 function wsStreamName(symbol, interval) {
   return `${symbol.toLowerCase()}@kline_${interval}`;
+}
+
+function minNeeded(limit) {
+  return Math.min(limit, WS_MIN_CANDLES);
+}
+
+function warnThrottled(key, message) {
+  const now = Date.now();
+  const last = lastWarnAt.get(key) ?? 0;
+  if (now - last < WARN_THROTTLE_MS) return;
+  lastWarnAt.set(key, now);
+  console.warn(message);
 }
 
 /**
@@ -60,80 +88,174 @@ function wsKlineToRestRow(k) {
 function storeBuffer(symbol, interval, rows) {
   if (!Array.isArray(rows) || rows.length === 0) return;
   const key = bufferKey(symbol, interval);
-  buffers.set(key, { candles: rows.slice(-BUFFER_MAX_CANDLES), updatedAt: Date.now() });
+  const existing = buffers.get(key);
+  /** @type {Map<number, unknown[]>} */
+  const merged = new Map();
+  for (const row of existing?.candles ?? []) {
+    if (Array.isArray(row) && row[0] != null) merged.set(Number(row[0]), row);
+  }
+  for (const row of rows) {
+    if (Array.isArray(row) && row[0] != null) merged.set(Number(row[0]), row);
+  }
+  const mergedRows = [...merged.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([, row]) => row)
+    .slice(-BUFFER_MAX_CANDLES);
+  buffers.set(key, { candles: mergedRows, updatedAt: Date.now() });
 }
 
 /**
- * @param {string} url
  * @param {string} symbol
  * @param {string} interval
  * @param {number} limit
  * @returns {Promise<unknown[][]>}
  */
-function collectKlinesFromWs(url, symbol, interval, limit) {
-  const stream = wsStreamName(symbol, interval);
-  const wsUrl = `${url}/ws/${stream}`;
+async function seedKlinesFromDataApi(symbol, interval, limit) {
+  const url = new URL(`${BINANCE_DATA_API}/klines`);
+  url.searchParams.set("symbol", symbol.toUpperCase());
+  url.searchParams.set("interval", interval);
+  url.searchParams.set("limit", String(Math.min(1000, Math.max(1, limit))));
 
-  return new Promise((resolve, reject) => {
-    /** @type {Map<number, unknown[]>} */
-    const byOpenTime = new Map();
-    let settled = false;
-    const timer = setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      try {
-        ws.close();
-      } catch {
-        /* ignore */
-      }
-      const rows = [...byOpenTime.entries()]
-        .sort((a, b) => a[0] - b[0])
-        .map(([, row]) => row);
-      if (rows.length >= Math.min(limit, WS_MIN_CANDLES)) {
-        resolve(rows.slice(-limit));
-      } else {
-        reject(new Error("Binance WS kline buffer: insufficient candles"));
-      }
-    }, WS_CONNECT_TIMEOUT_MS);
+  const signal =
+    typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function"
+      ? AbortSignal.timeout(REST_SEED_TIMEOUT_MS)
+      : undefined;
 
-    const ws = new WebSocket(wsUrl, { rejectUnauthorized: false });
-
-    ws.on("error", (err) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      reject(err instanceof Error ? err : new Error(String(err)));
-    });
-
-    ws.on("message", (raw) => {
-      try {
-        const msg = JSON.parse(String(raw));
-        const k = msg?.k;
-        if (!k) return;
-        const row = wsKlineToRestRow(k);
-        if (!row) return;
-        byOpenTime.set(Number(row[0]), row);
-        if (k.x === true && byOpenTime.size >= Math.min(limit, WS_MIN_CANDLES)) {
-          if (settled) return;
-          settled = true;
-          clearTimeout(timer);
-          const rows = [...byOpenTime.entries()]
-            .sort((a, b) => a[0] - b[0])
-            .map(([, r]) => r)
-            .slice(-limit);
-          storeBuffer(symbol, interval, rows);
-          ws.close();
-          resolve(rows);
-        }
-      } catch {
-        /* ignore malformed */
-      }
-    });
+  const res = await fetch(url.toString(), {
+    headers: { Accept: "application/json" },
+    ...(signal ? { signal } : {}),
   });
+  const body = await res.json().catch(() => null);
+  if (!res.ok) {
+    const msg = body?.msg ?? body?.message ?? `HTTP ${res.status}`;
+    throw new Error(`Binance data-api klines [${res.status}]: ${msg}`);
+  }
+  if (!Array.isArray(body) || body.length === 0) {
+    throw new Error("Binance data-api klines: invalid response");
+  }
+  return body;
 }
 
 /**
- * Subscribe briefly and fill buffer for symbol|interval.
+ * @param {string} baseUrl
+ * @param {string} symbol
+ * @param {string} interval
+ */
+function ensurePersistentWs(baseUrl, symbol, interval) {
+  const key = bufferKey(symbol, interval);
+  const existing = persistentSubs.get(key);
+  if (existing?.ws && existing.ws.readyState <= WebSocket.OPEN && existing.baseUrl === baseUrl) {
+    return;
+  }
+
+  if (existing?.ws) {
+    try {
+      existing.ws.close();
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const stream = wsStreamName(symbol, interval);
+  const wsUrl = `${baseUrl}/ws/${stream}`;
+  const ws = new WebSocket(wsUrl, { rejectUnauthorized: false });
+
+  ws.on("message", (raw) => {
+    try {
+      const msg = JSON.parse(String(raw));
+      const k = msg?.k;
+      if (!k) return;
+      const row = wsKlineToRestRow(k);
+      if (!row) return;
+      const hit = buffers.get(key);
+      /** @type {Map<number, unknown[]>} */
+      const byOpenTime = new Map();
+      for (const existingRow of hit?.candles ?? []) {
+        if (Array.isArray(existingRow) && existingRow[0] != null) {
+          byOpenTime.set(Number(existingRow[0]), existingRow);
+        }
+      }
+      byOpenTime.set(Number(row[0]), row);
+      const rows = [...byOpenTime.entries()]
+        .sort((a, b) => a[0] - b[0])
+        .map(([, r]) => r)
+        .slice(-BUFFER_MAX_CANDLES);
+      buffers.set(key, { candles: rows, updatedAt: Date.now() });
+    } catch {
+      /* ignore malformed */
+    }
+  });
+
+  ws.on("close", () => {
+    persistentSubs.delete(key);
+    setTimeout(() => {
+      if (persistentSubs.has(key)) return;
+      ensurePersistentWs(baseUrl, symbol, interval);
+    }, 5_000);
+  });
+
+  ws.on("error", () => {
+    /* close handler reconnects */
+  });
+
+  persistentSubs.set(key, { ws, baseUrl });
+}
+
+/**
+ * @param {string} symbol
+ * @param {string} interval
+ */
+function startPersistentSubscriptions(symbol, interval) {
+  for (const base of [BINANCE_WS_PRIMARY, BINANCE_WS_DATA]) {
+    try {
+      ensurePersistentWs(base, symbol, interval);
+      return;
+    } catch {
+      /* try next endpoint */
+    }
+  }
+}
+
+async function runEnsureWsBuffer(symbol, interval, limit) {
+  const sym = symbol.toUpperCase();
+  const key = bufferKey(sym, interval);
+  const needed = minNeeded(limit);
+
+  const cooledUntil = failureCooldownUntil.get(key);
+  if (cooledUntil != null && Date.now() < cooledUntil) {
+    return;
+  }
+
+  const hit = buffers.get(key);
+  if (hit?.candles?.length >= needed) {
+    return;
+  }
+
+  try {
+    const seeded = await seedKlinesFromDataApi(sym, interval, limit);
+    storeBuffer(sym, interval, seeded);
+    if (seeded.length >= needed) {
+      failureCooldownUntil.delete(key);
+      startPersistentSubscriptions(sym, interval);
+      return;
+    }
+  } catch {
+    /* REST seed failed — fall through to persistent WS */
+  }
+
+  startPersistentSubscriptions(sym, interval);
+
+  const refreshed = buffers.get(key);
+  if (refreshed?.candles?.length >= needed) {
+    failureCooldownUntil.delete(key);
+    return;
+  }
+
+  failureCooldownUntil.set(key, Date.now() + WS_FAILURE_COOLDOWN_MS);
+  throw new Error("Binance WS kline buffer: insufficient candles");
+}
+
+/**
  * @param {string} symbol
  * @param {string} interval
  * @param {number} limit
@@ -147,21 +269,7 @@ async function ensureWsBuffer(symbol, interval, limit) {
     return;
   }
 
-  const task = (async () => {
-    const endpoints = [BINANCE_WS_PRIMARY, BINANCE_WS_DATA];
-    let lastErr;
-    for (const base of endpoints) {
-      try {
-        const rows = await collectKlinesFromWs(base, sym, interval, limit);
-        storeBuffer(sym, interval, rows);
-        return;
-      } catch (e) {
-        lastErr = e;
-      }
-    }
-    throw lastErr instanceof Error ? lastErr : new Error(String(lastErr ?? "WS subscribe failed"));
-  })();
-
+  const task = runEnsureWsBuffer(sym, interval, limit);
   inflightSubscribe.set(key, task);
   try {
     await task;
@@ -179,20 +287,20 @@ async function ensureWsBuffer(symbol, interval, limit) {
 export async function getBinanceKlinesFromWsBuffer(symbol, interval, limit) {
   const sym = symbol.toUpperCase();
   const key = bufferKey(sym, interval);
+  const needed = minNeeded(limit);
   const hit = buffers.get(key);
-  const minNeeded = Math.min(limit, WS_MIN_CANDLES);
-  if (hit?.candles?.length >= minNeeded) {
+  if (hit?.candles?.length >= needed) {
     return hit.candles.slice(-limit);
   }
 
   try {
     await ensureWsBuffer(sym, interval, limit);
     const refreshed = buffers.get(key);
-    if (refreshed?.candles?.length) {
+    if (refreshed?.candles?.length >= needed) {
       return refreshed.candles.slice(-limit);
     }
   } catch (err) {
-    console.warn("[binanceKlineWsBuffer] fetch failed:", err?.message || err);
+    warnThrottled(key, `[binanceKlineWsBuffer] fetch failed: ${err?.message || err}`);
   }
   return null;
 }
@@ -203,7 +311,10 @@ export async function getBinanceKlinesFromWsBuffer(symbol, interval, limit) {
 export function prewarmBinanceKlineWsBuffers() {
   for (const symbol of PREWARM_SYMBOLS) {
     ensureWsBuffer(symbol, "1h", 200).catch((err) => {
-      console.warn(`[binanceKlineWsBuffer] prewarm ${symbol}:`, err?.message || err);
+      warnThrottled(
+        bufferKey(symbol, "1h"),
+        `[binanceKlineWsBuffer] prewarm ${symbol}: ${err?.message || err}`,
+      );
     });
   }
 }
