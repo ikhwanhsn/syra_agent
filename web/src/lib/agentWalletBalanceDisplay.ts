@@ -25,6 +25,41 @@ export function resolveAgentTreasuryBalance(
   return api ?? ctx;
 }
 
+const WRAPPED_SOL_MINT = "So11111111111111111111111111111111111111112";
+
+/** Spot SOL/USD for treasury estimates (Jupiter lite — no API key). */
+export async function fetchSolUsdSpot(): Promise<number | null> {
+  try {
+    const res = await fetch(
+      `https://lite-api.jup.ag/price/v2?ids=${encodeURIComponent(WRAPPED_SOL_MINT)}`,
+    );
+    if (!res.ok) return null;
+    const json = (await res.json()) as { data?: Record<string, { price?: number }> };
+    const price = Number(json?.data?.[WRAPPED_SOL_MINT]?.price);
+    return Number.isFinite(price) && price > 0 ? price : null;
+  } catch {
+    return null;
+  }
+}
+
+/** USDC + SOL×spot when SOL price is available; otherwise USDC-only partial. */
+export function estimateTreasuryUsd(
+  totalUsdc: number | null | undefined,
+  totalSol: number | null | undefined,
+  solPriceUsd: number | null | undefined,
+): number | null {
+  const usdc = totalUsdc != null && Number.isFinite(totalUsdc) ? totalUsdc : null;
+  const sol = totalSol != null && Number.isFinite(totalSol) ? totalSol : null;
+  const px = solPriceUsd != null && Number.isFinite(solPriceUsd) && solPriceUsd > 0 ? solPriceUsd : null;
+
+  if (usdc == null && sol == null) return null;
+  if (sol != null && sol > 0 && px == null) return usdc;
+
+  const usdcPart = usdc ?? 0;
+  const solPart = sol != null && px != null ? sol * px : 0;
+  return usdcPart + solPart;
+}
+
 /** USDC for agent treasuries — always readable sub-$10k amounts (not overview compact). */
 export function formatTreasuryUsd(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value)) return "—";

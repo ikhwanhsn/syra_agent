@@ -1,5 +1,5 @@
 import { Link } from "@/lib/navigation";
-import { ArrowUpRight, Bot, Droplets, Wallet } from "lucide-react";
+import { ArrowUpRight, Landmark, PiggyBank, Sprout, Wallet } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AnimatedMetric } from "@/components/assets/AnimatedMetric";
 import { cn } from "@/lib/utils";
@@ -7,6 +7,7 @@ import { formatSol } from "@/lib/dashboardOverviewAggregates";
 import { overviewCardShell, overviewKickerClass } from "@/components/dashboard/overview/overviewStyles";
 import { BalanceChangeIndicator } from "@/components/dashboard/overview/BalanceChangeIndicator";
 import type { BalanceChangeResult } from "@/lib/treasuryBalanceHistory";
+import { PILLAR_WALLET_PURPOSES, type PillarWalletPurpose } from "@/lib/agentWalletCatalog";
 
 export interface TreasurySplitCardProps {
   title: string;
@@ -19,6 +20,22 @@ export interface TreasurySplitCardProps {
   accentClass?: string;
   change?: BalanceChangeResult | null;
 }
+
+const PILLAR_ICONS: Record<PillarWalletPurpose, LucideIcon> = {
+  spend: Wallet,
+  earn: PiggyBank,
+  treasury: Landmark,
+  invest: ArrowUpRight,
+  grow: Sprout,
+};
+
+const PILLAR_LABELS: Record<PillarWalletPurpose, { title: string; subtitle: string }> = {
+  spend: { title: "Spend agent", subtitle: "Chat, x402 & tools" },
+  earn: { title: "Earn agent", subtitle: "Skill monetization" },
+  treasury: { title: "Treasury agent", subtitle: "Capital reserves" },
+  invest: { title: "Invest agent", subtitle: "Deploy & positions" },
+  grow: { title: "Grow agent", subtitle: "Portfolio growth" },
+};
 
 function formatUsdc(n: number): string {
   return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -92,23 +109,15 @@ export function TreasurySplitCard({
 
 export function TreasurySplitCardGrid({
   connectedWallet,
-  trading,
-  lp,
+  pillars,
   loading,
-  changes,
 }: {
   connectedWallet: { usdc: number | null; sol: number | null };
-  trading: { usdc: number | null; sol: number | null };
-  lp: { usdc: number | null; sol: number | null };
+  pillars: Partial<Record<PillarWalletPurpose, { usdc: number | null; sol: number | null }>>;
   loading?: boolean;
-  changes?: {
-    user?: BalanceChangeResult | null;
-    trading?: BalanceChangeResult | null;
-    lp?: BalanceChangeResult | null;
-  };
 }) {
   return (
-    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <TreasurySplitCard
         title="Connected wallet"
         subtitle="Your signer wallet on Solana"
@@ -118,30 +127,24 @@ export function TreasurySplitCardGrid({
         href="/wallet"
         isLoading={loading}
         accentClass="bg-gradient-to-br from-[#9945FF]/10 to-transparent"
-        change={changes?.user}
       />
-      <TreasurySplitCard
-        title="Trading agent"
-        subtitle="Chat treasury · spot strategies"
-        icon={Bot}
-        usdc={trading.usdc}
-        sol={trading.sol}
-        href="/wallet?wallet=chat"
-        isLoading={loading}
-        accentClass="bg-gradient-to-br from-primary/10 to-transparent"
-        change={changes?.trading}
-      />
-      <TreasurySplitCard
-        title="LP agent"
-        subtitle="Meteora DLMM treasury"
-        icon={Droplets}
-        usdc={lp.usdc}
-        sol={lp.sol}
-        href="/wallet?wallet=lp"
-        isLoading={loading}
-        accentClass="bg-gradient-to-br from-cyan-500/8 to-transparent"
-        change={changes?.lp}
-      />
+      {PILLAR_WALLET_PURPOSES.map((purpose) => {
+        const meta = PILLAR_LABELS[purpose];
+        const bal = pillars[purpose];
+        return (
+          <TreasurySplitCard
+            key={purpose}
+            title={meta.title}
+            subtitle={meta.subtitle}
+            icon={PILLAR_ICONS[purpose]}
+            usdc={bal?.usdc ?? null}
+            sol={bal?.sol ?? null}
+            href={`/wallet?wallet=${purpose}`}
+            isLoading={loading}
+            accentClass="bg-gradient-to-br from-primary/8 to-transparent"
+          />
+        );
+      })}
     </div>
   );
 }

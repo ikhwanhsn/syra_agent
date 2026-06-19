@@ -5,7 +5,6 @@ const PHOTO_MODULES = [
   () => import("./lpAgentPhoto"),
   () => import("./bnbX402Photo"),
   () => import("./agentscorePhoto"),
-  () => import("./pumpfunAlphaPhoto"),
   () => import("./lpRealProfitabilityPhoto"),
   () => import("./spcxPhoto"),
   () => import("./walletPortfolioPhoto"),

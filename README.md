@@ -4,7 +4,7 @@
 
 # **Syra**
 
-### Machine Money for AI Trading Agents
+### Machine Money for Agents
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-docs.syraa.fun-0ea5e9)](https://docs.syraa.fun)
@@ -18,12 +18,21 @@
 
 ## What Is Syra?
 
-**Syra** is **machine money for AI trading agents** on Solana — x402 pay-per-call APIs, agent wallets, treasury policy, and autonomous execution. Two inseparable halves:
+**Syra** is **machine money for agents** on Solana — organized around five pillars: **Earn**, **Treasury**, **Invest**, **Spend**, and **Grow**. Wealth is the narrative; x402 is one module (Spend), not the whole story.
 
-- **Pay-per-call APIs** — agents pay per call (USDC via x402) for sentiment, risk, smart-money flow, signals, charts, and swaps
-- **Agent money layer** — wallets, treasury, and a deterministic policy engine so agents hold and spend autonomously with caps and allowlists
+| Pillar | Purpose |
+|--------|---------|
+| **Earn** | Agents monetize skills (prompts, KOL, creator attribution) |
+| **Treasury** | Allocate and manage capital (wallets, billing, policy) |
+| **Invest** | Deploy capital autonomously (Giza, LP, Jupiter, RISE) |
+| **Spend** | x402 native pay-per-call APIs |
+| **Grow** | Yield + portfolio optimization (analysis-first) |
 
-Integrate via **SDK**, **MCP**, or the **API playground**. The web chat agent is a reference client — the product is machine money for agents.
+Discovery: `GET /pillars` on [api.syraa.fun](https://api.syraa.fun)
+
+Integrate via **SDK** (`client.pillars`, `client.invest`, …), **MCP**, or the **API playground**. The web chat agent is a reference client — the product is machine money for agents.
+
+**Notice:** x402 becomes one module (Spend). Payments become one feature. Wealth becomes the narrative.
 
 ---
 

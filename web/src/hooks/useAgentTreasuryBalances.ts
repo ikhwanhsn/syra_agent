@@ -5,6 +5,8 @@ import { useSyraAuth } from "@/contexts/SyraAuthContext";
 import { useWalletContext } from "@/contexts/WalletContext";
 import { agentWalletApi } from "@/lib/chatApi";
 import {
+  estimateTreasuryUsd,
+  fetchSolUsdSpot,
   resolveAgentTreasuryBalance,
   sumAgentTreasuryTotals,
 } from "@/lib/agentWalletBalanceDisplay";
@@ -102,6 +104,19 @@ export function useAgentTreasuryBalances(options: UseAgentTreasuryBalancesOption
     [chatSolBalance, lpSolBalance],
   );
 
+  const solPriceQ = useQuery({
+    queryKey: ["sol-usd-spot"],
+    queryFn: fetchSolUsdSpot,
+    enabled: connected && hasAgentTreasury,
+    staleTime: STALE_MS,
+    retry: 1,
+  });
+
+  const estimatedTreasuryUsd = useMemo(
+    () => estimateTreasuryUsd(totalUsdc, totalSol, solPriceQ.data),
+    [totalUsdc, totalSol, solPriceQ.data],
+  );
+
   const totalsUnresolved = totalUsdc == null && totalSol == null;
 
   const apiBalancesPending =
@@ -169,6 +184,8 @@ export function useAgentTreasuryBalances(options: UseAgentTreasuryBalancesOption
     lpSolBalance,
     totalUsdc,
     totalSol,
+    solPriceUsd: solPriceQ.data ?? null,
+    estimatedTreasuryUsd,
     balancesLoading,
     refreshChatBalances,
     refreshLpBalances,

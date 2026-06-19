@@ -3,6 +3,7 @@ import {
   ArrowUpRight,
   Coins,
   ExternalLink,
+  Info,
   Layers,
   Loader2,
   RefreshCw,
@@ -10,7 +11,7 @@ import {
 } from "lucide-react";
 import { CoinLogo } from "@/components/crypto/CoinLogo";
 import { Button } from "@/components/ui/button";
-import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
+import { overviewAccentBackground, overviewCardGlow } from "@/components/dashboard/overview/overviewStyles";
 import { formatTreasuryUsd } from "@/lib/agentWalletBalanceDisplay";
 import { getAgentWalletSlot, type AgentWalletPurpose } from "@/lib/agentWalletCatalog";
 import { formatPortfolioTokenAmount } from "@/lib/format";
@@ -18,12 +19,32 @@ import {
   useAgentWalletPortfolio,
   type PortfolioWalletFilter,
 } from "@/hooks/useAgentWalletPortfolio";
-import type { MergedPortfolioHolding } from "@/lib/agentWalletPortfolioApi";
-import { cn } from "@/lib/utils";
 import {
+  sumPortfolioTokenValues,
+  type MergedPortfolioHolding,
+} from "@/lib/agentWalletPortfolioApi";
+import { cn } from "@/lib/utils";
+import { WalletSectionHeader } from "@/components/wallet/WalletSectionHeader";
+import {
+  walletHeroCard,
+  walletInfoCallout,
+  walletKickerClass,
   walletPageSegmentedRoot,
   walletPageSegmentedTrigger,
+  walletPortfolioAssetCell,
+  walletPortfolioMetricCell,
+  walletPortfolioMetricLabel,
+  walletPortfolioMetricSub,
+  walletPortfolioMetricValue,
   walletPortfolioRow,
+  walletPurposePill,
+  walletSectionStack,
+  walletStatHint,
+  walletStatLabel,
+  walletStatTile,
+  walletStatValue,
+  walletTableHeader,
+  walletTableShell,
 } from "@/components/wallet/walletPageStyles";
 
 const WRAPPED_SOL_MINT = "So11111111111111111111111111111111111111112";
@@ -125,7 +146,7 @@ function TokenMintLogo({
     <img
       src={primarySrc}
       alt=""
-      className="h-10 w-10 shrink-0 rounded-xl object-cover shadow-sm ring-1 ring-white/10"
+      className="h-11 w-11 shrink-0 rounded-xl object-cover shadow-sm ring-1 ring-white/10"
       loading="lazy"
       decoding="async"
       onError={() => setBroken(true)}
@@ -138,15 +159,7 @@ function WalletPurposePills({ wallets }: { wallets: AgentWalletPurpose[] }) {
   return (
     <span className="flex flex-wrap gap-1">
       {wallets.map((purpose) => (
-        <span
-          key={purpose}
-          className={cn(
-            "rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-            purpose === "chat"
-              ? "bg-primary/10 text-primary"
-              : "bg-violet-500/10 text-violet-600 dark:text-violet-400",
-          )}
-        >
+        <span key={purpose} className={walletPurposePill(purpose)}>
           {getAgentWalletSlot(purpose).shortLabel}
         </span>
       ))}
@@ -174,61 +187,77 @@ function PortfolioTokenRow({
       : `https://solscan.io/token/${token.mint}`;
 
   const display = resolveTokenDisplay(token);
+  const balance = formatPortfolioTokenAmount(token.amount);
 
   return (
-    <li>
-      <div className={cn(walletPortfolioRow, "group")}>
-        <div
-          className="pointer-events-none absolute inset-y-2 left-0 rounded-r-md bg-primary/[0.05] transition-all duration-300 group-hover:bg-primary/[0.08]"
-          style={{ width: pct != null ? `${Math.max(pct, 2)}%` : "0%" }}
-          aria-hidden
-        />
+    <li className={cn(walletPortfolioRow, "group")}>
+      <div
+        className="pointer-events-none absolute inset-y-0 left-0 hidden bg-primary/[0.04] transition-all duration-300 group-hover:bg-primary/[0.07] lg:block"
+        style={{ width: pct != null ? `${Math.max(pct, 1.5)}%` : "0%" }}
+        aria-hidden
+      />
+
+      <div className={walletPortfolioAssetCell}>
         <TokenMintLogo mint={token.mint} symbol={display.title} imageUrl={token.imageUrl} />
-        <div className="relative min-w-0 flex-1">
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <p className="truncate text-sm font-semibold tracking-tight text-foreground">
               {display.title}
             </p>
             {showWalletPills ? <WalletPurposePills wallets={token.wallets} /> : null}
           </div>
-          <p className="truncate font-mono text-xs text-muted-foreground" title={token.mint}>
+          <p className="truncate text-xs text-muted-foreground" title={token.mint}>
             {display.subtitle}
           </p>
-          <p className="mt-1 font-mono text-xs tabular-nums text-muted-foreground/90">
-            {formatTokenPrice(token.priceUsd)}
-            {pct != null ? (
-              <span className="ml-2 text-muted-foreground/70">{pct.toFixed(1)}%</span>
-            ) : null}
-          </p>
-        </div>
-        <div className="relative shrink-0 text-right">
-          <p className="font-mono text-sm font-semibold tabular-nums text-foreground">
-            {formatTreasuryUsd(token.valueUsd)}
-          </p>
-          {(() => {
-            const balance = formatPortfolioTokenAmount(token.amount);
-            return (
-              <p
-                className="mt-0.5 font-mono text-xs tabular-nums text-muted-foreground"
-                title={balance.full}
-                aria-label={`${balance.ariaLabel} ${display.balanceLabel}`}
-              >
-                {balance.display} {display.balanceLabel}
-              </p>
-            );
-          })()}
-          {solscanUrl ? (
-            <a
-              href={solscanUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-1 inline-flex items-center gap-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Solscan
-              <ExternalLink className="h-3 w-3" aria-hidden />
-            </a>
+          {pct != null ? (
+            <p className="mt-1 text-[11px] tabular-nums text-muted-foreground/80 lg:hidden">
+              {pct.toFixed(1)}% of portfolio
+            </p>
           ) : null}
         </div>
+      </div>
+
+      <div className={walletPortfolioMetricCell}>
+        <span className={walletPortfolioMetricLabel}>Price</span>
+        <span className={walletPortfolioMetricValue}>{formatTokenPrice(token.priceUsd)}</span>
+        {pct != null ? (
+          <span className="hidden text-[11px] tabular-nums text-muted-foreground/75 lg:inline">
+            {pct.toFixed(1)}% alloc
+          </span>
+        ) : null}
+      </div>
+
+      <div className={walletPortfolioMetricCell}>
+        <span className={walletPortfolioMetricLabel}>Balance</span>
+        <span
+          className={walletPortfolioMetricSub}
+          title={balance.full}
+          aria-label={`${balance.ariaLabel} ${display.balanceLabel}`}
+        >
+          {balance.display}
+        </span>
+        <span className="text-[11px] text-muted-foreground/75">{display.balanceLabel}</span>
+      </div>
+
+      <div className={walletPortfolioMetricCell}>
+        <span className={walletPortfolioMetricLabel}>Est. value</span>
+        <span className={walletPortfolioMetricValue}>{formatTreasuryUsd(token.valueUsd)}</span>
+      </div>
+
+      <div className="flex justify-end lg:items-center">
+        {solscanUrl ? (
+          <a
+            href={solscanUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+            aria-label={`View ${display.title} on Solscan`}
+          >
+            <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+          </a>
+        ) : (
+          <span className="hidden h-8 w-8 lg:block" aria-hidden />
+        )}
       </div>
     </li>
   );
@@ -236,11 +265,9 @@ function PortfolioTokenRow({
 
 function PortfolioSkeleton() {
   return (
-    <div className="space-y-3" aria-busy="true" aria-label="Loading portfolio">
-      <div className="h-28 animate-pulse rounded-2xl bg-muted/30" />
-      {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="h-16 animate-pulse rounded-xl bg-muted/25" />
-      ))}
+    <div className={walletSectionStack} aria-busy="true" aria-label="Loading portfolio">
+      <div className="h-44 animate-pulse rounded-2xl bg-muted/30" />
+      <div className="h-64 animate-pulse rounded-2xl bg-muted/25" />
     </div>
   );
 }
@@ -254,17 +281,17 @@ function PortfolioEmptyState({ walletFilter }: { walletFilter: PortfolioWalletFi
   return (
     <div
       className={cn(
-        overviewCardShell,
-        "flex min-h-[240px] flex-col items-center justify-center px-6 py-12 text-center",
+        walletTableShell,
+        "flex min-h-[260px] flex-col items-center justify-center px-6 py-14 text-center",
       )}
     >
       <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/40 ring-1 ring-inset ring-border/50">
         <Coins className="h-5 w-5 text-muted-foreground" strokeWidth={1.75} aria-hidden />
       </span>
-      <h3 className="text-base font-semibold text-foreground">No tokens yet</h3>
-      <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
-        Fund your {label} with SOL or USDC, or let your agent trade — holdings will show up here
-        automatically.
+      <h3 className="text-base font-semibold text-foreground">No holdings to show</h3>
+      <p className="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
+        Fund your {label} with SOL or USDC, or let your agent trade — tokens appear here automatically
+        with live estimates.
       </p>
     </div>
   );
@@ -285,61 +312,79 @@ export function AgentPortfolioPanel({
     walletFilter,
   });
 
+  const mergedTokens = portfolio.merged?.tokens;
+
   const tokens = useMemo(() => {
-    const rows = portfolio.merged?.tokens ?? [];
+    const rows = mergedTokens ?? [];
     if (!hideDust) return rows;
     return rows.filter((row) => {
-      if (row.valueUsd == null) return true;
+      if (row.valueUsd == null) return false;
       return row.valueUsd >= DUST_USD;
     });
-  }, [portfolio.merged?.tokens, hideDust]);
+  }, [mergedTokens, hideDust]);
 
-  const showWalletPills = walletFilter === "all" && (portfolio.targets.length ?? 0) > 1;
-  const tokenCount = portfolio.merged?.tokens.length ?? 0;
+  const totalValueUsd = useMemo(
+    () => sumPortfolioTokenValues(mergedTokens ?? []),
+    [mergedTokens],
+  );
+
+  const visibleValueUsd = useMemo(
+    () => sumPortfolioTokenValues(tokens),
+    [tokens],
+  );
+
+  const showWalletPills = walletFilter === "all" && portfolio.allTargets.length > 1;
+  const tokenCount = mergedTokens?.length ?? 0;
   const visibleCount = tokens.length;
+  /** Hero total = full merged portfolio (dust filter only affects the table). */
+  const displayTotalUsd = totalValueUsd;
+
+  const topHolding = tokens[0];
+  const pricedCount = tokens.filter((t) => t.valueUsd != null && t.valueUsd > 0).length;
 
   if (!portfolio.hasWallets) {
-    return (
-      <PortfolioEmptyState walletFilter="all" />
-    );
+    return <PortfolioEmptyState walletFilter="all" />;
   }
 
+  const filterTabs = [
+    { id: "all" as const, label: "All wallets", icon: Layers },
+    { id: "spend" as const, label: "Spend", icon: Wallet2 },
+    ...(lpAddress ? [{ id: "lp" as const, label: "LP", icon: ArrowUpRight }] : []),
+  ] as const;
+
   return (
-    <div className="space-y-5">
-      <section
-        className={cn(overviewCardShell, "relative overflow-hidden px-5 py-6 sm:px-7 sm:py-7")}
-        aria-label="Portfolio value"
-      >
+    <div className={walletSectionStack}>
+      <section className={walletHeroCard} aria-label="Portfolio value">
         <div
-          className="pointer-events-none absolute inset-0 opacity-60"
-          style={{
-            background:
-              "radial-gradient(480px 200px at 100% -20%, hsl(262 83% 58% / 0.14), transparent 55%), radial-gradient(420px 180px at 0% 120%, hsl(var(--primary) / 0.1), transparent 50%)",
-          }}
+          className={overviewCardGlow}
+          style={{ background: overviewAccentBackground("marketplace") }}
           aria-hidden
         />
-        <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-          <div className="space-y-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              Portfolio value
+        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0 space-y-2">
+            <p className={walletKickerClass}>Estimated portfolio value</p>
+            <p className="font-mono text-4xl font-semibold tabular-nums tracking-tight text-foreground sm:text-[2.75rem]">
+              {formatTreasuryUsd(displayTotalUsd)}
             </p>
-            <div>
-              <p className="font-mono text-4xl font-semibold tabular-nums tracking-tight text-foreground sm:text-[2.5rem]">
-                {formatTreasuryUsd(portfolio.merged?.totalValueUsd)}
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {visibleCount === tokenCount
-                  ? `${tokenCount} asset${tokenCount === 1 ? "" : "s"}`
-                  : `${visibleCount} of ${tokenCount} assets`}
-                {portfolio.targets.length > 1 ? ` · ${portfolio.targets.length} wallets` : null}
-              </p>
-            </div>
+            <p className={walletStatHint}>
+              {visibleCount === tokenCount
+                ? `${tokenCount} token${tokenCount === 1 ? "" : "s"}`
+                : `${visibleCount} of ${tokenCount} tokens shown`}
+              {portfolio.allTargets.length > 1
+                ? ` · ${portfolio.allTargets.length} agent wallets`
+                : ""}
+              {hideDust && visibleCount !== tokenCount && visibleValueUsd != null && totalValueUsd != null
+                ? ` · ${formatTreasuryUsd(visibleValueUsd)} visible (${formatTreasuryUsd(totalValueUsd)} total)`
+                : hideDust && visibleCount !== tokenCount && totalValueUsd != null
+                  ? ` · ${formatTreasuryUsd(totalValueUsd)} incl. dust`
+                  : ""}
+            </p>
           </div>
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="shrink-0 rounded-xl gap-2 self-start sm:self-auto"
+            className="shrink-0 self-start rounded-xl gap-2"
             disabled={portfolio.loading}
             onClick={() => void portfolio.refresh()}
           >
@@ -351,21 +396,50 @@ export function AgentPortfolioPanel({
             Refresh
           </Button>
         </div>
+
+        <div className="relative mt-6 grid gap-3 sm:grid-cols-3">
+          <div className={walletStatTile}>
+            <p className={walletStatLabel}>Priced assets</p>
+            <p className={walletStatValue}>{pricedCount}</p>
+            <p className={walletStatHint}>Tokens with a USD estimate</p>
+          </div>
+          <div className={walletStatTile}>
+            <p className={walletStatLabel}>Largest position</p>
+            <p className="mt-1 truncate text-sm font-semibold text-foreground">
+              {topHolding ? resolveTokenDisplay(topHolding).title : "—"}
+            </p>
+            <p className={walletStatHint}>
+              {topHolding?.valueUsd != null ? formatTreasuryUsd(topHolding.valueUsd) : "No estimate"}
+            </p>
+          </div>
+          <div className={walletStatTile}>
+            <p className={walletStatLabel}>View</p>
+            <p className="mt-1 text-sm font-semibold text-foreground">
+              {walletFilter === "all"
+                ? "All agent wallets"
+                : `${getAgentWalletSlot(walletFilter).label} only`}
+            </p>
+            <p className={walletStatHint}>Filter holdings by treasury</p>
+          </div>
+        </div>
       </section>
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className={walletInfoCallout}>
+        <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+        <p>
+          Values are <span className="font-medium text-foreground">estimates</span> from live market
+          data (DexScreener, Jupiter, pump.fun). Memecoins can be illiquid — verify on Solscan before
+          moving funds. Tags show which agent wallet holds each token.
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div
-          className={walletPageSegmentedRoot(lpAddress ? 3 : 2)}
+          className={walletPageSegmentedRoot(filterTabs.length === 3 ? 3 : 2)}
           role="tablist"
           aria-label="Portfolio wallet filter"
         >
-          {(
-            [
-              { id: "all" as const, label: "All wallets", icon: Layers },
-              { id: "chat" as const, label: "Chat", icon: Wallet2 },
-              ...(lpAddress ? [{ id: "lp" as const, label: "LP", icon: ArrowUpRight }] : []),
-            ] as const
-          ).map(({ id, label, icon: Icon }) => (
+          {filterTabs.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               type="button"
@@ -380,7 +454,7 @@ export function AgentPortfolioPanel({
           ))}
         </div>
 
-        <label className="inline-flex cursor-pointer items-center gap-2 self-start text-sm text-muted-foreground sm:self-auto">
+        <label className="inline-flex cursor-pointer items-center gap-2.5 rounded-xl border border-border/45 bg-muted/15 px-3 py-2 text-sm text-muted-foreground">
           <input
             type="checkbox"
             className="h-4 w-4 rounded border-border accent-primary"
@@ -391,10 +465,17 @@ export function AgentPortfolioPanel({
         </label>
       </div>
 
+      <div>
+        <WalletSectionHeader
+          title="Holdings"
+          description="Spot price × on-chain balance. Click the link icon to verify any token on Solscan."
+        />
+      </div>
+
       {portfolio.error ? (
         <div
           className={cn(
-            overviewCardShell,
+            walletTableShell,
             "border-destructive/30 bg-destructive/5 px-5 py-4 text-sm text-destructive",
           )}
           role="alert"
@@ -406,16 +487,20 @@ export function AgentPortfolioPanel({
       ) : tokens.length === 0 ? (
         <PortfolioEmptyState walletFilter={walletFilter} />
       ) : (
-        <section
-          className={cn(overviewCardShell, "overflow-hidden px-2 py-2 sm:px-3 sm:py-3")}
-          aria-label="Token holdings"
-        >
-          <ul className="divide-y divide-border/40">
+        <section className={walletTableShell} aria-label="Token holdings">
+          <div className={walletTableHeader}>
+            <span>Asset</span>
+            <span className="text-right">Price</span>
+            <span className="text-right">Balance</span>
+            <span className="text-right">Est. value</span>
+            <span className="sr-only">Explorer</span>
+          </div>
+          <ul>
             {tokens.map((token) => (
               <PortfolioTokenRow
                 key={token.mint}
                 token={token}
-                totalValueUsd={portfolio.merged?.totalValueUsd ?? null}
+                totalValueUsd={displayTotalUsd ?? totalValueUsd ?? null}
                 showWalletPills={showWalletPills}
               />
             ))}

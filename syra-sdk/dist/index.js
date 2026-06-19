@@ -1,3 +1,4 @@
+import { attachPillarModules } from "./pillars.js";
 const DEFAULT_BASE = "https://api.syraa.fun";
 function buildUrl(base, path, params) {
     const normalized = path.startsWith("/") ? path : `/${path}`;
@@ -72,8 +73,12 @@ export class SyraClient {
     post(path, body) {
         return this.request(path, { method: "POST", body });
     }
+    /** Five-pillar modules: earn, treasury, invest, spend, grow, pillars */
+    pillars = attachPillarModules(this);
 }
 export function createSyraClient(options) {
     return new SyraClient(options);
 }
 export { isSyraX402Path, SYRA_HIGH_VALUE_ROUTES, SYRA_X402_ROUTE_PREFIXES } from "./routes.js";
+export { SYRA_PILLAR_IDS, SYRA_PILLAR_ROUTES, resolveSyraPillarForPath, } from "./pillars-routes.js";
+export { attachPillarModules, createEarnModule, createTreasuryModule, createInvestModule, createSpendModule, createGrowModule, createPillarsModule, } from "./pillars.js";

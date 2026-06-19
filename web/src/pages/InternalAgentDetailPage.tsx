@@ -1,11 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, Navigate, useParams } from "@/lib/navigation";
-import { AlertTriangle, Loader2, Lock, ShieldAlert } from "lucide-react";
+import { Navigate, useParams } from "@/lib/navigation";
+import { AlertTriangle, Loader2 } from "lucide-react";
 import { useWalletContext } from "@/contexts/WalletContext";
 import {
-  INTERNAL_TEAM_MONITOR_SOLANA_WALLET,
-  isInternalTeamMonitorWallet,
-} from "@/constants/internalTeamMonitorWallet";
+  isAdminWallet,
+} from "@/constants/adminWallet";
 import {
   getInternalAgentMeta,
   isInternalAgentSlug,
@@ -30,7 +29,6 @@ import {
 import { DASHBOARD_CONTENT_SHELL, PAGE_PADDING_TOP_MEDIUM } from "@/lib/layoutConstants";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { INTERNAL_BASE_PATH, internalPartnershipBoardPath } from "@/lib/internalRoutes";
@@ -430,8 +428,8 @@ function renderPayload(slug: InternalAgentSlug, res: { data?: unknown; savedAt?:
 
 export default function InternalAgentDetailPage() {
   const { agentSlug } = useParams<{ agentSlug: string }>();
-  const { address, connected, connectSolana } = useWalletContext();
-  const allowed = isInternalTeamMonitorWallet(address);
+  const { address, connected } = useWalletContext();
+  const allowed = isAdminWallet(connected, address);
 
   const slug = agentSlug && isInternalAgentSlug(agentSlug) ? agentSlug : null;
   const meta = slug ? getInternalAgentMeta(slug) : undefined;
@@ -442,47 +440,6 @@ export default function InternalAgentDetailPage() {
     enabled: Boolean(allowed && slug),
     staleTime: STALE_MS,
   });
-
-  if (!connected) {
-    return (
-      <div className={DASHBOARD_CONTENT_SHELL}>
-        <div className={PAGE_PADDING_TOP_MEDIUM}>
-          <Alert className="max-w-xl border-border/80 bg-muted/20">
-            <Lock className="h-4 w-4" />
-            <AlertTitle>Connect your wallet</AlertTitle>
-            <AlertDescription className="space-y-3 pt-1">
-              <p className="text-sm text-muted-foreground">
-                This page is for the Syra team only. Connect the authorized Solana wallet to continue.
-              </p>
-              <Button type="button" size="sm" onClick={() => void connectSolana()}>
-                Connect wallet
-              </Button>
-            </AlertDescription>
-          </Alert>
-        </div>
-      </div>
-    );
-  }
-
-  if (!allowed) {
-    return (
-      <div className={DASHBOARD_CONTENT_SHELL}>
-        <div className={PAGE_PADDING_TOP_MEDIUM}>
-          <Alert variant="destructive" className="max-w-xl">
-            <ShieldAlert className="h-4 w-4" />
-            <AlertTitle>Access denied</AlertTitle>
-            <AlertDescription className="space-y-2 pt-1 text-sm">
-              <p>Your wallet is not authorized to view this page.</p>
-              <p className="font-mono text-xs opacity-90 break-all">{INTERNAL_TEAM_MONITOR_SOLANA_WALLET}</p>
-              <Button variant="outline" size="sm" className="mt-2" asChild>
-                <Link to="/overview">Go to overview</Link>
-              </Button>
-            </AlertDescription>
-          </Alert>
-        </div>
-      </div>
-    );
-  }
 
   if (slug === "partnership-scout") {
     return <Navigate to={internalPartnershipBoardPath()} replace />;

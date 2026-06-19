@@ -1,83 +1,112 @@
 /**
- * CoinGecko coin list routes.
- * Uses https://api.coingecko.com/api/v3/coins/list for ticker/token name resolution.
+ * x402 paid route — CoinGecko scout (brief, gainers, predictions views).
  */
 import express from 'express';
-import { getCoinList, getCoinBySymbol, getCoinById, searchCoins } from '../utils/coingeckoAPI.js';
+import { getV2Payment } from '../utils/getV2Payment.js';
+import { getResourceDescription } from '../config/x402ResourceCatalog.js';
+import { X402_API_PRICE_COINGECKO_SCOUT_USD } from '../config/x402Pricing.js';
+import { getCoingeckoScout, parseCoingeckoScoutParams } from '../libs/coingeckoScoutService.js';
 
-export async function createCoingeckoRouter() {
+const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
+
+const COINGECKO_QUERY_SCHEMA = {
+  view: {
+    type: 'string',
+    required: false,
+    description: 'View selector: brief | gainers | predictions (default brief)',
+  },
+  topN: {
+    type: 'integer',
+    required: false,
+    description: 'Number of top gainers to analyze (default 8, max 25)',
+  },
+  minMarketCap: {
+    type: 'integer',
+    required: false,
+    description: 'Minimum market cap USD filter (default 1000000)',
+  },
+  includeNews: {
+    type: 'boolean',
+    required: false,
+    description: 'Include news/X bundles (default true)',
+  },
+  llm: {
+    type: 'boolean',
+    required: false,
+    description: 'Enable optional LLM narrative enrichment (default false)',
+  },
+};
+
+const paymentOptionsBase = {
+  price: X402_API_PRICE_COINGECKO_SCOUT_USD,
+  description: getResourceDescription('coingecko'),
+  discoverable: true,
+  resource: '/coingecko',
+  outputSchema: {
+    view: { type: 'string' },
+    date: { type: 'string' },
+    topGainer: { type: 'object' },
+    topGainers: { type: 'array' },
+    dailyDigests: { type: 'array' },
+    predictions: { type: 'array' },
+    meta: { type: 'object' },
+    computedAt: { type: 'string' },
+  },
+};
+
+function attachParsedRequest(req, res, next) {
+  try {
+    req.coingeckoScoutParams = parseCoingeckoScoutParams({
+      method: req.method,
+      query: req.query,
+      body: req.body,
+    });
+    next();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(400).json({ success: false, error: msg });
+  }
+}
+
+async function handleCoingecko(req, res) {
+  try {
+    const data = await getCoingeckoScout(req.coingeckoScoutParams);
+    await settlePaymentAndSetResponse(res, req);
+    res.json({ success: true, data });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(502).json({ success: false, error: msg });
+  }
+}
+
+export function createCoingeckoScoutRouter() {
   const router = express.Router();
 
-  /**
-   * GET /coingecko/coins/list
-   * Returns the full CoinGecko coin list (id, symbol, name). Cached 24h.
-   */
-  router.get('/coins/list', async (req, res) => {
-    try {
-      const list = await getCoinList();
-      return res.status(200).json({ success: true, data: list, count: list.length });
-    } catch (err) {
-      return res.status(502).json({ success: false, error: err.message || 'Failed to fetch CoinGecko list' });
-    }
-  });
+  router.get(
+    '/',
+    attachParsedRequest,
+    requirePayment({
+      ...paymentOptionsBase,
+      method: 'GET',
+      inputSchema: { queryParams: COINGECKO_QUERY_SCHEMA },
+    }),
+    handleCoingecko,
+  );
 
-  /**
-   * GET /coingecko/coins/search?q=bitcoin
-   * Search coins by id, symbol, or name.
-   */
-  router.get('/coins/search', async (req, res) => {
-    const q = req.query.q;
-    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 50);
-    if (!q || typeof q !== 'string' || !q.trim()) {
-      return res.status(400).json({ success: false, error: 'Query "q" is required' });
-    }
-    try {
-      const results = await searchCoins(q.trim(), limit);
-      return res.status(200).json({ success: true, data: results, count: results.length });
-    } catch (err) {
-      return res.status(502).json({ success: false, error: err.message || 'Search failed' });
-    }
-  });
-
-  /**
-   * GET /coingecko/coins/symbol/:symbol
-   * Resolve ticker symbol to CoinGecko coin (e.g. BTC -> bitcoin).
-   */
-  router.get('/coins/symbol/:symbol', async (req, res) => {
-    const symbol = req.params.symbol;
-    if (!symbol) {
-      return res.status(400).json({ success: false, error: 'Symbol is required' });
-    }
-    try {
-      const coin = await getCoinBySymbol(symbol);
-      if (!coin) {
-        return res.status(404).json({ success: false, error: `No CoinGecko coin for symbol: ${symbol}` });
-      }
-      return res.status(200).json({ success: true, data: coin });
-    } catch (err) {
-      return res.status(502).json({ success: false, error: err.message || 'Lookup failed' });
-    }
-  });
-
-  /**
-   * GET /coingecko/coins/id/:id
-   * Get coin by CoinGecko id (e.g. bitcoin, ethereum).
-   */
-  router.get('/coins/id/:id', async (req, res) => {
-    const id = req.params.id;
-    if (!id) {
-      return res.status(400).json({ success: false, error: 'Id is required' });
-    }
-    try {
-      const coin = await getCoinById(id);
-      if (!coin) {
-        return res.status(404).json({ success: false, error: `No CoinGecko coin for id: ${id}` });
-      }
-      return res.status(200).json({ success: true, data: coin });
-    } catch (err) {
-      return res.status(502).json({ success: false, error: err.message || 'Lookup failed' });
-    }
-  });
+  router.post(
+    '/',
+    express.json(),
+    attachParsedRequest,
+    requirePayment({
+      ...paymentOptionsBase,
+      method: 'POST',
+      inputSchema: {
+        bodyType: 'json',
+        bodyFields: COINGECKO_QUERY_SCHEMA,
+      },
+    }),
+    handleCoingecko,
+  );
 
   return router;
 }

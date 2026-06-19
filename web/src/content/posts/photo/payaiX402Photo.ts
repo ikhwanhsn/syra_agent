@@ -138,13 +138,15 @@ export const PAYAI_X402_PHOTO = definePhotoUpdate(PAYAI_X402_POST.meta, [
   },
   {
     role: "launch",
-    layout: "photo-announcement",
+    layout: "photo-partnership-union",
     shareCopy: copies.launch,
     content: photoContent({
-      badge: "Now live · PayAI facilitator",
-      title: "Syra × PayAI",
-      subtitle: "Every PayAI x402 network enabled on Syra intelligence APIs.",
-      body: "Solana, Base, Polygon, Arbitrum, Avalanche, Sei, SKALE, X Layer, and testnets. Pay per call.",
+      eyebrow: "Integration",
+      badge: "Now live · PayAI · 16 networks",
+      partnerName: "PayAI",
+      partnerLogo: "/images/partners/payai.svg",
+      headline: "Syra × PayAI",
+      subtitle: "Intelligence APIs settle on every PayAI network. Pay per call.",
     }),
   },
   {

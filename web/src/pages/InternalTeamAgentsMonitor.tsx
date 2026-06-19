@@ -1,20 +1,14 @@
 import { useEffect } from "react";
 
 import { useQuery } from "@tanstack/react-query";
+import { Wallet } from "lucide-react";
 
 import { Link, useLocation, useNavigate, useSearchParams } from "@/lib/navigation";
 
-import { Lock, ShieldAlert } from "lucide-react";
-
 import { useWalletContext } from "@/contexts/WalletContext";
+import { Button } from "@/components/ui/button";
 
-import {
-
-  INTERNAL_TEAM_MONITOR_SOLANA_WALLET,
-
-  isInternalTeamMonitorWallet,
-
-} from "@/constants/internalTeamMonitorWallet";
+import { isAdminWallet } from "@/constants/adminWallet";
 
 import { requireInternalAgentMeta } from "@/lib/internalAgentsCatalog";
 
@@ -72,10 +66,6 @@ import {
 } from "@/lib/internalTeamAgentsApi";
 
 import { DASHBOARD_CONTENT_SHELL, PAGE_PADDING_TOP_MEDIUM } from "@/lib/layoutConstants";
-
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-
-import { Button } from "@/components/ui/button";
 
 
 
@@ -177,7 +167,7 @@ function queryRunStatus(q: {
 
 export default function InternalTeamAgentsMonitor() {
 
-  const { address, connected, connectSolana } = useWalletContext();
+  const { address, connected } = useWalletContext();
 
   const { hash, pathname } = useLocation();
 
@@ -187,7 +177,7 @@ export default function InternalTeamAgentsMonitor() {
 
   const tab = parseInternalTab(searchParams.get("tab"));
 
-  const allowed = isInternalTeamMonitorWallet(address);
+  const allowed = isAdminWallet(connected, address);
 
 
 
@@ -277,92 +267,6 @@ export default function InternalTeamAgentsMonitor() {
 
 
 
-  if (!connected) {
-
-    return (
-
-      <div className={DASHBOARD_CONTENT_SHELL}>
-
-        <div className={PAGE_PADDING_TOP_MEDIUM}>
-
-          <Alert className="max-w-xl border-border/80 bg-muted/20">
-
-            <Lock className="h-4 w-4" />
-
-            <AlertTitle>Connect your wallet</AlertTitle>
-
-            <AlertDescription className="space-y-3 pt-1">
-
-              <p className="text-sm text-muted-foreground">
-
-                This page is for the Syra team only. Connect the authorized Solana wallet to continue.
-
-              </p>
-
-              <Button type="button" size="sm" onClick={() => void connectSolana()}>
-
-                Connect wallet
-
-              </Button>
-
-            </AlertDescription>
-
-          </Alert>
-
-        </div>
-
-      </div>
-
-    );
-
-  }
-
-
-
-  if (!allowed) {
-
-    return (
-
-      <div className={DASHBOARD_CONTENT_SHELL}>
-
-        <div className={PAGE_PADDING_TOP_MEDIUM}>
-
-          <Alert variant="destructive" className="max-w-xl">
-
-            <ShieldAlert className="h-4 w-4" />
-
-            <AlertTitle>Access denied</AlertTitle>
-
-            <AlertDescription className="space-y-2 pt-1 text-sm">
-
-              <p>Your wallet is not authorized to view this page.</p>
-
-              <p className="font-mono text-xs opacity-90 break-all">
-
-                {INTERNAL_TEAM_MONITOR_SOLANA_WALLET}
-
-              </p>
-
-              <Button variant="outline" size="sm" className="mt-2" asChild>
-
-                <Link to="/overview">Go to overview</Link>
-
-              </Button>
-
-            </AlertDescription>
-
-          </Alert>
-
-        </div>
-
-      </div>
-
-    );
-
-  }
-
-
-
   const trendMeta = requireInternalAgentMeta("trend-scout");
 
   const partnershipMeta = requireInternalAgentMeta("partnership-scout");
@@ -395,7 +299,14 @@ export default function InternalTeamAgentsMonitor() {
 
         />
 
-
+        <div className="flex justify-end">
+          <Button variant="outline" size="sm" className="gap-1.5" asChild>
+            <Link to="/internal/wallets">
+              <Wallet className="h-4 w-4" aria-hidden />
+              Agent wallet sets
+            </Link>
+          </Button>
+        </div>
 
         <InternalTabBar active={tab} onChange={setTab} />
 

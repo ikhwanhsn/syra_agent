@@ -21,6 +21,16 @@ import {
 } from '@solana/spl-token';
 import bs58 from 'bs58';
 import { withRpcFallback } from '@/lib/solanaRpc';
+import {
+  getPayaiChainIdByCaip2,
+  getPlaygroundNetwork,
+  PAYMENT_CHAIN_IDS,
+  PLAYGROUND_PAYMENT_CHAINS,
+  type PaymentChainId,
+} from '@/lib/payaiX402Networks';
+
+export type { PaymentChainId };
+export { PLAYGROUND_PAYMENT_CHAINS };
 
 // USDC token mint on Solana mainnet
 const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
@@ -403,41 +413,75 @@ export function isEvmNetwork(opt: X402PaymentOption): boolean {
   return String(opt?.network || '').startsWith('eip155:');
 }
 
-/** True if option is Solana network. */
-export function isSolanaNetwork(opt: X402PaymentOption): boolean {
-  return /^solana:/i.test(String(opt?.network || ''));
+/** True if option is Solana mainnet (excludes devnet/testnet). */
+export function isSolanaMainnetNetwork(opt: X402PaymentOption): boolean {
+  const n = String(opt?.network || '').trim();
+  if (!n || n === SOLANA_DEVNET_CAIP2 || n === 'solana-devnet') return false;
+  if (n.includes('devnet') || n.includes('testnet')) return false;
+  return (
+    n === SOLANA_MAINNET_CAIP2 ||
+    n === 'solana' ||
+    (n.startsWith('solana:') && n !== SOLANA_DEVNET_CAIP2)
+  );
 }
 
-/** Playground payment chain tabs: Solana, Base, Binance (B402 on BSC). */
-export type PaymentChainId = 'solana' | 'base' | 'binance';
+/** True if option is Solana network. */
+export function isSolanaNetwork(opt: X402PaymentOption): boolean {
+  return isSolanaMainnetNetwork(opt);
+}
 
-export type PaymentOptionsByChain = {
-  solana: X402PaymentOption | null;
-  base: X402PaymentOption | null;
-  binance: X402PaymentOption | null;
-};
+export type PaymentOptionsByChain = Record<PaymentChainId, X402PaymentOption | null>;
 
-/** Fixed order for playground chain selector UI. */
-export const PLAYGROUND_PAYMENT_CHAINS: ReadonlyArray<{ id: PaymentChainId; label: string }> = [
-  { id: 'solana', label: 'Solana' },
-  { id: 'base', label: 'Base' },
-  { id: 'binance', label: 'Binance' },
-];
+export function createEmptyPaymentOptionsByChain(): PaymentOptionsByChain {
+  return Object.fromEntries(PAYMENT_CHAIN_IDS.map((id) => [id, null])) as PaymentOptionsByChain;
+}
+
+/** Map a 402 accept to a playground chain id (mainnets only). */
+export function paymentOptionToChainId(opt: X402PaymentOption): PaymentChainId | null {
+  if (isBscNetwork(opt)) return 'binance';
+  if (isSolanaMainnetNetwork(opt)) return 'solana';
+  const caip2 = String(opt.network || '').trim();
+  if (!caip2) return null;
+  const chainId = getPayaiChainIdByCaip2(caip2);
+  if (chainId) return chainId;
+  if (caip2.startsWith('eip155:')) return null;
+  return null;
+}
+
+/** Pick chain for playground: user preference when supported, else first available (Solana first). */
+export function resolvePlaygroundPaymentChain(
+  byChain: PaymentOptionsByChain,
+  preferred: PaymentChainId = 'solana',
+): PaymentChainId {
+  if (byChain[preferred]) return preferred;
+  for (const { id } of PLAYGROUND_PAYMENT_CHAINS) {
+    if (byChain[id]) return id;
+  }
+  return 'solana';
+}
+
+/** True when at least one chain option was parsed from a 402 response. */
+export function hasPaymentOptionsByChain(byChain: PaymentOptionsByChain): boolean {
+  return PAYMENT_CHAIN_IDS.some((id) => Boolean(byChain[id]));
+}
 
 /**
- * Get payment options grouped by chain (Solana, Base, Binance/B402).
+ * Get payment options grouped by playground chain (PayAI mainnets + Binance B402).
  */
 export function getPaymentOptionsByChain(x402Response: X402Response): PaymentOptionsByChain {
-  const empty: PaymentOptionsByChain = { solana: null, base: null, binance: null };
+  const grouped = createEmptyPaymentOptionsByChain();
   const { accepts } = x402Response ?? {};
-  if (!accepts?.length) return empty;
+  if (!accepts?.length) return grouped;
   const normalized = accepts.map((a) =>
     normalizePaymentOption(a as X402PaymentOption & { price?: { asset?: string; amount?: string } })
   );
-  const solana = normalized.find((opt) => isSolanaNetwork(opt)) ?? null;
-  const binance = normalized.find((opt) => isBscNetwork(opt)) ?? null;
-  const base = normalized.find((opt) => isBaseNetwork(opt) && !isBscNetwork(opt)) ?? null;
-  return { solana, base, binance };
+  for (const opt of normalized) {
+    const chainId = paymentOptionToChainId(opt);
+    if (chainId && !grouped[chainId]) {
+      grouped[chainId] = opt;
+    }
+  }
+  return grouped;
 }
 
 /**
@@ -458,6 +502,13 @@ export function getBestPaymentOption(
     normalizePaymentOption(a as X402PaymentOption & { price?: { asset?: string; amount?: string } })
   );
 
+  if (preferredChain && preferredChain !== 'auto') {
+    const preferredOpt = normalized.find(
+      (opt) => paymentOptionToChainId(opt) === preferredChain,
+    );
+    if (preferredOpt) return preferredOpt;
+  }
+
   if (preferredChain === 'binance') {
     const binanceOpt = normalized.find((opt) => isBscNetwork(opt));
     if (binanceOpt) return binanceOpt;
@@ -474,8 +525,10 @@ export function getBestPaymentOption(
   );
   if (solanaMainnetOption) return solanaMainnetOption;
 
-  // Any Solana network
-  const solanaOption = normalized.find((opt) => isSolanaNetwork(opt) && opt.scheme === 'exact');
+  // Any Solana mainnet network
+  const solanaOption = normalized.find(
+    (opt) => isSolanaMainnetNetwork(opt) && opt.scheme === 'exact',
+  );
   if (solanaOption) return solanaOption;
 
   // BSC B402
@@ -1002,21 +1055,17 @@ export function extractPaymentDetails(x402Response: X402Response): {
     }
   }
   
-  // Format network name from CAIP-2 identifier
-  let network = 'Solana';
+  // Format network name from CAIP-2 identifier (mainnets only in playground)
+  let network = 'Solana Mainnet';
   if (option.network) {
-    if (isBscNetwork(option)) {
-      network = 'Binance (BSC)';
-    } else if (option.network === BASE_MAINNET_CAIP2 || option.network === 'eip155:8453') {
-      network = 'Base Mainnet';
+    const chainId = paymentOptionToChainId(option);
+    const meta = chainId ? getPlaygroundNetwork(chainId) : undefined;
+    if (meta) {
+      network = `${meta.label} Mainnet`;
+    } else if (isBscNetwork(option)) {
+      network = 'Binance (BSC) Mainnet';
     } else if (option.network.startsWith('eip155:')) {
-      network = 'EVM';
-    } else if (option.network === SOLANA_MAINNET_CAIP2 || option.network.includes('5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp')) {
-      network = 'Solana Mainnet';
-    } else if (option.network === SOLANA_DEVNET_CAIP2 || option.network.includes('EtWTRABZaYq6iMfeYKouRu166VU2xqa1') || option.network.includes('devnet')) {
-      network = 'Solana Devnet';
-    } else if (option.network.startsWith('solana:')) {
-      network = 'Solana';
+      network = 'EVM Mainnet';
     }
   }
   

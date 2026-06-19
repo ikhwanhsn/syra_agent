@@ -357,6 +357,26 @@ Composition: `globalThis.fetch` → Sentinel (if on) → Pact via `api/libs/agen
 
 ---
 
+## Hackathon Scout (internal admin)
+
+Daily aggregator for **technology hackathons** (Indonesia + global) via Devpost JSON API and Exa web search. Admin UI: **`/hackathon`** on the dashboard (admin wallet only). API: **`/internal/hackathons`**.
+
+| Env | Purpose |
+|-----|---------|
+| `EXA_API_KEY` | Exa web search for hackathons not on Devpost |
+| `OPENROUTER_API_KEY` | LLM extraction from Exa search snippets |
+| `SYRA_ADMIN_WALLETS` | Hardcoded in `api/libs/adminWallet.js` (no env required) |
+| `HACKATHON_SCOUT_CRON_MS` | Scheduler interval (default `86400000` = 24h) |
+| `HACKATHON_SCOUT_CRON_SECRET` | GitHub Action / cron `POST /internal/hackathons/run` |
+| `HACKATHON_DEVPOST_GLOBAL_PAGES` | Devpost pages to fetch (default `3`) |
+| `HACKATHON_DEVPOST_INDONESIA_PAGES` | Indonesia search pages (default `2`) |
+| `HACKATHON_EXA_NUM_RESULTS` | Exa results per query (default `8`) |
+| `HACKATHON_EXA_MIN_RELEVANCE` | Min tech relevance score 0–100 (default `40`) |
+
+Cron header: `x-hackathon-scout-cron-secret`. Workflow: `.github/workflows/hackathon-scout-daily.yml`.
+
+---
+
 ## API key and trusted origins
 
 - **Never embed `API_KEY` or `API_KEYS` in client-side code.** The API injects the key for requests from trusted origins (syraa.fun, dashboard, agent, playground) so frontends do not need to send it.

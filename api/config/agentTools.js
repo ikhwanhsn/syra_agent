@@ -12,6 +12,9 @@ import {
   X402_API_PRICE_ANALYTICS_SUMMARY_USD,
   X402_API_PRICE_PUMP_FUN_TX_USD,
   X402_API_PRICE_PUMP_FUN_READ_USD,
+  X402_API_PRICE_PUMP_FUN_SCOUT_USD,
+  X402_API_PRICE_RISE_SCOUT_USD,
+  X402_API_PRICE_COINGECKO_SCOUT_USD,
   X402_API_PRICE_SQUID_ROUTE_USD,
   X402_API_PRICE_SQUID_STATUS_USD,
   X402_API_PRICE_EXA_SEARCH_USD,
@@ -41,6 +44,9 @@ import {
   X402_DISPLAY_PRICE_ANALYTICS_SUMMARY_USD,
   X402_DISPLAY_PRICE_PUMP_FUN_TX_USD,
   X402_DISPLAY_PRICE_PUMP_FUN_READ_USD,
+  X402_DISPLAY_PRICE_PUMP_FUN_SCOUT_USD,
+  X402_DISPLAY_PRICE_RISE_SCOUT_USD,
+  X402_DISPLAY_PRICE_COINGECKO_SCOUT_USD,
   X402_DISPLAY_PRICE_SQUID_ROUTE_USD,
   X402_DISPLAY_PRICE_SQUID_STATUS_USD,
   X402_DISPLAY_PRICE_EXA_SEARCH_USD,
@@ -74,8 +80,9 @@ import {
   STABLEENRICH_AGENT_TOOLS,
   getStableenrichParamsHintForLlm,
 } from './stableenrichAgentTools.js';
+import { resolvePillarForToolId } from './pillars.js';
 
-/** @typedef {{ id: string; path: string; method: string; priceUsd: number; displayPriceUsd?: number; name: string; description: string; nansenPath?: string; zerionPath?: string; birdeyePath?: string; stablecryptoPath?: string; stablesocialPath?: string; stableenrichPath?: string; stableenrichMethod?: 'GET' | 'POST'; stableenrichAsync?: boolean; purchVaultPath?: string; agentDirect?: boolean; tempoPayout?: boolean; tempoPublic?: 'tokenlist' | 'networks'; paysh?: 'discover' | 'endpoints' | 'call'; agentscore?: 'discover' | 'check' | 'passport-status' | 'pay' }} AgentTool */
+/** @typedef {{ id: string; path: string; method: string; priceUsd: number; displayPriceUsd?: number; name: string; description: string; pillar?: import('./pillars.js').PillarId; nansenPath?: string; zerionPath?: string; birdeyePath?: string; stablecryptoPath?: string; stablesocialPath?: string; stableenrichPath?: string; stableenrichMethod?: 'GET' | 'POST'; stableenrichAsync?: boolean; purchVaultPath?: string; agentDirect?: boolean; tempoPayout?: boolean; tempoPublic?: 'tokenlist' | 'networks'; paysh?: 'discover' | 'endpoints' | 'call'; agentscore?: 'discover' | 'check' | 'passport-status' | 'pay' }} AgentTool */
 
 /**
  * List of agent tools (x402 endpoints). Path is relative to API base (e.g. /news). Nansen calls api.nansen.ai; Zerion calls api.zerion.io (x402); Birdeye uses birdeyePath on public-api.birdeye.so (x402).
@@ -1097,26 +1104,37 @@ export const AGENT_TOOLS = [
     description: 'Verify invoice paid on-chain (agentMint, user, currencyMint, amount, memo, startTime, endTime as numbers)',
   },
   {
-    id: 'pumpfun-utility-scout',
+    id: 'pumpfun-scout',
     agentDirect: false,
-    path: '/agent/pumpfun-utility-scout/brief',
+    path: '/pumpfun/scout',
     method: 'GET',
-    priceUsd: X402_API_PRICE_PUMP_FUN_READ_USD,
-    displayPriceUsd: X402_DISPLAY_PRICE_PUMP_FUN_READ_USD,
-    name: 'Pump.fun Utility Scout',
+    priceUsd: X402_API_PRICE_PUMP_FUN_SCOUT_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_PUMP_FUN_SCOUT_USD,
+    name: 'Pump.fun Scout',
     description:
-      'Separate agent for tech/utility projects: product metadata, infra narratives, and ecosystem registry picks — not meme runners',
+      'Live pump.fun scout — segment=alpha|beta|predicted|utility with optional period, limit, minPumpScore, llm',
   },
   {
-    id: 'pumpfun-alpha-scout',
+    id: 'rise-scout',
     agentDirect: false,
-    path: '/agent/pumpfun-alpha-scout/brief',
+    path: '/rise',
     method: 'GET',
-    priceUsd: X402_API_PRICE_PUMP_FUN_READ_USD,
-    displayPriceUsd: X402_DISPLAY_PRICE_PUMP_FUN_READ_USD,
-    name: 'Pump.fun Alpha Scout',
+    priceUsd: X402_API_PRICE_RISE_SCOUT_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_RISE_SCOUT_USD,
+    name: 'RISE Scout',
     description:
-      'Separate learning agent: past alpha memory, learned narrative/MC patterns, and predicted new alpha tokens on pump.fun',
+      'Live RISE intelligence — view=intel|markets|targets with optional mint, limit, tier=ready|watch',
+  },
+  {
+    id: 'coingecko-scout',
+    agentDirect: false,
+    path: '/coingecko',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_COINGECKO_SCOUT_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_COINGECKO_SCOUT_USD,
+    name: 'CoinGecko Scout',
+    description:
+      'Live CoinGecko scout — view=brief|gainers|predictions with optional topN, minMarketCap, includeNews, llm',
   },
   {
     id: 'squid-route',
@@ -1587,7 +1605,17 @@ export function getAgentTool(toolId) {
   else if (toolId && typeof toolId === 'string' && toolId.startsWith('pumpfun') && toolId.includes('_')) {
     normalized = toolId.replace(/_/g, '-');
   }
-  return AGENT_TOOLS.find((t) => t.id === normalized);
+  const tool = AGENT_TOOLS.find((t) => t.id === normalized);
+  if (!tool) return undefined;
+  return { ...tool, pillar: resolvePillarForToolId(tool.id, tool) };
+}
+
+/**
+ * All agent tools with derived pillar tags.
+ * @returns {AgentTool[]}
+ */
+export function listAgentToolsWithPillars() {
+  return AGENT_TOOLS.map((t) => ({ ...t, pillar: resolvePillarForToolId(t.id, t) }));
 }
 
 /**

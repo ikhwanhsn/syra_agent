@@ -158,7 +158,7 @@ export function FuelAgentModal({
   open,
   onOpenChange,
   initialFlowTab = "deposit",
-  initialAgentWallet = "chat",
+  initialAgentWallet = "spend",
   depositAgentAddress,
   depositAnonymousId,
   onDepositComplete,
@@ -199,21 +199,21 @@ export function FuelAgentModal({
   const lockedPurpose = useMemo((): AgentWalletPurpose | "external" | null => {
     if (!depositAgentAddress) return null;
     if (depositAgentAddress === lpAgentAddress) return "lp";
-    if (depositAgentAddress === agentAddress) return "chat";
+    if (depositAgentAddress === agentAddress) return "spend";
     return "external";
   }, [depositAgentAddress, agentAddress, lpAgentAddress]);
 
   const availableWallets = useMemo((): AgentWalletPurpose[] => {
     const out: AgentWalletPurpose[] = [];
-    if (agentAddress) out.push("chat");
+    if (agentAddress) out.push("spend");
     if (lpAgentAddress) out.push("lp");
     return out;
   }, [agentAddress, lpAgentAddress]);
 
   const activePurpose: AgentWalletPurpose = useMemo(() => {
-    if (lockedPurpose === "chat" || lockedPurpose === "lp") return lockedPurpose;
+    if (lockedPurpose === "spend" || lockedPurpose === "lp") return lockedPurpose;
     if (availableWallets.includes(selectedWallet)) return selectedWallet;
-    return availableWallets[0] ?? "chat";
+    return availableWallets[0] ?? "spend";
   }, [lockedPurpose, availableWallets, selectedWallet]);
 
   const activeAddress = activePurpose === "lp" ? lpAgentAddress : agentAddress;
@@ -410,11 +410,11 @@ export function FuelAgentModal({
   useEffect(() => {
     if (isActive) {
       const preferred =
-        lockedPurpose === "chat" || lockedPurpose === "lp"
+        lockedPurpose === "spend" || lockedPurpose === "lp"
           ? lockedPurpose
           : availableWallets.includes(initialAgentWallet)
             ? initialAgentWallet
-            : (availableWallets[0] ?? "chat");
+            : (availableWallets[0] ?? "spend");
       setSelectedWallet(preferred);
       setFlowTab(isExternalTarget ? "deposit" : initialFlowTab);
       setDepositMode("usdc");

@@ -41,7 +41,12 @@ import {
   getDefaultCustodyMode,
 } from '../../services/privyServerWallet.js';
 import { canonicalAnonymousId, resolveAgentWalletForUser } from '../../libs/agentWalletResolve.js';
-import { lpWalletResponseFields } from '../../libs/agentWalletProvision.js';
+import {
+  lpWalletResponseFields,
+  ensureAgentWalletSet,
+  walletSetResponseFields,
+  shouldIncludeLpWallet,
+} from '../../libs/agentWalletProvision.js';
 import { normalizeAgentChain } from '../../libs/syraChains.js';
 
 const router = express.Router();
@@ -124,7 +129,8 @@ router.post('/sign-in', async (req, res) => {
           privyWalletId,
           custody: 'privy',
           status: 'active',
-          purpose: 'chat',
+          purpose: 'spend',
+          provisionedVia: 'signin',
           destinationAllowlist: [address],
         });
       } else if (chain === 'bsc') {
@@ -143,7 +149,8 @@ router.post('/sign-in', async (req, res) => {
           custody: 'legacy',
           agentSecretKey: encryptAgentSecretForStorage(bs58.encode(kp.secretKey)),
           status: 'active',
-          purpose: 'chat',
+          purpose: 'spend',
+          provisionedVia: 'signin',
           destinationAllowlist: [address],
         });
       }
@@ -151,6 +158,21 @@ router.post('/sign-in', async (req, res) => {
     const sessionAnonymousId = wallet.anonymousId || anonymousId;
     if (wallet.status === 'frozen' || wallet.status === 'retired') {
       return res.status(403).json({ success: false, error: `wallet_${wallet.status}` });
+    }
+
+    const includeLp = shouldIncludeLpWallet(address);
+    let walletSetFields = {};
+    try {
+      const walletSet = await ensureAgentWalletSet({
+        baseAnonymousId: sessionAnonymousId,
+        walletAddress: address,
+        chain,
+        provisionedVia: 'signin',
+        includeLp,
+      });
+      walletSetFields = walletSetResponseFields(walletSet);
+    } catch (err) {
+      console.warn('[agent/auth] pillar wallet provision failed:', err?.message ?? err);
     }
 
     const sessionId = crypto.randomUUID();
@@ -184,7 +206,7 @@ router.post('/sign-in', async (req, res) => {
 
     let lpFields = {};
     try {
-      lpFields = await lpWalletResponseFields(sessionAnonymousId);
+      lpFields = await lpWalletResponseFields(sessionAnonymousId, { includeLp });
     } catch (err) {
       console.warn('[agent/auth] LP wallet provision failed:', err?.message ?? err);
     }
@@ -196,6 +218,7 @@ router.post('/sign-in', async (req, res) => {
       anonymousId: sessionAnonymousId,
       agentAddress: wallet.agentAddress,
       chain,
+      ...walletSetFields,
       ...lpFields,
     });
   } catch (err) {

@@ -1,8 +1,11 @@
+import type { ReactNode } from "react";
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
+import { AdminDashboardGate } from "@/components/dashboard/AdminDashboardGate";
+import { MachineMoneyPageGate } from "@/components/dashboard/MachineMoneyPageGate";
+import { getDashboardPillarNavItem } from "@/lib/dashboardPillarNav";
 import { QwertiAgentIntegration } from "@/components/qwerti/QwertiAgentIntegration";
 import { AppProviders } from "@/components/providers/AppProviders";
-import Alpha from "@/pages/Alpha";
 import ArbitrageExperiment from "@/pages/ArbitrageExperiment";
 import AssetDetailPage from "@/pages/AssetDetailPage";
 import AssetsPage from "@/pages/AssetsPage";
@@ -12,6 +15,7 @@ import DashboardSettings from "@/pages/DashboardSettings";
 import AgentWalletPage from "@/pages/AgentWalletPage";
 import Index from "@/pages/Index";
 import InternalTeamAgentsMonitor from "@/pages/InternalTeamAgentsMonitor";
+import InternalWalletsPage from "@/pages/InternalWalletsPage";
 import InternalAgentDetailPage from "@/pages/InternalAgentDetailPage";
 import { LegacyInternalTeamAgentsRedirect } from "@/pages/LegacyInternalRedirect";
 import {
@@ -24,14 +28,10 @@ import {
 import LpAgentExperiment from "@/pages/LpAgentExperiment";
 import LpAgentExperimentAgentProfile from "@/pages/LpAgentExperimentAgentProfile";
 import NotFound from "@/pages/NotFound";
-import PumpfunExperiment from "@/pages/PumpfunExperiment";
 import PumpfunAnalyzer from "@/pages/PumpfunAnalyzer";
-import RiseExperiment from "@/pages/RiseExperiment";
 import ShareableChatRoute from "@/pages/ShareableChatRoute";
 import TradingAgentExperiment from "@/pages/TradingAgentExperiment";
 import TradingAgentExperimentAgentProfile from "@/pages/TradingAgentExperimentAgentProfile";
-import BitgetVibeTrader from "@/pages/BitgetVibeTrader";
-import AlphaArena from "@/pages/AlphaArena";
 import SpcxAgent from "@/pages/SpcxAgent";
 import BtcPage from "@/pages/BtcPage";
 import PlaygroundHub from "@/pages/playground/PlaygroundHub";
@@ -59,12 +59,48 @@ import MarketingLeaderboard from "@/pages/marketing/Leaderboard";
 import MarketingPrivacyPolicy from "@/pages/marketing/PrivacyPolicy";
 import MarketingTermsOfService from "@/pages/marketing/TermsOfService";
 import MarketingCookiePolicy from "@/pages/marketing/CookiePolicy";
+import EarnPage from "@/pages/EarnPage";
+import GrowPage from "@/pages/GrowPage";
+import InvestPage from "@/pages/InvestPage";
+import SpendPage from "@/pages/SpendPage";
+import TreasuryPage from "@/pages/TreasuryPage";
+import HackathonPage from "@/pages/HackathonPage";
 
 function DashboardLayoutRoute() {
   return (
     <DashboardLayout>
       <Outlet />
     </DashboardLayout>
+  );
+}
+
+function AdminExperimentRoute({ children }: { children: ReactNode }) {
+  return (
+    <AdminDashboardGate featureLabel="Experiment desks">{children}</AdminDashboardGate>
+  );
+}
+
+function AdminInternalRoute({ children }: { children: ReactNode }) {
+  return (
+    <AdminDashboardGate featureLabel="Internal hub">{children}</AdminDashboardGate>
+  );
+}
+
+function MachineMoneyRoute({
+  pillarId,
+  children,
+}: {
+  pillarId: string;
+  children: ReactNode;
+}) {
+  const pillar = getDashboardPillarNavItem(pillarId);
+  return (
+    <MachineMoneyPageGate
+      pillarLabel={pillar?.label ?? pillarId}
+      pillarTagline={pillar?.description ?? "Machine Money"}
+    >
+      {children}
+    </MachineMoneyPageGate>
   );
 }
 
@@ -75,30 +111,137 @@ function AppRoutes() {
           <Route path="/about" element={<Index />} />
           <Route path="/settings" element={<Index />} />
           <Route path="/wallet" element={<AgentWalletPage />} />
+          <Route path="/earn" element={<Navigate to="/overview/earn" replace />} />
+          <Route path="/treasury" element={<Navigate to="/overview/treasury" replace />} />
+          <Route path="/invest" element={<Navigate to="/overview/invest" replace />} />
+          <Route path="/spend" element={<Navigate to="/overview/spend" replace />} />
+          <Route path="/grow" element={<Navigate to="/overview/grow" replace />} />
           <Route path="/agent-wallet" element={<LegacyAgentWalletRedirect />} />
           <Route path="/c/:shareId" element={<ShareableChatRoute />} />
 
           <Route element={<DashboardLayoutRoute />}>
             <Route path="/overview" element={<DashboardOverview />} />
+            <Route
+              path="/overview/earn"
+              element={
+                <MachineMoneyRoute pillarId="earn">
+                  <EarnPage />
+                </MachineMoneyRoute>
+              }
+            />
+            <Route
+              path="/overview/treasury"
+              element={
+                <MachineMoneyRoute pillarId="treasury">
+                  <TreasuryPage />
+                </MachineMoneyRoute>
+              }
+            />
+            <Route
+              path="/overview/invest"
+              element={
+                <MachineMoneyRoute pillarId="invest">
+                  <InvestPage />
+                </MachineMoneyRoute>
+              }
+            />
+            <Route
+              path="/overview/spend"
+              element={
+                <MachineMoneyRoute pillarId="spend">
+                  <SpendPage />
+                </MachineMoneyRoute>
+              }
+            />
+            <Route
+              path="/overview/grow"
+              element={
+                <MachineMoneyRoute pillarId="grow">
+                  <GrowPage />
+                </MachineMoneyRoute>
+              }
+            />
             <Route path="/agent-setup" element={<DashboardSettings />} />
             <Route path="/agents/*" element={<Navigate to="/overview" replace />} />
-            <Route path="/alpha" element={<Alpha />} />
             <Route path="/assets" element={<AssetsPage />} />
             <Route path="/assets/:assetKey" element={<AssetDetailPage />} />
             <Route path="/pumpfun" element={<PumpfunAnalyzer />} />
-            <Route path="/arbitrage-experiment" element={<ArbitrageExperiment />} />
-            <Route path="/pumpfun-experiment" element={<PumpfunExperiment />} />
-            <Route path="/rise-experiment" element={<RiseExperiment />} />
-            <Route path="/lp-experiment" element={<LpAgentExperiment />} />
-            <Route path="/lp-experiment/agent/:agentId" element={<LpAgentExperimentAgentProfile />} />
-            <Route path="/trading-experiment" element={<TradingAgentExperiment />} />
-            <Route path="/trading-experiment/agent/:agentId" element={<TradingAgentExperimentAgentProfile />} />
-            <Route path="/vibe-trading" element={<BitgetVibeTrader />} />
-            <Route path="/arena" element={<AlphaArena />} />
+            <Route
+              path="/arbitrage-experiment"
+              element={
+                <AdminExperimentRoute>
+                  <ArbitrageExperiment />
+                </AdminExperimentRoute>
+              }
+            />
+            <Route
+              path="/lp-experiment"
+              element={
+                <AdminExperimentRoute>
+                  <LpAgentExperiment />
+                </AdminExperimentRoute>
+              }
+            />
+            <Route
+              path="/lp-experiment/agent/:agentId"
+              element={
+                <AdminExperimentRoute>
+                  <LpAgentExperimentAgentProfile />
+                </AdminExperimentRoute>
+              }
+            />
+            <Route
+              path="/trading-experiment"
+              element={
+                <AdminExperimentRoute>
+                  <TradingAgentExperiment />
+                </AdminExperimentRoute>
+              }
+            />
+            <Route
+              path="/trading-experiment/agent/:agentId"
+              element={
+                <AdminExperimentRoute>
+                  <TradingAgentExperimentAgentProfile />
+                </AdminExperimentRoute>
+              }
+            />
+            <Route path="/vibe-trading" element={<Navigate to="/overview" replace />} />
+            <Route path="/arena" element={<Navigate to="/overview" replace />} />
             <Route path="/spcx" element={<SpcxAgent />} />
             <Route path="/btc" element={<BtcPage />} />
-            <Route path="/internal" element={<InternalTeamAgentsMonitor />} />
-            <Route path="/internal/:agentSlug" element={<InternalAgentDetailPage />} />
+            <Route
+              path="/hackathon"
+              element={
+                <AdminInternalRoute>
+                  <HackathonPage />
+                </AdminInternalRoute>
+              }
+            />
+            <Route
+              path="/internal"
+              element={
+                <AdminInternalRoute>
+                  <InternalTeamAgentsMonitor />
+                </AdminInternalRoute>
+              }
+            />
+            <Route
+              path="/internal/wallets"
+              element={
+                <AdminInternalRoute>
+                  <InternalWalletsPage />
+                </AdminInternalRoute>
+              }
+            />
+            <Route
+              path="/internal/:agentSlug"
+              element={
+                <AdminInternalRoute>
+                  <InternalAgentDetailPage />
+                </AdminInternalRoute>
+              }
+            />
             <Route path="/internal-team-agents/*" element={<LegacyInternalTeamAgentsRedirect />} />
           </Route>
 
@@ -118,7 +261,6 @@ function AppRoutes() {
           <Route path="/experiment/trading-agent/agent/:agentId" element={<LegacyTradingExperimentAgentRedirect />} />
           <Route path="/lp-experiment/history" element={<Navigate to="/lp-experiment" replace />} />
           <Route path="/lp-experiment/history/:id" element={<Navigate to="/lp-experiment" replace />} />
-          <Route path="/alpha/x/:username" element={<Navigate to="/alpha" replace />} />
           <Route path="/token-check" element={<Navigate to="/assets" replace />} />
           <Route path="/dossier" element={<Navigate to="/assets" replace />} />
           <Route path="/internal-hackathons" element={<Navigate to="/internal" replace />} />

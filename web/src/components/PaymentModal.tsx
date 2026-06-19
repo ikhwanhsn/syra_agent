@@ -30,6 +30,7 @@ import {
   type PaymentOptionsByChain,
   type X402PaymentOption,
 } from '@/lib/x402Client';
+import { isEvmPaymentChain } from '@/lib/payaiX402Networks';
 import {
   connectEvmWallet,
   refreshMetaMaskWallet,
@@ -73,14 +74,12 @@ export function PaymentModal({
 }: PaymentModalProps) {
   const walletContext = useWalletContext();
   const { toast } = useToast();
-  const isBinanceChain = selectedPaymentChain === 'binance';
-  const isBaseChain = selectedPaymentChain === 'base';
-  const isEvmChainSelected = isBinanceChain || isBaseChain;
+  const isEvmChainSelected = isEvmPaymentChain(selectedPaymentChain);
   const paymentNetwork = paymentDetails.network.toLowerCase();
   const paymentIsOnBsc =
     paymentNetwork.includes('binance') || paymentNetwork.includes('bsc');
-  const paymentIsOnBase = paymentNetwork.includes('base');
-  const usesEvmWallet = isEvmChainSelected || paymentIsOnBsc || paymentIsOnBase;
+  const usesEvmWallet = isEvmChainSelected;
+  const isBinanceChain = selectedPaymentChain === 'binance';
   const bscWallet = useEvmWalletState(isOpen && usesEvmWallet);
   const bscTokenBalanceQuery = useBscErc20Balance(
     bscWallet.address,
@@ -102,20 +101,15 @@ export function PaymentModal({
 
   useEffect(() => {
     if (!isOpen || !onSelectPaymentChain) return;
-    if (paymentIsOnBsc && paymentOptionsByChain?.binance && !isBinanceChain) {
+    if (paymentIsOnBsc && paymentOptionsByChain?.binance && !isEvmPaymentChain(selectedPaymentChain)) {
       onSelectPaymentChain('binance');
-    } else if (paymentIsOnBase && paymentOptionsByChain?.base && !isBaseChain) {
-      onSelectPaymentChain('base');
     }
   }, [
     isOpen,
     paymentIsOnBsc,
-    paymentIsOnBase,
-    isBinanceChain,
-    isBaseChain,
+    selectedPaymentChain,
     onSelectPaymentChain,
     paymentOptionsByChain?.binance,
-    paymentOptionsByChain?.base,
   ]);
 
   useEffect(() => {
@@ -174,7 +168,8 @@ export function PaymentModal({
   const isFailed = transactionStatus.status === 'failed';
 
   const isBinance = isBinanceChain;
-  const isBase = isBaseChain;
+  const isBase = selectedPaymentChain === 'base';
+  const isEvmPayaiChain = isEvmChainSelected && !isBinance;
   const isEvmChain = isEvmChainSelected;
 
   const chainAvailable = (id: PaymentChainId) => Boolean(paymentOptionsByChain?.[id]);
@@ -219,17 +214,14 @@ export function PaymentModal({
   const displayUsdc = usesEvmWallet ? null : usdcBalance;
   const displayNativeBalance = usesEvmWallet ? null : solBalance;
   const evmProviderLabel = bscWallet.providerLabel ?? 'MetaMask';
-  const displayBscTokenBalance = isBinance ? bscTokenBalanceQuery.data?.formatted : null;
+  const displayBscTokenBalance =
+    selectedPaymentChain === 'binance' ? bscTokenBalanceQuery.data?.formatted : null;
 
-  const evmPaymentChain: PaymentChainId | null = paymentIsOnBsc
-    ? 'binance'
-    : paymentIsOnBase
-      ? 'base'
-      : isBinanceChain
-        ? 'binance'
-        : isBaseChain
-          ? 'base'
-          : null;
+  const evmPaymentChain: PaymentChainId | null = isEvmChainSelected
+    ? selectedPaymentChain
+    : paymentIsOnBsc
+      ? 'binance'
+      : null;
 
   const handleSyncMetaMask = async () => {
     if (!evmPaymentChain) return;
@@ -242,7 +234,7 @@ export function PaymentModal({
         !previous || previous.toLowerCase() !== address.toLowerCase();
       toast({
         title: changed ? 'MetaMask account updated' : 'MetaMask synced',
-        description: `${address.slice(0, 6)}…${address.slice(-4)} on BSC`,
+        description: `${address.slice(0, 6)}…${address.slice(-4)} on ${selectedPaymentChain === 'binance' ? 'BSC' : 'EVM'}`,
       });
     } catch (err) {
       toast({
@@ -257,14 +249,8 @@ export function PaymentModal({
   };
 
   const handleConnectWallet = async () => {
-    const chain = usesEvmWallet
-      ? paymentIsOnBsc
-        ? 'binance'
-        : paymentIsOnBase
-          ? 'base'
-          : selectedPaymentChain
-      : 'solana';
-    if (usesEvmWallet && (chain === 'binance' || chain === 'base')) {
+    const chain = selectedPaymentChain;
+    if (isEvmPaymentChain(chain)) {
       setEvmConnecting(true);
       try {
         await connectEvmWallet(chain);
@@ -272,7 +258,7 @@ export function PaymentModal({
         toast({
           title: 'EVM wallet required',
           description:
-            err instanceof Error ? err.message : 'Connect MetaMask for Binance or Base payments.',
+            err instanceof Error ? err.message : 'Connect MetaMask for EVM payments.',
           variant: 'destructive',
         });
       } finally {
@@ -280,7 +266,7 @@ export function PaymentModal({
       }
       return;
     }
-    onOpenConnectModal(chain);
+    onOpenConnectModal('solana');
   };
 
   const copyRecipient = async () => {

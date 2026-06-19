@@ -17,6 +17,7 @@ import {
   normalizeAgentWalletPurpose,
   lpAnonymousIdFromChat,
   purposeQuery,
+  baseAnonymousIdFrom,
 } from '../../libs/agentWalletPurpose.js';
 import {
   createAgentWalletRecord,
@@ -26,7 +27,12 @@ import {
   lpWalletResponseFields,
   retireAgentWalletRecord,
   retireAgentWalletWithSibling,
+  ensureAgentWalletSet,
+  walletSetResponseFields,
+  shouldIncludeLpWallet,
 } from '../../libs/agentWalletProvision.js';
+import { getAgentWalletSet } from '../../libs/agentWalletSetService.js';
+import { getAdminDashboardWallets, isAdminWalletAddress } from '../../libs/adminWallet.js';
 
 const { AvatarGenerator } = pkg;
 const avatarGenerator = new AvatarGenerator();
@@ -74,7 +80,7 @@ function serializeAgentDoc(doc) {
     anonymousId: doc.anonymousId,
     walletAddress: doc.walletAddress,
     chain: doc.chain || 'solana',
-    purpose: doc.purpose || 'chat',
+    purpose: normalizeAgentWalletPurpose(doc.purpose),
     agentAddress: doc.agentAddress,
     avatarUrl: doc.avatarUrl || null,
     createdAt: doc.createdAt?.toISOString?.() ?? doc.createdAt ?? null,
@@ -126,17 +132,14 @@ function decodeAnonymousId(param) {
  * (paginated). Filtering by walletAddress requires a session for that wallet or admin access.
  */
 function requireAdminWallet(req, res, next) {
-  const allow = (process.env.SYRA_ADMIN_WALLETS || '')
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const allow = getAdminDashboardWallets();
   if (allow.length === 0) {
     return res.status(403).json({ success: false, error: 'admin_disabled' });
   }
   if (!req.user || req.user.guest || !req.user.walletAddress) {
     return res.status(403).json({ success: false, error: 'admin_required' });
   }
-  if (!allow.includes(req.user.walletAddress)) {
+  if (!isAdminWalletAddress(req.user.walletAddress)) {
     return res.status(403).json({ success: false, error: 'not_admin' });
   }
   next();
@@ -276,6 +279,43 @@ router.get('/list', optionalWalletSession(), requireListScope, async (req, res) 
   } catch (error) {
     console.error('[agent/wallet] list error:', error?.message ?? String(error));
     return res.status(500).json({ success: false, error: error.message || 'Failed to list agent wallets' });
+  }
+});
+
+/**
+ * GET /agent/wallet/set
+ * Returns all five pillar wallets (+ LP for internal team) for a base anonymousId.
+ */
+router.get('/set', requireSession({ allowGuest: true }), async (req, res) => {
+  try {
+    const anonymousId =
+      (typeof req.query?.anonymousId === 'string' && req.query.anonymousId.trim()) ||
+      req.user?.anonymousId ||
+      null;
+    if (!anonymousId) {
+      return res.status(400).json({ success: false, error: 'anonymousId query param required' });
+    }
+
+    const base = baseAnonymousIdFrom(anonymousId) || anonymousId;
+    const spendDoc = await AgentWallet.findOne({
+      anonymousId: base,
+      status: { $ne: 'retired' },
+      ...purposeQuery('spend'),
+    }).lean();
+
+    const includeLp = shouldIncludeLpWallet(spendDoc?.walletAddress || req.user?.walletAddress);
+    const data = await getAgentWalletSet({
+      baseAnonymousId: base,
+      walletAddress: spendDoc?.walletAddress || req.user?.walletAddress || null,
+      chain: spendDoc?.chain || req.user?.chain || 'solana',
+      provisionedVia: spendDoc?.provisionedVia || 'guest',
+      includeLp,
+      includeBalances: req.query?.balances === 'true',
+    });
+
+    return res.json({ success: true, data });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message || 'wallet_set_failed' });
   }
 });
 
@@ -594,7 +634,7 @@ router.get('/:anonymousId', requireSession({ allowGuest: true }), async (req, re
       chain: doc.chain || 'solana',
       agentAddress: doc.agentAddress,
       avatarUrl: doc.avatarUrl || null,
-      purpose: doc.purpose || 'chat',
+      purpose: normalizeAgentWalletPurpose(doc.purpose),
       status: doc.status || 'active',
       custody: doc.custody || 'legacy',
       solanaAgentAddress: solanaAgentAddress || null,
@@ -626,7 +666,7 @@ router.delete('/:anonymousId', requireSession({ allowGuest: true }), async (req,
     }
 
     const includeSibling = req.query.includeSibling !== 'false';
-    const purpose = doc.purpose || 'chat';
+    const purpose = normalizeAgentWalletPurpose(doc.purpose);
     let retired = [];
 
     if (purpose === 'lp') {
@@ -735,17 +775,24 @@ router.post('/connect', requireSession({ allowGuest: false, requireOwnership: fa
 
     const findQuery = {
       walletAddress,
-      ...purposeQuery('chat'),
+      ...purposeQuery('spend'),
       status: { $ne: 'retired' },
       $or: [{ chain: 'solana' }, { chain: { $exists: false } }],
     };
     let doc = await AgentWallet.findOne(findQuery).lean();
+    const includeLp = shouldIncludeLpWallet(walletAddress);
     if (doc) {
-      const lp = await lpWalletResponseFields(doc.anonymousId);
+      const set = await ensureAgentWalletSet({
+        baseAnonymousId: doc.anonymousId,
+        walletAddress,
+        chain: doc.chain || 'solana',
+        provisionedVia: 'connect',
+        includeLp,
+      });
+      const lp = await lpWalletResponseFields(doc.anonymousId, { includeLp });
       return res.json({
         success: true,
-        anonymousId: doc.anonymousId,
-        agentAddress: doc.agentAddress,
+        ...walletSetResponseFields(set),
         avatarUrl: doc.avatarUrl || null,
         isNewWallet: false,
         chain: doc.chain || 'solana',
@@ -777,18 +824,25 @@ router.post('/connect', requireSession({ allowGuest: false, requireOwnership: fa
       anonymousId,
       walletAddress,
       chain: 'solana',
-      purpose: 'chat',
+      purpose: 'spend',
+      provisionedVia: 'connect',
       agentAddress,
       agentSecretKey: encryptAgentSecretForStorage(agentSecretKey),
       avatarUrl,
     });
 
-    const lp = await lpWalletResponseFields(anonymousId);
+    const set = await ensureAgentWalletSet({
+      baseAnonymousId: anonymousId,
+      walletAddress,
+      chain: 'solana',
+      provisionedVia: 'connect',
+      includeLp,
+    });
+    const lp = await lpWalletResponseFields(anonymousId, { includeLp });
 
     return res.status(201).json({
       success: true,
-      anonymousId,
-      agentAddress,
+      ...walletSetResponseFields(set),
       avatarUrl,
       isNewWallet: true,
       chain: 'solana',
@@ -798,11 +852,12 @@ router.post('/connect', requireSession({ allowGuest: false, requireOwnership: fa
     const walletAddress = req.body?.walletAddress?.trim();
     const chain = req.body?.chain === 'base' ? 'base' : 'solana';
     if (error.code === 11000) {
-      const existing = await AgentWallet.findOne({ walletAddress, chain, purpose: 'chat' })
+      const existing = await AgentWallet.findOne({ walletAddress, chain, ...purposeQuery('spend') })
         .select('anonymousId agentAddress avatarUrl chain purpose')
         .lean();
       if (existing) {
-        const lp = await lpWalletResponseFields(existing.anonymousId);
+        const includeLp = shouldIncludeLpWallet(walletAddress);
+        const lp = await lpWalletResponseFields(existing.anonymousId, { includeLp });
         return res.json({
           success: true,
           anonymousId: existing.anonymousId,
@@ -810,6 +865,7 @@ router.post('/connect', requireSession({ allowGuest: false, requireOwnership: fa
           avatarUrl: existing.avatarUrl || null,
           isNewWallet: false,
           chain: existing.chain || 'solana',
+          purpose: 'spend',
           ...lp,
         });
       }
@@ -865,7 +921,14 @@ router.post('/', async (req, res) => {
     if (purpose === 'lp') {
       const chatId = typeof bodyId === 'string' && bodyId.trim() ? bodyId.trim() : null;
       if (!chatId) {
-        return res.status(400).json({ success: false, error: 'chat_anonymous_id_required_for_lp_wallet' });
+        return res.status(400).json({ success: false, error: 'spend_anonymous_id_required_for_lp_wallet' });
+      }
+      const spendDoc = await AgentWallet.findOne({
+        anonymousId: baseAnonymousIdFrom(chatId) || chatId,
+        ...purposeQuery('spend'),
+      }).lean();
+      if (!shouldIncludeLpWallet(spendDoc?.walletAddress)) {
+        return res.status(403).json({ success: false, error: 'lp_internal_team_only' });
       }
       const out = await getOrCreateLpAgentWallet(chatId);
       return res.json({
@@ -882,39 +945,58 @@ router.post('/', async (req, res) => {
       ? bodyId.trim()
       : generateAnonymousId();
 
-    let doc = await AgentWallet.findOne({ anonymousId, status: { $ne: 'retired' } }).lean();
+    let doc = await AgentWallet.findOne({
+      anonymousId,
+      status: { $ne: 'retired' },
+      ...purposeQuery('spend'),
+    }).lean();
     if (doc) {
       let avatarUrl = doc.avatarUrl || null;
       if (!avatarUrl) {
         avatarUrl = avatarGenerator.generateRandomAvatar(anonymousId);
         await AgentWallet.updateOne({ anonymousId }, { $set: { avatarUrl } });
       }
-      const lp = await lpWalletResponseFields(anonymousId);
+      const includeLp = shouldIncludeLpWallet(doc.walletAddress);
+      const set = await ensureAgentWalletSet({
+        baseAnonymousId: anonymousId,
+        walletAddress: doc.walletAddress,
+        chain: doc.chain || 'solana',
+        provisionedVia: doc.provisionedVia || 'guest',
+        includeLp,
+      });
+      const lp = await lpWalletResponseFields(anonymousId, { includeLp });
       return res.json({
         success: true,
-        anonymousId,
-        agentAddress: doc.agentAddress,
+        ...walletSetResponseFields(set),
         avatarUrl,
-        purpose: doc.purpose || 'chat',
+        purpose: 'spend',
+        isNewWallet: false,
         ...lp,
       });
     }
 
     doc = await createAgentWalletRecord({
       anonymousId,
-      purpose: 'chat',
+      purpose: 'spend',
       avatarSeed: anonymousId,
+      provisionedVia: 'guest',
     });
 
-    const lp = await lpWalletResponseFields(anonymousId);
+    const includeLp = shouldIncludeLpWallet(null);
+    const set = await ensureAgentWalletSet({
+      baseAnonymousId: anonymousId,
+      chain: 'solana',
+      provisionedVia: 'guest',
+      includeLp,
+    });
+    const lp = await lpWalletResponseFields(anonymousId, { includeLp });
 
     return res.status(201).json({
       success: true,
-      anonymousId,
-      agentAddress: doc.agentAddress,
+      ...walletSetResponseFields(set),
       avatarUrl: doc.avatarUrl || null,
       isNewWallet: true,
-      purpose: 'chat',
+      purpose: 'spend',
       ...lp,
     });
   } catch (error) {
@@ -924,14 +1006,15 @@ router.post('/', async (req, res) => {
         .lean();
       if (existing) {
         const chatId = (req.body || {}).anonymousId?.trim();
-        const lp = chatId ? await lpWalletResponseFields(chatId) : {};
+        const includeLp = false;
+        const lp = chatId ? await lpWalletResponseFields(chatId, { includeLp }) : {};
         return res.json({
           success: true,
           anonymousId: chatId,
           agentAddress: existing.agentAddress,
           avatarUrl: existing.avatarUrl || null,
           isNewWallet: false,
-          purpose: existing.purpose || 'chat',
+          purpose: normalizeAgentWalletPurpose(existing.purpose),
           ...lp,
         });
       }

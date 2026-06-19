@@ -5,6 +5,7 @@ import { V1UnsupportedModal } from "@/components/V1UnsupportedModal";
 import { usePlaygroundSession } from "@/contexts/PlaygroundSessionContext";
 import { useConnectModal } from "@/contexts/ConnectModalContext";
 import { resolvePlaygroundPaymentLane } from "@/lib/paymentLane";
+import { createEmptyPaymentOptionsByChain } from "@/lib/x402Client";
 import type { PaymentDetails } from "@/types/api";
 
 const DEFAULT_PAYMENT_DETAILS: PaymentDetails = {
@@ -50,11 +51,10 @@ export function PlaygroundModals() {
 
   const paymentOptionsByChainForLane = useMemo(() => {
     if (paymentLane !== "mpp") return paymentOptionsByChain;
-    return {
-      solana: paymentOptionsByChain.solana,
-      base: null,
-      binance: paymentOptionsByChain.binance,
-    };
+    const filtered = createEmptyPaymentOptionsByChain();
+    filtered.solana = paymentOptionsByChain.solana;
+    filtered.binance = paymentOptionsByChain.binance;
+    return filtered;
   }, [paymentLane, paymentOptionsByChain]);
 
   const effectivePaymentDetails =
@@ -70,7 +70,7 @@ export function PlaygroundModals() {
           wallet={wallet}
           transactionStatus={transactionStatus}
           onOpenConnectModal={(chain) => {
-            if (chain === 'binance' || chain === 'base') {
+            if (chain && chain !== 'solana') {
               void connectWallet(chain);
             } else {
               openConnectModal();

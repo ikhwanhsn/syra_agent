@@ -3,15 +3,11 @@ import {
   Bot,
   LayoutDashboard,
   UsersRound,
-  Telescope,
   FileSearch,
   FlaskConical,
   Scale,
   Droplets,
   Rocket,
-  Crosshair,
-  Sparkles,
-  Trophy,
   TrendingUp,
   Lock,
   Code2,
@@ -52,7 +48,6 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
       !p.startsWith("/overview") &&
       !p.startsWith("/agent-setup") &&
       !p.includes("-experiment") &&
-      !p.startsWith("/alpha") &&
       !p.startsWith("/assets") &&
       !p.startsWith("/pumpfun") &&
       !p.startsWith("/internal-team") &&
@@ -66,28 +61,20 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
     match: (p) =>
       p.startsWith("/overview") ||
       p.startsWith("/agent-setup") ||
-      p.startsWith("/alpha") ||
       p.startsWith("/assets") ||
       p.startsWith("/pumpfun") ||
       p.includes("-experiment") ||
-      p.startsWith("/vibe-trading") ||
-      p.startsWith("/arena") ||
       p.startsWith("/spcx") ||
       p.startsWith("/arbitrage") ||
       p.startsWith("/internal"),
     items: [
       { href: "/overview", label: "Overview", icon: LayoutDashboard },
-      { href: "/alpha", label: "Alpha intel", icon: Telescope },
       { href: "/assets", label: "Assets", icon: FileSearch },
       { href: "/pumpfun", label: "Pumpfun Alpha", icon: Rocket },
       { href: "/trading-experiment", label: "Trading experiment", icon: FlaskConical },
-      { href: "/arena", label: "Alpha Arena", icon: Trophy },
       { href: "/spcx", label: "SpaceX IPO Agent", icon: TrendingUp },
-      { href: "/vibe-trading", label: "Bitget Vibe Trader", icon: Sparkles },
       { href: "/arbitrage-experiment", label: "Arbitrage", icon: Scale },
       { href: "/lp-experiment", label: "LP agents", icon: Droplets },
-      { href: "/pumpfun-experiment", label: "Pumpfun", icon: Rocket },
-      { href: "/rise-experiment", label: "Rise", icon: Crosshair },
       {
         href: "/internal",
         label: "Internal hub",

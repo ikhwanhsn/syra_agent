@@ -42,6 +42,22 @@ export interface MergedAgentPortfolio {
   fetchedAt: string;
 }
 
+/** Sum priced token rows — keeps header totals aligned with visible holdings. */
+export function sumPortfolioTokenValues(
+  tokens: Array<{ valueUsd: number | null }>,
+): number | null {
+  let sum = 0;
+  let hasValue = false;
+
+  for (const token of tokens) {
+    if (token.valueUsd == null || !Number.isFinite(token.valueUsd)) continue;
+    sum += token.valueUsd;
+    hasValue = true;
+  }
+
+  return hasValue ? sum : null;
+}
+
 interface PortfolioApiResponse extends AgentWalletPortfolio {
   success?: boolean;
   error?: string;
@@ -67,6 +83,19 @@ export async function fetchAgentWalletPortfolio(address: string): Promise<AgentW
   };
 }
 
+function conservativeUsdPrice(
+  primary: number | null | undefined,
+  secondary: number | null | undefined,
+): number | null {
+  const a = primary != null && Number.isFinite(primary) && primary > 0 ? primary : null;
+  const b = secondary != null && Number.isFinite(secondary) && secondary > 0 ? secondary : null;
+  if (a == null) return b;
+  if (b == null) return a;
+  const max = Math.max(a, b);
+  const min = Math.min(a, b);
+  return max / min > 3 ? min : a;
+}
+
 export function mergeAgentPortfolios(
   entries: Array<{ purpose: AgentWalletPurpose; portfolio: AgentWalletPortfolio }>,
 ): MergedAgentPortfolio {
@@ -88,13 +117,10 @@ export function mergeAgentPortfolios(
       if (existing) {
         existing.amount += token.amount;
         if (!existing.wallets.includes(purpose)) existing.wallets.push(purpose);
-        if (existing.valueUsd != null && token.valueUsd != null) {
-          existing.valueUsd = existing.valueUsd + token.valueUsd;
-        } else if (token.valueUsd != null) {
-          existing.valueUsd = (existing.valueUsd ?? 0) + token.valueUsd;
-        }
         if (existing.priceUsd == null && token.priceUsd != null) {
           existing.priceUsd = token.priceUsd;
+        } else if (existing.priceUsd != null && token.priceUsd != null) {
+          existing.priceUsd = conservativeUsdPrice(existing.priceUsd, token.priceUsd);
         }
         if (!existing.imageUrl && token.imageUrl) existing.imageUrl = token.imageUrl;
         if (isBetterTokenLabel(token.symbol, existing.symbol)) existing.symbol = token.symbol;
@@ -113,6 +139,9 @@ export function mergeAgentPortfolios(
   for (const token of tokens) {
     if (token.priceUsd != null && Number.isFinite(token.priceUsd) && token.amount > 0) {
       token.valueUsd = token.amount * token.priceUsd;
+    } else {
+      token.valueUsd = null;
+      token.priceUsd = null;
     }
   }
 
@@ -123,11 +152,10 @@ export function mergeAgentPortfolios(
     return b.amount - a.amount;
   });
 
-  const mergedTotal = tokens.reduce((sum, token) => sum + (token.valueUsd ?? 0), 0);
-  const hasMergedValue = tokens.some((token) => token.valueUsd != null && token.valueUsd > 0);
+  const mergedTotal = sumPortfolioTokenValues(tokens);
 
   return {
-    totalValueUsd: hasMergedValue && mergedTotal > 0 ? mergedTotal : hasValue ? totalValueUsd : null,
+    totalValueUsd: mergedTotal ?? (hasValue ? totalValueUsd : null),
     tokens,
     walletCount: entries.length,
     fetchedAt: latestFetchedAt || new Date().toISOString(),

@@ -3,7 +3,6 @@ import { INDICATOR_POST } from "./indicatorUpdate";
 import { BNB_X402_POST } from "./bnbX402Update";
 import { LP_AGENT_POST } from "./lpAgentUpdate";
 import { LP_REAL_PROFITABILITY_POST } from "./lpRealProfitabilityUpdate";
-import { PUMPFUN_ALPHA_POST } from "./pumpfunAlphaUpdate";
 import { SPCX_POST } from "./spcxUpdate";
 import { ASSETS_HUB_POST } from "./assetsHubUpdate";
 import { PACT_NETWORK_POST } from "./pactNetworkUpdate";
@@ -17,7 +16,6 @@ import { INDICATOR_PHOTO } from "./photo/indicatorPhoto";
 import { BNB_X402_PHOTO } from "./photo/bnbX402Photo";
 import { LP_AGENT_PHOTO } from "./photo/lpAgentPhoto";
 import { LP_REAL_PROFITABILITY_PHOTO } from "./photo/lpRealProfitabilityPhoto";
-import { PUMPFUN_ALPHA_PHOTO } from "./photo/pumpfunAlphaPhoto";
 import { SPCX_PHOTO } from "./photo/spcxPhoto";
 import { ASSETS_HUB_PHOTO } from "./photo/assetsHubPhoto";
 import { PACT_NETWORK_PHOTO } from "./photo/pactNetworkPhoto";
@@ -46,7 +44,6 @@ const POST_UPDATE_BUNDLES: PostUpdateBundle[] = [
   { video: LP_AGENT_POST, photo: LP_AGENT_PHOTO },
   { video: BNB_X402_POST, photo: BNB_X402_PHOTO },
   { video: AGENTSCORE_POST, photo: AGENTSCORE_PHOTO },
-  { video: PUMPFUN_ALPHA_POST, photo: PUMPFUN_ALPHA_PHOTO },
   { video: LP_REAL_PROFITABILITY_POST, photo: LP_REAL_PROFITABILITY_PHOTO },
   { video: SPCX_POST, photo: SPCX_PHOTO },
   { video: WALLET_PORTFOLIO_POST, photo: WALLET_PORTFOLIO_PHOTO },

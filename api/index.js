@@ -18,10 +18,6 @@ import { createAgentAuthRouter } from "./routes/agent/auth.js";
 import { createAgentWalletIntentRouter } from "./routes/agent/walletIntent.js";
 import { createAgentChartRouter } from "./routes/agent/chart.js";
 import { createAgentPumpfunCoinRouter } from "./routes/agent/pumpfunCoin.js";
-import { createPumpfunAlphaTrendRouter } from "./routes/agent/pumpfunAlphaTrend.js";
-import { createCoingeckoAlphaRouter } from "./routes/agent/coingeckoAlpha.js";
-import { createPumpfunAlphaScoutRouter } from "./routes/agent/pumpfunAlphaScout.js";
-import { createPumpfunUtilityScoutRouter } from "./routes/agent/pumpfunUtilityScout.js";
 import { createTokensDossierRouter } from "./routes/agent/tokensDossier.js";
 import { createAgentWalletRouter } from "./routes/agent/wallet.js";
 import { createAgentBillingRouter } from "./routes/agent/billing.js";
@@ -41,7 +37,9 @@ import { createAnalyticsRouter } from "./routes/analytics.js";
 import { createInternalResearchRouter } from "./routes/internalResearch.js";
 import { createS3labsTelegramWebhookRouter } from "./routes/s3labsTelegramWebhook.js";
 import { createInternalPartnershipScoutRouter } from "./routes/internalPartnershipScout.js";
+import { createInternalHackathonsRouter } from "./routes/internalHackathons.js";
 import { createInternalToolsRouter } from "./routes/internalTools.js";
+import { createInternalAgentWalletsRouter } from "./routes/internalAgentWallets.js";
 import { createInternalTesterAgentRouter } from "./routes/internalTesterAgent.js";
 import {
   SYRA_PROBE_BASE_URL,
@@ -81,13 +79,14 @@ import {
   createPumpfunMoversRouter,
 } from "./routes/pumpfun/marketLists.js";
 import { createPumpfunAnalyzerRouter } from "./routes/pumpfun/analyzer.js";
+import { createPumpfunScoutRouter } from "./routes/pumpfun/scout.js";
+import { createRiseScoutRouter } from "./routes/rise.js";
+import { createCoingeckoScoutRouter } from "./routes/coingecko.js";
 import { createAssetsX402Router } from "./routes/assets/index.js";
 import { createAssetsDetailX402Router } from "./routes/assets/detail.js";
 import { createBitcoinX402Router } from "./routes/bitcoin/index.js";
 import { createLpAgentExperimentRouter } from "./routes/lpAgentExperiment.js";
 import { createLpAgentRealRouter } from "./routes/lpAgentReal.js";
-import { createPumpfunExperimentRouter } from "./routes/pumpfunExperiment.js";
-import { createRiseExperimentRouter } from "./routes/riseExperiment.js";
 import { createShipLogStudioRouter } from "./routes/shipLogStudio.js";
 import { createHealthRouter } from "./routes/health.js";
 import { createMppV1Router } from "./routes/mpp/v1.js";
@@ -118,6 +117,10 @@ import { createStakingAppRouter } from "./routes/stakingApp.js";
 import { createTempoPayoutRouter } from "./routes/payouts/tempo.js";
 import { createKolRouter } from "./routes/kol/index.js";
 import { createAgentscoreRouter } from "./routes/agentscore/index.js";
+import { createPillarsRouter } from "./routes/pillars.js";
+import { createInvestRouter } from "./routes/invest.js";
+import { createGrowRouter } from "./routes/grow.js";
+import { createEarnRouter } from "./routes/earn.js";
 import { getV2Payment } from "./utils/getV2Payment.js";
 import { sendTempoPayout } from "./libs/tempoPayout.js";
 import {
@@ -392,6 +395,9 @@ function isX402Route(p) {
   if (p === "/pumpfun/trending" || p.startsWith("/pumpfun/trending/")) return true;
   if (p === "/pumpfun/movers" || p.startsWith("/pumpfun/movers/")) return true;
   if (p === "/pumpfun/analyzer" || p.startsWith("/pumpfun/analyzer/")) return true;
+  if (p === "/pumpfun/scout" || p.startsWith("/pumpfun/scout/")) return true;
+  if (p === "/rise" || p.startsWith("/rise/")) return true;
+  if (p === "/coingecko" || p.startsWith("/coingecko/")) return true;
   if (p === "/assets" || p.startsWith("/assets/")) return true;
   if (p === "/bitcoin" || p.startsWith("/bitcoin/")) return true;
   if (p.startsWith("/health")) return true;
@@ -768,6 +774,7 @@ app.use(
         p.startsWith("/internal/s3labs-job/run") ||
         p.startsWith("/internal/s3labs-telegram/webhook") ||
         p.startsWith("/internal/partnership-scout/run") ||
+        p.startsWith("/internal/hackathons/run") ||
         p.startsWith("/uponly-rise-market") ||
         p.startsWith("/uponly-rise-portfolio") ||
         p.startsWith("/uponly-rise-create")
@@ -782,6 +789,10 @@ app.use(injectTrustedOriginApiKey);
 
 // KOL marketplace — public, no API key (s3labs /kol). Mount before requireApiKey.
 app.use("/kol", createKolRouter());
+app.use("/pillars", createPillarsRouter());
+app.use("/invest", createInvestRouter());
+app.use("/grow", createGrowRouter());
+app.use("/earn", createEarnRouter());
 
 // API key / Bearer auth when API_KEY or API_KEYS is set in env.
 // Skip auth for:
@@ -836,6 +847,16 @@ app.use(
         const got = (
           req.get("x-syra-partnership-scout-cron-secret") || ""
         ).trim();
+        if (got === secret) return true;
+      }
+    }
+    if (
+      p === "/internal/hackathons/run" &&
+      String(req.method || "").toUpperCase() === "POST"
+    ) {
+      const secret = (process.env.HACKATHON_SCOUT_CRON_SECRET || "").trim();
+      if (secret) {
+        const got = (req.get("x-hackathon-scout-cron-secret") || "").trim();
         if (got === secret) return true;
       }
     }
@@ -1180,8 +1201,11 @@ app.use("/indicator", await createIndicatorRouter());
 app.use("/arbitrage", await createArbitrageExperimentX402Router());
 app.use("/jupiter/quote", await createJupiterQuoteRouter());
 app.use("/pumpfun/analyzer", createPumpfunAnalyzerRouter());
+app.use("/pumpfun/scout", createPumpfunScoutRouter());
 app.use("/pumpfun/trending", createPumpfunTrendingRouter());
 app.use("/pumpfun/movers", createPumpfunMoversRouter());
+app.use("/rise", createRiseScoutRouter());
+app.use("/coingecko", createCoingeckoScoutRouter());
 app.use("/assets/detail", await createAssetsDetailX402Router());
 app.use("/assets", await createAssetsX402Router());
 app.use("/bitcoin", await createBitcoinX402Router());
@@ -1242,10 +1266,6 @@ app.use("/agent/wallet/intent", await createAgentWalletIntentRouter());
 app.use("/agent/chat", await createAgentChatRouter());
 app.use("/agent/chart", createAgentChartRouter());
 app.use("/agent/pumpfun", createAgentPumpfunCoinRouter());
-app.use("/agent/pumpfun-alpha", createPumpfunAlphaTrendRouter());
-app.use("/agent/pumpfun-alpha-scout", createPumpfunAlphaScoutRouter());
-app.use("/agent/pumpfun-utility-scout", createPumpfunUtilityScoutRouter());
-app.use("/agent/coingecko-alpha", createCoingeckoAlphaRouter());
 app.use("/agent/tokens", createTokensDossierRouter());
 app.use("/agent/wallet/billing", await createAgentBillingRouter());
 app.use("/agent/wallet", await createAgentWalletRouter());
@@ -1268,7 +1288,9 @@ app.use("/internal", createS3labsTelegramWebhookRouter());
 app.use("/internal", createSyraTradingTelegramWebhookRouter());
 // Internal dashboard: research-store + scouts (API key auth, no x402)
 app.use("/internal", createInternalPartnershipScoutRouter());
+app.use("/internal", createInternalHackathonsRouter());
 app.use("/internal", createInternalToolsRouter());
+app.use("/internal", createInternalAgentWalletsRouter());
 app.use("/internal", await createInternalResearchRouter());
 // Trading agent experiment lab (API key auth, no x402; optional cron secret on POST run-cycle)
 app.use("/experiment/trading-agent", createTradingExperimentRouter());
@@ -1285,8 +1307,6 @@ app.use("/experiment/spcx", createSpcxExperimentRouter());
 app.use("/experiment/lp-agent", createLpAgentExperimentRouter());
 // LP real agent — on-chain Meteora DLMM from backend-custodied agent wallet
 app.use("/experiment/lp-agent-real", createLpAgentRealRouter());
-app.use("/experiment/pumpfun", createPumpfunExperimentRouter());
-app.use("/experiment/rise", createRiseExperimentRouter());
 app.use("/post/studio", createShipLogStudioRouter());
 // Analytics: KPI (/analytics/kpi, /analytics/errors) and x402 summary (/analytics/summary)
 app.use("/analytics", await createAnalyticsRouter());
@@ -1960,6 +1980,17 @@ app.listen(PORT, () => {
       ),
     );
 
+  import("./libs/hackathon/hackathonScoutScheduler.js")
+    .then(({ startHackathonScoutScheduler }) => {
+      startHackathonScoutScheduler();
+    })
+    .catch((e) =>
+      console.warn(
+        "[hackathon-scout] load failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
+
   import("./libs/sentimentDailyPipeline.js")
     .then(({ startSentimentDailyScheduler }) => {
       startSentimentDailyScheduler();
@@ -1989,50 +2020,6 @@ app.listen(PORT, () => {
     .catch((e) =>
       console.warn(
         "[btc-intelligence] scheduler load failed:",
-        e instanceof Error ? e.message : e,
-      ),
-    );
-
-  import("./libs/coingeckoAlphaScheduler.js")
-    .then(({ startCoingeckoAlphaScheduler }) => {
-      startCoingeckoAlphaScheduler();
-    })
-    .catch((e) =>
-      console.warn(
-        "[coingecko-alpha] load failed:",
-        e instanceof Error ? e.message : e,
-      ),
-    );
-
-  import("./libs/pumpfunAlphaScoutScheduler.js")
-    .then(({ startPumpfunAlphaScoutScheduler }) => {
-      startPumpfunAlphaScoutScheduler();
-    })
-    .catch((e) =>
-      console.warn(
-        "[pumpfun-alpha-scout] load failed:",
-        e instanceof Error ? e.message : e,
-      ),
-    );
-
-  import("./libs/pumpfunAlphaTrendScheduler.js")
-    .then(({ startPumpfunAlphaTrendScheduler }) => {
-      startPumpfunAlphaTrendScheduler();
-    })
-    .catch((e) =>
-      console.warn(
-        "[pumpfun-alpha-trend] load failed:",
-        e instanceof Error ? e.message : e,
-      ),
-    );
-
-  import("./libs/pumpfunUtilityScoutScheduler.js")
-    .then(({ startPumpfunUtilityScoutScheduler }) => {
-      startPumpfunUtilityScoutScheduler();
-    })
-    .catch((e) =>
-      console.warn(
-        "[pumpfun-utility-scout] load failed:",
         e instanceof Error ? e.message : e,
       ),
     );

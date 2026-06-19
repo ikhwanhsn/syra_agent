@@ -1235,6 +1235,22 @@ export async function settlePaymentAndSetResponse(res, req) {
       .then(({ captureAgentscoreWalletAfterSettle }) => captureAgentscoreWalletAfterSettle(req, settle))
       .catch(() => {});
   });
+  runAfterResponse(() => {
+    const payer = typeof settle?.payer === "string" ? settle.payer.trim() : "";
+    if (!payer) return;
+    const network = req?.x402Payment?.accepted?.network || "";
+    const chain =
+      network.includes("base") || network.includes("bsc") || network.includes("ethereum")
+        ? network.includes("bsc")
+          ? "bsc"
+          : "base"
+        : "solana";
+    import("../libs/agentWalletProvision.js")
+      .then(({ provisionWalletsForX402Payer }) => provisionWalletsForX402Payer({ payerAddress: payer, chain }))
+      .catch((err) => {
+        console.warn("[x402] pillar wallet provision failed:", err?.message ?? err);
+      });
+  });
   const priceUsd = req.x402Payment?.priceUsd;
   if (
     typeof priceUsd === "number" &&

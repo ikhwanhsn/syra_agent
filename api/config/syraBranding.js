@@ -1,18 +1,25 @@
 /** Canonical Syra product branding — single source for agent registrations and public copy. */
 
-export const SYRA_TAGLINE = "Machine money for AI trading agents";
+export const SYRA_TAGLINE = "Machine Money for Agents";
 
 /** Short one-liner (≤160 chars) for agent directories, OpenAPI, meta tags. */
 export const SYRA_AGENT_DESCRIPTION =
-  "Machine money for AI trading agents on Solana — x402 pay-per-call APIs, agent wallets, treasury policy, and autonomous execution. Used by Telegram bot, MCP, and trading agents.";
+  "Machine money for agents on Solana — Earn, Treasury, Invest, Spend (x402), Grow. Agent wallets, policy engine, and autonomous capital deployment.";
 
 /** Ultra-short tagline variant. */
 export const SYRA_TAGLINE_SHORT = "Machine money for agents";
 
 /** OG / Twitter meta description. */
 export const SYRA_META_DESCRIPTION =
-  "Machine money for AI trading agents on Solana — x402 pay-per-call APIs, agent wallets, and treasury policy.";
+  "Machine money for agents — five pillars: Earn, Treasury, Invest, Spend, Grow. Solana-native agent wallets and x402.";
 
 /** SAP / compact registry blurb. */
 export const SYRA_SAP_DESCRIPTION =
-  "Machine money for agents on Solana: x402 APIs, agent wallets, treasury, signals, and MCP.";
+  "Machine money for agents: Earn · Treasury · Invest · Spend (x402) · Grow on Solana.";
+
+/** Five-pillar discovery notice (product narrative). */
+export const SYRA_PILLAR_NOTICE = [
+  "x402 becomes one module (Spend)",
+  "Payments become one feature",
+  "Wealth becomes the narrative",
+];

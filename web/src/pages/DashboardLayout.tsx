@@ -2,18 +2,9 @@ import { useState, useEffect } from "react";
 import { useLocation } from "@/lib/navigation";
 import type { ReactNode } from "react";
 import {
-  FlaskConical,
-  Scale,
-  Telescope,
-  Droplets,
-  Rocket,
-  Crosshair,
-  FileSearch,
   LayoutDashboard,
+  Trophy,
   UsersRound,
-  TrendingUp,
-  Search,
-  Bitcoin,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SidebarPanelToggle } from "@/components/layout/SidebarPanelToggle";
@@ -30,89 +21,40 @@ import {
   SidebarMobileDrawerHeader,
   SidebarNavLink,
   SidebarNavShell,
-  type SidebarExperimentItem,
+  INTERNAL_TEAM_SIDEBAR_BADGE,
 } from "@/components/dashboard/SidebarPrimitives";
 import { useWalletContext } from "@/contexts/WalletContext";
-import { isInternalTeamMonitorWallet } from "@/constants/internalTeamMonitorWallet";
+import { MachineMoneyPreviewProvider, useMachineMoneyPreview } from "@/contexts/MachineMoneyPreviewContext";
+import { MachineMoneyPreviewToggle } from "@/components/dashboard/MachineMoneyPreviewToggle";
+import { isAdminWallet } from "@/constants/adminWallet";
 import { INTERNAL_BASE_PATH } from "@/lib/internalRoutes";
 import { getInternalAgentMeta, isInternalAgentSlug } from "@/lib/internalAgentsCatalog";
-
-const EXPERIMENT_NAV_ITEMS: readonly SidebarExperimentItem[] = [
-  {
-    id: "trading",
-    label: "Trading agents",
-    description: "Multi-agent spot trading",
-    icon: FlaskConical,
-    to: "/trading-experiment",
-    isActive: (pathname) => pathname.startsWith("/trading-experiment"),
-  },
-  {
-    id: "arbitrage",
-    label: "Arbitrage",
-    description: "Cross-venue spread scanner",
-    icon: Scale,
-    to: "/arbitrage-experiment",
-    isActive: (pathname) => pathname.startsWith("/arbitrage-experiment"),
-  },
-  {
-    id: "lp",
-    label: "LP agents",
-    description: "Meteora DLMM agents",
-    icon: Droplets,
-    to: "/lp-experiment",
-    isActive: (pathname) => pathname.startsWith("/lp-experiment"),
-    badge: { label: "Beta" },
-  },
-  {
-    id: "pumpfun",
-    label: "Pumpfun",
-    description: "225-cell graduate sniper",
-    icon: Rocket,
-    to: "/pumpfun-experiment",
-    isActive: (pathname) => pathname.startsWith("/pumpfun-experiment"),
-  },
-  {
-    id: "rise",
-    label: "Rise",
-    description: "Vault borrow + dual sniper",
-    icon: Crosshair,
-    to: "/rise-experiment",
-    isActive: (pathname) => pathname.startsWith("/rise-experiment"),
-  },
-  {
-    id: "spcx",
-    label: "SpaceX IPO",
-    description: "SPCX spread & venues",
-    icon: TrendingUp,
-    to: "/spcx",
-    isActive: (pathname) => pathname.startsWith("/spcx"),
-  },
-];
-
-function isAlphaIntelActive(pathname: string, _search: string): boolean {
-  return pathname.startsWith("/alpha");
-}
+import { DASHBOARD_PILLAR_NAV, isDashboardPillarRoute, MACHINE_MONEY_SOON_BADGE } from "@/lib/dashboardPillarNav";
+import { DASHBOARD_MARKET_INTEL_NAV } from "@/lib/dashboardMarketIntelNav";
+import { DASHBOARD_EXPERIMENT_NAV } from "@/lib/dashboardExperimentNav";
 
 function dashboardPageTitle(pathname: string, search: string): string {
   const parts = pathname.split("/").filter(Boolean);
   if (parts[0] === "about") return "About Syra";
   if (parts[0] === "trading-experiment" && parts[1] === "agent") return "Agent profile";
+  if (parts[0] === "overview" && parts[1] === "earn") return "Earn";
+  if (parts[0] === "overview" && parts[1] === "treasury") return "Treasury";
+  if (parts[0] === "overview" && parts[1] === "invest") return "Invest";
+  if (parts[0] === "overview" && parts[1] === "spend") return "Spend";
+  if (parts[0] === "overview" && parts[1] === "grow") return "Grow";
   if (parts[0] === "overview") return "Overview";
   if (parts[0] === "agents" && parts[1]) return "Agent detail";
   if (parts[0] === "agents") return "Agents";
   if (parts[0] === "agent-setup") return "Agent setup";
-  if (parts[0] === "alpha" && parts[1] === "x" && parts[2]) return "Alpha · Intel";
-  if (parts[0] === "alpha") return "Alpha";
   if (parts[0] === "assets" && parts[1]) return "Asset detail";
   if (parts[0] === "assets") return "Assets";
   if (parts[0] === "pumpfun") return "Pumpfun Alpha";
-  if (parts[0] === "pumpfun-experiment") return "Pumpfun experiment";
-  if (parts[0] === "rise-experiment") return "Rise experiment";
   if (parts[0] === "trading-experiment") return "Trading experiment";
   if (parts[0] === "arbitrage-experiment") return "Arbitrage experiment";
   if (parts[0] === "lp-experiment") return "LP agent experiment";
   if (parts[0] === "spcx") return "SpaceX IPO Agent";
   if (parts[0] === "btc") return "Bitcoin";
+  if (parts[0] === "hackathon") return "Hackathons";
   if (parts[0] === "internal") {
     if (parts[1]) {
       const slug = parts[1];
@@ -138,8 +80,9 @@ function DashboardSidebarContent({
   onCollapse,
   onCloseDrawer,
 }: DashboardSidebarContentProps) {
-  const { address } = useWalletContext();
-  const showInternalTeamMonitor = isInternalTeamMonitorWallet(address);
+  const { address, connected } = useWalletContext();
+  const showAdminDashboard = isAdminWallet(connected, address);
+  const { machineMoneyUnlocked } = useMachineMoneyPreview();
 
   return (
     <SidebarNavShell>
@@ -159,41 +102,62 @@ function DashboardSidebarContent({
 
           <SidebarDivider className="my-2" />
 
-          <SidebarNavLink to="/alpha" icon={Telescope} end matchActive={isAlphaIntelActive}>
-            Alpha
-          </SidebarNavLink>
-          <SidebarNavLink
-            to="/assets"
-            icon={FileSearch}
-            end
-            matchActive={(pathname) => pathname.startsWith("/assets")}
-          >
-            Assets
-          </SidebarNavLink>
-          <SidebarNavLink
-            to="/pumpfun"
-            icon={Search}
-            end
-            matchActive={(pathname) => pathname.startsWith("/pumpfun") && !pathname.startsWith("/pumpfun-experiment")}
-          >
-            Pumpfun Alpha
-          </SidebarNavLink>
-          <SidebarNavLink
-            to="/btc"
-            icon={Bitcoin}
-            end
-            matchActive={(pathname) => pathname.startsWith("/btc")}
-          >
-            Bitcoin
-          </SidebarNavLink>
+          <p className="px-3 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/55">
+            Machine Money
+          </p>
+          {DASHBOARD_PILLAR_NAV.map((item) => (
+            <SidebarNavLink
+              key={item.id}
+              to={item.to}
+              icon={item.icon}
+              end
+              matchActive={item.isActive}
+              badge={machineMoneyUnlocked ? undefined : MACHINE_MONEY_SOON_BADGE}
+            >
+              {item.label}
+            </SidebarNavLink>
+          ))}
 
           <SidebarDivider className="my-2" />
 
-          <SidebarExperimentsNav items={EXPERIMENT_NAV_ITEMS} />
-          {showInternalTeamMonitor ? (
-            <SidebarNavLink to={INTERNAL_BASE_PATH} icon={UsersRound}>
-              Internal
+          <p className="px-3 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/55">
+            Market Intel
+          </p>
+          {DASHBOARD_MARKET_INTEL_NAV.map((item) => (
+            <SidebarNavLink
+              key={item.id}
+              to={item.to}
+              icon={item.icon}
+              end
+              matchActive={item.isActive}
+            >
+              {item.label}
             </SidebarNavLink>
+          ))}
+
+          <SidebarDivider className="my-2" />
+
+          {showAdminDashboard ? (
+            <>
+              <SidebarExperimentsNav
+                items={DASHBOARD_EXPERIMENT_NAV}
+                groupBadge={INTERNAL_TEAM_SIDEBAR_BADGE}
+              />
+              <SidebarNavLink
+                to="/hackathon"
+                icon={Trophy}
+                badge={INTERNAL_TEAM_SIDEBAR_BADGE}
+              >
+                Hackathons
+              </SidebarNavLink>
+              <SidebarNavLink
+                to={INTERNAL_BASE_PATH}
+                icon={UsersRound}
+                badge={INTERNAL_TEAM_SIDEBAR_BADGE}
+              >
+                Internal
+              </SidebarNavLink>
+            </>
           ) : null}
         </div>
       </nav>
@@ -203,8 +167,11 @@ function DashboardSidebarContent({
 
 export default function DashboardLayout({ children }: { children?: ReactNode }) {
   const location = useLocation();
-  const { address } = useWalletContext();
-  const showInternalTeamMonitor = isInternalTeamMonitorWallet(address);
+  const { address, connected } = useWalletContext();
+  const showAdminDashboard = isAdminWallet(connected, address);
+  const showMachineMoneyPreviewToggle =
+    showAdminDashboard &&
+    (location.pathname === "/overview" || isDashboardPillarRoute(location.pathname));
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -231,7 +198,7 @@ export default function DashboardLayout({ children }: { children?: ReactNode }) 
   }, [sidebarOpen]);
 
   const pageTitle = dashboardPageTitle(location.pathname, location.search);
-  const hideTopbarRule = location.pathname.startsWith("/pumpfun-experiment");
+  const hideTopbarRule = false;
 
   const topbar = (
     <header
@@ -253,6 +220,9 @@ export default function DashboardLayout({ children }: { children?: ReactNode }) 
           </h1>
         </div>
       </div>
+      {showMachineMoneyPreviewToggle ? (
+        <MachineMoneyPreviewToggle compact />
+      ) : null}
     </header>
   );
 
@@ -266,7 +236,8 @@ export default function DashboardLayout({ children }: { children?: ReactNode }) 
   );
 
   return (
-    <div className="h-dvh max-h-dvh flex flex-col overflow-hidden bg-background min-h-0 overscroll-none">
+    <MachineMoneyPreviewProvider>
+      <div className="h-dvh max-h-dvh flex flex-col overflow-hidden bg-background min-h-0 overscroll-none">
       <div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
         {/* Mobile: dimmed backdrop */}
         <div
@@ -339,9 +310,7 @@ export default function DashboardLayout({ children }: { children?: ReactNode }) 
               )}
             >
               <SidebarIconRail
-                experimentItems={EXPERIMENT_NAV_ITEMS}
-                showInternalTeamMonitor={showInternalTeamMonitor}
-                matchAlphaIntel={isAlphaIntelActive}
+                showAdminDashboard={showAdminDashboard}
                 onExpand={() => setSidebarCollapsed(false)}
               />
             </div>
@@ -364,5 +333,6 @@ export default function DashboardLayout({ children }: { children?: ReactNode }) 
         </div>
       </div>
     </div>
+    </MachineMoneyPreviewProvider>
   );
 }

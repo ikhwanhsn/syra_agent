@@ -8,6 +8,7 @@ import { useUserWalletBalance } from "@/hooks/useUserWalletBalance";
 import { fetchUserCustomStats } from "@/lib/tradingExperimentApi";
 import { fetchLpRealState, fetchLpRealSummary } from "@/lib/lpAgentRealApi";
 import { aggregateUserCustomTrading } from "@/lib/dashboardOverviewAggregates";
+import { PILLAR_WALLET_PURPOSES, type PillarWalletPurpose } from "@/lib/agentWalletCatalog";
 
 const STALE_MS = 60_000;
 
@@ -47,27 +48,59 @@ export function useUserDashboardOverview() {
     [tradingStatsQ.data?.agents],
   );
 
+  const pillarBalances = useMemo(() => {
+    const out: Partial<Record<PillarWalletPurpose, { usdc: number | null; sol: number | null }>> = {};
+    for (const purpose of PILLAR_WALLET_PURPOSES) {
+      const entry = wallets.pillarEntries.find((e) => e.purpose === purpose);
+      out[purpose] = {
+        usdc: entry?.balances.usdcBalance ?? null,
+        sol: entry?.balances.solBalance ?? null,
+      };
+    }
+    return out;
+  }, [wallets.pillarEntries]);
+
   const treasury = useMemo(() => {
     const userUsdc = userWallet.userUsdcBalance ?? 0;
     const userSol = userWallet.userSolBalance ?? 0;
-    const chatUsdc = wallets.chatUsdcBalance ?? 0;
-    const chatSol = wallets.chatSolBalance ?? 0;
-    const lpUsdc = wallets.lpAgentUsdcBalance ?? 0;
-    const lpSol = wallets.lpAgentSolBalance ?? 0;
 
-    const hasUserUsdc = userWallet.userUsdcBalance != null;
-    const hasUserSol = userWallet.userSolBalance != null;
-    const hasChatUsdc = wallets.chatUsdcBalance != null;
-    const hasChatSol = wallets.chatSolBalance != null;
-    const hasLpUsdc = wallets.lpAgentUsdcBalance != null;
-    const hasLpSol = wallets.lpAgentSolBalance != null;
+    let agentUsdc = 0;
+    let agentSol = 0;
+    let hasAgentUsdc = false;
+    let hasAgentSol = false;
+
+    for (const purpose of PILLAR_WALLET_PURPOSES) {
+      const bal = pillarBalances[purpose];
+      if (bal?.usdc != null) {
+        agentUsdc += bal.usdc;
+        hasAgentUsdc = true;
+      }
+      if (bal?.sol != null) {
+        agentSol += bal.sol;
+        hasAgentSol = true;
+      }
+    }
+
+    const lpUsdc = wallets.lpAgentUsdcBalance;
+    const lpSol = wallets.lpAgentSolBalance;
+    if (lpUsdc != null) {
+      agentUsdc += lpUsdc;
+      hasAgentUsdc = true;
+    }
+    if (lpSol != null) {
+      agentSol += lpSol;
+      hasAgentSol = true;
+    }
+
+    const spendUsdc = pillarBalances.spend?.usdc ?? wallets.spendUsdcBalance;
+    const spendSol = pillarBalances.spend?.sol ?? wallets.spendSolBalance;
 
     const totalUsdc =
-      hasUserUsdc || hasChatUsdc || hasLpUsdc
-        ? userUsdc + chatUsdc + lpUsdc
+      userWallet.userUsdcBalance != null || hasAgentUsdc
+        ? userUsdc + agentUsdc
         : null;
     const totalSol =
-      hasUserSol || hasChatSol || hasLpSol ? userSol + chatSol + lpSol : null;
+      userWallet.userSolBalance != null || hasAgentSol ? userSol + agentSol : null;
 
     const solPriceUsd = lpSummaryQ.data?.solPriceUsd;
     const totalUsd =
@@ -75,31 +108,31 @@ export function useUserDashboardOverview() {
         ? totalUsdc + totalSol * solPriceUsd
         : totalUsdc;
 
-    const agentUsdc =
-      hasChatUsdc || hasLpUsdc ? chatUsdc + lpUsdc : wallets.totalUsdc;
-    const agentSol = hasChatSol || hasLpSol ? chatSol + lpSol : wallets.totalSol;
-
     return {
       userUsdc: userWallet.userUsdcBalance,
       userSol: userWallet.userSolBalance,
-      chatUsdc: wallets.chatUsdcBalance,
-      chatSol: wallets.chatSolBalance,
+      pillarBalances,
+      spendUsdc,
+      spendSol,
+      chatUsdc: spendUsdc,
+      chatSol: spendSol,
       lpUsdc: wallets.lpAgentUsdcBalance,
       lpSol: wallets.lpAgentSolBalance,
       totalUsdc,
       totalSol,
       totalUsd,
-      agentUsdc,
-      agentSol,
+      agentUsdc: hasAgentUsdc ? agentUsdc : wallets.totalUsdc,
+      agentSol: hasAgentSol ? agentSol : wallets.totalSol,
       solPriceUsd,
     };
   }, [
     userWallet.userUsdcBalance,
     userWallet.userSolBalance,
-    wallets.chatUsdcBalance,
-    wallets.chatSolBalance,
+    pillarBalances,
     wallets.lpAgentUsdcBalance,
     wallets.lpAgentSolBalance,
+    wallets.spendUsdcBalance,
+    wallets.spendSolBalance,
     wallets.totalUsdc,
     wallets.totalSol,
     lpSummaryQ.data?.solPriceUsd,
@@ -108,6 +141,7 @@ export function useUserDashboardOverview() {
   const balancesLoading =
     userWallet.isLoading ||
     wallets.setupLoading ||
+    wallets.loading ||
     (connected && wallets.syraAuthReady && wallets.syraAuthenticated && !wallets.activeAgent);
 
   const refreshAll = async () => {
@@ -123,24 +157,25 @@ export function useUserDashboardOverview() {
   const refreshing =
     userWallet.isFetching ||
     wallets.refreshingBalances ||
-    wallets.refreshingLpBalances ||
     tradingStatsQ.isFetching ||
-    lpSummaryQ.isFetching;
+    lpSummaryQ.isFetching ||
+    lpStateQ.isFetching;
 
   return {
     connected,
     address,
     shortAddress,
-    wallets,
-    userWallet,
     treasury,
-    tradingStatsQ,
     tradingTotals,
-    maxTradingAgents: tradingStatsQ.data?.maxAgents ?? 0,
+    tradingStatsQ,
     lpSummaryQ,
     lpStateQ,
+    lpSummary: lpSummaryQ.data,
+    lpState: lpStateQ.data,
+    maxTradingAgents: tradingStatsQ.data?.maxAgents ?? 0,
     balancesLoading,
     refreshing,
+    wallets,
     refreshAll,
   };
 }

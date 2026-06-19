@@ -1,0 +1,31 @@
+# Hackathon Scout — daily scrape (Devpost + Exa). POST /internal/hackathons/run
+name: Hackathon scout daily
+
+on:
+  schedule:
+    - cron: "0 1 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  run-hackathon-scout:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /internal/hackathons/run
+        env:
+          BASE_URL: ${{ secrets.HACKATHON_SCOUT_BASE_URL }}
+          HACKATHON_SCOUT_CRON_SECRET: ${{ secrets.HACKATHON_SCOUT_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BASE_URL:-}" ] || [ -z "${HACKATHON_SCOUT_CRON_SECRET:-}" ]; then
+            echo "::warning::Set HACKATHON_SCOUT_BASE_URL and HACKATHON_SCOUT_CRON_SECRET."
+            exit 0
+          fi
+          ORIGIN="${BASE_URL%/}"
+          HTTP_CODE=$(curl -sS -o /tmp/hackathon-scout.json -w "%{http_code}" -X POST "${ORIGIN}/internal/hackathons/run" \
+            -H "x-hackathon-scout-cron-secret: ${HACKATHON_SCOUT_CRON_SECRET}" \
+            -H "Accept: application/json" \
+            -H "Content-Type: application/json" \
+            -d "{}")
+          echo "HTTP ${HTTP_CODE}"
+          cat /tmp/hackathon-scout.json
+          test "$HTTP_CODE" = "200"

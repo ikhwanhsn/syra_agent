@@ -18,6 +18,11 @@ const SYRA_USE_DEV_ROUTES =
 const PAYMENT_NOTE =
   " Note: production API requires x402 payment; you may get 402 if payment is not provided.";
 
+const PILLAR_SPEND = "[Spend] ";
+const PILLAR_EARN = "[Earn] ";
+const PILLAR_INVEST = "[Invest] ";
+const PILLAR_GROW = "[Grow] ";
+
 /** GET request to API path with optional query params. When SYRA_USE_DEV_ROUTES, appends /dev to path. */
 async function fetchV2(
   path: string,
@@ -82,7 +87,7 @@ async function main() {
   // --- News & event (with optional dev path) ---
   server.tool(
     "syra_v2_news",
-    "Fetch latest crypto news from Syra API. Optional ticker (e.g. BTC, ETH) or 'general' for all news." + PAYMENT_NOTE,
+    PILLAR_SPEND + "Fetch latest crypto news from Syra API. Optional ticker (e.g. BTC, ETH) or 'general' for all news." + PAYMENT_NOTE,
     {
       ticker: z.string().optional().default("general").describe("Ticker (e.g. BTC, ETH) or 'general'"),
     },
@@ -170,7 +175,7 @@ async function main() {
   ];
 
   for (const { name, path, description } of noParamTools) {
-    server.tool(name, description, {}, async () => {
+    server.tool(name, PILLAR_SPEND + description, {}, async () => {
       const { status, body } = await fetchV2(path);
       return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
     });
@@ -479,7 +484,7 @@ async function main() {
 
   server.tool(
     "syra_agentscore_pay_note",
-    "AgentScore pay + Passport: use Syra agent tools agentscore-pay / agentscore-passport-status via POST /agent/tools/call (requires agent.syraa.fun session + USDC). Or install @agent-score/pay CLI for multi-rail checkout.",
+    PILLAR_EARN + "AgentScore pay + Passport: use Syra agent tools agentscore-pay / agentscore-passport-status via POST /agent/tools/call (requires agent.syraa.fun session + USDC). Or install @agent-score/pay CLI for multi-rail checkout.",
     {
       merchantUrl: z.string().optional().describe("Example merchant purchase URL"),
     },
@@ -497,6 +502,77 @@ async function main() {
         .filter(Boolean)
         .join("\n");
       return { content: [{ type: "text" as const, text }] };
+    },
+  );
+
+  // --- Five-pillar Machine Money facade tools ---
+  server.tool(
+    "syra_pillars",
+    "Discover Syra five pillars: Earn, Treasury, Invest, Spend, Grow — Machine Money for Agents. Free GET /pillars.",
+    {},
+    async () => {
+      const url = new URL("/pillars", SYRA_API_BASE_URL);
+      const res = await fetch(url.toString(), { headers: { Accept: "application/json" } });
+      const body = await res.text();
+      return { content: [{ type: "text" as const, text: formatToolResult(res.status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_invest_opportunities",
+    PILLAR_INVEST + "Unified invest opportunities: Giza yield, Meteora LP, Jupiter, RISE. GET /invest/opportunities.",
+    {
+      anonymousId: z.string().optional().describe("Optional viewer anonymousId"),
+    },
+    async ({ anonymousId }) => {
+      const params: Record<string, string> = {};
+      if (anonymousId) params.anonymousId = anonymousId;
+      const { status, body } = await fetchV2("/invest/opportunities", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_invest_positions",
+    PILLAR_INVEST + "Open invest positions across adapters (LP-Real, etc.). GET /invest/positions.",
+    {
+      anonymousId: z.string().optional().describe("Optional viewer anonymousId"),
+      limit: z.number().optional().describe("Max results"),
+    },
+    async ({ anonymousId, limit }) => {
+      const params: Record<string, string> = {};
+      if (anonymousId) params.anonymousId = anonymousId;
+      if (limit != null) params.limit = String(limit);
+      const { status, body } = await fetchV2("/invest/positions", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_grow_recommendations",
+    PILLAR_GROW + "Deterministic yield + portfolio rebalance recommendations (analysis only). GET /grow/recommendations.",
+    {
+      address: z.string().optional().describe("Solana wallet address"),
+      anonymousId: z.string().optional().describe("Optional viewer anonymousId"),
+    },
+    async ({ address, anonymousId }) => {
+      const params: Record<string, string> = {};
+      if (address) params.address = address;
+      if (anonymousId) params.anonymousId = anonymousId;
+      const { status, body } = await fetchV2("/grow/recommendations", params);
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
+    },
+  );
+
+  server.tool(
+    "syra_earn_summary",
+    PILLAR_EARN + "Creator earnings summary from skill/prompt attribution. GET /earn/summary.",
+    {
+      wallet: z.string().describe("Wallet address or anonymousId"),
+    },
+    async ({ wallet }) => {
+      const { status, body } = await fetchV2("/earn/summary", { wallet });
+      return { content: [{ type: "text" as const, text: formatToolResult(status, body) }] };
     },
   );
 

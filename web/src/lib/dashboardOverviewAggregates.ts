@@ -1,20 +1,5 @@
 import type { LpAgentStats } from "@/lib/lpAgentExperimentApi";
 import type { UserCustomStrategyAgentStats } from "@/lib/tradingExperimentApi";
-import {
-  cellKey,
-  PUMPFUN_EXPERIMENT_EXIT_COUNT,
-  PUMPFUN_EXPERIMENT_PERSONALITY_COUNT,
-  PUMPFUN_EXPERIMENT_START_SOL,
-  totalEquitySol,
-  type PumpfunExperimentPersisted,
-} from "@/lib/pumpfunExperimentModel";
-import {
-  cellEquitySol,
-  RISE_EXPERIMENT_EXIT_COUNT,
-  RISE_EXPERIMENT_PERSONALITY_COUNT,
-  RISE_EXPERIMENT_START_SOL,
-  type RiseExperimentPersisted,
-} from "@/lib/riseExperimentModel";
 import type { XProjectsBatchItem } from "@/lib/xProjectsAnalyzeApi";
 
 export function sortXBatchByScore(items: XProjectsBatchItem[]): XProjectsBatchItem[] {
@@ -24,82 +9,6 @@ export function sortXBatchByScore(items: XProjectsBatchItem[]): XProjectsBatchIt
     if (sb !== sa) return sb - sa;
     return a.username.localeCompare(b.username, undefined, { sensitivity: "base" });
   });
-}
-
-export function aggregatePumpfunExperiment(persisted: PumpfunExperimentPersisted) {
-  const rows: Array<{ key: string; equity: number; retPct: number; openCount: number }> = [];
-  let openPositions = 0;
-  let closedTrades = 0;
-
-  for (let p = 0; p < PUMPFUN_EXPERIMENT_PERSONALITY_COUNT; p++) {
-    for (let e = 0; e < PUMPFUN_EXPERIMENT_EXIT_COUNT; e++) {
-      const key = cellKey(p, e);
-      const cell = persisted.cells[key];
-      if (!cell) continue;
-      const equity = totalEquitySol(cell, persisted.mcByMint);
-      openPositions += cell.open.length;
-      closedTrades += cell.closed.length;
-      rows.push({
-        key,
-        equity,
-        retPct: (equity / PUMPFUN_EXPERIMENT_START_SOL - 1) * 100,
-        openCount: cell.open.length,
-      });
-    }
-  }
-
-  rows.sort((a, b) => b.equity - a.equity);
-  const totalEquity = rows.reduce((s, r) => s + r.equity, 0);
-  const winners = rows.filter((r) => r.retPct > 0).length;
-
-  return {
-    activeCells: rows.length,
-    totalEquity,
-    avgReturnPct: rows.length ? (totalEquity / rows.length / PUMPFUN_EXPERIMENT_START_SOL - 1) * 100 : 0,
-    winners,
-    openPositions,
-    closedTrades,
-    discoveries: persisted.discoveries.length,
-    topDesk: rows[0] ?? null,
-  };
-}
-
-export function aggregateRiseExperiment(persisted: RiseExperimentPersisted) {
-  const rows: Array<{ key: string; equity: number; retPct: number; openCount: number }> = [];
-  let openPositions = 0;
-  let closedTrades = 0;
-
-  for (let p = 0; p < RISE_EXPERIMENT_PERSONALITY_COUNT; p++) {
-    for (let e = 0; e < RISE_EXPERIMENT_EXIT_COUNT; e++) {
-      const key = cellKey(p, e);
-      const cell = persisted.cells[key];
-      if (!cell) continue;
-      const equity = cellEquitySol(cell, persisted.mcByMint);
-      openPositions += cell.open.length;
-      closedTrades += cell.closed.length;
-      rows.push({
-        key,
-        equity,
-        retPct: (equity / RISE_EXPERIMENT_START_SOL - 1) * 100,
-        openCount: cell.open.length,
-      });
-    }
-  }
-
-  rows.sort((a, b) => b.equity - a.equity);
-  const totalEquity = rows.reduce((s, r) => s + r.equity, 0);
-  const winners = rows.filter((r) => r.retPct > 0).length;
-
-  return {
-    activeCells: rows.length,
-    totalEquity,
-    avgReturnPct: rows.length ? (totalEquity / rows.length / RISE_EXPERIMENT_START_SOL - 1) * 100 : 0,
-    winners,
-    openPositions,
-    closedTrades,
-    discoveries: persisted.discoveries.length,
-    topDesk: rows[0] ?? null,
-  };
 }
 
 export function aggregateLpAgents(agents: LpAgentStats[]) {

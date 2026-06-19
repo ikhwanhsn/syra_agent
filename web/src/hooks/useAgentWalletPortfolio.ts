@@ -27,13 +27,33 @@ interface UseAgentWalletPortfolioArgs {
 async function fetchPortfoliosForTargets(
   targets: WalletTarget[],
 ): Promise<Array<{ purpose: AgentWalletPurpose; portfolio: AgentWalletPortfolio }>> {
-  const results = await Promise.all(
+  const results = await Promise.allSettled(
     targets.map(async (target) => ({
       purpose: target.purpose,
       portfolio: await fetchAgentWalletPortfolio(target.address),
     })),
   );
-  return results;
+
+  const fulfilled: Array<{ purpose: AgentWalletPurpose; portfolio: AgentWalletPortfolio }> = [];
+  const errors: string[] = [];
+
+  for (let i = 0; i < results.length; i += 1) {
+    const result = results[i];
+    const label = targets[i]?.purpose ?? "wallet";
+    if (result.status === "fulfilled") {
+      fulfilled.push(result.value);
+      continue;
+    }
+    const message =
+      result.reason instanceof Error ? result.reason.message : `Failed to load ${label} portfolio`;
+    errors.push(message);
+  }
+
+  if (fulfilled.length === 0 && errors.length > 0) {
+    throw new Error(errors.join(" · "));
+  }
+
+  return fulfilled;
 }
 
 export function useAgentWalletPortfolio({
@@ -44,7 +64,7 @@ export function useAgentWalletPortfolio({
 }: UseAgentWalletPortfolioArgs) {
   const targets = useMemo((): WalletTarget[] => {
     const out: WalletTarget[] = [];
-    if (chatAddress) out.push({ purpose: "chat", address: chatAddress });
+    if (chatAddress) out.push({ purpose: "spend", address: chatAddress });
     if (lpAddress) out.push({ purpose: "lp", address: lpAddress });
     return out;
   }, [chatAddress, lpAddress]);
@@ -91,6 +111,7 @@ export function useAgentWalletPortfolio({
   }, [query, queryClient]);
 
   return {
+    allTargets: targets,
     targets: filteredTargets,
     merged,
     perWallet,

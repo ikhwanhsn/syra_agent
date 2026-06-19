@@ -4,12 +4,12 @@ import {
   Activity,
   Bot,
   ChevronRight,
+  Code2,
   Droplets,
   FlaskConical,
   Lock,
   Plus,
   Scale,
-  Telescope,
   TrendingUp,
   UsersRound,
   Wallet,
@@ -42,12 +42,13 @@ import { OverviewPortfolioCommandBar } from "@/components/dashboard/overview/Ove
 import { TreasurySplitCardGrid } from "@/components/dashboard/overview/TreasurySplitCard";
 import { useWalletContext } from "@/contexts/WalletContext";
 import { useConnectModal } from "@/contexts/ConnectModalContext";
-import { isInternalTeamMonitorWallet } from "@/constants/internalTeamMonitorWallet";
+import { isAdminWallet } from "@/constants/adminWallet";
 import { INTERNAL_AGENTS } from "@/lib/internalAgentsCatalog";
 import { INTERNAL_BASE_PATH, internalAgentPath, internalPartnershipBoardPath } from "@/lib/internalRoutes";
 import { useUserDashboardOverview } from "@/hooks/useUserDashboardOverview";
 import { useTreasuryBalanceChange } from "@/hooks/useTreasuryBalanceChange";
 import { AgentBillingDashboard } from "@/components/wallet/AgentBillingDashboard";
+import { DashboardPillarsHub } from "@/components/dashboard/DashboardPillarsHub";
 
 const STALE_MS = 45_000;
 
@@ -56,9 +57,9 @@ export interface DashboardOverviewProps {
 }
 
 export default function DashboardOverview({ embedded = false }: DashboardOverviewProps) {
-  const { address } = useWalletContext();
+  const { address, connected } = useWalletContext();
   const { openConnectModal } = useConnectModal();
-  const showInternal = isInternalTeamMonitorWallet(address);
+  const showInternal = isAdminWallet(connected, address);
   const overview = useUserDashboardOverview();
   const balanceChanges = useTreasuryBalanceChange(
     overview.address,
@@ -125,7 +126,10 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
         className={cn(DASHBOARD_CONTENT_SHELL, "relative flex-1 space-y-6", PAGE_PADDING_TOP_MEDIUM, PAGE_SAFE_AREA_BOTTOM)}
       >
         {!showPortfolio ? (
-          <UserOverviewConnectHero onConnect={() => openConnectModal()} />
+          <>
+            <UserOverviewConnectHero onConnect={() => openConnectModal()} />
+            <DashboardPillarsHub />
+          </>
         ) : (
           <OverviewPortfolioCommandBar
             walletLabel={walletLabel}
@@ -163,6 +167,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
 
         {showPortfolio ? (
           <>
+            <DashboardPillarsHub />
             <AgentBillingDashboard />
             {/* Charts first — primary bento */}
             <OverviewTreasuryAllocationChart
@@ -282,19 +287,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
                 usdc: overview.treasury.userUsdc,
                 sol: overview.treasury.userSol,
               }}
-              trading={{
-                usdc: overview.treasury.chatUsdc,
-                sol: overview.treasury.chatSol,
-              }}
-              lp={{
-                usdc: overview.treasury.lpUsdc,
-                sol: overview.treasury.lpSol,
-              }}
-              changes={{
-                user: balanceChanges.user,
-                trading: balanceChanges.trading,
-                lp: balanceChanges.lp,
-              }}
+              pillars={overview.treasury.pillarBalances}
             />
 
             <OverviewGroupLabel icon={FlaskConical}>Performance</OverviewGroupLabel>
@@ -427,12 +420,12 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
               />
               <OverviewStatCard
                 compact
-                label="Alpha intel"
-                icon={Telescope}
-                accent="alpha"
-                value="Explore"
-                hint="Market signals & graduate candidates"
-                href="/alpha"
+                label="Playground"
+                icon={Code2}
+                accent="experiment"
+                value="APIs"
+                hint="x402 paid endpoints"
+                href="/playground"
               />
             </div>
 
@@ -443,7 +436,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
                   { label: "Agent wallets", desc: "Deposit & withdraw", to: "/wallet", icon: Wallet },
                   { label: "Trading lab", desc: "Custom strategies", to: "/trading-experiment", icon: FlaskConical },
                   { label: "LP experiment", desc: "Meteora agents", to: "/lp-experiment", icon: Droplets },
-                  { label: "Alpha", desc: "Signals & trends", to: "/alpha", icon: Telescope },
+                  { label: "Playground", desc: "x402 APIs", to: "/playground", icon: Code2 },
                   { label: "Assets", desc: "Market board", to: "/assets", icon: TrendingUp },
                 ] as const
               ).map((item) => (

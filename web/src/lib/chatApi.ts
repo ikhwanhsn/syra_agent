@@ -1,7 +1,7 @@
 import { syraFetch } from "@/lib/agentAuthApi";
 import type { AgentChain } from "@/lib/agentWalletUi";
 import { normalizeAgentChain } from "@/lib/agentWalletUi";
-import type { AgentWalletPurpose } from "@/lib/agentWalletPurpose";
+import type { AgentWalletPurpose } from "@/lib/agentWalletCatalog";
 
 import { env, getApiBaseUrl as getApiBaseUrlFromEnv } from "@/lib/env";
 
@@ -360,12 +360,37 @@ export const chatApi = {
   },
 };
 
-/** LP wallet fields returned alongside chat wallet provisioning. */
+/** Wallet row in a pillar set response. */
+export type AgentWalletSetRow = {
+  anonymousId: string;
+  agentAddress: string;
+  avatarUrl?: string | null;
+  purpose: AgentWalletPurpose;
+  provisionedVia?: string | null;
+};
+
+/** Full five-pillar wallet set (+ optional LP). */
+export type AgentWalletSetResponse = {
+  anonymousId: string;
+  agentAddress: string | null;
+  avatarUrl?: string | null;
+  purpose: "spend";
+  wallets: Partial<Record<AgentWalletPurpose, AgentWalletSetRow>>;
+  balances?: Partial<
+    Record<AgentWalletPurpose, { agentAddress: string; solBalance: number; usdcBalance: number }>
+  > | null;
+  lpAnonymousId?: string | null;
+  lpAgentAddress?: string | null;
+  lpAvatarUrl?: string | null;
+};
+
+/** LP wallet fields returned alongside spend wallet provisioning. */
 export type AgentWalletLpFields = {
-  lpAnonymousId?: string;
-  lpAgentAddress?: string;
+  lpAnonymousId?: string | null;
+  lpAgentAddress?: string | null;
   lpAvatarUrl?: string | null;
   lpIsNewWallet?: boolean;
+  wallets?: AgentWalletSetResponse["wallets"];
 };
 
 /** Agent wallet API: get/create agent wallet by anonymousId or by connected wallet. Private key stored on server for permissionless x402. */
@@ -441,7 +466,7 @@ export const agentWalletApi = {
       agentAddress: data.agentAddress,
       avatarUrl: data.avatarUrl ?? null,
       isNewWallet: data.isNewWallet,
-      purpose: data.purpose ?? "chat",
+      purpose: data.purpose ?? "spend",
       lpAnonymousId: data.lpAnonymousId,
       lpAgentAddress: data.lpAgentAddress,
       lpAvatarUrl: data.lpAvatarUrl ?? null,
@@ -686,6 +711,20 @@ export const agentWalletApi = {
     };
   },
 
+  /** Get all five pillar wallets (+ LP for internal team) for a base anonymousId. */
+  async getWalletSet(
+    anonymousId: string,
+    options?: { includeBalances?: boolean },
+  ): Promise<AgentWalletSetResponse> {
+    const params = new URLSearchParams({ anonymousId });
+    if (options?.includeBalances) params.set("balances", "true");
+    const res = await syraFetch(`${agentWalletBase()}/set?${params.toString()}`, {
+      headers: getApiHeaders(),
+    });
+    const data = await handleRes<{ success: boolean; data: AgentWalletSetResponse }>(res);
+    return data.data;
+  },
+
   /** Get agent wallet SOL and USDC balance. */
   async getBalance(anonymousId: string): Promise<{
     agentAddress: string;
@@ -874,7 +913,7 @@ export const agentWalletApi = {
       agentAddress: data.agentAddress,
       walletAddress: data.walletAddress ?? null,
       chain: normalizeAgentChain(data.chain ?? "solana"),
-      purpose: data.purpose ?? "chat",
+      purpose: data.purpose ?? "spend",
       status: data.status ?? "active",
       custody: data.custody ?? "legacy",
       avatarUrl: data.avatarUrl ?? null,

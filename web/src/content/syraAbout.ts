@@ -10,17 +10,18 @@ import {
   TrendingUp,
   Wallet,
   Zap,
+  Sprout,
 } from "lucide-react";
 
-export const SYRA_TAGLINE = "Machine money for AI trading agents";
+export const SYRA_TAGLINE = "Machine Money for Agents";
 export const SYRA_MISSION =
-  "Syra enables autonomous agents to generate revenue, hold treasury assets, participate in DeFi, and distribute value on Solana — so agents become independent economic actors, not tools waiting on humans for every financial decision.";
+  "Syra enables autonomous agents to earn, allocate treasury, invest, spend via x402, and grow yield on Solana — wealth as the narrative, payments as one feature.";
 
 export const SYRA_VISION =
   "Our vision is an economy where millions of AI agents become productive economic actors powered by Solana — reasoning, earning, managing capital, and coordinating value in real time.";
 
 export const SYRA_HIGHLIGHT =
-  "Syra is not building another chatbot. We are building machine money for AI trading agents — x402 pay-per-call APIs plus agent wallets and treasury policy — so autonomous agents think, pay, and trade on Solana without glue code.";
+  "Syra is machine money for agents — Earn, Treasury, Invest, Spend (x402), and Grow. x402 becomes one module; wealth becomes the narrative.";
 
 export interface SyraStat {
   label: string;
@@ -92,33 +93,33 @@ export interface SyraPillar {
 export const SYRA_PILLARS: SyraPillar[] = [
   {
     icon: Coins,
-    title: "Autonomous revenue",
-    description: "Agents generate and route income onchain without manual treasury babysitting.",
+    title: "Earn",
+    description: "Agents monetize skills — prompts, KOL campaigns, creator attribution on paid calls.",
   },
   {
     icon: Wallet,
-    title: "Treasury management",
-    description: "Hold, allocate, and monitor agent capital with explicit, auditable controls.",
+    title: "Treasury",
+    description: "Allocate and manage capital across chat, LP, and connected wallets with policy caps.",
   },
   {
     icon: TrendingUp,
-    title: "DeFi participation",
-    description: "Strategies, liquidity, and ecosystem integrations where agents can deploy capital.",
-  },
-  {
-    icon: Cpu,
-    title: "Agent-native stack",
-    description: "Built for autonomous actors — APIs, tools, and workflows machines can run end to end.",
+    title: "Invest",
+    description: "Deploy capital autonomously via Giza yield, Meteora LP, Jupiter, and RISE markets.",
   },
   {
     icon: Zap,
-    title: "Real-time on Solana",
-    description: "Low-fee, high-throughput execution so many agents can coordinate economically at once.",
+    title: "Spend",
+    description: "x402 native payments — one module for pay-per-call machine money (not the whole story).",
+  },
+  {
+    icon: Sprout,
+    title: "Grow",
+    description: "Yield and portfolio optimization — deterministic recommendations, confirm-gated execution.",
   },
   {
     icon: Shield,
-    title: "Non-custodial by design",
-    description: "You keep the keys. Syra coordinates intelligence and flows — it does not custody user wallets.",
+    title: "Policy-gated execution",
+    description: "walletBroker + policyEngine enforce caps, allowlists, and explicit confirm for high-risk moves.",
   },
 ];
 

@@ -13,12 +13,14 @@ const LAMPORTS_PER_SOL = 1e9;
 const WRAPPED_SOL_MINT = 'So11111111111111111111111111111111111111112';
 const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 const DEXSCREENER_TOKENS_URL = 'https://api.dexscreener.com/latest/dex/tokens';
+const DEXSCREENER_V1_URL = 'https://api.dexscreener.com/tokens/v1/solana';
+const JUPITER_API_BASE = process.env.JUPITER_API_KEY ? 'https://api.jup.ag' : 'https://lite-api.jup.ag';
+const JUPITER_PRICE_API = `${JUPITER_API_BASE}/price/v2`;
+const COINGECKO_SOL_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd';
 const PUMP_FUN_API = (process.env.PUMP_FUN_FRONTEND_API_URL || 'https://frontend-api-v3.pump.fun').replace(
   /\/$/,
   '',
 );
-const JUPITER_PRICE_API = 'https://api.jup.ag/price/v2';
-const COINGECKO_SOL_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd';
 
 /** @type {Record<string, { symbol: string; name: string; decimals: number; priceUsd?: number; imageUrl?: string }>} */
 const KNOWN_TOKENS = {
@@ -118,10 +120,83 @@ function pairTokenUsdPrice(pair, mint) {
   if (base?.address === mint) return priceUsd;
   if (quote?.address === mint) {
     const priceNative = Number(pair.priceNative);
-    if (Number.isFinite(priceNative) && priceNative > 0) return 1 / priceNative;
+    // priceNative = quote tokens per 1 base token; quote USD = base USD / priceNative
+    if (Number.isFinite(priceNative) && priceNative > 0) return priceUsd / priceNative;
     return null;
   }
   return null;
+}
+
+/**
+ * Conservative USD price when multiple sources disagree (portfolio valuations).
+ * @param {number | null | undefined} primary
+ * @param {number | null | undefined} secondary
+ * @returns {number | null}
+ */
+function conservativeUsdPrice(primary, secondary) {
+  const a = primary != null && Number.isFinite(primary) && primary > 0 ? primary : null;
+  const b = secondary != null && Number.isFinite(secondary) && secondary > 0 ? secondary : null;
+  if (a == null) return b;
+  if (b == null) return a;
+  const max = Math.max(a, b);
+  const min = Math.min(a, b);
+  if (max / min > 3) return min;
+  return a;
+}
+
+/**
+ * @param {string[]} mints
+ * @returns {Promise<Map<string, TokenMeta>>}
+ */
+async function fetchDexScreenerV1Meta(mints) {
+  /** @type {Map<string, TokenMeta>} */
+  const out = new Map();
+  const unique = [...new Set(mints.filter((m) => m && m !== WRAPPED_SOL_MINT))];
+  const chunkSize = 30;
+
+  for (let i = 0; i < unique.length; i += chunkSize) {
+    const chunk = unique.slice(i, i + chunkSize);
+    const url = `${DEXSCREENER_V1_URL}/${chunk.map(encodeURIComponent).join(',')}`;
+    try {
+      const res = await fetchWithRetry(url, { headers: { Accept: 'application/json' } }, { retries: 1 });
+      if (!res.ok) continue;
+      const pairs = await res.json().catch(() => null);
+      if (!Array.isArray(pairs)) continue;
+
+      for (const mint of chunk) {
+        const relevant = pairs.filter(
+          (p) =>
+            p?.chainId === 'solana' &&
+            (p?.baseToken?.address === mint || p?.quoteToken?.address === mint),
+        );
+        if (!relevant.length) continue;
+
+        const ranked = [...relevant].sort(
+          (a, b) => (Number(b?.liquidity?.usd) || 0) - (Number(a?.liquidity?.usd) || 0),
+        );
+        const best = ranked[0];
+        const isBase = best?.baseToken?.address === mint;
+        const token = isBase ? best.baseToken : best.quoteToken;
+        const symbol = typeof token?.symbol === 'string' ? token.symbol.trim() : '';
+        const name = typeof token?.name === 'string' ? token.name.trim() : '';
+        const imageUrl =
+          typeof best?.info?.imageUrl === 'string' && best.info.imageUrl.trim()
+            ? best.info.imageUrl.trim()
+            : null;
+
+        out.set(mint, {
+          symbol: symbol || shortenMint(mint),
+          name: name || symbol || `Token ${shortenMint(mint)}`,
+          priceUsd: pairTokenUsdPrice(best, mint),
+          imageUrl,
+        });
+      }
+    } catch {
+      /* best-effort */
+    }
+  }
+
+  return out;
 }
 
 /**
@@ -180,10 +255,67 @@ async function fetchDexScreenerMeta(mints) {
 }
 
 /**
+ * Spot USD price from pump.fun — never marketCap/totalSupply (misprices memecoins).
+ * @param {Record<string, unknown>} data
+ * @param {number | null} solUsd
+ * @returns {number | null}
+ */
+function resolvePumpfunSpotPriceUsd(data, solUsd) {
+  const apiPrice =
+    Number(data.price_usd) > 0 && Number.isFinite(Number(data.price_usd))
+      ? Number(data.price_usd)
+      : null;
+
+  let curvePrice = null;
+  if (solUsd != null && solUsd > 0) {
+    const virtualSol = Number(data.virtual_sol_reserves) || Number(data.real_sol_reserves);
+    const virtualToken = Number(data.virtual_token_reserves) || Number(data.real_token_reserves);
+    const tokenDecimals = Number(data.decimals) || 6;
+    if (
+      Number.isFinite(virtualSol) &&
+      Number.isFinite(virtualToken) &&
+      virtualSol > 0 &&
+      virtualToken > 0
+    ) {
+      const solHuman = virtualSol / LAMPORTS_PER_SOL;
+      const tokenHuman = virtualToken / 10 ** tokenDecimals;
+      if (tokenHuman > 0) {
+        const computed = (solHuman / tokenHuman) * solUsd;
+        if (Number.isFinite(computed) && computed > 0) curvePrice = computed;
+      }
+    }
+  }
+
+  return conservativeUsdPrice(curvePrice, apiPrice);
+}
+
+/** @returns {Promise<number | null>} */
+async function fetchPumpfunSolUsd() {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 5000);
+  try {
+    const res = await fetch(`${PUMP_FUN_API}/sol-price`, {
+      headers: { Accept: 'application/json' },
+      signal: ctrl.signal,
+    });
+    if (!res.ok) return null;
+    const raw = await res.json().catch(() => null);
+    if (!raw || typeof raw !== 'object') return null;
+    const price = Number(raw.solPrice ?? raw.sol_price ?? raw.price ?? raw.usd);
+    return Number.isFinite(price) && price > 0 ? price : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
  * @param {string} mint
+ * @param {number | null} solUsd
  * @returns {Promise<TokenMeta | null>}
  */
-async function fetchPumpfunMeta(mint) {
+async function fetchPumpfunMeta(mint, solUsd = null) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 6000);
   try {
@@ -199,19 +331,13 @@ async function fetchPumpfunMeta(mint) {
     const symbol = typeof data.symbol === 'string' ? data.symbol.trim() : '';
     const name = typeof data.name === 'string' ? data.name.trim() : '';
     const imageUri = typeof data.image_uri === 'string' ? data.image_uri.trim() : '';
-    const usdMarketCap = Number(data.usd_market_cap);
-    const priceUsd =
-      Number.isFinite(usdMarketCap) && usdMarketCap > 0 && Number(data.total_supply) > 0
-        ? usdMarketCap / Number(data.total_supply)
-        : Number(data.price_usd) > 0
-          ? Number(data.price_usd)
-          : null;
+    const priceUsd = resolvePumpfunSpotPriceUsd(data, solUsd);
 
     if (!symbol && !name) return null;
     return {
       symbol: (symbol || shortenMint(mint)).toUpperCase(),
       name: name || symbol || `Token ${shortenMint(mint)}`,
-      priceUsd: Number.isFinite(priceUsd) && priceUsd > 0 ? priceUsd : null,
+      priceUsd,
       imageUrl: imageUri || null,
     };
   } catch {
@@ -227,18 +353,33 @@ async function fetchPumpfunMeta(mint) {
  * @returns {Promise<Map<string, TokenMeta>>}
  */
 async function fetchPumpfunMetaBatch(mints, existing) {
-  const missing = mints.filter((mint) => !existing.has(mint) && mint !== WRAPPED_SOL_MINT);
-  if (!missing.length) return new Map();
+  const targets = mints.filter((mint) => {
+    if (!mint || mint === WRAPPED_SOL_MINT) return false;
+    const meta = existing.get(mint);
+    if (!meta) return true;
+    return meta.priceUsd == null;
+  });
+  if (!targets.length) return new Map();
+
+  const solUsd = await fetchPumpfunSolUsd();
 
   /** @type {Map<string, TokenMeta>} */
   const out = new Map();
   const concurrency = 4;
-  for (let i = 0; i < missing.length; i += concurrency) {
-    const batch = missing.slice(i, i + concurrency);
-    const results = await Promise.all(batch.map((mint) => fetchPumpfunMeta(mint)));
+  for (let i = 0; i < targets.length; i += concurrency) {
+    const batch = targets.slice(i, i + concurrency);
+    const results = await Promise.all(batch.map((mint) => fetchPumpfunMeta(mint, solUsd)));
     for (let j = 0; j < batch.length; j += 1) {
       const meta = results[j];
-      if (meta) out.set(batch[j], meta);
+      if (!meta) continue;
+      const prev = existing.get(batch[j]);
+      out.set(batch[j], prev
+        ? {
+            ...prev,
+            ...meta,
+            priceUsd: conservativeUsdPrice(prev.priceUsd, meta.priceUsd),
+          }
+        : meta);
     }
   }
   return out;
@@ -339,7 +480,7 @@ function mergeMetaMaps(...maps) {
       out.set(mint, {
         symbol: prev.symbol || meta.symbol,
         name: prev.name || meta.name,
-        priceUsd: prev.priceUsd ?? meta.priceUsd,
+        priceUsd: conservativeUsdPrice(prev.priceUsd, meta.priceUsd),
         imageUrl: prev.imageUrl ?? meta.imageUrl,
       });
     }
@@ -375,25 +516,21 @@ async function fetchSolUsdPrice() {
  * @returns {Promise<Record<string, number>>}
  */
 async function fetchJupiterPrices(mints) {
-  const apiKey = process.env.JUPITER_API_KEY;
-  if (!apiKey) return {};
-
   const unique = [...new Set(mints.filter(Boolean))];
   if (!unique.length) return {};
 
   /** @type {Record<string, number>} */
   const out = {};
   const chunkSize = 100;
+  const apiKey = process.env.JUPITER_API_KEY?.trim();
 
   for (let i = 0; i < unique.length; i += chunkSize) {
     const chunk = unique.slice(i, i + chunkSize);
     const url = `${JUPITER_PRICE_API}?ids=${chunk.map(encodeURIComponent).join(',')}`;
     try {
-      const res = await fetchWithRetry(
-        url,
-        { headers: { Accept: 'application/json', 'x-api-key': apiKey } },
-        { retries: 1 },
-      );
+      const headers = { Accept: 'application/json' };
+      if (apiKey) headers['x-api-key'] = apiKey;
+      const res = await fetchWithRetry(url, { headers }, { retries: 1 });
       if (!res.ok) continue;
       const body = await res.json().catch(() => null);
       const data = body?.data;
@@ -418,28 +555,45 @@ async function fetchJupiterPrices(mints) {
  */
 function finalizePortfolio(tokens, solBalance, solPriceUsd, jupiterPrices) {
   const rows = [...tokens];
+  const solPrice = solPriceUsd ?? jupiterPrices[WRAPPED_SOL_MINT] ?? null;
 
   if (solBalance > 0) {
-    const price = solPriceUsd ?? jupiterPrices[WRAPPED_SOL_MINT] ?? null;
-    rows.unshift({
-      mint: WRAPPED_SOL_MINT,
-      symbol: 'SOL',
-      name: 'Solana',
-      decimals: 9,
-      amount: solBalance,
-      priceUsd: price,
-      valueUsd: price != null ? solBalance * price : null,
-      imageUrl: null,
-    });
+    const existingSol = rows.find((row) => row.mint === WRAPPED_SOL_MINT);
+    if (existingSol) {
+      existingSol.amount += solBalance;
+      existingSol.symbol = 'SOL';
+      existingSol.name = 'Solana';
+      if (existingSol.priceUsd == null) existingSol.priceUsd = solPrice;
+    } else {
+      rows.unshift({
+        mint: WRAPPED_SOL_MINT,
+        symbol: 'SOL',
+        name: 'Solana',
+        decimals: 9,
+        amount: solBalance,
+        priceUsd: solPrice,
+        valueUsd: solPrice != null ? solBalance * solPrice : null,
+        imageUrl: null,
+      });
+    }
   }
 
   for (const row of rows) {
-    if (row.mint === WRAPPED_SOL_MINT) continue;
-    if (row.priceUsd == null) {
-      const fallback = jupiterPrices[row.mint] ?? KNOWN_TOKENS[row.mint]?.priceUsd ?? null;
-      row.priceUsd = fallback;
+    const metaPrice = row.priceUsd;
+    const jup = jupiterPrices[row.mint];
+    let price =
+      row.mint === USDC_MINT
+        ? 1
+        : row.mint === WRAPPED_SOL_MINT
+          ? solPrice ?? jup ?? metaPrice ?? KNOWN_TOKENS[row.mint]?.priceUsd ?? null
+          : conservativeUsdPrice(jup, metaPrice);
+
+    if (price == null && row.mint !== WRAPPED_SOL_MINT && row.mint !== USDC_MINT) {
+      price = jup ?? metaPrice ?? KNOWN_TOKENS[row.mint]?.priceUsd ?? null;
     }
-    row.valueUsd = row.priceUsd != null ? row.amount * row.priceUsd : null;
+
+    row.priceUsd = price;
+    row.valueUsd = price != null ? row.amount * price : null;
   }
 
   rows.sort((a, b) => {
@@ -484,7 +638,7 @@ function applyTokenMeta(rows, metaByMint) {
         row.name = meta.name;
       }
       if (meta.imageUrl) row.imageUrl = meta.imageUrl;
-      if (meta.priceUsd != null) row.priceUsd = meta.priceUsd;
+      if (meta.priceUsd != null && row.priceUsd == null) row.priceUsd = meta.priceUsd;
     }
   }
 }
@@ -500,13 +654,15 @@ export async function fetchAgentWalletPortfolio(address) {
   const splRows = await fetchSplTokenRows(picked.connection, pubkey);
   const mints = splRows.map((row) => row.mint);
 
-  const [dexMeta, solPriceUsd, jupiterMeta] = await Promise.all([
+  const [dexV1Meta, dexMeta, solPriceUsd, jupiterMeta, jupiterPrices] = await Promise.all([
+    fetchDexScreenerV1Meta(mints),
     fetchDexScreenerMeta(mints),
     fetchSolUsdPrice(),
     fetchJupiterTokenMetaBatch(mints),
+    fetchJupiterPrices([WRAPPED_SOL_MINT, ...mints.filter((mint) => mint !== USDC_MINT)]),
   ]);
 
-  let metaByMint = mergeMetaMaps(dexMeta, jupiterMeta);
+  let metaByMint = mergeMetaMaps(dexV1Meta, dexMeta, jupiterMeta);
   const pumpMeta = await fetchPumpfunMetaBatch(mints, metaByMint);
   metaByMint = mergeMetaMaps(metaByMint, pumpMeta);
 
@@ -517,14 +673,6 @@ export async function fetchAgentWalletPortfolio(address) {
   metaByMint = mergeMetaMaps(metaByMint, onchainMeta);
 
   applyTokenMeta(splRows, metaByMint);
-
-  const jupiterPrices = await fetchJupiterPrices([
-    WRAPPED_SOL_MINT,
-    ...mints.filter((mint) => {
-      const row = splRows.find((r) => r.mint === mint);
-      return row?.priceUsd == null;
-    }),
-  ]);
 
   const priced = finalizePortfolio(splRows, solBalance, solPriceUsd, jupiterPrices);
 

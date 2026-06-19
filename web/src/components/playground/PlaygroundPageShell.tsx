@@ -11,11 +11,12 @@ export function PlaygroundPageShell({
   return (
     <div
       className={cn(
-        "playground-ambient relative w-full bg-background",
+        "playground-ambient relative min-h-full w-full bg-background",
         className,
       )}
     >
-      {children}
+      <div className="playground-ambient-grid pointer-events-none absolute inset-0" aria-hidden />
+      <div className="relative z-[1]">{children}</div>
     </div>
   );
 }

@@ -11,36 +11,85 @@ import {
   type Chain,
   type Hex,
 } from 'viem';
-import { base } from 'viem/chains';
-import { bsc } from 'viem/chains';
+import {
+  arbitrum,
+  avalanche,
+  base,
+  bsc,
+  polygon,
+  sei,
+  skaleBase,
+  xLayer,
+} from 'viem/chains';
 import type { EvmSigner } from '@/lib/x402Client';
-import type { PaymentChainId } from '@/lib/x402Client';
+import type { PaymentChainId } from '@/lib/payaiX402Networks';
+import { isEvmPaymentChain } from '@/lib/payaiX402Networks';
+
+type EvmChainKey =
+  | 'bsc'
+  | 'base'
+  | 'polygon'
+  | 'arbitrum'
+  | 'avalanche'
+  | 'sei'
+  | 'skale'
+  | 'xlayer';
+
+function buildAddParams(chain: Chain): Record<string, unknown> {
+  const rpc = chain.rpcUrls.default.http[0];
+  const explorer = chain.blockExplorers?.default?.url;
+  return {
+    chainId: `0x${chain.id.toString(16)}`,
+    chainName: chain.name,
+    nativeCurrency: chain.nativeCurrency,
+    rpcUrls: rpc ? [rpc] : [],
+    blockExplorerUrls: explorer ? [explorer] : [],
+  };
+}
 
 const CHAIN_CONFIG: Record<
-  'bsc' | 'base',
+  EvmChainKey,
   { chain: Chain; chainId: number; addParams: Record<string, unknown> }
 > = {
   bsc: {
     chain: bsc,
-    chainId: 56,
-    addParams: {
-      chainId: '0x38',
-      chainName: 'BNB Smart Chain',
-      nativeCurrency: { name: 'BNB', symbol: 'BNB', decimals: 18 },
-      rpcUrls: ['https://bsc-dataseed.binance.org'],
-      blockExplorerUrls: ['https://bscscan.com'],
-    },
+    chainId: bsc.id,
+    addParams: buildAddParams(bsc),
   },
   base: {
     chain: base,
-    chainId: 8453,
-    addParams: {
-      chainId: '0x2105',
-      chainName: 'Base',
-      nativeCurrency: { name: 'Ethereum', symbol: 'ETH', decimals: 18 },
-      rpcUrls: ['https://mainnet.base.org'],
-      blockExplorerUrls: ['https://basescan.org'],
-    },
+    chainId: base.id,
+    addParams: buildAddParams(base),
+  },
+  polygon: {
+    chain: polygon,
+    chainId: polygon.id,
+    addParams: buildAddParams(polygon),
+  },
+  arbitrum: {
+    chain: arbitrum,
+    chainId: arbitrum.id,
+    addParams: buildAddParams(arbitrum),
+  },
+  avalanche: {
+    chain: avalanche,
+    chainId: avalanche.id,
+    addParams: buildAddParams(avalanche),
+  },
+  sei: {
+    chain: sei,
+    chainId: sei.id,
+    addParams: buildAddParams(sei),
+  },
+  skale: {
+    chain: skaleBase,
+    chainId: skaleBase.id,
+    addParams: buildAddParams(skaleBase),
+  },
+  xlayer: {
+    chain: xLayer,
+    chainId: xLayer.id,
+    addParams: buildAddParams(xLayer),
   },
 };
 
@@ -252,11 +301,11 @@ export function useEvmWalletState(enabled = true): BscWalletState {
   return enabled ? state : getBscWalletState();
 }
 
-export async function ensureEvmChain(chain: 'bsc' | 'base'): Promise<void> {
+export async function ensureEvmChain(chain: EvmChainKey): Promise<void> {
   const provider = getEthereumProvider();
   if (!provider) {
     throw new Error(
-      'MetaMask not detected. Install MetaMask for Binance/Base payments (Solana wallets like Phantom cannot sign BSC payments).',
+      'MetaMask not detected. Install MetaMask for EVM payments (Solana wallets like Phantom cannot sign EVM payments).',
     );
   }
   const cfg = CHAIN_CONFIG[chain];
@@ -286,10 +335,16 @@ export async function ensureEvmChain(chain: 'bsc' | 'base'): Promise<void> {
 /** @deprecated use ensureEvmChain('bsc') */
 export const ensureBscChain = () => ensureEvmChain('bsc');
 
-type EvmChainKey = 'bsc' | 'base';
-
 function evmChainKey(chain: PaymentChainId): EvmChainKey {
-  return chain === 'base' ? 'base' : 'bsc';
+  if (chain === 'binance') return 'bsc';
+  if (chain === 'solana') {
+    throw new Error('Solana is not an EVM chain');
+  }
+  return chain;
+}
+
+export function isPlaygroundEvmPaymentChain(chain: PaymentChainId): boolean {
+  return isEvmPaymentChain(chain);
 }
 
 /**
@@ -327,7 +382,7 @@ export async function refreshMetaMaskWallet(chain: PaymentChainId): Promise<stri
   if (!provider) {
     notifyEvmWalletListeners(true);
     throw new Error(
-      'MetaMask not detected. Install MetaMask for Binance/Base payments.',
+      'MetaMask not detected. Install MetaMask for EVM payments.',
     );
   }
 
@@ -350,7 +405,7 @@ export async function connectEvmWallet(chain: PaymentChainId): Promise<string> {
   const provider = findMetaMaskProvider();
   if (!provider) {
     throw new Error(
-      'MetaMask not detected. Install MetaMask for Binance/Base payments. If you use Phantom for Solana, connect MetaMask separately for BSC.',
+      'MetaMask not detected. Install MetaMask for EVM payments. If you use Phantom for Solana, connect MetaMask separately for EVM chains.',
     );
   }
   const address = await applyProviderAccount(provider, true);
@@ -373,7 +428,7 @@ export function disconnectBscWallet(): void {
 export async function getEvmSigner(chain: PaymentChainId): Promise<EvmSigner> {
   const provider = getEthereumProvider();
   if (!provider) {
-    throw new Error('MetaMask not detected. Connect MetaMask before paying on Binance or Base.');
+    throw new Error('MetaMask not detected. Connect MetaMask before paying on EVM networks.');
   }
   const evmChain = evmChainKey(chain);
   await syncEvmWalletFromProvider();

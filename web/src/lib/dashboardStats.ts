@@ -104,7 +104,7 @@ export async function fetchOperatorRegistryStats(args: {
       message += ` API allows: ${allowed}.`;
     } else {
       message +=
-        " Set ADMIN_DASHBOARD_WALLET in api/.env to match VITE_ADMIN_DASHBOARD_WALLET in web, then sign in again.";
+        " Connect the admin wallet and sign in again.";
     }
     throw new OperatorStatsFetchError("not_admin", message);
   }

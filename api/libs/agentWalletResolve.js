@@ -1,9 +1,11 @@
 import AgentWallet from '../models/agent/AgentWallet.js';
 import { normalizeAgentChain } from './syraChains.js';
 import {
+  baseAnonymousIdFrom,
   lpAnonymousIdFromChat,
   normalizeAgentWalletPurpose,
   purposeQuery,
+  siblingAnonymousId,
 } from './agentWalletPurpose.js';
 
 /**
@@ -11,13 +13,14 @@ import {
  * @param {import('./syraChains.js').SyraAgentChain} chain
  * @param {import('./agentWalletPurpose.js').AgentWalletPurpose} purpose
  */
-function canonicalAnonymousId(address, chain, purpose = 'chat') {
+function canonicalAnonymousId(address, chain, purpose = 'spend') {
   const normalizedPurpose = normalizeAgentWalletPurpose(purpose);
   let base;
   if (chain === 'base') base = `wallet:${address}:base`;
   else if (chain === 'bsc') base = `wallet:${address}:bsc`;
   else base = `wallet:${address}`;
-  return normalizedPurpose === 'lp' ? `${base}:lp` : base;
+  if (normalizedPurpose === 'spend') return base;
+  return siblingAnonymousId(base, normalizedPurpose) || base;
 }
 
 /**
@@ -25,7 +28,7 @@ function canonicalAnonymousId(address, chain, purpose = 'chat') {
  * @param {import('./syraChains.js').SyraAgentChain} chain
  * @param {import('./agentWalletPurpose.js').AgentWalletPurpose} purpose
  */
-function walletAddressQuery(address, chain, purpose = 'chat') {
+function walletAddressQuery(address, chain, purpose = 'spend') {
   const purposeClause = purposeQuery(purpose);
   if (chain === 'base') {
     return { walletAddress: address, chain: 'base', ...purposeClause };
@@ -60,7 +63,7 @@ export async function resolveAgentWalletForUser({
   address,
   chain = 'solana',
   guestAnonymousId = null,
-  purpose = 'chat',
+  purpose = 'spend',
 }) {
   const normalizedChain = normalizeAgentChain(chain);
   const normalizedPurpose = normalizeAgentWalletPurpose(purpose);
@@ -89,7 +92,9 @@ export async function resolveAgentWalletForUser({
       ? guestAnonymousId.trim()
       : null;
   const guestId =
-    guestIdRaw && normalizedPurpose === 'lp' ? lpAnonymousIdFromChat(guestIdRaw) : guestIdRaw;
+    guestIdRaw && normalizedPurpose !== 'spend'
+      ? siblingAnonymousId(guestIdRaw, normalizedPurpose) || guestIdRaw
+      : baseAnonymousIdFrom(guestIdRaw) || guestIdRaw;
   if (!guestId) return null;
 
   const guest = await AgentWallet.findOne({ anonymousId: guestId, status: { $ne: 'retired' } }).lean();

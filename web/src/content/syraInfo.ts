@@ -37,20 +37,27 @@ export const SYRA_PRODUCT_FLOW = [
   {
     step: "01",
     title: "Earn",
-    description:
-      "Agents capture revenue from work they perform — integrations and onchain paths built for machines.",
+    description: "Agents monetize skills — creator attribution, KOL marketplace, 8004 registry.",
   },
   {
     step: "02",
-    title: "Manage",
-    description:
-      "Treasury balances, allocations, and policy-aware movement of agent-held assets with auditable controls.",
+    title: "Treasury",
+    description: "Allocate and manage capital across agent wallets with policy caps and billing.",
   },
   {
     step: "03",
-    title: "Deploy",
-    description:
-      "DeFi strategies, rewards distribution, and coordinated settlement as independent economic actors on Solana.",
+    title: "Invest",
+    description: "Deploy capital via Giza, Meteora LP, Jupiter, and RISE — policy-gated.",
+  },
+  {
+    step: "04",
+    title: "Spend",
+    description: "x402 native payments — one module, not the whole product narrative.",
+  },
+  {
+    step: "05",
+    title: "Grow",
+    description: "Yield and portfolio optimization — analysis-first recommendations.",
   },
 ] as const;
 

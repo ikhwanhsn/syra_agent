@@ -8,7 +8,6 @@ import {
   Home,
   LayoutDashboard,
   MapPinOff,
-  Telescope,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -57,12 +56,6 @@ const QUICK_DESTINATIONS = [
     label: "Overview",
     description: "Command center for labs and feeds",
     icon: LayoutDashboard,
-  },
-  {
-    href: "/alpha",
-    label: "Alpha intel",
-    description: "Signals, trends, and market intelligence",
-    icon: Telescope,
   },
   {
     href: "/playground",

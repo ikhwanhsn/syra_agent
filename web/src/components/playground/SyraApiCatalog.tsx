@@ -1,46 +1,49 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  getExampleFlowGroups,
-  getExampleFlowsX402,
+  getExampleFlowGroupsFromFlows,
   getFlowGroup,
   getParamsForExampleFlow,
   type ExampleFlowPreset,
 } from "@/hooks/useApiPlayground";
+import { useX402DiscoveryCatalog } from "@/hooks/useX402DiscoveryCatalog";
 import { usePlaygroundSession } from "@/contexts/PlaygroundSessionContext";
 import { useConnectModal } from "@/contexts/ConnectModalContext";
 import { QueryParamsModal } from "@/components/QueryParamsModal";
 import { SyraApiCard } from "@/components/playground/SyraApiCard";
 import { PlaygroundResponseSheet } from "@/components/playground/PlaygroundResponseSheet";
+import { PlaygroundHero } from "@/components/playground/PlaygroundHero";
+import { PlaygroundCatalogSkeleton } from "@/components/playground/PlaygroundCatalogSkeleton";
+import { PlaygroundEmptyState } from "@/components/playground/PlaygroundEmptyState";
 import { playgroundSectionEnter } from "@/components/playground/playgroundMotion";
 import {
   PLAYGROUND_PAGE_CLASS,
   playgroundChipClass,
+  playgroundFilterRailClass,
   playgroundSearchClass,
-  playgroundSectionHeaderClass,
-  playgroundSectionSubtitleClass,
-  playgroundSectionTitleClass,
   playgroundStatPillClass,
+  playgroundToolbarClass,
 } from "@/components/playground/playgroundStyles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { flowNeedsParamModal } from "@/lib/playgroundFlow";
 import { getPlaygroundSyraPathname } from "@/lib/playgroundUrl";
 import { resolvePlaygroundPaymentLane } from "@/lib/paymentLane";
-import { X402_DISCOVERY_RESOURCE_PATHS } from "@/lib/x402DiscoveryResourcePaths";
 import type { RequestParam } from "@/types/api";
 import { cn } from "@/lib/utils";
-import { Search, Wallet } from "lucide-react";
+import { Radio, Search, Sparkles, X } from "lucide-react";
 
 function flowPath(url: string): string {
   const path = getPlaygroundSyraPathname(url);
   return path || url;
 }
 
-function splitFlowLabel(label: string): { detail: string } {
+function splitFlowLabel(label: string): { name: string; detail: string } {
   const idx = label.indexOf(":");
-  if (idx < 1) return { detail: label };
-  const detail = label.slice(idx + 1).trim();
-  return { detail: detail || label };
+  if (idx < 1) return { name: label, detail: label };
+  return {
+    name: label.slice(0, idx).trim(),
+    detail: label.slice(idx + 1).trim() || label,
+  };
 }
 
 export function SyraApiCatalog() {
@@ -55,12 +58,14 @@ export function SyraApiCatalog() {
     setIsPaymentModalOpen,
     selectedPaymentChain,
     selectPaymentChain,
+    paymentOptionsByChain,
     isResponsePanelOpen,
     setIsResponsePanelOpen,
   } = usePlaygroundSession();
 
-  const allFlows = useMemo(() => getExampleFlowsX402(), []);
-  const groups = useMemo(() => getExampleFlowGroups(), []);
+  const { flows: allFlows, segments, loading: catalogLoading, source } =
+    useX402DiscoveryCatalog();
+  const groups = useMemo(() => getExampleFlowGroupsFromFlows(allFlows), [allFlows]);
 
   const [search, setSearch] = useState("");
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
@@ -96,6 +101,7 @@ export function SyraApiCatalog() {
   }, [selectedFlow?.url, response]);
 
   const isLoading = status === "loading";
+  const hasFilters = Boolean(search.trim() || activeGroup);
 
   useEffect(() => {
     if (paymentLane !== "mpp") return;
@@ -134,53 +140,90 @@ export function SyraApiCatalog() {
     [paramsModalFlow, runExampleFlowFromPreset, setIsResponsePanelOpen],
   );
 
+  const clearFilters = () => {
+    setSearch("");
+    setActiveGroup(null);
+  };
+
   return (
-    <div className={cn(PLAYGROUND_PAGE_CLASS, "space-y-6")}>
-      {/* Header */}
-      <div className={cn(playgroundSectionHeaderClass, playgroundSectionEnter)}>
-        <div>
-          <h2 className={playgroundSectionTitleClass}>Syra x402 API rail</h2>
-          <p className={playgroundSectionSubtitleClass}>
-            {X402_DISCOVERY_RESOURCE_PATHS.length} pay-per-call resources from GET /.well-known/x402 — connect a wallet to test live.
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
+    <div className={cn(PLAYGROUND_PAGE_CLASS, "space-y-6 sm:space-y-8")}>
+      <PlaygroundHero
+        kicker="x402 API rail"
+        title="Test pay-per-call endpoints"
+        description="Browse Syra's machine-money catalog, connect a wallet, and fire live x402 requests with USDC on any PayAI mainnet."
+        walletConnected={wallet.connected}
+        walletBalance={wallet.balance}
+        onConnectWallet={() => openConnectModal()}
+        stats={[
+          {
+            label: "Catalog",
+            value: catalogLoading ? "…" : String(segments.length),
+          },
+          {
+            label: "Visible",
+            value: catalogLoading ? "…" : String(filteredFlows.length),
+          },
+          {
+            label: "Source",
+            value: source === "live" ? "Live" : "Cached",
+          },
+        ]}
+        badges={
+          <>
             <span className={playgroundStatPillClass}>
-              {filteredFlows.length} endpoint{filteredFlows.length === 1 ? "" : "s"}
+              <Sparkles className="h-3.5 w-3.5 text-primary" aria-hidden />
+              x402 v2
             </span>
-            <span className={playgroundStatPillClass}>x402 v2</span>
-            <span className={playgroundStatPillClass}>USDC on Solana</span>
-          </div>
-        </div>
-        {wallet.connected ? (
-          <span className={playgroundStatPillClass}>
-            <Wallet className="h-3.5 w-3.5 text-primary" aria-hidden />
-            {wallet.balance || "0 USDC"}
-          </span>
-        ) : (
-          <Button variant="neon" size="sm" className="rounded-xl px-4" onClick={() => openConnectModal()}>
-            <Wallet className="mr-1.5 h-4 w-4" />
-            Connect wallet
-          </Button>
-        )}
-      </div>
+            <span className={playgroundStatPillClass}>
+              <Radio className="h-3.5 w-3.5 text-primary" aria-hidden />
+              USDC · PayAI mainnets
+            </span>
+          </>
+        }
+      />
 
-      {/* Search */}
-      <div className={cn("relative", playgroundSectionEnter)} style={{ animationDelay: "60ms" }}>
-        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name, path, or ID…"
-          className={playgroundSearchClass}
-        />
-      </div>
-
-      {/* Filters */}
       <div
-        className={cn("flex flex-wrap gap-1.5", playgroundSectionEnter)}
-        style={{ animationDelay: "100ms" }}
+        className={cn(playgroundToolbarClass, playgroundSectionEnter)}
+        style={{ animationDelay: "60ms" }}
       >
-        <button type="button" onClick={() => setActiveGroup(null)} className={playgroundChipClass(activeGroup === null)}>
+        <div className="relative min-w-0 flex-1">
+          <Search
+            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden
+          />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search endpoints by name, path, or ID…"
+            className={playgroundSearchClass}
+            aria-label="Search API catalog"
+          />
+        </div>
+        {hasFilters ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-10 shrink-0 rounded-xl px-3"
+            onClick={clearFilters}
+          >
+            <X className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+            Clear filters
+          </Button>
+        ) : null}
+      </div>
+
+      <div
+        className={cn(playgroundFilterRailClass, playgroundSectionEnter)}
+        style={{ animationDelay: "100ms" }}
+        role="group"
+        aria-label="Filter by category"
+      >
+        <button
+          type="button"
+          onClick={() => setActiveGroup(null)}
+          className={playgroundChipClass(activeGroup === null)}
+        >
           All
         </button>
         {groups.map((g) => (
@@ -191,37 +234,43 @@ export function SyraApiCatalog() {
             className={playgroundChipClass(activeGroup === g.slug)}
           >
             {g.name}
+            <span className="ml-1 tabular-nums text-muted-foreground/80">({g.count})</span>
           </button>
         ))}
       </div>
 
-      {/* Cards */}
-      {filteredFlows.length === 0 ? (
-        <p
-          className={cn(
-            "py-12 text-center text-sm text-muted-foreground",
-            "animate-in fade-in duration-300 fill-mode-both",
-          )}
-        >
-          {allFlows.length === 0
-            ? "No x402 APIs are available right now."
-            : search.trim() || activeGroup
-              ? "No APIs match your search."
-              : "No APIs match the current filter."}
-        </p>
+      {catalogLoading && allFlows.length === 0 ? (
+        <PlaygroundCatalogSkeleton count={12} />
+      ) : filteredFlows.length === 0 ? (
+        <PlaygroundEmptyState
+          title={allFlows.length === 0 ? "No endpoints available" : "No matches found"}
+          description={
+            allFlows.length === 0
+              ? "The x402 catalog could not be loaded. Check your API connection or try again shortly."
+              : "Try a different search term or clear your category filter."
+          }
+          action={
+            hasFilters ? (
+              <Button type="button" variant="outline" size="sm" onClick={clearFilters}>
+                Clear filters
+              </Button>
+            ) : undefined
+          }
+        />
       ) : (
         <div
           key={activeGroup ?? "all"}
-          className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+          className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
         >
           {filteredFlows.map((flow, index) => {
-            const { detail } = splitFlowLabel(flow.label);
+            const path = flowPath(flow.url);
+            const groupName = getFlowGroup(flow).name;
             return (
               <SyraApiCard
                 key={flow.id}
                 flow={flow}
-                detail={detail}
-                path={flowPath(flow.url)}
+                path={path}
+                groupName={groupName}
                 active={flow.id === selectedFlowId}
                 isLoading={isLoading}
                 staggerIndex={index}
@@ -235,13 +284,20 @@ export function SyraApiCatalog() {
       <PlaygroundResponseSheet
         open={isResponsePanelOpen}
         onOpenChange={setIsResponsePanelOpen}
-        title={selectedFlow ? splitFlowLabel(selectedFlow.label).detail : "API request"}
+        title={
+          selectedFlow
+            ? splitFlowLabel(selectedFlow.label).name
+            : "API request"
+        }
         subtitle={selectedFlow ? flowPath(selectedFlow.url) : undefined}
         status={status}
         response={response}
         paymentDetails={paymentDetails}
         paymentLane={paymentLane}
         isLoading={isLoading}
+        selectedPaymentChain={selectedPaymentChain}
+        onSelectPaymentChain={selectPaymentChain}
+        paymentOptionsByChain={paymentOptionsByChain}
         onRunAgain={selectedFlow ? () => handleTry(selectedFlow) : undefined}
         onPayAndRetry={() => setIsPaymentModalOpen(true)}
         onResend={() => {

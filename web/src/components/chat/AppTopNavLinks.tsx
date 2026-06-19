@@ -24,15 +24,10 @@ function isDashboardRoute(pathname: string): boolean {
     "/overview",
     "/agent-setup",
     "/trading-experiment",
-    "/vibe-trading",
-    "/arena",
     "/arbitrage-experiment",
     "/lp-experiment",
-    "/alpha",
     "/assets",
     "/pumpfun",
-    "/pumpfun-experiment",
-    "/rise-experiment",
     INTERNAL_BASE_PATH,
   ].some((route) => pathname === route || pathname.startsWith(`${route}/`));
 }

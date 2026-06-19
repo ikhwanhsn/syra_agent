@@ -84,7 +84,7 @@ router.get('/summary', requireSession({ allowGuest: true }), async (req, res) =>
 
     const chatWallet = await AgentWallet.findOne({
       anonymousId,
-      purpose: 'chat',
+      purpose: 'spend',
       status: { $ne: 'retired' },
     }).lean();
 

@@ -2,9 +2,10 @@ import { useEffect, useState, type ComponentType, type ReactNode } from "react";
 import { NavLink, useLocation, useNavLinkActive } from "@/lib/navigation";
 import {
   ChevronRight,
+  FileSearch,
   FlaskConical,
   LayoutDashboard,
-  Telescope,
+  Trophy,
   UsersRound,
   type LucideIcon,
 } from "lucide-react";
@@ -15,6 +16,16 @@ import { DrawerDismissButton } from "@/components/ui/drawer-dismiss-button";
 import { SidebarPanelToggle } from "@/components/layout/SidebarPanelToggle";
 import { cn } from "@/lib/utils";
 import { INTERNAL_BASE_PATH } from "@/lib/internalRoutes";
+import { useMachineMoneyPreview } from "@/contexts/MachineMoneyPreviewContext";
+import { DASHBOARD_PILLAR_NAV, MACHINE_MONEY_SOON_BADGE } from "@/lib/dashboardPillarNav";
+import { DASHBOARD_MARKET_INTEL_NAV } from "@/lib/dashboardMarketIntelNav";
+import { DASHBOARD_EXPERIMENT_NAV } from "@/lib/dashboardExperimentNav";
+
+export const INTERNAL_TEAM_SIDEBAR_BADGE = {
+  label: "Team",
+  className:
+    "border-violet-500/35 bg-violet-500/10 text-violet-800 dark:text-violet-300",
+} as const;
 
 const EXPERIMENTS_STORAGE_KEY = "syra.dashboard.experimentsOpen";
 
@@ -131,18 +142,16 @@ export function SidebarIconNavLink({
 }
 
 export function SidebarIconRail({
-  experimentItems,
-  showInternalTeamMonitor,
-  matchAlphaIntel,
+  showAdminDashboard,
   onExpand,
 }: {
-  experimentItems: readonly SidebarExperimentItem[];
-  showInternalTeamMonitor: boolean;
-  matchAlphaIntel: ActiveMatcher;
+  showAdminDashboard: boolean;
   onExpand: () => void;
 }) {
-  const { pathname, search } = useLocation();
-  const experimentsActive = experimentItems.some((item) => item.isActive(pathname, search));
+  const { pathname } = useLocation();
+  const { machineMoneyUnlocked } = useMachineMoneyPreview();
+  const marketIntelActive = DASHBOARD_MARKET_INTEL_NAV.some((item) => item.isActive(pathname));
+  const experimentsActive = DASHBOARD_EXPERIMENT_NAV.some((item) => item.isActive(pathname));
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -154,30 +163,72 @@ export function SidebarIconRail({
         <nav className="relative z-10 flex min-h-0 flex-1 flex-col items-center gap-0.5 overflow-y-auto overflow-x-hidden px-2 py-3 scrollbar-thin">
           <SidebarIconNavLink to="/overview" icon={LayoutDashboard} label="Overview" end />
           <SidebarDivider className="my-2 w-8" />
-          <SidebarIconNavLink to="/alpha" icon={Telescope} label="Alpha" end matchActive={matchAlphaIntel} />
-          <SidebarDivider className="my-2 w-8" />
-          <div
-            className={cn(
-              "mb-1 flex h-7 w-7 items-center justify-center rounded-lg transition-colors",
-              experimentsActive ? "bg-primary/10 text-primary" : "text-muted-foreground/40",
-            )}
-            aria-hidden
-          >
-            <FlaskConical className="h-3.5 w-3.5" strokeWidth={2} />
-          </div>
-          {experimentItems.map((item) => (
+          {DASHBOARD_PILLAR_NAV.map((item) => (
             <SidebarIconNavLink
               key={item.id}
               to={item.to}
               icon={item.icon}
-              label={item.badge ? `${item.label} (${item.badge.label})` : item.label}
+              label={
+                machineMoneyUnlocked
+                  ? item.label
+                  : `${item.label} (${MACHINE_MONEY_SOON_BADGE.label})`
+              }
+              end
               matchActive={item.isActive}
             />
           ))}
-          {showInternalTeamMonitor ? (
+          <SidebarDivider className="my-2 w-8" />
+          <div
+            className={cn(
+              "mb-1 flex h-7 w-7 items-center justify-center rounded-lg transition-colors",
+              marketIntelActive ? "bg-primary/10 text-primary" : "text-muted-foreground/40",
+            )}
+            aria-hidden
+          >
+            <FileSearch className="h-3.5 w-3.5" strokeWidth={2} />
+          </div>
+          {DASHBOARD_MARKET_INTEL_NAV.map((item) => (
+            <SidebarIconNavLink
+              key={item.id}
+              to={item.to}
+              icon={item.icon}
+              label={item.label}
+              end
+              matchActive={item.isActive}
+            />
+          ))}
+          {showAdminDashboard ? (
             <>
               <SidebarDivider className="my-2 w-8" />
-              <SidebarIconNavLink to={INTERNAL_BASE_PATH} icon={UsersRound} label="Internal" />
+              <div
+                className={cn(
+                  "mb-1 flex h-7 w-7 items-center justify-center rounded-lg transition-colors",
+                  experimentsActive ? "bg-primary/10 text-primary" : "text-muted-foreground/40",
+                )}
+                aria-hidden
+              >
+                <FlaskConical className="h-3.5 w-3.5" strokeWidth={2} />
+              </div>
+              {DASHBOARD_EXPERIMENT_NAV.map((item) => (
+                <SidebarIconNavLink
+                  key={item.id}
+                  to={item.to}
+                  icon={item.icon}
+                  label={item.badge ? `${item.label} (${item.badge.label})` : item.label}
+                  matchActive={item.isActive}
+                />
+              ))}
+              <SidebarDivider className="my-2 w-8" />
+              <SidebarIconNavLink
+                to="/hackathon"
+                icon={Trophy}
+                label={`Hackathons (${INTERNAL_TEAM_SIDEBAR_BADGE.label})`}
+              />
+              <SidebarIconNavLink
+                to={INTERNAL_BASE_PATH}
+                icon={UsersRound}
+                label={`Internal (${INTERNAL_TEAM_SIDEBAR_BADGE.label})`}
+              />
             </>
           ) : null}
         </nav>
@@ -186,18 +237,25 @@ export function SidebarIconRail({
   );
 }
 
+export type SidebarNavBadge = {
+  label: string;
+  className?: string;
+};
+
 export function SidebarNavLink({
   to,
   icon: Icon,
   children,
   end,
   matchActive,
+  badge,
 }: {
   to: string;
   icon: ComponentType<LucideProps>;
   children: ReactNode;
   end?: boolean;
   matchActive?: ActiveMatcher;
+  badge?: SidebarNavBadge;
 }) {
   const { pathname, search } = useLocation();
   const { isActive: routerActive } = useNavLinkActive(to, end);
@@ -214,16 +272,18 @@ export function SidebarNavLink({
         <span className={navIconClasses(isActive)}>
           <Icon className="h-[16px] w-[16px] shrink-0" strokeWidth={isActive ? 2.25 : 2} aria-hidden />
         </span>
-        <span className="min-w-0 flex-1 truncate text-[13px] font-medium tracking-tight">{children}</span>
+        <span className="min-w-0 flex-1 truncate text-[13px] font-medium tracking-tight">
+          <span className="flex items-center gap-1.5">
+            <span className="truncate">{children}</span>
+            {badge ? <SidebarNavBadge badge={badge} /> : null}
+          </span>
+        </span>
       </span>
     </NavLink>
   );
 }
 
-export type SidebarExperimentBadge = {
-  label: string;
-  className?: string;
-};
+export type SidebarExperimentBadge = SidebarNavBadge;
 
 export type SidebarExperimentItem = {
   id: string;
@@ -235,7 +295,7 @@ export type SidebarExperimentItem = {
   badge?: SidebarExperimentBadge;
 };
 
-function ExperimentNavBadge({ badge }: { badge: SidebarExperimentBadge }) {
+function SidebarNavBadge({ badge }: { badge: SidebarNavBadge }) {
   return (
     <span
       className={cn(
@@ -248,7 +308,13 @@ function ExperimentNavBadge({ badge }: { badge: SidebarExperimentBadge }) {
   );
 }
 
-export function SidebarExperimentsNav({ items }: { items: readonly SidebarExperimentItem[] }) {
+export function SidebarExperimentsNav({
+  items,
+  groupBadge,
+}: {
+  items: readonly SidebarExperimentItem[];
+  groupBadge?: SidebarNavBadge;
+}) {
   const { pathname, search } = useLocation();
   const childActive = items.some((item) => item.isActive(pathname, search));
 
@@ -292,7 +358,10 @@ export function SidebarExperimentsNav({ items }: { items: readonly SidebarExperi
           <FlaskConical className="h-4 w-4" strokeWidth={childActive ? 2.25 : 2} aria-hidden />
         </span>
         <span className="min-w-0 flex-1 text-left">
-          <span className="block truncate text-[13px] font-semibold tracking-tight">Experiment</span>
+          <span className="flex items-center gap-1.5">
+            <span className="truncate text-[13px] font-semibold tracking-tight">Experiment</span>
+            {groupBadge ? <SidebarNavBadge badge={groupBadge} /> : null}
+          </span>
           <span className="mt-0.5 block truncate text-[10px] font-medium text-muted-foreground/70">
             {open ? `${items.length} trading desks` : "Expand desks"}
           </span>
@@ -345,7 +414,7 @@ export function SidebarExperimentsNav({ items }: { items: readonly SidebarExperi
                       <span className="block truncate text-[12px] font-semibold leading-tight tracking-tight">
                         {item.label}
                       </span>
-                      {item.badge ? <ExperimentNavBadge badge={item.badge} /> : null}
+                      {item.badge ? <SidebarNavBadge badge={item.badge} /> : null}
                     </span>
                     {item.description ? (
                       <span className="mt-0.5 block truncate text-[10px] leading-snug text-muted-foreground/65">

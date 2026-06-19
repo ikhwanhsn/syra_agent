@@ -63,16 +63,30 @@ const agentWalletSchema = new mongoose.Schema(
     avatarUrl: { type: String, required: false },
 
     /**
-     * Wallet role: chat (default) pays for agent chat/tools; lp funds on-chain LP experiments.
-     * Future agent types can add more enum values.
+     * Wallet role: spend (primary, pays chat/tools/x402), earn/treasury/invest/grow pillar treasuries,
+     * lp for internal-team LP experiments. `chat` is a deprecated alias for spend.
      */
     purpose: {
       type: String,
-      enum: ['chat', 'lp'],
-      default: 'chat',
+      enum: ['spend', 'earn', 'treasury', 'invest', 'grow', 'lp', 'chat'],
+      default: 'spend',
       required: true,
       index: true,
     },
+
+    /** How this wallet row was first provisioned. */
+    provisionedVia: {
+      type: String,
+      enum: ['guest', 'connect', 'signin', 'x402', 'migration'],
+      default: 'guest',
+      index: true,
+    },
+
+    /** External x402 payer address when provisioned via first paid API access. */
+    payerAddress: { type: String, default: null, sparse: true, index: true },
+
+    /** Per-wallet allocation rules (e.g. spend.chat = 0.10). Placeholder until enforcement ships. */
+    allocationConfig: { type: mongoose.Schema.Types.Mixed, default: null },
   },
   { timestamps: true }
 );

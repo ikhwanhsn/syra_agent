@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useNavigate } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
-import { History, Wallet } from "lucide-react";
+import { History } from "lucide-react";
 import { HistoryPanel } from "@/components/HistoryPanel";
 import { RequestBuilder } from "@/components/RequestBuilder";
 import { PlaygroundResponseSheet } from "@/components/playground/PlaygroundResponseSheet";
@@ -11,12 +11,10 @@ import { MppLaneStrip } from "@/components/MppLaneStrip";
 import { resolvePlaygroundPaymentLane } from "@/lib/paymentLane";
 import { getPlaygroundSyraPathname } from "@/lib/playgroundUrl";
 import { MAIN_CONTENT_PB_SAFE_CLASS } from "@/lib/branding";
+import { PlaygroundHero } from "@/components/playground/PlaygroundHero";
 import { playgroundSectionEnter } from "@/components/playground/playgroundMotion";
 import {
   PLAYGROUND_PAGE_CLASS,
-  playgroundSectionHeaderClass,
-  playgroundSectionSubtitleClass,
-  playgroundSectionTitleClass,
   playgroundStatPillClass,
 } from "@/components/playground/playgroundStyles";
 import { cn } from "@/lib/utils";
@@ -54,6 +52,7 @@ export function PlaygroundCustomTester() {
     setIsSidebarOpen,
     selectedPaymentChain,
     selectPaymentChain,
+    paymentOptionsByChain,
     setIsPaymentModalOpen,
     isDesktopSidebarOpen,
     setIsDesktopSidebarOpen,
@@ -133,50 +132,36 @@ export function PlaygroundCustomTester() {
           onSidebarWidthChange={setSidebarWidth}
         />
 
-        <div className="min-w-0 flex-1 space-y-5">
-          <div
-            className={cn(
-              playgroundSectionHeaderClass,
-              playgroundSectionEnter,
-            )}
-          >
-            <div>
-              <h2 className={playgroundSectionTitleClass}>Custom API</h2>
-              <p className={playgroundSectionSubtitleClass}>
-                Send any payment-gated URL — full control over method, headers, and body.
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              {wallet.connected ? (
-                <span className={playgroundStatPillClass}>
-                  <Wallet className="h-3.5 w-3.5 text-primary" aria-hidden />
-                  {wallet.balance || "0 USDC"}
-                </span>
-              ) : (
-                <Button
-                  variant="neon"
-                  size="sm"
-                  className="rounded-xl px-4"
-                  onClick={() => openConnectModal()}
-                >
-                  <Wallet className="mr-1.5 h-4 w-4" />
-                  Connect wallet
-                </Button>
-              )}
+        <div className="min-w-0 flex-1 space-y-6">
+          <PlaygroundHero
+            kicker="Custom tester"
+            title="Send any x402 request"
+            description="Full control over method, headers, query params, and body — with history, sharing, and live payment flows."
+            walletConnected={wallet.connected}
+            walletBalance={wallet.balance}
+            onConnectWallet={() => openConnectModal()}
+            actions={
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                className="rounded-xl lg:hidden"
+                className="h-10 rounded-xl lg:hidden"
                 onClick={() => setIsSidebarOpen(true)}
               >
-                <History className="mr-1.5 h-4 w-4" />
+                <History className="mr-1.5 h-4 w-4" aria-hidden />
                 History
               </Button>
-            </div>
-          </div>
+            }
+            badges={
+              paymentLane === "mpp" ? (
+                <span className={playgroundStatPillClass}>MPP lane</span>
+              ) : (
+                <span className={playgroundStatPillClass}>x402 lane</span>
+              )
+            }
+          />
 
-          <div className={playgroundSectionEnter} style={{ animationDelay: "60ms" }}>
+          <div className={playgroundSectionEnter} style={{ animationDelay: "80ms" }}>
             {paymentLane === "mpp" ? (
               <div className="mb-3">
                 <MppLaneStrip />
@@ -217,6 +202,9 @@ export function PlaygroundCustomTester() {
         paymentDetails={effectivePaymentDetails}
         paymentLane={paymentLane}
         isLoading={isLoading}
+        selectedPaymentChain={selectedPaymentChain}
+        onSelectPaymentChain={selectPaymentChain}
+        paymentOptionsByChain={paymentOptionsByChain}
         onRunAgain={handleSend}
         onPayAndRetry={() => setIsPaymentModalOpen(true)}
         onResend={() => {

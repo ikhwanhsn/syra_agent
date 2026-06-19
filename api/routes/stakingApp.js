@@ -11,26 +11,15 @@ import {
 import { requireMongooseConnection } from '../config/mongoose.js';
 import { computeOperatorStats } from '../services/streamflowLockAggregates.js';
 import { requireSession } from '../utils/requireSession.js';
+import { getAdminDashboardWallets, isAdminWalletAddress } from '../libs/adminWallet.js';
 
-const DEFAULT_ADMIN_WALLET = 'FiejqEgqQ8bxtUJpZMy5p1wVCcejKyy5PgZ4cwmLBvYD';
-
-/** Admin wallets allowed for operator-stats (api/.env + optional VITE_* from web/.env.local in dev). */
+/** Admin wallets allowed for operator-stats. */
 function getAdminWallets() {
-  const raw = [
-    process.env.ADMIN_DASHBOARD_WALLET,
-    process.env.VITE_ADMIN_DASHBOARD_WALLET,
-    process.env.SYRA_ADMIN_WALLETS,
-    DEFAULT_ADMIN_WALLET,
-  ]
-    .filter(Boolean)
-    .flatMap((s) => String(s).split(','))
-    .map((s) => s.trim())
-    .filter(Boolean);
-  return [...new Set(raw)];
+  return getAdminDashboardWallets();
 }
 
 function getAdminWallet() {
-  return getAdminWallets()[0] ?? DEFAULT_ADMIN_WALLET;
+  return getAdminWallets()[0];
 }
 
 /**
@@ -46,7 +35,7 @@ function requireStakingAdmin(req, res, next) {
     return;
   }
   const admins = getAdminWallets();
-  if (!admins.includes(req.user.walletAddress)) {
+  if (!isAdminWalletAddress(req.user.walletAddress)) {
     res.status(403).json({
       success: false,
       error: 'not_admin',

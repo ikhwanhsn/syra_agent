@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="PayAI">
+  <defs>
+    <linearGradient id="payai-top" x1="32" y1="14" x2="32" y2="30" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E8F0FF"/>
+      <stop offset="1" stop-color="#9BB8FF"/>
+    </linearGradient>
+    <linearGradient id="payai-mid" x1="32" y1="22" x2="32" y2="38" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6B9AFF"/>
+      <stop offset="1" stop-color="#3D6BFF"/>
+    </linearGradient>
+    <linearGradient id="payai-bot" x1="32" y1="30" x2="32" y2="46" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2E5BFF"/>
+      <stop offset="1" stop-color="#1A3FD4"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#0D0D0D"/>
+  <path fill="url(#payai-bot)" d="M32 30 44 38 32 46 20 38Z"/>
+  <path fill="url(#payai-mid)" d="M32 22 44 30 32 38 20 30Z"/>
+  <path fill="url(#payai-top)" d="M32 14 44 22 32 30 20 22Z"/>
+</svg>

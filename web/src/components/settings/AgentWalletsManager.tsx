@@ -30,15 +30,21 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
+import {
+  walletAgentCard,
+  walletStatHint,
+  walletStatLabel,
+} from "@/components/wallet/walletPageStyles";
 import { agentWalletApi } from "@/lib/chatApi";
 import {
   AGENT_WALLET_ACCENT,
-  AGENT_WALLET_COMING_SOON_ACCENT,
-  AGENT_WALLET_COMING_SOON_SLOTS,
-  getAgentWalletComingSoonSlot,
+  AGENT_WALLET_SLOTS,
   getAgentWalletSlot,
-  type AgentWalletComingSoonId,
+  PILLAR_WALLET_PURPOSES,
+  type AgentWalletPurpose,
 } from "@/lib/agentWalletCatalog";
+import { isAdminWallet } from "@/constants/adminWallet";
+import { useWalletContext } from "@/contexts/WalletContext";
 import { clearAgentWalletLocalSession } from "@/lib/agentWalletSession";
 import { formatTreasuryUsd } from "@/lib/agentWalletBalanceDisplay";
 import { formatSol } from "@/lib/dashboardOverviewAggregates";
@@ -127,67 +133,6 @@ function exportKeyStatusMessage(reason: string | undefined): string {
   }
 }
 
-function AgentWalletComingSoonCard({ id }: { id: AgentWalletComingSoonId }) {
-  const slot = getAgentWalletComingSoonSlot(id);
-  const accent = AGENT_WALLET_COMING_SOON_ACCENT[id];
-  const Icon = slot.icon;
-
-  return (
-    <Card
-      className={cn(
-        overviewCardShell,
-        "relative overflow-hidden ring-1 ring-inset opacity-[0.92]",
-        accent.border,
-      )}
-    >
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 items-start gap-3">
-            <span
-              className={cn(
-                "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset",
-                accent.bgActive,
-                accent.border,
-              )}
-            >
-              <Icon className={cn("h-5 w-5", accent.icon)} aria-hidden />
-            </span>
-            <div className="min-w-0">
-              <p className="font-semibold tracking-tight text-foreground">{slot.label}</p>
-              <p className="mt-0.5 text-sm text-muted-foreground">{slot.description}</p>
-            </div>
-          </div>
-          <Badge
-            variant="outline"
-            className={cn("shrink-0 rounded-full border-0 text-[10px] font-semibold uppercase tracking-wide", accent.pill)}
-          >
-            Coming soon
-          </Badge>
-        </div>
-
-        <div className="mt-5 space-y-1">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Balance</p>
-          <p className="font-mono text-3xl font-semibold tabular-nums tracking-tight text-muted-foreground/50">—</p>
-          <p className="font-mono text-sm tabular-nums text-muted-foreground/45">Not available yet</p>
-        </div>
-
-        <div className="mt-5 grid grid-cols-2 gap-2">
-          <Button type="button" className="h-11 rounded-xl font-semibold" disabled>
-            Deposit
-          </Button>
-          <Button type="button" variant="outline" className="h-11 rounded-xl font-semibold" disabled>
-            Withdraw
-          </Button>
-        </div>
-
-        <p className="mt-4 text-center text-xs leading-relaxed text-muted-foreground">
-          Dedicated treasury for this agent type is in development.
-        </p>
-      </CardContent>
-    </Card>
-  );
-}
-
 function AgentWalletManageCard({
   kind,
   wallet,
@@ -204,7 +149,7 @@ function AgentWalletManageCard({
   removing,
   layout = "default",
 }: {
-  kind: "chat" | "lp";
+  kind: AgentWalletPurpose;
   wallet: ManagedAgentWallet;
   solBalance: number | null;
   usdcBalance: number | null;
@@ -313,25 +258,25 @@ function AgentWalletManageCard({
     wallet.walletAddress,
   ]);
 
-  const addressLabel = kind === "chat" ? "Agent address" : "LP agent address";
-  const sessionLabel = kind === "chat" ? "Session ID" : "LP session ID";
+  const addressLabel = kind === "lp" ? "LP agent address" : `${slot.shortLabel} agent address`;
+  const sessionLabel = kind === "lp" ? "LP session ID" : `${slot.shortLabel} session ID`;
 
   if (layout === "simple") {
     return (
       <>
         <Card
           className={cn(
-            overviewCardShell,
-            "overflow-hidden ring-1 ring-inset transition-shadow hover:shadow-md",
+            layout === "simple" ? walletAgentCard : overviewCardShell,
+            layout !== "simple" && "overflow-hidden ring-1 ring-inset transition-shadow hover:shadow-md",
             accent.border,
           )}
         >
-          <CardContent className="p-5">
+          <CardContent className={cn(layout === "simple" ? "p-6" : "p-5")}>
             <div className="flex items-start justify-between gap-3">
               <div className="flex min-w-0 items-start gap-3">
                 <span
                   className={cn(
-                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset",
+                    "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset",
                     accent.bgActive,
                     accent.border,
                   )}
@@ -340,7 +285,7 @@ function AgentWalletManageCard({
                 </span>
                 <div className="min-w-0">
                   <p className="font-semibold tracking-tight text-foreground">{slot.label}</p>
-                  <p className="mt-0.5 text-sm text-muted-foreground">{slot.description}</p>
+                  <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">{slot.description}</p>
                 </div>
               </div>
               <Button
@@ -360,17 +305,17 @@ function AgentWalletManageCard({
               </Button>
             </div>
 
-            <div className="mt-5 space-y-1">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Balance</p>
+            <div className="mt-6 space-y-1 rounded-xl border border-border/40 bg-background/30 px-4 py-3">
+              <p className={walletStatLabel}>Available balance</p>
               <p className="font-mono text-3xl font-semibold tabular-nums tracking-tight text-foreground">
                 {balanceLoading ? "…" : formatTreasuryUsd(usdcBalance)}
               </p>
-              <p className="font-mono text-sm tabular-nums text-muted-foreground">
-                {balanceLoading ? "…" : solBalance != null ? `${formatSol(solBalance)} SOL` : "— SOL"}
+              <p className={walletStatHint}>
+                {balanceLoading ? "…" : solBalance != null ? `${formatSol(solBalance)} SOL for network fees` : "— SOL for network fees"}
               </p>
             </div>
 
-            <div className="mt-5 grid grid-cols-2 gap-2">
+            <div className="mt-5 grid grid-cols-2 gap-2.5">
               <Button type="button" className="h-11 rounded-xl gap-2 font-semibold" onClick={onFund}>
                 <Zap className="h-4 w-4" aria-hidden />
                 Deposit
@@ -671,68 +616,115 @@ function AgentWalletManageCard({
 }
 
 export function AgentWalletsManager({
+  spendWallet,
   chatWallet,
   lpWallet,
+  pillarEntries,
+  spendSolBalance,
+  spendUsdcBalance,
   chatSolBalance,
   chatUsdcBalance,
   lpSolBalance,
   lpUsdcBalance,
+  spendBalanceLoading,
   chatBalanceLoading,
   lpBalanceLoading,
+  refreshingBalances,
   refreshingChatBalances,
   refreshingLpBalances,
   hasLinkedWallet,
   syraAuthenticated,
   onCopy,
   copiedField,
+  onFundSpend,
   onFundChat,
   onFundLp,
+  onFundPillar,
+  onWithdrawSpend,
   onWithdrawChat,
   onWithdrawLp,
+  onWithdrawPillar,
+  onRefreshBalances,
   onRefreshChatBalances,
   onRefreshLpBalances,
+  onCreateSpendWallet,
   onCreateChatWallet,
-  onCreateLpWallet,
+  creatingSpend,
   creatingChat,
-  creatingLp,
   embedded = false,
   layout = "default",
-  showComingSoon = false,
 }: {
-  chatWallet: ManagedAgentWallet | undefined;
+  spendWallet?: ManagedAgentWallet;
+  chatWallet?: ManagedAgentWallet;
   lpWallet: ManagedAgentWallet | undefined;
-  chatSolBalance: number | null;
-  chatUsdcBalance: number | null;
+  pillarEntries?: Array<{
+    purpose: AgentWalletPurpose;
+    wallet: ManagedAgentWallet;
+    balances: { solBalance: number | null; usdcBalance: number | null };
+  }>;
+  spendSolBalance: number | null;
+  spendUsdcBalance: number | null;
+  chatSolBalance?: number | null;
+  chatUsdcBalance?: number | null;
   lpSolBalance: number | null;
   lpUsdcBalance: number | null;
-  chatBalanceLoading: boolean;
+  spendBalanceLoading?: boolean;
+  chatBalanceLoading?: boolean;
   lpBalanceLoading: boolean;
-  refreshingChatBalances: boolean;
-  refreshingLpBalances: boolean;
+  refreshingBalances?: boolean;
+  refreshingChatBalances?: boolean;
+  refreshingLpBalances?: boolean;
   hasLinkedWallet: boolean;
   syraAuthenticated: boolean;
   onCopy: (text: string, label: string) => void;
   copiedField: string | null;
-  onFundChat: () => void;
+  onFundSpend?: () => void;
+  onFundChat?: () => void;
   onFundLp: () => void;
+  onFundPillar?: (purpose: AgentWalletPurpose) => void;
+  onWithdrawSpend?: () => void;
   onWithdrawChat?: () => void;
   onWithdrawLp?: () => void;
-  onRefreshChatBalances: () => void;
-  onRefreshLpBalances: () => void;
-  onCreateChatWallet: () => void;
-  onCreateLpWallet: () => void;
-  creatingChat: boolean;
-  creatingLp: boolean;
-  /** Hide section title when rendered inside a dedicated page shell. */
+  onWithdrawPillar?: (purpose: AgentWalletPurpose) => void;
+  onRefreshBalances?: () => void;
+  onRefreshChatBalances?: () => void;
+  onRefreshLpBalances?: () => void;
+  onCreateSpendWallet?: () => void;
+  onCreateChatWallet?: () => void;
+  creatingSpend?: boolean;
+  creatingChat?: boolean;
   embedded?: boolean;
-  /** Simpler cards for the dedicated wallet page. */
   layout?: "default" | "simple";
-  /** Show trading & arbitrage placeholders (wallet page). */
-  showComingSoon?: boolean;
 }) {
+  const primaryWallet = spendWallet ?? chatWallet;
+  const primarySol = spendSolBalance ?? chatSolBalance ?? null;
+  const primaryUsdc = spendUsdcBalance ?? chatUsdcBalance ?? null;
+  const primaryLoading = spendBalanceLoading ?? chatBalanceLoading ?? false;
+  const primaryRefreshing = refreshingBalances ?? refreshingChatBalances ?? false;
+  const onFundPrimary = onFundSpend ?? onFundChat ?? (() => {});
+  const onWithdrawPrimary = onWithdrawSpend ?? onWithdrawChat;
+  const onRefreshPrimary = onRefreshBalances ?? onRefreshChatBalances ?? (() => {});
+  const onCreatePrimary = onCreateSpendWallet ?? onCreateChatWallet ?? (() => {});
+  const creatingPrimary = creatingSpend ?? creatingChat ?? false;
+
+  const { connected, address } = useWalletContext();
+  const showLp = isAdminWallet(connected, address);
+
+  const entries =
+    pillarEntries ??
+    (primaryWallet
+      ? [
+          {
+            purpose: "spend" as const,
+            wallet: primaryWallet,
+            balances: { solBalance: primarySol, usdcBalance: primaryUsdc },
+          },
+        ]
+      : []);
+
   const { toast } = useToast();
   const { requestSyraAuth } = useSyraAuth();
-  const [removeTarget, setRemoveTarget] = useState<{ wallet: ManagedAgentWallet; kind: "chat" | "lp" } | null>(null);
+  const [removeTarget, setRemoveTarget] = useState<{ wallet: ManagedAgentWallet; kind: AgentWalletPurpose } | null>(null);
   const [removing, setRemoving] = useState(false);
 
   const handleConfirmRemove = useCallback(async () => {
@@ -744,14 +736,14 @@ export function AgentWalletsManager({
         if (!ok) return;
       }
       await agentWalletApi.retire(removeTarget.wallet.anonymousId, {
-        includeSibling: removeTarget.kind === "chat",
+        includeSibling: removeTarget.kind === "spend",
       });
       clearAgentWalletLocalSession();
       toast({
         title: "Wallet removed",
         description:
-          removeTarget.kind === "chat"
-            ? "Chat and LP agent wallets were retired. Reloading to provision fresh wallets."
+          removeTarget.kind === "spend"
+            ? "All pillar agent wallets were retired. Reloading to provision fresh wallets."
             : "LP agent wallet was retired.",
       });
       window.setTimeout(() => {
@@ -782,45 +774,56 @@ export function AgentWalletsManager({
         </div>
       ) : null}
 
-      <div className={cn(layout === "simple" && "grid gap-4 sm:grid-cols-2")}>
-        {chatWallet ? (
-          <AgentWalletManageCard
-            kind="chat"
-            layout={layout}
-            wallet={chatWallet}
-            solBalance={chatSolBalance}
-            usdcBalance={chatUsdcBalance}
-            balanceLoading={chatBalanceLoading}
-            onFund={onFundChat}
-            onWithdraw={onWithdrawChat}
-            onRefreshBalance={onRefreshChatBalances}
-            refreshingBalance={refreshingChatBalances}
-            onCopy={onCopy}
-            copiedField={copiedField}
-            removing={removing && removeTarget?.kind === "chat"}
-            onRemove={() => setRemoveTarget({ wallet: chatWallet, kind: "chat" })}
-          />
-        ) : (
-          <Card className={cn(overviewCardShell, "overflow-hidden border-dashed")}>
-            <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border/50 bg-muted/30">
-                <Wallet2 className="h-6 w-6 text-muted-foreground" aria-hidden />
-              </div>
-              <div className="space-y-1">
-                <p className="font-medium text-foreground">Chat wallet</p>
-                <p className="max-w-md text-sm text-muted-foreground">
-                  Pays for AI tools, research, and API calls while you chat.
-                </p>
-              </div>
-              <Button type="button" className="rounded-xl gap-2" disabled={creatingChat} onClick={onCreateChatWallet}>
-                {creatingChat ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Plus className="h-4 w-4" aria-hidden />}
-                Create chat wallet
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+      <div className={cn(layout === "simple" ? "grid gap-4 sm:grid-cols-2 lg:grid-cols-3" : "grid gap-4 sm:grid-cols-2")}>
+        {entries.length > 0
+          ? entries.map((entry) => (
+              <AgentWalletManageCard
+                key={entry.purpose}
+                kind={entry.purpose}
+                layout={layout}
+                wallet={entry.wallet}
+                solBalance={entry.balances.solBalance}
+                usdcBalance={entry.balances.usdcBalance}
+                balanceLoading={primaryLoading}
+                onFund={() =>
+                  entry.purpose === "spend"
+                    ? onFundPrimary()
+                    : onFundPillar?.(entry.purpose)
+                }
+                onWithdraw={() =>
+                  entry.purpose === "spend"
+                    ? onWithdrawPrimary?.()
+                    : onWithdrawPillar?.(entry.purpose)
+                }
+                onRefreshBalance={onRefreshPrimary}
+                refreshingBalance={primaryRefreshing}
+                onCopy={onCopy}
+                copiedField={copiedField}
+                removing={removing && removeTarget?.kind === entry.purpose}
+                onRemove={() => setRemoveTarget({ wallet: entry.wallet, kind: entry.purpose })}
+              />
+            ))
+          : (
+            <Card className={cn(overviewCardShell, "overflow-hidden border-dashed sm:col-span-2")}>
+              <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border/50 bg-muted/30">
+                  <Wallet2 className="h-6 w-6 text-muted-foreground" aria-hidden />
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Pillar agent wallets</p>
+                  <p className="max-w-md text-sm text-muted-foreground">
+                    Earn, treasury, invest, spend, and grow treasuries power the five-pillar stack. Spend pays for chat and x402.
+                  </p>
+                </div>
+                <Button type="button" className="rounded-xl gap-2" disabled={creatingPrimary} onClick={onCreatePrimary}>
+                  {creatingPrimary ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Plus className="h-4 w-4" aria-hidden />}
+                  Create agent wallets
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
-        {lpWallet ? (
+        {showLp && lpWallet ? (
           <AgentWalletManageCard
             kind="lp"
             layout={layout}
@@ -830,38 +833,14 @@ export function AgentWalletsManager({
             balanceLoading={lpBalanceLoading}
             onFund={onFundLp}
             onWithdraw={onWithdrawLp}
-            onRefreshBalance={onRefreshLpBalances}
-            refreshingBalance={refreshingLpBalances}
+            onRefreshBalance={onRefreshLpBalances ?? onRefreshPrimary}
+            refreshingBalance={refreshingLpBalances ?? primaryRefreshing}
             onCopy={onCopy}
             copiedField={copiedField}
             removing={removing && removeTarget?.kind === "lp"}
             onRemove={() => setRemoveTarget({ wallet: lpWallet, kind: "lp" })}
           />
-        ) : chatWallet ? (
-          <Card className={cn(overviewCardShell, "overflow-hidden border-dashed")}>
-            <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-violet-500/20 bg-violet-500/5">
-                <Droplets className="h-6 w-6 text-violet-500" aria-hidden />
-              </div>
-              <div className="space-y-1">
-                <p className="font-medium text-foreground">LP wallet</p>
-                <p className="max-w-md text-sm text-muted-foreground">
-                  Separate treasury for liquidity experiments on Meteora.
-                </p>
-              </div>
-              <Button type="button" className="rounded-xl gap-2" disabled={creatingLp} onClick={onCreateLpWallet}>
-                {creatingLp ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Plus className="h-4 w-4" aria-hidden />}
-                Create LP wallet
-              </Button>
-            </CardContent>
-          </Card>
         ) : null}
-
-        {showComingSoon
-          ? AGENT_WALLET_COMING_SOON_SLOTS.map((slot) => (
-              <AgentWalletComingSoonCard key={slot.id} id={slot.id} />
-            ))
-          : null}
       </div>
 
       <Dialog open={Boolean(removeTarget)} onOpenChange={(open) => !open && !removing && setRemoveTarget(null)}>
@@ -869,9 +848,9 @@ export function AgentWalletsManager({
           <DialogHeader>
             <DialogTitle>Remove agent wallet?</DialogTitle>
             <DialogDescription>
-              {removeTarget?.kind === "chat"
-                ? "This retires your chat agent wallet and its LP sibling. Withdraw any remaining SOL or USDC first — Syra cannot recover funds after removal."
-                : "This retires your LP agent wallet only. Withdraw any remaining funds first."}
+              {removeTarget?.kind === "spend"
+                ? "This retires your spend agent wallet and all pillar siblings. Withdraw any remaining SOL or USDC first — Syra cannot recover funds after removal."
+                : "This retires this agent wallet. Withdraw any remaining funds first."}
             </DialogDescription>
           </DialogHeader>
           <div className="flex gap-2 rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">

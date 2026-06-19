@@ -1,15 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams, Link, Navigate } from '@/lib/navigation';
 import { Play, Zap, ChevronRight, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
-  getExampleFlowGroups,
   getExampleFlowGroupsFromFlows,
-  getExampleFlowsForGroup,
   getParamsForExampleFlow,
   filterExampleFlowsByGroupSlug,
   type ExampleFlowPreset,
 } from '@/hooks/useApiPlayground';
+import { useX402DiscoveryCatalog } from '@/hooks/useX402DiscoveryCatalog';
 import { PlaygroundPageShell, PlaygroundScrollBody } from '@/components/playground/PlaygroundPageShell';
 import { QueryParamsModal } from '@/components/QueryParamsModal';
 import { useApiPlayground } from '@/hooks/useApiPlayground';
@@ -83,7 +82,11 @@ const ExamplesGroup = () => {
     };
   }, [isMpp]);
 
-  const x402Groups = getExampleFlowGroups();
+  const { flows: x402Flows } = useX402DiscoveryCatalog();
+  const x402Groups = useMemo(
+    () => getExampleFlowGroupsFromFlows(x402Flows),
+    [x402Flows],
+  );
   const mppGroups = getExampleFlowGroupsFromFlows(mppFlows);
   const groups = isMpp ? mppGroups : x402Groups;
   const group = groupSlug ? groups.find((g) => g.slug === groupSlug) : undefined;
@@ -92,7 +95,7 @@ const ExamplesGroup = () => {
     isMpp && groupSlug
       ? filterExampleFlowsByGroupSlug(mppFlows, groupSlug)
       : groupSlug
-        ? getExampleFlowsForGroup(groupSlug)
+        ? filterExampleFlowsByGroupSlug(x402Flows, groupSlug)
         : [];
 
   const [paramsModalFlow, setParamsModalFlow] = useState<ExampleFlowPreset | null>(null);

@@ -11,6 +11,9 @@ describe("isPublicSyraX402Path", () => {
     expect(isPublicSyraX402Path("/pumpfun/trending")).toBe(true);
     expect(isPublicSyraX402Path("/pumpfun/movers")).toBe(true);
     expect(isPublicSyraX402Path("/pumpfun/analyzer")).toBe(true);
+    expect(isPublicSyraX402Path("/pumpfun/scout")).toBe(true);
+    expect(isPublicSyraX402Path("/rise")).toBe(true);
+    expect(isPublicSyraX402Path("/coingecko")).toBe(true);
     expect(isPublicSyraX402Path("/assets")).toBe(true);
     expect(isPublicSyraX402Path("/assets/detail")).toBe(true);
   });

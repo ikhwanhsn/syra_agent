@@ -21,6 +21,8 @@
     "publish-sap-tools": "node -r dotenv/config scripts/publish-sap-tools.js",
     "delete-experiment-non-buy-runs": "node scripts/deleteTradingExperimentNonBuyRuns.js",
     "openapi": "node scripts/export-openapi.mjs",
+    "sync:playground": "node ../scripts/sync-x402-playground-catalog.mjs",
+    "openapi:playground": "npm run openapi && npm run sync:playground",
     "migrate-agent-wallet-secrets": "node -r dotenv/config scripts/migrate-agent-wallet-secrets.js",
     "test-paysh": "node -r dotenv/config scripts/testPayshFlows.js",
     "test-stablesocial": "node -r dotenv/config scripts/testStablesocialFlow.js",

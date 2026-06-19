@@ -17,15 +17,18 @@ import {
   parseX402Response,
   getBestPaymentOption,
   getPaymentOptionsByChain,
+  resolvePlaygroundPaymentChain,
   extractPaymentDetails,
   extractPaymentDetailsFromOption,
   executePayment,
   executeBasePayment,
   executeBscPayment,
-  isBaseNetwork,
+  createEmptyPaymentOptionsByChain,
   isBscNetwork,
-  isSolanaNetwork,
+  isEvmNetwork,
+  isSolanaMainnetNetwork,
   type PaymentChainId,
+  type PaymentOptionsByChain,
   X402Response,
   X402PaymentOption,
 } from "@/lib/x402Client";
@@ -48,7 +51,12 @@ import { SYRA_AGENT_DESCRIPTION } from "@/lib/syraBranding";
 import { enrichEmptyDevProxy500 } from "@/lib/devApiProxyHint";
 import { X402_DISCOVERY_RESOURCE_PATHS } from "@/lib/x402DiscoveryResourcePaths";
 import {
+  buildX402DiscoveryFlowsFromTemplates,
+  buildX402PlaygroundParamsByPath,
+} from "@/lib/x402OpenApiToExampleFlows";
+import {
   isPlaygroundX402FlowUrl,
+  isPublicSyraX402Path,
 } from "@/lib/publicX402Routes";
 import {
   getPlaygroundSyraPathname,
@@ -169,6 +177,15 @@ function isPurchVaultBuyUrl(url: string): boolean {
   }
 }
 /** Example flow preset for quick try (load + send). */
+export interface X402FlowCatalogMeta {
+  segment: string;
+  name: string;
+  summary: string;
+  description?: string;
+  priceUsd?: string;
+  category?: string;
+}
+
 export interface ExampleFlowPreset {
   id: string;
   label: string;
@@ -179,6 +196,8 @@ export interface ExampleFlowPreset {
   body?: string;
   /** Curated x402 examples vs MPP discovery catalog (GET /mpp-openapi.json). */
   examplePaymentCatalog?: "x402" | "mpp";
+  /** Rich catalog metadata for playground cards (auto-generated for discovery flows). */
+  catalogMeta?: X402FlowCatalogMeta;
 }
 
 /** All API endpoint example flows (unversioned paths; resolved at runtime so dev uses localhost:3000). First N are shown on Request Builder; rest on /examples. */
@@ -929,6 +948,114 @@ export function getExampleFlows(): ExampleFlowPreset[] {
           value: "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump",
           enabled: true,
           description: "Solana token mint (base58)",
+        },
+      ],
+    },
+    {
+      id: "pumpfun-scout",
+      label: "pump.fun: live scout (alpha/beta/predicted/utility)",
+      method: "GET",
+      url: `${base}/pumpfun/scout`,
+      params: [
+        {
+          key: "segment",
+          value: "alpha",
+          enabled: true,
+          description: "alpha | beta | predicted | utility",
+        },
+        {
+          key: "period",
+          value: "today",
+          enabled: true,
+          description: "today | week | month",
+        },
+        {
+          key: "limit",
+          value: "10",
+          enabled: true,
+          description: "Max items (default 10, max 50)",
+        },
+        {
+          key: "minPumpScore",
+          value: "48",
+          enabled: false,
+          description: "Minimum pump score (default 48, max 100)",
+        },
+        {
+          key: "llm",
+          value: "false",
+          enabled: false,
+          description: "Optional LLM narrative enrichment",
+        },
+      ],
+    },
+    {
+      id: "rise-scout",
+      label: "RISE: market intel & agent targets",
+      method: "GET",
+      url: `${base}/rise`,
+      params: [
+        {
+          key: "view",
+          value: "intel",
+          enabled: true,
+          description: "intel | markets | targets",
+        },
+        {
+          key: "limit",
+          value: "25",
+          enabled: false,
+          description: "Max markets/targets (default 25, max 100)",
+        },
+        {
+          key: "tier",
+          value: "ready",
+          enabled: false,
+          description: "Agent tier filter for targets: ready | watch",
+        },
+        {
+          key: "mint",
+          value: "",
+          enabled: false,
+          description: "Optional RISE market mint for focused intel",
+        },
+      ],
+    },
+    {
+      id: "coingecko-scout",
+      label: "CoinGecko: top gainers brief",
+      method: "GET",
+      url: `${base}/coingecko`,
+      params: [
+        {
+          key: "view",
+          value: "brief",
+          enabled: true,
+          description: "brief | gainers | predictions",
+        },
+        {
+          key: "topN",
+          value: "8",
+          enabled: true,
+          description: "Top gainers to analyze (default 8, max 25)",
+        },
+        {
+          key: "minMarketCap",
+          value: "1000000",
+          enabled: false,
+          description: "Minimum market cap USD filter",
+        },
+        {
+          key: "includeNews",
+          value: "true",
+          enabled: false,
+          description: "Include news/X bundles",
+        },
+        {
+          key: "llm",
+          value: "false",
+          enabled: false,
+          description: "Optional LLM narrative enrichment",
         },
       ],
     },
@@ -2342,9 +2469,24 @@ export function getExampleFlows(): ExampleFlowPreset[] {
 /** Curated x402 examples only (explicit alias for Examples x402 tab and batch tests). */
 export function getExampleFlowsX402(): ExampleFlowPreset[] {
   const base = getApiBaseUrl();
-  return getExampleFlows().filter((flow) =>
-    isPlaygroundX402FlowUrl(flow.url, base),
-  );
+  const auto = buildX402DiscoveryFlowsFromTemplates(base);
+  const manualExtras = getExampleFlows().filter((flow) => {
+    if (!isPlaygroundX402FlowUrl(flow.url, base)) return false;
+    const path = getPlaygroundSyraPathname(flow.url);
+    return path ? !isPublicSyraX402Path(path) : true;
+  });
+  return [...auto, ...manualExtras];
+}
+
+let x402GeneratedParamsByPath: Record<string, RequestParam[]> | null = null;
+
+function getX402GeneratedParamsByPath(): Record<string, RequestParam[]> {
+  if (!x402GeneratedParamsByPath) {
+    x402GeneratedParamsByPath = buildX402PlaygroundParamsByPath(
+      buildX402DiscoveryFlowsFromTemplates(getApiBaseUrl()),
+    );
+  }
+  return x402GeneratedParamsByPath;
 }
 
 /** Group slug and display name for example flow grouping on /examples. */
@@ -2381,6 +2523,12 @@ export function getFlowGroup(flow: ExampleFlowPreset): {
       }
       if (p.startsWith("/pumpfun/")) {
         return { slug: "pumpfun", name: "pump.fun" };
+      }
+      if (p === "/rise" || p.startsWith("/rise/")) {
+        return { slug: "rise", name: "RISE Scout" };
+      }
+      if (p === "/coingecko" || p.startsWith("/coingecko/")) {
+        return { slug: "coingecko", name: "CoinGecko Scout" };
       }
       if (p.startsWith("/nansen/") && id.startsWith("nansen-")) {
         return { slug: "nansen", name: "Nansen" };
@@ -2440,6 +2588,11 @@ export function getFlowGroup(flow: ExampleFlowPreset): {
     return { slug: "x", name: "X (Twitter)" };
   if (id.startsWith("jupiter-")) return { slug: "jupiter", name: "Jupiter" };
   if (id.startsWith("pumpfun-")) return { slug: "pumpfun", name: "pump.fun" };
+  if (id.startsWith("x402-pumpfun-")) return { slug: "pumpfun", name: "pump.fun" };
+  if (id.startsWith("x402-rise")) return { slug: "rise", name: "RISE Scout" };
+  if (id.startsWith("x402-coingecko")) return { slug: "coingecko", name: "CoinGecko Scout" };
+  if (id.startsWith("rise-")) return { slug: "rise", name: "RISE Scout" };
+  if (id.startsWith("coingecko-")) return { slug: "coingecko", name: "CoinGecko Scout" };
   if (id.startsWith("assets-")) return { slug: "assets", name: "Assets" };
   if (id.startsWith("bitcoin-")) return { slug: "bitcoin", name: "Bitcoin" };
   if (id.startsWith("squid-")) return { slug: "squid", name: "Squid" };
@@ -2472,6 +2625,8 @@ export function getExampleFlowGroupsFromFlows(
     "indicator",
     "jupiter",
     "pumpfun",
+    "rise",
+    "coingecko",
     "assets",
     "bitcoin",
     "preview",
@@ -3317,6 +3472,96 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
           description: "End",
         },
       ],
+      "/pumpfun/scout": [
+        {
+          key: "segment",
+          value: "alpha",
+          enabled: true,
+          description: "alpha | beta | predicted | utility",
+        },
+        {
+          key: "period",
+          value: "today",
+          enabled: true,
+          description: "today | week | month",
+        },
+        {
+          key: "limit",
+          value: "10",
+          enabled: true,
+          description: "Max items (default 10, max 50)",
+        },
+        {
+          key: "minPumpScore",
+          value: "48",
+          enabled: false,
+          description: "Minimum pump score (default 48, max 100)",
+        },
+        {
+          key: "llm",
+          value: "false",
+          enabled: false,
+          description: "Optional LLM narrative enrichment",
+        },
+      ],
+      "/rise": [
+        {
+          key: "view",
+          value: "intel",
+          enabled: true,
+          description: "intel | markets | targets",
+        },
+        {
+          key: "limit",
+          value: "25",
+          enabled: false,
+          description: "Max markets/targets (default 25, max 100)",
+        },
+        {
+          key: "tier",
+          value: "ready",
+          enabled: false,
+          description: "Agent tier filter for targets: ready | watch",
+        },
+        {
+          key: "mint",
+          value: "",
+          enabled: false,
+          description: "Optional RISE market mint for focused intel",
+        },
+      ],
+      "/coingecko": [
+        {
+          key: "view",
+          value: "brief",
+          enabled: true,
+          description: "brief | gainers | predictions",
+        },
+        {
+          key: "topN",
+          value: "8",
+          enabled: true,
+          description: "Top gainers to analyze (default 8, max 25)",
+        },
+        {
+          key: "minMarketCap",
+          value: "1000000",
+          enabled: false,
+          description: "Minimum market cap USD filter",
+        },
+        {
+          key: "includeNews",
+          value: "true",
+          enabled: false,
+          description: "Include news/X bundles",
+        },
+        {
+          key: "llm",
+          value: "false",
+          enabled: false,
+          description: "Optional LLM narrative enrichment",
+        },
+      ],
       "/pumpfun/sol-price": [],
       "/pumpfun/coin": [
         {
@@ -3827,6 +4072,8 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
     };
     const exact = known[path];
     if (exact) return exact.map((p) => ({ ...p }));
+    const generated = getX402GeneratedParamsByPath()[path];
+    if (generated?.length) return generated.map((p) => ({ ...p }));
     if (path.startsWith("/pumpfun/coin/")) return [];
     return null;
   } catch {
@@ -4080,11 +4327,8 @@ export function useApiPlayground() {
   const [paymentOption, setPaymentOption] = useState<
     X402PaymentOption | undefined
   >();
-  const [paymentOptionsByChain, setPaymentOptionsByChain] = useState<{
-    solana: X402PaymentOption | null;
-    base: X402PaymentOption | null;
-    binance: X402PaymentOption | null;
-  }>({ solana: null, base: null, binance: null });
+  const [paymentOptionsByChain, setPaymentOptionsByChain] =
+    useState<PaymentOptionsByChain>(() => createEmptyPaymentOptionsByChain());
   const [selectedPaymentChain, setSelectedPaymentChain] =
     useState<PaymentChainId>("solana");
 
@@ -4574,7 +4818,7 @@ export function useApiPlayground() {
   /** Connect wallet for the given chain (or current selected chain). Use the chain the UI is showing so Phantom/multi-chain wallets connect for the right network. */
   const connectWallet = useCallback(
     async (chain?: PaymentChainId) => {
-      if (chain === "binance" || chain === "base") {
+      if (chain && chain !== "solana") {
         try {
           await connectEvmWallet(chain);
         } catch (err: unknown) {
@@ -5039,13 +5283,10 @@ export function useApiPlayground() {
                 setX402Response(parsed);
                 const byChain = getPaymentOptionsByChain(parsed);
                 setPaymentOptionsByChain(byChain);
-                const defaultChain: PaymentChainId = byChain.binance
-                  ? "binance"
-                  : byChain.solana
-                    ? "solana"
-                    : byChain.base
-                      ? "base"
-                      : "solana";
+                const defaultChain = resolvePlaygroundPaymentChain(
+                  byChain,
+                  selectedPaymentChain,
+                );
                 setSelectedPaymentChain(defaultChain);
                 const option =
                   byChain[defaultChain] ?? getBestPaymentOption(parsed, defaultChain);
@@ -5094,7 +5335,13 @@ export function useApiPlayground() {
               Array.isArray(jsonData.accepts) &&
               jsonData.accepts.length > 0
             ) {
-              const accept = jsonData.accepts[0];
+              const accept =
+                jsonData.accepts.find(
+                  (a: { network?: string }) =>
+                    a.network &&
+                    !String(a.network).includes("devnet") &&
+                    !String(a.network).includes("testnet"),
+                ) ?? jsonData.accepts[0];
 
               // Format amount (convert from micro-units if needed)
               const formattedAmount = formatMaybeMicroAmount(
@@ -5109,9 +5356,7 @@ export function useApiPlayground() {
                     ? "USDC"
                     : accept.asset || "USDC",
                 recipient: accept.payTo || "",
-                network: accept.network?.includes("devnet")
-                  ? "Solana Devnet"
-                  : "Solana Mainnet",
+                network: "Solana Mainnet",
                 memo: accept.extra?.memo,
               };
             } else {
@@ -5131,7 +5376,7 @@ export function useApiPlayground() {
                   jsonData.recipient ||
                   jsonData.wallet ||
                   "",
-                network: jsonData.network || jsonData.chain || "Solana",
+                network: jsonData.network || jsonData.chain || "Solana Mainnet",
                 memo: jsonData.memo || jsonData.description || jsonData.message,
               };
 
@@ -5422,6 +5667,7 @@ export function useApiPlayground() {
       walletContext.connected,
       walletContext.signTransaction,
       walletContext.address,
+      selectedPaymentChain,
     ],
   );
 
@@ -5854,9 +6100,8 @@ export function useApiPlayground() {
     }
 
     const payOnBinance = isBscNetwork(activeOption);
-    const payOnBase = isBaseNetwork(activeOption);
-    const payOnSolana = isSolanaNetwork(activeOption);
-    const payOnEvm = payOnBinance || payOnBase;
+    const payOnSolana = isSolanaMainnetNetwork(activeOption);
+    const payOnPayaiEvm = isEvmNetwork(activeOption) && !payOnBinance;
 
     if (payOnSolana && (!walletContext.connected || !walletContext.publicKey)) {
       return;
@@ -5908,7 +6153,7 @@ export function useApiPlayground() {
 
     try {
       let result;
-      if (payOnEvm) {
+      if (payOnPayaiEvm || payOnBinance) {
         if (isPermit2PaymentOption(activeOption)) {
           result = await executePermit2Payment(activeOption, resourceUrl);
         } else if (payOnBinance) {
@@ -5923,8 +6168,8 @@ export function useApiPlayground() {
           );
         } else {
           const { connectEvmWallet, getEvmSigner } = await import("@/lib/evmBscSigner");
-          await connectEvmWallet("base");
-          const evmSigner = await getEvmSigner("base");
+          await connectEvmWallet(selectedPaymentChain);
+          const evmSigner = await getEvmSigner(selectedPaymentChain);
           result = await executeBasePayment(
             evmSigner,
             activeOption,
@@ -6025,6 +6270,8 @@ export function useApiPlayground() {
   }, [
     walletContext,
     paymentOption,
+    paymentOptionsByChain,
+    selectedPaymentChain,
     connection,
     sendRequest,
     x402Response,

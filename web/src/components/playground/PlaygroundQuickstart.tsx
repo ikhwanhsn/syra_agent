@@ -8,9 +8,14 @@ import { SYRA_ONE_LINER } from "@/content/syraFocus";
 
 import { resolveApiBaseUrl } from "@/lib/resolveApiBaseUrl";
 
+import { PlaygroundHero } from "@/components/playground/PlaygroundHero";
 import { playgroundSectionEnter } from "@/components/playground/playgroundMotion";
 
-import { PLAYGROUND_PAGE_CLASS } from "@/components/playground/playgroundStyles";
+import {
+  PLAYGROUND_PAGE_CLASS,
+  playgroundPanelClass,
+  playgroundStatPillClass,
+} from "@/components/playground/playgroundStyles";
 
 
 
@@ -198,79 +203,43 @@ export function PlaygroundQuickstart() {
 
   return (
 
-    <div className={cn(PLAYGROUND_PAGE_CLASS, "space-y-6")}>
+    <div className={cn(PLAYGROUND_PAGE_CLASS, "space-y-6 sm:space-y-8")}>
 
-      {/* Hero strip */}
-
-      <div
-
-        className={cn(
-
-          "playground-build-hero relative overflow-hidden rounded-2xl border border-border/50 p-6 sm:p-8",
-
-          playgroundSectionEnter,
-
-        )}
-
-      >
-
-        <div className="relative z-[1] max-w-2xl">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
-            Developer playground
-          </p>
-          <h1 className="mt-1.5 text-2xl font-semibold tracking-tight text-foreground sm:text-[1.75rem]">
-            Build on the rail
-          </h1>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            Discover Syra x402 endpoints, integrate with SDK or MCP, or send custom payment-gated
-            requests — all from one surface.
-          </p>
-
-          <div className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-2.5 py-1 text-[11px] font-medium text-primary">
-            <Zap className="h-3 w-3" aria-hidden />
-            x402 v2 · Solana USDC
-          </div>
-
-          <p className="mt-3 text-base font-medium tracking-tight text-foreground sm:text-lg">
-            {SYRA_ONE_LINER}
-          </p>
-
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            Copy-paste integration paths for discovery, typed agents, and MCP hosts. Pick a method,
-            copy the snippet, and ship in minutes.
-          </p>
-
-          <div className="mt-4 flex flex-wrap gap-2">
-
+      <PlaygroundHero
+        kicker="Developer playground"
+        title="Build on the rail"
+        description="Discover Syra x402 endpoints, integrate with SDK or MCP, or send custom payment-gated requests — all from one surface."
+        badges={
+          <>
+            <span className={playgroundStatPillClass}>
+              <Zap className="h-3.5 w-3.5 text-primary" aria-hidden />
+              x402 v2 · Solana USDC
+            </span>
+          </>
+        }
+        actions={
+          <div className="flex flex-wrap gap-2 lg:justify-end">
             {INTEGRATION_LINKS.map(({ label, href }) => (
-
               <a
-
                 key={href}
-
                 href={href}
-
                 target="_blank"
-
                 rel="noopener noreferrer"
-
-                className="inline-flex items-center gap-1 rounded-lg border border-border/60 bg-background/60 px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-border hover:bg-background"
-
+                className="inline-flex items-center gap-1 rounded-xl border border-border/50 bg-background/60 px-3 py-2 text-xs font-medium text-foreground transition-colors hover:border-border hover:bg-background"
               >
-
                 {label}
-
                 <ExternalLink className="h-3 w-3 text-muted-foreground" aria-hidden />
-
               </a>
-
             ))}
-
           </div>
+        }
+      />
 
-        </div>
-
-      </div>
+      <p className={cn("max-w-2xl text-sm leading-relaxed text-muted-foreground", playgroundSectionEnter)}>
+        <span className="font-medium text-foreground">{SYRA_ONE_LINER}</span>
+        {" — "}
+        Copy-paste integration paths for discovery, typed agents, and MCP hosts.
+      </p>
 
 
 
@@ -314,13 +283,16 @@ export function PlaygroundQuickstart() {
 
                 className={cn(
 
-                  "group flex w-full flex-col rounded-xl border p-4 text-left transition-all duration-200",
+                  "group flex w-full flex-col rounded-2xl border p-4 text-left transition-all duration-200",
 
                   active
 
-                    ? "border-primary/40 bg-primary/[0.04] shadow-glow-sm ring-1 ring-primary/15"
+                    ? "border-primary/40 bg-primary/[0.04] shadow-[0_0_0_1px_hsl(var(--primary)/0.2),0_16px_40px_-24px_hsl(var(--primary)/0.25)] ring-1 ring-primary/15"
 
-                    : "border-border/50 bg-card/50 hover:border-border hover:bg-card/80",
+                    : cn(
+                        playgroundPanelClass,
+                        "hover:border-border/70 hover:shadow-md",
+                      ),
 
                 )}
 
@@ -416,7 +388,7 @@ export function PlaygroundQuickstart() {
 
 
 
-          <div className="playground-code-panel relative min-h-[320px] flex-1 overflow-hidden rounded-xl border border-border/50">
+          <div className={cn(playgroundPanelClass, "playground-code-panel relative min-h-[320px] flex-1 overflow-hidden")}>
 
             <div className="flex items-center gap-2 border-b border-border/40 bg-muted/30 px-4 py-2.5">
 

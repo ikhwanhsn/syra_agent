@@ -95,6 +95,29 @@ function engagementTotal(totals) {
 }
 
 /**
+ * @param {{ status?: string; txSignature?: string | null } | null | undefined} payout
+ */
+function isPayoutSettled(payout) {
+  if (!payout) return false;
+  if (payout.status === "failed") return false;
+  if (payout.status === "confirmed") return true;
+  return Boolean(payout.txSignature);
+}
+
+/**
+ * @param {{ lamports: number; txSignature?: string | null; status?: string }} payout
+ */
+function serializePayout(payout) {
+  const settled = isPayoutSettled(payout);
+  return {
+    lamports: payout.lamports,
+    sol: payout.lamports / LAMPORTS_PER_SOL,
+    txSignature: payout.txSignature ?? null,
+    status: settled ? "confirmed" : payout.status,
+  };
+}
+
+/**
  * @param {unknown} error
  */
 function throwIfDuplicateSubmissionError(error) {
@@ -744,7 +767,7 @@ export async function finalizeCampaign(campaignId) {
       (await KolPayout.create({
         campaignId: campaign._id,
         submissionId: row.submissionId,
-        kolWallet: row.kolWallet,
+        kolWallet: normalizeWallet(row.kolWallet),
         lamports: row.lamports,
         status: "pending",
       }));
@@ -799,15 +822,46 @@ export async function getWalletEarnings(wallet) {
     .sort({ createdAt: -1 })
     .lean();
 
-  const campaignIds = [...new Set(submissions.map((s) => String(s.campaignId)))];
-  const campaigns = await KolCampaign.find({ _id: { $in: campaignIds } }).lean();
-  const campaignMap = new Map(campaigns.map((c) => [String(c._id), c]));
+  const submissionIds = submissions.map((s) => s._id);
+  const payoutQuery =
+    submissionIds.length > 0
+      ? { $or: [{ kolWallet }, { submissionId: { $in: submissionIds } }] }
+      : { kolWallet };
 
-  const payouts = await KolPayout.find({ kolWallet }).lean();
+  const payouts = await KolPayout.find(payoutQuery).lean();
+
+  const stalePendingIds = payouts
+    .filter((p) => p.txSignature && p.status === "pending")
+    .map((p) => p._id);
+  if (stalePendingIds.length > 0) {
+    await KolPayout.updateMany(
+      { _id: { $in: stalePendingIds } },
+      { $set: { status: "confirmed", error: null } },
+    );
+    for (const p of payouts) {
+      if (p.txSignature && p.status === "pending") {
+        p.status = "confirmed";
+        p.error = null;
+      }
+    }
+  }
+
   const payoutMap = new Map(payouts.map((p) => [String(p.submissionId), p]));
+
+  const campaignIdSet = new Set(submissions.map((s) => String(s.campaignId)));
+  for (const p of payouts) {
+    campaignIdSet.add(String(p.campaignId));
+  }
+
+  const campaigns =
+    campaignIdSet.size > 0
+      ? await KolCampaign.find({ _id: { $in: [...campaignIdSet] } }).lean()
+      : [];
+  const campaignMap = new Map(campaigns.map((c) => [String(c._id), c]));
 
   const active = [];
   const paid = [];
+  const seenPaidSubmissionIds = new Set();
   let totalProjectedLamports = 0;
   let totalPaidLamports = 0;
 
@@ -815,25 +869,51 @@ export async function getWalletEarnings(wallet) {
     const campaign = campaignMap.get(String(s.campaignId));
     if (!campaign) continue;
 
-    const row = {
-      submission: serializeSubmission(s),
-      campaign: serializeCampaign(campaign),
-      payout: null,
-    };
-
     const payout = payoutMap.get(String(s._id));
-    if (payout?.status === "confirmed") {
-      row.payout = {
-        lamports: payout.lamports,
-        sol: payout.lamports / LAMPORTS_PER_SOL,
-        txSignature: payout.txSignature,
-        status: payout.status,
-      };
-      totalPaidLamports += payout.lamports;
-      paid.push(row);
+    if (isPayoutSettled(payout)) {
+      const settled = /** @type {NonNullable<typeof payout>} */ (payout);
+      totalPaidLamports += settled.lamports;
+      paid.push({
+        submission: serializeSubmission(s),
+        campaign: serializeCampaign(campaign),
+        payout: serializePayout(settled),
+      });
+      seenPaidSubmissionIds.add(String(s._id));
     } else if (campaign.status === "active") {
       totalProjectedLamports += s.projectedLamports ?? 0;
-      active.push(row);
+      active.push({
+        submission: serializeSubmission(s),
+        campaign: serializeCampaign(campaign),
+        payout: null,
+      });
+    }
+  }
+
+  const orphanSubmissionIds = payouts
+    .filter((p) => isPayoutSettled(p) && !seenPaidSubmissionIds.has(String(p.submissionId)))
+    .map((p) => p.submissionId);
+
+  if (orphanSubmissionIds.length > 0) {
+    const orphanSubs = await KolSubmission.find({ _id: { $in: orphanSubmissionIds } }).lean();
+    const orphanSubMap = new Map(orphanSubs.map((s) => [String(s._id), s]));
+
+    for (const payout of payouts) {
+      if (!isPayoutSettled(payout) || seenPaidSubmissionIds.has(String(payout.submissionId))) {
+        continue;
+      }
+
+      totalPaidLamports += payout.lamports;
+      seenPaidSubmissionIds.add(String(payout.submissionId));
+
+      const submission = orphanSubMap.get(String(payout.submissionId));
+      const campaign = campaignMap.get(String(payout.campaignId));
+      if (!submission || !campaign) continue;
+
+      paid.push({
+        submission: serializeSubmission(submission),
+        campaign: serializeCampaign(campaign),
+        payout: serializePayout(payout),
+      });
     }
   }
 

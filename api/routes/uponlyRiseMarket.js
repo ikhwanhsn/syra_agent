@@ -175,7 +175,7 @@ function withTimeout(promise, ms) {
  * Normalize a single RISE market row to the lightweight shape the screener uses.
  * Tolerant to missing fields — returns nulls instead of throwing.
  */
-function normalizeRiseMarketRow(m) {
+export function normalizeRiseMarketRow(m) {
   if (!m || typeof m !== "object") return null;
   const mint = toStr(m.mint_token);
   if (!mint) return null;

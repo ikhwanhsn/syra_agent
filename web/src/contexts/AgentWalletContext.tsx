@@ -652,7 +652,9 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
       }
     };
 
-    setLpReady(false);
+    if (!lpAnonymousId && !lpAgentAddress) {
+      setLpReady(false);
+    }
     void loadLpWallet();
     return () => {
       cancelled = true;

@@ -5,6 +5,10 @@ import {
   PLAYGROUND_TAB_ORDER,
   type PlaygroundTab,
 } from "@/components/playground/PlaygroundTabBar.types";
+import {
+  playgroundSegmentedRoot,
+  playgroundSegmentedTrigger,
+} from "@/components/playground/playgroundStyles";
 
 export type { PlaygroundTab } from "@/components/playground/PlaygroundTabBar.types";
 export {
@@ -41,54 +45,46 @@ interface PlaygroundTabBarProps {
 export function PlaygroundTabBar({ active, onChange }: PlaygroundTabBarProps) {
   return (
     <div
-      className="playground-tab-bar sticky top-0 z-20 shrink-0 border-b border-border/50 bg-background/80 pt-4 backdrop-blur-xl sm:pt-5"
-      style={{ ["--playground-tab-bar-height" as string]: "3.5rem" }}
+      className="playground-tab-bar sticky top-0 z-20 shrink-0 border-b border-border/45 bg-background/75 pt-3 backdrop-blur-xl sm:pt-4"
+      style={{ ["--playground-tab-bar-height" as string]: "4.25rem" }}
       role="tablist"
       aria-label="Playground sections"
     >
-      <div className="mx-auto flex w-full max-w-[1800px] gap-0.5 px-4 sm:px-6">
-        {PLAYGROUND_TAB_ORDER.map((id) => {
-          const { label, description, icon } = TAB_CONFIG[id];
-          const isActive = active === id;
-          return (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              aria-selected={isActive}
-              aria-controls={`playground-panel-${id}`}
-              id={`playground-tab-${id}`}
-              onClick={() => onChange(id)}
-              className={cn(
-                "group relative flex min-w-0 flex-1 items-center justify-center gap-2 px-3 py-3.5 sm:flex-initial sm:justify-start sm:px-5",
-                "text-sm font-medium transition-colors duration-200",
-                isActive
-                  ? "text-foreground"
-                  : "text-muted-foreground hover:text-foreground/80",
-              )}
-            >
-              {icon}
-              <span className="flex min-w-0 flex-col items-start">
-                <span className="truncate leading-none">{label}</span>
-                <span
-                  className={cn(
-                    "mt-0.5 hidden truncate text-[11px] font-normal leading-none sm:block",
-                    isActive ? "text-muted-foreground" : "text-muted-foreground/70",
-                  )}
-                >
-                  {description}
+      <div className="mx-auto flex w-full max-w-[1680px] flex-col gap-3 px-4 sm:px-6 lg:px-8 lg:flex-row lg:items-center lg:justify-between">
+        <p className="hidden text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/80 lg:block">
+          Playground
+        </p>
+        <div className={cn(playgroundSegmentedRoot(PLAYGROUND_TAB_ORDER.length), "lg:min-w-[32rem]")}>
+          {PLAYGROUND_TAB_ORDER.map((id) => {
+            const { label, description, icon } = TAB_CONFIG[id];
+            const isActive = active === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                aria-controls={`playground-panel-${id}`}
+                id={`playground-tab-${id}`}
+                onClick={() => onChange(id)}
+                className={playgroundSegmentedTrigger(isActive)}
+              >
+                {icon}
+                <span className="flex min-w-0 flex-col items-start text-left">
+                  <span className="truncate leading-none">{label}</span>
+                  <span
+                    className={cn(
+                      "mt-0.5 hidden truncate text-[10px] font-normal leading-none sm:block",
+                      isActive ? "text-muted-foreground" : "text-muted-foreground/70",
+                    )}
+                  >
+                    {description}
+                  </span>
                 </span>
-              </span>
-              <span
-                aria-hidden
-                className={cn(
-                  "absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-primary transition-all duration-300 ease-out sm:inset-x-4",
-                  isActive ? "opacity-100 scale-x-100" : "opacity-0 scale-x-75",
-                )}
-              />
-            </button>
-          );
-        })}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

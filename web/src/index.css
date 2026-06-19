@@ -551,34 +551,61 @@
     opacity: 1;
     background-image:
       radial-gradient(
-        ellipse 80% 50% at 12% -8%,
-        hsl(var(--ring) / 0.11) 0%,
+        ellipse 90% 55% at 8% -5%,
+        hsl(var(--ring) / 0.12) 0%,
+        transparent 58%
+      ),
+      radial-gradient(
+        ellipse 70% 45% at 96% 0%,
+        hsl(var(--primary) / 0.08) 0%,
+        transparent 52%
+      ),
+      radial-gradient(
+        ellipse 50% 40% at 50% 100%,
+        hsl(var(--muted-foreground) / 0.04) 0%,
         transparent 55%
-      ),
-      radial-gradient(
-        ellipse 60% 40% at 92% 4%,
-        hsl(var(--primary) / 0.06) 0%,
-        transparent 50%
-      ),
-      radial-gradient(
-        circle,
-        hsl(var(--muted-foreground) / 0.07) 1px,
-        transparent 1px
       );
-    background-size:
-      auto,
-      auto,
-      28px 28px;
     mask-image: linear-gradient(
       to bottom,
       hsl(0 0% 0% / 1) 0%,
-      hsl(0 0% 0% / 0.35) 55%,
+      hsl(0 0% 0% / 0.4) 50%,
       transparent 100%
     );
   }
 
+  .playground-ambient-grid {
+    z-index: 0;
+    opacity: 0.55;
+    background-image:
+      linear-gradient(hsl(var(--border) / 0.35) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--border) / 0.35) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(
+      ellipse 80% 60% at 50% 0%,
+      hsl(0 0% 0% / 0.35) 0%,
+      transparent 70%
+    );
+  }
+
+  .playground-filter-rail {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .playground-filter-rail::-webkit-scrollbar {
+    display: none;
+  }
+
   .playground-api-card {
-    animation: playground-card-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: playground-card-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .playground-api-card,
+    .playground-section-enter,
+    .playground-tab-panel {
+      animation: none !important;
+    }
   }
 
   .playground-try-btn {

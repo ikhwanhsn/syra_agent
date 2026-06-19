@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAgentTreasuryBalances } from "@/hooks/useAgentTreasuryBalances";
+import { usePillarAgentWallets } from "@/hooks/usePillarAgentWallets";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useWalletContext } from "@/contexts/WalletContext";
 import { useAgentWallet } from "@/contexts/AgentWalletContext";
@@ -118,50 +119,53 @@ export function useManagedAgentWallets() {
 
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [refreshingBalances, setRefreshingBalances] = useState(false);
-  const [refreshingLpBalances, setRefreshingLpBalances] = useState(false);
   const [fundTab, setFundTab] = useState<"deposit" | "withdraw">("deposit");
-  const [fundWallet, setFundWallet] = useState<AgentWalletPurpose>("chat");
-  const [creatingChat, setCreatingChat] = useState(false);
-  const [creatingLp, setCreatingLp] = useState(false);
+  const [fundWallet, setFundWallet] = useState<AgentWalletPurpose>("spend");
+  const [creatingSpend, setCreatingSpend] = useState(false);
 
-  const lpAgent: AgentSetupRecord | undefined = useMemo(() => {
-    if (!lpReady || !lpAnonymousId || !lpAgentAddress) return undefined;
-    return {
-      anonymousId: lpAnonymousId,
-      agentAddress: lpAgentAddress,
-      avatarUrl: null,
-      chain: "solana",
-      walletAddress: activeAgent?.walletAddress ?? connectedWalletAddress ?? "",
-    };
-  }, [lpReady, lpAnonymousId, lpAgentAddress, activeAgent?.walletAddress, connectedWalletAddress]);
+  const pillar = usePillarAgentWallets(
+    activeAgent?.anonymousId,
+    activeAgent?.walletAddress ?? connectedWalletAddress ?? "",
+  );
 
   const {
-    chatUsdcBalance,
-    chatSolBalance,
-    lpUsdcBalance: lpUsdcResolved,
-    lpSolBalance: lpSolResolved,
-    totalUsdc,
-    totalSol,
-    refreshTreasuryBalances,
-    refreshChatBalances,
-    refreshLpBalances,
-  } = useAgentTreasuryBalances({ chatAnonymousId: activeAgent?.anonymousId });
+    spendBalances,
+    lpWallet: pillarLpWallet,
+    lpBalances: pillarLpBalances,
+    pillarEntries,
+    visibleSlots,
+    refreshSet,
+    totalUsdc: pillarTotalUsdc,
+    totalSol: pillarTotalSol,
+    isInternal,
+  } = pillar;
 
-  const managedChatWallet: ManagedAgentWallet | undefined = activeAgent
-    ? {
-        anonymousId: activeAgent.anonymousId,
-        agentAddress: activeAgent.agentAddress,
-        walletAddress: activeAgent.walletAddress,
-      }
-    : undefined;
+  const legacyTreasury = useAgentTreasuryBalances({ chatAnonymousId: activeAgent?.anonymousId });
 
-  const managedLpWallet: ManagedAgentWallet | undefined = lpAgent
-    ? {
-        anonymousId: lpAgent.anonymousId,
-        agentAddress: lpAgent.agentAddress,
-        walletAddress: lpAgent.walletAddress,
-      }
-    : undefined;
+  const spendSolBalance = spendBalances.solBalance ?? legacyTreasury.chatSolBalance;
+  const spendUsdcBalance = spendBalances.usdcBalance ?? legacyTreasury.chatUsdcBalance;
+  const lpSolResolved = pillarLpBalances.solBalance ?? legacyTreasury.lpSolBalance;
+  const lpUsdcResolved = pillarLpBalances.usdcBalance ?? legacyTreasury.lpUsdcBalance;
+
+  const managedSpendWallet: ManagedAgentWallet | undefined =
+    pillar.spendWallet ??
+    (activeAgent
+      ? {
+          anonymousId: activeAgent.anonymousId,
+          agentAddress: activeAgent.agentAddress,
+          walletAddress: activeAgent.walletAddress,
+        }
+      : undefined);
+
+  const managedLpWallet: ManagedAgentWallet | undefined =
+    pillarLpWallet ??
+    (lpAnonymousId && lpAgentAddress
+      ? {
+          anonymousId: lpAnonymousId,
+          agentAddress: lpAgentAddress,
+          walletAddress: activeAgent?.walletAddress ?? connectedWalletAddress ?? "",
+        }
+      : undefined);
 
   const copyToClipboard = useCallback(
     (text: string, label: string) => {
@@ -208,50 +212,40 @@ export function useManagedAgentWallets() {
     [connectedChain, connectForChain, toast],
   );
 
-  const handleFundChat = useCallback(() => selectFundTarget("deposit", "chat"), [selectFundTarget]);
+  const handleFundSpend = useCallback(() => selectFundTarget("deposit", "spend"), [selectFundTarget]);
   const handleFundLp = useCallback(() => selectFundTarget("deposit", "lp"), [selectFundTarget]);
-  const handleWithdrawChat = useCallback(() => selectFundTarget("withdraw", "chat"), [selectFundTarget]);
+  const handleWithdrawSpend = useCallback(() => selectFundTarget("withdraw", "spend"), [selectFundTarget]);
   const handleWithdrawLp = useCallback(() => selectFundTarget("withdraw", "lp"), [selectFundTarget]);
 
-  const handleRefreshChatBalances = useCallback(async () => {
-    setRefreshingBalances(true);
-    try {
-      await refreshChatBalances();
-    } finally {
-      setRefreshingBalances(false);
-    }
-  }, [refreshChatBalances]);
+  const handleFundPillar = useCallback(
+    (purpose: AgentWalletPurpose) => selectFundTarget("deposit", purpose),
+    [selectFundTarget],
+  );
 
-  const handleRefreshLpBalances = useCallback(async () => {
-    setRefreshingLpBalances(true);
-    try {
-      await refreshLpBalances();
-    } finally {
-      setRefreshingLpBalances(false);
-    }
-  }, [refreshLpBalances]);
+  const handleWithdrawPillar = useCallback(
+    (purpose: AgentWalletPurpose) => selectFundTarget("withdraw", purpose),
+    [selectFundTarget],
+  );
 
   const handleRefreshAll = useCallback(async () => {
     setRefreshingBalances(true);
-    setRefreshingLpBalances(true);
     try {
-      await refreshTreasuryBalances();
+      await Promise.all([refreshSet(), legacyTreasury.refreshTreasuryBalances()]);
       toast({ title: "Balances updated" });
     } finally {
       setRefreshingBalances(false);
-      setRefreshingLpBalances(false);
     }
-  }, [refreshTreasuryBalances, toast]);
+  }, [refreshSet, legacyTreasury, toast]);
 
-  const handleCreateChatWallet = useCallback(async () => {
-    setCreatingChat(true);
+  const handleCreateSpendWallet = useCallback(async () => {
+    setCreatingSpend(true);
     try {
       if (hasSolana && solanaAddress) {
         const ok = await requestSyraAuth();
         if (!ok) {
           toast({
             title: "Sign in required",
-            description: "Approve the wallet sign-in prompt to create your agent wallet.",
+            description: "Approve the wallet sign-in prompt to create your agent wallets.",
             variant: "destructive",
           });
           return;
@@ -260,52 +254,21 @@ export function useManagedAgentWallets() {
       } else {
         await agentWalletApi.getOrCreate();
       }
-      toast({ title: "Chat wallet created", description: "Reloading…" });
+      toast({ title: "Agent wallets created", description: "Reloading…" });
       window.setTimeout(() => window.location.reload(), 400);
     } catch (err) {
       toast({
-        title: "Could not create wallet",
+        title: "Could not create wallets",
         description: err instanceof Error ? err.message : "Please try again.",
         variant: "destructive",
       });
     } finally {
-      setCreatingChat(false);
+      setCreatingSpend(false);
     }
   }, [hasSolana, requestSyraAuth, solanaAddress, toast]);
 
-  const handleCreateLpWallet = useCallback(async () => {
-    if (!activeAgent?.anonymousId) {
-      toast({ title: "Create chat wallet first", variant: "destructive" });
-      return;
-    }
-    setCreatingLp(true);
-    try {
-      if (hasSolana && solanaAddress) {
-        const ok = await requestSyraAuth();
-        if (!ok) {
-          toast({
-            title: "Sign in required",
-            description: "Approve the wallet sign-in prompt to create your LP agent wallet.",
-            variant: "destructive",
-          });
-          return;
-        }
-        await agentWalletApi.getOrCreateLpByWallet(solanaAddress);
-      } else {
-        await agentWalletApi.getOrCreateLp(activeAgent.anonymousId);
-      }
-      toast({ title: "LP wallet created", description: "Reloading…" });
-      window.setTimeout(() => window.location.reload(), 400);
-    } catch (err) {
-      toast({
-        title: "Could not create LP wallet",
-        description: err instanceof Error ? err.message : "Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setCreatingLp(false);
-    }
-  }, [activeAgent?.anonymousId, hasSolana, requestSyraAuth, solanaAddress, toast]);
+  const totalUsdc = pillarTotalUsdc ?? legacyTreasury.totalUsdc;
+  const totalSol = pillarTotalSol ?? legacyTreasury.totalSol;
 
   return {
     connected,
@@ -317,34 +280,48 @@ export function useManagedAgentWallets() {
     syraAuthenticated,
     syraAuthReady,
     activeAgent,
-    managedChatWallet,
+    managedSpendWallet,
+    managedChatWallet: managedSpendWallet,
     managedLpWallet,
-    chatSolBalance,
-    chatUsdcBalance,
+    lpWalletReady: lpReady || Boolean(managedLpWallet),
+    pillarEntries,
+    visibleSlots,
+    isInternal,
+    spendSolBalance,
+    spendUsdcBalance,
+    chatSolBalance: spendSolBalance,
+    chatUsdcBalance: spendUsdcBalance,
     lpAgentSolBalance: lpSolResolved,
     lpAgentUsdcBalance: lpUsdcResolved,
     totalUsdc,
     totalSol,
+    solPriceUsd: legacyTreasury.solPriceUsd,
+    estimatedTreasuryUsd: legacyTreasury.estimatedTreasuryUsd,
+    loading: pillar.loading,
     copiedField,
     refreshingBalances,
-    refreshingLpBalances,
     fundTab,
     fundWallet,
     setFundTab,
     setFundWallet,
     selectFundTarget,
-    creatingChat,
-    creatingLp,
+    creatingSpend,
+    creatingChat: creatingSpend,
     copyToClipboard,
     handleRetryLoad,
-    handleFundChat,
+    handleFundSpend,
+    handleFundChat: handleFundSpend,
     handleFundLp,
-    handleWithdrawChat,
+    handleWithdrawSpend,
+    handleWithdrawChat: handleWithdrawSpend,
     handleWithdrawLp,
-    handleRefreshChatBalances,
-    handleRefreshLpBalances,
+    handleFundPillar,
+    handleWithdrawPillar,
     handleRefreshAll,
-    handleCreateChatWallet,
-    handleCreateLpWallet,
+    handleCreateSpendWallet,
+    handleCreateChatWallet: handleCreateSpendWallet,
+    getBalanceForPurpose: pillar.getBalanceForPurpose,
+    getWalletForPurpose: pillar.getWalletForPurpose,
+    refreshPillarSet: refreshSet,
   };
 }

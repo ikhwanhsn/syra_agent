@@ -5,6 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "sync:x402-playground": "node ../scripts/sync-x402-playground-catalog.mjs",
+    "prebuild": "npm run sync:x402-playground",
+    "pretest": "npm run sync:x402-playground",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",

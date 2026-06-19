@@ -6,6 +6,7 @@
  * summary: short title for OpenAPI summary fields.
  */
 import { X402_DISCOVERY_RESOURCE_PATHS } from './x402DiscoveryResourcePaths.js';
+import { resolvePillarForCatalogSlug } from './pillars.js';
 
 /** @typedef {{ slug: string; name: string; category: string; methods: ('GET'|'POST')[]; summary: string; description: string; suggestedPriceStx: number }} X402ResourceMeta */
 
@@ -178,7 +179,37 @@ export const X402_RESOURCE_CATALOG = {
     methods: ['GET', 'POST'],
     summary: 'Full memecoin due-diligence for any Solana mint',
     description:
-      'Deep memecoin analysis matching the Syra Pumpfun Alpha page. Use when an agent must score risk/reward on a pump.fun or graduated token before trading. Input: mint (base58). Returns syraAlpha score/verdict, market stats, dossier risk, holders, distribution, onChainSecurity, kolShills — probabilistic, not financial advice.',
+      'Deep memecoin analysis for pump.fun or graduated tokens. Use when an agent must score risk/reward before trading. Input: mint (base58). Returns syraAlpha score/verdict, market stats, dossier risk, holders, distribution, onChainSecurity, kolShills — probabilistic, not financial advice.',
+    suggestedPriceStx: 0.1,
+  },
+  'pumpfun/scout': {
+    slug: 'pumpfun-scout',
+    name: 'pump.fun Scout',
+    category: 'analytics',
+    methods: ['GET', 'POST'],
+    summary: 'Live pump.fun alpha/beta/predicted/utility scout',
+    description:
+      'Live pump.fun intelligence with selector param segment=alpha|beta|predicted|utility. Optional period, limit, minPumpScore, llm. Returns scored tokens, analysis, and meta — deterministic by default.',
+    suggestedPriceStx: 0.1,
+  },
+  rise: {
+    slug: 'rise-scout',
+    name: 'RISE Scout',
+    category: 'analytics',
+    methods: ['GET', 'POST'],
+    summary: 'Live RISE market intel and agent targets',
+    description:
+      'Live RISE intelligence with view=intel|markets|targets. Optional mint, limit, tier=ready|watch. Returns UPONLY token snapshot, fund lens, ranked markets, and agent-ready mint targets.',
+    suggestedPriceStx: 0.1,
+  },
+  coingecko: {
+    slug: 'coingecko-scout',
+    name: 'CoinGecko Scout',
+    category: 'analytics',
+    methods: ['GET', 'POST'],
+    summary: 'Live CoinGecko top gainers brief',
+    description:
+      'Live CoinGecko scout with view=brief|gainers|predictions. Optional topN, minMarketCap, includeNews, llm. Returns top gainers, digests, predictions, and narrative meta — deterministic by default.',
     suggestedPriceStx: 0.1,
   },
   assets: {
@@ -320,4 +351,13 @@ export function buildShadowfeedFeedFromCatalog(segment) {
 /** Assert catalog covers discovery list (for tests). */
 export function listCatalogCoverageGaps() {
   return X402_DISCOVERY_RESOURCE_PATHS.filter((seg) => !X402_RESOURCE_CATALOG[seg]);
+}
+
+/**
+ * Five-pillar classification for a discovery resource slug.
+ * @param {string} slug
+ * @returns {import('./pillars.js').PillarId}
+ */
+export function getResourcePillar(slug) {
+  return resolvePillarForCatalogSlug(slug);
 }

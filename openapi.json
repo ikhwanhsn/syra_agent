@@ -141,8 +141,8 @@
         "tags": [
           "Market data (x402)"
         ],
-        "summary": "AI trading signal (x402)",
-        "description": "Spot OHLC + technical signal engine. Default source: binance with CEX fallbacks (coinbase, okx, kraken). Use source=n8n|webhook for legacy webhook.",
+        "summary": "AI trading signal from CEX OHLCV technical analysis",
+        "description": "Generates a directional trading signal with bias, confidence, entry context, and reasoning from OHLCV candles. Use when an agent needs a technical read on BTC, ETH, SOL, or other supported assets before sizing a trade. Inputs: token (e.g. solana, bitcoin), source (binance default; coingecko if CEX blocked), interval, limit. Returns signal object with recommendation and analysis — probabilistic, not execution.",
         "operationId": "getSignal",
         "security": [
           {
@@ -294,13 +294,15 @@
               }
             }
           }
-        }
+        },
+        "x-syra-pillar": "spend"
       },
       "post": {
         "tags": [
           "Market data (x402)"
         ],
-        "summary": "AI trading signal via JSON body (x402)",
+        "summary": "AI trading signal from CEX OHLCV technical analysis (POST)",
+        "description": "Generates a directional trading signal with bias, confidence, entry context, and reasoning from OHLCV candles. Use when an agent needs a technical read on BTC, ETH, SOL, or other supported assets before sizing a trade. Inputs: token (e.g. solana, bitcoin), source (binance default; coingecko if CEX blocked), interval, limit. Returns signal object with recommendation and analysis — probabilistic, not execution.",
         "operationId": "postSignal",
         "security": [
           {
@@ -432,7 +434,8 @@
               }
             }
           }
-        }
+        },
+        "x-syra-pillar": "spend"
       }
     },
     "/info": {
@@ -489,7 +492,8 @@
               }
             }
           }
-        }
+        },
+        "x-syra-pillar": "spend"
       }
     },
     "/info/stats": {
@@ -546,7 +550,8 @@
               }
             }
           }
-        }
+        },
+        "x-syra-pillar": "spend"
       }
     },
     "/prediction-game/health": {
@@ -603,7 +608,8 @@
               }
             }
           }
-        }
+        },
+        "x-syra-pillar": "spend"
       }
     },
     "/news": {
@@ -611,7 +617,8 @@
         "tags": [
           "Market data (x402)"
         ],
-        "summary": "Crypto news",
+        "summary": "Latest crypto news headlines and summaries",
+        "description": "Curated crypto news articles with titles, sources, and URLs. Use when an agent needs recent headlines for a token, sector, or the whole market before trading or posting. Input: optional ticker (BTC, ETH, SOL, or general). Returns news[] with title, url, date, source.",
         "operationId": "getNews",
         "security": [
           {
@@ -706,13 +713,15 @@
               }
             }
           }
-        }
+        },
+        "x-syra-pillar": "spend"
       },
       "post": {
         "tags": [
           "Market data (x402)"
         ],
-        "summary": "Crypto news (POST)",
+        "summary": "Latest crypto news headlines and summaries",
+        "description": "Curated crypto news articles with titles, sources, and URLs. Use when an agent needs recent headlines for a token, sector, or the whole market before trading or posting. Input: optional ticker (BTC, ETH, SOL, or general). Returns news[] with title, url, date, source.",
         "operationId": "postNews",
         "security": [
           {
@@ -807,7 +816,8 @@
               }
             }
           }
-        }
+        },
+        "x-syra-pillar": "spend"
       }
     },
     "/sentiment": {
@@ -815,7 +825,8 @@
         "tags": [
           "Market data (x402)"
         ],
-        "summary": "Sentiment",
+        "summary": "30-day crypto sentiment scores by ticker",
+        "description": "Daily sentiment breakdown (positive/negative/neutral/score) over ~30 days from news-derived analysis. Use when an agent gauges crowd mood on BTC, ETH, or a ticker before narrative trades. Input: optional ticker. Returns sentimentAnalysis[] with per-day scores.",
         "operationId": "getSentiment",
         "security": [
           {
@@ -910,13 +921,15 @@
               }
             }
           }
-        }
+        },
+        "x-syra-pillar": "spend"
       },
       "post": {
         "tags": [
           "Market data (x402)"
         ],
-        "summary": "Sentiment (POST)",
+        "summary": "30-day crypto sentiment scores by ticker",
+        "description": "Daily sentiment breakdown (positive/negative/neutral/score) over ~30 days from news-derived analysis. Use when an agent gauges crowd mood on BTC, ETH, or a ticker before narrative trades. Input: optional ticker. Returns sentimentAnalysis[] with per-day scores.",
         "operationId": "postSentiment",
         "security": [
           {
@@ -1011,7 +1024,8 @@
               }
             }
           }
-        }
+        },
+        "x-syra-pillar": "spend"
       }
     },
     "/event": {
@@ -1019,7 +1033,8 @@
         "tags": [
           "Market data (x402)"
         ],
-        "summary": "Crypto events",
+        "summary": "Upcoming and recent crypto events calendar",
+        "description": "Lists conferences, launches, listings, and macro events affecting crypto. Use when an agent schedules research around catalysts or filters noise by ticker. Input: optional ticker. Returns event[] with titles, dates, and metadata.",
         "operationId": "getEvent",
         "security": [
           {
@@ -1114,13 +1129,15 @@
               }
             }
           }
-        }
+        },
+        "x-syra-pillar": "spend"
       },
       "post": {
         "tags": [
           "Market data (x402)"
         ],
-        "summary": "Crypto events (POST)",
+        "summary": "Upcoming and recent crypto events calendar",
+        "description": "Lists conferences, launches, listings, and macro events affecting crypto. Use when an agent schedules research around catalysts or filters noise by ticker. Input: optional ticker. Returns event[] with titles, dates, and metadata.",
         "operationId": "postEvent",
         "security": [
           {
@@ -1215,7 +1232,8 @@
               }
             }
           }
-        }
+        },
+        "x-syra-pillar": "spend"
       }
     },
     "/health": {
@@ -1223,7 +1241,8 @@
         "tags": [
           "Gateway (x402)"
         ],
-        "summary": "API health (x402 liveness)",
+        "summary": "Paid liveness probe for Syra API",
+        "description": "Minimal paid health check confirming Syra API is up and x402 settlement works. Use when an agent or monitor verifies connectivity before batch calls. No inputs. Returns ok, status, service, message, timestamp.",
         "operationId": "getHealth",
         "security": [
           {
@@ -1306,13 +1325,15 @@
               }
             }
           }
-        }
+        },
+        "x-syra-pillar": "spend"
       },
       "post": {
         "tags": [
           "Gateway (x402)"
         ],
-        "summary": "API health (POST)",
+        "summary": "Paid liveness probe for Syra API",
+        "description": "Minimal paid health check confirming Syra API is up and x402 settlement works. Use when an agent or monitor verifies connectivity before batch calls. No inputs. Returns ok, status, service, message, timestamp.",
         "operationId": "postHealth",
         "security": [
           {
@@ -1407,7 +1428,8 @@
               }
             }
           }
-        }
+        },
+        "x-syra-pillar": "spend"
       }
     },
     "/brain": {
@@ -1415,7 +1437,8 @@
         "tags": [
           "AI (x402)"
         ],
-        "summary": "Syra Brain (GET)",
+        "summary": "Single-question crypto AI with automatic tool selection",
+        "description": "Answers one natural-language crypto question by selecting and running Syra tools (news, signals, on-chain reads) server-side. Use when an agent needs a grounded synthesis instead of calling many APIs manually. Input: question (required). Returns success, markdown/plain response, and toolUsages[] showing which tools ran. Treasury-paid tool calls included; not trade execution.",
         "operationId": "getBrain",
         "security": [
           {
@@ -1509,13 +1532,15 @@
               }
             }
           }
-        }
+        },
+        "x-syra-pillar": "spend"
       },
       "post": {
         "tags": [
           "AI (x402)"
         ],
-        "summary": "Syra Brain (POST)",
+        "summary": "Single-question crypto AI with automatic tool selection",
+        "description": "Answers one natural-language crypto question by selecting and running Syra tools (news, signals, on-chain reads) server-side. Use when an agent needs a grounded synthesis instead of calling many APIs manually. Input: question (required). Returns success, markdown/plain response, and toolUsages[] showing which tools ran. Treasury-paid tool calls included; not trade execution.",
         "operationId": "postBrain",
         "security": [
           {
@@ -1610,7 +1635,8 @@
               }
             }
           }
-        }
+        },
+        "x-syra-pillar": "spend"
       }
     },
     "/arbitrage": {
@@ -1618,7 +1644,8 @@
         "tags": [
           "Market data (x402)"
         ],
-        "summary": "Arbitrage — CMC top + cross-CEX snapshots + ranked routes (x402)",
+        "summary": "CMC top assets + live CEX snapshots + ranked spreads",
+        "description": "Bundles CoinMarketCap-style top tradable assets (stablecoins skipped) with live cross-venue USDT spot snapshots and ranked buy/sell routes by gross spread. Use when an agent scouts arbitrage ideas before fees/slippage. Input: limit (default 10, max 25). Returns cmcTop, snapshots[], ranked[], best, runnerUp — not financial advice.",
         "operationId": "getArbitrage",
         "security": [
           {
@@ -1715,13 +1742,15 @@
               }
             }
           }
-        }
+        },
+        "x-syra-pillar": "spend"
       },
       "post": {
         "tags": [
           "Market data (x402)"
         ],
-        "summary": "Arbitrage — POST body may include { limit } (x402)",
+        "summary": "CMC top assets + live CEX snapshots + ranked spreads",
+        "description": "Bundles CoinMarketCap-style top tradable assets (stablecoins skipped) with live cross-venue USDT spot snapshots and ranked buy/sell routes by gross spread. Use when an agent scouts arbitrage ideas before fees/slippage. Input: limit (default 10, max 25). Returns cmcTop, snapshots[], ranked[], best, runnerUp — not financial advice.",
         "operationId": "postArbitrage",
         "security": [
           {
@@ -1816,7 +1845,8 @@
               }
             }
           }
-        }
+        },
+        "x-syra-pillar": "spend"
       }
     },
     "/x-analyzer": {
@@ -2022,7 +2052,8 @@
           "503": {
             "description": "Server missing X_BEARER_TOKEN"
           }
-        }
+        },
+        "x-syra-pillar": "spend"
       },
       "post": {
         "tags": [
@@ -2221,7 +2252,8 @@
           "503": {
             "description": "Server missing X_BEARER_TOKEN"
           }
-        }
+        },
+        "x-syra-pillar": "spend"
       }
     },
     "/spcx": {
@@ -2229,8 +2261,8 @@
         "tags": [
           "Equity (x402)"
         ],
-        "summary": "SPCX / SpaceX IPO intelligence",
-        "description": "Nasdaq vs on-chain SPCX premium/discount spread. x402 revenue routes to $SYRA buybacks in production.",
+        "summary": "SpaceX IPO token (SPCXx) Nasdaq vs on-chain spread",
+        "description": "Tokenized equity intelligence for SpaceX IPO exposure (SPCXx). Use when an agent compares Nasdaq reference price vs on-chain SPCX venues for premium/discount and agent bias. Input: symbol (default SPCXx). Returns nasdaqPriceUsd, venues[], agentBias, agentTake, riskNotes[], opportunities[], disclaimer.",
         "operationId": "getSpcxIntelligence",
         "security": [
           {
@@ -2323,7 +2355,8 @@
               }
             }
           }
-        }
+        },
+        "x-syra-pillar": "spend"
       }
     },
     "/equity": {
@@ -2331,8 +2364,8 @@
         "tags": [
           "Equity (x402)"
         ],
-        "summary": "Tokenized equity intelligence (xStocks catalog)",
-        "description": "Parametric symbol → Nasdaq vs on-chain spread for TSLAx, NVDAx, etc.",
+        "summary": "xStocks equity spread — Nasdaq vs on-chain (TSLAx, NVDAx, …)",
+        "description": "Parametric tokenized equity intelligence for xStocks symbols. Use when an agent needs Nasdaq vs on-chain premium/discount, venue prices, and narrative bias for stocks like TSLAx or NVDAx. Input: symbol (required, e.g. TSLAx). Returns same report shape as /spcx: venues, agentBias, agentTake, riskNotes, opportunities.",
         "operationId": "getEquityIntelligence",
         "security": [
           {
@@ -2425,7 +2458,1465 @@
               }
             }
           }
-        }
+        },
+        "x-syra-pillar": "spend"
+      }
+    },
+    "/jupiter/quote": {
+      "get": {
+        "tags": [
+          "Jupiter quote (x402)"
+        ],
+        "summary": "Jupiter Swap V1 ExactIn quote with Syra referral fee",
+        "description": "Fetches a Jupiter Swap V1 quoteResponse for ExactIn swaps with Syra referral platform fee when configured on-chain. Use when an agent prices a Solana swap before building a transaction. Inputs: inputMint, outputMint, amount (raw units), optional slippageBps. Returns quote object and referral metadata.",
+        "operationId": "getJupiterQuote",
+        "security": [
+          {
+            "x402": []
+          }
+        ],
+        "x-payment-info": {
+          "protocols": [
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
+          ],
+          "price": {
+            "mode": "fixed",
+            "currency": "USD",
+            "amount": "0.03"
+          }
+        },
+        "parameters": [
+          {
+            "name": "inputMint",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "Input token mint"
+          },
+          {
+            "name": "outputMint",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "Output token mint (referral fee taken on output)"
+          },
+          {
+            "name": "amount",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "Input amount in raw token units"
+          },
+          {
+            "name": "slippageBps",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 50
+            }
+          },
+          {
+            "name": "swapMode",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.",
+            "headers": {
+              "Payment-Required": {
+                "description": "x402 v2 encoded payment requirements",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds the client must wait before retrying.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Too many requests. Please slow down."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "x-syra-pillar": "invest"
+      },
+      "post": {
+        "tags": [
+          "Jupiter quote (x402)"
+        ],
+        "summary": "Jupiter Swap V1 ExactIn quote with Syra referral fee (POST)",
+        "description": "Fetches a Jupiter Swap V1 quoteResponse for ExactIn swaps with Syra referral platform fee when configured on-chain. Use when an agent prices a Solana swap before building a transaction. Inputs: inputMint, outputMint, amount (raw units), optional slippageBps. Returns quote object and referral metadata.",
+        "operationId": "postJupiterQuote",
+        "security": [
+          {
+            "x402": []
+          }
+        ],
+        "x-payment-info": {
+          "protocols": [
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
+          ],
+          "price": {
+            "mode": "fixed",
+            "currency": "USD",
+            "amount": "0.03"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "inputMint",
+                  "outputMint",
+                  "amount"
+                ],
+                "properties": {
+                  "inputMint": {
+                    "type": "string"
+                  },
+                  "outputMint": {
+                    "type": "string"
+                  },
+                  "amount": {
+                    "type": "string"
+                  },
+                  "slippageBps": {
+                    "type": "integer"
+                  },
+                  "swapMode": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.",
+            "headers": {
+              "Payment-Required": {
+                "description": "x402 v2 encoded payment requirements",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds the client must wait before retrying.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Too many requests. Please slow down."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "x-syra-pillar": "invest"
+      }
+    },
+    "/pumpfun/trending": {
+      "get": {
+        "tags": [
+          "pump.fun trending (x402)"
+        ],
+        "summary": "Trending pump.fun coins list",
+        "description": "Returns trending pump.fun coins from frontend-api-v3 (falls back to top-runners when primary feed is empty). Use when an agent scans hot memecoin launches or social momentum on pump.fun. Inputs: limit (default 20, max 50), offset, includeNsfw. Returns normalized coins[], count, upstream metadata.",
+        "operationId": "getPumpfunTrending",
+        "security": [
+          {
+            "x402": []
+          }
+        ],
+        "x-payment-info": {
+          "protocols": [
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
+          ],
+          "price": {
+            "mode": "fixed",
+            "currency": "USD",
+            "amount": "0.05"
+          }
+        },
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "includeNsfw",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.",
+            "headers": {
+              "Payment-Required": {
+                "description": "x402 v2 encoded payment requirements",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds the client must wait before retrying.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Too many requests. Please slow down."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "x-syra-pillar": "spend"
+      }
+    },
+    "/pumpfun/movers": {
+      "get": {
+        "tags": [
+          "pump.fun movers (x402)"
+        ],
+        "summary": "pump.fun market movers list",
+        "description": "Returns pump.fun market movers from frontend-api-v3 (falls back to currently-live when primary is empty). Use when an agent finds coins with unusual short-term price/volume action. Inputs: limit, offset, includeNsfw. Returns coins[], count, upstream metadata.",
+        "operationId": "getPumpfunMovers",
+        "security": [
+          {
+            "x402": []
+          }
+        ],
+        "x-payment-info": {
+          "protocols": [
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
+          ],
+          "price": {
+            "mode": "fixed",
+            "currency": "USD",
+            "amount": "0.05"
+          }
+        },
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "includeNsfw",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.",
+            "headers": {
+              "Payment-Required": {
+                "description": "x402 v2 encoded payment requirements",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds the client must wait before retrying.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Too many requests. Please slow down."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "x-syra-pillar": "spend"
+      }
+    },
+    "/pumpfun/analyzer": {
+      "get": {
+        "tags": [
+          "pump.fun analyzer (x402)"
+        ],
+        "summary": "Full memecoin due-diligence for any Solana mint",
+        "description": "Deep memecoin analysis for pump.fun or graduated tokens. Use when an agent must score risk/reward before trading. Input: mint (base58). Returns syraAlpha score/verdict, market stats, dossier risk, holders, distribution, onChainSecurity, kolShills — probabilistic, not financial advice.",
+        "operationId": "getPumpfunAnalyzer",
+        "security": [
+          {
+            "x402": []
+          }
+        ],
+        "x-payment-info": {
+          "protocols": [
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
+          ],
+          "price": {
+            "mode": "fixed",
+            "currency": "USD",
+            "amount": "0.1"
+          }
+        },
+        "parameters": [
+          {
+            "name": "mint",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Solana token mint (base58)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.",
+            "headers": {
+              "Payment-Required": {
+                "description": "x402 v2 encoded payment requirements",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds the client must wait before retrying.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Too many requests. Please slow down."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "x-syra-pillar": "spend"
+      }
+    },
+    "/pumpfun/scout": {
+      "get": {
+        "tags": [
+          "pump.fun scout (x402)"
+        ],
+        "summary": "Live pump.fun alpha/beta/predicted/utility scout",
+        "description": "Live pump.fun intelligence with selector param segment=alpha|beta|predicted|utility. Optional period, limit, minPumpScore, llm. Returns scored tokens, analysis, and meta — deterministic by default.",
+        "operationId": "getPumpfunScout",
+        "security": [
+          {
+            "x402": []
+          }
+        ],
+        "x-payment-info": {
+          "protocols": [
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
+          ],
+          "price": {
+            "mode": "fixed",
+            "currency": "USD",
+            "amount": "0.1"
+          }
+        },
+        "parameters": [
+          {
+            "name": "segment",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "alpha"
+            }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "today"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          },
+          {
+            "name": "minPumpScore",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 48
+            }
+          },
+          {
+            "name": "llm",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.",
+            "headers": {
+              "Payment-Required": {
+                "description": "x402 v2 encoded payment requirements",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds the client must wait before retrying.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Too many requests. Please slow down."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "x-syra-pillar": "spend"
+      }
+    },
+    "/rise": {
+      "get": {
+        "tags": [
+          "RISE scout (x402)"
+        ],
+        "summary": "Live RISE market intel and agent targets",
+        "description": "Live RISE intelligence with view=intel|markets|targets. Optional mint, limit, tier=ready|watch. Returns UPONLY token snapshot, fund lens, ranked markets, and agent-ready mint targets.",
+        "operationId": "getRiseScout",
+        "security": [
+          {
+            "x402": []
+          }
+        ],
+        "x-payment-info": {
+          "protocols": [
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
+          ],
+          "price": {
+            "mode": "fixed",
+            "currency": "USD",
+            "amount": "0.1"
+          }
+        },
+        "parameters": [
+          {
+            "name": "view",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "intel"
+            }
+          },
+          {
+            "name": "mint",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 25
+            }
+          },
+          {
+            "name": "tier",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.",
+            "headers": {
+              "Payment-Required": {
+                "description": "x402 v2 encoded payment requirements",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds the client must wait before retrying.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Too many requests. Please slow down."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "x-syra-pillar": "spend"
+      }
+    },
+    "/coingecko": {
+      "get": {
+        "tags": [
+          "CoinGecko scout (x402)"
+        ],
+        "summary": "Live CoinGecko top gainers brief",
+        "description": "Live CoinGecko scout with view=brief|gainers|predictions. Optional topN, minMarketCap, includeNews, llm. Returns top gainers, digests, predictions, and narrative meta — deterministic by default.",
+        "operationId": "getCoingeckoScout",
+        "security": [
+          {
+            "x402": []
+          }
+        ],
+        "x-payment-info": {
+          "protocols": [
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
+          ],
+          "price": {
+            "mode": "fixed",
+            "currency": "USD",
+            "amount": "0.1"
+          }
+        },
+        "parameters": [
+          {
+            "name": "view",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "brief"
+            }
+          },
+          {
+            "name": "topN",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 8
+            }
+          },
+          {
+            "name": "minMarketCap",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1000000
+            }
+          },
+          {
+            "name": "includeNews",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          {
+            "name": "llm",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.",
+            "headers": {
+              "Payment-Required": {
+                "description": "x402 v2 encoded payment requirements",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds the client must wait before retrying.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Too many requests. Please slow down."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "x-syra-pillar": "spend"
+      }
+    },
+    "/assets": {
+      "get": {
+        "tags": [
+          "Assets board (x402)"
+        ],
+        "summary": "Tokens.xyz curated assets board with filter and sort",
+        "description": "Paginated curated assets board (crypto + tokenized stocks) from Tokens.xyz — same data as the Syra Assets page. Use when an agent needs a ranked market universe, not a single asset. Inputs: list (all|majors|stocks|…), assetClass, q, sort, order, limit, offset. Returns items[] with price, marketCap, volume, assetClass.",
+        "operationId": "getAssetsBoard",
+        "security": [
+          {
+            "x402": []
+          }
+        ],
+        "x-payment-info": {
+          "protocols": [
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
+          ],
+          "price": {
+            "mode": "fixed",
+            "currency": "USD",
+            "amount": "0.05"
+          }
+        },
+        "parameters": [
+          {
+            "name": "list",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "all",
+              "enum": [
+                "all",
+                "majors",
+                "lsts",
+                "currencies",
+                "rwas",
+                "etfs",
+                "metals",
+                "stocks"
+              ]
+            }
+          },
+          {
+            "name": "groupBy",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "asset",
+              "enum": [
+                "asset",
+                "mint"
+              ]
+            }
+          },
+          {
+            "name": "assetClass",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "all",
+              "enum": [
+                "all",
+                "crypto",
+                "equity"
+              ]
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search name, symbol, ref, or assetId"
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "marketCap",
+              "enum": [
+                "marketCap",
+                "name",
+                "symbol",
+                "price",
+                "change24h",
+                "volume24h",
+                "assetClass"
+              ]
+            }
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "maxPages",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.",
+            "headers": {
+              "Payment-Required": {
+                "description": "x402 v2 encoded payment requirements",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds the client must wait before retrying.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Too many requests. Please slow down."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "x-syra-pillar": "spend"
+      }
+    },
+    "/assets/detail": {
+      "get": {
+        "tags": [
+          "Asset detail (x402)"
+        ],
+        "summary": "Tokens.xyz mint dossier for one asset",
+        "description": "Full asset dossier: profile, risk, markets, and 1H OHLCV for a canonical asset. Use when an agent researches BTC, SOL, a stock token, or any Tokens.xyz asset by ref/mint/assetId. Inputs: ref, mint, assetId, or q. Returns asset, includes (profile/risk/markets), ohlcv candles, mintRisk.",
+        "operationId": "getAssetsDetail",
+        "security": [
+          {
+            "x402": []
+          }
+        ],
+        "x-payment-info": {
+          "protocols": [
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
+          ],
+          "price": {
+            "mode": "fixed",
+            "currency": "USD",
+            "amount": "0.05"
+          }
+        },
+        "parameters": [
+          {
+            "name": "ref",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Ref e.g. btc, solana, apple"
+          },
+          {
+            "name": "mint",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Solana mint (base58)"
+          },
+          {
+            "name": "assetId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "assetId e.g. bitcoin"
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Freeform lookup (ref, mint, or assetId)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.",
+            "headers": {
+              "Payment-Required": {
+                "description": "x402 v2 encoded payment requirements",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds the client must wait before retrying.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Too many requests. Please slow down."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "x-syra-pillar": "spend"
+      }
+    },
+    "/bitcoin": {
+      "get": {
+        "tags": [
+          "Bitcoin Intelligence Hub (x402)"
+        ],
+        "summary": "Full Bitcoin dashboard + taker-flow bubblemap",
+        "description": "Complete Bitcoin intelligence bundle from the Syra BTC page. Use when an agent needs macro BTC context: price, derivatives, technicals, sentiment, news, signal, and taker buy/sell bubblemap in one call. Inputs: exchange (binance|coinbase), interval, limit for bubblemap. Returns dashboard (overview + sections) and bubblemap points[].",
+        "operationId": "getBitcoinHub",
+        "security": [
+          {
+            "x402": []
+          }
+        ],
+        "x-payment-info": {
+          "protocols": [
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
+          ],
+          "price": {
+            "mode": "fixed",
+            "currency": "USD",
+            "amount": "0.1"
+          }
+        },
+        "parameters": [
+          {
+            "name": "exchange",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "binance",
+              "enum": [
+                "binance",
+                "coinbase"
+              ]
+            }
+          },
+          {
+            "name": "interval",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "1h",
+              "enum": [
+                "1m",
+                "5m",
+                "15m",
+                "1h",
+                "4h",
+                "1d"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 200,
+              "minimum": 20,
+              "maximum": 500
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.",
+            "headers": {
+              "Payment-Required": {
+                "description": "x402 v2 encoded payment requirements",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds the client must wait before retrying.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Too many requests. Please slow down."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "x-syra-pillar": "spend"
       }
     },
     "/indicator": {
@@ -2433,7 +3924,8 @@
         "tags": [
           "Technical indicators (x402)"
         ],
-        "summary": "OHLCV technical indicators — combine RSI, MACD, EMA, Bollinger, and 20+ more in one agent-readable call",
+        "summary": "Combine RSI, MACD, EMA, Bollinger, and 20+ indicators in one call",
+        "description": "Computes multiple technical indicators from OHLCV candles in one agent-readable response. Use when an agent needs RSI/MACD/EMA/Bollinger (or custom combos) without building indicator math. Inputs: symbol, source (binance/coinbase/coingecko), interval, limit, indicators (comma-separated), optional series=true. Returns indicators{} map, lastClose, candleCount, asOf.",
         "operationId": "getIndicator",
         "security": [
           {
@@ -2567,7 +4059,8 @@
               }
             }
           }
-        }
+        },
+        "x-syra-pillar": "spend"
       },
       "post": {
         "tags": [
@@ -2695,7 +4188,8 @@
               }
             }
           }
-        }
+        },
+        "x-syra-pillar": "spend"
       }
     }
   },
@@ -2744,5 +4238,16 @@
         "description": "Legacy internal routes only — openapi-listed free and x402 routes do not use this."
       }
     }
+  },
+  "x-syra-pillars": {
+    "narrative": "Machine Money for Agents",
+    "pillars": [
+      "earn",
+      "treasury",
+      "invest",
+      "spend",
+      "grow"
+    ],
+    "discovery": "/pillars"
   }
 }

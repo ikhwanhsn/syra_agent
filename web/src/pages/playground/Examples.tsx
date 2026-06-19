@@ -1,14 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from '@/lib/navigation';
-import { Zap, ChevronRight, Layers, Loader2, AlertCircle } from 'lucide-react';
+import { ChevronRight, Layers, Loader2, AlertCircle } from 'lucide-react';
 import {
-  getExampleFlowGroups,
   getExampleFlowGroupsFromFlows,
   type ExampleFlowPreset,
 } from '@/hooks/useApiPlayground';
+import { useX402DiscoveryCatalog } from '@/hooks/useX402DiscoveryCatalog';
 import { PlaygroundPageShell, PlaygroundScrollBody } from '@/components/playground/PlaygroundPageShell';
+import { PlaygroundHero } from '@/components/playground/PlaygroundHero';
 import { useApiPlayground } from '@/hooks/useApiPlayground';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  PLAYGROUND_PAGE_CLASS,
+  playgroundPanelClass,
+  playgroundSegmentedRoot,
+  playgroundSegmentedTrigger,
+} from '@/components/playground/playgroundStyles';
+import { cn } from '@/lib/utils';
 import {
   resolveApiBaseUrl,
   resolvePurchVaultBaseUrl,
@@ -17,7 +25,11 @@ import {
 import { buildFullMppExampleFlowList } from '@/lib/mppOpenApiToExampleFlows';
 const Examples = () => {
   const { selectPaymentChain } = useApiPlayground();
-  const x402Groups = getExampleFlowGroups();
+  const { flows: x402Flows } = useX402DiscoveryCatalog();
+  const x402Groups = useMemo(
+    () => getExampleFlowGroupsFromFlows(x402Flows),
+    [x402Flows],
+  );
 
   const [mppFlows, setMppFlows] = useState<ExampleFlowPreset[]>([]);
   const [mppLoadState, setMppLoadState] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle');
@@ -56,43 +68,36 @@ const Examples = () => {
   return (
     <PlaygroundPageShell>
       <PlaygroundScrollBody>
-        <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 min-w-0 pb-24">
-          <div className="glass-panel rounded-2xl p-5 sm:p-6 mb-8 border border-border/50">
-            <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-5">
-              <div className="relative shrink-0">
-                <div
-                  className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/20 via-ring/10 to-transparent blur-md opacity-80"
-                  aria-hidden
-                />
-                <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-card/90 ring-1 ring-border/60 dark:ring-white/[0.08] shadow-md flex items-center justify-center border border-border/40">
-                  <Zap className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
-                </div>
-              </div>
-              <div className="min-w-0 flex-1">
-                <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">
-                  Example flows
-                </h1>
-                <p className="text-sm sm:text-[15px] text-muted-foreground mt-2 leading-relaxed max-w-3xl text-balance">
-                  <span className="font-medium text-foreground/90">x402</span> — curated Syra demos.{' '}
-                  <span className="font-medium text-foreground/90">MPP</span> — full catalog from{' '}
-                  <span className="font-mono text-xs sm:text-sm text-foreground/85">GET /mpp-openapi.json</span> (same
-                  URLs as x402; MPP is discovery metadata for AgentCash / MPPscan).
-                </p>
-              </div>
-            </div>
-          </div>
+        <div className={cn(PLAYGROUND_PAGE_CLASS, "min-w-0 space-y-8")}>
+          <PlaygroundHero
+            kicker="Example flows"
+            title="Explore payment-gated APIs"
+            description="Browse grouped x402 demos or the full MPP discovery catalog — same URLs, different discovery metadata for agents and MPPscan."
+            stats={[
+              { label: "x402 groups", value: String(x402Groups.length) },
+              { label: "MPP ops", value: mppLoadState === "ok" ? String(mppFlows.length) : "…" },
+            ]}
+          />
 
           <Tabs defaultValue="x402" className="w-full">
-            <TabsList className="mb-8 grid w-full max-w-md grid-cols-2 h-auto p-1 gap-1 rounded-xl border border-border/50 bg-muted/25 dark:bg-black/20 shadow-inner shadow-black/5">
+            <TabsList className={cn(playgroundSegmentedRoot(2), "mb-6 h-auto max-w-md")}>
               <TabsTrigger
                 value="x402"
-                className="rounded-lg text-sm font-medium data-[state=active]:bg-background/90 data-[state=active]:dark:bg-white/[0.08] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-border/60 data-[state=active]:text-foreground py-2.5"
+                className={cn(
+                  playgroundSegmentedTrigger(false),
+                  "border-0 bg-transparent shadow-none",
+                  "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-border/55",
+                )}
               >
                 x402
               </TabsTrigger>
               <TabsTrigger
                 value="mpp"
-                className="rounded-lg text-sm font-medium data-[state=active]:bg-background/90 data-[state=active]:dark:bg-white/[0.08] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-border/60 data-[state=active]:text-foreground py-2.5"
+                className={cn(
+                  playgroundSegmentedTrigger(false),
+                  "border-0 bg-transparent shadow-none",
+                  "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-border/55",
+                )}
               >
                 MPP
               </TabsTrigger>
@@ -106,10 +111,9 @@ const Examples = () => {
                       key={group.slug}
                       to={`/examples/x402/${group.slug}`}
                       className={cn(
-                        'flex items-center gap-4 p-4 sm:p-5 rounded-2xl border transition-all duration-300 group',
-                        'bg-card/70 backdrop-blur-sm border-border/50',
-                        'hover:border-primary/30 hover:bg-card/90 hover:shadow-md dark:hover:shadow-elevate-sm',
-                        'hover:-translate-y-0.5 active:translate-y-0',
+                        playgroundPanelClass,
+                        "group flex items-center gap-4 p-4 sm:p-5 transition-all duration-300",
+                        "hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0",
                       )}
                     >
                       <div
@@ -175,10 +179,9 @@ const Examples = () => {
                         key={group.slug}
                         to={`/examples/mpp/${group.slug}`}
                         className={cn(
-                          'flex items-center gap-4 p-4 sm:p-5 rounded-2xl border transition-all duration-300 group',
-                          'bg-card/70 backdrop-blur-sm border-border/50',
-                          'hover:border-accent/35 hover:bg-card/90 hover:shadow-md dark:hover:shadow-elevate-sm',
-                          'hover:-translate-y-0.5 active:translate-y-0',
+                          playgroundPanelClass,
+                          "group flex items-center gap-4 p-4 sm:p-5 transition-all duration-300",
+                          "hover:border-accent/35 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0",
                         )}
                       >
                         <div

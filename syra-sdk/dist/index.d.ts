@@ -36,7 +36,13 @@ export declare class SyraClient {
     request<T = unknown>(path: string, init?: SyraRequestInit): Promise<SyraApiResponse<T>>;
     get<T = unknown>(path: string, params?: SyraRequestInit["params"]): Promise<SyraApiResponse<T>>;
     post<T = unknown>(path: string, body?: unknown): Promise<SyraApiResponse<T>>;
+    /** Five-pillar modules: earn, treasury, invest, spend, grow, pillars */
+    readonly pillars: import("./pillars.js").SyraPillarModules;
 }
 export declare function createSyraClient(options?: SyraClientOptions): SyraClient;
 export { isSyraX402Path, SYRA_HIGH_VALUE_ROUTES, SYRA_X402_ROUTE_PREFIXES } from "./routes.js";
 export type { SyraHighValueRouteId } from "./routes.js";
+export { SYRA_PILLAR_IDS, SYRA_PILLAR_ROUTES, resolveSyraPillarForPath, } from "./pillars-routes.js";
+export type { SyraPillarId } from "./pillars-routes.js";
+export { attachPillarModules, createEarnModule, createTreasuryModule, createInvestModule, createSpendModule, createGrowModule, createPillarsModule, } from "./pillars.js";
+export type { SyraPillarModules, InvestAdapterId, InvestOpportunity, GrowRecommendation, EarnSummary, PillarDiscovery, } from "./pillars.js";

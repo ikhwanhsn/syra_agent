@@ -138,15 +138,3 @@ export async function getRiseMarketsAll(
   const dedup = dedupeMarketsByMint(merged);
   return mergeUponlySpotlight(dedup, signal, prefetchedAggregate);
 }
-
-export type RiseAlphaMarketsBundle = {
-  markets: RiseMarketRow[];
-  aggregate: RiseAggregateResponse;
-  fetchedAtMs: number;
-};
-
-export async function fetchRiseAlphaMarketsBundle(signal?: AbortSignal): Promise<RiseAlphaMarketsBundle> {
-  const aggregate = await getRiseAggregate(signal);
-  const markets = await getRiseMarketsAll(100, signal, aggregate);
-  return { markets, aggregate, fetchedAtMs: Date.now() };
-}

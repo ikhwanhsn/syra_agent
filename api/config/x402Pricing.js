@@ -105,8 +105,17 @@ export const X402_API_PRICE_PUMP_FUN_READ_USD = price(0.01);
 /** pump.fun trending / movers market lists — $0.05/call in production */
 export const X402_API_PRICE_PUMP_FUN_MARKET_LIST_USD = price(0.005);
 
-/** pump.fun memecoin analyzer (Pumpfun Alpha page) — $0.10/call in production */
+/** pump.fun memecoin analyzer — $0.10/call in production */
 export const X402_API_PRICE_PUMP_FUN_ANALYZER_USD = price(0.01);
+
+/** pump.fun scout (alpha/beta/predicted/utility segments) — live x402 */
+export const X402_API_PRICE_PUMP_FUN_SCOUT_USD = price(0.01);
+
+/** RISE scout (intel/markets/targets views) — live x402 */
+export const X402_API_PRICE_RISE_SCOUT_USD = price(0.01);
+
+/** CoinGecko scout (brief/gainers/predictions views) — live x402 */
+export const X402_API_PRICE_COINGECKO_SCOUT_USD = price(0.01);
 
 /** Tokens.xyz curated assets board (Assets page) — $0.05/call in production */
 export const X402_API_PRICE_ASSETS_BOARD_USD = price(0.005);
@@ -218,6 +227,9 @@ export const X402_DISPLAY_PRICE_PUMP_FUN_TX_USD = 0.02 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_PUMP_FUN_READ_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_PUMP_FUN_MARKET_LIST_USD = 0.005 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_PUMP_FUN_ANALYZER_USD = 0.01 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_PUMP_FUN_SCOUT_USD = 0.01 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_RISE_SCOUT_USD = 0.01 * PRODUCTION_MULT;
+export const X402_DISPLAY_PRICE_COINGECKO_SCOUT_USD = 0.01 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_ASSETS_BOARD_USD = 0.005 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_ASSETS_DETAIL_USD = 0.005 * PRODUCTION_MULT;
 export const X402_DISPLAY_PRICE_BITCOIN_USD = 0.01 * PRODUCTION_MULT;

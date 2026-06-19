@@ -19,11 +19,15 @@ import {
   X402_DISPLAY_PRICE_JUPITER_QUOTE_USD,
   X402_DISPLAY_PRICE_PUMP_FUN_MARKET_LIST_USD,
   X402_DISPLAY_PRICE_PUMP_FUN_ANALYZER_USD,
+  X402_DISPLAY_PRICE_PUMP_FUN_SCOUT_USD,
+  X402_DISPLAY_PRICE_RISE_SCOUT_USD,
+  X402_DISPLAY_PRICE_COINGECKO_SCOUT_USD,
   X402_DISPLAY_PRICE_ASSETS_BOARD_USD,
   X402_DISPLAY_PRICE_ASSETS_DETAIL_USD,
   X402_DISPLAY_PRICE_BITCOIN_USD,
 } from '../config/x402Pricing.js';
-import { getResourceDescription, getResourceSummary } from '../config/x402ResourceCatalog.js';
+import { getResourceDescription, getResourceSummary, getResourcePillar } from '../config/x402ResourceCatalog.js';
+import { resolvePillarForOpenApiPath } from '../config/pillars.js';
 
 const GATEWAY_DIR = path.dirname(fileURLToPath(import.meta.url));
 
@@ -361,11 +365,22 @@ function opPost(tag, summary, operationId, paid = false, priceUsd = X402_DISPLAY
 
 /** Discovery catalog helper — summary + description from x402ResourceCatalog. */
 function opGetCat(segment, tag, operationId, parameters = [], paid = false, priceUsd = X402_DISPLAY_PRICE_USD) {
-  return opGet(tag, getResourceSummary(segment), operationId, parameters, paid, priceUsd, getResourceDescription(segment));
+  const op = opGet(tag, getResourceSummary(segment), operationId, parameters, paid, priceUsd, getResourceDescription(segment));
+  return { ...op, 'x-syra-pillar': getResourcePillar(segment) };
 }
 
 function opPostCat(segment, tag, operationId, paid = false, priceUsd = X402_DISPLAY_PRICE_USD) {
-  return opPost(tag, getResourceSummary(segment), operationId, paid, priceUsd, getResourceDescription(segment));
+  const op = opPost(tag, getResourceSummary(segment), operationId, paid, priceUsd, getResourceDescription(segment));
+  return { ...op, 'x-syra-pillar': getResourcePillar(segment) };
+}
+
+/**
+ * Attach pillar tag to an OpenAPI operation from its path.
+ * @param {Record<string, unknown>} op
+ * @param {string} openApiPath
+ */
+function withPillarTag(op, openApiPath) {
+  return { ...op, 'x-syra-pillar': resolvePillarForOpenApiPath(openApiPath) };
 }
 
 /**
@@ -762,6 +777,53 @@ export function buildGatewayOpenApi() {
         X402_DISPLAY_PRICE_PUMP_FUN_ANALYZER_USD,
       ),
     },
+    '/pumpfun/scout': {
+      get: opGetCat(
+        'pumpfun/scout',
+        'pump.fun scout (x402)',
+        'getPumpfunScout',
+        [
+          { name: 'segment', in: 'query', schema: { type: 'string', default: 'alpha' } },
+          { name: 'period', in: 'query', schema: { type: 'string', default: 'today' } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 10 } },
+          { name: 'minPumpScore', in: 'query', schema: { type: 'integer', default: 48 } },
+          { name: 'llm', in: 'query', schema: { type: 'boolean', default: false } },
+        ],
+        true,
+        X402_DISPLAY_PRICE_PUMP_FUN_SCOUT_USD,
+      ),
+    },
+    '/rise': {
+      get: opGetCat(
+        'rise',
+        'RISE scout (x402)',
+        'getRiseScout',
+        [
+          { name: 'view', in: 'query', schema: { type: 'string', default: 'intel' } },
+          { name: 'mint', in: 'query', schema: { type: 'string' } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 25 } },
+          { name: 'tier', in: 'query', schema: { type: 'string' } },
+        ],
+        true,
+        X402_DISPLAY_PRICE_RISE_SCOUT_USD,
+      ),
+    },
+    '/coingecko': {
+      get: opGetCat(
+        'coingecko',
+        'CoinGecko scout (x402)',
+        'getCoingeckoScout',
+        [
+          { name: 'view', in: 'query', schema: { type: 'string', default: 'brief' } },
+          { name: 'topN', in: 'query', schema: { type: 'integer', default: 8 } },
+          { name: 'minMarketCap', in: 'query', schema: { type: 'integer', default: 1000000 } },
+          { name: 'includeNews', in: 'query', schema: { type: 'boolean', default: true } },
+          { name: 'llm', in: 'query', schema: { type: 'boolean', default: false } },
+        ],
+        true,
+        X402_DISPLAY_PRICE_COINGECKO_SCOUT_USD,
+      ),
+    },
     '/assets': {
       get: opGetCat(
         'assets',
@@ -950,6 +1012,23 @@ export function buildGatewayOpenApi() {
   if (ownershipProofs.length > 0) {
     doc['x-discovery'] = { ownershipProofs };
   }
+
+  // Tag every operation with its five-pillar classification
+  for (const [openApiPath, methods] of Object.entries(paths)) {
+    if (!methods || typeof methods !== 'object') continue;
+    for (const method of Object.keys(methods)) {
+      const op = methods[method];
+      if (op && typeof op === 'object' && !op['x-syra-pillar']) {
+        methods[method] = withPillarTag(/** @type {Record<string, unknown>} */ (op), openApiPath);
+      }
+    }
+  }
+
+  doc['x-syra-pillars'] = {
+    narrative: 'Machine Money for Agents',
+    pillars: ['earn', 'treasury', 'invest', 'spend', 'grow'],
+    discovery: '/pillars',
+  };
 
   return doc;
 }
