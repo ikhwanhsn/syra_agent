@@ -5,7 +5,7 @@ import { PostBackLink } from "@/components/post/PostBackLink";
 import { PostShipLogUpdateList } from "@/components/post/PostShipLogUpdateList";
 import { getVisiblePostBundles, getLatestVisiblePostUpdateNumber } from "@/lib/postRegistryVisibility";
 import { usePostRegistryRefresh } from "@/lib/usePostRegistryRefresh";
-import { usePostStudioQuery } from "@/hooks/usePostStudio";
+import { SYRA_POST_STUDIO_LOGO } from "@/lib/syraBranding";
 
 /** Hub for ship-log social formats — video deck or photo templates. */
 export default function PostPage() {
@@ -38,9 +38,9 @@ export default function PostPage() {
 
         <div className="mb-6 flex items-center justify-center gap-3">
           <img
-            src="/images/logo.jpg"
+            src={SYRA_POST_STUDIO_LOGO}
             alt=""
-            className="h-10 w-10 rounded-xl border border-white/10 object-cover"
+            className="post-studio-logo-mark h-10 w-10 rounded-xl object-cover"
           />
           <div className="text-left">
             <h1 className="font-display text-lg font-medium tracking-tight">Syra Ship Log</h1>

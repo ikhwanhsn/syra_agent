@@ -5,7 +5,7 @@
 import type { HttpMethod } from "@/types/api";
 import type { RequestParam } from "@/types/api";
 
-export const X402_PLAYGROUND_GENERATED_AT = "2026-06-19T17:10:23.911Z";
+export const X402_PLAYGROUND_GENERATED_AT = "2026-06-21T00:55:34.414Z";
 
 export interface X402PlaygroundResourceTemplate {
   segment: string;

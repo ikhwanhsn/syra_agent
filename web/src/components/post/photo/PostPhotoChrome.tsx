@@ -1,3 +1,4 @@
+import { SYRA_POST_STUDIO_LOGO } from "@/lib/syraBranding";
 import { Fragment, type ReactNode } from "react";
 import {
   getPostPhotoBgSignalTag,
@@ -82,7 +83,7 @@ export function PostPhotoChrome({
 
       {!hideBrand ? (
         <div className="post-photo-brand">
-          <img src="/images/logo.jpg" alt="" className="post-photo-brand-logo" />
+          <img src={SYRA_POST_STUDIO_LOGO} alt="" className="post-photo-brand-logo post-studio-logo-mark" />
           <span className="post-photo-brand-name">Syra</span>
         </div>
       ) : null}
@@ -373,7 +374,7 @@ export function PostPhotoPartnershipLockup({
       <div className="post-photo-partnership-panel">
         <div className="post-photo-partnership-brand">
           <div className="post-photo-partnership-logo-wrap post-photo-partnership-logo-wrap--syra">
-            <img src="/images/logo.jpg" alt="" className="post-photo-partnership-logo" />
+            <img src={SYRA_POST_STUDIO_LOGO} alt="" className="post-photo-partnership-logo post-studio-logo-mark" />
           </div>
           <span className="post-photo-partnership-name">Syra</span>
         </div>

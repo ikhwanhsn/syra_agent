@@ -1,3 +1,4 @@
+import { SYRA_POST_STUDIO_LOGO } from "@/lib/syraBranding";
 import type { PostSlideLayoutTemplateExtended } from "@/content/posts/layoutsExtended";
 import {
   renderCardsBatch3,
@@ -61,7 +62,7 @@ export function renderCoverExtended(slide: PostCoverSlide, isActive: boolean): R
       return (
         <PostSlideLayout isActive={isActive} template={layout} variant="cover">
           <PostReveal isActive={isActive} delayMs={0}>
-            <img src="/images/logo.jpg" alt="" className="post-cover-logo mx-auto h-16 w-16 rounded-2xl border border-white/10 object-cover sm:h-[4.5rem] sm:w-[4.5rem]" />
+            <img src={SYRA_POST_STUDIO_LOGO} alt="" className="post-cover-logo post-studio-logo-mark mx-auto h-16 w-16 rounded-2xl object-cover sm:h-[4.5rem] sm:w-[4.5rem]" />
           </PostReveal>
           <CoverBadge text={slide.badge} isActive={isActive} delayMs={100} />
           <PostReveal isActive={isActive} delayMs={200}>

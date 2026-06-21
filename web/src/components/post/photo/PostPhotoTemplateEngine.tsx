@@ -1,3 +1,4 @@
+import { SYRA_POST_STUDIO_LOGO } from "@/lib/syraBranding";
 import type { PostPhotoContent } from "@/content/posts/photo/types";
 import type { PostPhotoLayoutTemplate } from "@/content/posts/photo/layouts";
 import type { PostPhotoCardRole } from "@/content/posts/photo/photoCardSlots";
@@ -86,12 +87,12 @@ function renderBlock(block: PhotoBlockId, content: PostPhotoContent, def: PhotoT
     case "logo-lockup":
       return (
         <div key={block} className="post-photo-cover-lockup">
-          <img src="/images/logo.jpg" alt="" className="post-photo-cover-logo" />
+          <img src={SYRA_POST_STUDIO_LOGO} alt="" className="post-photo-cover-logo post-studio-logo-mark" />
           <PostPhotoTitle>{content.title}</PostPhotoTitle>
         </div>
       );
     case "logo-hero":
-      return <img key={block} src="/images/logo.jpg" alt="" className="post-photo-cover-logo post-photo-cover-logo--lg" />;
+      return <img key={block} src={SYRA_POST_STUDIO_LOGO} alt="" className="post-photo-cover-logo post-photo-cover-logo--lg post-studio-logo-mark" />;
     case "brand-name":
       return (
         <p key={block} className="post-photo-brand-hero-name">

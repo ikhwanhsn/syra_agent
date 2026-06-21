@@ -1,3 +1,4 @@
+import { SYRA_POST_STUDIO_LOGO } from "@/lib/syraBranding";
 import type { PostSlideLayoutTemplateBatch3 } from "@/content/posts/layoutsBatch3";
 import type {
   PostCardsSlide,
@@ -54,7 +55,7 @@ export function renderCoverBatch3(slide: PostCoverSlide, isActive: boolean): Rea
             <div className="post-batch3-ring-frame">
               <div className="post-batch3-ring-glow" aria-hidden />
               <div className="post-batch3-ring-inner">
-                <img src="/images/logo.jpg" alt="" className="post-cover-logo mx-auto h-12 w-12 rounded-xl border border-white/10 object-cover sm:h-14 sm:w-14" />
+                <img src={SYRA_POST_STUDIO_LOGO} alt="" className="post-cover-logo post-studio-logo-mark mx-auto h-12 w-12 rounded-xl object-cover sm:h-14 sm:w-14" />
                 <CoverBadge text={slide.badge} isActive={isActive} delayMs={60} />
                 <h1 className="post-slide-title post-slide-balance mt-2">{slide.title}</h1>
                 <p className="post-slide-kicker mt-1">{slide.eyebrow}</p>
@@ -94,7 +95,7 @@ export function renderCoverBatch3(slide: PostCoverSlide, isActive: boolean): Rea
           <PostSlideContent align="left">
             <PostReveal isActive={isActive} delayMs={0}>
               <div className="post-batch3-corner-anchor">
-                <img src="/images/logo.jpg" alt="" className="post-batch3-corner-logo-img h-10 w-10 rounded-lg border border-[#F3BA2F]/20 object-cover sm:h-12 sm:w-12" />
+                <img src={SYRA_POST_STUDIO_LOGO} alt="" className="post-batch3-corner-logo-img post-studio-logo-mark h-10 w-10 rounded-lg object-cover sm:h-12 sm:w-12" />
                 <span className="post-batch3-corner-line" aria-hidden />
               </div>
             </PostReveal>

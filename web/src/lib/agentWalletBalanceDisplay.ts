@@ -2,6 +2,8 @@
  * Treasury balance display + resolution for agent wallet UIs.
  */
 
+import { getApiBaseUrl } from "@/lib/env";
+
 /** Sum chat + LP treasury USDC or SOL (null when both wallets unresolved). */
 export function sumAgentTreasuryTotals(
   chat: number | null | undefined,
@@ -25,18 +27,17 @@ export function resolveAgentTreasuryBalance(
   return api ?? ctx;
 }
 
-const WRAPPED_SOL_MINT = "So11111111111111111111111111111111111111112";
-
-/** Spot SOL/USD for treasury estimates (Jupiter lite — no API key). */
+/** Spot SOL/USD for treasury estimates (Syra API proxy — avoids browser CSP blocks). */
 export async function fetchSolUsdSpot(): Promise<number | null> {
   try {
-    const res = await fetch(
-      `https://lite-api.jup.ag/price/v2?ids=${encodeURIComponent(WRAPPED_SOL_MINT)}`,
-    );
+    const base = getApiBaseUrl().replace(/\/$/, "");
+    const res = await fetch(`${base}/agent/chart/sol-price`, {
+      headers: { Accept: "application/json" },
+    });
     if (!res.ok) return null;
-    const json = (await res.json()) as { data?: Record<string, { price?: number }> };
-    const price = Number(json?.data?.[WRAPPED_SOL_MINT]?.price);
-    return Number.isFinite(price) && price > 0 ? price : null;
+    const json = (await res.json()) as { success?: boolean; priceUsd?: number };
+    const price = Number(json?.priceUsd);
+    return json.success && Number.isFinite(price) && price > 0 ? price : null;
   } catch {
     return null;
   }

@@ -4,7 +4,7 @@ import {
   postExportNodeFilter,
   preloadExportAssets,
   resolveFontEmbedCSS,
-  resolvePostVideoExportStage,
+  resolvePostVideoPreviewStage,
   setPostExportActive,
   setPostExportCapturing,
   waitForPaint,
@@ -34,7 +34,7 @@ export const POST_VIDEO_BITRATE = 16_000_000;
 const REVEAL_OFFSET_Y = 20;
 
 export { getSlideDwellMs, getTotalVideoDurationMs, getTotalVideoFrameCount } from "@/components/post/postSlideTiming";
-export { resolvePostVideoExportStage, resolvePostVideoPreviewStage } from "@/components/post/postHtmlCapture";
+export { resolvePostVideoPreviewStage } from "@/components/post/postHtmlCapture";
 
 export interface PostVideoLayoutSize {
   width: number;
@@ -42,6 +42,17 @@ export interface PostVideoLayoutSize {
 }
 
 export function resolvePostVideoLayoutSize(): PostVideoLayoutSize {
+  const preview = resolvePostVideoPreviewStage();
+  if (preview) {
+    const { width, height } = preview.getBoundingClientRect();
+    if (width > 0 && height > 0) {
+      return {
+        width: Math.round(width),
+        height: Math.round(height),
+      };
+    }
+  }
+
   return {
     width: POST_VIDEO_LAYOUT_WIDTH,
     height: POST_VIDEO_LAYOUT_HEIGHT,
@@ -82,9 +93,9 @@ export function buildPostVideoFilename(postId: string, format: PostVideoExportFo
   return `syra-post-${sanitizeFilename(postId)}.${format}`;
 }
 
-/** @deprecated Export captures the fixed off-screen stage. */
+/** @deprecated Export captures the visible preview stage. */
 export function resolvePostVideoExportNode(node: HTMLElement): HTMLElement {
-  return resolvePostVideoExportStage() ?? node;
+  return resolvePostVideoPreviewStage() ?? node;
 }
 
 function parseRevealDelayMs(el: HTMLElement): number {
@@ -263,8 +274,8 @@ export async function exportPostVideo(
     throw new Error("Video export is not supported in this browser");
   }
 
-  const target = resolvePostVideoExportStage();
-  if (!target) throw new Error("Export stage not found");
+  const target = resolvePostVideoPreviewStage();
+  if (!target) throw new Error("Preview stage not found");
 
   const layout = resolvePostVideoLayoutSize();
   const totalFrames = getTotalVideoFrameCount(slides);

@@ -15,6 +15,7 @@ import {
   PostSlideGrid,
   PostSlideLayout,
 } from "@/components/post/PostSlideLayout";
+import { SYRA_POST_STUDIO_LOGO } from "@/lib/syraBranding";
 import {
   renderCardsExtended,
   renderClosingExtended,
@@ -76,7 +77,7 @@ function renderCover(slide: PostCoverSlide, isActive: boolean): ReactNode {
           <CoverBadge text={slide.badge} isActive={isActive} />
           <PostReveal isActive={isActive} delayMs={160}>
             <div className="flex flex-col items-center gap-3 sm:flex-row sm:gap-4">
-              <img src="/images/logo.jpg" alt="" className="post-cover-logo h-12 w-12 rounded-xl border border-white/10 object-cover shadow-2xl sm:h-14 sm:w-14" />
+              <img src={SYRA_POST_STUDIO_LOGO} alt="" className="post-cover-logo post-studio-logo-mark h-12 w-12 rounded-xl object-cover shadow-2xl sm:h-14 sm:w-14" />
               <h1 className="post-slide-title post-slide-balance">{slide.title}</h1>
             </div>
           </PostReveal>
@@ -100,7 +101,7 @@ function renderCover(slide: PostCoverSlide, isActive: boolean): ReactNode {
             </PostReveal>
             <PostReveal isActive={isActive} delayMs={100}>
               <div className="flex items-center gap-3">
-                <img src="/images/logo.jpg" alt="" className="h-11 w-11 rounded-xl border border-white/10 object-cover" />
+                <img src={SYRA_POST_STUDIO_LOGO} alt="" className="post-studio-logo-mark h-11 w-11 rounded-xl object-cover" />
                 <h1 className="post-slide-title post-slide-balance">{slide.title}</h1>
               </div>
             </PostReveal>

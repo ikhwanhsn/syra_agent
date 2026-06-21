@@ -7,7 +7,7 @@ import {
   shareCopyHasLink,
   type PostPhotoUpdate,
 } from "@/content/posts/photo";
-import { getPostShareCopyWithUrl } from "@/lib/postShare";
+import { SYRA_POST_STUDIO_LOGO } from "@/lib/syraBranding";
 import { PostBackLink } from "@/components/post/PostBackLink";
 import { PostPhotoExportStage } from "@/components/post/photo/PostPhotoExportStage";
 import { PostPhotoFrame } from "@/components/post/photo/PostPhotoFrame";
@@ -121,9 +121,9 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
         <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
           <PostBackLink />
           <img
-            src="/images/logo.jpg"
+            src={SYRA_POST_STUDIO_LOGO}
             alt=""
-            className="h-7 w-7 shrink-0 rounded-lg border border-white/10 object-cover sm:h-8 sm:w-8"
+            className="post-studio-logo-mark h-7 w-7 shrink-0 rounded-lg object-cover sm:h-8 sm:w-8"
           />
           <div className="min-w-0">
             <span className="font-display text-sm font-medium tracking-tight text-white/90">Syra</span>

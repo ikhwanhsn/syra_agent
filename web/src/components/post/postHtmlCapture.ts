@@ -3,8 +3,6 @@ import { getFontEmbedCSS } from "html-to-image";
 export const POST_VIDEO_PREVIEW_SELECTOR =
   ".post-chrome-stage .post-record-stage:not(.post-video-export-stage)";
 
-export const POST_VIDEO_EXPORT_SELECTOR = ".post-video-export-stage";
-
 export async function waitForPaint(full = true): Promise<void> {
   await new Promise<void>((resolve) => {
     requestAnimationFrame(() => resolve());
@@ -47,11 +45,6 @@ export async function resolveFontEmbedCSS(node: HTMLElement): Promise<string> {
 
 export function resolvePostVideoPreviewStage(): HTMLElement | null {
   return document.querySelector<HTMLElement>(POST_VIDEO_PREVIEW_SELECTOR);
-}
-
-/** Fixed 960×540 off-screen stage — matches Full HD export layout. */
-export function resolvePostVideoExportStage(): HTMLElement | null {
-  return document.querySelector<HTMLElement>(POST_VIDEO_EXPORT_SELECTOR);
 }
 
 /** Hide frame guides and freeze reveal motion for static captures. */
