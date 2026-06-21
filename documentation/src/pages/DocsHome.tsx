@@ -55,7 +55,8 @@ const features = [
   {
     icon: Cpu,
     title: "Agent-native stack",
-    description: SYRA_AGENT_CAPABILITIES[5].description,
+    description:
+      "Earn, treasury, invest, spend, and grow — the full machine-money stack for autonomous agents on Solana.",
     href: "/docs/agent/how-it-works",
   },
 ];
