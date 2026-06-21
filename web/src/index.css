@@ -4601,6 +4601,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   width: 32px;
   height: 32px;
   border-radius: 8px;
+  border: 1px solid hsl(var(--syra-gold) / 0.25);
   object-fit: cover;
 }
 
@@ -4762,19 +4763,9 @@ body.syra-qwerti-active #qwerti-widget-root {
   width: 56px;
   height: 56px;
   border-radius: 14px;
+  border: 1px solid hsl(0 0% 100% / 0.1);
   object-fit: cover;
   box-shadow: 0 16px 48px hsl(0 0% 0% / 0.45);
-}
-
-.post-studio-logo-mark {
-  background-color: #000000;
-  object-fit: cover;
-}
-
-.post-photo-tmpl-announcement .post-photo-cover-logo--lg {
-  width: 88px;
-  height: 88px;
-  border-radius: 20px;
 }
 
 .post-photo-cover-logo--lg {
@@ -6560,10 +6551,8 @@ body.syra-qwerti-active #qwerti-widget-root {
 }
 
 .post-photo-partnership-logo-wrap--syra {
-  background: #000000;
-  border-color: hsl(0 0% 100% / 0.12);
   box-shadow:
-    inset 0 1px 0 hsl(0 0% 100% / 0.08),
+    inset 0 1px 0 hsl(0 0% 100% / 0.12),
     0 0 0 1px hsl(45 92% 55% / 0.22),
     0 20px 56px hsl(45 92% 55% / 0.14);
 }
@@ -6573,13 +6562,6 @@ body.syra-qwerti-active #qwerti-widget-root {
     inset 0 1px 0 hsl(0 0% 100% / 0.12),
     0 0 0 1px hsl(0 0% 100% / 0.08),
     0 20px 56px hsl(0 0% 0% / 0.4);
-}
-
-.post-photo-partnership-logo-wrap--syra .post-photo-partnership-logo {
-  width: 100%;
-  height: 100%;
-  border-radius: inherit;
-  object-fit: cover;
 }
 
 .post-photo-partnership-logo {
@@ -6593,6 +6575,21 @@ body.syra-qwerti-active #qwerti-widget-root {
   width: 52px;
   height: 52px;
   border-radius: 13px;
+}
+
+.post-photo-partnership-logo-wrap--solid {
+  background: #030303;
+  border-color: hsl(0 0% 100% / 0.08);
+  box-shadow:
+    inset 0 0 0 1px hsl(0 0% 100% / 0.06),
+    0 20px 56px hsl(0 0% 0% / 0.4);
+}
+
+.post-photo-partnership-logo--solid {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
 }
 
 .post-photo-partnership-name {

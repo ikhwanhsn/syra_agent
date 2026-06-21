@@ -7,7 +7,7 @@ import {
   shareCopyHasLink,
   type PostPhotoUpdate,
 } from "@/content/posts/photo";
-import { SYRA_POST_STUDIO_LOGO } from "@/lib/syraBranding";
+import { getPostShareCopyWithUrl } from "@/lib/postShare";
 import { PostBackLink } from "@/components/post/PostBackLink";
 import { PostPhotoExportStage } from "@/components/post/photo/PostPhotoExportStage";
 import { PostPhotoFrame } from "@/components/post/photo/PostPhotoFrame";
@@ -48,7 +48,9 @@ function CardButton({
       )}
     >
       <span className="min-w-0 flex-1 text-xs">{label}</span>
-      <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.12em] text-white/30">{sublabel}</span>
+      <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.12em] text-white/30">
+        {sublabel}
+      </span>
     </button>
   );
 }
@@ -70,7 +72,8 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
     photoPost: post,
     photoCardIndex: cardIndex,
   });
-  const slotLabel = POST_PHOTO_CARD_SLOT_BY_ROLE.get(activeCard.role)?.label ?? activeCard.role;
+  const slotLabel =
+    POST_PHOTO_CARD_SLOT_BY_ROLE.get(activeCard.role)?.label ?? activeCard.role;
 
   useEffect(() => {
     document.title = `Syra · ${meta.title} · Photo`;
@@ -86,7 +89,10 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
     if (!node || exporting) return;
     setExporting(true);
     try {
-      await exportPostPhotoPng(node, buildPostPhotoFilename(meta.id, activeCard.role));
+      await exportPostPhotoPng(
+        node,
+        buildPostPhotoFilename(meta.id, activeCard.role),
+      );
       toast.success("Image downloaded");
     } catch {
       toast.error("Download failed");
@@ -121,12 +127,14 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
         <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
           <PostBackLink />
           <img
-            src={SYRA_POST_STUDIO_LOGO}
+            src="/images/logo.jpg"
             alt=""
-            className="post-studio-logo-mark h-7 w-7 shrink-0 rounded-lg object-cover sm:h-8 sm:w-8"
+            className="h-7 w-7 shrink-0 rounded-lg border border-white/10 object-cover sm:h-8 sm:w-8"
           />
           <div className="min-w-0">
-            <span className="font-display text-sm font-medium tracking-tight text-white/90">Syra</span>
+            <span className="font-display text-sm font-medium tracking-tight text-white/90">
+              Syra
+            </span>
             <p className="truncate font-mono text-[10px] uppercase tracking-[0.16em] text-white/35">
               {meta.published} · Photo
             </p>
@@ -135,7 +143,10 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
 
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5 sm:gap-2">
           <PostUpdateNav updateNumber={meta.updateNumber} format="photo" />
-          <PostXStatusControl updateNumber={meta.updateNumber} defaultPosted={meta.postedOnX} />
+          <PostXStatusControl
+            updateNumber={meta.updateNumber}
+            defaultPosted={meta.postedOnX}
+          />
 
           <nav className="post-photo-mode-nav flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] p-0.5">
             <Link
@@ -151,7 +162,12 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
             </span>
           </nav>
 
-          <PostShareCopyPanel meta={meta} format="photo" photoPost={post} photoCardIndex={cardIndex} />
+          <PostShareCopyPanel
+            meta={meta}
+            format="photo"
+            photoPost={post}
+            photoCardIndex={cardIndex}
+          />
 
           <button
             type="button"
@@ -159,8 +175,14 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
             disabled={exporting}
             className="inline-flex h-9 items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 font-mono text-[10px] uppercase tracking-[0.12em] text-white/80 transition-colors hover:bg-white/15 disabled:opacity-50 sm:h-10 sm:gap-2 sm:px-4"
           >
-            {imageCopied ? <Check className="h-4 w-4 text-[#F3BA2F]" /> : <Copy className="h-4 w-4" />}
-            <span className="hidden sm:inline">{imageCopied ? "Copied" : "Copy image"}</span>
+            {imageCopied ? (
+              <Check className="h-4 w-4 text-[#F3BA2F]" />
+            ) : (
+              <Copy className="h-4 w-4" />
+            )}
+            <span className="hidden sm:inline">
+              {imageCopied ? "Copied" : "Copy image"}
+            </span>
           </button>
 
           <button
@@ -206,32 +228,51 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
             <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[#F3BA2F]/70">
               X post for this card
             </p>
-            <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-white/55">{cardShareText}</p>
+            <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-white/55">
+              {cardShareText}
+            </p>
             <p className="mt-2 font-mono text-[10px] text-white/25">
-              {shareCopyHasLink(cardShareText) ? "Each card uses its own copy + link" : "Unique footer link on copy"}
+              {shareCopyHasLink(cardShareText)
+                ? "Each card uses its own copy + link"
+                : "Unique footer link on copy"}
             </p>
           </div>
         </aside>
 
         <div className="post-chrome-stage relative flex min-h-0 min-w-0 flex-1 flex-col items-center justify-center overflow-hidden px-2 py-3 sm:px-6 sm:py-4">
-          <div className="post-ambient pointer-events-none absolute inset-0" aria-hidden />
-          <div className="post-orb post-orb-a pointer-events-none absolute rounded-full scale-75" aria-hidden />
-          <div className="post-orb post-orb-b pointer-events-none absolute rounded-full scale-75" aria-hidden />
+          <div
+            className="post-ambient pointer-events-none absolute inset-0"
+            aria-hidden
+          />
+          <div
+            className="post-orb post-orb-a pointer-events-none absolute rounded-full scale-75"
+            aria-hidden
+          />
+          <div
+            className="post-orb post-orb-b pointer-events-none absolute rounded-full scale-75"
+            aria-hidden
+          />
           <p className="relative z-10 mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/35">
             {slotLabel}
             {" · "}
             {POST_PHOTO_LAYOUT_LABELS[activeCard.layout]}
             {" · "}
-            {String(cardIndex + 1).padStart(2, "0")}/{String(POST_PHOTO_CARD_COUNT).padStart(2, "0")}
+            {String(cardIndex + 1).padStart(2, "0")}/
+            {String(POST_PHOTO_CARD_COUNT).padStart(2, "0")}
             {" · 1200×675"}
           </p>
           <div className="relative z-10 w-full">
             <PostPhotoFrame>
-              {renderPostPhotoTemplate(activeCard.layout, activeCard.content, activeCard.role)}
+              {renderPostPhotoTemplate(
+                activeCard.layout,
+                activeCard.content,
+                activeCard.role,
+              )}
             </PostPhotoFrame>
           </div>
           <p className="post-footer-hint relative z-10 mt-3 hidden text-center font-mono text-[10px] text-white/30 sm:block">
-            Export each card as PNG, then paste the matching X post — 15 posts per ship log
+            Export each card as PNG, then paste the matching X post — 15 posts
+            per ship log
           </p>
         </div>
       </div>

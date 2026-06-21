@@ -127,6 +127,42 @@ export async function getEarnSummary(walletOrAnonymousId) {
 }
 
 /**
+ * Record direct skill earning when payment settled to creator payTo (100% to creator).
+ * @param {{
+ *   skillId: string;
+ *   creatorAnonymousId: string;
+ *   paidPath: string;
+ *   amountMicroUsdc: number;
+ *   payoutTxSignature?: string | null;
+ * }} opts
+ */
+export async function recordDirectSkillEarning(opts) {
+  if (!isMongooseConnected()) return null;
+  const { skillId, creatorAnonymousId, paidPath, amountMicroUsdc, payoutTxSignature } = opts;
+
+  const wallet = await AgentWallet.findOne({ anonymousId: creatorAnonymousId }).lean();
+  const gross = Math.max(0, Math.floor(amountMicroUsdc));
+
+  try {
+    return await SkillEarning.create({
+      creatorAnonymousId,
+      creatorWallet: wallet?.walletAddress ?? wallet?.agentAddress ?? null,
+      sourceType: 'skill',
+      sourceId: skillId,
+      paidPath,
+      amountMicroUsdc: gross,
+      creatorShareMicroUsdc: gross,
+      platformFeeMicroUsdc: 0,
+      status: 'paid',
+      payoutTxSignature: payoutTxSignature ?? null,
+      paidAt: new Date(),
+    });
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Mark pending earnings as paid (treasury-gated payout stub — wire Tempo/SOL payout in ops).
  * @param {{ creatorAnonymousId: string; maxPayoutMicroUsdc?: number }} opts
  */

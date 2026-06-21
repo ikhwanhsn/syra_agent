@@ -4,7 +4,6 @@ import { Link } from "@/lib/navigation";
 import { WalletButton } from "@/components/WalletButton";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NavbarLogo } from "@/components/NavbarLogo";
-import { StakingNav } from "@/components/StakingNav";
 
 const LANDING_URL = "https://www.syraa.fun";
 const DOCS_URL = "https://docs.syraa.fun";
@@ -29,10 +28,6 @@ export function StakingPageHeader() {
                 <ThemeToggle />
                 <WalletButton />
               </div>
-            </div>
-
-            <div className="flex min-w-0 flex-col gap-3 border-t border-border/50 pt-3 lg:flex-1 lg:flex-row lg:items-center lg:justify-center lg:border-0 lg:pt-0">
-              <StakingNav />
             </div>
 
             <div className="hidden items-center gap-2 lg:flex">

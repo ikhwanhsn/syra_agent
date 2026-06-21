@@ -426,8 +426,8 @@ function getB402OfferConfig() {
 }
 
 /** Corbits/PayAI facilitators do not support BSC — never pass B402 options into @x402 resource server. */
-function paymentOptionsForFacilitator(bundle, microUnits, maxTimeout) {
-  return buildPaymentOptionsForBundle(bundle, microUnits, maxTimeout).filter(
+function paymentOptionsForFacilitator(bundle, microUnits, maxTimeout, payToOverride = null) {
+  return buildPaymentOptionsForBundle(bundle, microUnits, maxTimeout, payToOverride).filter(
     (o) => o && !isB402Network(o.network)
   );
 }
@@ -483,19 +483,48 @@ function getEnabledNetworksForProfile(profile) {
 }
 
 /**
+ * Normalize per-request payTo override from requirePayment options.
+ * @param {{ solanaPayTo?: string | null, evmPayTo?: string | null, basePayTo?: string | null, payTo?: string | null } | string | null | undefined} raw
+ * @returns {{ solanaPayTo: string | null, evmPayTo: string | null } | null}
+ */
+function normalizePayToOverride(raw) {
+  if (!raw) return null;
+  if (typeof raw === "string") {
+    const trimmed = raw.trim();
+    return trimmed ? { solanaPayTo: trimmed, evmPayTo: null } : null;
+  }
+  if (typeof raw !== "object") return null;
+  const solanaPayTo =
+    (raw.solanaPayTo && String(raw.solanaPayTo).trim()) ||
+    (raw.payTo && String(raw.payTo).trim()) ||
+    null;
+  const evmPayTo =
+    (raw.evmPayTo && String(raw.evmPayTo).trim()) ||
+    (raw.basePayTo && String(raw.basePayTo).trim()) ||
+    null;
+  if (!solanaPayTo && !evmPayTo) return null;
+  return { solanaPayTo, evmPayTo };
+}
+
+/**
  * Build x402 payment options for a request (multi-network PayAI/Corbits or legacy Solana+Base).
  * @param {object} bundle
  * @param {string} microUnits
  * @param {number} maxTimeout
+ * @param {{ solanaPayTo?: string | null, evmPayTo?: string | null } | null} [payToOverride]
  */
-function buildPaymentOptionsForBundle(bundle, microUnits, maxTimeout) {
+function buildPaymentOptionsForBundle(bundle, microUnits, maxTimeout, payToOverride = null) {
   const { config, assets } = bundle;
+  const overrideSolana = payToOverride?.solanaPayTo ?? null;
+  const overrideEvm = payToOverride?.evmPayTo ?? null;
+  const solanaOnlyOverride = Boolean(overrideSolana && !overrideEvm);
+
   if (config.multiNetwork && config.networkProfile) {
     const { solanaPayTo: solFromEnv, evmPayTo: evmFromEnv } = getPayToAddressesForProfile(
       config.networkProfile
     );
-    const solanaPayTo = config.solanaPayTo || solFromEnv;
-    const evmPayTo = config.basePayTo || evmFromEnv;
+    const solanaPayTo = overrideSolana || config.solanaPayTo || solFromEnv;
+    const evmPayTo = overrideEvm || config.basePayTo || evmFromEnv;
     const options = [];
     for (const net of getEnabledNetworksForProfile(config.networkProfile)) {
       if (net.kind === "solana" && solanaPayTo) {
@@ -506,7 +535,7 @@ function buildPaymentOptionsForBundle(bundle, microUnits, maxTimeout) {
           payTo: solanaPayTo,
           maxTimeoutSeconds: maxTimeout,
         });
-      } else if (net.kind === "evm" && evmPayTo) {
+      } else if (net.kind === "evm" && evmPayTo && !solanaOnlyOverride) {
         options.push({
           scheme: "exact",
           price: { asset: net.usdc, amount: microUnits },
@@ -524,16 +553,16 @@ function buildPaymentOptionsForBundle(bundle, microUnits, maxTimeout) {
       scheme: "exact",
       price: { asset: assets.solanaUsdcMint, amount: microUnits },
       network: config.solanaNetwork,
-      payTo: config.solanaPayTo,
+      payTo: overrideSolana || config.solanaPayTo,
       maxTimeoutSeconds: maxTimeout,
     },
   ];
-  if (config.basePayTo && assets.baseUsdc) {
+  if (!solanaOnlyOverride && (overrideEvm || (config.basePayTo && assets.baseUsdc))) {
     paymentOptions.push({
       scheme: "exact",
       price: { asset: assets.baseUsdc, amount: microUnits },
       network: config.baseNetwork,
-      payTo: config.basePayTo,
+      payTo: overrideEvm || config.basePayTo,
       maxTimeoutSeconds: maxTimeout,
     });
   }
@@ -545,15 +574,20 @@ function buildPaymentOptionsForBundle(bundle, microUnits, maxTimeout) {
  * Expected accepted options for payment validation (same networks as 402 offers).
  * @param {object} bundle
  * @param {string} expectedMicroUnits
+ * @param {{ solanaPayTo?: string | null, evmPayTo?: string | null } | null} [payToOverride]
  */
-function buildAcceptedOptionsForBundle(bundle, expectedMicroUnits) {
+function buildAcceptedOptionsForBundle(bundle, expectedMicroUnits, payToOverride = null) {
   const { config, assets } = bundle;
+  const overrideSolana = payToOverride?.solanaPayTo ?? null;
+  const overrideEvm = payToOverride?.evmPayTo ?? null;
+  const solanaOnlyOverride = Boolean(overrideSolana && !overrideEvm);
+
   if (config.multiNetwork && config.networkProfile) {
     const { solanaPayTo: solFromEnv, evmPayTo: evmFromEnv } = getPayToAddressesForProfile(
       config.networkProfile
     );
-    const solanaPayTo = config.solanaPayTo || solFromEnv;
-    const evmPayTo = config.basePayTo || evmFromEnv;
+    const solanaPayTo = overrideSolana || config.solanaPayTo || solFromEnv;
+    const evmPayTo = overrideEvm || config.basePayTo || evmFromEnv;
     const out = [];
     for (const net of getEnabledNetworksForProfile(config.networkProfile)) {
       if (net.kind === "solana" && solanaPayTo) {
@@ -563,7 +597,7 @@ function buildAcceptedOptionsForBundle(bundle, expectedMicroUnits) {
           asset: net.usdc,
           isEvm: false,
         });
-      } else if (net.kind === "evm" && evmPayTo) {
+      } else if (net.kind === "evm" && evmPayTo && !solanaOnlyOverride) {
         out.push({
           network: net.caip2,
           payTo: evmPayTo,
@@ -573,6 +607,9 @@ function buildAcceptedOptionsForBundle(bundle, expectedMicroUnits) {
       }
     }
     const withAmount = out.map((o) => ({ ...o, amount: expectedMicroUnits }));
+    if (solanaOnlyOverride) {
+      return withAmount;
+    }
     return appendAlgorandAcceptedOption(
       appendB402AcceptedOption(withAmount, expectedMicroUnits),
       expectedMicroUnits
@@ -582,20 +619,24 @@ function buildAcceptedOptionsForBundle(bundle, expectedMicroUnits) {
   const acceptedOptions = [
     {
       network: config.solanaNetwork,
-      payTo: config.solanaPayTo,
+      payTo: overrideSolana || config.solanaPayTo,
       asset: assets.solanaUsdcMint,
       isEvm: false,
       amount: expectedMicroUnits,
     },
   ];
-  if (config.basePayTo && assets.baseUsdc) {
+  if (!solanaOnlyOverride && (overrideEvm || (config.basePayTo && assets.baseUsdc))) {
     acceptedOptions.push({
       network: config.baseNetwork,
-      payTo: config.basePayTo,
+      payTo: overrideEvm || config.basePayTo,
       asset: assets.baseUsdc,
       isEvm: true,
       amount: expectedMicroUnits,
     });
+  }
+
+  if (solanaOnlyOverride) {
+    return acceptedOptions;
   }
 
   return appendAlgorandAcceptedOption(
@@ -704,6 +745,28 @@ async function resolveRawPriceUsdForRequest(options, req) {
   return parseFloat(options.price ?? X402_API_PRICE_USD);
 }
 
+/**
+ * Resolve payTo override for creator-monetized routes.
+ * When `options.getPayTo(req)` or `options.payTo` is set, 402 offers and verify use those addresses.
+ * @param {object} options - requirePayment options
+ * @param {import('express').Request} req
+ * @returns {Promise<{ solanaPayTo: string | null, evmPayTo: string | null } | null>}
+ */
+async function resolvePayToForRequest(options, req) {
+  let raw = null;
+  if (typeof options.getPayTo === "function") {
+    try {
+      const r = options.getPayTo(req);
+      raw = r && typeof r.then === "function" ? await r : r;
+    } catch {
+      /* fall through */
+    }
+  } else if (options.payTo != null) {
+    raw = options.payTo;
+  }
+  return normalizePayToOverride(raw);
+}
+
 async function buildPaymentRequired(bundle, req, options, error) {
   const adapter = new ExpressAdapter(req);
   const { resourceServer, config, assets } = bundle;
@@ -717,8 +780,9 @@ async function buildPaymentRequired(bundle, req, options, error) {
   // verify rejects that mismatch. Playground always hit the public URL so it worked.
   const resourceUrl = adapter.getUrl();
   const maxTimeout = options.maxTimeoutSeconds ?? 60;
+  const payToOverride = await resolvePayToForRequest(options, req);
 
-  const paymentOptions = paymentOptionsForFacilitator(bundle, microUnits, maxTimeout);
+  const paymentOptions = paymentOptionsForFacilitator(bundle, microUnits, maxTimeout, payToOverride);
 
   const ctx = {
     adapter,
@@ -737,13 +801,16 @@ async function buildPaymentRequired(bundle, req, options, error) {
     );
     requirements = [];
   }
-  requirements = await ensureB402AcceptInRequirements(requirements, microUnits, maxTimeout);
-  requirements = await ensureAlgorandAcceptInRequirements(
-    requirements,
-    microUnits,
-    maxTimeout,
-    ctx
-  );
+  const solanaOnlyOverride = Boolean(payToOverride?.solanaPayTo && !payToOverride?.evmPayTo);
+  if (!solanaOnlyOverride) {
+    requirements = await ensureB402AcceptInRequirements(requirements, microUnits, maxTimeout);
+    requirements = await ensureAlgorandAcceptInRequirements(
+      requirements,
+      microUnits,
+      maxTimeout,
+      ctx
+    );
+  }
   requirements = ensureEvmEip712Domain(requirements);
   requirements = await enrichB402Requirements(requirements);
 
@@ -908,8 +975,9 @@ export function requirePayment(options) {
       const priceUsd = getEffectivePriceUsd(rawPrice, getPayerOrConnectedWalletForPrice(req));
       const expectedMicroUnits = usdToMicroUsdc(priceUsd);
       const acc = payload.accepted;
+      const payToOverride = await resolvePayToForRequest(options, req);
 
-      const acceptedOptions = buildAcceptedOptionsForBundle(bundle, expectedMicroUnits);
+      const acceptedOptions = buildAcceptedOptionsForBundle(bundle, expectedMicroUnits, payToOverride);
       let matchingOption = acceptedOptions.find((opt) =>
         paymentAcceptedMatchesOption(acc, opt, expectedMicroUnits)
       );
@@ -1049,6 +1117,7 @@ export function requirePayment(options) {
         resourceServerProfile: useCorbitsProfile(req) ? "corbits" : "payai",
         useB402Facilitator,
         useAlgorandFacilitator,
+        skipRevenueBuyback: Boolean(payToOverride?.solanaPayTo || payToOverride?.evmPayTo),
       };
       x402Log("verify_ok", {
         method: req.method,
@@ -1256,7 +1325,8 @@ export async function settlePaymentAndSetResponse(res, req) {
     typeof priceUsd === "number" &&
     priceUsd > 0 &&
     process.env.NODE_ENV === "production" &&
-    !isTesterAgentInternalProbeRequest(req)
+    !isTesterAgentInternalProbeRequest(req) &&
+    !req.x402Payment?.skipRevenueBuyback
   ) {
     runAfterResponse(() => buybackSYRAFromRevenue(priceUsd).catch(() => {}));
   }

@@ -1,4 +1,3 @@
-import { SYRA_POST_STUDIO_LOGO } from "@/lib/syraBranding";
 import { Fragment, type ReactNode } from "react";
 import {
   getPostPhotoBgSignalTag,
@@ -7,10 +6,17 @@ import {
 } from "@/components/post/photo/postPhotoBgVariants";
 import { cn } from "@/lib/utils";
 
-function PostPhotoStepConnector({ variant }: { variant: "pipeline" | "timeline" }) {
+function PostPhotoStepConnector({
+  variant,
+}: {
+  variant: "pipeline" | "timeline";
+}) {
   return (
     <div
-      className={cn("post-photo-step-connector", `post-photo-step-connector--${variant}`)}
+      className={cn(
+        "post-photo-step-connector",
+        `post-photo-step-connector--${variant}`,
+      )}
       aria-hidden
     >
       <span className="post-photo-step-connector-line" />
@@ -35,7 +41,10 @@ function PostPhotoAlphaUnderlay({ variant }: { variant: PostPhotoBgVariant }) {
   const signalTag = getPostPhotoBgSignalTag(variant);
 
   return (
-    <div className={cn("post-photo-alpha-underlay", `post-photo-bg--${variant}`)} aria-hidden>
+    <div
+      className={cn("post-photo-alpha-underlay", `post-photo-bg--${variant}`)}
+      aria-hidden
+    >
       <div className="post-photo-alpha-conic" />
       <div className="post-photo-alpha-radial-top" />
       <div className="post-photo-alpha-radial-bl" />
@@ -57,8 +66,12 @@ function PostPhotoAlphaUnderlay({ variant }: { variant: PostPhotoBgVariant }) {
       <span className="post-photo-bracket post-photo-bracket--tr" />
       <span className="post-photo-bracket post-photo-bracket--bl" />
       <span className="post-photo-bracket post-photo-bracket--br" />
-      {watermark ? <span className="post-photo-alpha-watermark">{watermark}</span> : null}
-      {signalTag ? <span className="post-photo-alpha-signal">{signalTag}</span> : null}
+      {watermark ? (
+        <span className="post-photo-alpha-watermark">{watermark}</span>
+      ) : null}
+      {signalTag ? (
+        <span className="post-photo-alpha-signal">{signalTag}</span>
+      ) : null}
       <span className="post-photo-alpha-tag">SYRA</span>
     </div>
   );
@@ -73,7 +86,13 @@ export function PostPhotoChrome({
   hideBrand,
 }: PostPhotoChromeProps) {
   return (
-    <div className={cn("post-photo-canvas", `post-photo-bg--${bgVariant}`, className)}>
+    <div
+      className={cn(
+        "post-photo-canvas",
+        `post-photo-bg--${bgVariant}`,
+        className,
+      )}
+    >
       <PostPhotoAlphaUnderlay variant={bgVariant} />
       <div className="post-photo-ambient" aria-hidden />
       <div className="post-photo-orb post-photo-orb-a" aria-hidden />
@@ -83,16 +102,18 @@ export function PostPhotoChrome({
 
       {!hideBrand ? (
         <div className="post-photo-brand">
-          <img src={SYRA_POST_STUDIO_LOGO} alt="" className="post-photo-brand-logo post-studio-logo-mark" />
+          <img
+            src="/images/logo.jpg"
+            alt=""
+            className="post-photo-brand-logo"
+          />
           <span className="post-photo-brand-name">Syra</span>
         </div>
       ) : null}
 
       <div className="post-photo-body">{children}</div>
 
-      {!hideFooter ? (
-        <div className="post-photo-url">syraa.fun</div>
-      ) : null}
+      {!hideFooter ? <div className="post-photo-url">syraa.fun</div> : null}
     </div>
   );
 }
@@ -110,15 +131,45 @@ export function PostPhotoKicker({ children }: { children: ReactNode }) {
   return <p className="post-photo-kicker">{children}</p>;
 }
 
-export function PostPhotoHeadline({ children, className, large }: { children: ReactNode; className?: string; large?: boolean }) {
-  return <h2 className={cn("post-photo-headline", large && "post-photo-headline--lg", className)}>{children}</h2>;
+export function PostPhotoHeadline({
+  children,
+  className,
+  large,
+}: {
+  children: ReactNode;
+  className?: string;
+  large?: boolean;
+}) {
+  return (
+    <h2
+      className={cn(
+        "post-photo-headline",
+        large && "post-photo-headline--lg",
+        className,
+      )}
+    >
+      {children}
+    </h2>
+  );
 }
 
-export function PostPhotoTitle({ children, className }: { children: ReactNode; className?: string }) {
+export function PostPhotoTitle({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
   return <h1 className={cn("post-photo-title", className)}>{children}</h1>;
 }
 
-export function PostPhotoBody({ children, className }: { children: ReactNode; className?: string }) {
+export function PostPhotoBody({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
   return <p className={cn("post-photo-copy", className)}>{children}</p>;
 }
 
@@ -144,7 +195,9 @@ export function PostPhotoHighlightList({
       {items.map((item, i) => (
         <li key={item} className="post-photo-list-item">
           {variant === "numbered" ? (
-            <span className="post-photo-numbered-index">{String(i + 1).padStart(2, "0")}</span>
+            <span className="post-photo-numbered-index">
+              {String(i + 1).padStart(2, "0")}
+            </span>
           ) : variant === "checklist" ? (
             <span className="post-photo-list-check" aria-hidden />
           ) : (
@@ -162,7 +215,9 @@ export function PostPhotoItemList({ items }: { items: string[] }) {
     <ol className="post-photo-item-list">
       {items.map((item, i) => (
         <li key={item} className="post-photo-item-list-row">
-          <span className="post-photo-item-list-index">{String(i + 1).padStart(2, "0")}</span>
+          <span className="post-photo-item-list-index">
+            {String(i + 1).padStart(2, "0")}
+          </span>
           <span className="post-photo-item-list-text">{item}</span>
         </li>
       ))}
@@ -193,7 +248,9 @@ export function PostPhotoStatGrid({
     >
       {stats.map((stat, i) => (
         <div key={stat.label} className="post-photo-stat">
-          {variant === "counter" && i > 0 ? <span className="post-photo-counter-divider" aria-hidden /> : null}
+          {variant === "counter" && i > 0 ? (
+            <span className="post-photo-counter-divider" aria-hidden />
+          ) : null}
           <span className="post-photo-stat-value">{stat.value}</span>
           <span className="post-photo-stat-label">{stat.label}</span>
         </div>
@@ -212,7 +269,12 @@ export function PostPhotoCardGrid({
   cols = 2,
   variant = "default",
 }: {
-  cards: { title: string; subtitle?: string; detail?: string; accent?: "gold" | "default" }[];
+  cards: {
+    title: string;
+    subtitle?: string;
+    detail?: string;
+    accent?: "gold" | "default";
+  }[];
   cols?: 2 | 4;
   variant?: "default" | "stack" | "bento" | "spotlight" | "glass" | "marquee";
 }) {
@@ -239,8 +301,12 @@ export function PostPhotoCardGrid({
           )}
         >
           <h3 className="post-photo-card-title">{card.title}</h3>
-          {card.subtitle ? <p className="post-photo-card-sub">{card.subtitle}</p> : null}
-          {card.detail ? <p className="post-photo-card-detail">{card.detail}</p> : null}
+          {card.subtitle ? (
+            <p className="post-photo-card-sub">{card.subtitle}</p>
+          ) : null}
+          {card.detail ? (
+            <p className="post-photo-card-detail">{card.detail}</p>
+          ) : null}
         </div>
       ))}
     </div>
@@ -261,7 +327,9 @@ export function PostPhotoSteps({
           <div key={step.step} className="post-photo-arrow-chain-seg">
             <div className="post-photo-pipeline-node">{step.step}</div>
             <p className="post-photo-pipeline-title">{step.title}</p>
-            {i < steps.length - 1 ? <span className="post-photo-arrow-chain-icon" aria-hidden /> : null}
+            {i < steps.length - 1 ? (
+              <span className="post-photo-arrow-chain-icon" aria-hidden />
+            ) : null}
           </div>
         ))}
       </div>
@@ -272,7 +340,13 @@ export function PostPhotoSteps({
     return (
       <ul className="post-photo-zigzag">
         {steps.map((step, i) => (
-          <li key={step.step} className={cn("post-photo-zigzag-item", i % 2 === 1 && "post-photo-zigzag-item--right")}>
+          <li
+            key={step.step}
+            className={cn(
+              "post-photo-zigzag-item",
+              i % 2 === 1 && "post-photo-zigzag-item--right",
+            )}
+          >
             <span className="post-photo-timeline-dot">{step.step}</span>
             <div>
               <p className="post-photo-timeline-title">{step.title}</p>
@@ -293,10 +367,16 @@ export function PostPhotoSteps({
                 <div className="post-photo-pipeline-node">{step.step}</div>
                 <div className="post-photo-pipeline-card">
                   <p className="post-photo-pipeline-title">{step.title}</p>
-                  {step.description ? <p className="post-photo-pipeline-desc">{step.description}</p> : null}
+                  {step.description ? (
+                    <p className="post-photo-pipeline-desc">
+                      {step.description}
+                    </p>
+                  ) : null}
                 </div>
               </div>
-              {i < steps.length - 1 ? <PostPhotoStepConnector variant="pipeline" /> : null}
+              {i < steps.length - 1 ? (
+                <PostPhotoStepConnector variant="pipeline" />
+              ) : null}
             </Fragment>
           ))}
         </div>
@@ -332,7 +412,9 @@ export function PostPhotoSteps({
                 <p className="post-photo-timeline-desc">{step.description}</p>
               </div>
             </div>
-            {i < steps.length - 1 ? <PostPhotoStepConnector variant="timeline" /> : null}
+            {i < steps.length - 1 ? (
+              <PostPhotoStepConnector variant="timeline" />
+            ) : null}
           </Fragment>
         ))}
       </div>
@@ -340,7 +422,11 @@ export function PostPhotoSteps({
   );
 }
 
-export function PostPhotoLinks({ links }: { links: { label: string; value: string }[] }) {
+export function PostPhotoLinks({
+  links,
+}: {
+  links: { label: string; value: string }[];
+}) {
   return (
     <div className="post-photo-links">
       {links.map((link) => (
@@ -357,14 +443,21 @@ export function PostPhotoLinks({ links }: { links: { label: string; value: strin
 export function PostPhotoPartnershipLockup({
   partnerName,
   partnerLogo,
+  partnerLogoSolidBg,
   compact,
 }: {
   partnerName: string;
   partnerLogo: string;
+  partnerLogoSolidBg?: boolean;
   compact?: boolean;
 }) {
   return (
-    <div className={cn("post-photo-partnership", compact && "post-photo-partnership--compact")}>
+    <div
+      className={cn(
+        "post-photo-partnership",
+        compact && "post-photo-partnership--compact",
+      )}
+    >
       <div className="post-photo-partnership-stage" aria-hidden>
         <div className="post-photo-partnership-glow post-photo-partnership-glow--syra" />
         <div className="post-photo-partnership-glow post-photo-partnership-glow--partner" />
@@ -374,7 +467,11 @@ export function PostPhotoPartnershipLockup({
       <div className="post-photo-partnership-panel">
         <div className="post-photo-partnership-brand">
           <div className="post-photo-partnership-logo-wrap post-photo-partnership-logo-wrap--syra">
-            <img src={SYRA_POST_STUDIO_LOGO} alt="" className="post-photo-partnership-logo post-studio-logo-mark" />
+            <img
+              src="/images/logo.jpg"
+              alt=""
+              className="post-photo-partnership-logo"
+            />
           </div>
           <span className="post-photo-partnership-name">Syra</span>
         </div>
@@ -388,8 +485,20 @@ export function PostPhotoPartnershipLockup({
         </div>
 
         <div className="post-photo-partnership-brand">
-          <div className="post-photo-partnership-logo-wrap post-photo-partnership-logo-wrap--partner">
-            <img src={partnerLogo} alt="" className="post-photo-partnership-logo" />
+          <div
+            className={cn(
+              "post-photo-partnership-logo-wrap post-photo-partnership-logo-wrap--partner",
+              partnerLogoSolidBg && "post-photo-partnership-logo-wrap--solid",
+            )}
+          >
+            <img
+              src={partnerLogo}
+              alt=""
+              className={cn(
+                "post-photo-partnership-logo",
+                partnerLogoSolidBg && "post-photo-partnership-logo--solid",
+              )}
+            />
           </div>
           <span className="post-photo-partnership-name">{partnerName}</span>
         </div>

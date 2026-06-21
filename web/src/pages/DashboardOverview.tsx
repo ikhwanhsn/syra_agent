@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Link } from "@/lib/navigation";
 import {
+  ArrowLeftRight,
   Activity,
   Bot,
   ChevronRight,
@@ -433,6 +434,7 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {(
                 [
+                  { label: "Swap", desc: "Buy & sell tokens", to: "/swap", icon: ArrowLeftRight },
                   { label: "Agent wallets", desc: "Deposit & withdraw", to: "/wallet", icon: Wallet },
                   { label: "Trading lab", desc: "Custom strategies", to: "/trading-experiment", icon: FlaskConical },
                   { label: "LP experiment", desc: "Meteora agents", to: "/lp-experiment", icon: Droplets },
@@ -463,7 +465,15 @@ export default function DashboardOverview({ embedded = false }: DashboardOvervie
             </div>
           </>
         ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <OverviewStatCard
+              label="Swap"
+              icon={ArrowLeftRight}
+              accent="marketplace"
+              value="Jupiter"
+              hint="Buy & sell any Solana token"
+              href="/swap"
+            />
             <OverviewStatCard
               label="Trading agents"
               icon={FlaskConical}

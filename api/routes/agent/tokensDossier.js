@@ -7,7 +7,16 @@ import {
   tryConsumeMemecoinAnalysisScan,
   buildMemecoinAnalysisDailyLimitMessage,
 } from '../../libs/memecoinAnalysisDailyLimit.js';
-import { optionalWalletSession } from '../../utils/requireSession.js';
+import {
+  recordPumpfunScan,
+  getPumpfunScanHistory,
+  getPumpfunScanByCallId,
+  getPumpfunCallerLeaderboard,
+  getPumpfunLiveCalls,
+  extractScanSnapshotFromAnalysis,
+  resolveCallerWallet,
+} from '../../libs/pumpfunScanHistoryService.js';
+import { optionalWalletSession, requireSession } from '../../utils/requireSession.js';
 import { fetchAssetsBoard } from '../../libs/tokensBoardService.js';
 import { runTokensAgentTool } from '../../libs/tokensAgentService.js';
 
@@ -167,6 +176,14 @@ export function createTokensDossierRouter() {
 
   router.get('/memecoin-analysis/quota', async (req, res) => {
     try {
+      const wallet = resolveCallerWallet(req);
+      if (!wallet) {
+        return res.status(401).json({
+          success: false,
+          error: 'Connect your Solana wallet to scan tokens',
+          data: { verifiedWallet: false, limit: 0, used: 0, remaining: 0, tier: 'locked' },
+        });
+      }
       const quota = await getMemecoinAnalysisQuotaStatus(req);
       return res.json({ success: true, data: quota });
     } catch (err) {
@@ -175,8 +192,80 @@ export function createTokensDossierRouter() {
     }
   });
 
+  router.get('/memecoin-analysis/history', requireSession(), async (req, res) => {
+    try {
+      const wallet = resolveCallerWallet(req);
+      if (!wallet) {
+        return res.status(401).json({ success: false, error: 'wallet_required' });
+      }
+      const limitRaw =
+        typeof req.query.limit === 'string' ? parseInt(req.query.limit, 10) : 30;
+      const limit = Number.isFinite(limitRaw) ? limitRaw : 30;
+      const refresh = req.query.refresh !== 'false';
+      const history = await getPumpfunScanHistory(wallet, { limit, refresh });
+      return res.json({ success: true, data: history });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'History fetch failed';
+      return res.status(500).json({ success: false, error: message });
+    }
+  });
+
+  router.get('/memecoin-analysis/live', async (req, res) => {
+    try {
+      const limitRaw =
+        typeof req.query.limit === 'string' ? parseInt(req.query.limit, 10) : 20;
+      const offsetRaw =
+        typeof req.query.offset === 'string' ? parseInt(req.query.offset, 10) : 0;
+      const limit = Number.isFinite(limitRaw) ? limitRaw : 20;
+      const offset = Number.isFinite(offsetRaw) ? offsetRaw : 0;
+      const feed = await getPumpfunLiveCalls({ limit, offset });
+      return res.json({ success: true, data: feed });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Live feed fetch failed';
+      return res.status(500).json({ success: false, error: message });
+    }
+  });
+
+  router.get('/memecoin-analysis/callers', async (req, res) => {
+    try {
+      const limitRaw =
+        typeof req.query.limit === 'string' ? parseInt(req.query.limit, 10) : 25;
+      const limit = Number.isFinite(limitRaw) ? limitRaw : 25;
+      const leaderboard = await getPumpfunCallerLeaderboard({ limit });
+      return res.json({ success: true, data: leaderboard });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Leaderboard fetch failed';
+      return res.status(500).json({ success: false, error: message });
+    }
+  });
+
+  router.get('/memecoin-analysis/calls/:callId', async (req, res) => {
+    try {
+      const callId = typeof req.params.callId === 'string' ? req.params.callId.trim() : '';
+      if (!callId) {
+        return res.status(400).json({ success: false, error: 'call_id_required' });
+      }
+      const call = await getPumpfunScanByCallId(callId);
+      if (!call) {
+        return res.status(404).json({ success: false, error: 'call_not_found' });
+      }
+      return res.json({ success: true, data: call });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Call fetch failed';
+      return res.status(500).json({ success: false, error: message });
+    }
+  });
+
   router.get('/memecoin-analysis', async (req, res) => {
     try {
+      const wallet = resolveCallerWallet(req);
+      if (!wallet) {
+        return res.status(401).json({
+          success: false,
+          error: 'Connect your Solana wallet to scan tokens. Sign in via the wallet button in the header.',
+        });
+      }
+
       const mint = typeof req.query.mint === 'string' ? req.query.mint.trim() : '';
       if (!mint || !isLikelySolanaMint(mint)) {
         return res.status(400).json({
@@ -215,9 +304,18 @@ export function createTokensDossierRouter() {
           },
         });
       }
+      let scanRecord = null;
+      try {
+        const snapshot = extractScanSnapshotFromAnalysis(result.data);
+        scanRecord = await recordPumpfunScan({ callerWallet: wallet, ...snapshot });
+      } catch (recordErr) {
+        console.error('[memecoin-analysis] scan record failed:', recordErr?.message || recordErr);
+      }
+
       return res.json({
         success: true,
         data: result.data,
+        scanRecord,
         quota: {
           limit: quota.limit,
           used: quota.used,
@@ -227,6 +325,7 @@ export function createTokensDossierRouter() {
         },
       });
     } catch (err) {
+      console.error('[memecoin-analysis] failed:', err?.stack || err?.message || err);
       const message = err instanceof Error ? err.message : 'Memecoin analysis failed';
       return res.status(500).json({ success: false, error: message });
     }

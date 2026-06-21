@@ -145,6 +145,7 @@ export const SAID_PROTOCOL_PHOTO = definePhotoUpdate(SAID_PROTOCOL_POST.meta, [
       badge: "Now live · Verified · Solana",
       partnerName: "SAID Protocol",
       partnerLogo: "/images/partners/said-protocol.png",
+      partnerLogoSolidBg: true,
       headline: "Syra × SAID Protocol",
       subtitle: "Verified on-chain agent identity. Register once. Build reputation. Query trust from Syra API.",
     }),

@@ -12,6 +12,8 @@ import { PAYAI_X402_POST } from "./payaiX402Update";
 import { ALGORAND_X402_POST } from "./algorandX402Update";
 import { SAID_PROTOCOL_POST } from "./saidProtocolUpdate";
 import { COVENANT_POST } from "./covenantUpdate";
+import { SWAP_POST } from "./swapUpdate";
+import { SKILL_EARN_POST } from "./skillEarnUpdate";
 import { AGENTSCORE_PHOTO } from "./photo/agentscorePhoto";
 import { INDICATOR_PHOTO } from "./photo/indicatorPhoto";
 import { BNB_X402_PHOTO } from "./photo/bnbX402Photo";
@@ -26,6 +28,8 @@ import { PAYAI_X402_PHOTO } from "./photo/payaiX402Photo";
 import { ALGORAND_X402_PHOTO } from "./photo/algorandX402Photo";
 import { SAID_PROTOCOL_PHOTO } from "./photo/saidProtocolPhoto";
 import { COVENANT_PHOTO } from "./photo/covenantPhoto";
+import { SWAP_PHOTO } from "./photo/swapPhoto";
+import { SKILL_EARN_PHOTO } from "./photo/skillEarnPhoto";
 import type { PostPhotoUpdate } from "./photo/types";
 import type { PostUpdate } from "./types";
 import { validatePostUpdate } from "./validatePostUpdate";
@@ -57,6 +61,8 @@ const POST_UPDATE_BUNDLES: PostUpdateBundle[] = [
   { video: ALGORAND_X402_POST, photo: ALGORAND_X402_PHOTO },
   { video: SAID_PROTOCOL_POST, photo: SAID_PROTOCOL_PHOTO },
   { video: COVENANT_POST, photo: COVENANT_PHOTO },
+  { video: SWAP_POST, photo: SWAP_PHOTO },
+  { video: SKILL_EARN_POST, photo: SKILL_EARN_PHOTO },
 ];
 
 function assertBundleMeta(bundle: PostUpdateBundle): void {

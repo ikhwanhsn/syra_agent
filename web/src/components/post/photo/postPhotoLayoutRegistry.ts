@@ -82,7 +82,7 @@ export const POST_PHOTO_LAYOUT_REGISTRY: PhotoTemplateDef[] = [
 
   { id: "photo-quote", bodyClassName: "post-photo-tmpl-quote", align: "center", blocks: ["kicker", "quote", "narrative"] },
   { id: "photo-quote-centered", bodyClassName: "post-photo-tmpl-quote-centered", align: "center", blocks: ["quote", "narrative"] },
-  { id: "photo-announcement", bodyClassName: "post-photo-tmpl-announcement", align: "center", blocks: ["logo-hero", "badge", "headline", "body"] },
+  { id: "photo-announcement", bodyClassName: "post-photo-tmpl-announcement", align: "center", blocks: ["badge", "headline", "body"] },
 
   { id: "photo-hero-checklist", bodyClassName: "post-photo-tmpl-hero-checklist", align: "center", blocks: ["kicker", "headline", "highlights-4"] },
   { id: "photo-hero-split", bodyClassName: "post-photo-tmpl-hero-split", align: "split-balanced", blocks: ["badge", "headline", "body"], asideBlocks: ["highlights-3"] },

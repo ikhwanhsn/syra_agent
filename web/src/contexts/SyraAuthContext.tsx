@@ -63,6 +63,38 @@ export function useSyraAuth(): SyraAuthState {
   return ctx;
 }
 
+function formatSignInError(err: unknown): string {
+  if (err instanceof Error && err.message.trim()) return err.message.trim();
+  if (typeof err === "string" && err.trim()) return err.trim();
+  return "Could not verify your wallet. Try again.";
+}
+
+function mapSignInErrorMessage(message: string): string {
+  const lower = message.toLowerCase();
+  if (lower.includes("signature_invalid") || lower.includes("signature invalid")) {
+    return "Wallet signature was rejected. Approve the sign-in prompt and try again.";
+  }
+  if (lower.includes("nonce_invalid") || lower.includes("nonce")) {
+    return "Sign-in expired. Click Sign in again to get a fresh prompt.";
+  }
+  if (lower.includes("domain_mismatch")) {
+    return "Sign-in domain mismatch. Refresh the page and try again.";
+  }
+  if (lower.includes("wallet did not return a signature")) {
+    return "Your wallet did not return a signature. Try again or reconnect your wallet.";
+  }
+  if (lower.includes("no solana wallet connected")) {
+    return "Connect a Solana wallet first, then sign in.";
+  }
+  if (lower.includes("failed to fetch") || lower.includes("networkerror")) {
+    return "Could not reach the Syra API. Make sure the API server is running and refresh the page.";
+  }
+  if (lower.includes("internal server error") || lower === "500") {
+    return "Syra API error — if you're running locally, restart the api server (npm run dev in api/).";
+  }
+  return message;
+}
+
 function walletMatchesSession(
   session: { address: string },
   address: string,
@@ -180,10 +212,12 @@ export function SyraAuthProvider({ children }: { children: ReactNode }) {
           const { message } = await fetchAuthNonce("solana", address);
 
           if (!solanaAddress || solanaAddress !== address) {
-            return null;
+            throw new Error("Connected wallet does not match the sign-in request. Reconnect your wallet.");
           }
           const sigBytes = await signMessage(new TextEncoder().encode(message));
-          if (!sigBytes?.length) return null;
+          if (!sigBytes?.length) {
+            throw new Error("Wallet did not return a signature");
+          }
           const signature = encodeSolanaSignature(sigBytes);
 
           const signInResult = await signInWithWallet({
@@ -203,10 +237,11 @@ export function SyraAuthProvider({ children }: { children: ReactNode }) {
             notify.success("Session ready", `Signed in as ${short}`);
           }
           return signInResult;
-        } catch {
+        } catch (err) {
           setSyraAuthenticated(false);
           if (options?.notifyOnSuccess !== false) {
-            notify.error("Sign-in failed", "Could not verify your wallet. Try again.");
+            const detail = mapSignInErrorMessage(formatSignInError(err));
+            notify.error("Sign-in failed", detail);
           }
           return null;
         } finally {

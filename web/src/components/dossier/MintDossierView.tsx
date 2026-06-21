@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "@/lib/navigation";
 import {
+  ArrowLeftRight,
   ArrowUpRight,
   Bot,
   Copy,
@@ -33,6 +34,7 @@ import {
 import { TokensOhlcvChart } from "@/components/dossier/TokensOhlcvChart";
 import { overviewCardShell, overviewKickerClass } from "@/components/dashboard/overview/overviewStyles";
 import { notify } from "@/lib/notify";
+import { buildBuySwapUrl } from "@/lib/swapNavigation";
 
 function pickMarketScore(data: TokensDossierPayload): TokensMarketScore | null {
   const fromInclude = data.includes?.risk?.ok ? data.includes.risk.data?.marketScore : null;
@@ -134,6 +136,20 @@ export function MintDossierView({
               </div>
             </div>
             <div className="flex flex-wrap gap-2 shrink-0">
+              {mint ? (
+                <Button type="button" size="sm" className="gap-1.5" asChild>
+                  <Link
+                    to={buildBuySwapUrl(mint, {
+                      symbol: asset?.symbol,
+                      name: asset?.name,
+                      icon: asset?.imageUrl ?? null,
+                    })}
+                  >
+                    <ArrowLeftRight className="h-3.5 w-3.5" />
+                    Buy
+                  </Link>
+                </Button>
+              ) : null}
               <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={copyShare}>
                 <Share2 className="h-3.5 w-3.5" />
                 Share

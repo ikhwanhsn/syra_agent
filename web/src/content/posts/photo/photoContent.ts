@@ -21,6 +21,7 @@ export const EMPTY_PHOTO_CONTENT: PostPhotoContent = {
   terminalLines: [],
   partnerName: "",
   partnerLogo: "",
+  partnerLogoSolidBg: false,
 };
 
 /** Build card-scoped photo content — only the fields a template needs. */

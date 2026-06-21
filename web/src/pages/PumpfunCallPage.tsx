@@ -1,0 +1,110 @@
+import { Loader2, Share2 } from "lucide-react";
+import { useParams } from "@/lib/navigation";
+import { OverviewPageBackdrop } from "@/components/dashboard/overview/OverviewPageBackdrop";
+import { PumpfunCallShareCard } from "@/components/pumpfun/PumpfunCallShareCard";
+import { PumpfunCallShareModal } from "@/components/pumpfun/PumpfunCallShareModal";
+import { usePumpfunScanCall } from "@/hooks/usePumpfunScanHistory";
+import {
+  DASHBOARD_CONTENT_SHELL,
+  PAGE_PADDING_TOP_MEDIUM,
+  PAGE_SAFE_AREA_BOTTOM,
+} from "@/lib/layoutConstants";
+import { cn } from "@/lib/utils";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  PUMPFUN_CALL_SHARE_HEIGHT,
+  PUMPFUN_CALL_SHARE_PREVIEW_WIDTH,
+  PUMPFUN_CALL_SHARE_WIDTH,
+} from "@/components/pumpfun/pumpfunCallShareDimensions";
+
+const CALL_PAGE_PREVIEW_SCALE = PUMPFUN_CALL_SHARE_PREVIEW_WIDTH / PUMPFUN_CALL_SHARE_WIDTH;
+
+export default function PumpfunCallPage() {
+  const { callId } = useParams<{ callId: string }>();
+  const callQ = usePumpfunScanCall(callId ?? null);
+  const [shareOpen, setShareOpen] = useState(false);
+
+  if (callQ.isLoading) {
+    return (
+      <div className="relative flex min-h-full items-center justify-center">
+        <OverviewPageBackdrop />
+        <Loader2 className="relative z-[1] h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (callQ.isError || !callQ.data) {
+    return (
+      <div className="relative min-h-full">
+        <OverviewPageBackdrop />
+        <div
+          className={cn(
+            DASHBOARD_CONTENT_SHELL,
+            PAGE_PADDING_TOP_MEDIUM,
+            PAGE_SAFE_AREA_BOTTOM,
+            "relative z-[1] py-20 text-center",
+          )}
+        >
+          <p className="text-sm text-muted-foreground">Call not found or expired.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const record = callQ.data;
+
+  return (
+    <div className="relative min-h-full">
+      <OverviewPageBackdrop />
+      <div
+        className={cn(
+          DASHBOARD_CONTENT_SHELL,
+          PAGE_PADDING_TOP_MEDIUM,
+          PAGE_SAFE_AREA_BOTTOM,
+          "relative z-[1] flex flex-col items-center gap-6 pb-14",
+        )}
+      >
+        <div className="text-center">
+          <h1 className="font-display text-xl font-semibold">Token call flex card</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            ${record.symbol} · {record.name}
+          </p>
+        </div>
+
+        <div
+          className="mx-auto w-full overflow-hidden rounded-lg border border-border/60 shadow-2xl"
+          style={{ maxWidth: PUMPFUN_CALL_SHARE_PREVIEW_WIDTH }}
+        >
+          <div
+            style={{
+              width: PUMPFUN_CALL_SHARE_WIDTH * CALL_PAGE_PREVIEW_SCALE,
+              height: PUMPFUN_CALL_SHARE_HEIGHT * CALL_PAGE_PREVIEW_SCALE,
+            }}
+            className="overflow-hidden"
+          >
+            <div
+              style={{
+                transform: `scale(${CALL_PAGE_PREVIEW_SCALE})`,
+                transformOrigin: "top left",
+              }}
+            >
+              <PumpfunCallShareCard record={record} />
+            </div>
+          </div>
+        </div>
+
+        <Button type="button" variant="neon" className="gap-2" onClick={() => setShareOpen(true)}>
+          <Share2 className="h-4 w-4" />
+          Share flex card
+        </Button>
+      </div>
+
+      <PumpfunCallShareModal
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        record={record}
+      />
+    </div>
+  );
+}

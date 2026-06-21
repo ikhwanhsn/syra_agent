@@ -92,6 +92,32 @@ function signatureToBase64(sig: Uint8Array): string {
   return btoa(binary);
 }
 
+/** Privy wallets return ed25519 signatures as Uint8Array, ArrayBuffer view, or base64 string. */
+function privySignMessageResultToBytes(result: unknown): Uint8Array {
+  if (!result || typeof result !== "object") return new Uint8Array(0);
+  const raw =
+    "signature" in result
+      ? (result as { signature?: unknown }).signature
+      : result;
+  if (!raw) return new Uint8Array(0);
+  if (raw instanceof Uint8Array) return raw;
+  if (typeof raw === "string") {
+    try {
+      const binary = atob(raw);
+      return Uint8Array.from(binary, (c) => c.charCodeAt(0));
+    } catch {
+      return new Uint8Array(0);
+    }
+  }
+  if (ArrayBuffer.isView(raw)) {
+    return new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength);
+  }
+  if (Array.isArray(raw)) {
+    return new Uint8Array(raw);
+  }
+  return new Uint8Array(0);
+}
+
 const SIWS_403_ORIGIN_KEY = "privy_siws_403_origin";
 function getSiws403Origin(): string | null {
   try {
@@ -585,9 +611,11 @@ const WalletContextInner: FC<{
     async (message: Uint8Array) => {
       if (!solanaWallet) throw new Error("No Solana wallet connected");
       const result = await privySignMessage({ message, wallet: solanaWallet });
-      return typeof result === "object" && result?.signature
-        ? new Uint8Array(result.signature as ArrayBuffer)
-        : new Uint8Array(0);
+      const bytes = privySignMessageResultToBytes(result);
+      if (bytes.length === 0) {
+        throw new Error("Wallet did not return a signature");
+      }
+      return bytes;
     },
     [solanaWallet, privySignMessage]
   );

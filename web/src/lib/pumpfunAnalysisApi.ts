@@ -250,6 +250,17 @@ export async function fetchMemecoinAnalysisQuota(
     error?: string;
   };
 
+  if (res.status === 401) {
+    return {
+      limit: 0,
+      used: 0,
+      remaining: 0,
+      tier: "locked",
+      resetAt: new Date().toISOString(),
+      verifiedWallet: false,
+    };
+  }
+
   if (!res.ok || body.success !== true || !body.data) {
     throw new Error(body.error || "Failed to load scan quota");
   }
@@ -257,10 +268,26 @@ export async function fetchMemecoinAnalysisQuota(
   return body.data;
 }
 
+export interface PumpfunScanRecordSummary {
+  callId: string;
+  callerWallet: string;
+  mint: string;
+  symbol: string;
+  name: string;
+  imageUri: string | null;
+  scanMarketCapUsd: number | null;
+  peakGainMultiplier: number | null;
+  scannedAt: string;
+}
+
 export async function fetchMemecoinAnalysis(
   mint: string,
   opts?: { signal?: AbortSignal },
-): Promise<{ data: MemecoinAnalysisPayload; quota: MemecoinAnalysisQuota }> {
+): Promise<{
+  data: MemecoinAnalysisPayload;
+  quota: MemecoinAnalysisQuota;
+  scanRecord: PumpfunScanRecordSummary | null;
+}> {
   const trimmed = mint.trim();
   if (!isValidSolanaMint(trimmed)) {
     throw new Error("Enter a valid Solana mint address");
@@ -279,6 +306,7 @@ export async function fetchMemecoinAnalysis(
     error?: string;
     message?: string;
     quota?: MemecoinAnalysisQuota;
+    scanRecord?: PumpfunScanRecordSummary | null;
   };
 
   if (res.status === 429 && body.quota) {
@@ -289,7 +317,11 @@ export async function fetchMemecoinAnalysis(
   }
 
   if (!res.ok || body.success !== true || !body.data?.mint) {
-    throw new Error(body.error || body.message || "Failed to load memecoin analysis");
+    const fallback =
+      res.status === 500
+        ? "Scan failed — the API may be starting up or the database is reconnecting. Try again in a few seconds."
+        : "Failed to load memecoin analysis";
+    throw new Error(body.error || body.message || fallback);
   }
 
   return {
@@ -301,6 +333,7 @@ export async function fetchMemecoinAnalysis(
       tier: "free",
       resetAt: new Date().toISOString(),
     },
+    scanRecord: body.scanRecord ?? null,
   };
 }
 

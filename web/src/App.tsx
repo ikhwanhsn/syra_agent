@@ -29,6 +29,7 @@ import LpAgentExperiment from "@/pages/LpAgentExperiment";
 import LpAgentExperimentAgentProfile from "@/pages/LpAgentExperimentAgentProfile";
 import NotFound from "@/pages/NotFound";
 import PumpfunAnalyzer from "@/pages/PumpfunAnalyzer";
+import PumpfunCallPage from "@/pages/PumpfunCallPage";
 import ShareableChatRoute from "@/pages/ShareableChatRoute";
 import TradingAgentExperiment from "@/pages/TradingAgentExperiment";
 import TradingAgentExperimentAgentProfile from "@/pages/TradingAgentExperimentAgentProfile";
@@ -65,6 +66,7 @@ import InvestPage from "@/pages/InvestPage";
 import SpendPage from "@/pages/SpendPage";
 import TreasuryPage from "@/pages/TreasuryPage";
 import HackathonPage from "@/pages/HackathonPage";
+import SwapPage from "@/pages/SwapPage";
 
 function DashboardLayoutRoute() {
   return (
@@ -111,6 +113,7 @@ function AppRoutes() {
           <Route path="/about" element={<Index />} />
           <Route path="/settings" element={<Index />} />
           <Route path="/wallet" element={<AgentWalletPage />} />
+          <Route path="/swap" element={<SwapPage />} />
           <Route path="/earn" element={<Navigate to="/overview/earn" replace />} />
           <Route path="/treasury" element={<Navigate to="/overview/treasury" replace />} />
           <Route path="/invest" element={<Navigate to="/overview/invest" replace />} />
@@ -166,6 +169,7 @@ function AppRoutes() {
             <Route path="/assets" element={<AssetsPage />} />
             <Route path="/assets/:assetKey" element={<AssetDetailPage />} />
             <Route path="/pumpfun" element={<PumpfunAnalyzer />} />
+            <Route path="/pumpfun/call/:callId" element={<PumpfunCallPage />} />
             <Route
               path="/arbitrage-experiment"
               element={

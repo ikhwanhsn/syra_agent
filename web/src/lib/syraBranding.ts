@@ -12,6 +12,3 @@ export const SYRA_META_DESCRIPTION =
 
 export const SYRA_SAP_DESCRIPTION =
   "Machine money for agents on Solana: x402 APIs, agent wallets, treasury, signals, and MCP.";
-
-/** Square Syra mark on black — ship-log studio UI and export cards (keep opaque background). */
-export const SYRA_POST_STUDIO_LOGO = "/images/syra-mark.png";

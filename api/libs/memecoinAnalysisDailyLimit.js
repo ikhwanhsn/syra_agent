@@ -5,6 +5,7 @@
  * - ≥1M SYRA staked (Streamflow): 25 / day
  */
 import MemecoinAnalysisDailyQuota from '../models/agent/MemecoinAnalysisDailyQuota.js';
+import { isMongooseConnected } from '../config/mongoose.js';
 import { getSyraBalance } from './syraToken.js';
 import { isActiveStakerEligible } from './syraStakingEligibility.js';
 
@@ -99,9 +100,15 @@ export function isMemecoinScanBypassWallet(walletAddress) {
  * @param {string} dayUtc
  */
 async function readUsedCount(ownerKey, dayUtc) {
-  const _id = `${ownerKey}:${dayUtc}`;
-  const doc = await MemecoinAnalysisDailyQuota.findById(_id).select('count').lean();
-  return doc?.count ?? 0;
+  if (!isMongooseConnected()) return 0;
+  try {
+    const _id = `${ownerKey}:${dayUtc}`;
+    const doc = await MemecoinAnalysisDailyQuota.findById(_id).select('count').lean();
+    return doc?.count ?? 0;
+  } catch (e) {
+    console.error('[memecoinAnalysisDailyLimit] readUsedCount failed:', e?.message || e);
+    return 0;
+  }
 }
 
 /**
@@ -173,6 +180,10 @@ export async function tryConsumeMemecoinAnalysisScan(req) {
   const status = await getMemecoinAnalysisQuotaStatus(req);
 
   if (status.tier === 'bypass' || status.limit === 0) {
+    return { allowed: true, ...status };
+  }
+
+  if (!isMongooseConnected()) {
     return { allowed: true, ...status };
   }
 

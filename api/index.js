@@ -28,6 +28,8 @@ import { createAgentLeaderboardRouter } from "./routes/agent/leaderboard.js";
 import { createBnb8183Router } from "./routes/agent/bnb8183.js";
 import { createAgentChainsRouter } from "./routes/agent/chains.js";
 import { createUserPromptsRouter } from "./routes/agent/userPrompts.js";
+import { createAgentSkillsRouter } from "./routes/agent/skills.js";
+import { createSkillsRouter, getPublishedSkillDiscoveryResources } from "./routes/skills.js";
 import { createInfoRouter } from "./routes/info.js";
 import { createWalletSolanaBalanceRouter } from "./routes/walletSolanaBalance.js";
 import { createSolanaAgentRouter } from "./agents/solana-agent.js";
@@ -74,6 +76,7 @@ import { createSignalRouter as createV2SignalRouter } from "./routes/signal.js";
 // 8004scan, heylol, quicknode: agent-direct (POST /agent/tools/call); public HTTP routes removed for those.
 import { createArbitrageExperimentX402Router } from "./routes/arbitrageExperimentX402.js";
 import { createJupiterQuoteRouter } from "./routes/jupiter/quote.js";
+import { createJupiterSwapUiRouter } from "./routes/jupiter/swapUi.js";
 import {
   createPumpfunTrendingRouter,
   createPumpfunMoversRouter,
@@ -423,6 +426,7 @@ function isX402Route(p) {
   if (p.startsWith("/siwa")) return true;
   if (p === "/x" || p.startsWith("/x/")) return true;
   if (p === "/x-analyzer" || p.startsWith("/x-analyzer/")) return true;
+  if (p === "/skills" || p.startsWith("/skills/")) return true;
   return false;
 }
 
@@ -1200,6 +1204,7 @@ app.use("/equity", await createEquityRouter());
 app.use("/indicator", await createIndicatorRouter());
 app.use("/arbitrage", await createArbitrageExperimentX402Router());
 app.use("/jupiter/quote", await createJupiterQuoteRouter());
+app.use("/jupiter/ui", await createJupiterSwapUiRouter());
 app.use("/pumpfun/analyzer", createPumpfunAnalyzerRouter());
 app.use("/pumpfun/scout", createPumpfunScoutRouter());
 app.use("/pumpfun/trending", createPumpfunTrendingRouter());
@@ -1243,6 +1248,7 @@ app.use((req, res, next) => {
   next();
 });
 app.use("/health", await createHealthRouter());
+app.use("/skills", await createSkillsRouter());
 
 // SECURITY P1.8 — Prometheus metrics. Gated behind METRICS_TOKEN to prevent enumeration.
 app.get("/metrics", (req, res, next) => {
@@ -1272,6 +1278,7 @@ app.use("/agent/wallet", await createAgentWalletRouter());
 app.use("/agent/tools", await createAgentToolsRouter());
 app.use("/agent/pact", createAgentPactRouter());
 app.use("/agent/marketplace/prompts", await createUserPromptsRouter());
+app.use("/agent/marketplace/skills", await createAgentSkillsRouter());
 app.use("/agent/marketplace", await createAgentMarketplaceRouter());
 app.use("/agent/leaderboard", await createAgentLeaderboardRouter());
 app.use("/agent/bnb8183", createBnb8183Router());
@@ -1373,7 +1380,7 @@ app.get("/.well-known/shadowfeed-feeds.json", (_req, res) => {
 // Serve discovery document at /.well-known/x402 (x402scan compatible)
 // Lists all x402 APIs (unversioned paths only).
 const X402_BASE = "https://api.syraa.fun";
-app.get("/.well-known/x402", (req, res) => {
+app.get("/.well-known/x402", async (req, res) => {
   // Collect ownership proofs for both EVM and Solana addresses
   const ownershipProofs = [];
   if (process.env.X402_OWNERSHIP_PROOF_EVM) {
@@ -1391,15 +1398,36 @@ app.get("/.well-known/x402", (req, res) => {
     (p) => `${X402_BASE}/${p}`,
   );
 
-  const resourceDetails = X402_DISCOVERY_RESOURCE_PATHS.map((p) => {
-    const meta = getResourceMeta(p);
-    return {
-      url: `${X402_BASE}/${p}`,
-      name: getResourceName(p),
-      description: getResourceDescription(p),
-      price: meta?.suggestedPriceStx ?? null,
-    };
-  });
+  let creatorSkillResources = [];
+  let creatorSkillDetails = [];
+  try {
+    creatorSkillDetails = await getPublishedSkillDiscoveryResources();
+    creatorSkillResources = creatorSkillDetails.map((s) => s.url);
+  } catch {
+    creatorSkillDetails = [];
+    creatorSkillResources = [];
+  }
+
+  const resourceDetails = [
+    ...X402_DISCOVERY_RESOURCE_PATHS.map((p) => {
+      const meta = getResourceMeta(p);
+      return {
+        url: `${X402_BASE}/${p}`,
+        name: getResourceName(p),
+        description: getResourceDescription(p),
+        price: meta?.suggestedPriceStx ?? null,
+      };
+    }),
+    ...creatorSkillDetails.map((s) => ({
+      url: s.url,
+      name: s.name,
+      description: s.description,
+      price: s.price,
+      category: s.category,
+      creatorSkill: true,
+      payToAddress: s.payToAddress,
+    })),
+  ];
 
   const b402Token = (process.env.B402_TOKEN || "USD1").trim();
   const paymentNetworkLines = [
@@ -1419,7 +1447,7 @@ app.get("/.well-known/x402", (req, res) => {
 
   res.json({
     version: 1, // Discovery document version (not x402 protocol version)
-    resources,
+    resources: [...resources, ...creatorSkillResources],
     resourceDetails,
     // IMPORTANT: Generate ownership proofs by running: node scripts/generateOwnershipProof.js
     // Sign "https://api.syraa.fun" with both EVM_PRIVATE_KEY and SVM_PRIVATE_KEY

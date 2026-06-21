@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Search } from "lucide-react";
+import { Loader2, Search, Wallet } from "lucide-react";
 import { Link } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,11 +14,15 @@ const EXAMPLE_MINTS = [
 export interface PumpfunSearchHeroProps {
   value: string;
   onChange: (value: string) => void;
-  onAnalyze: (mint: string) => void;
+  onAnalyze: (mint: string) => void | Promise<void>;
   isLoading?: boolean;
   quota?: MemecoinAnalysisQuota;
   quotaLoading?: boolean;
   scanLimitReached?: boolean;
+  walletConnected?: boolean;
+  /** True while silently restoring Syra session for an already-connected wallet. */
+  authPending?: boolean;
+  onConnectWallet?: () => void;
   className?: string;
 }
 
@@ -36,6 +40,8 @@ function tierLabel(tier: string | undefined): string {
       return "Staker";
     case "bypass":
       return "Unlimited";
+    case "locked":
+      return "Wallet required";
     default:
       return "Free";
   }
@@ -64,6 +70,9 @@ export function PumpfunSearchHero({
   quota,
   quotaLoading,
   scanLimitReached,
+  walletConnected = false,
+  authPending = false,
+  onConnectWallet,
   className,
 }: PumpfunSearchHeroProps) {
   const [recent, setRecent] = useState<string[]>(() => {
@@ -88,23 +97,32 @@ export function PumpfunSearchHero({
   }, []);
 
   const submit = useCallback(() => {
+    if (!walletConnected) {
+      onConnectWallet?.();
+      return;
+    }
     const trimmed = value.trim();
     if (!trimmed) return;
     saveRecent(trimmed);
-    onAnalyze(trimmed);
-  }, [onAnalyze, saveRecent, value]);
+    void onAnalyze(trimmed);
+  }, [onAnalyze, onConnectWallet, saveRecent, value, walletConnected]);
 
   const pick = useCallback(
     (mint: string) => {
+      if (!walletConnected) {
+        onConnectWallet?.();
+        return;
+      }
       onChange(mint);
       saveRecent(mint);
-      onAnalyze(mint);
+      void onAnalyze(mint);
     },
-    [onAnalyze, onChange, saveRecent],
+    [onAnalyze, onChange, onConnectWallet, saveRecent, walletConnected],
   );
 
   const upgradeHint = tierUpgradeHint(quota?.tier);
-  const showUsage = quota?.tier !== "bypass" && (quotaLoading || quota != null);
+  const showUsage =
+    walletConnected && !authPending && quota?.tier !== "bypass" && (quotaLoading || quota != null);
   const usedPct =
     quota && quota.limit > 0
       ? Math.min(100, Math.round((quota.used / quota.limit) * 100))
@@ -123,9 +141,35 @@ export function PumpfunSearchHero({
             Pumpfun Alpha
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Paste a mint address to analyze.
+            Paste a mint address to analyze, track your calls, and flex on social.
           </p>
         </div>
+
+        {!walletConnected ? (
+          <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-primary/30 bg-primary/10">
+                  <Wallet className="h-4 w-4 text-primary" aria-hidden />
+                </span>
+                <div>
+                  <p className="text-sm font-medium">Connect your Solana wallet to scan</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Scan history, flex cards, and the caller leaderboard require a connected wallet.
+                  </p>
+                </div>
+              </div>
+              <Button type="button" variant="neon" className="shrink-0" onClick={onConnectWallet}>
+                Connect wallet
+              </Button>
+            </div>
+          </div>
+        ) : authPending ? (
+          <div className="flex items-center gap-2 rounded-lg border border-border/40 bg-muted/20 px-3 py-2.5 text-xs text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+            Preparing your session…
+          </div>
+        ) : null}
 
         <div className="flex gap-2">
           <div className="relative min-w-0 flex-1">
@@ -136,24 +180,27 @@ export function PumpfunSearchHero({
               onKeyDown={(e) => {
                 if (e.key === "Enter") submit();
               }}
-              placeholder="Mint address"
+              placeholder={walletConnected ? "Mint address" : "Connect wallet to scan"}
               className="h-11 pl-9 font-mono text-sm"
               spellCheck={false}
               autoComplete="off"
+              disabled={!walletConnected}
             />
           </div>
           <Button
             type="button"
             variant="neon"
             className="h-11 shrink-0 px-5"
-            disabled={!value.trim() || isLoading || scanLimitReached}
+            disabled={
+              !walletConnected || authPending || !value.trim() || isLoading || scanLimitReached
+            }
             onClick={submit}
           >
-            {isLoading ? "…" : scanLimitReached ? "Limit" : "Scan"}
+            {isLoading ? "…" : !walletConnected ? "Connect" : scanLimitReached ? "Limit" : "Scan"}
           </Button>
         </div>
 
-        {quota?.tier !== "bypass" ? (
+        {walletConnected && !authPending && quota?.tier !== "bypass" ? (
           <div className="space-y-2 rounded-lg border border-border/40 bg-muted/20 px-3 py-2.5">
             {showUsage ? (
               <>
@@ -212,32 +259,36 @@ export function PumpfunSearchHero({
           </div>
         ) : null}
 
-        <div className="flex flex-wrap gap-1.5">
-          {EXAMPLE_MINTS.map((item) => (
-            <Button
-              key={item.mint}
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-7 rounded-full px-2.5 text-xs"
-              onClick={() => pick(item.mint)}
-            >
-              {item.label}
-            </Button>
-          ))}
-          {recent.map((mint) => (
-            <Button
-              key={mint}
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-7 max-w-[120px] truncate rounded-full px-2.5 font-mono text-xs"
-              onClick={() => pick(mint)}
-            >
-              {mint.slice(0, 4)}…{mint.slice(-4)}
-            </Button>
-          ))}
-        </div>
+        {walletConnected ? (
+          <div className="flex flex-wrap gap-1.5">
+            {EXAMPLE_MINTS.map((item) => (
+              <Button
+                key={item.mint}
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 rounded-full px-2.5 text-xs"
+                disabled={authPending}
+                onClick={() => pick(item.mint)}
+              >
+                {item.label}
+              </Button>
+            ))}
+            {recent.map((mint) => (
+              <Button
+                key={mint}
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 max-w-[120px] truncate rounded-full px-2.5 font-mono text-xs"
+                disabled={authPending}
+                onClick={() => pick(mint)}
+              >
+                {mint.slice(0, 4)}…{mint.slice(-4)}
+              </Button>
+            ))}
+          </div>
+        ) : null}
       </div>
     </section>
   );

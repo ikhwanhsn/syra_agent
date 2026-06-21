@@ -92,7 +92,8 @@ function getCachedAccessToken(): string | null {
 
 async function parseAuthError(res: Response): Promise<string> {
   const data = await res.json().catch(() => ({}));
-  return (data as { error?: string })?.error || res.statusText || "Request failed";
+  const body = data as { error?: string; detail?: string; message?: string };
+  return body.detail || body.message || body.error || res.statusText || "Request failed";
 }
 
 function hasSessionHints(): boolean {

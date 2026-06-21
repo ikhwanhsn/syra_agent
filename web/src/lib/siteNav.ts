@@ -17,6 +17,8 @@ import {
   Info,
   Megaphone,
   Presentation,
+  Coins,
+  ArrowLeftRight,
 } from "lucide-react";
 
 export type NavLinkItem = {
@@ -85,13 +87,24 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    id: "staking",
-    label: "Staking",
+    id: "earn",
+    label: "Earn",
     href: "/staking",
-    icon: Lock,
-    match: (p) => p.startsWith("/staking"),
+    icon: Coins,
+    match: (p) => p.startsWith("/staking") || p.startsWith("/swap"),
     items: [
-      { href: "/staking", label: "Locks", icon: Lock, description: "Open and manage Streamflow locks" },
+      {
+        href: "/staking",
+        label: "Staking",
+        icon: Lock,
+        description: "Open and manage Streamflow locks",
+      },
+      {
+        href: "/swap",
+        label: "Swap",
+        icon: ArrowLeftRight,
+        description: "Buy & sell tokens via Jupiter",
+      },
       {
         href: "/staking/admin",
         label: "Admin",

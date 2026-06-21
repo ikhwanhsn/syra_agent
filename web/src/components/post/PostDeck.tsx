@@ -12,7 +12,7 @@ import { PostVideoExportModal } from "@/components/post/PostVideoExportModal";
 import { exportPostVideo, type PostVideoExportFormat } from "@/components/post/postVideoExport";
 import { getSlideDwellMs } from "@/components/post/postSlideTiming";
 import { cn } from "@/lib/utils";
-import { SYRA_POST_STUDIO_LOGO, SYRA_TAGLINE } from "@/lib/syraBranding";
+import { SYRA_TAGLINE } from "@/lib/syraBranding";
 import { Download, ImageIcon, Pause, Play, RotateCcw, Video } from "lucide-react";
 import { toast } from "sonner";
 
@@ -127,9 +127,9 @@ export function PostDeck({ post }: PostDeckProps) {
         <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
           <PostBackLink />
           <img
-            src={SYRA_POST_STUDIO_LOGO}
+            src="/images/logo.jpg"
             alt=""
-            className="post-studio-logo-mark h-7 w-7 shrink-0 rounded-lg object-cover sm:h-8 sm:w-8"
+            className="h-7 w-7 shrink-0 rounded-lg border border-white/10 object-cover sm:h-8 sm:w-8"
           />
           <div className="min-w-0">
             <span className="font-display text-sm font-medium tracking-tight text-white/90">Syra</span>

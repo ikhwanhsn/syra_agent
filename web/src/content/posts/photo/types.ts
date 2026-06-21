@@ -51,6 +51,8 @@ export interface PostPhotoContent {
   partnerName: string;
   /** Public path, e.g. /images/partners/jupiter.png */
   partnerLogo: string;
+  /** Keep partner logo full-bleed with opaque background (no crop / faux glass) */
+  partnerLogoSolidBg: boolean;
 }
 
 export interface PostPhotoCardDef {
