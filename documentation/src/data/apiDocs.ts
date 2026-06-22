@@ -211,7 +211,7 @@ X-PAYMENT-RESPONSE: eyJzdWNjZXNzIjp0cnVlfQ==
       {
         title: "Building the `X-PAYMENT` header",
         content:
-          "Use any x402-compatible client: `x402-solana/server` (used internally by this API), `@x402/core/http` for header helpers, or any client that follows the V1 spec at https://x402.org. The header value is a base64url-encoded JSON payload signed by the payer's wallet and matching one of the offers in `accepts`. The agent app and MCP server in this monorepo both ship with working signing logic — see `ai-agent/src/lib/x402Client.ts` and `mcp-server/src/index.ts`.",
+          "Use any x402-compatible client: `x402-solana/server` (used internally by this API), `@x402/core/http` for header helpers, or any client that follows the V1 spec at https://x402.org. The header value is a base64url-encoded JSON payload signed by the payer's wallet and matching one of the offers in `accepts`. The agent app ships with working signing logic in `ai-agent/src/lib/x402Client.ts`. External MCP clients use `@syra/mcp-server@0.3.0` with `SYRA_PAYER_KEYPAIR` (HTTP routes) and `POST /mcp/tools/call` (agent-direct tools). See `mcp-server/README.md`.",
       },
       {
         title: "Idempotency and retries",

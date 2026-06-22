@@ -236,6 +236,17 @@ export function buildMppOpenApiPaths() {
     pathMap.set(key, pathItem);
   }
 
+  // Creator skills — dynamic slug at runtime; template for MPP / AgentCash discovery.
+  if (!pathMap.has('/skills/{slug}')) {
+    const skillsPrice = usdPriceString(X402_DISPLAY_PRICE_USD);
+    const skillsDesc =
+      'Paid creator skill proxy. Replace {slug} with a published skill slug from GET /skills (free catalog). Price and payTo are set per skill at runtime.';
+    pathMap.set('/skills/{slug}', {
+      get: operationObject('GET', `${skillsDesc} (GET)`, skillsPrice),
+      post: operationObject('POST', `${skillsDesc} (POST)`, skillsPrice),
+    });
+  }
+
   // Most Syra x402 resources accept both GET and POST; mirror for discovery when only one method was registered.
   for (const item of pathMap.values()) {
     const g = item.get;

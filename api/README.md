@@ -115,6 +115,21 @@ npx -y @agentcash/discovery@latest discover "https://api.syraa.fun"
 
 Optional: **`SYRA_PUBLIC_API_URL`** for staging `servers[0].url`. **`X402_OWNERSHIP_PROOF_EVM`** / **`X402_OWNERSHIP_PROOF_SVM`** populate `x-discovery.ownershipProofs` (see [generateOwnershipProof.js](./scripts/generateOwnershipProof.js)).
 
+**MPP coverage CI:** `npm run validate:mpp` (from `api/`) verifies every agent tool appears in `/mpp-openapi.json`.
+
+### MCP bridge (external MCP clients)
+
+**`POST /mcp/tools/call`** — server-side agent tool execution for `@syra/mcp-server` (agent-direct routes without public HTTP). Requires:
+
+| Env | Purpose |
+|-----|---------|
+| `SYRA_MCP_BRIDGE_ENABLED=true` | Enable bridge |
+| `SYRA_MCP_API_KEY` | Client sends `X-MCP-API-Key` header |
+| `SYRA_MCP_AGENT_ANONYMOUS_ID` | Agent wallet that pays for tool calls |
+| `SYRA_MCP_RATE_LIMIT_PER_MIN` | Optional rate limit (default 120/min) |
+
+Body: `{ "toolId": "exa-search", "params": { "query": "..." } }`. Reuses [`agentToolExecutor.js`](./libs/agentToolExecutor.js) (same as `POST /agent/tools/call`).
+
 ---
 
 ## Register Syra on 8004 (Solana Agent Registry)

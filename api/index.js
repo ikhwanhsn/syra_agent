@@ -93,6 +93,7 @@ import { createLpAgentRealRouter } from "./routes/lpAgentReal.js";
 import { createShipLogStudioRouter } from "./routes/shipLogStudio.js";
 import { createHealthRouter } from "./routes/health.js";
 import { createMppV1Router } from "./routes/mpp/v1.js";
+import { createMcpToolsRouter } from "./routes/mcp/tools.js";
 import { getAgentFetch, SentinelBudgetError } from "./libs/agentFetch.js";
 import { createNansenEndpointsRouter } from "./routes/partner/nansen/nansenEndpoints.js";
 import { createBinanceSpotRouter } from "./routes/partner/binance/spot.js";
@@ -1259,6 +1260,7 @@ app.get("/metrics", (req, res, next) => {
   return metricsHandler(req, res).catch(next);
 });
 app.use("/mpp", await createMppV1Router());
+app.use("/mcp/tools", await createMcpToolsRouter());
 app.use("/check-status-agent", await createCheckStatusAgentRouter());
 app.use("/x-analyzer", await createXProjectAnalyzerRouter());
 app.use("/x-projects-analyze", createXProjectsBatchAnalyzerRouter());

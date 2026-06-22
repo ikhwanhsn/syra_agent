@@ -44,9 +44,17 @@ Deeper partner integrations (Binance, Giza, Bankr, Neynar, SIWA, Nansen, Jupiter
 
 ---
 
-## 3. MCP server tools (`syra-mcp-server` v0.2.0)
+## 3. MCP server tools (`@syra/mcp-server` v0.3.0)
 
-The repository `mcp-server` exposes the Syra API as **stdio MCP tools** (one HTTP call per tool, unless noted). **Production** calls may return **402** if payment headers are not supplied by the client. Optional `SYRA_USE_DEV_ROUTES=true` targets `.../dev` paths for local APIs.
+The repository `mcp-server` exposes **~240 codegen tools** from `api/config/agentTools.js` as stdio MCP tools. Default profile **`curated`** (~42 high-value tools + `syra_call_tool`). Set **`SYRA_MCP_TOOL_PROFILE=full`** for every route.
+
+| Env | Purpose |
+|-----|---------|
+| `SYRA_PAYER_KEYPAIR` | Solana x402 auto-pay for HTTP routes |
+| `SYRA_MCP_API_KEY` | Agent-direct tools via `POST /mcp/tools/call` on the API |
+| `SYRA_USE_DEV_ROUTES=true` | Local `/dev` paths (no payment) |
+
+Tool names follow `syra_{pillar}_{toolId}` (e.g. `syra_spend_news`, `syra_invest_giza_protocols`). Escape hatch: **`syra_call_tool`** with `{ toolId, params }`.
 
 | Tool name | Role |
 |-----------|------|

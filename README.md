@@ -168,7 +168,7 @@ The API **must** use an RPC that allows **`getAccountInfo`** and full blockchain
 ### Deferred (stay honest in pitch)
 
 - **$SYRA staking → x402 discount** is **roadmap** until wired into API pricing (see [tokenomics](./documentation/src/data/tokenomicsV2.md)).
-- **MCP + automated x402 signing** — document manual pay flow for MCP; full auto-pay is a separate product milestone.
+- **MCP + automated x402 signing** — shipped in `@syra/mcp-server@0.3.0` via `SYRA_PAYER_KEYPAIR` and MCP bridge for agent-direct tools.
 
 ---
 

@@ -24,7 +24,9 @@ Copy from [`integrations/cursor.mcp.json`](integrations/cursor.mcp.json) or run:
 npx -y @syra/mcp-server
 ```
 
-Set `SYRA_API_BASE_URL=https://api.syraa.fun`. For ElizaOS and custom agents, see [`integrations/elizaos.md`](integrations/elizaos.md).
+Set `SYRA_API_BASE_URL=https://api.syraa.fun`. For production auto-pay, set `SYRA_PAYER_KEYPAIR` (Solana USDC wallet). For agent-direct tools (exa-search, Nansen, GMGN, etc.), configure the MCP bridge on the API (`SYRA_MCP_BRIDGE_ENABLED`, `SYRA_MCP_API_KEY`, `SYRA_MCP_AGENT_ANONYMOUS_ID`) and pass `SYRA_MCP_API_KEY` to the MCP server.
+
+Use `SYRA_MCP_TOOL_PROFILE=full` to expose all ~240 tools; default `curated` exposes ~42 high-value tools plus `syra_call_tool` escape hatch.
 
 ---
 
@@ -113,17 +115,11 @@ The **production** Syra API at `https://api.syraa.fun` uses **x402** for many en
 
 ## Features
 
-- **30+ MCP tools** covering the full Syra API:
-  - **Syra Brain** — Single-question API: ask in natural language; Syra runs tools and returns one answer (POST `/brain`).
-  - **News & events** — Latest crypto news and upcoming/recent events (optional ticker: BTC, ETH, or `general`).
-  - **Sentiment & headlines** — Market sentiment (30 days) and trending crypto headlines (optional ticker).
-  - **Signals** — AI-generated trading signals with entry/exit (optional token name).
-  - **Research & browse** — Deep research on crypto topics (quick/deep), web browse and extract from URL or query, X/Twitter search.
-  - **Token & chain data** — Rugcheck token report and statistics, Nansen token god mode, Bubblemaps holder/concentration maps, X KOL analysis (by Solana token address).
-  - **Analytics** — Health check, daily sundown digest, hidden gems (X), crypto KOL insights, smart money tracking, DEXScreener, Jupiter trending, full analytics summary.
-  - **Squid Router** — Cross-chain route (quote + transactionRequest for first leg) and transaction status across 100+ chains.
-  - **Binance** — Correlation for a symbol (default BTCUSDT) and full correlation matrix.
-  - **Memecoin screens** — Fastest holder growth, smart money mentions, pre-CEX accumulation, strong narrative + low mcap, by experienced devs, unusual whale behavior, trending on X not DEX, organic traction, surviving market dumps.
+- **240+ MCP tools** (codegen from `api/config/agentTools.js`):
+  - **Curated profile (default)** — ~42 high-value routes + `syra_call_tool` for any toolId
+  - **Full profile** — every agent tool via `SYRA_MCP_TOOL_PROFILE=full`
+  - **x402 auto-pay** — `SYRA_PAYER_KEYPAIR` + `@syra/sdk` + `@x402/fetch`
+  - **Agent-direct bridge** — exa-search, crawl, Nansen, GMGN, etc. via `POST /mcp/tools/call`
 
 - **Configurable base URL** — Point to production (`https://api.syraa.fun`) or your local API (e.g. `http://localhost:3000`).
 - **Optional dev routes** — When `SYRA_USE_DEV_ROUTES=true`, the server appends `/dev` to each API path (e.g. `/news/dev`). Use with a local API that implements `/dev` routes to skip x402 payment during development.
@@ -192,7 +188,11 @@ Configuration is done via **environment variables**. Copy `.env.example` to `.en
 | Variable | Description | Default | Example |
 |----------|-------------|---------|---------|
 | `SYRA_API_BASE_URL` | Base URL of the Syra API. No trailing slash. | `https://api.syraa.fun` | `http://localhost:3000` |
-| `SYRA_USE_DEV_ROUTES` | If set to `true` or `1`, the server appends `/dev` to each API path (e.g. `/news` → `/news/dev`). Use **only** with a local API that implements these routes; do not use in production. | not set (false) | `true` |
+| `SYRA_PAYER_KEYPAIR` | Solana secret (base58 or JSON bytes) for x402 auto-pay on HTTP routes | not set | Phantom export |
+| `SYRA_MCP_API_KEY` | Auth for agent-direct tools via `POST /mcp/tools/call` on the API | not set | shared with API env |
+| `SYRA_MCP_TOOL_PROFILE` | `curated` (default) or `full` | `curated` | `full` |
+| `SYRA_USE_DEV_ROUTES` | If set to `true` or `1`, appends `/dev` to each API path | not set (false) | `true` |
+| `SYRA_SOLANA_RPC_URL` | RPC for x402 payment signing | `SOLANA_RPC_URL` or public Solana RPC | Helius URL |
 
 ### Example `.env` for local testing (no payment)
 
@@ -597,14 +597,14 @@ mcp-server/
 
 ### Adding or changing tools
 
-1. Open `src/index.ts`.
-2. Use `server.tool(name, description, schema, handler)`:
-   - **name:** string, e.g. `syra_v2_news`
-   - **description:** string (shown to the model; you can append `PAYMENT_NOTE` for consistency)
-   - **schema:** Zod object, e.g. `{ ticker: z.string().optional().default("general") }`
-   - **handler:** async function that receives the parsed arguments, calls `fetchV2(path, params)`, and returns `{ content: [{ type: "text", text: formatToolResult(status, body) }] }`
-3. For a simple GET with no query params, you can follow the pattern used for `noParamTools` or `memecoinTools` (array of `{ name, path, description }` with a shared handler).
-4. Run `npm run build` and test via your MCP client.
+Tools are **generated** from [`api/config/agentTools.js`](../api/config/agentTools.js):
+
+```bash
+node scripts/sync-mcp-tools.mjs
+# or: cd mcp-server && npm run sync:mcp-tools
+```
+
+Regenerate after editing agent tools, then `npm run build` in `mcp-server/` and reload MCP in Cursor.
 
 ---
 
@@ -612,7 +612,7 @@ mcp-server/
 
 | Issue | What to check |
 |-------|----------------|
-| **402 from tools** | Production API requires x402. Use a local API with `SYRA_USE_DEV_ROUTES=true`, or add payment via another component (e.g. API playground or client that sends payment headers). |
+| **402 from tools** | Set `SYRA_PAYER_KEYPAIR` for HTTP routes. For agent-direct tools, enable MCP bridge on API (`SYRA_MCP_BRIDGE_ENABLED=true`, `SYRA_MCP_API_KEY`, `SYRA_MCP_AGENT_ANONYMOUS_ID`) and pass `SYRA_MCP_API_KEY` to the MCP server. Local testing: `SYRA_USE_DEV_ROUTES=true` with local API. |
 | **Connection refused / timeout** | Ensure the Syra API is running and reachable at `SYRA_API_BASE_URL`. If the API is on localhost, the MCP server must run on the same machine (or use a URL that is reachable from where the server runs). |
 | **Cursor/Claude doesn’t list Syra tools** | Restart the app or reload MCP. Confirm the MCP config: correct path to `dist/index.js`, `command` and `args` (e.g. `node` and `["path/to/dist/index.js"]`). Run `node dist/index.js` manually to ensure it starts without errors. |
 | **Wrong API or dev routes not used** | Verify `SYRA_API_BASE_URL` and `SYRA_USE_DEV_ROUTES` in the **environment** passed by the MCP client (e.g. `env` in the server config). The server reads only `process.env` at startup. |
@@ -624,6 +624,6 @@ mcp-server/
 ## Version
 
 - **Package:** `@syra/mcp-server`
-- **Version:** `0.2.0` (see `package.json`)
+- **Version:** `0.3.0` (see `package.json`)
 
 For more on the Syra API, x402, and the rest of the monorepo, see the main Syra documentation and API docs.
