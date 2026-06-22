@@ -93,6 +93,28 @@ function privyExternalIdFromAnonymousId(anonymousId) {
 }
 
 /**
+ * Find an existing Privy server wallet by external_id (e.g. after a prior DB write failed).
+ * @param {string} externalId
+ * @returns {Promise<{ privyWalletId: string; agentAddress: string } | null>}
+ */
+async function findPrivyServerWalletByExternalId(externalId) {
+  if (!externalId || !isPrivyConfigured()) return null;
+  try {
+    const out = await privyFetch(
+      `/v1/wallets?external_id=${encodeURIComponent(externalId)}`,
+      { method: 'GET' },
+    );
+    const row = out?.data?.[0];
+    const privyWalletId = String(row?.id || '').trim();
+    const agentAddress = String(row?.address || '').trim();
+    if (!privyWalletId || !agentAddress) return null;
+    return { privyWalletId, agentAddress };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Provision a new Privy server wallet for a user.
  *
  * @param {Object} input
@@ -104,6 +126,13 @@ export async function createPrivyServerWallet({ chain, anonymousId }) {
   if (!isPrivyConfigured()) throw new Error('privy_not_configured');
   const chainType = chain === 'base' || chain === 'bsc' ? 'ethereum' : 'solana';
   const externalId = privyExternalIdFromAnonymousId(anonymousId);
+
+  // Re-link wallets orphaned in Privy when a prior Mongo write failed (e.g. stale unique index).
+  if (externalId) {
+    const existing = await findPrivyServerWalletByExternalId(externalId);
+    if (existing) return existing;
+  }
+
   const body = {
     chain_type: chainType,
     ...(process.env.PRIVY_DEFAULT_POLICY
@@ -111,13 +140,22 @@ export async function createPrivyServerWallet({ chain, anonymousId }) {
       : {}),
     ...(externalId ? { external_id: externalId } : {}),
   };
-  const out = await privyFetch('/v1/wallets', { method: 'POST', body });
-  const privyWalletId = String(out?.id || '').trim();
-  const agentAddress = String(out?.address || '').trim();
-  if (!privyWalletId || !agentAddress) {
-    throw new Error('privy_create_wallet_invalid_response');
+  try {
+    const out = await privyFetch('/v1/wallets', { method: 'POST', body });
+    const privyWalletId = String(out?.id || '').trim();
+    const agentAddress = String(out?.address || '').trim();
+    if (!privyWalletId || !agentAddress) {
+      throw new Error('privy_create_wallet_invalid_response');
+    }
+    return { privyWalletId, agentAddress };
+  } catch (err) {
+    // Concurrent create or orphan from a failed DB insert — recover if Privy already has the wallet.
+    if (externalId) {
+      const existing = await findPrivyServerWalletByExternalId(externalId);
+      if (existing) return existing;
+    }
+    throw err;
   }
-  return { privyWalletId, agentAddress };
 }
 
 /**

@@ -169,84 +169,26 @@
 //   );
 // };
 
-import { motion, useReducedMotion } from "framer-motion";
-import { useInView } from "framer-motion";
+import { motion, useInView } from "framer-motion";
 import { useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Gift, Vote, Lock, TrendingUp, Trophy, Copy, Check, ExternalLink, ShoppingCart, Sparkles } from "lucide-react";
-import { QwertiIcon } from "@/components/marketing/QwertiIcon";
+import { Gift, Vote, Lock, TrendingUp, Trophy, Copy, Check, ExternalLink, ShoppingCart } from "lucide-react";
 import syraLogo from "/images/logo.jpg";
 import { cn } from "@/lib/utils";
+import { Link } from "@/lib/navigation";
+import { SYRA_BUY_SWAP_URL } from "@/lib/swapNavigation";
 import { getSyraApiBase, LINK_STAKING } from "@/lib/marketing/global";
 import {
   fetchStakingProtocolSummary,
   formatStakingStatsDisplay,
 } from "@/lib/marketing/stakingStats";
 import { SYRA_TOKENOMICS_DISPLAY } from "@/lib/marketing/syraTokenomics";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { QWERTI_MAGIC_LINK } from "@/data/marketing/qwerti";
-
-/** Native SOL mint for Raydium / swap deep links */
-const WSOL_MINT = "So11111111111111111111111111111111111111112";
 
 const SYRA_TOKEN_MINT = "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump";
 
 const SYRA_API_BASE = getSyraApiBase();
 
 const SOLSCAN_TOKEN_URL = `https://solscan.io/token/${SYRA_TOKEN_MINT}?activity_type=ACTIVITY_SPL_BURN&exclude_amount_zero=true&remove_spam=false&page_size=10`;
-
-const QWERTI_BUY_VENUE = {
-  id: "qwerti",
-  label: "Qwerti",
-  description: "Cross-chain · Card · Apple Pay · embedded wallet",
-  href: QWERTI_MAGIC_LINK,
-  recommended: true,
-} as const;
-
-const SYRA_BUY_VENUES: readonly {
-  id: string;
-  label: string;
-  description: string;
-  href: string;
-}[] = [
-  {
-    id: "jupiter",
-    label: "Jupiter",
-    description: "Official token page — open Swap to buy",
-    // /swap?inputMint=&outputMint= is ignored by Jupiter’s SPA; /tokens/{mint} resolves correctly.
-    href: `https://jup.ag/tokens/${SYRA_TOKEN_MINT}`,
-  },
-  {
-    id: "dexscreener",
-    label: "DexScreener",
-    description: "Charts & pooled liquidity",
-    href: `https://dexscreener.com/solana/${SYRA_TOKEN_MINT}`,
-  },
-  {
-    id: "pumpfun",
-    label: "Pump.fun",
-    description: "Trade on Pump",
-    href: `https://pump.fun/coin/${SYRA_TOKEN_MINT}`,
-  },
-  {
-    id: "raydium",
-    label: "Raydium",
-    description: "Swap on Raydium",
-    href: `https://raydium.io/swap/?inputMint=${WSOL_MINT}&outputMint=${SYRA_TOKEN_MINT}`,
-  },
-  {
-    id: "birdeye",
-    label: "Birdeye",
-    description: "Token page & swap",
-    href: `https://birdeye.so/token/${SYRA_TOKEN_MINT}?chain=solana`,
-  },
-];
 
 const utilities = [
   {
@@ -285,8 +227,6 @@ export const TokenSection = () => {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
   const [copied, setCopied] = useState(false);
-  const [buyOpen, setBuyOpen] = useState(false);
-  const reduceMotion = useReducedMotion();
 
   const { data: stakingSummary, isPending: isPendingStaking } = useQuery({
     queryKey: ["syra-staking-summary"],
@@ -346,36 +286,6 @@ export const TokenSection = () => {
     ],
     [isPendingStaking, stakingDisplay],
   );
-
-  const buyModalMotion = useMemo(() => {
-    const ease: [number, number, number, number] = [0.16, 1, 0.3, 1];
-    return {
-      listContainer: {
-        hidden: {},
-        show: {
-          transition: reduceMotion
-            ? { staggerChildren: 0, delayChildren: 0 }
-            : { staggerChildren: 0.055, delayChildren: 0.1 },
-        },
-      },
-      listItem: {
-        hidden: reduceMotion ? { opacity: 0 } : { opacity: 0, y: 10 },
-        show: {
-          opacity: 1,
-          y: 0,
-          transition: { duration: reduceMotion ? 0.01 : 0.38, ease },
-        },
-      },
-      header: {
-        hidden: reduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 },
-        show: {
-          opacity: 1,
-          y: 0,
-          transition: { duration: reduceMotion ? 0.01 : 0.35, ease },
-        },
-      },
-    };
-  }, [reduceMotion]);
 
   const tokenAddress = SYRA_TOKEN_MINT;
   
@@ -447,14 +357,13 @@ export const TokenSection = () => {
                   </div>
                 </div>
                 <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setBuyOpen(true)}
+                  <Link
+                    to={SYRA_BUY_SWAP_URL}
                     className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium transition-all duration-300 border rounded-lg border-neon-gold/50 bg-neon-gold/15 text-neon-gold hover:bg-neon-gold/25 hover:border-neon-gold/70 hover:scale-[1.02]"
                   >
                     <ShoppingCart className="w-4 h-4" />
                     <span>Buy</span>
-                  </button>
+                  </Link>
                   <button
                     type="button"
                     onClick={copyToClipboard}
@@ -477,69 +386,6 @@ export const TokenSection = () => {
               </div>
             </div>
           </motion.div>
-
-          <Dialog open={buyOpen} onOpenChange={setBuyOpen}>
-            <DialogContent className="overflow-hidden border-neon-gold/20 bg-background sm:max-w-md sm:rounded-2xl">
-              <motion.div
-                variants={buyModalMotion.header}
-                initial="hidden"
-                animate={buyOpen ? "show" : "hidden"}
-              >
-                <DialogHeader>
-                  <DialogTitle className="text-xl">
-                    Buy <span className="gold-text">$SYRA</span>
-                  </DialogTitle>
-                  <DialogDescription>
-                    Pick a venue below. Each link opens in a new tab. Confirm the mint matches your
-                    copied contract address before you swap.
-                  </DialogDescription>
-                </DialogHeader>
-              </motion.div>
-              <motion.ul
-                className="grid gap-2 py-1"
-                variants={buyModalMotion.listContainer}
-                initial="hidden"
-                animate={buyOpen ? "show" : "hidden"}
-              >
-                <motion.li variants={buyModalMotion.listItem}>
-                  <a
-                    href={QWERTI_BUY_VENUE.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex w-full items-center justify-between gap-3 rounded-lg border border-neon-gold/50 bg-neon-gold/10 px-4 py-3 text-left transition-colors hover:border-neon-gold/70 hover:bg-neon-gold/15"
-                  >
-                    <span className="min-w-0">
-                      <span className="flex flex-wrap items-center gap-2">
-                        <span className="block font-medium text-foreground">{QWERTI_BUY_VENUE.label}</span>
-                        <span className="inline-flex items-center gap-1 rounded-full border border-neon-gold/40 bg-neon-gold/15 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-neon-gold">
-                          <Sparkles className="h-3 w-3" aria-hidden />
-                          Recommended
-                        </span>
-                      </span>
-                      <span className="block text-xs text-muted-foreground">{QWERTI_BUY_VENUE.description}</span>
-                    </span>
-                    <QwertiIcon size="sm" />
-                  </a>
-                </motion.li>
-                {SYRA_BUY_VENUES.map((venue) => (
-                  <motion.li key={venue.id} variants={buyModalMotion.listItem}>
-                    <a
-                      href={venue.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-muted/30 px-4 py-3 text-left transition-colors hover:border-neon-gold/40 hover:bg-muted/50"
-                    >
-                      <span className="min-w-0">
-                        <span className="block font-medium text-foreground">{venue.label}</span>
-                        <span className="block text-xs text-muted-foreground">{venue.description}</span>
-                      </span>
-                      <ExternalLink className="h-4 w-4 shrink-0 text-neon-gold" aria-hidden />
-                    </a>
-                  </motion.li>
-                ))}
-              </motion.ul>
-            </DialogContent>
-          </Dialog>
 
           {/* Reward Leaderboard Button - hidden */}
           <motion.div

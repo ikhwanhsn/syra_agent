@@ -33,7 +33,7 @@ const faqs = [
   {
     question: "What is Syra's $SPCX / SpaceX IPO feature?",
     answer:
-      "Syra tracks tokenized SpaceX shares ($SPCX, SPCXx) on Solana against the Nasdaq listing — surfacing live premium/discount spreads, liquidity context, and agent bias. Use the SpaceX IPO Agent at syraa.fun/spcx, ask /spcx in chat, or call the x402 API. Execution via agent wallet requires explicit confirmation; this is probabilistic intelligence, not investment advice.",
+      "Syra tracks tokenized SpaceX shares ($SPCX, SPCXx) on Solana against the Nasdaq listing — surfacing live premium/discount spreads, liquidity context, and agent bias. Ask /spcx in chat or call the x402 API from the playground. Execution via agent wallet requires explicit confirmation; this is probabilistic intelligence, not investment advice.",
   },
   {
     question: "How is Syra related to pay.sh, x402, and agent payments?",

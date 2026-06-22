@@ -23,7 +23,6 @@ import { AlertCircle, Moon, RefreshCw, Sun } from "lucide-react";
 import DashboardSettings from "@/pages/DashboardSettings";
 import { resolveUserAvatarUrl } from "@/lib/agentAvatar";
 import { AboutPageView } from "@/components/about/AboutPageView";
-import { ProofLayerBanner } from "@/components/proof/ProofLayerBanner";
 
 /** Dedupes `?q=` auto-send across React Strict Mode double-invoke in dev. */
 let lastConsumedUrlPromptParam: string | null = null;
@@ -1399,11 +1398,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
             ) : isSettingsRoute ? (
               <AgentSettingsView />
             ) : (
-              <>
-                <div className="shrink-0 border-b border-border/60 px-3 py-2 sm:px-4">
-                  <ProofLayerBanner compact />
-                </div>
-                <ChatArea
+              <ChatArea
                 messages={messages}
                 isLoading={isLoading}
                 onSendMessage={handleSendMessage}
@@ -1425,7 +1420,6 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
                 onDismissPumpfunCreateForm={handleDismissPumpfunCreateForm}
                 onSubmitPumpfunCreateForm={handlePumpfunCreateFormSubmit}
               />
-              </>
             )}
           </main>
         </div>
@@ -1442,11 +1436,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
           ) : isSettingsRoute ? (
             <AgentSettingsView />
           ) : (
-            <>
-              <div className="shrink-0 border-b border-border/60 px-3 py-2">
-                <ProofLayerBanner compact />
-              </div>
-              <ChatArea
+            <ChatArea
                 messages={messages}
                 isLoading={isLoading}
                 onSendMessage={handleSendMessage}
@@ -1468,7 +1458,6 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
                 onDismissPumpfunCreateForm={handleDismissPumpfunCreateForm}
                 onSubmitPumpfunCreateForm={handlePumpfunCreateFormSubmit}
               />
-            </>
           )}
         </main>
       </div>

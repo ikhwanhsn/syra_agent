@@ -7,6 +7,7 @@ import express from "express";
 import PaidApiCall from "../models/PaidApiCall.js";
 import Chat from "../models/agent/Chat.js";
 import ApiRequestLog from "../models/ApiRequestLog.js";
+import X402CallLog from "../models/X402CallLog.js";
 import PlaygroundShare from "../models/PlaygroundShare.js";
 import { getV2Payment } from "../utils/getV2Payment.js";
 import { X402_API_PRICE_ANALYTICS_SUMMARY_USD } from "../config/x402Pricing.js";
@@ -481,6 +482,305 @@ router.get("/kpi-extended", async (req, res) => {
       },
       health,
       conversion,
+      updatedAt: now.toISOString(),
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error", message: error?.message || "Unknown error" });
+  }
+});
+
+/**
+ * GET /analytics/x402 – detailed x402 telemetry for internal dashboard.
+ * Aggregates X402CallLog: errors, top endpoints, network/facilitator splits, USD volume.
+ */
+router.get("/x402", async (req, res) => {
+  try {
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+
+    const paidMatch = { outcome: "paid" };
+    const failureMatch = { outcome: { $nin: ["paid"] } };
+
+    const [
+      totalCalls,
+      callsLast7d,
+      callsLast30d,
+      paidCalls,
+      paidCallsLast7d,
+      paidCallsLast30d,
+      paidCallsPrev30d,
+      failuresLast7d,
+      failuresLast30d,
+      totalUsdAgg,
+      usdLast7dAgg,
+      usdLast30dAgg,
+      uniquePayersAgg,
+      inboundCount,
+      outboundCount,
+      topEndpointsAgg,
+      byNetworkAgg,
+      byFacilitatorAgg,
+      recentErrors,
+      errorReasonAgg,
+      needsImprovementAgg,
+      slowestEndpointsAgg,
+      dailyAgg,
+      funnelAgg,
+    ] = await Promise.all([
+      X402CallLog.countDocuments(),
+      X402CallLog.countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
+      X402CallLog.countDocuments({ createdAt: { $gte: thirtyDaysAgo } }),
+      X402CallLog.countDocuments(paidMatch),
+      X402CallLog.countDocuments({ ...paidMatch, createdAt: { $gte: sevenDaysAgo } }),
+      X402CallLog.countDocuments({ ...paidMatch, createdAt: { $gte: thirtyDaysAgo } }),
+      X402CallLog.countDocuments({ ...paidMatch, createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } }),
+      X402CallLog.countDocuments({ ...failureMatch, createdAt: { $gte: sevenDaysAgo } }),
+      X402CallLog.countDocuments({ ...failureMatch, createdAt: { $gte: thirtyDaysAgo } }),
+      X402CallLog.aggregate([{ $match: paidMatch }, { $group: { _id: null, total: { $sum: "$amountUsd" } } }]),
+      X402CallLog.aggregate([
+        { $match: { ...paidMatch, createdAt: { $gte: sevenDaysAgo } } },
+        { $group: { _id: null, total: { $sum: "$amountUsd" } } },
+      ]),
+      X402CallLog.aggregate([
+        { $match: { ...paidMatch, createdAt: { $gte: thirtyDaysAgo } } },
+        { $group: { _id: null, total: { $sum: "$amountUsd" } } },
+      ]),
+      X402CallLog.distinct("payer", { payer: { $ne: null }, ...paidMatch }),
+      X402CallLog.countDocuments({ direction: "inbound" }),
+      X402CallLog.countDocuments({ direction: "outbound" }),
+      X402CallLog.aggregate([
+        { $match: { createdAt: { $gte: thirtyDaysAgo } } },
+        {
+          $group: {
+            _id: { path: "$path", direction: "$direction" },
+            calls: { $sum: 1 },
+            paidCalls: { $sum: { $cond: [{ $eq: ["$outcome", "paid"] }, 1, 0] } },
+            errors: { $sum: { $cond: [{ $ne: ["$outcome", "paid"] }, 1, 0] } },
+            successUsd: { $sum: { $cond: [{ $eq: ["$outcome", "paid"] }, "$amountUsd", 0] } },
+            avgLatency: { $avg: "$latencyMs" },
+          },
+        },
+        { $sort: { calls: -1 } },
+        { $limit: 25 },
+      ]),
+      X402CallLog.aggregate([
+        { $match: { createdAt: { $gte: thirtyDaysAgo }, network: { $ne: null } } },
+        {
+          $group: {
+            _id: "$network",
+            calls: { $sum: 1 },
+            paidCalls: { $sum: { $cond: [{ $eq: ["$outcome", "paid"] }, 1, 0] } },
+            successUsd: { $sum: { $cond: [{ $eq: ["$outcome", "paid"] }, "$amountUsd", 0] } },
+          },
+        },
+        { $sort: { calls: -1 } },
+      ]),
+      X402CallLog.aggregate([
+        { $match: { createdAt: { $gte: thirtyDaysAgo }, facilitator: { $ne: null } } },
+        {
+          $group: {
+            _id: "$facilitator",
+            calls: { $sum: 1 },
+            paidCalls: { $sum: { $cond: [{ $eq: ["$outcome", "paid"] }, 1, 0] } },
+            successUsd: { $sum: { $cond: [{ $eq: ["$outcome", "paid"] }, "$amountUsd", 0] } },
+          },
+        },
+        { $sort: { calls: -1 } },
+      ]),
+      X402CallLog.find(
+        { ...failureMatch, createdAt: { $gte: sevenDaysAgo } },
+        {
+          path: 1,
+          host: 1,
+          direction: 1,
+          outcome: 1,
+          httpStatus: 1,
+          network: 1,
+          facilitator: 1,
+          errorReason: 1,
+          agentId: 1,
+          createdAt: 1,
+        },
+        { sort: { createdAt: -1 }, limit: 50 }
+      ).lean(),
+      X402CallLog.aggregate([
+        { $match: { ...failureMatch, createdAt: { $gte: thirtyDaysAgo }, errorReason: { $ne: null } } },
+        { $group: { _id: "$errorReason", count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 15 },
+      ]),
+      X402CallLog.aggregate([
+        { $match: { createdAt: { $gte: thirtyDaysAgo } } },
+        {
+          $group: {
+            _id: "$path",
+            total: { $sum: 1 },
+            errors: { $sum: { $cond: [{ $ne: ["$outcome", "paid"] }, 1, 0] } },
+            avgLatency: { $avg: "$latencyMs" },
+          },
+        },
+        { $match: { total: { $gte: 3 }, errors: { $gt: 0 } } },
+        {
+          $project: {
+            _id: 1,
+            total: 1,
+            errors: 1,
+            errorRate: { $multiply: [{ $divide: ["$errors", "$total"] }, 100] },
+            avgLatency: 1,
+          },
+        },
+        { $sort: { errorRate: -1 } },
+        { $limit: 10 },
+      ]),
+      X402CallLog.aggregate([
+        { $match: { createdAt: { $gte: thirtyDaysAgo }, latencyMs: { $gt: 0 } } },
+        {
+          $group: {
+            _id: "$path",
+            avgLatency: { $avg: "$latencyMs" },
+            maxLatency: { $max: "$latencyMs" },
+            count: { $sum: 1 },
+          },
+        },
+        { $match: { count: { $gte: 3 } } },
+        { $sort: { avgLatency: -1 } },
+        { $limit: 10 },
+      ]),
+      X402CallLog.aggregate([
+        { $match: { createdAt: { $gte: thirtyDaysAgo } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+            calls: { $sum: 1 },
+            paidCalls: { $sum: { $cond: [{ $eq: ["$outcome", "paid"] }, 1, 0] } },
+            errors: { $sum: { $cond: [{ $ne: ["$outcome", "paid"] }, 1, 0] } },
+            usdVolume: { $sum: { $cond: [{ $eq: ["$outcome", "paid"] }, "$amountUsd", 0] } },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]),
+      X402CallLog.aggregate([
+        { $match: { createdAt: { $gte: thirtyDaysAgo }, direction: "inbound" } },
+        {
+          $group: {
+            _id: null,
+            paymentRequired: { $sum: { $cond: [{ $eq: ["$outcome", "payment_required"] }, 1, 0] } },
+            verifyFailed: { $sum: { $cond: [{ $eq: ["$outcome", "verify_failed"] }, 1, 0] } },
+            settleFailed: { $sum: { $cond: [{ $eq: ["$outcome", "settle_failed"] }, 1, 0] } },
+            paid: { $sum: { $cond: [{ $eq: ["$outcome", "paid"] }, 1, 0] } },
+          },
+        },
+      ]),
+    ]);
+
+    const totalUsd = totalUsdAgg[0]?.total ?? 0;
+    const usdLast7d = usdLast7dAgg[0]?.total ?? 0;
+    const usdLast30d = usdLast30dAgg[0]?.total ?? 0;
+    const successRate = totalCalls > 0 ? Math.round((paidCalls / totalCalls) * 10000) / 100 : 0;
+    const growthPct =
+      paidCallsPrev30d > 0
+        ? Math.round(((paidCallsLast30d - paidCallsPrev30d) / paidCallsPrev30d) * 10000) / 100
+        : 0;
+
+    const funnel = funnelAgg[0] || { paymentRequired: 0, verifyFailed: 0, settleFailed: 0, paid: 0 };
+    const paymentRequiredTotal = funnel.paymentRequired + funnel.verifyFailed + funnel.settleFailed + funnel.paid;
+    const conversionRate =
+      paymentRequiredTotal > 0 ? Math.round((funnel.paid / paymentRequiredTotal) * 10000) / 100 : 0;
+
+    res.json({
+      summary: {
+        totalCalls,
+        callsLast7d,
+        callsLast30d,
+        paidCalls,
+        paidCallsLast7d,
+        paidCallsLast30d,
+        failuresLast7d,
+        failuresLast30d,
+        successRate,
+        totalUsdVolume: Math.round(totalUsd * 100) / 100,
+        usdVolumeLast7d: Math.round(usdLast7d * 100) / 100,
+        usdVolumeLast30d: Math.round(usdLast30d * 100) / 100,
+        uniquePayers: uniquePayersAgg.length,
+        inboundCalls: inboundCount,
+        outboundCalls: outboundCount,
+        growthPct,
+        conversionRate,
+      },
+      funnel: {
+        paymentRequired: funnel.paymentRequired,
+        verifyFailed: funnel.verifyFailed,
+        settleFailed: funnel.settleFailed,
+        paid: funnel.paid,
+        conversionRate,
+      },
+      topEndpoints: topEndpointsAgg.map((e) => ({
+        path: e._id.path,
+        direction: e._id.direction,
+        calls: e.calls,
+        paidCalls: e.paidCalls,
+        errors: e.errors,
+        errorRate: e.calls > 0 ? Math.round((e.errors / e.calls) * 10000) / 100 : 0,
+        successUsd: Math.round((e.successUsd || 0) * 100) / 100,
+        avgLatencyMs: Math.round(e.avgLatency || 0),
+      })),
+      byNetwork: byNetworkAgg.map((n) => ({
+        network: n._id,
+        calls: n.calls,
+        paidCalls: n.paidCalls,
+        successRate: n.calls > 0 ? Math.round((n.paidCalls / n.calls) * 10000) / 100 : 0,
+        successUsd: Math.round((n.successUsd || 0) * 100) / 100,
+      })),
+      byFacilitator: byFacilitatorAgg.map((f) => ({
+        facilitator: f._id,
+        calls: f.calls,
+        paidCalls: f.paidCalls,
+        successRate: f.calls > 0 ? Math.round((f.paidCalls / f.calls) * 10000) / 100 : 0,
+        successUsd: Math.round((f.successUsd || 0) * 100) / 100,
+      })),
+      errors: {
+        recent: recentErrors.map((e) => ({
+          path: e.path,
+          host: e.host,
+          direction: e.direction,
+          outcome: e.outcome,
+          httpStatus: e.httpStatus,
+          network: e.network,
+          facilitator: e.facilitator,
+          errorReason: e.errorReason,
+          agentId: e.agentId,
+          createdAt: e.createdAt,
+        })),
+        byReason: errorReasonAgg.map((r) => ({
+          reason: r._id,
+          count: r.count,
+        })),
+      },
+      needsImprovement: {
+        highestErrorRate: needsImprovementAgg.map((e) => ({
+          path: e._id,
+          total: e.total,
+          errors: e.errors,
+          errorRate: Math.round(e.errorRate * 10) / 10,
+          avgLatencyMs: Math.round(e.avgLatency || 0),
+        })),
+        slowestEndpoints: slowestEndpointsAgg.map((e) => ({
+          path: e._id,
+          avgLatencyMs: Math.round(e.avgLatency),
+          maxLatencyMs: Math.round(e.maxLatency),
+          count: e.count,
+        })),
+      },
+      daily: dailyAgg.map((d) => ({
+        date: d._id,
+        calls: d.calls,
+        paidCalls: d.paidCalls,
+        errors: d.errors,
+        errorRate: d.calls > 0 ? Math.round((d.errors / d.calls) * 10000) / 100 : 0,
+        usdVolume: Math.round((d.usdVolume || 0) * 100) / 100,
+      })),
       updatedAt: now.toISOString(),
     });
   } catch (error) {

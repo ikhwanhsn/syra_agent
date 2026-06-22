@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAgentTreasuryBalances } from "@/hooks/useAgentTreasuryBalances";
 import { usePillarAgentWallets } from "@/hooks/usePillarAgentWallets";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -7,7 +7,14 @@ import { useAgentWallet } from "@/contexts/AgentWalletContext";
 import { useSyraAuth } from "@/contexts/SyraAuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { agentWalletApi } from "@/lib/chatApi";
-import type { AgentWalletPurpose } from "@/lib/agentWalletCatalog";
+import {
+  hasCompletePillarSet,
+  isAnonymousIdForWallet,
+  linkedWalletAnonymousId,
+  provisionLinkedPillarWallets,
+  seedPillarWalletSetCache,
+} from "@/lib/provisionPillarWallets";
+import type { AgentWalletFundTarget, AgentWalletPurpose } from "@/lib/agentWalletCatalog";
 import type { ManagedAgentWallet } from "@/components/settings/AgentWalletsManager";
 
 const STALE_MS = 45_000;
@@ -22,8 +29,12 @@ interface AgentSetupRecord {
   walletAddress: string;
 }
 
-async function fetchAgentSetup(walletAddress: string): Promise<AgentSetupRecord> {
+async function fetchAgentSetup(
+  walletAddress: string,
+  queryClient: ReturnType<typeof useQueryClient>,
+): Promise<AgentSetupRecord> {
   const res = await agentWalletApi.getOrCreateByWallet(walletAddress, "solana");
+  seedPillarWalletSetCache(queryClient, res);
   return {
     anonymousId: res.anonymousId,
     agentAddress: res.agentAddress,
@@ -55,7 +66,7 @@ export function useManagedAgentWallets() {
 
   const solanaQ = useQuery({
     queryKey: ["agent-setup", "solana", solanaAddress],
-    queryFn: () => fetchAgentSetup(solanaAddress!),
+    queryFn: () => fetchAgentSetup(solanaAddress!, queryClient),
     enabled: hasSolana && walletQueriesEnabled,
     staleTime: STALE_MS,
     retry: 1,
@@ -101,7 +112,20 @@ export function useManagedAgentWallets() {
     connectedWalletAddress,
   ]);
 
-  const activeAgent = hasSolana ? solanaQ.data ?? contextLinkedAgent : guestAgent;
+  const contextMatchesLinkedWallet = Boolean(
+    contextLinkedAgent &&
+      solanaAddress &&
+      isAnonymousIdForWallet(contextLinkedAgent.anonymousId, solanaAddress),
+  );
+
+  const activeAgent = hasSolana
+    ? solanaQ.data ??
+      (syraAuthenticated && (solanaQ.isLoading || solanaQ.isFetching)
+        ? undefined
+        : contextMatchesLinkedWallet
+          ? contextLinkedAgent
+          : undefined)
+    : guestAgent;
   const activeQ = hasSolana ? solanaQ : { isLoading: !contextReady, isFetching: false, isError: false };
   const authPending = hasSolana && syraAuthReady && !syraAuthenticated;
 
@@ -122,10 +146,24 @@ export function useManagedAgentWallets() {
   const [fundTab, setFundTab] = useState<"deposit" | "withdraw">("deposit");
   const [fundWallet, setFundWallet] = useState<AgentWalletPurpose>("spend");
   const [creatingSpend, setCreatingSpend] = useState(false);
+  const autoProvisionKeyRef = useRef<string | null>(null);
+
+  const pillarBaseAnonymousId = useMemo(() => {
+    if (hasSolana && solanaAddress && syraAuthenticated) {
+      if (activeAgent?.anonymousId && isAnonymousIdForWallet(activeAgent.anonymousId, solanaAddress)) {
+        return activeAgent.anonymousId;
+      }
+      return linkedWalletAnonymousId(solanaAddress);
+    }
+    return activeAgent?.anonymousId;
+  }, [activeAgent?.anonymousId, hasSolana, solanaAddress, syraAuthenticated]);
+
+  const pillarQueryEnabled = Boolean(pillarBaseAnonymousId) && (!hasSolana || syraAuthenticated);
 
   const pillar = usePillarAgentWallets(
-    activeAgent?.anonymousId,
-    activeAgent?.walletAddress ?? connectedWalletAddress ?? "",
+    pillarBaseAnonymousId,
+    activeAgent?.walletAddress ?? solanaAddress ?? connectedWalletAddress ?? "",
+    { enabled: pillarQueryEnabled, canProvision: hasSolana && syraAuthenticated },
   );
 
   const {
@@ -138,9 +176,13 @@ export function useManagedAgentWallets() {
     totalUsdc: pillarTotalUsdc,
     totalSol: pillarTotalSol,
     isInternal,
+    isFetched: pillarSetFetched,
+    walletSet,
   } = pillar;
 
-  const legacyTreasury = useAgentTreasuryBalances({ chatAnonymousId: activeAgent?.anonymousId });
+  const pillarSetComplete = hasCompletePillarSet(walletSet);
+
+  const legacyTreasury = useAgentTreasuryBalances({ chatAnonymousId: pillarBaseAnonymousId ?? activeAgent?.anonymousId });
 
   const spendSolBalance = spendBalances.solBalance ?? legacyTreasury.chatSolBalance;
   const spendUsdcBalance = spendBalances.usdcBalance ?? legacyTreasury.chatUsdcBalance;
@@ -237,25 +279,90 @@ export function useManagedAgentWallets() {
     }
   }, [refreshSet, legacyTreasury, toast]);
 
+  const provisionAgentWallets = useCallback(async (): Promise<boolean> => {
+    if (hasSolana && solanaAddress) {
+      const ok = await requestSyraAuth();
+      if (!ok) return false;
+      const res = await provisionLinkedPillarWallets(solanaAddress);
+      seedPillarWalletSetCache(queryClient, res);
+      await queryClient.invalidateQueries({ queryKey: ["agent-setup", "solana", solanaAddress] });
+      await queryClient.invalidateQueries({ queryKey: ["agent-wallet-set", res.anonymousId] });
+      if (activeAgent?.anonymousId && activeAgent.anonymousId !== res.anonymousId) {
+        await queryClient.invalidateQueries({ queryKey: ["agent-wallet-set", activeAgent.anonymousId] });
+      }
+      await solanaQ.refetch();
+      await refreshSet();
+      return true;
+    }
+
+    await agentWalletApi.getOrCreate();
+    await refreshSet();
+    return true;
+  }, [
+    activeAgent?.anonymousId,
+    hasSolana,
+    queryClient,
+    refreshSet,
+    requestSyraAuth,
+    solanaAddress,
+    solanaQ,
+  ]);
+
+  useEffect(() => {
+    if (!hasSolana || !solanaAddress || !syraAuthReady || !syraAuthenticated) return;
+    if (creatingSpend || pillar.loading) return;
+    if (pillarSetComplete) return;
+    if (!pillarSetFetched && activeAgent?.anonymousId) return;
+
+    const provisionKey = `${solanaAddress}:${activeAgent?.anonymousId ?? "none"}`;
+    if (autoProvisionKeyRef.current === provisionKey) return;
+    autoProvisionKeyRef.current = provisionKey;
+
+    let cancelled = false;
+    void (async () => {
+      setCreatingSpend(true);
+      try {
+        const ok = await provisionAgentWallets();
+        if (cancelled || !ok) {
+          autoProvisionKeyRef.current = null;
+        }
+      } catch {
+        if (!cancelled) autoProvisionKeyRef.current = null;
+      } finally {
+        if (!cancelled) setCreatingSpend(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    activeAgent?.anonymousId,
+    creatingSpend,
+    hasSolana,
+    pillar.loading,
+    pillarSetComplete,
+    pillarSetFetched,
+    provisionAgentWallets,
+    solanaAddress,
+    syraAuthenticated,
+    syraAuthReady,
+  ]);
+
   const handleCreateSpendWallet = useCallback(async () => {
+    autoProvisionKeyRef.current = null;
     setCreatingSpend(true);
     try {
-      if (hasSolana && solanaAddress) {
-        const ok = await requestSyraAuth();
-        if (!ok) {
-          toast({
-            title: "Sign in required",
-            description: "Approve the wallet sign-in prompt to create your agent wallets.",
-            variant: "destructive",
-          });
-          return;
-        }
-        await agentWalletApi.getOrCreateByWallet(solanaAddress);
-      } else {
-        await agentWalletApi.getOrCreate();
+      const ok = await provisionAgentWallets();
+      if (!ok) {
+        toast({
+          title: "Sign in required",
+          description: "Approve the wallet sign-in prompt to create your agent wallets.",
+          variant: "destructive",
+        });
+        return;
       }
-      toast({ title: "Agent wallets created", description: "Reloading…" });
-      window.setTimeout(() => window.location.reload(), 400);
+      toast({ title: "Agent wallets ready", description: "Your five-pillar treasuries are set up." });
     } catch (err) {
       toast({
         title: "Could not create wallets",
@@ -265,10 +372,31 @@ export function useManagedAgentWallets() {
     } finally {
       setCreatingSpend(false);
     }
-  }, [hasSolana, requestSyraAuth, solanaAddress, toast]);
+  }, [provisionAgentWallets, toast]);
 
   const totalUsdc = pillarTotalUsdc ?? legacyTreasury.totalUsdc;
   const totalSol = pillarTotalSol ?? legacyTreasury.totalSol;
+
+  const agentWalletTargets = useMemo((): Partial<Record<AgentWalletPurpose, AgentWalletFundTarget>> => {
+    const out: Partial<Record<AgentWalletPurpose, AgentWalletFundTarget>> = {};
+    for (const entry of pillarEntries) {
+      out[entry.purpose] = {
+        agentAddress: entry.wallet.agentAddress,
+        anonymousId: entry.wallet.anonymousId,
+        solBalance: entry.balances.solBalance,
+        usdcBalance: entry.balances.usdcBalance,
+      };
+    }
+    if (managedLpWallet?.agentAddress && managedLpWallet.anonymousId) {
+      out.lp = {
+        agentAddress: managedLpWallet.agentAddress,
+        anonymousId: managedLpWallet.anonymousId,
+        solBalance: lpSolResolved,
+        usdcBalance: lpUsdcResolved,
+      };
+    }
+    return out;
+  }, [pillarEntries, managedLpWallet, lpSolResolved, lpUsdcResolved]);
 
   return {
     connected,
@@ -285,6 +413,8 @@ export function useManagedAgentWallets() {
     managedLpWallet,
     lpWalletReady: lpReady || Boolean(managedLpWallet),
     pillarEntries,
+    agentWalletTargets,
+    pillarSetComplete,
     visibleSlots,
     isInternal,
     spendSolBalance,
@@ -298,6 +428,10 @@ export function useManagedAgentWallets() {
     solPriceUsd: legacyTreasury.solPriceUsd,
     estimatedTreasuryUsd: legacyTreasury.estimatedTreasuryUsd,
     loading: pillar.loading,
+    pillarLoading: (pillar.loading || creatingSpend) && !pillarSetComplete,
+    pillarProvisionError:
+      (pillar.isError || (hasSolana && syraAuthenticated && solanaQ.isError)) && !pillarSetComplete,
+    provisioningWallets: creatingSpend,
     copiedField,
     refreshingBalances,
     fundTab,
@@ -320,6 +454,7 @@ export function useManagedAgentWallets() {
     handleRefreshAll,
     handleCreateSpendWallet,
     handleCreateChatWallet: handleCreateSpendWallet,
+    handleRetryProvision: handleCreateSpendWallet,
     getBalanceForPurpose: pillar.getBalanceForPurpose,
     getWalletForPurpose: pillar.getWalletForPurpose,
     refreshPillarSet: refreshSet,

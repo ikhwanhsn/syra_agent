@@ -18,7 +18,7 @@ import {
   purposeQuery,
   siblingAnonymousId,
 } from './agentWalletPurpose.js';
-import { canonicalAnonymousId, resolveAgentWalletForUser } from './agentWalletResolve.js';
+import { canonicalAnonymousId, resolveAgentWalletForUser, resolveSpendBaseForWalletSet, walletAddressQuery } from './agentWalletResolve.js';
 
 const { AvatarGenerator } = pkg;
 const avatarGenerator = new AvatarGenerator();
@@ -177,8 +177,13 @@ export async function ensureAgentWalletSet({
   payerAddress = null,
   includeLp = false,
 }) {
-  const base = baseAnonymousIdFrom(baseAnonymousId);
-  if (!base) throw new Error('base_anonymous_id_required');
+  const resolved = await resolveSpendBaseForWalletSet({
+    anonymousId: baseAnonymousId,
+    walletAddress,
+    chain,
+  });
+  const base = resolved.baseAnonymousId;
+  const linkedWalletAddress = walletAddress || resolved.spendDoc?.walletAddress || null;
 
   const purposes = [...PILLAR_WALLET_PURPOSES];
   if (includeLp) purposes.push('lp');
@@ -190,21 +195,49 @@ export async function ensureAgentWalletSet({
     if (!id) continue;
 
     let doc = await AgentWallet.findOne({ anonymousId: id, status: { $ne: 'retired' } }).lean();
+    if (!doc && linkedWalletAddress) {
+      doc = await AgentWallet.findOne({
+        ...walletAddressQuery(linkedWalletAddress, chain, purpose),
+        status: { $ne: 'retired' },
+      }).lean();
+    }
     if (!doc) {
-      await createAgentWalletRecord({
-        anonymousId: id,
-        purpose,
-        walletAddress,
-        chain,
-        avatarSeed: id,
-        provisionedVia,
-        payerAddress: purpose === 'spend' ? payerAddress : null,
-      });
-      doc = await AgentWallet.findOne({ anonymousId: id }).lean();
-    } else if (walletAddress && !doc.walletAddress) {
+      try {
+        await createAgentWalletRecord({
+          anonymousId: id,
+          purpose,
+          walletAddress: linkedWalletAddress,
+          chain,
+          avatarSeed: id,
+          provisionedVia,
+          payerAddress: purpose === 'spend' ? payerAddress : null,
+        });
+      } catch (err) {
+        // Concurrent connect/sign-in requests may race on the same sibling row (E11000) — tolerate
+        // that and re-read below. Any other error means provisioning genuinely failed.
+        if (err?.code !== 11000) {
+          console.error(
+            `[agentWalletProvision] create failed for ${id} (purpose=${purpose}):`,
+            err?.name,
+            err?.message,
+            err?.status ?? err?.statusCode ?? '',
+            err?.body ? JSON.stringify(err.body) : '',
+          );
+          throw err;
+        }
+      }
+      doc = await AgentWallet.findOne({ anonymousId: id, status: { $ne: 'retired' } }).lean();
+      if (!doc && linkedWalletAddress) {
+        doc = await AgentWallet.findOne({
+          ...walletAddressQuery(linkedWalletAddress, chain, purpose),
+          status: { $ne: 'retired' },
+        }).lean();
+      }
+      if (!doc) throw new Error(`agent_wallet_provision_failed:${purpose}`);
+    } else if (linkedWalletAddress && !doc.walletAddress) {
       await AgentWallet.updateOne(
         { _id: doc._id },
-        { $set: { walletAddress, chain } },
+        { $set: { walletAddress: linkedWalletAddress, chain } },
       );
       doc = await AgentWallet.findOne({ _id: doc._id }).lean();
     }

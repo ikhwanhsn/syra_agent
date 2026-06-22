@@ -58,6 +58,7 @@ import {
   normalizeResourceInfo,
 } from "../libs/b402FacilitatorClient.js";
 import { recordPaidApiCall } from "./recordPaidApiCall.js";
+import { recordX402Call, resolveInboundFacilitator } from "./recordX402Call.js";
 import { buybackSYRAFromRevenue } from "./buybackSYRA.js";
 import { isTesterAgentInternalProbeRequest } from "./testerAgentProbe.js";
 import { isShadowfeedPartnerRequest, markShadowfeedPartnerBypass } from "./shadowfeedPartner.js";
@@ -78,6 +79,28 @@ function x402Log(event, detail) {
   if (!always && !isX402Debug()) return;
   const line = detail && typeof detail === "object" ? JSON.stringify(detail) : String(detail ?? "");
   console.log(`[x402] ${event}${line ? ` ${line}` : ""}`);
+}
+
+/** Fire-and-forget inbound x402 telemetry. */
+function recordInboundX402(req, event) {
+  if (!req?.path) return;
+  runAfterResponse(() =>
+    recordX402Call({
+      direction: "inbound",
+      path: req.path,
+      method: req.method || "GET",
+      source: "api",
+      ...event,
+    })
+  );
+}
+
+/** Resolve facilitator for inbound verify attempt (before req.x402Payment is set). */
+function resolveInboundFacilitatorFromFlags(req, { useAlgorandFacilitator, useB402Facilitator }) {
+  if (useAlgorandFacilitator) return "algorand";
+  if (useB402Facilitator) return "b402";
+  if (useCorbitsProfile(req)) return "corbits";
+  return "payai";
 }
 
 let b402StartupLogged = false;
@@ -948,6 +971,18 @@ export function requirePayment(options) {
         x402Log("payment_required", { method: req.method, path: req.path });
         const pr = await buildPaymentRequired(bundle, req, options, "Payment required");
         json402(res, pr);
+        try {
+          const rawPrice = await resolveRawPriceUsdForRequest(options, req);
+          const priceUsd = getEffectivePriceUsd(rawPrice, getPayerOrConnectedWalletForPrice(req));
+          recordInboundX402(req, {
+            outcome: "payment_required",
+            httpStatus: 402,
+            amountUsd: priceUsd,
+            amountMicroUsdc: usdToMicroUsdc(priceUsd),
+          });
+        } catch {
+          recordInboundX402(req, { outcome: "payment_required", httpStatus: 402 });
+        }
         return;
       }
 
@@ -1020,6 +1055,14 @@ export function requirePayment(options) {
         });
         const pr = await buildPaymentRequired(bundle, req, options, "Payment requirements mismatch");
         json402(res, pr);
+        recordInboundX402(req, {
+          outcome: "verify_failed",
+          httpStatus: 402,
+          network: acc?.network,
+          errorReason: "Payment requirements mismatch",
+          amountUsd: priceUsd,
+          amountMicroUsdc: acc?.amount,
+        });
         return;
       }
 
@@ -1107,6 +1150,18 @@ export function requirePayment(options) {
           verify?.invalidReason || "Payment verification failed"
         );
         json402(res, pr);
+        recordInboundX402(req, {
+          outcome: "verify_failed",
+          httpStatus: 402,
+          network: acc?.network,
+          facilitator: resolveInboundFacilitatorFromFlags(req, {
+            useAlgorandFacilitator,
+            useB402Facilitator,
+          }),
+          errorReason: verify?.invalidReason || "Payment verification failed",
+          amountUsd: priceUsd,
+          amountMicroUsdc: acc?.amount,
+        });
         return;
       }
 
@@ -1267,6 +1322,7 @@ export async function settlePaymentAndSetResponse(res, req) {
     req._requestInsightPaid = true;
     return { success: true, scheme: "shadowfeed-partner" };
   }
+  const settleStartedAt = Date.now();
   const { payload, accepted } = req.x402Payment;
   let settle;
   try {
@@ -1294,11 +1350,38 @@ export async function settlePaymentAndSetResponse(res, req) {
       "Payment-Response",
       encodePaymentResponseHeader({ success: false, error: reason })
     );
+    recordInboundX402(req, {
+      outcome: "settle_failed",
+      httpStatus: 502,
+      network: accepted?.network,
+      facilitator: resolveInboundFacilitator(req),
+      amountUsd: req.x402Payment?.priceUsd,
+      amountMicroUsdc: accepted?.amount,
+      errorReason: reason,
+      latencyMs: Date.now() - settleStartedAt,
+    });
     return settle;
   }
   res.setHeader("Payment-Response", encodePaymentResponseHeader(settle));
   req._requestInsightPaid = true;
   runAfterResponse(() => recordPaidApiCall(req));
+  runAfterResponse(() =>
+    recordX402Call({
+      direction: "inbound",
+      path: req.path,
+      method: req.method || "GET",
+      outcome: "paid",
+      httpStatus: res.statusCode || 200,
+      network: accepted?.network,
+      facilitator: resolveInboundFacilitator(req),
+      amountUsd: req.x402Payment?.priceUsd,
+      amountMicroUsdc: accepted?.amount,
+      payer: typeof settle?.payer === "string" ? settle.payer : null,
+      txSignature: typeof settle?.transaction === "string" ? settle.transaction : null,
+      source: "api",
+      latencyMs: Date.now() - settleStartedAt,
+    })
+  );
   runAfterResponse(() => {
     import("../libs/agentscoreGate.js")
       .then(({ captureAgentscoreWalletAfterSettle }) => captureAgentscoreWalletAfterSettle(req, settle))

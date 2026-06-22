@@ -83,6 +83,14 @@ export function isPillarWalletPurpose(id: string): id is PillarWalletPurpose {
   return (PILLAR_WALLET_PURPOSES as readonly string[]).includes(id);
 }
 
+/** Resolved agent treasury used by deposit / withdraw flows. */
+export type AgentWalletFundTarget = {
+  agentAddress: string;
+  anonymousId: string;
+  solBalance?: number | null;
+  usdcBalance?: number | null;
+};
+
 /** Visual accent per wallet role. */
 export const AGENT_WALLET_ACCENT: Record<
   AgentWalletPurpose,

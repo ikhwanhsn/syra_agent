@@ -5,6 +5,7 @@ import {
   normalizeCommonPresetMints,
   SWAP_PRESET_TOKENS,
   USDC_MINT,
+  SYRA_MINT,
   WSOL_MINT,
 } from "@/lib/swapPresets";
 
@@ -95,6 +96,12 @@ export function buildBuySwapUrl(outputMint: string, hints?: SwapTokenHints): str
     outputHints: hints,
   });
 }
+
+/** Canonical in-app link: swap SOL → $SYRA on /swap. */
+export const SYRA_BUY_SWAP_URL = buildBuySwapUrl(SYRA_MINT, {
+  symbol: "SYRA",
+  name: "SYRA",
+});
 
 export function mintToSwapToken(mint: string, hints?: SwapTokenHints): SelectedSwapToken {
   const normalized = normalizeCommonPresetMints(mint);

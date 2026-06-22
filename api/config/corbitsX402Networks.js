@@ -6,6 +6,8 @@
  * e.g. POLYGON_USDC, MONAD_TESTNET_USDC, SKALE_USDC.
  */
 
+import { sortX402AcceptNetworks } from "./x402NetworkOrder.js";
+
 function env(name) {
   return String(process.env[name] || "").trim();
 }
@@ -128,7 +130,7 @@ export function getEnabledCorbitsNetworks() {
   if (!includeTestnets) {
     list = list.filter((n) => !n.testnet);
   }
-  return [...list];
+  return sortX402AcceptNetworks(list);
 }
 
 /**

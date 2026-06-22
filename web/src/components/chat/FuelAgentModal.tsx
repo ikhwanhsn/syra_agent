@@ -41,6 +41,7 @@ import {
   AGENT_WALLET_ACCENT,
   getAgentWalletSlot,
   shortenAgentAddress,
+  type AgentWalletFundTarget,
   type AgentWalletPurpose,
 } from "@/lib/agentWalletCatalog";
 
@@ -138,6 +139,10 @@ export interface FuelAgentModalProps {
   initialFlowTab?: "deposit" | "withdraw";
   /** Which agent treasury to focus when opened (chat, LP, …). */
   initialAgentWallet?: AgentWalletPurpose;
+  /** Per-purpose agent treasuries (wallet page pillar set). */
+  agentWalletTargets?: Partial<Record<AgentWalletPurpose, AgentWalletFundTarget>>;
+  /** When true, modal stays on `initialAgentWallet` (no in-modal switcher). */
+  lockWalletSelection?: boolean;
   /**
    * @deprecated Prefer `initialAgentWallet`. Locks deposit target to a specific address.
    */
@@ -159,6 +164,8 @@ export function FuelAgentModal({
   onOpenChange,
   initialFlowTab = "deposit",
   initialAgentWallet = "spend",
+  agentWalletTargets,
+  lockWalletSelection = false,
   depositAgentAddress,
   depositAnonymousId,
   onDepositComplete,
@@ -196,96 +203,136 @@ export function FuelAgentModal({
   const isPageEmbed = isPage && pageEmbed;
   const isActive = isPage || open;
 
+  const walletRegistry = useMemo((): Partial<Record<AgentWalletPurpose, AgentWalletFundTarget>> => {
+    const registry: Partial<Record<AgentWalletPurpose, AgentWalletFundTarget>> = {
+      ...agentWalletTargets,
+    };
+    if (agentAddress && anonymousId && !registry.spend) {
+      registry.spend = {
+        agentAddress,
+        anonymousId,
+        solBalance: agentSolBalance,
+        usdcBalance: agentUsdcBalance,
+      };
+    }
+    if (lpAgentAddress && lpAnonymousId && !registry.lp) {
+      registry.lp = {
+        agentAddress: lpAgentAddress,
+        anonymousId: lpAnonymousId,
+        solBalance: lpAgentSolBalance,
+        usdcBalance: lpAgentUsdcBalance,
+      };
+    }
+    return registry;
+  }, [
+    agentWalletTargets,
+    agentAddress,
+    anonymousId,
+    agentSolBalance,
+    agentUsdcBalance,
+    lpAgentAddress,
+    lpAnonymousId,
+    lpAgentSolBalance,
+    lpAgentUsdcBalance,
+  ]);
+
   const lockedPurpose = useMemo((): AgentWalletPurpose | "external" | null => {
     if (!depositAgentAddress) return null;
-    if (depositAgentAddress === lpAgentAddress) return "lp";
-    if (depositAgentAddress === agentAddress) return "spend";
+    for (const [purpose, target] of Object.entries(walletRegistry) as Array<
+      [AgentWalletPurpose, AgentWalletFundTarget]
+    >) {
+      if (target.agentAddress === depositAgentAddress) return purpose;
+    }
     return "external";
-  }, [depositAgentAddress, agentAddress, lpAgentAddress]);
+  }, [depositAgentAddress, walletRegistry]);
 
   const availableWallets = useMemo((): AgentWalletPurpose[] => {
-    const out: AgentWalletPurpose[] = [];
-    if (agentAddress) out.push("spend");
-    if (lpAgentAddress) out.push("lp");
-    return out;
-  }, [agentAddress, lpAgentAddress]);
+    if (lockWalletSelection) {
+      const locked = walletRegistry[initialAgentWallet];
+      return locked?.agentAddress ? [initialAgentWallet] : [];
+    }
+    return (Object.keys(walletRegistry) as AgentWalletPurpose[]).filter(
+      (purpose) => Boolean(walletRegistry[purpose]?.agentAddress),
+    );
+  }, [initialAgentWallet, lockWalletSelection, walletRegistry]);
 
   const activePurpose: AgentWalletPurpose = useMemo(() => {
-    if (lockedPurpose === "spend" || lockedPurpose === "lp") return lockedPurpose;
-    if (availableWallets.includes(selectedWallet)) return selectedWallet;
+    if (lockedPurpose === "external") return "spend";
+    if (lockedPurpose) return lockedPurpose;
+    if (lockWalletSelection && walletRegistry[initialAgentWallet]?.agentAddress) {
+      return initialAgentWallet;
+    }
+    if (walletRegistry[selectedWallet]?.agentAddress) return selectedWallet;
+    if (walletRegistry[initialAgentWallet]?.agentAddress) return initialAgentWallet;
     return availableWallets[0] ?? "spend";
-  }, [lockedPurpose, availableWallets, selectedWallet]);
+  }, [
+    availableWallets,
+    initialAgentWallet,
+    lockWalletSelection,
+    lockedPurpose,
+    selectedWallet,
+    walletRegistry,
+  ]);
 
-  const activeAddress = activePurpose === "lp" ? lpAgentAddress : agentAddress;
-  const activeAnonymousId = activePurpose === "lp" ? lpAnonymousId : anonymousId;
+  const activeTarget = walletRegistry[activePurpose];
+  const activeAddress = activeTarget?.agentAddress ?? null;
+  const activeAnonymousId = activeTarget?.anonymousId ?? null;
 
   const walletQueriesEnabled = syraAuthReady && syraAuthenticated;
 
-  const chatBalanceQ = useQuery({
-    queryKey: ["agent-wallet-balance", anonymousId],
-    queryFn: () => agentWalletApi.getBalance(anonymousId!),
-    enabled: isActive && Boolean(anonymousId) && walletQueriesEnabled,
+  const activeBalanceQ = useQuery({
+    queryKey: ["agent-wallet-balance", activeAnonymousId],
+    queryFn: () => agentWalletApi.getBalance(activeAnonymousId!),
+    enabled: isActive && Boolean(activeAnonymousId) && walletQueriesEnabled,
     staleTime: 45_000,
     retry: 1,
   });
 
-  const lpBalanceQ = useQuery({
-    queryKey: ["agent-wallet-balance", lpAnonymousId],
-    queryFn: () => agentWalletApi.getBalance(lpAnonymousId!),
-    enabled: isActive && Boolean(lpAnonymousId) && walletQueriesEnabled,
-    staleTime: 45_000,
-    retry: 1,
-  });
-
-  const chatSolResolved = resolveAgentTreasuryBalance(
+  const activeSolResolved = resolveAgentTreasuryBalance(
     true,
-    agentSolBalance,
-    chatBalanceQ.data?.solBalance,
+    activeTarget?.solBalance ?? null,
+    activeBalanceQ.data?.solBalance,
   );
-  const chatUsdcResolved = resolveAgentTreasuryBalance(
+  const activeUsdcResolved = resolveAgentTreasuryBalance(
     true,
-    agentUsdcBalance,
-    chatBalanceQ.data?.usdcBalance,
+    activeTarget?.usdcBalance ?? null,
+    activeBalanceQ.data?.usdcBalance,
   );
-  const lpSolResolved = resolveAgentTreasuryBalance(true, lpAgentSolBalance, lpBalanceQ.data?.solBalance);
-  const lpUsdcResolved = resolveAgentTreasuryBalance(true, lpAgentUsdcBalance, lpBalanceQ.data?.usdcBalance);
 
-  const activeSolBalance = activePurpose === "lp" ? lpSolResolved : chatSolResolved;
-  const activeUsdcBalance = activePurpose === "lp" ? lpUsdcResolved : chatUsdcResolved;
+  const activeSolBalance = activeSolResolved;
+  const activeUsdcBalance = activeUsdcResolved;
 
   const isLockedExternal = lockedPurpose === "external";
   const targetAgentAddress = isLockedExternal ? depositAgentAddress : activeAddress;
   const targetAnonymousId = isLockedExternal ? depositAnonymousId : activeAnonymousId;
   const isExternalTarget = isLockedExternal;
-  const showWalletSwitcher = !isLockedExternal && availableWallets.length > 1;
+  const showWalletSwitcher = !lockWalletSelection && !isLockedExternal && availableWallets.length > 1;
   const activeSlot = getAgentWalletSlot(activePurpose);
   const activeAccent = AGENT_WALLET_ACCENT[activePurpose];
   const displayWalletLabel = walletLabel ?? activeSlot.label;
   const { toast } = useToast();
   const [addressCopied, setAddressCopied] = useState(false);
 
-  const walletSwitcherBalances = useMemo(
-    () => ({
-      chat: agentAddress != null ? { sol: chatSolResolved, usdc: chatUsdcResolved } : undefined,
-      lp: lpAgentAddress != null ? { sol: lpSolResolved, usdc: lpUsdcResolved } : undefined,
-    }),
-    [
-      agentAddress,
-      chatSolResolved,
-      chatUsdcResolved,
-      lpAgentAddress,
-      lpSolResolved,
-      lpUsdcResolved,
-    ],
-  );
+  const walletSwitcherBalances = useMemo(() => {
+    const out: Partial<Record<AgentWalletPurpose, { sol: number | null; usdc: number | null }>> = {};
+    for (const purpose of availableWallets) {
+      const target = walletRegistry[purpose];
+      if (!target) continue;
+      out[purpose] = {
+        sol: target.solBalance ?? null,
+        usdc: target.usdcBalance ?? null,
+      };
+    }
+    return out;
+  }, [availableWallets, walletRegistry]);
 
   useEffect(() => {
     if (!isActive) return;
     void refreshSolanaBalances();
     if (!syraAuthenticated) return;
-    void refetchBalance();
-    void refetchLpBalance();
-  }, [isActive, syraAuthenticated, refreshSolanaBalances, refetchBalance, refetchLpBalance]);
+    if (activePurpose === "spend") void refetchBalance();
+    if (activePurpose === "lp") void refetchLpBalance();
+  }, [isActive, syraAuthenticated, refreshSolanaBalances, refetchBalance, refetchLpBalance, activePurpose]);
   /** USDC vs native SOL. */
   const [depositMode, setDepositMode] = useState<"usdc" | "native">("usdc");
   const [customUsd, setCustomUsd] = useState("");
@@ -389,18 +436,14 @@ export function FuelAgentModal({
       return;
     }
     await refreshSolanaBalances();
-    if (activePurpose === "lp") {
-      await refetchLpBalance();
-      await lpBalanceQ.refetch();
-    } else {
-      await refetchBalance();
-      await chatBalanceQ.refetch();
-    }
+    await activeBalanceQ.refetch();
+    if (activePurpose === "spend") await refetchBalance();
+    if (activePurpose === "lp") await refetchLpBalance();
+    onDepositComplete?.();
   }, [
+    activeBalanceQ,
     activePurpose,
-    chatBalanceQ,
     isLockedExternal,
-    lpBalanceQ,
     onDepositComplete,
     refetchBalance,
     refetchLpBalance,
@@ -408,27 +451,42 @@ export function FuelAgentModal({
   ]);
 
   useEffect(() => {
-    if (isActive) {
-      const preferred =
-        lockedPurpose === "spend" || lockedPurpose === "lp"
-          ? lockedPurpose
-          : availableWallets.includes(initialAgentWallet)
-            ? initialAgentWallet
-            : (availableWallets[0] ?? "spend");
+    if (!isActive) return;
+    setDepositMode("usdc");
+    setCustomUsd("");
+    setCustomNative("");
+    setWithdrawMode("usdc");
+    setWithdrawCustomUsd("");
+    setWithdrawCustomNative("");
+    setDepositFlowAnimKey(0);
+    setWithdrawFlowAnimKey(0);
+    setWithdrawing(false);
+    setSubmitting(false);
+  }, [isActive]);
+
+  useEffect(() => {
+    if (!isActive) return;
+    const preferred = lockWalletSelection
+      ? initialAgentWallet
+      : lockedPurpose && lockedPurpose !== "external"
+        ? lockedPurpose
+        : walletRegistry[initialAgentWallet]?.agentAddress
+          ? initialAgentWallet
+          : (availableWallets[0] ?? "spend");
+    if (walletRegistry[preferred]?.agentAddress) {
       setSelectedWallet(preferred);
-      setFlowTab(isExternalTarget ? "deposit" : initialFlowTab);
-      setDepositMode("usdc");
-      setCustomUsd("");
-      setCustomNative("");
-      setWithdrawMode("usdc");
-      setWithdrawCustomUsd("");
-      setWithdrawCustomNative("");
-      setDepositFlowAnimKey(0);
-      setWithdrawFlowAnimKey(0);
-      setWithdrawing(false);
-      setSubmitting(false);
     }
-  }, [isActive, initialFlowTab, isExternalTarget, initialAgentWallet, lockedPurpose, availableWallets]);
+    setFlowTab(isExternalTarget ? "deposit" : initialFlowTab);
+  }, [
+    isActive,
+    initialFlowTab,
+    isExternalTarget,
+    initialAgentWallet,
+    lockedPurpose,
+    availableWallets,
+    lockWalletSelection,
+    walletRegistry,
+  ]);
 
   const buildSolanaTx = useCallback(async () => {
     if (!publicKey || !targetAgentAddress) return null;
@@ -697,18 +755,21 @@ export function FuelAgentModal({
     }
     // Optimistic agent balances + linked-wallet refresh (reportDebit/reportNativeDebit schedule refetchBalance.)
     if (withdrawSignature) {
-      if (activePurpose === "lp") {
-        void refetchLpBalance();
-      } else if (withdrawMode === "usdc" && withdrawUsdcHuman > 0) {
+      if (activePurpose === "spend" && withdrawMode === "usdc" && withdrawUsdcHuman > 0) {
         reportDebit(withdrawUsdcHuman);
-      } else if (withdrawMode === "native" && withdrawNativeHuman > 0) {
+      } else if (activePurpose === "spend" && withdrawMode === "native" && withdrawNativeHuman > 0) {
         reportNativeDebit(withdrawNativeHuman);
+      } else if (activePurpose === "lp") {
+        void refetchLpBalance();
       }
+      void activeBalanceQ.refetch();
       void refreshSolanaBalances();
+      onDepositComplete?.();
     }
   }, [
     targetAnonymousId,
     activePurpose,
+    activeBalanceQ,
     linkedWithdrawAddress,
     connectedAddress,
     syraAuthenticated,
@@ -717,6 +778,7 @@ export function FuelAgentModal({
     reportNativeDebit,
     refetchLpBalance,
     refreshSolanaBalances,
+    onDepositComplete,
     toast,
     withdrawMode,
     withdrawUsdcHuman,
@@ -926,7 +988,9 @@ export function FuelAgentModal({
                     ? "Deposit SOL or USDC into this dedicated agent wallet from your connected Solana wallet."
                     : showWalletSwitcher
                       ? `Manage ${displayWalletLabel.toLowerCase()} — deposit from your wallet or withdraw back anytime.`
-                      : "Deposit from your Solana wallet or withdraw back to the same connected wallet."}
+                      : lockWalletSelection
+                        ? `Deposit SOL or USDC into your ${displayWalletLabel} treasury from your connected wallet, or withdraw back anytime.`
+                        : "Deposit from your Solana wallet or withdraw back to the same connected wallet."}
                 </p>
               ) : (
                 <DialogDescription className="max-w-md text-[13px] leading-relaxed text-muted-foreground sm:text-sm">
@@ -934,7 +998,9 @@ export function FuelAgentModal({
                     ? "Deposit SOL or USDC into this dedicated agent wallet from your connected Solana wallet."
                     : showWalletSwitcher
                       ? `Manage ${displayWalletLabel.toLowerCase()} — deposit from your wallet or withdraw back anytime.`
-                      : "Deposit from your Solana wallet or withdraw back to the same connected wallet."}
+                      : lockWalletSelection
+                        ? `Deposit SOL or USDC into your ${displayWalletLabel} treasury from your connected wallet, or withdraw back anytime.`
+                        : "Deposit from your Solana wallet or withdraw back to the same connected wallet."}
                 </DialogDescription>
               )}
             </div>
@@ -950,11 +1016,12 @@ export function FuelAgentModal({
           ) : (
             <div
               className={cn(
-                "inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide",
+                "inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide",
                 activeAccent.pill,
               )}
             >
-              {displayWalletLabel}
+              <activeSlot.icon className={cn("h-3.5 w-3.5", activeAccent.icon)} aria-hidden />
+              {activeSlot.shortLabel}
             </div>
           )}
 

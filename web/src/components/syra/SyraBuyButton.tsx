@@ -2,7 +2,8 @@
 
 import { ArrowUpRight } from "lucide-react";
 import { cva, type VariantProps } from "class-variance-authority";
-import { QWERTI_MAGIC_LINK } from "@/data/qwerti";
+import { Link } from "@/lib/navigation";
+import { SYRA_BUY_SWAP_URL } from "@/lib/swapNavigation";
 import { cn } from "@/lib/utils";
 
 const syraBuyVariants = cva("", {
@@ -43,12 +44,10 @@ type SyraBuyButtonProps = VariantProps<typeof syraBuyVariants> & {
 
 function SyraNavBuyLink({ className }: { className?: string }) {
   return (
-    <a
-      href={QWERTI_MAGIC_LINK}
-      target="_blank"
-      rel="noopener noreferrer"
+    <Link
+      to={SYRA_BUY_SWAP_URL}
       className={cn("syra-nav-buy-cta", className)}
-      aria-label="Buy $SYRA on Qwerti"
+      aria-label="Swap SOL for $SYRA"
     >
       <span className="syra-nav-buy-bloom" aria-hidden />
       <span className="syra-nav-buy-shine" aria-hidden />
@@ -74,7 +73,7 @@ function SyraNavBuyLink({ className }: { className?: string }) {
       </span>
 
       <ArrowUpRight className="syra-nav-buy-arrow" aria-hidden />
-    </a>
+    </Link>
   );
 }
 
@@ -100,13 +99,11 @@ export function SyraBuyButton({
   }
 
   return (
-    <a
-      href={QWERTI_MAGIC_LINK}
-      target="_blank"
-      rel="noopener noreferrer"
+    <Link
+      to={SYRA_BUY_SWAP_URL}
       className={cn(syraBuyVariants({ variant, fullWidth }), className)}
     >
       <span>{label}</span>
-    </a>
+    </Link>
   );
 }

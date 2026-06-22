@@ -31,6 +31,7 @@ import {
   walletSetResponseFields,
   shouldIncludeLpWallet,
 } from '../../libs/agentWalletProvision.js';
+import { resolveSpendBaseForWalletSet } from '../../libs/agentWalletResolve.js';
 import { getAgentWalletSet } from '../../libs/agentWalletSetService.js';
 import { getAdminDashboardWallets, isAdminWalletAddress } from '../../libs/adminWallet.js';
 
@@ -292,16 +293,15 @@ router.get('/set', requireSession({ allowGuest: true }), async (req, res) => {
       (typeof req.query?.anonymousId === 'string' && req.query.anonymousId.trim()) ||
       req.user?.anonymousId ||
       null;
-    if (!anonymousId) {
+    if (!anonymousId && !req.user?.walletAddress) {
       return res.status(400).json({ success: false, error: 'anonymousId query param required' });
     }
 
-    const base = baseAnonymousIdFrom(anonymousId) || anonymousId;
-    const spendDoc = await AgentWallet.findOne({
-      anonymousId: base,
-      status: { $ne: 'retired' },
-      ...purposeQuery('spend'),
-    }).lean();
+    const { baseAnonymousId: base, spendDoc } = await resolveSpendBaseForWalletSet({
+      anonymousId,
+      walletAddress: req.user?.walletAddress || null,
+      chain: req.user?.chain || 'solana',
+    });
 
     const includeLp = shouldIncludeLpWallet(spendDoc?.walletAddress || req.user?.walletAddress);
     const data = await getAgentWalletSet({
@@ -315,6 +315,7 @@ router.get('/set', requireSession({ allowGuest: true }), async (req, res) => {
 
     return res.json({ success: true, data });
   } catch (error) {
+    console.error('[agent/wallet] set error:', error?.message ?? String(error));
     return res.status(500).json({ success: false, error: error.message || 'wallet_set_failed' });
   }
 });
@@ -779,72 +780,22 @@ router.post('/connect', requireSession({ allowGuest: false, requireOwnership: fa
       status: { $ne: 'retired' },
       $or: [{ chain: 'solana' }, { chain: { $exists: false } }],
     };
-    let doc = await AgentWallet.findOne(findQuery).lean();
+    const existingSpend = await AgentWallet.findOne(findQuery).lean();
     const includeLp = shouldIncludeLpWallet(walletAddress);
-    if (doc) {
-      const set = await ensureAgentWalletSet({
-        baseAnonymousId: doc.anonymousId,
-        walletAddress,
-        chain: doc.chain || 'solana',
-        provisionedVia: 'connect',
-        includeLp,
-      });
-      const lp = await lpWalletResponseFields(doc.anonymousId, { includeLp });
-      return res.json({
-        success: true,
-        ...walletSetResponseFields(set),
-        avatarUrl: doc.avatarUrl || null,
-        isNewWallet: false,
-        chain: doc.chain || 'solana',
-        ...lp,
-      });
-    }
-
-    const avatarUrl = avatarGenerator.generateRandomAvatar(walletAddress);
-
-    if (chain === 'base') {
-      // SECURITY P0.7 — Base custodial wallet creation is disabled. The previous code path generated
-      // a raw EVM private key and stored it server-side, but no production code ever signed Base
-      // transactions with it. Maintaining dead key material expands the blast radius of any DB leak.
-      // Re-enable only after Base signing is wired through Privy Server Wallets (P1.1).
-      return res.status(410).json({
-        success: false,
-        error: 'Base custodial agent wallets are disabled. Use the Solana agent wallet for now; ' +
-          'Base support will return via Privy Server Wallets.',
-      });
-    }
-
-    // Solana: create keypair (user funds agent wallet themselves)
-    const anonymousId = `wallet:${walletAddress}`;
-    const keypair = Keypair.generate();
-    const agentAddress = keypair.publicKey.toBase58();
-    const agentSecretKey = bs58.encode(keypair.secretKey);
-
-    await AgentWallet.create({
-      anonymousId,
-      walletAddress,
-      chain: 'solana',
-      purpose: 'spend',
-      provisionedVia: 'connect',
-      agentAddress,
-      agentSecretKey: encryptAgentSecretForStorage(agentSecretKey),
-      avatarUrl,
-    });
-
     const set = await ensureAgentWalletSet({
-      baseAnonymousId: anonymousId,
+      baseAnonymousId: existingSpend?.anonymousId || `wallet:${walletAddress}`,
       walletAddress,
       chain: 'solana',
       provisionedVia: 'connect',
       includeLp,
     });
-    const lp = await lpWalletResponseFields(anonymousId, { includeLp });
-
-    return res.status(201).json({
+    const spendRow = set.wallets.spend;
+    const lp = await lpWalletResponseFields(set.baseAnonymousId, { includeLp });
+    return res.status(existingSpend ? 200 : 201).json({
       success: true,
       ...walletSetResponseFields(set),
-      avatarUrl,
-      isNewWallet: true,
+      avatarUrl: spendRow?.avatarUrl || existingSpend?.avatarUrl || null,
+      isNewWallet: !existingSpend,
       chain: 'solana',
       ...lp,
     });
@@ -857,19 +808,25 @@ router.post('/connect', requireSession({ allowGuest: false, requireOwnership: fa
         .lean();
       if (existing) {
         const includeLp = shouldIncludeLpWallet(walletAddress);
+        const set = await ensureAgentWalletSet({
+          baseAnonymousId: existing.anonymousId,
+          walletAddress,
+          chain: existing.chain || 'solana',
+          provisionedVia: 'connect',
+          includeLp,
+        });
         const lp = await lpWalletResponseFields(existing.anonymousId, { includeLp });
         return res.json({
           success: true,
-          anonymousId: existing.anonymousId,
-          agentAddress: existing.agentAddress,
+          ...walletSetResponseFields(set),
           avatarUrl: existing.avatarUrl || null,
           isNewWallet: false,
           chain: existing.chain || 'solana',
-          purpose: 'spend',
           ...lp,
         });
       }
     }
+    console.error('[agent/wallet] connect error:', error?.message ?? String(error));
     return res.status(500).json({ success: false, error: error.message });
   }
 });

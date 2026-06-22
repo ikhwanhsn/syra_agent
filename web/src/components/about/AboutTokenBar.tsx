@@ -2,7 +2,8 @@
 
 import { useCallback, useState } from "react";
 import { Check, Copy, ExternalLink, ShoppingBag } from "lucide-react";
-import { QWERTI_MAGIC_LINK } from "@/data/qwerti";
+import { Link } from "@/lib/navigation";
+import { SYRA_BUY_SWAP_URL } from "@/lib/swapNavigation";
 import { SYRA_TOKEN_MINT, truncateBase58 } from "@/data/marketing/agentIdentity";
 import { cn } from "@/lib/utils";
 
@@ -74,15 +75,12 @@ export function AboutTokenBar() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <a
-              href={QWERTI_MAGIC_LINK}
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              to={SYRA_BUY_SWAP_URL}
               className="about-token-venue about-token-venue-primary inline-flex items-center gap-1.5"
             >
-              Qwerti
-              <ExternalLink className="h-3 w-3 opacity-40" aria-hidden />
-            </a>
+              Swap SOL → SYRA
+            </Link>
             {BUY_VENUES.map(({ id, label, href }) => (
               <a
                 key={id}

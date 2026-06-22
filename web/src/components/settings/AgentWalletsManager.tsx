@@ -651,6 +651,10 @@ export function AgentWalletsManager({
   onCreateChatWallet,
   creatingSpend,
   creatingChat,
+  pillarLoading,
+  pillarSetComplete,
+  pillarProvisionError,
+  onRetryProvision,
   embedded = false,
   layout = "default",
 }: {
@@ -693,6 +697,10 @@ export function AgentWalletsManager({
   onCreateChatWallet?: () => void;
   creatingSpend?: boolean;
   creatingChat?: boolean;
+  pillarLoading?: boolean;
+  pillarSetComplete?: boolean;
+  pillarProvisionError?: boolean;
+  onRetryProvision?: () => void;
   embedded?: boolean;
   layout?: "default" | "simple";
 }) {
@@ -710,17 +718,30 @@ export function AgentWalletsManager({
   const { connected, address } = useWalletContext();
   const showLp = isAdminWallet(connected, address);
 
-  const entries =
-    pillarEntries ??
-    (primaryWallet
-      ? [
-          {
-            purpose: "spend" as const,
-            wallet: primaryWallet,
-            balances: { solBalance: primarySol, usdcBalance: primaryUsdc },
-          },
-        ]
-      : []);
+  const expectFullPillarSet = hasLinkedWallet && syraAuthenticated;
+
+  const entries = expectFullPillarSet
+    ? pillarSetComplete
+      ? (pillarEntries ?? [])
+      : []
+    : pillarEntries && pillarEntries.length > 0
+      ? pillarEntries
+      : primaryWallet
+        ? [
+            {
+              purpose: "spend" as const,
+              wallet: primaryWallet,
+              balances: { solBalance: primarySol, usdcBalance: primaryUsdc },
+            },
+          ]
+        : [];
+
+  const showWalletProvisioning =
+    entries.length === 0 &&
+    (pillarLoading ||
+      creatingPrimary ||
+      pillarProvisionError ||
+      (expectFullPillarSet && !pillarSetComplete));
 
   const { toast } = useToast();
   const { requestSyraAuth } = useSyraAuth();
@@ -775,7 +796,37 @@ export function AgentWalletsManager({
       ) : null}
 
       <div className={cn(layout === "simple" ? "grid gap-4 sm:grid-cols-2 lg:grid-cols-3" : "grid gap-4 sm:grid-cols-2")}>
-        {entries.length > 0
+        {showWalletProvisioning ? (
+            <Card className={cn(overviewCardShell, "overflow-hidden border-dashed sm:col-span-2")}>
+              <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
+                {pillarProvisionError ? (
+                  <>
+                    <AlertTriangle className="h-8 w-8 text-destructive" aria-hidden />
+                    <div className="space-y-1">
+                      <p className="font-medium text-foreground">Could not set up agent wallets</p>
+                      <p className="max-w-md text-sm text-muted-foreground">
+                        The server returned an error while creating your treasuries. Try again in a moment.
+                      </p>
+                    </div>
+                    <Button type="button" variant="outline" className="rounded-xl gap-2" onClick={onRetryProvision}>
+                      <RefreshCw className="h-4 w-4" aria-hidden />
+                      Retry
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-hidden />
+                    <div className="space-y-1">
+                      <p className="font-medium text-foreground">Setting up agent wallets</p>
+                      <p className="max-w-md text-sm text-muted-foreground">
+                        Creating earn, treasury, invest, spend, and grow treasuries for your connected wallet…
+                      </p>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          ) : entries.length > 0
           ? entries.map((entry) => (
               <AgentWalletManageCard
                 key={entry.purpose}

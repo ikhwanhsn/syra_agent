@@ -123,4 +123,45 @@ export async function resolveAgentWalletForUser({
   return AgentWallet.findOne({ _id: guest._id }).lean();
 }
 
+/**
+ * Resolve spend base id for wallet-set loading. When walletAddress is known, prefer the linked spend row
+ * so stale guest anonymousIds do not trigger duplicate walletAddress provision errors.
+ *
+ * @param {{ anonymousId?: string | null; walletAddress?: string | null; chain?: 'solana'|'base'|'bsc' }} params
+ */
+export async function resolveSpendBaseForWalletSet({
+  anonymousId = null,
+  walletAddress = null,
+  chain = 'solana',
+}) {
+  const requestedBase = baseAnonymousIdFrom(anonymousId) || anonymousId || null;
+
+  let spendDoc = null;
+  if (requestedBase) {
+    spendDoc = await AgentWallet.findOne({
+      anonymousId: requestedBase,
+      status: { $ne: 'retired' },
+      ...purposeQuery('spend'),
+    }).lean();
+  }
+
+  const addr = typeof walletAddress === 'string' ? walletAddress.trim() : '';
+  if (!spendDoc && addr) {
+    spendDoc = await AgentWallet.findOne({
+      ...walletAddressQuery(addr, chain, 'spend'),
+      status: { $ne: 'retired' },
+    }).lean();
+  }
+
+  const baseAnonymousId = spendDoc
+    ? baseAnonymousIdFrom(spendDoc.anonymousId) || spendDoc.anonymousId
+    : requestedBase;
+
+  if (!baseAnonymousId) {
+    throw new Error('base_anonymous_id_required');
+  }
+
+  return { baseAnonymousId, spendDoc };
+}
+
 export { canonicalAnonymousId, walletAddressQuery };

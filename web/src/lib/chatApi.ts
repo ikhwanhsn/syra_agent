@@ -418,6 +418,7 @@ export const agentWalletApi = {
       avatarUrl?: string | null;
       isNewWallet?: boolean;
       chain?: AgentChain;
+      wallets?: AgentWalletSetResponse["wallets"];
       lpAnonymousId?: string;
       lpAgentAddress?: string;
       lpAvatarUrl?: string | null;
@@ -429,6 +430,7 @@ export const agentWalletApi = {
       avatarUrl: data.avatarUrl ?? null,
       isNewWallet: data.isNewWallet,
       chain: data.chain ? normalizeAgentChain(data.chain) : chain,
+      wallets: data.wallets,
       lpAnonymousId: data.lpAnonymousId,
       lpAgentAddress: data.lpAgentAddress,
       lpAvatarUrl: data.lpAvatarUrl ?? null,
@@ -456,6 +458,7 @@ export const agentWalletApi = {
       avatarUrl?: string | null;
       isNewWallet?: boolean;
       purpose?: AgentWalletPurpose;
+      wallets?: AgentWalletSetResponse["wallets"];
       lpAnonymousId?: string;
       lpAgentAddress?: string;
       lpAvatarUrl?: string | null;
@@ -467,6 +470,7 @@ export const agentWalletApi = {
       avatarUrl: data.avatarUrl ?? null,
       isNewWallet: data.isNewWallet,
       purpose: data.purpose ?? "spend",
+      wallets: data.wallets,
       lpAnonymousId: data.lpAnonymousId,
       lpAgentAddress: data.lpAgentAddress,
       lpAvatarUrl: data.lpAvatarUrl ?? null,

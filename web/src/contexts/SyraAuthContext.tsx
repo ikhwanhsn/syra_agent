@@ -21,6 +21,7 @@ import {
   type SyraSignInResult,
 } from "@/lib/agentAuthApi";
 import { notify } from "@/lib/notify";
+import { provisionLinkedPillarWallets } from "@/lib/provisionPillarWallets";
 
 const GUEST_ANONYMOUS_ID_KEY = "syra_agent_anonymous_id";
 
@@ -135,6 +136,7 @@ export function SyraAuthProvider({ children }: { children: ReactNode }) {
   const lastSignedWalletRef = useRef<string | null>(null);
   const lastSignInRef = useRef<SyraSignInResult | null>(null);
   const wasConnectedRef = useRef(false);
+  const pillarProvisionRef = useRef<string | null>(null);
 
   const activeWallet =
     connected && solanaAddress ? { address: solanaAddress, chain: "solana" as const } : null;
@@ -287,6 +289,19 @@ export function SyraAuthProvider({ children }: { children: ReactNode }) {
     };
   }, [syraAuthReady, connected, activeWallet, restoreSessionForWallet, syraAuthenticated]);
 
+  /** Ensure all five pillar wallets exist whenever a wallet session is active. */
+  useEffect(() => {
+    if (!syraAuthReady || !syraAuthenticated || !activeWallet) return;
+
+    const address = activeWallet.address;
+    if (pillarProvisionRef.current === address) return;
+    pillarProvisionRef.current = address;
+
+    void provisionLinkedPillarWallets(address).catch(() => {
+      pillarProvisionRef.current = null;
+    });
+  }, [syraAuthReady, syraAuthenticated, activeWallet?.address]);
+
   /** Explicit Connect wallet — prompt sign-in only after user-initiated connect. */
   useEffect(() => {
     if (!syraAuthReady || !activeWallet) return;
@@ -311,6 +326,7 @@ export function SyraAuthProvider({ children }: { children: ReactNode }) {
       wasConnectedRef.current = false;
       lastSignedWalletRef.current = null;
       lastSignInRef.current = null;
+      pillarProvisionRef.current = null;
       setLastSignIn(null);
       void signOutSyraSession();
       setSyraAuthenticated(false);

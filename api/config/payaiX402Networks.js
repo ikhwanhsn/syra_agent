@@ -6,6 +6,8 @@
  * Override per chain via env e.g. POLYGON_USDC, ARBITRUM_USDC, SEI_USDC.
  */
 
+import { sortX402AcceptNetworks } from "./x402NetworkOrder.js";
+
 function env(name) {
   return String(process.env[name] || "").trim();
 }
@@ -220,7 +222,7 @@ export function getEnabledPayaiNetworks() {
   if (!includeTestnets) {
     list = list.filter((n) => !n.testnet);
   }
-  return [...list];
+  return sortX402AcceptNetworks(list);
 }
 
 /**

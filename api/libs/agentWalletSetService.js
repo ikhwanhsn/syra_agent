@@ -28,11 +28,19 @@ export async function getAgentWalletSet(params) {
     return { ...fields, balances: null };
   }
 
+  const purposes = [...PILLAR_WALLET_PURPOSES, ...(params.includeLp ? ['lp'] : [])];
+  const balanceRows = await Promise.all(
+    purposes.map(async (purpose) => {
+      const row = set.wallets[purpose];
+      if (!row?.agentAddress) return null;
+      const bal = await fetchAgentWalletBalances(row.agentAddress);
+      return bal ? [purpose, bal] : null;
+    }),
+  );
   const balances = {};
-  for (const purpose of [...PILLAR_WALLET_PURPOSES, ...(params.includeLp ? ['lp'] : [])]) {
-    const row = set.wallets[purpose];
-    if (!row?.agentAddress) continue;
-    balances[purpose] = await fetchAgentWalletBalances(row.agentAddress);
+  for (const row of balanceRows) {
+    if (!row) continue;
+    balances[row[0]] = row[1];
   }
 
   return { ...fields, balances };

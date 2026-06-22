@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Bitcoin, FileSearch, Search, TrendingUp } from "lucide-react";
+import { Bitcoin, FileSearch, Search } from "lucide-react";
 export type DashboardMarketIntelNavItem = {
   id: string;
   label: string;
@@ -30,13 +30,6 @@ export const DASHBOARD_MARKET_INTEL_NAV: readonly DashboardMarketIntelNavItem[] 
     to: "/btc",
     icon: Bitcoin,
     isActive: (p) => p.startsWith("/btc"),
-  },
-  {
-    id: "spcx",
-    label: "SpaceX IPO",
-    to: "/spcx",
-    icon: TrendingUp,
-    isActive: (p) => p.startsWith("/spcx"),
   },
 ];
 export function isDashboardMarketIntelRoute(pathname: string): boolean {

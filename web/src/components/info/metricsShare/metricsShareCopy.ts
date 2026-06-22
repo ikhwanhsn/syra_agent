@@ -136,6 +136,62 @@ ${item.hint ? `→ ${item.hint}\n` : ""}Revenue rail: ON.
 → api.syraa.fun`,
 };
 
+const X402_HEADLINE_ITEM_COPY: Record<string, (ctx: MetricShareCopyContext) => string> = {
+  "USD volume (30d)": ({ item }) =>
+    `${item.value} x402 USD volume in 30 days on Syra.
+
+Real USDC settling on every paid API call. Not subscriptions — per-hit micropayments at HTTP speed.
+
+${item.hint ? `→ ${item.hint}\n` : ""}The machine money meter is running.
+
+→ syraa.fun`,
+
+  "Success rate": ({ item }) =>
+    `${item.value} x402 success rate on Syra's payment rail.
+
+Every call tracked: 402 issued, payment verified, USDC settled. Full telemetry in production.
+
+${item.hint ? `→ ${item.hint}\n` : ""}Reliability you can measure.
+
+→ syraa.fun/internal`,
+
+  "Unique payers": ({ item }) =>
+    `${item.value} unique wallets paid Syra via x402.
+
+Distinct on-chain payers hitting our merchant rail. Real demand, not bot traffic.
+
+${item.hint ? `→ ${item.hint}\n` : ""}Agent economy has buyers.
+
+→ syraa.fun`,
+
+  "Failures (7d)": ({ item }) =>
+    `${item.value} x402 failures in the last 7 days — tracked and triaged.
+
+We log every verify fail, settle fail, and upstream error. Know exactly what broke and where.
+
+${item.hint ? `→ ${item.hint}\n` : ""}Build in public. Fix in public.
+
+→ syraa.fun/internal`,
+
+  "402 → paid conversion": ({ item }) =>
+    `${item.value} conversion from 402 issued to paid on Syra.
+
+Free discovery → signed payment → settled USDC. The x402 funnel that actually converts.
+
+${item.hint ? `→ ${item.hint}\n` : ""}Micropayments that work.
+
+→ syraa.fun/playground`,
+
+  "Inbound / Outbound": ({ item }) =>
+    `Syra x402: ${item.value} inbound vs outbound calls.
+
+Inbound = clients paying Syra APIs. Outbound = agents paying for tools. Both rails tracked.
+
+${item.hint ? `→ ${item.hint}\n` : ""}Full-stack x402 telemetry.
+
+→ syraa.fun/internal`,
+};
+
 const SECTION_COPY: Record<string, (ctx: MetricShareCopyContext) => string> = {
   headline: ({ section }) => {
     const stats = bulletStats(topItems(section, 4));
@@ -265,6 +321,69 @@ These API paths are the beating heart of the x402 agent economy.
 
 → api.syraa.fun`;
   },
+
+  "x402-headline": ({ section }) => {
+    const stats = bulletStats(topItems(section, 4));
+    return `Syra x402 telemetry — LIVE.
+
+Per-call payment rail metrics: USD volume, success rate, conversion, and failures — all in production.
+
+${stats}
+
+HTTP 402 micropayments shipping at scale. Machine money is real.
+
+→ syraa.fun`;
+  },
+
+  "x402-funnel": ({ section }) => {
+    const hero = section.heroValue ? `${section.heroLabel ?? "Conversion"}: ${section.heroValue}` : null;
+    const stats = bulletStats(topItems(section, 4));
+    return `Syra x402 payment funnel — 402 → PAID.
+
+${hero ? `${hero}\n${section.heroHint ? `→ ${section.heroHint}\n` : ""}` : ""}${stats}
+
+Every step tracked: issued, verified, settled. Full visibility into the paid rail.
+
+→ syraa.fun/internal`;
+  },
+
+  "x402-volume": ({ section }) => {
+    const stats = bulletStats(topItems(section, 4));
+    return `Syra x402 daily volume — COMPOUNDING.
+
+USD settled + call events over 14 days. The revenue pulse of the agent economy.
+
+${stats}
+
+Agents pay per call. Builders earn per hit. Chart goes up.
+
+→ syraa.fun`;
+  },
+
+  "x402-endpoints": ({ section }) => {
+    const top = section.items[0];
+    const stats = bulletStats(topItems(section, 5));
+    return `Syra x402 top endpoints — WHERE AGENTS SPEND.
+
+${top ? `#1 ${top.label}: ${top.value} calls\n` : ""}${stats}
+
+These are the APIs agents pay for most. Product signal in USDC.
+
+→ api.syraa.fun`;
+  },
+
+  "x402-reliability": ({ section }) => {
+    const stats = bulletStats(topItems(section, 5));
+    return `Syra x402 reliability — NETWORK + FACILITATOR HEALTH.
+
+Success rates by chain and payment facilitator. PayAI, Corbits, Solana, Base — all tracked.
+
+${stats}
+
+Payment rails need uptime. We measure every call.
+
+→ api.syraa.fun`;
+  },
 };
 
 function resolvePerItemCopy(ctx: MetricShareCopyContext): string | null {
@@ -274,6 +393,9 @@ function resolvePerItemCopy(ctx: MetricShareCopyContext): string | null {
   }
   if (bundle.sectionId === "monetization") {
     return MONETIZATION_ITEM_COPY[cardLabel]?.(ctx) ?? null;
+  }
+  if (bundle.sectionId === "x402-headline") {
+    return X402_HEADLINE_ITEM_COPY[cardLabel]?.(ctx) ?? null;
   }
   return null;
 }
@@ -292,6 +414,7 @@ export function getMetricShareCopyWithUrl(ctx: MetricShareCopyContext): string {
   const body = getMetricShareCopy(ctx);
   const url =
     ctx.bundle.sectionId === "playground" ||
+    ctx.bundle.sectionId.startsWith("x402-") ||
     ctx.cardLabel === "Paid conversion" ||
     ctx.cardLabel === "Playground shares" ||
     ctx.cardLabel.includes("conversion")

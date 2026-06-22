@@ -5,7 +5,6 @@ import {
   FlaskConical,
   Scale,
   Droplets,
-  Rocket,
   TrendingUp,
 } from "lucide-react";
 
@@ -38,12 +37,6 @@ export const PROOF_NAV_ITEMS: ProofNavItem[] = [
     icon: FlaskConical,
   },
   {
-    href: "/spcx",
-    label: "SpaceX IPO Agent",
-    description: "Live SPCX Nasdaq vs on-chain spread intel",
-    icon: Rocket,
-  },
-  {
     href: "/arbitrage-experiment",
     label: "Arbitrage",
     description: "Cross-venue spread scanner",
@@ -71,7 +64,6 @@ export function isProofRoute(pathname: string): boolean {
   const prefixes = [
     "/assets",
     "/trading-experiment",
-    "/spcx",
     "/arbitrage-experiment",
     "/lp-experiment",
   ];

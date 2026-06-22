@@ -33,7 +33,6 @@ import PumpfunCallPage from "@/pages/PumpfunCallPage";
 import ShareableChatRoute from "@/pages/ShareableChatRoute";
 import TradingAgentExperiment from "@/pages/TradingAgentExperiment";
 import TradingAgentExperimentAgentProfile from "@/pages/TradingAgentExperimentAgentProfile";
-import SpcxAgent from "@/pages/SpcxAgent";
 import BtcPage from "@/pages/BtcPage";
 import PlaygroundHub from "@/pages/playground/PlaygroundHub";
 import PlaygroundShareRoute from "@/pages/playground/PlaygroundShareRoute";
@@ -65,8 +64,8 @@ import GrowPage from "@/pages/GrowPage";
 import InvestPage from "@/pages/InvestPage";
 import SpendPage from "@/pages/SpendPage";
 import TreasuryPage from "@/pages/TreasuryPage";
-import HackathonPage from "@/pages/HackathonPage";
 import SwapPage from "@/pages/SwapPage";
+import { RedirectToS3Labs } from "@/components/marketing/RedirectToS3Labs";
 
 function DashboardLayoutRoute() {
   return (
@@ -212,16 +211,10 @@ function AppRoutes() {
             />
             <Route path="/vibe-trading" element={<Navigate to="/overview" replace />} />
             <Route path="/arena" element={<Navigate to="/overview" replace />} />
-            <Route path="/spcx" element={<SpcxAgent />} />
+            <Route path="/spcx" element={<Navigate to="/playground" replace />} />
             <Route path="/btc" element={<BtcPage />} />
-            <Route
-              path="/hackathon"
-              element={
-                <AdminInternalRoute>
-                  <HackathonPage />
-                </AdminInternalRoute>
-              }
-            />
+            <Route path="/hackathon" element={<RedirectToS3Labs />} />
+            <Route path="/hackathon/*" element={<RedirectToS3Labs />} />
             <Route
               path="/internal"
               element={
@@ -267,7 +260,7 @@ function AppRoutes() {
           <Route path="/lp-experiment/history/:id" element={<Navigate to="/lp-experiment" replace />} />
           <Route path="/token-check" element={<Navigate to="/assets" replace />} />
           <Route path="/dossier" element={<Navigate to="/assets" replace />} />
-          <Route path="/internal-hackathons" element={<Navigate to="/internal" replace />} />
+          <Route path="/internal-hackathons" element={<RedirectToS3Labs />} />
           <Route path="/staking/dashboard/internal" element={<Navigate to="/staking/admin" replace />} />
           <Route path="/mpp" element={<Navigate to="/playground" replace />} />
           <Route path="/playground/mpp" element={<Navigate to="/playground" replace />} />

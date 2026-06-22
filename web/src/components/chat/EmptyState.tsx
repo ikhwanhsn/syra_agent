@@ -2,7 +2,7 @@
 
 import { Link } from "@/lib/navigation";
 import { ArrowUpRight, BookOpen, ShoppingBag, Terminal } from "lucide-react";
-import { QWERTI_MAGIC_LINK } from "@/data/qwerti";
+import { SYRA_BUY_SWAP_URL } from "@/lib/swapNavigation";
 import { cn } from "@/lib/utils";
 
 interface EmptyStateProps {
@@ -107,10 +107,8 @@ export function EmptyState({ agentName = "Syra Agent" }: EmptyStateProps) {
           className="animate-in fade-in slide-in-from-bottom-2 fill-mode-both mt-8 flex flex-wrap items-center justify-center gap-2 duration-500"
           style={{ animationDelay: "180ms" }}
         >
-          <a
-            href={QWERTI_MAGIC_LINK}
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            to={SYRA_BUY_SWAP_URL}
             className={cn(
               chipClass,
               "border-neon-gold/35 bg-neon-gold/8 text-neon-gold hover:border-neon-gold/50 hover:bg-neon-gold/12 hover:text-neon-gold",
@@ -118,7 +116,7 @@ export function EmptyState({ agentName = "Syra Agent" }: EmptyStateProps) {
           >
             <ShoppingBag className="h-3.5 w-3.5 opacity-80" strokeWidth={2} aria-hidden />
             Get $SYRA
-          </a>
+          </Link>
           {RESOURCE_LINKS.map(({ href, label, icon: Icon, external }) => (
             <Link
               key={href}

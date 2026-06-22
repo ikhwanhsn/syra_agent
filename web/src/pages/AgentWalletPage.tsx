@@ -244,13 +244,17 @@ export default function AgentWalletPage() {
                     chatUsdcBalance={wallets.chatUsdcBalance}
                     lpSolBalance={wallets.lpAgentSolBalance}
                     lpUsdcBalance={wallets.lpAgentUsdcBalance}
-                    spendBalanceLoading={wallets.setupLoading}
-                    chatBalanceLoading={wallets.setupLoading}
+                    spendBalanceLoading={wallets.setupLoading || wallets.pillarLoading}
+                    chatBalanceLoading={wallets.setupLoading || wallets.pillarLoading}
                     lpBalanceLoading={
                       !wallets.managedLpWallet
                         ? false
                         : !wallets.lpWalletReady || wallets.lpAgentSolBalance == null
                     }
+                    pillarLoading={wallets.pillarLoading}
+                    pillarSetComplete={wallets.pillarSetComplete}
+                    pillarProvisionError={wallets.pillarProvisionError}
+                    onRetryProvision={() => void wallets.handleRetryProvision()}
                     refreshingBalances={wallets.refreshingBalances}
                     refreshingChatBalances={wallets.refreshingBalances}
                     refreshingLpBalances={wallets.refreshingBalances}
@@ -286,6 +290,8 @@ export default function AgentWalletPage() {
           onOpenChange={setMoveFundsOpen}
           initialFlowTab={wallets.fundTab}
           initialAgentWallet={wallets.fundWallet}
+          agentWalletTargets={wallets.agentWalletTargets}
+          lockWalletSelection
           onDepositComplete={() => void wallets.handleRefreshAll()}
         />
       ) : null}

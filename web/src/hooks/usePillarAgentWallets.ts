@@ -1,6 +1,7 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { agentWalletApi, type AgentWalletSetResponse } from "@/lib/chatApi";
+import { hasCompletePillarSet, linkedWalletAnonymousId, provisionLinkedPillarWallets, seedPillarWalletSetCache } from "@/lib/provisionPillarWallets";
 import {
   AGENT_WALLET_SLOTS,
   PILLAR_WALLET_PURPOSES,
@@ -35,15 +36,39 @@ function toManagedWallet(
   };
 }
 
-export function usePillarAgentWallets(baseAnonymousId: string | null | undefined, walletAddress: string) {
+export function usePillarAgentWallets(
+  baseAnonymousId: string | null | undefined,
+  walletAddress: string,
+  options?: { enabled?: boolean; canProvision?: boolean },
+) {
   const queryClient = useQueryClient();
   const { connected, address } = useWalletContext();
   const isInternal = isAdminWallet(connected, address);
+  const queryEnabled = options?.enabled !== false && Boolean(baseAnonymousId);
+  const canProvision = options?.canProvision !== false && Boolean(walletAddress.trim());
 
   const setQ = useQuery({
-    queryKey: ["agent-wallet-set", baseAnonymousId],
-    queryFn: () => agentWalletApi.getWalletSet(baseAnonymousId!, { includeBalances: true }),
-    enabled: Boolean(baseAnonymousId),
+    queryKey: ["agent-wallet-set", baseAnonymousId, walletAddress],
+    queryFn: async () => {
+      try {
+        return await agentWalletApi.getWalletSet(baseAnonymousId!, { includeBalances: true });
+      } catch (err) {
+        if (!canProvision) throw err;
+        const res = await provisionLinkedPillarWallets(walletAddress);
+        if (!res.wallets) throw err;
+        const payload = {
+          anonymousId: res.anonymousId,
+          agentAddress: res.agentAddress,
+          avatarUrl: res.avatarUrl ?? null,
+          purpose: "spend" as const,
+          wallets: res.wallets,
+          balances: null,
+        };
+        seedPillarWalletSetCache(queryClient, res);
+        return payload;
+      }
+    },
+    enabled: queryEnabled,
     staleTime: STALE_MS,
     retry: 1,
   });
@@ -72,6 +97,14 @@ export function usePillarAgentWallets(baseAnonymousId: string | null | undefined
       ];
     });
   }, [setQ.data, walletAddress]);
+
+  useEffect(() => {
+    if (!queryEnabled || !baseAnonymousId) return;
+    if (!hasCompletePillarSet(setQ.data)) return;
+    if (setQ.data?.balances) return;
+    if (setQ.isFetching) return;
+    void setQ.refetch();
+  }, [baseAnonymousId, queryEnabled, setQ, setQ.data, setQ.isFetching]);
 
   const spendEntry = pillarEntries.find((e) => e.purpose === "spend");
   const lpRow = setQ.data?.wallets?.lp;
@@ -143,6 +176,7 @@ export function usePillarAgentWallets(baseAnonymousId: string | null | undefined
 
   return {
     walletSet: setQ.data as AgentWalletSetResponse | undefined,
+    pillarSetComplete: hasCompletePillarSet(setQ.data),
     visibleSlots,
     pillarEntries,
     spendWallet: spendEntry?.wallet,
@@ -153,7 +187,10 @@ export function usePillarAgentWallets(baseAnonymousId: string | null | undefined
       usdcBalance: lpBalances?.usdcBalance ?? null,
     },
     isInternal,
-    loading: setQ.isLoading || setQ.isFetching,
+    loading: queryEnabled && setQ.isLoading && !setQ.data,
+    isFetched: setQ.isFetched,
+    isError: setQ.isError,
+    isFetchingBalances: queryEnabled && setQ.isFetching && Boolean(setQ.data),
     refreshSet,
     getBalanceForPurpose,
     getWalletForPurpose,

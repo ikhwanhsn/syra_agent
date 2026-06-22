@@ -180,10 +180,10 @@ export const ProductModules = () => {
 
         <div className="grid md:grid-cols-2 gap-6">
           {intelligenceModules.map((module, index) => {
-            const isSpcx = module.title === "Tokenized Equity Intelligence";
-            const CardWrapper = isSpcx ? Link : "div";
-            const cardProps = isSpcx
-              ? { to: "/spcx", className: "block no-underline" }
+            const isPlaygroundLink = module.title === "Tokenized Equity Intelligence";
+            const CardWrapper = isPlaygroundLink ? Link : "div";
+            const cardProps = isPlaygroundLink
+              ? { to: "/playground", className: "block no-underline" }
               : {};
             return (
               <motion.div
@@ -194,7 +194,7 @@ export const ProductModules = () => {
               >
                 <CardWrapper {...cardProps}>
                   <div
-                    className={`glass-card rounded-2xl p-6 ${hoverStyles[index % hoverStyles.length]} ${isSpcx ? "cursor-pointer" : ""}`}
+                    className={`glass-card rounded-2xl p-6 ${hoverStyles[index % hoverStyles.length]} ${isPlaygroundLink ? "cursor-pointer" : ""}`}
                   >
                     <module.icon
                       className={`w-8 h-8 mb-3 ${iconColors[index % iconColors.length]}`}
@@ -212,8 +212,8 @@ export const ProductModules = () => {
                         </span>
                       ))}
                     </div>
-                    {isSpcx ? (
-                      <p className="mt-3 text-xs font-medium text-primary">Open SPCX hub →</p>
+                    {isPlaygroundLink ? (
+                      <p className="mt-3 text-xs font-medium text-primary">Try x402 API in playground →</p>
                     ) : null}
                   </div>
                 </CardWrapper>

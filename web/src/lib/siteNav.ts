@@ -8,7 +8,6 @@ import {
   Scale,
   Droplets,
   Rocket,
-  TrendingUp,
   Lock,
   Code2,
   BookOpen,
@@ -66,7 +65,6 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
       p.startsWith("/assets") ||
       p.startsWith("/pumpfun") ||
       p.includes("-experiment") ||
-      p.startsWith("/spcx") ||
       p.startsWith("/arbitrage") ||
       p.startsWith("/internal"),
     items: [
@@ -74,7 +72,6 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
       { href: "/assets", label: "Assets", icon: FileSearch },
       { href: "/pumpfun", label: "Pumpfun Alpha", icon: Rocket },
       { href: "/trading-experiment", label: "Trading experiment", icon: FlaskConical },
-      { href: "/spcx", label: "SpaceX IPO Agent", icon: TrendingUp },
       { href: "/arbitrage-experiment", label: "Arbitrage", icon: Scale },
       { href: "/lp-experiment", label: "LP agents", icon: Droplets },
       {

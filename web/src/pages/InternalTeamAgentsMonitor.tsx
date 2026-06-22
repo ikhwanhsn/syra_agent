@@ -39,6 +39,7 @@ import {
 } from "@/components/internal/InternalTabBar";
 
 import { InfoLiveMetricsDashboard } from "@/components/info/InfoLiveMetricsDashboard";
+import { X402AnalyticsDashboard } from "@/components/info/X402AnalyticsDashboard";
 import { InternalToolsHub } from "@/components/internal/tools/InternalToolsHub";
 
 import {
@@ -343,6 +344,44 @@ export default function InternalTeamAgentsMonitor() {
             </div>
 
             <InfoLiveMetricsDashboard />
+
+          </section>
+
+        ) : null}
+
+
+
+        {tab === "x402" ? (
+
+          <section
+
+            id="internal-panel-x402"
+
+            role="tabpanel"
+
+            aria-labelledby="internal-tab-x402"
+
+            className="scroll-mt-24 space-y-4 pt-2"
+
+          >
+
+            <div>
+
+              <h2 className="text-lg font-semibold tracking-tight text-foreground sm:text-xl">
+
+                x402 telemetry
+
+              </h2>
+
+              <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+
+                Per-call x402 tracking — which APIs error, most used endpoints, network/facilitator reliability, USD volume, and conversion funnel.
+
+              </p>
+
+            </div>
+
+            <X402AnalyticsDashboard />
 
           </section>
 

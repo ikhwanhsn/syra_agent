@@ -12,6 +12,7 @@ import { PublicKey } from "@solana/web3.js";
 import { useWalletContext } from "@/contexts/WalletContext";
 import { useSyraAuth } from "@/contexts/SyraAuthContext";
 import { agentWalletApi, type AgentWalletLpFields } from "@/lib/chatApi";
+import { provisionLinkedPillarWallets } from "@/lib/provisionPillarWallets";
 import { resolveUserAvatarUrl } from "@/lib/agentAvatar";
 
 async function persistAvatarIfMissing(
@@ -350,7 +351,7 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
     let cancelled = false;
     const syncWallet = async () => {
       try {
-        const res = await agentWalletApi.getOrCreateByWallet(connectedWalletAddress);
+        const res = await provisionLinkedPillarWallets(connectedWalletAddress);
         if (cancelled) return;
         const { anonymousId: id, agentAddress: addr, avatarUrl: avatar } = res;
         setAnonymousId(id);

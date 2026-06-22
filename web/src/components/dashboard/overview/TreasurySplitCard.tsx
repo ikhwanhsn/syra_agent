@@ -29,12 +29,12 @@ const PILLAR_ICONS: Record<PillarWalletPurpose, LucideIcon> = {
   grow: Sprout,
 };
 
-const PILLAR_LABELS: Record<PillarWalletPurpose, { title: string; subtitle: string }> = {
-  spend: { title: "Spend agent", subtitle: "Chat, x402 & tools" },
-  earn: { title: "Earn agent", subtitle: "Skill monetization" },
-  treasury: { title: "Treasury agent", subtitle: "Capital reserves" },
-  invest: { title: "Invest agent", subtitle: "Deploy & positions" },
-  grow: { title: "Grow agent", subtitle: "Portfolio growth" },
+const PILLAR_LABELS: Record<PillarWalletPurpose, { title: string; subtitle: string; href: string }> = {
+  earn: { title: "Earn", subtitle: "Skill monetization & payouts", href: "/overview/earn" },
+  treasury: { title: "Treasury", subtitle: "Capital allocation & reserves", href: "/overview/treasury" },
+  invest: { title: "Invest", subtitle: "Deploy capital autonomously", href: "/overview/invest" },
+  spend: { title: "Spend", subtitle: "x402 native payments", href: "/overview/spend" },
+  grow: { title: "Grow", subtitle: "Yield & portfolio optimization", href: "/overview/grow" },
 };
 
 function formatUsdc(n: number): string {
@@ -99,7 +99,7 @@ export function TreasurySplitCard({
           </>
         )}
         <span className="mt-auto inline-flex items-center gap-1 pt-4 text-[11px] font-medium text-muted-foreground transition-colors group-hover:text-foreground">
-          Manage
+          Open pillar
           <ArrowUpRight className="h-3.5 w-3.5 opacity-60 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
         </span>
       </div>
@@ -111,23 +111,28 @@ export function TreasurySplitCardGrid({
   connectedWallet,
   pillars,
   loading,
+  machineMoneyOnly = false,
 }: {
-  connectedWallet: { usdc: number | null; sol: number | null };
+  connectedWallet?: { usdc: number | null; sol: number | null };
   pillars: Partial<Record<PillarWalletPurpose, { usdc: number | null; sol: number | null }>>;
   loading?: boolean;
+  /** When true, only show the five Machine Money pillar wallets (no connected signer wallet). */
+  machineMoneyOnly?: boolean;
 }) {
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      <TreasurySplitCard
-        title="Connected wallet"
-        subtitle="Your signer wallet on Solana"
-        icon={Wallet}
-        usdc={connectedWallet.usdc}
-        sol={connectedWallet.sol}
-        href="/wallet"
-        isLoading={loading}
-        accentClass="bg-gradient-to-br from-[#9945FF]/10 to-transparent"
-      />
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      {!machineMoneyOnly && connectedWallet ? (
+        <TreasurySplitCard
+          title="Treasury"
+          subtitle="Connected signer wallet"
+          icon={Wallet}
+          usdc={connectedWallet.usdc}
+          sol={connectedWallet.sol}
+          href="/overview/treasury"
+          isLoading={loading}
+          accentClass="bg-gradient-to-br from-[#9945FF]/10 to-transparent"
+        />
+      ) : null}
       {PILLAR_WALLET_PURPOSES.map((purpose) => {
         const meta = PILLAR_LABELS[purpose];
         const bal = pillars[purpose];
@@ -139,7 +144,7 @@ export function TreasurySplitCardGrid({
             icon={PILLAR_ICONS[purpose]}
             usdc={bal?.usdc ?? null}
             sol={bal?.sol ?? null}
-            href={`/wallet?wallet=${purpose}`}
+            href={meta.href}
             isLoading={loading}
             accentClass="bg-gradient-to-br from-primary/8 to-transparent"
           />

@@ -11,6 +11,8 @@ import { Keypair } from '@solana/web3.js';
 import { randomBytes } from 'node:crypto';
 import { getAgentKeypair } from './agentWallet.js';
 import { getAgentFetch, SentinelBudgetError } from './agentFetch.js';
+import { preferMainnetSolanaAccepts } from '../config/x402NetworkOrder.js';
+import { recordOutboundX402Call } from '../utils/recordX402Call.js';
 
 /** Server API key (first of API_KEYS or API_KEY) for internal x402 requests so they are not rejected with 403. */
 function getServerApiKey() {
@@ -341,6 +343,9 @@ function isExtensionRequired(extSpec) {
  * @param {import('@x402/core/client').x402Client} client
  */
 function registerRequiredExtensionsHook(client) {
+  client.onBeforePaymentCreation((context) => {
+    preferMainnetSolanaAccepts(context?.paymentRequired);
+  });
   client.onAfterPaymentCreation((context) => {
     const payload = context?.paymentPayload;
     const ext = payload?.extensions;
@@ -410,7 +415,11 @@ export async function callX402V2WithAgent(opts) {
     }
     const agentFetchFn = await getAgentFetch(anonymousId);
     const fetchFn = chooseFetch(url, agentFetchFn);
-    return await callX402V2WithKeypair(keypair, { url, method, query, body, connectedWalletAddress }, fetchFn);
+    return await callX402V2WithKeypair(
+      keypair,
+      { url, method, query, body, connectedWalletAddress, agentId: anonymousId },
+      fetchFn
+    );
   } catch (e) {
     const msg = e?.message || String(e);
     console.error(`[agentX402] callX402V2WithAgent threw:`, e?.name || 'Error', msg);
@@ -434,7 +443,7 @@ export async function callX402V2WithTreasury(opts) {
     }
     const agentFetchFn = await getAgentFetch('treasury');
     const fetchFn = chooseFetch(opts.url, agentFetchFn);
-    return await callX402V2WithKeypair(keypair, opts, fetchFn);
+    return await callX402V2WithKeypair(keypair, { ...opts, agentId: 'treasury' }, fetchFn);
   } catch (e) {
     const msg = e?.message || String(e);
     console.error(`[agentX402] callX402V2WithTreasury threw:`, e?.name || 'Error', msg);
@@ -451,7 +460,8 @@ async function callX402V2WithKeypair(keypair, opts, fetchFn = globalThis.fetch) 
     return callX402AlgorandWithOpts(opts, fetchFn);
   }
 
-  const { url, method = 'GET', query = {}, body, connectedWalletAddress } = opts;
+  const { url, method = 'GET', query = {}, body, connectedWalletAddress, agentId = null } = opts;
+  const startTime = Date.now();
 
   const buildUrl = () => {
     const u = new URL(url);
@@ -513,15 +523,37 @@ async function callX402V2WithKeypair(keypair, opts, fetchFn = globalThis.fetch) 
 
   async function fetchPaid() {
     let last;
+    let retries = 0;
     for (let i = 0; i <= FACILITATOR_PAID_402_MAX_RETRIES; i++) {
       last = await fetchPaidOnce();
-      if (last.ok) return last.result;
+      if (last.ok) {
+        recordOutboundX402Call({
+          url: initialUrl,
+          method,
+          agentId,
+          result: last.result,
+          httpStatus: last.status,
+          startTime,
+          retries,
+        });
+        return last.result;
+      }
       const msg = last.result?.error || '';
       if (i >= FACILITATOR_PAID_402_MAX_RETRIES) break;
       if (!isTransientPaidFacilitatorError(last.status, msg)) break;
+      retries = i + 1;
       const delay = Math.round(FACILITATOR_PAID_402_BASE_DELAY_MS * 2 ** i + Math.random() * 300);
       await new Promise((r) => setTimeout(r, delay));
     }
+    recordOutboundX402Call({
+      url: initialUrl,
+      method,
+      agentId,
+      result: last.result,
+      httpStatus: last.status,
+      startTime,
+      retries,
+    });
     return last.result;
   }
 
@@ -530,7 +562,9 @@ async function callX402V2WithKeypair(keypair, opts, fetchFn = globalThis.fetch) 
   } catch (e) {
     if (e && (e.name === 'SentinelBudgetError' || e instanceof SentinelBudgetError)) {
       const msg = e?.message || String(e);
-      return { success: false, error: msg, budgetExceeded: true };
+      const result = { success: false, error: msg, budgetExceeded: true };
+      recordOutboundX402Call({ url: initialUrl, method, agentId, result, startTime, retries: 0 });
+      return result;
     }
     if (isRpcBlockchainAccessError(e)) {
       switchToFallbackRpc();
@@ -538,16 +572,22 @@ async function callX402V2WithKeypair(keypair, opts, fetchFn = globalThis.fetch) 
         return await fetchPaid();
       } catch (e2) {
         if (e2 && (e2.name === 'SentinelBudgetError' || e2 instanceof SentinelBudgetError)) {
-          return { success: false, error: e2.message || String(e2), budgetExceeded: true };
+          const result = { success: false, error: e2.message || String(e2), budgetExceeded: true };
+          recordOutboundX402Call({ url: initialUrl, method, agentId, result, startTime, retries: 0 });
+          return result;
         }
         const msg = e2?.message || String(e2);
         console.error(`[agentX402] callX402V2WithKeypair (after RPC fallback):`, e2?.name || 'Error', msg);
-        return { success: false, error: msg };
+        const result = { success: false, error: msg };
+        recordOutboundX402Call({ url: initialUrl, method, agentId, result, startTime, retries: 0 });
+        return result;
       }
     }
     const msg = e?.message || String(e);
     console.error(`[agentX402] callX402V2WithKeypair threw:`, e?.name || 'Error', msg);
-    return { success: false, error: msg };
+    const result = { success: false, error: msg };
+    recordOutboundX402Call({ url: initialUrl, method, agentId, result, startTime, retries: 0 });
+    return result;
   }
 }
 
@@ -564,7 +604,8 @@ export async function pay402AndRetry(keypair, opts, fetchFn = globalThis.fetch) 
     return callX402AlgorandWithOpts(opts, fetchFn);
   }
 
-  const { url, method = 'POST', body, connectedWalletAddress, extraHeaders } = opts;
+  const { url, method = 'POST', body, connectedWalletAddress, extraHeaders, agentId = null } = opts;
+  const startTime = Date.now();
   const headers = { Accept: 'application/json' };
   if (method === 'POST' || (body && method !== 'GET' && method !== 'HEAD')) {
     headers['Content-Type'] = 'application/json';
@@ -617,15 +658,37 @@ export async function pay402AndRetry(keypair, opts, fetchFn = globalThis.fetch) 
   async function attemptWithPaidRetry() {
     /** @type {ReturnType<typeof attemptOnce> extends Promise<infer T> ? T : never} */
     let last;
+    let retries = 0;
     for (let i = 0; i <= FACILITATOR_PAID_402_MAX_RETRIES; i++) {
       last = await attemptOnce();
-      if (last.ok) return last.result;
+      if (last.ok) {
+        recordOutboundX402Call({
+          url,
+          method,
+          agentId,
+          result: last.result,
+          httpStatus: last.status,
+          startTime,
+          retries,
+        });
+        return last.result;
+      }
       const msg = last.result?.error || '';
       if (i >= FACILITATOR_PAID_402_MAX_RETRIES) break;
       if (!isTransientPaidFacilitatorError(last.status, msg)) break;
+      retries = i + 1;
       const delay = Math.round(FACILITATOR_PAID_402_BASE_DELAY_MS * 2 ** i + Math.random() * 300);
       await new Promise((r) => setTimeout(r, delay));
     }
+    recordOutboundX402Call({
+      url,
+      method,
+      agentId,
+      result: last.result,
+      httpStatus: last.status,
+      startTime,
+      retries,
+    });
     return last.result;
   }
 
@@ -633,7 +696,9 @@ export async function pay402AndRetry(keypair, opts, fetchFn = globalThis.fetch) 
     return await attemptWithPaidRetry();
   } catch (e) {
     if (e && (e.name === 'SentinelBudgetError' || e instanceof SentinelBudgetError)) {
-      return { success: false, error: e.message || String(e), budgetExceeded: true };
+      const result = { success: false, error: e.message || String(e), budgetExceeded: true };
+      recordOutboundX402Call({ url, method, agentId, result, startTime, retries: 0 });
+      return result;
     }
     if (isRpcBlockchainAccessError(e)) {
       switchToFallbackRpc();
@@ -641,12 +706,18 @@ export async function pay402AndRetry(keypair, opts, fetchFn = globalThis.fetch) 
         return await attemptWithPaidRetry();
       } catch (e2) {
         if (e2 && (e2.name === 'SentinelBudgetError' || e2 instanceof SentinelBudgetError)) {
-          return { success: false, error: e2.message || String(e2), budgetExceeded: true };
+          const result = { success: false, error: e2.message || String(e2), budgetExceeded: true };
+          recordOutboundX402Call({ url, method, agentId, result, startTime, retries: 0 });
+          return result;
         }
-        return { success: false, error: e2?.message || String(e2) };
+        const result = { success: false, error: e2?.message || String(e2) };
+        recordOutboundX402Call({ url, method, agentId, result, startTime, retries: 0 });
+        return result;
       }
     }
-    return { success: false, error: e?.message || String(e) };
+    const result = { success: false, error: e?.message || String(e) };
+    recordOutboundX402Call({ url, method, agentId, result, startTime, retries: 0 });
+    return result;
   }
 }
 

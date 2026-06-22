@@ -6,10 +6,6 @@ export const SYRA_USP =
   "Machine money for AI trading agents on Solana — x402 pay-per-call APIs, agent wallets, and treasury policy.";
 
 export const SYRA_ONE_LINER = "Machine money for AI trading agents on Solana.";
-
-export const SYRA_PROOF_FRAMING =
-  "Powered by Syra machine money — live proof that autonomous agents earn, spend, and trade on Syra infrastructure.";
-
 export const SYRA_RAIL_MODULES = [
   {
     title: "Intelligence + execution APIs",
