@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { PumpfunCallShareCard } from "@/components/pumpfun/PumpfunCallShareCard";
 import {
+  blobFromPumpfunCallShare,
   buildPumpfunCallShareFilename,
   copyPumpfunCallShareToClipboard,
   exportPumpfunCallSharePng,
@@ -19,11 +20,7 @@ import {
   buildPumpfunCallShareText,
   type PumpfunScanRecord,
 } from "@/lib/pumpfunScanHistoryApi";
-import { toBlob } from "html-to-image";
-import { getFontEmbedCSS } from "html-to-image";
-import { preloadExportAssets, waitForPaint } from "@/components/post/postHtmlCapture";
 import {
-  PUMPFUN_CALL_SHARE_BG,
   PUMPFUN_CALL_SHARE_HEIGHT,
   PUMPFUN_CALL_SHARE_PREVIEW_WIDTH,
   PUMPFUN_CALL_SHARE_WIDTH,
@@ -31,29 +28,6 @@ import {
 
 /** Fit 16:9 card inside modal preview. */
 const PREVIEW_SCALE = PUMPFUN_CALL_SHARE_PREVIEW_WIDTH / PUMPFUN_CALL_SHARE_WIDTH;
-
-async function blobFromShareCard(node: HTMLElement): Promise<Blob | null> {
-  try {
-    await preloadExportAssets(node);
-    let fontEmbedCSS = "";
-    try {
-      fontEmbedCSS = await getFontEmbedCSS(node);
-    } catch {
-      fontEmbedCSS = "";
-    }
-    return await toBlob(node, {
-      width: PUMPFUN_CALL_SHARE_WIDTH,
-      height: PUMPFUN_CALL_SHARE_HEIGHT,
-      pixelRatio: 2,
-      cacheBust: true,
-      skipFonts: Boolean(fontEmbedCSS),
-      fontEmbedCSS: fontEmbedCSS || undefined,
-      backgroundColor: PUMPFUN_CALL_SHARE_BG,
-    });
-  } catch {
-    return null;
-  }
-}
 
 export interface PumpfunCallShareModalProps {
   open: boolean;
@@ -129,7 +103,7 @@ export function PumpfunCallShareModal({ open, onClose, record }: PumpfunCallShar
     if (!exportRef.current || !canNativeShare) return;
     setSharing(true);
     try {
-      const blob = await blobFromShareCard(exportRef.current);
+      const blob = await blobFromPumpfunCallShare(exportRef.current);
       if (
         blob &&
         navigator.canShare?.({
@@ -176,7 +150,7 @@ export function PumpfunCallShareModal({ open, onClose, record }: PumpfunCallShar
               className="overflow-hidden"
             >
               <div style={{ transform: `scale(${PREVIEW_SCALE})`, transformOrigin: "top left" }}>
-                <PumpfunCallShareCard ref={exportRef} record={record} />
+                <PumpfunCallShareCard record={record} />
               </div>
             </div>
           </div>
@@ -232,6 +206,16 @@ export function PumpfunCallShareModal({ open, onClose, record }: PumpfunCallShar
             ) : null}
           </div>
         </div>
+
+        {open ? (
+          <div
+            aria-hidden
+            className="pointer-events-none fixed left-[-9999px] top-0 opacity-0"
+            style={{ width: PUMPFUN_CALL_SHARE_WIDTH, height: PUMPFUN_CALL_SHARE_HEIGHT }}
+          >
+            <PumpfunCallShareCard ref={exportRef} record={record} />
+          </div>
+        ) : null}
       </DialogContent>
     </Dialog>
   );

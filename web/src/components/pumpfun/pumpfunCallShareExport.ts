@@ -65,13 +65,21 @@ export async function exportPumpfunCallSharePng(
   link.click();
 }
 
+export async function blobFromPumpfunCallShare(node: HTMLElement): Promise<Blob | null> {
+  try {
+    const options = await prepareCapture(node);
+    return await toBlob(node, options);
+  } catch {
+    return null;
+  }
+}
+
 export async function copyPumpfunCallShareToClipboard(node: HTMLElement): Promise<boolean> {
   if (!navigator.clipboard?.write || typeof ClipboardItem === "undefined") {
     return false;
   }
   try {
-    const options = await prepareCapture(node);
-    const blob = await toBlob(node, options);
+    const blob = await blobFromPumpfunCallShare(node);
     if (!blob) return false;
     await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
     return true;
