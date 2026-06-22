@@ -5,7 +5,7 @@
 import express from "express";
 import { getResourceDescription } from "../config/x402ResourceCatalog.js";
 import { getV2Payment } from "../utils/getV2Payment.js";
-import { X402_API_PRICE_BRAIN_USD } from "../config/x402Pricing.js";
+import { X402_API_PRICE_BRAIN_USD, X402_API_PRICE_NANSEN_PREMIUM_USD } from "../config/x402Pricing.js";
 import {
   selectToolsWithLlm,
   formatToolResultForLlm,
@@ -52,11 +52,31 @@ const outputSchema = {
 
 const questionDescription = "Natural language question (e.g. latest BTC news, trending pools on Solana)";
 
+/** Tools excluded from Brain treasury — too expensive or async-heavy for bundled Brain pricing. */
+function isExcludedFromBrainTreasury(tool) {
+  if (!tool) return true;
+  if (tool.stablesocialPath) return true;
+  if (tool.id === "browser-use" || tool.id === "website-crawl") return true;
+  if (typeof tool.priceUsd === "number" && tool.priceUsd >= X402_API_PRICE_NANSEN_PREMIUM_USD - 1e-9) {
+    return true;
+  }
+  return false;
+}
+
+/** Filter LLM-selected tools to Brain-safe treasury budget. */
+function filterBrainTreasuryTools(matchedTools) {
+  if (!Array.isArray(matchedTools)) return [];
+  return matchedTools.filter((matched) => {
+    const tool = getAgentTool(matched.toolId);
+    return tool && !isExcludedFromBrainTreasury(tool);
+  });
+}
+
 /** Shared brain logic: tool selection, treasury-paid tool calls, LLM; then settle (PayAI exact or SAP escrow). */
 async function runBrain(req, res, question) {
   try {
     const apiMessages = [{ role: "user", content: question }];
-    let matchedTools = (await selectToolsWithLlm(question)).tools;
+    let matchedTools = filterBrainTreasuryTools((await selectToolsWithLlm(question)).tools);
     if (!matchedTools || matchedTools.length === 0) {
       const likelyNeedsLiveData =
         /\b(price|narrative|narratives|news|today|market|solana|trending|latest|current|signal|sentiment|token|defi|btc|eth|volume|ecosystem|headline)\b/i.test(

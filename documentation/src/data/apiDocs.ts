@@ -453,7 +453,7 @@ curl "${BASE_URL}/trending-headline?ticker=BTC"`,
     title: "Syra Brain API",
     overview:
       "Single-question API that runs Syra's AI brain: the service selects relevant tools from your question, runs them (news, sentiment, trending pools, etc.), and returns one synthesized answer. Ideal for integrating Syra chat into your app with one x402-paid request. Tools are run server-side (treasury-paid); swap execution is not supported (use agent chat with a connected wallet for swaps). Supports both GET (question in query) and POST (question in body).",
-    price: "$0.05 USD per request",
+    price: "$0.08 USD per request",
     useCases: [
       "Integrate Syra Q&A into your app or bot with one API call",
       "Ask natural language questions (e.g. latest BTC news, trending pools on Solana)",
@@ -595,7 +595,7 @@ curl "${BASE_URL}/trending-headline?ticker=BTC"`,
     title: "Browser Use API",
     overview:
       "Run a natural-language browser automation task (Browser Use Cloud) and get structured or text output. **Primary access:** `POST " + BASE_URL + "/agent/tools/call` with tool id `browser-use` (see `GET " + BASE_URL + "/agent/tools`). Public HTTP may be disabled. Requires `BROWSER_USE_API_KEY` on the server. Uses the x402 payment protocol.",
-    price: "$0.08 USD per request (production list price; non-production is lower — see 402 body)",
+    price: "$0.10 USD per request (production; non-production is lower — see 402 body)",
     endpoints: [
       {
         method: "POST",
@@ -628,14 +628,14 @@ curl "${BASE_URL}/trending-headline?ticker=BTC"`,
         responseExample: `{ "success": true, "output": "...", "id": "...", "status": "stopped" }`,
       },
     ],
-    paymentFlow: paymentFlowFor(0.08),
+    paymentFlow: paymentFlowFor(0.1),
   }),
 
   arbitrage: doc({
     title: "Arbitrage API",
     overview:
       "Single paid bundle aligned with the Syra Agent **Arbitrage experiment** page: CoinMarketCap-style top tradable assets (stablecoins skipped), live cross-venue USDT spot snapshots from public CEX streams, and ranked best buy/sell routes by gross spread (before fees, slippage, transfer, and latency — not financial advice). Uses the x402 payment protocol.",
-    price: "$0.04 USD base per request (production list price $0.40; non-production lower — see 402 body)",
+    price: "$0.04 USD per request",
     useCases: [
       "Compare theoretical cross-venue spreads on majors in one call",
       "Power dashboards or agents with the same ranking as the arbitrage experiment UI",
@@ -940,7 +940,7 @@ curl "${BASE_URL}/event?ticker=BTC"`,
     title: "Nansen Endpoints API",
     overview:
       "Nansen x402 API is called directly at api.nansen.ai (no Syra proxy). Use POST with JSON body. Basic tier: $0.01/call. Premium/Smart Money tier: $0.05/call. The Syra Agent invokes Nansen tools by calling api.nansen.ai with the user's agent wallet. The API Playground also calls api.nansen.ai directly; pay with your connected wallet when you get 402.",
-    price: "Basic: $0.01/request; Premium/Smart Money: $0.05/request",
+    price: "Basic: $0.012/request; Premium/Smart Money: $0.06/request (upstream cost + 20% via Syra agent tools)",
     endpoints: [
       {
         method: "POST",
@@ -1581,7 +1581,7 @@ curl "${BASE_URL}/event?ticker=BTC"`,
     overview:
       "Purch Vault is a marketplace for AI agent skills, knowledge bases, and personas. Search, buy, and download digital assets via x402 micropayments (USDC on Solana). Base URL: api.purch.xyz. $0.01 USDC per API call; item purchase is a separate on-chain USDC transfer.",
     baseUrl: PURCH_VAULT_BASE,
-    price: "$0.01 USDC per API call (search, buy, download); item price paid on-chain when buying.",
+    price: "$0.012 USD per API call (search; buy is 2×); item price paid on-chain when buying.",
     endpoints: [
       {
         method: "GET",
@@ -1629,7 +1629,7 @@ curl "${BASE_URL}/event?ticker=BTC"`,
     title: "Syra Agent tools: StableCrypto & pay.sh market data",
     overview:
       "StableCrypto (stablecrypto.dev) provides CoinGecko, DefiLlama, Alchemy, and Etherscan data as **POST** endpoints at **~$0.01/call** via x402. Syra exposes ten curated **stablecrypto-*** agent tools plus **paysh-discover**, **paysh-endpoints**, and **paysh-call** for the pay.sh catalog (FQN `merit-systems/stablecrypto/market-data` for the full StableCrypto OpenAPI). These run through **POST /agent/chat/completion** (natural language) and **POST /agent/tools/call** (programmatic). The agent wallet pays upstream x402 to StableCrypto; Syra does not host duplicate HTTP routes for these paths.",
-    price: "$0.01 USD per stablecrypto-* call (and per paysh-call, subject to provider min_price_usd). paysh-discover and paysh-endpoints are free.",
+    price: "$0.012 USD per stablecrypto-* call (upstream + 20%; paysh-call floor $0.012, subject to provider min_price_usd × 1.2). paysh-discover and paysh-endpoints are free.",
     authNote:
       "Requires a Syra Agent session (**anonymousId**) and sufficient agent USDC for paid tools. Optional server env: STABLECRYPTO_API_BASE_URL (default https://stablecrypto.dev).",
     paymentFlow: {
@@ -1694,7 +1694,7 @@ curl "${BASE_URL}/event?ticker=BTC"`,
     title: "Syra Agent tools: StableSocial social data",
     overview:
       "StableSocial (stablesocial.dev) provides TikTok, Instagram, Facebook, and Reddit data via an **async two-step flow**: paid **POST** trigger (~$0.06 USDC x402) returns a job `token`, then **GET /api/jobs?token=...** with **SIWX** wallet auth (free) until `status: finished`. Syra exposes eleven curated **stablesocial-*** agent tools that run trigger + poll server-side using the same agent wallet for payment and SIWX. Use **POST /agent/chat/completion** or **POST /agent/tools/call**.",
-    price: "$0.06 USD per stablesocial-* call (one paid trigger per tool invocation; polling is free upstream).",
+    price: "$0.072 USD per stablesocial-* call (upstream $0.06 + 20%; one paid trigger per tool invocation).",
     authNote:
       "Requires a Syra Agent session (**anonymousId**) and sufficient agent USDC. Optional env: STABLESOCIAL_API_BASE_URL (default https://stablesocial.dev), STABLESOCIAL_POLL_INTERVAL_MS, STABLESOCIAL_POLL_MAX_ATTEMPTS.",
     paymentFlow: {
@@ -1756,7 +1756,7 @@ curl "${BASE_URL}/event?ticker=BTC"`,
     title: "Syra Agent tools: StableEnrich enrichment & research",
     overview:
       "StableEnrich (stableenrich.dev) provides Exa search, Firecrawl scrape, Apollo people/org search, Google Maps, Reddit, Serper news, Hunter email verification, Minerva identity, and Cloudflare multi-page crawl — all via x402 micropayment. Syra exposes **19 curated stableenrich-*** tools with per-endpoint pricing. Most calls are sync POST/GET; **stableenrich-cloudflare-crawl** is async (POST trigger + SIWX poll on GET /api/cloudflare/jobs).",
-    price: "$0.002–$0.10 USD per stableenrich-* call depending on tool (see GET /agent/tools).",
+    price: "$0.0024–$0.12 USD per stableenrich-* call depending on tool (upstream + 20%; see GET /agent/tools).",
     authNote:
       "Requires Syra Agent **anonymousId** and agent USDC. Optional: STABLEENRICH_API_BASE_URL, STABLEENRICH_CF_POLL_INTERVAL_MS.",
     paymentFlow: {

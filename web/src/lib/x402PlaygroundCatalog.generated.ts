@@ -5,7 +5,7 @@
 import type { HttpMethod } from "@/types/api";
 import type { RequestParam } from "@/types/api";
 
-export const X402_PLAYGROUND_GENERATED_AT = "2026-06-22T04:22:47.735Z";
+export const X402_PLAYGROUND_GENERATED_AT = "2026-06-22T04:44:53.453Z";
 
 export interface X402PlaygroundResourceTemplate {
   segment: string;
@@ -347,7 +347,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
         "key": "inputMint",
         "value": "",
         "enabled": true,
-        "description": "Input token mint"
+        "description": "Input token mint (base58)"
       },
       {
         "key": "outputMint",
@@ -684,8 +684,8 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       {
         "key": "ref",
         "value": "",
-        "enabled": false,
-        "description": "Ref e.g. btc, solana, apple"
+        "enabled": true,
+        "description": "Canonical ref e.g. btc, solana, apple (alternatives: mint, assetId, q)"
       },
       {
         "key": "mint",

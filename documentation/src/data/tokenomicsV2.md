@@ -51,8 +51,8 @@ $SYRA is the native payment token for accessing Syra’s agent-facing APIs via t
 **Pricing Examples:**
 
 - Sentiment API: $0.01 per call
-- Risk Scoring: $0.10 per analysis
-- Deep Research: $5.00 per request
+- Birdeye on-chain read: $0.004 per call (upstream + 20%)
+- Syra Brain (tool selection + synthesis): $0.08 per request
 
 ### 2. **Staking for Discounts (roadmap — not applied in API pricing yet)**
 
@@ -122,8 +122,8 @@ High-level intent (subject to governance and runway):
 > **💡 Target Metrics (End of 2026)**  
 > - **1,000+ agents** using APIs  
 > - **$2M/month** x402 transaction volume  
-> - **Growing SYRA buyback pool** funded by fees, distributed via airdrops  
-> - **80% gross margins** (API business)
+> - **Growing SYRA buyback pool** funded by fees, distributed via airdrops
+> - **~15–40% blended margins** on passthrough APIs (volume-first agentic pricing); higher on internal intelligence routes
 
 ## Long-Term Value Accrual
 
@@ -160,7 +160,7 @@ In any scenario, $SYRA holders and active users can benefit from buybacks routed
 | **Revenue**       | $10-50/month subscriptions  | $0.01-10 per API call via x402 (USDC)  |
 | **Payments**      | $SYRA or fiat               | USDC/stablecoins via x402              |
 | **CAC**           | $500-2,000 per user         | $0 (agents discover via x402scan)      |
-| **Margins**       | 40-60%                      | 80-90%                                 |
+| **Margins**       | 40-60%                      | 15-40% passthrough; higher on internal routes |
 | **Scalability**   | Linear (need support team)  | Exponential (APIs scale infinitely)    |
 | **Token Utility** | Discounts & governance      | Staking discounts + x402 buybacks for airdrops |
 | **Moat**          | Brand & features            | Proprietary data network               |

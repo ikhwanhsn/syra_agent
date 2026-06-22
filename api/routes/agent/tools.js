@@ -5,7 +5,7 @@
  */
 import express from 'express';
 import { AGENT_TOOLS, getAgentTool, normalizeJupiterSwapParams } from '../../config/agentTools.js';
-import { getEffectivePriceUsd } from '../../config/x402Pricing.js';
+import { getEffectivePriceUsd, X402_PAYSH_FLOOR_USD, PASSTHROUGH_MARGIN } from '../../config/x402Pricing.js';
 import {
   getDisplayAgentToolPriceUsd,
   getEffectiveAgentToolPriceUsd,
@@ -369,7 +369,8 @@ router.post('/call', requireSession({ allowGuest: true }), async (req, res) => {
           });
         }
         const m = Number(prov.min_price_usd);
-        providerMinUsd = Number.isFinite(m) ? m : 0;
+        const providerPassthrough = Number.isFinite(m) ? m * PASSTHROUGH_MARGIN : 0;
+        providerMinUsd = Math.max(X402_PAYSH_FLOOR_USD, providerPassthrough);
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         return res.status(400).json({

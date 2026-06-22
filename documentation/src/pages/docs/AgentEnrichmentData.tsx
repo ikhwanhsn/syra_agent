@@ -141,7 +141,7 @@ export default function AgentEnrichmentData() {
       <section id="pricing" className="mb-12 scroll-mt-24">
         <h2 className="text-2xl font-semibold mb-4">Pricing</h2>
         <p className="text-muted-foreground">
-          Each tool charges upstream StableEnrich pricing (from $0.002 for Exa contents to $0.10 for Cloudflare crawl).
+          Each tool charges upstream StableEnrich pricing plus 20% (from $0.0024 for Exa contents to $0.12 for Cloudflare crawl).
           See the table above and{" "}
           <a href={STABLEENRICH_LLMS} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
             llms.txt pricing summary

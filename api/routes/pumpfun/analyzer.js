@@ -77,19 +77,17 @@ export function createPumpfunAnalyzerRouter() {
 
   router.get(
     '/',
-    attachParsedRequest,
     requirePayment({
       ...paymentOptionsBase,
       method: 'GET',
       inputSchema: { queryParams: { mint: MINT_PARAM } },
     }),
+    attachParsedRequest,
     handleAnalyzer,
   );
 
   router.post(
     '/',
-    express.json(),
-    attachParsedRequest,
     requirePayment({
       ...paymentOptionsBase,
       method: 'POST',
@@ -98,6 +96,7 @@ export function createPumpfunAnalyzerRouter() {
         bodyFields: { mint: MINT_PARAM },
       },
     }),
+    attachParsedRequest,
     handleAnalyzer,
   );
 

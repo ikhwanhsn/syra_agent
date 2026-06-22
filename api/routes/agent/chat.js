@@ -55,7 +55,7 @@ import {
   purchVaultBuy,
   purchVaultDownload,
 } from '../../libs/agentPurchVaultClient.js';
-import { getEffectivePriceUsd } from '../../config/x402Pricing.js';
+import { getEffectivePriceUsd, X402_PAYSH_FLOOR_USD, PASSTHROUGH_MARGIN } from '../../config/x402Pricing.js';
 import { getEffectiveAgentToolPriceUsd } from '../../libs/pactPricing.js';
 import { SYRA_TOKEN_MINT, isSyraHolderEligible } from '../../libs/syraToken.js';
 import { findVerifiedJupiterToken } from '../../libs/jupiterTokens.js';
@@ -1832,7 +1832,8 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
               result = { status: 404, error: `Unknown pay.sh provider fqn: ${params.fqn}` };
             } else {
               const m = Number(prov.min_price_usd);
-              providerMinUsd = Math.max(tool.priceUsd, Number.isFinite(m) ? m : 0);
+              const providerPassthrough = Number.isFinite(m) ? m * PASSTHROUGH_MARGIN : 0;
+              providerMinUsd = Math.max(X402_PAYSH_FLOOR_USD, providerPassthrough, tool.priceUsd);
             }
           } catch (e) {
             result = { status: 400, error: e instanceof Error ? e.message : String(e) };

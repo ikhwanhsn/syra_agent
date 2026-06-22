@@ -2502,7 +2502,7 @@
               "type": "string"
             },
             "required": true,
-            "description": "Input token mint"
+            "description": "Input token mint (base58)"
           },
           {
             "name": "outputMint",
@@ -2540,12 +2540,41 @@
         ],
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "Success — `{ success: true, data: { ... } }`",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "quote": {
+                          "type": "object",
+                          "additionalProperties": true,
+                          "description": "Jupiter quoteResponse payload"
+                        },
+                        "referral": {
+                          "type": "object",
+                          "additionalProperties": true,
+                          "description": "Syra referral fee metadata"
+                        },
+                        "computedAt": {
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
@@ -2642,19 +2671,24 @@
                 ],
                 "properties": {
                   "inputMint": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Input token mint (base58)"
                   },
                   "outputMint": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Output token mint (base58)"
                   },
                   "amount": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Input amount in raw token units"
                   },
                   "slippageBps": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Slippage in basis points (default 50)"
                   },
                   "swapMode": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Jupiter swapMode e.g. ExactIn"
                   }
                 }
               }
@@ -2663,12 +2697,41 @@
         },
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "Success — `{ success: true, data: { ... } }`",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "quote": {
+                          "type": "object",
+                          "additionalProperties": true,
+                          "description": "Jupiter quoteResponse payload"
+                        },
+                        "referral": {
+                          "type": "object",
+                          "additionalProperties": true,
+                          "description": "Syra referral fee metadata"
+                        },
+                        "computedAt": {
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
@@ -3005,12 +3068,230 @@
         ],
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "Success — `{ success: true, data: { ... } }`",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "mint": {
+                          "type": "string"
+                        },
+                        "syraAlpha": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "market": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "dossier": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "pumpfun": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "holders": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "distribution": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "onChainSecurity": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "kolShills": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "fetchedAt": {
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.",
+            "headers": {
+              "Payment-Required": {
+                "description": "x402 v2 encoded payment requirements",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds the client must wait before retrying.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Too many requests. Please slow down."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "x-syra-pillar": "spend"
+      },
+      "post": {
+        "tags": [
+          "pump.fun analyzer (x402)"
+        ],
+        "summary": "Full memecoin due-diligence for any Solana mint (POST)",
+        "description": "Deep memecoin analysis for pump.fun or graduated tokens. Use when an agent must score risk/reward before trading. Input: mint (base58). Returns syraAlpha score/verdict, market stats, dossier risk, holders, distribution, onChainSecurity, kolShills — probabilistic, not financial advice.",
+        "operationId": "postPumpfunAnalyzer",
+        "security": [
+          {
+            "x402": []
+          }
+        ],
+        "x-payment-info": {
+          "protocols": [
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
+          ],
+          "price": {
+            "mode": "fixed",
+            "currency": "USD",
+            "amount": "0.1"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "mint"
+                ],
+                "properties": {
+                  "mint": {
+                    "type": "string",
+                    "description": "Solana token mint (base58)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — `{ success: true, data: { ... } }`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "mint": {
+                          "type": "string"
+                        },
+                        "syraAlpha": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "market": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "dossier": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "pumpfun": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "holders": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "distribution": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "onChainSecurity": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "kolShills": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "fetchedAt": {
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": false
                 }
               }
             }
@@ -3695,10 +3976,11 @@
           {
             "name": "ref",
             "in": "query",
+            "required": true,
             "schema": {
               "type": "string"
             },
-            "description": "Ref e.g. btc, solana, apple"
+            "description": "Canonical ref e.g. btc, solana, apple (alternatives: mint, assetId, q)"
           },
           {
             "name": "mint",
@@ -3727,12 +4009,224 @@
         ],
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "Success — `{ success: true, data: { ... } }`",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": true
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "query": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "assetId": {
+                          "type": "string"
+                        },
+                        "chartMint": {
+                          "type": "string"
+                        },
+                        "asset": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "includes": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "ohlcv": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "mintRisk": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "fetchedAt": {
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required — x402 v2 (Payment-Required header + JSON body with accepts). Retry with PAYMENT-SIGNATURE or X-PAYMENT.",
+            "headers": {
+              "Payment-Required": {
+                "description": "x402 v2 encoded payment requirements",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests — burst (25 req / 10s per IP) or sustained (100 req / 60s per IP) limit exceeded. Wait for the duration in `Retry-After` (seconds) before retrying.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds the client must wait before retrying.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Too many requests. Please slow down."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "x-syra-pillar": "spend"
+      },
+      "post": {
+        "tags": [
+          "Asset detail (x402)"
+        ],
+        "summary": "Tokens.xyz mint dossier for one asset (POST)",
+        "description": "Full asset dossier: profile, risk, markets, and 1H OHLCV for a canonical asset. Use when an agent researches BTC, SOL, a stock token, or any Tokens.xyz asset by ref/mint/assetId. Inputs: ref, mint, assetId, or q. Returns asset, includes (profile/risk/markets), ohlcv candles, mintRisk.",
+        "operationId": "postAssetsDetail",
+        "security": [
+          {
+            "x402": []
+          }
+        ],
+        "x-payment-info": {
+          "protocols": [
+            {
+              "x402": {}
+            },
+            {
+              "mpp": {
+                "method": "",
+                "intent": "",
+                "currency": ""
+              }
+            }
+          ],
+          "price": {
+            "mode": "fixed",
+            "currency": "USD",
+            "amount": "0.05"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "ref"
+                ],
+                "properties": {
+                  "ref": {
+                    "type": "string",
+                    "description": "Canonical ref e.g. btc, solana, apple"
+                  },
+                  "mint": {
+                    "type": "string",
+                    "description": "Solana mint (base58)"
+                  },
+                  "assetId": {
+                    "type": "string",
+                    "description": "Tokens.xyz assetId e.g. bitcoin"
+                  },
+                  "q": {
+                    "type": "string",
+                    "description": "Freeform lookup (ref, mint, or assetId)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success — `{ success: true, data: { ... } }`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "query": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "assetId": {
+                          "type": "string"
+                        },
+                        "chartMint": {
+                          "type": "string"
+                        },
+                        "asset": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "includes": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "ohlcv": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "mintRisk": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "fetchedAt": {
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": false
                 }
               }
             }

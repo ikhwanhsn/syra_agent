@@ -94,19 +94,17 @@ export async function createAssetsDetailX402Router() {
 
   router.get(
     '/',
-    attachParsedRequest,
     requirePayment({
       ...paymentOptionsBase,
       method: 'GET',
       inputSchema: { queryParams: inputFields },
     }),
+    attachParsedRequest,
     handleAssetsDetail,
   );
 
   router.post(
     '/',
-    express.json(),
-    attachParsedRequest,
     requirePayment({
       ...paymentOptionsBase,
       method: 'POST',
@@ -115,6 +113,7 @@ export async function createAssetsDetailX402Router() {
         bodyFields: inputFields,
       },
     }),
+    attachParsedRequest,
     handleAssetsDetail,
   );
 

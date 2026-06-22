@@ -20,7 +20,7 @@ export const X402_RESOURCE_CATALOG = {
     summary: 'Single-question crypto AI with automatic tool selection',
     description:
       'Answers one natural-language crypto question by selecting and running Syra tools (news, signals, on-chain reads) server-side. Use when an agent needs a grounded synthesis instead of calling many APIs manually. Input: question (required). Returns success, markdown/plain response, and toolUsages[] showing which tools ran. Treasury-paid tool calls included; not trade execution.',
-    suggestedPriceStx: 0.05,
+    suggestedPriceStx: 0.08,
   },
   news: {
     slug: 'news',
@@ -120,7 +120,7 @@ export const X402_RESOURCE_CATALOG = {
     summary: 'Paid liveness probe for Syra API',
     description:
       'Minimal paid health check confirming Syra API is up and x402 settlement works. Use when an agent or monitor verifies connectivity before batch calls. No inputs. Returns ok, status, service, message, timestamp.',
-    suggestedPriceStx: 0.003,
+    suggestedPriceStx: 0.0001,
   },
   'mpp/health': {
     slug: 'mpp-health',
@@ -130,7 +130,7 @@ export const X402_RESOURCE_CATALOG = {
     summary: 'Machine Payments Protocol test lane (x402 v2)',
     description:
       'MPP-compatible health endpoint with same x402 v2 flow as /health. Use when testing Tempo/Stripe-style machine payment clients against Syra. Returns ok, protocol mpp-test, paymentCompatibility x402-v2, plus /health sibling reference.',
-    suggestedPriceStx: 0.003,
+    suggestedPriceStx: 0.0001,
   },
   arbitrage: {
     slug: 'arbitrage',
@@ -150,7 +150,7 @@ export const X402_RESOURCE_CATALOG = {
     summary: 'Jupiter Swap V1 ExactIn quote with Syra referral fee',
     description:
       'Fetches a Jupiter Swap V1 quoteResponse for ExactIn swaps with Syra referral platform fee when configured on-chain. Use when an agent prices a Solana swap before building a transaction. Inputs: inputMint, outputMint, amount (raw units), optional slippageBps. Returns quote object and referral metadata.',
-    suggestedPriceStx: 0.03,
+    suggestedPriceStx: 0.003,
   },
   'pumpfun/trending': {
     slug: 'pumpfun-trending',
@@ -160,7 +160,7 @@ export const X402_RESOURCE_CATALOG = {
     summary: 'Trending pump.fun coins list',
     description:
       'Returns trending pump.fun coins from frontend-api-v3 (falls back to top-runners when primary feed is empty). Use when an agent scans hot memecoin launches or social momentum on pump.fun. Inputs: limit (default 20, max 50), offset, includeNsfw. Returns normalized coins[], count, upstream metadata.',
-    suggestedPriceStx: 0.05,
+    suggestedPriceStx: 0.005,
   },
   'pumpfun/movers': {
     slug: 'pumpfun-movers',
@@ -170,7 +170,7 @@ export const X402_RESOURCE_CATALOG = {
     summary: 'pump.fun market movers list',
     description:
       'Returns pump.fun market movers from frontend-api-v3 (falls back to currently-live when primary is empty). Use when an agent finds coins with unusual short-term price/volume action. Inputs: limit, offset, includeNsfw. Returns coins[], count, upstream metadata.',
-    suggestedPriceStx: 0.05,
+    suggestedPriceStx: 0.005,
   },
   'pumpfun/analyzer': {
     slug: 'pumpfun-analyzer',
@@ -180,7 +180,7 @@ export const X402_RESOURCE_CATALOG = {
     summary: 'Full memecoin due-diligence for any Solana mint',
     description:
       'Deep memecoin analysis for pump.fun or graduated tokens. Use when an agent must score risk/reward before trading. Input: mint (base58). Returns syraAlpha score/verdict, market stats, dossier risk, holders, distribution, onChainSecurity, kolShills — probabilistic, not financial advice.',
-    suggestedPriceStx: 0.1,
+    suggestedPriceStx: 0.02,
   },
   'pumpfun/scout': {
     slug: 'pumpfun-scout',
@@ -190,7 +190,7 @@ export const X402_RESOURCE_CATALOG = {
     summary: 'Live pump.fun alpha/beta/predicted/utility scout',
     description:
       'Live pump.fun intelligence with selector param segment=alpha|beta|predicted|utility. Optional period, limit, minPumpScore, llm. Returns scored tokens, analysis, and meta — deterministic by default.',
-    suggestedPriceStx: 0.1,
+    suggestedPriceStx: 0.01,
   },
   rise: {
     slug: 'rise-scout',
@@ -200,7 +200,7 @@ export const X402_RESOURCE_CATALOG = {
     summary: 'Live RISE market intel and agent targets',
     description:
       'Live RISE intelligence with view=intel|markets|targets. Optional mint, limit, tier=ready|watch. Returns UPONLY token snapshot, fund lens, ranked markets, and agent-ready mint targets.',
-    suggestedPriceStx: 0.1,
+    suggestedPriceStx: 0.01,
   },
   coingecko: {
     slug: 'coingecko-scout',
@@ -210,7 +210,7 @@ export const X402_RESOURCE_CATALOG = {
     summary: 'Live CoinGecko top gainers brief',
     description:
       'Live CoinGecko scout with view=brief|gainers|predictions. Optional topN, minMarketCap, includeNews, llm. Returns top gainers, digests, predictions, and narrative meta — deterministic by default.',
-    suggestedPriceStx: 0.1,
+    suggestedPriceStx: 0.01,
   },
   assets: {
     slug: 'assets-board',
@@ -220,7 +220,7 @@ export const X402_RESOURCE_CATALOG = {
     summary: 'Tokens.xyz curated assets board with filter and sort',
     description:
       'Paginated curated assets board (crypto + tokenized stocks) from Tokens.xyz — same data as the Syra Assets page. Use when an agent needs a ranked market universe, not a single asset. Inputs: list (all|majors|stocks|…), assetClass, q, sort, order, limit, offset. Returns items[] with price, marketCap, volume, assetClass.',
-    suggestedPriceStx: 0.05,
+    suggestedPriceStx: 0.005,
   },
   'assets/detail': {
     slug: 'assets-detail',
@@ -230,7 +230,7 @@ export const X402_RESOURCE_CATALOG = {
     summary: 'Tokens.xyz mint dossier for one asset',
     description:
       'Full asset dossier: profile, risk, markets, and 1H OHLCV for a canonical asset. Use when an agent researches BTC, SOL, a stock token, or any Tokens.xyz asset by ref/mint/assetId. Inputs: ref, mint, assetId, or q. Returns asset, includes (profile/risk/markets), ohlcv candles, mintRisk.',
-    suggestedPriceStx: 0.05,
+    suggestedPriceStx: 0.005,
   },
   bitcoin: {
     slug: 'bitcoin-hub',
@@ -240,7 +240,7 @@ export const X402_RESOURCE_CATALOG = {
     summary: 'Full Bitcoin dashboard + taker-flow bubblemap',
     description:
       'Complete Bitcoin intelligence bundle from the Syra BTC page. Use when an agent needs macro BTC context: price, derivatives, technicals, sentiment, news, signal, and taker buy/sell bubblemap in one call. Inputs: exchange (binance|coinbase), interval, limit for bubblemap. Returns dashboard (overview + sections) and bubblemap points[].',
-    suggestedPriceStx: 0.1,
+    suggestedPriceStx: 0.01,
   },
   '8004/stats': {
     slug: '8004-stats',
@@ -250,7 +250,7 @@ export const X402_RESOURCE_CATALOG = {
     summary: 'Solana 8004 agent registry aggregate statistics',
     description:
       'Global stats for the Solana 8004 trustless agent registry: total agents, feedback counts, trust tiers. Use when an agent surveys the Syra/8004 ecosystem size before marketplace or discovery tasks. No required inputs. Returns registry-wide counters and tier breakdown.',
-    suggestedPriceStx: 0.01,
+    suggestedPriceStx: 0.012,
   },
   '8004/leaderboard': {
     slug: '8004-leaderboard',
@@ -260,7 +260,7 @@ export const X402_RESOURCE_CATALOG = {
     summary: 'Top 8004 agents ranked by trust tier',
     description:
       'Leaderboard of registered 8004 agents sorted by trust/reputation. Use when an agent picks high-trust counterparts or benchmarks agent quality. Inputs: optional minTier, limit, offset. Returns ranked agent rows with scores and metadata.',
-    suggestedPriceStx: 0.01,
+    suggestedPriceStx: 0.012,
   },
   '8004/agents/search': {
     slug: '8004-agents-search',
@@ -270,7 +270,7 @@ export const X402_RESOURCE_CATALOG = {
     summary: 'Search Solana 8004 agents by owner or collection',
     description:
       'Search the 8004 agent index by owner wallet, creator, or collection pointer. Use when an agent discovers agents to hire, verify, or compose with. Inputs: owner, creator, collectionPointer, limit, offset. Returns matching agent records.',
-    suggestedPriceStx: 0.01,
+    suggestedPriceStx: 0.012,
   },
 };
 

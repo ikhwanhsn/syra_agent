@@ -103,7 +103,7 @@ export default function AgentFeatures() {
           <a href="https://stableenrich.dev" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
             StableEnrich
           </a>
-          . Pricing varies by endpoint ($0.002–$0.10 per call).
+          . Pricing varies by endpoint ($0.0024–$0.12 per call, upstream + 20%).
         </p>
         <p className="text-muted-foreground">
           <strong className="text-foreground">Examples:</strong> <em>&quot;Scrape this URL with Firecrawl&quot;</em>,{" "}

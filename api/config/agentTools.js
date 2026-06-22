@@ -33,6 +33,7 @@ import {
   X402_API_PRICE_SIWA_USD,
   X402_API_PRICE_SPCX_USD,
   X402_API_PRICE_EQUITY_USD,
+  X402_PAYSH_FLOOR_USD,
 } from './x402Pricing.js';
 import {
   X402_DISPLAY_PRICE_USD,
@@ -1503,8 +1504,8 @@ export const AGENT_TOOLS = [
     paysh: 'call',
     path: '/paysh/call',
     method: 'POST',
-    priceUsd: 0.01,
-    displayPriceUsd: 0.01,
+    priceUsd: X402_PAYSH_FLOOR_USD,
+    displayPriceUsd: X402_PAYSH_FLOOR_USD,
     name: 'pay.sh call provider',
     description:
       'Call a pay.sh-listed provider gateway via x402 (agent wallet pays upstream). Params: fqn (required), path (required, e.g. /civicinfo/v2/elections or for quicknode/rpc: /solana-mainnet/), method (omit or POST for JSON-RPC; GET only if the OpenAPI route is GET), query (JSON object string), body (JSON object string for POST/JSON-RPC). Optional forceRefresh true — refresh catalog/skills before resolving route. For StableCrypto use fqn merit-systems/stablecrypto/market-data and POST paths like /api/coingecko/global.',
@@ -2660,7 +2661,7 @@ export function getCapabilitiesList() {
   const stablesocialTools = AGENT_TOOLS.filter((t) => t.stablesocialPath).map((t) => t.id);
   if (stablesocialTools.length) {
     lines.push(
-      'StableSocial (TikTok, Instagram, Facebook, Reddit via stablesocial.dev x402; async job — needs handle/keyword/subreddit; ~$0.06/call):',
+      'StableSocial (TikTok, Instagram, Facebook, Reddit via stablesocial.dev x402; async job — needs handle/keyword/subreddit; ~$0.072/call):',
       ...fmt(stablesocialTools),
       ''
     );

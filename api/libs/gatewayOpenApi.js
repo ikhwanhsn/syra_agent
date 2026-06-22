@@ -70,6 +70,96 @@ const OK_JSON = {
   content: { 'application/json': { schema: LOOSE_OBJECT } },
 };
 
+const SYRA_DATA_RESPONSE_SCHEMA = {
+  type: 'object',
+  required: ['success', 'data'],
+  properties: {
+    success: { type: 'boolean', const: true },
+    data: { type: 'object', additionalProperties: true },
+  },
+  additionalProperties: false,
+};
+
+/** @param {boolean} [paid] */
+function syraDataResponses(paid = true) {
+  /** @type {Record<string, unknown>} */
+  const r = {
+    '200': {
+      description: 'Success — `{ success: true, data: { ... } }`',
+      content: { 'application/json': { schema: SYRA_DATA_RESPONSE_SCHEMA } },
+    },
+  };
+  if (paid) r['402'] = PAID_402_RESPONSE;
+  r['429'] = RATE_LIMIT_429_RESPONSE;
+  return r;
+}
+
+const JUPITER_QUOTE_DATA_SCHEMA = {
+  type: 'object',
+  properties: {
+    quote: { type: 'object', additionalProperties: true, description: 'Jupiter quoteResponse payload' },
+    referral: { type: 'object', additionalProperties: true, description: 'Syra referral fee metadata' },
+    computedAt: { type: 'string' },
+  },
+  additionalProperties: true,
+};
+
+const PUMPFUN_ANALYZER_DATA_SCHEMA = {
+  type: 'object',
+  properties: {
+    mint: { type: 'string' },
+    syraAlpha: { type: 'object', additionalProperties: true },
+    market: { type: 'object', additionalProperties: true },
+    dossier: { type: 'object', additionalProperties: true },
+    pumpfun: { type: 'object', additionalProperties: true },
+    holders: { type: 'object', additionalProperties: true },
+    distribution: { type: 'object', additionalProperties: true },
+    onChainSecurity: { type: 'object', additionalProperties: true },
+    kolShills: { type: 'object', additionalProperties: true },
+    fetchedAt: { type: 'string' },
+  },
+  additionalProperties: true,
+};
+
+const ASSETS_DETAIL_DATA_SCHEMA = {
+  type: 'object',
+  properties: {
+    query: { type: 'object', additionalProperties: true },
+    assetId: { type: 'string' },
+    chartMint: { type: 'string' },
+    asset: { type: 'object', additionalProperties: true },
+    includes: { type: 'object', additionalProperties: true },
+    ohlcv: { type: 'object', additionalProperties: true },
+    mintRisk: { type: 'object', additionalProperties: true },
+    fetchedAt: { type: 'string' },
+  },
+  additionalProperties: true,
+};
+
+/** @param {Record<string, unknown>} dataSchema */
+function syraDataResponsesWithSchema(dataSchema, paid = true) {
+  const base = syraDataResponses(paid);
+  return {
+    ...base,
+    '200': {
+      description: 'Success — `{ success: true, data: { ... } }`',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            required: ['success', 'data'],
+            properties: {
+              success: { type: 'boolean', const: true },
+              data: dataSchema,
+            },
+            additionalProperties: false,
+          },
+        },
+      },
+    },
+  };
+}
+
 /**
  * Rate-limit envelope. Every non-x402 / preview / agent route in this gateway shares the same
  * dual-window throttle (see {@link RATE_LIMIT_INFO} and api/utils/rateLimit.js).
@@ -671,38 +761,41 @@ export function buildGatewayOpenApi() {
       },
     },
     '/jupiter/quote': {
-      get: opGetCat(
-        'jupiter/quote',
-        'Jupiter quote (x402)',
-        'getJupiterQuote',
-        [
-          {
-            name: 'inputMint',
-            in: 'query',
-            schema: { type: 'string' },
-            required: true,
-            description: 'Input token mint',
-          },
-          {
-            name: 'outputMint',
-            in: 'query',
-            schema: { type: 'string' },
-            required: true,
-            description: 'Output token mint (referral fee taken on output)',
-          },
-          {
-            name: 'amount',
-            in: 'query',
-            schema: { type: 'string' },
-            required: true,
-            description: 'Input amount in raw token units',
-          },
-          { name: 'slippageBps', in: 'query', schema: { type: 'integer', default: 50 } },
-          { name: 'swapMode', in: 'query', schema: { type: 'string' } },
-        ],
-        true,
-        X402_DISPLAY_PRICE_JUPITER_QUOTE_USD,
-      ),
+      get: {
+        ...opGetCat(
+          'jupiter/quote',
+          'Jupiter quote (x402)',
+          'getJupiterQuote',
+          [
+            {
+              name: 'inputMint',
+              in: 'query',
+              schema: { type: 'string' },
+              required: true,
+              description: 'Input token mint (base58)',
+            },
+            {
+              name: 'outputMint',
+              in: 'query',
+              schema: { type: 'string' },
+              required: true,
+              description: 'Output token mint (referral fee taken on output)',
+            },
+            {
+              name: 'amount',
+              in: 'query',
+              schema: { type: 'string' },
+              required: true,
+              description: 'Input amount in raw token units',
+            },
+            { name: 'slippageBps', in: 'query', schema: { type: 'integer', default: 50 } },
+            { name: 'swapMode', in: 'query', schema: { type: 'string' } },
+          ],
+          true,
+          X402_DISPLAY_PRICE_JUPITER_QUOTE_USD,
+        ),
+        responses: syraDataResponsesWithSchema(JUPITER_QUOTE_DATA_SCHEMA),
+      },
       post: {
         tags: ['Jupiter quote (x402)'],
         summary: `${getResourceSummary('jupiter/quote')} (POST)`,
@@ -718,17 +811,18 @@ export function buildGatewayOpenApi() {
                 type: 'object',
                 required: ['inputMint', 'outputMint', 'amount'],
                 properties: {
-                  inputMint: { type: 'string' },
-                  outputMint: { type: 'string' },
-                  amount: { type: 'string' },
-                  slippageBps: { type: 'integer' },
-                  swapMode: { type: 'string' },
+                  inputMint: { type: 'string', description: 'Input token mint (base58)' },
+                  outputMint: { type: 'string', description: 'Output token mint (base58)' },
+                  amount: { type: 'string', description: 'Input amount in raw token units' },
+                  slippageBps: { type: 'integer', description: 'Slippage in basis points (default 50)' },
+                  swapMode: { type: 'string', description: 'Jupiter swapMode e.g. ExactIn' },
                 },
               },
             },
           },
         },
-        responses: responsesFor(true),
+        responses: syraDataResponsesWithSchema(JUPITER_QUOTE_DATA_SCHEMA),
+        'x-syra-pillar': getResourcePillar('jupiter/quote'),
       },
     },
     '/pumpfun/trending': {
@@ -760,22 +854,49 @@ export function buildGatewayOpenApi() {
       ),
     },
     '/pumpfun/analyzer': {
-      get: opGetCat(
-        'pumpfun/analyzer',
-        'pump.fun analyzer (x402)',
-        'getPumpfunAnalyzer',
-        [
-          {
-            name: 'mint',
-            in: 'query',
-            required: true,
-            schema: { type: 'string' },
-            description: 'Solana token mint (base58)',
+      get: {
+        ...opGetCat(
+          'pumpfun/analyzer',
+          'pump.fun analyzer (x402)',
+          'getPumpfunAnalyzer',
+          [
+            {
+              name: 'mint',
+              in: 'query',
+              required: true,
+              schema: { type: 'string' },
+              description: 'Solana token mint (base58)',
+            },
+          ],
+          true,
+          X402_DISPLAY_PRICE_PUMP_FUN_ANALYZER_USD,
+        ),
+        responses: syraDataResponsesWithSchema(PUMPFUN_ANALYZER_DATA_SCHEMA),
+      },
+      post: {
+        tags: ['pump.fun analyzer (x402)'],
+        summary: `${getResourceSummary('pumpfun/analyzer')} (POST)`,
+        description: getResourceDescription('pumpfun/analyzer'),
+        operationId: 'postPumpfunAnalyzer',
+        security: SECURITY_PAID,
+        'x-payment-info': xPaymentInfo(X402_DISPLAY_PRICE_PUMP_FUN_ANALYZER_USD),
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['mint'],
+                properties: {
+                  mint: { type: 'string', description: 'Solana token mint (base58)' },
+                },
+              },
+            },
           },
-        ],
-        true,
-        X402_DISPLAY_PRICE_PUMP_FUN_ANALYZER_USD,
-      ),
+        },
+        responses: syraDataResponsesWithSchema(PUMPFUN_ANALYZER_DATA_SCHEMA),
+        'x-syra-pillar': getResourcePillar('pumpfun/analyzer'),
+      },
     },
     '/pumpfun/scout': {
       get: opGetCat(
@@ -861,19 +982,60 @@ export function buildGatewayOpenApi() {
       ),
     },
     '/assets/detail': {
-      get: opGetCat(
-        'assets/detail',
-        'Asset detail (x402)',
-        'getAssetsDetail',
-        [
-          { name: 'ref', in: 'query', schema: { type: 'string' }, description: 'Ref e.g. btc, solana, apple' },
-          { name: 'mint', in: 'query', schema: { type: 'string' }, description: 'Solana mint (base58)' },
-          { name: 'assetId', in: 'query', schema: { type: 'string' }, description: 'assetId e.g. bitcoin' },
-          { name: 'q', in: 'query', schema: { type: 'string' }, description: 'Freeform lookup (ref, mint, or assetId)' },
-        ],
-        true,
-        X402_DISPLAY_PRICE_ASSETS_DETAIL_USD,
-      ),
+      get: {
+        ...opGetCat(
+          'assets/detail',
+          'Asset detail (x402)',
+          'getAssetsDetail',
+          [
+            {
+              name: 'ref',
+              in: 'query',
+              required: true,
+              schema: { type: 'string' },
+              description: 'Canonical ref e.g. btc, solana, apple (alternatives: mint, assetId, q)',
+            },
+            { name: 'mint', in: 'query', schema: { type: 'string' }, description: 'Solana mint (base58)' },
+            { name: 'assetId', in: 'query', schema: { type: 'string' }, description: 'assetId e.g. bitcoin' },
+            {
+              name: 'q',
+              in: 'query',
+              schema: { type: 'string' },
+              description: 'Freeform lookup (ref, mint, or assetId)',
+            },
+          ],
+          true,
+          X402_DISPLAY_PRICE_ASSETS_DETAIL_USD,
+        ),
+        responses: syraDataResponsesWithSchema(ASSETS_DETAIL_DATA_SCHEMA),
+      },
+      post: {
+        tags: ['Asset detail (x402)'],
+        summary: `${getResourceSummary('assets/detail')} (POST)`,
+        description: getResourceDescription('assets/detail'),
+        operationId: 'postAssetsDetail',
+        security: SECURITY_PAID,
+        'x-payment-info': xPaymentInfo(X402_DISPLAY_PRICE_ASSETS_DETAIL_USD),
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['ref'],
+                properties: {
+                  ref: { type: 'string', description: 'Canonical ref e.g. btc, solana, apple' },
+                  mint: { type: 'string', description: 'Solana mint (base58)' },
+                  assetId: { type: 'string', description: 'Tokens.xyz assetId e.g. bitcoin' },
+                  q: { type: 'string', description: 'Freeform lookup (ref, mint, or assetId)' },
+                },
+              },
+            },
+          },
+        },
+        responses: syraDataResponsesWithSchema(ASSETS_DETAIL_DATA_SCHEMA),
+        'x-syra-pillar': getResourcePillar('assets/detail'),
+      },
     },
     '/bitcoin': {
       get: opGetCat(

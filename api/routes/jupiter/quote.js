@@ -70,7 +70,6 @@ export async function createJupiterQuoteRouter() {
 
   router.get(
     "/",
-    attachParsedQuote,
     requirePayment({
       ...paymentOptionsBase,
       method: "GET",
@@ -88,13 +87,12 @@ export async function createJupiterQuoteRouter() {
         },
       },
     }),
+    attachParsedQuote,
     handleQuote,
   );
 
   router.post(
     "/",
-    express.json(),
-    attachParsedQuote,
     requirePayment({
       ...paymentOptionsBase,
       method: "POST",
@@ -113,6 +111,7 @@ export async function createJupiterQuoteRouter() {
         },
       },
     }),
+    attachParsedQuote,
     handleQuote,
   );
 
