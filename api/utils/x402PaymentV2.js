@@ -14,6 +14,8 @@ import {
 } from "@x402/core/http";
 import { ExpressAdapter } from "@x402/express";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
+import { BUILDER_CODE, declareBuilderCodeExtension } from "@x402/extensions/builder-code";
+import { getBaseBuilderCode } from "../config/baseBuilderCode.js";
 import { Connection } from "@solana/web3.js";
 import { VersionedTransaction } from "@solana/web3.js";
 import bs58 from "bs58";
@@ -841,12 +843,17 @@ async function buildPaymentRequired(bundle, req, options, error) {
   const resourceInfo = { url: resourceUrl, description, mimeType: options.mimeType || "application/json" };
   const outputExample = options.outputExample ?? { ok: true, paid: true };
 
-  const declared = declareDiscoveryExtension({
-    input: options.inputSchema ? { schema: options.inputSchema } : {},
-    inputSchema: options.inputSchema || { type: "object", properties: {}, additionalProperties: false },
-    ...(req.method === "POST" ? { bodyType: "json" } : {}),
-    output: { example: outputExample },
-  });
+  const declared = {
+    ...declareDiscoveryExtension({
+      input: options.inputSchema ? { schema: options.inputSchema } : {},
+      inputSchema: options.inputSchema || { type: "object", properties: {}, additionalProperties: false },
+      ...(req.method === "POST" ? { bodyType: "json" } : {}),
+      output: { example: outputExample },
+    }),
+    ...(getBaseBuilderCode()
+      ? { [BUILDER_CODE]: declareBuilderCodeExtension(getBaseBuilderCode()) }
+      : {}),
+  };
   const extensions = resourceServer.enrichExtensions(declared, { method: req.method, adapter: {} });
 
   return resourceServer.createPaymentRequiredResponse(requirements, resourceInfo, error, extensions);

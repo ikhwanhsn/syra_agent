@@ -394,6 +394,22 @@ async function createX402WrapFetch(keypair, fetchFn) {
 export { registerRequiredExtensionsHook, generatePaymentIdentifier };
 
 /**
+ * Register Base Builder Code client extension when BASE_BUILDER_CODE is set.
+ * Attaches service attribution (`s`) to Base (EVM) x402 payment payloads.
+ *
+ * @param {import('@x402/core/client').x402Client} client
+ * @returns {Promise<import('@x402/core/client').x402Client>}
+ */
+export async function registerBuilderCodeClientExtension(client) {
+  const { getBaseBuilderCode } = await import('../config/baseBuilderCode.js');
+  const code = getBaseBuilderCode();
+  if (!code) return client;
+  const { BuilderCodeClientExtension } = await import('@x402/extensions/builder-code');
+  client.registerExtension(new BuilderCodeClientExtension(code));
+  return client;
+}
+
+/**
  * Call an x402 v2 API using the agent wallet (pay automatically with agent keypair).
  * Uses @x402/fetch (402 → pay → retry), same as `getNansenPaymentFetch` / tester paid probes.
  *

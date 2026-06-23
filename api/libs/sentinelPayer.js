@@ -124,13 +124,14 @@ export async function getBaseX402PaymentFetch() {
   const { wrapFetchWithPayment } = await import("@x402/fetch");
   const { x402Client } = await import("@x402/core/client");
   const { ExactEvmScheme } = await import("@x402/evm/exact/client");
-  const { registerRequiredExtensionsHook } = await import("./agentX402Client.js");
+  const { registerRequiredExtensionsHook, registerBuilderCodeClientExtension } = await import("./agentX402Client.js");
 
   const account = privateKeyToAccount(/** @type {`0x${string}`} */ (`0x${hex}`));
   const scheme = new ExactEvmScheme(account);
   const config = { schemes: [{ network: "eip155:*", client: scheme }] };
   const client = x402Client.fromConfig(config);
   registerRequiredExtensionsHook(client);
+  await registerBuilderCodeClientExtension(client);
   const paymentFetch = wrapFetchWithPayment(globalThis.fetch, client);
 
   if (!isSentinelEnabled()) {

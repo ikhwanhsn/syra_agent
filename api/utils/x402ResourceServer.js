@@ -8,6 +8,7 @@ import { x402ResourceServer, HTTPFacilitatorClient } from "@x402/core/server";
 import { ExactSvmScheme } from "@x402/svm/exact/server";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { bazaarResourceServerExtension } from "@x402/extensions/bazaar";
+import { builderCodeResourceServerExtension } from "@x402/extensions/builder-code";
 import dotenv from "dotenv";
 import { createPayAiFacilitatorAuthHeaders } from "./payaiFacilitatorAuth.js";
 import {
@@ -140,6 +141,7 @@ function buildResourceServerBundle(
   { multiNetwork = false, networkProfile = "payai" } = {}
 ) {
   server.registerExtension(bazaarResourceServerExtension);
+  server.registerExtension(builderCodeResourceServerExtension);
 
   const profile = multiNetwork ? networkProfile : null;
 

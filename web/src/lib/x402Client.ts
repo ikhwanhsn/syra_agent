@@ -141,6 +141,13 @@ export interface X402Response {
         required?: string[];
       };
     };
+    'builder-code'?: {
+      info?: {
+        a?: string;
+        w?: string;
+        s?: string | string[];
+      };
+    };
   };
   // Flag to indicate if this is a generic 402 (not x402 protocol)
   isGeneric402?: boolean;
@@ -793,7 +800,8 @@ function normalizeAcceptedForHeader(
 function buildV2PaymentPayload(
   accepted: Record<string, unknown>,
   payload: Record<string, unknown>,
-  resource?: X402ResourceInfo
+  resource?: X402ResourceInfo,
+  extensions?: Record<string, unknown>
 ): Record<string, unknown> {
   const out: Record<string, unknown> = {
     x402Version: X402_VERSION,
@@ -801,7 +809,49 @@ function buildV2PaymentPayload(
     payload,
   };
   if (resource?.url) out.resource = resource;
+  if (extensions && Object.keys(extensions).length > 0) out.extensions = extensions;
   return out;
+}
+
+/** Echo server `a` and attach client service code `s` for Base builder-code attribution. */
+async function enrichPaymentPayloadWithBuilderCode(
+  paymentPayload: Record<string, unknown>,
+  serverExtensions?: X402Response['extensions']
+): Promise<Record<string, unknown>> {
+  const { getBaseBuilderCode } = await import('@/lib/baseBuilderCode');
+  const clientCode = getBaseBuilderCode();
+  const serverBuilder = serverExtensions?.['builder-code'];
+  const serverA = serverBuilder?.info?.a;
+
+  if (!clientCode && !serverA) return paymentPayload;
+
+  let enriched = paymentPayload;
+  if (serverA) {
+    enriched = {
+      ...enriched,
+      extensions: {
+        ...(enriched.extensions as Record<string, unknown> | undefined),
+        'builder-code': {
+          info: {
+            ...((enriched.extensions as Record<string, unknown> | undefined)?.['builder-code'] as
+              | { info?: Record<string, unknown> }
+              | undefined)?.info,
+            a: serverA,
+          },
+        },
+      },
+    };
+  }
+
+  if (clientCode) {
+    const { BuilderCodeClientExtension } = await import('@x402/extensions/builder-code');
+    enriched = await new BuilderCodeClientExtension(clientCode).enrichPaymentPayload(
+      enriched as import('@x402/core/types').PaymentPayload,
+      { x402Version: X402_VERSION, accepts: [] }
+    );
+  }
+
+  return enriched;
 }
 
 /**
@@ -923,7 +973,8 @@ export async function executeBasePayment(
   evmSigner: EvmSigner,
   paymentOption: X402PaymentOption,
   resourceUrl?: string,
-  resourceFrom402?: X402ResourceInfo
+  resourceFrom402?: X402ResourceInfo,
+  serverExtensions?: X402Response['extensions']
 ): Promise<PaymentResult> {
   const { ExactEvmScheme } = await import('@x402/evm/exact/client');
   const raw = paymentOption as X402PaymentOption & { extra?: { name?: string; version?: string; eip712?: { name?: string; version?: string } } };
@@ -941,12 +992,13 @@ export async function executeBasePayment(
   };
   const scheme = new ExactEvmScheme(evmSigner);
   const result = await scheme.createPaymentPayload(X402_VERSION, paymentRequirements);
-  const paymentHeader = createEvmPaymentHeader(
-    result.payload,
-    paymentOption,
-    resourceUrl,
-    resourceFrom402
+  const accepted = normalizeAcceptedForHeader(
+    paymentOption as X402PaymentOption & { price?: { asset?: string; amount?: string } }
   );
+  const resource = resolveResourceForPayload(resourceUrl, resourceFrom402);
+  let paymentPayload = buildV2PaymentPayload(accepted, result.payload, resource);
+  paymentPayload = await enrichPaymentPayloadWithBuilderCode(paymentPayload, serverExtensions);
+  const paymentHeader = base64EncodeUnicode(JSON.stringify(paymentPayload));
   return {
     success: true,
     paymentHeader,

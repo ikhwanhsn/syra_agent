@@ -6174,7 +6174,8 @@ export function useApiPlayground() {
             evmSigner,
             activeOption,
             resourceUrl,
-            resourceFrom402
+            resourceFrom402,
+            x402Response?.extensions
           );
         }
       } else {

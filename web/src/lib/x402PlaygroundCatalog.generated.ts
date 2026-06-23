@@ -5,7 +5,7 @@
 import type { HttpMethod } from "@/types/api";
 import type { RequestParam } from "@/types/api";
 
-export const X402_PLAYGROUND_GENERATED_AT = "2026-06-22T04:44:53.453Z";
+export const X402_PLAYGROUND_GENERATED_AT = "2026-06-23T00:16:28.644Z";
 
 export interface X402PlaygroundResourceTemplate {
   segment: string;
@@ -311,7 +311,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "MPP Health Check",
       "summary": "Machine Payments Protocol test lane (x402 v2)",
       "description": "MPP-compatible health endpoint with same x402 v2 flow as /health. Use when testing Tempo/Stripe-style machine payment clients against Syra.…",
-      "priceUsd": "0.003",
+      "priceUsd": "0.0001",
       "category": "health"
     }
   },
@@ -760,7 +760,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "8004 Global Stats",
       "summary": "Solana 8004 agent registry aggregate statistics",
       "description": "Global stats for the Solana 8004 trustless agent registry: total agents, feedback counts, trust tiers. Use when an agent surveys the Syra/8…",
-      "priceUsd": "0.01",
+      "priceUsd": "0.012",
       "category": "agents"
     }
   },
@@ -775,7 +775,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "8004 Leaderboard",
       "summary": "Top 8004 agents ranked by trust tier",
       "description": "Leaderboard of registered 8004 agents sorted by trust/reputation. Use when an agent picks high-trust counterparts or benchmarks agent quali…",
-      "priceUsd": "0.01",
+      "priceUsd": "0.012",
       "category": "agents"
     }
   },
@@ -790,7 +790,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "8004 Agent Search",
       "summary": "Search Solana 8004 agents by owner or collection",
       "description": "Search the 8004 agent index by owner wallet, creator, or collection pointer. Use when an agent discovers agents to hire, verify, or compose…",
-      "priceUsd": "0.01",
+      "priceUsd": "0.012",
       "category": "agents"
     }
   }
