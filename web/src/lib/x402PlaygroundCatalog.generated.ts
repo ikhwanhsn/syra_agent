@@ -5,7 +5,7 @@
 import type { HttpMethod } from "@/types/api";
 import type { RequestParam } from "@/types/api";
 
-export const X402_PLAYGROUND_GENERATED_AT = "2026-06-23T00:16:28.644Z";
+export const X402_PLAYGROUND_GENERATED_AT = "2026-06-23T17:17:30.074Z";
 
 export interface X402PlaygroundResourceTemplate {
   segment: string;
@@ -43,7 +43,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "Syra Brain",
       "summary": "Single-question crypto AI with automatic tool selection",
       "description": "Answers one natural-language crypto question by selecting and running Syra tools (news, signals, on-chain reads) server-side. Use when an a…",
-      "priceUsd": "0.5",
+      "priceUsd": "0.08",
       "category": "ai"
     }
   },
@@ -65,7 +65,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "Crypto News",
       "summary": "Latest crypto news headlines and summaries",
       "description": "Curated crypto news articles with titles, sources, and URLs. Use when an agent needs recent headlines for a token, sector, or the whole mar…",
-      "priceUsd": "0.1",
+      "priceUsd": "0.01",
       "category": "news"
     }
   },
@@ -111,7 +111,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "Trading Signal",
       "summary": "AI trading signal from CEX OHLCV technical analysis",
       "description": "Generates a directional trading signal with bias, confidence, entry context, and reasoning from OHLCV candles. Use when an agent needs a te…",
-      "priceUsd": "0.1",
+      "priceUsd": "0.01",
       "category": "signals"
     }
   },
@@ -133,7 +133,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "SPCX SpaceX IPO Intelligence",
       "summary": "SpaceX IPO token (SPCXx) Nasdaq vs on-chain spread",
       "description": "Tokenized equity intelligence for SpaceX IPO exposure (SPCXx). Use when an agent compares Nasdaq reference price vs on-chain SPCX venues fo…",
-      "priceUsd": "0.2",
+      "priceUsd": "0.02",
       "category": "analytics"
     }
   },
@@ -155,7 +155,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "Tokenized Equity Intelligence",
       "summary": "xStocks equity spread — Nasdaq vs on-chain (TSLAx, NVDAx, …)",
       "description": "Parametric tokenized equity intelligence for xStocks symbols. Use when an agent needs Nasdaq vs on-chain premium/discount, venue prices, an…",
-      "priceUsd": "0.2",
+      "priceUsd": "0.02",
       "category": "analytics"
     }
   },
@@ -207,7 +207,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "Technical Indicators",
       "summary": "Combine RSI, MACD, EMA, Bollinger, and 20+ indicators in one call",
       "description": "Computes multiple technical indicators from OHLCV candles in one agent-readable response. Use when an agent needs RSI/MACD/EMA/Bollinger (o…",
-      "priceUsd": "0.1",
+      "priceUsd": "0.01",
       "category": "analytics"
     }
   },
@@ -229,7 +229,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "Market Sentiment",
       "summary": "30-day crypto sentiment scores by ticker",
       "description": "Daily sentiment breakdown (positive/negative/neutral/score) over ~30 days from news-derived analysis. Use when an agent gauges crowd mood o…",
-      "priceUsd": "0.1",
+      "priceUsd": "0.01",
       "category": "analytics"
     }
   },
@@ -251,7 +251,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "Crypto Events",
       "summary": "Upcoming and recent crypto events calendar",
       "description": "Lists conferences, launches, listings, and macro events affecting crypto. Use when an agent schedules research around catalysts or filters…",
-      "priceUsd": "0.1",
+      "priceUsd": "0.01",
       "category": "news"
     }
   },
@@ -333,7 +333,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "Cross-CEX Arbitrage Bundle",
       "summary": "CMC top assets + live CEX snapshots + ranked spreads",
       "description": "Bundles CoinMarketCap-style top tradable assets (stablecoins skipped) with live cross-venue USDT spot snapshots and ranked buy/sell routes…",
-      "priceUsd": "0.4",
+      "priceUsd": "0.04",
       "category": "analytics"
     }
   },
@@ -379,7 +379,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "Jupiter Swap Quote",
       "summary": "Jupiter Swap V1 ExactIn quote with Syra referral fee",
       "description": "Fetches a Jupiter Swap V1 quoteResponse for ExactIn swaps with Syra referral platform fee when configured on-chain. Use when an agent price…",
-      "priceUsd": "0.03",
+      "priceUsd": "0.003",
       "category": "defi"
     }
   },
@@ -413,7 +413,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "pump.fun Trending",
       "summary": "Trending pump.fun coins list",
       "description": "Returns trending pump.fun coins from frontend-api-v3 (falls back to top-runners when primary feed is empty). Use when an agent scans hot me…",
-      "priceUsd": "0.05",
+      "priceUsd": "0.005",
       "category": "defi"
     }
   },
@@ -447,7 +447,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "pump.fun Movers",
       "summary": "pump.fun market movers list",
       "description": "Returns pump.fun market movers from frontend-api-v3 (falls back to currently-live when primary is empty). Use when an agent finds coins wit…",
-      "priceUsd": "0.05",
+      "priceUsd": "0.005",
       "category": "defi"
     }
   },
@@ -469,7 +469,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "pump.fun Memecoin Analyzer",
       "summary": "Full memecoin due-diligence for any Solana mint",
       "description": "Deep memecoin analysis for pump.fun or graduated tokens. Use when an agent must score risk/reward before trading. Input: mint (base58). Ret…",
-      "priceUsd": "0.1",
+      "priceUsd": "0.02",
       "category": "analytics"
     }
   },
@@ -515,7 +515,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "pump.fun Scout",
       "summary": "Live pump.fun alpha/beta/predicted/utility scout",
       "description": "Live pump.fun intelligence with selector param segment=alpha|beta|predicted|utility. Optional period, limit, minPumpScore, llm. Returns sco…",
-      "priceUsd": "0.1",
+      "priceUsd": "0.01",
       "category": "analytics"
     }
   },
@@ -555,7 +555,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "RISE Scout",
       "summary": "Live RISE market intel and agent targets",
       "description": "Live RISE intelligence with view=intel|markets|targets. Optional mint, limit, tier=ready|watch. Returns UPONLY token snapshot, fund lens, r…",
-      "priceUsd": "0.1",
+      "priceUsd": "0.01",
       "category": "analytics"
     }
   },
@@ -601,7 +601,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "CoinGecko Scout",
       "summary": "Live CoinGecko top gainers brief",
       "description": "Live CoinGecko scout with view=brief|gainers|predictions. Optional topN, minMarketCap, includeNews, llm. Returns top gainers, digests, pred…",
-      "priceUsd": "0.1",
+      "priceUsd": "0.01",
       "category": "analytics"
     }
   },
@@ -671,7 +671,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "Assets Board",
       "summary": "Tokens.xyz curated assets board with filter and sort",
       "description": "Paginated curated assets board (crypto + tokenized stocks) from Tokens.xyz — same data as the Syra Assets page. Use when an agent needs a r…",
-      "priceUsd": "0.05",
+      "priceUsd": "0.005",
       "category": "analytics"
     }
   },
@@ -711,7 +711,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "Asset Detail",
       "summary": "Tokens.xyz mint dossier for one asset",
       "description": "Full asset dossier: profile, risk, markets, and 1H OHLCV for a canonical asset. Use when an agent researches BTC, SOL, a stock token, or an…",
-      "priceUsd": "0.05",
+      "priceUsd": "0.005",
       "category": "analytics"
     }
   },
@@ -745,7 +745,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "Bitcoin Intelligence Hub",
       "summary": "Full Bitcoin dashboard + taker-flow bubblemap",
       "description": "Complete Bitcoin intelligence bundle from the Syra BTC page. Use when an agent needs macro BTC context: price, derivatives, technicals, sen…",
-      "priceUsd": "0.1",
+      "priceUsd": "0.01",
       "category": "analytics"
     }
   },

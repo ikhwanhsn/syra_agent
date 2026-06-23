@@ -17,6 +17,7 @@ import Index from "@/pages/Index";
 import InternalTeamAgentsMonitor from "@/pages/InternalTeamAgentsMonitor";
 import InternalWalletsPage from "@/pages/InternalWalletsPage";
 import InternalAgentDetailPage from "@/pages/InternalAgentDetailPage";
+import AlphaTechPage from "@/pages/AlphaTechPage";
 import { LegacyInternalTeamAgentsRedirect } from "@/pages/LegacyInternalRedirect";
 import {
   LegacyDashboardPrefixRedirect,
@@ -215,6 +216,14 @@ function AppRoutes() {
             <Route path="/btc" element={<BtcPage />} />
             <Route path="/hackathon" element={<RedirectToS3Labs path="/hackathon" />} />
             <Route path="/hackathon/*" element={<RedirectToS3Labs path="/hackathon" />} />
+            <Route
+              path="/alphatech"
+              element={
+                <AdminDashboardGate featureLabel="AlphaTech screener">
+                  <AlphaTechPage />
+                </AdminDashboardGate>
+              }
+            />
             <Route
               path="/internal"
               element={

@@ -165,7 +165,7 @@
           "price": {
             "mode": "fixed",
             "currency": "USD",
-            "amount": "0.1"
+            "amount": "0.01"
           }
         },
         "parameters": [
@@ -325,7 +325,7 @@
           "price": {
             "mode": "fixed",
             "currency": "USD",
-            "amount": "0.1"
+            "amount": "0.01"
           }
         },
         "requestBody": {
@@ -641,7 +641,7 @@
           "price": {
             "mode": "fixed",
             "currency": "USD",
-            "amount": "0.1"
+            "amount": "0.01"
           }
         },
         "parameters": [
@@ -744,7 +744,7 @@
           "price": {
             "mode": "fixed",
             "currency": "USD",
-            "amount": "0.1"
+            "amount": "0.01"
           }
         },
         "requestBody": {
@@ -849,7 +849,7 @@
           "price": {
             "mode": "fixed",
             "currency": "USD",
-            "amount": "0.1"
+            "amount": "0.01"
           }
         },
         "parameters": [
@@ -952,7 +952,7 @@
           "price": {
             "mode": "fixed",
             "currency": "USD",
-            "amount": "0.1"
+            "amount": "0.01"
           }
         },
         "requestBody": {
@@ -1057,7 +1057,7 @@
           "price": {
             "mode": "fixed",
             "currency": "USD",
-            "amount": "0.1"
+            "amount": "0.01"
           }
         },
         "parameters": [
@@ -1160,7 +1160,7 @@
           "price": {
             "mode": "fixed",
             "currency": "USD",
-            "amount": "0.1"
+            "amount": "0.01"
           }
         },
         "requestBody": {
@@ -1461,7 +1461,7 @@
           "price": {
             "mode": "fixed",
             "currency": "USD",
-            "amount": "0.5"
+            "amount": "0.08"
           }
         },
         "parameters": [
@@ -1563,7 +1563,7 @@
           "price": {
             "mode": "fixed",
             "currency": "USD",
-            "amount": "0.5"
+            "amount": "0.08"
           }
         },
         "requestBody": {
@@ -1668,7 +1668,7 @@
           "price": {
             "mode": "fixed",
             "currency": "USD",
-            "amount": "0.4"
+            "amount": "0.04"
           }
         },
         "parameters": [
@@ -1773,7 +1773,7 @@
           "price": {
             "mode": "fixed",
             "currency": "USD",
-            "amount": "0.4"
+            "amount": "0.04"
           }
         },
         "requestBody": {
@@ -1878,7 +1878,7 @@
           "price": {
             "mode": "fixed",
             "currency": "USD",
-            "amount": "0.2"
+            "amount": "0.024"
           }
         },
         "parameters": [
@@ -2083,7 +2083,7 @@
           "price": {
             "mode": "fixed",
             "currency": "USD",
-            "amount": "0.2"
+            "amount": "0.024"
           }
         },
         "requestBody": {
@@ -2285,7 +2285,7 @@
           "price": {
             "mode": "fixed",
             "currency": "USD",
-            "amount": "0.2"
+            "amount": "0.02"
           }
         },
         "parameters": [
@@ -2388,7 +2388,7 @@
           "price": {
             "mode": "fixed",
             "currency": "USD",
-            "amount": "0.2"
+            "amount": "0.02"
           }
         },
         "parameters": [
@@ -2491,7 +2491,7 @@
           "price": {
             "mode": "fixed",
             "currency": "USD",
-            "amount": "0.03"
+            "amount": "0.003"
           }
         },
         "parameters": [
@@ -2655,7 +2655,7 @@
           "price": {
             "mode": "fixed",
             "currency": "USD",
-            "amount": "0.03"
+            "amount": "0.003"
           }
         },
         "requestBody": {
@@ -2814,7 +2814,7 @@
           "price": {
             "mode": "fixed",
             "currency": "USD",
-            "amount": "0.05"
+            "amount": "0.005"
           }
         },
         "parameters": [
@@ -2933,7 +2933,7 @@
           "price": {
             "mode": "fixed",
             "currency": "USD",
-            "amount": "0.05"
+            "amount": "0.005"
           }
         },
         "parameters": [
@@ -3052,7 +3052,7 @@
           "price": {
             "mode": "fixed",
             "currency": "USD",
-            "amount": "0.1"
+            "amount": "0.02"
           }
         },
         "parameters": [
@@ -3208,7 +3208,7 @@
           "price": {
             "mode": "fixed",
             "currency": "USD",
-            "amount": "0.1"
+            "amount": "0.02"
           }
         },
         "requestBody": {
@@ -3374,7 +3374,7 @@
           "price": {
             "mode": "fixed",
             "currency": "USD",
-            "amount": "0.1"
+            "amount": "0.01"
           }
         },
         "parameters": [
@@ -3509,7 +3509,7 @@
           "price": {
             "mode": "fixed",
             "currency": "USD",
-            "amount": "0.1"
+            "amount": "0.01"
           }
         },
         "parameters": [
@@ -3634,7 +3634,7 @@
           "price": {
             "mode": "fixed",
             "currency": "USD",
-            "amount": "0.1"
+            "amount": "0.01"
           }
         },
         "parameters": [
@@ -3769,7 +3769,7 @@
           "price": {
             "mode": "fixed",
             "currency": "USD",
-            "amount": "0.05"
+            "amount": "0.005"
           }
         },
         "parameters": [
@@ -3969,7 +3969,7 @@
           "price": {
             "mode": "fixed",
             "currency": "USD",
-            "amount": "0.05"
+            "amount": "0.005"
           }
         },
         "parameters": [
@@ -4140,7 +4140,7 @@
           "price": {
             "mode": "fixed",
             "currency": "USD",
-            "amount": "0.05"
+            "amount": "0.005"
           }
         },
         "requestBody": {
@@ -4309,7 +4309,7 @@
           "price": {
             "mode": "fixed",
             "currency": "USD",
-            "amount": "0.1"
+            "amount": "0.01"
           }
         },
         "parameters": [
@@ -4442,7 +4442,7 @@
           "price": {
             "mode": "fixed",
             "currency": "USD",
-            "amount": "0.1"
+            "amount": "0.01"
           }
         },
         "parameters": [
@@ -4584,7 +4584,7 @@
           "price": {
             "mode": "fixed",
             "currency": "USD",
-            "amount": "0.1"
+            "amount": "0.01"
           }
         },
         "requestBody": {

@@ -3,6 +3,7 @@ import { useLocation } from "@/lib/navigation";
 import type { ReactNode } from "react";
 import {
   LayoutDashboard,
+  Radar,
   UsersRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -52,6 +53,7 @@ function dashboardPageTitle(pathname: string, search: string): string {
   if (parts[0] === "arbitrage-experiment") return "Arbitrage experiment";
   if (parts[0] === "lp-experiment") return "LP agent experiment";
   if (parts[0] === "btc") return "Bitcoin";
+  if (parts[0] === "alphatech") return "AlphaTech";
   if (parts[0] === "internal") {
     if (parts[1]) {
       const slug = parts[1];
@@ -140,6 +142,13 @@ function DashboardSidebarContent({
                 items={DASHBOARD_EXPERIMENT_NAV}
                 groupBadge={INTERNAL_TEAM_SIDEBAR_BADGE}
               />
+              <SidebarNavLink
+                to="/alphatech"
+                icon={Radar}
+                badge={INTERNAL_TEAM_SIDEBAR_BADGE}
+              >
+                AlphaTech
+              </SidebarNavLink>
               <SidebarNavLink
                 to={INTERNAL_BASE_PATH}
                 icon={UsersRound}

@@ -172,31 +172,42 @@ function truncateText(text: string | undefined, max = 140): string | undefined {
   return `${t.slice(0, max - 1).trim()}…`;
 }
 
+function resolveLivePriceUsd(
+  op: OpenApiOperation | undefined,
+  detail: WellKnownResourceDetail | undefined,
+): string | undefined {
+  const priceFromOp = op?.["x-payment-info"]?.price?.amount;
+  if (priceFromOp != null && priceFromOp !== "") return String(priceFromOp);
+  if (detail?.price != null && !Number.isNaN(Number(detail.price))) {
+    return String(detail.price);
+  }
+  return undefined;
+}
+
 function buildCatalogMetaFromSources(
   segment: string,
   op: OpenApiOperation | undefined,
   detail: WellKnownResourceDetail | undefined,
   generated: X402PlaygroundResourceTemplate | undefined,
 ): X402FlowCatalogMeta {
-  if (generated?.catalogMeta) return generated.catalogMeta;
+  const livePriceUsd = resolveLivePriceUsd(op, detail);
+
+  if (generated?.catalogMeta) {
+    return {
+      ...generated.catalogMeta,
+      ...(livePriceUsd ? { priceUsd: livePriceUsd } : {}),
+    };
+  }
 
   const name = detail?.name?.trim() || op?.summary?.trim() || segment;
   const summary = op?.summary?.trim() || name;
-  const priceFromOp = op?.["x-payment-info"]?.price?.amount;
-  const priceFromDetail =
-    detail?.price != null && !Number.isNaN(Number(detail.price))
-      ? String(detail.price)
-      : undefined;
 
   return {
     segment,
     name,
-    summary: summary === name ? generated?.catalogMeta?.summary ?? "" : summary,
+    summary: summary === name ? "" : summary,
     description: truncateText(detail?.description ?? op?.description),
-    priceUsd:
-      priceFromOp != null && priceFromOp !== ""
-        ? String(priceFromOp)
-        : priceFromDetail,
+    priceUsd: livePriceUsd,
     category: generated?.catalogMeta?.category,
   };
 }

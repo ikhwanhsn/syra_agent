@@ -55,4 +55,25 @@ describe("x402OpenApiToExampleFlows", () => {
       true,
     );
   });
+
+  it("prefers live openapi x-payment-info price over generated catalog fallback", () => {
+    const openapi = {
+      paths: {
+        "/news": {
+          get: {
+            summary: "Latest crypto news headlines and summaries",
+            "x-payment-info": {
+              price: { mode: "fixed", currency: "USD", amount: "0.01" },
+            },
+          },
+        },
+      },
+    };
+    const flows = buildX402DiscoveryFlowsFromOpenApi(
+      "https://api.syraa.fun",
+      ["news"],
+      openapi,
+    );
+    expect(flows[0]?.catalogMeta?.priceUsd).toBe("0.01");
+  });
 });
