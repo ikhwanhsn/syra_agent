@@ -13,7 +13,7 @@ import {
   encodePaymentResponseHeader,
 } from "@x402/core/http";
 import { ExpressAdapter } from "@x402/express";
-import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
+import { declareDiscoveryExtension, BAZAAR, sanitizeResourceServiceMetadata } from "@x402/extensions/bazaar";
 import { BUILDER_CODE, declareBuilderCodeExtension } from "@x402/extensions/builder-code";
 import { getBaseBuilderCode } from "../config/baseBuilderCode.js";
 import { Connection } from "@solana/web3.js";
@@ -40,6 +40,7 @@ import {
   getB402PayTo,
   getB402TokenById,
   isB402Enabled,
+  isB402BazaarEnabled,
   isB402Network,
   x402MicroToBscTokenAtomic,
 } from "../config/b402Networks.js";
@@ -64,6 +65,11 @@ import { recordX402Call, resolveInboundFacilitator } from "./recordX402Call.js";
 import { buybackSYRAFromRevenue } from "./buybackSYRA.js";
 import { isTesterAgentInternalProbeRequest } from "./testerAgentProbe.js";
 import { isShadowfeedPartnerRequest, markShadowfeedPartnerBypass } from "./shadowfeedPartner.js";
+import {
+  SYRA_B402_BAZAAR_ICON_URL,
+  SYRA_B402_BAZAAR_SERVICE_NAME,
+  SYRA_B402_BAZAAR_TAGS,
+} from "../config/syraBranding.js";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -792,6 +798,54 @@ async function resolvePayToForRequest(options, req) {
   return normalizePayToOverride(raw);
 }
 
+/** Sanitized Syra service metadata for B402 Bazaar resource listings. */
+function getSyraB402ServiceMetadata() {
+  return sanitizeResourceServiceMetadata({
+    serviceName: SYRA_B402_BAZAAR_SERVICE_NAME,
+    tags: SYRA_B402_BAZAAR_TAGS,
+    iconUrl: SYRA_B402_BAZAAR_ICON_URL,
+  });
+}
+
+/**
+ * Build enriched x402 extensions (bazaar + optional builder-code) for 402 and B402 settle.
+ * @param {import('@x402/core/server').x402ResourceServer} resourceServer
+ * @param {import('express').Request} req
+ * @param {object} options - requirePayment options
+ */
+function buildBazaarExtensions(resourceServer, req, options) {
+  const outputExample = options.outputExample ?? { ok: true, paid: true };
+  const declared = {
+    ...declareDiscoveryExtension({
+      input: options.inputSchema ? { schema: options.inputSchema } : {},
+      inputSchema: options.inputSchema || { type: "object", properties: {}, additionalProperties: false },
+      ...(req.method === "POST" ? { bodyType: "json" } : {}),
+      output: { example: outputExample },
+    }),
+    ...(getBaseBuilderCode()
+      ? { [BUILDER_CODE]: declareBuilderCodeExtension(getBaseBuilderCode()) }
+      : {}),
+  };
+  return resourceServer.enrichExtensions(declared, { method: req.method, adapter: {} });
+}
+
+/** ResourceInfo with Syra Bazaar service metadata for B402 settle payloads. */
+function buildB402BazaarResourceInfo({ url, description, mimeType }) {
+  const base = normalizeResourceInfo({
+    url,
+    description,
+    mimeType: mimeType || "application/json",
+  });
+  if (!base) return undefined;
+  return normalizeResourceInfo({ ...base, ...getSyraB402ServiceMetadata() });
+}
+
+/** Resolve B402 settle options (bazaar blob) stashed on req.x402Payment. */
+function resolveB402SettleOptions(req) {
+  const blob = req?.x402Payment?.bazaarExtensions?.[BAZAAR.key];
+  return blob && typeof blob === "object" ? { bazaar: blob } : {};
+}
+
 async function buildPaymentRequired(bundle, req, options, error) {
   const adapter = new ExpressAdapter(req);
   const { resourceServer, config, assets } = bundle;
@@ -841,20 +895,7 @@ async function buildPaymentRequired(bundle, req, options, error) {
 
   const description = options.description || "x402 V2 endpoint";
   const resourceInfo = { url: resourceUrl, description, mimeType: options.mimeType || "application/json" };
-  const outputExample = options.outputExample ?? { ok: true, paid: true };
-
-  const declared = {
-    ...declareDiscoveryExtension({
-      input: options.inputSchema ? { schema: options.inputSchema } : {},
-      inputSchema: options.inputSchema || { type: "object", properties: {}, additionalProperties: false },
-      ...(req.method === "POST" ? { bodyType: "json" } : {}),
-      output: { example: outputExample },
-    }),
-    ...(getBaseBuilderCode()
-      ? { [BUILDER_CODE]: declareBuilderCodeExtension(getBaseBuilderCode()) }
-      : {}),
-  };
-  const extensions = resourceServer.enrichExtensions(declared, { method: req.method, adapter: {} });
+  const extensions = buildBazaarExtensions(resourceServer, req, options);
 
   return resourceServer.createPaymentRequiredResponse(requirements, resourceInfo, error, extensions);
 }
@@ -864,20 +905,35 @@ function json402(res, paymentRequired) {
   res.status(402).type("application/json").send(paymentRequired);
 }
 
-/** Ensure B402 verify receives x402 v2 ResourceInfo on the payment payload root. */
+/** Ensure B402 verify/settle receives x402 v2 ResourceInfo on the payment payload root. */
 function enrichB402PayloadResource(payload, req, options) {
   if (!payload || typeof payload !== "object") return payload;
-  if (normalizeResourceInfo(payload.resource)) return payload;
+  const serviceMeta = isB402BazaarEnabled() ? getSyraB402ServiceMetadata() : {};
+  const existing = normalizeResourceInfo(payload.resource);
+  if (existing) {
+    if (Object.keys(serviceMeta).length === 0) return payload;
+    return {
+      ...payload,
+      resource: normalizeResourceInfo({ ...existing, ...serviceMeta }),
+    };
+  }
   const legacy = normalizeResourceInfo(payload.accepted?.resource);
   if (legacy) {
-    return { ...payload, resource: legacy };
+    return {
+      ...payload,
+      resource: normalizeResourceInfo({ ...legacy, ...serviceMeta }),
+    };
   }
   const adapter = new ExpressAdapter(req);
   const url = adapter.getUrl();
   if (!url) return payload;
   return {
     ...payload,
-    resource: {
+    resource: buildB402BazaarResourceInfo({
+      url,
+      description: options?.description,
+      mimeType: options?.mimeType || "application/json",
+    }) ?? {
       url,
       description: options?.description,
       mimeType: options?.mimeType || "application/json",
@@ -1077,10 +1133,9 @@ export function requirePayment(options) {
       const useAlgorandFacilitator = shouldUseAlgorandFacilitator(acc);
       const useB402Facilitator =
         !useAlgorandFacilitator && shouldUseB402Facilitator(acc, payload);
-      const payloadForB402 =
-        useB402Facilitator && !normalizeResourceInfo(payload?.resource)
-          ? enrichB402PayloadResource(payload, req, options)
-          : payload;
+      const payloadForB402 = useB402Facilitator
+        ? enrichB402PayloadResource(payload, req, options)
+        : payload;
       x402Log("payment_retry", {
         method: req.method,
         path: req.path,
@@ -1172,6 +1227,11 @@ export function requirePayment(options) {
         return;
       }
 
+      const bazaarExtensions =
+        useB402Facilitator && isB402BazaarEnabled()
+          ? buildBazaarExtensions(resourceServer, req, options)
+          : undefined;
+
       req.x402Payment = {
         payload: useB402Facilitator ? payloadForB402 : payload,
         accepted: acc,
@@ -1180,6 +1240,7 @@ export function requirePayment(options) {
         useB402Facilitator,
         useAlgorandFacilitator,
         skipRevenueBuyback: Boolean(payToOverride?.solanaPayTo || payToOverride?.evmPayTo),
+        bazaarExtensions,
       };
       x402Log("verify_ok", {
         method: req.method,
@@ -1230,7 +1291,7 @@ async function tryFacilitatorThenLocalSettle(payload, accepted, req) {
 
   if (req?.x402Payment?.useB402Facilitator || shouldUseB402Facilitator(accepted, payload)) {
     const settle = await withTimeout(
-      b402SettlePayment(payload, accepted),
+      b402SettlePayment(payload, accepted, resolveB402SettleOptions(req)),
       X402_SETTLE_FACILITATOR_TIMEOUT_MS,
       "settle_timeout"
     );
@@ -1481,7 +1542,7 @@ export function getX402Handler(req) {
         return avmServer.settlePayment(payload, accepted);
       }
       if (req?.x402Payment?.useB402Facilitator || shouldUseB402Facilitator(accepted, payload)) {
-        return b402SettlePayment(payload, accepted);
+        return b402SettlePayment(payload, accepted, resolveB402SettleOptions(req));
       }
       return resourceServer.settlePayment(payload, accepted);
     },

@@ -112,6 +112,14 @@ export function isB402Enabled() {
   return hasB402MerchantCredentials() && Boolean(env("B402_PAY_TO"));
 }
 
+/** Opt-in B402 Bazaar discovery indexing on BSC settles (default ON when B402 merchant is enabled). */
+export function isB402BazaarEnabled() {
+  const flag = env("B402_BAZAAR_ENABLED").toLowerCase();
+  if (flag === "false" || flag === "0") return false;
+  if (flag === "true" || flag === "1") return true;
+  return isB402Enabled();
+}
+
 export function getB402PayTo() {
   return env("B402_PAY_TO");
 }

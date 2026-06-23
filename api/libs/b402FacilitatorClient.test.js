@@ -12,9 +12,10 @@ import {
   buildPaymentRequirementsForB402,
   normalizeResourceInfo,
   resolveB402SettleAmount,
+  injectBazaarIntoPaymentPayload,
   clearB402SupportedCache,
 } from "./b402FacilitatorClient.js";
-import { x402MicroToBscTokenAtomic } from "../config/b402Networks.js";
+import { x402MicroToBscTokenAtomic, isB402BazaarEnabled } from "../config/b402Networks.js";
 
 function generateTestKeyPem() {
   const { privateKey } = crypto.generateKeyPairSync("rsa", {
@@ -197,4 +198,80 @@ test("buildPaymentRequirementsForB402 strips nested eip712 from extra", () => {
 
 test("clearB402SupportedCache does not throw", () => {
   clearB402SupportedCache();
+});
+
+test("injectBazaarIntoPaymentPayload attaches blob and preserves resource", () => {
+  const payload = {
+    x402Version: 2,
+    resource: { url: "https://api.syraa.fun/coingecko", description: "CoinGecko scout" },
+    accepted: { network: "eip155:56" },
+    payload: { signature: "0xabc" },
+  };
+  const bazaar = {
+    info: { input: { type: "http", method: "GET" }, output: { type: "json", example: {} } },
+    schema: { type: "object", properties: { input: { type: "object" } }, required: ["input"] },
+  };
+  const out = injectBazaarIntoPaymentPayload(payload, bazaar);
+  assert.equal(out.resource.url, "https://api.syraa.fun/coingecko");
+  assert.deepEqual(out.extensions?.bazaar, bazaar);
+});
+
+test("injectBazaarIntoPaymentPayload skips when bazaar is absent", () => {
+  const payload = { x402Version: 2, resource: { url: "https://api.syraa.fun/health" } };
+  const out = injectBazaarIntoPaymentPayload(payload, null);
+  assert.equal(out, payload);
+  assert.equal(out.extensions, undefined);
+});
+
+test("normalizeResourceInfo preserves valid Bazaar service metadata", () => {
+  assert.deepEqual(
+    normalizeResourceInfo({
+      url: "https://api.syraa.fun/coingecko",
+      description: "CoinGecko scout",
+      mimeType: "application/json",
+      serviceName: "Syra",
+      tags: ["agents", "x402", "machine-money"],
+      iconUrl: "https://api.syraa.fun/favicon.ico",
+    }),
+    {
+      url: "https://api.syraa.fun/coingecko",
+      description: "CoinGecko scout",
+      mimeType: "application/json",
+      serviceName: "Syra",
+      tags: ["agents", "x402", "machine-money"],
+      iconUrl: "https://api.syraa.fun/favicon.ico",
+    }
+  );
+});
+
+test("normalizeResourceInfo drops invalid Bazaar service metadata", () => {
+  const out = normalizeResourceInfo({
+    url: "https://api.syraa.fun/coingecko",
+    serviceName: "",
+    tags: ["", "x".repeat(40)],
+    iconUrl: "file:///etc/passwd",
+  });
+  assert.equal(out.url, "https://api.syraa.fun/coingecko");
+  assert.equal(out.serviceName, undefined);
+  assert.equal(out.tags, undefined);
+  assert.equal(out.iconUrl, undefined);
+});
+
+test("isB402BazaarEnabled respects B402_BAZAAR_ENABLED=false", () => {
+  const prevEnabled = process.env.X402_B402_ENABLED;
+  const prevPayTo = process.env.B402_PAY_TO;
+  const prevFlag = process.env.B402_BAZAAR_ENABLED;
+  process.env.X402_B402_ENABLED = "true";
+  process.env.B402_PAY_TO = "0xMerchant";
+  process.env.B402_BAZAAR_ENABLED = "false";
+  try {
+    assert.equal(isB402BazaarEnabled(), false);
+  } finally {
+    if (prevEnabled === undefined) delete process.env.X402_B402_ENABLED;
+    else process.env.X402_B402_ENABLED = prevEnabled;
+    if (prevPayTo === undefined) delete process.env.B402_PAY_TO;
+    else process.env.B402_PAY_TO = prevPayTo;
+    if (prevFlag === undefined) delete process.env.B402_BAZAAR_ENABLED;
+    else process.env.B402_BAZAAR_ENABLED = prevFlag;
+  }
 });

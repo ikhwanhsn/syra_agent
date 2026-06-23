@@ -5,6 +5,7 @@
  */
 import crypto from "node:crypto";
 import { readFileSync, existsSync } from "node:fs";
+import { sanitizeResourceServiceMetadata } from "@x402/extensions/bazaar";
 import {
   loadPrivateKeyPemFromEnv,
   resolveB402PrivateKeyFilePath,
@@ -24,11 +25,42 @@ function isB402Debug() {
 }
 
 function b402Log(event, detail) {
-  if (!isB402Debug() && event !== "verify_failed" && event !== "settle_failed" && event !== "http_error") {
+  if (
+    !isB402Debug() &&
+    event !== "verify_failed" &&
+    event !== "settle_failed" &&
+    event !== "http_error" &&
+    event !== "bazaar_index" &&
+    event !== "bazaar_index_parse_failed"
+  ) {
     return;
   }
   const line = detail && typeof detail === "object" ? JSON.stringify(detail) : String(detail ?? "");
   console.log(`[b402] ${event}${line ? ` ${line}` : ""}`);
+}
+
+/** Decode EXTENSION-RESPONSES header from B402 settle and log Bazaar indexer outcome. */
+function logB402BazaarExtensionResponse(res, path) {
+  if (!String(path || "").includes("/settle")) return;
+  const raw =
+    res.headers.get("extension-responses") || res.headers.get("EXTENSION-RESPONSES") || "";
+  if (!raw) return;
+  try {
+    const decoded = JSON.parse(Buffer.from(raw, "base64").toString("utf8"));
+    const bazaar = decoded?.bazaar;
+    if (!bazaar || typeof bazaar !== "object") return;
+    b402Log("bazaar_index", {
+      status: bazaar.status,
+      rejectedReason: bazaar.rejectedReason,
+    });
+    const reason = bazaar.rejectedReason ? ` reason=${bazaar.rejectedReason}` : "";
+    console.log(`[b402-bazaar] status=${bazaar.status ?? "unknown"}${reason}`);
+  } catch (e) {
+    b402Log("bazaar_index_parse_failed", {
+      error: e?.message || String(e),
+      raw: String(raw).slice(0, 120),
+    });
+  }
 }
 
 /** @returns {number | null} RSA modulus length of the configured private key. */
@@ -261,6 +293,7 @@ async function b402Post(path, bodyObj, timeoutMs) {
       };
     }
     const norm = normalizeB402Response(parsed);
+    logB402BazaarExtensionResponse(res, path);
     if (!res.ok || isB402Debug()) {
       b402Log(res.ok ? "http_ok" : "http_error", {
         path,
@@ -351,12 +384,30 @@ export function normalizeResourceInfo(resource) {
     const out = { url: String(resource.url).trim() };
     if (resource.description) out.description = String(resource.description);
     if (resource.mimeType) out.mimeType = String(resource.mimeType);
+    const serviceMeta = sanitizeResourceServiceMetadata(resource);
+    if (serviceMeta.serviceName) out.serviceName = serviceMeta.serviceName;
+    if (serviceMeta.tags) out.tags = serviceMeta.tags;
+    if (serviceMeta.iconUrl) out.iconUrl = serviceMeta.iconUrl;
     return out.url ? out : undefined;
   }
   if (typeof resource === "string" && resource.trim()) {
     return { url: resource.trim() };
   }
   return undefined;
+}
+
+/**
+ * Attach bazaar discovery blob to a B402 paymentPayload (server-side opt-in).
+ * @param {object} paymentPayload
+ * @param {object | null | undefined} bazaar
+ */
+export function injectBazaarIntoPaymentPayload(paymentPayload, bazaar) {
+  if (!paymentPayload || typeof paymentPayload !== "object") return paymentPayload;
+  if (!bazaar || typeof bazaar !== "object") return paymentPayload;
+  return {
+    ...paymentPayload,
+    extensions: { ...(paymentPayload.extensions || {}), bazaar },
+  };
 }
 
 /**
@@ -472,15 +523,18 @@ export async function verifyPayment(decoded, acceptedOverride) {
 /**
  * @param {object} decoded
  * @param {object} [acceptedOverride]
- * @param {string} [settleAmount] - For permit2-upto only
+ * @param {{ bazaar?: object }} [settleOptions]
  */
-export async function settlePayment(decoded, acceptedOverride, settleAmount) {
+export async function settlePayment(decoded, acceptedOverride, settleOptions = {}) {
   const keyCheck = validateB402SigningKey();
   if (!keyCheck.ok) {
     return { success: false, errorReason: keyCheck.error };
   }
   const accepted = acceptedOverride ?? decoded?.accepted;
-  const paymentPayload = buildPaymentPayloadForB402(decoded);
+  let paymentPayload = buildPaymentPayloadForB402(decoded);
+  if (settleOptions?.bazaar) {
+    paymentPayload = injectBazaarIntoPaymentPayload(paymentPayload, settleOptions.bazaar);
+  }
   const paymentRequirements = buildPaymentRequirementsForB402(decoded, accepted);
   const auth = paymentPayload?.payload?.authorization;
   if (auth?.from && accepted?.asset && auth?.value != null) {

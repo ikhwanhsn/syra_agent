@@ -23,3 +23,9 @@ export const SYRA_PILLAR_NOTICE = [
   "Payments become one feature",
   "Wealth becomes the narrative",
 ];
+
+/** B402 Bazaar discovery metadata (service-level fields on paymentPayload.resource). */
+export const SYRA_B402_BAZAAR_SERVICE_NAME = "Syra";
+export const SYRA_B402_BAZAAR_TAGS = ["agents", "x402", "machine-money"];
+export const SYRA_B402_BAZAAR_ICON_URL =
+  String(process.env.SYRA_BAZAAR_ICON_URL || "https://api.syraa.fun/favicon.ico").trim();
