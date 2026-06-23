@@ -149,6 +149,7 @@ import {
 import { isB402Enabled } from "./config/b402Networks.js";
 import { getAlgorandPublicStatus, isAlgorandEnabled } from "./config/algorandX402Networks.js";
 import { startupInfo, startupVerbose, startupWarn } from "./utils/startupLog.js";
+import { startMemoryHygiene } from "./utils/memoryHygiene.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1539,6 +1540,7 @@ import("./utils/x402ResourceServer.js").then(({ ensureX402ResourceServerInitiali
 
 app.listen(PORT, () => {
   startupInfo(`[syra-api] listening on port ${PORT}`);
+  startMemoryHygiene();
 
   import("./libs/solanaServerRpc.js")
     .then(({ logSolanaRpcStartupProbe }) => logSolanaRpcStartupProbe())

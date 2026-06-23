@@ -23,7 +23,11 @@ import { getPoolWalletAddress } from "../../services/kolPoolWallet.js";
 import {
   KOL_PLATFORM_FEE_BPS,
   KOL_USER_REWARD_BPS,
+  MAX_DURATION_DAYS,
+  MIN_DURATION_DAYS,
+  MIN_KOL_REWARD_SOL,
   getS3labsFeeWallet,
+  minTotalDepositSol,
 } from "../../config/kolMarketplaceConfig.js";
 
 function handleServiceError(res, error) {
@@ -71,8 +75,10 @@ export function createKolRouter() {
       success: true,
       data: {
         poolWalletAddress: getPoolWalletAddress(),
-        minRewardSol: 0.01,
-        maxDurationDays: 90,
+        minRewardSol: minTotalDepositSol(),
+        minKolRewardSol: MIN_KOL_REWARD_SOL,
+        minDurationDays: MIN_DURATION_DAYS,
+        maxDurationDays: MAX_DURATION_DAYS,
         kolRewardPercent: KOL_USER_REWARD_BPS / 100,
         platformFeePercent: KOL_PLATFORM_FEE_BPS / 100,
         platformFeeWallet: getS3labsFeeWallet(),

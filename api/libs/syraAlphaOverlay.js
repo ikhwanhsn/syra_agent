@@ -5,10 +5,14 @@
 import { perceiveBitgetMarket } from "./integrations/bitget/bitgetAgentHubClient.js";
 import { fetchSmartMoney } from "./analyticsFetchers.js";
 import { fetchSentimentTicker } from "./internalNewsAgent.js";
+import { createBoundedTtlCache } from "../utils/boundedTtlCache.js";
 
 const CACHE_MS = Number(process.env.SYRA_OVERLAY_CACHE_MS || 60_000);
-/** @type {Map<string, { at: number; value: Record<string, unknown> }>} */
-const cache = new Map();
+const cache = createBoundedTtlCache({
+  name: "syra-alpha-overlay",
+  maxEntries: 64,
+  defaultTtlMs: CACHE_MS,
+});
 
 /**
  * @param {string} token e.g. BTC
@@ -118,8 +122,8 @@ export async function computeSyraAlphaOverlay(params) {
   const limit = Math.min(500, Math.max(50, Number(params.limit) || 200));
   const cacheKey = `${token}:${bar}:${limit}`;
   const hit = cache.get(cacheKey);
-  if (hit && Date.now() - hit.at < CACHE_MS) {
-    return hit.value;
+  if (hit && typeof hit === "object") {
+    return /** @type {Record<string, unknown>} */ (hit);
   }
 
   const components = {};
@@ -186,7 +190,7 @@ export async function computeSyraAlphaOverlay(params) {
     errors,
   };
 
-  cache.set(cacheKey, { at: Date.now(), value: result });
+  cache.set(cacheKey, result, CACHE_MS);
   return result;
 }
 

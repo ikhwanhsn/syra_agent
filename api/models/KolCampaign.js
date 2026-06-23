@@ -30,7 +30,7 @@ const kolCampaignSchema = new mongoose.Schema(
     },
     startAt: { type: Date, default: null },
     endAt: { type: Date, default: null, index: true },
-    durationDays: { type: Number, required: true, min: 1, max: 90 },
+    durationDays: { type: Number, required: true, min: 1, max: 30 },
     lastSnapshotAt: { type: Date, default: null },
     finalizedAt: { type: Date, default: null },
   },

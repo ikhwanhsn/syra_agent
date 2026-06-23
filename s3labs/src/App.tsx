@@ -16,6 +16,12 @@ const About = lazy(() => import("./pages/About"));
 const Apply = lazy(() => import("./pages/Apply"));
 const Kol = lazy(() => import("./pages/Kol"));
 const KolProfile = lazy(() => import("./pages/KolProfile"));
+const CampaignComingSoon = lazy(() =>
+  import("./pages/ComingSoon").then((m) => ({ default: m.CampaignComingSoon })),
+);
+const ContestComingSoon = lazy(() =>
+  import("./pages/ComingSoon").then((m) => ({ default: m.ContestComingSoon })),
+);
 
 const PostPage = lazy(() => import("./pages/PostPage"));
 const PostVideoPage = lazy(() => import("./pages/PostVideoPage"));
@@ -51,6 +57,8 @@ const App = () => (
               <Route path="/apply" element={<Apply />} />
               <Route path="/kol" element={<Kol />} />
               <Route path="/kol/:username" element={<KolProfile />} />
+              <Route path="/campaign" element={<CampaignComingSoon />} />
+              <Route path="/contest" element={<ContestComingSoon />} />
               <Route element={<PostAccessGuard />}>
                 <Route path="/post" element={<PostPage />} />
                 <Route element={<PostStudioLayout />}>

@@ -18,6 +18,7 @@ import {
   searchRecentTweets,
   getUserTweets,
 } from "../../../libs/xApiClient.js";
+import { createBoundedTtlCache } from "../../../utils/boundedTtlCache.js";
 
 const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 
@@ -26,16 +27,27 @@ const CACHE_TTL_MS = Math.min(
   Math.max(30_000, Number.parseInt(process.env.X_API_PROXY_CACHE_MS ?? "120000", 10) || 120_000),
 );
 const CACHE_MAX_AGE_SEC = Math.max(30, Math.floor(CACHE_TTL_MS / 1000));
-const cache = new Map();
+const X_PROXY_CACHE_MAX = Math.min(
+  2000,
+  Math.max(
+    64,
+    Number.parseInt(process.env.X_API_PROXY_CACHE_MAX_ENTRIES ?? "200", 10) || 200,
+  ),
+);
+
+const cache = createBoundedTtlCache({
+  name: "x-api-proxy",
+  maxEntries: X_PROXY_CACHE_MAX,
+  defaultTtlMs: CACHE_TTL_MS,
+});
 
 function cacheGet(key) {
-  const entry = cache.get(key);
-  if (!entry || Date.now() > entry.expires) return null;
-  return entry.data;
+  const data = cache.get(key);
+  return data ?? null;
 }
 
 function cacheSet(key, data) {
-  cache.set(key, { data, expires: Date.now() + CACHE_TTL_MS });
+  cache.set(key, data, CACHE_TTL_MS);
 }
 
 /** Get param from GET (query) or POST (body). */

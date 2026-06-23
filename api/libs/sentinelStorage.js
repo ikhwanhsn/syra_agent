@@ -6,7 +6,7 @@
 import { MemoryStorage } from "@x402sentinel/x402";
 import { SentinelDashboard } from "@x402sentinel/x402/dashboard";
 
-const DEFAULT_MAX_RECORDS = 50_000;
+const DEFAULT_MAX_RECORDS = 10_000;
 
 let sharedStorage = null;
 let dashboardInstance = null;
@@ -14,7 +14,7 @@ let dashboardInstance = null;
 /**
  * Get the singleton StorageBackend used by all Sentinel-wrapped fetches.
  * Pass this to wrapWithSentinel via audit: { storage: getSentinelStorage() }.
- * @param {{ maxRecords?: number }} [opts] - Optional. maxRecords for MemoryStorage (default 50000).
+ * @param {{ maxRecords?: number }} [opts] - Optional. maxRecords for MemoryStorage (default 10000).
  * @returns {import("@x402sentinel/x402").StorageBackend}
  */
 export function getSentinelStorage(opts = {}) {

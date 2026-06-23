@@ -219,6 +219,8 @@ function KolPageContent() {
               ) : (
                 <CreateCampaignForm
                   minRewardSol={config.minRewardSol}
+                  minKolRewardSol={config.minKolRewardSol}
+                  minDurationDays={config.minDurationDays}
                   maxDurationDays={config.maxDurationDays}
                   poolWalletAddress={config.poolWalletAddress}
                   onCreated={() => {

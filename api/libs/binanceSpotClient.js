@@ -5,11 +5,23 @@
  * @see https://developers.binance.com/docs/binance-spot-api-docs/rest-api/request-security
  */
 import crypto from "crypto";
+import { createBoundedTtlCache } from "../utils/boundedTtlCache.js";
 
 const BINANCE_SPOT_BASE = "https://api.binance.com/api/v3";
 const CACHE_TTL_MS = 15 * 1000; // 15s for public endpoints
+const SPOT_CACHE_MAX = Math.min(
+  2000,
+  Math.max(
+    64,
+    Number.parseInt(process.env.BINANCE_SPOT_CACHE_MAX_ENTRIES ?? "300", 10) || 300,
+  ),
+);
 
-const publicCache = new Map(); // path+query -> { data, expiresAt }
+const publicCache = createBoundedTtlCache({
+  name: "binance-spot",
+  maxEntries: SPOT_CACHE_MAX,
+  defaultTtlMs: CACHE_TTL_MS,
+});
 
 /**
  * Build query string from object (keys sorted for deterministic signature).
@@ -42,9 +54,8 @@ export function signRequest(secret, queryOrBody) {
 export async function fetchBinanceSpotPublic(path, query = {}) {
   const qs = buildQuery(query);
   const cacheKey = path + (qs ? `?${qs}` : "");
-  const now = Date.now();
   const cached = publicCache.get(cacheKey);
-  if (cached && now < cached.expiresAt) return cached.data;
+  if (cached != null) return cached;
 
   const url = qs ? `${BINANCE_SPOT_BASE}/${path}?${qs}` : `${BINANCE_SPOT_BASE}/${path}`;
   const response = await fetch(url);
@@ -57,7 +68,7 @@ export async function fetchBinanceSpotPublic(path, query = {}) {
     throw new Error(data.msg || `Binance ${response.status}`);
   }
 
-  publicCache.set(cacheKey, { data, expiresAt: now + CACHE_TTL_MS });
+  publicCache.set(cacheKey, data, CACHE_TTL_MS);
   return data;
 }
 

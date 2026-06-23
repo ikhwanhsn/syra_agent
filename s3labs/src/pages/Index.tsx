@@ -1,6 +1,7 @@
 import { SitePageShell } from "@/components/landing/SitePageShell";
 import HeroSection from "@/components/HeroSection";
 import LandingPillars from "@/components/landing/LandingPillars";
+import PlatformShowcase from "@/components/landing/PlatformShowcase";
 import PortfolioHighlight from "@/components/landing/PortfolioHighlight";
 import FounderQuoteStrip from "@/components/landing/FounderQuoteStrip";
 import CTASection from "@/components/CTASection";
@@ -14,6 +15,7 @@ function LandingContent() {
     <>
       <HeroSection />
       <LandingPillars />
+      <PlatformShowcase />
       <PortfolioHighlight />
       <FounderQuoteStrip />
       <CTASection />

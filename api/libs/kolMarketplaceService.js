@@ -18,7 +18,12 @@ import {
 import {
   KOL_PLATFORM_FEE_BPS,
   KOL_USER_REWARD_BPS,
+  MAX_DURATION_DAYS,
+  MIN_DURATION_DAYS,
+  MIN_KOL_REWARD_SOL,
   getS3labsFeeWallet,
+  minTotalDepositLamports,
+  minTotalDepositSol,
   splitRewardPool,
 } from "../config/kolMarketplaceConfig.js";
 import {
@@ -36,7 +41,7 @@ import {
 } from "./kolXProfileCache.js";
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
-const MIN_REWARD_LAMPORTS = 10_000_000; // 0.01 SOL
+const MIN_REWARD_LAMPORTS = minTotalDepositLamports();
 
 /**
  * @param {string} handle
@@ -301,15 +306,15 @@ export async function createCampaign(input) {
   }
 
   const durationDays = Math.floor(Number(input.durationDays));
-  if (!Number.isFinite(durationDays) || durationDays < 1 || durationDays > 90) {
-    const err = new Error("durationDays must be between 1 and 90");
+  if (!Number.isFinite(durationDays) || durationDays < MIN_DURATION_DAYS || durationDays > MAX_DURATION_DAYS) {
+    const err = new Error(`durationDays must be between ${MIN_DURATION_DAYS} and ${MAX_DURATION_DAYS}`);
     err.code = "invalid_duration";
     throw err;
   }
 
   const rewardLamports = Math.floor(rewardSol * LAMPORTS_PER_SOL);
   if (rewardLamports < MIN_REWARD_LAMPORTS) {
-    const err = new Error(`Minimum reward is ${MIN_REWARD_LAMPORTS / LAMPORTS_PER_SOL} SOL`);
+    const err = new Error(`Minimum KOL reward is ${MIN_KOL_REWARD_SOL} SOL (${minTotalDepositSol()} SOL total deposit)`);
     err.code = "reward_too_low";
     throw err;
   }

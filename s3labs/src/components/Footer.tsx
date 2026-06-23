@@ -11,6 +11,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Moon, Sun, Twitter, Send, Mail, Linkedin, ArrowUpRight } from "lucide-react";
+import { mainNavLinks } from "@/lib/siteNav";
 
 const TELEGRAM_CONTACTS = [
   { name: "Rara", fullName: "Destriani Rahayu", url: "https://t.me/raraverse" },
@@ -21,15 +22,6 @@ const Footer = () => {
 
   const { theme, toggleTheme } = useTheme();
   const [telegramOpen, setTelegramOpen] = useState(false);
-
-  const navLinks = [
-    { href: "/programs", label: "Programs", isRoute: true },
-    { href: "/portfolio", label: "Portfolio", isRoute: true },
-    { href: "/community", label: "Community", isRoute: true },
-    { href: "/kol", label: "KOL Marketplace", isRoute: true },
-    { href: "/about", label: "About", isRoute: true },
-    { href: "/apply", label: "Apply", isRoute: true },
-  ];
 
   return (
     <footer id="contact" className="relative pt-20 pb-10 overflow-hidden">
@@ -115,23 +107,15 @@ const Footer = () => {
                 {"Navigation"}
               </h4>
               <ul className="grid grid-cols-2 gap-x-4 gap-y-2.5">
-                {navLinks.map((link) => (
-                  <li key={link.href}>
-                    {"isRoute" in link && link.isRoute ? (
-                      <Link
-                        to={link.href}
-                        className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                      >
-                        {link.label}
-                      </Link>
-                    ) : (
-                      <a
-                        href={link.href}
-                        className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                      >
-                        {link.label}
-                      </a>
-                    )}
+                {mainNavLinks.map((link) => (
+                  <li key={link.to}>
+                    <Link
+                      to={link.to}
+                      className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      {link.label}
+                      {link.soon ? " (Soon)" : ""}
+                    </Link>
                   </li>
                 ))}
               </ul>

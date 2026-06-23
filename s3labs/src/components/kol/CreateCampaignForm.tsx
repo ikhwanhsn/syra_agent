@@ -9,6 +9,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  CampaignEndDatePicker,
+  defaultCampaignEndDate,
+  durationDaysFromEndDate,
+} from "@/components/kol/CampaignEndDatePicker";
+import {
   confirmCampaignDeposit,
   createCampaign,
   type KolCampaign,
@@ -17,6 +22,8 @@ import { sendCampaignDeposit } from "@/lib/solanaKol";
 
 interface CreateCampaignFormProps {
   minRewardSol: number;
+  minKolRewardSol?: number;
+  minDurationDays?: number;
   maxDurationDays: number;
   poolWalletAddress: string;
   onCreated?: (campaign: KolCampaign) => void;
@@ -24,16 +31,20 @@ interface CreateCampaignFormProps {
 
 export function CreateCampaignForm({
   minRewardSol,
+  minKolRewardSol,
+  minDurationDays = 1,
   maxDurationDays,
   poolWalletAddress,
   onCreated,
 }: CreateCampaignFormProps) {
   const wallet = useWallet();
+  const minKolPoolSol = minKolRewardSol ?? minRewardSol * 0.8;
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [sourceTweetUrl, setSourceTweetUrl] = useState("");
-  const [rewardSol, setRewardSol] = useState(String((minRewardSol * 0.8).toFixed(2)));
-  const [durationDays, setDurationDays] = useState("7");
+  const [rewardSol, setRewardSol] = useState(String(minKolPoolSol));
+  const [endDate, setEndDate] = useState(() => defaultCampaignEndDate(7));
   const [pendingCampaign, setPendingCampaign] = useState<KolCampaign | null>(null);
   const [depositInfo, setDepositInfo] = useState<{
     poolWalletAddress: string;
@@ -42,22 +53,30 @@ export function CreateCampaignForm({
     platformFeeLamports?: number;
   } | null>(null);
 
+  const durationDays = durationDaysFromEndDate(endDate);
+  const kolRewardNum = Number(rewardSol);
+  const totalDepositSol =
+    Number.isFinite(kolRewardNum) && kolRewardNum > 0 ? kolRewardNum / 0.8 : 0;
+
   const createMutation = useMutation({
     mutationFn: async () => {
       if (!wallet.publicKey) throw new Error("Connect your Solana wallet first");
-      const kolRewardSol = Number(rewardSol);
-      if (!Number.isFinite(kolRewardSol) || kolRewardSol <= 0) {
-        throw new Error("Enter a valid KOL reward amount");
+
+      if (!Number.isFinite(kolRewardNum) || kolRewardNum < minKolPoolSol) {
+        throw new Error(`Minimum KOL reward is ${minKolPoolSol} SOL`);
       }
-      // Backend pool is total deposit; KOLs receive 80% of that at payout.
-      const totalDepositSol = kolRewardSol / 0.8;
+
+      if (durationDays < minDurationDays || durationDays > maxDurationDays) {
+        throw new Error(`Campaign must run ${minDurationDays}–${maxDurationDays} days`);
+      }
+
       return createCampaign({
         projectWallet: wallet.publicKey.toBase58(),
         sourceTweetUrl,
         title,
         description,
         rewardSol: totalDepositSol,
-        durationDays: Number(durationDays),
+        durationDays,
       });
     },
     onSuccess: (data) => {
@@ -103,9 +122,10 @@ export function CreateCampaignForm({
     },
   });
 
-  const minKolRewardSol = minRewardSol * 0.8;
   const isBusy = createMutation.isPending || depositMutation.isPending;
   const awaitingDeposit = Boolean(pendingCampaign && depositInfo);
+  const rewardValid = Number.isFinite(kolRewardNum) && kolRewardNum >= minKolPoolSol;
+  const durationValid = durationDays >= minDurationDays && durationDays <= maxDurationDays;
 
   return (
     <div className="panel-glass rounded-2xl border border-border/60 p-6 sm:p-8 space-y-6 max-w-2xl">
@@ -168,22 +188,27 @@ export function CreateCampaignForm({
             <Input
               id="kol-reward"
               type="number"
-              min={minKolRewardSol}
+              min={minKolPoolSol}
               step="0.01"
               value={rewardSol}
               onChange={(e) => setRewardSol(e.target.value)}
               disabled={awaitingDeposit}
             />
+            <p className="text-xs text-muted-foreground">
+              Min {minKolPoolSol} SOL · total deposit{" "}
+              <span className="text-foreground/80 font-medium tabular-nums">
+                {totalDepositSol.toFixed(3)} SOL
+              </span>{" "}
+              (incl. 20% platform fee)
+            </p>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="kol-duration">Duration (days)</Label>
-            <Input
-              id="kol-duration"
-              type="number"
-              min={1}
-              max={maxDurationDays}
-              value={durationDays}
-              onChange={(e) => setDurationDays(e.target.value)}
+            <Label>Campaign end date</Label>
+            <CampaignEndDatePicker
+              value={endDate}
+              onChange={setEndDate}
+              minDurationDays={minDurationDays}
+              maxDurationDays={maxDurationDays}
               disabled={awaitingDeposit}
             />
           </div>
@@ -210,7 +235,7 @@ export function CreateCampaignForm({
         <Button
           variant="hero"
           className="rounded-full"
-          disabled={!wallet.publicKey || isBusy || !title || !sourceTweetUrl}
+          disabled={!wallet.publicKey || isBusy || !title || !sourceTweetUrl || !rewardValid || !durationValid}
           onClick={() => createMutation.mutate()}
         >
           {createMutation.isPending ? (

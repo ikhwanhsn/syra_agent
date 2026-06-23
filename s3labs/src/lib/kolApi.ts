@@ -184,6 +184,8 @@ export type KolSortKey = "earned" | "score" | "engagement" | "campaigns" | "rece
 export interface KolConfig {
   poolWalletAddress: string;
   minRewardSol: number;
+  minKolRewardSol?: number;
+  minDurationDays?: number;
   maxDurationDays: number;
   kolRewardPercent: number;
   platformFeePercent: number;
@@ -196,8 +198,10 @@ export function getKolRewardSol(campaign: Pick<KolCampaign, "kolRewardPoolSol" |
 
 export const DEFAULT_KOL_CONFIG: KolConfig = {
   poolWalletAddress: "GGj37PSMDUUgkac5HkMx36Sk38zbHDMtXFLn6MR2HXnv",
-  minRewardSol: 0.01,
-  maxDurationDays: 90,
+  minRewardSol: 0.125,
+  minKolRewardSol: 0.1,
+  minDurationDays: 1,
+  maxDurationDays: 30,
   kolRewardPercent: 80,
   platformFeePercent: 20,
   platformFeeWallet: "854tpY9AnaMYDpviWeo4eWXzoUmvLrYwkU16F2MtzHz8",
