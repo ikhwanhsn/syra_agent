@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SolanaWalletProvider } from "@/providers/SolanaWalletProvider";
 import { PostAccessGuard } from "@/components/post/PostAccessGuard";
+import { AdminAccessGuard } from "@/components/AdminAccessGuard";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -22,6 +23,8 @@ const CampaignComingSoon = lazy(() =>
 const ContestComingSoon = lazy(() =>
   import("./pages/ComingSoon").then((m) => ({ default: m.ContestComingSoon })),
 );
+const Hackathon = lazy(() => import("./pages/Hackathon"));
+const EventsAdmin = lazy(() => import("./pages/EventsAdmin"));
 
 const PostPage = lazy(() => import("./pages/PostPage"));
 const PostVideoPage = lazy(() => import("./pages/PostVideoPage"));
@@ -59,6 +62,10 @@ const App = () => (
               <Route path="/kol/:username" element={<KolProfile />} />
               <Route path="/campaign" element={<CampaignComingSoon />} />
               <Route path="/contest" element={<ContestComingSoon />} />
+              <Route element={<AdminAccessGuard />}>
+                <Route path="/hackathon" element={<Hackathon />} />
+                <Route path="/events" element={<EventsAdmin />} />
+              </Route>
               <Route element={<PostAccessGuard />}>
                 <Route path="/post" element={<PostPage />} />
                 <Route element={<PostStudioLayout />}>

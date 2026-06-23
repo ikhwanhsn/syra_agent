@@ -44,6 +44,62 @@ export function hackathonDedupeKey(lead) {
 }
 
 /**
+ * @param {string | null | undefined} url
+ * @returns {string}
+ */
+export function normalizeLumaUrl(url) {
+  if (!url || typeof url !== "string") return "";
+  try {
+    const u = new URL(url.trim());
+    const host = u.hostname.toLowerCase().replace(/^www\./, "");
+    if (host !== "lu.ma" && host !== "luma.com") return "";
+    const path = u.pathname.replace(/\/$/, "").toLowerCase();
+    if (!path || path === "/") return "";
+    return `https://${host}${path}`;
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * @param {string} text
+ * @returns {string[]}
+ */
+export function extractLumaUrls(text) {
+  if (!text || typeof text !== "string") return [];
+  const regex = /https?:\/\/(?:www\.)?(?:lu\.ma|luma\.com)\/[^\s<>"')\]]+/gi;
+  const matches = text.match(regex) || [];
+  const seen = new Set();
+  /** @type {string[]} */
+  const out = [];
+  for (const raw of matches) {
+    const normalized = normalizeLumaUrl(raw.replace(/[.,;:!?)]+$/, ""));
+    if (normalized && !seen.has(normalized)) {
+      seen.add(normalized);
+      out.push(normalized);
+    }
+  }
+  return out;
+}
+
+/**
+ * @param {{ title?: string; lumaUrl?: string | null; startAt?: Date | string | null; dateText?: string }} event
+ * @returns {string}
+ */
+export function eventDedupeKey(event) {
+  const luma = normalizeLumaUrl(event.lumaUrl);
+  if (luma) return `luma:${luma}`;
+
+  const title = normalizeScoutLabel(event.title);
+  if (!title) return "";
+
+  const datePart = event.startAt
+    ? new Date(event.startAt).toISOString().slice(0, 10)
+    : normalizeScoutLabel(event.dateText).slice(0, 40);
+  return datePart ? `${title}|${datePart}` : title;
+}
+
+/**
  * @param {{ name?: string; link?: string | null }} target
  * @returns {string}
  */

@@ -40,6 +40,7 @@ import { createInternalResearchRouter } from "./routes/internalResearch.js";
 import { createS3labsTelegramWebhookRouter } from "./routes/s3labsTelegramWebhook.js";
 import { createInternalPartnershipScoutRouter } from "./routes/internalPartnershipScout.js";
 import { createInternalHackathonsRouter } from "./routes/internalHackathons.js";
+import { createInternalEventsRouter } from "./routes/internalEvents.js";
 import { createInternalToolsRouter } from "./routes/internalTools.js";
 import { createInternalAgentWalletsRouter } from "./routes/internalAgentWallets.js";
 import { createInternalTesterAgentRouter } from "./routes/internalTesterAgent.js";
@@ -867,6 +868,16 @@ app.use(
       }
     }
     if (
+      p === "/internal/events/run" &&
+      String(req.method || "").toUpperCase() === "POST"
+    ) {
+      const secret = (process.env.EVENT_SCOUT_CRON_SECRET || "").trim();
+      if (secret) {
+        const got = (req.get("x-event-scout-cron-secret") || "").trim();
+        if (got === secret) return true;
+      }
+    }
+    if (
       p.startsWith("/internal/s3labs-telegram/webhook") &&
       String(req.method || "").toUpperCase() === "POST"
     ) {
@@ -1299,6 +1310,7 @@ app.use("/internal", createSyraTradingTelegramWebhookRouter());
 // Internal dashboard: research-store + scouts (API key auth, no x402)
 app.use("/internal", createInternalPartnershipScoutRouter());
 app.use("/internal", createInternalHackathonsRouter());
+app.use("/internal", createInternalEventsRouter());
 app.use("/internal", createInternalToolsRouter());
 app.use("/internal", createInternalAgentWalletsRouter());
 app.use("/internal", await createInternalResearchRouter());
@@ -2019,6 +2031,17 @@ app.listen(PORT, () => {
     .catch((e) =>
       console.warn(
         "[hackathon-scout] load failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
+
+  import("./libs/events/eventScoutScheduler.js")
+    .then(({ startEventScoutScheduler }) => {
+      startEventScoutScheduler();
+    })
+    .catch((e) =>
+      console.warn(
+        "[event-scout] load failed:",
         e instanceof Error ? e.message : e,
       ),
     );
