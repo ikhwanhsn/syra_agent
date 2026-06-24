@@ -24,6 +24,7 @@ import {
   requirePaymentSapEscrowOrExact,
   settleSapEscrowOrFacilitator,
 } from "../utils/sapEscrowPayment.js";
+import { tryAipBrainDelegation } from "../libs/aipClient.js";
 
 const { requirePayment, getPaymentSignatureHeaderFromReq } = await getV2Payment();
 
@@ -75,6 +76,34 @@ function filterBrainTreasuryTools(matchedTools) {
 /** Shared brain logic: tool selection, treasury-paid tool calls, LLM; then settle (PayAI exact or SAP escrow). */
 async function runBrain(req, res, question) {
   try {
+    const aipDelegation = await tryAipBrainDelegation(question, { host: req.get("host") });
+    if (aipDelegation.delegated) {
+      const artifact =
+        typeof aipDelegation.data?.artifact === "string"
+          ? aipDelegation.data.artifact
+          : JSON.stringify(aipDelegation.data?.artifact ?? aipDelegation.data, null, 2);
+      const servicePayload = JSON.stringify({
+        resource: "/brain",
+        question: question.slice(0, 500),
+        aipDelegated: true,
+        at: new Date().toISOString(),
+      });
+      await settleSapEscrowOrFacilitator(res, req, servicePayload);
+      return res.json({
+        success: true,
+        response: enforceSyraBranding(artifact) || "AIP agent returned an empty result.",
+        toolUsages: [
+          {
+            toolId: "aip-delegate",
+            status: "completed",
+            capability: aipDelegation.data?.capability,
+            endpoint: aipDelegation.data?.endpoint,
+          },
+        ],
+        aipDelegated: true,
+      });
+    }
+
     const apiMessages = [{ role: "user", content: question }];
     let matchedTools = filterBrainTreasuryTools((await selectToolsWithLlm(question)).tools);
     if (!matchedTools || matchedTools.length === 0) {

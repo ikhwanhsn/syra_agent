@@ -225,6 +225,38 @@ If your agent shows low scores (e.g. 50/100, 33/100) with tags like **reachable*
 
 ---
 
+## Ampersend marketplace (x402 Bazaar)
+
+[Ampersend](https://docs.ampersend.ai/platform/marketplace) lists pay-per-use x402 APIs from three sources: hand-curated `catalog`, community `bazaar`, and first-party `ampersend` agents. Syra is indexed via **Bazaar** after Base mainnet settlements — no separate submit form.
+
+### Prerequisites (production)
+
+1. **`BASE_PAYTO`** (or `EVM_PAYTO`) — wallet that receives Base USDC from x402 payers.
+2. **`X402_BAZAAR_ENABLED`** — defaults to `true`; Bazaar metadata is attached to 402 responses and settle payloads.
+3. **PayAI facilitator** — `FACILITATOR_URL_PAYAI` (or `PAYAI_FACILITATOR_URL`) with optional `PAYAI_API_KEY_ID` / `PAYAI_API_KEY_SECRET` for mainnet.
+4. At least **one successful Base mainnet payment** on a discoverable route (e.g. `GET /health`) so the facilitator indexes the endpoint in Bazaar.
+
+Ampersend production only surfaces **Base mainnet** (`eip155:8453`) endpoints. Solana-only discovery still works on x402scan and other directories.
+
+### Validate readiness
+
+```bash
+cd api
+npm run validate-ampersend
+```
+
+Optional: run a paid Base call to trigger Bazaar indexing (requires `CMC_PAYER_PRIVATE_KEY` or `BASE_PAYER_PRIVATE_KEY` with Base USDC):
+
+```bash
+npm run validate-ampersend -- --pay
+```
+
+### Optional: curated Ampersend listing
+
+Email **ampersend@edgeandnode.com** or join **@ampersendbuilders** on Telegram with service name, description, category, public URLs, and docs (`https://docs.syraa.fun`) for hand-curated `catalog` placement.
+
+---
+
 ## Register Syra on SAID Protocol
 
 [SAID Protocol](https://www.saidprotocol.com/docs) provides persistent, verifiable on-chain identity for AI agents on Solana (program `5dpw6KEQPn248pnkkaYyWfHwu2nfb3LUMbTucb6LaA8G`).

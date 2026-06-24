@@ -24,8 +24,24 @@ export const SYRA_PILLAR_NOTICE = [
   "Wealth becomes the narrative",
 ];
 
-/** B402 Bazaar discovery metadata (service-level fields on paymentPayload.resource). */
-export const SYRA_B402_BAZAAR_SERVICE_NAME = "Syra";
-export const SYRA_B402_BAZAAR_TAGS = ["agents", "x402", "machine-money"];
-export const SYRA_B402_BAZAAR_ICON_URL =
+/** Bazaar / Ampersend marketplace discovery metadata (paymentPayload.resource service fields). */
+export const SYRA_BAZAAR_SERVICE_NAME = "Syra";
+export const SYRA_BAZAAR_CATEGORY = "Crypto";
+export const SYRA_BAZAAR_TAGS = [
+  "agents",
+  "x402",
+  "crypto",
+  "trading",
+  "analytics",
+  "machine-money",
+];
+export const SYRA_BAZAAR_ICON_URL =
   String(process.env.SYRA_BAZAAR_ICON_URL || "https://api.syraa.fun/favicon.ico").trim();
+export const SYRA_BAZAAR_DOCS_URL = "https://docs.syraa.fun";
+
+/** @deprecated Use SYRA_BAZAAR_* — kept for existing imports */
+export const SYRA_B402_BAZAAR_SERVICE_NAME = SYRA_BAZAAR_SERVICE_NAME;
+/** @deprecated Use SYRA_BAZAAR_* */
+export const SYRA_B402_BAZAAR_TAGS = SYRA_BAZAAR_TAGS;
+/** @deprecated Use SYRA_BAZAAR_* */
+export const SYRA_B402_BAZAAR_ICON_URL = SYRA_BAZAAR_ICON_URL;

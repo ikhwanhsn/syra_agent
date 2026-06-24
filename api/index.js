@@ -115,6 +115,10 @@ import { metricsHandler } from "./utils/metrics.js";
 import { createPredictionGameRouter } from "./routes/prediction-game/index.js";
 import { create8004Router } from "./routes/8004.js";
 import { createSaidRouter } from "./routes/said/index.js";
+import { createAipRouter } from "./routes/aip/index.js";
+import { createA2aRouter } from "./routes/a2a/index.js";
+import { buildSyraAipAgentCardDocument } from "./libs/aipAgentCard.js";
+import { getSyraAipWallet } from "./config/aipConfig.js";
 import { createBrainRouter } from "./routes/brain.js";
 import { createPlaygroundShareRouter } from "./routes/playgroundShare.js";
 import { createStreamflowLocksRouter } from "./routes/streamflowLocks.js";
@@ -422,6 +426,7 @@ function isX402Route(p) {
   if (p.startsWith("/sundown-digest")) return true;
   if (p.startsWith("/8004")) return true;
   if (p.startsWith("/brain")) return true;
+  if (p === "/a2a" || p.startsWith("/a2a/")) return true;
   if (p.startsWith("/nansen")) return true;
   if (p.startsWith("/binance")) return true;
   if (p.startsWith("/bankr")) return true;
@@ -1348,6 +1353,10 @@ app.use("/siwa", await createSiwaRouter());
 app.use("/8004", await create8004Router());
 // SAID Protocol agent identity (verification, trust, agent details)
 app.use("/said", await createSaidRouter());
+// Agent Internet Protocol (AIP) — did:aip identity + verification
+app.use("/aip", await createAipRouter());
+// AIP-02 A2A JSON-RPC 2.0 task server
+app.use("/a2a", await createA2aRouter());
 // X (Twitter) API proxy (x402) – user lookup, search recent, user tweets, feed. GET and POST supported.
 app.use("/x", await createXApiRouter());
 
@@ -1391,6 +1400,24 @@ app.get("/.well-known/shadowfeed-feeds.json", (_req, res) => {
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.setHeader("Cache-Control", "public, max-age=300, s-maxage=3600");
   res.json(buildShadowfeedFeedsManifest());
+});
+
+// AIP-01 Agent Card (https://aipagents.xyz)
+app.get("/.well-known/agent.json", (_req, res) => {
+  const wallet =
+    getSyraAipWallet() ||
+    process.env.SOLANA_PAYTO?.trim() ||
+    process.env.PAYTO?.trim();
+  if (!wallet) {
+    return res.status(503).json({
+      success: false,
+      error: "AIP Agent Card unavailable",
+      message: "Set SYRA_AIP_WALLET or run npm run register-aip",
+    });
+  }
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.setHeader("Cache-Control", "public, max-age=300, s-maxage=3600");
+  res.json(buildSyraAipAgentCardDocument(wallet));
 });
 
 // Serve discovery document at /.well-known/x402 (x402scan compatible)

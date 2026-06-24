@@ -14,6 +14,8 @@ import { SAID_PROTOCOL_POST } from "./saidProtocolUpdate";
 import { COVENANT_POST } from "./covenantUpdate";
 import { SWAP_POST } from "./swapUpdate";
 import { SKILL_EARN_POST } from "./skillEarnUpdate";
+import { AMPERSEND_MARKETPLACE_POST } from "./ampersendMarketplaceUpdate";
+import { AIP_INTEGRATION_POST } from "./aipIntegrationUpdate";
 import { AGENTSCORE_PHOTO } from "./photo/agentscorePhoto";
 import { INDICATOR_PHOTO } from "./photo/indicatorPhoto";
 import { BNB_X402_PHOTO } from "./photo/bnbX402Photo";
@@ -30,6 +32,8 @@ import { SAID_PROTOCOL_PHOTO } from "./photo/saidProtocolPhoto";
 import { COVENANT_PHOTO } from "./photo/covenantPhoto";
 import { SWAP_PHOTO } from "./photo/swapPhoto";
 import { SKILL_EARN_PHOTO } from "./photo/skillEarnPhoto";
+import { AMPERSEND_MARKETPLACE_PHOTO } from "./photo/ampersendMarketplacePhoto";
+import { AIP_INTEGRATION_PHOTO } from "./photo/aipIntegrationPhoto";
 import type { PostPhotoUpdate } from "./photo/types";
 import type { PostUpdate } from "./types";
 import { validatePostUpdate } from "./validatePostUpdate";
@@ -63,6 +67,8 @@ const POST_UPDATE_BUNDLES: PostUpdateBundle[] = [
   { video: COVENANT_POST, photo: COVENANT_PHOTO },
   { video: SWAP_POST, photo: SWAP_PHOTO },
   { video: SKILL_EARN_POST, photo: SKILL_EARN_PHOTO },
+  { video: AMPERSEND_MARKETPLACE_POST, photo: AMPERSEND_MARKETPLACE_PHOTO },
+  { video: AIP_INTEGRATION_POST, photo: AIP_INTEGRATION_PHOTO },
 ];
 
 function assertBundleMeta(bundle: PostUpdateBundle): void {

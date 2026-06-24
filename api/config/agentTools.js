@@ -1554,6 +1554,39 @@ export const AGENT_TOOLS = [
     description:
       'Pay an AgentScore-gated or x402 merchant from the agent Solana wallet. Params: url (required), method (default POST), body JSON, optional operatorToken for Passport. Returns 403 + verify_url when KYC required.',
   },
+  {
+    id: 'aip-discover',
+    aip: 'discover',
+    path: '/aip/discover',
+    method: 'GET',
+    priceUsd: 0,
+    displayPriceUsd: 0,
+    name: 'AIP agent discover',
+    description:
+      'Browse Agent Internet Protocol marketplace agents. Params: q (search), limit (max 50). No USDC charge.',
+  },
+  {
+    id: 'aip-resolve',
+    aip: 'resolve',
+    path: '/aip/resolve',
+    method: 'GET',
+    priceUsd: 0,
+    displayPriceUsd: 0,
+    name: 'AIP did:aip resolve',
+    description:
+      'Resolve did:aip on-chain and fetch Agent Card. Params: did (required) or cardUrl. Verifies on-chain AgentRecord via @aipagents/did-resolver. No USDC charge.',
+  },
+  {
+    id: 'aip-delegate',
+    aip: 'delegate',
+    path: '/aip/delegate',
+    method: 'POST',
+    priceUsd: 0.05,
+    displayPriceUsd: 0.05,
+    name: 'AIP task delegate',
+    description:
+      'Submit a task to an external AIP agent via A2A JSON-RPC with agent-wallet x402 payment. Params: capability (required), input (required), did or endpoint or cardUrl. Polls task/status until complete.',
+  },
   ...STABLECRYPTO_AGENT_TOOLS,
   ...STABLESOCIAL_AGENT_TOOLS,
   ...STABLEENRICH_AGENT_TOOLS,
@@ -2804,6 +2837,18 @@ export function getToolsForLlmSelection() {
     if (t.id === 'agentscore-pay') {
       out.paramsHint =
         'Params: url (required), method (default POST), body (JSON string), operatorToken (Passport). Agent USDC pays Solana x402 leg; complete KYC via verify_url if 403.';
+    }
+    if (t.id === 'aip-discover') {
+      out.paramsHint =
+        'Optional: q (search agents), limit (max 50). Lists AIP marketplace agents. No USDC charge.';
+    }
+    if (t.id === 'aip-resolve') {
+      out.paramsHint =
+        'Params: did (did:aip:...) or cardUrl (/.well-known/agent.json URL). On-chain verify + Agent Card fetch. No USDC charge.';
+    }
+    if (t.id === 'aip-delegate') {
+      out.paramsHint =
+        'Params: capability (required, e.g. text.summarize), input (required), did or endpoint or cardUrl. Agent wallet pays upstream x402; polls A2A task/status.';
     }
     if (t.stablecryptoPath) {
       const hint = getStablecryptoParamsHintForLlm(t.id);

@@ -17,6 +17,7 @@
     "generate-tempo-wallet": "node scripts/generate-tempo-wallet.js",
     "register-sap": "node -r dotenv/config scripts/register-sap-agent.js",
     "register-said": "node -r dotenv/config scripts/register-said-agent.js",
+    "register-aip": "node -r dotenv/config scripts/register-aip-agent.js",
     "sync-said-metadata": "node -r dotenv/config scripts/sync-said-metadata.js",
     "publish-sap-tools": "node -r dotenv/config scripts/publish-sap-tools.js",
     "delete-experiment-non-buy-runs": "node scripts/deleteTradingExperimentNonBuyRuns.js",
@@ -30,11 +31,14 @@
     "test-stableenrich": "node -r dotenv/config scripts/testStableenrichFlow.js",
     "validate-pact": "node -r dotenv/config scripts/validatePactIntegration.js",
     "validate-algorand-x402": "node -r dotenv/config scripts/validateAlgorandX402.js",
+    "validate-ampersend": "node -r dotenv/config scripts/validateAmpersendDiscovery.js",
     "export-algorand-key": "node scripts/exportAlgorandPrivateKeyB64.js"
   },
   "dependencies": {
     "@agent-score/commerce": "^2.5.0",
     "@agent-score/sdk": "^2.5.0",
+    "@aipagents/agent-sdk": "^0.2.1",
+    "@aipagents/did-resolver": "^0.1.2",
     "@bitget-ai/getagent-skill": "^0.2.1",
     "@coral-xyz/anchor": "^0.31.1",
     "@didtools/siwx": "^2.0.0",

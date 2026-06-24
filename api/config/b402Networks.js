@@ -7,6 +7,7 @@ import {
   hasB402MerchantCredentials,
   isB402Configured,
 } from "../libs/b402FacilitatorClient.js";
+import { isX402BazaarEnabled } from "./x402Bazaar.js";
 
 export const BSC_CAIP2 = "eip155:56";
 
@@ -112,8 +113,9 @@ export function isB402Enabled() {
   return hasB402MerchantCredentials() && Boolean(env("B402_PAY_TO"));
 }
 
-/** Opt-in B402 Bazaar discovery indexing on BSC settles (default ON when B402 merchant is enabled). */
+/** B402 Bazaar indexing on BSC settles (default ON when B402 merchant + global Bazaar are enabled). */
 export function isB402BazaarEnabled() {
+  if (!isX402BazaarEnabled()) return false;
   const flag = env("B402_BAZAAR_ENABLED").toLowerCase();
   if (flag === "false" || flag === "0") return false;
   if (flag === "true" || flag === "1") return true;

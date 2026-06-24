@@ -40,7 +40,6 @@ import {
   getB402PayTo,
   getB402TokenById,
   isB402Enabled,
-  isB402BazaarEnabled,
   isB402Network,
   x402MicroToBscTokenAtomic,
 } from "../config/b402Networks.js";
@@ -59,18 +58,21 @@ import {
   verifyPayment as b402VerifyPayment,
   settlePayment as b402SettlePayment,
   normalizeResourceInfo,
+  injectBazaarIntoPaymentPayload,
 } from "../libs/b402FacilitatorClient.js";
 import { recordPaidApiCall } from "./recordPaidApiCall.js";
 import { recordX402Call, resolveInboundFacilitator } from "./recordX402Call.js";
 import { buybackSYRAFromRevenue } from "./buybackSYRA.js";
 import { isTesterAgentInternalProbeRequest } from "./testerAgentProbe.js";
 import { isShadowfeedPartnerRequest, markShadowfeedPartnerBypass } from "./shadowfeedPartner.js";
+import { isX402BazaarEnabled } from "../config/x402Bazaar.js";
 import {
-  SYRA_B402_BAZAAR_ICON_URL,
-  SYRA_B402_BAZAAR_SERVICE_NAME,
-  SYRA_B402_BAZAAR_TAGS,
+  SYRA_BAZAAR_ICON_URL,
+  SYRA_BAZAAR_SERVICE_NAME,
+  SYRA_BAZAAR_TAGS,
 } from "../config/syraBranding.js";
 import {
+  getResourceCategory,
   inferResourcePathFromRequest,
   isPlaceholderResourceDescription,
   resolveResourceDescription,
@@ -821,22 +823,25 @@ function normalizePaymentOptions(req, options) {
   return { ...base, resource, description };
 }
 
-/** Sanitized Syra service metadata for B402 Bazaar resource listings. */
-function getSyraB402ServiceMetadata() {
+/** Sanitized Syra service metadata for Bazaar / Ampersend resource listings. */
+function getSyraBazaarServiceMetadata() {
   return sanitizeResourceServiceMetadata({
-    serviceName: SYRA_B402_BAZAAR_SERVICE_NAME,
-    tags: SYRA_B402_BAZAAR_TAGS,
-    iconUrl: SYRA_B402_BAZAAR_ICON_URL,
+    serviceName: SYRA_BAZAAR_SERVICE_NAME,
+    tags: SYRA_BAZAAR_TAGS,
+    iconUrl: SYRA_BAZAAR_ICON_URL,
   });
 }
 
 /**
- * Build enriched x402 extensions (bazaar + optional builder-code) for 402 and B402 settle.
+ * Build enriched x402 extensions (bazaar + optional builder-code) for 402 and settle indexing.
  * @param {import('@x402/core/server').x402ResourceServer} resourceServer
  * @param {import('express').Request} req
  * @param {object} options - requirePayment options
  */
 function buildBazaarExtensions(resourceServer, req, options) {
+  const paymentOptions = normalizePaymentOptions(req, options);
+  const resourcePath = String(paymentOptions.resource ?? "").replace(/^\/+/, "");
+  const category = getResourceCategory(resourcePath);
   const outputExample = options.outputExample ?? { ok: true, paid: true };
   const declared = {
     ...declareDiscoveryExtension({
@@ -849,7 +854,17 @@ function buildBazaarExtensions(resourceServer, req, options) {
       ? { [BUILDER_CODE]: declareBuilderCodeExtension(getBaseBuilderCode()) }
       : {}),
   };
-  return resourceServer.enrichExtensions(declared, { method: req.method, adapter: {} });
+  const enriched = resourceServer.enrichExtensions(declared, { method: req.method, adapter: {} });
+  const bazaarKey = BAZAAR.key;
+  if (enriched?.[bazaarKey] && typeof enriched[bazaarKey] === "object") {
+    enriched[bazaarKey] = {
+      ...enriched[bazaarKey],
+      discoverable: true,
+      category,
+      tags: [...SYRA_BAZAAR_TAGS, category],
+    };
+  }
+  return enriched;
 }
 
 /** ResourceInfo with optional Bazaar service metadata (all networks). */
@@ -865,7 +880,7 @@ function buildPaymentResourceInfo({ url, description, resourcePath, mimeType }) 
     mimeType: mimeType || "application/json",
   });
   if (!base) return undefined;
-  const serviceMeta = isB402BazaarEnabled() ? getSyraB402ServiceMetadata() : {};
+  const serviceMeta = isX402BazaarEnabled() ? getSyraBazaarServiceMetadata() : {};
   return normalizeResourceInfo({ ...base, ...serviceMeta });
 }
 
@@ -880,7 +895,7 @@ function enrichPaymentResourceInfo(existing, req, options) {
     resourcePath: paymentOptions.resource,
     url,
   });
-  const serviceMeta = isB402BazaarEnabled() ? getSyraB402ServiceMetadata() : {};
+  const serviceMeta = isX402BazaarEnabled() ? getSyraBazaarServiceMetadata() : {};
   return (
     normalizeResourceInfo({
       ...existing,
@@ -894,8 +909,8 @@ function enrichPaymentResourceInfo(existing, req, options) {
   );
 }
 
-/** Resolve B402 settle options (bazaar blob) stashed on req.x402Payment. */
-function resolveB402SettleOptions(req) {
+/** Resolve Bazaar settle options (bazaar blob) stashed on req.x402Payment. */
+function resolveBazaarSettleOptions(req) {
   const blob = req?.x402Payment?.bazaarExtensions?.[BAZAAR.key];
   return blob && typeof blob === "object" ? { bazaar: blob } : {};
 }
@@ -961,7 +976,9 @@ async function buildPaymentRequired(bundle, req, options, error) {
     description: paymentOptions.description,
     mimeType: paymentOptions.mimeType || "application/json",
   };
-  const extensions = buildBazaarExtensions(resourceServer, req, paymentOptions);
+  const extensions = isX402BazaarEnabled()
+    ? buildBazaarExtensions(resourceServer, req, paymentOptions)
+    : undefined;
 
   return resourceServer.createPaymentRequiredResponse(requirements, resourceInfo, error, extensions);
 }
@@ -1280,10 +1297,9 @@ export function requirePayment(options) {
         return;
       }
 
-      const bazaarExtensions =
-        useB402Facilitator && isB402BazaarEnabled()
-          ? buildBazaarExtensions(resourceServer, req, options)
-          : undefined;
+      const bazaarExtensions = isX402BazaarEnabled()
+        ? buildBazaarExtensions(resourceServer, req, options)
+        : undefined;
 
       req.x402Payment = {
         payload: payloadWithResource,
@@ -1344,7 +1360,7 @@ async function tryFacilitatorThenLocalSettle(payload, accepted, req) {
 
   if (req?.x402Payment?.useB402Facilitator || shouldUseB402Facilitator(accepted, payload)) {
     const settle = await withTimeout(
-      b402SettlePayment(payload, accepted, resolveB402SettleOptions(req)),
+      b402SettlePayment(payload, accepted, resolveBazaarSettleOptions(req)),
       X402_SETTLE_FACILITATOR_TIMEOUT_MS,
       "settle_timeout"
     );
@@ -1366,10 +1382,15 @@ async function tryFacilitatorThenLocalSettle(payload, accepted, req) {
   const profile = req?.x402Payment?.resourceServerProfile;
   const { resourceServer } =
     profile === "corbits" ? getX402ResourceServerCorbits() : getX402ResourceServer();
+  let settlePayload = payload;
+  const bazaarOpts = resolveBazaarSettleOptions(req);
+  if (bazaarOpts?.bazaar) {
+    settlePayload = injectBazaarIntoPaymentPayload(payload, bazaarOpts.bazaar);
+  }
   let settle;
   try {
     settle = await withTimeout(
-      resourceServer.settlePayment(payload, accepted),
+      resourceServer.settlePayment(settlePayload, accepted),
       X402_SETTLE_FACILITATOR_TIMEOUT_MS,
       "settle_timeout"
     );
@@ -1595,9 +1616,13 @@ export function getX402Handler(req) {
         return avmServer.settlePayment(payload, accepted);
       }
       if (req?.x402Payment?.useB402Facilitator || shouldUseB402Facilitator(accepted, payload)) {
-        return b402SettlePayment(payload, accepted, resolveB402SettleOptions(req));
+        return b402SettlePayment(payload, accepted, resolveBazaarSettleOptions(req));
       }
-      return resourceServer.settlePayment(payload, accepted);
+      const bazaarOpts = resolveBazaarSettleOptions(req);
+      const settlePayload = bazaarOpts?.bazaar
+        ? injectBazaarIntoPaymentPayload(payload, bazaarOpts.bazaar)
+        : payload;
+      return resourceServer.settlePayment(settlePayload, accepted);
     },
   };
 }

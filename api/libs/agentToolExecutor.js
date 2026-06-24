@@ -47,6 +47,7 @@ import {
   parsePayshForceRefresh,
 } from './payshClient.js';
 import { runAgentscoreToolForAgent } from './agentscoreClient.js';
+import { runAipToolForAgent } from './aipClient.js';
 import { resolveAgentBaseUrl } from '../routes/agent/utils.js';
 
 /** @param {number} status @param {Record<string, unknown>} body */
@@ -256,7 +257,31 @@ export async function executeAgentToolCall(input) {
       });
     }
 
-    // Normalize params to string key-value (same as chat flow) so GET query is built correctly
+    // AIP: discover / resolve — no USDC balance check
+    if (tool.aip === 'discover' || tool.aip === 'resolve') {
+      const aipParams = Object.fromEntries(
+        Object.entries(rawParams || {}).filter(
+          ([k, v]) => typeof k === 'string' && v != null && v !== ''
+        ).map(([k, v]) => [k, typeof v === 'string' ? v : String(v)])
+      );
+      const aipOut = await runAipToolForAgent(tool.aip, aipParams, {
+        anonymousId,
+        host: ctx.host,
+      });
+      if (!aipOut.success) {
+        return respond(aipOut.status ?? 502, {
+          success: false,
+          error: aipOut.error,
+          toolId: tool.id,
+        });
+      }
+      return respond(200, {
+        success: true,
+        toolId: tool.id,
+        data: aipOut.data,
+      });
+    }
+
     let params = Object.fromEntries(
       Object.entries(rawParams).filter(
         ([k, v]) => typeof k === 'string' && v != null && v !== ''
@@ -385,6 +410,59 @@ export async function executeAgentToolCall(input) {
         success: true,
         toolId: tool.id,
         data: payshCallOut.data,
+      });
+    }
+
+    // AIP delegate — balance must cover tool price floor
+    if (tool.aip === 'delegate') {
+      const balanceResultAip = await getAgentUsdcBalance(anonymousId);
+      if (!balanceResultAip) {
+        return respond(404, {
+          success: false,
+          insufficientBalance: true,
+          error: 'Agent wallet not found',
+          message:
+            'You do not have an agent wallet yet. Create one (e.g. connect wallet or start a chat) and deposit USDC to delegate to AIP agents.',
+        });
+      }
+      const connectedWalletAip = await getConnectedWalletAddress(anonymousId);
+      const effectivePriceAip = getEffectiveAgentToolPriceUsd(tool, connectedWalletAip);
+      const usdcAip = balanceResultAip.usdcBalance;
+      if (usdcAip <= 0 || usdcAip < effectivePriceAip) {
+        return respond(402, {
+          success: false,
+          insufficientBalance: true,
+          usdcBalance: usdcAip,
+          requiredUsdc: effectivePriceAip,
+          toolId: tool.id,
+          toolName: tool.name,
+          message:
+            usdcAip <= 0
+              ? `Your agent wallet has 0 USDC balance. ${tool.name} requires at least $${effectivePriceAip.toFixed(4)} USDC.`
+              : `Your agent wallet balance ($${usdcAip.toFixed(4)} USDC) is lower than $${effectivePriceAip.toFixed(4)} required for ${tool.name}.`,
+        });
+      }
+      const aipParams = Object.fromEntries(
+        Object.entries(rawParams || {}).filter(
+          ([k, v]) => typeof k === 'string' && v != null && v !== ''
+        ).map(([k, v]) => [k, typeof v === 'string' ? v : String(v)])
+      );
+      const aipDelegateOut = await runAipToolForAgent('delegate', aipParams, {
+        anonymousId,
+        host: ctx.host,
+      });
+      if (!aipDelegateOut.success) {
+        return respond(aipDelegateOut.status ?? 502, {
+          success: false,
+          error: aipDelegateOut.error,
+          toolId: tool.id,
+          ...(aipDelegateOut.data ? { data: aipDelegateOut.data } : {}),
+        });
+      }
+      return respond(200, {
+        success: true,
+        toolId: tool.id,
+        data: aipDelegateOut.data,
       });
     }
 

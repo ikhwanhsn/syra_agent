@@ -292,6 +292,16 @@ export function getResourceMeta(segment) {
 }
 
 /**
+ * Bazaar / marketplace category for a discovery resource slug.
+ * @param {string} segment
+ * @returns {string}
+ */
+export function getResourceCategory(segment) {
+  const meta = getResourceMeta(segment);
+  return meta?.category ?? "crypto";
+}
+
+/**
  * @param {string} segment
  * @returns {string}
  */
