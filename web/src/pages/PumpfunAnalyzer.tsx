@@ -17,6 +17,7 @@ import { PumpfunKolPanel } from "@/components/pumpfun/PumpfunKolPanel";
 import { PumpfunRiskPanel } from "@/components/pumpfun/PumpfunRiskPanel";
 import { PumpfunLiveCallsPanel } from "@/components/pumpfun/PumpfunLiveCallsPanel";
 import { PumpfunScanHistoryPanel } from "@/components/pumpfun/PumpfunScanHistoryPanel";
+import { PumpfunScanLimitModal } from "@/components/pumpfun/PumpfunScanLimitModal";
 import { PumpfunScanShareBar } from "@/components/pumpfun/PumpfunScanShareBar";
 import { PumpfunSearchHero } from "@/components/pumpfun/PumpfunSearchHero";
 import { PumpfunStatGrid } from "@/components/pumpfun/PumpfunStatGrid";
@@ -31,6 +32,7 @@ import {
   memecoinAnalysisQueryKey,
 } from "@/hooks/useMemecoinAnalysis";
 import { isValidSolanaMint, MemecoinAnalysisQuotaError, normalizeMintInput } from "@/lib/pumpfunAnalysisApi";
+import { isPumpfunScanLimitReached } from "@/lib/pumpfunScanQuota";
 import type { PumpfunScanRecord } from "@/lib/pumpfunScanHistoryApi";
 import {
   DASHBOARD_CONTENT_SHELL,
@@ -62,6 +64,8 @@ export default function PumpfunAnalyzer() {
   const [tab, setTab] = useState<PumpfunTab>(urlTab);
   const [shareRecord, setShareRecord] = useState<PumpfunScanRecord | null>(null);
   const [authRestoring, setAuthRestoring] = useState(false);
+  const [limitModalOpen, setLimitModalOpen] = useState(false);
+  const [historySigningIn, setHistorySigningIn] = useState(false);
 
   const scanReady = connected && syraAuthenticated;
   const authPending = authRestoring && connected && !syraAuthenticated;
@@ -88,6 +92,24 @@ export default function PumpfunAnalyzer() {
 
   const analysisQ = useMemecoinAnalysis(scanReady ? activeMint : null, { sessionCache: true });
   const quotaQ = useMemecoinAnalysisQuota(scanReady);
+
+  const handleHistorySignIn = useCallback(async () => {
+    setHistorySigningIn(true);
+    try {
+      const restored = await ensureSyraAuth();
+      if (!restored) {
+        await requestSyraAuth();
+      }
+    } finally {
+      setHistorySigningIn(false);
+    }
+  }, [ensureSyraAuth, requestSyraAuth]);
+
+  /** Silently restore Syra session when opening My calls with wallet already connected. */
+  useEffect(() => {
+    if (tab !== "history" || !connected || syraAuthenticated || !syraAuthReady) return;
+    void ensureSyraAuth();
+  }, [tab, connected, syraAuthenticated, syraAuthReady, ensureSyraAuth]);
 
   /** Drop scan cache when leaving the pumpfun page so the next visit starts fresh. */
   useEffect(() => {
@@ -219,6 +241,18 @@ export default function PumpfunAnalyzer() {
     };
   }, [analysisPayload]);
 
+  const scanLimitReached = isPumpfunScanLimitReached(quotaQ.data);
+
+  const openLimitModal = useCallback(() => {
+    setLimitModalOpen(true);
+  }, []);
+
+  useEffect(() => {
+    if (analysisQ.isError && analysisQ.error instanceof MemecoinAnalysisQuotaError) {
+      setLimitModalOpen(true);
+    }
+  }, [analysisQ.isError, analysisQ.error]);
+
   const showSkeleton = tab === "scan" && analysisQ.isLoading && !analysisPayload;
   const hasResults = Boolean(analysisPayload);
 
@@ -240,15 +274,17 @@ export default function PumpfunAnalyzer() {
           isLoading={analysisQ.isFetching && !analysisQ.data}
           quota={quotaQ.data}
           quotaLoading={quotaQ.isLoading}
-          scanLimitReached={
-            quotaQ.data != null &&
-            quotaQ.data.tier !== "bypass" &&
-            quotaQ.data.limit > 0 &&
-            quotaQ.data.remaining <= 0
-          }
+          scanLimitReached={scanLimitReached}
           walletConnected={connected}
           authPending={authPending}
           onConnectWallet={handleConnectWallet}
+          onScanLimitClick={openLimitModal}
+        />
+
+        <PumpfunScanLimitModal
+          open={limitModalOpen}
+          onClose={() => setLimitModalOpen(false)}
+          quota={quotaQ.data}
         />
 
         <Tabs value={tab} onValueChange={handleTabChange}>
@@ -279,19 +315,21 @@ export default function PumpfunAnalyzer() {
                 <CardContent className="pt-6">
                   <p className="text-sm font-medium text-destructive">
                     {analysisQ.error instanceof MemecoinAnalysisQuotaError
-                      ? analysisQ.error.message
+                      ? "Daily scan limit reached."
                       : analysisQ.error instanceof Error
                         ? analysisQ.error.message
                         : "Analysis failed"}
                   </p>
                   {analysisQ.error instanceof MemecoinAnalysisQuotaError ? (
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      Resets at midnight UTC
-                      {analysisQ.error.quota.resetAt
-                        ? ` (${new Date(analysisQ.error.quota.resetAt).toUTCString()})`
-                        : ""}
-                      .
-                    </p>
+                    <Button
+                      type="button"
+                      variant="neon"
+                      size="sm"
+                      className="mt-4"
+                      onClick={openLimitModal}
+                    >
+                      View scan limits
+                    </Button>
                   ) : analysisQ.error instanceof Error &&
                     analysisQ.error.message.toLowerCase().includes("wallet") ? (
                     <Button
@@ -349,7 +387,14 @@ export default function PumpfunAnalyzer() {
           </TabsContent>
 
           <TabsContent value="history" className="mt-6">
-            <PumpfunScanHistoryPanel enabled={scanReady} authPending={authPending} />
+            <PumpfunScanHistoryPanel
+              walletConnected={connected}
+              syraAuthenticated={syraAuthenticated}
+              authPending={authPending}
+              signingIn={historySigningIn}
+              onConnectWallet={handleConnectWallet}
+              onSignIn={handleHistorySignIn}
+            />
           </TabsContent>
 
           <TabsContent value="callers" className="mt-6">

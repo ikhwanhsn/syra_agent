@@ -70,6 +70,11 @@ import {
   SYRA_B402_BAZAAR_SERVICE_NAME,
   SYRA_B402_BAZAAR_TAGS,
 } from "../config/syraBranding.js";
+import {
+  inferResourcePathFromRequest,
+  isPlaceholderResourceDescription,
+  resolveResourceDescription,
+} from "../config/x402ResourceCatalog.js";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -798,6 +803,24 @@ async function resolvePayToForRequest(options, req) {
   return normalizePayToOverride(raw);
 }
 
+/**
+ * Normalize requirePayment options so every network gets a catalog-backed description.
+ * @param {import('express').Request} req
+ * @param {object} options
+ */
+function normalizePaymentOptions(req, options) {
+  const base = options && typeof options === "object" ? { ...options } : {};
+  const resource = inferResourcePathFromRequest(req, base);
+  const adapter = new ExpressAdapter(req);
+  const url = adapter.getUrl();
+  const description = resolveResourceDescription({
+    description: base.description,
+    resourcePath: resource,
+    url,
+  });
+  return { ...base, resource, description };
+}
+
 /** Sanitized Syra service metadata for B402 Bazaar resource listings. */
 function getSyraB402ServiceMetadata() {
   return sanitizeResourceServiceMetadata({
@@ -829,15 +852,46 @@ function buildBazaarExtensions(resourceServer, req, options) {
   return resourceServer.enrichExtensions(declared, { method: req.method, adapter: {} });
 }
 
-/** ResourceInfo with Syra Bazaar service metadata for B402 settle payloads. */
-function buildB402BazaarResourceInfo({ url, description, mimeType }) {
+/** ResourceInfo with optional Bazaar service metadata (all networks). */
+function buildPaymentResourceInfo({ url, description, resourcePath, mimeType }) {
+  const resolvedDescription = resolveResourceDescription({
+    description,
+    resourcePath,
+    url,
+  });
   const base = normalizeResourceInfo({
     url,
-    description,
+    description: resolvedDescription,
     mimeType: mimeType || "application/json",
   });
   if (!base) return undefined;
-  return normalizeResourceInfo({ ...base, ...getSyraB402ServiceMetadata() });
+  const serviceMeta = isB402BazaarEnabled() ? getSyraB402ServiceMetadata() : {};
+  return normalizeResourceInfo({ ...base, ...serviceMeta });
+}
+
+/** Merge catalog description (+ optional Bazaar metadata) onto x402 v2 ResourceInfo. */
+function enrichPaymentResourceInfo(existing, req, options) {
+  const adapter = new ExpressAdapter(req);
+  const url = String(existing?.url ?? adapter.getUrl() ?? "").trim();
+  if (!url) return existing;
+  const paymentOptions = normalizePaymentOptions(req, options);
+  const description = resolveResourceDescription({
+    description: paymentOptions.description ?? existing?.description,
+    resourcePath: paymentOptions.resource,
+    url,
+  });
+  const serviceMeta = isB402BazaarEnabled() ? getSyraB402ServiceMetadata() : {};
+  return (
+    normalizeResourceInfo({
+      ...existing,
+      url,
+      description: isPlaceholderResourceDescription(existing?.description, url)
+        ? description
+        : existing?.description || description,
+      mimeType: existing?.mimeType || paymentOptions.mimeType || "application/json",
+      ...serviceMeta,
+    }) ?? existing
+  );
 }
 
 /** Resolve B402 settle options (bazaar blob) stashed on req.x402Payment. */
@@ -847,9 +901,10 @@ function resolveB402SettleOptions(req) {
 }
 
 async function buildPaymentRequired(bundle, req, options, error) {
+  const paymentOptions = normalizePaymentOptions(req, options);
   const adapter = new ExpressAdapter(req);
   const { resourceServer, config, assets } = bundle;
-  const rawPrice = await resolveRawPriceUsdForRequest(options, req);
+  const rawPrice = await resolveRawPriceUsdForRequest(paymentOptions, req);
   const priceUsd = getEffectivePriceUsd(rawPrice, getPayerOrConnectedWalletForPrice(req));
   const microUnits = usdToMicroUsdc(priceUsd);
   // Bind x402 `resource.url` to the URL this HTTP request actually used (ExpressAdapter).
@@ -858,10 +913,15 @@ async function buildPaymentRequired(bundle, req, options, error) {
   // PAYMENT-SIGNATURE then carried api.syraa.fun but the client retried localhost — Corbits
   // verify rejects that mismatch. Playground always hit the public URL so it worked.
   const resourceUrl = adapter.getUrl();
-  const maxTimeout = options.maxTimeoutSeconds ?? 60;
-  const payToOverride = await resolvePayToForRequest(options, req);
+  const maxTimeout = paymentOptions.maxTimeoutSeconds ?? 60;
+  const payToOverride = await resolvePayToForRequest(paymentOptions, req);
 
-  const paymentOptions = paymentOptionsForFacilitator(bundle, microUnits, maxTimeout, payToOverride);
+  const facilitatorPaymentOptions = paymentOptionsForFacilitator(
+    bundle,
+    microUnits,
+    maxTimeout,
+    payToOverride
+  );
 
   const ctx = {
     adapter,
@@ -872,7 +932,10 @@ async function buildPaymentRequired(bundle, req, options, error) {
 
   let requirements;
   try {
-    requirements = await resourceServer.buildPaymentRequirementsFromOptions(paymentOptions, ctx);
+    requirements = await resourceServer.buildPaymentRequirementsFromOptions(
+      facilitatorPaymentOptions,
+      ctx
+    );
   } catch (e) {
     console.warn(
       "[x402] buildPaymentRequirementsFromOptions failed:",
@@ -893,9 +956,12 @@ async function buildPaymentRequired(bundle, req, options, error) {
   requirements = ensureEvmEip712Domain(requirements);
   requirements = await enrichB402Requirements(requirements);
 
-  const description = options.description || "x402 V2 endpoint";
-  const resourceInfo = { url: resourceUrl, description, mimeType: options.mimeType || "application/json" };
-  const extensions = buildBazaarExtensions(resourceServer, req, options);
+  const resourceInfo = {
+    url: resourceUrl,
+    description: paymentOptions.description,
+    mimeType: paymentOptions.mimeType || "application/json",
+  };
+  const extensions = buildBazaarExtensions(resourceServer, req, paymentOptions);
 
   return resourceServer.createPaymentRequiredResponse(requirements, resourceInfo, error, extensions);
 }
@@ -905,40 +971,25 @@ function json402(res, paymentRequired) {
   res.status(402).type("application/json").send(paymentRequired);
 }
 
-/** Ensure B402 verify/settle receives x402 v2 ResourceInfo on the payment payload root. */
-function enrichB402PayloadResource(payload, req, options) {
+/** Ensure verify/settle payloads carry x402 v2 ResourceInfo with a real description (all networks). */
+function enrichPaymentPayloadResource(payload, req, options) {
   if (!payload || typeof payload !== "object") return payload;
-  const serviceMeta = isB402BazaarEnabled() ? getSyraB402ServiceMetadata() : {};
-  const existing = normalizeResourceInfo(payload.resource);
-  if (existing) {
-    if (Object.keys(serviceMeta).length === 0) return payload;
-    return {
-      ...payload,
-      resource: normalizeResourceInfo({ ...existing, ...serviceMeta }),
-    };
-  }
-  const legacy = normalizeResourceInfo(payload.accepted?.resource);
-  if (legacy) {
-    return {
-      ...payload,
-      resource: normalizeResourceInfo({ ...legacy, ...serviceMeta }),
-    };
-  }
+  const existing =
+    normalizeResourceInfo(payload.resource) ?? normalizeResourceInfo(payload.accepted?.resource);
   const adapter = new ExpressAdapter(req);
-  const url = adapter.getUrl();
+  const url = String(existing?.url ?? adapter.getUrl() ?? "").trim();
   if (!url) return payload;
-  return {
-    ...payload,
-    resource: buildB402BazaarResourceInfo({
+  const paymentOptions = normalizePaymentOptions(req, options);
+  const resource =
+    enrichPaymentResourceInfo(existing ?? { url }, req, paymentOptions) ??
+    buildPaymentResourceInfo({
       url,
-      description: options?.description,
-      mimeType: options?.mimeType || "application/json",
-    }) ?? {
-      url,
-      description: options?.description,
-      mimeType: options?.mimeType || "application/json",
-    },
-  };
+      description: paymentOptions.description,
+      resourcePath: paymentOptions.resource,
+      mimeType: paymentOptions.mimeType || "application/json",
+    });
+  if (!resource) return payload;
+  return { ...payload, resource };
 }
 
 /**
@@ -1022,6 +1073,8 @@ export function requirePayment(options) {
         markShadowfeedPartnerBypass(req);
         return next();
       }
+
+      options = normalizePaymentOptions(req, options);
 
       await ensureX402ForReq(req);
       const bundle = getX402BundleForReq(req);
@@ -1133,9 +1186,7 @@ export function requirePayment(options) {
       const useAlgorandFacilitator = shouldUseAlgorandFacilitator(acc);
       const useB402Facilitator =
         !useAlgorandFacilitator && shouldUseB402Facilitator(acc, payload);
-      const payloadForB402 = useB402Facilitator
-        ? enrichB402PayloadResource(payload, req, options)
-        : payload;
+      const payloadWithResource = enrichPaymentPayloadResource(payload, req, options);
       x402Log("payment_retry", {
         method: req.method,
         path: req.path,
@@ -1144,8 +1195,10 @@ export function requirePayment(options) {
         b402: useB402Facilitator,
         algorand: useAlgorandFacilitator,
         resourceUrl:
-          normalizeResourceInfo(payloadForB402?.resource)?.url ??
+          normalizeResourceInfo(payloadWithResource?.resource)?.url ??
           normalizeResourceInfo(acc?.resource)?.url,
+        resourceDescription:
+          normalizeResourceInfo(payloadWithResource?.resource)?.description ?? null,
         hasHeader: true,
       });
       try {
@@ -1159,7 +1212,7 @@ export function requirePayment(options) {
           );
         } else if (useB402Facilitator) {
           verify = await withTimeout(
-            b402VerifyPayment(payloadForB402, acc),
+            b402VerifyPayment(payloadWithResource, acc),
             X402_VERIFY_FACILITATOR_TIMEOUT_MS,
             "verify_timeout"
           );
@@ -1233,7 +1286,7 @@ export function requirePayment(options) {
           : undefined;
 
       req.x402Payment = {
-        payload: useB402Facilitator ? payloadForB402 : payload,
+        payload: payloadWithResource,
         accepted: acc,
         priceUsd,
         resourceServerProfile: useCorbitsProfile(req) ? "corbits" : "payai",

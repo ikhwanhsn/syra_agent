@@ -1,9 +1,9 @@
 import { useCallback, useState } from "react";
 import { Loader2, Search, Wallet } from "lucide-react";
-import { Link } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { MemecoinAnalysisQuota } from "@/lib/pumpfunAnalysisApi";
+import { isPumpfunScanUnlimitedTier } from "@/lib/pumpfunScanQuota";
 import { cn } from "@/lib/utils";
 
 const EXAMPLE_MINTS = [
@@ -23,43 +23,8 @@ export interface PumpfunSearchHeroProps {
   /** True while silently restoring Syra session for an already-connected wallet. */
   authPending?: boolean;
   onConnectWallet?: () => void;
+  onScanLimitClick?: () => void;
   className?: string;
-}
-
-const TIER_LIMITS = {
-  free: 3,
-  holder: 15,
-  staker: 25,
-} as const;
-
-function tierLabel(tier: string | undefined): string {
-  switch (tier) {
-    case "holder":
-      return "1M+ $SYRA";
-    case "staker":
-      return "Staker";
-    case "bypass":
-      return "Unlimited";
-    case "locked":
-      return "Wallet required";
-    default:
-      return "Free";
-  }
-}
-
-function tierUpgradeHint(tier: string | undefined): string | null {
-  switch (tier) {
-    case "free":
-      return "Connect a wallet with 1M+ $SYRA for 15/day, or stake 1M+ for 25/day.";
-    case "holder":
-      return "Stake 1M+ $SYRA to unlock 25 scans/day.";
-    default:
-      return null;
-  }
-}
-
-function formatResetHint(): string {
-  return "Resets midnight UTC";
 }
 
 export function PumpfunSearchHero({
@@ -73,6 +38,7 @@ export function PumpfunSearchHero({
   walletConnected = false,
   authPending = false,
   onConnectWallet,
+  onScanLimitClick,
   className,
 }: PumpfunSearchHeroProps) {
   const [recent, setRecent] = useState<string[]>(() => {
@@ -101,11 +67,23 @@ export function PumpfunSearchHero({
       onConnectWallet?.();
       return;
     }
+    if (scanLimitReached) {
+      onScanLimitClick?.();
+      return;
+    }
     const trimmed = value.trim();
     if (!trimmed) return;
     saveRecent(trimmed);
     void onAnalyze(trimmed);
-  }, [onAnalyze, onConnectWallet, saveRecent, value, walletConnected]);
+  }, [
+    onAnalyze,
+    onConnectWallet,
+    onScanLimitClick,
+    saveRecent,
+    scanLimitReached,
+    value,
+    walletConnected,
+  ]);
 
   const pick = useCallback(
     (mint: string) => {
@@ -113,16 +91,22 @@ export function PumpfunSearchHero({
         onConnectWallet?.();
         return;
       }
+      if (scanLimitReached) {
+        onScanLimitClick?.();
+        return;
+      }
       onChange(mint);
       saveRecent(mint);
       void onAnalyze(mint);
     },
-    [onAnalyze, onChange, onConnectWallet, saveRecent, walletConnected],
+    [onAnalyze, onChange, onConnectWallet, onScanLimitClick, saveRecent, scanLimitReached, walletConnected],
   );
 
-  const upgradeHint = tierUpgradeHint(quota?.tier);
   const showUsage =
-    walletConnected && !authPending && quota?.tier !== "bypass" && (quotaLoading || quota != null);
+    walletConnected &&
+    !authPending &&
+    !isPumpfunScanUnlimitedTier(quota?.tier) &&
+    (quotaLoading || quota != null);
   const usedPct =
     quota && quota.limit > 0
       ? Math.min(100, Math.round((quota.used / quota.limit) * 100))
@@ -192,7 +176,10 @@ export function PumpfunSearchHero({
             variant="neon"
             className="h-11 shrink-0 px-5"
             disabled={
-              !walletConnected || authPending || !value.trim() || isLoading || scanLimitReached
+              !walletConnected ||
+              authPending ||
+              (!scanLimitReached && !value.trim()) ||
+              isLoading
             }
             onClick={submit}
           >
@@ -200,62 +187,46 @@ export function PumpfunSearchHero({
           </Button>
         </div>
 
-        {walletConnected && !authPending && quota?.tier !== "bypass" ? (
+        {showUsage ? (
           <div className="space-y-2 rounded-lg border border-border/40 bg-muted/20 px-3 py-2.5">
-            {showUsage ? (
-              <>
-                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs">
-                  <span className="font-medium text-foreground">
-                    {quotaLoading
-                      ? "Loading daily limit…"
-                      : quota
-                        ? scanLimitReached
-                          ? `Daily limit reached (${quota.used}/${quota.limit})`
-                          : `${quota.used}/${quota.limit} scans used today`
-                        : null}
-                  </span>
-                  {!quotaLoading && quota ? (
-                    <span className="text-muted-foreground">
-                      {tierLabel(quota.tier)} tier
-                      {quota.remaining > 0
-                        ? ` · ${quota.remaining} left`
-                        : ` · ${formatResetHint()}`}
-                    </span>
-                  ) : null}
-                </div>
-                {!quotaLoading && quota && quota.limit > 0 ? (
-                  <div
-                    className="h-1 overflow-hidden rounded-full bg-muted"
-                    role="progressbar"
-                    aria-valuenow={quota.used}
-                    aria-valuemin={0}
-                    aria-valuemax={quota.limit}
-                    aria-label="Daily scans used"
-                  >
-                    <div
-                      className={cn(
-                        "h-full rounded-full transition-all",
-                        scanLimitReached ? "bg-destructive" : "bg-primary",
-                      )}
-                      style={{ width: `${usedPct}%` }}
-                    />
-                  </div>
-                ) : null}
-              </>
-            ) : null}
-            <p className="text-[11px] leading-relaxed text-muted-foreground">
-              {TIER_LIMITS.free}/day free · {TIER_LIMITS.holder}/day with 1M+ $SYRA ·{" "}
-              {TIER_LIMITS.staker}/day staked
-              {upgradeHint ? (
-                <>
-                  {" · "}
-                  {upgradeHint}{" "}
-                  <Link to="/staking" className="text-primary hover:underline">
-                    Staking
-                  </Link>
-                </>
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs">
+              <span className="font-medium text-foreground">
+                {quotaLoading
+                  ? "Loading daily limit…"
+                  : quota
+                    ? scanLimitReached
+                      ? `Daily limit reached (${quota.used}/${quota.limit})`
+                      : `${quota.used}/${quota.limit} scans used today`
+                    : null}
+              </span>
+              {!quotaLoading && quota && scanLimitReached ? (
+                <button
+                  type="button"
+                  className="text-primary hover:underline"
+                  onClick={onScanLimitClick}
+                >
+                  View limits
+                </button>
               ) : null}
-            </p>
+            </div>
+            {!quotaLoading && quota && quota.limit > 0 ? (
+              <div
+                className="h-1 overflow-hidden rounded-full bg-muted"
+                role="progressbar"
+                aria-valuenow={quota.used}
+                aria-valuemin={0}
+                aria-valuemax={quota.limit}
+                aria-label="Daily scans used"
+              >
+                <div
+                  className={cn(
+                    "h-full rounded-full transition-all",
+                    scanLimitReached ? "bg-destructive" : "bg-primary",
+                  )}
+                  style={{ width: `${usedPct}%` }}
+                />
+              </div>
+            ) : null}
           </div>
         ) : null}
 

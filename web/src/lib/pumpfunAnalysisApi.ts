@@ -134,7 +134,7 @@ export interface MemecoinAnalysisQuota {
   limit: number;
   used: number;
   remaining: number;
-  tier: "free" | "holder" | "staker" | "bypass" | string;
+  tier: "free" | "staker" | "unlimited" | "bypass" | "holder" | string;
   resetAt: string;
   verifiedWallet?: boolean;
 }

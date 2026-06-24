@@ -1,18 +1,24 @@
 /**
  * Daily scan quota for Pumpfun memecoin analysis (/agent/tokens/memecoin-analysis).
  * - Default: 3 scans / UTC day (per IP or verified wallet)
- * - ≥1M SYRA in wallet: 15 / day
- * - ≥1M SYRA staked (Streamflow): 25 / day
+ * - ≥1M SYRA staked (Streamflow): 15 / day
+ * - ≥10M SYRA staked (Streamflow): unlimited
  */
 import MemecoinAnalysisDailyQuota from '../models/agent/MemecoinAnalysisDailyQuota.js';
 import { isMongooseConnected } from '../config/mongoose.js';
-import { getSyraBalance } from './syraToken.js';
 import { isActiveStakerEligible } from './syraStakingEligibility.js';
 
 export const MEMECOIN_SCAN_LIMIT_DEFAULT = 3;
+export const MEMECOIN_SCAN_LIMIT_STAKER = 15;
+export const MEMECOIN_SCAN_SYRA_STAKER_THRESHOLD = 1_000_000;
+export const MEMECOIN_SCAN_SYRA_WHALE_THRESHOLD = 10_000_000;
+
+/** @deprecated Wallet-balance tier removed; kept for env compat only. */
 export const MEMECOIN_SCAN_LIMIT_HOLDER = 15;
-export const MEMECOIN_SCAN_LIMIT_STAKER = 25;
-export const MEMECOIN_SCAN_SYRA_THRESHOLD = 1_000_000;
+/** @deprecated Use whale unlimited tier instead. */
+export const MEMECOIN_SCAN_LIMIT_STAKER_LEGACY = 25;
+/** @deprecated Use MEMECOIN_SCAN_SYRA_STAKER_THRESHOLD */
+export const MEMECOIN_SCAN_SYRA_THRESHOLD = MEMECOIN_SCAN_SYRA_STAKER_THRESHOLD;
 
 const BYPASS_WALLETS_DEFAULT = ['FiejqEgqQ8bxtUJpZMy5p1wVCcejKyy5PgZ4cwmLBvYD'];
 
@@ -69,7 +75,6 @@ export function resolveMemecoinScanOwner(req) {
  */
 export async function resolveMemecoinScanDailyLimit(walletAddress) {
   const defaultLimit = parseLimitEnv('MEMECOIN_SCAN_LIMIT_DEFAULT', MEMECOIN_SCAN_LIMIT_DEFAULT);
-  const holderLimit = parseLimitEnv('MEMECOIN_SCAN_LIMIT_HOLDER', MEMECOIN_SCAN_LIMIT_HOLDER);
   const stakerLimit = parseLimitEnv('MEMECOIN_SCAN_LIMIT_STAKER', MEMECOIN_SCAN_LIMIT_STAKER);
 
   if (!walletAddress?.trim()) {
@@ -77,13 +82,13 @@ export async function resolveMemecoinScanDailyLimit(walletAddress) {
   }
 
   const wallet = walletAddress.trim();
-  const [stakerEligible, balanceResult] = await Promise.all([
-    isActiveStakerEligible(wallet, MEMECOIN_SCAN_SYRA_THRESHOLD),
-    getSyraBalance(wallet),
+  const [whaleEligible, stakerEligible] = await Promise.all([
+    isActiveStakerEligible(wallet, MEMECOIN_SCAN_SYRA_WHALE_THRESHOLD),
+    isActiveStakerEligible(wallet, MEMECOIN_SCAN_SYRA_STAKER_THRESHOLD),
   ]);
 
+  if (whaleEligible) return { limit: 0, tier: 'unlimited' };
   if (stakerEligible) return { limit: stakerLimit, tier: 'staker' };
-  if (balanceResult?.isEligible) return { limit: holderLimit, tier: 'holder' };
   return { limit: defaultLimit, tier: 'free' };
 }
 
@@ -142,6 +147,19 @@ export async function getMemecoinAnalysisQuotaStatus(req) {
   const { limit, tier } = await resolveMemecoinScanDailyLimit(
     owner.verifiedWallet ? owner.walletAddress : null,
   );
+
+  if (tier === 'unlimited' || limit === 0) {
+    return {
+      limit: 0,
+      used: 0,
+      remaining: 0,
+      tier: 'unlimited',
+      resetAt: nextUtcMidnightIso(),
+      ownerKey: owner.ownerKey,
+      verifiedWallet: owner.verifiedWallet,
+    };
+  }
+
   const used = await readUsedCount(owner.ownerKey, dayUtc);
   const remaining = limit === 0 ? 0 : Math.max(0, limit - used);
 
@@ -158,9 +176,10 @@ export async function getMemecoinAnalysisQuotaStatus(req) {
 
 export function buildMemecoinAnalysisDailyLimitMessage(quota) {
   const tierHints = {
-    free: 'Connect a wallet with 1M+ $SYRA for 15 scans/day, or stake 1M+ $SYRA for 25 scans/day.',
-    holder: 'Stake 1M+ $SYRA to unlock 25 scans/day.',
-    staker: '',
+    free: 'Stake 1M+ $SYRA for 15 scans/day, or 10M+ $SYRA staked for unlimited scans/day.',
+    holder: 'Stake 1M+ $SYRA for 15 scans/day, or 10M+ $SYRA staked for unlimited scans/day.',
+    staker: 'Stake 10M+ $SYRA staked for unlimited scans/day.',
+    unlimited: '',
     bypass: '',
   };
   const hint = tierHints[quota?.tier] || tierHints.free;
@@ -179,7 +198,7 @@ export function buildMemecoinAnalysisDailyLimitMessage(quota) {
 export async function tryConsumeMemecoinAnalysisScan(req) {
   const status = await getMemecoinAnalysisQuotaStatus(req);
 
-  if (status.tier === 'bypass' || status.limit === 0) {
+  if (status.tier === 'bypass' || status.tier === 'unlimited' || status.limit === 0) {
     return { allowed: true, ...status };
   }
 

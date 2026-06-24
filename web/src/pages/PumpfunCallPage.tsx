@@ -2,7 +2,13 @@ import { Loader2, Share2 } from "lucide-react";
 import { useParams } from "@/lib/navigation";
 import { OverviewPageBackdrop } from "@/components/dashboard/overview/OverviewPageBackdrop";
 import { PumpfunCallShareCard } from "@/components/pumpfun/PumpfunCallShareCard";
+import { PumpfunCallShareDesignPicker } from "@/components/pumpfun/PumpfunCallShareDesignPicker";
 import { PumpfunCallShareModal } from "@/components/pumpfun/PumpfunCallShareModal";
+import {
+  getStoredPumpfunShareDesign,
+  setStoredPumpfunShareDesign,
+  type PumpfunCallShareDesignId,
+} from "@/components/pumpfun/pumpfunCallShareDesigns";
 import { usePumpfunScanCall } from "@/hooks/usePumpfunScanHistory";
 import {
   DASHBOARD_CONTENT_SHELL,
@@ -10,7 +16,7 @@ import {
   PAGE_SAFE_AREA_BOTTOM,
 } from "@/lib/layoutConstants";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   PUMPFUN_CALL_SHARE_HEIGHT,
@@ -24,6 +30,12 @@ export default function PumpfunCallPage() {
   const { callId } = useParams<{ callId: string }>();
   const callQ = usePumpfunScanCall(callId ?? null);
   const [shareOpen, setShareOpen] = useState(false);
+  const [design, setDesign] = useState<PumpfunCallShareDesignId>(getStoredPumpfunShareDesign);
+
+  const handleDesignChange = useCallback((next: PumpfunCallShareDesignId) => {
+    setDesign(next);
+    setStoredPumpfunShareDesign(next);
+  }, []);
 
   if (callQ.isLoading) {
     return (
@@ -72,6 +84,12 @@ export default function PumpfunCallPage() {
           </p>
         </div>
 
+        <PumpfunCallShareDesignPicker
+          value={design}
+          onChange={handleDesignChange}
+          className="w-full max-w-xl"
+        />
+
         <div
           className="mx-auto w-full overflow-hidden rounded-lg border border-border/60 shadow-2xl"
           style={{ maxWidth: PUMPFUN_CALL_SHARE_PREVIEW_WIDTH }}
@@ -89,7 +107,7 @@ export default function PumpfunCallPage() {
                 transformOrigin: "top left",
               }}
             >
-              <PumpfunCallShareCard record={record} />
+              <PumpfunCallShareCard record={record} design={design} />
             </div>
           </div>
         </div>
@@ -104,6 +122,7 @@ export default function PumpfunCallPage() {
         open={shareOpen}
         onClose={() => setShareOpen(false)}
         record={record}
+        initialDesign={design}
       />
     </div>
   );

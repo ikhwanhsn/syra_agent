@@ -34,6 +34,10 @@ const tradingExperimentRunSchema = new mongoose.Schema(
     forwardBarsExamined: { type: Number, default: 0 },
     /** Last 1m kline close time (ms) fully processed for volatile TP/SL checks */
     lastProcessed1mCloseMs: { type: Number, default: null },
+    /** Consecutive validation fetch failures (reset on successful candle batch). */
+    validateFailureCount: { type: Number, default: 0 },
+    /** Last validation error message when fetch/processing fails. */
+    lastValidateError: { type: String, default: null },
     /** When win/loss/expired/error was determined */
     resolvedAt: { type: Date, default: null },
     /** Trimmed snapshot for UI */

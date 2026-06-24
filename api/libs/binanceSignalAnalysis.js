@@ -30,7 +30,7 @@ const BINANCE_API = process.env.BINANCE_API_BASE_URL || "https://api.binance.com
 const BINANCE_DATA_API =
   process.env.BINANCE_DATA_API_BASE_URL || "https://data-api.binance.vision/api/v3";
 const BINANCE_REST_FETCH_TIMEOUT_MS = Number.parseInt(
-  process.env.BINANCE_KLINE_FETCH_TIMEOUT_MS || "8000",
+  process.env.BINANCE_KLINE_FETCH_TIMEOUT_MS || "5000",
   10,
 );
 

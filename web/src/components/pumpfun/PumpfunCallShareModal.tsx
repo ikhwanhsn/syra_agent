@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Copy, Download, ImageIcon, Loader2, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -10,12 +10,18 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { PumpfunCallShareCard } from "@/components/pumpfun/PumpfunCallShareCard";
+import { PumpfunCallShareDesignPicker } from "@/components/pumpfun/PumpfunCallShareDesignPicker";
 import {
   blobFromPumpfunCallShare,
   buildPumpfunCallShareFilename,
   copyPumpfunCallShareToClipboard,
   exportPumpfunCallSharePng,
 } from "@/components/pumpfun/pumpfunCallShareExport";
+import {
+  getStoredPumpfunShareDesign,
+  setStoredPumpfunShareDesign,
+  type PumpfunCallShareDesignId,
+} from "@/components/pumpfun/pumpfunCallShareDesigns";
 import {
   buildPumpfunCallShareText,
   type PumpfunScanRecord,
@@ -33,20 +39,40 @@ export interface PumpfunCallShareModalProps {
   open: boolean;
   onClose: () => void;
   record: PumpfunScanRecord;
+  initialDesign?: PumpfunCallShareDesignId;
 }
 
-export function PumpfunCallShareModal({ open, onClose, record }: PumpfunCallShareModalProps) {
+export function PumpfunCallShareModal({
+  open,
+  onClose,
+  record,
+  initialDesign,
+}: PumpfunCallShareModalProps) {
   const exportRef = useRef<HTMLDivElement>(null);
+  const [design, setDesign] = useState<PumpfunCallShareDesignId>(
+    initialDesign ?? getStoredPumpfunShareDesign(),
+  );
   const [copying, setCopying] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [copied, setCopied] = useState(false);
   const [textCopied, setTextCopied] = useState(false);
 
+  useEffect(() => {
+    if (open && initialDesign) {
+      setDesign(initialDesign);
+    }
+  }, [open, initialDesign]);
+
   const shareText = buildPumpfunCallShareText(record);
   const busy = copying || downloading || sharing;
   const canNativeShare =
     typeof navigator !== "undefined" && typeof navigator.share === "function";
+
+  const handleDesignChange = useCallback((next: PumpfunCallShareDesignId) => {
+    setDesign(next);
+    setStoredPumpfunShareDesign(next);
+  }, []);
 
   const handleOpenChange = (next: boolean) => {
     if (!next) onClose();
@@ -133,11 +159,13 @@ export function PumpfunCallShareModal({ open, onClose, record }: PumpfunCallShar
             Flex your call
           </DialogTitle>
           <DialogDescription>
-            UpOnly-style alpha flex card — optimized for the X timeline.
+            Pick a card design, then copy or download for X.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 p-4 sm:p-5">
+          <PumpfunCallShareDesignPicker value={design} onChange={handleDesignChange} compact />
+
           <div
             className="mx-auto w-full overflow-hidden rounded-lg border border-border/60 shadow-2xl"
             style={{ maxWidth: PUMPFUN_CALL_SHARE_PREVIEW_WIDTH }}
@@ -150,7 +178,7 @@ export function PumpfunCallShareModal({ open, onClose, record }: PumpfunCallShar
               className="overflow-hidden"
             >
               <div style={{ transform: `scale(${PREVIEW_SCALE})`, transformOrigin: "top left" }}>
-                <PumpfunCallShareCard record={record} />
+                <PumpfunCallShareCard record={record} design={design} />
               </div>
             </div>
           </div>
@@ -213,7 +241,7 @@ export function PumpfunCallShareModal({ open, onClose, record }: PumpfunCallShar
             className="pointer-events-none fixed left-[-9999px] top-0 opacity-0"
             style={{ width: PUMPFUN_CALL_SHARE_WIDTH, height: PUMPFUN_CALL_SHARE_HEIGHT }}
           >
-            <PumpfunCallShareCard ref={exportRef} record={record} />
+            <PumpfunCallShareCard ref={exportRef} record={record} design={design} />
           </div>
         ) : null}
       </DialogContent>

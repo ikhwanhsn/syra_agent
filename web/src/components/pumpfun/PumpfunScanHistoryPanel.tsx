@@ -100,29 +100,61 @@ function HistoryRow({ record, onShare }: HistoryRowProps) {
 }
 
 export interface PumpfunScanHistoryPanelProps {
-  enabled: boolean;
+  walletConnected: boolean;
+  syraAuthenticated: boolean;
   authPending?: boolean;
+  signingIn?: boolean;
+  onConnectWallet?: () => void;
+  onSignIn?: () => void | Promise<void>;
 }
 
-export function PumpfunScanHistoryPanel({ enabled, authPending }: PumpfunScanHistoryPanelProps) {
-  const historyQ = usePumpfunScanHistory(enabled);
+export function PumpfunScanHistoryPanel({
+  walletConnected,
+  syraAuthenticated,
+  authPending,
+  signingIn,
+  onConnectWallet,
+  onSignIn,
+}: PumpfunScanHistoryPanelProps) {
+  const historyEnabled = walletConnected && syraAuthenticated;
+  const historyQ = usePumpfunScanHistory(historyEnabled);
   const [shareRecord, setShareRecord] = useState<PumpfunScanRecord | null>(null);
 
-  if (authPending) {
-    return (
-      <Card className={cn(overviewCardShell, "flex items-center justify-center gap-2 p-12")}>
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">Loading your call history…</p>
-      </Card>
-    );
-  }
-
-  if (!enabled) {
+  if (!walletConnected) {
     return (
       <Card className={cn(overviewCardShell, "p-8 text-center")}>
         <p className="text-sm text-muted-foreground">
           Connect your wallet to view your scan history and flex cards.
         </p>
+        {onConnectWallet ? (
+          <Button type="button" variant="neon" size="sm" className="mt-4" onClick={onConnectWallet}>
+            Connect wallet
+          </Button>
+        ) : null}
+      </Card>
+    );
+  }
+
+  if (authPending || signingIn) {
+    return (
+      <Card className={cn(overviewCardShell, "flex items-center justify-center gap-2 p-12")}>
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">Preparing your session…</p>
+      </Card>
+    );
+  }
+
+  if (!syraAuthenticated) {
+    return (
+      <Card className={cn(overviewCardShell, "p-8 text-center")}>
+        <p className="text-sm text-muted-foreground">
+          Sign in with your connected wallet to view your scan history and flex cards.
+        </p>
+        {onSignIn ? (
+          <Button type="button" variant="neon" size="sm" className="mt-4" onClick={() => void onSignIn()}>
+            Sign in
+          </Button>
+        ) : null}
       </Card>
     );
   }

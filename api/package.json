@@ -7,8 +7,8 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "start": "node --max-old-space-size=1536 index.js",
-    "dev": "nodemon --exec node --max-old-space-size=1536 index.js",
+    "start": "node --max-old-space-size=448 index.js",
+    "dev": "nodemon --exec node --max-old-space-size=448 index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "register-8004": "node scripts/register-8004-agent.js",
     "create-8004-collection": "node scripts/create-8004-collection.js",

@@ -764,9 +764,14 @@ function resolveResourceForPayload(
   // Must match the 402 body's resource.url (server canonical URL), not the browser fetch URL (/api/health).
   const url = (resourceFrom402?.url?.trim() || resourceUrl?.trim()) || '';
   if (!url) return undefined;
+  const rawDesc = resourceFrom402?.description?.trim();
+  const description =
+    rawDesc && rawDesc.toLowerCase() !== url.toLowerCase() && !/^https?:\/\//i.test(rawDesc)
+      ? rawDesc
+      : undefined;
   return {
     url,
-    ...(resourceFrom402?.description ? { description: resourceFrom402.description } : {}),
+    ...(description ? { description } : {}),
     ...(resourceFrom402?.mimeType ? { mimeType: resourceFrom402.mimeType } : {}),
   };
 }

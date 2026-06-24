@@ -4,7 +4,7 @@
 import { startGlobalCacheSweep, sweepAllRegisteredCaches } from "./boundedTtlCache.js";
 
 const DEFAULT_MONITOR_MS = 60_000;
-const DEFAULT_WARN_HEAP_MB = 1200;
+const DEFAULT_WARN_HEAP_MB = 380;
 
 function heapUsedMb() {
   return Math.round(process.memoryUsage().heapUsed / 1024 / 1024);

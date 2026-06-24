@@ -306,6 +306,57 @@ async function fetchExpireExitPrice(run, stratCfg) {
   return toNum(run.priceAtSignal, toNum(run.entry));
 }
 
+/**
+ * Track consecutive validation failures and finalize runs that cannot be validated.
+ * @param {import("mongoose").LeanDocument<any>} run
+ * @param {string} msg
+ * @param {{ bar?: string; lookAheadBars?: number }} stratCfg
+ * @returns {Promise<boolean>} true if the run was finalized
+ */
+async function handleValidateRunFailure(run, msg, stratCfg) {
+  const prevFailures = run.validateFailureCount ?? 0;
+  const nextFailures = prevFailures + 1;
+  const trimmedMsg = msg.slice(0, 500);
+
+  await TradingExperimentRun.updateOne(
+    { _id: run._id, status: "open" },
+    { $set: { validateFailureCount: nextFailures, lastValidateError: trimmedMsg } },
+  );
+
+  if (nextFailures < VALIDATE_FAILURE_THRESHOLD) return false;
+
+  const cfg = stratCfg ?? { bar: run.bar, lookAheadBars: 48 };
+  const maxHoldMs = maxHoldMsForStrategy(cfg);
+  const pastMaxHold =
+    run.anchorCloseMs != null && Date.now() > run.anchorCloseMs + maxHoldMs;
+  const flatExit = toNum(run.entry, toNum(run.priceAtSignal));
+
+  if (pastMaxHold) {
+    return finalizeOpenLabRun(
+      run._id,
+      run,
+      {
+        status: "expired",
+        resolution: "max_hold_validate_fetch_failed",
+        errorMessage: trimmedMsg,
+        resolvedAt: new Date(),
+      },
+      flatExit,
+    );
+  }
+
+  return finalizeOpenLabRun(
+    run._id,
+    run,
+    {
+      status: "error",
+      errorMessage: `validation failed after ${nextFailures} attempts: ${trimmedMsg}`,
+      resolvedAt: new Date(),
+    },
+    flatExit,
+  );
+}
+
 /** @param {string} s */
 function escapeRegex(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -347,6 +398,8 @@ function buildListRunsFilter(suiteNorm, f) {
 
 /** Max 1m candles fetched per open position per validation tick (10s default). */
 const VALIDATION_1M_BATCH = 150;
+/** Finalize stuck open runs after this many consecutive validation failures. */
+const VALIDATE_FAILURE_THRESHOLD = 5;
 
 /**
  * @param {string} bar
@@ -731,11 +784,11 @@ export async function resolveOpenExperimentRunsIncremental1m() {
   const stratBySuite = Object.fromEntries(uniqSuites.map((su, i) => [su, stratLists[i]]));
 
   for (const run of openRuns) {
+    /** @type {{ bar?: string; lookAheadBars?: number }} */
+    let stratCfg = { bar: run.bar, lookAheadBars: 48 };
     try {
       touched += 1;
 
-      /** @type {{ bar?: string; lookAheadBars?: number }} */
-      let stratCfg;
       if (run.userStrategyId) {
         const us = await UserCustomStrategy.findById(run.userStrategyId).lean();
         if (!us) {
@@ -827,6 +880,8 @@ export async function resolveOpenExperimentRunsIncremental1m() {
             $set: {
               lastProcessed1mCloseMs: lastClose,
               forwardBarsExamined: prevExamined + candles.length,
+              validateFailureCount: 0,
+              lastValidateError: null,
             },
           },
         );
@@ -849,6 +904,8 @@ export async function resolveOpenExperimentRunsIncremental1m() {
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       errors.push(`run ${run._id}: ${msg}`);
+      const finalized = await handleValidateRunFailure(run, msg, stratCfg);
+      if (finalized) resolved += 1;
     }
   }
 

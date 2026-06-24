@@ -151,6 +151,7 @@ import { isB402Enabled } from "./config/b402Networks.js";
 import { getAlgorandPublicStatus, isAlgorandEnabled } from "./config/algorandX402Networks.js";
 import { startupInfo, startupVerbose, startupWarn } from "./utils/startupLog.js";
 import { startMemoryHygiene } from "./utils/memoryHygiene.js";
+import { withSingleFlight } from "./utils/singleFlight.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1571,72 +1572,78 @@ app.listen(PORT, () => {
     process.env.TRADING_EXPERIMENT_VALIDATE_CRON_MS || 0,
   );
 
-  const runValidate = runIfMongoConnected(() =>
-    import("./libs/tradingExperimentService.js")
-      .then(({ resolveOpenExperimentRunsIncremental1m }) =>
-        resolveOpenExperimentRunsIncremental1m(),
-      )
-      .then((out) => {
-        if (out.errors?.length) {
+  const runValidate = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/tradingExperimentService.js")
+        .then(({ resolveOpenExperimentRunsIncremental1m }) =>
+          resolveOpenExperimentRunsIncremental1m(),
+        )
+        .then((out) => {
+          if (out.errors?.length) {
+            console.warn(
+              "[Trading experiment] validate errors:",
+              out.errors.slice(0, 3),
+            );
+          }
+        })
+        .catch((err) =>
           console.warn(
-            "[Trading experiment] validate errors:",
-            out.errors.slice(0, 3),
-          );
-        }
-      })
-      .catch((err) =>
-        console.warn(
-          "[Trading experiment] validate failed:",
-          err?.message || err,
+            "[Trading experiment] validate failed:",
+            err?.message || err,
+          ),
         ),
-      ),
+    ),
   );
 
-  const runSignal = runIfMongoConnected(() =>
-    Promise.all([
-      import("./libs/tradingExperimentService.js").then(
-        ({ runAllExperimentSignalCycles }) => runAllExperimentSignalCycles(),
-      ),
-      import("./libs/userCustomStrategyService.js").then(
-        ({ runUserCustomSignalCycle }) => runUserCustomSignalCycle(),
-      ),
-    ])
-      .then(([out, userOut]) => {
-        if (out.errors?.length) {
-          console.warn(
-            "[Trading experiment] signal errors:",
-            out.errors.slice(0, 3),
-          );
-        }
-        if (userOut.errors?.length) {
-          console.warn(
-            "[Trading experiment] user custom signal errors:",
-            userOut.errors.slice(0, 3),
-          );
-        }
-      })
-      .catch((err) =>
-        console.warn(
-          "[Trading experiment] signal failed:",
-          err?.message || err,
+  const runSignal = runIfMongoConnected(
+    withSingleFlight(() =>
+      Promise.all([
+        import("./libs/tradingExperimentService.js").then(
+          ({ runAllExperimentSignalCycles }) => runAllExperimentSignalCycles(),
         ),
-      ),
+        import("./libs/userCustomStrategyService.js").then(
+          ({ runUserCustomSignalCycle }) => runUserCustomSignalCycle(),
+        ),
+      ])
+        .then(([out, userOut]) => {
+          if (out.errors?.length) {
+            console.warn(
+              "[Trading experiment] signal errors:",
+              out.errors.slice(0, 3),
+            );
+          }
+          if (userOut.errors?.length) {
+            console.warn(
+              "[Trading experiment] user custom signal errors:",
+              userOut.errors.slice(0, 3),
+            );
+          }
+        })
+        .catch((err) =>
+          console.warn(
+            "[Trading experiment] signal failed:",
+            err?.message || err,
+          ),
+        ),
+    ),
   );
 
-  const runFull = runIfMongoConnected(() =>
-    import("./libs/tradingExperimentService.js")
-      .then(({ runFullExperimentCycle }) => runFullExperimentCycle())
-      .then((out) => {
-        if (out.errors?.length) {
-          console.warn(
-            "[Trading experiment] cycle errors:",
-            out.errors.slice(0, 5),
-          );
-        }
-      })
-      .catch((err) =>
-        console.warn("[Trading experiment] cycle failed:", err?.message || err),
-      ),
+  const runFull = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/tradingExperimentService.js")
+        .then(({ runFullExperimentCycle }) => runFullExperimentCycle())
+        .then((out) => {
+          if (out.errors?.length) {
+            console.warn(
+              "[Trading experiment] cycle errors:",
+              out.errors.slice(0, 5),
+            );
+          }
+        })
+        .catch((err) =>
+          console.warn("[Trading experiment] cycle failed:", err?.message || err),
+        ),
+    ),
   );
 
   if (validateMs >= 1_000) {
@@ -1650,52 +1657,58 @@ app.listen(PORT, () => {
   }
 
   const bitgetVibeMs = Number(process.env.BITGET_VIBE_CRON_MS || 0);
-  const runBitgetVibe = runIfMongoConnected(() =>
-    import("./libs/bitgetVibeService.js")
-      .then(({ runAllVibeLoopTicks }) => runAllVibeLoopTicks())
-      .then((out) => {
-        if (out.errors?.length) {
-          console.warn("[Bitget Vibe] tick errors:", out.errors.slice(0, 3));
-        }
-      })
-      .catch((err) =>
-        console.warn("[Bitget Vibe] tick failed:", err?.message || err),
-      ),
+  const runBitgetVibe = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/bitgetVibeService.js")
+        .then(({ runAllVibeLoopTicks }) => runAllVibeLoopTicks())
+        .then((out) => {
+          if (out.errors?.length) {
+            console.warn("[Bitget Vibe] tick errors:", out.errors.slice(0, 3));
+          }
+        })
+        .catch((err) =>
+          console.warn("[Bitget Vibe] tick failed:", err?.message || err),
+        ),
+    ),
   );
   if (bitgetVibeMs >= 60_000) {
     setInterval(runBitgetVibe, bitgetVibeMs);
   }
 
-  const runLpSignal = runIfMongoConnected(() =>
-    import("./libs/lpExperimentService.js")
-      .then(({ runLpExperimentSignalCycle }) => runLpExperimentSignalCycle())
-      .then((out) => {
-        if (out.errors?.length) {
-          console.warn(
-            "[LP experiment] signal errors:",
-            out.errors.slice(0, 3),
-          );
-        }
-      })
-      .catch((err) =>
-        console.warn("[LP experiment] signal failed:", err?.message || err),
-      ),
+  const runLpSignal = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/lpExperimentService.js")
+        .then(({ runLpExperimentSignalCycle }) => runLpExperimentSignalCycle())
+        .then((out) => {
+          if (out.errors?.length) {
+            console.warn(
+              "[LP experiment] signal errors:",
+              out.errors.slice(0, 3),
+            );
+          }
+        })
+        .catch((err) =>
+          console.warn("[LP experiment] signal failed:", err?.message || err),
+        ),
+    ),
   );
 
-  const runLpResolve = runIfMongoConnected(() =>
-    import("./libs/lpExperimentService.js")
-      .then(({ resolveOpenLpRuns }) => resolveOpenLpRuns())
-      .then((out) => {
-        if (out.errors?.length) {
-          console.warn(
-            "[LP experiment] resolve errors:",
-            out.errors.slice(0, 3),
-          );
-        }
-      })
-      .catch((err) =>
-        console.warn("[LP experiment] resolve failed:", err?.message || err),
-      ),
+  const runLpResolve = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/lpExperimentService.js")
+        .then(({ resolveOpenLpRuns }) => resolveOpenLpRuns())
+        .then((out) => {
+          if (out.errors?.length) {
+            console.warn(
+              "[LP experiment] resolve errors:",
+              out.errors.slice(0, 3),
+            );
+          }
+        })
+        .catch((err) =>
+          console.warn("[LP experiment] resolve failed:", err?.message || err),
+        ),
+    ),
   );
 
   if (LP_AGENT_SIGNAL_INTERVAL_MS >= 60_000) {
@@ -1708,36 +1721,40 @@ app.listen(PORT, () => {
   const LP_AGENT_REAL_SIGNAL_INTERVAL_MS = 120_000;
   const LP_AGENT_REAL_RESOLVE_INTERVAL_MS = 30_000;
 
-  const runLpRealSignal = runIfMongoConnected(() =>
-    import("./libs/lpRealService.js")
-      .then(({ isRealCronEnabled, runLpRealSignalCycle }) => {
-        if (!isRealCronEnabled()) return null;
-        return runLpRealSignalCycle();
-      })
-      .then((out) => {
-        if (out?.errors?.length) {
-          console.warn("[LP real] signal errors:", out.errors.slice(0, 3));
-        }
-      })
-      .catch((err) =>
-        console.warn("[LP real] signal failed:", err?.message || err),
-      ),
+  const runLpRealSignal = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/lpRealService.js")
+        .then(({ isRealCronEnabled, runLpRealSignalCycle }) => {
+          if (!isRealCronEnabled()) return null;
+          return runLpRealSignalCycle();
+        })
+        .then((out) => {
+          if (out?.errors?.length) {
+            console.warn("[LP real] signal errors:", out.errors.slice(0, 3));
+          }
+        })
+        .catch((err) =>
+          console.warn("[LP real] signal failed:", err?.message || err),
+        ),
+    ),
   );
 
-  const runLpRealResolve = runIfMongoConnected(() =>
-    import("./libs/lpRealService.js")
-      .then(({ isRealCronEnabled, resolveLpRealPositions }) => {
-        if (!isRealCronEnabled()) return null;
-        return resolveLpRealPositions();
-      })
-      .then((out) => {
-        if (out?.errors?.length) {
-          console.warn("[LP real] resolve errors:", out.errors.slice(0, 3));
-        }
-      })
-      .catch((err) =>
-        console.warn("[LP real] resolve failed:", err?.message || err),
-      ),
+  const runLpRealResolve = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/lpRealService.js")
+        .then(({ isRealCronEnabled, resolveLpRealPositions }) => {
+          if (!isRealCronEnabled()) return null;
+          return resolveLpRealPositions();
+        })
+        .then((out) => {
+          if (out?.errors?.length) {
+            console.warn("[LP real] resolve errors:", out.errors.slice(0, 3));
+          }
+        })
+        .catch((err) =>
+          console.warn("[LP real] resolve failed:", err?.message || err),
+        ),
+    ),
   );
 
   if (LP_AGENT_REAL_SIGNAL_INTERVAL_MS >= 60_000) {
@@ -1773,36 +1790,38 @@ app.listen(PORT, () => {
     .then(({ lpEvolutionConfigFromEnv, runLpExperimentEvolution }) => {
       const evo = lpEvolutionConfigFromEnv();
       if (!evo.enabled || evo.ms < 60_000) return;
-      const tick = runIfMongoConnected(() =>
-        runLpExperimentEvolution({
-          removeCount: evo.removeCount,
-          minDecided: evo.minDecided,
-          dailySpawnCount: evo.dailySpawnCount,
-          maxStrategies: evo.maxStrategies,
-          pinned: evo.pinned,
-        })
-          .then((out) => {
-            if (!out.ok) return;
-            if (out.skipped) {
-              startupVerbose("[LP experiment evolution] skipped:", out.skipped);
-              return;
-            }
-            startupVerbose(
-              "[LP experiment evolution]",
-              "culled",
-              out.culled?.length ?? 0,
-              "spawned",
-              out.spawned?.length ?? 0,
-              "daily",
-              out.dailySpawned?.length ?? 0,
-            );
+      const tick = runIfMongoConnected(
+        withSingleFlight(() =>
+          runLpExperimentEvolution({
+            removeCount: evo.removeCount,
+            minDecided: evo.minDecided,
+            dailySpawnCount: evo.dailySpawnCount,
+            maxStrategies: evo.maxStrategies,
+            pinned: evo.pinned,
           })
-          .catch((err) =>
-            console.warn(
-              "[LP experiment evolution failed]",
-              err?.message || err,
+            .then((out) => {
+              if (!out.ok) return;
+              if (out.skipped) {
+                startupVerbose("[LP experiment evolution] skipped:", out.skipped);
+                return;
+              }
+              startupVerbose(
+                "[LP experiment evolution]",
+                "culled",
+                out.culled?.length ?? 0,
+                "spawned",
+                out.spawned?.length ?? 0,
+                "daily",
+                out.dailySpawned?.length ?? 0,
+              );
+            })
+            .catch((err) =>
+              console.warn(
+                "[LP experiment evolution failed]",
+                err?.message || err,
+              ),
             ),
-          ),
+        ),
       );
       setInterval(tick, evo.ms);
     })
@@ -1812,17 +1831,19 @@ app.listen(PORT, () => {
     .then(({ lpRealEvolutionConfigFromEnv, runLpRealEvolution }) => {
       const evo = lpRealEvolutionConfigFromEnv();
       if (!evo.enabled || evo.ms < 60_000) return;
-      const tick = runIfMongoConnected(() =>
-        import("./libs/lpRealService.js")
-          .then(({ isRealCronEnabled }) => {
-            if (!isRealCronEnabled()) return null;
-            return runLpRealEvolution();
-          })
-          .then((out) => {
-            if (!out || out.skipped) return;
-            startupVerbose("[LP real evolution]", out.summary || "completed");
-          })
-          .catch((err) => console.warn("[LP real evolution failed]", err?.message || err)),
+      const tick = runIfMongoConnected(
+        withSingleFlight(() =>
+          import("./libs/lpRealService.js")
+            .then(({ isRealCronEnabled }) => {
+              if (!isRealCronEnabled()) return null;
+              return runLpRealEvolution();
+            })
+            .then((out) => {
+              if (!out || out.skipped) return;
+              startupVerbose("[LP real evolution]", out.summary || "completed");
+            })
+            .catch((err) => console.warn("[LP real evolution failed]", err?.message || err)),
+        ),
       );
       setInterval(tick, evo.ms);
     })
@@ -1832,17 +1853,19 @@ app.listen(PORT, () => {
     .then(({ lpRealEvolutionConfigFromEnv, runLpRealEvolution }) => {
       const evo = lpRealEvolutionConfigFromEnv();
       if (!evo.enabled || evo.ms < 60_000) return;
-      const tick = runIfMongoConnected(() =>
-        import("./libs/lpRealService.js")
-          .then(({ isRealCronEnabled }) => {
-            if (!isRealCronEnabled()) return null;
-            return runLpRealEvolution();
-          })
-          .then((out) => {
-            if (!out || out.skipped) return;
-            startupVerbose("[LP real evolution]", out.summary || "completed");
-          })
-          .catch((err) => console.warn("[LP real evolution failed]", err?.message || err)),
+      const tick = runIfMongoConnected(
+        withSingleFlight(() =>
+          import("./libs/lpRealService.js")
+            .then(({ isRealCronEnabled }) => {
+              if (!isRealCronEnabled()) return null;
+              return runLpRealEvolution();
+            })
+            .then((out) => {
+              if (!out || out.skipped) return;
+              startupVerbose("[LP real evolution]", out.summary || "completed");
+            })
+            .catch((err) => console.warn("[LP real evolution failed]", err?.message || err)),
+        ),
       );
       setInterval(tick, evo.ms);
     })
@@ -1878,15 +1901,17 @@ app.listen(PORT, () => {
             );
           }
         };
-        const tick = runIfMongoConnected(() =>
-          runAllTradingExperimentEvolution()
-            .then(({ results }) => logEvolution(results))
-            .catch((err) =>
-              console.warn(
-                "[Trading experiment evolution failed]",
-                err?.message || err,
+        const tick = runIfMongoConnected(
+          withSingleFlight(() =>
+            runAllTradingExperimentEvolution()
+              .then(({ results }) => logEvolution(results))
+              .catch((err) =>
+                console.warn(
+                  "[Trading experiment evolution failed]",
+                  err?.message || err,
+                ),
               ),
-            ),
+          ),
         );
         runIfMongoConnected(() =>
           maybeBootstrapMultiTokenEvolution()
@@ -1916,7 +1941,7 @@ app.listen(PORT, () => {
     ? TESTER_AGENT_CONFIG.scheduleIntervalMs
     : 0;
   if (testerSchedule && testerIntervalMs >= 60_000) {
-    const runTesterAgentCron = async () => {
+    const runTesterAgentCron = withSingleFlight(async () => {
       try {
         const { runTesterAgentSuite, computeTesterAgentSuiteTimeoutMs } =
           await import("./libs/testerAgent/tests.js");
@@ -1942,7 +1967,7 @@ app.listen(PORT, () => {
           e instanceof Error ? e.message : e,
         );
       }
-    };
+    });
     if (TESTER_AGENT_CONFIG.scheduleRunOnStart === true) {
       runTesterAgentCron();
     }

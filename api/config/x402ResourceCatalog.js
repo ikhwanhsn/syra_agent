@@ -298,8 +298,122 @@ export function getResourceMeta(segment) {
 export function getResourceDescription(segment) {
   const meta = getResourceMeta(segment);
   if (meta?.description) return meta.description;
+  return humanizeResourcePathDescription(segment);
+}
+
+/**
+ * Agent-readable description for routes outside the discovery catalog.
+ * @param {string} segment
+ * @returns {string}
+ */
+export function humanizeResourcePathDescription(segment) {
   const key = normalizeSegment(segment);
-  return `Syra x402 resource /${key}. Pay via HTTP 402 (Solana or Base USDC). Docs: https://docs.syraa.fun`;
+  if (!key) {
+    return 'Syra x402 API resource. Pay via HTTP 402 (Solana, Base, BSC, or Algorand). Docs: https://docs.syraa.fun';
+  }
+  const label = key
+    .split('/')
+    .filter(Boolean)
+    .map((part) => part.replace(/-/g, ' ').replace(/\b[a-z]/g, (c) => c.toUpperCase()))
+    .join(' — ');
+  return `${label}. Syra x402 paid API at /${key}. Pay via HTTP 402 on Solana, Base, BSC, or Algorand. Docs: https://docs.syraa.fun`;
+}
+
+/**
+ * Infer canonical x402 resource path from route options or the incoming request.
+ * @param {import('express').Request} req
+ * @param {{ resource?: string }} [options]
+ * @returns {string}
+ */
+export function inferResourcePathFromRequest(req, options = {}) {
+  const explicit = String(options.resource ?? '').trim();
+  if (explicit) {
+    const normalized = explicit.replace(/\/+$/, '') || explicit;
+    return normalized.startsWith('/') ? normalized : `/${normalized}`;
+  }
+  const raw = String(req?.originalUrl ?? req?.url ?? req?.path ?? '').split('?')[0];
+  const path = (raw.replace(/\/+$/, '') || raw).trim();
+  if (!path) return '/';
+  return path.startsWith('/') ? path : `/${path}`;
+}
+
+/**
+ * True when description is missing or is just the resource URL (B402 bazaar placeholder).
+ * @param {unknown} description
+ * @param {unknown} url
+ */
+export function isPlaceholderResourceDescription(description, url) {
+  const d = String(description ?? '').trim();
+  if (!d) return true;
+  const u = String(url ?? '').trim();
+  if (!u) return /^https?:\/\//i.test(d);
+  if (d.toLowerCase() === u.toLowerCase()) return true;
+  if (/^https?:\/\//i.test(d)) {
+    const descKey = normalizeResourceUrlKey(d);
+    const urlKey = normalizeResourceUrlKey(u);
+    if (descKey && descKey === urlKey) return true;
+  }
+  return false;
+}
+
+/** @param {string} raw */
+function normalizeResourceUrlKey(raw) {
+  try {
+    const parsed = new URL(String(raw));
+    const path = parsed.pathname.replace(/\/+$/, '') || '/';
+    return `${parsed.host}${path}`.toLowerCase();
+  } catch {
+    return String(raw).toLowerCase().trim();
+  }
+}
+
+/**
+ * Resolve catalog description from a full resource URL pathname.
+ * @param {string} url
+ * @returns {string | null}
+ */
+export function getResourceDescriptionFromUrl(url) {
+  try {
+    const path = normalizeSegment(new URL(String(url)).pathname);
+    if (!path) return null;
+    return getResourceDescription(path);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Pick the best agent-facing description for x402 ResourceInfo / B402 bazaar.
+ * @param {{ description?: string; resourcePath?: string; url?: string }} opts
+ * @returns {string}
+ */
+export function resolveResourceDescription({ description, resourcePath, url } = {}) {
+  const urlStr = String(url ?? '').trim();
+  const explicit = String(description ?? '').trim();
+  if (explicit && !isPlaceholderResourceDescription(explicit, urlStr)) {
+    return explicit;
+  }
+  let segment = normalizeSegment(resourcePath);
+  if (!segment && urlStr) {
+    try {
+      segment = normalizeSegment(new URL(urlStr).pathname);
+    } catch {
+      /* ignore invalid URL */
+    }
+  }
+  if (segment) {
+    const fromCatalog = getResourceDescription(segment);
+    if (fromCatalog && !isPlaceholderResourceDescription(fromCatalog, urlStr)) {
+      return fromCatalog;
+    }
+  }
+  if (urlStr) {
+    const fromUrl = getResourceDescriptionFromUrl(urlStr);
+    if (fromUrl) return fromUrl;
+  }
+  if (segment) return humanizeResourcePathDescription(segment);
+  if (explicit) return explicit;
+  return 'Syra x402 paid API endpoint. Pay via HTTP 402. Docs: https://docs.syraa.fun';
 }
 
 /**

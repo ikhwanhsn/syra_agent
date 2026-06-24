@@ -8,10 +8,14 @@ import { X402_DISCOVERY_RESOURCE_PATHS } from './x402DiscoveryResourcePaths.js';
 import {
   X402_RESOURCE_CATALOG,
   getResourceDescription,
+  getResourceDescriptionFromUrl,
   getResourceMeta,
   getResourceName,
   getResourceSummary,
+  humanizeResourcePathDescription,
+  isPlaceholderResourceDescription,
   listCatalogCoverageGaps,
+  resolveResourceDescription,
 } from './x402ResourceCatalog.js';
 
 test('every discovery segment has a catalog entry', () => {
@@ -57,6 +61,38 @@ test('helpers resolve discovery segments', () => {
 
 test('unknown segment falls back gracefully', () => {
   const desc = getResourceDescription('not-a-real-endpoint');
-  assert.match(desc, /Syra x402 resource/);
+  assert.match(desc, /Syra x402 paid API at \/not-a-real-endpoint/);
   assert.equal(getResourceMeta('not-a-real-endpoint'), null);
+});
+
+test('humanizeResourcePathDescription formats partner paths', () => {
+  const desc = humanizeResourcePathDescription('binance/spot/ticker/24hr');
+  assert.match(desc, /Binance/);
+  assert.match(desc, /\/binance\/spot\/ticker\/24hr/);
+  assert.doesNotMatch(desc, /^https?:\/\//);
+});
+
+test('isPlaceholderResourceDescription detects URL-only copy', () => {
+  const url = 'http://api.syraa.fun/health';
+  assert.equal(isPlaceholderResourceDescription('', url), true);
+  assert.equal(isPlaceholderResourceDescription(url, url), true);
+  assert.equal(
+    isPlaceholderResourceDescription('https://api.syraa.fun/health', 'http://api.syraa.fun/health'),
+    true,
+  );
+  assert.equal(
+    isPlaceholderResourceDescription('Minimal paid health check confirming Syra API', url),
+    false,
+  );
+});
+
+test('resolveResourceDescription prefers catalog over URL placeholder', () => {
+  const url = 'http://api.syraa.fun/health';
+  const resolved = resolveResourceDescription({ description: url, url });
+  assert.equal(resolved, X402_RESOURCE_CATALOG.health.description);
+  assert.equal(
+    resolveResourceDescription({ resourcePath: '/health', url }),
+    X402_RESOURCE_CATALOG.health.description,
+  );
+  assert.equal(getResourceDescriptionFromUrl(url), X402_RESOURCE_CATALOG.health.description);
 });
