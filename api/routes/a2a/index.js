@@ -3,17 +3,17 @@
  * Reuses Syra x402 payment gating and agent tool executor.
  */
 import express from "express";
-import { getV2Payment } from "../utils/getV2Payment.js";
+import { getV2Payment } from "../../utils/getV2Payment.js";
 import {
   requirePaymentSapEscrowOrExact,
   settleSapEscrowOrFacilitator,
-} from "../utils/sapEscrowPayment.js";
+} from "../../utils/sapEscrowPayment.js";
 import {
   AIP_A2A_CAPABILITY_IDS,
   getAipCapabilityPriceUsd,
-} from "../libs/aipAgentCard.js";
-import { executeAipCapability } from "../libs/aipTaskExecutor.js";
-import { getPaymentSignatureHeaderFromReq } from "../utils/x402PaymentV2.js";
+} from "../../libs/aipAgentCard.js";
+import { executeAipCapability } from "../../libs/aipTaskExecutor.js";
+import { getPaymentSignatureHeaderFromReq } from "../../utils/x402PaymentV2.js";
 
 const { requirePayment } = await getV2Payment();
 
