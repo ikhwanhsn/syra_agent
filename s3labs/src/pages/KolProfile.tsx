@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CampaignGrid } from "@/components/kol/CampaignCard";
+import { KolProfileAvatar } from "@/components/kol/KolProfileAvatar";
 import { fetchKolProfile } from "@/lib/kolApi";
 import { formatCompact, formatFollowers, formatSol } from "@/lib/kolFormat";
 import { cn } from "@/lib/utils";
@@ -83,20 +84,12 @@ function KolProfileContent() {
           <div className="space-y-10">
             <section className="panel-glass rounded-2xl border border-border/60 p-6 sm:p-8">
               <div className="flex flex-col sm:flex-row gap-6 sm:items-start">
-                {profile.profilePicture ? (
-                  <img
-                    src={profile.profilePicture}
-                    alt=""
-                    className="h-20 w-20 rounded-2xl object-cover ring-1 ring-border shrink-0"
-                  />
-                ) : (
-                  <div
-                    className="h-20 w-20 rounded-2xl bg-muted flex items-center justify-center text-2xl font-bold text-muted-foreground ring-1 ring-border shrink-0 uppercase"
-                    aria-hidden
-                  >
-                    {profile.handle.slice(0, 1)}
-                  </div>
-                )}
+                <KolProfileAvatar
+                  handle={profile.handle}
+                  name={profile.name}
+                  profilePicture={profile.profilePicture}
+                  size="lg"
+                />
 
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2 mb-2">

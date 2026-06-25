@@ -7,12 +7,19 @@ export interface KolApiResponse<T> {
   code?: string;
 }
 
+export interface KolTweetMedia {
+  mediaType: string;
+  url: string;
+  previewUrl?: string | null;
+}
+
 export interface KolCampaign {
   id: string;
   projectWallet: string;
   sourceTweetId: string;
   sourceTweetUrl: string;
   sourceTweetText: string;
+  sourceTweetMedia?: KolTweetMedia[];
   sourceAuthorHandle?: string | null;
   sourceAuthorName?: string | null;
   sourceAuthorFollowers?: number | null;
@@ -109,6 +116,7 @@ export interface KolProjectSummary {
   name: string;
   followers: number | null;
   verified: boolean;
+  profilePicture?: string | null;
   campaignCount: number;
   activeCampaignCount: number;
   completedCampaignCount: number;
@@ -123,6 +131,8 @@ export interface KolProjectSummary {
 export interface KolSummary {
   handle: string;
   name?: string;
+  verified?: boolean;
+  profilePicture?: string | null;
   campaignCount: number;
   submissionCount: number;
   reputationScore: number;

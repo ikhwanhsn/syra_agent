@@ -122,6 +122,104 @@ function extractCreatedAt(raw) {
 }
 
 /**
+ * @param {string} url
+ */
+function upgradeTwitterMediaUrl(url) {
+  const trimmed = String(url || "").trim();
+  if (!trimmed || !trimmed.includes("pbs.twimg.com")) return trimmed;
+  try {
+    const parsed = new URL(trimmed);
+    parsed.searchParams.set("name", "large");
+    return parsed.toString();
+  } catch {
+    return trimmed;
+  }
+}
+
+/**
+ * @param {Record<string, unknown>} raw
+ */
+function normalizeMediaItem(raw) {
+  const mediaType = String(raw.type ?? raw.media_type ?? "photo")
+    .trim()
+    .toLowerCase();
+
+  let url = String(
+    raw.media_url_https ??
+      raw.mediaUrl ??
+      raw.media_url ??
+      raw.url ??
+      "",
+  ).trim();
+
+  const previewUrl = String(raw.preview_image_url ?? raw.previewImageUrl ?? "").trim();
+
+  if (!url && Array.isArray(raw.variants)) {
+    const mp4Variant = raw.variants
+      .filter((variant) => variant && typeof variant === "object")
+      .map((variant) => {
+        const variantUrl = String(
+          /** @type {Record<string, unknown>} */ (variant).url ?? "",
+        ).trim();
+        const bitrate = Number(/** @type {Record<string, unknown>} */ (variant).bitrate) || 0;
+        return { url: variantUrl, bitrate };
+      })
+      .filter((variant) => variant.url.includes(".mp4"))
+      .sort((a, b) => b.bitrate - a.bitrate)[0];
+    if (mp4Variant) url = mp4Variant.url;
+  }
+
+  const isMotion = mediaType === "video" || mediaType === "animated_gif";
+  const displayUrl = isMotion
+    ? upgradeTwitterMediaUrl(previewUrl || url)
+    : upgradeTwitterMediaUrl(url || previewUrl);
+
+  if (!displayUrl) return null;
+
+  return {
+    mediaType: mediaType === "animated_gif" ? "gif" : mediaType,
+    url: displayUrl,
+    previewUrl: previewUrl ? upgradeTwitterMediaUrl(previewUrl) : null,
+  };
+}
+
+/**
+ * @param {Record<string, unknown>} tweetRaw
+ */
+export function extractTweetMedia(tweetRaw) {
+  /** @type {Record<string, unknown>[]} */
+  const sources = [];
+
+  if (Array.isArray(tweetRaw?.media)) sources.push(...tweetRaw.media);
+  if (tweetRaw?.entities && typeof tweetRaw.entities === "object") {
+    const entities = /** @type {Record<string, unknown>} */ (tweetRaw.entities);
+    if (Array.isArray(entities.media)) sources.push(...entities.media);
+  }
+  if (tweetRaw?.extendedEntities && typeof tweetRaw.extendedEntities === "object") {
+    const extended = /** @type {Record<string, unknown>} */ (tweetRaw.extendedEntities);
+    if (Array.isArray(extended.media)) sources.push(...extended.media);
+  }
+  if (tweetRaw?.extended_entities && typeof tweetRaw.extended_entities === "object") {
+    const extended = /** @type {Record<string, unknown>} */ (tweetRaw.extended_entities);
+    if (Array.isArray(extended.media)) sources.push(...extended.media);
+  }
+
+  /** @type {Array<{ mediaType: string; url: string; previewUrl: string | null }>} */
+  const out = [];
+  const seen = new Set();
+
+  for (const item of sources) {
+    if (!item || typeof item !== "object") continue;
+    const normalized = normalizeMediaItem(/** @type {Record<string, unknown>} */ (item));
+    if (!normalized || seen.has(normalized.url)) continue;
+    seen.add(normalized.url);
+    out.push(normalized);
+  }
+
+  return out;
+}
+
+/**
  * @param {Record<string, unknown>} authorRaw
  */
 function normalizeAuthor(authorRaw) {
@@ -144,11 +242,20 @@ function normalizeAuthor(authorRaw) {
       authorRaw?.blue_verified,
   );
 
+  const profilePicture =
+    String(
+      authorRaw?.profilePicture ??
+        authorRaw?.profile_image_url ??
+        authorRaw?.profile_image_url_https ??
+        "",
+    ).trim() || null;
+
   return {
     userName,
     name: name || userName,
     followers,
     verified,
+    profilePicture,
   };
 }
 
@@ -253,6 +360,7 @@ function normalizeTweet(tweetRaw) {
       quoteCount,
       viewCount,
     },
+    media: extractTweetMedia(tweetRaw),
     inReplyToId,
     quotedTweetId,
   };

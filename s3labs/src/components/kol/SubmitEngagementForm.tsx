@@ -1,23 +1,26 @@
 import { useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useMutation } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Coins, Loader2, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { submitEngagement } from "@/lib/kolApi";
+import { formatSol } from "@/lib/kolFormat";
 
 interface SubmitEngagementFormProps {
   campaignId: string;
   campaignTitle: string;
+  rewardSol?: number;
   onSubmitted?: () => void;
 }
 
 export function SubmitEngagementForm({
   campaignId,
   campaignTitle,
+  rewardSol,
   onSubmitted,
 }: SubmitEngagementFormProps) {
   const wallet = useWallet();
@@ -33,8 +36,8 @@ export function SubmitEngagementForm({
     },
     onSuccess: () => {
       setTweetUrl("");
-      toast.success("Submission received", {
-        description: "Your reply/quote is now tracked for rewards.",
+      toast.success("You're in!", {
+        description: "Your post is tracked. Climb the leaderboard to grow your payout.",
       });
       onSubmitted?.();
     },
@@ -44,28 +47,47 @@ export function SubmitEngagementForm({
   });
 
   return (
-    <div className="panel-glass rounded-2xl border border-border/60 p-6 space-y-4">
+    <div className="relative overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 to-transparent p-6 sm:p-8 space-y-5">
       <div>
-        <p className="eyebrow mb-1">Submit engagement</p>
-        <h3 className="font-semibold">{campaignTitle}</h3>
-        <p className="text-sm text-muted-foreground mt-1">
-          Paste your reply or quote tweet URL. One X account and one unique post per campaign —
-          duplicate posts are rejected.
+        <p className="eyebrow mb-1">Ready to earn?</p>
+        <h3 className="font-semibold text-lg">Submit your post</h3>
+        <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+          After you reply or quote <span className="text-foreground">{campaignTitle}</span> on X,
+          paste your tweet link below. We verify it and track your engagement until payout.
         </p>
+        {rewardSol != null && rewardSol > 0 ? (
+          <div className="flex items-center gap-2 mt-3 text-sm">
+            <Coins className="w-4 h-4 text-primary" />
+            <span className="text-muted-foreground">
+              Competing for{" "}
+              <span className="font-semibold text-primary">{formatSol(rewardSol)} SOL</span>
+            </span>
+          </div>
+        ) : null}
       </div>
 
       {!wallet.publicKey ? (
-        <p className="text-sm text-muted-foreground">Connect your wallet from the navbar to submit.</p>
+        <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">
+          <Wallet className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+          <p className="text-muted-foreground">
+            <span className="text-foreground font-medium">Connect your wallet</span> from the
+            navbar first — that&apos;s where your SOL rewards will be sent.
+          </p>
+        </div>
       ) : null}
 
       <div className="space-y-2">
-        <Label htmlFor="kol-submission-url">Your reply / quote URL</Label>
+        <Label htmlFor="kol-submission-url">Your reply or quote tweet URL</Label>
         <Input
           id="kol-submission-url"
           value={tweetUrl}
           onChange={(e) => setTweetUrl(e.target.value)}
-          placeholder="https://x.com/you/status/..."
+          placeholder="https://x.com/yourhandle/status/..."
+          className="bg-background/60"
         />
+        <p className="text-xs text-muted-foreground">
+          One X account per campaign · one unique post · duplicates are rejected
+        </p>
       </div>
 
       <Button
@@ -77,10 +99,10 @@ export function SubmitEngagementForm({
         {mutation.isPending ? (
           <>
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Verifying…
+            Verifying your post…
           </>
         ) : (
-          "Submit for rewards"
+          "Submit & start earning"
         )}
       </Button>
     </div>

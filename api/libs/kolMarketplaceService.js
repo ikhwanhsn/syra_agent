@@ -32,7 +32,7 @@ import {
   sendPayout,
   verifyDeposit,
 } from "../services/kolPoolWallet.js";
-import { getTweetById, isTwitterApiIoConfigured } from "./twitterApiIoClient.js";
+import { getTweetById, getUserInfo, isTwitterApiIoConfigured } from "./twitterApiIoClient.js";
 import {
   getCachedXProfile,
   getCachedXProfiles,
@@ -51,6 +51,46 @@ function normalizeHandle(handle) {
     .trim()
     .replace(/^@/, "")
     .toLowerCase();
+}
+
+/**
+ * Fill missing profile pictures from X profile cache or a lightweight user lookup.
+ * @template {{ profilePicture?: string | null }} T
+ * @param {T[]} entries
+ * @param {(entry: T) => string} getHandle
+ * @param {{ limit?: number }} [opts]
+ */
+async function enrichMissingProfilePictures(entries, getHandle, opts = {}) {
+  if (!isTwitterApiIoConfigured()) return entries;
+
+  const limit = Math.min(Math.max(Number(opts.limit) || 12, 1), 25);
+  const targets = entries.filter((entry) => !entry.profilePicture).slice(0, limit);
+  if (targets.length === 0) return entries;
+
+  await Promise.allSettled(
+    targets.map(async (entry) => {
+      const handle = getHandle(entry);
+      if (!handle) return;
+
+      try {
+        const cached = await getCachedXProfile(handle);
+        if (cached?.profilePicture) {
+          entry.profilePicture = cached.profilePicture;
+          return;
+        }
+
+        const { user } = await getUserInfo(handle);
+        await seedXProfileFromAuthor(user);
+        if (user.profilePicture) {
+          entry.profilePicture = user.profilePicture;
+        }
+      } catch {
+        // ignore per-handle failures
+      }
+    }),
+  );
+
+  return entries;
 }
 
 /**
@@ -221,6 +261,13 @@ function serializeCampaign(campaign) {
     sourceTweetId: doc.sourceTweetId,
     sourceTweetUrl: doc.sourceTweetUrl,
     sourceTweetText: doc.sourceTweetText || "",
+    sourceTweetMedia: Array.isArray(doc.sourceTweetMedia)
+      ? doc.sourceTweetMedia.map((item) => ({
+          mediaType: String(item?.mediaType || "photo"),
+          url: String(item?.url || ""),
+          previewUrl: item?.previewUrl ? String(item.previewUrl) : null,
+        })).filter((item) => item.url)
+      : [],
     sourceAuthorHandle: doc.sourceAuthorHandle ?? null,
     sourceAuthorName: doc.sourceAuthorName ?? null,
     sourceAuthorFollowers: doc.sourceAuthorFollowers ?? null,
@@ -328,6 +375,7 @@ export async function createCampaign(input) {
     sourceTweetId: sourceTweet.id,
     sourceTweetUrl: sourceTweet.url,
     sourceTweetText: sourceTweet.text,
+    sourceTweetMedia: sourceTweet.media ?? [],
     ...authorFields,
     title,
     description: String(input.description || "").trim(),
@@ -449,6 +497,34 @@ export async function listCampaigns(opts = {}) {
 }
 
 /**
+ * @param {import("../models/KolCampaign.js").default} campaignDoc
+ */
+async function ensureCampaignTweetMedia(campaignDoc) {
+  const existing = campaignDoc.sourceTweetMedia;
+  if (Array.isArray(existing) && existing.length > 0) {
+    return existing.map((item) => ({
+      mediaType: String(item?.mediaType || "photo"),
+      url: String(item?.url || ""),
+      previewUrl: item?.previewUrl ? String(item.previewUrl) : null,
+    })).filter((item) => item.url);
+  }
+
+  if (!isTwitterApiIoConfigured()) return [];
+
+  try {
+    const { tweet } = await getTweetById(campaignDoc.sourceTweetId);
+    const media = tweet.media ?? [];
+    if (media.length > 0) {
+      await KolCampaign.updateOne({ _id: campaignDoc._id }, { $set: { sourceTweetMedia: media } });
+      campaignDoc.sourceTweetMedia = media;
+    }
+    return media;
+  } catch {
+    return [];
+  }
+}
+
+/**
  * @param {string} campaignId
  */
 export async function getCampaignDetail(campaignId) {
@@ -461,6 +537,8 @@ export async function getCampaignDetail(campaignId) {
     err.code = "not_found";
     throw err;
   }
+
+  await ensureCampaignTweetMedia(campaign);
 
   const submissions = await KolSubmission.find({ campaignId: campaign._id })
     .sort({ latestScore: -1, createdAt: 1 })
@@ -1002,7 +1080,12 @@ export async function enrichMissingCampaignAuthors(opts = {}) {
       const { tweet } = await getTweetById(campaign.sourceTweetId);
       const fields = authorFieldsFromTweet(tweet.author);
       if (!fields.sourceAuthorHandle) continue;
-      await KolCampaign.updateOne({ _id: campaign._id }, { $set: fields });
+      await seedXProfileFromAuthor(tweet.author).catch(() => {});
+      const patch = { ...fields };
+      if ((tweet.media ?? []).length > 0) {
+        patch.sourceTweetMedia = tweet.media;
+      }
+      await KolCampaign.updateOne({ _id: campaign._id }, { $set: patch });
       enriched += 1;
     } catch (e) {
       console.warn(
@@ -1283,8 +1366,11 @@ export async function listProjects(opts = {}) {
       name: cached.name ?? p.name,
       followers: cached.followers ?? p.followers,
       verified: cached.verified ?? p.verified,
+      profilePicture: cached.profilePicture ?? null,
     };
   });
+
+  await enrichMissingProfilePictures(projects, (p) => p.handle);
 
   return { projects };
 }
@@ -1415,6 +1501,8 @@ export async function listKols(opts = {}) {
       return {
         ...k,
         name: cached?.name ?? k.handle,
+        verified: cached?.verified ?? false,
+        profilePicture: cached?.profilePicture ?? null,
       };
     }),
   };

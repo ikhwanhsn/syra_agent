@@ -27,8 +27,12 @@ interface CampaignLeaderboardProps {
 export function CampaignLeaderboard({ entries, campaignStatus }: CampaignLeaderboardProps) {
   if (entries.length === 0) {
     return (
-      <div className="panel-glass rounded-2xl p-8 text-center text-muted-foreground text-sm">
-        No KOL submissions yet. Be the first to reply or quote the campaign post.
+      <div className="panel-glass rounded-2xl p-8 text-center space-y-2">
+        <p className="font-medium text-sm">No submissions yet</p>
+        <p className="text-muted-foreground text-sm">
+          Be the first KOL to join — reply or quote the post, submit your link, and take the top
+          spot.
+        </p>
       </div>
     );
   }

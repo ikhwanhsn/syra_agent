@@ -11,6 +11,7 @@ import { CampaignGrid } from "@/components/kol/CampaignCard";
 import { CampaignDetail } from "@/components/kol/CampaignDetail";
 import { CreateCampaignForm } from "@/components/kol/CreateCampaignForm";
 import { EarningsDashboard } from "@/components/kol/EarningsDashboard";
+import { KolHowItWorks } from "@/components/kol/KolHowItWorks";
 import { MarketplaceStats } from "@/components/kol/MarketplaceStats";
 import { ProfileLeaderboard } from "@/components/kol/ProfileLeaderboard";
 import {
@@ -60,7 +61,11 @@ function KolPageContent() {
   );
 
   const handleCloseDetail = useCallback(() => {
-    setSearchParams({});
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("campaign");
+      return next;
+    });
   }, [setSearchParams]);
 
   const handleTabChange = useCallback(
@@ -89,21 +94,32 @@ function KolPageContent() {
         <section className="mb-10 max-w-3xl">
           <p className="eyebrow mb-3">KOL Marketplace</p>
           <h1 className="heading-display">
-            Connect projects with <span className="text-gradient">KOLs on X</span>
+            Post on X, <span className="text-gradient">earn SOL</span>
           </h1>
           <p className="text-muted-foreground mt-4 text-lg leading-relaxed">
-            Projects fund SOL rewards for posts they want amplified. KOLs earn pro-rata by
-            engagement and get paid automatically at snapshot.
+            Solana projects fund reward pools for posts they want amplified. Reply or quote on X,
+            submit your link, and get paid automatically when the campaign ends — your share grows
+            with every like and view.
           </p>
         </section>
 
         {!selectedCampaignId ? (
-          <section className="mb-10">
-            <MarketplaceStats />
-          </section>
+          <>
+            <section className="mb-10">
+              <MarketplaceStats />
+            </section>
+            <KolHowItWorks />
+          </>
         ) : null}
 
-        {selectedCampaignId && detailQuery.data ? (
+        {selectedCampaignId && detailQuery.isLoading ? (
+          <div className="space-y-6">
+            <Skeleton className="h-10 w-40 rounded-full" />
+            <Skeleton className="h-56 rounded-2xl" />
+            <Skeleton className="h-40 rounded-2xl" />
+            <Skeleton className="h-64 rounded-2xl" />
+          </div>
+        ) : selectedCampaignId && detailQuery.data ? (
           <CampaignDetail
             campaign={detailQuery.data.campaign}
             leaderboard={detailQuery.data.leaderboard}
@@ -153,8 +169,8 @@ function KolPageContent() {
 
             {campaignsQuery.isError ? (
               <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-muted-foreground">
-                Could not load campaigns from the API. You can still create a campaign — deploy the
-                latest API or use dev proxy to sync listings.
+                Campaigns couldn&apos;t load right now. Try refreshing — you can still create a new
+                campaign from the For Projects tab.
               </div>
             ) : null}
 
@@ -168,9 +184,11 @@ function KolPageContent() {
               ) : (
                 <>
                   <div>
-                    <h2 className="font-semibold text-lg mb-1">Active campaigns</h2>
+                    <h2 className="font-semibold text-lg mb-1">Live campaigns — start earning</h2>
                     <p className="text-sm text-muted-foreground mb-4">
-                      {activeCampaigns.length} live · engagement updates daily
+                      {activeCampaigns.length === 0
+                        ? "No live campaigns yet. Check back soon or launch one as a project."
+                        : `${activeCampaigns.length} campaign${activeCampaigns.length !== 1 ? "s" : ""} with SOL rewards · pick one, post on X, submit your link`}
                     </p>
                     <CampaignGrid
                       campaigns={activeCampaigns}

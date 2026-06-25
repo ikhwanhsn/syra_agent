@@ -10,6 +10,16 @@ const kolCampaignSchema = new mongoose.Schema(
     sourceAuthorName: { type: String, default: null },
     sourceAuthorFollowers: { type: Number, default: null },
     sourceAuthorVerified: { type: Boolean, default: false },
+    sourceTweetMedia: {
+      type: [
+        {
+          mediaType: { type: String, default: "photo" },
+          url: { type: String, required: true },
+          previewUrl: { type: String, default: null },
+        },
+      ],
+      default: [],
+    },
     title: { type: String, required: true },
     description: { type: String, default: "" },
     rewardLamports: { type: Number, required: true, min: 1 },

@@ -29,6 +29,7 @@ import {
 } from "@/lib/kolApi";
 import { formatCompact, formatFollowers, formatSol } from "@/lib/kolFormat";
 import { cn } from "@/lib/utils";
+import { KolProfileAvatar } from "@/components/kol/KolProfileAvatar";
 
 type LeaderboardVariant = "projects" | "kols";
 
@@ -111,20 +112,17 @@ function ProfileCell({
   name,
   verified,
   followers,
+  profilePicture,
 }: {
   handle: string;
   name: string;
   verified?: boolean;
   followers?: number | null;
+  profilePicture?: string | null;
 }) {
   return (
     <div className="flex items-center gap-3 min-w-0">
-      <div
-        className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center text-sm font-bold text-muted-foreground shrink-0 ring-1 ring-border uppercase"
-        aria-hidden
-      >
-        {handle.slice(0, 1)}
-      </div>
+      <KolProfileAvatar handle={handle} name={name} profilePicture={profilePicture} size="md" />
       <div className="min-w-0">
         <div className="font-semibold text-foreground truncate flex items-center gap-1.5">
           <span className="truncate">{name}</span>
@@ -313,6 +311,7 @@ export function ProfileLeaderboard({ variant }: ProfileLeaderboardProps) {
                         name={project.name}
                         verified={project.verified}
                         followers={project.followers}
+                        profilePicture={project.profilePicture}
                       />
                       <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-70 transition-opacity ml-auto" />
                     </Link>
@@ -379,7 +378,12 @@ export function ProfileLeaderboard({ variant }: ProfileLeaderboardProps) {
                     to={`/kol/${encodeURIComponent(kol.handle)}`}
                     className="flex items-center gap-2 -m-2 p-2 rounded-xl hover:bg-muted/60 transition-colors group"
                   >
-                    <ProfileCell handle={kol.handle} name={kol.name ?? kol.handle} />
+                    <ProfileCell
+                      handle={kol.handle}
+                      name={kol.name ?? kol.handle}
+                      verified={kol.verified}
+                      profilePicture={kol.profilePicture}
+                    />
                     <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-70 transition-opacity ml-auto" />
                   </Link>
                 </TableCell>
