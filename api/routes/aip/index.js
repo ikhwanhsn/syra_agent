@@ -17,6 +17,12 @@ function isValidDid(did) {
   return /^did:aip:[1-9A-HJ-NP-Za-km-z]{32,44}:[A-Za-z0-9_-]{1,32}$/.test(String(did || "").trim());
 }
 
+/** Express 5 wildcard params may be string or string[]. */
+function didFromParams(raw) {
+  const joined = Array.isArray(raw) ? raw.join("/") : String(raw || "");
+  return decodeURIComponent(joined.trim());
+}
+
 export async function createAipRouter() {
   const router = express.Router();
 
@@ -47,8 +53,8 @@ export async function createAipRouter() {
     res.json(buildSyraAipAgentCardDocument(wallet));
   });
 
-  router.get("/resolve/:did(*)", async (req, res) => {
-    const did = decodeURIComponent(String(req.params.did || "").trim());
+  router.get("/resolve/*did", async (req, res) => {
+    const did = didFromParams(req.params.did);
     if (!isValidDid(did)) {
       return res.status(400).json({ success: false, error: "Invalid did:aip format" });
     }
@@ -79,8 +85,8 @@ export async function createAipRouter() {
     }
   });
 
-  router.get("/verify/:did(*)", async (req, res) => {
-    const did = decodeURIComponent(String(req.params.did || "").trim());
+  router.get("/verify/*did", async (req, res) => {
+    const did = didFromParams(req.params.did);
     if (!isValidDid(did)) {
       return res.status(400).json({ success: false, error: "Invalid did:aip format" });
     }

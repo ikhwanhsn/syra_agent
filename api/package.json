@@ -32,6 +32,7 @@
     "validate-pact": "node -r dotenv/config scripts/validatePactIntegration.js",
     "validate-algorand-x402": "node -r dotenv/config scripts/validateAlgorandX402.js",
     "validate-ampersend": "node -r dotenv/config scripts/validateAmpersendDiscovery.js",
+    "validate:routes": "node scripts/validateRoutesStartup.mjs",
     "export-algorand-key": "node scripts/exportAlgorandPrivateKeyB64.js"
   },
   "dependencies": {
