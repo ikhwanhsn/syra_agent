@@ -6,7 +6,6 @@ import { MachineMoneyPageGate } from "@/components/dashboard/MachineMoneyPageGat
 import { getDashboardPillarNavItem } from "@/lib/dashboardPillarNav";
 import { QwertiAgentIntegration } from "@/components/qwerti/QwertiAgentIntegration";
 import { AppProviders } from "@/components/providers/AppProviders";
-import ArbitrageExperiment from "@/pages/ArbitrageExperiment";
 import AssetDetailPage from "@/pages/AssetDetailPage";
 import AssetsPage from "@/pages/AssetsPage";
 import DashboardLayout from "@/pages/DashboardLayout";
@@ -23,17 +22,16 @@ import {
   LegacyDashboardPrefixRedirect,
   LegacyAgentWalletRedirect,
   LegacyMarketplaceRedirect,
-  LegacyTradingExperimentAgentRedirect,
-  LegacyTradingExperimentPageRedirect,
 } from "@/pages/LegacyDashboardRedirects";
 import LpAgentExperiment from "@/pages/LpAgentExperiment";
 import LpAgentExperimentAgentProfile from "@/pages/LpAgentExperimentAgentProfile";
+import BtcQuantExperiment from "@/pages/BtcQuantExperiment";
+import Btc2QuantAgentExperiment from "@/pages/Btc2QuantAgentExperiment";
+import Btc3MacroAgentExperiment from "@/pages/Btc3MacroAgentExperiment";
 import NotFound from "@/pages/NotFound";
 import PumpfunAnalyzer from "@/pages/PumpfunAnalyzer";
 import PumpfunCallPage from "@/pages/PumpfunCallPage";
 import ShareableChatRoute from "@/pages/ShareableChatRoute";
-import TradingAgentExperiment from "@/pages/TradingAgentExperiment";
-import TradingAgentExperimentAgentProfile from "@/pages/TradingAgentExperimentAgentProfile";
 import BtcPage from "@/pages/BtcPage";
 import PlaygroundHub from "@/pages/playground/PlaygroundHub";
 import PlaygroundShareRoute from "@/pages/playground/PlaygroundShareRoute";
@@ -98,6 +96,7 @@ function MachineMoneyRoute({
   const pillar = getDashboardPillarNavItem(pillarId);
   return (
     <MachineMoneyPageGate
+      pillarId={pillarId}
       pillarLabel={pillar?.label ?? pillarId}
       pillarTagline={pillar?.description ?? "Machine Money"}
     >
@@ -114,18 +113,18 @@ function AppRoutes() {
           <Route path="/settings" element={<Index />} />
           <Route path="/wallet" element={<AgentWalletPage />} />
           <Route path="/swap" element={<SwapPage />} />
-          <Route path="/earn" element={<Navigate to="/overview/earn" replace />} />
-          <Route path="/treasury" element={<Navigate to="/overview/treasury" replace />} />
-          <Route path="/invest" element={<Navigate to="/overview/invest" replace />} />
-          <Route path="/spend" element={<Navigate to="/overview/spend" replace />} />
-          <Route path="/grow" element={<Navigate to="/overview/grow" replace />} />
+          <Route path="/overview/earn" element={<Navigate to="/earn" replace />} />
+          <Route path="/overview/treasury" element={<Navigate to="/treasury" replace />} />
+          <Route path="/overview/invest" element={<Navigate to="/invest" replace />} />
+          <Route path="/overview/spend" element={<Navigate to="/spend" replace />} />
+          <Route path="/overview/grow" element={<Navigate to="/grow" replace />} />
           <Route path="/agent-wallet" element={<LegacyAgentWalletRedirect />} />
           <Route path="/c/:shareId" element={<ShareableChatRoute />} />
 
           <Route element={<DashboardLayoutRoute />}>
             <Route path="/overview" element={<DashboardOverview />} />
             <Route
-              path="/overview/earn"
+              path="/earn"
               element={
                 <MachineMoneyRoute pillarId="earn">
                   <EarnPage />
@@ -133,7 +132,7 @@ function AppRoutes() {
               }
             />
             <Route
-              path="/overview/treasury"
+              path="/treasury"
               element={
                 <MachineMoneyRoute pillarId="treasury">
                   <TreasuryPage />
@@ -141,7 +140,7 @@ function AppRoutes() {
               }
             />
             <Route
-              path="/overview/invest"
+              path="/invest"
               element={
                 <MachineMoneyRoute pillarId="invest">
                   <InvestPage />
@@ -149,7 +148,7 @@ function AppRoutes() {
               }
             />
             <Route
-              path="/overview/spend"
+              path="/spend"
               element={
                 <MachineMoneyRoute pillarId="spend">
                   <SpendPage />
@@ -157,7 +156,7 @@ function AppRoutes() {
               }
             />
             <Route
-              path="/overview/grow"
+              path="/grow"
               element={
                 <MachineMoneyRoute pillarId="grow">
                   <GrowPage />
@@ -170,14 +169,6 @@ function AppRoutes() {
             <Route path="/assets/:assetKey" element={<AssetDetailPage />} />
             <Route path="/pumpfun" element={<PumpfunAnalyzer />} />
             <Route path="/pumpfun/call/:callId" element={<PumpfunCallPage />} />
-            <Route
-              path="/arbitrage-experiment"
-              element={
-                <AdminExperimentRoute>
-                  <ArbitrageExperiment />
-                </AdminExperimentRoute>
-              }
-            />
             <Route
               path="/lp-experiment"
               element={
@@ -195,18 +186,26 @@ function AppRoutes() {
               }
             />
             <Route
-              path="/trading-experiment"
+              path="/btc-experiment"
               element={
                 <AdminExperimentRoute>
-                  <TradingAgentExperiment />
+                  <BtcQuantExperiment />
                 </AdminExperimentRoute>
               }
             />
             <Route
-              path="/trading-experiment/agent/:agentId"
+              path="/btc2-experiment"
               element={
                 <AdminExperimentRoute>
-                  <TradingAgentExperimentAgentProfile />
+                  <Btc2QuantAgentExperiment />
+                </AdminExperimentRoute>
+              }
+            />
+            <Route
+              path="/btc3-experiment"
+              element={
+                <AdminExperimentRoute>
+                  <Btc3MacroAgentExperiment />
                 </AdminExperimentRoute>
               }
             />
@@ -263,8 +262,9 @@ function AppRoutes() {
           <Route path="/marketplace" element={<LegacyMarketplaceRedirect />} />
           <Route path="/marketplace/*" element={<LegacyMarketplaceRedirect />} />
           <Route path="/dashboard/*" element={<LegacyDashboardPrefixRedirect />} />
-          <Route path="/experiment/trading-agent" element={<LegacyTradingExperimentPageRedirect />} />
-          <Route path="/experiment/trading-agent/agent/:agentId" element={<LegacyTradingExperimentAgentRedirect />} />
+          <Route path="/experiment/trading-agent/*" element={<Navigate to="/overview" replace />} />
+          <Route path="/trading-experiment/*" element={<Navigate to="/overview" replace />} />
+          <Route path="/arbitrage-experiment/*" element={<Navigate to="/overview" replace />} />
           <Route path="/lp-experiment/history" element={<Navigate to="/lp-experiment" replace />} />
           <Route path="/lp-experiment/history/:id" element={<Navigate to="/lp-experiment" replace />} />
           <Route path="/token-check" element={<Navigate to="/assets" replace />} />

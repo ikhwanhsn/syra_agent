@@ -17,7 +17,7 @@ import { SidebarPanelToggle } from "@/components/layout/SidebarPanelToggle";
 import { cn } from "@/lib/utils";
 import { INTERNAL_BASE_PATH } from "@/lib/internalRoutes";
 import { useMachineMoneyPreview } from "@/contexts/MachineMoneyPreviewContext";
-import { DASHBOARD_PILLAR_NAV, MACHINE_MONEY_SOON_BADGE } from "@/lib/dashboardPillarNav";
+import { DASHBOARD_PILLAR_NAV, isPillarGated, MACHINE_MONEY_SOON_BADGE } from "@/lib/dashboardPillarNav";
 import { DASHBOARD_MARKET_INTEL_NAV } from "@/lib/dashboardMarketIntelNav";
 import { DASHBOARD_EXPERIMENT_NAV } from "@/lib/dashboardExperimentNav";
 
@@ -169,9 +169,9 @@ export function SidebarIconRail({
               to={item.to}
               icon={item.icon}
               label={
-                machineMoneyUnlocked
-                  ? item.label
-                  : `${item.label} (${MACHINE_MONEY_SOON_BADGE.label})`
+                isPillarGated(item.id, machineMoneyUnlocked)
+                  ? `${item.label} (${MACHINE_MONEY_SOON_BADGE.label})`
+                  : item.label
               }
               end
               matchActive={item.isActive}

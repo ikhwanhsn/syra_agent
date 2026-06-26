@@ -14,7 +14,6 @@ export const SYRA_PILLAR_ROUTES: Record<SyraPillarId, readonly string[]> = {
     "/jupiter",
     "/experiment/lp-agent-real",
     "/experiment/lp-agent",
-    "/experiment/trading-agent",
     "/uponly-rise",
     "/bankr",
     "/squid",

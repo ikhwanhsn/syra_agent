@@ -1,20 +1,25 @@
-import { useQuery } from "@tanstack/react-query";
 import { Link } from "@/lib/navigation";
-import { Activity, Loader2, RefreshCw, Sparkles, Wallet } from "lucide-react";
+import { ArrowRight, Wallet } from "lucide-react";
 import { PillarCard } from "@/components/pillars/PillarCard";
 import { MachineMoneyPreviewToggle } from "@/components/dashboard/MachineMoneyPreviewToggle";
-import { MachineMoneyFlowDiagram } from "@/components/dashboard/overview/MachineMoneyFlowDiagram";
+import { OverviewBalanceChart } from "@/components/dashboard/overview/OverviewBalanceChart";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { AnimatedMetric } from "@/components/assets/AnimatedMetric";
-import { fetchPillarsDiscovery, PILLAR_COPY, type PillarId } from "@/lib/pillarsApi";
+import { PILLAR_COPY, type PillarId } from "@/lib/pillarsApi";
 import { useMachineMoneyPreview } from "@/contexts/MachineMoneyPreviewContext";
 import { isAdminWallet } from "@/constants/adminWallet";
 import { useWalletContext } from "@/contexts/WalletContext";
-import { DASHBOARD_PILLAR_NAV } from "@/lib/dashboardPillarNav";
-import { formatCompactUsd } from "@/lib/dashboardOverviewAggregates";
-import { MACHINE_MONEY_FLOW_COPY, PILLAR_OVERVIEW_META } from "@/lib/machineMoneyOverview";
+import {
+  DASHBOARD_PILLAR_NAV,
+  isPillarShipped,
+} from "@/lib/dashboardPillarNav";
+import {
+  MACHINE_MONEY_STEPS,
+  OVERVIEW_HERO_COPY,
+  PILLAR_OVERVIEW_META,
+} from "@/lib/machineMoneyOverview";
 import { cn } from "@/lib/utils";
+import type { PillarWalletPurpose } from "@/lib/agentWalletCatalog";
+import type { BalanceChangeResult } from "@/lib/treasuryBalanceHistory";
 import {
   overviewAccentBackground,
   overviewCardGlow,
@@ -22,7 +27,13 @@ import {
   overviewKickerClass,
 } from "@/components/dashboard/overview/overviewStyles";
 
-const PILLAR_ORDER: PillarId[] = ["earn", "treasury", "invest", "spend", "grow"];
+const PILLAR_ORDER: PillarId[] = [
+  "earn",
+  "treasury",
+  "invest",
+  "spend",
+  "grow",
+];
 
 const PILLAR_ICONS = Object.fromEntries(
   DASHBOARD_PILLAR_NAV.map((item) => [item.id, item.icon]),
@@ -36,46 +47,52 @@ export interface DashboardPillarsHubTreasurySummary {
   onRefresh?: () => void;
 }
 
+export interface DashboardPillarsHubBalanceChart {
+  totalUsd: number | null;
+  totalUsdc: number | null;
+  totalSol: number | null;
+  solPriceUsd?: number | null;
+  pillarBalances: Partial<
+    Record<PillarWalletPurpose, { usdc: number | null; sol: number | null }>
+  >;
+  historyPoints?: Array<{ label: string; value: number; at: number }>;
+  totalChange?: BalanceChangeResult | null;
+  loading?: boolean;
+  walletLabel?: string;
+  refreshing?: boolean;
+  onRefresh?: () => void;
+}
+
 export interface DashboardPillarsHubProps {
   connected?: boolean;
   walletLabel?: string;
   onConnect?: () => void;
   treasury?: DashboardPillarsHubTreasurySummary;
+  pillarBalances?: Partial<
+    Record<PillarWalletPurpose, { usdc: number | null; sol: number | null }>
+  >;
+  balancesLoading?: boolean;
+  balanceChart?: DashboardPillarsHubBalanceChart;
 }
 
 export function DashboardPillarsHub({
   connected = false,
-  walletLabel,
   onConnect,
-  treasury,
+  pillarBalances,
+  balancesLoading = false,
+  balanceChart,
 }: DashboardPillarsHubProps) {
   const { address, connected: walletConnected } = useWalletContext();
   const { machineMoneyUnlocked, previewComingSoon } = useMachineMoneyPreview();
   const isAdmin = isAdminWallet(walletConnected, address);
 
-  const discoveryQ = useQuery({
-    queryKey: ["pillars", "discovery"],
-    queryFn: fetchPillarsDiscovery,
-    staleTime: 300_000,
-  });
-
-  const pillarsById = new Map(
-    (discoveryQ.data?.pillars ?? []).map((p) => [p.id as PillarId, p]),
-  );
-
-  const primaryValue =
-    treasury?.totalUsd != null && treasury.totalUsd > 0
-      ? treasury.totalUsd
-      : treasury?.totalUsdc != null
-        ? treasury.totalUsdc
-        : null;
-
   return (
-    <section className="space-y-8">
+    <div className="space-y-10">
+      {/* Hero */}
       <header
         className={cn(
           overviewCardShell,
-          "overflow-hidden rounded-3xl p-6 sm:p-8 lg:grid lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-8 lg:items-center",
+          "overflow-hidden rounded-3xl p-6 sm:p-8",
         )}
       >
         <div
@@ -84,131 +101,230 @@ export function DashboardPillarsHub({
           aria-hidden
         />
 
-        <div className="relative space-y-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-border/55 bg-background/35 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground backdrop-blur-md">
-              <Sparkles className="h-3.5 w-3.5 text-foreground/80" aria-hidden />
-              Machine Money
-            </div>
-            {isAdmin ? <MachineMoneyPreviewToggle compact /> : null}
-          </div>
-
-          <div className="space-y-2">
-            <h1 className="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl lg:text-[2rem]">
-              Earn · Treasury · Invest · Spend · Grow
-            </h1>
-            <p className="max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-[15px]">
-              {previewComingSoon
-                ? "Previewing the public coming-soon experience — toggle the eye to return to full pages."
-                : discoveryQ.data?.narrative ?? MACHINE_MONEY_FLOW_COPY}
-            </p>
-          </div>
-
-          {!connected ? (
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              {onConnect ? (
-                <Button type="button" className="rounded-xl px-6" onClick={onConnect}>
-                  <Wallet className="mr-2 h-4 w-4" aria-hidden />
-                  Connect wallet
-                </Button>
-              ) : null}
-              <p className="text-xs text-muted-foreground">
-                Unlock treasury balances and fuel your agent wallets.
-              </p>
-            </div>
-          ) : treasury ? (
-            <div className="rounded-2xl border border-border/50 bg-background/30 px-4 py-4 backdrop-blur-md sm:max-w-md">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className={overviewKickerClass}>Total treasury</p>
-                  {treasury.isLoading ? (
-                    <div className="mt-2 h-9 w-36 animate-pulse rounded-lg bg-muted/50" />
-                  ) : (
-                    <p className="mt-1 font-mono text-2xl font-semibold tabular-nums tracking-tight text-foreground sm:text-[1.65rem]">
-                      <AnimatedMetric
-                        value={primaryValue}
-                        format={(n) => formatCompactUsd(n)}
-                        deltaMode
-                      />
-                    </p>
-                  )}
-                  {walletLabel ? (
-                    <p className="mt-1.5 text-xs text-muted-foreground">
-                      Connected{" "}
-                      <span className="font-mono text-foreground/80">{walletLabel}</span>
-                    </p>
-                  ) : null}
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                  <Badge
-                    variant="secondary"
-                    className="rounded-lg border border-border/50 bg-background/40 px-2.5 py-1 font-medium backdrop-blur-md"
-                  >
-                    <Activity className="mr-1.5 h-3 w-3 opacity-80" aria-hidden />
-                    Live
-                  </Badge>
-                </div>
+        <div
+          className={cn(
+            "relative grid gap-8",
+            balanceChart &&
+              "lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)] lg:gap-10",
+          )}
+        >
+          <div className="flex min-h-0 flex-col justify-between gap-8 lg:min-h-[340px] lg:py-1">
+            <div className="space-y-6">
+              <div className="flex flex-wrap items-center gap-3">
+                <p className={overviewKickerClass}>Machine Money</p>
+                {isAdmin ? <MachineMoneyPreviewToggle compact /> : null}
               </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" className="rounded-xl" asChild>
-                  <Link to="/overview/treasury">Open Treasury</Link>
-                </Button>
-                {treasury.onRefresh ? (
+
+              <div className="space-y-4">
+                <h1 className="text-balance font-semibold tracking-tight">
+                  <span className="block text-3xl text-foreground sm:text-4xl lg:text-[2.65rem] lg:leading-[1.05]">
+                    {OVERVIEW_HERO_COPY.titleLine1}
+                  </span>
+                  <span className="mt-0.5 block bg-gradient-to-br from-foreground via-foreground/90 to-muted-foreground bg-clip-text text-3xl text-transparent sm:text-4xl lg:text-[2.65rem] lg:leading-[1.05]">
+                    {OVERVIEW_HERO_COPY.titleLine2}
+                  </span>
+                </h1>
+                <p className="max-w-lg text-base leading-relaxed text-muted-foreground sm:text-[17px] sm:leading-relaxed">
+                  {previewComingSoon
+                    ? "Previewing the public coming-soon experience — toggle the eye to return to full pages."
+                    : connected
+                      ? OVERVIEW_HERO_COPY.connectedSubtitle
+                      : OVERVIEW_HERO_COPY.subtitle}
+                </p>
+              </div>
+
+              {!connected && onConnect ? (
+                <div className="space-y-3">
                   <Button
                     type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="rounded-xl gap-2"
-                    disabled={treasury.refreshing || treasury.isLoading}
-                    onClick={() => void treasury.onRefresh?.()}
+                    className="rounded-xl px-6"
+                    onClick={onConnect}
                   >
-                    {treasury.refreshing ? (
-                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                    ) : (
-                      <RefreshCw className="h-4 w-4" aria-hidden />
-                    )}
-                    Refresh
+                    <Wallet className="mr-2 h-4 w-4" aria-hidden />
+                    Connect wallet
                   </Button>
-                ) : null}
+                  <p className="text-sm text-muted-foreground/80">
+                    {OVERVIEW_HERO_COPY.ctaHint}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="space-y-3">
+              <p className={overviewKickerClass}>
+                {connected ? "Jump to a pillar" : "Five pillars"}
+              </p>
+              <div className="grid grid-cols-5 gap-2">
+                {PILLAR_ORDER.map((id) => {
+                  const copy = PILLAR_COPY[id];
+                  const meta = PILLAR_OVERVIEW_META[id];
+                  const Icon = PILLAR_ICONS[id];
+                  const gated = !machineMoneyUnlocked && !isPillarShipped(id);
+                  return (
+                    <Link
+                      key={id}
+                      to={copy.href}
+                      className={cn(
+                        "group flex flex-col items-center gap-2 rounded-xl border border-border/45 bg-background/25 px-1.5 py-3 text-center transition-all",
+                        "hover:border-border/70 hover:bg-background/45",
+                        meta.borderHover,
+                        gated && "opacity-75",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "flex h-9 w-9 items-center justify-center rounded-lg border transition-colors",
+                          meta.iconRing,
+                        )}
+                      >
+                        <Icon className={cn("h-4 w-4", meta.accent)} aria-hidden />
+                      </span>
+                      <span className="text-[10px] font-medium leading-tight text-foreground sm:text-[11px]">
+                        {copy.headline}
+                      </span>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
+          </div>
+
+          {balanceChart ? (
+            <OverviewBalanceChart
+              variant="compact"
+              totalUsd={balanceChart.totalUsd}
+              totalUsdc={balanceChart.totalUsdc}
+              totalSol={balanceChart.totalSol}
+              solPriceUsd={balanceChart.solPriceUsd}
+              pillarBalances={balanceChart.pillarBalances}
+              historyPoints={balanceChart.historyPoints}
+              totalChange={balanceChart.totalChange}
+              loading={balanceChart.loading}
+              walletLabel={balanceChart.walletLabel}
+              refreshing={balanceChart.refreshing}
+              onRefresh={balanceChart.onRefresh}
+            />
           ) : null}
         </div>
-
-        <MachineMoneyFlowDiagram className="relative mt-6 lg:mt-0" />
       </header>
 
-      <div>
-        <p className={cn(overviewKickerClass, "mb-4")}>Five pillars</p>
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      {/* Pillars */}
+      <section className="space-y-4">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold tracking-tight text-foreground">
+              Explore pillars
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Each pillar is a dedicated wallet and workspace for your agent.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-3">
           {PILLAR_ORDER.map((id) => {
             const copy = PILLAR_COPY[id];
-            const meta = pillarsById.get(id);
             const pillarMeta = PILLAR_OVERVIEW_META[id];
+            const navItem = DASHBOARD_PILLAR_NAV.find((p) => p.id === id);
             return (
               <PillarCard
                 key={id}
                 id={id}
                 label={copy.headline}
-                tagline={meta?.tagline ?? DASHBOARD_PILLAR_NAV.find((p) => p.id === id)?.description ?? copy.headline}
-                description={copy.description}
+                description={navItem?.description ?? copy.description}
                 href={copy.href}
                 icon={PILLAR_ICONS[id]}
                 step={pillarMeta.step}
                 accent={pillarMeta}
-                features={pillarMeta.features}
-                comingSoon={!machineMoneyUnlocked}
-                stats={
-                  meta
-                    ? { routeCount: meta.routeCount, toolCount: meta.toolCount }
-                    : undefined
-                }
-                className={cn(id === "treasury" && "sm:col-span-2 xl:col-span-1")}
+                comingSoon={!machineMoneyUnlocked && !isPillarShipped(id)}
+                balance={pillarBalances?.[id]}
+                balanceLoading={balancesLoading && connected}
               />
             );
           })}
         </div>
-      </div>
-    </section>
+      </section>
+
+      {/* How it works — single lightweight strip */}
+      <section
+        className={cn(
+          overviewCardShell,
+          "overflow-hidden rounded-2xl p-5 sm:p-6",
+        )}
+      >
+        <div
+          className={overviewCardGlow}
+          style={{ background: overviewAccentBackground("neutral") }}
+          aria-hidden
+        />
+        <div className="relative space-y-4">
+          <div>
+            <h2 className="text-base font-semibold text-foreground">
+              How it flows
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Revenue moves through five steps — from earning to compounding.
+            </p>
+          </div>
+
+          <ol className="grid gap-2 sm:grid-cols-5">
+            {MACHINE_MONEY_STEPS.map((step) => {
+              const meta = PILLAR_OVERVIEW_META[step.pillar];
+              const copy = PILLAR_COPY[step.pillar];
+              const Icon = PILLAR_ICONS[step.pillar];
+              return (
+                <li key={step.pillar}>
+                  <Link
+                    to={copy.href}
+                    className={cn(
+                      "group flex h-full flex-col rounded-xl border border-border/40 bg-background/30 p-3 transition-colors",
+                      "hover:border-border/70 hover:bg-background/50",
+                      meta.borderHover,
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={cn(
+                          "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border",
+                          meta.iconRing,
+                        )}
+                      >
+                        <Icon
+                          className={cn("h-3.5 w-3.5", meta.accent)}
+                          aria-hidden
+                        />
+                      </span>
+                      <span
+                        className={cn(
+                          "text-xs font-bold tabular-nums",
+                          meta.accent,
+                        )}
+                      >
+                        {meta.step}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-xs font-semibold text-foreground">
+                      {copy.headline}
+                    </p>
+                    <p className="mt-0.5 flex-1 text-[11px] leading-relaxed text-muted-foreground">
+                      {step.action}
+                    </p>
+                    <span
+                      className={cn(
+                        "mt-2 inline-flex items-center gap-0.5 text-[11px] font-medium opacity-0 transition-opacity group-hover:opacity-100",
+                        meta.accent,
+                      )}
+                    >
+                      Open
+                      <ArrowRight className="h-3 w-3" aria-hidden />
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      </section>
+    </div>
   );
 }

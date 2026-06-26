@@ -5,9 +5,7 @@ import { useAgentWallet } from "@/contexts/AgentWalletContext";
 import { useSyraAuth } from "@/contexts/SyraAuthContext";
 import { useManagedAgentWallets } from "@/hooks/useManagedAgentWallets";
 import { useUserWalletBalance } from "@/hooks/useUserWalletBalance";
-import { fetchUserCustomStats } from "@/lib/tradingExperimentApi";
 import { fetchLpRealState, fetchLpRealSummary } from "@/lib/lpAgentRealApi";
-import { aggregateUserCustomTrading } from "@/lib/dashboardOverviewAggregates";
 import { PILLAR_WALLET_PURPOSES, type PillarWalletPurpose } from "@/lib/agentWalletCatalog";
 
 const STALE_MS = 60_000;
@@ -18,14 +16,6 @@ export function useUserDashboardOverview() {
   const { lpAnonymousId } = useAgentWallet();
   const wallets = useManagedAgentWallets();
   const userWallet = useUserWalletBalance();
-
-  const tradingStatsQ = useQuery({
-    queryKey: ["dashboard-user", "trading-stats", address],
-    queryFn: () => fetchUserCustomStats(address!),
-    enabled: Boolean(address) && syraAuthReady && syraAuthenticated,
-    staleTime: STALE_MS,
-    retry: 1,
-  });
 
   const lpSummaryQ = useQuery({
     queryKey: ["dashboard-user", "lp-summary", lpAnonymousId],
@@ -42,11 +32,6 @@ export function useUserDashboardOverview() {
     staleTime: STALE_MS,
     retry: 1,
   });
-
-  const tradingTotals = useMemo(
-    () => aggregateUserCustomTrading(tradingStatsQ.data?.agents ?? []),
-    [tradingStatsQ.data?.agents],
-  );
 
   const pillarBalances = useMemo(() => {
     const out: Partial<Record<PillarWalletPurpose, { usdc: number | null; sol: number | null }>> = {};
@@ -148,7 +133,6 @@ export function useUserDashboardOverview() {
     await Promise.all([
       userWallet.refetch(),
       wallets.handleRefreshAll(),
-      tradingStatsQ.refetch(),
       lpSummaryQ.refetch(),
       lpStateQ.refetch(),
     ]);
@@ -157,7 +141,6 @@ export function useUserDashboardOverview() {
   const refreshing =
     userWallet.isFetching ||
     wallets.refreshingBalances ||
-    tradingStatsQ.isFetching ||
     lpSummaryQ.isFetching ||
     lpStateQ.isFetching;
 
@@ -166,13 +149,10 @@ export function useUserDashboardOverview() {
     address,
     shortAddress,
     treasury,
-    tradingTotals,
-    tradingStatsQ,
     lpSummaryQ,
     lpStateQ,
     lpSummary: lpSummaryQ.data,
     lpState: lpStateQ.data,
-    maxTradingAgents: tradingStatsQ.data?.maxAgents ?? 0,
     balancesLoading,
     refreshing,
     wallets,

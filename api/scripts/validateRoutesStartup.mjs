@@ -38,7 +38,6 @@ import { createInternalEventsRouter } from "../routes/internalEvents.js";
 import { createInternalToolsRouter } from "../routes/internalTools.js";
 import { createInternalAgentWalletsRouter } from "../routes/internalAgentWallets.js";
 import { createInternalTesterAgentRouter } from "../routes/internalTesterAgent.js";
-import { createTradingExperimentRouter } from "../routes/tradingExperiment.js";
 import { createBitgetVibeRouter } from "../routes/bitgetVibe.js";
 import { createArenaRouter } from "../routes/arena.js";
 import { createSpcxRouter, createEquityRouter } from "../routes/spcx.js";
@@ -105,6 +104,7 @@ import { createPillarsRouter } from "../routes/pillars.js";
 import { createInvestRouter } from "../routes/invest.js";
 import { createGrowRouter } from "../routes/grow.js";
 import { createEarnRouter } from "../routes/earn.js";
+import { createBtc3MacroRouter } from "../routes/btc3Macro.js";
 
 /** @type {Array<[string, () => unknown | Promise<unknown>]>} */
 const factories = [
@@ -144,7 +144,6 @@ const factories = [
   ["createInternalToolsRouter", createInternalToolsRouter],
   ["createInternalAgentWalletsRouter", createInternalAgentWalletsRouter],
   ["createInternalTesterAgentRouter", createInternalTesterAgentRouter],
-  ["createTradingExperimentRouter", createTradingExperimentRouter],
   ["createBitgetVibeRouter", createBitgetVibeRouter],
   ["createArenaRouter", createArenaRouter],
   ["createSpcxRouter", createSpcxRouter],
@@ -206,6 +205,7 @@ const factories = [
   ["createInvestRouter", createInvestRouter],
   ["createGrowRouter", createGrowRouter],
   ["createEarnRouter", createEarnRouter],
+  ["createBtc3MacroRouter", createBtc3MacroRouter],
 ];
 
 let failed = 0;

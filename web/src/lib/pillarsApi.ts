@@ -68,27 +68,27 @@ export const PILLAR_COPY: Record<
 > = {
   earn: {
     headline: "Earn",
-    description: "Agents monetize skills — prompts, KOL campaigns, 8004 registry.",
-    href: "/overview/earn",
+    description: "Monetize agent skills — prompts, campaigns, and API work.",
+    href: "/earn",
   },
   treasury: {
     headline: "Treasury",
-    description: "Allocate and manage capital across chat, LP, and connected wallets.",
-    href: "/overview/treasury",
+    description: "Allocate capital across agent wallets with policy controls.",
+    href: "/treasury",
   },
   invest: {
     headline: "Invest",
-    description: "Deploy capital autonomously via Giza, Meteora LP, Jupiter, and RISE.",
-    href: "/overview/invest",
+    description: "Deploy capital into yield, LP, and trading strategies.",
+    href: "/invest",
   },
   spend: {
     headline: "Spend",
-    description: "x402 native payments — one module for pay-per-call machine money.",
-    href: "/overview/spend",
+    description: "Pay per API call with x402 micropayments.",
+    href: "/spend",
   },
   grow: {
     headline: "Grow",
-    description: "Yield and portfolio optimization — analysis-first recommendations.",
-    href: "/overview/grow",
+    description: "Optimize your portfolio and compound returns.",
+    href: "/grow",
   },
 };

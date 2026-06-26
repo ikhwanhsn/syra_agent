@@ -20,7 +20,6 @@
     "register-aip": "node -r dotenv/config scripts/register-aip-agent.js",
     "sync-said-metadata": "node -r dotenv/config scripts/sync-said-metadata.js",
     "publish-sap-tools": "node -r dotenv/config scripts/publish-sap-tools.js",
-    "delete-experiment-non-buy-runs": "node scripts/deleteTradingExperimentNonBuyRuns.js",
     "openapi": "node scripts/export-openapi.mjs",
     "sync:playground": "node ../scripts/sync-x402-playground-catalog.mjs",
     "validate:mpp": "node ../scripts/validate-mpp-coverage.mjs",

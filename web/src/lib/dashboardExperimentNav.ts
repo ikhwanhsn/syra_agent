@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Droplets, FlaskConical, Scale } from "lucide-react";
+import { Bitcoin, BrainCircuit, Droplets, Globe } from "lucide-react";
 
 export type DashboardExperimentNavItem = {
   id: string;
@@ -14,22 +14,6 @@ export type DashboardExperimentNavItem = {
 /** Internal-team experiment desks — admin wallet only. */
 export const DASHBOARD_EXPERIMENT_NAV: readonly DashboardExperimentNavItem[] = [
   {
-    id: "trading",
-    label: "Trading agents",
-    description: "Multi-agent spot trading",
-    icon: FlaskConical,
-    to: "/trading-experiment",
-    isActive: (p) => p.startsWith("/trading-experiment"),
-  },
-  {
-    id: "arbitrage",
-    label: "Arbitrage",
-    description: "Cross-venue spread scanner",
-    icon: Scale,
-    to: "/arbitrage-experiment",
-    isActive: (p) => p.startsWith("/arbitrage-experiment"),
-  },
-  {
     id: "lp",
     label: "LP agents",
     description: "Meteora DLMM agents",
@@ -37,6 +21,33 @@ export const DASHBOARD_EXPERIMENT_NAV: readonly DashboardExperimentNavItem[] = [
     to: "/lp-experiment",
     isActive: (p) => p.startsWith("/lp-experiment"),
     badge: { label: "Beta" },
+  },
+  {
+    id: "btc",
+    label: "BTC quant",
+    description: "Onchain cbBTC quant agents",
+    icon: Bitcoin,
+    to: "/btc-experiment",
+    isActive: (p) => p.startsWith("/btc-experiment") && !p.startsWith("/btc2-experiment"),
+    badge: { label: "Beta" },
+  },
+  {
+    id: "btc2",
+    label: "BTC quant agent",
+    description: "Institutional AI quant desk · spot cbBTC via Jupiter",
+    icon: BrainCircuit,
+    to: "/btc2-experiment",
+    isActive: (p) => p.startsWith("/btc2-experiment"),
+    badge: { label: "Experimental" },
+  },
+  {
+    id: "btc3",
+    label: "Macro Intelligence",
+    description: "Global macro news → historical similarity → BTC spot allocation",
+    icon: Globe,
+    to: "/btc3-experiment",
+    isActive: (p) => p.startsWith("/btc3-experiment"),
+    badge: { label: "Experimental" },
   },
 ];
 

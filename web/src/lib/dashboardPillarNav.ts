@@ -1,5 +1,17 @@
 import type { LucideIcon } from "lucide-react";
 import { Coins, Code2, Landmark, Rocket, Sprout } from "lucide-react";
+import type { PillarId } from "@/lib/pillarsApi";
+
+/** Pillars live for all users — not gated behind admin Machine Money preview. */
+export const SHIPPED_PILLAR_IDS = ["earn"] as const satisfies readonly PillarId[];
+
+export function isPillarShipped(pillarId: string): boolean {
+  return (SHIPPED_PILLAR_IDS as readonly string[]).includes(pillarId);
+}
+
+export function isPillarGated(pillarId: string, machineMoneyUnlocked: boolean): boolean {
+  return !isPillarShipped(pillarId) && !machineMoneyUnlocked;
+}
 
 export type DashboardPillarNavItem = {
   id: string;
@@ -16,41 +28,41 @@ export const DASHBOARD_PILLAR_NAV: readonly DashboardPillarNavItem[] = [
     id: "earn",
     label: "Earn",
     description: "Agents monetize skills",
-    to: "/overview/earn",
+    to: "/earn",
     icon: Coins,
-    isActive: (p) => p.startsWith("/overview/earn"),
+    isActive: (p) => p === "/earn" || p.startsWith("/earn/"),
   },
   {
     id: "treasury",
     label: "Treasury",
     description: "Allocate and manage capital",
-    to: "/overview/treasury",
+    to: "/treasury",
     icon: Landmark,
-    isActive: (p) => p.startsWith("/overview/treasury"),
+    isActive: (p) => p === "/treasury" || p.startsWith("/treasury/"),
   },
   {
     id: "invest",
     label: "Invest",
     description: "Deploy capital autonomously",
-    to: "/overview/invest",
+    to: "/invest",
     icon: Rocket,
-    isActive: (p) => p.startsWith("/overview/invest"),
+    isActive: (p) => p === "/invest" || p.startsWith("/invest/"),
   },
   {
     id: "spend",
     label: "Spend",
     description: "x402 native payments",
-    to: "/overview/spend",
+    to: "/spend",
     icon: Code2,
-    isActive: (p) => p.startsWith("/overview/spend"),
+    isActive: (p) => p === "/spend" || p.startsWith("/spend/"),
   },
   {
     id: "grow",
     label: "Grow",
     description: "Yield + portfolio optimization",
-    to: "/overview/grow",
+    to: "/grow",
     icon: Sprout,
-    isActive: (p) => p.startsWith("/overview/grow"),
+    isActive: (p) => p === "/grow" || p.startsWith("/grow/"),
   },
 ];
 

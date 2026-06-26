@@ -30,11 +30,11 @@ const PILLAR_ICONS: Record<PillarWalletPurpose, LucideIcon> = {
 };
 
 const PILLAR_LABELS: Record<PillarWalletPurpose, { title: string; subtitle: string; href: string }> = {
-  earn: { title: "Earn", subtitle: "Skill monetization & payouts", href: "/overview/earn" },
-  treasury: { title: "Treasury", subtitle: "Capital allocation & reserves", href: "/overview/treasury" },
-  invest: { title: "Invest", subtitle: "Deploy capital autonomously", href: "/overview/invest" },
-  spend: { title: "Spend", subtitle: "x402 native payments", href: "/overview/spend" },
-  grow: { title: "Grow", subtitle: "Yield & portfolio optimization", href: "/overview/grow" },
+  earn: { title: "Earn", subtitle: "Playbooks, KOL & API skills", href: "/earn" },
+  treasury: { title: "Treasury", subtitle: "Capital allocation & reserves", href: "/treasury" },
+  invest: { title: "Invest", subtitle: "Deploy capital autonomously", href: "/invest" },
+  spend: { title: "Spend", subtitle: "x402 native payments", href: "/spend" },
+  grow: { title: "Grow", subtitle: "Yield & portfolio optimization", href: "/grow" },
 };
 
 function formatUsdc(n: number): string {
@@ -128,7 +128,7 @@ export function TreasurySplitCardGrid({
           icon={Wallet}
           usdc={connectedWallet.usdc}
           sol={connectedWallet.sol}
-          href="/overview/treasury"
+          href="/treasury"
           isLoading={loading}
           accentClass="bg-gradient-to-br from-[#9945FF]/10 to-transparent"
         />

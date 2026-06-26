@@ -68,7 +68,12 @@ function policyDefaultsForPurpose(purpose) {
   }
   if (p === 'earn') {
     return {
-      allowedTools: ['register-agent', 'purch-vault'],
+      allowedTools: [
+        'register-agent',
+        'purch-vault',
+        'pumpfun-agents-create-coin',
+        'pumpfun-collect-fees',
+      ],
       perTxCapUsd: 25,
       dailySpendCapUsd: 500,
       hourlySpendCapUsd: 100,

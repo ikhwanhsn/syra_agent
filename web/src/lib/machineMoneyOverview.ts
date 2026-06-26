@@ -55,10 +55,21 @@ export const PILLAR_OVERVIEW_META: Record<PillarId, PillarOverviewMeta> = {
 export const MACHINE_MONEY_FLOW_COPY =
   "Wealth is the narrative — agents earn revenue, allocate treasury, deploy capital, pay for intelligence via x402, and compound yield. Payments are one module, not the whole product.";
 
+/** Plain-language hero copy for the dashboard overview. */
+export const OVERVIEW_HERO_COPY = {
+  titleLine1: "Your agent's",
+  titleLine2: "financial home",
+  subtitle:
+    "Earn revenue, manage treasury, deploy capital, and pay for APIs — all from one place.",
+  connectedSubtitle:
+    "Five wallets power your agent — earn, allocate, invest, spend, and grow.",
+  ctaHint: "Connect your wallet to unlock balances and agent wallets.",
+} as const;
+
 export const MACHINE_MONEY_STEPS: readonly { pillar: PillarId; action: string }[] = [
-  { pillar: "earn", action: "Capture revenue from skills and onchain work" },
-  { pillar: "treasury", action: "Allocate capital across agent wallets with policy" },
-  { pillar: "invest", action: "Deploy into yield, LP, and execution surfaces" },
-  { pillar: "spend", action: "Pay per capability — x402 APIs agents discover autonomously" },
-  { pillar: "grow", action: "Optimize portfolio and compound returns over time" },
+  { pillar: "earn", action: "Earn from skills and onchain work" },
+  { pillar: "treasury", action: "Allocate across agent wallets" },
+  { pillar: "invest", action: "Deploy into yield and strategies" },
+  { pillar: "spend", action: "Pay for APIs and data on demand" },
+  { pillar: "grow", action: "Compound and optimize returns" },
 ];

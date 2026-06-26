@@ -29,7 +29,7 @@ export const DASHBOARD_MARKET_INTEL_NAV: readonly DashboardMarketIntelNavItem[] 
     label: "Bitcoin",
     to: "/btc",
     icon: Bitcoin,
-    isActive: (p) => p.startsWith("/btc"),
+    isActive: (p) => p === "/btc",
   },
 ];
 export function isDashboardMarketIntelRoute(pathname: string): boolean {

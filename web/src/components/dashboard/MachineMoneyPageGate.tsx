@@ -7,9 +7,11 @@ import { MachineMoneyPreviewToggle } from "@/components/dashboard/MachineMoneyPr
 import { PillarLayout } from "@/components/pillars/PillarLayout";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 import { useMachineMoneyPreview } from "@/contexts/MachineMoneyPreviewContext";
+import { isPillarGated } from "@/lib/dashboardPillarNav";
 import { cn } from "@/lib/utils";
 
 type MachineMoneyPageGateProps = {
+  pillarId: string;
   children: ReactNode;
   pillarLabel: string;
   pillarTagline: string;
@@ -80,6 +82,7 @@ function EyePreviewBadge() {
 }
 
 export function MachineMoneyPageGate({
+  pillarId,
   children,
   pillarLabel,
   pillarTagline,
@@ -87,7 +90,7 @@ export function MachineMoneyPageGate({
 }: MachineMoneyPageGateProps) {
   const { machineMoneyUnlocked, previewComingSoon } = useMachineMoneyPreview();
 
-  if (!machineMoneyUnlocked) {
+  if (isPillarGated(pillarId, machineMoneyUnlocked)) {
     return (
       <PillarComingSoon
         pillarLabel={pillarLabel}

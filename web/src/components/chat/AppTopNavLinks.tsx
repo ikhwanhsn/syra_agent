@@ -19,17 +19,20 @@ const sections = [
   { id: "dashboard" as const, label: "Dashboard", to: "/overview", icon: LayoutDashboard },
 ] as const;
 
+import { isDashboardPillarRoute } from "@/lib/dashboardPillarNav";
+
 function isDashboardRoute(pathname: string): boolean {
-  return [
-    "/overview",
-    "/agent-setup",
-    "/trading-experiment",
-    "/arbitrage-experiment",
-    "/lp-experiment",
-    "/assets",
-    "/pumpfun",
-    INTERNAL_BASE_PATH,
-  ].some((route) => pathname === route || pathname.startsWith(`${route}/`));
+  return (
+    [
+      "/overview",
+      "/agent-setup",
+      "/lp-experiment",
+      "/assets",
+      "/pumpfun",
+      INTERNAL_BASE_PATH,
+    ].some((route) => pathname === route || pathname.startsWith(`${route}/`)) ||
+    isDashboardPillarRoute(pathname)
+  );
 }
 
 function sectionActive(pathname: string, id: (typeof sections)[number]["id"]): boolean {

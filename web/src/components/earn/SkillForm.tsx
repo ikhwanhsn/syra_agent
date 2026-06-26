@@ -109,12 +109,11 @@ export function SkillForm({ open, onOpenChange, onCreated }: SkillFormProps) {
         onOpenChange(next);
       }}
     >
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-h-[min(90dvh,720px)] max-w-lg overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Publish a skill endpoint</DialogTitle>
+          <DialogTitle>New API skill</DialogTitle>
           <DialogDescription>
-            Syra proxies your upstream HTTPS URL as a paid x402 API. Payments settle directly to
-            your earn wallet.
+            Point Syra at your HTTPS API. Agents pay USDC per call.
           </DialogDescription>
         </DialogHeader>
 
@@ -224,7 +223,7 @@ export function SkillForm({ open, onOpenChange, onCreated }: SkillFormProps) {
               onChange={(e) => setPublishAfterCreate(e.target.checked)}
               className="rounded border-border"
             />
-            Publish immediately (payTo = earn wallet)
+            Publish immediately to the skill marketplace
           </label>
 
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
@@ -239,7 +238,7 @@ export function SkillForm({ open, onOpenChange, onCreated }: SkillFormProps) {
             disabled={mutation.isPending || !title.trim() || !upstreamUrl.trim()}
           >
             {mutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Create skill
+            Create API skill
           </Button>
         </DialogFooter>
       </DialogContent>

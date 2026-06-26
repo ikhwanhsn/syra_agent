@@ -1,5 +1,4 @@
 import type { LpAgentStats } from "@/lib/lpAgentExperimentApi";
-import type { UserCustomStrategyAgentStats } from "@/lib/tradingExperimentApi";
 import type { XProjectsBatchItem } from "@/lib/xProjectsAnalyzeApi";
 
 export function sortXBatchByScore(items: XProjectsBatchItem[]): XProjectsBatchItem[] {
@@ -29,34 +28,6 @@ export function aggregateLpAgents(agents: LpAgentStats[]) {
     return (b.wins ?? 0) - (a.wins ?? 0);
   });
   return { wins, losses, open, expired, agentCount: agents.length, topAgent: sorted[0] ?? null };
-}
-
-export function aggregateUserCustomTrading(agents: UserCustomStrategyAgentStats[]) {
-  let wins = 0;
-  let losses = 0;
-  let open = 0;
-  for (const a of agents) {
-    wins += a.wins ?? 0;
-    losses += a.losses ?? 0;
-    open += a.openPositions ?? 0;
-  }
-  const sorted = [...agents].sort((a, b) => (b.wins ?? 0) - (a.wins ?? 0));
-  return { wins, losses, open, agentCount: agents.length, topAgent: sorted[0] ?? null };
-}
-
-export function aggregateTradingAgents(
-  agents: Array<{ name?: string; wins?: number; losses?: number; openPositions?: number }>,
-) {
-  let wins = 0;
-  let losses = 0;
-  let open = 0;
-  for (const a of agents) {
-    wins += a.wins ?? 0;
-    losses += a.losses ?? 0;
-    open += a.openPositions ?? 0;
-  }
-  const sorted = [...agents].sort((a, b) => (b.wins ?? 0) - (a.wins ?? 0));
-  return { wins, losses, open, agentCount: agents.length, topAgent: sorted[0] ?? null };
 }
 
 export function formatCompactUsd(n: number | null | undefined): string {

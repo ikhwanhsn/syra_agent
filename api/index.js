@@ -48,7 +48,6 @@ import {
   SYRA_PROBE_BASE_URL,
   TESTER_AGENT_CONFIG,
 } from "./libs/testerAgent/testerAgentConfig.js";
-import { createTradingExperimentRouter } from "./routes/tradingExperiment.js";
 import { createBitgetVibeRouter } from "./routes/bitgetVibe.js";
 import { createArenaRouter } from "./routes/arena.js";
 import { createSpcxRouter, createEquityRouter } from "./routes/spcx.js";
@@ -91,6 +90,9 @@ import { createAssetsDetailX402Router } from "./routes/assets/detail.js";
 import { createBitcoinX402Router } from "./routes/bitcoin/index.js";
 import { createLpAgentExperimentRouter } from "./routes/lpAgentExperiment.js";
 import { createLpAgentRealRouter } from "./routes/lpAgentReal.js";
+import { createBtcQuantExperimentRouter } from "./routes/btcQuantExperiment.js";
+import { createBtcQuantRealRouter } from "./routes/btcQuantReal.js";
+import { createBtc3MacroRouter } from "./routes/btc3Macro.js";
 import { createShipLogStudioRouter } from "./routes/shipLogStudio.js";
 import { createHealthRouter } from "./routes/health.js";
 import { createMppV1Router } from "./routes/mpp/v1.js";
@@ -1320,8 +1322,6 @@ app.use("/internal", createInternalEventsRouter());
 app.use("/internal", createInternalToolsRouter());
 app.use("/internal", createInternalAgentWalletsRouter());
 app.use("/internal", await createInternalResearchRouter());
-// Trading agent experiment lab (API key auth, no x402; optional cron secret on POST run-cycle)
-app.use("/experiment/trading-agent", createTradingExperimentRouter());
 // Bitget Vibe Trader (Track 1 hackathon — NL strategy loop on Bitget Agent Hub)
 const bitgetVibeRouter = createBitgetVibeRouter();
 app.use("/agent/bitget-vibe", bitgetVibeRouter);
@@ -1335,6 +1335,10 @@ app.use("/experiment/spcx", createSpcxExperimentRouter());
 app.use("/experiment/lp-agent", createLpAgentExperimentRouter());
 // LP real agent — on-chain Meteora DLMM from backend-custodied agent wallet
 app.use("/experiment/lp-agent-real", createLpAgentRealRouter());
+// BTC onchain quant lab (paper sim + real cbBTC via Jupiter)
+app.use("/experiment/btc-quant", createBtcQuantExperimentRouter());
+app.use("/experiment/btc-quant-real", createBtcQuantRealRouter());
+app.use("/experiment/btc3-macro", createBtc3MacroRouter());
 app.use("/post/studio", createShipLogStudioRouter());
 // Analytics: KPI (/analytics/kpi, /analytics/errors) and x402 summary (/analytics/summary)
 app.use("/analytics", await createAnalyticsRouter());
@@ -1593,95 +1597,6 @@ app.listen(PORT, () => {
 
   const LP_AGENT_SIGNAL_INTERVAL_MS = 120_000;
   const LP_AGENT_RESOLVE_INTERVAL_MS = 15_000;
-  const legacyMs = Number(process.env.TRADING_EXPERIMENT_CRON_MS || 0);
-  const signalMs = Number(process.env.TRADING_EXPERIMENT_SIGNAL_CRON_MS || 0);
-  const validateMs = Number(
-    process.env.TRADING_EXPERIMENT_VALIDATE_CRON_MS || 0,
-  );
-
-  const runValidate = runIfMongoConnected(
-    withSingleFlight(() =>
-      import("./libs/tradingExperimentService.js")
-        .then(({ resolveOpenExperimentRunsIncremental1m }) =>
-          resolveOpenExperimentRunsIncremental1m(),
-        )
-        .then((out) => {
-          if (out.errors?.length) {
-            console.warn(
-              "[Trading experiment] validate errors:",
-              out.errors.slice(0, 3),
-            );
-          }
-        })
-        .catch((err) =>
-          console.warn(
-            "[Trading experiment] validate failed:",
-            err?.message || err,
-          ),
-        ),
-    ),
-  );
-
-  const runSignal = runIfMongoConnected(
-    withSingleFlight(() =>
-      Promise.all([
-        import("./libs/tradingExperimentService.js").then(
-          ({ runAllExperimentSignalCycles }) => runAllExperimentSignalCycles(),
-        ),
-        import("./libs/userCustomStrategyService.js").then(
-          ({ runUserCustomSignalCycle }) => runUserCustomSignalCycle(),
-        ),
-      ])
-        .then(([out, userOut]) => {
-          if (out.errors?.length) {
-            console.warn(
-              "[Trading experiment] signal errors:",
-              out.errors.slice(0, 3),
-            );
-          }
-          if (userOut.errors?.length) {
-            console.warn(
-              "[Trading experiment] user custom signal errors:",
-              userOut.errors.slice(0, 3),
-            );
-          }
-        })
-        .catch((err) =>
-          console.warn(
-            "[Trading experiment] signal failed:",
-            err?.message || err,
-          ),
-        ),
-    ),
-  );
-
-  const runFull = runIfMongoConnected(
-    withSingleFlight(() =>
-      import("./libs/tradingExperimentService.js")
-        .then(({ runFullExperimentCycle }) => runFullExperimentCycle())
-        .then((out) => {
-          if (out.errors?.length) {
-            console.warn(
-              "[Trading experiment] cycle errors:",
-              out.errors.slice(0, 5),
-            );
-          }
-        })
-        .catch((err) =>
-          console.warn("[Trading experiment] cycle failed:", err?.message || err),
-        ),
-    ),
-  );
-
-  if (validateMs >= 1_000) {
-    setInterval(runValidate, validateMs);
-  }
-  if (signalMs >= 60_000) {
-    setInterval(runSignal, signalMs);
-  }
-  if (legacyMs >= 60_000 && validateMs < 1_000 && signalMs < 60_000) {
-    setInterval(runFull, legacyMs);
-  }
 
   const bitgetVibeMs = Number(process.env.BITGET_VIBE_CRON_MS || 0);
   const runBitgetVibe = runIfMongoConnected(
@@ -1813,6 +1728,93 @@ app.listen(PORT, () => {
   );
   setTimeout(bootLpRealCrons, 20_000);
 
+  const BTC_QUANT_SIGNAL_INTERVAL_MS = 120_000;
+  const BTC_QUANT_RESOLVE_INTERVAL_MS = 30_000;
+
+  const runBtcQuantSignal = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/btcQuantExperimentService.js")
+        .then(({ runBtcQuantSignalCycle }) => runBtcQuantSignalCycle())
+        .then((out) => {
+          if (out.errors?.length) {
+            console.warn("[BTC quant] signal errors:", out.errors.slice(0, 3));
+          }
+        })
+        .catch((err) =>
+          console.warn("[BTC quant] signal failed:", err?.message || err),
+        ),
+    ),
+  );
+
+  const runBtcQuantResolve = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/btcQuantExperimentService.js")
+        .then(({ resolveOpenBtcQuantRuns }) => resolveOpenBtcQuantRuns())
+        .then((out) => {
+          if (out.errors?.length) {
+            console.warn("[BTC quant] resolve errors:", out.errors.slice(0, 3));
+          }
+        })
+        .catch((err) =>
+          console.warn("[BTC quant] resolve failed:", err?.message || err),
+        ),
+    ),
+  );
+
+  if (BTC_QUANT_SIGNAL_INTERVAL_MS >= 60_000) {
+    setInterval(runBtcQuantSignal, BTC_QUANT_SIGNAL_INTERVAL_MS);
+  }
+  if (BTC_QUANT_RESOLVE_INTERVAL_MS >= 5_000) {
+    setInterval(runBtcQuantResolve, BTC_QUANT_RESOLVE_INTERVAL_MS);
+  }
+
+  const runBtcQuantRealSignal = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/btcQuantRealService.js")
+        .then(({ isBtcQuantRealCronEnabled, runBtcQuantRealSignalCycle }) => {
+          if (!isBtcQuantRealCronEnabled()) return null;
+          return runBtcQuantRealSignalCycle();
+        })
+        .then((out) => {
+          if (out?.error) {
+            console.warn("[BTC quant real] signal:", out.error);
+          }
+        })
+        .catch((err) =>
+          console.warn("[BTC quant real] signal failed:", err?.message || err),
+        ),
+    ),
+  );
+
+  const runBtcQuantRealResolve = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/btcQuantRealService.js")
+        .then(({ isBtcQuantRealCronEnabled, resolveBtcQuantRealPositions }) => {
+          if (!isBtcQuantRealCronEnabled()) return null;
+          return resolveBtcQuantRealPositions();
+        })
+        .then((out) => {
+          if (out?.errors?.length) {
+            console.warn("[BTC quant real] resolve errors:", out.errors.slice(0, 3));
+          }
+        })
+        .catch((err) =>
+          console.warn("[BTC quant real] resolve failed:", err?.message || err),
+        ),
+    ),
+  );
+
+  if (BTC_QUANT_SIGNAL_INTERVAL_MS >= 60_000) {
+    setInterval(runBtcQuantRealSignal, BTC_QUANT_SIGNAL_INTERVAL_MS);
+  }
+  if (BTC_QUANT_RESOLVE_INTERVAL_MS >= 5_000) {
+    setInterval(runBtcQuantRealResolve, BTC_QUANT_RESOLVE_INTERVAL_MS);
+  }
+
+  import("./libs/btc3/macroIntelligenceScheduler.js").then(({ startBtc3MacroScheduler }) => {
+    startBtc3MacroScheduler(withSingleFlight, runIfMongoConnected);
+  });
+
   import("./libs/lpExperimentEvolution.js")
     .then(({ lpEvolutionConfigFromEnv, runLpExperimentEvolution }) => {
       const evo = lpEvolutionConfigFromEnv();
@@ -1896,71 +1898,6 @@ app.listen(PORT, () => {
       );
       setInterval(tick, evo.ms);
     })
-    .catch(() => {});
-
-  import("./libs/tradingExperimentEvolution.js")
-    .then(
-      ({
-        evolutionConfigFromEnv,
-        runAllTradingExperimentEvolution,
-        maybeBootstrapMultiTokenEvolution,
-      }) => {
-        const evo = evolutionConfigFromEnv();
-        if (!evo.enabled || evo.ms < 60_000) return;
-        const logEvolution = (outs) => {
-          for (const out of outs) {
-            if (!out.ok) {
-              console.warn(
-                "[Trading experiment evolution]",
-                out.skipped || out,
-              );
-              continue;
-            }
-            startupVerbose(
-              "[Trading experiment evolution]",
-              out.suite,
-              "culled",
-              out.culled?.length ?? 0,
-              "spawned",
-              out.spawned?.length ?? 0,
-              "daily",
-              out.dailySpawned?.length ?? 0,
-            );
-          }
-        };
-        const tick = runIfMongoConnected(
-          withSingleFlight(() =>
-            runAllTradingExperimentEvolution()
-              .then(({ results }) => logEvolution(results))
-              .catch((err) =>
-                console.warn(
-                  "[Trading experiment evolution failed]",
-                  err?.message || err,
-                ),
-              ),
-          ),
-        );
-        runIfMongoConnected(() =>
-          maybeBootstrapMultiTokenEvolution()
-            .then((boot) => {
-              if (boot.dailySpawned?.length) {
-                startupVerbose(
-                  "[Trading experiment evolution]",
-                  "multi_token bootstrap daily spawned",
-                  boot.dailySpawned.length,
-                );
-              }
-            })
-            .catch((err) =>
-              console.warn(
-                "[Trading experiment multi_token bootstrap]",
-                err?.message || err,
-              ),
-            ),
-        );
-        setInterval(tick, evo.ms);
-      },
-    )
     .catch(() => {});
 
   const testerSchedule = TESTER_AGENT_CONFIG.inProcessScheduleEnabled === true;

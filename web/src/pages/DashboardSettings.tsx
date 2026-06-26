@@ -5,7 +5,6 @@ import {
   Bot,
   ExternalLink,
   Droplets,
-  FlaskConical,
   Loader2,
   MessageSquareText,
   Sparkles,
@@ -823,7 +822,6 @@ function AgentSetupSections({
           </CardHeader>
           <CardContent className="grid gap-2 pt-5">
             {[
-              { to: "/trading-experiment", label: "Trading agents", icon: FlaskConical },
               { to: "/lp-experiment#real-agent", label: "LP agents (sim + real)", icon: Droplets },
             ].map(({ to, label, icon: Icon }) => (
               <Link

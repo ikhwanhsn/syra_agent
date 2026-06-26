@@ -5,7 +5,6 @@ import AgentWallet from "../models/agent/AgentWallet.js";
 import PredictionStaking from "../models/prediction-game/Staking.js";
 import PredictionCreator from "../models/prediction-game/Creator.js";
 import PredictionEvent from "../models/prediction-game/Event.js";
-import UserCustomStrategy from "../models/UserCustomStrategy.js";
 import { AGENT_TOOLS } from "../config/agentTools.js";
 
 /** Normalize wallet strings so the same address is not double-counted across chains/casing. */
@@ -16,7 +15,7 @@ function normalizeWalletAddress(raw) {
 }
 
 /**
- * Distinct wallets across agent, prediction game, trading experiment, and event participation.
+ * Distinct wallets across agent, prediction game, and event participation.
  */
 async function countUniqueEcosystemWallets() {
   const set = new Set();
@@ -27,14 +26,13 @@ async function countUniqueEcosystemWallets() {
     }
   };
 
-  const [agentWallets, stakingWallets, creatorWallets, strategyWallets, eventWalletRows] =
+  const [agentWallets, stakingWallets, creatorWallets, eventWalletRows] =
     await Promise.all([
       AgentWallet.distinct("walletAddress", {
         walletAddress: { $exists: true, $nin: [null, ""] },
       }),
       PredictionStaking.distinct("walletAddress"),
       PredictionCreator.distinct("walletAddress"),
-      UserCustomStrategy.distinct("walletAddress"),
       PredictionEvent.aggregate([
         {
           $project: {
@@ -81,7 +79,6 @@ async function countUniqueEcosystemWallets() {
   addList(agentWallets);
   addList(stakingWallets);
   addList(creatorWallets);
-  addList(strategyWallets);
   addList(eventWalletRows.map((r) => r._id));
 
   return set.size;

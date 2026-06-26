@@ -29,19 +29,18 @@ import { MachineMoneyPreviewToggle } from "@/components/dashboard/MachineMoneyPr
 import { isAdminWallet } from "@/constants/adminWallet";
 import { INTERNAL_BASE_PATH } from "@/lib/internalRoutes";
 import { getInternalAgentMeta, isInternalAgentSlug } from "@/lib/internalAgentsCatalog";
-import { DASHBOARD_PILLAR_NAV, isDashboardPillarRoute, MACHINE_MONEY_SOON_BADGE } from "@/lib/dashboardPillarNav";
+import { DASHBOARD_PILLAR_NAV, isDashboardPillarRoute, isPillarGated, MACHINE_MONEY_SOON_BADGE } from "@/lib/dashboardPillarNav";
 import { DASHBOARD_MARKET_INTEL_NAV } from "@/lib/dashboardMarketIntelNav";
 import { DASHBOARD_EXPERIMENT_NAV } from "@/lib/dashboardExperimentNav";
 
 function dashboardPageTitle(pathname: string, search: string): string {
   const parts = pathname.split("/").filter(Boolean);
   if (parts[0] === "about") return "About Syra";
-  if (parts[0] === "trading-experiment" && parts[1] === "agent") return "Agent profile";
-  if (parts[0] === "overview" && parts[1] === "earn") return "Earn";
-  if (parts[0] === "overview" && parts[1] === "treasury") return "Treasury";
-  if (parts[0] === "overview" && parts[1] === "invest") return "Invest";
-  if (parts[0] === "overview" && parts[1] === "spend") return "Spend";
-  if (parts[0] === "overview" && parts[1] === "grow") return "Grow";
+  if (parts[0] === "earn") return "Earn";
+  if (parts[0] === "treasury") return "Treasury";
+  if (parts[0] === "invest") return "Invest";
+  if (parts[0] === "spend") return "Spend";
+  if (parts[0] === "grow") return "Grow";
   if (parts[0] === "overview") return "Overview";
   if (parts[0] === "agents" && parts[1]) return "Agent detail";
   if (parts[0] === "agents") return "Agents";
@@ -49,9 +48,10 @@ function dashboardPageTitle(pathname: string, search: string): string {
   if (parts[0] === "assets" && parts[1]) return "Asset detail";
   if (parts[0] === "assets") return "Assets";
   if (parts[0] === "pumpfun") return "Pumpfun Alpha";
-  if (parts[0] === "trading-experiment") return "Trading experiment";
-  if (parts[0] === "arbitrage-experiment") return "Arbitrage experiment";
   if (parts[0] === "lp-experiment") return "LP agent experiment";
+  if (parts[0] === "btc2-experiment") return "BTC quant agent";
+  if (parts[0] === "btc3-experiment") return "Macro Intelligence";
+  if (parts[0] === "btc-experiment") return "BTC quant experiment";
   if (parts[0] === "btc") return "Bitcoin";
   if (parts[0] === "alphatech") return "AlphaTech";
   if (parts[0] === "internal") {
@@ -111,7 +111,7 @@ function DashboardSidebarContent({
               icon={item.icon}
               end
               matchActive={item.isActive}
-              badge={machineMoneyUnlocked ? undefined : MACHINE_MONEY_SOON_BADGE}
+              badge={isPillarGated(item.id, machineMoneyUnlocked) ? MACHINE_MONEY_SOON_BADGE : undefined}
             >
               {item.label}
             </SidebarNavLink>
