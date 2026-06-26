@@ -7,7 +7,6 @@ import {
   ArrowUpDown,
   BadgeCheck,
   ChevronRight,
-  Trophy,
 } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,38 +29,9 @@ import {
 import { formatCompact, formatFollowers, formatSol } from "@/lib/kolFormat";
 import { cn } from "@/lib/utils";
 import { KolProfileAvatar } from "@/components/kol/KolProfileAvatar";
+import { LeaderboardRankCell, leaderboardRowClass } from "@/components/kol/leaderboardUi";
 
 type LeaderboardVariant = "projects" | "kols";
-
-function LeaderboardRankCell({ rank }: { rank: number }) {
-  const tier = rank <= 3 ? rank : 0;
-  return (
-    <div className="flex items-center justify-center py-0.5">
-      <span
-        className={cn(
-          "inline-flex items-center justify-center gap-1 min-w-[2.5rem] h-10 px-2 rounded-xl font-bold tabular-nums text-sm transition-colors",
-          tier === 1 &&
-            "bg-gradient-to-b from-amber-400/90 to-amber-600/85 text-amber-950 shadow-[0_0_24px_rgba(245,158,11,0.35)] border border-amber-300/60",
-          tier === 2 &&
-            "bg-gradient-to-b from-slate-200/95 to-slate-400/85 text-slate-900 border border-slate-300/70",
-          tier === 3 &&
-            "bg-gradient-to-b from-orange-300/90 to-amber-800/75 text-orange-950 border border-orange-500/45",
-          tier === 0 && "text-muted-foreground font-semibold bg-muted/40 border border-border/50",
-        )}
-      >
-        {tier === 1 ? <Trophy className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden /> : null}
-        {rank}
-      </span>
-    </div>
-  );
-}
-
-function leaderboardRowClass(rank: number): string {
-  if (rank === 1) return "bg-gradient-to-r from-amber-500/[0.07] via-primary/[0.04] to-transparent";
-  if (rank === 2) return "bg-gradient-to-r from-slate-400/[0.08] via-transparent to-transparent";
-  if (rank === 3) return "bg-gradient-to-r from-orange-600/[0.07] via-transparent to-transparent";
-  return "hover:bg-muted/35";
-}
 
 function SortableHead({
   columnKey,

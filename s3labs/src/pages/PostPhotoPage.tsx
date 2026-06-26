@@ -1,4 +1,5 @@
 import { Navigate, useParams } from "react-router-dom";
+import { StudioPageLoader } from "@/components/PageLoader";
 import { PostPhotoDeck } from "@/components/post/photo/PostPhotoDeck";
 import { getPhotoPostByNumber } from "@/content/posts";
 import { usePostStudioQuery } from "@/hooks/usePostStudio";
@@ -19,7 +20,7 @@ export default function PostPhotoPage() {
   const { updateNumber: raw } = useParams<{ updateNumber?: string }>();
   const updateNumber = parseUpdateNumber(raw);
 
-  if (isLoading) return null;
+  if (isLoading) return <StudioPageLoader label="Loading photo deck" />;
 
   if (!updateNumber) {
     return <Navigate to={`/post/photo/${getLatestVisiblePostUpdateNumber()}`} replace />;

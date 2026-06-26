@@ -11,6 +11,7 @@ import { runEventExtractAgent } from "../../agents/event-extract-agent.js";
 import { fetchExaEventHits } from "./exaEventSource.js";
 import { fetchXEventHits } from "./xEventSource.js";
 import { fetchLumaEvents } from "./lumaEventSource.js";
+import { applyEventFreshness, upcomingEventFilter } from "../discoveryFreshness.js";
 
 export { EVENT_SCOUT_DB_ID };
 
@@ -251,10 +252,10 @@ export async function runEventScoutPipeline() {
 }
 
 /**
- * @param {{ status?: string; region?: string; source?: string; category?: string; search?: string; limit?: number; skip?: number }} [opts]
+ * @param {{ status?: string; region?: string; source?: string; category?: string; search?: string; limit?: number; skip?: number; freshOnly?: boolean }} [opts]
  */
 export async function listEvents(opts = {}) {
-  const filter = {};
+  let filter = {};
 
   if (opts.status && opts.status !== "all") {
     filter.status = opts.status;
@@ -281,11 +282,13 @@ export async function listEvents(opts = {}) {
     ];
   }
 
+  filter = applyEventFreshness(filter, { freshOnly: opts.freshOnly !== false });
+
   const limit = Math.min(100, Math.max(1, Number(opts.limit) || 50));
   const skip = Math.max(0, Number(opts.skip) || 0);
 
   const [items, total] = await Promise.all([
-    Event.find(filter).sort({ discoveredAt: -1 }).skip(skip).limit(limit).lean(),
+    Event.find(filter).sort({ startAt: 1, discoveredAt: -1 }).skip(skip).limit(limit).lean(),
     Event.countDocuments(filter),
   ]);
 
@@ -309,7 +312,10 @@ export async function updateEvent(id, patch) {
  * @returns {Promise<Record<string, number>>}
  */
 export async function eventStatusCounts() {
-  const rows = await Event.aggregate([{ $group: { _id: "$status", count: { $sum: 1 } } }]);
+  const rows = await Event.aggregate([
+    { $match: upcomingEventFilter() },
+    { $group: { _id: "$status", count: { $sum: 1 } } },
+  ]);
   /** @type {Record<string, number>} */
   const out = { all: 0 };
   for (const r of rows) {

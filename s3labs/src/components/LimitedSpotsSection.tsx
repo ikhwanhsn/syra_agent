@@ -2,6 +2,8 @@ import React, { useState } from "react";
 
 import { AlertCircle, Clock, Users, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { siteShell } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 
 interface LimitedSpotsSectionProps {
   onApplyClick: () => void;
@@ -44,7 +46,7 @@ const LimitedSpotsSection = ({ onApplyClick }: LimitedSpotsSectionProps) => {
         />
       </div>
 
-      <div className="container relative z-10">
+      <div className={cn(siteShell, "relative z-10")}>
         <div className="max-w-5xl mx-auto">
           {/* Main Card */}
           <div className="bg-card border-2 border-primary/30 rounded-3xl shadow-2xl overflow-hidden">

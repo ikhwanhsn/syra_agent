@@ -7,6 +7,7 @@ import { PostBackLink } from "@/components/post/PostBackLink";
 import { PostFundUpdateList } from "@/components/post/PostFundUpdateList";
 import { getVisiblePostBundles, getLatestVisiblePostUpdateNumber } from "@/lib/postRegistryVisibility";
 import { usePostRegistryRefresh } from "@/lib/usePostRegistryRefresh";
+import { StudioPageLoader } from "@/components/PageLoader";
 import { usePostStudioQuery } from "@/hooks/usePostStudio";
 
 const fade = (delay = 0, reduceMotion: boolean) =>
@@ -27,13 +28,7 @@ export default function PostPage() {
   const updates = useMemo(() => [...getVisiblePostBundles()].reverse(), [statusTick]);
 
   if (isLoading) {
-    return (
-      <div className="post-hub-s3 flex min-h-[100dvh] items-center justify-center">
-        <p className="font-mono text-xs uppercase tracking-[0.2em] text-white/40">
-          Loading signal studio…
-        </p>
-      </div>
-    );
+    return <StudioPageLoader label="Loading signal studio" />;
   }
 
   return (

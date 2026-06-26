@@ -2,6 +2,8 @@
 import SectionHeader from "@/components/landing/SectionHeader";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Linkedin, Send, Twitter } from "lucide-react";
+import { siteShell } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 
 const TeamSection = () => {
 
@@ -39,7 +41,7 @@ const TeamSection = () => {
   return (
     <section id="team" className="section-shell">
       <div className="section-divider" />
-      <div className="container relative z-10">
+      <div className={cn(siteShell, "relative z-10")}>
         <SectionHeader
           eyebrow={"Our Team"}
           title={"Meet the Founders"}

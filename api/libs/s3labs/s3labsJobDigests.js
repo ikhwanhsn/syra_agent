@@ -4,6 +4,7 @@
 
 import { S3LABS_JOB_AGENT } from "../../config/s3labsAgentsConfig.js";
 import { escapeTelegramHtml } from "../telegramFormat.js";
+import { normalizeSalaryLabel } from "./s3labsJobSalary.js";
 
 /**
  * @typedef {import("./s3labsJobIdentity.js").JobListing} JobListing
@@ -57,7 +58,7 @@ export function formatS3labsJobTelegram(job) {
   const title = escapeTelegramHtml(job.title);
   const company = escapeTelegramHtml(job.company || "Company not listed");
   const location = escapeTelegramHtml(job.location || (job.remote ? "Remote" : "Not specified"));
-  const salary = escapeTelegramHtml(job.salaryLabel);
+  const salary = escapeTelegramHtml(normalizeSalaryLabel(job.salaryLabel) || "Salary not listed");
   const cat = escapeTelegramHtml(categoryLabel(job.category));
   const source = escapeTelegramHtml(job.source);
   const summary = escapeTelegramHtml(plainJobSummary(job.description).slice(0, 280));

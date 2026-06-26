@@ -45,6 +45,7 @@ import { cn } from "@/lib/utils";
 import MeteorEffect from "@/components/MeteorEffect";
 import MouseEffects from "@/components/MouseEffects";
 import { useTheme } from "@/contexts/ThemeContext";
+import { siteShell } from "@/lib/siteLayout";
 
 const MINTS = S3LABS_ARENA_PROJECTS.map((p) => p.mint);
 
@@ -459,7 +460,7 @@ const ArenaPageContent = () => {
         <Header onApplyClick={() => setIsModalOpen(true)} />
         <main className="pt-20 lg:pt-24">
           <div className="border-b border-border bg-muted/20">
-            <div className="container py-12 lg:py-16">
+            <div className={cn(siteShell, "py-12 lg:py-16")}>
               <Link
                 to="/"
                 className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary mb-6 transition-colors"
@@ -515,7 +516,7 @@ const ArenaPageContent = () => {
             </div>
           </div>
 
-          <div className="container py-12 lg:py-20">
+          <div className={cn(siteShell, "py-12 lg:py-20")}>
             {isError && (
               <div
                 className="mb-8 rounded-2xl border border-destructive/30 bg-destructive/5 p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"

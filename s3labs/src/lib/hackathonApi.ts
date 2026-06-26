@@ -47,17 +47,21 @@ export interface HackathonScoutRunMeta {
 }
 
 async function adminFetch<T>(
-  wallet: string,
+  wallet: string | null | undefined,
   path: string,
   init?: RequestInit,
 ): Promise<T> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(init?.headers as Record<string, string> | undefined),
+  };
+  if (wallet) {
+    headers["X-Admin-Wallet"] = wallet;
+  }
+
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
-    headers: {
-      "Content-Type": "application/json",
-      "X-Admin-Wallet": wallet,
-      ...(init?.headers ?? {}),
-    },
+    headers,
   });
 
   const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
@@ -81,7 +85,7 @@ export type FetchHackathonsParams = {
   skip?: number;
 };
 
-export function fetchHackathons(wallet: string, params: FetchHackathonsParams = {}) {
+export function fetchHackathons(wallet: string | null | undefined, params: FetchHackathonsParams = {}) {
   const qs = new URLSearchParams();
   qs.set("status", params.status ?? "all");
   qs.set("region", params.region ?? "all");
@@ -99,7 +103,7 @@ export function fetchHackathons(wallet: string, params: FetchHackathonsParams = 
   }>(wallet, `/internal/hackathons?${qs.toString()}`);
 }
 
-export function fetchHackathonLatestRun(wallet: string) {
+export function fetchHackathonLatestRun(wallet: string | null | undefined) {
   return adminFetch<{
     success: boolean;
     data: HackathonScoutRunMeta | null;

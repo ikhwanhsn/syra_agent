@@ -20,7 +20,6 @@ import { CampaignGrid } from "@/components/kol/CampaignCard";
 import { KolProfileAvatar } from "@/components/kol/KolProfileAvatar";
 import { fetchKolProfile } from "@/lib/kolApi";
 import { formatCompact, formatFollowers, formatSol } from "@/lib/kolFormat";
-import { cn } from "@/lib/utils";
 
 function ProfileSkeleton() {
   return (

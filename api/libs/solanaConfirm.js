@@ -114,3 +114,31 @@ export async function isSolanaTxConfirmedOnAnyRpc(signature) {
   }
   return false;
 }
+
+/**
+ * Sign, send, and poll-confirm a legacy Transaction (HTTP-only — no signatureSubscribe).
+ * @param {import("@solana/web3.js").Connection} connection
+ * @param {import("@solana/web3.js").Transaction} transaction
+ * @param {import("@solana/web3.js").Signer[]} signers
+ * @param {{ commitment?: import("@solana/web3.js").Commitment; timeoutMs?: number; skipPreflight?: boolean; maxRetries?: number }} [options]
+ * @returns {Promise<string>} signature
+ */
+export async function sendAndConfirmSolanaTransaction(connection, transaction, signers, options = {}) {
+  const commitment = options.commitment ?? "confirmed";
+  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash(commitment);
+  transaction.recentBlockhash = blockhash;
+  if (!transaction.feePayer && signers[0]) {
+    transaction.feePayer = signers[0].publicKey;
+  }
+  transaction.sign(...signers);
+  const signature = await connection.sendRawTransaction(transaction.serialize(), {
+    skipPreflight: options.skipPreflight ?? false,
+    maxRetries: options.maxRetries ?? 3,
+    preflightCommitment: commitment,
+  });
+  await confirmSolanaTransaction(connection, signature, {
+    lastValidBlockHeight,
+    timeoutMs: options.timeoutMs,
+  });
+  return signature;
+}

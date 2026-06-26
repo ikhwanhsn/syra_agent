@@ -10,14 +10,19 @@ export const SITE_H_PADDING =
 export const SITE_GUTTER = "mx-auto w-full min-w-0 max-w-full" as const;
 
 /** Main content column — use instead of bare `container` on page routes. */
-export const siteShell = `${SITE_GUTTER} ${SITE_MAX_WIDTH} ${SITE_H_PADDING}` as const;
+export const siteShell =
+  `${SITE_GUTTER} ${SITE_MAX_WIDTH} ${SITE_H_PADDING}` as const;
 
 /** Top offset below fixed glass navbar + safe area. */
 export const pageTopOffset =
   "pt-[max(7rem,calc(env(safe-area-inset-top,0px)+5.5rem))]" as const;
 
 /** Standard page content wrapper used across marketing + app routes. */
-export const pageContent = `relative z-[1] ${siteShell} ${pageTopOffset}` as const;
+export const pageContent =
+  `relative z-[1] ${siteShell} ${pageTopOffset}` as const;
+
+/** Navbar shell — same horizontal bounds as page content. */
+export const siteNavShell = siteShell;
 
 /** Root shell applied to every page via SitePageShell. */
 export const siteRoot =

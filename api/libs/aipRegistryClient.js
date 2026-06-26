@@ -9,9 +9,9 @@ import {
   SystemProgram,
   Transaction,
   TransactionInstruction,
-  sendAndConfirmTransaction,
 } from "@solana/web3.js";
 import bs58 from "bs58";
+import { sendAndConfirmSolanaTransaction } from "./solanaConfirm.js";
 import {
   AIP_REGISTRY_PROGRAM_ID,
   AIP_DEFAULT_AGENT_ID,
@@ -209,7 +209,7 @@ export async function registerSyraOnAipRegistry(opts = {}) {
     if (exists) {
       const deregIx = buildDeregisterAgentIx({ owner: signer.publicKey, agentId });
       const deregTx = new Transaction().add(deregIx);
-      await sendAndConfirmTransaction(connection, deregTx, [signer], {
+      await sendAndConfirmSolanaTransaction(connection, deregTx, [signer], {
         commitment: "confirmed",
       });
     }
@@ -233,7 +233,7 @@ export async function registerSyraOnAipRegistry(opts = {}) {
   });
 
   const tx = new Transaction().add(ix);
-  const signature = await sendAndConfirmTransaction(connection, tx, [signer], {
+  const signature = await sendAndConfirmSolanaTransaction(connection, tx, [signer], {
     commitment: "confirmed",
   });
   const [pda] = deriveAgentRecordPda(signer.publicKey, agentId);
@@ -261,7 +261,7 @@ export async function deregisterSyraFromAipRegistry(opts = {}) {
   const connection = new Connection(getAipRpcUrl(), "confirmed");
   const ix = buildDeregisterAgentIx({ owner: signer.publicKey, agentId });
   const tx = new Transaction().add(ix);
-  const signature = await sendAndConfirmTransaction(connection, tx, [signer], {
+  const signature = await sendAndConfirmSolanaTransaction(connection, tx, [signer], {
     commitment: "confirmed",
   });
   return { signature, agentId, wallet: signer.publicKey.toBase58() };

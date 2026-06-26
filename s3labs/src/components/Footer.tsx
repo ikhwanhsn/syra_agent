@@ -10,8 +10,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Moon, Sun, Twitter, Send, Mail, Linkedin, ArrowUpRight } from "lucide-react";
-import { mainNavLinks } from "@/lib/siteNav";
+import {
+  Moon,
+  Sun,
+  Twitter,
+  Send,
+  Mail,
+  Linkedin,
+  ArrowUpRight,
+} from "lucide-react";
+import { mainNavLinks, otherNavLinks, programNavLinks } from "@/lib/siteNav";
+import { siteShell } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 
 const TELEGRAM_CONTACTS = [
   { name: "Rara", fullName: "Destriani Rahayu", url: "https://t.me/raraverse" },
@@ -19,16 +29,18 @@ const TELEGRAM_CONTACTS = [
 ];
 
 const Footer = () => {
-
   const { theme, toggleTheme } = useTheme();
   const [telegramOpen, setTelegramOpen] = useState(false);
 
   return (
-    <footer id="contact" className="relative pt-16 sm:pt-20 pb-[max(2.5rem,env(safe-area-inset-bottom,0px))] overflow-hidden">
+    <footer
+      id="contact"
+      className="relative pt-16 sm:pt-20 pb-[max(2.5rem,env(safe-area-inset-bottom,0px))] overflow-hidden"
+    >
       <div className="section-divider" />
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
 
-      <div className="container relative z-10">
+      <div className={cn(siteShell, "relative z-10")}>
         <div className="panel-glass p-6 sm:p-8 lg:p-12 mb-8 sm:mb-10">
           <div className="grid md:grid-cols-2 lg:grid-cols-12 gap-10 lg:gap-8">
             <div className="lg:col-span-5">
@@ -38,16 +50,32 @@ const Footer = () => {
                   alt="S3 Labs Logo"
                   className="w-8 h-8 rounded-xl ring-1 ring-border/50"
                 />
-                <span className="font-semibold text-lg tracking-tight">S3 Labs</span>
+                <span className="font-semibold text-lg tracking-tight">
+                  S3 Labs
+                </span>
               </div>
               <p className="text-muted-foreground text-sm leading-relaxed max-w-sm mb-6">
-                {"Growth partner for Solana developers. We help projects with MVPs or hackathon winners to scale and generate revenue."}
+                {
+                  "Growth partner for Solana developers. We help projects with MVPs or hackathon winners to scale and generate revenue."
+                }
               </p>
               <div className="flex items-center gap-2">
                 {[
-                  { href: "https://x.com/s3labs_", icon: Twitter, label: "Twitter" },
-                  { href: "https://www.linkedin.com/company/s3labs/", icon: Linkedin, label: "LinkedIn" },
-                  { href: "mailto:s3labs.company@gmail.com", icon: Mail, label: "Email" },
+                  {
+                    href: "https://x.com/s3labs_",
+                    icon: Twitter,
+                    label: "Twitter",
+                  },
+                  {
+                    href: "https://www.linkedin.com/company/s3labs/",
+                    icon: Linkedin,
+                    label: "LinkedIn",
+                  },
+                  {
+                    href: "mailto:s3labs.company@gmail.com",
+                    icon: Mail,
+                    label: "Email",
+                  },
                 ].map(({ href, icon: Icon, label }) => (
                   <a
                     key={label}
@@ -72,9 +100,7 @@ const Footer = () => {
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-md panel-glass">
                     <DialogHeader>
-                      <DialogTitle>
-                        {"Contact us on Telegram"}
-                      </DialogTitle>
+                      <DialogTitle>{"Contact us on Telegram"}</DialogTitle>
                     </DialogHeader>
                     <div className="grid gap-2 py-2">
                       {TELEGRAM_CONTACTS.map((contact) => (
@@ -90,8 +116,12 @@ const Footer = () => {
                             <Send className="w-4 h-4 text-primary" />
                           </span>
                           <div className="text-left flex-1">
-                            <p className="font-semibold text-foreground text-sm">{contact.name}</p>
-                            <p className="text-xs text-muted-foreground">{contact.fullName}</p>
+                            <p className="font-semibold text-foreground text-sm">
+                              {contact.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {contact.fullName}
+                            </p>
                           </div>
                           <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
                         </a>
@@ -107,17 +137,19 @@ const Footer = () => {
                 {"Navigation"}
               </h4>
               <ul className="grid grid-cols-2 gap-x-4 gap-y-2.5">
-                {mainNavLinks.map((link) => (
-                  <li key={link.to}>
-                    <Link
-                      to={link.to}
-                      className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                    >
-                      {link.label}
-                      {link.soon ? " (Soon)" : ""}
-                    </Link>
-                  </li>
-                ))}
+                {[...mainNavLinks, ...programNavLinks, ...otherNavLinks].map(
+                  (link) => (
+                    <li key={link.to}>
+                      <Link
+                        to={link.to}
+                        className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        {link.label}
+                        {link.soon ? " (Soon)" : ""}
+                      </Link>
+                    </li>
+                  ),
+                )}
               </ul>
             </div>
 

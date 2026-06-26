@@ -5,6 +5,7 @@ import SectionHeader from "@/components/landing/SectionHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { siteShell } from "@/lib/siteLayout";
 
 const products = [
   {
@@ -54,7 +55,7 @@ const products = [
 const PlatformShowcase = () => (
   <section className="section-shell bg-gradient-subtle" id="platform">
     <div className="section-divider" />
-    <div className="container relative z-10">
+    <div className={cn(siteShell, "relative z-10")}>
       <SectionHeader
         eyebrow="Platform"
         title={

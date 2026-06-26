@@ -3,6 +3,8 @@ import { ArrowRight, TrendingUp, Users, DollarSign } from "lucide-react";
 
 import SectionHeader from "@/components/landing/SectionHeader";
 import { Button } from "@/components/ui/button";
+import { siteShell } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 
 const highlights = [
   { icon: DollarSign, value: "$35K+", label: "Week-one revenue" },
@@ -13,7 +15,7 @@ const highlights = [
 const PortfolioHighlight = () => (
   <section className="section-shell bg-gradient-subtle">
     <div className="section-divider" />
-    <div className="container relative z-10">
+    <div className={cn(siteShell, "relative z-10")}>
       <SectionHeader
         eyebrow="Portfolio"
         title={

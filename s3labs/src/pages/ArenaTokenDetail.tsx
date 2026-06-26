@@ -30,6 +30,7 @@ import { cn } from "@/lib/utils";
 import MeteorEffect from "@/components/MeteorEffect";
 import MouseEffects from "@/components/MouseEffects";
 import { useTheme } from "@/contexts/ThemeContext";
+import { siteShell } from "@/lib/siteLayout";
 
 function formatUsd(n: number | undefined): string {
   if (n === undefined || Number.isNaN(n)) return "—";
@@ -174,7 +175,7 @@ const ArenaTokenDetailContent = () => {
         <Header onApplyClick={() => setIsModalOpen(true)} />
         <main className="pt-20 lg:pt-24">
           <div className="border-b border-border bg-muted/20">
-            <div className="container py-8 lg:py-12">
+            <div className={cn(siteShell, "py-8 lg:py-12")}>
               <Link
                 to="/arenass"
                 className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary mb-6 transition-colors"
@@ -249,7 +250,7 @@ const ArenaTokenDetailContent = () => {
           </div>
 
           {pair?.info?.header ? (
-            <div className="container -mt-4 pb-2">
+            <div className={cn(siteShell, "-mt-4 pb-2")}>
               <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-muted aspect-[21/9] max-h-56 sm:max-h-64">
                 <img
                   src={pair.info.header}
@@ -262,7 +263,7 @@ const ArenaTokenDetailContent = () => {
             </div>
           ) : null}
 
-          <div className="container py-10 lg:py-14 space-y-10">
+          <div className={cn(siteShell, "py-10 lg:py-14 space-y-10")}>
             {isError && (
               <Card className="border-destructive/30 bg-destructive/5">
                 <CardHeader>

@@ -3,6 +3,8 @@ import SectionHeader from "@/components/landing/SectionHeader";
 import { ExternalLink, TrendingUp, Users, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { siteShell } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 
 const ProjectsShowcase = () => {
 
@@ -48,7 +50,7 @@ const ProjectsShowcase = () => {
   return (
     <section id="projects" className="section-shell">
       <div className="section-divider" />
-      <div className="container relative z-10">
+      <div className={cn(siteShell, "relative z-10")}>
         <SectionHeader
           eyebrow={"Portfolio"}
           title={

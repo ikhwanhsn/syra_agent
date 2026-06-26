@@ -250,6 +250,15 @@
       -ms-overflow-style: none;
     }
   }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
 }
 
 @layer components {
@@ -450,5 +459,87 @@
   100% {
     transform: scale(8);
     opacity: 0;
+  }
+}
+
+/* Page loader — GPU-friendly transforms only */
+@keyframes s3-loader-ring {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes s3-loader-ring-reverse {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@keyframes s3-loader-glow-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.65;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes s3-loader-orb-breathe {
+  0%,
+  100% {
+    box-shadow: var(--shadow-elevated), 0 0 0 0 hsl(var(--primary) / 0.12);
+  }
+  50% {
+    box-shadow: var(--shadow-elevated), 0 0 32px 4px hsl(var(--primary) / 0.18);
+  }
+}
+
+@keyframes s3-loader-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.85);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.s3-loader-ring {
+  animation: s3-loader-ring 2.8s linear infinite;
+  will-change: transform;
+}
+
+.s3-loader-ring-reverse {
+  animation: s3-loader-ring-reverse 2.1s linear infinite;
+  will-change: transform;
+}
+
+.s3-loader-glow {
+  animation: s3-loader-glow-pulse 2.4s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.s3-loader-orb {
+  animation: s3-loader-orb-breathe 2.2s ease-in-out infinite;
+}
+
+.s3-loader-dot {
+  animation: s3-loader-dot 1.2s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .s3-loader-ring,
+  .s3-loader-ring-reverse,
+  .s3-loader-glow,
+  .s3-loader-orb,
+  .s3-loader-dot {
+    animation: none !important;
   }
 }

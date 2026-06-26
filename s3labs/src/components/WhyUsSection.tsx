@@ -1,6 +1,8 @@
 
 import SectionHeader from '@/components/landing/SectionHeader';
 import { Shield, Users, LineChart } from 'lucide-react';
+import { siteShell } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 
 const WhyUsSection = () => {
 
@@ -25,7 +27,7 @@ const WhyUsSection = () => {
   return (
     <section className="section-shell bg-gradient-subtle">
       <div className="section-divider" />
-      <div className="container relative z-10">
+      <div className={cn(siteShell, "relative z-10")}>
         <SectionHeader
           eyebrow={'Why Us'}
           title={'Why S3 Labs?'}

@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import { Quote } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { siteShell } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 
 const featuredQuote = {
   quote:
@@ -13,7 +15,7 @@ const featuredQuote = {
 const FounderQuoteStrip = () => (
   <section className="section-shell">
     <div className="section-divider" />
-    <div className="container relative z-10">
+    <div className={cn(siteShell, "relative z-10")}>
       <div className="panel-glass max-w-4xl mx-auto px-8 sm:px-12 py-10 sm:py-12">
         <Quote className="w-8 h-8 text-primary/25 mb-4" />
         <blockquote className="text-lg sm:text-xl text-foreground/90 leading-relaxed mb-6">

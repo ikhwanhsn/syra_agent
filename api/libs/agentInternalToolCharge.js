@@ -22,6 +22,7 @@ import {
   createTransferInstruction,
   TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
+import { confirmSolanaTransaction } from './solanaConfirm.js';
 import AgentWallet from '../models/agent/AgentWallet.js';
 import { getSolanaAgentKeypair } from './agentWallet.js';
 import { pickSolanaConnectionForReads } from './solanaServerRpc.js';
@@ -183,9 +184,7 @@ export async function chargeAgentForInternalTool({ anonymousId, priceUsd, toolId
     };
   }
 
-  void connection
-    .confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed')
-    .catch((err) => {
+  void confirmSolanaTransaction(connection, signature, { lastValidBlockHeight }).catch((err) => {
       console.warn(
         `[agentInternalToolCharge] post-send confirm failed (${toolId}):`,
         signature,

@@ -97,10 +97,30 @@ export function parseSalaryFromText(text) {
 }
 
 /**
+ * @param {string} label
+ * @returns {string}
+ */
+export function normalizeSalaryLabel(label) {
+  const trimmed = String(label || "").replace(/\s+/g, " ").trim();
+  if (!trimmed) return "";
+
+  const lower = trimmed.toLowerCase();
+  if (
+    lower === "gaji tidak disebutkan" ||
+    lower === "gaji tidak tersedia" ||
+    lower === "gaji belum disebutkan"
+  ) {
+    return "";
+  }
+
+  return trimmed;
+}
+
+/**
  * @param {ParsedSalary | null | undefined} salary
  * @returns {string}
  */
 export function formatSalaryLabel(salary) {
-  if (!salary?.label) return "Gaji tidak disebutkan";
-  return salary.label.replace(/\s+/g, " ").trim();
+  if (!salary?.label) return "";
+  return normalizeSalaryLabel(salary.label);
 }

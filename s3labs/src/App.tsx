@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SolanaWalletProvider } from "@/providers/SolanaWalletProvider";
 import { PostAccessGuard } from "@/components/post/PostAccessGuard";
 import { AdminAccessGuard } from "@/components/AdminAccessGuard";
+import { RoutePageLoader } from "@/components/PageLoader";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -16,6 +17,7 @@ const Community = lazy(() => import("./pages/Community"));
 const About = lazy(() => import("./pages/About"));
 const Apply = lazy(() => import("./pages/Apply"));
 const Kol = lazy(() => import("./pages/Kol"));
+const JobsPage = lazy(() => import("./pages/JobsPage"));
 const KolProfile = lazy(() => import("./pages/KolProfile"));
 const CampaignComingSoon = lazy(() =>
   import("./pages/ComingSoon").then((m) => ({ default: m.CampaignComingSoon })),
@@ -25,6 +27,7 @@ const ContestComingSoon = lazy(() =>
 );
 const Hackathon = lazy(() => import("./pages/Hackathon"));
 const EventsAdmin = lazy(() => import("./pages/EventsAdmin"));
+const InternalPage = lazy(() => import("./pages/InternalPage"));
 
 const PostPage = lazy(() => import("./pages/PostPage"));
 const PostVideoPage = lazy(() => import("./pages/PostVideoPage"));
@@ -35,14 +38,6 @@ const PostStudioLayout = lazy(() =>
 
 const queryClient = new QueryClient();
 
-function PostRouteFallback() {
-  return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-[hsl(222,47%,4%)]">
-      <p className="font-mono text-xs uppercase tracking-[0.2em] text-white/40">Loading studio…</p>
-    </div>
-  );
-}
-
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <SolanaWalletProvider>
@@ -50,7 +45,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Suspense fallback={<PostRouteFallback />}>
+          <Suspense fallback={<RoutePageLoader />}>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/programs" element={<Programs />} />
@@ -60,11 +55,13 @@ const App = () => (
               <Route path="/apply" element={<Apply />} />
               <Route path="/kol" element={<Kol />} />
               <Route path="/kol/:username" element={<KolProfile />} />
+              <Route path="/jobs" element={<JobsPage />} />
               <Route path="/campaign" element={<CampaignComingSoon />} />
               <Route path="/contest" element={<ContestComingSoon />} />
+              <Route path="/hackathon" element={<Hackathon />} />
+              <Route path="/events" element={<EventsAdmin />} />
               <Route element={<AdminAccessGuard />}>
-                <Route path="/hackathon" element={<Hackathon />} />
-                <Route path="/events" element={<EventsAdmin />} />
+                <Route path="/internal" element={<InternalPage />} />
               </Route>
               <Route element={<PostAccessGuard />}>
                 <Route path="/post" element={<PostPage />} />

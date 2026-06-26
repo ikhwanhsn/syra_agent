@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { ExternalLink, Loader2 } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 
+import { PageLoader } from "@/components/PageLoader";
 import { fetchWalletEarnings } from "@/lib/kolApi";
 import { shortenAddress } from "@/lib/solanaKol";
 import { Badge } from "@/components/ui/badge";
@@ -39,9 +40,8 @@ export function EarningsDashboard() {
         {!address ? (
           <p className="text-sm text-muted-foreground mt-6">Connect your wallet from the navbar to view earnings.</p>
         ) : isLoading ? (
-          <div className="flex items-center gap-2 text-muted-foreground mt-6">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Loading earnings…
+          <div className="mt-6">
+            <PageLoader label="Loading earnings" variant="inline" />
           </div>
         ) : data ? (
           <div className="mt-6 grid sm:grid-cols-2 gap-4">

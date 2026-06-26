@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Coins, Megaphone, Rocket, Users } from "lucide-react";
 
 import SectionHeader from "@/components/landing/SectionHeader";
+import { siteShell } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 
 const pillars = [
   {
@@ -33,7 +35,7 @@ const pillars = [
 const LandingPillars = () => (
   <section className="section-shell">
     <div className="section-divider" />
-    <div className="container relative z-10">
+    <div className={cn(siteShell, "relative z-10")}>
       <SectionHeader
         eyebrow="Explore"
         title={

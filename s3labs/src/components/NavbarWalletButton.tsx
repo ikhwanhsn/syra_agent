@@ -6,17 +6,24 @@ import { Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+type NavbarWalletLayout = "header" | "drawer";
+
 interface NavbarWalletButtonProps {
   className?: string;
+  layout?: NavbarWalletLayout;
 }
 
 function shortenAddress(address: string, chars = 4): string {
   return `${address.slice(0, chars)}…${address.slice(-chars)}`;
 }
 
-export function NavbarWalletButton({ className }: NavbarWalletButtonProps) {
+export function NavbarWalletButton({
+  className,
+  layout = "header",
+}: NavbarWalletButtonProps) {
   const { publicKey, connecting, disconnect, connected } = useWallet();
   const { setVisible } = useWalletModal();
+  const isDrawer = layout === "drawer";
 
   const address = useMemo(() => publicKey?.toBase58() ?? null, [publicKey]);
 
@@ -35,34 +42,49 @@ export function NavbarWalletButton({ className }: NavbarWalletButtonProps) {
         size="sm"
         disabled
         className={cn(
-          "navbar-wallet-btn navbar-wallet-btn--loading h-9 rounded-full px-3 sm:px-4",
+          "navbar-wallet-btn navbar-wallet-btn--loading rounded-full",
+          isDrawer ? "h-11 w-full px-4" : "h-9 px-3 md:px-4",
           className,
         )}
       >
-        <Wallet className="w-4 h-4" />
-        <span className="hidden sm:inline">Connecting…</span>
+        <Wallet className="h-4 w-4 shrink-0" />
+        <span>Connecting…</span>
       </Button>
     );
   }
 
   if (connected && address) {
     return (
-      <div className={cn("flex items-center gap-1 min-w-0", className)}>
+      <div
+        className={cn(
+          "flex min-w-0 items-center",
+          isDrawer ? "w-full flex-col gap-2" : "gap-1",
+          className,
+        )}
+      >
         <Button
           variant="heroOutline"
           size="sm"
           onClick={handleClick}
           title="Click to copy address"
-          className="navbar-wallet-btn navbar-wallet-btn--connected h-9 rounded-full px-2.5 sm:px-3 font-mono text-xs max-w-[7.5rem] sm:max-w-none"
+          className={cn(
+            "navbar-wallet-btn navbar-wallet-btn--connected rounded-full font-mono text-xs",
+            isDrawer
+              ? "h-11 w-full px-4"
+              : "h-9 max-w-[6.75rem] px-2.5 md:max-w-none md:px-3",
+          )}
         >
-          <Wallet className="w-3.5 h-3.5 text-primary shrink-0" />
-          <span className="truncate">{shortenAddress(address, 3)}</span>
+          <Wallet className="h-3.5 w-3.5 shrink-0 text-primary" />
+          <span className="truncate">{shortenAddress(address, isDrawer ? 6 : 3)}</span>
         </Button>
         <Button
-          variant="ghost"
+          variant={isDrawer ? "outline" : "ghost"}
           size="sm"
           onClick={() => disconnect()}
-          className="hidden sm:inline-flex h-9 rounded-full px-3 text-xs text-muted-foreground hover:text-foreground"
+          className={cn(
+            "rounded-full text-xs text-muted-foreground hover:text-foreground",
+            isDrawer ? "h-11 w-full px-4" : "hidden h-9 px-3 md:inline-flex",
+          )}
         >
           Disconnect
         </Button>
@@ -76,13 +98,14 @@ export function NavbarWalletButton({ className }: NavbarWalletButtonProps) {
       size="sm"
       onClick={() => setVisible(true)}
       className={cn(
-        "navbar-wallet-btn navbar-wallet-btn--connect btn-premium h-9 rounded-full px-3 sm:px-4",
+        "navbar-wallet-btn navbar-wallet-btn--connect btn-premium rounded-full",
+        isDrawer ? "h-11 w-full px-4" : "h-9 px-3 md:px-4",
         className,
       )}
       aria-label="Connect wallet"
     >
-      <Wallet className="w-4 h-4" />
-      <span className="hidden sm:inline">Connect Wallet</span>
+      <Wallet className="h-4 w-4 shrink-0" />
+      <span className={isDrawer ? "inline" : "hidden md:inline"}>Connect Wallet</span>
     </Button>
   );
 }

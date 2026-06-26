@@ -1,17 +1,18 @@
-
 import SectionHeader from "@/components/landing/SectionHeader";
 import { Button } from "@/components/ui/button";
 import { Send, MessageCircle, Calendar, Users } from "lucide-react";
+import { siteShell } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 
 const TELEGRAM_COMMUNITY_URL = "https://t.me/s3labs";
 
 const CommunitySection = () => {
-
   const perks = [
     {
       icon: MessageCircle,
       title: "Direct Discussions",
-      description: "Share ideas and ask questions with other builders in the Solana ecosystem.",
+      description:
+        "Share ideas and ask questions with other builders in the Solana ecosystem.",
     },
     {
       icon: Calendar,
@@ -21,7 +22,8 @@ const CommunitySection = () => {
     {
       icon: Users,
       title: "Collaboration Opportunities",
-      description: "Discover relevant partners and collaboration opportunities.",
+      description:
+        "Discover relevant partners and collaboration opportunities.",
     },
   ];
 
@@ -31,23 +33,26 @@ const CommunitySection = () => {
       <div className="absolute inset-0 grid-pattern opacity-25 pointer-events-none" />
       <div className="absolute -top-32 right-0 w-[min(20rem,55vw)] h-[min(20rem,55vw)] bg-primary/8 rounded-full blur-[100px] pointer-events-none" />
 
-      <div className="container relative z-10 max-w-6xl mx-auto">
+      <div className={cn(siteShell, "relative z-10 max-w-6xl mx-auto")}>
         <SectionHeader
           eyebrow={"Community"}
           title={
             <>
               {"S3Labs Community"}
-              <span className="text-gradient block mt-1">
-                {"on Telegram"}
-              </span>
+              <span className="text-gradient block mt-1">{"on Telegram"}</span>
             </>
           }
-          description={"Join our Telegram group—where Solana developers and founders share, learn, and collaborate."}
+          description={
+            "Join our Telegram group—where Solana developers and founders share, learn, and collaborate."
+          }
         />
 
         <div className="grid md:grid-cols-3 gap-5 max-w-4xl mx-auto mb-12">
           {perks.map((item, index) => (
-            <div key={index} className="group card-premium-hover p-6 text-center">
+            <div
+              key={index}
+              className="group card-premium-hover p-6 text-center"
+            >
               <div className="w-11 h-11 rounded-xl bg-primary/10 ring-1 ring-primary/15 flex items-center justify-center mx-auto mb-4">
                 <item.icon className="w-5 h-5 text-primary" />
               </div>
@@ -66,9 +71,16 @@ const CommunitySection = () => {
             <div className="absolute inset-0 bg-gradient-to-br from-primary/8 to-transparent pointer-events-none" />
             <div className="relative">
               <p className="text-sm text-muted-foreground mb-5 max-w-sm mx-auto">
-                {"Open for developers, founders, and anyone interested in building on Solana."}
+                {
+                  "Open for developers, founders, and anyone interested in building on Solana."
+                }
               </p>
-              <Button asChild variant="hero" size="lg" className="btn-premium group">
+              <Button
+                asChild
+                variant="hero"
+                size="lg"
+                className="btn-premium group"
+              >
                 <a
                   href={TELEGRAM_COMMUNITY_URL}
                   target="_blank"

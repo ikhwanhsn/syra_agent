@@ -17,6 +17,7 @@ import { getKolRewardSol } from "@/lib/kolApi";
 import { formatSol, formatTimeLeft } from "@/lib/kolFormat";
 import { cn } from "@/lib/utils";
 import { CampaignLeaderboard } from "./CampaignLeaderboard";
+import { KolMyRankShareAction } from "./KolMyRankShareBar";
 import { SourceTweetCard } from "./SourceTweetCard";
 import { SubmitEngagementForm } from "./SubmitEngagementForm";
 
@@ -187,24 +188,36 @@ export function CampaignDetail({ campaign, leaderboard, onClose, onRefresh }: Ca
         />
       ) : null}
 
-      <div className="space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Trophy className="w-4 h-4 text-primary" />
-              <h3 className="font-semibold text-lg">Live leaderboard</h3>
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 border border-primary/20">
+                <Trophy className="w-4 h-4 text-primary" />
+              </div>
+              <h3 className="font-semibold text-lg tracking-tight">Live leaderboard</h3>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground max-w-xl">
               {campaign.status === "completed"
                 ? "Final rankings and confirmed payouts."
                 : "Rankings update daily. Higher score = larger projected payout."}
             </p>
           </div>
-          {leaderboard.length > 0 ? (
-            <p className="text-xs text-muted-foreground">
-              {leaderboard.length} submission{leaderboard.length !== 1 ? "s" : ""}
-            </p>
-          ) : null}
+          <div className="flex items-center gap-2 shrink-0 self-start sm:self-end">
+            {leaderboard.length > 0 ? (
+              <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground">
+                <Users className="w-3.5 h-3.5" />
+                {leaderboard.length} submission{leaderboard.length !== 1 ? "s" : ""}
+              </div>
+            ) : null}
+            <KolMyRankShareAction
+              entries={leaderboard}
+              campaignId={campaign.id}
+              campaignTitle={campaign.title}
+              campaignStatus={campaign.status}
+              rewardSol={rewardSol}
+            />
+          </div>
         </div>
         <CampaignLeaderboard entries={leaderboard} campaignStatus={campaign.status} />
       </div>

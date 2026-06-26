@@ -1,5 +1,7 @@
 
 import SectionHeader from "@/components/landing/SectionHeader";
+import { siteShell } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 import {
   Network,
   Target,
@@ -9,7 +11,7 @@ import {
   Lightbulb,
 } from "lucide-react";
 
-const BenefitsSection = () => {
+const BenefitsSection = () => {
 
   const benefits = [
     {
@@ -47,7 +49,7 @@ const BenefitsSection = () => {
   return (
     <section id="benefits" className="section-shell">
       <div className="section-divider" />
-      <div className="container relative z-10">
+      <div className={cn(siteShell, "relative z-10")}>
         <SectionHeader
           eyebrow={"Benefits"}
           title={

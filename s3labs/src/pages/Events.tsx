@@ -9,6 +9,8 @@ import { Calendar, MapPin, Sparkles, ArrowLeft, ExternalLink } from "lucide-reac
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import ApplicationModal from "@/components/ApplicationModal";
+import { siteShell } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 
 const EventsPageContent = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -23,7 +25,7 @@ const EventsPageContent = () => {
       <main className="pt-20 lg:pt-24">
         {/* Page header */}
         <div className="border-b border-border bg-muted/20">
-          <div className="container py-12 lg:py-16">
+          <div className={cn(siteShell, "py-12 lg:py-16")}>
             <Link
               to="/"
               className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary mb-6 transition-colors"
@@ -41,7 +43,7 @@ const EventsPageContent = () => {
         </div>
 
         {/* Events grid */}
-        <div className="container py-16 lg:py-24">
+        <div className={cn(siteShell, "py-16 lg:py-24")}>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {EVENTS.map((event) => (
               <article

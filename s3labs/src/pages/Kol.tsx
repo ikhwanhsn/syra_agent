@@ -93,7 +93,7 @@ function KolPageContent() {
 
   return (
     <div className={cn(pageContent, "pb-20")}>
-        <section className="mb-10 max-w-3xl min-w-0">
+        <section className="mb-10 min-w-0">
           <p className="eyebrow mb-3">KOL Marketplace</p>
           <h1 className="heading-display">
             Post on X, <span className="text-gradient">earn SOL</span>

@@ -8,6 +8,7 @@ import {
   createTransferInstruction,
   TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
+import { confirmSolanaTransaction } from '../libs/solanaConfirm.js';
 import { requireMongooseConnection } from '../config/mongoose.js';
 import { computeOperatorStats } from '../services/streamflowLockAggregates.js';
 import { requireSession } from '../utils/requireSession.js';
@@ -206,10 +207,7 @@ export async function createStakingAppRouter() {
         maxRetries: 3,
       });
 
-      await connection.confirmTransaction(
-        { signature: sig, blockhash, lastValidBlockHeight },
-        'confirmed'
-      );
+      await confirmSolanaTransaction(connection, sig, { lastValidBlockHeight });
 
       res.json({ success: true, signature: sig, amount: faucetAmount });
     } catch (err) {

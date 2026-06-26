@@ -1,4 +1,6 @@
 import SectionHeader from "@/components/landing/SectionHeader";
+import { siteShell } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 
 const caseStudies = [
   {
@@ -24,7 +26,7 @@ const caseStudies = [
 const PortfolioCaseStudies = () => (
   <section className="section-shell bg-gradient-subtle">
     <div className="section-divider" />
-    <div className="container relative z-10">
+    <div className={cn(siteShell, "relative z-10")}>
       <SectionHeader
         eyebrow="Case studies"
         title={

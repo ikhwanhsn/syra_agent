@@ -1,22 +1,29 @@
 import { useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useWallet } from "@solana/wallet-adapter-react";
 import {
+  Calendar,
   ExternalLink,
   Globe,
-  Loader2,
   MapPin,
-  RefreshCw,
   Search,
+  Star,
   Trophy,
+  Gift,
+  EyeOff,
 } from "lucide-react";
 
+import { DISCOVERY_PAGE_SIZE } from "@/components/discovery/constants";
+import { DiscoveryEmptyState } from "@/components/discovery/DiscoveryEmptyState";
+import { DiscoveryListSkeleton, DiscoveryLoadMore } from "@/components/discovery/DiscoveryLoadMore";
+import { DiscoverySearchBar } from "@/components/discovery/DiscoverySearchBar";
+import { DiscoveryListThumb } from "@/components/discovery/DiscoveryListThumb";
+import { DiscoveryViewTabs } from "@/components/discovery/DiscoveryViewTabs";
 import { SitePageShell } from "@/components/landing/SitePageShell";
 import { pageContent } from "@/lib/siteLayout";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -41,9 +48,13 @@ import {
   type HackathonRecord,
   type HackathonStatus,
 } from "@/lib/hackathonApi";
-import { cn } from "@/lib/utils";
+import { isAdminWallet } from "@/lib/adminWallet";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useHackathonSaves } from "@/hooks/useDiscoverySaves";
 
-const STATUS_TABS = [
+type HackathonView = "all" | "saved";
+
+const ADMIN_STATUS_TABS = [
   { id: "all", label: "All" },
   { id: "new", label: "New" },
   { id: "interested", label: "Interested" },
@@ -64,22 +75,6 @@ const HACKATHON_STATUSES: HackathonStatus[] = [
   "archived",
 ];
 
-function statusBadgeClass(status: HackathonStatus): string {
-  switch (status) {
-    case "new":
-      return "border-primary/40 text-primary bg-primary/10";
-    case "interested":
-      return "border-amber-500/40 text-amber-400 bg-amber-500/10";
-    case "joined":
-    case "in_progress":
-      return "border-emerald-500/40 text-emerald-400 bg-emerald-500/10";
-    case "submitted":
-      return "border-blue-500/40 text-blue-400 bg-blue-500/10";
-    default:
-      return "border-border text-muted-foreground";
-  }
-}
-
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return "—";
   try {
@@ -93,109 +88,135 @@ function formatDate(iso: string | null | undefined): string {
   }
 }
 
-function HackathonCard({
-  item,
-  onSelect,
-}: {
+function openStateLabel(openState: string | null | undefined): string | null {
+  if (!openState) return null;
+  if (openState === "open") return "Open now";
+  if (openState === "closed") return "Closed";
+  return openState.charAt(0).toUpperCase() + openState.slice(1);
+}
+
+function hackathonMetaLine(item: HackathonRecord): string {
+  const parts: string[] = [];
+  const organizer = item.organizer || item.source;
+  if (organizer) parts.push(organizer);
+  if (item.deadline) parts.push(`Deadline ${item.deadline}`);
+  else if (item.location) parts.push(item.location);
+  else parts.push(item.isIndonesia ? "Indonesia" : "Global");
+  if (item.prizePool) parts.push(item.prizePool);
+  return parts.join(" · ");
+}
+
+interface HackathonRowProps {
   item: HackathonRecord;
+  isSaved: boolean;
   onSelect: () => void;
-}) {
+  onToggleSaved: () => void;
+}
+
+function HackathonRow({ item, isSaved, onSelect, onToggleSaved }: HackathonRowProps) {
+  const organizer = item.organizer || item.source || "Organizer";
+  const openLabel = openStateLabel(item.openState);
   const link = item.applicationUrl || item.url;
 
   return (
-    <article
-      className="card-premium-hover p-5 flex flex-col gap-3 cursor-pointer"
-      onClick={onSelect}
-      onKeyDown={(e) => e.key === "Enter" && onSelect()}
-      role="button"
-      tabIndex={0}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <p className="eyebrow mb-1">{item.organizer || item.source}</p>
-          <h3 className="font-semibold tracking-tight line-clamp-2">{item.title}</h3>
-        </div>
-        {item.thumbnailUrl ? (
-          <img
-            src={item.thumbnailUrl}
-            alt=""
-            className="w-14 h-14 rounded-lg object-cover ring-1 ring-border/60 shrink-0"
-          />
-        ) : null}
-      </div>
-
-      {item.description ? (
-        <p className="text-sm text-muted-foreground line-clamp-2">{item.description}</p>
-      ) : null}
-
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant="outline" className={cn("capitalize text-[10px]", statusBadgeClass(item.status))}>
-          {item.status.replace("_", " ")}
-        </Badge>
-        {item.isIndonesia ? (
-          <Badge variant="outline" className="text-[10px]">
-            Indonesia
-          </Badge>
-        ) : (
-          <Badge variant="outline" className="text-[10px] gap-1">
-            <Globe className="w-3 h-3" />
-            Global
-          </Badge>
+    <li>
+      <div
+        className={cn(
+          "group flex items-center gap-4 px-4 py-4 transition-colors sm:px-5",
+          "hover:bg-muted/40",
+          isSaved && "bg-primary/[0.03]",
         )}
-        {item.openState ? (
-          <Badge variant="outline" className="text-[10px] capitalize">
-            {item.openState}
-          </Badge>
-        ) : null}
-      </div>
-
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-        {item.deadline ? <span>Deadline: {item.deadline}</span> : null}
-        {item.prizePool ? <span>Prize: {item.prizePool}</span> : null}
-        {item.location ? (
-          <span className="inline-flex items-center gap-1">
-            <MapPin className="w-3 h-3" />
-            {item.location}
-          </span>
-        ) : null}
-      </div>
-
-      {link ? (
-        <a
-          href={link}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-xs text-primary hover:underline w-fit"
-          onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={onSelect}
+          className="flex min-w-0 flex-1 items-center gap-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-lg"
         >
-          View event
-          <ExternalLink className="w-3 h-3" />
-        </a>
-      ) : null}
-    </article>
+          <DiscoveryListThumb imageUrl={item.thumbnailUrl} label={organizer} />
+
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="truncate text-[15px] font-semibold leading-snug text-foreground sm:text-base">
+                {item.title}
+              </h2>
+              {openLabel ? (
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "h-5 shrink-0 px-1.5 text-[10px]",
+                    item.openState === "open"
+                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                      : "border-border text-muted-foreground",
+                  )}
+                >
+                  {openLabel}
+                </Badge>
+              ) : null}
+            </div>
+            <p className="mt-0.5 truncate text-sm text-muted-foreground">
+              {hackathonMetaLine(item)}
+            </p>
+          </div>
+        </button>
+
+        <div className="flex shrink-0 items-center gap-1">
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className={cn(
+              "h-9 w-9 rounded-lg text-muted-foreground",
+              isSaved && "text-primary",
+            )}
+            onClick={onToggleSaved}
+            aria-label={isSaved ? "Remove from saved" : "Save hackathon"}
+            aria-pressed={isSaved}
+          >
+            <Star className={cn("h-4 w-4", isSaved && "fill-current")} />
+          </Button>
+          {link ? (
+            <Button size="sm" variant="default" className="hidden h-9 rounded-lg px-3 sm:inline-flex" asChild>
+              <a href={link} target="_blank" rel="noopener noreferrer">
+                Apply
+              </a>
+            </Button>
+          ) : null}
+        </div>
+      </div>
+    </li>
   );
 }
 
 function HackathonPageContent() {
   const wallet = useWallet();
-  const address = wallet.publicKey!.toBase58();
+  const address = wallet.publicKey?.toBase58() ?? null;
+  const isAdmin = isAdminWallet(address);
   const queryClient = useQueryClient();
 
   const [statusTab, setStatusTab] = useState("all");
-  const [region, setRegion] = useState<"all" | "indonesia" | "global">("all");
+  const [view, setView] = useState<HackathonView>("all");
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search.trim());
   const [selected, setSelected] = useState<HackathonRecord | null>(null);
   const [notesDraft, setNotesDraft] = useState("");
 
-  const listQuery = useQuery({
-    queryKey: ["hackathons", address, statusTab, region, search],
-    queryFn: () =>
+  const { toggleFlag, getFlags } = useHackathonSaves();
+
+  const listQuery = useInfiniteQuery({
+    queryKey: ["hackathons", address, statusTab, debouncedSearch, isAdmin],
+    queryFn: ({ pageParam }) =>
       fetchHackathons(address, {
-        status: statusTab,
-        region,
-        search: search.trim() || undefined,
-        limit: 60,
+        status: isAdmin ? statusTab : "all",
+        region: "all",
+        search: debouncedSearch || undefined,
+        limit: DISCOVERY_PAGE_SIZE,
+        skip: pageParam,
       }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      const loaded = allPages.reduce((sum, page) => sum + page.items.length, 0);
+      return loaded < lastPage.total ? loaded : undefined;
+    },
     staleTime: 30_000,
   });
 
@@ -203,11 +224,12 @@ function HackathonPageContent() {
     queryKey: ["hackathon-latest-run", address],
     queryFn: () => fetchHackathonLatestRun(address),
     staleTime: 60_000,
+    enabled: isAdmin,
   });
 
   const patchMutation = useMutation({
     mutationFn: (patch: { status?: HackathonStatus; notes?: string }) =>
-      patchHackathon(address, selected!._id, patch),
+      patchHackathon(address!, selected!._id, patch),
     onSuccess: (data) => {
       setSelected(data.data);
       setNotesDraft(data.data.notes ?? "");
@@ -215,13 +237,32 @@ function HackathonPageContent() {
     },
   });
 
-  const counts = listQuery.data?.counts ?? {};
-  const items = listQuery.data?.items ?? [];
+  const counts = listQuery.data?.pages[0]?.counts ?? {};
+  const allItems = useMemo(() => {
+    const list = listQuery.data?.pages.flatMap((page) => page.items) ?? [];
+    return list.filter((item) => !getFlags(item._id).hidden);
+  }, [listQuery.data?.pages, getFlags]);
+
+  const items = useMemo(() => {
+    if (view === "saved") {
+      return allItems.filter((item) => getFlags(item._id).saved);
+    }
+    return allItems;
+  }, [allItems, view, getFlags]);
+
+  const savedCount = useMemo(
+    () => allItems.filter((item) => getFlags(item._id).saved).length,
+    [allItems, getFlags],
+  );
+
+  const total = listQuery.data?.pages[0]?.total ?? 0;
+  const hasMore = allItems.length < total;
   const lastRun = runQuery.data?.data;
+  const selectedFlags = selected ? getFlags(selected._id) : null;
 
   const statusOptions = useMemo(
     () =>
-      STATUS_TABS.map((tab) => ({
+      ADMIN_STATUS_TABS.map((tab) => ({
         ...tab,
         count: tab.id === "all" ? counts.all : counts[tab.id],
       })),
@@ -235,208 +276,299 @@ function HackathonPageContent() {
 
   return (
     <div className={cn(pageContent, "pb-20")}>
-      <section className="mb-8 max-w-3xl">
-        <p className="eyebrow mb-3 flex items-center gap-2">
-          <Trophy className="w-4 h-4" />
-          Admin · Hackathon Scout
-        </p>
-        <h1 className="heading-display">
-          Technology <span className="text-gradient">hackathons</span>
-        </h1>
-        <p className="text-muted-foreground mt-4 text-lg leading-relaxed">
-          Devpost + Exa aggregator for Indonesia and global tech hackathons. Internal team only.
-        </p>
-      </section>
-
-      {lastRun ? (
-        <div className="panel-glass rounded-2xl border border-border/60 p-4 mb-6 flex flex-wrap items-center gap-4 text-sm">
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Last scout run</p>
-            <p className="font-medium">{formatDate(lastRun.ranAt)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">New / updated</p>
-            <p className="font-medium tabular-nums">
-              {lastRun.totalNew ?? 0} / {lastRun.totalUpdated ?? 0}
+      <header className="mb-10 flex w-full flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        <div className="min-w-0 flex-1">
+          <p className="eyebrow mb-3">
+            <Trophy className="h-4 w-4" aria-hidden />
+            Hackathons
+          </p>
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
+            Build, compete, <span className="text-gradient">win</span>
+          </h1>
+          <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:text-lg">
+            Hand-picked hackathons from Indonesia and worldwide. Review details and apply on the official page.
+          </p>
+          {isAdmin && lastRun ? (
+            <p className="mt-3 text-xs text-muted-foreground">
+              Last updated {formatDate(lastRun.ranAt)} · {lastRun.totalNew ?? 0} new,{" "}
+              {lastRun.totalUpdated ?? 0} updated
+            </p>
+          ) : null}
+        </div>
+        {!listQuery.isLoading && total > 0 ? (
+          <div className="shrink-0 border-t border-border/60 pt-4 lg:border-t-0 lg:border-l lg:pl-8 lg:pt-0 lg:text-right">
+            <p className="text-3xl font-semibold tabular-nums text-foreground sm:text-4xl">{total}</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {total === 1 ? "hackathon" : "hackathons"} available
             </p>
           </div>
-          {runQuery.data?.savedAt ? (
-            <div className="text-xs text-muted-foreground ml-auto">
-              Saved {formatDate(runQuery.data.savedAt)}
-            </div>
-          ) : null}
+        ) : null}
+      </header>
+
+      <div className="mb-6 space-y-4">
+        <DiscoveryViewTabs
+          tabs={[
+            { id: "all" as const, label: "All hackathons" },
+            { id: "saved" as const, label: "Saved", count: savedCount },
+          ]}
+          value={view}
+          onChange={setView}
+        />
+        <DiscoverySearchBar
+          id="hackathon-search"
+          value={search}
+          onChange={setSearch}
+          placeholder="Search hackathons by name, organizer, or keyword…"
+        />
+      </div>
+
+      {isAdmin ? (
+        <div className="mb-6">
+          <Tabs value={statusTab} onValueChange={setStatusTab} className="min-w-0">
+            <TabsList className="scrollbar-hide-md h-auto w-full justify-start overflow-x-auto rounded-xl border border-border/60 bg-muted/30 p-1 sm:w-fit">
+              {statusOptions.map((tab) => (
+                <TabsTrigger key={tab.id} value={tab.id} className="shrink-0 gap-1.5 rounded-lg text-xs">
+                  {tab.label}
+                  {typeof tab.count === "number" ? (
+                    <span className="tabular-nums text-muted-foreground">{tab.count}</span>
+                  ) : null}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
         </div>
       ) : null}
 
-      <div className="flex flex-col lg:flex-row gap-4 mb-6">
-        <Tabs value={statusTab} onValueChange={setStatusTab} className="flex-1 min-w-0">
-          <TabsList className="panel-glass rounded-full p-1 h-auto flex-wrap w-full justify-start">
-            {statusOptions.map((tab) => (
-              <TabsTrigger key={tab.id} value={tab.id} className="rounded-full text-xs gap-1.5">
-                {tab.label}
-                {typeof tab.count === "number" ? (
-                  <span className="text-muted-foreground tabular-nums">({tab.count})</span>
-                ) : null}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-      </div>
-
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            className="pl-9 rounded-xl"
-            placeholder="Search title, organizer, location…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <Select value={region} onValueChange={(v) => setRegion(v as typeof region)}>
-          <SelectTrigger className="w-full sm:w-[180px] rounded-xl">
-            <SelectValue placeholder="Region" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All regions</SelectItem>
-            <SelectItem value="indonesia">Indonesia</SelectItem>
-            <SelectItem value="global">Global</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button
-          variant="heroOutline"
-          className="rounded-full gap-2 shrink-0"
-          disabled={listQuery.isFetching}
-          onClick={() => {
-            void listQuery.refetch();
-            void runQuery.refetch();
-          }}
-        >
-          <RefreshCw className={cn("w-4 h-4", listQuery.isFetching && "animate-spin")} />
-          Refresh
-        </Button>
-      </div>
-
       {listQuery.isLoading ? (
-        <div className="flex items-center justify-center py-20 text-muted-foreground">
-          <Loader2 className="w-5 h-5 animate-spin mr-2" />
-          Loading hackathons…
-        </div>
+        <DiscoveryListSkeleton />
       ) : listQuery.isError ? (
-        <div className="panel-glass rounded-2xl border border-destructive/30 p-6 text-sm text-muted-foreground">
-          {(listQuery.error as Error).message}
-        </div>
+        <DiscoveryEmptyState
+          icon={Trophy}
+          title="Couldn't load hackathons"
+          description={(listQuery.error as Error).message}
+          action={
+            <Button variant="heroOutline" className="rounded-full" onClick={() => void listQuery.refetch()}>
+              Try again
+            </Button>
+          }
+        />
       ) : items.length === 0 ? (
-        <div className="panel-glass rounded-2xl border border-border/60 p-10 text-center text-muted-foreground">
-          No hackathons match your filters. The daily scout pipeline may not have run yet.
-        </div>
+        <DiscoveryEmptyState
+          icon={view === "saved" ? Star : Search}
+          title={view === "saved" ? "No saved hackathons yet" : "No hackathons match your search"}
+          description={
+            view === "saved"
+              ? "Tap the star on any hackathon to save it here for later."
+              : "Try a different keyword."
+          }
+          action={
+            view === "saved" ? (
+              <Button variant="heroOutline" className="rounded-full" onClick={() => setView("all")}>
+                Browse all hackathons
+              </Button>
+            ) : undefined
+          }
+        />
       ) : (
         <>
-          <p className="text-xs text-muted-foreground mb-4">
-            Showing {items.length} of {listQuery.data?.total ?? items.length}
-          </p>
-          <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
-            {items.map((item) => (
-              <HackathonCard key={item._id} item={item} onSelect={() => openDetail(item)} />
-            ))}
-          </div>
+          <ul className="overflow-hidden rounded-2xl border border-border/60 bg-card/40 shadow-card">
+            {items.map((item) => {
+              const flags = getFlags(item._id);
+              return (
+                <HackathonRow
+                  key={item._id}
+                  item={item}
+                  isSaved={flags.saved}
+                  onSelect={() => openDetail(item)}
+                  onToggleSaved={() => toggleFlag(item._id, "saved")}
+                />
+              );
+            })}
+          </ul>
+
+          <DiscoveryLoadMore
+            hasMore={hasMore}
+            isLoadingMore={listQuery.isFetchingNextPage}
+            loadedCount={allItems.length}
+            totalCount={total}
+            onLoadMore={() => void listQuery.fetchNextPage()}
+            itemLabel="hackathons"
+          />
         </>
       )}
 
       <Sheet open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)}>
-        <SheetContent className="w-full sm:max-w-lg overflow-y-auto panel-glass border-border/60">
+        <SheetContent className="w-full overflow-y-auto border-border/60 sm:max-w-lg">
           {selected ? (
             <>
-              <SheetHeader className="text-left pr-8">
-                <SheetDescription>{selected.organizer || selected.source}</SheetDescription>
+              <SheetHeader className="pr-8 text-left">
+                <SheetDescription className="flex items-center gap-2">
+                  <DiscoveryListThumb
+                    size="sm"
+                    imageUrl={selected.thumbnailUrl}
+                    label={selected.organizer || selected.source}
+                  />
+                  {selected.organizer || selected.source}
+                </SheetDescription>
                 <SheetTitle className="text-xl leading-snug">{selected.title}</SheetTitle>
               </SheetHeader>
 
-              <div className="mt-6 space-y-5">
+              <div className="mt-6 space-y-6">
+                <div className="flex flex-wrap gap-2">
+                  {openStateLabel(selected.openState) ? (
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        selected.openState === "open"
+                          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                          : "",
+                      )}
+                    >
+                      {openStateLabel(selected.openState)}
+                    </Badge>
+                  ) : null}
+                  <Badge variant="outline" className="gap-1">
+                    {selected.isIndonesia ? (
+                      "Indonesia"
+                    ) : (
+                      <>
+                        <Globe className="h-3 w-3" aria-hidden />
+                        Global
+                      </>
+                    )}
+                  </Badge>
+                </div>
+
                 {selected.description ? (
-                  <p className="text-sm text-muted-foreground leading-relaxed">{selected.description}</p>
+                  <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-line">
+                    {selected.description}
+                  </p>
                 ) : null}
 
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Deadline</p>
-                    <p>{selected.deadline || "—"}</p>
+                <dl className="grid gap-4 sm:grid-cols-2">
+                  <div className="flex gap-3 rounded-xl border border-border/50 bg-muted/20 p-3">
+                    <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Deadline</dt>
+                      <dd className="mt-0.5 text-sm font-medium">{selected.deadline || "Not listed"}</dd>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Prize</p>
-                    <p>{selected.prizePool || "—"}</p>
+                  <div className="flex gap-3 rounded-xl border border-border/50 bg-muted/20 p-3">
+                    <Gift className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Prize pool</dt>
+                      <dd className="mt-0.5 text-sm font-medium">{selected.prizePool || "Not listed"}</dd>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Source</p>
-                    <p className="capitalize">{selected.source}</p>
+                  <div className="flex gap-3 rounded-xl border border-border/50 bg-muted/20 p-3">
+                    <Globe className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Region</dt>
+                      <dd className="mt-0.5 text-sm font-medium">
+                        {selected.isIndonesia ? "Indonesia" : "Global"}
+                      </dd>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Discovered</p>
-                    <p>{formatDate(selected.discoveredAt)}</p>
+                  <div className="flex gap-3 rounded-xl border border-border/50 bg-muted/20 p-3">
+                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Location</dt>
+                      <dd className="mt-0.5 text-sm font-medium">{selected.location || "Online / TBD"}</dd>
+                    </div>
                   </div>
-                </div>
+                </dl>
 
                 {selected.themes.length > 0 ? (
                   <div className="flex flex-wrap gap-1.5">
                     {selected.themes.map((theme) => (
-                      <Badge key={theme} variant="outline" className="text-[10px]">
+                      <Badge key={theme} variant="outline" className="text-[11px]">
                         {theme}
                       </Badge>
                     ))}
                   </div>
                 ) : null}
 
-                <div className="space-y-2">
-                  <Label>Status</Label>
-                  <Select
-                    value={selected.status}
-                    onValueChange={(v) =>
-                      patchMutation.mutate({ status: v as HackathonStatus })
-                    }
-                    disabled={patchMutation.isPending}
-                  >
-                    <SelectTrigger className="rounded-xl">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {HACKATHON_STATUSES.map((s) => (
-                        <SelectItem key={s} value={s} className="capitalize">
-                          {s.replace("_", " ")}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {isAdmin ? (
+                  <div className="space-y-4 border-t border-border/50 pt-5">
+                    <div className="space-y-2">
+                      <Label>Pipeline status</Label>
+                      <Select
+                        value={selected.status}
+                        onValueChange={(v) => patchMutation.mutate({ status: v as HackathonStatus })}
+                        disabled={patchMutation.isPending}
+                      >
+                        <SelectTrigger className="rounded-xl">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {HACKATHON_STATUSES.map((s) => (
+                            <SelectItem key={s} value={s} className="capitalize">
+                              {s.replace("_", " ")}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="hackathon-notes">Notes</Label>
-                  <Textarea
-                    id="hackathon-notes"
-                    rows={4}
-                    value={notesDraft}
-                    onChange={(e) => setNotesDraft(e.target.value)}
-                    placeholder="Internal notes…"
-                  />
+                    <div className="space-y-2">
+                      <Label htmlFor="hackathon-notes">Internal notes</Label>
+                      <Textarea
+                        id="hackathon-notes"
+                        rows={4}
+                        value={notesDraft}
+                        onChange={(e) => setNotesDraft(e.target.value)}
+                        placeholder="Team notes…"
+                      />
+                      <Button
+                        variant="hero"
+                        size="sm"
+                        className="rounded-lg"
+                        disabled={patchMutation.isPending || notesDraft === (selected.notes ?? "")}
+                        onClick={() => patchMutation.mutate({ notes: notesDraft })}
+                      >
+                        Save notes
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="flex flex-wrap gap-2 border-t border-border/50 pt-5">
                   <Button
-                    variant="hero"
+                    type="button"
+                    variant={selectedFlags?.saved ? "default" : "outline"}
                     size="sm"
-                    className="rounded-full"
-                    disabled={patchMutation.isPending || notesDraft === (selected.notes ?? "")}
-                    onClick={() => patchMutation.mutate({ notes: notesDraft })}
+                    className="rounded-lg"
+                    onClick={() => toggleFlag(selected._id, "saved")}
                   >
-                    Save notes
+                    <Star
+                      className={cn("mr-1.5 h-4 w-4", selectedFlags?.saved && "fill-current")}
+                    />
+                    {selectedFlags?.saved ? "Saved" : "Save"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="rounded-lg text-muted-foreground"
+                    onClick={() => {
+                      toggleFlag(selected._id, "hidden");
+                      setSelected(null);
+                    }}
+                  >
+                    <EyeOff className="mr-1.5 h-4 w-4" />
+                    Hide
                   </Button>
                 </div>
 
                 {(selected.applicationUrl || selected.url) && (
-                  <Button variant="heroOutline" className="rounded-full w-full gap-2" asChild>
+                  <Button variant="hero" className="w-full gap-2 rounded-xl" asChild>
                     <a
                       href={selected.applicationUrl || selected.url || "#"}
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      Open application
-                      <ExternalLink className="w-4 h-4" />
+                      Open application page
+                      <ExternalLink className="h-4 w-4" aria-hidden />
                     </a>
                   </Button>
                 )}

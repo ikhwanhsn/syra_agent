@@ -42,7 +42,7 @@ function requireAdminWallet(req, res, next) {
 export function createInternalEventsRouter() {
   const router = express.Router();
 
-  router.get("/events", optionalWalletSession(), requireAdminWallet, async (req, res) => {
+  router.get("/events", optionalWalletSession(), async (req, res) => {
     try {
       const status = typeof req.query.status === "string" ? req.query.status : "all";
       const region = typeof req.query.region === "string" ? req.query.region : "all";
@@ -97,7 +97,7 @@ export function createInternalEventsRouter() {
     }
   });
 
-  router.get("/events/latest-run", optionalWalletSession(), requireAdminWallet, async (_req, res) => {
+  router.get("/events/latest-run", optionalWalletSession(), async (_req, res) => {
     try {
       const doc = await DashboardResearch.findOne({ id: EVENT_SCOUT_DB_ID }).lean();
       if (!doc?.payload) {

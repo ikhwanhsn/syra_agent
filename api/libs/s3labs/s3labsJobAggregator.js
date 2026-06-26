@@ -37,6 +37,7 @@ export async function fetchS3labsJobCandidates(opts = {}) {
 
   return {
     candidates,
+    deduped,
     stats: {
       scrapedCount: raw.length,
       dedupedCount: deduped.length,

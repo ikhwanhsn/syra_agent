@@ -1,6 +1,8 @@
 
 import SectionHeader from "@/components/landing/SectionHeader";
 import { Trophy, Rocket, Users, Target } from "lucide-react";
+import { siteShell } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 
 const WhoWeHelp = () => {
 
@@ -30,7 +32,7 @@ const WhoWeHelp = () => {
   return (
     <section id="who-we-help" className="section-shell">
       <div className="section-divider" />
-      <div className="container relative z-10">
+      <div className={cn(siteShell, "relative z-10")}>
         <SectionHeader
           eyebrow={"Criteria"}
           title={

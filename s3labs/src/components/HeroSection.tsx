@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import StatMetric from "@/components/landing/StatMetric";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
+import { siteShell } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 
 const HeroSection = () => {
 
@@ -23,7 +25,7 @@ const HeroSection = () => {
         style={{ animationDelay: "2.5s" }}
       />
 
-      <div className="container relative z-10 min-w-0">
+      <div className={cn(siteShell, "relative z-10 min-w-0")}>
         <div className="max-w-5xl mx-auto text-center min-w-0">
           <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full panel-glass mb-8 animate-fade-up">
             <Sparkles className="w-3.5 h-3.5 text-primary" />

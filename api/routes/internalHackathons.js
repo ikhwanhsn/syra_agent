@@ -42,7 +42,7 @@ function requireAdminWallet(req, res, next) {
 export function createInternalHackathonsRouter() {
   const router = express.Router();
 
-  router.get("/hackathons", optionalWalletSession(), requireAdminWallet, async (req, res) => {
+  router.get("/hackathons", optionalWalletSession(), async (req, res) => {
     try {
       const status = typeof req.query.status === "string" ? req.query.status : "all";
       const region = typeof req.query.region === "string" ? req.query.region : "all";
@@ -97,7 +97,7 @@ export function createInternalHackathonsRouter() {
     }
   });
 
-  router.get("/hackathons/latest-run", optionalWalletSession(), requireAdminWallet, async (_req, res) => {
+  router.get("/hackathons/latest-run", optionalWalletSession(), async (_req, res) => {
     try {
       const doc = await DashboardResearch.findOne({ id: HACKATHON_SCOUT_DB_ID }).lean();
       if (!doc?.payload) {

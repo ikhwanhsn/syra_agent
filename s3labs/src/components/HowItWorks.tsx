@@ -1,6 +1,8 @@
 
 import SectionHeader from '@/components/landing/SectionHeader';
 import { Search, CheckCircle, BarChart3, Globe } from 'lucide-react';
+import { siteShell } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 
 const HowItWorks = () => {
 
@@ -36,7 +38,7 @@ const HowItWorks = () => {
       <div className="section-divider" />
       <div className="absolute inset-0 bg-gradient-mesh pointer-events-none" />
 
-      <div className="container relative z-10">
+      <div className={cn(siteShell, "relative z-10")}>
         <SectionHeader
           eyebrow={'Process'}
           title={'How We Work'}

@@ -11,6 +11,7 @@ import {
   LAMPORTS_PER_SOL,
 } from "@solana/web3.js";
 import { withSolanaRpcFallback } from "../libs/solanaServerRpc.js";
+import { confirmSolanaTransaction } from "../libs/solanaConfirm.js";
 
 const TX_FEE_BUFFER_LAMPORTS = 10_000n;
 const DEPOSIT_TOLERANCE_LAMPORTS = 5_000n;
@@ -206,10 +207,7 @@ export async function sendPayout({ toWallet, lamports }) {
       preflightCommitment: "confirmed",
     });
 
-    await connection.confirmTransaction(
-      { signature, blockhash, lastValidBlockHeight },
-      "confirmed",
-    );
+    await confirmSolanaTransaction(connection, signature, { lastValidBlockHeight });
 
     return {
       success: true,

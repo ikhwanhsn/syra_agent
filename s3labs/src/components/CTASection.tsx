@@ -2,6 +2,8 @@
 import { Button } from '@/components/ui/button';
 import { ArrowRight, MessageCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { siteShell } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 
 const CTASection = () => {
 
@@ -11,7 +13,7 @@ const CTASection = () => {
       <div className="absolute inset-0 grid-pattern opacity-20 pointer-events-none" />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(92vw,600px)] h-[min(92vw,600px)] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
 
-      <div className="container relative z-10 min-w-0">
+      <div className={cn(siteShell, "relative z-10 min-w-0")}>
         <div className="panel-glass max-w-4xl mx-auto px-5 sm:px-8 md:px-12 py-10 sm:py-14 md:py-16 text-center relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/5 pointer-events-none" />
           <div className="relative">

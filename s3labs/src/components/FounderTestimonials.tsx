@@ -2,6 +2,8 @@
 import SectionHeader from "@/components/landing/SectionHeader";
 import StatMetric from "@/components/landing/StatMetric";
 import { Quote, Star } from "lucide-react";
+import { siteShell } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 
 const FounderTestimonials = () => {
 
@@ -38,7 +40,7 @@ const FounderTestimonials = () => {
   return (
     <section id="testimonials" className="section-shell bg-gradient-subtle">
       <div className="section-divider" />
-      <div className="container relative z-10">
+      <div className={cn(siteShell, "relative z-10")}>
         <SectionHeader
           eyebrow={"Testimonials"}
           title={

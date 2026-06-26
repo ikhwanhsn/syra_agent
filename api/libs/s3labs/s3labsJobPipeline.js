@@ -13,6 +13,7 @@ import {
   loadRecentSentJobUrls,
 } from "./s3labsJobSentHistory.js";
 import { isS3labsTelegramConfigured, sendS3labsTelegram } from "../s3labsTelegramNotifier.js";
+import { markJobPosted, upsertScrapedJobs } from "./s3labsJobStore.js";
 
 /**
  * @returns {Promise<{
@@ -47,7 +48,14 @@ export async function runS3labsJobPipeline() {
     urls: loadRecentSentJobUrls(existingPayload),
   };
 
-  const { candidates, stats } = await fetchS3labsJobCandidates({ excludes });
+  const { candidates, deduped, stats } = await fetchS3labsJobCandidates({ excludes });
+
+  try {
+    await upsertScrapedJobs(deduped);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.warn("[s3labs-job] job store upsert failed:", msg);
+  }
 
   if (candidates.length === 0) {
     console.warn("[s3labs-job] no fresh job candidates");
@@ -98,6 +106,15 @@ export async function runS3labsJobPipeline() {
     ...data,
     jobSentHistory: telegramSent ? appendJobSentHistory(existingPayload, pick) : existingPayload?.jobSentHistory,
   };
+
+  if (telegramSent) {
+    try {
+      await markJobPosted(pick.jobIdentityKey);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.warn("[s3labs-job] mark posted failed:", msg);
+    }
+  }
 
   try {
     await DashboardResearch.findOneAndUpdate(

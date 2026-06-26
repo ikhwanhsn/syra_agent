@@ -10,6 +10,7 @@ import {
 } from "@solana/spl-token";
 import { MongoClient } from "mongodb";
 import bs58 from "bs58";
+import { confirmSolanaTransaction } from "../libs/solanaConfirm.js";
 
 const connection = new Connection("https://api.devnet.solana.com", "confirmed");
 
@@ -206,17 +207,7 @@ async function handleCreateSignal(req, res) {
     });
 
     // 13. Wait for confirmation
-    const confirmation = await connection.confirmTransaction(
-      signature,
-      "confirmed"
-    );
-
-    if (confirmation.value.err) {
-      return res.status(400).json({
-        error: "Transaction failed on-chain",
-        details: confirmation.value.err,
-      });
-    }
+    await confirmSolanaTransaction(connection, signature);
 
     // 14. Verify balance change
     const confirmedTx = await connection.getTransaction(signature, {

@@ -1,5 +1,7 @@
 
 import SectionHeader from '@/components/landing/SectionHeader';
+import { siteShell } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 import {
   Accordion,
   AccordionContent,
@@ -35,7 +37,7 @@ const FAQSection = () => {
   return (
     <section id="faq" className="section-shell">
       <div className="section-divider" />
-      <div className="container relative z-10">
+      <div className={cn(siteShell, "relative z-10")}>
         <SectionHeader
           eyebrow="FAQ"
           title={'Frequently Asked Questions'}

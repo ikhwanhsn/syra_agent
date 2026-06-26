@@ -41,6 +41,7 @@ import { createS3labsTelegramWebhookRouter } from "./routes/s3labsTelegramWebhoo
 import { createInternalPartnershipScoutRouter } from "./routes/internalPartnershipScout.js";
 import { createInternalHackathonsRouter } from "./routes/internalHackathons.js";
 import { createInternalEventsRouter } from "./routes/internalEvents.js";
+import { createInternalGrowthRouter } from "./routes/internalGrowth.js";
 import { createInternalToolsRouter } from "./routes/internalTools.js";
 import { createInternalAgentWalletsRouter } from "./routes/internalAgentWallets.js";
 import { createInternalTesterAgentRouter } from "./routes/internalTesterAgent.js";
@@ -127,6 +128,7 @@ import { createStreamflowLocksRouter } from "./routes/streamflowLocks.js";
 import { createStakingAppRouter } from "./routes/stakingApp.js";
 import { createTempoPayoutRouter } from "./routes/payouts/tempo.js";
 import { createKolRouter } from "./routes/kol/index.js";
+import { createJobsRouter } from "./routes/jobs/index.js";
 import { createAgentscoreRouter } from "./routes/agentscore/index.js";
 import { createPillarsRouter } from "./routes/pillars.js";
 import { createInvestRouter } from "./routes/invest.js";
@@ -804,6 +806,7 @@ app.use(injectTrustedOriginApiKey);
 
 // KOL marketplace — public, no API key (s3labs /kol). Mount before requireApiKey.
 app.use("/kol", createKolRouter());
+app.use("/jobs", createJobsRouter());
 app.use("/pillars", createPillarsRouter());
 app.use("/invest", createInvestRouter());
 app.use("/grow", createGrowRouter());
@@ -1319,6 +1322,7 @@ app.use("/internal", createSyraTradingTelegramWebhookRouter());
 app.use("/internal", createInternalPartnershipScoutRouter());
 app.use("/internal", createInternalHackathonsRouter());
 app.use("/internal", createInternalEventsRouter());
+app.use("/internal", createInternalGrowthRouter());
 app.use("/internal", createInternalToolsRouter());
 app.use("/internal", createInternalAgentWalletsRouter());
 app.use("/internal", await createInternalResearchRouter());

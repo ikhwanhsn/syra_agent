@@ -1,4 +1,7 @@
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { Eye, Heart, Sparkles } from "lucide-react";
 
 import {
   Table,
@@ -8,88 +11,212 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import type { KolLeaderboardEntry } from "@/lib/kolApi";
+import { formatCompact } from "@/lib/kolFormat";
 import { shortenAddress } from "@/lib/solanaKol";
-
-function formatSol(sol: number): string {
-  return new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: 3,
-    maximumFractionDigits: 4,
-  }).format(sol);
-}
+import { cn } from "@/lib/utils";
+import {
+  LeaderboardKolCell,
+  LeaderboardModeBadge,
+  LeaderboardPayoutCell,
+  LeaderboardPodium,
+  type PodiumEntry,
+  LeaderboardRankCell,
+  LeaderboardRowChevron,
+  LeaderboardScoreBar,
+  leaderboardRowClass,
+} from "@/components/kol/leaderboardUi";
 
 interface CampaignLeaderboardProps {
   entries: KolLeaderboardEntry[];
   campaignStatus: string;
 }
 
+function getPayoutSol(entry: KolLeaderboardEntry): number {
+  return entry.payout?.sol ?? entry.projectedSol;
+}
+
+function walletsMatch(a: string, b: string): boolean {
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
 export function CampaignLeaderboard({ entries, campaignStatus }: CampaignLeaderboardProps) {
+  const wallet = useWallet();
+  const walletAddress = wallet.publicKey?.toBase58() ?? null;
+
+  const payoutLabel = campaignStatus === "completed" ? "Paid" : "Projected";
+  const maxScore = Math.max(...entries.map((e) => e.latestScore), 1);
+
+  const ownWallet = walletAddress;
+
+  const isOwnEntry = useMemo(
+    () => (entry: KolLeaderboardEntry) =>
+      ownWallet != null && walletsMatch(entry.kolWallet, ownWallet),
+    [ownWallet],
+  );
+
   if (entries.length === 0) {
     return (
-      <div className="panel-glass rounded-2xl p-8 text-center space-y-2">
-        <p className="font-medium text-sm">No submissions yet</p>
-        <p className="text-muted-foreground text-sm">
-          Be the first KOL to join — reply or quote the post, submit your link, and take the top
-          spot.
+      <div className="panel-glass rounded-2xl p-10 sm:p-12 text-center space-y-3 border border-border/60">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20">
+          <Sparkles className="h-6 w-6 text-primary" aria-hidden />
+        </div>
+        <p className="font-semibold text-base">No submissions yet</p>
+        <p className="text-muted-foreground text-sm max-w-sm mx-auto leading-relaxed">
+          Be the first KOL to join — reply or quote the post, submit your link, and claim the top
+          spot on the podium.
         </p>
       </div>
     );
   }
 
-  const payoutLabel = campaignStatus === "completed" ? "Paid" : "Projected";
+  const podiumEntries: PodiumEntry[] = entries.slice(0, 3).map((entry, index) => ({
+    rank: (index + 1) as 1 | 2 | 3,
+    handle: entry.authorHandle,
+    verified: entry.verified,
+    score: entry.latestScore,
+    payoutSol: getPayoutSol(entry),
+    likes: entry.latestMetrics.likeCount,
+    views: entry.latestMetrics.viewCount,
+  }));
 
   return (
-    <div className="panel-glass rounded-2xl border border-border/60 overflow-hidden">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-12">#</TableHead>
-            <TableHead>KOL</TableHead>
-            <TableHead>Mode</TableHead>
-            <TableHead className="text-right">Score</TableHead>
-            <TableHead className="text-right">Likes</TableHead>
-            <TableHead className="text-right">Views</TableHead>
-            <TableHead className="text-right">{payoutLabel}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {entries.map((entry, index) => {
-            const payoutSol =
-              entry.payout?.sol ??
-              entry.projectedSol;
-            return (
-              <TableRow key={entry.id}>
-                <TableCell className="font-mono text-muted-foreground">{index + 1}</TableCell>
-                <TableCell>
-                  <div className="flex flex-col gap-0.5">
+    <div className="panel-glass rounded-2xl border border-border/60 overflow-hidden min-w-0 shadow-[var(--shadow-card)]">
+      {entries.length >= 1 ? (
+        <LeaderboardPodium entries={podiumEntries} payoutLabel={payoutLabel} />
+      ) : null}
+
+      {/* Mobile card list */}
+      <div className="md:hidden divide-y divide-border/50">
+        {entries.map((entry, index) => {
+          const rank = index + 1;
+          const payoutSol = getPayoutSol(entry);
+          const own = isOwnEntry(entry);
+          return (
+            <Link
+              key={entry.id}
+              to={`/kol/${encodeURIComponent(entry.authorHandle)}`}
+              className={cn(
+                "group flex gap-3 p-4 transition-colors",
+                leaderboardRowClass(rank),
+                own && "ring-1 ring-inset ring-primary/25",
+              )}
+            >
+              <LeaderboardRankCell rank={rank} />
+              <div className="flex-1 min-w-0 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <LeaderboardKolCell
+                    handle={entry.authorHandle}
+                    verified={entry.verified}
+                    walletShort={shortenAddress(entry.kolWallet, 6)}
+                  />
+                  <LeaderboardPayoutCell
+                    payoutSol={payoutSol}
+                    payoutLabel={payoutLabel}
+                    isTop={rank <= 3}
+                  />
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <LeaderboardModeBadge mode={entry.mode} />
+                  <span className="font-mono font-medium text-foreground tabular-nums">
+                    {entry.latestScore.toFixed(1)} pts
+                  </span>
+                  <span className="text-border">·</span>
+                  <span className="inline-flex items-center gap-1 tabular-nums">
+                    <Heart className="h-3 w-3" aria-hidden />
+                    {formatCompact(entry.latestMetrics.likeCount)}
+                  </span>
+                  <span className="inline-flex items-center gap-1 tabular-nums">
+                    <Eye className="h-3 w-3" aria-hidden />
+                    {formatCompact(entry.latestMetrics.viewCount)}
+                  </span>
+                </div>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden md:block overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent border-border/60 bg-muted/30">
+              <TableHead className="w-[4.5rem] text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Rank
+              </TableHead>
+              <TableHead className="min-w-[220px]">KOL</TableHead>
+              <TableHead className="w-[5.5rem]">Mode</TableHead>
+              <TableHead className="text-right w-[7rem]">Score</TableHead>
+              <TableHead className="text-right hidden lg:table-cell">Engagement</TableHead>
+              <TableHead className="text-right w-[8rem]">{payoutLabel}</TableHead>
+              <TableHead className="w-10" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {entries.map((entry, index) => {
+              const rank = index + 1;
+              const payoutSol = getPayoutSol(entry);
+              const own = isOwnEntry(entry);
+              return (
+                <TableRow
+                  key={entry.id}
+                  className={cn(
+                    "border-border/60 group",
+                    leaderboardRowClass(rank),
+                    own && "ring-1 ring-inset ring-primary/20",
+                  )}
+                >
+                  <TableCell className="w-[4.5rem] align-middle">
+                    <LeaderboardRankCell rank={rank} />
+                  </TableCell>
+                  <TableCell className="max-w-[280px]">
                     <Link
                       to={`/kol/${encodeURIComponent(entry.authorHandle)}`}
-                      className="font-medium hover:text-primary transition-colors"
+                      className="flex items-center gap-2 -m-2 p-2 rounded-xl hover:bg-muted/60 transition-colors"
                     >
-                      @{entry.authorHandle}
+                      <LeaderboardKolCell
+                        handle={entry.authorHandle}
+                        verified={entry.verified}
+                        walletShort={shortenAddress(entry.kolWallet, 6)}
+                      />
+                      <span className="ml-auto">
+                        <LeaderboardRowChevron />
+                      </span>
                     </Link>
-                    <span className="text-xs text-muted-foreground font-mono">
-                      {shortenAddress(entry.kolWallet, 6)}
-                    </span>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline" className="capitalize">
-                    {entry.mode}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right font-mono">{entry.latestScore.toFixed(1)}</TableCell>
-                <TableCell className="text-right">{entry.latestMetrics.likeCount}</TableCell>
-                <TableCell className="text-right">{entry.latestMetrics.viewCount}</TableCell>
-                <TableCell className="text-right font-medium text-primary">
-                  {formatSol(payoutSol)} SOL
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+                  </TableCell>
+                  <TableCell>
+                    <LeaderboardModeBadge mode={entry.mode} />
+                  </TableCell>
+                  <TableCell className="text-right align-middle">
+                    <LeaderboardScoreBar score={entry.latestScore} maxScore={maxScore} />
+                  </TableCell>
+                  <TableCell className="hidden lg:table-cell text-right align-middle">
+                    <div className="inline-flex flex-col items-end gap-0.5 text-sm tabular-nums">
+                      <span className="inline-flex items-center gap-1.5 text-foreground">
+                        <Heart className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+                        {formatCompact(entry.latestMetrics.likeCount)}
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 text-muted-foreground text-xs">
+                        <Eye className="h-3 w-3" aria-hidden />
+                        {formatCompact(entry.latestMetrics.viewCount)} views
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="align-middle">
+                    <LeaderboardPayoutCell
+                      payoutSol={payoutSol}
+                      payoutLabel={payoutLabel}
+                      isTop={rank <= 3}
+                    />
+                  </TableCell>
+                  <TableCell />
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }

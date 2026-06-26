@@ -1,0 +1,198 @@
+import { useEffect, useMemo } from "react";
+import { Link } from "react-router-dom";
+import { useWallet } from "@solana/wallet-adapter-react";
+
+import { useTheme } from "@/contexts/ThemeContext";
+import { Button } from "@/components/ui/button";
+import { NavLink } from "@/components/NavLink";
+import { NavbarWalletButton } from "@/components/NavbarWalletButton";
+import {
+  mainNavLinks,
+  otherNavLinks,
+  programNavLinks,
+  adminNavLinks,
+  type SiteNavItem,
+} from "@/lib/siteNav";
+import { isAdminWallet } from "@/lib/adminWallet";
+import { cn } from "@/lib/utils";
+import { Moon, Sun, X } from "lucide-react";
+
+function DrawerNavLabel({ label, soon }: { label: string; soon?: boolean }) {
+  return (
+    <span className="inline-flex items-center gap-2">
+      {label}
+      {soon ? (
+        <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-amber-400">
+          Soon
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
+function DrawerSection({
+  title,
+  links,
+  onNavigate,
+}: {
+  title: string;
+  links: SiteNavItem[];
+  onNavigate: () => void;
+}) {
+  return (
+    <div className="space-y-1">
+      <p className="px-3 pb-1 pt-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+        {title}
+      </p>
+      {links.map((item) => (
+        <NavLink
+          key={item.to}
+          to={item.to}
+          end={item.to === "/"}
+          className="flex min-h-11 items-center rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary/60 hover:text-foreground"
+          activeClassName="bg-secondary/60 text-foreground"
+          onClick={onNavigate}
+        >
+          <DrawerNavLabel label={item.label} soon={item.soon} />
+        </NavLink>
+      ))}
+    </div>
+  );
+}
+
+interface MobileNavDrawerProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+export function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps) {
+  const { theme, toggleTheme } = useTheme();
+  const wallet = useWallet();
+  const address = wallet.publicKey?.toBase58() ?? null;
+  const isAdmin = isAdminWallet(address);
+
+  const othersLinks = useMemo(
+    () => (isAdmin ? [...otherNavLinks, ...adminNavLinks] : otherNavLinks),
+    [isAdmin],
+  );
+
+  useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, onClose]);
+
+  return (
+    <>
+      <button
+        type="button"
+        aria-label="Close navigation menu"
+        className={cn(
+          "fixed inset-0 z-[210] bg-black/55 backdrop-blur-[2px] transition-opacity duration-300 lg:hidden",
+          open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
+        )}
+        onClick={onClose}
+        tabIndex={open ? 0 : -1}
+      />
+
+      <aside
+        id="mobile-nav-drawer"
+        aria-hidden={!open}
+        className={cn(
+          "mobile-nav-drawer panel-glass fixed inset-y-0 right-0 z-[220] flex w-[min(100vw,20rem)] flex-col border-l border-border/60 shadow-elevated transition-transform duration-300 ease-out lg:hidden",
+          open ? "translate-x-0" : "translate-x-full pointer-events-none",
+        )}
+        style={{
+          paddingTop: "max(0.75rem, env(safe-area-inset-top, 0px))",
+          paddingBottom: "max(1rem, env(safe-area-inset-bottom, 0px))",
+        }}
+      >
+        <div className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-3">
+          <Link
+            to="/"
+            className="flex min-w-0 items-center gap-2"
+            onClick={onClose}
+          >
+            <img
+              src="/images/logo.png"
+              alt=""
+              className="h-8 w-8 shrink-0 rounded-xl ring-1 ring-border/50"
+              width={32}
+              height={32}
+            />
+            <span className="truncate font-semibold tracking-tight text-foreground">
+              S3 Labs
+            </span>
+          </Link>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 shrink-0 rounded-full"
+            onClick={onClose}
+            aria-label="Close menu"
+          >
+            <X className="h-5 w-5" />
+          </Button>
+        </div>
+
+        <nav
+          className="flex-1 overflow-y-auto overscroll-contain px-2 py-2 scrollbar-hide"
+          aria-label="Mobile navigation"
+        >
+          {mainNavLinks.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.to === "/"}
+              className="flex min-h-11 items-center rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary/60 hover:text-foreground"
+              activeClassName="bg-secondary/60 text-foreground"
+              onClick={onClose}
+            >
+              <DrawerNavLabel label={item.label} soon={item.soon} />
+            </NavLink>
+          ))}
+
+          <DrawerSection title="Program" links={programNavLinks} onNavigate={onClose} />
+          <DrawerSection title="Others" links={othersLinks} onNavigate={onClose} />
+        </nav>
+
+        <div className="space-y-3 border-t border-border/60 px-4 py-4">
+          <Button
+            variant="outline"
+            className="h-11 w-full justify-between rounded-xl px-4"
+            onClick={toggleTheme}
+          >
+            <span className="text-sm font-medium">Theme</span>
+            <span className="inline-flex items-center gap-2 text-muted-foreground">
+              {theme === "dark" ? (
+                <>
+                  <Sun className="h-4 w-4" />
+                  Light
+                </>
+              ) : (
+                <>
+                  <Moon className="h-4 w-4" />
+                  Dark
+                </>
+              )}
+            </span>
+          </Button>
+
+          <NavbarWalletButton layout="drawer" className="w-full" />
+        </div>
+      </aside>
+    </>
+  );
+}

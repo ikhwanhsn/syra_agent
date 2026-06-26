@@ -9,6 +9,7 @@ import { hackathonDedupeKey } from "../internalScoutDedupe.js";
 import { isDevTelegramConfigured, sendDevTelegram } from "../devTelegramNotifier.js";
 import { fetchDevpostHackathons } from "./devpostSource.js";
 import { fetchExaHackathons } from "./exaSource.js";
+import { applyHackathonFreshness, openHackathonFilter, recentLastSeenFilter, HACKATHON_STALE_DAYS } from "../discoveryFreshness.js";
 
 export { HACKATHON_SCOUT_DB_ID };
 
@@ -229,10 +230,10 @@ export async function runHackathonScoutPipeline() {
 }
 
 /**
- * @param {{ status?: string; region?: string; source?: string; openState?: string; search?: string; limit?: number; skip?: number }} [opts]
+ * @param {{ status?: string; region?: string; source?: string; openState?: string; search?: string; limit?: number; skip?: number; freshOnly?: boolean }} [opts]
  */
 export async function listHackathons(opts = {}) {
-  const filter = {};
+  let filter = {};
 
   if (opts.status && opts.status !== "all") {
     filter.status = opts.status;
@@ -257,6 +258,8 @@ export async function listHackathons(opts = {}) {
       { themes: { $elemMatch: { $regex: q, $options: "i" } } },
     ];
   }
+
+  filter = applyHackathonFreshness(filter, { freshOnly: opts.freshOnly !== false });
 
   const limit = Math.min(100, Math.max(1, Number(opts.limit) || 50));
   const skip = Math.max(0, Number(opts.skip) || 0);
@@ -286,7 +289,13 @@ export async function updateHackathon(id, patch) {
  * @returns {Promise<Record<string, number>>}
  */
 export async function hackathonStatusCounts() {
-  const rows = await Hackathon.aggregate([{ $group: { _id: "$status", count: { $sum: 1 } } }]);
+  const freshMatch = {
+    $and: [openHackathonFilter(), recentLastSeenFilter(HACKATHON_STALE_DAYS)],
+  };
+  const rows = await Hackathon.aggregate([
+    { $match: freshMatch },
+    { $group: { _id: "$status", count: { $sum: 1 } } },
+  ]);
   /** @type {Record<string, number>} */
   const out = { all: 0 };
   for (const r of rows) {

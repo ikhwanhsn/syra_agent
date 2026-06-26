@@ -10,9 +10,9 @@ import {
   SystemProgram,
   Transaction,
   TransactionInstruction,
-  sendAndConfirmTransaction,
 } from "@solana/web3.js";
 import bs58 from "bs58";
+import { sendAndConfirmSolanaTransaction } from "./solanaConfirm.js";
 import { SYRA_AGENT_DESCRIPTION, SYRA_TAGLINE_SHORT } from "../config/syraBranding.js";
 
 const DEFAULT_SAID_API = "https://api.saidprotocol.com";
@@ -273,7 +273,7 @@ export async function updateSyraSaidOnChainMetadata(input = {}) {
   const [agentPDA] = SAID.deriveAgentPDA(new PublicKey(wallet));
   const connection = new Connection(getSaidRpcUrl(), "confirmed");
   const tx = new Transaction().add(buildUpdateAgentInstruction(agentPDA, signer.publicKey, metadataUri));
-  const txSignature = await sendAndConfirmTransaction(connection, tx, [signer], {
+  const txSignature = await sendAndConfirmSolanaTransaction(connection, tx, [signer], {
     commitment: "confirmed",
   });
 
