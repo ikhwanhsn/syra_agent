@@ -270,7 +270,7 @@ export function ProfileLeaderboard({ variant }: ProfileLeaderboardProps) {
 
   if (variant === "projects") {
     return (
-      <div className="panel-glass rounded-2xl border border-border/60 overflow-hidden">
+      <div className="panel-glass rounded-2xl border border-border/60 overflow-hidden min-w-0">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent border-border/60 bg-muted/30">
@@ -342,7 +342,7 @@ export function ProfileLeaderboard({ variant }: ProfileLeaderboardProps) {
   }
 
   return (
-    <div className="panel-glass rounded-2xl border border-border/60 overflow-hidden">
+    <div className="panel-glass rounded-2xl border border-border/60 overflow-hidden min-w-0">
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent border-border/60 bg-muted/30">

@@ -31,17 +31,17 @@ const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-[200] isolate">
-      <div className="mx-3 sm:mx-4 lg:mx-6 mt-3 sm:mt-4">
-        <div className="container mx-auto panel-glass rounded-2xl border-border/60 px-4 sm:px-6 relative z-[200]">
-          <div className="flex items-center justify-between h-14 lg:h-16 gap-4">
-            <Link to="/" className="flex items-center gap-2.5 group shrink-0">
+    <header className="fixed top-0 left-0 right-0 z-[200] isolate pt-[env(safe-area-inset-top,0px)]">
+      <div className="mx-2 min-[400px]:mx-3 sm:mx-4 lg:mx-6 mt-2 min-[400px]:mt-3 sm:mt-4">
+        <div className="container mx-auto panel-glass rounded-2xl border-border/60 px-3 min-[400px]:px-4 sm:px-6 relative z-[200]">
+          <div className="flex items-center justify-between h-14 lg:h-16 gap-2 sm:gap-4 min-w-0">
+            <Link to="/" className="flex items-center gap-2 group shrink-0 min-w-0">
               <img
                 src="/images/logo.png"
                 alt="S3 Labs Logo"
-                className="w-8 h-8 rounded-xl ring-1 ring-border/50 group-hover:ring-primary/30 transition-all"
+                className="w-8 h-8 rounded-xl ring-1 ring-border/50 group-hover:ring-primary/30 transition-all shrink-0"
               />
-              <span className="font-semibold text-lg tracking-tight text-foreground">
+              <span className="font-semibold text-lg tracking-tight text-foreground hidden min-[400px]:inline truncate">
                 S3 Labs
               </span>
             </Link>

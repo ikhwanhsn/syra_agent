@@ -77,9 +77,9 @@ const ComparisonSection = () => {
     <section id="comparison" className="section-shell">
       <div className="section-divider" />
       <div className="absolute inset-0 bg-gradient-to-b from-background via-muted/10 to-background pointer-events-none" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(92vw,700px)] h-[min(92vw,700px)] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
 
-      <div className="container relative z-10">
+      <div className="container relative z-10 min-w-0">
         <SectionHeader
           eyebrow={"Comparison"}
           title={

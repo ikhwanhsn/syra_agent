@@ -4,6 +4,8 @@ import { useSearchParams } from "react-router-dom";
 import { Megaphone, Plus, Sparkles, Trophy, Users, Wallet } from "lucide-react";
 
 import { SitePageShell } from "@/components/landing/SitePageShell";
+import { pageContent } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -90,8 +92,8 @@ function KolPageContent() {
   const config = configQuery.data ?? DEFAULT_KOL_CONFIG;
 
   return (
-    <div className="relative z-[1] container pt-28 pb-20">
-        <section className="mb-10 max-w-3xl">
+    <div className={cn(pageContent, "pb-20")}>
+        <section className="mb-10 max-w-3xl min-w-0">
           <p className="eyebrow mb-3">KOL Marketplace</p>
           <h1 className="heading-display">
             Post on X, <span className="text-gradient">earn SOL</span>
@@ -132,7 +134,7 @@ function KolPageContent() {
         ) : (
           <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <TabsList className="panel-glass rounded-full p-1 h-auto flex-wrap w-fit">
+              <TabsList className="panel-glass rounded-full p-1 h-auto flex-wrap w-full sm:w-fit max-w-full justify-start">
                 <TabsTrigger value="browse" className="rounded-full gap-2">
                   <Megaphone className="w-4 h-4" />
                   Browse

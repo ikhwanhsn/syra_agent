@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 
 import { SitePageShell } from "@/components/landing/SitePageShell";
+import { pageContent } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 import HowItWorks from "@/components/HowItWorks";
 import FAQSection from "@/components/FAQSection";
 import { Button } from "@/components/ui/button";
@@ -18,7 +20,7 @@ const requirements = [
 function ApplyContent() {
   return (
     <>
-      <section className="container relative z-[1] pt-28 pb-12">
+      <section className={cn(pageContent, "pb-12")}>
         <div className="max-w-3xl mx-auto text-center">
           <p className="eyebrow mb-3">Apply</p>
           <h1 className="heading-display">
@@ -31,7 +33,7 @@ function ApplyContent() {
           </p>
         </div>
 
-        <div className="max-w-2xl mx-auto mt-12 panel-glass rounded-2xl border border-border/60 p-8 sm:p-10">
+        <div className="max-w-2xl mx-auto mt-12 panel-glass rounded-2xl border border-border/60 p-6 sm:p-8 md:p-10">
           <h2 className="text-xl font-semibold text-foreground mb-6">
             Project requirements
           </h2>

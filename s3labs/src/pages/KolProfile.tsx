@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 
 import { SitePageShell } from "@/components/landing/SitePageShell";
+import { pageContent } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -59,7 +61,7 @@ function KolProfileContent() {
   const profile = profileQuery.data;
 
   return (
-    <div className="relative z-[1] container pt-28 pb-20">
+    <div className={cn(pageContent, "pb-20")}>
         <Link
           to="/kol"
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary mb-8 transition-colors"

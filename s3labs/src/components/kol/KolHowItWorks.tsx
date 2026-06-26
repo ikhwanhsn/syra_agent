@@ -59,7 +59,7 @@ export function KolHowItWorks() {
         ))}
       </div>
 
-      <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground panel-glass rounded-xl px-4 py-3 w-fit">
+      <div className="mt-4 flex items-start gap-2 text-sm text-muted-foreground panel-glass rounded-xl px-4 py-3 w-full sm:w-fit max-w-full">
         <Trophy className="w-4 h-4 text-primary shrink-0" />
         <span>
           Your share = your engagement score ÷ total score × reward pool. Higher rank = bigger payout.

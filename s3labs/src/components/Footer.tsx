@@ -24,12 +24,12 @@ const Footer = () => {
   const [telegramOpen, setTelegramOpen] = useState(false);
 
   return (
-    <footer id="contact" className="relative pt-20 pb-10 overflow-hidden">
+    <footer id="contact" className="relative pt-16 sm:pt-20 pb-[max(2.5rem,env(safe-area-inset-bottom,0px))] overflow-hidden">
       <div className="section-divider" />
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
 
       <div className="container relative z-10">
-        <div className="panel-glass p-8 sm:p-10 lg:p-12 mb-10">
+        <div className="panel-glass p-6 sm:p-8 lg:p-12 mb-8 sm:mb-10">
           <div className="grid md:grid-cols-2 lg:grid-cols-12 gap-10 lg:gap-8">
             <div className="lg:col-span-5">
               <div className="flex items-center gap-2.5 mb-5">

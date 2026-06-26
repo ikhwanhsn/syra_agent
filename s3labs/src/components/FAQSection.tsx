@@ -7,7 +7,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 
-const FAQSection = () => {
+const FAQSection = () => {
 
   const faqs = [
     {
@@ -48,7 +48,7 @@ const FAQSection = () => {
               <AccordionItem
                 key={index}
                 value={`item-${index}`}
-                className="card-premium px-6 border-border/70 data-[state=open]:border-primary/30 transition-colors"
+                className="card-premium px-4 sm:px-6 border-border/70 data-[state=open]:border-primary/30 transition-colors"
               >
                 <AccordionTrigger className="text-left hover:no-underline py-5 text-foreground font-medium text-[15px] tracking-tight">
                   {faq.question}

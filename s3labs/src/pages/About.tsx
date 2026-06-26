@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 
 import { SitePageShell } from "@/components/landing/SitePageShell";
+import { pageContent } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 import MissionSection from "@/components/MissionSection";
 import TeamSection from "@/components/TeamSection";
 import WhyUsSection from "@/components/WhyUsSection";
@@ -11,7 +13,7 @@ import { Button } from "@/components/ui/button";
 function AboutContent() {
   return (
     <>
-      <section className="container relative z-[1] pt-28 pb-8">
+      <section className={cn(pageContent, "pb-8")}>
         <div className="max-w-3xl">
           <p className="eyebrow mb-3">About</p>
           <h1 className="heading-display">

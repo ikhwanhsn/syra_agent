@@ -4,12 +4,14 @@ import { Loader2, Lock, ShieldAlert } from "lucide-react";
 
 import { NavbarWalletButton } from "@/components/NavbarWalletButton";
 import { SitePageShell } from "@/components/landing/SitePageShell";
+import { pageContent } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 import { isAdminWallet } from "@/lib/adminWallet";
 
 function AdminGateShell({ children }: { children: React.ReactNode }) {
   return (
     <SitePageShell>
-      <div className="container relative z-[1] pt-28 pb-20 max-w-xl">{children}</div>
+      <div className={cn(pageContent, "pb-20 max-w-xl")}>{children}</div>
     </SitePageShell>
   );
 }

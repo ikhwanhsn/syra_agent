@@ -14,17 +14,17 @@ const HeroSection = () => {
   ];
 
   return (
-    <section className="relative min-h-[92vh] flex items-center justify-center pt-24 pb-16 overflow-hidden">
+    <section className="relative min-h-[88dvh] sm:min-h-[92vh] flex items-center justify-center pt-[max(6rem,calc(env(safe-area-inset-top,0px)+5rem))] pb-12 sm:pb-16 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-mesh" />
       <div className="absolute inset-0 grid-pattern opacity-[0.35]" />
-      <div className="absolute top-[15%] left-[8%] w-[28rem] h-[28rem] bg-primary/15 rounded-full blur-[100px] animate-float" />
+      <div className="absolute top-[15%] left-[8%] w-[min(28rem,70vw)] h-[min(28rem,70vw)] bg-primary/15 rounded-full blur-[100px] animate-float" />
       <div
-        className="absolute bottom-[10%] right-[5%] w-80 h-80 bg-accent/10 rounded-full blur-[90px] animate-float"
+        className="absolute bottom-[10%] right-[5%] w-[min(20rem,55vw)] h-[min(20rem,55vw)] bg-accent/10 rounded-full blur-[90px] animate-float"
         style={{ animationDelay: "2.5s" }}
       />
 
-      <div className="container relative z-10">
-        <div className="max-w-5xl mx-auto text-center">
+      <div className="container relative z-10 min-w-0">
+        <div className="max-w-5xl mx-auto text-center min-w-0">
           <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full panel-glass mb-8 animate-fade-up">
             <Sparkles className="w-3.5 h-3.5 text-primary" />
             <span className="text-xs font-semibold tracking-wide text-foreground/90 uppercase">
@@ -60,14 +60,14 @@ const HeroSection = () => {
               variant="hero"
               size="xl"
               asChild
-              className="group btn-premium min-w-[220px]"
+              className="group btn-premium w-full sm:w-auto sm:min-w-[220px] max-w-md mx-auto sm:mx-0"
             >
               <Link to="/apply">
                 {"Apply Your Project to S3 Labs"}
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
             </Button>
-            <Button variant="heroOutline" size="xl" asChild className="rounded-full min-w-[220px]">
+            <Button variant="heroOutline" size="xl" asChild className="rounded-full w-full sm:w-auto sm:min-w-[220px] max-w-md mx-auto sm:mx-0">
               <Link to="/programs">
                 {"Explore Our Programs"}
               </Link>

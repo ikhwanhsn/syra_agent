@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 
 import { SitePageShell } from "@/components/landing/SitePageShell";
+import { pageContent } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -248,7 +250,7 @@ function EventsAdminPageContent() {
   };
 
   return (
-    <div className="relative z-[1] container pt-28 pb-20">
+    <div className={cn(pageContent, "pb-20")}>
       <section className="mb-8 max-w-3xl">
         <p className="eyebrow mb-3 flex items-center gap-2">
           <Calendar className="w-4 h-4" />

@@ -90,11 +90,11 @@ const ProjectsShowcase = () => {
                   {project.description}
                 </p>
 
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
                   {project.metrics.map((metric, i) => (
                     <div
                       key={i}
-                      className="text-center p-3 rounded-xl bg-muted/30 border border-border/50"
+                      className="text-center p-2 sm:p-3 rounded-xl bg-muted/30 border border-border/50 min-w-0"
                     >
                       <div className="text-sm font-semibold text-foreground tabular-nums">
                         {metric.value}

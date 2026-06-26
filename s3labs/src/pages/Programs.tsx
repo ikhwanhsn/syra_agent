@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 
 import { SitePageShell } from "@/components/landing/SitePageShell";
+import { pageContent } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 import ProgramPillars from "@/components/landing/ProgramPillars";
 import WhoWeHelp from "@/components/WhoWeHelp";
 import BenefitsSection from "@/components/BenefitsSection";
@@ -13,7 +15,7 @@ import { Button } from "@/components/ui/button";
 function ProgramsContent() {
   return (
     <>
-      <section className="container relative z-[1] pt-28 pb-12">
+      <section className={cn(pageContent, "pb-12")}>
         <div className="max-w-3xl">
           <p className="eyebrow mb-3">Programs</p>
           <h1 className="heading-display">

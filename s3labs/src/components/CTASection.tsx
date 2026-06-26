@@ -9,10 +9,10 @@ const CTASection = () => {
     <section className="section-shell relative overflow-hidden">
       <div className="section-divider" />
       <div className="absolute inset-0 grid-pattern opacity-20 pointer-events-none" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(92vw,600px)] h-[min(92vw,600px)] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
 
-      <div className="container relative z-10">
-        <div className="panel-glass max-w-4xl mx-auto px-8 sm:px-12 py-14 sm:py-16 text-center relative overflow-hidden">
+      <div className="container relative z-10 min-w-0">
+        <div className="panel-glass max-w-4xl mx-auto px-5 sm:px-8 md:px-12 py-10 sm:py-14 md:py-16 text-center relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/5 pointer-events-none" />
           <div className="relative">
             <p className="eyebrow mb-5">{'Get Started'}</p>
@@ -26,13 +26,13 @@ const CTASection = () => {
               {'If your team is ready to grow and committed, we want to work with you.'}
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Button variant="cta" size="xl" asChild className="group btn-premium min-w-[220px]">
+              <Button variant="cta" size="xl" asChild className="group btn-premium w-full sm:w-auto sm:min-w-[220px] max-w-md">
                 <Link to="/apply">
                   {'Apply Your Project Now'}
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </Button>
-              <Button variant="heroOutline" size="xl" asChild className="rounded-full min-w-[220px]">
+              <Button variant="heroOutline" size="xl" asChild className="rounded-full w-full sm:w-auto sm:min-w-[220px] max-w-md">
                 <Link to="/community">
                   <MessageCircle className="w-5 h-5" />
                   {'Contact Us'}

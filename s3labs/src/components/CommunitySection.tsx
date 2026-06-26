@@ -5,7 +5,7 @@ import { Send, MessageCircle, Calendar, Users } from "lucide-react";
 
 const TELEGRAM_COMMUNITY_URL = "https://t.me/s3labs";
 
-const CommunitySection = () => {
+const CommunitySection = () => {
 
   const perks = [
     {
@@ -29,7 +29,7 @@ const CommunitySection = () => {
     <section id="community" className="section-shell">
       <div className="section-divider" />
       <div className="absolute inset-0 grid-pattern opacity-25 pointer-events-none" />
-      <div className="absolute -top-32 right-0 w-80 h-80 bg-primary/8 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute -top-32 right-0 w-[min(20rem,55vw)] h-[min(20rem,55vw)] bg-primary/8 rounded-full blur-[100px] pointer-events-none" />
 
       <div className="container relative z-10 max-w-6xl mx-auto">
         <SectionHeader

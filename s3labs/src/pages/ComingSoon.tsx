@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, Sparkles } from "lucide-react";
 
 import { SitePageShell } from "@/components/landing/SitePageShell";
+import { pageContent } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 interface ComingSoonProps {
@@ -11,8 +13,8 @@ interface ComingSoonProps {
 
 function ComingSoonContent({ title, description }: ComingSoonProps) {
   return (
-    <div className="relative z-[1] container pt-28 pb-20">
-      <div className="max-w-xl mx-auto text-center panel-glass px-8 py-16">
+    <div className={cn(pageContent, "pb-20")}>
+      <div className="max-w-xl mx-auto text-center panel-glass px-5 sm:px-8 py-12 sm:py-16">
         <div className="w-14 h-14 rounded-2xl bg-primary/10 ring-1 ring-primary/20 flex items-center justify-center mx-auto mb-6">
           <Sparkles className="w-7 h-7 text-primary" />
         </div>
