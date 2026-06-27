@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CampaignTweetPreview } from "@/components/kol/SourceTweetMedia";
 import type { KolCampaign } from "@/lib/kolApi";
 import { getKolRewardSol } from "@/lib/kolApi";
 import { formatSol, formatTimeLeft } from "@/lib/kolFormat";
@@ -26,7 +27,7 @@ export function CampaignCard({ campaign, onSelect }: CampaignCardProps) {
   const timeLeft = formatTimeLeft(campaign.endAt);
 
   return (
-    <article className="card-premium-hover rounded-2xl border border-border/60 p-5 flex flex-col gap-4">
+    <article className="card-premium-hover rounded-2xl border border-border/60 p-4 sm:p-5 flex flex-col gap-4 min-w-0">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="eyebrow mb-1">{isActive ? "Earn SOL" : "Campaign"}</p>
@@ -47,6 +48,11 @@ export function CampaignCard({ campaign, onSelect }: CampaignCardProps) {
         </Link>
       ) : null}
 
+      <CampaignTweetPreview
+        media={campaign.sourceTweetMedia}
+        tweetUrl={campaign.sourceTweetUrl}
+      />
+
       {campaign.sourceTweetText ? (
         <p className="text-sm text-muted-foreground line-clamp-2">{campaign.sourceTweetText}</p>
       ) : null}
@@ -61,22 +67,22 @@ export function CampaignCard({ campaign, onSelect }: CampaignCardProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 text-sm">
-        <div className="flex items-center gap-2 text-muted-foreground">
+      <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-2 sm:gap-3 text-sm">
+        <div className="flex items-center gap-2 text-muted-foreground min-w-0">
           <Users className="w-4 h-4 text-primary shrink-0" />
-          <span>{campaign.submissionCount ?? 0} KOLs joined</span>
+          <span className="truncate">{campaign.submissionCount ?? 0} KOLs joined</span>
         </div>
-        <div className="flex items-center gap-2 text-muted-foreground">
+        <div className="flex items-center gap-2 text-muted-foreground min-w-0">
           <Clock className="w-4 h-4 text-primary shrink-0" />
-          <span>{isActive ? timeLeft : timeLeft === "Ended" ? "Ended" : `${campaign.durationDays} days`}</span>
+          <span className="truncate">{isActive ? timeLeft : timeLeft === "Ended" ? "Ended" : `${campaign.durationDays} days`}</span>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 mt-auto pt-1">
+      <div className="flex flex-col gap-2 mt-auto pt-1 sm:flex-row sm:items-center sm:gap-2">
         <Button
           variant={isActive ? "hero" : "outline"}
           size="sm"
-          className="rounded-full gap-1.5"
+          className="rounded-full gap-1.5 w-full sm:w-auto shrink-0"
           onClick={() => onSelect?.(campaign.id)}
         >
           {isActive ? "Join & earn" : "View results"}
@@ -86,7 +92,7 @@ export function CampaignCard({ campaign, onSelect }: CampaignCardProps) {
           href={campaign.sourceTweetUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary ml-auto"
+          className="inline-flex items-center justify-center gap-1 text-xs text-muted-foreground hover:text-primary sm:ml-auto py-1.5 sm:py-0"
         >
           Source post
           <ExternalLink className="w-3 h-3" />

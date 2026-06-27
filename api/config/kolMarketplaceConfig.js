@@ -1,8 +1,5 @@
-/** KOL reward pool share paid to participants (basis points). */
-export const KOL_USER_REWARD_BPS = 8000;
-
-/** S3 Labs platform fee share (basis points). */
-export const KOL_PLATFORM_FEE_BPS = 2000;
+/** S3 Labs flat platform fee per campaign creation (SOL). */
+export const KOL_PLATFORM_FEE_SOL = 0.05;
 
 /** S3 Labs platform fee recipient (on-chain). */
 export const S3LABS_FEE_WALLET = "854tpY9AnaMYDpviWeo4eWXzoUmvLrYwkU16F2MtzHz8";
@@ -10,15 +7,21 @@ export const S3LABS_FEE_WALLET = "854tpY9AnaMYDpviWeo4eWXzoUmvLrYwkU16F2MtzHz8";
 /** Minimum KOL reward pool size (SOL). */
 export const MIN_KOL_REWARD_SOL = 0.1;
 
+/** Minimum KOL reward added per top-up (SOL). */
+export const MIN_TOPUP_KOL_REWARD_SOL = 0.1;
+
 /** Campaign duration bounds (days). */
 export const MIN_DURATION_DAYS = 1;
 export const MAX_DURATION_DAYS = 30;
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
 
-/** Minimum total deposit (SOL) that yields MIN_KOL_REWARD_SOL to the KOL pool. */
+/** Flat platform fee in lamports. */
+export const KOL_PLATFORM_FEE_LAMPORTS = Math.floor(KOL_PLATFORM_FEE_SOL * LAMPORTS_PER_SOL);
+
+/** Minimum total deposit (SOL) = min KOL pool + flat platform fee. */
 export function minTotalDepositSol() {
-  return (MIN_KOL_REWARD_SOL * 10000) / KOL_USER_REWARD_BPS;
+  return MIN_KOL_REWARD_SOL + KOL_PLATFORM_FEE_SOL;
 }
 
 /** Minimum total deposit in lamports. */
@@ -34,12 +37,26 @@ export function getS3labsFeeWallet() {
 }
 
 /**
- * Split total campaign deposit into KOL pool (80%) and platform fee (20%).
+ * Split total campaign deposit into KOL pool and flat platform fee.
  * @param {number} rewardLamports
  */
 export function splitRewardPool(rewardLamports) {
-  const total = BigInt(Math.floor(Number(rewardLamports) || 0));
-  const kolPoolLamports = Number((total * BigInt(KOL_USER_REWARD_BPS)) / 10000n);
-  const platformFeeLamports = Number(total - BigInt(kolPoolLamports));
+  const total = Math.floor(Number(rewardLamports) || 0);
+  const platformFeeLamports = Math.min(KOL_PLATFORM_FEE_LAMPORTS, total);
+  const kolPoolLamports = total - platformFeeLamports;
   return { kolPoolLamports, platformFeeLamports };
+}
+
+/**
+ * Compute deposit breakdown for a reward top-up (KOL amount + flat platform fee).
+ * @param {number} kolRewardSol
+ */
+export function computeTopUpDeposit(kolRewardSol) {
+  const kolRewardLamports = Math.floor(Number(kolRewardSol) * LAMPORTS_PER_SOL);
+  const platformFeeLamports = KOL_PLATFORM_FEE_LAMPORTS;
+  return {
+    kolRewardLamports,
+    platformFeeLamports,
+    totalDepositLamports: kolRewardLamports + platformFeeLamports,
+  };
 }

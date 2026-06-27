@@ -4,6 +4,7 @@
 import mongoose from "mongoose";
 import { isMongooseConnected } from "../config/mongoose.js";
 import KolCampaign from "../models/KolCampaign.js";
+import KolCampaignTopUp from "../models/KolCampaignTopUp.js";
 import KolSubmission from "../models/KolSubmission.js";
 import KolEngagementSnapshot from "../models/KolEngagementSnapshot.js";
 import KolPayout from "../models/KolPayout.js";
@@ -16,11 +17,12 @@ import {
   validateSubmissionTweet,
 } from "./kolEngagementService.js";
 import {
-  KOL_PLATFORM_FEE_BPS,
-  KOL_USER_REWARD_BPS,
+  KOL_PLATFORM_FEE_SOL,
   MAX_DURATION_DAYS,
   MIN_DURATION_DAYS,
   MIN_KOL_REWARD_SOL,
+  MIN_TOPUP_KOL_REWARD_SOL,
+  computeTopUpDeposit,
   getS3labsFeeWallet,
   minTotalDepositLamports,
   minTotalDepositSol,
@@ -39,6 +41,7 @@ import {
   refreshAllMarketplaceXProfiles,
   seedXProfileFromAuthor,
 } from "./kolXProfileCache.js";
+import { awardCampaignPoints } from "./s3labsPointsService.js";
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
 const MIN_REWARD_LAMPORTS = minTotalDepositLamports();
@@ -252,9 +255,8 @@ function getCampaignPlatformFeeLamports(campaign) {
  */
 function serializeCampaign(campaign) {
   const doc = campaign.toObject ? campaign.toObject() : campaign;
-  const { kolPoolLamports, platformFeeLamports } = splitRewardPool(doc.rewardLamports);
-  const kolRewardPoolLamports = doc.kolRewardPoolLamports ?? kolPoolLamports;
-  const platformFee = doc.platformFeeLamports ?? platformFeeLamports;
+  const kolRewardPoolLamports = getCampaignKolPoolLamports(doc);
+  const platformFee = getCampaignPlatformFeeLamports(doc);
   return {
     id: String(doc._id),
     projectWallet: doc.projectWallet,
@@ -280,8 +282,6 @@ function serializeCampaign(campaign) {
     kolRewardPoolSol: kolRewardPoolLamports / LAMPORTS_PER_SOL,
     platformFeeLamports: platformFee,
     platformFeeSol: platformFee / LAMPORTS_PER_SOL,
-    kolRewardPercent: KOL_USER_REWARD_BPS / 100,
-    platformFeePercent: KOL_PLATFORM_FEE_BPS / 100,
     platformFeeWallet: getS3labsFeeWallet(),
     platformFeeTxSignature: doc.platformFeeTxSignature ?? null,
     platformFeeStatus: doc.platformFeeStatus ?? null,
@@ -361,7 +361,18 @@ export async function createCampaign(input) {
 
   const rewardLamports = Math.floor(rewardSol * LAMPORTS_PER_SOL);
   if (rewardLamports < MIN_REWARD_LAMPORTS) {
-    const err = new Error(`Minimum KOL reward is ${MIN_KOL_REWARD_SOL} SOL (${minTotalDepositSol()} SOL total deposit)`);
+    const err = new Error(
+      `Minimum KOL reward is ${MIN_KOL_REWARD_SOL} SOL (${minTotalDepositSol()} SOL total deposit incl. ${KOL_PLATFORM_FEE_SOL} SOL platform fee)`,
+    );
+    err.code = "reward_too_low";
+    throw err;
+  }
+
+  const { kolPoolLamports, platformFeeLamports } = splitRewardPool(rewardLamports);
+  if (kolPoolLamports < Math.floor(MIN_KOL_REWARD_SOL * LAMPORTS_PER_SOL)) {
+    const err = new Error(
+      `Minimum KOL reward is ${MIN_KOL_REWARD_SOL} SOL (${minTotalDepositSol()} SOL total deposit incl. ${KOL_PLATFORM_FEE_SOL} SOL platform fee)`,
+    );
     err.code = "reward_too_low";
     throw err;
   }
@@ -384,8 +395,6 @@ export async function createCampaign(input) {
     status: "pending_deposit",
   });
 
-  const { kolPoolLamports, platformFeeLamports } = splitRewardPool(rewardLamports);
-
   return {
     campaign: serializeCampaign(campaign),
     deposit: {
@@ -396,8 +405,6 @@ export async function createCampaign(input) {
       kolRewardPoolSol: kolPoolLamports / LAMPORTS_PER_SOL,
       platformFeeLamports,
       platformFeeSol: platformFeeLamports / LAMPORTS_PER_SOL,
-      kolRewardPercent: KOL_USER_REWARD_BPS / 100,
-      platformFeePercent: KOL_PLATFORM_FEE_BPS / 100,
       platformFeeWallet: getS3labsFeeWallet(),
     },
   };
@@ -461,6 +468,223 @@ export async function confirmCampaignDeposit(campaignId, input) {
 }
 
 /**
+ * @param {import("../models/KolCampaignTopUp.js").default | Record<string, unknown>} topUp
+ */
+function serializeTopUp(topUp) {
+  const doc = topUp.toObject ? topUp.toObject() : topUp;
+  return {
+    id: String(doc._id),
+    campaignId: String(doc.campaignId),
+    projectWallet: doc.projectWallet,
+    kolRewardLamports: doc.kolRewardLamports,
+    kolRewardSol: doc.kolRewardLamports / LAMPORTS_PER_SOL,
+    totalDepositLamports: doc.totalDepositLamports,
+    totalDepositSol: doc.totalDepositLamports / LAMPORTS_PER_SOL,
+    platformFeeLamports: doc.platformFeeLamports,
+    platformFeeSol: doc.platformFeeLamports / LAMPORTS_PER_SOL,
+    depositTxSignature: doc.depositTxSignature ?? null,
+    platformFeeTxSignature: doc.platformFeeTxSignature ?? null,
+    platformFeeStatus: doc.platformFeeStatus ?? null,
+    status: doc.status,
+    createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : null,
+    confirmedAt: doc.updatedAt && doc.status === "confirmed"
+      ? new Date(doc.updatedAt).toISOString()
+      : null,
+  };
+}
+
+/**
+ * @param {import("../models/KolCampaign.js").default} campaign
+ */
+function assertCampaignAcceptsTopUp(campaign) {
+  if (campaign.status !== "active") {
+    const err = new Error("Only active campaigns can receive reward top-ups");
+    err.code = "invalid_status";
+    throw err;
+  }
+
+  if (campaign.endAt && new Date() >= new Date(campaign.endAt)) {
+    const err = new Error("Campaign has ended");
+    err.code = "campaign_ended";
+    throw err;
+  }
+}
+
+/**
+ * @param {string} campaignId
+ * @param {{ projectWallet: string; kolRewardSol: number }} input
+ */
+export async function createCampaignTopUp(campaignId, input) {
+  assertMongo();
+
+  const id = assertObjectId(campaignId);
+  const campaign = await KolCampaign.findById(id);
+  if (!campaign) {
+    const err = new Error("Campaign not found");
+    err.code = "not_found";
+    throw err;
+  }
+
+  assertCampaignAcceptsTopUp(campaign);
+
+  const projectWallet = normalizeWallet(input.projectWallet);
+  if (!projectWallet) {
+    const err = new Error("projectWallet is required");
+    err.code = "invalid_wallet";
+    throw err;
+  }
+
+  if (projectWallet !== campaign.projectWallet) {
+    const err = new Error("projectWallet does not match campaign creator");
+    err.code = "wallet_mismatch";
+    throw err;
+  }
+
+  const kolRewardSol = Number(input.kolRewardSol);
+  if (!Number.isFinite(kolRewardSol) || kolRewardSol <= 0) {
+    const err = new Error("kolRewardSol must be a positive number");
+    err.code = "invalid_reward";
+    throw err;
+  }
+
+  if (kolRewardSol < MIN_TOPUP_KOL_REWARD_SOL) {
+    const err = new Error(`Minimum top-up reward is ${MIN_TOPUP_KOL_REWARD_SOL} SOL`);
+    err.code = "reward_too_low";
+    throw err;
+  }
+
+  const existingPending = await KolCampaignTopUp.findOne({
+    campaignId: campaign._id,
+    status: "pending_deposit",
+  });
+  if (existingPending) {
+    const err = new Error("A reward top-up is already awaiting deposit for this campaign");
+    err.code = "topup_pending";
+    throw err;
+  }
+
+  const { kolRewardLamports, platformFeeLamports, totalDepositLamports } =
+    computeTopUpDeposit(kolRewardSol);
+
+  const topUp = await KolCampaignTopUp.create({
+    campaignId: campaign._id,
+    projectWallet,
+    kolRewardLamports,
+    totalDepositLamports,
+    platformFeeLamports,
+    status: "pending_deposit",
+    platformFeeStatus: "pending",
+  });
+
+  return {
+    topUp: serializeTopUp(topUp),
+    deposit: {
+      poolWalletAddress: getPoolWalletAddress(),
+      rewardLamports: totalDepositLamports,
+      rewardSol: totalDepositLamports / LAMPORTS_PER_SOL,
+      kolRewardPoolLamports: kolRewardLamports,
+      kolRewardPoolSol: kolRewardLamports / LAMPORTS_PER_SOL,
+      platformFeeLamports,
+      platformFeeSol: platformFeeLamports / LAMPORTS_PER_SOL,
+      platformFeeWallet: getS3labsFeeWallet(),
+    },
+  };
+}
+
+/**
+ * @param {string} campaignId
+ * @param {string} topUpId
+ * @param {{ txSignature: string; projectWallet: string }} input
+ */
+export async function confirmCampaignTopUp(campaignId, topUpId, input) {
+  assertMongo();
+
+  const campaignObjectId = assertObjectId(campaignId);
+  const topUpObjectId = assertObjectId(topUpId);
+
+  const campaign = await KolCampaign.findById(campaignObjectId);
+  if (!campaign) {
+    const err = new Error("Campaign not found");
+    err.code = "not_found";
+    throw err;
+  }
+
+  assertCampaignAcceptsTopUp(campaign);
+
+  const topUp = await KolCampaignTopUp.findOne({
+    _id: topUpObjectId,
+    campaignId: campaign._id,
+  });
+  if (!topUp) {
+    const err = new Error("Top-up not found");
+    err.code = "not_found";
+    throw err;
+  }
+
+  if (topUp.status !== "pending_deposit") {
+    const err = new Error("Top-up is not awaiting deposit");
+    err.code = "invalid_status";
+    throw err;
+  }
+
+  const projectWallet = normalizeWallet(input.projectWallet);
+  if (projectWallet !== campaign.projectWallet || projectWallet !== topUp.projectWallet) {
+    const err = new Error("projectWallet does not match campaign");
+    err.code = "wallet_mismatch";
+    throw err;
+  }
+
+  const txSignature = String(input.txSignature || "").trim();
+  if (!txSignature) {
+    const err = new Error("txSignature is required");
+    err.code = "invalid_tx";
+    throw err;
+  }
+
+  await verifyDeposit({
+    txSignature,
+    expectedLamports: topUp.totalDepositLamports,
+    fromWallet: projectWallet,
+  });
+
+  topUp.depositTxSignature = txSignature;
+  topUp.status = "confirmed";
+
+  campaign.rewardLamports = (campaign.rewardLamports ?? 0) + topUp.totalDepositLamports;
+  campaign.kolRewardPoolLamports =
+    (campaign.kolRewardPoolLamports ?? getCampaignKolPoolLamports(campaign)) +
+    topUp.kolRewardLamports;
+
+  if (topUp.platformFeeLamports > 0 && isPoolWalletConfigured()) {
+    try {
+      const feeSent = await sendPayout({
+        toWallet: getS3labsFeeWallet(),
+        lamports: topUp.platformFeeLamports,
+      });
+      topUp.platformFeeTxSignature = feeSent.txSignature;
+      topUp.platformFeeStatus = "confirmed";
+    } catch (e) {
+      topUp.platformFeeStatus = "failed";
+      console.warn(
+        `[kol] top-up platform fee failed campaign=${campaignId} topUp=${topUpId}:`,
+        e instanceof Error ? e.message : e,
+      );
+    }
+  } else if (topUp.platformFeeLamports > 0) {
+    topUp.platformFeeStatus = "failed";
+  }
+
+  await topUp.save();
+  await campaign.save();
+  await refreshCampaignProjections(campaign._id);
+
+  return {
+    topUp: serializeTopUp(topUp),
+    campaign: serializeCampaign(campaign),
+  };
+}
+
+/**
  * @param {{ status?: string; limit?: number }} [opts]
  */
 export async function listCampaigns(opts = {}) {
@@ -487,6 +711,15 @@ export async function listCampaigns(opts = {}) {
     { $group: { _id: "$campaignId", count: { $sum: 1 } } },
   ]);
   const countMap = new Map(submissionCounts.map((r) => [String(r._id), r.count]));
+
+  if (isTwitterApiIoConfigured()) {
+    const missingMedia = campaigns.filter(
+      (c) => !Array.isArray(c.sourceTweetMedia) || c.sourceTweetMedia.length === 0,
+    );
+    await Promise.allSettled(
+      missingMedia.slice(0, 12).map((c) => ensureCampaignTweetMedia(c)),
+    );
+  }
 
   return {
     campaigns: campaigns.map((c) => ({
@@ -790,6 +1023,7 @@ export async function finalizeCampaign(campaignId) {
 
   const submissions = await KolSubmission.find({ campaignId: campaign._id }).lean();
   const reputationResults = await creditKolReputationsForCampaign(campaign._id, submissions);
+  const pointsResults = await awardCampaignPoints(campaign._id, submissions);
   const kolPool = getCampaignKolPoolLamports(campaign);
   const payoutRows = computeProRataPayouts(submissions, kolPool);
   const platformFeeLamports = getCampaignPlatformFeeLamports(campaign);
@@ -885,7 +1119,7 @@ export async function finalizeCampaign(campaignId) {
   campaign.finalizedAt = new Date();
   await campaign.save();
 
-  return { success: true, payouts: results, reputation: reputationResults };
+  return { success: true, payouts: results, reputation: reputationResults, points: pointsResults };
 }
 
 /**

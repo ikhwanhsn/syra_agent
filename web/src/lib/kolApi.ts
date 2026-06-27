@@ -62,21 +62,19 @@ export interface KolMarketplaceStats {
 export interface KolConfig {
   poolWalletAddress: string;
   minRewardSol: number;
-  kolRewardPercent: number;
-  platformFeePercent: number;
+  platformFeeSol: number;
 }
 
 export const S3LABS_KOL_URL = "https://s3labs.io/kol";
 
 export const DEFAULT_KOL_CONFIG: KolConfig = {
   poolWalletAddress: "GGj37PSMDUUgkac5HkMx36Sk38zbHDMtXFLn6MR2HXnv",
-  minRewardSol: 0.125,
-  kolRewardPercent: 80,
-  platformFeePercent: 20,
+  minRewardSol: 0.15,
+  platformFeeSol: 0.05,
 };
 
 export function getKolRewardSol(campaign: Pick<KolCampaign, "kolRewardPoolSol" | "rewardSol">): number {
-  return campaign.kolRewardPoolSol ?? campaign.rewardSol * 0.8;
+  return campaign.kolRewardPoolSol ?? Math.max(0, campaign.rewardSol - DEFAULT_KOL_CONFIG.platformFeeSol);
 }
 
 const base = () => getApiBaseUrl().replace(/\/$/, "");

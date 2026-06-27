@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { submitEngagement } from "@/lib/kolApi";
 import { formatSol } from "@/lib/kolFormat";
+import { KolPointsInfo } from "@/components/kol/KolPointsInfo";
 
 interface SubmitEngagementFormProps {
   campaignId: string;
@@ -37,7 +38,7 @@ export function SubmitEngagementForm({
     onSuccess: () => {
       setTweetUrl("");
       toast.success("You're in!", {
-        description: "Your post is tracked. Climb the leaderboard to grow your payout.",
+        description: "Your post is tracked. Climb the leaderboard for SOL — submit early for more S3Labs Points.",
       });
       onSubmitted?.();
     },
@@ -47,7 +48,7 @@ export function SubmitEngagementForm({
   });
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 to-transparent p-6 sm:p-8 space-y-5">
+    <div className="relative overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 to-transparent p-5 sm:p-8 space-y-5 min-w-0">
       <div>
         <p className="eyebrow mb-1">Ready to earn?</p>
         <h3 className="font-semibold text-lg">Submit your post</h3>
@@ -65,6 +66,8 @@ export function SubmitEngagementForm({
           </div>
         ) : null}
       </div>
+
+      <KolPointsInfo compact />
 
       {!wallet.publicKey ? (
         <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">

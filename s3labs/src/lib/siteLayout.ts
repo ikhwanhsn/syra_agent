@@ -30,3 +30,9 @@ export const siteRoot =
 
 export const siteMain =
   "w-full min-w-0 max-w-full overflow-x-clip pb-[max(1rem,env(safe-area-inset-bottom,0px))]" as const;
+
+/** Fixed navbar — keep dropdowns/portals above this layer. */
+export const siteNavZ = "z-[250]" as const;
+export const siteNavDropdownZ = "z-[280]" as const;
+export const siteMobileNavOverlayZ = "z-[260]" as const;
+export const siteMobileNavDrawerZ = "z-[270]" as const;

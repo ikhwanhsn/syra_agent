@@ -14,8 +14,10 @@ import {
   type SiteNavItem,
 } from "@/lib/siteNav";
 import { isAdminWallet } from "@/lib/adminWallet";
+import { siteMobileNavDrawerZ, siteMobileNavOverlayZ } from "@/lib/siteLayout";
+import { prefetchRoute } from "@/lib/routePrefetch";
 import { cn } from "@/lib/utils";
-import { Moon, Sun, X } from "lucide-react";
+import { Moon, Sun, User, X } from "lucide-react";
 
 function DrawerNavLabel({ label, soon }: { label: string; soon?: boolean }) {
   return (
@@ -49,9 +51,11 @@ function DrawerSection({
           key={item.to}
           to={item.to}
           end={item.to === "/"}
-          className="flex min-h-11 items-center rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary/60 hover:text-foreground"
+          className="flex min-h-11 touch-manipulation items-center rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors duration-150 hover:bg-secondary/60 hover:text-foreground active:bg-secondary/80"
           activeClassName="bg-secondary/60 text-foreground"
           onClick={onNavigate}
+          onPointerEnter={() => prefetchRoute(item.to)}
+          onFocus={() => prefetchRoute(item.to)}
         >
           <DrawerNavLabel label={item.label} soon={item.soon} />
         </NavLink>
@@ -100,7 +104,8 @@ export function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps) {
         type="button"
         aria-label="Close navigation menu"
         className={cn(
-          "fixed inset-0 z-[210] bg-black/55 backdrop-blur-[2px] transition-opacity duration-300 lg:hidden",
+          "fixed inset-0 bg-black/55 backdrop-blur-[2px] transition-opacity duration-200 lg:hidden",
+          siteMobileNavOverlayZ,
           open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
         )}
         onClick={onClose}
@@ -111,7 +116,8 @@ export function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps) {
         id="mobile-nav-drawer"
         aria-hidden={!open}
         className={cn(
-          "mobile-nav-drawer panel-glass fixed inset-y-0 right-0 z-[220] flex w-[min(100vw,20rem)] flex-col border-l border-border/60 shadow-elevated transition-transform duration-300 ease-out lg:hidden",
+          "mobile-nav-drawer nav-bar-panel fixed inset-y-0 right-0 flex w-[min(100vw,20rem)] flex-col border-l border-border/60 shadow-elevated transition-transform duration-200 ease-out lg:hidden",
+          siteMobileNavDrawerZ,
           open ? "translate-x-0" : "translate-x-full pointer-events-none",
         )}
         style={{
@@ -156,9 +162,11 @@ export function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps) {
               key={item.to}
               to={item.to}
               end={item.to === "/"}
-              className="flex min-h-11 items-center rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary/60 hover:text-foreground"
+              className="flex min-h-11 touch-manipulation items-center rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors duration-150 hover:bg-secondary/60 hover:text-foreground active:bg-secondary/80"
               activeClassName="bg-secondary/60 text-foreground"
               onClick={onClose}
+              onPointerEnter={() => prefetchRoute(item.to)}
+              onFocus={() => prefetchRoute(item.to)}
             >
               <DrawerNavLabel label={item.label} soon={item.soon} />
             </NavLink>
@@ -166,6 +174,25 @@ export function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps) {
 
           <DrawerSection title="Program" links={programNavLinks} onNavigate={onClose} />
           <DrawerSection title="Others" links={othersLinks} onNavigate={onClose} />
+
+          {wallet.connected && address ? (
+            <div className="space-y-1">
+              <p className="px-3 pb-1 pt-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                Account
+              </p>
+              <NavLink
+                to="/profile"
+                className="flex min-h-11 touch-manipulation items-center rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors duration-150 hover:bg-secondary/60 hover:text-foreground active:bg-secondary/80"
+                activeClassName="bg-secondary/60 text-foreground"
+                onClick={onClose}
+              >
+                <span className="inline-flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Profile & Points
+                </span>
+              </NavLink>
+            </div>
+          ) : null}
         </nav>
 
         <div className="space-y-3 border-t border-border/60 px-4 py-4">

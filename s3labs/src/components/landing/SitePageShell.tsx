@@ -25,8 +25,8 @@ function SitePageContent({ children }: SitePageShellProps) {
     >
       <MeteorEffect />
       <MouseEffects />
-      <div className="relative z-10 flex min-h-dvh min-w-0 flex-col">
-        <Header />
+      <Header />
+      <div className="relative z-[1] flex min-h-dvh min-w-0 flex-col">
         <main className={siteMain}>{children}</main>
         <Footer />
         <ScrollToTop />

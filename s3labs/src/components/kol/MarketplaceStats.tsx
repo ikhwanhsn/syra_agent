@@ -35,7 +35,7 @@ function StatCard({ label, value, sub, icon, accent }: StatCardProps) {
         <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
         <span className="text-primary/80">{icon}</span>
       </div>
-      <p className="text-2xl sm:text-3xl font-semibold tabular-nums tracking-tight">{value}</p>
+      <p className="text-xl sm:text-2xl md:text-3xl font-semibold tabular-nums tracking-tight break-words">{value}</p>
       {sub ? <p className="text-xs text-muted-foreground">{sub}</p> : null}
     </div>
   );
@@ -43,7 +43,7 @@ function StatCard({ label, value, sub, icon, accent }: StatCardProps) {
 
 function StatsSkeleton() {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    <div className="grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
       {Array.from({ length: 8 }).map((_, i) => (
         <Skeleton key={i} className="h-28 rounded-2xl" />
       ))}
@@ -71,7 +71,7 @@ export function MarketplaceStats() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
           label="Total KOLs"
           value={formatCompact(data.uniqueKols)}
@@ -99,7 +99,7 @@ export function MarketplaceStats() {
           accent
         />
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
           label="Paid Out"
           value={`${formatSol(data.totalPaidSol)} SOL`}

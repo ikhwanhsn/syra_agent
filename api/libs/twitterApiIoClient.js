@@ -140,6 +140,18 @@ function upgradeTwitterMediaUrl(url) {
  * @param {Record<string, unknown>} raw
  */
 function normalizeMediaItem(raw) {
+  if (typeof raw === "string") {
+    const url = String(raw).trim();
+    if (!url.startsWith("http")) return null;
+    return {
+      mediaType: "photo",
+      url: upgradeTwitterMediaUrl(url),
+      previewUrl: null,
+    };
+  }
+
+  if (!raw || typeof raw !== "object") return null;
+
   const mediaType = String(raw.type ?? raw.media_type ?? "photo")
     .trim()
     .toLowerCase();
@@ -149,10 +161,14 @@ function normalizeMediaItem(raw) {
       raw.mediaUrl ??
       raw.media_url ??
       raw.url ??
+      raw.display_url ??
+      raw.expanded_url ??
       "",
   ).trim();
 
-  const previewUrl = String(raw.preview_image_url ?? raw.previewImageUrl ?? "").trim();
+  const previewUrl = String(
+    raw.preview_image_url ?? raw.previewImageUrl ?? raw.thumbnail_url ?? "",
+  ).trim();
 
   if (!url && Array.isArray(raw.variants)) {
     const mp4Variant = raw.variants
@@ -184,24 +200,119 @@ function normalizeMediaItem(raw) {
 }
 
 /**
- * @param {Record<string, unknown>} tweetRaw
+ * @param {unknown} body
+ * @returns {Map<string, Record<string, unknown>>}
  */
-export function extractTweetMedia(tweetRaw) {
+function buildIncludesMediaMap(body) {
+  /** @type {Map<string, Record<string, unknown>>} */
+  const map = new Map();
+  if (!body || typeof body !== "object") return map;
+
+  const obj = /** @type {Record<string, unknown>} */ (body);
+  const includes =
+    obj.includes && typeof obj.includes === "object"
+      ? /** @type {Record<string, unknown>} */ (obj.includes)
+      : obj.data && typeof obj.data === "object"
+        ? /** @type {Record<string, unknown>} */ (
+            /** @type {Record<string, unknown>} */ (obj.data).includes ?? {}
+          )
+        : null;
+
+  const mediaArrays = [
+    ...(Array.isArray(includes?.media) ? includes.media : []),
+    ...(Array.isArray(obj.media) && !Array.isArray(obj.tweets) ? obj.media : []),
+  ];
+
+  for (const item of mediaArrays) {
+    if (!item || typeof item !== "object") continue;
+    const record = /** @type {Record<string, unknown>} */ (item);
+    const key = String(record.media_key ?? record.mediaKey ?? record.id ?? "").trim();
+    if (key) map.set(key, record);
+  }
+
+  return map;
+}
+
+/**
+ * @param {Record<string, unknown>} tweetRaw
+ * @param {{ includesMedia?: Map<string, Record<string, unknown>> }} [ctx]
+ */
+export function extractTweetMedia(tweetRaw, ctx = {}) {
   /** @type {Record<string, unknown>[]} */
   const sources = [];
+  const includesMedia = ctx.includesMedia ?? new Map();
 
-  if (Array.isArray(tweetRaw?.media)) sources.push(...tweetRaw.media);
+  const pushSource = (item) => {
+    if (item == null) return;
+    if (typeof item === "string") {
+      sources.push({ type: "photo", url: item });
+      return;
+    }
+    if (typeof item === "object") sources.push(/** @type {Record<string, unknown>} */ (item));
+  };
+
+  if (Array.isArray(tweetRaw?.media)) {
+    for (const item of tweetRaw.media) pushSource(item);
+  }
+
+  for (const key of ["mediaUrls", "mediaPhotoUrls", "photoUrls", "images"]) {
+    const arr = tweetRaw?.[key];
+    if (Array.isArray(arr)) {
+      for (const item of arr) pushSource(item);
+    }
+  }
+
   if (tweetRaw?.entities && typeof tweetRaw.entities === "object") {
     const entities = /** @type {Record<string, unknown>} */ (tweetRaw.entities);
-    if (Array.isArray(entities.media)) sources.push(...entities.media);
+    if (Array.isArray(entities.media)) {
+      for (const item of entities.media) pushSource(item);
+    }
   }
   if (tweetRaw?.extendedEntities && typeof tweetRaw.extendedEntities === "object") {
     const extended = /** @type {Record<string, unknown>} */ (tweetRaw.extendedEntities);
-    if (Array.isArray(extended.media)) sources.push(...extended.media);
+    if (Array.isArray(extended.media)) {
+      for (const item of extended.media) pushSource(item);
+    }
   }
   if (tweetRaw?.extended_entities && typeof tweetRaw.extended_entities === "object") {
     const extended = /** @type {Record<string, unknown>} */ (tweetRaw.extended_entities);
-    if (Array.isArray(extended.media)) sources.push(...extended.media);
+    if (Array.isArray(extended.media)) {
+      for (const item of extended.media) pushSource(item);
+    }
+  }
+
+  const attachments = tweetRaw?.attachments;
+  if (attachments && typeof attachments === "object") {
+    const mediaKeys = /** @type {Record<string, unknown>} */ (attachments).media_keys;
+    if (Array.isArray(mediaKeys)) {
+      for (const key of mediaKeys) {
+        const mediaKey = String(key ?? "").trim();
+        if (!mediaKey) continue;
+        const included = includesMedia.get(mediaKey);
+        if (included) pushSource(included);
+      }
+    }
+  }
+
+  const card = tweetRaw?.card;
+  if (card && typeof card === "object") {
+    const cardObj = /** @type {Record<string, unknown>} */ (card);
+    pushSource(cardObj.image);
+    pushSource(cardObj.imageUrl);
+    pushSource(cardObj.thumbnail_image);
+    if (Array.isArray(cardObj.binding_values)) {
+      for (const binding of cardObj.binding_values) {
+        if (!binding || typeof binding !== "object") continue;
+        const b = /** @type {Record<string, unknown>} */ (binding);
+        const value = b.value && typeof b.value === "object"
+          ? /** @type {Record<string, unknown>} */ (b.value)
+          : null;
+        if (value?.image_value && typeof value.image_value === "object") {
+          const imageValue = /** @type {Record<string, unknown>} */ (value.image_value);
+          pushSource(imageValue.url);
+        }
+      }
+    }
   }
 
   /** @type {Array<{ mediaType: string; url: string; previewUrl: string | null }>} */
@@ -209,8 +320,7 @@ export function extractTweetMedia(tweetRaw) {
   const seen = new Set();
 
   for (const item of sources) {
-    if (!item || typeof item !== "object") continue;
-    const normalized = normalizeMediaItem(/** @type {Record<string, unknown>} */ (item));
+    const normalized = normalizeMediaItem(item);
     if (!normalized || seen.has(normalized.url)) continue;
     seen.add(normalized.url);
     out.push(normalized);
@@ -261,11 +371,13 @@ function normalizeAuthor(authorRaw) {
 
 /**
  * @param {Record<string, unknown>} tweetRaw
+ * @param {{ includesMedia?: Map<string, Record<string, unknown>> }} [ctx]
  */
-function normalizeTweet(tweetRaw) {
+function normalizeTweet(tweetRaw, ctx = {}) {
   const id = extractTweetId(tweetRaw?.id ?? tweetRaw?.tweetId ?? tweetRaw?.tweet_id);
   const text = extractTweetText(tweetRaw?.text ?? tweetRaw?.full_text ?? tweetRaw?.tweetText);
-  if (!id || !text) return null;
+  const media = extractTweetMedia(tweetRaw, ctx);
+  if (!id || (!text && media.length === 0)) return null;
 
   const authorRaw =
     tweetRaw?.author && typeof tweetRaw.author === "object"
@@ -360,7 +472,7 @@ function normalizeTweet(tweetRaw) {
       quoteCount,
       viewCount,
     },
-    media: extractTweetMedia(tweetRaw),
+    media,
     inReplyToId,
     quotedTweetId,
   };
@@ -458,10 +570,15 @@ export async function advancedSearch(opts) {
   if (opts?.cursor) params.cursor = String(opts.cursor).trim();
 
   const body = await twitterApiIoGet("/twitter/tweet/advanced_search", params);
+  const includesMedia = buildIncludesMediaMap(body);
   const rawTweets = extractTweetsArray(body);
 
   const tweets = rawTweets
-    .map((t) => (t && typeof t === "object" ? normalizeTweet(/** @type {Record<string, unknown>} */ (t)) : null))
+    .map((t) =>
+      t && typeof t === "object"
+        ? normalizeTweet(/** @type {Record<string, unknown>} */ (t), { includesMedia })
+        : null,
+    )
     .filter(Boolean);
 
   const obj = body && typeof body === "object" ? /** @type {Record<string, unknown>} */ (body) : {};
@@ -651,9 +768,14 @@ export async function getTweetById(tweetId) {
   }
 
   const body = await twitterApiIoGet("/twitter/tweets", { tweet_ids: id });
+  const includesMedia = buildIncludesMediaMap(body);
   const rawTweets = extractTweetsArray(body);
   const tweets = rawTweets
-    .map((t) => (t && typeof t === "object" ? normalizeTweet(/** @type {Record<string, unknown>} */ (t)) : null))
+    .map((t) =>
+      t && typeof t === "object"
+        ? normalizeTweet(/** @type {Record<string, unknown>} */ (t), { includesMedia })
+        : null,
+    )
     .filter(Boolean);
 
   const tweet = tweets.find((t) => t.id === id) ?? tweets[0] ?? null;

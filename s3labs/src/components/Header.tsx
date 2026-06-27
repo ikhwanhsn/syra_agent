@@ -22,7 +22,8 @@ import {
   type SiteNavItem,
 } from "@/lib/siteNav";
 import { isAdminWallet } from "@/lib/adminWallet";
-import { siteNavShell } from "@/lib/siteLayout";
+import { siteNavDropdownZ, siteNavShell, siteNavZ } from "@/lib/siteLayout";
+import { prefetchRoute } from "@/lib/routePrefetch";
 import { cn } from "@/lib/utils";
 import { Moon, Sun, Menu, ChevronDown } from "lucide-react";
 
@@ -42,7 +43,7 @@ function NavItemLabel({ label, soon }: { label: string; soon?: boolean }) {
   );
 }
 
-const HOVER_CLOSE_DELAY_MS = 120;
+const HOVER_CLOSE_DELAY_MS = 80;
 
 function isNavGroupActive(pathname: string, links: SiteNavItem[]): boolean {
   return links.some((item) =>
@@ -85,6 +86,11 @@ function NavHoverDropdown({
     closeTimer.current = setTimeout(() => setOpen(false), HOVER_CLOSE_DELAY_MS);
   }, [clearCloseTimer]);
 
+  const toggleMenu = useCallback(() => {
+    clearCloseTimer();
+    setOpen((prev) => !prev);
+  }, [clearCloseTimer]);
+
   useEffect(() => {
     closeMenu();
   }, [location.pathname, closeMenu]);
@@ -96,32 +102,34 @@ function NavHoverDropdown({
       <DropdownMenuTrigger
         onPointerEnter={openMenu}
         onPointerLeave={scheduleClose}
+        onClick={toggleMenu}
         className={cn(
           "nav-link-premium group inline-flex items-center gap-1 whitespace-nowrap outline-none",
           (isActive || open) && "text-foreground after:w-full",
         )}
       >
         {label}
-        <ChevronDown className="h-3.5 w-3.5 opacity-60 transition-transform duration-300 ease-out group-data-[state=open]:rotate-180" />
+        <ChevronDown className="h-3.5 w-3.5 opacity-60 transition-transform duration-150 ease-out group-data-[state=open]:rotate-180" />
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="center"
         sideOffset={10}
         onPointerEnter={openMenu}
         onPointerLeave={scheduleClose}
-        className="panel-glass z-[230] min-w-[168px] rounded-xl border-border/60 p-1.5 duration-200 ease-out"
+        className={cn(
+          "nav-bar-panel min-w-[168px] rounded-xl border-border/60 p-1.5 shadow-elevated duration-150 ease-out",
+          siteNavDropdownZ,
+        )}
       >
-        {links.map((item, index) => (
+        {links.map((item) => (
           <DropdownMenuItem
             key={item.to}
             asChild
-            className="rounded-lg transition-colors duration-200 animate-in fade-in-0 slide-in-from-top-1 fill-mode-both"
-            style={{
-              animationDelay: `${index * 40}ms`,
-              animationDuration: "200ms",
-            }}
+            className="cursor-pointer rounded-lg transition-colors duration-150"
+            onPointerEnter={() => prefetchRoute(item.to)}
+            onFocus={() => prefetchRoute(item.to)}
           >
-            <Link to={item.to} className="cursor-pointer" onClick={closeMenu}>
+            <Link to={item.to} className="cursor-pointer touch-manipulation" onClick={closeMenu}>
               <NavItemLabel label={item.label} soon={item.soon} />
             </Link>
           </DropdownMenuItem>
@@ -154,9 +162,14 @@ const Header = () => {
   }, [location.pathname, closeMobileMenu]);
 
   return (
-    <header className="fixed inset-x-0 top-0 z-[200] isolate pt-[env(safe-area-inset-top,0px)]">
-      <div className={cn(siteNavShell, "mt-2 min-[400px]:mt-3 sm:mt-4")}>
-        <div className="panel-glass relative z-[200] w-full min-w-0 overflow-hidden rounded-2xl border-border/60">
+    <header
+      className={cn(
+        "pointer-events-none fixed inset-x-0 top-0 pt-[env(safe-area-inset-top,0px)]",
+        siteNavZ,
+      )}
+    >
+      <div className={cn(siteNavShell, "pointer-events-auto mt-2 min-[400px]:mt-3 sm:mt-4")}>
+        <div className="nav-bar-panel relative w-full min-w-0 rounded-2xl">
           <div className="flex h-12 min-w-0 items-center justify-between gap-1.5 px-3 sm:h-14 sm:gap-2 sm:px-4 lg:h-16 lg:gap-4 lg:px-5">
             <Link
               to="/"
@@ -183,6 +196,8 @@ const Header = () => {
                   end={item.to === "/"}
                   className={cn("nav-link-premium shrink-0", item.soon && "opacity-80")}
                   activeClassName="text-foreground after:w-full"
+                  onPointerEnter={() => prefetchRoute(item.to)}
+                  onFocus={() => prefetchRoute(item.to)}
                 >
                   <NavItemLabel label={item.label} soon={item.soon} />
                 </NavLink>

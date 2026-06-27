@@ -1,4 +1,5 @@
-import { ArrowRight, Coins, MessageSquare, Trophy } from "lucide-react";
+import { ArrowRight, Award, Coins, MessageSquare, Trophy } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const steps = [
   {
@@ -26,7 +27,7 @@ const steps = [
 
 export function KolHowItWorks() {
   return (
-    <section className="mb-10">
+    <section className="mb-8 sm:mb-10 min-w-0">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-5">
         <div>
           <p className="eyebrow mb-2">How it works</p>
@@ -39,7 +40,7 @@ export function KolHowItWorks() {
         </p>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-4">
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         {steps.map((step) => (
           <div
             key={step.number}
@@ -59,11 +60,22 @@ export function KolHowItWorks() {
         ))}
       </div>
 
-      <div className="mt-4 flex items-start gap-2 text-sm text-muted-foreground panel-glass rounded-xl px-4 py-3 w-full sm:w-fit max-w-full">
-        <Trophy className="w-4 h-4 text-primary shrink-0" />
-        <span>
-          Your share = your engagement score ÷ total score × reward pool. Higher rank = bigger payout.
-        </span>
+      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+        <div className="flex items-start gap-2 text-sm text-muted-foreground panel-glass rounded-xl px-4 py-3 w-full sm:flex-1 sm:min-w-[240px]">
+          <Trophy className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+          <span>
+            Your share = your engagement score ÷ total score × reward pool. Higher rank = bigger payout.
+          </span>
+        </div>
+        <div className="flex items-start gap-2 text-sm text-muted-foreground panel-glass rounded-xl px-4 py-3 w-full sm:flex-1 sm:min-w-[240px] border border-primary/15">
+          <Award className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+          <span>
+            +1 S3Labs Point per campaign, plus up to +3 early-bird points for submitting early.{" "}
+            <Link to="/profile" className="text-primary hover:underline">
+              Track on profile
+            </Link>
+          </span>
+        </div>
       </div>
     </section>
   );

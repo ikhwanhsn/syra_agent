@@ -5,7 +5,9 @@ import express from "express";
 import { requireMongooseConnection } from "../../config/mongoose.js";
 import {
   confirmCampaignDeposit,
+  confirmCampaignTopUp,
   createCampaign,
+  createCampaignTopUp,
   createSubmission,
   enrichMissingCampaignAuthors,
   backfillSubmissionAuthorKeys,
@@ -19,13 +21,14 @@ import {
   listProjects,
 } from "../../libs/kolMarketplaceService.js";
 import { refreshAllMarketplaceXProfiles } from "../../libs/kolXProfileCache.js";
+import { getWalletPoints, getPointsLeaderboard } from "../../libs/s3labsPointsService.js";
 import { getPoolWalletAddress } from "../../services/kolPoolWallet.js";
 import {
-  KOL_PLATFORM_FEE_BPS,
-  KOL_USER_REWARD_BPS,
+  KOL_PLATFORM_FEE_SOL,
   MAX_DURATION_DAYS,
   MIN_DURATION_DAYS,
   MIN_KOL_REWARD_SOL,
+  MIN_TOPUP_KOL_REWARD_SOL,
   getS3labsFeeWallet,
   minTotalDepositSol,
 } from "../../config/kolMarketplaceConfig.js";
@@ -47,6 +50,7 @@ function handleServiceError(res, error) {
     wallet_mismatch: 400,
     invalid_status: 400,
     campaign_ended: 400,
+    topup_pending: 409,
     duplicate_submission: 409,
     duplicate_kol_handle: 409,
     duplicate_post: 409,
@@ -79,8 +83,8 @@ export function createKolRouter() {
         minKolRewardSol: MIN_KOL_REWARD_SOL,
         minDurationDays: MIN_DURATION_DAYS,
         maxDurationDays: MAX_DURATION_DAYS,
-        kolRewardPercent: KOL_USER_REWARD_BPS / 100,
-        platformFeePercent: KOL_PLATFORM_FEE_BPS / 100,
+        platformFeeSol: KOL_PLATFORM_FEE_SOL,
+        minTopUpKolRewardSol: MIN_TOPUP_KOL_REWARD_SOL,
         platformFeeWallet: getS3labsFeeWallet(),
       },
     });
@@ -195,6 +199,29 @@ export function createKolRouter() {
     }
   });
 
+  router.post("/campaigns/:id/top-ups", requireMongooseConnection, async (req, res) => {
+    try {
+      const { projectWallet, kolRewardSol } = req.body || {};
+      const result = await createCampaignTopUp(req.params.id, { projectWallet, kolRewardSol });
+      return res.status(201).json({ success: true, data: result });
+    } catch (e) {
+      return handleServiceError(res, e);
+    }
+  });
+
+  router.post("/campaigns/:id/top-ups/:topUpId/confirm-deposit", requireMongooseConnection, async (req, res) => {
+    try {
+      const { txSignature, projectWallet } = req.body || {};
+      const result = await confirmCampaignTopUp(req.params.id, req.params.topUpId, {
+        txSignature,
+        projectWallet,
+      });
+      return res.json({ success: true, data: result });
+    } catch (e) {
+      return handleServiceError(res, e);
+    }
+  });
+
   router.get("/campaigns", requireMongooseConnection, async (req, res) => {
     try {
       const status = typeof req.query.status === "string" ? req.query.status : undefined;
@@ -228,6 +255,25 @@ export function createKolRouter() {
   router.get("/wallets/:wallet/earnings", requireMongooseConnection, async (req, res) => {
     try {
       const result = await getWalletEarnings(req.params.wallet);
+      return res.json({ success: true, data: result });
+    } catch (e) {
+      return handleServiceError(res, e);
+    }
+  });
+
+  router.get("/wallets/:wallet/points", requireMongooseConnection, async (req, res) => {
+    try {
+      const result = await getWalletPoints(req.params.wallet);
+      return res.json({ success: true, data: result });
+    } catch (e) {
+      return handleServiceError(res, e);
+    }
+  });
+
+  router.get("/points/leaderboard", requireMongooseConnection, async (req, res) => {
+    try {
+      const limit = typeof req.query.limit === "string" ? Number(req.query.limit) : undefined;
+      const result = await getPointsLeaderboard({ limit });
       return res.json({ success: true, data: result });
     } catch (e) {
       return handleServiceError(res, e);

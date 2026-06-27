@@ -32,8 +32,6 @@ export interface KolCampaign {
   kolRewardPoolSol?: number;
   platformFeeLamports?: number;
   platformFeeSol?: number;
-  kolRewardPercent?: number;
-  platformFeePercent?: number;
   platformFeeWallet?: string;
   platformFeeTxSignature?: string | null;
   platformFeeStatus?: "pending" | "confirmed" | "failed" | null;
@@ -188,6 +186,43 @@ export interface KolProfile {
   };
 }
 
+export interface WalletPointsEntry {
+  id: string;
+  campaignId: string;
+  campaignTitle: string | null;
+  campaignStatus: KolCampaign["status"] | null;
+  submissionId: string;
+  handle: string | null;
+  rank: number;
+  participationPoints: number;
+  earlyPoints: number;
+  totalPoints: number;
+  awardedAt: string | null;
+}
+
+export interface WalletPoints {
+  wallet: string;
+  walletKey: string;
+  totalPoints: number;
+  participationPoints: number;
+  earlyPoints: number;
+  campaignsParticipated: number;
+  lastHandle: string | null;
+  lastAwardedAt: string | null;
+  entries: WalletPointsEntry[];
+}
+
+export interface PointsLeaderboardEntry {
+  rank: number;
+  wallet: string;
+  handle: string | null;
+  totalPoints: number;
+  participationPoints: number;
+  earlyPoints: number;
+  campaignsParticipated: number;
+  lastAwardedAt: string | null;
+}
+
 export type ProjectSortKey = "funded" | "campaigns" | "kols" | "recent";
 export type KolSortKey = "earned" | "score" | "engagement" | "campaigns" | "recent";
 
@@ -195,25 +230,66 @@ export interface KolConfig {
   poolWalletAddress: string;
   minRewardSol: number;
   minKolRewardSol?: number;
+  minTopUpKolRewardSol?: number;
   minDurationDays?: number;
   maxDurationDays: number;
-  kolRewardPercent: number;
-  platformFeePercent: number;
+  platformFeeSol: number;
   platformFeeWallet: string;
 }
 
+export interface KolCampaignTopUp {
+  id: string;
+  campaignId: string;
+  projectWallet: string;
+  kolRewardLamports: number;
+  kolRewardSol: number;
+  totalDepositLamports: number;
+  totalDepositSol: number;
+  platformFeeLamports: number;
+  platformFeeSol: number;
+  depositTxSignature: string | null;
+  platformFeeTxSignature: string | null;
+  platformFeeStatus: "pending" | "confirmed" | "failed" | null;
+  status: "pending_deposit" | "confirmed" | "failed" | "cancelled";
+  createdAt: string | null;
+  confirmedAt: string | null;
+}
+
 export function getKolRewardSol(campaign: Pick<KolCampaign, "kolRewardPoolSol" | "rewardSol">): number {
-  return campaign.kolRewardPoolSol ?? campaign.rewardSol * 0.8;
+  return campaign.kolRewardPoolSol ?? Math.max(0, campaign.rewardSol - DEFAULT_KOL_CONFIG.platformFeeSol);
+}
+
+/** Best URL to display for a tweet media item (photo preview or direct URL). */
+export function getTweetMediaDisplayUrl(item: KolTweetMedia): string {
+  return item.previewUrl || item.url;
+}
+
+/** First photo/image from a campaign source tweet, if any. */
+export function getCampaignTweetPreviewMedia(media?: KolTweetMedia[]): KolTweetMedia | null {
+  if (!media?.length) return null;
+  const photo = media.find(
+    (item) =>
+      item.url &&
+      (item.mediaType === "photo" ||
+        item.mediaType === "image" ||
+        !isVideoMediaType(item.mediaType)),
+  );
+  return photo ?? media.find((item) => item.url) ?? null;
+}
+
+function isVideoMediaType(mediaType: string): boolean {
+  const type = mediaType.toLowerCase();
+  return type === "video" || type === "gif" || type === "animated_gif";
 }
 
 export const DEFAULT_KOL_CONFIG: KolConfig = {
   poolWalletAddress: "GGj37PSMDUUgkac5HkMx36Sk38zbHDMtXFLn6MR2HXnv",
-  minRewardSol: 0.125,
+  minRewardSol: 0.15,
   minKolRewardSol: 0.1,
+  minTopUpKolRewardSol: 0.1,
   minDurationDays: 1,
   maxDurationDays: 30,
-  kolRewardPercent: 80,
-  platformFeePercent: 20,
+  platformFeeSol: 0.05,
   platformFeeWallet: "854tpY9AnaMYDpviWeo4eWXzoUmvLrYwkU16F2MtzHz8",
 };
 
@@ -269,8 +345,6 @@ export function createCampaign(input: {
     kolRewardPoolSol: number;
     platformFeeLamports: number;
     platformFeeSol: number;
-    kolRewardPercent: number;
-    platformFeePercent: number;
     platformFeeWallet: string;
   };
 }> {
@@ -288,6 +362,42 @@ export function confirmCampaignDeposit(
     method: "POST",
     body: JSON.stringify(input),
   });
+}
+
+export function createCampaignTopUp(
+  campaignId: string,
+  input: { projectWallet: string; kolRewardSol: number },
+): Promise<{
+  topUp: KolCampaignTopUp;
+  deposit: {
+    poolWalletAddress: string;
+    rewardLamports: number;
+    rewardSol: number;
+    kolRewardPoolLamports: number;
+    kolRewardPoolSol: number;
+    platformFeeLamports: number;
+    platformFeeSol: number;
+    platformFeeWallet: string;
+  };
+}> {
+  return kolFetch(`/kol/campaigns/${encodeURIComponent(campaignId)}/top-ups`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function confirmCampaignTopUp(
+  campaignId: string,
+  topUpId: string,
+  input: { txSignature: string; projectWallet: string },
+): Promise<{ topUp: KolCampaignTopUp; campaign: KolCampaign }> {
+  return kolFetch(
+    `/kol/campaigns/${encodeURIComponent(campaignId)}/top-ups/${encodeURIComponent(topUpId)}/confirm-deposit`,
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    },
+  );
 }
 
 export function submitEngagement(
@@ -312,6 +422,19 @@ export function fetchWalletEarnings(wallet: string): Promise<{
   };
 }> {
   return kolFetch(`/kol/wallets/${encodeURIComponent(wallet)}/earnings`);
+}
+
+export function fetchWalletPoints(wallet: string): Promise<WalletPoints> {
+  return kolFetch<WalletPoints>(`/kol/wallets/${encodeURIComponent(wallet)}/points`);
+}
+
+export function fetchPointsLeaderboard(opts?: {
+  limit?: number;
+}): Promise<{ leaderboard: PointsLeaderboardEntry[] }> {
+  const params = new URLSearchParams();
+  if (opts?.limit != null) params.set("limit", String(opts.limit));
+  const qs = params.toString() ? `?${params.toString()}` : "";
+  return kolFetch<{ leaderboard: PointsLeaderboardEntry[] }>(`/kol/points/leaderboard${qs}`);
 }
 
 export function fetchKolStats(): Promise<KolMarketplaceStats> {

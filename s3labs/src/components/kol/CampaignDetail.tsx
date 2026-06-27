@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -13,9 +14,10 @@ import { Link } from "react-router-dom";
 import { Badge, badgeVariants } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { KolCampaign, KolLeaderboardEntry } from "@/lib/kolApi";
-import { getKolRewardSol } from "@/lib/kolApi";
+import { DEFAULT_KOL_CONFIG, fetchKolConfig, getKolRewardSol } from "@/lib/kolApi";
 import { formatSol, formatTimeLeft } from "@/lib/kolFormat";
 import { cn } from "@/lib/utils";
+import { AddRewardForm } from "./AddRewardForm";
 import { CampaignLeaderboard } from "./CampaignLeaderboard";
 import { KolMyRankShareAction } from "./KolMyRankShareBar";
 import { SourceTweetCard } from "./SourceTweetCard";
@@ -49,13 +51,20 @@ const earnSteps = [
 ] as const;
 
 export function CampaignDetail({ campaign, leaderboard, onClose, onRefresh }: CampaignDetailProps) {
+  const configQuery = useQuery({
+    queryKey: ["kol-config"],
+    queryFn: fetchKolConfig,
+    staleTime: 5 * 60 * 1000,
+  });
+  const config = configQuery.data ?? DEFAULT_KOL_CONFIG;
+
   const rewardSol = getKolRewardSol(campaign);
   const isActive = campaign.status === "active";
   const timeLeft = formatTimeLeft(campaign.endAt);
   const participantCount = campaign.submissionCount ?? leaderboard.length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       <Button
         variant="ghost"
         size="sm"
@@ -67,14 +76,14 @@ export function CampaignDetail({ campaign, leaderboard, onClose, onRefresh }: Ca
       </Button>
 
       {/* Reward hero */}
-      <div className="relative overflow-hidden rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-6 sm:p-8">
-        <div className="absolute top-4 right-4">
-          <Button variant="ghost" size="icon" className="rounded-full shrink-0" onClick={onClose}>
+      <div className="relative overflow-hidden rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-5 sm:p-8">
+        <div className="absolute top-3 right-3 sm:top-4 sm:right-4">
+          <Button variant="ghost" size="icon" className="rounded-full shrink-0 h-8 w-8 sm:h-9 sm:w-9" onClick={onClose}>
             <X className="w-4 h-4" />
           </Button>
         </div>
 
-        <div className="flex flex-wrap gap-2 mb-4">
+        <div className="flex flex-wrap gap-2 mb-4 pr-10">
           <Badge variant="outline" className={`capitalize ${statusStyles[campaign.status]}`}>
             {campaign.status.replace("_", " ")}
           </Badge>
@@ -87,36 +96,36 @@ export function CampaignDetail({ campaign, leaderboard, onClose, onRefresh }: Ca
         </div>
 
         <p className="eyebrow mb-2">{isActive ? "Earn now" : "Campaign"}</p>
-        <h2 className="heading-section text-2xl sm:text-3xl max-w-2xl">{campaign.title}</h2>
+        <h2 className="heading-section text-xl sm:text-2xl md:text-3xl max-w-2xl pr-8">{campaign.title}</h2>
         {campaign.description ? (
           <p className="text-muted-foreground mt-2 max-w-2xl">{campaign.description}</p>
         ) : null}
 
         <p className="text-sm text-muted-foreground mt-3 max-w-2xl">{statusMessages[campaign.status]}</p>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-6 max-w-lg">
-          <div className="rounded-xl border border-primary/20 bg-background/40 backdrop-blur-sm p-4">
+        <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-3 gap-3 mt-6 max-w-lg">
+          <div className="rounded-xl border border-primary/20 bg-background/40 backdrop-blur-sm p-3 sm:p-4">
             <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
               <Coins className="w-3.5 h-3.5 text-primary" />
               Reward pool
             </div>
-            <p className="text-2xl font-semibold tabular-nums text-primary">
-              {formatSol(rewardSol)} <span className="text-base font-medium">SOL</span>
+            <p className="text-xl sm:text-2xl font-semibold tabular-nums text-primary">
+              {formatSol(rewardSol)} <span className="text-sm sm:text-base font-medium">SOL</span>
             </p>
           </div>
-          <div className="rounded-xl border border-border/60 bg-background/40 backdrop-blur-sm p-4">
+          <div className="rounded-xl border border-border/60 bg-background/40 backdrop-blur-sm p-3 sm:p-4">
             <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
               <Users className="w-3.5 h-3.5 text-primary" />
               KOLs joined
             </div>
-            <p className="text-2xl font-semibold tabular-nums">{participantCount}</p>
+            <p className="text-xl sm:text-2xl font-semibold tabular-nums">{participantCount}</p>
           </div>
-          <div className="rounded-xl border border-border/60 bg-background/40 backdrop-blur-sm p-4 col-span-2 sm:col-span-1">
+          <div className="rounded-xl border border-border/60 bg-background/40 backdrop-blur-sm p-3 sm:p-4 min-[400px]:col-span-2 sm:col-span-1">
             <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
               <Clock className="w-3.5 h-3.5 text-primary" />
               Duration
             </div>
-            <p className="text-2xl font-semibold tabular-nums">
+            <p className="text-xl sm:text-2xl font-semibold tabular-nums">
               {isActive ? timeLeft : `${campaign.durationDays}d`}
             </p>
           </div>
@@ -140,8 +149,18 @@ export function CampaignDetail({ campaign, leaderboard, onClose, onRefresh }: Ca
         ) : null}
       </div>
 
+      {isActive ? (
+        <AddRewardForm
+          campaign={campaign}
+          currentPoolSol={rewardSol}
+          platformFeeSol={config.platformFeeSol}
+          minTopUpKolRewardSol={config.minTopUpKolRewardSol}
+          onAdded={onRefresh}
+        />
+      ) : null}
+
       {/* Source post */}
-      <div className="panel-glass rounded-2xl border border-border/60 p-6 sm:p-8 space-y-4">
+      <div className="panel-glass rounded-2xl border border-border/60 p-5 sm:p-8 space-y-4 min-w-0">
         <div className="flex items-center gap-2">
           <MessageSquare className="w-4 h-4 text-primary" />
           <h3 className="font-semibold">Post to amplify</h3>
@@ -163,7 +182,7 @@ export function CampaignDetail({ campaign, leaderboard, onClose, onRefresh }: Ca
 
       {/* How to earn — active campaigns */}
       {isActive ? (
-        <div className="panel-glass rounded-2xl border border-border/60 p-6 sm:p-8">
+        <div className="panel-glass rounded-2xl border border-border/60 p-5 sm:p-8">
           <p className="eyebrow mb-2">Your path to rewards</p>
           <h3 className="font-semibold text-lg mb-4">How to claim your share</h3>
           <ol className="space-y-3">
@@ -188,14 +207,14 @@ export function CampaignDetail({ campaign, leaderboard, onClose, onRefresh }: Ca
         />
       ) : null}
 
-      <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-          <div>
+      <div className="space-y-4 min-w-0">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
             <div className="flex items-center gap-2 mb-1.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 border border-primary/20">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 shrink-0">
                 <Trophy className="w-4 h-4 text-primary" />
               </div>
-              <h3 className="font-semibold text-lg tracking-tight">Live leaderboard</h3>
+              <h3 className="font-semibold text-base sm:text-lg tracking-tight">Live leaderboard</h3>
             </div>
             <p className="text-sm text-muted-foreground max-w-xl">
               {campaign.status === "completed"
@@ -203,7 +222,7 @@ export function CampaignDetail({ campaign, leaderboard, onClose, onRefresh }: Ca
                 : "Rankings update daily. Higher score = larger projected payout."}
             </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0 self-start sm:self-end">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
             {leaderboard.length > 0 ? (
               <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground">
                 <Users className="w-3.5 h-3.5" />

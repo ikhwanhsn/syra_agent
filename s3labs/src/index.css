@@ -50,6 +50,8 @@
     --gradient-mesh: radial-gradient(ellipse 80% 50% at 50% -20%, hsl(166, 100%, 40%, 0.12), transparent 60%);
     --glass-bg: hsl(0, 0%, 100%, 0.72);
     --glass-border: hsl(214, 20%, 88%, 0.8);
+    --nav-bar-bg: hsl(0, 0%, 100%, 0.88);
+    --nav-bar-border: hsl(214, 20%, 86%, 0.95);
     --shadow-glow: 0 0 80px hsl(166, 100%, 40%, 0.18);
     --shadow-card: 0 1px 2px hsl(222, 47%, 11%, 0.04), 0 8px 32px hsl(222, 47%, 11%, 0.06);
     --shadow-elevated: 0 4px 8px hsl(222, 47%, 11%, 0.04), 0 24px 64px hsl(222, 47%, 11%, 0.1);
@@ -95,6 +97,8 @@
     --gradient-mesh: radial-gradient(ellipse 80% 50% at 50% -20%, hsl(166, 100%, 50%, 0.14), transparent 55%);
     --glass-bg: hsl(222, 47%, 9%, 0.65);
     --glass-border: hsl(222, 30%, 22%, 0.9);
+    --nav-bar-bg: hsl(222, 47%, 8%, 0.92);
+    --nav-bar-border: hsl(222, 30%, 24%, 0.95);
     --shadow-glow: 0 0 100px hsl(166, 100%, 50%, 0.22);
     --shadow-card: 0 1px 2px hsl(0, 0%, 0%, 0.2), 0 12px 40px hsl(0, 0%, 0%, 0.35);
     --shadow-elevated: 0 4px 12px hsl(0, 0%, 0%, 0.25), 0 32px 80px hsl(0, 0%, 0%, 0.45);
@@ -208,13 +212,20 @@
     box-shadow: var(--shadow-card), var(--shadow-inner-glow);
   }
 
+  .nav-bar-panel {
+    background: var(--nav-bar-bg);
+    border: 1px solid var(--nav-bar-border);
+    @apply backdrop-blur-xl rounded-2xl;
+    box-shadow: var(--shadow-elevated), var(--shadow-inner-glow);
+  }
+
   .nav-link-premium {
-    @apply relative text-sm font-medium text-muted-foreground transition-colors duration-200 hover:text-foreground;
+    @apply relative inline-flex cursor-pointer touch-manipulation select-none text-sm font-medium text-muted-foreground transition-colors duration-150 hover:text-foreground active:text-foreground active:opacity-90;
   }
 
   .nav-link-premium::after {
     content: "";
-    @apply absolute -bottom-1 left-0 h-px w-0 bg-primary transition-all duration-300;
+    @apply absolute -bottom-1 left-0 h-px w-0 bg-primary transition-all duration-150;
   }
 
   .nav-link-premium:hover::after {
@@ -236,8 +247,14 @@
       radial-gradient(ellipse 80% 60% at 90% 10%, hsl(180, 80%, 40%, 0.06) 0%, transparent 50%),
       radial-gradient(ellipse 70% 70% at 50% 100%, hsl(166, 80%, 45%, 0.05) 0%, transparent 50%),
       linear-gradient(180deg, hsl(210, 25%, 99%) 0%, hsl(210, 20%, 96%) 50%, hsl(210, 18%, 95%) 100%);
-    background-attachment: fixed;
+    background-attachment: scroll;
     background-size: 100% 100%;
+  }
+
+  @media (min-width: 768px) {
+    .landing-light-bg {
+      background-attachment: fixed;
+    }
   }
 
   /* Hide scrollbar on desktop (md and up); scroll still works via wheel/drag */

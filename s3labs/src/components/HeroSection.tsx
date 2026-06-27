@@ -16,13 +16,17 @@ const HeroSection = () => {
   ];
 
   return (
-    <section className="relative min-h-[88dvh] sm:min-h-[92vh] flex items-center justify-center pt-[max(6rem,calc(env(safe-area-inset-top,0px)+5rem))] pb-12 sm:pb-16 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-mesh" />
-      <div className="absolute inset-0 grid-pattern opacity-[0.35]" />
-      <div className="absolute top-[15%] left-[8%] w-[min(28rem,70vw)] h-[min(28rem,70vw)] bg-primary/15 rounded-full blur-[100px] animate-float" />
+    <section className="relative min-h-[88dvh] sm:min-h-[92vh] flex items-center justify-center pt-[max(7rem,calc(env(safe-area-inset-top,0px)+5.5rem))] pb-12 sm:pb-16 overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 bg-gradient-mesh" aria-hidden />
+      <div className="pointer-events-none absolute inset-0 grid-pattern opacity-[0.35]" aria-hidden />
       <div
-        className="absolute bottom-[10%] right-[5%] w-[min(20rem,55vw)] h-[min(20rem,55vw)] bg-accent/10 rounded-full blur-[90px] animate-float"
+        className="pointer-events-none absolute top-[15%] left-[8%] w-[min(28rem,70vw)] h-[min(28rem,70vw)] bg-primary/15 rounded-full blur-[100px] animate-float"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute bottom-[10%] right-[5%] w-[min(20rem,55vw)] h-[min(20rem,55vw)] bg-accent/10 rounded-full blur-[90px] animate-float"
         style={{ animationDelay: "2.5s" }}
+        aria-hidden
       />
 
       <div className={cn(siteShell, "relative z-10 min-w-0")}>

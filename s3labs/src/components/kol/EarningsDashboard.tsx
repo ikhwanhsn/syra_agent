@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { ExternalLink } from "lucide-react";
+import { Link } from "react-router-dom";
 
 import { PageLoader } from "@/components/PageLoader";
-import { fetchWalletEarnings } from "@/lib/kolApi";
+import { KolPointsInfo } from "@/components/kol/KolPointsInfo";
+import { fetchWalletEarnings, fetchWalletPoints } from "@/lib/kolApi";
 import { shortenAddress } from "@/lib/solanaKol";
 import { Badge } from "@/components/ui/badge";
 
@@ -24,9 +26,17 @@ export function EarningsDashboard() {
     enabled: Boolean(address),
   });
 
+  const pointsQuery = useQuery({
+    queryKey: ["wallet-points", address],
+    queryFn: () => fetchWalletPoints(address!),
+    enabled: Boolean(address),
+  });
+
   return (
-    <div className="space-y-6">
-      <div className="panel-glass rounded-2xl border border-border/60 p-6 sm:p-8">
+    <div className="space-y-6 min-w-0">
+      <KolPointsInfo />
+
+      <div className="panel-glass rounded-2xl border border-border/60 p-5 sm:p-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <p className="eyebrow mb-2">My Earnings</p>
@@ -44,7 +54,7 @@ export function EarningsDashboard() {
             <PageLoader label="Loading earnings" variant="inline" />
           </div>
         ) : data ? (
-          <div className="mt-6 grid sm:grid-cols-2 gap-4">
+          <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="rounded-xl border border-border/60 p-4">
               <p className="text-xs uppercase tracking-wider text-muted-foreground">Projected (active)</p>
               <p className="text-2xl font-semibold text-primary mt-1">
@@ -54,6 +64,15 @@ export function EarningsDashboard() {
             <div className="rounded-xl border border-border/60 p-4">
               <p className="text-xs uppercase tracking-wider text-muted-foreground">Paid out</p>
               <p className="text-2xl font-semibold mt-1">{formatSol(data.totals.paidSol)} SOL</p>
+            </div>
+            <div className="rounded-xl border border-primary/25 bg-primary/[0.06] p-4 sm:col-span-2 lg:col-span-1">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">S3Labs Points</p>
+              <p className="text-2xl font-semibold text-primary mt-1 tabular-nums">
+                {pointsQuery.data?.totalPoints ?? 0}
+              </p>
+              <Link to="/profile" className="text-xs text-primary hover:underline mt-1 inline-block">
+                View points history →
+              </Link>
             </div>
           </div>
         ) : null}
@@ -85,7 +104,7 @@ export function EarningsDashboard() {
                     @{row.submission.authorHandle} · score {row.submission.latestScore.toFixed(1)}
                   </p>
                 </div>
-                <div className="text-right">
+                <div className="text-left sm:text-right shrink-0">
                   <p className="text-primary font-semibold">
                     {formatSol(row.submission.projectedSol)} SOL
                   </p>
@@ -114,7 +133,7 @@ export function EarningsDashboard() {
                     {shortenAddress(row.submission.kolWallet, 6)}
                   </p>
                 </div>
-                <div className="text-right">
+                <div className="text-left sm:text-right shrink-0">
                   <p className="font-semibold">{formatSol(row.payout?.sol ?? 0)} SOL</p>
                   {row.payout?.txSignature ? (
                     <a

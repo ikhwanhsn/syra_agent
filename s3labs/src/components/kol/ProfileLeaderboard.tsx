@@ -241,6 +241,49 @@ export function ProfileLeaderboard({ variant }: ProfileLeaderboardProps) {
   if (variant === "projects") {
     return (
       <div className="panel-glass rounded-2xl border border-border/60 overflow-hidden min-w-0">
+        {/* Mobile card list */}
+        <div className="md:hidden divide-y divide-border/50">
+          {sortedProjects.map((project, index) => {
+            const rank = index + 1;
+            return (
+              <Link
+                key={project.handle}
+                to={`/kol/${encodeURIComponent(project.handle)}`}
+                className={cn(
+                  "flex gap-3 p-4 transition-colors",
+                  leaderboardRowClass(rank),
+                )}
+              >
+                <LeaderboardRankCell rank={rank} />
+                <div className="flex-1 min-w-0 space-y-2">
+                  <ProfileCell
+                    handle={project.handle}
+                    name={project.name}
+                    verified={project.verified}
+                    followers={project.followers}
+                    profilePicture={project.profilePicture}
+                  />
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                    <span>
+                      <span className="font-medium text-foreground tabular-nums">{project.campaignCount}</span>{" "}
+                      campaigns
+                      <span className="text-border mx-1">·</span>
+                      {project.activeCampaignCount} live
+                    </span>
+                    <span className="font-mono font-medium text-primary tabular-nums whitespace-nowrap">
+                      {formatSol(project.totalFundedSol)} SOL
+                    </span>
+                    <span className="tabular-nums">{project.kolsReached} KOLs</span>
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 shrink-0 self-center text-muted-foreground opacity-60" />
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Desktop table */}
+        <div className="hidden md:block">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent border-border/60 bg-muted/30">
@@ -307,12 +350,58 @@ export function ProfileLeaderboard({ variant }: ProfileLeaderboardProps) {
             })}
           </TableBody>
         </Table>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="panel-glass rounded-2xl border border-border/60 overflow-hidden min-w-0">
+      {/* Mobile card list */}
+      <div className="md:hidden divide-y divide-border/50">
+        {sortedKols.map((kol, index) => {
+          const rank = index + 1;
+          return (
+            <Link
+              key={kol.handle}
+              to={`/kol/${encodeURIComponent(kol.handle)}`}
+              className={cn(
+                "flex gap-3 p-4 transition-colors",
+                leaderboardRowClass(rank),
+              )}
+            >
+              <LeaderboardRankCell rank={rank} />
+              <div className="flex-1 min-w-0 space-y-2">
+                <ProfileCell
+                  handle={kol.handle}
+                  name={kol.name ?? kol.handle}
+                  verified={kol.verified}
+                  profilePicture={kol.profilePicture}
+                />
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                  <span>
+                    <span className="font-medium text-foreground tabular-nums">{kol.campaignCount}</span>{" "}
+                    campaigns
+                  </span>
+                  <span className="font-mono font-medium text-foreground tabular-nums">
+                    {kol.totalScore.toFixed(1)} rep
+                  </span>
+                  <span className="tabular-nums">{formatCompact(kol.engagement.total)} engagement</span>
+                </div>
+              </div>
+              <div className="shrink-0 self-center text-right">
+                <p className="font-mono text-sm font-semibold tabular-nums text-primary whitespace-nowrap">
+                  {formatSol(kol.earnedSol)} SOL
+                </p>
+                <ChevronRight className="h-4 w-4 ml-auto text-muted-foreground opacity-60" />
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden md:block">
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent border-border/60 bg-muted/30">
@@ -378,6 +467,7 @@ export function ProfileLeaderboard({ variant }: ProfileLeaderboardProps) {
           })}
         </TableBody>
       </Table>
+      </div>
     </div>
   );
 }

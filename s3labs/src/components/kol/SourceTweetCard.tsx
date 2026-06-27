@@ -165,11 +165,10 @@ export function SourceTweetCard({
       </div>
 
       {hasMedia ? (
-        <div className={cn("px-4 sm:px-5", hasText ? "pb-4 sm:pb-5" : "py-4 sm:py-5")}>
+        <div className={cn(hasText ? "px-4 sm:px-5 pb-4 sm:pb-5" : "p-4 sm:p-5")}>
           <SourceTweetMedia
             media={media!}
             tweetUrl={tweetUrl}
-            className="rounded-2xl overflow-hidden border border-border/40"
           />
         </div>
       ) : null}

@@ -14,6 +14,7 @@ import { CampaignDetail } from "@/components/kol/CampaignDetail";
 import { CreateCampaignForm } from "@/components/kol/CreateCampaignForm";
 import { EarningsDashboard } from "@/components/kol/EarningsDashboard";
 import { KolHowItWorks } from "@/components/kol/KolHowItWorks";
+import { KolPointsInfo } from "@/components/kol/KolPointsInfo";
 import { MarketplaceStats } from "@/components/kol/MarketplaceStats";
 import { ProfileLeaderboard } from "@/components/kol/ProfileLeaderboard";
 import {
@@ -92,16 +93,18 @@ function KolPageContent() {
   const config = configQuery.data ?? DEFAULT_KOL_CONFIG;
 
   return (
-    <div className={cn(pageContent, "pb-20")}>
-        <section className="mb-10 min-w-0">
+    <div className={cn(pageContent, "pb-20 min-w-0")}>
+        <section className="mb-8 sm:mb-10 min-w-0">
           <p className="eyebrow mb-3">KOL Marketplace</p>
           <h1 className="heading-display">
             Post on X, <span className="text-gradient">earn SOL</span>
           </h1>
-          <p className="text-muted-foreground mt-4 text-lg leading-relaxed">
+          <p className="text-muted-foreground mt-4 text-base sm:text-lg leading-relaxed max-w-3xl">
             Solana projects fund reward pools for posts they want amplified. Reply or quote on X,
             submit your link, and get paid automatically when the campaign ends — your share grows
-            with every like and view.
+            with every like and view. You also earn{" "}
+            <span className="text-foreground/90 font-medium">S3Labs Points</span> for every campaign
+            you join.
           </p>
         </section>
 
@@ -111,6 +114,7 @@ function KolPageContent() {
               <MarketplaceStats />
             </section>
             <KolHowItWorks />
+            <KolPointsInfo className="mb-10" />
           </>
         ) : null}
 
@@ -132,35 +136,37 @@ function KolPageContent() {
             }}
           />
         ) : (
-          <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-8">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <TabsList className="panel-glass rounded-full p-1 h-auto flex-wrap w-full sm:w-fit max-w-full justify-start">
-                <TabsTrigger value="browse" className="rounded-full gap-2">
-                  <Megaphone className="w-4 h-4" />
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6 sm:space-y-8 min-w-0">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 min-w-0">
+              <TabsList className="panel-glass scrollbar-hide h-auto w-full max-w-full justify-start overflow-x-auto rounded-full p-1 sm:w-fit sm:flex-wrap sm:overflow-visible">
+                <TabsTrigger value="browse" className="shrink-0 rounded-full gap-1.5 px-3 text-xs sm:gap-2 sm:px-3 sm:text-sm">
+                  <Megaphone className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   Browse
                 </TabsTrigger>
-                <TabsTrigger value="projects" className="rounded-full gap-2">
-                  <Trophy className="w-4 h-4" />
+                <TabsTrigger value="projects" className="shrink-0 rounded-full gap-1.5 px-3 text-xs sm:gap-2 sm:px-3 sm:text-sm">
+                  <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   Projects
                 </TabsTrigger>
-                <TabsTrigger value="kols" className="rounded-full gap-2">
-                  <Users className="w-4 h-4" />
+                <TabsTrigger value="kols" className="shrink-0 rounded-full gap-1.5 px-3 text-xs sm:gap-2 sm:px-3 sm:text-sm">
+                  <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   KOLs
                 </TabsTrigger>
-                <TabsTrigger value="create" className="rounded-full gap-2">
-                  <Sparkles className="w-4 h-4" />
-                  For Projects
+                <TabsTrigger value="create" className="shrink-0 rounded-full gap-1.5 px-3 text-xs sm:gap-2 sm:px-3 sm:text-sm">
+                  <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="sm:hidden">Launch</span>
+                  <span className="hidden sm:inline">For Projects</span>
                 </TabsTrigger>
-                <TabsTrigger value="earnings" className="rounded-full gap-2">
-                  <Wallet className="w-4 h-4" />
-                  My Earnings
+                <TabsTrigger value="earnings" className="shrink-0 rounded-full gap-1.5 px-3 text-xs sm:gap-2 sm:px-3 sm:text-sm">
+                  <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="sm:hidden">Earnings</span>
+                  <span className="hidden sm:inline">My Earnings</span>
                 </TabsTrigger>
               </TabsList>
 
               {activeTab === "browse" ? (
                 <Button
                   variant="hero"
-                  className="rounded-full gap-2 shrink-0"
+                  className="w-full rounded-full gap-2 shrink-0 sm:w-auto"
                   onClick={() => handleTabChange("create")}
                 >
                   <Plus className="w-4 h-4" />
@@ -240,6 +246,7 @@ function KolPageContent() {
                 <CreateCampaignForm
                   minRewardSol={config.minRewardSol}
                   minKolRewardSol={config.minKolRewardSol}
+                  platformFeeSol={config.platformFeeSol}
                   minDurationDays={config.minDurationDays}
                   maxDurationDays={config.maxDurationDays}
                   poolWalletAddress={config.poolWalletAddress}

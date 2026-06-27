@@ -23,6 +23,7 @@ import { sendCampaignDeposit } from "@/lib/solanaKol";
 interface CreateCampaignFormProps {
   minRewardSol: number;
   minKolRewardSol?: number;
+  platformFeeSol?: number;
   minDurationDays?: number;
   maxDurationDays: number;
   poolWalletAddress: string;
@@ -32,13 +33,14 @@ interface CreateCampaignFormProps {
 export function CreateCampaignForm({
   minRewardSol,
   minKolRewardSol,
+  platformFeeSol = 0.05,
   minDurationDays = 1,
   maxDurationDays,
   poolWalletAddress,
   onCreated,
 }: CreateCampaignFormProps) {
   const wallet = useWallet();
-  const minKolPoolSol = minKolRewardSol ?? minRewardSol * 0.8;
+  const minKolPoolSol = minKolRewardSol ?? minRewardSol - platformFeeSol;
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -56,7 +58,7 @@ export function CreateCampaignForm({
   const durationDays = durationDaysFromEndDate(endDate);
   const kolRewardNum = Number(rewardSol);
   const totalDepositSol =
-    Number.isFinite(kolRewardNum) && kolRewardNum > 0 ? kolRewardNum / 0.8 : 0;
+    Number.isFinite(kolRewardNum) && kolRewardNum > 0 ? kolRewardNum + platformFeeSol : 0;
 
   const createMutation = useMutation({
     mutationFn: async () => {
@@ -128,7 +130,7 @@ export function CreateCampaignForm({
   const durationValid = durationDays >= minDurationDays && durationDays <= maxDurationDays;
 
   return (
-    <div className="panel-glass rounded-2xl border border-border/60 p-6 sm:p-8 space-y-6 max-w-2xl">
+    <div className="panel-glass rounded-2xl border border-border/60 p-5 sm:p-8 space-y-6 max-w-2xl min-w-0">
       <div>
         <p className="eyebrow mb-2">For Projects</p>
         <h2 className="heading-section">Launch a KOL campaign</h2>
@@ -137,9 +139,9 @@ export function CreateCampaignForm({
         </p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 min-w-0">
         {wallet.publicKey ? (
-          <span className="text-xs text-muted-foreground font-mono">
+          <span className="text-xs text-muted-foreground font-mono break-all">
             {wallet.publicKey.toBase58()}
           </span>
         ) : (
@@ -199,7 +201,7 @@ export function CreateCampaignForm({
               <span className="text-foreground/80 font-medium tabular-nums">
                 {totalDepositSol.toFixed(3)} SOL
               </span>{" "}
-              (incl. 20% platform fee)
+              (incl. {platformFeeSol} SOL platform fee)
             </p>
           </div>
           <div className="space-y-2">
@@ -234,7 +236,7 @@ export function CreateCampaignForm({
       {!awaitingDeposit ? (
         <Button
           variant="hero"
-          className="rounded-full"
+          className="rounded-full w-full sm:w-auto"
           disabled={!wallet.publicKey || isBusy || !title || !sourceTweetUrl || !rewardValid || !durationValid}
           onClick={() => createMutation.mutate()}
         >
@@ -248,10 +250,10 @@ export function CreateCampaignForm({
           )}
         </Button>
       ) : (
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <Button
             variant="hero"
-            className="rounded-full"
+            className="rounded-full w-full sm:w-auto"
             disabled={!wallet.publicKey || isBusy}
             onClick={() => depositMutation.mutate()}
           >
@@ -266,7 +268,7 @@ export function CreateCampaignForm({
           </Button>
           <Button
             variant="outline"
-            className="rounded-full"
+            className="rounded-full w-full sm:w-auto"
             disabled={isBusy}
             onClick={() => {
               setPendingCampaign(null);
