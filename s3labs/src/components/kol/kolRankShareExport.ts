@@ -41,10 +41,23 @@ function buildExportOptions(fontEmbedCSS: string) {
   } as const;
 }
 
+function findShareCanvas(node: HTMLElement): HTMLElement {
+  if (
+    node.classList.contains("kol-rank-share-canvas") ||
+    node.classList.contains("kol-campaign-earn-share-canvas") ||
+    node.classList.contains("kol-profile-share-canvas")
+  ) {
+    return node;
+  }
+  return (
+    node.querySelector<HTMLElement>(
+      ".kol-rank-share-canvas, .kol-campaign-earn-share-canvas, .kol-profile-share-canvas",
+    ) ?? node
+  );
+}
+
 async function prepareCapture(node: HTMLElement) {
-  const target = node.classList.contains("kol-rank-share-canvas")
-    ? node
-    : (node.querySelector<HTMLElement>(".kol-rank-share-canvas") ?? node);
+  const target = findShareCanvas(node);
 
   await preloadExportAssets(target);
   const fontEmbedCSS = await resolveFontEmbedCSS(target);
@@ -110,4 +123,50 @@ export function buildKolRankShareTweetText(
 ): string {
   const ordinal = rank === 1 ? "1st" : rank === 2 ? "2nd" : rank === 3 ? "3rd" : `#${rank}`;
   return `Just hit ${ordinal} on the @s3labs KOL Arena leaderboard for "${campaignTitle}" — ${payoutLabel.toLowerCase()} ${payoutSol.toFixed(3)} SOL.\n\n@${handle}\n\n${url}`;
+}
+
+export function buildKolCampaignEarnShareFilename(campaignTitle: string): string {
+  return `s3labs-kol-campaign-${sanitizeFilename(campaignTitle)}.png`;
+}
+
+export function buildKolCampaignEarnShareTweetText(
+  campaignTitle: string,
+  rewardSol: number,
+  timeLeft: string,
+  url: string,
+): string {
+  const timeSnippet = timeLeft !== "Ended" && timeLeft !== "—" ? ` · ${timeLeft}` : "";
+  return `${rewardSol.toFixed(2)} SOL up for grabs on @s3labs KOL Arena — "${campaignTitle}"${timeSnippet}\n\nReply or quote on X. Climb the leaderboard. Get paid in SOL.\n\n${url}`;
+}
+
+export function buildKolProfileShareUrl(handle: string): string {
+  const clean = handle.trim().replace(/^@/, "");
+  return `${KOL_SHARE_PUBLIC_ORIGIN}/kol/${encodeURIComponent(clean)}`;
+}
+
+export function buildKolProfileShareFilename(handle: string): string {
+  const clean = handle.trim().replace(/^@/, "") || "profile";
+  return `s3labs-kol-profile-${sanitizeFilename(clean)}.png`;
+}
+
+export function buildKolProfileShareTweetText(
+  handle: string,
+  heroLabel: string,
+  heroValue: string,
+  earnedSol: number,
+  totalPoints: number,
+  url: string,
+  options?: { thirdPerson?: boolean; displayName?: string },
+): string {
+  const clean = handle.trim().replace(/^@/, "");
+  const earnedSnippet = earnedSol > 0 ? ` · ${earnedSol.toFixed(2)} SOL earned` : "";
+  const pointsSnippet = totalPoints > 0 ? ` · ${totalPoints} S3Labs pts` : "";
+  const metric = `${heroValue} ${heroLabel.toLowerCase()}${earnedSnippet}${pointsSnippet}`;
+
+  if (options?.thirdPerson) {
+    const name = options.displayName?.trim() || clean;
+    return `Check out ${name} (@${clean}) on @s3labs KOL Arena — ${metric}\n\n${url}`;
+  }
+
+  return `Flexing my @s3labs KOL reputation — ${metric}\n\n@${clean}\n\n${url}`;
 }

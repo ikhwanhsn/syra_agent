@@ -10,21 +10,28 @@ const s3LabsPointsLedgerSchema = new mongoose.Schema(
     },
     walletKey: { type: String, required: true, index: true },
     wallet: { type: String, required: true },
+    entryType: {
+      type: String,
+      enum: ["kol_participation", "campaign_creation"],
+      default: "kol_participation",
+      index: true,
+    },
     submissionId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "KolSubmission",
-      required: true,
+      default: null,
     },
     handle: { type: String, default: null },
-    rank: { type: Number, required: true, min: 1 },
-    participationPoints: { type: Number, required: true },
-    earlyPoints: { type: Number, required: true },
+    rank: { type: Number, default: null, min: 1 },
+    participationPoints: { type: Number, default: 0 },
+    earlyPoints: { type: Number, default: 0 },
+    creationPoints: { type: Number, default: 0 },
     totalPoints: { type: Number, required: true },
   },
   { timestamps: true },
 );
 
-s3LabsPointsLedgerSchema.index({ campaignId: 1, walletKey: 1 }, { unique: true });
+s3LabsPointsLedgerSchema.index({ campaignId: 1, walletKey: 1, entryType: 1 }, { unique: true });
 s3LabsPointsLedgerSchema.index({ walletKey: 1, createdAt: -1 });
 
 const S3LabsPointsLedger =

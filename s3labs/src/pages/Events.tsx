@@ -1,5 +1,4 @@
 
-import { ThemeProvider } from "@/contexts/ThemeContext";
 
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -120,10 +119,6 @@ const EventsPageContent = () => {
   );
 };
 
-const Events = () => (
-  <ThemeProvider>
-    <EventsPageContent />
-    </ThemeProvider>
-);
+const Events = () => <EventsPageContent />;
 
 export default Events;

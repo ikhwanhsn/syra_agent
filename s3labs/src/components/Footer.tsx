@@ -1,15 +1,7 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useTheme } from "@/contexts/ThemeContext";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import {
   Moon,
   Sun,
@@ -17,20 +9,14 @@ import {
   Send,
   Mail,
   Linkedin,
-  ArrowUpRight,
 } from "lucide-react";
 import { mainNavLinks, otherNavLinks, programNavLinks } from "@/lib/siteNav";
 import { siteShell } from "@/lib/siteLayout";
 import { cn } from "@/lib/utils";
-
-const TELEGRAM_CONTACTS = [
-  { name: "Rara", fullName: "Destriani Rahayu", url: "https://t.me/raraverse" },
-  { name: "Ikhwan", fullName: "Ikhwanul Husna", url: "https://t.me/ikhwanhsn" },
-];
+import { CampaignNotifySignup } from "@/components/CampaignNotifySignup";
 
 const Footer = () => {
   const { theme, toggleTheme } = useTheme();
-  const [telegramOpen, setTelegramOpen] = useState(false);
 
   return (
     <footer
@@ -43,7 +29,7 @@ const Footer = () => {
       <div className={cn(siteShell, "relative z-10")}>
         <div className="panel-glass p-6 sm:p-8 lg:p-12 mb-8 sm:mb-10">
           <div className="grid md:grid-cols-2 lg:grid-cols-12 gap-10 lg:gap-8">
-            <div className="lg:col-span-5">
+            <div className="lg:col-span-4">
               <div className="flex items-center gap-2.5 mb-5">
                 <img
                   src="/images/logo.png"
@@ -72,6 +58,11 @@ const Footer = () => {
                     label: "LinkedIn",
                   },
                   {
+                    href: "https://t.me/s3labs",
+                    icon: Send,
+                    label: "Telegram",
+                  },
+                  {
                     href: "mailto:s3labs.company@gmail.com",
                     icon: Mail,
                     label: "Email",
@@ -88,51 +79,10 @@ const Footer = () => {
                     <Icon className="w-4 h-4" />
                   </a>
                 ))}
-                <Dialog open={telegramOpen} onOpenChange={setTelegramOpen}>
-                  <DialogTrigger asChild>
-                    <button
-                      type="button"
-                      aria-label={"Telegram"}
-                      className="w-10 h-10 rounded-full bg-muted/40 border border-border/60 flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/30 transition-colors"
-                    >
-                      <Send className="w-4 h-4" />
-                    </button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-md panel-glass">
-                    <DialogHeader>
-                      <DialogTitle>{"Contact us on Telegram"}</DialogTitle>
-                    </DialogHeader>
-                    <div className="grid gap-2 py-2">
-                      {TELEGRAM_CONTACTS.map((contact) => (
-                        <a
-                          key={contact.name}
-                          href={contact.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-3 p-3 rounded-xl border border-border/60 hover:border-primary/40 hover:bg-primary/5 transition-colors group"
-                          onClick={() => setTelegramOpen(false)}
-                        >
-                          <span className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                            <Send className="w-4 h-4 text-primary" />
-                          </span>
-                          <div className="text-left flex-1">
-                            <p className="font-semibold text-foreground text-sm">
-                              {contact.name}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {contact.fullName}
-                            </p>
-                          </div>
-                          <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                        </a>
-                      ))}
-                    </div>
-                  </DialogContent>
-                </Dialog>
               </div>
             </div>
 
-            <div className="lg:col-span-4">
+            <div className="lg:col-span-3">
               <h4 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">
                 {"Navigation"}
               </h4>
@@ -153,7 +103,7 @@ const Footer = () => {
               </ul>
             </div>
 
-            <div className="lg:col-span-3">
+            <div className="lg:col-span-2">
               <h4 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">
                 {"Settings"}
               </h4>
@@ -175,6 +125,10 @@ const Footer = () => {
                   </>
                 )}
               </Button>
+            </div>
+
+            <div className="lg:col-span-3">
+              <CampaignNotifySignup compact source="footer" />
             </div>
           </div>
         </div>

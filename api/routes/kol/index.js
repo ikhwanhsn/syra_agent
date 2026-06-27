@@ -22,12 +22,22 @@ import {
 } from "../../libs/kolMarketplaceService.js";
 import { refreshAllMarketplaceXProfiles } from "../../libs/kolXProfileCache.js";
 import { getWalletPoints, getPointsLeaderboard } from "../../libs/s3labsPointsService.js";
+import {
+  claimDailyPoints,
+  getDailyClaimStatus,
+} from "../../libs/s3labsDailyClaimService.js";
+import {
+  subscribeEmail,
+  unsubscribeByToken,
+} from "../../libs/emailSubscriberService.js";
+import { buildUnsubscribePageHtml } from "../../libs/emailTemplates/campaignEmails.js";
 import { getPoolWalletAddress } from "../../services/kolPoolWallet.js";
 import {
   KOL_PLATFORM_FEE_SOL,
   MAX_DURATION_DAYS,
   MIN_DURATION_DAYS,
   MIN_KOL_REWARD_SOL,
+  MIN_KOL_PAYOUT_SOL,
   MIN_TOPUP_KOL_REWARD_SOL,
   getS3labsFeeWallet,
   minTotalDepositSol,
@@ -47,6 +57,8 @@ function handleServiceError(res, error) {
     invalid_tx: 400,
     invalid_id: 400,
     invalid_handle: 400,
+    invalid_email: 400,
+    invalid_token: 400,
     wallet_mismatch: 400,
     invalid_status: 400,
     campaign_ended: 400,
@@ -54,6 +66,7 @@ function handleServiceError(res, error) {
     duplicate_submission: 409,
     duplicate_kol_handle: 409,
     duplicate_post: 409,
+    already_claimed: 409,
     submission_not_related: 400,
     deposit_tx_invalid: 400,
     deposit_sender_mismatch: 400,
@@ -85,6 +98,7 @@ export function createKolRouter() {
         maxDurationDays: MAX_DURATION_DAYS,
         platformFeeSol: KOL_PLATFORM_FEE_SOL,
         minTopUpKolRewardSol: MIN_TOPUP_KOL_REWARD_SOL,
+        minPayoutSol: MIN_KOL_PAYOUT_SOL,
         platformFeeWallet: getS3labsFeeWallet(),
       },
     });
@@ -270,6 +284,24 @@ export function createKolRouter() {
     }
   });
 
+  router.get("/wallets/:wallet/daily-claim", requireMongooseConnection, async (req, res) => {
+    try {
+      const result = await getDailyClaimStatus(req.params.wallet);
+      return res.json({ success: true, data: result });
+    } catch (e) {
+      return handleServiceError(res, e);
+    }
+  });
+
+  router.post("/wallets/:wallet/daily-claim", requireMongooseConnection, async (req, res) => {
+    try {
+      const result = await claimDailyPoints(req.params.wallet);
+      return res.json({ success: true, data: result });
+    } catch (e) {
+      return handleServiceError(res, e);
+    }
+  });
+
   router.get("/points/leaderboard", requireMongooseConnection, async (req, res) => {
     try {
       const limit = typeof req.query.limit === "string" ? Number(req.query.limit) : undefined;
@@ -277,6 +309,28 @@ export function createKolRouter() {
       return res.json({ success: true, data: result });
     } catch (e) {
       return handleServiceError(res, e);
+    }
+  });
+
+  router.post("/subscribe", requireMongooseConnection, async (req, res) => {
+    try {
+      const { email, source } = req.body || {};
+      const result = await subscribeEmail(email, source);
+      return res.status(201).json({ success: true, data: result });
+    } catch (e) {
+      return handleServiceError(res, e);
+    }
+  });
+
+  router.get("/unsubscribe", async (req, res) => {
+    try {
+      const token = typeof req.query.token === "string" ? req.query.token : "";
+      const result = await unsubscribeByToken(token);
+      const html = buildUnsubscribePageHtml({ success: true, email: result.email });
+      return res.type("html").send(html);
+    } catch (e) {
+      const html = buildUnsubscribePageHtml({ success: false });
+      return res.status(400).type("html").send(html);
     }
   });
 

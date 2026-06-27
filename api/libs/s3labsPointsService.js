@@ -4,6 +4,7 @@
 import mongoose from "mongoose";
 import { isMongooseConnected } from "../config/mongoose.js";
 import {
+  POINTS_CAMPAIGN_CREATION,
   POINTS_EARLY_POOL,
   POINTS_PARTICIPATION,
   computeEarlyPoints,
@@ -43,7 +44,10 @@ function serializePointsAggregate(doc) {
       totalPoints: 0,
       participationPoints: 0,
       earlyPoints: 0,
+      creationPoints: 0,
+      dailyClaimPoints: 0,
       campaignsParticipated: 0,
+      campaignsCreated: 0,
       lastHandle: null,
       lastAwardedAt: null,
     };
@@ -55,7 +59,10 @@ function serializePointsAggregate(doc) {
     totalPoints: roundPoints(row.totalPoints ?? 0),
     participationPoints: roundPoints(row.participationPoints ?? 0),
     earlyPoints: roundPoints(row.earlyPoints ?? 0),
+    creationPoints: roundPoints(row.creationPoints ?? 0),
+    dailyClaimPoints: roundPoints(row.dailyClaimPoints ?? 0),
     campaignsParticipated: row.campaignsParticipated ?? 0,
+    campaignsCreated: row.campaignsCreated ?? 0,
     lastHandle: row.lastHandle ?? null,
     lastAwardedAt: row.lastAwardedAt ? new Date(row.lastAwardedAt).toISOString() : null,
   };
@@ -73,11 +80,13 @@ function serializeLedgerEntry(row, campaign) {
     campaignId: String(doc.campaignId),
     campaignTitle: camp?.title ?? null,
     campaignStatus: camp?.status ?? null,
-    submissionId: String(doc.submissionId),
+    entryType: doc.entryType ?? "kol_participation",
+    submissionId: doc.submissionId ? String(doc.submissionId) : null,
     handle: doc.handle ?? null,
-    rank: doc.rank,
-    participationPoints: roundPoints(doc.participationPoints),
-    earlyPoints: roundPoints(doc.earlyPoints),
+    rank: doc.rank ?? null,
+    participationPoints: roundPoints(doc.participationPoints ?? 0),
+    earlyPoints: roundPoints(doc.earlyPoints ?? 0),
+    creationPoints: roundPoints(doc.creationPoints ?? 0),
     totalPoints: roundPoints(doc.totalPoints),
     awardedAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : null,
   };
@@ -125,11 +134,13 @@ export async function awardCampaignPoints(campaignId, submissions) {
         campaignId,
         walletKey,
         wallet,
+        entryType: "kol_participation",
         submissionId: submission._id,
         handle,
         rank,
         participationPoints,
         earlyPoints,
+        creationPoints: 0,
         totalPoints,
       });
 
@@ -182,6 +193,84 @@ export async function awardCampaignPoints(campaignId, submissions) {
 }
 
 /**
+ * Award S3Labs Points to the project wallet when a campaign goes live.
+ * Idempotent via unique ledger index on (campaignId, walletKey, entryType).
+ *
+ * @param {import("../models/KolCampaign.js").default | Record<string, unknown>} campaign
+ */
+export async function awardCampaignCreationPoints(campaign) {
+  if (!isMongooseConnected()) {
+    return { campaignId: String(campaign._id), skipped: true };
+  }
+
+  const wallet = normalizeWallet(campaign.projectWallet);
+  if (!wallet) {
+    return { campaignId: String(campaign._id), skipped: true, reason: "invalid_wallet" };
+  }
+
+  const walletKey = wallet.toLowerCase();
+  const handle = String(campaign.sourceAuthorHandle || "").trim() || null;
+  const handleKey = normalizeHandle(handle);
+  const creationPoints = POINTS_CAMPAIGN_CREATION;
+  const now = new Date();
+
+  try {
+    const ledger = await S3LabsPointsLedger.create({
+      campaignId: campaign._id,
+      walletKey,
+      wallet,
+      entryType: "campaign_creation",
+      submissionId: null,
+      handle,
+      rank: null,
+      participationPoints: 0,
+      earlyPoints: 0,
+      creationPoints,
+      totalPoints: creationPoints,
+    });
+
+    await S3LabsPoints.findOneAndUpdate(
+      { walletKey },
+      {
+        $setOnInsert: { wallet },
+        $set: {
+          lastHandle: handle,
+          lastHandleKey: handleKey || null,
+          lastAwardedAt: now,
+        },
+        $inc: {
+          totalPoints: creationPoints,
+          creationPoints,
+          campaignsCreated: 1,
+        },
+      },
+      { upsert: true },
+    );
+
+    return {
+      campaignId: String(campaign._id),
+      wallet,
+      creationPoints,
+      totalPoints: creationPoints,
+      ledgerId: String(ledger._id),
+    };
+  } catch (e) {
+    if (e instanceof Error && (e.message.includes("duplicate key") || e.code === 11000)) {
+      return { campaignId: String(campaign._id), skipped: true, reason: "already_awarded" };
+    }
+    console.warn(
+      `[s3labs-points] creation award failed campaign=${campaign._id}:`,
+      e instanceof Error ? e.message : e,
+    );
+    return {
+      campaignId: String(campaign._id),
+      skipped: true,
+      reason: e instanceof Error ? e.message : String(e),
+    };
+  }
+}
+
+/**
  * @param {string} wallet
  */
 export async function getWalletPoints(wallet) {
@@ -219,7 +308,10 @@ export async function getWalletPoints(wallet) {
         totalPoints: 0,
         participationPoints: 0,
         earlyPoints: 0,
+        creationPoints: 0,
+        dailyClaimPoints: 0,
         campaignsParticipated: 0,
+        campaignsCreated: 0,
         lastHandle: null,
         lastAwardedAt: null,
       };
@@ -251,7 +343,9 @@ export async function getPointsLeaderboard(opts = {}) {
       totalPoints: roundPoints(row.totalPoints),
       participationPoints: roundPoints(row.participationPoints),
       earlyPoints: roundPoints(row.earlyPoints),
+      creationPoints: roundPoints(row.creationPoints ?? 0),
       campaignsParticipated: row.campaignsParticipated ?? 0,
+      campaignsCreated: row.campaignsCreated ?? 0,
       lastAwardedAt: row.lastAwardedAt ? new Date(row.lastAwardedAt).toISOString() : null,
     })),
   };

@@ -24,8 +24,8 @@ export function KolPointsInfo({ compact = false, className }: KolPointsInfoProps
       >
         <Award className="w-4 h-4 text-primary shrink-0 mt-0.5" />
         <p className="text-muted-foreground leading-relaxed">
-          <span className="text-foreground font-medium">S3Labs Points:</span> +1 per campaign at
-          end, plus up to +3 early-bird points split by submit order —{" "}
+          <span className="text-foreground font-medium">S3Labs Points:</span> +5 when you launch a
+          campaign; KOLs get +1 at end plus up to +3 early-bird by submit order —{" "}
           <span className="text-foreground/90">earlier = more</span>.{" "}
           <Link to="/profile" className="text-primary hover:underline">
             View your profile
@@ -54,8 +54,8 @@ export function KolPointsInfo({ compact = false, className }: KolPointsInfoProps
             Earn points on every campaign
           </h3>
           <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-xl">
-            SOL rewards pay by engagement at snapshot. Points are a separate wallet score that
-            rewards participation and early submissions across all campaigns.
+            SOL rewards pay by engagement at snapshot. Points are a separate wallet score — KOLs earn
+            for participating, projects earn for launching campaigns.
           </p>
         </div>
         <Link
@@ -66,11 +66,16 @@ export function KolPointsInfo({ compact = false, className }: KolPointsInfoProps
         </Link>
       </div>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-xl border border-border/60 bg-background/40 p-4">
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">Campaign created</p>
+          <p className="text-2xl font-semibold tabular-nums text-primary mt-1">+5</p>
+          <p className="text-xs text-muted-foreground mt-1">Project wallet when campaign goes live</p>
+        </div>
         <div className="rounded-xl border border-border/60 bg-background/40 p-4">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">Participation</p>
           <p className="text-2xl font-semibold tabular-nums text-primary mt-1">+1</p>
-          <p className="text-xs text-muted-foreground mt-1">Every participant when campaign ends</p>
+          <p className="text-xs text-muted-foreground mt-1">Every KOL when campaign ends</p>
         </div>
         <div className="rounded-xl border border-border/60 bg-background/40 p-4">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">Early bird</p>
@@ -80,7 +85,7 @@ export function KolPointsInfo({ compact = false, className }: KolPointsInfoProps
         <div className="rounded-xl border border-border/60 bg-background/40 p-4">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">Example (3 KOLs)</p>
           <p className="text-lg font-semibold tabular-nums mt-1">{formatPointsExample()}</p>
-          <p className="text-xs text-muted-foreground mt-1">Total pts per person (participation + early)</p>
+          <p className="text-xs text-muted-foreground mt-1">KOL totals (participation + early)</p>
         </div>
       </div>
 

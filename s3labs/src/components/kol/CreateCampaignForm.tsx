@@ -116,7 +116,7 @@ export function CreateCampaignForm({
       setDepositInfo(null);
       onCreated?.(data.campaign);
       toast.success("Campaign is live", {
-        description: "KOLs can now submit replies and quotes.",
+        description: "+5 S3Labs Points credited. KOLs can now submit replies and quotes.",
       });
     },
     onError: (e: Error) => {
@@ -136,6 +136,8 @@ export function CreateCampaignForm({
         <h2 className="heading-section">Launch a KOL campaign</h2>
         <p className="text-sm text-muted-foreground mt-2">
           Post the X URL you want amplified and fund the campaign. KOLs earn by engagement at snapshot.
+          You earn <span className="text-foreground/90 font-medium">+5 S3Labs Points</span> when your
+          campaign goes live.
         </p>
       </div>
 

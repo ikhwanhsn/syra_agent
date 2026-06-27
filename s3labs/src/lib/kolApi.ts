@@ -76,7 +76,7 @@ export interface KolPayoutInfo {
   lamports: number;
   sol: number;
   txSignature: string | null;
-  status: "pending" | "confirmed" | "failed";
+  status: "pending" | "pending_minimum" | "confirmed" | "failed";
 }
 
 export interface KolLeaderboardEntry extends KolSubmission {
@@ -191,11 +191,13 @@ export interface WalletPointsEntry {
   campaignId: string;
   campaignTitle: string | null;
   campaignStatus: KolCampaign["status"] | null;
-  submissionId: string;
+  entryType: "kol_participation" | "campaign_creation";
+  submissionId: string | null;
   handle: string | null;
-  rank: number;
+  rank: number | null;
   participationPoints: number;
   earlyPoints: number;
+  creationPoints: number;
   totalPoints: number;
   awardedAt: string | null;
 }
@@ -206,10 +208,75 @@ export interface WalletPoints {
   totalPoints: number;
   participationPoints: number;
   earlyPoints: number;
+  creationPoints: number;
+  dailyClaimPoints?: number;
   campaignsParticipated: number;
+  campaignsCreated: number;
   lastHandle: string | null;
   lastAwardedAt: string | null;
   entries: WalletPointsEntry[];
+}
+
+export interface DailyClaimStatus {
+  wallet: string;
+  todayUtc: string;
+  claimedToday: boolean;
+  canClaimToday: boolean;
+  config: {
+    dailyBase: number;
+    weeklyBonus: number;
+    monthlyBonus: number;
+    weeklyCycleDays: number;
+  };
+  week: {
+    cycleDays: number;
+    consecutiveStreak: number;
+    daysInCurrentCycle: number;
+    daysUntilWeeklyBonus: number;
+    weeklyBonusEligible: boolean;
+    weeklyBonusEarnedToday: boolean;
+  };
+  month: {
+    calendarLabel: string;
+    daysInMonth: number;
+    daysClaimed: number;
+    daysElapsed: number;
+    isMonthEnd: boolean;
+    monthlyBonusEligible: boolean;
+    monthlyBonusEarnedToday: boolean;
+  };
+  preview: {
+    basePoints: number;
+    weeklyBonus: number;
+    monthlyBonus: number;
+    totalPoints: number;
+  };
+  lastClaim: {
+    id: string;
+    claimDate: string;
+    basePoints: number;
+    weeklyBonus: number;
+    monthlyBonus: number;
+    totalPoints: number;
+    claimedAt: string | null;
+  } | null;
+  totalDailyClaimPoints: number;
+  policy: {
+    summary: string;
+  };
+}
+
+export interface DailyClaimResult {
+  wallet: string;
+  claim: NonNullable<DailyClaimStatus["lastClaim"]>;
+  totals: {
+    totalPoints: number;
+    dailyClaimPoints: number;
+  };
+  bonuses: {
+    weekly: boolean;
+    monthly: boolean;
+  };
 }
 
 export interface PointsLeaderboardEntry {
@@ -231,10 +298,38 @@ export interface KolConfig {
   minRewardSol: number;
   minKolRewardSol?: number;
   minTopUpKolRewardSol?: number;
+  minPayoutSol?: number;
   minDurationDays?: number;
   maxDurationDays: number;
   platformFeeSol: number;
   platformFeeWallet: string;
+}
+
+export interface KolWalletEarnings {
+  wallet: string;
+  active: Array<{ submission: KolSubmission; campaign: KolCampaign; payout: KolPayoutInfo | null }>;
+  paid: Array<{ submission: KolSubmission; campaign: KolCampaign; payout: KolPayoutInfo | null }>;
+  pendingMinimum: Array<{
+    submission: KolSubmission;
+    campaign: KolCampaign;
+    payout: KolPayoutInfo | null;
+  }>;
+  totals: {
+    projectedLamports: number;
+    projectedSol: number;
+    paidLamports: number;
+    paidSol: number;
+    pendingMinimumLamports: number;
+    pendingMinimumSol: number;
+    pendingBalanceLamports: number;
+    pendingBalanceSol: number;
+    minPayoutSol: number;
+    minPayoutLamports: number;
+  };
+  payoutPolicy: {
+    minPayoutSol: number;
+    summary: string;
+  };
 }
 
 export interface KolCampaignTopUp {
@@ -287,6 +382,7 @@ export const DEFAULT_KOL_CONFIG: KolConfig = {
   minRewardSol: 0.15,
   minKolRewardSol: 0.1,
   minTopUpKolRewardSol: 0.1,
+  minPayoutSol: 0.01,
   minDurationDays: 1,
   maxDurationDays: 30,
   platformFeeSol: 0.05,
@@ -410,22 +506,23 @@ export function submitEngagement(
   });
 }
 
-export function fetchWalletEarnings(wallet: string): Promise<{
-  wallet: string;
-  active: Array<{ submission: KolSubmission; campaign: KolCampaign; payout: KolPayoutInfo | null }>;
-  paid: Array<{ submission: KolSubmission; campaign: KolCampaign; payout: KolPayoutInfo | null }>;
-  totals: {
-    projectedLamports: number;
-    projectedSol: number;
-    paidLamports: number;
-    paidSol: number;
-  };
-}> {
-  return kolFetch(`/kol/wallets/${encodeURIComponent(wallet)}/earnings`);
+export function fetchWalletEarnings(wallet: string): Promise<KolWalletEarnings> {
+  return kolFetch<KolWalletEarnings>(`/kol/wallets/${encodeURIComponent(wallet)}/earnings`);
 }
 
 export function fetchWalletPoints(wallet: string): Promise<WalletPoints> {
   return kolFetch<WalletPoints>(`/kol/wallets/${encodeURIComponent(wallet)}/points`);
+}
+
+export function fetchDailyClaimStatus(wallet: string): Promise<DailyClaimStatus> {
+  return kolFetch<DailyClaimStatus>(`/kol/wallets/${encodeURIComponent(wallet)}/daily-claim`);
+}
+
+export function claimDailyPoints(wallet: string): Promise<DailyClaimResult> {
+  return kolFetch<DailyClaimResult>(`/kol/wallets/${encodeURIComponent(wallet)}/daily-claim`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
 }
 
 export function fetchPointsLeaderboard(opts?: {
@@ -466,4 +563,20 @@ export function fetchKols(opts?: {
 export function fetchKolProfile(username: string): Promise<KolProfile> {
   const clean = username.trim().replace(/^@/, "");
   return kolFetch<KolProfile>(`/kol/profiles/${encodeURIComponent(clean)}`);
+}
+
+export interface SubscribeCampaignNotificationsResult {
+  subscribed: boolean;
+  email: string;
+  isNew: boolean;
+}
+
+export function subscribeCampaignNotifications(
+  email: string,
+  source?: string,
+): Promise<SubscribeCampaignNotificationsResult> {
+  return kolFetch<SubscribeCampaignNotificationsResult>("/kol/subscribe", {
+    method: "POST",
+    body: JSON.stringify({ email, source }),
+  });
 }

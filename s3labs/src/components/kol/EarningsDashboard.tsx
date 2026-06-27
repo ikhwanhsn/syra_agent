@@ -54,7 +54,7 @@ export function EarningsDashboard() {
             <PageLoader label="Loading earnings" variant="inline" />
           </div>
         ) : data ? (
-          <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="rounded-xl border border-border/60 p-4">
               <p className="text-xs uppercase tracking-wider text-muted-foreground">Projected (active)</p>
               <p className="text-2xl font-semibold text-primary mt-1">
@@ -64,6 +64,15 @@ export function EarningsDashboard() {
             <div className="rounded-xl border border-border/60 p-4">
               <p className="text-xs uppercase tracking-wider text-muted-foreground">Paid out</p>
               <p className="text-2xl font-semibold mt-1">{formatSol(data.totals.paidSol)} SOL</p>
+            </div>
+            <div className="rounded-xl border border-amber-500/25 bg-amber-500/[0.06] p-4">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Pending balance</p>
+              <p className="text-2xl font-semibold mt-1 text-amber-400 tabular-nums">
+                {formatSol(data.totals.pendingBalanceSol)} SOL
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Min {formatSol(data.totals.minPayoutSol)} SOL to pay on-chain
+              </p>
             </div>
             <div className="rounded-xl border border-primary/25 bg-primary/[0.06] p-4 sm:col-span-2 lg:col-span-1">
               <p className="text-xs uppercase tracking-wider text-muted-foreground">S3Labs Points</p>

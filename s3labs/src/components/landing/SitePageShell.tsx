@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
 
-import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ScrollToTop from "@/components/ScrollToTop";
@@ -36,11 +36,7 @@ function SitePageContent({ children }: SitePageShellProps) {
 }
 
 export function SitePageShell({ children }: SitePageShellProps) {
-  return (
-    <ThemeProvider>
-      <SitePageContent>{children}</SitePageContent>
-    </ThemeProvider>
-  );
+  return <SitePageContent>{children}</SitePageContent>;
 }
 
 export function usePageHero() {

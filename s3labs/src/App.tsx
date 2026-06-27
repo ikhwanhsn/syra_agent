@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import { SolanaWalletProvider } from "@/providers/SolanaWalletProvider";
 import { PostAccessGuard } from "@/components/post/PostAccessGuard";
 import { AdminAccessGuard } from "@/components/AdminAccessGuard";
@@ -41,43 +42,45 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <SolanaWalletProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Suspense fallback={<RoutePageLoader />}>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/programs" element={<Programs />} />
-              <Route path="/portfolio" element={<Portfolio />} />
-              <Route path="/community" element={<Community />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/apply" element={<Apply />} />
-              <Route path="/kol" element={<Kol />} />
-              <Route path="/kol/:username" element={<KolProfile />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/jobs" element={<JobsPage />} />
-              <Route path="/campaign" element={<CampaignComingSoon />} />
-              <Route path="/contest" element={<ContestComingSoon />} />
-              <Route path="/hackathon" element={<Hackathon />} />
-              <Route path="/events" element={<EventsAdmin />} />
-              <Route element={<AdminAccessGuard />}>
-                <Route path="/internal" element={<InternalPage />} />
-              </Route>
-              <Route element={<PostAccessGuard />}>
-                <Route path="/post" element={<PostPage />} />
-                <Route element={<PostStudioLayout />}>
-                  <Route path="/post/video/:updateNumber?" element={<PostVideoPage />} />
-                  <Route path="/post/photo/:updateNumber?" element={<PostPhotoPage />} />
+    <ThemeProvider>
+      <SolanaWalletProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Suspense fallback={<RoutePageLoader />}>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/programs" element={<Programs />} />
+                <Route path="/portfolio" element={<Portfolio />} />
+                <Route path="/community" element={<Community />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/apply" element={<Apply />} />
+                <Route path="/kol" element={<Kol />} />
+                <Route path="/kol/:username" element={<KolProfile />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/jobs" element={<JobsPage />} />
+                <Route path="/campaign" element={<CampaignComingSoon />} />
+                <Route path="/contest" element={<ContestComingSoon />} />
+                <Route path="/hackathon" element={<Hackathon />} />
+                <Route path="/events" element={<EventsAdmin />} />
+                <Route element={<AdminAccessGuard />}>
+                  <Route path="/internal" element={<InternalPage />} />
                 </Route>
-              </Route>
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-      </TooltipProvider>
-    </SolanaWalletProvider>
+                <Route element={<PostAccessGuard />}>
+                  <Route path="/post" element={<PostPage />} />
+                  <Route element={<PostStudioLayout />}>
+                    <Route path="/post/video/:updateNumber?" element={<PostVideoPage />} />
+                    <Route path="/post/photo/:updateNumber?" element={<PostPhotoPage />} />
+                  </Route>
+                </Route>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+        </TooltipProvider>
+      </SolanaWalletProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

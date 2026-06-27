@@ -18,7 +18,6 @@ import {
   Trophy,
 } from "lucide-react";
 
-import { ThemeProvider } from "@/contexts/ThemeContext";
 
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -834,10 +833,6 @@ function ArenaRow({
   );
 }
 
-const Arena = () => (
-  <ThemeProvider>
-    <ArenaPageContent />
-    </ThemeProvider>
-);
+const Arena = () => <ArenaPageContent />;
 
 export default Arena;

@@ -36,6 +36,11 @@ function getPayoutSol(entry: KolLeaderboardEntry): number {
   return entry.payout?.sol ?? entry.projectedSol;
 }
 
+function getPayoutLabel(entry: KolLeaderboardEntry, campaignStatus: string): string {
+  if (entry.payout?.status === "pending_minimum") return "Held";
+  return campaignStatus === "completed" ? "Paid" : "Projected";
+}
+
 function walletsMatch(a: string, b: string): boolean {
   return a.trim().toLowerCase() === b.trim().toLowerCase();
 }
@@ -44,7 +49,7 @@ export function CampaignLeaderboard({ entries, campaignStatus }: CampaignLeaderb
   const wallet = useWallet();
   const walletAddress = wallet.publicKey?.toBase58() ?? null;
 
-  const payoutLabel = campaignStatus === "completed" ? "Paid" : "Projected";
+  const payoutLabelDefault = campaignStatus === "completed" ? "Paid" : "Projected";
   const maxScore = Math.max(...entries.map((e) => e.latestScore), 1);
 
   const ownWallet = walletAddress;
@@ -83,7 +88,7 @@ export function CampaignLeaderboard({ entries, campaignStatus }: CampaignLeaderb
   return (
     <div className="panel-glass rounded-2xl border border-border/60 overflow-hidden min-w-0 shadow-[var(--shadow-card)]">
       {entries.length >= 1 ? (
-        <LeaderboardPodium entries={podiumEntries} payoutLabel={payoutLabel} />
+        <LeaderboardPodium entries={podiumEntries} payoutLabel={payoutLabelDefault} />
       ) : null}
 
       {/* Mobile card list */}
@@ -91,6 +96,7 @@ export function CampaignLeaderboard({ entries, campaignStatus }: CampaignLeaderb
         {entries.map((entry, index) => {
           const rank = index + 1;
           const payoutSol = getPayoutSol(entry);
+          const payoutLabel = getPayoutLabel(entry, campaignStatus);
           const own = isOwnEntry(entry);
           return (
             <Link
@@ -149,7 +155,7 @@ export function CampaignLeaderboard({ entries, campaignStatus }: CampaignLeaderb
               <TableHead className="w-[5.5rem]">Mode</TableHead>
               <TableHead className="text-right w-[7rem]">Score</TableHead>
               <TableHead className="text-right hidden lg:table-cell">Engagement</TableHead>
-              <TableHead className="text-right w-[8rem]">{payoutLabel}</TableHead>
+              <TableHead className="text-right w-[8rem]">{payoutLabelDefault}</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -157,6 +163,7 @@ export function CampaignLeaderboard({ entries, campaignStatus }: CampaignLeaderb
             {entries.map((entry, index) => {
               const rank = index + 1;
               const payoutSol = getPayoutSol(entry);
+              const payoutLabel = getPayoutLabel(entry, campaignStatus);
               const own = isOwnEntry(entry);
               return (
                 <TableRow

@@ -19,6 +19,7 @@ import { formatSol, formatTimeLeft } from "@/lib/kolFormat";
 import { cn } from "@/lib/utils";
 import { AddRewardForm } from "./AddRewardForm";
 import { CampaignLeaderboard } from "./CampaignLeaderboard";
+import { KolCampaignEarnShareAction } from "./KolCampaignEarnShareAction";
 import { KolMyRankShareAction } from "./KolMyRankShareBar";
 import { SourceTweetCard } from "./SourceTweetCard";
 import { SubmitEngagementForm } from "./SubmitEngagementForm";
@@ -75,69 +76,69 @@ export function CampaignDetail({ campaign, leaderboard, onClose, onRefresh }: Ca
         Back to campaigns
       </Button>
 
-      {/* Reward hero */}
-      <div className="relative overflow-hidden rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-5 sm:p-8">
-        <div className="absolute top-3 right-3 sm:top-4 sm:right-4">
-          <Button variant="ghost" size="icon" className="rounded-full shrink-0 h-8 w-8 sm:h-9 sm:w-9" onClick={onClose}>
+      {/* Campaign hero — full-width dashboard layout */}
+      <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-card/60 shadow-card backdrop-blur-xl">
+        <div
+          className="pointer-events-none absolute inset-0 bg-gradient-mesh opacity-80"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/14 via-transparent to-primary/6"
+          aria-hidden
+        />
+
+        {/* Top bar */}
+        <div className="relative flex items-center justify-between gap-3 border-b border-border/50 px-4 py-3 sm:px-6 sm:py-4">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <Badge variant="outline" className={`capitalize ${statusStyles[campaign.status]}`}>
+              {campaign.status.replace("_", " ")}
+            </Badge>
+            {isActive && timeLeft !== "Ended" ? (
+              <Badge variant="outline" className="gap-1 border-amber-500/30 text-amber-400">
+                <Clock className="w-3 h-3" />
+                {timeLeft}
+              </Badge>
+            ) : null}
+            {campaign.sourceAuthorHandle ? (
+              <Link
+                to={`/kol/${encodeURIComponent(campaign.sourceAuthorHandle)}`}
+                className={cn(
+                  badgeVariants({ variant: "outline" }),
+                  "hidden sm:inline-flex items-center gap-1.5 hover:bg-muted/50 transition-colors",
+                )}
+              >
+                <span>@{campaign.sourceAuthorHandle}</span>
+                {campaign.sourceAuthorVerified ? (
+                  <BadgeCheck className="w-3.5 h-3.5 text-primary shrink-0" aria-label="Verified" />
+                ) : null}
+              </Link>
+            ) : null}
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full shrink-0 h-8 w-8 sm:h-9 sm:w-9"
+            onClick={onClose}
+          >
             <X className="w-4 h-4" />
           </Button>
         </div>
 
-        <div className="flex flex-wrap gap-2 mb-4 pr-10">
-          <Badge variant="outline" className={`capitalize ${statusStyles[campaign.status]}`}>
-            {campaign.status.replace("_", " ")}
-          </Badge>
-          {isActive && timeLeft !== "Ended" ? (
-            <Badge variant="outline" className="gap-1 border-amber-500/30 text-amber-400">
-              <Clock className="w-3 h-3" />
-              {timeLeft}
-            </Badge>
+        {/* Title block */}
+        <div className="relative px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-7">
+          <p className="eyebrow mb-3">{isActive ? "Earn now" : "Campaign"}</p>
+          <h2 className="heading-section text-xl sm:text-2xl lg:text-3xl">{campaign.title}</h2>
+          {campaign.description ? (
+            <p className="mt-2 text-base text-muted-foreground leading-relaxed">{campaign.description}</p>
           ) : null}
-        </div>
+          <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{statusMessages[campaign.status]}</p>
 
-        <p className="eyebrow mb-2">{isActive ? "Earn now" : "Campaign"}</p>
-        <h2 className="heading-section text-xl sm:text-2xl md:text-3xl max-w-2xl pr-8">{campaign.title}</h2>
-        {campaign.description ? (
-          <p className="text-muted-foreground mt-2 max-w-2xl">{campaign.description}</p>
-        ) : null}
-
-        <p className="text-sm text-muted-foreground mt-3 max-w-2xl">{statusMessages[campaign.status]}</p>
-
-        <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-3 gap-3 mt-6 max-w-lg">
-          <div className="rounded-xl border border-primary/20 bg-background/40 backdrop-blur-sm p-3 sm:p-4">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-              <Coins className="w-3.5 h-3.5 text-primary" />
-              Reward pool
-            </div>
-            <p className="text-xl sm:text-2xl font-semibold tabular-nums text-primary">
-              {formatSol(rewardSol)} <span className="text-sm sm:text-base font-medium">SOL</span>
-            </p>
-          </div>
-          <div className="rounded-xl border border-border/60 bg-background/40 backdrop-blur-sm p-3 sm:p-4">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-              <Users className="w-3.5 h-3.5 text-primary" />
-              KOLs joined
-            </div>
-            <p className="text-xl sm:text-2xl font-semibold tabular-nums">{participantCount}</p>
-          </div>
-          <div className="rounded-xl border border-border/60 bg-background/40 backdrop-blur-sm p-3 sm:p-4 min-[400px]:col-span-2 sm:col-span-1">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-              <Clock className="w-3.5 h-3.5 text-primary" />
-              Duration
-            </div>
-            <p className="text-xl sm:text-2xl font-semibold tabular-nums">
-              {isActive ? timeLeft : `${campaign.durationDays}d`}
-            </p>
-          </div>
-        </div>
-
-        {campaign.sourceAuthorHandle ? (
-          <div className="mt-4">
+          {campaign.sourceAuthorHandle ? (
             <Link
               to={`/kol/${encodeURIComponent(campaign.sourceAuthorHandle)}`}
               className={cn(
                 badgeVariants({ variant: "outline" }),
-                "inline-flex items-center gap-1.5 w-fit hover:bg-muted/50 transition-colors",
+                "mt-4 inline-flex sm:hidden items-center gap-1.5 hover:bg-muted/50 transition-colors",
               )}
             >
               <span>@{campaign.sourceAuthorHandle}</span>
@@ -145,8 +146,55 @@ export function CampaignDetail({ campaign, leaderboard, onClose, onRefresh }: Ca
                 <BadgeCheck className="w-3.5 h-3.5 text-primary shrink-0" aria-label="Verified" />
               ) : null}
             </Link>
+          ) : null}
+        </div>
+
+        {/* Metrics rail — spans full width, no dead space */}
+        <div className="relative border-t border-border/50 bg-muted/15">
+          <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-border/50">
+            <div className="flex flex-col justify-center gap-1 px-4 py-4 sm:px-6 sm:py-5 lg:col-span-1">
+              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                <Coins className="w-3.5 h-3.5 text-primary" />
+                Reward pool
+              </div>
+              <p className="text-2xl sm:text-3xl font-semibold tabular-nums tracking-tight text-primary">
+                {formatSol(rewardSol)}
+                <span className="ml-1.5 text-base sm:text-lg font-medium text-primary/80">SOL</span>
+              </p>
+            </div>
+
+            <div className="flex flex-col justify-center gap-1 px-4 py-4 sm:px-6 sm:py-5">
+              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                <Users className="w-3.5 h-3.5 text-primary" />
+                KOLs joined
+              </div>
+              <p className="text-2xl sm:text-3xl font-semibold tabular-nums tracking-tight">
+                {participantCount}
+              </p>
+            </div>
+
+            <div className="flex flex-col justify-center gap-1 px-4 py-4 sm:px-6 sm:py-5">
+              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                <Clock className="w-3.5 h-3.5 text-primary" />
+                {isActive ? "Time left" : "Duration"}
+              </div>
+              <p className="text-2xl sm:text-3xl font-semibold tabular-nums tracking-tight">
+                {isActive ? timeLeft : `${campaign.durationDays}d`}
+              </p>
+            </div>
+
+            <div className="col-span-2 w-full px-4 py-4 sm:px-6 sm:py-5 lg:col-span-1 lg:flex lg:items-center">
+              <KolCampaignEarnShareAction
+                campaign={campaign}
+                rewardSol={rewardSol}
+                timeLeft={timeLeft}
+                participantCount={participantCount}
+                leaderboard={leaderboard}
+                prominent
+              />
+            </div>
           </div>
-        ) : null}
+        </div>
       </div>
 
       {isActive ? (

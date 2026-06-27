@@ -15,6 +15,7 @@ import { CreateCampaignForm } from "@/components/kol/CreateCampaignForm";
 import { EarningsDashboard } from "@/components/kol/EarningsDashboard";
 import { KolHowItWorks } from "@/components/kol/KolHowItWorks";
 import { KolPointsInfo } from "@/components/kol/KolPointsInfo";
+import { CampaignNotifySignup } from "@/components/CampaignNotifySignup";
 import { MarketplaceStats } from "@/components/kol/MarketplaceStats";
 import { ProfileLeaderboard } from "@/components/kol/ProfileLeaderboard";
 import {
@@ -115,6 +116,7 @@ function KolPageContent() {
             </section>
             <KolHowItWorks />
             <KolPointsInfo className="mb-10" />
+            <CampaignNotifySignup className="mb-10" />
           </>
         ) : null}
 

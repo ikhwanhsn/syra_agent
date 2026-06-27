@@ -13,7 +13,6 @@ import {
   TrendingUp,
 } from "lucide-react";
 
-import { ThemeProvider } from "@/contexts/ThemeContext";
 
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -587,10 +586,6 @@ const ArenaTokenDetailContent = () => {
   );
 };
 
-const ArenaTokenDetail = () => (
-  <ThemeProvider>
-    <ArenaTokenDetailContent />
-    </ThemeProvider>
-);
+const ArenaTokenDetail = () => <ArenaTokenDetailContent />;
 
 export default ArenaTokenDetail;
