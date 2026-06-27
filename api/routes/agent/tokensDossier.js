@@ -2,6 +2,8 @@ import express from 'express';
 import { buildMintDossier } from '../../libs/tokensDossierService.js';
 import { buildAssetIntelligence } from '../../libs/assetIntelligenceService.js';
 import { buildMemecoinAnalysis } from '../../libs/memecoinAnalysisService.js';
+import { buildHolderOverlapBatch } from '../../libs/holderOverlapService.js';
+import { buildHolderInsights } from '../../libs/holderInsightsService.js';
 import {
   getMemecoinAnalysisQuotaStatus,
   tryConsumeMemecoinAnalysisScan,
@@ -252,6 +254,116 @@ export function createTokensDossierRouter() {
       return res.json({ success: true, data: call });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Call fetch failed';
+      return res.status(500).json({ success: false, error: message });
+    }
+  });
+
+  router.get('/holder-profit', async (req, res) => {
+    try {
+      const wallet = resolveCallerWallet(req);
+      if (!wallet) {
+        return res.status(401).json({
+          success: false,
+          error: 'Connect your Solana wallet to view holder profit.',
+        });
+      }
+
+      const mint = typeof req.query.mint === 'string' ? req.query.mint.trim() : '';
+      if (!mint || !isLikelySolanaMint(mint)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Provide a valid Solana mint address via ?mint=',
+        });
+      }
+
+      /** @type {string[]} */
+      const wallets = [];
+      const rawWallets = req.query.wallets;
+      if (typeof rawWallets === 'string') {
+        wallets.push(
+          ...rawWallets
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean),
+        );
+      }
+
+      const result = await buildHolderInsights({ mint, wallets });
+      if (!result.ok) {
+        return res.status(result.status ?? 502).json({
+          success: false,
+          error: result.error || 'Holder profit lookup failed',
+        });
+      }
+
+      return res.json({ success: true, data: result.data });
+    } catch (err) {
+      console.error('[holder-profit] failed:', err?.stack || err?.message || err);
+      const message = err instanceof Error ? err.message : 'Holder profit lookup failed';
+      return res.status(500).json({ success: false, error: message });
+    }
+  });
+
+  router.get('/holder-overlap', async (req, res) => {
+    try {
+      const wallet = resolveCallerWallet(req);
+      if (!wallet) {
+        return res.status(401).json({
+          success: false,
+          error: 'Connect your Solana wallet to compare holder overlap.',
+        });
+      }
+
+      const mintA = typeof req.query.mintA === 'string' ? req.query.mintA.trim() : '';
+
+      /** @type {string[]} */
+      const mintBs = [];
+      const rawMintB = req.query.mintB;
+      if (typeof rawMintB === 'string') {
+        mintBs.push(
+          ...rawMintB
+            .split(/[\s,;]+/)
+            .map((s) => s.trim())
+            .filter(Boolean),
+        );
+      } else if (Array.isArray(rawMintB)) {
+        for (const item of rawMintB) {
+          if (typeof item === 'string') {
+            mintBs.push(
+              ...item
+                .split(/[\s,;]+/)
+                .map((s) => s.trim())
+                .filter(Boolean),
+            );
+          }
+        }
+      }
+
+      if (!mintA || !isLikelySolanaMint(mintA)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Provide a valid Solana mint address via ?mintA=',
+        });
+      }
+      if (mintBs.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Provide at least one compare mint via ?mintB= (comma-separated for multiple)',
+        });
+      }
+
+      const result = await buildHolderOverlapBatch({ mintA, mintBs });
+      if (!result.ok) {
+        return res.status(result.status ?? 502).json({
+          success: false,
+          error: result.error || 'Holder overlap analysis failed',
+        });
+      }
+
+      return res.json({ success: true, data: result.data });
+    } catch (err) {
+      console.error('[holder-overlap] failed:', err?.stack || err?.message || err);
+      const message = err instanceof Error ? err.message : 'Holder overlap analysis failed';
       return res.status(500).json({ success: false, error: message });
     }
   });

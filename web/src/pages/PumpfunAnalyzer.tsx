@@ -12,6 +12,7 @@ import { PumpfunCallShareModal } from "@/components/pumpfun/PumpfunCallShareModa
 import { PumpfunCallerLeaderboard } from "@/components/pumpfun/PumpfunCallerLeaderboard";
 import { PumpfunChartPanel } from "@/components/pumpfun/PumpfunChartPanel";
 import { PumpfunClusterPanel } from "@/components/pumpfun/PumpfunClusterPanel";
+import { PumpfunHolderOverlapPanel } from "@/components/pumpfun/PumpfunHolderOverlapPanel";
 import { PumpfunHoldersPanel } from "@/components/pumpfun/PumpfunHoldersPanel";
 import { PumpfunKolPanel } from "@/components/pumpfun/PumpfunKolPanel";
 import { PumpfunRiskPanel } from "@/components/pumpfun/PumpfunRiskPanel";
@@ -374,6 +375,14 @@ export default function PumpfunAnalyzer() {
                   <PumpfunHoldersPanel data={analysisPayload} />
                 </div>
                 <PumpfunClusterPanel data={analysisPayload} />
+                <PumpfunHolderOverlapPanel
+                  baseMint={analysisPayload.mint}
+                  baseSymbol={
+                    analysisPayload.pumpfun.data?.symbol ??
+                    analysisPayload.dossier.data?.asset?.symbol ??
+                    "Token"
+                  }
+                />
                 <PumpfunKolPanel data={analysisPayload} />
               </div>
             ) : null}

@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ExperimentAgentBalancePanel } from "@/components/experiment/shared/ExperimentAgentBalancePanel";
 import { ExperimentTabShell, type ExperimentTabId } from "@/components/experiment/shared/ExperimentTabShell";
+import { BtcQuantBalancePanelSkeleton } from "@/components/experiment/btc/BtcExperimentSkeletons";
 import { BtcExperimentBackdrop } from "@/components/experiment/btc/BtcExperimentBackdrop";
 import { BtcExperimentGlobalStats } from "@/components/experiment/btc/BtcExperimentGlobalStats";
 import { BtcExperimentHero } from "@/components/experiment/btc/BtcExperimentHero";
@@ -149,20 +150,24 @@ export default function BtcQuantExperiment({ embedded = false }: { embedded?: bo
           onRefresh={refreshAll}
         />
 
-        <ExperimentAgentBalancePanel
-          platformLabel="BTC quant lab"
-          bankLabel="$1,000 paper agent"
-          strategyLabel={displayStats?.strategyName ?? "Warming up…"}
-          startBalance={startUsd}
-          currentBalance={equityUsd}
-          retPct={retPct}
-          closedCount={displayStats?.decided ?? 0}
-          openCount={displayLab?.openPositions ?? displayStats?.openPositions ?? 0}
-          historyPoints={equityHistory}
-          formatBalance={formatExperimentUsd}
-          formatAxis={(n) => `$${Math.round(n)}`}
-          accent="experiment"
-        />
+        {loading && !labStateQ.data ? (
+          <BtcQuantBalancePanelSkeleton />
+        ) : (
+          <ExperimentAgentBalancePanel
+            platformLabel="BTC quant lab"
+            bankLabel="$1,000 paper agent"
+            strategyLabel={displayStats?.strategyName ?? "Warming up…"}
+            startBalance={startUsd}
+            currentBalance={equityUsd}
+            retPct={retPct}
+            closedCount={displayStats?.decided ?? 0}
+            openCount={displayLab?.openPositions ?? displayStats?.openPositions ?? 0}
+            historyPoints={equityHistory}
+            formatBalance={formatExperimentUsd}
+            formatAxis={(n) => `$${Math.round(n)}`}
+            accent="experiment"
+          />
+        )}
 
         <BtcExperimentGlobalStats overview={overviewQ.data} loading={overviewQ.isLoading} />
 

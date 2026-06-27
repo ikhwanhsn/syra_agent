@@ -277,6 +277,8 @@ export async function runGmgnAgentTool(toolId, p) {
         if (params.hide_airdrop != null) extra.hide_airdrop = params.hide_airdrop;
         if (params.hide_closed != null) extra.hide_closed = params.hide_closed;
         if (params.hide_open) extra.hide_open = "true";
+        if (params.show_small != null) extra.show_small = params.show_small;
+        if (params.sell_out != null) extra.sell_out = params.sell_out;
         if (params.tx30d) extra.tx30d = "true";
         const data = await client.getWalletHoldings(String(params.chain), String(params.wallet), extra);
         return { ok: true, data };

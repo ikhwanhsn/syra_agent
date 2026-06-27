@@ -1,4 +1,4 @@
-import { Loader2 } from "lucide-react";
+import { BtcAgentExperimentPageSkeleton } from "@/components/experiment/btc/BtcExperimentSkeletons";
 import { Btc3Backdrop } from "@/components/btc3-experiment/Btc3Backdrop";
 import { Hero } from "@/components/btc3-experiment/Hero";
 import { NewsPanel } from "@/components/btc3-experiment/NewsPanel";
@@ -38,15 +38,7 @@ export default function Btc3MacroAgentExperiment() {
         )}
       >
         {loading && !state ? (
-          <div
-            className={cn(
-              overviewCardShell,
-              "flex items-center justify-center gap-3 rounded-2xl p-16",
-            )}
-          >
-            <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
-            <span className="text-sm text-muted-foreground">Loading macro intelligence…</span>
-          </div>
+          <BtcAgentExperimentPageSkeleton accent="blue" panelCount={8} />
         ) : error && !state ? (
           <div className={cn(overviewCardShell, "space-y-4 rounded-2xl p-8 text-center")}>
             <p className="text-sm text-red-500">{error}</p>

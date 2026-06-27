@@ -338,3 +338,253 @@ export async function fetchMemecoinAnalysis(
 }
 
 export type { TokensDossierCandle };
+
+export type HolderOverlapTier = "whale" | "dolphin" | "shrimp";
+
+export type HolderOverlapTone = "warning" | "caution" | "neutral";
+
+export interface HolderOverlapTokenMeta {
+  mint: string;
+  symbol: string;
+  name: string;
+  image: string | null;
+  priceUsd: number | null;
+  supplyHuman: number | null;
+  holdersCompared: number;
+  holdersFetchError?: string | null;
+}
+
+export interface HolderOverlapRow {
+  wallet: string;
+  rankA: number;
+  rankB: number;
+  balanceHumanA: number | null;
+  balanceHumanB: number | null;
+  sharePctA: number | null;
+  sharePctB: number | null;
+  usdValueA: number | null;
+  usdValueB: number | null;
+  combinedUsdValue: number | null;
+  tier: HolderOverlapTier;
+  flags: string[];
+}
+
+export interface HolderOverlapSummary {
+  overlapCount: number;
+  comparedA: number;
+  comparedB: number;
+  overlapRatioA: number;
+  overlapRatioB: number;
+  sharedSupplyPctA: number;
+  sharedSupplyPctB: number;
+  sharedUsdValueTotal: number | null;
+  topTenBothCount: number;
+  whaleCount: number;
+  verdict: string;
+  tone: HolderOverlapTone;
+  interpretation: string;
+  holderSampleLimit: number;
+}
+
+export interface HolderOverlapPayload {
+  mintA: string;
+  mintB: string;
+  tokenA: HolderOverlapTokenMeta;
+  tokenB: HolderOverlapTokenMeta;
+  sharedHolders: HolderOverlapRow[];
+  summary: HolderOverlapSummary;
+  fetchedAt?: string;
+}
+
+export interface HolderOverlapMultiTokenHolder {
+  wallet: string;
+  tokensMatched: number;
+  tokenSymbols: string[];
+  mints: string[];
+  rankA: number;
+  sharePctA: number | null;
+  balanceHumanA: number | null;
+}
+
+export interface HolderOverlapAggregateSummary {
+  compareTokenCount: number;
+  unionOverlapCount: number;
+  fullOverlapCount: number;
+  unionOverlapRatioA: number;
+  fullOverlapRatioA: number;
+  multiTokenHolders: HolderOverlapMultiTokenHolder[];
+}
+
+export interface HolderOverlapBatchPayload {
+  mintA: string;
+  tokenA: HolderOverlapTokenMeta;
+  comparisons: HolderOverlapPayload[];
+  aggregate: HolderOverlapAggregateSummary | null;
+  fetchedAt: string;
+}
+
+export const MAX_HOLDER_OVERLAP_COMPARE_MINTS = 8;
+
+export type HolderLastTradeSide = "buy" | "sell";
+
+export interface HolderLastTrade {
+  side: HolderLastTradeSide | null;
+  at: string | null;
+  amountToken: number | null;
+  amountUsd: number | null;
+}
+
+export interface HolderNetWorth {
+  netWorthUsd: number | null;
+  nativeBalanceSol: number | null;
+  nativeBalanceUsd: number | null;
+  tokenPositionUsd: number | null;
+}
+
+export interface HolderInsightsRow {
+  rank: number;
+  wallet: string;
+  inProfit: boolean | null;
+  profitUsd: number | null;
+  profitPct: number | null;
+  costUsd: number | null;
+  lastTrade: HolderLastTrade;
+  netWorth: HolderNetWorth;
+}
+
+export interface HolderInsightsPayload {
+  mint: string;
+  source: string;
+  holders: HolderInsightsRow[];
+  summary: {
+    total: number;
+    inProfit: number;
+    atLoss: number;
+    unknown: number;
+    lastBuy: number;
+    lastSell: number;
+    lastTradeUnknown: number;
+    withNetWorth: number;
+    totalNetWorthUsd: number | null;
+  };
+  fetchedAt: string;
+}
+
+/** @deprecated Use HolderInsightsRow */
+export type HolderProfitRow = HolderInsightsRow;
+
+/** @deprecated Use HolderInsightsPayload */
+export type HolderProfitPayload = HolderInsightsPayload;
+
+export async function fetchHolderInsights(
+  mint: string,
+  opts?: { wallets?: string[]; signal?: AbortSignal },
+): Promise<HolderInsightsPayload> {
+  const trimmed = mint.trim();
+  if (!isValidSolanaMint(trimmed)) {
+    throw new Error("Enter a valid mint address");
+  }
+
+  const base = getApiBaseUrl().replace(/\/$/, "");
+  const params = new URLSearchParams({ mint: trimmed });
+  const wallets = opts?.wallets?.map((w) => w.trim()).filter(Boolean) ?? [];
+  if (wallets.length > 0) {
+    params.set("wallets", wallets.join(","));
+  }
+  const url = `${base}/agent/tokens/holder-profit?${params.toString()}`;
+  const res = await syraFetch(url, {
+    headers: { Accept: "application/json" },
+    signal: opts?.signal,
+  });
+
+  const body = (await res.json().catch(() => ({}))) as {
+    success?: boolean;
+    data?: HolderProfitPayload;
+    error?: string;
+    message?: string;
+  };
+
+  if (!res.ok || body.success !== true || !body.data?.mint) {
+    throw new Error(body.error || body.message || "Failed to load holder insights");
+  }
+
+  return body.data;
+}
+
+/** @deprecated Use fetchHolderInsights */
+export async function fetchHolderProfitStatus(
+  mint: string,
+  opts?: { wallets?: string[]; signal?: AbortSignal },
+): Promise<HolderInsightsPayload> {
+  return fetchHolderInsights(mint, opts);
+}
+
+export function parseMintAddressList(raw: string): string[] {
+  const parts = raw.split(/[\s,\n\r;]+/).map((s) => s.trim()).filter(Boolean);
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const part of parts) {
+    const normalized = normalizeMintInput(part);
+    if (!normalized || !isValidSolanaMint(normalized) || seen.has(normalized)) continue;
+    seen.add(normalized);
+    result.push(normalized);
+  }
+  return result;
+}
+
+export async function fetchHolderOverlapBatch(
+  mintA: string,
+  mintBs: string[],
+  opts?: { signal?: AbortSignal },
+): Promise<HolderOverlapBatchPayload> {
+  const a = mintA.trim();
+  const uniqueBs = [...new Set(mintBs.map((m) => m.trim()).filter(Boolean))].filter(
+    (m) => m !== a && isValidSolanaMint(m),
+  );
+
+  if (!isValidSolanaMint(a)) {
+    throw new Error("Enter a valid base mint address");
+  }
+  if (uniqueBs.length === 0) {
+    throw new Error("Add at least one valid compare mint address");
+  }
+  if (uniqueBs.length > MAX_HOLDER_OVERLAP_COMPARE_MINTS) {
+    throw new Error(`Compare at most ${MAX_HOLDER_OVERLAP_COMPARE_MINTS} tokens at once`);
+  }
+
+  const base = getApiBaseUrl().replace(/\/$/, "");
+  const mintBParam = uniqueBs.map((m) => encodeURIComponent(m)).join(",");
+  const url = `${base}/agent/tokens/holder-overlap?mintA=${encodeURIComponent(a)}&mintB=${mintBParam}`;
+  const res = await syraFetch(url, {
+    headers: { Accept: "application/json" },
+    signal: opts?.signal,
+  });
+
+  const body = (await res.json().catch(() => ({}))) as {
+    success?: boolean;
+    data?: HolderOverlapBatchPayload;
+    error?: string;
+    message?: string;
+  };
+
+  if (!res.ok || body.success !== true || !body.data?.mintA || !body.data.comparisons?.length) {
+    throw new Error(body.error || body.message || "Failed to compare holder overlap");
+  }
+
+  return body.data;
+}
+
+/** @deprecated Use fetchHolderOverlapBatch for multi-mint support */
+export async function fetchHolderOverlap(
+  mintA: string,
+  mintB: string,
+  opts?: { signal?: AbortSignal },
+): Promise<HolderOverlapPayload> {
+  const batch = await fetchHolderOverlapBatch(mintA, [mintB], opts);
+  const comparison = batch.comparisons[0];
+  if (!comparison) {
+    throw new Error("Failed to compare holder overlap");
+  }
+  return comparison;
+}
+

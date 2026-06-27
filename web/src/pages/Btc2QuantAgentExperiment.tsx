@@ -1,4 +1,4 @@
-import { Loader2 } from "lucide-react";
+import { BtcAgentExperimentPageSkeleton } from "@/components/experiment/btc/BtcExperimentSkeletons";
 import { Btc2Backdrop } from "@/components/btc2-experiment/Btc2Backdrop";
 import { Hero } from "@/components/btc2-experiment/Hero";
 import { MarketOverview } from "@/components/btc2-experiment/MarketOverview";
@@ -39,10 +39,7 @@ export default function Btc2QuantAgentExperiment() {
         )}
       >
         {loading && !state ? (
-          <div className={cn(overviewCardShell, "flex items-center justify-center gap-3 rounded-2xl p-16")}>
-            <Loader2 className="h-6 w-6 animate-spin text-amber-500" />
-            <span className="text-sm text-muted-foreground">Loading onchain agent data…</span>
-          </div>
+          <BtcAgentExperimentPageSkeleton accent="amber" panelCount={6} />
         ) : error && !state ? (
           <div className={cn(overviewCardShell, "space-y-4 rounded-2xl p-8 text-center")}>
             <p className="text-sm text-red-500">{error}</p>

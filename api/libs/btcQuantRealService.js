@@ -139,7 +139,13 @@ export async function listBtcQuantRealPositions({ limit, offset, status, experim
     BtcQuantRealPosition.find(filter).sort({ openedAt: -1 }).skip(off).limit(lim).lean(),
     BtcQuantRealPosition.countDocuments(filter),
   ]);
-  return { positions, total };
+  return {
+    positions: positions.map((p) => ({
+      ...p,
+      dataSource: p.dataSource ?? p.cexSource ?? null,
+    })),
+    total,
+  };
 }
 
 export async function enableBtcQuantReal({ anonymousId, enabledBy, leaderStrategyId, maxNotionalUsd }) {
@@ -240,7 +246,7 @@ export async function runBtcQuantRealSignalCycle() {
     strategyId: strategy.id,
     strategyName: strategy.name,
     bar: strategy.bar,
-    cexSource: strategy.dataSource,
+    dataSource: strategy.dataSource,
     simRunId: simOpen._id,
     inputMint: BTC_QUANT_SWAP_MINTS.usdc,
     outputMint: BTC_QUANT_SWAP_MINTS.cbbtc,

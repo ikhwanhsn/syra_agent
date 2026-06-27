@@ -14,7 +14,10 @@ const tradingExperimentRunSchema = new mongoose.Schema(
     bar: { type: String, required: true },
     limit: { type: Number, required: true },
     symbol: { type: String, required: true },
-    /** /signal CEX key when suite uses multi-resource experiment (null = Binance-only suite). */
+    /**
+     * Data source key for the signal candle feed.
+     * CEX suites: /signal venue (binance, okx, …). BTC onchain suite: onchain_birdeye.
+     */
     cexSource: { type: String, default: null, index: true },
     /** Last fully closed candle close time (ms) when signal was built */
     anchorCloseMs: { type: Number, default: null },

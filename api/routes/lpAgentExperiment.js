@@ -11,6 +11,34 @@ import {
 } from "../libs/lpExperimentService.js";
 import { runLpExperimentEvolution } from "../libs/lpExperimentEvolution.js";
 import { getLpGlobalOverview } from "../libs/lpGlobalOverview.js";
+import { fetchMeteoraPoolPages, fetchMeteoraPoolsByTokenMint } from "../libs/meteoraDlmmClient.js";
+
+function parsePositiveInt(value, fallback, { min = 1, max = 500 } = {}) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(max, Math.max(min, Math.floor(n)));
+}
+
+function stripPoolRaw(pool) {
+  if (!pool || typeof pool !== "object") return pool;
+  const { raw: _raw, ...rest } = pool;
+  return rest;
+}
+
+function matchesPoolSearch(pool, query) {
+  const q = String(query || "").trim().toLowerCase();
+  if (!q) return true;
+  const haystack = [
+    pool.poolName,
+    pool.baseSymbol,
+    pool.quoteSymbol,
+    pool.poolAddress,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return haystack.includes(q);
+}
 
 function requireCronSecret(req, res, next) {
   const secret = (process.env.LP_AGENT_EXPERIMENT_CRON_SECRET || "").trim();
@@ -83,6 +111,50 @@ export function createLpAgentExperimentRouter() {
     try {
       const data = await getLpGlobalOverview();
       res.json({ success: true, data });
+    } catch (e) {
+      res.status(500).json({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  });
+
+  router.get("/pools", async (req, res) => {
+    try {
+      const sortKey =
+        typeof req.query.sort_key === "string" && req.query.sort_key.trim()
+          ? req.query.sort_key.trim()
+          : "tvl";
+      const order =
+        typeof req.query.order === "string" && req.query.order.toLowerCase() === "asc"
+          ? "asc"
+          : "desc";
+      const limit = parsePositiveInt(req.query.limit, 100, { min: 1, max: 200 });
+      const pages = parsePositiveInt(req.query.pages, 3, { min: 1, max: 10 });
+      const hideLowTvl = req.query.hideLowTvl !== "false";
+      const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
+      const mint = typeof req.query.mint === "string" ? req.query.mint.trim() : "";
+
+      const rows = mint
+        ? await fetchMeteoraPoolsByTokenMint(mint)
+        : await fetchMeteoraPoolPages({
+            pages,
+            limit,
+            sortKey,
+            order,
+            hideLowTvl,
+          });
+
+      const filtered = rows.filter((pool) => (search ? matchesPoolSearch(pool, search) : true));
+      const pools = filtered.map(stripPoolRaw);
+
+      res.json({
+        success: true,
+        data: {
+          pools,
+          count: pools.length,
+        },
+      });
     } catch (e) {
       res.status(500).json({
         success: false,

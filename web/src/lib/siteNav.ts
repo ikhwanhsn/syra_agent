@@ -87,7 +87,7 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
     label: "Earn",
     href: "/staking",
     icon: Coins,
-    match: (p) => p.startsWith("/staking") || p.startsWith("/swap"),
+    match: (p) => p.startsWith("/staking") || p.startsWith("/swap") || p.startsWith("/lp"),
     items: [
       {
         href: "/staking",
@@ -100,6 +100,12 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
         label: "Swap",
         icon: ArrowLeftRight,
         description: "Buy & sell tokens via Jupiter",
+      },
+      {
+        href: "/lp",
+        label: "Liquidity Pools",
+        icon: Droplets,
+        description: "Earn fees providing SYRA liquidity on Meteora",
       },
       {
         href: "/staking/admin",

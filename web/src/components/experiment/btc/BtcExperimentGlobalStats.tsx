@@ -2,6 +2,7 @@ import { Activity, Bitcoin, Layers, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatBtcUsd, type BtcGlobalOverview } from "@/lib/btcQuantApi";
 import { overviewCardShell, overviewKickerClass } from "@/components/dashboard/overview/overviewStyles";
+import { BtcQuantExperimentStatsSkeleton } from "@/components/experiment/btc/BtcExperimentSkeletons";
 
 function StatTile({
   label,
@@ -36,13 +37,7 @@ export function BtcExperimentGlobalStats({ overview, loading }: BtcExperimentGlo
   const real = overview?.realAgent;
 
   if (loading && !overview) {
-    return (
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className={cn(overviewCardShell, "h-24 animate-pulse rounded-2xl")} />
-        ))}
-      </div>
-    );
+    return <BtcQuantExperimentStatsSkeleton />;
   }
 
   const leaderId = sim?.leaderStrategyId;

@@ -2,6 +2,13 @@ const METEORA_BASE_URL = (
   process.env.METEORA_DLMM_API_BASE_URL || "https://dlmm.datapi.meteora.ag"
 ).replace(/\/$/, "");
 
+/** Common quote mints when resolving all DLMM pools for a base token. */
+export const METEORA_DEFAULT_QUOTE_MINTS = [
+  "So11111111111111111111111111111111111111112", // WSOL
+  "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC
+  "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB", // USDT
+];
+
 const REQUEST_TIMEOUT_MS = 12_000;
 const RETRY_DELAY_MS = 400;
 const MAX_RETRIES = 2;
@@ -43,7 +50,10 @@ export function resolvePoolFeeTvlRatio(raw, fee24hUsd, tvlUsd) {
   if (tvl > 0 && fee24 > 0) {
     return fee24 / tvl;
   }
-  const apiPct = toNum(raw?.fee_tvl_ratio?.["24h"]);
+  const apiPct =
+    toNum(raw?.fee_tvl_ratio?.["24h"]) ||
+    toNum(raw?.fee_tvl?.["24h"]) ||
+    toNum(raw?.feeTvlRatio?.["24h"]);
   if (apiPct > 0) {
     return apiPct / 100;
   }
@@ -127,9 +137,6 @@ function normalizePool(raw) {
   };
 }
 
-/**
- * Fetch and dedupe pools across multiple Meteora pages (sim lab scans beyond page-1 mega pools).
- */
 export async function fetchMeteoraPoolPages({
   pages = 4,
   limit = 100,
@@ -176,6 +183,52 @@ export async function fetchMeteoraPools({
   const normalized = rows.map(normalizePool).filter((p) => p.poolAddress);
   setCached(key, normalized);
   return normalized;
+}
+
+export function lexicalOrderMints(mintA, mintB) {
+  const a = String(mintA || "").trim();
+  const b = String(mintB || "").trim();
+  if (!a || !b) throw new Error("Both mints are required");
+  return a < b ? `${a}-${b}` : `${b}-${a}`;
+}
+
+/**
+ * Fetch all DLMM pools that include a token mint via Meteora pool groups API.
+ * Paginated /pools misses low-TVL pairs (e.g. SYRA-SOL); groups lookup is reliable.
+ */
+export async function fetchMeteoraPoolsByTokenMint(
+  tokenMint,
+  { quoteMints = METEORA_DEFAULT_QUOTE_MINTS } = {},
+) {
+  const mint = String(tokenMint || "").trim();
+  if (!mint) throw new Error("tokenMint is required");
+
+  const key = `mint:${mint}:${quoteMints.join(",")}`;
+  const cached = getCached(key);
+  if (cached) return cached;
+
+  const seen = new Map();
+  for (const quoteMint of quoteMints) {
+    const quote = String(quoteMint || "").trim();
+    if (!quote || quote === mint) continue;
+    try {
+      const groupKey = lexicalOrderMints(mint, quote);
+      const body = await fetchWithRetry(`/pools/groups/${encodeURIComponent(groupKey)}`);
+      const rows = Array.isArray(body?.data) ? body.data : Array.isArray(body) ? body : [];
+      for (const raw of rows) {
+        const normalized = normalizePool(raw);
+        if (!normalized.poolAddress) continue;
+        if (normalized.baseMint !== mint && normalized.quoteMint !== mint) continue;
+        seen.set(normalized.poolAddress, normalized);
+      }
+    } catch {
+      // Pair group may not exist on Meteora — skip.
+    }
+  }
+
+  const pools = [...seen.values()];
+  setCached(key, pools);
+  return pools;
 }
 
 export async function fetchMeteoraPoolDetail(poolAddress) {

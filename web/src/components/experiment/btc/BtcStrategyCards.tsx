@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
+import { BtcQuantStrategyCardsSkeleton } from "@/components/experiment/btc/BtcExperimentSkeletons";
 import type { BtcQuantStrategy } from "@/lib/btcQuantApi";
 
 export interface BtcStrategyCardsProps {
@@ -10,13 +11,7 @@ export interface BtcStrategyCardsProps {
 
 export function BtcStrategyCards({ strategies, loading }: BtcStrategyCardsProps) {
   if (loading && strategies.length === 0) {
-    return (
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className={cn(overviewCardShell, "h-32 animate-pulse rounded-2xl")} />
-        ))}
-      </div>
-    );
+    return <BtcQuantStrategyCardsSkeleton />;
   }
 
   return (

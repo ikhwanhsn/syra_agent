@@ -5,13 +5,14 @@ import { Lock, Timer } from "lucide-react";
 import { useSyraSolana } from "@/hooks/useSyraSolana";
 import { LockPositionCard } from "@/components/staking/LockPositionCard";
 import { StakingConnectPrompt } from "@/components/staking/StakingConnectPrompt";
+import { StakingBenefitsSection } from "@/components/staking/StakingBenefitsSection";
 import { StakingPageHero } from "@/components/staking/StakingPageHero";
 import {
   stakingAmountShell,
   stakingCardBody,
   stakingEmptyState,
   stakingInsetCard,
-  stakingPanelShell,
+  stakingActionPanel,
   stakingPrimaryCta,
   stakingSectionLabel,
   stakingSectionTitle,
@@ -198,7 +199,7 @@ export default function StreamflowStakingPage() {
 
   return (
     <StakingShell>
-      <div className="flex min-w-0 flex-col gap-6 sm:gap-8">
+      <div className="flex min-w-0 flex-col gap-7 sm:gap-8">
         <StakingPageHero
           symbol={symbol}
           lockDurationLabel={STREAMFLOW_CONFIG.lockDurationLabel}
@@ -218,16 +219,17 @@ export default function StreamflowStakingPage() {
           refreshNonce={statsRefreshNonce}
         />
 
-        <div className="grid min-w-0 grid-cols-1 gap-5 pt-2 sm:gap-6 lg:grid-cols-2 lg:items-start lg:gap-8 lg:pt-0">
+        <div className="grid min-w-0 grid-cols-1 gap-5 sm:gap-6 lg:grid-cols-2 lg:items-start lg:gap-6">
           {/* Lock form */}
-          <section className={stakingPanelShell}>
+          <section className={stakingActionPanel}>
+            <div
+              className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-foreground/10 to-transparent"
+              aria-hidden
+            />
             <div className={cn(stakingCardBody, "flex flex-col")}>
             <div className="mb-5 sm:mb-6">
               <p className={stakingSectionLabel}>New position</p>
               <h2 className={stakingSectionTitle}>Open a lock</h2>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Locked for {STREAMFLOW_CONFIG.lockDurationLabel}. Vesting via Streamflow.
-              </p>
             </div>
 
             {!connected ? <StakingConnectPrompt symbol={symbol} className="mb-5" /> : null}
@@ -339,7 +341,11 @@ export default function StreamflowStakingPage() {
           </section>
 
           {/* Portfolio */}
-          <section className={stakingPanelShell}>
+          <section className={stakingActionPanel}>
+            <div
+              className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-foreground/10 to-transparent"
+              aria-hidden
+            />
             <div className={cn(stakingCardBody, "flex min-w-0 flex-col")}>
             <div className="mb-5 space-y-4">
               <div>
@@ -446,6 +452,8 @@ export default function StreamflowStakingPage() {
             </div>
           </section>
         </div>
+
+        <StakingBenefitsSection />
       </div>
     </StakingShell>
   );

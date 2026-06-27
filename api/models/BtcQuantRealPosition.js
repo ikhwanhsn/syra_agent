@@ -6,7 +6,8 @@ const btcQuantRealPositionSchema = new mongoose.Schema(
     strategyId: { type: Number, required: true, min: 0, max: 99, index: true },
     strategyName: { type: String, required: true },
     bar: { type: String, required: true },
-    cexSource: { type: String, required: true },
+    /** Onchain market feed key (e.g. onchain_birdeye). Legacy docs may use cexSource. */
+    dataSource: { type: String, required: true },
 
     /** Paper run link for audit trail. */
     simRunId: {

@@ -166,6 +166,9 @@ export default {
           "0%, 70%, 100%": { transform: "translateY(0)", opacity: "0.35" },
           "35%": { transform: "translateY(-3px)", opacity: "1" },
         },
+        "skeleton-shimmer": {
+          "100%": { transform: "translateX(100%)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -183,6 +186,7 @@ export default {
         "thinking-shimmer": "thinking-shimmer 2.8s ease-in-out infinite",
         "thinking-badge-pulse": "thinking-badge-pulse 2.2s ease-in-out infinite",
         "typing-dot": "typing-dot 1.1s ease-in-out infinite",
+        "skeleton-shimmer": "skeleton-shimmer 1.8s ease-in-out infinite",
       },
       spacing: {
         sidebar: "var(--sidebar-width)",

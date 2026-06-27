@@ -466,6 +466,7 @@ export async function runBtcQuantSignalCycle() {
         bar: strategy.bar,
         limit: 200,
         symbol: cached.built.instrument || BTC_ONCHAIN_SYMBOL,
+        // Shared TradingExperimentRun field; BTC onchain suite stores onchain dataSource here.
         cexSource: BTC_ONCHAIN_DATA_SOURCE,
         anchorCloseMs: cached.built.anchorCloseMs,
         clearSignal: cached.fields.clearSignal,

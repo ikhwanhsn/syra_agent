@@ -10,6 +10,11 @@ export const stakingInsetPadding = "p-4 sm:p-5";
 /** Card border shell only — pair with {@link stakingCardBody} for content. */
 export const stakingPanelShell = cn(overviewCardShell, "min-w-0");
 
+/** Premium action panel — glass surface for lock form and portfolio. */
+export const stakingActionPanel = cn(
+  "glass-card relative min-w-0 overflow-hidden rounded-2xl border border-foreground/[0.08]",
+);
+
 /** Inner content layer — sits above glow/background with consistent padding. */
 export const stakingCardBody = cn("relative z-[1] min-w-0", stakingCardPadding);
 

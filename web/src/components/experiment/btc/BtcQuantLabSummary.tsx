@@ -1,6 +1,10 @@
 import { useMemo } from "react";
 import { ExperimentLeaderboardList } from "@/components/experiment/shared/ExperimentLeaderboardList";
 import { ExperimentTradeFeed } from "@/components/experiment/shared/ExperimentTradeFeed";
+import {
+  BtcQuantLeaderboardSkeleton,
+  BtcQuantTradeFeedSkeleton,
+} from "@/components/experiment/btc/BtcExperimentSkeletons";
 import { formatBtcUsd, type BtcAgentStats, type BtcRunRow } from "@/lib/btcQuantApi";
 import { overviewKickerClass } from "@/components/dashboard/overview/overviewStyles";
 import { cn } from "@/lib/utils";
@@ -77,12 +81,16 @@ export function BtcQuantLabSummary({
           <p className={cn(overviewKickerClass, "text-[10px] uppercase tracking-wider")}>Leaderboard</p>
           <h2 className="mt-1 text-lg font-semibold tracking-tight">Strategy cohort</h2>
         </div>
-        <ExperimentLeaderboardList
-          rows={leaderboardRows}
-          emptyMessage={loading ? "Loading agents…" : "No agent stats yet — signal tick will populate runs."}
-          accentRingClass="ring-amber-500/30 border-amber-500/35"
-          onSelect={(key) => onSelectStrategy?.(Number(key))}
-        />
+        {loading && leaderboardRows.length === 0 ? (
+          <BtcQuantLeaderboardSkeleton />
+        ) : (
+          <ExperimentLeaderboardList
+            rows={leaderboardRows}
+            emptyMessage="No agent stats yet — signal tick will populate runs."
+            accentRingClass="ring-amber-500/30 border-amber-500/35"
+            onSelect={(key) => onSelectStrategy?.(Number(key))}
+          />
+        )}
       </section>
 
       <section className="space-y-4">
@@ -90,10 +98,14 @@ export function BtcQuantLabSummary({
           <p className={cn(overviewKickerClass, "text-[10px] uppercase tracking-wider")}>Activity</p>
           <h2 className="mt-1 text-lg font-semibold tracking-tight">Recent paper legs</h2>
         </div>
-        <ExperimentTradeFeed
-          items={feedItems}
-          emptyMessage={loading ? "Loading runs…" : "No trades yet — agents scan BTC signals every 2 minutes."}
-        />
+        {loading && feedItems.length === 0 ? (
+          <BtcQuantTradeFeedSkeleton />
+        ) : (
+          <ExperimentTradeFeed
+            items={feedItems}
+            emptyMessage="No trades yet — agents scan BTC signals every 2 minutes."
+          />
+        )}
       </section>
     </div>
   );

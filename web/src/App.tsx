@@ -59,6 +59,7 @@ import MarketingPrivacyPolicy from "@/pages/marketing/PrivacyPolicy";
 import MarketingTermsOfService from "@/pages/marketing/TermsOfService";
 import MarketingCookiePolicy from "@/pages/marketing/CookiePolicy";
 import EarnPage from "@/pages/EarnPage";
+import LpPoolsPage from "@/pages/LpPoolsPage";
 import GrowPage from "@/pages/GrowPage";
 import InvestPage from "@/pages/InvestPage";
 import SpendPage from "@/pages/SpendPage";
@@ -113,6 +114,7 @@ function AppRoutes() {
           <Route path="/settings" element={<Index />} />
           <Route path="/wallet" element={<AgentWalletPage />} />
           <Route path="/swap" element={<SwapPage />} />
+          <Route path="/lp" element={<LpPoolsPage />} />
           <Route path="/overview/earn" element={<Navigate to="/earn" replace />} />
           <Route path="/overview/treasury" element={<Navigate to="/treasury" replace />} />
           <Route path="/overview/invest" element={<Navigate to="/invest" replace />} />
