@@ -3,6 +3,9 @@ import { getFontEmbedCSS } from "html-to-image";
 export const POST_VIDEO_PREVIEW_SELECTOR =
   ".post-chrome-stage .post-record-stage:not(.post-video-export-stage)";
 
+export const POST_VIDEO_EXPORT_SELECTOR =
+  ".post-video-export-root .post-video-export-stage";
+
 export async function waitForPaint(full = true): Promise<void> {
   await new Promise<void>((resolve) => {
     requestAnimationFrame(() => resolve());
@@ -47,14 +50,20 @@ export function resolvePostVideoPreviewStage(): HTMLElement | null {
   return document.querySelector<HTMLElement>(POST_VIDEO_PREVIEW_SELECTOR);
 }
 
+export function resolvePostVideoExportStage(): HTMLElement | null {
+  return document.querySelector<HTMLElement>(POST_VIDEO_EXPORT_SELECTOR);
+}
+
 /** Hide frame guides and freeze reveal motion for static captures. */
 export function setPostExportActive(active: boolean): void {
   document.querySelector(".post-root")?.classList.toggle("post-export-active", active);
+  document.querySelector(".post-video-export-root")?.classList.toggle("post-export-active", active);
 }
 
 export function setPostExportCapturing(active: boolean): void {
   document.querySelector(".post-root")?.classList.toggle("post-export-capturing", active);
-  document.querySelector(".post-photo-root")?.classList.toggle("post-export-capturing", active);
+  document.querySelector(".post-photo-export-root")?.classList.toggle("post-export-capturing", active);
+  document.querySelector(".post-video-export-root")?.classList.toggle("post-export-capturing", active);
 }
 
 export const postExportNodeFilter = (node: Node): boolean =>

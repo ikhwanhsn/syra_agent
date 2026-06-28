@@ -2,7 +2,6 @@ import { toBlob, toPng } from "html-to-image";
 import {
   preloadExportAssets,
   resolveFontEmbedCSS,
-  setPostExportCapturing,
   waitForPaint,
 } from "@/components/post/postHtmlCapture";
 import {
@@ -47,7 +46,7 @@ async function preparePhotoCapture(node: HTMLElement): Promise<{
   restoreFit: () => void;
 }> {
   const target = resolvePostPhotoExportNode(node);
-  setPostExportCapturing(true);
+  document.querySelector(".post-photo-export-root")?.classList.add("post-export-capturing");
   await preloadExportAssets(target);
   assertPostPhotoExportDimensions(target);
   const restoreFit = applyPostPhotoExportFit(target);
@@ -75,7 +74,7 @@ export async function exportPostPhotoPng(
     link.click();
   } finally {
     restoreFit();
-    setPostExportCapturing(false);
+    document.querySelector(".post-photo-export-root")?.classList.remove("post-export-capturing");
   }
 }
 
@@ -96,7 +95,7 @@ export async function copyPostPhotoToClipboard(node: HTMLElement): Promise<boole
     return false;
   } finally {
     restoreFit();
-    setPostExportCapturing(false);
+    document.querySelector(".post-photo-export-root")?.classList.remove("post-export-capturing");
   }
 }
 

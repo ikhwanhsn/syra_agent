@@ -9,6 +9,7 @@ import { PostShareCopyPanel } from "@/components/post/PostShareCopyPanel";
 import { PostUpdateNav } from "@/components/post/PostUpdateNav";
 import { PostXStatusControl } from "@/components/post/PostXStatusControl";
 import { PostVideoExportModal } from "@/components/post/PostVideoExportModal";
+import { PostVideoExportStage } from "@/components/post/PostVideoExportStage";
 import { exportPostVideo, type PostVideoExportFormat } from "@/components/post/postVideoExport";
 import { getSlideDwellMs } from "@/components/post/postSlideTiming";
 import { cn } from "@/lib/utils";
@@ -66,14 +67,14 @@ export function PostDeck({ post }: PostDeckProps) {
       setExportFormat(format);
       setExporting(true);
       setExportProgress(0);
+      setExportSlideIndex(0);
       pausePlayback();
 
       try {
         await exportPostVideo(slides, meta.id, format, {
           onSlideChange: (nextIndex) => {
             flushSync(() => {
-              setIndex(nextIndex);
-              setDirection("forward");
+              setExportSlideIndex(nextIndex);
             });
           },
           onProgress: (progress) => setExportProgress(progress),
@@ -289,13 +290,15 @@ export function PostDeck({ post }: PostDeckProps) {
             </div>
             <p className="mt-3 font-mono text-xs tabular-nums text-white/45">
               {Math.round(exportProgress * 100)}% · slide{" "}
-              {String(index + 1).padStart(2, "0")} /{" "}
+              {String(exportSlideIndex + 1).padStart(2, "0")} /{" "}
               {String(slideCount).padStart(2, "0")}
             </p>
             <p className="mt-2 text-xs text-white/35">Keep this tab open until the download starts</p>
           </div>
         </div>
       ) : null}
+
+      <PostVideoExportStage slides={slides} slideIndex={exportSlideIndex} />
     </div>
   );
 }
