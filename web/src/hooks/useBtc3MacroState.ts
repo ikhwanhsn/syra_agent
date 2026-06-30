@@ -1,13 +1,17 @@
 import { useCallback, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Btc3AgentState } from "@/lib/btc3/types";
-import { fetchBtc3StateBundle, mapApiToBtc3State } from "@/lib/btc3/mapApiToBtc3State";
+import { fetchBtc3StateBundle, fetchBtc3Learning, mapApiToBtc3State } from "@/lib/btc3/mapApiToBtc3State";
 
 const REFETCH_MS = 30_000;
 
 async function fetchBtc3AgentBundle(): Promise<Btc3AgentState> {
-  const bundle = await fetchBtc3StateBundle();
-  return mapApiToBtc3State(bundle);
+  const [bundle, learning] = await Promise.all([
+    fetchBtc3StateBundle(),
+    fetchBtc3Learning().catch(() => null),
+  ]);
+  const state = mapApiToBtc3State(bundle);
+  return { ...state, learning };
 }
 
 export function useBtc3MacroState() {

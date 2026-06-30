@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { ttlExpireSeconds } from "../utils/mongoTtl.js";
+import { ttlExpireSeconds } from "../../utils/mongoTtl.js";
 
 const systemLogSchema = new mongoose.Schema(
   {

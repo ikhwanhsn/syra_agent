@@ -5,6 +5,7 @@ import {
   getBtc3Entities,
   getBtc3Events,
   getBtc3Executions,
+  getBtc3Learning,
   getBtc3Logs,
   getBtc3News,
   getBtc3Overview,
@@ -15,7 +16,9 @@ import {
   getBtc3Similarity,
   getBtc3State,
   getBtc3PaperTrading,
+  runBtc3Learning,
 } from "../libs/btc3/btc3MacroApiService.js";
+import { resetBtc3FromScratch } from "../libs/btc3/btc3PaperTradingService.js";
 
 function requireCronSecret(req, res, next) {
   const secret = (process.env.BTC3_MACRO_CRON_SECRET || "").trim();
@@ -28,6 +31,20 @@ function requireCronSecret(req, res, next) {
     });
   }
   return next();
+}
+
+function requireResetAuth(req, res, next) {
+  const ui = (process.env.BTC3_RESET_UI_TOKEN || "").trim();
+  const cron = (process.env.BTC3_MACRO_CRON_SECRET || "").trim();
+  const uiHdr = (req.get("x-btc3-reset-ui") || "").trim();
+  const cronHdr = (req.get("x-btc3-macro-secret") || "").trim();
+  if (ui && uiHdr === ui) return next();
+  if (cron && cronHdr === cron) return next();
+  if (!ui && !cron) return next();
+  return res.status(403).json({
+    success: false,
+    error: "Missing or invalid reset credentials (x-btc3-reset-ui or x-btc3-macro-secret)",
+  });
 }
 
 function parseLimit(value, fallback = 20, max = 100) {
@@ -246,6 +263,43 @@ export function createBtc3MacroRouter() {
       return res.json({ success: true, data });
     } catch (e) {
       return res.status(500).json({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  });
+
+  router.get("/learning", async (_req, res) => {
+    try {
+      const data = await getBtc3Learning();
+      res.json({ success: true, data });
+    } catch (e) {
+      res.status(500).json({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  });
+
+  router.post("/learning-tick", requireCronSecret, async (_req, res) => {
+    try {
+      const data = await runBtc3Learning();
+      res.json({ success: true, data });
+    } catch (e) {
+      res.status(500).json({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  });
+
+  router.post("/reset-lab", requireResetAuth, async (req, res) => {
+    try {
+      const title = typeof req.body?.title === "string" ? req.body.title : undefined;
+      const data = await resetBtc3FromScratch({ title });
+      res.json({ success: true, data });
+    } catch (e) {
+      res.status(500).json({
         success: false,
         error: e instanceof Error ? e.message : String(e),
       });

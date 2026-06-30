@@ -15,7 +15,10 @@ import { RecentTrades } from "@/components/btc2-experiment/RecentTrades";
 import { SystemLogs } from "@/components/btc2-experiment/SystemLogs";
 import { AgentSidebar } from "@/components/btc2-experiment/AgentSidebar";
 import { Button } from "@/components/ui/button";
+import { BtcQuantLearningPanel } from "@/components/experiment/btc/BtcQuantLearningPanel";
 import { useBtc2AgentState } from "@/hooks/useBtc2AgentState";
+import { fetchBtcLearning } from "@/lib/btcQuantApi";
+import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import {
   DASHBOARD_CONTENT_SHELL,
@@ -26,6 +29,11 @@ import { overviewCardShell } from "@/components/dashboard/overview/overviewStyle
 
 export default function Btc2QuantAgentExperiment() {
   const { state, paused, togglePause, refresh, loading, error, isFetching } = useBtc2AgentState();
+  const learningQ = useQuery({
+    queryKey: ["btc-quant", "learning", "btc2"],
+    queryFn: () => fetchBtcLearning("btc2"),
+    refetchInterval: 120_000,
+  });
 
   return (
     <>
@@ -68,6 +76,7 @@ export default function Btc2QuantAgentExperiment() {
               <Portfolio portfolio={state.portfolio} />
               <Transparency predictions={state.onchainPredictions} />
               <Architecture />
+              <BtcQuantLearningPanel learning={learningQ.data} loading={learningQ.isLoading} />
               <Performance performance={state.performance} />
               <RecentTrades trades={state.recentTrades} />
               <SystemLogs logs={state.logs} />

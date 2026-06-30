@@ -1715,10 +1715,12 @@ app.listen(PORT, () => {
   const runBtcQuantSignal = runIfMongoConnected(
     withSingleFlight(() =>
       import("./libs/btcQuantExperimentService.js")
-        .then(({ runBtcQuantSignalCycle }) => runBtcQuantSignalCycle())
+        .then(({ runAllBtcQuantSignalCycles }) => runAllBtcQuantSignalCycles())
         .then((out) => {
-          if (out.errors?.length) {
-            console.warn("[BTC quant] signal errors:", out.errors.slice(0, 3));
+          for (const [lane, result] of Object.entries(out.lanes ?? {})) {
+            if (result.errors?.length) {
+              console.warn(`[BTC quant ${lane}] signal errors:`, result.errors.slice(0, 3));
+            }
           }
         })
         .catch((err) =>
@@ -1730,10 +1732,12 @@ app.listen(PORT, () => {
   const runBtcQuantResolve = runIfMongoConnected(
     withSingleFlight(() =>
       import("./libs/btcQuantExperimentService.js")
-        .then(({ resolveOpenBtcQuantRuns }) => resolveOpenBtcQuantRuns())
+        .then(({ resolveAllOpenBtcQuantRuns }) => resolveAllOpenBtcQuantRuns())
         .then((out) => {
-          if (out.errors?.length) {
-            console.warn("[BTC quant] resolve errors:", out.errors.slice(0, 3));
+          for (const [lane, result] of Object.entries(out.lanes ?? {})) {
+            if (result.errors?.length) {
+              console.warn(`[BTC quant ${lane}] resolve errors:`, result.errors.slice(0, 3));
+            }
           }
         })
         .catch((err) =>
@@ -1795,6 +1799,82 @@ app.listen(PORT, () => {
   import("./libs/btc3/macroIntelligenceScheduler.js").then(({ startBtc3MacroScheduler }) => {
     startBtc3MacroScheduler(withSingleFlight, runIfMongoConnected);
   });
+
+  import("./libs/btcQuantExperimentEvolution.js")
+    .then(({ btcQuantEvolutionConfigFromEnv, runAllBtcQuantEvolutions }) => {
+      const evo = btcQuantEvolutionConfigFromEnv();
+      if (!evo.enabled || evo.ms < 60_000) return;
+      const tick = runIfMongoConnected(
+        withSingleFlight(() =>
+          runAllBtcQuantEvolutions({
+            removeCount: evo.removeCount,
+            minDecided: evo.minDecided,
+            pinned: evo.pinned,
+          })
+            .then((out) => {
+              for (const [lane, result] of Object.entries(out.lanes ?? {})) {
+                if (!result.ok) continue;
+                if (result.skipped) {
+                  startupVerbose(`[BTC quant evolution ${lane}] skipped:`, result.skipped);
+                  continue;
+                }
+                startupVerbose(
+                  `[BTC quant evolution ${lane}]`,
+                  "culled",
+                  result.culled?.length ?? 0,
+                  "spawned",
+                  result.spawned?.length ?? 0,
+                );
+              }
+            })
+            .catch((err) =>
+              console.warn("[BTC quant evolution failed]", err?.message || err),
+            ),
+        ),
+      );
+      setInterval(tick, evo.ms);
+    })
+    .catch(() => {});
+
+  import("./libs/btcQuantExperimentEvolution.js")
+    .then(({ btcQuantRealEvolutionConfigFromEnv, runBtcQuantRealEvolution }) => {
+      const evo = btcQuantRealEvolutionConfigFromEnv();
+      if (!evo.enabled || evo.ms < 60_000) return;
+      const tick = runIfMongoConnected(
+        withSingleFlight(() =>
+          import("./libs/btcQuantRealService.js")
+            .then(({ isBtcQuantRealCronEnabled }) => {
+              if (!isBtcQuantRealCronEnabled()) return null;
+              return runBtcQuantRealEvolution();
+            })
+            .then((out) => {
+              if (!out || out.skipped) return;
+              startupVerbose("[BTC quant real evolution]", out.summary || "completed");
+            })
+            .catch((err) => console.warn("[BTC quant real evolution failed]", err?.message || err)),
+        ),
+      );
+      setInterval(tick, evo.ms);
+    })
+    .catch(() => {});
+
+  import("./libs/btc3/btc3LearningService.js")
+    .then(({ btc3LearningConfigFromEnv, runBtc3Learning }) => {
+      const evo = btc3LearningConfigFromEnv();
+      if (!evo.enabled || evo.ms < 60_000) return;
+      const tick = runIfMongoConnected(
+        withSingleFlight(() =>
+          runBtc3Learning()
+            .then((out) => {
+              if (!out || out.skipped) return;
+              startupVerbose("[BTC3 learning]", out.summary || "completed");
+            })
+            .catch((err) => console.warn("[BTC3 learning failed]", err?.message || err)),
+        ),
+      );
+      setInterval(tick, evo.ms);
+    })
+    .catch(() => {});
 
   import("./libs/lpExperimentEvolution.js")
     .then(({ lpEvolutionConfigFromEnv, runLpExperimentEvolution }) => {

@@ -45,7 +45,7 @@ export function MarketOverview({ metrics }: { metrics: MarketMetric[] }) {
       <SectionHeader
         kicker="Section 01"
         title="Live Market Overview"
-        description="Real-time onchain cbBTC/USDC spot market telemetry from Birdeye and Jupiter."
+        description="Real-time BTC market telemetry from Binance OHLCV and Jupiter cbBTC spot."
       />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {metrics.map((m, i) => (

@@ -5,6 +5,7 @@
 
 import crypto from "node:crypto";
 import Btc3AllocationDecision from "../../models/btc3/AllocationDecision.js";
+import Btc3PaperRebalance from "../../models/btc3/PaperRebalance.js";
 import {
   BTC3_DEFAULT_PORTFOLIO,
   BTC3_PAPER_SIM_DEFAULTS,
@@ -17,6 +18,7 @@ import {
 } from "../../config/tradingExperimentSim.js";
 import { agentStateRepo, paperRebalanceRepo, portfolioRepo } from "../../repositories/btc3/index.js";
 import { fetchCbbtcSpotPriceUsd } from "../btcQuantOnchainMarket.js";
+import { getEffectiveBtc3PaperConfig } from "./btc3LearningService.js";
 
 const EXPERIMENT_ID_PREFIX = "btc3m";
 
@@ -226,13 +228,71 @@ export async function applyPaperRebalance(input) {
   await ensureBtc3PaperBootstrapped();
   const { allocation: before, btcPriceUsd } = await markPaperPortfolioToMarket();
   const state = await agentStateRepo.getState();
-  const cfg = getBtc3PaperSimConfig(state);
+  const cfg = await getEffectiveBtc3PaperConfig(state);
   const experimentId = state.activeExperimentId;
   const paper = state.paperPortfolio || {};
   const startingUsd = toNum(paper.startingEquityUsd, cfg.startingBankUsd);
 
   const targetBtcPct = toNum(input.targetAllocation?.btcPct, before.btcPct);
   const diffPct = Math.abs(targetBtcPct - before.btcPct);
+  const minConfidence = toNum(cfg.minConfidence, 0);
+  const inputConfidence = toNum(input.confidence);
+
+  if (minConfidence > 0 && inputConfidence > 0 && inputConfidence < minConfidence) {
+    const skipped = await paperRebalanceRepo.create({
+      experimentId,
+      decisionId: input.decisionId ?? null,
+      macroEventId: input.macroEventId ?? null,
+      direction: "hold",
+      headline: input.headline ?? "",
+      confidence: inputConfidence,
+      btcPriceUsd,
+      usdcDelta: 0,
+      btcDelta: 0,
+      notionalUsd: 0,
+      beforeAllocation: { btcPct: before.btcPct, usdcPct: before.usdcPct, totalUsd: before.totalUsd },
+      afterAllocation: { btcPct: before.btcPct, usdcPct: before.usdcPct, totalUsd: before.totalUsd },
+      equityUsd: before.totalUsd,
+      returnPct: computeAgentReturnPct(before.totalUsd, startingUsd),
+      status: "skipped_below_threshold",
+    });
+
+    if (input.decisionId) {
+      await Btc3AllocationDecision.findByIdAndUpdate(input.decisionId, {
+        $set: { status: "expired" },
+      });
+    }
+
+    return { rebalance: skipped, applied: false, reason: "below_confidence" };
+  }
+
+  if (cfg.maxBtcTiltPct != null && diffPct > cfg.maxBtcTiltPct) {
+    const skipped = await paperRebalanceRepo.create({
+      experimentId,
+      decisionId: input.decisionId ?? null,
+      macroEventId: input.macroEventId ?? null,
+      direction: "hold",
+      headline: input.headline ?? "",
+      confidence: inputConfidence,
+      btcPriceUsd,
+      usdcDelta: 0,
+      btcDelta: 0,
+      notionalUsd: 0,
+      beforeAllocation: { btcPct: before.btcPct, usdcPct: before.usdcPct, totalUsd: before.totalUsd },
+      afterAllocation: { btcPct: before.btcPct, usdcPct: before.usdcPct, totalUsd: before.totalUsd },
+      equityUsd: before.totalUsd,
+      returnPct: computeAgentReturnPct(before.totalUsd, startingUsd),
+      status: "skipped_below_threshold",
+    });
+
+    if (input.decisionId) {
+      await Btc3AllocationDecision.findByIdAndUpdate(input.decisionId, {
+        $set: { status: "expired" },
+      });
+    }
+
+    return { rebalance: skipped, applied: false, reason: "max_tilt_exceeded" };
+  }
 
   if (diffPct < cfg.minRebalancePct) {
     const skipped = await paperRebalanceRepo.create({
@@ -359,3 +419,90 @@ export async function getPaperPortfolioForOptimizer() {
 }
 
 export { TRADING_EXPERIMENT_STARTING_USD as BTC3_PAPER_STARTING_USD };
+
+/**
+ * Reset btc3 macro paper experiment: wipe sim data and learning state, bootstrap fresh cohort.
+ * Does NOT touch on-chain execution records.
+ * @param {{ title?: string }} [opts]
+ */
+export async function resetBtc3FromScratch(opts = {}) {
+  const Btc3AllocationDecision = (await import("../../models/btc3/AllocationDecision.js")).default;
+  const Btc3Prediction = (await import("../../models/btc3/Prediction.js")).default;
+  const Btc3Reasoning = (await import("../../models/btc3/Reasoning.js")).default;
+  const Btc3MacroEvent = (await import("../../models/btc3/MacroEvent.js")).default;
+  const Btc3Article = (await import("../../models/btc3/Article.js")).default;
+  const Btc3Entity = (await import("../../models/btc3/Entity.js")).default;
+  const Btc3PortfolioSnapshot = (await import("../../models/btc3/PortfolioSnapshot.js")).default;
+  const Btc3LearningState = (await import("../../models/btc3/LearningState.js")).default;
+
+  await Promise.all([
+    Btc3PaperRebalance.deleteMany({}),
+    Btc3PortfolioSnapshot.deleteMany({}),
+    Btc3AllocationDecision.deleteMany({}),
+    Btc3Prediction.deleteMany({}),
+    Btc3Reasoning.deleteMany({}),
+    Btc3MacroEvent.deleteMany({}),
+    Btc3Article.deleteMany({}),
+    Btc3Entity.deleteMany({}),
+    Btc3LearningState.deleteMany({}),
+  ]);
+
+  const experimentId = newExperimentId();
+  const cfg = BTC3_PAPER_SIM_DEFAULTS;
+  const btcPrice = (await fetchBtcPriceUsd()) ?? 60_000;
+  const startingUsd = cfg.startingBankUsd;
+  const btcUsd = roundUsd(startingUsd * (cfg.initialBtcPct / 100));
+  const usdcAmount = roundUsd(startingUsd - btcUsd);
+  const btcAmount = btcUsd / btcPrice;
+
+  await agentStateRepo.updateState({
+    activeExperimentId: experimentId,
+    title:
+      typeof opts.title === "string" && opts.title.trim()
+        ? opts.title.trim()
+        : "Macro Intelligence Agent (reset)",
+    startedAt: new Date(),
+    simConfig: {
+      startingBankUsd: startingUsd,
+      initialBtcPct: cfg.initialBtcPct,
+      minRebalancePct: cfg.minRebalancePct,
+      paperAutoExecute: cfg.paperAutoExecute,
+    },
+    paperPortfolio: {
+      usdcAmount,
+      btcAmount,
+      startingEquityUsd: startingUsd,
+      lastMarkPriceUsd: btcPrice,
+      rebalanceCount: 0,
+    },
+    portfolio: {
+      btcPct: cfg.initialBtcPct,
+      usdcPct: 100 - cfg.initialBtcPct,
+      totalUsd: startingUsd,
+    },
+    targetPortfolio: {
+      btcPct: cfg.initialBtcPct,
+      usdcPct: 100 - cfg.initialBtcPct,
+    },
+    lastPipelineRunId: null,
+    lastPipelineStatus: "idle",
+    articlesProcessed: 0,
+    articlesTotal: 0,
+    predictionsGenerated: 0,
+    latestDecisionId: null,
+    latestReasoningId: null,
+    latestPredictionId: null,
+  });
+
+  await portfolioRepo.createSnapshot({
+    btcPct: cfg.initialBtcPct,
+    usdcPct: 100 - cfg.initialBtcPct,
+    totalUsd: startingUsd,
+    btcPriceUsd: btcPrice,
+    source: "paper_reset",
+  });
+
+  bootPromise = null;
+
+  return { nextExperimentId: experimentId };
+}

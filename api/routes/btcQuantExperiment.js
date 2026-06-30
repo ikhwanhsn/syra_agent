@@ -5,9 +5,20 @@ import {
   getBtcQuantStats,
   listBtcQuantRuns,
   listBtcQuantStrategies,
+  resetAllBtcQuantFromScratch,
+  resetBtcQuantFromScratch,
+  resolveAllOpenBtcQuantRuns,
   resolveOpenBtcQuantRuns,
+  runAllBtcQuantSignalCycles,
   runBtcQuantSignalCycle,
 } from "../libs/btcQuantExperimentService.js";
+import { normalizeBtcQuantLane } from "../config/btcQuantLanes.js";
+import {
+  getBtcQuantEvolutionSnapshot,
+  runAllBtcQuantEvolutions,
+  runBtcQuantEvolution,
+  runBtcQuantRealEvolution,
+} from "../libs/btcQuantExperimentEvolution.js";
 import {
   buildBtcOnchainSignalReport,
   fetchCbbtcOnchainOhlcvRows,
@@ -26,12 +37,27 @@ function requireCronSecret(req, res, next) {
   return next();
 }
 
+function requireResetAuth(req, res, next) {
+  const ui = (process.env.BTC_QUANT_RESET_UI_TOKEN || "").trim();
+  const cron = (process.env.BTC_QUANT_EXPERIMENT_CRON_SECRET || "").trim();
+  const uiHdr = (req.get("x-btc-quant-reset-ui") || "").trim();
+  const cronHdr = (req.get("x-btc-quant-secret") || "").trim();
+  if (ui && uiHdr === ui) return next();
+  if (cron && cronHdr === cron) return next();
+  if (!ui && !cron) return next();
+  return res.status(403).json({
+    success: false,
+    error: "Missing or invalid reset credentials (x-btc-quant-reset-ui or x-btc-quant-secret)",
+  });
+}
+
 export function createBtcQuantExperimentRouter() {
   const router = express.Router();
 
-  router.get("/strategies", async (_req, res) => {
+  router.get("/strategies", async (req, res) => {
     try {
-      const strategies = listBtcQuantStrategies();
+      const lane = normalizeBtcQuantLane(req.query.lane);
+      const strategies = await listBtcQuantStrategies(lane);
       res.json({ success: true, data: { strategies } });
     } catch (e) {
       res.status(500).json({
@@ -41,9 +67,10 @@ export function createBtcQuantExperimentRouter() {
     }
   });
 
-  router.get("/state", async (_req, res) => {
+  router.get("/state", async (req, res) => {
     try {
-      const data = await getBtcQuantLabState();
+      const lane = normalizeBtcQuantLane(req.query.lane);
+      const data = await getBtcQuantLabState(lane);
       res.json({ success: true, data });
     } catch (e) {
       res.status(500).json({
@@ -53,9 +80,10 @@ export function createBtcQuantExperimentRouter() {
     }
   });
 
-  router.get("/stats", async (_req, res) => {
+  router.get("/stats", async (req, res) => {
     try {
-      const data = await getBtcQuantStats();
+      const lane = normalizeBtcQuantLane(req.query.lane);
+      const data = await getBtcQuantStats(lane);
       res.json({ success: true, data });
     } catch (e) {
       res.status(500).json({
@@ -65,9 +93,10 @@ export function createBtcQuantExperimentRouter() {
     }
   });
 
-  router.get("/overview", async (_req, res) => {
+  router.get("/overview", async (req, res) => {
     try {
-      const data = await getBtcQuantOverview();
+      const lane = normalizeBtcQuantLane(req.query.lane);
+      const data = await getBtcQuantOverview(lane);
       res.json({ success: true, data });
     } catch (e) {
       res.status(500).json({
@@ -126,7 +155,8 @@ export function createBtcQuantExperimentRouter() {
         typeof req.query.experimentId === "string" && req.query.experimentId.trim() !== ""
           ? req.query.experimentId.trim()
           : undefined;
-      const data = await listBtcQuantRuns({ limit, offset, strategyId, status, experimentId });
+      const lane = normalizeBtcQuantLane(req.query.lane);
+      const data = await listBtcQuantRuns({ limit, offset, strategyId, status, experimentId, lane });
       res.json({ success: true, data });
     } catch (e) {
       res.status(500).json({
@@ -136,9 +166,10 @@ export function createBtcQuantExperimentRouter() {
     }
   });
 
-  router.post("/signal-tick", requireCronSecret, async (_req, res) => {
+  router.post("/signal-tick", requireCronSecret, async (req, res) => {
     try {
-      const data = await runBtcQuantSignalCycle();
+      const lane = req.query.lane != null ? normalizeBtcQuantLane(req.query.lane) : null;
+      const data = lane ? await runBtcQuantSignalCycle(lane) : await runAllBtcQuantSignalCycles();
       res.json({ success: true, data });
     } catch (e) {
       res.status(500).json({
@@ -148,9 +179,64 @@ export function createBtcQuantExperimentRouter() {
     }
   });
 
-  router.post("/resolve-tick", requireCronSecret, async (_req, res) => {
+  router.post("/resolve-tick", requireCronSecret, async (req, res) => {
     try {
-      const data = await resolveOpenBtcQuantRuns();
+      const lane = req.query.lane != null ? normalizeBtcQuantLane(req.query.lane) : null;
+      const data = lane ? await resolveOpenBtcQuantRuns(lane) : await resolveAllOpenBtcQuantRuns();
+      res.json({ success: true, data });
+    } catch (e) {
+      res.status(500).json({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  });
+
+  router.get("/learning", async (req, res) => {
+    try {
+      const lane = normalizeBtcQuantLane(req.query.lane);
+      const data = await getBtcQuantEvolutionSnapshot(lane);
+      res.json({ success: true, data });
+    } catch (e) {
+      res.status(500).json({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  });
+
+  router.post("/evolution-tick", requireCronSecret, async (req, res) => {
+    try {
+      const lane = req.query.lane != null ? normalizeBtcQuantLane(req.query.lane) : null;
+      const data = lane ? await runBtcQuantEvolution(lane) : await runAllBtcQuantEvolutions();
+      res.json({ success: true, data });
+    } catch (e) {
+      res.status(500).json({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  });
+
+  router.post("/real/evolve-tick", requireCronSecret, async (_req, res) => {
+    try {
+      const data = await runBtcQuantRealEvolution();
+      res.json({ success: true, data });
+    } catch (e) {
+      res.status(500).json({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  });
+
+  router.post("/reset-lab", requireResetAuth, async (req, res) => {
+    try {
+      const lane = req.query.lane != null ? normalizeBtcQuantLane(req.query.lane) : null;
+      const title = typeof req.body?.title === "string" ? req.body.title : undefined;
+      const data = lane
+        ? await resetBtcQuantFromScratch({ lane, title })
+        : await resetAllBtcQuantFromScratch({ title });
       res.json({ success: true, data });
     } catch (e) {
       res.status(500).json({

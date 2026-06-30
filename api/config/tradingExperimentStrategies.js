@@ -18,7 +18,7 @@ export const BTC_QUANT_EXPERIMENT_DEFAULTS = Object.freeze({
 });
 
 /**
- * BTC quant strategy roster — each agent trades spot-long cbBTC signals from onchain Solana DEX data,
+ * BTC quant strategy roster — each agent trades spot-long cbBTC signals from Binance BTCUSDT OHLCV,
  * executed as cbBTC via Jupiter when real mode is enabled.
  *
  * @typedef {object} BtcQuantStrategy
@@ -38,7 +38,7 @@ export const BTC_QUANT_STRATEGIES = Object.freeze([
     id: 0,
     name: "Momentum RSI Breakout",
     bar: "1h",
-    dataSource: "onchain_birdeye",
+    dataSource: "binance_spot",
     signalGate: {
       all: [{ field: "clearSignal", op: "eq", value: "BUY" }],
       any: [
@@ -54,7 +54,7 @@ export const BTC_QUANT_STRATEGIES = Object.freeze([
     id: 1,
     name: "Mean Reversion Dip",
     bar: "4h",
-    dataSource: "onchain_birdeye",
+    dataSource: "binance_spot",
     signalGate: {
       all: [{ field: "clearSignal", op: "eq", value: "BUY" }],
       any: [
@@ -70,7 +70,7 @@ export const BTC_QUANT_STRATEGIES = Object.freeze([
     id: 2,
     name: "ADX Trend Rider",
     bar: "1h",
-    dataSource: "onchain_birdeye",
+    dataSource: "binance_spot",
     signalGate: {
       all: [
         { field: "clearSignal", op: "eq", value: "BUY" },
@@ -86,7 +86,7 @@ export const BTC_QUANT_STRATEGIES = Object.freeze([
     id: 3,
     name: "MACD Histogram Cross",
     bar: "1h",
-    dataSource: "onchain_birdeye",
+    dataSource: "binance_spot",
     signalGate: {
       all: [{ field: "clearSignal", op: "eq", value: "BUY" }],
       any: [{ field: "macd_histogram", op: "gt", value: 0 }],
@@ -99,7 +99,7 @@ export const BTC_QUANT_STRATEGIES = Object.freeze([
     id: 4,
     name: "Multi-TF Confluence",
     bar: "4h",
-    dataSource: "onchain_birdeye",
+    dataSource: "binance_spot",
     signalGate: {
       all: [
         { field: "clearSignal", op: "eq", value: "BUY" },
@@ -115,7 +115,7 @@ export const BTC_QUANT_STRATEGIES = Object.freeze([
     id: 5,
     name: "VWAP Reclaim",
     bar: "1h",
-    dataSource: "onchain_birdeye",
+    dataSource: "binance_spot",
     signalGate: {
       all: [{ field: "clearSignal", op: "eq", value: "BUY" }],
       any: [
@@ -131,7 +131,7 @@ export const BTC_QUANT_STRATEGIES = Object.freeze([
     id: 6,
     name: "Low Volatility Squeeze",
     bar: "4h",
-    dataSource: "onchain_birdeye",
+    dataSource: "binance_spot",
     signalGate: {
       all: [{ field: "clearSignal", op: "eq", value: "BUY" }],
       any: [
@@ -147,7 +147,7 @@ export const BTC_QUANT_STRATEGIES = Object.freeze([
     id: 7,
     name: "MFI Volume Pressure",
     bar: "1h",
-    dataSource: "onchain_birdeye",
+    dataSource: "binance_spot",
     signalGate: {
       all: [{ field: "clearSignal", op: "eq", value: "BUY" }],
       any: [
@@ -163,7 +163,7 @@ export const BTC_QUANT_STRATEGIES = Object.freeze([
     id: 8,
     name: "EMA Golden Cross",
     bar: "4h",
-    dataSource: "onchain_birdeye",
+    dataSource: "binance_spot",
     signalGate: {
       all: [{ field: "clearSignal", op: "eq", value: "BUY" }],
       any: [{ field: "ema12_above_ema26", op: "eq", value: true }],
@@ -176,7 +176,7 @@ export const BTC_QUANT_STRATEGIES = Object.freeze([
     id: 9,
     name: "Support Bounce",
     bar: "1h",
-    dataSource: "onchain_birdeye",
+    dataSource: "binance_spot",
     signalGate: {
       all: [{ field: "clearSignal", op: "eq", value: "BUY" }],
       any: [
@@ -192,7 +192,7 @@ export const BTC_QUANT_STRATEGIES = Object.freeze([
     id: 10,
     name: "Bybit Momentum Scout",
     bar: "1h",
-    dataSource: "onchain_birdeye",
+    dataSource: "binance_spot",
     signalGate: {
       all: [{ field: "clearSignal", op: "eq", value: "BUY" }],
       any: [{ field: "priceChange24hPct", op: "gte", value: 1 }],
@@ -205,7 +205,7 @@ export const BTC_QUANT_STRATEGIES = Object.freeze([
     id: 11,
     name: "Conservative High Confidence",
     bar: "4h",
-    dataSource: "onchain_birdeye",
+    dataSource: "binance_spot",
     signalGate: {
       all: [
         { field: "clearSignal", op: "eq", value: "BUY" },
@@ -220,7 +220,7 @@ export const BTC_QUANT_STRATEGIES = Object.freeze([
     id: 12,
     name: "Fast Scalp",
     bar: "15m",
-    dataSource: "onchain_birdeye",
+    dataSource: "binance_spot",
     signalGate: {
       all: [{ field: "clearSignal", op: "eq", value: "BUY" }],
       any: [
@@ -236,7 +236,7 @@ export const BTC_QUANT_STRATEGIES = Object.freeze([
     id: 13,
     name: "Resistance Breakout",
     bar: "1h",
-    dataSource: "onchain_birdeye",
+    dataSource: "binance_spot",
     signalGate: {
       all: [{ field: "clearSignal", op: "eq", value: "BUY" }],
       any: [{ field: "near_resistance_break", op: "eq", value: true }],
@@ -249,7 +249,7 @@ export const BTC_QUANT_STRATEGIES = Object.freeze([
     id: 14,
     name: "Balanced Quant Core",
     bar: "1h",
-    dataSource: "onchain_birdeye",
+    dataSource: "binance_spot",
     signalGate: {
       all: [{ field: "clearSignal", op: "eq", value: "BUY" }],
       any: [

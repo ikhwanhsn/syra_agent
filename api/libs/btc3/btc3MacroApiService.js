@@ -9,7 +9,10 @@ import {
   getBtc3PaperState,
   markPaperPortfolioToMarket,
 } from "./btc3PaperTradingService.js";
-import { getBtc3RuntimeSettings } from "../../config/btc3MacroConfig.js";
+import {
+  getBtc3LearningSnapshot,
+  runBtc3Learning,
+} from "./btc3LearningService.js";
 import {
   agentStateRepo,
   articleRepo,
@@ -231,3 +234,11 @@ export async function getBtc3PaperTrading({ limit = 25, offset = 0 } = {}) {
   ]);
   return { ready: true, paper, rebalances };
 }
+
+export async function getBtc3Learning() {
+  if (!isMongooseConnected()) return { ready: false, lessons: [], thresholdOverrides: {} };
+  const learning = await getBtc3LearningSnapshot();
+  return { ready: true, ...learning };
+}
+
+export { runBtc3Learning };

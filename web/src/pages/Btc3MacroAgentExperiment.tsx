@@ -8,6 +8,7 @@ import { HistoricalSimilarityPanel } from "@/components/btc3-experiment/Historic
 import { ReasoningPanel } from "@/components/btc3-experiment/ReasoningPanel";
 import { PredictionsPanel } from "@/components/btc3-experiment/PredictionsPanel";
 import { PaperTradingPanel } from "@/components/btc3-experiment/PaperTradingPanel";
+import { Btc3LearningPanel } from "@/components/btc3-experiment/Btc3LearningPanel";
 import { PortfolioPanel } from "@/components/btc3-experiment/PortfolioPanel";
 import { ExecutionPanel } from "@/components/btc3-experiment/ExecutionPanel";
 import { SystemLogsPanel } from "@/components/btc3-experiment/SystemLogsPanel";
@@ -68,6 +69,7 @@ export default function Btc3MacroAgentExperiment() {
               <ReasoningPanel reasoning={state.reasoning} />
               <PredictionsPanel predictions={state.predictions} />
               <PaperTradingPanel paper={state.paper} rebalances={state.paperRebalances} />
+              <Btc3LearningPanel learning={state.learning} />
               <PortfolioPanel
                 current={state.portfolio.current}
                 target={state.portfolio.target}

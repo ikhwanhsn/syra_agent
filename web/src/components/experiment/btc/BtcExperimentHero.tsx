@@ -69,7 +69,7 @@ export function BtcExperimentHero({
                 Bitcoin quant agents
               </h1>
               <p className="max-w-xl text-pretty text-[15px] leading-relaxed text-muted-foreground">
-                Fifteen BTC quant strategies compete on onchain cbBTC/USDC market data (Birdeye + Jupiter).
+                Fifteen BTC quant strategies compete on Binance BTCUSDT OHLCV with Jupiter cbBTC spot pricing.
                 Paper sim first — then deploy real capital as cbBTC on Solana when leaders prove edge.
                 {btcPriceUsd != null ? (
                   <span className="mt-1 block font-mono text-xs text-muted-foreground/90">

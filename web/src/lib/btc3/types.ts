@@ -176,6 +176,19 @@ export interface Btc3PaperRebalance {
   createdAt: string;
 }
 
+export interface Btc3LearningSnapshot {
+  ready?: boolean;
+  lessons: string[];
+  thresholdOverrides: Record<string, unknown>;
+  lastEvolutionAt: string | null;
+  lastEvolutionSummary: string | null;
+  rebalancesAnalyzed: number;
+  baseConfig?: {
+    minRebalancePct: number;
+    initialBtcPct: number;
+  };
+}
+
 export interface Btc3PaperTrading {
   experimentId: string | null;
   startedAt: string | null;
@@ -224,6 +237,7 @@ export interface Btc3AgentState {
   settings: Btc3Settings;
   paper: Btc3PaperTrading | null;
   paperRebalances: Btc3PaperRebalance[];
+  learning: Btc3LearningSnapshot | null;
   ready: boolean;
   fetchedAt: number;
 }

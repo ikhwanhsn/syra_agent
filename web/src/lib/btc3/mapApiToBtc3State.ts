@@ -5,6 +5,7 @@ import type {
   Btc3Article,
   Btc3Entity,
   Btc3Execution,
+  Btc3LearningSnapshot,
   Btc3MacroEvent,
   Btc3Prediction,
   Btc3Reasoning,
@@ -65,6 +66,10 @@ export interface Btc3StateBundle {
 
 export async function fetchBtc3StateBundle(): Promise<Btc3StateBundle> {
   return fetchApi<Btc3StateBundle>("/state");
+}
+
+export async function fetchBtc3Learning(): Promise<Btc3LearningSnapshot> {
+  return fetchApi<Btc3LearningSnapshot>("/learning");
 }
 
 function mapArticle(raw: Record<string, unknown>): Btc3Article {
@@ -290,5 +295,6 @@ export function mapApiToBtc3State(bundle: Btc3StateBundle): Btc3AgentState {
     settings: bundle.settings,
     paper,
     paperRebalances: bundle.paperRebalances.items.map(mapPaperRebalance),
+    learning: null,
   };
 }

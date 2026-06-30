@@ -443,7 +443,7 @@ function buildLogs(bundle: Btc2RealDataBundle, leader: BtcAgentStats | null): Lo
     {
       timestamp: now,
       level: "system",
-      message: `Synced Birdeye OHLCV (${bundle.signalReport.meta.bar}) · ${bundle.ohlcv.length} bars`,
+      message: `Synced Binance OHLCV (${bundle.signalReport.meta.bar}) · ${bundle.ohlcv.length} bars`,
     },
     {
       timestamp: now,

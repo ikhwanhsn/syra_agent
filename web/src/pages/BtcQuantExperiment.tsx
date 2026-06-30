@@ -7,6 +7,7 @@ import { BtcExperimentBackdrop } from "@/components/experiment/btc/BtcExperiment
 import { BtcExperimentGlobalStats } from "@/components/experiment/btc/BtcExperimentGlobalStats";
 import { BtcExperimentHero } from "@/components/experiment/btc/BtcExperimentHero";
 import { BtcQuantLabSummary } from "@/components/experiment/btc/BtcQuantLabSummary";
+import { BtcQuantLearningPanel } from "@/components/experiment/btc/BtcQuantLearningPanel";
 import { BtcQuantRealSection } from "@/components/experiment/btc/BtcQuantRealSection";
 import { BtcStrategyCards } from "@/components/experiment/btc/BtcStrategyCards";
 import { cn } from "@/lib/utils";
@@ -17,25 +18,29 @@ import {
 } from "@/lib/layoutConstants";
 import {
   fetchBtcLabState,
+  fetchBtcLearning,
   fetchBtcOverview,
   fetchBtcRuns,
   fetchBtcStats,
   fetchBtcStrategies,
+  type BtcQuantLane,
 } from "@/lib/btcQuantApi";
 import { buildEquityHistoryFromRuns, formatExperimentUsd } from "@/lib/experimentEquityHistory";
+
+const BTC1_LANE: BtcQuantLane = "btc1";
 
 export default function BtcQuantExperiment({ embedded = false }: { embedded?: boolean }) {
   const [activeTab, setActiveTab] = useState<ExperimentTabId>("results");
   const [selectedStrategyId, setSelectedStrategyId] = useState<number | null>(null);
 
   const overviewQ = useQuery({
-    queryKey: ["btc-quant", "overview"],
-    queryFn: fetchBtcOverview,
+    queryKey: ["btc-quant", "overview", BTC1_LANE],
+    queryFn: () => fetchBtcOverview(BTC1_LANE),
     refetchInterval: 60_000,
   });
   const labStateQ = useQuery({
-    queryKey: ["btc-quant", "lab-state"],
-    queryFn: fetchBtcLabState,
+    queryKey: ["btc-quant", "lab-state", BTC1_LANE],
+    queryFn: () => fetchBtcLabState(BTC1_LANE),
     refetchInterval: 60_000,
   });
   const strategiesQ = useQuery({
@@ -45,21 +50,27 @@ export default function BtcQuantExperiment({ embedded = false }: { embedded?: bo
   });
   const activeCohortId = labStateQ.data?.activeExperimentId ?? null;
   const statsQ = useQuery({
-    queryKey: ["btc-quant", "stats", activeCohortId ?? "none"],
-    queryFn: fetchBtcStats,
+    queryKey: ["btc-quant", "stats", BTC1_LANE, activeCohortId ?? "none"],
+    queryFn: () => fetchBtcStats(BTC1_LANE),
     enabled: labStateQ.isFetched,
     refetchInterval: 60_000,
   });
   const runsQ = useQuery({
-    queryKey: ["btc-quant", "runs", activeCohortId ?? "none", "recent"],
+    queryKey: ["btc-quant", "runs", BTC1_LANE, activeCohortId ?? "none", "recent"],
     queryFn: () =>
       fetchBtcRuns({
         limit: 12,
         offset: 0,
         experimentId: activeCohortId ?? undefined,
+        lane: BTC1_LANE,
       }),
     enabled: labStateQ.isFetched && Boolean(activeCohortId),
     refetchInterval: 45_000,
+  });
+  const learningQ = useQuery({
+    queryKey: ["btc-quant", "learning", BTC1_LANE],
+    queryFn: () => fetchBtcLearning(BTC1_LANE),
+    refetchInterval: 120_000,
   });
 
   const leaderStats = useMemo(() => {
@@ -81,6 +92,7 @@ export default function BtcQuantExperiment({ embedded = false }: { embedded?: bo
     queryKey: [
       "btc-quant",
       "runs",
+      BTC1_LANE,
       activeCohortId ?? "none",
       "display",
       displayStats?.strategyId ?? "none",
@@ -91,6 +103,7 @@ export default function BtcQuantExperiment({ embedded = false }: { embedded?: bo
         offset: 0,
         strategyId: displayStats!.strategyId,
         experimentId: activeCohortId ?? undefined,
+        lane: BTC1_LANE,
       }),
     enabled: labStateQ.isFetched && Boolean(activeCohortId && displayStats?.strategyId != null),
     refetchInterval: 45_000,
@@ -129,7 +142,8 @@ export default function BtcQuantExperiment({ embedded = false }: { embedded?: bo
     void labStateQ.refetch();
     void strategiesQ.refetch();
     void leaderRunsQ.refetch();
-  }, [overviewQ, statsQ, runsQ, labStateQ, strategiesQ, leaderRunsQ]);
+    void learningQ.refetch();
+  }, [overviewQ, statsQ, runsQ, labStateQ, strategiesQ, leaderRunsQ, learningQ]);
 
   return (
     <>
@@ -180,7 +194,7 @@ export default function BtcQuantExperiment({ embedded = false }: { embedded?: bo
               <div>
                 <h2 className="text-lg font-semibold tracking-tight">Strategy roster</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-          Fifteen quant agents — each with unique signal gates on cbBTC/USDC Solana DEX data (Birdeye OHLCV).
+          Fifteen quant agents — each with unique signal gates on Binance BTCUSDT OHLCV (Jupiter cbBTC spot).
           Execution target: cbBTC on Solana via Jupiter.
                 </p>
               </div>
@@ -209,6 +223,8 @@ export default function BtcQuantExperiment({ embedded = false }: { embedded?: bo
             />
           }
         />
+
+        <BtcQuantLearningPanel learning={learningQ.data} loading={learningQ.isLoading} />
 
         <BtcQuantRealSection />
       </div>

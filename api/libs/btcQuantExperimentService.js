@@ -10,7 +10,6 @@ import {
   BTC_QUANT_STRATEGIES,
   BTC_QUANT_TOKEN,
   EXPERIMENT_SUITE_BTC_ONCHAIN,
-  resolveBtcQuantStrategyById,
 } from "../config/tradingExperimentStrategies.js";
 import {
   TRADING_EXPERIMENT_STARTING_USD,
@@ -33,12 +32,24 @@ import {
   applyBtcQuantSignalGate,
   extractBtcQuantGateSignals,
 } from "./btcQuantSignalGate.js";
+import {
+  BTC_QUANT_LANE_IDS,
+  getBtcQuantLaneDef,
+} from "../config/btcQuantLanes.js";
+import { resolveBtcQuantStrategies, resolveBtcQuantStrategyById } from "./btcQuantStrategyResolve.js";
+import {
+  isStrategyOnEvolutionCooldown,
+  pickBestBtcQuantStrategy,
+  rankBtcQuantStrategiesByPnl,
+} from "./btcQuantExperimentEvolution.js";
+import BtcQuantStrategyOverride from "../models/BtcQuantStrategyOverride.js";
+import BtcQuantEvolutionState from "../models/BtcQuantEvolutionState.js";
 
 const DEFAULT_LIST_LIMIT = 50;
 const MAX_LIST_LIMIT = 200;
-const EXPERIMENT_ID_PREFIX = "btcq";
 
-let bootPromise = null;
+/** @type {Map<string, Promise<{ experimentId: string; lane: string }>>} */
+const bootPromises = new Map();
 
 function toNum(value, fallback = 0) {
   const n = Number(value);
@@ -51,8 +62,52 @@ function normalizeLimit(limit) {
   return Math.min(MAX_LIST_LIMIT, Math.floor(n));
 }
 
-function newExperimentId() {
-  return `${EXPERIMENT_ID_PREFIX}-${Date.now().toString(36)}-${crypto.randomBytes(3).toString("hex")}`;
+/** @param {ReturnType<typeof getBtcQuantLaneDef>} laneDef */
+function newExperimentId(laneDef) {
+  return `${laneDef.idPrefix}-${Date.now().toString(36)}-${crypto.randomBytes(3).toString("hex")}`;
+}
+
+/** @param {unknown} [lane] */
+async function loadLaneState(lane) {
+  const laneDef = getBtcQuantLaneDef(lane);
+  await ensureBtcQuantBootstrapped(laneDef.lane);
+  return BtcQuantExperimentState.findById(laneDef.stateId).lean();
+}
+
+export async function ensureBtcQuantBootstrapped(lane = "btc1") {
+  const laneDef = getBtcQuantLaneDef(lane);
+  const existing = bootPromises.get(laneDef.lane);
+  if (existing) return existing;
+
+  const promise = (async () => {
+    let state = await BtcQuantExperimentState.findById(laneDef.stateId);
+    if (state?.activeExperimentId) {
+      return { experimentId: state.activeExperimentId, lane: laneDef.lane };
+    }
+
+    const nextId = newExperimentId(laneDef);
+    state = await BtcQuantExperimentState.findOneAndUpdate(
+      { _id: laneDef.stateId },
+      {
+        $setOnInsert: {
+          activeExperimentId: nextId,
+          title: laneDef.title,
+          startedAt: new Date(),
+          simConfig: {
+            startingBankUsd: TRADING_EXPERIMENT_STARTING_USD,
+            maxConcurrentPositions: BTC_QUANT_EXPERIMENT_DEFAULTS.maxConcurrentPositions,
+          },
+        },
+      },
+      { upsert: true, new: true },
+    );
+    return { experimentId: state.activeExperimentId, lane: laneDef.lane };
+  })().finally(() => {
+    bootPromises.delete(laneDef.lane);
+  });
+
+  bootPromises.set(laneDef.lane, promise);
+  return promise;
 }
 
 function mergedSimConfig(stateDoc) {
@@ -116,41 +171,13 @@ async function fetchBtcSpotPrice() {
   return fetchCbbtcSpotPriceUsd();
 }
 
-export async function ensureBtcQuantBootstrapped() {
-  if (bootPromise) return bootPromise;
-  bootPromise = (async () => {
-    let state = await BtcQuantExperimentState.findById("singleton");
-    if (state?.activeExperimentId) return { experimentId: state.activeExperimentId };
-
-    const nextId = newExperimentId();
-    state = await BtcQuantExperimentState.findOneAndUpdate(
-      { _id: "singleton" },
-      {
-        $setOnInsert: {
-          activeExperimentId: nextId,
-          title: "BTC onchain quant lab",
-          startedAt: new Date(),
-          simConfig: {
-            startingBankUsd: TRADING_EXPERIMENT_STARTING_USD,
-            maxConcurrentPositions: BTC_QUANT_EXPERIMENT_DEFAULTS.maxConcurrentPositions,
-          },
-        },
-      },
-      { upsert: true, new: true },
-    );
-    return { experimentId: state.activeExperimentId };
-  })().finally(() => {
-    bootPromise = null;
-  });
-  return bootPromise;
-}
-
 /**
  * @param {string} experimentId
  * @param {number} agentId
+ * @param {unknown} [lane]
  */
-async function computeAgentLedger(experimentId, agentId) {
-  const cfg = mergedSimConfig(await BtcQuantExperimentState.findById("singleton"));
+async function computeAgentLedger(experimentId, agentId, lane = "btc1") {
+  const cfg = mergedSimConfig(await loadLaneState(lane));
   const baseFilter = { ...experimentFilter(experimentId), agentId };
 
   const [openRuns, settledAgg] = await Promise.all([
@@ -200,17 +227,20 @@ async function computeAgentLedger(experimentId, agentId) {
   };
 }
 
-export async function getBtcQuantLabState() {
-  await ensureBtcQuantBootstrapped();
-  const state = await BtcQuantExperimentState.findById("singleton").lean();
+export async function getBtcQuantLabState(lane = "btc1") {
+  const laneDef = getBtcQuantLaneDef(lane);
+  await ensureBtcQuantBootstrapped(laneDef.lane);
+  const state = await loadLaneState(laneDef.lane);
   const experimentId = state?.activeExperimentId ?? null;
   const cfg = mergedSimConfig(state);
+  const strategies = await resolveBtcQuantStrategies(laneDef.lane);
   const agents = await Promise.all(
-    BTC_QUANT_STRATEGIES.map((s) => computeAgentLedger(experimentId, s.id)),
+    strategies.map((s) => computeAgentLedger(experimentId, s.id, laneDef.lane)),
   );
   return {
+    lane: laneDef.lane,
     activeExperimentId: experimentId,
-    title: state?.title ?? "BTC onchain quant lab",
+    title: state?.title ?? laneDef.title,
     startedAt: state?.startedAt?.toISOString?.() ?? null,
     simConfig: cfg,
     agents: agents.map((a) => ({
@@ -225,11 +255,13 @@ export async function getBtcQuantLabState() {
   };
 }
 
-export async function getBtcQuantStats() {
-  const { activeExperimentId: experimentId } = await getBtcQuantLabState();
+export async function getBtcQuantStats(lane = "btc1") {
+  const laneDef = getBtcQuantLaneDef(lane);
+  const { activeExperimentId: experimentId } = await getBtcQuantLabState(laneDef.lane);
+  const strategies = await resolveBtcQuantStrategies(laneDef.lane);
   const agents = await Promise.all(
-    BTC_QUANT_STRATEGIES.map(async (s) => {
-      const ledger = await computeAgentLedger(experimentId, s.id);
+    strategies.map(async (s) => {
+      const ledger = await computeAgentLedger(experimentId, s.id, laneDef.lane);
       const settled = await TradingExperimentRun.find({
         ...experimentFilter(experimentId),
         agentId: s.id,
@@ -259,11 +291,15 @@ export async function getBtcQuantStats() {
       };
     }),
   );
-  return { agents, experimentId };
+  return { agents, experimentId, lane: laneDef.lane };
 }
 
-export async function getBtcQuantOverview() {
-  const [state, stats] = await Promise.all([getBtcQuantLabState(), getBtcQuantStats()]);
+export async function getBtcQuantOverview(lane = "btc1") {
+  const laneDef = getBtcQuantLaneDef(lane);
+  const [state, stats] = await Promise.all([
+    getBtcQuantLabState(laneDef.lane),
+    getBtcQuantStats(laneDef.lane),
+  ]);
   const experimentId = state.activeExperimentId;
   const agents = stats.agents;
 
@@ -278,8 +314,11 @@ export async function getBtcQuantOverview() {
   const sumPnlUsd = roundUsd(agents.reduce((sum, a) => sum + toNum(a.sumPnlUsd, 0), 0));
   const sumEquityUsd = roundUsd(agents.reduce((sum, a) => sum + toNum(a.equityUsd, 0), 0));
 
-  const ranked = [...agents].sort((a, b) => toNum(b.sumPnlUsd) - toNum(a.sumPnlUsd));
-  const leader = ranked[0] ?? null;
+  const rankedByScore = await rankBtcQuantStrategiesByPnl(experimentId);
+  const leaderRow = rankedByScore[0] ?? null;
+  const leader = leaderRow
+    ? agents.find((a) => a.strategyId === leaderRow.strategyId) ?? null
+    : [...agents].sort((a, b) => toNum(b.sumPnlUsd) - toNum(a.sumPnlUsd))[0] ?? null;
   const topWin = [...agents].sort((a, b) => toNum(b.winRatePct) - toNum(a.winRatePct))[0] ?? null;
 
   let realAgent = {
@@ -309,17 +348,18 @@ export async function getBtcQuantOverview() {
   }
 
   return {
+    lane: laneDef.lane,
     btcSpotPriceUsd: await fetchBtcSpotPrice(),
     onchain: {
       venue: "Solana",
       asset: "cbBTC",
       execution: "Jupiter swap",
-      ohlcv: "Birdeye (Solana DEX)",
-      spot: "Jupiter Price API",
+      ohlcv: "Binance BTCUSDT",
+      spot: "Jupiter Price API (cbBTC) · Binance fallback",
     },
     simulation: {
       activeExperimentId: experimentId,
-      strategyCount: BTC_QUANT_STRATEGIES.length,
+      strategyCount: (await resolveBtcQuantStrategies(laneDef.lane)).length,
       settledRuns,
       openPositions,
       sumPnlUsd,
@@ -340,8 +380,10 @@ export async function listBtcQuantRuns({
   strategyId,
   status,
   experimentId: experimentIdOpt,
+  lane = "btc1",
 }) {
-  const state = await BtcQuantExperimentState.findById("singleton").lean();
+  const laneDef = getBtcQuantLaneDef(lane);
+  const state = await loadLaneState(laneDef.lane);
   const experimentId = experimentIdOpt || state?.activeExperimentId;
   if (!experimentId) return { runs: [], total: 0 };
 
@@ -382,9 +424,10 @@ export async function listBtcQuantRuns({
   };
 }
 
-export async function runBtcQuantSignalCycle() {
-  await ensureBtcQuantBootstrapped();
-  const state = await BtcQuantExperimentState.findById("singleton");
+export async function runBtcQuantSignalCycle(lane = "btc1") {
+  const laneDef = getBtcQuantLaneDef(lane);
+  await ensureBtcQuantBootstrapped(laneDef.lane);
+  const state = await BtcQuantExperimentState.findById(laneDef.stateId);
   const experimentId = state.activeExperimentId;
   const cfg = mergedSimConfig(state);
 
@@ -393,8 +436,15 @@ export async function runBtcQuantSignalCycle() {
   const skipped = [];
   const errors = [];
 
-  for (const strategy of BTC_QUANT_STRATEGIES) {
+  const strategies = await resolveBtcQuantStrategies(laneDef.lane);
+
+  for (const strategy of strategies) {
     try {
+      if (await isStrategyOnEvolutionCooldown(laneDef.lane, strategy.id)) {
+        skipped.push({ strategyId: strategy.id, reason: "evolution_cooldown" });
+        continue;
+      }
+
       const openCount = await TradingExperimentRun.countDocuments({
         ...experimentFilter(experimentId),
         agentId: strategy.id,
@@ -405,7 +455,7 @@ export async function runBtcQuantSignalCycle() {
         continue;
       }
 
-      const ledger = await computeAgentLedger(experimentId, strategy.id);
+      const ledger = await computeAgentLedger(experimentId, strategy.id, laneDef.lane);
       const notional = computeExperimentNotionalUsd(ledger.cashUsd);
       if (notional < TRADING_EXPERIMENT_MIN_TRADE_NOTIONAL_USD) {
         skipped.push({ strategyId: strategy.id, reason: "insufficient_cash" });
@@ -479,6 +529,7 @@ export async function runBtcQuantSignalCycle() {
         notionalUsd: notional,
         summary: {
           experimentId,
+          lane: laneDef.lane,
           btcOnchain: true,
           gateReasons: [],
           notes: strategy.notes,
@@ -495,12 +546,22 @@ export async function runBtcQuantSignalCycle() {
     }
   }
 
-  return { experimentId, opened, skipped, errors };
+  return { lane: laneDef.lane, experimentId, opened, skipped, errors };
 }
 
-export async function resolveOpenBtcQuantRuns() {
-  await ensureBtcQuantBootstrapped();
-  const state = await BtcQuantExperimentState.findById("singleton");
+export async function runAllBtcQuantSignalCycles() {
+  /** @type {Record<string, Awaited<ReturnType<typeof runBtcQuantSignalCycle>>>} */
+  const lanes = {};
+  for (const lane of BTC_QUANT_LANE_IDS) {
+    lanes[lane] = await runBtcQuantSignalCycle(lane);
+  }
+  return { lanes };
+}
+
+export async function resolveOpenBtcQuantRuns(lane = "btc1") {
+  const laneDef = getBtcQuantLaneDef(lane);
+  await ensureBtcQuantBootstrapped(laneDef.lane);
+  const state = await BtcQuantExperimentState.findById(laneDef.stateId);
   const experimentId = state.activeExperimentId;
 
   const openRuns = await TradingExperimentRun.find({
@@ -520,7 +581,7 @@ export async function resolveOpenBtcQuantRuns() {
 
   for (const run of openRuns) {
     try {
-      const strategy = resolveBtcQuantStrategyById(run.agentId);
+      const strategy = await resolveBtcQuantStrategyById(laneDef.lane, run.agentId);
       const exit = strategy?.exit ?? {};
       const entry = Number(run.entry);
       const sl = Number(run.stopLoss);
@@ -578,11 +639,21 @@ export async function resolveOpenBtcQuantRuns() {
     status: "open",
   });
 
-  return { experimentId, resolved, stillOpen, errors };
+  return { lane: laneDef.lane, experimentId, resolved, stillOpen, errors };
 }
 
-export function listBtcQuantStrategies() {
-  return BTC_QUANT_STRATEGIES.map((s) => ({
+export async function resolveAllOpenBtcQuantRuns() {
+  /** @type {Record<string, Awaited<ReturnType<typeof resolveOpenBtcQuantRuns>>>} */
+  const lanes = {};
+  for (const lane of BTC_QUANT_LANE_IDS) {
+    lanes[lane] = await resolveOpenBtcQuantRuns(lane);
+  }
+  return { lanes };
+}
+
+export async function listBtcQuantStrategies(lane = "btc1") {
+  const strategies = await resolveBtcQuantStrategies(lane);
+  return strategies.map((s) => ({
     id: s.id,
     name: s.name,
     bar: s.bar,
@@ -592,3 +663,61 @@ export function listBtcQuantStrategies() {
     notes: s.notes,
   }));
 }
+
+/**
+ * Reset a BTC quant lane: wipe runs, evolution state, strategy overrides; start fresh cohort.
+ * Does NOT touch btc_quant_real_* collections.
+ * @param {{ lane?: string; title?: string }} [opts]
+ */
+export async function resetBtcQuantFromScratch(opts = {}) {
+  const laneDef = getBtcQuantLaneDef(opts.lane ?? "btc1");
+  await ensureBtcQuantBootstrapped(laneDef.lane);
+
+  const state = await BtcQuantExperimentState.findById(laneDef.stateId);
+  if (!state) throw new Error(`BTC quant state missing for lane ${laneDef.lane}`);
+
+  const oldExperimentId = state.activeExperimentId;
+  const cfg = mergedSimConfig(state);
+
+  if (oldExperimentId) {
+    await TradingExperimentRun.deleteMany({
+      suite: EXPERIMENT_SUITE_BTC_ONCHAIN,
+      "summary.experimentId": oldExperimentId,
+    });
+  }
+
+  await BtcQuantStrategyOverride.deleteMany({ lane: laneDef.lane });
+  await BtcQuantEvolutionState.deleteOne({ _id: laneDef.lane });
+
+  const nextId = newExperimentId(laneDef);
+  state.activeExperimentId = nextId;
+  state.title =
+    typeof opts.title === "string" && opts.title.trim()
+      ? opts.title.trim()
+      : `${laneDef.title} (reset)`;
+  state.startedAt = new Date();
+  state.simConfig = {
+    startingBankUsd: cfg.startingBankUsd,
+    maxConcurrentPositions: cfg.maxConcurrentPositions,
+  };
+  await state.save();
+
+  bootPromises.delete(laneDef.lane);
+
+  return { lane: laneDef.lane, nextExperimentId: nextId, previousExperimentId: oldExperimentId };
+}
+
+/**
+ * Reset both btc1 and btc2 lanes.
+ * @param {{ title?: string }} [opts]
+ */
+export async function resetAllBtcQuantFromScratch(opts = {}) {
+  /** @type {Record<string, Awaited<ReturnType<typeof resetBtcQuantFromScratch>>>} */
+  const lanes = {};
+  for (const lane of BTC_QUANT_LANE_IDS) {
+    lanes[lane] = await resetBtcQuantFromScratch({ ...opts, lane });
+  }
+  return { lanes };
+}
+
+export { pickBestBtcQuantStrategy, rankBtcQuantStrategiesByPnl };

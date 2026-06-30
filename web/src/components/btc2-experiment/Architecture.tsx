@@ -5,7 +5,7 @@ import { overviewCardShell } from "@/components/dashboard/overview/overviewStyle
 import { SectionHeader } from "./shared/SectionHeader";
 
 const NODES = [
-  { id: "oracle", label: "Birdeye + Jupiter", sub: "Onchain spot feeds" },
+  { id: "oracle", label: "Binance + Jupiter", sub: "Free spot & OHLCV feeds" },
   { id: "feature", label: "Feature Engine", sub: "Technical signals" },
   { id: "signal", label: "Signal Engine", sub: "cbBTC/USDC gates" },
   { id: "risk", label: "Risk Engine", sub: "Spot position sizing" },

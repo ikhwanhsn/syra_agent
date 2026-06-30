@@ -9,7 +9,6 @@ import {
   BTC_QUANT_QUOTE_DECIMALS,
   CBBTC_DECIMALS,
   EXPERIMENT_SUITE_BTC_ONCHAIN,
-  resolveBtcQuantStrategyById,
 } from "../config/tradingExperimentStrategies.js";
 import {
   ensureBtcQuantBootstrapped,
@@ -17,6 +16,8 @@ import {
   resolveOpenBtcQuantRuns,
   runBtcQuantSignalCycle,
 } from "./btcQuantExperimentService.js";
+import { pickBestBtcQuantStrategy } from "./btcQuantExperimentEvolution.js";
+import { resolveBtcQuantStrategyById } from "./btcQuantStrategyResolve.js";
 import { executeBtcQuantJupiterSwap, BTC_QUANT_SWAP_MINTS } from "./btcQuantJupiterSwap.js";
 import BtcQuantExperimentState from "../models/BtcQuantExperimentState.js";
 import { siblingAnonymousId, purposeQuery } from "./agentWalletPurpose.js";
@@ -154,12 +155,14 @@ export async function enableBtcQuantReal({ anonymousId, enabledBy, leaderStrateg
   const investAid = siblingAnonymousId(anonymousId, "invest");
   const cfg = await getOrCreateRealConfig();
 
-  const stats = await getBtcQuantStats();
-  const ranked = [...stats.agents].sort((a, b) => toNum(b.sumPnlUsd) - toNum(a.sumPnlUsd));
+  const stats = await getBtcQuantStats("btc1");
+  const best = stats.experimentId ? await pickBestBtcQuantStrategy(stats.experimentId) : null;
   const leader =
     leaderStrategyId != null
-      ? resolveBtcQuantStrategyById(leaderStrategyId)
-      : resolveBtcQuantStrategyById(ranked[0]?.strategyId ?? 14);
+      ? await resolveBtcQuantStrategyById("btc1", leaderStrategyId)
+      : best
+        ? await resolveBtcQuantStrategyById("btc1", best.strategyId)
+        : await resolveBtcQuantStrategyById("btc1", 14);
   if (!leader) throw new Error("Invalid leader strategy");
 
   cfg.enabled = true;
@@ -209,7 +212,7 @@ export async function runBtcQuantRealSignalCycle() {
     return { skipped: true, reason: "holding_open_position" };
   }
 
-  const strategy = resolveBtcQuantStrategyById(cfg.leaderStrategyId ?? 14);
+  const strategy = await resolveBtcQuantStrategyById("btc1", cfg.leaderStrategyId ?? 14);
   if (!strategy) {
     return { skipped: true, reason: "invalid_strategy" };
   }

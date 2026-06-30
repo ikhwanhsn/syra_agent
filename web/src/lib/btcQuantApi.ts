@@ -57,7 +57,10 @@ export interface BtcExperimentLabAgentRow {
   returnPct?: number | null;
 }
 
+export type BtcQuantLane = "btc1" | "btc2";
+
 export interface BtcExperimentLabState {
+  lane?: BtcQuantLane;
   activeExperimentId: string | null;
   title: string;
   startedAt: string | null;
@@ -69,6 +72,7 @@ export interface BtcExperimentLabState {
 }
 
 export interface BtcGlobalOverview {
+  lane?: BtcQuantLane;
   btcSpotPriceUsd: number | null;
   onchain: {
     venue: string;
@@ -183,9 +187,34 @@ export interface BtcRealPositionRow {
   resolvedAt?: string | null;
 }
 
+export interface BtcQuantStrategyCooldown {
+  strategyId: number;
+  reason: string;
+  until: string;
+}
+
+export interface BtcQuantLearningSnapshot {
+  lane: BtcQuantLane;
+  lessons: string[];
+  strategyCooldowns: BtcQuantStrategyCooldown[];
+  thresholdOverrides: Record<string, unknown>;
+  lastEvolutionAt: string | null;
+  lastEvolutionSummary: string | null;
+  decidedRunsAnalyzed: number;
+  closedPositionsAnalyzed: number;
+  overrideCount: number;
+}
+
 async function parseJson<T>(res: Response): Promise<{ ok: boolean; body: T }> {
   const body = (await res.json().catch(() => ({}))) as T;
   return { ok: res.ok, body };
+}
+
+function simUrl(path: string, lane?: BtcQuantLane, extra?: URLSearchParams): string {
+  const q = extra ?? new URLSearchParams();
+  if (lane && lane !== "btc1") q.set("lane", lane);
+  const qs = q.toString();
+  return `${simBase()}${path}${qs ? `?${qs}` : ""}`;
 }
 
 export async function fetchBtcStrategies(): Promise<BtcQuantStrategy[]> {
@@ -201,8 +230,8 @@ export async function fetchBtcStrategies(): Promise<BtcQuantStrategy[]> {
   return body.data.strategies;
 }
 
-export async function fetchBtcLabState(): Promise<BtcExperimentLabState> {
-  const res = await fetch(`${simBase()}/state`, { credentials: "include" });
+export async function fetchBtcLabState(lane: BtcQuantLane = "btc1"): Promise<BtcExperimentLabState> {
+  const res = await fetch(simUrl("/state", lane), { credentials: "include" });
   const { ok, body } = await parseJson<{
     success?: boolean;
     data?: BtcExperimentLabState;
@@ -214,21 +243,27 @@ export async function fetchBtcLabState(): Promise<BtcExperimentLabState> {
   return body.data;
 }
 
-export async function fetchBtcStats(): Promise<{ agents: BtcAgentStats[]; experimentId: string | null }> {
-  const res = await fetch(`${simBase()}/stats`, { credentials: "include" });
+export async function fetchBtcStats(
+  lane: BtcQuantLane = "btc1",
+): Promise<{ agents: BtcAgentStats[]; experimentId: string | null; lane?: BtcQuantLane }> {
+  const res = await fetch(simUrl("/stats", lane), { credentials: "include" });
   const { ok, body } = await parseJson<{
     success?: boolean;
-    data?: { agents?: BtcAgentStats[]; experimentId?: string | null };
+    data?: { agents?: BtcAgentStats[]; experimentId?: string | null; lane?: BtcQuantLane };
     error?: string;
   }>(res);
   if (!ok || !body.success || !body.data?.agents) {
     throw new Error(body.error || "Failed to load BTC stats");
   }
-  return { agents: body.data.agents, experimentId: body.data.experimentId ?? null };
+  return {
+    agents: body.data.agents,
+    experimentId: body.data.experimentId ?? null,
+    lane: body.data.lane,
+  };
 }
 
-export async function fetchBtcOverview(): Promise<BtcGlobalOverview> {
-  const res = await fetch(`${simBase()}/overview`, { credentials: "include" });
+export async function fetchBtcOverview(lane: BtcQuantLane = "btc1"): Promise<BtcGlobalOverview> {
+  const res = await fetch(simUrl("/overview", lane), { credentials: "include" });
   const { ok, body } = await parseJson<{
     success?: boolean;
     data?: BtcGlobalOverview;
@@ -246,6 +281,7 @@ export async function fetchBtcRuns(options: {
   strategyId?: number;
   status?: string;
   experimentId?: string;
+  lane?: BtcQuantLane;
 } = {}): Promise<{ runs: BtcRunRow[]; total: number }> {
   const q = new URLSearchParams({
     limit: String(options.limit ?? 25),
@@ -259,7 +295,7 @@ export async function fetchBtcRuns(options: {
   const experimentId = options.experimentId?.trim();
   if (experimentId) q.set("experimentId", experimentId);
 
-  const res = await fetch(`${simBase()}/runs?${q}`, { credentials: "include" });
+  const res = await fetch(simUrl("/runs", options.lane, q), { credentials: "include" });
   const { ok, body } = await parseJson<{
     success?: boolean;
     data?: { runs?: BtcRunRow[]; total?: number };
@@ -376,4 +412,19 @@ export async function fetchBtcRealPositions(options: {
     throw new Error(body.error || "Failed to load BTC real positions");
   }
   return { positions: body.data.positions, total: body.data.total };
+}
+
+export async function fetchBtcLearning(
+  lane: BtcQuantLane = "btc1",
+): Promise<BtcQuantLearningSnapshot> {
+  const res = await fetch(simUrl("/learning", lane), { credentials: "include" });
+  const { ok, body } = await parseJson<{
+    success?: boolean;
+    data?: BtcQuantLearningSnapshot;
+    error?: string;
+  }>(res);
+  if (!ok || !body.success || !body.data) {
+    throw new Error(body.error || "Failed to load BTC learning snapshot");
+  }
+  return body.data;
 }

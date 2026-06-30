@@ -11,16 +11,18 @@ import {
   fetchBtcRuns,
   fetchBtcSignalReport,
   fetchBtcStats,
+  type BtcQuantLane,
 } from "@/lib/btcQuantApi";
 
 const REFETCH_MS = 30_000;
+const BTC2_LANE: BtcQuantLane = "btc2";
 
 async function fetchBtc2AgentBundle() {
   const [overview, labState, stats, runsResult, realState] = await Promise.all([
-    fetchBtcOverview(),
-    fetchBtcLabState(),
-    fetchBtcStats(),
-    fetchBtcRuns({ limit: 25, offset: 0 }),
+    fetchBtcOverview(BTC2_LANE),
+    fetchBtcLabState(BTC2_LANE),
+    fetchBtcStats(BTC2_LANE),
+    fetchBtcRuns({ limit: 25, offset: 0, lane: BTC2_LANE }),
     fetchBtcRealState().catch(() => null),
   ]);
 
@@ -61,7 +63,7 @@ export function useBtc2AgentState() {
   const [paused, setPaused] = useState(false);
 
   const query = useQuery({
-    queryKey: ["btc2-quant", "agent-state"],
+    queryKey: ["btc2-quant", "agent-state", BTC2_LANE],
     queryFn: fetchBtc2AgentBundle,
     refetchInterval: paused ? false : REFETCH_MS,
     staleTime: 15_000,
@@ -69,7 +71,7 @@ export function useBtc2AgentState() {
 
   const togglePause = useCallback(() => setPaused((p) => !p), []);
   const refresh = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: ["btc2-quant", "agent-state"] });
+    void queryClient.invalidateQueries({ queryKey: ["btc2-quant", "agent-state", BTC2_LANE] });
   }, [queryClient]);
 
   const state: Btc2AgentState | null = query.data ?? null;
