@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { ttlExpireSeconds } from "../utils/mongoTtl.js";
 
 const lpRealDecisionLogSchema = new mongoose.Schema(
   {
@@ -25,6 +26,10 @@ const lpRealDecisionLogSchema = new mongoose.Schema(
 
 lpRealDecisionLogSchema.index({ createdAt: -1 });
 lpRealDecisionLogSchema.index({ experimentId: 1, createdAt: -1 });
+lpRealDecisionLogSchema.index(
+  { createdAt: 1 },
+  { expireAfterSeconds: ttlExpireSeconds("LP_REAL_DECISION_LOG_TTL_DAYS", 60) },
+);
 
 if (mongoose.models.LpRealDecisionLog) {
   delete mongoose.models.LpRealDecisionLog;

@@ -98,10 +98,16 @@ const connectMongoose = async (options = {}) => {
   }
 
   if (!connectPromise) {
+    const maxPoolRaw = Number.parseInt(process.env.MONGO_MAX_POOL_SIZE || '10', 10);
+    const maxPoolSize =
+      Number.isFinite(maxPoolRaw) && maxPoolRaw > 0 ? maxPoolRaw : 10;
+
     connectPromise = mongoose
       .connect(uri, {
         serverSelectionTimeoutMS: 10_000,
         connectTimeoutMS: 10_000,
+        maxPoolSize,
+        minPoolSize: 0,
       })
       .then(async () => {
         isConnected = true;

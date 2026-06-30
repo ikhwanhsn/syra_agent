@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { ttlExpireSeconds } from "../utils/mongoTtl.js";
 
 const systemLogSchema = new mongoose.Schema(
   {
@@ -13,6 +14,10 @@ const systemLogSchema = new mongoose.Schema(
 );
 
 systemLogSchema.index({ createdAt: -1 });
+systemLogSchema.index(
+  { createdAt: 1 },
+  { expireAfterSeconds: ttlExpireSeconds("BTC3_SYSTEM_LOG_TTL_DAYS", 14) },
+);
 
 const Btc3SystemLog =
   mongoose.models.Btc3SystemLog || mongoose.model("Btc3SystemLog", systemLogSchema);

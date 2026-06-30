@@ -515,6 +515,8 @@ export async function resolveOpenBtcQuantRuns() {
 
   let resolved = 0;
   const errors = [];
+  /** @type {import('mongoose').AnyBulkWriteOperation[]} */
+  const bulkOps = [];
 
   for (const run of openRuns) {
     try {
@@ -544,25 +546,31 @@ export async function resolveOpenBtcQuantRuns() {
       if (!status) continue;
 
       const simPnlUsd = entry > 0 && exitPx > 0 ? roundUsd(notional * (exitPx / entry - 1)) : 0;
-      const u = await TradingExperimentRun.updateOne(
-        { _id: run._id, status: "open" },
-        {
-          $set: {
-            status,
-            simExitPrice: exitPx,
-            simPnlUsd,
-            resolvedAt: new Date(),
-            resolution: status === "expired" ? "max_hold" : status,
+      bulkOps.push({
+        updateOne: {
+          filter: { _id: run._id, status: "open" },
+          update: {
+            $set: {
+              status,
+              simExitPrice: exitPx,
+              simPnlUsd,
+              resolvedAt: new Date(),
+              resolution: status === "expired" ? "max_hold" : status,
+            },
           },
         },
-      );
-      if (u.modifiedCount > 0) resolved += 1;
+      });
     } catch (e) {
       errors.push({
         runId: String(run._id),
         error: e instanceof Error ? e.message : String(e),
       });
     }
+  }
+
+  if (bulkOps.length > 0) {
+    const bulkResult = await TradingExperimentRun.bulkWrite(bulkOps, { ordered: false });
+    resolved = bulkResult.modifiedCount ?? 0;
   }
 
   const stillOpen = await TradingExperimentRun.countDocuments({

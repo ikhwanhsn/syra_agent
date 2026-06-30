@@ -52,8 +52,6 @@ import {
   SYRA_PROBE_BASE_URL,
   TESTER_AGENT_CONFIG,
 } from "./libs/testerAgent/testerAgentConfig.js";
-import { createBitgetVibeRouter } from "./routes/bitgetVibe.js";
-import { createArenaRouter } from "./routes/arena.js";
 import { createSpcxRouter, createEquityRouter } from "./routes/spcx.js";
 import { createIndicatorRouter } from "./routes/indicator.js";
 import { createBtcRouter } from "./routes/btc.js";
@@ -1332,14 +1330,6 @@ app.use("/internal", createInternalGrowthRouter());
 app.use("/internal", createInternalToolsRouter());
 app.use("/internal", createInternalAgentWalletsRouter());
 app.use("/internal", await createInternalResearchRouter());
-// Bitget Vibe Trader (Track 1 hackathon — NL strategy loop on Bitget Agent Hub)
-const bitgetVibeRouter = createBitgetVibeRouter();
-app.use("/agent/bitget-vibe", bitgetVibeRouter);
-app.use("/experiment/bitget-vibe", bitgetVibeRouter);
-// Syra Alpha Arena (Bitget Hackathon — multi-agent leaderboard + Playbook)
-const arenaRouter = createArenaRouter();
-app.use("/arena", arenaRouter);
-app.use("/experiment/arena", arenaRouter);
 app.use("/experiment/spcx", createSpcxExperimentRouter());
 // LP agent experiment lab (Meteora DLMM dry-run simulation only)
 app.use("/experiment/lp-agent", createLpAgentExperimentRouter());
@@ -1608,25 +1598,6 @@ app.listen(PORT, () => {
   const LP_AGENT_SIGNAL_INTERVAL_MS = 120_000;
   const LP_AGENT_RESOLVE_INTERVAL_MS = 15_000;
 
-  const bitgetVibeMs = Number(process.env.BITGET_VIBE_CRON_MS || 0);
-  const runBitgetVibe = runIfMongoConnected(
-    withSingleFlight(() =>
-      import("./libs/bitgetVibeService.js")
-        .then(({ runAllVibeLoopTicks }) => runAllVibeLoopTicks())
-        .then((out) => {
-          if (out.errors?.length) {
-            console.warn("[Bitget Vibe] tick errors:", out.errors.slice(0, 3));
-          }
-        })
-        .catch((err) =>
-          console.warn("[Bitget Vibe] tick failed:", err?.message || err),
-        ),
-    ),
-  );
-  if (bitgetVibeMs >= 60_000) {
-    setInterval(runBitgetVibe, bitgetVibeMs);
-  }
-
   const runLpSignal = runIfMongoConnected(
     withSingleFlight(() =>
       import("./libs/lpExperimentService.js")
@@ -1860,28 +1831,6 @@ app.listen(PORT, () => {
                 err?.message || err,
               ),
             ),
-        ),
-      );
-      setInterval(tick, evo.ms);
-    })
-    .catch(() => {});
-
-  import("./libs/lpRealEvolution.js")
-    .then(({ lpRealEvolutionConfigFromEnv, runLpRealEvolution }) => {
-      const evo = lpRealEvolutionConfigFromEnv();
-      if (!evo.enabled || evo.ms < 60_000) return;
-      const tick = runIfMongoConnected(
-        withSingleFlight(() =>
-          import("./libs/lpRealService.js")
-            .then(({ isRealCronEnabled }) => {
-              if (!isRealCronEnabled()) return null;
-              return runLpRealEvolution();
-            })
-            .then((out) => {
-              if (!out || out.skipped) return;
-              startupVerbose("[LP real evolution]", out.summary || "completed");
-            })
-            .catch((err) => console.warn("[LP real evolution failed]", err?.message || err)),
         ),
       );
       setInterval(tick, evo.ms);

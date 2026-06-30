@@ -36,21 +36,6 @@ Part of the [Syra monorepo](../README.md). The same API gateway powers Syra-back
 
 ---
 
-## Bitget Agent Hub (Hackathon)
-
-Syra’s **Bitget Vibe Trader** (`/vibe-trading` on the web app) uses Bitget public market APIs and maps perception to Agent Hub Skill Hub ids. For direct Bitget trading tools in Cursor, add the official MCP server:
-
-```bash
-export BITGET_API_KEY=your-api-key
-export BITGET_SECRET_KEY=your-secret-key
-export BITGET_PASSPHRASE=your-passphrase
-# claude mcp add ... bitget -- npx -y bitget-mcp-server
-```
-
-See [documentation/BITGET_VIBE_TRADER.md](../documentation/BITGET_VIBE_TRADER.md) for the Track 1 submission pack.
-
----
-
 ## Table of Contents
 
 - [Overview](#overview)
@@ -94,11 +79,11 @@ The server uses **stdio** (standard input/output) as the transport. The MCP clie
 
 - Built with the official [Model Context Protocol SDK](https://github.com/modelcontextprotocol/sdk) (`@modelcontextprotocol/sdk`).
 - Compatible with **any MCP client** that supports **stdio** transport.
-- Server name: `syra-mcp-server`, version: `0.2.0`.
+- Server name: `syra-mcp-server`, version: `0.4.0`.
 
 ### Payment (high level)
 
-The **production** Syra API at `https://api.syraa.fun` uses **x402** for many endpoints. Without a valid payment header, those endpoints return **402 Payment Required**. This MCP server only forwards requests; it does **not** inject payment. For **local testing**, you can point the server at your own API and use **dev routes** (see [Configuration](#configuration) and [Payment (x402) and Dev Routes](#payment-x402-and-dev-routes)) to avoid payment.
+The **production** Syra API uses **x402 v2** (`Payment-Required` → `PAYMENT-SIGNATURE` retry). When you configure a payer wallet, this MCP server **auto-pays** via `@x402/fetch` (same stack as `api/libs/agentX402Client.js`). Supported rails: **Solana USDC** (default), **Base USDC** (`X402_PREFERRED_NETWORK=base`), **Algorand USDC** (`X402_PREFERRED_NETWORK=algorand`). For **local testing**, use dev routes (`SYRA_USE_DEV_ROUTES=true`) against a local API.
 
 ---
 
@@ -120,7 +105,7 @@ The **production** Syra API at `https://api.syraa.fun` uses **x402** for many en
 - **240+ MCP tools** (codegen from `api/config/agentTools.js`):
   - **Curated profile (default)** — ~42 high-value routes + `syra_call_tool` for any toolId
   - **Full profile** — every agent tool via `SYRA_MCP_TOOL_PROFILE=full`
-  - **x402 auto-pay** — `SYRA_PAYER_KEYPAIR` + `@syra/sdk` + `@x402/fetch`
+  - **x402 v2 auto-pay** — `@x402/fetch` + `PAYMENT-SIGNATURE` (Solana / Base / Algorand)
   - **Agent-direct bridge** — exa-search, crawl, Nansen, GMGN, etc. via `POST /mcp/tools/call`
 
 - **Configurable base URL** — Point to production (`https://api.syraa.fun`) or your local API (e.g. `http://localhost:3000`).
@@ -134,7 +119,7 @@ The **production** Syra API at `https://api.syraa.fun` uses **x402** for many en
 |-------------|---------|
 | **Node.js** | Version **18 or higher**. Check with `node -v`. |
 | **Syra API** | Either the **production** API at `https://api.syraa.fun` or your **local** API (e.g. `http://localhost:3000`). The MCP server only works if this API is reachable from the machine running the server. |
-| **Payment (production)** | Production endpoints use **x402**. Without a valid payment header you will get **402** responses. For local testing, use your local API and set `SYRA_USE_DEV_ROUTES=true` to call `/dev` routes (no payment), if your API supports them. |
+| **Payment (production)** | Production endpoints use **x402 v2**. Set `SYRA_PAYER_KEYPAIR` (Solana) or the EVM/Algorand payer env for your rail. Without a payer, paid tools return **402**. For local testing, use `SYRA_USE_DEV_ROUTES=true`. |
 | **MCP client** | An application that supports MCP with stdio (e.g. Cursor, Claude Desktop). |
 
 ---
@@ -190,11 +175,19 @@ Configuration is done via **environment variables**. Copy `.env.example` to `.en
 | Variable | Description | Default | Example |
 |----------|-------------|---------|---------|
 | `SYRA_API_BASE_URL` | Base URL of the Syra API. No trailing slash. | `https://api.syraa.fun` | `http://localhost:3000` |
-| `SYRA_PAYER_KEYPAIR` | Solana secret (base58 or JSON bytes) for x402 auto-pay on HTTP routes | not set | Phantom export |
+| `SYRA_PAYER_KEYPAIR` | Solana secret (base58 or JSON bytes) for x402 v2 auto-pay | not set | Phantom export |
+| `PAYER_KEYPAIR` | Alias for `SYRA_PAYER_KEYPAIR` (matches API env) | not set | same as above |
+| `X402_PREFERRED_NETWORK` | Payment rail: `solana` (default), `base`, `algorand` | `solana` | `base` |
+| `SYRA_EVM_PAYER_PRIVATE_KEY` | Base USDC payer (32-byte hex) when `X402_PREFERRED_NETWORK=base` | not set | `0x...` |
+| `SYRA_ALGORAND_PAYER_PRIVATE_KEY` | Algorand payer (base64 64-byte key) when `X402_PREFERRED_NETWORK=algorand` | not set | from wallet |
+| `BASE_BUILDER_CODE` | Optional Base builder attribution on EVM payments | not set | `syra_mcp` |
 | `SYRA_MCP_API_KEY` | Auth for agent-direct tools via `POST /mcp/tools/call` on the API | not set | shared with API env |
 | `SYRA_MCP_TOOL_PROFILE` | `curated` (default) or `full` | `curated` | `full` |
 | `SYRA_USE_DEV_ROUTES` | If set to `true` or `1`, appends `/dev` to each API path | not set (false) | `true` |
-| `SYRA_SOLANA_RPC_URL` | RPC for x402 payment signing | `SOLANA_RPC_URL` or public Solana RPC | Helius URL |
+| `SYRA_CONNECTED_WALLET` | Optional `X-Connected-Wallet` header for dev/playground pricing | not set | wallet address |
+| `SYRA_SOLANA_RPC_URL` | RPC for x402 Solana payment signing | `SOLANA_RPC_URL` or public RPC | Helius URL |
+| `SOLANA_RPC_BLOCKCHAIN_URL` | Full-access Solana RPC (preferred for x402 mint/blockhash) | not set | Helius blockchain URL |
+| `SOLANA_RPC_FALLBACK_URL` | Fallback when primary RPC blocks blockchain JSON-RPC | public mainnet-beta | Ankr URL |
 
 ### Example `.env` for local testing (no payment)
 
@@ -203,11 +196,14 @@ SYRA_API_BASE_URL=http://localhost:3000
 SYRA_USE_DEV_ROUTES=true
 ```
 
-### Example `.env` for production
+### Example `.env` for production (Solana x402 v2)
 
 ```env
 SYRA_API_BASE_URL=https://api.syraa.fun
-# Do not set SYRA_USE_DEV_ROUTES; paid endpoints require x402 payment from your client/setup.
+SYRA_PAYER_KEYPAIR=your-base58-or-json-solana-secret
+SYRA_MCP_API_KEY=your-mcp-bridge-key
+SYRA_SOLANA_RPC_URL=https://your-helius-rpc
+# Do not set SYRA_USE_DEV_ROUTES
 ```
 
 ### How the client passes env
@@ -513,11 +509,23 @@ Every MCP tool performs a **GET** request to the path below. When `SYRA_USE_DEV_
 
 ---
 
-## Payment (x402) and Dev Routes
+## Payment (x402 v2) and Dev Routes
 
 ### Production API (https://api.syraa.fun)
 
-Many endpoints require **x402 payment**. If the request does not include a valid payment header, the API responds with **402 Payment Required**. This MCP server **does not add** payment headers; it only forwards the request. To get **200** in production, payment must be handled elsewhere (e.g. API playground, gateway, or a client that sends x402 headers).
+Paid endpoints return **402** with a `Payment-Required` header (x402 v2). When a payer wallet is configured, the MCP server:
+
+1. Reads the payment challenge from the 402 response
+2. Signs a `PAYMENT-SIGNATURE` payload via `@x402/fetch`
+3. Retries the request automatically (with transient 402/429 backoff)
+
+**Solana (default):** set `SYRA_PAYER_KEYPAIR` with a USDC-funded wallet.
+
+**Base:** set `X402_PREFERRED_NETWORK=base` and `SYRA_EVM_PAYER_PRIVATE_KEY`.
+
+**Algorand:** set `X402_PREFERRED_NETWORK=algorand` and `SYRA_ALGORAND_PAYER_PRIVATE_KEY`.
+
+Without a payer, tools return the 402 body so the model can surface payment requirements.
 
 ### Dev routes (local testing)
 
@@ -534,7 +542,8 @@ Whether the API actually skips payment for a given path depends on how your **AP
 | Scenario | Base URL | SYRA_USE_DEV_ROUTES | Result |
 |----------|----------|---------------------|--------|
 | Local testing, no payment | `http://localhost:3000` | `true` | Paths become `.../dev`; API may return 200 without payment. |
-| Production | `https://api.syraa.fun` | not set | No `/dev`; 402 unless payment is sent by another component. |
+| Production (with payer) | `https://api.syraa.fun` | not set | Auto x402 v2 pay via configured wallet |
+| Production (no payer) | `https://api.syraa.fun` | not set | 402 on paid routes |
 
 ---
 
@@ -614,18 +623,18 @@ Regenerate after editing agent tools, then `npm run build` in `mcp-server/` and 
 
 | Issue | What to check |
 |-------|----------------|
-| **402 from tools** | Set `SYRA_PAYER_KEYPAIR` for HTTP routes. For agent-direct tools, enable MCP bridge on API (`SYRA_MCP_BRIDGE_ENABLED=true`, `SYRA_MCP_API_KEY`, `SYRA_MCP_AGENT_ANONYMOUS_ID`) and pass `SYRA_MCP_API_KEY` to the MCP server. Local testing: `SYRA_USE_DEV_ROUTES=true` with local API. |
+| **402 from tools** | Set payer for your rail: `SYRA_PAYER_KEYPAIR` (Solana), `SYRA_EVM_PAYER_PRIVATE_KEY` + `X402_PREFERRED_NETWORK=base`, or Algorand key + `X402_PREFERRED_NETWORK=algorand`. For agent-direct tools, enable MCP bridge on API and pass `SYRA_MCP_API_KEY`. Local: `SYRA_USE_DEV_ROUTES=true`. |
 | **Connection refused / timeout** | Ensure the Syra API is running and reachable at `SYRA_API_BASE_URL`. If the API is on localhost, the MCP server must run on the same machine (or use a URL that is reachable from where the server runs). |
 | **Cursor/Claude doesn’t list Syra tools** | Restart the app or reload MCP. Confirm the MCP config: correct path to `dist/index.js`, `command` and `args` (e.g. `node` and `["path/to/dist/index.js"]`). Run `node dist/index.js` manually to ensure it starts without errors. |
 | **Wrong API or dev routes not used** | Verify `SYRA_API_BASE_URL` and `SYRA_USE_DEV_ROUTES` in the **environment** passed by the MCP client (e.g. `env` in the server config). The server reads only `process.env` at startup. |
 | **Build or run errors** | Run `npm install` and `npm run build` inside `mcp-server`. Ensure Node.js is 18+ (`node -v`). On Windows, use the correct path format and escaped backslashes in JSON. |
-| **Tool returns “API returned 402”** | Expected when calling production without payment. Use local API + dev routes, or implement x402 payment in your setup. |
+| **Tool returns “API returned 402”** | Expected without a payer wallet. Set `SYRA_PAYER_KEYPAIR` or use local API + dev routes. |
 
 ---
 
 ## Version
 
 - **Package:** `@syra/mcp-server`
-- **Version:** `0.3.0` (see `package.json`)
+- **Version:** `0.4.0` (see `package.json`)
 
 For more on the Syra API, x402, and the rest of the monorepo, see the main Syra documentation and API docs.

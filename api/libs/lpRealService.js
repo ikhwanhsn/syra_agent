@@ -16,6 +16,10 @@ import {
   selectRealStylePoolCandidate,
 } from "./lpExperimentService.js";
 import {
+  shouldEvaluateLpRealPosition,
+  shouldWriteLpRealOpenEval,
+} from "../utils/mongoHeartbeatWrite.js";
+import {
   applyRealBinOverrides,
   applyRiskAdjustedFeeMultiplier,
   clampPositionBinRange,
@@ -2128,9 +2132,6 @@ function lpSweepPreserveUsdc() {
 async function resolveLpRealPositionsForConfig(config, { forceCloseAll = false } = {}) {
   const agentFilter = configAgentFilter(config);
   await repairCloseAllIfIdle(config, agentFilter);
-  if (agentFilter) {
-    await LpRealConfig.updateOne(agentFilter, { $set: { lastResolveAt: new Date() } }).catch(() => {});
-  }
   const openRuns = await LpRealPosition.find({
     experimentId: config.experimentId,
     $or: [
@@ -2153,11 +2154,22 @@ async function resolveLpRealPositionsForConfig(config, { forceCloseAll = false }
 
   const resolvedRows = [];
   const errors = [];
+  let evaluatedAny = false;
 
   for (const position of openRuns) {
+    if (
+      !shouldEvaluateLpRealPosition(position, {
+        forceCloseAll,
+        closeAllRequested: config.closeAllRequested,
+      })
+    ) {
+      continue;
+    }
+
+    evaluatedAny = true;
     const locked = await LpRealPosition.findOneAndUpdate(
       { _id: position._id, processing: { $ne: true } },
-      { $set: { processing: true, lastEvaluatedAt: new Date() } },
+      { $set: { processing: true } },
       { new: true },
     )
       .select("+positionSecretEnc")
@@ -2266,10 +2278,11 @@ async function resolveLpRealPositionsForConfig(config, { forceCloseAll = false }
         isOrphanedLiveLpPosition(position);
 
       if (!shouldClose) {
-        await LpRealPosition.updateOne(
-          { _id: position._id },
-          { $set: { processing: false, peakPnlPct: exitEval.peakPnlPct } },
-        );
+        const openEvalSet = { processing: false, lastEvaluatedAt: new Date() };
+        if (shouldWriteLpRealOpenEval(position, exitEval)) {
+          openEvalSet.peakPnlPct = exitEval.peakPnlPct;
+        }
+        await LpRealPosition.updateOne({ _id: position._id }, { $set: openEvalSet });
         continue;
       }
 
@@ -2486,7 +2499,9 @@ async function resolveLpRealPositionsForConfig(config, { forceCloseAll = false }
     await LpRealConfig.updateOne(agentFilter, { $set: { closeAllRequested: false } });
   }
 
-  await LpRealConfig.updateOne(agentFilter, { $set: { lastResolveAt: new Date() } });
+  if (evaluatedAny && agentFilter) {
+    await LpRealConfig.updateOne(agentFilter, { $set: { lastResolveAt: new Date() } }).catch(() => {});
+  }
 
   return {
     agentAddress: config.agentAddress,

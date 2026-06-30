@@ -4,6 +4,7 @@
  * TTL index auto-deletes documents after 90 days.
  */
 import mongoose from 'mongoose';
+import { ttlExpireSeconds } from '../utils/mongoTtl.js';
 
 const OUTCOMES = [
   'paid',
@@ -59,14 +60,16 @@ const x402CallLogSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-x402CallLogSchema.index({ createdAt: 1 });
 x402CallLogSchema.index({ path: 1, createdAt: -1 });
 x402CallLogSchema.index({ outcome: 1, createdAt: -1 });
 x402CallLogSchema.index({ network: 1, createdAt: -1 });
 x402CallLogSchema.index({ direction: 1, createdAt: -1 });
 x402CallLogSchema.index({ facilitator: 1, createdAt: -1 });
-// TTL: delete after 90 days
-x402CallLogSchema.index({ createdAt: 1 }, { expireAfterSeconds: 90 * 24 * 60 * 60 });
+// TTL: delete after N days (default 30; was 90)
+x402CallLogSchema.index(
+  { createdAt: 1 },
+  { expireAfterSeconds: ttlExpireSeconds('X402_CALL_LOG_TTL_DAYS', 30) },
+);
 
 const X402CallLog = mongoose.model('X402CallLog', x402CallLogSchema);
 export default X402CallLog;

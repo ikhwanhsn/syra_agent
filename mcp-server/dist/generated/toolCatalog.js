@@ -697,6 +697,42 @@ export const MCP_TOOL_CATALOG = [
         "curated": true
     },
     {
+        "toolName": "syra_spend_aip_delegate",
+        "toolId": "aip-delegate",
+        "pillar": "spend",
+        "access": "http",
+        "method": "POST",
+        "name": "AIP task delegate",
+        "description": "Submit a task to an external AIP agent via A2A JSON-RPC with agent-wallet x402 payment. Params: capability (required), input (required), did or endpoint or cardUrl. Polls task/status until complete.",
+        "priceUsd": 0.05,
+        "curated": false,
+        "path": "/aip/delegate"
+    },
+    {
+        "toolName": "syra_spend_aip_discover",
+        "toolId": "aip-discover",
+        "pillar": "spend",
+        "access": "http",
+        "method": "GET",
+        "name": "AIP agent discover",
+        "description": "Browse Agent Internet Protocol marketplace agents. Params: q (search), limit (max 50). No USDC charge.",
+        "priceUsd": 0,
+        "curated": false,
+        "path": "/aip/discover"
+    },
+    {
+        "toolName": "syra_spend_aip_resolve",
+        "toolId": "aip-resolve",
+        "pillar": "spend",
+        "access": "http",
+        "method": "GET",
+        "name": "AIP did:aip resolve",
+        "description": "Resolve did:aip on-chain and fetch Agent Card. Params: did (required) or cardUrl. Verifies on-chain AgentRecord via @aipagents/did-resolver. No USDC charge.",
+        "priceUsd": 0,
+        "curated": false,
+        "path": "/aip/resolve"
+    },
+    {
         "toolName": "syra_spend_analytics_summary",
         "toolId": "analytics-summary",
         "pillar": "spend",

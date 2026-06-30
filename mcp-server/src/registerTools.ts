@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { MCP_TOOL_CATALOG, type McpToolCatalogEntry } from "./generated/toolCatalog.js";
 import { callCatalogTool, callFreeRoute, callToolById } from "./syraApi.js";
-import { hasPaidFetchConfigured } from "./payment/createPaidFetch.js";
+import { getPaidFetchNetworkLabel, hasPaidFetchConfigured } from "./payment/createPaidFetch.js";
 
 const PILLAR_LABEL: Record<string, string> = {
   earn: "[Earn] ",
@@ -16,7 +16,14 @@ const TOOL_PROFILE = (process.env.SYRA_MCP_TOOL_PROFILE || "curated").toLowerCas
 
 function paymentSuffix(): string {
   if (hasPaidFetchConfigured()) return "";
-  return " Note: set SYRA_PAYER_KEYPAIR for production x402 auto-pay.";
+  const rail = getPaidFetchNetworkLabel();
+  if (rail === "base") {
+    return " Note: set SYRA_EVM_PAYER_PRIVATE_KEY (X402_PREFERRED_NETWORK=base) for x402 auto-pay.";
+  }
+  if (rail === "algorand") {
+    return " Note: set SYRA_ALGORAND_PAYER_PRIVATE_KEY (X402_PREFERRED_NETWORK=algorand) for x402 auto-pay.";
+  }
+  return " Note: set SYRA_PAYER_KEYPAIR for Solana x402 v2 auto-pay (PAYMENT-SIGNATURE).";
 }
 
 function shouldRegister(entry: McpToolCatalogEntry): boolean {

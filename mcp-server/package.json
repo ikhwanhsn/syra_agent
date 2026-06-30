@@ -1,6 +1,6 @@
 {
   "name": "@syra/mcp-server",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "MCP server exposing Syra x402 API tools with auto-pay and full agentTools catalog",
   "type": "module",
   "main": "dist/index.js",
@@ -21,10 +21,16 @@
     "@modelcontextprotocol/sdk": "^1.0.0",
     "@syra/sdk": "file:../syra-sdk",
     "@solana/kit": "^5.5.1",
+    "@x402-avm/avm": "^2.6.1",
+    "@x402-avm/core": "^2.6.1",
+    "@x402-avm/fetch": "^2.6.1",
     "@x402/core": "^2.2.0",
+    "@x402/evm": "^2.2.0",
+    "@x402/extensions": "^2.16.0",
     "@x402/fetch": "^2.3.0",
     "@x402/svm": "^2.2.0",
     "bs58": "^6.0.0",
+    "viem": "^2.31.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {

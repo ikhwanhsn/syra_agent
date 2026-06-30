@@ -2,7 +2,7 @@
   "mcpServers": {
     "syra": {
       "command": "npx",
-      "args": ["-y", "@syra/mcp-server@0.3.0"],
+      "args": ["-y", "@syra/mcp-server@0.4.0"],
       "env": {
         "SYRA_API_BASE_URL": "https://api.syraa.fun",
         "SYRA_MCP_TOOL_PROFILE": "curated",

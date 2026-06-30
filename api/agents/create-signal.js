@@ -8,8 +8,9 @@ import {
   getAccount,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
-import { MongoClient } from "mongodb";
 import bs58 from "bs58";
+import mongoose from "mongoose";
+import connectMongoose from "../config/mongoose.js";
 import { confirmSolanaTransaction } from "../libs/solanaConfirm.js";
 
 const connection = new Connection("https://api.devnet.solana.com", "confirmed");
@@ -30,17 +31,10 @@ const PRICE_PER_SIGNAL = 100; // 0.0001 USDC
 // Agent authentication - no default; must be set via env
 const AGENT_SECRET_KEY = process.env.ADDRESS_PAYAI_PRIVATE_KEY;
 
-// MongoDB connection helper
-let cachedClient = null;
-async function getMongoClient() {
-  if (cachedClient) {
-    return cachedClient;
-  }
-
-  const client = new MongoClient(process.env.MONGODB_URI);
-  await client.connect();
-  cachedClient = client;
-  return client;
+// MongoDB via shared Mongoose pool (no separate MongoClient)
+async function getMongoDb() {
+  await connectMongoose({ required: true });
+  return mongoose.connection.getClient().db(process.env.DB_NAME || "syra");
 }
 
 // Shared handler function for both GET and POST
@@ -259,8 +253,7 @@ async function handleCreateSignal(req, res) {
       requestMethod: req.method, // Track whether it was GET or POST
     };
 
-    const client = await getMongoClient();
-    const db = client.db("syra");
+    const db = await getMongoDb();
     const createSignal = await db.collection("signals").insertOne(newSignal);
 
     if (!createSignal.acknowledged) {

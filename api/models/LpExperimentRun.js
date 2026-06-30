@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { ttlExpireSeconds } from "../utils/mongoTtl.js";
 
 const lpExperimentRunSchema = new mongoose.Schema(
   {
@@ -65,6 +66,17 @@ lpExperimentRunSchema.index({ experimentId: 1, strategyId: 1, status: 1, created
 lpExperimentRunSchema.index({ strategyId: 1, status: 1, createdAt: -1 });
 lpExperimentRunSchema.index({ status: 1, createdAt: -1 });
 lpExperimentRunSchema.index({ strategyId: 1, poolAddress: 1, status: 1, createdAt: -1 });
+// TTL: purge settled runs after N days (default 45)
+lpExperimentRunSchema.index(
+  { resolvedAt: 1 },
+  {
+    expireAfterSeconds: ttlExpireSeconds("LP_RUN_TTL_DAYS", 45),
+    partialFilterExpression: {
+      status: { $in: ["win", "loss", "expired", "error"] },
+      resolvedAt: { $type: "date" },
+    },
+  },
+);
 
 const LpExperimentRun =
   mongoose.models.LpExperimentRun || mongoose.model("LpExperimentRun", lpExperimentRunSchema);

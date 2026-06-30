@@ -4,6 +4,7 @@
  * TTL index auto-deletes documents after 90 days to limit storage.
  */
 import mongoose from 'mongoose';
+import { ttlExpireSeconds } from '../utils/mongoTtl.js';
 
 const apiRequestLogSchema = new mongoose.Schema(
   {
@@ -23,11 +24,13 @@ const apiRequestLogSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-apiRequestLogSchema.index({ createdAt: 1 });
 apiRequestLogSchema.index({ path: 1, createdAt: 1 });
 apiRequestLogSchema.index({ statusCode: 1, createdAt: 1 });
-// TTL: delete after 90 days
-apiRequestLogSchema.index({ createdAt: 1 }, { expireAfterSeconds: 90 * 24 * 60 * 60 });
+// TTL: delete after N days (default 30; was 90)
+apiRequestLogSchema.index(
+  { createdAt: 1 },
+  { expireAfterSeconds: ttlExpireSeconds('API_REQUEST_LOG_TTL_DAYS', 30) },
+);
 
 const ApiRequestLog = mongoose.model('ApiRequestLog', apiRequestLogSchema);
 export default ApiRequestLog;

@@ -1,13 +1,28 @@
 import { createSyraClient, type SyraClient } from "@syra/sdk";
-import { getPaidFetch, hasPaidFetchConfigured } from "./payment/createPaidFetch.js";
+import {
+  getPaidFetch,
+  getPaidFetchNetworkLabel,
+  hasPaidFetchConfigured,
+} from "./payment/createPaidFetch.js";
 import type { McpToolCatalogEntry } from "./generated/toolCatalog.js";
 
 const SYRA_API_BASE_URL = (process.env.SYRA_API_BASE_URL || "https://api.syraa.fun").replace(/\/$/, "");
 const SYRA_USE_DEV_ROUTES =
   process.env.SYRA_USE_DEV_ROUTES === "true" || process.env.SYRA_USE_DEV_ROUTES === "1";
 const SYRA_MCP_API_KEY = process.env.SYRA_MCP_API_KEY?.trim() || "";
+const SYRA_CONNECTED_WALLET = (
+  process.env.SYRA_CONNECTED_WALLET || process.env.SYRA_DEV_WALLET || ""
+).trim();
 
 let clientPromise: Promise<SyraClient> | null = null;
+
+function buildDefaultHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {};
+  if (SYRA_CONNECTED_WALLET) {
+    headers["X-Connected-Wallet"] = SYRA_CONNECTED_WALLET;
+  }
+  return headers;
+}
 
 async function getClient(): Promise<SyraClient> {
   if (!clientPromise) {
@@ -15,6 +30,8 @@ async function getClient(): Promise<SyraClient> {
       createSyraClient({
         baseUrl: SYRA_API_BASE_URL,
         fetch: fetchFn,
+        headers: buildDefaultHeaders(),
+        maxPaymentRetries: 0,
       }),
     );
   }
@@ -88,7 +105,9 @@ export async function callHttpTool(
       ? await client.post(path, Object.keys(rest).length ? rest : undefined)
       : await client.get(path, rest);
 
-  const paymentNote = hasPaidFetchConfigured() ? "" : " (no SYRA_PAYER_KEYPAIR — may have returned 402)";
+  const paymentNote = hasPaidFetchConfigured()
+    ? ""
+    : ` (no x402 payer configured for ${getPaidFetchNetworkLabel()} — may have returned 402)`;
   return {
     ok: res.success,
     text: formatSyraResult(res.success, res.data, res.error) + paymentNote,

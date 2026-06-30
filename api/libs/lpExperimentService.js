@@ -42,6 +42,7 @@ import {
   shouldCloseByOor,
   strategyLikelyNeedsSidecarSwap,
 } from "./lpEconomicsModel.js";
+import { shouldWriteLpRunResolve } from "../utils/mongoHeartbeatWrite.js";
 
 export { computeLpNetPnlPct, isPositionOutOfRange };
 
@@ -1123,6 +1124,8 @@ export async function resolveOpenLpRuns() {
   const openRuns = await LpExperimentRun.find(openQuery).sort({ createdAt: 1 }).lean();
   const resolvedRows = [];
   const errors = [];
+  /** @type {import('mongoose').AnyBulkWriteOperation[]} */
+  const bulkOps = [];
 
   for (const run of openRuns) {
     try {
@@ -1138,18 +1141,20 @@ export async function resolveOpenLpRuns() {
           : run.strategyId;
       const strategy = await resolveLpStrategyById(exitStrategyId);
       if (!strategy) {
-        await LpExperimentRun.updateOne(
-          { _id: run._id },
-          {
-            $set: {
-              status: "error",
-              resolution: "strategy_missing",
-              errorMessage: "Strategy not found",
-              resolvedAt: new Date(),
-              lastEvaluatedAt: new Date(),
+        bulkOps.push({
+          updateOne: {
+            filter: { _id: run._id },
+            update: {
+              $set: {
+                status: "error",
+                resolution: "strategy_missing",
+                errorMessage: "Strategy not found",
+                resolvedAt: new Date(),
+                lastEvaluatedAt: new Date(),
+              },
             },
           },
-        );
+        });
         continue;
       }
       const detail = await fetchMeteoraPoolDetail(run.poolAddress);
@@ -1157,6 +1162,10 @@ export async function resolveOpenLpRuns() {
       const openedAt = new Date(run.openedAt || run.createdAt || Date.now()).getTime();
       const hoursElapsed = Math.max(0, (now - openedAt) / 3_600_000);
       const fields = evaluateRunResolution(run, detail, strategy.exit, hoursElapsed, LP_AGENT_EXPERIMENT_DEFAULTS);
+
+      if (!shouldWriteLpRunResolve(run, fields)) {
+        continue;
+      }
 
       const expId = run.experimentId || experimentId;
       if (fields.status !== "open" && expId && run.strategyId !== LP_REAL_MIRROR_STRATEGY_ID) {
@@ -1168,30 +1177,32 @@ export async function resolveOpenLpRuns() {
         );
       }
 
-      await LpExperimentRun.updateOne(
-        { _id: run._id },
-        {
-          $set: {
-            status: fields.status,
-            resolution: fields.resolution,
-            tvlUsd: fields.tvlUsd,
-            volume24hUsd: fields.volume24hUsd,
-            feeTvlRatio: fields.feeTvlRatio,
-            simFeesEarnedSol: fields.simFeesEarnedSol,
-            simPriceDriftPct: fields.simPriceDriftPct,
-            simPnlPct: fields.simPnlPct,
-            simPnlUsd: fields.simPnlUsd,
-            simOpenFeeSol: fields.simOpenFeeSol,
-            simCloseFeeSol: fields.simCloseFeeSol,
-            simNetPnlSol: fields.simNetPnlSol,
-            lastEvaluatedAt: new Date(),
-            ...(fields.status !== "open" ? { resolvedAt: new Date() } : {}),
-            ...(fields.status === "open"
-              ? { "screeningSnapshot.peakPnlPct": fields.peakPnlPct }
-              : {}),
+      bulkOps.push({
+        updateOne: {
+          filter: { _id: run._id },
+          update: {
+            $set: {
+              status: fields.status,
+              resolution: fields.resolution,
+              tvlUsd: fields.tvlUsd,
+              volume24hUsd: fields.volume24hUsd,
+              feeTvlRatio: fields.feeTvlRatio,
+              simFeesEarnedSol: fields.simFeesEarnedSol,
+              simPriceDriftPct: fields.simPriceDriftPct,
+              simPnlPct: fields.simPnlPct,
+              simPnlUsd: fields.simPnlUsd,
+              simOpenFeeSol: fields.simOpenFeeSol,
+              simCloseFeeSol: fields.simCloseFeeSol,
+              simNetPnlSol: fields.simNetPnlSol,
+              lastEvaluatedAt: new Date(),
+              ...(fields.status !== "open" ? { resolvedAt: new Date() } : {}),
+              ...(fields.status === "open"
+                ? { "screeningSnapshot.peakPnlPct": fields.peakPnlPct }
+                : {}),
+            },
           },
         },
-      );
+      });
 
       if (fields.status !== "open") {
         resolvedRows.push({
@@ -1203,11 +1214,24 @@ export async function resolveOpenLpRuns() {
       }
     } catch (err) {
       errors.push(`run:${String(run._id)}:${err instanceof Error ? err.message : String(err)}`);
-      await LpExperimentRun.updateOne(
-        { _id: run._id },
-        { $set: { status: "error", resolution: "resolve_error", errorMessage: String(err), resolvedAt: new Date() } },
-      );
+      bulkOps.push({
+        updateOne: {
+          filter: { _id: run._id },
+          update: {
+            $set: {
+              status: "error",
+              resolution: "resolve_error",
+              errorMessage: String(err),
+              resolvedAt: new Date(),
+            },
+          },
+        },
+      });
     }
+  }
+
+  if (bulkOps.length > 0) {
+    await LpExperimentRun.bulkWrite(bulkOps, { ordered: false });
   }
 
   return {

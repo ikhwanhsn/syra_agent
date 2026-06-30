@@ -1,6 +1,3 @@
-/** Bitget Vibe Trader hackathon sessions; runs link via bitgetVibeSessionId. */
-export const EXPERIMENT_SUITE_BITGET_VIBE = "bitget_vibe";
-
 /** BTC onchain quant lab — spot cbBTC via Jupiter (paper sim + real). */
 export const EXPERIMENT_SUITE_BTC_ONCHAIN = "btc_onchain";
 
@@ -221,7 +218,7 @@ export const BTC_QUANT_STRATEGIES = Object.freeze([
   },
   {
     id: 12,
-    name: "Bitget Fast Scalp",
+    name: "Fast Scalp",
     bar: "15m",
     dataSource: "onchain_birdeye",
     signalGate: {

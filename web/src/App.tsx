@@ -211,8 +211,6 @@ function AppRoutes() {
                 </AdminExperimentRoute>
               }
             />
-            <Route path="/vibe-trading" element={<Navigate to="/overview" replace />} />
-            <Route path="/arena" element={<Navigate to="/overview" replace />} />
             <Route path="/spcx" element={<Navigate to="/playground" replace />} />
             <Route path="/btc" element={<BtcPage />} />
             <Route path="/hackathon" element={<RedirectToS3Labs path="/hackathon" />} />

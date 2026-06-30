@@ -1,18 +1,14 @@
-import { MongoClient } from "mongodb";
-import dotenv from "dotenv";
+import mongoose from "mongoose";
+import connectMongoose from "./config/mongoose.js";
 
-dotenv.config();
-
-const uri = process.env.MONGODB_URI;
-if (!uri) throw new Error("Missing MONGODB_URI in .env");
-
-const client = new MongoClient(uri);
-
+/**
+ * Shared MongoDB database handle via the singleton Mongoose connection.
+ * Replaces a separate MongoClient pool (saves Atlas connection count).
+ */
 export async function getDb() {
-  if (!client.topology?.isConnected()) {
-    await client.connect();
+  const ok = await connectMongoose({ required: false });
+  if (!ok || mongoose.connection.readyState !== 1) {
+    throw new Error("MongoDB is not connected");
   }
-  return client.db(process.env.DB_NAME || "syra");
+  return mongoose.connection.getClient().db(process.env.DB_NAME || "syra");
 }
-
-// test

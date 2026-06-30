@@ -39,7 +39,6 @@
     "@agent-score/sdk": "^2.5.0",
     "@aipagents/agent-sdk": "^0.2.1",
     "@aipagents/did-resolver": "^0.1.2",
-    "@bitget-ai/getagent-skill": "^0.2.1",
     "@coral-xyz/anchor": "^0.31.1",
     "@didtools/siwx": "^2.0.0",
     "@faremeter/info": "^0.14.0",

@@ -41,8 +41,6 @@ import { createInternalEventsRouter } from "../routes/internalEvents.js";
 import { createInternalToolsRouter } from "../routes/internalTools.js";
 import { createInternalAgentWalletsRouter } from "../routes/internalAgentWallets.js";
 import { createInternalTesterAgentRouter } from "../routes/internalTesterAgent.js";
-import { createBitgetVibeRouter } from "../routes/bitgetVibe.js";
-import { createArenaRouter } from "../routes/arena.js";
 import { createSpcxRouter, createEquityRouter } from "../routes/spcx.js";
 import { createIndicatorRouter } from "../routes/indicator.js";
 import { createBtcRouter } from "../routes/btc.js";
@@ -150,8 +148,6 @@ const factories = [
   ["createInternalToolsRouter", createInternalToolsRouter],
   ["createInternalAgentWalletsRouter", createInternalAgentWalletsRouter],
   ["createInternalTesterAgentRouter", createInternalTesterAgentRouter],
-  ["createBitgetVibeRouter", createBitgetVibeRouter],
-  ["createArenaRouter", createArenaRouter],
   ["createSpcxRouter", createSpcxRouter],
   ["createEquityRouter", createEquityRouter],
   ["createIndicatorRouter", createIndicatorRouter],
