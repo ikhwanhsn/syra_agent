@@ -1,9 +1,23 @@
 import { useParams, Link } from "react-router-dom";
 import { DocsLayout } from "@/components/docs/DocsLayout";
+import { DocPageHeader } from "@/components/docs/DocPageHeader";
+import { DocSection } from "@/components/docs/DocSection";
+import { Callout } from "@/components/docs/Callout";
 import { CodeBlock } from "@/components/docs/CodeBlock";
-import { getApiDoc } from "@/data/apiDocs";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { EndpointBlock } from "@/components/docs/EndpointBlock";
+import { ResponseTable } from "@/components/docs/ParamTable";
+import { getApiDoc, type ApiParam } from "@/data/apiDocs";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+function mapParams(params: ApiParam[] | undefined) {
+  return params?.map((p) => ({
+    name: p.name,
+    type: p.type,
+    required: p.required.toLowerCase() === "yes" || p.required.toLowerCase() === "true",
+    description: p.description,
+  }));
+}
 
 export default function ApiDocPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -12,22 +26,21 @@ export default function ApiDocPage() {
   if (!doc) {
     return (
       <DocsLayout>
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold tracking-tight mb-4">API not found</h1>
-          <p className="text-muted-foreground mb-6">The API "{slug}" does not exist or has been moved.</p>
-          <Button variant="outline" asChild>
-            <Link to="/docs/api-reference">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to API Reference
-            </Link>
-          </Button>
-        </div>
+        <DocPageHeader
+          title="API not found"
+          description={`The API "${slug}" does not exist or has been moved.`}
+        />
+        <Button variant="outline" asChild>
+          <Link to="/docs/api-reference">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to API Reference
+          </Link>
+        </Button>
       </DocsLayout>
     );
   }
 
   const tocItems = [
-    { id: "overview", title: "Overview", level: 2 },
     { id: "base-url", title: "Base URL & Price", level: 2 },
     { id: "authentication", title: "Authentication", level: 2 },
     { id: "endpoints", title: "Endpoints", level: 2 },
@@ -38,176 +51,104 @@ export default function ApiDocPage() {
   ];
 
   return (
-    <DocsLayout toc={tocItems}>
-      <div className="mb-8">
-        <div className="text-sm text-primary font-medium mb-2">API Documentation</div>
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">{doc.title}</h1>
-        <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed">{doc.overview}</p>
-      </div>
+    <DocsLayout toc={tocItems} wide>
+      <DocPageHeader
+        eyebrow="API Documentation"
+        title={doc.title}
+        description={doc.overview}
+        wide
+      />
 
-      <section id="base-url" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">Base URL & Price</h2>
-        <div className="p-4 rounded-lg border border-border bg-card space-y-2">
-          <div className="flex items-center gap-2 text-sm font-mono">
-            <span className="px-2 py-0.5 rounded bg-primary/10 text-primary font-medium">Base URL</span>
-            <span className="text-muted-foreground">{doc.baseUrl}</span>
+      <DocSection id="base-url" title="Base URL & Price">
+        <div className="grid sm:grid-cols-2 gap-3 not-prose">
+          <div className="rounded-lg border border-border/60 p-4 bg-muted/20">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-1">Base URL</p>
+            <code className="text-sm font-mono text-foreground break-all">{doc.baseUrl}</code>
           </div>
-          <div className="flex items-center gap-2 text-sm">
-            <span className="px-2 py-0.5 rounded bg-muted text-foreground font-medium">Price</span>
-            <span className="text-muted-foreground">{doc.price}</span>
+          <div className="rounded-lg border border-border/60 p-4 bg-muted/20">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-1">Price</p>
+            <p className="text-sm text-foreground">{doc.price}</p>
           </div>
         </div>
-      </section>
+      </DocSection>
 
-      <section id="authentication" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">Authentication</h2>
-        <p className="text-muted-foreground">{doc.authNote}</p>
-      </section>
+      <DocSection id="authentication" title="Authentication">
+        <Callout variant="important" title="x402 payment required">
+          {doc.authNote}
+        </Callout>
+      </DocSection>
 
       {doc.useCases && doc.useCases.length > 0 && (
-        <section className="mb-12 scroll-mt-24">
-          <h2 className="text-2xl font-semibold mb-4">Use Cases</h2>
-          <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+        <DocSection id="use-cases" title="Use Cases" prose>
+          <ul>
             {doc.useCases.map((useCase) => (
               <li key={useCase}>{useCase}</li>
             ))}
           </ul>
-        </section>
+        </DocSection>
       )}
 
       <section id="endpoints" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-6">Endpoints</h2>
-        <div className="space-y-10">
+        <h2 className="docs-display text-2xl font-semibold tracking-tight mb-6">Endpoints</h2>
+        <div className="space-y-2">
           {doc.endpoints.map((endpoint, index) => (
-            <div
+            <EndpointBlock
               key={index}
-              id={`endpoint-${index}`}
-              className="scroll-mt-24 pb-10 border-b border-border last:border-0 last:pb-0"
-            >
-              <div className="flex items-center gap-3 mb-4">
-                <span
-                  className={
-                    endpoint.method === "GET"
-                      ? "px-2 py-1 text-xs font-medium rounded bg-success/20 text-success"
-                      : "px-2 py-1 text-xs font-medium rounded bg-primary/20 text-primary"
-                  }
-                >
-                  {endpoint.method}
-                </span>
-                <code className="text-sm font-mono">{endpoint.path}</code>
-              </div>
-              <p className="text-muted-foreground mb-4">{endpoint.description}</p>
-
-              {endpoint.params && endpoint.params.length > 0 && (
-                <div className="mb-4">
-                  <h4 className="text-sm font-semibold mb-2">Query parameters</h4>
-                  <div className="rounded-lg border border-border overflow-hidden">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-border bg-muted/30">
-                          <th className="text-left p-3 font-medium">Parameter</th>
-                          <th className="text-left p-3 font-medium">Type</th>
-                          <th className="text-left p-3 font-medium">Required</th>
-                          <th className="text-left p-3 font-medium">Description</th>
-                        </tr>
-                      </thead>
-                      <tbody className="text-muted-foreground">
-                        {endpoint.params.map((param) => (
-                          <tr key={param.name} className="border-b border-border/50 last:border-0">
-                            <td className="p-3 font-mono text-primary">{param.name}</td>
-                            <td className="p-3">{param.type}</td>
-                            <td className="p-3">{param.required}</td>
-                            <td className="p-3">{param.description}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {endpoint.bodyExample && (
-                <div className="mb-4">
-                  <h4 className="text-sm font-semibold mb-2">Request body</h4>
-                  <CodeBlock plain code={endpoint.bodyExample.trim()} language="json" showLineNumbers={false} />
-                </div>
-              )}
-
-              <h4 className="text-sm font-semibold mb-2">Example request</h4>
-              <CodeBlock plain code={endpoint.requestExample.trim()} language="bash" showLineNumbers={false} />
-
-              <h4 className="text-sm font-semibold mb-2 mt-4">Response (200)</h4>
-              <CodeBlock
-                plain
-                code={typeof endpoint.responseExample === "string" ? endpoint.responseExample.trim() : JSON.stringify(endpoint.responseExample, null, 2)}
-                language="json"
-                showLineNumbers={false}
-              />
-            </div>
+              endpoint={{
+                id: `endpoint-${index}`,
+                method: endpoint.method,
+                path: endpoint.path,
+                description: endpoint.description,
+                params: mapParams(endpoint.params),
+                requestExample: endpoint.requestExample.trim(),
+                responseExample:
+                  typeof endpoint.responseExample === "string"
+                    ? endpoint.responseExample.trim()
+                    : JSON.stringify(endpoint.responseExample, null, 2),
+                examples: endpoint.bodyExample
+                  ? [
+                      {
+                        label: "Request body",
+                        code: endpoint.bodyExample.trim(),
+                        language: "json",
+                        plain: true,
+                      },
+                    ]
+                  : undefined,
+              }}
+            />
           ))}
         </div>
       </section>
 
-      <section id="payment-flow" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">Payment Flow</h2>
-        <ol className="list-decimal pl-6 space-y-2 text-muted-foreground mb-4">
+      <DocSection id="payment-flow" title="Payment Flow" prose>
+        <ol>
           <li>{doc.paymentFlow.step1}</li>
           <li>{doc.paymentFlow.step2}</li>
           <li>{doc.paymentFlow.step3}</li>
         </ol>
-        <p className="text-sm font-medium text-foreground mb-2">Standard 402 response</p>
-        <CodeBlock plain code={doc.paymentFlow.response402.trim()} language="json" showLineNumbers={false} />
-      </section>
+        <p>
+          <strong>Standard 402 response</strong>
+        </p>
+        <CodeBlock plain code={doc.paymentFlow.response402.trim()} language="json" />
+      </DocSection>
 
       <section id="response-codes" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">Response Codes</h2>
-        <div className="rounded-lg border border-border overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/30">
-                <th className="text-left p-3 font-medium">Code</th>
-                <th className="text-left p-3 font-medium">Description</th>
-              </tr>
-            </thead>
-            <tbody className="text-muted-foreground">
-              {doc.responseCodes.map((row) => (
-                <tr key={row.code} className="border-b border-border/50 last:border-0">
-                  <td className="p-3 font-mono text-foreground">{row.code}</td>
-                  <td className="p-3">{row.description}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <h2 className="docs-display text-2xl font-semibold tracking-tight mb-4">Response Codes</h2>
+        <ResponseTable codes={doc.responseCodes.map((r) => ({ code: r.code, description: r.description }))} />
       </section>
 
-      {doc.extraSections && doc.extraSections.length > 0 && (
-        <>
-          {doc.extraSections.map((section) => (
-            <section key={section.title} className="mb-12 scroll-mt-24">
-              <h2 className="text-2xl font-semibold mb-4">{section.title}</h2>
-              <p className="text-muted-foreground">{section.content}</p>
-            </section>
-          ))}
-        </>
-      )}
+      {doc.extraSections?.map((section) => (
+        <DocSection key={section.title} id={section.title.toLowerCase().replace(/\s+/g, "-")} title={section.title} prose>
+          <p>{section.content}</p>
+        </DocSection>
+      ))}
 
-      <section id="support" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">Support</h2>
-        <p className="text-muted-foreground mb-4">
-          For payment-related issues or API support:
-        </p>
-        {/* Hidden: focus on website — Telegram support link
-        <Button variant="outline" size="sm" asChild>
-          <a href={doc.supportLink} target="_blank" rel="noopener noreferrer">
-            Telegram
-            <ExternalLink className="ml-2 h-3.5 w-3.5" />
-          </a>
-        </Button>
-        */}
-      </section>
+      <DocSection id="support" title="Support" prose>
+        <p>For payment-related issues or API support, reach out via the Syra community channels.</p>
+      </DocSection>
 
-      <div className="flex gap-3 pt-4 border-t border-border">
+      <div className="not-prose pt-4">
         <Button variant="outline" asChild>
           <Link to="/docs/api-reference">
             <ArrowLeft className="mr-2 h-4 w-4" />

@@ -230,7 +230,7 @@ X-PAYMENT-RESPONSE: eyJzdWNjZXNzIjp0cnVlfQ==
       {
         title: "Free routes that look paid",
         content:
-          "Discovery (`/.well-known/x402`, `/openapi.json`, `/mpp-openapi.json`), `/health`, and the dashboard/preview helpers (`/dashboard-summary`, `/preview/*`, `/binance-ticker`, `/uponly-rise-market*`) are intentionally free and do not return 402. The trusted-origin gateway also injects an internal API key for browser calls from syraa.fun, agent.syraa.fun, dashboard.syraa.fun and playground.syraa.fun — never embed an API key in client bundles.",
+          "Discovery (`/.well-known/x402`, `/openapi.json`, `/mpp-openapi.json`), `/health`, and the dashboard/preview helpers (`/dashboard-summary`, `/preview/*`, `/binance-ticker`, `/uponly-rise-market*`) are intentionally free and do not return 402. The trusted-origin gateway also injects an internal API key for browser calls from syraa.fun (including /playground and /overview) — never embed an API key in client bundles.",
       },
       {
         title: "Rate limits",
@@ -1633,7 +1633,7 @@ curl "${BASE_URL}/event?ticker=BTC"`,
     authNote:
       "Requires a Syra Agent session (**anonymousId**) and sufficient agent USDC for paid tools. Optional server env: STABLECRYPTO_API_BASE_URL (default https://stablecrypto.dev).",
     paymentFlow: {
-      step1: "User connects wallet and funds agent USDC on agent.syraa.fun.",
+      step1: "User connects wallet and funds agent USDC at syraa.fun/wallet.",
       step2: "Chat: ask e.g. \"Bitcoin price\" or \"Global market cap\" — tool router selects stablecrypto-coingecko-price or stablecrypto-coingecko-global.",
       step3: "API: GET /agent/tools lists tool ids; POST /agent/tools/call with toolId and string params (see body examples below).",
       response402:
@@ -1698,7 +1698,7 @@ curl "${BASE_URL}/event?ticker=BTC"`,
     authNote:
       "Requires a Syra Agent session (**anonymousId**) and sufficient agent USDC. Optional env: STABLESOCIAL_API_BASE_URL (default https://stablesocial.dev), STABLESOCIAL_POLL_INTERVAL_MS, STABLESOCIAL_POLL_MAX_ATTEMPTS.",
     paymentFlow: {
-      step1: "User funds agent USDC on agent.syraa.fun.",
+      step1: "User funds agent USDC on syraa.fun.",
       step2: 'Chat: e.g. "TikTok profile for nike" — router selects stablesocial-tiktok-profile with handle=nike.',
       step3: "API: POST /agent/tools/call with toolId and params; server triggers StableSocial, polls with SIWX, returns finished data.",
       response402:
@@ -1760,7 +1760,7 @@ curl "${BASE_URL}/event?ticker=BTC"`,
     authNote:
       "Requires Syra Agent **anonymousId** and agent USDC. Optional: STABLEENRICH_API_BASE_URL, STABLEENRICH_CF_POLL_INTERVAL_MS.",
     paymentFlow: {
-      step1: "Fund agent USDC on agent.syraa.fun.",
+      step1: "Fund agent USDC at syraa.fun/wallet.",
       step2: 'Chat: e.g. "Scrape https://example.com" → stableenrich-firecrawl-scrape; "Apollo people search …" → stableenrich-apollo-people-search.',
       step3: "API: POST /agent/tools/call with toolId and params.",
       response402: "Balance checked server-side; upstream 402 if x402 settlement fails.",
@@ -1815,7 +1815,7 @@ curl "${BASE_URL}/event?ticker=BTC"`,
       "Binance correlation and spot, Giza yield automation, Bankr agent prompts, Neynar Farcaster, and SIWA verification are **not** exposed as public paid URLs on api.syraa.fun. They run only through the Syra Agent: the backend executes **POST /agent/tools/call** with your session **anonymousId**, a **toolId**, and optional **params**; the server checks the agent wallet (Solana USDC) and runs the tool (or returns an error without charging). Use **GET /agent/tools** to list every tool id, price, and logical path. For a **single HTTP bundle** that still includes Binance correlation (with Jupiter trending and smart money), use **GET /analytics/summary** (x402). For **free** spot-style prices without API keys, use **GET /binance-ticker** (preview, not x402).",
     price: "Per tool — see GET /agent/tools (displayPriceUsd / priceUsd); debited from agent USDC when the call succeeds.",
     authNote:
-      "Requires a Syra Agent session: **anonymousId** is tied to the connected wallet on agent.syraa.fun (or your integration). Trusted browser origins may receive injected API key for listing tools. Insufficient balance returns a JSON error without executing the paid call.",
+      "Requires a Syra Agent session: **anonymousId** is tied to the connected wallet on syraa.fun (or your integration). Fund USDC at syraa.fun/wallet. Trusted browser origins may receive injected API key for listing tools. Insufficient balance returns a JSON error without executing the paid call.",
     paymentFlow: {
       step1: "User connects a wallet on the Syra Agent and funds agent USDC for paid tools.",
       step2: "Call GET /agent/tools to discover toolId values and required params.",
@@ -1946,11 +1946,11 @@ curl "${BASE_URL}/event?ticker=BTC"`,
   "preview-dashboard": {
     title: "Preview & Dashboard Endpoints (no x402)",
     overview:
-      "These endpoints do not use the x402 payment protocol. They are used by the landing page, dashboard, and internal tools. API key is injected by the server for trusted origins (e.g. syraa.fun, dashboard.syraa.fun). Use the paths below; do not use deprecated /v1/regular/* paths.",
+      "These endpoints do not use the x402 payment protocol. They are used by the Syra web app dashboard and internal tools. API key is injected by the server for trusted origins (e.g. syraa.fun). Use the paths below; do not use deprecated /v1/regular/* paths.",
     baseUrl: BASE_URL,
     price: "Free (no payment required when called from trusted origins)",
     authNote:
-      "When called from a trusted origin (syraa.fun, dashboard.syraa.fun, agent.syraa.fun, playground.syraa.fun, or localhost), the API injects the key. Do not embed API keys in client bundles.",
+      "When called from a trusted origin (syraa.fun, syraa.fun/playground, syraa.fun/overview, or localhost), the API injects the key. Do not embed API keys in client bundles.",
     endpoints: [
       {
         method: "GET",
@@ -2172,6 +2172,682 @@ curl "${BASE_URL}/preview/signal?token=solana&source=okx"`,
           "For raw profile and tweets without scoring, see the X (Twitter) API page (/docs/api/x-api): /x/user, /x/feed, etc.",
       },
     ],
+  }),
+
+  "chat-completions": doc({
+    title: "Chat Completions (OpenRouter)",
+    overview:
+      "OpenAI-compatible POST /chat/completions backed by 15 curated agentic OpenRouter text models. Pay per call via x402 — no OpenRouter API key required for callers. Price is **dynamic**: computed from live token rates (prompt + max completion budget) × 1.4 margin, with a **$0.004 USD floor**. Default model: `google/gemini-2.5-flash-lite`. `stream: true` is not supported.",
+    price: "Dynamic per request (floor $0.004 USD; live OpenRouter rates × 1.4 margin)",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/chat/completions/models",
+        description:
+          "Free allowlist of curated text models with live per-token rates. No x402 payment required.",
+        requestExample: `curl ${BASE_URL}/chat/completions/models`,
+        responseExample: `{
+  "object": "list",
+  "default_model": "google/gemini-2.5-flash-lite",
+  "data": [
+    {
+      "id": "google/gemini-2.5-flash-lite",
+      "name": "Gemini 2.5 Flash Lite",
+      "contextWindow": "1M",
+      "capabilities": ["reasoning", "general", "fast", "agentic"],
+      "default": true,
+      "pricing": {
+        "promptUsdPerToken": 0.0000001,
+        "completionUsdPerToken": 0.0000004,
+        "requestFeeUsd": 0,
+        "contextLength": 1048576
+      }
+    }
+  ]
+}`,
+      },
+      {
+        method: "POST",
+        path: "/chat/completions",
+        description:
+          "OpenAI-compatible chat completion. Required: messages[]. Optional: model, max_tokens (default 1024, affects price), temperature (default 0.2), tools, tool_choice, response_format, seed.",
+        bodyExample: `{
+  "model": "google/gemini-2.5-flash-lite",
+  "messages": [
+    { "role": "system", "content": "You are a crypto research agent." },
+    { "role": "user", "content": "Summarize BTC sentiment in one paragraph." }
+  ],
+  "max_tokens": 512,
+  "temperature": 0.2
+}`,
+        requestExample: `curl -X POST ${BASE_URL}/chat/completions \\
+  -H "Content-Type: application/json" \\
+  -d '{"messages":[{"role":"user","content":"Hello"}],"max_tokens":256}'`,
+        responseExample: `{
+  "id": "gen-...",
+  "object": "chat.completion",
+  "created": 1710000000,
+  "model": "google/gemini-2.5-flash-lite",
+  "choices": [
+    {
+      "index": 0,
+      "message": { "role": "assistant", "content": "..." },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 12,
+    "completion_tokens": 48,
+    "total_tokens": 60,
+    "cost": 0.000012
+  }
+}`,
+      },
+    ],
+    paymentFlow: paymentFlowFor(0.004),
+    extraSections: [
+      {
+        title: "Curated model allowlist (15)",
+        content:
+          "anthropic/claude-sonnet-4.5, anthropic/claude-opus-4.1, anthropic/claude-haiku-4.5, openai/gpt-5, openai/gpt-5-mini, openai/gpt-5-codex, google/gemini-3-pro-preview, google/gemini-2.5-flash, google/gemini-2.5-flash-lite (default), x-ai/grok-4, moonshotai/kimi-k2.5, deepseek/deepseek-v3.2, qwen/qwen3-coder, z-ai/glm-4.6, openai/gpt-oss-120b. Live rates: GET /chat/completions/models.",
+      },
+      {
+        title: "Pricing notes",
+        content:
+          "First unpaid POST returns HTTP 402 with the computed price in accepts[]. Price scales with model, prompt length, and max_tokens budget. Invalid requests (empty messages, disallowed model, stream: true) return 400 without charge.",
+      },
+    ],
+  }),
+
+  "images-generations": doc({
+    title: "Image Generations (OpenRouter)",
+    overview:
+      "Text-to-image via OpenRouter Unified Image API with x402 pay-per-call. **Dynamic pricing** from live prompt + per-image rates × 1.4 margin, **$0.02 USD floor**. Default model: `google/gemini-2.5-flash-image`. Synchronous delivery — images returned in the POST response.",
+    price: "Dynamic per request (floor $0.02 USD; live OpenRouter rates × 1.4 margin)",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/images/generations/models",
+        description: "Free image model allowlist with live rates. No x402 payment.",
+        requestExample: `curl ${BASE_URL}/images/generations/models`,
+        responseExample: `{
+  "object": "list",
+  "default_model": "google/gemini-2.5-flash-image",
+  "data": [
+    {
+      "id": "google/gemini-2.5-flash-image",
+      "name": "Gemini 2.5 Flash Image",
+      "capabilities": ["text-to-image", "image-to-image", "fast", "agentic"],
+      "default": true,
+      "pricing": { "promptUsdPerToken": 0, "imageUsdPerImage": 0.02, "requestFeeUsd": 0 }
+    }
+  ]
+}`,
+      },
+      {
+        method: "POST",
+        path: "/images/generations",
+        description:
+          "Generate images from a text prompt. Required: prompt. Optional: model, n (1–10, default 1), resolution, aspect_ratio, quality, output_format, seed, input_references.",
+        bodyExample: `{
+  "prompt": "Minimal flat vector icon of a Solana wallet with USDC coin, dark background",
+  "model": "google/gemini-2.5-flash-image",
+  "n": 1,
+  "aspect_ratio": "1:1"
+}`,
+        requestExample: `curl -X POST ${BASE_URL}/images/generations \\
+  -H "Content-Type: application/json" \\
+  -d '{"prompt":"A futuristic crypto trading desk","n":1}'`,
+        responseExample: `{
+  "created": 1710000000,
+  "data": [{ "url": "https://..." }],
+  "usage": { "total_tokens": 0, "cost": 0.02 }
+}`,
+      },
+    ],
+    paymentFlow: paymentFlowFor(0.02),
+    extraSections: [
+      {
+        title: "Curated image models (10)",
+        content:
+          "google/gemini-2.5-flash-image (default), bytedance-seed/seedream-4.5, black-forest-labs/flux-1.1-pro, openai/gpt-image-1, openai/gpt-5-image, recraft/recraft-v4, sourceful/riverflow-v2-pro, stability-ai/sd3.5-large, x-ai/grok-2-image, ideogram/ideogram-v3.",
+      },
+    ],
+  }),
+
+  "videos-generations": doc({
+    title: "Video Generations (OpenRouter)",
+    overview:
+      "Async text-to-video via OpenRouter Video API with x402 pay-per-call. **Paid POST** submits a job; **free GET** polls status until `video_url` is available. Price is charged upfront at submit from model duration + resolution rates × 1.4 margin, **$0.10 USD floor**. Default model: `google/veo-3.1-lite`. No auto-refund if upstream job fails after payment.",
+    price: "Dynamic per submit (floor $0.10 USD; live OpenRouter rates × 1.4 margin)",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/videos/generations/models",
+        description: "Free video model allowlist with live per-second rates.",
+        requestExample: `curl ${BASE_URL}/videos/generations/models`,
+        responseExample: `{
+  "object": "list",
+  "default_model": "google/veo-3.1-lite",
+  "data": [
+    {
+      "id": "google/veo-3.1-lite",
+      "name": "Veo 3.1 Lite",
+      "capabilities": ["text-to-video", "fast", "agentic"],
+      "default": true,
+      "pricing": { "videoUsdPerSecond": 0.05, "requestFeeUsd": 0 }
+    }
+  ]
+}`,
+      },
+      {
+        method: "POST",
+        path: "/videos/generations",
+        description:
+          "Submit async video job. Required: prompt. Optional: model, duration (1–60s, default 8), resolution, aspect_ratio, generate_audio, frame_images, input_references, seed.",
+        bodyExample: `{
+  "prompt": "Aerial shot of a Solana validator node glowing at night, cinematic",
+  "model": "google/veo-3.1-lite",
+  "duration": 8,
+  "resolution": "720p",
+  "aspect_ratio": "16:9"
+}`,
+        requestExample: `curl -X POST ${BASE_URL}/videos/generations \\
+  -H "Content-Type: application/json" \\
+  -d '{"prompt":"Short clip of USDC flowing on-chain","duration":5}'`,
+        responseExample: `{
+  "success": true,
+  "generation_id": "gen-abc123",
+  "polling_url": "https://openrouter.ai/api/v1/videos/gen-abc123",
+  "status": "pending",
+  "statusUrl": "/videos/generations/gen-abc123"
+}`,
+      },
+      {
+        method: "GET",
+        path: "/videos/generations/:id",
+        description: "Free status poll — repeat until status is completed and video_url is set.",
+        params: [{ name: "id", type: "string", required: "Yes", description: "generation_id from submit response" }],
+        requestExample: `curl ${BASE_URL}/videos/generations/gen-abc123`,
+        responseExample: `{
+  "success": true,
+  "generation_id": "gen-abc123",
+  "status": "completed",
+  "video_url": "https://...",
+  "polling_url": "https://openrouter.ai/api/v1/videos/gen-abc123",
+  "usage": null,
+  "error": null
+}`,
+      },
+    ],
+    paymentFlow: paymentFlowFor(0.1),
+    extraSections: [
+      {
+        title: "Curated video models (6)",
+        content:
+          "google/veo-3.1, google/veo-3.1-lite (default), bytedance/seedance-2.0, bytedance/seedance-1.5, alibaba/wan-2.7, openai/sora-2-pro.",
+      },
+    ],
+  }),
+
+  spcx: doc({
+    title: "SPCX SpaceX IPO Intelligence",
+    overview:
+      "Tokenized equity intelligence for SpaceX IPO exposure (SPCXx). Compare Nasdaq reference price vs on-chain SPCX venues for premium/discount, liquidity, and agent bias.",
+    price: "$0.02 USD per request",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/spcx",
+        description: "SpaceX IPO token spread report.",
+        params: [{ name: "symbol", type: "string", required: "No", description: "Token symbol (default SPCXx)." }],
+        requestExample: `curl "${BASE_URL}/spcx?symbol=SPCXx"`,
+        responseExample: `{
+  "symbol": "SPCXx",
+  "nasdaqPriceUsd": 185.5,
+  "venues": [{ "name": "...", "priceUsd": 188.2, "premiumPct": 1.45 }],
+  "agentBias": "neutral",
+  "agentTake": "...",
+  "riskNotes": ["..."],
+  "opportunities": ["..."],
+  "disclaimer": "Not financial advice."
+}`,
+      },
+    ],
+    paymentFlow: paymentFlowFor(0.02),
+  }),
+
+  equity: doc({
+    title: "Tokenized Equity Intelligence",
+    overview:
+      "Parametric tokenized equity intelligence for xStocks symbols (TSLAx, NVDAx, etc.). Nasdaq vs on-chain premium/discount, venue prices, and narrative bias.",
+    price: "$0.02 USD per request",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/equity",
+        description: "Equity spread report for one xStocks symbol.",
+        params: [{ name: "symbol", type: "string", required: "Yes", description: "xStocks symbol, e.g. TSLAx, NVDAx." }],
+        requestExample: `curl "${BASE_URL}/equity?symbol=TSLAx"`,
+        responseExample: `{
+  "symbol": "TSLAx",
+  "nasdaqPriceUsd": 420.1,
+  "venues": [{ "name": "...", "priceUsd": 422.0, "premiumPct": 0.45 }],
+  "agentBias": "bullish",
+  "agentTake": "...",
+  "riskNotes": [],
+  "opportunities": [],
+  "disclaimer": "Not financial advice."
+}`,
+      },
+    ],
+    paymentFlow: paymentFlowFor(0.02),
+  }),
+
+  indicator: doc({
+    title: "Technical Indicators API",
+    overview:
+      "Compute RSI, MACD, EMA, Bollinger, and 20+ technical indicators from OHLCV candles in one agent-readable response.",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/indicator",
+        description: "Indicator bundle from exchange OHLCV.",
+        params: [
+          { name: "symbol", type: "string", required: "Yes", description: "Asset symbol, e.g. BTCUSDT, SOL." },
+          { name: "source", type: "string", required: "No", description: "binance | coinbase | coingecko (default binance)." },
+          { name: "interval", type: "string", required: "No", description: "Candle interval, e.g. 1h, 4h." },
+          { name: "limit", type: "integer", required: "No", description: "Number of candles (default 200)." },
+          { name: "indicators", type: "string", required: "No", description: "Comma-separated indicator keys." },
+          { name: "series", type: "boolean", required: "No", description: "Include time series when true." },
+        ],
+        requestExample: `curl "${BASE_URL}/indicator?symbol=BTCUSDT&indicators=rsi,macd&interval=1h"`,
+        responseExample: `{
+  "symbol": "BTCUSDT",
+  "lastClose": 95000,
+  "candleCount": 200,
+  "asOf": "2026-06-30T12:00:00.000Z",
+  "indicators": { "rsi": { "value": 58.2 }, "macd": { "value": 120, "signal": 95, "histogram": 25 } }
+}`,
+      },
+      {
+        method: "POST",
+        path: "/indicator",
+        description: "Same as GET with JSON body.",
+        bodyExample: `{ "symbol": "SOLUSDT", "indicators": "rsi,ema", "interval": "4h" }`,
+        requestExample: `curl -X POST ${BASE_URL}/indicator -H "Content-Type: application/json" -d '{"symbol":"SOLUSDT","indicators":"rsi"}'`,
+        responseExample: `{ "symbol": "SOLUSDT", "indicators": { "rsi": { "value": 45.1 } }, "lastClose": 145.2, "candleCount": 200, "asOf": "..." }`,
+      },
+    ],
+  }),
+
+  "mpp-health": doc({
+    title: "MPP Health Check",
+    overview:
+      "Machine Payments Protocol (MPP) compatible health endpoint with the same x402 v2 flow as /health. Use when testing Tempo/Stripe-style machine payment clients against Syra.",
+    price: "$0.0001 USD per request",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/mpp/health",
+        description: "MPP test-lane liveness probe.",
+        requestExample: `curl ${BASE_URL}/mpp/health`,
+        responseExample: `{
+  "ok": true,
+  "status": "healthy",
+  "protocol": "mpp-test",
+  "paymentCompatibility": "x402-v2",
+  "sibling": "/health"
+}`,
+      },
+      {
+        method: "POST",
+        path: "/mpp/health",
+        description: "Same as GET.",
+        requestExample: `curl -X POST ${BASE_URL}/mpp/health`,
+        responseExample: `{ "ok": true, "status": "healthy", "protocol": "mpp-test", "paymentCompatibility": "x402-v2" }`,
+      },
+    ],
+    paymentFlow: paymentFlowFor(0.0001),
+  }),
+
+  "jupiter-quote": doc({
+    title: "Jupiter Swap Quote",
+    overview:
+      "Jupiter Swap V1 ExactIn quote with Syra referral platform fee when configured on-chain. Price a Solana swap before building a transaction.",
+    price: "$0.003 USD per request",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/jupiter/quote",
+        description: "Fetch quoteResponse for ExactIn swap.",
+        params: [
+          { name: "inputMint", type: "string", required: "Yes", description: "Input token mint (base58)." },
+          { name: "outputMint", type: "string", required: "Yes", description: "Output token mint (base58)." },
+          { name: "amount", type: "string", required: "Yes", description: "Input amount in raw token units." },
+          { name: "slippageBps", type: "integer", required: "No", description: "Slippage in basis points." },
+        ],
+        requestExample: `curl "${BASE_URL}/jupiter/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v&amount=1000000000"`,
+        responseExample: `{ "quote": { "inAmount": "1000000000", "outAmount": "...", "routePlan": [...] }, "referral": { "feeBps": 50 } }`,
+      },
+      {
+        method: "POST",
+        path: "/jupiter/quote",
+        description: "Same as GET with JSON body.",
+        bodyExample: `{ "inputMint": "So11...", "outputMint": "EPjF...", "amount": "1000000000", "slippageBps": 50 }`,
+        requestExample: `curl -X POST ${BASE_URL}/jupiter/quote -H "Content-Type: application/json" -d '{"inputMint":"So11...","outputMint":"EPjF...","amount":"1000000000"}'`,
+        responseExample: `{ "quote": { "inAmount": "1000000000", "outAmount": "..." }, "referral": {} }`,
+      },
+    ],
+    paymentFlow: paymentFlowFor(0.003),
+  }),
+
+  "pumpfun-trending": doc({
+    title: "pump.fun Trending",
+    overview: "Trending pump.fun coins from frontend-api-v3 (falls back to top-runners when primary feed is empty).",
+    price: "$0.005 USD per request",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/pumpfun/trending",
+        description: "Trending memecoin list.",
+        params: [
+          { name: "limit", type: "integer", required: "No", description: "Max coins (default 20, max 50)." },
+          { name: "offset", type: "integer", required: "No", description: "Pagination offset." },
+          { name: "includeNsfw", type: "boolean", required: "No", description: "Include NSFW coins." },
+        ],
+        requestExample: `curl "${BASE_URL}/pumpfun/trending?limit=20"`,
+        responseExample: `{ "coins": [{ "mint": "...", "name": "...", "symbol": "...", "marketCap": 1000000 }], "count": 20 }`,
+      },
+      {
+        method: "POST",
+        path: "/pumpfun/trending",
+        description: "Same as GET.",
+        bodyExample: `{ "limit": 20, "offset": 0 }`,
+        requestExample: `curl -X POST ${BASE_URL}/pumpfun/trending -H "Content-Type: application/json" -d '{"limit":20}'`,
+        responseExample: `{ "coins": [...], "count": 20 }`,
+      },
+    ],
+    paymentFlow: paymentFlowFor(0.005),
+  }),
+
+  "pumpfun-movers": doc({
+    title: "pump.fun Movers",
+    overview: "pump.fun market movers — coins with unusual short-term price/volume action.",
+    price: "$0.005 USD per request",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/pumpfun/movers",
+        description: "Market movers list.",
+        params: [
+          { name: "limit", type: "integer", required: "No", description: "Max coins (default 20, max 50)." },
+          { name: "offset", type: "integer", required: "No", description: "Pagination offset." },
+          { name: "includeNsfw", type: "boolean", required: "No", description: "Include NSFW coins." },
+        ],
+        requestExample: `curl "${BASE_URL}/pumpfun/movers?limit=20"`,
+        responseExample: `{ "coins": [{ "mint": "...", "symbol": "...", "priceChangePct": 45.2 }], "count": 20 }`,
+      },
+      {
+        method: "POST",
+        path: "/pumpfun/movers",
+        description: "Same as GET.",
+        bodyExample: `{ "limit": 20 }`,
+        requestExample: `curl -X POST ${BASE_URL}/pumpfun/movers -H "Content-Type: application/json" -d '{"limit":20}'`,
+        responseExample: `{ "coins": [...], "count": 20 }`,
+      },
+    ],
+    paymentFlow: paymentFlowFor(0.005),
+  }),
+
+  "pumpfun-analyzer": doc({
+    title: "pump.fun Memecoin Analyzer",
+    overview:
+      "Deep memecoin due-diligence for pump.fun or graduated tokens. Returns Syra Alpha score, market stats, holder distribution, on-chain security, and KOL shills — probabilistic, not financial advice.",
+    price: "$0.02 USD per request",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/pumpfun/analyzer",
+        description: "Full memecoin analysis for a Solana mint.",
+        params: [{ name: "mint", type: "string", required: "Yes", description: "Token mint address (base58)." }],
+        requestExample: `curl "${BASE_URL}/pumpfun/analyzer?mint=<BASE58_MINT>"`,
+        responseExample: `{
+  "syraAlpha": { "score": 72, "verdict": "caution" },
+  "market": { "priceUsd": 0.0012, "marketCap": 1200000 },
+  "holders": { "count": 450, "top10Pct": 35 },
+  "onChainSecurity": { "mintAuthority": null, "freezeAuthority": null },
+  "kolShills": []
+}`,
+      },
+      {
+        method: "POST",
+        path: "/pumpfun/analyzer",
+        description: "Same as GET.",
+        bodyExample: `{ "mint": "<BASE58_MINT>" }`,
+        requestExample: `curl -X POST ${BASE_URL}/pumpfun/analyzer -H "Content-Type: application/json" -d '{"mint":"<BASE58_MINT>"}'`,
+        responseExample: `{ "syraAlpha": { "score": 72, "verdict": "caution" }, "market": {...} }`,
+      },
+    ],
+    paymentFlow: paymentFlowFor(0.02),
+  }),
+
+  "pumpfun-scout": doc({
+    title: "pump.fun Scout",
+    overview:
+      "Live pump.fun intelligence with segment selector: alpha, beta, predicted, or utility. Scored tokens with optional LLM narrative.",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/pumpfun/scout",
+        description: "Scout feed for a segment.",
+        params: [
+          { name: "segment", type: "string", required: "Yes", description: "alpha | beta | predicted | utility." },
+          { name: "period", type: "string", required: "No", description: "Time window filter." },
+          { name: "limit", type: "integer", required: "No", description: "Max results." },
+          { name: "minPumpScore", type: "number", required: "No", description: "Minimum pump score threshold." },
+          { name: "llm", type: "boolean", required: "No", description: "Include LLM narrative when true." },
+        ],
+        requestExample: `curl "${BASE_URL}/pumpfun/scout?segment=alpha&limit=10"`,
+        responseExample: `{ "tokens": [{ "mint": "...", "pumpScore": 85, "symbol": "..." }], "analysis": "...", "meta": { "segment": "alpha" } }`,
+      },
+      {
+        method: "POST",
+        path: "/pumpfun/scout",
+        description: "Same as GET.",
+        bodyExample: `{ "segment": "alpha", "limit": 10 }`,
+        requestExample: `curl -X POST ${BASE_URL}/pumpfun/scout -H "Content-Type: application/json" -d '{"segment":"alpha","limit":10}'`,
+        responseExample: `{ "tokens": [...], "analysis": "...", "meta": {} }`,
+      },
+    ],
+  }),
+
+  "coingecko-scout": doc({
+    title: "CoinGecko Scout",
+    overview: "Live CoinGecko top gainers brief with optional predictions and news digest.",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/coingecko",
+        description: "CoinGecko scout feed.",
+        params: [
+          { name: "view", type: "string", required: "No", description: "brief | gainers | predictions (default brief)." },
+          { name: "topN", type: "integer", required: "No", description: "Number of top gainers." },
+          { name: "minMarketCap", type: "number", required: "No", description: "Minimum market cap filter." },
+          { name: "includeNews", type: "boolean", required: "No", description: "Include news digest." },
+          { name: "llm", type: "boolean", required: "No", description: "Include LLM narrative." },
+        ],
+        requestExample: `curl "${BASE_URL}/coingecko?view=gainers&topN=10"`,
+        responseExample: `{ "gainers": [{ "id": "bitcoin", "symbol": "btc", "priceChange24h": 5.2 }], "digest": "...", "meta": {} }`,
+      },
+      {
+        method: "POST",
+        path: "/coingecko",
+        description: "Same as GET.",
+        bodyExample: `{ "view": "brief", "topN": 10 }`,
+        requestExample: `curl -X POST ${BASE_URL}/coingecko -H "Content-Type: application/json" -d '{"view":"gainers"}'`,
+        responseExample: `{ "gainers": [...], "meta": {} }`,
+      },
+    ],
+  }),
+
+  "assets-board": doc({
+    title: "Assets Board",
+    overview:
+      "Paginated curated assets board (crypto + tokenized stocks) from Tokens.xyz — same data as the Syra Assets page.",
+    price: "$0.005 USD per request",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/assets",
+        description: "Ranked market universe with filters.",
+        params: [
+          { name: "list", type: "string", required: "No", description: "all | majors | stocks | …" },
+          { name: "assetClass", type: "string", required: "No", description: "Filter by asset class." },
+          { name: "q", type: "string", required: "No", description: "Search query." },
+          { name: "sort", type: "string", required: "No", description: "Sort field." },
+          { name: "order", type: "string", required: "No", description: "asc | desc." },
+          { name: "limit", type: "integer", required: "No", description: "Page size." },
+          { name: "offset", type: "integer", required: "No", description: "Pagination offset." },
+        ],
+        requestExample: `curl "${BASE_URL}/assets?list=majors&limit=20"`,
+        responseExample: `{ "items": [{ "ref": "btc", "name": "Bitcoin", "priceUsd": 95000, "marketCap": 1.8e12, "volume24h": 30e9, "assetClass": "crypto" }], "total": 20 }`,
+      },
+      {
+        method: "POST",
+        path: "/assets",
+        description: "Same as GET.",
+        bodyExample: `{ "list": "majors", "limit": 20 }`,
+        requestExample: `curl -X POST ${BASE_URL}/assets -H "Content-Type: application/json" -d '{"list":"majors","limit":20}'`,
+        responseExample: `{ "items": [...], "total": 20 }`,
+      },
+    ],
+    paymentFlow: paymentFlowFor(0.005),
+  }),
+
+  "assets-detail": doc({
+    title: "Asset Detail",
+    overview: "Full asset dossier: profile, risk, markets, and 1H OHLCV for a canonical Tokens.xyz asset.",
+    price: "$0.005 USD per request",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/assets/detail",
+        description: "Single asset dossier.",
+        params: [
+          { name: "ref", type: "string", required: "No", description: "Canonical asset ref, e.g. btc." },
+          { name: "mint", type: "string", required: "No", description: "On-chain mint address." },
+          { name: "assetId", type: "string", required: "No", description: "Tokens.xyz asset id." },
+          { name: "q", type: "string", required: "No", description: "Search fallback." },
+        ],
+        requestExample: `curl "${BASE_URL}/assets/detail?ref=btc"`,
+        responseExample: `{
+  "asset": { "ref": "btc", "name": "Bitcoin", "priceUsd": 95000 },
+  "includes": { "profile": {...}, "risk": {...}, "markets": [...] },
+  "ohlcv": [{ "t": 1710000000, "o": 94000, "h": 95500, "l": 93800, "c": 95000 }],
+  "mintRisk": {}
+}`,
+      },
+      {
+        method: "POST",
+        path: "/assets/detail",
+        description: "Same as GET.",
+        bodyExample: `{ "ref": "sol" }`,
+        requestExample: `curl -X POST ${BASE_URL}/assets/detail -H "Content-Type: application/json" -d '{"ref":"sol"}'`,
+        responseExample: `{ "asset": {...}, "includes": {...}, "ohlcv": [...] }`,
+      },
+    ],
+    paymentFlow: paymentFlowFor(0.005),
+  }),
+
+  "bitcoin-hub": doc({
+    title: "Bitcoin Intelligence Hub",
+    overview:
+      "Complete Bitcoin intelligence bundle: price, derivatives, technicals, sentiment, news, signal, and taker buy/sell bubblemap in one call.",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/bitcoin",
+        description: "Full BTC dashboard + bubblemap.",
+        params: [
+          { name: "exchange", type: "string", required: "No", description: "binance | coinbase (default binance)." },
+          { name: "interval", type: "string", required: "No", description: "Bubblemap candle interval." },
+          { name: "limit", type: "integer", required: "No", description: "Bubblemap point limit." },
+        ],
+        requestExample: `curl "${BASE_URL}/bitcoin?exchange=binance"`,
+        responseExample: `{
+  "dashboard": { "overview": { "priceUsd": 95000 }, "sections": { "derivatives": {...}, "technicals": {...}, "sentiment": {...} } },
+  "bubblemap": { "points": [{ "t": 1710000000, "takerBuy": 0.55, "takerSell": 0.45 }] }
+}`,
+      },
+      {
+        method: "POST",
+        path: "/bitcoin",
+        description: "Same as GET.",
+        bodyExample: `{ "exchange": "binance", "interval": "1h" }`,
+        requestExample: `curl -X POST ${BASE_URL}/bitcoin -H "Content-Type: application/json" -d '{"exchange":"binance"}'`,
+        responseExample: `{ "dashboard": {...}, "bubblemap": { "points": [...] } }`,
+      },
+    ],
+  }),
+
+  "8004-stats": doc({
+    title: "8004 Global Stats",
+    overview: "Solana 8004 agent registry aggregate statistics. Alias — see also the full 8004 API page.",
+    price: "$0.01 USD per request",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/8004/stats",
+        description: "Global stats: total agents, feedbacks, trust tiers.",
+        requestExample: `curl ${BASE_URL}/8004/stats`,
+        responseExample: `{ "total_agents": 100, "total_feedbacks": 500 }`,
+      },
+    ],
+    paymentFlow: paymentFlowFor(0.01),
+  }),
+
+  "8004-leaderboard": doc({
+    title: "8004 Leaderboard",
+    overview: "Agent leaderboard by trust tier. Alias — see also the full 8004 API page.",
+    price: "$0.01 USD per request",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/8004/leaderboard",
+        description: "Ranked agents by trust score.",
+        params: [
+          { name: "minTier", type: "number", required: "No", description: "Min trust tier (0–4)." },
+          { name: "limit", type: "number", required: "No", description: "Max results (default 50)." },
+        ],
+        requestExample: `curl "${BASE_URL}/8004/leaderboard?minTier=2&limit=20"`,
+        responseExample: `[{ "asset": "...", "quality_score": 8500 }]`,
+      },
+    ],
+    paymentFlow: paymentFlowFor(0.01),
+  }),
+
+  "8004-agents-search": doc({
+    title: "8004 Agent Search",
+    overview: "Search agents by owner, creator, or collection. Alias — see also the full 8004 API page.",
+    price: "$0.01 USD per request",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/8004/agents/search",
+        description: "Search registry agents.",
+        params: [
+          { name: "owner", type: "string", required: "No", description: "Owner public key." },
+          { name: "creator", type: "string", required: "No", description: "Creator public key." },
+          { name: "collection", type: "string", required: "No", description: "Collection id." },
+          { name: "limit", type: "number", required: "No", description: "Max results (default 20)." },
+          { name: "offset", type: "number", required: "No", description: "Offset (default 0)." },
+        ],
+        requestExample: `curl "${BASE_URL}/8004/agents/search?limit=10"`,
+        responseExample: `[{ "asset": "...", "owner": "...", "creator": "..." }]`,
+      },
+    ],
+    paymentFlow: paymentFlowFor(0.01),
   }),
 };
 

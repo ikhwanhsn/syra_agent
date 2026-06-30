@@ -1,5 +1,7 @@
 import { useLocation, Link } from "react-router-dom";
 import { DocsLayout } from "@/components/docs/DocsLayout";
+import { DocPageHeader } from "@/components/docs/DocPageHeader";
+import { DocSection } from "@/components/docs/DocSection";
 import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -16,10 +18,10 @@ export default function Token() {
   if (markdownContent) {
     return (
       <DocsLayout>
-        <article className="prose prose-neutral dark:prose-invert max-w-none prose-headings:scroll-mt-24 prose-table:rounded-lg prose-tbody:bg-card/30 overflow-x-auto overflow-x-auto-touch">
+        <article className="docs-prose overflow-x-auto">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdownContent}</ReactMarkdown>
         </article>
-        <div className="flex gap-3 pt-6 border-t border-border mt-8">
+        <div className="flex gap-3 pt-6 border-t border-border/60 mt-8 not-prose">
           <Button variant="outline" asChild>
             <Link to="/docs/welcome">Back to Welcome</Link>
           </Button>
@@ -30,19 +32,17 @@ export default function Token() {
 
   return (
     <DocsLayout>
-      <div className="mb-8">
-        <div className="text-sm text-primary font-medium mb-2">Token & Utility</div>
-        <h1 className="text-4xl font-bold tracking-tight mb-4">Token & Utility</h1>
-        <p className="text-xl text-muted-foreground leading-relaxed">
-          Token & Utility documentation for the Syra Trading Agent Bot — tokenomics, roadmap, and utility.
-        </p>
-      </div>
+      <DocPageHeader
+        eyebrow="Token & Utility"
+        title="Token & Utility"
+        description="Token & Utility documentation for the Syra Trading Agent Bot — tokenomics, roadmap, and utility."
+      />
 
-      <div className="space-y-4 text-muted-foreground mb-8">
+      <DocSection id="overview" title="Overview" prose>
         <p>Use the sidebar to navigate to Tokenomics and Roadmap docs.</p>
-      </div>
+      </DocSection>
 
-      <div className="flex gap-3">
+      <div className="not-prose">
         <Button variant="outline" asChild>
           <Link to="/docs/welcome">Back to Welcome</Link>
         </Button>

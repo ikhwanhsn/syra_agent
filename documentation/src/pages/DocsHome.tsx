@@ -9,17 +9,51 @@ import {
   SYRA_TAGLINE,
 } from "@/content/syraBrand";
 import {
+  SYRA_AGENT_URL,
+  SYRA_PLAYGROUND_URL,
+  SYRA_WEB_LABEL,
+  SYRA_WEB_ORIGIN,
+} from "@/content/syraUrls";
+import {
   ArrowRight,
-  MessageCircle,
-  Cpu,
-  Coins,
   Bot,
-  Zap,
   BookOpen,
+  Brain,
+  Coins,
+  Cpu,
   ExternalLink,
+  MessageCircle,
   Wallet,
-  Layers,
+  Zap,
 } from "lucide-react";
+
+const QUICK_LINKS = [
+  {
+    icon: BookOpen,
+    title: "Get Started",
+    description: "What Syra is and how to begin",
+    href: "/docs/welcome",
+  },
+  {
+    icon: Zap,
+    title: "API Reference",
+    description: "x402 endpoints and payment flow",
+    href: "/docs/api-reference",
+  },
+  {
+    icon: Bot,
+    title: "Syra Agent",
+    description: "Chat, tools, and onchain workflows",
+    href: "/docs/agent/getting-started",
+  },
+];
+
+const POPULAR_ENDPOINTS = [
+  { label: "Signal", href: "/docs/api/signal", method: "GET" },
+  { label: "Syra Brain", href: "/docs/api/brain", method: "POST" },
+  { label: "Chat Completions", href: "/docs/api/chat-completions", method: "POST" },
+  { label: "x402 Standard", href: "/docs/api/x402-api-standard", method: "GET" },
+];
 
 const features = [
   {
@@ -37,205 +71,167 @@ const features = [
   {
     icon: Bot,
     title: "Syra Agent",
-    description: "Chat and workflows at agent.syraa.fun — research, tools, and onchain actions for operators and agents.",
+    description: `Chat and workflows at ${SYRA_WEB_LABEL}.`,
     href: "/docs/agent/getting-started",
   },
   {
     icon: Zap,
     title: "API & x402",
-    description: "Pay-per-call routes for news, signals, research, and partner tools. Try playground.syraa.fun.",
+    description: "Pay-per-call routes for research, signals, and AI.",
     href: "/docs/api-reference",
   },
   {
     icon: MessageCircle,
     title: "x402 Autonomous Agent",
-    description: "Automated research and workflow pipelines on x402scan.",
+    description: "Automated research pipelines on x402scan.",
     href: "/docs/x402-agent/getting-started",
   },
   {
     icon: Cpu,
     title: "Agent-native stack",
-    description:
-      "Earn, treasury, invest, spend, and grow — the full machine-money stack for autonomous agents on Solana.",
+    description: "Earn, treasury, invest, spend, and grow on Solana.",
     href: "/docs/agent/how-it-works",
   },
 ];
 
 export default function DocsHome() {
   return (
-    <DocsLayout>
-      <div className="relative -mx-4 px-4 pb-12 mb-12 border-b border-border sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 xl:-mx-10 xl:px-10 2xl:-mx-12 2xl:px-12">
-        <div className="pointer-events-none absolute inset-0 -z-10 bg-background" aria-hidden />
-        <div className="pointer-events-none absolute inset-0 -z-10 bg-hero-gradient" aria-hidden />
+    <DocsLayout hideBreadcrumbs fullWidth>
+      <div className="relative -mx-4 px-4 pb-10 mb-10 border-b border-border/60 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+        <div className="pointer-events-none absolute inset-0 -z-10 bg-hero-gradient opacity-60" aria-hidden />
 
-        <div className="relative w-full max-w-none">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-glow" />
-              {SYRA_DOCS_BADGE}
-            </span>
-          </div>
+        <div className="max-w-3xl">
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 mb-4">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-glow" />
+            {SYRA_DOCS_BADGE}
+          </span>
 
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4 animate-fade-in">
+          <h1 className="docs-display text-4xl md:text-5xl font-semibold tracking-tight mb-3">
             <span className="gradient-text-primary">{SYRA_TAGLINE}</span>
-            <span className="block text-foreground/90 text-3xl md:text-4xl mt-2 font-semibold">
-              on Solana
-            </span>
+            <span className="block text-foreground/90 text-2xl md:text-3xl mt-2 font-medium">on Solana</span>
           </h1>
 
-          <p className="text-lg md:text-xl text-muted-foreground mb-4 sm:mb-5 leading-relaxed animate-fade-in animation-delay-100 max-w-3xl">
-            {SYRA_MISSION}
-          </p>
-
-          <p className="text-base text-muted-foreground/90 mb-6 sm:mb-8 leading-relaxed animate-fade-in animation-delay-100 max-w-3xl border-l-2 border-primary/30 pl-4">
+          <p className="text-lg text-muted-foreground mb-4 leading-relaxed max-w-2xl">{SYRA_MISSION}</p>
+          <p className="text-base text-muted-foreground/90 mb-8 leading-relaxed max-w-2xl border-l-2 border-primary/30 pl-4">
             {SYRA_HIGHLIGHT}
           </p>
 
-          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 animate-fade-in animation-delay-200">
-            <Button variant="primary" size="lg" className="w-full sm:min-w-[12rem] sm:w-auto justify-center" asChild>
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3">
+            <Button variant="primary" size="lg" asChild>
               <Link to="/docs/welcome">
                 Get Started
-                <ArrowRight className="ml-2 h-4 w-4 shrink-0" />
+                <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
-            <Button variant="outline" size="lg" className="w-full sm:min-w-[12rem] sm:w-auto justify-center" asChild>
-              <a href="https://agent.syraa.fun" target="_blank" rel="noopener noreferrer">
-                <Bot className="mr-2 h-4 w-4 shrink-0" />
+            <Button variant="outline" size="lg" asChild>
+              <a href={SYRA_AGENT_URL} target="_blank" rel="noopener noreferrer">
+                <Bot className="mr-2 h-4 w-4" />
                 Try Agent
               </a>
             </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="w-full sm:min-w-[12rem] sm:w-auto justify-center border-border/60 bg-transparent hover:bg-muted/50 text-foreground"
-              asChild
-            >
-              <a href="https://playground.syraa.fun" target="_blank" rel="noopener noreferrer">
+            <Button variant="outline" size="lg" asChild>
+              <a href={SYRA_PLAYGROUND_URL} target="_blank" rel="noopener noreferrer">
                 API Playground
-                <ExternalLink className="ml-2 h-4 w-4 shrink-0" />
-              </a>
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="w-full sm:min-w-[12rem] sm:w-auto justify-center border-border/60 bg-transparent hover:bg-muted/50 text-foreground"
-              asChild
-            >
-              <a href="https://syraa.fun" target="_blank" rel="noopener noreferrer">
-                Visit Website
-                <ExternalLink className="ml-2 h-4 w-4 shrink-0" />
+                <ExternalLink className="ml-2 h-4 w-4" />
               </a>
             </Button>
           </div>
         </div>
       </div>
 
-      <section className="mb-16">
-        <div className="flex items-center gap-2 mb-4">
-          <Layers className="h-5 w-5 text-primary" />
-          <h2 className="text-2xl font-semibold">What Syra enables</h2>
-        </div>
-        <p className="text-muted-foreground mb-6 max-w-3xl">
-          Machine money infrastructure for autonomous agents — earn, manage treasuries, participate in DeFi, and
-          coordinate value on Solana. Use the <strong className="text-foreground">Syra Agent</strong>, x402 APIs, and
-          ecosystem integrations.
-        </p>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {features.map((feature) => (
+      <section className="mb-12 not-prose">
+        <h2 className="docs-display text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">
+          Start here
+        </h2>
+        <div className="grid sm:grid-cols-3 gap-3">
+          {QUICK_LINKS.map((link) => (
             <Link
-              key={feature.title}
-              to={feature.href}
-              className="group p-5 rounded-xl border border-border bg-card hover:border-primary/50 hover:bg-muted/30 transition-all duration-300 hover-lift"
+              key={link.title}
+              to={link.href}
+              className="group rounded-lg border border-border/60 p-4 hover:border-primary/40 hover:bg-muted/30 transition-colors"
             >
-              <feature.icon className="h-8 w-8 text-primary mb-3 transition-transform group-hover:scale-110" />
-              <h3 className="font-semibold mb-1.5 group-hover:text-primary transition-colors">
-                {feature.title}
-              </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
+              <link.icon className="h-5 w-5 text-primary mb-2" />
+              <p className="font-medium group-hover:text-primary transition-colors">{link.title}</p>
+              <p className="text-xs text-muted-foreground mt-1">{link.description}</p>
             </Link>
           ))}
         </div>
       </section>
 
-      <section className="mb-16">
-        <h2 className="text-2xl font-semibold mb-6">Explore the Docs</h2>
-        <div className="grid sm:grid-cols-2 gap-4">
-          <Link
-            to="/docs/welcome"
-            className="flex items-center gap-4 p-4 rounded-lg border border-border hover:border-primary/50 transition-colors group"
-          >
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-              <BookOpen className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="font-medium group-hover:text-primary transition-colors">Welcome</div>
-              <div className="text-sm text-muted-foreground">What Syra is, machine economy, quick start</div>
-            </div>
-            <ArrowRight className="ml-auto h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
-          </Link>
-
-          <Link
-            to="/docs/agent/getting-started"
-            className="flex items-center gap-4 p-4 rounded-lg border border-border hover:border-primary/50 transition-colors group"
-          >
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-              <Bot className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="font-medium group-hover:text-primary transition-colors">Syra Agent</div>
-              <div className="text-sm text-muted-foreground">Chat at agent.syraa.fun — tools, treasury, onchain</div>
-            </div>
-            <ArrowRight className="ml-auto h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
-          </Link>
-
-          <Link
-            to="/docs/api-reference"
-            className="flex items-center gap-4 p-4 rounded-lg border border-border hover:border-primary/50 transition-colors group"
-          >
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-              <Zap className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="font-medium group-hover:text-primary transition-colors">API Reference</div>
-              <div className="text-sm text-muted-foreground">x402 API, endpoints, standards · playground.syraa.fun</div>
-            </div>
-            <ArrowRight className="ml-auto h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
-          </Link>
-
-          <Link
-            to="/docs/x402-agent/getting-started"
-            className="flex items-center gap-4 p-4 rounded-lg border border-border hover:border-primary/50 transition-colors group"
-          >
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-              <MessageCircle className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="font-medium group-hover:text-primary transition-colors">x402 Agent</div>
-              <div className="text-sm text-muted-foreground">Autonomous agent on x402scan</div>
-            </div>
-            <ArrowRight className="ml-auto h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
-          </Link>
+      <section className="mb-12 not-prose">
+        <div className="flex items-center gap-2 mb-4">
+          <Brain className="h-4 w-4 text-primary" />
+          <h2 className="docs-display text-lg font-semibold">Popular endpoints</h2>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {POPULAR_ENDPOINTS.map((ep) => (
+            <Link
+              key={ep.href}
+              to={ep.href}
+              className="inline-flex items-center gap-2 rounded-md border border-border/60 px-3 py-1.5 text-sm hover:border-primary/40 hover:bg-muted/30 transition-colors"
+            >
+              <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-success/15 text-success">
+                {ep.method}
+              </span>
+              {ep.label}
+            </Link>
+          ))}
         </div>
       </section>
 
-      <footer className="pt-8 pb-8 sm:pb-0 border-t border-border text-sm text-muted-foreground safe-bottom">
-        <div className="flex flex-col sm:flex-row flex-wrap justify-between items-start sm:items-center gap-4">
-          <div className="min-w-0 max-w-3xl text-balance">
-            Syra — {SYRA_TAGLINE.toLowerCase()} on Solana. Documentation for operators, builders, and autonomous agents.
-          </div>
-          <div className="flex flex-wrap gap-4">
-            <a href="https://agent.syraa.fun" className="hover:text-primary transition-colors">
-              Agent
-            </a>
-            <a href="https://playground.syraa.fun" className="hover:text-primary transition-colors">
-              API Playground
-            </a>
-            <a href="https://syraa.fun" className="hover:text-primary transition-colors">
-              Website
-            </a>
-          </div>
+      <section className="mb-12">
+        <h2 className="docs-display text-2xl font-semibold mb-2">What Syra enables</h2>
+        <p className="text-muted-foreground mb-6 leading-7 max-w-2xl">
+          Machine money infrastructure for autonomous agents — earn, manage treasuries, participate in DeFi, and
+          coordinate value on Solana.
+        </p>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 not-prose">
+          {features.map((feature) => (
+            <Link
+              key={feature.title}
+              to={feature.href}
+              className="group rounded-lg border border-border/60 p-4 hover:border-primary/40 hover:bg-muted/30 transition-all hover-lift"
+            >
+              <feature.icon className="h-6 w-6 text-primary mb-2" />
+              <h3 className="font-medium mb-1 group-hover:text-primary transition-colors">{feature.title}</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">{feature.description}</p>
+              <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary mt-3 transition-colors" />
+            </Link>
+          ))}
         </div>
-      </footer>
+      </section>
+
+      <section className="not-prose">
+        <h2 className="docs-display text-2xl font-semibold mb-4">Explore the docs</h2>
+        <div className="grid sm:grid-cols-2 gap-3">
+          {[
+            { icon: BookOpen, title: "Welcome", desc: "Machine economy overview", href: "/docs/welcome" },
+            { icon: Bot, title: "Syra Agent", desc: "Tools, treasury, onchain", href: "/docs/agent/getting-started" },
+            { icon: Zap, title: "API Reference", desc: "x402 endpoints & playground", href: "/docs/api-reference" },
+            {
+              icon: MessageCircle,
+              title: "x402 Agent",
+              desc: "Autonomous agent on x402scan",
+              href: "/docs/x402-agent/getting-started",
+            },
+          ].map((item) => (
+            <Link
+              key={item.title}
+              to={item.href}
+              className="flex items-center gap-3 rounded-lg border border-border/60 p-3 hover:border-primary/40 transition-colors group"
+            >
+              <div className="w-9 h-9 rounded-md bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <item.icon className="h-4 w-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium group-hover:text-primary transition-colors">{item.title}</p>
+                <p className="text-xs text-muted-foreground truncate">{item.desc}</p>
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary shrink-0" />
+            </Link>
+          ))}
+        </div>
+      </section>
     </DocsLayout>
   );
 }

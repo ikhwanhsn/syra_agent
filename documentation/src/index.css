@@ -73,6 +73,13 @@
     --sidebar-border: 0 0% 90%;
     --sidebar-ring: 0 0% 28%;
 
+    /* Docs layout */
+    --docs-content-width: 720px;
+    --docs-content-width-wide: 820px;
+    --docs-sidebar-width: 260px;
+    --docs-toc-width: 220px;
+    --docs-header-height: 3.5rem;
+
     /* Docs: code + glow (neutral, matches landing) */
     --code-bg: 0 0% 96%;
     --code-border: 0 0% 88%;
@@ -152,6 +159,12 @@
     --sidebar-border: 0 0% 12%;
     --sidebar-ring: 0 0% 45%;
 
+    --docs-content-width: 720px;
+    --docs-content-width-wide: 820px;
+    --docs-sidebar-width: 260px;
+    --docs-toc-width: 220px;
+    --docs-header-height: 3.5rem;
+
     --code-bg: 0 0% 6%;
     --code-border: 0 0% 16%;
     --glow-primary: 0 0% 100%;
@@ -185,7 +198,8 @@
   }
 
   body {
-    @apply antialiased bg-background text-foreground font-sans;
+    @apply antialiased bg-background text-foreground;
+    font-family: Inter, system-ui, sans-serif;
     background: var(--gradient-dark);
     overflow-x: clip;
     -webkit-tap-highlight-color: transparent;
@@ -327,6 +341,87 @@
       transparent 1px
     );
     background-size: 24px 24px;
+  }
+
+  .docs-content {
+    max-width: var(--docs-content-width);
+    width: 100%;
+  }
+
+  .docs-content-wide {
+    max-width: var(--docs-content-width-wide);
+    width: 100%;
+  }
+
+  .docs-prose {
+    @apply prose prose-neutral dark:prose-invert max-w-none;
+    font-size: 0.9375rem;
+    line-height: 1.75;
+  }
+
+  .docs-prose :where(h1, h2, h3, h4) {
+    font-family: "Space Grotesk", Inter, system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  .docs-prose :where(h2) {
+    margin-top: 2.5rem;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+
+  .docs-prose :where(h3) {
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+  }
+
+  .docs-prose :where(a) {
+    text-underline-offset: 3px;
+  }
+
+  .docs-prose :where(p) {
+    margin-top: 0;
+    margin-bottom: 1rem;
+  }
+
+  .docs-prose :where(li) {
+    margin-top: 0.375rem;
+    margin-bottom: 0.375rem;
+  }
+
+  .docs-prose :where(table) {
+    @apply rounded-lg border border-border overflow-hidden;
+  }
+
+  .docs-prose :where(tbody tr:hover) {
+    background-color: hsl(var(--muted) / 0.4);
+  }
+
+  .docs-display {
+    font-family: "Space Grotesk", Inter, system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  .reading-progress {
+    @apply fixed top-0 left-0 right-0 z-[60] h-0.5 bg-transparent;
+  }
+
+  .reading-progress-bar {
+    @apply h-full bg-primary/70 transition-[width] duration-150 ease-out;
+  }
+
+  .shiki-code :where(pre) {
+    margin: 0;
+    padding: 0;
+    background: transparent !important;
+  }
+
+  .shiki-code :where(code) {
+    display: block;
+    background: transparent !important;
   }
 }
 

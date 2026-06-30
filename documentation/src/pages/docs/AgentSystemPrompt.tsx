@@ -1,11 +1,13 @@
 import { Link } from "react-router-dom";
 import { DocsLayout } from "@/components/docs/DocsLayout";
+import { DocPageHeader } from "@/components/docs/DocPageHeader";
+import { DocSection } from "@/components/docs/DocSection";
 import { CodeBlock } from "@/components/docs/CodeBlock";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { SYRA_TAGLINE } from "@/content/syraBrand";
 
-const AGENT_URL = "https://agent.syraa.fun";
+import { SYRA_AGENT_URL } from "@/content/syraUrls";
 
 /**
  * Default system prompt from ai-agent/src/lib/systemPrompt.ts.
@@ -58,54 +60,76 @@ const tocItems = [
 export default function AgentSystemPrompt() {
   return (
     <DocsLayout toc={tocItems}>
-      <div className="mb-8">
-        <div className="text-sm text-primary font-medium mb-2">Syra Agent</div>
-        <h1 className="text-4xl font-bold tracking-tight mb-4">System Prompt</h1>
-        <p className="text-xl text-muted-foreground leading-relaxed">
-          The default system prompt for the Syra Agent at agent.syraa.fun — documented here for transparency. Syra&apos;s
-          brand is machine money for AI agents; the prompt below reflects current chat behavior on the web agent.
-        </p>
-      </div>
+      <DocPageHeader
+        eyebrow="Syra Agent"
+        title="System Prompt"
+        description="The default system prompt for the Syra Agent at syraa.fun — documented here for transparency. Syra's brand is machine money for AI agents; the prompt below reflects current chat behavior on the web agent."
+      />
 
-      <section id="what-is-it" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">What is the System Prompt?</h2>
-        <p className="text-muted-foreground mb-4">
-          The <strong className="text-foreground">system prompt</strong> is the instruction set sent to the AI model at the start of each conversation. Syra&apos;s product positioning is <strong className="text-foreground">machine money for AI agents on Solana</strong>; the live prompt below still reflects the web agent&apos;s chat behavior (crypto/web3 scope, Solana focus, trading and research tooling, x402 tool usage, and response format). It defines scope, tool rules, tone, and $SYRA identity for transparency.
+      <DocSection id="what-is-it" title="What is the System Prompt?" prose>
+        <p>
+          The <strong>system prompt</strong> is the instruction set sent to the AI model at the start of each
+          conversation. Syra&apos;s product positioning is <strong>machine money for AI agents on Solana</strong>; the
+          live prompt below still reflects the web agent&apos;s chat behavior (crypto/web3 scope, Solana focus, trading
+          and research tooling, x402 tool usage, and response format). It defines scope, tool rules, tone, and $SYRA
+          identity for transparency.
         </p>
-        <p className="text-muted-foreground">
-          On the live agent at <a href={AGENT_URL} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">agent.syraa.fun</a>, the backend injects the full list of available tools into the system message for each chat; the prompt below describes how the agent should use that list. The default prompt is currently fixed in the application and is not user-editable in the UI; this page documents it for transparency and reference.
+        <p>
+          On the live agent at{" "}
+          <a href={SYRA_AGENT_URL} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+            syraa.fun
+          </a>
+          , the backend injects the full list of available tools into the system message for each chat; the prompt below
+          describes how the agent should use that list. The default prompt is currently fixed in the application and is not
+          user-editable in the UI; this page documents it for transparency and reference.
         </p>
-      </section>
+      </DocSection>
 
-      <section id="default-prompt" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">Default System Prompt</h2>
-        <p className="text-muted-foreground mb-4">
-          The following is the default system prompt used by the Syra AI Agent. It is sourced from the agent codebase and may be updated over time; this doc is kept in sync for reference.
+      <DocSection id="default-prompt" title="Default System Prompt">
+        <p className="text-muted-foreground leading-7 mb-4">
+          The following is the default system prompt used by the Syra AI Agent. It is sourced from the agent codebase
+          and may be updated over time; this doc is kept in sync for reference.
         </p>
-        <CodeBlock plain code={DEFAULT_SYSTEM_PROMPT} language="text" showLineNumbers={false} />
-      </section>
+        <div className="not-prose">
+          <CodeBlock plain code={DEFAULT_SYSTEM_PROMPT} language="text" showLineNumbers={false} />
+        </div>
+      </DocSection>
 
-      <section id="notes" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">Notes</h2>
-        <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-          <li>The prompt instructs the agent to focus on <strong className="text-foreground">crypto, web3, and blockchain</strong> and to steer off-topic requests back politely.</li>
-          <li><strong className="text-foreground">Tool usage</strong> is driven by the v2 API tool list injected by the API per chat; parameter hints (e.g. ticker for news, lowercase token name for signal) are specified in the prompt.</li>
-          <li><strong className="text-foreground">Response format</strong> is markdown-only: headings, bullets, lists, tables. No raw JSON or tool-call blocks in user-facing replies.</li>
-          <li>For the list of tools the agent can call (and their names, descriptions, prices, example prompts), see the <Link to="/docs/agent/agent-catalog" className="text-primary hover:underline">Agent Catalog</Link>.</li>
+      <DocSection id="notes" title="Notes" prose>
+        <ul>
+          <li>
+            The prompt instructs the agent to focus on <strong>crypto, web3, and blockchain</strong> and to steer
+            off-topic requests back politely.
+          </li>
+          <li>
+            <strong>Tool usage</strong> is driven by the v2 API tool list injected by the API per chat; parameter hints
+            (e.g. ticker for news, lowercase token name for signal) are specified in the prompt.
+          </li>
+          <li>
+            <strong>Response format</strong> is markdown-only: headings, bullets, lists, tables. No raw JSON or
+            tool-call blocks in user-facing replies.
+          </li>
+          <li>
+            For the list of tools the agent can call (and their names, descriptions, prices, example prompts), see the{" "}
+            <Link to="/docs/agent/agent-catalog" className="text-primary hover:underline">
+              Agent Catalog
+            </Link>
+            .
+          </li>
         </ul>
-      </section>
+      </DocSection>
 
-      <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3">
-        <Button variant="primary" size="lg" className="w-full sm:min-w-[12rem] sm:w-auto justify-center" asChild>
-          <a href={AGENT_URL} target="_blank" rel="noopener noreferrer">
+      <div className="flex flex-col sm:flex-row flex-wrap gap-3 not-prose">
+        <Button variant="primary" size="lg" asChild>
+          <a href={SYRA_AGENT_URL} target="_blank" rel="noopener noreferrer">
             Open Syra Agent
-            <ArrowRight className="ml-2 h-4 w-4 shrink-0" />
+            <ArrowRight className="ml-2 h-4 w-4" />
           </a>
         </Button>
-        <Button variant="outline" size="lg" className="w-full sm:min-w-[12rem] sm:w-auto justify-center" asChild>
-          <Link to="/docs/agent/agent-catalog">Agent Catalog →</Link>
+        <Button variant="outline" size="lg" asChild>
+          <Link to="/docs/agent/agent-catalog">Agent Catalog</Link>
         </Button>
-        <Button variant="ghost" size="lg" className="w-full sm:min-w-[12rem] sm:w-auto justify-center" asChild>
+        <Button variant="ghost" size="lg" asChild>
           <Link to="/docs/agent/getting-started">← Getting Started</Link>
         </Button>
       </div>

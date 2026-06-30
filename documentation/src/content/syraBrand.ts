@@ -1,5 +1,15 @@
 /** Canonical Syra product branding — keep in sync with api/config/syraBranding.js */
 
+import {
+  SYRA_AGENT_URL,
+  SYRA_API_URL,
+  SYRA_DOCS_URL,
+  SYRA_PLAYGROUND_URL,
+  SYRA_TELEGRAM_BOT_URL,
+  SYRA_WEB_LABEL,
+  SYRA_WEB_ORIGIN,
+} from "./syraUrls";
+
 export const SYRA_TAGLINE = "Machine Money for Agents";
 
 export const SYRA_DOCS_BLURB =
@@ -39,8 +49,40 @@ export const SYRA_AGENT_CAPABILITIES = [
 ];
 
 export const SYRA_PLATFORMS = [
-  { name: "Agent app", description: "agent.syraa.fun — chat, wallet, five-pillar navigation" },
-  { name: "Playground", description: "playground.syraa.fun — Spend module / x402 API catalog" },
-  { name: "API", description: "api.syraa.fun — GET /pillars discovery + facades" },
-  { name: "SDK & MCP", description: "@syra/sdk pillar modules + syra_pillars MCP tool" },
+  {
+    name: "Web app",
+    description: `${SYRA_WEB_LABEL} — agent chat, wallet, dashboard, and five-pillar navigation`,
+    href: SYRA_AGENT_URL,
+    linkLabel: SYRA_WEB_LABEL,
+  },
+  {
+    name: "API Playground",
+    description: `${SYRA_WEB_LABEL}/playground — Spend module / x402 API catalog and SDK quickstart`,
+    href: SYRA_PLAYGROUND_URL,
+    linkLabel: "Open playground",
+  },
+  {
+    name: "API gateway",
+    description: `${SYRA_API_URL.replace("https://", "")} — GET /pillars discovery, x402 routes, OpenAPI`,
+    href: SYRA_API_URL,
+    linkLabel: "api.syraa.fun",
+  },
+  {
+    name: "Telegram",
+    description: "Agent access on the go via @syra_trading_bot",
+    href: SYRA_TELEGRAM_BOT_URL,
+    linkLabel: "@syra_trading_bot",
+  },
+  {
+    name: "Documentation",
+    description: "Guides for agents, APIs, and developer workflows",
+    href: SYRA_DOCS_URL,
+    linkLabel: "docs.syraa.fun",
+  },
+  {
+    name: "SDK & MCP",
+    description: "@syra/sdk pillar modules + syra_pillars MCP tool",
+    href: SYRA_WEB_ORIGIN,
+    linkLabel: SYRA_WEB_LABEL,
+  },
 ];

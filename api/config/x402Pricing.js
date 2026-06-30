@@ -24,6 +24,36 @@ export const PASSTHROUGH_MARGIN = 1.2;
 /** Minimum floor for pay.sh dynamic provider calls (cost + 20% baseline). */
 export const X402_PAYSH_FLOOR_USD = 0.012;
 
+/** Margin over OpenRouter upstream token cost for POST /chat/completions (1.4 = cost + 40%). */
+export const X402_CHAT_PRICE_MARGIN = 1.4;
+
+/** Minimum charge per /chat/completions call (USD). */
+export const X402_CHAT_PRICE_FLOOR_USD = 0.004;
+
+/** Default max_tokens budget used when client omits max_tokens (pricing + upstream call). */
+export const X402_CHAT_DEFAULT_MAX_TOKENS = 1024;
+
+/** Margin over OpenRouter upstream cost for POST /images/generations (1.4 = cost + 40%). */
+export const X402_IMAGE_PRICE_MARGIN = 1.4;
+
+/** Minimum charge per /images/generations call (USD). */
+export const X402_IMAGE_PRICE_FLOOR_USD = 0.02;
+
+/** Default number of images when client omits n (pricing + upstream call). */
+export const X402_IMAGE_DEFAULT_N = 1;
+
+/** Margin over OpenRouter upstream cost for POST /videos/generations (1.4 = cost + 40%). */
+export const X402_VIDEO_PRICE_MARGIN = 1.4;
+
+/** Minimum charge per /videos/generations submit (USD). */
+export const X402_VIDEO_PRICE_FLOOR_USD = 0.1;
+
+/** Default video duration in seconds when client omits duration. */
+export const X402_VIDEO_DEFAULT_DURATION_SEC = 4;
+
+/** Conservative per-second fallback when video model rates are unavailable. */
+export const X402_VIDEO_FALLBACK_USD_PER_SEC = 0.5;
+
 /** Solana address: when this wallet is the payer in production, use local (cheap) price. */
 export const X402_PLAYGROUND_DEV_WALLET = 'FiejqEgqQ8bxtUJpZMy5p1wVCcejKyy5PgZ4cwmLBvYD';
 

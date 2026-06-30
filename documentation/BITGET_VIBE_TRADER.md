@@ -2,7 +2,7 @@
 
 > **Grand-prize build:** See [SYRA_ALPHA_ARENA.md](./SYRA_ALPHA_ARENA.md) — multi-agent leaderboard, Playbook backtest, Alpha Overlay, publish/subscribe.
 
-**Demo:** `https://agent.syraa.fun/vibe-trading` · **Arena:** `https://agent.syraa.fun/arena`  
+**Demo:** `https://syraa.fun/vibe-trading` · **Arena:** `https://syraa.fun/arena`  
 **API:** `https://api.syraa.fun/experiment/bitget-vibe` (deploy latest `api/` first; until then use local API below)
 
 ## Project description (<200 words)
@@ -13,7 +13,7 @@ Syra Bitget Vibe Trader lets traders describe a spot-long strategy in plain Engl
 
 | Requirement | Deliverable |
 |-------------|-------------|
-| Demo link | `/vibe-trading` on agent.syraa.fun |
+| Demo link | `/vibe-trading` on syraa.fun |
 | Project description | This file (paragraph above) |
 | Sim / backtest metrics | Session UI: win rate, return %, trade ledger, CSV export |
 | Strategy loop | Perceive → Decide → Risk → Execute → Exit (visualized on page) |

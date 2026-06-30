@@ -1,6 +1,6 @@
 # Syra Alpha Arena — Bitget Hackathon S1
 
-**Demo:** [agent.syraa.fun/arena](https://agent.syraa.fun/arena)  
+**Demo:** [syraa.fun/arena](https://syraa.fun/arena)  
 **API:** `https://api.syraa.fun/experiment/arena`  
 **Track submission:** Track 1 (Trading Agent) + cross-track grand prize narrative
 
@@ -27,7 +27,7 @@ flowchart LR
 
 | Requirement | Deliverable |
 |-------------|-------------|
-| Demo link | `/arena` on agent.syraa.fun |
+| Demo link | `/arena` on syraa.fun |
 | Project description | This file |
 | Sim / backtest | Playbook metrics + paper ledger on agent profile |
 | Strategy loop | Overlay + Playbook + paper loop visualization |
@@ -77,7 +77,7 @@ SOLANA_PRIVATE_KEY=...        # Optional: 8004 server signer
 
 ## Community post
 
-Repost [Bitget interaction post](https://x.com/Bitget_AI/status/2061719206106919039?s=20), tag **#BitgetHackathon**, @Bitget AI, link demo: `https://agent.syraa.fun/arena`
+Repost [Bitget interaction post](https://x.com/Bitget_AI/status/2061719206106919039?s=20), tag **#BitgetHackathon**, @Bitget AI, link demo: `https://syraa.fun/arena`
 
 ## Registration
 

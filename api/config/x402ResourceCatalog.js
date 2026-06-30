@@ -242,6 +242,36 @@ export const X402_RESOURCE_CATALOG = {
       'Complete Bitcoin intelligence bundle from the Syra BTC page. Use when an agent needs macro BTC context: price, derivatives, technicals, sentiment, news, signal, and taker buy/sell bubblemap in one call. Inputs: exchange (binance|coinbase), interval, limit for bubblemap. Returns dashboard (overview + sections) and bubblemap points[].',
     suggestedPriceStx: 0.01,
   },
+  'chat/completions': {
+    slug: 'chat-completions',
+    name: 'Chat Completions (OpenRouter)',
+    category: 'ai',
+    methods: ['POST'],
+    summary: 'OpenAI-compatible agent chat via top OpenRouter models',
+    description:
+      'OpenAI-compatible POST /chat/completions backed by 15 curated agentic OpenRouter text models. Use when an agent needs LLM reasoning, tool calling (tools/tool_choice), or structured output (response_format) with x402 pay-per-call. Inputs: messages (required), optional model, max_tokens, temperature, tools, response_format, seed. Price is dynamic per request from live token rates (prompt + max completion budget) with margin — GET /chat/completions/models for allowlist and rates. Returns standard OpenAI chat.completion JSON with usage.',
+    suggestedPriceStx: 0.004,
+  },
+  'images/generations': {
+    slug: 'images-generations',
+    name: 'Image Generations (OpenRouter)',
+    category: 'ai',
+    methods: ['POST'],
+    summary: 'Text-to-image via OpenRouter Unified Image API',
+    description:
+      'Paid POST /images/generations using OpenRouter Unified Image API (POST /api/v1/images). Use when an agent needs to generate marketing assets, thumbnails, or reference images from a text prompt with x402 pay-per-call. Inputs: prompt (required), optional model, n (1–10), resolution, aspect_ratio, quality, output_format, seed, input_references. Price is dynamic from live prompt + per-image rates with margin — GET /images/generations/models for allowlist and rates. Returns generated images array and usage with cost.',
+    suggestedPriceStx: 0.02,
+  },
+  'videos/generations': {
+    slug: 'videos-generations',
+    name: 'Video Generations (OpenRouter)',
+    category: 'ai',
+    methods: ['POST'],
+    summary: 'Async text-to-video submit via OpenRouter Video API',
+    description:
+      'Paid POST /videos/generations submits an async OpenRouter video job (POST /api/v1/videos). Use when an agent needs short-form video clips from a text prompt with x402 pay-per-call. Inputs: prompt (required), optional model, duration (1–60s), resolution, aspect_ratio, generate_audio, frame_images, input_references. Price is charged upfront at submit from model duration + resolution rates with margin — GET /videos/generations/models for allowlist. Returns generation_id, polling_url, and statusUrl; poll free GET /videos/generations/:id until completed for video_url. No auto-refund if upstream job fails after payment.',
+    suggestedPriceStx: 0.1,
+  },
   '8004/stats': {
     slug: '8004-stats',
     name: '8004 Global Stats',

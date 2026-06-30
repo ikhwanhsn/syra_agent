@@ -1,4 +1,10 @@
-import { OPENROUTER_DEFAULT_MODEL, OPENROUTER_MODELS } from '../config/openrouterModels.js';
+import {
+  OPENROUTER_DEFAULT_MODEL,
+  OPENROUTER_MODELS,
+  isAllowedOpenRouterModel,
+} from '../config/openrouterModels.js';
+import { X402_CHAT_DEFAULT_MAX_TOKENS } from '../config/x402Pricing.js';
+import { buildOpenRouterX402Headers } from './openrouterX402.js';
 
 /**
  * OpenRouter — OpenAI-compatible chat completions.
@@ -32,8 +38,32 @@ function resolveOpenRouterModelId(modelId) {
   if (!modelId || typeof modelId !== 'string') return OPENROUTER_DEFAULT_MODEL;
   const id = modelId.trim();
   if (LEGACY_MODEL_MAP[id]) return LEGACY_MODEL_MAP[id];
-  if (OPENROUTER_MODELS.some((m) => m.id === id)) return id;
+  if (isAllowedOpenRouterModel(id)) return id;
   return OPENROUTER_DEFAULT_MODEL;
+}
+
+/**
+ * Build OpenRouter request headers.
+ * @returns {Record<string, string>}
+ */
+function buildOpenRouterHeaders() {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    throw new Error('OPENROUTER_API_KEY is not set');
+  }
+  const headers = {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${apiKey}`,
+  };
+  const referer = process.env.OPENROUTER_HTTP_REFERER;
+  if (referer && typeof referer === 'string' && referer.trim()) {
+    headers['HTTP-Referer'] = referer.trim();
+  }
+  const title = process.env.OPENROUTER_APP_TITLE || 'Syra';
+  if (title) {
+    headers['X-Title'] = title.slice(0, 128);
+  }
+  return headers;
 }
 
 /**
@@ -78,26 +108,9 @@ function extractAssistantTextFromChoice(choice) {
  * @returns {Promise<{ response: string; raw: object; truncated: boolean; finishReason: string | null; usage: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | null }>}
  */
 export async function callOpenRouter(messages, options = {}) {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) {
-    throw new Error('OPENROUTER_API_KEY is not set');
-  }
-
   const requestedId = options.model && typeof options.model === 'string' ? options.model.trim() : null;
   const model = resolveOpenRouterModelId(requestedId || OPENROUTER_DEFAULT_MODEL);
-
-  const headers = {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${apiKey}`,
-  };
-  const referer = process.env.OPENROUTER_HTTP_REFERER;
-  if (referer && typeof referer === 'string' && referer.trim()) {
-    headers['HTTP-Referer'] = referer.trim();
-  }
-  const title = process.env.OPENROUTER_APP_TITLE || 'Syra';
-  if (title) {
-    headers['X-Title'] = title.slice(0, 128);
-  }
+  const headers = buildOpenRouterHeaders();
 
   const response = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
     method: 'POST',
@@ -164,6 +177,79 @@ export async function callOpenRouter(messages, options = {}) {
     finishReason: finishReason ?? null,
     usage,
   };
+}
+
+/**
+ * Agent-tuned OpenAI-compatible chat completion (full upstream response).
+ * @param {object} params
+ * @param {string} [params.model]
+ * @param {Array<{ role: string; content?: unknown }>} params.messages
+ * @param {number} [params.max_tokens]
+ * @param {number} [params.temperature]
+ * @param {number} [params.top_p]
+ * @param {number} [params.frequency_penalty]
+ * @param {number} [params.presence_penalty]
+ * @param {number} [params.seed]
+ * @param {string | string[]} [params.stop]
+ * @param {unknown[]} [params.tools]
+ * @param {unknown} [params.tool_choice]
+ * @param {boolean} [params.parallel_tool_calls]
+ * @param {unknown} [params.response_format]
+ * @param {boolean} [params.stream]
+ * @returns {Promise<object>}
+ */
+export async function callOpenRouterChatCompletion(params) {
+  const body = params && typeof params === 'object' ? params : {};
+  const messages = Array.isArray(body.messages) ? body.messages : [];
+  const model = resolveOpenRouterModelId(
+    body.model && typeof body.model === 'string' ? body.model.trim() : OPENROUTER_DEFAULT_MODEL
+  );
+  const headers = buildOpenRouterX402Headers();
+
+  const payload = {
+    model,
+    messages,
+    stream: false,
+    temperature: body.temperature ?? 0.2,
+    top_p: body.top_p ?? 1,
+    max_tokens: body.max_tokens ?? X402_CHAT_DEFAULT_MAX_TOKENS,
+    presence_penalty: body.presence_penalty ?? 0,
+    frequency_penalty: body.frequency_penalty ?? 0,
+    provider: { require_parameters: true },
+    usage: { include: true },
+  };
+
+  if (body.seed != null && Number.isFinite(Number(body.seed))) {
+    payload.seed = Number(body.seed);
+  }
+  if (body.stop != null) payload.stop = body.stop;
+  if (Array.isArray(body.tools) && body.tools.length > 0) payload.tools = body.tools;
+  if (body.tool_choice != null) payload.tool_choice = body.tool_choice;
+  if (typeof body.parallel_tool_calls === 'boolean') {
+    payload.parallel_tool_calls = body.parallel_tool_calls;
+  }
+  if (body.response_format != null) payload.response_format = body.response_format;
+
+  const response = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const msg =
+      data?.error?.message ||
+      (typeof data?.error === 'string' ? data.error : null) ||
+      'OpenRouter API error';
+    const err = new Error(msg);
+    err.status = response.status;
+    err.raw = data;
+    throw err;
+  }
+
+  return data;
 }
 
 /**

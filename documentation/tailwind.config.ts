@@ -14,8 +14,18 @@
      },
      extend: {
       fontFamily: {
-        sans: ["Space Grotesk", "Inter", "system-ui", "sans-serif"],
+        sans: ["Inter", "system-ui", "sans-serif"],
+        display: ["Space Grotesk", "Inter", "system-ui", "sans-serif"],
         mono: ["JetBrains Mono", "Consolas", "monospace"],
+      },
+      maxWidth: {
+        docs: "var(--docs-content-width)",
+        "docs-wide": "var(--docs-content-width-wide)",
+      },
+      spacing: {
+        "docs-sidebar": "var(--docs-sidebar-width)",
+        "docs-toc": "var(--docs-toc-width)",
+        "docs-header": "var(--docs-header-height)",
       },
        colors: {
          border: "hsl(var(--border))",
@@ -140,12 +150,44 @@
          DEFAULT: {
            css: {
              maxWidth: 'none',
+             fontSize: '0.9375rem',
+             lineHeight: '1.75',
              color: 'hsl(var(--foreground))',
              a: {
                color: 'hsl(var(--primary))',
+               textDecoration: 'underline',
+               textUnderlineOffset: '3px',
+               fontWeight: '500',
                '&:hover': {
                  color: 'hsl(var(--primary) / 0.8)',
                },
+             },
+             h1: {
+               fontFamily: '"Space Grotesk", Inter, system-ui, sans-serif',
+               fontSize: '2.25rem',
+               fontWeight: '600',
+               letterSpacing: '-0.02em',
+               marginBottom: '1rem',
+             },
+             h2: {
+               fontFamily: '"Space Grotesk", Inter, system-ui, sans-serif',
+               fontSize: '1.5rem',
+               fontWeight: '600',
+               letterSpacing: '-0.02em',
+               marginTop: '2.5rem',
+               marginBottom: '1rem',
+             },
+             h3: {
+               fontFamily: '"Space Grotesk", Inter, system-ui, sans-serif',
+               fontSize: '1.125rem',
+               fontWeight: '600',
+               letterSpacing: '-0.02em',
+               marginTop: '2rem',
+               marginBottom: '0.75rem',
+             },
+             p: {
+               marginTop: '0',
+               marginBottom: '1rem',
              },
              code: {
                color: 'hsl(var(--primary))',
@@ -172,6 +214,9 @@
                borderBottom: '1px solid hsl(var(--border) / 0.6)',
                padding: '0.75rem 1rem',
                verticalAlign: 'top',
+             },
+             'tbody tr:hover': {
+               backgroundColor: 'hsl(var(--muted) / 0.4)',
              },
              'tbody tr:last-child td': {
                borderBottomWidth: '0',

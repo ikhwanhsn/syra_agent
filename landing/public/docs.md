@@ -10,7 +10,7 @@ This file mirrors the **structure of the public documentation** published at [do
 
 ## Welcome
 
-- [Welcome](https://docs.syraa.fun/docs/welcome) — What Syra is: machine money for AI agents on Solana (autonomous revenue, treasury, DeFi, x402 payments); where the product runs (web agent, API gateway, playground, x402 agent, Telegram, MCP).
+- [Welcome](https://docs.syraa.fun/docs/welcome) — What Syra is: machine money for AI agents on Solana (autonomous revenue, treasury, DeFi, x402 payments); where the product runs (web agent, API gateway, playground, x402 agent, MCP).
 
 ---
 
@@ -20,8 +20,9 @@ This file mirrors the **structure of the public documentation** published at [do
 
 ### Overview and standards
 
-- [x402 API standard](https://docs.syraa.fun/docs/api/x402-api-standard)
-- [API health](https://docs.syraa.fun/docs/api/health)
+- [x402 Payment Flow](https://docs.syraa.fun/docs/api/x402-api-standard)
+- [API Health](https://docs.syraa.fun/docs/api/health)
+- [MPP Health](https://docs.syraa.fun/docs/api/mpp-health)
 - [Syra Brain](https://docs.syraa.fun/docs/api/brain) — single question → tool selection and synthesized answer
 - [Preview & dashboard (no x402)](https://docs.syraa.fun/docs/api/preview-dashboard)
 - [X (Twitter) API](https://docs.syraa.fun/docs/api/x-api)
@@ -46,6 +47,29 @@ This file mirrors the **structure of the public documentation** published at [do
 - [Signal](https://docs.syraa.fun/docs/api/signal)
 - [Event](https://docs.syraa.fun/docs/api/event)
 - [Arbitrage (CMC + CEX)](https://docs.syraa.fun/docs/api/arbitrage)
+- [Technical indicators](https://docs.syraa.fun/docs/api/indicator)
+
+### AI / OpenRouter
+
+- [Chat completions](https://docs.syraa.fun/docs/api/chat-completions) — OpenAI-compatible LLM via OpenRouter, dynamic x402 pricing
+- [Image generations](https://docs.syraa.fun/docs/api/images-generations) — text-to-image, sync delivery
+- [Video generations](https://docs.syraa.fun/docs/api/videos-generations) — async submit + free status poll
+
+### Market intelligence
+
+- [SPCX SpaceX IPO](https://docs.syraa.fun/docs/api/spcx)
+- [Tokenized equity](https://docs.syraa.fun/docs/api/equity)
+- [CoinGecko scout](https://docs.syraa.fun/docs/api/coingecko-scout)
+- [Assets board](https://docs.syraa.fun/docs/api/assets-board)
+- [Asset detail](https://docs.syraa.fun/docs/api/assets-detail)
+- [Bitcoin hub](https://docs.syraa.fun/docs/api/bitcoin-hub)
+
+### pump.fun
+
+- [Trending](https://docs.syraa.fun/docs/api/pumpfun-trending)
+- [Movers](https://docs.syraa.fun/docs/api/pumpfun-movers)
+- [Memecoin analyzer](https://docs.syraa.fun/docs/api/pumpfun-analyzer)
+- [Scout](https://docs.syraa.fun/docs/api/pumpfun-scout)
 
 ### RPC and infrastructure
 
@@ -60,6 +84,7 @@ This file mirrors the **structure of the public documentation** published at [do
 ### Partner: Jupiter
 
 - [Trending Jupiter](https://docs.syraa.fun/docs/api/trending-jupiter)
+- [Jupiter swap quote](https://docs.syraa.fun/docs/api/jupiter-quote)
 - [pump.fun agents swap](https://docs.syraa.fun/docs/api/pumpfun-agents-swap)
 
 ### Partner: Squid Router
@@ -67,17 +92,27 @@ This file mirrors the **structure of the public documentation** published at [do
 - [Squid cross-chain route](https://docs.syraa.fun/docs/api/squid-route)
 - [Squid cross-chain status](https://docs.syraa.fun/docs/api/squid-status)
 
+### Partner: RISE
+
+- [RISE endpoints](https://docs.syraa.fun/docs/api/rise)
+
 ### Partner: Purch Vault
 
 - [Purch Vault API](https://docs.syraa.fun/docs/api/purch-vault)
 
 ### Partner: Agent-only tools
 
+- [Agent tools: StableCrypto & pay.sh](https://docs.syraa.fun/docs/api/agent-tools-market-data)
+- [Agent tools: StableSocial](https://docs.syraa.fun/docs/api/agent-tools-social-data)
+- [Agent tools: StableEnrich](https://docs.syraa.fun/docs/api/agent-tools-enrichment-data)
 - [Agent tools: Binance, Giza, Bankr, Neynar, SIWA](https://docs.syraa.fun/docs/api/agent-tools-partners)
 
 ### 8004 Agent Registry
 
 - [8004 trustless agent registry](https://docs.syraa.fun/docs/api/8004)
+- [8004 global stats](https://docs.syraa.fun/docs/api/8004-stats)
+- [8004 leaderboard](https://docs.syraa.fun/docs/api/8004-leaderboard)
+- [8004 agent search](https://docs.syraa.fun/docs/api/8004-agents-search)
 
 ---
 
@@ -86,6 +121,9 @@ This file mirrors the **structure of the public documentation** published at [do
 - [Getting started](https://docs.syraa.fun/docs/agent/getting-started)
 - [How it works](https://docs.syraa.fun/docs/agent/how-it-works)
 - [Agent features](https://docs.syraa.fun/docs/agent/features)
+- [Market data (StableCrypto)](https://docs.syraa.fun/docs/agent/market-data)
+- [Social data (StableSocial)](https://docs.syraa.fun/docs/agent/social-data)
+- [Enrichment (StableEnrich)](https://docs.syraa.fun/docs/agent/enrichment-data)
 - [Supported tokens](https://docs.syraa.fun/docs/agent/supported-tokens)
 - [Trading guidance](https://docs.syraa.fun/docs/agent/trading-guidance)
 - [Agent catalog](https://docs.syraa.fun/docs/agent/agent-catalog)
@@ -118,7 +156,7 @@ This file mirrors the **structure of the public documentation** published at [do
 
 - API base: [https://api.syraa.fun](https://api.syraa.fun) — `/.well-known/x402`, `openapi.json`, `mpp-openapi.json`
 - Web agent: [https://syraa.fun](https://syraa.fun)
-- API playground: [https://playground.syraa.fun](https://playground.syraa.fun)
+- API playground: [https://syraa.fun/playground](https://syraa.fun/playground)
 
 ---
 

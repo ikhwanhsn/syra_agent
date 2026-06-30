@@ -7,6 +7,9 @@ import { createCheckStatusAgentRouter } from "../agents/check-status.js";
 import { createXProjectAnalyzerRouter } from "../agents/x-project-analyzer.js";
 import { createXProjectsBatchAnalyzerRouter } from "../agents/x-projects-batch-analyzer.js";
 import { createOpenRouterChatRouter } from "../routes/openrouterChat.js";
+import { createChatCompletionsRouter } from "../routes/chatCompletions.js";
+import { createImageGenerationsRouter } from "../routes/imageGenerations.js";
+import { createVideoGenerationsRouter } from "../routes/videoGenerations.js";
 import { createAgentChatRouter } from "../routes/agent/chat.js";
 import { createAgentAuthRouter } from "../routes/agent/auth.js";
 import { createAgentWalletIntentRouter } from "../routes/agent/walletIntent.js";
@@ -113,6 +116,9 @@ const factories = [
   ["createXProjectAnalyzerRouter", createXProjectAnalyzerRouter],
   ["createXProjectsBatchAnalyzerRouter", createXProjectsBatchAnalyzerRouter],
   ["createOpenRouterChatRouter", createOpenRouterChatRouter],
+  ["createChatCompletionsRouter", createChatCompletionsRouter],
+  ["createImageGenerationsRouter", createImageGenerationsRouter],
+  ["createVideoGenerationsRouter", createVideoGenerationsRouter],
   ["createAgentChatRouter", createAgentChatRouter],
   ["createAgentAuthRouter", createAgentAuthRouter],
   ["createAgentWalletIntentRouter", createAgentWalletIntentRouter],

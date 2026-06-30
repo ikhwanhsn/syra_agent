@@ -1,4 +1,6 @@
 import { DocsLayout } from "@/components/docs/DocsLayout";
+import { DocPageHeader } from "@/components/docs/DocPageHeader";
+import { DocSection } from "@/components/docs/DocSection";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2 } from "lucide-react";
 
@@ -6,6 +8,15 @@ type QuarterStatus = "Shipped" | "In Progress" | "Planned";
 
 /** Dated release notes — append when you ship meaningful user-facing changes */
 const changelogEntries: { period: string; items: string[] }[] = [
+  {
+    period: "June 2026",
+    items: [
+      "OpenRouter x402 APIs: POST /chat/completions, /images/generations, /videos/generations with curated model allowlists and dynamic per-request pricing",
+      "Free GET */models endpoints for chat, image, and video allowlists with live upstream rates",
+      "New x402 discovery routes: pump.fun suite (trending, movers, analyzer, scout), CoinGecko scout, SPCX/equity intelligence, assets board & detail, Bitcoin hub, technical indicators, Jupiter swap quote, MPP health",
+      "Documentation site synced with web playground catalog and expanded agent tools catalog (246 tools)",
+    ],
+  },
   {
     period: "March 2026",
     items: [
@@ -23,7 +34,7 @@ const changelogEntries: { period: string; items: string[] }[] = [
       "MPP (Machine Payments Protocol) support across paid API flows",
       "Tempo network integration for payments",
       "KuCoin venue support for trading signals",
-      "Purch Vault and Messari x402-backed data paths",
+      "Purch Vault x402-backed marketplace paths",
       "Expanded Binance-aligned market data for signals",
     ],
   },
@@ -44,7 +55,7 @@ const completed = [
   "Syra token ($SYRA) launch on Solana (Pump.fun)",
   "Documentation site and API reference (docs.syraa.fun)",
   "x402 API standard and payment flow (incl. MPP and Tempo where applicable)",
-  "Syra Agent at agent.syraa.fun with trading signals and supported tokens",
+  "Syra Agent at syraa.fun with trading signals, wallet, and supported tokens",
   "x402 Agent integration and agent discovery (x402scan)",
   "Sentiment, news, Syra Brain, EXA search, crawl, Browser Use, and core intelligence APIs live",
   "Multi-venue trading signals (Binance, OKX, Kraken, KuCoin, Coinbase, and additional sources)",
@@ -117,95 +128,108 @@ const roadmapByQuarter: {
     ],
   },
 ];
- 
- export default function Changelog() {
-   return (
-     <DocsLayout>
-       <div className="mb-8">
-         <div className="text-sm text-primary font-medium mb-2">Resources</div>
-         <h1 className="text-4xl font-bold tracking-tight mb-4">Changelog & Roadmap</h1>
-         <p className="text-xl text-muted-foreground leading-relaxed">
-           What we've shipped and what's coming next.
-         </p>
-       </div>
 
-       <section className="mb-12">
-         <h2 className="text-2xl font-semibold mb-2">Recent updates</h2>
-         <p className="text-muted-foreground mb-4">
-           Highlights from recent releases (newest first).
-         </p>
-         <div className="space-y-8">
-           {changelogEntries.map((block) => (
-             <div key={block.period} className="rounded-lg border border-border bg-card/50 p-4">
-               <h3 className="text-sm font-semibold text-foreground mb-3">{block.period}</h3>
-               <ul className="space-y-2">
-                 {block.items.map((item, i) => (
-                   <li key={i} className="flex items-start gap-3 text-sm text-muted-foreground">
-                     <span className="text-primary mt-1.5 h-1 w-1 shrink-0 rounded-full bg-primary" aria-hidden />
-                     {item}
-                   </li>
-                 ))}
-               </ul>
-             </div>
-           ))}
-         </div>
-       </section>
+const tocItems = [
+  { id: "recent-updates", title: "Recent updates", level: 2 },
+  { id: "finished", title: "What we've finished", level: 2 },
+  { id: "roadmap", title: "Roadmap", level: 2 },
+];
 
-       {/* What we've finished */}
-       <section className="mb-12">
-         <h2 className="text-2xl font-semibold mb-2">What we've finished</h2>
-         <p className="text-muted-foreground mb-4">
-           Shipped and live in the system.
-         </p>
-         <div className="rounded-lg border border-border bg-card/50 p-4">
-           <ul className="space-y-2">
-             {completed.map((item, i) => (
-               <li key={i} className="flex items-start gap-3 text-sm text-muted-foreground">
-                 <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" aria-hidden />
-                 {item}
-               </li>
-             ))}
-           </ul>
-         </div>
-       </section>
+export default function Changelog() {
+  return (
+    <DocsLayout toc={tocItems}>
+      <DocPageHeader
+        eyebrow="Resources"
+        title="Changelog & Roadmap"
+        description="What we've shipped and what's coming next."
+      />
 
-       {/* Roadmap — matches /docs/token/roadmap */}
-       <section>
-         <h2 className="text-2xl font-semibold mb-2">Roadmap</h2>
-         <p className="text-muted-foreground mb-6">
-           2025–2027 Syra Roadmap — scaling machine money infrastructure for autonomous agents on Solana.
-         </p>
-         <div className="space-y-8">
-           {roadmapByQuarter.map((q) => (
-             <div key={q.quarter} className="relative pl-6 border-l-2 border-border">
-               <div className="absolute left-0 top-0 -translate-x-1/2 w-3 h-3 rounded-full bg-primary" />
-               <div className="flex items-center gap-3 mb-3">
-                 <span className="text-lg font-semibold">{q.quarter}</span>
-                 <Badge
-                   variant={
-                     q.status === "In Progress"
-                       ? "default"
-                       : q.status === "Shipped"
-                         ? "outline"
-                         : "secondary"
-                   }
-                   className="text-xs"
-                 >
-                   {q.status}
-                 </Badge>
-               </div>
-               <ul className="space-y-1.5">
-                 {q.items.map((item, i) => (
-                   <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
-                     <span className="text-primary mt-1">•</span>
-                     {item}
-                   </li>
-                 ))}
-               </ul>
-             </div>
-           ))}
-         </div>
-       </section>
-     </DocsLayout>
-   );
- }
+      <DocSection
+        id="recent-updates"
+        title="Recent updates"
+        description="Highlights from recent releases (newest first)."
+      >
+        <div className="not-prose space-y-0">
+          {changelogEntries.map((block, index) => (
+            <div
+              key={block.period}
+              className="relative pl-8 pb-10 border-l-2 border-border/60 last:pb-0"
+            >
+              <div className="absolute left-0 top-1 -translate-x-1/2 w-3 h-3 rounded-full bg-primary ring-4 ring-background" />
+              <Badge variant="outline" className="mb-3 text-xs font-medium">
+                {block.period}
+              </Badge>
+              <ul className="space-y-2">
+                {block.items.map((item, i) => (
+                  <li key={i} className="flex items-start gap-3 text-sm text-muted-foreground leading-relaxed">
+                    <span className="text-primary mt-2 h-1 w-1 shrink-0 rounded-full bg-primary" aria-hidden />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              {index < changelogEntries.length - 1 && (
+                <div className="mt-6 h-px bg-border/40 ml-0" aria-hidden />
+              )}
+            </div>
+          ))}
+        </div>
+      </DocSection>
+
+      <DocSection
+        id="finished"
+        title="What we've finished"
+        description="Shipped and live in the system."
+      >
+        <div className="not-prose rounded-lg border border-border/60 bg-muted/20 p-4">
+          <ul className="space-y-2">
+            {completed.map((item, i) => (
+              <li key={i} className="flex items-start gap-3 text-sm text-muted-foreground leading-relaxed">
+                <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" aria-hidden />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </DocSection>
+
+      <DocSection
+        id="roadmap"
+        title="Roadmap"
+        description="2025–2027 Syra Roadmap — scaling machine money infrastructure for autonomous agents on Solana."
+      >
+        <div className="not-prose space-y-0">
+          {roadmapByQuarter.map((q) => (
+            <div key={q.quarter} className="relative pl-8 pb-10 border-l-2 border-border/60 last:pb-0">
+              <div className="absolute left-0 top-1 -translate-x-1/2 w-3 h-3 rounded-full bg-primary ring-4 ring-background" />
+              <div className="flex flex-wrap items-center gap-3 mb-3">
+                <Badge variant="outline" className="text-xs font-medium">
+                  {q.quarter}
+                </Badge>
+                <Badge
+                  variant={
+                    q.status === "In Progress"
+                      ? "default"
+                      : q.status === "Shipped"
+                        ? "secondary"
+                        : "outline"
+                  }
+                  className="text-xs"
+                >
+                  {q.status}
+                </Badge>
+              </div>
+              <ul className="space-y-1.5">
+                {q.items.map((item, i) => (
+                  <li key={i} className="text-sm text-muted-foreground flex items-start gap-2 leading-relaxed">
+                    <span className="text-primary mt-1.5 h-1 w-1 shrink-0 rounded-full bg-primary" aria-hidden />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </DocSection>
+    </DocsLayout>
+  );
+}

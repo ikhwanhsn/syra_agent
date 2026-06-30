@@ -1,311 +1,311 @@
 import { Link } from "react-router-dom";
 import { DocsLayout } from "@/components/docs/DocsLayout";
+import { DocPageHeader } from "@/components/docs/DocPageHeader";
+import { DocSection } from "@/components/docs/DocSection";
+import { Callout } from "@/components/docs/Callout";
 import { CodeBlock } from "@/components/docs/CodeBlock";
 import { apiDocs } from "@/data/apiDocs";
-import { ArrowRight, ExternalLink } from "lucide-react";
+import { ArrowRight, ExternalLink, Zap, HeartPulse, FlaskConical } from "lucide-react";
+import { SYRA_PLAYGROUND_URL, SYRA_WEB_LABEL } from "@/content/syraUrls";
 
 const BASE_URL = "https://api.syraa.fun";
 
-// Group slugs by category for the overview (matches Sidebar structure)
-const API_CATEGORIES: { title: string; slugs: string[] }[] = [
+const API_CATEGORIES: { title: string; description: string; slugs: string[] }[] = [
   {
     title: "Overview & Standards",
-    slugs: ["x402-api-standard", "health", "brain", "preview-dashboard", "x-api", "x-analyzer"],
+    description: "x402 flow, health checks, brain, and core standards",
+    slugs: ["x402-api-standard", "health", "mpp-health", "brain", "preview-dashboard", "x-api", "x-analyzer"],
   },
   {
     title: "News & Sentiment",
+    description: "Headlines, sentiment scores, and digest feeds",
     slugs: ["news", "sentiment", "trending-headline", "sundown-digest"],
   },
   {
     title: "Research & Discovery",
+    description: "EXA search, crawl, browser automation, analytics",
     slugs: ["exa-search", "crawl", "browser-use", "analytics-summary"],
   },
   {
     title: "Trading & Events",
-    slugs: ["signal", "event", "arbitrage"],
+    description: "Signals, events, arbitrage, and indicators",
+    slugs: ["signal", "event", "arbitrage", "indicator"],
+  },
+  {
+    title: "AI / OpenRouter",
+    description: "Chat, image, and video generation via OpenRouter",
+    slugs: ["chat-completions", "images-generations", "videos-generations"],
+  },
+  {
+    title: "Market Intelligence",
+    description: "Equity, assets board, CoinGecko scout, Bitcoin hub",
+    slugs: ["spcx", "equity", "coingecko-scout", "assets-board", "assets-detail", "bitcoin-hub"],
+  },
+  {
+    title: "pump.fun",
+    description: "Trending, movers, analyzer, and scout",
+    slugs: ["pumpfun-trending", "pumpfun-movers", "pumpfun-analyzer", "pumpfun-scout"],
   },
   {
     title: "RPC & Infrastructure",
+    description: "Quicknode Solana and Base RPC",
     slugs: ["quicknode"],
   },
   {
     title: "Partner: Nansen",
+    description: "Smart money and token god mode",
     slugs: ["smart-money", "token-god-mode", "nansen-endpoints"],
   },
   {
     title: "Partner: Jupiter",
-    slugs: ["trending-jupiter", "pumpfun-agents-swap"],
+    description: "Trending, swap quotes, pump.fun agents",
+    slugs: ["trending-jupiter", "jupiter-quote", "pumpfun-agents-swap"],
   },
   {
     title: "Partner: Squid Router",
+    description: "Cross-chain routes and status",
     slugs: ["squid-route", "squid-status"],
   },
   {
     title: "Partner: RISE",
+    description: "RISE partner endpoints",
     slugs: ["rise"],
   },
   {
     title: "Partner: Purch Vault",
+    description: "Purch Vault API",
     slugs: ["purch-vault"],
   },
   {
     title: "Partner: Agent-only tools",
+    description: "StableCrypto, StableSocial, StableEnrich, and partners",
     slugs: ["agent-tools-market-data", "agent-tools-social-data", "agent-tools-enrichment-data", "agent-tools-partners"],
   },
   {
     title: "8004 Agent Registry",
-    slugs: ["8004"],
+    description: "Trustless agent registry, stats, and search",
+    slugs: ["8004", "8004-stats", "8004-leaderboard", "8004-agents-search"],
+  },
+];
+
+const QUICK_LINKS = [
+  {
+    icon: Zap,
+    label: "x402 Payment Flow",
+    href: "/docs/api/x402-api-standard",
+    description: "Wire format and signing",
+  },
+  {
+    icon: HeartPulse,
+    label: "API Health",
+    href: "/docs/api/health",
+    description: "Gateway status check",
+  },
+  {
+    icon: FlaskConical,
+    label: "API Playground",
+    href: SYRA_PLAYGROUND_URL,
+    description: `${SYRA_WEB_LABEL}/playground`,
+    external: true,
   },
 ];
 
 const tocItems = [
+  { id: "quick-start", title: "Quick Start", level: 2 },
   { id: "overview", title: "Overview", level: 2 },
   { id: "base-url", title: "Base URL", level: 2 },
-  { id: "authentication", title: "Authentication (x402)", level: 2 },
-  { id: "all-endpoints", title: "All Endpoints", level: 2 },
-  ...API_CATEGORIES.map((c) => ({ id: `cat-${c.slugs[0]}`, title: c.title, level: 3 })),
+  { id: "authentication", title: "Authentication", level: 2 },
+  { id: "categories", title: "API Categories", level: 2 },
   { id: "payment-flow", title: "Payment Flow", level: 2 },
   { id: "errors", title: "Error Handling", level: 2 },
 ];
 
 export default function APIReference() {
   return (
-    <DocsLayout toc={tocItems}>
-      <div className="mb-8">
-        <div className="text-sm text-primary font-medium mb-2">API Reference</div>
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">x402 API Overview</h1>
-        <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed">
-          Syra x402 API reference. Paid routes use the x402 payment protocol (and MPP discovery where advertised). Preview and dashboard helpers are free for trusted origins — see{" "}
-          <Link to="/docs/api/preview-dashboard" className="text-primary hover:underline">
-            Preview & Dashboard
-          </Link>
-          .
-        </p>
-      </div>
+    <DocsLayout toc={tocItems} wide>
+      <DocPageHeader
+        eyebrow="API Reference"
+        title="x402 API Overview"
+        description={
+          <>
+            Syra x402 API reference. Paid routes use the x402 payment protocol. Preview and dashboard helpers are free
+            for trusted origins — see{" "}
+            <Link to="/docs/api/preview-dashboard" className="text-primary hover:underline">
+              Preview & Dashboard
+            </Link>
+            .
+          </>
+        }
+        wide
+      />
 
-      <section id="overview" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">Overview</h2>
-        <p className="text-muted-foreground mb-4">
-          Paid endpoints use unversioned paths (e.g. <code className="text-sm font-mono bg-muted px-1 rounded">/news</code>, <code className="text-sm font-mono bg-muted px-1 rounded">/signal</code>).
-          On first request without payment you receive <strong>402 Payment Required</strong> with payment instructions; after completing payment you retry with the payment proof to receive data.
-        </p>
-      </section>
-
-      <section id="base-url" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">Base URL</h2>
-        <div className="p-4 rounded-lg border border-border bg-card">
-          <div className="flex items-center gap-2 text-sm font-mono mb-2">
-            <span className="px-2 py-0.5 rounded bg-primary/10 text-primary font-medium">BASE URL</span>
-            <span className="text-muted-foreground">{BASE_URL}</span>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            All API requests should be made to this base URL. The API uses JSON for requests and responses.
-          </p>
-        </div>
-        <a
-          href="https://playground.syraa.fun"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-4 inline-flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
-        >
-          <ExternalLink className="h-4 w-4" />
-          Try the API Playground — playground.syraa.fun
-        </a>
-      </section>
-
-      <section id="authentication" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">Authentication (x402)</h2>
-        <p className="text-muted-foreground mb-4">
-          <strong>Paid routes</strong> use the <strong>x402</strong> payment protocol (V1, x402scan-compatible). The first request without an{" "}
-          <code className="text-sm font-mono bg-muted px-1 rounded">X-PAYMENT</code> header returns{" "}
-          <strong>HTTP 402</strong> with an <code className="text-sm font-mono bg-muted px-1 rounded">accepts</code> array describing each supported network (Solana / Base) and the USDC price in micro-units. Replay the request with{" "}
-          <code className="text-sm font-mono bg-muted px-1 rounded">X-PAYMENT</code> set to a base64 signed payload from any x402 client to receive 200 plus an{" "}
-          <code className="text-sm font-mono bg-muted px-1 rounded">X-PAYMENT-RESPONSE</code> header. See{" "}
-          <Link to="/docs/api/x402-api-standard" className="text-primary hover:underline">
-            x402 Payment Flow
-          </Link>{" "}
-          for the full wire format, network/asset reference, and signing examples.
-        </p>
-        <p className="text-muted-foreground mb-4">
-          <strong>Preview and dashboard</strong> routes (<code className="text-sm font-mono bg-muted px-1 rounded">/dashboard-summary</code>,{" "}
-          <code className="text-sm font-mono bg-muted px-1 rounded">/preview/*</code>, <code className="text-sm font-mono bg-muted px-1 rounded">/health</code>,{" "}
-          <code className="text-sm font-mono bg-muted px-1 rounded">/.well-known/x402</code>, <code className="text-sm font-mono bg-muted px-1 rounded">/openapi.json</code>) do not use x402 and are free. The gateway injects an internal API key for trusted browser origins — never embed keys in client bundles.
-        </p>
-        <CodeBlock
-          plain
-          code={`# 1. First request returns 402 with the x402 \`accepts\` offer list
-curl -i "${BASE_URL}/news?ticker=BTC"
-
-# 2. Sign one of the offers with an x402 client (Solana or Base USDC) and retry
-curl -i "${BASE_URL}/news?ticker=BTC" \\
-  -H "X-PAYMENT: <base64url-encoded signed payload>"
-# Response: 200 OK + header  X-PAYMENT-RESPONSE: <base64 settlement receipt>`}
-          language="bash"
-        />
-      </section>
-
-      <section id="all-endpoints" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-6">All Endpoints</h2>
-        <p className="text-muted-foreground mb-6">
-          Each endpoint has full documentation (parameters, examples, payment flow). Click the endpoint name to open its doc page.
-        </p>
-
-        <div className="space-y-10">
-          {API_CATEGORIES.map((category) => {
-            const docs = category.slugs
-              .map((slug) => ({ slug, doc: apiDocs[slug] }))
-              .filter(({ doc }) => doc);
-            if (docs.length === 0) return null;
-
-            return (
-              <div
-                key={category.title}
-                id={`cat-${category.slugs[0]}`}
-                className="scroll-mt-24"
+      <section id="quick-start" className="mb-12 scroll-mt-24 not-prose">
+        <div className="grid sm:grid-cols-3 gap-3">
+          {QUICK_LINKS.map((link) => {
+            const Icon = link.icon;
+            const inner = (
+              <>
+                <Icon className="h-5 w-5 text-primary mb-2" />
+                <p className="font-medium text-foreground">{link.label}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{link.description}</p>
+              </>
+            );
+            return link.external ? (
+              <a
+                key={link.label}
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-lg border border-border/60 p-4 hover:border-primary/40 hover:bg-muted/30 transition-colors"
               >
-                <h3 className="text-lg font-semibold mb-4 text-foreground">{category.title}</h3>
-                <div className="rounded-lg border border-border overflow-hidden overflow-x-auto overflow-x-auto-touch">
-                  <table className="w-full text-sm min-w-[520px]">
-                    <thead>
-                      <tr className="border-b border-border bg-muted/30">
-                        <th className="text-left p-2 sm:p-3 font-medium">Endpoint</th>
-                        <th className="text-left p-2 sm:p-3 font-medium">Path</th>
-                        <th className="text-left p-2 sm:p-3 font-medium">Methods</th>
-                        <th className="text-left p-2 sm:p-3 font-medium">Description</th>
-                      </tr>
-                    </thead>
-                    <tbody className="text-muted-foreground">
-                      {docs.map(({ slug, doc }) => (
-                        <tr
-                          key={slug}
-                          className="border-b border-border/50 last:border-0 hover:bg-muted/20 transition-colors"
-                        >
-                          <td className="p-2 sm:p-3">
-                            <Link
-                              to={`/docs/api/${slug}`}
-                              className="font-medium text-primary hover:underline flex items-center gap-1"
-                            >
-                              {doc.title}
-                              <ExternalLink className="h-3.5 w-3.5 opacity-70" />
-                            </Link>
-                          </td>
-                          <td className="p-2 sm:p-3 font-mono text-xs whitespace-nowrap">{doc.endpoints[0]?.path ?? ""}</td>
-                          <td className="p-2 sm:p-3 whitespace-nowrap">
-                            {[...new Set(doc.endpoints.map((e) => e.method))].join(", ")}
-                          </td>
-                          <td className="p-2 sm:p-3 max-w-md">{doc.overview}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+                {inner}
+              </a>
+            ) : (
+              <Link
+                key={link.label}
+                to={link.href}
+                className="rounded-lg border border-border/60 p-4 hover:border-primary/40 hover:bg-muted/30 transition-colors"
+              >
+                {inner}
+              </Link>
             );
           })}
         </div>
       </section>
 
-      <section id="payment-flow" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">Payment Flow</h2>
-        <ol className="list-decimal pl-6 space-y-2 text-muted-foreground mb-4">
-          <li>
-            Make the request without payment. The API responds <strong>402</strong> with{" "}
-            <code className="text-sm font-mono bg-muted px-1 rounded">{`{ x402Version: 1, error, accepts: [...] }`}</code>. Each{" "}
-            <code className="text-sm font-mono bg-muted px-1 rounded">accepts[i]</code> describes one offer:{" "}
-            <code className="text-sm font-mono bg-muted px-1 rounded">scheme: "exact"</code>,{" "}
-            <code className="text-sm font-mono bg-muted px-1 rounded">network</code> ("solana" or "base"),{" "}
-            <code className="text-sm font-mono bg-muted px-1 rounded">asset</code> (USDC mint/contract),{" "}
-            <code className="text-sm font-mono bg-muted px-1 rounded">maxAmountRequired</code> (price in micro-USDC),{" "}
-            <code className="text-sm font-mono bg-muted px-1 rounded">payTo</code>,{" "}
-            <code className="text-sm font-mono bg-muted px-1 rounded">resource</code>, and{" "}
-            <code className="text-sm font-mono bg-muted px-1 rounded">maxTimeoutSeconds</code>.
-          </li>
-          <li>
-            Pick one offer and use an x402 client (e.g. <code className="text-sm font-mono bg-muted px-1 rounded">x402-solana</code> or{" "}
-            <code className="text-sm font-mono bg-muted px-1 rounded">@x402/core</code>) to build, sign, and base64-encode a payment payload that satisfies it.
-          </li>
-          <li>
-            Replay the original request with{" "}
-            <code className="text-sm font-mono bg-muted px-1 rounded">X-PAYMENT: &lt;encoded payload&gt;</code>. The API verifies and settles via the PayAI facilitator, returns 200 with the JSON body, and includes{" "}
-            <code className="text-sm font-mono bg-muted px-1 rounded">X-PAYMENT-RESPONSE: &lt;base64 receipt&gt;</code>.
-          </li>
-        </ol>
-        <p className="text-sm font-medium text-foreground mb-2">Example 402 response (V1, x402scan-compatible)</p>
+      <DocSection id="overview" title="Overview" prose>
+        <p>
+          Paid endpoints use unversioned paths (e.g. <code>/news</code>, <code>/signal</code>). On first request without
+          payment you receive <strong>402 Payment Required</strong> with payment instructions; after completing payment
+          you retry with the payment proof to receive data.
+        </p>
+      </DocSection>
+
+      <DocSection id="base-url" title="Base URL">
+        <div className="rounded-lg border border-border/60 p-4 bg-muted/20 not-prose">
+          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-1">Base URL</p>
+          <code className="text-sm font-mono">{BASE_URL}</code>
+          <p className="text-sm text-muted-foreground mt-2">
+            All API requests should be made to this base URL. The API uses JSON for requests and responses.
+          </p>
+        </div>
+        <a
+          href={SYRA_PLAYGROUND_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-4 inline-flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm font-medium text-primary hover:bg-primary/10 transition-colors not-prose"
+        >
+          <ExternalLink className="h-4 w-4" />
+          Try the API Playground
+        </a>
+      </DocSection>
+
+      <DocSection id="authentication" title="Authentication (x402)" prose>
+        <Callout variant="important" title="Paid routes require x402">
+          <p>
+            The first request without an <code>X-PAYMENT</code> header returns <strong>HTTP 402</strong> with an{" "}
+            <code>accepts</code> array. Replay with <code>X-PAYMENT</code> set to a signed payload from any x402 client.
+          </p>
+        </Callout>
+        <p>
+          Preview and dashboard routes (<code>/dashboard-summary</code>, <code>/preview/*</code>, <code>/health</code>) do
+          not use x402 and are free for trusted browser origins.
+        </p>
         <CodeBlock
           plain
-          code={`{
-  "x402Version": 1,
-  "error": "X-PAYMENT header is required",
-  "accepts": [
-    {
-      "scheme": "exact",
-      "network": "solana",
-      "maxAmountRequired": "10000",
-      "resource": "${BASE_URL}/news?ticker=BTC",
-      "description": "News API",
-      "mimeType": "application/json",
-      "payTo": "<Syra treasury Solana address>",
-      "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-      "maxTimeoutSeconds": 60,
-      "outputSchema": {
-        "input":  { "type": "http", "method": "GET", "queryParams": { "ticker": { "type": "string", "required": false } } },
-        "output": { "/* response shape per endpoint */": null }
-      },
-      "extra": { "feePayer": "<fee payer address>" }
-    }
-  ]
-}`}
-          language="json"
+          tabs={[
+            {
+              label: "curl",
+              code: `# 1. First request returns 402
+curl -i "${BASE_URL}/news?ticker=BTC"
+
+# 2. Retry with X-PAYMENT header
+curl -i "${BASE_URL}/news?ticker=BTC" \\
+  -H "X-PAYMENT: <base64url-encoded signed payload>"`,
+              language: "bash",
+            },
+          ]}
         />
-        <p className="text-sm text-muted-foreground mt-3">
-          Need the wire-format walkthrough, network/asset reference, signing examples, and idempotency rules?{" "}
-          <Link to="/docs/api/x402-api-standard" className="text-primary hover:underline">
-            Open the x402 Payment Flow doc
-          </Link>
-          .
+      </DocSection>
+
+      <section id="categories" className="mb-12 scroll-mt-24">
+        <h2 className="docs-display text-2xl font-semibold tracking-tight mb-2">API Categories</h2>
+        <p className="text-muted-foreground mb-6 leading-7">
+          Browse by category or use the sidebar filter to find a specific endpoint.
         </p>
+        <div className="grid sm:grid-cols-2 gap-3 not-prose">
+          {API_CATEGORIES.map((category) => {
+            const firstSlug = category.slugs.find((s) => apiDocs[s]);
+            if (!firstSlug) return null;
+            return (
+              <Link
+                key={category.title}
+                to={`/docs/api/${firstSlug}`}
+                className="group rounded-lg border border-border/60 p-4 hover:border-primary/40 hover:bg-muted/30 transition-colors"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-medium text-foreground group-hover:text-primary transition-colors">
+                      {category.title}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">{category.description}</p>
+                    <p className="text-xs text-muted-foreground/80 mt-2">
+                      {category.slugs.filter((s) => apiDocs[s]).length} endpoints
+                    </p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0 mt-0.5" />
+                </div>
+              </Link>
+            );
+          })}
+        </div>
       </section>
 
-      <section id="errors" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">Error Handling</h2>
-        <p className="text-muted-foreground mb-6">
-          The API uses standard HTTP status codes. For payment-related behavior:
+      <DocSection id="payment-flow" title="Payment Flow" prose>
+        <ol>
+          <li>
+            Make the request without payment. The API responds <strong>402</strong> with an <code>accepts</code> array
+            describing supported networks and USDC price.
+          </li>
+          <li>Pick one offer and use an x402 client to build, sign, and encode a payment payload.</li>
+          <li>
+            Replay with <code>X-PAYMENT</code>. The API verifies, settles, and returns 200 with{" "}
+            <code>X-PAYMENT-RESPONSE</code>.
+          </li>
+        </ol>
+        <p>
+          <Link to="/docs/api/x402-api-standard" className="text-primary hover:underline">
+            Full x402 Payment Flow documentation →
+          </Link>
         </p>
-        <div className="overflow-x-auto overflow-x-auto-touch mb-6">
-          <table className="w-full text-sm min-w-[200px]">
+      </DocSection>
+
+      <DocSection id="errors" title="Error Handling" prose>
+        <div className="not-prose overflow-x-auto rounded-lg border border-border/60">
+          <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border">
-                <th className="text-left py-2 sm:py-3 pr-2 sm:pr-4 font-medium">Code</th>
-                <th className="text-left py-2 sm:py-3 font-medium">Description</th>
+              <tr className="border-b border-border bg-muted/50">
+                <th className="text-left px-4 py-2.5 font-medium">Code</th>
+                <th className="text-left px-4 py-2.5 font-medium">Description</th>
               </tr>
             </thead>
-            <tbody className="text-muted-foreground">
-              <tr className="border-b border-border">
-                <td className="py-3 pr-4 font-mono">200</td>
-                <td className="py-3">Success — data returned</td>
+            <tbody>
+              <tr className="border-b border-border/40">
+                <td className="px-4 py-2.5 font-mono">200</td>
+                <td className="px-4 py-2.5 text-muted-foreground">Success — data returned</td>
               </tr>
-              <tr className="border-b border-border">
-                <td className="py-3 pr-4 font-mono">402</td>
-                <td className="py-3">Payment Required — complete payment first, then retry with proof</td>
+              <tr className="border-b border-border/40">
+                <td className="px-4 py-2.5 font-mono">402</td>
+                <td className="px-4 py-2.5 text-muted-foreground">Payment Required — complete payment, then retry</td>
               </tr>
               <tr>
-                <td className="py-3 pr-4 font-mono">5xx</td>
-                <td className="py-3">Server error — retry later</td>
+                <td className="px-4 py-2.5 font-mono">5xx</td>
+                <td className="px-4 py-2.5 text-muted-foreground">Server error — retry later</td>
               </tr>
             </tbody>
           </table>
         </div>
-      </section>
-
-      <div className="flex justify-end pt-8 mt-8 border-t border-border">
-        <Link
-          to="/docs/api/health"
-          className="group inline-flex items-center gap-2 text-sm font-medium hover:text-primary transition-colors"
-        >
-          API Health
-          <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-        </Link>
-      </div>
+      </DocSection>
     </DocsLayout>
   );
 }

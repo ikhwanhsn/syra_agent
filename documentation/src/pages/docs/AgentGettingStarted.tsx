@@ -1,9 +1,11 @@
 import { Link } from "react-router-dom";
 import { DocsLayout } from "@/components/docs/DocsLayout";
+import { DocPageHeader } from "@/components/docs/DocPageHeader";
+import { DocSection } from "@/components/docs/DocSection";
+import { Callout } from "@/components/docs/Callout";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
-
-const AGENT_URL = "https://agent.syraa.fun";
+import { SYRA_AGENT_URL, SYRA_WEB_LABEL } from "@/content/syraUrls";
 
 const tocItems = [
   { id: "what-is-syra-agent", title: "What is the Syra Agent?", level: 2 },
@@ -17,109 +19,129 @@ const tocItems = [
 export default function AgentGettingStarted() {
   return (
     <DocsLayout toc={tocItems}>
-      <div className="mb-8">
-        <div className="text-sm text-primary font-medium mb-2">Syra Agent</div>
-        <h1 className="text-4xl font-bold tracking-tight mb-4">Getting Started</h1>
-        <p className="text-xl text-muted-foreground leading-relaxed">
-          Welcome to the <strong className="text-foreground">Syra Agent</strong> at{" "}
-          <a href={AGENT_URL} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
-            agent.syraa.fun
-          </a>
-          — the primary interface to Syra&apos;s machine money stack: research, treasury workflows, onchain tools, and
-          agent-native payments in one chat.
-        </p>
-      </div>
+      <DocPageHeader
+        eyebrow="Syra Agent"
+        title="Getting Started"
+        description={
+          <>
+            Welcome to the <strong className="text-foreground">Syra Agent</strong> at{" "}
+            <a href={SYRA_AGENT_URL} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+              {SYRA_WEB_LABEL}
+            </a>
+            — research, treasury workflows, onchain tools, and agent-native payments in one chat.
+          </>
+        }
+      />
 
-      <section id="what-is-syra-agent" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">What is the Syra Agent?</h2>
-        <p className="text-muted-foreground mb-4">
-          The Syra Agent is an AI-powered surface for <strong className="text-foreground">operators and autonomous agents</strong> on
-          Solana. It combines natural-language chat with on-demand tools: market signals, crypto news, sentiment, deep
-          research, X (Twitter) search, memecoin screens, treasury-related flows, and partner integrations (e.g. Nansen
-          with your agent wallet, DexScreener, Jupiter, Squid Router). It also integrates x402 providers{" "}
-          <strong className="text-foreground">StableCrypto</strong> (market data), <strong className="text-foreground">StableSocial</strong>{" "}
-          (TikTok, Instagram, Facebook, Reddit), and <strong className="text-foreground">StableEnrich</strong> (Exa,
-          Firecrawl, Apollo, maps, enrichment). You ask in plain English; the agent selects tools and returns structured
-          output.
+      <DocSection id="what-is-syra-agent" title="What is the Syra Agent?" prose>
+        <p>
+          The Syra Agent is an AI-powered surface for <strong>operators and autonomous agents</strong> on Solana. It
+          combines natural-language chat with on-demand tools: market signals, crypto news, sentiment, deep research, X
+          search, memecoin screens, treasury flows, and partner integrations.
         </p>
-        <p className="text-muted-foreground">
-          Syra builds <strong className="text-foreground">machine money infrastructure</strong> — not another generic
-          chatbot. Use the agent for context, coordination, and onchain-capable workflows; you remain responsible for
-          keys, compliance, and execution.
+        <p>
+          Syra builds <strong>machine money infrastructure</strong> — not another generic chatbot. You remain responsible
+          for keys, compliance, and execution.
         </p>
-      </section>
+      </DocSection>
 
-      <section id="what-you-need" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">What You'll Need</h2>
-        <ul className="list-disc pl-6 space-y-1 text-muted-foreground">
+      <DocSection id="what-you-need" title="What You'll Need" prose>
+        <ul>
           <li>A modern browser (Chrome, Firefox, Safari, or Edge)</li>
-          <li>Access to <a href={AGENT_URL} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">agent.syraa.fun</a></li>
+          <li>
+            Access to{" "}
+            <a href={SYRA_AGENT_URL} target="_blank" rel="noopener noreferrer">
+              {SYRA_WEB_LABEL}
+            </a>
+          </li>
           <li>An internet connection</li>
-          <li>(Optional) A connected wallet for paid tools (signals, news, research, etc.)—see <a href="#free-vs-paid" className="text-primary hover:underline">Free vs Paid Usage</a> below</li>
-          <li>(Optional) Familiarity with trading basics (RSI, MACD, price action) to get the most from signals</li>
+          <li>
+            (Optional) A connected wallet for paid tools — see{" "}
+            <a href="#free-vs-paid">Free vs Paid Usage</a>
+          </li>
         </ul>
-      </section>
+      </DocSection>
 
-      <section id="key-benefits" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">Key Benefits</h2>
-        <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-          <li><strong className="text-foreground">One place for everything</strong> — Signals, news, sentiment, research, and discovery in a single chat.</li>
-          <li><strong className="text-foreground">Natural language</strong> — No commands to memorize; describe what you want (e.g. &quot;Signal for Bitcoin&quot;, &quot;Latest ETH news&quot;).</li>
-          <li><strong className="text-foreground">Pay per use</strong> — You only pay when the agent calls a paid tool; each call has a small, transparent cost in USD.</li>
-          <li><strong className="text-foreground">Transparent reasoning</strong> — The agent explains how it reached its conclusions and what data it used.</li>
+      <DocSection id="key-benefits" title="Key Benefits" prose>
+        <ul>
+          <li>
+            <strong>One place for everything</strong> — Signals, news, sentiment, research, and discovery in a single
+            chat.
+          </li>
+          <li>
+            <strong>Natural language</strong> — No commands to memorize; describe what you want.
+          </li>
+          <li>
+            <strong>Pay per use</strong> — You only pay when the agent calls a paid tool.
+          </li>
+          <li>
+            <strong>Transparent reasoning</strong> — The agent explains how it reached its conclusions.
+          </li>
         </ul>
-      </section>
+      </DocSection>
 
-      <section id="free-vs-paid" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">Free vs Paid Usage</h2>
-        <p className="text-muted-foreground mb-4">
-          You can open the agent and chat without connecting a wallet. General conversation and guidance are free. When you ask for <strong className="text-foreground">data that requires the API</strong>—such as a trading signal, news, sentiment, research, or memecoin screens—the agent will use a paid tool. For those calls to succeed, you need to connect a wallet and have sufficient balance; the agent will prompt you when needed.
+      <DocSection id="free-vs-paid" title="Free vs Paid Usage">
+        <Callout variant="warning" title="Paid tools require a wallet">
+          General conversation is free. When you ask for data that requires the API — signals, news, sentiment,
+          research — the agent uses a paid tool. Connect a wallet with sufficient balance; the agent will prompt you
+          when needed.
+        </Callout>
+        <p className="text-muted-foreground leading-7 mt-4">
+          Prices are listed in the{" "}
+          <Link to="/docs/agent/agent-catalog" className="text-primary hover:underline">
+            Agent Catalog
+          </Link>
+          .
         </p>
-        <p className="text-muted-foreground">
-          Prices are listed in the <Link to="/docs/agent/agent-catalog" className="text-primary hover:underline">Agent Catalog</Link> (e.g. per signal, per news request). Check your balance in the agent UI before requesting paid features.
-        </p>
-      </section>
+      </DocSection>
 
-      <section id="quick-start" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">Quick Start</h2>
-        <p className="text-muted-foreground mb-4">
-          Open <a href={AGENT_URL} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">agent.syraa.fun</a>, type a message, and hit send. Try:
+      <DocSection id="quick-start" title="Quick Start" prose>
+        <p>
+          Open{" "}
+          <a href={SYRA_AGENT_URL} target="_blank" rel="noopener noreferrer">
+            {SYRA_WEB_LABEL}
+          </a>
+          , type a message, and hit send. Try:
         </p>
-        <ul className="list-disc pl-6 space-y-1 text-muted-foreground mb-4">
-          <li><em>&quot;What can you do?&quot;</em> — See a summary of the agent&apos;s capabilities.</li>
-          <li><em>&quot;List supported tokens&quot;</em> — See which assets you can get signals for.</li>
-          <li><em>&quot;Signal for Bitcoin&quot;</em> or <em>&quot;Get me a signal for SOL&quot;</em> — Request a full analysis (requires wallet).</li>
-          <li><em>&quot;Latest crypto news&quot;</em> or <em>&quot;News about ETH&quot;</em> — Get recent headlines (requires wallet).</li>
+        <ul>
+          <li>
+            <em>&quot;What can you do?&quot;</em> — Capabilities overview
+          </li>
+          <li>
+            <em>&quot;Signal for Bitcoin&quot;</em> — Full analysis (requires wallet)
+          </li>
+          <li>
+            <em>&quot;Latest crypto news&quot;</em> — Recent headlines (requires wallet)
+          </li>
         </ul>
-        <p className="text-muted-foreground">
-          For a full walkthrough, see <Link to="/docs/agent/how-it-works" className="text-primary hover:underline">How It Works</Link>.
+        <p>
+          See <Link to="/docs/agent/how-it-works">How It Works</Link> for a full walkthrough.
         </p>
-      </section>
+      </DocSection>
 
-      <section id="next-steps" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">Next Steps</h2>
-        <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-          <li><Link to="/docs/agent/how-it-works" className="text-primary hover:underline">How It Works</Link> — Step-by-step: open the agent, explore tokens, request a signal.</li>
-          <li><Link to="/docs/agent/features" className="text-primary hover:underline">Agent Features</Link> — Trading signals, news, sentiment, research, and more.</li>
-          <li><Link to="/docs/agent/agent-catalog" className="text-primary hover:underline">Agent Catalog</Link> — Full list of tools with names, descriptions, prices, and example prompts.</li>
-          <li><Link to="/docs/agent/market-data" className="text-primary hover:underline">Market data (StableCrypto)</Link> — Live CoinGecko/DefiLlama prices, global market, TVL, and pay.sh gateway.</li>
-          <li><Link to="/docs/agent/social-data" className="text-primary hover:underline">Social data (StableSocial)</Link> — TikTok, Instagram, Facebook, and Reddit profiles, posts, and search.</li>
-          <li><Link to="/docs/agent/enrichment-data" className="text-primary hover:underline">Enrichment (StableEnrich)</Link> — Exa, Firecrawl, Apollo, maps, Reddit, Serper, Hunter, Minerva.</li>
+      <DocSection id="next-steps" title="Next Steps" prose>
+        <ul>
+          <li>
+            <Link to="/docs/agent/how-it-works">How It Works</Link> — Step-by-step guide
+          </li>
+          <li>
+            <Link to="/docs/agent/features">Agent Features</Link> — Signals, news, research, and more
+          </li>
+          <li>
+            <Link to="/docs/agent/agent-catalog">Agent Catalog</Link> — Full tool list with prices
+          </li>
         </ul>
-      </section>
+      </DocSection>
 
-      <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3">
-        <Button variant="primary" size="lg" className="w-full sm:min-w-[12rem] sm:w-auto justify-center" asChild>
-          <a href={AGENT_URL} target="_blank" rel="noopener noreferrer">
+      <div className="flex flex-col sm:flex-row flex-wrap gap-3 not-prose">
+        <Button variant="primary" size="lg" asChild>
+          <a href={SYRA_AGENT_URL} target="_blank" rel="noopener noreferrer">
             Open Syra Agent
-            <ArrowRight className="ml-2 h-4 w-4 shrink-0" />
+            <ArrowRight className="ml-2 h-4 w-4" />
           </a>
         </Button>
-        <Button variant="outline" size="lg" className="w-full sm:min-w-[12rem] sm:w-auto justify-center" asChild>
-          <Link to="/docs/agent/how-it-works">Next: How It Works →</Link>
-        </Button>
-        <Button variant="ghost" size="lg" className="w-full sm:min-w-[12rem] sm:w-auto justify-center" asChild>
-          <Link to="/docs/welcome">Back to Welcome</Link>
+        <Button variant="outline" size="lg" asChild>
+          <Link to="/docs/agent/how-it-works">Next: How It Works</Link>
         </Button>
       </div>
     </DocsLayout>

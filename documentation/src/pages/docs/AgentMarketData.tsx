@@ -1,5 +1,8 @@
 import { Link } from "react-router-dom";
 import { DocsLayout } from "@/components/docs/DocsLayout";
+import { DocPageHeader } from "@/components/docs/DocPageHeader";
+import { DocSection } from "@/components/docs/DocSection";
+import { Callout } from "@/components/docs/Callout";
 import { CodeBlock } from "@/components/docs/CodeBlock";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,7 +16,7 @@ import {
 import { getToolsByCategory, formatPrice } from "@/data/agentToolsCatalog";
 import { ArrowRight, ExternalLink } from "lucide-react";
 
-const AGENT_URL = "https://agent.syraa.fun";
+import { SYRA_AGENT_URL } from "@/content/syraUrls";
 const STABLECRYPTO_LLMS = "https://stablecrypto.dev/llms.txt";
 const STABLECRYPTO_BASE = "https://stablecrypto.dev";
 
@@ -99,143 +102,138 @@ export default function AgentMarketData() {
 
   return (
     <DocsLayout toc={tocItems}>
-      <div className="mb-8">
-        <div className="text-sm text-primary font-medium mb-2">Syra Agent</div>
-        <h1 className="text-4xl font-bold tracking-tight mb-4">Market data (StableCrypto)</h1>
-        <p className="text-xl text-muted-foreground leading-relaxed">
-          The Syra Agent can fetch live CoinGecko and DefiLlama data through{" "}
-          <a
-            href={STABLECRYPTO_BASE}
-            className="text-primary hover:underline inline-flex items-center gap-1"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            StableCrypto
-            <ExternalLink className="h-3.5 w-3.5" />
-          </a>
-          — paid per request via x402 from your agent wallet. Ask in chat at{" "}
-          <a href={AGENT_URL} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
-            agent.syraa.fun
-          </a>{" "}
-          or call tools programmatically.
-        </p>
-      </div>
+      <DocPageHeader
+        eyebrow="Syra Agent"
+        title="Market data (StableCrypto)"
+        description={
+          <>
+            The Syra Agent can fetch live CoinGecko and DefiLlama data through{" "}
+            <a
+              href={STABLECRYPTO_BASE}
+              className="text-primary hover:underline inline-flex items-center gap-1"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              StableCrypto
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+            — paid per request via x402 from your agent wallet. Ask in chat at{" "}
+            <a href={SYRA_AGENT_URL} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+              syraa.fun
+            </a>{" "}
+            or call tools programmatically.
+          </>
+        }
+      />
 
-      <section id="overview" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">Overview</h2>
-        <p className="text-muted-foreground mb-4">
-          <strong className="text-foreground">StableCrypto</strong> is a micropayment API gateway (
+      <DocSection id="overview" title="Overview" prose>
+        <p>
+          <strong>StableCrypto</strong> is a micropayment API gateway (
           <a href={STABLECRYPTO_LLMS} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
             llms.txt
           </a>
           ) that exposes CoinGecko market data, DefiLlama TVL/yields, Alchemy blockchain data, and Etherscan explorer
-          endpoints. Every upstream call is <strong className="text-foreground">POST</strong> and costs about{" "}
-          <strong className="text-foreground">$0.01 USDC</strong> via x402/MPP (Solana, Base, or Tempo).
+          endpoints. Every upstream call is <strong>POST</strong> and costs about <strong>$0.01 USDC</strong> via
+          x402/MPP (Solana, Base, or Tempo).
         </p>
-        <p className="text-muted-foreground mb-4">
-          Syra integrates StableCrypto in two ways:
-        </p>
-        <ul className="list-disc pl-6 space-y-2 text-muted-foreground mb-4">
+        <p>Syra integrates StableCrypto in two ways:</p>
+        <ul>
           <li>
-            <strong className="text-foreground">Curated agent tools</strong> (<code className="text-sm bg-muted px-1 rounded">stablecrypto-*</code>
-            ) — ten first-class tools with simple params (ids, protocol, etc.) for chat and{" "}
-            <code className="text-sm bg-muted px-1 rounded">POST /agent/tools/call</code>.
+            <strong>Curated agent tools</strong> (<code>stablecrypto-*</code>) — ten first-class tools with simple params
+            (ids, protocol, etc.) for chat and <code>POST /agent/tools/call</code>.
           </li>
           <li>
-            <strong className="text-foreground">pay.sh catalog</strong> (<code className="text-sm bg-muted px-1 rounded">paysh-discover</code>,{" "}
-            <code className="text-sm bg-muted px-1 rounded">paysh-endpoints</code>,{" "}
-            <code className="text-sm bg-muted px-1 rounded">paysh-call</code>) — generic gateway to the full StableCrypto
-            OpenAPI surface and ~75 other x402 providers.
+            <strong>pay.sh catalog</strong> (<code>paysh-discover</code>, <code>paysh-endpoints</code>,{" "}
+            <code>paysh-call</code>) — generic gateway to the full StableCrypto OpenAPI surface and ~75 other x402
+            providers.
           </li>
         </ul>
-        <p className="text-muted-foreground">
-          Both paths work in <strong className="text-foreground">agent chat completion</strong> and the{" "}
-          <strong className="text-foreground">tools API</strong>. The agent wallet pays StableCrypto upstream; you are not
-          billed on Syra-hosted x402 routes for these calls.
+        <p>
+          Both paths work in <strong>agent chat completion</strong> and the <strong>tools API</strong>. The agent wallet
+          pays StableCrypto upstream; you are not billed on Syra-hosted x402 routes for these calls.
         </p>
-      </section>
+      </DocSection>
 
-      <section id="how-it-works" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">How it works in chat</h2>
-        <ol className="list-decimal pl-6 space-y-2 text-muted-foreground mb-4">
+      <DocSection id="how-it-works" title="How it works in chat" prose>
+        <ol>
           <li>You send a natural-language message (e.g. &quot;What&apos;s the Bitcoin price?&quot;).</li>
           <li>
             The agent&apos;s tool router selects a tool — for major-coin spot price it prefers{" "}
-            <code className="text-sm bg-muted px-1 rounded">stablecrypto-coingecko-price</code> over the Syra{" "}
-            <code className="text-sm bg-muted px-1 rounded">signal</code> tool when you only need a live quote.
+            <code>stablecrypto-coingecko-price</code> over the Syra <code>signal</code> tool when you only need a live
+            quote.
           </li>
           <li>
-            The server calls <code className="text-sm bg-muted px-1 rounded">https://stablecrypto.dev</code> with POST +
-            x402; your agent USDC balance is debited (~$0.01 per call).
+            The server calls <code>https://stablecrypto.dev</code> with POST + x402; your agent USDC balance is debited
+            (~$0.01 per call).
           </li>
           <li>The LLM summarizes the JSON response in plain language.</li>
         </ol>
-        <div className="p-4 rounded-lg border border-border bg-muted/30 text-sm text-muted-foreground">
-          <strong className="text-foreground">Example prompts:</strong> &quot;Global crypto market cap&quot;, &quot;BTC and
-          ETH price&quot;, &quot;CoinGecko trending&quot;, &quot;DefiLlama TVL for aave&quot;, &quot;Top DeFi protocols by
-          TVL&quot;.
-        </div>
-      </section>
+        <Callout variant="tip" title="Example prompts">
+          &quot;Global crypto market cap&quot;, &quot;BTC and ETH price&quot;, &quot;CoinGecko trending&quot;,
+          &quot;DefiLlama TVL for aave&quot;, &quot;Top DeFi protocols by TVL&quot;.
+        </Callout>
+      </DocSection>
 
-      <section id="stablecrypto-tools" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">StableCrypto tools</h2>
-        <p className="text-muted-foreground mb-4">
-          Each row is a registered Syra agent tool. Upstream path is always under{" "}
-          <code className="text-sm bg-muted px-1 rounded">{STABLECRYPTO_BASE}</code>.
-        </p>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[200px]">Tool ID</TableHead>
-              <TableHead>Upstream path</TableHead>
-              <TableHead className="w-[80px] text-right">Price</TableHead>
-              <TableHead>Example prompt</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {stablecryptoTools.map((t) => {
-              const upstream = stablecryptoParamRows.find((r) => r.toolId === t.id);
-              const path = upstream
-                ? t.id.replace("stablecrypto-coingecko-", "/api/coingecko/").replace("stablecrypto-defillama-", "/api/defillama/")
-                : "";
-              const displayPath =
-                t.id === "stablecrypto-coingecko-price"
-                  ? "/api/coingecko/price"
-                  : t.id === "stablecrypto-coingecko-global"
-                    ? "/api/coingecko/global"
-                    : t.id === "stablecrypto-coingecko-trending"
-                      ? "/api/coingecko/trending"
-                      : t.id === "stablecrypto-coingecko-markets"
-                        ? "/api/coingecko/markets"
-                        : t.id === "stablecrypto-coingecko-ohlc"
-                          ? "/api/coingecko/ohlc"
-                          : t.id === "stablecrypto-defillama-protocols"
-                            ? "/api/defillama/protocols"
-                            : t.id === "stablecrypto-defillama-chains"
-                              ? "/api/defillama/chains"
-                              : t.id === "stablecrypto-defillama-tvl"
-                                ? "/api/defillama/tvl"
-                                : t.id === "stablecrypto-defillama-coins-prices"
-                                  ? "/api/defillama/coins/prices"
-                                  : t.id === "stablecrypto-defillama-yields-pools"
-                                    ? "/api/defillama/yields/pools"
-                                    : path;
-              return (
-                <TableRow key={t.id}>
-                  <TableCell className="font-mono text-xs text-foreground">{t.id}</TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">{displayPath}</TableCell>
-                  <TableCell className="text-right text-muted-foreground whitespace-nowrap">
-                    {formatPrice(t.priceUsd)}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    <em className="text-foreground/90 not-italic">&quot;{t.examplePrompt.split(" / ")[0]}&quot;</em>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-        <p className="text-muted-foreground mt-4 text-sm">
+      <DocSection
+        id="stablecrypto-tools"
+        title="StableCrypto tools"
+        description="Each row is a registered Syra agent tool. Upstream path is always under https://stablecrypto.dev."
+      >
+        <div className="not-prose overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[200px]">Tool ID</TableHead>
+                <TableHead>Upstream path</TableHead>
+                <TableHead className="w-[80px] text-right">Price</TableHead>
+                <TableHead>Example prompt</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {stablecryptoTools.map((t) => {
+                const upstream = stablecryptoParamRows.find((r) => r.toolId === t.id);
+                const path = upstream
+                  ? t.id.replace("stablecrypto-coingecko-", "/api/coingecko/").replace("stablecrypto-defillama-", "/api/defillama/")
+                  : "";
+                const displayPath =
+                  t.id === "stablecrypto-coingecko-price"
+                    ? "/api/coingecko/price"
+                    : t.id === "stablecrypto-coingecko-global"
+                      ? "/api/coingecko/global"
+                      : t.id === "stablecrypto-coingecko-trending"
+                        ? "/api/coingecko/trending"
+                        : t.id === "stablecrypto-coingecko-markets"
+                          ? "/api/coingecko/markets"
+                          : t.id === "stablecrypto-coingecko-ohlc"
+                            ? "/api/coingecko/ohlc"
+                            : t.id === "stablecrypto-defillama-protocols"
+                              ? "/api/defillama/protocols"
+                              : t.id === "stablecrypto-defillama-chains"
+                                ? "/api/defillama/chains"
+                                : t.id === "stablecrypto-defillama-tvl"
+                                  ? "/api/defillama/tvl"
+                                  : t.id === "stablecrypto-defillama-coins-prices"
+                                    ? "/api/defillama/coins/prices"
+                                    : t.id === "stablecrypto-defillama-yields-pools"
+                                      ? "/api/defillama/yields/pools"
+                                      : path;
+                return (
+                  <TableRow key={t.id}>
+                    <TableCell className="font-mono text-xs text-foreground">{t.id}</TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">{displayPath}</TableCell>
+                    <TableCell className="text-right text-muted-foreground whitespace-nowrap">
+                      {formatPrice(t.priceUsd)}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      <em className="text-foreground/90 not-italic">&quot;{t.examplePrompt.split(" / ")[0]}&quot;</em>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+        <p className="text-muted-foreground mt-4 text-sm leading-7">
           Additional StableCrypto routes (Alchemy, Etherscan, on-chain CoinGecko) are available via{" "}
           <Link to="#paysh" className="text-primary hover:underline">
             pay.sh call
@@ -246,47 +244,49 @@ export default function AgentMarketData() {
           </a>
           .
         </p>
-      </section>
+      </DocSection>
 
-      <section id="params" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">Parameters & examples</h2>
-        <p className="text-muted-foreground mb-4">
-          Chat and <code className="text-sm bg-muted px-1 rounded">POST /agent/tools/call</code> use flat string params. The
-          server builds the StableCrypto POST JSON body. You can also pass a full payload with{" "}
+      <DocSection id="params" title="Parameters & examples">
+        <p className="text-muted-foreground leading-7 mb-4">
+          Chat and <code className="text-sm bg-muted px-1 rounded">POST /agent/tools/call</code> use flat string params.
+          The server builds the StableCrypto POST JSON body. You can also pass a full payload with{" "}
           <code className="text-sm bg-muted px-1 rounded">body</code> as a JSON string (advanced).
         </p>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Tool ID</TableHead>
-              <TableHead>Required</TableHead>
-              <TableHead>Optional</TableHead>
-              <TableHead>Example params</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {stablecryptoParamRows.map((row) => (
-              <TableRow key={row.toolId}>
-                <TableCell className="font-mono text-xs">{row.toolId}</TableCell>
-                <TableCell className="text-muted-foreground">{row.required}</TableCell>
-                <TableCell className="text-muted-foreground">{row.optional}</TableCell>
-                <TableCell>
-                  <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{row.example}</code>
-                </TableCell>
+        <div className="not-prose overflow-x-auto mb-4">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Tool ID</TableHead>
+                <TableHead>Required</TableHead>
+                <TableHead>Optional</TableHead>
+                <TableHead>Example params</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        <p className="text-muted-foreground mt-4 mb-4">
+            </TableHeader>
+            <TableBody>
+              {stablecryptoParamRows.map((row) => (
+                <TableRow key={row.toolId}>
+                  <TableCell className="font-mono text-xs">{row.toolId}</TableCell>
+                  <TableCell className="text-muted-foreground">{row.required}</TableCell>
+                  <TableCell className="text-muted-foreground">{row.optional}</TableCell>
+                  <TableCell>
+                    <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{row.example}</code>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+        <p className="text-muted-foreground leading-7 mb-4">
           <strong className="text-foreground">CoinGecko ids</strong> are lowercase slugs:{" "}
           <code className="text-sm bg-muted px-1 rounded">bitcoin</code>,{" "}
           <code className="text-sm bg-muted px-1 rounded">ethereum</code>,{" "}
-          <code className="text-sm bg-muted px-1 rounded">solana</code> — not tickers BTC/ETH/SOL in the API body (the agent
-          maps those for you in chat).
+          <code className="text-sm bg-muted px-1 rounded">solana</code> — not tickers BTC/ETH/SOL in the API body (the
+          agent maps those for you in chat).
         </p>
-        <CodeBlock
-          language="json"
-          code={`// POST /agent/tools/call
+        <div className="not-prose">
+          <CodeBlock
+            language="json"
+            code={`// POST /agent/tools/call
 {
   "anonymousId": "<your-session-id>",
   "toolId": "stablecrypto-coingecko-price",
@@ -295,42 +295,45 @@ export default function AgentMarketData() {
     "vs_currencies": "usd"
   }
 }`}
-        />
-      </section>
+          />
+        </div>
+      </DocSection>
 
-      <section id="paysh" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">pay.sh gateway</h2>
-        <p className="text-muted-foreground mb-4">
-          For endpoints not wrapped as <code className="text-sm bg-muted px-1 rounded">stablecrypto-*</code> tools, use the
-          pay.sh trio. Discovery and endpoint listing are <strong className="text-foreground">free</strong>;{" "}
+      <DocSection id="paysh" title="pay.sh gateway">
+        <p className="text-muted-foreground leading-7 mb-4">
+          For endpoints not wrapped as <code className="text-sm bg-muted px-1 rounded">stablecrypto-*</code> tools, use
+          the pay.sh trio. Discovery and endpoint listing are <strong className="text-foreground">free</strong>;{" "}
           <code className="text-sm bg-muted px-1 rounded">paysh-call</code> charges at least the provider&apos;s{" "}
           <code className="text-sm bg-muted px-1 rounded">min_price_usd</code> (StableCrypto: ~$0.01).
         </p>
-        <Table className="mb-6">
-          <TableHeader>
-            <TableRow>
-              <TableHead>Tool ID</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead className="text-right">Price</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {payshTools.map((t) => (
-              <TableRow key={t.id}>
-                <TableCell className="font-mono text-xs">{t.id}</TableCell>
-                <TableCell className="text-muted-foreground">{t.description}</TableCell>
-                <TableCell className="text-right text-muted-foreground">{formatPrice(t.priceUsd)}</TableCell>
+        <div className="not-prose overflow-x-auto mb-6">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Tool ID</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead className="text-right">Price</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        <p className="text-muted-foreground mb-4">
+            </TableHeader>
+            <TableBody>
+              {payshTools.map((t) => (
+                <TableRow key={t.id}>
+                  <TableCell className="font-mono text-xs">{t.id}</TableCell>
+                  <TableCell className="text-muted-foreground">{t.description}</TableCell>
+                  <TableCell className="text-right text-muted-foreground">{formatPrice(t.priceUsd)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+        <p className="text-muted-foreground leading-7 mb-4">
           <strong className="text-foreground">StableCrypto FQN</strong> on pay.sh:{" "}
           <code className="text-sm bg-muted px-1 rounded">merit-systems/stablecrypto/market-data</code>
         </p>
-        <CodeBlock
-          language="json"
-          code={`{
+        <div className="not-prose">
+          <CodeBlock
+            language="json"
+            code={`{
   "anonymousId": "<session-id>",
   "toolId": "paysh-call",
   "params": {
@@ -340,72 +343,66 @@ export default function AgentMarketData() {
     "body": "{}"
   }
 }`}
-        />
-        <p className="text-muted-foreground mt-4 text-sm">
+          />
+        </div>
+        <p className="text-muted-foreground mt-4 text-sm leading-7">
           Flow: <code className="text-sm bg-muted px-1 rounded">paysh-discover</code> with{" "}
           <code className="text-sm bg-muted px-1 rounded">q=stablecrypto</code> →{" "}
           <code className="text-sm bg-muted px-1 rounded">paysh-endpoints</code> with the fqn →{" "}
           <code className="text-sm bg-muted px-1 rounded">paysh-call</code> with path + body from OpenAPI.
         </p>
-      </section>
+      </DocSection>
 
-      <section id="routing" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">When the agent picks what</h2>
-        <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+      <DocSection id="routing" title="When the agent picks what" prose>
+        <ul>
           <li>
-            <strong className="text-foreground">Major coin spot price / global market / CoinGecko trending / DefiLlama
-            TVL</strong> → <code className="text-sm bg-muted px-1 rounded">stablecrypto-*</code> tools.
+            <strong>Major coin spot price / global market / CoinGecko trending / DefiLlama TVL</strong> →{" "}
+            <code>stablecrypto-*</code> tools.
           </li>
           <li>
-            <strong className="text-foreground">Full technical trading signal</strong> (RSI, MACD, levels, action plan) →
-            Syra <code className="text-sm bg-muted px-1 rounded">signal</code> tool (Binance/CoinGecko OHLC + Syra engine).
+            <strong>Full technical trading signal</strong> (RSI, MACD, levels, action plan) → Syra <code>signal</code> tool
+            (Binance/CoinGecko OHLC + Syra engine).
           </li>
           <li>
-            <strong className="text-foreground">Solana token by mint</strong> (price, security, OHLCV, holders) →{" "}
-            <code className="text-sm bg-muted px-1 rounded">birdeye-*</code> tools (requires contract address).
+            <strong>Solana token by mint</strong> (price, security, OHLCV, holders) → <code>birdeye-*</code> tools
+            (requires contract address).
           </li>
           <li>
-            <strong className="text-foreground">Any other StableCrypto route</strong> (e.g. Alchemy portfolio, Etherscan
-            gas) → <code className="text-sm bg-muted px-1 rounded">paysh-call</code> with the StableCrypto FQN.
+            <strong>Any other StableCrypto route</strong> (e.g. Alchemy portfolio, Etherscan gas) →{" "}
+            <code>paysh-call</code> with the StableCrypto FQN.
           </li>
         </ul>
-      </section>
+      </DocSection>
 
-      <section id="api-integration" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">API integration</h2>
-        <p className="text-muted-foreground mb-4">
+      <DocSection id="api-integration" title="API integration" prose>
+        <p>
           Programmatic access uses the same tool IDs as chat. See{" "}
           <Link to="/docs/api/agent-tools-market-data" className="text-primary hover:underline">
             API: Agent market data tools
           </Link>{" "}
-          for <code className="text-sm bg-muted px-1 rounded">GET /agent/tools</code> and{" "}
-          <code className="text-sm bg-muted px-1 rounded">POST /agent/tools/call</code>.
+          for <code>GET /agent/tools</code> and <code>POST /agent/tools/call</code>.
         </p>
-        <p className="text-muted-foreground mb-4">
-          Server-side env (optional): <code className="text-sm bg-muted px-1 rounded">STABLECRYPTO_API_BASE_URL</code>{" "}
-          defaults to <code className="text-sm bg-muted px-1 rounded">https://stablecrypto.dev</code>. pay.sh catalog
-          refresh uses <code className="text-sm bg-muted px-1 rounded">PAYSH_CATALOG_URL</code> /{" "}
-          <code className="text-sm bg-muted px-1 rounded">PAYSH_SKILLS_BASE_URL</code> if you override gateways.
+        <p>
+          Server-side env (optional): <code>STABLECRYPTO_API_BASE_URL</code> defaults to{" "}
+          <code>https://stablecrypto.dev</code>. pay.sh catalog refresh uses <code>PAYSH_CATALOG_URL</code> /{" "}
+          <code>PAYSH_SKILLS_BASE_URL</code> if you override gateways.
         </p>
-      </section>
+      </DocSection>
 
-      <section id="pricing" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">Pricing & wallet</h2>
-        <p className="text-muted-foreground mb-4">
-          Each <code className="text-sm bg-muted px-1 rounded">stablecrypto-*</code> call is billed at{" "}
-          <strong className="text-foreground">{formatPrice(0.01)}</strong> from your agent wallet (display price may
-          reflect production markup in the UI). SYRA holders may receive treasury-paid tool execution per Syra policy —
-          same as other agent tools.
+      <DocSection id="pricing" title="Pricing & wallet" prose>
+        <p>
+          Each <code>stablecrypto-*</code> call is billed at <strong>{formatPrice(0.01)}</strong> from your agent wallet
+          (display price may reflect production markup in the UI). SYRA holders may receive treasury-paid tool execution
+          per Syra policy — same as other agent tools.
         </p>
-        <p className="text-muted-foreground">
-          If balance is insufficient, the tool is skipped in chat and the assistant explains that you need to deposit USDC
-          to the agent wallet. No charge is applied when required params are missing.
+        <p>
+          If balance is insufficient, the tool is skipped in chat and the assistant explains that you need to deposit
+          USDC to the agent wallet. No charge is applied when required params are missing.
         </p>
-      </section>
+      </DocSection>
 
-      <section id="related-guides" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">Related agent guides</h2>
-        <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+      <DocSection id="related-guides" title="Related agent guides" prose>
+        <ul>
           <li>
             <Link to="/docs/agent/social-data" className="text-primary hover:underline">
               Social data (StableSocial)
@@ -424,19 +421,19 @@ export default function AgentMarketData() {
             </Link>
           </li>
         </ul>
-      </section>
+      </DocSection>
 
-      <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3">
-        <Button variant="primary" size="lg" className="w-full sm:min-w-[12rem] sm:w-auto justify-center" asChild>
-          <a href={AGENT_URL} target="_blank" rel="noopener noreferrer">
+      <div className="flex flex-col sm:flex-row flex-wrap gap-3 not-prose">
+        <Button variant="primary" size="lg" asChild>
+          <a href={SYRA_AGENT_URL} target="_blank" rel="noopener noreferrer">
             Open Syra Agent
-            <ArrowRight className="ml-2 h-4 w-4 shrink-0" />
+            <ArrowRight className="ml-2 h-4 w-4" />
           </a>
         </Button>
-        <Button variant="outline" size="lg" className="w-full sm:min-w-[12rem] sm:w-auto justify-center" asChild>
+        <Button variant="outline" size="lg" asChild>
           <Link to="/docs/agent/agent-catalog">Agent Catalog</Link>
         </Button>
-        <Button variant="ghost" size="lg" className="w-full sm:min-w-[12rem] sm:w-auto justify-center" asChild>
+        <Button variant="ghost" size="lg" asChild>
           <Link to="/docs/agent/features">← Agent Features</Link>
         </Button>
       </div>

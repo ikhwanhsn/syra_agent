@@ -33,6 +33,9 @@ export const X402_DISCOVERY_RESOURCE_PATHS = [
   "assets",
   "assets/detail",
   "bitcoin",
+  "chat/completions",
+  "images/generations",
+  "videos/generations",
   // 8004 agent registry discovery
   "8004/stats",
   "8004/leaderboard",

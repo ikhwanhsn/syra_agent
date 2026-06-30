@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
 import { DocsLayout } from "@/components/docs/DocsLayout";
+import { DocPageHeader } from "@/components/docs/DocPageHeader";
+import { DocSection } from "@/components/docs/DocSection";
 import { CodeBlock } from "@/components/docs/CodeBlock";
 import {
   Table,
@@ -30,147 +32,143 @@ export default function AgentSocialData() {
 
   return (
     <DocsLayout toc={tocItems}>
-      <div className="mb-8">
-        <div className="text-sm text-primary font-medium mb-2">Syra Agent</div>
-        <h1 className="text-4xl font-bold tracking-tight mb-4">Social data (StableSocial)</h1>
-        <p className="text-xl text-muted-foreground leading-relaxed">
-          Syra Agent can fetch TikTok, Instagram, Facebook, and Reddit data through{" "}
-          <a
-            href={STABLESOCIAL_BASE}
-            className="text-primary hover:underline inline-flex items-center gap-1"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            StableSocial
-            <ExternalLink className="h-3.5 w-3.5" />
-          </a>{" "}
-          (~$0.06 per trigger). The server pays x402 from the agent wallet, polls the job with SIWX, and returns finished
-          data to chat or <code className="text-sm bg-muted px-1 rounded">POST /agent/tools/call</code>.
-        </p>
-      </div>
+      <DocPageHeader
+        eyebrow="Syra Agent"
+        title="Social data (StableSocial)"
+        description={
+          <>
+            Syra Agent can fetch TikTok, Instagram, Facebook, and Reddit data through{" "}
+            <a
+              href={STABLESOCIAL_BASE}
+              className="text-primary hover:underline inline-flex items-center gap-1"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              StableSocial
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>{" "}
+            (~$0.06 per trigger). The server pays x402 from the agent wallet, polls the job with SIWX, and returns
+            finished data to chat or <code className="text-sm bg-muted px-1 rounded">POST /agent/tools/call</code>.
+          </>
+        }
+      />
 
-      <section id="overview" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">Overview</h2>
-        <p className="text-muted-foreground mb-4">
-          Eleven curated <code className="text-sm bg-muted px-1 rounded">stablesocial-*</code> tools wrap the most common
-          StableSocial routes. Each tool maps to a POST on{" "}
-          <code className="text-sm bg-muted px-1 rounded">stablesocial.dev</code> (profile, posts, search, subreddit).
-          Full API reference:{" "}
+      <DocSection id="overview" title="Overview" prose>
+        <p>
+          Eleven curated <code>stablesocial-*</code> tools wrap the most common StableSocial routes. Each tool maps to a
+          POST on <code>stablesocial.dev</code> (profile, posts, search, subreddit). Full API reference:{" "}
           <a href={STABLESOCIAL_LLMS} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
             stablesocial.dev/llms.txt
           </a>
           .
         </p>
-        <p className="text-muted-foreground">
+        <p>
           For routes not yet wrapped as tools, use{" "}
           <Link to="/docs/agent/market-data" className="text-primary hover:underline">
             pay.sh
           </Link>{" "}
-          with FQN <code className="text-sm bg-muted px-1 rounded">merit-systems/stablesocial/social-data</code> (you
-          handle trigger + SIWX poll yourself).
+          with FQN <code>merit-systems/stablesocial/social-data</code> (you handle trigger + SIWX poll yourself).
         </p>
-      </section>
+      </DocSection>
 
-      <section id="async-flow" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">Async two-step flow</h2>
-        <ol className="list-decimal list-inside space-y-2 text-muted-foreground mb-4">
+      <DocSection id="async-flow" title="Async two-step flow" prose>
+        <ol>
           <li>
-            <strong className="text-foreground">POST trigger (paid)</strong> — Agent wallet pays ~$0.06 USDC via x402.
-            Response: <code className="text-sm bg-muted px-1 rounded">{"{ \"token\": \"eyJ...\" }"}</code> (HTTP 202).
+            <strong>POST trigger (paid)</strong> — Agent wallet pays ~$0.06 USDC via x402. Response:{" "}
+            <code>{`{ "token": "eyJ..." }`}</code> (HTTP 202).
           </li>
           <li>
-            <strong className="text-foreground">GET /api/jobs?token=… (free, SIWX)</strong> — Same wallet signs
-            Sign-In-With-X; poll until <code className="text-sm bg-muted px-1 rounded">status: finished</code>. Syra does
-            this automatically for <code className="text-sm bg-muted px-1 rounded">stablesocial-*</code> tools.
+            <strong>GET /api/jobs?token=… (free, SIWX)</strong> — Same wallet signs Sign-In-With-X; poll until{" "}
+            <code>status: finished</code>. Syra does this automatically for <code>stablesocial-*</code> tools.
           </li>
         </ol>
-        <p className="text-muted-foreground text-sm">
+        <p>
           Jobs usually finish in 5–60 seconds. Token expires after 30 minutes. Polling with a different wallet than the
           payer returns 403.
         </p>
-      </section>
+      </DocSection>
 
-      <section id="tools" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">StableSocial tools</h2>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Tool ID</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead className="text-right">Price</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {socialData.map((t) => (
-              <TableRow key={t.id}>
-                <TableCell className="font-mono text-sm">{t.id}</TableCell>
-                <TableCell className="text-muted-foreground">{t.description}</TableCell>
-                <TableCell className="text-right whitespace-nowrap">{formatPrice(t.priceUsd)}</TableCell>
+      <DocSection id="tools" title="StableSocial tools">
+        <div className="not-prose overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Tool ID</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead className="text-right">Price</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </section>
+            </TableHeader>
+            <TableBody>
+              {socialData.map((t) => (
+                <TableRow key={t.id}>
+                  <TableCell className="font-mono text-sm">{t.id}</TableCell>
+                  <TableCell className="text-muted-foreground">{t.description}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatPrice(t.priceUsd)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </DocSection>
 
-      <section id="params" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">Parameters</h2>
-        <ul className="list-disc list-inside space-y-2 text-muted-foreground mb-6">
+      <DocSection id="params" title="Parameters">
+        <ul className="list-disc list-inside space-y-2 text-muted-foreground mb-6 leading-7">
           <li>
             <code className="text-sm bg-muted px-1 rounded">handle</code> — TikTok / Instagram / Facebook username (no @)
           </li>
           <li>
-            <code className="text-sm bg-muted px-1 rounded">keyword</code> or <code className="text-sm bg-muted px-1 rounded">q</code> — search queries
+            <code className="text-sm bg-muted px-1 rounded">keyword</code> or{" "}
+            <code className="text-sm bg-muted px-1 rounded">q</code> — search queries
           </li>
           <li>
-            <code className="text-sm bg-muted px-1 rounded">subreddit</code> — Reddit community (without <code className="text-sm bg-muted px-1 rounded">r/</code>)
+            <code className="text-sm bg-muted px-1 rounded">subreddit</code> — Reddit community (without{" "}
+            <code className="text-sm bg-muted px-1 rounded">r/</code>)
           </li>
           <li>
             <code className="text-sm bg-muted px-1 rounded">post_id</code> — Reddit post id
           </li>
           <li>
-            <code className="text-sm bg-muted px-1 rounded">body</code> — optional JSON string passthrough for advanced fields
+            <code className="text-sm bg-muted px-1 rounded">body</code> — optional JSON string passthrough for advanced
+            fields
           </li>
         </ul>
-        <CodeBlock
-          language="json"
-          code={`{
+        <div className="not-prose">
+          <CodeBlock
+            language="json"
+            code={`{
   "anonymousId": "<session-id>",
   "toolId": "stablesocial-tiktok-profile",
   "params": { "handle": "tiktok" }
 }`}
-        />
-      </section>
+          />
+        </div>
+      </DocSection>
 
-      <section id="api-integration" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">API integration</h2>
-        <p className="text-muted-foreground mb-4">
-          Same endpoints as other agent tools: list via <code className="text-sm bg-muted px-1 rounded">GET /agent/tools</code>,
-          call via <code className="text-sm bg-muted px-1 rounded">POST /agent/tools/call</code>, or natural language on{" "}
-          <code className="text-sm bg-muted px-1 rounded">POST /agent/chat/completion</code>.
+      <DocSection id="api-integration" title="API integration" prose>
+        <p>
+          Same endpoints as other agent tools: list via <code>GET /agent/tools</code>, call via{" "}
+          <code>POST /agent/tools/call</code>, or natural language on <code>POST /agent/chat/completion</code>.
         </p>
-        <p className="text-muted-foreground">
+        <p>
           See{" "}
           <Link to="/docs/api/agent-tools-social-data" className="text-primary hover:underline">
             API reference: Agent tools — StableSocial
           </Link>
           .
         </p>
-      </section>
+      </DocSection>
 
-      <section id="pricing" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">Pricing & wallet</h2>
-        <p className="text-muted-foreground">
-          Each <code className="text-sm bg-muted px-1 rounded">stablesocial-*</code> call charges ~$
-          {socialData[0]?.priceUsd.toFixed(2) ?? "0.06"} from the agent USDC balance (upstream StableSocial trigger).
-          SIWX polling is free. Optional env: <code className="text-sm bg-muted px-1 rounded">STABLESOCIAL_API_BASE_URL</code>,{" "}
-          <code className="text-sm bg-muted px-1 rounded">STABLESOCIAL_POLL_INTERVAL_MS</code>,{" "}
-          <code className="text-sm bg-muted px-1 rounded">STABLESOCIAL_POLL_MAX_ATTEMPTS</code>.
+      <DocSection id="pricing" title="Pricing & wallet" prose>
+        <p>
+          Each <code>stablesocial-*</code> call charges ~${socialData[0]?.priceUsd.toFixed(2) ?? "0.06"} from the agent
+          USDC balance (upstream StableSocial trigger). SIWX polling is free. Optional env:{" "}
+          <code>STABLESOCIAL_API_BASE_URL</code>, <code>STABLESOCIAL_POLL_INTERVAL_MS</code>,{" "}
+          <code>STABLESOCIAL_POLL_MAX_ATTEMPTS</code>.
         </p>
-      </section>
+      </DocSection>
 
-      <section id="related-guides" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">Related agent guides</h2>
-        <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+      <DocSection id="related-guides" title="Related agent guides" prose>
+        <ul>
           <li>
             <Link to="/docs/agent/market-data" className="text-primary hover:underline">
               Market data (StableCrypto)
@@ -187,7 +185,7 @@ export default function AgentSocialData() {
             </Link>
           </li>
         </ul>
-      </section>
+      </DocSection>
     </DocsLayout>
   );
 }

@@ -16,6 +16,7 @@ import { SWAP_POST } from "./swapUpdate";
 import { SKILL_EARN_POST } from "./skillEarnUpdate";
 import { AMPERSEND_MARKETPLACE_POST } from "./ampersendMarketplaceUpdate";
 import { AIP_INTEGRATION_POST } from "./aipIntegrationUpdate";
+import { OPENROUTER_X402_APIS_POST } from "./openrouterX402ApisUpdate";
 import { AGENTSCORE_PHOTO } from "./photo/agentscorePhoto";
 import { INDICATOR_PHOTO } from "./photo/indicatorPhoto";
 import { BNB_X402_PHOTO } from "./photo/bnbX402Photo";
@@ -34,6 +35,7 @@ import { SWAP_PHOTO } from "./photo/swapPhoto";
 import { SKILL_EARN_PHOTO } from "./photo/skillEarnPhoto";
 import { AMPERSEND_MARKETPLACE_PHOTO } from "./photo/ampersendMarketplacePhoto";
 import { AIP_INTEGRATION_PHOTO } from "./photo/aipIntegrationPhoto";
+import { OPENROUTER_X402_APIS_PHOTO } from "./photo/openrouterX402ApisPhoto";
 import type { PostPhotoUpdate } from "./photo/types";
 import type { PostUpdate } from "./types";
 import { validatePostUpdate } from "./validatePostUpdate";
@@ -69,6 +71,7 @@ const POST_UPDATE_BUNDLES: PostUpdateBundle[] = [
   { video: SKILL_EARN_POST, photo: SKILL_EARN_PHOTO },
   { video: AMPERSEND_MARKETPLACE_POST, photo: AMPERSEND_MARKETPLACE_PHOTO },
   { video: AIP_INTEGRATION_POST, photo: AIP_INTEGRATION_PHOTO },
+  { video: OPENROUTER_X402_APIS_POST, photo: OPENROUTER_X402_APIS_PHOTO },
 ];
 
 function assertBundleMeta(bundle: PostUpdateBundle): void {

@@ -5,7 +5,7 @@
 import type { HttpMethod } from "@/types/api";
 import type { RequestParam } from "@/types/api";
 
-export const X402_PLAYGROUND_GENERATED_AT = "2026-06-28T15:05:38.995Z";
+export const X402_PLAYGROUND_GENERATED_AT = "2026-06-30T02:45:43.782Z";
 
 export interface X402PlaygroundResourceTemplate {
   segment: string;
@@ -747,6 +747,51 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "description": "Complete Bitcoin intelligence bundle from the Syra BTC page. Use when an agent needs macro BTC context: price, derivatives, technicals, sen…",
       "priceUsd": "0.01",
       "category": "analytics"
+    }
+  },
+  {
+    "segment": "chat/completions",
+    "id": "x402-chat-completions",
+    "label": "Chat Completions (OpenRouter): OpenAI-compatible agent chat via top OpenRouter models",
+    "method": "POST",
+    "params": [],
+    "catalogMeta": {
+      "segment": "chat/completions",
+      "name": "Chat Completions (OpenRouter)",
+      "summary": "OpenAI-compatible agent chat via top OpenRouter models",
+      "description": "OpenAI-compatible POST /chat/completions backed by 15 curated agentic OpenRouter text models. Use when an agent needs LLM reasoning, tool c…",
+      "priceUsd": "0.004",
+      "category": "ai"
+    }
+  },
+  {
+    "segment": "images/generations",
+    "id": "x402-images-generations",
+    "label": "Image Generations (OpenRouter): Text-to-image via OpenRouter Unified Image API",
+    "method": "POST",
+    "params": [],
+    "catalogMeta": {
+      "segment": "images/generations",
+      "name": "Image Generations (OpenRouter)",
+      "summary": "Text-to-image via OpenRouter Unified Image API",
+      "description": "Paid POST /images/generations using OpenRouter Unified Image API (POST /api/v1/images). Use when an agent needs to generate marketing asset…",
+      "priceUsd": "0.02",
+      "category": "ai"
+    }
+  },
+  {
+    "segment": "videos/generations",
+    "id": "x402-videos-generations",
+    "label": "Video Generations (OpenRouter): Async text-to-video submit via OpenRouter Video API",
+    "method": "POST",
+    "params": [],
+    "catalogMeta": {
+      "segment": "videos/generations",
+      "name": "Video Generations (OpenRouter)",
+      "summary": "Async text-to-video submit via OpenRouter Video API",
+      "description": "Paid POST /videos/generations submits an async OpenRouter video job (POST /api/v1/videos). Use when an agent needs short-form video clips f…",
+      "priceUsd": "0.1",
+      "category": "ai"
     }
   },
   {
