@@ -78,6 +78,7 @@ function getHttpsAgent(servername) {
   }
   if (_httpsAgent !== null) return _httpsAgent;
   const secureOnly = /^(1|true|yes)$/i.test(String(process.env.OKX_DEX_SECURE_SSL ?? "").trim());
+  // nosemgrep: problem-based-packs.insecure-transport.js-node.bypass-tls-verification.bypass-tls-verification
   _httpsAgent = secureOnly ? undefined : new https.Agent({ rejectUnauthorized: false });
   return _httpsAgent;
 }

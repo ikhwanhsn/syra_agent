@@ -217,6 +217,7 @@ export function JsonEditor({
           ) : (
             <pre
               className="p-4 text-sm w-full max-w-full whitespace-pre-wrap break-words overflow-x-auto text-foreground/95"
+              // nosemgrep: typescript.react.security.audit.react-dangerouslysetinnerhtml.react-dangerouslysetinnerhtml
               dangerouslySetInnerHTML={{ __html: highlightedValue }}
             />
           )

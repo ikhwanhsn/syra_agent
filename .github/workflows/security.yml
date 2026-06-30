@@ -87,7 +87,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dir: [api, ai-agent, mcp-server, landing, api-playground]
+        dir: [api, mcp-server, landing, documentation]
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
@@ -95,10 +95,4 @@ jobs:
         with:
           node-version: "20"
       - name: Audit ${{ matrix.dir }}
-        working-directory: ${{ matrix.dir }}
-        run: |
-          if [ -f package.json ]; then
-            npm audit --audit-level=high --omit=dev || (echo "::warning::Vulnerable deps in ${{ matrix.dir }}"; exit 1)
-          else
-            echo "no package.json"
-          fi
+        run: node scripts/npm-audit-gate.mjs "${{ matrix.dir }}"

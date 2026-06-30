@@ -20,12 +20,25 @@
 
 The **landing** package is Syra's **marketing and landing website**. It is a static site built with Vite + React that:
 
-- **Introduces Syra** — hero, “What is Syra”, “Why Syra”, product modules, dashboard preview.
+- **Introduces Syra** — hero, “What is Syra”, five pillars (Earn, Treasury, Invest, Spend, Grow), dashboard preview.
 - **Showcases features** — FAQ, testimonials, roadmap, token section, live dashboard teaser.
 - **Public leaderboard** — leaderboard page for discovery and social proof.
-- **Drives signups** — CTA to Telegram bot, docs, and main app.
+- **Drives signups** — CTA to Telegram bot, docs, agent app, and API playground.
+- **Routes to ecosystem brands** — legacy `/uponly` and `/rise` paths redirect to [Up Only Fund](https://uponlyfund.com) when `LINK_UPONLY_APP` is set.
 
-It is **not** the full product app (the agent lives at syraa.fun). It’s the first page visitors see (e.g. syraa.fun).
+It is **not** the full product app (the agent lives at [agent.syraa.fun](https://agent.syraa.fun)). It is the first page many visitors see at [syraa.fun](https://syraa.fun).
+
+---
+
+## Syra ecosystem
+
+| Brand | URL | Relationship |
+|-------|-----|--------------|
+| **Syra** | [syraa.fun](https://syraa.fun) | Parent — machine money for agents |
+| **S3 Labs** | [s3labs.id](https://s3labs.id) | Syra-backed — growth partner for Solana developers |
+| **Up Only Fund** | [uponlyfund.com](https://uponlyfund.com) | Syra-backed — onchain allocator (80/20 mandate) |
+
+Configure cross-app redirects in [`config/global.ts`](./config/global.ts) (`LINK_UPONLY_APP`, API base, agent links).
 
 ---
 
@@ -49,9 +62,18 @@ npm run dev
 
 | Script | Description |
 |--------|-------------|
+| `npm run dev` | Start dev server with hot reload |
 | `npm run build` | Production build |
 | `npm run preview` | Preview production build |
 | `npm run lint` | Run linting |
+
+### Key files
+
+| File | Purpose |
+|------|---------|
+| `config/global.ts` | API base, agent/docs/playground links, `LINK_UPONLY_APP` redirect target |
+| `public/llms.txt` | Machine-readable Syra product summary for LLMs |
+| `vercel.json` | Vercel deployment config |
 
 ---
 

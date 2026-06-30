@@ -30,7 +30,9 @@ Use `SYRA_MCP_TOOL_PROFILE=full` to expose all ~240 tools; default `curated` exp
 
 ---
 
-A **Model Context Protocol (MCP)** server that exposes **Syra machine money** — x402 APIs, agent wallets, and treasury — as tools for AI assistants. Use it from **Cursor**, **Claude Desktop**, **ElizaOS**, or any MCP-compatible client to fetch crypto news, sentiment, signals, smart-money flow, and more — agents pay per call via x402 when using production routes.
+A **Model Context Protocol (MCP)** server that exposes **Syra machine money** — x402 APIs, agent wallets, and treasury — as tools for AI assistants. Use it from **Cursor**, **Claude Desktop**, **ElizaOS**, or any MCP-compatible client.
+
+Part of the [Syra monorepo](../README.md). The same API gateway powers Syra-backed brands **S3 Labs** and **Up Only Fund**; this MCP server targets the core Syra paid route surface.
 
 ---
 

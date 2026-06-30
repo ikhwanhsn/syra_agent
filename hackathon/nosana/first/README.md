@@ -1,6 +1,8 @@
 # Syra Brief — Nosana × ElizaOS hackathon entry
 
-Personal **crypto briefing** agent: ElizaOS (`@elizaos/*` **1.7.x**) + **plugin-sql** + hosted LLM (OpenAI-compatible `.env`) + **custom web UI** at **`/api/agents/<AGENT_ID>/plugins/syra-brief`** (see **Step 2** — **`/api/syra-brief` alone is wrong** and returns JSON 404).
+Personal **crypto briefing** agent built on the **Syra** ecosystem: ElizaOS (`@elizaos/*` **1.7.x**) + **plugin-sql** + hosted LLM (OpenAI-compatible `.env`) + **custom web UI** at **`/api/agents/<AGENT_ID>/plugins/syra-brief`** (see **Step 2** — **`/api/syra-brief` alone is wrong** and returns JSON 404).
+
+Syra is **machine money for agents** on Solana; this entry demonstrates agent orchestration on decentralized compute (Nosana) using Syra-adjacent briefing UX patterns.
 
 - **Challenge:** [Superteam — Nosana Builders ElizaOS](https://superteam.fun/earn/listing/nosana-builders-elizaos-challenge)  
 - **Nosana blog:** [Builders Challenge ElizaOS](https://nosana.com/blog/builders-challenge-elizaos/)  

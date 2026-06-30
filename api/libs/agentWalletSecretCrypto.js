@@ -13,6 +13,8 @@ const VERSION = 1;
 const IV_LEN = 12;
 const TAG_LEN = 16;
 const DEK_LEN = 32;
+/** @type {import('crypto').CipherGCMOptions} */
+const GCM_OPTS = { authTagLength: TAG_LEN };
 
 /** @returns {Buffer | null} */
 export function getAgentWalletSecretMasterKey() {
@@ -77,13 +79,13 @@ export function encryptAgentSecretForStorage(plaintext) {
 
   const dek = crypto.randomBytes(DEK_LEN);
   const ivWrap = crypto.randomBytes(IV_LEN);
-  const wrapCipher = crypto.createCipheriv('aes-256-gcm', masterKey, ivWrap);
+  const wrapCipher = crypto.createCipheriv('aes-256-gcm', masterKey, ivWrap, GCM_OPTS);
   const encDek = Buffer.concat([wrapCipher.update(dek), wrapCipher.final()]);
   const wrapTag = wrapCipher.getAuthTag();
   const wrapBlob = Buffer.concat([encDek, wrapTag]);
 
   const ivPay = crypto.randomBytes(IV_LEN);
-  const payCipher = crypto.createCipheriv('aes-256-gcm', dek, ivPay);
+  const payCipher = crypto.createCipheriv('aes-256-gcm', dek, ivPay, GCM_OPTS);
   const encPay = Buffer.concat([payCipher.update(plaintext, 'utf8'), payCipher.final()]);
   const payTag = payCipher.getAuthTag();
   const payBlob = Buffer.concat([encPay, payTag]);
@@ -136,13 +138,13 @@ export function decryptAgentSecretFromStorage(stored) {
 
   const wrapCt = wrapBlob.subarray(0, DEK_LEN);
   const wrapTag = wrapBlob.subarray(DEK_LEN);
-  const unwrap = crypto.createDecipheriv('aes-256-gcm', masterKey, ivWrap);
+  const unwrap = crypto.createDecipheriv('aes-256-gcm', masterKey, ivWrap, GCM_OPTS);
   unwrap.setAuthTag(wrapTag);
   const dek = Buffer.concat([unwrap.update(wrapCt), unwrap.final()]);
 
   const payTag = payBlob.subarray(payBlob.length - TAG_LEN);
   const payCt = payBlob.subarray(0, payBlob.length - TAG_LEN);
-  const dec = crypto.createDecipheriv('aes-256-gcm', dek, ivPay);
+  const dec = crypto.createDecipheriv('aes-256-gcm', dek, ivPay, GCM_OPTS);
   dec.setAuthTag(payTag);
   return Buffer.concat([dec.update(payCt), dec.final()]).toString('utf8');
 }

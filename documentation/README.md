@@ -20,11 +20,14 @@
 
 The **documentation** package is the **Syra documentation site** built with **Vite**, **React**, and **React Router**. It provides:
 
-- **Welcome & overview** — machine money positioning, pillars, and where Syra runs.
+- **Welcome & overview** — machine money positioning, five pillars, and where Syra runs.
 - **API reference** — x402 (and MPP discovery) endpoints, payment flow, preview routes.
 - **Syra Agent** — getting started, features, trading guidance, supported tokens, catalog, system prompt.
 - **x402 Agent** — autonomous agent on x402scan.
 - **Token & community** — tokenomics, roadmap, changelog, community links.
+- **Ecosystem context** — how Syra relates to Syra-backed brands **S3 Labs** ([s3labs.id](https://s3labs.id)) and **Up Only Fund** ([uponlyfund.com](https://uponlyfund.com)).
+
+Published at **[docs.syraa.fun](https://docs.syraa.fun)**.
 
 ---
 
@@ -51,6 +54,15 @@ npm run dev
 | `npm run dev` | Start dev server with hot reload |
 | `npm run build` | Production build |
 | `npm run preview` | Preview production build locally |
+
+### Content structure
+
+| Area | Path |
+|------|------|
+| Welcome / pillars | `src/pages/docs/` |
+| API reference data | `src/data/apiDocs.ts` |
+| Tokenomics | `src/data/tokenomicsV2.md` |
+| Agent catalog | `src/pages/docs/SyraAgentCatalog.tsx` |
 
 ---
 

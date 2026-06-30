@@ -1,73 +1,125 @@
-# Welcome to your Lovable project
+<div align="center">
 
-## Project info
+# **S3 Labs**
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+### Growth partner for Solana developers — backed by Syra
 
-## How can I edit this code?
+[![Website](https://img.shields.io/badge/Website-s3labs.id-26a5e4)](https://s3labs.id)
+[![Syra](https://img.shields.io/badge/Backed_by-Syra-0ea5e9)](https://syraa.fun)
+[![Telegram](https://img.shields.io/badge/Telegram-@s3labs-blue)](https://t.me/s3labs)
 
-There are several ways of editing your application.
+**[Website](https://s3labs.id)** · **[Apply](https://s3labs.id/apply)** · **[Programs](https://s3labs.id/programs)** · **[Syra](https://syraa.fun)** · **[X](https://x.com/s3labs_)**
 
-**Use Lovable**
+</div>
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## What is S3 Labs?
 
-**Use your preferred IDE**
+**S3 Labs** is a **growth partner for Solana developers** — operator-led programs for hackathon winners and teams with live MVPs who need revenue, distribution, and scale. S3 Labs is a **Syra-backed** initiative: Syra provides the machine-money infrastructure (APIs, agents, treasury rails); S3 Labs is the **builder growth and community brand** in front.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+| Focus | Description |
+|-------|-------------|
+| **Who we help** | Hackathon winners and MVP-stage Solana teams |
+| **What we deliver** | Revenue programs, KOL marketplace, jobs/events aggregation, founder network |
+| **How we operate** | Execution over narratives — published playbooks, portfolio results, operator network |
+| **Parent brand** | [Syra](https://syraa.fun) — machine money for agents on Solana |
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+---
 
-Follow these steps:
+## Programs & surfaces
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+| Route | Description |
+|-------|-------------|
+| `/` | Home — growth partner positioning, stats, portfolio highlight |
+| `/programs` | Program pillars, who we help, benefits, how it works |
+| `/portfolio` | Portfolio results and case studies |
+| `/apply` | Project application intake |
+| `/about` | Mission, team, why S3 Labs |
+| `/community` | 500+ founder network — Telegram community |
+| `/kol` | KOL marketplace — campaigns, earnings, creator attribution |
+| `/jobs` | Curated remote tech / web3 job board |
+| `/hackathon` | Hackathon discovery and builder resources |
+| `/events` | Tech and crypto events (admin) |
+| `/profile` | Connected wallet profile, daily claim, points |
+| `/post` | Brief studio — numbered fund/community updates (video + photo export) |
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+**Community:** [@s3labs on Telegram](https://t.me/s3labs) — News, Developer, Event, and Jobs forum topics.
 
-# Step 3: Install the necessary dependencies.
-npm i
+---
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+## Relationship to Syra
+
+| Brand | Role |
+|-------|------|
+| **Syra** | Parent infrastructure — x402 APIs, agent wallets, treasury policy, invest/spend rails |
+| **S3 Labs** | Syra-backed growth studio — developer programs, community, KOL, jobs, events |
+| **Up Only Fund** | Syra-backed onchain allocator — separate public program brand ([uponlyfund.com](https://uponlyfund.com)) |
+
+S3 Labs uses the Syra API gateway (`api.syraa.fun`) for KOL marketplace, jobs pipeline, news/event aggregators, Telegram QA bot, and points ledger. The S3 Labs Assistant (`@s3labs` bot) answers tech/crypto/web3 questions in the community; it is distinct from the Syra trading agent.
+
+---
+
+## Tech stack
+
+| Layer | Technology |
+|-------|------------|
+| **Build** | Vite, TypeScript |
+| **UI** | React 18, React Router, shadcn-ui, Tailwind CSS |
+| **Wallet** | Solana wallet adapter (KOL, profile, points) |
+| **API** | Syra gateway — `/api` proxy in dev, `https://api.syraa.fun` in production |
+
+---
+
+## Run locally
+
+```bash
+cd s3labs
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Dev server: **http://localhost:8080**
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Start dev server with HMR |
+| `npm run build` | Production build |
+| `npm run preview` | Preview production build |
+| `npm run lint` | ESLint |
 
-**Use GitHub Codespaces**
+### API in development
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+By default, `npm run dev` proxies `/api` to **`https://api.syraa.fun`**.
 
-## What technologies are used for this project?
+To use a local Syra gateway (`cd api && npm run dev` on port 3000):
 
-This project is built with:
+```bash
+# .env
+VITE_USE_LOCAL_API=true
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Trusted-origin auth is injected server-side for Syra-owned frontends — **do not embed API keys** in client bundles.
 
-## How can I deploy this project?
+---
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## Deploy
 
-## Can I connect a custom domain to my Lovable project?
+- **Public site:** [s3labs.id](https://s3labs.id) (also `s3labs.io`)
+- Ensure the Syra API `CORS_EXTRA_ORIGINS` (or default allowlist) includes your deployment origin.
+- KOL, jobs, and Telegram webhook routes are served by the **`api`** package — deploy API changes alongside frontend updates when adding new integrations.
 
-Yes, you can!
+---
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## Brand
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- **Wordmark:** S3 Labs
+- **Positioning:** Growth partner for Solana developers
+- **Accent:** Primary gradient mesh + panel-glass UI (`index.css`, Tailwind theme)
+- **Social:** [@s3labs_](https://x.com/s3labs_), [LinkedIn](https://www.linkedin.com/company/s3labs/), [Telegram](https://t.me/s3labs)
+
+---
+
+## License
+
+MIT — see [LICENSE](../LICENSE) at repo root.

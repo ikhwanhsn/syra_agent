@@ -1,6 +1,10 @@
-# Syra main website (Vite)
+# Syra Web App (`web`)
 
-**Machine money for AI trading agents** — the unified Syra web app: API playground (Build), agent wallet, operator dashboard, and proof demos.
+**Machine money for agents** — the unified Syra web application: API playground (Build), agent wallet, operator dashboard, and proof demos.
+
+Part of the [Syra monorepo](../README.md). Syra-backed ecosystem brands ([S3 Labs](https://s3labs.id), [Up Only Fund](https://uponlyfund.com)) ship as separate apps in `s3labs/` and `uponly-fund/`.
+
+---
 
 ## Setup
 
@@ -12,9 +16,11 @@ npm install
 npm run dev
 ```
 
-Dev server: http://localhost:8080
+Dev server: **http://localhost:8080**
 
 On localhost, API calls go through **`/api`** (Vite proxies to `https://api.syraa.fun`) so you avoid CORS errors. To use a local gateway instead, run `cd api && npm run dev` and set `VITE_USE_LOCAL_API=true` in `.env.local`.
+
+---
 
 ## Product surfaces
 
@@ -23,23 +29,71 @@ On localhost, API calls go through **`/api`** (Vite proxies to `https://api.syra
 | **Build** | `/playground` | Primary front door — x402 API catalog, SDK/MCP quickstart |
 | **Agent Wallet** | `/wallet` | Treasury, deposits, policy caps |
 | **Dashboard** | `/overview` | Usage, spend, agent monitoring |
-| **Proof** | experiments, `/`, `/alpha` | Live demos powered by the Syra rail |
+| **Agent chat** | `/` | Reference client — research, tools, onchain actions |
+| **Proof / experiments** | `/alpha`, experiments routes | Live demos powered by the Syra rail |
 
-## Build
+Legacy marketing routes (`/uponly`, `/rise`, `/s3labs`) may redirect to standalone ecosystem apps — see `src/components/marketing/`.
+
+---
+
+## Environment
+
+| Variable | Purpose |
+|----------|---------|
+| `VITE_PRIVY_APP_ID` | **Required** for wallet connect (Privy) |
+| `VITE_USE_LOCAL_API` | Proxy `/api` to local gateway on port 3000 |
+| `VITE_SYRA_API_URL` | Override API origin (avoid localhost unless local mode is on) |
+
+See [`.env.example`](./.env.example) and [PRIVY_SETUP.md](./PRIVY_SETUP.md) for production wallet issues.
+
+---
+
+## Build & scripts
 
 ```bash
-npm run build
-npm run preview
+npm run build    # Production build → dist/
+npm run preview  # Preview production build locally
+npm run lint     # ESLint
 ```
+
+---
 
 ## Deploy (Vercel)
 
-- **Root directory:** `web`
-- **Build command:** `npm run build`
-- **Output directory:** `dist`
-- Set environment variables with `VITE_*` prefix (`VITE_PRIVY_APP_ID` required for wallet connect).
-- If wallet connect works locally but fails in production, see [PRIVY_SETUP.md](./PRIVY_SETUP.md).
+| Setting | Value |
+|---------|-------|
+| **Root directory** | `web` |
+| **Build command** | `npm run build` |
+| **Output directory** | `dist` |
 
-## Migration notes
+Set environment variables with the `VITE_*` prefix. `VITE_PRIVY_APP_ID` is required for wallet connect in production.
 
-This package replaces the former Next.js app in `main/`. Routes are client-side via React Router; `/api/proxy` is handled by Vite dev middleware and production API CORS where applicable.
+**Production URLs:** [agent.syraa.fun](https://agent.syraa.fun), [playground.syraa.fun](https://playground.syraa.fun) (typical Vercel aliases).
+
+---
+
+## Architecture notes
+
+- Replaces the former Next.js app in `main/`. Routes are client-side via React Router.
+- `/api` proxy is handled by Vite dev middleware; production relies on API CORS + trusted-origin auth injection.
+- Brand content and pillars: `src/content/syraAbout.ts`, `src/content/syraInfo.ts`.
+- x402 playground catalog is generated from API agent tools.
+
+---
+
+## Related packages
+
+| Package | Role |
+|---------|------|
+| [`api`](../api) | Backend gateway — x402, agent sessions, partner tools |
+| [`syra-sdk`](../syra-sdk) | Typed HTTP client for integrators |
+| [`mcp-server`](../mcp-server) | MCP distribution for Cursor / Claude |
+| [`landing`](../landing) | Marketing site at syraa.fun |
+| [`s3labs`](../s3labs) | Syra-backed growth studio |
+| [`uponly-fund`](../uponly-fund) | Syra-backed allocator app |
+
+---
+
+## License
+
+MIT — see [LICENSE](../LICENSE) at repo root.

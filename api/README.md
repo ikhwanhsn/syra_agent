@@ -27,7 +27,15 @@ The **api** package is the **backend service** for Syra. It is a Node.js (Expres
 - **Serves the prediction-game** — creators, events, staking (shared models and routes).
 - **Uses MongoDB** (Mongoose) for persistence where needed.
 
-This API backs the **Telegram bot**, **internal KPI dashboard**, **api-playground**, **x402 agent**, and **prediction-game** app. It is the single backend for the Syra monorepo.
+This API backs the **Telegram bot**, **web agent**, **API playground**, **MCP bridge**, **S3 Labs** (KOL, jobs, events, Telegram QA), **Up Only Fund** (RISE terminal routes), and other Syra monorepo apps. It is the single backend for machine-money infrastructure.
+
+### Syra ecosystem (served by this API)
+
+| Brand | Public site | API surfaces (examples) |
+|-------|-------------|-------------------------|
+| **Syra** | syraa.fun, agent.syraa.fun | x402 routes, `/agent/*`, `/pillars`, `/brain` |
+| **S3 Labs** | s3labs.id | `/kol/*`, jobs pipeline, S3 Labs Telegram webhook, points ledger |
+| **Up Only Fund** | uponlyfund.com | RISE market routes, terminal KPIs, uponly rise create |
 
 ---
 

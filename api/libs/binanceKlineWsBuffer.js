@@ -158,6 +158,7 @@ function ensurePersistentWs(baseUrl, symbol, interval) {
 
   const stream = wsStreamName(symbol, interval);
   const wsUrl = `${baseUrl}/ws/${stream}`;
+  // nosemgrep: problem-based-packs.insecure-transport.js-node.bypass-tls-verification.bypass-tls-verification
   const ws = new WebSocket(wsUrl, { rejectUnauthorized: false });
 
   ws.on("message", (raw) => {

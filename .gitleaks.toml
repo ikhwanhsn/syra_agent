@@ -1,0 +1,12 @@
+# Gitleaks config for syra-monorepo.
+# Documentation catalog files contain tool IDs (e.g. birdeye-defi-v2-top-traders) that
+# trigger generic-api-key false positives — they are public x402 tool slugs, not secrets.
+
+title = "syra gitleaks config"
+
+[allowlist]
+description = "Public agent tool catalog data (not credentials)"
+paths = [
+  '''documentation/src/data/agentToolsCatalog\.ts''',
+  '''documentation/src/data/agentToolsExamplePrompts\.json''',
+]

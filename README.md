@@ -32,6 +32,8 @@ Discovery: `GET /pillars` on [api.syraa.fun](https://api.syraa.fun)
 
 Integrate via **SDK** (`client.pillars`, `client.invest`, …), **MCP**, or the **API playground**. The web chat agent is a reference client — the product is machine money for agents.
 
+**Ecosystem:** [S3 Labs](https://s3labs.id) (Syra-backed growth studio for Solana developers) and [Up Only Fund](https://uponlyfund.com) (Syra-backed onchain allocator) ship as sibling brands on the same rails.
+
 **Notice:** x402 becomes one module (Spend). Payments become one feature. Wealth becomes the narrative.
 
 ---
@@ -87,23 +89,37 @@ Syra runs as an autonomous research agent on **x402scan** for automated research
 
 ---
 
+## Syra ecosystem (backed brands)
+
+Syra is the parent **machine money** infrastructure. These programs ship on Syra rails but maintain their own public brands:
+
+| Brand | Site | Role |
+|-------|------|------|
+| **Syra** | [syraa.fun](https://syraa.fun) | Core product — agent wallets, x402 APIs, treasury, invest/spend rails |
+| **S3 Labs** | [s3labs.id](https://s3labs.id) | Syra-backed growth partner for Solana developers — programs, KOL, jobs, community |
+| **Up Only Fund** | [uponlyfund.com](https://uponlyfund.com) | Syra-backed onchain allocator — 80/20 mandate, RISE tooling, `$UPONLY` tranche |
+
+---
+
 ## Repository Structure (Monorepo)
 
 | Package | Description |
 |---------|-------------|
 | **`web`** | Unified Syra app — Build (playground), agent wallet, dashboard, proof demos |
-| **`api`** | Backend API — machine money for AI trading agents: x402 APIs, agent wallets, policy engine |
+| **`api`** | Backend API — machine money for AI agents: x402 APIs, agent wallets, policy engine, S3 Labs + UOF routes |
 | **`syra-sdk`** | Typed `@syra/sdk` client for x402 API integration |
 | **`mcp-server`** | MCP server — Cursor, Claude, ElizaOS distribution |
 | **`documentation`** | Docs site (docs.syraa.fun) |
-| **`landing`** | Marketing landing site |
-| **`uponly-fund`** | Up Only Fund — flagship case study on Syra rails |
+| **`landing`** | Marketing landing site (syraa.fun) |
+| **`s3labs`** | S3 Labs web app — growth programs, KOL marketplace, jobs, community ([s3labs README](./s3labs/README.md)) |
+| **`uponly-fund`** | Up Only Fund — Syra-backed allocator brand, mandate site, RISE command dashboard ([UOF README](./uponly-fund/README.md)) |
+| **`services/bnb-agent`** | BNB Chain ERC-8183 sidecar (Python) for multi-chain agent jobs |
 
 ---
 
 ## Colosseum Frontier — hackathon submission
 
-**Hero product (what to demo):** [`api`](./api) + [`web`](./web) — the **Syra rail**: machine money for AI trading agents (x402 APIs + agent wallets + treasury). Treat experiments, Up Only Fund, and the chat reference agent as **proof**, not equal demo time.
+**Hero product (what to demo):** [`api`](./api) + [`web`](./web) — the **Syra rail**: machine money for AI agents (x402 APIs + agent wallets + treasury). Treat **S3 Labs**, **Up Only Fund**, and the chat reference agent as **Syra-backed proof surfaces**, not equal demo time to the core rail.
 
 ### Golden path (live)
 
@@ -188,6 +204,14 @@ Syra is built for **clarity**, **consistency**, and **structured reasoning**. It
 ## Documentation
 
 Full documentation (welcome, API reference, Syra Agent, x402 agent, tokenomics) lives in the **`documentation`** app and is published at **[docs.syraa.fun](https://docs.syraa.fun)**.
+
+| Resource | URL |
+|----------|-----|
+| Syra docs | [docs.syraa.fun](https://docs.syraa.fun) |
+| API gateway | [api.syraa.fun](https://api.syraa.fun) |
+| Playground | [playground.syraa.fun](https://playground.syraa.fun) |
+| S3 Labs | [s3labs.id](https://s3labs.id) |
+| Up Only Fund | [uponlyfund.com](https://uponlyfund.com) |
 
 - **Local:** `cd documentation && npm install && npm run dev`  
 - **Entry route:** `/docs/welcome` (or open `/docs` for the docs home)
