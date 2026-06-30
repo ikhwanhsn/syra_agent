@@ -19,6 +19,7 @@ const About = lazy(() => import("./pages/About"));
 const Apply = lazy(() => import("./pages/Apply"));
 const Kol = lazy(() => import("./pages/Kol"));
 const JobsPage = lazy(() => import("./pages/JobsPage"));
+const JobDetail = lazy(() => import("./pages/JobDetail"));
 const KolProfile = lazy(() => import("./pages/KolProfile"));
 const Profile = lazy(() => import("./pages/Profile"));
 const CampaignComingSoon = lazy(() =>
@@ -28,7 +29,9 @@ const ContestComingSoon = lazy(() =>
   import("./pages/ComingSoon").then((m) => ({ default: m.ContestComingSoon })),
 );
 const Hackathon = lazy(() => import("./pages/Hackathon"));
+const HackathonDetail = lazy(() => import("./pages/HackathonDetail"));
 const EventsAdmin = lazy(() => import("./pages/EventsAdmin"));
+const EventDetail = lazy(() => import("./pages/EventDetail"));
 const InternalPage = lazy(() => import("./pages/InternalPage"));
 
 const PostPage = lazy(() => import("./pages/PostPage"));
@@ -60,10 +63,13 @@ const App = () => (
                 <Route path="/kol/:username" element={<KolProfile />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/jobs" element={<JobsPage />} />
+                <Route path="/jobs/:id" element={<JobDetail />} />
                 <Route path="/campaign" element={<CampaignComingSoon />} />
                 <Route path="/contest" element={<ContestComingSoon />} />
                 <Route path="/hackathon" element={<Hackathon />} />
+                <Route path="/hackathon/:id" element={<HackathonDetail />} />
                 <Route path="/events" element={<EventsAdmin />} />
+                <Route path="/events/:id" element={<EventDetail />} />
                 <Route element={<AdminAccessGuard />}>
                   <Route path="/internal" element={<InternalPage />} />
                 </Route>

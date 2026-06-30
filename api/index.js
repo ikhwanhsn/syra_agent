@@ -158,6 +158,7 @@ import {
 } from "./libs/b402KeyMaterial.js";
 import { isB402Enabled } from "./config/b402Networks.js";
 import { getAlgorandPublicStatus, isAlgorandEnabled } from "./config/algorandX402Networks.js";
+import { getOkxX402PublicStatus } from "./config/okxX402Networks.js";
 import { startupInfo, startupVerbose, startupWarn } from "./utils/startupLog.js";
 import { startMemoryHygiene } from "./utils/memoryHygiene.js";
 import { withSingleFlight } from "./utils/singleFlight.js";
@@ -1531,6 +1532,7 @@ No API key required for the resources listed above — all are gated by the x402
 app.get("/x402/capabilities", (_req, res) => {
   const b402 = getB402PublicStatus();
   const algorand = getAlgorandPublicStatus();
+  const okx = getOkxX402PublicStatus();
   res.json({
     success: true,
     data: {
@@ -1539,9 +1541,11 @@ app.get("/x402/capabilities", (_req, res) => {
         base: true,
         binance: b402.enabled,
         algorand: algorand.enabled,
+        xlayer: okx.enabled,
       },
       b402,
       algorand,
+      okx,
     },
   });
 });

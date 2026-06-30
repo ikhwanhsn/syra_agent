@@ -18,7 +18,7 @@ const OUTCOMES = [
 
 const DIRECTIONS = ['inbound', 'outbound'];
 
-const FACILITATORS = ['payai', 'corbits', 'b402', 'algorand', 'local', 'upstream'];
+const FACILITATORS = ['payai', 'corbits', 'b402', 'algorand', 'okx', 'local', 'upstream'];
 
 const x402CallLogSchema = new mongoose.Schema(
   {

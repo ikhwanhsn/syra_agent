@@ -55,6 +55,15 @@ import {
   getX402AvmResourceServer,
 } from "./x402AvmResourceServer.js";
 import {
+  ensureOkxX402ResourceServerInitialized,
+  getOkxX402ResourceServer,
+  getOkxX402PayTo,
+  isOkxX402Enabled,
+  isOkxX402Network,
+  isOkxX402FacilitatorReady,
+} from "./okxX402ResourceServer.js";
+import { getEnabledOkxX402Networks } from "../config/okxX402Networks.js";
+import {
   verifyPayment as b402VerifyPayment,
   settlePayment as b402SettlePayment,
   normalizeResourceInfo,
@@ -111,15 +120,42 @@ function recordInboundX402(req, event) {
 }
 
 /** Resolve facilitator for inbound verify attempt (before req.x402Payment is set). */
-function resolveInboundFacilitatorFromFlags(req, { useAlgorandFacilitator, useB402Facilitator }) {
+function resolveInboundFacilitatorFromFlags(req, { useAlgorandFacilitator, useB402Facilitator, useOkxFacilitator }) {
   if (useAlgorandFacilitator) return "algorand";
   if (useB402Facilitator) return "b402";
+  if (useOkxFacilitator) return "okx";
   if (useCorbitsProfile(req)) return "corbits";
   return "payai";
 }
 
 let b402StartupLogged = false;
 let algorandStartupLogged = false;
+let okxStartupLogged = false;
+
+async function logOkxStartupOnce() {
+  if (okxStartupLogged) return;
+  okxStartupLogged = true;
+  const { getOkxX402PublicStatus } = await import("../config/okxX402Networks.js");
+  const status = getOkxX402PublicStatus();
+  if (isOkxX402Enabled()) {
+    console.log(
+      "[okx-x402] merchant inbound enabled",
+      JSON.stringify({
+        payTo: status.payTo,
+        networks: status.networks?.map((n) => n.id),
+        syncSettle: String(process.env.OKX_X402_SYNC_SETTLE || "").toLowerCase() === "true",
+      }),
+    );
+    return;
+  }
+  console.warn(
+    "[okx-x402] merchant inbound disabled — X Layer OKX facilitator will not appear in 402 accepts",
+    JSON.stringify({
+      missing: status.missing,
+      hint: "Set OKX_API_KEY, OKX_SECRET_KEY, OKX_PASSPHRASE, OKX_X402_PAYTO — https://web3.okx.com/onchain-os/dev-portal",
+    }),
+  );
+}
 
 async function logAlgorandStartupOnce() {
   if (algorandStartupLogged) return;
@@ -463,10 +499,116 @@ function getB402OfferConfig() {
   return { token, payTo };
 }
 
+/**
+ * OKX facilitator owns X Layer — append accepts when enabled; PayAI/Corbits must not offer them.
+ * @param {object[]} requirements
+ * @param {string} microUnits
+ * @param {number} maxTimeoutSeconds
+ * @param {object} ctx
+ */
+async function ensureOkxAcceptInRequirements(requirements, microUnits, maxTimeoutSeconds, ctx) {
+  if (!isOkxX402Enabled()) return requirements;
+  const list = Array.isArray(requirements) ? [...requirements] : [];
+  const payTo = getOkxX402PayTo();
+  const networks = getEnabledOkxX402Networks();
+  if (!payTo || networks.length === 0) return list;
+
+  // Drop PayAI X Layer rows when OKX facilitator is active (avoid duplicate/wrong facilitator).
+  const filtered = list.filter((r) => !r || !isOkxX402Network(r.network));
+
+  await ensureOkxX402ResourceServerInitialized();
+  const { resourceServer } = getOkxX402ResourceServer();
+
+  for (const net of networks) {
+    if (filtered.some((r) => r?.network === net.caip2)) continue;
+    const paymentOptions = [
+      {
+        scheme: "exact",
+        price: { asset: net.stablecoin, amount: microUnits },
+        network: net.caip2,
+        payTo,
+        maxTimeoutSeconds,
+      },
+    ];
+    let built = false;
+    if (isOkxX402FacilitatorReady()) {
+      try {
+        const okxReqs = await resourceServer.buildPaymentRequirementsFromOptions(
+          paymentOptions,
+          ctx,
+        );
+        if (Array.isArray(okxReqs)) {
+          for (const r of okxReqs) {
+            if (r && !filtered.some((x) => x?.network === r.network)) {
+              filtered.push(r);
+            }
+          }
+          built = okxReqs.length > 0;
+        }
+      } catch (e) {
+        console.warn(
+          "[okx-x402] buildPaymentRequirementsFromOptions failed, using manual accept:",
+          e?.message || e,
+        );
+      }
+    }
+    if (!built) {
+      filtered.push({
+        scheme: "exact",
+        network: net.caip2,
+        amount: microUnits,
+        asset: net.stablecoin,
+        payTo,
+        maxTimeoutSeconds,
+      });
+    }
+  }
+  return filtered;
+}
+
+/** True when payload.accepted matches configured OKX X Layer merchant offer. */
+function paymentAcceptedMatchesOkx(acc) {
+  if (!acc || !isOkxX402Network(acc.network)) return false;
+  if ((acc.scheme || "exact") !== "exact") return false;
+  const payTo = getOkxX402PayTo();
+  if (!payTo) return false;
+  const net = getEnabledOkxX402Networks().find((n) => n.caip2 === acc.network);
+  if (!net) return false;
+  return (
+    normalizeEvmAddress(acc.payTo) === normalizeEvmAddress(payTo) &&
+    normalizeEvmAddress(acc.asset) === normalizeEvmAddress(net.stablecoin)
+  );
+}
+
+function shouldUseOkxFacilitator(acc) {
+  return Boolean(acc && isOkxX402Enabled() && isOkxX402Network(acc.network));
+}
+
+/** Append OKX X Layer accepted options for paid-request validation. */
+function appendOkxAcceptedOption(acceptedOptions, expectedMicroUnits) {
+  if (!isOkxX402Enabled()) return acceptedOptions;
+  const payTo = getOkxX402PayTo();
+  for (const net of getEnabledOkxX402Networks()) {
+    if (acceptedOptions.some((o) => o?.network === net.caip2)) continue;
+    acceptedOptions.push({
+      network: net.caip2,
+      payTo,
+      asset: net.stablecoin,
+      isEvm: true,
+      isOkx: true,
+      amount: expectedMicroUnits,
+    });
+  }
+  return acceptedOptions;
+}
+
 /** Corbits/PayAI facilitators do not support BSC — never pass B402 options into @x402 resource server. */
 function paymentOptionsForFacilitator(bundle, microUnits, maxTimeout, payToOverride = null) {
   return buildPaymentOptionsForBundle(bundle, microUnits, maxTimeout, payToOverride).filter(
-    (o) => o && !isB402Network(o.network)
+    (o) =>
+      o &&
+      !isB402Network(o.network) &&
+      !(isOkxX402Enabled() && isOkxX402Network(o.network)),
   );
 }
 
@@ -649,8 +791,11 @@ function buildAcceptedOptionsForBundle(bundle, expectedMicroUnits, payToOverride
       return withAmount;
     }
     return appendAlgorandAcceptedOption(
-      appendB402AcceptedOption(withAmount, expectedMicroUnits),
-      expectedMicroUnits
+      appendOkxAcceptedOption(
+        appendB402AcceptedOption(withAmount, expectedMicroUnits),
+        expectedMicroUnits,
+      ),
+      expectedMicroUnits,
     );
   }
 
@@ -678,8 +823,11 @@ function buildAcceptedOptionsForBundle(bundle, expectedMicroUnits, payToOverride
   }
 
   return appendAlgorandAcceptedOption(
-    appendB402AcceptedOption(acceptedOptions, expectedMicroUnits),
-    expectedMicroUnits
+    appendOkxAcceptedOption(
+      appendB402AcceptedOption(acceptedOptions, expectedMicroUnits),
+      expectedMicroUnits,
+    ),
+    expectedMicroUnits,
   );
 }
 
@@ -967,6 +1115,12 @@ async function buildPaymentRequired(bundle, req, options, error) {
       maxTimeout,
       ctx
     );
+    requirements = await ensureOkxAcceptInRequirements(
+      requirements,
+      microUnits,
+      maxTimeout,
+      ctx,
+    );
   }
   requirements = ensureEvmEip712Domain(requirements);
   requirements = await enrichB402Requirements(requirements);
@@ -1098,6 +1252,7 @@ export function requirePayment(options) {
       const { resourceServer, config, assets } = bundle;
       logB402StartupOnce();
       logAlgorandStartupOnce();
+      logOkxStartupOnce();
 
       const paymentHeader = getPaymentSignatureHeaderFromReq(req);
       if (!paymentHeader) {
@@ -1178,6 +1333,21 @@ export function requirePayment(options) {
         }
       }
 
+      if (!matchingOption && paymentAcceptedMatchesOkx(acc)) {
+        const payTo = getOkxX402PayTo();
+        const net = getEnabledOkxX402Networks().find((n) => n.caip2 === acc.network);
+        if (payTo && net) {
+          matchingOption = {
+            network: net.caip2,
+            payTo,
+            asset: net.stablecoin,
+            isEvm: true,
+            isOkx: true,
+            amount: String(acc.amount ?? expectedMicroUnits),
+          };
+        }
+      }
+
       if (!matchingOption) {
         x402Log("payment_mismatch", {
           method: req.method,
@@ -1203,6 +1373,8 @@ export function requirePayment(options) {
       const useAlgorandFacilitator = shouldUseAlgorandFacilitator(acc);
       const useB402Facilitator =
         !useAlgorandFacilitator && shouldUseB402Facilitator(acc, payload);
+      const useOkxFacilitator =
+        !useAlgorandFacilitator && !useB402Facilitator && shouldUseOkxFacilitator(acc);
       const payloadWithResource = enrichPaymentPayloadResource(payload, req, options);
       x402Log("payment_retry", {
         method: req.method,
@@ -1211,6 +1383,7 @@ export function requirePayment(options) {
         amount: acc?.amount,
         b402: useB402Facilitator,
         algorand: useAlgorandFacilitator,
+        okx: useOkxFacilitator,
         resourceUrl:
           normalizeResourceInfo(payloadWithResource?.resource)?.url ??
           normalizeResourceInfo(acc?.resource)?.url,
@@ -1232,6 +1405,14 @@ export function requirePayment(options) {
             b402VerifyPayment(payloadWithResource, acc),
             X402_VERIFY_FACILITATOR_TIMEOUT_MS,
             "verify_timeout"
+          );
+        } else if (useOkxFacilitator) {
+          await ensureOkxX402ResourceServerInitialized();
+          const { resourceServer: okxServer } = getOkxX402ResourceServer();
+          verify = await withTimeout(
+            okxServer.verifyPayment(payloadWithResource, acc),
+            X402_VERIFY_FACILITATOR_TIMEOUT_MS,
+            "verify_timeout",
           );
         } else {
           verify = await withTimeout(
@@ -1289,6 +1470,7 @@ export function requirePayment(options) {
           facilitator: resolveInboundFacilitatorFromFlags(req, {
             useAlgorandFacilitator,
             useB402Facilitator,
+            useOkxFacilitator,
           }),
           errorReason: verify?.invalidReason || "Payment verification failed",
           amountUsd: priceUsd,
@@ -1307,6 +1489,7 @@ export function requirePayment(options) {
         priceUsd,
         resourceServerProfile: useCorbitsProfile(req) ? "corbits" : "payai",
         useB402Facilitator,
+        useOkxFacilitator,
         useAlgorandFacilitator,
         skipRevenueBuyback: Boolean(payToOverride?.solanaPayTo || payToOverride?.evmPayTo),
         bazaarExtensions,
@@ -1316,6 +1499,7 @@ export function requirePayment(options) {
         path: req.path,
         b402: useB402Facilitator,
         algorand: useAlgorandFacilitator,
+        okx: useOkxFacilitator,
         network: acc?.network,
       });
       next();
@@ -1376,6 +1560,31 @@ async function tryFacilitatorThenLocalSettle(payload, accepted, req) {
       success: false,
       errorReason: settle?.errorReason || settle?.error || "B402 settlement failed",
       error: settle?.errorReason || settle?.error || "B402 settlement failed",
+    };
+  }
+
+  const useOkx =
+    req?.x402Payment?.useOkxFacilitator || shouldUseOkxFacilitator(accepted);
+  if (useOkx) {
+    await ensureOkxX402ResourceServerInitialized();
+    const { resourceServer: okxServer } = getOkxX402ResourceServer();
+    const settle = await withTimeout(
+      okxServer.settlePayment(payload, accepted),
+      X402_SETTLE_FACILITATOR_TIMEOUT_MS,
+      "settle_timeout",
+    );
+    if (settle?.success) {
+      return {
+        success: true,
+        payer: settle.payer,
+        transaction: settle.transaction,
+        network: settle.network ?? accepted?.network,
+      };
+    }
+    return {
+      success: false,
+      errorReason: settle?.errorReason || settle?.error || "OKX settlement failed",
+      error: settle?.errorReason || settle?.error || "OKX settlement failed",
     };
   }
 
@@ -1617,6 +1826,11 @@ export function getX402Handler(req) {
       }
       if (req?.x402Payment?.useB402Facilitator || shouldUseB402Facilitator(accepted, payload)) {
         return b402SettlePayment(payload, accepted, resolveBazaarSettleOptions(req));
+      }
+      if (req?.x402Payment?.useOkxFacilitator || shouldUseOkxFacilitator(accepted)) {
+        await ensureOkxX402ResourceServerInitialized();
+        const { resourceServer: okxServer } = getOkxX402ResourceServer();
+        return okxServer.settlePayment(payload, accepted);
       }
       const bazaarOpts = resolveBazaarSettleOptions(req);
       const settlePayload = bazaarOpts?.bazaar

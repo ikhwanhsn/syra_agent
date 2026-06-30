@@ -12,6 +12,7 @@ interface DiscoveryFilterPillsProps<T extends string> {
   onChange: (value: T) => void;
   label?: string;
   className?: string;
+  scrollable?: boolean;
 }
 
 export function DiscoveryFilterPills<T extends string>({
@@ -20,6 +21,7 @@ export function DiscoveryFilterPills<T extends string>({
   onChange,
   label,
   className,
+  scrollable = false,
 }: DiscoveryFilterPillsProps<T>) {
   return (
     <div className={cn("space-y-2", className)}>
@@ -27,7 +29,12 @@ export function DiscoveryFilterPills<T extends string>({
         <p className="text-xs font-medium text-muted-foreground">{label}</p>
       ) : null}
       <div
-        className="flex flex-wrap gap-2"
+        className={cn(
+          "flex gap-2",
+          scrollable
+            ? "scrollbar-hide-md -mx-1 flex-nowrap overflow-x-auto pb-0.5"
+            : "flex-wrap",
+        )}
         role="group"
         aria-label={label ?? "Filters"}
       >
@@ -40,7 +47,7 @@ export function DiscoveryFilterPills<T extends string>({
               onClick={() => onChange(option.value)}
               aria-pressed={isActive}
               className={cn(
-                "inline-flex min-h-10 items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition-colors",
+                "inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition-colors",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                 isActive
                   ? "border-primary/40 bg-primary/10 text-foreground"
