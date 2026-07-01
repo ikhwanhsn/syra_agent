@@ -6,15 +6,14 @@ import { Button } from "@/components/ui/button";
 import { CampaignTweetPreview } from "@/components/kol/SourceTweetMedia";
 import type { KolCampaign } from "@/lib/kolApi";
 import { getKolRewardSol } from "@/lib/kolApi";
+import {
+  getCampaignDisplayLabel,
+  getCampaignDisplayPhase,
+  getCampaignDisplayStyle,
+  isCampaignLive,
+} from "@/lib/kolCampaignStatus";
 import { formatSol, formatTimeLeft } from "@/lib/kolFormat";
 import { cn } from "@/lib/utils";
-
-const statusStyles: Record<KolCampaign["status"], string> = {
-  active: "bg-primary/15 text-primary border-primary/30",
-  pending_deposit: "bg-amber-500/15 text-amber-400 border-amber-500/30",
-  completed: "bg-muted text-muted-foreground border-border",
-  cancelled: "bg-destructive/15 text-destructive border-destructive/30",
-};
 
 interface CampaignCardProps {
   campaign: KolCampaign;
@@ -23,18 +22,19 @@ interface CampaignCardProps {
 
 export function CampaignCard({ campaign, onSelect }: CampaignCardProps) {
   const rewardSol = getKolRewardSol(campaign);
-  const isActive = campaign.status === "active";
+  const displayPhase = getCampaignDisplayPhase(campaign);
+  const isLive = isCampaignLive(campaign);
   const timeLeft = formatTimeLeft(campaign.endAt);
 
   return (
     <article className="card-premium-hover rounded-2xl border border-border/60 p-4 sm:p-5 flex flex-col gap-4 min-w-0">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="eyebrow mb-1">{isActive ? "Earn SOL" : "Campaign"}</p>
+          <p className="eyebrow mb-1">{isLive ? "Earn SOL" : "Campaign"}</p>
           <h3 className="font-semibold text-lg tracking-tight truncate">{campaign.title}</h3>
         </div>
-        <Badge variant="outline" className={cn("shrink-0 capitalize", statusStyles[campaign.status])}>
-          {campaign.status.replace("_", " ")}
+        <Badge variant="outline" className={cn("shrink-0", getCampaignDisplayStyle(displayPhase))}>
+          {getCampaignDisplayLabel(displayPhase)}
         </Badge>
       </div>
 
@@ -74,18 +74,18 @@ export function CampaignCard({ campaign, onSelect }: CampaignCardProps) {
         </div>
         <div className="flex items-center gap-2 text-muted-foreground min-w-0">
           <Clock className="w-4 h-4 text-primary shrink-0" />
-          <span className="truncate">{isActive ? timeLeft : timeLeft === "Ended" ? "Ended" : `${campaign.durationDays} days`}</span>
+          <span className="truncate">{isLive ? timeLeft : timeLeft === "Ended" ? "Ended" : `${campaign.durationDays} days`}</span>
         </div>
       </div>
 
       <div className="flex flex-col gap-2 mt-auto pt-1 sm:flex-row sm:items-center sm:gap-2">
         <Button
-          variant={isActive ? "hero" : "outline"}
+          variant={isLive ? "hero" : "outline"}
           size="sm"
           className="rounded-full gap-1.5 w-full sm:w-auto shrink-0"
           onClick={() => onSelect?.(campaign.id)}
         >
-          {isActive ? "Join & earn" : "View results"}
+          {isLive ? "Join & earn" : displayPhase === "finalizing" ? "View status" : "View results"}
           <ArrowRight className="w-3.5 h-3.5" />
         </Button>
         <a

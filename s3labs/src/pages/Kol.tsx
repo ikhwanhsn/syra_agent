@@ -18,6 +18,7 @@ import { KolPointsInfo } from "@/components/kol/KolPointsInfo";
 import { CampaignNotifySignup } from "@/components/CampaignNotifySignup";
 import { MarketplaceStats } from "@/components/kol/MarketplaceStats";
 import { ProfileLeaderboard } from "@/components/kol/ProfileLeaderboard";
+import { isCampaignFinalizing, isCampaignLive } from "@/lib/kolCampaignStatus";
 import {
   DEFAULT_KOL_CONFIG,
   fetchCampaignDetail,
@@ -47,7 +48,7 @@ function KolPageContent() {
   const campaignsQuery = useQuery({
     queryKey: ["kol-campaigns"],
     queryFn: () => fetchCampaigns(),
-    staleTime: 24 * 60 * 60 * 1000,
+    staleTime: 60 * 1000,
     retry: 1,
   });
 
@@ -86,9 +87,16 @@ function KolPageContent() {
     [setSearchParams],
   );
 
-  const activeCampaigns = useMemo(
-    () => (campaignsQuery.data?.campaigns ?? []).filter((c) => c.status === "active"),
-    [campaignsQuery.data?.campaigns],
+  const allCampaigns = campaignsQuery.data?.campaigns ?? [];
+
+  const liveCampaigns = useMemo(
+    () => allCampaigns.filter((c) => isCampaignLive(c)),
+    [allCampaigns],
+  );
+
+  const finalizingCampaigns = useMemo(
+    () => allCampaigns.filter((c) => isCampaignFinalizing(c)),
+    [allCampaigns],
   );
 
   const config = configQuery.data ?? DEFAULT_KOL_CONFIG;
@@ -196,23 +204,34 @@ function KolPageContent() {
                   <div>
                     <h2 className="font-semibold text-lg mb-1">Live campaigns — start earning</h2>
                     <p className="text-sm text-muted-foreground mb-4">
-                      {activeCampaigns.length === 0
+                      {liveCampaigns.length === 0
                         ? "No live campaigns yet. Check back soon or launch one as a project."
-                        : `${activeCampaigns.length} campaign${activeCampaigns.length !== 1 ? "s" : ""} with SOL rewards · pick one, post on X, submit your link`}
+                        : `${liveCampaigns.length} campaign${liveCampaigns.length !== 1 ? "s" : ""} with SOL rewards · pick one, post on X, submit your link`}
                     </p>
                     <CampaignGrid
-                      campaigns={activeCampaigns}
+                      campaigns={liveCampaigns}
                       onSelect={handleSelectCampaign}
                     />
                   </div>
 
-                  {(campaignsQuery.data?.campaigns ?? []).some((c) => c.status === "completed") ? (
+                  {finalizingCampaigns.length > 0 ? (
+                    <div>
+                      <h2 className="font-semibold text-lg mb-1">Ending — payouts processing</h2>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        These campaigns have ended and rewards are being calculated and distributed.
+                      </p>
+                      <CampaignGrid
+                        campaigns={finalizingCampaigns}
+                        onSelect={handleSelectCampaign}
+                      />
+                    </div>
+                  ) : null}
+
+                  {allCampaigns.some((c) => c.status === "completed") ? (
                     <div>
                       <h2 className="font-semibold text-lg mb-4">Completed</h2>
                       <CampaignGrid
-                        campaigns={(campaignsQuery.data?.campaigns ?? []).filter(
-                          (c) => c.status === "completed",
-                        )}
+                        campaigns={allCampaigns.filter((c) => c.status === "completed")}
                         onSelect={handleSelectCampaign}
                       />
                     </div>

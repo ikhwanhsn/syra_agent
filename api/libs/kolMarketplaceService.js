@@ -737,6 +737,8 @@ export async function confirmCampaignTopUp(campaignId, topUpId, input) {
 export async function listCampaigns(opts = {}) {
   assertMongo();
 
+  await finalizeEndedActiveCampaigns();
+
   const limit = Math.min(Math.max(Number(opts.limit) || 50, 1), 100);
   const filter = {};
 
@@ -811,11 +813,28 @@ export async function getCampaignDetail(campaignId) {
   assertMongo();
 
   const id = assertObjectId(campaignId);
-  const campaign = await KolCampaign.findById(id);
+  let campaign = await KolCampaign.findById(id);
   if (!campaign) {
     const err = new Error("Campaign not found");
     err.code = "not_found";
     throw err;
+  }
+
+  if (campaign.status === "active" && isCampaignPastEnd(campaign)) {
+    try {
+      await finalizeCampaign(campaign._id);
+      campaign = await KolCampaign.findById(id);
+      if (!campaign) {
+        const err = new Error("Campaign not found");
+        err.code = "not_found";
+        throw err;
+      }
+    } catch (e) {
+      console.warn(
+        `[kol] auto-finalize failed campaign=${id}:`,
+        e instanceof Error ? e.message : e,
+      );
+    }
   }
 
   await ensureCampaignTweetMedia(campaign);
@@ -1047,6 +1066,49 @@ async function creditKolReputationsForCampaign(campaignId, submissions) {
   }
 
   return { campaignId: String(campaignId), credited };
+}
+
+/**
+ * @param {import("../models/KolCampaign.js").default | Record<string, unknown>} campaign
+ */
+function isCampaignPastEnd(campaign) {
+  return Boolean(campaign.endAt && new Date() >= new Date(campaign.endAt));
+}
+
+/**
+ * Finalize active campaigns whose endAt has passed (rewards, reputation, points).
+ * @param {{ limit?: number }} [opts]
+ */
+export async function finalizeEndedActiveCampaigns(opts = {}) {
+  const limit = Math.min(Math.max(Number(opts.limit) || 10, 1), 25);
+  const now = new Date();
+  const ended = await KolCampaign.find({
+    status: "active",
+    endAt: { $lte: now },
+  })
+    .sort({ endAt: 1 })
+    .limit(limit)
+    .select("_id")
+    .lean();
+
+  const results = [];
+  for (const row of ended) {
+    try {
+      const result = await finalizeCampaign(row._id);
+      results.push({ campaignId: String(row._id), ...result });
+    } catch (e) {
+      console.warn(
+        `[kol] auto-finalize failed campaign=${row._id}:`,
+        e instanceof Error ? e.message : e,
+      );
+      results.push({
+        campaignId: String(row._id),
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  }
+  return results;
 }
 
 /**
@@ -1520,6 +1582,8 @@ export async function backfillKolReputations(opts = {}) {
  */
 export async function getMarketplaceStats() {
   assertMongo();
+
+  await finalizeEndedActiveCampaigns();
 
   const [
     campaignStatusCounts,

@@ -4,6 +4,10 @@ import { BadgeCheck, Coins, Share2, Sparkles, Users, Zap } from "lucide-react";
 import { formatCompact, formatSol } from "@/lib/kolFormat";
 import type { KolCampaign } from "@/lib/kolApi";
 import {
+  getCampaignDisplayPhase,
+  type KolCampaignDisplayPhase,
+} from "@/lib/kolCampaignStatus";
+import {
   KOL_RANK_SHARE_HEIGHT,
   KOL_RANK_SHARE_WIDTH,
   KOL_SHARE_PUBLIC_LABEL,
@@ -16,6 +20,7 @@ export interface KolCampaignEarnShareCardData {
   timeLeft: string;
   participantCount: number;
   status: KolCampaign["status"];
+  endAt?: string | null;
   sourceAuthorHandle?: string | null;
   sourceAuthorVerified?: boolean;
   sourceTweetText?: string;
@@ -34,16 +39,18 @@ function truncateTweet(text: string, max = 140): string {
   return `${normalized.slice(0, max - 1)}…`;
 }
 
-function statusLabel(status: KolCampaign["status"]): string {
-  if (status === "active") return "Live now";
-  if (status === "completed") return "Completed";
-  if (status === "pending_deposit") return "Funding";
+function statusLabel(phase: KolCampaignDisplayPhase): string {
+  if (phase === "live") return "Live now";
+  if (phase === "finalizing") return "Ended";
+  if (phase === "completed") return "Completed";
+  if (phase === "pending_deposit") return "Funding";
   return "Closed";
 }
 
-function statusAccent(status: KolCampaign["status"]): string {
-  if (status === "active") return ACCENT;
-  if (status === "completed") return GOLD;
+function statusAccent(phase: KolCampaignDisplayPhase): string {
+  if (phase === "live") return ACCENT;
+  if (phase === "completed") return GOLD;
+  if (phase === "finalizing") return GOLD;
   return "rgba(255,255,255,0.5)";
 }
 
@@ -55,7 +62,11 @@ interface KolCampaignEarnShareCardProps {
 
 export const KolCampaignEarnShareCard = forwardRef<HTMLDivElement, KolCampaignEarnShareCardProps>(
   function KolCampaignEarnShareCard({ data, className, previewScale = 1 }, ref) {
-    const statusColor = statusAccent(data.status);
+    const displayPhase = getCampaignDisplayPhase({
+      status: data.status,
+      endAt: data.endAt ?? null,
+    });
+    const statusColor = statusAccent(displayPhase);
     const tweetSnippet = data.sourceTweetText ? truncateTweet(data.sourceTweetText) : null;
     const showTopPayout =
       data.topProjectedSol != null && data.topProjectedSol > 0 && data.participantCount > 0;
@@ -127,7 +138,7 @@ export const KolCampaignEarnShareCard = forwardRef<HTMLDivElement, KolCampaignEa
                     color: statusColor,
                   }}
                 >
-                  {statusLabel(data.status)}
+                  {statusLabel(displayPhase)}
                 </span>
                 {data.timeLeft !== "Ended" && data.timeLeft !== "—" ? (
                   <span className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 text-[11px] font-semibold text-white/55">

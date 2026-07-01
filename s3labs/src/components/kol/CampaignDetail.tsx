@@ -15,6 +15,13 @@ import { Badge, badgeVariants } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { KolCampaign, KolLeaderboardEntry } from "@/lib/kolApi";
 import { DEFAULT_KOL_CONFIG, fetchKolConfig, getKolRewardSol } from "@/lib/kolApi";
+import {
+  getCampaignDisplayLabel,
+  getCampaignDisplayPhase,
+  getCampaignDisplayStyle,
+  isCampaignFinalizing,
+  isCampaignLive,
+} from "@/lib/kolCampaignStatus";
 import { formatSol, formatTimeLeft } from "@/lib/kolFormat";
 import { cn } from "@/lib/utils";
 import { AddRewardForm } from "./AddRewardForm";
@@ -31,15 +38,13 @@ interface CampaignDetailProps {
   onRefresh?: () => void;
 }
 
-const statusStyles: Record<KolCampaign["status"], string> = {
-  active: "bg-primary/15 text-primary border-primary/30",
-  pending_deposit: "bg-amber-500/15 text-amber-400 border-amber-500/30",
-  completed: "bg-muted text-muted-foreground border-border",
-  cancelled: "bg-destructive/15 text-destructive border-destructive/30",
-};
-
-const statusMessages: Record<KolCampaign["status"], string> = {
-  active: "This campaign is live — reply or quote the post below, then submit your URL to start earning.",
+const statusMessages: Record<
+  ReturnType<typeof getCampaignDisplayPhase>,
+  string
+> = {
+  live: "This campaign is live — reply or quote the post below, then submit your URL to start earning.",
+  finalizing:
+    "This campaign has ended. Final engagement snapshots are being processed and SOL rewards will be distributed shortly.",
   pending_deposit: "Waiting for the project to fund this campaign.",
   completed: "Campaign ended. Final payouts have been calculated based on engagement at snapshot.",
   cancelled: "This campaign was cancelled and is no longer accepting submissions.",
@@ -60,7 +65,9 @@ export function CampaignDetail({ campaign, leaderboard, onClose, onRefresh }: Ca
   const config = configQuery.data ?? DEFAULT_KOL_CONFIG;
 
   const rewardSol = getKolRewardSol(campaign);
-  const isActive = campaign.status === "active";
+  const displayPhase = getCampaignDisplayPhase(campaign);
+  const isLive = isCampaignLive(campaign);
+  const isFinalizing = isCampaignFinalizing(campaign);
   const timeLeft = formatTimeLeft(campaign.endAt);
   const participantCount = campaign.submissionCount ?? leaderboard.length;
 
@@ -90,10 +97,10 @@ export function CampaignDetail({ campaign, leaderboard, onClose, onRefresh }: Ca
         {/* Top bar */}
         <div className="relative flex items-center justify-between gap-3 border-b border-border/50 px-4 py-3 sm:px-6 sm:py-4">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <Badge variant="outline" className={`capitalize ${statusStyles[campaign.status]}`}>
-              {campaign.status.replace("_", " ")}
+            <Badge variant="outline" className={getCampaignDisplayStyle(displayPhase)}>
+              {getCampaignDisplayLabel(displayPhase)}
             </Badge>
-            {isActive && timeLeft !== "Ended" ? (
+            {isLive && timeLeft !== "Ended" ? (
               <Badge variant="outline" className="gap-1 border-amber-500/30 text-amber-400">
                 <Clock className="w-3 h-3" />
                 {timeLeft}
@@ -126,12 +133,12 @@ export function CampaignDetail({ campaign, leaderboard, onClose, onRefresh }: Ca
 
         {/* Title block */}
         <div className="relative px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-7">
-          <p className="eyebrow mb-3">{isActive ? "Earn now" : "Campaign"}</p>
+          <p className="eyebrow mb-3">{isLive ? "Earn now" : "Campaign"}</p>
           <h2 className="heading-section text-xl sm:text-2xl lg:text-3xl">{campaign.title}</h2>
           {campaign.description ? (
             <p className="mt-2 text-base text-muted-foreground leading-relaxed">{campaign.description}</p>
           ) : null}
-          <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{statusMessages[campaign.status]}</p>
+          <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{statusMessages[displayPhase]}</p>
 
           {campaign.sourceAuthorHandle ? (
             <Link
@@ -176,10 +183,10 @@ export function CampaignDetail({ campaign, leaderboard, onClose, onRefresh }: Ca
             <div className="flex flex-col justify-center gap-1 px-4 py-4 sm:px-6 sm:py-5">
               <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 <Clock className="w-3.5 h-3.5 text-primary" />
-                {isActive ? "Time left" : "Duration"}
+                {isLive ? "Time left" : "Duration"}
               </div>
               <p className="text-2xl sm:text-3xl font-semibold tabular-nums tracking-tight">
-                {isActive ? timeLeft : `${campaign.durationDays}d`}
+                {isLive ? timeLeft : isFinalizing ? "Ended" : `${campaign.durationDays}d`}
               </p>
             </div>
 
@@ -197,7 +204,7 @@ export function CampaignDetail({ campaign, leaderboard, onClose, onRefresh }: Ca
         </div>
       </div>
 
-      {isActive ? (
+      {isLive ? (
         <AddRewardForm
           campaign={campaign}
           currentPoolSol={rewardSol}
@@ -229,7 +236,7 @@ export function CampaignDetail({ campaign, leaderboard, onClose, onRefresh }: Ca
       </div>
 
       {/* How to earn — active campaigns */}
-      {isActive ? (
+      {isLive ? (
         <div className="panel-glass rounded-2xl border border-border/60 p-5 sm:p-8">
           <p className="eyebrow mb-2">Your path to rewards</p>
           <h3 className="font-semibold text-lg mb-4">How to claim your share</h3>
@@ -246,7 +253,7 @@ export function CampaignDetail({ campaign, leaderboard, onClose, onRefresh }: Ca
         </div>
       ) : null}
 
-      {isActive ? (
+      {isLive ? (
         <SubmitEngagementForm
           campaignId={campaign.id}
           campaignTitle={campaign.title}
@@ -262,12 +269,16 @@ export function CampaignDetail({ campaign, leaderboard, onClose, onRefresh }: Ca
               <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 shrink-0">
                 <Trophy className="w-4 h-4 text-primary" />
               </div>
-              <h3 className="font-semibold text-base sm:text-lg tracking-tight">Live leaderboard</h3>
+              <h3 className="font-semibold text-base sm:text-lg tracking-tight">
+                {isFinalizing ? "Final leaderboard" : "Live leaderboard"}
+              </h3>
             </div>
             <p className="text-sm text-muted-foreground max-w-xl">
               {campaign.status === "completed"
                 ? "Final rankings and confirmed payouts."
-                : "Rankings update daily. Higher score = larger projected payout."}
+                : isFinalizing
+                  ? "Final rankings based on last snapshot. Payouts are being processed."
+                  : "Rankings update daily. Higher score = larger projected payout."}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 shrink-0">
