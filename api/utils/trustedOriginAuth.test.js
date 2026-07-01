@@ -19,6 +19,12 @@ test("isBrowserCallablePath allows BTC intelligence routes", () => {
   assert.equal(isBrowserCallablePath("/btc/bubblemap"), true);
 });
 
+test("isBrowserCallablePath allows Jupiter swap UI routes", () => {
+  assert.equal(isBrowserCallablePath("/jupiter/ui/tokens"), true);
+  assert.equal(isBrowserCallablePath("/jupiter/ui/quote"), true);
+  assert.equal(isBrowserCallablePath("/jupiter/ui/swap"), true);
+});
+
 test("isBrowserCallablePath rejects unrelated paths", () => {
   assert.equal(isBrowserCallablePath("/post/other"), false);
   assert.equal(isBrowserCallablePath("/"), false);
