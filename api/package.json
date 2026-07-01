@@ -45,7 +45,7 @@
     "@aipagents/did-resolver": "^0.1.2",
     "@coral-xyz/anchor": "^0.31.1",
     "@didtools/siwx": "^2.0.0",
-    "@faremeter/info": "^0.14.0",
+    "@faremeter/info": "^0.22.0",
     "@faremeter/middleware": "^0.14.0",
     "@faremeter/rides": "^0.14.0",
     "@faremeter/wallet-solana": "^0.14.0",
