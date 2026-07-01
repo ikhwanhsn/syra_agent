@@ -49,7 +49,7 @@
     "@faremeter/middleware": "^0.14.0",
     "@faremeter/rides": "^0.14.0",
     "@faremeter/wallet-solana": "^0.14.0",
-    "@gizatech/agent-sdk": "^0.0.4",
+    "@gizatech/agent-sdk": "^0.0.5",
     "@meteora-ag/dlmm": "^1.9.10",
     "@okxweb3/x402-core": "^0.1.0",
     "@okxweb3/x402-evm": "^0.2.1",
