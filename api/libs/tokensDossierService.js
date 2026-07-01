@@ -16,12 +16,13 @@ function isLikelySolanaMint(s) {
 }
 
 /**
- * @param {{ ref?: string; mint?: string; assetId?: string }} input
+ * @param {{ ref?: string; mint?: string; assetId?: string; lite?: boolean }} input
  */
 export async function buildMintDossier(input) {
   const ref = trim(input.ref);
   const mint = trim(input.mint);
   const assetIdParam = trim(input.assetId);
+  const lite = input.lite === true;
 
   if (!ref && !mint && !assetIdParam) {
     return { ok: false, error: 'Provide ref, mint, or assetId', status: 400 };
@@ -37,10 +38,19 @@ export async function buildMintDossier(input) {
   /** @type {unknown} */
   let resolveData = null;
   let chartMint = mint || undefined;
+  /** @type {unknown} */
+  let mintRiskEarly = null;
+
+  const mintForRisk = chartMint && isLikelySolanaMint(chartMint) ? chartMint : null;
 
   if (!assetId) {
     const resolveParams = mint ? { mint } : { ref };
-    const resolved = await runTokensAgentTool('tokens-assets-resolve', resolveParams);
+    const [resolved, riskMintEarly] = await Promise.all([
+      runTokensAgentTool('tokens-assets-resolve', resolveParams),
+      lite && mintForRisk
+        ? runTokensAgentTool('tokens-risk-summary-mint', { mint: mintForRisk })
+        : Promise.resolve(null),
+    ]);
     if (!resolved.ok) {
       return {
         ok: false,
@@ -57,11 +67,14 @@ export async function buildMintDossier(input) {
     if (!chartMint && resolved.data?.variant?.mint) {
       chartMint = trim(resolved.data.variant.mint);
     }
+    if (riskMintEarly?.ok) {
+      mintRiskEarly = riskMintEarly.data;
+    }
   }
 
   const detailParams = {
     assetId,
-    include: 'profile,risk,markets',
+    include: lite ? 'profile,risk' : 'profile,risk,markets',
   };
   if (chartMint) detailParams.mint = chartMint;
 
@@ -71,9 +84,17 @@ export async function buildMintDossier(input) {
   };
   if (chartMint) ohlcvParams.mint = chartMint;
 
-  const [detailResult, ohlcvResult] = await Promise.all([
-    runTokensAgentTool('tokens-asset-detail', detailParams),
-    runTokensAgentTool('tokens-asset-ohlcv', ohlcvParams),
+  const detailPromise = runTokensAgentTool('tokens-asset-detail', detailParams);
+  const ohlcvPromise = lite ? Promise.resolve(null) : runTokensAgentTool('tokens-asset-ohlcv', ohlcvParams);
+  const riskPromise =
+    mintForRisk && mintRiskEarly == null
+      ? runTokensAgentTool('tokens-risk-summary-mint', { mint: mintForRisk })
+      : Promise.resolve(null);
+
+  const [detailResult, ohlcvResult, mintRiskLate] = await Promise.all([
+    detailPromise,
+    ohlcvPromise,
+    riskPromise,
   ]);
 
   if (!detailResult.ok) {
@@ -92,14 +113,13 @@ export async function buildMintDossier(input) {
     chartMint = trim(asset.primaryVariant.mint);
   }
 
-  let mintRisk = null;
-  if (chartMint && isLikelySolanaMint(chartMint)) {
-    const riskMint = await runTokensAgentTool('tokens-risk-summary-mint', { mint: chartMint });
-    if (riskMint.ok) mintRisk = riskMint.data;
+  let mintRisk = mintRiskEarly;
+  if (!mintRisk && mintRiskLate?.ok) {
+    mintRisk = mintRiskLate.data;
   }
 
   const candles =
-    ohlcvResult.ok && Array.isArray(ohlcvResult.data?.candles) ? ohlcvResult.data.candles : [];
+    ohlcvResult?.ok && Array.isArray(ohlcvResult.data?.candles) ? ohlcvResult.data.candles : [];
 
   return {
     ok: true,
@@ -110,7 +130,7 @@ export async function buildMintDossier(input) {
       resolve: resolveData,
       asset,
       includes,
-      ohlcv: ohlcvResult.ok
+      ohlcv: ohlcvResult?.ok
         ? {
             interval: ohlcvResult.data?.interval ?? '1H',
             mint: ohlcvResult.data?.mint ?? chartMint ?? null,
@@ -118,7 +138,12 @@ export async function buildMintDossier(input) {
             to: ohlcvResult.data?.to ?? null,
             candles,
           }
-        : { interval: '1H', mint: chartMint ?? null, candles: [], error: ohlcvResult.error },
+        : {
+            interval: '1H',
+            mint: chartMint ?? null,
+            candles: [],
+            error: ohlcvResult?.error ?? (lite ? 'skipped' : undefined),
+          },
       mintRisk,
       fetchedAt: new Date().toISOString(),
     },

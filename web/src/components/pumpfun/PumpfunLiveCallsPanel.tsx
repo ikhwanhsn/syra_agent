@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { Loader2, Radar, TrendingUp } from "lucide-react";
+import { PumpfunListPanelSkeleton } from "@/components/pumpfun/PumpfunListPanelSkeleton";
+import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
@@ -133,12 +135,10 @@ export function PumpfunLiveCallsPanel({ onScanMint, scanning = false }: PumpfunL
     return () => observer.disconnect();
   }, [loadMore, liveQ.hasNextPage]);
 
-  if (liveQ.isLoading) {
-    return (
-      <Card className={cn(overviewCardShell, "flex items-center justify-center p-12")}>
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </Card>
-    );
+  const showSkeleton = useMinimumSkeleton(liveQ.isLoading);
+
+  if (showSkeleton) {
+    return <PumpfunListPanelSkeleton />;
   }
 
   if (liveQ.isError) {

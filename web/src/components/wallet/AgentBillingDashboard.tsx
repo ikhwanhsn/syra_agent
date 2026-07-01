@@ -277,68 +277,47 @@ export function AgentBillingDashboard({ className, compact = false }: AgentBilli
   const spend30 = data.spend.last30d;
 
   if (compact) {
+    const dailyAvg = spend7.totalUsd / 7;
+    const capPct = policy
+      ? Math.min(100, (dailyAvg / Math.max(policy.dailySpendCapUsd, 1)) * 100)
+      : null;
+
     return (
-      <section className={cn("space-y-3", className)}>
+      <section className={cn(className)}>
         <div className={cn(overviewCardShell, "overflow-hidden")}>
           <div
             className={overviewCardGlow}
             style={{ background: overviewAccentBackground("internal") }}
             aria-hidden
           />
-          <div className="relative z-[1] p-4 sm:p-5">
-            <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+          <div className="relative z-[1] flex flex-wrap items-center justify-between gap-4 p-4 sm:p-5">
+            <div className="flex items-center gap-6">
               <div>
-                <p className={overviewKickerClass}>Rail usage</p>
-                <h2 className="text-base font-semibold tracking-tight text-foreground">
-                  Billing & spend
-                </h2>
-              </div>
-              <Link
-                to="/overview"
-                className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
-              >
-                Full dashboard
-                <ArrowUpRight className="h-3 w-3" aria-hidden />
-              </Link>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl border border-border/45 bg-background/25 p-3.5 backdrop-blur-sm">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <TrendingUp className="h-3.5 w-3.5" aria-hidden />
-                  <span className="text-[10px] font-semibold uppercase tracking-wide">7d spend</span>
-                </div>
-                <p className="mt-2 font-mono text-xl font-semibold tabular-nums text-foreground">
+                <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                  7d spend
+                </p>
+                <p className="mt-0.5 font-mono text-lg font-semibold tabular-nums text-foreground">
                   <AnimatedMetric value={spend7.totalUsd} format={formatCompactUsd} />
                 </p>
-                <p className="mt-1 text-[11px] text-muted-foreground">
-                  {spend7.callCount.toLocaleString()} paid calls
-                </p>
               </div>
-              <div className="rounded-xl border border-border/45 bg-background/25 p-3.5 backdrop-blur-sm">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Receipt className="h-3.5 w-3.5" aria-hidden />
-                  <span className="text-[10px] font-semibold uppercase tracking-wide">30d volume</span>
+              {policy && capPct != null ? (
+                <div>
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                    Daily cap
+                  </p>
+                  <p className="mt-0.5 font-mono text-lg font-semibold tabular-nums text-foreground">
+                    {capPct.toFixed(0)}%
+                  </p>
                 </div>
-                <p className="mt-2 font-mono text-xl font-semibold tabular-nums text-foreground">
-                  <AnimatedMetric value={spend30.totalUsd} format={formatCompactUsd} />
-                </p>
-                <p className="mt-1 text-[11px] text-muted-foreground">
-                  {data.lifetime.totalToolCalls.toLocaleString()} lifetime calls
-                </p>
-              </div>
+              ) : null}
             </div>
-
-            {policy ? (
-              <div className="mt-4 border-t border-border/40 pt-4">
-                <CapUsageMeter
-                  usedUsd={spend7.totalUsd / 7}
-                  dailyCapUsd={policy.dailySpendCapUsd}
-                  hourlyCapUsd={policy.hourlySpendCapUsd}
-                  perTxCapUsd={policy.perTxCapUsd}
-                />
-              </div>
-            ) : null}
+            <Link
+              to="/overview"
+              className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Details
+              <ArrowUpRight className="h-3 w-3" aria-hidden />
+            </Link>
           </div>
         </div>
       </section>

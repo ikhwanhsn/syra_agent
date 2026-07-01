@@ -56,9 +56,10 @@ function normalizeTokenName(name) {
  *   name?: string | null;
  *   twitter?: string | null;
  * }} input
+ * @param {{ fast?: boolean }} [opts]
  * @returns {string[]}
  */
-function buildKolSearchQueries(input) {
+function buildKolSearchQueries(input, opts = {}) {
   const mint = String(input.mint || '').trim();
   const symbol = normalizeSymbol(input.symbol);
   const name = normalizeTokenName(input.name);
@@ -93,7 +94,8 @@ function buildKolSearchQueries(input) {
     add(`@${twitter} (pump OR pumpfun OR solana OR ca: OR gem OR alpha)`);
   }
 
-  return queries.slice(0, 4);
+  const maxQueries = opts.fast ? 2 : 4;
+  return queries.slice(0, maxQueries);
 }
 
 /**
@@ -314,27 +316,43 @@ function formatKolSearchError(errors) {
 
 /**
  * @param {string[]} queries
+ * @param {{ parallel?: boolean }} [opts]
  * @returns {Promise<{ tweets: NormalizedKolTweet[]; source: string; errors: string[] }>}
  */
-async function searchKolTweetsMulti(queries) {
+async function searchKolTweetsMulti(queries, opts = {}) {
   /** @type {Map<string, NormalizedKolTweet>} */
   const byId = new Map();
   /** @type {string[]} */
   const errors = [];
   let source = 'twitterapi.io';
 
-  for (const query of queries) {
-    try {
-      const result = await searchKolTweets(query);
-      source = result.source;
-      for (const tw of result.tweets) {
-        if (!byId.has(tw.id)) byId.set(tw.id, tw);
+  const runQuery = async (query) => {
+    const result = await searchKolTweets(query);
+    source = result.source;
+    for (const tw of result.tweets) {
+      if (!byId.has(tw.id)) byId.set(tw.id, tw);
+    }
+  };
+
+  if (opts.parallel !== false && queries.length > 1) {
+    const settled = await Promise.allSettled(queries.map((query) => runQuery(query)));
+    for (const item of settled) {
+      if (item.status === 'rejected') {
+        const msg = item.reason instanceof Error ? item.reason.message : String(item.reason);
+        errors.push(msg);
+        if (isCreditsOrQuotaError(msg)) break;
       }
-      if (byId.size >= 80) break;
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      errors.push(msg);
-      if (isCreditsOrQuotaError(msg)) break;
+    }
+  } else {
+    for (const query of queries) {
+      try {
+        await runQuery(query);
+        if (byId.size >= 80) break;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        errors.push(msg);
+        if (isCreditsOrQuotaError(msg)) break;
+      }
     }
   }
 
@@ -462,8 +480,9 @@ function buildKolPayload(tweets, mint, queries, source, terms = {}) {
  *   name?: string | null;
  *   twitter?: string | null;
  * }} input
+ * @param {{ fast?: boolean }} [opts]
  */
-export async function fetchTokenKolShills(input) {
+export async function fetchTokenKolShills(input, opts = {}) {
   const mint = String(input.mint || '').trim();
   if (!mint) {
     return { ok: false, error: 'mint is required', status: 400 };
@@ -477,7 +496,8 @@ export async function fetchTokenKolShills(input) {
     };
   }
 
-  const queries = buildKolSearchQueries(input);
+  const fast = opts.fast === true;
+  const queries = buildKolSearchQueries(input, { fast });
   const relevanceCtx = {
     mint,
     symbol: input.symbol,
@@ -486,7 +506,7 @@ export async function fetchTokenKolShills(input) {
   };
 
   try {
-    const { tweets: rawTweets, source } = await searchKolTweetsMulti(queries);
+    const { tweets: rawTweets, source } = await searchKolTweetsMulti(queries, { parallel: true });
     const tweets = rawTweets.filter((tw) => isRelevantKolTweet(tw.text, relevanceCtx));
 
     return {

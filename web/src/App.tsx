@@ -28,6 +28,7 @@ import LpAgentExperimentAgentProfile from "@/pages/LpAgentExperimentAgentProfile
 import BtcQuantExperiment from "@/pages/BtcQuantExperiment";
 import Btc2QuantAgentExperiment from "@/pages/Btc2QuantAgentExperiment";
 import Btc3MacroAgentExperiment from "@/pages/Btc3MacroAgentExperiment";
+import StocksNewsExperiment from "@/pages/StocksNewsExperiment";
 import NotFound from "@/pages/NotFound";
 import PumpfunAnalyzer from "@/pages/PumpfunAnalyzer";
 import PumpfunCallPage from "@/pages/PumpfunCallPage";
@@ -208,6 +209,14 @@ function AppRoutes() {
               element={
                 <AdminExperimentRoute>
                   <Btc3MacroAgentExperiment />
+                </AdminExperimentRoute>
+              }
+            />
+            <Route
+              path="/stocks"
+              element={
+                <AdminExperimentRoute>
+                  <StocksNewsExperiment />
                 </AdminExperimentRoute>
               }
             />

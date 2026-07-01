@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useNavigate } from "@/lib/navigation";
-import { Info, Loader2, ShieldCheck, Wallet } from "lucide-react";
+import { Loader2, ShieldCheck, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FuelAgentModal } from "@/components/chat/FuelAgentModal";
 import { AgentWalletsManager } from "@/components/settings/AgentWalletsManager";
@@ -21,9 +21,8 @@ import type { AgentWalletPurpose } from "@/lib/agentWalletCatalog";
 import { AgentBillingDashboard } from "@/components/wallet/AgentBillingDashboard";
 import { AgentPortfolioPanel } from "@/components/wallet/AgentPortfolioPanel";
 import { WalletPageHeader, type WalletPageView } from "@/components/wallet/WalletPageHeader";
-import { WalletSectionHeader } from "@/components/wallet/WalletSectionHeader";
 import { WalletTreasuryHero } from "@/components/wallet/WalletTreasuryHero";
-import { walletInfoCallout, walletPageStack, walletSectionStack } from "@/components/wallet/walletPageStyles";
+import { walletPageStack, walletSectionStack, walletSectionTitle } from "@/components/wallet/walletPageStyles";
 
 function parseFlowTab(value: string | null): "deposit" | "withdraw" {
   return value === "withdraw" ? "withdraw" : "deposit";
@@ -200,37 +199,12 @@ export default function AgentWalletPage() {
                   onRefresh={() => void wallets.handleRefreshAll()}
                 />
 
-                <div className={walletInfoCallout}>
-                  <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-                  <p>
-                    <span className="font-medium text-foreground">Treasuries</span> track operational SOL and
-                    USDC for paying agents. Switch to{" "}
-                    <button
-                      type="button"
-                      className="font-medium text-primary underline-offset-2 hover:underline"
-                      onClick={() => selectPageView("portfolio")}
-                    >
-                      Portfolio
-                    </button>{" "}
-                    to see every SPL token your agents hold, including swap receipts and memecoins.
-                  </p>
-                </div>
-
-                <section className={walletSectionStack} aria-labelledby="billing-heading">
-                  <WalletSectionHeader
-                    id="billing-heading"
-                    title="Spend & policy"
-                    description="Daily caps, recent tool usage, and billing limits that protect your treasuries."
-                  />
-                  <AgentBillingDashboard compact />
-                </section>
+                <AgentBillingDashboard compact />
 
                 <section className={walletSectionStack} aria-labelledby="agent-wallets-heading">
-                  <WalletSectionHeader
-                    id="agent-wallets-heading"
-                    title="Agent wallets"
-                    description="Deposit or withdraw SOL and USDC. Each agent has its own on-chain address."
-                  />
+                  <h2 id="agent-wallets-heading" className={walletSectionTitle}>
+                    Agent wallets
+                  </h2>
                   <AgentWalletsManager
                     embedded
                     layout="simple"

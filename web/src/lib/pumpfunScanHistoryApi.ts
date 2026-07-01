@@ -158,7 +158,7 @@ export function buildPumpfunCallShareUrl(callId: string): string {
   if (typeof window !== "undefined") {
     return `${window.location.origin}/pumpfun/call/${callId}`;
   }
-  return `https://syra.ai/pumpfun/call/${callId}`;
+  return `https://syraa.fun/pumpfun/call/${callId}`;
 }
 
 export function buildPumpfunCallShareText(record: PumpfunScanRecord): string {

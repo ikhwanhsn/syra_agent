@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Copy, Download, ImageIcon, Loader2, Share2 } from "lucide-react";
-import { toast } from "sonner";
+import { createPortal } from "react-dom";
+import { Check, Copy, Download, ImageIcon, Loader2, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -9,8 +9,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { PumpfunCallShareCard } from "@/components/pumpfun/PumpfunCallShareCard";
 import { PumpfunCallShareDesignPicker } from "@/components/pumpfun/PumpfunCallShareDesignPicker";
+import { PumpfunCallShareCard } from "@/components/pumpfun/PumpfunCallShareCard";
+import { PumpfunCallSharePreview } from "@/components/pumpfun/PumpfunCallSharePreview";
 import {
   blobFromPumpfunCallShare,
   buildPumpfunCallShareFilename,
@@ -26,14 +27,7 @@ import {
   buildPumpfunCallShareText,
   type PumpfunScanRecord,
 } from "@/lib/pumpfunScanHistoryApi";
-import {
-  PUMPFUN_CALL_SHARE_HEIGHT,
-  PUMPFUN_CALL_SHARE_PREVIEW_WIDTH,
-  PUMPFUN_CALL_SHARE_WIDTH,
-} from "@/components/pumpfun/pumpfunCallShareDimensions";
-
-/** Fit 16:9 card inside modal preview. */
-const PREVIEW_SCALE = PUMPFUN_CALL_SHARE_PREVIEW_WIDTH / PUMPFUN_CALL_SHARE_WIDTH;
+import { notify } from "@/lib/notify";
 
 export interface PumpfunCallShareModalProps {
   open: boolean;
@@ -79,57 +73,66 @@ export function PumpfunCallShareModal({
   };
 
   const handleCopy = useCallback(async () => {
-    if (!exportRef.current) return;
+    if (!exportRef.current) {
+      notify.error("Card not ready", "Try again in a moment");
+      return;
+    }
+    if (copying) return;
     setCopying(true);
     setCopied(false);
     try {
       const ok = await copyPumpfunCallShareToClipboard(exportRef.current);
       if (ok) {
         setCopied(true);
-        toast.success("Card copied — paste on X or Telegram");
+        notify.success("Image copied", "Paste on X or Telegram");
         window.setTimeout(() => setCopied(false), 2200);
       } else {
-        toast.error("Copy not supported — try Download PNG");
+        notify.error("Copy not supported", "Try Download PNG instead");
       }
     } catch {
-      toast.error("Failed to copy image");
+      notify.error("Failed to copy image", "Try Download PNG instead");
     } finally {
       setCopying(false);
     }
-  }, []);
+  }, [copying]);
 
   const handleDownload = useCallback(async () => {
-    if (!exportRef.current) return;
+    if (!exportRef.current) {
+      notify.error("Card not ready", "Try again in a moment");
+      return;
+    }
+    if (downloading) return;
     setDownloading(true);
     try {
       await exportPumpfunCallSharePng(
         exportRef.current,
         buildPumpfunCallShareFilename(record.symbol, record.callId),
       );
-      toast.success("PNG downloaded");
+      notify.success("PNG downloaded", "Check your downloads folder");
     } catch {
-      toast.error("Failed to export image");
+      notify.error("Failed to export image", "Try again in a moment");
     } finally {
       setDownloading(false);
     }
-  }, [record.callId, record.symbol]);
+  }, [downloading, record.callId, record.symbol]);
 
   const handleCopyText = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(shareText);
       setTextCopied(true);
-      toast.success("Caption copied");
+      notify.success("Caption copied", "Paste after attaching the image");
       window.setTimeout(() => setTextCopied(false), 2200);
     } catch {
-      toast.error("Failed to copy caption");
+      notify.error("Failed to copy caption");
     }
   }, [shareText]);
 
   const handleNativeShare = useCallback(async () => {
-    if (!exportRef.current || !canNativeShare) return;
+    const node = exportRef.current;
+    if (!node || !canNativeShare || sharing) return;
     setSharing(true);
     try {
-      const blob = await blobFromPumpfunCallShare(exportRef.current);
+      const blob = await blobFromPumpfunCallShare(node);
       if (
         blob &&
         navigator.canShare?.({
@@ -138,55 +141,45 @@ export function PumpfunCallShareModal({
       ) {
         const file = new File([blob], `syra-${record.symbol}-call.png`, { type: "image/png" });
         await navigator.share({ title: `$${record.symbol} call`, text: shareText, files: [file] });
+        notify.success("Shared");
       } else {
         await navigator.share({ title: `$${record.symbol} call`, text: shareText });
+        notify.success("Shared");
       }
     } catch (err) {
       if ((err as Error)?.name !== "AbortError") {
-        toast.error("Share failed");
+        notify.error("Share failed", "Try Copy or Download instead");
       }
     } finally {
       setSharing(false);
     }
-  }, [canNativeShare, record.symbol, shareText]);
+  }, [canNativeShare, record.symbol, shareText, sharing]);
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[min(94dvh,900px)] max-w-3xl gap-0 overflow-y-auto p-0">
-        <DialogHeader className="border-b border-border/60 px-5 py-4 sm:px-6">
-          <DialogTitle className="flex items-center gap-2 text-lg">
-            <ImageIcon className="h-4 w-4 text-emerald-400" aria-hidden />
-            Flex your call
-          </DialogTitle>
-          <DialogDescription>
-            Pick a card design, then copy or download for X.
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent className="max-w-3xl gap-0 overflow-hidden p-0">
+          <DialogHeader className="shrink-0 border-b border-border/60 px-5 py-3.5 sm:px-6">
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <ImageIcon className="h-4 w-4 text-emerald-400" aria-hidden />
+              Flex your call
+            </DialogTitle>
+            <DialogDescription>
+              Pick a card design, then copy or download for X.
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-4 p-4 sm:p-5">
-          <PumpfunCallShareDesignPicker value={design} onChange={handleDesignChange} compact />
+          <div className="space-y-3 p-4 sm:p-5">
+            <PumpfunCallShareDesignPicker value={design} onChange={handleDesignChange} compact />
 
-          <div
-            className="mx-auto w-full overflow-hidden rounded-lg border border-border/60 shadow-2xl"
-            style={{ maxWidth: PUMPFUN_CALL_SHARE_PREVIEW_WIDTH }}
-          >
-            <div
-              style={{
-                width: PUMPFUN_CALL_SHARE_WIDTH * PREVIEW_SCALE,
-                height: PUMPFUN_CALL_SHARE_HEIGHT * PREVIEW_SCALE,
-              }}
-              className="overflow-hidden"
-            >
-              <div style={{ transform: `scale(${PREVIEW_SCALE})`, transformOrigin: "top left" }}>
-                <PumpfunCallShareCard record={record} design={design} />
-              </div>
-            </div>
-          </div>
+            {open ? <PumpfunCallSharePreview record={record} design={design} /> : null}
 
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <Button type="button" className="rounded-xl" onClick={() => void handleCopy()} disabled={busy}>
               {copying ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : copied ? (
+                <Check className="mr-2 h-4 w-4" />
               ) : (
                 <Copy className="mr-2 h-4 w-4" />
               )}
@@ -234,17 +227,17 @@ export function PumpfunCallShareModal({
             ) : null}
           </div>
         </div>
-
-        {open ? (
-          <div
-            aria-hidden
-            className="pointer-events-none fixed left-[-9999px] top-0 opacity-0"
-            style={{ width: PUMPFUN_CALL_SHARE_WIDTH, height: PUMPFUN_CALL_SHARE_HEIGHT }}
-          >
-            <PumpfunCallShareCard ref={exportRef} record={record} design={design} />
-          </div>
-        ) : null}
       </DialogContent>
     </Dialog>
+
+      {open && typeof document !== "undefined"
+        ? createPortal(
+            <div ref={exportRef} className="pumpfun-call-share-export-root" aria-hidden>
+              <PumpfunCallShareCard record={record} design={design} />
+            </div>,
+            document.body,
+          )
+        : null}
+    </>
   );
 }

@@ -1,4 +1,6 @@
-import { Crown, Loader2, Medal, Share2, Trophy } from "lucide-react";
+import { Crown, Medal, Share2, Trophy } from "lucide-react";
+import { PumpfunListPanelSkeleton } from "@/components/pumpfun/PumpfunListPanelSkeleton";
+import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -108,12 +110,10 @@ export function PumpfunCallerLeaderboard() {
   const leaderboardQ = usePumpfunCallerLeaderboard();
   const [shareRecord, setShareRecord] = useState<PumpfunScanRecord | null>(null);
 
-  if (leaderboardQ.isLoading) {
-    return (
-      <Card className={cn(overviewCardShell, "flex items-center justify-center p-12")}>
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </Card>
-    );
+  const showSkeleton = useMinimumSkeleton(leaderboardQ.isLoading);
+
+  if (showSkeleton) {
+    return <PumpfunListPanelSkeleton variant="leaderboard" />;
   }
 
   if (leaderboardQ.isError) {

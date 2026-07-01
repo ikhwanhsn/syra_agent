@@ -6,12 +6,17 @@ import { formatSol } from "@/lib/dashboardOverviewAggregates";
 import { cn } from "@/lib/utils";
 import {
   walletHeroCard,
-  walletKickerClass,
+  walletHeroValue,
   walletStatHint,
-  walletStatLabel,
   walletStatTile,
   walletStatValue,
 } from "@/components/wallet/walletPageStyles";
+
+type WalletBreakdown = {
+  label: string;
+  usdc: number | null;
+  sol: number | null;
+};
 
 type WalletTreasuryHeroProps = {
   totalUsdc: number | null;
@@ -41,12 +46,18 @@ export function WalletTreasuryHero({
   onRefresh,
 }: WalletTreasuryHeroProps) {
   const heroUsd = estimatedTreasuryUsd ?? totalUsdc;
-  const solUsdHint =
+
+  const breakdowns: WalletBreakdown[] = [
+    { label: "Spend", usdc: chatUsdc ?? null, sol: chatSol ?? null },
+    ...(hasLpWallet ? [{ label: "LP", usdc: lpUsdc ?? null, sol: lpSol ?? null }] : []),
+  ];
+
+  const solLine =
     totalSol != null && solPriceUsd != null && solPriceUsd > 0
-      ? ` · ${formatSol(totalSol)} SOL ≈ ${formatTreasuryUsd(totalSol * solPriceUsd)}`
+      ? `${formatSol(totalSol)} SOL`
       : totalSol != null
-        ? ` · ${formatSol(totalSol)} SOL`
-        : "";
+        ? `${formatSol(totalSol)} SOL`
+        : null;
 
   return (
     <section className={walletHeroCard} aria-label="Treasury summary">
@@ -55,64 +66,51 @@ export function WalletTreasuryHero({
         style={{ background: overviewAccentBackground("neutral") }}
         aria-hidden
       />
-      <div className="relative flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0 space-y-4">
-          <div>
-            <p className={walletKickerClass}>Combined operational balance</p>
-            <p className="mt-3 font-mono text-4xl font-semibold tabular-nums tracking-tight text-foreground sm:text-[2.75rem]">
-              {formatTreasuryUsd(heroUsd)}
-            </p>
+      <div className="relative">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className={walletHeroValue}>{formatTreasuryUsd(heroUsd)}</p>
             <p className={walletStatHint}>
-              {formatTreasuryUsd(totalUsdc)} USDC{solUsdHint}
-              {estimatedTreasuryUsd == null && totalUsdc != null ? " · SOL USD estimate unavailable" : ""}
+              {formatTreasuryUsd(totalUsdc)} USDC
+              {solLine ? ` · ${solLine}` : ""}
             </p>
           </div>
+
+          {onRefresh ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 shrink-0 rounded-full text-muted-foreground"
+              disabled={refreshing}
+              aria-label="Refresh balances"
+              onClick={() => void onRefresh()}
+            >
+              {refreshing ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              ) : (
+                <RefreshCw className="h-4 w-4" aria-hidden />
+              )}
+            </Button>
+          ) : null}
         </div>
 
-        {onRefresh ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="shrink-0 self-start rounded-xl gap-2"
-            disabled={refreshing}
-            onClick={() => void onRefresh()}
-          >
-            {refreshing ? (
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-            ) : (
-              <RefreshCw className="h-4 w-4" aria-hidden />
+        {breakdowns.length > 0 ? (
+          <div
+            className={cn(
+              "mt-5 grid gap-2.5",
+              breakdowns.length > 1 ? "sm:grid-cols-2" : "sm:max-w-xs",
             )}
-            Refresh
-          </Button>
-        ) : null}
-      </div>
-
-      <div
-        className={cn(
-          "relative mt-6 grid gap-3",
-          hasLpWallet ? "sm:grid-cols-2 lg:grid-cols-3" : "sm:grid-cols-2",
-        )}
-      >
-        <div className={cn(walletStatTile, "sm:col-span-2 lg:col-span-1")}>
-          <p className={walletStatLabel}>Total USDC</p>
-          <p className={walletStatValue}>{formatTreasuryUsd(totalUsdc)}</p>
-          <p className={walletStatHint}>Stablecoin treasury across agents</p>
-        </div>
-        <div className={walletStatTile}>
-          <p className={walletStatLabel}>Chat agent</p>
-          <p className={walletStatValue}>{formatTreasuryUsd(chatUsdc ?? null)}</p>
-          <p className={walletStatHint}>
-            {chatSol != null ? `${formatSol(chatSol)} SOL` : "— SOL"}
-          </p>
-        </div>
-        {hasLpWallet ? (
-          <div className={walletStatTile}>
-            <p className={walletStatLabel}>LP agent</p>
-            <p className={walletStatValue}>{formatTreasuryUsd(lpUsdc ?? null)}</p>
-            <p className={walletStatHint}>
-              {lpSol != null ? `${formatSol(lpSol)} SOL` : "— SOL"}
-            </p>
+          >
+            {breakdowns.map((item) => (
+              <div key={item.label} className={walletStatTile}>
+                <p className="text-xs font-medium text-muted-foreground">{item.label}</p>
+                <p className={walletStatValue}>{formatTreasuryUsd(item.usdc)}</p>
+                <p className={walletStatHint}>
+                  {item.sol != null ? `${formatSol(item.sol)} SOL` : "— SOL"}
+                </p>
+              </div>
+            ))}
           </div>
         ) : null}
       </div>

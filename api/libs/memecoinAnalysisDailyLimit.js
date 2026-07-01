@@ -41,6 +41,8 @@ function parseLimitEnv(name, fallback) {
   return Math.floor(n);
 }
 
+export const SYRA_DEVICE_ID_HEADER = 'x-syra-device-id';
+
 function getClientIp(req) {
   const forwarded = req.get('x-forwarded-for');
   if (forwarded) {
@@ -48,6 +50,19 @@ function getClientIp(req) {
     if (first) return first;
   }
   return req.ip || req.socket?.remoteAddress || 'unknown';
+}
+
+/**
+ * @param {import('express').Request} req
+ * @returns {string | null}
+ */
+export function resolveDeviceId(req) {
+  const raw = req.get(SYRA_DEVICE_ID_HEADER);
+  if (typeof raw !== 'string') return null;
+  const id = raw.trim();
+  if (id.length < 8 || id.length > 64) return null;
+  if (!/^[a-zA-Z0-9_-]+$/.test(id)) return null;
+  return id;
 }
 
 function nextUtcMidnightIso() {
@@ -61,12 +76,26 @@ function nextUtcMidnightIso() {
  * @returns {{ ownerKey: string; walletAddress: string | null; verifiedWallet: boolean }}
  */
 export function resolveMemecoinScanOwner(req) {
+  const deviceId = resolveDeviceId(req);
   const wallet = req.user?.walletAddress?.trim() || null;
   if (wallet) {
-    return { ownerKey: `wallet:${wallet}`, walletAddress: wallet, verifiedWallet: true };
+    return {
+      ownerKey: `wallet:${wallet}`,
+      walletAddress: wallet,
+      verifiedWallet: true,
+      deviceId,
+    };
+  }
+  if (deviceId) {
+    return {
+      ownerKey: `device:${deviceId}`,
+      walletAddress: null,
+      verifiedWallet: false,
+      deviceId,
+    };
   }
   const ip = getClientIp(req);
-  return { ownerKey: `ip:${ip}`, walletAddress: null, verifiedWallet: false };
+  return { ownerKey: `ip:${ip}`, walletAddress: null, verifiedWallet: false, deviceId: null };
 }
 
 /**
@@ -113,6 +142,35 @@ async function readUsedCount(ownerKey, dayUtc) {
   } catch (e) {
     console.error('[memecoinAnalysisDailyLimit] readUsedCount failed:', e?.message || e);
     return 0;
+  }
+}
+
+/**
+ * Merge guest/device quota into wallet bucket when user connects mid-day.
+ * @param {string} fromOwnerKey
+ * @param {string} toOwnerKey
+ * @param {string} dayUtc
+ */
+async function migrateMemecoinScanQuota(fromOwnerKey, toOwnerKey, dayUtc) {
+  if (!isMongooseConnected() || fromOwnerKey === toOwnerKey) return;
+  const fromId = `${fromOwnerKey}:${dayUtc}`;
+  const toId = `${toOwnerKey}:${dayUtc}`;
+  try {
+    const fromDoc = await MemecoinAnalysisDailyQuota.findById(fromId).select('count').lean();
+    const fromCount = fromDoc?.count ?? 0;
+    if (fromCount <= 0) return;
+
+    const toDoc = await MemecoinAnalysisDailyQuota.findById(toId).select('count').lean();
+    const toCount = toDoc?.count ?? 0;
+    const merged = Math.max(fromCount, toCount);
+
+    await MemecoinAnalysisDailyQuota.findOneAndUpdate(
+      { _id: toId },
+      { $set: { count: merged, ownerKey: toOwnerKey, dayUtc } },
+      { upsert: true },
+    );
+  } catch (e) {
+    console.error('[memecoinAnalysisDailyLimit] migrateMemecoinScanQuota failed:', e?.message || e);
   }
 }
 
@@ -196,7 +254,18 @@ export function buildMemecoinAnalysisDailyLimitMessage(quota) {
  * @returns {Promise<{ allowed: boolean; limit: number; used: number; remaining: number; tier: string; resetAt: string }>}
  */
 export async function tryConsumeMemecoinAnalysisScan(req) {
+  const owner = resolveMemecoinScanOwner(req);
+  const dayUtc = new Date().toISOString().slice(0, 10);
+
+  if (owner.verifiedWallet && owner.deviceId) {
+    await migrateMemecoinScanQuota(`device:${owner.deviceId}`, owner.ownerKey, dayUtc);
+  }
+
   const status = await getMemecoinAnalysisQuotaStatus(req);
+
+  if (!owner.verifiedWallet && status.used > 0) {
+    return { allowed: false, ...status, remaining: Math.max(0, status.remaining) };
+  }
 
   if (status.tier === 'bypass' || status.tier === 'unlimited' || status.limit === 0) {
     return { allowed: true, ...status };
@@ -206,8 +275,6 @@ export async function tryConsumeMemecoinAnalysisScan(req) {
     return { allowed: true, ...status };
   }
 
-  const owner = resolveMemecoinScanOwner(req);
-  const dayUtc = new Date().toISOString().slice(0, 10);
   const _id = `${owner.ownerKey}:${dayUtc}`;
   const limit = status.limit;
 

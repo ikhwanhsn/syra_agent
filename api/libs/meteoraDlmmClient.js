@@ -192,9 +192,22 @@ export function lexicalOrderMints(mintA, mintB) {
   return a < b ? `${a}-${b}` : `${b}-${a}`;
 }
 
+function poolIncludesMint(pool, mint) {
+  return pool.baseMint === mint || pool.quoteMint === mint;
+}
+
+function ingestPoolRows(rows, mint, seen) {
+  for (const raw of rows) {
+    const normalized = normalizePool(raw);
+    if (!normalized.poolAddress || !poolIncludesMint(normalized, mint)) continue;
+    seen.set(normalized.poolAddress, normalized);
+  }
+}
+
 /**
- * Fetch all DLMM pools that include a token mint via Meteora pool groups API.
- * Paginated /pools misses low-TVL pairs (e.g. SYRA-SOL); groups lookup is reliable.
+ * Fetch all DLMM pools that include a token mint.
+ * Primary: Meteora /pools search by mint (groups endpoint often 404 for newer pairs).
+ * Fallback: legacy /pools/groups/{lexical_order_mints} per quote mint.
  */
 export async function fetchMeteoraPoolsByTokenMint(
   tokenMint,
@@ -208,21 +221,37 @@ export async function fetchMeteoraPoolsByTokenMint(
   if (cached) return cached;
 
   const seen = new Map();
-  for (const quoteMint of quoteMints) {
-    const quote = String(quoteMint || "").trim();
-    if (!quote || quote === mint) continue;
+
+  for (let page = 1; page <= 10; page += 1) {
     try {
-      const groupKey = lexicalOrderMints(mint, quote);
-      const body = await fetchWithRetry(`/pools/groups/${encodeURIComponent(groupKey)}`);
+      const q = new URLSearchParams({
+        query: mint,
+        page: String(page),
+        page_size: "100",
+        sort_by: "tvl:desc",
+      });
+      const body = await fetchWithRetry(`/pools?${q.toString()}`);
       const rows = Array.isArray(body?.data) ? body.data : Array.isArray(body) ? body : [];
-      for (const raw of rows) {
-        const normalized = normalizePool(raw);
-        if (!normalized.poolAddress) continue;
-        if (normalized.baseMint !== mint && normalized.quoteMint !== mint) continue;
-        seen.set(normalized.poolAddress, normalized);
-      }
+      ingestPoolRows(rows, mint, seen);
+      const totalPages = toNum(body?.pages, 1);
+      if (page >= totalPages || !rows.length) break;
     } catch {
-      // Pair group may not exist on Meteora — skip.
+      break;
+    }
+  }
+
+  if (!seen.size) {
+    for (const quoteMint of quoteMints) {
+      const quote = String(quoteMint || "").trim();
+      if (!quote || quote === mint) continue;
+      try {
+        const groupKey = lexicalOrderMints(mint, quote);
+        const body = await fetchWithRetry(`/pools/groups/${encodeURIComponent(groupKey)}`);
+        const rows = Array.isArray(body?.data) ? body.data : Array.isArray(body) ? body : [];
+        ingestPoolRows(rows, mint, seen);
+      } catch {
+        // Pair group may not exist on Meteora — skip.
+      }
     }
   }
 

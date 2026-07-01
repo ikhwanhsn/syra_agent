@@ -18,7 +18,7 @@ import {
 } from "@/lib/jupiterSwapApi";
 import { SWAP_PRESET_TOKENS } from "@/lib/swapPresets";
 import { isValidBase58Mint } from "@/lib/swapPresets";
-import { SwapTokenLogo } from "@/components/swap/SwapTokenLogo";
+import { SwapTokenLogo, type SwapTokenLogoSize } from "@/components/swap/SwapTokenLogo";
 
 export interface SelectedSwapToken {
   mint: string;
@@ -68,6 +68,38 @@ export interface TokenSelectDialogProps {
 /** First paint + each scroll batch size for verified / search results. */
 const TOKEN_LIST_INITIAL = 12;
 const TOKEN_LIST_STEP = 16;
+/** Fixed list body height — modal must not resize when search results load or clear. */
+const TOKEN_LIST_MIN_H = "min-h-[min(400px,55dvh)]";
+/** Avoid skeleton blink on fast API responses — keep visible at least this long once shown. */
+const LIST_SKELETON_MIN_MS = 450;
+
+/** Once active, show immediately; stay visible for minMs after active ends. */
+function useMinDurationVisible(active: boolean, minMs: number): boolean {
+  const [shown, setShown] = useState(false);
+  const activeSinceRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (active) {
+      activeSinceRef.current = Date.now();
+      setShown(true);
+      return;
+    }
+
+    if (!shown) return;
+
+    const elapsed =
+      activeSinceRef.current != null ? Date.now() - activeSinceRef.current : minMs;
+    const remaining = Math.max(0, minMs - elapsed);
+    const id = window.setTimeout(() => {
+      setShown(false);
+      activeSinceRef.current = null;
+    }, remaining);
+
+    return () => window.clearTimeout(id);
+  }, [active, minMs, shown]);
+
+  return shown;
+}
 
 function LazyTokenList({
   tokens,
@@ -148,12 +180,12 @@ function TokenRowSkeleton({ delay = 0 }: { delay?: number }) {
       className="flex items-center gap-3 rounded-xl px-3 py-2.5"
       style={{ animationDelay: `${delay}ms` }}
     >
-      <Skeleton className="h-9 w-9 shrink-0 rounded-full bg-muted/60" />
+      <Skeleton className="h-9 w-9 shrink-0 rounded-full" />
       <div className="min-w-0 flex-1 space-y-2">
-        <Skeleton className="h-4 w-[5.5rem] rounded-md bg-muted/50" />
-        <Skeleton className="h-3 w-28 rounded-md bg-muted/35" />
+        <Skeleton className="h-4 w-[5.5rem] rounded-md" />
+        <Skeleton className="h-3 w-28 rounded-md" />
       </div>
-      <Skeleton className="h-3 w-10 shrink-0 rounded-md bg-muted/35" />
+      <Skeleton className="h-3 w-10 shrink-0 rounded-md" />
     </div>
   );
 }
@@ -207,12 +239,21 @@ function TokenRow({
   );
 }
 
-export function TokenIcon({ token, className }: { token: SelectedSwapToken; className?: string }) {
+export function TokenIcon({
+  token,
+  size = "md",
+  className,
+}: {
+  token: SelectedSwapToken;
+  size?: SwapTokenLogoSize;
+  className?: string;
+}) {
   return (
     <SwapTokenLogo
       symbol={token.symbol}
       mint={token.mint}
       icon={token.icon}
+      size={size}
       className={className}
     />
   );
@@ -252,9 +293,6 @@ export function TokenSelectDialog({
     retry: 1,
   });
 
-  const isInitialLoad = tokensQ.isLoading && !tokensQ.data;
-  const isSearching = tokensQ.isFetching && Boolean(debouncedSearch);
-
   const presetTokens = useMemo(
     () =>
       SWAP_PRESET_TOKENS.map((p) => presetToSelected(p.label)).filter(
@@ -288,6 +326,23 @@ export function TokenSelectDialog({
       .filter((t) => !presetTokens.some((p) => p.mint === t.mint));
   }, [tokensQ.data, excludeMint, presetTokens]);
 
+  const trimmedSearch = search.trim();
+  const trimmedDebounced = debouncedSearch.trim();
+  const isAwaitingDebounce = trimmedSearch !== trimmedDebounced;
+  const isSearchMode = trimmedSearch.length > 0;
+
+  const isSearchListBusy =
+    isSearchMode &&
+    (isAwaitingDebounce || tokensQ.isFetching || tokensQ.isPending);
+
+  const isVerifiedListBusy =
+    !trimmedDebounced && (tokensQ.isLoading || tokensQ.isPending);
+
+  const listSkeletonActive =
+    !tokensQ.isError && (isSearchListBusy || isVerifiedListBusy);
+
+  const showListSkeleton = useMinDurationVisible(listSkeletonActive, LIST_SKELETON_MIN_MS);
+
   const handleSelect = useCallback(
     (token: SelectedSwapToken) => {
       onSelect(token);
@@ -314,11 +369,16 @@ export function TokenSelectDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md gap-0 overflow-hidden rounded-2xl p-0">
-        <DialogHeader className="border-b border-border/50 px-4 py-4">
+      <DialogContent
+        className={cn(
+          "flex max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem))]",
+          "h-[min(540px,70dvh)] max-w-md flex-col gap-0 overflow-hidden rounded-2xl p-0",
+        )}
+      >
+        <DialogHeader className="shrink-0 border-b border-border/50 px-4 py-4">
           <DialogTitle className="text-base font-semibold">Select token</DialogTitle>
         </DialogHeader>
-        <div className="border-b border-border/50 px-4 py-3">
+        <div className="shrink-0 border-b border-border/50 px-4 py-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -330,8 +390,8 @@ export function TokenSelectDialog({
             />
           </div>
         </div>
-        <ScrollArea className="max-h-[min(420px,60vh)]">
-          <div className="space-y-1 p-2">
+        <ScrollArea className="min-h-0 flex-1">
+          <div className={cn("space-y-1 p-2", TOKEN_LIST_MIN_H)}>
             {tokensQ.isError ? (
               <div className="mx-2 my-4 rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-5 text-center">
                 <p className="text-sm font-medium text-destructive">Could not load tokens</p>
@@ -348,7 +408,7 @@ export function TokenSelectDialog({
               </div>
             ) : null}
 
-            {!debouncedSearch && popularTokens.length > 0 ? (
+            {!isSearchMode && popularTokens.length > 0 ? (
               <>
                 <p className="px-3 pb-1 pt-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
                   Popular
@@ -364,13 +424,14 @@ export function TokenSelectDialog({
               </>
             ) : null}
 
-            {isInitialLoad && !debouncedSearch ? (
-              <TokenListLoading count={4} label="Verified" />
+            {showListSkeleton ? (
+              <TokenListLoading
+                count={6}
+                label={isSearchMode ? "Searching" : "Verified"}
+              />
             ) : null}
 
-            {isSearching ? <TokenListLoading count={3} label="Searching" /> : null}
-
-            {!isInitialLoad && !isSearching && searchResults.length > 0 ? (
+            {!showListSkeleton && !tokensQ.isError && searchResults.length > 0 ? (
               <LazyTokenList
                 tokens={searchResults}
                 label={debouncedSearch ? "Results" : "Verified"}
@@ -390,13 +451,15 @@ export function TokenSelectDialog({
                 </p>
               </button>
             ) : null}
-            {!tokensQ.isLoading &&
-            !tokensQ.isFetching &&
+            {!showListSkeleton &&
+            !listSkeletonActive &&
             !tokensQ.isError &&
             searchResults.length === 0 &&
-            debouncedSearch &&
+            trimmedDebounced &&
             !showPasteMint ? (
-              <p className="px-3 py-8 text-center text-sm text-muted-foreground">No tokens found</p>
+              <p className="flex min-h-[12rem] items-center justify-center px-3 py-8 text-center text-sm text-muted-foreground">
+                No tokens found
+              </p>
             ) : null}
           </div>
         </ScrollArea>
@@ -426,7 +489,7 @@ export function TokenSelectButton({
         disabled && "pointer-events-none opacity-60",
       )}
     >
-      <TokenIcon token={token} className="h-7 w-7" />
+      <TokenIcon token={token} size="sm" />
       <span className="text-[15px] font-semibold tracking-tight">{token.symbol}</span>
       <ChevronDown className="h-4 w-4 text-muted-foreground" />
     </button>

@@ -48,7 +48,12 @@ export function SwapDetails({
         : "text-muted-foreground";
 
   return (
-    <div className={cn("rounded-xl border border-border/40 bg-muted/10", className)}>
+    <div
+      className={cn(
+        "rounded-xl border border-border/40 bg-muted/10",
+        className,
+      )}
+    >
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
@@ -85,7 +90,9 @@ export function SwapDetails({
           </div>
           <div className="flex justify-between gap-4">
             <dt className="text-muted-foreground">Price impact</dt>
-            <dd className={cn("font-mono font-medium tabular-nums", impactClass)}>
+            <dd
+              className={cn("font-mono font-medium tabular-nums", impactClass)}
+            >
               {impact != null ? `${impact.toFixed(2)}%` : "—"}
             </dd>
           </div>

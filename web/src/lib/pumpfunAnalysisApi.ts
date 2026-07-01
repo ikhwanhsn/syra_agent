@@ -1,5 +1,6 @@
 import { getApiBaseUrl } from "@/lib/chatApi";
 import { syraFetch } from "@/lib/agentAuthApi";
+import { pumpfunDeviceHeaders } from "@/lib/pumpfunGuestScan";
 import type {
   TokensDossierCandle,
   TokensDossierPayload,
@@ -240,7 +241,7 @@ export async function fetchMemecoinAnalysisQuota(
   const base = getApiBaseUrl().replace(/\/$/, "");
   const url = `${base}/agent/tokens/memecoin-analysis/quota`;
   const res = await syraFetch(url, {
-    headers: { Accept: "application/json" },
+    headers: { Accept: "application/json", ...pumpfunDeviceHeaders() },
     signal: opts?.signal,
   });
 
@@ -250,12 +251,12 @@ export async function fetchMemecoinAnalysisQuota(
     error?: string;
   };
 
-  if (res.status === 401) {
+  if (res.status === 400 && body.error === "device_id_required") {
     return {
-      limit: 0,
+      limit: 3,
       used: 0,
-      remaining: 0,
-      tier: "locked",
+      remaining: 3,
+      tier: "free",
       resetAt: new Date().toISOString(),
       verifiedWallet: false,
     };
@@ -282,7 +283,7 @@ export interface PumpfunScanRecordSummary {
 
 export async function fetchMemecoinAnalysis(
   mint: string,
-  opts?: { signal?: AbortSignal },
+  opts?: { signal?: AbortSignal; force?: boolean },
 ): Promise<{
   data: MemecoinAnalysisPayload;
   quota: MemecoinAnalysisQuota;
@@ -294,9 +295,11 @@ export async function fetchMemecoinAnalysis(
   }
 
   const base = getApiBaseUrl().replace(/\/$/, "");
-  const url = `${base}/agent/tokens/memecoin-analysis?mint=${encodeURIComponent(trimmed)}`;
+  const params = new URLSearchParams({ mint: trimmed });
+  if (opts?.force) params.set("force", "true");
+  const url = `${base}/agent/tokens/memecoin-analysis?${params.toString()}`;
   const res = await syraFetch(url, {
-    headers: { Accept: "application/json" },
+    headers: { Accept: "application/json", ...pumpfunDeviceHeaders() },
     signal: opts?.signal,
   });
 

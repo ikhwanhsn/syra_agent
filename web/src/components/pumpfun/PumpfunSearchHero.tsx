@@ -20,6 +20,8 @@ export interface PumpfunSearchHeroProps {
   quotaLoading?: boolean;
   scanLimitReached?: boolean;
   walletConnected?: boolean;
+  /** One wallet-free scan left today. */
+  guestScanEligible?: boolean;
   /** True while silently restoring Syra session for an already-connected wallet. */
   authPending?: boolean;
   onConnectWallet?: () => void;
@@ -36,6 +38,7 @@ export function PumpfunSearchHero({
   quotaLoading,
   scanLimitReached,
   walletConnected = false,
+  guestScanEligible = false,
   authPending = false,
   onConnectWallet,
   onScanLimitClick,
@@ -50,6 +53,9 @@ export function PumpfunSearchHero({
     }
   });
 
+  const canScan = walletConnected || guestScanEligible;
+  const needsWalletForNextScan = !walletConnected && !guestScanEligible;
+
   const saveRecent = useCallback((mint: string) => {
     setRecent((prev) => {
       const next = [mint, ...prev.filter((m) => m !== mint)].slice(0, 3);
@@ -63,7 +69,7 @@ export function PumpfunSearchHero({
   }, []);
 
   const submit = useCallback(() => {
-    if (!walletConnected) {
+    if (needsWalletForNextScan) {
       onConnectWallet?.();
       return;
     }
@@ -79,15 +85,15 @@ export function PumpfunSearchHero({
     onAnalyze,
     onConnectWallet,
     onScanLimitClick,
+    needsWalletForNextScan,
     saveRecent,
     scanLimitReached,
     value,
-    walletConnected,
   ]);
 
   const pick = useCallback(
     (mint: string) => {
-      if (!walletConnected) {
+      if (needsWalletForNextScan) {
         onConnectWallet?.();
         return;
       }
@@ -99,11 +105,11 @@ export function PumpfunSearchHero({
       saveRecent(mint);
       void onAnalyze(mint);
     },
-    [onAnalyze, onChange, onConnectWallet, onScanLimitClick, saveRecent, scanLimitReached, walletConnected],
+    [onAnalyze, onChange, onConnectWallet, onScanLimitClick, needsWalletForNextScan, saveRecent, scanLimitReached],
   );
 
   const showUsage =
-    walletConnected &&
+    canScan &&
     !authPending &&
     !isPumpfunScanUnlimitedTier(quota?.tier) &&
     (quotaLoading || quota != null);
@@ -129,7 +135,19 @@ export function PumpfunSearchHero({
           </p>
         </div>
 
-        {!walletConnected ? (
+        {guestScanEligible ? (
+          <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
+            <p className="text-sm text-foreground">
+              <span className="font-medium">1 free scan today</span>
+              <span className="text-muted-foreground">
+                {" "}
+                — no wallet needed. Connect to use your remaining daily scans and save call history.
+              </span>
+            </p>
+          </div>
+        ) : null}
+
+        {needsWalletForNextScan ? (
           <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-start gap-3">
@@ -137,9 +155,9 @@ export function PumpfunSearchHero({
                   <Wallet className="h-4 w-4 text-primary" aria-hidden />
                 </span>
                 <div>
-                  <p className="text-sm font-medium">Connect your Solana wallet to scan</p>
+                  <p className="text-sm font-medium">Connect wallet to scan again</p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    Scan history, flex cards, and the caller leaderboard require a connected wallet.
+                    Your free daily scan was used. Connect to unlock your remaining scans, call history, and flex cards.
                   </p>
                 </div>
               </div>
@@ -148,7 +166,7 @@ export function PumpfunSearchHero({
               </Button>
             </div>
           </div>
-        ) : authPending ? (
+        ) : walletConnected && authPending ? (
           <div className="flex items-center gap-2 rounded-lg border border-border/40 bg-muted/20 px-3 py-2.5 text-xs text-muted-foreground">
             <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
             Preparing your session…
@@ -164,11 +182,17 @@ export function PumpfunSearchHero({
               onKeyDown={(e) => {
                 if (e.key === "Enter") submit();
               }}
-              placeholder={walletConnected ? "Mint address" : "Connect wallet to scan"}
+              placeholder={
+                canScan
+                  ? "Mint address"
+                  : needsWalletForNextScan
+                    ? "Connect wallet to scan again"
+                    : "Mint address"
+              }
               className="h-11 pl-9 font-mono text-sm"
               spellCheck={false}
               autoComplete="off"
-              disabled={!walletConnected}
+              disabled={!canScan}
             />
           </div>
           <Button
@@ -176,14 +200,22 @@ export function PumpfunSearchHero({
             variant="neon"
             className="h-11 shrink-0 px-5"
             disabled={
-              !walletConnected ||
+              !canScan ||
               authPending ||
               (!scanLimitReached && !value.trim()) ||
               isLoading
             }
             onClick={submit}
           >
-            {isLoading ? "…" : !walletConnected ? "Connect" : scanLimitReached ? "Limit" : "Scan"}
+            {isLoading
+              ? "…"
+              : needsWalletForNextScan
+                ? "Connect"
+                : scanLimitReached
+                  ? "Limit"
+                  : guestScanEligible && !walletConnected
+                    ? "Try free"
+                    : "Scan"}
           </Button>
         </div>
 
@@ -230,7 +262,7 @@ export function PumpfunSearchHero({
           </div>
         ) : null}
 
-        {walletConnected ? (
+        {canScan ? (
           <div className="flex flex-wrap gap-1.5">
             {EXAMPLE_MINTS.map((item) => (
               <Button

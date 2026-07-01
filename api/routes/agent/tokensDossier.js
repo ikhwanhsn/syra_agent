@@ -4,10 +4,14 @@ import { buildAssetIntelligence } from '../../libs/assetIntelligenceService.js';
 import { buildMemecoinAnalysis } from '../../libs/memecoinAnalysisService.js';
 import { buildHolderOverlapBatch } from '../../libs/holderOverlapService.js';
 import { buildHolderInsights } from '../../libs/holderInsightsService.js';
+import { buildTokenDevInfo } from '../../libs/tokenDevInfoService.js';
+import { buildTokenSnipers } from '../../libs/tokenSnipersService.js';
+import { buildTokenTrades } from '../../libs/tokenTradesService.js';
 import {
   getMemecoinAnalysisQuotaStatus,
   tryConsumeMemecoinAnalysisScan,
   buildMemecoinAnalysisDailyLimitMessage,
+  resolveDeviceId,
 } from '../../libs/memecoinAnalysisDailyLimit.js';
 import {
   recordPumpfunScan,
@@ -17,6 +21,7 @@ import {
   getPumpfunLiveCalls,
   extractScanSnapshotFromAnalysis,
   resolveCallerWallet,
+  buildOptimisticScanRecordSummary,
 } from '../../libs/pumpfunScanHistoryService.js';
 import { optionalWalletSession, requireSession } from '../../utils/requireSession.js';
 import { fetchAssetsBoard } from '../../libs/tokensBoardService.js';
@@ -28,6 +33,8 @@ function isLikelySolanaMint(s) {
   if (t.length < 32 || t.length > 44) return false;
   return /^[1-9A-HJ-NP-Za-km-z]+$/.test(t);
 }
+
+const DEFAULT_TRADE_TAPE_LIMIT = 50;
 
 /** @param {unknown} raw */
 function normalizeSearchHit(raw) {
@@ -179,10 +186,11 @@ export function createTokensDossierRouter() {
   router.get('/memecoin-analysis/quota', async (req, res) => {
     try {
       const wallet = resolveCallerWallet(req);
-      if (!wallet) {
-        return res.status(401).json({
+      const deviceId = resolveDeviceId(req);
+      if (!wallet && !deviceId) {
+        return res.status(400).json({
           success: false,
-          error: 'Connect your Solana wallet to scan tokens',
+          error: 'device_id_required',
           data: { verifiedWallet: false, limit: 0, used: 0, remaining: 0, tier: 'locked' },
         });
       }
@@ -371,10 +379,11 @@ export function createTokensDossierRouter() {
   router.get('/memecoin-analysis', async (req, res) => {
     try {
       const wallet = resolveCallerWallet(req);
-      if (!wallet) {
-        return res.status(401).json({
+      const deviceId = resolveDeviceId(req);
+      if (!wallet && !deviceId) {
+        return res.status(400).json({
           success: false,
-          error: 'Connect your Solana wallet to scan tokens. Sign in via the wallet button in the header.',
+          error: 'Provide a device id or connect your Solana wallet to scan tokens.',
         });
       }
 
@@ -388,9 +397,12 @@ export function createTokensDossierRouter() {
 
       const quota = await tryConsumeMemecoinAnalysisScan(req);
       if (!quota.allowed) {
-        return res.status(429).json({
+        const guestNeedsWallet = !wallet && quota.used > 0;
+        return res.status(guestNeedsWallet ? 401 : 429).json({
           success: false,
-          error: buildMemecoinAnalysisDailyLimitMessage(quota),
+          error: guestNeedsWallet
+            ? 'Connect your Solana wallet to continue scanning. Your first daily scan was free.'
+            : buildMemecoinAnalysisDailyLimitMessage(quota),
           quota: {
             limit: quota.limit,
             used: quota.used,
@@ -401,7 +413,9 @@ export function createTokensDossierRouter() {
         });
       }
 
-      const result = await buildMemecoinAnalysis({ mint });
+      const force = req.query.force === 'true';
+
+      const result = await buildMemecoinAnalysis({ mint, force });
       if (!result.ok) {
         return res.status(result.status ?? 502).json({
           success: false,
@@ -416,12 +430,15 @@ export function createTokensDossierRouter() {
           },
         });
       }
-      let scanRecord = null;
-      try {
-        const snapshot = extractScanSnapshotFromAnalysis(result.data);
-        scanRecord = await recordPumpfunScan({ callerWallet: wallet, ...snapshot });
-      } catch (recordErr) {
-        console.error('[memecoin-analysis] scan record failed:', recordErr?.message || recordErr);
+
+      const snapshot = extractScanSnapshotFromAnalysis(result.data);
+      const scanRecord = wallet
+        ? buildOptimisticScanRecordSummary(wallet, snapshot)
+        : null;
+      if (wallet) {
+        void recordPumpfunScan({ callerWallet: wallet, ...snapshot }).catch((recordErr) => {
+          console.error('[memecoin-analysis] scan record failed:', recordErr?.message || recordErr);
+        });
       }
 
       return res.json({
@@ -439,6 +456,112 @@ export function createTokensDossierRouter() {
     } catch (err) {
       console.error('[memecoin-analysis] failed:', err?.stack || err?.message || err);
       const message = err instanceof Error ? err.message : 'Memecoin analysis failed';
+      return res.status(500).json({ success: false, error: message });
+    }
+  });
+
+  router.get('/dev-info', async (req, res) => {
+    try {
+      const wallet = resolveCallerWallet(req);
+      if (!wallet) {
+        return res.status(401).json({
+          success: false,
+          error: 'Connect your Solana wallet to view dev wallet info.',
+        });
+      }
+
+      const mint = typeof req.query.mint === 'string' ? req.query.mint.trim() : '';
+      if (!mint || !isLikelySolanaMint(mint)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Provide a valid Solana mint address via ?mint=',
+        });
+      }
+
+      const result = await buildTokenDevInfo({ mint });
+      if (!result.ok) {
+        return res.status(result.status ?? 502).json({
+          success: false,
+          error: result.error || 'Dev info lookup failed',
+        });
+      }
+
+      return res.json({ success: true, data: result.data });
+    } catch (err) {
+      console.error('[dev-info] failed:', err?.stack || err?.message || err);
+      const message = err instanceof Error ? err.message : 'Dev info lookup failed';
+      return res.status(500).json({ success: false, error: message });
+    }
+  });
+
+  router.get('/snipers', async (req, res) => {
+    try {
+      const wallet = resolveCallerWallet(req);
+      if (!wallet) {
+        return res.status(401).json({
+          success: false,
+          error: 'Connect your Solana wallet to view sniper data.',
+        });
+      }
+
+      const mint = typeof req.query.mint === 'string' ? req.query.mint.trim() : '';
+      if (!mint || !isLikelySolanaMint(mint)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Provide a valid Solana mint address via ?mint=',
+        });
+      }
+
+      const result = await buildTokenSnipers({ mint });
+      if (!result.ok) {
+        return res.status(result.status ?? 502).json({
+          success: false,
+          error: result.error || 'Sniper lookup failed',
+        });
+      }
+
+      return res.json({ success: true, data: result.data });
+    } catch (err) {
+      console.error('[snipers] failed:', err?.stack || err?.message || err);
+      const message = err instanceof Error ? err.message : 'Sniper lookup failed';
+      return res.status(500).json({ success: false, error: message });
+    }
+  });
+
+  router.get('/trades', async (req, res) => {
+    try {
+      const wallet = resolveCallerWallet(req);
+      if (!wallet) {
+        return res.status(401).json({
+          success: false,
+          error: 'Connect your Solana wallet to view trade tape.',
+        });
+      }
+
+      const mint = typeof req.query.mint === 'string' ? req.query.mint.trim() : '';
+      if (!mint || !isLikelySolanaMint(mint)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Provide a valid Solana mint address via ?mint=',
+        });
+      }
+
+      const limitRaw =
+        typeof req.query.limit === 'string' ? parseInt(req.query.limit, 10) : DEFAULT_TRADE_TAPE_LIMIT;
+      const limit = Number.isFinite(limitRaw) ? limitRaw : DEFAULT_TRADE_TAPE_LIMIT;
+
+      const result = await buildTokenTrades({ mint, limit });
+      if (!result.ok) {
+        return res.status(result.status ?? 502).json({
+          success: false,
+          error: result.error || 'Trade tape lookup failed',
+        });
+      }
+
+      return res.json({ success: true, data: result.data });
+    } catch (err) {
+      console.error('[trades] failed:', err?.stack || err?.message || err);
+      const message = err instanceof Error ? err.message : 'Trade tape lookup failed';
       return res.status(500).json({ success: false, error: message });
     }
   });

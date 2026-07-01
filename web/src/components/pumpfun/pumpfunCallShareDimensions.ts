@@ -8,3 +8,11 @@ export const PUMPFUN_CALL_SHARE_BG = "#030303";
 
 /** Modal / page preview width in CSS px. */
 export const PUMPFUN_CALL_SHARE_PREVIEW_WIDTH = 640;
+export const PUMPFUN_CALL_SHARE_PREVIEW_SCALE =
+  PUMPFUN_CALL_SHARE_PREVIEW_WIDTH / PUMPFUN_CALL_SHARE_WIDTH;
+export const PUMPFUN_CALL_SHARE_PREVIEW_HEIGHT = Math.round(
+  PUMPFUN_CALL_SHARE_HEIGHT * PUMPFUN_CALL_SHARE_PREVIEW_SCALE,
+);
+
+/** Shown on flex cards and share captions. */
+export const PUMPFUN_CALL_SHARE_SITE_PATH = "syraa.fun/pumpfun";

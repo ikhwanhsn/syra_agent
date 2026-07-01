@@ -1,7 +1,7 @@
 import { Loader2, Share2 } from "lucide-react";
 import { useParams } from "@/lib/navigation";
 import { OverviewPageBackdrop } from "@/components/dashboard/overview/OverviewPageBackdrop";
-import { PumpfunCallShareCard } from "@/components/pumpfun/PumpfunCallShareCard";
+import { PumpfunCallSharePreview } from "@/components/pumpfun/PumpfunCallSharePreview";
 import { PumpfunCallShareDesignPicker } from "@/components/pumpfun/PumpfunCallShareDesignPicker";
 import { PumpfunCallShareModal } from "@/components/pumpfun/PumpfunCallShareModal";
 import {
@@ -18,13 +18,6 @@ import {
 import { cn } from "@/lib/utils";
 import { useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  PUMPFUN_CALL_SHARE_HEIGHT,
-  PUMPFUN_CALL_SHARE_PREVIEW_WIDTH,
-  PUMPFUN_CALL_SHARE_WIDTH,
-} from "@/components/pumpfun/pumpfunCallShareDimensions";
-
-const CALL_PAGE_PREVIEW_SCALE = PUMPFUN_CALL_SHARE_PREVIEW_WIDTH / PUMPFUN_CALL_SHARE_WIDTH;
 
 export default function PumpfunCallPage() {
   const { callId } = useParams<{ callId: string }>();
@@ -90,27 +83,7 @@ export default function PumpfunCallPage() {
           className="w-full max-w-xl"
         />
 
-        <div
-          className="mx-auto w-full overflow-hidden rounded-lg border border-border/60 shadow-2xl"
-          style={{ maxWidth: PUMPFUN_CALL_SHARE_PREVIEW_WIDTH }}
-        >
-          <div
-            style={{
-              width: PUMPFUN_CALL_SHARE_WIDTH * CALL_PAGE_PREVIEW_SCALE,
-              height: PUMPFUN_CALL_SHARE_HEIGHT * CALL_PAGE_PREVIEW_SCALE,
-            }}
-            className="overflow-hidden"
-          >
-            <div
-              style={{
-                transform: `scale(${CALL_PAGE_PREVIEW_SCALE})`,
-                transformOrigin: "top left",
-              }}
-            >
-              <PumpfunCallShareCard record={record} design={design} />
-            </div>
-          </div>
-        </div>
+        <PumpfunCallSharePreview record={record} design={design} />
 
         <Button type="button" variant="neon" className="gap-2" onClick={() => setShareOpen(true)}>
           <Share2 className="h-4 w-4" />

@@ -28,6 +28,25 @@ function newCallId() {
 }
 
 /**
+ * Immediate scan record for API response — DB persist runs in background.
+ * @param {string} callerWallet
+ * @param {ReturnType<typeof extractScanSnapshotFromAnalysis>} snapshot
+ */
+export function buildOptimisticScanRecordSummary(callerWallet, snapshot) {
+  return {
+    callId: newCallId(),
+    callerWallet: callerWallet.trim(),
+    mint: snapshot.mint,
+    symbol: snapshot.symbol || 'TOKEN',
+    name: snapshot.name || 'Token',
+    imageUri: snapshot.imageUri ?? null,
+    scanMarketCapUsd: snapshot.scanMarketCapUsd ?? null,
+    peakGainMultiplier: 1,
+    scannedAt: new Date().toISOString(),
+  };
+}
+
+/**
  * @param {import('express').Request} req
  * @returns {string | null}
  */

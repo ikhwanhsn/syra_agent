@@ -20,7 +20,7 @@ function toNum(v) {
 /** @param {string} mint */
 async function fetchPumpfunRaw(mint) {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 8000);
+  const timer = setTimeout(() => ctrl.abort(), 5000);
   try {
     const url = `${PUMP_FUN_API_BASE}/coins-v2/${encodeURIComponent(mint)}`;
     const res = await fetch(url, {
@@ -113,7 +113,7 @@ function parsePumpfunMarketExtras(raw, solUsd) {
 /** @param {string} mint */
 async function fetchDexScreenerBestPair(mint) {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 8000);
+  const timer = setTimeout(() => ctrl.abort(), 5000);
   try {
     const url = `${DEXSCREENER_TOKENS_V1}/${encodeURIComponent(mint)}`;
     const res = await fetch(url, {

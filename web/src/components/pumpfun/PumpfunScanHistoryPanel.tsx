@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { ExternalLink, Loader2, Share2, TrendingUp } from "lucide-react";
+import { ExternalLink, Share2, TrendingUp } from "lucide-react";
+import { PumpfunListPanelSkeleton } from "@/components/pumpfun/PumpfunListPanelSkeleton";
+import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import { Link } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -119,6 +121,9 @@ export function PumpfunScanHistoryPanel({
   const historyEnabled = walletConnected && syraAuthenticated;
   const historyQ = usePumpfunScanHistory(historyEnabled);
   const [shareRecord, setShareRecord] = useState<PumpfunScanRecord | null>(null);
+  const sessionLoading = Boolean(authPending || signingIn);
+  const showSessionSkeleton = useMinimumSkeleton(sessionLoading);
+  const showHistorySkeleton = useMinimumSkeleton(historyQ.isLoading);
 
   if (!walletConnected) {
     return (
@@ -135,13 +140,8 @@ export function PumpfunScanHistoryPanel({
     );
   }
 
-  if (authPending || signingIn) {
-    return (
-      <Card className={cn(overviewCardShell, "flex items-center justify-center gap-2 p-12")}>
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">Preparing your session…</p>
-      </Card>
-    );
+  if (showSessionSkeleton) {
+    return <PumpfunListPanelSkeleton />;
   }
 
   if (!syraAuthenticated) {
@@ -159,12 +159,8 @@ export function PumpfunScanHistoryPanel({
     );
   }
 
-  if (historyQ.isLoading) {
-    return (
-      <Card className={cn(overviewCardShell, "flex items-center justify-center p-12")}>
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </Card>
-    );
+  if (showHistorySkeleton) {
+    return <PumpfunListPanelSkeleton />;
   }
 
   if (historyQ.isError) {

@@ -10,29 +10,23 @@ import { overviewCardShell } from "@/components/dashboard/overview/overviewStyle
 import { PumpfunAnalysisSkeleton } from "@/components/pumpfun/PumpfunAnalysisSkeleton";
 import { PumpfunCallShareModal } from "@/components/pumpfun/PumpfunCallShareModal";
 import { PumpfunCallerLeaderboard } from "@/components/pumpfun/PumpfunCallerLeaderboard";
-import { PumpfunChartPanel } from "@/components/pumpfun/PumpfunChartPanel";
-import { PumpfunClusterPanel } from "@/components/pumpfun/PumpfunClusterPanel";
-import { PumpfunHolderOverlapPanel } from "@/components/pumpfun/PumpfunHolderOverlapPanel";
-import { PumpfunHoldersPanel } from "@/components/pumpfun/PumpfunHoldersPanel";
-import { PumpfunKolPanel } from "@/components/pumpfun/PumpfunKolPanel";
-import { PumpfunRiskPanel } from "@/components/pumpfun/PumpfunRiskPanel";
 import { PumpfunLiveCallsPanel } from "@/components/pumpfun/PumpfunLiveCallsPanel";
 import { PumpfunScanHistoryPanel } from "@/components/pumpfun/PumpfunScanHistoryPanel";
 import { PumpfunScanLimitModal } from "@/components/pumpfun/PumpfunScanLimitModal";
-import { PumpfunScanShareBar } from "@/components/pumpfun/PumpfunScanShareBar";
+import { PumpfunScanWorkspace, parsePumpfunScanSubTab, type PumpfunScanSubTab } from "@/components/pumpfun/PumpfunScanWorkspace";
 import { PumpfunSearchHero } from "@/components/pumpfun/PumpfunSearchHero";
-import { PumpfunStatGrid } from "@/components/pumpfun/PumpfunStatGrid";
-import { PumpfunVerdictCard } from "@/components/pumpfun/PumpfunVerdictCard";
 import { useConnectModal } from "@/contexts/ConnectModalContext";
 import { useSyraAuth } from "@/contexts/SyraAuthContext";
 import { useWalletContext } from "@/contexts/WalletContext";
 import {
   useMemecoinAnalysis,
   useMemecoinAnalysisQuota,
-  clearPumpfunScanSessionCache,
   memecoinAnalysisQueryKey,
+  MEMECOIN_ANALYSIS_QUERY_ROOT,
 } from "@/hooks/useMemecoinAnalysis";
+import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import { isValidSolanaMint, MemecoinAnalysisQuotaError, normalizeMintInput } from "@/lib/pumpfunAnalysisApi";
+import { isGuestScanEligible } from "@/lib/pumpfunGuestScan";
 import { isPumpfunScanLimitReached } from "@/lib/pumpfunScanQuota";
 import type { PumpfunScanRecord } from "@/lib/pumpfunScanHistoryApi";
 import {
@@ -58,18 +52,26 @@ export default function PumpfunAnalyzer() {
 
   const urlMint = searchParams.get("mint")?.trim() ?? "";
   const urlTab = parseTab(searchParams.get("tab"));
+  const urlSub = parsePumpfunScanSubTab(searchParams.get("sub"));
   const [input, setInput] = useState(urlMint);
   const [activeMint, setActiveMint] = useState<string | null>(
     urlMint && isValidSolanaMint(urlMint) ? urlMint : null,
   );
   const [tab, setTab] = useState<PumpfunTab>(urlTab);
+  const [scanSubTab, setScanSubTab] = useState<PumpfunScanSubTab>(urlSub);
   const [shareRecord, setShareRecord] = useState<PumpfunScanRecord | null>(null);
   const [authRestoring, setAuthRestoring] = useState(false);
   const [limitModalOpen, setLimitModalOpen] = useState(false);
   const [historySigningIn, setHistorySigningIn] = useState(false);
+  const [scanBust, setScanBust] = useState(0);
 
   const scanReady = connected && syraAuthenticated;
   const authPending = authRestoring && connected && !syraAuthenticated;
+
+  const quotaQ = useMemecoinAnalysisQuota(true);
+  const guestScanEligible = isGuestScanEligible(connected, quotaQ.data, {
+    quotaLoading: quotaQ.isLoading,
+  });
 
   /** Privy connect ≠ Syra JWT — silently restore session when wallet is already linked. */
   useEffect(() => {
@@ -91,8 +93,12 @@ export default function PumpfunAnalyzer() {
     };
   }, [syraAuthReady, connected, address, syraAuthenticated, ensureSyraAuth]);
 
-  const analysisQ = useMemecoinAnalysis(scanReady ? activeMint : null, { sessionCache: true });
-  const quotaQ = useMemecoinAnalysisQuota(scanReady);
+  const analysisQ = useMemecoinAnalysis(activeMint, {
+    sessionCache: true,
+    bust: scanBust,
+    scanReady,
+    guestScanReady: guestScanEligible,
+  });
 
   const handleHistorySignIn = useCallback(async () => {
     setHistorySigningIn(true);
@@ -112,22 +118,31 @@ export default function PumpfunAnalyzer() {
     void ensureSyraAuth();
   }, [tab, connected, syraAuthenticated, syraAuthReady, ensureSyraAuth]);
 
-  /** Drop scan cache when leaving the pumpfun page so the next visit starts fresh. */
-  useEffect(() => {
-    return () => {
-      clearPumpfunScanSessionCache(queryClient);
-    };
-  }, [queryClient]);
-
   const syncUrl = useCallback(
-    (mint: string, nextTab?: PumpfunTab) => {
+    (mint: string, nextTab?: PumpfunTab, nextSub?: PumpfunScanSubTab) => {
       const next = new URLSearchParams(searchParams);
       next.set("mint", mint);
       if (nextTab) next.set("tab", nextTab);
       else if (tab !== "scan") next.set("tab", tab);
+      const sub = nextSub ?? scanSubTab;
+      if (sub !== "overview") next.set("sub", sub);
+      else next.delete("sub");
       setSearchParams(next, { replace: true });
     },
-    [searchParams, setSearchParams, tab],
+    [searchParams, setSearchParams, tab, scanSubTab],
+  );
+
+  const handleSubTabChange = useCallback(
+    (nextSub: PumpfunScanSubTab) => {
+      setScanSubTab(nextSub);
+      const next = new URLSearchParams(searchParams);
+      if (activeMint) next.set("mint", activeMint);
+      next.set("tab", "scan");
+      if (nextSub !== "overview") next.set("sub", nextSub);
+      else next.delete("sub");
+      setSearchParams(next, { replace: true });
+    },
+    [activeMint, searchParams, setSearchParams],
   );
 
   const handleTabChange = useCallback(
@@ -149,6 +164,7 @@ export default function PumpfunAnalyzer() {
 
   const ensureScanSession = useCallback(async (): Promise<boolean> => {
     if (!connected) {
+      if (isGuestScanEligible(false, quotaQ.data, { quotaLoading: quotaQ.isLoading })) return true;
       openConnectModal();
       return false;
     }
@@ -157,7 +173,7 @@ export default function PumpfunAnalyzer() {
     if (restored) return true;
     const signed = await requestSyraAuth();
     return signed != null;
-  }, [connected, ensureSyraAuth, openConnectModal, requestSyraAuth, syraAuthenticated]);
+  }, [connected, ensureSyraAuth, openConnectModal, quotaQ.data, quotaQ.isLoading, requestSyraAuth, syraAuthenticated]);
 
   const handleAnalyze = useCallback(
     async (raw: string, opts?: { force?: boolean }) => {
@@ -167,16 +183,20 @@ export default function PumpfunAnalyzer() {
       if (!ready) return;
 
       if (opts?.force) {
-        queryClient.removeQueries({ queryKey: memecoinAnalysisQueryKey(mint) });
+        setScanBust((n) => n + 1);
+        queryClient.removeQueries({ queryKey: [MEMECOIN_ANALYSIS_QUERY_ROOT, mint.trim()] });
+      } else {
+        setScanBust(0);
       }
 
       setInput(mint);
       setTab("scan");
-      syncUrl(mint, "scan");
+      setScanSubTab("overview");
+      syncUrl(mint, "scan", "overview");
       setActiveMint(mint);
 
       if (opts?.force) {
-        void queryClient.invalidateQueries({ queryKey: memecoinAnalysisQueryKey(mint) });
+        void queryClient.invalidateQueries({ queryKey: [MEMECOIN_ANALYSIS_QUERY_ROOT, mint.trim()] });
       }
     },
     [ensureScanSession, queryClient, syncUrl],
@@ -199,6 +219,10 @@ export default function PumpfunAnalyzer() {
   useEffect(() => {
     setTab(urlTab);
   }, [urlTab]);
+
+  useEffect(() => {
+    setScanSubTab(urlSub);
+  }, [urlSub]);
 
   const analysisPayload = analysisQ.data?.data;
   const latestScanRecord = useMemo((): PumpfunScanRecord | null => {
@@ -254,7 +278,8 @@ export default function PumpfunAnalyzer() {
     }
   }, [analysisQ.isError, analysisQ.error]);
 
-  const showSkeleton = tab === "scan" && analysisQ.isLoading && !analysisPayload;
+  const skeletonActive = tab === "scan" && analysisQ.isFetching && !analysisPayload;
+  const showSkeleton = useMinimumSkeleton(skeletonActive);
   const hasResults = Boolean(analysisPayload);
 
   return (
@@ -277,6 +302,7 @@ export default function PumpfunAnalyzer() {
           quotaLoading={quotaQ.isLoading}
           scanLimitReached={scanLimitReached}
           walletConnected={connected}
+          guestScanEligible={guestScanEligible}
           authPending={authPending}
           onConnectWallet={handleConnectWallet}
           onScanLimitClick={openLimitModal}
@@ -360,31 +386,16 @@ export default function PumpfunAnalyzer() {
             ) : null}
 
             {hasResults && analysisPayload ? (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-3 duration-500 fill-mode-both">
-                <PumpfunScanShareBar
-                  scanRecord={latestScanRecord}
-                  onShare={() => {
-                    if (latestScanRecord) setShareRecord(latestScanRecord);
-                  }}
-                />
-                <PumpfunVerdictCard data={analysisPayload} />
-                <PumpfunStatGrid data={analysisPayload} />
-                <PumpfunChartPanel data={analysisPayload} />
-                <div className="grid gap-6 lg:grid-cols-2">
-                  <PumpfunRiskPanel data={analysisPayload} />
-                  <PumpfunHoldersPanel data={analysisPayload} />
-                </div>
-                <PumpfunClusterPanel data={analysisPayload} />
-                <PumpfunHolderOverlapPanel
-                  baseMint={analysisPayload.mint}
-                  baseSymbol={
-                    analysisPayload.pumpfun.data?.symbol ??
-                    analysisPayload.dossier.data?.asset?.symbol ??
-                    "Token"
-                  }
-                />
-                <PumpfunKolPanel data={analysisPayload} />
-              </div>
+              <PumpfunScanWorkspace
+                data={analysisPayload}
+                scanRecord={latestScanRecord}
+                subTab={scanSubTab}
+                onSubTabChange={handleSubTabChange}
+                onShare={() => {
+                  if (latestScanRecord) setShareRecord(latestScanRecord);
+                }}
+                toolsEnabled={scanReady}
+              />
             ) : null}
           </TabsContent>
 

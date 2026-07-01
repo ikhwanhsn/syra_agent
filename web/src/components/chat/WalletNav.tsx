@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "@/lib/navigation";
 import { useWalletContext } from "@/contexts/WalletContext";
 import { useConnectModal } from "@/contexts/ConnectModalContext";
@@ -33,6 +33,7 @@ import { notify } from "@/lib/notify";
 import { buildFeedbackMailto } from "./FeedbackModal";
 import { cn } from "@/lib/utils";
 import { shortenAgentAddress } from "@/lib/agentWalletCatalog";
+import { resolveUserAvatarUrl } from "@/lib/agentAvatar";
 import { formatTreasuryUsd } from "@/lib/agentWalletBalanceDisplay";
 import { formatSol } from "@/lib/dashboardOverviewAggregates";
 import { useSyraHolderBalance } from "@/hooks/useSyraHolderBalance";
@@ -52,12 +53,32 @@ function menuRowClass(active?: boolean) {
   );
 }
 
+const navAvatarClassName =
+  "h-6 w-6 shrink-0 rounded-full object-cover ring-1 ring-inset ring-foreground/10";
+
+function ConnectedAgentAvatar({ src }: { src: string }) {
+  return (
+    <span className="relative flex h-6 w-6 shrink-0 items-center justify-center" aria-hidden>
+      <img
+        src={src}
+        alt=""
+        width={24}
+        height={24}
+        draggable={false}
+        className={navAvatarClassName}
+      />
+      <span className="absolute -bottom-px -right-px h-2 w-2 rounded-full border-[1.5px] border-background bg-emerald-500" />
+    </span>
+  );
+}
+
 export function WalletNav(props: WalletNavProps = {}) {
   const { isDarkMode = true, onToggleDarkMode } = props;
   const { pathname } = useLocation();
   const { publicKey, disconnect, connected } = useWalletContext();
   const { openConnectModal } = useConnectModal();
-  const { ready, agentAddress, connectedWalletShort, lpAgentAddress } = useAgentWallet();
+  const { ready, agentAddress, connectedWalletShort, lpAgentAddress, avatarUrl, anonymousId } =
+    useAgentWallet();
   const { syraAuthReady, syraAuthenticated, ensureSyraAuth } = useSyraAuth();
   const {
     hasAgentTreasury,
@@ -91,6 +112,11 @@ export function WalletNav(props: WalletNavProps = {}) {
   const walletLabel = publicKey
     ? (connectedWalletShort ?? shortenAgentAddress(publicKey.toBase58()))
     : "…";
+
+  const agentProfileSrc = useMemo(
+    () => resolveUserAvatarUrl(avatarUrl, anonymousId) ?? "/logo.jpg",
+    [avatarUrl, anonymousId],
+  );
 
   useEffect(() => {
     if (!open || !connected || !publicKey) return;
@@ -201,27 +227,32 @@ export function WalletNav(props: WalletNavProps = {}) {
   }
 
   const triggerClass = cn(
-    "h-9 min-h-[44px] max-w-[min(11rem,calc(100vw-8rem))] gap-2 rounded-xl border border-border/50 bg-muted/20 pl-2 pr-2.5",
-    "shadow-sm backdrop-blur-sm transition-[background,box-shadow,border-color] hover:bg-muted/35 hover:border-border/70",
+    "h-9 min-h-[44px] max-w-[min(10rem,calc(100vw-10rem))] gap-2 rounded-xl px-2 pr-2.5 font-normal",
+    "border border-[hsl(var(--glass-border)/0.85)] bg-[hsl(var(--glass-bg)/0.65)]",
+    "shadow-[inset_0_1px_0_0_hsl(0_0%_100%/0.45),var(--glass-shadow)]",
+    "backdrop-blur-[16px] backdrop-saturate-[160%]",
+    "transition-[background,box-shadow,border-color,transform] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
+    "hover:border-[hsl(var(--foreground)/0.12)] hover:bg-[hsl(var(--glass-bg)/0.78)]",
+    "dark:border-[hsl(0_0%_100%/0.1)] dark:bg-[hsl(var(--glass-bg)/0.42)]",
+    "dark:shadow-[inset_0_1px_0_0_hsl(0_0%_100%/0.08),var(--glass-shadow)]",
+    "dark:hover:border-[hsl(0_0%_100%/0.14)] dark:hover:bg-[hsl(var(--glass-bg)/0.52)]",
+    "data-[state=open]:border-[hsl(var(--foreground)/0.14)] data-[state=open]:bg-[hsl(var(--glass-bg)/0.82)]",
     "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-    "touch-manipulation sm:min-h-9 sm:max-w-[12.5rem]",
+    "active:scale-[0.98] touch-manipulation sm:min-h-9 sm:max-w-[11.5rem]",
   );
 
   return (
     <div className="flex min-w-0 max-w-full shrink-0 items-center justify-end">
       <DropdownMenu open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" className={triggerClass}>
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 ring-1 ring-inset ring-primary/20">
-              <Wallet className="h-3.5 w-3.5 text-primary" aria-hidden />
-            </span>
-            <span className="min-w-0 flex-1 text-left">
-              <span className="block truncate font-mono text-xs font-medium text-foreground">{walletLabel}</span>
-              <span className="block truncate text-[10px] text-muted-foreground">Solana</span>
+          <Button variant="ghost" className={triggerClass}>
+            <ConnectedAgentAvatar src={agentProfileSrc} />
+            <span className="min-w-0 flex-1 truncate font-mono text-sm font-medium text-foreground">
+              {walletLabel}
             </span>
             <ChevronDown
               className={cn(
-                "h-4 w-4 shrink-0 text-muted-foreground/70 transition-transform duration-200",
+                "h-4 w-4 shrink-0 text-muted-foreground/60 transition-transform duration-200",
                 open && "rotate-180",
               )}
               aria-hidden

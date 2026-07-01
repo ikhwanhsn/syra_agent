@@ -1,6 +1,6 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpRight, Droplets, Loader2, RefreshCw } from "lucide-react";
+import { ArrowUpRight, Droplets, RefreshCw } from "lucide-react";
 import { OverviewPageBackdrop } from "@/components/dashboard/overview/OverviewPageBackdrop";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,44 @@ import {
   type MeteoraLpPool,
 } from "@/lib/meteoraPoolsApi";
 import { cn } from "@/lib/utils";
+
+const POOLS_SKELETON_MIN_MS = 450;
+
+/** Keep skeleton visible for at least `minMs` so fast responses do not flash. */
+function useMinimumSkeleton(active: boolean, minMs = POOLS_SKELETON_MIN_MS): boolean {
+  const [visible, setVisible] = useState(active);
+  const loadStartedAt = useRef<number | null>(active ? Date.now() : null);
+
+  useEffect(() => {
+    if (active) {
+      loadStartedAt.current = Date.now();
+      setVisible(true);
+      return;
+    }
+
+    const started = loadStartedAt.current;
+    if (started == null) {
+      setVisible(false);
+      return;
+    }
+
+    const remaining = minMs - (Date.now() - started);
+    if (remaining <= 0) {
+      loadStartedAt.current = null;
+      setVisible(false);
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      loadStartedAt.current = null;
+      setVisible(false);
+    }, remaining);
+
+    return () => window.clearTimeout(timer);
+  }, [active, minMs]);
+
+  return visible;
+}
 
 function SyraPoolCard({ pool }: { pool: MeteoraLpPool }) {
   const apr = feeAprFromDailyRatio(pool.feeTvlRatio);
@@ -55,12 +93,43 @@ function SyraPoolCard({ pool }: { pool: MeteoraLpPool }) {
   );
 }
 
-function LoadingState() {
+function StatsSkeleton() {
   return (
-    <div className="space-y-3">
+    <div className="grid grid-cols-3 gap-3">
       {Array.from({ length: 3 }).map((_, i) => (
-        <Skeleton key={i} className="h-24 w-full rounded-2xl" />
+        <Skeleton key={i} className="h-[4.5rem] w-full rounded-2xl" />
       ))}
+    </div>
+  );
+}
+
+function PoolCardSkeleton() {
+  return (
+    <div className={cn(overviewCardShell, "flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between")}>
+      <div className="min-w-0 space-y-2">
+        <Skeleton className="h-6 w-28" />
+        <Skeleton className="h-4 w-44 max-w-full" />
+      </div>
+      <div className="flex shrink-0 items-center gap-4">
+        <div className="space-y-1.5 text-right">
+          <Skeleton className="ml-auto h-3 w-12" />
+          <Skeleton className="ml-auto h-6 w-16" />
+        </div>
+        <Skeleton className="h-10 w-[8.5rem] rounded-xl" />
+      </div>
+    </div>
+  );
+}
+
+function PoolsContentSkeleton({ poolCount = 3 }: { poolCount?: number }) {
+  return (
+    <div className="animate-in fade-in duration-300 space-y-8">
+      <StatsSkeleton />
+      <div className="space-y-3">
+        {Array.from({ length: poolCount }).map((_, i) => (
+          <PoolCardSkeleton key={i} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -86,6 +155,10 @@ export default function LpPoolsPage() {
 
   const totalTvl = useMemo(() => pools.reduce((sum, p) => sum + p.tvlUsd, 0), [pools]);
 
+  const isInitialLoad = poolsQ.isLoading;
+  const isRefreshing = poolsQ.isFetching && !poolsQ.isLoading;
+  const showSkeleton = useMinimumSkeleton(isInitialLoad || isRefreshing);
+
   return (
     <div className="relative flex min-h-screen flex-col">
       <OverviewPageBackdrop />
@@ -98,7 +171,19 @@ export default function LpPoolsPage() {
         )}
       >
         <div className="mx-auto w-full max-w-2xl space-y-8">
-          <header className="space-y-3 text-center">
+          <header className="relative space-y-3 pr-10 text-center sm:pr-12">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="absolute right-0 top-0 h-9 w-9 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
+              disabled={poolsQ.isFetching}
+              aria-label="Refresh pools"
+              onClick={() => void poolsQ.refetch()}
+            >
+              <RefreshCw className={cn("h-4 w-4", poolsQ.isFetching && "animate-spin")} aria-hidden />
+            </Button>
+
             <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-background/60 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur-sm">
               <Droplets className="h-3.5 w-3.5 text-violet-500" aria-hidden />
               Meteora · SYRA pools
@@ -110,25 +195,12 @@ export default function LpPoolsPage() {
               Earn trading fees by adding liquidity to SYRA pools on Meteora. APR is estimated from the last
               24 hours and is not guaranteed.
             </p>
-            <div className="flex items-center justify-center gap-2 pt-1">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-9 gap-2 rounded-lg"
-                onClick={() => void poolsQ.refetch()}
-                disabled={poolsQ.isFetching}
-              >
-                <RefreshCw className={cn("h-3.5 w-3.5", poolsQ.isFetching && "animate-spin")} aria-hidden />
-                Refresh
-              </Button>
-            </div>
           </header>
 
-          {poolsQ.isLoading ? (
-            <LoadingState />
+          {showSkeleton ? (
+            <PoolsContentSkeleton poolCount={Math.max(pools.length, 3)} />
           ) : poolsQ.isError ? (
-            <div className={cn(overviewCardShell, "p-6 text-center")}>
+            <div className={cn(overviewCardShell, "animate-in fade-in duration-300 p-6 text-center")}>
               <p className="text-sm font-medium text-destructive">Could not load SYRA pools.</p>
               <Button
                 type="button"
@@ -141,12 +213,12 @@ export default function LpPoolsPage() {
               </Button>
             </div>
           ) : pools.length === 0 ? (
-            <div className={cn(overviewCardShell, "p-8 text-center")}>
+            <div className={cn(overviewCardShell, "animate-in fade-in duration-300 p-8 text-center")}>
               <p className="text-sm font-medium text-foreground">No SYRA pools found on Meteora right now.</p>
               <p className="mt-1 text-xs text-muted-foreground">Check back later or refresh the list.</p>
             </div>
           ) : (
-            <>
+            <div className="animate-in fade-in duration-300 space-y-8">
               <div className="grid grid-cols-3 gap-3 text-center">
                 <div className={cn(overviewCardShell, "px-3 py-4")}>
                   <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Pools</p>
@@ -165,17 +237,11 @@ export default function LpPoolsPage() {
               </div>
 
               <div className="space-y-3">
-                {poolsQ.isFetching && !poolsQ.isLoading ? (
-                  <p className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
-                    Updating…
-                  </p>
-                ) : null}
                 {pools.map((pool) => (
                   <SyraPoolCard key={pool.poolAddress} pool={pool} />
                 ))}
               </div>
-            </>
+            </div>
           )}
         </div>
       </div>

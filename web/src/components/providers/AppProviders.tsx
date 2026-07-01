@@ -9,7 +9,13 @@ import { ConnectModalProvider } from "@/contexts/ConnectModalContext";
 import { SyraAuthProvider } from "@/contexts/SyraAuthContext";
 import { WalletContextProvider } from "@/contexts/WalletContext";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 /** Root providers for wallet, auth, and UI primitives. Agent wallet lives in AppShell (wraps GlobalNav). */
 export function AppProviders({ children }: { children: ReactNode }) {

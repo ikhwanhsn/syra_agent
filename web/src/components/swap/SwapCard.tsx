@@ -6,8 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useWalletContext } from "@/contexts/WalletContext";
 import { useJupiterQuote } from "@/hooks/useJupiterQuote";
-import { buildJupiterSwap, formatSwapAmount, searchJupiterTokens } from "@/lib/jupiterSwapApi";
-import { executeSignedSwap, formatSwapExecutionError } from "@/lib/jupiterSwapExecute";
+import {
+  buildJupiterSwap,
+  formatSwapAmount,
+  searchJupiterTokens,
+} from "@/lib/jupiterSwapApi";
+import {
+  executeSignedSwap,
+  formatSwapExecutionError,
+} from "@/lib/jupiterSwapExecute";
 import { fetchWalletTokenBalances } from "@/lib/tokenBalances";
 import {
   mintToSwapToken,
@@ -43,9 +50,18 @@ const fieldShellClass = cn(
 export function SwapCard() {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
-  const urlSwap = useMemo(() => parseSwapUrlParams(searchParams), [searchParams]);
-  const { connected, address, openLoginModal, connection, signTransaction, refreshSolanaBalances } =
-    useWalletContext();
+  const urlSwap = useMemo(
+    () => parseSwapUrlParams(searchParams),
+    [searchParams],
+  );
+  const {
+    connected,
+    address,
+    openLoginModal,
+    connection,
+    signTransaction,
+    refreshSolanaBalances,
+  } = useWalletContext();
 
   const [inputToken, setInputToken] = useState<SelectedSwapToken>(() =>
     urlSwap.inputMint
@@ -68,8 +84,10 @@ export function SwapCard() {
 
   const mintsToResolve = useMemo(() => {
     const mints = new Set<string>();
-    if (urlSwap.inputMint && !isPresetMint(urlSwap.inputMint)) mints.add(urlSwap.inputMint);
-    if (urlSwap.outputMint && !isPresetMint(urlSwap.outputMint)) mints.add(urlSwap.outputMint);
+    if (urlSwap.inputMint && !isPresetMint(urlSwap.inputMint))
+      mints.add(urlSwap.inputMint);
+    if (urlSwap.outputMint && !isPresetMint(urlSwap.outputMint))
+      mints.add(urlSwap.outputMint);
     return [...mints];
   }, [urlSwap.inputMint, urlSwap.outputMint]);
 
@@ -209,12 +227,17 @@ export function SwapCard() {
       setActionError("Select different tokens to swap.");
       return;
     }
-    if (inputBalance != null && Number(amount.replace(/,/g, "")) > inputBalance) {
+    if (
+      inputBalance != null &&
+      Number(amount.replace(/,/g, "")) > inputBalance
+    ) {
       setActionError(`Insufficient ${inputToken.symbol} balance.`);
       return;
     }
     if (!quoteQuery.display) {
-      setActionError(quoteQuery.error?.message ?? "Could not fetch a quote. Try again.");
+      setActionError(
+        quoteQuery.error?.message ?? "Could not fetch a quote. Try again.",
+      );
       return;
     }
     setShowConfirm(true);
@@ -261,7 +284,9 @@ export function SwapCard() {
         description: `Swapped ${inputToken.symbol} for ${outputToken.symbol}. Track on Solscan.`,
       });
     } catch (e) {
-      const msg = formatSwapExecutionError(e instanceof Error ? e.message : "Swap failed");
+      const msg = formatSwapExecutionError(
+        e instanceof Error ? e.message : "Swap failed",
+      );
       setActionError(msg);
       setPhase("error");
     }
@@ -291,8 +316,12 @@ export function SwapCard() {
       <div className={swapShellClass}>
         <div className="flex items-center justify-between gap-3 border-b border-border/40 px-4 py-3.5 sm:px-5">
           <div>
-            <h2 className="font-display text-lg font-semibold tracking-tight">Swap</h2>
-            <p className="text-xs text-muted-foreground">Best route via Jupiter</p>
+            <h2 className="font-display text-lg font-semibold tracking-tight">
+              Swap
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Best route via Jupiter
+            </p>
           </div>
           <SwapSettings
             slippageBps={slippageBps}
@@ -333,7 +362,12 @@ export function SwapCard() {
                   <button
                     key={pct}
                     type="button"
-                    disabled={busy || showConfirm || inputBalance == null || inputBalance <= 0}
+                    disabled={
+                      busy ||
+                      showConfirm ||
+                      inputBalance == null ||
+                      inputBalance <= 0
+                    }
                     onClick={() =>
                       setAmount(
                         formatSwapAmount(
@@ -379,7 +413,7 @@ export function SwapCard() {
             </button>
           </div>
 
-          <div className={cn(fieldShellClass, "rounded-t-md pt-6 sm:pt-7")}>
+          <div className={cn(fieldShellClass, "rounded-b-2xl rounded-t-md pt-6 sm:pt-7")}>
             <div className="flex items-center justify-between gap-3">
               <div className="space-y-1">
                 <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
@@ -403,7 +437,7 @@ export function SwapCard() {
             </div>
           </div>
 
-          <div className="mt-3 space-y-3">
+          <div className="flex flex-col gap-4 pt-4">
             <SwapDetails
               display={quoteQuery.display}
               inputSymbol={inputToken.symbol}
@@ -440,11 +474,13 @@ export function SwapCard() {
                   </span>{" "}
                   for approximately{" "}
                   <span className="font-mono font-medium text-foreground">
-                    {quoteQuery.display?.outFormatted ?? "—"} {outputToken.symbol}
+                    {quoteQuery.display?.outFormatted ?? "—"}{" "}
+                    {outputToken.symbol}
                   </span>
                   {quoteQuery.display?.minReceivedFormatted ? (
                     <span className="block mt-1 text-xs">
-                      Minimum received: {quoteQuery.display.minReceivedFormatted}{" "}
+                      Minimum received:{" "}
+                      {quoteQuery.display.minReceivedFormatted}{" "}
                       {outputToken.symbol}
                     </span>
                   ) : null}
@@ -455,7 +491,11 @@ export function SwapCard() {
                     onClick={() => void handleSwap()}
                     disabled={busy}
                   >
-                    {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm swap"}
+                    {busy ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Confirm swap"
+                    )}
                   </Button>
                   <Button
                     variant="outline"
@@ -483,7 +523,9 @@ export function SwapCard() {
       <TokenSelectDialog
         open={selectSide != null}
         onOpenChange={(open) => !open && setSelectSide(null)}
-        excludeMint={selectSide === "input" ? outputToken.mint : inputToken.mint}
+        excludeMint={
+          selectSide === "input" ? outputToken.mint : inputToken.mint
+        }
         balances={balances}
         onSelect={(token) => {
           if (selectSide === "input") setInputToken(token);

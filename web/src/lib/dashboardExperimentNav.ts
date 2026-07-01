@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Bitcoin, BrainCircuit, Droplets, Globe } from "lucide-react";
+import { BarChart3, Bitcoin, BrainCircuit, Droplets, Globe } from "lucide-react";
 
 export type DashboardExperimentNavItem = {
   id: string;
@@ -48,6 +48,15 @@ export const DASHBOARD_EXPERIMENT_NAV: readonly DashboardExperimentNavItem[] = [
     to: "/btc3-experiment",
     isActive: (p) => p.startsWith("/btc3-experiment"),
     badge: { label: "Experimental" },
+  },
+  {
+    id: "stocks",
+    label: "Stocks (news)",
+    description: "xStocks paper trading via Jupiter + news signals",
+    icon: BarChart3,
+    to: "/stocks",
+    isActive: (p) => p.startsWith("/stocks"),
+    badge: { label: "Beta" },
   },
 ];
 

@@ -10,6 +10,12 @@ import { fetchOnChainMintSecurity } from './onChainMintSecurity.js';
 import { buildPumpfunMarketProfile, mergeMemecoinMarketStats } from './pumpfunCoinAnalysis.js';
 import { formatSolanaReadError } from './solanaMintProgram.js';
 
+const ANALYSIS_CACHE_TTL_MS = 45_000;
+const HOLDER_SAMPLE_LIMIT = 10;
+
+/** @type {Map<string, { expires: number; data: unknown }>} */
+const analysisCache = new Map();
+
 /** @param {string} s */
 function trim(s) {
   return s != null ? String(s).trim() : '';
@@ -72,7 +78,7 @@ function unwrapOnChain(settled, source) {
 /** @param {string} mint */
 async function fetchOnChainHoldersAndDistribution(mint) {
   try {
-    const holdersPayload = await fetchSplTokenTopHolders(mint, { limit: 20 });
+    const holdersPayload = await fetchSplTokenTopHolders(mint, { limit: HOLDER_SAMPLE_LIMIT });
     const distribution = analyzeHolderDistribution(holdersPayload);
     return { ok: true, data: { holders: holdersPayload, distribution } };
   } catch (err) {
@@ -287,7 +293,7 @@ function computeSyraAlphaScore(inputs) {
 }
 
 /**
- * @param {{ mint: string }} input
+ * @param {{ mint: string; force?: boolean }} input
  */
 export async function buildMemecoinAnalysis(input) {
   const mint = trim(input.mint);
@@ -295,16 +301,30 @@ export async function buildMemecoinAnalysis(input) {
     return { ok: false, error: 'Provide a valid Solana mint address', status: 400 };
   }
 
+  if (!input.force) {
+    const cached = analysisCache.get(mint);
+    if (cached && Date.now() < cached.expires) {
+      return { ok: true, data: cached.data };
+    }
+  }
+
+  const kolShillsPromise = wrapSource(
+    fetchTokenKolShills({ mint }, { fast: true }),
+    'kolShills',
+  );
+
   const [
     dossierSettled,
     onChainSettled,
     pumpfunSettled,
     securitySettled,
+    kolShillsSettled,
   ] = await Promise.allSettled([
-    wrapSource(buildMintDossier({ mint }), 'dossier'),
+    wrapSource(buildMintDossier({ mint, lite: true }), 'dossier'),
     fetchOnChainHoldersAndDistribution(mint),
     wrapSource(buildPumpfunMarketProfile(mint), 'pumpfun'),
     fetchOnChainSecurity(mint),
+    kolShillsPromise,
   ]);
 
   /** @param {PromiseSettledResult<unknown>} settled @param {string} source */
@@ -320,30 +340,7 @@ export async function buildMemecoinAnalysis(input) {
   const onChainSection = unwrapOnChain(onChainSettled, 'onChain');
   const pumpfunSection = unwrap(pumpfunSettled, 'pumpfun');
   const onChainSecuritySection = unwrapOnChain(securitySettled, 'onChainSecurity');
-
-  const pumpfunDataEarly = pumpfunSection.ok ? pumpfunSection.data : null;
-  const dossierDataEarly = dossierSection.ok ? dossierSection.data : null;
-  const symbol =
-    pumpfunDataEarly?.symbol ??
-    (dossierDataEarly?.asset && typeof dossierDataEarly.asset === 'object'
-      ? dossierDataEarly.asset.symbol
-      : null);
-  const name =
-    pumpfunDataEarly?.name ??
-    (dossierDataEarly?.asset && typeof dossierDataEarly.asset === 'object'
-      ? dossierDataEarly.asset.name
-      : null);
-
-  const twitter =
-    pumpfunDataEarly?.twitter ??
-    (dossierDataEarly?.asset && typeof dossierDataEarly.asset === 'object'
-      ? dossierDataEarly.asset.twitter
-      : null);
-
-  const kolShillsSection = await wrapSource(
-    fetchTokenKolShills({ mint, symbol, name, twitter }),
-    'kolShills',
-  );
+  const kolShillsSection = unwrap(kolShillsSettled, 'kolShills');
 
   const onChainData = onChainSection.ok ? onChainSection.data : null;
   const holdersSection = onChainData?.holders
@@ -418,19 +415,23 @@ export async function buildMemecoinAnalysis(input) {
     };
   }
 
+  const payload = {
+    mint,
+    syraAlpha,
+    market,
+    dossier: dossierSection,
+    kolShills: kolShillsSection,
+    holders: holdersSectionFinal,
+    distribution: distributionSectionFinal,
+    onChainSecurity: onChainSecuritySection,
+    pumpfun: pumpfunSection,
+    fetchedAt: new Date().toISOString(),
+  };
+
+  analysisCache.set(mint, { data: payload, expires: Date.now() + ANALYSIS_CACHE_TTL_MS });
+
   return {
     ok: true,
-    data: {
-      mint,
-      syraAlpha,
-      market,
-      dossier: dossierSection,
-      kolShills: kolShillsSection,
-      holders: holdersSectionFinal,
-      distribution: distributionSectionFinal,
-      onChainSecurity: onChainSecuritySection,
-      pumpfun: pumpfunSection,
-      fetchedAt: new Date().toISOString(),
-    },
+    data: payload,
   };
 }

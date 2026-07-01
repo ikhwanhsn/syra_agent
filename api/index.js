@@ -92,6 +92,7 @@ import { createAssetsDetailX402Router } from "./routes/assets/detail.js";
 import { createBitcoinX402Router } from "./routes/bitcoin/index.js";
 import { createLpAgentExperimentRouter } from "./routes/lpAgentExperiment.js";
 import { createLpAgentRealRouter } from "./routes/lpAgentReal.js";
+import { createStocksExperimentRouter } from "./routes/stocksExperiment.js";
 import { createBtcQuantExperimentRouter } from "./routes/btcQuantExperiment.js";
 import { createBtcQuantRealRouter } from "./routes/btcQuantReal.js";
 import { createBtc3MacroRouter } from "./routes/btc3Macro.js";
@@ -1340,6 +1341,8 @@ app.use("/experiment/lp-agent-real", createLpAgentRealRouter());
 app.use("/experiment/btc-quant", createBtcQuantExperimentRouter());
 app.use("/experiment/btc-quant-real", createBtcQuantRealRouter());
 app.use("/experiment/btc3-macro", createBtc3MacroRouter());
+// Stocks news experiment — paper xStocks trading via Jupiter + news signals
+app.use("/experiment/stocks", createStocksExperimentRouter());
 app.use("/post/studio", createShipLogStudioRouter());
 // Analytics: KPI (/analytics/kpi, /analytics/errors) and x402 summary (/analytics/summary)
 app.use("/analytics", await createAnalyticsRouter());
@@ -1645,6 +1648,50 @@ app.listen(PORT, () => {
     setInterval(runLpResolve, LP_AGENT_RESOLVE_INTERVAL_MS);
   }
 
+  const STOCKS_SIGNAL_INTERVAL_MS = Number(
+    process.env.STOCKS_EXPERIMENT_SIGNAL_MS || 300_000,
+  );
+  const STOCKS_RESOLVE_INTERVAL_MS = Number(
+    process.env.STOCKS_EXPERIMENT_RESOLVE_MS || 60_000,
+  );
+
+  const runStocksSignal = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/stocksExperimentService.js")
+        .then(({ runStocksSignalCycle }) => runStocksSignalCycle())
+        .then((out) => {
+          if (out.errors?.length) {
+            console.warn("[Stocks experiment] signal errors:", out.errors.slice(0, 3));
+          }
+        })
+        .catch((err) =>
+          console.warn("[Stocks experiment] signal failed:", err?.message || err),
+        ),
+    ),
+  );
+
+  const runStocksResolve = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/stocksExperimentService.js")
+        .then(({ resolveOpenStocksRuns }) => resolveOpenStocksRuns())
+        .then((out) => {
+          if (out.errors?.length) {
+            console.warn("[Stocks experiment] resolve errors:", out.errors.slice(0, 3));
+          }
+        })
+        .catch((err) =>
+          console.warn("[Stocks experiment] resolve failed:", err?.message || err),
+        ),
+    ),
+  );
+
+  if (STOCKS_SIGNAL_INTERVAL_MS >= 60_000) {
+    setInterval(runStocksSignal, STOCKS_SIGNAL_INTERVAL_MS);
+  }
+  if (STOCKS_RESOLVE_INTERVAL_MS >= 5_000) {
+    setInterval(runStocksResolve, STOCKS_RESOLVE_INTERVAL_MS);
+  }
+
   const LP_AGENT_REAL_SIGNAL_INTERVAL_MS = 120_000;
   const LP_AGENT_REAL_RESOLVE_INTERVAL_MS = 30_000;
 
@@ -1914,6 +1961,35 @@ app.listen(PORT, () => {
                 "[LP experiment evolution failed]",
                 err?.message || err,
               ),
+            ),
+        ),
+      );
+      setInterval(tick, evo.ms);
+    })
+    .catch(() => {});
+
+  import("./libs/stocksExperimentEvolution.js")
+    .then(({ stocksEvolutionConfigFromEnv, runStocksExperimentEvolution }) => {
+      const evo = stocksEvolutionConfigFromEnv();
+      if (!evo.enabled || evo.ms < 60_000) return;
+      const tick = runIfMongoConnected(
+        withSingleFlight(() =>
+          runStocksExperimentEvolution()
+            .then((out) => {
+              if (out.skipped) {
+                startupVerbose("[Stocks experiment evolution] skipped:", out.skipped);
+                return;
+              }
+              startupVerbose(
+                "[Stocks experiment evolution]",
+                "culled",
+                out.culled?.length ?? 0,
+                "spawned",
+                out.spawned?.length ?? 0,
+              );
+            })
+            .catch((err) =>
+              console.warn("[Stocks experiment evolution failed]", err?.message || err),
             ),
         ),
       );

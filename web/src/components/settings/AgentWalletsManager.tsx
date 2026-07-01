@@ -33,7 +33,6 @@ import { overviewCardShell } from "@/components/dashboard/overview/overviewStyle
 import {
   walletAgentCard,
   walletStatHint,
-  walletStatLabel,
 } from "@/components/wallet/walletPageStyles";
 import { agentWalletApi } from "@/lib/chatApi";
 import {
@@ -271,69 +270,65 @@ function AgentWalletManageCard({
             accent.border,
           )}
         >
-          <CardContent className={cn(layout === "simple" ? "p-6" : "p-5")}>
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex min-w-0 items-start gap-3">
+          <CardContent className={cn(layout === "simple" ? "p-5" : "p-5")}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
                 <span
                   className={cn(
-                    "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset",
+                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset",
                     accent.bgActive,
                     accent.border,
                   )}
                 >
-                  <Icon className={cn("h-5 w-5", accent.icon)} aria-hidden />
+                  <Icon className={cn("h-4 w-4", accent.icon)} aria-hidden />
                 </span>
-                <div className="min-w-0">
-                  <p className="font-semibold tracking-tight text-foreground">{slot.label}</p>
-                  <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">{slot.description}</p>
-                </div>
+                <p className="font-semibold tracking-tight text-foreground">{slot.label}</p>
               </div>
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9 shrink-0 rounded-lg text-muted-foreground"
+                className="h-8 w-8 shrink-0 rounded-full text-muted-foreground"
                 disabled={refreshingBalance}
                 aria-label={`Refresh ${slot.shortLabel} balance`}
                 onClick={onRefreshBalance}
               >
                 {refreshingBalance ? (
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
                 ) : (
-                  <RefreshCw className="h-4 w-4" aria-hidden />
+                  <RefreshCw className="h-3.5 w-3.5" aria-hidden />
                 )}
               </Button>
             </div>
 
-            <div className="mt-6 space-y-1 rounded-xl border border-border/40 bg-background/30 px-4 py-3">
-              <p className={walletStatLabel}>Available balance</p>
-              <p className="font-mono text-3xl font-semibold tabular-nums tracking-tight text-foreground">
+            <div className="mt-4">
+              <p className="font-mono text-2xl font-semibold tabular-nums tracking-tight text-foreground">
                 {balanceLoading ? "…" : formatTreasuryUsd(usdcBalance)}
               </p>
               <p className={walletStatHint}>
-                {balanceLoading ? "…" : solBalance != null ? `${formatSol(solBalance)} SOL for network fees` : "— SOL for network fees"}
+                {balanceLoading ? "…" : solBalance != null ? `${formatSol(solBalance)} SOL` : "— SOL"}
               </p>
             </div>
 
-            <div className="mt-5 grid grid-cols-2 gap-2.5">
-              <Button type="button" className="h-11 rounded-xl gap-2 font-semibold" onClick={onFund}>
-                <Zap className="h-4 w-4" aria-hidden />
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <Button type="button" className="h-10 rounded-xl gap-1.5 text-sm font-medium" onClick={onFund}>
+                <Zap className="h-3.5 w-3.5" aria-hidden />
                 Deposit
               </Button>
               <Button
                 type="button"
                 variant="outline"
-                className="h-11 rounded-xl gap-2 font-semibold"
+                className="h-10 rounded-xl gap-1.5 text-sm font-medium"
                 onClick={onWithdraw ?? onFund}
               >
-                <ArrowDownToLine className="h-4 w-4" aria-hidden />
+                <ArrowDownToLine className="h-3.5 w-3.5" aria-hidden />
                 Withdraw
               </Button>
             </div>
 
-            <Collapsible className="mt-4">
-              <CollapsibleTrigger className="group flex w-full items-center justify-between rounded-lg px-1 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-                Wallet details
+            <Collapsible className="mt-3">
+              <CollapsibleTrigger className="group flex w-full items-center justify-between rounded-lg py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
+                Details
                 <ChevronDown
                   className="h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180"
                   aria-hidden
