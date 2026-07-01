@@ -263,6 +263,8 @@ function EngagementRow({
   const engagementTotal =
     row.submission.latestMetrics.likeCount +
     row.submission.latestMetrics.retweetCount +
+    row.submission.latestMetrics.replyCount +
+    row.submission.latestMetrics.quoteCount +
     row.submission.latestMetrics.viewCount;
   const payoutSol = row.payout?.sol ?? row.submission.projectedSol;
   const isPaid = Boolean(row.payout);

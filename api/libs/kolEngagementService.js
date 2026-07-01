@@ -1,22 +1,68 @@
 /**
  * KOL marketplace engagement scoring and tweet validation.
  */
+import {
+  CREDIBILITY_CEILING,
+  CREDIBILITY_FLOOR,
+  CREDIBILITY_FOLLOWER_ANCHOR,
+  DIMINISHING_KNEES,
+  ENGAGEMENT_WEIGHTS,
+  FOLLOWER_CAP_FLOORS,
+  FOLLOWER_CAP_RATIOS,
+  INTEGRITY_CEILING,
+  INTEGRITY_ENGAGEMENT_VIEW_MAX,
+  INTEGRITY_ENGAGEMENT_VIEW_MIN,
+  INTEGRITY_FLOOR,
+  VERIFIED_BONUS,
+  VIEW_CAP,
+} from "../config/kolScoringConfig.js";
 import { getTweetById, isTwitterApiIoConfigured } from "./twitterApiIoClient.js";
 
-const VIEW_CAP = 50_000;
+/**
+ * @typedef {object} KolMetrics
+ * @property {number} [likeCount]
+ * @property {number} [retweetCount]
+ * @property {number} [replyCount]
+ * @property {number} [quoteCount]
+ * @property {number} [viewCount]
+ */
 
 /**
- * @param {{ likeCount?: number; retweetCount?: number; replyCount?: number; quoteCount?: number; viewCount?: number } | null | undefined} metrics
+ * @typedef {object} KolAuthorContext
+ * @property {number} [followers]
+ * @property {boolean} [verified]
+ */
+
+/**
+ * @typedef {object} MetricBreakdown
+ * @property {number} raw
+ * @property {number} afterImpossibility
+ * @property {number} afterFollowerCap
+ * @property {number} afterDiminishing
+ * @property {number} weighted
+ * @property {number} weight
+ */
+
+/**
+ * @typedef {object} ScoreBreakdown
+ * @property {number} version
+ * @property {Record<string, MetricBreakdown>} metrics
+ * @property {number} baseScore
+ * @property {number} credibilityMultiplier
+ * @property {number} integrityFactor
+ * @property {string[]} integrityFlags
+ * @property {number} finalScore
+ */
+
+const METRIC_KEYS = ["like", "reply", "retweet", "quote", "view"];
+
+/**
+ * @param {unknown} value
  * @returns {number}
  */
-export function computeEngagementScore(metrics) {
-  return (
-    (metrics?.likeCount ?? 0) * 1.0 +
-    (metrics?.retweetCount ?? 0) * 2.5 +
-    (metrics?.replyCount ?? 0) * 1.5 +
-    (metrics?.quoteCount ?? 0) * 2.0 +
-    Math.min(metrics?.viewCount ?? 0, VIEW_CAP) * 0.001
-  );
+function toNonNegativeInt(value) {
+  const n = Math.floor(Number(value) || 0);
+  return n > 0 ? n : 0;
 }
 
 /**
@@ -25,6 +71,172 @@ export function computeEngagementScore(metrics) {
  */
 export function roundScore(score) {
   return Math.round(score * 10) / 10;
+}
+
+/**
+ * @param {number} value
+ * @param {number} knee
+ * @returns {number}
+ */
+function applyDiminishingReturns(value, knee) {
+  if (value <= knee) return value;
+  return knee + Math.sqrt(value - knee) * Math.sqrt(knee);
+}
+
+/**
+ * @param {number} followers
+ * @param {boolean} verified
+ * @returns {number}
+ */
+function computeCredibilityMultiplier(followers, verified) {
+  const f = Math.max(0, followers);
+  const logRamp =
+    f <= 0
+      ? 0
+      : Math.log10(1 + f) / Math.log10(1 + CREDIBILITY_FOLLOWER_ANCHOR);
+  const raw = CREDIBILITY_FLOOR + (CREDIBILITY_CEILING - CREDIBILITY_FLOOR) * logRamp;
+  const withVerified = verified ? raw + VERIFIED_BONUS : raw;
+  return Math.min(CREDIBILITY_CEILING + (verified ? VERIFIED_BONUS : 0), Math.max(CREDIBILITY_FLOOR, withVerified));
+}
+
+/**
+ * @param {Record<string, number>} capped
+ * @returns {{ factor: number; flags: string[] }}
+ */
+function computeIntegrityFactor(capped) {
+  const views = capped.view ?? 0;
+  const engagementSum =
+    (capped.like ?? 0) +
+    (capped.retweet ?? 0) +
+    (capped.reply ?? 0) +
+    (capped.quote ?? 0);
+
+  const flags = [];
+  let factor = INTEGRITY_CEILING;
+
+  if (views > 0) {
+    const ratio = engagementSum / views;
+    if (ratio > INTEGRITY_ENGAGEMENT_VIEW_MAX) {
+      flags.push("high_engagement_to_view_ratio");
+      const excess = ratio / INTEGRITY_ENGAGEMENT_VIEW_MAX;
+      factor = Math.max(INTEGRITY_FLOOR, INTEGRITY_CEILING / Math.sqrt(excess));
+    } else if (ratio < INTEGRITY_ENGAGEMENT_VIEW_MIN && engagementSum > 10) {
+      flags.push("low_engagement_to_view_ratio");
+      factor = Math.max(INTEGRITY_FLOOR, factor * 0.85);
+    }
+  } else if (engagementSum > 20) {
+    flags.push("engagement_without_views");
+    factor = Math.max(INTEGRITY_FLOOR, factor * 0.7);
+  }
+
+  return { factor, flags };
+}
+
+/**
+ * @param {string} metricKey
+ * @param {number} rawValue
+ * @param {number} followers
+ * @returns {number}
+ */
+function followerRelativeCap(metricKey, rawValue, followers) {
+  const floor = FOLLOWER_CAP_FLOORS[metricKey] ?? 0;
+  const ratio = FOLLOWER_CAP_RATIOS[metricKey] ?? 1;
+  const cap = Math.max(floor, Math.floor(followers * ratio));
+  return Math.min(rawValue, cap);
+}
+
+/**
+ * @param {string} metricKey
+ * @param {number} value
+ * @returns {number}
+ */
+function weightMetric(metricKey, value) {
+  if (metricKey === "view") {
+    const cappedViews = Math.min(value, VIEW_CAP);
+    return (cappedViews / 1000) * ENGAGEMENT_WEIGHTS.viewPer1000;
+  }
+  return value * (ENGAGEMENT_WEIGHTS[metricKey] ?? 1);
+}
+
+/**
+ * Legacy wrapper — returns final score only.
+ * @param {KolMetrics | null | undefined} metrics
+ * @param {KolAuthorContext} [authorContext]
+ * @returns {number}
+ */
+export function computeEngagementScore(metrics, authorContext = {}) {
+  return scoreSubmission(metrics, authorContext).score;
+}
+
+/**
+ * Multi-factor fair scoring with anti-fake-engagement layers.
+ * @param {KolMetrics | null | undefined} metrics
+ * @param {KolAuthorContext} [authorContext]
+ * @returns {{ score: number; breakdown: ScoreBreakdown }}
+ */
+export function scoreSubmission(metrics, authorContext = {}) {
+  const followers = toNonNegativeInt(authorContext.followers);
+  const verified = Boolean(authorContext.verified);
+
+  const raw = {
+    like: toNonNegativeInt(metrics?.likeCount),
+    reply: toNonNegativeInt(metrics?.replyCount),
+    retweet: toNonNegativeInt(metrics?.retweetCount),
+    quote: toNonNegativeInt(metrics?.quoteCount),
+    view: toNonNegativeInt(metrics?.viewCount),
+  };
+
+  const viewsForClamp = raw.view;
+
+  /** @type {Record<string, MetricBreakdown>} */
+  const metricBreakdown = {};
+  /** @type {Record<string, number>} */
+  const capped = {};
+
+  for (const key of METRIC_KEYS) {
+    const rawValue = raw[key];
+    let afterImpossibility = rawValue;
+    if (key !== "view" && viewsForClamp > 0) {
+      afterImpossibility = Math.min(rawValue, viewsForClamp);
+    }
+
+    const afterFollowerCap = followerRelativeCap(key, afterImpossibility, followers);
+    const afterDiminishing = applyDiminishingReturns(
+      afterFollowerCap,
+      DIMINISHING_KNEES[key] ?? 100,
+    );
+    const weight = key === "view" ? ENGAGEMENT_WEIGHTS.viewPer1000 / 1000 : (ENGAGEMENT_WEIGHTS[key] ?? 1);
+    const weighted = weightMetric(key, afterDiminishing);
+
+    metricBreakdown[key] = {
+      raw: rawValue,
+      afterImpossibility,
+      afterFollowerCap,
+      afterDiminishing: Math.round(afterDiminishing * 100) / 100,
+      weighted: Math.round(weighted * 100) / 100,
+      weight: key === "view" ? ENGAGEMENT_WEIGHTS.viewPer1000 : (ENGAGEMENT_WEIGHTS[key] ?? 1),
+    };
+    capped[key] = afterFollowerCap;
+  }
+
+  const baseScore = METRIC_KEYS.reduce((sum, key) => sum + metricBreakdown[key].weighted, 0);
+  const credibilityMultiplier = Math.round(computeCredibilityMultiplier(followers, verified) * 1000) / 1000;
+  const { factor: integrityFactor, flags: integrityFlags } = computeIntegrityFactor(capped);
+  const roundedIntegrity = Math.round(integrityFactor * 1000) / 1000;
+  const finalScore = roundScore(baseScore * credibilityMultiplier * roundedIntegrity);
+
+  return {
+    score: finalScore,
+    breakdown: {
+      version: 2,
+      metrics: metricBreakdown,
+      baseScore: Math.round(baseScore * 100) / 100,
+      credibilityMultiplier,
+      integrityFactor: roundedIntegrity,
+      integrityFlags,
+      finalScore,
+    },
+  };
 }
 
 /**
@@ -55,6 +267,17 @@ export function parseTweetIdFromUrl(url) {
  */
 export function normalizeWallet(wallet) {
   return String(wallet || "").trim();
+}
+
+/**
+ * @param {{ followers?: number; verified?: boolean }} author
+ * @returns {KolAuthorContext}
+ */
+function authorContextFromTweet(author) {
+  return {
+    followers: toNonNegativeInt(author?.followers),
+    verified: Boolean(author?.verified),
+  };
 }
 
 /**
@@ -97,14 +320,18 @@ export async function validateSubmissionTweet(sourceTweetId, submissionTweetUrl)
     throw err;
   }
 
-  const score = roundScore(computeEngagementScore(tweet.metrics));
+  const authorContext = authorContextFromTweet(tweet.author);
+  const { score, breakdown } = scoreSubmission(tweet.metrics, authorContext);
 
   return {
     tweet,
     mode,
     score,
+    scoreBreakdown: breakdown,
     metrics: tweet.metrics,
     authorHandle: tweet.author.userName,
+    authorFollowers: authorContext.followers,
+    authorVerified: authorContext.verified,
     tweetId: tweet.id,
     tweetUrl: tweet.url,
   };
@@ -116,11 +343,15 @@ export async function validateSubmissionTweet(sourceTweetId, submissionTweetUrl)
  */
 export async function refreshSubmissionMetrics(tweetId) {
   const { tweet } = await getTweetById(tweetId);
-  const score = roundScore(computeEngagementScore(tweet.metrics));
+  const authorContext = authorContextFromTweet(tweet.author);
+  const { score, breakdown } = scoreSubmission(tweet.metrics, authorContext);
   return {
     metrics: tweet.metrics,
     score,
+    scoreBreakdown: breakdown,
     authorHandle: tweet.author.userName,
+    authorFollowers: authorContext.followers,
+    authorVerified: authorContext.verified,
   };
 }
 

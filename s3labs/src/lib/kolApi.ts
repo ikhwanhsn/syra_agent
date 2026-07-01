@@ -56,6 +56,8 @@ export interface KolSubmission {
   mode: "reply" | "quote";
   authorHandle: string;
   authorHandleKey?: string;
+  authorFollowers?: number | null;
+  authorVerified?: boolean;
   verified: boolean;
   latestMetrics: {
     likeCount: number;
@@ -65,6 +67,7 @@ export interface KolSubmission {
     viewCount: number;
   };
   latestScore: number;
+  scoreBreakdown?: KolScoreBreakdown | null;
   finalScore?: number | null;
   reputationCreditedAt?: string | null;
   projectedLamports: number;
@@ -90,6 +93,31 @@ export interface KolEngagementTotals {
   quotes: number;
   views: number;
   total: number;
+}
+
+export interface KolMetricBreakdown {
+  raw: number;
+  afterImpossibility: number;
+  afterFollowerCap: number;
+  afterDiminishing: number;
+  weighted: number;
+  weight: number;
+}
+
+export interface KolScoreBreakdown {
+  version: number;
+  metrics: {
+    like?: KolMetricBreakdown;
+    reply?: KolMetricBreakdown;
+    retweet?: KolMetricBreakdown;
+    quote?: KolMetricBreakdown;
+    view?: KolMetricBreakdown;
+  };
+  baseScore: number;
+  credibilityMultiplier: number;
+  integrityFactor: number;
+  integrityFlags: string[];
+  finalScore: number;
 }
 
 export interface KolMarketplaceStats {

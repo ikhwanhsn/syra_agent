@@ -11,6 +11,19 @@ const metricsSchema = new mongoose.Schema(
   { _id: false },
 );
 
+const scoreBreakdownSchema = new mongoose.Schema(
+  {
+    version: { type: Number, default: 2 },
+    metrics: { type: mongoose.Schema.Types.Mixed, default: () => ({}) },
+    baseScore: { type: Number, default: 0 },
+    credibilityMultiplier: { type: Number, default: 1 },
+    integrityFactor: { type: Number, default: 1 },
+    integrityFlags: { type: [String], default: () => [] },
+    finalScore: { type: Number, default: 0 },
+  },
+  { _id: false },
+);
+
 const kolEngagementSnapshotSchema = new mongoose.Schema(
   {
     campaignId: {
@@ -28,6 +41,7 @@ const kolEngagementSnapshotSchema = new mongoose.Schema(
     capturedAt: { type: Date, required: true, index: true },
     metrics: { type: metricsSchema, default: () => ({}) },
     score: { type: Number, default: 0 },
+    scoreBreakdown: { type: scoreBreakdownSchema, default: null },
   },
   { timestamps: true },
 );

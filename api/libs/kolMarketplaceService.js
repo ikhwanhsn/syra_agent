@@ -349,9 +349,12 @@ function serializeSubmission(submission) {
     mode: doc.mode,
     authorHandle: doc.authorHandle,
     authorHandleKey: doc.authorHandleKey ?? normalizeHandle(doc.authorHandle),
+    authorFollowers: doc.authorFollowers ?? null,
+    authorVerified: doc.authorVerified ?? false,
     verified: doc.verified,
     latestMetrics: doc.latestMetrics || {},
     latestScore: doc.latestScore ?? 0,
+    scoreBreakdown: doc.scoreBreakdown ?? null,
     finalScore: doc.finalScore ?? null,
     reputationCreditedAt: doc.reputationCreditedAt
       ? new Date(doc.reputationCreditedAt).toISOString()
@@ -946,9 +949,12 @@ export async function createSubmission(campaignId, input) {
       mode: validated.mode,
       authorHandle,
       authorHandleKey,
+      authorFollowers: validated.authorFollowers ?? null,
+      authorVerified: validated.authorVerified ?? false,
       verified: true,
       latestMetrics: validated.metrics,
       latestScore: validated.score,
+      scoreBreakdown: validated.scoreBreakdown ?? null,
       projectedLamports: 0,
     });
   } catch (e) {
@@ -1001,8 +1007,11 @@ export async function refreshCampaignMetrics(campaignId) {
       const metrics = await refreshSubmissionMetrics(submission.tweetId);
       submission.latestMetrics = metrics.metrics;
       submission.latestScore = metrics.score;
+      submission.scoreBreakdown = metrics.scoreBreakdown ?? null;
       submission.authorHandle = metrics.authorHandle;
       submission.authorHandleKey = normalizeHandle(metrics.authorHandle);
+      submission.authorFollowers = metrics.authorFollowers ?? null;
+      submission.authorVerified = metrics.authorVerified ?? false;
       await submission.save();
 
       await KolEngagementSnapshot.create({
@@ -1011,6 +1020,7 @@ export async function refreshCampaignMetrics(campaignId) {
         capturedAt,
         metrics: metrics.metrics,
         score: metrics.score,
+        scoreBreakdown: metrics.scoreBreakdown ?? null,
       });
       refreshed += 1;
     } catch (e) {

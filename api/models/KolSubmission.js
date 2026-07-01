@@ -11,6 +11,19 @@ const metricsSchema = new mongoose.Schema(
   { _id: false },
 );
 
+const scoreBreakdownSchema = new mongoose.Schema(
+  {
+    version: { type: Number, default: 2 },
+    metrics: { type: mongoose.Schema.Types.Mixed, default: () => ({}) },
+    baseScore: { type: Number, default: 0 },
+    credibilityMultiplier: { type: Number, default: 1 },
+    integrityFactor: { type: Number, default: 1 },
+    integrityFlags: { type: [String], default: () => [] },
+    finalScore: { type: Number, default: 0 },
+  },
+  { _id: false },
+);
+
 const kolSubmissionSchema = new mongoose.Schema(
   {
     campaignId: {
@@ -25,9 +38,12 @@ const kolSubmissionSchema = new mongoose.Schema(
     mode: { type: String, enum: ["reply", "quote"], required: true },
     authorHandle: { type: String, required: true, index: true },
     authorHandleKey: { type: String, required: true, index: true },
+    authorFollowers: { type: Number, default: null },
+    authorVerified: { type: Boolean, default: false },
     verified: { type: Boolean, default: true },
     latestMetrics: { type: metricsSchema, default: () => ({}) },
     latestScore: { type: Number, default: 0 },
+    scoreBreakdown: { type: scoreBreakdownSchema, default: null },
     finalScore: { type: Number, default: null },
     reputationCreditedAt: { type: Date, default: null },
     projectedLamports: { type: Number, default: 0 },

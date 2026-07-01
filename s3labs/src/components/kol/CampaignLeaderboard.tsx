@@ -26,6 +26,7 @@ import {
   LeaderboardScoreBar,
   leaderboardRowClass,
 } from "@/components/kol/leaderboardUi";
+import { ScoreBreakdownTooltip } from "@/components/kol/ScoreBreakdownTooltip";
 
 interface CampaignLeaderboardProps {
   entries: KolLeaderboardEntry[];
@@ -124,9 +125,10 @@ export function CampaignLeaderboard({ entries, campaignStatus }: CampaignLeaderb
                 </div>
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <LeaderboardModeBadge mode={entry.mode} />
-                  <span className="font-mono font-medium text-foreground tabular-nums">
-                    {entry.latestScore.toFixed(1)} pts
-                  </span>
+                  <ScoreBreakdownTooltip
+                    score={entry.latestScore}
+                    breakdown={entry.scoreBreakdown}
+                  />
                   <span className="text-border">·</span>
                   <span className="inline-flex items-center gap-1 tabular-nums">
                     <Heart className="h-3 w-3" aria-hidden />
@@ -196,7 +198,14 @@ export function CampaignLeaderboard({ entries, campaignStatus }: CampaignLeaderb
                     <LeaderboardModeBadge mode={entry.mode} />
                   </TableCell>
                   <TableCell className="text-right align-middle">
-                    <LeaderboardScoreBar score={entry.latestScore} maxScore={maxScore} />
+                    <div className="flex flex-col items-end gap-1">
+                      <LeaderboardScoreBar score={entry.latestScore} maxScore={maxScore} />
+                      <ScoreBreakdownTooltip
+                        score={entry.latestScore}
+                        breakdown={entry.scoreBreakdown}
+                        className="text-xs text-muted-foreground"
+                      />
+                    </div>
                   </TableCell>
                   <TableCell className="hidden lg:table-cell text-right align-middle">
                     <div className="inline-flex flex-col items-end gap-0.5 text-sm tabular-nums">

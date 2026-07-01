@@ -1,4 +1,4 @@
-import { ArrowRight, Award, Coins, MessageSquare, Trophy } from "lucide-react";
+import { ArrowRight, Award, Coins, MessageSquare, ShieldCheck, Trophy } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const steps = [
@@ -14,15 +14,23 @@ const steps = [
     icon: ArrowRight,
     title: "Reply or quote on X",
     description:
-      "Share your take — reply to or quote the project's post. More engagement (likes, views, replies) means a bigger share of the pool.",
+      "Share your take — reply to or quote the project's post. Quality engagement earns more than cheap volume.",
   },
   {
     number: "03",
     icon: Coins,
     title: "Get paid automatically",
     description:
-      "Submit your post URL here. When the campaign ends, rewards are split by engagement score and sent straight to your wallet.",
+      "Submit your post URL here. When the campaign ends, rewards are split by fair engagement score and sent to your wallet.",
   },
+] as const;
+
+const ENGAGEMENT_WEIGHTS = [
+  { label: "Likes", weight: "×1.0", note: "baseline signal" },
+  { label: "Replies", weight: "×1.5", note: "conversation" },
+  { label: "Retweets", weight: "×2.5", note: "amplification" },
+  { label: "Quotes", weight: "×3.0", note: "highest intent" },
+  { label: "Views", weight: "per 1k", note: "reach, capped" },
 ] as const;
 
 export function KolHowItWorks() {
@@ -60,14 +68,15 @@ export function KolHowItWorks() {
         ))}
       </div>
 
-      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-        <div className="flex items-start gap-2 text-sm text-muted-foreground panel-glass rounded-xl px-4 py-3 w-full sm:flex-1 sm:min-w-[240px]">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div className="flex items-start gap-2 text-sm text-muted-foreground panel-glass rounded-xl px-4 py-3 border border-border/60">
           <Trophy className="w-4 h-4 text-primary shrink-0 mt-0.5" />
           <span>
-            Your share = your engagement score ÷ total score × reward pool. Higher rank = bigger payout.
+            Your share = your fair engagement score ÷ total score × reward pool. Higher rank =
+            bigger payout.
           </span>
         </div>
-        <div className="flex items-start gap-2 text-sm text-muted-foreground panel-glass rounded-xl px-4 py-3 w-full sm:flex-1 sm:min-w-[240px] border border-primary/15">
+        <div className="flex items-start gap-2 text-sm text-muted-foreground panel-glass rounded-xl px-4 py-3 border border-primary/15">
           <Award className="w-4 h-4 text-primary shrink-0 mt-0.5" />
           <span>
             +1 S3Labs Point per campaign, plus up to +3 early-bird points for submitting early.{" "}
@@ -76,6 +85,42 @@ export function KolHowItWorks() {
             </Link>
           </span>
         </div>
+      </div>
+
+      <div className="mt-4 panel-glass rounded-2xl border border-border/60 p-5 sm:p-6">
+        <div className="flex items-start gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+            <ShieldCheck className="w-4 h-4 text-primary" aria-hidden />
+          </div>
+          <div>
+            <h3 className="font-semibold tracking-tight mb-1">Fair scoring, built for real KOLs</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Every engagement type has a different weight. Scores also use follower-relative caps,
+              diminishing returns on volume, and soft integrity checks — so bought likes and fake
+              views cannot dominate a campaign pool.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5 mb-4">
+          {ENGAGEMENT_WEIGHTS.map((item) => (
+            <div
+              key={item.label}
+              className="rounded-xl border border-border/50 bg-muted/20 px-3 py-2.5 text-center"
+            >
+              <p className="text-xs text-muted-foreground">{item.label}</p>
+              <p className="font-mono font-semibold text-foreground tabular-nums">{item.weight}</p>
+              <p className="text-[11px] text-muted-foreground">{item.note}</p>
+            </div>
+          ))}
+        </div>
+
+        <ul className="text-xs text-muted-foreground space-y-1.5 leading-relaxed list-disc pl-4">
+          <li>Engagement cannot exceed views — blocks impossible like/view ratios.</li>
+          <li>Volume above your reach is capped and compressed — farming stops paying off.</li>
+          <li>Credibility scales with your real follower base; verified accounts get a small bonus.</li>
+          <li>Hover any score on the leaderboard to see the full breakdown.</li>
+        </ul>
       </div>
     </section>
   );
