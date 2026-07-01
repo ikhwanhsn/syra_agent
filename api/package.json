@@ -32,6 +32,9 @@
     "validate-algorand-x402": "node -r dotenv/config scripts/validateAlgorandX402.js",
     "validate-okx-x402": "node -r dotenv/config scripts/validateOkxX402.js",
     "validate-ampersend": "node -r dotenv/config scripts/validateAmpersendDiscovery.js",
+    "validate-ampersend:pay": "node -r dotenv/config scripts/validateAmpersendDiscovery.js --pay",
+    "register-ampersend": "node -r dotenv/config scripts/registerAmpersendMarketplace.js",
+    "register-ampersend:until-listed": "node -r dotenv/config scripts/registerAmpersendMarketplace.js --until-listed --pay",
     "validate:routes": "node scripts/validateRoutesStartup.mjs",
     "export-algorand-key": "node scripts/exportAlgorandPrivateKeyB64.js"
   },

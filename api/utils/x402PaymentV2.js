@@ -223,6 +223,45 @@ const X402_SETTLE_FACILITATOR_TIMEOUT_MS = Number.parseInt(
 const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
 const SOLANA_RPC = process.env.SOLANA_RPC_URL || process.env.VITE_SOLANA_RPC_URL || "https://rpc.ankr.com/solana";
 
+/**
+ * Canonical HTTPS resource URL for Bazaar / Ampersend discovery on public requests.
+ * Uses ExpressAdapter URL for localhost/internal probes so PAYMENT-SIGNATURE retry URLs match.
+ * @param {import('express').Request} req
+ * @param {import('@x402/express').ExpressAdapter} adapter
+ */
+function resolvePublicResourceUrl(req, adapter) {
+  const adapterUrl = String(adapter.getUrl() || "").trim();
+  if (!adapterUrl) return adapterUrl;
+  try {
+    const parsed = new URL(adapterUrl);
+    const host = parsed.hostname.toLowerCase();
+    if (
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host === "::1" ||
+      host.endsWith(".local")
+    ) {
+      return adapterUrl;
+    }
+    const base = String(BASE_URL || "").replace(/\/+$/, "");
+    if (base) {
+      const baseUrl = base.startsWith("http") ? base : `https://${base}`;
+      const origin = new URL(baseUrl).origin;
+      return `${origin}${parsed.pathname}${parsed.search}`;
+    }
+    const forwardedProto = String(req.headers?.["x-forwarded-proto"] || "")
+      .split(",")[0]
+      .trim()
+      .toLowerCase();
+    if (forwardedProto === "https" && parsed.protocol === "http:") {
+      return `https://${parsed.host}${parsed.pathname}${parsed.search}`;
+    }
+    return adapterUrl;
+  } catch {
+    return adapterUrl;
+  }
+}
+
 /** True if payment is on a Solana network (any format: "solana", "solana:...", case-insensitive). */
 function isSolanaNetwork(accepted) {
   return /^solana/i.test(String(accepted?.network || ""));
@@ -1075,7 +1114,7 @@ async function buildPaymentRequired(bundle, req, options, error) {
   // server-to-self agent calls (resolveAgentBaseUrl → localhost) while BASE_URL is public:
   // PAYMENT-SIGNATURE then carried api.syraa.fun but the client retried localhost — Corbits
   // verify rejects that mismatch. Playground always hit the public URL so it worked.
-  const resourceUrl = adapter.getUrl();
+  const resourceUrl = resolvePublicResourceUrl(req, adapter);
   const maxTimeout = paymentOptions.maxTimeoutSeconds ?? 60;
   const payToOverride = await resolvePayToForRequest(paymentOptions, req);
 
@@ -1125,11 +1164,17 @@ async function buildPaymentRequired(bundle, req, options, error) {
   requirements = ensureEvmEip712Domain(requirements);
   requirements = await enrichB402Requirements(requirements);
 
-  const resourceInfo = {
-    url: resourceUrl,
-    description: paymentOptions.description,
-    mimeType: paymentOptions.mimeType || "application/json",
-  };
+  const resourceInfo =
+    buildPaymentResourceInfo({
+      url: resourceUrl,
+      description: paymentOptions.description,
+      resourcePath: paymentOptions.resource,
+      mimeType: paymentOptions.mimeType || "application/json",
+    }) ?? {
+      url: resourceUrl,
+      description: paymentOptions.description,
+      mimeType: paymentOptions.mimeType || "application/json",
+    };
   const extensions = isX402BazaarEnabled()
     ? buildBazaarExtensions(resourceServer, req, paymentOptions)
     : undefined;

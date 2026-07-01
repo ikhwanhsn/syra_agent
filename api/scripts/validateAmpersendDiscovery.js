@@ -101,6 +101,35 @@ async function check402HealthOffersBase() {
   }
   ok("GET /health advertises Base mainnet", JSON.stringify({ payTo: baseAccept.payTo, amount: baseAccept.amount }));
   if (prHeader) ok("Payment-Required header present on 402");
+
+  let prResource;
+  if (prHeader) {
+    try {
+      const pr = JSON.parse(Buffer.from(prHeader, "base64").toString());
+      prResource = pr?.resource;
+      const resourceUrl = String(prResource?.url || "");
+      if (resourceUrl && !resourceUrl.startsWith("https://")) {
+        fail(`402 resource.url must be https for Bazaar/Ampersend (got ${resourceUrl})`);
+        return false;
+      }
+      if (resourceUrl.startsWith("https://")) {
+        ok("402 resource.url uses https", resourceUrl);
+      }
+      if (!prResource?.serviceName) {
+        fail("402 resource missing serviceName — Bazaar service metadata required for Ampersend search");
+        return false;
+      }
+      ok("402 resource includes serviceName", prResource.serviceName);
+      if (!pr?.extensions?.bazaar?.discoverable) {
+        fail("402 missing discoverable bazaar extension");
+        return false;
+      }
+      ok("402 bazaar extension discoverable");
+    } catch {
+      fail("Could not decode Payment-Required header for Bazaar metadata checks");
+      return false;
+    }
+  }
   return true;
 }
 

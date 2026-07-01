@@ -235,7 +235,7 @@ If your agent shows low scores (e.g. 50/100, 33/100) with tags like **reachable*
 
 ## Ampersend marketplace (x402 Bazaar)
 
-[Ampersend](https://docs.ampersend.ai/platform/marketplace) lists pay-per-use x402 APIs from three sources: hand-curated `catalog`, community `bazaar`, and first-party `ampersend` agents. Syra is indexed via **Bazaar** after Base mainnet settlements — no separate submit form.
+[Ampersend](https://docs.ampersend.ai/platform/marketplace) lists pay-per-use x402 APIs from three sources: hand-curated `catalog`, community `bazaar`, and first-party `ampersend` agents. Syra targets **Bazaar auto-indexing** after Base mainnet settlements plus **catalog curation** via ampersend@edgeandnode.com (production currently has 0 bazaar listings — catalog is the reliable path).
 
 ### Prerequisites (production)
 
@@ -251,13 +251,10 @@ Ampersend production only surfaces **Base mainnet** (`eip155:8453`) endpoints. S
 ```bash
 cd api
 npm run validate-ampersend
+npm run register-ampersend -- --pay   # validate + paid Base E2E + catalog payload
 ```
 
-Optional: run a paid Base call to trigger Bazaar indexing (requires `CMC_PAYER_PRIVATE_KEY` or `BASE_PAYER_PRIVATE_KEY` with Base USDC):
-
-```bash
-npm run validate-ampersend -- --pay
-```
+See [ampersend/registration-payloads.md](../ampersend/registration-payloads.md) for catalog submission to ampersend@edgeandnode.com.
 
 ### Optional: curated Ampersend listing
 
