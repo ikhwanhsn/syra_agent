@@ -2,6 +2,7 @@ import express from "express";
 import { PublicKey } from "@solana/web3.js";
 import { pickSolanaConnectionForReads } from "../libs/solanaServerRpc.js";
 import { fetchAgentWalletPortfolio } from "../libs/agentWalletPortfolio.js";
+import { getWalletDefiPositions } from "../libs/defiPositionsService.js";
 
 const USDC_MAINNET = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
 const LAMPORTS_PER_SOL = 1e9;
@@ -79,8 +80,20 @@ export function createWalletSolanaBalanceRouter() {
     }
 
     try {
-      const portfolio = await fetchAgentWalletPortfolio(address);
-      return res.json({ success: true, ...portfolio });
+      const [portfolio, defi] = await Promise.all([
+        fetchAgentWalletPortfolio(address),
+        getWalletDefiPositions(address).catch(() => null),
+      ]);
+      const netWorthUsd =
+        defi?.netWorthUsd != null && Number.isFinite(defi.netWorthUsd)
+          ? defi.netWorthUsd
+          : portfolio.totalValueUsd;
+      return res.json({
+        success: true,
+        ...portfolio,
+        totalValueUsd: netWorthUsd,
+        defi: defi ?? undefined,
+      });
     } catch (err) {
       const message = err?.message || "Failed to fetch wallet portfolio";
       console.error("[wallet/solana/portfolio]", message);

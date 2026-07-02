@@ -11,33 +11,31 @@ interface SidebarProps {
   onClose: () => void;
 }
 
-function getSectionKeysForPath(pathname: string): string[] {
-  const keys: string[] = [];
-  for (const section of navigation) {
-    let containsPath = false;
-    let nestedKey: string | null = null;
-    for (const item of section.items ?? []) {
-      if (item.href && item.href === pathname) {
-        containsPath = true;
-        break;
-      }
-      if (item.items) {
-        for (const child of item.items) {
-          if (child.href && child.href === pathname) {
-            containsPath = true;
-            nestedKey = `${section.title}::${item.title}`;
-            break;
-          }
-        }
-        if (nestedKey) break;
-      }
+function findPathKeysInItems(
+  items: NavItem[],
+  pathname: string,
+  sectionTitle: string,
+  ancestorKeys: string[]
+): string[] | null {
+  for (const item of items) {
+    if (item.href === pathname) {
+      return ancestorKeys;
     }
-    if (containsPath) {
-      keys.push(section.title);
-      if (nestedKey) keys.push(nestedKey);
+    if (item.items?.length) {
+      const groupKey = `${sectionTitle}::${item.title}`;
+      const found = findPathKeysInItems(item.items, pathname, sectionTitle, [...ancestorKeys, groupKey]);
+      if (found) return found;
     }
   }
-  return keys;
+  return null;
+}
+
+function getSectionKeysForPath(pathname: string): string[] {
+  for (const section of navigation) {
+    const found = findPathKeysInItems(section.items ?? [], pathname, section.title, [section.title]);
+    if (found) return found;
+  }
+  return [];
 }
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
@@ -223,9 +221,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             ) : (
               filteredNav.map((section) => {
                 const sectionOpen = isSectionOpen(section.title);
-                const hasNestedGroups =
-                  section.title === "API Documentation" &&
-                  section.items?.some((i) => i.items && !i.href);
+                const hasNestedGroups = section.items?.some((i) => i.items && !i.href) ?? false;
 
                 return (
                   <div key={section.title} className="mb-2">

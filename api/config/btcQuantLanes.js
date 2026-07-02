@@ -11,6 +11,8 @@ export const BTC_QUANT_LANES = Object.freeze({
     stateId: "singleton-btc2",
     idPrefix: "btcq2",
     title: "BTC quant agent desk",
+    /** Seed lane-specific mutated strategy gates so btc2 does not mirror btc1 paper sim. */
+    seedMutatedStrategies: true,
   }),
 });
 

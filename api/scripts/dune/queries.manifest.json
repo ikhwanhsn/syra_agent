@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "updatedAt": "2026-07-02T01:28:28.420Z",
+  "queries": {
+    "overview": {
+      "queryId": 7862075,
+      "name": "Syra / Token Overview KPIs",
+      "url": "https://dune.com/queries/7862075"
+    },
+    "trading-volume": {
+      "queryId": 7862083,
+      "name": "Syra / Daily Trading Volume",
+      "url": "https://dune.com/queries/7862083"
+    },
+    "unique-traders": {
+      "queryId": 7862088,
+      "name": "Syra / Daily Unique Traders",
+      "url": "https://dune.com/queries/7862088"
+    },
+    "price-vwap": {
+      "queryId": 7862093,
+      "name": "Syra / Daily VWAP Price",
+      "url": "https://dune.com/queries/7862093"
+    },
+    "venue-split": {
+      "queryId": 7862094,
+      "name": "Syra / Volume by DEX Venue",
+      "url": "https://dune.com/queries/7862094"
+    },
+    "holders-over-time": {
+      "queryId": 7862095,
+      "name": "Syra / Holders Over Time",
+      "url": "https://dune.com/queries/7862095"
+    },
+    "top-holders": {
+      "queryId": 7862101,
+      "name": "Syra / Top 100 Holders",
+      "url": "https://dune.com/queries/7862101"
+    },
+    "staking-locked": {
+      "queryId": 7862102,
+      "name": "Syra / Streamflow Locks (Approximate)",
+      "url": "https://dune.com/queries/7862102"
+    },
+    "buybacks": {
+      "queryId": 7862108,
+      "name": "Syra / Treasury Buybacks",
+      "url": "https://dune.com/queries/7862108"
+    }
+  }
+}

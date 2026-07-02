@@ -98,8 +98,8 @@ export const PILLARS = {
     label: 'Grow',
     tagline: 'Yield + portfolio optimization',
     order: 5,
-    routePrefixes: ['/grow', '/staking', '/streamflow-locks', '/analytics/kpi'],
-    toolIdPatterns: [/^zerion-/, /^gmgn-portfolio/, /^giza-/],
+    routePrefixes: ['/grow', '/topledger', '/staking', '/streamflow-locks', '/analytics/kpi'],
+    toolIdPatterns: [/^zerion-/, /^topledger-/, /^gmgn-portfolio/, /^giza-/],
   },
 };
 

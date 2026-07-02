@@ -19,8 +19,8 @@
         mono: ["JetBrains Mono", "Consolas", "monospace"],
       },
       maxWidth: {
-        docs: "var(--docs-content-width)",
-        "docs-wide": "var(--docs-content-width-wide)",
+        docs: "100%",
+        "docs-wide": "100%",
       },
       spacing: {
         "docs-sidebar": "var(--docs-sidebar-width)",

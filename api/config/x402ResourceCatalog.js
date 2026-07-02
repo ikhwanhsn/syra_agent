@@ -302,6 +302,26 @@ export const X402_RESOURCE_CATALOG = {
       'Search the 8004 agent index by owner wallet, creator, or collection pointer. Use when an agent discovers agents to hire, verify, or compose with. Inputs: owner, creator, collectionPointer, limit, offset. Returns matching agent records.',
     suggestedPriceStx: 0.012,
   },
+  'topledger/wallet/analyze': {
+    slug: 'topledger-wallet-analyze',
+    name: 'TopLedger Wallet Analyze',
+    category: 'analytics',
+    methods: ['GET'],
+    summary: 'Full Solana DeFi portfolio analysis (20+ protocols)',
+    description:
+      'Analyze a Solana wallet net worth including lending, perps, LP, staking, yield, rewards, and governance via TopLedger MPP. Input: wallet (base58). Returns total_net_worth_usd and per-category breakdown.',
+    suggestedPriceStx: 0.00048,
+  },
+  'topledger/wallet/lending': {
+    slug: 'topledger-wallet-lending',
+    name: 'TopLedger Lending Positions',
+    category: 'analytics',
+    methods: ['GET'],
+    summary: 'Solana lending deposits and borrows across protocols',
+    description:
+      'Return lending deposits, borrows, and net value for a Solana wallet across Kamino, marginfi, Jupiter Lend, Loopscale, and more. Input: wallet (base58).',
+    suggestedPriceStx: 0.00048,
+  },
 };
 
 /** @param {string} segment */

@@ -16,6 +16,7 @@ import {
   Presentation,
   Coins,
   ArrowLeftRight,
+  Layers,
 } from "lucide-react";
 import { isDashboardPillarRoute } from "@/lib/dashboardPillarNav";
 
@@ -46,6 +47,7 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
     match: (p) =>
       (p === "/" || p === "/settings" || p.startsWith("/c/") || p === "/wallet") &&
       !p.startsWith("/overview") &&
+      !p.startsWith("/multiwallet") &&
       !isDashboardPillarRoute(p) &&
       !p.startsWith("/agent-setup") &&
       !p.includes("-experiment") &&
@@ -61,6 +63,7 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
     icon: LayoutDashboard,
     match: (p) =>
       p.startsWith("/overview") ||
+      p.startsWith("/multiwallet") ||
       isDashboardPillarRoute(p) ||
       p.startsWith("/agent-setup") ||
       p.startsWith("/assets") ||
@@ -72,6 +75,7 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
       { href: "/overview", label: "Overview", icon: LayoutDashboard },
       { href: "/assets", label: "Assets", icon: FileSearch },
       { href: "/pumpfun", label: "Pumpfun Alpha", icon: Rocket },
+      { href: "/multiwallet", label: "Multiwallet", icon: Layers, adminOnly: true },
       { href: "/lp-experiment", label: "LP agents", icon: Droplets },
       {
         href: "/internal",

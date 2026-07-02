@@ -34,6 +34,7 @@ import { createUserPromptsRouter } from "./routes/agent/userPrompts.js";
 import { createAgentSkillsRouter } from "./routes/agent/skills.js";
 import { createSkillsRouter, getPublishedSkillDiscoveryResources } from "./routes/skills.js";
 import { createInfoRouter } from "./routes/info.js";
+import { createSyraDuneAnalyticsRouter } from "./routes/syraDuneAnalytics.js";
 import { createWalletSolanaBalanceRouter } from "./routes/walletSolanaBalance.js";
 import { createSolanaAgentRouter } from "./agents/solana-agent.js";
 import { createAgentSignalRouter } from "./agents/create-signal.js";
@@ -102,6 +103,7 @@ import { createMppV1Router } from "./routes/mpp/v1.js";
 import { createMcpToolsRouter } from "./routes/mcp/tools.js";
 import { getAgentFetch, SentinelBudgetError } from "./libs/agentFetch.js";
 import { createNansenEndpointsRouter } from "./routes/partner/nansen/nansenEndpoints.js";
+import { createTopledgerEndpointsRouter } from "./routes/partner/topledger/topledgerEndpoints.js";
 import { createBinanceSpotRouter } from "./routes/partner/binance/spot.js";
 import { createBinanceCorrelationRouter } from "./routes/partner/binance/correlation.js";
 import { createBankrRouter } from "./routes/partner/bankr/index.js";
@@ -136,6 +138,7 @@ import { createPillarsRouter } from "./routes/pillars.js";
 import { createInvestRouter } from "./routes/invest.js";
 import { createGrowRouter } from "./routes/grow.js";
 import { createEarnRouter } from "./routes/earn.js";
+import { createMultiWalletRouter } from "./routes/multiWallet.js";
 import { getV2Payment } from "./utils/getV2Payment.js";
 import { sendTempoPayout } from "./libs/tempoPayout.js";
 import {
@@ -814,6 +817,7 @@ app.use("/pillars", createPillarsRouter());
 app.use("/invest", createInvestRouter());
 app.use("/grow", createGrowRouter());
 app.use("/earn", createEarnRouter());
+app.use("/multiwallet", createMultiWalletRouter());
 
 // API key / Bearer auth when API_KEY or API_KEYS is set in env.
 // Skip auth for:
@@ -1190,6 +1194,7 @@ app.get("/", (req, res) => {
 // x402 routes (unversioned paths only; single canonical URL per endpoint)
 // Partner HTTP (also callable via POST /agent/tools/call when agentDirect)
 app.use("/info", await createInfoRouter());
+app.use("/syra-analytics", createSyraDuneAnalyticsRouter());
 app.use("/wallet/solana", createWalletSolanaBalanceRouter());
 app.use("/", await createCryptonewsRouter());
 
@@ -1349,6 +1354,8 @@ app.use("/analytics", await createAnalyticsRouter());
 
 // Nansen x402 catalog (PAYER_KEYPAIR); mirrors /nansen/* paths used by agent tools
 app.use("/nansen", await createNansenEndpointsRouter());
+// TopLedger Solana DeFi intelligence (MPP upstream; mirrors /topledger/* agent tool paths)
+app.use("/topledger", await createTopledgerEndpointsRouter());
 // Binance: mount /binance/spot before /binance so /binance/spot/* and /binance/correlation resolve correctly
 app.use("/binance/spot", await createBinanceSpotRouter());
 app.use("/binance", await createBinanceCorrelationRouter());

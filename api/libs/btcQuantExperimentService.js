@@ -34,6 +34,7 @@ import {
 } from "./btcQuantSignalGate.js";
 import {
   BTC_QUANT_LANE_IDS,
+  BTC_QUANT_LANES,
   getBtcQuantLaneDef,
 } from "../config/btcQuantLanes.js";
 import { resolveBtcQuantStrategies, resolveBtcQuantStrategyById } from "./btcQuantStrategyResolve.js";
@@ -41,6 +42,7 @@ import {
   isStrategyOnEvolutionCooldown,
   pickBestBtcQuantStrategy,
   rankBtcQuantStrategiesByPnl,
+  ensureBtcQuantLaneStrategyVariants,
 } from "./btcQuantExperimentEvolution.js";
 import BtcQuantStrategyOverride from "../models/BtcQuantStrategyOverride.js";
 import BtcQuantEvolutionState from "../models/BtcQuantEvolutionState.js";
@@ -107,7 +109,12 @@ export async function ensureBtcQuantBootstrapped(lane = "btc1") {
   });
 
   bootPromises.set(laneDef.lane, promise);
-  return promise;
+  const boot = await promise;
+  if (laneDef.seedMutatedStrategies) {
+    await repairMirroredBtc2Lane(laneDef);
+    await ensureBtcQuantLaneStrategyVariants(laneDef.lane);
+  }
+  return boot;
 }
 
 function mergedSimConfig(stateDoc) {
@@ -121,11 +128,75 @@ function mergedSimConfig(stateDoc) {
   };
 }
 
-function experimentFilter(experimentId) {
-  return {
+function experimentFilter(experimentId, lane) {
+  const filter = {
     suite: EXPERIMENT_SUITE_BTC_ONCHAIN,
     "summary.experimentId": experimentId,
   };
+  if (lane) filter["summary.lane"] = lane;
+  return filter;
+}
+
+/** One-time repair when btc2 mirrored btc1 before lane variants existed. */
+async function repairMirroredBtc2Lane(laneDef) {
+  if (laneDef.lane !== "btc2" || !laneDef.seedMutatedStrategies) return;
+
+  const overrideCount = await BtcQuantStrategyOverride.countDocuments({ lane: laneDef.lane });
+  if (overrideCount > 0) return;
+
+  const [state1, state2] = await Promise.all([
+    BtcQuantExperimentState.findById(BTC_QUANT_LANES.btc1.stateId).lean(),
+    BtcQuantExperimentState.findById(laneDef.stateId).lean(),
+  ]);
+  if (!state1?.activeExperimentId || !state2?.activeExperimentId) return;
+  if (state1.activeExperimentId === state2.activeExperimentId) {
+    await wipeBtcQuantLaneRuns(laneDef, state2.activeExperimentId);
+    return;
+  }
+
+  const [sum1, sum2] = await Promise.all([
+    TradingExperimentRun.aggregate([
+      {
+        $match: {
+          ...experimentFilter(state1.activeExperimentId, "btc1"),
+          status: { $in: ["win", "loss", "expired"] },
+        },
+      },
+      { $group: { _id: null, pnl: { $sum: { $ifNull: ["$simPnlUsd", 0] } } } },
+    ]),
+    TradingExperimentRun.aggregate([
+      {
+        $match: {
+          ...experimentFilter(state2.activeExperimentId, "btc2"),
+          status: { $in: ["win", "loss", "expired"] },
+        },
+      },
+      { $group: { _id: null, pnl: { $sum: { $ifNull: ["$simPnlUsd", 0] } } } },
+    ]),
+  ]);
+
+  const pnl1 = sum1[0]?.pnl ?? 0;
+  const pnl2 = sum2[0]?.pnl ?? 0;
+  if (Math.abs(pnl1 - pnl2) < 0.01 && (sum1.length > 0 || sum2.length > 0)) {
+    await wipeBtcQuantLaneRuns(laneDef, state2.activeExperimentId);
+  }
+}
+
+/** Wipe mirrored paper-sim runs and rotate experiment id without touching strategy overrides. */
+async function wipeBtcQuantLaneRuns(laneDef, oldExperimentId) {
+  if (oldExperimentId) {
+    await TradingExperimentRun.deleteMany({
+      suite: EXPERIMENT_SUITE_BTC_ONCHAIN,
+      "summary.experimentId": oldExperimentId,
+    });
+  }
+  const state = await BtcQuantExperimentState.findById(laneDef.stateId);
+  if (!state) return;
+  state.activeExperimentId = newExperimentId(laneDef);
+  state.startedAt = new Date();
+  state.title = laneDef.title;
+  await state.save();
+  bootPromises.delete(laneDef.lane);
 }
 
 /**
@@ -178,7 +249,7 @@ async function fetchBtcSpotPrice() {
  */
 async function computeAgentLedger(experimentId, agentId, lane = "btc1") {
   const cfg = mergedSimConfig(await loadLaneState(lane));
-  const baseFilter = { ...experimentFilter(experimentId), agentId };
+  const baseFilter = { ...experimentFilter(experimentId, lane), agentId };
 
   const [openRuns, settledAgg] = await Promise.all([
     TradingExperimentRun.find({ ...baseFilter, status: "open" }).lean(),
@@ -263,7 +334,7 @@ export async function getBtcQuantStats(lane = "btc1") {
     strategies.map(async (s) => {
       const ledger = await computeAgentLedger(experimentId, s.id, laneDef.lane);
       const settled = await TradingExperimentRun.find({
-        ...experimentFilter(experimentId),
+        ...experimentFilter(experimentId, laneDef.lane),
         agentId: s.id,
         status: { $in: ["win", "loss", "expired"] },
       }).lean();
@@ -304,11 +375,11 @@ export async function getBtcQuantOverview(lane = "btc1") {
   const agents = stats.agents;
 
   const settledRuns = await TradingExperimentRun.countDocuments({
-    ...experimentFilter(experimentId),
+    ...experimentFilter(experimentId, laneDef.lane),
     status: { $in: ["win", "loss", "expired"] },
   });
   const openPositions = await TradingExperimentRun.countDocuments({
-    ...experimentFilter(experimentId),
+    ...experimentFilter(experimentId, laneDef.lane),
     status: "open",
   });
   const sumPnlUsd = roundUsd(agents.reduce((sum, a) => sum + toNum(a.sumPnlUsd, 0), 0));
@@ -387,7 +458,7 @@ export async function listBtcQuantRuns({
   const experimentId = experimentIdOpt || state?.activeExperimentId;
   if (!experimentId) return { runs: [], total: 0 };
 
-  const filter = { ...experimentFilter(experimentId) };
+  const filter = { ...experimentFilter(experimentId, laneDef.lane) };
   if (strategyId != null && Number.isInteger(strategyId)) filter.agentId = strategyId;
   if (status) filter.status = status;
 
@@ -446,7 +517,7 @@ export async function runBtcQuantSignalCycle(lane = "btc1") {
       }
 
       const openCount = await TradingExperimentRun.countDocuments({
-        ...experimentFilter(experimentId),
+        ...experimentFilter(experimentId, laneDef.lane),
         agentId: strategy.id,
         status: "open",
       });
@@ -497,7 +568,7 @@ export async function runBtcQuantSignalCycle(lane = "btc1") {
 
       if (cached.built.anchorCloseMs != null) {
         const dup = await TradingExperimentRun.findOne({
-          ...experimentFilter(experimentId),
+          ...experimentFilter(experimentId, laneDef.lane),
           agentId: strategy.id,
           anchorCloseMs: cached.built.anchorCloseMs,
           status: { $in: ["open", "win", "loss", "expired"] },
@@ -565,7 +636,7 @@ export async function resolveOpenBtcQuantRuns(lane = "btc1") {
   const experimentId = state.activeExperimentId;
 
   const openRuns = await TradingExperimentRun.find({
-    ...experimentFilter(experimentId),
+    ...experimentFilter(experimentId, laneDef.lane),
     status: "open",
   }).lean();
 
@@ -635,7 +706,7 @@ export async function resolveOpenBtcQuantRuns(lane = "btc1") {
   }
 
   const stillOpen = await TradingExperimentRun.countDocuments({
-    ...experimentFilter(experimentId),
+    ...experimentFilter(experimentId, laneDef.lane),
     status: "open",
   });
 

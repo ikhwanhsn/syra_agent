@@ -1,121 +1,114 @@
 "use client";
 
-import { ArrowRight, BookOpen, Bot, ExternalLink } from "lucide-react";
+import { ArrowRight, BarChart3, BookOpen, Bot, ExternalLink } from "lucide-react";
 import { AboutTokenBar } from "@/components/about/AboutTokenBar";
+import type { AboutTabId } from "@/components/about/aboutTabs";
 import {
   aboutDisplayTitleClass,
   aboutHeroClass,
   aboutKickerClass,
   aboutProseClass,
 } from "@/components/about/aboutStyles";
-import { SYRA_MISSION, SYRA_STATS, SYRA_TAGLINE, SYRA_VISION } from "@/content/syraAbout";
+import { SYRA_MISSION, SYRA_STATS, SYRA_TAGLINE } from "@/content/syraAbout";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const HERO_STATS = SYRA_STATS.filter((s) => ["Founded", "Chain", "Stage"].includes(s.label));
 
-export function AboutHero() {
+interface AboutHeroProps {
+  onSelectTab?: (tab: AboutTabId) => void;
+  activeTab?: AboutTabId;
+}
+
+export function AboutHero({ onSelectTab, activeTab }: AboutHeroProps) {
   return (
-    <header className={cn(aboutHeroClass, "about-hero-premium")}>
+    <header className={cn(aboutHeroClass, "about-hero-premium about-hero-compact")}>
       <div className="about-hero-shine pointer-events-none absolute inset-x-0 top-0 h-px" aria-hidden />
-      <div className="about-hero-noise pointer-events-none absolute inset-0 opacity-[0.35]" aria-hidden />
+      <div className="about-hero-noise pointer-events-none absolute inset-0 opacity-[0.3]" aria-hidden />
       <div className="about-grid-bg" aria-hidden />
       <div className="about-hero-mesh pointer-events-none absolute inset-0" aria-hidden />
-      <div className="about-hero-aurora pointer-events-none absolute inset-0" aria-hidden />
 
-      <div className="relative px-6 py-10 sm:px-10 sm:py-12 lg:px-12 lg:py-14 xl:px-14 xl:py-16">
-        <div className="flex flex-col gap-10 lg:gap-12">
-          {/* Top meta row */}
+      <div className="relative px-5 py-7 sm:px-8 sm:py-9 lg:px-10 lg:py-10">
+        <div className="flex flex-col gap-7 lg:gap-8">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="relative h-14 w-14 shrink-0 sm:h-16 sm:w-16">
-                <div
-                  className="absolute -inset-1 rounded-[1.35rem] bg-gradient-to-br from-foreground/15 via-transparent to-foreground/5 blur-md"
-                  aria-hidden
-                />
-                <div className="about-logo-frame relative flex h-full w-full overflow-hidden rounded-[1.25rem]">
+            <div className="flex items-center gap-3">
+              <div className="relative h-12 w-12 shrink-0 sm:h-14 sm:w-14">
+                <div className="about-logo-frame relative flex h-full w-full overflow-hidden rounded-[1.1rem]">
                   <img src="/logo.jpg" alt="Syra" className="h-full w-full object-cover" draggable={false} />
                 </div>
               </div>
-
-              <div className="flex flex-col gap-2">
+              <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className={aboutKickerClass}>About Syra</span>
-                  <span className="h-3 w-px bg-border/60" aria-hidden />
-                  <span className="inline-flex items-center gap-2 rounded-full border border-border/45 bg-background/50 px-3 py-1 backdrop-blur-sm">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-border/45 bg-background/50 px-2.5 py-0.5">
                     <span className="about-live-dot h-1.5 w-1.5 rounded-full bg-success" aria-hidden />
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                      Live on Solana
+                    <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                      Live
                     </span>
                   </span>
                 </div>
-                <p className="text-[13px] font-medium text-muted-foreground/80">Agent finance · x402 · DeFi</p>
+                <p className="mt-1 text-[12px] font-medium text-muted-foreground/80">Machine money · Solana · x402</p>
               </div>
             </div>
 
-            <div className="hidden items-center gap-2 lg:flex">
+            <div className="hidden items-center gap-2 md:flex">
               {HERO_STATS.map(({ label, value }) => (
                 <div
                   key={label}
-                  className="about-hero-stat-chip rounded-xl border border-border/40 bg-background/35 px-3.5 py-2 backdrop-blur-sm"
+                  className="about-hero-stat-chip rounded-lg border border-border/40 bg-background/35 px-3 py-1.5 backdrop-blur-sm"
                 >
-                  <p className="text-[9px] font-medium uppercase tracking-[0.16em] text-muted-foreground/65">{label}</p>
-                  <p className="about-stat-value mt-0.5 font-display text-[15px] font-semibold tracking-tight text-foreground">
-                    {value}
-                  </p>
+                  <p className="text-[8px] font-medium uppercase tracking-[0.14em] text-muted-foreground/65">{label}</p>
+                  <p className="about-stat-value mt-0.5 font-display text-[13px] font-semibold text-foreground">{value}</p>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Headline + actions */}
-          <div className="grid gap-10 xl:grid-cols-[1fr_16.5rem] xl:items-end xl:gap-14">
-            <div className="min-w-0 max-w-3xl">
-              <h1 className={cn(aboutDisplayTitleClass, "text-balance")}>
+          <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-end lg:gap-10">
+            <div className="min-w-0 max-w-2xl">
+              <h1 className={cn(aboutDisplayTitleClass, "text-balance !text-[1.85rem] sm:!text-[2.35rem] lg:!text-[2.65rem]")}>
                 <span className="about-headline-gradient block">{SYRA_TAGLINE.split(" for ")[0]}</span>
-                <span className="mt-1 block text-foreground/92">
-                  for{" "}
-                  <span className="about-headline-accent">{SYRA_TAGLINE.split(" for ")[1] ?? SYRA_TAGLINE}</span>
+                <span className="mt-0.5 block text-foreground/92">
+                  for <span className="about-headline-accent">{SYRA_TAGLINE.split(" for ")[1] ?? SYRA_TAGLINE}</span>
                 </span>
               </h1>
-              <p className={cn(aboutProseClass, "mt-6 max-w-2xl text-pretty text-[16px] sm:text-[17px]")}>
-                {SYRA_MISSION}
-              </p>
-              <p className="mt-4 max-w-2xl text-pretty text-[14px] leading-[1.75] text-muted-foreground/70 sm:text-[15px]">
-                {SYRA_VISION}
-              </p>
+              <p className={cn(aboutProseClass, "mt-4 max-w-xl text-pretty text-[15px] sm:text-[16px]")}>{SYRA_MISSION}</p>
             </div>
 
-            <div className="flex w-full flex-col gap-2.5 sm:flex-row xl:flex-col">
-              <Button
-                variant="primary"
-                size="lg"
-                className="about-hero-cta-primary h-12 w-full justify-center shadow-lg"
-                asChild
-              >
+            <div className="flex flex-wrap gap-2 lg:flex-col lg:items-stretch">
+              <Button variant="primary" size="default" className="about-hero-cta-primary h-10 px-4" asChild>
                 <a href="/">
                   <Bot className="mr-2 h-4 w-4" />
                   Open agent
-                  <ArrowRight className="ml-2 h-4 w-4 opacity-80" />
+                  <ArrowRight className="ml-2 h-3.5 w-3.5 opacity-80" />
                 </a>
               </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="about-hero-cta-secondary h-12 w-full justify-center border-border/50 bg-background/40 backdrop-blur-sm"
-                asChild
-              >
+              {onSelectTab ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="default"
+                  className={cn(
+                    "h-10 border-border/50 bg-background/40 px-4",
+                    activeTab === "analytics" && "border-foreground/20 bg-foreground/[0.05]",
+                  )}
+                  onClick={() => onSelectTab("analytics")}
+                >
+                  <BarChart3 className="mr-2 h-4 w-4" />
+                  Analytics
+                </Button>
+              ) : null}
+              <Button variant="outline" size="default" className="h-10 border-border/50 bg-background/40 px-4" asChild>
                 <a href="https://docs.syraa.fun" target="_blank" rel="noopener noreferrer">
                   <BookOpen className="mr-2 h-4 w-4" />
-                  Documentation
-                  <ExternalLink className="ml-2 h-3.5 w-3.5 opacity-45" />
+                  Docs
+                  <ExternalLink className="ml-2 h-3 w-3 opacity-45" />
                 </a>
               </Button>
             </div>
           </div>
 
-          {/* Token dock */}
-          <div className="about-hero-token-rail">
+          <div className="about-hero-token-rail pt-1">
             <AboutTokenBar />
           </div>
         </div>

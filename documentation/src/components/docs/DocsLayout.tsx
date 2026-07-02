@@ -20,7 +20,9 @@ interface DocsLayoutProps {
   hideToc?: boolean;
   hideBreadcrumbs?: boolean;
   hideFooter?: boolean;
+  /** @deprecated Layout is full width by default */
   wide?: boolean;
+  /** @deprecated Layout is full width by default */
   fullWidth?: boolean;
 }
 
@@ -30,12 +32,11 @@ export function DocsLayout({
   hideToc = false,
   hideBreadcrumbs = false,
   hideFooter = false,
-  wide = false,
-  fullWidth = false,
 }: DocsLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTocId, setActiveTocId] = useState("");
   const [readingProgress, setReadingProgress] = useState(0);
+  const showToc = !hideToc && toc.length > 0;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -68,16 +69,17 @@ export function DocsLayout({
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="flex-1 w-full min-w-0 lg:pl-docs-sidebar">
-        <main id="main-content" className="w-full px-4 sm:px-6 py-6 sm:py-8 lg:px-8 xl:px-10">
-          <div className="flex flex-col gap-0 xl:flex-row xl:gap-10 2xl:gap-12">
-            <div
-              className={cn(
-                "flex-1 min-w-0 animate-fade-in",
-                fullWidth ? "w-full" : wide ? "max-w-docs-wide" : "max-w-docs"
-              )}
-            >
+        <main
+          id="main-content"
+          className={cn(
+            "w-full min-w-0 px-4 py-6 sm:px-6 sm:py-8 lg:px-8 xl:px-10",
+            showToc && "pb-24 xl:pb-8"
+          )}
+        >
+          <div className="flex w-full min-w-0 flex-col gap-8 xl:flex-row xl:items-start xl:gap-10 2xl:gap-12">
+            <div className="flex-1 min-w-0 w-full animate-fade-in">
               {!hideBreadcrumbs && <DocBreadcrumbs />}
-              <article>{children}</article>
+              <article className="docs-article w-full min-w-0">{children}</article>
               {!hideFooter && (
                 <>
                   <DocFooter />
@@ -85,7 +87,7 @@ export function DocsLayout({
                 </>
               )}
             </div>
-            {!hideToc && toc.length > 0 && (
+            {showToc && (
               <TableOfContents
                 items={toc}
                 activeId={activeTocId}
@@ -96,9 +98,7 @@ export function DocsLayout({
         </main>
       </div>
 
-      {!hideToc && toc.length > 0 && (
-        <MobileToc items={toc} activeId={activeTocId} />
-      )}
+      {showToc && <MobileToc items={toc} activeId={activeTocId} />}
     </div>
   );
 }

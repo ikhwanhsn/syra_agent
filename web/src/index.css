@@ -7474,6 +7474,103 @@ body.syra-qwerti-active #qwerti-widget-root {
   opacity: 0.92;
 }
 
+.about-analytics-section {
+  position: relative;
+}
+
+.about-analytics-section::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: -1.5rem -0.5rem auto;
+  height: 12rem;
+  border-radius: 2rem;
+  background: radial-gradient(
+    ellipse 70% 80% at 50% 0%,
+    hsl(var(--primary) / 0.07),
+    transparent 68%
+  );
+  opacity: 0.9;
+}
+
+.about-analytics-kpi-featured {
+  border-color: hsl(var(--foreground) / 0.14);
+  background: linear-gradient(
+    155deg,
+    hsl(var(--primary) / 0.06) 0%,
+    hsl(var(--card) / 0.98) 45%,
+    hsl(var(--muted) / 0.06) 100%
+  );
+}
+
+.about-analytics-chart {
+  border-color: hsl(var(--border) / 0.42);
+  background: linear-gradient(
+    165deg,
+    hsl(var(--card) / 0.96) 0%,
+    hsl(var(--background) / 0.55) 100%
+  );
+}
+
+.about-analytics-tab {
+  backdrop-filter: blur(8px);
+}
+
+.about-analytics-table-wrap {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border) / 0.6) transparent;
+}
+
+.about-analytics-table-wrap::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.about-analytics-table-wrap::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background: hsl(var(--border) / 0.55);
+}
+
+/* Tabbed about app shell */
+.about-app-shell {
+  --about-tab-radius: 1rem;
+}
+
+.about-hero-compact {
+  border-radius: 1.35rem;
+}
+
+.about-hero-compact .about-hero-token-rail {
+  margin-top: 0;
+}
+
+.about-tab-shell {
+  margin-top: 0;
+}
+
+.about-tab-bar {
+  width: 100%;
+}
+
+.about-tab-content-shell {
+  position: relative;
+}
+
+.about-tab-content-shell::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: -0.5rem -0.25rem auto;
+  height: 3rem;
+  background: linear-gradient(to bottom, hsl(var(--background) / 0.85), transparent);
+  opacity: 0.65;
+}
+
+.about-tab-panel-wrap {
+  position: relative;
+  z-index: 1;
+}
+
 .about-headline-gradient {
   background: linear-gradient(
     135deg,

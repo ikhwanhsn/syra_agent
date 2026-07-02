@@ -18,11 +18,21 @@ const REFETCH_MS = 30_000;
 const BTC2_LANE: BtcQuantLane = "btc2";
 
 async function fetchBtc2AgentBundle() {
-  const [overview, labState, stats, runsResult, realState] = await Promise.all([
+  const [overview, labState, stats] = await Promise.all([
     fetchBtcOverview(BTC2_LANE),
     fetchBtcLabState(BTC2_LANE),
     fetchBtcStats(BTC2_LANE),
-    fetchBtcRuns({ limit: 25, offset: 0, lane: BTC2_LANE }),
+  ]);
+
+  const activeExperimentId = labState.activeExperimentId ?? stats.experimentId ?? undefined;
+
+  const [runsResult, realState] = await Promise.all([
+    fetchBtcRuns({
+      limit: 25,
+      offset: 0,
+      lane: BTC2_LANE,
+      experimentId: activeExperimentId,
+    }),
     fetchBtcRealState().catch(() => null),
   ]);
 

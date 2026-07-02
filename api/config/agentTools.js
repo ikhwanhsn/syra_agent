@@ -9,6 +9,7 @@ import {
   X402_API_PRICE_NANSEN_USD,
   X402_API_PRICE_NANSEN_PREMIUM_USD,
   X402_API_PRICE_ZERION_USD,
+  X402_API_PRICE_TOPLEDGER_USD,
   X402_API_PRICE_ANALYTICS_SUMMARY_USD,
   X402_API_PRICE_PUMP_FUN_TX_USD,
   X402_API_PRICE_PUMP_FUN_READ_USD,
@@ -42,6 +43,7 @@ import {
   X402_DISPLAY_PRICE_NANSEN_USD,
   X402_DISPLAY_PRICE_NANSEN_PREMIUM_USD,
   X402_DISPLAY_PRICE_ZERION_USD,
+  X402_DISPLAY_PRICE_TOPLEDGER_USD,
   X402_DISPLAY_PRICE_ANALYTICS_SUMMARY_USD,
   X402_DISPLAY_PRICE_PUMP_FUN_TX_USD,
   X402_DISPLAY_PRICE_PUMP_FUN_READ_USD,
@@ -83,7 +85,7 @@ import {
 } from './stableenrichAgentTools.js';
 import { resolvePillarForToolId } from './pillars.js';
 
-/** @typedef {{ id: string; path: string; method: string; priceUsd: number; displayPriceUsd?: number; name: string; description: string; pillar?: import('./pillars.js').PillarId; nansenPath?: string; zerionPath?: string; birdeyePath?: string; stablecryptoPath?: string; stablesocialPath?: string; stableenrichPath?: string; stableenrichMethod?: 'GET' | 'POST'; stableenrichAsync?: boolean; purchVaultPath?: string; agentDirect?: boolean; tempoPayout?: boolean; tempoPublic?: 'tokenlist' | 'networks'; paysh?: 'discover' | 'endpoints' | 'call'; agentscore?: 'discover' | 'check' | 'passport-status' | 'pay' }} AgentTool */
+/** @typedef {{ id: string; path: string; method: string; priceUsd: number; displayPriceUsd?: number; name: string; description: string; pillar?: import('./pillars.js').PillarId; nansenPath?: string; zerionPath?: string; birdeyePath?: string; topledgerPath?: string; stablecryptoPath?: string; stablesocialPath?: string; stableenrichPath?: string; stableenrichMethod?: 'GET' | 'POST'; stableenrichAsync?: boolean; purchVaultPath?: string; agentDirect?: boolean; tempoPayout?: boolean; tempoPublic?: 'tokenlist' | 'networks'; paysh?: 'discover' | 'endpoints' | 'call'; agentscore?: 'discover' | 'check' | 'passport-status' | 'pay' }} AgentTool */
 
 /**
  * List of agent tools (x402 endpoints). Path is relative to API base (e.g. /news). Nansen calls api.nansen.ai; Zerion calls api.zerion.io (x402); Birdeye uses birdeyePath on public-api.birdeye.so (x402).
@@ -684,6 +686,107 @@ export const AGENT_TOOLS = [
     displayPriceUsd: X402_DISPLAY_PRICE_ZERION_USD,
     name: 'Zerion: fungibles list',
     description: 'Search/list fungible assets (Zerion query params e.g. filter[search_query], page[size])',
+  },
+  // Partner: TopLedger (MPP pay-per-call — Solana DeFi intelligence via api.topledger.xyz/pay)
+  {
+    id: 'topledger-analyze-wallet',
+    path: '/topledger/wallet/analyze',
+    topledgerPath: '/api/wallets/{wallet}/analyze',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_TOPLEDGER_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_TOPLEDGER_USD,
+    pillar: 'grow',
+    name: 'TopLedger: analyze wallet',
+    description:
+      'Full Solana wallet portfolio analysis — net worth, holdings, lending, perps, LP, staking, yield, rewards, governance (20+ protocols)',
+  },
+  {
+    id: 'topledger-holdings',
+    path: '/topledger/wallet/holdings',
+    topledgerPath: '/api/wallets/{wallet}/holdings',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_TOPLEDGER_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_TOPLEDGER_USD,
+    pillar: 'grow',
+    name: 'TopLedger: wallet holdings',
+    description: 'Native SOL + Jupiter-verified SPL/Token-2022 holdings with USD pricing; optional min_value_usd (default 1)',
+  },
+  {
+    id: 'topledger-lending',
+    path: '/topledger/wallet/lending',
+    topledgerPath: '/api/wallets/{wallet}/all-lending',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_TOPLEDGER_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_TOPLEDGER_USD,
+    pillar: 'grow',
+    name: 'TopLedger: lending positions',
+    description: 'Lending deposits, borrows, and net value across Kamino, marginfi, Jupiter Lend, Loopscale, and more',
+  },
+  {
+    id: 'topledger-perps',
+    path: '/topledger/wallet/perps',
+    topledgerPath: '/api/wallets/{wallet}/all-perps',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_TOPLEDGER_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_TOPLEDGER_USD,
+    pillar: 'grow',
+    name: 'TopLedger: perpetual futures',
+    description: 'Perp positions, collateral, size, and PnL across Jupiter Perps, Flash Trade, Parcl',
+  },
+  {
+    id: 'topledger-lp',
+    path: '/topledger/wallet/lp',
+    topledgerPath: '/api/wallets/{wallet}/all-lp',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_TOPLEDGER_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_TOPLEDGER_USD,
+    pillar: 'grow',
+    name: 'TopLedger: LP positions',
+    description: 'Liquidity provider positions across Meteora, Orca Whirlpool, Raydium CLMM/AMM/CP, Parcl',
+  },
+  {
+    id: 'topledger-staking',
+    path: '/topledger/wallet/staking',
+    topledgerPath: '/api/wallets/{wallet}/all-staking',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_TOPLEDGER_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_TOPLEDGER_USD,
+    pillar: 'grow',
+    name: 'TopLedger: staking positions',
+    description: 'Native SOL and protocol staking across Jupiter DAO, Helium, Streamflow, Kamino, and more',
+  },
+  {
+    id: 'topledger-yield',
+    path: '/topledger/wallet/yield',
+    topledgerPath: '/api/wallets/{wallet}/all-yield',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_TOPLEDGER_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_TOPLEDGER_USD,
+    pillar: 'grow',
+    name: 'TopLedger: yield vaults',
+    description: 'Yield-bearing vault positions across Kamino, Hylo, Exponent, Elemental, Huma, and more',
+  },
+  {
+    id: 'topledger-rewards',
+    path: '/topledger/wallet/rewards',
+    topledgerPath: '/api/wallets/{wallet}/all-rewards',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_TOPLEDGER_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_TOPLEDGER_USD,
+    pillar: 'grow',
+    name: 'TopLedger: unclaimed rewards',
+    description: 'Pending and unclaimed protocol rewards with USD value where available',
+  },
+  {
+    id: 'topledger-dex-pnl',
+    path: '/topledger/wallet/dex-pnl',
+    topledgerPath: '/api/wallets/{wallet}/all-dex',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_TOPLEDGER_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_TOPLEDGER_USD,
+    pillar: 'grow',
+    name: 'TopLedger: DEX trading PnL',
+    description: 'FIFO DEX trading PnL with cost basis, realized/unrealized PnL, and 7-day performance',
   },
   // Partner: RISE (direct API via server-side key)
   {
@@ -2985,6 +3088,22 @@ export function getToolsForLlmSelection() {
           'Optional: filter[search_query], page[size], currency — use Zerion v1 query param names as flat keys',
       };
       if (zerionHints[t.id]) out.paramsHint = zerionHints[t.id];
+    }
+    if (t.topledgerPath) {
+      const topledgerHints = {
+        'topledger-analyze-wallet':
+          'Params: wallet (required, Solana base58) — alias address also accepted. Full net worth + DeFi breakdown.',
+        'topledger-holdings':
+          'Params: wallet (required). Optional: min_value_usd (default 1) — minimum USD per holding.',
+        'topledger-lending': 'Params: wallet (required, Solana base58).',
+        'topledger-perps': 'Params: wallet (required, Solana base58).',
+        'topledger-lp': 'Params: wallet (required, Solana base58).',
+        'topledger-staking': 'Params: wallet (required, Solana base58).',
+        'topledger-yield': 'Params: wallet (required, Solana base58).',
+        'topledger-rewards': 'Params: wallet (required, Solana base58).',
+        'topledger-dex-pnl': 'Params: wallet (required, Solana base58).',
+      };
+      if (topledgerHints[t.id]) out.paramsHint = topledgerHints[t.id];
     }
     if (t.birdeyePath) {
       const hint = getBirdeyeParamsHintForLlm(t.id);

@@ -5,7 +5,7 @@ export function DocsFooter() {
   return (
     <footer className="mt-16 pt-8 border-t border-border/60 text-sm text-muted-foreground safe-bottom">
       <div className="flex flex-col sm:flex-row flex-wrap justify-between items-start sm:items-center gap-4">
-        <p className="min-w-0 max-w-xl text-balance leading-relaxed">
+        <p className="min-w-0 flex-1 text-balance leading-relaxed">
           Syra — {SYRA_TAGLINE.toLowerCase()} on Solana. Documentation for operators, builders, and
           autonomous agents.
         </p>

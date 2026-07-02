@@ -19,6 +19,7 @@ import { AIP_INTEGRATION_POST } from "./aipIntegrationUpdate";
 import { OPENROUTER_X402_APIS_POST } from "./openrouterX402ApisUpdate";
 import { OKX_ASP_XLAYER_POST } from "./okxAspXlayerUpdate";
 import { STOCKS_NEWS_EXPERIMENT_POST } from "./stocksNewsExperimentUpdate";
+import { TOPLEDGER_DEFI_POST } from "./topledgerDeFiUpdate";
 import { AGENTSCORE_PHOTO } from "./photo/agentscorePhoto";
 import { INDICATOR_PHOTO } from "./photo/indicatorPhoto";
 import { BNB_X402_PHOTO } from "./photo/bnbX402Photo";
@@ -40,6 +41,7 @@ import { AIP_INTEGRATION_PHOTO } from "./photo/aipIntegrationPhoto";
 import { OPENROUTER_X402_APIS_PHOTO } from "./photo/openrouterX402ApisPhoto";
 import { OKX_ASP_XLAYER_PHOTO } from "./photo/okxAspXlayerPhoto";
 import { STOCKS_NEWS_EXPERIMENT_PHOTO } from "./photo/stocksNewsExperimentPhoto";
+import { TOPLEDGER_DEFI_PHOTO } from "./photo/topledgerDeFiPhoto";
 import type { PostPhotoUpdate } from "./photo/types";
 import type { PostUpdate } from "./types";
 import { validatePostUpdate } from "./validatePostUpdate";
@@ -78,6 +80,7 @@ const POST_UPDATE_BUNDLES: PostUpdateBundle[] = [
   { video: OPENROUTER_X402_APIS_POST, photo: OPENROUTER_X402_APIS_PHOTO },
   { video: OKX_ASP_XLAYER_POST, photo: OKX_ASP_XLAYER_PHOTO },
   { video: STOCKS_NEWS_EXPERIMENT_POST, photo: STOCKS_NEWS_EXPERIMENT_PHOTO },
+  { video: TOPLEDGER_DEFI_POST, photo: TOPLEDGER_DEFI_PHOTO },
 ];
 
 function assertBundleMeta(bundle: PostUpdateBundle): void {

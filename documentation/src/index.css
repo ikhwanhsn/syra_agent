@@ -74,8 +74,8 @@
     --sidebar-ring: 0 0% 28%;
 
     /* Docs layout */
-    --docs-content-width: 720px;
-    --docs-content-width-wide: 820px;
+    --docs-content-width: 100%;
+    --docs-content-width-wide: 100%;
     --docs-sidebar-width: 260px;
     --docs-toc-width: 220px;
     --docs-header-height: 3.5rem;
@@ -159,8 +159,8 @@
     --sidebar-border: 0 0% 12%;
     --sidebar-ring: 0 0% 45%;
 
-    --docs-content-width: 720px;
-    --docs-content-width-wide: 820px;
+    --docs-content-width: 100%;
+    --docs-content-width-wide: 100%;
     --docs-sidebar-width: 260px;
     --docs-toc-width: 220px;
     --docs-header-height: 3.5rem;
@@ -344,13 +344,25 @@
   }
 
   .docs-content {
-    max-width: var(--docs-content-width);
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
   }
 
   .docs-content-wide {
-    max-width: var(--docs-content-width-wide);
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .docs-article {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .docs-article :where(pre) {
+    max-width: 100%;
+    overflow-x: auto;
   }
 
   .docs-prose {
@@ -393,7 +405,11 @@
   }
 
   .docs-prose :where(table) {
-    @apply rounded-lg border border-border overflow-hidden;
+    @apply rounded-lg border border-border;
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .docs-prose :where(tbody tr:hover) {

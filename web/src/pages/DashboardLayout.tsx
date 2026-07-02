@@ -31,6 +31,7 @@ import { INTERNAL_BASE_PATH } from "@/lib/internalRoutes";
 import { getInternalAgentMeta, isInternalAgentSlug } from "@/lib/internalAgentsCatalog";
 import { DASHBOARD_PILLAR_NAV, isDashboardPillarRoute, isPillarGated, MACHINE_MONEY_SOON_BADGE } from "@/lib/dashboardPillarNav";
 import { DASHBOARD_MARKET_INTEL_NAV } from "@/lib/dashboardMarketIntelNav";
+import { DASHBOARD_TOOLS_NAV } from "@/lib/dashboardToolsNav";
 import { DASHBOARD_EXPERIMENT_NAV } from "@/lib/dashboardExperimentNav";
 
 function dashboardPageTitle(pathname: string, search: string): string {
@@ -48,6 +49,7 @@ function dashboardPageTitle(pathname: string, search: string): string {
   if (parts[0] === "assets" && parts[1]) return "Asset detail";
   if (parts[0] === "assets") return "Assets";
   if (parts[0] === "pumpfun") return "Pumpfun Alpha";
+  if (parts[0] === "multiwallet") return "Multiwallet";
   if (parts[0] === "lp-experiment") return "LP agent experiment";
   if (parts[0] === "btc2-experiment") return "BTC quant agent";
   if (parts[0] === "btc3-experiment") return "Macro Intelligence";
@@ -136,6 +138,28 @@ function DashboardSidebarContent({
           ))}
 
           <SidebarDivider className="my-2" />
+
+          {showAdminDashboard ? (
+            <>
+              <p className="px-3 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/55">
+                Tools
+              </p>
+              {DASHBOARD_TOOLS_NAV.map((item) => (
+                <SidebarNavLink
+                  key={item.id}
+                  to={item.to}
+                  icon={item.icon}
+                  end
+                  matchActive={item.isActive}
+                  badge={INTERNAL_TEAM_SIDEBAR_BADGE}
+                >
+                  {item.label}
+                </SidebarNavLink>
+              ))}
+
+              <SidebarDivider className="my-2" />
+            </>
+          ) : null}
 
           {showAdminDashboard ? (
             <>

@@ -621,11 +621,46 @@
         "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
         "x402Schema": "exact"
       }
+    },
+    {
+      "url": "https://api.syraa.fun/topledger/wallet/analyze",
+      "methods": [
+        "GET"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Full Solana wallet DeFi portfolio analysis via TopLedger — net worth, lending, perps, LP, staking, yield, rewards across 20+ protocols. Input: wallet (Solana base58).",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "480",
+        "amountAtomicUnit": "480",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/topledger/wallet/lending",
+      "methods": [
+        "GET"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Solana lending deposits, borrows, and net exposure across Kamino, marginfi, Jupiter Lend, Loopscale, and more. Input: wallet (Solana base58).",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "480",
+        "amountAtomicUnit": "480",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
     }
-  ],
-  "contact": {
-    "email": "ampersend@edgeandnode.com",
-    "telegram": "@ampersendbuilders",
-    "note": "Request hand-curated catalog placement for Syra x402 APIs on Base mainnet."
-  }
+  ]
 }

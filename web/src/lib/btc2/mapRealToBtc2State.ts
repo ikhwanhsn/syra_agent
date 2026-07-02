@@ -91,9 +91,9 @@ function pickLeader(
   realState: BtcQuantRealState | null,
 ): BtcAgentStats | null {
   const leaderId =
-    realState?.leaderStrategyId ??
-    overview.simulation.leaderStrategyId ??
-    stats[0]?.strategyId;
+    realState?.enabled && realState.leaderStrategyId != null
+      ? realState.leaderStrategyId
+      : overview.simulation.leaderStrategyId ?? stats[0]?.strategyId;
   if (leaderId == null) return stats[0] ?? null;
   return stats.find((a) => a.strategyId === leaderId) ?? stats[0] ?? null;
 }

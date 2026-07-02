@@ -20,6 +20,7 @@ import { getAgentToolParamGateMessage } from './agentToolParamGate.js';
 import { enrichGmgnToolParams } from './gmgnToolParams.js';
 import { callNansenWithAgent } from './agentNansenClient.js';
 import { callZerionWithAgent } from './agentZerionClient.js';
+import { callTopledgerWithAgent } from './topledgerClient.js';
 import { callBirdeyeWithAgent } from './agentBirdeyeClient.js';
 import { callStablecryptoWithAgent } from './agentStablecryptoClient.js';
 import { callStablesocialWithAgent } from './agentStablesocialClient.js';
@@ -572,6 +573,29 @@ export async function executeAgentToolCall(input) {
         tool.zerionPath,
         tool.method || 'GET',
         params
+      );
+      if (!result.success) {
+        const status = result.budgetExceeded ? 402 : 502;
+        return respond(status, {
+          success: false,
+          error: result.error,
+          toolId: tool.id,
+          ...(result.budgetExceeded && { budgetExceeded: true }),
+        });
+      }
+      return respond(200, {
+        success: true,
+        toolId: tool.id,
+        data: result.data,
+      });
+    }
+
+    if (tool.topledgerPath) {
+      const result = await callTopledgerWithAgent(
+        anonymousId,
+        tool.topledgerPath,
+        tool.method || 'GET',
+        params,
       );
       if (!result.success) {
         const status = result.budgetExceeded ? 402 : 502;

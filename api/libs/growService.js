@@ -5,29 +5,50 @@
 import { fetchAgentWalletPortfolio } from './agentWalletPortfolio.js';
 import { getInvestOpportunities } from './investService.js';
 import { deployInvestCapital } from './investService.js';
+import { getWalletDefiPositions } from './defiPositionsService.js';
 import AgentWallet from '../models/agent/AgentWallet.js';
 
 /**
  * @param {string} walletAddress
  */
 export async function getGrowPortfolio(walletAddress) {
-  const portfolio = await fetchAgentWalletPortfolio(walletAddress);
-  const totalUsd = portfolio.totalValueUsd ?? 0;
+  const [portfolio, defi] = await Promise.all([
+    fetchAgentWalletPortfolio(walletAddress),
+    getWalletDefiPositions(walletAddress).catch(() => null),
+  ]);
+
+  const tokenTotalUsd = portfolio.totalValueUsd ?? 0;
+  const netWorthUsd =
+    defi?.netWorthUsd != null && Number.isFinite(defi.netWorthUsd)
+      ? defi.netWorthUsd
+      : tokenTotalUsd;
+
   const allocation = (portfolio.tokens ?? []).map((t) => ({
     symbol: t.symbol,
     mint: t.mint,
     amount: t.amount,
     valueUsd: t.valueUsd,
-    pct: totalUsd > 0 && t.valueUsd != null ? (t.valueUsd / totalUsd) * 100 : null,
+    pct: netWorthUsd > 0 && t.valueUsd != null ? (t.valueUsd / netWorthUsd) * 100 : null,
   }));
 
   return {
     ...portfolio,
+    totalValueUsd: netWorthUsd > 0 ? netWorthUsd : portfolio.totalValueUsd,
+    defi: defi ?? undefined,
     allocation,
     summary: {
-      totalValueUsd: totalUsd,
+      totalValueUsd: netWorthUsd > 0 ? netWorthUsd : portfolio.totalValueUsd,
+      tokenValueUsd: portfolio.totalValueUsd ?? null,
+      defiNetWorthUsd: defi?.netWorthUsd ?? null,
       tokenCount: allocation.length,
       solBalance: portfolio.solBalance,
+      activeProtocols: defi?.activeProtocols?.length ?? 0,
+      lendingNetUsd: defi?.lending?.netUsd ?? null,
+      perpsCollateralUsd: defi?.perps?.collateralUsd ?? null,
+      lpValueUsd: defi?.lp?.valueUsd ?? null,
+      stakingValueUsd: defi?.staking?.valueUsd ?? null,
+      yieldValueUsd: defi?.yield?.valueUsd ?? null,
+      pendingRewardsUsd: defi?.rewards?.pendingUsd ?? null,
     },
   };
 }
@@ -47,6 +68,48 @@ export async function getGrowRecommendations(opts) {
   const usdc = portfolio.allocation?.find((a) => a.symbol === 'USDC');
   const usdcPct = usdc?.pct ?? 0;
   const idleUsdc = usdc?.valueUsd ?? 0;
+
+  const defi = portfolio.defi;
+  const pendingRewards = defi?.rewards?.pendingUsd ?? 0;
+  if (pendingRewards > 1) {
+    recommendations.push({
+      id: 'claim-pending-rewards',
+      type: 'yield',
+      priority: pendingRewards > 25 ? 'high' : 'medium',
+      title: 'Review unclaimed protocol rewards',
+      rationale: `~$${pendingRewards.toFixed(2)} in pending rewards detected across DeFi protocols — consider claiming when gas-efficient. Analysis only.`,
+      probabilistic: true,
+    });
+  }
+
+  const borrowUsd = defi?.lending?.borrowUsd ?? 0;
+  const depositUsd = defi?.lending?.depositUsd ?? 0;
+  if (borrowUsd > 0 && depositUsd > 0) {
+    const leverageRatio = borrowUsd / Math.max(depositUsd, 1);
+    if (leverageRatio > 0.65) {
+      recommendations.push({
+        id: 'lending-health-review',
+        type: 'risk',
+        priority: leverageRatio > 0.85 ? 'high' : 'medium',
+        title: 'Review lending health factor',
+        rationale: `Borrowed ~$${borrowUsd.toFixed(2)} against ~$${depositUsd.toFixed(2)} deposits — elevated leverage may increase liquidation risk in volatile markets.`,
+        probabilistic: true,
+      });
+    }
+  }
+
+  const yieldValue = defi?.yield?.valueUsd ?? 0;
+  if (idleUsdc > 50 && yieldValue < idleUsdc * 0.25) {
+    recommendations.push({
+      id: 'deploy-idle-to-yield-vaults',
+      type: 'yield',
+      priority: idleUsdc > 200 ? 'high' : 'medium',
+      title: 'Idle USDC vs deployed yield',
+      rationale: `~$${idleUsdc.toFixed(2)} USDC in wallet vs ~$${yieldValue.toFixed(2)} in yield vaults — may benefit from yield deployment subject to market risk.`,
+      suggestedAdapter: 'lp_real',
+      probabilistic: true,
+    });
+  }
 
   if (idleUsdc > 10) {
     recommendations.push({
@@ -99,6 +162,14 @@ export async function getGrowRecommendations(opts) {
   return {
     recommendations,
     portfolioSummary: portfolio.summary,
+    defiSummary: defi
+      ? {
+          netWorthUsd: defi.netWorthUsd,
+          activeProtocols: defi.activeProtocols,
+          lendingNetUsd: defi.lending.netUsd,
+          pendingRewardsUsd: defi.rewards.pendingUsd,
+        }
+      : undefined,
     disclaimer:
       'Recommendations are probabilistic analysis — not financial advice or guaranteed outcomes. Apply requires explicit confirmation.',
     fetchedAt: new Date().toISOString(),

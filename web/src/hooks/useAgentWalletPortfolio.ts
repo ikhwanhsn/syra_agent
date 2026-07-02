@@ -6,6 +6,7 @@ import {
   mergeAgentPortfolios,
   type AgentWalletPortfolio,
   type MergedAgentPortfolio,
+  type WalletDefiPositions,
 } from "@/lib/agentWalletPortfolioApi";
 
 const STALE_MS = 30_000;
@@ -90,6 +91,13 @@ export function useAgentWalletPortfolio({
     retry: 1,
   });
 
+  const primaryDefi = useMemo((): WalletDefiPositions | undefined => {
+    const entries = query.data ?? [];
+    const spend = entries.find((e) => e.purpose === "spend")?.portfolio.defi;
+    if (spend) return spend;
+    return entries[0]?.portfolio.defi;
+  }, [query.data]);
+
   const merged = useMemo((): MergedAgentPortfolio | null => {
     if (!query.data?.length) return null;
     return mergeAgentPortfolios(query.data);
@@ -115,6 +123,7 @@ export function useAgentWalletPortfolio({
     targets: filteredTargets,
     merged,
     perWallet,
+    primaryDefi,
     loading: query.isLoading || query.isFetching,
     error: query.error instanceof Error ? query.error.message : null,
     refresh,

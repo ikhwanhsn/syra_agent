@@ -3,6 +3,7 @@
  */
 
 import { isMongooseConnected } from "../../config/mongoose.js";
+import { getBtc3RuntimeSettings } from "../../config/btc3MacroConfig.js";
 import {
   getBtc3PaperRebalances,
   getBtc3PaperStats,

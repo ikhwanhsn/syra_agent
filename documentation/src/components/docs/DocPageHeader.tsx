@@ -5,7 +5,6 @@ interface DocPageHeaderProps {
   title: string;
   description?: React.ReactNode;
   actions?: React.ReactNode;
-  wide?: boolean;
   className?: string;
 }
 
@@ -14,7 +13,6 @@ export function DocPageHeader({
   title,
   description,
   actions,
-  wide = false,
   className,
 }: DocPageHeaderProps) {
   return (
@@ -23,7 +21,7 @@ export function DocPageHeader({
         <p className="text-xs font-medium uppercase tracking-wider text-primary mb-2">{eyebrow}</p>
       )}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className={cn(wide ? "max-w-docs-wide" : "max-w-docs")}>
+        <div className="min-w-0 flex-1">
           <h1 className="docs-display text-3xl sm:text-4xl font-semibold tracking-tight text-foreground mb-3">
             {title}
           </h1>

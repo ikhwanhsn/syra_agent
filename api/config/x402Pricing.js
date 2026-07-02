@@ -119,6 +119,9 @@ export const X402_API_PRICE_ZERION_USD = passthrough(0.01);
 /** Birdeye Data public API via x402 — upstream ~$0.003/call × 1.2 */
 export const X402_API_PRICE_BIRDEYE_USD = passthrough(0.003);
 
+/** TopLedger Solana DeFi intelligence via MPP — upstream $0.0004/call × 1.2 */
+export const X402_API_PRICE_TOPLEDGER_USD = passthrough(0.0004);
+
 /** StableCrypto market data via x402 — upstream $0.01/call × 1.2 */
 export const X402_API_PRICE_STABLECRYPTO_USD = passthrough(0.01);
 
@@ -256,6 +259,7 @@ export const X402_DISPLAY_PRICE_NANSEN_USD = displayPassthrough(0.01);
 export const X402_DISPLAY_PRICE_NANSEN_PREMIUM_USD = displayPassthrough(0.05);
 export const X402_DISPLAY_PRICE_ZERION_USD = displayPassthrough(0.01);
 export const X402_DISPLAY_PRICE_BIRDEYE_USD = displayPassthrough(0.003);
+export const X402_DISPLAY_PRICE_TOPLEDGER_USD = displayPassthrough(0.0004);
 export const X402_DISPLAY_PRICE_STABLECRYPTO_USD = displayPassthrough(0.01);
 export const X402_DISPLAY_PRICE_STABLESOCIAL_USD = displayPassthrough(0.06);
 export const X402_DISPLAY_PRICE_STABLEENRICH_0002_USD = displayPassthrough(0.002);

@@ -13,6 +13,7 @@ import { PrivyProvider, usePrivy, useLoginWithSiws, useLogout } from "@privy-io/
 import {
   useWallets as usePrivySolanaWallets,
   useSignTransaction,
+  useSignAndSendTransaction,
   useSignMessage,
 } from "@privy-io/react-auth/solana";
 import { toSolanaWalletConnectors } from "@privy-io/react-auth/solana";
@@ -27,6 +28,7 @@ import { env, getPrivyClientIdForProvider } from "@/lib/env";
 import { notify } from "@/lib/notify";
 import { fetchUserWalletBalancesResilient } from "@/lib/userWalletBalance";
 import { createSolanaConnection, getPrimarySolanaRpcUrl, withRpcFallback } from "@/lib/solanaRpc";
+import bs58 from "bs58";
 
 /** Curated Privy Solana wallet options only. */
 const POPULAR_SOLANA_WALLET_LIST: string[] = [
@@ -63,6 +65,11 @@ export interface WalletContextState {
     transaction: Transaction,
     options?: { skipPreflight?: boolean; maxRetries?: number }
   ) => Promise<string>;
+  /** Sign and send multiple legacy transactions in one wallet approval. */
+  sendAllTransactions: (
+    transactions: Transaction[],
+    options?: { skipPreflight?: boolean; maxRetries?: number }
+  ) => Promise<string[]>;
   signMessage: (message: Uint8Array) => Promise<Uint8Array>;
   publicKey: PublicKey | null;
   connectSolana: () => Promise<void>;
@@ -262,6 +269,7 @@ const WalletContextInner: FC<{
   const { wallets: solanaWallets, ready: solanaWalletsReady } =
     usePrivySolanaWallets();
   const { signTransaction: privySignTransaction } = useSignTransaction();
+  const { signAndSendTransaction: privySignAndSendTransaction } = useSignAndSendTransaction();
   const { signMessage: privySignMessage } = useSignMessage();
 
   const siwsAttemptedForRef = useRef<string | null>(null);
@@ -607,6 +615,44 @@ const WalletContextInner: FC<{
     [solanaWallet, publicKey, privySignTransaction]
   );
 
+  const sendAllTransactions = useCallback(
+    async (
+      transactions: Transaction[],
+      options?: { skipPreflight?: boolean; maxRetries?: number }
+    ) => {
+      if (!solanaWallet || !publicKey) throw new Error("No Solana wallet connected");
+      if (transactions.length === 0) return [];
+
+      return withRpcFallback(async (readConnection) => {
+        const { blockhash } = await readConnection.getLatestBlockhash("finalized");
+        const inputs = transactions.map((transaction) => {
+          transaction.recentBlockhash = blockhash;
+          transaction.feePayer = publicKey;
+          const serialized = transaction.serialize({
+            requireAllSignatures: false,
+            verifySignatures: false,
+          });
+          return {
+            transaction: new Uint8Array(serialized),
+            wallet: solanaWallet,
+            options: {
+              skipPreflight: options?.skipPreflight ?? false,
+              maxRetries: options?.maxRetries ?? 3,
+            },
+          };
+        });
+
+        const outputs =
+          inputs.length === 1
+            ? [await privySignAndSendTransaction(inputs[0])]
+            : await privySignAndSendTransaction(...inputs);
+
+        return outputs.map((output) => bs58.encode(output.signature));
+      });
+    },
+    [solanaWallet, publicKey, privySignAndSendTransaction]
+  );
+
   const signMessage = useCallback(
     async (message: Uint8Array) => {
       if (!solanaWallet) throw new Error("No Solana wallet connected");
@@ -639,6 +685,7 @@ const WalletContextInner: FC<{
       disconnect,
       signTransaction,
       sendTransaction,
+      sendAllTransactions,
       signMessage,
       publicKey: effectivelyDisconnected ? null : publicKey,
       connectSolana,
@@ -663,6 +710,7 @@ const WalletContextInner: FC<{
       disconnect,
       signTransaction,
       sendTransaction,
+      sendAllTransactions,
       signMessage,
       publicKey,
       connectSolana,
@@ -699,6 +747,9 @@ const FALLBACK_WALLET_STATE: WalletContextState = {
     throw new Error("Wallet not configured");
   },
   sendTransaction: async () => {
+    throw new Error("Wallet not configured");
+  },
+  sendAllTransactions: async () => {
     throw new Error("Wallet not configured");
   },
   signMessage: async () => {

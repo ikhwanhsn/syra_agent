@@ -155,6 +155,97 @@ function mutateSignalGate(gate) {
 }
 
 /**
+ * Deterministic strategy variant for a lane (reproducible, not random per boot).
+ * @param {object} base
+ * @param {string} lane
+ */
+function mutateBtcStrategyForLane(base, lane) {
+  const laneKey = String(lane || "btc1");
+  const id = Number(base.id) || 0;
+  const laneBias = laneKey === "btc2" ? 1 : 0;
+
+  const parentGate =
+    base.signalGate && typeof base.signalGate === "object"
+      ? JSON.parse(JSON.stringify(base.signalGate))
+      : { all: [{ field: "clearSignal", op: "eq", value: "BUY" }], minPasses: 0 };
+
+  const shiftCond = (cond, idx) => {
+    if (!cond || typeof cond !== "object") return cond;
+    const field = String(cond.field || "");
+    const op = String(cond.op || "");
+    const val = cond.value;
+    if (typeof val !== "number" || !["gte", "lte", "gt", "lt"].includes(op)) return cond;
+    const sign = op.includes("gte") || op.includes("gt") ? 1 : -1;
+    const delta = sign * (2 + ((id + idx + laneBias * 3) % 4));
+    if (field === "rsi") {
+      cond.value = clamp(Math.round(val + delta), 20, 75);
+    } else if (field === "adxValue") {
+      cond.value = clamp(Math.round(val + delta), 15, 40);
+    } else if (field === "bbPositionPct" || field === "bbWidthPct") {
+      cond.value = clamp(Math.round((val + delta * 0.5) * 10) / 10, 2, 60);
+    } else if (field === "mfiValue") {
+      cond.value = clamp(Math.round(val + delta), 40, 70);
+    } else {
+      cond.value = Math.round((val + delta * 0.15) * 100) / 100;
+    }
+    return cond;
+  };
+
+  const signalGate = JSON.parse(JSON.stringify(parentGate));
+  if (Array.isArray(signalGate.all)) signalGate.all = signalGate.all.map(shiftCond);
+  if (Array.isArray(signalGate.any)) signalGate.any = signalGate.any.map(shiftCond);
+  if (Number.isFinite(Number(signalGate.minPasses))) {
+    signalGate.minPasses = clamp(
+      Math.round(Number(signalGate.minPasses) + (laneKey === "btc2" ? 1 : 0)),
+      0,
+      3,
+    );
+  }
+
+  const parentExit = base.exit && typeof base.exit === "object" ? base.exit : {};
+  const exit = {
+    tpFromSignal: parentExit.tpFromSignal !== false,
+    slFromSignal: parentExit.slFromSignal !== false,
+    maxBars: clamp(Math.round(toNum(parentExit.maxBars, 48) + (laneKey === "btc2" ? 4 : 0)), 12, 96),
+    trailingTriggerPct:
+      Math.round((toNum(parentExit.trailingTriggerPct, 2) + (laneKey === "btc2" ? 0.3 : 0)) * 10) / 10,
+  };
+
+  return {
+    lane: laneKey,
+    strategyId: id,
+    name: laneKey === "btc2" ? `${base.name} (desk)` : base.name,
+    signalGate,
+    exit,
+    notes:
+      typeof base.notes === "string"
+        ? `${base.notes} · ${laneKey} lane variant`
+        : `${laneKey} lane variant`,
+  };
+}
+
+/**
+ * Seed per-lane strategy overrides so parallel lanes do not mirror identical trades.
+ * @param {unknown} lane
+ */
+export async function ensureBtcQuantLaneStrategyVariants(lane = "btc2") {
+  const laneDef = getBtcQuantLaneDef(lane);
+  if (!laneDef.seedMutatedStrategies) return { lane: laneDef.lane, seeded: 0, skipped: "not_configured" };
+
+  const existing = await BtcQuantStrategyOverride.countDocuments({ lane: laneDef.lane });
+  if (existing > 0) return { lane: laneDef.lane, seeded: 0, skipped: "already_seeded" };
+
+  const { BTC_QUANT_STRATEGIES } = await import("../config/tradingExperimentStrategies.js");
+  let seeded = 0;
+  for (const base of BTC_QUANT_STRATEGIES) {
+    const variant = mutateBtcStrategyForLane(base, laneDef.lane);
+    await upsertBtcStrategyOverride(variant);
+    seeded += 1;
+  }
+  return { lane: laneDef.lane, seeded, skipped: null };
+}
+
+/**
  * @param {object} parent
  * @param {number} strategyId
  * @param {{ parentStrategyId?: number; parentWinRate?: number | null; parentPnlUsd?: number }} [meta]

@@ -365,6 +365,27 @@ The **`/erc8004`** path is an alias for the same 8004scan router used at `/8004s
 
 ---
 
+## TopLedger (Solana DeFi intelligence, optional)
+
+**TopLedger** provides real-time Solana DeFi portfolio analysis (lending, perps, LP, staking, yield, rewards) via MPP pay-per-call at `api.topledger.xyz/pay` ($0.0004/call upstream). Syra resells via x402 with a 20% margin and enriches **Grow** + wallet portfolio views.
+
+**Env (optional):**
+
+| Variable | Description |
+|----------|-------------|
+| `TOPLEDGER_API_BASE_URL` | Pay gateway base (default: `https://api.topledger.xyz/pay`) |
+| `TOPLEDGER_API_KEY` | Optional API key — skips MPP when set (Free/Pro plan) |
+| `TOPLEDGER_CACHE_TTL_MS` | Cache TTL for internal portfolio enrichment (default: `300000`) |
+| `TOPLEDGER_ENRICH_PORTFOLIO` | Set `false` to disable treasury-paid DeFi enrichment on `/grow/portfolio` and `/wallet/solana/portfolio` |
+
+**Public x402 routes:** `GET /topledger/wallet/analyze?wallet=...`, `/topledger/wallet/lending`, `/topledger/wallet/perps`, `/topledger/wallet/lp`, `/topledger/wallet/staking`, `/topledger/wallet/yield`, `/topledger/wallet/rewards`, `/topledger/wallet/dex-pnl`, `/topledger/wallet/holdings`.
+
+**Agent tools:** `topledger-analyze-wallet`, `topledger-holdings`, `topledger-lending`, `topledger-perps`, `topledger-lp`, `topledger-staking`, `topledger-yield`, `topledger-rewards`, `topledger-dex-pnl` via **POST /agent/tools/call** (param `wallet` or `address`).
+
+Treasury-paid enrichment requires **`AGENT_PRIVATE_KEY`** (or payer keypair) with USDC for MPP upstream calls.
+
+---
+
 ## SIWA (Sign-In With Agent, optional)
 
 **SIWA** lets ERC-8004 agents authenticate with services. Set **`RECEIPT_SECRET`** (min 32 chars) and **`SIWA_RPC_URL`** (or **`ETH_RPC_URL`**) in `api/.env`. Optional **`SIWA_DOMAIN`** (default `api.syraa.fun`). Requires **`@buildersgarden/siwa`** (already in dependencies). There are **no public** `/siwa/*` URLs on Syra — use agent tools **`siwa-nonce`** and **`siwa-verify`** via **POST /agent/tools/call**.

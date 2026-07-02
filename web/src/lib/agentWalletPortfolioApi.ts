@@ -12,12 +12,71 @@ export interface PortfolioTokenHolding {
   imageUrl?: string | null;
 }
 
+export interface DefiProtocolPosition {
+  protocol: string;
+  valueUsd?: number | null;
+  depositUsd?: number;
+  borrowUsd?: number;
+  netUsd?: number;
+  positions?: number;
+  sizeUsd?: number | null;
+  collateralUsd?: number | null;
+  pnlUsd?: number | null;
+  tokenSymbol?: string;
+  stakedValueUsd?: number | null;
+  pendingRewardsUsd?: number | null;
+}
+
+export interface WalletDefiPositions {
+  wallet: string;
+  netWorthUsd: number | null;
+  holdingsUsd: number | null;
+  lending: {
+    depositUsd: number;
+    borrowUsd: number;
+    netUsd: number;
+    protocols: DefiProtocolPosition[];
+  };
+  perps: {
+    positions: number;
+    sizeUsd: number | null;
+    collateralUsd: number | null;
+    pnlUsd: number | null;
+    protocols: DefiProtocolPosition[];
+  };
+  lp: {
+    positions: number;
+    valueUsd: number | null;
+    protocols: DefiProtocolPosition[];
+  };
+  staking: {
+    valueUsd: number | null;
+    protocols: DefiProtocolPosition[];
+  };
+  yield: {
+    valueUsd: number | null;
+    protocols: DefiProtocolPosition[];
+  };
+  rewards: {
+    pendingUsd: number | null;
+    protocols: DefiProtocolPosition[];
+  };
+  governance: {
+    valueUsd: number | null;
+    protocolCount: number;
+  };
+  activeProtocols: string[];
+  fetchedAt: string;
+  source: "topledger";
+}
+
 export interface AgentWalletPortfolio {
   address: string;
   solBalance: number;
   totalValueUsd: number | null;
   tokens: PortfolioTokenHolding[];
   fetchedAt: string;
+  defi?: WalletDefiPositions;
 }
 
 export interface MergedPortfolioHolding extends PortfolioTokenHolding {
@@ -80,6 +139,7 @@ export async function fetchAgentWalletPortfolio(address: string): Promise<AgentW
       data.totalValueUsd != null && Number.isFinite(data.totalValueUsd) ? data.totalValueUsd : null,
     tokens: data.tokens,
     fetchedAt: data.fetchedAt ?? new Date().toISOString(),
+    defi: data.defi,
   };
 }
 

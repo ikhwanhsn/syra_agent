@@ -20,7 +20,9 @@ import {
 import {
   sumPortfolioTokenValues,
   type MergedPortfolioHolding,
+  type WalletDefiPositions,
 } from "@/lib/agentWalletPortfolioApi";
+import { DefiPositionsPanel } from "@/components/wallet/DefiPositionsPanel";
 import { cn } from "@/lib/utils";
 import {
   walletHeroCard,
@@ -217,10 +219,13 @@ export function AgentPortfolioPanel({
     });
   }, [mergedTokens, hideDust]);
 
-  const totalValueUsd = useMemo(
-    () => sumPortfolioTokenValues(mergedTokens ?? []),
-    [mergedTokens],
-  );
+  const totalValueUsd = useMemo(() => {
+    const primaryDefi = portfolio.primaryDefi;
+    if (primaryDefi?.netWorthUsd != null && Number.isFinite(primaryDefi.netWorthUsd)) {
+      return primaryDefi.netWorthUsd;
+    }
+    return sumPortfolioTokenValues(mergedTokens ?? []);
+  }, [mergedTokens, portfolio.primaryDefi]);
 
   const showWalletPills = walletFilter === "all" && portfolio.allTargets.length > 1;
   const tokenCount = tokens.length;
@@ -270,6 +275,8 @@ export function AgentPortfolioPanel({
           </Button>
         </div>
       </section>
+
+      <DefiPositionsPanel defi={portfolio.primaryDefi} />
 
       <div className="flex items-center justify-between gap-3">
         <div

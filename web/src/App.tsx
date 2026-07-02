@@ -66,6 +66,7 @@ import InvestPage from "@/pages/InvestPage";
 import SpendPage from "@/pages/SpendPage";
 import TreasuryPage from "@/pages/TreasuryPage";
 import SwapPage from "@/pages/SwapPage";
+import MultiWalletPage from "@/pages/MultiWalletPage";
 import { RedirectToS3Labs } from "@/components/marketing/RedirectToS3Labs";
 
 function DashboardLayoutRoute() {
@@ -126,6 +127,14 @@ function AppRoutes() {
 
           <Route element={<DashboardLayoutRoute />}>
             <Route path="/overview" element={<DashboardOverview />} />
+            <Route
+              path="/multiwallet"
+              element={
+                <AdminDashboardGate featureLabel="Multiwallet">
+                  <MultiWalletPage />
+                </AdminDashboardGate>
+              }
+            />
             <Route
               path="/earn"
               element={

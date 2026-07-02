@@ -29,14 +29,14 @@ export function MobileToc({ items, activeId }: MobileTocProps) {
         <Button
           variant="outline"
           size="sm"
-          className="xl:hidden fixed bottom-6 right-6 z-40 shadow-lg border-border/60 bg-card/95 backdrop-blur-sm gap-2 min-touch"
+          className="xl:hidden fixed bottom-6 right-6 z-40 shadow-lg border-border/60 bg-card/95 backdrop-blur-sm gap-2 min-touch safe-bottom safe-right"
           aria-label="On this page"
         >
           <ListTree className="h-4 w-4" />
           On this page
         </Button>
       </SheetTrigger>
-      <SheetContent side="bottom" className="max-h-[70dvh] rounded-t-xl">
+      <SheetContent side="bottom" className="max-h-[70dvh] rounded-t-xl safe-bottom">
         <SheetHeader>
           <SheetTitle className="text-left">On this page</SheetTitle>
         </SheetHeader>
