@@ -332,6 +332,8 @@ const CORS_OPTIONS_X402 = {
     "x-sf-nonce",
     "X-Sf-Signature",
     "x-sf-signature",
+    "X-Syra-Device-Id",
+    "x-syra-device-id",
   ],
 };
 const CORS_OPTIONS_REGULAR = {
@@ -397,6 +399,8 @@ const CORS_OPTIONS_REGULAR = {
     "x-sf-nonce",
     "X-Sf-Signature",
     "x-sf-signature",
+    "X-Syra-Device-Id",
+    "x-syra-device-id",
   ],
 };
 
