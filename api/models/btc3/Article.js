@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { ttlExpireSeconds } from "../../utils/mongoTtl.js";
 
 const articleSchema = new mongoose.Schema(
   {
@@ -27,6 +28,10 @@ const articleSchema = new mongoose.Schema(
 
 articleSchema.index({ providerId: 1, externalId: 1 }, { unique: true });
 articleSchema.index({ title: "text", summary: "text" });
+articleSchema.index(
+  { createdAt: 1 },
+  { expireAfterSeconds: ttlExpireSeconds("BTC3_ARTICLE_TTL_DAYS", 60) },
+);
 
 const Btc3Article =
   mongoose.models.Btc3Article || mongoose.model("Btc3Article", articleSchema);

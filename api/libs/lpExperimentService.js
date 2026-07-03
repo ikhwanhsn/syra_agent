@@ -1121,7 +1121,14 @@ export async function resolveOpenLpRuns() {
     return { resolved: 0, openChecked: 0, errors: [], rows: [] };
   }
   const openQuery = { status: "open", experimentId };
-  const openRuns = await LpExperimentRun.find(openQuery).sort({ createdAt: 1 }).lean();
+  const openRuns = await LpExperimentRun.find(openQuery)
+    .select(
+      "_id experimentId strategyId poolAddress entryPriceUsd activeBinAtOpen binsBelow binsAbove " +
+        "depositSol depositUsd tvlUsd volume24hUsd feeTvlRatio simOpenFeeSol simPnlPct simNetPnlSol " +
+        "simFeesEarnedSol simPriceDriftPct lastEvaluatedAt openedAt createdAt screeningSnapshot",
+    )
+    .sort({ createdAt: 1 })
+    .lean();
   const resolvedRows = [];
   const errors = [];
   /** @type {import('mongoose').AnyBulkWriteOperation[]} */

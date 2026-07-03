@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { ttlExpireSeconds } from '../../utils/mongoTtl.js';
 
 /** One row per wallet scan — tracks call price/mcap for gain flex cards. */
 const pumpfunScanRecordSchema = new mongoose.Schema(
@@ -28,6 +29,10 @@ pumpfunScanRecordSchema.index({ callerWallet: 1, scannedAt: -1 });
 pumpfunScanRecordSchema.index({ callerWallet: 1, mint: 1 });
 pumpfunScanRecordSchema.index({ peakGainMultiplier: -1 });
 pumpfunScanRecordSchema.index({ gainMultiplier: -1 });
+pumpfunScanRecordSchema.index(
+  { createdAt: 1 },
+  { expireAfterSeconds: ttlExpireSeconds('PUMPFUN_SCAN_TTL_DAYS', 60) },
+);
 
 const PumpfunScanRecord = mongoose.model('PumpfunScanRecord', pumpfunScanRecordSchema);
 export default PumpfunScanRecord;

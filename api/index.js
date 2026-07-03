@@ -1610,7 +1610,10 @@ app.listen(PORT, () => {
     );
 
   const LP_AGENT_SIGNAL_INTERVAL_MS = 120_000;
-  const LP_AGENT_RESOLVE_INTERVAL_MS = 15_000;
+  const LP_AGENT_RESOLVE_INTERVAL_MS = (() => {
+    const raw = Number(process.env.LP_EXPERIMENT_RESOLVE_MS);
+    return Number.isFinite(raw) && raw >= 5_000 ? Math.floor(raw) : 60_000;
+  })();
 
   const runLpSignal = runIfMongoConnected(
     withSingleFlight(() =>

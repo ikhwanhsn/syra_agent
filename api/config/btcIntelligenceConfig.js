@@ -114,7 +114,7 @@ export function getBtcIntelligenceRefreshIntervals() {
     Number.isFinite(newsRaw) && newsRaw >= 60_000 ? newsRaw : 900_000;
 
   const tickRaw = Number(process.env.BTC_INTELLIGENCE_TICK_MS);
-  const tickMs = Number.isFinite(tickRaw) && tickRaw >= 5_000 ? tickRaw : 15_000;
+  const tickMs = Number.isFinite(tickRaw) && tickRaw >= 5_000 ? tickRaw : 60_000;
 
   const startupRaw = Number(process.env.BTC_INTELLIGENCE_BOOT_DELAY_MS);
   const startupDelayMs =

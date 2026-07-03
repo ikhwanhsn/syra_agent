@@ -39,6 +39,10 @@ const lastRunAt = {
 
 let bubblemapPresetIndex = 0;
 
+/** In-memory cache of last dashboard payload — avoids Mongo read on every dashboard tick. */
+/** @type {Record<string, unknown> | null} */
+let cachedDashboardPayload = null;
+
 function isSchedulerEnabled() {
   const raw = String(process.env.BTC_INTELLIGENCE_CRON_ENABLED ?? "true").trim().toLowerCase();
   return raw !== "0" && raw !== "false" && raw !== "off";
@@ -74,7 +78,8 @@ async function refreshDashboardCore() {
     skipNews: true,
     skipSentiment: true,
   });
-  const existing = await readBtcSnapshotPayload(BTC_SNAPSHOT_KEYS.dashboard);
+  const existing =
+    cachedDashboardPayload ?? (await readBtcSnapshotPayload(BTC_SNAPSHOT_KEYS.dashboard));
   const merged = {
     ...partial,
     sections: {
@@ -86,29 +91,31 @@ async function refreshDashboardCore() {
   await writeBtcSnapshot(BTC_SNAPSHOT_KEYS.dashboard, merged, {
     refreshDurationMs: Date.now() - started,
   });
+  cachedDashboardPayload = merged;
   return BTC_SNAPSHOT_KEYS.dashboard;
 }
 
 async function refreshNewsSentiment() {
   const started = Date.now();
   const slow = await computeBtcDashboardNewsSentiment();
-  const existing = await readBtcSnapshotPayload(BTC_SNAPSHOT_KEYS.dashboard);
+  const existing =
+    cachedDashboardPayload ?? (await readBtcSnapshotPayload(BTC_SNAPSHOT_KEYS.dashboard));
   if (!existing?.sections) {
     return null;
   }
-  await writeBtcSnapshot(
-    BTC_SNAPSHOT_KEYS.dashboard,
-    {
-      ...existing,
-      sections: {
-        ...existing.sections,
-        news: slow.news ?? existing.sections.news,
-        sentiment: slow.sentiment ?? existing.sections.sentiment,
-      },
-      computedAt: new Date().toISOString(),
+  const updated = {
+    ...existing,
+    sections: {
+      ...existing.sections,
+      news: slow.news ?? existing.sections.news,
+      sentiment: slow.sentiment ?? existing.sections.sentiment,
     },
-    { refreshDurationMs: Date.now() - started },
-  );
+    computedAt: new Date().toISOString(),
+  };
+  await writeBtcSnapshot(BTC_SNAPSHOT_KEYS.dashboard, updated, {
+    refreshDurationMs: Date.now() - started,
+  });
+  cachedDashboardPayload = updated;
   return `${BTC_SNAPSHOT_KEYS.dashboard}:news-sentiment`;
 }
 

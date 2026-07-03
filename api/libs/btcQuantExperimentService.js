@@ -638,7 +638,9 @@ export async function resolveOpenBtcQuantRuns(lane = "btc1") {
   const openRuns = await TradingExperimentRun.find({
     ...experimentFilter(experimentId, laneDef.lane),
     status: "open",
-  }).lean();
+  })
+    .select("_id agentId entry stopLoss firstTarget notionalUsd anchorCloseMs")
+    .lean();
 
   const px = await fetchBtcSpotPrice();
   if (!(px > 0)) {

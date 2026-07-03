@@ -482,7 +482,9 @@ export async function resolveOpenStocksRuns() {
   const state = await StocksExperimentState.findById("singleton");
   const experimentId = state.activeExperimentId;
 
-  const openRuns = await StocksExperimentRun.find({ experimentId, status: "open" }).lean();
+  const openRuns = await StocksExperimentRun.find({ experimentId, status: "open" })
+    .select("_id strategyId mint nasdaqTicker entryPriceUsd notionalUsd openedAt")
+    .lean();
   if (openRuns.length === 0) {
     return { experimentId, resolved: 0, stillOpen: 0, errors: [] };
   }

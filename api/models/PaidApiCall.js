@@ -3,6 +3,7 @@
  * Used for grant metrics: total paid API calls, paid calls over time.
  */
 import mongoose from 'mongoose';
+import { ttlExpireSeconds } from '../utils/mongoTtl.js';
 
 const paidApiCallSchema = new mongoose.Schema(
   {
@@ -16,9 +17,12 @@ const paidApiCallSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-paidApiCallSchema.index({ createdAt: 1 });
 paidApiCallSchema.index({ path: 1, createdAt: 1 });
 paidApiCallSchema.index({ network: 1, createdAt: 1 });
+paidApiCallSchema.index(
+  { createdAt: 1 },
+  { expireAfterSeconds: ttlExpireSeconds('PAID_API_CALL_TTL_DAYS', 90) },
+);
 
 const PaidApiCall = mongoose.model('PaidApiCall', paidApiCallSchema);
 export default PaidApiCall;
