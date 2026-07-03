@@ -13,6 +13,11 @@ import { useTokenSnipers } from "@/hooks/usePumpfunTools";
 import { formatCompactUsd } from "@/lib/dashboardOverviewAggregates";
 import { cn } from "@/lib/utils";
 
+function walletTypeLabel(label: string | null): string | null {
+  if (!label) return null;
+  return label.replace(/_/g, " ");
+}
+
 function truncateWallet(wallet: string): string {
   if (wallet.length <= 12) return wallet;
   return `${wallet.slice(0, 4)}…${wallet.slice(-4)}`;
@@ -62,9 +67,14 @@ export function PumpfunSnipersPanel({ mint, enabled = true, className }: Pumpfun
             <Badge variant="outline" className={cn(toneClass(snipersQ.data.summary.tone))}>
               {snipersQ.data.summary.verdict}
             </Badge>
+            {snipersQ.data.summary.sniperSupplyPct != null ? (
+              <Badge variant="secondary" className="font-mono tabular-nums">
+                {snipersQ.data.summary.sniperSupplyPct.toFixed(2)}% sniper supply
+              </Badge>
+            ) : null}
             {snipersQ.data.summary.bundleSupplyPct != null ? (
               <Badge variant="secondary" className="font-mono tabular-nums">
-                {snipersQ.data.summary.bundleSupplyPct.toFixed(1)}% sniper supply
+                {snipersQ.data.summary.bundleSupplyPct.toFixed(2)}% bundler supply
               </Badge>
             ) : null}
           </div>
@@ -105,6 +115,11 @@ export function PumpfunSnipersPanel({ mint, enabled = true, className }: Pumpfun
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <span className="font-mono text-xs">{truncateWallet(row.wallet)}</span>
+                          {row.label ? (
+                            <Badge variant="outline" className="text-[9px] capitalize">
+                              {walletTypeLabel(row.label)}
+                            </Badge>
+                          ) : null}
                           {row.isFirstBlock ? (
                             <Badge variant="outline" className="text-[9px] border-amber-500/30">
                               1st block
@@ -113,7 +128,7 @@ export function PumpfunSnipersPanel({ mint, enabled = true, className }: Pumpfun
                         </div>
                       </TableCell>
                       <TableCell className="text-right font-mono tabular-nums text-xs">
-                        {row.holdingPct != null ? `${row.holdingPct.toFixed(1)}%` : "—"}
+                        {row.holdingPct != null ? `${row.holdingPct.toFixed(2)}%` : "—"}
                       </TableCell>
                       <TableCell className="text-right font-mono tabular-nums text-xs">
                         {formatCompactUsd(row.boughtUsd) || "—"}

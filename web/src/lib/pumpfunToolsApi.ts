@@ -18,10 +18,15 @@ export type TokenDevInfoPayload = {
   devWallet: string | null;
   devHoldingPct: number | null;
   devSoldPct: number | null;
+  fundingAddress?: string | null;
+  devBalance?: number | null;
+  lastFundedAt?: string | null;
   similarTokens: TokenDevSimilarToken[];
   summary: {
     tokensLaunched: number;
     rugHistoryCount: number;
+    migratedCount?: number | null;
+    goldenGemCount?: number | null;
     devStillHolding: boolean | null;
     devFullySold: boolean | null;
   };
@@ -36,6 +41,7 @@ export type TokenSniperRow = {
   holdingPct: number | null;
   boughtUsd: number | null;
   soldPct: number | null;
+  pnlPct?: number | null;
   blockIndex: number | null;
   isFirstBlock: boolean;
   label: string | null;
@@ -51,10 +57,13 @@ export type TokenSnipersPayload = {
     sniperSupplyPct: number | null;
     stillHolding: number;
     fullySold: number;
+    bundledValueNative?: number | null;
+    totalHolders?: number | null;
     verdict: string;
     tone: "danger" | "warning" | "neutral" | string;
   };
   source: string;
+  errors?: string[];
   fetchedAt: string;
 };
 
@@ -67,6 +76,7 @@ export type TokenTradeRow = {
   wallet: string | null;
   at: string | null;
   txHash: string | null;
+  dexName?: string | null;
 };
 
 export type TokenTradesPayload = {

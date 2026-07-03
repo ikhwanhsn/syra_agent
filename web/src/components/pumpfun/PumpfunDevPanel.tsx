@@ -74,15 +74,19 @@ export function PumpfunDevPanel({ mint, enabled = true, className }: PumpfunDevP
               {
                 label: "Dev holding",
                 value:
-                  devQ.data.devHoldingPct != null ? `${devQ.data.devHoldingPct.toFixed(1)}%` : "—",
+                  devQ.data.devHoldingPct != null ? `${devQ.data.devHoldingPct.toFixed(2)}%` : "—",
               },
               {
                 label: "Dev sold",
-                value: devQ.data.devSoldPct != null ? `${devQ.data.devSoldPct.toFixed(1)}%` : "—",
+                value: devQ.data.devSoldPct != null ? `${devQ.data.devSoldPct.toFixed(2)}%` : "—",
               },
               {
                 label: "Tokens launched",
                 value: String(devQ.data.summary.tokensLaunched),
+              },
+              {
+                label: "Rug pulls",
+                value: String(devQ.data.summary.rugHistoryCount),
               },
             ].map((row) => (
               <div
@@ -107,14 +111,25 @@ export function PumpfunDevPanel({ mint, enabled = true, className }: PumpfunDevP
             ) : null}
             {devQ.data.summary.rugHistoryCount > 0 ? (
               <Badge variant="outline" className="border-red-500/30 text-red-600 dark:text-red-400">
-                {devQ.data.summary.rugHistoryCount} low-mcap prior launch
-                {devQ.data.summary.rugHistoryCount !== 1 ? "es" : ""}
+                {devQ.data.summary.rugHistoryCount} rug pull
+                {devQ.data.summary.rugHistoryCount !== 1 ? "s" : ""} on record
               </Badge>
             ) : (
               <Badge variant="outline" className="border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
-                No obvious rug history
+                No rug pulls on record
               </Badge>
             )}
+            {devQ.data.summary.migratedCount != null ? (
+              <Badge variant="secondary">
+                {devQ.data.summary.migratedCount} migrated
+              </Badge>
+            ) : null}
+            {devQ.data.summary.goldenGemCount != null && devQ.data.summary.goldenGemCount > 0 ? (
+              <Badge variant="secondary">
+                {devQ.data.summary.goldenGemCount} golden gem
+                {devQ.data.summary.goldenGemCount !== 1 ? "s" : ""}
+              </Badge>
+            ) : null}
             <Badge variant="secondary">Source: {devQ.data.source}</Badge>
           </div>
 

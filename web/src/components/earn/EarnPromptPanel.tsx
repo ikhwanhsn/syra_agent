@@ -1,11 +1,13 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { EarnPanelHeader } from "@/components/earn/EarnPanelHeader";
+import { EarnPanelListSkeleton } from "@/components/earn/EarnSkeleton";
 import { PromptCard } from "@/components/earn/PromptCard";
 import { PromptForm } from "@/components/earn/PromptForm";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 import { Button } from "@/components/ui/button";
+import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import { userPromptsApi, type UserPromptItem } from "@/lib/chatApi";
 import { cn } from "@/lib/utils";
 
@@ -53,6 +55,7 @@ export function EarnPromptPanel({
   };
 
   const authPending = connected && syraAuthReady && !syraAuthenticated;
+  const showSkeleton = useMinimumSkeleton(promptsQ.isLoading);
 
   return (
     <section className="space-y-4">
@@ -77,8 +80,8 @@ export function EarnPromptPanel({
             Sign in
           </Button>
         </div>
-      ) : promptsQ.isLoading ? (
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      ) : showSkeleton ? (
+        <EarnPanelListSkeleton rows={3} />
       ) : promptsQ.data?.length === 0 ? (
         <p className={cn(overviewCardShell, "p-4 text-sm text-muted-foreground")}>
           No playbooks yet. Share a trading or research strategy to earn when agents use it.

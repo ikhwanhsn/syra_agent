@@ -25,6 +25,7 @@
     "validate:mpp": "node ../scripts/validate-mpp-coverage.mjs",
     "openapi:playground": "npm run openapi && npm run sync:playground",
     "migrate-agent-wallet-secrets": "node -r dotenv/config scripts/migrate-agent-wallet-secrets.js",
+    "recover-multiwallet": "node -r dotenv/config scripts/recoverMultiwalletFunds.js",
     "test-paysh": "node -r dotenv/config scripts/testPayshFlows.js",
     "test-stablesocial": "node -r dotenv/config scripts/testStablesocialFlow.js",
     "test-stableenrich": "node -r dotenv/config scripts/testStableenrichFlow.js",

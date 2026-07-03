@@ -147,7 +147,20 @@ export function PumpfunTradeTapePanel({ mint, enabled = true, className }: Pumpf
                       <TableCell className="text-right font-mono tabular-nums text-xs">
                         {formatCompactUsd(trade.amountUsd) || "—"}
                       </TableCell>
-                      <TableCell className="font-mono text-xs">{truncateWallet(trade.wallet)}</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {trade.txHash ? (
+                          <a
+                            href={`https://solscan.io/tx/${trade.txHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline"
+                          >
+                            {truncateWallet(trade.wallet)}
+                          </a>
+                        ) : (
+                          truncateWallet(trade.wallet)
+                        )}
+                      </TableCell>
                       <TableCell className="text-right text-xs text-muted-foreground">
                         {trade.at ? formatRelativeTime(trade.at) : "—"}
                       </TableCell>

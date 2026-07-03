@@ -3,9 +3,11 @@ import { ExternalLink, Loader2, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import { EarnPanelHeader } from "@/components/earn/EarnPanelHeader";
+import { EarnPanelListSkeleton } from "@/components/earn/EarnSkeleton";
 import { EarnTokenForm } from "@/components/earn/EarnTokenForm";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 import { Button } from "@/components/ui/button";
+import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import { usePillarAgentWallets } from "@/hooks/usePillarAgentWallets";
 import { useSyraAuth } from "@/contexts/SyraAuthContext";
 import {
@@ -109,6 +111,7 @@ export function EarnTokenPanel({
 
   const authPending = connected && syraAuthReady && !syraAuthenticated;
   const launches = launchesQ.data?.launches ?? [];
+  const showSkeleton = useMinimumSkeleton(launchesQ.isLoading);
 
   return (
     <section className="space-y-4">
@@ -161,8 +164,8 @@ export function EarnTokenPanel({
         </div>
       ) : null}
 
-      {!syraAuthenticated ? null : launchesQ.isLoading ? (
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      {!syraAuthenticated ? null : showSkeleton ? (
+        <EarnPanelListSkeleton rows={3} />
       ) : launches.length === 0 ? (
         <p className={cn(overviewCardShell, "p-4 text-sm text-muted-foreground")}>
           No tokens yet. Launch one on pump.fun to earn creator fees from trading volume.

@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { ExternalLink, Loader2 } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { EarnPanelHeader } from "@/components/earn/EarnPanelHeader";
+import { EarnPanelListSkeleton } from "@/components/earn/EarnSkeleton";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 import { Button } from "@/components/ui/button";
+import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import {
   fetchCampaigns,
   fetchWalletEarnings,
@@ -54,6 +56,7 @@ export function EarnKolPanel({ walletAddress, connected }: EarnKolPanelProps) {
   });
 
   const campaigns = (campaignsQ.data?.campaigns ?? []).slice(0, 5);
+  const showSkeleton = useMinimumSkeleton(campaignsQ.isLoading);
 
   return (
     <section className="space-y-4">
@@ -86,8 +89,8 @@ export function EarnKolPanel({ walletAddress, connected }: EarnKolPanelProps) {
         </div>
       ) : null}
 
-      {campaignsQ.isLoading ? (
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      {showSkeleton ? (
+        <EarnPanelListSkeleton rows={4} />
       ) : campaigns.length === 0 ? (
         <p className={cn(overviewCardShell, "p-4 text-sm text-muted-foreground")}>
           No active campaigns. Check the marketplace for new ones.

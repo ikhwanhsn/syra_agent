@@ -1,10 +1,17 @@
 /**
  * Dev/creator wallet intelligence for pump.fun tokens.
- * Primary: OKX memepump tokenDevInfo + similarToken. Fallback/enrich: GMGN security + created-tokens.
+ * OKX sources:
+ * - memepump/tokenDevInfo — devHoldingInfo + devLaunchedInfo (nested)
+ * - memepump/similarToken — same-creator token list
+ * - memepump/tokenDetails — creatorAddress + tags.devHoldingsPercent
+ * - market/token/advanced-info — dev counts, rug pulls, token tags
+ * Fallback/enrich: GMGN security + created-tokens.
  */
 import {
-  getDexMemepumpTokenDevInfo,
   getDexMemepumpSimilarTokens,
+  getDexMemepumpTokenDetails,
+  getDexMemepumpTokenDevInfo,
+  getDexTokenAdvancedInfo,
   hasOkxDexCredentials,
 } from './okxDexMarket.js';
 import { runGmgnAgentTool } from './gmgnAgentService.js';
@@ -16,6 +23,7 @@ const cache = new Map();
 
 /** @param {unknown} v */
 function toNum(v) {
+  if (v == null || v === '') return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 }
@@ -44,50 +52,109 @@ function unwrapOkxData(root) {
 }
 
 /** @param {unknown} root */
-function extractDevWallet(root) {
-  const data = unwrapOkxData(root);
-  if (!data) return null;
-  const candidates = [
+function asRecord(root) {
+  if (!root || typeof root !== 'object') return null;
+  return /** @type {Record<string, unknown>} */ (root);
+}
+
+/** @param {unknown} devRoot */
+function extractOkxDevInfo(devRoot) {
+  const data = unwrapOkxData(devRoot);
+  if (!data) return {};
+
+  const holding = asRecord(data.devHoldingInfo) ?? data;
+  const launched = asRecord(data.devLaunchedInfo) ?? data;
+
+  const devWallet = [
+    holding.devAddress,
+    holding.devWallet,
     data.devAddress,
-    data.devWallet,
     data.creatorAddress,
     data.creator,
     data.deployerAddress,
-    data.deployer,
-    data.ownerAddress,
-    data.owner,
-    data.walletAddress,
-  ];
-  for (const c of candidates) {
-    const s = typeof c === 'string' ? c.trim() : '';
-    if (s.length >= 32) return s;
-  }
-  return null;
-}
+  ]
+    .map((v) => (typeof v === 'string' ? v.trim() : ''))
+    .find((v) => v.length >= 32);
 
-/** @param {unknown} root */
-function extractDevHoldingPct(root) {
-  const data = unwrapOkxData(root);
-  if (!data) return null;
-  return (
-    toNum(data.devHoldRate) ??
-    toNum(data.devHoldRatio) ??
-    toNum(data.devHoldingPct) ??
-    toNum(data.devHoldingRate) ??
-    toNum(data.creatorHoldRate)
-  );
-}
+  const devHoldingPct =
+    toNum(holding.devHoldingPercent) ??
+    toNum(holding.devHoldRate) ??
+    toNum(holding.devHoldRatio) ??
+    toNum(holding.devHoldingPct) ??
+    toNum(data.devHoldingPercent);
 
-/** @param {unknown} root */
-function extractDevSoldPct(root) {
-  const data = unwrapOkxData(root);
-  if (!data) return null;
-  return (
+  const devSoldPct =
+    toNum(holding.devSoldRate) ??
+    toNum(holding.devSellRate) ??
     toNum(data.devSoldRate) ??
-    toNum(data.devSellRate) ??
-    toNum(data.creatorSoldRate) ??
-    toNum(data.soldRate)
-  );
+    (devHoldingPct != null ? Math.max(0, 100 - devHoldingPct) : null);
+
+  return {
+    devWallet: devWallet ?? null,
+    devHoldingPct,
+    devSoldPct,
+    fundingAddress:
+      typeof holding.fundingAddress === 'string' ? holding.fundingAddress.trim() || null : null,
+    devBalance: toNum(holding.devBalance ?? data.devBalance),
+    lastFundedAt:
+      typeof holding.lastFundedTimestamp === 'string'
+        ? holding.lastFundedTimestamp
+        : typeof data.lastFundedTimestamp === 'string'
+          ? data.lastFundedTimestamp
+          : null,
+    tokensLaunched:
+      toNum(launched.totalToken) ??
+      toNum(launched.totalTokens) ??
+      toNum(data.totalToken),
+    rugPullCount:
+      toNum(launched.rugPullCount) ??
+      toNum(launched.rugCount) ??
+      toNum(data.rugPullCount),
+    migratedCount: toNum(launched.migratedCount ?? data.migratedCount),
+    goldenGemCount: toNum(launched.goldenGemCount ?? data.goldenGemCount),
+  };
+}
+
+/** @param {unknown} detailsRoot */
+function extractDetailsDevInfo(detailsRoot) {
+  const data = unwrapOkxData(detailsRoot);
+  if (!data) return {};
+
+  const tags =
+    data.tags && typeof data.tags === 'object'
+      ? /** @type {Record<string, unknown>} */ (data.tags)
+      : null;
+
+  const creatorAddress =
+    typeof data.creatorAddress === 'string' ? data.creatorAddress.trim() : '';
+
+  return {
+    devWallet: creatorAddress.length >= 32 ? creatorAddress : null,
+    devHoldingPct: toNum(tags?.devHoldingsPercent ?? tags?.devHoldingPercent),
+  };
+}
+
+/** @param {unknown} advancedRoot */
+function extractAdvancedDevInfo(advancedRoot) {
+  const data = unwrapOkxData(advancedRoot);
+  if (!data) return {};
+
+  const creatorAddress =
+    typeof data.creatorAddress === 'string' ? data.creatorAddress.trim() : '';
+
+  const tokenTags = Array.isArray(data.tokenTags)
+    ? data.tokenTags.map((t) => String(t))
+    : [];
+
+  return {
+    devWallet: creatorAddress.length >= 32 ? creatorAddress : null,
+    devHoldingPct: toNum(data.devHoldingPercent ?? data.devHoldPercent),
+    tokensLaunched:
+      toNum(data.devLaunchedTokenCount) ??
+      toNum(data.devCreateTokenCount),
+    rugPullCount: toNum(data.devRugPullTokenCount),
+    devFullySold: tokenTags.includes('devHoldingStatusSellAll'),
+  };
 }
 
 /** @param {unknown} root */
@@ -116,13 +183,39 @@ function normalizeSimilarToken(row) {
           ? o.address.trim()
           : '';
   if (!mint) return null;
+
+  const market = asRecord(o.market);
+  const marketCapUsd =
+    toNum(o.marketCapUsd) ??
+    toNum(o.marketCap) ??
+    toNum(market?.marketCapUsd) ??
+    toNum(o.mcap) ??
+    toNum(o.fdv);
+
+  const createdAt =
+    typeof o.createdTimestamp === 'string'
+      ? o.createdTimestamp
+      : typeof o.createTime === 'string'
+        ? o.createTime
+        : typeof o.createdAt === 'string'
+          ? o.createdAt
+          : null;
+
   return {
     mint,
-    symbol: String(o.symbol ?? o.ticker ?? '').trim() || mint.slice(0, 4).toUpperCase(),
-    name: String(o.name ?? o.tokenName ?? '').trim() || null,
-    imageUri: typeof o.imageUrl === 'string' ? o.imageUrl : typeof o.logo === 'string' ? o.logo : null,
-    marketCapUsd: toNum(o.marketCap ?? o.marketCapUsd ?? o.mcap ?? o.fdv),
-    createdAt: typeof o.createTime === 'string' ? o.createTime : typeof o.createdAt === 'string' ? o.createdAt : null,
+    symbol:
+      String(o.tokenSymbol ?? o.symbol ?? o.ticker ?? '').trim() || mint.slice(0, 4).toUpperCase(),
+    name: String(o.tokenName ?? o.name ?? '').trim() || null,
+    imageUri:
+      typeof o.tokenLogo === 'string'
+        ? o.tokenLogo
+        : typeof o.logoUrl === 'string'
+          ? o.logoUrl
+          : typeof o.logo === 'string'
+            ? o.logo
+            : null,
+    marketCapUsd,
+    createdAt,
     complete: o.complete != null ? Boolean(o.complete) : o.migrated != null ? Boolean(o.migrated) : null,
     status: String(o.status ?? o.stage ?? '').trim() || null,
   };
@@ -190,66 +283,79 @@ export async function buildTokenDevInfo({ mint }) {
 
   /** @type {string[]} */
   const errors = [];
-  let devWallet = null;
-  let devHoldingPct = null;
-  let devSoldPct = null;
+  let source = 'none';
+
   /** @type {ReturnType<typeof normalizeSimilarToken>[]} */
   let similarTokens = [];
   /** @type {ReturnType<typeof extractCreatedTokens>} */
   let createdTokens = [];
-  let source = 'none';
 
-  const tasks = [];
+  const okxTasks = hasOkxDexCredentials()
+    ? [
+        getDexMemepumpTokenDevInfo(trimmed, 'solana')
+          .then((out) => ({ kind: 'okxDev', result: out.result }))
+          .catch((err) => {
+            errors.push(`okx_dev: ${err instanceof Error ? err.message : 'failed'}`);
+            return { kind: 'okxDev', result: null };
+          }),
+        getDexMemepumpSimilarTokens(trimmed, 'solana')
+          .then((out) => ({ kind: 'okxSimilar', result: out.result }))
+          .catch((err) => {
+            errors.push(`okx_similar: ${err instanceof Error ? err.message : 'failed'}`);
+            return { kind: 'okxSimilar', result: null };
+          }),
+        getDexMemepumpTokenDetails(trimmed, 'solana')
+          .then((out) => ({ kind: 'okxDetails', result: out.result }))
+          .catch((err) => {
+            errors.push(`okx_details: ${err instanceof Error ? err.message : 'failed'}`);
+            return { kind: 'okxDetails', result: null };
+          }),
+        getDexTokenAdvancedInfo(trimmed, 'solana')
+          .then((out) => ({ kind: 'okxAdvanced', result: out.result }))
+          .catch((err) => {
+            errors.push(`okx_advanced: ${err instanceof Error ? err.message : 'failed'}`);
+            return { kind: 'okxAdvanced', result: null };
+          }),
+      ]
+    : (errors.push('okx_credentials_missing'), []);
 
-  if (hasOkxDexCredentials()) {
-    tasks.push(
-      getDexMemepumpTokenDevInfo(trimmed, 'solana')
-        .then((out) => ({ kind: 'okxDev', result: out.result }))
-        .catch((err) => {
-          errors.push(`okx_dev: ${err instanceof Error ? err.message : 'failed'}`);
-          return { kind: 'okxDev', result: null };
-        }),
-      getDexMemepumpSimilarTokens(trimmed, 'solana')
-        .then((out) => ({ kind: 'okxSimilar', result: out.result }))
-        .catch((err) => {
-          errors.push(`okx_similar: ${err instanceof Error ? err.message : 'failed'}`);
-          return { kind: 'okxSimilar', result: null };
-        }),
-    );
-  } else {
-    errors.push('okx_credentials_missing');
-  }
+  const [okxSettled, gmgnSecurity] = await Promise.all([
+    Promise.all(okxTasks),
+    runGmgnAgentTool('gmgn-token-security', { chain: 'sol', address: trimmed }).catch((err) => {
+      errors.push(`gmgn_security: ${err instanceof Error ? err.message : 'failed'}`);
+      return { ok: false };
+    }),
+  ]);
 
-  tasks.push(
-    runGmgnAgentTool('gmgn-token-security', { chain: 'sol', address: trimmed })
-      .then((out) => ({ kind: 'gmgnSecurity', result: out }))
-      .catch((err) => {
-        errors.push(`gmgn_security: ${err instanceof Error ? err.message : 'failed'}`);
-        return { kind: 'gmgnSecurity', result: { ok: false } };
-      }),
+  const okxDev = extractOkxDevInfo(
+    okxSettled.find((item) => item.kind === 'okxDev')?.result ?? null,
+  );
+  const detailsDev = extractDetailsDevInfo(
+    okxSettled.find((item) => item.kind === 'okxDetails')?.result ?? null,
+  );
+  const advancedDev = extractAdvancedDevInfo(
+    okxSettled.find((item) => item.kind === 'okxAdvanced')?.result ?? null,
   );
 
-  const settled = await Promise.all(tasks);
+  if (okxSettled.some((item) => item.result)) source = 'okx';
 
-  for (const item of settled) {
-    if (item.kind === 'okxDev' && item.result) {
-      devWallet = extractDevWallet(item.result) ?? devWallet;
-      devHoldingPct = extractDevHoldingPct(item.result) ?? devHoldingPct;
-      devSoldPct = extractDevSoldPct(item.result) ?? devSoldPct;
-      source = 'okx';
-    }
-    if (item.kind === 'okxSimilar' && item.result) {
-      similarTokens = extractSimilarTokens(item.result)
-        .map(normalizeSimilarToken)
-        .filter(Boolean);
-    }
-    if (item.kind === 'gmgnSecurity' && item.result?.ok) {
-      const deployer = extractGmgnDeployer(item.result.data);
-      if (!devWallet && deployer) {
-        devWallet = deployer;
-        if (source === 'none') source = 'gmgn';
-      }
-    }
+  const similarRaw = okxSettled.find((item) => item.kind === 'okxSimilar')?.result ?? null;
+  similarTokens = extractSimilarTokens(similarRaw).map(normalizeSimilarToken).filter(Boolean);
+
+  let devWallet =
+    okxDev.devWallet ?? detailsDev.devWallet ?? advancedDev.devWallet ?? null;
+
+  let devHoldingPct =
+    okxDev.devHoldingPct ?? detailsDev.devHoldingPct ?? advancedDev.devHoldingPct ?? null;
+
+  let devSoldPct = okxDev.devSoldPct ?? null;
+  if (devSoldPct == null && devHoldingPct != null) {
+    devSoldPct = Math.max(0, 100 - devHoldingPct);
+  }
+
+  if (!devWallet && gmgnSecurity.ok) {
+    devWallet = extractGmgnDeployer(gmgnSecurity.data);
+    if (devWallet && source === 'none') source = 'gmgn';
   }
 
   if (devWallet) {
@@ -270,21 +376,41 @@ export async function buildTokenDevInfo({ mint }) {
   }
 
   const mergedSimilar = similarTokens.length > 0 ? similarTokens : createdTokens;
-  const rugHistoryCount = mergedSimilar.filter(
-    (t) => t && t.marketCapUsd != null && t.marketCapUsd < 10_000,
-  ).length;
+
+  const tokensLaunched =
+    okxDev.tokensLaunched ??
+    advancedDev.tokensLaunched ??
+    (mergedSimilar.length > 0 ? mergedSimilar.length : 0);
+
+  const rugPullCount =
+    okxDev.rugPullCount ??
+    advancedDev.rugPullCount ??
+    mergedSimilar.filter((t) => t && t.marketCapUsd != null && t.marketCapUsd < 10_000).length;
+
+  const migratedCount = okxDev.migratedCount ?? null;
+  const goldenGemCount = okxDev.goldenGemCount ?? null;
+
+  const devStillHolding = devHoldingPct != null ? devHoldingPct > 1 : null;
+  const devFullySold =
+    advancedDev.devFullySold === true ||
+    (devHoldingPct != null ? devHoldingPct < 1 : devSoldPct != null ? devSoldPct >= 95 : false);
 
   const data = {
     mint: trimmed,
     devWallet,
     devHoldingPct,
     devSoldPct,
+    fundingAddress: okxDev.fundingAddress ?? null,
+    devBalance: okxDev.devBalance ?? null,
+    lastFundedAt: okxDev.lastFundedAt ?? null,
     similarTokens: mergedSimilar.filter((t) => t && t.mint !== trimmed).slice(0, 20),
     summary: {
-      tokensLaunched: mergedSimilar.length,
-      rugHistoryCount,
-      devStillHolding: devHoldingPct != null ? devHoldingPct > 1 : null,
-      devFullySold: devSoldPct != null ? devSoldPct >= 95 : devHoldingPct != null ? devHoldingPct < 1 : null,
+      tokensLaunched,
+      rugHistoryCount: rugPullCount,
+      migratedCount,
+      goldenGemCount,
+      devStillHolding,
+      devFullySold,
     },
     source,
     errors: errors.length > 0 ? errors : undefined,

@@ -5,7 +5,6 @@ import {
   FileSearch,
   FlaskConical,
   LayoutDashboard,
-  Radar,
   UsersRound,
   type LucideIcon,
 } from "lucide-react";
@@ -219,11 +218,6 @@ export function SidebarIconRail({
                 />
               ))}
               <SidebarDivider className="my-2 w-8" />
-              <SidebarIconNavLink
-                to="/alphatech"
-                icon={Radar}
-                label={`AlphaTech (${INTERNAL_TEAM_SIDEBAR_BADGE.label})`}
-              />
               <SidebarIconNavLink
                 to={INTERNAL_BASE_PATH}
                 icon={UsersRound}

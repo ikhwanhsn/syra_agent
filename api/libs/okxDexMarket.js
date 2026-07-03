@@ -542,6 +542,22 @@ export async function getDexMemepumpTokenBundleInfo(address, chain = "solana") {
 }
 
 /**
+ * GET token advanced info (sniper totals, holding %, bundle %).
+ * @param {string} address - token contract address
+ * @param {string} [chain] - default solana
+ */
+export async function getDexTokenAdvancedInfo(address, chain = "solana") {
+  const chainIndex = resolveChainIndex(chain);
+  const tokenContractAddress = normalizeTokenAddress(address, chainIndex);
+  if (!tokenContractAddress) throw new Error("token address is required");
+  const out = await okxDexRequest("GET", "/api/v6/dex/market/token/advanced-info", {
+    chainIndex,
+    tokenContractAddress,
+  });
+  return { result: out.data ?? null };
+}
+
+/**
  * GET memepump aped (co-invested) wallet list.
  * @param {string} address - token contract address
  * @param {string} [chain] - default solana

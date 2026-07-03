@@ -1,11 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { EarnPanelHeader } from "@/components/earn/EarnPanelHeader";
+import { EarnPanelListSkeleton } from "@/components/earn/EarnSkeleton";
 import { SkillCard } from "@/components/earn/SkillCard";
 import { SkillForm } from "@/components/earn/SkillForm";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 import { Button } from "@/components/ui/button";
+import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import { fetchMySkills } from "@/lib/skillsApi";
 import { cn } from "@/lib/utils";
 
@@ -47,6 +49,7 @@ export function EarnSkillsPanel({
   };
 
   const authPending = connected && syraAuthReady && !syraAuthenticated;
+  const showSkeleton = useMinimumSkeleton(skillsQ.isLoading);
 
   return (
     <section className="space-y-4">
@@ -75,8 +78,8 @@ export function EarnSkillsPanel({
             Sign in
           </Button>
         </div>
-      ) : !syraAuthenticated ? null : skillsQ.isLoading ? (
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      ) : !syraAuthenticated ? null : showSkeleton ? (
+        <EarnPanelListSkeleton rows={3} />
       ) : skillsQ.data?.length === 0 ? (
         <p className={cn(overviewCardShell, "p-4 text-sm text-muted-foreground")}>
           No API skills yet.

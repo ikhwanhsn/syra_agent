@@ -16,7 +16,6 @@ import Index from "@/pages/Index";
 import InternalTeamAgentsMonitor from "@/pages/InternalTeamAgentsMonitor";
 import InternalWalletsPage from "@/pages/InternalWalletsPage";
 import InternalAgentDetailPage from "@/pages/InternalAgentDetailPage";
-import AlphaTechPage from "@/pages/AlphaTechPage";
 import { LegacyInternalTeamAgentsRedirect } from "@/pages/LegacyInternalRedirect";
 import {
   LegacyDashboardPrefixRedirect,
@@ -66,7 +65,7 @@ import InvestPage from "@/pages/InvestPage";
 import SpendPage from "@/pages/SpendPage";
 import TreasuryPage from "@/pages/TreasuryPage";
 import SwapPage from "@/pages/SwapPage";
-import MultiWalletPage from "@/pages/MultiWalletPage";
+import MultiWalletRecoverPage from "@/pages/MultiWalletRecoverPage";
 import { RedirectToS3Labs } from "@/components/marketing/RedirectToS3Labs";
 
 function DashboardLayoutRoute() {
@@ -128,10 +127,10 @@ function AppRoutes() {
           <Route element={<DashboardLayoutRoute />}>
             <Route path="/overview" element={<DashboardOverview />} />
             <Route
-              path="/multiwallet"
+              path="/multiwallet/recover"
               element={
-                <AdminDashboardGate featureLabel="Multiwallet">
-                  <MultiWalletPage />
+                <AdminDashboardGate featureLabel="Multiwallet recovery">
+                  <MultiWalletRecoverPage />
                 </AdminDashboardGate>
               }
             />
@@ -233,14 +232,6 @@ function AppRoutes() {
             <Route path="/btc" element={<BtcPage />} />
             <Route path="/hackathon" element={<RedirectToS3Labs path="/hackathon" />} />
             <Route path="/hackathon/*" element={<RedirectToS3Labs path="/hackathon" />} />
-            <Route
-              path="/alphatech"
-              element={
-                <AdminDashboardGate featureLabel="AlphaTech screener">
-                  <AlphaTechPage />
-                </AdminDashboardGate>
-              }
-            />
             <Route
               path="/internal"
               element={

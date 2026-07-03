@@ -3,7 +3,6 @@ import { useLocation } from "@/lib/navigation";
 import type { ReactNode } from "react";
 import {
   LayoutDashboard,
-  Radar,
   UsersRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -31,7 +30,6 @@ import { INTERNAL_BASE_PATH } from "@/lib/internalRoutes";
 import { getInternalAgentMeta, isInternalAgentSlug } from "@/lib/internalAgentsCatalog";
 import { DASHBOARD_PILLAR_NAV, isDashboardPillarRoute, isPillarGated, MACHINE_MONEY_SOON_BADGE } from "@/lib/dashboardPillarNav";
 import { DASHBOARD_MARKET_INTEL_NAV } from "@/lib/dashboardMarketIntelNav";
-import { DASHBOARD_TOOLS_NAV } from "@/lib/dashboardToolsNav";
 import { DASHBOARD_EXPERIMENT_NAV } from "@/lib/dashboardExperimentNav";
 
 function dashboardPageTitle(pathname: string, search: string): string {
@@ -49,14 +47,13 @@ function dashboardPageTitle(pathname: string, search: string): string {
   if (parts[0] === "assets" && parts[1]) return "Asset detail";
   if (parts[0] === "assets") return "Assets";
   if (parts[0] === "pumpfun") return "Pumpfun Alpha";
-  if (parts[0] === "multiwallet") return "Multiwallet";
+  if (parts[0] === "multiwallet" && parts[1] === "recover") return "Recover farm wallets";
   if (parts[0] === "lp-experiment") return "LP agent experiment";
   if (parts[0] === "btc2-experiment") return "BTC quant agent";
   if (parts[0] === "btc3-experiment") return "Macro Intelligence";
   if (parts[0] === "btc-experiment") return "BTC quant experiment";
   if (parts[0] === "stocks") return "Stocks news experiment";
   if (parts[0] === "btc") return "Bitcoin";
-  if (parts[0] === "alphatech") return "AlphaTech";
   if (parts[0] === "internal") {
     if (parts[1]) {
       const slug = parts[1];
@@ -141,39 +138,10 @@ function DashboardSidebarContent({
 
           {showAdminDashboard ? (
             <>
-              <p className="px-3 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/55">
-                Tools
-              </p>
-              {DASHBOARD_TOOLS_NAV.map((item) => (
-                <SidebarNavLink
-                  key={item.id}
-                  to={item.to}
-                  icon={item.icon}
-                  end
-                  matchActive={item.isActive}
-                  badge={INTERNAL_TEAM_SIDEBAR_BADGE}
-                >
-                  {item.label}
-                </SidebarNavLink>
-              ))}
-
-              <SidebarDivider className="my-2" />
-            </>
-          ) : null}
-
-          {showAdminDashboard ? (
-            <>
               <SidebarExperimentsNav
                 items={DASHBOARD_EXPERIMENT_NAV}
                 groupBadge={INTERNAL_TEAM_SIDEBAR_BADGE}
               />
-              <SidebarNavLink
-                to="/alphatech"
-                icon={Radar}
-                badge={INTERNAL_TEAM_SIDEBAR_BADGE}
-              >
-                AlphaTech
-              </SidebarNavLink>
               <SidebarNavLink
                 to={INTERNAL_BASE_PATH}
                 icon={UsersRound}

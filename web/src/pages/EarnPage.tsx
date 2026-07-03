@@ -1,5 +1,4 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useCallback, useEffect, useState } from "react";
 import { EarnKolPanel } from "@/components/earn/EarnKolPanel";
@@ -7,6 +6,7 @@ import { EarnPromptPanel } from "@/components/earn/EarnPromptPanel";
 import { EarnSkillsPanel } from "@/components/earn/EarnSkillsPanel";
 import { EarnSummarySection } from "@/components/earn/EarnSummarySection";
 import { EarnTokenPanel } from "@/components/earn/EarnTokenPanel";
+import { EarnPageSkeleton } from "@/components/earn/EarnSkeleton";
 import { EarnTrackTabs } from "@/components/earn/EarnTrackTabs";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 import { PillarLayout } from "@/components/pillars/PillarLayout";
@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { useAgentWallet } from "@/contexts/AgentWalletContext";
 import { useSyraAuth } from "@/contexts/SyraAuthContext";
 import { useWalletContext } from "@/contexts/WalletContext";
+import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import { fetchEarnSummary } from "@/lib/pillarsApi";
 import { cn } from "@/lib/utils";
 
@@ -51,6 +52,8 @@ export default function EarnPage() {
     enabled: Boolean(key),
     staleTime: 60_000,
   });
+
+  const showSkeleton = useMinimumSkeleton(summaryQ.isLoading);
 
   const data = summaryQ.data?.data;
   const earnings = data?.earnings ?? [];
@@ -108,8 +111,8 @@ export default function EarnPage() {
         <div className={cn(overviewCardShell, "p-6 text-center text-sm text-muted-foreground")}>
           Connect wallet to view earnings.
         </div>
-      ) : summaryQ.isLoading ? (
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      ) : showSkeleton ? (
+        <EarnPageSkeleton />
       ) : (
         <div className="space-y-6">
           <EarnSummarySection

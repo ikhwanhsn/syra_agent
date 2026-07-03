@@ -1,6 +1,6 @@
 /**
  * Live trade tape for pump.fun / Solana tokens.
- * Primary: OKX DEX market trades.
+ * Primary: OKX DEX market trades (GET /api/v6/dex/market/trades).
  */
 import { getDexTrades, hasOkxDexCredentials } from './okxDexMarket.js';
 
@@ -12,6 +12,7 @@ const cache = new Map();
 
 /** @param {unknown} v */
 function toNum(v) {
+  if (v == null || v === '') return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 }
@@ -37,7 +38,7 @@ function extractTradeRows(root) {
   if (!root || typeof root !== 'object') return [];
   const o = /** @type {Record<string, unknown>} */ (root);
   const data = o.data && typeof o.data === 'object' ? /** @type {Record<string, unknown>} */ (o.data) : o;
-  const candidates = [data.trades, data.list, data.items, data.result];
+  const candidates = [data.trades, data.tradeList, data.list, data.items, data.result];
   for (const c of candidates) {
     if (Array.isArray(c)) return c;
   }
@@ -52,39 +53,82 @@ function normalizeSide(sideRaw) {
   return null;
 }
 
-/** @param {unknown} row @param {number} idx */
-function normalizeTradeRow(row, idx) {
+/** @param {unknown} txHashUrl */
+function extractTxHash(txHashUrl) {
+  if (typeof txHashUrl !== 'string' || !txHashUrl.trim()) return null;
+  const trimmed = txHashUrl.trim();
+  const parts = trimmed.split('/');
+  const last = parts[parts.length - 1]?.trim();
+  return last && last.length >= 32 ? last : null;
+}
+
+/**
+ * @param {unknown} changedTokenInfo
+ * @param {string} mint
+ */
+function tokenAmountFromChangedInfo(changedTokenInfo, mint) {
+  if (!Array.isArray(changedTokenInfo)) return null;
+  for (const entry of changedTokenInfo) {
+    if (!entry || typeof entry !== 'object') continue;
+    const o = /** @type {Record<string, unknown>} */ (entry);
+    const addr = String(o.tokenContractAddress ?? o.address ?? '').trim();
+    if (addr && mint && addr !== mint) continue;
+    const amount = toNum(o.amount ?? o.tokenAmount);
+    if (amount != null) return amount;
+  }
+  return null;
+}
+
+/** @param {unknown} row @param {number} idx @param {string} mint */
+function normalizeTradeRow(row, idx, mint) {
   if (!row || typeof row !== 'object') return null;
   const o = /** @type {Record<string, unknown>} */ (row);
 
   const side =
-    normalizeSide(o.side ?? o.type ?? o.tradeType ?? o.direction ?? o.txType) ??
+    normalizeSide(o.type ?? o.side ?? o.tradeType ?? o.direction ?? o.txType) ??
     (o.isBuy != null ? (Boolean(o.isBuy) ? 'buy' : 'sell') : null);
 
   const amountUsd =
+    toNum(o.volume) ??
     toNum(o.amountUsd ?? o.tradeUsd ?? o.volumeUsd ?? o.valueUsd ?? o.usdAmount) ??
     toNum(o.amount_usd);
 
-  const amountToken = toNum(o.amountToken ?? o.tokenAmount ?? o.quantity ?? o.amount);
+  const amountToken =
+    tokenAmountFromChangedInfo(o.changedTokenInfo, mint) ??
+    toNum(o.amountToken ?? o.tokenAmount ?? o.quantity ?? o.amount);
+
   const priceUsd = toNum(o.priceUsd ?? o.price ?? o.tokenPrice);
 
-  const wallet = String(o.walletAddress ?? o.wallet ?? o.trader ?? o.owner ?? '').trim() || null;
+  const wallet =
+    String(o.userAddress ?? o.walletAddress ?? o.wallet ?? o.trader ?? o.owner ?? '').trim() || null;
 
   let at = null;
-  const tsRaw = o.timestamp ?? o.time ?? o.blockTime ?? o.txTime ?? o.createdAt;
+  const tsRaw = o.time ?? o.timestamp ?? o.blockTime ?? o.txTime ?? o.tradeTime ?? o.createdAt;
   if (typeof tsRaw === 'string') {
-    const d = new Date(tsRaw);
-    at = Number.isNaN(d.getTime()) ? null : d.toISOString();
+    const asNum = Number(tsRaw);
+    if (Number.isFinite(asNum) && asNum > 0) {
+      const ms = asNum > 1_000_000_000_000 ? asNum : asNum * 1000;
+      const d = new Date(ms);
+      at = Number.isNaN(d.getTime()) ? null : d.toISOString();
+    } else {
+      const d = new Date(tsRaw);
+      at = Number.isNaN(d.getTime()) ? null : d.toISOString();
+    }
   } else if (typeof tsRaw === 'number' && Number.isFinite(tsRaw)) {
     const ms = tsRaw > 1_000_000_000_000 ? tsRaw : tsRaw * 1000;
     const d = new Date(ms);
     at = Number.isNaN(d.getTime()) ? null : d.toISOString();
   }
 
-  const txHash = String(o.txHash ?? o.hash ?? o.signature ?? o.txId ?? '').trim() || null;
+  const txHash =
+    String(o.txHash ?? o.hash ?? o.signature ?? o.txId ?? '').trim() ||
+    extractTxHash(o.txHashUrl) ||
+    null;
+
+  const id = String(o.id ?? '').trim() || txHash || `trade-${idx}`;
 
   return {
-    id: txHash ?? `trade-${idx}`,
+    id,
     side,
     amountUsd,
     amountToken,
@@ -92,6 +136,7 @@ function normalizeTradeRow(row, idx) {
     wallet,
     at,
     txHash,
+    dexName: typeof o.dexName === 'string' ? o.dexName : null,
   };
 }
 
@@ -133,7 +178,7 @@ export async function buildTokenTrades({ mint, limit = DEFAULT_LIMIT }) {
   }
 
   const trades = extractTradeRows(raw)
-    .map(normalizeTradeRow)
+    .map((row, idx) => normalizeTradeRow(row, idx, trimmed))
     .filter(Boolean)
     .slice(0, limit);
 
