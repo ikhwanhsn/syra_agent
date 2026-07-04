@@ -97,6 +97,7 @@ import { createStocksExperimentRouter } from "./routes/stocksExperiment.js";
 import { createBtcQuantExperimentRouter } from "./routes/btcQuantExperiment.js";
 import { createBtcQuantRealRouter } from "./routes/btcQuantReal.js";
 import { createBtc3MacroRouter } from "./routes/btc3Macro.js";
+import { createBtc3RealRouter } from "./routes/btc3Real.js";
 import { createShipLogStudioRouter } from "./routes/shipLogStudio.js";
 import { createHealthRouter } from "./routes/health.js";
 import { createMppV1Router } from "./routes/mpp/v1.js";
@@ -1350,6 +1351,7 @@ app.use("/experiment/lp-agent-real", createLpAgentRealRouter());
 app.use("/experiment/btc-quant", createBtcQuantExperimentRouter());
 app.use("/experiment/btc-quant-real", createBtcQuantRealRouter());
 app.use("/experiment/btc3-macro", createBtc3MacroRouter());
+app.use("/experiment/btc3-real", createBtc3RealRouter());
 // Stocks news experiment — paper xStocks trading via Jupiter + news signals
 app.use("/experiment/stocks", createStocksExperimentRouter());
 app.use("/post/studio", createShipLogStudioRouter());
@@ -1613,10 +1615,13 @@ app.listen(PORT, () => {
       ),
     );
 
-  const LP_AGENT_SIGNAL_INTERVAL_MS = 120_000;
+  const LP_AGENT_SIGNAL_INTERVAL_MS = (() => {
+    const raw = Number(process.env.LP_EXPERIMENT_SIGNAL_MS);
+    return Number.isFinite(raw) && raw >= 60_000 ? Math.floor(raw) : 180_000;
+  })();
   const LP_AGENT_RESOLVE_INTERVAL_MS = (() => {
     const raw = Number(process.env.LP_EXPERIMENT_RESOLVE_MS);
-    return Number.isFinite(raw) && raw >= 5_000 ? Math.floor(raw) : 60_000;
+    return Number.isFinite(raw) && raw >= 5_000 ? Math.floor(raw) : 120_000;
   })();
 
   const runLpSignal = runIfMongoConnected(
@@ -1666,7 +1671,7 @@ app.listen(PORT, () => {
     process.env.STOCKS_EXPERIMENT_SIGNAL_MS || 300_000,
   );
   const STOCKS_RESOLVE_INTERVAL_MS = Number(
-    process.env.STOCKS_EXPERIMENT_RESOLVE_MS || 60_000,
+    process.env.STOCKS_EXPERIMENT_RESOLVE_MS || 120_000,
   );
 
   const runStocksSignal = runIfMongoConnected(
@@ -1774,8 +1779,14 @@ app.listen(PORT, () => {
   );
   setTimeout(bootLpRealCrons, 20_000);
 
-  const BTC_QUANT_SIGNAL_INTERVAL_MS = 120_000;
-  const BTC_QUANT_RESOLVE_INTERVAL_MS = 30_000;
+  const BTC_QUANT_SIGNAL_INTERVAL_MS = (() => {
+    const raw = Number(process.env.BTC_QUANT_SIGNAL_MS);
+    return Number.isFinite(raw) && raw >= 60_000 ? Math.floor(raw) : 180_000;
+  })();
+  const BTC_QUANT_RESOLVE_INTERVAL_MS = (() => {
+    const raw = Number(process.env.BTC_QUANT_RESOLVE_MS);
+    return Number.isFinite(raw) && raw >= 5_000 ? Math.floor(raw) : 90_000;
+  })();
 
   const runBtcQuantSignal = runIfMongoConnected(
     withSingleFlight(() =>
@@ -1821,13 +1832,16 @@ app.listen(PORT, () => {
   const runBtcQuantRealSignal = runIfMongoConnected(
     withSingleFlight(() =>
       import("./libs/btcQuantRealService.js")
-        .then(({ isBtcQuantRealCronEnabled, runBtcQuantRealSignalCycle }) => {
+        .then(({ isBtcQuantRealCronEnabled, runAllBtcQuantRealSignalCycles }) => {
           if (!isBtcQuantRealCronEnabled()) return null;
-          return runBtcQuantRealSignalCycle();
+          return runAllBtcQuantRealSignalCycles();
         })
         .then((out) => {
-          if (out?.error) {
-            console.warn("[BTC quant real] signal:", out.error);
+          const lanes = out?.lanes || {};
+          for (const [lane, result] of Object.entries(lanes)) {
+            if (result?.error) {
+              console.warn(`[BTC quant real ${lane}] signal:`, result.error);
+            }
           }
         })
         .catch((err) =>
@@ -1839,17 +1853,41 @@ app.listen(PORT, () => {
   const runBtcQuantRealResolve = runIfMongoConnected(
     withSingleFlight(() =>
       import("./libs/btcQuantRealService.js")
-        .then(({ isBtcQuantRealCronEnabled, resolveBtcQuantRealPositions }) => {
+        .then(({ isBtcQuantRealCronEnabled, resolveAllBtcQuantRealPositions }) => {
           if (!isBtcQuantRealCronEnabled()) return null;
-          return resolveBtcQuantRealPositions();
+          return resolveAllBtcQuantRealPositions();
         })
         .then((out) => {
-          if (out?.errors?.length) {
-            console.warn("[BTC quant real] resolve errors:", out.errors.slice(0, 3));
+          const lanes = out?.lanes || {};
+          for (const [lane, result] of Object.entries(lanes)) {
+            if (result?.errors?.length) {
+              console.warn(
+                `[BTC quant real ${lane}] resolve errors:`,
+                result.errors.slice(0, 3),
+              );
+            }
           }
         })
         .catch((err) =>
           console.warn("[BTC quant real] resolve failed:", err?.message || err),
+        ),
+    ),
+  );
+
+  const runBtc3RealRebalance = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/btc3/btc3RealService.js")
+        .then(({ isBtc3RealCronEnabled, runBtc3RealRebalanceCycle }) => {
+          if (!isBtc3RealCronEnabled()) return null;
+          return runBtc3RealRebalanceCycle();
+        })
+        .then((out) => {
+          if (out?.error) {
+            console.warn("[BTC3 real] rebalance:", out.error);
+          }
+        })
+        .catch((err) =>
+          console.warn("[BTC3 real] rebalance failed:", err?.message || err),
         ),
     ),
   );
@@ -1859,6 +1897,9 @@ app.listen(PORT, () => {
   }
   if (BTC_QUANT_RESOLVE_INTERVAL_MS >= 5_000) {
     setInterval(runBtcQuantRealResolve, BTC_QUANT_RESOLVE_INTERVAL_MS);
+  }
+  if (BTC_QUANT_SIGNAL_INTERVAL_MS >= 60_000) {
+    setInterval(runBtc3RealRebalance, BTC_QUANT_SIGNAL_INTERVAL_MS);
   }
 
   import("./libs/btc3/macroIntelligenceScheduler.js").then(({ startBtc3MacroScheduler }) => {

@@ -11,13 +11,29 @@ import {
 export function createGrowRouter() {
   const router = express.Router();
 
-  router.get('/portfolio', requireSession(), async (req, res) => {
+  /**
+   * Public portfolio health check when `address` is provided (on-chain read only).
+   * Session is only required when resolving the caller's agent wallet by default.
+   */
+  router.get('/portfolio', optionalWalletSession(), async (req, res) => {
     try {
-      const anonymousId = req.user?.anonymousId;
-      const wallet = await AgentWallet.findOne({ anonymousId }).lean();
-      const address =
-        (typeof req.query.address === 'string' && req.query.address.trim()) ||
-        wallet?.agentAddress;
+      const queryAddress =
+        typeof req.query.address === 'string' && req.query.address.trim()
+          ? req.query.address.trim()
+          : null;
+
+      let address = queryAddress;
+      if (!address) {
+        const anonymousId = req.user?.anonymousId;
+        if (!anonymousId) {
+          return res.status(400).json({
+            success: false,
+            error: 'Pass address query param or connect wallet',
+          });
+        }
+        const wallet = await AgentWallet.findOne({ anonymousId }).lean();
+        address = wallet?.agentAddress ?? null;
+      }
       if (!address) {
         return res.status(400).json({ success: false, error: 'Wallet address required' });
       }

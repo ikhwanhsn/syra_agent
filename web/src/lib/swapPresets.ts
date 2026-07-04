@@ -7,12 +7,41 @@ export const BONK_MINT = "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263";
 /** xStocks SPCXx — Backed Finance on Solana (override via live report mint when swapping). */
 export const SPCXX_MINT = "Xs3oZwbHvqis4NYcf4YKWmEia2eC84wSiVrcYcTqpH8";
 
+/**
+ * Jupiter Tokens V2 icon URLs for presets — baked in so the swap UI never flashes a
+ * different CoinGecko/CDN logo before the verified list loads.
+ */
 export const SWAP_PRESET_TOKENS = [
-  { label: "SOL", mint: WSOL_MINT, decimals: 9 },
-  { label: "USDC", mint: USDC_MINT, decimals: 6 },
-  { label: "SYRA", mint: SYRA_MINT, decimals: 9 },
-  { label: "BONK", mint: BONK_MINT, decimals: 5 },
-  { label: "SPCXx", mint: SPCXX_MINT, decimals: 8 },
+  {
+    label: "SOL",
+    mint: WSOL_MINT,
+    decimals: 9,
+    icon: "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png",
+  },
+  {
+    label: "USDC",
+    mint: USDC_MINT,
+    decimals: 6,
+    icon: "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png",
+  },
+  {
+    label: "SYRA",
+    mint: SYRA_MINT,
+    decimals: 9,
+    icon: "https://ipfs.io/ipfs/bafkreiask2i2grvmxx4x7leakirybqkjsbzmx262vwgbustympliikgbha",
+  },
+  {
+    label: "BONK",
+    mint: BONK_MINT,
+    decimals: 5,
+    icon: "https://arweave.net/hQiPZOsRZXGXBJd_82PhVdlM_hACsT_q6wqwf5cSY7I",
+  },
+  {
+    label: "SPCXx",
+    mint: SPCXX_MINT,
+    decimals: 8,
+    icon: "https://xstocks-metadata.backed.fi/logos/tokens/SPCXx.png",
+  },
 ] as const;
 
 export type SwapPresetId = (typeof SWAP_PRESET_TOKENS)[number]["label"] | "custom";

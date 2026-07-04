@@ -139,9 +139,15 @@ function buildDossierUrl(params: TokensDossierQuery): string {
   return qs ? `${base}?${qs}` : base;
 }
 
-export async function fetchMintDossier(params: TokensDossierQuery): Promise<TokensDossierPayload> {
+export async function fetchMintDossier(
+  params: TokensDossierQuery,
+  opts?: { signal?: AbortSignal },
+): Promise<TokensDossierPayload> {
   const url = buildDossierUrl(params);
-  const res = await fetch(url, { headers: { Accept: "application/json" } });
+  const res = await fetch(url, {
+    headers: { Accept: "application/json" },
+    signal: opts?.signal,
+  });
   const body = (await res.json().catch(() => ({}))) as {
     success?: boolean;
     data?: TokensDossierPayload;
@@ -327,23 +333,41 @@ function buildIntelligenceUrl(params: TokensDossierQuery): string {
   return qs ? `${base}?${qs}` : base;
 }
 
+const INTELLIGENCE_CLIENT_TIMEOUT_MS = 14_000;
+
 export async function fetchAssetIntelligence(
   params: TokensDossierQuery,
   opts?: { signal?: AbortSignal },
 ): Promise<AssetIntelligencePayload> {
   const url = buildIntelligenceUrl(params);
-  const res = await fetch(url, {
-    headers: { Accept: "application/json" },
-    signal: opts?.signal,
-  });
-  const body = (await res.json().catch(() => ({}))) as {
-    success?: boolean;
-    data?: AssetIntelligencePayload;
-    error?: string;
-    message?: string;
-  };
-  if (!res.ok || body.success !== true || !body.data) {
-    throw new Error(body.error || body.message || "Failed to load asset intelligence");
+  const controller = new AbortController();
+  const onAbort = () => controller.abort();
+  opts?.signal?.addEventListener("abort", onAbort);
+  const timer = setTimeout(() => controller.abort(), INTELLIGENCE_CLIENT_TIMEOUT_MS);
+
+  try {
+    const res = await fetch(url, {
+      headers: { Accept: "application/json" },
+      signal: controller.signal,
+    });
+    const body = (await res.json().catch(() => ({}))) as {
+      success?: boolean;
+      data?: AssetIntelligencePayload;
+      error?: string;
+      message?: string;
+    };
+    if (!res.ok || body.success !== true || !body.data) {
+      throw new Error(body.error || body.message || "Failed to load asset intelligence");
+    }
+    return body.data;
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      if (opts?.signal?.aborted) throw err;
+      throw new Error("Asset intelligence timed out");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+    opts?.signal?.removeEventListener("abort", onAbort);
   }
-  return body.data;
 }

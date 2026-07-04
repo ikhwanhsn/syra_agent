@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Activity,
   ArrowUpRight,
-  Loader2,
   Receipt,
   Shield,
   TrendingUp,
@@ -21,9 +20,12 @@ import {
   overviewChartTopShine,
   overviewKickerClass,
 } from "@/components/dashboard/overview/overviewStyles";
+import { TreasurySpendSkeleton } from "@/components/treasury/TreasurySkeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 import { fetchAgentBillingSummary, type BillingSpendWindow } from "@/lib/agentBillingApi";
 import { ensureAccessToken } from "@/lib/agentAuthApi";
 import { useSyraAuth } from "@/contexts/SyraAuthContext";
+import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import { formatCompactUsd } from "@/lib/dashboardOverviewAggregates";
 
 type AgentBillingDashboardProps = {
@@ -37,7 +39,14 @@ function formatDayLabel(iso: string): string {
   return d.toLocaleDateString(undefined, { weekday: "short" }).slice(0, 3);
 }
 
-function SpendDailyBars({ daily }: { daily: BillingSpendWindow["daily"] }) {
+function SpendDailyBars({
+  daily,
+  fill = false,
+}: {
+  daily: BillingSpendWindow["daily"];
+  /** Stretch bars to fill available height (compact side panel). */
+  fill?: boolean;
+}) {
   const bars = useMemo(() => daily.slice(-7), [daily]);
   const max = useMemo(
     () => Math.max(...bars.map((d) => d.totalUsd), 0.01),
@@ -46,17 +55,25 @@ function SpendDailyBars({ daily }: { daily: BillingSpendWindow["daily"] }) {
 
   if (bars.length === 0) {
     return (
-      <p className="py-6 text-center text-xs text-muted-foreground">No daily spend yet</p>
+      <p className="py-4 text-center text-xs text-muted-foreground">No daily spend yet</p>
     );
   }
 
   return (
-    <div className="flex h-[4.5rem] items-end gap-1.5 sm:gap-2">
+    <div
+      className={cn(
+        "flex items-end gap-1.5 sm:gap-2",
+        fill ? "h-full min-h-[4.5rem]" : "h-[4.5rem]",
+      )}
+    >
       {bars.map((day) => {
         const pct = Math.max(4, (day.totalUsd / max) * 100);
         return (
-          <div key={day.date} className="group flex min-w-0 flex-1 flex-col items-center gap-1.5">
-            <div className="relative flex h-14 w-full items-end justify-center">
+          <div
+            key={day.date}
+            className="group flex h-full min-w-0 flex-1 flex-col items-center gap-1"
+          >
+            <div className="relative flex min-h-0 w-full flex-1 items-end justify-center">
               <div
                 className={cn(
                   "w-full max-w-[2rem] rounded-md bg-gradient-to-t from-primary/90 to-primary/50 transition-all duration-300",
@@ -186,23 +203,35 @@ function TopToolsBreakdown({
   );
 }
 
-function BillingSkeleton({ compact }: { compact?: boolean }) {
+function BillingSkeleton({ compact, className }: { compact?: boolean; className?: string }) {
+  if (compact) {
+    return <TreasurySpendSkeleton className={className} />;
+  }
+
   return (
-    <div className={cn(overviewCardShell, "overflow-hidden")}>
+    <div
+      className={cn(overviewCardShell, "overflow-hidden")}
+      aria-busy="true"
+      aria-label="Loading spend"
+    >
       <div
         className={overviewCardGlow}
         style={{ background: overviewAccentBackground("internal") }}
         aria-hidden
       />
-      <div className={cn("relative z-[1] space-y-4", compact ? "p-4" : "p-5 sm:p-6")}>
-        <div className="flex items-center gap-2">
-          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" aria-hidden />
-          <span className="text-sm text-muted-foreground">Loading spend…</span>
+      <div className="relative z-[1] space-y-4 p-5 sm:p-6">
+        <div className="space-y-2">
+          <Skeleton className="h-3 w-20" />
+          <Skeleton className="h-6 w-40" />
         </div>
-        <div className={cn("grid gap-3", compact ? "grid-cols-2" : "sm:grid-cols-3")}>
-          {Array.from({ length: compact ? 2 : 3 }).map((_, i) => (
-            <div key={i} className="h-24 animate-pulse rounded-xl bg-muted/40" />
+        <div className="grid gap-3 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 rounded-xl" />
           ))}
+        </div>
+        <div className="grid gap-3 lg:grid-cols-5">
+          <Skeleton className="h-36 rounded-xl lg:col-span-3" />
+          <Skeleton className="h-36 rounded-xl lg:col-span-2" />
         </div>
       </div>
     </div>
@@ -251,19 +280,26 @@ export function AgentBillingDashboard({ className, compact = false }: AgentBilli
     retry: 1,
   });
 
+  const showSkeleton = useMinimumSkeleton(
+    Boolean(syraAuthReady && syraAuthenticated && q.isLoading),
+  );
+
   if (!syraAuthReady || !syraAuthenticated) {
     return null;
   }
 
-  if (q.isLoading) {
-    return (
+  if (showSkeleton) {
+    return compact ? (
+      <BillingSkeleton compact className={className} />
+    ) : (
       <section className={className}>
-        <BillingSkeleton compact={compact} />
+        <BillingSkeleton />
       </section>
     );
   }
 
   if (q.isError || !q.data) {
+    if (compact) return null;
     return (
       <section className={className}>
         <BillingEmptyState />
@@ -282,42 +318,94 @@ export function AgentBillingDashboard({ className, compact = false }: AgentBilli
       ? Math.min(100, (dailyAvg / Math.max(policy.dailySpendCapUsd, 1)) * 100)
       : null;
 
+    const capTone =
+      capPct == null
+        ? "ok"
+        : capPct >= 90
+          ? "danger"
+          : capPct >= 70
+            ? "warn"
+            : "ok";
+    const capBarClass =
+      capTone === "danger"
+        ? "bg-red-500/85"
+        : capTone === "warn"
+          ? "bg-amber-500/85"
+          : "bg-emerald-500/80";
+
     return (
-      <section className={cn(className)}>
-        <div className={cn(overviewCardShell, "overflow-hidden")}>
+      <section className={cn("flex h-full min-h-0 flex-col", className)}>
+        <div
+          className={cn(
+            overviewCardShell,
+            "relative flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-2xl sm:rounded-3xl",
+          )}
+        >
           <div
-            className={overviewCardGlow}
-            style={{ background: overviewAccentBackground("internal") }}
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(360px 160px at 100% 0%, hsl(var(--primary) / 0.08), transparent 55%), radial-gradient(280px 140px at 0% 100%, hsl(160 55% 42% / 0.08), transparent 50%)",
+            }}
             aria-hidden
           />
-          <div className="relative z-[1] flex flex-wrap items-center justify-between gap-4 p-4 sm:p-5">
-            <div className="flex items-center gap-6">
-              <div>
-                <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                  7d spend
+          <div className="relative z-[1] flex h-full min-h-0 flex-1 flex-col gap-4 p-4 sm:gap-5 sm:p-6 lg:p-7">
+            <div className="flex shrink-0 items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground/80 sm:text-[13px] sm:normal-case sm:tracking-normal sm:text-muted-foreground">
+                  Spend
                 </p>
-                <p className="mt-0.5 font-mono text-lg font-semibold tabular-nums text-foreground">
+                <p className="mt-2 font-mono text-2xl font-semibold tabular-nums tracking-tight text-foreground sm:text-3xl">
                   <AnimatedMetric value={spend7.totalUsd} format={formatCompactUsd} />
                 </p>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Last 7 days
+                  {spend7.callCount > 0 ? (
+                    <span className="text-muted-foreground/70">
+                      {" "}
+                      · {spend7.callCount.toLocaleString()} calls
+                    </span>
+                  ) : null}
+                </p>
               </div>
-              {policy && capPct != null ? (
-                <div>
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                    Daily cap
-                  </p>
-                  <p className="mt-0.5 font-mono text-lg font-semibold tabular-nums text-foreground">
-                    {capPct.toFixed(0)}%
+              <Link
+                to="/wallet"
+                className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border/45 bg-background/40 px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:border-border hover:text-foreground"
+              >
+                Details
+                <ArrowUpRight className="h-3 w-3" aria-hidden />
+              </Link>
+            </div>
+
+            <div className="flex min-h-[4.5rem] flex-1 flex-col justify-end">
+              <SpendDailyBars daily={spend7.daily} fill />
+            </div>
+
+            {policy && capPct != null ? (
+              <div className="shrink-0 space-y-2 border-t border-border/40 pt-3 sm:pt-4">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[11px] font-medium text-muted-foreground">Daily cap</p>
+                  <p className="font-mono text-xs tabular-nums text-foreground">
+                    {formatCompactUsd(dailyAvg)}
+                    <span className="mx-1 text-muted-foreground/50">/</span>
+                    {formatCompactUsd(policy.dailySpendCapUsd)}
+                    <span className="ml-1.5 text-muted-foreground">({capPct.toFixed(0)}%)</span>
                   </p>
                 </div>
-              ) : null}
-            </div>
-            <Link
-              to="/overview"
-              className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Details
-              <ArrowUpRight className="h-3 w-3" aria-hidden />
-            </Link>
+                <div className="h-1.5 overflow-hidden rounded-full bg-muted/35 ring-1 ring-border/25">
+                  <div
+                    className={cn("h-full rounded-full transition-all duration-500", capBarClass)}
+                    style={{ width: `${Math.min(100, Math.max(capPct, 0))}%` }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="shrink-0 border-t border-border/40 pt-3 sm:pt-4">
+                <p className="text-[11px] text-muted-foreground">
+                  Avg {formatCompactUsd(dailyAvg)} / day
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </section>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from "@/lib/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { AssetDetailNav } from "@/components/assets/AssetDetailNav";
@@ -15,8 +15,12 @@ import { overviewCardShell } from "@/components/dashboard/overview/overviewStyle
 import { MintDossierView } from "@/components/dossier/MintDossierView";
 import { AssetDetailSkeleton } from "@/components/assets/AssetDetailSkeleton";
 import { AssetIntelligenceSection } from "@/components/assets/intelligence/AssetIntelligenceSection";
-import { AssetIntelligenceSkeleton } from "@/components/assets/intelligence/AssetIntelligenceSkeleton";
+import {
+  ASSETS_HUB_QUERY_KEY,
+  findBoardPlaceholder,
+} from "@/hooks/useAssetsHubRows";
 import { useAssetIntelligence } from "@/hooks/useAssetIntelligence";
+import type { AssetTableRow } from "@/lib/assetsHub";
 import {
   assetPathFromQuery,
   fetchMintDossier,
@@ -48,6 +52,7 @@ function canonicalDetailPath(params: URLSearchParams, slug?: string): string | n
 
 export default function AssetDetailPage({ embedded }: { embedded?: boolean }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { assetKey } = useParams<{ assetKey: string }>();
   const [searchParams] = useSearchParams();
   const canonicalPath = useMemo(
@@ -56,37 +61,43 @@ export default function AssetDetailPage({ embedded }: { embedded?: boolean }) {
   );
   const lookup = useMemo(() => resolveLookup(searchParams, assetKey), [assetKey, searchParams]);
 
+  const boardRows = queryClient.getQueryData<AssetTableRow[]>(ASSETS_HUB_QUERY_KEY);
+  const boardPlaceholder = useMemo(
+    () => findBoardPlaceholder(boardRows, lookup),
+    [boardRows, lookup],
+  );
+
   const dossierQ = useQuery({
     queryKey: ["asset-detail", lookup],
-    queryFn: () => fetchMintDossier(lookup!),
+    queryFn: ({ signal }) => fetchMintDossier(lookup!, { signal }),
     enabled: lookup != null && canonicalPath == null,
     staleTime: 60_000,
+    gcTime: 10 * 60_000,
     retry: 1,
+    placeholderData: boardPlaceholder,
   });
 
+  // Stable identity only — do not inject symbol/name (that restarted the query forever).
   const intelligenceLookup = useMemo(() => {
     if (canonicalPath != null || lookup == null) return null;
-    return {
-      ...lookup,
-      ...(dossierQ.data?.asset?.symbol ? { symbol: dossierQ.data.asset.symbol } : {}),
-      ...(dossierQ.data?.asset?.name ? { name: dossierQ.data.asset.name } : {}),
-    };
-  }, [canonicalPath, lookup, dossierQ.data?.asset?.symbol, dossierQ.data?.asset?.name]);
+    return lookup;
+  }, [canonicalPath, lookup]);
 
   const intelligenceQ = useAssetIntelligence(intelligenceLookup);
 
-  const intelligencePending =
-    intelligenceQ.isLoading || (intelligenceQ.isFetching && !intelligenceQ.data);
-  const showInitialSkeleton = dossierQ.isLoading && !dossierQ.data;
+  const intelligencePending = intelligenceQ.isPending && !intelligenceQ.isError;
+  const showInitialSkeleton = dossierQ.isPending && !dossierQ.data && !boardPlaceholder;
 
+  // Prefer board assetId immediately so intelligence does not start on a ref slug then restart.
   useEffect(() => {
-    if (!dossierQ.data?.assetId || !assetKey || assetKey === "lookup") return;
-    const canonical = assetPathFromQuery({ assetId: dossierQ.data.assetId });
+    const assetId = dossierQ.data?.assetId ?? boardPlaceholder?.assetId;
+    if (!assetId || !assetKey || assetKey === "lookup") return;
+    const canonical = assetPathFromQuery({ assetId });
     const current = `/assets/${encodeURIComponent(assetKey)}`;
     if (canonical !== current) {
       navigate(canonical, { replace: true });
     }
-  }, [assetKey, dossierQ.data, navigate]);
+  }, [assetKey, boardPlaceholder?.assetId, dossierQ.data?.assetId, navigate]);
 
   useEffect(() => {
     if (!dossierQ.data?.asset?.name) return;
@@ -98,6 +109,8 @@ export default function AssetDetailPage({ embedded }: { embedded?: boolean }) {
 
   if (canonicalPath) return <Navigate to={canonicalPath} replace />;
   if (!lookup) return <Navigate to="/assets" replace />;
+
+  const dossierData = dossierQ.data ?? boardPlaceholder;
 
   return (
     <div className={cn("relative min-h-full", embedded && "min-h-0")}>
@@ -112,18 +125,17 @@ export default function AssetDetailPage({ embedded }: { embedded?: boolean }) {
         )}
       >
         <AssetDetailNav
-          symbol={dossierQ.data?.asset?.symbol}
-          name={dossierQ.data?.asset?.name ?? assetKey}
+          symbol={dossierData?.asset?.symbol}
+          name={dossierData?.asset?.name ?? assetKey}
         />
 
         {showInitialSkeleton ? (
           <div className="space-y-6">
             <AssetDetailSkeleton />
-            <AssetIntelligenceSkeleton />
           </div>
         ) : null}
 
-        {dossierQ.isError ? (
+        {dossierQ.isError && !dossierData ? (
           <Card className={cn(overviewCardShell, "max-w-xl border-destructive/40 animate-in fade-in")}>
             <CardContent className="pt-6">
               <p className="text-sm font-medium text-destructive">
@@ -141,10 +153,10 @@ export default function AssetDetailPage({ embedded }: { embedded?: boolean }) {
           </Card>
         ) : null}
 
-        {dossierQ.data ? (
+        {dossierData ? (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-3 duration-500 fill-mode-both">
             <MintDossierView
-              data={dossierQ.data}
+              data={dossierData}
               embeddedInDetail
               intelligence={intelligenceQ.data ?? null}
             />
@@ -152,6 +164,11 @@ export default function AssetDetailPage({ embedded }: { embedded?: boolean }) {
               data={intelligenceQ.data}
               isLoading={intelligencePending}
               isError={intelligenceQ.isError}
+              errorMessage={
+                intelligenceQ.error instanceof Error
+                  ? intelligenceQ.error.message
+                  : undefined
+              }
             />
           </div>
         ) : null}

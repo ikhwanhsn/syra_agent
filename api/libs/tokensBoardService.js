@@ -4,8 +4,15 @@
  */
 import { runTokensAgentTool } from './tokensAgentService.js';
 
-const MAX_PAGES = 20;
+/** Dashboard default — avoids 20 sequential upstream pages on cold load. */
+const DEFAULT_MAX_PAGES = 4;
+/** Hard cap for paid / x402 callers that pass maxPages. */
+const ABSOLUTE_MAX_PAGES = 20;
 const PAGE_LIMIT = 500;
+const BOARD_CACHE_TTL_MS = 90_000;
+
+/** @type {Map<string, { expires: number; payload: object }>} */
+const boardCache = new Map();
 
 /** @param {unknown} raw */
 function normalizeCuratedItem(raw) {
@@ -154,7 +161,15 @@ function extractCuratedItems(body) {
 export async function fetchAssetsBoard(opts = {}) {
   const list = opts.list?.trim() || 'all';
   const groupBy = opts.groupBy?.trim() || 'asset';
-  const maxPages = Math.min(MAX_PAGES, Math.max(1, opts.maxPages ?? MAX_PAGES));
+  const maxPages = Math.min(
+    ABSOLUTE_MAX_PAGES,
+    Math.max(1, opts.maxPages ?? DEFAULT_MAX_PAGES),
+  );
+  const cacheKey = `${list}|${groupBy}|${maxPages}`;
+  const cached = boardCache.get(cacheKey);
+  if (cached && Date.now() < cached.expires) {
+    return { ok: true, data: cached.payload };
+  }
 
   /** @type {ReturnType<typeof normalizeCuratedItem>[]} */
   const all = [];
@@ -172,6 +187,10 @@ export async function fetchAssetsBoard(opts = {}) {
     });
 
     if (!result.ok) {
+      // Serve stale cache on upstream failure when available.
+      if (cached?.payload) {
+        return { ok: true, data: cached.payload, stale: true };
+      }
       return {
         ok: false,
         error: result.error || 'Failed to load assets board',
@@ -196,15 +215,22 @@ export async function fetchAssetsBoard(opts = {}) {
     offset = nextOffset;
   }
 
+  const payload = {
+    items: all,
+    total: all.length,
+    list,
+    groupBy,
+    pagesFetched: pages,
+  };
+
+  boardCache.set(cacheKey, {
+    payload,
+    expires: Date.now() + BOARD_CACHE_TTL_MS,
+  });
+
   return {
     ok: true,
-    data: {
-      items: all,
-      total: all.length,
-      list,
-      groupBy,
-      pagesFetched: pages,
-    },
+    data: payload,
     requestId,
   };
 }

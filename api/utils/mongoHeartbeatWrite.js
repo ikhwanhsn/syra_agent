@@ -103,3 +103,50 @@ export function shouldWriteLpRealOpenEval(position, exitEval, options = {}) {
   const epsilon = options.epsilon ?? 0.001;
   return numChanged(exitEval.peakPnlPct, position.peakPnlPct, epsilon);
 }
+
+/**
+ * Skip stocks open-run heartbeat writes when status is unchanged.
+ * @param {Record<string, unknown>} run
+ * @param {{ heartbeatMinMs?: number }} [options]
+ * @returns {boolean}
+ */
+export function shouldWriteStocksRunHeartbeat(run, options = {}) {
+  const heartbeatMinMs =
+    options.heartbeatMinMs ?? getHeartbeatMinMs("STOCKS_HEARTBEAT_MIN_MS", 10 * 60_000);
+  return isHeartbeatDue(run.lastEvaluatedAt, heartbeatMinMs);
+}
+
+/**
+ * Skip real-agent config meta writes when error is unchanged and heartbeat not due.
+ * @param {{ lastError?: string | null; lastSignalAt?: Date | string | null; lastResolveAt?: Date | string | null; lastRebalanceAt?: Date | string | null }} cfg
+ * @param {string | null | undefined} nextError
+ * @param {"signal" | "resolve" | "rebalance"} [kind]
+ * @param {{ heartbeatMinMs?: number }} [options]
+ * @returns {boolean}
+ */
+export function shouldTouchRealConfigMeta(cfg, nextError, kind = "signal", options = {}) {
+  const heartbeatMinMs =
+    options.heartbeatMinMs ?? getHeartbeatMinMs("REAL_CONFIG_HEARTBEAT_MIN_MS", 10 * 60_000);
+  const prevError = cfg?.lastError ?? null;
+  const next = nextError ?? null;
+  if (prevError !== next) return true;
+  const tsField =
+    kind === "resolve"
+      ? cfg?.lastResolveAt
+      : kind === "rebalance"
+        ? cfg?.lastRebalanceAt
+        : cfg?.lastSignalAt;
+  return isHeartbeatDue(tsField, heartbeatMinMs);
+}
+
+/**
+ * Whether to insert a BTC3 skip rebalance row (throttled — avoids spam docs).
+ * @param {Date | string | null | undefined} lastRebalanceAt
+ * @param {{ heartbeatMinMs?: number }} [options]
+ * @returns {boolean}
+ */
+export function shouldWriteBtc3SkipRebalance(lastRebalanceAt, options = {}) {
+  const heartbeatMinMs =
+    options.heartbeatMinMs ?? getHeartbeatMinMs("BTC3_SKIP_REBALANCE_MIN_MS", 30 * 60_000);
+  return isHeartbeatDue(lastRebalanceAt, heartbeatMinMs);
+}

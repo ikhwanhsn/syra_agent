@@ -4,8 +4,25 @@
  */
 import { runTokensAgentTool } from './tokensAgentService.js';
 
+const DOSSIER_CACHE_TTL_MS = 60_000;
+
+/** @type {Map<string, { expires: number; data: object }>} */
+const dossierCache = new Map();
+
 function trim(v) {
   return v != null ? String(v).trim() : '';
+}
+
+/**
+ * @param {{ ref?: string; mint?: string; assetId?: string; lite?: boolean }} input
+ */
+function dossierCacheKey(input) {
+  return [
+    trim(input.assetId).toLowerCase(),
+    trim(input.mint),
+    trim(input.ref).toLowerCase(),
+    input.lite === true ? 'lite' : 'full',
+  ].join('|');
 }
 
 /** @param {string} s */
@@ -26,6 +43,12 @@ export async function buildMintDossier(input) {
 
   if (!ref && !mint && !assetIdParam) {
     return { ok: false, error: 'Provide ref, mint, or assetId', status: 400 };
+  }
+
+  const cacheKey = dossierCacheKey({ ref, mint, assetId: assetIdParam, lite });
+  const cached = dossierCache.get(cacheKey);
+  if (cached && Date.now() < cached.expires) {
+    return { ok: true, data: cached.data };
   }
 
   /** @type {{ ref?: string; mint?: string; assetId?: string }} */
@@ -121,32 +144,39 @@ export async function buildMintDossier(input) {
   const candles =
     ohlcvResult?.ok && Array.isArray(ohlcvResult.data?.candles) ? ohlcvResult.data.candles : [];
 
+  const data = {
+    query,
+    assetId,
+    chartMint: chartMint || null,
+    resolve: resolveData,
+    asset,
+    includes,
+    ohlcv: ohlcvResult?.ok
+      ? {
+          interval: ohlcvResult.data?.interval ?? '1H',
+          mint: ohlcvResult.data?.mint ?? chartMint ?? null,
+          from: ohlcvResult.data?.from ?? null,
+          to: ohlcvResult.data?.to ?? null,
+          candles,
+        }
+      : {
+          interval: '1H',
+          mint: chartMint ?? null,
+          candles: [],
+          error: ohlcvResult?.error ?? (lite ? 'skipped' : undefined),
+        },
+    mintRisk,
+    fetchedAt: new Date().toISOString(),
+  };
+
+  dossierCache.set(cacheKey, {
+    data,
+    expires: Date.now() + DOSSIER_CACHE_TTL_MS,
+  });
+
   return {
     ok: true,
-    data: {
-      query,
-      assetId,
-      chartMint: chartMint || null,
-      resolve: resolveData,
-      asset,
-      includes,
-      ohlcv: ohlcvResult?.ok
-        ? {
-            interval: ohlcvResult.data?.interval ?? '1H',
-            mint: ohlcvResult.data?.mint ?? chartMint ?? null,
-            from: ohlcvResult.data?.from ?? null,
-            to: ohlcvResult.data?.to ?? null,
-            candles,
-          }
-        : {
-            interval: '1H',
-            mint: chartMint ?? null,
-            candles: [],
-            error: ohlcvResult?.error ?? (lite ? 'skipped' : undefined),
-          },
-      mintRisk,
-      fetchedAt: new Date().toISOString(),
-    },
+    data,
     requestId: detailResult.requestId,
   };
 }

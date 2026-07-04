@@ -193,6 +193,17 @@ export async function runMacroIntelligencePipeline() {
         }),
       );
 
+      await runStep("real_rebalance", pipelineRunId, async () => {
+        const { applyRealRebalance } = await import("./btc3RealService.js");
+        return applyRealRebalance({
+          decisionId: optimization.decision._id,
+          macroEventId: eventObj._id,
+          targetAllocation: optimization.targetAllocation,
+          headline: eventObj.headline,
+          confidence: optimization.confidence,
+        });
+      });
+
       const updatedPortfolio = await getPaperPortfolioForOptimizer();
 
       await prepareExecutionQuote({

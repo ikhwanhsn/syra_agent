@@ -63,6 +63,7 @@ const lpExperimentRunSchema = new mongoose.Schema(
 );
 
 lpExperimentRunSchema.index({ experimentId: 1, strategyId: 1, status: 1, createdAt: -1 });
+lpExperimentRunSchema.index({ experimentId: 1, status: 1 });
 lpExperimentRunSchema.index({ strategyId: 1, status: 1, createdAt: -1 });
 lpExperimentRunSchema.index({ status: 1, createdAt: -1 });
 lpExperimentRunSchema.index({ strategyId: 1, poolAddress: 1, status: 1, createdAt: -1 });

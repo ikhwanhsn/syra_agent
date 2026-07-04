@@ -28,6 +28,9 @@ const articleCache = new Map();
 /** @type {Promise<RawArticle[]> | null} */
 let inflightFetch = null;
 
+/** @type {{ expires: number; data: RawArticle[] } | null} */
+let rawArticlesCache = null;
+
 /**
  * @param {string} s
  * @returns {string}
@@ -120,17 +123,51 @@ function setCached(cacheKey, data) {
 }
 
 /**
- * Fetch all RSS sources (deduped inflight).
+ * Fetch all RSS sources (deduped inflight + TTL cache).
  * @returns {Promise<RawArticle[]>}
  */
 export async function fetchAllRawArticles() {
+  if (rawArticlesCache && Date.now() < rawArticlesCache.expires) {
+    return rawArticlesCache.data;
+  }
   if (inflightFetch) return inflightFetch;
   inflightFetch = fetchAllSources()
-    .then((items) => dedupeArticles(items))
+    .then((items) => {
+      const data = dedupeArticles(items);
+      rawArticlesCache = {
+        data,
+        expires: Date.now() + INTERNAL_NEWS_CACHE_TTL_MS,
+      };
+      return data;
+    })
     .finally(() => {
       inflightFetch = null;
     });
   return inflightFetch;
+}
+
+/**
+ * Prefer warm cache; otherwise wait up to `ms` for the full index.
+ * On timeout returns [] while the crawl continues warming the cache.
+ * @param {number} ms
+ * @returns {Promise<RawArticle[]>}
+ */
+export async function fetchAllRawArticlesWithin(ms) {
+  if (rawArticlesCache && Date.now() < rawArticlesCache.expires) {
+    return rawArticlesCache.data;
+  }
+  const budget = Math.max(250, Number(ms) || 0);
+  let timer;
+  try {
+    return await Promise.race([
+      fetchAllRawArticles(),
+      new Promise((resolve) => {
+        timer = setTimeout(() => resolve(/** @type {RawArticle[]} */ ([])), budget);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /**

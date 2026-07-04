@@ -113,7 +113,7 @@ export function mintToSwapToken(mint: string, hints?: SwapTokenHints): SelectedS
       symbol: hints?.symbol ?? preset.label,
       name: hints?.name ?? preset.label,
       decimals: preset.decimals,
-      icon: hints?.icon ?? null,
+      icon: hints?.icon ?? preset.icon,
       isVerified: true,
     };
   }

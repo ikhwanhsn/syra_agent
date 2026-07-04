@@ -1,5 +1,6 @@
 /**
  * BTC quant real agent — onchain cbBTC spot-long via Jupiter from custodial invest wallet.
+ * Supports paper-sim lanes btc1 and btc2 (separate config + positions per lane).
  */
 import AgentWallet from "../models/agent/AgentWallet.js";
 import BtcQuantRealConfig from "../models/BtcQuantRealConfig.js";
@@ -7,7 +8,6 @@ import BtcQuantRealPosition from "../models/BtcQuantRealPosition.js";
 import TradingExperimentRun from "../models/TradingExperimentRun.js";
 import {
   BTC_QUANT_QUOTE_DECIMALS,
-  CBBTC_DECIMALS,
   EXPERIMENT_SUITE_BTC_ONCHAIN,
 } from "../config/tradingExperimentStrategies.js";
 import {
@@ -22,6 +22,12 @@ import { executeBtcQuantJupiterSwap, BTC_QUANT_SWAP_MINTS } from "./btcQuantJupi
 import BtcQuantExperimentState from "../models/BtcQuantExperimentState.js";
 import { siblingAnonymousId, purposeQuery } from "./agentWalletPurpose.js";
 import { fetchCbbtcSpotPriceUsd } from "./btcQuantOnchainMarket.js";
+import {
+  BTC_QUANT_LANE_IDS,
+  getBtcQuantLaneDef,
+  normalizeBtcQuantLane,
+} from "../config/btcQuantLanes.js";
+import { shouldTouchRealConfigMeta } from "../utils/mongoHeartbeatWrite.js";
 
 const DEFAULT_LIST_LIMIT = 50;
 const MAX_LIST_LIMIT = 200;
@@ -37,6 +43,17 @@ function normalizeLimit(limit) {
   return Math.min(MAX_LIST_LIMIT, Math.floor(n));
 }
 
+function realConfigId(lane) {
+  return getBtcQuantLaneDef(lane).stateId;
+}
+
+function realTitle(lane) {
+  const laneDef = getBtcQuantLaneDef(lane);
+  return laneDef.lane === "btc2"
+    ? "BTC quant agent real (cbBTC)"
+    : "BTC quant real (cbBTC)";
+}
+
 export function isBtcQuantRealCronEnabled() {
   const env = String(process.env.BTC_QUANT_REAL_CRON_ENABLED || "").trim().toLowerCase();
   return env === "1" || env === "true" || env === "yes";
@@ -46,21 +63,37 @@ async function fetchBtcSpotPrice() {
   return fetchCbbtcSpotPriceUsd();
 }
 
-async function getOrCreateRealConfig() {
-  await ensureBtcQuantBootstrapped();
-  const state = await BtcQuantExperimentState.findById("singleton").lean();
+/**
+ * @param {unknown} [lane]
+ */
+async function getOrCreateRealConfig(lane = "btc1") {
+  const laneKey = normalizeBtcQuantLane(lane);
+  const laneDef = getBtcQuantLaneDef(laneKey);
+  await ensureBtcQuantBootstrapped(laneKey);
+  const state = await BtcQuantExperimentState.findById(laneDef.stateId).lean();
   const experimentId = state?.activeExperimentId;
-  let cfg = await BtcQuantRealConfig.findById("singleton");
+  const configId = realConfigId(laneKey);
+
+  let cfg = await BtcQuantRealConfig.findById(configId);
   if (!cfg) {
     cfg = await BtcQuantRealConfig.create({
-      _id: "singleton",
+      _id: configId,
+      lane: laneKey,
       enabled: false,
       experimentId,
-      title: "BTC quant real (cbBTC)",
+      title: realTitle(laneKey),
     });
-  } else if (cfg.experimentId !== experimentId) {
-    cfg.experimentId = experimentId;
-    await cfg.save();
+  } else {
+    let dirty = false;
+    if (cfg.experimentId !== experimentId) {
+      cfg.experimentId = experimentId;
+      dirty = true;
+    }
+    if (cfg.lane !== laneKey) {
+      cfg.lane = laneKey;
+      dirty = true;
+    }
+    if (dirty) await cfg.save();
   }
   return cfg;
 }
@@ -84,22 +117,51 @@ function usdcRawFromUsd(usd) {
   return BigInt(Math.max(0, Math.floor(toNum(usd, 0) * 10 ** BTC_QUANT_QUOTE_DECIMALS)));
 }
 
-export async function getBtcQuantRealState({ viewerAnonymousId } = {}) {
-  const cfg = await getOrCreateRealConfig();
-  const openPositions = await BtcQuantRealPosition.countDocuments({
-    experimentId: cfg.experimentId,
-    status: { $in: ["open", "opening", "closing"] },
-  });
-  const closed = await BtcQuantRealPosition.find({
-    experimentId: cfg.experimentId,
-    status: { $in: ["closed_win", "closed_loss", "expired"] },
-  }).lean();
-  const realizedPnlUsd = closed.reduce((sum, p) => sum + toNum(p.realNetPnlUsd, 0), 0);
-  const wins = closed.filter((p) => p.status === "closed_win").length;
-  const losses = closed.filter((p) => p.status === "closed_loss").length;
+/** Legacy btc1 positions may omit `lane`; treat missing as btc1. */
+function lanePositionFilter(laneKey) {
+  if (laneKey === "btc1") {
+    return { $or: [{ lane: "btc1" }, { lane: { $exists: false } }, { lane: null }] };
+  }
+  return { lane: laneKey };
+}
+
+/**
+ * @param {{ viewerAnonymousId?: string | null; lane?: string }} [opts]
+ */
+export async function getBtcQuantRealState({ viewerAnonymousId, lane = "btc1" } = {}) {
+  const laneKey = normalizeBtcQuantLane(lane);
+  const cfg = await getOrCreateRealConfig(laneKey);
+  const [openPositions, closedAgg] = await Promise.all([
+    BtcQuantRealPosition.countDocuments({
+      experimentId: cfg.experimentId,
+      ...lanePositionFilter(laneKey),
+      status: { $in: ["open", "opening", "closing"] },
+    }),
+    BtcQuantRealPosition.aggregate([
+      {
+        $match: {
+          experimentId: cfg.experimentId,
+          ...lanePositionFilter(laneKey),
+          status: { $in: ["closed_win", "closed_loss", "expired"] },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          realizedPnlUsd: { $sum: { $ifNull: ["$realNetPnlUsd", 0] } },
+          wins: { $sum: { $cond: [{ $eq: ["$status", "closed_win"] }, 1, 0] } },
+          losses: { $sum: { $cond: [{ $eq: ["$status", "closed_loss"] }, 1, 0] } },
+        },
+      },
+    ]),
+  ]);
+  const realizedPnlUsd = toNum(closedAgg[0]?.realizedPnlUsd);
+  const wins = toNum(closedAgg[0]?.wins);
+  const losses = toNum(closedAgg[0]?.losses);
   const decided = wins + losses;
 
   return {
+    lane: laneKey,
     enabled: cfg.enabled,
     experimentId: cfg.experimentId,
     title: cfg.title,
@@ -129,10 +191,20 @@ export async function getBtcQuantRealState({ viewerAnonymousId } = {}) {
   };
 }
 
-export async function listBtcQuantRealPositions({ limit, offset, status, experimentId } = {}) {
-  const cfg = await getOrCreateRealConfig();
+/**
+ * @param {{ limit?: number; offset?: number; status?: string; experimentId?: string; lane?: string }} [opts]
+ */
+export async function listBtcQuantRealPositions({
+  limit,
+  offset,
+  status,
+  experimentId,
+  lane = "btc1",
+} = {}) {
+  const laneKey = normalizeBtcQuantLane(lane);
+  const cfg = await getOrCreateRealConfig(laneKey);
   const expId = experimentId || cfg.experimentId;
-  const filter = { experimentId: expId };
+  const filter = { experimentId: expId, ...lanePositionFilter(laneKey) };
   if (status) filter.status = status;
   const lim = normalizeLimit(limit);
   const off = Math.max(0, Number(offset) || 0);
@@ -141,6 +213,7 @@ export async function listBtcQuantRealPositions({ limit, offset, status, experim
     BtcQuantRealPosition.countDocuments(filter),
   ]);
   return {
+    lane: laneKey,
     positions: positions.map((p) => ({
       ...p,
       dataSource: p.dataSource ?? p.cexSource ?? null,
@@ -149,20 +222,36 @@ export async function listBtcQuantRealPositions({ limit, offset, status, experim
   };
 }
 
-export async function enableBtcQuantReal({ anonymousId, enabledBy, leaderStrategyId, maxNotionalUsd }) {
+/**
+ * @param {{
+ *   anonymousId: string;
+ *   enabledBy?: string;
+ *   leaderStrategyId?: number;
+ *   maxNotionalUsd?: number;
+ *   lane?: string;
+ * }} input
+ */
+export async function enableBtcQuantReal({
+  anonymousId,
+  enabledBy,
+  leaderStrategyId,
+  maxNotionalUsd,
+  lane = "btc1",
+}) {
   if (!anonymousId) throw new Error("anonymousId required");
+  const laneKey = normalizeBtcQuantLane(lane);
   const wallet = await resolveInvestWallet(anonymousId);
   const investAid = siblingAnonymousId(anonymousId, "invest");
-  const cfg = await getOrCreateRealConfig();
+  const cfg = await getOrCreateRealConfig(laneKey);
 
-  const stats = await getBtcQuantStats("btc1");
+  const stats = await getBtcQuantStats(laneKey);
   const best = stats.experimentId ? await pickBestBtcQuantStrategy(stats.experimentId) : null;
   const leader =
     leaderStrategyId != null
-      ? await resolveBtcQuantStrategyById("btc1", leaderStrategyId)
+      ? await resolveBtcQuantStrategyById(laneKey, leaderStrategyId)
       : best
-        ? await resolveBtcQuantStrategyById("btc1", best.strategyId)
-        : await resolveBtcQuantStrategyById("btc1", 14);
+        ? await resolveBtcQuantStrategyById(laneKey, best.strategyId)
+        : await resolveBtcQuantStrategyById(laneKey, 14);
   if (!leader) throw new Error("Invalid leader strategy");
 
   cfg.enabled = true;
@@ -178,48 +267,72 @@ export async function enableBtcQuantReal({ anonymousId, enabledBy, leaderStrateg
   cfg.closeAllRequested = false;
   await cfg.save();
 
-  return getBtcQuantRealState({ viewerAnonymousId: anonymousId });
+  return getBtcQuantRealState({ viewerAnonymousId: anonymousId, lane: laneKey });
 }
 
-export async function disableBtcQuantReal({ anonymousId }) {
-  const cfg = await getOrCreateRealConfig();
+/**
+ * @param {{ anonymousId: string; lane?: string }} input
+ */
+export async function disableBtcQuantReal({ anonymousId, lane = "btc1" }) {
+  const laneKey = normalizeBtcQuantLane(lane);
+  const cfg = await getOrCreateRealConfig(laneKey);
   cfg.enabled = false;
   cfg.closeAllRequested = true;
   cfg.lastError = null;
   await cfg.save();
-  return getBtcQuantRealState({ viewerAnonymousId: anonymousId });
+  return getBtcQuantRealState({ viewerAnonymousId: anonymousId, lane: laneKey });
 }
 
-export async function runBtcQuantRealSignalCycle() {
-  const cfg = await getOrCreateRealConfig();
-  if (!cfg.enabled) return { skipped: true, reason: "disabled" };
+/**
+ * @param {unknown} [lane]
+ */
+export async function runBtcQuantRealSignalCycle(lane = "btc1") {
+  const laneKey = normalizeBtcQuantLane(lane);
+  const configId = realConfigId(laneKey);
+  const cfg = await getOrCreateRealConfig(laneKey);
+  if (!cfg.enabled) return { lane: laneKey, skipped: true, reason: "disabled" };
   if (!cfg.anonymousId || !cfg.agentAddress) {
-    return { skipped: true, reason: "no_wallet" };
+    return { lane: laneKey, skipped: true, reason: "no_wallet" };
   }
 
-  await runBtcQuantSignalCycle();
-  await resolveOpenBtcQuantRuns();
+  await runBtcQuantSignalCycle(laneKey);
+  await resolveOpenBtcQuantRuns(laneKey);
 
   const openCount = await BtcQuantRealPosition.countDocuments({
     experimentId: cfg.experimentId,
+    ...lanePositionFilter(laneKey),
     status: { $in: ["open", "opening", "closing"] },
   });
   if (openCount > 0) {
-    await BtcQuantRealConfig.updateOne(
-      { _id: "singleton" },
-      { $set: { lastSignalAt: new Date(), lastError: "holding_open_position" } },
-    );
-    return { skipped: true, reason: "holding_open_position" };
+    if (shouldTouchRealConfigMeta(cfg, "holding_open_position", "signal")) {
+      await BtcQuantRealConfig.updateOne(
+        { _id: configId },
+        { $set: { lastSignalAt: new Date(), lastError: "holding_open_position" } },
+      );
+    }
+    return { lane: laneKey, skipped: true, reason: "holding_open_position" };
   }
 
-  const strategy = await resolveBtcQuantStrategyById("btc1", cfg.leaderStrategyId ?? 14);
+  const strategy = await resolveBtcQuantStrategyById(laneKey, cfg.leaderStrategyId ?? 14);
   if (!strategy) {
-    return { skipped: true, reason: "invalid_strategy" };
+    return { lane: laneKey, skipped: true, reason: "invalid_strategy" };
   }
+
+  const laneRunFilter =
+    laneKey === "btc1"
+      ? {
+          $or: [
+            { "summary.lane": "btc1" },
+            { "summary.lane": { $exists: false } },
+            { "summary.lane": null },
+          ],
+        }
+      : { "summary.lane": laneKey };
 
   const simOpen = await TradingExperimentRun.findOne({
     suite: EXPERIMENT_SUITE_BTC_ONCHAIN,
     "summary.experimentId": cfg.experimentId,
+    ...laneRunFilter,
     agentId: strategy.id,
     status: "open",
     clearSignal: "BUY",
@@ -228,11 +341,13 @@ export async function runBtcQuantRealSignalCycle() {
     .lean();
 
   if (!simOpen) {
-    await BtcQuantRealConfig.updateOne(
-      { _id: "singleton" },
-      { $set: { lastSignalAt: new Date(), lastError: "no_sim_buy_signal" } },
-    );
-    return { skipped: true, reason: "no_sim_buy_signal" };
+    if (shouldTouchRealConfigMeta(cfg, "no_sim_buy_signal", "signal")) {
+      await BtcQuantRealConfig.updateOne(
+        { _id: configId },
+        { $set: { lastSignalAt: new Date(), lastError: "no_sim_buy_signal" } },
+      );
+    }
+    return { lane: laneKey, skipped: true, reason: "no_sim_buy_signal" };
   }
 
   const notionalUsd = Math.min(
@@ -241,11 +356,12 @@ export async function runBtcQuantRealSignalCycle() {
   );
   const usdcRaw = usdcRawFromUsd(notionalUsd);
   if (usdcRaw <= 0n) {
-    return { skipped: true, reason: "zero_notional" };
+    return { lane: laneKey, skipped: true, reason: "zero_notional" };
   }
 
   const position = await BtcQuantRealPosition.create({
     experimentId: cfg.experimentId,
+    lane: laneKey,
     strategyId: strategy.id,
     strategyName: strategy.name,
     bar: strategy.bar,
@@ -270,7 +386,7 @@ export async function runBtcQuantRealSignalCycle() {
       outputMint: BTC_QUANT_SWAP_MINTS.cbbtc,
       amountRaw: usdcRaw.toString(),
       estimatedUsd: notionalUsd,
-      summary: `BTC quant real: USDC→cbBTC (${strategy.name})`,
+      summary: `BTC quant ${laneKey} real: USDC→cbBTC (${strategy.name})`,
       slippageBps: cfg.slippageBps ?? 50,
     });
 
@@ -279,7 +395,7 @@ export async function runBtcQuantRealSignalCycle() {
         { _id: position._id },
         { $set: { status: "error", errorMessage: "swap_skipped", resolvedAt: new Date() } },
       );
-      return { skipped: true, reason: "swap_skipped" };
+      return { lane: laneKey, skipped: true, reason: "swap_skipped" };
     }
 
     await BtcQuantRealPosition.updateOne(
@@ -293,11 +409,12 @@ export async function runBtcQuantRealSignalCycle() {
       },
     );
     await BtcQuantRealConfig.updateOne(
-      { _id: "singleton" },
+      { _id: configId },
       { $set: { lastSignalAt: new Date(), lastError: null } },
     );
 
     return {
+      lane: laneKey,
       opened: true,
       positionId: String(position._id),
       txSig: swap.signature,
@@ -310,24 +427,30 @@ export async function runBtcQuantRealSignalCycle() {
       { $set: { status: "error", errorMessage: msg, resolvedAt: new Date() } },
     );
     await BtcQuantRealConfig.updateOne(
-      { _id: "singleton" },
+      { _id: configId },
       { $set: { lastSignalAt: new Date(), lastError: msg } },
     );
-    return { error: msg };
+    return { lane: laneKey, error: msg };
   }
 }
 
-export async function resolveBtcQuantRealPositions() {
-  const cfg = await getOrCreateRealConfig();
+/**
+ * @param {unknown} [lane]
+ */
+export async function resolveBtcQuantRealPositions(lane = "btc1") {
+  const laneKey = normalizeBtcQuantLane(lane);
+  const configId = realConfigId(laneKey);
+  const cfg = await getOrCreateRealConfig(laneKey);
   if (!cfg.enabled || !cfg.anonymousId || !cfg.agentAddress) {
-    return { skipped: true, reason: "disabled" };
+    return { lane: laneKey, skipped: true, reason: "disabled" };
   }
 
   const px = await fetchBtcSpotPrice();
-  if (!(px > 0)) return { resolved: 0, errors: ["no_price"] };
+  if (!(px > 0)) return { lane: laneKey, resolved: 0, errors: ["no_price"] };
 
   const openPositions = await BtcQuantRealPosition.find({
     experimentId: cfg.experimentId,
+    ...lanePositionFilter(laneKey),
     status: "open",
     processing: { $ne: true },
   }).lean();
@@ -371,7 +494,7 @@ export async function resolveBtcQuantRealPositions() {
         outputMint: BTC_QUANT_SWAP_MINTS.usdc,
         amountRaw: cbbtcRaw,
         estimatedUsd: notional,
-        summary: `BTC quant real: cbBTC→USDC close (${pos.strategyName})`,
+        summary: `BTC quant ${laneKey} real: cbBTC→USDC close (${pos.strategyName})`,
         slippageBps: cfg.slippageBps ?? 50,
       });
 
@@ -404,16 +527,42 @@ export async function resolveBtcQuantRealPositions() {
     }
   }
 
-  await BtcQuantRealConfig.updateOne(
-    { _id: "singleton" },
-    {
-      $set: {
-        lastResolveAt: new Date(),
-        lastError: errors.length ? errors[0]?.error : null,
-        closeAllRequested: cfg.closeAllRequested && resolved === 0 ? cfg.closeAllRequested : false,
+  const nextError = errors.length ? errors[0]?.error : null;
+  const closeAllRequested =
+    cfg.closeAllRequested && resolved === 0 ? cfg.closeAllRequested : false;
+  if (
+    closeAllRequested !== cfg.closeAllRequested ||
+    shouldTouchRealConfigMeta(cfg, nextError, "resolve")
+  ) {
+    await BtcQuantRealConfig.updateOne(
+      { _id: configId },
+      {
+        $set: {
+          lastResolveAt: new Date(),
+          lastError: nextError,
+          closeAllRequested,
+        },
       },
-    },
-  );
+    );
+  }
 
-  return { resolved, stillOpen: openPositions.length - resolved, errors };
+  return { lane: laneKey, resolved, stillOpen: openPositions.length - resolved, errors };
+}
+
+export async function runAllBtcQuantRealSignalCycles() {
+  /** @type {Record<string, Awaited<ReturnType<typeof runBtcQuantRealSignalCycle>>>} */
+  const lanes = {};
+  for (const lane of BTC_QUANT_LANE_IDS) {
+    lanes[lane] = await runBtcQuantRealSignalCycle(lane);
+  }
+  return { lanes };
+}
+
+export async function resolveAllBtcQuantRealPositions() {
+  /** @type {Record<string, Awaited<ReturnType<typeof resolveBtcQuantRealPositions>>>} */
+  const lanes = {};
+  for (const lane of BTC_QUANT_LANE_IDS) {
+    lanes[lane] = await resolveBtcQuantRealPositions(lane);
+  }
+  return { lanes };
 }

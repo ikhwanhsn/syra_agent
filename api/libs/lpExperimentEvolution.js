@@ -18,6 +18,7 @@ import {
   computeRealLeaderScore,
   rankLpExperimentStrategiesByNetPnl,
 } from "./lpExperimentService.js";
+import { invalidateLpStrategyCache } from "./lpExperimentStrategyResolve.js";
 import { resolveLpExperimentStrategies } from "./lpExperimentStrategyResolve.js";
 
 /** @template T @param {readonly T[]} arr @returns {T} */
@@ -397,6 +398,7 @@ async function upsertLpStrategyOverride(strat) {
     },
     { upsert: true, new: true },
   );
+  invalidateLpStrategyCache();
 }
 
 /**

@@ -38,6 +38,7 @@ const stocksExperimentRunSchema = new mongoose.Schema(
 );
 
 stocksExperimentRunSchema.index({ experimentId: 1, strategyId: 1, status: 1, createdAt: -1 });
+stocksExperimentRunSchema.index({ experimentId: 1, status: 1, createdAt: -1 });
 stocksExperimentRunSchema.index({ strategyId: 1, status: 1, createdAt: -1 });
 stocksExperimentRunSchema.index({ status: 1, createdAt: -1 });
 stocksExperimentRunSchema.index(

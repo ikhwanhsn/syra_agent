@@ -127,6 +127,7 @@ export interface BtcRunRow {
 }
 
 export interface BtcQuantRealState {
+  lane?: BtcQuantLane;
   enabled: boolean;
   experimentId: string;
   title: string;
@@ -307,8 +308,11 @@ export async function fetchBtcRuns(options: {
   return { runs: body.data.runs, total: body.data.total };
 }
 
-export async function fetchBtcRealState(): Promise<BtcQuantRealState> {
-  const res = await fetch(`${realBase()}/state`, { credentials: "include" });
+export async function fetchBtcRealState(
+  lane: BtcQuantLane = "btc1",
+): Promise<BtcQuantRealState> {
+  const q = new URLSearchParams({ lane });
+  const res = await fetch(`${realBase()}/state?${q}`, { credentials: "include" });
   const { ok, body } = await parseJson<{
     success?: boolean;
     data?: BtcQuantRealState;
@@ -323,8 +327,10 @@ export async function fetchBtcRealState(): Promise<BtcQuantRealState> {
 export async function enableBtcQuantReal(options: {
   leaderStrategyId?: number;
   maxNotionalUsd?: number;
+  lane?: BtcQuantLane;
 } = {}): Promise<BtcQuantRealState> {
-  const res = await fetch(`${realBase()}/enable`, {
+  const lane = options.lane ?? "btc1";
+  const res = await fetch(`${realBase()}/enable?lane=${encodeURIComponent(lane)}`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -341,11 +347,14 @@ export async function enableBtcQuantReal(options: {
   return body.data;
 }
 
-export async function disableBtcQuantReal(): Promise<BtcQuantRealState> {
-  const res = await fetch(`${realBase()}/disable`, {
+export async function disableBtcQuantReal(
+  lane: BtcQuantLane = "btc1",
+): Promise<BtcQuantRealState> {
+  const res = await fetch(`${realBase()}/disable?lane=${encodeURIComponent(lane)}`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ lane }),
   });
   const { ok, body } = await parseJson<{
     success?: boolean;
@@ -394,10 +403,12 @@ export async function fetchBtcRealPositions(options: {
   offset?: number;
   status?: string;
   experimentId?: string;
+  lane?: BtcQuantLane;
 } = {}): Promise<{ positions: BtcRealPositionRow[]; total: number }> {
   const q = new URLSearchParams({
     limit: String(options.limit ?? 25),
     offset: String(options.offset ?? 0),
+    lane: options.lane ?? "btc1",
   });
   if (options.status) q.set("status", options.status);
   if (options.experimentId) q.set("experimentId", options.experimentId);

@@ -5,6 +5,8 @@
  * Stream: wss://stream.binance.com:9443/ws/{symbol}@kline_{interval}
  */
 import WebSocket from "ws";
+import { isBinanceRestBlocked, recordBinanceIpBan } from "./binanceIpBanCircuit.js";
+import { btcRateLimitedFetch } from "./btcProviderRateLimiter.js";
 
 const BINANCE_WS_PRIMARY =
   (process.env.BINANCE_WS_BASE_URL || "wss://stream.binance.com:9443").replace(/\/$/, "");
@@ -111,6 +113,10 @@ function storeBuffer(symbol, interval, rows) {
  * @returns {Promise<unknown[][]>}
  */
 async function seedKlinesFromDataApi(symbol, interval, limit) {
+  if (isBinanceRestBlocked(BINANCE_DATA_API)) {
+    throw new Error("Binance data-api klines: REST circuit open (IP ban)");
+  }
+
   const url = new URL(`${BINANCE_DATA_API}/klines`);
   url.searchParams.set("symbol", symbol.toUpperCase());
   url.searchParams.set("interval", interval);
@@ -121,13 +127,16 @@ async function seedKlinesFromDataApi(symbol, interval, limit) {
       ? AbortSignal.timeout(REST_SEED_TIMEOUT_MS)
       : undefined;
 
-  const res = await fetch(url.toString(), {
+  const res = await btcRateLimitedFetch(url.toString(), {
     headers: { Accept: "application/json" },
     ...(signal ? { signal } : {}),
   });
   const body = await res.json().catch(() => null);
   if (!res.ok) {
     const msg = body?.msg ?? body?.message ?? `HTTP ${res.status}`;
+    if (res.status === 418 || /banned|IP ban/i.test(String(msg))) {
+      recordBinanceIpBan(msg, BINANCE_DATA_API);
+    }
     throw new Error(`Binance data-api klines [${res.status}]: ${msg}`);
   }
   if (!Array.isArray(body) || body.length === 0) {
@@ -309,13 +318,17 @@ export async function getBinanceKlinesFromWsBuffer(symbol, interval, limit) {
 /**
  * Prewarm WS buffers for top symbols on server boot.
  */
+const PREWARM_INTERVALS = ["1h", "15m", "5m"];
+
 export function prewarmBinanceKlineWsBuffers() {
   for (const symbol of PREWARM_SYMBOLS) {
-    ensureWsBuffer(symbol, "1h", 200).catch((err) => {
-      warnThrottled(
-        bufferKey(symbol, "1h"),
-        `[binanceKlineWsBuffer] prewarm ${symbol}: ${err?.message || err}`,
-      );
-    });
+    for (const interval of PREWARM_INTERVALS) {
+      ensureWsBuffer(symbol, interval, 200).catch((err) => {
+        warnThrottled(
+          bufferKey(symbol, interval),
+          `[binanceKlineWsBuffer] prewarm ${symbol} ${interval}: ${err?.message || err}`,
+        );
+      });
+    }
   }
 }

@@ -6,6 +6,7 @@
  */
 import crypto from "crypto";
 import { createBoundedTtlCache } from "../utils/boundedTtlCache.js";
+import { isBinanceRestBlocked, recordBinanceIpBan } from "./binanceIpBanCircuit.js";
 
 const BINANCE_SPOT_BASE = "https://api.binance.com/api/v3";
 const CACHE_TTL_MS = 15 * 1000; // 15s for public endpoints
@@ -57,9 +58,18 @@ export async function fetchBinanceSpotPublic(path, query = {}) {
   const cached = publicCache.get(cacheKey);
   if (cached != null) return cached;
 
+  if (isBinanceRestBlocked(BINANCE_SPOT_BASE)) {
+    throw new Error("Binance REST circuit open (IP ban)");
+  }
+
   const url = qs ? `${BINANCE_SPOT_BASE}/${path}?${qs}` : `${BINANCE_SPOT_BASE}/${path}`;
   const response = await fetch(url);
-  const data = await response.json();
+  const data = await response.json().catch(() => ({}));
+
+  if (response.status === 418 || /banned|IP ban|way too much request weight/i.test(String(data?.msg || ""))) {
+    recordBinanceIpBan(data?.msg || `HTTP ${response.status}`, BINANCE_SPOT_BASE);
+    throw new Error(data?.msg || `Binance ${response.status}`);
+  }
 
   if (data && typeof data.code === "number" && data.code !== 200) {
     throw new Error(data.msg || `Binance API error ${data.code}`);

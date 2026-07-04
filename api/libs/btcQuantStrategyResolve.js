@@ -23,21 +23,44 @@ function mergeBaseWithOverride(base, o) {
   };
 }
 
+const STRATEGY_CACHE_TTL_MS = 60_000;
+/** @type {Map<string, { at: number; list: object[] }>} */
+const strategyCacheByLane = new Map();
+
 /**
  * @param {unknown} lane
  * @returns {Promise<object[]>}
  */
 export async function resolveBtcQuantStrategies(lane = "btc1") {
   const laneDef = getBtcQuantLaneDef(lane);
+  const now = Date.now();
+  const cached = strategyCacheByLane.get(laneDef.lane);
+  if (cached && now - cached.at < STRATEGY_CACHE_TTL_MS) {
+    return cached.list;
+  }
+
   /** @type {import("mongoose").LeanDocument<unknown>[]} */
   let overrides = [];
   try {
     overrides = await BtcQuantStrategyOverride.find({ lane: laneDef.lane }).lean();
   } catch {
-    return BTC_QUANT_STRATEGIES.map((b) => ({ ...b }));
+    const fallback = BTC_QUANT_STRATEGIES.map((b) => ({ ...b }));
+    strategyCacheByLane.set(laneDef.lane, { at: now, list: fallback });
+    return fallback;
   }
   const map = new Map(overrides.map((row) => [row.strategyId, row]));
-  return BTC_QUANT_STRATEGIES.map((b) => mergeBaseWithOverride({ ...b }, map.get(b.id)));
+  const list = BTC_QUANT_STRATEGIES.map((b) => mergeBaseWithOverride({ ...b }, map.get(b.id)));
+  strategyCacheByLane.set(laneDef.lane, { at: now, list });
+  return list;
+}
+
+/** @param {unknown} [lane] */
+export function invalidateBtcQuantStrategyCache(lane) {
+  if (lane == null) {
+    strategyCacheByLane.clear();
+    return;
+  }
+  strategyCacheByLane.delete(getBtcQuantLaneDef(lane).lane);
 }
 
 /**

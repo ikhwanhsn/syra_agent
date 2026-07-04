@@ -33,7 +33,7 @@ async function fetchBtc2AgentBundle() {
       lane: BTC2_LANE,
       experimentId: activeExperimentId,
     }),
-    fetchBtcRealState().catch(() => null),
+    fetchBtcRealState(BTC2_LANE).catch(() => null),
   ]);
 
   const leaderId =
@@ -47,7 +47,11 @@ async function fetchBtc2AgentBundle() {
     fetchBtcSignalReport(bar),
     fetchBtcOhlcv(bar, 80),
     realState?.experimentId
-      ? fetchBtcRealPositions({ limit: 12, experimentId: realState.experimentId }).catch(() => ({
+      ? fetchBtcRealPositions({
+          limit: 12,
+          experimentId: realState.experimentId,
+          lane: BTC2_LANE,
+        }).catch(() => ({
           positions: [],
           total: 0,
         }))

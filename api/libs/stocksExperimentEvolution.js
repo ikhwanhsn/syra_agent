@@ -13,7 +13,10 @@ import {
   STOCKS_STATIC_STRATEGY_COUNT,
 } from "../config/stocksExperimentStrategies.js";
 import { computeStocksLeaderScore } from "./stocksExperimentScoring.js";
-import { resolveStocksExperimentStrategies } from "./stocksStrategyResolve.js";
+import {
+  invalidateStocksStrategyCache,
+  resolveStocksExperimentStrategies,
+} from "./stocksStrategyResolve.js";
 
 export const STOCKS_EXPERIMENT_EVOLUTION_SCHEDULE = Object.freeze({
   enabled: true,
@@ -321,6 +324,7 @@ export async function runStocksExperimentEvolution() {
       { $set: row },
       { upsert: true, new: true },
     );
+    invalidateStocksStrategyCache();
     usedIds.add(newId);
     spawned.push(newId);
   }

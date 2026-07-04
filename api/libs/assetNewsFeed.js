@@ -1,10 +1,14 @@
 /**
  * Asset-scoped news/sentiment/events for dashboard intelligence (no x402, no general crypto fallback).
+ *
+ * Fast path: Google News (asset-specific) + warm RSS index when available within a short budget.
+ * Avoids waiting on the full multi-source RSS crawl (often >6s cold), which previously caused
+ * "News timed out" / "Events timed out" on the asset detail page.
  */
 import { resolveTickerFromCoingecko } from '../utils/coingeckoAPI.js';
 import { fetchSentimentTicker } from './internalNewsAgent.js';
 import {
-  fetchAllRawArticles,
+  fetchAllRawArticlesWithin,
   filterArticlesByAssetKeywords,
   toCryptonewsShape,
 } from './newsAggregator.js';
@@ -12,6 +16,10 @@ import { fetchGoogleNewsForAsset } from './newsSources/googleNewsRss.js';
 import { fetchCoinMarketCalEventsFiltered } from './assetEventsFromNews.js';
 
 const CACHE_TTL_MS = 90 * 1000;
+/** Full RSS index is slow cold — only wait this long; Google News is the primary source. */
+const INDEX_BUDGET_MS = 2_500;
+const GOOGLE_NEWS_TIMEOUT_MS = 4_500;
+const COINMARKETCAL_TIMEOUT_MS = 3_500;
 const NEWS_LIST_ITEMS = Math.min(
   100,
   Math.max(
@@ -26,6 +34,10 @@ const newsCache = new Map();
 const sentimentCache = new Map();
 /** @type {Map<string, { expires: number; data: unknown }>} */
 const eventCache = new Map();
+/** @type {Map<string, { expires: number; data: import('./newsSources/rssParser.js').RawArticle[] }>} */
+const articlePackCache = new Map();
+/** @type {Map<string, Promise<import('./newsSources/rssParser.js').RawArticle[]>>} */
+const inflightArticles = new Map();
 
 /**
  * @param {string} ticker
@@ -36,6 +48,23 @@ function cacheKey(ticker, keywordQuery = {}) {
   const primary = (keywordQuery.primary || []).join('|');
   const all = (keywordQuery.all || []).join('|');
   return `${base}:${primary}:${all}`;
+}
+
+/**
+ * @template T
+ * @param {Promise<T>} promise
+ * @param {number} ms
+ * @param {T} fallback
+ * @returns {Promise<T>}
+ */
+function settleWithin(promise, ms, fallback) {
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((resolve) => {
+      timer = setTimeout(() => resolve(fallback), ms);
+    }),
+  ]).finally(() => clearTimeout(timer));
 }
 
 /**
@@ -54,14 +83,41 @@ export async function resolveNewsTicker(tickerOrName) {
 }
 
 /**
+ * Shared article pack for news / sentiment / events (one network burst per asset).
  * @param {{ primary?: string[]; all?: string[] }} keywordQuery
+ * @returns {Promise<import('./newsSources/rssParser.js').RawArticle[]>}
  */
-async function fetchRawArticlesForAsset(keywordQuery) {
-  const [indexArticles, googleArticles] = await Promise.all([
-    fetchAllRawArticles(),
-    fetchGoogleNewsForAsset(keywordQuery),
-  ]);
-  return filterArticlesByAssetKeywords([...indexArticles, ...googleArticles], keywordQuery);
+export async function fetchRawArticlesForAsset(keywordQuery) {
+  const key = cacheKey('raw', keywordQuery);
+  const cached = articlePackCache.get(key);
+  if (cached && Date.now() < cached.expires) return cached.data;
+
+  const inflight = inflightArticles.get(key);
+  if (inflight) return inflight;
+
+  const promise = (async () => {
+    // Google News is asset-targeted and usually finishes in 1–3s.
+    // Full RSS index only contributes when warm or finishes within INDEX_BUDGET_MS.
+    const [indexArticles, googleArticles] = await Promise.all([
+      fetchAllRawArticlesWithin(INDEX_BUDGET_MS),
+      fetchGoogleNewsForAsset(keywordQuery, GOOGLE_NEWS_TIMEOUT_MS),
+    ]);
+
+    const filtered = filterArticlesByAssetKeywords(
+      [...indexArticles, ...googleArticles],
+      keywordQuery,
+    );
+
+    if (filtered.length > 0) {
+      articlePackCache.set(key, { data: filtered, expires: Date.now() + CACHE_TTL_MS });
+    }
+    return filtered;
+  })().finally(() => {
+    inflightArticles.delete(key);
+  });
+
+  inflightArticles.set(key, promise);
+  return promise;
 }
 
 /**
@@ -177,8 +233,12 @@ export async function getAssetSentiment(ticker, keywordQuery = {}) {
 
   let result = [];
   if (ticker && ticker !== 'GENERAL') {
-    const raw = await fetchSentimentTicker(ticker);
-    result = Object.keys(raw).map((date) => ({ date, ticker: raw[date] }));
+    try {
+      const raw = await settleWithin(fetchSentimentTicker(ticker), 2_500, {});
+      result = Object.keys(raw).map((date) => ({ date, ticker: raw[date] }));
+    } catch {
+      result = [];
+    }
   }
 
   if (!hasSentimentData(result)) {
@@ -257,7 +317,17 @@ export async function getAssetEvents(ticker, keywordQuery = {}) {
   const hit = eventCache.get(key);
   if (hit && Date.now() < hit.expires) return hit.data;
 
-  const recentArticles = (await fetchRawArticlesForAsset(keywordQuery)).filter(
+  // Articles + CoinMarketCal in parallel (CMC used to run after articles and blow the budget).
+  const [rawArticles, calFiltered] = await Promise.all([
+    fetchRawArticlesForAsset(keywordQuery),
+    settleWithin(
+      fetchCoinMarketCalEventsFiltered(keywordQuery).catch(() => []),
+      COINMARKETCAL_TIMEOUT_MS,
+      [],
+    ),
+  ]);
+
+  const recentArticles = rawArticles.filter(
     (a) => new Date(a.publishedAt).getTime() >= Date.now() - 168 * 60 * 60 * 1000,
   );
 
@@ -266,8 +336,7 @@ export async function getAssetEvents(ticker, keywordQuery = {}) {
     recentArticles.filter((a) => EVENT_HEADLINE_RE.test(`${a.title} ${a.description}`)),
   );
 
-  const calFiltered = await fetchCoinMarketCalEventsFiltered(keywordQuery);
-  if (calFiltered.length > 0) {
+  if (Array.isArray(calFiltered) && calFiltered.length > 0) {
     result = [...result, ...calFiltered];
   }
 
@@ -277,4 +346,90 @@ export async function getAssetEvents(ticker, keywordQuery = {}) {
     eventCache.set(key, { data: result, expires: Date.now() + CACHE_TTL_MS });
   }
   return result;
+}
+
+/**
+ * Single burst for intelligence: shared articles, no outer race that surfaces "timed out".
+ * @param {string} ticker
+ * @param {{ primary?: string[]; all?: string[] }} keywordQuery
+ * @param {{ newsLimit?: number }} [opts]
+ */
+export async function buildAssetFeedBundle(ticker, keywordQuery = {}, opts = {}) {
+  const newsLimit = opts.newsLimit ?? 8;
+
+  const newsKey = cacheKey(ticker, keywordQuery);
+  const newsHit = newsCache.get(newsKey);
+  const sentimentHit = sentimentCache.get(newsKey);
+  const eventHit = eventCache.get(newsKey);
+
+  if (
+    newsHit &&
+    Date.now() < newsHit.expires &&
+    sentimentHit &&
+    Date.now() < sentimentHit.expires &&
+    eventHit &&
+    Date.now() < eventHit.expires
+  ) {
+    return {
+      news: Array.isArray(newsHit.data) ? newsHit.data.slice(0, newsLimit) : [],
+      sentiment: sentimentHit.data,
+      events: eventHit.data,
+    };
+  }
+
+  const articlesP = fetchRawArticlesForAsset(keywordQuery);
+  const sentimentTickerP =
+    ticker && ticker !== 'GENERAL'
+      ? settleWithin(fetchSentimentTicker(ticker), 2_500, {}).catch(() => ({}))
+      : Promise.resolve({});
+  const calP = settleWithin(
+    fetchCoinMarketCalEventsFiltered(keywordQuery).catch(() => []),
+    COINMARKETCAL_TIMEOUT_MS,
+    [],
+  );
+
+  const [rawArticles, sentimentRaw, calFiltered] = await Promise.all([
+    articlesP,
+    sentimentTickerP,
+    calP,
+  ]);
+
+  const newsRows = dedupeNewsArticles(
+    rawArticles
+      .slice()
+      .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+      .slice(0, NEWS_LIST_ITEMS)
+      .map(toCryptonewsShape),
+  );
+  const news = newsRows.slice(0, newsLimit);
+  if (newsRows.length > 0) {
+    newsCache.set(newsKey, { data: newsRows, expires: Date.now() + CACHE_TTL_MS });
+  }
+
+  let sentiment = Object.keys(sentimentRaw || {}).map((date) => ({
+    date,
+    ticker: sentimentRaw[date],
+  }));
+  if (!hasSentimentData(sentiment)) {
+    sentiment = deriveSentimentRowsFromArticles(rawArticles);
+  }
+  if (sentiment.length > 0) {
+    sentimentCache.set(newsKey, { data: sentiment, expires: Date.now() + CACHE_TTL_MS });
+  }
+
+  const recentArticles = rawArticles.filter(
+    (a) => new Date(a.publishedAt).getTime() >= Date.now() - 168 * 60 * 60 * 1000,
+  );
+  let events = eventsFromArticles(
+    recentArticles.filter((a) => EVENT_HEADLINE_RE.test(`${a.title} ${a.description}`)),
+  );
+  if (Array.isArray(calFiltered) && calFiltered.length > 0) {
+    events = [...events, ...calFiltered];
+  }
+  events = filterEventRowsByAsset(events, keywordQuery);
+  if (events.length > 0) {
+    eventCache.set(newsKey, { data: events, expires: Date.now() + CACHE_TTL_MS });
+  }
+
+  return { news, sentiment, events };
 }

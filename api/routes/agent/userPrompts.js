@@ -1,5 +1,12 @@
 import express from 'express';
 import UserPrompt, { VALID_CATEGORIES } from '../../models/agent/UserPrompt.js';
+import {
+  buildPlaybookAiDailyLimitMessage,
+  getPlaybookAiDailyQuota,
+  refundPlaybookAiDaily,
+  tryConsumePlaybookAiDaily,
+} from '../../libs/playbookAiDailyLimit.js';
+import { generatePlaybookDraft } from '../../libs/playbookAiGenerator.js';
 
 const router = express.Router();
 
@@ -84,6 +91,87 @@ router.post('/', async (req, res) => {
     return res.status(201).json({ success: true, prompt: item });
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /agent/marketplace/prompts/ai-quota
+ * Daily AI fill quota for playbook drafts. Query: anonymousId
+ */
+router.get('/ai-quota', async (req, res) => {
+  try {
+    const anonymousId = String(req.query.anonymousId ?? '').trim();
+    if (!anonymousId) {
+      return res.status(400).json({ success: false, error: 'anonymousId is required' });
+    }
+    const quota = await getPlaybookAiDailyQuota(anonymousId);
+    return res.json({
+      success: true,
+      quota: {
+        limit: quota.limit,
+        used: quota.used,
+        remaining: quota.remaining,
+        dayUtc: quota.dayUtc ?? new Date().toISOString().slice(0, 10),
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * POST /agent/marketplace/prompts/ai-generate
+ * Generate a full playbook draft with AI (max 5/day per anonymousId, UTC).
+ * Body: { anonymousId, idea? }
+ */
+router.post('/ai-generate', async (req, res) => {
+  const anonymousId = String(req.body?.anonymousId ?? '').trim();
+  if (!anonymousId) {
+    return res.status(400).json({ success: false, error: 'anonymousId is required' });
+  }
+
+  const consume = await tryConsumePlaybookAiDaily(anonymousId);
+  if (!consume.allowed) {
+    return res.status(429).json({
+      success: false,
+      error: buildPlaybookAiDailyLimitMessage(consume.limit),
+      code: 'daily_limit',
+      quota: {
+        limit: consume.limit,
+        used: consume.used,
+        remaining: consume.remaining,
+      },
+    });
+  }
+
+  try {
+    const idea = req.body?.idea != null ? String(req.body.idea) : '';
+    const draft = await generatePlaybookDraft({ idea });
+    return res.json({
+      success: true,
+      draft,
+      quota: {
+        limit: consume.limit,
+        used: consume.used,
+        remaining: consume.remaining,
+      },
+    });
+  } catch (error) {
+    await refundPlaybookAiDaily(anonymousId);
+    const quota = await getPlaybookAiDailyQuota(anonymousId);
+    const message =
+      error?.message === 'OPENROUTER_API_KEY is not set'
+        ? 'AI is temporarily unavailable. Please fill the form manually.'
+        : error?.message || 'Failed to generate playbook';
+    return res.status(500).json({
+      success: false,
+      error: message,
+      quota: {
+        limit: quota.limit,
+        used: quota.used,
+        remaining: quota.remaining,
+      },
+    });
   }
 });
 

@@ -18,19 +18,17 @@ import {
   computeAgentCashFromEquity,
   computeExperimentNotionalUsd,
 } from "../config/tradingExperimentSim.js";
-import {
-  resolveStocksExperimentStrategies,
-  resolveStocksStrategyById,
-} from "./stocksStrategyResolve.js";
+import { resolveStocksExperimentStrategies } from "./stocksStrategyResolve.js";
 import {
   resolveStocksUniverse,
   fetchAllStockNewsSignals,
   scoreStockSignal,
   applyStocksSignalGate,
 } from "./stocksNewsSignals.js";
-import { fetchStockPricesBatch, fetchStockPrice } from "./stocksPriceFeed.js";
+import { fetchStockPricesBatch } from "./stocksPriceFeed.js";
 import { rankStocksStrategiesByPnl } from "./stocksExperimentEvolution.js";
 import { computeStocksLeaderScore, MIN_DECIDED_FOR_LEADER } from "./stocksExperimentScoring.js";
+import { shouldWriteStocksRunHeartbeat } from "../utils/mongoHeartbeatWrite.js";
 
 const DEFAULT_LIST_LIMIT = 50;
 const MAX_LIST_LIMIT = 200;
@@ -123,59 +121,111 @@ function mergedSimConfig(stateDoc) {
 }
 
 /**
+ * Batch ledgers for all strategies — 2 aggregates + 1 agent-state read.
+ * @param {string | null} experimentId
+ * @param {Array<{ id: number; name?: string }>} strategies
+ * @param {{ startingBankUsd: number }} cfg
+ */
+async function computeAllAgentLedgers(experimentId, strategies, cfg) {
+  /** @type {Map<number, { openPositions: number; deployedUsd: number }>} */
+  const openMap = new Map();
+  /** @type {Map<number, { realizedPnlUsd: number; wins: number; losses: number; expired: number }>} */
+  const settledMap = new Map();
+  /** @type {Map<number, number>} */
+  const startingBankMap = new Map();
+
+  if (experimentId) {
+    const [openAgg, settledAgg, agentRows] = await Promise.all([
+      StocksExperimentRun.aggregate([
+        { $match: { experimentId, status: "open" } },
+        {
+          $group: {
+            _id: "$strategyId",
+            openPositions: { $sum: 1 },
+            deployedUsd: { $sum: { $ifNull: ["$notionalUsd", 0] } },
+          },
+        },
+      ]),
+      StocksExperimentRun.aggregate([
+        { $match: { experimentId, status: { $in: ["win", "loss", "expired"] } } },
+        {
+          $group: {
+            _id: "$strategyId",
+            realizedPnlUsd: { $sum: { $ifNull: ["$simPnlUsd", 0] } },
+            wins: { $sum: { $cond: [{ $eq: ["$status", "win"] }, 1, 0] } },
+            losses: { $sum: { $cond: [{ $eq: ["$status", "loss"] }, 1, 0] } },
+            expired: { $sum: { $cond: [{ $eq: ["$status", "expired"] }, 1, 0] } },
+          },
+        },
+      ]),
+      StocksExperimentAgentState.find({ experimentId })
+        .select({ strategyId: 1, startingBankUsd: 1 })
+        .lean(),
+    ]);
+    for (const row of openAgg) {
+      openMap.set(Number(row._id), {
+        openPositions: toNum(row.openPositions),
+        deployedUsd: roundUsd(toNum(row.deployedUsd)),
+      });
+    }
+    for (const row of settledAgg) {
+      settledMap.set(Number(row._id), {
+        realizedPnlUsd: roundUsd(toNum(row.realizedPnlUsd)),
+        wins: toNum(row.wins),
+        losses: toNum(row.losses),
+        expired: toNum(row.expired),
+      });
+    }
+    for (const row of agentRows) {
+      startingBankMap.set(Number(row.strategyId), toNum(row.startingBankUsd, cfg.startingBankUsd));
+    }
+  }
+
+  return strategies.map((s) => {
+    const open = openMap.get(s.id) || { openPositions: 0, deployedUsd: 0 };
+    const settled = settledMap.get(s.id) || {
+      realizedPnlUsd: 0,
+      wins: 0,
+      losses: 0,
+      expired: 0,
+    };
+    const startingBankUsd = startingBankMap.get(s.id) ?? cfg.startingBankUsd;
+    const realizedPnlUsd = settled.realizedPnlUsd;
+    const equityUsd = computeAgentEquityFromRealizedPnl(realizedPnlUsd);
+    const cashUsd = computeAgentCashFromEquity(equityUsd, open.deployedUsd);
+    const decided = settled.wins + settled.losses;
+    const winRate = decided > 0 ? settled.wins / decided : null;
+    return {
+      strategyId: s.id,
+      strategyName: s.name,
+      cashUsd,
+      startingBankUsd,
+      openPositions: open.openPositions,
+      deployedUsd: open.deployedUsd,
+      equityUsd,
+      realizedPnlUsd,
+      returnPct: computeAgentReturnPct(equityUsd, startingBankUsd),
+      wins: settled.wins,
+      losses: settled.losses,
+      expired: settled.expired,
+      decided,
+      winRate,
+      winRatePct: winRate != null ? roundUsd(winRate * 100) : null,
+      sumPnlUsd: realizedPnlUsd,
+    };
+  });
+}
+
+/**
  * @param {string} experimentId
  * @param {number} strategyId
+ * @param {{ startingBankUsd: number }} [cfg]
  */
-async function computeAgentLedger(experimentId, strategyId) {
-  const cfg = mergedSimConfig(await StocksExperimentState.findById("singleton").lean());
-  const baseFilter = { experimentId, strategyId };
-
-  const [openRuns, settledAgg, agentState] = await Promise.all([
-    StocksExperimentRun.find({ ...baseFilter, status: "open" }).lean(),
-    StocksExperimentRun.aggregate([
-      { $match: { ...baseFilter, status: { $in: ["win", "loss", "expired"] } } },
-      {
-        $group: {
-          _id: null,
-          realizedPnlUsd: { $sum: { $ifNull: ["$simPnlUsd", 0] } },
-          wins: { $sum: { $cond: [{ $eq: ["$status", "win"] }, 1, 0] } },
-          losses: { $sum: { $cond: [{ $eq: ["$status", "loss"] }, 1, 0] } },
-          expired: { $sum: { $cond: [{ $eq: ["$status", "expired"] }, 1, 0] } },
-        },
-      },
-    ]),
-    StocksExperimentAgentState.findOne({ experimentId, strategyId }).lean(),
-  ]);
-
-  const realizedPnlUsd = roundUsd(settledAgg[0]?.realizedPnlUsd ?? 0);
-  const deployedUsd = roundUsd(
-    openRuns.reduce((sum, r) => sum + toNum(r.notionalUsd, 0), 0),
-  );
-  const equityUsd = computeAgentEquityFromRealizedPnl(realizedPnlUsd);
-  const cashUsd = computeAgentCashFromEquity(equityUsd, deployedUsd);
-  const wins = settledAgg[0]?.wins ?? 0;
-  const losses = settledAgg[0]?.losses ?? 0;
-  const expired = settledAgg[0]?.expired ?? 0;
-  const decided = wins + losses;
-  const winRate = decided > 0 ? wins / decided : null;
-
-  return {
-    strategyId,
-    cashUsd,
-    startingBankUsd: agentState?.startingBankUsd ?? cfg.startingBankUsd,
-    openPositions: openRuns.length,
-    deployedUsd,
-    equityUsd,
-    realizedPnlUsd,
-    returnPct: computeAgentReturnPct(equityUsd, cfg.startingBankUsd),
-    wins,
-    losses,
-    expired,
-    decided,
-    winRate,
-    winRatePct: winRate != null ? roundUsd(winRate * 100) : null,
-    sumPnlUsd: realizedPnlUsd,
-  };
+async function computeAgentLedger(experimentId, strategyId, cfg) {
+  const simCfg =
+    cfg ?? mergedSimConfig(await StocksExperimentState.findById("singleton").lean());
+  const [row] = await computeAllAgentLedgers(experimentId, [{ id: strategyId }], simCfg);
+  return row;
 }
 
 export async function getStocksLabState() {
@@ -184,9 +234,7 @@ export async function getStocksLabState() {
   const experimentId = state?.activeExperimentId ?? null;
   const cfg = mergedSimConfig(state);
   const strategies = await resolveStocksExperimentStrategies();
-  const agents = await Promise.all(
-    strategies.map((s) => computeAgentLedger(experimentId, s.id)),
-  );
+  const agents = await computeAllAgentLedgers(experimentId, strategies, cfg);
 
   return {
     activeExperimentId: experimentId,
@@ -209,29 +257,28 @@ export async function getStocksStats() {
   await ensureStocksBootstrapped();
   const state = await StocksExperimentState.findById("singleton").lean();
   const experimentId = state?.activeExperimentId ?? null;
+  const cfg = mergedSimConfig(state);
   const strategies = await resolveStocksExperimentStrategies();
+  const ledgers = await computeAllAgentLedgers(experimentId, strategies, cfg);
 
-  const agents = await Promise.all(
-    strategies.map(async (s) => {
-      const ledger = await computeAgentLedger(experimentId, s.id);
-      return {
-        strategyId: s.id,
-        strategyName: s.name,
-        wins: ledger.wins,
-        losses: ledger.losses,
-        expired: ledger.expired,
-        decided: ledger.decided,
-        winRate: ledger.winRate,
-        winRatePct: ledger.winRatePct,
-        openPositions: ledger.openPositions,
-        cashUsd: ledger.cashUsd,
-        equityUsd: ledger.equityUsd,
-        returnPct: ledger.returnPct,
-        sumPnlUsd: ledger.sumPnlUsd,
-        leaderScore: computeStocksLeaderScore(ledger),
-      };
-    }),
-  );
+  const agents = ledgers.map((ledger) => ({
+    strategyId: ledger.strategyId,
+    strategyName: ledger.strategyName,
+    wins: ledger.wins,
+    losses: ledger.losses,
+    expired: ledger.expired,
+    decided: ledger.decided,
+    winRate: ledger.winRate,
+    winRatePct: ledger.winRatePct,
+    openPositions: ledger.openPositions,
+    cashUsd: ledger.cashUsd,
+    startingBankUsd: ledger.startingBankUsd,
+    deployedUsd: ledger.deployedUsd,
+    equityUsd: ledger.equityUsd,
+    returnPct: ledger.returnPct,
+    sumPnlUsd: ledger.sumPnlUsd,
+    leaderScore: computeStocksLeaderScore(ledger),
+  }));
 
   agents.sort((a, b) => {
     const scoreDiff = (b.leaderScore ?? -999) - (a.leaderScore ?? -999);
@@ -243,7 +290,23 @@ export async function getStocksStats() {
 }
 
 export async function getStocksOverview() {
-  const [labState, stats] = await Promise.all([getStocksLabState(), getStocksStats()]);
+  const stats = await getStocksStats();
+  const state = await StocksExperimentState.findById("singleton").lean();
+  const labState = {
+    activeExperimentId: stats.experimentId,
+    title: state?.title ?? "Stocks news trading lab",
+    startedAt: state?.startedAt?.toISOString?.() ?? null,
+    simConfig: mergedSimConfig(state),
+    agents: stats.agents.map((a) => ({
+      strategyId: a.strategyId,
+      cashUsd: a.cashUsd,
+      startingBankUsd: a.startingBankUsd,
+      openPositions: a.openPositions,
+      deployedUsd: a.deployedUsd,
+      equityUsd: a.equityUsd,
+      returnPct: a.returnPct,
+    })),
+  };
   const universe = await resolveStocksUniverse();
   const leader = stats.agents[0] ?? null;
 
@@ -355,7 +418,7 @@ export async function getStocksNewsFeed({ limit = 12 } = {}) {
 
 export async function runStocksSignalCycle() {
   await ensureStocksBootstrapped();
-  const state = await StocksExperimentState.findById("singleton");
+  const state = await StocksExperimentState.findById("singleton").lean();
   const experimentId = state.activeExperimentId;
   const cfg = mergedSimConfig(state);
 
@@ -384,21 +447,19 @@ export async function runStocksSignalCycle() {
   const skipped = [];
   const errors = [];
   const strategies = await resolveStocksExperimentStrategies();
+  const ledgers = await computeAllAgentLedgers(experimentId, strategies, cfg);
+  const ledgerById = new Map(ledgers.map((l) => [l.strategyId, l]));
 
   for (const strategy of strategies) {
     try {
-      const openCount = await StocksExperimentRun.countDocuments({
-        experimentId,
-        strategyId: strategy.id,
-        status: "open",
-      });
+      const ledger = ledgerById.get(strategy.id);
+      const openCount = ledger?.openPositions ?? 0;
       if (openCount >= cfg.maxConcurrentPositions) {
         skipped.push({ strategyId: strategy.id, reason: "max_concurrent" });
         continue;
       }
 
-      const ledger = await computeAgentLedger(experimentId, strategy.id);
-      const notional = computeExperimentNotionalUsd(ledger.cashUsd);
+      const notional = computeExperimentNotionalUsd(ledger?.cashUsd ?? 0);
       if (notional < TRADING_EXPERIMENT_MIN_TRADE_NOTIONAL_USD) {
         skipped.push({ strategyId: strategy.id, reason: "insufficient_cash" });
         continue;
@@ -479,27 +540,39 @@ export async function runStocksSignalCycle() {
 
 export async function resolveOpenStocksRuns() {
   await ensureStocksBootstrapped();
-  const state = await StocksExperimentState.findById("singleton");
+  const state = await StocksExperimentState.findById("singleton").lean();
   const experimentId = state.activeExperimentId;
 
   const openRuns = await StocksExperimentRun.find({ experimentId, status: "open" })
-    .select("_id strategyId mint nasdaqTicker entryPriceUsd notionalUsd openedAt")
+    .select("_id strategyId mint nasdaqTicker entryPriceUsd notionalUsd openedAt lastEvaluatedAt")
     .lean();
   if (openRuns.length === 0) {
     return { experimentId, resolved: 0, stillOpen: 0, errors: [] };
   }
 
-  let resolved = 0;
+  const priceMap = await fetchStockPricesBatch(
+    openRuns.map((r) => ({
+      symbol: r.mint,
+      mint: r.mint,
+      nasdaqTicker: r.nasdaqTicker,
+    })),
+  );
+
   const errors = [];
+  /** @type {import('mongoose').AnyBulkWriteOperation[]} */
+  const bulkOps = [];
+  let resolved = 0;
+  const strategies = await resolveStocksExperimentStrategies();
+  const strategyById = new Map(strategies.map((s) => [s.id, s]));
 
   for (const run of openRuns) {
     try {
-      const strategy = await resolveStocksStrategyById(run.strategyId);
+      const strategy = strategyById.get(run.strategyId) ?? null;
       const exit = strategy?.exit ?? {};
       const entry = Number(run.entryPriceUsd);
       const notional = Number(run.notionalUsd) || TRADING_EXPERIMENT_MIN_TRADE_NOTIONAL_USD;
 
-      const priceResult = await fetchStockPrice(run.mint, run.nasdaqTicker);
+      const priceResult = priceMap[run.mint];
       if (!priceResult?.priceUsd) {
         errors.push({ runId: String(run._id), error: "no_price" });
         continue;
@@ -533,31 +606,36 @@ export async function resolveOpenStocksRuns() {
       }
 
       if (!status) {
-        await StocksExperimentRun.updateOne(
-          { _id: run._id },
-          { $set: { lastEvaluatedAt: new Date() } },
-        );
+        if (shouldWriteStocksRunHeartbeat(run)) {
+          bulkOps.push({
+            updateOne: {
+              filter: { _id: run._id },
+              update: { $set: { lastEvaluatedAt: new Date() } },
+            },
+          });
+        }
         continue;
       }
 
       const simPnlUsd =
         entry > 0 && exitPx > 0 ? roundUsd(notional * (exitPx / entry - 1)) : 0;
       const simPnlPct = entry > 0 ? roundUsd(((exitPx - entry) / entry) * 100) : 0;
-      await StocksExperimentRun.updateOne(
-        { _id: run._id, status: "open" },
-        {
-          $set: {
-            status,
-            resolution,
-            simExitPrice: exitPx,
-            simPnlUsd,
-            simPnlPct,
-            resolvedAt: new Date(),
-            lastEvaluatedAt: new Date(),
+      bulkOps.push({
+        updateOne: {
+          filter: { _id: run._id, status: "open" },
+          update: {
+            $set: {
+              status,
+              resolution,
+              simExitPrice: exitPx,
+              simPnlUsd,
+              simPnlPct,
+              resolvedAt: new Date(),
+              lastEvaluatedAt: new Date(),
+            },
           },
         },
-      );
-
+      });
       resolved += 1;
     } catch (e) {
       errors.push({
@@ -567,12 +645,16 @@ export async function resolveOpenStocksRuns() {
     }
   }
 
-  const stillOpen = await StocksExperimentRun.countDocuments({
-    experimentId,
-    status: "open",
-  });
+  if (bulkOps.length > 0) {
+    await StocksExperimentRun.bulkWrite(bulkOps, { ordered: false });
+  }
 
-  return { experimentId, resolved, stillOpen, errors };
+  return {
+    experimentId,
+    resolved,
+    stillOpen: Math.max(0, openRuns.length - resolved),
+    errors,
+  };
 }
 
 export async function rankStocksByNetPnl(experimentId) {

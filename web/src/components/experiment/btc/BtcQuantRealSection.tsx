@@ -8,49 +8,66 @@ import {
   enableBtcQuantReal,
   fetchBtcRealState,
   formatBtcUsd,
+  type BtcQuantLane,
 } from "@/lib/btcQuantApi";
 import { overviewCardShell, overviewKickerClass } from "@/components/dashboard/overview/overviewStyles";
 import { useSyraAuth } from "@/contexts/SyraAuthContext";
 import { useWalletContext } from "@/contexts/WalletContext";
 
-export function BtcQuantRealSection() {
+type Props = {
+  lane?: BtcQuantLane;
+  title?: string;
+  description?: string;
+};
+
+export function BtcQuantRealSection({
+  lane = "btc1",
+  title = "Real cbBTC agent",
+  description,
+}: Props) {
   const queryClient = useQueryClient();
   const { syraAuthenticated } = useSyraAuth();
   const { address } = useWalletContext();
 
   const realQ = useQuery({
-    queryKey: ["btc-quant", "real-state"],
-    queryFn: fetchBtcRealState,
+    queryKey: ["btc-quant", "real-state", lane],
+    queryFn: () => fetchBtcRealState(lane),
     refetchInterval: 60_000,
   });
 
   const enableM = useMutation({
-    mutationFn: () => enableBtcQuantReal({}),
+    mutationFn: () => enableBtcQuantReal({ lane }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["btc-quant"] });
+      void queryClient.invalidateQueries({ queryKey: ["btc2-quant"] });
     },
   });
 
   const disableM = useMutation({
-    mutationFn: () => disableBtcQuantReal(),
+    mutationFn: () => disableBtcQuantReal(lane),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["btc-quant"] });
+      void queryClient.invalidateQueries({ queryKey: ["btc2-quant"] });
     },
   });
 
   const state = realQ.data;
   const busy = enableM.isPending || disableM.isPending;
   const canToggle = Boolean(address && syraAuthenticated) && state?.canEnable;
+  const blurb =
+    description ??
+    (lane === "btc2"
+      ? "Mirrors the BTC2 sim leader: USDC → cbBTC via Jupiter from your custodial invest wallet. Set BTC_QUANT_REAL_CRON_ENABLED=true on the API for autonomous ticks."
+      : "Mirrors the sim leader: USDC → cbBTC via Jupiter from your custodial invest wallet. Set BTC_QUANT_REAL_CRON_ENABLED=true on the API for autonomous ticks.");
 
   return (
     <section id="real-agent" className="scroll-mt-8 space-y-4">
       <div>
         <p className={cn(overviewKickerClass, "text-[10px] uppercase tracking-wider")}>Onchain execution</p>
-        <h2 className="mt-1 text-lg font-semibold tracking-tight">Real cbBTC agent</h2>
+        <h2 className="mt-1 text-lg font-semibold tracking-tight">{title}</h2>
         <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-          Mirrors the sim leader: USDC → cbBTC via Jupiter from your custodial invest wallet. Set{" "}
-          <code className="rounded bg-muted px-1 text-xs">BTC_QUANT_REAL_CRON_ENABLED=true</code> on the API
-          for autonomous ticks.
+          {blurb}{" "}
+          <code className="rounded bg-muted px-1 text-xs">lane={lane}</code>
         </p>
       </div>
 

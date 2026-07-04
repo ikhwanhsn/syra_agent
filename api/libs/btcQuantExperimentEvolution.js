@@ -12,7 +12,10 @@ import {
   BTC_QUANT_STATIC_STRATEGY_COUNT,
 } from "../config/tradingExperimentStrategies.js";
 import { getBtcQuantLaneDef } from "../config/btcQuantLanes.js";
-import { resolveBtcQuantStrategies } from "./btcQuantStrategyResolve.js";
+import {
+  invalidateBtcQuantStrategyCache,
+  resolveBtcQuantStrategies,
+} from "./btcQuantStrategyResolve.js";
 
 /** @template T @param {readonly T[]} arr @returns {T} */
 function pick(arr) {
@@ -340,6 +343,7 @@ async function upsertBtcStrategyOverride(strat) {
     },
     { upsert: true, new: true },
   );
+  invalidateBtcQuantStrategyCache(strat.lane);
 }
 
 /**
@@ -365,12 +369,24 @@ async function getEvolutionDoc(lane) {
  * @param {number} strategyId
  */
 export async function isStrategyOnEvolutionCooldown(lane, strategyId) {
+  const cooldownIds = await getEvolutionCooldownStrategyIds(lane);
+  return cooldownIds.has(strategyId);
+}
+
+/**
+ * Load active evolution cooldowns once per signal cycle (avoids N reads).
+ * @param {string} lane
+ * @returns {Promise<Set<number>>}
+ */
+export async function getEvolutionCooldownStrategyIds(lane) {
   const doc = await getEvolutionDoc(lane);
   const now = Date.now();
-  const hit = (doc?.strategyCooldowns || []).find(
-    (row) => row.strategyId === strategyId && new Date(row.until).getTime() > now,
-  );
-  return Boolean(hit);
+  const ids = new Set();
+  for (const row of doc?.strategyCooldowns || []) {
+    if (row?.strategyId == null) continue;
+    if (new Date(row.until).getTime() > now) ids.add(Number(row.strategyId));
+  }
+  return ids;
 }
 
 /**

@@ -51,14 +51,25 @@ function overrideRowToStrategy(o) {
   };
 }
 
+const STRATEGY_CACHE_TTL_MS = 60_000;
+/** @type {{ at: number; list: object[] } | null} */
+let strategyCache = null;
+
 /** @returns {Promise<object[]>} */
 export async function resolveStocksExperimentStrategies() {
+  const now = Date.now();
+  if (strategyCache && now - strategyCache.at < STRATEGY_CACHE_TTL_MS) {
+    return strategyCache.list;
+  }
+
   /** @type {import("mongoose").LeanDocument<any>[]} */
   let overrides = [];
   try {
     overrides = await StocksExperimentStrategyOverride.find({}).lean();
   } catch {
-    return STOCKS_EXPERIMENT_STRATEGIES.map((b) => ({ ...b }));
+    const fallback = STOCKS_EXPERIMENT_STRATEGIES.map((b) => ({ ...b }));
+    strategyCache = { at: now, list: fallback };
+    return fallback;
   }
   const map = new Map(overrides.map((row) => [row.strategyId, row]));
   const staticIds = new Set(STOCKS_EXPERIMENT_STRATEGIES.map((b) => b.id));
@@ -68,7 +79,13 @@ export async function resolveStocksExperimentStrategies() {
   const dynamicOnly = overrides
     .filter((row) => !staticIds.has(row.strategyId))
     .map(overrideRowToStrategy);
-  return [...staticMerged, ...dynamicOnly].sort((a, b) => a.id - b.id);
+  const list = [...staticMerged, ...dynamicOnly].sort((a, b) => a.id - b.id);
+  strategyCache = { at: now, list };
+  return list;
+}
+
+export function invalidateStocksStrategyCache() {
+  strategyCache = null;
 }
 
 /** @param {number} strategyId */

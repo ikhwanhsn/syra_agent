@@ -968,6 +968,20 @@ export interface UserPromptItem {
   updatedAt?: string;
 }
 
+export interface PlaybookAiQuota {
+  limit: number;
+  used: number;
+  remaining: number;
+  dayUtc?: string;
+}
+
+export interface PlaybookAiDraft {
+  title: string;
+  description: string;
+  category: string;
+  prompt: string;
+}
+
 export const userPromptsApi = {
   /** List all user-created prompts (for discovery). Optional `anonymousId` filters to one creator. */
   async list(params?: { category?: string; limit?: number; skip?: number; anonymousId?: string }): Promise<{ prompts: UserPromptItem[] }> {
@@ -988,6 +1002,28 @@ export const userPromptsApi = {
       method: "POST",
       headers: { "Content-Type": "application/json", ...getApiHeaders() },
       body: JSON.stringify({ anonymousId, ...payload }),
+    });
+    return handleRes(res);
+  },
+
+  /** Daily AI fill quota for playbook drafts (UTC day, max 5). */
+  async getAiQuota(anonymousId: string): Promise<{ quota: PlaybookAiQuota }> {
+    const params = new URLSearchParams({ anonymousId });
+    const res = await fetch(`${agentMarketplacePromptsBase()}/ai-quota?${params}`, {
+      headers: getApiHeaders(),
+    });
+    return handleRes(res);
+  },
+
+  /** Generate a full playbook draft with AI (counts toward daily limit). */
+  async generateWithAi(
+    anonymousId: string,
+    idea?: string,
+  ): Promise<{ draft: PlaybookAiDraft; quota: PlaybookAiQuota }> {
+    const res = await fetch(`${agentMarketplacePromptsBase()}/ai-generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...getApiHeaders() },
+      body: JSON.stringify({ anonymousId, idea: idea?.trim() || undefined }),
     });
     return handleRes(res);
   },

@@ -48,7 +48,7 @@ export function createInvestRouter() {
       }
       const { adapter, action, toolId, params } = req.body ?? {};
       if (!adapter || typeof adapter !== 'string') {
-        return res.status(400).json({ success: false, error: 'adapter is required (giza|lp_real|jupiter|rise)' });
+        return res.status(400).json({ success: false, error: 'adapter is required (jupiter)' });
       }
       const result = await deployInvestCapital({
         anonymousId,

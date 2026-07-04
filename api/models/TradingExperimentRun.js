@@ -70,6 +70,14 @@ tradingExperimentRunSchema.index({ agentId: 1, status: 1, createdAt: -1 });
 tradingExperimentRunSchema.index({ suite: 1, agentId: 1, status: 1, createdAt: -1 });
 tradingExperimentRunSchema.index({ userStrategyId: 1, status: 1, createdAt: -1 });
 tradingExperimentRunSchema.index({ createdAt: -1 });
+/** BTC quant lane ledger / signal scans */
+tradingExperimentRunSchema.index({
+  suite: 1,
+  "summary.experimentId": 1,
+  "summary.lane": 1,
+  status: 1,
+  agentId: 1,
+});
 // TTL: purge settled runs after N days (default 45)
 tradingExperimentRunSchema.index(
   { resolvedAt: 1 },

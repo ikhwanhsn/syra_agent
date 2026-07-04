@@ -16,6 +16,7 @@ import { SystemLogs } from "@/components/btc2-experiment/SystemLogs";
 import { AgentSidebar } from "@/components/btc2-experiment/AgentSidebar";
 import { Button } from "@/components/ui/button";
 import { BtcQuantLearningPanel } from "@/components/experiment/btc/BtcQuantLearningPanel";
+import { BtcQuantRealSection } from "@/components/experiment/btc/BtcQuantRealSection";
 import { useBtc2AgentState } from "@/hooks/useBtc2AgentState";
 import { fetchBtcLearning } from "@/lib/btcQuantApi";
 import { useQuery } from "@tanstack/react-query";
@@ -77,6 +78,11 @@ export default function Btc2QuantAgentExperiment() {
               <Transparency predictions={state.onchainPredictions} />
               <Architecture />
               <BtcQuantLearningPanel learning={learningQ.data} loading={learningQ.isLoading} />
+              <BtcQuantRealSection
+                lane="btc2"
+                title="Real cbBTC agent (BTC2)"
+                description="Mirrors the BTC2 desk leader strategy: USDC → cbBTC via Jupiter from your custodial invest wallet. Separate from BTC1 real. Set BTC_QUANT_REAL_CRON_ENABLED=true on the API for autonomous ticks."
+              />
               <Performance performance={state.performance} />
               <RecentTrades trades={state.recentTrades} />
               <SystemLogs logs={state.logs} />

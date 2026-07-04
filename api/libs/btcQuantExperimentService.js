@@ -39,7 +39,7 @@ import {
 } from "../config/btcQuantLanes.js";
 import { resolveBtcQuantStrategies, resolveBtcQuantStrategyById } from "./btcQuantStrategyResolve.js";
 import {
-  isStrategyOnEvolutionCooldown,
+  getEvolutionCooldownStrategyIds,
   pickBestBtcQuantStrategy,
   rankBtcQuantStrategiesByPnl,
   ensureBtcQuantLaneStrategyVariants,
@@ -243,59 +243,111 @@ async function fetchBtcSpotPrice() {
 }
 
 /**
+ * Build ledger rows for all strategies with 2 aggregates (not N×2 queries).
+ * @param {string | null} experimentId
+ * @param {unknown} lane
+ * @param {Array<{ id: number; name?: string; bar?: string; dataSource?: string }>} strategies
+ * @param {{ startingBankUsd: number }} cfg
+ */
+async function computeAllAgentLedgers(experimentId, lane, strategies, cfg) {
+  /** @type {Map<number, { openPositions: number; deployedUsd: number }>} */
+  const openMap = new Map();
+  /** @type {Map<number, { realizedPnlUsd: number; wins: number; losses: number; expired: number; avgPnlUsd: number }>} */
+  const settledMap = new Map();
+
+  if (experimentId) {
+    const baseFilter = experimentFilter(experimentId, lane);
+    const [openAgg, settledAgg] = await Promise.all([
+      TradingExperimentRun.aggregate([
+        { $match: { ...baseFilter, status: "open" } },
+        {
+          $group: {
+            _id: "$agentId",
+            openPositions: { $sum: 1 },
+            deployedUsd: { $sum: { $ifNull: ["$notionalUsd", 0] } },
+          },
+        },
+      ]),
+      TradingExperimentRun.aggregate([
+        { $match: { ...baseFilter, status: { $in: ["win", "loss", "expired"] } } },
+        {
+          $group: {
+            _id: "$agentId",
+            realizedPnlUsd: { $sum: { $ifNull: ["$simPnlUsd", 0] } },
+            wins: { $sum: { $cond: [{ $eq: ["$status", "win"] }, 1, 0] } },
+            losses: { $sum: { $cond: [{ $eq: ["$status", "loss"] }, 1, 0] } },
+            expired: { $sum: { $cond: [{ $eq: ["$status", "expired"] }, 1, 0] } },
+            avgPnlUsd: { $avg: { $ifNull: ["$simPnlUsd", 0] } },
+          },
+        },
+      ]),
+    ]);
+    for (const row of openAgg) {
+      openMap.set(Number(row._id), {
+        openPositions: toNum(row.openPositions),
+        deployedUsd: roundUsd(toNum(row.deployedUsd)),
+      });
+    }
+    for (const row of settledAgg) {
+      settledMap.set(Number(row._id), {
+        realizedPnlUsd: roundUsd(toNum(row.realizedPnlUsd)),
+        wins: toNum(row.wins),
+        losses: toNum(row.losses),
+        expired: toNum(row.expired),
+        avgPnlUsd: roundUsd(toNum(row.avgPnlUsd)),
+      });
+    }
+  }
+
+  return strategies.map((s) => {
+    const open = openMap.get(s.id) || { openPositions: 0, deployedUsd: 0 };
+    const settled = settledMap.get(s.id) || {
+      realizedPnlUsd: 0,
+      wins: 0,
+      losses: 0,
+      expired: 0,
+      avgPnlUsd: 0,
+    };
+    const realizedPnlUsd = settled.realizedPnlUsd;
+    const equityUsd = computeAgentEquityFromRealizedPnl(realizedPnlUsd);
+    const cashUsd = computeAgentCashFromEquity(equityUsd, open.deployedUsd);
+    const decided = settled.wins + settled.losses;
+    const winRate = decided > 0 ? settled.wins / decided : null;
+    return {
+      agentId: s.id,
+      strategyId: s.id,
+      strategyName: s.name,
+      bar: s.bar,
+      dataSource: s.dataSource,
+      cashUsd,
+      startingBankUsd: cfg.startingBankUsd,
+      openPositions: open.openPositions,
+      deployedUsd: open.deployedUsd,
+      equityUsd,
+      realizedPnlUsd,
+      returnPct: computeAgentReturnPct(equityUsd, cfg.startingBankUsd),
+      wins: settled.wins,
+      losses: settled.losses,
+      expired: settled.expired,
+      decided,
+      winRate,
+      winRatePct: winRate != null ? roundUsd(winRate * 100) : null,
+      sumPnlUsd: realizedPnlUsd,
+      avgPnlUsd: settled.avgPnlUsd,
+    };
+  });
+}
+
+/**
  * @param {string} experimentId
  * @param {number} agentId
  * @param {unknown} [lane]
  */
 async function computeAgentLedger(experimentId, agentId, lane = "btc1") {
   const cfg = mergedSimConfig(await loadLaneState(lane));
-  const baseFilter = { ...experimentFilter(experimentId, lane), agentId };
-
-  const [openRuns, settledAgg] = await Promise.all([
-    TradingExperimentRun.find({ ...baseFilter, status: "open" }).lean(),
-    TradingExperimentRun.aggregate([
-      { $match: { ...baseFilter, status: { $in: ["win", "loss", "expired"] } } },
-      {
-        $group: {
-          _id: null,
-          realizedPnlUsd: { $sum: { $ifNull: ["$simPnlUsd", 0] } },
-          wins: { $sum: { $cond: [{ $eq: ["$status", "win"] }, 1, 0] } },
-          losses: { $sum: { $cond: [{ $eq: ["$status", "loss"] }, 1, 0] } },
-          expired: { $sum: { $cond: [{ $eq: ["$status", "expired"] }, 1, 0] } },
-        },
-      },
-    ]),
-  ]);
-
-  const realizedPnlUsd = roundUsd(settledAgg[0]?.realizedPnlUsd ?? 0);
-  const deployedUsd = roundUsd(
-    openRuns.reduce((sum, r) => sum + toNum(r.notionalUsd, 0), 0),
-  );
-  const equityUsd = computeAgentEquityFromRealizedPnl(realizedPnlUsd);
-  const cashUsd = computeAgentCashFromEquity(equityUsd, deployedUsd);
-  const wins = settledAgg[0]?.wins ?? 0;
-  const losses = settledAgg[0]?.losses ?? 0;
-  const expired = settledAgg[0]?.expired ?? 0;
-  const decided = wins + losses;
-  const winRate = decided > 0 ? wins / decided : null;
-
-  return {
-    agentId,
-    cashUsd,
-    startingBankUsd: cfg.startingBankUsd,
-    openPositions: openRuns.length,
-    deployedUsd,
-    equityUsd,
-    realizedPnlUsd,
-    returnPct: computeAgentReturnPct(equityUsd, cfg.startingBankUsd),
-    wins,
-    losses,
-    expired,
-    decided,
-    winRate,
-    winRatePct: winRate != null ? roundUsd(winRate * 100) : null,
-    sumPnlUsd: realizedPnlUsd,
-  };
+  const strategies = [{ id: agentId }];
+  const [row] = await computeAllAgentLedgers(experimentId, lane, strategies, cfg);
+  return row;
 }
 
 export async function getBtcQuantLabState(lane = "btc1") {
@@ -305,9 +357,7 @@ export async function getBtcQuantLabState(lane = "btc1") {
   const experimentId = state?.activeExperimentId ?? null;
   const cfg = mergedSimConfig(state);
   const strategies = await resolveBtcQuantStrategies(laneDef.lane);
-  const agents = await Promise.all(
-    strategies.map((s) => computeAgentLedger(experimentId, s.id, laneDef.lane)),
-  );
+  const agents = await computeAllAgentLedgers(experimentId, laneDef.lane, strategies, cfg);
   return {
     lane: laneDef.lane,
     activeExperimentId: experimentId,
@@ -328,60 +378,41 @@ export async function getBtcQuantLabState(lane = "btc1") {
 
 export async function getBtcQuantStats(lane = "btc1") {
   const laneDef = getBtcQuantLaneDef(lane);
-  const { activeExperimentId: experimentId } = await getBtcQuantLabState(laneDef.lane);
+  await ensureBtcQuantBootstrapped(laneDef.lane);
+  const state = await loadLaneState(laneDef.lane);
+  const experimentId = state?.activeExperimentId ?? null;
+  const cfg = mergedSimConfig(state);
   const strategies = await resolveBtcQuantStrategies(laneDef.lane);
-  const agents = await Promise.all(
-    strategies.map(async (s) => {
-      const ledger = await computeAgentLedger(experimentId, s.id, laneDef.lane);
-      const settled = await TradingExperimentRun.find({
-        ...experimentFilter(experimentId, laneDef.lane),
-        agentId: s.id,
-        status: { $in: ["win", "loss", "expired"] },
-      }).lean();
-      const avgPnlUsd =
-        settled.length > 0
-          ? roundUsd(settled.reduce((sum, r) => sum + toNum(r.simPnlUsd, 0), 0) / settled.length)
-          : 0;
-      return {
-        strategyId: s.id,
-        strategyName: s.name,
-        bar: s.bar,
-        dataSource: s.dataSource,
-        wins: ledger.wins,
-        losses: ledger.losses,
-        expired: ledger.expired,
-        decided: ledger.decided,
-        winRate: ledger.winRate,
-        winRatePct: ledger.winRatePct,
-        openPositions: ledger.openPositions,
-        cashUsd: ledger.cashUsd,
-        equityUsd: ledger.equityUsd,
-        returnPct: ledger.returnPct,
-        sumPnlUsd: ledger.sumPnlUsd,
-        avgPnlUsd,
-      };
-    }),
-  );
+  const ledgers = await computeAllAgentLedgers(experimentId, laneDef.lane, strategies, cfg);
+  const agents = ledgers.map((ledger) => ({
+    strategyId: ledger.strategyId,
+    strategyName: ledger.strategyName,
+    bar: ledger.bar,
+    dataSource: ledger.dataSource,
+    wins: ledger.wins,
+    losses: ledger.losses,
+    expired: ledger.expired,
+    decided: ledger.decided,
+    winRate: ledger.winRate,
+    winRatePct: ledger.winRatePct,
+    openPositions: ledger.openPositions,
+    cashUsd: ledger.cashUsd,
+    equityUsd: ledger.equityUsd,
+    returnPct: ledger.returnPct,
+    sumPnlUsd: ledger.sumPnlUsd,
+    avgPnlUsd: ledger.avgPnlUsd,
+  }));
   return { agents, experimentId, lane: laneDef.lane };
 }
 
 export async function getBtcQuantOverview(lane = "btc1") {
   const laneDef = getBtcQuantLaneDef(lane);
-  const [state, stats] = await Promise.all([
-    getBtcQuantLabState(laneDef.lane),
-    getBtcQuantStats(laneDef.lane),
-  ]);
-  const experimentId = state.activeExperimentId;
+  const stats = await getBtcQuantStats(laneDef.lane);
+  const experimentId = stats.experimentId;
   const agents = stats.agents;
 
-  const settledRuns = await TradingExperimentRun.countDocuments({
-    ...experimentFilter(experimentId, laneDef.lane),
-    status: { $in: ["win", "loss", "expired"] },
-  });
-  const openPositions = await TradingExperimentRun.countDocuments({
-    ...experimentFilter(experimentId, laneDef.lane),
-    status: "open",
-  });
+  const settledRuns = agents.reduce((sum, a) => sum + toNum(a.decided) + toNum(a.expired), 0);
+  const openPositions = agents.reduce((sum, a) => sum + toNum(a.openPositions), 0);
   const sumPnlUsd = roundUsd(agents.reduce((sum, a) => sum + toNum(a.sumPnlUsd, 0), 0));
   const sumEquityUsd = roundUsd(agents.reduce((sum, a) => sum + toNum(a.equityUsd, 0), 0));
 
@@ -403,7 +434,7 @@ export async function getBtcQuantOverview(lane = "btc1") {
   };
   try {
     const { getBtcQuantRealState } = await import("./btcQuantRealService.js");
-    const real = await getBtcQuantRealState();
+    const real = await getBtcQuantRealState({ lane: laneDef.lane });
     realAgent = {
       enabled: real.enabled,
       openPositions: real.openPositions,
@@ -430,7 +461,7 @@ export async function getBtcQuantOverview(lane = "btc1") {
     },
     simulation: {
       activeExperimentId: experimentId,
-      strategyCount: (await resolveBtcQuantStrategies(laneDef.lane)).length,
+      strategyCount: agents.length,
       settledRuns,
       openPositions,
       sumPnlUsd,
@@ -498,7 +529,7 @@ export async function listBtcQuantRuns({
 export async function runBtcQuantSignalCycle(lane = "btc1") {
   const laneDef = getBtcQuantLaneDef(lane);
   await ensureBtcQuantBootstrapped(laneDef.lane);
-  const state = await BtcQuantExperimentState.findById(laneDef.stateId);
+  const state = await BtcQuantExperimentState.findById(laneDef.stateId).lean();
   const experimentId = state.activeExperimentId;
   const cfg = mergedSimConfig(state);
 
@@ -508,26 +539,27 @@ export async function runBtcQuantSignalCycle(lane = "btc1") {
   const errors = [];
 
   const strategies = await resolveBtcQuantStrategies(laneDef.lane);
+  const [cooldownIds, ledgers] = await Promise.all([
+    getEvolutionCooldownStrategyIds(laneDef.lane),
+    computeAllAgentLedgers(experimentId, laneDef.lane, strategies, cfg),
+  ]);
+  const ledgerById = new Map(ledgers.map((l) => [l.agentId, l]));
 
   for (const strategy of strategies) {
     try {
-      if (await isStrategyOnEvolutionCooldown(laneDef.lane, strategy.id)) {
+      if (cooldownIds.has(strategy.id)) {
         skipped.push({ strategyId: strategy.id, reason: "evolution_cooldown" });
         continue;
       }
 
-      const openCount = await TradingExperimentRun.countDocuments({
-        ...experimentFilter(experimentId, laneDef.lane),
-        agentId: strategy.id,
-        status: "open",
-      });
+      const ledger = ledgerById.get(strategy.id);
+      const openCount = ledger?.openPositions ?? 0;
       if (openCount >= cfg.maxConcurrentPositions) {
         skipped.push({ strategyId: strategy.id, reason: "max_concurrent" });
         continue;
       }
 
-      const ledger = await computeAgentLedger(experimentId, strategy.id, laneDef.lane);
-      const notional = computeExperimentNotionalUsd(ledger.cashUsd);
+      const notional = computeExperimentNotionalUsd(ledger?.cashUsd ?? 0);
       if (notional < TRADING_EXPERIMENT_MIN_TRADE_NOTIONAL_USD) {
         skipped.push({ strategyId: strategy.id, reason: "insufficient_cash" });
         continue;
@@ -651,10 +683,12 @@ export async function resolveOpenBtcQuantRuns(lane = "btc1") {
   const errors = [];
   /** @type {import('mongoose').AnyBulkWriteOperation[]} */
   const bulkOps = [];
+  const strategies = await resolveBtcQuantStrategies(laneDef.lane);
+  const strategyById = new Map(strategies.map((s) => [s.id, s]));
 
   for (const run of openRuns) {
     try {
-      const strategy = await resolveBtcQuantStrategyById(laneDef.lane, run.agentId);
+      const strategy = strategyById.get(run.agentId) ?? null;
       const exit = strategy?.exit ?? {};
       const entry = Number(run.entry);
       const sl = Number(run.stopLoss);
@@ -707,10 +741,7 @@ export async function resolveOpenBtcQuantRuns(lane = "btc1") {
     resolved = bulkResult.modifiedCount ?? 0;
   }
 
-  const stillOpen = await TradingExperimentRun.countDocuments({
-    ...experimentFilter(experimentId, laneDef.lane),
-    status: "open",
-  });
+  const stillOpen = Math.max(0, openRuns.length - resolved);
 
   return { lane: laneDef.lane, experimentId, resolved, stillOpen, errors };
 }

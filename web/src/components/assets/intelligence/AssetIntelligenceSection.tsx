@@ -37,6 +37,7 @@ const EMPTY_SIGNAL: AssetIntelligencePayload["signal"] = {
 function resolveBlocks(
   data: AssetIntelligencePayload | undefined,
   isError: boolean,
+  errorMessage?: string,
 ): {
   sentiment: AssetIntelligencePayload["sentiment"];
   news: AssetIntelligencePayload["news"];
@@ -53,7 +54,7 @@ function resolveBlocks(
   }
 
   const loadError = isError
-    ? "Intelligence data could not be loaded."
+    ? errorMessage?.trim() || "Intelligence data could not be loaded."
     : "No data available yet.";
 
   return {
@@ -68,16 +69,18 @@ export function AssetIntelligenceSection({
   data,
   isLoading,
   isError,
+  errorMessage,
   className,
 }: {
   data?: AssetIntelligencePayload;
   isLoading: boolean;
   isError: boolean;
+  errorMessage?: string;
   className?: string;
 }) {
   if (isLoading) return <AssetIntelligenceSkeleton className={className} />;
 
-  const blocks = resolveBlocks(data, isError);
+  const blocks = resolveBlocks(data, isError, errorMessage);
 
   return (
     <div className={cn("space-y-4 animate-in fade-in duration-300", className)}>

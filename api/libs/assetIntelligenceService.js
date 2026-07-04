@@ -3,15 +3,35 @@
  */
 import { runTokensAgentTool } from './tokensAgentService.js';
 import { resolveAssetIntelligenceKeys } from './assetIntelligenceResolver.js';
-import { getAssetNews, getAssetSentiment, getAssetEvents, resolveNewsTicker } from './assetNewsFeed.js';
+import { buildAssetFeedBundle, resolveNewsTicker } from './assetNewsFeed.js';
 import { loadSignal } from '../routes/signal.js';
 
 const NEWS_LIMIT = 8;
 const EVENTS_LIMIT = 8;
-const SIGNAL_TIMEOUT_MS = 15_000;
+const SIGNAL_TIMEOUT_MS = 8_000;
+const RESOLVE_TIMEOUT_MS = 5_000;
+const INTELLIGENCE_CACHE_TTL_MS = 90_000;
+
+/** @type {Map<string, { expires: number; data: object }>} */
+const intelligenceCache = new Map();
 
 function trim(v) {
   return v != null ? String(v).trim() : '';
+}
+
+/**
+ * @template T
+ * @param {Promise<T>} promise
+ * @param {number} ms
+ * @param {string} label
+ * @returns {Promise<T>}
+ */
+function withTimeout(promise, ms, label) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} timed out`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
 /**
@@ -19,13 +39,22 @@ function trim(v) {
  * @param {string} signalToken
  */
 async function loadSignalWithTimeout(signalToken) {
-  const timeout = new Promise((_, reject) => {
-    setTimeout(() => reject(new Error('Signal request timed out')), SIGNAL_TIMEOUT_MS);
-  });
-  return Promise.race([
+  return withTimeout(
     loadSignal({ token: signalToken, source: 'coingecko' }),
-    timeout,
-  ]);
+    SIGNAL_TIMEOUT_MS,
+    'Signal request',
+  );
+}
+
+/**
+ * @param {{ ref?: string; mint?: string; assetId?: string; symbol?: string; name?: string }} input
+ */
+function intelligenceCacheKey(input) {
+  return [
+    trim(input.assetId).toLowerCase(),
+    trim(input.mint),
+    trim(input.ref).toLowerCase(),
+  ].join('|');
 }
 
 /**
@@ -128,13 +157,32 @@ export async function buildAssetIntelligence(input) {
     return { ok: false, error: 'Provide ref, mint, or assetId', status: 400 };
   }
 
+  const cacheKey = intelligenceCacheKey(input);
+  const cached = intelligenceCache.get(cacheKey);
+  if (cached && Date.now() < cached.expires) {
+    return { ok: true, data: cached.data };
+  }
+
   let assetId = assetIdParam;
   let symbol = trim(input.symbol);
   let name = trim(input.name);
 
   if (!assetId) {
     const resolveParams = mint ? { mint } : { ref };
-    const resolved = await runTokensAgentTool('tokens-assets-resolve', resolveParams);
+    let resolved;
+    try {
+      resolved = await withTimeout(
+        runTokensAgentTool('tokens-assets-resolve', resolveParams),
+        RESOLVE_TIMEOUT_MS,
+        'Asset resolve',
+      );
+    } catch (err) {
+      return {
+        ok: false,
+        error: err instanceof Error ? err.message : 'Could not resolve asset',
+        status: 504,
+      };
+    }
     if (!resolved.ok) {
       return {
         ok: false,
@@ -155,26 +203,40 @@ export async function buildAssetIntelligence(input) {
     }
   }
 
+  // Prefer symbol/name from the request or resolve — skip slow profile fetch when possible.
   if ((!symbol || !name) && assetId) {
-    const detail = await runTokensAgentTool('tokens-asset-detail', {
-      assetId,
-      include: 'profile',
-    });
-    if (detail.ok && detail.data?.asset) {
-      if (!symbol) symbol = trim(detail.data.asset.symbol);
-      if (!name) name = trim(detail.data.asset.name);
+    try {
+      const detail = await withTimeout(
+        runTokensAgentTool('tokens-asset-detail', {
+          assetId,
+          include: 'profile',
+        }),
+        RESOLVE_TIMEOUT_MS,
+        'Asset profile',
+      );
+      if (detail.ok && detail.data?.asset) {
+        if (!symbol) symbol = trim(detail.data.asset.symbol);
+        if (!name) name = trim(detail.data.asset.name);
+      }
+    } catch {
+      /* continue with whatever identifiers we have */
     }
   }
 
   const keys = await resolveAssetIntelligenceKeys({ assetId, symbol, ref, name });
-  const ticker = await resolveNewsTicker(keys.ticker);
+  let ticker = keys.ticker;
+  try {
+    ticker = await withTimeout(resolveNewsTicker(keys.ticker), 3_000, 'Ticker resolve');
+  } catch {
+    ticker = keys.ticker;
+  }
   const keywordQuery = keys.keywordQuery;
   const assetLabel = name || symbol || ticker || assetId;
 
-  const [newsSettled, sentimentSettled, eventsSettled, signalSettled] = await Promise.allSettled([
-    getAssetNews(ticker, keywordQuery, NEWS_LIMIT),
-    getAssetSentiment(ticker, keywordQuery),
-    getAssetEvents(ticker, keywordQuery),
+  // One shared feed burst (Google News + warm index) — no outer 6s race that labeled
+  // successful-but-slow work as "News timed out" / "Events timed out".
+  const [feedSettled, signalSettled] = await Promise.allSettled([
+    buildAssetFeedBundle(ticker, keywordQuery, { newsLimit: NEWS_LIMIT }),
     keys.signalToken
       ? loadSignalWithTimeout(keys.signalToken)
       : Promise.reject(new Error('No signal token for this asset')),
@@ -182,15 +244,6 @@ export async function buildAssetIntelligence(input) {
 
   /** @type {{ ok: boolean; items: unknown[]; error?: string }} */
   const newsBlock = { ok: false, items: [] };
-  if (newsSettled.status === 'fulfilled') {
-    newsBlock.ok = newsSettled.value.length > 0;
-    newsBlock.items = newsSettled.value;
-    if (!newsBlock.ok) newsBlock.error = `No headlines found related to ${assetLabel}`;
-  } else {
-    newsBlock.error =
-      newsSettled.reason instanceof Error ? newsSettled.reason.message : 'News unavailable';
-  }
-
   /** @type {{ ok: boolean; data: Record<string, object>; total: object; error?: string }} */
   const sentimentBlock = {
     ok: false,
@@ -202,30 +255,33 @@ export async function buildAssetIntelligence(input) {
       'Sentiment Score': 0,
     },
   };
-  if (sentimentSettled.status === 'fulfilled') {
-    const built = buildSentimentPayload(sentimentSettled.value);
+  /** @type {{ ok: boolean; items: unknown[]; error?: string }} */
+  const eventsBlock = { ok: false, items: [] };
+
+  if (feedSettled.status === 'fulfilled') {
+    const feed = feedSettled.value;
+
+    newsBlock.items = Array.isArray(feed.news) ? feed.news : [];
+    newsBlock.ok = newsBlock.items.length > 0;
+    if (!newsBlock.ok) newsBlock.error = `No headlines found related to ${assetLabel}`;
+
+    const built = buildSentimentPayload(feed.sentiment);
     sentimentBlock.data = built.data;
     sentimentBlock.total = built.total;
     sentimentBlock.ok =
       Object.keys(built.data).length > 0 ||
       built.total['Total Positive'] + built.total['Total Negative'] + built.total['Total Neutral'] > 0;
     if (!sentimentBlock.ok) sentimentBlock.error = `No sentiment data related to ${assetLabel}`;
-  } else {
-    sentimentBlock.error =
-      sentimentSettled.reason instanceof Error
-        ? sentimentSettled.reason.message
-        : 'Sentiment unavailable';
-  }
 
-  /** @type {{ ok: boolean; items: unknown[]; error?: string }} */
-  const eventsBlock = { ok: false, items: [] };
-  if (eventsSettled.status === 'fulfilled') {
-    eventsBlock.items = flattenEvents(eventsSettled.value, EVENTS_LIMIT);
+    eventsBlock.items = flattenEvents(feed.events, EVENTS_LIMIT);
     eventsBlock.ok = eventsBlock.items.length > 0;
     if (!eventsBlock.ok) eventsBlock.error = `No events found related to ${assetLabel}`;
   } else {
-    eventsBlock.error =
-      eventsSettled.reason instanceof Error ? eventsSettled.reason.message : 'Events unavailable';
+    const feedError =
+      feedSettled.reason instanceof Error ? feedSettled.reason.message : 'Feed unavailable';
+    newsBlock.error = feedError;
+    sentimentBlock.error = feedError;
+    eventsBlock.error = feedError;
   }
 
   /** @type {{ ok: boolean; tradingSignal: string | null; strength: string | null; source: string | null; error?: string }} */
@@ -247,25 +303,29 @@ export async function buildAssetIntelligence(input) {
       signalSettled.reason instanceof Error ? signalSettled.reason.message : 'Signal unavailable';
   }
 
-  return {
-    ok: true,
-    data: {
-      query: {
-        assetId,
-        ticker,
-        signalToken: keys.signalToken,
-        searchKeywords: keywordQuery.all,
-        primaryKeywords: keywordQuery.primary,
-        symbol: symbol || undefined,
-        name: name || undefined,
-        ref: ref || undefined,
-        mint: mint || undefined,
-      },
-      news: newsBlock,
-      sentiment: sentimentBlock,
-      events: eventsBlock,
-      signal: signalBlock,
-      fetchedAt: new Date().toISOString(),
+  const data = {
+    query: {
+      assetId,
+      ticker,
+      signalToken: keys.signalToken,
+      searchKeywords: keywordQuery.all,
+      primaryKeywords: keywordQuery.primary,
+      symbol: symbol || undefined,
+      name: name || undefined,
+      ref: ref || undefined,
+      mint: mint || undefined,
     },
+    news: newsBlock,
+    sentiment: sentimentBlock,
+    events: eventsBlock,
+    signal: signalBlock,
+    fetchedAt: new Date().toISOString(),
   };
+
+  intelligenceCache.set(cacheKey, {
+    data,
+    expires: Date.now() + INTELLIGENCE_CACHE_TTL_MS,
+  });
+
+  return { ok: true, data };
 }

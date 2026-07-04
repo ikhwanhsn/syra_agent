@@ -38,7 +38,7 @@ function presetToSelected(
     symbol: row.label,
     name: row.label,
     decimals: row.decimals,
-    icon: null,
+    icon: row.icon,
     isVerified: true,
   };
 }

@@ -1,11 +1,13 @@
 import mongoose from "mongoose";
 
 /**
- * Singleton config for BTC quant real onchain agent (cbBTC via Jupiter).
+ * Per-lane config for BTC quant real onchain agent (cbBTC via Jupiter).
+ * _id matches lane stateId: "singleton" (btc1), "singleton-btc2" (btc2).
  */
 const btcQuantRealConfigSchema = new mongoose.Schema(
   {
     _id: { type: String, default: "singleton" },
+    lane: { type: String, default: "btc1", index: true, enum: ["btc1", "btc2"] },
     enabled: { type: Boolean, default: false, index: true },
     experimentId: { type: String, required: true, index: true },
     title: { type: String, default: "BTC quant real (cbBTC)" },
@@ -13,7 +15,7 @@ const btcQuantRealConfigSchema = new mongoose.Schema(
     /** Solana invest-wallet pubkey used for Jupiter swaps. */
     agentAddress: { type: String, default: null, index: true },
     anonymousId: { type: String, default: null, index: true },
-    leaderStrategyId: { type: Number, default: null, min: 0, max: 99 },
+    leaderStrategyId: { type: Number, default: null, min: 0, max: 999 },
     maxNotionalUsd: { type: Number, default: 200, min: 0 },
     reserveUsdc: { type: Number, default: 25, min: 0 },
     slippageBps: { type: Number, default: 50, min: 1, max: 500 },

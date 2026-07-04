@@ -69,7 +69,8 @@ export async function acquireBtcProviderSlot(provider) {
 export function providerForUrl(url) {
   const u = String(url).toLowerCase();
   if (u.includes("coingecko.com") || u.includes("pro-api.coingecko")) return "coingecko";
-  if (u.includes("binance.com")) return "binance";
+  // api.binance.com, data-api.binance.vision, fapi.binance.com share IP weight budgets.
+  if (u.includes("binance.com") || u.includes("binance.vision")) return "binance";
   if (u.includes("coinbase.com")) return "coinbase";
   return "other";
 }

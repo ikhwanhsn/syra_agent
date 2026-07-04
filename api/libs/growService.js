@@ -3,7 +3,6 @@
  * Analysis-first; execution delegates to Invest deploy (policy-gated).
  */
 import { fetchAgentWalletPortfolio } from './agentWalletPortfolio.js';
-import { getInvestOpportunities } from './investService.js';
 import { deployInvestCapital } from './investService.js';
 import { getWalletDefiPositions } from './defiPositionsService.js';
 import AgentWallet from '../models/agent/AgentWallet.js';
@@ -58,9 +57,8 @@ export async function getGrowPortfolio(walletAddress) {
  * @param {{ walletAddress: string; viewerAnonymousId?: string | null }} opts
  */
 export async function getGrowRecommendations(opts) {
-  const { walletAddress, viewerAnonymousId } = opts;
+  const { walletAddress } = opts;
   const portfolio = await getGrowPortfolio(walletAddress);
-  const invest = await getInvestOpportunities({ viewerAnonymousId });
 
   /** @type {Array<{ id: string; type: string; priority: 'low' | 'medium' | 'high'; title: string; rationale: string; suggestedAdapter?: string; probabilistic: boolean }>} */
   const recommendations = [];
@@ -98,27 +96,14 @@ export async function getGrowRecommendations(opts) {
     }
   }
 
-  const yieldValue = defi?.yield?.valueUsd ?? 0;
-  if (idleUsdc > 50 && yieldValue < idleUsdc * 0.25) {
-    recommendations.push({
-      id: 'deploy-idle-to-yield-vaults',
-      type: 'yield',
-      priority: idleUsdc > 200 ? 'high' : 'medium',
-      title: 'Idle USDC vs deployed yield',
-      rationale: `~$${idleUsdc.toFixed(2)} USDC in wallet vs ~$${yieldValue.toFixed(2)} in yield vaults — may benefit from yield deployment subject to market risk.`,
-      suggestedAdapter: 'lp_real',
-      probabilistic: true,
-    });
-  }
-
   if (idleUsdc > 10) {
     recommendations.push({
-      id: 'deploy-idle-usdc-lp',
-      type: 'yield',
-      priority: idleUsdc > 100 ? 'high' : 'medium',
-      title: 'Deploy idle USDC to yield',
-      rationale: `~$${idleUsdc.toFixed(2)} USDC (${usdcPct.toFixed(1)}% of portfolio) may earn fees via Meteora LP or Giza yield — subject to market risk.`,
-      suggestedAdapter: 'lp_real',
+      id: 'review-idle-usdc',
+      type: 'rebalance',
+      priority: idleUsdc > 100 ? 'medium' : 'low',
+      title: 'Review idle USDC',
+      rationale: `~$${idleUsdc.toFixed(2)} USDC (${usdcPct.toFixed(1)}% of portfolio) is liquid — consider allocation via swap if it fits your plan. Analysis only.`,
+      suggestedAdapter: 'jupiter',
       probabilistic: true,
     });
   }
@@ -130,20 +115,8 @@ export async function getGrowRecommendations(opts) {
       priority: 'medium',
       title: 'Review portfolio concentration',
       rationale:
-        'Large SOL balance relative to total assets — consider diversification. This is analysis only; no direction assumed.',
-      probabilistic: true,
-    });
-  }
-
-  const gizaAvailable = invest.opportunities?.some((o) => o.adapter === 'giza' && o.status === 'available');
-  if (gizaAvailable && idleUsdc > 50) {
-    recommendations.push({
-      id: 'giza-yield-optimizer',
-      type: 'yield',
-      priority: 'low',
-      title: 'EVM yield optimization (Giza)',
-      rationale: 'Giza adapter available for Base/Arbitrum USDC yield strategies — requires explicit deploy confirmation.',
-      suggestedAdapter: 'giza',
+        'Large SOL balance relative to total assets — consider diversification via swap. This is analysis only; no direction assumed.',
+      suggestedAdapter: 'jupiter',
       probabilistic: true,
     });
   }

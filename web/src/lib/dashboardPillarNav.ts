@@ -3,7 +3,13 @@ import { Coins, Code2, Landmark, Rocket, Sprout } from "lucide-react";
 import type { PillarId } from "@/lib/pillarsApi";
 
 /** Pillars live for all users — not gated behind admin Machine Money preview. */
-export const SHIPPED_PILLAR_IDS = ["earn"] as const satisfies readonly PillarId[];
+export const SHIPPED_PILLAR_IDS = [
+  "earn",
+  "treasury",
+  "invest",
+  "spend",
+  "grow",
+] as const satisfies readonly PillarId[];
 
 export function isPillarShipped(pillarId: string): boolean {
   return (SHIPPED_PILLAR_IDS as readonly string[]).includes(pillarId);

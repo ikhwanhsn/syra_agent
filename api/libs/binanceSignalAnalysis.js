@@ -21,10 +21,22 @@ import { CryptoAnalysisEngine } from "../scripts/cryptoAnalysisEngine.js";
 import { btcRateLimitedFetch } from "./btcProviderRateLimiter.js";
 import {
   binanceKlineCacheKey,
+  getCachedBinanceKlineSeries,
   getCachedBinanceKlines,
+  getStaleBinanceKlineSeries,
+  setCachedBinanceKlineSeries,
   setCachedBinanceKlines,
 } from "./binanceKlineCache.js";
+import { fetchBtcKlinesFromCoinbase } from "./binanceKlineCoinbaseFallback.js";
 import { getBinanceKlinesFromWsBuffer } from "./binanceKlineWsBuffer.js";
+import {
+  isAllBinanceRestBlocked,
+  isBinanceRestBlocked,
+  recordBinanceIpBan,
+} from "./binanceIpBanCircuit.js";
+
+/** @type {Map<string, Promise<unknown[][]>>} */
+const inflightSeriesFetches = new Map();
 
 const BINANCE_API = process.env.BINANCE_API_BASE_URL || "https://api.binance.com/api/v3";
 const BINANCE_DATA_API =
@@ -167,6 +179,10 @@ function isIpBanStatus(status, msg) {
  * @returns {Promise<unknown[][]>}
  */
 async function fetchBinanceKlinesFromBase(baseUrl, symbol, interval, limit, opts = {}) {
+  if (isBinanceRestBlocked(baseUrl)) {
+    throw new Error(`Binance klines [418]: REST circuit open on ${baseUrl}`);
+  }
+
   const url = new URL(`${baseUrl.replace(/\/$/, "")}/klines`);
   url.searchParams.set("symbol", symbol);
   url.searchParams.set("interval", interval);
@@ -186,6 +202,9 @@ async function fetchBinanceKlinesFromBase(baseUrl, symbol, interval, limit, opts
   let lastError;
 
   for (let attempt = 0; attempt < BINANCE_KLINES_MAX_ATTEMPTS; attempt++) {
+    if (isBinanceRestBlocked(baseUrl)) {
+      throw new Error(`Binance klines [418]: REST circuit open on ${baseUrl}`);
+    }
     try {
       const res = await btcRateLimitedFetch(urlStr, {
         headers: { Accept: "application/json" },
@@ -197,6 +216,7 @@ async function fetchBinanceKlinesFromBase(baseUrl, symbol, interval, limit, opts
       if (!res.ok) {
         const msg = body?.msg ?? body?.message ?? `HTTP ${res.status}`;
         if (isIpBanStatus(res.status, msg)) {
+          recordBinanceIpBan(msg, baseUrl);
           throw new Error(`Binance klines [${res.status}]: ${msg}`);
         }
         if (binanceKlinesRetryableHttp(res.status, msg) && attempt < BINANCE_KLINES_MAX_ATTEMPTS - 1) {
@@ -208,6 +228,10 @@ async function fetchBinanceKlinesFromBase(baseUrl, symbol, interval, limit, opts
 
       if (body && typeof body === "object" && !Array.isArray(body)) {
         if (body.msg) {
+          if (isIpBanStatus(200, body.msg)) {
+            recordBinanceIpBan(body.msg, baseUrl);
+            throw new Error(`Binance klines: ${body.msg}`);
+          }
           if (binanceKlinesRetryableBodyMsg(body.msg) && attempt < BINANCE_KLINES_MAX_ATTEMPTS - 1) {
             await sleepMs(BINANCE_KLINES_BASE_DELAY_MS * 2 ** attempt + Math.floor(Math.random() * 200));
             continue;
@@ -225,7 +249,8 @@ async function fetchBinanceKlinesFromBase(baseUrl, symbol, interval, limit, opts
     } catch (e) {
       lastError = e;
       const msg = String(e?.message || e);
-      if (isIpBanStatus(418, msg) || /\[418\]/.test(msg)) {
+      if (isIpBanStatus(418, msg) || /\[418\]/.test(msg) || /REST circuit open/i.test(msg)) {
+        recordBinanceIpBan(msg, baseUrl);
         throw e;
       }
       const networkRetry =
@@ -243,6 +268,96 @@ async function fetchBinanceKlinesFromBase(baseUrl, symbol, interval, limit, opts
 }
 
 /**
+ * Non-REST fallbacks: WS buffer → stale cache → Coinbase (BTC only).
+ * @param {string} symbol
+ * @param {string} interval
+ * @param {number} limit
+ * @param {{ signal?: AbortSignal }} [opts]
+ * @returns {Promise<unknown[][] | null>}
+ */
+async function resolveKlinesWithoutRest(symbol, interval, limit, opts = {}) {
+  const wsBody = await getBinanceKlinesFromWsBuffer(symbol, interval, limit);
+  if (wsBody?.length) {
+    setCachedBinanceKlineSeries(symbol, interval, wsBody);
+    return wsBody.slice(-limit);
+  }
+
+  const stale = getStaleBinanceKlineSeries(symbol, interval, limit);
+  if (stale?.length) return stale;
+
+  try {
+    const coinbase = await fetchBtcKlinesFromCoinbase(symbol, interval, limit, opts);
+    if (coinbase?.length) {
+      setCachedBinanceKlineSeries(symbol, interval, coinbase);
+      return coinbase.slice(-limit);
+    }
+  } catch {
+    /* alternate venue failed */
+  }
+
+  return null;
+}
+
+/**
+ * @param {string} symbol
+ * @param {string} interval
+ * @param {number} limit
+ * @param {{ startTime?: number; endTime?: number; signal?: AbortSignal }} fetchOpts
+ * @returns {Promise<unknown[][]>}
+ */
+/**
+ * Fetches and caches a full series (at least 200 candles). Callers slice to their limit.
+ * @param {string} symbol
+ * @param {string} interval
+ * @param {number} minLimit
+ * @param {{ startTime?: number; endTime?: number; signal?: AbortSignal }} fetchOpts
+ * @returns {Promise<unknown[][]>}
+ */
+async function fetchBinanceKlinesSeries(symbol, interval, minLimit, fetchOpts) {
+  const fetchLimit = Math.min(1000, Math.max(minLimit, 200));
+
+  let lastError;
+  let triedRest = false;
+  for (const baseUrl of BINANCE_REST_BASES) {
+    if (isBinanceRestBlocked(baseUrl)) continue;
+    triedRest = true;
+    try {
+      const body = await fetchBinanceKlinesFromBase(baseUrl, symbol, interval, fetchLimit, fetchOpts);
+      setCachedBinanceKlineSeries(symbol, interval, body);
+      return body;
+    } catch (err) {
+      lastError = err;
+      const msg = String(err?.message || err);
+      if (isIpBanStatus(418, msg) || /\[418\]/.test(msg) || /REST circuit open/i.test(msg)) {
+        recordBinanceIpBan(msg, baseUrl);
+        continue;
+      }
+      if (/\[429\]/.test(msg) || /too many|rate limit/i.test(msg)) {
+        continue;
+      }
+      // Network errors: try next host before giving up.
+      if (/ECONNRESET|ETIMEDOUT|fetch failed|network|socket|aborted|timeout/i.test(msg)) {
+        continue;
+      }
+      throw err;
+    }
+  }
+
+  const fallback = await resolveKlinesWithoutRest(symbol, interval, fetchLimit, fetchOpts);
+  if (fallback?.length) return fallback;
+
+  if (!triedRest || isAllBinanceRestBlocked()) {
+    throw new Error(
+      "Binance klines [418]: IP banned — WS/stale/Coinbase fallbacks unavailable. Retry after ban expires.",
+    );
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error(String(lastError ?? "Binance klines failed"));
+}
+
+/**
  * @param {string} symbol
  * @param {{ interval?: string; bar?: string; limit?: number; startTime?: number; endTime?: number; signal?: AbortSignal }} [opts]
  * @returns {Promise<unknown[][]>}
@@ -252,35 +367,63 @@ export async function fetchBinanceKlinesJson(symbol, opts = {}) {
   const limit = Math.min(1000, Math.max(1, Number(opts.limit) || 200));
   const startTime = opts.startTime != null ? Number(opts.startTime) : undefined;
   const endTime = opts.endTime != null ? Number(opts.endTime) : undefined;
+  const ranged = startTime != null || endTime != null;
   const cacheKey = binanceKlineCacheKey(symbol, interval, limit, startTime, endTime);
 
-  const cached = getCachedBinanceKlines(cacheKey);
-  if (cached) return cached;
+  if (!ranged) {
+    const seriesHit = getCachedBinanceKlineSeries(symbol, interval, limit);
+    if (seriesHit?.length) return seriesHit;
+  } else {
+    const cached = getCachedBinanceKlines(cacheKey);
+    if (cached) return cached;
+  }
 
   const fetchOpts = { startTime, endTime, signal: opts.signal };
-  let lastError;
 
-  for (const baseUrl of BINANCE_REST_BASES) {
-    try {
-      const body = await fetchBinanceKlinesFromBase(baseUrl, symbol, interval, limit, fetchOpts);
-      setCachedBinanceKlines(cacheKey, body);
-      return body;
-    } catch (err) {
-      lastError = err;
-      const msg = String(err?.message || err);
-      if (!isIpBanStatus(418, msg) && !/\[418\]/.test(msg) && !/\[429\]/.test(msg)) {
+  // Ranged queries keep the legacy per-key path (rare for btc2).
+  if (ranged) {
+    let lastError;
+    for (const baseUrl of BINANCE_REST_BASES) {
+      if (isBinanceRestBlocked(baseUrl)) continue;
+      try {
+        const body = await fetchBinanceKlinesFromBase(baseUrl, symbol, interval, limit, fetchOpts);
+        setCachedBinanceKlines(cacheKey, body);
+        return body;
+      } catch (err) {
+        lastError = err;
+        const msg = String(err?.message || err);
+        if (isIpBanStatus(418, msg) || /\[418\]/.test(msg)) {
+          recordBinanceIpBan(msg, baseUrl);
+          continue;
+        }
+        if (/\[429\]/.test(msg) || /too many|rate limit/i.test(msg)) continue;
+        if (/ECONNRESET|ETIMEDOUT|fetch failed|network|socket|aborted|timeout/i.test(msg)) continue;
         throw err;
       }
     }
+    const fallback = await resolveKlinesWithoutRest(symbol, interval, limit, fetchOpts);
+    if (fallback?.length) {
+      setCachedBinanceKlines(cacheKey, fallback);
+      return fallback;
+    }
+    throw lastError instanceof Error ? lastError : new Error(String(lastError ?? "Binance klines failed"));
   }
 
-  const wsBody = await getBinanceKlinesFromWsBuffer(symbol, interval, limit);
-  if (wsBody?.length) {
-    setCachedBinanceKlines(cacheKey, wsBody);
-    return wsBody;
+  const inflightKey = `${String(symbol).toUpperCase()}|${interval}`;
+  const existing = inflightSeriesFetches.get(inflightKey);
+  if (existing) {
+    const rows = await existing;
+    return rows.slice(-limit);
   }
 
-  throw lastError instanceof Error ? lastError : new Error(String(lastError ?? "Binance klines failed"));
+  const task = fetchBinanceKlinesSeries(symbol, interval, limit, fetchOpts);
+  inflightSeriesFetches.set(inflightKey, task);
+  try {
+    const rows = await task;
+    return rows.slice(-limit);
+  } finally {
+    inflightSeriesFetches.delete(inflightKey);
+  }
 }
 
 /**

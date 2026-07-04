@@ -944,21 +944,38 @@ export async function runLpExperimentSignalCycle() {
   const skipped = [];
   const errors = [];
 
+  const recentCutoff = new Date(Date.now() - OPEN_POSITION_COOLDOWN_MS);
+  const [openAgg, agentRows, recentPoolRows] = await Promise.all([
+    LpExperimentRun.aggregate([
+      { $match: { experimentId, status: "open" } },
+      { $group: { _id: "$strategyId", count: { $sum: 1 } } },
+    ]),
+    LpExperimentAgentState.find({ experimentId }).select({ strategyId: 1, cashSol: 1 }).lean(),
+    LpExperimentRun.find({
+      experimentId,
+      $or: [{ status: "open" }, { createdAt: { $gte: recentCutoff } }],
+    })
+      .select({ strategyId: 1, poolAddress: 1, status: 1 })
+      .lean(),
+  ]);
+  const openCountByStrategy = new Map(openAgg.map((r) => [Number(r._id), toNum(r.count)]));
+  const cashByStrategy = new Map(agentRows.map((a) => [Number(a.strategyId), toNum(a.cashSol)]));
+  /** @type {Set<string>} */
+  const blockedPoolKeys = new Set();
+  for (const row of recentPoolRows) {
+    blockedPoolKeys.add(`${Number(row.strategyId)}:${row.poolAddress}`);
+  }
+
   for (const strategy of strategies) {
     if (strategy.id === LP_REAL_MIRROR_STRATEGY_ID) continue;
     try {
-      const openCount = await LpExperimentRun.countDocuments({
-        experimentId,
-        strategyId: strategy.id,
-        status: "open",
-      });
+      const openCount = openCountByStrategy.get(strategy.id) ?? 0;
       if (openCount >= simCfg.maxConcurrentPositions) {
         skipped.push({ strategyId: strategy.id, reason: "max_positions" });
         continue;
       }
 
-      const agent = await LpExperimentAgentState.findOne({ experimentId, strategyId: strategy.id }).lean();
-      const cashSol = toNum(agent?.cashSol, 0);
+      const cashSol = cashByStrategy.get(strategy.id) ?? 0;
       const depositSol = simCfg.maxPositionSol;
       const effectiveBins = resolveEffectiveBins(strategy.binsBelow, strategy.binsAbove);
       const openFeeSol = computeSimTransactionCostsSol(depositSol, {
@@ -1024,8 +1041,7 @@ export async function runLpExperimentSignalCycle() {
         skipped.push({ strategyId: strategy.id, reason: "no_candidate" });
         continue;
       }
-      const recent = await hasRecentPosition(experimentId, strategy.id, best.pool.poolAddress);
-      if (recent) {
+      if (blockedPoolKeys.has(`${strategy.id}:${best.pool.poolAddress}`)) {
         skipped.push({ strategyId: strategy.id, reason: "cooldown_or_open" });
         continue;
       }
@@ -1089,6 +1105,9 @@ export async function runLpExperimentSignalCycle() {
           poolAddress: created.poolAddress,
           poolName: created.poolName,
         });
+        blockedPoolKeys.add(`${strategy.id}:${created.poolAddress}`);
+        openCountByStrategy.set(strategy.id, (openCountByStrategy.get(strategy.id) ?? 0) + 1);
+        cashByStrategy.set(strategy.id, cashSol - costSol);
       } catch (createErr) {
         await LpExperimentAgentState.updateOne(
           { experimentId, strategyId: strategy.id },
@@ -1133,6 +1152,8 @@ export async function resolveOpenLpRuns() {
   const errors = [];
   /** @type {import('mongoose').AnyBulkWriteOperation[]} */
   const bulkOps = [];
+  const strategies = await resolveLpExperimentStrategies();
+  const strategyById = new Map(strategies.map((s) => [s.id, s]));
 
   for (const run of openRuns) {
     try {
@@ -1146,7 +1167,7 @@ export async function resolveOpenLpRuns() {
         run.strategyId === LP_REAL_MIRROR_STRATEGY_ID && Number.isInteger(leaderFromSnapshot)
           ? leaderFromSnapshot
           : run.strategyId;
-      const strategy = await resolveLpStrategyById(exitStrategyId);
+      const strategy = strategyById.get(exitStrategyId) ?? null;
       if (!strategy) {
         bulkOps.push({
           updateOne: {

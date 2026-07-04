@@ -3,7 +3,9 @@ import mongoose from "mongoose";
 const btcQuantRealPositionSchema = new mongoose.Schema(
   {
     experimentId: { type: String, required: true, index: true },
-    strategyId: { type: Number, required: true, min: 0, max: 99, index: true },
+    /** Paper-sim lane this position mirrors (btc1 / btc2). */
+    lane: { type: String, default: "btc1", index: true, enum: ["btc1", "btc2"] },
+    strategyId: { type: Number, required: true, min: 0, max: 999, index: true },
     strategyName: { type: String, required: true },
     bar: { type: String, required: true },
     /** Onchain market feed key (e.g. onchain_birdeye). Legacy docs may use cexSource. */
@@ -51,6 +53,7 @@ const btcQuantRealPositionSchema = new mongoose.Schema(
 
 btcQuantRealPositionSchema.index({ status: 1, openedAt: -1 });
 btcQuantRealPositionSchema.index({ experimentId: 1, strategyId: 1, status: 1 });
+btcQuantRealPositionSchema.index({ experimentId: 1, lane: 1, status: 1 });
 
 const BtcQuantRealPosition =
   mongoose.models.BtcQuantRealPosition ||

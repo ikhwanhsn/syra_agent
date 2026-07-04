@@ -190,69 +190,96 @@ export function MintDossierView({
             <MetricTile label="24h volume" value={formatCompactUsd(stats?.volume24hUSD ?? canonical?.volume24hUSD)} />
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-            <div className="space-y-2 min-w-0">
-              <p className={overviewKickerClass}>Price · 1H (7d)</p>
-              <TokensOhlcvChart candles={data.ohlcv.candles} />
-            </div>
-            <div className="space-y-4">
-              {risk ? (
-                <div className={cn("rounded-2xl border p-4", riskToneClass(risk.tone))}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Shield className="h-4 w-4" />
-                    <span className="text-xs font-semibold uppercase tracking-wider">Risk</span>
-                  </div>
-                  <p className="text-3xl font-semibold font-mono tabular-nums">
-                    {risk.grade ?? "—"}
-                    {risk.score != null ? (
-                      <span className="text-lg text-muted-foreground ml-2">({Math.round(risk.score)})</span>
-                    ) : null}
-                  </p>
-                  <p className="text-sm mt-1 font-medium">{risk.label ?? "Risk summary"}</p>
-                  {risk.hasInsufficientData ? (
-                    <p className="text-xs mt-2 opacity-80">Insufficient on-chain data for full scoring</p>
-                  ) : null}
+          <TokensOhlcvChart
+            candles={data.ohlcv.candles}
+            symbol={asset?.symbol}
+            intervalLabel={data.ohlcv.interval || "1H"}
+            height={400}
+          />
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {risk ? (
+              <div className={cn("rounded-2xl border p-4", riskToneClass(risk.tone))}>
+                <div className="mb-2 flex items-center gap-2">
+                  <Shield className="h-4 w-4" />
+                  <span className="text-xs font-semibold uppercase tracking-wider">Risk</span>
                 </div>
-              ) : null}
-              {mint ? (
-                <div className="rounded-2xl border border-border/55 bg-muted/20 p-4 space-y-2">
-                  <p className={overviewKickerClass}>Primary mint</p>
-                  <p className="font-mono text-xs break-all text-foreground/90">{mint}</p>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 gap-1 px-2"
-                      onClick={() => {
-                        void navigator.clipboard.writeText(mint).then(
-                          () => notify.success("Mint copied"),
-                          () => notify.error("Copy failed"),
-                        );
-                      }}
+                <p className="font-mono text-3xl font-semibold tabular-nums">
+                  {risk.grade ?? "—"}
+                  {risk.score != null ? (
+                    <span className="ml-2 text-lg text-muted-foreground">({Math.round(risk.score)})</span>
+                  ) : null}
+                </p>
+                <p className="mt-1 text-sm font-medium">{risk.label ?? "Risk summary"}</p>
+                {risk.hasInsufficientData ? (
+                  <p className="mt-2 text-xs opacity-80">Insufficient on-chain data for full scoring</p>
+                ) : null}
+              </div>
+            ) : null}
+
+            {mint ? (
+              <div className="space-y-2 rounded-2xl border border-border/55 bg-muted/20 p-4">
+                <p className={overviewKickerClass}>Primary mint</p>
+                <p className="break-all font-mono text-xs text-foreground/90">{mint}</p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 gap-1 px-2"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(mint).then(
+                        () => notify.success("Mint copied"),
+                        () => notify.error("Copy failed"),
+                      );
+                    }}
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                    Copy
+                  </Button>
+                  <Button type="button" variant="ghost" size="sm" className="h-8 gap-1 px-2" asChild>
+                    <a
+                      href={`https://solscan.io/token/${mint}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
                     >
-                      <Copy className="h-3.5 w-3.5" />
-                      Copy
-                    </Button>
-                    <Button type="button" variant="ghost" size="sm" className="h-8 gap-1 px-2" asChild>
-                      <a
-                        href={`https://solscan.io/token/${mint}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Solscan
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
-                    </Button>
-                  </div>
-                  {asset?.primaryVariant?.liquidityTier ? (
-                    <Badge variant="outline" className="font-mono text-[10px]">
-                      {asset.primaryVariant.liquidityTier}
-                    </Badge>
-                  ) : null}
+                      Solscan
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </Button>
                 </div>
-              ) : null}
-              <p className="text-[11px] text-muted-foreground">
+                {asset?.primaryVariant?.liquidityTier ? (
+                  <Badge variant="outline" className="font-mono text-[10px]">
+                    {asset.primaryVariant.liquidityTier}
+                  </Badge>
+                ) : null}
+              </div>
+            ) : null}
+
+            <div className="flex flex-col justify-between rounded-2xl border border-border/55 bg-muted/10 p-4">
+              {change1h != null ? (
+                <div>
+                  <p className={overviewKickerClass}>1h change</p>
+                  <p
+                    className={cn(
+                      "mt-1 font-mono text-2xl font-semibold tabular-nums",
+                      change1h >= 0
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-red-600 dark:text-red-400",
+                    )}
+                  >
+                    {formatPct(change1h)}
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <p className={overviewKickerClass}>Liquidity</p>
+                  <p className="mt-1 font-mono text-2xl font-semibold tabular-nums">
+                    {formatCompactUsd(stats?.liquidity)}
+                  </p>
+                </div>
+              )}
+              <p className="mt-3 text-[11px] text-muted-foreground">
                 Data via{" "}
                 <a
                   href="https://docs.tokens.xyz/v1/quickstart"
