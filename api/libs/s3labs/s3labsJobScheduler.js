@@ -1,14 +1,18 @@
 /**
- * S3Labs Jobs agent — fixed interval scheduler (default every 45 minutes).
+ * S3Labs Jobs agent — daily WIB schedule (0–1 post/day).
+ * Full job listings live on the website; Telegram only posts occasional highlights.
  */
 
+import { getMsUntilNextWibWallClock, getWibWallClockUtcMsToday } from "../wibDailyWallClock.js";
 import {
+  getS3labsPostsPerDayRange,
   S3LABS_AGENTS_SCHEDULER_ENABLED,
   S3LABS_JOB_AGENT,
-  S3LABS_JOB_INTERVAL_MINUTES,
+  S3LABS_SCHEDULE_JITTER_MAX_MINUTES,
 } from "../../config/s3labsAgentsConfig.js";
 import { isS3labsTelegramConfigured, sendS3labsTelegram } from "../s3labsTelegramNotifier.js";
 import { runS3labsJobPipeline } from "./s3labsJobPipeline.js";
+import { consumeNextDailySlot, getOrRefreshDailySchedule, hasMoreSlotsToday } from "./s3labsDailySchedule.js";
 import { isTransientNetworkError } from "../../utils/resilientFetch.js";
 import { startupVerbose } from "../../utils/startupLog.js";
 
@@ -18,8 +22,10 @@ let jobTimer = null;
 /**
  * @returns {number}
  */
-function intervalMs() {
-  return S3LABS_JOB_INTERVAL_MINUTES * 60 * 1000;
+function randomJitterMs() {
+  const maxMin = S3LABS_SCHEDULE_JITTER_MAX_MINUTES;
+  const minutes = Math.floor(Math.random() * (maxMin + 1));
+  return minutes * 60 * 1000;
 }
 
 /**
@@ -70,7 +76,7 @@ async function runJobCycle() {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     if (isTransientNetworkError(e)) {
-      console.warn("[s3labs-job] transient network error after retries (next cycle will retry):", msg);
+      console.warn("[s3labs-job] transient network error after retries (will retry next slot):", msg);
       return;
     }
 
@@ -89,35 +95,92 @@ async function runJobCycle() {
   }
 }
 
-function scheduleNext() {
-  jobTimer = setTimeout(async () => {
-    await runJobCycle();
-    scheduleNext();
-  }, intervalMs());
+function clearJobTimer() {
+  if (jobTimer) {
+    clearTimeout(jobTimer);
+    jobTimer = null;
+  }
 }
 
-/** Start the jobs agent on a fixed interval (posts to t.me/s3labs/513). */
+/**
+ * Schedule the next random daily slot for jobs (or roll to tomorrow).
+ */
+function scheduleJobNext() {
+  const def = S3LABS_JOB_AGENT;
+  getOrRefreshDailySchedule(def.kind);
+
+  const now = Date.now();
+  let slot = null;
+  let delayMs = 0;
+
+  while (hasMoreSlotsToday(def.kind)) {
+    const candidate = consumeNextDailySlot(def.kind);
+    if (!candidate) break;
+    const [hour, minute] = candidate;
+    const targetMs = getWibWallClockUtcMsToday(new Date(), hour, minute);
+    if (targetMs > now) {
+      slot = candidate;
+      delayMs = targetMs - now + randomJitterMs();
+      break;
+    }
+  }
+
+  if (!slot) {
+    const waitMs = getMsUntilNextWibWallClock(new Date(), 0, 5) + randomJitterMs();
+    startupVerbose(
+      `[s3labs-job] no more slots today; next window in ${Math.round(waitMs / 60000)} min`,
+    );
+    clearJobTimer();
+    jobTimer = setTimeout(() => scheduleJobNext(), waitMs);
+    return;
+  }
+
+  const [hour, minute] = slot;
+  const jitterMs = delayMs - (getWibWallClockUtcMsToday(new Date(), hour, minute) - now);
+  const nextAt = new Date(Date.now() + delayMs).toISOString();
+
+  startupVerbose(
+    `[s3labs-job] next post in ${Math.round(delayMs / 60000)} min (~${nextAt}; WIB ${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")} +${Math.round(jitterMs / 60000)}m jitter) → topic ${def.threadId}`,
+  );
+
+  clearJobTimer();
+  jobTimer = setTimeout(async () => {
+    await runJobCycle();
+
+    if (!hasMoreSlotsToday(def.kind)) {
+      const rollMs = getMsUntilNextWibWallClock(new Date(), 0, 10) + randomJitterMs();
+      clearJobTimer();
+      jobTimer = setTimeout(() => scheduleJobNext(), rollMs);
+    } else {
+      scheduleJobNext();
+    }
+  }, delayMs);
+}
+
+/** Start the jobs agent on a daily WIB schedule (posts to t.me/s3labs/513). */
 export function startS3labsJobScheduler() {
   if (!S3LABS_AGENTS_SCHEDULER_ENABLED) {
     startupVerbose("[s3labs-job] scheduler disabled (S3LABS_AGENTS_SCHEDULER_ENABLED=false)");
     return;
   }
 
+  const { min, max } = getS3labsPostsPerDayRange("job");
+  if (max <= 0) {
+    startupVerbose("[s3labs-job] scheduler idle (postsPerDayMax=0; jobs live on website)");
+    return;
+  }
+
   const bootMs = S3LABS_JOB_AGENT.bootDelayMinutes * 60 * 1000;
   setTimeout(() => {
-    void runJobCycle();
-    scheduleNext();
+    scheduleJobNext();
   }, bootMs);
 
   startupVerbose(
-    `[s3labs-job] scheduler on: every ${S3LABS_JOB_INTERVAL_MINUTES}m → topic ${S3LABS_JOB_AGENT.threadId}; Telegram=${isS3labsTelegramConfigured() ? "on" : "off"}`,
+    `[s3labs-job] scheduler on: ${min}–${max} posts/day (WIB) → topic ${S3LABS_JOB_AGENT.threadId}; Telegram=${isS3labsTelegramConfigured() ? "on" : "off"}`,
   );
 }
 
 /** @returns {void} */
 export function stopS3labsJobScheduler() {
-  if (jobTimer) {
-    clearTimeout(jobTimer);
-    jobTimer = null;
-  }
+  clearJobTimer();
 }

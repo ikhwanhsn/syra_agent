@@ -1,9 +1,54 @@
 /**
  * Find X accounts mentioning a token mint (KOL / shill detection).
  * Prefers twitterapi.io (TWITTER_API_KEY), falls back to official X API (X_BEARER_TOKEN).
+ *
+ * Service-level cache (~15 min success / ~5 min negative) so swap, memecoin analysis,
+ * and any other caller share one billable result per mint.
  */
 import { advancedSearch, isTwitterApiIoConfigured } from './twitterApiIoClient.js';
 import { searchRecentTweets, isXApiBearerConfigured } from './xApiClient.js';
+import { createBoundedTtlCache } from '../utils/boundedTtlCache.js';
+
+function parsePositiveIntEnv(raw, fallback) {
+  const n = Number.parseInt(String(raw ?? '').trim(), 10);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
+const KOL_SHILL_CACHE_TTL_MS = parsePositiveIntEnv(
+  process.env.KOL_SHILL_CACHE_MS,
+  900_000,
+);
+const KOL_SHILL_NEGATIVE_CACHE_TTL_MS = parsePositiveIntEnv(
+  process.env.KOL_SHILL_NEGATIVE_CACHE_MS,
+  300_000,
+);
+
+const kolShillCache = createBoundedTtlCache({
+  name: 'kol-shills',
+  maxEntries: parsePositiveIntEnv(process.env.KOL_SHILL_CACHE_MAX_ENTRIES, 500),
+  defaultTtlMs: KOL_SHILL_CACHE_TTL_MS,
+});
+
+/**
+ * @param {{
+ *   mint: string;
+ *   symbol?: string | null;
+ *   name?: string | null;
+ *   twitter?: string | null;
+ *   fast?: boolean;
+ * }} params
+ */
+function kolShillCacheKey(params) {
+  const mint = String(params.mint || '').trim().toLowerCase();
+  const symbol = String(params.symbol || '').trim().toLowerCase();
+  const name = String(params.name || '').trim().toLowerCase();
+  const twitter = String(params.twitter || '')
+    .trim()
+    .toLowerCase()
+    .replace(/^@/, '');
+  const mode = params.fast ? 'fast' : 'full';
+  return `${mode}|${mint}|${symbol}|${name}|${twitter}`;
+}
 
 const GENERIC_SYMBOLS = new Set([
   'sol', 'btc', 'eth', 'usdc', 'usdt', 'ai', 'meme', 'coin', 'token', 'pump', 'fun',
@@ -94,8 +139,25 @@ function buildKolSearchQueries(input, opts = {}) {
     add(`@${twitter} (pump OR pumpfun OR solana OR ca: OR gem OR alpha)`);
   }
 
-  const maxQueries = opts.fast ? 2 : 4;
+  // Fast mode: mint only (1 billable search). Caller may fall back if empty.
+  const maxQueries = opts.fast ? 1 : 4;
   return queries.slice(0, maxQueries);
+}
+
+/**
+ * Secondary queries when fast mint-only search returns nothing.
+ * @param {{
+ *   mint: string;
+ *   symbol?: string | null;
+ *   name?: string | null;
+ *   twitter?: string | null;
+ * }} input
+ * @returns {string[]}
+ */
+function buildKolFallbackQueries(input) {
+  const all = buildKolSearchQueries(input, { fast: false });
+  const mint = String(input.mint || '').trim().toLowerCase();
+  return all.filter((q) => q.trim().toLowerCase() !== mint).slice(0, 1);
 }
 
 /**
@@ -497,6 +559,20 @@ export async function fetchTokenKolShills(input, opts = {}) {
   }
 
   const fast = opts.fast === true;
+  const cacheKey = kolShillCacheKey({
+    mint,
+    symbol: input.symbol,
+    name: input.name,
+    twitter: input.twitter,
+    fast,
+  });
+  const cached = kolShillCache.get(cacheKey);
+  if (cached && typeof cached === 'object' && 'ok' in /** @type {object} */ (cached)) {
+    return /** @type {{ ok: boolean; data?: unknown; error?: string; status?: number }} */ (
+      cached
+    );
+  }
+
   const queries = buildKolSearchQueries(input, { fast });
   const relevanceCtx = {
     mint,
@@ -506,20 +582,39 @@ export async function fetchTokenKolShills(input, opts = {}) {
   };
 
   try {
-    const { tweets: rawTweets, source } = await searchKolTweetsMulti(queries, { parallel: true });
-    const tweets = rawTweets.filter((tw) => isRelevantKolTweet(tw.text, relevanceCtx));
+    // Fast mode: sequential mint-only first; one fallback query only if empty.
+    const { tweets: rawTweets, source } = await searchKolTweetsMulti(queries, {
+      parallel: !fast,
+    });
+    let tweets = rawTweets.filter((tw) => isRelevantKolTweet(tw.text, relevanceCtx));
+    let usedQueries = queries;
+    let usedSource = source;
 
-    return {
+    if (fast && tweets.length === 0) {
+      const fallback = buildKolFallbackQueries(input);
+      if (fallback.length > 0) {
+        const more = await searchKolTweetsMulti(fallback, { parallel: false });
+        tweets = more.tweets.filter((tw) => isRelevantKolTweet(tw.text, relevanceCtx));
+        usedQueries = [...queries, ...fallback];
+        usedSource = more.source;
+      }
+    }
+
+    const result = {
       ok: true,
-      data: buildKolPayload(tweets, mint, queries, source, {
+      data: buildKolPayload(tweets, mint, usedQueries, usedSource, {
         symbol: input.symbol,
         name: input.name,
         twitter: input.twitter,
       }),
     };
+    kolShillCache.set(cacheKey, result, KOL_SHILL_CACHE_TTL_MS);
+    return result;
   } catch (err) {
     const message = err instanceof Error ? err.message : 'KOL shill fetch failed';
     const status = isCreditsOrQuotaError(message) ? 503 : 502;
-    return { ok: false, error: message, status };
+    const result = { ok: false, error: message, status };
+    kolShillCache.set(cacheKey, result, KOL_SHILL_NEGATIVE_CACHE_TTL_MS);
+    return result;
   }
 }

@@ -1,7 +1,7 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { Megaphone, Plus, Sparkles, Trophy, Users, Wallet } from "lucide-react";
+import { Megaphone, Plus, Sparkles, Trophy, Wallet } from "lucide-react";
 
 import { SitePageShell } from "@/components/landing/SitePageShell";
 import { pageContent } from "@/lib/siteLayout";
@@ -26,10 +26,12 @@ import {
   fetchKolConfig,
 } from "@/lib/kolApi";
 
-const VALID_TABS = ["browse", "projects", "kols", "create", "earnings"] as const;
+const VALID_TABS = ["browse", "leaderboard", "create", "earnings"] as const;
 type KolTab = (typeof VALID_TABS)[number];
 
+/** Legacy `projects` / `kols` URLs map to the unified leaderboard tab. */
 function parseTab(value: string | null): KolTab {
+  if (value === "projects" || value === "kols") return "leaderboard";
   if (value && VALID_TABS.includes(value as KolTab)) return value as KolTab;
   return "browse";
 }
@@ -39,6 +41,10 @@ function KolPageContent() {
   const selectedCampaignId = searchParams.get("campaign");
   const tabFromUrl = searchParams.get("tab");
   const [activeTab, setActiveTab] = useState<KolTab>(parseTab(tabFromUrl));
+
+  useEffect(() => {
+    setActiveTab(parseTab(tabFromUrl));
+  }, [tabFromUrl]);
 
   const configQuery = useQuery({
     queryKey: ["kol-config"],
@@ -108,7 +114,7 @@ function KolPageContent() {
           <h1 className="heading-display">
             Post on X, <span className="text-gradient">earn SOL</span>
           </h1>
-          <p className="text-muted-foreground mt-4 text-base sm:text-lg leading-relaxed max-w-3xl">
+          <p className="text-muted-foreground mt-4 text-base sm:text-lg leading-relaxed max-w-none w-full">
             Solana projects fund reward pools for posts they want amplified. Reply or quote on X,
             submit your link, and get paid automatically when the campaign ends — your share grows
             with every like and view. You also earn{" "}
@@ -118,14 +124,9 @@ function KolPageContent() {
         </section>
 
         {!selectedCampaignId ? (
-          <>
-            <section className="mb-10">
-              <MarketplaceStats />
-            </section>
-            <KolHowItWorks />
-            <KolPointsInfo className="mb-10" />
-            <CampaignNotifySignup className="mb-10" />
-          </>
+          <section className="mb-8 sm:mb-10">
+            <MarketplaceStats />
+          </section>
         ) : null}
 
         {selectedCampaignId && detailQuery.isLoading ? (
@@ -153,18 +154,14 @@ function KolPageContent() {
                   <Megaphone className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   Browse
                 </TabsTrigger>
-                <TabsTrigger value="projects" className="shrink-0 rounded-full gap-1.5 px-3 text-xs sm:gap-2 sm:px-3 sm:text-sm">
+                <TabsTrigger value="leaderboard" className="shrink-0 rounded-full gap-1.5 px-3 text-xs sm:gap-2 sm:px-3 sm:text-sm">
                   <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  Projects
-                </TabsTrigger>
-                <TabsTrigger value="kols" className="shrink-0 rounded-full gap-1.5 px-3 text-xs sm:gap-2 sm:px-3 sm:text-sm">
-                  <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  KOLs
+                  Leaderboard
                 </TabsTrigger>
                 <TabsTrigger value="create" className="shrink-0 rounded-full gap-1.5 px-3 text-xs sm:gap-2 sm:px-3 sm:text-sm">
                   <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   <span className="sm:hidden">Launch</span>
-                  <span className="hidden sm:inline">For Projects</span>
+                  <span className="hidden sm:inline">Create</span>
                 </TabsTrigger>
                 <TabsTrigger value="earnings" className="shrink-0 rounded-full gap-1.5 px-3 text-xs sm:gap-2 sm:px-3 sm:text-sm">
                   <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -188,7 +185,7 @@ function KolPageContent() {
             {campaignsQuery.isError ? (
               <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-muted-foreground">
                 Campaigns couldn&apos;t load right now. Try refreshing — you can still create a new
-                campaign from the For Projects tab.
+                campaign from the Create tab.
               </div>
             ) : null}
 
@@ -240,21 +237,27 @@ function KolPageContent() {
               )}
             </TabsContent>
 
-            <TabsContent value="projects" className="mt-0 space-y-4 focus-visible:outline-none">
+            <TabsContent value="leaderboard" className="mt-0 space-y-8 focus-visible:outline-none">
               <div>
-                <h2 className="font-semibold text-lg mb-1">Project leaderboard</h2>
+                <h2 className="font-semibold text-lg mb-1">Leaderboard</h2>
+                <p className="text-sm text-muted-foreground max-w-2xl">
+                  One wallet, both roles — fund campaigns as a project and earn as a KOL. Rankings
+                  update from the same accounts across the marketplace.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-base mb-1">Top funders</h3>
                 <p className="text-sm text-muted-foreground mb-4">
                   Ranked by total SOL funded across campaigns
                 </p>
                 <ProfileLeaderboard variant="projects" />
               </div>
-            </TabsContent>
 
-            <TabsContent value="kols" className="mt-0 space-y-4 focus-visible:outline-none">
               <div>
-                <h2 className="font-semibold text-lg mb-1">KOL leaderboard</h2>
+                <h3 className="font-semibold text-base mb-1">Top earners</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Ranked by reputation score earned from completed campaigns
+                  Ranked by reputation score from completed campaigns
                 </p>
                 <ProfileLeaderboard variant="kols" />
               </div>
@@ -284,6 +287,14 @@ function KolPageContent() {
             </TabsContent>
           </Tabs>
         )}
+
+        {!selectedCampaignId ? (
+          <div className="mt-14 sm:mt-16 space-y-10 border-t border-border/40 pt-12 sm:pt-14">
+            <KolHowItWorks />
+            <KolPointsInfo />
+            <CampaignNotifySignup />
+          </div>
+        ) : null}
     </div>
   );
 }

@@ -258,6 +258,7 @@ export function CampaignDetail({ campaign, leaderboard, onClose, onRefresh }: Ca
           campaignId={campaign.id}
           campaignTitle={campaign.title}
           rewardSol={rewardSol}
+          requireFollowS3Labs={campaign.requireFollowS3Labs === true}
           onSubmitted={onRefresh}
         />
       ) : null}

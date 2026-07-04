@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { flushSync } from "react-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useWallet } from "@solana/wallet-adapter-react";
 
 import { useTheme } from "@/contexts/ThemeContext";
@@ -61,8 +62,11 @@ function NavHoverDropdown({
   isActive: boolean;
 }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Blocks reopen while a route transition / Suspense load is in flight. */
+  const navLockedRef = useRef(false);
 
   const clearCloseTimer = useCallback(() => {
     if (closeTimer.current) {
@@ -71,12 +75,8 @@ function NavHoverDropdown({
     }
   }, []);
 
-  const closeMenu = useCallback(() => {
-    clearCloseTimer();
-    setOpen(false);
-  }, [clearCloseTimer]);
-
   const openMenu = useCallback(() => {
+    if (navLockedRef.current) return;
     clearCloseTimer();
     setOpen(true);
   }, [clearCloseTimer]);
@@ -87,18 +87,46 @@ function NavHoverDropdown({
   }, [clearCloseTimer]);
 
   const toggleMenu = useCallback(() => {
+    if (navLockedRef.current) return;
     clearCloseTimer();
     setOpen((prev) => !prev);
   }, [clearCloseTimer]);
 
+  const handleOpenChange = useCallback(
+    (next: boolean) => {
+      if (next && navLockedRef.current) return;
+      if (!next) clearCloseTimer();
+      setOpen(next);
+    },
+    [clearCloseTimer],
+  );
+
+  /**
+   * Close the portaled menu synchronously, then navigate.
+   * Closing on pointerDown alone unmounted the link before click — use navigate() instead.
+   */
+  const goTo = useCallback(
+    (to: string) => {
+      navLockedRef.current = true;
+      clearCloseTimer();
+      flushSync(() => {
+        setOpen(false);
+      });
+      navigate(to);
+    },
+    [clearCloseTimer, navigate],
+  );
+
   useEffect(() => {
-    closeMenu();
-  }, [location.pathname, closeMenu]);
+    navLockedRef.current = false;
+    clearCloseTimer();
+    setOpen(false);
+  }, [location.pathname, clearCloseTimer]);
 
   useEffect(() => () => clearCloseTimer(), [clearCloseTimer]);
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen} modal={false}>
+    <DropdownMenu open={open} onOpenChange={handleOpenChange} modal={false}>
       <DropdownMenuTrigger
         onPointerEnter={openMenu}
         onPointerLeave={scheduleClose}
@@ -116,22 +144,24 @@ function NavHoverDropdown({
         sideOffset={10}
         onPointerEnter={openMenu}
         onPointerLeave={scheduleClose}
+        onCloseAutoFocus={(event) => event.preventDefault()}
         className={cn(
-          "nav-bar-panel min-w-[168px] rounded-xl border-border/60 p-1.5 shadow-elevated duration-150 ease-out",
+          "nav-bar-panel min-w-[168px] rounded-xl border-border/60 p-1.5 shadow-elevated",
           siteNavDropdownZ,
         )}
       >
         {links.map((item) => (
           <DropdownMenuItem
             key={item.to}
-            asChild
             className="cursor-pointer rounded-lg transition-colors duration-150"
             onPointerEnter={() => prefetchRoute(item.to)}
             onFocus={() => prefetchRoute(item.to)}
+            onSelect={(event) => {
+              event.preventDefault();
+              goTo(item.to);
+            }}
           >
-            <Link to={item.to} className="cursor-pointer touch-manipulation" onClick={closeMenu}>
-              <NavItemLabel label={item.label} soon={item.soon} />
-            </Link>
+            <NavItemLabel label={item.label} soon={item.soon} />
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>
@@ -177,11 +207,11 @@ const Header = () => {
             >
               <img
                 src="/images/logo.png"
-                alt="S3 Labs Logo"
+                alt="S3Labs"
                 className="h-8 w-8 shrink-0 rounded-xl ring-1 ring-border/50 transition-all group-hover:ring-primary/30 sm:h-9 sm:w-9"
               />
               <span className="hidden truncate font-semibold tracking-tight text-foreground min-[380px]:inline sm:text-lg">
-                S3 Labs
+                S3Labs
               </span>
             </Link>
 

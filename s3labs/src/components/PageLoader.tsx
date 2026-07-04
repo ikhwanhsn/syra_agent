@@ -238,9 +238,16 @@ export function PageLoader({
   );
 }
 
-/** Suspense / route-chunk fallback for lazy-loaded pages. */
+/** Suspense fallback for lazy page content inside the persistent site chrome. */
 export function RoutePageLoader() {
-  return <PageLoader label="Loading page" sublabel="Just a moment" variant="page" />;
+  return (
+    <PageLoader
+      label="Loading"
+      sublabel="Just a moment"
+      variant="section"
+      className="min-h-[min(28rem,60dvh)]"
+    />
+  );
 }
 
 /** Post studio routes — dark ribbon backdrop. */

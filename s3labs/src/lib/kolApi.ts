@@ -7,6 +7,16 @@ export interface KolApiResponse<T> {
   code?: string;
 }
 
+export class KolApiError extends Error {
+  readonly code: string;
+
+  constructor(message: string, code = "unknown") {
+    super(message);
+    this.name = "KolApiError";
+    this.code = code;
+  }
+}
+
 export interface KolTweetMedia {
   mediaType: string;
   url: string;
@@ -40,6 +50,8 @@ export interface KolCampaign {
   startAt: string | null;
   endAt: string | null;
   durationDays: number;
+  /** Admin participation rule — not shown in public UI. */
+  requireCreatedOneCampaign?: boolean;
   lastSnapshotAt: string | null;
   finalizedAt: string | null;
   createdAt: string | null;
@@ -319,7 +331,12 @@ export interface PointsLeaderboardEntry {
 }
 
 export type ProjectSortKey = "funded" | "campaigns" | "kols" | "recent";
-export type KolSortKey = "earned" | "score" | "engagement" | "campaigns" | "recent";
+export type KolSortKey =
+  | "earned"
+  | "score"
+  | "engagement"
+  | "campaigns"
+  | "recent";
 
 export interface KolConfig {
   poolWalletAddress: string;
@@ -335,8 +352,16 @@ export interface KolConfig {
 
 export interface KolWalletEarnings {
   wallet: string;
-  active: Array<{ submission: KolSubmission; campaign: KolCampaign; payout: KolPayoutInfo | null }>;
-  paid: Array<{ submission: KolSubmission; campaign: KolCampaign; payout: KolPayoutInfo | null }>;
+  active: Array<{
+    submission: KolSubmission;
+    campaign: KolCampaign;
+    payout: KolPayoutInfo | null;
+  }>;
+  paid: Array<{
+    submission: KolSubmission;
+    campaign: KolCampaign;
+    payout: KolPayoutInfo | null;
+  }>;
   pendingMinimum: Array<{
     submission: KolSubmission;
     campaign: KolCampaign;
@@ -378,8 +403,13 @@ export interface KolCampaignTopUp {
   confirmedAt: string | null;
 }
 
-export function getKolRewardSol(campaign: Pick<KolCampaign, "kolRewardPoolSol" | "rewardSol">): number {
-  return campaign.kolRewardPoolSol ?? Math.max(0, campaign.rewardSol - DEFAULT_KOL_CONFIG.platformFeeSol);
+export function getKolRewardSol(
+  campaign: Pick<KolCampaign, "kolRewardPoolSol" | "rewardSol">,
+): number {
+  return (
+    campaign.kolRewardPoolSol ??
+    Math.max(0, campaign.rewardSol - DEFAULT_KOL_CONFIG.platformFeeSol)
+  );
 }
 
 /** Best URL to display for a tweet media item (photo preview or direct URL). */
@@ -388,7 +418,9 @@ export function getTweetMediaDisplayUrl(item: KolTweetMedia): string {
 }
 
 /** First photo/image from a campaign source tweet, if any. */
-export function getCampaignTweetPreviewMedia(media?: KolTweetMedia[]): KolTweetMedia | null {
+export function getCampaignTweetPreviewMedia(
+  media?: KolTweetMedia[],
+): KolTweetMedia | null {
   if (!media?.length) return null;
   const photo = media.find(
     (item) =>
@@ -428,7 +460,10 @@ async function kolFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
   const body = (await res.json().catch(() => ({}))) as KolApiResponse<T>;
   if (!res.ok || !body.success) {
-    throw new Error(body.error || `Request failed (${res.status})`);
+    throw new KolApiError(
+      body.error || `Request failed (${res.status})`,
+      body.code ?? "unknown",
+    );
   }
   if (body.data === undefined) {
     throw new Error("Empty API response");
@@ -440,7 +475,9 @@ export function fetchKolConfig(): Promise<KolConfig> {
   return kolFetch<KolConfig>("/kol/config").catch(() => DEFAULT_KOL_CONFIG);
 }
 
-export function fetchCampaigns(status?: string): Promise<{ campaigns: KolCampaign[] }> {
+export function fetchCampaigns(
+  status?: string,
+): Promise<{ campaigns: KolCampaign[] }> {
   const qs = status ? `?status=${encodeURIComponent(status)}` : "";
   return kolFetch<{ campaigns: KolCampaign[] }>(`/kol/campaigns${qs}`);
 }
@@ -459,6 +496,8 @@ export function createCampaign(input: {
   description?: string;
   rewardSol: number;
   durationDays: number;
+  /** Admin-only participation rule. Ignored for non-admin wallets on the API. */
+  requireCreatedOneCampaign?: boolean;
 }): Promise<{
   campaign: KolCampaign;
   deposit: {
@@ -482,10 +521,13 @@ export function confirmCampaignDeposit(
   campaignId: string,
   input: { txSignature: string; projectWallet: string },
 ): Promise<{ campaign: KolCampaign }> {
-  return kolFetch(`/kol/campaigns/${encodeURIComponent(campaignId)}/confirm-deposit`, {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
+  return kolFetch(
+    `/kol/campaigns/${encodeURIComponent(campaignId)}/confirm-deposit`,
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    },
+  );
 }
 
 export function createCampaignTopUp(
@@ -528,29 +570,45 @@ export function submitEngagement(
   campaignId: string,
   input: { kolWallet: string; tweetUrl: string },
 ): Promise<{ submission: KolSubmission }> {
-  return kolFetch(`/kol/campaigns/${encodeURIComponent(campaignId)}/submissions`, {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
+  return kolFetch(
+    `/kol/campaigns/${encodeURIComponent(campaignId)}/submissions`,
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    },
+  );
 }
 
-export function fetchWalletEarnings(wallet: string): Promise<KolWalletEarnings> {
-  return kolFetch<KolWalletEarnings>(`/kol/wallets/${encodeURIComponent(wallet)}/earnings`);
+export function fetchWalletEarnings(
+  wallet: string,
+): Promise<KolWalletEarnings> {
+  return kolFetch<KolWalletEarnings>(
+    `/kol/wallets/${encodeURIComponent(wallet)}/earnings`,
+  );
 }
 
 export function fetchWalletPoints(wallet: string): Promise<WalletPoints> {
-  return kolFetch<WalletPoints>(`/kol/wallets/${encodeURIComponent(wallet)}/points`);
+  return kolFetch<WalletPoints>(
+    `/kol/wallets/${encodeURIComponent(wallet)}/points`,
+  );
 }
 
-export function fetchDailyClaimStatus(wallet: string): Promise<DailyClaimStatus> {
-  return kolFetch<DailyClaimStatus>(`/kol/wallets/${encodeURIComponent(wallet)}/daily-claim`);
+export function fetchDailyClaimStatus(
+  wallet: string,
+): Promise<DailyClaimStatus> {
+  return kolFetch<DailyClaimStatus>(
+    `/kol/wallets/${encodeURIComponent(wallet)}/daily-claim`,
+  );
 }
 
 export function claimDailyPoints(wallet: string): Promise<DailyClaimResult> {
-  return kolFetch<DailyClaimResult>(`/kol/wallets/${encodeURIComponent(wallet)}/daily-claim`, {
-    method: "POST",
-    body: JSON.stringify({}),
-  });
+  return kolFetch<DailyClaimResult>(
+    `/kol/wallets/${encodeURIComponent(wallet)}/daily-claim`,
+    {
+      method: "POST",
+      body: JSON.stringify({}),
+    },
+  );
 }
 
 export function fetchPointsLeaderboard(opts?: {
@@ -559,7 +617,9 @@ export function fetchPointsLeaderboard(opts?: {
   const params = new URLSearchParams();
   if (opts?.limit != null) params.set("limit", String(opts.limit));
   const qs = params.toString() ? `?${params.toString()}` : "";
-  return kolFetch<{ leaderboard: PointsLeaderboardEntry[] }>(`/kol/points/leaderboard${qs}`);
+  return kolFetch<{ leaderboard: PointsLeaderboardEntry[] }>(
+    `/kol/points/leaderboard${qs}`,
+  );
 }
 
 export function fetchKolStats(): Promise<KolMarketplaceStats> {

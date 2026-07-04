@@ -26,8 +26,8 @@ function AboutContent() {
             and a 500+ founder network.
           </p>
           <Button variant="hero" size="lg" className="btn-premium rounded-full mt-8" asChild>
-            <Link to="/programs">
-              Explore programs
+            <Link to="/">
+              Explore ecosystem
               <ArrowRight className="w-4 h-4" />
             </Link>
           </Button>

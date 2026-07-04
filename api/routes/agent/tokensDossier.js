@@ -1,7 +1,9 @@
 import express from 'express';
-import { buildMintDossier } from '../../libs/tokensDossierService.js';
+import { buildMintDossier, buildMintChart } from '../../libs/tokensDossierService.js';
 import { buildAssetIntelligence } from '../../libs/assetIntelligenceService.js';
 import { buildMemecoinAnalysis } from '../../libs/memecoinAnalysisService.js';
+import { fetchTokenKolShills } from '../../libs/tokenKolShillService.js';
+import { buildSwapMarketNews } from '../../libs/swapMarketNews.js';
 import { buildHolderOverlapBatch } from '../../libs/holderOverlapService.js';
 import { buildHolderInsights } from '../../libs/holderInsightsService.js';
 import { buildTokenDevInfo } from '../../libs/tokenDevInfoService.js';
@@ -26,6 +28,7 @@ import {
 import { optionalWalletSession, requireSession } from '../../utils/requireSession.js';
 import { fetchAssetsBoard } from '../../libs/tokensBoardService.js';
 import { runTokensAgentTool } from '../../libs/tokensAgentService.js';
+import { createBoundedTtlCache } from '../../utils/boundedTtlCache.js';
 
 /** @param {string} s */
 function isLikelySolanaMint(s) {
@@ -35,6 +38,41 @@ function isLikelySolanaMint(s) {
 }
 
 const DEFAULT_TRADE_TAPE_LIMIT = 50;
+
+function parsePositiveIntEnv(raw, fallback) {
+  const n = Number.parseInt(String(raw ?? '').trim(), 10);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
+/** Success / empty-result TTL for page-triggered X posts (~15 min). */
+const X_POSTS_CACHE_TTL_MS = parsePositiveIntEnv(
+  process.env.X_POSTS_CACHE_MS,
+  900_000,
+);
+/** Negative TTL for upstream failures (~5 min) — avoids re-billing on errors. */
+const X_POSTS_NEGATIVE_CACHE_TTL_MS = parsePositiveIntEnv(
+  process.env.X_POSTS_NEGATIVE_CACHE_MS,
+  300_000,
+);
+const X_POSTS_CACHE_MAX_AGE_SEC = Math.max(30, Math.floor(X_POSTS_CACHE_TTL_MS / 1000));
+const X_POSTS_NEGATIVE_MAX_AGE_SEC = Math.max(30, Math.floor(X_POSTS_NEGATIVE_CACHE_TTL_MS / 1000));
+
+const xPostsCache = createBoundedTtlCache({
+  name: 'x-posts',
+  maxEntries: parsePositiveIntEnv(process.env.X_POSTS_CACHE_MAX_ENTRIES, 500),
+  defaultTtlMs: X_POSTS_CACHE_TTL_MS,
+});
+
+/**
+ * @param {{ mint: string; symbol?: string; name?: string; twitter?: string }} params
+ */
+function xPostsCacheKey(params) {
+  const mint = String(params.mint || '').trim().toLowerCase();
+  const symbol = String(params.symbol || '').trim().toLowerCase();
+  const name = String(params.name || '').trim().toLowerCase();
+  const twitter = String(params.twitter || '').trim().toLowerCase().replace(/^@/, '');
+  return `${mint}|${symbol}|${name}|${twitter}`;
+}
 
 /** @param {unknown} raw */
 function normalizeSearchHit(raw) {
@@ -179,6 +217,150 @@ export function createTokensDossierRouter() {
       return res.json({ success: true, data: result.data });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Asset intelligence failed';
+      return res.status(500).json({ success: false, error: message });
+    }
+  });
+
+  /**
+   * GET /agent/tokens/chart?mint=<solana>
+   * Fast swap-panel chart: resolve + OHLCV + profile only.
+   */
+  router.get('/chart', async (req, res) => {
+    try {
+      const mint = typeof req.query.mint === 'string' ? req.query.mint.trim() : '';
+      if (!mint || !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint)) {
+        return res.status(400).json({ success: false, error: 'Valid Solana mint is required' });
+      }
+
+      const result = await buildMintChart({ mint });
+      if (!result.ok) {
+        return res.status(result.status ?? 502).json({
+          success: false,
+          error: result.error || 'Chart fetch failed',
+          ...(result.requestId && { requestId: result.requestId }),
+        });
+      }
+      return res.json({ success: true, data: result.data });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Chart fetch failed';
+      return res.status(500).json({ success: false, error: message });
+    }
+  });
+
+  /**
+   * GET /agent/tokens/news?symbol=SOL&name=Solana&mint=<optional>
+   * Fast swap-panel news — no resolve / signal / events.
+   */
+  router.get('/news', async (req, res) => {
+    try {
+      const mint = typeof req.query.mint === 'string' ? req.query.mint.trim() : undefined;
+      const symbol = typeof req.query.symbol === 'string' ? req.query.symbol.trim() : undefined;
+      const name = typeof req.query.name === 'string' ? req.query.name.trim() : undefined;
+
+      const result = await buildSwapMarketNews({ mint, symbol, name });
+      if (!result.ok) {
+        return res.status(result.status ?? 502).json({
+          success: false,
+          error: result.error || 'News fetch failed',
+        });
+      }
+      return res.json({ success: true, data: result.data });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'News fetch failed';
+      return res.status(500).json({ success: false, error: message });
+    }
+  });
+
+  /**
+   * GET /agent/tokens/x-posts?mint=<solana>&symbol=SOL&name=Solana
+   * Recent X posts mentioning the token (KOL / social radar, fast mode).
+   * Bounded in-memory cache (~15 min success / ~5 min negative) to avoid
+   * re-billing twitterapi.io on repeated page visits.
+   */
+  router.get('/x-posts', async (req, res) => {
+    try {
+      const mint = typeof req.query.mint === 'string' ? req.query.mint.trim() : '';
+      const symbol = typeof req.query.symbol === 'string' ? req.query.symbol.trim() : undefined;
+      const name = typeof req.query.name === 'string' ? req.query.name.trim() : undefined;
+      const twitter = typeof req.query.twitter === 'string' ? req.query.twitter.trim() : undefined;
+
+      if (!mint || !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint)) {
+        return res.status(400).json({ success: false, error: 'Valid Solana mint is required' });
+      }
+
+      const cacheKey = xPostsCacheKey({ mint, symbol, name, twitter });
+      const cached = xPostsCache.get(cacheKey);
+      if (
+        cached &&
+        typeof cached === 'object' &&
+        'status' in /** @type {Record<string, unknown>} */ (cached) &&
+        'body' in /** @type {Record<string, unknown>} */ (cached)
+      ) {
+        const entry = /** @type {{ status: number; body: unknown; maxAgeSec: number }} */ (cached);
+        res.setHeader('Cache-Control', `public, max-age=${entry.maxAgeSec}`);
+        return res.status(entry.status).json(entry.body);
+      }
+
+      const result = await fetchTokenKolShills(
+        { mint, symbol, name, twitter },
+        { fast: true },
+      );
+
+      if (!result.ok) {
+        const status = result.status ?? 502;
+        const body = {
+          success: false,
+          error: result.error || 'X posts fetch failed',
+        };
+        xPostsCache.set(
+          cacheKey,
+          { status, body, maxAgeSec: X_POSTS_NEGATIVE_MAX_AGE_SEC },
+          X_POSTS_NEGATIVE_CACHE_TTL_MS,
+        );
+        res.setHeader('Cache-Control', `public, max-age=${X_POSTS_NEGATIVE_MAX_AGE_SEC}`);
+        return res.status(status).json(body);
+      }
+
+      const kols = Array.isArray(result.data?.topKols) ? result.data.topKols : [];
+      const posts = kols
+        .filter((row) => row?.sampleTweet?.id && row?.sampleTweet?.text)
+        .map((row) => ({
+          id: row.sampleTweet.id,
+          text: row.sampleTweet.text,
+          url: row.sampleTweet.url,
+          createdAt: row.sampleTweet.createdAt,
+          engagement: row.sampleTweet.engagement,
+          username: row.username,
+          displayName: row.displayName,
+          followers: row.followers,
+          verified: row.verified,
+          profileImageUrl: row.profileImageUrl ?? null,
+        }))
+        .sort((a, b) => (b.engagement ?? 0) - (a.engagement ?? 0))
+        .slice(0, 8);
+
+      const body = {
+        success: true,
+        data: {
+          mint,
+          posts,
+          summary: result.data.summary ?? null,
+          source: result.data.source ?? null,
+          searchTerms: result.data.searchTerms ?? null,
+          fetchedAt: new Date().toISOString(),
+        },
+      };
+
+      // Empty results use the success TTL so quiet tokens don't re-hit the API.
+      xPostsCache.set(
+        cacheKey,
+        { status: 200, body, maxAgeSec: X_POSTS_CACHE_MAX_AGE_SEC },
+        X_POSTS_CACHE_TTL_MS,
+      );
+      res.setHeader('Cache-Control', `public, max-age=${X_POSTS_CACHE_MAX_AGE_SEC}`);
+      return res.json(body);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'X posts fetch failed';
       return res.status(500).json({ success: false, error: message });
     }
   });

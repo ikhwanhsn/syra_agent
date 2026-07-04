@@ -180,3 +180,93 @@ export async function buildMintDossier(input) {
     requestId: detailResult.requestId,
   };
 }
+
+/**
+ * Fast swap-panel chart payload: resolve + OHLCV + profile only (no markets/risk).
+ * @param {{ mint: string }} input
+ */
+export async function buildMintChart(input) {
+  const mint = trim(input.mint);
+  if (!mint || !isLikelySolanaMint(mint)) {
+    return { ok: false, error: 'Provide a valid Solana mint', status: 400 };
+  }
+
+  const cacheKey = `chart|${mint}`;
+  const cached = dossierCache.get(cacheKey);
+  if (cached && Date.now() < cached.expires) {
+    return { ok: true, data: cached.data };
+  }
+
+  const resolved = await runTokensAgentTool('tokens-assets-resolve', { mint });
+  if (!resolved.ok) {
+    return {
+      ok: false,
+      error: resolved.error || 'Could not resolve asset',
+      status: resolved.status ?? 502,
+      requestId: resolved.requestId,
+    };
+  }
+
+  const assetId = trim(resolved.data?.assetId);
+  if (!assetId) {
+    return { ok: false, error: 'Resolve returned no assetId', status: 502 };
+  }
+
+  let chartMint = mint;
+  if (resolved.data?.variant?.mint) {
+    chartMint = trim(resolved.data.variant.mint) || mint;
+  }
+
+  const [detailResult, ohlcvResult] = await Promise.all([
+    runTokensAgentTool('tokens-asset-detail', {
+      assetId,
+      mint: chartMint,
+      include: 'profile',
+    }),
+    runTokensAgentTool('tokens-asset-ohlcv', {
+      assetId,
+      mint: chartMint,
+      interval: '1H',
+    }),
+  ]);
+
+  const asset = detailResult.ok ? detailResult.data?.asset ?? null : null;
+  const candles =
+    ohlcvResult?.ok && Array.isArray(ohlcvResult.data?.candles) ? ohlcvResult.data.candles : [];
+
+  const data = {
+    query: { mint },
+    assetId,
+    chartMint,
+    resolve: resolved.data,
+    asset,
+    includes: detailResult.ok ? detailResult.data?.includes ?? null : null,
+    ohlcv: ohlcvResult?.ok
+      ? {
+          interval: ohlcvResult.data?.interval ?? '1H',
+          mint: ohlcvResult.data?.mint ?? chartMint,
+          from: ohlcvResult.data?.from ?? null,
+          to: ohlcvResult.data?.to ?? null,
+          candles,
+        }
+      : {
+          interval: '1H',
+          mint: chartMint,
+          candles: [],
+          error: ohlcvResult?.error ?? 'Chart unavailable',
+        },
+    mintRisk: null,
+    fetchedAt: new Date().toISOString(),
+  };
+
+  dossierCache.set(cacheKey, {
+    data,
+    expires: Date.now() + DOSSIER_CACHE_TTL_MS,
+  });
+
+  return {
+    ok: true,
+    data,
+    requestId: ohlcvResult?.requestId ?? detailResult?.requestId ?? resolved.requestId,
+  };
+}

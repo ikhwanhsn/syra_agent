@@ -4,10 +4,10 @@
  *
  * Response cache (reduces duplicate calls / rate-limit pressure):
  * - X_API_RESPONSE_CACHE — set to "0" or "false" to disable (default: on)
- * - X_API_USER_CACHE_MS — user-by-username TTL (default 300000 = 5m)
- * - X_API_TWEETS_CACHE_MS — user timeline TTL (default 180000 = 3m)
- * - X_API_SEARCH_CACHE_MS — recent search TTL (default 600000 = 10m)
- * - X_API_CACHE_MAX_ENTRIES — max cached keys (default 400; FIFO eviction)
+ * - X_API_USER_CACHE_MS — user-by-username TTL (default 1800000 = 30m)
+ * - X_API_TWEETS_CACHE_MS — user timeline TTL (default 900000 = 15m)
+ * - X_API_SEARCH_CACHE_MS — recent search TTL (default 900000 = 15m)
+ * - X_API_CACHE_MAX_ENTRIES — max cached keys (default 1000; FIFO eviction)
  *
  * @see https://docs.x.com/x-api/introduction
  */
@@ -27,18 +27,18 @@ function isResponseCacheEnabled() {
 function cacheTtlForPath(path) {
   const p = path.replace(/^\//, "");
   if (p === "tweets/search/recent") {
-    return parsePositiveInt(process.env.X_API_SEARCH_CACHE_MS, 600_000);
+    return parsePositiveInt(process.env.X_API_SEARCH_CACHE_MS, 900_000);
   }
   if (/^users\/[^/]+\/tweets$/.test(p)) {
-    return parsePositiveInt(process.env.X_API_TWEETS_CACHE_MS, 180_000);
+    return parsePositiveInt(process.env.X_API_TWEETS_CACHE_MS, 900_000);
   }
   if (p.startsWith("users/by/username/")) {
-    return parsePositiveInt(process.env.X_API_USER_CACHE_MS, 300_000);
+    return parsePositiveInt(process.env.X_API_USER_CACHE_MS, 1_800_000);
   }
-  return parsePositiveInt(process.env.X_API_DEFAULT_CACHE_MS, 120_000);
+  return parsePositiveInt(process.env.X_API_DEFAULT_CACHE_MS, 900_000);
 }
 
-const CACHE_MAX = Math.min(5000, parsePositiveInt(process.env.X_API_CACHE_MAX_ENTRIES, 400));
+const CACHE_MAX = Math.min(5000, parsePositiveInt(process.env.X_API_CACHE_MAX_ENTRIES, 1000));
 
 /** @type {Map<string, { body: unknown; expires: number }>} */
 const responseCache = new Map();

@@ -7,12 +7,14 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
   CampaignEndDatePicker,
   defaultCampaignEndDate,
   durationDaysFromEndDate,
 } from "@/components/kol/CampaignEndDatePicker";
+import { isAdminWallet } from "@/lib/adminWallet";
 import {
   confirmCampaignDeposit,
   createCampaign,
@@ -47,7 +49,11 @@ export function CreateCampaignForm({
   const [sourceTweetUrl, setSourceTweetUrl] = useState("");
   const [rewardSol, setRewardSol] = useState(String(minKolPoolSol));
   const [endDate, setEndDate] = useState(() => defaultCampaignEndDate(7));
-  const [pendingCampaign, setPendingCampaign] = useState<KolCampaign | null>(null);
+  const [requireCreatedOneCampaign, setRequireCreatedOneCampaign] =
+    useState(false);
+  const [pendingCampaign, setPendingCampaign] = useState<KolCampaign | null>(
+    null,
+  );
   const [depositInfo, setDepositInfo] = useState<{
     poolWalletAddress: string;
     rewardLamports: number;
@@ -55,21 +61,29 @@ export function CreateCampaignForm({
     platformFeeLamports?: number;
   } | null>(null);
 
+  const walletAddress = wallet.publicKey?.toBase58() ?? null;
+  const isAdmin = isAdminWallet(walletAddress);
+
   const durationDays = durationDaysFromEndDate(endDate);
   const kolRewardNum = Number(rewardSol);
   const totalDepositSol =
-    Number.isFinite(kolRewardNum) && kolRewardNum > 0 ? kolRewardNum + platformFeeSol : 0;
+    Number.isFinite(kolRewardNum) && kolRewardNum > 0
+      ? kolRewardNum + platformFeeSol
+      : 0;
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      if (!wallet.publicKey) throw new Error("Connect your Solana wallet first");
+      if (!wallet.publicKey)
+        throw new Error("Connect your Solana wallet first");
 
       if (!Number.isFinite(kolRewardNum) || kolRewardNum < minKolPoolSol) {
         throw new Error(`Minimum KOL reward is ${minKolPoolSol} SOL`);
       }
 
       if (durationDays < minDurationDays || durationDays > maxDurationDays) {
-        throw new Error(`Campaign must run ${minDurationDays}–${maxDurationDays} days`);
+        throw new Error(
+          `Campaign must run ${minDurationDays}–${maxDurationDays} days`,
+        );
       }
 
       return createCampaign({
@@ -79,6 +93,9 @@ export function CreateCampaignForm({
         description,
         rewardSol: totalDepositSol,
         durationDays,
+        ...(isAdmin && requireCreatedOneCampaign
+          ? { requireCreatedOneCampaign: true }
+          : {}),
       });
     },
     onSuccess: (data) => {
@@ -95,7 +112,8 @@ export function CreateCampaignForm({
 
   const depositMutation = useMutation({
     mutationFn: async () => {
-      if (!wallet.publicKey) throw new Error("Connect your Solana wallet first");
+      if (!wallet.publicKey)
+        throw new Error("Connect your Solana wallet first");
       if (!pendingCampaign || !depositInfo) {
         throw new Error("Create the campaign first");
       }
@@ -116,7 +134,8 @@ export function CreateCampaignForm({
       setDepositInfo(null);
       onCreated?.(data.campaign);
       toast.success("Campaign is live", {
-        description: "+5 S3Labs Points credited. KOLs can now submit replies and quotes.",
+        description:
+          "+5 S3Labs Points credited. KOLs can now submit replies and quotes.",
       });
     },
     onError: (e: Error) => {
@@ -126,8 +145,10 @@ export function CreateCampaignForm({
 
   const isBusy = createMutation.isPending || depositMutation.isPending;
   const awaitingDeposit = Boolean(pendingCampaign && depositInfo);
-  const rewardValid = Number.isFinite(kolRewardNum) && kolRewardNum >= minKolPoolSol;
-  const durationValid = durationDays >= minDurationDays && durationDays <= maxDurationDays;
+  const rewardValid =
+    Number.isFinite(kolRewardNum) && kolRewardNum >= minKolPoolSol;
+  const durationValid =
+    durationDays >= minDurationDays && durationDays <= maxDurationDays;
 
   return (
     <div className="panel-glass rounded-2xl border border-border/60 p-5 sm:p-8 space-y-6 max-w-2xl min-w-0">
@@ -135,9 +156,12 @@ export function CreateCampaignForm({
         <p className="eyebrow mb-2">For Projects</p>
         <h2 className="heading-section">Launch a KOL campaign</h2>
         <p className="text-sm text-muted-foreground mt-2">
-          Post the X URL you want amplified and fund the campaign. KOLs earn by engagement at snapshot.
-          You earn <span className="text-foreground/90 font-medium">+5 S3Labs Points</span> when your
-          campaign goes live.
+          Post the X URL you want amplified and fund the campaign. KOLs earn by
+          engagement at snapshot. You earn{" "}
+          <span className="text-foreground/90 font-medium">
+            +5 S3Labs Points
+          </span>{" "}
+          when your campaign goes live.
         </p>
       </div>
 
@@ -147,7 +171,9 @@ export function CreateCampaignForm({
             {wallet.publicKey.toBase58()}
           </span>
         ) : (
-          <p className="text-sm text-muted-foreground">Connect your wallet from the navbar to continue.</p>
+          <p className="text-sm text-muted-foreground">
+            Connect your wallet from the navbar to continue.
+          </p>
         )}
       </div>
 
@@ -217,20 +243,44 @@ export function CreateCampaignForm({
             />
           </div>
         </div>
+
+        {isAdmin ? (
+          <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Admin participation rules
+            </p>
+            <div className="flex items-center justify-between gap-4">
+              <Label
+                htmlFor="kol-rule-created-campaign"
+                className="text-sm font-normal leading-snug"
+              >
+                Already created 1 campaign
+              </Label>
+              <Switch
+                id="kol-rule-created-campaign"
+                checked={requireCreatedOneCampaign}
+                onCheckedChange={setRequireCreatedOneCampaign}
+                disabled={awaitingDeposit}
+              />
+            </div>
+          </div>
+        ) : null}
       </div>
 
       {depositInfo ? (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm space-y-2">
           <p className="font-medium text-amber-300">Step 2 — Fund campaign</p>
           <p className="text-muted-foreground">
-            Approve the transaction in your wallet to activate this campaign and fund the KOL
-            reward pool.
+            Approve the transaction in your wallet to activate this campaign and
+            fund the KOL reward pool.
           </p>
           <p className="text-xs font-mono text-muted-foreground break-all">
             Pool: {poolWalletAddress}
           </p>
           {pendingCampaign ? (
-            <p className="text-xs text-muted-foreground">Campaign ID: {pendingCampaign.id}</p>
+            <p className="text-xs text-muted-foreground">
+              Campaign ID: {pendingCampaign.id}
+            </p>
           ) : null}
         </div>
       ) : null}
@@ -239,7 +289,14 @@ export function CreateCampaignForm({
         <Button
           variant="hero"
           className="rounded-full w-full sm:w-auto"
-          disabled={!wallet.publicKey || isBusy || !title || !sourceTweetUrl || !rewardValid || !durationValid}
+          disabled={
+            !wallet.publicKey ||
+            isBusy ||
+            !title ||
+            !sourceTweetUrl ||
+            !rewardValid ||
+            !durationValid
+          }
           onClick={() => createMutation.mutate()}
         >
           {createMutation.isPending ? (

@@ -19,11 +19,26 @@ function isResponseCacheEnabled() {
   return v !== "0" && v !== "false" && v !== "no" && v !== "off";
 }
 
-const CACHE_MAX = Math.min(5000, parsePositiveInt(process.env.TWITTERAPI_IO_CACHE_MAX_ENTRIES, 200));
-const SEARCH_CACHE_MS = parsePositiveInt(process.env.TWITTERAPI_IO_SEARCH_CACHE_MS, 300_000);
-const USER_CACHE_MS = parsePositiveInt(process.env.TWITTERAPI_IO_USER_CACHE_MS, 300_000);
-const TWEETS_CACHE_MS = parsePositiveInt(process.env.TWITTERAPI_IO_TWEETS_CACHE_MS, 180_000);
-const TRENDS_CACHE_MS = parsePositiveInt(process.env.TWITTERAPI_IO_TRENDS_CACHE_MS, 600_000);
+const CACHE_MAX = Math.min(
+  5000,
+  parsePositiveInt(process.env.TWITTERAPI_IO_CACHE_MAX_ENTRIES, 1000),
+);
+const SEARCH_CACHE_MS = parsePositiveInt(
+  process.env.TWITTERAPI_IO_SEARCH_CACHE_MS,
+  900_000,
+);
+const USER_CACHE_MS = parsePositiveInt(
+  process.env.TWITTERAPI_IO_USER_CACHE_MS,
+  1_800_000,
+);
+const TWEETS_CACHE_MS = parsePositiveInt(
+  process.env.TWITTERAPI_IO_TWEETS_CACHE_MS,
+  900_000,
+);
+const TRENDS_CACHE_MS = parsePositiveInt(
+  process.env.TWITTERAPI_IO_TRENDS_CACHE_MS,
+  1_800_000,
+);
 
 /** @type {Map<string, { body: unknown; expires: number }>} */
 const responseCache = new Map();
@@ -77,7 +92,9 @@ function responseCacheSet(key, body, ttlMs) {
  * @param {URL} url
  */
 function cacheKeyForUrl(url) {
-  const entries = [...url.searchParams.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+  const entries = [...url.searchParams.entries()].sort(([a], [b]) =>
+    a < b ? -1 : a > b ? 1 : 0,
+  );
   const qs = new URLSearchParams(entries).toString();
   return `${url.pathname}?${qs}`;
 }
@@ -177,7 +194,8 @@ function normalizeMediaItem(raw) {
         const variantUrl = String(
           /** @type {Record<string, unknown>} */ (variant).url ?? "",
         ).trim();
-        const bitrate = Number(/** @type {Record<string, unknown>} */ (variant).bitrate) || 0;
+        const bitrate =
+          Number(/** @type {Record<string, unknown>} */ (variant).bitrate) || 0;
         return { url: variantUrl, bitrate };
       })
       .filter((variant) => variant.url.includes(".mp4"))
@@ -220,13 +238,17 @@ function buildIncludesMediaMap(body) {
 
   const mediaArrays = [
     ...(Array.isArray(includes?.media) ? includes.media : []),
-    ...(Array.isArray(obj.media) && !Array.isArray(obj.tweets) ? obj.media : []),
+    ...(Array.isArray(obj.media) && !Array.isArray(obj.tweets)
+      ? obj.media
+      : []),
   ];
 
   for (const item of mediaArrays) {
     if (!item || typeof item !== "object") continue;
     const record = /** @type {Record<string, unknown>} */ (item);
-    const key = String(record.media_key ?? record.mediaKey ?? record.id ?? "").trim();
+    const key = String(
+      record.media_key ?? record.mediaKey ?? record.id ?? "",
+    ).trim();
     if (key) map.set(key, record);
   }
 
@@ -248,7 +270,8 @@ export function extractTweetMedia(tweetRaw, ctx = {}) {
       sources.push({ type: "photo", url: item });
       return;
     }
-    if (typeof item === "object") sources.push(/** @type {Record<string, unknown>} */ (item));
+    if (typeof item === "object")
+      sources.push(/** @type {Record<string, unknown>} */ (item));
   };
 
   if (Array.isArray(tweetRaw?.media)) {
@@ -268,14 +291,24 @@ export function extractTweetMedia(tweetRaw, ctx = {}) {
       for (const item of entities.media) pushSource(item);
     }
   }
-  if (tweetRaw?.extendedEntities && typeof tweetRaw.extendedEntities === "object") {
-    const extended = /** @type {Record<string, unknown>} */ (tweetRaw.extendedEntities);
+  if (
+    tweetRaw?.extendedEntities &&
+    typeof tweetRaw.extendedEntities === "object"
+  ) {
+    const extended = /** @type {Record<string, unknown>} */ (
+      tweetRaw.extendedEntities
+    );
     if (Array.isArray(extended.media)) {
       for (const item of extended.media) pushSource(item);
     }
   }
-  if (tweetRaw?.extended_entities && typeof tweetRaw.extended_entities === "object") {
-    const extended = /** @type {Record<string, unknown>} */ (tweetRaw.extended_entities);
+  if (
+    tweetRaw?.extended_entities &&
+    typeof tweetRaw.extended_entities === "object"
+  ) {
+    const extended = /** @type {Record<string, unknown>} */ (
+      tweetRaw.extended_entities
+    );
     if (Array.isArray(extended.media)) {
       for (const item of extended.media) pushSource(item);
     }
@@ -283,7 +316,8 @@ export function extractTweetMedia(tweetRaw, ctx = {}) {
 
   const attachments = tweetRaw?.attachments;
   if (attachments && typeof attachments === "object") {
-    const mediaKeys = /** @type {Record<string, unknown>} */ (attachments).media_keys;
+    const mediaKeys = /** @type {Record<string, unknown>} */ (attachments)
+      .media_keys;
     if (Array.isArray(mediaKeys)) {
       for (const key of mediaKeys) {
         const mediaKey = String(key ?? "").trim();
@@ -304,11 +338,14 @@ export function extractTweetMedia(tweetRaw, ctx = {}) {
       for (const binding of cardObj.binding_values) {
         if (!binding || typeof binding !== "object") continue;
         const b = /** @type {Record<string, unknown>} */ (binding);
-        const value = b.value && typeof b.value === "object"
-          ? /** @type {Record<string, unknown>} */ (b.value)
-          : null;
+        const value =
+          b.value && typeof b.value === "object"
+            ? /** @type {Record<string, unknown>} */ (b.value)
+            : null;
         if (value?.image_value && typeof value.image_value === "object") {
-          const imageValue = /** @type {Record<string, unknown>} */ (value.image_value);
+          const imageValue = /** @type {Record<string, unknown>} */ (
+            value.image_value
+          );
           pushSource(imageValue.url);
         }
       }
@@ -339,17 +376,21 @@ function normalizeAuthor(authorRaw) {
     .trim()
     .replace(/^@/, "");
 
-  const name = String(authorRaw?.name ?? authorRaw?.displayName ?? userName).trim();
+  const name = String(
+    authorRaw?.name ?? authorRaw?.displayName ?? userName,
+  ).trim();
 
   const followers = toNonNegativeInt(
-    authorRaw?.followers ?? authorRaw?.followersCount ?? authorRaw?.followers_count,
+    authorRaw?.followers ??
+      authorRaw?.followersCount ??
+      authorRaw?.followers_count,
   );
 
   const verified = Boolean(
     authorRaw?.isBlueVerified ??
-      authorRaw?.verified ??
-      authorRaw?.isVerified ??
-      authorRaw?.blue_verified,
+    authorRaw?.verified ??
+    authorRaw?.isVerified ??
+    authorRaw?.blue_verified,
   );
 
   const profilePicture =
@@ -374,8 +415,12 @@ function normalizeAuthor(authorRaw) {
  * @param {{ includesMedia?: Map<string, Record<string, unknown>> }} [ctx]
  */
 function normalizeTweet(tweetRaw, ctx = {}) {
-  const id = extractTweetId(tweetRaw?.id ?? tweetRaw?.tweetId ?? tweetRaw?.tweet_id);
-  const text = extractTweetText(tweetRaw?.text ?? tweetRaw?.full_text ?? tweetRaw?.tweetText);
+  const id = extractTweetId(
+    tweetRaw?.id ?? tweetRaw?.tweetId ?? tweetRaw?.tweet_id,
+  );
+  const text = extractTweetText(
+    tweetRaw?.text ?? tweetRaw?.full_text ?? tweetRaw?.tweetText,
+  );
   const media = extractTweetMedia(tweetRaw, ctx);
   if (!id || (!text && media.length === 0)) return null;
 
@@ -395,7 +440,9 @@ function normalizeTweet(tweetRaw, ctx = {}) {
       : tweetRaw;
 
   const likeCount = toNonNegativeInt(
-    metricsRaw?.likeCount ?? metricsRaw?.favorite_count ?? metricsRaw?.favourites_count,
+    metricsRaw?.likeCount ??
+      metricsRaw?.favorite_count ??
+      metricsRaw?.favourites_count,
   );
   const retweetCount = toNonNegativeInt(
     metricsRaw?.retweetCount ?? metricsRaw?.retweet_count,
@@ -410,7 +457,9 @@ function normalizeTweet(tweetRaw, ctx = {}) {
     metricsRaw?.viewCount ?? metricsRaw?.views ?? metricsRaw?.impression_count,
   );
 
-  const createdAt = extractCreatedAt(tweetRaw?.createdAt ?? tweetRaw?.created_at);
+  const createdAt = extractCreatedAt(
+    tweetRaw?.createdAt ?? tweetRaw?.created_at,
+  );
 
   let inReplyToId = extractTweetId(
     tweetRaw?.inReplyToId ??
@@ -435,16 +484,18 @@ function normalizeTweet(tweetRaw, ctx = {}) {
     }
   }
 
-  if (!quotedTweetId && tweetRaw?.quoted_status && typeof tweetRaw.quoted_status === "object") {
+  if (
+    !quotedTweetId &&
+    tweetRaw?.quoted_status &&
+    typeof tweetRaw.quoted_status === "object"
+  ) {
     quotedTweetId = extractTweetId(
       /** @type {Record<string, unknown>} */ (tweetRaw.quoted_status).id,
     );
   }
 
   const quotedTweetRaw =
-    tweetRaw?.quoted_tweet ??
-    tweetRaw?.quotedTweet ??
-    tweetRaw?.quoteTweet;
+    tweetRaw?.quoted_tweet ?? tweetRaw?.quotedTweet ?? tweetRaw?.quoteTweet;
   if (!quotedTweetId && quotedTweetRaw && typeof quotedTweetRaw === "object") {
     quotedTweetId = extractTweetId(
       /** @type {Record<string, unknown>} */ (quotedTweetRaw).id ??
@@ -455,7 +506,9 @@ function normalizeTweet(tweetRaw, ctx = {}) {
 
   if (!inReplyToId && tweetRaw?.isReply === true) {
     inReplyToId = extractTweetId(
-      tweetRaw?.inReplyToId ?? tweetRaw?.in_reply_to_status_id_str ?? tweetRaw?.conversationId,
+      tweetRaw?.inReplyToId ??
+        tweetRaw?.in_reply_to_status_id_str ??
+        tweetRaw?.conversationId,
     );
   }
 
@@ -536,17 +589,22 @@ async function twitterApiIoGet(path, params = {}) {
       (typeof body?.msg === "string" && body.msg) ||
       `twitterapi.io HTTP ${res.status}`;
     const err = new Error(msg);
-    err.code = res.status === 401 || res.status === 403 ? "twitterapi_unavailable" : "twitterapi_error";
+    err.code =
+      res.status === 401 || res.status === 403
+        ? "twitterapi_unavailable"
+        : "twitterapi_error";
     err.status = res.status;
     throw err;
   }
 
   if (isResponseCacheEnabled()) {
-    const ttl =
-      path.includes("/user/info") ? USER_CACHE_MS
-      : path.includes("/user/last_tweets") || path.includes("/user/mentions") ? TWEETS_CACHE_MS
-      : path.includes("/trends") ? TRENDS_CACHE_MS
-      : SEARCH_CACHE_MS;
+    const ttl = path.includes("/user/info")
+      ? USER_CACHE_MS
+      : path.includes("/user/last_tweets") || path.includes("/user/mentions")
+        ? TWEETS_CACHE_MS
+        : path.includes("/trends")
+          ? TRENDS_CACHE_MS
+          : SEARCH_CACHE_MS;
     responseCacheSet(cacheKey, body, ttl);
   }
 
@@ -576,12 +634,17 @@ export async function advancedSearch(opts) {
   const tweets = rawTweets
     .map((t) =>
       t && typeof t === "object"
-        ? normalizeTweet(/** @type {Record<string, unknown>} */ (t), { includesMedia })
+        ? normalizeTweet(/** @type {Record<string, unknown>} */ (t), {
+            includesMedia,
+          })
         : null,
     )
     .filter(Boolean);
 
-  const obj = body && typeof body === "object" ? /** @type {Record<string, unknown>} */ (body) : {};
+  const obj =
+    body && typeof body === "object"
+      ? /** @type {Record<string, unknown>} */ (body)
+      : {};
 
   return {
     tweets,
@@ -610,14 +673,23 @@ function normalizeUserInfo(raw) {
   return {
     userName,
     name: String(raw.name ?? raw.displayName ?? userName).trim() || userName,
-    followers: toNonNegativeInt(raw.followers ?? raw.followersCount ?? raw.followers_count),
-    following: toNonNegativeInt(raw.following ?? raw.followingCount ?? raw.friends_count),
-    tweetCount: toNonNegativeInt(raw.tweetCount ?? raw.statusesCount ?? raw.statuses_count),
-    favouritesCount: toNonNegativeInt(raw.favouritesCount ?? raw.favourites_count),
+    followers: toNonNegativeInt(
+      raw.followers ?? raw.followersCount ?? raw.followers_count,
+    ),
+    following: toNonNegativeInt(
+      raw.following ?? raw.followingCount ?? raw.friends_count,
+    ),
+    tweetCount: toNonNegativeInt(
+      raw.tweetCount ?? raw.statusesCount ?? raw.statuses_count,
+    ),
+    favouritesCount: toNonNegativeInt(
+      raw.favouritesCount ?? raw.favourites_count,
+    ),
     verified: Boolean(raw.isBlueVerified ?? raw.verified ?? raw.isVerified),
     description: String(raw.description ?? raw.bio ?? "").trim(),
     createdAt: extractCreatedAt(raw.createdAt ?? raw.created_at),
-    profilePicture: String(raw.profilePicture ?? raw.profile_image_url ?? "").trim() || null,
+    profilePicture:
+      String(raw.profilePicture ?? raw.profile_image_url ?? "").trim() || null,
   };
 }
 
@@ -625,7 +697,9 @@ function normalizeUserInfo(raw) {
  * @param {string} userName
  */
 export async function getUserInfo(userName) {
-  const clean = String(userName ?? "").trim().replace(/^@/, "");
+  const clean = String(userName ?? "")
+    .trim()
+    .replace(/^@/, "");
   if (!clean) {
     const err = new Error("userName is required");
     err.code = "invalid_handle";
@@ -634,7 +708,10 @@ export async function getUserInfo(userName) {
 
   const body = await twitterApiIoGet("/twitter/user/info", { userName: clean });
   const data =
-    body && typeof body === "object" && body.data && typeof body.data === "object"
+    body &&
+    typeof body === "object" &&
+    body.data &&
+    typeof body.data === "object"
       ? /** @type {Record<string, unknown>} */ (body.data)
       : body && typeof body === "object"
         ? /** @type {Record<string, unknown>} */ (body)
@@ -647,14 +724,19 @@ export async function getUserInfo(userName) {
     throw err;
   }
 
-  return { user, rawStatus: typeof body?.status === "string" ? body.status : "success" };
+  return {
+    user,
+    rawStatus: typeof body?.status === "string" ? body.status : "success",
+  };
 }
 
 /**
  * @param {{ userName: string; cursor?: string | null }} opts
  */
 export async function getUserLastTweets(opts) {
-  const clean = String(opts?.userName ?? "").trim().replace(/^@/, "");
+  const clean = String(opts?.userName ?? "")
+    .trim()
+    .replace(/^@/, "");
   if (!clean) {
     const err = new Error("userName is required");
     err.code = "invalid_handle";
@@ -667,10 +749,17 @@ export async function getUserLastTweets(opts) {
   const body = await twitterApiIoGet("/twitter/user/last_tweets", params);
   const rawTweets = extractTweetsArray(body);
   const tweets = rawTweets
-    .map((t) => (t && typeof t === "object" ? normalizeTweet(/** @type {Record<string, unknown>} */ (t)) : null))
+    .map((t) =>
+      t && typeof t === "object"
+        ? normalizeTweet(/** @type {Record<string, unknown>} */ (t))
+        : null,
+    )
     .filter(Boolean);
 
-  const obj = body && typeof body === "object" ? /** @type {Record<string, unknown>} */ (body) : {};
+  const obj =
+    body && typeof body === "object"
+      ? /** @type {Record<string, unknown>} */ (body)
+      : {};
 
   return {
     tweets,
@@ -690,7 +779,9 @@ export async function getUserLastTweets(opts) {
  * @param {{ userName: string; sinceTime?: number; untilTime?: number; cursor?: string | null }} opts
  */
 export async function getUserMentions(opts) {
-  const clean = String(opts?.userName ?? "").trim().replace(/^@/, "");
+  const clean = String(opts?.userName ?? "")
+    .trim()
+    .replace(/^@/, "");
   if (!clean) {
     const err = new Error("userName is required");
     err.code = "invalid_handle";
@@ -709,10 +800,17 @@ export async function getUserMentions(opts) {
   const body = await twitterApiIoGet("/twitter/user/mentions", params);
   const rawTweets = extractTweetsArray(body);
   const tweets = rawTweets
-    .map((t) => (t && typeof t === "object" ? normalizeTweet(/** @type {Record<string, unknown>} */ (t)) : null))
+    .map((t) =>
+      t && typeof t === "object"
+        ? normalizeTweet(/** @type {Record<string, unknown>} */ (t))
+        : null,
+    )
     .filter(Boolean);
 
-  const obj = body && typeof body === "object" ? /** @type {Record<string, unknown>} */ (body) : {};
+  const obj =
+    body && typeof body === "object"
+      ? /** @type {Record<string, unknown>} */ (body)
+      : {};
 
   return {
     tweets,
@@ -739,7 +837,10 @@ export async function getTrends(woeid = 1) {
   const trends = trendsRaw
     .map((item) => {
       const trend =
-        item && typeof item === "object" && item.trend && typeof item.trend === "object"
+        item &&
+        typeof item === "object" &&
+        item.trend &&
+        typeof item.trend === "object"
           ? /** @type {Record<string, unknown>} */ (item.trend)
           : item && typeof item === "object"
             ? /** @type {Record<string, unknown>} */ (item)
@@ -752,7 +853,12 @@ export async function getTrends(woeid = 1) {
     })
     .filter(Boolean);
 
-  return { trends, woeid: w, rawCount: trendsRaw.length, validatedCount: trends.length };
+  return {
+    trends,
+    woeid: w,
+    rawCount: trendsRaw.length,
+    validatedCount: trends.length,
+  };
 }
 
 /**
@@ -773,7 +879,9 @@ export async function getTweetById(tweetId) {
   const tweets = rawTweets
     .map((t) =>
       t && typeof t === "object"
-        ? normalizeTweet(/** @type {Record<string, unknown>} */ (t), { includesMedia })
+        ? normalizeTweet(/** @type {Record<string, unknown>} */ (t), {
+            includesMedia,
+          })
         : null,
     )
     .filter(Boolean);

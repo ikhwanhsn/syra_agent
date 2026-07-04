@@ -1,19 +1,23 @@
+import { motion, useReducedMotion } from "framer-motion";
+import { ArrowRight, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import StatMetric from "@/components/landing/StatMetric";
-import { ArrowRight, Sparkles } from "lucide-react";
-import { Link } from "react-router-dom";
 import { siteShell } from "@/lib/siteLayout";
 import { cn } from "@/lib/utils";
 
-const HeroSection = () => {
+const ease = [0.22, 1, 0.36, 1] as const;
 
-  const stats = [
-    { value: "$65K+", label: "Revenue Generated" },
-    { value: "3+", label: "Projects Scaled" },
-    { value: "95%", label: "Success Rate" },
-    { value: "500+", label: "Founder Network" },
-  ];
+const HeroSection = () => {
+  const reduceMotion = useReducedMotion() ?? false;
+
+  const fade = (delay: number) =>
+    reduceMotion
+      ? undefined
+      : {
+          initial: { opacity: 0, y: 24 },
+          animate: { opacity: 1, y: 0 },
+          transition: { duration: 0.6, delay, ease },
+        };
 
   return (
     <section className="relative min-h-[88dvh] sm:min-h-[92vh] flex items-center justify-center pt-[max(7rem,calc(env(safe-area-inset-top,0px)+5.5rem))] pb-12 sm:pb-16 overflow-hidden">
@@ -28,39 +32,42 @@ const HeroSection = () => {
         style={{ animationDelay: "2.5s" }}
         aria-hidden
       />
+      <div
+        className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(40rem,90vw)] h-[min(40rem,90vw)] bg-primary/5 rounded-full blur-[120px]"
+        aria-hidden
+      />
 
       <div className={cn(siteShell, "relative z-10 min-w-0")}>
         <div className="max-w-5xl mx-auto text-center min-w-0">
-          <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full panel-glass mb-8 animate-fade-up">
-            <Sparkles className="w-3.5 h-3.5 text-primary" />
+          <motion.div
+            className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full panel-glass mb-8"
+            {...fade(0)}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-primary" aria-hidden />
             <span className="text-xs font-semibold tracking-wide text-foreground/90 uppercase">
-              {"Solana Ecosystem"}
+              AI-Powered Web3 Ecosystem
             </span>
-          </div>
+          </motion.div>
 
-          <h1
-            className="heading-display text-foreground mb-7 animate-fade-up"
-            style={{ animationDelay: "0.1s" }}
+          <motion.h1
+            className="heading-display text-foreground mb-7"
+            {...fade(0.1)}
           >
-            <span className="block">S3 Labs — </span>
-            <span className="text-gradient">
-              {"Growth Partner"}
-            </span>
-            <span className="block mt-1 text-foreground/95">
-              {"for Solana Developers"}
-            </span>
-          </h1>
+            <span className="block">The AI-Powered</span>
+            <span className="text-gradient">Ecosystem for Web3.</span>
+          </motion.h1>
 
-          <p
-            className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed animate-fade-up"
-            style={{ animationDelay: "0.2s" }}
+          <motion.p
+            className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed"
+            {...fade(0.2)}
           >
-            {"We help developers who have won hackathons or already built an MVP to generate revenue, accelerate adoption, and scale within the Solana ecosystem."}
-          </p>
+            Discover opportunities, launch ideas faster, connect with the Web3
+            ecosystem, and unlock new ways to earn using AI-powered products.
+          </motion.p>
 
-          <div
-            className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-14 animate-fade-up"
-            style={{ animationDelay: "0.3s" }}
+          <motion.div
+            className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4"
+            {...fade(0.3)}
           >
             <Button
               variant="hero"
@@ -68,35 +75,27 @@ const HeroSection = () => {
               asChild
               className="group btn-premium w-full sm:w-auto sm:min-w-[220px] max-w-md mx-auto sm:mx-0"
             >
-              <Link to="/apply">
-                {"Apply Your Project to S3 Labs"}
+              <a href="#ecosystem">
+                Explore Ecosystem
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </Link>
+              </a>
             </Button>
-            <Button variant="heroOutline" size="xl" asChild className="rounded-full w-full sm:w-auto sm:min-w-[220px] max-w-md mx-auto sm:mx-0">
-              <Link to="/programs">
-                {"Explore Our Programs"}
-              </Link>
+            <Button
+              variant="heroOutline"
+              size="xl"
+              asChild
+              className="rounded-full w-full sm:w-auto sm:min-w-[220px] max-w-md mx-auto sm:mx-0"
+            >
+              <a href="#products">Start Building</a>
             </Button>
-          </div>
+          </motion.div>
 
-          <div
-            className="panel-glass px-4 sm:px-8 py-6 sm:py-7 max-w-3xl mx-auto animate-fade-up"
-            style={{ animationDelay: "0.4s" }}
+          <motion.p
+            className="text-sm text-muted-foreground/80 mt-10"
+            {...fade(0.4)}
           >
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-y-6 gap-x-2 divide-x-0 md:divide-x divide-border/60">
-              {stats.map((stat) => (
-                <StatMetric key={stat.label} value={stat.value} label={stat.label} />
-              ))}
-            </div>
-          </div>
-
-          <p
-            className="text-sm text-muted-foreground/80 mt-8 animate-fade-up"
-            style={{ animationDelay: "0.5s" }}
-          >
-            {"Focused on growth-ready projects — not just ideas."}
-          </p>
+            Discover. Build. Earn.
+          </motion.p>
         </div>
       </div>
 

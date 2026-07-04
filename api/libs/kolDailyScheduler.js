@@ -60,9 +60,18 @@ export function startKolDailyScheduler() {
 
   startupVerbose(`[kol] daily scheduler started (every ${Math.round(ms / 60000)} min)`);
 
-  setTimeout(() => {
-    runKolDailySchedulerTick().catch(() => {});
-  }, 30_000);
+  // Opt-in only: a full tick on every deploy/restart re-bills getTweetById for all
+  // active submissions. Set KOL_DAILY_RUN_ON_START=1 to restore boot behavior.
+  const runOnStart = ["1", "true", "yes", "on"].includes(
+    String(process.env.KOL_DAILY_RUN_ON_START ?? "")
+      .trim()
+      .toLowerCase(),
+  );
+  if (runOnStart) {
+    setTimeout(() => {
+      runKolDailySchedulerTick().catch(() => {});
+    }, 30_000);
+  }
 }
 
 export function stopKolDailyScheduler() {

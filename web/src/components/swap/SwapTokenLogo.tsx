@@ -7,11 +7,14 @@ const LOGO_SIZE = {
   sm: "h-7 w-7 min-h-7 min-w-7",
   /** Token list rows, skeletons */
   md: "h-9 w-9 min-h-9 min-w-9",
+  /** Market panel / dossier-style headers */
+  lg: "h-12 w-12 min-h-12 min-w-12",
 } as const;
 
 const MONOGRAM_SIZE = {
   sm: "text-[10px]",
   md: "text-xs",
+  lg: "text-sm",
 } as const;
 
 export type SwapTokenLogoSize = keyof typeof LOGO_SIZE;

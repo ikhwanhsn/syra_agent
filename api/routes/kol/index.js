@@ -21,7 +21,10 @@ import {
   listProjects,
 } from "../../libs/kolMarketplaceService.js";
 import { refreshAllMarketplaceXProfiles } from "../../libs/kolXProfileCache.js";
-import { getWalletPoints, getPointsLeaderboard } from "../../libs/s3labsPointsService.js";
+import {
+  getWalletPoints,
+  getPointsLeaderboard,
+} from "../../libs/s3labsPointsService.js";
 import {
   claimDailyPoints,
   getDailyClaimStatus,
@@ -62,6 +65,7 @@ function handleServiceError(res, error) {
     wallet_mismatch: 400,
     invalid_status: 400,
     campaign_ended: 400,
+    require_created_campaign: 403,
     topup_pending: 409,
     duplicate_submission: 409,
     duplicate_kol_handle: 409,
@@ -81,7 +85,9 @@ function handleServiceError(res, error) {
   };
 
   const status = statusByCode[code] ?? 500;
-  return res.status(status).json({ success: false, error: message, code: code ?? "internal_error" });
+  return res
+    .status(status)
+    .json({ success: false, error: message, code: code ?? "internal_error" });
 }
 
 export function createKolRouter() {
@@ -115,8 +121,12 @@ export function createKolRouter() {
 
   router.get("/projects", requireMongooseConnection, async (req, res) => {
     try {
-      const limit = typeof req.query.limit === "string" ? Number(req.query.limit) : undefined;
-      const sort = typeof req.query.sort === "string" ? req.query.sort : undefined;
+      const limit =
+        typeof req.query.limit === "string"
+          ? Number(req.query.limit)
+          : undefined;
+      const sort =
+        typeof req.query.sort === "string" ? req.query.sort : undefined;
       const result = await listProjects({ limit, sort });
       return res.json({ success: true, data: result });
     } catch (e) {
@@ -126,8 +136,12 @@ export function createKolRouter() {
 
   router.get("/kols", requireMongooseConnection, async (req, res) => {
     try {
-      const limit = typeof req.query.limit === "string" ? Number(req.query.limit) : undefined;
-      const sort = typeof req.query.sort === "string" ? req.query.sort : undefined;
+      const limit =
+        typeof req.query.limit === "string"
+          ? Number(req.query.limit)
+          : undefined;
+      const sort =
+        typeof req.query.sort === "string" ? req.query.sort : undefined;
       const result = await listKols({ limit, sort });
       return res.json({ success: true, data: result });
     } catch (e) {
@@ -135,60 +149,91 @@ export function createKolRouter() {
     }
   });
 
-  router.get("/profiles/:username", requireMongooseConnection, async (req, res) => {
-    try {
-      const result = await getProfile(req.params.username);
-      return res.json({ success: true, data: result });
-    } catch (e) {
-      return handleServiceError(res, e);
-    }
-  });
+  router.get(
+    "/profiles/:username",
+    requireMongooseConnection,
+    async (req, res) => {
+      try {
+        const result = await getProfile(req.params.username);
+        return res.json({ success: true, data: result });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
 
-  router.post("/admin/enrich-authors", requireMongooseConnection, async (req, res) => {
-    try {
-      const limit = typeof req.body?.limit === "number" ? req.body.limit : undefined;
-      const result = await enrichMissingCampaignAuthors({ limit });
-      return res.json({ success: true, data: result });
-    } catch (e) {
-      return handleServiceError(res, e);
-    }
-  });
+  router.post(
+    "/admin/enrich-authors",
+    requireMongooseConnection,
+    async (req, res) => {
+      try {
+        const limit =
+          typeof req.body?.limit === "number" ? req.body.limit : undefined;
+        const result = await enrichMissingCampaignAuthors({ limit });
+        return res.json({ success: true, data: result });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
 
-  router.post("/admin/backfill-submission-keys", requireMongooseConnection, async (req, res) => {
-    try {
-      const limit = typeof req.body?.limit === "number" ? req.body.limit : undefined;
-      const result = await backfillSubmissionAuthorKeys({ limit });
-      return res.json({ success: true, data: result });
-    } catch (e) {
-      return handleServiceError(res, e);
-    }
-  });
+  router.post(
+    "/admin/backfill-submission-keys",
+    requireMongooseConnection,
+    async (req, res) => {
+      try {
+        const limit =
+          typeof req.body?.limit === "number" ? req.body.limit : undefined;
+        const result = await backfillSubmissionAuthorKeys({ limit });
+        return res.json({ success: true, data: result });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
 
-  router.post("/admin/backfill-reputations", requireMongooseConnection, async (req, res) => {
-    try {
-      const limit = typeof req.body?.limit === "number" ? req.body.limit : undefined;
-      const result = await backfillKolReputations({ limit });
-      return res.json({ success: true, data: result });
-    } catch (e) {
-      return handleServiceError(res, e);
-    }
-  });
+  router.post(
+    "/admin/backfill-reputations",
+    requireMongooseConnection,
+    async (req, res) => {
+      try {
+        const limit =
+          typeof req.body?.limit === "number" ? req.body.limit : undefined;
+        const result = await backfillKolReputations({ limit });
+        return res.json({ success: true, data: result });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
 
-  router.post("/admin/refresh-x-profiles", requireMongooseConnection, async (req, res) => {
-    try {
-      const force = Boolean(req.body?.force);
-      const limit = typeof req.body?.limit === "number" ? req.body.limit : undefined;
-      const result = await refreshAllMarketplaceXProfiles({ force, limit });
-      return res.json({ success: true, data: result });
-    } catch (e) {
-      return handleServiceError(res, e);
-    }
-  });
+  router.post(
+    "/admin/refresh-x-profiles",
+    requireMongooseConnection,
+    async (req, res) => {
+      try {
+        const force = Boolean(req.body?.force);
+        const limit =
+          typeof req.body?.limit === "number" ? req.body.limit : undefined;
+        const result = await refreshAllMarketplaceXProfiles({ force, limit });
+        return res.json({ success: true, data: result });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
 
   router.post("/campaigns", requireMongooseConnection, async (req, res) => {
     try {
-      const { projectWallet, sourceTweetUrl, title, description, rewardSol, durationDays } =
-        req.body || {};
+      const {
+        projectWallet,
+        sourceTweetUrl,
+        title,
+        description,
+        rewardSol,
+        durationDays,
+        requireCreatedOneCampaign,
+      } = req.body || {};
       const result = await createCampaign({
         projectWallet,
         sourceTweetUrl,
@@ -196,6 +241,7 @@ export function createKolRouter() {
         description,
         rewardSol,
         durationDays,
+        requireCreatedOneCampaign,
       });
       return res.status(201).json({ success: true, data: result });
     } catch (e) {
@@ -203,43 +249,69 @@ export function createKolRouter() {
     }
   });
 
-  router.post("/campaigns/:id/confirm-deposit", requireMongooseConnection, async (req, res) => {
-    try {
-      const { txSignature, projectWallet } = req.body || {};
-      const result = await confirmCampaignDeposit(req.params.id, { txSignature, projectWallet });
-      return res.json({ success: true, data: result });
-    } catch (e) {
-      return handleServiceError(res, e);
-    }
-  });
+  router.post(
+    "/campaigns/:id/confirm-deposit",
+    requireMongooseConnection,
+    async (req, res) => {
+      try {
+        const { txSignature, projectWallet } = req.body || {};
+        const result = await confirmCampaignDeposit(req.params.id, {
+          txSignature,
+          projectWallet,
+        });
+        return res.json({ success: true, data: result });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
 
-  router.post("/campaigns/:id/top-ups", requireMongooseConnection, async (req, res) => {
-    try {
-      const { projectWallet, kolRewardSol } = req.body || {};
-      const result = await createCampaignTopUp(req.params.id, { projectWallet, kolRewardSol });
-      return res.status(201).json({ success: true, data: result });
-    } catch (e) {
-      return handleServiceError(res, e);
-    }
-  });
+  router.post(
+    "/campaigns/:id/top-ups",
+    requireMongooseConnection,
+    async (req, res) => {
+      try {
+        const { projectWallet, kolRewardSol } = req.body || {};
+        const result = await createCampaignTopUp(req.params.id, {
+          projectWallet,
+          kolRewardSol,
+        });
+        return res.status(201).json({ success: true, data: result });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
 
-  router.post("/campaigns/:id/top-ups/:topUpId/confirm-deposit", requireMongooseConnection, async (req, res) => {
-    try {
-      const { txSignature, projectWallet } = req.body || {};
-      const result = await confirmCampaignTopUp(req.params.id, req.params.topUpId, {
-        txSignature,
-        projectWallet,
-      });
-      return res.json({ success: true, data: result });
-    } catch (e) {
-      return handleServiceError(res, e);
-    }
-  });
+  router.post(
+    "/campaigns/:id/top-ups/:topUpId/confirm-deposit",
+    requireMongooseConnection,
+    async (req, res) => {
+      try {
+        const { txSignature, projectWallet } = req.body || {};
+        const result = await confirmCampaignTopUp(
+          req.params.id,
+          req.params.topUpId,
+          {
+            txSignature,
+            projectWallet,
+          },
+        );
+        return res.json({ success: true, data: result });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
 
   router.get("/campaigns", requireMongooseConnection, async (req, res) => {
     try {
-      const status = typeof req.query.status === "string" ? req.query.status : undefined;
-      const limit = typeof req.query.limit === "string" ? Number(req.query.limit) : undefined;
+      const status =
+        typeof req.query.status === "string" ? req.query.status : undefined;
+      const limit =
+        typeof req.query.limit === "string"
+          ? Number(req.query.limit)
+          : undefined;
       const result = await listCampaigns({ status, limit });
       return res.json({ success: true, data: result });
     } catch (e) {
@@ -256,61 +328,91 @@ export function createKolRouter() {
     }
   });
 
-  router.post("/campaigns/:id/submissions", requireMongooseConnection, async (req, res) => {
-    try {
-      const { kolWallet, tweetUrl } = req.body || {};
-      const result = await createSubmission(req.params.id, { kolWallet, tweetUrl });
-      return res.status(201).json({ success: true, data: result });
-    } catch (e) {
-      return handleServiceError(res, e);
-    }
-  });
+  router.post(
+    "/campaigns/:id/submissions",
+    requireMongooseConnection,
+    async (req, res) => {
+      try {
+        const { kolWallet, tweetUrl } = req.body || {};
+        const result = await createSubmission(req.params.id, {
+          kolWallet,
+          tweetUrl,
+        });
+        return res.status(201).json({ success: true, data: result });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
 
-  router.get("/wallets/:wallet/earnings", requireMongooseConnection, async (req, res) => {
-    try {
-      const result = await getWalletEarnings(req.params.wallet);
-      return res.json({ success: true, data: result });
-    } catch (e) {
-      return handleServiceError(res, e);
-    }
-  });
+  router.get(
+    "/wallets/:wallet/earnings",
+    requireMongooseConnection,
+    async (req, res) => {
+      try {
+        const result = await getWalletEarnings(req.params.wallet);
+        return res.json({ success: true, data: result });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
 
-  router.get("/wallets/:wallet/points", requireMongooseConnection, async (req, res) => {
-    try {
-      const result = await getWalletPoints(req.params.wallet);
-      return res.json({ success: true, data: result });
-    } catch (e) {
-      return handleServiceError(res, e);
-    }
-  });
+  router.get(
+    "/wallets/:wallet/points",
+    requireMongooseConnection,
+    async (req, res) => {
+      try {
+        const result = await getWalletPoints(req.params.wallet);
+        return res.json({ success: true, data: result });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
 
-  router.get("/wallets/:wallet/daily-claim", requireMongooseConnection, async (req, res) => {
-    try {
-      const result = await getDailyClaimStatus(req.params.wallet);
-      return res.json({ success: true, data: result });
-    } catch (e) {
-      return handleServiceError(res, e);
-    }
-  });
+  router.get(
+    "/wallets/:wallet/daily-claim",
+    requireMongooseConnection,
+    async (req, res) => {
+      try {
+        const result = await getDailyClaimStatus(req.params.wallet);
+        return res.json({ success: true, data: result });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
 
-  router.post("/wallets/:wallet/daily-claim", requireMongooseConnection, async (req, res) => {
-    try {
-      const result = await claimDailyPoints(req.params.wallet);
-      return res.json({ success: true, data: result });
-    } catch (e) {
-      return handleServiceError(res, e);
-    }
-  });
+  router.post(
+    "/wallets/:wallet/daily-claim",
+    requireMongooseConnection,
+    async (req, res) => {
+      try {
+        const result = await claimDailyPoints(req.params.wallet);
+        return res.json({ success: true, data: result });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
 
-  router.get("/points/leaderboard", requireMongooseConnection, async (req, res) => {
-    try {
-      const limit = typeof req.query.limit === "string" ? Number(req.query.limit) : undefined;
-      const result = await getPointsLeaderboard({ limit });
-      return res.json({ success: true, data: result });
-    } catch (e) {
-      return handleServiceError(res, e);
-    }
-  });
+  router.get(
+    "/points/leaderboard",
+    requireMongooseConnection,
+    async (req, res) => {
+      try {
+        const limit =
+          typeof req.query.limit === "string"
+            ? Number(req.query.limit)
+            : undefined;
+        const result = await getPointsLeaderboard({ limit });
+        return res.json({ success: true, data: result });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
 
   router.post("/subscribe", requireMongooseConnection, async (req, res) => {
     try {
@@ -326,7 +428,10 @@ export function createKolRouter() {
     try {
       const token = typeof req.query.token === "string" ? req.query.token : "";
       const result = await unsubscribeByToken(token);
-      const html = buildUnsubscribePageHtml({ success: true, email: result.email });
+      const html = buildUnsubscribePageHtml({
+        success: true,
+        email: result.email,
+      });
       return res.type("html").send(html);
     } catch (e) {
       const html = buildUnsubscribePageHtml({ success: false });

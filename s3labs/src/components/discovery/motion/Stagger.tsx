@@ -51,7 +51,8 @@ export function Stagger({
       className={cn(className)}
       variants={containerVariants(stagger, delayChildren)}
       initial="hidden"
-      animate="visible"
+      whileInView="visible"
+      viewport={{ once: true, margin: "-40px" }}
     >
       {children}
     </motion.div>

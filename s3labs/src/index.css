@@ -560,3 +560,43 @@
     animation: none !important;
   }
 }
+
+/* Ecosystem network illustration */
+@keyframes ecosystem-node-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes ecosystem-edge-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+.ecosystem-node-glow {
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: ecosystem-node-pulse 3.2s ease-in-out infinite;
+}
+
+.ecosystem-edge {
+  animation: ecosystem-edge-pulse 4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ecosystem-node-glow,
+  .ecosystem-edge {
+    animation: none !important;
+  }
+}

@@ -1,11 +1,11 @@
 /**
  * Random daily posting schedule for S3Labs agents (WIB wall clock).
- * Each agent gets 3–5 posts/day at unpredictable times with minimum spacing.
+ * Per-agent posts/day (default ~1) at unpredictable times with minimum spacing.
+ * Total Telegram volume targets ~1–3 posts/day across agents.
  */
 
 import {
-  S3LABS_POSTS_PER_DAY_MAX,
-  S3LABS_POSTS_PER_DAY_MIN,
+  getS3labsPostsPerDayRange,
   S3LABS_SCHEDULE_HOUR_END_WIB,
   S3LABS_SCHEDULE_HOUR_START_WIB,
   S3LABS_SCHEDULE_MIN_GAP_MINUTES,
@@ -83,9 +83,9 @@ export function generateRandomWibSlots(count, hourStart, hourEnd, minGapMinutes,
  * @param {string} kind
  * @returns {number}
  */
-function randomPostsCountForDay() {
-  const min = S3LABS_POSTS_PER_DAY_MIN;
-  const max = S3LABS_POSTS_PER_DAY_MAX;
+function randomPostsCountForDay(kind) {
+  const { min, max } = getS3labsPostsPerDayRange(kind);
+  if (max <= 0) return 0;
   return min + Math.floor(Math.random() * (max - min + 1));
 }
 
@@ -98,7 +98,7 @@ export function getOrRefreshDailySchedule(kind) {
   const wibDateKey = getWibDateKey();
   const cached = scheduleByAgent.get(kind);
 
-  if (cached && cached.wibDateKey === wibDateKey && cached.slots.length > 0) {
+  if (cached && cached.wibDateKey === wibDateKey) {
     return {
       slots: cached.slots,
       slotIndex: cached.slotIndex,
@@ -113,18 +113,23 @@ export function getOrRefreshDailySchedule(kind) {
     S3LABS_SCHEDULE_HOUR_START_WIB + Math.floor(phase / 15),
   );
   const hourEnd = S3LABS_SCHEDULE_HOUR_END_WIB;
-  const count = randomPostsCountForDay();
-  const slots = generateRandomWibSlots(
-    count,
-    hourStart,
-    hourEnd,
-    S3LABS_SCHEDULE_MIN_GAP_MINUTES,
-    phase,
-  );
+  const count = randomPostsCountForDay(kind);
+  const slots =
+    count <= 0
+      ? Object.freeze(/** @type {ReadonlyArray<readonly [number, number]>} */ ([]))
+      : generateRandomWibSlots(
+          count,
+          hourStart,
+          hourEnd,
+          S3LABS_SCHEDULE_MIN_GAP_MINUTES,
+          phase,
+        );
 
   scheduleByAgent.set(kind, { wibDateKey, slots, slotIndex: 0 });
   startupVerbose(
-    `[s3labs-${kind}] daily schedule (${wibDateKey} WIB): ${slots.length} posts at ${slots.map(([h, m]) => `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`).join(", ")}`,
+    count <= 0
+      ? `[s3labs-${kind}] daily schedule (${wibDateKey} WIB): 0 posts (quiet / website-first)`
+      : `[s3labs-${kind}] daily schedule (${wibDateKey} WIB): ${slots.length} posts at ${slots.map(([h, m]) => `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`).join(", ")}`,
   );
 
   return { slots, slotIndex: 0, wibDateKey, postsToday: slots.length };

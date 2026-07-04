@@ -1,11 +1,27 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { ChevronUp } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 
 const SCROLL_THRESHOLD = 400;
 
 const ScrollToTop = () => {
+  const { pathname, search, hash } = useLocation();
   const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (hash) {
+      const id = decodeURIComponent(hash.slice(1));
+      const target = document.getElementById(id);
+      if (target) {
+        target.scrollIntoView({ behavior: "auto", block: "start" });
+        return;
+      }
+    }
+
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [pathname, search, hash]);
 
   useEffect(() => {
     const handleScroll = () => {

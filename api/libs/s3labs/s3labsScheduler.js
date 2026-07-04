@@ -1,13 +1,13 @@
 /**
- * S3Labs agents — random daily WIB schedules (3–5 posts/agent/day) with jitter.
+ * S3Labs agents — random daily WIB schedules (~1–3 Telegram posts/day total) with jitter.
+ * Jobs/events/hackathons are website-first; Telegram only posts light highlights.
  */
 
 import { getMsUntilNextWibWallClock, getWibWallClockUtcMsToday } from "../wibDailyWallClock.js";
 import {
+  getS3labsPostsPerDayRange,
   S3LABS_AGENT_DEFINITIONS,
   S3LABS_AGENTS_SCHEDULER_ENABLED,
-  S3LABS_POSTS_PER_DAY_MAX,
-  S3LABS_POSTS_PER_DAY_MIN,
   S3LABS_SCHEDULE_JITTER_MAX_MINUTES,
 } from "../../config/s3labsAgentsConfig.js";
 import { isS3labsTelegramConfigured, sendS3labsTelegram } from "../s3labsTelegramNotifier.js";
@@ -123,7 +123,17 @@ export function startS3labsAgentsScheduler() {
     return;
   }
 
+  /** @type {string[]} */
+  const activeSummaries = [];
+
   for (const def of S3LABS_AGENT_DEFINITIONS) {
+    const { min, max } = getS3labsPostsPerDayRange(def.kind);
+    activeSummaries.push(`${def.kind}:${min}–${max}/day`);
+    if (max <= 0) {
+      startupVerbose(`[s3labs-${def.kind}] scheduler idle (postsPerDayMax=0; content on website)`);
+      continue;
+    }
+
     const bootMs = def.bootDelayMinutes * 60 * 1000;
     setTimeout(() => {
       scheduleAgentNext(def);
@@ -131,7 +141,7 @@ export function startS3labsAgentsScheduler() {
   }
 
   startupVerbose(
-    `[s3labs-agents] scheduler on: ${S3LABS_AGENT_DEFINITIONS.length} agents × ${S3LABS_POSTS_PER_DAY_MIN}–${S3LABS_POSTS_PER_DAY_MAX} random posts/day; jitter 0–${S3LABS_SCHEDULE_JITTER_MAX_MINUTES}m; Telegram=${isS3labsTelegramConfigured() ? "on" : "off"}`,
+    `[s3labs-agents] scheduler on: ${activeSummaries.join(", ")}; jitter 0–${S3LABS_SCHEDULE_JITTER_MAX_MINUTES}m; Telegram=${isS3labsTelegramConfigured() ? "on" : "off"}`,
   );
 }
 

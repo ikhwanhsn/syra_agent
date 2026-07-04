@@ -17,6 +17,7 @@ import {
   refreshSubmissionMetrics,
   validateSubmissionTweet,
 } from "./kolEngagementService.js";
+import { isAdminWalletAddress } from "./adminWallet.js";
 import {
   KOL_PLATFORM_FEE_SOL,
   MAX_DURATION_DAYS,
@@ -37,14 +38,20 @@ import {
   sendPayout,
   verifyDeposit,
 } from "../services/kolPoolWallet.js";
-import { getTweetById, getUserInfo, isTwitterApiIoConfigured } from "./twitterApiIoClient.js";
+import {
+  getTweetById,
+  isTwitterApiIoConfigured,
+} from "./twitterApiIoClient.js";
 import {
   getCachedXProfile,
   getCachedXProfiles,
   refreshAllMarketplaceXProfiles,
   seedXProfileFromAuthor,
 } from "./kolXProfileCache.js";
-import { awardCampaignCreationPoints, awardCampaignPoints } from "./s3labsPointsService.js";
+import {
+  awardCampaignCreationPoints,
+  awardCampaignPoints,
+} from "./s3labsPointsService.js";
 import { notifyNewCampaign } from "./emailSubscriberService.js";
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
@@ -61,41 +68,32 @@ function normalizeHandle(handle) {
 }
 
 /**
- * Fill missing profile pictures from X profile cache or a lightweight user lookup.
+ * Fill missing profile pictures from the DB X profile cache only.
+ * Never calls twitterapi.io on page load — pictures are filled by the daily
+ * refreshAllMarketplaceXProfiles job (and write-path seedXProfileFromAuthor).
  * @template {{ profilePicture?: string | null }} T
  * @param {T[]} entries
  * @param {(entry: T) => string} getHandle
  * @param {{ limit?: number }} [opts]
  */
 async function enrichMissingProfilePictures(entries, getHandle, opts = {}) {
-  if (!isTwitterApiIoConfigured()) return entries;
-
   const limit = Math.min(Math.max(Number(opts.limit) || 12, 1), 25);
-  const targets = entries.filter((entry) => !entry.profilePicture).slice(0, limit);
+  const targets = entries
+    .filter((entry) => !entry.profilePicture)
+    .slice(0, limit);
   if (targets.length === 0) return entries;
 
-  await Promise.allSettled(
-    targets.map(async (entry) => {
-      const handle = getHandle(entry);
-      if (!handle) return;
+  const handles = targets.map((entry) => getHandle(entry)).filter(Boolean);
+  const profileMap = await getCachedXProfiles(handles);
 
-      try {
-        const cached = await getCachedXProfile(handle);
-        if (cached?.profilePicture) {
-          entry.profilePicture = cached.profilePicture;
-          return;
-        }
-
-        const { user } = await getUserInfo(handle);
-        await seedXProfileFromAuthor(user);
-        if (user.profilePicture) {
-          entry.profilePicture = user.profilePicture;
-        }
-      } catch {
-        // ignore per-handle failures
-      }
-    }),
-  );
+  for (const entry of targets) {
+    const handle = getHandle(entry);
+    if (!handle) continue;
+    const cached = profileMap.get(normalizeHandle(handle));
+    if (cached?.profilePicture) {
+      entry.profilePicture = cached.profilePicture;
+    }
+  }
 
   return entries;
 }
@@ -143,7 +141,13 @@ function sumEngagementMetrics(metrics) {
  * @param {{ likes: number; retweets: number; replies: number; quotes: number; views: number }} totals
  */
 function engagementTotal(totals) {
-  return totals.likes + totals.retweets + totals.replies + totals.quotes + totals.views;
+  return (
+    totals.likes +
+    totals.retweets +
+    totals.replies +
+    totals.quotes +
+    totals.views
+  );
 }
 
 /**
@@ -199,7 +203,7 @@ function serializePayout(payout) {
     lamports: payout.lamports,
     sol: payout.lamports / LAMPORTS_PER_SOL,
     txSignature: payout.txSignature ?? null,
-    status: settled ? "confirmed" : payout.status ?? "pending",
+    status: settled ? "confirmed" : (payout.status ?? "pending"),
   };
 }
 
@@ -207,13 +211,19 @@ function serializePayout(payout) {
  * @param {unknown} error
  */
 function throwIfDuplicateSubmissionError(error) {
-  if (!error || typeof error !== "object" || !("code" in error) || error.code !== 11000) {
+  if (
+    !error ||
+    typeof error !== "object" ||
+    !("code" in error) ||
+    error.code !== 11000
+  ) {
     throw error;
   }
 
-  const mongoErr = /** @type {{ keyPattern?: Record<string, unknown>; keyValue?: Record<string, unknown> }} */ (
-    error
-  );
+  const mongoErr =
+    /** @type {{ keyPattern?: Record<string, unknown>; keyValue?: Record<string, unknown> }} */ (
+      error
+    );
   const keyPattern = mongoErr.keyPattern ?? {};
 
   if (keyPattern.tweetId) {
@@ -222,7 +232,9 @@ function throwIfDuplicateSubmissionError(error) {
     throw dup;
   }
   if (keyPattern.authorHandleKey) {
-    const dup = new Error("This X account already submitted one post for this campaign");
+    const dup = new Error(
+      "This X account already submitted one post for this campaign",
+    );
     dup.code = "duplicate_kol_handle";
     throw dup;
   }
@@ -271,7 +283,10 @@ function assertObjectId(id) {
  */
 function getCampaignKolPoolLamports(campaign) {
   const doc = campaign;
-  if (doc.kolRewardPoolLamports != null && Number(doc.kolRewardPoolLamports) > 0) {
+  if (
+    doc.kolRewardPoolLamports != null &&
+    Number(doc.kolRewardPoolLamports) > 0
+  ) {
     return Number(doc.kolRewardPoolLamports);
   }
   return splitRewardPool(doc.rewardLamports).kolPoolLamports;
@@ -302,11 +317,13 @@ function serializeCampaign(campaign) {
     sourceTweetUrl: doc.sourceTweetUrl,
     sourceTweetText: doc.sourceTweetText || "",
     sourceTweetMedia: Array.isArray(doc.sourceTweetMedia)
-      ? doc.sourceTweetMedia.map((item) => ({
-          mediaType: String(item?.mediaType || "photo"),
-          url: String(item?.url || ""),
-          previewUrl: item?.previewUrl ? String(item.previewUrl) : null,
-        })).filter((item) => item.url)
+      ? doc.sourceTweetMedia
+          .map((item) => ({
+            mediaType: String(item?.mediaType || "photo"),
+            url: String(item?.url || ""),
+            previewUrl: item?.previewUrl ? String(item.previewUrl) : null,
+          }))
+          .filter((item) => item.url)
       : [],
     sourceAuthorHandle: doc.sourceAuthorHandle ?? null,
     sourceAuthorName: doc.sourceAuthorName ?? null,
@@ -328,8 +345,13 @@ function serializeCampaign(campaign) {
     startAt: doc.startAt ? new Date(doc.startAt).toISOString() : null,
     endAt: doc.endAt ? new Date(doc.endAt).toISOString() : null,
     durationDays: doc.durationDays,
-    lastSnapshotAt: doc.lastSnapshotAt ? new Date(doc.lastSnapshotAt).toISOString() : null,
-    finalizedAt: doc.finalizedAt ? new Date(doc.finalizedAt).toISOString() : null,
+    requireCreatedOneCampaign: Boolean(doc.requireCreatedOneCampaign),
+    lastSnapshotAt: doc.lastSnapshotAt
+      ? new Date(doc.lastSnapshotAt).toISOString()
+      : null,
+    finalizedAt: doc.finalizedAt
+      ? new Date(doc.finalizedAt).toISOString()
+      : null,
     createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : null,
     poolWalletAddress: getPoolWalletAddress(),
   };
@@ -366,7 +388,15 @@ function serializeSubmission(submission) {
 }
 
 /**
- * @param {{ projectWallet: string; sourceTweetUrl: string; title: string; description?: string; rewardSol: number; durationDays: number }} input
+ * @param {{
+ *   projectWallet: string;
+ *   sourceTweetUrl: string;
+ *   title: string;
+ *   description?: string;
+ *   rewardSol: number;
+ *   durationDays: number;
+ *   requireCreatedOneCampaign?: boolean;
+ * }} input
  */
 export async function createCampaign(input) {
   assertMongo();
@@ -378,6 +408,11 @@ export async function createCampaign(input) {
     err.code = "invalid_wallet";
     throw err;
   }
+
+  // Participation rules are admin-only; ignore the flag for non-admin creators.
+  const requireCreatedOneCampaign =
+    Boolean(input.requireCreatedOneCampaign) &&
+    isAdminWalletAddress(projectWallet);
 
   const title = String(input.title || "").trim();
   if (!title) {
@@ -394,8 +429,14 @@ export async function createCampaign(input) {
   }
 
   const durationDays = Math.floor(Number(input.durationDays));
-  if (!Number.isFinite(durationDays) || durationDays < MIN_DURATION_DAYS || durationDays > MAX_DURATION_DAYS) {
-    const err = new Error(`durationDays must be between ${MIN_DURATION_DAYS} and ${MAX_DURATION_DAYS}`);
+  if (
+    !Number.isFinite(durationDays) ||
+    durationDays < MIN_DURATION_DAYS ||
+    durationDays > MAX_DURATION_DAYS
+  ) {
+    const err = new Error(
+      `durationDays must be between ${MIN_DURATION_DAYS} and ${MAX_DURATION_DAYS}`,
+    );
     err.code = "invalid_duration";
     throw err;
   }
@@ -409,7 +450,8 @@ export async function createCampaign(input) {
     throw err;
   }
 
-  const { kolPoolLamports, platformFeeLamports } = splitRewardPool(rewardLamports);
+  const { kolPoolLamports, platformFeeLamports } =
+    splitRewardPool(rewardLamports);
   if (kolPoolLamports < Math.floor(MIN_KOL_REWARD_SOL * LAMPORTS_PER_SOL)) {
     const err = new Error(
       `Minimum KOL reward is ${MIN_KOL_REWARD_SOL} SOL (${minTotalDepositSol()} SOL total deposit incl. ${KOL_PLATFORM_FEE_SOL} SOL platform fee)`,
@@ -433,6 +475,7 @@ export async function createCampaign(input) {
     description: String(input.description || "").trim(),
     rewardLamports,
     durationDays,
+    requireCreatedOneCampaign,
     status: "pending_deposit",
   });
 
@@ -493,10 +536,14 @@ export async function confirmCampaignDeposit(campaignId, input) {
   });
 
   const now = new Date();
-  const endAt = new Date(now.getTime() + campaign.durationDays * 24 * 60 * 60 * 1000);
+  const endAt = new Date(
+    now.getTime() + campaign.durationDays * 24 * 60 * 60 * 1000,
+  );
 
   campaign.depositTxSignature = txSignature;
-  const { kolPoolLamports, platformFeeLamports } = splitRewardPool(campaign.rewardLamports);
+  const { kolPoolLamports, platformFeeLamports } = splitRewardPool(
+    campaign.rewardLamports,
+  );
   campaign.kolRewardPoolLamports = kolPoolLamports;
   campaign.platformFeeLamports = platformFeeLamports;
   campaign.platformFeeStatus = "pending";
@@ -537,9 +584,10 @@ function serializeTopUp(topUp) {
     platformFeeStatus: doc.platformFeeStatus ?? null,
     status: doc.status,
     createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : null,
-    confirmedAt: doc.updatedAt && doc.status === "confirmed"
-      ? new Date(doc.updatedAt).toISOString()
-      : null,
+    confirmedAt:
+      doc.updatedAt && doc.status === "confirmed"
+        ? new Date(doc.updatedAt).toISOString()
+        : null,
   };
 }
 
@@ -598,7 +646,9 @@ export async function createCampaignTopUp(campaignId, input) {
   }
 
   if (kolRewardSol < MIN_TOPUP_KOL_REWARD_SOL) {
-    const err = new Error(`Minimum top-up reward is ${MIN_TOPUP_KOL_REWARD_SOL} SOL`);
+    const err = new Error(
+      `Minimum top-up reward is ${MIN_TOPUP_KOL_REWARD_SOL} SOL`,
+    );
     err.code = "reward_too_low";
     throw err;
   }
@@ -608,7 +658,9 @@ export async function createCampaignTopUp(campaignId, input) {
     status: "pending_deposit",
   });
   if (existingPending) {
-    const err = new Error("A reward top-up is already awaiting deposit for this campaign");
+    const err = new Error(
+      "A reward top-up is already awaiting deposit for this campaign",
+    );
     err.code = "topup_pending";
     throw err;
   }
@@ -678,7 +730,10 @@ export async function confirmCampaignTopUp(campaignId, topUpId, input) {
   }
 
   const projectWallet = normalizeWallet(input.projectWallet);
-  if (projectWallet !== campaign.projectWallet || projectWallet !== topUp.projectWallet) {
+  if (
+    projectWallet !== campaign.projectWallet ||
+    projectWallet !== topUp.projectWallet
+  ) {
     const err = new Error("projectWallet does not match campaign");
     err.code = "wallet_mismatch";
     throw err;
@@ -700,7 +755,8 @@ export async function confirmCampaignTopUp(campaignId, topUpId, input) {
   topUp.depositTxSignature = txSignature;
   topUp.status = "confirmed";
 
-  campaign.rewardLamports = (campaign.rewardLamports ?? 0) + topUp.totalDepositLamports;
+  campaign.rewardLamports =
+    (campaign.rewardLamports ?? 0) + topUp.totalDepositLamports;
   campaign.kolRewardPoolLamports =
     (campaign.kolRewardPoolLamports ?? getCampaignKolPoolLamports(campaign)) +
     topUp.kolRewardLamports;
@@ -762,11 +818,14 @@ export async function listCampaigns(opts = {}) {
     { $match: { campaignId: { $in: ids } } },
     { $group: { _id: "$campaignId", count: { $sum: 1 } } },
   ]);
-  const countMap = new Map(submissionCounts.map((r) => [String(r._id), r.count]));
+  const countMap = new Map(
+    submissionCounts.map((r) => [String(r._id), r.count]),
+  );
 
   if (isTwitterApiIoConfigured()) {
     const missingMedia = campaigns.filter(
-      (c) => !Array.isArray(c.sourceTweetMedia) || c.sourceTweetMedia.length === 0,
+      (c) =>
+        !Array.isArray(c.sourceTweetMedia) || c.sourceTweetMedia.length === 0,
     );
     await Promise.allSettled(
       missingMedia.slice(0, 12).map((c) => ensureCampaignTweetMedia(c)),
@@ -787,11 +846,13 @@ export async function listCampaigns(opts = {}) {
 async function ensureCampaignTweetMedia(campaignDoc) {
   const existing = campaignDoc.sourceTweetMedia;
   if (Array.isArray(existing) && existing.length > 0) {
-    return existing.map((item) => ({
-      mediaType: String(item?.mediaType || "photo"),
-      url: String(item?.url || ""),
-      previewUrl: item?.previewUrl ? String(item.previewUrl) : null,
-    })).filter((item) => item.url);
+    return existing
+      .map((item) => ({
+        mediaType: String(item?.mediaType || "photo"),
+        url: String(item?.url || ""),
+        previewUrl: item?.previewUrl ? String(item.previewUrl) : null,
+      }))
+      .filter((item) => item.url);
   }
 
   if (!isTwitterApiIoConfigured()) return [];
@@ -800,7 +861,10 @@ async function ensureCampaignTweetMedia(campaignDoc) {
     const { tweet } = await getTweetById(campaignDoc.sourceTweetId);
     const media = tweet.media ?? [];
     if (media.length > 0) {
-      await KolCampaign.updateOne({ _id: campaignDoc._id }, { $set: { sourceTweetMedia: media } });
+      await KolCampaign.updateOne(
+        { _id: campaignDoc._id },
+        { $set: { sourceTweetMedia: media } },
+      );
       campaignDoc.sourceTweetMedia = media;
     }
     return media;
@@ -900,7 +964,22 @@ export async function createSubmission(campaignId, input) {
     throw err;
   }
 
-  const validated = await validateSubmissionTweet(campaign.sourceTweetId, input.tweetUrl);
+  if (campaign.requireCreatedOneCampaign) {
+    const ownedCount = await KolCampaign.countDocuments({
+      projectWallet: kolWallet,
+      status: { $in: ["active", "completed", "pending_deposit"] },
+    });
+    if (ownedCount < 1) {
+      const err = new Error("Create one campaign first to participate");
+      err.code = "require_created_campaign";
+      throw err;
+    }
+  }
+
+  const validated = await validateSubmissionTweet(
+    campaign.sourceTweetId,
+    input.tweetUrl,
+  );
   const authorHandle = validated.authorHandle;
   const authorHandleKey = normalizeHandle(authorHandle);
   const tweetId = validated.tweetId;
@@ -924,7 +1003,9 @@ export async function createSubmission(campaignId, input) {
     $or: [{ authorHandleKey }, { authorHandle: handleRegex }],
   });
   if (existingByHandle) {
-    const err = new Error("This X account already submitted one post for this campaign");
+    const err = new Error(
+      "This X account already submitted one post for this campaign",
+    );
     err.code = "duplicate_kol_handle";
     throw err;
   }
@@ -961,7 +1042,10 @@ export async function createSubmission(campaignId, input) {
     throwIfDuplicateSubmissionError(e);
   }
 
-  await seedXProfileFromAuthor({ userName: authorHandle, verified: true }).catch(() => {});
+  await seedXProfileFromAuthor({
+    userName: authorHandle,
+    verified: true,
+  }).catch(() => {});
   await refreshCampaignProjections(campaign._id);
 
   return { submission: serializeSubmission(submission) };
@@ -974,10 +1058,14 @@ export async function refreshCampaignProjections(campaignId) {
   const campaign = await KolCampaign.findById(campaignId);
   if (!campaign) return;
 
-  const submissions = await KolSubmission.find({ campaignId: campaign._id }).lean();
+  const submissions = await KolSubmission.find({
+    campaignId: campaign._id,
+  }).lean();
   const kolPool = getCampaignKolPoolLamports(campaign);
   const payouts = computeProRataPayouts(submissions, kolPool);
-  const payoutMap = new Map(payouts.map((p) => [String(p.submissionId), p.lamports]));
+  const payoutMap = new Map(
+    payouts.map((p) => [String(p.submissionId), p.lamports]),
+  );
 
   await Promise.all(
     submissions.map((s) =>
@@ -989,6 +1077,12 @@ export async function refreshCampaignProjections(campaignId) {
   );
 }
 
+/** Skip getTweetById when campaign metrics were refreshed recently (default 12h). */
+const METRICS_FRESH_MS = (() => {
+  const n = Number.parseInt(String(process.env.KOL_METRICS_FRESH_MS ?? "").trim(), 10);
+  return Number.isFinite(n) && n >= 60_000 ? n : 12 * 60 * 60 * 1000;
+})();
+
 /**
  * @param {import("mongoose").Types.ObjectId | string} campaignId
  */
@@ -996,6 +1090,13 @@ export async function refreshCampaignMetrics(campaignId) {
   const campaign = await KolCampaign.findById(campaignId);
   if (!campaign || campaign.status !== "active") {
     return { refreshed: 0 };
+  }
+
+  if (
+    campaign.lastSnapshotAt &&
+    Date.now() - new Date(campaign.lastSnapshotAt).getTime() < METRICS_FRESH_MS
+  ) {
+    return { refreshed: 0, skipped: true, reason: "fresh" };
   }
 
   const submissions = await KolSubmission.find({ campaignId: campaign._id });
@@ -1140,8 +1241,13 @@ export async function finalizeCampaign(campaignId) {
 
   await refreshCampaignMetrics(campaign._id);
 
-  const submissions = await KolSubmission.find({ campaignId: campaign._id }).lean();
-  const reputationResults = await creditKolReputationsForCampaign(campaign._id, submissions);
+  const submissions = await KolSubmission.find({
+    campaignId: campaign._id,
+  }).lean();
+  const reputationResults = await creditKolReputationsForCampaign(
+    campaign._id,
+    submissions,
+  );
   const pointsResults = await awardCampaignPoints(campaign._id, submissions);
   const kolPool = getCampaignKolPoolLamports(campaign);
   const payoutRows = computeProRataPayouts(submissions, kolPool);
@@ -1155,10 +1261,7 @@ export async function finalizeCampaign(campaignId) {
 
   const results = [];
 
-  if (
-    platformFeeLamports > 0 &&
-    campaign.platformFeeStatus !== "confirmed"
-  ) {
+  if (platformFeeLamports > 0 && campaign.platformFeeStatus !== "confirmed") {
     try {
       const feeSent = await sendPayout({
         toWallet: getS3labsFeeWallet(),
@@ -1195,11 +1298,16 @@ export async function finalizeCampaign(campaignId) {
       submissionId: row.submissionId,
     });
     if (existing?.status === "confirmed") {
-      results.push({ submissionId: row.submissionId, status: "confirmed", skipped: true });
+      results.push({
+        submissionId: row.submissionId,
+        status: "confirmed",
+        skipped: true,
+      });
       continue;
     }
 
-    const previousPendingLamports = await getPendingPayoutBalanceLamports(kolWallet);
+    const previousPendingLamports =
+      await getPendingPayoutBalanceLamports(kolWallet);
     const totalSendLamports = previousPendingLamports + row.lamports;
 
     const payoutDoc =
@@ -1229,7 +1337,10 @@ export async function finalizeCampaign(campaignId) {
     }
 
     try {
-      const sent = await sendPayout({ toWallet: kolWallet, lamports: totalSendLamports });
+      const sent = await sendPayout({
+        toWallet: kolWallet,
+        lamports: totalSendLamports,
+      });
       payoutDoc.txSignature = sent.txSignature;
       payoutDoc.status = "confirmed";
       payoutDoc.error = null;
@@ -1279,7 +1390,12 @@ export async function finalizeCampaign(campaignId) {
   campaign.finalizedAt = new Date();
   await campaign.save();
 
-  return { success: true, payouts: results, reputation: reputationResults, points: pointsResults };
+  return {
+    success: true,
+    payouts: results,
+    reputation: reputationResults,
+    points: pointsResults,
+  };
 }
 
 /**
@@ -1378,15 +1494,24 @@ export async function getWalletEarnings(wallet) {
   }
 
   const orphanSubmissionIds = payouts
-    .filter((p) => isPayoutSettled(p) && !seenPaidSubmissionIds.has(String(p.submissionId)))
+    .filter(
+      (p) =>
+        isPayoutSettled(p) &&
+        !seenPaidSubmissionIds.has(String(p.submissionId)),
+    )
     .map((p) => p.submissionId);
 
   if (orphanSubmissionIds.length > 0) {
-    const orphanSubs = await KolSubmission.find({ _id: { $in: orphanSubmissionIds } }).lean();
+    const orphanSubs = await KolSubmission.find({
+      _id: { $in: orphanSubmissionIds },
+    }).lean();
     const orphanSubMap = new Map(orphanSubs.map((s) => [String(s._id), s]));
 
     for (const payout of payouts) {
-      if (!isPayoutSettled(payout) || seenPaidSubmissionIds.has(String(payout.submissionId))) {
+      if (
+        !isPayoutSettled(payout) ||
+        seenPaidSubmissionIds.has(String(payout.submissionId))
+      ) {
         continue;
       }
 
@@ -1407,9 +1532,12 @@ export async function getWalletEarnings(wallet) {
 
   for (const payout of payouts) {
     if (payout.status !== "pending_minimum") continue;
-    if (seenPendingMinimumSubmissionIds.has(String(payout.submissionId))) continue;
+    if (seenPendingMinimumSubmissionIds.has(String(payout.submissionId)))
+      continue;
 
-    const submission = submissions.find((s) => String(s._id) === String(payout.submissionId));
+    const submission = submissions.find(
+      (s) => String(s._id) === String(payout.submissionId),
+    );
     const campaign = campaignMap.get(String(payout.campaignId));
     if (!submission || !campaign) continue;
 
@@ -1422,7 +1550,9 @@ export async function getWalletEarnings(wallet) {
     });
   }
 
-  const pendingBalanceDoc = await KolPendingPayoutBalance.findOne({ kolWallet }).lean();
+  const pendingBalanceDoc = await KolPendingPayoutBalance.findOne({
+    kolWallet,
+  }).lean();
   const pendingBalanceLamports = pendingBalanceDoc?.pendingLamports ?? 0;
 
   return {
@@ -1557,7 +1687,10 @@ export async function backfillSubmissionAuthorKeys(opts = {}) {
   for (const submission of submissions) {
     const authorHandleKey = normalizeHandle(submission.authorHandle);
     if (!authorHandleKey) continue;
-    await KolSubmission.updateOne({ _id: submission._id }, { $set: { authorHandleKey } });
+    await KolSubmission.updateOne(
+      { _id: submission._id },
+      { $set: { authorHandleKey } },
+    );
     updated += 1;
   }
 
@@ -1579,8 +1712,13 @@ export async function backfillKolReputations(opts = {}) {
 
   const results = [];
   for (const campaign of campaigns) {
-    const submissions = await KolSubmission.find({ campaignId: campaign._id }).lean();
-    const credited = await creditKolReputationsForCampaign(campaign._id, submissions);
+    const submissions = await KolSubmission.find({
+      campaignId: campaign._id,
+    }).lean();
+    const credited = await creditKolReputationsForCampaign(
+      campaign._id,
+      submissions,
+    );
     if (credited.credited.length > 0) results.push(credited);
   }
 
@@ -1656,7 +1794,9 @@ export async function getMarketplaceStats() {
   const statusMap = new Map(campaignStatusCounts.map((r) => [r._id, r.count]));
   const totalCampaigns = [...statusMap.values()].reduce((a, b) => a + b, 0);
   const totalRewardLamports = rewardAgg[0]?.totalRewardLamports ?? 0;
-  const totalKolPoolLamports = Math.floor(rewardAgg[0]?.totalKolPoolLamports ?? 0);
+  const totalKolPoolLamports = Math.floor(
+    rewardAgg[0]?.totalKolPoolLamports ?? 0,
+  );
   const totalPaidLamports = paidAgg[0]?.totalPaidLamports ?? 0;
   const engagement = engagementAgg[0] ?? {
     likes: 0,
@@ -1782,7 +1922,9 @@ export async function listProjects(opts = {}) {
       totalKolPoolLamports: Math.floor(p.totalKolPoolLamports),
       totalKolPoolSol: Math.floor(p.totalKolPoolLamports) / LAMPORTS_PER_SOL,
       kolsReached,
-      lastActivityAt: p.lastActivityAt ? new Date(p.lastActivityAt).toISOString() : null,
+      lastActivityAt: p.lastActivityAt
+        ? new Date(p.lastActivityAt).toISOString()
+        : null,
     };
   });
 
@@ -1791,7 +1933,8 @@ export async function listProjects(opts = {}) {
     campaigns: (a, b) => b.campaignCount - a.campaignCount,
     kols: (a, b) => b.kolsReached - a.kolsReached,
     recent: (a, b) =>
-      new Date(b.lastActivityAt || 0).getTime() - new Date(a.lastActivityAt || 0).getTime(),
+      new Date(b.lastActivityAt || 0).getTime() -
+      new Date(a.lastActivityAt || 0).getTime(),
   };
   projects.sort(sortFns[sortKey] ?? sortFns.funded);
   projects = projects.slice(0, limit);
@@ -1882,10 +2025,14 @@ export async function listKols(opts = {}) {
           },
         ])
       : [];
-  const paidBySubmission = new Map(paidAgg.map((p) => [String(p._id), p.lamports]));
+  const paidBySubmission = new Map(
+    paidAgg.map((p) => [String(p._id), p.lamports]),
+  );
 
   const handleKeys = kolAgg.map((k) => normalizeHandle(k.handle));
-  const reputations = await KolReputation.find({ handleKey: { $in: handleKeys } }).lean();
+  const reputations = await KolReputation.find({
+    handleKey: { $in: handleKeys },
+  }).lean();
   const repMap = new Map(reputations.map((r) => [r.handleKey, r]));
 
   let kols = kolAgg.map((k) => {
@@ -1917,17 +2064,22 @@ export async function listKols(opts = {}) {
       projectedSol: k.projectedLamports / LAMPORTS_PER_SOL,
       earnedLamports,
       earnedSol: earnedLamports / LAMPORTS_PER_SOL,
-      lastActivityAt: k.lastActivityAt ? new Date(k.lastActivityAt).toISOString() : null,
+      lastActivityAt: k.lastActivityAt
+        ? new Date(k.lastActivityAt).toISOString()
+        : null,
     };
   });
 
   const sortFns = {
-    earned: (a, b) => b.earnedLamports - a.earnedLamports || b.totalScore - a.totalScore,
-    score: (a, b) => b.totalScore - a.totalScore || b.reputationScore - a.reputationScore,
+    earned: (a, b) =>
+      b.earnedLamports - a.earnedLamports || b.totalScore - a.totalScore,
+    score: (a, b) =>
+      b.totalScore - a.totalScore || b.reputationScore - a.reputationScore,
     engagement: (a, b) => b.engagement.total - a.engagement.total,
     campaigns: (a, b) => b.campaignCount - a.campaignCount,
     recent: (a, b) =>
-      new Date(b.lastActivityAt || 0).getTime() - new Date(a.lastActivityAt || 0).getTime(),
+      new Date(b.lastActivityAt || 0).getTime() -
+      new Date(a.lastActivityAt || 0).getTime(),
   };
   kols.sort(sortFns[sortKey] ?? sortFns.earned);
   kols = kols.slice(0, limit);
@@ -1961,7 +2113,10 @@ export async function getProfile(username) {
     throw err;
   }
 
-  const handleRegex = new RegExp(`^${handle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i");
+  const handleRegex = new RegExp(
+    `^${handle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
+    "i",
+  );
 
   const [campaigns, submissions, reputation] = await Promise.all([
     KolCampaign.find({ sourceAuthorHandle: handleRegex })
@@ -1980,7 +2135,9 @@ export async function getProfile(username) {
   }
 
   const submissionIds = submissions.map((s) => s._id);
-  const campaignIds = [...new Set(submissions.map((s) => String(s.campaignId)))];
+  const campaignIds = [
+    ...new Set(submissions.map((s) => String(s.campaignId))),
+  ];
   const relatedCampaigns =
     campaignIds.length > 0
       ? await KolCampaign.find({ _id: { $in: campaignIds } }).lean()
@@ -2004,7 +2161,13 @@ export async function getProfile(username) {
     .filter((c) => c.status === "active" || c.status === "completed")
     .reduce((sum, c) => sum + getCampaignKolPoolLamports(c), 0);
 
-  let kolEngagement = { likes: 0, retweets: 0, replies: 0, quotes: 0, views: 0 };
+  let kolEngagement = {
+    likes: 0,
+    retweets: 0,
+    replies: 0,
+    quotes: 0,
+    views: 0,
+  };
   let kolActiveScore = 0;
   let kolEarnedLamports = 0;
   let kolProjectedLamports = 0;
@@ -2059,16 +2222,20 @@ export async function getProfile(username) {
   return {
     handle: displayHandle,
     name: cachedProfile?.name ?? displayName,
-    followers: cachedProfile?.followers ?? campaigns[0]?.sourceAuthorFollowers ?? null,
-    verified: cachedProfile?.verified ?? Boolean(campaigns[0]?.sourceAuthorVerified),
+    followers:
+      cachedProfile?.followers ?? campaigns[0]?.sourceAuthorFollowers ?? null,
+    verified:
+      cachedProfile?.verified ?? Boolean(campaigns[0]?.sourceAuthorVerified),
     description: cachedProfile?.description ?? null,
     profilePicture: cachedProfile?.profilePicture ?? null,
     xProfileRefreshedAt: cachedProfile?.refreshedAt ?? null,
     roles,
     asProject: {
       campaignCount: campaigns.length,
-      activeCampaignCount: campaigns.filter((c) => c.status === "active").length,
-      completedCampaignCount: campaigns.filter((c) => c.status === "completed").length,
+      activeCampaignCount: campaigns.filter((c) => c.status === "active")
+        .length,
+      completedCampaignCount: campaigns.filter((c) => c.status === "completed")
+        .length,
       totalFundedLamports: projectFundedLamports,
       totalFundedSol: projectFundedLamports / LAMPORTS_PER_SOL,
       totalKolPoolLamports: projectKolPoolLamports,

@@ -139,7 +139,7 @@ export function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps) {
               height={32}
             />
             <span className="truncate font-semibold tracking-tight text-foreground">
-              S3 Labs
+              S3Labs
             </span>
           </Link>
           <Button

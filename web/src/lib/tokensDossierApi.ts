@@ -160,6 +160,62 @@ export async function fetchMintDossier(
   return body.data;
 }
 
+/** Fast swap-panel chart (resolve + OHLCV + profile only). */
+export async function fetchMintChart(
+  mint: string,
+  opts?: { signal?: AbortSignal },
+): Promise<TokensDossierPayload> {
+  const base = `${getApiBaseUrl().replace(/\/$/, "")}/agent/tokens/chart`;
+  const url = `${base}?mint=${encodeURIComponent(mint.trim())}`;
+  const res = await fetch(url, {
+    headers: { Accept: "application/json" },
+    signal: opts?.signal,
+  });
+  const body = (await res.json().catch(() => ({}))) as {
+    success?: boolean;
+    data?: TokensDossierPayload;
+    error?: string;
+    message?: string;
+  };
+  if (!res.ok || body.success !== true || !body.data?.assetId) {
+    throw new Error(body.error || body.message || "Failed to load chart");
+  }
+  return body.data;
+}
+
+export interface SwapMarketNewsPayload {
+  query: { mint?: string; symbol?: string; name?: string };
+  news: AssetIntelligencePayload["news"];
+  fetchedAt: string;
+}
+
+/** Fast swap-panel news (symbol/name keywords only). */
+export async function fetchSwapMarketNews(
+  params: { mint?: string; symbol?: string; name?: string },
+  opts?: { signal?: AbortSignal },
+): Promise<SwapMarketNewsPayload> {
+  const base = `${getApiBaseUrl().replace(/\/$/, "")}/agent/tokens/news`;
+  const sp = new URLSearchParams();
+  if (params.mint?.trim()) sp.set("mint", params.mint.trim());
+  if (params.symbol?.trim()) sp.set("symbol", params.symbol.trim());
+  if (params.name?.trim()) sp.set("name", params.name.trim());
+  const url = `${base}?${sp.toString()}`;
+  const res = await fetch(url, {
+    headers: { Accept: "application/json" },
+    signal: opts?.signal,
+  });
+  const body = (await res.json().catch(() => ({}))) as {
+    success?: boolean;
+    data?: SwapMarketNewsPayload;
+    error?: string;
+    message?: string;
+  };
+  if (!res.ok || body.success !== true || !body.data) {
+    throw new Error(body.error || body.message || "Failed to load news");
+  }
+  return body.data;
+}
+
 export interface AssetsBoardItem {
   key: string;
   ref: string;
@@ -370,4 +426,65 @@ export async function fetchAssetIntelligence(
     clearTimeout(timer);
     opts?.signal?.removeEventListener("abort", onAbort);
   }
+}
+
+export interface TokenXPostItem {
+  id: string;
+  text: string;
+  url: string;
+  createdAt: string;
+  engagement: number;
+  username: string;
+  displayName: string;
+  followers: number;
+  verified: boolean;
+  profileImageUrl: string | null;
+}
+
+export interface TokenXPostsPayload {
+  mint: string;
+  posts: TokenXPostItem[];
+  summary: {
+    totalAccountsFound: number;
+    topKolsCount: number;
+    combinedReach: number;
+    directShills: number;
+    warnings: number;
+    overallSentiment: string;
+    searchWindowDays: number | null;
+  } | null;
+  source: string | null;
+  searchTerms: {
+    symbol: string | null;
+    name: string | null;
+    twitter: string | null;
+  } | null;
+  fetchedAt: string;
+}
+
+export async function fetchTokenXPosts(
+  params: { mint: string; symbol?: string; name?: string },
+  opts?: { signal?: AbortSignal },
+): Promise<TokenXPostsPayload> {
+  const base = `${getApiBaseUrl().replace(/\/$/, "")}/agent/tokens/x-posts`;
+  const sp = new URLSearchParams();
+  sp.set("mint", params.mint.trim());
+  if (params.symbol?.trim()) sp.set("symbol", params.symbol.trim());
+  if (params.name?.trim()) sp.set("name", params.name.trim());
+  const url = `${base}?${sp.toString()}`;
+
+  const res = await fetch(url, {
+    headers: { Accept: "application/json" },
+    signal: opts?.signal,
+  });
+  const body = (await res.json().catch(() => ({}))) as {
+    success?: boolean;
+    data?: TokenXPostsPayload;
+    error?: string;
+    message?: string;
+  };
+  if (!res.ok || body.success !== true || !body.data) {
+    throw new Error(body.error || body.message || "Failed to load X posts");
+  }
+  return body.data;
 }

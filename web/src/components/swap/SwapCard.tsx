@@ -47,7 +47,14 @@ const fieldShellClass = cn(
   "rounded-2xl bg-muted/[0.22] p-4 ring-1 ring-inset ring-border/35",
 );
 
-export function SwapCard() {
+export interface SwapCardProps {
+  onTokensChange?: (tokens: {
+    input: SelectedSwapToken;
+    output: SelectedSwapToken;
+  }) => void;
+}
+
+export function SwapCard({ onTokensChange }: SwapCardProps) {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const urlSwap = useMemo(
@@ -170,6 +177,10 @@ export function SwapCard() {
     setInputToken((prev) => enrich(prev));
     setOutputToken((prev) => enrich(prev));
   }, [resolveMintsQ.data]);
+
+  useEffect(() => {
+    onTokensChange?.({ input: inputToken, output: outputToken });
+  }, [inputToken, onTokensChange, outputToken]);
 
   const inputBalance = balances[inputToken.mint] ?? null;
 

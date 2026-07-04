@@ -1,11 +1,8 @@
 const prefetched = new Set<string>();
 
 const routeLoaders: Record<string, () => Promise<unknown>> = {
-  "/programs": () => import("@/pages/Programs"),
-  "/portfolio": () => import("@/pages/Portfolio"),
   "/community": () => import("@/pages/Community"),
   "/about": () => import("@/pages/About"),
-  "/apply": () => import("@/pages/Apply"),
   "/kol": () => import("@/pages/Kol"),
   "/jobs": () => import("@/pages/JobsPage"),
   "/campaign": () => import("@/pages/ComingSoon"),
