@@ -19,7 +19,9 @@ const CACHE_TTL_MS = 90 * 1000;
 /** Full RSS index is slow cold — only wait this long; Google News is the primary source. */
 const INDEX_BUDGET_MS = 2_500;
 const GOOGLE_NEWS_TIMEOUT_MS = 4_500;
-const COINMARKETCAL_TIMEOUT_MS = 3_500;
+const COINMARKETCAL_TIMEOUT_MS = 5_000;
+/** How far back news headlines may count as token events. */
+const EVENT_LOOKBACK_MS = 30 * 24 * 60 * 60 * 1000;
 const NEWS_LIST_ITEMS = Math.min(
   100,
   Math.max(
@@ -42,12 +44,14 @@ const inflightArticles = new Map();
 /**
  * @param {string} ticker
  * @param {{ primary?: string[]; all?: string[] }} keywordQuery
+ * @param {{ cryptoBias?: boolean }} [opts]
  */
-function cacheKey(ticker, keywordQuery = {}) {
+function cacheKey(ticker, keywordQuery = {}, opts = {}) {
   const base = String(ticker || 'asset').trim().toLowerCase() || 'asset';
   const primary = (keywordQuery.primary || []).join('|');
   const all = (keywordQuery.all || []).join('|');
-  return `${base}:${primary}:${all}`;
+  const bias = opts.cryptoBias ? ':crypto' : '';
+  return `${base}:${primary}:${all}${bias}`;
 }
 
 /**
@@ -85,10 +89,11 @@ export async function resolveNewsTicker(tickerOrName) {
 /**
  * Shared article pack for news / sentiment / events (one network burst per asset).
  * @param {{ primary?: string[]; all?: string[] }} keywordQuery
+ * @param {{ cryptoBias?: boolean }} [opts]
  * @returns {Promise<import('./newsSources/rssParser.js').RawArticle[]>}
  */
-export async function fetchRawArticlesForAsset(keywordQuery) {
-  const key = cacheKey('raw', keywordQuery);
+export async function fetchRawArticlesForAsset(keywordQuery, opts = {}) {
+  const key = cacheKey('raw', keywordQuery, opts);
   const cached = articlePackCache.get(key);
   if (cached && Date.now() < cached.expires) return cached.data;
 
@@ -100,7 +105,9 @@ export async function fetchRawArticlesForAsset(keywordQuery) {
     // Full RSS index only contributes when warm or finishes within INDEX_BUDGET_MS.
     const [indexArticles, googleArticles] = await Promise.all([
       fetchAllRawArticlesWithin(INDEX_BUDGET_MS),
-      fetchGoogleNewsForAsset(keywordQuery, GOOGLE_NEWS_TIMEOUT_MS),
+      fetchGoogleNewsForAsset(keywordQuery, GOOGLE_NEWS_TIMEOUT_MS, {
+        cryptoBias: Boolean(opts.cryptoBias),
+      }),
     ]);
 
     const filtered = filterArticlesByAssetKeywords(
@@ -123,11 +130,12 @@ export async function fetchRawArticlesForAsset(keywordQuery) {
 /**
  * @param {{ primary?: string[]; all?: string[] }} keywordQuery
  * @param {number} n
+ * @param {{ cryptoBias?: boolean }} [opts]
  */
-async function fetchAssetRelatedArticles(keywordQuery, n) {
+async function fetchAssetRelatedArticles(keywordQuery, n, opts = {}) {
   if (!keywordQuery.all?.length && !keywordQuery.primary?.length) return [];
 
-  const filtered = await fetchRawArticlesForAsset(keywordQuery);
+  const filtered = await fetchRawArticlesForAsset(keywordQuery, opts);
 
   return filtered
     .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
@@ -155,15 +163,18 @@ function dedupeNewsArticles(articles) {
  * @param {string} ticker
  * @param {{ primary?: string[]; all?: string[] }} keywordQuery
  * @param {number} [limit]
+ * @param {{ cryptoBias?: boolean }} [opts]
  */
-export async function getAssetNews(ticker, keywordQuery = {}, limit = 8) {
-  const key = cacheKey(ticker, keywordQuery);
+export async function getAssetNews(ticker, keywordQuery = {}, limit = 8, opts = {}) {
+  const key = cacheKey(ticker, keywordQuery, opts);
   const hit = newsCache.get(key);
   if (hit && Date.now() < hit.expires) {
     return Array.isArray(hit.data) ? hit.data.slice(0, limit) : [];
   }
 
-  const rows = dedupeNewsArticles(await fetchAssetRelatedArticles(keywordQuery, NEWS_LIST_ITEMS));
+  const rows = dedupeNewsArticles(
+    await fetchAssetRelatedArticles(keywordQuery, NEWS_LIST_ITEMS, opts),
+  );
 
   if (rows.length > 0) newsCache.set(key, { data: rows, expires: Date.now() + CACHE_TTL_MS });
   return rows.slice(0, limit);
@@ -252,8 +263,45 @@ export async function getAssetSentiment(ticker, keywordQuery = {}) {
   return result;
 }
 
+/** Catalyst / calendar-style headlines derived from the shared news scrape. */
 const EVENT_HEADLINE_RE =
-  /launch|listing|upgrade|fork|mainnet|testnet|conference|summit|halving|unlock|airdrop|vote|hearing|etf|partnership|integrat|earnings|ipo|dividend|split|acqui/i;
+  /launch|listing|delist|upgrade|fork|mainnet|testnet|conference|summit|halving|unlock|airdrop|vote|voting|proposal|governance|hearing|etf|partnership|integrat|support(?:ing|s|ed)?\b|earnings|ipo|dividend|split|acqui|hack|exploit|lawsuit|regulat|approval|roadmap|release|burn|migration|rebrand|suspend|ban|funding|raise|seed round|series [a-c]\b|token sale|ido\b|ico\b|tge\b|claim|snapshot|deadline|goes live|going live|announces|announced|unveil|debut|rolls out|rolled out|opens? (?:to|for)|closes? (?:to|for)|hard fork|soft fork|token burn|staking|unstak|validator|upgrade to|v\d+\.\d+/i;
+
+/** Market-moving headlines used when no hard catalyst match is found. */
+const SOFT_EVENT_RE =
+  /\b(price|rally|surge|soar|plunge|crash|ath|all[- ]time|breakout|sell-?off|whale|liquidation|market cap|hits? \$?\d|jumps?|spikes?|drops?|falls?|rises?|gains?\b|loses?\b)/i;
+
+/**
+ * Pick event-like articles from the shared news pack (hard catalysts first, soft movers fill).
+ * @param {import('./newsSources/rssParser.js').RawArticle[]} articles
+ * @param {number} [limit]
+ */
+function selectEventArticles(articles, limit = 12) {
+  const recent = articles
+    .filter((a) => new Date(a.publishedAt).getTime() >= Date.now() - EVENT_LOOKBACK_MS)
+    .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+
+  const seen = new Set();
+  /** @type {import('./newsSources/rssParser.js').RawArticle[]} */
+  const picked = [];
+
+  const push = (row) => {
+    const key = `${row.title}|${row.url || ''}`.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    picked.push(row);
+  };
+
+  for (const a of recent) {
+    if (EVENT_HEADLINE_RE.test(`${a.title} ${a.description}`)) push(a);
+    if (picked.length >= limit) return picked;
+  }
+  for (const a of recent) {
+    if (SOFT_EVENT_RE.test(`${a.title} ${a.description}`)) push(a);
+    if (picked.length >= limit) return picked;
+  }
+  return picked;
+}
 
 /**
  * @param {import('./newsSources/rssParser.js').RawArticle[]} articles
@@ -262,13 +310,12 @@ function eventsFromArticles(articles) {
   /** @type {Record<string, Array<Record<string, unknown>>>} */
   const out = {};
   for (const a of articles) {
-    const blob = `${a.title} ${a.description}`;
-    if (!EVENT_HEADLINE_RE.test(blob)) continue;
-    const date = a.publishedAt.slice(0, 10);
+    // Caller selects event-like articles (hard catalysts or soft market movers).
+    const date = String(a.publishedAt || '').slice(0, 10) || new Date().toISOString().slice(0, 10);
     if (!out[date]) out[date] = [];
     out[date].push({
       event_name: a.title.slice(0, 200),
-      event_text: a.description.slice(0, 500) || a.title,
+      event_text: (a.description || a.title).slice(0, 500),
       ticker: a.tickers[0] || '',
       source: a.source,
     });
@@ -283,9 +330,14 @@ function eventsFromArticles(articles) {
  * @param {{ primary?: string[]; all?: string[] }} keywordQuery
  */
 function filterEventRowsByAsset(rows, keywordQuery) {
-  const primary = keywordQuery.primary || [];
-  const all = keywordQuery.all || [];
-  if (!Array.isArray(rows)) return [];
+  const terms = [
+    ...new Set(
+      [...(keywordQuery.primary || []), ...(keywordQuery.all || [])]
+        .map((kw) => String(kw || '').trim().toLowerCase())
+        .filter((kw) => kw.length >= 2),
+    ),
+  ];
+  if (!Array.isArray(rows) || terms.length === 0) return [];
 
   return rows
     .map((row) => {
@@ -297,10 +349,7 @@ function filterEventRowsByAsset(rows, keywordQuery) {
         if (!ev || typeof ev !== 'object') return false;
         const e = /** @type {Record<string, unknown>} */ (ev);
         const blob = `${e.event_name ?? ''} ${e.event_text ?? ''} ${e.ticker ?? ''}`.toLowerCase();
-        if (primary.length > 0) {
-          return primary.some((kw) => blob.includes(kw.toLowerCase()));
-        }
-        return all.some((kw) => blob.includes(kw.toLowerCase()));
+        return terms.some((kw) => blob.includes(kw));
       });
       if (filtered.length === 0) return null;
       return { date: r.date, ticker: filtered };
@@ -311,15 +360,16 @@ function filterEventRowsByAsset(rows, keywordQuery) {
 /**
  * @param {string} ticker
  * @param {{ primary?: string[]; all?: string[] }} keywordQuery
+ * @param {{ cryptoBias?: boolean }} [opts]
  */
-export async function getAssetEvents(ticker, keywordQuery = {}) {
-  const key = cacheKey(ticker, keywordQuery);
+export async function getAssetEvents(ticker, keywordQuery = {}, opts = {}) {
+  const key = cacheKey(ticker, keywordQuery, opts);
   const hit = eventCache.get(key);
   if (hit && Date.now() < hit.expires) return hit.data;
 
   // Articles + CoinMarketCal in parallel (CMC used to run after articles and blow the budget).
   const [rawArticles, calFiltered] = await Promise.all([
-    fetchRawArticlesForAsset(keywordQuery),
+    fetchRawArticlesForAsset(keywordQuery, opts),
     settleWithin(
       fetchCoinMarketCalEventsFiltered(keywordQuery).catch(() => []),
       COINMARKETCAL_TIMEOUT_MS,
@@ -327,14 +377,8 @@ export async function getAssetEvents(ticker, keywordQuery = {}) {
     ),
   ]);
 
-  const recentArticles = rawArticles.filter(
-    (a) => new Date(a.publishedAt).getTime() >= Date.now() - 168 * 60 * 60 * 1000,
-  );
-
   /** @type {unknown[]} */
-  let result = eventsFromArticles(
-    recentArticles.filter((a) => EVENT_HEADLINE_RE.test(`${a.title} ${a.description}`)),
-  );
+  let result = eventsFromArticles(selectEventArticles(rawArticles));
 
   if (Array.isArray(calFiltered) && calFiltered.length > 0) {
     result = [...result, ...calFiltered];
@@ -350,14 +394,16 @@ export async function getAssetEvents(ticker, keywordQuery = {}) {
 
 /**
  * Single burst for intelligence: shared articles, no outer race that surfaces "timed out".
+ * Events are derived from the same article pack (event-like headlines) + CoinMarketCal.
  * @param {string} ticker
  * @param {{ primary?: string[]; all?: string[] }} keywordQuery
- * @param {{ newsLimit?: number }} [opts]
+ * @param {{ newsLimit?: number; cryptoBias?: boolean }} [opts]
  */
 export async function buildAssetFeedBundle(ticker, keywordQuery = {}, opts = {}) {
   const newsLimit = opts.newsLimit ?? 8;
+  const feedOpts = { cryptoBias: Boolean(opts.cryptoBias) };
 
-  const newsKey = cacheKey(ticker, keywordQuery);
+  const newsKey = cacheKey(ticker, keywordQuery, feedOpts);
   const newsHit = newsCache.get(newsKey);
   const sentimentHit = sentimentCache.get(newsKey);
   const eventHit = eventCache.get(newsKey);
@@ -377,7 +423,7 @@ export async function buildAssetFeedBundle(ticker, keywordQuery = {}, opts = {})
     };
   }
 
-  const articlesP = fetchRawArticlesForAsset(keywordQuery);
+  const articlesP = fetchRawArticlesForAsset(keywordQuery, feedOpts);
   const sentimentTickerP =
     ticker && ticker !== 'GENERAL'
       ? settleWithin(fetchSentimentTicker(ticker), 2_500, {}).catch(() => ({}))
@@ -417,12 +463,7 @@ export async function buildAssetFeedBundle(ticker, keywordQuery = {}, opts = {})
     sentimentCache.set(newsKey, { data: sentiment, expires: Date.now() + CACHE_TTL_MS });
   }
 
-  const recentArticles = rawArticles.filter(
-    (a) => new Date(a.publishedAt).getTime() >= Date.now() - 168 * 60 * 60 * 1000,
-  );
-  let events = eventsFromArticles(
-    recentArticles.filter((a) => EVENT_HEADLINE_RE.test(`${a.title} ${a.description}`)),
-  );
+  let events = eventsFromArticles(selectEventArticles(rawArticles));
   if (Array.isArray(calFiltered) && calFiltered.length > 0) {
     events = [...events, ...calFiltered];
   }

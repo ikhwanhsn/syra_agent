@@ -228,7 +228,8 @@ function articleTickerMatches(article, keywords) {
 }
 
 /**
- * Strict asset-related filter — requires a primary keyword when provided.
+ * Asset-related filter — matches any asset-scoped keyword (primary ∪ all).
+ * Short tickers (<4 chars) use word-boundary matching to limit false positives.
  * @param {import("./newsSources/rssParser.js").RawArticle[]} articles
  * @param {{ primary?: string[]; all?: string[] }} keywordQuery
  * @returns {import("./newsSources/rssParser.js").RawArticle[]}
@@ -237,21 +238,17 @@ export function filterArticlesByAssetKeywords(articles, keywordQuery = {}) {
   const primary = (keywordQuery.primary || [])
     .map((k) => String(k || "").trim().toLowerCase())
     .filter((k) => k.length >= 2);
-  const all = (keywordQuery.all || primary)
+  const all = (keywordQuery.all || [])
     .map((k) => String(k || "").trim().toLowerCase())
     .filter((k) => k.length >= 2);
+  const terms = [...new Set([...primary, ...all])];
 
-  if (primary.length === 0 && all.length === 0) return [];
+  if (terms.length === 0) return [];
 
   return articles.filter((a) => {
     const blob = `${a.title} ${a.description}`.toLowerCase();
-    if (primary.length > 0) {
-      if (primary.some((kw) => articleMatchesKeyword(blob, kw))) return true;
-      if (articleTickerMatches(a, primary)) return true;
-      return false;
-    }
-    if (all.some((kw) => articleMatchesKeyword(blob, kw))) return true;
-    return articleTickerMatches(a, all);
+    if (terms.some((kw) => articleMatchesKeyword(blob, kw))) return true;
+    return articleTickerMatches(a, terms);
   });
 }
 

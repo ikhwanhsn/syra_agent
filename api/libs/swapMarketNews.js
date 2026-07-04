@@ -1,14 +1,13 @@
 /**
- * Fast news for the swap market panel — symbol/name keywords only.
- * Skips mint resolve, CoinGecko lookup, sentiment, events, and signal.
- * Uses Google News only (no full RSS index wait).
+ * Swap market panel feed — news + token events from one shared article burst.
+ * Uses Google News (crypto-biased) + warm RSS index, then derives event-like
+ * headlines and CoinMarketCal rows for the focused token.
  */
 import { keywordsForAsset } from '../config/internalNewsConfig.js';
-import { filterArticlesByAssetKeywords, toCryptonewsShape } from './newsAggregator.js';
-import { fetchGoogleNewsForAsset } from './newsSources/googleNewsRss.js';
+import { buildAssetFeedBundle } from './assetNewsFeed.js';
 
 const NEWS_LIMIT = 6;
-const GOOGLE_NEWS_TIMEOUT_MS = 2_500;
+const EVENTS_LIMIT = 8;
 const CACHE_TTL_MS = 90_000;
 
 /** @type {Map<string, { expires: number; data: object }>} */
@@ -16,6 +15,31 @@ const cache = new Map();
 
 function trim(v) {
   return v != null ? String(v).trim() : '';
+}
+
+/**
+ * @param {unknown} rows
+ * @param {number} limit
+ */
+function flattenEvents(rows, limit = EVENTS_LIMIT) {
+  if (!Array.isArray(rows)) return [];
+  /** @type {Array<Record<string, unknown>>} */
+  const out = [];
+  for (const row of rows) {
+    if (!row || typeof row !== 'object') continue;
+    const r = /** @type {Record<string, unknown>} */ (row);
+    const date = String(r.date ?? '');
+    const bucket = r.ticker ?? r.general;
+    if (!Array.isArray(bucket)) continue;
+    for (const ev of bucket) {
+      if (!ev || typeof ev !== 'object') continue;
+      out.push({ .../** @type {Record<string, unknown>} */ (ev), date });
+    }
+  }
+  // Prefer newest dates first for the swap panel.
+  return out
+    .sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')))
+    .slice(0, limit);
 }
 
 /**
@@ -31,6 +55,7 @@ export async function buildSwapMarketNews(input) {
   }
 
   const ticker = (symbol || name || 'TOKEN').toUpperCase();
+  const assetLabel = name || symbol || mint;
   const cacheKey = [ticker, name.toLowerCase(), mint].join('|');
   const cached = cache.get(cacheKey);
   if (cached && Date.now() < cached.expires) {
@@ -42,40 +67,55 @@ export async function buildSwapMarketNews(input) {
     name: name || undefined,
   });
 
-  const empty = (error) => ({
-    ok: true,
-    data: {
-      query: { mint: mint || undefined, symbol: symbol || undefined, name: name || undefined },
-      news: { ok: false, items: [], error },
-      fetchedAt: new Date().toISOString(),
-    },
+  const emptyNews = (error) => ({
+    ok: false,
+    items: [],
+    error,
+  });
+  const emptyEvents = (error) => ({
+    ok: false,
+    items: [],
+    error,
   });
 
   if (!keywordQuery.primary?.length && !keywordQuery.all?.length) {
-    return empty(`No headlines found related to ${name || symbol || mint}`);
+    const data = {
+      query: { mint: mint || undefined, symbol: symbol || undefined, name: name || undefined },
+      news: emptyNews(`No headlines found related to ${assetLabel}`),
+      events: emptyEvents(`No events found related to ${assetLabel}`),
+      fetchedAt: new Date().toISOString(),
+    };
+    return { ok: true, data };
   }
 
-  const googleArticles = await fetchGoogleNewsForAsset(keywordQuery, GOOGLE_NEWS_TIMEOUT_MS);
-  const filtered = filterArticlesByAssetKeywords(googleArticles, keywordQuery);
-  const items = filtered
-    .slice()
-    .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-    .slice(0, NEWS_LIMIT)
-    .map(toCryptonewsShape);
+  const feed = await buildAssetFeedBundle(ticker, keywordQuery, {
+    newsLimit: NEWS_LIMIT,
+    cryptoBias: true,
+  });
+
+  const newsItems = Array.isArray(feed.news) ? feed.news : [];
+  const eventItems = flattenEvents(feed.events, EVENTS_LIMIT);
 
   const data = {
     query: { mint: mint || undefined, symbol: symbol || undefined, name: name || undefined },
     news: {
-      ok: items.length > 0,
-      items,
-      ...(items.length === 0
-        ? { error: `No headlines found related to ${name || symbol || mint}` }
+      ok: newsItems.length > 0,
+      items: newsItems,
+      ...(newsItems.length === 0
+        ? { error: `No headlines found related to ${assetLabel}` }
+        : {}),
+    },
+    events: {
+      ok: eventItems.length > 0,
+      items: eventItems,
+      ...(eventItems.length === 0
+        ? { error: `No events found related to ${assetLabel}` }
         : {}),
     },
     fetchedAt: new Date().toISOString(),
   };
 
-  if (items.length > 0) {
+  if (newsItems.length > 0 || eventItems.length > 0) {
     cache.set(cacheKey, { data, expires: Date.now() + CACHE_TTL_MS });
   }
 

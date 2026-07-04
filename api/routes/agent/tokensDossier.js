@@ -249,7 +249,7 @@ export function createTokensDossierRouter() {
 
   /**
    * GET /agent/tokens/news?symbol=SOL&name=Solana&mint=<optional>
-   * Fast swap-panel news — no resolve / signal / events.
+   * Swap-panel feed: asset news + token events (shared article scrape).
    */
   router.get('/news', async (req, res) => {
     try {

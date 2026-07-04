@@ -173,8 +173,30 @@ export function keywordsForTicker(ticker) {
   return [t.toLowerCase(), `$${t.toLowerCase()}`];
 }
 
+/** Generic leading name tokens that should not be exclusive primary matchers. */
+const NAME_PRIMARY_STOPWORDS = new Set([
+  "wrapped",
+  "official",
+  "the",
+  "token",
+  "coin",
+  "protocol",
+  "network",
+  "finance",
+  "dao",
+  "labs",
+  "lab",
+  "inc",
+  "corp",
+  "ltd",
+  "usd",
+  "usdc",
+  "usdt",
+]);
+
 /**
- * Build asset-scoped search keywords (name-first; no unrelated crypto fallback terms).
+ * Build asset-scoped search keywords (name + ticker; no unrelated crypto fallback terms).
+ * Primary terms drive Google News queries; `all` is used for article matching.
  * @param {{ ticker?: string; name?: string; coinName?: string; assetId?: string }} input
  * @returns {{ primary: string[]; all: string[] }}
  */
@@ -196,10 +218,25 @@ export function keywordsForAsset(input = {}) {
       .trim();
     if (cleaned.length >= 3) {
       all.add(cleaned.toLowerCase());
-      const first = cleaned.split(/[\s-]+/)[0];
-      if (first && first.length >= 3) {
+      // Prefer the full name as a primary phrase when it is specific enough.
+      if (cleaned.length >= 4 && !cleaned.includes(" ")) {
+        primary.add(cleaned.toLowerCase());
+      } else if (cleaned.length >= 6) {
+        primary.add(cleaned.toLowerCase());
+      }
+      const parts = cleaned.split(/[\s-]+/).filter(Boolean);
+      const first = parts[0];
+      if (first && first.length >= 3 && !NAME_PRIMARY_STOPWORDS.has(first.toLowerCase())) {
         primary.add(first.toLowerCase());
         all.add(first.toLowerCase());
+      }
+      // Also index later meaningful tokens (e.g. "Wrapped SOL" → sol).
+      for (const part of parts.slice(1)) {
+        const p = part.toLowerCase();
+        if (p.length >= 3 && !NAME_PRIMARY_STOPWORDS.has(p)) {
+          all.add(p);
+          if (p.length >= 4) primary.add(p);
+        }
       }
     }
   }
@@ -212,13 +249,23 @@ export function keywordsForAsset(input = {}) {
         all.add(kw.toLowerCase());
       }
     } else {
-      all.add(ticker.toLowerCase());
-      all.add(`$${ticker.toLowerCase()}`);
+      const lower = ticker.toLowerCase();
+      all.add(lower);
+      all.add(`$${lower}`);
+      // Tickers of length >= 3 are specific enough for primary search/match.
+      if (ticker.length >= 3) {
+        primary.add(lower);
+        primary.add(`$${lower}`);
+      }
       if (/X{1,2}$/.test(ticker) && ticker.length > 3) {
         const base = ticker.replace(/X{1,2}$/, "");
         if (base.length >= 2) {
           all.add(base.toLowerCase());
           all.add(`$${base.toLowerCase()}`);
+          if (base.length >= 3) {
+            primary.add(base.toLowerCase());
+            primary.add(`$${base.toLowerCase()}`);
+          }
         }
       }
     }
