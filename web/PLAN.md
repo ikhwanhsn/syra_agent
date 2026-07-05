@@ -10,7 +10,7 @@
 
 Syra’s path to multi-billion-dollar scale is **not** “win the AI chatbot race.” It is to become the **default machine money rail for autonomous trading agents** — the infrastructure layer agents pay to think, pay to trade, and pay repeatedly as they scale.
 
-**One-line positioning:** Machine money for AI trading agents on Solana — *Stripe + Plaid for the agent economy.*
+**One-line positioning:** Machine money for agents on Solana — *Stripe + Plaid for the agent economy.*
 
 **North-star metrics (what actually compounds):**
 
@@ -93,7 +93,7 @@ Each phase has **objectives**, **concrete steps**, **metrics**, and **exit crite
 #### Steps
 
 1. **Lock positioning everywhere**
-   - Tagline: *Machine money for AI trading agents*
+   - Tagline: *Machine money for agents*
    - USP: *The rail agents pay to think and trade on Solana*
    - Source of truth: `web/src/content/syraAbout.ts`, `syraFocus.ts`, docs, README, deck
 
@@ -443,7 +443,7 @@ These activities **feel productive** but **do not compound** toward billions:
 
 ### Narrative
 
-- [ ] All public copy uses “machine money for AI trading agents”
+- [ ] All public copy uses “machine money for agents”
 - [ ] Deck updated: rail diagram, usage charts, case studies
 - [ ] `/analytics` linked from footer as “Rail volume”
 

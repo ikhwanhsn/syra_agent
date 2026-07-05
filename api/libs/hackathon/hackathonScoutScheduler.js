@@ -1,5 +1,5 @@
 /**
- * Hackathon Scout — 24h interval scheduler (Devpost + Exa).
+ * Hackathon Scout — 24h interval scheduler (Devpost + Web).
  */
 
 import { isMongooseConnected } from "../../config/mongoose.js";

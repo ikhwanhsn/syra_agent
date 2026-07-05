@@ -1,5 +1,5 @@
 /**
- * OpenRouter extraction agent for hackathons discovered via Exa web search.
+ * OpenRouter extraction agent for hackathons discovered via web search.
  */
 
 import { callOpenRouter } from "../libs/openrouter.js";
@@ -9,7 +9,7 @@ import {
   resolveInternalPipelineModel,
   INTERNAL_PIPELINE_MAX_COMPLETION_TOKENS,
 } from "../config/internalPipelineAgents.js";
-import { EXA_MIN_RELEVANCE_SCORE } from "../config/hackathonScoutConfig.js";
+import { WEB_MIN_RELEVANCE_SCORE } from "../config/hackathonScoutConfig.js";
 import { detectIndonesia } from "../libs/hackathon/devpostSource.js";
 import { hackathonDedupeKey } from "../libs/internalScoutDedupe.js";
 
@@ -20,7 +20,7 @@ import { hackathonDedupeKey } from "../libs/internalScoutDedupe.js";
  *   url: string;
  *   text: string;
  *   query: string;
- * }} ExaSearchHit
+ * }} WebSearchHit
  */
 
 /**
@@ -37,7 +37,7 @@ function str(v) {
 
 /**
  * @param {unknown} raw
- * @param {ExaSearchHit[]} hits
+ * @param {WebSearchHit[]} hits
  * @returns {HackathonRecord[]}
  */
 function coerceExtractions(raw, hits) {
@@ -69,7 +69,7 @@ function coerceExtractions(raw, hits) {
           ? Math.max(0, Math.min(100, x.relevance_score))
           : 50;
 
-    if (score < EXA_MIN_RELEVANCE_SCORE) continue;
+    if (score < WEB_MIN_RELEVANCE_SCORE) continue;
 
     const isTech = x.isTechnology !== false && x.is_technology !== false;
     if (!isTech) continue;
@@ -84,7 +84,7 @@ function coerceExtractions(raw, hits) {
       : tags;
 
     const record = {
-      source: /** @type {const} */ ("exa"),
+      source: /** @type {const} */ ("web"),
       sourceId: hit.id,
       dedupeKey: "",
       title: title.slice(0, 300),
@@ -107,7 +107,7 @@ function coerceExtractions(raw, hits) {
       relevanceReason: str(x.relevanceReason || x.relevance_reason).slice(0, 400),
     };
 
-    record.dedupeKey = `exa:${hackathonDedupeKey(record) || hit.id}`;
+    record.dedupeKey = `web:${hackathonDedupeKey(record) || hit.id}`;
     out.push(record);
   }
 
@@ -147,7 +147,7 @@ const SYSTEM = `You are **Hackathon Scout**. Extract real technology hackathon a
 - Valid JSON only.`;
 
 /**
- * @param {{ hits: ExaSearchHit[]; knownHackathons?: { title: string; organizer?: string }[]; model?: string | null }} input
+ * @param {{ hits: WebSearchHit[]; knownHackathons?: { title: string; organizer?: string }[]; model?: string | null }} input
  * @returns {Promise<HackathonRecord[]>}
  */
 export async function runHackathonExtractAgent(input) {
@@ -158,9 +158,9 @@ export async function runHackathonExtractAgent(input) {
 
   if (!process.env.OPENROUTER_API_KEY) {
     return hits.slice(0, 3).map((h) => ({
-      source: /** @type {const} */ ("exa"),
+      source: /** @type {const} */ ("web"),
       sourceId: h.id,
-      dedupeKey: `exa:${hackathonDedupeKey({ title: h.title, organizer: "", applicationUrl: h.url }) || h.id}`,
+      dedupeKey: `web:${hackathonDedupeKey({ title: h.title, organizer: "", applicationUrl: h.url }) || h.id}`,
       title: (h.title || h.url).slice(0, 200),
       organizer: "",
       description: h.text.slice(0, 600),
@@ -178,7 +178,7 @@ export async function runHackathonExtractAgent(input) {
       registrationsCount: null,
       thumbnailUrl: null,
       relevanceScore: 35,
-      relevanceReason: "OpenRouter not configured — raw Exa hit saved for manual review.",
+      relevanceReason: "OpenRouter not configured — raw web hit saved for manual review.",
     }));
   }
 

@@ -1581,17 +1581,6 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "path": "/event"
   },
   {
-    "toolName": "syra_spend_exa_search",
-    "toolId": "exa-search",
-    "pillar": "spend",
-    "access": "agent-direct",
-    "method": "GET",
-    "name": "EXA search",
-    "description": "EXA AI web search – dynamic query only",
-    "priceUsd": 0.00012,
-    "curated": true
-  },
-  {
     "toolName": "syra_spend_gmgn_market_kline",
     "toolId": "gmgn-market-kline",
     "pillar": "spend",
@@ -2944,6 +2933,17 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "description": "Trending tokens on Jupiter",
     "priceUsd": 0.0001,
     "curated": false
+  },
+  {
+    "toolName": "syra_spend_web_search",
+    "toolId": "web-search",
+    "pillar": "spend",
+    "access": "agent-direct",
+    "method": "GET",
+    "name": "Web search",
+    "description": "Free web search via DuckDuckGo/Bing scrape – dynamic query only",
+    "priceUsd": 0.00012,
+    "curated": true
   },
   {
     "toolName": "syra_spend_website_crawl",

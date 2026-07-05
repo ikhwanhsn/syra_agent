@@ -1,7 +1,7 @@
 [
   {
     "serviceName": "Syra x402 Crypto API",
-    "serviceDescription": "Pay-per-call crypto intelligence APIs for AI agents including news, signals, indicators, memecoin analysis, Bitcoin hub, and Jupiter quotes.\n\n1. HTTP method and path for the API route\n2. x402 payment signature after HTTP 402 challenge",
+    "serviceDescription": "Pay-per-call crypto intelligence APIs for agents including news, signals, indicators, memecoin analysis, Bitcoin hub, and Jupiter quotes.\n\n1. HTTP method and path for the API route\n2. x402 payment signature after HTTP 402 challenge",
     "serviceType": "A2MCP",
     "fee": "0.01",
     "endpoint": "https://api.syraa.fun"

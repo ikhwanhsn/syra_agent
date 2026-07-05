@@ -181,8 +181,8 @@ export const X402_API_PRICE_SQUID_ROUTE_USD = price(0.02);
 /** Squid Router cross-chain transaction status */
 export const X402_API_PRICE_SQUID_STATUS_USD = price(0.01);
 
-/** EXA search (direct Exa SDK; upstream ~$0.01 × 1.2) */
-export const X402_API_PRICE_EXA_SEARCH_USD = passthrough(0.01);
+/** Web search (free DuckDuckGo/Bing scrape; internal compute only) */
+export const X402_API_PRICE_WEB_SEARCH_USD = passthrough(0.01);
 
 /** Cloudflare Browser Rendering /crawl – full-site crawl */
 export const X402_API_PRICE_CRAWL_USD = price(0.06);
@@ -286,7 +286,7 @@ export const X402_DISPLAY_PRICE_ASSETS_DETAIL_USD = displayInternal(0.005);
 export const X402_DISPLAY_PRICE_BITCOIN_USD = displayInternal(0.01);
 export const X402_DISPLAY_PRICE_SQUID_ROUTE_USD = displayInternal(0.02);
 export const X402_DISPLAY_PRICE_SQUID_STATUS_USD = displayInternal(0.01);
-export const X402_DISPLAY_PRICE_EXA_SEARCH_USD = displayPassthrough(0.01);
+export const X402_DISPLAY_PRICE_WEB_SEARCH_USD = displayPassthrough(0.01);
 export const X402_DISPLAY_PRICE_CRAWL_USD = displayInternal(0.06);
 export const X402_DISPLAY_PRICE_BROWSER_USE_USD = displayInternal(0.1);
 export const X402_DISPLAY_PRICE_ARBITRAGE_EXPERIMENT_USD = displayInternal(0.04);

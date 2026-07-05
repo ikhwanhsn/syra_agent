@@ -1,6 +1,6 @@
 # ✨ Tokenomics
 
-The Syra token ($SYRA) powers **machine money infrastructure for AI agents** on Solana. Our tokenomics align incentives between the platform, autonomous agents, and the community, emphasizing fair distribution, utility-driven value, and routing x402 revenue into **SYRA buybacks reserved for community airdrops**.
+The Syra token ($SYRA) powers **machine money infrastructure for agents** on Solana. Our tokenomics align incentives between the platform, autonomous agents, and the community, emphasizing fair distribution, utility-driven value, and routing x402 revenue into **SYRA buybacks reserved for community airdrops**.
 
 ## Token Overview
 

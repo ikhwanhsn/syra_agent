@@ -18,7 +18,7 @@ import {
   X402_API_PRICE_COINGECKO_SCOUT_USD,
   X402_API_PRICE_SQUID_ROUTE_USD,
   X402_API_PRICE_SQUID_STATUS_USD,
-  X402_API_PRICE_EXA_SEARCH_USD,
+  X402_API_PRICE_WEB_SEARCH_USD,
   X402_API_PRICE_ARBITRAGE_EXPERIMENT_USD,
   X402_API_PRICE_CRAWL_USD,
   X402_API_PRICE_BROWSER_USE_USD,
@@ -52,7 +52,7 @@ import {
   X402_DISPLAY_PRICE_COINGECKO_SCOUT_USD,
   X402_DISPLAY_PRICE_SQUID_ROUTE_USD,
   X402_DISPLAY_PRICE_SQUID_STATUS_USD,
-  X402_DISPLAY_PRICE_EXA_SEARCH_USD,
+  X402_DISPLAY_PRICE_WEB_SEARCH_USD,
   X402_DISPLAY_PRICE_ARBITRAGE_EXPERIMENT_USD,
   X402_DISPLAY_PRICE_CRAWL_USD,
   X402_DISPLAY_PRICE_BROWSER_USE_USD,
@@ -161,14 +161,14 @@ export const AGENT_TOOLS = [
     description: 'Event data and updates',
   },
   {
-    id: 'exa-search',
+    id: 'web-search',
     agentDirect: true,
-    path: '/exa-search',
+    path: '/web-search',
     method: 'GET',
-    priceUsd: X402_API_PRICE_EXA_SEARCH_USD,
-    displayPriceUsd: X402_DISPLAY_PRICE_EXA_SEARCH_USD,
-    name: 'EXA search',
-    description: 'EXA AI web search – dynamic query only',
+    priceUsd: X402_API_PRICE_WEB_SEARCH_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_WEB_SEARCH_USD,
+    name: 'Web search',
+    description: 'Free web search via DuckDuckGo/Bing scrape – dynamic query only',
   },
   {
     id: 'website-crawl',
@@ -2664,7 +2664,7 @@ export function getCapabilitiesList() {
     'equity-intelligence',
     'sentiment',
     'event',
-    'exa-search',
+    'web-search',
     'website-crawl',
     'trending-headline',
     'sundown-digest',
@@ -2862,7 +2862,7 @@ export function getToolsForLlmSelection() {
       out.paramsHint =
         'Optional: token (default bitcoin); Syra Agent defaults to source=coingecko (USD OHLC). Other: source = binance|coinbase|coingecko|okx|bybit|kraken|bitget|kucoin|upbit|cryptocom; n8n|webhook for legacy n8n; instId, bar, limit';
     }
-    if (t.id === 'exa-search') {
+    if (t.id === 'web-search') {
       out.paramsHint = 'Params: query (required) — search query from the user, e.g. "bitcoin insight", "latest Nvidia news"';
     }
     if (t.id === 'website-crawl') {

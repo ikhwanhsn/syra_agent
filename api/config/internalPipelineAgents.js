@@ -58,7 +58,6 @@ export const AGENT_TEAM_CRAWL_BASE_URLS = Object.freeze([
   // Canonical host avoids apex→www redirect noise for Browser Rendering crawls
   "https://www.syraa.fun",
   "https://docs.syraa.fun",
-  "https://agent.syraa.fun",
   "https://playground.syraa.fun",
 ]);
 

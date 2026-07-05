@@ -48,7 +48,7 @@ When the agent asks for details, provide from [asp-dossier.md](./asp-dossier.md)
 | Field | Value |
 |-------|-------|
 | **Service name** | Syra x402 Crypto Intelligence API |
-| **Description** | Pay-per-call crypto intelligence APIs for AI agents. 28 routes covering news, signals, technical indicators, memecoin analysis, tokenized equity spreads, Bitcoin dashboard, Jupiter quotes, OpenRouter chat/image/video, and Solana 8004 agent registry. HTTP 402 (x402 v2) payment. |
+| **Description** | Pay-per-call crypto intelligence APIs for agents. 28 routes covering news, signals, technical indicators, memecoin analysis, tokenized equity spreads, Bitcoin dashboard, Jupiter quotes, OpenRouter chat/image/video, and Solana 8004 agent registry. HTTP 402 (x402 v2) payment. |
 | **Price** | Per-route USDC (see dossier tables); gateway bundle from $0.0001/call |
 | **Endpoint** | `https://api.syraa.fun` |
 | **OpenAPI spec** | `https://api.syraa.fun/openapi.json` |

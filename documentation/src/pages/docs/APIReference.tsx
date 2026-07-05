@@ -23,8 +23,8 @@ const API_CATEGORIES: { title: string; description: string; slugs: string[] }[] 
   },
   {
     title: "Research & Discovery",
-    description: "EXA search, crawl, browser automation, analytics",
-    slugs: ["exa-search", "crawl", "browser-use", "analytics-summary"],
+    description: "Web search, crawl, browser automation, analytics",
+    slugs: ["web-search", "crawl", "browser-use", "analytics-summary"],
   },
   {
     title: "Trading & Events",

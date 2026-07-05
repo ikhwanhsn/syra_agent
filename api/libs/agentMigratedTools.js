@@ -1,6 +1,6 @@
 /**
  * Migrated agent-direct tool handlers. These replace the self-loop x402 HTTP routes
- * (formerly /exa-search, /crawl, /browser-use, /jupiter/swap/order, /quicknode/*, /8004scan/*,
+ * (formerly /web-search, /crawl, /browser-use, /jupiter/swap/order, /quicknode/*, /8004scan/*,
  * /smart-money, /token-god-mode, /trending-jupiter, /bubblemaps/*, /squid/*, /heylol/*, /pumpfun/*) by running the underlying
  * clients directly in-process. The caller (runAgentPartnerDirectTool) performs the on-chain
  * USDC charge via chargeAgentForInternalTool; upstream API secrets stay server-side.
@@ -11,7 +11,6 @@
  */
 import axios from "axios";
 import bs58 from "bs58";
-import Exa from "exa-js";
 import { getAgentKeypair } from "./agentWallet.js";
 import {
   getCloudflareCrawlConfig,
@@ -49,6 +48,7 @@ import {
 } from "./pumpfunAgentPaymentsSdk.js";
 import { runBrowserTask } from "./browserUseClient.js";
 import { run8004Stats, run8004Leaderboard, run8004AgentsSearch } from "./8004ReadApi.js";
+import { searchWeb } from "./research/webSearchService.js";
 
 const JUPITER_API_BASE = process.env.JUPITER_API_KEY
   ? "https://api.jup.ag"
@@ -106,40 +106,23 @@ async function fetchJson(url, init) {
   return { ok: res.ok, status: res.status, data };
 }
 
-function getExaClient() {
-  const key = (process.env.EXA_API_KEY || "").trim();
-  if (!key) {
-    throw new Error("EXA_API_KEY is not set");
-  }
-  return new Exa(key);
-}
-
-const EXA_SEARCH_OPTIONS = {
-  numResults: 10,
-  type: "auto",
-  contents: { highlights: { maxCharacters: 4000 } },
-};
-
-async function handleExaSearch(params) {
+async function handleWebSearch(params) {
   const query = (params.query ?? "").toString().trim();
   if (!query) return { ok: false, error: "query is required", status: 400 };
   try {
-    const exa = getExaClient();
-    const result = await exa.search(query, EXA_SEARCH_OPTIONS);
+    const result = await searchWeb(query, { numResults: 10 });
     return {
       ok: true,
       data: {
         query,
         results: result.results ?? [],
+        engine: result.engine ?? "none",
         autopromptString: result.autopromptString ?? null,
       },
     };
   } catch (err) {
     const message = err?.message ?? String(err);
-    if (message.includes("EXA_API_KEY")) {
-      return { ok: false, error: `EXA search is not configured: ${message}`, status: 503 };
-    }
-    return { ok: false, error: `EXA search failed: ${message}`, status: 502 };
+    return { ok: false, error: `Web search failed: ${message}`, status: 502 };
   }
 }
 
@@ -1147,7 +1130,7 @@ export const MIGRATED_TOOL_IDS = new Set([
   "8004-stats",
   "8004-leaderboard",
   "8004-agents-search",
-  "exa-search",
+  "web-search",
   "website-crawl",
   "quicknode-balance",
   "quicknode-transaction",
@@ -1196,7 +1179,7 @@ export async function runMigratedTool(toolId, params) {
   if (toolId === "8004-stats" || toolId === "8004-leaderboard" || toolId === "8004-agents-search") {
     return handle8004Tool(toolId, params);
   }
-  if (toolId === "exa-search") return handleExaSearch(params);
+  if (toolId === "web-search") return handleWebSearch(params);
   if (toolId === "website-crawl") return handleWebsiteCrawl(params);
   if (toolId === "quicknode-balance") return handleQuicknodeBalance(params);
   if (toolId === "quicknode-transaction") return handleQuicknodeTransaction(params);

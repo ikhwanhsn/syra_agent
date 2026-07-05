@@ -64,7 +64,7 @@ The repository `mcp-server` exposes the Syra API as **stdio MCP tools** (one HTT
 | `syra_v2_pumpfun_agents_swap` | `POST /pumpfun/agents/swap` — build swap transaction (pump fun agents) |
 | `syra_v2_squid_route` | `POST /squid/route` — cross-chain route/quote (Squid) |
 | `syra_v2_squid_status` | `GET /squid/status` — cross-chain tx status |
-| `syra_v2_exa_search` | `GET /exa-search` — web search |
+| `syra_spend_web_search` | `GET /web-search` — web search |
 | `syra_v2_token_god_mode` | `GET /token-god-mode` — Nansen token research |
 | `syra_v2_8004_stats` | 8004 registry global stats |
 | `syra_v2_8004_leaderboard` | 8004 leaderboard; optional `minTier`, `limit` |

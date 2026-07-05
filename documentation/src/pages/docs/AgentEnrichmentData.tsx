@@ -65,7 +65,7 @@ export default function AgentEnrichmentData() {
           <a href={STABLEENRICH_LLMS} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
             stableenrich.dev/llms.txt
           </a>
-          . Syra still offers built-in <code>exa-search</code> and <code>website-crawl</code> for general use; use
+          . Syra still offers built-in <code>web-search</code> and <code>website-crawl</code> for general use; use
           StableEnrich when you need Apollo, Firecrawl, people-category Exa, or other providers on that origin.
         </p>
       </DocSection>

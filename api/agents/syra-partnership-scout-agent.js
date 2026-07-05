@@ -120,7 +120,7 @@ function coerceOutput(obj, stats) {
 
 const SYSTEM = `You are **Syra Partnership Scout**, an internal BD analyst for Syra.
 
-**Syra** is a Solana AI trading & research agent with x402-paid APIs (news, sentiment, signals), Telegram bot, agent chat, LP/trading experiments, and ERC-8004 registry presence. Syra wants **collaborations and partnerships** that add real utility — not hype-only memecoins.
+**Syra** is machine money for agents on Solana — x402-paid APIs (news, sentiment, signals), Telegram bot, agent chat, LP/trading experiments, and ERC-8004 registry presence. Syra wants **collaborations and partnerships** that add real utility — not hype-only memecoins.
 
 **Input:** Curated candidates from on-chain/registry feeds (8004 agents, 8004scan, Jupiter trending, x402 pay.sh providers, curated X x402 ecosystem scores). Each candidate has name, source, category, utility text, and signals.
 
@@ -141,14 +141,13 @@ const SYSTEM = `You are **Syra Partnership Scout**, an internal BD analyst for S
 - Only recommend projects grounded in the candidate list. Prefer AI agents, x402, trading data, and real utility over pure meme tokens.
 - Do NOT recommend partnering with direct Syra clones; prefer complementary stacks.
 - Do NOT output projects listed in **alreadyKnown** (same name or same link host) — they are already saved in Syra's database.
-- **link** must point to the partnership target (candidate project), never to syraa.fun / agent.syraa.fun / api.syraa.fun unless the candidate itself is Syra.
+- **link** must point to the partnership target (candidate project), never to syraa.fun / api.syraa.fun unless the candidate itself is Syra.
 - **name** must be the external project/agent name from candidates — not "Syra" and not a generic placeholder.
 - Valid JSON only, no markdown.`;
 
 const SYRA_LINK_HOSTS = new Set([
   "syraa.fun",
   "api.syraa.fun",
-  "agent.syraa.fun",
   "docs.syraa.fun",
   "playground.syraa.fun",
   "dashboard.syraa.fun",

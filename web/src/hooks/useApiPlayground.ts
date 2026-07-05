@@ -809,10 +809,10 @@ export function getExampleFlows(): ExampleFlowPreset[] {
       ],
     },
     {
-      id: "exa-search",
-      label: "EXA search",
+      id: "web-search",
+      label: "Web search",
       method: "GET",
-      url: `${base}/exa-search`,
+      url: `${base}/web-search`,
       params: [
         {
           key: "query",
@@ -2915,7 +2915,7 @@ function getKnownQueryParamsForPath(baseUrl: string): RequestParam[] | null {
           description: "e.g. 1m, 1h, 4h, 1d",
         },
       ],
-      "/exa-search": [
+      "/web-search": [
         {
           key: "query",
           value: "latest crypto news",
@@ -4899,7 +4899,7 @@ export function useApiPlayground() {
           return "";
         }
       })();
-      if (effectiveMethod === "GET" && pathname === "/exa-search") {
+      if (effectiveMethod === "GET" && pathname === "/web-search") {
         const queryVal =
           enabledParams.find((p) => p.key === "query")?.value?.trim() ?? "";
         if (!queryVal) {
@@ -4987,7 +4987,7 @@ export function useApiPlayground() {
             walletAddress: walletVal,
             email: emailVal,
           });
-        } else if (emptyBody && pathname === "/exa-search") {
+        } else if (emptyBody && pathname === "/web-search") {
           const queryVal =
             enabledParams.find((p) => p.key === "query")?.value ?? "";
           bodyToSend = JSON.stringify({ query: queryVal });
@@ -5709,7 +5709,7 @@ export function useApiPlayground() {
           return "";
         }
       })();
-      const queryRequiredPaths = ["/exa-search"];
+      const queryRequiredPaths = ["/web-search"];
       const urlRequiredPaths = ["/crawl"];
       const taskRequiredPaths = ["/browser-use"];
       const queryValue = (

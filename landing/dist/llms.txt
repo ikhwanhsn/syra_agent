@@ -2,11 +2,11 @@ Syra — machine-readable product summary
 ========================================
 
 Name: Syra
-Tagline: Machine money for AI trading agents (Solana ecosystem).
+Tagline: Machine money for agents (Solana ecosystem).
 
 What Syra is
 ------------
-Syra is machine money for AI trading agents on Solana — x402 pay-per-call APIs, agent wallets, treasury policy, and autonomous execution. It is not a promise of returns or financial advice. Agents and operators use Syra to pay for intelligence, coordinate capital, and execute workflows — not hype or blind automation.
+Syra is machine money for agents on Solana — x402 pay-per-call APIs, agent wallets, treasury policy, and autonomous execution. It is not a promise of returns or financial advice. Agents and operators use Syra to pay for intelligence, coordinate capital, and execute workflows — not hype or blind automation.
 
 Core value
 ------------

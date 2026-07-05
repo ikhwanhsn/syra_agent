@@ -32,7 +32,7 @@ When prompted, paste each block.
 | Field | Paste this |
 |-------|------------|
 | **Service name** | Syra x402 Crypto API |
-| **Description** | Pay-per-call crypto intelligence APIs for AI agents — news, signals, technical indicators, memecoin analysis, tokenized equity spreads, Bitcoin dashboard, Jupiter quotes, OpenRouter chat/image/video, and Solana 8004 agent registry.<br><br>1. HTTP method and path (e.g. GET /signal?token=bitcoin or POST /brain with JSON body)<br>2. x402 PAYMENT-SIGNATURE header after HTTP 402 challenge (OpenAPI: https://api.syraa.fun/openapi.json) |
+| **Description** | Pay-per-call crypto intelligence APIs for agents — news, signals, technical indicators, memecoin analysis, tokenized equity spreads, Bitcoin dashboard, Jupiter quotes, OpenRouter chat/image/video, and Solana 8004 agent registry.<br><br>1. HTTP method and path (e.g. GET /signal?token=bitcoin or POST /brain with JSON body)<br>2. x402 PAYMENT-SIGNATURE header after HTTP 402 challenge (OpenAPI: https://api.syraa.fun/openapi.json) |
 | **Type** | A2MCP |
 | **Fee** | 0.01 |
 | **Endpoint** | https://api.syraa.fun |

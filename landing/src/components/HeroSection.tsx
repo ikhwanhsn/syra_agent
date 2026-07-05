@@ -67,7 +67,7 @@ export const HeroSection = () => {
             >
               <span className="text-foreground">Machine Money</span>
               <br />
-              <span className="neon-text">for AI Trading Agents</span>
+              <span className="neon-text">for Agents</span>
               <br />
               <span className="text-foreground">on Solana</span>
             </motion.h1>

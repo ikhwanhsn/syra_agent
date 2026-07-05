@@ -221,7 +221,7 @@ X-PAYMENT-RESPONSE: eyJzdWNjZXNzIjp0cnVlfQ==
       {
         title: "Direct x402 vs agent tools",
         content:
-          "The `/.well-known/x402` document only lists *direct* HTTP routes (e.g. `/news`, `/signal`, `/sentiment`). Many partner and automation tools — EXA Search, Firecrawl, Browser Use, Jupiter, Nansen, Bankr, Giza, Neynar, SIWA — are exposed only through the Syra Agent and billed against the agent treasury. List them with `GET " +
+          "The `/.well-known/x402` document only lists *direct* HTTP routes (e.g. `/news`, `/signal`, `/sentiment`). Many partner and automation tools — Web Search, Firecrawl, Browser Use, Jupiter, Nansen, Bankr, Giza, Neynar, SIWA — are exposed only through the Syra Agent and billed against the agent treasury. List them with `GET " +
           BASE_URL +
           "/agent/tools` and call them with `POST " +
           BASE_URL +
@@ -505,42 +505,44 @@ curl "${BASE_URL}/trending-headline?ticker=BTC"`,
     ],
   }),
 
-  "exa-search": doc({
-    title: "EXA Search API",
+  "web-search": doc({
+    title: "Web Search API",
     overview:
-      "EXA AI web search. Only the search query is dynamic; options (numResults, type, contents) are fixed. Uses the x402 payment protocol. **Primary access:** Syra Agent chat or `POST " + BASE_URL + "/agent/tools/call` with tool id `exa-search` (agent wallet pays). Public `GET/POST " + BASE_URL + "/exa-search` may be disabled; use the agent path if a direct call returns 404.",
+      "Free web search via DuckDuckGo/Bing HTML scrape. Only the search query is dynamic. Uses the x402 payment protocol. **Primary access:** Syra Agent chat or `POST " + BASE_URL + "/agent/tools/call` with tool id `web-search` (agent wallet pays). Public `GET/POST " + BASE_URL + "/web-search` may be disabled; use the agent path if a direct call returns 404.",
     useCases: [
       "Latest news and articles on any topic (e.g. Nvidia, crypto)",
-      "Semantic web search with highlights",
+      "General web research with title, URL, and snippet results",
     ],
     endpoints: [
       {
         method: "GET",
-        path: "/exa-search",
-        description: "Run an EXA search. Only the query parameter is accepted.",
+        path: "/web-search",
+        description: "Run a web search. Only the query parameter is accepted.",
         params: [
           { name: "query", type: "string", required: "Yes", description: "Search query (e.g. latest news on Nvidia, crypto market analysis)." },
         ],
-        requestExample: `curl "${BASE_URL}/exa-search?query=Latest%20news%20on%20Nvidia"`,
+        requestExample: `curl "${BASE_URL}/web-search?query=Latest%20news%20on%20Nvidia"`,
         responseExample: `{
   "query": "Latest news on Nvidia",
   "results": [
-    { "title": "...", "url": "https://...", "score": 0.95, "highlights": ["..."] }
+    { "title": "...", "url": "https://...", "text": "..." }
   ],
+  "engine": "duckduckgo",
   "autopromptString": null
 }`,
       },
       {
         method: "POST",
-        path: "/exa-search",
-        description: "EXA search via POST. Body must include query only.",
+        path: "/web-search",
+        description: "Web search via POST. Body must include query only.",
         bodyExample: `{ "query": "Latest news on Nvidia" }`,
-        requestExample: `curl -X POST ${BASE_URL}/exa-search \\
+        requestExample: `curl -X POST ${BASE_URL}/web-search \\
   -H "Content-Type: application/json" \\
   -d '{"query": "Latest news on Nvidia"}'`,
         responseExample: `{
   "query": "Latest news on Nvidia",
-  "results": [ { "title": "...", "url": "https://...", "score": 0.95, "highlights": ["..."] } ],
+  "results": [ { "title": "...", "url": "https://...", "text": "..." } ],
+  "engine": "duckduckgo",
   "autopromptString": null
 }`,
       },
@@ -2102,7 +2104,7 @@ curl "${BASE_URL}/preview/signal?token=solana&source=okx"`,
       "id": "1983380098406592515",
       "username": "syra_agent",
       "name": "Syra",
-      "description": "Machine money for AI agents on Solana. …",
+      "description": "Machine money for agents on Solana. …",
       "url": "https://t.co/…",
       "created_at": "2025-10-29T03:47:33.000Z",
       "verified": true,

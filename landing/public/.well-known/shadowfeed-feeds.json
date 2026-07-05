@@ -3,7 +3,7 @@
   "provider": {
     "name": "Syra",
     "handle": "syra",
-    "description": "Machine money for AI trading agents on Solana — x402 pay-per-call APIs, agent wallets, and treasury policy.",
+    "description": "Machine money for agents on Solana — x402 pay-per-call APIs, agent wallets, and treasury policy.",
     "website": "https://syraa.fun",
     "api": "https://api.syraa.fun",
     "twitter_handle": "@syraa_ai",

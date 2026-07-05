@@ -9,7 +9,7 @@ import {
   resolveInternalPipelineModel,
   INTERNAL_PIPELINE_MAX_COMPLETION_TOKENS,
 } from "../config/internalPipelineAgents.js";
-import { EXA_MIN_RELEVANCE_SCORE } from "../config/eventScoutConfig.js";
+import { WEB_MIN_RELEVANCE_SCORE } from "../config/eventScoutConfig.js";
 import { eventDedupeKey, normalizeLumaUrl } from "../libs/internalScoutDedupe.js";
 import { detectIndonesia, inferEventCategory, parseDate, str } from "../libs/events/eventUtils.js";
 
@@ -21,7 +21,7 @@ import { detectIndonesia, inferEventCategory, parseDate, str } from "../libs/eve
  *   text: string;
  *   query: string;
  *   lumaUrls?: string[];
- *   source?: "exa" | "x";
+ *   source?: "web" | "x";
  * }} EventSearchHit
  */
 
@@ -63,7 +63,7 @@ function coerceExtractions(raw, hits) {
           ? Math.max(0, Math.min(100, x.relevance_score))
           : 50;
 
-    if (score < EXA_MIN_RELEVANCE_SCORE) continue;
+    if (score < WEB_MIN_RELEVANCE_SCORE) continue;
 
     const lumaUrl =
       normalizeLumaUrl(str(x.lumaUrl || x.luma_url)) ||
@@ -94,10 +94,10 @@ function coerceExtractions(raw, hits) {
     const endAt = parseDate(x.endAt || x.end_at);
     const dateText = str(x.dateText || x.date_text);
 
-    const source = hit.source === "x" ? "x" : "exa";
+    const source = hit.source === "x" ? "x" : "web";
 
     const record = {
-      source: /** @type {"exa" | "x" | "luma"} */ (source),
+      source: /** @type {"web" | "x" | "luma"} */ (source),
       sourceId: hit.id,
       dedupeKey: "",
       title: title.slice(0, 300),
@@ -176,7 +176,7 @@ export async function runEventExtractAgent(input) {
         if (!lumaUrl) return null;
         const blob = `${h.title} ${h.text}`;
         const record = {
-          source: /** @type {const} */ ("exa"),
+          source: /** @type {const} */ ("web"),
           sourceId: h.id,
           dedupeKey: "",
           title: (h.title || lumaUrl).slice(0, 200),

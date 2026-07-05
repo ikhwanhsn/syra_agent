@@ -8,6 +8,9 @@ import { fetchWithRetry } from "../utils/resilientFetch.js";
 /** Telegram max message length (UTF-16 code units; we use JS string length as safe proxy). */
 export const TELEGRAM_MESSAGE_MAX_LEN = 4096;
 
+/** Max length for photo/document captions. */
+export const TELEGRAM_CAPTION_MAX_LEN = 1024;
+
 /** Forum "General" topic id — sendMessage rejects message_thread_id=1 ("thread not found"). */
 export const TELEGRAM_GENERAL_FORUM_TOPIC_ID = 1;
 
@@ -48,6 +51,7 @@ export function resolveTelegramTypingThreadId(threadId) {
  *   disableWebPagePreview?: boolean;
  *   messageThreadId?: number | null;
  *   replyToMessageId?: number | null;
+ *   replyMarkup?: object | null;
  * }} SendTelegramMessageOptions
  */
 
@@ -229,6 +233,9 @@ export async function sendTelegramMessage(options) {
       // Don't fail when the quoted message was deleted ("message to be replied not found").
       body.allow_sending_without_reply = true;
     }
+    if (options.replyMarkup != null && typeof options.replyMarkup === "object") {
+      body.reply_markup = options.replyMarkup;
+    }
 
     let res;
     try {
@@ -259,4 +266,161 @@ export async function sendTelegramMessage(options) {
   }
 
   return firstMessageId != null ? { ok: true, messageId: firstMessageId } : { ok: true };
+}
+
+/**
+ * @typedef {{
+ *   token: string;
+ *   callbackQueryId: string;
+ *   text?: string;
+ *   showAlert?: boolean;
+ * }} AnswerTelegramCallbackQueryOptions
+ */
+
+/**
+ * @param {AnswerTelegramCallbackQueryOptions} options
+ * @returns {Promise<{ ok: boolean; error?: string }>}
+ */
+export async function answerTelegramCallbackQuery(options) {
+  const token = String(options.token || "").trim();
+  const callbackQueryId = String(options.callbackQueryId || "").trim();
+  if (!token || !callbackQueryId) {
+    return { ok: false, error: "token and callbackQueryId are required" };
+  }
+
+  const url = `https://api.telegram.org/bot${encodeURIComponent(token)}/answerCallbackQuery`;
+  const body = { callback_query_id: callbackQueryId };
+  if (options.text) body.text = String(options.text).slice(0, 200);
+  if (options.showAlert) body.show_alert = true;
+
+  try {
+    const res = await fetchWithRetry(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const t = await res.text().catch(() => "");
+      return { ok: false, error: `answerCallbackQuery failed ${res.status}: ${t.slice(0, 200)}` };
+    }
+    return { ok: true };
+  } catch (e) {
+    const err = e instanceof Error ? e.message : String(e);
+    return { ok: false, error: err };
+  }
+}
+
+/**
+ * @typedef {{
+ *   token: string;
+ *   chatId: string;
+ *   photo: Buffer | Uint8Array;
+ *   filename?: string;
+ *   caption?: string;
+ *   parseMode?: TelegramParseMode | null;
+ *   replyMarkup?: object | null;
+ * }} SendTelegramPhotoOptions
+ */
+
+/**
+ * Send a photo (PNG/JPEG) to a Telegram chat.
+ * @param {SendTelegramPhotoOptions} options
+ * @returns {Promise<{ ok: boolean; messageId?: number; error?: string }>}
+ */
+export async function sendTelegramPhoto(options) {
+  const token = String(options.token || "").trim();
+  const chatId = String(options.chatId || "").trim();
+  const photo = options.photo;
+
+  if (!token || !chatId || !photo || !(photo instanceof Uint8Array || Buffer.isBuffer(photo))) {
+    return { ok: false, error: "token, chatId, and photo buffer are required" };
+  }
+
+  const form = new FormData();
+  form.append("chat_id", chatId);
+  const filename = options.filename || "chart.png";
+  form.append("photo", new Blob([photo], { type: "image/png" }), filename);
+
+  if (options.caption && String(options.caption).trim()) {
+    form.append("caption", String(options.caption).slice(0, TELEGRAM_CAPTION_MAX_LEN));
+  }
+  if (options.parseMode != null && options.parseMode !== "") {
+    form.append("parse_mode", options.parseMode);
+  }
+  if (options.replyMarkup != null && typeof options.replyMarkup === "object") {
+    form.append("reply_markup", JSON.stringify(options.replyMarkup));
+  }
+
+  const url = `https://api.telegram.org/bot${encodeURIComponent(token)}/sendPhoto`;
+  try {
+    const res = await fetchWithRetry(url, { method: "POST", body: form });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.ok !== true) {
+      const err = data.description || JSON.stringify(data).slice(0, 300);
+      console.warn("[telegram-bot] sendPhoto failed:", err);
+      return { ok: false, error: err };
+    }
+    const messageId = data.result?.message_id;
+    return { ok: true, ...(typeof messageId === "number" ? { messageId } : {}) };
+  } catch (e) {
+    const err = e instanceof Error ? e.message : String(e);
+    console.warn("[telegram-bot] sendPhoto network error:", err);
+    return { ok: false, error: err };
+  }
+}
+
+/**
+ * @typedef {{
+ *   token: string;
+ *   chatId: string;
+ *   messageId: number;
+ *   text: string;
+ *   parseMode?: TelegramParseMode | null;
+ *   disableWebPagePreview?: boolean;
+ *   replyMarkup?: object | null;
+ * }} EditTelegramMessageTextOptions
+ */
+
+/**
+ * @param {EditTelegramMessageTextOptions} options
+ * @returns {Promise<{ ok: boolean; error?: string }>}
+ */
+export async function editTelegramMessageText(options) {
+  const token = String(options.token || "").trim();
+  const chatId = String(options.chatId || "").trim();
+  const messageId = options.messageId;
+  const text = typeof options.text === "string" ? options.text : String(options.text ?? "");
+
+  if (!token || !chatId || messageId == null || !Number.isFinite(messageId)) {
+    return { ok: false, error: "token, chatId, messageId, and text are required" };
+  }
+
+  const body = {
+    chat_id: chatId,
+    message_id: Math.trunc(messageId),
+    text: text.slice(0, TELEGRAM_MESSAGE_MAX_LEN),
+    disable_web_page_preview: options.disableWebPagePreview !== false,
+  };
+  if (options.parseMode != null && options.parseMode !== "") {
+    body.parse_mode = options.parseMode;
+  }
+  if (options.replyMarkup != null && typeof options.replyMarkup === "object") {
+    body.reply_markup = options.replyMarkup;
+  }
+
+  const url = `https://api.telegram.org/bot${encodeURIComponent(token)}/editMessageText`;
+  try {
+    const res = await fetchWithRetry(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return { ok: false, error: JSON.stringify(data).slice(0, 300) };
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }

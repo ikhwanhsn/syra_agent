@@ -63,13 +63,13 @@ export default function AgentSystemPrompt() {
       <DocPageHeader
         eyebrow="Syra Agent"
         title="System Prompt"
-        description="The default system prompt for the Syra Agent at syraa.fun — documented here for transparency. Syra's brand is machine money for AI agents; the prompt below reflects current chat behavior on the web agent."
+        description="The default system prompt for the Syra Agent at syraa.fun — documented here for transparency. Syra's brand is machine money for agents; the prompt below reflects current chat behavior on the web agent."
       />
 
       <DocSection id="what-is-it" title="What is the System Prompt?" prose>
         <p>
           The <strong>system prompt</strong> is the instruction set sent to the AI model at the start of each
-          conversation. Syra&apos;s product positioning is <strong>machine money for AI agents on Solana</strong>; the
+          conversation. Syra&apos;s product positioning is <strong>machine money for agents on Solana</strong>; the
           live prompt below still reflects the web agent&apos;s chat behavior (crypto/web3 scope, Solana focus, trading
           and research tooling, x402 tool usage, and response format). It defines scope, tool rules, tone, and $SYRA
           identity for transparency.

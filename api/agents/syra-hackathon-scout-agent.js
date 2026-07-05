@@ -79,7 +79,7 @@ function coerceExtractions(raw, tweetIds) {
 
 const SYSTEM = `You are **Syra Hackathon Scout**. Extract real hackathon / builder competition announcements from X tweets for the Syra team.
 
-**Syra** builds: AI trading agent on Solana, x402 APIs, Telegram bot, agent chat, LP experiments, ERC-8004 registry.
+**Syra** builds: machine money for agents on Solana — x402 APIs, Telegram bot, agent chat, LP experiments, ERC-8004 registry.
 
 **Input:** Tweet samples (id, text, author). Only output hackathons that are clearly announced in the tweets — do NOT invent events.
 

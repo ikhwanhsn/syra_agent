@@ -27,7 +27,7 @@ import {
   X402_DISPLAY_PRICE_BITCOIN_USD,
   X402_DISPLAY_PRICE_SQUID_ROUTE_USD,
   X402_DISPLAY_PRICE_SQUID_STATUS_USD,
-  X402_DISPLAY_PRICE_EXA_SEARCH_USD,
+  X402_DISPLAY_PRICE_WEB_SEARCH_USD,
   X402_DISPLAY_PRICE_CRAWL_USD,
   X402_DISPLAY_PRICE_BROWSER_USE_USD,
   X402_DISPLAY_PRICE_ARBITRAGE_EXPERIMENT_USD,
@@ -111,7 +111,7 @@ function displayPriceForDiscoveryOnlyPath(apiPath) {
   if (p.startsWith('/brain')) return X402_DISPLAY_PRICE_BRAIN_USD;
   if (p.startsWith('/browser-use')) return X402_DISPLAY_PRICE_BROWSER_USE_USD;
   if (p === '/arbitrage' || p.startsWith('/arbitrage/')) return X402_DISPLAY_PRICE_ARBITRAGE_EXPERIMENT_USD;
-  if (p.startsWith('/exa-search')) return X402_DISPLAY_PRICE_EXA_SEARCH_USD;
+  if (p.startsWith('/web-search')) return X402_DISPLAY_PRICE_WEB_SEARCH_USD;
   if (p.startsWith('/crawl')) return X402_DISPLAY_PRICE_CRAWL_USD;
   if (p.startsWith('/analytics/summary')) return X402_DISPLAY_PRICE_ANALYTICS_SUMMARY_USD;
   if (p.startsWith('/giza/')) return X402_DISPLAY_PRICE_GIZA_USD;

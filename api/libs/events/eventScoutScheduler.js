@@ -1,5 +1,5 @@
 /**
- * Event Scout — 24h interval scheduler (Exa + X + Luma).
+ * Event Scout — 24h interval scheduler (Web + X + Luma).
  */
 
 import { isMongooseConnected } from "../../config/mongoose.js";

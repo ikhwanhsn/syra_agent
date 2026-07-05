@@ -30,7 +30,7 @@ const communities = [
   {
     icon: ExternalLink,
     title: "Website",
-    description: "Machine money for AI agents on Solana — product overview and updates.",
+    description: "Machine money for agents on Solana — product overview and updates.",
     href: "https://syraa.fun",
     cta: "Visit syraa.fun",
   },

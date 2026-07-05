@@ -32,7 +32,7 @@ export const articles: ArticleItem[] = [
   {
     id: "syra-x",
     title:
-      "Syra Explained: Machine Money for AI Trading Agents on Solana",
+      "Syra Explained: Machine Money for Agents on Solana",
     description:
       "How Syra delivers machine money infrastructure—x402 APIs, agent wallets, treasury policy, and execution-ready workflows for the agent economy on Solana.",
     href: "https://x.com/syra_agent/status/2021064952765874204",
@@ -45,7 +45,7 @@ export const articles: ArticleItem[] = [
     id: "article-2",
     title: "More from Syra on X",
     description:
-      "The next article is in the works. Follow @syra_agent on X for release notes, API updates, and how we're building machine money for AI trading agents.",
+      "The next article is in the works. Follow @syra_agent on X for release notes, API updates, and how we're building machine money for agents.",
     href: "#",
     external: false,
     comingSoon: true,

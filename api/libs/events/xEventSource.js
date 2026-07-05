@@ -15,7 +15,7 @@ import { looksEventRelevant } from "./eventUtils.js";
  *   text: string;
  *   query: string;
  *   lumaUrls: string[];
- *   source?: "exa" | "x";
+ *   source?: "web" | "x";
  * }} EventSearchHit
  */
 

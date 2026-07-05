@@ -62,7 +62,7 @@ export function registerSyraTools(server) {
     }
     // Escape hatch — always available
     server.tool("syra_call_tool", `[Spend] Call any Syra agent tool by toolId (from GET /agent/tools). Params as key-value.${paymentSuffix()}`, {
-        toolId: z.string().describe("Syra agent tool id, e.g. news, exa-search, giza-protocols"),
+        toolId: z.string().describe("Syra agent tool id, e.g. news, web-search, giza-protocols"),
         params: z
             .record(z.union([z.string(), z.number(), z.boolean()]))
             .optional()

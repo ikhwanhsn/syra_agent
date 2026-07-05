@@ -280,7 +280,7 @@ router.post('/sign-out', async (req, res) => {
   res.json({ success: true });
 });
 
-/** Cross-site credentialed fetch (agent.syraa.fun → api.syraa.fun) requires SameSite=None. */
+/** Cross-site credentialed fetch (syraa.fun → api.syraa.fun) requires SameSite=None. */
 function refreshCookieSameSite() {
   if (process.env.SYRA_AUTH_COOKIE_SAMESITE) {
     return process.env.SYRA_AUTH_COOKIE_SAMESITE.trim();

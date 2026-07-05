@@ -26,7 +26,7 @@ The **landing** package is Syra's **marketing and landing website**. It is a sta
 - **Drives signups** — CTA to Telegram bot, docs, agent app, and API playground.
 - **Routes to ecosystem brands** — legacy `/uponly` and `/rise` paths redirect to [Up Only Fund](https://uponlyfund.com) when `LINK_UPONLY_APP` is set.
 
-It is **not** the full product app (the agent lives at [agent.syraa.fun](https://agent.syraa.fun)). It is the first page many visitors see at [syraa.fun](https://syraa.fun).
+The Syra agent and landing experience live at [syraa.fun](https://syraa.fun). This package also powers marketing pages and the in-app agent UI.
 
 ---
 

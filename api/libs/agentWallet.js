@@ -51,6 +51,26 @@ async function findSolanaAgentDocByWallet(walletAddress) {
  * @param {string} anonymousId - Client's anonymous id (from localStorage)
  * @returns {Promise<Keypair | null>} Agent keypair or null if not found
  */
+/**
+ * Privy custody wallet metadata for server-side x402 signing (no local secret key).
+ * @param {string} anonymousId
+ * @returns {Promise<{ privyWalletId: string; agentAddress: string } | null>}
+ */
+export async function getAgentPrivyWalletForX402(anonymousId) {
+  if (!anonymousId || typeof anonymousId !== 'string') return null;
+  if (!(await ensureAgentWalletDbReady())) return null;
+  const doc = await AgentWallet.findOne({ anonymousId: anonymousId.trim() })
+    .select('custody status chain agentAddress privyWalletId')
+    .lean();
+  if (!doc || doc.custody !== 'privy') return null;
+  if (doc.status && doc.status !== 'active') return null;
+  if (!isSolanaChainDoc(doc)) return null;
+  const privyWalletId = String(doc.privyWalletId || '').trim();
+  const agentAddress = String(doc.agentAddress || '').trim();
+  if (!privyWalletId || !agentAddress) return null;
+  return { privyWalletId, agentAddress };
+}
+
 export async function getAgentKeypair(anonymousId) {
   if (!anonymousId || typeof anonymousId !== 'string') return null;
   if (!(await ensureAgentWalletDbReady())) return null;

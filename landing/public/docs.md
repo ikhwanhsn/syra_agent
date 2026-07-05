@@ -10,7 +10,7 @@ This file mirrors the **structure of the public documentation** published at [do
 
 ## Start Here
 
-- [Welcome](https://docs.syraa.fun/docs/welcome) — What Syra is: machine money for AI agents on Solana.
+- [Welcome](https://docs.syraa.fun/docs/welcome) — What Syra is: machine money for agents on Solana.
 
 ---
 
@@ -75,7 +75,7 @@ This file mirrors the **structure of the public documentation** published at [do
 - [Sentiment](https://docs.syraa.fun/docs/api/sentiment)
 - [Trending headline](https://docs.syraa.fun/docs/api/trending-headline)
 - [Sundown digest](https://docs.syraa.fun/docs/api/sundown-digest)
-- [EXA search](https://docs.syraa.fun/docs/api/exa-search)
+- [Web search](https://docs.syraa.fun/docs/api/web-search)
 - [Website crawl](https://docs.syraa.fun/docs/api/crawl)
 - [Browser use](https://docs.syraa.fun/docs/api/browser-use)
 - [Analytics summary](https://docs.syraa.fun/docs/api/analytics-summary)

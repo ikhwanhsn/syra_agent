@@ -73,7 +73,7 @@ const DEFAULT_BATCH_FLOW_IDS = [
   'signal',
   'analytics-summary',
   'arbitrage',
-  'exa-search',
+  'web-search',
   'website-crawl',
   'browser-use',
   'brain',

@@ -52,9 +52,9 @@ export const SYRA_NARRATIVE_THEMES = [
   },
 ];
 
-export const SYRA_NARRATIVE_CONTEXT = `Syra ($SYRA) — machine money for AI trading agents on Solana.
+export const SYRA_NARRATIVE_CONTEXT = `Syra ($SYRA) — machine money for agents on Solana.
 
-Core thesis: Syra is NOT another AI chatbot. It is machine money for AI trading agents — x402 pay-per-call APIs, agent wallets, treasury tooling, and on-chain execution.
+Core thesis: Syra is NOT another AI chatbot. It is machine money for agents — x402 pay-per-call APIs, agent wallets, treasury tooling, and on-chain execution.
 
 Product (live):
 - Web agent at syraa.fun — research, tools, swaps, experiments

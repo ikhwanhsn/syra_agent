@@ -1,5 +1,5 @@
 /**
- * Event Scout pipeline — Exa + X + Luma → dedupe → MongoDB upsert.
+ * Event Scout pipeline — Web + X + Luma → dedupe → MongoDB upsert.
  */
 
 import DashboardResearch from "../../models/DashboardResearch.js";
@@ -8,7 +8,7 @@ import { EVENT_SCOUT_DB_ID } from "../../config/eventScoutConfig.js";
 import { eventDedupeKey, normalizeLumaUrl } from "../internalScoutDedupe.js";
 import { isDevTelegramConfigured, sendDevTelegram } from "../devTelegramNotifier.js";
 import { runEventExtractAgent } from "../../agents/event-extract-agent.js";
-import { fetchExaEventHits } from "./exaEventSource.js";
+import { fetchWebEventHits } from "./webEventSource.js";
 import { fetchXEventHits } from "./xEventSource.js";
 import { fetchLumaEvents } from "./lumaEventSource.js";
 import { applyEventFreshness, upcomingEventFilter } from "../discoveryFreshness.js";
@@ -135,7 +135,7 @@ export async function runEventScoutPipeline() {
   const newEvents = [];
 
   const stats = {
-    exa: { exaConfigured: false, queriesRun: 0, hitsSampled: 0, extracted: 0, newSaved: 0, updated: 0, skipped: 0 },
+    web: { webConfigured: false, queriesRun: 0, hitsSampled: 0, extracted: 0, newSaved: 0, updated: 0, skipped: 0 },
     x: { xConfigured: false, queriesRun: 0, tweetsSampled: 0, hitsSampled: 0, extracted: 0, newSaved: 0, updated: 0, skipped: 0 },
     luma: { urlsRequested: 0, parsed: 0, failed: 0, newSaved: 0, updated: 0, skipped: 0 },
     totalNew: 0,
@@ -143,19 +143,19 @@ export async function runEventScoutPipeline() {
     errors,
   };
 
-  const [exaResult, xResult] = await Promise.allSettled([
-    fetchExaEventHits(),
+  const [webResult, xResult] = await Promise.allSettled([
+    fetchWebEventHits(),
     fetchXEventHits(),
   ]);
 
   /** @type {import("../../agents/event-extract-agent.js").EventSearchHit[]} */
   let allHits = [];
 
-  if (exaResult.status === "fulfilled") {
-    Object.assign(stats.exa, exaResult.value.meta);
-    allHits = allHits.concat(exaResult.value.hits);
+  if (webResult.status === "fulfilled") {
+    Object.assign(stats.web, webResult.value.meta);
+    allHits = allHits.concat(webResult.value.hits);
   } else {
-    errors.push(`exa: ${exaResult.reason instanceof Error ? exaResult.reason.message : String(exaResult.reason)}`);
+    errors.push(`web: ${webResult.reason instanceof Error ? webResult.reason.message : String(webResult.reason)}`);
   }
 
   if (xResult.status === "fulfilled") {
@@ -177,7 +177,7 @@ export async function runEventScoutPipeline() {
       hits: allHits,
       knownEvents: dedupe.brief,
     });
-    stats.exa.extracted = extractedRecords.filter((r) => r.source === "exa").length;
+    stats.web.extracted = extractedRecords.filter((r) => r.source === "web").length;
     stats.x.extracted = extractedRecords.filter((r) => r.source === "x").length;
   } catch (e) {
     errors.push(`extract: ${e instanceof Error ? e.message : String(e)}`);
@@ -194,7 +194,7 @@ export async function runEventScoutPipeline() {
 
   const allRecords = [...extractedRecords, ...lumaRecords];
   const runKeys = new Set();
-  const exaBucket = { newSaved: 0, updated: 0, skipped: 0 };
+  const webBucket = { newSaved: 0, updated: 0, skipped: 0 };
   const xBucket = { newSaved: 0, updated: 0, skipped: 0 };
   const lumaBucket = { newSaved: 0, updated: 0, skipped: 0 };
 
@@ -203,7 +203,7 @@ export async function runEventScoutPipeline() {
     if (!rec.dedupeKey || runKeys.has(rec.dedupeKey)) continue;
     runKeys.add(rec.dedupeKey);
 
-    const bucket = rec.source === "x" ? xBucket : rec.source === "luma" ? lumaBucket : exaBucket;
+    const bucket = rec.source === "x" ? xBucket : rec.source === "luma" ? lumaBucket : webBucket;
 
     try {
       const outcome = await upsertEventRecord(rec, dedupe.keys);
@@ -228,7 +228,7 @@ export async function runEventScoutPipeline() {
     }
   }
 
-  Object.assign(stats.exa, exaBucket);
+  Object.assign(stats.web, webBucket);
   Object.assign(stats.x, xBucket);
   Object.assign(stats.luma, lumaBucket);
 

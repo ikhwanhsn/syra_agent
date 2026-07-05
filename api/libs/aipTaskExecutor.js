@@ -77,7 +77,7 @@ export async function executeAipCapability(capabilityId, input, ctx = {}) {
       [
         {
           role: "system",
-          content: `You are Syra — machine money for AI trading agents on Solana. ${getResourceDescription("brain")}`,
+          content: `You are Syra — machine money for agents on Solana. ${getResourceDescription("brain")}`,
         },
         { role: "user", content: String(input || "").trim() },
       ],

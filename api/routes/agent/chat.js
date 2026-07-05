@@ -537,7 +537,7 @@ CRITICAL RULES — READ CAREFULLY:
 QUICK ROUTING GUIDE (use this to pick the right tool fast):
 — BTC/ETH/SOL or CoinGecko id spot price, global market cap, CoinGecko trending, DefiLlama protocol/chain TVL, yield pools → **stablecrypto-*** tools (e.g. stablecrypto-coingecko-price with ids=bitcoin; stablecrypto-coingecko-global; stablecrypto-defillama-tvl with protocol=aave). Prefer these over signal for simple major-coin USD price.
 — TikTok/Instagram/Facebook profile or posts, Reddit subreddit or search → **stablesocial-*** tools (e.g. stablesocial-tiktok-profile with handle=username; stablesocial-reddit-subreddit with subreddit=solana). Requires handle/keyword/subreddit; async (~5–60s).
-— Scrape one URL (Firecrawl), Exa semantic/people search, Apollo people/org search, Google Maps places, Serper news, Hunter email verify, Minerva resolve/enrich, multi-page site crawl → **stableenrich-*** tools. Prefer built-in **exa-search** / **website-crawl** for generic Syra web search/crawl unless user asks for Firecrawl, Apollo, or StableEnrich specifically.
+— Scrape one URL (Firecrawl), Exa semantic/people search, Apollo people/org search, Google Maps places, Serper news, Hunter email verify, Minerva resolve/enrich, multi-page site crawl → **stableenrich-*** tools. Prefer built-in **web-search** / **website-crawl** for generic Syra web search/crawl unless user asks for Firecrawl, Apollo, or StableEnrich specifically.
 — Live **Solana** token price, OHLCV, liquidity, security, trending, new listings, meme detail, holder stats, Birdeye smart-money list → use the matching **birdeye-*** tool when the user gives a **mint/address** (or the endpoint needs no address). Pass **address** or **mint** plus optional Birdeye query keys (chain, type, time_from, time_to, offset, limit) as flat strings. For Birdeye POST tools pass **body** as a JSON string. Docs: https://docs.birdeye.so/reference/x402
 — **Canonical assets** (BTC, majors, LSTs, RWAs, ETFs), resolve ticker/mint → assetId, curated lists, Tokens.xyz risk/OHLCV/markets → **tokens-*** tools. Flow: **tokens-assets-resolve** (ref or mint) then **tokens-asset-detail** / risk / OHLCV with **assetId**. Mint-only risk → **tokens-risk-summary-mint**. Batch mint snapshots → **tokens-market-snapshots** or **tokens-variant-markets**. Docs: https://docs.tokens.xyz/v1/quickstart
 — If the user asks for Solana on-chain token metrics but did **not** provide a mint/contract, return {"tools": []} so the assistant asks for it (do not guess).
@@ -552,7 +552,7 @@ QUICK ROUTING GUIDE (use this to pick the right tool fast):
 — Smart money / whale activity → smart-money or nansen-smart-money-* (and other nansen-* tools as appropriate)
 — Same-chain Solana swap / pump.fun (SPL, bonding curve or AMM) → pumpfun-agents-swap. Cross-chain bridge or route (many chains) → squid-route. If the user says "swap" or "trade" without Solana vs cross-chain/Squid/bridge context, return {"tools": []} (see OVERLAPPING CAPABILITIES below).
 — pump.fun: SOL/USD → pumpfun-sol-price; coin metadata → pumpfun-coin or pumpfun-coin-query (param mint); launch token → pumpfun-agents-create-coin; claim creator fees → pumpfun-collect-fees; fee sharing → pumpfun-sharing-config; tokenized agent invoice tx → pumpfun-agent-payments-build; verify invoice → pumpfun-agent-payments-verify
-— Web search / research → exa-search
+— Web search / research → web-search
 — Questions asking for live market data → select a tool only when you can supply that tool's required params from the message (otherwise {"tools": []} so the assistant asks for a symbol, mint, or URL).
 
 ${getToolGroupsSummaryForLlm()}
@@ -567,7 +567,7 @@ Response format: {"tools": [{"toolId": "<id>", "params": {}}, ...]}
 
 PARAM RULES:
 - For the "news" tool set "params": {"ticker": "BTC"} or {"ticker": "ETH"} or {"ticker": "SOL"} or {"ticker": "general"} when the user asks for news about a coin.
-- For the "exa-search" tool set "params": {"query": "<search phrase from user>"} when the user asks for Exa search, web search, or insights on a topic (e.g. "bitcoin insight", "latest Nvidia news", "crypto market analysis"). The query should be the user's topic or question.
+- For the "web-search" tool set "params": {"query": "<search phrase from user>"} when the user asks for web search or insights on a topic (e.g. "bitcoin insight", "latest Nvidia news", "crypto market analysis"). The query should be the user's topic or question.
 - For the "website-crawl" tool set "params": {"url": "<starting URL from user>"} when the user asks to crawl a website, summarize a site, get content from a URL, or ingest a docs site (e.g. "crawl https://example.com/docs", "summarize this website"). Extract the URL from the message; if no URL is given, do not select this tool. Optional: "limit" (e.g. 20), "depth" (e.g. 2).
 - For the "signal" tool set "params": {"token": "bitcoin"} or {"token": "ethereum"} or {"token": "solana"} when the user asks for a signal for a specific coin.
 - For "spcx-intelligence" set "params": {} when the user asks about SpaceX IPO, $SPCX, SPCX spread, Nasdaq vs on-chain SpaceX, or /spcx.
@@ -1368,7 +1368,7 @@ router.post('/completion', requireSession({ allowGuest: true }), async (req, res
 
     let systemParts = [];
     systemParts.push(
-      `You are Syra — machine money for AI trading agents on Solana. You can chat naturally and also use paid tools when the user asks for specific data.`
+      `You are Syra — machine money for agents on Solana. You can chat naturally and also use paid tools when the user asks for specific data.`
     );
     systemParts.push(
       `Syra's paid tools (user pays from agent wallet when a tool is used):\n${capabilitiesList}`

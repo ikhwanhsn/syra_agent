@@ -17,7 +17,7 @@ Ready-to-submit profile for registering Syra as an **Agent Service Provider (ASP
 | **API base** | https://api.syraa.fun |
 | **Documentation** | https://docs.syraa.fun |
 | **Playground** | https://playground.syraa.fun |
-| **Agent demo** | https://agent.syraa.fun |
+| **Agent demo** | https://syraa.fun |
 | **Icon** | https://api.syraa.fun/favicon.ico |
 | **Category** | Crypto |
 | **Tags** | agents, x402, crypto, trading, analytics, machine-money |
@@ -133,7 +133,7 @@ If OKX requires per-endpoint registration, use the full tables below.
 
 ```
 Service name: Syra x402 Crypto Intelligence API
-Description: Pay-per-call crypto intelligence APIs for AI agents. 28 routes covering news, signals, technical indicators, memecoin analysis, tokenized equity spreads, Bitcoin dashboard, Jupiter quotes, OpenRouter chat/image/video, and Solana 8004 agent registry. HTTP 402 (x402 v2) payment on Solana, Base, BSC, or Algoranda USDC. Discovery: https://api.syraa.fun/.well-known/x402. OpenAPI: https://api.syraa.fun/openapi.json. Docs: https://docs.syraa.fun.
+Description: Pay-per-call crypto intelligence APIs for agents. 28 routes covering news, signals, technical indicators, memecoin analysis, tokenized equity spreads, Bitcoin dashboard, Jupiter quotes, OpenRouter chat/image/video, and Solana 8004 agent registry. HTTP 402 (x402 v2) payment on Solana, Base, BSC, or Algoranda USDC. Discovery: https://api.syraa.fun/.well-known/x402. OpenAPI: https://api.syraa.fun/openapi.json. Docs: https://docs.syraa.fun.
 Price: Per-route fixed USDC (see catalog); dynamic for LLM/media routes.
 Endpoint: https://api.syraa.fun
 OpenAPI spec: https://api.syraa.fun/openapi.json

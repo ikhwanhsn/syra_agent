@@ -172,9 +172,12 @@ export async function privySignSolanaTx({ privyWalletId, serializedTxBase64, sub
   const method = submit ? 'signAndSendTransaction' : 'signTransaction';
   const body = {
     method,
-    caip2: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp', // mainnet-beta
     params: { transaction: serializedTxBase64, encoding: 'base64' },
   };
+  // caip2 is required for signAndSendTransaction only — Privy rejects it on signTransaction.
+  if (submit) {
+    body.caip2 = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp'; // mainnet-beta
+  }
   const out = await privyFetch(`/v1/wallets/${encodeURIComponent(privyWalletId)}/rpc`, {
     method: 'POST',
     body,

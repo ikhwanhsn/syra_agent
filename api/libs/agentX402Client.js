@@ -9,7 +9,8 @@ import { Transaction, VersionedTransaction } from '@solana/web3.js';
 import bs58 from 'bs58';
 import { Keypair } from '@solana/web3.js';
 import { randomBytes } from 'node:crypto';
-import { getAgentKeypair } from './agentWallet.js';
+import { getAgentKeypair, getAgentPrivyWalletForX402 } from './agentWallet.js';
+import { createPrivyTransactionPartialSigner } from './privySvmX402Signer.js';
 import { getAgentFetch, SentinelBudgetError } from './agentFetch.js';
 import { preferMainnetSolanaAccepts } from '../config/x402NetworkOrder.js';
 import { recordOutboundX402Call } from '../utils/recordX402Call.js';
@@ -379,16 +380,20 @@ function registerRequiredExtensionsHook(client) {
  * Uses facilitator-provided `extra.feePayer` and @solana/kit wire format so Corbits verify matches (avoids "Invalid transaction" from hand-built web3.js txs).
  * Also populates required v2 extensions (e.g. Birdeye's `payment-identifier.id`) before encoding the PAYMENT-SIGNATURE header.
  */
-async function createX402WrapFetch(keypair, fetchFn) {
+async function createX402WrapFetchFromSigner(signer, fetchFn) {
   const { wrapFetchWithPayment } = await import('@x402/fetch');
   const { x402Client } = await import('@x402/core/client');
   const { ExactSvmScheme } = await import('@x402/svm/exact/client');
-  const { createKeyPairSignerFromBytes } = await import('@solana/kit');
-  const signer = await createKeyPairSignerFromBytes(keypair.secretKey);
   const scheme = new ExactSvmScheme(signer, { rpcUrl: getSvmRpcUrlForX402() });
   const client = x402Client.fromConfig({ schemes: [{ network: 'solana:*', client: scheme }] });
   registerRequiredExtensionsHook(client);
   return wrapFetchWithPayment(fetchFn, client);
+}
+
+async function createX402WrapFetch(keypair, fetchFn) {
+  const { createKeyPairSignerFromBytes } = await import('@solana/kit');
+  const signer = await createKeyPairSignerFromBytes(keypair.secretKey);
+  return createX402WrapFetchFromSigner(signer, fetchFn);
 }
 
 export { registerRequiredExtensionsHook, generatePaymentIdentifier };
@@ -425,17 +430,22 @@ export async function registerBuilderCodeClientExtension(client) {
 export async function callX402V2WithAgent(opts) {
   try {
     const { anonymousId, url, method = 'GET', query = {}, body, connectedWalletAddress } = opts;
-    const keypair = await getAgentKeypair(anonymousId);
-    if (!keypair) {
-      return { success: false, error: 'Agent wallet not found for this user' };
-    }
     const agentFetchFn = await getAgentFetch(anonymousId);
     const fetchFn = chooseFetch(url, agentFetchFn);
-    return await callX402V2WithKeypair(
-      keypair,
-      { url, method, query, body, connectedWalletAddress, agentId: anonymousId },
-      fetchFn
-    );
+    const callOpts = { url, method, query, body, connectedWalletAddress, agentId: anonymousId };
+
+    const keypair = await getAgentKeypair(anonymousId);
+    if (keypair) {
+      return await callX402V2WithKeypair(keypair, callOpts, fetchFn);
+    }
+
+    const privyWallet = await getAgentPrivyWalletForX402(anonymousId);
+    if (privyWallet) {
+      const signer = createPrivyTransactionPartialSigner(privyWallet);
+      return await callX402V2WithSigner(signer, callOpts, fetchFn);
+    }
+
+    return { success: false, error: 'Agent wallet not found for this user' };
   } catch (e) {
     const msg = e?.message || String(e);
     console.error(`[agentX402] callX402V2WithAgent threw:`, e?.name || 'Error', msg);
@@ -471,6 +481,14 @@ export async function callX402V2WithTreasury(opts) {
 }
 
 async function callX402V2WithKeypair(keypair, opts, fetchFn = globalThis.fetch) {
+  return callX402V2WithPaymentWrap(() => createX402WrapFetch(keypair, fetchFn), opts, fetchFn);
+}
+
+async function callX402V2WithSigner(signer, opts, fetchFn = globalThis.fetch) {
+  return callX402V2WithPaymentWrap(() => createX402WrapFetchFromSigner(signer, fetchFn), opts, fetchFn);
+}
+
+async function callX402V2WithPaymentWrap(createPaymentFetch, opts, fetchFn = globalThis.fetch) {
   if (shouldUseAlgorandX402()) {
     const { callX402AlgorandWithOpts } = await import('./agentAvmX402Client.js');
     return callX402AlgorandWithOpts(opts, fetchFn);
@@ -504,7 +522,7 @@ async function callX402V2WithKeypair(keypair, opts, fetchFn = globalThis.fetch) 
   };
 
   async function fetchPaidOnce() {
-    const paymentFetch = await createX402WrapFetch(keypair, fetchFn);
+    const paymentFetch = await createPaymentFetch();
     const res = await paidFetchWithCorbits429Backoff(paymentFetch, initialUrl, initOpts);
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -593,14 +611,14 @@ async function callX402V2WithKeypair(keypair, opts, fetchFn = globalThis.fetch) 
           return result;
         }
         const msg = e2?.message || String(e2);
-        console.error(`[agentX402] callX402V2WithKeypair (after RPC fallback):`, e2?.name || 'Error', msg);
+        console.error(`[agentX402] callX402V2WithPaymentWrap (after RPC fallback):`, e2?.name || 'Error', msg);
         const result = { success: false, error: msg };
         recordOutboundX402Call({ url: initialUrl, method, agentId, result, startTime, retries: 0 });
         return result;
       }
     }
     const msg = e?.message || String(e);
-    console.error(`[agentX402] callX402V2WithKeypair threw:`, e?.name || 'Error', msg);
+    console.error(`[agentX402] callX402V2WithPaymentWrap threw:`, e?.name || 'Error', msg);
     const result = { success: false, error: msg };
     recordOutboundX402Call({ url: initialUrl, method, agentId, result, startTime, retries: 0 });
     return result;
@@ -748,22 +766,32 @@ export async function buildPaymentHeaderFrom402Body(anonymousId, paymentRequired
   if (!paymentRequired || !Array.isArray(paymentRequired.accepts) || paymentRequired.accepts.length === 0) {
     throw new Error('paymentRequired must have non-empty accepts array');
   }
-  const keypair = await getAgentKeypair(anonymousId);
-  if (!keypair) {
-    throw new Error('Agent wallet not found for this user');
-  }
 
   const { x402Client } = await import('@x402/core/client');
   const { ExactSvmScheme } = await import('@x402/svm/exact/client');
   const { createKeyPairSignerFromBytes } = await import('@solana/kit');
   const { encodePaymentSignatureHeader } = await import('@x402/core/http');
 
-  async function makePayload() {
-    const signer = await createKeyPairSignerFromBytes(keypair.secretKey);
+  async function makePayloadWithSigner(signer) {
     const scheme = new ExactSvmScheme(signer, { rpcUrl: getSvmRpcUrlForX402() });
     const client = x402Client.fromConfig({ schemes: [{ network: 'solana:*', client: scheme }] });
     registerRequiredExtensionsHook(client);
     return client.createPaymentPayload(paymentRequired);
+  }
+
+  const keypair = await getAgentKeypair(anonymousId);
+  const privyWallet = keypair ? null : await getAgentPrivyWalletForX402(anonymousId);
+  if (!keypair && !privyWallet) {
+    throw new Error('Agent wallet not found for this user');
+  }
+
+  async function makePayload() {
+    if (keypair) {
+      const signer = await createKeyPairSignerFromBytes(keypair.secretKey);
+      return makePayloadWithSigner(signer);
+    }
+    const signer = createPrivyTransactionPartialSigner(privyWallet);
+    return makePayloadWithSigner(signer);
   }
 
   let paymentPayload;

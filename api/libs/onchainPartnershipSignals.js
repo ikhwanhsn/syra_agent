@@ -15,7 +15,6 @@ const REGISTRATION_FETCH_LIMIT = pLimit(6);
 const SYRA_LINK_HOSTS = new Set([
   "syraa.fun",
   "api.syraa.fun",
-  "agent.syraa.fun",
   "docs.syraa.fun",
   "playground.syraa.fun",
   "dashboard.syraa.fun",

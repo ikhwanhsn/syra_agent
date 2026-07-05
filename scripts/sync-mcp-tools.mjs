@@ -54,7 +54,7 @@ const CURATED_TOOL_IDS = new Set([
   '8004-leaderboard',
   '8004-agents-search',
   'nansen-smart-money-netflow',
-  'exa-search',
+  'web-search',
   'crawl',
   'browser-use',
   'jupiter-swap-order',

@@ -8,7 +8,7 @@
 [![Syra](https://img.shields.io/badge/Backed_by-Syra-0ea5e9)](https://syraa.fun)
 [![X](https://img.shields.io/badge/X-@uponly_fund-1da1f2)](https://x.com/uponly_fund)
 
-**[Website](https://uponlyfund.com)** · **[X](https://x.com/uponly_fund)** · **[Telegram](https://t.me/uponly_fund)** · **[Syra Agent](https://agent.syraa.fun)** · **[Docs](https://docs.syraa.fun)**
+**[Website](https://uponlyfund.com)** · **[X](https://x.com/uponly_fund)** · **[Telegram](https://t.me/uponly_fund)** · **[Syra Agent](https://syraa.fun)** · **[Docs](https://docs.syraa.fun)**
 
 </div>
 

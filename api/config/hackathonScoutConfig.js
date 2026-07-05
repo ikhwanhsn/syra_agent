@@ -1,5 +1,5 @@
 /**
- * Hackathon Scout — multi-source aggregator (Devpost + Exa) for global + Indonesia tech hackathons.
+ * Hackathon Scout — multi-source aggregator (Devpost + Web) for global + Indonesia tech hackathons.
  */
 
 export const HACKATHON_SCOUT_DB_ID = "hackathon-scout-latest-run";
@@ -23,7 +23,7 @@ export const HACKATHON_STATUSES = Object.freeze([
   "archived",
 ]);
 
-export const HACKATHON_SOURCES = Object.freeze(["devpost", "exa", "manual"]);
+export const HACKATHON_SOURCES = Object.freeze(["devpost", "exa", "web", "manual"]);
 
 /** Devpost API base */
 export const DEVPOST_API_BASE = "https://devpost.com/api/hackathons";
@@ -77,8 +77,8 @@ export const INDONESIA_KEYWORDS = Object.freeze([
   "hackathon indonesia",
 ]);
 
-/** Exa search queries — Indonesia + global tech hackathons. */
-export const EXA_HACKATHON_QUERIES = Object.freeze([
+/** Web search queries — Indonesia + global tech hackathons. */
+export const WEB_HACKATHON_QUERIES = Object.freeze([
   "hackathon Indonesia 2026 technology registration",
   "hackathon Indonesia pendaftaran teknologi 2026",
   "technology hackathon 2026 registration open",
@@ -87,14 +87,14 @@ export const EXA_HACKATHON_QUERIES = Object.freeze([
   "startup hackathon 2026 apply",
 ]);
 
-/** Max Exa results per query. */
-export const EXA_HACKATHON_NUM_RESULTS = Math.min(
+/** Max web search results per query. */
+export const WEB_HACKATHON_NUM_RESULTS = Math.min(
   15,
-  Math.max(3, Number.parseInt(process.env.HACKATHON_EXA_NUM_RESULTS || "8", 10) || 8),
+  Math.max(3, Number.parseInt(process.env.HACKATHON_WEB_NUM_RESULTS || process.env.HACKATHON_EXA_NUM_RESULTS || "8", 10) || 8),
 );
 
-/** Min relevance score (0-100) for Exa-extracted hackathons. */
-export const EXA_MIN_RELEVANCE_SCORE = Math.max(
+/** Min relevance score (0-100) for web-extracted hackathons. */
+export const WEB_MIN_RELEVANCE_SCORE = Math.max(
   0,
-  Math.min(100, Number.parseInt(process.env.HACKATHON_EXA_MIN_RELEVANCE || "40", 10) || 40),
+  Math.min(100, Number.parseInt(process.env.HACKATHON_WEB_MIN_RELEVANCE || process.env.HACKATHON_EXA_MIN_RELEVANCE || "40", 10) || 40),
 );

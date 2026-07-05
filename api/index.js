@@ -58,6 +58,7 @@ import { createIndicatorRouter } from "./routes/indicator.js";
 import { createBtcRouter } from "./routes/btc.js";
 import { createSpcxExperimentRouter } from "./routes/experiment/spcx.js";
 import { createSyraTradingTelegramWebhookRouter } from "./routes/syraTradingTelegramWebhook.js";
+import { createSyraTelegramWebhookRouter } from "./routes/syraTelegramWebhook.js";
 import { createSentinelDashboardRouter } from "./routes/sentinelDashboard.js";
 import { createDashboardSummaryRouterRegular } from "./routes/dashboardSummary.js";
 import {
@@ -75,7 +76,7 @@ import {
   createSentimentRouterRegular,
 } from "./routes/partner/cryptonews.js";
 import { createSignalRouter as createV2SignalRouter } from "./routes/signal.js";
-// exa-search, crawl, browser-use, jupiter/swap/order, smart-money, token-god-mode, trending-jupiter, pumpfun, squid, bubblemaps,
+// web-search, crawl, browser-use, jupiter/swap/order, smart-money, token-god-mode, trending-jupiter, pumpfun, squid, bubblemaps,
 // 8004scan, heylol, quicknode: agent-direct (POST /agent/tools/call); public HTTP routes removed for those.
 import { createArbitrageExperimentX402Router } from "./routes/arbitrageExperimentX402.js";
 import { createJupiterQuoteRouter } from "./routes/jupiter/quote.js";
@@ -94,6 +95,7 @@ import { createBitcoinX402Router } from "./routes/bitcoin/index.js";
 import { createLpAgentExperimentRouter } from "./routes/lpAgentExperiment.js";
 import { createLpAgentRealRouter } from "./routes/lpAgentReal.js";
 import { createStocksExperimentRouter } from "./routes/stocksExperiment.js";
+import { createScalperExperimentRouter } from "./routes/scalperExperiment.js";
 import { createBtcQuantExperimentRouter } from "./routes/btcQuantExperiment.js";
 import { createBtcQuantRealRouter } from "./routes/btcQuantReal.js";
 import { createBtc3MacroRouter } from "./routes/btc3Macro.js";
@@ -265,8 +267,6 @@ const CORS_ALLOWED_ORIGINS = [
   "https://api.syraa.fun",
   "https://syraa.fun",
   "https://www.syraa.fun",
-  "https://agent.syraa.fun",
-  "https://www.agent.syraa.fun",
   "https://dashboard.syraa.fun",
   "https://www.dashboard.syraa.fun",
   "https://playground.syraa.fun",
@@ -470,7 +470,7 @@ function isX402Route(p) {
 // Every other route — /agent/*, /api/playground-proxy, /api/signal, /preview/*,
 // /dashboard-summary, /binance-ticker, /uponly-rise-*, /streamflow-locks, /staking, etc. —
 // falls through to CORS_OPTIONS_REGULAR which only allows Syra's own origins (syraa.fun,
-// agent.syraa.fun, playground.syraa.fun, dashboard.syraa.fun, predict.syraa.fun,
+// playground.syraa.fun, dashboard.syraa.fun, predict.syraa.fun,
 // uponlyfund.com, configured dev origins). This prevents external websites from consuming
 // non-x402 Syra APIs while still letting Syra frontends call them transparently
 // (trusted-origin API-key injection covers auth for browser callers).
@@ -801,6 +801,7 @@ app.use(
         p.startsWith("/internal/s3labs-event/run") ||
         p.startsWith("/internal/s3labs-job/run") ||
         p.startsWith("/internal/s3labs-telegram/webhook") ||
+        p.startsWith("/internal/syra-telegram/webhook") ||
         p.startsWith("/internal/partnership-scout/run") ||
         p.startsWith("/internal/hackathons/run") ||
         p.startsWith("/uponly-rise-market") ||
@@ -811,7 +812,7 @@ app.use(
   }),
 );
 
-// For requests from trusted browser origins (syraa.fun, dashboard, agent, playground), inject
+// For requests from trusted browser origins (syraa.fun, dashboard, playground), inject
 // server API key so frontends never need to embed it in client bundles (security fix).
 app.use(injectTrustedOriginApiKey);
 
@@ -902,6 +903,12 @@ app.use(
     }
     if (
       p.startsWith("/internal/s3labs-telegram/webhook") &&
+      String(req.method || "").toUpperCase() === "POST"
+    ) {
+      return true;
+    }
+    if (
+      p.startsWith("/internal/syra-telegram/webhook") &&
       String(req.method || "").toUpperCase() === "POST"
     ) {
       return true;
@@ -1334,6 +1341,7 @@ app.use("/internal/tester-agent", createInternalTesterAgentRouter());
 // S3Labs Telegram @mention Q&A (webhook secret; no API key)
 app.use("/internal", createS3labsTelegramWebhookRouter());
 app.use("/internal", createSyraTradingTelegramWebhookRouter());
+app.use("/internal", createSyraTelegramWebhookRouter());
 // Internal dashboard: research-store + scouts (API key auth, no x402)
 app.use("/internal", createInternalPartnershipScoutRouter());
 app.use("/internal", createInternalHackathonsRouter());
@@ -1354,6 +1362,8 @@ app.use("/experiment/btc3-macro", createBtc3MacroRouter());
 app.use("/experiment/btc3-real", createBtc3RealRouter());
 // Stocks news experiment — paper xStocks trading via Jupiter + news signals
 app.use("/experiment/stocks", createStocksExperimentRouter());
+// Scalper agent — hybrid opportunity feed, Jupiter-quote paper fills
+app.use("/experiment/scalper", createScalperExperimentRouter());
 app.use("/post/studio", createShipLogStudioRouter());
 // Analytics: KPI (/analytics/kpi, /analytics/errors) and x402 summary (/analytics/summary)
 app.use("/analytics", await createAnalyticsRouter());
@@ -1709,6 +1719,54 @@ app.listen(PORT, () => {
   }
   if (STOCKS_RESOLVE_INTERVAL_MS >= 5_000) {
     setInterval(runStocksResolve, STOCKS_RESOLVE_INTERVAL_MS);
+  }
+
+  const SCALPER_SIGNAL_INTERVAL_MS = (() => {
+    const raw = Number(process.env.SCALPER_SIGNAL_MS);
+    return Number.isFinite(raw) && raw >= 15_000 ? Math.floor(raw) : 60_000;
+  })();
+  const SCALPER_RESOLVE_INTERVAL_MS = (() => {
+    const raw = Number(process.env.SCALPER_RESOLVE_MS);
+    return Number.isFinite(raw) && raw >= 5_000 ? Math.floor(raw) : 30_000;
+  })();
+  const SCALPER_CRON_ENABLED = (() => {
+    const raw = process.env.SCALPER_CRON_ENABLED;
+    return raw == null ? true : raw === "1" || raw === "true";
+  })();
+
+  const runScalperSignal = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/scalper/scalperService.js")
+        .then(({ runScalperSignalCycle }) => runScalperSignalCycle())
+        .then((out) => {
+          if (out?.errors?.length) {
+            console.warn("[Scalper] signal errors:", out.errors.slice(0, 3));
+          }
+        })
+        .catch((err) => console.warn("[Scalper] signal failed:", err?.message || err)),
+    ),
+  );
+
+  const runScalperResolve = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/scalper/scalperService.js")
+        .then(({ resolveOpenScalperRuns }) => resolveOpenScalperRuns())
+        .then((out) => {
+          if (out?.errors?.length) {
+            console.warn("[Scalper] resolve errors:", out.errors.slice(0, 3));
+          }
+        })
+        .catch((err) => console.warn("[Scalper] resolve failed:", err?.message || err)),
+    ),
+  );
+
+  if (SCALPER_CRON_ENABLED) {
+    if (SCALPER_SIGNAL_INTERVAL_MS >= 15_000) {
+      setInterval(runScalperSignal, SCALPER_SIGNAL_INTERVAL_MS);
+    }
+    if (SCALPER_RESOLVE_INTERVAL_MS >= 5_000) {
+      setInterval(runScalperResolve, SCALPER_RESOLVE_INTERVAL_MS);
+    }
   }
 
   const LP_AGENT_REAL_SIGNAL_INTERVAL_MS = 120_000;
@@ -2161,6 +2219,15 @@ app.listen(PORT, () => {
     .catch((e) =>
       console.warn(
         "[s3labs-telegram-qa] load failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
+
+  import("./libs/syraTelegramBot/bootstrap.js")
+    .then(({ startSyraTelegramBot }) => startSyraTelegramBot())
+    .catch((e) =>
+      console.warn(
+        "[syra-telegram] load failed:",
         e instanceof Error ? e.message : e,
       ),
     );

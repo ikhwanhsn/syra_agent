@@ -10,7 +10,7 @@ This file mirrors the **structure of the public documentation** published at [do
 
 ## Welcome
 
-- [Welcome](https://docs.syraa.fun/docs/welcome) — What Syra is: machine money for AI agents on Solana (autonomous revenue, treasury, DeFi, x402 payments); where the product runs (web agent, API gateway, playground, x402 agent, Telegram, MCP).
+- [Welcome](https://docs.syraa.fun/docs/welcome) — What Syra is: machine money for agents on Solana (autonomous revenue, treasury, DeFi, x402 payments); where the product runs (web agent, API gateway, playground, x402 agent, Telegram, MCP).
 
 ---
 
@@ -36,7 +36,7 @@ This file mirrors the **structure of the public documentation** published at [do
 
 ### Research and discovery
 
-- [EXA search](https://docs.syraa.fun/docs/api/exa-search)
+- [Web search](https://docs.syraa.fun/docs/api/web-search)
 - [Website crawl](https://docs.syraa.fun/docs/api/crawl)
 - [Browser use](https://docs.syraa.fun/docs/api/browser-use)
 - [Analytics summary](https://docs.syraa.fun/docs/api/analytics-summary)

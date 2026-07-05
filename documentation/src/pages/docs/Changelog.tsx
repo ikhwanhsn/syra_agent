@@ -57,7 +57,7 @@ const completed = [
   "x402 API standard and payment flow (incl. MPP and Tempo where applicable)",
   "Syra Agent at syraa.fun with trading signals, wallet, and supported tokens",
   "x402 Agent integration and agent discovery (x402scan)",
-  "Sentiment, news, Syra Brain, EXA search, crawl, Browser Use, and core intelligence APIs live",
+  "Sentiment, news, Syra Brain, web search, crawl, Browser Use, and core intelligence APIs live",
   "Multi-venue trading signals (Binance, OKX, Kraken, KuCoin, Coinbase, and additional sources)",
   "Trading experiment API and dashboard for strategy runs and analysis",
   "8004 agent integration, marketplace, and partner/agent-only tools (Nansen, Jupiter, Squid, etc.)",

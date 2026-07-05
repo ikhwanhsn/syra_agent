@@ -77,7 +77,7 @@ const agentWalletSchema = new mongoose.Schema(
     /** How this wallet row was first provisioned. */
     provisionedVia: {
       type: String,
-      enum: ['guest', 'connect', 'signin', 'x402', 'migration'],
+      enum: ['guest', 'connect', 'signin', 'x402', 'migration', 'telegram'],
       default: 'guest',
       index: true,
     },

@@ -36,7 +36,7 @@ export function looksEventRelevant(text) {
 
 /**
  * @typedef {{
- *   source: "exa" | "x" | "luma" | "manual";
+ *   source: "exa" | "web" | "x" | "luma" | "manual";
  *   sourceId: string;
  *   dedupeKey: string;
  *   title: string;

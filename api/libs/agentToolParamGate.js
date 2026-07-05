@@ -76,7 +76,7 @@ function paramPresent(p, name) {
 
 /** @type {Record<string, string[]>} — every listed key must be non-empty after trim. */
 const REQUIRE_ALL_KEYS = {
-  'exa-search': ['query'],
+  'web-search': ['query'],
   'website-crawl': ['url'],
   'browser-use': ['task'],
   'jupiter-swap-order': ['inputMint', 'outputMint', 'amount'],

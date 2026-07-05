@@ -4,13 +4,13 @@
 
 # **Syra API**
 
-### Backend services for Syra — machine money for AI trading agents on Solana
+### Backend services for Syra — machine money for agents on Solana
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-docs.syraa.fun-0ea5e9)](https://docs.syraa.fun)
 [![API](https://img.shields.io/badge/API-Gateway-26a5e4)](https://api.syraa.fun)
 
-**[Documentation](https://docs.syraa.fun)** · **[API Playground](https://playground.syraa.fun)** · **[Telegram Bot](https://t.me/syra_trading_bot)** · **[Agent](https://agent.syraa.fun)**
+**[Documentation](https://docs.syraa.fun)** · **[API Playground](https://playground.syraa.fun)** · **[Telegram Bot](https://t.me/syra_trading_bot)** · **[Agent](https://syraa.fun)**
 
 </div>
 
@@ -33,7 +33,7 @@ This API backs the **Telegram bot**, **web agent**, **API playground**, **MCP br
 
 | Brand | Public site | API surfaces (examples) |
 |-------|-------------|-------------------------|
-| **Syra** | syraa.fun, agent.syraa.fun | x402 routes, `/agent/*`, `/pillars`, `/brain` |
+| **Syra** | syraa.fun | x402 routes, `/agent/*`, `/pillars`, `/brain` |
 | **S3 Labs** | s3labs.id | `/kol/*`, jobs pipeline, S3 Labs Telegram webhook, points ledger |
 | **Up Only Fund** | uponlyfund.com | RISE market routes, terminal KPIs, uponly rise create |
 
@@ -136,7 +136,7 @@ Optional: **`SYRA_PUBLIC_API_URL`** for staging `servers[0].url`. **`X402_OWNERS
 | `SYRA_MCP_AGENT_ANONYMOUS_ID` | Agent wallet that pays for tool calls |
 | `SYRA_MCP_RATE_LIMIT_PER_MIN` | Optional rate limit (default 120/min) |
 
-Body: `{ "toolId": "exa-search", "params": { "query": "..." } }`. Reuses [`agentToolExecutor.js`](./libs/agentToolExecutor.js) (same as `POST /agent/tools/call`).
+Body: `{ "toolId": "web-search", "params": { "query": "..." } }`. Reuses [`agentToolExecutor.js`](./libs/agentToolExecutor.js) (same as `POST /agent/tools/call`).
 
 ---
 
@@ -432,19 +432,20 @@ Composition: `globalThis.fetch` → Sentinel (if on) → Pact via `api/libs/agen
 
 ## Hackathon Scout (internal admin)
 
-Daily aggregator for **technology hackathons** (Indonesia + global) via Devpost JSON API and Exa web search. Admin UI: **`/hackathon`** on the dashboard (admin wallet only). API: **`/internal/hackathons`**.
+Daily aggregator for **technology hackathons** (Indonesia + global) via Devpost JSON API and free web search. Admin UI: **`/hackathon`** on the dashboard (admin wallet only). API: **`/internal/hackathons`**.
 
 | Env | Purpose |
 |-----|---------|
-| `EXA_API_KEY` | Exa web search for hackathons not on Devpost |
-| `OPENROUTER_API_KEY` | LLM extraction from Exa search snippets |
+| `OPENROUTER_API_KEY` | LLM extraction from web search snippets |
 | `SYRA_ADMIN_WALLETS` | Hardcoded in `api/libs/adminWallet.js` (no env required) |
 | `HACKATHON_SCOUT_CRON_MS` | Scheduler interval (default `86400000` = 24h) |
 | `HACKATHON_SCOUT_CRON_SECRET` | GitHub Action / cron `POST /internal/hackathons/run` |
 | `HACKATHON_DEVPOST_GLOBAL_PAGES` | Devpost pages to fetch (default `3`) |
 | `HACKATHON_DEVPOST_INDONESIA_PAGES` | Indonesia search pages (default `2`) |
-| `HACKATHON_EXA_NUM_RESULTS` | Exa results per query (default `8`) |
-| `HACKATHON_EXA_MIN_RELEVANCE` | Min tech relevance score 0–100 (default `40`) |
+| `HACKATHON_WEB_NUM_RESULTS` | Web search results per query (default `8`) |
+| `HACKATHON_WEB_MIN_RELEVANCE` | Min tech relevance score 0–100 (default `40`) |
+| `WEB_SEARCH_DDG_ENABLED` | Enable DuckDuckGo engine (default `true`) |
+| `WEB_SEARCH_BING_ENABLED` | Enable Bing fallback (default `true`) |
 
 Cron header: `x-hackathon-scout-cron-secret`. Workflow: `.github/workflows/hackathon-scout-daily.yml`.
 

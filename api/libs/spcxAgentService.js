@@ -86,7 +86,7 @@ export function formatSpcxTelegramMessage(report) {
   lines.push("");
   lines.push(`🤖 ${report.agentTake}`);
   lines.push("");
-  lines.push("🔗 agent.syraa.fun/spcx");
+  lines.push("🔗 syraa.fun/spcx");
   lines.push("_Not investment advice. Probabilistic intel only._");
 
   return lines.join("\n");

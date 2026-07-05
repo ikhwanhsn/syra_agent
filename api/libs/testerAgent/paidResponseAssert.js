@@ -84,7 +84,7 @@ export function assertPaidJsonShape(path, method, data) {
     return { ok: true, summary: "health ok" };
   }
 
-  if (path === "/exa-search") {
+  if (path === "/web-search") {
     const r = arr("results", 0);
     if (!r.ok) return r;
     return { ok: true, summary: `results[${Array.isArray(d.results) ? d.results.length : 0}]` };

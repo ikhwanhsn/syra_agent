@@ -130,8 +130,8 @@ const TOOLS = [
     requiredParams: 0,
   },
   {
-    name: "GET /exa-search",
-    description: "Exa AI web search over the open web.",
+    name: "GET /web-search",
+    description: "Free web search via DuckDuckGo/Bing scrape.",
     inputSchema: {
       type: "object",
       properties: { query: { type: "string" } },

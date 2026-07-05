@@ -3,7 +3,7 @@
  * Keep in sync with actual x402 mounts in index.js.
  * Payment networks advertised in discovery instructions: Solana, Base, B402 (optional), Algorand (GoPlausible).
  * Note: Binance, Giza, Bankr, Neynar, SIWA, analytics/summary, X, x-analyzer, Nansen, and agent-direct tools
- * (exa-search, crawl, browser-use, jupiter/swap/order, smart-money, token-god-mode, trending-jupiter,
+ * (web-search, crawl, browser-use, jupiter/swap/order, smart-money, token-god-mode, trending-jupiter,
  * pumpfun, squid, bubblemaps, 8004scan, heylol, quicknode, GMGN (gmgn-*)) are not listed here — use POST /agent/tools/call.
  * HTTP /8004 remains for registration and non-agent marketplace flows; not advertised as a single x402 resource.
  */

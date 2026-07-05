@@ -4,7 +4,7 @@
 
 # **Syra Documentation**
 
-### Machine money for AI agents — docs, API reference, and guides
+### Machine money for agents — docs, API reference, and guides
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-docs.syraa.fun-0ea5e9)](https://docs.syraa.fun)

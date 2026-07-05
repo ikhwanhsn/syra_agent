@@ -54,7 +54,7 @@ export async function handleSyraTradingTelegramUpdate(update) {
         "Commands:\n" +
         "/spcx — Live SpaceX IPO spread intel (Nasdaq vs on-chain SPCX)\n" +
         "/signal <token> — Trading signal (via Syra API)\n\n" +
-        "🔗 agent.syraa.fun/spcx",
+        "🔗 syraa.fun/spcx",
       parseMode: "Markdown",
     });
     return;

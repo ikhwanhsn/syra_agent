@@ -53,6 +53,7 @@ function dashboardPageTitle(pathname: string, search: string): string {
   if (parts[0] === "btc3-experiment") return "Macro Intelligence";
   if (parts[0] === "btc-experiment") return "BTC quant experiment";
   if (parts[0] === "stocks") return "Stocks news experiment";
+  if (parts[0] === "scalper") return "Scalper agent";
   if (parts[0] === "btc") return "Bitcoin";
   if (parts[0] === "internal") {
     if (parts[1]) {

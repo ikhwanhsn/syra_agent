@@ -1,6 +1,6 @@
 # Syra Agent Commerce (AgentScore)
 
-Syra is machine money for AI trading agents on Solana — a pay-per-call x402 API rail. Most routes are **permissionless x402** (pay with USDC, no identity).
+Syra is machine money for agents on Solana — a pay-per-call x402 API rail. Most routes are **permissionless x402** (pay with USDC, no identity).
 
 ## Identity-gated routes (optional)
 
@@ -23,7 +23,7 @@ Docs: https://docs.agentscore.sh/passport
 
 ## Syra agent tools (buy side)
 
-Call via `POST /agent/tools/call` on [agent.syraa.fun](https://agent.syraa.fun):
+Call via `POST /agent/tools/call` on [syraa.fun](https://syraa.fun):
 
 | Tool ID | Purpose |
 |---------|---------|

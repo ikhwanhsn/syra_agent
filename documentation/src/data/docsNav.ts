@@ -109,7 +109,7 @@ export const navigation: NavItem[] = [
               { title: "Sentiment", href: api("sentiment") },
               { title: "Trending Headline", href: api("trending-headline") },
               { title: "Sundown Digest", href: api("sundown-digest") },
-              { title: "EXA Search", href: api("exa-search") },
+              { title: "Web Search", href: api("web-search") },
               { title: "Website Crawl", href: api("crawl") },
               { title: "Browser Use", href: api("browser-use") },
               { title: "Analytics Summary", href: api("analytics-summary") },

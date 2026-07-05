@@ -24,7 +24,7 @@ export function createSpcxExperimentRouter() {
           "Live Nasdaq vs on-chain SPCX premium/discount tracker powered by Syra machine money APIs",
         nasdaqTicker: SPCX_NASDAQ_TICKER,
         ipoReferencePriceUsd: SPCX_IPO_REFERENCE_PRICE_USD,
-        demoUrl: "https://agent.syraa.fun/spcx",
+        demoUrl: "https://syraa.fun/spcx",
         catalog: getEquityCatalogMeta(),
       },
     });

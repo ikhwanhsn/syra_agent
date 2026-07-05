@@ -14,7 +14,7 @@ export function flowNeedsParamModal(
   if (params.length === 0) return false;
 
   const pathname = getPlaygroundSyraPathname(flow.url);
-  const queryRequiredPaths = ["/exa-search"];
+  const queryRequiredPaths = ["/web-search"];
   const urlRequiredPaths = ["/crawl"];
   const taskRequiredPaths = ["/browser-use"];
 

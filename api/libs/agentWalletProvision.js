@@ -110,7 +110,7 @@ function policyDefaultsForPurpose(purpose) {
  *   walletAddress?: string | null;
  *   chain?: 'solana' | 'base' | 'bsc';
  *   avatarSeed?: string;
- *   provisionedVia?: 'guest' | 'connect' | 'signin' | 'x402' | 'migration';
+ *   provisionedVia?: 'guest' | 'connect' | 'signin' | 'x402' | 'migration' | 'telegram';
  *   payerAddress?: string | null;
  * }} params
  */
@@ -169,7 +169,7 @@ export async function createAgentWalletRecord({
  *   baseAnonymousId: string;
  *   walletAddress?: string | null;
  *   chain?: 'solana' | 'base' | 'bsc';
- *   provisionedVia?: 'guest' | 'connect' | 'signin' | 'x402' | 'migration';
+ *   provisionedVia?: 'guest' | 'connect' | 'signin' | 'x402' | 'migration' | 'telegram';
  *   payerAddress?: string | null;
  *   includeLp?: boolean;
  * }} params

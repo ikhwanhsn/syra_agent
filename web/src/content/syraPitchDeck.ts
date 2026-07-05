@@ -193,7 +193,7 @@ export const SYRA_PITCH_DECK: DeckSlide[] = [
     label: "Cover",
     eyebrow: "Investor overview · Confidential",
     title: "Syra",
-    subtitle: "Machine money for AI agents on Solana",
+    subtitle: "Machine money for agents on Solana",
     footnote: "Autonomous revenue · Treasury · DeFi · Non-custodial",
   },
   {

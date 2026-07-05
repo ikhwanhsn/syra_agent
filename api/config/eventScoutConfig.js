@@ -1,5 +1,5 @@
 /**
- * Event Scout — multi-source aggregator (Exa + X + Luma) for tech/crypto/web3 events with lu.ma registration.
+ * Event Scout — multi-source aggregator (Web + X + Luma) for tech/crypto/web3 events with lu.ma registration.
  */
 
 export const EVENT_SCOUT_DB_ID = "event-scout-latest-run";
@@ -21,7 +21,7 @@ export const EVENT_STATUSES = Object.freeze([
   "skipped",
 ]);
 
-export const EVENT_SOURCES = Object.freeze(["exa", "x", "luma", "manual"]);
+export const EVENT_SOURCES = Object.freeze(["exa", "web", "x", "luma", "manual"]);
 
 export const EVENT_CATEGORIES = Object.freeze(["tech", "crypto", "web3"]);
 
@@ -60,8 +60,8 @@ export const EVENT_RELEVANCE_KEYWORDS = Object.freeze([
   "workshop",
 ]);
 
-/** Exa search queries — Indonesia + global tech/crypto/web3 events on Luma. */
-export const EXA_EVENT_QUERIES = Object.freeze([
+/** Web search queries — Indonesia + global tech/crypto/web3 events on Luma. */
+export const WEB_EVENT_QUERIES = Object.freeze([
   "crypto event lu.ma registration 2026",
   "web3 meetup lu.ma 2026",
   "tech conference lu.ma registration",
@@ -84,16 +84,16 @@ export const X_EVENT_SEARCH_QUERIES = Object.freeze([
   'lu.ma meetup registration -is:retweet',
 ]);
 
-/** Max Exa results per query. */
-export const EXA_EVENT_NUM_RESULTS = Math.min(
+/** Max web search results per query. */
+export const WEB_EVENT_NUM_RESULTS = Math.min(
   15,
-  Math.max(3, Number.parseInt(process.env.EVENT_EXA_NUM_RESULTS || "8", 10) || 8),
+  Math.max(3, Number.parseInt(process.env.EVENT_WEB_NUM_RESULTS || process.env.EVENT_EXA_NUM_RESULTS || "8", 10) || 8),
 );
 
 /** Min relevance score (0-100) for extracted events. */
-export const EXA_MIN_RELEVANCE_SCORE = Math.max(
+export const WEB_MIN_RELEVANCE_SCORE = Math.max(
   0,
-  Math.min(100, Number.parseInt(process.env.EVENT_EXA_MIN_RELEVANCE || "35", 10) || 35),
+  Math.min(100, Number.parseInt(process.env.EVENT_WEB_MIN_RELEVANCE || process.env.EVENT_EXA_MIN_RELEVANCE || "35", 10) || 35),
 );
 
 /** Max Luma pages to fetch per pipeline run. */

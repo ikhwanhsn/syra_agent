@@ -4,7 +4,7 @@
   "signal": "Signal for Bitcoin / OKX signal for SOL / Trading signal for ethereum",
   "sentiment": "What's the market sentiment? / Sentiment analysis",
   "event": "Get events / Crypto events",
-  "exa-search": "Search the web for latest Nvidia news / EXA search for crypto market",
+  "web-search": "Search the web for latest Nvidia news / Web search for crypto market",
   "website-crawl": "Crawl https://blog.cloudflare.com/ and summarize / Get content from this docs site",
   "gems": "Show me gems / Curated insights",
   "x-kol": "X KOL data / Twitter key opinion leaders",
@@ -247,5 +247,14 @@
   "tokens-risk-summary-mint": "Use Tokens: mint risk summary: Quick risk score for a Solana mint",
   "tokens-assets-curated": "Use Tokens: curated lists: Curated asset lists",
   "tokens-market-snapshots": "Use Tokens: batch market snapshots: Batch market data for up to 250 mints",
-  "tokens-variant-markets": "Use Tokens: variant markets batch: Market snapshots for up to 50 mints"
+  "tokens-variant-markets": "Use Tokens: variant markets batch: Market snapshots for up to 50 mints",
+  "topledger-analyze-wallet": "Use TopLedger: analyze wallet: Full Solana wallet portfolio analysis — net worth, holdings, lending, perps, LP, staking, yield, rewards, governance (20+ protocols)",
+  "topledger-holdings": "Use TopLedger: wallet holdings: Native SOL + Jupiter-verified SPL/Token-2022 holdings with USD pricing",
+  "topledger-lending": "Use TopLedger: lending positions: Lending deposits, borrows, and net value across Kamino, marginfi, Jupiter Lend, Loopscale, and more",
+  "topledger-perps": "Use TopLedger: perpetual futures: Perp positions, collateral, size, and PnL across Jupiter Perps, Flash Trade, Parcl",
+  "topledger-lp": "Use TopLedger: LP positions: Liquidity provider positions across Meteora, Orca Whirlpool, Raydium CLMM/AMM/CP, Parcl",
+  "topledger-staking": "Use TopLedger: staking positions: Native SOL and protocol staking across Jupiter DAO, Helium, Streamflow, Kamino, and more",
+  "topledger-yield": "Use TopLedger: yield vaults: Yield-bearing vault positions across Kamino, Hylo, Exponent, Elemental, Huma, and more",
+  "topledger-rewards": "Use TopLedger: unclaimed rewards: Pending and unclaimed protocol rewards with USD value where available",
+  "topledger-dex-pnl": "Use TopLedger: DEX trading PnL: FIFO DEX trading PnL with cost basis, realized/unrealized PnL, and 7-day performance"
 }

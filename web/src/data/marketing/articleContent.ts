@@ -31,7 +31,7 @@ const SYRA_AUTHOR: ArticleAuthor = {
   name: "Syra",
   role: "Machine Money for Agents",
   avatar: "/images/logo.jpg",
-  bio: "Machine money for AI trading agents on Solana — x402 pay-per-call APIs, agent wallets, and treasury policy.",
+  bio: "Machine money for agents on Solana — x402 pay-per-call APIs, agent wallets, and treasury policy.",
   xHandle: "@syra_agent",
   xUrl: "https://x.com/syra_agent",
 };
@@ -156,7 +156,7 @@ The shift from "sign up and subscribe" to "pay and proceed" isn't cosmetic — i
   {
     id: "syra-x",
     slug: "syra-explained-smart-intelligence-agent",
-    title: "Syra Explained: Machine Money for AI Trading Agents on Solana",
+    title: "Syra Explained: Machine Money for Agents on Solana",
     description:
       "How Syra delivers machine money infrastructure—x402 APIs, agent wallets, treasury policy, and execution-ready workflows for the agent economy on Solana.",
     excerpt:
@@ -170,7 +170,7 @@ The shift from "sign up and subscribe" to "pay and proceed" isn't cosmetic — i
     externalUrl: "https://x.com/syra_agent/status/2021064952765874204",
     content: `## Machine money, not just data
 
-Crypto markets move faster than any human can parse. Syra is **machine money for AI trading agents** — not a dashboard, not a chatbot toy — built to give agents x402 pay-per-call APIs, wallets, treasury policy, and actionable market context on Solana.
+Crypto markets move faster than any human can parse. Syra is **machine money for agents** — not a dashboard, not a chatbot toy — built to give agents x402 pay-per-call APIs, wallets, treasury policy, and actionable market context on Solana.
 
 > [!NOTE]
 > Syra separates *analysis* from *execution*. We surface probabilistic intelligence; you (or your agent) decide whether and how to act.

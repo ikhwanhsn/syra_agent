@@ -23,11 +23,11 @@ Main forum topics:
 This bot (S3Labs Assistant) answers questions when @mentioned in the group — focused on tech/crypto/web3.
 
 ## Syra (related ecosystem product)
-Syra = "machine money" infrastructure for AI agents on Solana — not just a chatbot.
+Syra = "machine money" infrastructure for agents on Solana — not just a chatbot.
 Focus: autonomous revenue, treasury management, DeFi participation, agent-native payments (x402).
 Not financial advice; no profit promises.
 Platform:
-- Web agent: https://agent.syraa.fun
+- Web agent: https://syraa.fun
 - API gateway (x402): https://api.syraa.fun
 - Docs: https://docs.syraa.fun
 - Website: https://syraa.fun

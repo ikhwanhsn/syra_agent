@@ -10,7 +10,7 @@
 [![Documentation](https://img.shields.io/badge/docs-docs.syraa.fun-0ea5e9)](https://docs.syraa.fun)
 [![API Playground](https://img.shields.io/badge/build-playground.syraa.fun-26a5e4)](https://playground.syraa.fun)
 
-**[Documentation](https://docs.syraa.fun)** · **[API Playground](https://playground.syraa.fun)** · **[Agent demo](https://agent.syraa.fun)** · **[X (Twitter)](https://x.com/syra_agent)**
+**[Documentation](https://docs.syraa.fun)** · **[API Playground](https://playground.syraa.fun)** · **[Agent demo](https://syraa.fun)** · **[X (Twitter)](https://x.com/syra_agent)**
 
 </div>
 
@@ -106,7 +106,7 @@ Syra is the parent **machine money** infrastructure. These programs ship on Syra
 | Package | Description |
 |---------|-------------|
 | **`web`** | Unified Syra app — Build (playground), agent wallet, dashboard, proof demos |
-| **`api`** | Backend API — machine money for AI agents: x402 APIs, agent wallets, policy engine, S3 Labs + UOF routes |
+| **`api`** | Backend API — machine money for agents: x402 APIs, agent wallets, policy engine, S3 Labs + UOF routes |
 | **`syra-sdk`** | Typed `@syra/sdk` client for x402 API integration |
 | **`mcp-server`** | MCP server — Cursor, Claude, ElizaOS distribution |
 | **`documentation`** | Docs site (docs.syraa.fun) |
@@ -119,13 +119,13 @@ Syra is the parent **machine money** infrastructure. These programs ship on Syra
 
 ## Colosseum Frontier — hackathon submission
 
-**Hero product (what to demo):** [`api`](./api) + [`web`](./web) — the **Syra rail**: machine money for AI agents (x402 APIs + agent wallets + treasury). Treat **S3 Labs**, **Up Only Fund**, and the chat reference agent as **Syra-backed proof surfaces**, not equal demo time to the core rail.
+**Hero product (what to demo):** [`api`](./api) + [`web`](./web) — the **Syra rail**: machine money for agents (x402 APIs + agent wallets + treasury). Treat **S3 Labs**, **Up Only Fund**, and the chat reference agent as **Syra-backed proof surfaces**, not equal demo time to the core rail.
 
 ### Golden path (live)
 
 1. Open **[playground.syraa.fun](https://playground.syraa.fun)** → connect wallet → try a paid x402 route.
 2. Integrate via **`@syra/sdk`** or **`@syra/mcp-server`** (see [syra-sdk](./syra-sdk) and [mcp-server](./mcp-server)).
-3. Fund **[agent.syraa.fun/wallet](https://agent.syraa.fun/wallet)** → view spend dashboard and policy caps.
+3. Fund **[syraa.fun/wallet](https://syraa.fun/wallet)** → view spend dashboard and policy caps.
 4. Discovery: **[api.syraa.fun](https://api.syraa.fun)** — `/.well-known/x402`, `/openapi.json` (see [api README](./api/README.md)).
 
 ### Architecture (hero stack)

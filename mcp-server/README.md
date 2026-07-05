@@ -4,13 +4,13 @@
 
 # **Syra MCP Server**
 
-### Machine money for AI trading agents — MCP distribution for Cursor, Claude, and agent frameworks
+### Machine money for agents — MCP distribution for Cursor, Claude, and agent frameworks
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-docs.syraa.fun-0ea5e9)](https://docs.syraa.fun)
 [![API Playground](https://img.shields.io/badge/build-playground.syraa.fun-26a5e4)](https://playground.syraa.fun)
 
-**[Documentation](https://docs.syraa.fun)** · **[API Playground](https://playground.syraa.fun)** · **[SDK](../syra-sdk)** · **[Agent demo](https://agent.syraa.fun)**
+**[Documentation](https://docs.syraa.fun)** · **[API Playground](https://playground.syraa.fun)** · **[SDK](../syra-sdk)** · **[Agent demo](https://syraa.fun)**
 
 </div>
 
@@ -24,7 +24,7 @@ Copy from [`integrations/cursor.mcp.json`](integrations/cursor.mcp.json) or run:
 npx -y @syra/mcp-server
 ```
 
-Set `SYRA_API_BASE_URL=https://api.syraa.fun`. For production auto-pay, set `SYRA_PAYER_KEYPAIR` (Solana USDC wallet). For agent-direct tools (exa-search, Nansen, GMGN, etc.), configure the MCP bridge on the API (`SYRA_MCP_BRIDGE_ENABLED`, `SYRA_MCP_API_KEY`, `SYRA_MCP_AGENT_ANONYMOUS_ID`) and pass `SYRA_MCP_API_KEY` to the MCP server.
+Set `SYRA_API_BASE_URL=https://api.syraa.fun`. For production auto-pay, set `SYRA_PAYER_KEYPAIR` (Solana USDC wallet). For agent-direct tools (web-search, Nansen, GMGN, etc.), configure the MCP bridge on the API (`SYRA_MCP_BRIDGE_ENABLED`, `SYRA_MCP_API_KEY`, `SYRA_MCP_AGENT_ANONYMOUS_ID`) and pass `SYRA_MCP_API_KEY` to the MCP server.
 
 Use `SYRA_MCP_TOOL_PROFILE=full` to expose all ~240 tools; default `curated` exposes ~42 high-value tools plus `syra_call_tool` escape hatch.
 
@@ -106,7 +106,7 @@ The **production** Syra API uses **x402 v2** (`Payment-Required` → `PAYMENT-SI
   - **Curated profile (default)** — ~42 high-value routes + `syra_call_tool` for any toolId
   - **Full profile** — every agent tool via `SYRA_MCP_TOOL_PROFILE=full`
   - **x402 v2 auto-pay** — `@x402/fetch` + `PAYMENT-SIGNATURE` (Solana / Base / Algorand)
-  - **Agent-direct bridge** — exa-search, crawl, Nansen, GMGN, etc. via `POST /mcp/tools/call`
+  - **Agent-direct bridge** — web-search, crawl, Nansen, GMGN, etc. via `POST /mcp/tools/call`
 
 - **Configurable base URL** — Point to production (`https://api.syraa.fun`) or your local API (e.g. `http://localhost:3000`).
 - **Optional dev routes** — When `SYRA_USE_DEV_ROUTES=true`, the server appends `/dev` to each API path (e.g. `/news/dev`). Use with a local API that implements `/dev` routes to skip x402 payment during development.
@@ -361,7 +361,7 @@ All tools return the **raw API response body** (usually a JSON string) when the 
 | `syra_v2_research` | `query` (required), `type` (optional: `"quick"` \| `"deep"`) | AI-powered deep research on a crypto topic with cited sources. |
 | `syra_v2_browse` | `query` (required) — URL or search query | AI-powered web browsing and information extraction. |
 | `syra_v2_x_search` | `query` (required) | Deep research on X/Twitter for crypto trends and discussions. |
-| `syra_v2_exa_search` | `query` (required) | EXA AI web search; only the search query is dynamic. |
+| `syra_spend_web_search` | `query` (required) | Free web search via DuckDuckGo/Bing scrape; only the search query is dynamic. |
 
 ### Token & address-based
 
@@ -478,7 +478,7 @@ Every MCP tool performs a **GET** request to the path below. When `SYRA_USE_DEV_
 | `syra_v2_research` | `/research` |
 | `syra_v2_browse` | `/browse` |
 | `syra_v2_x_search` | `/x-search` |
-| `syra_v2_exa_search` | `/exa-search` |
+| `syra_spend_web_search` | `/web-search` |
 | `syra_v2_x_kol` | `/x-kol` |
 | `syra_v2_token_god_mode` | `/token-god-mode` |
 | `syra_v2_bubblemaps_maps` | `/bubblemaps/maps` |

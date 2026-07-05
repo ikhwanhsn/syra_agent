@@ -1,5 +1,5 @@
 /**
- * Hackathon Scout pipeline — Devpost + Exa → dedupe → MongoDB upsert.
+ * Hackathon Scout pipeline — Devpost + Web → dedupe → MongoDB upsert.
  */
 
 import DashboardResearch from "../../models/DashboardResearch.js";
@@ -8,7 +8,7 @@ import { HACKATHON_SCOUT_DB_ID } from "../../config/hackathonScoutConfig.js";
 import { hackathonDedupeKey } from "../internalScoutDedupe.js";
 import { isDevTelegramConfigured, sendDevTelegram } from "../devTelegramNotifier.js";
 import { fetchDevpostHackathons } from "./devpostSource.js";
-import { fetchExaHackathons } from "./exaSource.js";
+import { fetchWebHackathons } from "./webSource.js";
 import { applyHackathonFreshness, openHackathonFilter, recentLastSeenFilter, HACKATHON_STALE_DAYS } from "../discoveryFreshness.js";
 
 export { HACKATHON_SCOUT_DB_ID };
@@ -67,7 +67,7 @@ function registerKey(rec, keys) {
  * @typedef {{
  *   ranAt: string;
  *   devpost: { globalFetched: number; indonesiaFetched: number; newSaved: number; updated: number; skipped: number };
- *   exa: { exaConfigured: boolean; queriesRun: number; hitsSampled: number; extracted: number; newSaved: number; updated: number; skipped: number };
+ *   web: { webConfigured: boolean; queriesRun: number; hitsSampled: number; extracted: number; newSaved: number; updated: number; skipped: number };
  *   totalNew: number;
  *   totalUpdated: number;
  *   errors: string[];
@@ -136,8 +136,8 @@ export async function runHackathonScoutPipeline() {
 
   const stats = {
     devpost: { globalFetched: 0, indonesiaFetched: 0, newSaved: 0, updated: 0, skipped: 0 },
-    exa: {
-      exaConfigured: false,
+    web: {
+      webConfigured: false,
       queriesRun: 0,
       hitsSampled: 0,
       extracted: 0,
@@ -150,9 +150,9 @@ export async function runHackathonScoutPipeline() {
     errors,
   };
 
-  const [devpostResult, exaResult] = await Promise.allSettled([
+  const [devpostResult, webResult] = await Promise.allSettled([
     fetchDevpostHackathons(),
-    fetchExaHackathons({ knownHackathons: dedupe.brief }),
+    fetchWebHackathons({ knownHackathons: dedupe.brief }),
   ]);
 
   /** @type {import("./devpostSource.js").HackathonRecord[]} */
@@ -166,11 +166,11 @@ export async function runHackathonScoutPipeline() {
     errors.push(`devpost: ${devpostResult.reason instanceof Error ? devpostResult.reason.message : String(devpostResult.reason)}`);
   }
 
-  if (exaResult.status === "fulfilled") {
-    Object.assign(stats.exa, exaResult.value.meta);
-    allRecords = allRecords.concat(exaResult.value.records);
+  if (webResult.status === "fulfilled") {
+    Object.assign(stats.web, webResult.value.meta);
+    allRecords = allRecords.concat(webResult.value.records);
   } else {
-    errors.push(`exa: ${exaResult.reason instanceof Error ? exaResult.reason.message : String(exaResult.reason)}`);
+    errors.push(`web: ${webResult.reason instanceof Error ? webResult.reason.message : String(webResult.reason)}`);
   }
 
   const runKeys = new Set();
@@ -179,7 +179,7 @@ export async function runHackathonScoutPipeline() {
     if (!rec.dedupeKey) {
       rec.dedupeKey = rec.source === "devpost" && rec.sourceId
         ? `devpost:${rec.sourceId}`
-        : `exa:${hackathonDedupeKey(rec) || rec.sourceId || rec.url}`;
+        : `web:${hackathonDedupeKey(rec) || rec.sourceId || rec.url}`;
     }
 
     if (runKeys.has(rec.dedupeKey)) continue;
@@ -187,7 +187,7 @@ export async function runHackathonScoutPipeline() {
 
     try {
       const outcome = await upsertHackathonRecord(rec, dedupe.keys);
-      const bucket = rec.source === "devpost" ? stats.devpost : stats.exa;
+      const bucket = rec.source === "devpost" ? stats.devpost : stats.web;
       if (outcome === "new") {
         bucket.newSaved += 1;
         stats.totalNew += 1;
@@ -202,7 +202,7 @@ export async function runHackathonScoutPipeline() {
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       if (msg.includes("duplicate key") || msg.includes("E11000")) {
-        const bucket = rec.source === "devpost" ? stats.devpost : stats.exa;
+        const bucket = rec.source === "devpost" ? stats.devpost : stats.web;
         bucket.skipped += 1;
       } else {
         errors.push(`upsert(${rec.title}): ${msg}`);

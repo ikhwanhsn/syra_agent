@@ -1,5 +1,5 @@
 /**
- * Injects API key for requests from trusted browser origins (syraa.fun, dashboard, agent, playground).
+ * Injects API key for requests from trusted browser origins (syraa.fun, dashboard, playground).
  * Covers agent chat, Alpha /x-projects-analyze, X single-account analyzer, etc.
  *
  * Syra frontends use Authorization: Bearer <access JWT> for wallet sessions. We still inject
@@ -24,8 +24,6 @@ const TRUSTED_ORIGINS = [
   "https://api.syraa.fun",
   "https://syraa.fun",
   "https://www.syraa.fun",
-  "https://agent.syraa.fun",
-  "https://www.agent.syraa.fun",
   "https://dashboard.syraa.fun",
   "https://www.dashboard.syraa.fun",
   "https://playground.syraa.fun",

@@ -147,13 +147,13 @@ export default function AgentFeatures() {
       <DocSection id="research-discovery" title="Research & Discovery" prose>
         <p>
           <strong>Deep research</strong> — Request structured research reports on topics you care about; the agent runs a
-          research pipeline and returns summarized, actionable insights. <strong>EXA search & crawl</strong> — Web search
+          research pipeline and returns summarized, actionable insights. <strong>Web search & crawl</strong> — Web search
           and site crawling for RAG-style research. <strong>Browser Use</strong> — Natural-language browser tasks for
           data extraction.
         </p>
         <p>
           <strong>Examples:</strong> <em>&quot;Run deep research on [topic]&quot;</em>,{" "}
-          <em>&quot;EXA search for Solana DeFi trends&quot;</em>, <em>&quot;Crawl docs.example.com&quot;</em>
+          <em>&quot;Web search for Solana DeFi trends&quot;</em>, <em>&quot;Crawl docs.example.com&quot;</em>
         </p>
       </DocSection>
 
