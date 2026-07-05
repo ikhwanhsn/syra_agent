@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Link } from "@/lib/navigation";
 import { ArrowUpRight, TrendingDown, TrendingUp } from "lucide-react";
@@ -15,13 +15,12 @@ import {
   assetPathFromQuery,
   fetchMintChart,
   fetchSwapMarketNews,
-  fetchTokenXPosts,
   type TokensDossierPayload,
 } from "@/lib/tokensDossierApi";
 import { TokensOhlcvChart } from "@/components/dossier/TokensOhlcvChart";
 import { AssetNewsList } from "@/components/assets/intelligence/AssetNewsList";
+import { AssetEventsList } from "@/components/assets/intelligence/AssetEventsList";
 import { SwapTokenLogo } from "@/components/swap/SwapTokenLogo";
-import { SwapTokenXPosts } from "@/components/swap/SwapTokenXPosts";
 import type { SelectedSwapToken } from "@/components/swap/TokenSelectDialog";
 
 type FocusSide = "output" | "input";
@@ -108,8 +107,8 @@ export function SwapMarketPanel({
     placeholderData: keepPreviousData,
   });
 
-  const newsQ = useQuery({
-    queryKey: ["swap-market-news", focusToken.mint, focusToken.symbol],
+  const feedQ = useQuery({
+    queryKey: ["swap-market-feed", focusToken.mint, focusToken.symbol, focusToken.name],
     queryFn: ({ signal }) =>
       fetchSwapMarketNews(
         {
@@ -122,30 +121,6 @@ export function SwapMarketPanel({
     enabled: Boolean(focusToken.mint),
     staleTime: 90_000,
     gcTime: 10 * 60_000,
-    retry: 0,
-    placeholderData: keepPreviousData,
-  });
-
-  // Lazy-load X posts only when the user asks — avoids billing on every swap visit.
-  const [xPostsEnabled, setXPostsEnabled] = useState(false);
-  useEffect(() => {
-    setXPostsEnabled(false);
-  }, [focusToken.mint]);
-
-  const xPostsQ = useQuery({
-    queryKey: ["swap-token-x-posts", focusToken.mint, focusToken.symbol],
-    queryFn: ({ signal }) =>
-      fetchTokenXPosts(
-        {
-          mint: focusToken.mint,
-          symbol: focusToken.symbol,
-          name: focusToken.name,
-        },
-        { signal },
-      ),
-    enabled: Boolean(focusToken.mint) && xPostsEnabled,
-    staleTime: 900_000,
-    gcTime: 20 * 60_000,
     retry: 0,
     placeholderData: keepPreviousData,
   });
@@ -164,20 +139,29 @@ export function SwapMarketPanel({
     [focusToken.mint, stats.assetId],
   );
 
-  const newsBlock = newsQ.data?.news ?? {
+  const feedError =
+    feedQ.isError
+      ? feedQ.error instanceof Error
+        ? feedQ.error.message
+        : "Market feed could not be loaded."
+      : undefined;
+
+  const newsBlock = feedQ.data?.news ?? {
     ok: false,
     items: [],
-    error: newsQ.isError
-      ? newsQ.error instanceof Error
-        ? newsQ.error.message
-        : "News could not be loaded."
-      : undefined,
+    error: feedError,
+  };
+
+  const eventsBlock = feedQ.data?.events ?? {
+    ok: false,
+    items: [],
+    error: feedError,
   };
 
   const candles = chartQ.data?.ohlcv.candles ?? [];
   const chartReady = candles.length >= 2;
   const showChartSkeleton = chartQ.isPending && !chartQ.data;
-  const showNewsSkeleton = newsQ.isPending && !newsQ.data;
+  const showFeedSkeleton = feedQ.isPending && !feedQ.data;
   const metricsLoading = showChartSkeleton;
 
   return (
@@ -315,37 +299,43 @@ export function SwapMarketPanel({
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
-        {showNewsSkeleton ? (
-          <Card className={overviewCardShell}>
-            <CardHeader className="pb-3">
-              <Skeleton className="mb-2 h-5 w-16 rounded-md" />
-              <Skeleton className="h-3 w-40 rounded-md" />
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="space-y-2 border-b border-border/40 pb-3 last:border-0">
-                  <Skeleton className="h-4 w-full rounded-md" />
-                  <Skeleton className="h-3 w-28 rounded-md" />
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+        {showFeedSkeleton ? (
+          <>
+            <Card className={overviewCardShell}>
+              <CardHeader className="pb-3">
+                <Skeleton className="mb-2 h-5 w-16 rounded-md" />
+                <Skeleton className="h-3 w-40 rounded-md" />
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="space-y-2 border-b border-border/40 pb-3 last:border-0">
+                    <Skeleton className="h-4 w-full rounded-md" />
+                    <Skeleton className="h-3 w-28 rounded-md" />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+            <Card className={overviewCardShell}>
+              <CardHeader className="pb-3">
+                <Skeleton className="mb-2 h-5 w-16 rounded-md" />
+                <Skeleton className="h-3 w-48 rounded-md" />
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="space-y-2 border-b border-border/40 pb-3 last:border-0">
+                    <Skeleton className="h-4 w-full rounded-md" />
+                    <Skeleton className="h-3 w-32 rounded-md" />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </>
         ) : (
-          <AssetNewsList news={newsBlock} />
+          <>
+            <AssetNewsList news={newsBlock} />
+            <AssetEventsList events={eventsBlock} />
+          </>
         )}
-        <SwapTokenXPosts
-          posts={xPostsQ.data?.posts ?? []}
-          idle={!xPostsEnabled}
-          onLoad={() => setXPostsEnabled(true)}
-          isLoading={xPostsEnabled && xPostsQ.isPending && !xPostsQ.data}
-          errorMessage={
-            xPostsQ.isError
-              ? xPostsQ.error instanceof Error
-                ? xPostsQ.error.message
-                : "X posts could not be loaded."
-              : undefined
-          }
-        />
       </div>
     </div>
   );

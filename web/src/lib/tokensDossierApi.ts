@@ -186,10 +186,11 @@ export async function fetchMintChart(
 export interface SwapMarketNewsPayload {
   query: { mint?: string; symbol?: string; name?: string };
   news: AssetIntelligencePayload["news"];
+  events: AssetIntelligencePayload["events"];
   fetchedAt: string;
 }
 
-/** Fast swap-panel news (symbol/name keywords only). */
+/** Swap-panel news + token events (shared scrape, crypto-biased). */
 export async function fetchSwapMarketNews(
   params: { mint?: string; symbol?: string; name?: string },
   opts?: { signal?: AbortSignal },
@@ -213,7 +214,10 @@ export async function fetchSwapMarketNews(
   if (!res.ok || body.success !== true || !body.data) {
     throw new Error(body.error || body.message || "Failed to load news");
   }
-  return body.data;
+  return {
+    ...body.data,
+    events: body.data.events ?? { ok: false, items: [] },
+  };
 }
 
 export interface AssetsBoardItem {

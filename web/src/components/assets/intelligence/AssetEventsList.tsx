@@ -19,7 +19,9 @@ export function AssetEventsList({
     <Card className={cn(overviewCardShell, className)}>
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-semibold tracking-tight">Events</CardTitle>
-        <CardDescription className="text-xs">Upcoming and recent events for this asset</CardDescription>
+        <CardDescription className="text-xs">
+          Calendar and news-derived catalysts for this token
+        </CardDescription>
       </CardHeader>
       <CardContent>
         {hasData ? (
