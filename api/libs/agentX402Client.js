@@ -14,6 +14,8 @@ import { createPrivyTransactionPartialSigner } from './privySvmX402Signer.js';
 import { getAgentFetch, SentinelBudgetError } from './agentFetch.js';
 import { preferMainnetSolanaAccepts } from '../config/x402NetworkOrder.js';
 import { recordOutboundX402Call } from '../utils/recordX402Call.js';
+import { resolveAgentBaseUrlCandidates, isSelfApiTransportError } from '../routes/agent/utils.js';
+import { isPrivyConfigured } from '../services/privyServerWallet.js';
 
 /** Server API key (first of API_KEYS or API_KEY) for internal x402 requests so they are not rejected with 403. */
 function getServerApiKey() {
@@ -441,6 +443,13 @@ export async function callX402V2WithAgent(opts) {
 
     const privyWallet = await getAgentPrivyWalletForX402(anonymousId);
     if (privyWallet) {
+      if (!isPrivyConfigured()) {
+        return {
+          success: false,
+          error:
+            'privy_not_configured: set PRIVY_APP_ID and PRIVY_APP_SECRET on the API server for Telegram/Privy wallets',
+        };
+      }
       const signer = createPrivyTransactionPartialSigner(privyWallet);
       return await callX402V2WithSigner(signer, callOpts, fetchFn);
     }
@@ -454,6 +463,53 @@ export async function callX402V2WithAgent(opts) {
     }
     return { success: false, error: msg };
   }
+}
+
+/**
+ * Pay-and-call a Syra-hosted x402 route (e.g. /signal). Tries loopback bases first, then BASE_URL.
+ * @param {object} opts
+ * @param {string} opts.anonymousId
+ * @param {string} opts.path - Tool path starting with /
+ * @param {string} [opts.method]
+ * @param {Record<string, string>} [opts.query]
+ * @param {object} [opts.body]
+ * @param {string} [opts.connectedWalletAddress]
+ * @returns {Promise<{ success: true; data: any } | { success: false; error: string; budgetExceeded?: boolean }>}
+ */
+export async function callX402V2WithAgentForSyraPath(opts) {
+  const {
+    anonymousId,
+    path: toolPath,
+    method = 'GET',
+    query = {},
+    body,
+    connectedWalletAddress,
+  } = opts;
+  const path = String(toolPath || '').startsWith('/') ? String(toolPath) : `/${toolPath || ''}`;
+  const bases = resolveAgentBaseUrlCandidates();
+  let last = { success: false, error: 'Request failed' };
+
+  for (let i = 0; i < bases.length; i++) {
+    const url = `${bases[i]}${path}`;
+    const result = await callX402V2WithAgent({
+      anonymousId,
+      url,
+      method,
+      query,
+      body,
+      connectedWalletAddress,
+    });
+    if (result.success) return result;
+    last = result;
+    const canRetry = isSelfApiTransportError(result.error) && i < bases.length - 1;
+    if (!canRetry) break;
+    console.warn(
+      `[agentX402] self-call via ${bases[i]} failed — trying ${bases[i + 1]}:`,
+      String(result.error || '').slice(0, 160),
+    );
+  }
+
+  return last;
 }
 
 /**

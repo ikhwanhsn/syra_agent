@@ -15,6 +15,8 @@ import {
 } from './syraTelegramBotMeta.js';
 import { startSyraTelegramPolling } from './syraTelegramPolling.js';
 import { startupInfo, startupWarn } from '../../utils/startupLog.js';
+import { resolveAgentBaseUrlCandidates } from '../../routes/agent/utils.js';
+import { getDefaultCustodyMode, isPrivyConfigured } from '../../services/privyServerWallet.js';
 
 export async function startSyraTelegramBot() {
   if (!isSyraTelegramBotEnabled()) {
@@ -25,6 +27,16 @@ export async function startSyraTelegramBot() {
   if (!isSyraTelegramBotConfigured()) {
     startupWarn('[syra-telegram] not started — missing SYRA_TELEGRAM_BOT_TOKEN in api/.env');
     return;
+  }
+
+  const selfCallBases = resolveAgentBaseUrlCandidates();
+  startupInfo('[syra-telegram] x402 self-call bases:', selfCallBases.join(' → '));
+
+  const custody = getDefaultCustodyMode();
+  if (custody === 'privy' && !isPrivyConfigured()) {
+    startupWarn(
+      '[syra-telegram] PRIVY_APP_ID / PRIVY_APP_SECRET missing — Telegram Privy wallets cannot sign x402 payments',
+    );
   }
 
   await registerSyraTelegramCommands().catch((e) => {

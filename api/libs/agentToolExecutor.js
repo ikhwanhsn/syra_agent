@@ -6,6 +6,7 @@ import { X402_PAYSH_FLOOR_USD, PASSTHROUGH_MARGIN } from '../config/x402Pricing.
 import { getEffectiveAgentToolPriceUsd } from './pactPricing.js';
 import {
   callX402V2WithAgent,
+  callX402V2WithAgentForSyraPath,
   signAndSubmitSerializedTransaction,
   signAndSubmitSwapTransaction,
 } from './agentX402Client.js';
@@ -49,7 +50,6 @@ import {
 } from './payshClient.js';
 import { runAgentscoreToolForAgent } from './agentscoreClient.js';
 import { runAipToolForAgent } from './aipClient.js';
-import { resolveAgentBaseUrl } from '../routes/agent/utils.js';
 
 /** @param {number} status @param {Record<string, unknown>} body */
 function respond(status, body) {
@@ -879,19 +879,18 @@ export async function executeAgentToolCall(input) {
       params = omitParamsKeys(params, pathSub.consumed);
     }
 
-    const url = `${resolveAgentBaseUrl()}${toolPath}`;
-  const method = tool.method || 'GET';
-  const query = method === 'GET' || method === 'DELETE' ? params : {};
-  const body = method === 'POST' ? params : undefined;
+    const method = tool.method || 'GET';
+    const query = method === 'GET' || method === 'DELETE' ? params : {};
+    const body = method === 'POST' ? params : undefined;
 
-  const result = await callX402V2WithAgent({
-    anonymousId,
-    url,
-    method,
-    query,
-    body,
-    connectedWalletAddress: connectedWallet || undefined,
-  });
+    const result = await callX402V2WithAgentForSyraPath({
+      anonymousId,
+      path: toolPath,
+      method,
+      query,
+      body,
+      connectedWalletAddress: connectedWallet || undefined,
+    });
 
   if (!result.success) {
     const status = result.budgetExceeded ? 402 : 502;

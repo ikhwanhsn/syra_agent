@@ -10,18 +10,22 @@ import {
   formatToolResultForLlm,
   withLlmIdentitySystemNote,
 } from '../../routes/agent/chat.js';
-import { resolveAgentBaseUrl } from '../../routes/agent/utils.js';
 import { callZerionWithAgent } from '../agentZerionClient.js';
 import { callBirdeyeWithAgent, isEmptyBirdeyePayload } from '../agentBirdeyeClient.js';
 import { getBirdeyeGateMissing } from '../../config/birdeyeAgentTools.js';
 import { runAgentPartnerDirectTool } from '../agentPartnerDirectTools.js';
 import { callOpenRouter } from '../openrouter.js';
 import { sanitizeUserMessage } from '../promptSanitizer.js';
-import { callX402V2WithAgent } from '../agentX402Client.js';
+import { callX402V2WithAgentForSyraPath } from '../agentX402Client.js';
 import { getAgentBalances } from '../agentWallet.js';
 import { getEffectiveAgentToolPriceUsd } from '../pactPricing.js';
 import { planTelegramAnswerButtons } from './answerButtonsService.js';
 import { buildTelegramChartAttachment } from './chartService.js';
+import {
+  classifyTelegramQuestion,
+  buildTelegramIntentSystemNotes,
+  isTelegramLiveDataQuestion,
+} from './questionIntent.js';
 
 const MAX_TOOLS_PER_REQUEST = 3;
 const MAX_TOKENS_WITH_TOOLS = 4096;
@@ -84,11 +88,9 @@ async function executeTelegramTool(anonymousId, tool, params, usdcBalance) {
       : { status: out.status ?? 502, error: out.error };
   }
 
-  const baseUrl = resolveAgentBaseUrl(null);
-  const url = `${baseUrl}${tool.path}`;
-  const result = await callX402V2WithAgent({
+  const result = await callX402V2WithAgentForSyraPath({
     anonymousId,
-    url,
+    path: tool.path,
     method,
     query: method === 'GET' ? params : {},
     body: method === 'POST' ? params : undefined,
@@ -194,21 +196,54 @@ export async function askSyraBrain({ anonymousId, payerAnonymousId, question }) 
   const userQuestion = sanitizedQuestion.trim() || rawQuestion;
 
   const chat = await getOrCreateTelegramChat(id);
-  const conversationSnippet = buildConversationSnippet(chat);
+  const questionIntent = classifyTelegramQuestion(userQuestion);
 
-  let matchedTools = (await selectToolsWithLlm(userQuestion, conversationSnippet)).tools;
+  if (questionIntent === 'off_topic') {
+    const declineText = [
+      "I'm **Syra** — your crypto & web3 copilot on Solana.",
+      '',
+      'I focus on DeFi, trading, tokens, markets, tech, and Syra tools.',
+      'That question seems outside my lane — try something like:',
+      '• What is Hyperliquid?',
+      '• How does impermanent loss work?',
+      '• BTC trading signal',
+    ].join('\n');
+    await persistChatTurn(chat, userQuestion, declineText, []);
+    const buttonPlan = await planTelegramAnswerButtons({
+      userQuestion,
+      assistantAnswer: declineText,
+      toolsUsed: [],
+    });
+    return {
+      text: declineText,
+      toolsUsed: [],
+      showFollowUps: buttonPlan.showFollowUps,
+      followUpQuestions: buttonPlan.followUpQuestions,
+      showMainMenu: buttonPlan.showMainMenu,
+      followUpExpiresAt: buttonPlan.followUpExpiresAt,
+    };
+  }
+
+  const conversationSnippet = buildConversationSnippet(chat);
+  const wantsLiveData = isTelegramLiveDataQuestion(userQuestion);
+
+  let matchedTools = wantsLiveData
+    ? (await selectToolsWithLlm(userQuestion, conversationSnippet)).tools
+    : [];
   matchedTools = Array.isArray(matchedTools) ? matchedTools.slice(0, MAX_TOOLS_PER_REQUEST) : [];
 
-  const heuristic = matchToolFromUserMessage(userQuestion);
-  if (heuristic?.toolId && getAgentTool(heuristic.toolId)) {
-    const forceHeuristic = ['news', 'signal', 'sentiment', 'spcx-intelligence'].includes(heuristic.toolId);
-    if (forceHeuristic || !matchedTools.length) {
-      matchedTools = [
-        {
-          toolId: heuristic.toolId,
-          params: heuristic.params && typeof heuristic.params === 'object' ? heuristic.params : {},
-        },
-      ];
+  if (wantsLiveData) {
+    const heuristic = matchToolFromUserMessage(userQuestion);
+    if (heuristic?.toolId && getAgentTool(heuristic.toolId)) {
+      const forceHeuristic = ['news', 'signal', 'sentiment', 'spcx-intelligence'].includes(heuristic.toolId);
+      if (forceHeuristic || !matchedTools.length) {
+        matchedTools = [
+          {
+            toolId: heuristic.toolId,
+            params: heuristic.params && typeof heuristic.params === 'object' ? heuristic.params : {},
+          },
+        ];
+      }
     }
   }
 
@@ -225,15 +260,16 @@ export async function askSyraBrain({ anonymousId, payerAnonymousId, question }) 
 
   const systemContent = [
     'You are Syra — machine money for agents on Solana. You can chat naturally and use paid tools when the user asks for specific live data.',
-    `Syra's tools (used only when needed for live data):\n${capabilitiesList}`,
-    'When the user is greeting you, asking general crypto questions, or chatting casually — respond naturally without mentioning tools or payments.',
-    'When the user asks for live data (prices, news, signals, trending tokens, etc.), use ONLY tool results provided below — never fabricate numbers.',
+    buildTelegramIntentSystemNotes(questionIntent),
+    `Syra's live-data tools (only when the user needs current prices, news, signals, etc.):\n${capabilitiesList}`,
     'If a paid tool was skipped or failed because of insufficient USDC, tell the user to deposit USDC to their Syra agent wallet (Wallet button) and try again. Do not mention daily limits or pricing tiers.',
     billingReferral
       ? 'This user joined via a referral — paid tools are billed from their referrer\'s wallet. If USDC is insufficient, tell them their referrer must deposit USDC to their Syra wallet.'
       : '',
     'Response format: clear, concise Telegram-friendly markdown. Never mention third-party API brands — always present as Syra.',
-  ].join('\n\n');
+  ]
+    .filter(Boolean)
+    .join('\n\n');
 
   apiMessages.unshift({ role: 'system', content: systemContent });
 
@@ -315,7 +351,15 @@ export async function askSyraBrain({ anonymousId, payerAnonymousId, question }) 
     }
 
     if (toolErrors.length > 0 && toolResults.length === 0) {
-      apiMessages.push({ role: 'user', content: toolErrors[0] });
+      if (questionIntent === 'live_data') {
+        apiMessages.push({ role: 'user', content: toolErrors[0] });
+      } else {
+        apiMessages.push({
+          role: 'user',
+          content:
+            '[Note: live tools were not used or did not return data. Answer from your crypto/web3/tech knowledge. Do not say you lack tools or could not find data.]',
+        });
+      }
     } else if (toolResults.length > 0) {
       apiMessages.push({ role: 'user', content: toolResults.join('\n\n---\n\n') });
       if (toolErrors.length > 0) {
