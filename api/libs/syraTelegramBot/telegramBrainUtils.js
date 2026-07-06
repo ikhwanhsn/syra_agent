@@ -5,7 +5,13 @@ import { getAgentTool, matchToolFromUserMessage } from '../../config/agentTools.
 import { selectToolsWithLlm } from '../../routes/agent/chat.js';
 import { isTelegramLiveDataQuestion } from './questionIntent.js';
 
-const HEURISTIC_FORCE_TOOLS = new Set(['news', 'signal', 'sentiment', 'spcx-intelligence']);
+const HEURISTIC_FORCE_TOOLS = new Set([
+  'news',
+  'signal',
+  'sentiment',
+  'spcx-intelligence',
+  'stablecrypto-coingecko-price',
+]);
 const MAX_TOOLS = 3;
 
 /**

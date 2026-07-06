@@ -39,5 +39,45 @@ export function formatNewsTelegram(data, ticker = 'general') {
   return lines.join('\n').trim();
 }
 
+const COIN_LABELS = Object.freeze({
+  bitcoin: 'BTC',
+  ethereum: 'ETH',
+  solana: 'SOL',
+});
+
+/**
+ * @param {unknown} data
+ * @param {string} [idsHint]
+ * @returns {string | null}
+ */
+export function formatPriceTelegram(data, idsHint = '') {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
+
+  const rows = Object.entries(/** @type {Record<string, unknown>} */ (data)).filter(
+    ([key, value]) => key !== 'success' && value && typeof value === 'object' && !Array.isArray(value),
+  );
+  if (rows.length === 0) return null;
+
+  const lines = ['💰 **Live prices**', ''];
+  for (const [id, prices] of rows.slice(0, 6)) {
+    const quote = /** @type {Record<string, unknown>} */ (prices);
+    const usd = quote.usd ?? quote.USD;
+    const amount = Number(usd);
+    if (!Number.isFinite(amount)) continue;
+    const label = COIN_LABELS[id] || id.charAt(0).toUpperCase() + id.slice(1);
+    const formatted = amount.toLocaleString('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: amount >= 1 ? 2 : 6,
+    });
+    lines.push(`• **${label}**: ${formatted}`);
+  }
+
+  if (lines.length <= 2 && idsHint) {
+    return null;
+  }
+  return lines.length > 2 ? lines.join('\n').trim() : null;
+}
+
 /** Tools that can skip LLM synthesis when direct format succeeds. */
-export const TELEGRAM_DIRECT_FORMAT_TOOLS = new Set(['news']);
+export const TELEGRAM_DIRECT_FORMAT_TOOLS = new Set(['news', 'stablecrypto-coingecko-price']);

@@ -9,13 +9,9 @@ import {
   formatToolResultForLlm,
   withLlmIdentitySystemNote,
 } from '../../routes/agent/chat.js';
-import { callZerionWithAgent } from '../agentZerionClient.js';
-import { callBirdeyeWithAgent, isEmptyBirdeyePayload } from '../agentBirdeyeClient.js';
-import { getBirdeyeGateMissing } from '../../config/birdeyeAgentTools.js';
-import { runAgentPartnerDirectTool } from '../agentPartnerDirectTools.js';
+import { executeAgentToolCall } from '../agentToolExecutor.js';
 import { callOpenRouter } from '../openrouter.js';
 import { sanitizeUserMessage } from '../promptSanitizer.js';
-import { callX402V2WithAgentForSyraPath } from '../agentX402Client.js';
 import { getAgentBalances } from '../agentWallet.js';
 import { getEffectiveAgentToolPriceUsd } from '../pactPricing.js';
 import { planTelegramAnswerButtons } from './answerButtonsService.js';
@@ -27,6 +23,7 @@ import {
 import { resolveTelegramMatchedTools, withTelegramTimeout } from './telegramBrainUtils.js';
 import {
   formatNewsTelegram,
+  formatPriceTelegram,
   TELEGRAM_DIRECT_FORMAT_TOOLS,
 } from './telegramToolFormat.js';
 
@@ -47,6 +44,32 @@ function enforceSyraBranding(text) {
 }
 
 /**
+ * @param {string} err
+ * @param {{ budgetExceeded?: boolean }} result
+ * @param {boolean} billingReferral
+ * @returns {string | null}
+ */
+function buildLiveDataFailureText(err, result, billingReferral) {
+  const needsUsdc = result.budgetExceeded || /USDC|insufficient|no USDC|token account/i.test(err);
+  const needsSol = /SOL|transaction fee|debit an account|no record of a prior credit/i.test(err);
+  const isWalletConfig =
+    /Agent wallet not found|privy_not_configured|missing_privy_wallet_id/i.test(err);
+
+  if (isWalletConfig) {
+    return 'Your Syra agent wallet is not ready yet. Open **Wallet** in the bot menu, then try again.';
+  }
+  if (needsUsdc) {
+    return billingReferral
+      ? 'Live data tools bill from your referrer\'s wallet. Ask them to deposit USDC via **Wallet**, then try again.'
+      : 'Deposit a small amount of USDC to your Syra wallet (**Wallet** button) to fetch live prices and news, then try again.';
+  }
+  if (needsSol) {
+    return 'Your agent wallet needs a small amount of SOL (about 0.01) for transaction fees. Add SOL via **Wallet**, then try again.';
+  }
+  return null;
+}
+
+/**
  * @param {string} anonymousId
  * @param {import('../../config/agentTools.js').AgentToolDefinition} tool
  * @param {Record<string, string>} params
@@ -62,56 +85,33 @@ async function executeTelegramTool(anonymousId, tool, params, usdcBalance) {
     return { status: 402, error: msg, budgetExceeded: true };
   }
 
-  const method = tool.method || 'GET';
+  const normalizedParams = Object.fromEntries(
+    Object.entries(params || {})
+      .filter(([k, v]) => typeof k === 'string' && v != null && v !== '')
+      .map(([k, v]) => [k, typeof v === 'string' ? v : String(v)]),
+  );
 
-  if (tool.zerionPath) {
-    const zr = await callZerionWithAgent(anonymousId, tool.zerionPath, method, params);
-    return zr.success
-      ? { status: 200, data: zr.data }
-      : { status: zr.budgetExceeded ? 402 : 502, error: zr.error, budgetExceeded: zr.budgetExceeded };
-  }
-
-  if (tool.birdeyePath) {
-    const birdeyeMissing = getBirdeyeGateMissing(tool.id, params);
-    if (birdeyeMissing?.length) {
-      return { status: 502, error: `Missing Birdeye params: ${birdeyeMissing.join(', ')}` };
-    }
-    const p = params.chain ? params : { ...params, chain: 'solana' };
-    const br = await callBirdeyeWithAgent(anonymousId, tool.birdeyePath, method, p);
-    if (br.success && isEmptyBirdeyePayload(br.data)) {
-      return { status: 502, error: 'Birdeye returned an empty response for this query' };
-    }
-    return br.success
-      ? { status: 200, data: br.data }
-      : { status: br.budgetExceeded ? 402 : 502, error: br.error, budgetExceeded: br.budgetExceeded };
-  }
-
-  if (tool.agentDirect) {
-    const out = await runAgentPartnerDirectTool(tool.id, params, { host: null });
-    return out.ok
-      ? { status: out.httpStatus ?? 200, data: out.data }
-      : { status: out.status ?? 502, error: out.error };
-  }
-
-  const result = await withTelegramTimeout(
-    callX402V2WithAgentForSyraPath({
+  const execResult = await withTelegramTimeout(
+    executeAgentToolCall({
       anonymousId,
-      path: tool.path,
-      method,
-      query: method === 'GET' ? params : {},
-      body: method === 'POST' ? params : undefined,
+      toolId: tool.id,
+      params: normalizedParams,
+      ctx: {},
     }),
     TELEGRAM_TOOL_TIMEOUT_MS,
     tool.name || tool.id,
   );
-  if (!result.success) {
-    return {
-      status: result.budgetExceeded ? 402 : 502,
-      error: result.error,
-      budgetExceeded: result.budgetExceeded,
-    };
+
+  const { status, body } = execResult;
+  if (body?.success) {
+    return { status: 200, data: body.data };
   }
-  return { status: 200, data: result.data };
+
+  return {
+    status: body?.budgetExceeded ? 402 : status >= 400 ? status : 502,
+    error: body?.error || 'Request failed',
+    budgetExceeded: body?.budgetExceeded === true,
+  };
 }
 
 /**
@@ -302,6 +302,9 @@ async function askSyraBrainInner({ anonymousId, payerAnonymousId, question }) {
     const toolResults = [];
     const toolErrors = [];
 
+    /** @type {Array<{ err: string; result: { budgetExceeded?: boolean } }>} */
+    const liveDataFailures = [];
+
     for (const matched of matchedTools) {
       const tool = getAgentTool(matched.toolId);
       if (!tool) continue;
@@ -348,12 +351,16 @@ async function askSyraBrainInner({ anonymousId, payerAnonymousId, question }) {
         }
         toolErrors.push(`[Tool "${tool.name}" failed: ${err}. ${hint}]`);
         toolUsages.push({ name: tool.name, status: 'error' });
+        liveDataFailures.push({ err, result });
       } else {
         hadToolResults = true;
         toolUsages.push({ name: tool.name, status: 'complete' });
         if (TELEGRAM_DIRECT_FORMAT_TOOLS.has(matched.toolId)) {
           if (matched.toolId === 'news') {
             const direct = formatNewsTelegram(result.data, params.ticker);
+            if (direct) directTelegramText = direct;
+          } else if (matched.toolId === 'stablecrypto-coingecko-price') {
+            const direct = formatPriceTelegram(result.data, params.ids || params.id);
             if (direct) directTelegramText = direct;
           }
         }
@@ -368,6 +375,31 @@ async function askSyraBrainInner({ anonymousId, payerAnonymousId, question }) {
         toolResults.push(
           `[Result from tool "${tool.name}" — present clearly for Telegram.]\n\n${formatted}`,
         );
+      }
+    }
+
+    if (toolErrors.length > 0 && toolResults.length === 0 && questionIntent === 'live_data') {
+      const firstFailure = liveDataFailures[0];
+      const directFailure = firstFailure
+        ? buildLiveDataFailureText(firstFailure.err, firstFailure.result, billingReferral)
+        : null;
+      if (directFailure) {
+        const text = enforceSyraBranding(directFailure) || directFailure;
+        await persistChatTurn(chat, userQuestion, text, toolUsages);
+        const buttonPlan = await planTelegramAnswerButtons({
+          userQuestion,
+          assistantAnswer: text,
+          toolsUsed: [],
+        });
+        return {
+          text,
+          toolsUsed: [],
+          chartAttachment: null,
+          showFollowUps: buttonPlan.showFollowUps,
+          followUpQuestions: buttonPlan.followUpQuestions,
+          showMainMenu: buttonPlan.showMainMenu,
+          followUpExpiresAt: buttonPlan.followUpExpiresAt,
+        };
       }
     }
 
