@@ -2623,7 +2623,7 @@ export function matchToolFromUserMessage(userMessage) {
     {
       toolId: 'news',
       test: () =>
-        /(latest|recent|crypto|get|fetch|show)\s*news|news\s*(about|for|on)?|what\'?s\s*the\s*news|news\s*(please|now)/i.test(
+        /(latest|recent|crypto|get|give|fetch|show)\s*(?:me\s+)?(?:\w+\s+)*news|news\s*(about|for|on)?|what\'?s\s*the\s*news|news\s*(please|now)|\b\w+\s+news\b/i.test(
           text
         ),
       params: () => (ticker && ticker !== 'GENERAL' ? { ticker } : { ticker: 'general' }),

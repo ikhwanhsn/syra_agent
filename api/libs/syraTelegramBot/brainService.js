@@ -3,10 +3,9 @@
  */
 import crypto from 'node:crypto';
 import Chat from '../../models/agent/Chat.js';
-import { getAgentTool, getCapabilitiesList, matchToolFromUserMessage } from '../../config/agentTools.js';
+import { getAgentTool, getCapabilitiesList } from '../../config/agentTools.js';
 import { OPENROUTER_DEFAULT_MODEL } from '../../config/openrouterModels.js';
 import {
-  selectToolsWithLlm,
   formatToolResultForLlm,
   withLlmIdentitySystemNote,
 } from '../../routes/agent/chat.js';
@@ -24,12 +23,18 @@ import { buildTelegramChartAttachment } from './chartService.js';
 import {
   classifyTelegramQuestion,
   buildTelegramIntentSystemNotes,
-  isTelegramLiveDataQuestion,
 } from './questionIntent.js';
+import { resolveTelegramMatchedTools, withTelegramTimeout } from './telegramBrainUtils.js';
+import {
+  formatNewsTelegram,
+  TELEGRAM_DIRECT_FORMAT_TOOLS,
+} from './telegramToolFormat.js';
 
-const MAX_TOOLS_PER_REQUEST = 3;
-const MAX_TOKENS_WITH_TOOLS = 4096;
-const MAX_TOKENS_DEFAULT = 2000;
+const MAX_TOKENS_WITH_TOOLS = 900;
+const MAX_TOKENS_DEFAULT = 700;
+const TELEGRAM_LLM_TIMEOUT_MS = 22_000;
+const TELEGRAM_TOOL_TIMEOUT_MS = 45_000;
+const TELEGRAM_BALANCE_TIMEOUT_MS = 8_000;
 const MAX_HISTORY_MESSAGES = 10;
 const TELEGRAM_CHAT_TITLE = 'Telegram';
 
@@ -88,13 +93,17 @@ async function executeTelegramTool(anonymousId, tool, params, usdcBalance) {
       : { status: out.status ?? 502, error: out.error };
   }
 
-  const result = await callX402V2WithAgentForSyraPath({
-    anonymousId,
-    path: tool.path,
-    method,
-    query: method === 'GET' ? params : {},
-    body: method === 'POST' ? params : undefined,
-  });
+  const result = await withTelegramTimeout(
+    callX402V2WithAgentForSyraPath({
+      anonymousId,
+      path: tool.path,
+      method,
+      query: method === 'GET' ? params : {},
+      body: method === 'POST' ? params : undefined,
+    }),
+    TELEGRAM_TOOL_TIMEOUT_MS,
+    tool.name || tool.id,
+  );
   if (!result.success) {
     return {
       status: result.budgetExceeded ? 402 : 502,
@@ -184,6 +193,28 @@ async function persistChatTurn(chat, userContent, assistantContent, toolUsages =
  * @returns {Promise<{ text: string; toolsUsed: string[]; chartAttachment?: object; showFollowUps: boolean; followUpQuestions: string[]; showMainMenu: boolean; followUpExpiresAt?: Date; limited?: boolean }>}
  */
 export async function askSyraBrain({ anonymousId, payerAnonymousId, question }) {
+  try {
+    return await askSyraBrainInner({ anonymousId, payerAnonymousId, question });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error('[syra-telegram] askSyraBrain failed:', e instanceof Error ? e.stack || msg : msg);
+    const isTimeout = /timed out/i.test(msg);
+    return {
+      text: isTimeout
+        ? 'That took too long — please try again.\n\nTip: **SOL news**, **BTC signal**, or **ETH price** work best as short commands.'
+        : 'Something went wrong. Please try again in a moment.',
+      toolsUsed: [],
+      showFollowUps: false,
+      followUpQuestions: [],
+      showMainMenu: true,
+    };
+  }
+}
+
+/**
+ * @param {{ anonymousId: string; payerAnonymousId?: string; question: string }} input
+ */
+async function askSyraBrainInner({ anonymousId, payerAnonymousId, question }) {
   const id = String(anonymousId || '').trim();
   const payerId = String(payerAnonymousId || anonymousId || '').trim();
   const billingReferral = payerId !== id;
@@ -225,35 +256,15 @@ export async function askSyraBrain({ anonymousId, payerAnonymousId, question }) 
   }
 
   const conversationSnippet = buildConversationSnippet(chat);
-  const wantsLiveData = isTelegramLiveDataQuestion(userQuestion);
 
-  let matchedTools = wantsLiveData
-    ? (await selectToolsWithLlm(userQuestion, conversationSnippet)).tools
-    : [];
-  matchedTools = Array.isArray(matchedTools) ? matchedTools.slice(0, MAX_TOOLS_PER_REQUEST) : [];
+  const [matchedTools, balanceResult] = await Promise.all([
+    resolveTelegramMatchedTools(userQuestion, conversationSnippet),
+    withTelegramTimeout(getAgentBalances(payerId), TELEGRAM_BALANCE_TIMEOUT_MS, 'Balance check').catch(
+      () => null,
+    ),
+  ]);
 
-  if (wantsLiveData) {
-    const heuristic = matchToolFromUserMessage(userQuestion);
-    if (heuristic?.toolId && getAgentTool(heuristic.toolId)) {
-      const forceHeuristic = ['news', 'signal', 'sentiment', 'spcx-intelligence'].includes(heuristic.toolId);
-      if (forceHeuristic || !matchedTools.length) {
-        matchedTools = [
-          {
-            toolId: heuristic.toolId,
-            params: heuristic.params && typeof heuristic.params === 'object' ? heuristic.params : {},
-          },
-        ];
-      }
-    }
-  }
-
-  let usdcBalance = 0;
-  try {
-    const balances = await getAgentBalances(payerId);
-    usdcBalance = balances?.usdcBalance ?? 0;
-  } catch {
-    usdcBalance = 0;
-  }
+  let usdcBalance = balanceResult?.usdcBalance ?? 0;
 
   const capabilitiesList = getCapabilitiesList().join('\n');
   const apiMessages = [{ role: 'user', content: userQuestion }];
@@ -281,6 +292,7 @@ export async function askSyraBrain({ anonymousId, payerAnonymousId, question }) 
   }
 
   let hadToolResults = false;
+  let directTelegramText = null;
   /** @type {Array<{ name: string; status: string }>} */
   const toolUsages = [];
   /** @type {{ png: Buffer; caption: string; detailUrl: string } | null} */
@@ -309,7 +321,10 @@ export async function askSyraBrain({ anonymousId, payerAnonymousId, question }) 
           .map(([k, v]) => [k, typeof v === 'string' ? v : String(v)]),
       );
 
-      const result = await executeTelegramTool(payerId, tool, params, usdcBalance);
+      const result = await executeTelegramTool(payerId, tool, params, usdcBalance).catch((e) => ({
+        status: 502,
+        error: e instanceof Error ? e.message : String(e),
+      }));
 
       if (result.status !== 200) {
         const err = result.error || 'Request failed';
@@ -336,6 +351,12 @@ export async function askSyraBrain({ anonymousId, payerAnonymousId, question }) 
       } else {
         hadToolResults = true;
         toolUsages.push({ name: tool.name, status: 'complete' });
+        if (TELEGRAM_DIRECT_FORMAT_TOOLS.has(matched.toolId)) {
+          if (matched.toolId === 'news') {
+            const direct = formatNewsTelegram(result.data, params.ticker);
+            if (direct) directTelegramText = direct;
+          }
+        }
         if (!chartAttachment) {
           try {
             chartAttachment = await buildTelegramChartAttachment(matched.toolId, params, result.data);
@@ -368,8 +389,31 @@ export async function askSyraBrain({ anonymousId, payerAnonymousId, question }) 
     }
   }
 
+  const toolsUsed = toolUsages.filter((t) => t.status === 'complete').map((t) => t.name);
+
+  if (directTelegramText) {
+    const text = enforceSyraBranding(directTelegramText) || directTelegramText;
+    await persistChatTurn(chat, userQuestion, text, toolUsages);
+    const buttonPlan = await planTelegramAnswerButtons({
+      userQuestion,
+      assistantAnswer: text,
+      toolsUsed,
+    });
+    return {
+      text,
+      toolsUsed,
+      chartAttachment,
+      showFollowUps: buttonPlan.showFollowUps,
+      followUpQuestions: buttonPlan.followUpQuestions,
+      showMainMenu: buttonPlan.showMainMenu,
+      followUpExpiresAt: buttonPlan.followUpExpiresAt,
+    };
+  }
+
   const llmOptions = {
     max_tokens: hadToolResults ? MAX_TOKENS_WITH_TOOLS : MAX_TOKENS_DEFAULT,
+    timeoutMs: TELEGRAM_LLM_TIMEOUT_MS,
+    temperature: hadToolResults ? 0.35 : 0.6,
   };
 
   const { response } = await callOpenRouter(
@@ -379,7 +423,6 @@ export async function askSyraBrain({ anonymousId, payerAnonymousId, question }) 
 
   const text =
     enforceSyraBranding(response) || "I couldn't generate a response. Please try again.";
-  const toolsUsed = toolUsages.filter((t) => t.status === 'complete').map((t) => t.name);
 
   await persistChatTurn(chat, userQuestion, text, toolUsages);
 

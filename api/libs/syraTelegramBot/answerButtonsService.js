@@ -181,6 +181,15 @@ export async function planTelegramAnswerButtons({ userQuestion, assistantAnswer,
     return heuristic;
   }
 
+  if (tools.length > 0) {
+    return {
+      showFollowUps: true,
+      followUpQuestions: buildFallbackFollowUps(question),
+      showMainMenu: false,
+      followUpExpiresAt: followUpSuggestionsExpiry(),
+    };
+  }
+
   try {
     const { response } = await callOpenRouter(
       [

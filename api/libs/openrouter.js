@@ -125,6 +125,9 @@ export async function callOpenRouter(messages, options = {}) {
       presence_penalty: 0,
       frequency_penalty: 0,
     }),
+    ...(typeof options.timeoutMs === 'number' && options.timeoutMs > 0
+      ? { signal: AbortSignal.timeout(options.timeoutMs) }
+      : {}),
   });
 
   const data = await response.json().catch(() => ({}));
