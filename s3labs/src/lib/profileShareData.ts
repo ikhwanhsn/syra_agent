@@ -77,7 +77,7 @@ export function buildProfileShareFromWallet(input: WalletProfileShareInput): Kol
   }
 
   const shareHandle = cleanHandle || "creator";
-  const shareUrl = cleanHandle ? buildKolProfileShareUrl(cleanHandle) : "https://s3labs.id/kol";
+  const shareUrl = cleanHandle ? buildKolProfileShareUrl(cleanHandle) : "https://s3labs.xyz/kol";
 
   return {
     handle: shareHandle,

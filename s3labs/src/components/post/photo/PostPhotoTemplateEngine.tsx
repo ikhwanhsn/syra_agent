@@ -220,7 +220,7 @@ function renderBlock(block: PhotoBlockId, content: PostPhotoContent, def: PhotoT
     case "url-inline":
       return (
         <p key={block} className="post-photo-url post-photo-url--inline">
-          s3labs.io
+          s3labs.xyz
         </p>
       );
     default:

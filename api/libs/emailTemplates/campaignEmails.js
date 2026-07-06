@@ -45,7 +45,7 @@ function wrapEmailLayout({ title, preheader = "", bodyHtml, unsubscribeUrl }) {
                 S3 Labs &mdash; Growth partner for Solana developers
               </p>
               <p style="margin:0;font-size:12px;line-height:1.6;color:${MUTED_COLOR};">
-                <a href="${S3LABS_SITE_URL}" style="color:${BRAND_COLOR};text-decoration:none;">s3labs.io</a>
+                <a href="${S3LABS_SITE_URL}" style="color:${BRAND_COLOR};text-decoration:none;">s3labs.xyz</a>
                 &nbsp;&middot;&nbsp;
                 <a href="${unsubscribeUrl}" style="color:${MUTED_COLOR};text-decoration:underline;">Unsubscribe</a>
               </p>

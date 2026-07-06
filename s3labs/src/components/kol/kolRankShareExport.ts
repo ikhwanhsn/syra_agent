@@ -77,8 +77,8 @@ function sanitizeFilename(name: string): string {
   return name.replace(/[^a-z0-9-]+/gi, "-").replace(/-+/g, "-").toLowerCase();
 }
 
-export const KOL_SHARE_PUBLIC_ORIGIN = "https://s3labs.id";
-export const KOL_SHARE_PUBLIC_LABEL = "s3labs.id/kol";
+export const KOL_SHARE_PUBLIC_ORIGIN = "https://s3labs.xyz";
+export const KOL_SHARE_PUBLIC_LABEL = "s3labs.xyz/kol";
 
 export function buildKolRankShareFilename(handle: string, rank: number): string {
   return `s3labs-kol-rank-${sanitizeFilename(handle)}-#${rank}.png`;

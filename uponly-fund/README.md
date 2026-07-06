@@ -65,14 +65,6 @@ Up Only Fund is presented as its **own program brand**. Syra is referenced as th
 | `/create-token` | RISE token creation flow |
 | `/token/:address` | Token detail page |
 
-### Investor brief studio
-
-| Route | Description |
-|-------|-------------|
-| `/post` | Numbered fund update registry |
-| `/post/video/:n` | Video brief deck for screen recording |
-| `/post/photo/:n` | Photo card export for social |
-
 ### Legacy redirects
 
 `/uponly/overview`, `/uponly/fund`, `/uponly/rise`, and `/dashboard/*` redirect to the routes above. Set `LINK_UPONLY_APP` in the main Syra **`landing`** app’s `config/global.ts` so legacy paths on syraa.fun redirect to this app’s public origin.
@@ -85,7 +77,7 @@ Up Only Fund is presented as its **own program brand**. Syra is referenced as th
 |-------|------|
 | **Syra** | Parent infrastructure — machine money for agents (Earn, Treasury, Invest, Spend, Grow) |
 | **Up Only Fund** | Syra-backed allocator — published mandate, RISE tooling, fund command dashboard |
-| **S3 Labs** | Syra-backed growth studio — developer programs and community ([s3labs.id](https://s3labs.id)) |
+| **S3 Labs** | Syra-backed growth studio — developer programs and community ([s3labs.xyz](https://s3labs.xyz)) |
 
 RISE market data, terminal KPIs, and agent-adjacent routes call the Syra API (`api.syraa.fun`). Support email routes through Syra ops: `support@syraa.fun`.
 

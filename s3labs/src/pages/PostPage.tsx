@@ -88,7 +88,7 @@ export default function PostPage() {
               to="/"
               className="mt-8 inline-flex w-fit items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-white/35 transition-colors hover:text-primary/90"
             >
-              ← Back to s3labs.io
+              ← Back to s3labs.xyz
             </Link>
           </motion.div>
 

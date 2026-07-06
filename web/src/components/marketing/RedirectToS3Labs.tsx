@@ -1,6 +1,6 @@
 import { useEffect, type ReactElement } from "react";
 
-const S3LABS_ORIGIN = "https://s3labs.io";
+const S3LABS_ORIGIN = "https://s3labs.xyz";
 
 type RedirectToS3LabsProps = {
   path?: string;

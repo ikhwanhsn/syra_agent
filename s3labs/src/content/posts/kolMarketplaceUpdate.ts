@@ -20,12 +20,12 @@ Projects fund SOL rewards for posts they want amplified. KOLs submit reply or qu
 
 Launch a campaign or start earning.
 
-s3labs.io/kol ↓`,
+s3labs.xyz/kol ↓`,
     shareCopyPhoto: `KOL MARKETPLACE · Live on S3 Labs.
 
 Projects fund SOL for X amplification. KOLs earn pro-rata by engagement on reply and quote posts. Daily tracking. Automatic on-chain payout.
 
-s3labs.io/kol`,
+s3labs.xyz/kol`,
   },
   slides: [
     {
@@ -137,31 +137,31 @@ s3labs.io/kol`,
           icon: Wallet,
           title: "For Projects",
           description: "Create campaigns, fund SOL rewards, and monitor submissions from one tab.",
-          href: "https://s3labs.io/kol",
+          href: "https://s3labs.xyz/kol",
         },
         {
           icon: Users,
           title: "For KOLs",
           description: "Browse active campaigns, submit tweets, and track projected earnings.",
-          href: "https://s3labs.io/kol",
+          href: "https://s3labs.xyz/kol",
         },
         {
           icon: TrendingUp,
           title: "Leaderboard",
           description: "Live engagement rankings and pro-rata payout projections per campaign.",
-          href: "https://s3labs.io/kol",
+          href: "https://s3labs.xyz/kol",
         },
         {
           icon: Zap,
           title: "Daily refresh",
           description: "Metrics update automatically so scores reflect real performance.",
-          href: "https://s3labs.io/kol",
+          href: "https://s3labs.xyz/kol",
         },
         {
           icon: Coins,
           title: "My Earnings",
           description: "Wallet-linked dashboard for projected and paid SOL rewards.",
-          href: "https://s3labs.io/kol",
+          href: "https://s3labs.xyz/kol",
         },
       ],
     },
@@ -188,8 +188,8 @@ s3labs.io/kol`,
       headline: "Launch a campaign. Start earning.",
       subline: "KOL Marketplace is live on S3 Labs — fund X amplification or submit your best reply and quote posts.",
       links: [
-        { label: "KOL Marketplace", value: "s3labs.io/kol", href: "https://s3labs.io/kol" },
-        { label: "Website", value: "s3labs.io", href: "https://s3labs.io" },
+        { label: "KOL Marketplace", value: "s3labs.xyz/kol", href: "https://s3labs.xyz/kol" },
+        { label: "Website", value: "s3labs.xyz", href: "https://s3labs.xyz" },
         { label: "Community", value: "t.me/s3labs", href: "https://t.me/s3labs" },
       ],
     },

@@ -6,7 +6,7 @@ export const KOL_MARKETPLACE_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, strin
 
 Projects fund SOL rewards for posts they want amplified. KOLs earn pro-rata by engagement on reply and quote tweets.
 
-s3labs.io/kol`,
+s3labs.xyz/kol`,
 
   thesis: `Distribution shouldn't be a black box.
 
@@ -38,7 +38,7 @@ Pro-rata pool — fair share by score at snapshot
 On-chain SOL — transparent funding and payouts`,
 
   checklist: `What's live today:
-— KOL Marketplace at s3labs.io/kol
+— KOL Marketplace at s3labs.xyz/kol
 — Project campaign creation with Solana wallet
 — KOL reply and quote tweet submissions
 — Daily engagement scoring and leaderboard
@@ -54,7 +54,7 @@ Performance drives payout — not flat rates.`,
 
 KOLs earn in proportion to verified engagement at snapshot. Likes, retweets, replies, quotes, and views all count.
 
-s3labs.io/kol`,
+s3labs.xyz/kol`,
 
   comparison: `Typical KOL deals:
 DMs, spreadsheets, opaque rates, manual payouts.
@@ -66,7 +66,7 @@ Verified tweets, live leaderboard, pro-rata SOL, automatic on-chain payout at sn
 
 Projects fund SOL for X amplification. KOLs earn by engagement on reply and quote posts.
 
-→ s3labs.io/kol`,
+→ s3labs.xyz/kol`,
 
   deepDive: `Who it's for:
 — Projects that need real X distribution
@@ -92,11 +92,11 @@ $ kol snapshot --campaign active
 
 Launch a campaign or start earning on reply and quote posts.
 
-s3labs.io/kol`,
+s3labs.xyz/kol`,
 };
 
 export const KOL_MARKETPLACE_PHOTO_SHARE_FOOTERS: Partial<Record<PostPhotoCardRole, string>> = {
-  thesis: "s3labs.io/kol",
+  thesis: "s3labs.xyz/kol",
   quote: "Fund posts · Earn by impact",
   pillars: "Projects · KOLs · On-chain SOL",
   checklist: "KOL Marketplace · Live",
@@ -105,5 +105,5 @@ export const KOL_MARKETPLACE_PHOTO_SHARE_FOOTERS: Partial<Record<PostPhotoCardRo
   comparison: "Transparent > opaque",
   deepDive: "Reply & quote tweets",
   split: "SOL rewards on Solana",
-  terminal: "s3labs.io/kol",
+  terminal: "s3labs.xyz/kol",
 };

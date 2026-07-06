@@ -8,7 +8,7 @@ S3 Labs: onchain capital for high conviction bets on Solana. Published 80/20 man
 
 Conviction first. Structure always.
 
-s3labs.io`,
+s3labs.xyz`,
 
   thesis: `Honest question for allocators:
 
@@ -75,7 +75,7 @@ The gap between "trust us" and "verify us" is exactly what we're closing.`,
 
 Onchain capital for high conviction bets on Solana. Published 80/20 thesis. Verification before allocation.
 
-Read the mandate → s3labs.io/#mandate`,
+Read the mandate → s3labs.xyz/#mandate`,
 
   deepDive: `Mandate criteria — for diligence:
 
@@ -103,23 +103,23 @@ $ uof allocate --sleeve high-conviction --size conviction-weighted
 
   cta: `Ready to follow a conviction allocator that publishes its process?
 
-Fund page → s3labs.io
-Mandate → s3labs.io/#mandate
-Dashboard → s3labs.io/overview
+Fund page → s3labs.xyz
+Mandate → s3labs.xyz/#mandate
+Dashboard → s3labs.xyz/overview
 
 80% utility. 20% asymmetric. 100% onchain verification.`,
 };
 
 /** Unique footer links for cards whose copy has no embedded URL. */
 export const FUND_MANDATE_PHOTO_SHARE_FOOTERS: Partial<Record<PostPhotoCardRole, string>> = {
-  thesis: "https://s3labs.io/#mandate",
-  quote: "https://s3labs.io",
-  pillars: "https://s3labs.io/#mandate",
-  checklist: "https://s3labs.io/overview",
-  metrics: "https://s3labs.io/#mandate",
-  featured: "https://s3labs.io/#mandate",
-  comparison: "https://s3labs.io",
-  split: "https://s3labs.io/#mandate",
-  deepDive: "https://s3labs.io/#mandate",
-  terminal: "https://s3labs.io/overview",
+  thesis: "https://s3labs.xyz/#mandate",
+  quote: "https://s3labs.xyz",
+  pillars: "https://s3labs.xyz/#mandate",
+  checklist: "https://s3labs.xyz/overview",
+  metrics: "https://s3labs.xyz/#mandate",
+  featured: "https://s3labs.xyz/#mandate",
+  comparison: "https://s3labs.xyz",
+  split: "https://s3labs.xyz/#mandate",
+  deepDive: "https://s3labs.xyz/#mandate",
+  terminal: "https://s3labs.xyz/overview",
 };

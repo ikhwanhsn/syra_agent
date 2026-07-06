@@ -1,11 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
-@import "./styles/post.css";
-@import "./styles/postPhotoS3Bg.css";
-@import "./styles/postS3Layouts.css";
-@import "./styles/postHubS3.css";
-@import "./styles/postS3PhotoChrome.css";
-@import "./styles/postStudioS3.css";
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap';
 
 @tailwind base;
 @tailwind components;

@@ -34,7 +34,7 @@ This API backs the **Telegram bot**, **web agent**, **API playground**, **MCP br
 | Brand | Public site | API surfaces (examples) |
 |-------|-------------|-------------------------|
 | **Syra** | syraa.fun | x402 routes, `/agent/*`, `/pillars`, `/brain` |
-| **S3 Labs** | s3labs.id | `/kol/*`, jobs pipeline, S3 Labs Telegram webhook, points ledger |
+| **S3 Labs** | s3labs.xyz | `/kol/*`, jobs pipeline, S3 Labs Telegram webhook, points ledger |
 | **Up Only Fund** | uponlyfund.com | RISE market routes, terminal KPIs, uponly rise create |
 
 ---

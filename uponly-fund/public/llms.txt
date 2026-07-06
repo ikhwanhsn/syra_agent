@@ -20,10 +20,7 @@ App routes (typical)
 - /terminal — command dashboard / terminal layout
 - /overview — markets overview
 - /market, /wallet, /simulator, /insights, /create-token — dashboard modules
-- /post — investor brief studio (lists all fund updates)
-- /post/video/:updateNumber — numbered video brief deck (e.g. /post/video/1)
-- /post/photo/:updateNumber — numbered photo card export (e.g. /post/photo/1)
 
-Fund updates are numbered permanently. The registry keeps the latest 10; older numbers 404 and redirect to the latest.
+Social post studio (ship log) lives on Syra at https://syraa.fun/post — not on this site.
 
 Set the public origin for metadata with VITE_PUBLIC_SITE_ORIGIN (see src/config/site.ts).

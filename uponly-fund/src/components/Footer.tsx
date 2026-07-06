@@ -13,8 +13,6 @@ import {
   LINK_X,
 } from "../../config/global";
 import { SITE_ORIGIN } from "@/config/site";
-import { LATEST_POST_UPDATE_NUMBER } from "@/content/posts";
-import { getPostRoutePath } from "@/lib/postRoutes";
 
 export const Footer = () => {
   return (
@@ -117,16 +115,8 @@ export const Footer = () => {
                   </Link>
                 </li>
                 <li>
-                  <Link
-                    to={getPostRoutePath("video", LATEST_POST_UPDATE_NUMBER)}
-                    className="text-muted-foreground transition hover:text-foreground"
-                  >
-                    Investor brief
-                  </Link>
-                </li>
-                <li>
-                  <Link to={getPostRoutePath("hub")} className="text-muted-foreground transition hover:text-foreground">
-                    All fund updates
+                  <Link to="/#mandate" className="text-muted-foreground transition hover:text-foreground">
+                    Investment mandate
                   </Link>
                 </li>
               </ul>

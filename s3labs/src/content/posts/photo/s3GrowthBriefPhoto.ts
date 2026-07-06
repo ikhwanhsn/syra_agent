@@ -222,8 +222,8 @@ export const S3_GROWTH_BRIEF_PHOTO = definePhotoUpdate(S3_GROWTH_BRIEF_POST.meta
       headline: "Build on Solana. Scale with S3.",
       subtitle: "Apply for growth partner programs. Join the founder network.",
       links: [
-        { label: "Website", value: "s3labs.io", href: "https://s3labs.io" },
-        { label: "Arena", value: "s3labs.io/arenass", href: "https://s3labs.io/arenass" },
+        { label: "Website", value: "s3labs.xyz", href: "https://s3labs.xyz" },
+        { label: "Arena", value: "s3labs.xyz/arenass", href: "https://s3labs.xyz/arenass" },
         { label: "Community", value: "t.me/s3labs", href: "https://t.me/s3labs" },
       ],
     }),

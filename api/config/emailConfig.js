@@ -7,7 +7,7 @@ export const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD || "";
 export const EMAIL_FROM_NAME = process.env.EMAIL_FROM_NAME || "S3Labs";
 
 export const S3LABS_SITE_URL = (
-  process.env.S3LABS_SITE_URL || "https://s3labs.io"
+  process.env.S3LABS_SITE_URL || "https://s3labs.xyz"
 ).replace(/\/$/, "");
 
 export const S3LABS_API_URL = (

@@ -222,9 +222,9 @@ export const FUND_MANDATE_PHOTO = definePhotoUpdate(FUND_MANDATE_POST.meta, [
       headline: "Follow a conviction allocator.",
       subtitle: "Read the mandate. Track the thesis. Follow disclosures as we publish.",
       links: [
-        { label: "Fund page", value: "s3labs.io", href: "https://s3labs.io" },
-        { label: "Mandate", value: "s3labs.io/#mandate", href: "https://s3labs.io/#mandate" },
-        { label: "Dashboard", value: "s3labs.io/overview", href: "https://s3labs.io/overview" },
+        { label: "Fund page", value: "s3labs.xyz", href: "https://s3labs.xyz" },
+        { label: "Mandate", value: "s3labs.xyz/#mandate", href: "https://s3labs.xyz/#mandate" },
+        { label: "Dashboard", value: "s3labs.xyz/overview", href: "https://s3labs.xyz/overview" },
       ],
     }),
   },

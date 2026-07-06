@@ -2,7 +2,7 @@
 
 Typed TypeScript client for **Syra machine money** — pay-per-call x402 APIs, agent wallets, and treasury policy on Solana.
 
-Published as **`@syra/sdk`** from the [Syra monorepo](../README.md). Syra-backed brands ([S3 Labs](https://s3labs.id), [Up Only Fund](https://uponlyfund.com)) integrate through the same API gateway.
+Published as **`@syra/sdk`** from the [Syra monorepo](../README.md). Syra-backed brands ([S3 Labs](https://s3labs.xyz), [Up Only Fund](https://uponlyfund.com)) integrate through the same API gateway.
 
 ---
 

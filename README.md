@@ -32,7 +32,7 @@ Discovery: `GET /pillars` on [api.syraa.fun](https://api.syraa.fun)
 
 Integrate via **SDK** (`client.pillars`, `client.invest`, …), **MCP**, or the **API playground**. The web chat agent is a reference client — the product is machine money for agents.
 
-**Ecosystem:** [S3 Labs](https://s3labs.id) (Syra-backed growth studio for Solana developers) and [Up Only Fund](https://uponlyfund.com) (Syra-backed onchain allocator) ship as sibling brands on the same rails.
+**Ecosystem:** [S3 Labs](https://s3labs.xyz) (Syra-backed growth studio for Solana developers) and [Up Only Fund](https://uponlyfund.com) (Syra-backed onchain allocator) ship as sibling brands on the same rails.
 
 **Notice:** x402 becomes one module (Spend). Payments become one feature. Wealth becomes the narrative.
 
@@ -96,7 +96,7 @@ Syra is the parent **machine money** infrastructure. These programs ship on Syra
 | Brand | Site | Role |
 |-------|------|------|
 | **Syra** | [syraa.fun](https://syraa.fun) | Core product — agent wallets, x402 APIs, treasury, invest/spend rails |
-| **S3 Labs** | [s3labs.id](https://s3labs.id) | Syra-backed growth partner for Solana developers — programs, KOL, jobs, community |
+| **S3 Labs** | [s3labs.xyz](https://s3labs.xyz) | Syra-backed growth partner for Solana developers — programs, KOL, jobs, community |
 | **Up Only Fund** | [uponlyfund.com](https://uponlyfund.com) | Syra-backed onchain allocator — 80/20 mandate, RISE tooling, `$UPONLY` tranche |
 
 ---
@@ -210,7 +210,7 @@ Full documentation (welcome, API reference, Syra Agent, x402 agent, tokenomics) 
 | Syra docs | [docs.syraa.fun](https://docs.syraa.fun) |
 | API gateway | [api.syraa.fun](https://api.syraa.fun) |
 | Playground | [playground.syraa.fun](https://playground.syraa.fun) |
-| S3 Labs | [s3labs.id](https://s3labs.id) |
+| S3 Labs | [s3labs.xyz](https://s3labs.xyz) |
 | Up Only Fund | [uponlyfund.com](https://uponlyfund.com) |
 
 - **Local:** `cd documentation && npm install && npm run dev`  

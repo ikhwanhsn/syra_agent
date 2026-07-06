@@ -281,10 +281,8 @@ const CORS_ALLOWED_ORIGINS = [
   "https://www.predict.syraa.fun",
   "https://uponlyfund.com",
   "https://www.uponlyfund.com",
-  "https://s3labs.id",
-  "https://www.s3labs.id",
-  "https://s3labs.io",
-  "https://www.s3labs.io",
+  "https://s3labs.xyz",
+  "https://www.s3labs.xyz",
   ...CORS_EXTRA,
 ];
 /** Hoisted once — the CORS origin callback runs on every non-x402 browser request; avoid new Set() per hit. */

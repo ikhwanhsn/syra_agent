@@ -19,7 +19,7 @@ export function getPostPageUrl(
   if (typeof window !== "undefined") {
     return `${window.location.origin}${path}`;
   }
-  return `https://s3labs.io${path}`;
+  return `https://s3labs.xyz${path}`;
 }
 
 export interface PostShareCopyOptions {

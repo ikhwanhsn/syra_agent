@@ -6,7 +6,7 @@ export const S3_GROWTH_BRIEF_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, strin
 
 S3 Labs — growth partner for Solana developers. Hackathon winners and MVP builders: revenue support, adoption playbooks, founder network.
 
-Apply at s3labs.io`,
+Apply at s3labs.xyz`,
 
   thesis: `Honest question for Solana builders:
 
@@ -66,7 +66,7 @@ Proof required. Revenue programs. Arena + founder network. Results over hype.`,
 
 For hackathon winners and MVP builders on Solana. Revenue support, adoption playbooks, founder network.
 
-Apply → s3labs.io`,
+Apply → s3labs.xyz`,
 
   deepDive: `Who we help — plain English:
 — Hackathon winners with working prototypes
@@ -91,18 +91,18 @@ $ s3 ship --metric revenue,adoption
 
 Apply for growth partner programs. Join the founder network. Explore Arena.
 
-s3labs.io`,
+s3labs.xyz`,
 };
 
 export const S3_GROWTH_BRIEF_PHOTO_SHARE_FOOTERS: Partial<Record<PostPhotoCardRole, string>> = {
-  thesis: "s3labs.io",
+  thesis: "s3labs.xyz",
   quote: "Results over hype · S3 Labs",
-  pillars: "Apply → s3labs.io",
+  pillars: "Apply → s3labs.xyz",
   checklist: "Growth partner · Solana",
   metrics: "$65K+ generated · 95% success",
   featured: "S3 Labs · Growth partner",
   comparison: "Proof > hype",
   deepDive: "Hackathon winners · MVPs",
   split: "Revenue · Distribution · Arena",
-  terminal: "s3labs.io/arenass",
+  terminal: "s3labs.xyz/arenass",
 };

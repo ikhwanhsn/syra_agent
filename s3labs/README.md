@@ -4,11 +4,11 @@
 
 ### Growth partner for Solana developers — backed by Syra
 
-[![Website](https://img.shields.io/badge/Website-s3labs.id-26a5e4)](https://s3labs.id)
+[![Website](https://img.shields.io/badge/Website-s3labs.xyz-26a5e4)](https://s3labs.xyz)
 [![Syra](https://img.shields.io/badge/Backed_by-Syra-0ea5e9)](https://syraa.fun)
 [![Telegram](https://img.shields.io/badge/Telegram-@s3labs-blue)](https://t.me/s3labs)
 
-**[Website](https://s3labs.id)** · **[Apply](https://s3labs.id/apply)** · **[Programs](https://s3labs.id/programs)** · **[Syra](https://syraa.fun)** · **[X](https://x.com/s3labs_)**
+**[Website](https://s3labs.xyz)** · **[Apply](https://s3labs.xyz/apply)** · **[Programs](https://s3labs.xyz/programs)** · **[Syra](https://syraa.fun)** · **[X](https://x.com/s3labs_)**
 
 </div>
 
@@ -42,7 +42,6 @@
 | `/hackathon` | Hackathon discovery and builder resources |
 | `/events` | Tech and crypto events (admin) |
 | `/profile` | Connected wallet profile, daily claim, points |
-| `/post` | Brief studio — numbered fund/community updates (video + photo export) |
 
 **Community:** [@s3labs on Telegram](https://t.me/s3labs) — News, Developer, Event, and Jobs forum topics.
 
@@ -105,7 +104,7 @@ Trusted-origin auth is injected server-side for Syra-owned frontends — **do no
 
 ## Deploy
 
-- **Public site:** [s3labs.id](https://s3labs.id) (also `s3labs.io`)
+- **Public site:** [s3labs.xyz](https://s3labs.xyz)
 - Ensure the Syra API `CORS_EXTRA_ORIGINS` (or default allowlist) includes your deployment origin.
 - KOL, jobs, and Telegram webhook routes are served by the **`api`** package — deploy API changes alongside frontend updates when adding new integrations.
 

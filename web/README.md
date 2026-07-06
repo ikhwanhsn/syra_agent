@@ -2,7 +2,7 @@
 
 **Machine money for agents** — the unified Syra web application: API playground (Build), agent wallet, operator dashboard, and proof demos.
 
-Part of the [Syra monorepo](../README.md). Syra-backed ecosystem brands ([S3 Labs](https://s3labs.id), [Up Only Fund](https://uponlyfund.com)) ship as separate apps in `s3labs/` and `uponly-fund/`.
+Part of the [Syra monorepo](../README.md). Syra-backed ecosystem brands ([S3 Labs](https://s3labs.xyz), [Up Only Fund](https://uponlyfund.com)) ship as separate apps in `s3labs/` and `uponly-fund/`.
 
 ---
 

@@ -6,7 +6,7 @@ export const S3LABS_POINTS_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string>
 
 Every KOL campaign participant earns points when a campaign ends — +1 participation point plus up to +3 early-bird points split by submission order.
 
-s3labs.io/profile`,
+s3labs.xyz/profile`,
 
   thesis: `Participation should compound.
 
@@ -21,7 +21,7 @@ Earlier submissions earn a larger share of the 3-point early-bird pool. Connect 
 1. Connect your Solana wallet on S3 Labs
 2. Submit a reply or quote to a live KOL campaign
 3. Campaign ends — points credit automatically
-4. View totals and history on s3labs.io/profile`,
+4. View totals and history on s3labs.xyz/profile`,
 
   timeline: `Point streams per campaign:
 
@@ -33,12 +33,12 @@ Earlier submissions earn a larger share of the 3-point early-bird pool. Connect 
   pillars: `Participation — +1 pt per campaign for every participant
 Early bird — 3 pts split linearly by submit order
 Example — 3 KOLs earn 2.5 / 2.0 / 1.5 total
-Profile — persistent score at s3labs.io/profile`,
+Profile — persistent score at s3labs.xyz/profile`,
 
   checklist: `What's live today:
 — S3Labs Points on campaign finalization
 — +1 participation + up to +3 early-bird per campaign
-— Wallet profile at s3labs.io/profile
+— Wallet profile at s3labs.xyz/profile
 — Navbar points badge when connected
 — Per-campaign points history table`,
 
@@ -52,7 +52,7 @@ Earlier submissions earn more of the bonus pool.`,
 
 With N participants, weights run N, N−1, …, 1. First submitter always gets the largest early-bird share.
 
-s3labs.io/profile`,
+s3labs.xyz/profile`,
 
   comparison: `SOL rewards only:
 Paid at snapshot by engagement score — no persistent cross-campaign score.
@@ -64,7 +64,7 @@ S3Labs Points:
 
 Earn points for every KOL campaign you join. Early submitters get more.
 
-→ s3labs.io/profile`,
+→ s3labs.xyz/profile`,
 
   deepDive: `Who earns points:
 — KOLs who submit reply or quote tweets to live campaigns
@@ -84,17 +84,17 @@ Up to ~4 points per campaign.`,
 $ kol finalize --campaign ended
 > +1 participation · +1.5 early-bird credited
 $ points profile --wallet <solana>
-> total: 2.5 pts · view s3labs.io/profile`,
+> total: 2.5 pts · view s3labs.xyz/profile`,
 
   cta: `S3Labs Points are live.
 
 Join KOL campaigns, submit early, track your score.
 
-s3labs.io/profile`,
+s3labs.xyz/profile`,
 };
 
 export const S3LABS_POINTS_PHOTO_SHARE_FOOTERS: Partial<Record<PostPhotoCardRole, string>> = {
-  thesis: "s3labs.io/profile",
+  thesis: "s3labs.xyz/profile",
   quote: "Join early · Score higher",
   pillars: "Participation · Early bird · Profile",
   checklist: "S3Labs Points · Live",
@@ -103,5 +103,5 @@ export const S3LABS_POINTS_PHOTO_SHARE_FOOTERS: Partial<Record<PostPhotoCardRole
   comparison: "Persistent > one-off",
   deepDive: "Wallet-keyed score",
   split: "Up to ~4 pts per campaign",
-  terminal: "s3labs.io/profile",
+  terminal: "s3labs.xyz/profile",
 };

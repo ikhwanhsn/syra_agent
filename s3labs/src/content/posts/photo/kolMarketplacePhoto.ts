@@ -218,8 +218,8 @@ export const KOL_MARKETPLACE_PHOTO = definePhotoUpdate(KOL_MARKETPLACE_POST.meta
       headline: "Launch a campaign. Start earning.",
       subtitle: "KOL Marketplace is live on S3 Labs.",
       links: [
-        { label: "KOL Marketplace", value: "s3labs.io/kol", href: "https://s3labs.io/kol" },
-        { label: "Website", value: "s3labs.io", href: "https://s3labs.io" },
+        { label: "KOL Marketplace", value: "s3labs.xyz/kol", href: "https://s3labs.xyz/kol" },
+        { label: "Website", value: "s3labs.xyz", href: "https://s3labs.xyz" },
         { label: "Community", value: "t.me/s3labs", href: "https://t.me/s3labs" },
       ],
     }),

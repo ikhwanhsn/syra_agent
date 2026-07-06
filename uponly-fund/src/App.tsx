@@ -25,13 +25,6 @@ const SimulatorPage = lazy(() => import("./pages/dashboard/Simulator"));
 const InsightsPage = lazy(() => import("./pages/dashboard/Insights"));
 const CreateTokenPage = lazy(() => import("./pages/dashboard/CreateToken"));
 const TokenDetailPage = lazy(() => import("./pages/token/TokenDetail"));
-const PostPage = lazy(() => import("./pages/PostPage"));
-const PostVideoPage = lazy(() => import("./pages/PostVideoPage"));
-const PostPhotoPage = lazy(() => import("./pages/PostPhotoPage"));
-const PostStudioLayout = lazy(() =>
-  import("./components/post/PostStudioLayout").then((m) => ({ default: m.PostStudioLayout })),
-);
-
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -113,17 +106,6 @@ const App = () => (
               <Route path="/uponly/rise" element={<Navigate to="/terminal" replace />} />
               <Route path="/tranche" element={<Navigate to="/#landing-token" replace />} />
               <Route path="/treasury" element={<Navigate to="/#mandate" replace />} />
-              <Route
-                element={
-                  <Suspense fallback={<LandingRouteFallback />}>
-                    <PostStudioLayout />
-                  </Suspense>
-                }
-              >
-                <Route path="/post" element={<PostPage />} />
-                <Route path="/post/video/:updateNumber?" element={<PostVideoPage />} />
-                <Route path="/post/photo/:updateNumber?" element={<PostPhotoPage />} />
-              </Route>
               <Route
                 path="*"
                 element={

@@ -68,7 +68,7 @@ export function PostPhotoChrome({
 
       {!hideFooter ? (
         <div className="post-s3-footer-dock">
-          <span className="post-s3-footer-url">s3labs.io</span>
+          <span className="post-s3-footer-url">s3labs.xyz</span>
         </div>
       ) : null}
     </div>

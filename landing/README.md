@@ -35,7 +35,7 @@ The Syra agent and landing experience live at [syraa.fun](https://syraa.fun). Th
 | Brand | URL | Relationship |
 |-------|-----|--------------|
 | **Syra** | [syraa.fun](https://syraa.fun) | Parent — machine money for agents |
-| **S3 Labs** | [s3labs.id](https://s3labs.id) | Syra-backed — growth partner for Solana developers |
+| **S3 Labs** | [s3labs.xyz](https://s3labs.xyz) | Syra-backed — growth partner for Solana developers |
 | **Up Only Fund** | [uponlyfund.com](https://uponlyfund.com) | Syra-backed — onchain allocator (80/20 mandate) |
 
 Configure cross-app redirects in [`config/global.ts`](./config/global.ts) (`LINK_UPONLY_APP`, API base, agent links).

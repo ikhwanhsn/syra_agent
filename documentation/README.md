@@ -25,7 +25,7 @@ The **documentation** package is the **Syra documentation site** built with **Vi
 - **Syra Agent** — getting started, features, trading guidance, supported tokens, catalog, system prompt.
 - **x402 Agent** — autonomous agent on x402scan.
 - **Token & community** — tokenomics, roadmap, changelog, community links.
-- **Ecosystem context** — how Syra relates to Syra-backed brands **S3 Labs** ([s3labs.id](https://s3labs.id)) and **Up Only Fund** ([uponlyfund.com](https://uponlyfund.com)).
+- **Ecosystem context** — how Syra relates to Syra-backed brands **S3 Labs** ([s3labs.xyz](https://s3labs.xyz)) and **Up Only Fund** ([uponlyfund.com](https://uponlyfund.com)).
 
 Published at **[docs.syraa.fun](https://docs.syraa.fun)**.
 

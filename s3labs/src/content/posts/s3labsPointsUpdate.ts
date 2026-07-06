@@ -18,12 +18,12 @@ Every KOL campaign participant earns points when a campaign ends:
 
 Connect your wallet. Join campaigns. Track points on your profile.
 
-s3labs.io/profile ↓`,
+s3labs.xyz/profile ↓`,
     shareCopyPhoto: `S3LABS POINTS · Live on S3 Labs.
 
 +1 point for every campaign you join. Up to +3 early-bird points split by submission order — earlier = more.
 
-Track your score at s3labs.io/profile`,
+Track your score at s3labs.xyz/profile`,
   },
   slides: [
     {
@@ -58,7 +58,7 @@ Track your score at s3labs.io/profile`,
         "+1 participation point for every campaign you join",
         "Up to +3 early-bird points split by submission order",
         "Earlier submissions earn a larger share of the bonus pool",
-        "Points aggregate on your wallet profile at s3labs.io/profile",
+        "Points aggregate on your wallet profile at s3labs.xyz/profile",
       ],
     },
     {
@@ -135,31 +135,31 @@ Track your score at s3labs.io/profile`,
           icon: User,
           title: "Profile page",
           description: "Full breakdown — participation vs early-bird, campaigns joined, history table.",
-          href: "https://s3labs.io/profile",
+          href: "https://s3labs.xyz/profile",
         },
         {
           icon: Wallet,
           title: "Wallet dropdown",
           description: "Navbar shows your total points badge when connected.",
-          href: "https://s3labs.io/profile",
+          href: "https://s3labs.xyz/profile",
         },
         {
           icon: Trophy,
           title: "KOL Marketplace",
           description: "Join campaigns to start earning — points credit at campaign end.",
-          href: "https://s3labs.io/kol",
+          href: "https://s3labs.xyz/kol",
         },
         {
           icon: Clock,
           title: "Early bird bonus",
           description: "Submit sooner to rank higher and capture more of the 3-point pool.",
-          href: "https://s3labs.io/kol",
+          href: "https://s3labs.xyz/kol",
         },
         {
           icon: Star,
           title: "Leaderboard ready",
           description: "Global points leaderboard API live for future rankings.",
-          href: "https://s3labs.io/profile",
+          href: "https://s3labs.xyz/profile",
         },
       ],
     },
@@ -186,8 +186,8 @@ Track your score at s3labs.io/profile`,
       headline: "Connect. Compete. Climb.",
       subline: "S3Labs Points are live — join KOL campaigns, submit early, and track your score on your wallet profile.",
       links: [
-        { label: "Your profile", value: "s3labs.io/profile", href: "https://s3labs.io/profile" },
-        { label: "KOL Marketplace", value: "s3labs.io/kol", href: "https://s3labs.io/kol" },
+        { label: "Your profile", value: "s3labs.xyz/profile", href: "https://s3labs.xyz/profile" },
+        { label: "KOL Marketplace", value: "s3labs.xyz/kol", href: "https://s3labs.xyz/kol" },
         { label: "Community", value: "t.me/s3labs", href: "https://t.me/s3labs" },
       ],
     },

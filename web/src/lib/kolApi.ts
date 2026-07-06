@@ -65,7 +65,7 @@ export interface KolConfig {
   platformFeeSol: number;
 }
 
-export const S3LABS_KOL_URL = "https://s3labs.io/kol";
+export const S3LABS_KOL_URL = "https://s3labs.xyz/kol";
 
 export const DEFAULT_KOL_CONFIG: KolConfig = {
   poolWalletAddress: "GGj37PSMDUUgkac5HkMx36Sk38zbHDMtXFLn6MR2HXnv",
