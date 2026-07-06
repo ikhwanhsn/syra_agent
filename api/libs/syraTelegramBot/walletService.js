@@ -4,6 +4,7 @@
 import AgentWallet from '../../models/agent/AgentWallet.js';
 import TelegramBotUser, { telegramAnonymousIdFrom } from '../../models/agent/TelegramBotUser.js';
 import { createAgentWalletRecord } from '../agentWalletProvision.js';
+import { ensureTelegramIntelToolsAllowed } from '../agentWallet.js';
 import { fetchAgentWalletBalances } from '../agentWalletBalance.js';
 import { decryptAgentSecretFromStorage } from '../agentWalletSecretCrypto.js';
 import { withdrawTelegramAgentToAddress } from '../telegramAgentWithdraw.js';
@@ -119,6 +120,13 @@ export async function ensureTelegramUserWallet(telegramUser) {
   if (!spendDoc?.agentAddress) {
     throw new Error('telegram_wallet_provision_failed');
   }
+
+  await ensureTelegramIntelToolsAllowed(spendDoc.anonymousId || anonymousId).catch((e) => {
+    console.warn(
+      '[syra-telegram] ensureTelegramIntelToolsAllowed failed:',
+      e instanceof Error ? e.message : e,
+    );
+  });
 
   return {
     telegramUser: tgUser,

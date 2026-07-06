@@ -1985,9 +1985,29 @@ Invite them to answer with e.g. "Solana swap" or "bridge ETH to Solana" / Squid.
  * @returns {{ toolId: string; params?: Record<string, string> } | null}
  */
 export function matchToolFromUserMessage(userMessage) {
-  if (!userMessage || typeof userMessage !== 'string') return null;
+  const hits = collectToolsFromUserMessage(userMessage, 1);
+  return hits[0] ?? null;
+}
+
+/**
+ * Match multiple agent tools from one user message (e.g. "BTC signal and SOL news").
+ * @param {string} userMessage
+ * @param {number} [maxMatches=3]
+ * @returns {Array<{ toolId: string; params?: Record<string, string> }>}
+ */
+export function matchAllToolsFromUserMessage(userMessage, maxMatches = 3) {
+  return collectToolsFromUserMessage(userMessage, maxMatches);
+}
+
+/**
+ * @param {string} userMessage
+ * @param {number} maxMatches
+ * @returns {Array<{ toolId: string; params?: Record<string, string> }>}
+ */
+function collectToolsFromUserMessage(userMessage, maxMatches = 1) {
+  if (!userMessage || typeof userMessage !== 'string') return [];
   const text = userMessage.trim().toLowerCase();
-  if (!text) return null;
+  if (!text) return [];
 
   // Extract ticker for news: "news about BTC", "BTC news", "latest ETH news", etc.
   const tickerMatch = text.match(
@@ -2002,9 +2022,36 @@ export function matchToolFromUserMessage(userMessage) {
     SOLANA: 'SOL',
     SOL: 'SOL',
   };
-  const ticker = rawTicker
-    ? NEWS_TICKER_ALIASES[rawTicker] || (rawTicker.length <= 5 ? rawTicker : 'general')
-    : 'general';
+  const NEWS_TICKER_STOPWORDS = new Set([
+    'AND',
+    'OR',
+    'THE',
+    'FOR',
+    'WITH',
+    'ABOUT',
+    'FROM',
+    'ONLY',
+    'ALSO',
+    'PLUS',
+    'ME',
+    'GET',
+    'GIVE',
+    'SHOW',
+    'LATEST',
+    'NEWS',
+  ]);
+  const normalizeNewsTicker = (raw) => {
+    const upper = String(raw || '').toUpperCase();
+    if (!upper || NEWS_TICKER_STOPWORDS.has(upper)) return 'general';
+    return NEWS_TICKER_ALIASES[upper] || (upper.length <= 5 ? upper : 'general');
+  };
+  const ticker = rawTicker ? normalizeNewsTicker(rawTicker) : 'general';
+
+  const eventTickerMatch = text.match(
+    /\b(bitcoin|btc|ethereum|eth|solana|sol|[a-z]{2,6})\s+events?\b/i,
+  );
+  const eventTickerRaw = eventTickerMatch ? (eventTickerMatch[1] || '').toUpperCase() : '';
+  const eventTicker = eventTickerRaw ? normalizeNewsTicker(eventTickerRaw) : ticker;
 
   // Extract token for signal: "bitcoin signal", "give me BTC signal", "signal for ethereum", etc.
   const signalTokenMatch = text.match(
@@ -2591,17 +2638,43 @@ export function matchToolFromUserMessage(userMessage) {
     {
       toolId: 'event',
       test: () =>
-        /event\s*data|events\s*(please|now)?|crypto\s*events|get\s*events/i.test(text),
+        /event\s*data|events\s*(please|now)?|crypto\s*events|get\s*events|\b(bitcoin|btc|ethereum|eth|solana|sol|[a-z]{2,6})\s+events?\b/i.test(
+          text,
+        ),
+      params: () =>
+        eventTicker && eventTicker !== 'GENERAL' ? { ticker: eventTicker } : { ticker: 'general' },
     },
     {
       toolId: 'trending-headline',
       test: () =>
-        /trending\s*headline|headlines?\s*trending|trending\s*headlines?/i.test(text),
+        /trending\s*headline|headlines?\s*trending|trending\s*headlines?|\b(bitcoin|btc|ethereum|eth|solana|sol)\s+trending\b/i.test(
+          text,
+        ),
+      params: () => (ticker && ticker !== 'GENERAL' ? { ticker } : { ticker: 'general' }),
     },
     {
       toolId: 'sundown-digest',
       test: () =>
         /sundown\s*digest|daily\s*digest|sundown\s*daily|digest\s*sundown/i.test(text),
+    },
+    {
+      toolId: 'web-search',
+      test: () =>
+        /search the web|web search|google search|look up online|search online for|bing search/i.test(text),
+      params: () => {
+        const m =
+          text.match(/(?:search|find|look up)(?:\s+the\s+web)?(?:\s+for)?\s+(.+)/i) ||
+          text.match(/web search[:\s]+(.+)/i);
+        const query = m?.[1]?.trim();
+        return query ? { query: query.slice(0, 240) } : {};
+      },
+    },
+    {
+      toolId: 'arbitrage',
+      test: () =>
+        /arbitrage|cross[\s-]?exchange\s*spread|cex\s*spread|best\s*buy.*sell|spread\s*ranking|arb\s*opportunit/i.test(
+          text,
+        ),
     },
     {
       toolId: 'analytics-summary',
@@ -2637,18 +2710,23 @@ export function matchToolFromUserMessage(userMessage) {
     },
   ];
 
+  /** @type {Array<{ toolId: string; params?: Record<string, string> }>} */
+  const matched = [];
+  const seenToolIds = new Set();
+
   for (const { toolId, test, params } of intents) {
-    if (test()) {
-      const tool = getAgentTool(toolId);
-      if (tool) {
-        return {
-          toolId,
-          params: typeof params === 'function' ? params() : undefined,
-        };
-      }
-    }
+    if (matched.length >= maxMatches) break;
+    if (!test()) continue;
+    const tool = getAgentTool(toolId);
+    if (!tool || seenToolIds.has(toolId)) continue;
+    seenToolIds.add(toolId);
+    matched.push({
+      toolId,
+      params: typeof params === 'function' ? params() : undefined,
+    });
   }
-  return null;
+
+  return matched;
 }
 
 /**

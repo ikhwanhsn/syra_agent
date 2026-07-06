@@ -22,8 +22,7 @@ import {
 } from './questionIntent.js';
 import { resolveTelegramMatchedTools, withTelegramTimeout } from './telegramBrainUtils.js';
 import {
-  formatNewsTelegram,
-  formatPriceTelegram,
+  formatTelegramToolDirect,
   TELEGRAM_DIRECT_FORMAT_TOOLS,
 } from './telegramToolFormat.js';
 
@@ -303,7 +302,9 @@ async function askSyraBrainInner({ anonymousId, payerAnonymousId, question }) {
   }
 
   let hadToolResults = false;
-  let directTelegramText = null;
+  /** @type {string[]} */
+  const directTelegramParts = [];
+  let needsLlmForToolResults = false;
   /** @type {Array<{ name: string; status: string }>} */
   const toolUsages = [];
   /** @type {{ png: Buffer; caption: string; detailUrl: string } | null} */
@@ -367,13 +368,10 @@ async function askSyraBrainInner({ anonymousId, payerAnonymousId, question }) {
         hadToolResults = true;
         toolUsages.push({ name: tool.name, status: 'complete' });
         if (TELEGRAM_DIRECT_FORMAT_TOOLS.has(matched.toolId)) {
-          if (matched.toolId === 'news') {
-            const direct = formatNewsTelegram(result.data, params.ticker);
-            if (direct) directTelegramText = direct;
-          } else if (matched.toolId === 'stablecrypto-coingecko-price') {
-            const direct = formatPriceTelegram(result.data, params.ids || params.id);
-            if (direct) directTelegramText = direct;
-          }
+          const direct = formatTelegramToolDirect(matched.toolId, result.data, params);
+          if (direct) directTelegramParts.push(direct);
+        } else {
+          needsLlmForToolResults = true;
         }
         if (!chartAttachment) {
           try {
@@ -389,29 +387,27 @@ async function askSyraBrainInner({ anonymousId, payerAnonymousId, question }) {
       }
     }
 
-    if (toolErrors.length > 0 && toolResults.length === 0 && questionIntent === 'live_data') {
+    if (toolErrors.length > 0 && toolResults.length === 0 && matchedTools.length > 0) {
       const firstFailure = liveDataFailures[0];
       const directFailure = firstFailure
         ? buildLiveDataFailureText(firstFailure.err, firstFailure.result, billingReferral)
-        : null;
-      if (directFailure) {
-        const text = enforceSyraBranding(directFailure) || directFailure;
-        await persistChatTurn(chat, userQuestion, text, toolUsages);
-        const buttonPlan = await planTelegramAnswerButtons({
-          userQuestion,
-          assistantAnswer: text,
-          toolsUsed: [],
-        });
-        return {
-          text,
-          toolsUsed: [],
-          chartAttachment: null,
-          showFollowUps: buttonPlan.showFollowUps,
-          followUpQuestions: buttonPlan.followUpQuestions,
-          showMainMenu: buttonPlan.showMainMenu,
-          followUpExpiresAt: buttonPlan.followUpExpiresAt,
-        };
-      }
+        : 'I could not fetch that live data right now. Please try again in a moment.';
+      const text = enforceSyraBranding(directFailure) || directFailure;
+      await persistChatTurn(chat, userQuestion, text, toolUsages);
+      const buttonPlan = await planTelegramAnswerButtons({
+        userQuestion,
+        assistantAnswer: text,
+        toolsUsed: [],
+      });
+      return {
+        text,
+        toolsUsed: [],
+        chartAttachment: null,
+        showFollowUps: buttonPlan.showFollowUps,
+        followUpQuestions: buttonPlan.followUpQuestions,
+        showMainMenu: buttonPlan.showMainMenu,
+        followUpExpiresAt: buttonPlan.followUpExpiresAt,
+      };
     }
 
     if (toolErrors.length > 0 && toolResults.length === 0) {
@@ -433,8 +429,10 @@ async function askSyraBrainInner({ anonymousId, payerAnonymousId, question }) {
   }
 
   const toolsUsed = toolUsages.filter((t) => t.status === 'complete').map((t) => t.name);
+  const directTelegramText =
+    directTelegramParts.length > 0 ? directTelegramParts.join('\n\n---\n\n') : null;
 
-  if (directTelegramText) {
+  if (directTelegramText && !needsLlmForToolResults) {
     const text = enforceSyraBranding(directTelegramText) || directTelegramText;
     await persistChatTurn(chat, userQuestion, text, toolUsages);
     const buttonPlan = await planTelegramAnswerButtons({

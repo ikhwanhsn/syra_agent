@@ -1,18 +1,46 @@
 /**
- * Telegram brain helpers — tool routing, timeouts.
+ * Telegram brain helpers — smart tool routing for all x402 / agent tools.
  */
-import { getAgentTool, matchToolFromUserMessage } from '../../config/agentTools.js';
+import { getAgentTool } from '../../config/agentTools.js';
 import { selectToolsWithLlm } from '../../routes/agent/chat.js';
-import { isTelegramLiveDataQuestion } from './questionIntent.js';
+import { resolveHeuristicAgentTools } from './telegramHeuristicTools.js';
+import { isTelegramToolCandidateQuestion } from './questionIntent.js';
 
-const HEURISTIC_FORCE_TOOLS = new Set([
-  'news',
-  'signal',
-  'sentiment',
-  'spcx-intelligence',
-  'stablecrypto-coingecko-price',
-]);
 const MAX_TOOLS = 3;
+const TOOL_SELECT_TIMEOUT_MS = 14_000;
+const TOOL_SELECT_MAX_TOKENS = 384;
+
+/**
+ * @param {Array<{ toolId: string; params?: Record<string, string> }>} heuristicTools
+ * @param {Array<{ toolId: string; params?: Record<string, string> }>} llmTools
+ * @returns {Array<{ toolId: string; params?: Record<string, string> }>}
+ */
+function mergeToolMatches(heuristicTools, llmTools) {
+  /** @type {Array<{ toolId: string; params?: Record<string, string> }>} */
+  const out = [];
+  const seen = new Set();
+
+  const add = (entry) => {
+    const toolId = entry?.toolId;
+    if (!toolId || seen.has(toolId) || !getAgentTool(toolId)) return;
+    seen.add(toolId);
+    out.push({
+      toolId,
+      params: entry.params && typeof entry.params === 'object' ? entry.params : {},
+    });
+  };
+
+  for (const t of heuristicTools) {
+    if (out.length >= MAX_TOOLS) break;
+    add(t);
+  }
+  for (const t of llmTools) {
+    if (out.length >= MAX_TOOLS) break;
+    add(t);
+  }
+
+  return out;
+}
 
 /**
  * @param {Promise<T>} promise
@@ -38,56 +66,46 @@ export function withTelegramTimeout(promise, ms, label) {
 }
 
 /**
- * Heuristic-first tool routing — skips slow LLM tool-select for news/signal/sentiment.
+ * Smart tool routing for Telegram — mirrors website agent coverage.
+ *
+ * 1. Heuristic (`matchToolFromUserMessage`) — instant, covers all patterned x402 tools.
+ * 2. LLM tool-select — fallback for live-data / action questions without a heuristic hit.
+ * 3. Merge heuristic + LLM when both apply (heuristic first).
+ *
  * @param {string} userQuestion
  * @param {string} conversationSnippet
  * @returns {Promise<Array<{ toolId: string; params?: Record<string, string> }>>}
  */
 export async function resolveTelegramMatchedTools(userQuestion, conversationSnippet) {
-  const heuristic = matchToolFromUserMessage(userQuestion);
-  if (
-    heuristic?.toolId &&
-    HEURISTIC_FORCE_TOOLS.has(heuristic.toolId) &&
-    getAgentTool(heuristic.toolId)
-  ) {
-    return [
-      {
-        toolId: heuristic.toolId,
-        params:
-          heuristic.params && typeof heuristic.params === 'object' ? heuristic.params : {},
-      },
-    ];
+  const q = String(userQuestion || '').trim();
+  if (!q) return [];
+
+  const heuristicTools = resolveHeuristicAgentTools(q, MAX_TOOLS);
+
+  // Fast path: patterned match → call tool(s) immediately (news, signal, stablecrypto, nansen, etc.)
+  if (heuristicTools.length > 0) {
+    return heuristicTools;
   }
 
-  if (!isTelegramLiveDataQuestion(userQuestion)) {
+  if (!isTelegramToolCandidateQuestion(q)) {
     return [];
   }
 
-  let matched = [];
+  let llmTools = [];
   try {
     const llm = await withTelegramTimeout(
-      selectToolsWithLlm(userQuestion, conversationSnippet, { toolSelectMaxTokens: 256 }),
-      12_000,
+      selectToolsWithLlm(q, conversationSnippet, { toolSelectMaxTokens: TOOL_SELECT_MAX_TOKENS }),
+      TOOL_SELECT_TIMEOUT_MS,
       'Tool selection',
     );
-    matched = Array.isArray(llm.tools) ? llm.tools.slice(0, MAX_TOOLS) : [];
+    llmTools = Array.isArray(llm.tools) ? llm.tools : [];
   } catch (e) {
     console.warn('[syra-telegram] tool select failed:', e instanceof Error ? e.message : e);
-    matched = [];
   }
 
-  if (heuristic?.toolId && getAgentTool(heuristic.toolId)) {
-    const force = HEURISTIC_FORCE_TOOLS.has(heuristic.toolId);
-    if (force || !matched.length) {
-      matched = [
-        {
-          toolId: heuristic.toolId,
-          params:
-            heuristic.params && typeof heuristic.params === 'object' ? heuristic.params : {},
-        },
-      ];
-    }
-  }
+  const merged = mergeToolMatches(heuristicTools, llmTools).slice(0, MAX_TOOLS);
+  if (merged.length > 0) return merged;
 
-  return matched;
+  // Last resort: re-check heuristic (e.g. after LLM timeout)
+  return resolveHeuristicAgentTools(q, MAX_TOOLS);
 }

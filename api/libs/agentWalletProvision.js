@@ -28,11 +28,16 @@ const SPEND_DEFAULT_TOOLS = Object.freeze([
   'signal',
   'sentiment',
   'event',
+  'trending-headline',
+  'sundown-digest',
   'analytics-summary',
   'arbitrage',
   'trending-jupiter',
   'jupiter-swap-order',
   'pumpfun-agents-swap',
+  'stablecrypto-coingecko-price',
+  'stablecrypto-coingecko-global',
+  'stablecrypto-coingecko-trending',
 ]);
 
 const LP_DEFAULT_TOOLS = Object.freeze([...LP_REAL_TOOL_IDS, 'lp_real_swap']);
@@ -40,8 +45,16 @@ const LP_DEFAULT_TOOLS = Object.freeze([...LP_REAL_TOOL_IDS, 'lp_real_swap']);
 /**
  * @param {import('./agentWalletPurpose.js').AgentWalletPurpose} purpose
  */
-function policyDefaultsForPurpose(purpose) {
+function policyDefaultsForPurpose(purpose, provisionedVia = 'guest') {
   const p = normalizeAgentWalletPurpose(purpose);
+  if (p === 'spend' && provisionedVia === 'telegram') {
+    return {
+      allowedTools: [],
+      perTxCapUsd: 50,
+      dailySpendCapUsd: 250,
+      hourlySpendCapUsd: 100,
+    };
+  }
   if (p === 'lp') {
     return {
       allowedTools: [...LP_DEFAULT_TOOLS],
@@ -125,7 +138,7 @@ export async function createAgentWalletRecord({
 }) {
   const normalizedPurpose = normalizeAgentWalletPurpose(purpose);
   const avatarUrl = avatarGenerator.generateRandomAvatar(avatarSeed || anonymousId);
-  const policy = policyDefaultsForPurpose(normalizedPurpose);
+  const policy = policyDefaultsForPurpose(normalizedPurpose, provisionedVia);
   const allocationConfig = defaultAllocationConfigForPurpose(normalizedPurpose);
   const custody = getDefaultCustodyMode();
 

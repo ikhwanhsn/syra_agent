@@ -112,6 +112,12 @@ async function getNewsForRequest(ticker) {
   let news = getCachedNews(ticker);
   if (news === null) {
     news = await fetchNewsForTicker(ticker);
+    if ((!Array.isArray(news) || news.length === 0) && ticker && ticker !== "general") {
+      const fallback = await fetchNewsForTicker("general");
+      if (Array.isArray(fallback) && fallback.length > 0) {
+        news = fallback;
+      }
+    }
     if (Array.isArray(news) && news.length > 0) setCachedNews(ticker, news);
   }
   return news;
@@ -180,6 +186,10 @@ async function getEventForTicker(ticker) {
   if (ticker !== "general") {
     const raw = await fetchEventsTicker(ticker);
     result = Object.keys(raw).map((date) => ({ date, ticker: raw[date] }));
+    if ((!Array.isArray(result) || result.length === 0) && ticker) {
+      const generalRaw = await fetchEventsGeneral();
+      result = Object.keys(generalRaw).map((date) => ({ date, general: generalRaw[date] }));
+    }
   } else {
     const general = await fetchEventsGeneral();
     result = Object.keys(general).map((date) => ({ date, general: general[date] }));
@@ -228,10 +238,13 @@ function setCachedTrending(ticker, data) {
 async function getTrendingForTicker(ticker) {
   let cached = getCachedTrending(ticker);
   if (cached !== null) return cached;
-  const result =
+  let result =
     ticker !== "general"
       ? await fetchTrendingHeadlinesTicker(ticker)
       : await fetchTrendingHeadlinesGeneral();
+  if ((!Array.isArray(result) || result.length === 0) && ticker && ticker !== "general") {
+    result = await fetchTrendingHeadlinesGeneral();
+  }
   if (Array.isArray(result) && result.length > 0) setCachedTrending(ticker, result);
   return result;
 }

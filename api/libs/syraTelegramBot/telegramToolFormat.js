@@ -39,6 +39,125 @@ export function formatNewsTelegram(data, ticker = 'general') {
   return lines.join('\n').trim();
 }
 
+/**
+ * @param {unknown} data
+ * @param {string} [ticker]
+ * @returns {string | null}
+ */
+export function formatEventTelegram(data, ticker = 'general') {
+  const rows = Array.isArray(data?.event) ? data.event : [];
+  if (rows.length === 0) return null;
+
+  const label =
+    ticker && String(ticker).toLowerCase() !== 'general'
+      ? String(ticker).toUpperCase()
+      : 'Crypto';
+  const lines = [`📅 **${label} events**`, ''];
+
+  for (const row of rows.slice(0, 5)) {
+    const date = String(row?.date || '').trim();
+    const buckets = [row?.ticker, row?.general].filter(Array.isArray);
+    for (const events of buckets) {
+      for (const ev of events.slice(0, 6)) {
+        const name = String(ev?.event_name || ev?.title || '').trim();
+        if (!name) continue;
+        const text = String(ev?.event_text || ev?.text || '').trim();
+        if (date) lines.push(`• **${name}** _(${date})_`);
+        else lines.push(`• **${name}**`);
+        if (text && text !== name) {
+          lines.push(`  ${text.slice(0, 220)}${text.length > 220 ? '…' : ''}`);
+        }
+        lines.push('');
+      }
+    }
+  }
+
+  return lines.join('\n').trim().length > 20 ? lines.join('\n').trim() : null;
+}
+
+/**
+ * @param {unknown} data
+ * @returns {string | null}
+ */
+export function formatSundownDigestTelegram(data) {
+  const items = Array.isArray(data?.sundownDigest) ? data.sundownDigest : [];
+  if (items.length === 0) return null;
+
+  const lines = ['🌅 **Sundown digest**', ''];
+  for (const item of items.slice(0, 6)) {
+    const title = String(item?.title || '').trim();
+    if (!title) continue;
+    const body = String(item?.body || item?.text || '').trim();
+    const tickers = Array.isArray(item?.tickers)
+      ? item.tickers.map((t) => String(t).toUpperCase()).filter(Boolean).slice(0, 4)
+      : [];
+    const meta = tickers.length ? tickers.join(', ') : '';
+    lines.push(`• **${title}**`);
+    if (meta) lines.push(`  _${meta}_`);
+    if (body && body !== title) {
+      lines.push(`  ${body.slice(0, 280)}${body.length > 280 ? '…' : ''}`);
+    }
+    lines.push('');
+  }
+
+  return lines.join('\n').trim();
+}
+
+/**
+ * @param {unknown} data
+ * @param {string} [ticker]
+ * @returns {string | null}
+ */
+export function formatTrendingHeadlineTelegram(data, ticker = 'general') {
+  const headlines = Array.isArray(data?.trendingHeadline) ? data.trendingHeadline : [];
+  if (headlines.length === 0) return null;
+
+  const label =
+    ticker && String(ticker).toLowerCase() !== 'general'
+      ? String(ticker).toUpperCase()
+      : 'Crypto';
+  const lines = [`🔥 **${label} trending headlines**`, ''];
+
+  for (const h of headlines.slice(0, 8)) {
+    const title = String(h?.headline || h?.title || '').trim();
+    if (!title) continue;
+    const source = String(h?.source_name || h?.source || '').trim();
+    const date = String(h?.date || '').trim().slice(0, 10);
+    const url = String(h?.news_url || h?.url || '').trim();
+    const meta = [source, date].filter(Boolean).join(' · ');
+    lines.push(`• **${title}**`);
+    if (meta) lines.push(`  _${meta}_`);
+    if (url.startsWith('http')) lines.push(`  [Read](${url})`);
+    lines.push('');
+  }
+
+  return lines.join('\n').trim();
+}
+
+/**
+ * @param {string} toolId
+ * @param {unknown} data
+ * @param {Record<string, string>} [params]
+ * @returns {string | null}
+ */
+export function formatTelegramToolDirect(toolId, data, params = {}) {
+  const ticker = params.ticker || params.token || 'general';
+  switch (toolId) {
+    case 'news':
+      return formatNewsTelegram(data, ticker);
+    case 'stablecrypto-coingecko-price':
+      return formatPriceTelegram(data, params.ids || params.id);
+    case 'event':
+      return formatEventTelegram(data, ticker);
+    case 'sundown-digest':
+      return formatSundownDigestTelegram(data);
+    case 'trending-headline':
+      return formatTrendingHeadlineTelegram(data, ticker);
+    default:
+      return null;
+  }
+}
+
 const COIN_LABELS = Object.freeze({
   bitcoin: 'BTC',
   ethereum: 'ETH',
@@ -80,4 +199,10 @@ export function formatPriceTelegram(data, idsHint = '') {
 }
 
 /** Tools that can skip LLM synthesis when direct format succeeds. */
-export const TELEGRAM_DIRECT_FORMAT_TOOLS = new Set(['news', 'stablecrypto-coingecko-price']);
+export const TELEGRAM_DIRECT_FORMAT_TOOLS = new Set([
+  'news',
+  'stablecrypto-coingecko-price',
+  'event',
+  'sundown-digest',
+  'trending-headline',
+]);

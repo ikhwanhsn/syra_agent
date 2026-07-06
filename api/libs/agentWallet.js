@@ -277,6 +277,18 @@ export async function getTempoPayoutRecipientAddress(anonymousId) {
 
 const SWAP_TOOL_IDS = Object.freeze(['jupiter-swap-order', 'pumpfun-agents-swap']);
 
+/** Telegram bot — allow all x402 tools (empty allowlist = unrestricted per policy engine). */
+export async function ensureTelegramIntelToolsAllowed(anonymousId) {
+  const id = String(anonymousId || '').trim();
+  if (!id) return;
+  if (!(await ensureAgentWalletDbReady())) return;
+  const wallet = await AgentWallet.findOne({ anonymousId: id }).select('allowedTools').lean();
+  if (!wallet) return;
+  const current = Array.isArray(wallet.allowedTools) ? wallet.allowedTools : [];
+  if (current.length === 0) return;
+  await AgentWallet.updateOne({ anonymousId: id }, { $set: { allowedTools: [] } });
+}
+
 /**
  * Ensure authenticated users can sign swap txs on chat wallets provisioned with read-only defaults.
  * Empty allowedTools already permits all tools — only expands restrictive allowlists.
