@@ -66,7 +66,11 @@ function buildLiveDataFailureText(err, result, billingReferral) {
   if (needsSol) {
     return 'Your agent wallet needs a small amount of SOL (about 0.01) for transaction fees. Add SOL via **Wallet**, then try again.';
   }
-  return null;
+  const isTimeout = /timed out/i.test(err);
+  if (isTimeout) {
+    return 'That live-data request took too long. Please try again in a moment — short commands like **SOL news** or **ETH price** work best.';
+  }
+  return 'I could not fetch that live data right now (the data provider or payment step failed). Please try again in a moment. If it keeps happening, make sure your Syra wallet has a little USDC via the **Wallet** button.';
 }
 
 /**
@@ -107,10 +111,17 @@ async function executeTelegramTool(anonymousId, tool, params, usdcBalance) {
     return { status: 200, data: body.data };
   }
 
+  const budgetExceeded = body?.budgetExceeded === true || body?.insufficientBalance === true;
+  const error = body?.error || body?.message || 'Request failed';
+  console.warn(
+    `[syra-telegram] tool "${tool.id}" failed (status ${status}):`,
+    String(error).slice(0, 300),
+  );
+
   return {
-    status: body?.budgetExceeded ? 402 : status >= 400 ? status : 502,
-    error: body?.error || 'Request failed',
-    budgetExceeded: body?.budgetExceeded === true,
+    status: budgetExceeded ? 402 : status >= 400 ? status : 502,
+    error,
+    budgetExceeded,
   };
 }
 
