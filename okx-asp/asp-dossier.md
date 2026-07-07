@@ -24,8 +24,8 @@ Ready-to-submit profile for registering Syra as an **Agent Service Provider (ASP
 | **Discovery** | `GET https://api.syraa.fun/.well-known/x402` |
 | **OpenAPI** | `GET https://api.syraa.fun/openapi.json` |
 | **Pillars** | `GET https://api.syraa.fun/pillars` |
-| **MCP package** | `@syra/mcp-server` v0.4.0 (`npx -y @syra/mcp-server`) |
-| **SDK** | `@syra/sdk` |
+| **MCP package** | `@syra-ai/mcp-server` v0.4.0 (`npx -y @syra-ai/mcp-server`) |
+| **SDK** | `@syra-ai/sdk` |
 
 ### Product narrative
 
@@ -53,7 +53,7 @@ Syra is organized around five pillars:
 
 **Option A — OpenAPI path (fastest):** Register using the existing public OpenAPI spec at `https://api.syraa.fun/openapi.json`. Each path maps to a callable tool with documented parameters and x402 pricing.
 
-**Option B — Remote HTTPS MCP:** Deploy a streamable-HTTP MCP gateway that proxies `api.syraa.fun`. Syra's current `@syra/mcp-server` is stdio-only (spawned by Cursor/Claude); it is not directly callable over the public internet.
+**Option B — Remote HTTPS MCP:** Deploy a streamable-HTTP MCP gateway that proxies `api.syraa.fun`. Syra's current `@syra-ai/mcp-server` is stdio-only (spawned by Cursor/Claude); it is not directly callable over the public internet.
 
 For initial OKX listing, use **Option A**. Ship Option B when you want a dedicated `mcp.syraa.fun` endpoint.
 
@@ -64,7 +64,7 @@ Instead of registering 28 services individually, register **one primary A2MCP se
 | Bundle name | Endpoint / discovery | Price model | Routes |
 |-------------|---------------------|-------------|--------|
 | **Syra x402 API Gateway** | `https://api.syraa.fun` + `/.well-known/x402` | Per-route (see tables) | All 28 routes |
-| **Syra MCP Tools (curated)** | `npx -y @syra/mcp-server` | Per-tool via x402 proxy | ~42 curated tools |
+| **Syra MCP Tools (curated)** | `npx -y @syra-ai/mcp-server` | Per-tool via x402 proxy | ~42 curated tools |
 
 If OKX requires per-endpoint registration, use the full tables below.
 
@@ -225,7 +225,7 @@ For OKX marketplace go-live, integrate **OKX Payment SDK** so OKX-routed calls s
 
 ### A2MCP: Remote HTTPS MCP gap
 
-Syra's `@syra/mcp-server` uses **stdio transport** (spawned subprocess for Cursor/Claude). OKX A2MCP requires a **publicly reachable HTTPS MCP endpoint**.
+Syra's `@syra-ai/mcp-server` uses **stdio transport** (spawned subprocess for Cursor/Claude). OKX A2MCP requires a **publicly reachable HTTPS MCP endpoint**.
 
 | Option | Effort | Recommendation |
 |--------|--------|----------------|

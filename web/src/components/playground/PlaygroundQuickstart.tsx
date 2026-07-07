@@ -9,6 +9,7 @@ import { SYRA_ONE_LINER } from "@/content/syraFocus";
 import { resolveApiBaseUrl } from "@/lib/resolveApiBaseUrl";
 
 import { PlaygroundHero } from "@/components/playground/PlaygroundHero";
+import { MarketplaceRegisterButton } from "@/components/marketplace/MarketplaceRegisterButton";
 import { playgroundSectionEnter } from "@/components/playground/playgroundMotion";
 
 import {
@@ -105,13 +106,13 @@ curl -i "${newsUrl}"
 
     sdk: `# Install
 
-npm install @syra/sdk
+npm install @syra-ai/sdk
 
 
 
 # First paid call (provide a signer that implements SyraPaymentSigner)
 
-import { createSyraClient } from "@syra/sdk";
+import { createSyraClient } from "@syra-ai/sdk";
 
 
 
@@ -139,7 +140,7 @@ console.log(news);`,
 
       "command": "npx",
 
-      "args": ["-y", "@syra/mcp-server"],
+      "args": ["-y", "@syra-ai/mcp-server"],
 
       "env": {
 
@@ -206,9 +207,9 @@ export function PlaygroundQuickstart() {
     <div className={cn(PLAYGROUND_PAGE_CLASS, "space-y-6 sm:space-y-8")}>
 
       <PlaygroundHero
-        kicker="Developer playground"
-        title="Build on the rail"
-        description="Discover Syra x402 endpoints, integrate with SDK or MCP, or send custom payment-gated requests — all from one surface."
+        kicker="Developer integration"
+        title="Build on Syra Marketplace"
+        description="List your service, integrate with the TypeScript SDK or MCP server, and accept USDC micropayments via x402 — the same rail agents use to call Syra APIs."
         badges={
           <>
             <span className={playgroundStatPillClass}>
@@ -219,6 +220,7 @@ export function PlaygroundQuickstart() {
         }
         actions={
           <div className="flex flex-wrap gap-2 lg:justify-end">
+            <MarketplaceRegisterButton />
             {INTEGRATION_LINKS.map(({ label, href }) => (
               <a
                 key={href}

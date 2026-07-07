@@ -5,7 +5,7 @@
 import type { HttpMethod } from "@/types/api";
 import type { RequestParam } from "@/types/api";
 
-export const X402_PLAYGROUND_GENERATED_AT = "2026-07-02T04:00:50.646Z";
+export const X402_PLAYGROUND_GENERATED_AT = "2026-07-07T13:03:48.751Z";
 
 export interface X402PlaygroundResourceTemplate {
   segment: string;
@@ -65,7 +65,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "Crypto News",
       "summary": "Latest crypto news headlines and summaries",
       "description": "Curated crypto news articles with titles, sources, and URLs. Use when an agent needs recent headlines for a token, sector, or the whole mar…",
-      "priceUsd": "0.01",
+      "priceUsd": "0.005",
       "category": "news"
     }
   },
@@ -111,7 +111,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "Trading Signal",
       "summary": "AI trading signal from CEX OHLCV technical analysis",
       "description": "Generates a directional trading signal with bias, confidence, entry context, and reasoning from OHLCV candles. Use when an agent needs a te…",
-      "priceUsd": "0.01",
+      "priceUsd": "0.005",
       "category": "signals"
     }
   },
@@ -207,7 +207,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "Technical Indicators",
       "summary": "Combine RSI, MACD, EMA, Bollinger, and 20+ indicators in one call",
       "description": "Computes multiple technical indicators from OHLCV candles in one agent-readable response. Use when an agent needs RSI/MACD/EMA/Bollinger (o…",
-      "priceUsd": "0.01",
+      "priceUsd": "0.005",
       "category": "analytics"
     }
   },
@@ -229,7 +229,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "Market Sentiment",
       "summary": "30-day crypto sentiment scores by ticker",
       "description": "Daily sentiment breakdown (positive/negative/neutral/score) over ~30 days from news-derived analysis. Use when an agent gauges crowd mood o…",
-      "priceUsd": "0.01",
+      "priceUsd": "0.005",
       "category": "analytics"
     }
   },
@@ -251,7 +251,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "Crypto Events",
       "summary": "Upcoming and recent crypto events calendar",
       "description": "Lists conferences, launches, listings, and macro events affecting crypto. Use when an agent schedules research around catalysts or filters…",
-      "priceUsd": "0.01",
+      "priceUsd": "0.005",
       "category": "news"
     }
   },
@@ -266,7 +266,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "Trending Headlines",
       "summary": "What is trending in crypto news right now",
       "description": "Hot headlines and viral crypto stories currently moving the market. Use when an agent needs the top narrative of the day rather than a full…",
-      "priceUsd": "0.01",
+      "priceUsd": "0.005",
       "category": "news"
     }
   },
@@ -281,7 +281,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "Sundown Digest",
       "summary": "End-of-day crypto market recap",
       "description": "Daily wrap-up of key market moves, headlines, and themes. Use when an agent summarizes the session for reports or next-day planning. No req…",
-      "priceUsd": "0.01",
+      "priceUsd": "0.005",
       "category": "news"
     }
   },
@@ -296,7 +296,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "API Health",
       "summary": "Paid liveness probe for Syra API",
       "description": "Minimal paid health check confirming Syra API is up and x402 settlement works. Use when an agent or monitor verifies connectivity before ba…",
-      "priceUsd": "0.0001",
+      "priceUsd": "0.001",
       "category": "health"
     }
   },
@@ -311,7 +311,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "MPP Health Check",
       "summary": "Machine Payments Protocol test lane (x402 v2)",
       "description": "MPP-compatible health endpoint with same x402 v2 flow as /health. Use when testing Tempo/Stripe-style machine payment clients against Syra.…",
-      "priceUsd": "0.0001",
+      "priceUsd": "0.001",
       "category": "health"
     }
   },
@@ -379,7 +379,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "Jupiter Swap Quote",
       "summary": "Jupiter Swap V1 ExactIn quote with Syra referral fee",
       "description": "Fetches a Jupiter Swap V1 quoteResponse for ExactIn swaps with Syra referral platform fee when configured on-chain. Use when an agent price…",
-      "priceUsd": "0.003",
+      "priceUsd": "0.001",
       "category": "defi"
     }
   },
@@ -413,7 +413,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "pump.fun Trending",
       "summary": "Trending pump.fun coins list",
       "description": "Returns trending pump.fun coins from frontend-api-v3 (falls back to top-runners when primary feed is empty). Use when an agent scans hot me…",
-      "priceUsd": "0.005",
+      "priceUsd": "0.001",
       "category": "defi"
     }
   },
@@ -447,7 +447,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "pump.fun Movers",
       "summary": "pump.fun market movers list",
       "description": "Returns pump.fun market movers from frontend-api-v3 (falls back to currently-live when primary is empty). Use when an agent finds coins wit…",
-      "priceUsd": "0.005",
+      "priceUsd": "0.001",
       "category": "defi"
     }
   },
@@ -515,7 +515,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "pump.fun Scout",
       "summary": "Live pump.fun alpha/beta/predicted/utility scout",
       "description": "Live pump.fun intelligence with selector param segment=alpha|beta|predicted|utility. Optional period, limit, minPumpScore, llm. Returns sco…",
-      "priceUsd": "0.01",
+      "priceUsd": "0.005",
       "category": "analytics"
     }
   },
@@ -555,7 +555,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "RISE Scout",
       "summary": "Live RISE market intel and agent targets",
       "description": "Live RISE intelligence with view=intel|markets|targets. Optional mint, limit, tier=ready|watch. Returns UPONLY token snapshot, fund lens, r…",
-      "priceUsd": "0.01",
+      "priceUsd": "0.005",
       "category": "analytics"
     }
   },
@@ -601,7 +601,147 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "CoinGecko Scout",
       "summary": "Live CoinGecko top gainers brief",
       "description": "Live CoinGecko scout with view=brief|gainers|predictions. Optional topN, minMarketCap, includeNews, llm. Returns top gainers, digests, pred…",
-      "priceUsd": "0.01",
+      "priceUsd": "0.001",
+      "category": "analytics"
+    }
+  },
+  {
+    "segment": "dexscreener/pairs",
+    "id": "x402-dexscreener-pairs",
+    "label": "DexScreener Pairs: DEX pairs by chain/token or search query",
+    "method": "GET",
+    "params": [
+      {
+        "key": "chainId",
+        "value": "",
+        "enabled": false,
+        "description": ""
+      },
+      {
+        "key": "tokenAddress",
+        "value": "",
+        "enabled": false,
+        "description": ""
+      },
+      {
+        "key": "q",
+        "value": "",
+        "enabled": false,
+        "description": ""
+      }
+    ],
+    "catalogMeta": {
+      "segment": "dexscreener/pairs",
+      "name": "DexScreener Pairs",
+      "summary": "DEX pairs by chain/token or search query",
+      "description": "Onchain DEX pair data from DexScreener across 80+ chains. Use when an agent needs live price, liquidity, volume, and txn counts for a token…",
+      "priceUsd": "0.001",
+      "category": "analytics"
+    }
+  },
+  {
+    "segment": "geckoterminal/pools",
+    "id": "x402-geckoterminal-pools",
+    "label": "GeckoTerminal Pools: Trending or new DEX pools on a network",
+    "method": "GET",
+    "params": [
+      {
+        "key": "network",
+        "value": "solana",
+        "enabled": false,
+        "description": ""
+      },
+      {
+        "key": "kind",
+        "value": "trending",
+        "enabled": false,
+        "description": ""
+      },
+      {
+        "key": "limit",
+        "value": "20",
+        "enabled": true,
+        "description": ""
+      }
+    ],
+    "catalogMeta": {
+      "segment": "geckoterminal/pools",
+      "name": "GeckoTerminal Pools",
+      "summary": "Trending or new DEX pools on a network",
+      "description": "Trending or newly listed DEX pools from GeckoTerminal across 100+ networks. Use when an agent scouts fresh liquidity or momentum pools on S…",
+      "priceUsd": "0.001",
+      "category": "defi"
+    }
+  },
+  {
+    "segment": "defillama/tvl",
+    "id": "x402-defillama-tvl",
+    "label": "DefiLlama TVL: Protocol or chain TVL from DefiLlama",
+    "method": "GET",
+    "params": [
+      {
+        "key": "protocol",
+        "value": "",
+        "enabled": false,
+        "description": ""
+      },
+      {
+        "key": "chain",
+        "value": "",
+        "enabled": false,
+        "description": ""
+      }
+    ],
+    "catalogMeta": {
+      "segment": "defillama/tvl",
+      "name": "DefiLlama TVL",
+      "summary": "Protocol or chain TVL from DefiLlama",
+      "description": "Total value locked for a DeFi protocol or blockchain from DefiLlama. Use when an agent assesses protocol scale, chain dominance, or macro D…",
+      "priceUsd": "0.001",
+      "category": "defi"
+    }
+  },
+  {
+    "segment": "rugcheck/report",
+    "id": "x402-rugcheck-report",
+    "label": "RugCheck Token Report: Solana token risk report from RugCheck",
+    "method": "GET",
+    "params": [
+      {
+        "key": "mint",
+        "value": "",
+        "enabled": true,
+        "description": ""
+      }
+    ],
+    "catalogMeta": {
+      "segment": "rugcheck/report",
+      "name": "RugCheck Token Report",
+      "summary": "Solana token risk report from RugCheck",
+      "description": "Solana token risk report from RugCheck: mint/freeze authority, holder concentration, LP status, and risk score. Use when an agent screens m…",
+      "priceUsd": "0.005",
+      "category": "signals"
+    }
+  },
+  {
+    "segment": "pyth/price",
+    "id": "x402-pyth-price",
+    "label": "Pyth Oracle Prices: Real-time Pyth oracle prices via Hermes",
+    "method": "GET",
+    "params": [
+      {
+        "key": "symbols",
+        "value": "",
+        "enabled": true,
+        "description": ""
+      }
+    ],
+    "catalogMeta": {
+      "segment": "pyth/price",
+      "name": "Pyth Oracle Prices",
+      "summary": "Real-time Pyth oracle prices via Hermes",
+      "description": "Latest Pyth oracle prices from Hermes for major crypto feeds. Use when an agent needs authoritative onchain-derived spot prices (BTC, ETH,…",
+      "priceUsd": "0.001",
       "category": "analytics"
     }
   },
@@ -671,7 +811,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "Assets Board",
       "summary": "Tokens.xyz curated assets board with filter and sort",
       "description": "Paginated curated assets board (crypto + tokenized stocks) from Tokens.xyz — same data as the Syra Assets page. Use when an agent needs a r…",
-      "priceUsd": "0.005",
+      "priceUsd": "0.001",
       "category": "analytics"
     }
   },
@@ -745,7 +885,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "Bitcoin Intelligence Hub",
       "summary": "Full Bitcoin dashboard + taker-flow bubblemap",
       "description": "Complete Bitcoin intelligence bundle from the Syra BTC page. Use when an agent needs macro BTC context: price, derivatives, technicals, sen…",
-      "priceUsd": "0.01",
+      "priceUsd": "0.005",
       "category": "analytics"
     }
   },

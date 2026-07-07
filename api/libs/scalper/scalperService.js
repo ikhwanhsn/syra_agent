@@ -3,6 +3,7 @@
  */
 import ScalperState from "../../models/ScalperState.js";
 import ScalperRun from "../../models/ScalperRun.js";
+import ScalperLearningState from "../../models/ScalperLearningState.js";
 import {
   scalperConfigFromEnv,
   resolveScalperUniverse,
@@ -19,6 +20,15 @@ import { scanScalperOpportunities } from "./scalperOpportunityScanner.js";
 import { quoteEntryFill, quoteExitFill, usdToQuoteRawAmount } from "./scalperFillEngine.js";
 import { fetchPythBtcSpotUsd } from "./pythPriceFeed.js";
 import { fetchJupiterPricesForMints } from "../stocksPriceFeed.js";
+import {
+  applySourceScoreMultiplier,
+  computeConvictionNotionalSlice,
+  getEffectiveScalperConfig,
+  getScalperLearningSnapshot,
+  isOnLearnedCooldown,
+  passesCostAwareEdgeGate,
+  runScalperLearning,
+} from "./scalperLearningService.js";
 
 const DEFAULT_LIST_LIMIT = 50;
 const MAX_LIST_LIMIT = 200;
@@ -44,10 +54,13 @@ function mergedSimConfig(stateDoc) {
     startingBankUsd: toNum(s.startingBankUsd, cfg.startingBankUsd),
     maxConcurrentPositions: toNum(s.maxConcurrentPositions, cfg.maxConcurrentPositions),
     notionalSlicePct: toNum(s.notionalSlicePct, cfg.notionalSlicePct),
+    minNotionalSlicePct: toNum(s.minNotionalSlicePct, cfg.minNotionalSlicePct),
     takeProfitPct: toNum(s.takeProfitPct, cfg.takeProfitPct),
     stopLossPct: toNum(s.stopLossPct, cfg.stopLossPct),
     maxHoldMinutes: toNum(s.maxHoldMinutes, cfg.maxHoldMinutes),
     minOpportunityScore: toNum(s.minOpportunityScore, cfg.minOpportunityScore),
+    minEdgeBufferPct: toNum(s.minEdgeBufferPct, cfg.minEdgeBufferPct),
+    quoteSlippageBps: toNum(s.quoteSlippageBps, cfg.quoteSlippageBps),
   };
 }
 
@@ -208,7 +221,8 @@ function serializeRun(r, priceMap = {}) {
 export async function getScalperOverview() {
   await ensureScalperBootstrapped();
   const state = await ScalperState.findById("singleton").lean();
-  const cfg = mergedSimConfig(state);
+  const baseCfg = mergedSimConfig(state);
+  const cfg = await getEffectiveScalperConfig(baseCfg);
   const ledger = await computeLedger(state);
   const priceMap = await fetchCurrentPrices();
 
@@ -302,12 +316,22 @@ export async function listScalperRuns({ limit = 50, offset = 0, status } = {}) {
   };
 }
 
+export async function getScalperLearning() {
+  await ensureScalperBootstrapped();
+  const state = await ScalperState.findById("singleton").lean();
+  const baseCfg = mergedSimConfig(state);
+  return getScalperLearningSnapshot(baseCfg);
+}
+
+export { runScalperLearning };
+
 export async function runScalperSignalCycle() {
   await ensureScalperBootstrapped();
   const state = await ScalperState.findById("singleton");
   if (!state) return { skipped: true, reason: "no_state" };
 
-  const cfg = mergedSimConfig(state);
+  const baseCfg = mergedSimConfig(state);
+  const cfg = await getEffectiveScalperConfig(baseCfg);
   const scan = await scanScalperOpportunities();
   const ledger = await computeLedger(state);
 
@@ -336,10 +360,24 @@ export async function runScalperSignalCycle() {
       skipped.push({ symbol: opp.symbol, reason: "not_long" });
       continue;
     }
-    if (opp.score < cfg.minOpportunityScore) {
+
+    const learnedCooldown = await isOnLearnedCooldown(opp.source, opp.symbol);
+    if (learnedCooldown) {
+      skipped.push({ symbol: opp.symbol, reason: learnedCooldown });
+      continue;
+    }
+
+    const adjustedScore = await applySourceScoreMultiplier(opp.source, opp.score);
+    if (adjustedScore < cfg.minOpportunityScore) {
       skipped.push({ symbol: opp.symbol, reason: "score_below_min" });
       continue;
     }
+
+    if (!passesCostAwareEdgeGate(cfg, adjustedScore)) {
+      skipped.push({ symbol: opp.symbol, reason: "insufficient_edge_vs_cost" });
+      continue;
+    }
+
     if (openSymbols.has(opp.symbol)) {
       skipped.push({ symbol: opp.symbol, reason: "already_open" });
       continue;
@@ -357,8 +395,16 @@ export async function runScalperSignalCycle() {
       continue;
     }
 
+    const convictionSlice = await computeConvictionNotionalSlice({
+      score: adjustedScore,
+      minScore: cfg.minOpportunityScore,
+      source: opp.source,
+      notionalSlicePct: cfg.notionalSlicePct,
+      minNotionalSlicePct: baseCfg.minNotionalSlicePct ?? SCALPER_DEFAULTS.minNotionalSlicePct,
+    });
+
     const notionalUsd = roundUsd(
-      Math.min(remainingCash * cfg.notionalSlicePct, remainingCash),
+      Math.min(remainingCash * convictionSlice, remainingCash),
     );
     if (notionalUsd < SCALPER_DEFAULTS.minNotionalUsd) {
       skipped.push({ symbol: opp.symbol, reason: "insufficient_cash" });
@@ -388,7 +434,7 @@ export async function runScalperSignalCycle() {
         assetClass: universeEntry.assetClass,
         side: "long",
         source: opp.source,
-        opportunityScore: opp.score,
+        opportunityScore: adjustedScore,
         rationale: opp.rationale,
         opportunitySnapshot: opp.meta ?? null,
         notionalUsd,
@@ -444,7 +490,9 @@ export async function runScalperSignalCycle() {
 
 export async function resolveOpenScalperRuns() {
   await ensureScalperBootstrapped();
-  const cfg = mergedSimConfig(await ScalperState.findById("singleton").lean());
+  const state = await ScalperState.findById("singleton").lean();
+  const baseCfg = mergedSimConfig(state);
+  const cfg = await getEffectiveScalperConfig(baseCfg);
   const cfgEnv = scalperConfigFromEnv();
 
   const openRuns = await ScalperRun.find({ status: "open" })
@@ -540,6 +588,10 @@ export async function resolveOpenScalperRuns() {
       { _id: "singleton" },
       { $set: { lastResolveAt: new Date(), ...cooldownSet } },
     );
+
+    runScalperLearning().catch((err) => {
+      console.warn("[Scalper] post-resolve learning failed:", err?.message || err);
+    });
   }
 
   const stillOpen = openRuns.length - bulkOps.length;
@@ -570,4 +622,51 @@ export async function getScalperEquityHistory() {
   }
 
   return { points, startingBankUsd: cfg.startingBankUsd };
+}
+
+/**
+ * Wipe all scalper paper data and learning state; bootstrap fresh singleton.
+ * @param {{ title?: string }} [opts]
+ */
+export async function resetScalperFromScratch(opts = {}) {
+  const [runsDeleted] = await Promise.all([
+    ScalperRun.deleteMany({}),
+    ScalperLearningState.deleteMany({}),
+  ]);
+
+  const title =
+    typeof opts.title === "string" && opts.title.trim()
+      ? opts.title.trim()
+      : "Scalper agent";
+
+  await ScalperState.findOneAndUpdate(
+    { _id: "singleton" },
+    {
+      $set: {
+        title,
+        startedAt: new Date(),
+        cashUsd: TRADING_EXPERIMENT_STARTING_USD,
+        startingBankUsd: TRADING_EXPERIMENT_STARTING_USD,
+        realizedPnlUsd: 0,
+        openPositions: 0,
+        deployedUsd: 0,
+        totalTrades: 0,
+        wins: 0,
+        losses: 0,
+        expired: 0,
+        lastSignalAt: null,
+        lastResolveAt: null,
+        lastOpportunityScan: null,
+        symbolCooldowns: {},
+        simConfig: { ...SCALPER_DEFAULTS },
+      },
+    },
+    { upsert: true, new: true },
+  );
+
+  return {
+    runsDeleted: runsDeleted.deletedCount ?? 0,
+    startingBankUsd: TRADING_EXPERIMENT_STARTING_USD,
+    title,
+  };
 }

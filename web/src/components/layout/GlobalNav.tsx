@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { Link, useLocation } from "@/lib/navigation";
-import { isPlaygroundNavItemActive } from "@/lib/playgroundRoute";
+import { isMarketplaceNavItemActive } from "@/lib/playgroundRoute";
 import { useTheme } from "next-themes";
 import { useMounted } from "@/hooks/useMounted";
 import { ArrowUpRight, Moon, Sun } from "lucide-react";
@@ -53,9 +53,9 @@ const navTriggerClass = cn(
   "data-[state=open]:bg-accent/80 data-[state=open]:text-foreground",
 );
 
-function isItemActive(pathname: string, href: string) {
-  if (href === "/playground") {
-    return isPlaygroundNavItemActive(pathname, href);
+function isItemActive(pathname: string, search: string, href: string) {
+  if (href.startsWith("/marketplace") || href.startsWith("/playground")) {
+    return isMarketplaceNavItemActive(pathname, search, href);
   }
   return pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
 }
@@ -63,12 +63,14 @@ function isItemActive(pathname: string, href: string) {
 function NavMenuLink({
   item,
   pathname,
+  search,
 }: {
   item: NavLinkItem;
   pathname: string;
+  search: string;
 }) {
   const ItemIcon = item.icon;
-  const active = isItemActive(pathname, item.href);
+  const active = isItemActive(pathname, search, item.href);
 
   const content = (
     <>
@@ -138,10 +140,12 @@ function NavMenuLink({
 function NavMenuGroup({
   group,
   pathname,
+  search,
   isAdmin,
 }: {
   group: NavGroup;
   pathname: string;
+  search: string;
   isAdmin: boolean;
 }) {
   const active = group.match(pathname);
@@ -190,7 +194,7 @@ function NavMenuGroup({
           )}
         >
           {items.map((item) => (
-            <NavMenuLink key={item.href} item={item} pathname={pathname} />
+            <NavMenuLink key={item.href} item={item} pathname={pathname} search={search} />
           ))}
         </ul>
       </NavigationMenuContent>
@@ -199,7 +203,7 @@ function NavMenuGroup({
 }
 
 export function GlobalNav() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const mounted = useMounted();
   const { resolvedTheme, setTheme } = useTheme();
   const { connected, address } = useWalletContext();
@@ -231,6 +235,7 @@ export function GlobalNav() {
       <div className="flex h-full w-full items-center gap-2 px-3 sm:gap-3 sm:px-4 lg:px-6">
         <GlobalNavMobileSheet
           pathname={pathname}
+          search={search}
           isAdmin={isAdmin}
           searchRef={searchRef}
         />
@@ -260,6 +265,7 @@ export function GlobalNav() {
                 key={group.id}
                 group={group}
                 pathname={pathname}
+                search={search}
                 isAdmin={isAdmin}
               />
             ))}
@@ -277,6 +283,7 @@ export function GlobalNav() {
                       key={item.href}
                       item={item}
                       pathname={pathname}
+                      search={search}
                     />
                   ))}
                   {isAdmin ? (
@@ -296,6 +303,7 @@ export function GlobalNav() {
                           key={item.href}
                           item={item}
                           pathname={pathname}
+                          search={search}
                         />
                       ))}
                     </>

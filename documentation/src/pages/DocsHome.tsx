@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { DocsLayout } from "@/components/docs/DocsLayout";
 import { Button } from "@/components/ui/button";
 import { SYRA_DOCS_BADGE, SYRA_HIGHLIGHT, SYRA_MISSION, SYRA_TAGLINE } from "@/content/syraBrand";
-import { SYRA_AGENT_URL, SYRA_PLAYGROUND_URL } from "@/content/syraUrls";
+import { SYRA_AGENT_URL, SYRA_MARKETPLACE_URL } from "@/content/syraUrls";
 import { ArrowRight, Bot, ExternalLink, Zap } from "lucide-react";
 
 const PATHS = [
@@ -18,7 +18,7 @@ const PATHS = [
     title: "Build with the API",
     description: "Integrate pay-per-call endpoints with x402 micropayments on Base.",
     href: "/docs/api-reference",
-    cta: { label: "API Playground", href: SYRA_PLAYGROUND_URL, external: true },
+    cta: { label: "API Marketplace", href: SYRA_MARKETPLACE_URL, external: true },
   },
 ];
 
@@ -58,8 +58,8 @@ export default function DocsHome() {
               </a>
             </Button>
             <Button variant="outline" size="lg" asChild>
-              <a href={SYRA_PLAYGROUND_URL} target="_blank" rel="noopener noreferrer">
-                API Playground
+              <a href={SYRA_MARKETPLACE_URL} target="_blank" rel="noopener noreferrer">
+                API Marketplace
                 <ExternalLink className="ml-2 h-4 w-4" />
               </a>
             </Button>

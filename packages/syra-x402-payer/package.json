@@ -1,0 +1,35 @@
+{
+  "name": "@syra-ai/x402-payer",
+  "version": "0.1.0",
+  "description": "MIT-licensed x402 payment helper for Syra and any x402 v2 HTTP API — sign, retry, safe-error detection.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/syra-agent/syra-monorepo",
+    "directory": "packages/syra-x402-payer"
+  },
+  "keywords": ["x402", "usdc", "solana", "base", "micropayments", "agents", "syra"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "npm run build"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

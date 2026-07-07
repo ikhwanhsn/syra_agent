@@ -44,6 +44,10 @@ export interface PumpfunPriceChartProps {
   variant?: "default" | "terminal";
   /** Data source label — shown in terminal header */
   source?: string;
+  /** Default selected range (terminal variant). */
+  defaultRange?: PumpChartRange;
+  /** Chart canvas height in px (terminal variant). */
+  chartHeight?: number;
   className?: string;
 }
 
@@ -90,10 +94,12 @@ export function PumpfunPriceChart({
   title,
   variant = "default",
   source,
+  defaultRange = "1D",
+  chartHeight: chartHeightProp,
   className,
 }: PumpfunPriceChartProps) {
   const isTerminal = variant === "terminal";
-  const chartHeight = isTerminal ? 360 : 220;
+  const chartHeight = chartHeightProp ?? (isTerminal ? 360 : 220);
 
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme !== "light";
@@ -102,7 +108,7 @@ export function PumpfunPriceChart({
   const seriesRef = useRef<ISeriesApi<"Area", Time> | null>(null);
   const openLineRef = useRef<ReturnType<ISeriesApi<"Area", Time>["createPriceLine"]> | null>(null);
 
-  const [range, setRange] = useState<PumpChartRange>("1D");
+  const [range, setRange] = useState<PumpChartRange>(defaultRange);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
   const [seriesData, setSeriesData] = useState<ChartPoint[]>([]);
@@ -299,7 +305,7 @@ export function PumpfunPriceChart({
     return (
       <div
         className={cn(
-          "overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-b from-muted/20 to-background shadow-[inset_0_1px_0_0_hsl(var(--foreground)/0.04)]",
+          "overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-b from-muted/25 via-background to-background shadow-[inset_0_1px_0_0_hsl(var(--foreground)/0.05),0_24px_48px_-32px_rgba(0,0,0,0.55)]",
           className,
         )}
       >

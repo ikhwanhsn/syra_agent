@@ -24,11 +24,10 @@ import {
 } from "@/components/dashboard/SidebarPrimitives";
 import { useWalletContext } from "@/contexts/WalletContext";
 import { MachineMoneyPreviewProvider, useMachineMoneyPreview } from "@/contexts/MachineMoneyPreviewContext";
-import { MachineMoneyPreviewToggle } from "@/components/dashboard/MachineMoneyPreviewToggle";
 import { isAdminWallet } from "@/constants/adminWallet";
 import { INTERNAL_BASE_PATH } from "@/lib/internalRoutes";
 import { getInternalAgentMeta, isInternalAgentSlug } from "@/lib/internalAgentsCatalog";
-import { DASHBOARD_PILLAR_NAV, isDashboardPillarRoute, isPillarGated, MACHINE_MONEY_SOON_BADGE } from "@/lib/dashboardPillarNav";
+import { DASHBOARD_PILLAR_NAV, isPillarGated, MACHINE_MONEY_SOON_BADGE } from "@/lib/dashboardPillarNav";
 import { DASHBOARD_MARKET_INTEL_NAV } from "@/lib/dashboardMarketIntelNav";
 import { DASHBOARD_EXPERIMENT_NAV } from "@/lib/dashboardExperimentNav";
 
@@ -162,9 +161,6 @@ export default function DashboardLayout({ children }: { children?: ReactNode }) 
   const location = useLocation();
   const { address, connected } = useWalletContext();
   const showAdminDashboard = isAdminWallet(connected, address);
-  const showMachineMoneyPreviewToggle =
-    showAdminDashboard &&
-    (location.pathname === "/overview" || isDashboardPillarRoute(location.pathname));
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -213,9 +209,6 @@ export default function DashboardLayout({ children }: { children?: ReactNode }) 
           </h1>
         </div>
       </div>
-      {showMachineMoneyPreviewToggle ? (
-        <MachineMoneyPreviewToggle compact />
-      ) : null}
     </header>
   );
 

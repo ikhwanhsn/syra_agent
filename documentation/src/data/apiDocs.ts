@@ -211,7 +211,7 @@ X-PAYMENT-RESPONSE: eyJzdWNjZXNzIjp0cnVlfQ==
       {
         title: "Building the `X-PAYMENT` header",
         content:
-          "Use any x402-compatible client: `x402-solana/server` (used internally by this API), `@x402/core/http` for header helpers, or any client that follows the V1 spec at https://x402.org. The header value is a base64url-encoded JSON payload signed by the payer's wallet and matching one of the offers in `accepts`. The agent app ships with working signing logic in `ai-agent/src/lib/x402Client.ts`. External MCP clients use `@syra/mcp-server@0.3.0` with `SYRA_PAYER_KEYPAIR` (HTTP routes) and `POST /mcp/tools/call` (agent-direct tools). See `mcp-server/README.md`.",
+          "Use any x402-compatible client: `x402-solana/server` (used internally by this API), `@x402/core/http` for header helpers, or any client that follows the V1 spec at https://x402.org. The header value is a base64url-encoded JSON payload signed by the payer's wallet and matching one of the offers in `accepts`. The agent app ships with working signing logic in `ai-agent/src/lib/x402Client.ts`. External MCP clients use `@syra-ai/mcp-server@0.4.1` with `SYRA_PAYER_KEYPAIR` (HTTP routes) and `POST /mcp/tools/call` (agent-direct tools). See `mcp-server/README.md`.",
       },
       {
         title: "Idempotency and retries",
@@ -230,7 +230,7 @@ X-PAYMENT-RESPONSE: eyJzdWNjZXNzIjp0cnVlfQ==
       {
         title: "Free routes that look paid",
         content:
-          "Discovery (`/.well-known/x402`, `/openapi.json`, `/mpp-openapi.json`), `/health`, and the dashboard/preview helpers (`/dashboard-summary`, `/preview/*`, `/binance-ticker`, `/uponly-rise-market*`) are intentionally free and do not return 402. The trusted-origin gateway also injects an internal API key for browser calls from syraa.fun (including /playground and /overview) — never embed an API key in client bundles.",
+          "Discovery (`/.well-known/x402`, `/openapi.json`, `/mpp-openapi.json`), `/health`, and the dashboard/preview helpers (`/dashboard-summary`, `/preview/*`, `/binance-ticker`, `/uponly-rise-market*`) are intentionally free and do not return 402. The trusted-origin gateway also injects an internal API key for browser calls from syraa.fun (including /marketplace and /overview) — never embed an API key in client bundles.",
       },
       {
         title: "Rate limits",
@@ -941,7 +941,7 @@ curl "${BASE_URL}/event?ticker=BTC"`,
   "nansen-endpoints": doc({
     title: "Nansen Endpoints API",
     overview:
-      "Nansen x402 API is called directly at api.nansen.ai (no Syra proxy). Use POST with JSON body. Basic tier: $0.01/call. Premium/Smart Money tier: $0.05/call. The Syra Agent invokes Nansen tools by calling api.nansen.ai with the user's agent wallet. The API Playground also calls api.nansen.ai directly; pay with your connected wallet when you get 402.",
+      "Nansen x402 API is called directly at api.nansen.ai (no Syra proxy). Use POST with JSON body. Basic tier: $0.01/call. Premium/Smart Money tier: $0.05/call. The Syra Agent invokes Nansen tools by calling api.nansen.ai with the user's agent wallet. The Syra Marketplace also calls api.nansen.ai directly; pay with your connected wallet when you get 402.",
     price: "Basic: $0.012/request; Premium/Smart Money: $0.06/request (upstream cost + 20% via Syra agent tools)",
     endpoints: [
       {
@@ -1183,7 +1183,7 @@ curl "${BASE_URL}/event?ticker=BTC"`,
       {
         title: "Direct usage",
         content:
-          "Call https://api.nansen.ai/api/v1/... (e.g. /api/v1/profiler/address/current-balance) with POST and a JSON body. On 402, pay with x402 (e.g. Solana wallet in the Playground, or agent wallet when using the Syra Agent). Nansen API reference: https://docs.nansen.ai/getting-started/x402-payments",
+          "Call https://api.nansen.ai/api/v1/... (e.g. /api/v1/profiler/address/current-balance) with POST and a JSON body. On 402, pay with x402 (e.g. Solana wallet in the Marketplace, or agent wallet when using the Syra Agent). Nansen API reference: https://docs.nansen.ai/getting-started/x402-payments",
       },
     ],
   }),
@@ -1952,7 +1952,7 @@ curl "${BASE_URL}/event?ticker=BTC"`,
     baseUrl: BASE_URL,
     price: "Free (no payment required when called from trusted origins)",
     authNote:
-      "When called from a trusted origin (syraa.fun, syraa.fun/playground, syraa.fun/overview, or localhost), the API injects the key. Do not embed API keys in client bundles.",
+      "When called from a trusted origin (syraa.fun, syraa.fun/marketplace, syraa.fun/overview, or localhost), the API injects the key. Do not embed API keys in client bundles.",
     endpoints: [
       {
         method: "GET",
@@ -2850,6 +2850,209 @@ curl "${BASE_URL}/preview/signal?token=solana&source=okx"`,
       },
     ],
     paymentFlow: paymentFlowFor(0.01),
+  }),
+
+  "dexscreener-pairs": doc({
+    title: "DexScreener Pairs",
+    overview:
+      "Onchain DEX pair data from DexScreener across 80+ chains. Use when an agent needs live price, liquidity, volume, and txn counts for a token before trading or scouting. Returns normalized pairs[] with priceUsd, liquidityUsd, volume24h, txns24h, fdv, pairAddress, dexId.",
+    price: "$0.001 USD per request",
+    useCases: ["Token liquidity screen", "DEX pair discovery", "Pre-trade price + volume check"],
+    endpoints: [
+      {
+        method: "GET",
+        path: "/dexscreener/pairs",
+        description: "Fetch pairs by chainId + tokenAddress or free-text search q.",
+        params: [
+          { name: "chainId", type: "string", required: "No*", description: "Chain id (e.g. solana, base) — required with tokenAddress." },
+          { name: "tokenAddress", type: "string", required: "No*", description: "Token mint/contract — required with chainId." },
+          { name: "q", type: "string", required: "No*", description: "Search query (alternative to chainId + tokenAddress)." },
+        ],
+        requestExample: `curl "${BASE_URL}/dexscreener/pairs?chainId=solana&tokenAddress=So11111111111111111111111111111111111111112"`,
+        responseExample: `{ "success": true, "data": { "mode": "token", "pairs": [{ "pairAddress": "...", "priceUsd": 145.2, "liquidityUsd": 1200000, "volume24h": 450000, "dexId": "raydium" }], "count": 1, "computedAt": "2026-07-07T00:00:00.000Z" } }`,
+      },
+      {
+        method: "POST",
+        path: "/dexscreener/pairs",
+        description: "Same as GET with JSON body.",
+        bodyExample: `{ "chainId": "solana", "tokenAddress": "So11111111111111111111111111111111111111112" }`,
+        requestExample: `curl -X POST ${BASE_URL}/dexscreener/pairs -H "Content-Type: application/json" -d '{"q":"SOL"}'`,
+        responseExample: `{ "success": true, "data": { "pairs": [...], "count": 10 } }`,
+      },
+    ],
+    paymentFlow: paymentFlowFor(0.001),
+  }),
+
+  "geckoterminal-pools": doc({
+    title: "GeckoTerminal Pools",
+    overview:
+      "Trending or newly listed DEX pools from GeckoTerminal across 100+ networks. Use when an agent scouts fresh liquidity or momentum pools on Solana, Base, Ethereum, etc.",
+    price: "$0.001 USD per request",
+    useCases: ["New pool discovery", "Trending liquidity radar", "Cross-chain DeFi scouting"],
+    endpoints: [
+      {
+        method: "GET",
+        path: "/geckoterminal/pools",
+        description: "List trending or new pools for a network.",
+        params: [
+          { name: "network", type: "string", required: "No", description: "GeckoTerminal network slug (default solana)." },
+          { name: "kind", type: "string", required: "No", description: "trending | new (default trending)." },
+          { name: "limit", type: "integer", required: "No", description: "Max pools (default 20, max 50)." },
+        ],
+        requestExample: `curl "${BASE_URL}/geckoterminal/pools?network=solana&kind=trending&limit=20"`,
+        responseExample: `{ "success": true, "data": { "pools": [{ "poolAddress": "...", "priceUsd": 0.0042, "volume24h": 89000, "dex": "raydium" }], "count": 20 } }`,
+      },
+      {
+        method: "POST",
+        path: "/geckoterminal/pools",
+        description: "Same as GET.",
+        bodyExample: `{ "network": "solana", "kind": "new", "limit": 10 }`,
+        requestExample: `curl -X POST ${BASE_URL}/geckoterminal/pools -H "Content-Type: application/json" -d '{"kind":"trending"}'`,
+        responseExample: `{ "success": true, "data": { "pools": [...] } }`,
+      },
+    ],
+    paymentFlow: paymentFlowFor(0.001),
+  }),
+
+  "defillama-tvl": doc({
+    title: "DefiLlama TVL",
+    overview:
+      "Total value locked for a DeFi protocol or blockchain from DefiLlama. Use when an agent assesses protocol scale, chain dominance, or macro DeFi health.",
+    price: "$0.001 USD per request",
+    useCases: ["Protocol TVL check", "Chain dominance compare", "Macro DeFi health"],
+    endpoints: [
+      {
+        method: "GET",
+        path: "/defillama/tvl",
+        description: "Protocol or chain TVL snapshot.",
+        params: [
+          { name: "protocol", type: "string", required: "No*", description: "DefiLlama protocol slug (e.g. aave)." },
+          { name: "chain", type: "string", required: "No*", description: "Blockchain name (e.g. Solana) — alternative to protocol." },
+        ],
+        requestExample: `curl "${BASE_URL}/defillama/tvl?protocol=aave"`,
+        responseExample: `{ "success": true, "data": { "mode": "protocol", "name": "Aave", "currentTvlUsd": 12500000000, "category": "Lending", "chains": ["Ethereum", "Arbitrum"] } }`,
+      },
+      {
+        method: "POST",
+        path: "/defillama/tvl",
+        description: "Same as GET.",
+        bodyExample: `{ "chain": "Solana" }`,
+        requestExample: `curl -X POST ${BASE_URL}/defillama/tvl -H "Content-Type: application/json" -d '{"protocol":"uniswap"}'`,
+        responseExample: `{ "success": true, "data": { "currentTvlUsd": 4200000000 } }`,
+      },
+    ],
+    paymentFlow: paymentFlowFor(0.001),
+  }),
+
+  "rugcheck-report": doc({
+    title: "RugCheck Token Report",
+    overview:
+      "Solana token risk report from RugCheck: mint/freeze authority, holder concentration, LP status, and risk score. Use when an agent screens memecoins or new mints before trading.",
+    price: "$0.005 USD per request",
+    useCases: ["Memecoin safety screen", "Mint authority audit", "Pre-trade rug risk check"],
+    endpoints: [
+      {
+        method: "GET",
+        path: "/rugcheck/report",
+        description: "Risk report for a Solana mint.",
+        params: [{ name: "mint", type: "string", required: "Yes", description: "Solana token mint (base58)." }],
+        requestExample: `curl "${BASE_URL}/rugcheck/report?mint=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"`,
+        responseExample: `{ "success": true, "data": { "mint": "...", "riskScore": 12, "risks": [], "topHolders": [], "lpLocked": true, "computedAt": "2026-07-07T00:00:00.000Z" } }`,
+      },
+      {
+        method: "POST",
+        path: "/rugcheck/report",
+        description: "Same as GET.",
+        bodyExample: `{ "mint": "<solana_mint>" }`,
+        requestExample: `curl -X POST ${BASE_URL}/rugcheck/report -H "Content-Type: application/json" -d '{"mint":"..."}'`,
+        responseExample: `{ "success": true, "data": { "riskScore": 45, "risks": ["High holder concentration"] } }`,
+      },
+    ],
+    paymentFlow: paymentFlowFor(0.005),
+  }),
+
+  "pyth-price": doc({
+    title: "Pyth Oracle Prices",
+    overview:
+      "Latest Pyth oracle prices from Hermes for major crypto feeds. Use when an agent needs authoritative onchain-derived spot prices (BTC, ETH, SOL, etc.) with confidence intervals.",
+    price: "$0.001 USD per request",
+    useCases: ["Oracle spot price", "Cross-venue price anchor", "Confidence-bounded pricing"],
+    endpoints: [
+      {
+        method: "GET",
+        path: "/pyth/price",
+        description: "Latest Pyth prices for comma-separated symbols or feed ids.",
+        params: [{ name: "symbols", type: "string", required: "Yes", description: "Comma-separated symbols (e.g. BTC/USD,SOL/USD)." }],
+        requestExample: `curl "${BASE_URL}/pyth/price?symbols=BTC/USD,SOL/USD"`,
+        responseExample: `{ "success": true, "data": { "prices": [{ "symbol": "BTC/USD", "priceUsd": 95000, "confidenceUsd": 12.5, "publishTime": "2026-07-07T00:00:00Z", "feedId": "..." }], "count": 2 } }`,
+      },
+      {
+        method: "POST",
+        path: "/pyth/price",
+        description: "Same as GET.",
+        bodyExample: `{ "symbols": "BTC/USD,ETH/USD" }`,
+        requestExample: `curl -X POST ${BASE_URL}/pyth/price -H "Content-Type: application/json" -d '{"symbols":"SOL/USD"}'`,
+        responseExample: `{ "success": true, "data": { "prices": [...] } }`,
+      },
+    ],
+    paymentFlow: paymentFlowFor(0.001),
+  }),
+
+  "syra-marketplace": doc({
+    title: "Syra Marketplace (Web UI)",
+    overview:
+      "The Syra Marketplace at https://syraa.fun/marketplace is the human- and agent-friendly surface for discovering, documenting, and testing x402 APIs. Browse catalogs from live `/.well-known/x402` + `/openapi.json`, filter by **Syra Core** vs **Partners**, open per-API detail pages with full descriptions and machine-readable agent manifests, integrate via SDK/MCP quickstart, or send custom paid requests. Legacy `/playground` URLs redirect here.",
+    price: "Free UI — individual API calls still use x402 when you execute them",
+    authNote: "No API key for the web UI. Connect a wallet to try paid endpoints in-browser.",
+    endpoints: [
+      {
+        method: "GET",
+        path: "https://syraa.fun/marketplace",
+        description: "Browse tab — searchable catalog with Core / Partners / All filters. Partner APIs are grouped by brand (Jupiter, DexScreener, Nansen, …).",
+        requestExample: "Open https://syraa.fun/marketplace in a browser",
+        responseExample: "HTML catalog UI backed by live x402 discovery",
+      },
+      {
+        method: "GET",
+        path: "https://syraa.fun/marketplace/api/{flowId}",
+        description:
+          "Per-API detail page — full OpenAPI description, when-to-use / returns parsing, parameters, payment steps, curl + TypeScript examples, copyable agent manifest JSON (`#syra-api-agent-manifest` script tag). Example: /marketplace/api/x402-news",
+        requestExample: "Open https://syraa.fun/marketplace/api/x402-news",
+        responseExample: "HTML detail page + embedded JSON agent manifest",
+      },
+      {
+        method: "GET",
+        path: "https://syraa.fun/marketplace?tab=build",
+        description: "Integrate tab — SDK, MCP, and curl quickstart for x402.",
+        requestExample: "Open https://syraa.fun/marketplace?tab=build",
+        responseExample: "Integration snippets and docs links",
+      },
+      {
+        method: "GET",
+        path: "https://syraa.fun/marketplace?tab=custom",
+        description: "Custom tab — manual HTTP tester for any paid Syra route.",
+        requestExample: "Open https://syraa.fun/marketplace?tab=custom",
+        responseExample: "Request builder with x402 payment flow",
+      },
+    ],
+    paymentFlow: paymentFlowFor(0),
+    extraSections: [
+      {
+        title: "Navigation",
+        content:
+          "Marketplace sections live in the main Syra navbar dropdown: **Browse**, **Integrate**, and **Custom**. `/playground` and `/playground/*` redirect to the equivalent marketplace routes.",
+      },
+      {
+        title: "Tier classification",
+        content:
+          "**Syra Core** — internal intelligence (news, signal, brain, …). **Partners** — external data providers (DexScreener, GeckoTerminal, DefiLlama, Pyth, RugCheck, Jupiter, CoinGecko, OpenRouter, …) and partner gateways (Nansen, Binance, Bankr, …). RISE, pump.fun scout, and ERC-8004 registry reads are classified as Partners (external services), not Core.",
+      },
+      {
+        title: "Agent discovery",
+        content:
+          "Each detail page exposes a structured JSON manifest for autonomous agents. Agents can also use `GET /.well-known/x402`, `GET /openapi.json`, `GET /llms-full.txt`, or MCP `@syra-ai/mcp-server` for programmatic discovery.",
+      },
+    ],
   }),
 };
 

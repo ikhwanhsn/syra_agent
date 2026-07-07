@@ -144,8 +144,7 @@ export default function LpPoolsPage() {
 
   const pools = useMemo(() => {
     const raw = poolsQ.data?.pools ?? [];
-    const active = raw.filter((p) => p.tvlUsd >= 1 || p.fee24hUsd > 0 || p.volume24hUsd > 0);
-    return sortMeteoraPools(active.length > 0 ? active : raw, "apr", "desc");
+    return sortMeteoraPools(raw, "apr", "desc");
   }, [poolsQ.data?.pools]);
 
   const bestApr = useMemo(() => {
@@ -192,8 +191,8 @@ export default function LpPoolsPage() {
               Provide SYRA liquidity
             </h1>
             <p className="mx-auto max-w-md text-sm leading-relaxed text-muted-foreground">
-              Earn trading fees by adding liquidity to SYRA pools on Meteora. APR is estimated from the last
-              24 hours and is not guaranteed.
+              Earn trading fees by adding liquidity to SYRA pools on Meteora. All listed pools are
+              shown — APR is estimated from the last 24 hours and is not guaranteed.
             </p>
           </header>
 

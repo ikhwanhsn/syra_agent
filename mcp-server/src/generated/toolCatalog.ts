@@ -211,7 +211,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "GMGN: wallet activity",
     "description": "Wallet activity. chain, wallet. Optional: token, limit, type (buy|sell, comma).",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -222,7 +222,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "GMGN: dev created tokens",
     "description": "Tokens deployed by a wallet. chain, wallet. Optional: order_by, migrate_state, direction.",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -233,7 +233,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "GMGN: wallet holdings",
     "description": "Wallet token positions. chain, wallet (or address for wallet). chain defaults to sol for Solana-looking wallets.",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -244,7 +244,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "GMGN: API key wallets",
     "description": "Wallets and balances bound to the server GMGN API key. No parameters.",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -255,7 +255,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "GMGN: wallet stats",
     "description": "Per-wallet trading stats. chain, wallet (comma for multiple; optional period 7d|30d).",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -266,7 +266,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "GMGN: single token balance",
     "description": "One token balance for a wallet. chain, wallet, token (mint/contract; aliases: mint, token_address).",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -630,7 +630,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "POST",
     "name": "RISE borrow quote",
     "description": "Get RISE borrow capacity and optional required deposit",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": true,
     "pathParams": [
       "address"
@@ -644,7 +644,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "POST",
     "name": "RISE buy token",
     "description": "Build RISE buy transaction (wallet, market, cashIn, minTokenOut)",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": true
   },
   {
@@ -655,7 +655,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "POST",
     "name": "RISE deposit and borrow",
     "description": "Build RISE deposit+borrow transaction (wallet, market, borrowAmount)",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": true
   },
   {
@@ -666,7 +666,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "RISE market by address",
     "description": "Get RISE market details by token mint or rise market address",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": true,
     "pathParams": [
       "address"
@@ -680,7 +680,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "RISE market OHLC",
     "description": "Get RISE OHLC candles by timeframe (1m, 5m, 1h, 1d)",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": true,
     "pathParams": [
       "address",
@@ -695,7 +695,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "POST",
     "name": "RISE trade quote",
     "description": "Get RISE buy/sell quote (amount RAW, direction buy|sell)",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": true,
     "pathParams": [
       "address"
@@ -709,7 +709,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "RISE market transactions",
     "description": "Get RISE market transaction history (optional page, limit)",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": true,
     "pathParams": [
       "address"
@@ -723,7 +723,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "RISE list markets",
     "description": "List RISE markets (optional page, limit)",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": true
   },
   {
@@ -734,7 +734,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "RISE portfolio positions",
     "description": "Get RISE wallet positions (optional page, limit)",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": true,
     "pathParams": [
       "wallet"
@@ -748,7 +748,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "RISE portfolio summary",
     "description": "Get RISE wallet portfolio summary",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": true,
     "pathParams": [
       "wallet"
@@ -762,7 +762,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "POST",
     "name": "RISE repay and withdraw",
     "description": "Build RISE repay+withdraw transaction (wallet, market, withdrawAmount)",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": true
   },
   {
@@ -773,7 +773,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "RISE Scout",
     "description": "Live RISE intelligence — view=intel|markets|targets with optional mint, limit, tier=ready|watch",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": true,
     "path": "/rise"
   },
@@ -785,7 +785,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "POST",
     "name": "RISE sell token",
     "description": "Build RISE sell transaction (wallet, market, tokenIn, minCashOut)",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": true
   },
   {
@@ -796,7 +796,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "RISE new markets stream",
     "description": "Returns integration note for RISE SSE stream endpoint /markets/stream/new",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": true
   },
   {
@@ -865,7 +865,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "Analytics summary",
     "description": "Bundled analytics: Jupiter trending, Nansen smart money, Binance correlation",
-    "priceUsd": 0.00032,
+    "priceUsd": 0.00022,
     "curated": true,
     "path": "/analytics/summary"
   },
@@ -889,7 +889,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "Binance correlation",
     "description": "Binance correlation data",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -900,7 +900,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "Binance exchange info",
     "description": "Binance spot exchange trading rules and symbol info. Optional symbol or symbols.",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -911,7 +911,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "Binance order book",
     "description": "Binance spot order book (depth). symbol (e.g. BTCUSDT) required; optional limit (5–5000, default 100).",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -922,7 +922,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "Binance spot account",
     "description": "Binance spot account balances. Requires BINANCE_API_KEY and BINANCE_API_SECRET in env (or apiKey/apiSecret in body).",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -933,7 +933,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "POST",
     "name": "Binance place spot order",
     "description": "Place a Binance spot order. symbol (e.g. BTCUSDT), side (BUY/SELL), type (MARKET/LIMIT etc.), quantity or quoteOrderQty. Requires API key in env or body.",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -944,7 +944,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "DELETE",
     "name": "Binance cancel spot order",
     "description": "Cancel a Binance spot order. symbol required; orderId or origClientOrderId required. Requires API key in env or body.",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -955,7 +955,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "Binance 24h ticker",
     "description": "Binance spot 24h price change statistics. Optional symbol (e.g. BTCUSDT); omit for all symbols.",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -1541,7 +1541,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "Bubblemaps maps",
     "description": "Bubblemaps map data",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -1552,9 +1552,33 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "CoinGecko Scout",
     "description": "Live CoinGecko scout — view=brief|gainers|predictions with optional topN, minMarketCap, includeNews, llm",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00001,
     "curated": true,
     "path": "/coingecko"
+  },
+  {
+    "toolName": "syra_spend_defillama_tvl",
+    "toolId": "defillama-tvl",
+    "pillar": "spend",
+    "access": "http",
+    "method": "GET",
+    "name": "DefiLlama TVL",
+    "description": "Protocol or chain TVL from DefiLlama — protocol slug (e.g. aave) OR chain name (e.g. Solana).",
+    "priceUsd": 0.00001,
+    "curated": true,
+    "path": "/defillama/tvl"
+  },
+  {
+    "toolName": "syra_spend_dexscreener_pairs",
+    "toolId": "dexscreener-pairs",
+    "pillar": "spend",
+    "access": "http",
+    "method": "GET",
+    "name": "DexScreener Pairs",
+    "description": "Onchain DEX pairs from DexScreener — chainId + tokenAddress OR q search. Returns price, liquidity, volume, txns.",
+    "priceUsd": 0.00001,
+    "curated": true,
+    "path": "/dexscreener/pairs"
   },
   {
     "toolName": "syra_spend_equity_intelligence",
@@ -1576,9 +1600,21 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "Event",
     "description": "Event data and updates",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": true,
     "path": "/event"
+  },
+  {
+    "toolName": "syra_spend_geckoterminal_pools",
+    "toolId": "geckoterminal-pools",
+    "pillar": "spend",
+    "access": "http",
+    "method": "GET",
+    "name": "GeckoTerminal Pools",
+    "description": "Trending or new DEX pools from GeckoTerminal — network (default solana), kind=trending|new, limit.",
+    "priceUsd": 0.00001,
+    "curated": true,
+    "path": "/geckoterminal/pools"
   },
   {
     "toolName": "syra_spend_gmgn_market_kline",
@@ -1588,7 +1624,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "GMGN: token K-line",
     "description": "OHLCV candles. chain, token address/mint, resolution 1m|5m|15m|1h|4h|1d (defaults 1h). from/to: Unix seconds or ms.",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -1599,7 +1635,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "GMGN: token signals",
     "description": "On-chain token signals (chain sol|bsc only; defaults sol). groups (JSON) or signal_type, mcMin, mcMax.",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -1610,7 +1646,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "GMGN: Trenches (new tokens)",
     "description": "New/near-grad/grad launchpad tokens. chain defaults sol. Optional: type, launchpad_platform, limit, filterPreset, filters (JSON), sortBy.",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -1621,7 +1657,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "GMGN: trending tokens",
     "description": "Trending by swap volume. chain (defaults sol) and interval 1m|5m|1h|6h|24h (defaults 1h). Optional: limit, order_by, direction, filters, platforms.",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -1632,7 +1668,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "GMGN: top holders",
     "description": "Top holders. chain sol|bsc|eth|base; address or mint. Optional: limit, order_by, direction, tag (e.g. smart_degen, renowned, …).",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -1643,7 +1679,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "GMGN: token info",
     "description": "Token details and live price. Chain: sol|bsc|base|eth (use sol for Solana; \"solana\" is normalized). address or mint, token_address, or ca.",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -1654,7 +1690,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "GMGN: token pool",
     "description": "Liquidity pool info. Chain as above. Token: address, mint, or token_address.",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -1665,7 +1701,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "GMGN: token security",
     "description": "Token security and risk. Chain sol|bsc|base|eth. Token as address, mint, or token_address.",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -1676,7 +1712,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "GMGN: top traders",
     "description": "Top traders for a token. Same chain/address rules as top holders. Optional: limit, order_by, direction, tag.",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -1687,7 +1723,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "GMGN: follow-wallet trades",
     "description": "Trades for GMGN follow list. chain; optional wallet, limit, min_amount_usd, filters. Requires server GMGN_PRIVATE_KEY.",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -1698,7 +1734,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "GMGN: KOL trades",
     "description": "KOL trade feed. Optional chain, limit, side (buy|sell) client-side filter.",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -1709,7 +1745,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "GMGN: smart money trades",
     "description": "Smart money feed. Optional chain, limit, side client-side filter.",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -1720,7 +1756,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "API health",
     "description": "Liveness and connectivity check (paid x402 health endpoint)",
-    "priceUsd": 0.0000010000000000000002,
+    "priceUsd": 0.00001,
     "curated": true,
     "path": "/health"
   },
@@ -1964,7 +2000,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "Crypto news",
     "description": "Get latest crypto news and market updates (optional ticker: BTC, ETH, or \"general\")",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": true,
     "path": "/news"
   },
@@ -2067,7 +2103,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "POST",
     "name": "Tokenized agent: verify invoice paid",
     "description": "Verify invoice paid on-chain (agentMint, user, currencyMint, amount, memo, startTime, endTime as numbers)",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -2100,7 +2136,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "pump.fun coin metadata",
     "description": "Proxy GET coins-v2/{mint}; x402 scales with usd_market_cap (cached). Same data: GET /pumpfun/coin?mint=",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false,
     "pathParams": [
       "mint"
@@ -2114,7 +2150,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "pump.fun coin metadata (query mint)",
     "description": "GET /pumpfun/coin?mint=<base58> — same coins-v2 proxy and dynamic x402 as path variant",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -2136,7 +2172,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "Pump.fun Scout",
     "description": "Live pump.fun scout — segment=alpha|beta|predicted|utility with optional period, limit, minPumpScore, llm",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": true,
     "path": "/pumpfun/scout"
   },
@@ -2159,8 +2195,20 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "pump.fun SOL price",
     "description": "SOL/USD from pump frontend-api-v3 (server-side proxy)",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
+  },
+  {
+    "toolName": "syra_spend_pyth_price",
+    "toolId": "pyth-price",
+    "pillar": "spend",
+    "access": "http",
+    "method": "GET",
+    "name": "Pyth Oracle Prices",
+    "description": "Real-time Pyth oracle prices via Hermes — symbols (comma-separated, e.g. BTC/USD,SOL/USD).",
+    "priceUsd": 0.00001,
+    "curated": true,
+    "path": "/pyth/price"
   },
   {
     "toolName": "syra_spend_quicknode_balance",
@@ -2196,6 +2244,18 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "curated": false
   },
   {
+    "toolName": "syra_spend_rugcheck_report",
+    "toolId": "rugcheck-report",
+    "pillar": "spend",
+    "access": "http",
+    "method": "GET",
+    "name": "RugCheck Token Report",
+    "description": "Solana token risk report from RugCheck — mint (required). Returns risk score, authorities, top holders.",
+    "priceUsd": 0.00005,
+    "curated": true,
+    "path": "/rugcheck/report"
+  },
+  {
     "toolName": "syra_spend_sentiment",
     "toolId": "sentiment",
     "pillar": "spend",
@@ -2203,7 +2263,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "Sentiment analysis",
     "description": "Get market sentiment analysis",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": true,
     "path": "/sentiment"
   },
@@ -2215,7 +2275,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "Trading signal",
     "description": "Spot OHLC + technical signal; Syra Agent chat uses CoinGecko by default (set source for CEX or n8n|webhook)",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": true,
     "path": "/signal"
   },
@@ -2753,7 +2813,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "Sundown digest",
     "description": "Sundown digest / daily summary",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": true,
     "path": "/sundown-digest"
   },
@@ -2776,7 +2836,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "Tokens: asset detail",
     "description": "Canonical asset profile. assetId (btc, solana, solana-<mint>). Optional include (profile,risk,ohlcv,markets), mint.",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -2787,7 +2847,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "Tokens: asset markets",
     "description": "DEX/pool venues for an asset. assetId required. Optional mint, offset, limit.",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -2798,7 +2858,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "Tokens: OHLCV candles",
     "description": "OHLCV for a variant. assetId required. Optional mint, interval (1m|5m|15m|1H|4H|1D|1W), from, to (unix sec).",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -2809,7 +2869,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "Tokens: price chart",
     "description": "Canonical-first price chart (falls back to mint candles). Same params as OHLCV.",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -2820,7 +2880,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "Tokens: asset risk details",
     "description": "Detailed risk breakdown. assetId required. Optional mint.",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -2831,7 +2891,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "Tokens: asset risk summary",
     "description": "Risk summary for canonical asset. assetId required. Optional mint for a specific variant.",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -2842,7 +2902,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "Tokens: asset variants",
     "description": "Solana mint variants for an asset. assetId required. Optional kind, liquidityTier (tier1|tier2|tier3).",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -2853,7 +2913,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "Tokens: curated lists",
     "description": "Curated asset lists. Optional list (all|majors|lsts|currencies|rwas|etfs|metals|stocks), groupBy (asset|mint).",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -2864,7 +2924,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "Tokens: resolve asset",
     "description": "Resolve user input to canonical assetId. Provide ref (btc, solana, apple) OR mint (Solana address).",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -2875,7 +2935,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "Tokens: search assets",
     "description": "Search canonical assets by name/ticker; params q (required), optional limit (max 50), category.",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -2886,7 +2946,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "POST",
     "name": "Tokens: batch market snapshots",
     "description": "Batch market data for up to 250 mints. Param mints (comma-separated) or body JSON { mints: [...] }.",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -2897,7 +2957,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "Tokens: mint risk summary",
     "description": "Quick risk score for a Solana mint. Param mint (required).",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -2908,7 +2968,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "Tokens: variant markets batch",
     "description": "Market snapshots for up to 50 mints. Param mints or addresses (comma-separated).",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {
@@ -2919,7 +2979,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "Trending headline",
     "description": "Trending headlines",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": true,
     "path": "/trending-headline"
   },
@@ -2931,7 +2991,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "Trending on Jupiter",
     "description": "Trending tokens on Jupiter",
-    "priceUsd": 0.0001,
+    "priceUsd": 0.00005,
     "curated": false
   },
   {

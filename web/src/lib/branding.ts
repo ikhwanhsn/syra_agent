@@ -1,11 +1,10 @@
 /**
- * Agentic Playground — product copy (Syra).
- * Supports payment-gated flows: standard x402 resources and MPP (machine payments) lanes — both use HTTP 402 + wallet settlement where applicable.
+ * Syra Marketplace — x402 API catalog and request surface.
  */
-export const BRAND_NAME = 'Agentic Playground';
-export const BRAND_WORD_MARK = 'Agentic';
+export const BRAND_NAME = 'Syra Marketplace';
+export const BRAND_WORD_MARK = 'Syra';
 /** Short line under the word mark in the top bar */
-export const BRAND_SUBLINE = 'HTTP 402 · x402 & MPP · wallet-native';
+export const BRAND_SUBLINE = 'x402 API marketplace · pay-per-call · wallet-native';
 
 /** @deprecated Playground uses site GlobalNav only — no extra top padding */
 export const MAIN_CONTENT_PT_CLASS = '';

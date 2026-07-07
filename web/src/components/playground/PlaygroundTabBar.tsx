@@ -18,21 +18,18 @@ export {
 
 const TAB_CONFIG: Record<
   PlaygroundTab,
-  { label: string; description: string; icon: ReactNode }
+  { label: string; icon: ReactNode }
 > = {
   syra: {
-    label: "Syra APIs",
-    description: "Browse & test x402 endpoints",
+    label: "Browse",
     icon: <Layers className="h-4 w-4 shrink-0" aria-hidden />,
   },
   build: {
-    label: "Build on rail",
-    description: "SDK, curl & MCP integration",
+    label: "Integrate",
     icon: <Code2 className="h-4 w-4 shrink-0" aria-hidden />,
   },
   custom: {
-    label: "Custom API",
-    description: "Free-form request builder",
+    label: "Custom",
     icon: <Wrench className="h-4 w-4 shrink-0" aria-hidden />,
   },
 };
@@ -45,18 +42,18 @@ interface PlaygroundTabBarProps {
 export function PlaygroundTabBar({ active, onChange }: PlaygroundTabBarProps) {
   return (
     <div
-      className="playground-tab-bar sticky top-0 z-20 shrink-0 border-b border-border/45 bg-background/75 pt-3 backdrop-blur-xl sm:pt-4"
-      style={{ ["--playground-tab-bar-height" as string]: "4.25rem" }}
+      className="playground-tab-bar marketplace-tab-bar sticky top-0 z-20 shrink-0 border-b border-border/50 bg-background/90 backdrop-blur-xl"
+      style={{ ["--playground-tab-bar-height" as string]: "3.25rem" }}
       role="tablist"
-      aria-label="Playground sections"
+      aria-label="Marketplace sections"
     >
-      <div className="mx-auto flex w-full max-w-[1680px] flex-col gap-3 px-4 sm:px-6 lg:px-8 lg:flex-row lg:items-center lg:justify-between">
-        <p className="hidden text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/80 lg:block">
-          Playground
+      <div className="mx-auto flex w-full max-w-[1680px] items-center gap-4 px-4 py-2.5 sm:px-6 lg:px-8">
+        <p className="hidden shrink-0 font-display text-sm font-semibold tracking-tight text-foreground sm:block">
+          Marketplace
         </p>
-        <div className={cn(playgroundSegmentedRoot(PLAYGROUND_TAB_ORDER.length), "lg:min-w-[32rem]")}>
+        <div className={cn(playgroundSegmentedRoot(PLAYGROUND_TAB_ORDER.length), "min-w-0 flex-1 sm:max-w-md")}>
           {PLAYGROUND_TAB_ORDER.map((id) => {
-            const { label, description, icon } = TAB_CONFIG[id];
+            const { label, icon } = TAB_CONFIG[id];
             const isActive = active === id;
             return (
               <button
@@ -67,20 +64,10 @@ export function PlaygroundTabBar({ active, onChange }: PlaygroundTabBarProps) {
                 aria-controls={`playground-panel-${id}`}
                 id={`playground-tab-${id}`}
                 onClick={() => onChange(id)}
-                className={playgroundSegmentedTrigger(isActive)}
+                className={cn(playgroundSegmentedTrigger(isActive), "gap-1.5 py-2")}
               >
                 {icon}
-                <span className="flex min-w-0 flex-col items-start text-left">
-                  <span className="truncate leading-none">{label}</span>
-                  <span
-                    className={cn(
-                      "mt-0.5 hidden truncate text-[10px] font-normal leading-none sm:block",
-                      isActive ? "text-muted-foreground" : "text-muted-foreground/70",
-                    )}
-                  >
-                    {description}
-                  </span>
-                </span>
+                <span className="truncate text-sm">{label}</span>
               </button>
             );
           })}

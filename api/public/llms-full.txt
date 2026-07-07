@@ -1,0 +1,107 @@
+Syra — full machine-readable API reference (llms-full.txt)
+============================================================
+
+> The Solana money layer for agents — intelligence, execution, treasury.
+> Pay-per-call x402 APIs. No API keys. No subscriptions.
+
+Base URL
+--------
+https://api.syraa.fun
+
+Discovery
+---------
+GET /.well-known/x402          — x402 resource catalog + payment instructions
+GET /openapi.json              — OpenAPI 3.1 gateway catalog
+GET /mpp-openapi.json          — MPP / AgentCash discovery
+GET /x402/capabilities         — supported payment networks
+GET /api/metrics               — public traction metrics (calls, USDC, wallets)
+GET /api/live/calls            — SSE feed of recent paid calls (sanitized)
+GET /llms-full.txt             — this file
+
+Free tier (no USDC — onboarding funnel)
+---------------------------------------
+GET /free/pillars              — five pillars discovery
+GET /free/assets?limit=20      — curated assets board (subset)
+GET /free/coingecko/price?ids=bitcoin,ethereum,solana
+GET /free/dossier/basic?mint={solanaMint}  — basic token snapshot
+
+Preview tier (no USDC)
+----------------------
+GET /preview/news
+GET /preview/sentiment
+GET /preview/signal
+GET /dashboard-summary
+GET /binance-ticker
+
+Pricing tiers (machine-frequency)
+---------------------------------
+Tier 1 — $0.001/call: lists, prices, health probes, jupiter/quote, coingecko scout, dexscreener/pairs, geckoterminal/pools, defillama/tvl, pyth/price, assets board, pumpfun trending/movers
+Tier 2 — $0.005/call: news, signal, sentiment, indicator, events, assets/detail, pumpfun scout, rise, bitcoin hub, rugcheck/report
+Tier 3 — $0.02/call: pumpfun/analyzer, spcx, equity, jupiter swap builds
+Tier 4 — $0.08/call: /brain (multi-tool AI synthesis)
+
+Payment protocol (x402 v2)
+--------------------------
+1. Send request without payment header.
+2. Server returns HTTP 402 with price in accepts[] and Payment-Required header (base64 JSON).
+3. Sign USDC payment locally (private key never leaves your machine).
+4. Retry with PAYMENT-SIGNATURE or X-Payment header.
+5. Receipt in X-Payment-Receipt / X-Payment-Response on success.
+
+Safe retry semantics
+--------------------
+- HTTP 400/404: fix request — not charged.
+- HTTP 402: payment required or verification failed — not charged.
+- HTTP 5xx with body containing "Payment was NOT charged": safe to retry without double-billing.
+- Trust X-Payment-Response success=true for on-chain settlement confirmation.
+
+Networks (preferred order)
+--------------------------
+1. Base Mainnet (eip155:8453) — USDC — primary x402 volume rail
+2. Solana Mainnet (solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp) — USDC
+
+Paid HTTP resources (see /.well-known/x402 for full list)
+---------------------------------------------------------
+brain, news, signal, sentiment, indicator, event, trending-headline, sundown-digest,
+spcx, equity, arbitrage, jupiter/quote, pumpfun/trending, pumpfun/movers, pumpfun/analyzer,
+pumpfun/scout, rise, coingecko, dexscreener/pairs, geckoterminal/pools, defillama/tvl, rugcheck/report, pyth/price,
+assets, assets/detail, bitcoin,
+chat/completions, images/generations, videos/generations,
+8004/stats, 8004/leaderboard, 8004/agents/search, health, mpp/health
+
+Agent tools (POST /agent/tools/call — higher-level, treasury-aware)
+-------------------------------------------------------------------
+101+ tools: Nansen, TopLedger, Binance, GMGN, Jupiter swap, Giza, web-search, crawl, and more.
+See GET /openapi.json and docs.syraa.fun for the live catalog.
+
+Reference agent (public demo)
+-----------------------------
+GET /experiment/scalper/overview       — paper scalper equity + opportunities
+GET /experiment/scalper/equity-history — equity curve
+GET /experiment/scalper/reference      — wallet + x402 spend summary
+Web UI: https://syraa.fun/reference/scalper
+
+MCP one-liner (Cursor / Claude Code)
+------------------------------------
+claude mcp add syra -- npx -y @syra-ai/mcp-server@latest
+
+Set SYRA_API_BASE_URL=https://api.syraa.fun
+Set SYRA_PAYER_KEYPAIR for auto-pay in production.
+
+SDK
+---
+npm install @syra-ai/sdk
+
+Open-source payer utility
+-------------------------
+npm install @syra-ai/x402-payer
+
+Links
+-----
+Docs:       https://docs.syraa.fun
+Marketplace: https://syraa.fun/marketplace
+Metrics:    https://syraa.fun/metrics
+Web agent:  https://syraa.fun
+Twitter:    https://x.com/syra_agent
+
+Last updated: 2026-07-07

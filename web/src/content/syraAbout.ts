@@ -254,3 +254,10 @@ export const SYRA_COMMUNITY_LINKS: SyraCommunityLink[] = [
 
 export const SYRA_DISCLAIMER =
   "Syra provides infrastructure and intelligence tools for autonomous agents — not financial advice, guaranteed returns, or custody of your keys. Onchain activity carries risk. You are responsible for your own compliance, configuration, and execution.";
+
+/** Syra agent on SAID Protocol — verified on-chain identity. */
+export const SYRA_SAID_AGENT_ID = "53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t";
+
+export const SYRA_SAID_PROFILE_URL = `https://www.saidprotocol.com/agents/${SYRA_SAID_AGENT_ID}`;
+
+export const SYRA_SAID_BADGE_URL = `https://api.saidprotocol.com/api/badge/${SYRA_SAID_AGENT_ID}.svg`;

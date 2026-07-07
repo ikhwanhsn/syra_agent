@@ -4,8 +4,10 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowDownUp, Loader2, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useWalletContext } from "@/contexts/WalletContext";
 import { useJupiterQuote } from "@/hooks/useJupiterQuote";
+import { useDelayedMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import {
   buildJupiterSwap,
   formatSwapAmount,
@@ -322,6 +324,11 @@ export function SwapCard({ onTokensChange }: SwapCardProps) {
 
   const busy = phase === "building" || phase === "signing";
 
+  const quoteLoadingActive =
+    quoteQuery.hasValidAmount && (quoteQuery.isFetching || quoteQuery.isDebouncing);
+  const showQuoteSkeleton = useDelayedMinimumSkeleton(quoteLoadingActive);
+  const quoteStale = quoteLoadingActive && Boolean(quoteQuery.display);
+
   return (
     <>
       <div className={swapShellClass}>
@@ -436,15 +443,20 @@ export function SwapCard({ onTokensChange }: SwapCardProps) {
                   disabled={busy || showConfirm}
                 />
               </div>
-              <p className="font-mono text-2xl font-semibold tabular-nums text-foreground/90">
-                {quoteQuery.isFetching || quoteQuery.isDebouncing ? (
-                  <Loader2 className="ml-auto h-5 w-5 animate-spin text-muted-foreground" />
-                ) : quoteQuery.display ? (
-                  quoteQuery.display.outFormatted
+              <div className="min-w-[6rem] text-right">
+                {showQuoteSkeleton ? (
+                  <Skeleton className="ml-auto h-8 w-28 rounded-lg" />
                 ) : (
-                  "—"
+                  <p
+                    className={cn(
+                      "font-mono text-2xl font-semibold tabular-nums text-foreground/90",
+                      quoteStale && "opacity-50 transition-opacity duration-200",
+                    )}
+                  >
+                    {quoteQuery.display ? quoteQuery.display.outFormatted : "—"}
+                  </p>
                 )}
-              </p>
+              </div>
             </div>
           </div>
 
@@ -453,8 +465,8 @@ export function SwapCard({ onTokensChange }: SwapCardProps) {
               display={quoteQuery.display}
               inputSymbol={inputToken.symbol}
               outputSymbol={outputToken.symbol}
-              isLoading={quoteQuery.isFetching}
-              isDebouncing={quoteQuery.isDebouncing}
+              isLoading={showQuoteSkeleton}
+              isDebouncing={quoteQuery.isDebouncing && !showQuoteSkeleton}
               error={quoteError && !showConfirm ? quoteError : null}
             />
 

@@ -8,9 +8,9 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-docs.syraa.fun-0ea5e9)](https://docs.syraa.fun)
-[![API Playground](https://img.shields.io/badge/build-playground.syraa.fun-26a5e4)](https://playground.syraa.fun)
+[![API Marketplace](https://img.shields.io/badge/build-syraa.fun%2Fmarketplace-26a5e4)](https://syraa.fun/marketplace)
 
-**[Documentation](https://docs.syraa.fun)** · **[API Playground](https://playground.syraa.fun)** · **[SDK](../syra-sdk)** · **[Agent demo](https://syraa.fun)**
+**[Documentation](https://docs.syraa.fun)** · **[API Marketplace](https://syraa.fun/marketplace)** · **[SDK](../syra-sdk)** · **[Agent demo](https://syraa.fun)**
 
 </div>
 
@@ -18,10 +18,14 @@
 
 ## One-line install (Cursor / Claude Desktop)
 
-Copy from [`integrations/cursor.mcp.json`](integrations/cursor.mcp.json) or run:
+```bash
+claude mcp add syra -- npx -y @syra-ai/mcp-server@latest
+```
+
+Or run directly:
 
 ```bash
-npx -y @syra/mcp-server
+npx -y @syra-ai/mcp-server
 ```
 
 Set `SYRA_API_BASE_URL=https://api.syraa.fun`. For production auto-pay, set `SYRA_PAYER_KEYPAIR` (Solana USDC wallet). For agent-direct tools (web-search, Nansen, GMGN, etc.), configure the MCP bridge on the API (`SYRA_MCP_BRIDGE_ENABLED`, `SYRA_MCP_API_KEY`, `SYRA_MCP_AGENT_ANONYMOUS_ID`) and pass `SYRA_MCP_API_KEY` to the MCP server.
@@ -184,7 +188,7 @@ Configuration is done via **environment variables**. Copy `.env.example` to `.en
 | `SYRA_MCP_API_KEY` | Auth for agent-direct tools via `POST /mcp/tools/call` on the API | not set | shared with API env |
 | `SYRA_MCP_TOOL_PROFILE` | `curated` (default) or `full` | `curated` | `full` |
 | `SYRA_USE_DEV_ROUTES` | If set to `true` or `1`, appends `/dev` to each API path | not set (false) | `true` |
-| `SYRA_CONNECTED_WALLET` | Optional `X-Connected-Wallet` header for dev/playground pricing | not set | wallet address |
+| `SYRA_CONNECTED_WALLET` | Optional `X-Connected-Wallet` header for dev/marketplace pricing | not set | wallet address |
 | `SYRA_SOLANA_RPC_URL` | RPC for x402 Solana payment signing | `SOLANA_RPC_URL` or public RPC | Helius URL |
 | `SOLANA_RPC_BLOCKCHAIN_URL` | Full-access Solana RPC (preferred for x402 mint/blockhash) | not set | Helius blockchain URL |
 | `SOLANA_RPC_FALLBACK_URL` | Fallback when primary RPC blocks blockchain JSON-RPC | public mainnet-beta | Ankr URL |
@@ -634,7 +638,7 @@ Regenerate after editing agent tools, then `npm run build` in `mcp-server/` and 
 
 ## Version
 
-- **Package:** `@syra/mcp-server`
+- **Package:** `@syra-ai/mcp-server`
 - **Version:** `0.4.0` (see `package.json`)
 
 For more on the Syra API, x402, and the rest of the monorepo, see the main Syra documentation and API docs.

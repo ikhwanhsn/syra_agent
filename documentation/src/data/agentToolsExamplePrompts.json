@@ -256,5 +256,10 @@
   "topledger-staking": "Use TopLedger: staking positions: Native SOL and protocol staking across Jupiter DAO, Helium, Streamflow, Kamino, and more",
   "topledger-yield": "Use TopLedger: yield vaults: Yield-bearing vault positions across Kamino, Hylo, Exponent, Elemental, Huma, and more",
   "topledger-rewards": "Use TopLedger: unclaimed rewards: Pending and unclaimed protocol rewards with USD value where available",
-  "topledger-dex-pnl": "Use TopLedger: DEX trading PnL: FIFO DEX trading PnL with cost basis, realized/unrealized PnL, and 7-day performance"
+  "topledger-dex-pnl": "Use TopLedger: DEX trading PnL: FIFO DEX trading PnL with cost basis, realized/unrealized PnL, and 7-day performance",
+  "dexscreener-pairs": "Use DexScreener Pairs: Onchain DEX pairs from DexScreener — chainId + tokenAddress OR q search",
+  "geckoterminal-pools": "Use GeckoTerminal Pools: Trending or new DEX pools from GeckoTerminal — network (default solana), kind=trending|new, limit",
+  "defillama-tvl": "Use DefiLlama TVL: Protocol or chain TVL from DefiLlama — protocol slug (e",
+  "rugcheck-report": "Use RugCheck Token Report: Solana token risk report from RugCheck — mint (required)",
+  "pyth-price": "Use Pyth Oracle Prices: Real-time Pyth oracle prices via Hermes — symbols (comma-separated, e"
 }

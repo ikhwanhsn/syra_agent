@@ -28,10 +28,64 @@ export interface ScalperSimConfig {
   startingBankUsd: number;
   maxConcurrentPositions: number;
   notionalSlicePct: number;
+  minNotionalSlicePct?: number;
   takeProfitPct: number;
   stopLossPct: number;
   maxHoldMinutes: number;
   minOpportunityScore: number;
+  minEdgeBufferPct?: number;
+}
+
+export interface ScalperSourceStat {
+  decided: number;
+  wins: number;
+  losses: number;
+  winRate: number;
+  avgPnlPct: number;
+  scoreMultiplier: number;
+}
+
+export interface ScalperSymbolStat {
+  decided: number;
+  wins: number;
+  losses: number;
+  winRate: number;
+  avgPnlPct: number;
+}
+
+export interface ScalperLearningCooldown {
+  source?: string;
+  symbol?: string;
+  reason: string | null;
+  until: string;
+}
+
+export interface ScalperLearningSnapshot {
+  lessons: string[];
+  thresholdOverrides: Record<string, unknown>;
+  sourceStats: Record<string, ScalperSourceStat>;
+  symbolStats: Record<string, ScalperSymbolStat>;
+  sourceCooldowns: Array<{ source: string; reason: string | null; until: string }>;
+  symbolCooldowns: Array<{ symbol: string; reason: string | null; until: string }>;
+  lastEvolutionAt: string | null;
+  lastEvolutionSummary: string | null;
+  runsAnalyzed: number;
+  baseConfig: {
+    takeProfitPct: number;
+    stopLossPct: number;
+    minOpportunityScore: number;
+    notionalSlicePct: number;
+    maxHoldMinutes: number;
+    minEdgeBufferPct: number;
+  };
+  effectiveConfig: {
+    takeProfitPct: number;
+    stopLossPct: number;
+    minOpportunityScore: number;
+    notionalSlicePct: number;
+    maxHoldMinutes: number;
+    minEdgeBufferPct: number;
+  };
 }
 
 export interface ScalperLedger {
@@ -177,6 +231,10 @@ export function fetchScalperEquityHistory(signal?: AbortSignal): Promise<{
   startingBankUsd: number;
 }> {
   return scalperFetch("/equity-history", signal);
+}
+
+export function fetchScalperLearning(signal?: AbortSignal): Promise<ScalperLearningSnapshot> {
+  return scalperFetch<ScalperLearningSnapshot>("/learning", signal);
 }
 
 export const SCALPER_SOURCE_LABELS: Record<ScalperOpportunitySource, string> = {

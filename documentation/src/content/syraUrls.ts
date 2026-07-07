@@ -10,8 +10,11 @@ export const SYRA_AGENT_URL = SYRA_WEB_ORIGIN;
 /** Agent wallet, deposits, and policy caps. */
 export const SYRA_WALLET_URL = `${SYRA_WEB_ORIGIN}/wallet`;
 
-/** x402 API catalog and SDK quickstart (Spend module). */
-export const SYRA_PLAYGROUND_URL = `${SYRA_WEB_ORIGIN}/playground`;
+/** x402 API marketplace — browse, detail pages, integrate, and custom tester (Spend module). */
+export const SYRA_MARKETPLACE_URL = `${SYRA_WEB_ORIGIN}/marketplace`;
+
+/** @deprecated `/playground` redirects to `/marketplace` */
+export const SYRA_PLAYGROUND_URL = SYRA_MARKETPLACE_URL;
 
 /** Operator dashboard — usage, spend, monitoring. */
 export const SYRA_OVERVIEW_URL = `${SYRA_WEB_ORIGIN}/overview`;
@@ -28,4 +31,4 @@ export const SYRA_WEB_LABEL = "syraa.fun";
 
 /** Trusted browser origins for API key injection (user-facing docs copy). */
 export const SYRA_TRUSTED_ORIGINS_DOC =
-  "syraa.fun (including /playground and /overview paths)";
+  "syraa.fun (including /marketplace and /overview paths)";

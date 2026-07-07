@@ -218,7 +218,7 @@ export const ApiX402Section = () => {
                 programmatic gateway: most routes need an API key or x402 payment.{" "}
                 <span className="text-foreground/90">syraa.fun</span>,{" "}
                 <span className="text-foreground/90">docs.syraa.fun</span>, and{" "}
-                <span className="text-foreground/90">playground.syraa.fun</span> are ordinary
+                <span className="text-foreground/90">syraa.fun/marketplace</span> are ordinary
                 sites you open in a browser—no API credentials in the page. Syra-owned frontends
                 never ship API keys; the server injects auth for trusted origins only.
               </p>
@@ -266,7 +266,7 @@ export const ApiX402Section = () => {
                 rel="noopener noreferrer"
                 className="inline-flex w-full min-w-0 items-center justify-center gap-2 whitespace-normal rounded-xl bg-accent px-5 py-3 text-center text-sm font-medium text-accent-foreground shadow-lg transition-all hover:bg-accent/90 hover:shadow-accent/20 sm:text-base md:w-auto md:min-w-[12rem] md:shrink-0"
               >
-                Open API Playground
+                Open API Marketplace
                 <ExternalLink className="h-4 w-4 shrink-0" aria-hidden />
               </a>
               <a

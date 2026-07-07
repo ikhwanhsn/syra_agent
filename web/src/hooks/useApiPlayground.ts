@@ -2530,6 +2530,15 @@ export function getFlowGroup(flow: ExampleFlowPreset): {
       if (p === "/coingecko" || p.startsWith("/coingecko/")) {
         return { slug: "coingecko", name: "CoinGecko Scout" };
       }
+      if (
+        p.startsWith("/dexscreener/") ||
+        p.startsWith("/geckoterminal/") ||
+        p.startsWith("/defillama/") ||
+        p.startsWith("/rugcheck/") ||
+        p.startsWith("/pyth/")
+      ) {
+        return { slug: "onchain-data", name: "Onchain data" };
+      }
       if (p.startsWith("/nansen/") && id.startsWith("nansen-")) {
         return { slug: "nansen", name: "Nansen" };
       }
@@ -2619,8 +2628,8 @@ export function getExampleFlowGroupsFromFlows(
     else cur.count += 1;
   }
   const order = [
-    "mpp-lane",
     "syra-core",
+    "onchain-data",
     "equity",
     "indicator",
     "jupiter",
@@ -2630,6 +2639,7 @@ export function getExampleFlowGroupsFromFlows(
     "assets",
     "bitcoin",
     "preview",
+    "mpp-lane",
     "tokens-dex",
     "agent",
     "partner-gateway",

@@ -35,7 +35,7 @@ export default function Token() {
       <DocPageHeader
         eyebrow="Token & Utility"
         title="Token & Utility"
-        description="Token & Utility documentation for the Syra Trading Agent Bot — tokenomics, roadmap, and utility."
+        description="Token & utility for Syra — machine money for agents on Solana. Tokenomics and roadmap."
       />
 
       <DocSection id="overview" title="Overview" prose>

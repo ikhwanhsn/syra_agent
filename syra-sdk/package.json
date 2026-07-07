@@ -1,7 +1,7 @@
 {
-  "name": "@syra/sdk",
-  "version": "0.1.0",
-  "description": "Typed client for Syra machine money — x402 pay-per-call APIs, agent wallets, and treasury on Solana",
+  "name": "@syra-ai/sdk",
+  "version": "0.2.0",
+  "description": "Typed client for Syra machine money — x402 pay-per-call APIs, auto-pay, agent wallets, and treasury on Solana",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -9,20 +9,45 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./payment": {
+      "types": "./dist/payment/index.d.ts",
+      "import": "./dist/payment/index.js"
     }
   },
-  "bin": {},
   "files": ["dist", "README.md"],
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "npm run build"
   },
-  "keywords": ["syra", "x402", "solana", "agents", "trading", "api"],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/syra-agent/syra-monorepo",
+    "directory": "syra-sdk"
+  },
+  "keywords": ["syra", "x402", "solana", "base", "agents", "trading", "api", "usdc"],
   "license": "MIT",
   "engines": {
     "node": ">=18"
   },
+  "dependencies": {
+    "@solana/kit": "^5.5.1",
+    "@x402-avm/avm": "^2.6.1",
+    "@x402-avm/core": "^2.6.1",
+    "@x402-avm/fetch": "^2.6.1",
+    "@x402/core": "^2.2.0",
+    "@x402/evm": "^2.2.0",
+    "@x402/extensions": "^2.16.0",
+    "@x402/fetch": "^2.3.0",
+    "@x402/svm": "^2.2.0",
+    "bs58": "^6.0.0",
+    "viem": "^2.31.0"
+  },
   "devDependencies": {
+    "@types/node": "^20.10.0",
     "typescript": "^5.6.3"
   }
 }

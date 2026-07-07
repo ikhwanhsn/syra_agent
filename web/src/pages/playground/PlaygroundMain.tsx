@@ -2,11 +2,8 @@ import { Navigate, useSearchParams } from "@/lib/navigation";
 import { PlaygroundPageShell } from "@/components/playground/PlaygroundPageShell";
 import { PlaygroundQuickstart } from "@/components/playground/PlaygroundQuickstart";
 import {
-  PlaygroundTabBar,
   parsePlaygroundTab,
-  playgroundTabToParam,
-  type PlaygroundTab,
-} from "@/components/playground/PlaygroundTabBar";
+} from "@/components/playground/PlaygroundTabBar.types";
 import { SyraApiCatalog } from "@/components/playground/SyraApiCatalog";
 import { PlaygroundModals } from "@/components/playground/PlaygroundModals";
 import { PlaygroundCustomTester } from "@/pages/playground/PlaygroundCustomTester";
@@ -15,21 +12,11 @@ import { playgroundTabPanelEnter } from "@/components/playground/playgroundMotio
 import { cn } from "@/lib/utils";
 
 function PlaygroundMainInner() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const tab = parsePlaygroundTab(searchParams.get("tab"));
-
-  const setTab = (next: PlaygroundTab) => {
-    const params = new URLSearchParams(searchParams);
-    const param = playgroundTabToParam(next);
-    if (param) params.set("tab", param);
-    else params.delete("tab");
-    setSearchParams(params, { replace: true });
-  };
 
   return (
     <PlaygroundPageShell>
-      <PlaygroundTabBar active={tab} onChange={setTab} />
-
       <div
         key={tab}
         id={`playground-panel-${tab}`}
@@ -47,11 +34,11 @@ function PlaygroundMainInner() {
   );
 }
 
-/** Default `/playground` — Syra API catalog + build + custom API tabs. */
+/** Default `/marketplace` — Syra API catalog + integrate + custom request tabs. */
 export default function PlaygroundMain() {
   const [searchParams] = useSearchParams();
   if (searchParams.has("view")) {
-    return <Navigate to="/playground" replace />;
+    return <Navigate to="/marketplace" replace />;
   }
   return (
     <PlaygroundSessionProvider>

@@ -1,58 +1,129 @@
-# 🚀 Roadmap
+# Roadmap
 
-**Live product:** The gateway at [api.syraa.fun](https://api.syraa.fun) and the [API Reference](https://docs.syraa.fun/docs/api-reference) describe the current x402 surface (`GET /.well-known/x402`, OpenAPI catalogs). The quarters below are **directional** plans.
+**Syra** — **machine money for agents on Solana.**
 
-Our 2025–2027 Syra Roadmap — **machine money for agents on Solana** with x402 payments, agent wallets, and policy:
+Wealth is the narrative. x402 is the **Spend** module — one feature inside a five-pillar stack, not the whole product.
 
-**North-star metrics:** paid API calls per day · net revenue per agent
+| Pillar | What it means |
+|--------|----------------|
+| **Earn** | Agents monetize skills, prompts, and creator attribution |
+| **Treasury** | Wallets, billing caps, allocation, and policy |
+| **Invest** | Policy-gated deployment — Giza, LP, Jupiter, RISE, and more |
+| **Spend** | x402 pay-per-call APIs, marketplace, SDK, and MCP |
+| **Grow** | Yield routing and portfolio optimization (analysis-first) |
 
-## Q4 2025
+**Live today:** [api.syraa.fun](https://api.syraa.fun) · [syraa.fun/marketplace](https://syraa.fun/marketplace) · [syraa.fun/wallet](https://syraa.fun/wallet) · [docs.syraa.fun](https://docs.syraa.fun)
 
-- Sentiment Analysis API with x402 payment integration
-- Risk Scoring API for trade evaluation
-- Whale Tracker API for on-chain smart money movements
-- News Aggregator API with credibility scoring
-- Launch on x402scan directory for agent discovery
-- Onboard first 10-20 autonomous agents
+Shipped milestones are tracked in the [Changelog](/docs/changelog). The quarters below are **directional** — priorities may shift with x402 ecosystem growth and community feedback.
 
-## Q1 2026
-
-- Market Regime Detection API (trending/ranging states)
-- Correlation Matrix API for 500+ tokens
-- Exit Timing Signals API
-- Liquidation Prediction API
-- $SYRA staking for API discounts (10K tokens = 25% off)
-- x402 revenue → $SYRA buyback held for community airdrops
-
-## Q2 2026
-
-- Custom Model Training API (agents upload strategy docs)
-- Historical Backtesting API
-- Agent Reputation Scoring system
-- Multi-chain expansion (Base, Arbitrum, Polygon)
-- White-label intelligence API for enterprises
-- Cross-agent learning network (data flywheel)
-
-## Q3 2026
-
-- Compliance-aware Intelligence APIs
-- Multi-strategy Portfolio Optimization API
-- Explainable AI decision endpoints
-- Institutional hedge fund tier with custom SLAs
-- Vertical expansion: sports betting & prediction markets
-- Public agent performance leaderboard
-
-## Q4 2026
-
-- Advanced ML models with self-improving feedback loops
-- Traditional markets expansion (forex, commodities, equities)
-- Agent collaboration protocols
-- x402 Intelligence Grant Program
-- Scale to 1,000+ autonomous agents
+**North-star metrics:** paid x402 calls per day · net revenue per agent · treasury under agent management
 
 ---
 
-> **ℹ️ Token Utility**  
-> Pay for APIs with USDC via x402. A share of fees buys $SYRA for treasury-held community airdrops.  
->  
-> This roadmap is subject to change based on market conditions, x402 ecosystem evolution, and community feedback. Stay tuned for updates!
+## Shipped foundations (2025 — H1 2026)
+
+### Spend (x402)
+
+- x402 payment rail on Solana and Base (MPP, Tempo where applicable)
+- 200+ paid API routes — intelligence, market data, and partner gateways
+- **API Marketplace** — browse Core vs Partners, per-route detail pages, agent manifests, Integrate (SDK/MCP) and Custom tester tabs
+- Data-provider routes: DexScreener, GeckoTerminal, DefiLlama, RugCheck, Pyth Hermes
+- `@syra-ai/sdk`, `@syra-ai/mcp-server`, `@syra-ai/x402-payer`
+- Public discovery: `GET /.well-known/x402`, OpenAPI catalogs, x402scan listing
+
+### Treasury
+
+- Agent wallets (Privy), spend dashboard, and billing visibility
+- Policy-gated execution — separate caps for chat, LP, and trading flows
+
+### Invest
+
+- Giza yield, Meteora LP, Jupiter quotes, RISE reads — policy-gated reference integrations
+- Trading experiment API, scalper lab, and scout proof surfaces
+
+### Earn
+
+- S3 Labs growth studio (KOL, jobs, community) on Syra rails
+- Purch Vault x402 paths and skill-marketplace groundwork
+
+### Grow
+
+- Assets board, token dossier, Bitcoin hub, equity and SPCX intelligence
+- Syra Brain multi-tool synthesis (`/brain`)
+
+---
+
+## Q3 2026 — In progress
+
+### Spend
+
+- Expand **Partners** catalog — more external data providers and branded gateway groups
+- Marketplace search, filtering, and agent-manifest quality for autonomous discovery
+- Staking-linked x402 discounts (wire `$SYRA` tiers into `x402Pricing`)
+
+### Treasury
+
+- Fiat → stablecoin onramp (MoonPay / Privy funding) for faster agent wallet funding
+- Richer policy engine — per-tool budgets, daily caps, and operator alerts
+
+### Invest
+
+- Deeper Meteora LP and Jupiter execution paths with clearer pre-trade risk context
+- RISE and allocator dashboards (Up Only Fund) as reference Invest surfaces
+
+### Earn
+
+- KOL campaign tooling and creator payout attribution on Syra rails
+- Expanded skill listings via Purch Vault and agent registries (8004)
+
+### Grow
+
+- Portfolio recommendations that combine on-chain positions with x402 intelligence calls
+- Public metrics and treasury transparency (`/metrics`, analytics dashboard)
+
+---
+
+## Q4 2026 — Planned
+
+### Spend
+
+- Enterprise / white-label x402 gateway tier with custom SLAs
+- Cross-chain Spend expansion (additional EVM networks beyond Base)
+- x402 Intelligence Grant Program for agent builders
+
+### Treasury
+
+- Multi-agent treasury rooms — shared caps, roles, and audit exports
+- Institutional custody integrations (scoped partnerships)
+
+### Invest
+
+- Multi-strategy portfolio optimization API (analysis-first, policy-gated execution)
+- Historical backtesting and strategy experiment exports
+
+### Earn
+
+- Agent reputation and performance leaderboard (opt-in, verifiable on-chain stats)
+- Revenue-share templates for skill authors and data partners
+
+### Grow
+
+- Explainable decision endpoints — structured rationale alongside signals
+- Compliance-aware intelligence modules for regulated verticals
+
+---
+
+## 2027 — Directional
+
+- **Agent collaboration protocols** — composable multi-agent workflows with shared treasury
+- **Cross-agent learning flywheel** — anonymized outcome data improving default policies
+- **Traditional markets expansion** — forex, commodities, and tokenized equities context
+- **Scale target:** 1,000+ autonomous agents with positive unit economics on the Syra rail
+- **Token loop:** x402 revenue → `$SYRA` buyback held for community airdrops and ecosystem grants
+
+---
+
+> **Token utility**  
+> Agents pay for APIs with USDC via x402 today. `$SYRA` staking discounts and treasury buybacks are **roadmap** until wired into live pricing — see [Tokenomics](/docs/token/tokenomics).
+>
+> This roadmap is subject to change based on market conditions, x402 ecosystem evolution, and community feedback.

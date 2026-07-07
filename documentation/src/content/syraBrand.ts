@@ -4,6 +4,7 @@ import {
   SYRA_AGENT_URL,
   SYRA_API_URL,
   SYRA_DOCS_URL,
+  SYRA_MARKETPLACE_URL,
   SYRA_PLAYGROUND_URL,
   SYRA_TELEGRAM_BOT_URL,
   SYRA_WEB_LABEL,
@@ -56,10 +57,10 @@ export const SYRA_PLATFORMS = [
     linkLabel: SYRA_WEB_LABEL,
   },
   {
-    name: "API Playground",
-    description: `${SYRA_WEB_LABEL}/playground — Spend module / x402 API catalog and SDK quickstart`,
-    href: SYRA_PLAYGROUND_URL,
-    linkLabel: "Open playground",
+    name: "API Marketplace",
+    description: `${SYRA_WEB_LABEL}/marketplace — browse x402 APIs, per-route detail pages, SDK/MCP integrate tab, and custom tester`,
+    href: SYRA_MARKETPLACE_URL,
+    linkLabel: "Open marketplace",
   },
   {
     name: "API gateway",
@@ -81,7 +82,7 @@ export const SYRA_PLATFORMS = [
   },
   {
     name: "SDK & MCP",
-    description: "@syra/sdk pillar modules + syra_pillars MCP tool",
+    description: "@syra-ai/sdk pillar modules + syra_pillars MCP tool",
     href: SYRA_WEB_ORIGIN,
     linkLabel: SYRA_WEB_LABEL,
   },

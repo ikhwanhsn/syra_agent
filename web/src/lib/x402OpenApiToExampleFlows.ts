@@ -272,9 +272,50 @@ export function buildX402DiscoveryFlowsFromOpenApi(
     if (segment) detailsBySegment.set(segment, detail);
   }
 
+  const segmentSet = new Set(segments);
+  const paidExtraSegments = collectPaidOpenApiSegments(openapiDoc);
+  for (const segment of paidExtraSegments) {
+    if (!segmentSet.has(segment)) {
+      segmentSet.add(segment);
+      segments.push(segment);
+    }
+  }
+
   return segments.map((segment) =>
     buildFlowFromSegment(segment, syraBase, openapiDoc, detailsBySegment),
   );
+}
+
+/** Dedupe x402 marketplace flows by normalized URL + HTTP method. */
+export function mergeX402DiscoveryFlows(
+  primary: X402DiscoveryFlowPreset[],
+  extras: X402DiscoveryFlowPreset[],
+): X402DiscoveryFlowPreset[] {
+  const seen = new Set<string>();
+  const out: X402DiscoveryFlowPreset[] = [];
+  for (const flow of [...primary, ...extras]) {
+    const key = `${flow.method}:${flow.url.replace(/\/+$/, "").toLowerCase()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(flow);
+  }
+  return out;
+}
+
+function collectPaidOpenApiSegments(openapiDoc: unknown): string[] {
+  const paths = (openapiDoc as { paths?: Record<string, Record<string, OpenApiOperation>> })?.paths;
+  if (!paths) return [];
+
+  const segments: string[] = [];
+  for (const [openApiPath, pathItem] of Object.entries(paths)) {
+    if (!openApiPath.startsWith("/")) continue;
+    const segment = openApiPath.replace(/^\/+|\/+$/g, "");
+    if (!segment) continue;
+    const op = pathItem?.get ?? pathItem?.post;
+    if (!op?.["x-payment-info"]) continue;
+    segments.push(segment);
+  }
+  return segments;
 }
 
 export function buildX402PlaygroundParamsByPath(

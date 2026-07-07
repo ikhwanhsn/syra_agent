@@ -46,10 +46,20 @@ export default function Analytics() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`${API_BASE}/analytics/kpi`, { headers: getApiHeaders() });
-        if (!res.ok) throw new Error("Failed to load analytics");
+        const res = await fetch(`${API_BASE}/api/metrics`, { headers: { Accept: "application/json" } });
+        if (!res.ok) throw new Error("Failed to load metrics");
         const json = await res.json();
-        setData(json);
+        setData({
+          totalPaidApiCalls: json.lifetime?.totalCalls ?? 0,
+          paidApiCallsLast7Days: json.last7d?.calls ?? 0,
+          paidApiCallsLast30Days: json.last30d?.calls ?? 0,
+          completedPaidToolCalls: 0,
+          chatsWithPaidToolUse: 0,
+          byPath: json.byPath ?? [],
+          dailyPaidCalls: json.dailyCalls ?? [],
+          kpiTargets: { paidApiCalls: 500, agentSessions: 200 },
+          updatedAt: json.updatedAt ?? new Date().toISOString(),
+        });
       } catch (e) {
         setError(e instanceof Error ? e.message : "Unknown error");
       } finally {

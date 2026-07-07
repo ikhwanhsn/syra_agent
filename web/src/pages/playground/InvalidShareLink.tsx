@@ -77,12 +77,12 @@ export function InvalidShareLink({ slug }: InvalidShareLinkProps) {
                   <LayoutGrid className="h-4 w-4 text-primary" />
                 </div>
                 <div className="min-w-0">
-                  <span className="text-sm font-medium text-foreground block">Open Playground</span>
-                  <span className="text-xs text-muted-foreground">Send x402 / MPP requests from your wallet</span>
+                  <span className="text-sm font-medium text-foreground block">Open Marketplace</span>
+                  <span className="text-xs text-muted-foreground">Browse APIs and run x402 requests</span>
                 </div>
               </div>
               <Button asChild variant="outline" size="sm" className="w-full gap-1.5 shrink-0 sm:w-auto">
-                <Link to="/playground">Open Playground</Link>
+                <Link to="/marketplace">Open Marketplace</Link>
               </Button>
             </div>
 

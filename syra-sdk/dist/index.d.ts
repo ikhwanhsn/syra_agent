@@ -40,6 +40,8 @@ export declare class SyraClient {
     readonly pillars: import("./pillars.js").SyraPillarModules;
 }
 export declare function createSyraClient(options?: SyraClientOptions): SyraClient;
+export { createSyraPaidClient, createPaidFetchFromKeypair, getPaidFetch, hasPaidFetchConfigured, getPaidFetchNetworkLabel, resetPaidFetchCache, parseSolanaKeypairBytes, wrapPaidFetchWithRetries, } from "./payment/index.js";
+export type { SyraPaidClientOptions, CreatePaidFetchOptions } from "./payment/index.js";
 export { isSyraX402Path, SYRA_HIGH_VALUE_ROUTES, SYRA_X402_ROUTE_PREFIXES } from "./routes.js";
 export type { SyraHighValueRouteId } from "./routes.js";
 export { SYRA_PILLAR_IDS, SYRA_PILLAR_ROUTES, resolveSyraPillarForPath, } from "./pillars-routes.js";

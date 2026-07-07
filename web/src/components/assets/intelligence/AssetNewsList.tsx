@@ -9,9 +9,11 @@ import { IntelligenceEmptyMessage } from "@/components/assets/intelligence/Intel
 export function AssetNewsList({
   news,
   className,
+  description = "Headlines related to this asset",
 }: {
   news: AssetIntelligencePayload["news"];
   className?: string;
+  description?: string;
 }) {
   const items = news.items;
   const hasData = items.length > 0;
@@ -20,7 +22,7 @@ export function AssetNewsList({
     <Card className={cn(overviewCardShell, className)}>
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-semibold tracking-tight">News</CardTitle>
-        <CardDescription className="text-xs">Headlines related to this asset</CardDescription>
+        <CardDescription className="text-xs">{description}</CardDescription>
       </CardHeader>
       <CardContent>
         {hasData ? (
@@ -30,6 +32,7 @@ export function AssetNewsList({
               const title = item.title?.trim() || "Untitled";
               const source = item.source_name?.trim();
               const date = item.date || item.published_at;
+              const related = item.related_symbol?.trim();
               return (
                 <div
                   key={`${title}-${i}`}
@@ -49,7 +52,7 @@ export function AssetNewsList({
                       <p className="text-sm font-medium leading-snug">{title}</p>
                     )}
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {[source, date].filter(Boolean).join(" · ")}
+                      {[related, source, date].filter(Boolean).join(" · ")}
                     </p>
                   </div>
                   {href ? (

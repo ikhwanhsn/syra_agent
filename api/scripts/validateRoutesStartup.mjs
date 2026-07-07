@@ -73,6 +73,11 @@ import { createPumpfunAnalyzerRouter } from "../routes/pumpfun/analyzer.js";
 import { createPumpfunScoutRouter } from "../routes/pumpfun/scout.js";
 import { createRiseScoutRouter } from "../routes/rise.js";
 import { createCoingeckoScoutRouter } from "../routes/coingecko.js";
+import { createDexscreenerPairsRouter } from "../routes/dexscreener/pairs.js";
+import { createGeckoterminalPoolsRouter } from "../routes/geckoterminal/pools.js";
+import { createDefillamaTvlRouter } from "../routes/defillama/tvl.js";
+import { createRugcheckReportRouter } from "../routes/rugcheck/report.js";
+import { createPythPriceRouter } from "../routes/pyth/price.js";
 import { createAssetsX402Router } from "../routes/assets/index.js";
 import { createAssetsDetailX402Router } from "../routes/assets/detail.js";
 import { createBitcoinX402Router } from "../routes/bitcoin/index.js";
@@ -175,6 +180,11 @@ const factories = [
   ["createPumpfunScoutRouter", createPumpfunScoutRouter],
   ["createRiseScoutRouter", createRiseScoutRouter],
   ["createCoingeckoScoutRouter", createCoingeckoScoutRouter],
+  ["createDexscreenerPairsRouter", createDexscreenerPairsRouter],
+  ["createGeckoterminalPoolsRouter", createGeckoterminalPoolsRouter],
+  ["createDefillamaTvlRouter", createDefillamaTvlRouter],
+  ["createRugcheckReportRouter", createRugcheckReportRouter],
+  ["createPythPriceRouter", createPythPriceRouter],
   ["createAssetsX402Router", createAssetsX402Router],
   ["createAssetsDetailX402Router", createAssetsDetailX402Router],
   ["createBitcoinX402Router", createBitcoinX402Router],

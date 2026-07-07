@@ -124,8 +124,20 @@ function normalizePool(raw) {
       raw?.token_x?.symbol || raw?.mint_x_symbol || raw?.base_symbol || raw?.baseSymbol || "TOKEN_X",
     quoteSymbol:
       raw?.token_y?.symbol || raw?.mint_y_symbol || raw?.quote_symbol || raw?.quoteSymbol || "TOKEN_Y",
-    baseMint: raw?.token_x?.address || raw?.mint_x || raw?.mintX || raw?.baseMint || null,
-    quoteMint: raw?.token_y?.address || raw?.mint_y || raw?.mintY || raw?.quoteMint || null,
+    baseMint:
+      raw?.token_x?.address ||
+      raw?.mint_x ||
+      raw?.mintX ||
+      raw?.baseMint ||
+      raw?.token_x_mint ||
+      null,
+    quoteMint:
+      raw?.token_y?.address ||
+      raw?.mint_y ||
+      raw?.mintY ||
+      raw?.quoteMint ||
+      raw?.token_y_mint ||
+      null,
     binStep: toNum(raw?.pool_config?.bin_step || raw?.bin_step || raw?.binStep, 0),
     activeBinId: toNum(raw?.active_bin || raw?.activeBin || raw?.activeBinId, 0),
     tvlUsd,
@@ -193,51 +205,112 @@ export function lexicalOrderMints(mintA, mintB) {
 }
 
 function poolIncludesMint(pool, mint) {
-  return pool.baseMint === mint || pool.quoteMint === mint;
+  const m = String(mint || "").trim();
+  if (!m) return false;
+  return pool.baseMint === m || pool.quoteMint === m;
 }
 
-function ingestPoolRows(rows, mint, seen) {
+function poolMatchesText(pool, text) {
+  const q = String(text || "").trim().toLowerCase();
+  if (!q) return true;
+  const haystack = [
+    pool.poolName,
+    pool.baseSymbol,
+    pool.quoteSymbol,
+    pool.baseMint,
+    pool.quoteMint,
+    pool.poolAddress,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return haystack.includes(q);
+}
+
+function ingestPoolRows(rows, mint, seen, { trustSearchResults = false, textQuery = "" } = {}) {
   for (const raw of rows) {
     const normalized = normalizePool(raw);
-    if (!normalized.poolAddress || !poolIncludesMint(normalized, mint)) continue;
-    seen.set(normalized.poolAddress, normalized);
+    if (!normalized.poolAddress) continue;
+    const mintOk = !mint || poolIncludesMint(normalized, mint);
+    const textOk = !textQuery || poolMatchesText(normalized, textQuery);
+    if (trustSearchResults) {
+      if (textQuery ? textOk : true) {
+        seen.set(normalized.poolAddress, normalized);
+      }
+      continue;
+    }
+    if (mintOk && textOk) {
+      seen.set(normalized.poolAddress, normalized);
+    }
   }
 }
 
 /**
- * Fetch all DLMM pools that include a token mint.
- * Primary: Meteora /pools search by mint (groups endpoint often 404 for newer pairs).
- * Fallback: legacy /pools/groups/{lexical_order_mints} per quote mint.
+ * Paginate Meteora /pools search and ingest rows.
+ * @param {string} query
+ * @param {Map<string, object>} seen
+ * @param {{ mint?: string; trustSearchResults?: boolean; maxPages?: number }} [opts]
  */
-export async function fetchMeteoraPoolsByTokenMint(
-  tokenMint,
-  { quoteMints = METEORA_DEFAULT_QUOTE_MINTS } = {},
-) {
-  const mint = String(tokenMint || "").trim();
-  if (!mint) throw new Error("tokenMint is required");
+async function paginateMeteoraSearch(query, seen, opts = {}) {
+  const q = String(query || "").trim();
+  if (!q) return;
+  const mint = opts.mint ? String(opts.mint).trim() : "";
+  const maxPages = opts.maxPages ?? 15;
 
-  const key = `mint:${mint}:${quoteMints.join(",")}`;
-  const cached = getCached(key);
-  if (cached) return cached;
-
-  const seen = new Map();
-
-  for (let page = 1; page <= 10; page += 1) {
+  for (let page = 1; page <= maxPages; page += 1) {
     try {
-      const q = new URLSearchParams({
-        query: mint,
+      const params = new URLSearchParams({
+        query: q,
         page: String(page),
         page_size: "100",
         sort_by: "tvl:desc",
       });
-      const body = await fetchWithRetry(`/pools?${q.toString()}`);
+      const body = await fetchWithRetry(`/pools?${params.toString()}`);
       const rows = Array.isArray(body?.data) ? body.data : Array.isArray(body) ? body : [];
-      ingestPoolRows(rows, mint, seen);
+      ingestPoolRows(rows, mint, seen, {
+        trustSearchResults: Boolean(opts.trustSearchResults),
+        textQuery: opts.trustSearchResults && q.length <= 12 ? q : "",
+      });
       const totalPages = toNum(body?.pages, 1);
       if (page >= totalPages || !rows.length) break;
     } catch {
       break;
     }
+  }
+}
+
+/**
+ * Fetch all DLMM pools that include a token mint.
+ * Primary: Meteora /pools search by mint + symbol text (Meteora search already filters).
+ * Fallback: legacy /pools/groups/{lexical_order_mints} per quote mint.
+ * @param {string} tokenMint
+ * @param {{ quoteMints?: string[]; textQueries?: string[]; maxPages?: number }} [opts]
+ */
+export async function fetchMeteoraPoolsByTokenMint(
+  tokenMint,
+  { quoteMints = METEORA_DEFAULT_QUOTE_MINTS, textQueries = [], maxPages = 15 } = {},
+) {
+  const mint = String(tokenMint || "").trim();
+  if (!mint) throw new Error("tokenMint is required");
+
+  const textTerms = [
+    ...new Set(textQueries.map((t) => String(t || "").trim()).filter(Boolean)),
+  ];
+  const key = `mint:${mint}:${textTerms.join(",")}:${quoteMints.join(",")}`;
+  const cached = getCached(key);
+  if (cached) return cached;
+
+  const seen = new Map();
+
+  await paginateMeteoraSearch(mint, seen, { mint, trustSearchResults: true, maxPages });
+
+  for (const term of textTerms) {
+    if (term === mint) continue;
+    await paginateMeteoraSearch(term, seen, {
+      mint,
+      trustSearchResults: true,
+      maxPages,
+    });
   }
 
   if (!seen.size) {

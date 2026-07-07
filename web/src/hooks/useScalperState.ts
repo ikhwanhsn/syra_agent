@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import {
   fetchScalperEquityHistory,
+  fetchScalperLearning,
   fetchScalperOverview,
   fetchScalperRuns,
 } from "@/lib/scalperApi";
@@ -30,6 +31,15 @@ export function useScalperEquityHistory() {
   return useQuery({
     queryKey: ["scalper", "equity-history"],
     queryFn: ({ signal }) => fetchScalperEquityHistory(signal),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
+}
+
+export function useScalperLearning() {
+  return useQuery({
+    queryKey: ["scalper", "learning"],
+    queryFn: ({ signal }) => fetchScalperLearning(signal),
     refetchInterval: 60_000,
     staleTime: 30_000,
   });

@@ -1,17 +1,10 @@
 import { Link } from "@/lib/navigation";
 import { ArrowRight, Wallet } from "lucide-react";
 import { PillarCard } from "@/components/pillars/PillarCard";
-import { MachineMoneyPreviewToggle } from "@/components/dashboard/MachineMoneyPreviewToggle";
 import { OverviewBalanceChart } from "@/components/dashboard/overview/OverviewBalanceChart";
 import { Button } from "@/components/ui/button";
 import { PILLAR_COPY, type PillarId } from "@/lib/pillarsApi";
-import { useMachineMoneyPreview } from "@/contexts/MachineMoneyPreviewContext";
-import { isAdminWallet } from "@/constants/adminWallet";
-import { useWalletContext } from "@/contexts/WalletContext";
-import {
-  DASHBOARD_PILLAR_NAV,
-  isPillarShipped,
-} from "@/lib/dashboardPillarNav";
+import { DASHBOARD_PILLAR_NAV } from "@/lib/dashboardPillarNav";
 import {
   MACHINE_MONEY_STEPS,
   OVERVIEW_HERO_COPY,
@@ -82,10 +75,6 @@ export function DashboardPillarsHub({
   balancesLoading = false,
   balanceChart,
 }: DashboardPillarsHubProps) {
-  const { address, connected: walletConnected } = useWalletContext();
-  const { machineMoneyUnlocked, previewComingSoon } = useMachineMoneyPreview();
-  const isAdmin = isAdminWallet(walletConnected, address);
-
   return (
     <div className="space-y-10">
       {/* Hero */}
@@ -110,10 +99,7 @@ export function DashboardPillarsHub({
         >
           <div className="flex min-h-0 flex-col justify-between gap-8 lg:min-h-[340px] lg:py-1">
             <div className="space-y-6">
-              <div className="flex flex-wrap items-center gap-3">
-                <p className={overviewKickerClass}>Machine Money</p>
-                {isAdmin ? <MachineMoneyPreviewToggle compact /> : null}
-              </div>
+              <p className={overviewKickerClass}>Machine Money</p>
 
               <div className="space-y-4">
                 <h1 className="text-balance font-semibold tracking-tight">
@@ -125,11 +111,9 @@ export function DashboardPillarsHub({
                   </span>
                 </h1>
                 <p className="max-w-lg text-base leading-relaxed text-muted-foreground sm:text-[17px] sm:leading-relaxed">
-                  {previewComingSoon
-                    ? "Previewing the public coming-soon experience — toggle the eye to return to full pages."
-                    : connected
-                      ? OVERVIEW_HERO_COPY.connectedSubtitle
-                      : OVERVIEW_HERO_COPY.subtitle}
+                  {connected
+                    ? OVERVIEW_HERO_COPY.connectedSubtitle
+                    : OVERVIEW_HERO_COPY.subtitle}
                 </p>
               </div>
 
@@ -159,7 +143,6 @@ export function DashboardPillarsHub({
                   const copy = PILLAR_COPY[id];
                   const meta = PILLAR_OVERVIEW_META[id];
                   const Icon = PILLAR_ICONS[id];
-                  const gated = !machineMoneyUnlocked && !isPillarShipped(id);
                   return (
                     <Link
                       key={id}
@@ -168,7 +151,6 @@ export function DashboardPillarsHub({
                         "group flex flex-col items-center gap-2 rounded-xl border border-border/45 bg-background/25 px-1.5 py-3 text-center transition-all",
                         "hover:border-border/70 hover:bg-background/45",
                         meta.borderHover,
-                        gated && "opacity-75",
                       )}
                     >
                       <span
@@ -236,7 +218,6 @@ export function DashboardPillarsHub({
                 icon={PILLAR_ICONS[id]}
                 step={pillarMeta.step}
                 accent={pillarMeta}
-                comingSoon={!machineMoneyUnlocked && !isPillarShipped(id)}
                 balance={pillarBalances?.[id]}
                 balanceLoading={balancesLoading && connected}
               />

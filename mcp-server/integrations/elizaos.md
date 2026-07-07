@@ -12,7 +12,7 @@ Configure your Eliza character to spawn the Syra MCP server:
     "servers": {
       "syra": {
         "command": "npx",
-        "args": ["-y", "@syra/mcp-server"],
+        "args": ["-y", "@syra-ai/mcp-server"],
         "env": {
           "SYRA_API_BASE_URL": "https://api.syraa.fun"
         }
@@ -22,10 +22,10 @@ Configure your Eliza character to spawn the Syra MCP server:
 }
 ```
 
-## Option B: @syra/sdk in a custom plugin
+## Option B: @syra-ai/sdk in a custom plugin
 
 ```typescript
-import { createSyraClient, SYRA_HIGH_VALUE_ROUTES } from "@syra/sdk";
+import { createSyraClient, SYRA_HIGH_VALUE_ROUTES } from "@syra-ai/sdk";
 
 const syra = createSyraClient({ baseUrl: "https://api.syraa.fun", signer: agentSigner });
 

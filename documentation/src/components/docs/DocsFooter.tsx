@@ -1,4 +1,4 @@
-import { SYRA_AGENT_URL, SYRA_PLAYGROUND_URL, SYRA_WEB_ORIGIN } from "@/content/syraUrls";
+import { SYRA_AGENT_URL, SYRA_MARKETPLACE_URL, SYRA_WEB_ORIGIN } from "@/content/syraUrls";
 import { SYRA_TAGLINE } from "@/content/syraBrand";
 
 export function DocsFooter() {
@@ -13,8 +13,8 @@ export function DocsFooter() {
           <a href={SYRA_AGENT_URL} className="hover:text-primary transition-colors">
             Agent
           </a>
-          <a href={SYRA_PLAYGROUND_URL} className="hover:text-primary transition-colors">
-            API Playground
+          <a href={SYRA_MARKETPLACE_URL} className="hover:text-primary transition-colors">
+            API Marketplace
           </a>
           <a href={SYRA_WEB_ORIGIN} className="hover:text-primary transition-colors">
             Website

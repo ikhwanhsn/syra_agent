@@ -1,5 +1,6 @@
-import { useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { useCallback, useEffect, useMemo } from "react";
+import { flushSync } from "react-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useWallet } from "@solana/wallet-adapter-react";
 
 import { useTheme } from "@/contexts/ThemeContext";
@@ -35,11 +36,11 @@ function DrawerNavLabel({ label, soon }: { label: string; soon?: boolean }) {
 function DrawerSection({
   title,
   links,
-  onNavigate,
+  onGoTo,
 }: {
   title: string;
   links: SiteNavItem[];
-  onNavigate: () => void;
+  onGoTo: (to: string) => void;
 }) {
   return (
     <div className="space-y-1">
@@ -53,7 +54,10 @@ function DrawerSection({
           end={item.to === "/"}
           className="flex min-h-11 touch-manipulation items-center rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors duration-150 hover:bg-secondary/60 hover:text-foreground active:bg-secondary/80"
           activeClassName="bg-secondary/60 text-foreground"
-          onClick={onNavigate}
+          onClick={(event) => {
+            event.preventDefault();
+            onGoTo(item.to);
+          }}
           onPointerEnter={() => prefetchRoute(item.to)}
           onFocus={() => prefetchRoute(item.to)}
         >
@@ -70,6 +74,7 @@ interface MobileNavDrawerProps {
 }
 
 export function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps) {
+  const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const wallet = useWallet();
   const address = wallet.publicKey?.toBase58() ?? null;
@@ -78,6 +83,20 @@ export function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps) {
   const othersLinks = useMemo(
     () => (isAdmin ? [...otherNavLinks, ...adminNavLinks] : otherNavLinks),
     [isAdmin],
+  );
+
+  /**
+   * Close the drawer synchronously, then navigate.
+   * Closing on click alone unmounts the link before navigation completes.
+   */
+  const goTo = useCallback(
+    (to: string) => {
+      flushSync(() => {
+        onClose();
+      });
+      navigate(to);
+    },
+    [onClose, navigate],
   );
 
   useEffect(() => {
@@ -129,7 +148,10 @@ export function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps) {
           <Link
             to="/"
             className="flex min-w-0 items-center gap-2"
-            onClick={onClose}
+            onClick={(event) => {
+              event.preventDefault();
+              goTo("/");
+            }}
           >
             <img
               src="/images/logo.png"
@@ -164,7 +186,10 @@ export function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps) {
               end={item.to === "/"}
               className="flex min-h-11 touch-manipulation items-center rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors duration-150 hover:bg-secondary/60 hover:text-foreground active:bg-secondary/80"
               activeClassName="bg-secondary/60 text-foreground"
-              onClick={onClose}
+              onClick={(event) => {
+                event.preventDefault();
+                goTo(item.to);
+              }}
               onPointerEnter={() => prefetchRoute(item.to)}
               onFocus={() => prefetchRoute(item.to)}
             >
@@ -172,8 +197,8 @@ export function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps) {
             </NavLink>
           ))}
 
-          <DrawerSection title="Program" links={programNavLinks} onNavigate={onClose} />
-          <DrawerSection title="Others" links={othersLinks} onNavigate={onClose} />
+          <DrawerSection title="Program" links={programNavLinks} onGoTo={goTo} />
+          <DrawerSection title="Others" links={othersLinks} onGoTo={goTo} />
 
           {wallet.connected && address ? (
             <div className="space-y-1">
@@ -184,7 +209,10 @@ export function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps) {
                 to="/profile"
                 className="flex min-h-11 touch-manipulation items-center rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors duration-150 hover:bg-secondary/60 hover:text-foreground active:bg-secondary/80"
                 activeClassName="bg-secondary/60 text-foreground"
-                onClick={onClose}
+                onClick={(event) => {
+                  event.preventDefault();
+                  goTo("/profile");
+                }}
               >
                 <span className="inline-flex items-center gap-2">
                   <User className="h-4 w-4" />

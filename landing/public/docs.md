@@ -35,6 +35,7 @@ This file mirrors the **structure of the public documentation** published at [do
 ## Build with the API
 
 - [API reference overview](https://docs.syraa.fun/docs/api-reference)
+- [Syra Marketplace (Web UI)](https://docs.syraa.fun/docs/api/syra-marketplace)
 - [x402 Payment Flow](https://docs.syraa.fun/docs/api/x402-api-standard)
 
 ### All endpoints
@@ -80,6 +81,14 @@ This file mirrors the **structure of the public documentation** published at [do
 - [Browser use](https://docs.syraa.fun/docs/api/browser-use)
 - [Analytics summary](https://docs.syraa.fun/docs/api/analytics-summary)
 
+#### Data providers
+
+- [DexScreener pairs](https://docs.syraa.fun/docs/api/dexscreener-pairs)
+- [GeckoTerminal pools](https://docs.syraa.fun/docs/api/geckoterminal-pools)
+- [DefiLlama TVL](https://docs.syraa.fun/docs/api/defillama-tvl)
+- [RugCheck token report](https://docs.syraa.fun/docs/api/rugcheck-report)
+- [Pyth oracle prices](https://docs.syraa.fun/docs/api/pyth-price)
+
 #### Partners and registry
 
 - [Smart money (Nansen)](https://docs.syraa.fun/docs/api/smart-money)
@@ -121,7 +130,7 @@ This file mirrors the **structure of the public documentation** published at [do
 
 - API base: [https://api.syraa.fun](https://api.syraa.fun) — `/.well-known/x402`, `openapi.json`, `mpp-openapi.json`
 - Web agent: [https://syraa.fun](https://syraa.fun)
-- API playground: [https://syraa.fun/playground](https://syraa.fun/playground)
+- API marketplace: [https://syraa.fun/marketplace](https://syraa.fun/marketplace) — browse x402 APIs, per-route detail pages, SDK/MCP integrate tab (`/playground` redirects here)
 
 ---
 

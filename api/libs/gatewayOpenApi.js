@@ -22,6 +22,11 @@ import {
   X402_DISPLAY_PRICE_PUMP_FUN_SCOUT_USD,
   X402_DISPLAY_PRICE_RISE_SCOUT_USD,
   X402_DISPLAY_PRICE_COINGECKO_SCOUT_USD,
+  X402_DISPLAY_PRICE_DEXSCREENER_PAIRS_USD,
+  X402_DISPLAY_PRICE_GECKOTERMINAL_POOLS_USD,
+  X402_DISPLAY_PRICE_DEFILLAMA_TVL_USD,
+  X402_DISPLAY_PRICE_RUGCHECK_REPORT_USD,
+  X402_DISPLAY_PRICE_PYTH_PRICE_USD,
   X402_DISPLAY_PRICE_ASSETS_BOARD_USD,
   X402_DISPLAY_PRICE_ASSETS_DETAIL_USD,
   X402_DISPLAY_PRICE_BITCOIN_USD,
@@ -943,6 +948,67 @@ export function buildGatewayOpenApi() {
         ],
         true,
         X402_DISPLAY_PRICE_COINGECKO_SCOUT_USD,
+      ),
+    },
+    '/dexscreener/pairs': {
+      get: opGetCat(
+        'dexscreener/pairs',
+        'Onchain data (x402)',
+        'getDexscreenerPairs',
+        [
+          { name: 'chainId', in: 'query', schema: { type: 'string' } },
+          { name: 'tokenAddress', in: 'query', schema: { type: 'string' } },
+          { name: 'q', in: 'query', schema: { type: 'string' } },
+        ],
+        true,
+        X402_DISPLAY_PRICE_DEXSCREENER_PAIRS_USD,
+      ),
+    },
+    '/geckoterminal/pools': {
+      get: opGetCat(
+        'geckoterminal/pools',
+        'Onchain data (x402)',
+        'getGeckoterminalPools',
+        [
+          { name: 'network', in: 'query', schema: { type: 'string', default: 'solana' } },
+          { name: 'kind', in: 'query', schema: { type: 'string', default: 'trending', enum: ['trending', 'new'] } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 20 } },
+        ],
+        true,
+        X402_DISPLAY_PRICE_GECKOTERMINAL_POOLS_USD,
+      ),
+    },
+    '/defillama/tvl': {
+      get: opGetCat(
+        'defillama/tvl',
+        'Onchain data (x402)',
+        'getDefillamaTvl',
+        [
+          { name: 'protocol', in: 'query', schema: { type: 'string' } },
+          { name: 'chain', in: 'query', schema: { type: 'string' } },
+        ],
+        true,
+        X402_DISPLAY_PRICE_DEFILLAMA_TVL_USD,
+      ),
+    },
+    '/rugcheck/report': {
+      get: opGetCat(
+        'rugcheck/report',
+        'Onchain data (x402)',
+        'getRugcheckReport',
+        [{ name: 'mint', in: 'query', required: true, schema: { type: 'string' } }],
+        true,
+        X402_DISPLAY_PRICE_RUGCHECK_REPORT_USD,
+      ),
+    },
+    '/pyth/price': {
+      get: opGetCat(
+        'pyth/price',
+        'Onchain data (x402)',
+        'getPythPrice',
+        [{ name: 'symbols', in: 'query', required: true, schema: { type: 'string' } }],
+        true,
+        X402_DISPLAY_PRICE_PYTH_PRICE_USD,
       ),
     },
     '/assets': {

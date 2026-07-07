@@ -44,7 +44,7 @@ Deeper partner integrations (Binance, Giza, Bankr, Neynar, SIWA, Nansen, Jupiter
 
 ---
 
-## 3. MCP server tools (`@syra/mcp-server` v0.3.0)
+## 3. MCP server tools (`@syra-ai/mcp-server` v0.4.1)
 
 The repository `mcp-server` exposes **~240 codegen tools** from `api/config/agentTools.js` as stdio MCP tools. Default profile **`curated`** (~42 high-value tools + `syra_call_tool`). Set **`SYRA_MCP_TOOL_PROFILE=full`** for every route.
 
@@ -102,7 +102,7 @@ The API and MCP expose [8004 Trustless Agent Registry](https://docs.syraa.fun/do
 | Docs | https://docs.syraa.fun |
 | API | https://api.syraa.fun |
 | Web agent | https://syraa.fun |
-| Playground | https://playground.syraa.fun |
+| Marketplace | https://syraa.fun/marketplace |
 | Telegram | https://t.me/syra_trading_bot |
 
 ---

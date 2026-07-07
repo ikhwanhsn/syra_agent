@@ -80,8 +80,9 @@ export function PlaygroundCustomTester() {
   const handleAfterShare = (link: string) => {
     try {
       const path = new URL(link, window.location.origin).pathname;
-      if (path.startsWith("/playground/s/")) navigate(path, { replace: true });
-      else if (path.startsWith("/s/")) navigate(`/playground${path}`, { replace: true });
+      if (path.startsWith("/marketplace/s/") || path.startsWith("/playground/s/")) {
+        navigate(path.replace("/playground", "/marketplace"), { replace: true });
+      } else if (path.startsWith("/s/")) navigate(`/marketplace${path}`, { replace: true });
     } catch {
       // ignore
     }
@@ -134,9 +135,9 @@ export function PlaygroundCustomTester() {
 
         <div className="min-w-0 flex-1 space-y-6">
           <PlaygroundHero
-            kicker="Custom tester"
-            title="Send any x402 request"
-            description="Full control over method, headers, query params, and body — with history, sharing, and live payment flows."
+            kicker="Custom request"
+            title="Send any x402 API call"
+            description="Full control over method, headers, query params, and body — with request history, share links, and live USDC settlement."
             walletConnected={wallet.connected}
             walletBalance={wallet.balance}
             onConnectWallet={() => openConnectModal()}

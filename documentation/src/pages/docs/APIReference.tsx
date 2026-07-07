@@ -6,7 +6,7 @@ import { Callout } from "@/components/docs/Callout";
 import { CodeBlock } from "@/components/docs/CodeBlock";
 import { apiDocs } from "@/data/apiDocs";
 import { ArrowRight, ExternalLink, Zap, HeartPulse, FlaskConical } from "lucide-react";
-import { SYRA_PLAYGROUND_URL, SYRA_WEB_LABEL } from "@/content/syraUrls";
+import { SYRA_MARKETPLACE_URL, SYRA_WEB_LABEL } from "@/content/syraUrls";
 
 const BASE_URL = "https://api.syraa.fun";
 
@@ -50,6 +50,16 @@ const API_CATEGORIES: { title: string; description: string; slugs: string[] }[] 
     title: "RPC & Infrastructure",
     description: "Quicknode Solana and Base RPC",
     slugs: ["quicknode"],
+  },
+  {
+    title: "Data providers",
+    description: "DexScreener, GeckoTerminal, DefiLlama, RugCheck, Pyth Hermes",
+    slugs: ["dexscreener-pairs", "geckoterminal-pools", "defillama-tvl", "rugcheck-report", "pyth-price"],
+  },
+  {
+    title: "Syra Marketplace",
+    description: "Browse, detail pages, integrate, and custom tester",
+    slugs: ["syra-marketplace"],
   },
   {
     title: "Partner: Nansen",
@@ -103,9 +113,9 @@ const QUICK_LINKS = [
   },
   {
     icon: FlaskConical,
-    label: "API Playground",
-    href: SYRA_PLAYGROUND_URL,
-    description: `${SYRA_WEB_LABEL}/playground`,
+    label: "API Marketplace",
+    href: SYRA_MARKETPLACE_URL,
+    description: `${SYRA_WEB_LABEL}/marketplace`,
     external: true,
   },
 ];
@@ -190,13 +200,13 @@ export default function APIReference() {
           </p>
         </div>
         <a
-          href={SYRA_PLAYGROUND_URL}
+          href={SYRA_MARKETPLACE_URL}
           target="_blank"
           rel="noopener noreferrer"
           className="mt-4 inline-flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm font-medium text-primary hover:bg-primary/10 transition-colors not-prose"
         >
           <ExternalLink className="h-4 w-4" />
-          Try the API Playground
+          Open the API Marketplace
         </a>
       </DocSection>
 

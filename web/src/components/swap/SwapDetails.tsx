@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ChevronDown, Loader2 } from "lucide-react";
+import { ChevronDown } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import type { JupiterQuoteDisplay } from "@/hooks/useJupiterQuote";
 
@@ -60,11 +61,10 @@ export function SwapDetails({
         className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left"
       >
         <span className="text-xs text-muted-foreground">
-          {isLoading || isDebouncing ? (
-            <span className="inline-flex items-center gap-1.5">
-              <Loader2 className="h-3 w-3 animate-spin" />
-              Fetching best route…
-            </span>
+          {isLoading ? (
+            <Skeleton className="h-3.5 w-36 rounded-md" />
+          ) : isDebouncing ? (
+            "Updating route…"
           ) : display?.rateFormatted ? (
             <>
               1 {inputSymbol} ≈ {display.rateFormatted} {outputSymbol}

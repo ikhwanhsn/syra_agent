@@ -79,6 +79,7 @@ export class SyraClient {
 export function createSyraClient(options) {
     return new SyraClient(options);
 }
+export { createSyraPaidClient, createPaidFetchFromKeypair, getPaidFetch, hasPaidFetchConfigured, getPaidFetchNetworkLabel, resetPaidFetchCache, parseSolanaKeypairBytes, wrapPaidFetchWithRetries, } from "./payment/index.js";
 export { isSyraX402Path, SYRA_HIGH_VALUE_ROUTES, SYRA_X402_ROUTE_PREFIXES } from "./routes.js";
 export { SYRA_PILLAR_IDS, SYRA_PILLAR_ROUTES, resolveSyraPillarForPath, } from "./pillars-routes.js";
 export { attachPillarModules, createEarnModule, createTreasuryModule, createInvestModule, createSpendModule, createGrowModule, createPillarsModule, } from "./pillars.js";

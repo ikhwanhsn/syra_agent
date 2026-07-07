@@ -1,12 +1,12 @@
-# ✨ Tokenomics
+# Tokenomics
 
-The Syra token ($SYRA) powers **machine money infrastructure for agents** on Solana. Our tokenomics align incentives between the platform, autonomous agents, and the community, emphasizing fair distribution, utility-driven value, and routing x402 revenue into **SYRA buybacks reserved for community airdrops**.
+**Syra** — machine money for agents on Solana. The `$SYRA` token aligns incentives between the platform, autonomous agents, and the community: fair distribution, utility-driven value, and routing x402 revenue into **buybacks reserved for community airdrops**.
 
 ## Token Overview
 
 | Parameter           | Details                   |
 | ------------------- | ------------------------- |
-| **Token Name**      | Syra Agent                |
+| **Token Name**      | Syra                      |
 | **Token Symbol**    | $SYRA                     |
 | **Total Supply**    | 1,000,000,000 (1 Billion) |
 | **Blockchain**      | Solana                    |
@@ -39,7 +39,7 @@ Our distribution prioritizes community ownership and long-term sustainability.
 
 ## Token Utility (x402-Optimized)
 
-$SYRA is the native payment token for accessing Syra’s agent-facing APIs via the x402 protocol.
+$SYRA supports the five-pillar machine money stack. Today, agents pay for APIs with **USDC via x402**; staking discounts and governance are **roadmap** until wired into live billing.
 
 ### 1. **x402 API Access**
 

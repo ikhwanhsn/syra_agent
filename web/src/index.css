@@ -536,6 +536,46 @@
       0 20px 40px -28px hsl(0 0% 0% / 0.08);
   }
 
+  .marketplace-ambient::before {
+    background-image:
+      radial-gradient(
+        ellipse 100% 60% at 0% -8%,
+        hsl(var(--primary) / 0.14) 0%,
+        transparent 55%
+      ),
+      radial-gradient(
+        ellipse 80% 50% at 100% 0%,
+        hsl(var(--ring) / 0.1) 0%,
+        transparent 52%
+      ),
+      radial-gradient(
+        ellipse 55% 45% at 50% 100%,
+        hsl(var(--muted-foreground) / 0.05) 0%,
+        transparent 58%
+      );
+  }
+
+  .marketplace-tab-bar {
+    box-shadow:
+      0 1px 0 0 hsl(var(--border) / 0.45),
+      0 12px 40px -32px hsl(var(--primary) / 0.18);
+  }
+
+  .marketplace-brand-mark {
+    animation: marketplace-mark-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes marketplace-mark-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
   .playground-ambient {
     position: relative;
     isolation: isolate;

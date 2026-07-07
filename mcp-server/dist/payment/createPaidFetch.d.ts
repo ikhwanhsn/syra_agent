@@ -1,6 +1,6 @@
-export declare function getPaidFetch(): Promise<typeof fetch>;
-/** True when any payer credential is configured for the active X402_PREFERRED_NETWORK rail. */
-export declare function hasPaidFetchConfigured(): boolean;
-export declare function getPaidFetchNetworkLabel(): string;
+/**
+ * Re-export x402 paid fetch from @syra-ai/sdk — single source of truth for MCP + SDK consumers.
+ */
+export { getPaidFetch, hasPaidFetchConfigured, getPaidFetchNetworkLabel, createPaidFetchFromKeypair, resetPaidFetchCache, } from "@syra-ai/sdk/payment";
 /** @deprecated Use getPaidFetch — kept for tests */
 export declare function createPaidFetch(keypairEnv: string): Promise<typeof fetch>;

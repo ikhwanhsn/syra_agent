@@ -6,6 +6,7 @@ import { PlaygroundModals } from "@/components/playground/PlaygroundModals";
 import { usePlaygroundSession } from "@/contexts/PlaygroundSessionContext";
 import { InvalidShareLink } from "@/pages/playground/InvalidShareLink";
 import { MAIN_CONTENT_PB_SAFE_CLASS } from "@/lib/branding";
+import { MARKETPLACE_ROUTE, marketplaceSharePath } from "@/lib/marketplaceConstants";
 import { cn } from "@/lib/utils";
 import type { ExampleFlowPreset } from "@/hooks/useApiPlayground";
 import type { RequestParam } from "@/types/api";
@@ -14,7 +15,7 @@ function isValidShareSlug(s: string): boolean {
   return /^[a-f0-9]{1,24}$/i.test(s);
 }
 
-/** Share-link route (`/playground/s/:slug`) — custom tester with loaded request. */
+/** Share-link route (`/marketplace/s/:slug`) — custom tester with loaded request. */
 const Index = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -54,35 +55,35 @@ const Index = () => {
     if (lastLoadedShareSlugRef.current === shareSlug) return;
     lastLoadedShareSlugRef.current = shareSlug;
     if (!isValidShareSlug(shareSlug)) {
-      navigate("/playground/s/invalid", { replace: true, state: { attemptedSlug: shareSlug } });
+      navigate(`${MARKETPLACE_ROUTE}/s/invalid`, { replace: true, state: { attemptedSlug: shareSlug } });
       return;
     }
     setShareLoadStatus("loading");
     loadSharedRequest(shareSlug)
       .then((ok) => {
         if (ok) setShareLoadStatus("success");
-        else navigate("/playground/s/invalid", { replace: true, state: { attemptedSlug: shareSlug } });
+        else navigate(`${MARKETPLACE_ROUTE}/s/invalid`, { replace: true, state: { attemptedSlug: shareSlug } });
       })
       .catch(() =>
-        navigate("/playground/s/invalid", { replace: true, state: { attemptedSlug: shareSlug } }),
+        navigate(`${MARKETPLACE_ROUTE}/s/invalid`, { replace: true, state: { attemptedSlug: shareSlug } }),
       );
   }, [shareSlug, loadSharedRequest, navigate, history, selectedHistoryId]);
 
   const locationPathname = location.pathname;
   useEffect(() => {
-    if (!locationPathname.startsWith("/playground")) return;
-    if (locationPathname.startsWith("/playground/s/")) return;
+    if (!locationPathname.startsWith(MARKETPLACE_ROUTE) && !locationPathname.startsWith("/playground")) return;
+    if (locationPathname.includes("/s/")) return;
     if (!selectedHistoryId) return;
     const selected = history.find((h) => h.id === selectedHistoryId);
     if (!selected?.shareSlug) return;
-    navigate(`/playground/s/${selected.shareSlug}`, { replace: true });
+    navigate(marketplaceSharePath(selected.shareSlug), { replace: true });
   }, [locationPathname, selectedHistoryId, history, navigate]);
 
   useEffect(() => {
-    if (!locationPathname.startsWith("/playground/s/") || shareSlug === "invalid") return;
+    if (!locationPathname.includes("/s/") || shareSlug === "invalid") return;
     if (shareLoadStatus === "loading") return;
     if (selectedHistoryId !== undefined) return;
-    navigate("/playground?tab=custom", { replace: true });
+    navigate(`${MARKETPLACE_ROUTE}?tab=custom`, { replace: true });
   }, [locationPathname, selectedHistoryId, shareLoadStatus, shareSlug, navigate]);
 
   useEffect(() => {
@@ -97,7 +98,7 @@ const Index = () => {
       if (lastRunFlowIdRef.current === key) return;
       lastRunFlowIdRef.current = key;
       runExampleFlowFromPreset(preset, state?.runFlowParams);
-      navigate("/playground?tab=custom", { replace: true, state: {} });
+      navigate(`${MARKETPLACE_ROUTE}?tab=custom`, { replace: true, state: {} });
       return;
     }
     const flowId = state?.runFlowId;
@@ -108,7 +109,7 @@ const Index = () => {
     if (lastRunFlowIdRef.current === flowId) return;
     lastRunFlowIdRef.current = flowId;
     runExampleFlow(flowId, state?.runFlowParams);
-    navigate("/playground?tab=custom", { replace: true, state: {} });
+    navigate(`${MARKETPLACE_ROUTE}?tab=custom`, { replace: true, state: {} });
   }, [location.state, runExampleFlow, runExampleFlowFromPreset, navigate]);
 
   if (isInvalidSharePage) {

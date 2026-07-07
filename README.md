@@ -8,9 +8,9 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-docs.syraa.fun-0ea5e9)](https://docs.syraa.fun)
-[![API Playground](https://img.shields.io/badge/build-playground.syraa.fun-26a5e4)](https://playground.syraa.fun)
+[![API Marketplace](https://img.shields.io/badge/build-syraa.fun%2Fmarketplace-26a5e4)](https://syraa.fun/marketplace)
 
-**[Documentation](https://docs.syraa.fun)** · **[API Playground](https://playground.syraa.fun)** · **[Agent demo](https://syraa.fun)** · **[X (Twitter)](https://x.com/syra_agent)**
+**[Documentation](https://docs.syraa.fun)** · **[API Marketplace](https://syraa.fun/marketplace)** · **[Agent demo](https://syraa.fun)** · **[X (Twitter)](https://x.com/syra_agent)**
 
 </div>
 
@@ -30,7 +30,7 @@
 
 Discovery: `GET /pillars` on [api.syraa.fun](https://api.syraa.fun)
 
-Integrate via **SDK** (`client.pillars`, `client.invest`, …), **MCP**, or the **API playground**. The web chat agent is a reference client — the product is machine money for agents.
+Integrate via **SDK** (`client.pillars`, `client.invest`, …), **MCP**, or the **API marketplace** at [syraa.fun/marketplace](https://syraa.fun/marketplace). The web chat agent is a reference client — the product is machine money for agents.
 
 **Ecosystem:** [S3 Labs](https://s3labs.xyz) (Syra-backed growth studio for Solana developers) and [Up Only Fund](https://uponlyfund.com) (Syra-backed onchain allocator) ship as sibling brands on the same rails.
 
@@ -63,6 +63,16 @@ Integrate via **SDK** (`client.pillars`, `client.invest`, …), **MCP**, or the 
 ---
 
 ## Quick Start
+
+### MCP (Cursor / Claude Code) — one line
+
+```bash
+claude mcp add syra -- npx -y @syra-ai/mcp-server@latest
+```
+
+Set `SYRA_API_BASE_URL=https://api.syraa.fun`. For auto-pay, set `SYRA_PAYER_KEYPAIR` (Solana USDC wallet).
+
+**Public metrics:** [syraa.fun/metrics](https://syraa.fun/metrics) · **Reference agent:** [syraa.fun/reference/scalper](https://syraa.fun/reference/scalper) · **Agent docs:** [api.syraa.fun/llms-full.txt](https://api.syraa.fun/llms-full.txt)
 
 ### Telegram Bot
 
@@ -105,10 +115,11 @@ Syra is the parent **machine money** infrastructure. These programs ship on Syra
 
 | Package | Description |
 |---------|-------------|
-| **`web`** | Unified Syra app — Build (playground), agent wallet, dashboard, proof demos |
+| **`web`** | Unified Syra app — Marketplace (x402 catalog), agent wallet, dashboard, proof demos |
 | **`api`** | Backend API — machine money for agents: x402 APIs, agent wallets, policy engine, S3 Labs + UOF routes |
-| **`syra-sdk`** | Typed `@syra/sdk` client for x402 API integration |
-| **`mcp-server`** | MCP server — Cursor, Claude, ElizaOS distribution |
+| **`syra-sdk`** | Typed `@syra-ai/sdk` client for x402 API integration |
+| **`mcp-server`** | MCP server — `claude mcp add syra -- npx -y @syra-ai/mcp-server@latest` |
+| **`packages/syra-x402-payer`** | MIT `@syra-ai/x402-payer` — x402 sign/retry helper |
 | **`documentation`** | Docs site (docs.syraa.fun) |
 | **`landing`** | Marketing landing site (syraa.fun) |
 | **`s3labs`** | S3 Labs web app — growth programs, KOL marketplace, jobs, community ([s3labs README](./s3labs/README.md)) |
@@ -123,8 +134,8 @@ Syra is the parent **machine money** infrastructure. These programs ship on Syra
 
 ### Golden path (live)
 
-1. Open **[playground.syraa.fun](https://playground.syraa.fun)** → connect wallet → try a paid x402 route.
-2. Integrate via **`@syra/sdk`** or **`@syra/mcp-server`** (see [syra-sdk](./syra-sdk) and [mcp-server](./mcp-server)).
+1. Open **[syraa.fun/marketplace](https://syraa.fun/marketplace)** → connect wallet → try a paid x402 route.
+2. Integrate via **`@syra-ai/sdk`** or **`@syra-ai/mcp-server`** (see [syra-sdk](./syra-sdk) and [mcp-server](./mcp-server)).
 3. Fund **[syraa.fun/wallet](https://syraa.fun/wallet)** → view spend dashboard and policy caps.
 4. Discovery: **[api.syraa.fun](https://api.syraa.fun)** — `/.well-known/x402`, `/openapi.json` (see [api README](./api/README.md)).
 
@@ -134,14 +145,14 @@ Syra is the parent **machine money** infrastructure. These programs ship on Syra
 flowchart LR
   subgraph clients [Clients]
     AgentWeb[agent_syraa_fun]
-    Playground[playground_syraa_fun]
+    Marketplace[marketplace_syraa_fun]
     MCP[mcp_server]
   end
   subgraph backend [Backend]
     SyraAPI[api_syraa_fun_x402]
   end
   AgentWeb -->|"402_then_pay"| SyraAPI
-  Playground --> SyraAPI
+  Marketplace --> SyraAPI
   MCP -->|"HTTP_proxy"| SyraAPI
 ```
 
@@ -167,7 +178,7 @@ The API **must** use an RPC that allows **`getAccountInfo`** and full blockchain
 
 ### Phantom-first wallet UX
 
-- **ai-agent / api-playground:** Privy — enable **Phantom** in the Privy dashboard; fallback wallet order prefers **Phantom** before MetaMask for Solana flows.
+- **ai-agent / marketplace:** Privy — enable **Phantom** in the Privy dashboard; fallback wallet order prefers **Phantom** before MetaMask for Solana flows.
 - **prediction-game:** `@solana/wallet-adapter` — **Phantom** is listed first in the modal when multiple wallets are detected.
 
 ### MoonPay (fiat onramp — scoped for GTM)
@@ -184,7 +195,7 @@ The API **must** use an RPC that allows **`getAccountInfo`** and full blockchain
 ### Deferred (stay honest in pitch)
 
 - **$SYRA staking → x402 discount** is **roadmap** until wired into API pricing (see [tokenomics](./documentation/src/data/tokenomicsV2.md)).
-- **MCP + automated x402 signing** — shipped in `@syra/mcp-server@0.3.0` via `SYRA_PAYER_KEYPAIR` and MCP bridge for agent-direct tools.
+- **MCP + automated x402 signing** — shipped in `@syra-ai/mcp-server@0.4.1` via `SYRA_PAYER_KEYPAIR` and MCP bridge for agent-direct tools.
 
 ---
 
@@ -209,7 +220,7 @@ Full documentation (welcome, API reference, Syra Agent, x402 agent, tokenomics) 
 |----------|-----|
 | Syra docs | [docs.syraa.fun](https://docs.syraa.fun) |
 | API gateway | [api.syraa.fun](https://api.syraa.fun) |
-| Playground | [playground.syraa.fun](https://playground.syraa.fun) |
+| Marketplace | [syraa.fun/marketplace](https://syraa.fun/marketplace) |
 | S3 Labs | [s3labs.xyz](https://s3labs.xyz) |
 | Up Only Fund | [uponlyfund.com](https://uponlyfund.com) |
 

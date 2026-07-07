@@ -82,6 +82,12 @@ export function fetchX402DiscoveryCatalog(
   return inflight;
 }
 
+/** Bust in-memory catalog cache (e.g. after API deploy). */
+export function invalidateX402DiscoveryCatalogCache(): void {
+  cachedCatalog = null;
+  inflight = null;
+}
+
 /** Live x402 catalog from /.well-known/x402 + /openapi.json, with generated fallback. */
 export function useX402DiscoveryCatalog(): X402DiscoveryCatalogState {
   const syraBase = useMemo(() => resolveApiBaseUrl(), []);

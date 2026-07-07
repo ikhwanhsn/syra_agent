@@ -11,7 +11,7 @@ export function PlaygroundPageShell({
   return (
     <div
       className={cn(
-        "playground-ambient relative min-h-full w-full bg-background",
+        "playground-ambient marketplace-ambient relative min-h-full w-full bg-background",
         className,
       )}
     >

@@ -211,7 +211,7 @@ export default function SpendPage() {
       description="Browse free. Taste live data. Pay in USDC when you connect."
       actions={
         <Button variant="outline" size="sm" className="h-9 w-full rounded-full px-4 sm:w-auto" asChild>
-          <Link to="/playground">Playground</Link>
+          <Link to="/marketplace">Marketplace</Link>
         </Button>
       }
     >

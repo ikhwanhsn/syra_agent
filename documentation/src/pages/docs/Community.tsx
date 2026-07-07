@@ -172,16 +172,16 @@ export default function Community() {
             <li className="flex flex-col gap-1.5 sm:gap-2">
               <span className="flex items-center gap-2">
                 <span className="text-primary font-medium">•</span>
-                <strong className="text-foreground">API Playground</strong>
+                <strong className="text-foreground">API Marketplace</strong>
               </span>
-              <p className="text-muted-foreground pl-4 sm:pl-5">Try the API interactively.</p>
+              <p className="text-muted-foreground pl-4 sm:pl-5">Browse x402 APIs, open detail pages, and try endpoints interactively.</p>
               <a
-                href="https://syraa.fun/playground"
+                href="https://syraa.fun/marketplace"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 w-fit min-h-[44px] px-3 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 border border-border/60 transition-colors text-sm font-medium"
               >
-                syraa.fun/playground
+                syraa.fun/marketplace
                 <ExternalLink className="h-3.5 w-3.5 shrink-0" />
               </a>
             </li>

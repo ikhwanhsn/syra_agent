@@ -21,6 +21,15 @@ const mult = isProduction ? PRODUCTION_MULT : LOCAL_MULT;
 /** Margin over documented upstream cost for passthrough x402 providers. */
 export const PASSTHROUGH_MARGIN = 1.2;
 
+/**
+ * Machine-frequency pricing tiers (BlockRun-aligned).
+ * Tier 1: high-frequency lists/feeds · Tier 2: intelligence/signals · Tier 3: deep synthesis.
+ */
+export const X402_TIER_1_USD = 0.001;
+export const X402_TIER_2_USD = 0.005;
+export const X402_TIER_3_USD = 0.02;
+export const X402_TIER_4_USD = 0.08;
+
 /** Minimum floor for pay.sh dynamic provider calls (cost + 20% baseline). */
 export const X402_PAYSH_FLOOR_USD = 0.012;
 
@@ -96,16 +105,16 @@ const displayInternal = (base) => base * PRODUCTION_MULT;
 /** Catalog/display price for passthrough routes (production level). */
 const displayPassthrough = (upstreamUsd) => upstreamUsd * PASSTHROUGH_MARGIN * PRODUCTION_MULT;
 
-export const X402_API_PRICE_USD = price(0.01);
+export const X402_API_PRICE_USD = price(X402_TIER_2_USD);
 
-/** Check-status / health endpoints (minimal fee) — ~$0.0001/call in production. */
-export const X402_API_PRICE_CHECK_STATUS_USD = price(0.0001);
+/** Check-status / health endpoints (minimal fee) — Tier 1 floor. */
+export const X402_API_PRICE_CHECK_STATUS_USD = price(X402_TIER_1_USD);
 
-/** News endpoints */
-export const X402_API_PRICE_NEWS_USD = price(0.01);
+/** News endpoints — Tier 2 */
+export const X402_API_PRICE_NEWS_USD = price(X402_TIER_2_USD);
 
-/** Research / deep research endpoints */
-export const X402_API_PRICE_RESEARCH_USD = price(0.01);
+/** Research / deep research endpoints — Tier 2 */
+export const X402_API_PRICE_RESEARCH_USD = price(X402_TIER_2_USD);
 
 /** Nansen Basic tier — upstream $0.01/call × 1.2 */
 export const X402_API_PRICE_NANSEN_USD = passthrough(0.01);
@@ -143,38 +152,38 @@ export const X402_API_PRICE_STABLEENRICH_10_USD = passthrough(0.1);
 /** Jupiter swap order (buy/sell token via Corbits Jupiter Ultra) */
 export const X402_API_PRICE_JUPITER_SWAP_USD = price(0.02);
 
-/** Jupiter Swap V1 quote with referral platform fee */
-export const X402_API_PRICE_JUPITER_QUOTE_USD = price(0.003);
+/** Jupiter Swap V1 quote with referral platform fee — Tier 1 */
+export const X402_API_PRICE_JUPITER_QUOTE_USD = price(X402_TIER_1_USD);
 
 /** pump.fun fun-block tx builders */
 export const X402_API_PRICE_PUMP_FUN_TX_USD = price(0.02);
 
-/** pump.fun read-only (coins-v2, sol-price) via frontend-api proxy */
-export const X402_API_PRICE_PUMP_FUN_READ_USD = price(0.01);
+/** pump.fun read-only (coins-v2, sol-price) via frontend-api proxy — Tier 2 */
+export const X402_API_PRICE_PUMP_FUN_READ_USD = price(X402_TIER_2_USD);
 
-/** pump.fun trending / movers market lists */
-export const X402_API_PRICE_PUMP_FUN_MARKET_LIST_USD = price(0.005);
+/** pump.fun trending / movers market lists — Tier 1 */
+export const X402_API_PRICE_PUMP_FUN_MARKET_LIST_USD = price(X402_TIER_1_USD);
 
-/** pump.fun memecoin analyzer — X API + LLM enrichment */
-export const X402_API_PRICE_PUMP_FUN_ANALYZER_USD = price(0.02);
+/** pump.fun memecoin analyzer — X API + LLM enrichment — Tier 3 */
+export const X402_API_PRICE_PUMP_FUN_ANALYZER_USD = price(X402_TIER_3_USD);
 
-/** pump.fun scout (alpha/beta/predicted/utility segments) */
-export const X402_API_PRICE_PUMP_FUN_SCOUT_USD = price(0.01);
+/** pump.fun scout (alpha/beta/predicted/utility segments) — Tier 2 */
+export const X402_API_PRICE_PUMP_FUN_SCOUT_USD = price(X402_TIER_2_USD);
 
-/** RISE scout (intel/markets/targets views) */
-export const X402_API_PRICE_RISE_SCOUT_USD = price(0.01);
+/** RISE scout (intel/markets/targets views) — Tier 2 */
+export const X402_API_PRICE_RISE_SCOUT_USD = price(X402_TIER_2_USD);
 
-/** CoinGecko scout (brief/gainers/predictions views) */
-export const X402_API_PRICE_COINGECKO_SCOUT_USD = price(0.01);
+/** CoinGecko scout (brief/gainers/predictions views) — Tier 1 */
+export const X402_API_PRICE_COINGECKO_SCOUT_USD = price(X402_TIER_1_USD);
 
-/** Tokens.xyz curated assets board */
-export const X402_API_PRICE_ASSETS_BOARD_USD = price(0.005);
+/** Tokens.xyz curated assets board — Tier 1 */
+export const X402_API_PRICE_ASSETS_BOARD_USD = price(X402_TIER_1_USD);
 
-/** Tokens.xyz asset detail / mint dossier */
-export const X402_API_PRICE_ASSETS_DETAIL_USD = price(0.005);
+/** Tokens.xyz asset detail / mint dossier — Tier 2 */
+export const X402_API_PRICE_ASSETS_DETAIL_USD = price(X402_TIER_2_USD);
 
-/** Bitcoin Intelligence Hub (full /btc page) */
-export const X402_API_PRICE_BITCOIN_USD = price(0.01);
+/** Bitcoin Intelligence Hub (full /btc page) — Tier 2 */
+export const X402_API_PRICE_BITCOIN_USD = price(X402_TIER_2_USD);
 
 /** Squid Router cross-chain route (quote + transactionRequest for first leg) */
 export const X402_API_PRICE_SQUID_ROUTE_USD = price(0.02);
@@ -205,8 +214,8 @@ export const X402_API_PRICE_8004SCAN_USD = passthrough(0.01);
 /** hey.lol agent API proxy */
 export const X402_API_PRICE_HEYLOL_USD = passthrough(0.01);
 
-/** Syra Brain: single-question API (tool selection + treasury-paid tools + LLM) */
-export const X402_API_PRICE_BRAIN_USD = price(0.08);
+/** Syra Brain: single-question API (tool selection + treasury-paid tools + LLM) — Tier 4 */
+export const X402_API_PRICE_BRAIN_USD = price(X402_TIER_4_USD);
 
 /** X (Twitter) API proxy — upstream ~$0.01 × 1.2 */
 export const X402_API_PRICE_X_USD = passthrough(0.01);
@@ -247,14 +256,29 @@ export const X402_API_PRICE_SPCX_USD = price(0.02);
 /** Generalized tokenized equity intelligence (xStocks catalog) */
 export const X402_API_PRICE_EQUITY_USD = price(0.02);
 
-/** Technical indicators from OHLCV candles (combinable per call) */
-export const X402_API_PRICE_INDICATOR_USD = price(0.01);
+/** Technical indicators from OHLCV candles (combinable per call) — Tier 2 */
+export const X402_API_PRICE_INDICATOR_USD = price(X402_TIER_2_USD);
+
+/** DexScreener token pairs / search — free upstream, Tier 1 */
+export const X402_API_PRICE_DEXSCREENER_PAIRS_USD = price(X402_TIER_1_USD);
+
+/** GeckoTerminal trending/new pools — free upstream, Tier 1 */
+export const X402_API_PRICE_GECKOTERMINAL_POOLS_USD = price(X402_TIER_1_USD);
+
+/** DefiLlama protocol/chain TVL — free upstream, Tier 1 */
+export const X402_API_PRICE_DEFILLAMA_TVL_USD = price(X402_TIER_1_USD);
+
+/** RugCheck Solana token risk report — free upstream, Tier 2 */
+export const X402_API_PRICE_RUGCHECK_REPORT_USD = price(X402_TIER_2_USD);
+
+/** Pyth Hermes oracle prices — free upstream, Tier 1 */
+export const X402_API_PRICE_PYTH_PRICE_USD = price(X402_TIER_1_USD);
 
 /** Display prices: production API cost for tools list/catalog. */
-export const X402_DISPLAY_PRICE_USD = displayInternal(0.01);
-export const X402_DISPLAY_PRICE_CHECK_STATUS_USD = displayInternal(0.0001);
-export const X402_DISPLAY_PRICE_NEWS_USD = displayInternal(0.01);
-export const X402_DISPLAY_PRICE_RESEARCH_USD = displayInternal(0.01);
+export const X402_DISPLAY_PRICE_USD = displayInternal(X402_TIER_2_USD);
+export const X402_DISPLAY_PRICE_CHECK_STATUS_USD = displayInternal(X402_TIER_1_USD);
+export const X402_DISPLAY_PRICE_NEWS_USD = displayInternal(X402_TIER_2_USD);
+export const X402_DISPLAY_PRICE_RESEARCH_USD = displayInternal(X402_TIER_2_USD);
 export const X402_DISPLAY_PRICE_NANSEN_USD = displayPassthrough(0.01);
 export const X402_DISPLAY_PRICE_NANSEN_PREMIUM_USD = displayPassthrough(0.05);
 export const X402_DISPLAY_PRICE_ZERION_USD = displayPassthrough(0.01);
@@ -273,17 +297,17 @@ export const X402_DISPLAY_PRICE_STABLEENRICH_0495_USD = displayPassthrough(0.049
 export const X402_DISPLAY_PRICE_STABLEENRICH_05_USD = displayPassthrough(0.05);
 export const X402_DISPLAY_PRICE_STABLEENRICH_10_USD = displayPassthrough(0.1);
 export const X402_DISPLAY_PRICE_JUPITER_SWAP_USD = displayInternal(0.02);
-export const X402_DISPLAY_PRICE_JUPITER_QUOTE_USD = displayInternal(0.003);
-export const X402_DISPLAY_PRICE_PUMP_FUN_TX_USD = displayInternal(0.02);
-export const X402_DISPLAY_PRICE_PUMP_FUN_READ_USD = displayInternal(0.01);
-export const X402_DISPLAY_PRICE_PUMP_FUN_MARKET_LIST_USD = displayInternal(0.005);
-export const X402_DISPLAY_PRICE_PUMP_FUN_ANALYZER_USD = displayInternal(0.02);
-export const X402_DISPLAY_PRICE_PUMP_FUN_SCOUT_USD = displayInternal(0.01);
-export const X402_DISPLAY_PRICE_RISE_SCOUT_USD = displayInternal(0.01);
-export const X402_DISPLAY_PRICE_COINGECKO_SCOUT_USD = displayInternal(0.01);
-export const X402_DISPLAY_PRICE_ASSETS_BOARD_USD = displayInternal(0.005);
-export const X402_DISPLAY_PRICE_ASSETS_DETAIL_USD = displayInternal(0.005);
-export const X402_DISPLAY_PRICE_BITCOIN_USD = displayInternal(0.01);
+export const X402_DISPLAY_PRICE_JUPITER_QUOTE_USD = displayInternal(X402_TIER_1_USD);
+export const X402_DISPLAY_PRICE_PUMP_FUN_TX_USD = displayInternal(X402_TIER_3_USD);
+export const X402_DISPLAY_PRICE_PUMP_FUN_READ_USD = displayInternal(X402_TIER_2_USD);
+export const X402_DISPLAY_PRICE_PUMP_FUN_MARKET_LIST_USD = displayInternal(X402_TIER_1_USD);
+export const X402_DISPLAY_PRICE_PUMP_FUN_ANALYZER_USD = displayInternal(X402_TIER_3_USD);
+export const X402_DISPLAY_PRICE_PUMP_FUN_SCOUT_USD = displayInternal(X402_TIER_2_USD);
+export const X402_DISPLAY_PRICE_RISE_SCOUT_USD = displayInternal(X402_TIER_2_USD);
+export const X402_DISPLAY_PRICE_COINGECKO_SCOUT_USD = displayInternal(X402_TIER_1_USD);
+export const X402_DISPLAY_PRICE_ASSETS_BOARD_USD = displayInternal(X402_TIER_1_USD);
+export const X402_DISPLAY_PRICE_ASSETS_DETAIL_USD = displayInternal(X402_TIER_2_USD);
+export const X402_DISPLAY_PRICE_BITCOIN_USD = displayInternal(X402_TIER_2_USD);
 export const X402_DISPLAY_PRICE_SQUID_ROUTE_USD = displayInternal(0.02);
 export const X402_DISPLAY_PRICE_SQUID_STATUS_USD = displayInternal(0.01);
 export const X402_DISPLAY_PRICE_WEB_SEARCH_USD = displayPassthrough(0.01);
@@ -294,7 +318,7 @@ export const X402_DISPLAY_PRICE_8004_USD = displayPassthrough(0.01);
 export const X402_DISPLAY_PRICE_8004_REGISTER_AGENT_USD = displayPassthrough(0.05);
 export const X402_DISPLAY_PRICE_8004SCAN_USD = displayPassthrough(0.01);
 export const X402_DISPLAY_PRICE_HEYLOL_USD = displayPassthrough(0.01);
-export const X402_DISPLAY_PRICE_BRAIN_USD = displayInternal(0.08);
+export const X402_DISPLAY_PRICE_BRAIN_USD = displayInternal(X402_TIER_4_USD);
 export const X402_DISPLAY_PRICE_X_USD = displayPassthrough(0.01);
 export const X402_DISPLAY_PRICE_X_ANALYZER_USD = displayPassthrough(0.02);
 export const X402_DISPLAY_PRICE_GIZA_USD = displayPassthrough(0.01);
@@ -309,4 +333,9 @@ export const X402_DISPLAY_PRICE_ANALYTICS_SUMMARY_USD =
   X402_DISPLAY_PRICE_USD;
 export const X402_DISPLAY_PRICE_SPCX_USD = displayInternal(0.02);
 export const X402_DISPLAY_PRICE_EQUITY_USD = displayInternal(0.02);
-export const X402_DISPLAY_PRICE_INDICATOR_USD = displayInternal(0.01);
+export const X402_DISPLAY_PRICE_INDICATOR_USD = displayInternal(X402_TIER_2_USD);
+export const X402_DISPLAY_PRICE_DEXSCREENER_PAIRS_USD = displayInternal(X402_TIER_1_USD);
+export const X402_DISPLAY_PRICE_GECKOTERMINAL_POOLS_USD = displayInternal(X402_TIER_1_USD);
+export const X402_DISPLAY_PRICE_DEFILLAMA_TVL_USD = displayInternal(X402_TIER_1_USD);
+export const X402_DISPLAY_PRICE_RUGCHECK_REPORT_USD = displayInternal(X402_TIER_2_USD);
+export const X402_DISPLAY_PRICE_PYTH_PRICE_USD = displayInternal(X402_TIER_1_USD);

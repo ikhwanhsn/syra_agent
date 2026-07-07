@@ -5,7 +5,7 @@ import { DocSection } from "@/components/docs/DocSection";
 import { Callout } from "@/components/docs/Callout";
 import { Button } from "@/components/ui/button";
 import { SYRA_AGENT_CAPABILITIES, SYRA_HIGHLIGHT, SYRA_MISSION, SYRA_TAGLINE } from "@/content/syraBrand";
-import { SYRA_AGENT_URL, SYRA_PLAYGROUND_URL, SYRA_WEB_LABEL } from "@/content/syraUrls";
+import { SYRA_AGENT_URL, SYRA_MARKETPLACE_URL, SYRA_WEB_LABEL } from "@/content/syraUrls";
 import { ArrowRight, Bot, Zap } from "lucide-react";
 
 const tocItems = [
@@ -88,8 +88,8 @@ export default function Welcome() {
               <li>Pick an endpoint from the catalog</li>
               <li>
                 Test in the{" "}
-                <a href={SYRA_PLAYGROUND_URL} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
-                  API playground
+                <a href={SYRA_MARKETPLACE_URL} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+                  API marketplace
                 </a>
               </li>
             </ol>

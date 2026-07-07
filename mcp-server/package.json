@@ -1,36 +1,37 @@
 {
-  "name": "@syra/mcp-server",
-  "version": "0.4.0",
+  "name": "@syra-ai/mcp-server",
+  "version": "0.4.1",
   "description": "MCP server exposing Syra x402 API tools with auto-pay and full agentTools catalog",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
     "syra-mcp": "dist/index.js"
   },
+  "files": ["dist", "README.md"],
   "scripts": {
     "sync:mcp-tools": "node ../scripts/sync-mcp-tools.mjs",
     "prebuild": "npm run sync:mcp-tools",
     "build": "tsc",
+    "prepublishOnly": "npm run build",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts"
   },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/syra-agent/syra-monorepo",
+    "directory": "mcp-server"
+  },
+  "keywords": ["syra", "mcp", "x402", "solana", "agents", "model-context-protocol"],
+  "license": "MIT",
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "@syra/sdk": "file:../syra-sdk",
-    "@solana/kit": "^5.5.1",
-    "@x402-avm/avm": "^2.6.1",
-    "@x402-avm/core": "^2.6.1",
-    "@x402-avm/fetch": "^2.6.1",
-    "@x402/core": "^2.2.0",
-    "@x402/evm": "^2.2.0",
-    "@x402/extensions": "^2.16.0",
-    "@x402/fetch": "^2.3.0",
-    "@x402/svm": "^2.2.0",
-    "bs58": "^6.0.0",
-    "viem": "^2.31.0",
+    "@syra-ai/sdk": "^0.2.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {

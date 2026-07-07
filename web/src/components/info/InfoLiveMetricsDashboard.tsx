@@ -328,13 +328,6 @@ export function InfoLiveMetricsDashboard() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link
-            to="/analytics"
-            className="inline-flex items-center gap-1 rounded-xl border border-border/60 bg-background/60 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-background"
-          >
-            Public rail analytics
-            <ArrowUpRight className="h-3 w-3 opacity-70" aria-hidden />
-          </Link>
           <Button
             type="button"
             variant="outline"
@@ -612,7 +605,7 @@ export function InfoLiveMetricsDashboard() {
       {/* Playground & health */}
       <div className="grid gap-3 lg:grid-cols-2">
         <Panel
-          title="Playground"
+          title="Marketplace"
           subtitle="Shared request links — developer adoption signal"
           onShare={() => openShare("playground")}
         >

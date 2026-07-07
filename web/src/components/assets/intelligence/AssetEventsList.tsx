@@ -8,9 +8,11 @@ import { IntelligenceEmptyMessage } from "@/components/assets/intelligence/Intel
 export function AssetEventsList({
   events,
   className,
+  description = "Calendar and news-derived catalysts for this token",
 }: {
   events: AssetIntelligencePayload["events"];
   className?: string;
+  description?: string;
 }) {
   const items = events.items;
   const hasData = items.length > 0;
@@ -19,9 +21,7 @@ export function AssetEventsList({
     <Card className={cn(overviewCardShell, className)}>
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-semibold tracking-tight">Events</CardTitle>
-        <CardDescription className="text-xs">
-          Calendar and news-derived catalysts for this token
-        </CardDescription>
+        <CardDescription className="text-xs">{description}</CardDescription>
       </CardHeader>
       <CardContent>
         {hasData ? (
@@ -29,6 +29,7 @@ export function AssetEventsList({
             {items.map((item, i) => {
               const title = item.event_name?.trim() || "Event";
               const text = item.event_text?.trim();
+              const related = item.related_symbol?.trim();
               return (
                 <div
                   key={`${title}-${item.date ?? i}`}
@@ -43,7 +44,7 @@ export function AssetEventsList({
                       </p>
                     ) : null}
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {[item.date, item.source, item.ticker].filter(Boolean).join(" · ")}
+                      {[related, item.date, item.source, item.ticker].filter(Boolean).join(" · ")}
                     </p>
                   </div>
                 </div>

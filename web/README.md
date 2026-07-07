@@ -1,6 +1,6 @@
 # Syra Web App (`web`)
 
-**Machine money for agents** — the unified Syra web application: API playground (Build), agent wallet, operator dashboard, and proof demos.
+**Machine money for agents** — the unified Syra web application: API marketplace (Spend), agent wallet, operator dashboard, and proof demos.
 
 Part of the [Syra monorepo](../README.md). Syra-backed ecosystem brands ([S3 Labs](https://s3labs.xyz), [Up Only Fund](https://uponlyfund.com)) ship as separate apps in `s3labs/` and `uponly-fund/`.
 
@@ -26,7 +26,7 @@ On localhost, API calls go through **`/api`** (Vite proxies to `https://api.syra
 
 | Surface | Route | Role |
 |---------|-------|------|
-| **Build** | `/playground` | Primary front door — x402 API catalog, SDK/MCP quickstart |
+| **Marketplace** | `/marketplace` | Primary front door — x402 API catalog, per-API detail pages, SDK/MCP integrate tab (`/playground` redirects) |
 | **Agent Wallet** | `/wallet` | Treasury, deposits, policy caps |
 | **Dashboard** | `/overview` | Usage, spend, agent monitoring |
 | **Agent chat** | `/` | Reference client — research, tools, onchain actions |
@@ -68,7 +68,7 @@ npm run lint     # ESLint
 
 Set environment variables with the `VITE_*` prefix. `VITE_PRIVY_APP_ID` is required for wallet connect in production.
 
-**Production URLs:** [syraa.fun](https://syraa.fun), [playground.syraa.fun](https://playground.syraa.fun) (typical Vercel aliases).
+**Production URLs:** [syraa.fun](https://syraa.fun), [syraa.fun/marketplace](https://syraa.fun/marketplace) (legacy `playground.syraa.fun` aliases redirect).
 
 ---
 
@@ -77,7 +77,7 @@ Set environment variables with the `VITE_*` prefix. `VITE_PRIVY_APP_ID` is requi
 - Replaces the former Next.js app in `main/`. Routes are client-side via React Router.
 - `/api` proxy is handled by Vite dev middleware; production relies on API CORS + trusted-origin auth injection.
 - Brand content and pillars: `src/content/syraAbout.ts`, `src/content/syraInfo.ts`.
-- x402 playground catalog is generated from API agent tools.
+- x402 marketplace catalog is generated from API agent tools and live `/.well-known/x402` discovery.
 
 ---
 

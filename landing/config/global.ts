@@ -14,7 +14,8 @@ function getAgentAskUrl(question: string): string {
   }
 }
 const LINK_DOCS = "https://docs.syraa.fun";
-const LINK_PLAYGROUND = "https://playground.syraa.fun";
+const LINK_PLAYGROUND = "https://syraa.fun/marketplace";
+const LINK_MARKETPLACE = "https://syraa.fun/marketplace";
 
 /** Production Syra API gateway (landing preview, stats, leaderboard). */
 const PRODUCTION_API_ORIGIN = "https://api.syraa.fun";

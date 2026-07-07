@@ -10,7 +10,7 @@
 [![Documentation](https://img.shields.io/badge/docs-docs.syraa.fun-0ea5e9)](https://docs.syraa.fun)
 [![API](https://img.shields.io/badge/API-Gateway-26a5e4)](https://api.syraa.fun)
 
-**[Documentation](https://docs.syraa.fun)** · **[API Playground](https://playground.syraa.fun)** · **[Telegram Bot](https://t.me/syra_trading_bot)** · **[Agent](https://syraa.fun)**
+**[Documentation](https://docs.syraa.fun)** · **[API Marketplace](https://syraa.fun/marketplace)** · **[Telegram Bot](https://t.me/syra_trading_bot)** · **[Agent](https://syraa.fun)**
 
 </div>
 
@@ -27,7 +27,7 @@ The **api** package is the **backend service** for Syra. It is a Node.js (Expres
 - **Serves the prediction-game** — creators, events, staking (shared models and routes).
 - **Uses MongoDB** (Mongoose) for persistence where needed.
 
-This API backs the **Telegram bot**, **web agent**, **API playground**, **MCP bridge**, **S3 Labs** (KOL, jobs, events, Telegram QA), **Up Only Fund** (RISE terminal routes), and other Syra monorepo apps. It is the single backend for machine-money infrastructure.
+This API backs the **Telegram bot**, **web agent**, **API marketplace**, **MCP bridge**, **S3 Labs** (KOL, jobs, events, Telegram QA), **Up Only Fund** (RISE terminal routes), and other Syra monorepo apps. It is the single backend for machine-money infrastructure.
 
 ### Syra ecosystem (served by this API)
 
@@ -104,6 +104,31 @@ The API can send stablecoin (TIP-20) payouts on [Tempo](https://docs.tempo.xyz) 
 
 ---
 
+## Public growth surfaces (x402 leaderboard / agent discovery)
+
+BlockRun-style traction and onboarding endpoints (no API key):
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/metrics` | Lifetime calls, USDC settled, unique wallets, treasury addresses |
+| `GET /api/live/calls` | SSE feed of recent paid calls (sanitized) |
+| `GET /llms-full.txt` | Full agent-readable API reference |
+| `GET /free/pillars` | Free tier — pillar discovery |
+| `GET /free/assets` | Free tier — assets board subset |
+| `GET /free/coingecko/price` | Free tier — token prices |
+| `GET /free/dossier/basic?mint=` | Free tier — basic mint snapshot |
+| `GET /experiment/scalper/reference` | Reference agent card (x402 spend + paper equity) |
+
+**Registry submission:** `node -r dotenv/config scripts/registerX402Registries.js --validate`
+
+**Base gateway:** configure `BASE_PAYTO` / `EVM_PAYTO` — see [`config/baseX402Gateway.js`](./config/baseX402Gateway.js).
+
+**MCP one-liner:** `claude mcp add syra -- npx -y @syra-ai/mcp-server@latest`
+
+**Open-source payer:** [`packages/syra-x402-payer`](../packages/syra-x402-payer) (`@syra-ai/x402-payer`, MIT).
+
+---
+
 ## MPP discovery (MPPscan / AgentCash)
 
 **Settlement:** MPP discovery uses the **same URLs and x402 v2 payment flow** as the rest of Syra (`HTTP 402` → pay → retry with proof). `protocols: ["mpp"]` in OpenAPI is **discovery metadata** for [MPPscan](https://www.mppscan.com/discovery) / AgentCash, not a separate payment rail.
@@ -127,7 +152,7 @@ Optional: **`SYRA_PUBLIC_API_URL`** for staging `servers[0].url`. **`X402_OWNERS
 
 ### MCP bridge (external MCP clients)
 
-**`POST /mcp/tools/call`** — server-side agent tool execution for `@syra/mcp-server` (agent-direct routes without public HTTP). Requires:
+**`POST /mcp/tools/call`** — server-side agent tool execution for `@syra-ai/mcp-server` (agent-direct routes without public HTTP). Requires:
 
 | Env | Purpose |
 |-----|---------|
@@ -212,7 +237,7 @@ Creates a new 8004 agent with dynamic input and optionally attaches it to an exi
 
 **Response (201):** `{ "asset": "<base58>", "registerSignature": "<tx>", "tokenUri": "ipfs://...", "setCollectionSignature": "<tx>" }` (last field only if `collectionPointer` was set).
 
-**Example (add agent to existing Syra collection):** First request without payment returns **402** with payment details; then pay (e.g. with wallet via API Playground or x402 client) and retry with the payment header.
+**Example (add agent to existing Syra collection):** First request without payment returns **402** with payment details; then pay (e.g. with wallet via API Marketplace or x402 client) and retry with the payment header.
 
 **Dev (no payment):** `POST /8004/dev/register-agent` when `NODE_ENV !== "production"`.
 
@@ -453,7 +478,7 @@ Cron header: `x-hackathon-scout-cron-secret`. Workflow: `.github/workflows/hacka
 
 ## API key and trusted origins
 
-- **Never embed `API_KEY` or `API_KEYS` in client-side code.** The API injects the key for requests from trusted origins (syraa.fun, dashboard, agent, playground) so frontends do not need to send it.
+- **Never embed `API_KEY` or `API_KEYS` in client-side code.** The API injects the key for requests from trusted origins (syraa.fun, dashboard, agent, marketplace) so frontends do not need to send it.
 - If an API key was ever exposed in a client bundle (e.g. in a built JS file), **rotate it immediately**: generate a new key, set it in the API’s `.env` as `API_KEY` or in `API_KEYS`, redeploy, and stop using the old key.
 
 ---

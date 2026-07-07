@@ -62,7 +62,7 @@ export function isDashboardRoute(pathname: string): boolean {
 }
 
 export function isBuildRoute(pathname: string): boolean {
-  return pathname.startsWith("/playground");
+  return pathname.startsWith("/marketplace") || pathname.startsWith("/playground");
 }
 
 export function isWalletRoute(pathname: string): boolean {

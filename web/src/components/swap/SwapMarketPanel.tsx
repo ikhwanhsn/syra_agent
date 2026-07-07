@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useDelayedMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import {
   overviewCardShell,
   overviewKickerClass,
@@ -64,6 +65,17 @@ function MetricTile({
   );
 }
 
+function chartSourceLabel(source: string | undefined): string | null {
+  if (!source || source === "tokens.xyz") return null;
+  const labels: Record<string, string> = {
+    pumpfun: "pump.fun",
+    coingecko: "CoinGecko",
+    binance: "Binance",
+    geckoterminal: "GeckoTerminal",
+  };
+  return labels[source] ?? source;
+}
+
 function resolveChartStats(data: TokensDossierPayload | undefined) {
   const asset = data?.asset;
   const stats = asset?.stats;
@@ -107,18 +119,32 @@ export function SwapMarketPanel({
     placeholderData: keepPreviousData,
   });
 
+  const swapTokens = useMemo(
+    () => [
+      {
+        mint: inputToken.mint,
+        symbol: inputToken.symbol,
+        name: inputToken.name,
+      },
+      {
+        mint: outputToken.mint,
+        symbol: outputToken.symbol,
+        name: outputToken.name,
+      },
+    ],
+    [inputToken.mint, inputToken.symbol, inputToken.name, outputToken.mint, outputToken.symbol, outputToken.name],
+  );
+
   const feedQ = useQuery({
-    queryKey: ["swap-market-feed", focusToken.mint, focusToken.symbol, focusToken.name],
-    queryFn: ({ signal }) =>
-      fetchSwapMarketNews(
-        {
-          mint: focusToken.mint,
-          symbol: focusToken.symbol,
-          name: focusToken.name,
-        },
-        { signal },
-      ),
-    enabled: Boolean(focusToken.mint),
+    queryKey: [
+      "swap-market-feed",
+      inputToken.mint,
+      inputToken.symbol,
+      outputToken.mint,
+      outputToken.symbol,
+    ],
+    queryFn: ({ signal }) => fetchSwapMarketNews({ tokens: swapTokens }, { signal }),
+    enabled: Boolean(inputToken.mint && outputToken.mint),
     staleTime: 90_000,
     gcTime: 10 * 60_000,
     retry: 0,
@@ -160,9 +186,21 @@ export function SwapMarketPanel({
 
   const candles = chartQ.data?.ohlcv.candles ?? [];
   const chartReady = candles.length >= 2;
-  const showChartSkeleton = chartQ.isPending && !chartQ.data;
-  const showFeedSkeleton = feedQ.isPending && !feedQ.data;
+
+  const chartLoadingActive =
+    chartQ.isFetching && (!chartQ.data || chartQ.isPlaceholderData);
+  const feedLoadingActive =
+    feedQ.isFetching && (!feedQ.data || feedQ.isPlaceholderData);
+
+  const showChartSkeleton = useDelayedMinimumSkeleton(chartLoadingActive);
+  const showFeedSkeleton = useDelayedMinimumSkeleton(feedLoadingActive);
+
+  const chartStale = chartLoadingActive && chartQ.isPlaceholderData;
+  const feedStale = feedLoadingActive && feedQ.isPlaceholderData;
+
+  const chartSource = chartSourceLabel(chartQ.data?.ohlcv.source);
   const metricsLoading = showChartSkeleton;
+  const swapFeedDescription = `Headlines for ${inputToken.symbol} and ${outputToken.symbol}`;
 
   return (
     <div className={cn("flex min-w-0 flex-col gap-4", className)}>
@@ -221,7 +259,12 @@ export function SwapMarketPanel({
         </CardHeader>
 
         <CardContent className="space-y-5">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div
+            className={cn(
+              "grid grid-cols-2 gap-3 sm:grid-cols-4",
+              chartStale && !metricsLoading && "opacity-50 transition-opacity duration-200",
+            )}
+          >
             {metricsLoading ? (
               Array.from({ length: 4 }).map((_, i) => (
                 <Skeleton key={i} className="h-[68px] rounded-xl" />
@@ -283,12 +326,24 @@ export function SwapMarketPanel({
               </Button>
             </div>
           ) : chartReady ? (
-            <TokensOhlcvChart
-              candles={candles}
-              symbol={displaySymbol}
-              intervalLabel={chartQ.data?.ohlcv.interval || "1H"}
-              height={320}
-            />
+            <div
+              className={cn(
+                "space-y-2",
+                chartStale && "opacity-50 transition-opacity duration-200",
+              )}
+            >
+              {chartSource ? (
+                <p className="text-right text-[10px] font-medium uppercase tracking-wider text-muted-foreground/70">
+                  Chart · {chartSource}
+                </p>
+              ) : null}
+              <TokensOhlcvChart
+                candles={candles}
+                symbol={displaySymbol}
+                intervalLabel={chartQ.data?.ohlcv.interval || "1H"}
+                height={320}
+              />
+            </div>
           ) : (
             <div className="flex h-[280px] items-center justify-center rounded-xl border border-dashed border-border/45 bg-background/25 text-sm text-muted-foreground sm:h-[320px]">
               {chartQ.data?.ohlcv.error?.trim() ||
@@ -331,10 +386,18 @@ export function SwapMarketPanel({
             </Card>
           </>
         ) : (
-          <>
-            <AssetNewsList news={newsBlock} />
-            <AssetEventsList events={eventsBlock} />
-          </>
+          <div
+            className={cn(
+              "contents",
+              feedStale && "opacity-50 transition-opacity duration-200",
+            )}
+          >
+            <AssetNewsList news={newsBlock} description={swapFeedDescription} />
+            <AssetEventsList
+              events={eventsBlock}
+              description={`Catalysts for ${inputToken.symbol} and ${outputToken.symbol}`}
+            />
+          </div>
         )}
       </div>
     </div>

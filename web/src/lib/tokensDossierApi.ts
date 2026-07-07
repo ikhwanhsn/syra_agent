@@ -79,6 +79,8 @@ export interface TokensDossierPayload {
     mint: string | null;
     candles: TokensDossierCandle[];
     error?: string;
+    /** Data provider when candles are present (tokens.xyz, pumpfun, coingecko, binance, geckoterminal). */
+    source?: string;
   };
   mintRisk?: { risk?: { marketScore?: TokensMarketScore } } | null;
   fetchedAt: string;
@@ -183,23 +185,37 @@ export async function fetchMintChart(
   return body.data;
 }
 
+export interface SwapMarketTokenQuery {
+  mint?: string;
+  symbol?: string;
+  name?: string;
+}
+
 export interface SwapMarketNewsPayload {
-  query: { mint?: string; symbol?: string; name?: string };
+  query: { tokens: SwapMarketTokenQuery[] };
   news: AssetIntelligencePayload["news"];
   events: AssetIntelligencePayload["events"];
   fetchedAt: string;
 }
 
-/** Swap-panel news + token events (shared scrape, crypto-biased). */
+/** Swap-panel news + token events for both swap-side tokens (shared scrape, crypto-biased). */
 export async function fetchSwapMarketNews(
-  params: { mint?: string; symbol?: string; name?: string },
+  params: { tokens: SwapMarketTokenQuery[] },
   opts?: { signal?: AbortSignal },
 ): Promise<SwapMarketNewsPayload> {
   const base = `${getApiBaseUrl().replace(/\/$/, "")}/agent/tokens/news`;
+  const tokens = params.tokens
+    .map((t) => ({
+      mint: t.mint?.trim() || undefined,
+      symbol: t.symbol?.trim() || undefined,
+      name: t.name?.trim() || undefined,
+    }))
+    .filter((t) => t.mint || t.symbol || t.name);
+  if (tokens.length === 0) {
+    throw new Error("At least one swap token is required");
+  }
   const sp = new URLSearchParams();
-  if (params.mint?.trim()) sp.set("mint", params.mint.trim());
-  if (params.symbol?.trim()) sp.set("symbol", params.symbol.trim());
-  if (params.name?.trim()) sp.set("name", params.name.trim());
+  if (tokens.length > 0) sp.set("tokens", JSON.stringify(tokens));
   const url = `${base}?${sp.toString()}`;
   const res = await fetch(url, {
     headers: { Accept: "application/json" },
@@ -331,6 +347,7 @@ export interface AssetIntelligenceNewsItem {
   published_at?: string;
   text?: string;
   tickers?: string[];
+  related_symbol?: string;
 }
 
 export interface AssetIntelligenceEventItem {
@@ -339,6 +356,7 @@ export interface AssetIntelligenceEventItem {
   ticker?: string;
   source?: string;
   date?: string;
+  related_symbol?: string;
 }
 
 export interface AssetIntelligencePayload {

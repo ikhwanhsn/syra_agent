@@ -5,23 +5,29 @@ import { overviewCardShell, overviewKickerClass } from "@/components/dashboard/o
 export const PLAYGROUND_DRAWER_Z = "z-[250]";
 export const PLAYGROUND_MODAL_Z = "z-[500]";
 
-/** Shared playground page width + padding (Syra APIs + Custom API). */
-export const PLAYGROUND_PAGE_CLASS =
-  "relative z-[1] mx-auto w-full max-w-[1680px] px-4 py-5 pb-20 sm:px-6 sm:py-8 lg:px-8";
+/** Shared playground page width + horizontal padding (Syra APIs + Custom API). */
+export const PLAYGROUND_CONTENT_SHELL =
+  "relative z-[1] mx-auto w-full max-w-[1680px] px-4 sm:px-6 lg:px-8";
 
-/** Sticky history sidebar max height (below nav + tab bar). */
+export const PLAYGROUND_PAGE_CLASS = cn(
+  PLAYGROUND_CONTENT_SHELL,
+  "py-5 pb-20 sm:py-8",
+);
+
+/** Sticky history sidebar max height (below global nav). */
 export const PLAYGROUND_SIDEBAR_STICKY_CLASS =
-  "lg:sticky lg:top-[calc(var(--syra-global-nav-height,3.5rem)+var(--playground-tab-bar-height,3.25rem)+1rem)] lg:max-h-[calc(100dvh-var(--syra-global-nav-height,3.5rem)-var(--playground-tab-bar-height,3.25rem)-2rem)] lg:self-start";
+  "lg:sticky lg:top-[calc(var(--syra-global-nav-height,3.5rem)+1rem)] lg:max-h-[calc(100dvh-var(--syra-global-nav-height,3.5rem)-2rem)] lg:self-start";
 
 export const playgroundKickerClass = overviewKickerClass;
 
 export const playgroundHeroCard = cn(
   overviewCardShell,
-  "relative overflow-hidden px-5 py-6 sm:px-8 sm:py-7",
+  "relative overflow-hidden px-5 py-6 sm:px-8 sm:py-8",
+  "border-border/55 shadow-[0_1px_0_0_hsl(var(--border)/0.5),0_28px_60px_-36px_hsl(var(--primary)/0.22)]",
 );
 
 export const playgroundHeroGlow =
-  "pointer-events-none absolute inset-0 bg-[radial-gradient(520px_180px_at_12%_-15%,hsl(var(--primary)/0.09),transparent_55%),radial-gradient(420px_160px_at_100%_110%,hsl(var(--ring)/0.06),transparent_50%)]";
+  "pointer-events-none absolute inset-0 bg-[radial-gradient(640px_220px_at_8%_-20%,hsl(var(--primary)/0.12),transparent_58%),radial-gradient(480px_180px_at_100%_120%,hsl(var(--ring)/0.08),transparent_52%)]";
 
 export const playgroundPanelClass = cn(
   overviewCardShell,
@@ -32,7 +38,7 @@ export const playgroundSectionHeaderClass =
   "flex flex-wrap items-start justify-between gap-4 sm:gap-6";
 
 export const playgroundSectionTitleClass =
-  "font-display text-xl font-semibold tracking-tight text-foreground sm:text-2xl";
+  "font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl";
 
 export const playgroundSectionSubtitleClass =
   "mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-[15px]";

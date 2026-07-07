@@ -9,12 +9,21 @@ type QuarterStatus = "Shipped" | "In Progress" | "Planned";
 /** Dated release notes — append when you ship meaningful user-facing changes */
 const changelogEntries: { period: string; items: string[] }[] = [
   {
+    period: "July 2026",
+    items: [
+      "API Marketplace rebrand: /marketplace replaces /playground (legacy URLs redirect); Browse / Integrate / Custom in navbar dropdown",
+      "Per-API marketplace detail pages with OpenAPI descriptions, usage snippets, and copyable agent manifest JSON",
+      "New x402 data-provider routes: DexScreener pairs, GeckoTerminal pools, DefiLlama TVL, RugCheck report, Pyth Hermes prices ($0.001–$0.005/call)",
+      "Marketplace catalog tiers: Syra Core vs Partners (external data providers and partner gateways grouped by brand)",
+    ],
+  },
+  {
     period: "June 2026",
     items: [
       "OpenRouter x402 APIs: POST /chat/completions, /images/generations, /videos/generations with curated model allowlists and dynamic per-request pricing",
       "Free GET */models endpoints for chat, image, and video allowlists with live upstream rates",
       "New x402 discovery routes: pump.fun suite (trending, movers, analyzer, scout), CoinGecko scout, SPCX/equity intelligence, assets board & detail, Bitcoin hub, technical indicators, Jupiter swap quote, MPP health",
-      "Documentation site synced with web playground catalog and expanded agent tools catalog (246 tools)",
+      "Documentation site synced with web marketplace catalog and expanded agent tools catalog (246 tools)",
     ],
   },
   {
@@ -53,14 +62,16 @@ const changelogEntries: { period: string; items: string[] }[] = [
 /** Items already shipped / finished in the system — update as you ship */
 const completed = [
   "Syra token ($SYRA) launch on Solana (Pump.fun)",
+  "Five-pillar machine money stack — Earn, Treasury, Invest, Spend (x402), Grow",
   "Documentation site and API reference (docs.syraa.fun)",
   "x402 API standard and payment flow (incl. MPP and Tempo where applicable)",
-  "Syra Agent at syraa.fun with trading signals, wallet, and supported tokens",
-  "x402 Agent integration and agent discovery (x402scan)",
+  "API Marketplace at syraa.fun/marketplace — Core vs Partners catalog, detail pages, SDK/MCP integrate",
+  "Data-provider x402 routes: DexScreener, GeckoTerminal, DefiLlama, RugCheck, Pyth Hermes",
+  "Syra Agent at syraa.fun with wallet, policy caps, and 200+ tool integrations",
+  "x402 discovery — x402scan, /.well-known/x402, OpenAPI, MCP (@syra-ai/mcp-server), SDK (@syra-ai/sdk)",
   "Sentiment, news, Syra Brain, web search, crawl, Browser Use, and core intelligence APIs live",
   "Multi-venue trading signals (Binance, OKX, Kraken, KuCoin, Coinbase, and additional sources)",
-  "Trading experiment API and dashboard for strategy runs and analysis",
-  "8004 agent integration, marketplace, and partner/agent-only tools (Nansen, Jupiter, Squid, etc.)",
+  "8004 agent integration and partner gateways (Nansen, Jupiter, Squid, OpenRouter, RISE, Purch Vault, …)",
 ];
 
 const roadmapByQuarter: {
@@ -69,62 +80,48 @@ const roadmapByQuarter: {
   items: string[];
 }[] = [
   {
-    quarter: "Q4 2025",
+    quarter: "2025 — H1 2026",
     status: "Shipped",
     items: [
-      "Sentiment Analysis API with x402 payment integration",
-      "Risk Scoring API for trade evaluation",
-      "Whale Tracker API for on-chain smart money movements",
-      "News Aggregator API with credibility scoring",
-      "Launch on x402scan directory for agent discovery",
-      "Onboard first 10-20 autonomous agents",
-    ],
-  },
-  {
-    quarter: "Q1 2026",
-    status: "In Progress",
-    items: [
-      "Market Regime Detection API (trending/ranging states)",
-      "Correlation Matrix API for 500+ tokens",
-      "Exit Timing Signals API",
-      "Liquidation Prediction API",
-      "$SYRA staking for API discounts (10K tokens = 25% off)",
-      "x402-linked $SYRA buyback program (tokens held for community airdrops)",
-    ],
-  },
-  {
-    quarter: "Q2 2026",
-    status: "Planned",
-    items: [
-      "Custom Model Training API (agents upload strategy docs)",
-      "Historical Backtesting API",
-      "Agent Reputation Scoring system",
-      "Multi-chain expansion (Base, Arbitrum, Polygon)",
-      "White-label intelligence API for enterprises",
-      "Cross-agent learning network (data flywheel)",
+      "x402 Spend rail — 200+ paid routes, SDK, MCP, x402scan discovery",
+      "API Marketplace — browse, detail pages, Core vs Partners, agent manifests",
+      "Treasury — agent wallets, billing dashboard, policy-gated execution",
+      "Invest proof surfaces — Giza, Meteora LP, Jupiter, RISE, trading experiments",
+      "Earn groundwork — S3 Labs, Purch Vault x402, 8004 agent registry",
+      "Grow intelligence — assets board, dossier, Syra Brain, equity/SPCX context",
     ],
   },
   {
     quarter: "Q3 2026",
-    status: "Planned",
+    status: "In Progress",
     items: [
-      "Compliance-aware Intelligence APIs",
-      "Multi-strategy Portfolio Optimization API",
-      "Explainable AI decision endpoints",
-      "Institutional hedge fund tier with custom SLAs",
-      "Vertical expansion: sports betting & prediction markets",
-      "Public agent performance leaderboard",
+      "Spend — expand Partners catalog; staking-linked x402 discounts",
+      "Treasury — fiat onramp (MoonPay/Privy); richer per-tool policy caps",
+      "Invest — deeper LP/swap paths with pre-trade risk context",
+      "Earn — KOL attribution and skill marketplace listings",
+      "Grow — portfolio recommendations + public metrics transparency",
     ],
   },
   {
     quarter: "Q4 2026",
     status: "Planned",
     items: [
-      "Advanced ML models with self-improving feedback loops",
-      "Traditional markets expansion (forex, commodities, equities)",
-      "Agent collaboration protocols",
-      "x402 Intelligence Grant Program",
-      "Scale to 1,000+ autonomous agents",
+      "Spend — enterprise white-label gateway; x402 Intelligence Grant Program",
+      "Treasury — multi-agent treasury rooms and audit exports",
+      "Invest — backtesting API and multi-strategy optimization (analysis-first)",
+      "Earn — agent performance leaderboard and revenue-share templates",
+      "Grow — explainable AI endpoints; compliance-aware intelligence modules",
+    ],
+  },
+  {
+    quarter: "2027",
+    status: "Planned",
+    items: [
+      "Agent collaboration protocols with shared treasury",
+      "Cross-agent learning flywheel and improved default policies",
+      "Traditional markets context (forex, commodities, tokenized equities)",
+      "Scale to 1,000+ autonomous agents on the Syra rail",
+      "x402 revenue → $SYRA buyback for community airdrops and grants",
     ],
   },
 ];
@@ -195,7 +192,7 @@ export default function Changelog() {
       <DocSection
         id="roadmap"
         title="Roadmap"
-        description="2025–2027 Syra Roadmap — scaling machine money infrastructure for autonomous agents on Solana."
+        description="Machine money for agents on Solana — what we've shipped and what's next across Earn, Treasury, Invest, Spend, and Grow."
       >
         <div className="not-prose space-y-0">
           {roadmapByQuarter.map((q) => (

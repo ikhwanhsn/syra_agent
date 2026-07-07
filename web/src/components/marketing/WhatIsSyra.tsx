@@ -79,7 +79,7 @@ export const WhatIsSyra = () => {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="text-lg text-muted-foreground max-w-3xl mx-auto"
           >
-            {SYRA_USP} {SYRA_ONE_LINER} Integrate via SDK, MCP, or the API playground —
+            {SYRA_USP} {SYRA_ONE_LINER} Integrate via SDK, MCP, or the API marketplace —
             ship agents that pay for intelligence and execution on every call.
           </motion.p>
 
@@ -90,7 +90,7 @@ export const WhatIsSyra = () => {
             className="mt-6 flex flex-wrap items-center justify-center gap-3"
           >
             <Link
-              to="/playground"
+              to="/marketplace"
               className="btn-primary inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold no-underline"
             >
               Build on the rail

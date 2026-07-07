@@ -47,6 +47,11 @@ import {
   X402_DISPLAY_PRICE_JUPITER_QUOTE_USD,
   X402_DISPLAY_PRICE_SPCX_USD,
   X402_DISPLAY_PRICE_EQUITY_USD,
+  X402_DISPLAY_PRICE_DEXSCREENER_PAIRS_USD,
+  X402_DISPLAY_PRICE_GECKOTERMINAL_POOLS_USD,
+  X402_DISPLAY_PRICE_DEFILLAMA_TVL_USD,
+  X402_DISPLAY_PRICE_RUGCHECK_REPORT_USD,
+  X402_DISPLAY_PRICE_PYTH_PRICE_USD,
 } from '../config/x402Pricing.js';
 
 /** @param {number} n */
@@ -147,6 +152,11 @@ function displayPriceForDiscoveryOnlyPath(apiPath) {
   if (p.startsWith('/squid/route')) return X402_DISPLAY_PRICE_SQUID_ROUTE_USD;
   if (p.startsWith('/squid/status')) return X402_DISPLAY_PRICE_SQUID_STATUS_USD;
   if (p.startsWith('/smart-money/') || p.startsWith('/nansen/smart-money/')) return X402_DISPLAY_PRICE_NANSEN_PREMIUM_USD;
+  if (p.startsWith('/dexscreener/')) return X402_DISPLAY_PRICE_DEXSCREENER_PAIRS_USD;
+  if (p.startsWith('/geckoterminal/')) return X402_DISPLAY_PRICE_GECKOTERMINAL_POOLS_USD;
+  if (p.startsWith('/defillama/')) return X402_DISPLAY_PRICE_DEFILLAMA_TVL_USD;
+  if (p.startsWith('/rugcheck/')) return X402_DISPLAY_PRICE_RUGCHECK_REPORT_USD;
+  if (p.startsWith('/pyth/')) return X402_DISPLAY_PRICE_PYTH_PRICE_USD;
   if (p.startsWith('/nansen/')) return X402_DISPLAY_PRICE_NANSEN_USD;
   if (p.startsWith('/smart-money') || p.startsWith('/token-god-mode')) return X402_DISPLAY_PRICE_NANSEN_USD;
   if (p.startsWith('/x402/vault')) return X402_DISPLAY_PRICE_PURCH_VAULT_USD;

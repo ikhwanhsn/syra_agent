@@ -3,6 +3,7 @@
  * @see https://docs.tokens.xyz/v1/quickstart
  */
 import { runTokensAgentTool } from './tokensAgentService.js';
+import { fetchMintChartFallback, hasEnoughCandles } from './mintChartFallbackService.js';
 
 const DOSSIER_CACHE_TTL_MS = 60_000;
 
@@ -198,62 +199,94 @@ export async function buildMintChart(input) {
   }
 
   const resolved = await runTokensAgentTool('tokens-assets-resolve', { mint });
-  if (!resolved.ok) {
+
+  let assetId = resolved.ok ? trim(resolved.data?.assetId) : '';
+  let chartMint = mint;
+  if (resolved.ok && resolved.data?.variant?.mint) {
+    chartMint = trim(resolved.data.variant.mint) || mint;
+  }
+  if (!assetId) {
+    assetId = `solana-${mint}`;
+  }
+
+  /** @type {unknown} */
+  let resolveData = resolved.ok ? resolved.data : null;
+  /** @type {unknown} */
+  let asset = null;
+  /** @type {unknown} */
+  let includes = null;
+  /** @type {Array<{ time: number; open: number; high: number; low: number; close: number; volume?: number }>} */
+  let candles = [];
+  let chartInterval = '1H';
+  /** @type {string | undefined} */
+  let chartSource = resolved.ok ? 'tokens.xyz' : undefined;
+  /** @type {string | undefined} */
+  let ohlcvError = resolved.ok ? undefined : resolved.error || 'Could not resolve asset';
+
+  if (resolved.ok) {
+    const [detailResult, ohlcvResult] = await Promise.all([
+      runTokensAgentTool('tokens-asset-detail', {
+        assetId,
+        mint: chartMint,
+        include: 'profile',
+      }),
+      runTokensAgentTool('tokens-asset-ohlcv', {
+        assetId,
+        mint: chartMint,
+        interval: '1H',
+      }),
+    ]);
+
+    asset = detailResult.ok ? detailResult.data?.asset ?? null : null;
+    includes = detailResult.ok ? detailResult.data?.includes ?? null : null;
+
+    if (ohlcvResult?.ok && Array.isArray(ohlcvResult.data?.candles)) {
+      candles = ohlcvResult.data.candles;
+      chartInterval = ohlcvResult.data?.interval ?? '1H';
+    } else {
+      ohlcvError = ohlcvResult?.error ?? 'Chart unavailable';
+    }
+  }
+
+  if (!hasEnoughCandles(candles)) {
+    const fallback = await fetchMintChartFallback(mint);
+    if (fallback) {
+      candles = fallback.candles;
+      chartInterval = fallback.interval;
+      chartSource = fallback.source;
+      ohlcvError = undefined;
+    }
+  }
+
+  if (!hasEnoughCandles(candles) && !resolved.ok) {
     return {
       ok: false,
-      error: resolved.error || 'Could not resolve asset',
+      error: ohlcvError || resolved.error || 'Could not resolve asset',
       status: resolved.status ?? 502,
       requestId: resolved.requestId,
     };
   }
 
-  const assetId = trim(resolved.data?.assetId);
-  if (!assetId) {
-    return { ok: false, error: 'Resolve returned no assetId', status: 502 };
-  }
-
-  let chartMint = mint;
-  if (resolved.data?.variant?.mint) {
-    chartMint = trim(resolved.data.variant.mint) || mint;
-  }
-
-  const [detailResult, ohlcvResult] = await Promise.all([
-    runTokensAgentTool('tokens-asset-detail', {
-      assetId,
-      mint: chartMint,
-      include: 'profile',
-    }),
-    runTokensAgentTool('tokens-asset-ohlcv', {
-      assetId,
-      mint: chartMint,
-      interval: '1H',
-    }),
-  ]);
-
-  const asset = detailResult.ok ? detailResult.data?.asset ?? null : null;
-  const candles =
-    ohlcvResult?.ok && Array.isArray(ohlcvResult.data?.candles) ? ohlcvResult.data.candles : [];
-
   const data = {
     query: { mint },
     assetId,
     chartMint,
-    resolve: resolved.data,
+    resolve: resolveData,
     asset,
-    includes: detailResult.ok ? detailResult.data?.includes ?? null : null,
-    ohlcv: ohlcvResult?.ok
+    includes,
+    ohlcv: hasEnoughCandles(candles)
       ? {
-          interval: ohlcvResult.data?.interval ?? '1H',
-          mint: ohlcvResult.data?.mint ?? chartMint,
-          from: ohlcvResult.data?.from ?? null,
-          to: ohlcvResult.data?.to ?? null,
+          interval: chartInterval,
+          mint: chartMint,
           candles,
+          source: chartSource,
         }
       : {
-          interval: '1H',
+          interval: chartInterval,
           mint: chartMint,
           candles: [],
-          error: ohlcvResult?.error ?? 'Chart unavailable',
+          error: ohlcvError ?? 'No chart data available for this token yet.',
+          source: chartSource,
         },
     mintRisk: null,
     fetchedAt: new Date().toISOString(),
@@ -267,6 +300,6 @@ export async function buildMintChart(input) {
   return {
     ok: true,
     data,
-    requestId: ohlcvResult?.requestId ?? detailResult?.requestId ?? resolved.requestId,
+    requestId: resolved.requestId,
   };
 }

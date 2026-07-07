@@ -1,4 +1,4 @@
-import { createSyraClient, type SyraClient } from "@syra/sdk";
+import { createSyraClient, type SyraClient } from "@syra-ai/sdk";
 import {
   getPaidFetch,
   getPaidFetchNetworkLabel,

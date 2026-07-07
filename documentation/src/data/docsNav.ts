@@ -60,6 +60,7 @@ export const navigation: NavItem[] = [
     title: "Build with the API",
     items: [
       { title: "Overview", href: "/docs/api-reference" },
+      { title: "Syra Marketplace (Web UI)", href: api("syra-marketplace") },
       { title: "x402 Payment Flow", href: api("x402-api-standard") },
       {
         title: "All endpoints",
@@ -113,6 +114,17 @@ export const navigation: NavItem[] = [
               { title: "Website Crawl", href: api("crawl") },
               { title: "Browser Use", href: api("browser-use") },
               { title: "Analytics Summary", href: api("analytics-summary") },
+            ],
+          },
+          {
+            title: "Data providers",
+            defaultCollapsed: true,
+            items: [
+              { title: "DexScreener Pairs", href: api("dexscreener-pairs") },
+              { title: "GeckoTerminal Pools", href: api("geckoterminal-pools") },
+              { title: "DefiLlama TVL", href: api("defillama-tvl") },
+              { title: "RugCheck Token Report", href: api("rugcheck-report") },
+              { title: "Pyth Oracle Prices", href: api("pyth-price") },
             ],
           },
           {

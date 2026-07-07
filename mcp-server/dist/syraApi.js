@@ -1,4 +1,4 @@
-import { createSyraClient } from "@syra/sdk";
+import { createSyraClient } from "@syra-ai/sdk";
 import { getPaidFetch, getPaidFetchNetworkLabel, hasPaidFetchConfigured, } from "./payment/createPaidFetch.js";
 const SYRA_API_BASE_URL = (process.env.SYRA_API_BASE_URL || "https://api.syraa.fun").replace(/\/$/, "");
 const SYRA_USE_DEV_ROUTES = process.env.SYRA_USE_DEV_ROUTES === "true" || process.env.SYRA_USE_DEV_ROUTES === "1";

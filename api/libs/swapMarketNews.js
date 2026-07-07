@@ -1,10 +1,8 @@
 /**
- * Swap market panel feed — news + token events from one shared article burst.
- * Uses Google News (crypto-biased) + warm RSS index, then derives event-like
- * headlines and CoinMarketCal rows for the focused token.
+ * Swap market panel feed — news + token events for one or both swap-side tokens.
+ * Per-token Google News (with fallbacks) + warm RSS index + CoinMarketCal.
  */
-import { keywordsForAsset } from '../config/internalNewsConfig.js';
-import { buildAssetFeedBundle } from './assetNewsFeed.js';
+import { buildSwapPairFeedBundle } from './assetNewsFeed.js';
 
 const NEWS_LIMIT = 6;
 const EVENTS_LIMIT = 8;
@@ -36,36 +34,87 @@ function flattenEvents(rows, limit = EVENTS_LIMIT) {
       out.push({ .../** @type {Record<string, unknown>} */ (ev), date });
     }
   }
-  // Prefer newest dates first for the swap panel.
   return out
     .sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')))
     .slice(0, limit);
 }
 
 /**
- * @param {{ symbol?: string; name?: string; mint?: string }} input
+ * @param {Array<{ symbol?: string; name?: string; mint?: string }>} tokens
+ */
+function normalizeSwapTokens(tokens) {
+  if (!Array.isArray(tokens)) return [];
+  /** @type {Array<{ symbol?: string; name?: string; mint?: string }>} */
+  const out = [];
+  const seen = new Set();
+  for (const raw of tokens) {
+    if (!raw || typeof raw !== 'object') continue;
+    const symbol = trim(raw.symbol);
+    const name = trim(raw.name);
+    const mint = trim(raw.mint);
+    if (!symbol && !name && !mint) continue;
+    const key = mint.toLowerCase() || symbol.toUpperCase() || name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({
+      symbol: symbol || undefined,
+      name: name || undefined,
+      mint: mint || undefined,
+    });
+  }
+  return out;
+}
+
+/**
+ * @param {Array<{ symbol?: string; name?: string; mint?: string }>} tokens
+ */
+function swapCacheKey(tokens) {
+  return tokens
+    .map((t) => [t.mint || '', t.symbol || '', t.name || ''].join(':'))
+    .sort()
+    .join('|');
+}
+
+/**
+ * @param {Array<{ symbol?: string; name?: string; mint?: string }>} tokens
+ */
+function swapAssetLabel(tokens) {
+  const labels = tokens
+    .map((t) => t.name || t.symbol || t.mint)
+    .filter(Boolean);
+  if (labels.length === 0) return 'these tokens';
+  if (labels.length === 1) return labels[0];
+  return `${labels[0]} and ${labels[1]}`;
+}
+
+/**
+ * @param {{ symbol?: string; name?: string; mint?: string; tokens?: Array<{ symbol?: string; name?: string; mint?: string }> }} input
  */
 export async function buildSwapMarketNews(input) {
-  const symbol = trim(input.symbol);
-  const name = trim(input.name);
-  const mint = trim(input.mint);
+  const legacyToken = {
+    symbol: trim(input.symbol) || undefined,
+    name: trim(input.name) || undefined,
+    mint: trim(input.mint) || undefined,
+  };
 
-  if (!symbol && !name && !mint) {
-    return { ok: false, error: 'Provide symbol, name, or mint', status: 400 };
+  const tokens = normalizeSwapTokens(
+    Array.isArray(input.tokens) && input.tokens.length > 0
+      ? input.tokens
+      : legacyToken.symbol || legacyToken.name || legacyToken.mint
+        ? [legacyToken]
+        : [],
+  );
+
+  if (tokens.length === 0) {
+    return { ok: false, error: 'Provide tokens (symbol, name, or mint)', status: 400 };
   }
 
-  const ticker = (symbol || name || 'TOKEN').toUpperCase();
-  const assetLabel = name || symbol || mint;
-  const cacheKey = [ticker, name.toLowerCase(), mint].join('|');
+  const assetLabel = swapAssetLabel(tokens);
+  const cacheKey = swapCacheKey(tokens);
   const cached = cache.get(cacheKey);
   if (cached && Date.now() < cached.expires) {
     return { ok: true, data: cached.data };
   }
-
-  const keywordQuery = keywordsForAsset({
-    ticker,
-    name: name || undefined,
-  });
 
   const emptyNews = (error) => ({
     ok: false,
@@ -78,26 +127,19 @@ export async function buildSwapMarketNews(input) {
     error,
   });
 
-  if (!keywordQuery.primary?.length && !keywordQuery.all?.length) {
-    const data = {
-      query: { mint: mint || undefined, symbol: symbol || undefined, name: name || undefined },
-      news: emptyNews(`No headlines found related to ${assetLabel}`),
-      events: emptyEvents(`No events found related to ${assetLabel}`),
-      fetchedAt: new Date().toISOString(),
-    };
-    return { ok: true, data };
-  }
-
-  const feed = await buildAssetFeedBundle(ticker, keywordQuery, {
+  const feed = await buildSwapPairFeedBundle(tokens, {
     newsLimit: NEWS_LIMIT,
+    eventsLimit: EVENTS_LIMIT,
     cryptoBias: true,
   });
 
   const newsItems = Array.isArray(feed.news) ? feed.news : [];
-  const eventItems = flattenEvents(feed.events, EVENTS_LIMIT);
+  const eventItems = Array.isArray(feed.events)
+    ? feed.events
+    : flattenEvents(feed.events, EVENTS_LIMIT);
 
   const data = {
-    query: { mint: mint || undefined, symbol: symbol || undefined, name: name || undefined },
+    query: { tokens },
     news: {
       ok: newsItems.length > 0,
       items: newsItems,

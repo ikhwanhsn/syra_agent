@@ -29,11 +29,20 @@ export const SCALPER_DEFAULTS = Object.freeze({
   maxConcurrentPositions: 3,
   /** Fraction of free cash per scalp (0–1). */
   notionalSlicePct: 0.25,
+  /** Floor fraction of notionalSlicePct for low-conviction entries. */
+  minNotionalSlicePct: 0.12,
   minNotionalUsd: 5,
-  takeProfitPct: 0.75,
-  stopLossPct: 0.4,
+  /** TP must clear ~2× quote slippage per side; R:R ≈ 2:1 vs SL. */
+  takeProfitPct: 1.6,
+  stopLossPct: 0.8,
   maxHoldMinutes: 45,
-  minOpportunityScore: 0.35,
+  /** Only trade high-conviction opportunities. */
+  minOpportunityScore: 0.5,
+  /**
+   * Extra edge (%) above estimated round-trip fill cost before entry.
+   * Round-trip ≈ 2 × quoteSlippageBps / 100.
+   */
+  minEdgeBufferPct: 0.25,
   /** Cooldown after closing same symbol (ms). */
   symbolCooldownMs: 5 * 60_000,
   /** How long experiment signals stay valid (ms). */
@@ -44,6 +53,13 @@ export const SCALPER_DEFAULTS = Object.freeze({
   /** Jupiter quote slippage for paper fills (bps). */
   quoteSlippageBps: 50,
 });
+
+/** Estimated round-trip fill cost as a percentage (entry + exit slippage). */
+export function estimateRoundTripCostPct(quoteSlippageBps = SCALPER_DEFAULTS.quoteSlippageBps) {
+  const bps = Number(quoteSlippageBps);
+  if (!Number.isFinite(bps) || bps <= 0) return 1;
+  return (bps * 2) / 100;
+}
 
 /**
  * @returns {Array<{ symbol: string; name: string; mint: string; decimals: number; assetClass: 'crypto' | 'equity'; nasdaqTicker?: string | null }>}

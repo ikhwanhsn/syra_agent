@@ -10,7 +10,7 @@ interface EmptyStateProps {
 }
 
 const RESOURCE_LINKS = [
-  { href: "/playground", label: "API playground", icon: Terminal, external: false },
+  { href: "/marketplace", label: "API marketplace", icon: Terminal, external: false },
   { href: "https://docs.syraa.fun", label: "Documentation", icon: BookOpen, external: true },
 ] as const;
 

@@ -90,3 +90,44 @@ export async function fetchGoogleNewsForAsset(keywordQuery, timeoutMs, opts = {}
     return [];
   }
 }
+
+/**
+ * Google News with fallbacks — crypto-biased first, then plain query, then name-only.
+ * @param {{ primary?: string[]; all?: string[] }} keywordQuery
+ * @param {number} timeoutMs
+ * @param {{ cryptoBias?: boolean }} [opts]
+ */
+export async function fetchGoogleNewsWithFallbacks(keywordQuery, timeoutMs, opts = {}) {
+  if (!GOOGLE_NEWS_RSS_ENABLED) return [];
+  if (!keywordQuery.primary?.length && !keywordQuery.all?.length) return [];
+
+  let articles = await fetchGoogleNewsForAsset(keywordQuery, timeoutMs, opts);
+  if (articles.length > 0) return articles;
+
+  if (opts.cryptoBias) {
+    articles = await fetchGoogleNewsForAsset(keywordQuery, timeoutMs, { ...opts, cryptoBias: false });
+    if (articles.length > 0) return articles;
+  }
+
+  const nameTerm = [...(keywordQuery.primary || []), ...(keywordQuery.all || [])]
+    .map((t) => String(t || '').trim())
+    .filter((t) => t.length >= 5 && !t.startsWith('$'))
+    .sort((a, b) => b.length - a.length)[0];
+
+  if (nameTerm) {
+    const nameOnly = { primary: [nameTerm], all: [nameTerm] };
+    articles = await fetchGoogleNewsForAsset(nameOnly, timeoutMs, { cryptoBias: false });
+    if (articles.length > 0) return articles;
+  }
+
+  const tickerTerm = [...(keywordQuery.primary || []), ...(keywordQuery.all || [])]
+    .map((t) => String(t || '').trim())
+    .find((t) => t.startsWith('$') || (t.length >= 3 && t.length <= 5));
+
+  if (tickerTerm) {
+    const tickerOnly = { primary: [tickerTerm], all: [tickerTerm] };
+    return fetchGoogleNewsForAsset(tickerOnly, timeoutMs, { cryptoBias: false });
+  }
+
+  return [];
+}

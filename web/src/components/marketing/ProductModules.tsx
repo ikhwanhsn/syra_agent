@@ -183,7 +183,7 @@ export const ProductModules = () => {
             const isPlaygroundLink = module.title === "Tokenized Equity Intelligence";
             const CardWrapper = isPlaygroundLink ? Link : "div";
             const cardProps = isPlaygroundLink
-              ? { to: "/playground", className: "block no-underline" }
+              ? { to: "/marketplace", className: "block no-underline" }
               : {};
             return (
               <motion.div
@@ -213,7 +213,7 @@ export const ProductModules = () => {
                       ))}
                     </div>
                     {isPlaygroundLink ? (
-                      <p className="mt-3 text-xs font-medium text-primary">Try x402 API in playground →</p>
+                      <p className="mt-3 text-xs font-medium text-primary">Try x402 API in marketplace →</p>
                     ) : null}
                   </div>
                 </CardWrapper>
@@ -229,10 +229,10 @@ export const ProductModules = () => {
           className="mt-12 text-center"
         >
           <Link
-            to="/playground"
+            to="/marketplace"
             className="btn-primary inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold no-underline"
           >
-            Open API playground
+            Open API marketplace
           </Link>
         </motion.div>
       </div>

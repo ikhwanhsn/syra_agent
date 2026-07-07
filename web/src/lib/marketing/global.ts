@@ -9,7 +9,8 @@ function getAgentAskUrl(question: string): string {
   return `${LINK_AGENT}${sep}q=${encodeURIComponent(trimmed)}`;
 }
 const LINK_DOCS = "https://docs.syraa.fun";
-const LINK_PLAYGROUND = "/playground";
+const LINK_MARKETPLACE = "/marketplace";
+const LINK_PLAYGROUND = "/marketplace";
 
 /** Production Syra API gateway (landing preview, stats, leaderboard). */
 const PRODUCTION_API_ORIGIN = "https://api.syraa.fun";

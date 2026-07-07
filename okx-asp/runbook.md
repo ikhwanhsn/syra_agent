@@ -76,7 +76,7 @@ Full 28-route table: [asp-dossier.md Section 2](./asp-dossier.md#2-a2mcp--servic
 
 - OKX A2MCP expects a callable API/MCP interface. Syra's OpenAPI spec at `openapi.json` is the fastest registration path.
 - **OKX Payment SDK** integration is required before A2MCP goes live on the marketplace. Registration can proceed; go-live waits on SDK integration (see dossier Section 5).
-- Syra's `@syra/mcp-server` is stdio-only. For remote MCP, deploy an HTTPS gateway later (`mcp.syraa.fun`).
+- Syra's `@syra-ai/mcp-server` is stdio-only. For remote MCP, deploy an HTTPS gateway later (`mcp.syraa.fun`).
 
 ---
 

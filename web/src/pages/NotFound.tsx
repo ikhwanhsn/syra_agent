@@ -58,8 +58,8 @@ const QUICK_DESTINATIONS = [
     icon: LayoutDashboard,
   },
   {
-    href: "/playground",
-    label: "Playground",
+    href: "/marketplace",
+    label: "Marketplace",
     description: "Test x402 and MPP API endpoints",
     icon: Code2,
   },

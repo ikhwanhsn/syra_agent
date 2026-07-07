@@ -136,7 +136,11 @@ export function createLpAgentExperimentRouter() {
       const mint = typeof req.query.mint === "string" ? req.query.mint.trim() : "";
 
       const rows = mint
-        ? await fetchMeteoraPoolsByTokenMint(mint)
+        ? await fetchMeteoraPoolsByTokenMint(mint, {
+            textQueries: search
+              ? [...new Set([search, search.toUpperCase(), search.toLowerCase()])]
+              : [],
+          })
         : await fetchMeteoraPoolPages({
             pages,
             limit,
@@ -145,7 +149,9 @@ export function createLpAgentExperimentRouter() {
             hideLowTvl,
           });
 
-      const filtered = rows.filter((pool) => (search ? matchesPoolSearch(pool, search) : true));
+      const filtered = mint
+        ? rows
+        : rows.filter((pool) => (search ? matchesPoolSearch(pool, search) : true));
       const pools = filtered.map(stripPoolRaw);
 
       res.json({

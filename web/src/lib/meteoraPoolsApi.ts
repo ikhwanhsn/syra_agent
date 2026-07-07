@@ -186,5 +186,5 @@ export function poolIncludesMint(pool: MeteoraLpPool, mint: string): boolean {
 }
 
 export async function fetchSyraMeteoraLpPools(): Promise<{ pools: MeteoraLpPool[]; count: number }> {
-  return fetchMeteoraLpPools({ mint: SYRA_MINT });
+  return fetchMeteoraLpPools({ mint: SYRA_MINT, search: "syra" });
 }

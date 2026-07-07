@@ -249,7 +249,8 @@ export function createTokensDossierRouter() {
 
   /**
    * GET /agent/tokens/news?symbol=SOL&name=Solana&mint=<optional>
-   * Swap-panel feed: asset news + token events (shared article scrape).
+   * GET /agent/tokens/news?tokens=[{"symbol":"ENA","name":"Ethena","mint":"..."},...]
+   * Swap-panel feed: asset news + token events for one or both swap-side tokens.
    */
   router.get('/news', async (req, res) => {
     try {
@@ -257,7 +258,18 @@ export function createTokensDossierRouter() {
       const symbol = typeof req.query.symbol === 'string' ? req.query.symbol.trim() : undefined;
       const name = typeof req.query.name === 'string' ? req.query.name.trim() : undefined;
 
-      const result = await buildSwapMarketNews({ mint, symbol, name });
+      /** @type {Array<{ symbol?: string; name?: string; mint?: string }> | undefined} */
+      let tokens;
+      if (typeof req.query.tokens === 'string' && req.query.tokens.trim()) {
+        try {
+          const parsed = JSON.parse(req.query.tokens);
+          if (Array.isArray(parsed)) tokens = parsed;
+        } catch {
+          return res.status(400).json({ success: false, error: 'Invalid tokens JSON' });
+        }
+      }
+
+      const result = await buildSwapMarketNews({ mint, symbol, name, tokens });
       if (!result.ok) {
         return res.status(result.status ?? 502).json({
           success: false,

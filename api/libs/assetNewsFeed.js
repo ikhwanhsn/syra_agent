@@ -5,6 +5,7 @@
  * Avoids waiting on the full multi-source RSS crawl (often >6s cold), which previously caused
  * "News timed out" / "Events timed out" on the asset detail page.
  */
+import { keywordsForAsset, mergeKeywordQueries } from '../config/internalNewsConfig.js';
 import { resolveTickerFromCoingecko } from '../utils/coingeckoAPI.js';
 import { fetchSentimentTicker } from './internalNewsAgent.js';
 import {
@@ -12,7 +13,7 @@ import {
   filterArticlesByAssetKeywords,
   toCryptonewsShape,
 } from './newsAggregator.js';
-import { fetchGoogleNewsForAsset } from './newsSources/googleNewsRss.js';
+import { fetchGoogleNewsWithFallbacks } from './newsSources/googleNewsRss.js';
 import { fetchCoinMarketCalEventsFiltered } from './assetEventsFromNews.js';
 
 const CACHE_TTL_MS = 90 * 1000;
@@ -105,7 +106,7 @@ export async function fetchRawArticlesForAsset(keywordQuery, opts = {}) {
     // Full RSS index only contributes when warm or finishes within INDEX_BUDGET_MS.
     const [indexArticles, googleArticles] = await Promise.all([
       fetchAllRawArticlesWithin(INDEX_BUDGET_MS),
-      fetchGoogleNewsForAsset(keywordQuery, GOOGLE_NEWS_TIMEOUT_MS, {
+      fetchGoogleNewsWithFallbacks(keywordQuery, GOOGLE_NEWS_TIMEOUT_MS, {
         cryptoBias: Boolean(opts.cryptoBias),
       }),
     ]);
@@ -473,4 +474,248 @@ export async function buildAssetFeedBundle(ticker, keywordQuery = {}, opts = {})
   }
 
   return { news, sentiment, events };
+}
+
+/** Swap-side tokens that rarely need dedicated headline slots (stable / base). */
+const SWAP_LOW_PRIORITY_SYMBOLS = new Set([
+  'USDC',
+  'USDT',
+  'USDS',
+  'USD1',
+  'DAI',
+  'BUSD',
+  'FRAX',
+  'PYUSD',
+  'USDD',
+  'EURC',
+  'SOL',
+  'WSOL',
+]);
+
+/**
+ * @param {import('./newsSources/rssParser.js').RawArticle[]} articles
+ */
+function dedupeRawArticles(articles) {
+  const seen = new Set();
+  /** @type {import('./newsSources/rssParser.js').RawArticle[]} */
+  const out = [];
+  for (const a of articles) {
+    const key = `${a.title}|${a.url || ''}`.toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(a);
+  }
+  return out;
+}
+
+/**
+ * @param {Array<{ symbol?: string; name?: string; mint?: string }>} assets
+ */
+function dedupeSwapAssets(assets) {
+  const seen = new Set();
+  /** @type {Array<{ symbol?: string; name?: string; mint?: string }>} */
+  const out = [];
+  for (const a of assets) {
+    const symbol = String(a.symbol || '').trim().toUpperCase();
+    const mint = String(a.mint || '').trim().toLowerCase();
+    const key = mint || symbol || String(a.name || '').trim().toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push({
+      symbol: symbol || undefined,
+      name: String(a.name || '').trim() || undefined,
+      mint: mint || undefined,
+    });
+  }
+  return out;
+}
+
+/**
+ * @param {number} assetCount
+ * @param {number} total
+ * @param {boolean[]} lowPriority
+ */
+function allocateBalancedSlots(assetCount, total, lowPriority) {
+  if (assetCount <= 0) return [];
+  const slots = new Array(assetCount).fill(0);
+  const highIdx = lowPriority
+    .map((low, i) => (low ? -1 : i))
+    .filter((i) => i >= 0);
+  const lowIdx = lowPriority.map((low, i) => (low ? i : -1)).filter((i) => i >= 0);
+
+  if (highIdx.length === 0) {
+    const each = Math.max(1, Math.floor(total / assetCount));
+    return slots.map(() => each);
+  }
+
+  if (lowIdx.length === 0 || highIdx.length === assetCount) {
+    const base = Math.floor(total / assetCount);
+    const rem = total % assetCount;
+    return slots.map((_, i) => base + (i < rem ? 1 : 0));
+  }
+
+  const lowSlots = Math.min(lowIdx.length, Math.max(1, Math.floor(total * 0.2)));
+  const highSlots = total - lowSlots * lowIdx.length;
+  const perHigh = Math.max(1, Math.ceil(highSlots / highIdx.length));
+  for (const i of highIdx) slots[i] = perHigh;
+  for (const i of lowIdx) slots[i] = lowSlots;
+  return slots;
+}
+
+/**
+ * Round-robin pick from per-asset buckets up to per-bucket limits.
+ * @template T
+ * @param {T[][]} buckets
+ * @param {number[]} limits
+ * @param {(item: T) => string} keyFn
+ * @param {number} totalCap
+ */
+function selectBalancedFromBuckets(buckets, limits, keyFn, totalCap) {
+  const seen = new Set();
+  /** @type {unknown[]} */
+  const out = [];
+  const pointers = buckets.map(() => 0);
+  const counts = limits.map(() => 0);
+
+  while (out.length < totalCap) {
+    let added = false;
+    for (let i = 0; i < buckets.length; i += 1) {
+      if (counts[i] >= limits[i]) continue;
+      while (pointers[i] < buckets[i].length && counts[i] < limits[i]) {
+        const item = buckets[i][pointers[i]];
+        pointers[i] += 1;
+        const key = keyFn(item);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(item);
+        counts[i] += 1;
+        added = true;
+        break;
+      }
+      if (out.length >= totalCap) break;
+    }
+    if (!added) break;
+  }
+  return out;
+}
+
+/**
+ * Swap panel feed — parallel per-token Google News + shared RSS, balanced news/events.
+ * @param {Array<{ symbol?: string; name?: string; mint?: string }>} assets
+ * @param {{ newsLimit?: number; eventsLimit?: number; cryptoBias?: boolean }} [opts]
+ */
+export async function buildSwapPairFeedBundle(assets, opts = {}) {
+  const newsLimit = opts.newsLimit ?? 6;
+  const eventsLimit = opts.eventsLimit ?? 8;
+  const feedOpts = { cryptoBias: Boolean(opts.cryptoBias ?? true) };
+
+  const normalized = dedupeSwapAssets(assets);
+  if (normalized.length === 0) return { news: [], events: [] };
+
+  const assetQueries = normalized.map((asset) => {
+    const ticker = (asset.symbol || asset.name || 'TOKEN').toUpperCase();
+    return {
+      asset,
+      ticker,
+      keywords: keywordsForAsset({ ticker, name: asset.name }),
+    };
+  });
+
+  const [indexArticles, ...googleBatches] = await Promise.all([
+    fetchAllRawArticlesWithin(INDEX_BUDGET_MS),
+    ...assetQueries.map((aq) =>
+      fetchGoogleNewsWithFallbacks(aq.keywords, GOOGLE_NEWS_TIMEOUT_MS, feedOpts),
+    ),
+  ]);
+
+  const allArticles = dedupeRawArticles([...indexArticles, ...googleBatches.flat()]);
+  const mergedKeywords = mergeKeywordQueries(...assetQueries.map((aq) => aq.keywords));
+
+  const calFiltered = await settleWithin(
+    fetchCoinMarketCalEventsFiltered(mergedKeywords).catch(() => []),
+    COINMARKETCAL_TIMEOUT_MS,
+    [],
+  );
+
+  const lowPriority = assetQueries.map((aq) =>
+    SWAP_LOW_PRIORITY_SYMBOLS.has(String(aq.asset.symbol || '').toUpperCase()),
+  );
+  const newsSlots = allocateBalancedSlots(normalized.length, newsLimit, lowPriority);
+  const eventSlots = allocateBalancedSlots(normalized.length, eventsLimit, lowPriority);
+
+  const newsBuckets = assetQueries.map((aq) =>
+    filterArticlesByAssetKeywords(allArticles, aq.keywords)
+      .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+      .map((a) => ({
+        ...toCryptonewsShape(a),
+        related_symbol: String(aq.asset.symbol || aq.ticker).toUpperCase(),
+      })),
+  );
+
+  const news = selectBalancedFromBuckets(
+    newsBuckets,
+    newsSlots,
+    (row) => String(row.news_url || row.title || '').toLowerCase(),
+    newsLimit,
+  );
+
+  const eventBuckets = assetQueries.map((aq) => {
+    const matched = filterArticlesByAssetKeywords(allArticles, aq.keywords);
+    let rows = eventsFromArticles(selectEventArticles(matched));
+    rows = filterEventRowsByAsset(rows, aq.keywords);
+    /** @type {Array<Record<string, unknown>>} */
+    const flat = [];
+    for (const row of rows) {
+      if (!row || typeof row !== 'object') continue;
+      const r = /** @type {Record<string, unknown>} */ (row);
+      const date = String(r.date ?? '');
+      const bucket = r.ticker;
+      if (!Array.isArray(bucket)) continue;
+      for (const ev of bucket) {
+        if (!ev || typeof ev !== 'object') continue;
+        flat.push({
+          .../** @type {Record<string, unknown>} */ (ev),
+          date,
+          related_symbol: String(aq.asset.symbol || aq.ticker).toUpperCase(),
+        });
+      }
+    }
+    return flat;
+  });
+
+  let events = selectBalancedFromBuckets(
+    eventBuckets,
+    eventSlots,
+    (ev) => `${ev.event_name}|${ev.date}`,
+    eventsLimit,
+  );
+
+  if (Array.isArray(calFiltered) && calFiltered.length > 0) {
+    /** @type {Array<Record<string, unknown>>} */
+    const calFlat = [];
+    for (const row of calFiltered) {
+      if (!row || typeof row !== 'object') continue;
+      const r = /** @type {Record<string, unknown>} */ (row);
+      const date = String(r.date ?? '');
+      const bucket = r.ticker;
+      if (!Array.isArray(bucket)) continue;
+      for (const ev of bucket) {
+        if (!ev || typeof ev !== 'object') continue;
+        calFlat.push({ .../** @type {Record<string, unknown>} */ (ev), date });
+      }
+    }
+    const seen = new Set(events.map((e) => `${e.event_name}|${e.date}`));
+    for (const ev of calFlat) {
+      const key = `${ev.event_name}|${ev.date}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      events.push(ev);
+      if (events.length >= eventsLimit) break;
+    }
+    events = events
+      .sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')))
+      .slice(0, eventsLimit);
+  }
+
+  return { news, events };
 }

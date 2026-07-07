@@ -30,7 +30,7 @@ export const X402_RESOURCE_CATALOG = {
     summary: 'Latest crypto news headlines and summaries',
     description:
       'Curated crypto news articles with titles, sources, and URLs. Use when an agent needs recent headlines for a token, sector, or the whole market before trading or posting. Input: optional ticker (BTC, ETH, SOL, or general). Returns news[] with title, url, date, source.',
-    suggestedPriceStx: 0.01,
+    suggestedPriceStx: 0.005,
   },
   signal: {
     slug: 'signal',
@@ -40,7 +40,7 @@ export const X402_RESOURCE_CATALOG = {
     summary: 'AI trading signal from CEX OHLCV technical analysis',
     description:
       'Generates a directional trading signal with bias, confidence, entry context, and reasoning from OHLCV candles. Use when an agent needs a technical read on BTC, ETH, SOL, or other supported assets before sizing a trade. Inputs: token (e.g. solana, bitcoin), source (binance default; coingecko if CEX blocked), interval, limit. Returns signal object with recommendation and analysis — probabilistic, not execution.',
-    suggestedPriceStx: 0.01,
+    suggestedPriceStx: 0.005,
   },
   spcx: {
     slug: 'spcx',
@@ -70,7 +70,7 @@ export const X402_RESOURCE_CATALOG = {
     summary: 'Combine RSI, MACD, EMA, Bollinger, and 20+ indicators in one call',
     description:
       'Computes multiple technical indicators from OHLCV candles in one agent-readable response. Use when an agent needs RSI/MACD/EMA/Bollinger (or custom combos) without building indicator math. Inputs: symbol, source (binance/coinbase/coingecko), interval, limit, indicators (comma-separated), optional series=true. Returns indicators{} map, lastClose, candleCount, asOf.',
-    suggestedPriceStx: 0.01,
+    suggestedPriceStx: 0.005,
   },
   sentiment: {
     slug: 'sentiment',
@@ -80,7 +80,7 @@ export const X402_RESOURCE_CATALOG = {
     summary: '30-day crypto sentiment scores by ticker',
     description:
       'Daily sentiment breakdown (positive/negative/neutral/score) over ~30 days from news-derived analysis. Use when an agent gauges crowd mood on BTC, ETH, or a ticker before narrative trades. Input: optional ticker. Returns sentimentAnalysis[] with per-day scores.',
-    suggestedPriceStx: 0.01,
+    suggestedPriceStx: 0.005,
   },
   event: {
     slug: 'event',
@@ -90,7 +90,7 @@ export const X402_RESOURCE_CATALOG = {
     summary: 'Upcoming and recent crypto events calendar',
     description:
       'Lists conferences, launches, listings, and macro events affecting crypto. Use when an agent schedules research around catalysts or filters noise by ticker. Input: optional ticker. Returns event[] with titles, dates, and metadata.',
-    suggestedPriceStx: 0.01,
+    suggestedPriceStx: 0.005,
   },
   'trending-headline': {
     slug: 'trending-headline',
@@ -100,7 +100,7 @@ export const X402_RESOURCE_CATALOG = {
     summary: 'What is trending in crypto news right now',
     description:
       'Hot headlines and viral crypto stories currently moving the market. Use when an agent needs the top narrative of the day rather than a full news archive. Input: optional ticker filter. Returns trendingHeadline[].',
-    suggestedPriceStx: 0.01,
+    suggestedPriceStx: 0.005,
   },
   'sundown-digest': {
     slug: 'sundown-digest',
@@ -110,7 +110,7 @@ export const X402_RESOURCE_CATALOG = {
     summary: 'End-of-day crypto market recap',
     description:
       'Daily wrap-up of key market moves, headlines, and themes. Use when an agent summarizes the session for reports or next-day planning. No required inputs. Returns sundownDigest[] items.',
-    suggestedPriceStx: 0.01,
+    suggestedPriceStx: 0.005,
   },
   health: {
     slug: 'health',
@@ -120,7 +120,7 @@ export const X402_RESOURCE_CATALOG = {
     summary: 'Paid liveness probe for Syra API',
     description:
       'Minimal paid health check confirming Syra API is up and x402 settlement works. Use when an agent or monitor verifies connectivity before batch calls. No inputs. Returns ok, status, service, message, timestamp.',
-    suggestedPriceStx: 0.0001,
+    suggestedPriceStx: 0.001,
   },
   'mpp/health': {
     slug: 'mpp-health',
@@ -130,7 +130,7 @@ export const X402_RESOURCE_CATALOG = {
     summary: 'Machine Payments Protocol test lane (x402 v2)',
     description:
       'MPP-compatible health endpoint with same x402 v2 flow as /health. Use when testing Tempo/Stripe-style machine payment clients against Syra. Returns ok, protocol mpp-test, paymentCompatibility x402-v2, plus /health sibling reference.',
-    suggestedPriceStx: 0.0001,
+    suggestedPriceStx: 0.001,
   },
   arbitrage: {
     slug: 'arbitrage',
@@ -150,7 +150,7 @@ export const X402_RESOURCE_CATALOG = {
     summary: 'Jupiter Swap V1 ExactIn quote with Syra referral fee',
     description:
       'Fetches a Jupiter Swap V1 quoteResponse for ExactIn swaps with Syra referral platform fee when configured on-chain. Use when an agent prices a Solana swap before building a transaction. Inputs: inputMint, outputMint, amount (raw units), optional slippageBps. Returns quote object and referral metadata.',
-    suggestedPriceStx: 0.003,
+    suggestedPriceStx: 0.001,
   },
   'pumpfun/trending': {
     slug: 'pumpfun-trending',
@@ -160,7 +160,7 @@ export const X402_RESOURCE_CATALOG = {
     summary: 'Trending pump.fun coins list',
     description:
       'Returns trending pump.fun coins from frontend-api-v3 (falls back to top-runners when primary feed is empty). Use when an agent scans hot memecoin launches or social momentum on pump.fun. Inputs: limit (default 20, max 50), offset, includeNsfw. Returns normalized coins[], count, upstream metadata.',
-    suggestedPriceStx: 0.005,
+    suggestedPriceStx: 0.001,
   },
   'pumpfun/movers': {
     slug: 'pumpfun-movers',
@@ -170,7 +170,7 @@ export const X402_RESOURCE_CATALOG = {
     summary: 'pump.fun market movers list',
     description:
       'Returns pump.fun market movers from frontend-api-v3 (falls back to currently-live when primary is empty). Use when an agent finds coins with unusual short-term price/volume action. Inputs: limit, offset, includeNsfw. Returns coins[], count, upstream metadata.',
-    suggestedPriceStx: 0.005,
+    suggestedPriceStx: 0.001,
   },
   'pumpfun/analyzer': {
     slug: 'pumpfun-analyzer',
@@ -190,7 +190,7 @@ export const X402_RESOURCE_CATALOG = {
     summary: 'Live pump.fun alpha/beta/predicted/utility scout',
     description:
       'Live pump.fun intelligence with selector param segment=alpha|beta|predicted|utility. Optional period, limit, minPumpScore, llm. Returns scored tokens, analysis, and meta — deterministic by default.',
-    suggestedPriceStx: 0.01,
+    suggestedPriceStx: 0.005,
   },
   rise: {
     slug: 'rise-scout',
@@ -200,7 +200,7 @@ export const X402_RESOURCE_CATALOG = {
     summary: 'Live RISE market intel and agent targets',
     description:
       'Live RISE intelligence with view=intel|markets|targets. Optional mint, limit, tier=ready|watch. Returns UPONLY token snapshot, fund lens, ranked markets, and agent-ready mint targets.',
-    suggestedPriceStx: 0.01,
+    suggestedPriceStx: 0.005,
   },
   coingecko: {
     slug: 'coingecko-scout',
@@ -210,7 +210,57 @@ export const X402_RESOURCE_CATALOG = {
     summary: 'Live CoinGecko top gainers brief',
     description:
       'Live CoinGecko scout with view=brief|gainers|predictions. Optional topN, minMarketCap, includeNews, llm. Returns top gainers, digests, predictions, and narrative meta — deterministic by default.',
-    suggestedPriceStx: 0.01,
+    suggestedPriceStx: 0.001,
+  },
+  'dexscreener/pairs': {
+    slug: 'dexscreener-pairs',
+    name: 'DexScreener Pairs',
+    category: 'analytics',
+    methods: ['GET', 'POST'],
+    summary: 'DEX pairs by chain/token or search query',
+    description:
+      'Onchain DEX pair data from DexScreener across 80+ chains. Use when an agent needs live price, liquidity, volume, and txn counts for a token before trading or scouting. Inputs: chainId + tokenAddress OR q (search). Returns normalized pairs[] with priceUsd, liquidityUsd, volume24h, txns24h, fdv, pairAddress, dexId.',
+    suggestedPriceStx: 0.001,
+  },
+  'geckoterminal/pools': {
+    slug: 'geckoterminal-pools',
+    name: 'GeckoTerminal Pools',
+    category: 'defi',
+    methods: ['GET', 'POST'],
+    summary: 'Trending or new DEX pools on a network',
+    description:
+      'Trending or newly listed DEX pools from GeckoTerminal across 100+ networks. Use when an agent scouts fresh liquidity or momentum pools on Solana, Base, Ethereum, etc. Inputs: network (default solana), kind=trending|new, limit (max 50). Returns pools[] with priceUsd, priceChange24h, volume24h, reserveUsd, poolAddress, dex.',
+    suggestedPriceStx: 0.001,
+  },
+  'defillama/tvl': {
+    slug: 'defillama-tvl',
+    name: 'DefiLlama TVL',
+    category: 'defi',
+    methods: ['GET', 'POST'],
+    summary: 'Protocol or chain TVL from DefiLlama',
+    description:
+      'Total value locked for a DeFi protocol or blockchain from DefiLlama. Use when an agent assesses protocol scale, chain dominance, or macro DeFi health. Inputs: protocol (slug e.g. aave) OR chain (e.g. Solana, Ethereum). Returns currentTvlUsd, tvlHistory summary, name, category, chains[] when protocol.',
+    suggestedPriceStx: 0.001,
+  },
+  'rugcheck/report': {
+    slug: 'rugcheck-report',
+    name: 'RugCheck Token Report',
+    category: 'signals',
+    methods: ['GET', 'POST'],
+    summary: 'Solana token risk report from RugCheck',
+    description:
+      'Solana token risk report from RugCheck: mint/freeze authority, holder concentration, LP status, and risk score. Use when an agent screens memecoins or new mints before trading. Input: mint (required, Solana base58). Returns riskScore, risks[], topHolders[], mintAuthority, freezeAuthority, lpLocked, marketCap, computedAt.',
+    suggestedPriceStx: 0.005,
+  },
+  'pyth/price': {
+    slug: 'pyth-price',
+    name: 'Pyth Oracle Prices',
+    category: 'analytics',
+    methods: ['GET', 'POST'],
+    summary: 'Real-time Pyth oracle prices via Hermes',
+    description:
+      'Latest Pyth oracle prices from Hermes for major crypto feeds. Use when an agent needs authoritative onchain-derived spot prices (BTC, ETH, SOL, etc.) with confidence intervals. Input: symbols (comma-separated, e.g. BTC/USD,SOL/USD). Returns prices[] with symbol, priceUsd, confidenceUsd, publishTime, feedId.',
+    suggestedPriceStx: 0.001,
   },
   assets: {
     slug: 'assets-board',
@@ -220,7 +270,7 @@ export const X402_RESOURCE_CATALOG = {
     summary: 'Tokens.xyz curated assets board with filter and sort',
     description:
       'Paginated curated assets board (crypto + tokenized stocks) from Tokens.xyz — same data as the Syra Assets page. Use when an agent needs a ranked market universe, not a single asset. Inputs: list (all|majors|stocks|…), assetClass, q, sort, order, limit, offset. Returns items[] with price, marketCap, volume, assetClass.',
-    suggestedPriceStx: 0.005,
+    suggestedPriceStx: 0.001,
   },
   'assets/detail': {
     slug: 'assets-detail',
@@ -240,7 +290,7 @@ export const X402_RESOURCE_CATALOG = {
     summary: 'Full Bitcoin dashboard + taker-flow bubblemap',
     description:
       'Complete Bitcoin intelligence bundle from the Syra BTC page. Use when an agent needs macro BTC context: price, derivatives, technicals, sentiment, news, signal, and taker buy/sell bubblemap in one call. Inputs: exchange (binance|coinbase), interval, limit for bubblemap. Returns dashboard (overview + sections) and bubblemap points[].',
-    suggestedPriceStx: 0.01,
+    suggestedPriceStx: 0.005,
   },
   'chat/completions': {
     slug: 'chat-completions',

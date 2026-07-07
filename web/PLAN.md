@@ -67,8 +67,8 @@ Use this inventory so the plan builds on reality, not slides.
 | x402 API gateway | `api.syraa.fun` | Revenue engine |
 | Web app | `syraa.fun` | Operator UI + proof |
 | API playground | `/playground` | Developer activation |
-| `@syra/sdk` | `syra-sdk/` | Programmatic integration |
-| `@syra/mcp-server` | `mcp-server/` | Cursor / Claude distribution |
+| `@syra-ai/sdk` | `syra-sdk/` | Programmatic integration |
+| `@syra-ai/mcp-server` | `mcp-server/` | Cursor / Claude distribution |
 | Agent wallets + policy | `api/services/policyEngine.js`, `walletBroker.js` | Money layer moat |
 | Billing / spend dashboard | `/wallet`, `/overview`, `GET /agent/wallet/billing/summary` | Trust + transparency |
 | 8004 agent registry | `/8004` | Discovery network effects |
@@ -129,8 +129,8 @@ Each phase has **objectives**, **concrete steps**, **metrics**, and **exit crite
 | Step | Action | Detail |
 |------|--------|--------|
 | 1.1 | Playground as primary CTA | Hero CTAs → `/playground`; quickstart with curl, SDK, MCP |
-| 1.2 | SDK hardening | `@syra/sdk`: x402 signer examples, error types, retry, route helpers |
-| 1.3 | MCP one-liner | `npx -y @syra/mcp-server` in docs; publish to Cursor/Claude config templates |
+| 1.2 | SDK hardening | `@syra-ai/sdk`: x402 signer examples, error types, retry, route helpers |
+| 1.3 | MCP one-liner | `npx -y @syra-ai/mcp-server` in docs; publish to Cursor/Claude config templates |
 | 1.4 | “First paid call” tutorial | Docs page: wallet → fund → 402 → pay → 200, with Solscan link |
 | 1.5 | OpenAPI + x402 discovery | Keep `/.well-known/x402` and discovery paths in sync with catalog |
 
@@ -415,7 +415,7 @@ These activities **feel productive** but **do not compound** toward billions:
 | 2026-06 | Wedge = x402 rail + agent money | Only path that wins revenue + narrative + adoption together |
 | 2026-06 | Chat + experiments = proof, not product | Demote without deleting |
 | TBD | Default landing = playground vs agent | Decide based on Phase 1 conversion data |
-| TBD | Publish `@syra/sdk` to npm | When x402 signer examples are production-ready |
+| Done | Published `@syra-ai/sdk` v0.2.0, `@syra-ai/mcp-server` v0.4.1, `@syra-ai/x402-payer` v0.1.0 on npm |
 
 ---
 
@@ -474,8 +474,8 @@ flowchart TB
   end
 
   subgraph moat [Moat]
-    SDK[@syra/sdk]
-    MCP[@syra/mcp-server]
+    SDK[@syra-ai/sdk]
+    MCP[@syra-ai/mcp-server]
     R8004[8004 registry]
   end
 

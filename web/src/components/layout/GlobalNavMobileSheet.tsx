@@ -2,7 +2,7 @@
 
 import { useState, type RefObject } from "react";
 import { Link } from "@/lib/navigation";
-import { isPlaygroundNavItemActive } from "@/lib/playgroundRoute";
+import { isMarketplaceNavItemActive } from "@/lib/playgroundRoute";
 import { useTheme } from "next-themes";
 import { ArrowUpRight, Menu, Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,9 +20,9 @@ import { DrawerDismissButton } from "@/components/ui/drawer-dismiss-button";
 import { GlobalNavAssetSearch } from "@/components/layout/GlobalNavAssetSearch";
 import { SyraBuyButton } from "@/components/syra/SyraBuyButton";
 
-function isItemActive(pathname: string, href: string) {
-  if (href === "/playground") {
-    return isPlaygroundNavItemActive(pathname, href);
+function isItemActive(pathname: string, search: string, href: string) {
+  if (href.startsWith("/marketplace") || href.startsWith("/playground")) {
+    return isMarketplaceNavItemActive(pathname, search, href);
   }
   return pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
 }
@@ -62,13 +62,15 @@ function mobileNavIconClasses(active: boolean) {
 function MobileNavItem({
   item,
   pathname,
+  search,
   onNavigate,
 }: {
   item: NavLinkItem;
   pathname: string;
+  search: string;
   onNavigate: () => void;
 }) {
-  const active = isItemActive(pathname, item.href);
+  const active = isItemActive(pathname, search, item.href);
   const Icon = item.icon;
 
   const inner = (
@@ -132,11 +134,13 @@ function MobileNavItem({
 function MobileNavGroupSection({
   group,
   pathname,
+  search,
   isAdmin,
   onNavigate,
 }: {
   group: NavGroup;
   pathname: string;
+  search: string;
   isAdmin: boolean;
   onNavigate: () => void;
 }) {
@@ -186,6 +190,7 @@ function MobileNavGroupSection({
             <MobileNavItem
               item={item}
               pathname={pathname}
+              search={search}
               onNavigate={onNavigate}
             />
           </li>
@@ -197,10 +202,12 @@ function MobileNavGroupSection({
 
 export function GlobalNavMobileSheet({
   pathname,
+  search,
   isAdmin,
   searchRef,
 }: {
   pathname: string;
+  search: string;
   isAdmin: boolean;
   searchRef?: RefObject<HTMLInputElement | null>;
 }) {
@@ -264,6 +271,7 @@ export function GlobalNavMobileSheet({
               key={group.id}
               group={group}
               pathname={pathname}
+              search={search}
               isAdmin={isAdmin}
               onNavigate={close}
             />
@@ -277,6 +285,7 @@ export function GlobalNavMobileSheet({
                   <MobileNavItem
                     item={item}
                     pathname={pathname}
+                    search={search}
                     onNavigate={close}
                   />
                 </li>
@@ -291,6 +300,7 @@ export function GlobalNavMobileSheet({
                       <MobileNavItem
                         item={item}
                         pathname={pathname}
+                        search={search}
                         onNavigate={close}
                       />
                     </li>

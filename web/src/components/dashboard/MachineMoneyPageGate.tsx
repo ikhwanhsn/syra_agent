@@ -62,7 +62,7 @@ function PillarComingSoon({
             </Link>
           </Button>
           <Button variant="ghost" size="sm" className="rounded-xl" asChild>
-            <Link to="/playground">Explore playground</Link>
+            <Link to="/marketplace">Explore marketplace</Link>
           </Button>
         </div>
       </div>

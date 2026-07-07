@@ -210,8 +210,8 @@ export function QueryParamsModal({ isOpen, onClose, flow, initialParams, onRun }
           </DialogTitle>
           <DialogDescription className="text-sm leading-relaxed text-muted-foreground">
             {initialParams.length > 0 || flow.params.length > 0
-              ? 'Tune query parameters for this example. When you continue, the playground opens with this request ready to send.'
-              : 'This call ships without a query string. Continue and we will stage it in the Agentic Playground, ready to send.'}
+              ? 'Tune query parameters for this example. When you continue, the marketplace opens with this request ready to send.'
+              : 'This call ships without a query string. Continue and we will stage it in Syra Marketplace, ready to send.'}
           </DialogDescription>
 
           <div className="rounded-xl border border-border/45 bg-muted/25 px-3.5 py-3 shadow-inner shadow-black/[0.03] dark:bg-muted/15 dark:shadow-black/20">
@@ -237,7 +237,7 @@ export function QueryParamsModal({ isOpen, onClose, flow, initialParams, onRun }
             <p className="break-all font-mono text-[11px] leading-relaxed text-foreground/95 sm:text-xs">{flow.url}</p>
             {(initialParams.length > 0 || flow.params.length > 0) && flow.method === 'GET' && !flow.url.includes('?') ? (
               <p className="mt-2 border-t border-border/35 pt-2 text-[11px] leading-snug text-muted-foreground/90">
-                Enabled query fields below are appended when you send from the playground.
+                Enabled query fields below are appended when you send from the marketplace.
               </p>
             ) : null}
           </div>
@@ -446,7 +446,7 @@ export function QueryParamsModal({ isOpen, onClose, flow, initialParams, onRun }
               className="h-11 gap-2 rounded-xl px-6 shadow-md transition-transform duration-200 hover:translate-y-[-1px] sm:h-10"
             >
               <Play className="h-3.5 w-3.5" />
-              Continue to playground
+              Continue to marketplace
             </Button>
           </div>
         </div>

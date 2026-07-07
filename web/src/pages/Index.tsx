@@ -22,7 +22,6 @@ import { Button } from "@/components/ui/button";
 import { AlertCircle, Moon, RefreshCw, Sun } from "lucide-react";
 import DashboardSettings from "@/pages/DashboardSettings";
 import { resolveUserAvatarUrl } from "@/lib/agentAvatar";
-import { AboutPageView } from "@/components/about/AboutPageView";
 
 /** Dedupes `?q=` auto-send across React Strict Mode double-invoke in dev. */
 let lastConsumedUrlPromptParam: string | null = null;
@@ -196,16 +195,6 @@ function AgentSettingsView() {
   );
 }
 
-function AgentAboutView() {
-  return (
-    <div className="relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
-      <div className="scrollbar-thin min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
-        <AboutPageView embedded />
-      </div>
-    </div>
-  );
-}
-
 export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -262,8 +251,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
   }, [chatMessages]);
 
   const isSettingsRoute = location.pathname === "/settings";
-  const isAboutRoute = location.pathname === "/about";
-  const isNonChatRoute = isSettingsRoute || isAboutRoute;
+  const isNonChatRoute = isSettingsRoute;
 
   useEffect(() => {
     if (!isNonChatRoute) return;
@@ -1393,9 +1381,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
               CHAT_SIDEBAR_TRANSITION,
             )}
           >
-            {isAboutRoute ? (
-              <AgentAboutView />
-            ) : isSettingsRoute ? (
+            {isSettingsRoute ? (
               <AgentSettingsView />
             ) : (
               <ChatArea
@@ -1431,9 +1417,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
             "transition-all duration-300",
           )}
         >
-          {isAboutRoute ? (
-            <AgentAboutView />
-          ) : isSettingsRoute ? (
+          {isSettingsRoute ? (
             <AgentSettingsView />
           ) : (
             <ChatArea

@@ -5,6 +5,8 @@ import { Check, Copy, ExternalLink, ShoppingBag } from "lucide-react";
 import { Link } from "@/lib/navigation";
 import { SYRA_BUY_SWAP_URL } from "@/lib/swapNavigation";
 import { SYRA_TOKEN_MINT, truncateBase58 } from "@/data/marketing/agentIdentity";
+import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const DEXSCREENER_URL = `https://dexscreener.com/solana/${SYRA_TOKEN_MINT}`;
@@ -29,9 +31,8 @@ export function AboutTokenBar() {
   }, []);
 
   return (
-    <div className="about-token-dock" aria-label="$SYRA token contract and buy links">
-      <div className="about-token-dock-inner">
-        <div className="flex min-w-0 flex-1 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <div className={cn(overviewCardShell, "p-4 sm:p-5")} aria-label="$SYRA token contract and buy links">
+      <div className="flex min-w-0 flex-1 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <ShoppingBag className="h-3.5 w-3.5 text-foreground/55" aria-hidden />
@@ -75,26 +76,18 @@ export function AboutTokenBar() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <Link
-              to={SYRA_BUY_SWAP_URL}
-              className="about-token-venue about-token-venue-primary inline-flex items-center gap-1.5"
-            >
-              Swap SOL → SYRA
-            </Link>
+            <Button size="sm" className="h-9 rounded-lg" asChild>
+              <Link to={SYRA_BUY_SWAP_URL}>Swap SOL → SYRA</Link>
+            </Button>
             {BUY_VENUES.map(({ id, label, href }) => (
-              <a
-                key={id}
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="about-token-venue inline-flex items-center gap-1.5"
-              >
-                {label}
-                <ExternalLink className="h-3 w-3 opacity-40" aria-hidden />
-              </a>
+              <Button key={id} variant="outline" size="sm" className="h-9 gap-1.5 rounded-lg" asChild>
+                <a href={href} target="_blank" rel="noopener noreferrer">
+                  {label}
+                  <ExternalLink className="h-3 w-3 opacity-40" aria-hidden />
+                </a>
+              </Button>
             ))}
           </div>
-        </div>
       </div>
     </div>
   );

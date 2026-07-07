@@ -159,6 +159,20 @@ export const TICKER_KEYWORD_MAP = Object.freeze({
   PEPE: ["pepe", "$pepe"],
   WIF: ["dogwifhat", "wif", "$wif"],
   TRUMP: ["trump", "$trump", "maga"],
+  ENA: ["ethena", "ena", "$ena", "usde"],
+  USDE: ["ethena usde", "usde", "$usde", "ethena"],
+  HYPE: ["hyperliquid", "hype", "$hype"],
+  JUP: ["jupiter", "jup", "$jup"],
+  RAY: ["raydium", "ray", "$ray"],
+  JTO: ["jito", "jto", "$jto"],
+  BONK: ["bonk", "$bonk"],
+  WLD: ["worldcoin", "wld", "$wld"],
+  TAO: ["bittensor", "tao", "$tao"],
+  INJ: ["injective", "inj", "$inj"],
+  SEI: ["sei", "$sei"],
+  TIA: ["celestia", "tia", "$tia"],
+  PYTH: ["pyth", "$pyth"],
+  W: ["wormhole", "$w"],
 });
 
 /**
@@ -286,4 +300,22 @@ export function keywordsForAsset(input = {}) {
     primary: [...primary],
     all: [...all],
   };
+}
+
+/**
+ * Merge multiple asset keyword queries (swap pair / basket).
+ * @param  {...{ primary?: string[]; all?: string[] }} queries
+ * @returns {{ primary: string[]; all: string[] }}
+ */
+export function mergeKeywordQueries(...queries) {
+  /** @type {Set<string>} */
+  const primary = new Set();
+  /** @type {Set<string>} */
+  const all = new Set();
+  for (const q of queries) {
+    if (!q) continue;
+    for (const p of q.primary || []) primary.add(String(p).toLowerCase());
+    for (const a of q.all || []) all.add(String(a).toLowerCase());
+  }
+  return { primary: [...primary], all: [...all] };
 }

@@ -4,7 +4,7 @@ import rateLimit from "./utils/rateLimit.js";
 import { securityHeaders } from "./utils/security.js";
 import { requireApiKey } from "./utils/apiKeyAuth.js";
 import { isGatewayOpenApiFreeRoute } from "./config/gatewayOpenApiFreeRoutes.js";
-import { SYRA_META_DESCRIPTION, SYRA_TAGLINE } from "./config/syraBranding.js";
+import { getPreferredX402Networks, getBaseX402GatewayConfig } from "./config/baseX402Gateway.js";
 import { injectTrustedOriginApiKey } from "./utils/trustedOriginAuth.js";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -32,6 +32,7 @@ import { createBnb8183Router } from "./routes/agent/bnb8183.js";
 import { createAgentChainsRouter } from "./routes/agent/chains.js";
 import { createUserPromptsRouter } from "./routes/agent/userPrompts.js";
 import { createAgentSkillsRouter } from "./routes/agent/skills.js";
+import { createAnsemEngagementRouter } from "./routes/agent/ansemEngagement.js";
 import { createSkillsRouter, getPublishedSkillDiscoveryResources } from "./routes/skills.js";
 import { createInfoRouter } from "./routes/info.js";
 import { createSyraDuneAnalyticsRouter } from "./routes/syraDuneAnalytics.js";
@@ -40,6 +41,8 @@ import { createSolanaAgentRouter } from "./agents/solana-agent.js";
 import { createAgentSignalRouter } from "./agents/create-signal.js";
 import { createLeaderboardRouter } from "./routes/leaderboard.js";
 import { createAnalyticsRouter } from "./routes/analytics.js";
+import { createPublicMetricsRouter } from "./routes/publicMetrics.js";
+import { createFreeTierRouter } from "./routes/freeTier.js";
 import { createInternalResearchRouter } from "./routes/internalResearch.js";
 import { createS3labsTelegramWebhookRouter } from "./routes/s3labsTelegramWebhook.js";
 import { createInternalPartnershipScoutRouter } from "./routes/internalPartnershipScout.js";
@@ -89,6 +92,11 @@ import { createPumpfunAnalyzerRouter } from "./routes/pumpfun/analyzer.js";
 import { createPumpfunScoutRouter } from "./routes/pumpfun/scout.js";
 import { createRiseScoutRouter } from "./routes/rise.js";
 import { createCoingeckoScoutRouter } from "./routes/coingecko.js";
+import { createDexscreenerPairsRouter } from "./routes/dexscreener/pairs.js";
+import { createGeckoterminalPoolsRouter } from "./routes/geckoterminal/pools.js";
+import { createDefillamaTvlRouter } from "./routes/defillama/tvl.js";
+import { createRugcheckReportRouter } from "./routes/rugcheck/report.js";
+import { createPythPriceRouter } from "./routes/pyth/price.js";
 import { createAssetsX402Router } from "./routes/assets/index.js";
 import { createAssetsDetailX402Router } from "./routes/assets/detail.js";
 import { createBitcoinX402Router } from "./routes/bitcoin/index.js";
@@ -422,6 +430,11 @@ function isX402Route(p) {
   if (p === "/pumpfun/scout" || p.startsWith("/pumpfun/scout/")) return true;
   if (p === "/rise" || p.startsWith("/rise/")) return true;
   if (p === "/coingecko" || p.startsWith("/coingecko/")) return true;
+  if (p === "/dexscreener/pairs" || p.startsWith("/dexscreener/")) return true;
+  if (p === "/geckoterminal/pools" || p.startsWith("/geckoterminal/")) return true;
+  if (p === "/defillama/tvl" || p.startsWith("/defillama/")) return true;
+  if (p === "/rugcheck/report" || p.startsWith("/rugcheck/")) return true;
+  if (p === "/pyth/price" || p.startsWith("/pyth/")) return true;
   if (p === "/assets" || p.startsWith("/assets/")) return true;
   if (p === "/bitcoin" || p.startsWith("/bitcoin/")) return true;
   if (p.startsWith("/health")) return true;
@@ -1253,6 +1266,11 @@ app.use("/pumpfun/trending", createPumpfunTrendingRouter());
 app.use("/pumpfun/movers", createPumpfunMoversRouter());
 app.use("/rise", createRiseScoutRouter());
 app.use("/coingecko", createCoingeckoScoutRouter());
+app.use("/dexscreener/pairs", await createDexscreenerPairsRouter());
+app.use("/geckoterminal/pools", await createGeckoterminalPoolsRouter());
+app.use("/defillama/tvl", await createDefillamaTvlRouter());
+app.use("/rugcheck/report", await createRugcheckReportRouter());
+app.use("/pyth/price", await createPythPriceRouter());
 app.use("/assets/detail", await createAssetsDetailX402Router());
 app.use("/assets", await createAssetsX402Router());
 app.use("/bitcoin", await createBitcoinX402Router());
@@ -1329,6 +1347,7 @@ app.use("/agent/marketplace", await createAgentMarketplaceRouter());
 app.use("/agent/leaderboard", await createAgentLeaderboardRouter());
 app.use("/agent/bnb8183", createBnb8183Router());
 app.use("/agent/chains", createAgentChainsRouter());
+app.use("/agent/ansem/engagement", createAnsemEngagementRouter());
 app.use("/solana-agent", await createSolanaAgentRouter());
 app.use("/create-signal", await createAgentSignalRouter());
 app.use("/leaderboard", await createLeaderboardRouter());
@@ -1365,6 +1384,14 @@ app.use("/experiment/scalper", createScalperExperimentRouter());
 app.use("/post/studio", createShipLogStudioRouter());
 // Analytics: KPI (/analytics/kpi, /analytics/errors) and x402 summary (/analytics/summary)
 app.use("/analytics", await createAnalyticsRouter());
+app.use("/api", createPublicMetricsRouter());
+app.use("/free", createFreeTierRouter());
+
+app.get("/llms-full.txt", (_req, res) => {
+  res.setHeader("Content-Type", "text/plain; charset=utf-8");
+  res.setHeader("Cache-Control", "public, max-age=300, s-maxage=3600");
+  res.sendFile(path.join(__dirname, "public", "llms-full.txt"));
+});
 
 // Nansen x402 catalog (PAYER_KEYPAIR); mirrors /nansen/* paths used by agent tools
 app.use("/nansen", await createNansenEndpointsRouter());
@@ -1502,10 +1529,17 @@ app.get("/.well-known/x402", async (req, res) => {
   ];
 
   const b402Token = (process.env.B402_TOKEN || "USD1").trim();
-  const paymentNetworkLines = [
-    "- **Base Mainnet (EVM)**: `eip155:8453` - USDC payments",
-    "- **Solana Mainnet (SVM)**: `solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp` - USDC payments",
-  ];
+  const baseGateway = getBaseX402GatewayConfig();
+  const preferredNetworks = getPreferredX402Networks();
+  const paymentNetworkLines = preferredNetworks.map(
+    (n) => `- **${n.label}**: \`${n.caip2}\` - ${n.asset} payments`,
+  );
+  if (paymentNetworkLines.length === 0) {
+    paymentNetworkLines.push(
+      "- **Base Mainnet (EVM)**: `eip155:8453` - USDC payments",
+      "- **Solana Mainnet (SVM)**: `solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp` - USDC payments",
+    );
+  }
   if (isB402Enabled()) {
     paymentNetworkLines.push(
       `- **BNB Smart Chain (B402)**: \`eip155:56\` - ${b402Token} payments via Binance OnchainPay`,
@@ -1521,6 +1555,15 @@ app.get("/.well-known/x402", async (req, res) => {
     version: 1, // Discovery document version (not x402 protocol version)
     resources: [...resources, ...creatorSkillResources],
     resourceDetails,
+    metrics: `${X402_BASE}/api/metrics`,
+    liveFeed: `${X402_BASE}/api/live/calls`,
+    freeTier: {
+      pillars: `${X402_BASE}/free/pillars`,
+      assets: `${X402_BASE}/free/assets`,
+      prices: `${X402_BASE}/free/coingecko/price`,
+      dossierBasic: `${X402_BASE}/free/dossier/basic?mint={solanaMint}`,
+    },
+    baseGateway,
     // IMPORTANT: Generate ownership proofs by running: node scripts/generateOwnershipProof.js
     // Sign "https://api.syraa.fun" with both EVM_PRIVATE_KEY and SVM_PRIVATE_KEY
     // Set X402_OWNERSHIP_PROOF_EVM and X402_OWNERSHIP_PROOF_SVM environment variables
@@ -1543,7 +1586,16 @@ ${paymentNetworkLines.join("\n")}
 
 ## Authentication
 
-No API key required for the resources listed above — all are gated by the x402 protocol (HTTP 402). The free preview tier (\`/preview/*\`, \`/dashboard-summary\`, \`/binance-ticker\`, \`/health\`) is also publicly accessible.
+No API key required for the resources listed above — all are gated by the x402 protocol (HTTP 402). **Free onboarding tier** (no payment): \`/free/pillars\`, \`/free/assets\`, \`/free/coingecko/price\`, \`/free/dossier/basic\`. **Public metrics**: \`GET /api/metrics\` (verifiable traction), \`GET /api/live/calls\` (SSE). Agent docs: \`GET /llms-full.txt\`.
+
+## Agent payment ergonomics
+
+1. Send request without payment → HTTP 402 with price in \`accepts[]\` and \`Payment-Required\` header.
+2. Sign USDC locally; retry with \`PAYMENT-SIGNATURE\` or \`X-PAYMENT\`.
+3. On 5xx or body containing **"Payment was NOT charged"** — safe to retry without double-billing.
+4. Pricing tiers: **$0.001** lists/feeds · **$0.005** signals/intelligence · **$0.02+** deep synthesis.
+
+The free preview tier (\`/preview/*\`, \`/dashboard-summary\`, \`/binance-ticker\`, \`/health\`) is also publicly accessible.
 
 ## Support
 
@@ -1557,16 +1609,19 @@ app.get("/x402/capabilities", (_req, res) => {
   const b402 = getB402PublicStatus();
   const algorand = getAlgorandPublicStatus();
   const okx = getOkxX402PublicStatus();
+  const baseGateway = getBaseX402GatewayConfig();
   res.json({
     success: true,
     data: {
       networks: {
         solana: true,
-        base: true,
+        base: baseGateway.enabled,
         binance: b402.enabled,
         algorand: algorand.enabled,
         xlayer: okx.enabled,
       },
+      baseGateway,
+      preferredNetworks: getPreferredX402Networks(),
       b402,
       algorand,
       okx,
@@ -2032,6 +2087,24 @@ app.listen(PORT, () => {
               startupVerbose("[BTC3 learning]", out.summary || "completed");
             })
             .catch((err) => console.warn("[BTC3 learning failed]", err?.message || err)),
+        ),
+      );
+      setInterval(tick, evo.ms);
+    })
+    .catch(() => {});
+
+  import("./libs/scalper/scalperLearningService.js")
+    .then(({ scalperLearningConfigFromEnv, runScalperLearning }) => {
+      const evo = scalperLearningConfigFromEnv();
+      if (!evo.enabled || evo.ms < 60_000) return;
+      const tick = runIfMongoConnected(
+        withSingleFlight(() =>
+          runScalperLearning()
+            .then((out) => {
+              if (!out || out.skipped) return;
+              startupVerbose("[Scalper learning]", out.summary || "completed");
+            })
+            .catch((err) => console.warn("[Scalper learning failed]", err?.message || err)),
         ),
       );
       setInterval(tick, evo.ms);

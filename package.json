@@ -1,0 +1,16 @@
+{
+  "name": "syra-monorepo",
+  "private": true,
+  "workspaces": [
+    "syra-sdk",
+    "mcp-server",
+    "packages/syra-x402-payer"
+  ],
+  "scripts": {
+    "build:packages": "npm run build -w @syra-ai/x402-payer && npm run build -w @syra-ai/sdk && npm run build -w @syra-ai/mcp-server",
+    "verify:npm-auth": "node scripts/verify-npm-publish-auth.mjs",
+    "publish:packages": "node scripts/publish-npm.mjs",
+    "publish:packages:dry": "node scripts/publish-npm.mjs --dry-run",
+    "publish:packages:interactive": "node scripts/publish-npm.mjs --interactive"
+  }
+}

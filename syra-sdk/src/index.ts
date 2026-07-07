@@ -124,6 +124,18 @@ export function createSyraClient(options?: SyraClientOptions): SyraClient {
   return new SyraClient(options);
 }
 
+export {
+  createSyraPaidClient,
+  createPaidFetchFromKeypair,
+  getPaidFetch,
+  hasPaidFetchConfigured,
+  getPaidFetchNetworkLabel,
+  resetPaidFetchCache,
+  parseSolanaKeypairBytes,
+  wrapPaidFetchWithRetries,
+} from "./payment/index.js";
+export type { SyraPaidClientOptions, CreatePaidFetchOptions } from "./payment/index.js";
+
 export { isSyraX402Path, SYRA_HIGH_VALUE_ROUTES, SYRA_X402_ROUTE_PREFIXES } from "./routes.js";
 export type { SyraHighValueRouteId } from "./routes.js";
 export {

@@ -1,5 +1,6 @@
 import { Zap } from "lucide-react";
 import { ScalperDataSourcesFooter } from "@/components/experiment/scalper/ScalperDataSourcesFooter";
+import { ScalperLearningPanel } from "@/components/experiment/scalper/ScalperLearningPanel";
 import { ScalperOpenPositions } from "@/components/experiment/scalper/ScalperOpenPositions";
 import { ScalperOpportunityFeed } from "@/components/experiment/scalper/ScalperOpportunityFeed";
 import { ScalperPnlHeader } from "@/components/experiment/scalper/ScalperPnlHeader";
@@ -11,11 +12,12 @@ import {
   PAGE_SAFE_AREA_BOTTOM_COMPACT,
 } from "@/lib/layoutConstants";
 import { cn } from "@/lib/utils";
-import { useScalperEquityHistory, useScalperOverview, useScalperRuns } from "@/hooks/useScalperState";
+import { useScalperEquityHistory, useScalperLearning, useScalperOverview, useScalperRuns } from "@/hooks/useScalperState";
 
 export default function ScalperExperiment({ embedded = false }: { embedded?: boolean }) {
   const overviewQ = useScalperOverview();
   const equityQ = useScalperEquityHistory();
+  const learningQ = useScalperLearning();
   const historyQ = useScalperRuns({ limit: 30 });
 
   const overview = overviewQ.data;
@@ -82,6 +84,11 @@ export default function ScalperExperiment({ embedded = false }: { embedded?: boo
             loading={overviewQ.isLoading}
           />
         </div>
+
+        <ScalperLearningPanel
+          learning={learningQ.data}
+          loading={learningQ.isLoading}
+        />
 
         <ScalperTradeHistory
           runs={closedRuns}

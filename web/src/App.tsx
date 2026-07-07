@@ -12,6 +12,7 @@ import DashboardLayout from "@/pages/DashboardLayout";
 import DashboardOverview from "@/pages/DashboardOverview";
 import DashboardSettings from "@/pages/DashboardSettings";
 import AgentWalletPage from "@/pages/AgentWalletPage";
+import AboutPage from "@/pages/AboutPage";
 import Index from "@/pages/Index";
 import InternalTeamAgentsMonitor from "@/pages/InternalTeamAgentsMonitor";
 import InternalWalletsPage from "@/pages/InternalWalletsPage";
@@ -20,7 +21,6 @@ import { LegacyInternalTeamAgentsRedirect } from "@/pages/LegacyInternalRedirect
 import {
   LegacyDashboardPrefixRedirect,
   LegacyAgentWalletRedirect,
-  LegacyMarketplaceRedirect,
 } from "@/pages/LegacyDashboardRedirects";
 import LpAgentExperiment from "@/pages/LpAgentExperiment";
 import LpAgentExperimentAgentProfile from "@/pages/LpAgentExperimentAgentProfile";
@@ -36,6 +36,7 @@ import ShareableChatRoute from "@/pages/ShareableChatRoute";
 import BtcPage from "@/pages/BtcPage";
 import PlaygroundHub from "@/pages/playground/PlaygroundHub";
 import PlaygroundShareRoute from "@/pages/playground/PlaygroundShareRoute";
+import MarketplaceApiDetailPage from "@/pages/marketplace/MarketplaceApiDetailPage";
 import StreamflowPage from "@/pages/staking/StreamflowPage";
 import StakingAdminDashboardPage from "@/pages/staking/StakingAdminDashboardPage";
 import DeckPage from "@/pages/DeckPage";
@@ -54,7 +55,6 @@ import MarketingPartner from "@/pages/marketing/Partner";
 import MarketingPartnerDetail from "@/pages/marketing/PartnerDetail";
 import MarketingArticles from "@/pages/marketing/Articles";
 import ArticlePage from "@/pages/marketing/ArticlePage";
-import MarketingAnalytics from "@/pages/marketing/Analytics";
 import MarketingLeaderboard from "@/pages/marketing/Leaderboard";
 import MarketingPrivacyPolicy from "@/pages/marketing/PrivacyPolicy";
 import MarketingTermsOfService from "@/pages/marketing/TermsOfService";
@@ -66,6 +66,9 @@ import InvestPage from "@/pages/InvestPage";
 import SpendPage from "@/pages/SpendPage";
 import TreasuryPage from "@/pages/TreasuryPage";
 import SwapPage from "@/pages/SwapPage";
+import MetricsPage from "@/pages/MetricsPage";
+import AnsemPage from "@/pages/AnsemPage";
+import ReferenceScalperPage from "@/pages/ReferenceScalperPage";
 import MultiWalletRecoverPage from "@/pages/MultiWalletRecoverPage";
 import { RedirectToS3Labs } from "@/components/marketing/RedirectToS3Labs";
 
@@ -112,7 +115,10 @@ function AppRoutes() {
   return (
     <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/about" element={<Index />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/metrics" element={<MetricsPage />} />
+          <Route path="/ansem" element={<AnsemPage />} />
+          <Route path="/reference/scalper" element={<ReferenceScalperPage />} />
           <Route path="/settings" element={<Index />} />
           <Route path="/wallet" element={<AgentWalletPage />} />
           <Route path="/swap" element={<SwapPage />} />
@@ -237,7 +243,7 @@ function AppRoutes() {
                 </AdminExperimentRoute>
               }
             />
-            <Route path="/spcx" element={<Navigate to="/playground" replace />} />
+            <Route path="/spcx" element={<Navigate to="/marketplace" replace />} />
             <Route path="/btc" element={<BtcPage />} />
             <Route path="/hackathon" element={<RedirectToS3Labs path="/hackathon" />} />
             <Route path="/hackathon/*" element={<RedirectToS3Labs path="/hackathon" />} />
@@ -268,17 +274,19 @@ function AppRoutes() {
             <Route path="/internal-team-agents/*" element={<LegacyInternalTeamAgentsRedirect />} />
           </Route>
 
-          <Route path="/playground" element={<PlaygroundHub />} />
-          <Route path="/playground/s/:slug" element={<PlaygroundShareRoute />} />
-          <Route path="/playground/*" element={<Navigate to="/playground" replace />} />
+          <Route path="/marketplace" element={<PlaygroundHub />} />
+          <Route path="/marketplace/api/:flowId" element={<MarketplaceApiDetailPage />} />
+          <Route path="/marketplace/s/:slug" element={<PlaygroundShareRoute />} />
+          <Route path="/marketplace/*" element={<Navigate to="/marketplace" replace />} />
+          <Route path="/playground" element={<Navigate to="/marketplace" replace />} />
+          <Route path="/playground/s/:slug" element={<Navigate to="/marketplace/s/:slug" replace />} />
+          <Route path="/playground/*" element={<Navigate to="/marketplace" replace />} />
 
           <Route path="/staking" element={<StreamflowPage />} />
           <Route path="/staking/admin" element={<StakingAdminDashboardPage />} />
           <Route path="/staking/dashboard" element={<Navigate to="/staking/admin" replace />} />
           <Route path="/staking/details" element={<Navigate to="/staking" replace />} />
 
-          <Route path="/marketplace" element={<LegacyMarketplaceRedirect />} />
-          <Route path="/marketplace/*" element={<LegacyMarketplaceRedirect />} />
           <Route path="/dashboard/*" element={<LegacyDashboardPrefixRedirect />} />
           <Route path="/experiment/trading-agent/*" element={<Navigate to="/overview" replace />} />
           <Route path="/trading-experiment/*" element={<Navigate to="/overview" replace />} />
@@ -289,8 +297,8 @@ function AppRoutes() {
           <Route path="/dossier" element={<Navigate to="/assets" replace />} />
           <Route path="/internal-hackathons" element={<RedirectToS3Labs path="/hackathon" />} />
           <Route path="/staking/dashboard/internal" element={<Navigate to="/staking/admin" replace />} />
-          <Route path="/mpp" element={<Navigate to="/playground" replace />} />
-          <Route path="/playground/mpp" element={<Navigate to="/playground" replace />} />
+          <Route path="/mpp" element={<Navigate to="/marketplace" replace />} />
+          <Route path="/playground/mpp" element={<Navigate to="/marketplace" replace />} />
 
           <Route path="*" element={<NotFound />} />
     </Routes>
@@ -318,7 +326,6 @@ const App = () => (
           <Route path="/partner/:slug" element={<MarketingPartnerDetail />} />
           <Route path="/articles" element={<MarketingArticles />} />
           <Route path="/articles/:slug" element={<ArticlePage />} />
-          <Route path="/analytics" element={<MarketingAnalytics />} />
           <Route path="/leaderboard" element={<MarketingLeaderboard />} />
           <Route path="/privacy" element={<MarketingPrivacyPolicy />} />
           <Route path="/terms" element={<MarketingTermsOfService />} />
