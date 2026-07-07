@@ -66,10 +66,14 @@ function pickBestDexPair(pairs: DexScreenerPair[]): DexScreenerPair | null {
 }
 
 async function fetchDexScreenerMarket(signal?: AbortSignal): Promise<Partial<AnsemMarketSnapshot>> {
-  const url = `https://api.dexscreener.com/latest/dex/tokens/${ANSEM_MINT}`;
-  const res = await fetch(url, { signal, headers: { Accept: "application/json" } });
-  if (!res.ok) throw new Error(`Dexscreener ${res.status}`);
-  const body = (await res.json()) as { pairs?: DexScreenerPair[] };
+  const base = getApiBaseUrl().replace(/\/$/, "");
+  const res = await fetch(`${base}/agent/dexscreener/tokens/${ANSEM_MINT}`, {
+    signal,
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) throw new Error(`Dexscreener proxy ${res.status}`);
+  const body = (await res.json()) as { success?: boolean; pairs?: DexScreenerPair[] };
+  if (body.success === false) throw new Error("Dexscreener proxy unavailable");
   const pair = pickBestDexPair(body.pairs ?? []);
   if (!pair) return {};
 
