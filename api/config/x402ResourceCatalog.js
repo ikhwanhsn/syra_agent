@@ -262,6 +262,66 @@ export const X402_RESOURCE_CATALOG = {
       'Latest Pyth oracle prices from Hermes for major crypto feeds. Use when an agent needs authoritative onchain-derived spot prices (BTC, ETH, SOL, etc.) with confidence intervals. Input: symbols (comma-separated, e.g. BTC/USD,SOL/USD). Returns prices[] with symbol, priceUsd, confidenceUsd, publishTime, feedId.',
     suggestedPriceStx: 0.001,
   },
+  'insights/network-health': {
+    slug: 'insights-network-health',
+    name: 'Solana Network Health',
+    category: 'analytics',
+    methods: ['GET'],
+    summary: 'Solana slot, epoch, TPS, and priority fee snapshot',
+    description:
+      'Real-time Solana mainnet health metrics: current slot, epoch progress, average TPS from recent performance samples, and median priority fee. Use when an agent needs chain liveness and congestion signals before submitting transactions.',
+    suggestedPriceStx: 0.01,
+  },
+  'insights/gas-oracle': {
+    slug: 'insights-gas-oracle',
+    name: 'Solana Gas Oracle',
+    category: 'analytics',
+    methods: ['GET'],
+    summary: 'Solana priority fee percentiles for transaction inclusion',
+    description:
+      'Priority fee oracle derived from recent Solana mainnet samples. Returns min, p25, p50, p75, p95, and max priority fees in lamports. Use when an agent needs data-driven fee estimation for reliable transaction landing.',
+    suggestedPriceStx: 0.01,
+  },
+  'insights/market-pulse': {
+    slug: 'insights-market-pulse',
+    name: 'Cross-Asset Market Pulse',
+    category: 'analytics',
+    methods: ['GET'],
+    summary: 'SOL, BTC, ETH spot prices via Pyth oracle',
+    description:
+      'Cross-asset market pulse with latest Pyth oracle prices for SOL/USD, BTC/USD, and ETH/USD including confidence intervals and publish times. Use when an agent needs a quick multi-asset price snapshot from authoritative feeds.',
+    suggestedPriceStx: 0.02,
+  },
+  'insights/token-metrics': {
+    slug: 'insights-token-metrics',
+    name: 'Token Liquidity Metrics',
+    category: 'analytics',
+    methods: ['GET'],
+    summary: 'SOL DEX pair metrics via DexScreener',
+    description:
+      'Token liquidity and trading metrics for SOL across major DEX pairs from DexScreener. Returns top pairs with price, 24h volume, price change, and liquidity. Use when an agent screens on-chain liquidity before execution.',
+    suggestedPriceStx: 0.03,
+  },
+  'insights/defi-tvl': {
+    slug: 'insights-defi-tvl',
+    name: 'Solana DeFi TVL',
+    category: 'defi',
+    methods: ['GET'],
+    summary: 'Solana chain TVL overview from DefiLlama',
+    description:
+      'Solana DeFi total value locked overview from DefiLlama. Use when an agent assesses macro DeFi health and capital allocation on the Solana ecosystem.',
+    suggestedPriceStx: 0.05,
+  },
+  'insights/volatility-index': {
+    slug: 'insights-volatility-index',
+    name: 'Volatility Index',
+    category: 'analytics',
+    methods: ['GET'],
+    summary: 'Computed volatility index from major Pyth price feeds',
+    description:
+      'Volatility index computed from Pyth price feed confidence intervals across SOL, BTC, and ETH. Returns index score and per-asset uncertainty metrics. Use when an agent gauges market uncertainty for risk-adjusted decisions.',
+    suggestedPriceStx: 0.1,
+  },
   assets: {
     slug: 'assets-board',
     name: 'Assets Board',

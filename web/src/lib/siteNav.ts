@@ -18,6 +18,8 @@ import {
   ArrowLeftRight,
   Layers,
   Wrench,
+  FlaskConical,
+  ClipboardList,
 } from "lucide-react";
 import { isDashboardPillarRoute } from "@/lib/dashboardPillarNav";
 import {
@@ -75,12 +77,28 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
       p.startsWith("/pumpfun") ||
       p.includes("-experiment") ||
       p.startsWith("/arbitrage") ||
-      p.startsWith("/internal"),
+      p.startsWith("/internal") ||
+      p.startsWith("/labs") ||
+      p.startsWith("/organize"),
     items: [
       { href: "/overview", label: "Overview", icon: LayoutDashboard },
       { href: "/assets", label: "Assets", icon: FileSearch },
       { href: "/pumpfun", label: "Pumpfun Alpha", icon: Rocket },
       { href: "/lp-experiment", label: "LP agents", icon: Droplets },
+      {
+        href: "/labs",
+        label: "Labs",
+        icon: FlaskConical,
+        description: "x402 payment experiments",
+        adminOnly: true,
+      },
+      {
+        href: "/organize",
+        label: "Organize",
+        icon: ClipboardList,
+        description: "Track hackathons, funding & events",
+        adminOnly: true,
+      },
       {
         href: "/internal",
         label: "Internal hub",

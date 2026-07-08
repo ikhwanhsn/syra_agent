@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 import {
   LayoutDashboard,
   UsersRound,
+  FlaskConical,
+  ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SidebarPanelToggle } from "@/components/layout/SidebarPanelToggle";
@@ -54,6 +56,8 @@ function dashboardPageTitle(pathname: string, search: string): string {
   if (parts[0] === "stocks") return "Stocks news experiment";
   if (parts[0] === "scalper") return "Scalper agent";
   if (parts[0] === "btc") return "Bitcoin";
+  if (parts[0] === "labs") return "Labs";
+  if (parts[0] === "organize") return "Organize";
   if (parts[0] === "internal") {
     if (parts[1]) {
       const slug = parts[1];
@@ -142,6 +146,20 @@ function DashboardSidebarContent({
                 items={DASHBOARD_EXPERIMENT_NAV}
                 groupBadge={INTERNAL_TEAM_SIDEBAR_BADGE}
               />
+              <SidebarNavLink
+                to="/labs"
+                icon={FlaskConical}
+                badge={INTERNAL_TEAM_SIDEBAR_BADGE}
+              >
+                Labs
+              </SidebarNavLink>
+              <SidebarNavLink
+                to="/organize"
+                icon={ClipboardList}
+                badge={INTERNAL_TEAM_SIDEBAR_BADGE}
+              >
+                Organize
+              </SidebarNavLink>
               <SidebarNavLink
                 to={INTERNAL_BASE_PATH}
                 icon={UsersRound}

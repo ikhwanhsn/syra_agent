@@ -111,6 +111,9 @@ import { createBtc3MacroRouter } from "./routes/btc3Macro.js";
 import { createBtc3RealRouter } from "./routes/btc3Real.js";
 import { createShipLogStudioRouter } from "./routes/shipLogStudio.js";
 import { createHealthRouter } from "./routes/health.js";
+import { createInsightsRouter } from "./routes/labs/insights.js";
+import { createLabsX402Router } from "./routes/labs/x402.js";
+import { createOrganizeRouter } from "./routes/labs/organize.js";
 import { createMppV1Router } from "./routes/mpp/v1.js";
 import { createMcpToolsRouter } from "./routes/mcp/tools.js";
 import { getAgentFetch, SentinelBudgetError } from "./libs/agentFetch.js";
@@ -436,6 +439,7 @@ function isX402Route(p) {
   if (p === "/defillama/tvl" || p.startsWith("/defillama/")) return true;
   if (p === "/rugcheck/report" || p.startsWith("/rugcheck/")) return true;
   if (p === "/pyth/price" || p.startsWith("/pyth/")) return true;
+  if (p === "/insights" || p.startsWith("/insights/")) return true;
   if (p === "/assets" || p.startsWith("/assets/")) return true;
   if (p === "/bitcoin" || p.startsWith("/bitcoin/")) return true;
   if (p.startsWith("/health")) return true;
@@ -1272,6 +1276,9 @@ app.use("/geckoterminal/pools", await createGeckoterminalPoolsRouter());
 app.use("/defillama/tvl", await createDefillamaTvlRouter());
 app.use("/rugcheck/report", await createRugcheckReportRouter());
 app.use("/pyth/price", await createPythPriceRouter());
+app.use("/insights", await createInsightsRouter());
+app.use("/labs/x402", createLabsX402Router());
+app.use("/labs/organize", createOrganizeRouter());
 app.use("/assets/detail", await createAssetsDetailX402Router());
 app.use("/assets", await createAssetsX402Router());
 app.use("/bitcoin", await createBitcoinX402Router());
@@ -2337,6 +2344,21 @@ app.listen(PORT, () => {
         e instanceof Error ? e.message : e,
       ),
     );
+
+  import("./libs/labs/labX402Scheduler.js")
+    .then(({ startLabX402Scheduler }) => {
+      startLabX402Scheduler();
+    })
+    .catch((e) =>
+      console.warn(
+        "[lab-x402-scheduler] load failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
+
+  import("./libs/labs/labX402CallLog.js")
+    .then(({ ensureLabX402CallIndexes }) => ensureLabX402CallIndexes())
+    .catch(() => {});
 
   import("./libs/events/eventScoutScheduler.js")
     .then(({ startEventScoutScheduler }) => {

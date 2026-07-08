@@ -70,6 +70,8 @@ import MetricsPage from "@/pages/MetricsPage";
 import AnsemPage from "@/pages/AnsemPage";
 import ReferenceScalperPage from "@/pages/ReferenceScalperPage";
 import MultiWalletRecoverPage from "@/pages/MultiWalletRecoverPage";
+import LabsPage from "@/pages/labs/LabsPage";
+import OrganizePage from "@/pages/organize/OrganizePage";
 import { RedirectToS3Labs } from "@/components/marketing/RedirectToS3Labs";
 
 function DashboardLayoutRoute() {
@@ -247,6 +249,22 @@ function AppRoutes() {
             <Route path="/btc" element={<BtcPage />} />
             <Route path="/hackathon" element={<RedirectToS3Labs path="/hackathon" />} />
             <Route path="/hackathon/*" element={<RedirectToS3Labs path="/hackathon" />} />
+            <Route
+              path="/labs"
+              element={
+                <AdminDashboardGate featureLabel="Labs">
+                  <LabsPage />
+                </AdminDashboardGate>
+              }
+            />
+            <Route
+              path="/organize"
+              element={
+                <AdminDashboardGate featureLabel="Organize">
+                  <OrganizePage />
+                </AdminDashboardGate>
+              }
+            />
             <Route
               path="/internal"
               element={
