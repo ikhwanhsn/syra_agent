@@ -89,6 +89,7 @@ function handleServiceError(res, error) {
     tweet_not_found: 404,
     not_found: 404,
     twitterapi_unavailable: 503,
+    twitterapi_error: 502,
     mongodb_not_connected: 503,
     pool_wallet_unconfigured: 503,
   };

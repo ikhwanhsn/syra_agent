@@ -10,8 +10,32 @@ import { Label } from "@/components/ui/label";
 import {
   confirmXVerification,
   fetchWalletVerification,
+  KolApiError,
   requestXVerification,
 } from "@/lib/kolApi";
+
+function formatVerifyError(error: unknown): string {
+  if (error instanceof KolApiError) {
+    if (error.code === "twitterapi_unavailable" || error.code === "twitterapi_error") {
+      return error.message;
+    }
+    if (error.code === "verification_code_not_found") {
+      return error.message;
+    }
+    if (error.code === "handle_already_verified") {
+      return error.message;
+    }
+    if (error.code === "verification_expired") {
+      return error.message;
+    }
+  }
+
+  const message = error instanceof Error ? error.message : "Verification failed";
+  if (/system error/i.test(message)) {
+    return "X lookup failed — check your handle and try again in a minute.";
+  }
+  return message;
+}
 
 interface VerifyXAccountCardProps {
   onVerified?: () => void;
@@ -65,7 +89,7 @@ export function VerifyXAccountCard({
         description: "Post it on X or add it to your bio, then click Verify.",
       });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(formatVerifyError(e)),
   });
 
   const confirmMutation = useMutation({
@@ -93,7 +117,7 @@ export function VerifyXAccountCard({
       queryClient.invalidateQueries({ queryKey: ["kol-earnings", address] });
       onVerified?.();
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(formatVerifyError(e)),
   });
 
   const verified = verificationQuery.data?.verified === true;
@@ -123,9 +147,8 @@ export function VerifyXAccountCard({
         <p className="eyebrow mb-1">Verify your identity</p>
         <h3 className="font-semibold text-lg">Link your X account</h3>
         <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-          We auto-detect your replies and quotes every 6 hours. Verify once —
-          your X account stays linked to this wallet for all future campaign
-          claims.
+          Post a short code on X (tweet or bio) to prove you own the account.
+          One-time setup — then you can claim rewards on any campaign.
         </p>
       </div>
 
@@ -163,7 +186,9 @@ export function VerifyXAccountCard({
           {pendingCode ? (
             <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-3">
               <p className="text-sm text-muted-foreground">
-                Post this code on X or add it to your bio:
+                1. Post this code in a tweet <span className="text-foreground">or</span> add it to your bio.
+                <br />
+                2. Click Verify below once it&apos;s live.
               </p>
               <div className="flex items-center gap-2">
                 <code className="flex-1 rounded-lg bg-background px-3 py-2 text-sm font-mono">
@@ -174,43 +199,67 @@ export function VerifyXAccountCard({
                 </Button>
               </div>
             </div>
-          ) : null}
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Step 1: enter your handle and get a code. Step 2: post it on X, then verify.
+            </p>
+          )}
 
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              className="rounded-full"
-              disabled={!address || !xHandle.trim() || requestMutation.isPending}
-              onClick={() => requestMutation.mutate()}
-            >
-              {requestMutation.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Generating…
-                </>
-              ) : (
-                "Get verification code"
-              )}
-            </Button>
-            <Button
-              variant="hero"
-              className="rounded-full"
-              disabled={
-                !address ||
-                (!xHandle.trim() && !displayHandle) ||
-                confirmMutation.isPending
-              }
-              onClick={() => confirmMutation.mutate()}
-            >
-              {confirmMutation.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Checking X…
-                </>
-              ) : (
-                "Verify X account"
-              )}
-            </Button>
+            {!pendingCode ? (
+              <Button
+                variant="hero"
+                className="rounded-full"
+                disabled={!address || !xHandle.trim() || requestMutation.isPending}
+                onClick={() => requestMutation.mutate()}
+              >
+                {requestMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Generating…
+                  </>
+                ) : (
+                  "Get verification code"
+                )}
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  className="rounded-full"
+                  disabled={!address || requestMutation.isPending}
+                  onClick={() => requestMutation.mutate()}
+                >
+                  {requestMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      New code…
+                    </>
+                  ) : (
+                    "New code"
+                  )}
+                </Button>
+                <Button
+                  variant="hero"
+                  className="rounded-full"
+                  disabled={
+                    !address ||
+                    (!xHandle.trim() && !displayHandle) ||
+                    confirmMutation.isPending
+                  }
+                  onClick={() => confirmMutation.mutate()}
+                >
+                  {confirmMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Checking X…
+                    </>
+                  ) : (
+                    "Verify X account"
+                  )}
+                </Button>
+              </>
+            )}
           </div>
         </>
       )}

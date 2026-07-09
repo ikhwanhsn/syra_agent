@@ -550,8 +550,9 @@ function extractTweetsArray(body) {
 /**
  * @param {string} path
  * @param {Record<string, string>} [params]
+ * @param {{ skipCache?: boolean }} [options]
  */
-async function twitterApiIoGet(path, params = {}) {
+async function twitterApiIoGet(path, params = {}, options = {}) {
   const apiKey = getApiKey();
   if (!apiKey) {
     const err = new Error("TWITTER_API_KEY is not configured");
@@ -565,7 +566,7 @@ async function twitterApiIoGet(path, params = {}) {
   });
 
   const cacheKey = cacheKeyForUrl(url);
-  if (isResponseCacheEnabled()) {
+  if (!options.skipCache && isResponseCacheEnabled()) {
     const hit = responseCacheGet(cacheKey);
     if (hit != null) {
       return hit;
@@ -582,12 +583,17 @@ async function twitterApiIoGet(path, params = {}) {
 
   const body = await res.json().catch(() => ({}));
 
-  if (!res.ok) {
-    const msg =
-      (typeof body?.message === "string" && body.message) ||
-      (typeof body?.error === "string" && body.error) ||
-      (typeof body?.msg === "string" && body.msg) ||
-      `twitterapi.io HTTP ${res.status}`;
+  const bodyStatus =
+    body && typeof body === "object" && typeof body.status === "string"
+      ? body.status.trim().toLowerCase()
+      : "";
+  const bodyMsg =
+    (typeof body?.msg === "string" && body.msg.trim()) ||
+    (typeof body?.message === "string" && body.message.trim()) ||
+    "";
+
+  if (!res.ok || bodyStatus === "error") {
+    const msg = bodyMsg || `twitterapi.io HTTP ${res.status}`;
     const err = new Error(msg);
     err.code =
       res.status === 401 || res.status === 403
@@ -597,7 +603,7 @@ async function twitterApiIoGet(path, params = {}) {
     throw err;
   }
 
-  if (isResponseCacheEnabled()) {
+  if (!options.skipCache && isResponseCacheEnabled()) {
     const ttl = path.includes("/user/info")
       ? USER_CACHE_MS
       : path.includes("/user/last_tweets") ||
@@ -616,7 +622,7 @@ async function twitterApiIoGet(path, params = {}) {
 
 /**
  * Advanced search for tweets.
- * @param {{ query: string; queryType?: "Latest" | "Top"; cursor?: string | null }} opts
+ * @param {{ query: string; queryType?: "Latest" | "Top"; cursor?: string | null; skipCache?: boolean }} opts
  */
 export async function advancedSearch(opts) {
   const query = String(opts?.query ?? "").trim();
@@ -630,7 +636,11 @@ export async function advancedSearch(opts) {
   const params = { query, queryType };
   if (opts?.cursor) params.cursor = String(opts.cursor).trim();
 
-  const body = await twitterApiIoGet("/twitter/tweet/advanced_search", params);
+  const body = await twitterApiIoGet(
+    "/twitter/tweet/advanced_search",
+    params,
+    { skipCache: opts?.skipCache === true },
+  );
   const includesMedia = buildIncludesMediaMap(body);
   const rawTweets = extractTweetsArray(body);
 
@@ -698,8 +708,9 @@ function normalizeUserInfo(raw) {
 
 /**
  * @param {string} userName
+ * @param {{ skipCache?: boolean }} [options]
  */
-export async function getUserInfo(userName) {
+export async function getUserInfo(userName, options = {}) {
   const clean = String(userName ?? "")
     .trim()
     .replace(/^@/, "");
@@ -709,7 +720,11 @@ export async function getUserInfo(userName) {
     throw err;
   }
 
-  const body = await twitterApiIoGet("/twitter/user/info", { userName: clean });
+  const body = await twitterApiIoGet(
+    "/twitter/user/info",
+    { userName: clean },
+    { skipCache: options.skipCache === true },
+  );
   const data =
     body &&
     typeof body === "object" &&

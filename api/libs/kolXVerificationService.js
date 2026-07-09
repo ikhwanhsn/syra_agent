@@ -4,8 +4,8 @@
 import crypto from "node:crypto";
 import KolXVerification from "../models/KolXVerification.js";
 import {
+  advancedSearch,
   getUserInfo,
-  getUserLastTweets,
   isTwitterApiIoConfigured,
 } from "./twitterApiIoClient.js";
 import { normalizeWallet } from "./kolEngagementService.js";
@@ -148,20 +148,68 @@ function textContainsCode(text, code) {
 }
 
 /**
+ * @param {unknown} error
+ */
+function toUserFacingTwitterError(error) {
+  const raw = error instanceof Error ? error.message : String(error);
+  const code = error instanceof Error ? error.code : undefined;
+
+  if (code === "twitterapi_unavailable") {
+    return "X verification is temporarily unavailable. Try again in a few minutes.";
+  }
+
+  if (/system error/i.test(raw)) {
+    return "X lookup failed — double-check your handle and try again in a minute.";
+  }
+
+  if (/could not parse user info|user not found|not found|unavailable|suspended/i.test(raw)) {
+    return "Could not find that X account. Check the handle and try again.";
+  }
+
+  if (/rate limit|too many requests|429/i.test(raw)) {
+    return "X lookup is rate-limited. Wait a minute, then try again.";
+  }
+
+  return raw;
+}
+
+/**
  * @param {string} xHandle
  * @param {string} code
  */
 async function findCodeOnXProfile(xHandle, code) {
-  const { user } = await getUserInfo(xHandle);
-  if (textContainsCode(user.description, code)) {
-    return { found: true, source: "bio" };
-  }
+  const handle = displayHandle(xHandle);
+  const query = `from:${handle} "${code}"`;
 
-  const { tweets } = await getUserLastTweets({ userName: xHandle });
-  for (const tweet of tweets.slice(0, 20)) {
-    if (textContainsCode(tweet.text, code)) {
+  try {
+    const { tweets } = await advancedSearch({
+      query,
+      queryType: "Latest",
+      skipCache: true,
+    });
+    if (tweets.some((tweet) => textContainsCode(tweet.text, code))) {
       return { found: true, source: "tweet" };
     }
+  } catch (searchErr) {
+    console.warn(
+      "[kol-x-verify] tweet search failed, falling back to bio check:",
+      searchErr instanceof Error ? searchErr.message : searchErr,
+    );
+  }
+
+  try {
+    const { user } = await getUserInfo(handle, { skipCache: true });
+    if (textContainsCode(user.description, code)) {
+      return { found: true, source: "bio" };
+    }
+  } catch (userErr) {
+    const friendly = toUserFacingTwitterError(userErr);
+    const err = new Error(friendly);
+    err.code =
+      userErr instanceof Error && userErr.code
+        ? userErr.code
+        : "twitterapi_error";
+    throw err;
   }
 
   return { found: false, source: null };
@@ -213,7 +261,18 @@ export async function confirmXVerification(input) {
     throw err;
   }
 
-  const check = await findCodeOnXProfile(doc.xHandle, doc.code);
+  let check;
+  try {
+    check = await findCodeOnXProfile(doc.xHandle, doc.code);
+  } catch (lookupErr) {
+    const err = new Error(toUserFacingTwitterError(lookupErr));
+    err.code =
+      lookupErr instanceof Error && lookupErr.code
+        ? lookupErr.code
+        : "twitterapi_error";
+    throw err;
+  }
+
   if (!check.found) {
     const err = new Error(
       `Code not found on @${doc.xHandle}. Post "${doc.code}" on X or add it to your bio, then try again.`,
