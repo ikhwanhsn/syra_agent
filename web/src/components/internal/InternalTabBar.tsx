@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { BarChart3, Bot, Coins, Wrench } from "lucide-react";
+import { Bot, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   INTERNAL_TAB_ORDER,
@@ -16,16 +16,6 @@ const TAB_CONFIG: Record<
   InternalTab,
   { label: string; description: string; icon: ReactNode }
 > = {
-  metrics: {
-    label: "Metrics",
-    description: "Live product & rail analytics",
-    icon: <BarChart3 className="h-4 w-4 shrink-0" aria-hidden />,
-  },
-  x402: {
-    label: "x402",
-    description: "Payment errors, volume & health",
-    icon: <Coins className="h-4 w-4 shrink-0" aria-hidden />,
-  },
   agents: {
     label: "Agents",
     description: "Scouts & partnership pipeline",

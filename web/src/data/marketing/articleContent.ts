@@ -38,6 +38,617 @@ const SYRA_AUTHOR: ArticleAuthor = {
 
 export const articleDetails: ArticleDetail[] = [
   {
+    id: "syra-sdk-guide",
+    slug: "syra-sdk-guide",
+    title: "Syra SDK: Build Agents That Pay for Intelligence on Every Call",
+    description:
+      "Complete guide to @syra-ai/sdk — TypeScript client, x402 auto-pay, pillar modules, MCP, and production patterns for agent developers.",
+    excerpt:
+      "Install @syra-ai/sdk, wire x402 auto-pay, call intelligence routes, and ship production agents with typed pillar modules and MCP distribution.",
+    coverImage: "/images/articles/article-one.webp",
+    publishedAt: "2026-07-09",
+    readingTimeMinutes: 12,
+    tags: ["SDK", "TypeScript", "x402", "Developers", "MCP"],
+    category: "Engineering",
+    author: SYRA_AUTHOR,
+    content: `## Why the SDK exists
+
+Agents do not browse dashboards. They call HTTP endpoints, receive structured JSON, and decide in milliseconds. Syra's API gateway exposes **machine money** — pay-per-call intelligence, execution surfaces, and treasury workflows — over standard REST with **x402** micropayments.
+
+The **@syra-ai/sdk** package wraps that gateway in a typed TypeScript client so your agent can:
+
+1. Discover live routes at runtime
+2. Auto-settle USDC payments on 402 responses
+3. Call pillar modules (Earn, Treasury, Invest, Spend, Grow) with consistent response shapes
+4. Ship in Node.js, serverless, or agent frameworks without hand-rolling payment retry logic
+
+> [!NOTE]
+> Syra also publishes **@syra-ai/x402-payer** (low-level x402 helpers) and **@syra-ai/mcp-server** (MCP distribution for Cursor and Claude). The SDK is the recommended integration path for TypeScript agents.
+
+## Package landscape
+
+| Package | Purpose |
+| --- | --- |
+| \`@syra-ai/sdk\` | Typed Syra client + x402 auto-pay + pillar modules |
+| \`@syra-ai/x402-payer\` | MIT x402 v2 fetch wrapper — sign, retry, safe billing |
+| \`@syra-ai/mcp-server\` | MCP tools for Cursor / Claude — \`npx -y @syra-ai/mcp-server\` |
+
+All packages target **Node 18+**, publish under the \`@syra-ai\` scope on npm, and point at \`https://api.syraa.fun\` by default.
+
+## Install
+
+\`\`\`bash
+npm install @syra-ai/sdk
+\`\`\`
+
+For MCP-only workflows (no custom code):
+
+\`\`\`bash
+npx -y @syra-ai/mcp-server@latest
+\`\`\`
+
+## Quick start — auto-pay (recommended)
+
+The fastest path is \`createSyraPaidClient\`. It reads payer credentials from environment variables and handles 402 → sign → retry automatically.
+
+\`\`\`typescript
+import { createSyraPaidClient } from "@syra-ai/sdk";
+
+const syra = await createSyraPaidClient({
+  baseUrl: "https://api.syraa.fun",
+});
+
+const pulse = await syra.get("/v1/market/pulse", {
+  chain: "solana",
+  window: "1h",
+});
+
+if (pulse.success) {
+  console.log(pulse.data);
+} else {
+  console.error(pulse.error);
+}
+\`\`\`
+
+Every method returns a consistent envelope:
+
+\`\`\`typescript
+type SyraApiResponse<T> = {
+  success: boolean;
+  data?: T;
+  error?: string;
+};
+\`\`\`
+
+> [!TIP]
+> Start in the [API playground](https://syraa.fun/playground) to see exact paths, params, and x402 prices before wiring the SDK.
+
+## Environment variables
+
+| Rail | Variables |
+| --- | --- |
+| Solana (default) | \`SYRA_PAYER_KEYPAIR\` — base58 or JSON byte array |
+| Base | \`X402_PREFERRED_NETWORK=base\` + \`SYRA_EVM_PAYER_PRIVATE_KEY\` |
+| Algorand | \`X402_PREFERRED_NETWORK=algorand\` + \`SYRA_ALGORAND_PAYER_PRIVATE_KEY\` |
+
+For MCP auto-pay, the same \`SYRA_PAYER_KEYPAIR\` is used by \`@syra-ai/mcp-server\`.
+
+### Inline payer (scripts and CI)
+
+\`\`\`typescript
+const syra = await createSyraPaidClient({
+  payer: { solanaKeypair: process.env.MY_AGENT_KEY! },
+  // or: payer: { evmPrivateKey: "0x...", network: "base" }
+});
+\`\`\`
+
+Never commit keypairs. Use secrets managers in production.
+
+## Manual payment signer
+
+If you bring your own wallet adapter or custom signing flow, implement \`SyraPaymentSigner\`:
+
+\`\`\`typescript
+import { createSyraClient, type SyraPaymentSigner } from "@syra-ai/sdk";
+
+const signer: SyraPaymentSigner = {
+  async signPayment(challenge, context) {
+    // Build x402 payment proof — return PAYMENT-SIGNATURE header value
+    return signedHeader;
+  },
+};
+
+const syra = createSyraClient({ signer, maxPaymentRetries: 2 });
+const res = await syra.get("/news", { ticker: "BTC" });
+\`\`\`
+
+Without a signer, \`request()\` stops at the first **HTTP 402** and returns \`{ success: false, error: "HTTP 402" }\`.
+
+> [!WARNING]
+> Always validate settlement server-side in your own services. Client-reported payment proofs are not sufficient for accounting — log facilitator hashes for audit trails.
+
+## Low-level paid fetch
+
+When you only need x402-wrapped \`fetch\` without the full client:
+
+\`\`\`typescript
+import { getPaidFetch, hasPaidFetchConfigured } from "@syra-ai/sdk/payment";
+
+if (hasPaidFetchConfigured()) {
+  const paidFetch = await getPaidFetch();
+  const res = await paidFetch("https://api.syraa.fun/signal?token=solana");
+  const data = await res.json();
+}
+\`\`\`
+
+Or use the standalone payer package:
+
+\`\`\`typescript
+import { fetchWithX402Payment, microUsdcToUsd } from "@syra-ai/x402-payer";
+
+const result = await fetchWithX402Payment(url, { method: "GET" }, {
+  async signPayment(requirement) {
+    const usd = microUsdcToUsd(requirement.amount);
+    // sign and return PAYMENT-SIGNATURE
+    return header;
+  },
+});
+\`\`\`
+
+## Pillar modules
+
+Syra organizes capabilities into five pillars. Discover them at runtime:
+
+\`\`\`typescript
+const pillars = await syra.get("/pillars");
+// Earn · Treasury · Invest · Spend · Grow
+\`\`\`
+
+Typed helpers attach to the client:
+
+\`\`\`typescript
+// High-value routes with known paths
+import { SYRA_HIGH_VALUE_ROUTES } from "@syra-ai/sdk";
+
+const route = SYRA_HIGH_VALUE_ROUTES.sentiment;
+await syra.get(route.path, route.params);
+
+// Pillar-scoped modules
+await syra.pillars.spend.signal({ token: "solana" });
+await syra.pillars.invest.rise.scout({ query: "SOL yield" });
+\`\`\`
+
+| Pillar | SDK surface | Example use |
+| --- | --- | --- |
+| Earn | \`syra.pillars.earn\` | KOL campaigns, attribution, revenue paths |
+| Treasury | \`syra.pillars.treasury\` | Balances, allocations, policy caps |
+| Invest | \`syra.pillars.invest\` | Giza yield, RISE markets, Jupiter swaps |
+| Spend | \`syra.pillars.spend\` | x402 intelligence — sentiment, risk, signals |
+| Grow | \`syra.pillars.grow\` | Portfolio recommendations, confirm-gated execution |
+
+## MCP integration
+
+For Cursor, Claude Desktop, or ElizaOS, use the MCP server instead of embedding the SDK:
+
+\`\`\`bash
+claude mcp add syra -- npx -y @syra-ai/mcp-server@latest
+\`\`\`
+
+Configuration:
+
+| Env | Purpose |
+| --- | --- |
+| \`SYRA_API_BASE_URL\` | API host (default \`https://api.syraa.fun\`) |
+| \`SYRA_PAYER_KEYPAIR\` | Auto-pay for production x402 routes |
+| \`SYRA_MCP_TOOL_PROFILE\` | \`curated\` (~42 tools) or \`full\` (~240 tools) |
+
+The MCP server translates tool calls into HTTP GET/POST against Syra. With \`SYRA_PAYER_KEYPAIR\` set, paid routes settle automatically — the same rail as the SDK.
+
+> [!IMPORTANT]
+> MCP uses **stdio transport** — the client spawns the server as a subprocess. For remote HTTPS MCP gateways, deploy a proxy that forwards to \`api.syraa.fun\`.
+
+## Discovery and OpenAPI
+
+Agents should discover prices before spending:
+
+\`\`\`bash
+# x402 discovery document
+curl -s https://api.syraa.fun/.well-known/x402
+
+# Full OpenAPI catalog
+curl -s https://api.syraa.fun/openapi.json
+
+# LLM-oriented route index
+curl -s https://api.syraa.fun/llms-full.txt
+\`\`\`
+
+Cache discovery metadata in your agent config. Prices and routes change as Syra ships new capabilities.
+
+## Production checklist
+
+Before mainnet spend:
+
+- [ ] Fund payer wallet with USDC on the correct chain (Solana default)
+- [ ] Set per-request and daily budget caps in agent config
+- [ ] Implement exponential backoff on 402 retries (facilitators take 1–3s)
+- [ ] Log settlement hashes for audit and reconciliation
+- [ ] Use \`maxPaymentRetries\` conservatively (default: 1)
+- [ ] Test routes in the [playground](https://syraa.fun/playground) first
+- [ ] Handle \`{ success: false }\` — never assume \`data\` exists
+
+\`\`\`typescript
+const syra = await createSyraPaidClient({
+  maxPaymentRetries: 1,
+  headers: { "X-Agent-Id": "my-production-bot" },
+});
+\`\`\`
+
+## Error handling patterns
+
+\`\`\`typescript
+async function safeSyraCall<T>(
+  fn: () => Promise<{ success: boolean; data?: T; error?: string }>,
+): Promise<T | null> {
+  const res = await fn();
+  if (!res.success) {
+    console.error("[syra]", res.error);
+    return null;
+  }
+  return res.data ?? null;
+}
+
+const sentiment = await safeSyraCall(() =>
+  syra.get("/v1/alpha/sentiment", { ticker: "SOL" }),
+);
+\`\`\`
+
+Responses containing **"Payment was NOT charged"** from x402 are safe to retry — the payer package handles this; still log for observability.
+
+## What to build next
+
+1. **Research agent** — call Spend pillar routes (sentiment, risk, smart-money flow) on a schedule
+2. **Execution agent** — combine intelligence with your own swap logic; Syra does not assume direction
+3. **Treasury agent** — wire Treasury pillar + policy caps for autonomous capital management
+4. **MCP assistant** — ship internal tools to your team via Cursor without custom HTTP glue
+
+## Resources
+
+| Resource | URL |
+| --- | --- |
+| API Marketplace | [syraa.fun/marketplace](https://syraa.fun/marketplace) |
+| Playground | [syraa.fun/playground](https://syraa.fun/playground) |
+| Docs | [docs.syraa.fun](https://docs.syraa.fun) |
+| npm SDK | \`npm install @syra-ai/sdk\` |
+| MCP | \`npx -y @syra-ai/mcp-server\` |
+
+The SDK is the thinnest path from "agent idea" to "agent that pays for intelligence on every call." Ship fast, cap spend, and let x402 handle the machine money layer.
+`,
+  },
+  {
+    id: "future-agentic-era",
+    slug: "future-agentic-era-syra-positioning",
+    title: "The Agentic Era Is Here — How Syra Positions for Machine Economies",
+    description:
+      "Autonomous agents are scaling, but most cannot own capital or pay for tools without humans. How Syra positions as the machine money rail for the agentic era.",
+    excerpt:
+      "The agentic era needs more than smarter models — it needs financial infrastructure. Here is Syra's positioning as the machine money rail on Solana.",
+    coverImage: "/images/articles/article-two.webp",
+    publishedAt: "2026-07-05",
+    readingTimeMinutes: 11,
+    tags: ["Agents", "Strategy", "Solana", "Infrastructure", "x402"],
+    category: "Strategy",
+    author: SYRA_AUTHOR,
+    content: `## The shift nobody is pricing in
+
+AI agents passed the demo phase. They research markets, write code, operate browsers, and coordinate multi-step workflows. What they still cannot do reliably — at scale — is **own capital**, **pay for capabilities**, and **coordinate value** without a human approving every transaction.
+
+That gap is not a UX problem. It is an **infrastructure** problem.
+
+> [!NOTE]
+> Syra's bet: the long-term winner in the agent market will not be the chatbot with the slickest interface. It will be the stack that lets agents generate, manage, and deploy capital efficiently.
+
+## Three waves of the agent economy
+
+### Wave 1 — Copilots (2023–2024)
+
+Humans drive. AI suggests. Billing is SaaS subscriptions. APIs assume dashboard signup and monthly tiers.
+
+### Wave 2 — Autonomous workers (2024–2026)
+
+Agents execute multi-step tasks. They call tools via MCP, HTTP, and browser automation. But payment still flows through human credit cards, API keys, and manual wallet approvals.
+
+### Wave 3 — Machine economies (2026+)
+
+Agents become **economic actors**: they earn revenue, hold treasuries, pay per capability, invest surplus, and settle with other agents in real time. This wave requires native machine money — not human billing patterns duct-taped onto bots.
+
+Syra is built for Wave 3.
+
+## What is missing today
+
+| Capability | Status quo | What agents need |
+| --- | --- | --- |
+| API access | Human signup + API keys | Pay-per-call with cryptographic proof |
+| Treasury | Spreadsheet + manual transfers | Policy-gated wallets with caps and allowlists |
+| Intelligence | Free tiers or opaque pricing | Discoverable x402 prices, settle at request time |
+| Execution | Human confirms in wallet UI | Confirm-gated automation with audit trails |
+| Multi-agent | Ad-hoc orchestration | Composable settlement (MPP) across providers |
+
+Most "AI agent" projects optimize for **intelligence** or **workflows**. Few build the **financial layer** agents need to operate autonomously for hours, days, or months.
+
+## How Syra positions
+
+Syra is **machine money for agents on Solana** — not a trading bot, not a chat wrapper, not another data dashboard.
+
+We occupy three layers:
+
+1. **Spend (x402)** — Pay-per-call intelligence and execution APIs. Agents discover routes, receive HTTP 402 payment instructions, settle USDC, and get structured JSON back. No subscription walls.
+
+2. **Agent money layer** — Wallets, treasury, and a deterministic policy engine. Caps, allowlists, and explicit confirm gates for high-risk moves. You keep the keys; Syra coordinates flows.
+
+3. **Five-pillar rail** — Earn, Treasury, Invest, Spend, Grow. Revenue capture, capital allocation, DeFi participation, micropayments, and yield optimization — composable modules, not a monolith.
+
+\`\`\`
+Agent loop:
+  Discover → Pay (x402) → Analyze → Decide → Execute (policy-gated) → Earn → Repeat
+\`\`\`
+
+> [!TIP]
+> Syra separates **analysis from execution**. We surface probabilistic intelligence; your agent (or policy engine) decides whether and how to act. We never assume market direction.
+
+## Why x402 is the unlock
+
+HTTP 402 "Payment Required" was dormant for decades. x402 revives it as a protocol primitive:
+
+1. Agent calls endpoint
+2. Server returns 402 + payment instructions (USDC amount, chain, facilitator)
+3. Agent signs and retries with \`PAYMENT-SIGNATURE\`
+4. Server verifies settlement and returns the resource
+
+This model is **agent-native**: no dashboard, no OAuth dance, no monthly commitment. An agent with a funded wallet can start calling paid APIs in seconds.
+
+Syra's **MPP (Multi-Party Payments)** extends this further — one payment can atomically split across multiple data providers in a single call. That matters when intelligence is compositional (sentiment + price + risk in one request).
+
+## Why Solana
+
+Solana is Syra's economic layer:
+
+- **Low latency** — agents deciding in milliseconds cannot wait for slow settlement
+- **Low fees** — micropayments per API call only work when per-tx cost is negligible
+- **Deep DeFi stack** — Jupiter, Meteora, RISE, Giza, and native programs agents can compose with
+- **Agent ecosystem momentum** — frameworks, wallets, and infra builders converging on SVM
+
+We also support Base and Algorand settlement paths where partners require them, but Solana remains the primary rail.
+
+## Competitive positioning
+
+| Category | Typical player | Syra's angle |
+| --- | --- | --- |
+| AI chatbots | General assistants | We are infrastructure, not a chat UI |
+| Data terminals | Human dashboards | We serve machines — structured JSON, x402 priced |
+| Agent frameworks | Orchestration only | We add machine money — pay, treasury, policy |
+| Payment protocols | x402 facilitators | We are a full intelligence + execution gateway on top |
+| Trading bots | Directional bets | Probabilistic context only — no certainty claims |
+
+Syra does not compete on "smarter answers." We compete on **economic autonomy**: can your agent pay for the next capability without waking up a human?
+
+## Distribution strategy
+
+Agents discover tools through three channels Syra ships today:
+
+1. **REST + OpenAPI** — \`api.syraa.fun/openapi.json\` and \`/.well-known/x402\`
+2. **SDK** — \`@syra-ai/sdk\` with typed pillar modules and auto-pay
+3. **MCP** — \`@syra-ai/mcp-server\` for Cursor, Claude, and agent frameworks
+
+This meets builders where they already work. A quant team uses the SDK. An AI ops team uses MCP. A serverless function uses raw x402 fetch.
+
+> [!IMPORTANT]
+> North-star metric: **paid API calls and net revenue per agent**. The rail compounds as agents transact more — not as humans scroll more.
+
+## Who wins the agentic era
+
+Teams that ship agents with:
+
+- **Funded wallets** and explicit spend policy
+- **Composable intelligence** paid per call, not bundled in opaque subscriptions
+- **Audit trails** for every settlement hash
+- **Human override** only on high-risk execution, not on every micro-payment
+
+Syra provides the rail. You provide the strategy, risk model, and end-user product.
+
+## Roadmap themes (not a promise of dates)
+
+We are expanding along predictable axes:
+
+- **More x402 routes** — deeper smart-money, risk, social, and execution surfaces
+- **Broader MPP splits** — more data partners settled atomically per call
+- **Richer treasury policy** — finer-grained caps, multi-wallet orchestration
+- **Agent discovery** — ERC-8004 and registry integrations so agents find Syra programmatically
+- **SDK ergonomics** — Python helpers, confirm-gated execution presets, observability hooks
+
+## The bigger picture
+
+The agentic era does not need another demo that calls GPT once. It needs **millions of agents** acting as productive economic participants — earning, allocating, investing, spending, and growing capital onchain.
+
+That requires machine money infrastructure built for Solana's speed and composability.
+
+Syra is positioning to be that layer: **real-time, request-priced, policy-gated, and built for machines that transact.**
+
+---
+
+*Follow [@syra_agent](https://x.com/syra_agent) for positioning updates and new route launches.*
+`,
+  },
+  {
+    id: "what-is-syra",
+    slug: "what-is-syra",
+    title: "What Is Syra? Machine Money for Agents on Solana",
+    description:
+      "Syra is machine money for autonomous agents — Earn, Treasury, Invest, Spend (x402), and Grow. Complete product overview, pillars, and who Syra is built for.",
+    excerpt:
+      "A complete answer to what Syra is: machine money on Solana, five pillars, x402 APIs, agent wallets, and who the product is built for.",
+    coverImage: "/images/articles/article-two.webp",
+    publishedAt: "2026-07-01",
+    readingTimeMinutes: 10,
+    tags: ["Product", "Overview", "Agents", "Solana", "x402"],
+    category: "Product",
+    author: SYRA_AUTHOR,
+    content: `## The short answer
+
+**Syra is machine money for agents on Solana.**
+
+It gives autonomous agents the financial infrastructure they need to **earn**, **manage treasury**, **invest**, **spend** (via x402 pay-per-call APIs), and **grow** yield — without a human in the loop for every payment or allocation decision.
+
+> [!NOTE]
+> Syra is not a chatbot toy or a human trading dashboard. It is infrastructure: APIs, wallets, policy, and settlement rails built for machines that transact.
+
+## The problem Syra solves
+
+AI agents are becoming capable of research, automation, and complex workflows. Most still cannot:
+
+- Hold and manage capital autonomously
+- Pay for data and execution at request time
+- Earn revenue from work they perform
+- Participate in DeFi with policy guardrails
+- Coordinate value with other agents at scale
+
+The missing layer is **native financial infrastructure** — ownership of capital, treasury management, and machine-to-machine economic coordination.
+
+Syra builds that layer on Solana.
+
+## Mission and vision
+
+**Mission:** Enable autonomous agents to earn, allocate treasury, invest, spend via x402, and grow yield on Solana — wealth as the narrative, payments as one feature.
+
+**Vision:** An economy where millions of AI agents become productive economic actors — reasoning, earning, managing capital, and coordinating value in real time.
+
+## The five pillars
+
+Syra organizes capabilities into five composable pillars:
+
+| Pillar | What it does |
+| --- | --- |
+| **Earn** | Agents monetize skills — KOL campaigns, creator attribution, revenue paths from paid calls |
+| **Treasury** | Allocate and manage capital across chat, LP, and connected wallets with policy caps |
+| **Invest** | Deploy capital via Giza yield, Meteora LP, Jupiter swaps, and RISE markets |
+| **Spend** | x402 native payments — sentiment, risk, signals, smart-money flow, execution APIs |
+| **Grow** | Yield and portfolio optimization with deterministic recommendations and confirm-gated execution |
+
+Spend (x402) is one module — not the whole story. The full rail covers the agent economic lifecycle.
+
+### Earn
+
+Agents capture value from work: paid API calls, campaign attribution, and onchain revenue paths designed for machines — not affiliate links for humans.
+
+### Treasury
+
+Balances, allocations, and auditable movement of agent-held assets. Policy caps prevent runaway spend. Multi-wallet orchestration for teams running fleets of agents.
+
+### Invest
+
+Autonomous deployment into vetted DeFi surfaces — with Syra providing context and execution paths, not directional advice.
+
+### Spend
+
+The x402 gateway: hundreds of intelligence and execution routes priced per call in USDC. Agents discover prices via \`/.well-known/x402\`, pay, and receive structured JSON.
+
+### Grow
+
+Portfolio-level recommendations and yield optimization. High-risk moves require explicit confirm — automation with guardrails.
+
+> [!TIP]
+> Explore live routes in the [API marketplace](https://syraa.fun/marketplace) or [playground](https://syraa.fun/playground).
+
+## Core capabilities
+
+Beyond the five pillars, Syra ships:
+
+- **Intelligence + execution APIs** — sentiment, risk scoring, smart-money netflow, signals, charts, swaps
+- **Agent wallets** — funded execution environments with spend policy
+- **Policy engine** — caps, allowlists, confirm gates for high-risk moves
+- **Non-custodial design** — you keep the keys; Syra coordinates intelligence and flows
+- **MCP + SDK distribution** — \`@syra-ai/mcp-server\` and \`@syra-ai/sdk\` for agent frameworks
+
+## How it works (simplified)
+
+\`\`\`
+1. Fund an agent wallet (USDC on Solana)
+2. Agent discovers Syra routes (OpenAPI / x402 / MCP)
+3. Agent calls endpoint → HTTP 402 → pays → receives data
+4. Agent decides (your logic) → optional execution via Invest/Spend routes
+5. Treasury tracks balances; policy engine enforces caps
+6. Earn and Grow compound returns over time
+\`\`\`
+
+![Syra intelligence pipeline — from on-chain data to agent-ready signals](/images/articles/article-two.webp)
+
+Every insight is grounded in verifiable data. Syra does not hallucinate prices or invent wallet labels.
+
+> [!WARNING]
+> No intelligence system eliminates risk. Syra provides probabilistic context, not certainty. Always size positions independently.
+
+## Who Syra is for
+
+- **Agent developers** shipping autonomous trading, research, or ops bots
+- **Quant and algo teams** that need Solana-native intelligence without building data pipelines
+- **AI startups** embedding machine money into their agent products
+- **DeFi teams** that want agents to participate with policy guardrails
+- **Internal ops** running agent fleets with treasury oversight
+
+## Who Syra is not for
+
+- Casual traders looking for "buy/sell signals" with guaranteed returns
+- Teams that want a fully custodial managed account
+- Projects that need only a chat UI without onchain economic infrastructure
+
+## How Syra is different
+
+Most AI-agent projects optimize for intelligence, workflows, or user interfaces. Syra focuses on **economic autonomy**:
+
+| Others | Syra |
+| --- | --- |
+| Subscription APIs | Pay-per-call x402 |
+| Human dashboards | Machine-readable JSON |
+| Demo wallets | Production policy engine |
+| Directional calls | Probabilistic context only |
+
+We build the **financial layer** — not another chatbot.
+
+## Technology stack
+
+- **Chain:** Solana primary; Base and Algorand x402 settlement where required
+- **Payments:** x402 + MPP multi-party splits
+- **Client:** TypeScript SDK, MCP server, OpenAPI
+- **Discovery:** \`/.well-known/x402\`, ERC-8004 agent registry integrations
+
+## Getting started
+
+1. **Explore** — [syraa.fun](https://syraa.fun) web agent and [marketplace](https://syraa.fun/marketplace)
+2. **Test** — [playground](https://syraa.fun/playground) for read-only and x402 routes
+3. **Integrate** — \`npm install @syra-ai/sdk\` or \`npx -y @syra-ai/mcp-server\`
+4. **Fund** — agent wallet with USDC for paid routes
+5. **Ship** — wire intelligence into your agent decision loop
+
+> [!IMPORTANT]
+> Read the [docs](https://docs.syraa.fun) for the latest endpoint catalog, pricing, and policy configuration.
+
+## Platforms and community
+
+| Channel | Link |
+| --- | --- |
+| Web app | [syraa.fun](https://syraa.fun) |
+| X | [@syra_agent](https://x.com/syra_agent) |
+| Docs | [docs.syraa.fun](https://docs.syraa.fun) |
+| Telegram bot | @syra_trading_bot |
+| Support | support@syraa.fun |
+
+## Summary
+
+Syra is **machine money for agents on Solana** — the rail that lets autonomous systems earn, manage treasury, invest, pay per capability via x402, and grow yield with policy guardrails.
+
+If your agent can think but cannot transact, Syra is what you wire in next.
+`,
+  },
+  {
     id: "syra-x402-mpp",
     slug: "syra-access-x402-mpp",
     title: "Syra Access: How x402 and MPP Actually Work (for Builders & Agents)",

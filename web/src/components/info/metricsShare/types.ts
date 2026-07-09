@@ -59,7 +59,7 @@ export type MetricShareSectionBundle = {
 export const METRIC_SHARE_WIDTH = 1200;
 export const METRIC_SHARE_HEIGHT = 675;
 
-export const PER_ITEM_SHARE_SECTIONS = new Set(["headline", "monetization", "x402-headline"]);
+export const PER_ITEM_SHARE_SECTIONS = new Set(["headline", "monetization"]);
 
 export type MetricShareLayoutProps = {
   section: MetricShareSectionPayload;

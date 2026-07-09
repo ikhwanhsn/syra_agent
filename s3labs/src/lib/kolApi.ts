@@ -62,7 +62,7 @@ export interface KolCampaign {
 export interface KolSubmission {
   id: string;
   campaignId: string;
-  kolWallet: string;
+  kolWallet: string | null;
   tweetId: string;
   tweetUrl: string;
   mode: "reply" | "quote";
@@ -84,6 +84,10 @@ export interface KolSubmission {
   reputationCreditedAt?: string | null;
   projectedLamports: number;
   projectedSol: number;
+  earnedLamports?: number;
+  earnedSol?: number;
+  claimStatus?: "unearned" | "claimable" | "claimed";
+  discoveredAt?: string | null;
   createdAt: string | null;
 }
 
@@ -350,9 +354,35 @@ export interface KolConfig {
   platformFeeWallet: string;
 }
 
+export interface KolViewerClaimEligibility {
+  requireCreatedOneCampaign: boolean;
+  hasCreatedCampaign: boolean;
+  canClaim: boolean;
+  message: string | null;
+}
+
+export interface KolWalletClaimEligibility {
+  hasCreatedCampaign: boolean;
+}
+
+export interface KolWalletVerification {
+  verified: boolean;
+  wallet: string;
+  xHandle: string | null;
+  xHandleKey?: string | null;
+  verifiedAt?: string | null;
+}
+
 export interface KolWalletEarnings {
   wallet: string;
+  xVerification?: KolWalletVerification;
+  claimEligibility?: KolWalletClaimEligibility;
   active: Array<{
+    submission: KolSubmission;
+    campaign: KolCampaign;
+    payout: KolPayoutInfo | null;
+  }>;
+  claimable: Array<{
     submission: KolSubmission;
     campaign: KolCampaign;
     payout: KolPayoutInfo | null;
@@ -370,6 +400,8 @@ export interface KolWalletEarnings {
   totals: {
     projectedLamports: number;
     projectedSol: number;
+    claimableLamports: number;
+    claimableSol: number;
     paidLamports: number;
     paidSol: number;
     pendingMinimumLamports: number;
@@ -439,13 +471,13 @@ function isVideoMediaType(mediaType: string): boolean {
 
 export const DEFAULT_KOL_CONFIG: KolConfig = {
   poolWalletAddress: "GGj37PSMDUUgkac5HkMx36Sk38zbHDMtXFLn6MR2HXnv",
-  minRewardSol: 0.15,
-  minKolRewardSol: 0.1,
-  minTopUpKolRewardSol: 0.1,
+  minRewardSol: 0.015,
+  minKolRewardSol: 0.01,
+  minTopUpKolRewardSol: 0.01,
   minPayoutSol: 0.01,
   minDurationDays: 1,
   maxDurationDays: 30,
-  platformFeeSol: 0.05,
+  platformFeeSol: 0.005,
   platformFeeWallet: "854tpY9AnaMYDpviWeo4eWXzoUmvLrYwkU16F2MtzHz8",
 };
 
@@ -482,11 +514,18 @@ export function fetchCampaigns(
   return kolFetch<{ campaigns: KolCampaign[] }>(`/kol/campaigns${qs}`);
 }
 
-export function fetchCampaignDetail(id: string): Promise<{
+export function fetchCampaignDetail(
+  id: string,
+  opts?: { wallet?: string },
+): Promise<{
   campaign: KolCampaign;
   leaderboard: KolLeaderboardEntry[];
+  viewerClaimEligibility?: KolViewerClaimEligibility | null;
 }> {
-  return kolFetch(`/kol/campaigns/${encodeURIComponent(id)}`);
+  const params = new URLSearchParams();
+  if (opts?.wallet) params.set("wallet", opts.wallet);
+  const qs = params.toString() ? `?${params.toString()}` : "";
+  return kolFetch(`/kol/campaigns/${encodeURIComponent(id)}${qs}`);
 }
 
 export function createCampaign(input: {
@@ -566,17 +605,72 @@ export function confirmCampaignTopUp(
   );
 }
 
-export function submitEngagement(
-  campaignId: string,
-  input: { kolWallet: string; tweetUrl: string },
-): Promise<{ submission: KolSubmission }> {
-  return kolFetch(
-    `/kol/campaigns/${encodeURIComponent(campaignId)}/submissions`,
-    {
-      method: "POST",
-      body: JSON.stringify(input),
-    },
+export function requestXVerification(input: {
+  wallet: string;
+  xHandle: string;
+}): Promise<{
+  xHandle: string;
+  xHandleKey: string;
+  wallet: string;
+  code?: string;
+  status: "pending" | "verified";
+  alreadyVerified?: boolean;
+  verifiedAt?: string | null;
+  message?: string;
+  expiresAt: string | null;
+  instructions?: string;
+}> {
+  return kolFetch("/kol/verify/request", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function confirmXVerification(input: {
+  wallet: string;
+  xHandle: string;
+}): Promise<{
+  verified: boolean;
+  xHandle: string;
+  xHandleKey: string;
+  wallet: string;
+  verifiedAt: string | null;
+  alreadyVerified?: boolean;
+  message?: string;
+  verifiedVia?: string;
+}> {
+  return kolFetch("/kol/verify/confirm", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function fetchWalletVerification(
+  wallet: string,
+): Promise<KolWalletVerification> {
+  return kolFetch<KolWalletVerification>(
+    `/kol/wallets/${encodeURIComponent(wallet)}/verification`,
   );
+}
+
+export function claimCampaignReward(
+  campaignId: string,
+  input: { wallet: string },
+): Promise<{
+  status: "confirmed" | "pending_minimum";
+  txSignature?: string;
+  lamports: number;
+  sentLamports?: number;
+  pendingBalanceLamports?: number;
+  minPayoutLamports?: number;
+  minPayoutSol?: number;
+  submission: KolSubmission;
+  payout?: KolPayoutInfo;
+}> {
+  return kolFetch(`/kol/campaigns/${encodeURIComponent(campaignId)}/claim`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }
 
 export function fetchWalletEarnings(

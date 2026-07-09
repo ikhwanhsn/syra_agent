@@ -600,7 +600,10 @@ async function twitterApiIoGet(path, params = {}) {
   if (isResponseCacheEnabled()) {
     const ttl = path.includes("/user/info")
       ? USER_CACHE_MS
-      : path.includes("/user/last_tweets") || path.includes("/user/mentions")
+      : path.includes("/user/last_tweets") ||
+          path.includes("/user/mentions") ||
+          path.includes("/tweet/replies") ||
+          path.includes("/tweet/quotes")
         ? TWEETS_CACHE_MS
         : path.includes("/trends")
           ? TRENDS_CACHE_MS
@@ -858,6 +861,100 @@ export async function getTrends(woeid = 1) {
     woeid: w,
     rawCount: trendsRaw.length,
     validatedCount: trends.length,
+  };
+}
+
+/**
+ * Paginated replies to a tweet (V2).
+ * @param {{ tweetId: string; cursor?: string | null }} opts
+ */
+export async function getTweetReplies(opts) {
+  const id = String(opts?.tweetId ?? "").trim();
+  if (!id) {
+    const err = new Error("tweetId is required");
+    err.code = "invalid_tweet_id";
+    throw err;
+  }
+
+  const params = { tweetId: id };
+  if (opts?.cursor) params.cursor = String(opts.cursor).trim();
+
+  const body = await twitterApiIoGet("/twitter/tweet/replies/v2", params);
+  const includesMedia = buildIncludesMediaMap(body);
+  const rawTweets = extractTweetsArray(body);
+  const tweets = rawTweets
+    .map((t) =>
+      t && typeof t === "object"
+        ? normalizeTweet(/** @type {Record<string, unknown>} */ (t), {
+            includesMedia,
+          })
+        : null,
+    )
+    .filter(Boolean);
+
+  const obj =
+    body && typeof body === "object"
+      ? /** @type {Record<string, unknown>} */ (body)
+      : {};
+
+  return {
+    tweets,
+    hasNextPage: Boolean(obj.has_next_page ?? obj.hasNextPage),
+    nextCursor:
+      typeof obj.next_cursor === "string"
+        ? obj.next_cursor
+        : typeof obj.nextCursor === "string"
+          ? obj.nextCursor
+          : null,
+    rawCount: rawTweets.length,
+    validatedCount: tweets.length,
+  };
+}
+
+/**
+ * Paginated quote tweets of a source tweet.
+ * @param {{ tweetId: string; cursor?: string | null }} opts
+ */
+export async function getTweetQuotes(opts) {
+  const id = String(opts?.tweetId ?? "").trim();
+  if (!id) {
+    const err = new Error("tweetId is required");
+    err.code = "invalid_tweet_id";
+    throw err;
+  }
+
+  const params = { tweetId: id };
+  if (opts?.cursor) params.cursor = String(opts.cursor).trim();
+
+  const body = await twitterApiIoGet("/twitter/tweet/quotes", params);
+  const includesMedia = buildIncludesMediaMap(body);
+  const rawTweets = extractTweetsArray(body);
+  const tweets = rawTweets
+    .map((t) =>
+      t && typeof t === "object"
+        ? normalizeTweet(/** @type {Record<string, unknown>} */ (t), {
+            includesMedia,
+          })
+        : null,
+    )
+    .filter(Boolean);
+
+  const obj =
+    body && typeof body === "object"
+      ? /** @type {Record<string, unknown>} */ (body)
+      : {};
+
+  return {
+    tweets,
+    hasNextPage: Boolean(obj.has_next_page ?? obj.hasNextPage),
+    nextCursor:
+      typeof obj.next_cursor === "string"
+        ? obj.next_cursor
+        : typeof obj.nextCursor === "string"
+          ? obj.nextCursor
+          : null,
+    rawCount: rawTweets.length,
+    validatedCount: tweets.length,
   };
 }
 

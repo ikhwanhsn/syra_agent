@@ -1,5 +1,7 @@
 import { Loader2, Save } from "lucide-react";
 import { useEffect, useState } from "react";
+import { AutoCallSettingsSkeleton } from "@/components/labs/LabsSkeleton";
+import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,6 +43,7 @@ export function AutoCallSettingsPanel({
   const [refundEnabled, setRefundEnabled] = useState(true);
   const [jitterPct, setJitterPct] = useState(20);
   const [maxDailyCalls, setMaxDailyCalls] = useState(2000);
+  const showSkeleton = useMinimumSkeleton(isLoading);
 
   useEffect(() => {
     if (!settings) return;
@@ -61,13 +64,8 @@ export function AutoCallSettingsPanel({
     });
   }, [intervalMin, jitterPct, refundEnabled, autoCallEnabled, maxDailyCalls, onDraftChange]);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-8 text-muted-foreground">
-        <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
-        Loading settings…
-      </div>
-    );
+  if (showSkeleton) {
+    return <AutoCallSettingsSkeleton />;
   }
 
   return (

@@ -69,8 +69,8 @@ export const S3LABS_KOL_URL = "https://s3labs.xyz/kol";
 
 export const DEFAULT_KOL_CONFIG: KolConfig = {
   poolWalletAddress: "GGj37PSMDUUgkac5HkMx36Sk38zbHDMtXFLn6MR2HXnv",
-  minRewardSol: 0.15,
-  platformFeeSol: 0.05,
+  minRewardSol: 0.015,
+  platformFeeSol: 0.005,
 };
 
 export function getKolRewardSol(campaign: Pick<KolCampaign, "kolRewardPoolSol" | "rewardSol">): number {

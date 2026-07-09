@@ -23,13 +23,14 @@ import {
   MAX_DURATION_DAYS,
   MIN_DURATION_DAYS,
   MIN_KOL_REWARD_SOL,
+  MIN_KOL_REWARD_LAMPORTS,
   MIN_KOL_PAYOUT_LAMPORTS,
   MIN_KOL_PAYOUT_SOL,
   MIN_TOPUP_KOL_REWARD_SOL,
   computeTopUpDeposit,
   getS3labsFeeWallet,
-  minTotalDepositLamports,
   minTotalDepositSol,
+  solToLamports,
   splitRewardPool,
 } from "../config/kolMarketplaceConfig.js";
 import {
@@ -53,9 +54,12 @@ import {
   awardCampaignPoints,
 } from "./s3labsPointsService.js";
 import { notifyNewCampaign } from "./emailSubscriberService.js";
+import { discoverCampaignEngagements } from "./kolDiscoveryService.js";
+import {
+  getWalletVerification,
+} from "./kolXVerificationService.js";
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
-const MIN_REWARD_LAMPORTS = minTotalDepositLamports();
 
 /**
  * @param {string} handle
@@ -365,7 +369,7 @@ function serializeSubmission(submission) {
   return {
     id: String(doc._id),
     campaignId: String(doc.campaignId),
-    kolWallet: doc.kolWallet,
+    kolWallet: doc.kolWallet ?? null,
     tweetId: doc.tweetId,
     tweetUrl: doc.tweetUrl,
     mode: doc.mode,
@@ -383,6 +387,12 @@ function serializeSubmission(submission) {
       : null,
     projectedLamports: doc.projectedLamports ?? 0,
     projectedSol: (doc.projectedLamports ?? 0) / LAMPORTS_PER_SOL,
+    earnedLamports: doc.earnedLamports ?? 0,
+    earnedSol: (doc.earnedLamports ?? 0) / LAMPORTS_PER_SOL,
+    claimStatus: doc.claimStatus ?? "unearned",
+    discoveredAt: doc.discoveredAt
+      ? new Date(doc.discoveredAt).toISOString()
+      : null,
     createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : null,
   };
 }
@@ -441,20 +451,12 @@ export async function createCampaign(input) {
     throw err;
   }
 
-  const rewardLamports = Math.floor(rewardSol * LAMPORTS_PER_SOL);
-  if (rewardLamports < MIN_REWARD_LAMPORTS) {
-    const err = new Error(
-      `Minimum KOL reward is ${MIN_KOL_REWARD_SOL} SOL (${minTotalDepositSol()} SOL total deposit incl. ${KOL_PLATFORM_FEE_SOL} SOL platform fee)`,
-    );
-    err.code = "reward_too_low";
-    throw err;
-  }
-
+  const rewardLamports = solToLamports(rewardSol);
   const { kolPoolLamports, platformFeeLamports } =
     splitRewardPool(rewardLamports);
-  if (kolPoolLamports < Math.floor(MIN_KOL_REWARD_SOL * LAMPORTS_PER_SOL)) {
+  if (kolPoolLamports < MIN_KOL_REWARD_LAMPORTS) {
     const err = new Error(
-      `Minimum KOL reward is ${MIN_KOL_REWARD_SOL} SOL (${minTotalDepositSol()} SOL total deposit incl. ${KOL_PLATFORM_FEE_SOL} SOL platform fee)`,
+      `Minimum KOL reward is ${MIN_KOL_REWARD_SOL} SOL — deposit at least ${minTotalDepositSol()} SOL total (${MIN_KOL_REWARD_SOL} SOL reward + ${KOL_PLATFORM_FEE_SOL} SOL platform fee)`,
     );
     err.code = "reward_too_low";
     throw err;
@@ -796,8 +798,6 @@ export async function confirmCampaignTopUp(campaignId, topUpId, input) {
 export async function listCampaigns(opts = {}) {
   assertMongo();
 
-  await finalizeEndedActiveCampaigns();
-
   const limit = Math.min(Math.max(Number(opts.limit) || 50, 1), 100);
   const filter = {};
 
@@ -821,16 +821,6 @@ export async function listCampaigns(opts = {}) {
   const countMap = new Map(
     submissionCounts.map((r) => [String(r._id), r.count]),
   );
-
-  if (isTwitterApiIoConfigured()) {
-    const missingMedia = campaigns.filter(
-      (c) =>
-        !Array.isArray(c.sourceTweetMedia) || c.sourceTweetMedia.length === 0,
-    );
-    await Promise.allSettled(
-      missingMedia.slice(0, 12).map((c) => ensureCampaignTweetMedia(c)),
-    );
-  }
 
   return {
     campaigns: campaigns.map((c) => ({
@@ -874,9 +864,42 @@ async function ensureCampaignTweetMedia(campaignDoc) {
 }
 
 /**
- * @param {string} campaignId
+ * @param {string} kolWallet
  */
-export async function getCampaignDetail(campaignId) {
+async function walletHasCreatedCampaign(kolWallet) {
+  const ownedCount = await KolCampaign.countDocuments({
+    projectWallet: kolWallet,
+    status: { $in: ["active", "completed", "pending_deposit"] },
+  });
+  return ownedCount >= 1;
+}
+
+/**
+ * @param {import("../models/KolCampaign.js").default | Record<string, unknown>} campaign
+ * @param {string | null | undefined} wallet
+ */
+async function buildViewerClaimEligibility(campaign, wallet) {
+  const kolWallet = normalizeWallet(wallet);
+  if (!kolWallet || !campaign.requireCreatedOneCampaign) {
+    return null;
+  }
+
+  const hasCreatedCampaign = await walletHasCreatedCampaign(kolWallet);
+  return {
+    requireCreatedOneCampaign: true,
+    hasCreatedCampaign,
+    canClaim: hasCreatedCampaign,
+    message: hasCreatedCampaign
+      ? null
+      : "Create one campaign first to claim your reward.",
+  };
+}
+
+/**
+ * @param {string} campaignId
+ * @param {{ wallet?: string }} [opts]
+ */
+export async function getCampaignDetail(campaignId, opts = {}) {
   assertMongo();
 
   const id = assertObjectId(campaignId);
@@ -913,6 +936,11 @@ export async function getCampaignDetail(campaignId) {
   const payouts = await KolPayout.find({ campaignId: campaign._id }).lean();
   const payoutMap = new Map(payouts.map((p) => [String(p.submissionId), p]));
 
+  const viewerClaimEligibility = await buildViewerClaimEligibility(
+    campaign,
+    opts.wallet,
+  );
+
   return {
     campaign: serializeCampaign(campaign),
     leaderboard: submissions.map((s) => ({
@@ -926,6 +954,7 @@ export async function getCampaignDetail(campaignId) {
           }
         : null,
     })),
+    viewerClaimEligibility,
   };
 }
 
@@ -1077,22 +1106,24 @@ export async function refreshCampaignProjections(campaignId) {
   );
 }
 
-/** Skip getTweetById when campaign metrics were refreshed recently (default 12h). */
+/** Skip discovery/metric refresh when campaign was snapshotted recently (default 6h). */
 const METRICS_FRESH_MS = (() => {
   const n = Number.parseInt(String(process.env.KOL_METRICS_FRESH_MS ?? "").trim(), 10);
-  return Number.isFinite(n) && n >= 60_000 ? n : 12 * 60 * 60 * 1000;
+  return Number.isFinite(n) && n >= 60_000 ? n : 6 * 60 * 60 * 1000;
 })();
 
 /**
  * @param {import("mongoose").Types.ObjectId | string} campaignId
+ * @param {{ force?: boolean }} [opts]
  */
-export async function refreshCampaignMetrics(campaignId) {
+export async function refreshCampaignMetrics(campaignId, opts = {}) {
   const campaign = await KolCampaign.findById(campaignId);
   if (!campaign || campaign.status !== "active") {
     return { refreshed: 0 };
   }
 
   if (
+    !opts.force &&
     campaign.lastSnapshotAt &&
     Date.now() - new Date(campaign.lastSnapshotAt).getTime() < METRICS_FRESH_MS
   ) {
@@ -1239,7 +1270,8 @@ export async function finalizeCampaign(campaignId) {
     return { success: false, error: "invalid_status" };
   }
 
-  await refreshCampaignMetrics(campaign._id);
+  await discoverCampaignEngagements(campaign._id, { force: true });
+  await refreshCampaignMetrics(campaign._id, { force: true });
 
   const submissions = await KolSubmission.find({
     campaignId: campaign._id,
@@ -1291,99 +1323,29 @@ export async function finalizeCampaign(campaignId) {
     results.push({ type: "platform_fee", status: "confirmed", skipped: true });
   }
 
-  for (const row of payoutRows) {
-    const kolWallet = normalizeWallet(row.kolWallet);
-    const existing = await KolPayout.findOne({
-      campaignId: campaign._id,
-      submissionId: row.submissionId,
+  const payoutMap = new Map(
+    payoutRows.map((row) => [String(row.submissionId), row.lamports]),
+  );
+
+  for (const submission of submissions) {
+    const earnedLamports = payoutMap.get(String(submission._id)) ?? 0;
+    await KolSubmission.updateOne(
+      { _id: submission._id },
+      {
+        $set: {
+          earnedLamports,
+          projectedLamports: earnedLamports,
+          claimStatus: earnedLamports > 0 ? "claimable" : "unearned",
+        },
+      },
+    );
+    results.push({
+      type: "kol",
+      submissionId: String(submission._id),
+      authorHandle: submission.authorHandle,
+      status: earnedLamports > 0 ? "claimable" : "unearned",
+      lamports: earnedLamports,
     });
-    if (existing?.status === "confirmed") {
-      results.push({
-        submissionId: row.submissionId,
-        status: "confirmed",
-        skipped: true,
-      });
-      continue;
-    }
-
-    const previousPendingLamports =
-      await getPendingPayoutBalanceLamports(kolWallet);
-    const totalSendLamports = previousPendingLamports + row.lamports;
-
-    const payoutDoc =
-      existing ??
-      (await KolPayout.create({
-        campaignId: campaign._id,
-        submissionId: row.submissionId,
-        kolWallet,
-        lamports: row.lamports,
-        status: "pending",
-      }));
-
-    if (totalSendLamports < MIN_KOL_PAYOUT_LAMPORTS) {
-      payoutDoc.status = "pending_minimum";
-      payoutDoc.error = null;
-      await payoutDoc.save();
-      await setPendingPayoutBalanceLamports(kolWallet, totalSendLamports);
-      results.push({
-        type: "kol",
-        submissionId: row.submissionId,
-        status: "pending_minimum",
-        lamports: row.lamports,
-        pendingBalanceLamports: totalSendLamports,
-        minPayoutLamports: MIN_KOL_PAYOUT_LAMPORTS,
-      });
-      continue;
-    }
-
-    try {
-      const sent = await sendPayout({
-        toWallet: kolWallet,
-        lamports: totalSendLamports,
-      });
-      payoutDoc.txSignature = sent.txSignature;
-      payoutDoc.status = "confirmed";
-      payoutDoc.error = null;
-      await payoutDoc.save();
-
-      await KolPayout.updateMany(
-        {
-          kolWallet,
-          status: "pending_minimum",
-          _id: { $ne: payoutDoc._id },
-        },
-        {
-          $set: {
-            status: "confirmed",
-            txSignature: sent.txSignature,
-            error: null,
-          },
-        },
-      );
-      await clearPendingPayoutBalance(kolWallet);
-
-      results.push({
-        type: "kol",
-        submissionId: row.submissionId,
-        status: "confirmed",
-        txSignature: sent.txSignature,
-        lamports: row.lamports,
-        sentLamports: totalSendLamports,
-        rolledFromPendingLamports: previousPendingLamports,
-      });
-    } catch (e) {
-      payoutDoc.status = "failed";
-      payoutDoc.error = e instanceof Error ? e.message : String(e);
-      await payoutDoc.save();
-      await setPendingPayoutBalanceLamports(kolWallet, totalSendLamports);
-      results.push({
-        type: "kol",
-        submissionId: row.submissionId,
-        status: "failed",
-        error: payoutDoc.error,
-        pendingBalanceLamports: totalSendLamports,
-      });
-    }
   }
 
   campaign.status = "completed";
@@ -1392,10 +1354,174 @@ export async function finalizeCampaign(campaignId) {
 
   return {
     success: true,
+    claimable: results.filter((r) => r.type === "kol" && r.status === "claimable"),
     payouts: results,
     reputation: reputationResults,
     points: pointsResults,
   };
+}
+
+/**
+ * @param {string} campaignId
+ * @param {{ wallet: string }} input
+ */
+export async function claimCampaignReward(campaignId, input) {
+  assertMongo();
+
+  if (!isPoolWalletConfigured()) {
+    const err = new Error("KOL_POOL_WALLET_PRIVATE_KEY is not configured");
+    err.code = "pool_wallet_unconfigured";
+    throw err;
+  }
+
+  const id = assertObjectId(campaignId);
+  const kolWallet = normalizeWallet(input.wallet);
+  if (!kolWallet) {
+    const err = new Error("wallet is required");
+    err.code = "invalid_wallet";
+    throw err;
+  }
+
+  const verification = await getWalletVerification(kolWallet);
+  if (!verification.verified || !verification.xHandleKey) {
+    const err = new Error("Verify your X account before claiming rewards");
+    err.code = "x_not_verified";
+    throw err;
+  }
+
+  const campaign = await KolCampaign.findById(id);
+  if (!campaign) {
+    const err = new Error("Campaign not found");
+    err.code = "not_found";
+    throw err;
+  }
+
+  if (campaign.status !== "completed") {
+    const err = new Error("Campaign is not ready for claims yet");
+    err.code = "invalid_status";
+    throw err;
+  }
+
+  const submission = await KolSubmission.findOne({
+    campaignId: campaign._id,
+    authorHandleKey: verification.xHandleKey,
+    claimStatus: "claimable",
+    earnedLamports: { $gt: 0 },
+  });
+
+  if (!submission) {
+    const err = new Error("No claimable reward found for your verified X account");
+    err.code = "not_found";
+    throw err;
+  }
+
+  if (campaign.requireCreatedOneCampaign) {
+    const hasCreatedCampaign = await walletHasCreatedCampaign(kolWallet);
+    if (!hasCreatedCampaign) {
+      const err = new Error("Create one campaign first to claim your reward");
+      err.code = "require_created_campaign";
+      throw err;
+    }
+  }
+
+  const existingPayout = await KolPayout.findOne({
+    campaignId: campaign._id,
+    submissionId: submission._id,
+    status: "confirmed",
+  });
+  if (existingPayout) {
+    const err = new Error("Reward already claimed for this campaign");
+    err.code = "already_claimed";
+    throw err;
+  }
+
+  const earnedLamports = submission.earnedLamports ?? 0;
+  const previousPendingLamports =
+    await getPendingPayoutBalanceLamports(kolWallet);
+  const totalSendLamports = previousPendingLamports + earnedLamports;
+
+  let payoutDoc = await KolPayout.findOne({
+    campaignId: campaign._id,
+    submissionId: submission._id,
+  });
+
+  if (!payoutDoc) {
+    payoutDoc = await KolPayout.create({
+      campaignId: campaign._id,
+      submissionId: submission._id,
+      kolWallet,
+      lamports: earnedLamports,
+      status: "pending",
+    });
+  }
+
+  if (totalSendLamports < MIN_KOL_PAYOUT_LAMPORTS) {
+    payoutDoc.status = "pending_minimum";
+    payoutDoc.kolWallet = kolWallet;
+    payoutDoc.error = null;
+    await payoutDoc.save();
+    await setPendingPayoutBalanceLamports(kolWallet, totalSendLamports);
+    submission.kolWallet = kolWallet;
+    await submission.save();
+
+    return {
+      status: "pending_minimum",
+      lamports: earnedLamports,
+      pendingBalanceLamports: totalSendLamports,
+      minPayoutLamports: MIN_KOL_PAYOUT_LAMPORTS,
+      minPayoutSol: MIN_KOL_PAYOUT_SOL,
+      submission: serializeSubmission(submission),
+    };
+  }
+
+  try {
+    const sent = await sendPayout({
+      toWallet: kolWallet,
+      lamports: totalSendLamports,
+    });
+
+    payoutDoc.txSignature = sent.txSignature;
+    payoutDoc.status = "confirmed";
+    payoutDoc.kolWallet = kolWallet;
+    payoutDoc.error = null;
+    await payoutDoc.save();
+
+    submission.claimStatus = "claimed";
+    submission.kolWallet = kolWallet;
+    await submission.save();
+
+    await KolPayout.updateMany(
+      {
+        kolWallet,
+        status: "pending_minimum",
+        _id: { $ne: payoutDoc._id },
+      },
+      {
+        $set: {
+          status: "confirmed",
+          txSignature: sent.txSignature,
+          error: null,
+        },
+      },
+    );
+    await clearPendingPayoutBalance(kolWallet);
+
+    return {
+      status: "confirmed",
+      txSignature: sent.txSignature,
+      lamports: earnedLamports,
+      sentLamports: totalSendLamports,
+      rolledFromPendingLamports: previousPendingLamports,
+      submission: serializeSubmission(submission),
+      payout: serializePayout(payoutDoc),
+    };
+  } catch (e) {
+    payoutDoc.status = "failed";
+    payoutDoc.error = e instanceof Error ? e.message : String(e);
+    await payoutDoc.save();
+    await setPendingPayoutBalanceLamports(kolWallet, totalSendLamports);
+    throw e;
+  }
 }
 
 /**
@@ -1411,7 +1537,17 @@ export async function getWalletEarnings(wallet) {
     throw err;
   }
 
-  const submissions = await KolSubmission.find({ kolWallet })
+  const verification = await getWalletVerification(kolWallet);
+  const handleKey = verification.xHandleKey ?? null;
+
+  const submissionQuery =
+    handleKey != null
+      ? {
+          $or: [{ kolWallet }, { authorHandleKey: handleKey }],
+        }
+      : { kolWallet };
+
+  const submissions = await KolSubmission.find(submissionQuery)
     .sort({ createdAt: -1 })
     .lean();
 
@@ -1453,11 +1589,14 @@ export async function getWalletEarnings(wallet) {
   const campaignMap = new Map(campaigns.map((c) => [String(c._id), c]));
 
   const active = [];
+  const claimable = [];
   const paid = [];
   const pendingMinimum = [];
   const seenPaidSubmissionIds = new Set();
   const seenPendingMinimumSubmissionIds = new Set();
+  const seenClaimableSubmissionIds = new Set();
   let totalProjectedLamports = 0;
+  let totalClaimableLamports = 0;
   let totalPaidLamports = 0;
   let totalPendingMinimumLamports = 0;
 
@@ -1483,6 +1622,18 @@ export async function getWalletEarnings(wallet) {
         payout: serializePayout(payout),
       });
       seenPendingMinimumSubmissionIds.add(String(s._id));
+    } else if (
+      campaign.status === "completed" &&
+      s.claimStatus === "claimable" &&
+      (s.earnedLamports ?? 0) > 0
+    ) {
+      totalClaimableLamports += s.earnedLamports ?? 0;
+      claimable.push({
+        submission: serializeSubmission(s),
+        campaign: serializeCampaign(campaign),
+        payout: null,
+      });
+      seenClaimableSubmissionIds.add(String(s._id));
     } else if (campaign.status === "active") {
       totalProjectedLamports += s.projectedLamports ?? 0;
       active.push({
@@ -1554,15 +1705,23 @@ export async function getWalletEarnings(wallet) {
     kolWallet,
   }).lean();
   const pendingBalanceLamports = pendingBalanceDoc?.pendingLamports ?? 0;
+  const hasCreatedCampaign = await walletHasCreatedCampaign(kolWallet);
 
   return {
     wallet: kolWallet,
+    xVerification: verification,
+    claimEligibility: {
+      hasCreatedCampaign,
+    },
     active,
+    claimable,
     paid,
     pendingMinimum,
     totals: {
       projectedLamports: totalProjectedLamports,
       projectedSol: totalProjectedLamports / LAMPORTS_PER_SOL,
+      claimableLamports: totalClaimableLamports,
+      claimableSol: totalClaimableLamports / LAMPORTS_PER_SOL,
       paidLamports: totalPaidLamports,
       paidSol: totalPaidLamports / LAMPORTS_PER_SOL,
       pendingMinimumLamports: totalPendingMinimumLamports,
@@ -1575,7 +1734,7 @@ export async function getWalletEarnings(wallet) {
     payoutPolicy: {
       minPayoutSol: MIN_KOL_PAYOUT_SOL,
       summary:
-        "On-chain payouts require at least 0.01 SOL. Smaller campaign earnings roll over and pay out automatically once your combined balance reaches the minimum.",
+        "Verify your X account, then claim rewards after a campaign ends. On-chain payouts require at least 0.01 SOL; smaller balances roll over until the minimum is reached.",
     },
   };
 }
@@ -1595,8 +1754,13 @@ export async function runKolDailyTick() {
 
   for (const campaign of activeCampaigns) {
     try {
+      const discoveryResult = await discoverCampaignEngagements(campaign._id);
       const refreshResult = await refreshCampaignMetrics(campaign._id);
-      refreshed.push({ campaignId: String(campaign._id), ...refreshResult });
+      refreshed.push({
+        campaignId: String(campaign._id),
+        discovery: discoveryResult,
+        ...refreshResult,
+      });
 
       if (campaign.endAt && now >= new Date(campaign.endAt)) {
         const result = await finalizeCampaign(campaign._id);
@@ -1728,10 +1892,20 @@ export async function backfillKolReputations(opts = {}) {
 /**
  * Marketplace-wide aggregate statistics.
  */
+/** @type {{ data: Awaited<ReturnType<typeof getMarketplaceStats>> | null; at: number }} */
+const marketplaceStatsCache = { data: null, at: 0 };
+const MARKETPLACE_STATS_CACHE_MS = 60_000;
+
 export async function getMarketplaceStats() {
   assertMongo();
 
-  await finalizeEndedActiveCampaigns();
+  const now = Date.now();
+  if (
+    marketplaceStatsCache.data &&
+    now - marketplaceStatsCache.at < MARKETPLACE_STATS_CACHE_MS
+  ) {
+    return marketplaceStatsCache.data;
+  }
 
   const [
     campaignStatusCounts,
@@ -1806,7 +1980,7 @@ export async function getMarketplaceStats() {
     views: 0,
   };
 
-  return {
+  const result = {
     totalCampaigns,
     activeCampaigns: statusMap.get("active") ?? 0,
     completedCampaigns: statusMap.get("completed") ?? 0,
@@ -1829,6 +2003,10 @@ export async function getMarketplaceStats() {
       total: engagementTotal(engagement),
     },
   };
+
+  marketplaceStatsCache.data = result;
+  marketplaceStatsCache.at = now;
+  return result;
 }
 
 /**

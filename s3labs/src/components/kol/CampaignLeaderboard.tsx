@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { KolLeaderboardEntry } from "@/lib/kolApi";
+import type { KolLeaderboardEntry, KolViewerClaimEligibility } from "@/lib/kolApi";
 import { formatCompact } from "@/lib/kolFormat";
 import { shortenAddress } from "@/lib/solanaKol";
 import { cn } from "@/lib/utils";
@@ -31,22 +31,43 @@ import { ScoreBreakdownTooltip } from "@/components/kol/ScoreBreakdownTooltip";
 interface CampaignLeaderboardProps {
   entries: KolLeaderboardEntry[];
   campaignStatus: string;
+  verifiedHandleKey?: string | null;
+  viewerClaimEligibility?: KolViewerClaimEligibility | null;
+}
+
+function LeaderboardClaimGateNote({ message }: { message: string }) {
+  return (
+    <p className="text-[11px] leading-snug text-amber-400/95 mt-1.5">{message}</p>
+  );
 }
 
 function getPayoutSol(entry: KolLeaderboardEntry): number {
+  if (entry.earnedSol != null && entry.earnedSol > 0) return entry.earnedSol;
   return entry.payout?.sol ?? entry.projectedSol;
 }
 
 function getPayoutLabel(entry: KolLeaderboardEntry, campaignStatus: string): string {
   if (entry.payout?.status === "pending_minimum") return "Held";
-  return campaignStatus === "completed" ? "Paid" : "Projected";
+  if (entry.claimStatus === "claimed") return "Claimed";
+  if (entry.claimStatus === "claimable") return "Claimable";
+  return campaignStatus === "completed" ? "Final" : "Projected";
+}
+
+function getWalletLabel(entry: KolLeaderboardEntry): string {
+  if (entry.kolWallet) return shortenAddress(entry.kolWallet, 6);
+  return `@${entry.authorHandle}`;
 }
 
 function walletsMatch(a: string, b: string): boolean {
   return a.trim().toLowerCase() === b.trim().toLowerCase();
 }
 
-export function CampaignLeaderboard({ entries, campaignStatus }: CampaignLeaderboardProps) {
+export function CampaignLeaderboard({
+  entries,
+  campaignStatus,
+  verifiedHandleKey,
+  viewerClaimEligibility,
+}: CampaignLeaderboardProps) {
   const wallet = useWallet();
   const walletAddress = wallet.publicKey?.toBase58() ?? null;
 
@@ -56,10 +77,28 @@ export function CampaignLeaderboard({ entries, campaignStatus }: CampaignLeaderb
   const ownWallet = walletAddress;
 
   const isOwnEntry = useMemo(
-    () => (entry: KolLeaderboardEntry) =>
-      ownWallet != null && walletsMatch(entry.kolWallet, ownWallet),
-    [ownWallet],
+    () => (entry: KolLeaderboardEntry) => {
+      if (ownWallet != null && entry.kolWallet && walletsMatch(entry.kolWallet, ownWallet)) {
+        return true;
+      }
+      if (verifiedHandleKey) {
+        const entryKey = (entry.authorHandleKey ?? entry.authorHandle)
+          .trim()
+          .replace(/^@/, "")
+          .toLowerCase();
+        return entryKey === verifiedHandleKey.toLowerCase();
+      }
+      return false;
+    },
+    [ownWallet, verifiedHandleKey],
   );
+
+  const claimGateMessage =
+    viewerClaimEligibility?.requireCreatedOneCampaign &&
+    !viewerClaimEligibility.hasCreatedCampaign
+      ? viewerClaimEligibility.message ??
+        "Create one campaign first to claim your reward."
+      : null;
 
   if (entries.length === 0) {
     return (
@@ -67,10 +106,10 @@ export function CampaignLeaderboard({ entries, campaignStatus }: CampaignLeaderb
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20">
           <Sparkles className="h-6 w-6 text-primary" aria-hidden />
         </div>
-        <p className="font-semibold text-base">No submissions yet</p>
+        <p className="font-semibold text-base">No engagers yet</p>
         <p className="text-muted-foreground text-sm max-w-sm mx-auto leading-relaxed">
-          Be the first KOL to join — reply or quote the post, submit your link, and claim the top
-          spot on the podium.
+          Be the first KOL to reply or quote the post on X — we auto-detect engagement every 6
+          hours.
         </p>
       </div>
     );
@@ -99,6 +138,7 @@ export function CampaignLeaderboard({ entries, campaignStatus }: CampaignLeaderb
           const payoutSol = getPayoutSol(entry);
           const payoutLabel = getPayoutLabel(entry, campaignStatus);
           const own = isOwnEntry(entry);
+          const showClaimGate = own && claimGateMessage != null;
           return (
             <Link
               key={entry.id}
@@ -115,14 +155,17 @@ export function CampaignLeaderboard({ entries, campaignStatus }: CampaignLeaderb
                   <LeaderboardKolCell
                     handle={entry.authorHandle}
                     verified={entry.verified}
-                    walletShort={shortenAddress(entry.kolWallet, 6)}
+                    walletShort={getWalletLabel(entry)}
                   />
                   <LeaderboardPayoutCell
                     payoutSol={payoutSol}
-                    payoutLabel={payoutLabel}
+                    payoutLabel={showClaimGate ? "Claim locked" : payoutLabel}
                     isTop={rank <= 3}
                   />
                 </div>
+                {showClaimGate ? (
+                  <LeaderboardClaimGateNote message={claimGateMessage} />
+                ) : null}
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <LeaderboardModeBadge mode={entry.mode} />
                   <ScoreBreakdownTooltip
@@ -167,6 +210,7 @@ export function CampaignLeaderboard({ entries, campaignStatus }: CampaignLeaderb
               const payoutSol = getPayoutSol(entry);
               const payoutLabel = getPayoutLabel(entry, campaignStatus);
               const own = isOwnEntry(entry);
+              const showClaimGate = own && claimGateMessage != null;
               return (
                 <TableRow
                   key={entry.id}
@@ -187,7 +231,7 @@ export function CampaignLeaderboard({ entries, campaignStatus }: CampaignLeaderb
                       <LeaderboardKolCell
                         handle={entry.authorHandle}
                         verified={entry.verified}
-                        walletShort={shortenAddress(entry.kolWallet, 6)}
+                        walletShort={getWalletLabel(entry)}
                       />
                       <span className="ml-auto">
                         <LeaderboardRowChevron />
@@ -222,9 +266,12 @@ export function CampaignLeaderboard({ entries, campaignStatus }: CampaignLeaderb
                   <TableCell className="align-middle">
                     <LeaderboardPayoutCell
                       payoutSol={payoutSol}
-                      payoutLabel={payoutLabel}
+                      payoutLabel={showClaimGate ? "Claim locked" : payoutLabel}
                       isTop={rank <= 3}
                     />
+                    {showClaimGate ? (
+                      <LeaderboardClaimGateNote message={claimGateMessage} />
+                    ) : null}
                   </TableCell>
                   <TableCell />
                 </TableRow>

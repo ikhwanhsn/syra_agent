@@ -17,6 +17,9 @@ import {
   getArticleBySlug,
   getRelatedArticles,
 } from "@/data/marketing/articleContent";
+import { useDocumentMeta } from "@/lib/marketing/useDocumentMeta";
+
+const SITE_ORIGIN = "https://www.syraa.fun" as const;
 
 export default function ArticlePage() {
   const { slug } = useParams<{ slug: string }>();
@@ -25,6 +28,14 @@ export default function ArticlePage() {
     () => (article ? getRelatedArticles(article.slug, 2) : []),
     [article],
   );
+
+  useDocumentMeta({
+    title: article ? `${article.title} · Syra` : "Article not found · Syra",
+    description: article?.description ?? "This Syra article does not exist or the link is outdated.",
+    canonicalPath: article ? `/articles/${article.slug}` : "/articles",
+    ogImage: article?.coverImage ? `${SITE_ORIGIN}${article.coverImage}` : undefined,
+    ogType: "article",
+  });
 
   const shareUrl = useMemo(() => {
     if (typeof window === "undefined" || !article) return "";

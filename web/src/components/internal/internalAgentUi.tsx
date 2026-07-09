@@ -109,7 +109,7 @@ export function InternalAgentsHero({
               Internal hub
             </h1>
             <p className="mt-2 max-w-xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-[15px]">
-              Product growth metrics, scout agents, and partnership pipeline — one place for the team to
+              Scout agents, partnership pipeline, and internal tools — one place for the team to
               understand traction and decide what to ship next.
             </p>
           </div>

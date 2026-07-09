@@ -22,6 +22,51 @@ export const SYRA_X_SOURCE_LINE = "Published on X · @syra_agent";
 
 export const articles: ArticleItem[] = [
   {
+    id: "syra-sdk-guide",
+    slug: "syra-sdk-guide",
+    title: "Syra SDK: Build Agents That Pay for Intelligence on Every Call",
+    description:
+      "A complete guide to @syra-ai/sdk — install, auto-pay x402 routes, pillar modules, MCP integration, and production patterns for TypeScript agents on Solana and Base.",
+    href: "/articles/syra-sdk-guide",
+    external: false,
+    comingSoon: false,
+    source: SYRA_X_SOURCE_LINE,
+    coverImage: "/images/articles/article-one.webp",
+    publishedAt: "2026-07-09",
+    readingTimeMinutes: 12,
+    tags: ["SDK", "TypeScript", "x402", "Developers"],
+  },
+  {
+    id: "future-agentic-era",
+    slug: "future-agentic-era-syra-positioning",
+    title: "The Agentic Era Is Here — How Syra Positions for Machine Economies",
+    description:
+      "Autonomous agents are scaling fast, but most still cannot own capital or pay for tools without humans in the loop. Here is how Syra positions as the machine money rail for the agentic era on Solana.",
+    href: "/articles/future-agentic-era-syra-positioning",
+    external: false,
+    comingSoon: false,
+    source: SYRA_X_SOURCE_LINE,
+    coverImage: "/images/articles/article-two.webp",
+    publishedAt: "2026-07-05",
+    readingTimeMinutes: 11,
+    tags: ["Agents", "Strategy", "Solana", "Infrastructure"],
+  },
+  {
+    id: "what-is-syra",
+    slug: "what-is-syra",
+    title: "What Is Syra? Machine Money for Agents on Solana",
+    description:
+      "Syra is machine money for autonomous agents — Earn, Treasury, Invest, Spend (x402), and Grow on Solana. A complete overview of what Syra is, who it is for, and how the five-pillar rail works.",
+    href: "/articles/what-is-syra",
+    external: false,
+    comingSoon: false,
+    source: SYRA_X_SOURCE_LINE,
+    coverImage: "/images/articles/article-two.webp",
+    publishedAt: "2026-07-01",
+    readingTimeMinutes: 10,
+    tags: ["Product", "Overview", "Agents", "Solana"],
+  },
+  {
     id: "syra-x402-mpp",
     slug: "syra-access-x402-mpp",
     title:
@@ -53,15 +98,16 @@ export const articles: ArticleItem[] = [
     readingTimeMinutes: 7,
     tags: ["Solana", "Trading", "Agents"],
   },
-  {
-    id: "article-2",
-    slug: "coming-soon",
-    title: "More from Syra on X",
-    description:
-      "The next article is in the works. Follow @syra_agent on X for release notes, API updates, and how we're building machine money for agents.",
-    href: "#",
-    external: false,
-    comingSoon: true,
-    source: SYRA_X_SOURCE_LINE,
-  },
 ];
+
+export function getPublishedArticles(items: ArticleItem[] = articles): ArticleItem[] {
+  return items.filter((a) => !a.comingSoon);
+}
+
+export function getAllArticleTags(items: ArticleItem[] = articles): string[] {
+  const tags = new Set<string>();
+  for (const article of items) {
+    article.tags?.forEach((tag) => tags.add(tag));
+  }
+  return Array.from(tags).sort((a, b) => a.localeCompare(b));
+}

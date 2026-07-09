@@ -4,11 +4,11 @@
 import express from "express";
 import { requireMongooseConnection } from "../../config/mongoose.js";
 import {
+  claimCampaignReward,
   confirmCampaignDeposit,
   confirmCampaignTopUp,
   createCampaign,
   createCampaignTopUp,
-  createSubmission,
   enrichMissingCampaignAuthors,
   backfillSubmissionAuthorKeys,
   backfillKolReputations,
@@ -20,6 +20,11 @@ import {
   listKols,
   listProjects,
 } from "../../libs/kolMarketplaceService.js";
+import {
+  confirmXVerification,
+  getWalletVerification,
+  requestXVerification,
+} from "../../libs/kolXVerificationService.js";
 import { refreshAllMarketplaceXProfiles } from "../../libs/kolXProfileCache.js";
 import {
   getWalletPoints,
@@ -71,6 +76,10 @@ function handleServiceError(res, error) {
     duplicate_kol_handle: 409,
     duplicate_post: 409,
     already_claimed: 409,
+    handle_already_verified: 409,
+    x_not_verified: 403,
+    verification_expired: 400,
+    verification_code_not_found: 400,
     submission_not_related: 400,
     deposit_tx_invalid: 400,
     deposit_sender_mismatch: 400,
@@ -321,7 +330,9 @@ export function createKolRouter() {
 
   router.get("/campaigns/:id", requireMongooseConnection, async (req, res) => {
     try {
-      const result = await getCampaignDetail(req.params.id);
+      const wallet =
+        typeof req.query.wallet === "string" ? req.query.wallet : undefined;
+      const result = await getCampaignDetail(req.params.id, { wallet });
       return res.json({ success: true, data: result });
     } catch (e) {
       return handleServiceError(res, e);
@@ -329,16 +340,54 @@ export function createKolRouter() {
   });
 
   router.post(
-    "/campaigns/:id/submissions",
+    "/verify/request",
     requireMongooseConnection,
     async (req, res) => {
       try {
-        const { kolWallet, tweetUrl } = req.body || {};
-        const result = await createSubmission(req.params.id, {
-          kolWallet,
-          tweetUrl,
-        });
+        const { wallet, xHandle } = req.body || {};
+        const result = await requestXVerification({ wallet, xHandle });
         return res.status(201).json({ success: true, data: result });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
+
+  router.post(
+    "/verify/confirm",
+    requireMongooseConnection,
+    async (req, res) => {
+      try {
+        const { wallet, xHandle } = req.body || {};
+        const result = await confirmXVerification({ wallet, xHandle });
+        return res.json({ success: true, data: result });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
+
+  router.get(
+    "/wallets/:wallet/verification",
+    requireMongooseConnection,
+    async (req, res) => {
+      try {
+        const result = await getWalletVerification(req.params.wallet);
+        return res.json({ success: true, data: result });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
+
+  router.post(
+    "/campaigns/:id/claim",
+    requireMongooseConnection,
+    async (req, res) => {
+      try {
+        const { wallet } = req.body || {};
+        const result = await claimCampaignReward(req.params.id, { wallet });
+        return res.json({ success: true, data: result });
       } catch (e) {
         return handleServiceError(res, e);
       }

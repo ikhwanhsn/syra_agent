@@ -5,7 +5,7 @@ import { isMongooseConnected } from "../config/mongoose.js";
 import { runKolDailyTick } from "./kolMarketplaceService.js";
 import { startupVerbose } from "../utils/startupLog.js";
 
-const DEFAULT_CRON_MS = 24 * 60 * 60 * 1000;
+const DEFAULT_CRON_MS = 6 * 60 * 60 * 1000;
 
 /** @type {ReturnType<typeof setInterval> | null} */
 let cronHandle = null;
@@ -14,8 +14,11 @@ let cronHandle = null;
 let tickInFlight = false;
 
 function getCronMs() {
-  const raw = Number(process.env.KOL_DAILY_CRON_MS || DEFAULT_CRON_MS);
-  return Number.isFinite(raw) && raw >= 60_000 ? raw : DEFAULT_CRON_MS;
+  const snapshotRaw = process.env.KOL_SNAPSHOT_CRON_MS;
+  const dailyRaw = process.env.KOL_DAILY_CRON_MS;
+  const raw = snapshotRaw ?? dailyRaw ?? DEFAULT_CRON_MS;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 60_000 ? n : DEFAULT_CRON_MS;
 }
 
 /**
@@ -58,7 +61,7 @@ export function startKolDailyScheduler() {
     cronHandle.unref();
   }
 
-  startupVerbose(`[kol] daily scheduler started (every ${Math.round(ms / 60000)} min)`);
+  startupVerbose(`[kol] snapshot scheduler started (every ${Math.round(ms / 60000)} min)`);
 
   // Opt-in only: a full tick on every deploy/restart re-bills getTweetById for all
   // active submissions. Set KOL_DAILY_RUN_ON_START=1 to restore boot behavior.

@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useWallet } from "@solana/wallet-adapter-react";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -13,8 +14,17 @@ import { Link } from "react-router-dom";
 
 import { Badge, badgeVariants } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { KolCampaign, KolLeaderboardEntry } from "@/lib/kolApi";
-import { DEFAULT_KOL_CONFIG, fetchKolConfig, getKolRewardSol } from "@/lib/kolApi";
+import type {
+  KolCampaign,
+  KolLeaderboardEntry,
+  KolViewerClaimEligibility,
+} from "@/lib/kolApi";
+import {
+  DEFAULT_KOL_CONFIG,
+  fetchKolConfig,
+  fetchWalletVerification,
+  getKolRewardSol,
+} from "@/lib/kolApi";
 import {
   getCampaignDisplayLabel,
   getCampaignDisplayPhase,
@@ -25,15 +35,17 @@ import {
 import { formatSol, formatTimeLeft } from "@/lib/kolFormat";
 import { cn } from "@/lib/utils";
 import { AddRewardForm } from "./AddRewardForm";
+import { CampaignClaimCard } from "./CampaignClaimCard";
 import { CampaignLeaderboard } from "./CampaignLeaderboard";
 import { KolCampaignEarnShareAction } from "./KolCampaignEarnShareAction";
 import { KolMyRankShareAction } from "./KolMyRankShareBar";
 import { SourceTweetCard } from "./SourceTweetCard";
-import { SubmitEngagementForm } from "./SubmitEngagementForm";
+import { VerifyXAccountCard } from "./VerifyXAccountCard";
 
 interface CampaignDetailProps {
   campaign: KolCampaign;
   leaderboard: KolLeaderboardEntry[];
+  viewerClaimEligibility?: KolViewerClaimEligibility | null;
   onClose: () => void;
   onRefresh?: () => void;
 }
@@ -42,27 +54,48 @@ const statusMessages: Record<
   ReturnType<typeof getCampaignDisplayPhase>,
   string
 > = {
-  live: "This campaign is live — reply or quote the post below, then submit your URL to start earning.",
+  live: "This campaign is live — reply or quote the post below. We auto-detect engagers every 6 hours.",
   finalizing:
-    "This campaign has ended. Final engagement snapshots are being processed and SOL rewards will be distributed shortly.",
+    "This campaign has ended. Final engagement snapshots are being processed — verify your X account to claim rewards.",
   pending_deposit: "Waiting for the project to fund this campaign.",
-  completed: "Campaign ended. Final payouts have been calculated based on engagement at snapshot.",
-  cancelled: "This campaign was cancelled and is no longer accepting submissions.",
+  completed: "Campaign ended. Verify your X account and claim your earned SOL.",
+  cancelled: "This campaign was cancelled.",
 };
 
 const earnSteps = [
-  { step: 1, text: "Read the source post and craft your reply or quote tweet on X." },
-  { step: 2, text: "Paste your tweet URL below and connect your Solana wallet." },
-  { step: 3, text: "Climb the leaderboard — rewards split automatically when time runs out." },
+  { step: 1, text: "Reply or quote the source post on X — no form to submit here." },
+  { step: 2, text: "We snapshot engagers every 6 hours and rank you on the live leaderboard." },
+  { step: 3, text: "After the campaign ends, verify your X account and claim your SOL share." },
 ] as const;
 
-export function CampaignDetail({ campaign, leaderboard, onClose, onRefresh }: CampaignDetailProps) {
+export function CampaignDetail({
+  campaign,
+  leaderboard,
+  viewerClaimEligibility,
+  onClose,
+  onRefresh,
+}: CampaignDetailProps) {
+  const wallet = useWallet();
+  const address = wallet.publicKey?.toBase58();
+
   const configQuery = useQuery({
     queryKey: ["kol-config"],
     queryFn: fetchKolConfig,
     staleTime: 5 * 60 * 1000,
   });
   const config = configQuery.data ?? DEFAULT_KOL_CONFIG;
+
+  const verificationQuery = useQuery({
+    queryKey: ["kol-x-verification", address],
+    queryFn: () => fetchWalletVerification(address!),
+    enabled: Boolean(address),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const verifiedHandleKey =
+    verificationQuery.data?.xHandleKey ??
+    verificationQuery.data?.xHandle?.replace(/^@/, "").toLowerCase() ??
+    null;
 
   const rewardSol = getKolRewardSol(campaign);
   const displayPhase = getCampaignDisplayPhase(campaign);
@@ -253,13 +286,17 @@ export function CampaignDetail({ campaign, leaderboard, onClose, onRefresh }: Ca
         </div>
       ) : null}
 
-      {isLive ? (
-        <SubmitEngagementForm
+      {isLive || campaign.status === "completed" ? (
+        <VerifyXAccountCard compactWhenVerified onVerified={onRefresh} />
+      ) : null}
+
+      {campaign.status === "completed" ? (
+        <CampaignClaimCard
           campaignId={campaign.id}
           campaignTitle={campaign.title}
-          rewardSol={rewardSol}
-          requireFollowS3Labs={campaign.requireFollowS3Labs === true}
-          onSubmitted={onRefresh}
+          leaderboard={leaderboard}
+          viewerClaimEligibility={viewerClaimEligibility}
+          onClaimed={onRefresh}
         />
       ) : null}
 
@@ -276,10 +313,10 @@ export function CampaignDetail({ campaign, leaderboard, onClose, onRefresh }: Ca
             </div>
             <p className="text-sm text-muted-foreground max-w-xl">
               {campaign.status === "completed"
-                ? "Final rankings and confirmed payouts."
+                ? "Final rankings — claim your reward after verifying X."
                 : isFinalizing
-                  ? "Final rankings based on last snapshot. Payouts are being processed."
-                  : "Rankings update daily. Higher score = larger projected payout."}
+                  ? "Final rankings based on last snapshot. Verify X to claim when ready."
+                  : "Rankings update every 6 hours. Higher score = larger projected payout."}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 shrink-0">
@@ -298,7 +335,12 @@ export function CampaignDetail({ campaign, leaderboard, onClose, onRefresh }: Ca
             />
           </div>
         </div>
-        <CampaignLeaderboard entries={leaderboard} campaignStatus={campaign.status} />
+        <CampaignLeaderboard
+          entries={leaderboard}
+          campaignStatus={campaign.status}
+          verifiedHandleKey={verifiedHandleKey}
+          viewerClaimEligibility={viewerClaimEligibility}
+        />
       </div>
     </div>
   );

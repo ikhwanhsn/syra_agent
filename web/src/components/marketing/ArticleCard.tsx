@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ArticleItem } from "@/data/marketing/articles";
+import { ArticleCopyForXButton } from "@/components/marketing/ArticleCopyForXButton";
 
 /** Shared surface: one accent color, same hover on every card (including coming soon). */
 const cardSurfaceClass =
@@ -19,6 +20,7 @@ export interface ArticleCardProps {
   motionInitial?: TargetAndTransition;
   motionAnimate?: TargetAndTransition;
   motionTransition?: Transition;
+  showAdminCopy?: boolean;
 }
 
 function ArticleMedia({ article }: { article: ArticleItem }) {
@@ -63,6 +65,7 @@ export function ArticleCard({
   motionInitial = { opacity: 0, y: 30 },
   motionAnimate = { opacity: 1, y: 0 },
   motionTransition = { duration: 0.5, delay: 0 },
+  showAdminCopy = false,
 }: ArticleCardProps) {
   const headingClass =
     "mb-2 text-lg font-semibold transition-colors group-hover:text-primary";
@@ -92,6 +95,13 @@ export function ArticleCard({
     </>
   );
 
+  const cardInner = (
+    <>
+      <ArticleMedia article={article} />
+      <div className="flex flex-1 flex-col p-6">{body}</div>
+    </>
+  );
+
   return (
     <motion.div
       initial={motionInitial}
@@ -99,14 +109,18 @@ export function ArticleCard({
       transition={motionTransition}
       className={cn(
         cardSurfaceClass,
+        "relative",
         article.comingSoon ? "cursor-default" : "cursor-pointer",
       )}
     >
-      {article.comingSoon ? (
-        <div className="flex h-full flex-col">
-          <ArticleMedia article={article} />
-          <div className="flex flex-1 flex-col p-6">{body}</div>
+      {showAdminCopy && !article.comingSoon ? (
+        <div className="absolute right-3 top-3 z-10">
+          <ArticleCopyForXButton slug={article.slug} variant="card" />
         </div>
+      ) : null}
+
+      {article.comingSoon ? (
+        <div className="flex h-full flex-col">{cardInner}</div>
       ) : article.external ? (
         <a
           href={article.href}
@@ -114,16 +128,14 @@ export function ArticleCard({
           rel="noopener noreferrer"
           className="flex h-full flex-col outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
-          <ArticleMedia article={article} />
-          <div className="flex flex-1 flex-col p-6">{body}</div>
+          {cardInner}
         </a>
       ) : (
         <Link
           to={article.href}
           className="flex h-full flex-col outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
-          <ArticleMedia article={article} />
-          <div className="flex flex-1 flex-col p-6">{body}</div>
+          {cardInner}
         </Link>
       )}
     </motion.div>

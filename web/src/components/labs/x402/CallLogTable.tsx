@@ -1,4 +1,5 @@
-import { Loader2 } from "lucide-react";
+import { CallLogTableSkeleton } from "@/components/labs/LabsSkeleton";
+import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -36,13 +37,10 @@ interface CallLogTableProps {
 }
 
 export function CallLogTable({ calls, isLoading }: CallLogTableProps) {
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12 text-muted-foreground">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden />
-        Loading call log…
-      </div>
-    );
+  const showSkeleton = useMinimumSkeleton(isLoading);
+
+  if (showSkeleton) {
+    return <CallLogTableSkeleton />;
   }
 
   if (calls.length === 0) {

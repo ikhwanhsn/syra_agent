@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
-import { ClipboardList, Loader2, Plus } from "lucide-react";
+import { ClipboardList, Plus } from "lucide-react";
 import { AdminDashboardGate } from "@/components/dashboard/AdminDashboardGate";
-import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 import { DeleteEntryDialog } from "@/components/organize/DeleteEntryDialog";
 import { EntryDialog } from "@/components/organize/EntryDialog";
+import { OrganizeSummarySkeleton } from "@/components/organize/OrganizeSkeleton";
 import { OrganizeTable } from "@/components/organize/OrganizeTable";
+import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useOrganize } from "@/hooks/useOrganize";
@@ -13,6 +14,7 @@ import {
   PAGE_PADDING_TOP_MEDIUM,
   PAGE_SAFE_AREA_BOTTOM,
 } from "@/lib/layoutConstants";
+import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 import type { OrganizeEntry, OrganizeEntryInput, OrganizeEntryStatus, OrganizeEntryType } from "@/lib/organizeApi";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +28,7 @@ export default function OrganizePage() {
   const [deletingEntry, setDeletingEntry] = useState<OrganizeEntry | null>(null);
 
   const { entriesQ, createM, updateM, deleteM } = useOrganize();
+  const showSkeleton = useMinimumSkeleton(entriesQ.isLoading);
   const allEntries = useMemo(() => entriesQ.data ?? [], [entriesQ.data]);
 
   const entries = useMemo(() => {
@@ -111,44 +114,32 @@ export default function OrganizePage() {
           </Button>
         </div>
 
-        <div className="mb-6 grid gap-3 sm:grid-cols-3">
-          <div className={cn(overviewCardShell, "p-4")}>
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Total entries
-            </p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums">
-              {entriesQ.isLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-hidden />
-              ) : (
-                summary.total
-              )}
-            </p>
+        {showSkeleton ? (
+          <OrganizeSummarySkeleton />
+        ) : (
+          <div className="mb-6 grid gap-3 sm:grid-cols-3">
+            <div className={cn(overviewCardShell, "p-4")}>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Total entries
+              </p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums">{summary.total}</p>
+            </div>
+            <div className={cn(overviewCardShell, "p-4")}>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Active
+              </p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums">{summary.active}</p>
+            </div>
+            <div className={cn(overviewCardShell, "p-4")}>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Deadlines (30d)
+              </p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums">
+                {summary.upcomingDeadlines}
+              </p>
+            </div>
           </div>
-          <div className={cn(overviewCardShell, "p-4")}>
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Active
-            </p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums">
-              {entriesQ.isLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-hidden />
-              ) : (
-                summary.active
-              )}
-            </p>
-          </div>
-          <div className={cn(overviewCardShell, "p-4")}>
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Deadlines (30d)
-            </p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums">
-              {entriesQ.isLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-hidden />
-              ) : (
-                summary.upcomingDeadlines
-              )}
-            </p>
-          </div>
-        </div>
+        )}
 
         {mutationError ? (
           <Alert variant="destructive" className="mb-4">
@@ -158,7 +149,7 @@ export default function OrganizePage() {
 
         <OrganizeTable
           entries={entries}
-          isLoading={entriesQ.isLoading}
+          isLoading={showSkeleton}
           typeFilter={typeFilter}
           statusFilter={statusFilter}
           onTypeFilterChange={setTypeFilter}

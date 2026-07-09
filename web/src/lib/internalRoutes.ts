@@ -1,4 +1,4 @@
-/** Internal team hub — product metrics + scout agents. */
+/** Internal team hub — scout agents + internal tools. */
 export const INTERNAL_BASE_PATH = "/internal";
 
 export function internalAgentPath(slug: string): string {

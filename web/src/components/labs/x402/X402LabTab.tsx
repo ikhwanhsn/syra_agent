@@ -9,6 +9,8 @@ import { DepositDialog } from "@/components/labs/x402/DepositDialog";
 import { AutoCallSettingsPanel } from "@/components/labs/x402/AutoCallSettingsPanel";
 import { SimulationPanel } from "@/components/labs/x402/SimulationPanel";
 import { CallLogTable } from "@/components/labs/x402/CallLogTable";
+import { EndpointsGridSkeleton } from "@/components/labs/LabsSkeleton";
+import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import type { LabWallet } from "@/lib/labsX402Api";
 
 export function X402LabTab() {
@@ -34,6 +36,7 @@ export function X402LabTab() {
   const wallets = walletsQ.data ?? [];
   const payerCount = wallets.filter((w) => w.role === "payer").length;
   const hasPayTo = wallets.some((w) => w.role === "payto");
+  const showEndpointsSkeleton = useMinimumSkeleton(endpointsQ.isLoading);
 
   const handleCreate = (input: { label: string; role: "payer" | "payto" }) => {
     createWalletM.mutate(input, {
@@ -125,27 +128,31 @@ export function X402LabTab() {
         />
       </section>
 
-      {endpointsQ.data && endpointsQ.data.length > 0 ? (
+      {showEndpointsSkeleton || (endpointsQ.data && endpointsQ.data.length > 0) ? (
         <section className="space-y-3">
           <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Available endpoints
           </h3>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {endpointsQ.data.map((ep) => (
-              <div
-                key={ep.id}
-                className="rounded-lg border border-border/60 bg-card/50 p-3 text-sm"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <code className="text-xs font-medium">{ep.path}</code>
-                  <span className="font-mono text-xs text-muted-foreground">
-                    ${ep.priceUsd.toFixed(2)}
-                  </span>
+          {showEndpointsSkeleton ? (
+            <EndpointsGridSkeleton />
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {endpointsQ.data!.map((ep) => (
+                <div
+                  key={ep.id}
+                  className="rounded-lg border border-border/60 bg-card/50 p-3 text-sm"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <code className="text-xs font-medium">{ep.path}</code>
+                    <span className="font-mono text-xs text-muted-foreground">
+                      ${ep.priceUsd.toFixed(2)}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">{ep.description}</p>
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">{ep.description}</p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
       ) : null}
 

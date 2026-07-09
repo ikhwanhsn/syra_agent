@@ -1,4 +1,6 @@
-import { Copy, Loader2, Wallet, ArrowDownToLine, Play } from "lucide-react";
+import { Copy, Wallet, ArrowDownToLine, Play } from "lucide-react";
+import { WalletListSkeleton } from "@/components/labs/LabsSkeleton";
+import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +42,7 @@ export function WalletList({
   isRunning,
 }: WalletListProps) {
   const [copied, setCopied] = useState<string | null>(null);
+  const showSkeleton = useMinimumSkeleton(isLoading);
 
   const copy = async (addr: string) => {
     await navigator.clipboard.writeText(addr);
@@ -47,13 +50,8 @@ export function WalletList({
     setTimeout(() => setCopied(null), 2000);
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12 text-muted-foreground">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden />
-        Loading wallets…
-      </div>
-    );
+  if (showSkeleton) {
+    return <WalletListSkeleton />;
   }
 
   if (wallets.length === 0) {

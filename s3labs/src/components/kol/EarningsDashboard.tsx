@@ -1,11 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { ExternalLink } from "lucide-react";
-import { Link } from "react-router-dom";
+import { ExternalLink, Loader2 } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 import { PageLoader } from "@/components/PageLoader";
 import { KolPointsInfo } from "@/components/kol/KolPointsInfo";
-import { fetchWalletEarnings, fetchWalletPoints } from "@/lib/kolApi";
+import { VerifyXAccountCard } from "@/components/kol/VerifyXAccountCard";
+import { Button } from "@/components/ui/button";
+import { claimCampaignReward, fetchWalletEarnings, fetchWalletPoints, KolApiError } from "@/lib/kolApi";
 import { shortenAddress } from "@/lib/solanaKol";
 import { Badge } from "@/components/ui/badge";
 
@@ -18,6 +21,7 @@ function formatSol(sol: number): string {
 
 export function EarningsDashboard() {
   const wallet = useWallet();
+  const queryClient = useQueryClient();
   const address = wallet.publicKey?.toBase58();
 
   const { data, isLoading, refetch, isFetching } = useQuery({
@@ -35,6 +39,7 @@ export function EarningsDashboard() {
   return (
     <div className="space-y-6 min-w-0">
       <KolPointsInfo />
+      <VerifyXAccountCard compactWhenVerified onVerified={() => refetch()} />
 
       <div className="panel-glass rounded-2xl border border-border/60 p-5 sm:p-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -42,7 +47,7 @@ export function EarningsDashboard() {
             <p className="eyebrow mb-2">My Earnings</p>
             <h2 className="heading-section">KOL wallet dashboard</h2>
             <p className="text-sm text-muted-foreground mt-2">
-              Projected rewards update daily. Final payout is sent automatically at campaign snapshot.
+              Auto-tracked every 6h. Verify X and claim SOL after campaigns end.
             </p>
           </div>
         </div>
@@ -54,11 +59,17 @@ export function EarningsDashboard() {
             <PageLoader label="Loading earnings" variant="inline" />
           </div>
         ) : data ? (
-          <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="rounded-xl border border-border/60 p-4">
               <p className="text-xs uppercase tracking-wider text-muted-foreground">Projected (active)</p>
               <p className="text-2xl font-semibold text-primary mt-1">
                 {formatSol(data.totals.projectedSol)} SOL
+              </p>
+            </div>
+            <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/[0.06] p-4">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Claimable</p>
+              <p className="text-2xl font-semibold text-emerald-400 mt-1 tabular-nums">
+                {formatSol(data.totals.claimableSol ?? 0)} SOL
               </p>
             </div>
             <div className="rounded-xl border border-border/60 p-4">
@@ -97,6 +108,26 @@ export function EarningsDashboard() {
           </button>
         ) : null}
       </div>
+
+      {data?.claimable?.length ? (
+        <section className="space-y-3">
+          <h3 className="font-semibold">Ready to claim</h3>
+          <div className="grid gap-3">
+            {data.claimable.map((row) => (
+              <ClaimableRow
+                key={row.submission.id}
+                row={row}
+                wallet={address!}
+                hasCreatedCampaign={data.claimEligibility?.hasCreatedCampaign ?? false}
+                onClaimed={() => {
+                  refetch();
+                  queryClient.invalidateQueries({ queryKey: ["kol-x-verification", address] });
+                }}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {data?.active.length ? (
         <section className="space-y-3">
@@ -139,7 +170,9 @@ export function EarningsDashboard() {
                 <div className="min-w-0 flex-1">
                   <p className="font-medium truncate">{row.campaign.title}</p>
                   <p className="text-xs text-muted-foreground mt-1 font-mono">
-                    {shortenAddress(row.submission.kolWallet, 6)}
+                    {row.submission.kolWallet
+                      ? shortenAddress(row.submission.kolWallet, 6)
+                      : `@${row.submission.authorHandle}`}
                   </p>
                 </div>
                 <div className="text-left sm:text-right shrink-0">
@@ -161,6 +194,91 @@ export function EarningsDashboard() {
           </div>
         </section>
       ) : null}
+    </div>
+  );
+}
+
+function ClaimableRow({
+  row,
+  wallet,
+  hasCreatedCampaign,
+  onClaimed,
+}: {
+  row: NonNullable<Awaited<ReturnType<typeof fetchWalletEarnings>>["claimable"]>[number];
+  wallet: string;
+  hasCreatedCampaign: boolean;
+  onClaimed: () => void;
+}) {
+  const navigate = useNavigate();
+  const claimBlocked =
+    row.campaign.requireCreatedOneCampaign === true && !hasCreatedCampaign;
+
+  const mutation = useMutation({
+    mutationFn: () => claimCampaignReward(row.campaign.id, { wallet }),
+    onSuccess: (data) => {
+      if (data.status === "pending_minimum") {
+        toast.message("Reward queued below minimum payout threshold");
+      } else {
+        toast.success("Reward claimed!");
+      }
+      onClaimed();
+    },
+    onError: (e: Error) => {
+      if (e instanceof KolApiError && e.code === "require_created_campaign") {
+        toast.error(e.message);
+        return;
+      }
+      toast.error(e.message);
+    },
+  });
+
+  const earnedSol = row.submission.earnedSol ?? row.submission.projectedSol ?? 0;
+
+  return (
+    <div className="panel-glass rounded-xl border border-emerald-500/25 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+      <div className="min-w-0 flex-1">
+        <p className="font-medium truncate">{row.campaign.title}</p>
+        <p className="text-xs text-muted-foreground mt-1">
+          @{row.submission.authorHandle} · score {row.submission.latestScore.toFixed(1)}
+        </p>
+        {claimBlocked ? (
+          <p className="text-xs text-amber-400 mt-2">
+            Create one campaign first to claim your reward.
+          </p>
+        ) : null}
+      </div>
+      <div className="flex items-center gap-3 shrink-0">
+        <p className="text-emerald-400 font-semibold tabular-nums">
+          {formatSol(earnedSol)} SOL
+        </p>
+        {claimBlocked ? (
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-full"
+            onClick={() => navigate("/kol?tab=create")}
+          >
+            Create campaign
+          </Button>
+        ) : (
+          <Button
+            variant="hero"
+            size="sm"
+            className="rounded-full"
+            disabled={mutation.isPending}
+            onClick={() => mutation.mutate()}
+          >
+            {mutation.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Claiming…
+              </>
+            ) : (
+              "Claim"
+            )}
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

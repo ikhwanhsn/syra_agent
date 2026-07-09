@@ -14,14 +14,14 @@ const steps = [
     icon: ArrowRight,
     title: "Reply or quote on X",
     description:
-      "Share your take — reply to or quote the project's post. Quality engagement earns more than cheap volume.",
+      "Share your take — reply to or quote the project's post. We auto-detect your engagement every 6 hours.",
   },
   {
     number: "03",
     icon: Coins,
-    title: "Get paid automatically",
+    title: "Verify & claim SOL",
     description:
-      "Submit your post URL here. When the campaign ends, rewards are split by fair engagement score and sent to your wallet.",
+      "When the campaign ends, verify your X account and claim your pro-rata share of the reward pool.",
   },
 ] as const;
 
@@ -44,7 +44,7 @@ export function KolHowItWorks() {
           </h2>
         </div>
         <p className="text-sm text-muted-foreground max-w-sm sm:text-right">
-          No applications. No middlemen. Connect your wallet, post on X, and track your rank live.
+          No applications. Reply or quote on X — we track engagement automatically and you claim after verify.
         </p>
       </div>
 

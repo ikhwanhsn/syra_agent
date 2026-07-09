@@ -18,9 +18,10 @@ import { isAdminWallet } from "@/lib/adminWallet";
 import {
   confirmCampaignDeposit,
   createCampaign,
+  DEFAULT_KOL_CONFIG,
   type KolCampaign,
 } from "@/lib/kolApi";
-import { sendCampaignDeposit } from "@/lib/solanaKol";
+import { lamportsToSol, sendCampaignDeposit, solToLamports } from "@/lib/solanaKol";
 
 interface CreateCampaignFormProps {
   minRewardSol: number;
@@ -35,7 +36,7 @@ interface CreateCampaignFormProps {
 export function CreateCampaignForm({
   minRewardSol,
   minKolRewardSol,
-  platformFeeSol = 0.05,
+  platformFeeSol = DEFAULT_KOL_CONFIG.platformFeeSol,
   minDurationDays = 1,
   maxDurationDays,
   poolWalletAddress,
@@ -66,17 +67,23 @@ export function CreateCampaignForm({
 
   const durationDays = durationDaysFromEndDate(endDate);
   const kolRewardNum = Number(rewardSol);
-  const totalDepositSol =
+  const minKolPoolLamports = solToLamports(minKolPoolSol);
+  const kolRewardLamports =
     Number.isFinite(kolRewardNum) && kolRewardNum > 0
-      ? kolRewardNum + platformFeeSol
+      ? solToLamports(kolRewardNum)
       : 0;
+  const totalDepositLamports =
+    kolRewardLamports > 0
+      ? kolRewardLamports + solToLamports(platformFeeSol)
+      : 0;
+  const totalDepositSol = lamportsToSol(totalDepositLamports);
 
   const createMutation = useMutation({
     mutationFn: async () => {
       if (!wallet.publicKey)
         throw new Error("Connect your Solana wallet first");
 
-      if (!Number.isFinite(kolRewardNum) || kolRewardNum < minKolPoolSol) {
+      if (kolRewardLamports < minKolPoolLamports) {
         throw new Error(`Minimum KOL reward is ${minKolPoolSol} SOL`);
       }
 
@@ -145,8 +152,7 @@ export function CreateCampaignForm({
 
   const isBusy = createMutation.isPending || depositMutation.isPending;
   const awaitingDeposit = Boolean(pendingCampaign && depositInfo);
-  const rewardValid =
-    Number.isFinite(kolRewardNum) && kolRewardNum >= minKolPoolSol;
+  const rewardValid = kolRewardLamports >= minKolPoolLamports;
   const durationValid =
     durationDays >= minDurationDays && durationDays <= maxDurationDays;
 

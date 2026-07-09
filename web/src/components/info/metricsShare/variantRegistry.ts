@@ -52,31 +52,6 @@ export const SECTION_VARIANT_REGISTRY: Record<string, MetricShareVariantMeta[]> 
     { index: 1, id: "terminal", label: "Dark terminal", description: "Mono path leaderboard" },
     { index: 2, id: "champion", label: "Champion", description: "#1 spotlight + chip grid" },
   ],
-  "x402-headline": [
-    { index: 0, id: "monolith", label: "Gold monolith", description: "Centered x402 hero stat" },
-    { index: 1, id: "circuit", label: "Payment circuit", description: "Orbit ring + peer stats" },
-    { index: 2, id: "receipt", label: "Settle receipt", description: "Terminal payment receipt" },
-  ],
-  "x402-funnel": [
-    { index: 0, id: "cascade", label: "Funnel cascade", description: "402 → verify → settle → paid" },
-    { index: 1, id: "vault", label: "Conversion vault", description: "Paid hero + funnel ledger" },
-    { index: 2, id: "stream", label: "Funnel stream", description: "Dev terminal funnel log" },
-  ],
-  "x402-volume": [
-    { index: 0, id: "wave", label: "USD wave", description: "Area chart + KPI strip" },
-    { index: 1, id: "pulse", label: "Dual pulse", description: "USD + events spark bars" },
-    { index: 2, id: "stack", label: "Volume stack", description: "Corner stats + trend area" },
-  ],
-  "x402-endpoints": [
-    { index: 0, id: "rank", label: "Rank ladder", description: "Proportional endpoint bars" },
-    { index: 1, id: "terminal", label: "API terminal", description: "Mono path leaderboard" },
-    { index: 2, id: "champion", label: "Champion", description: "#1 endpoint spotlight" },
-  ],
-  "x402-reliability": [
-    { index: 0, id: "grid", label: "Network grid", description: "Chain + facilitator pills" },
-    { index: 1, id: "spectrum", label: "Success spectrum", description: "Reliability rank bars" },
-    { index: 2, id: "command", label: "Health command", description: "6-tile reliability dashboard" },
-  ],
 };
 
 export function getSectionVariants(sectionId: string): MetricShareVariantMeta[] {

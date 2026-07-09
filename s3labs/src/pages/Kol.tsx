@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { Megaphone, Plus, Sparkles, Trophy, Wallet } from "lucide-react";
 
 import { SitePageShell } from "@/components/landing/SitePageShell";
@@ -11,13 +12,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { CampaignGrid } from "@/components/kol/CampaignCard";
 import { CampaignDetail } from "@/components/kol/CampaignDetail";
-import { CreateCampaignForm } from "@/components/kol/CreateCampaignForm";
-import { EarningsDashboard } from "@/components/kol/EarningsDashboard";
 import { KolHowItWorks } from "@/components/kol/KolHowItWorks";
 import { KolPointsInfo } from "@/components/kol/KolPointsInfo";
 import { CampaignNotifySignup } from "@/components/CampaignNotifySignup";
 import { MarketplaceStats } from "@/components/kol/MarketplaceStats";
-import { ProfileLeaderboard } from "@/components/kol/ProfileLeaderboard";
 import { isCampaignFinalizing, isCampaignLive } from "@/lib/kolCampaignStatus";
 import {
   DEFAULT_KOL_CONFIG,
@@ -25,6 +23,26 @@ import {
   fetchCampaigns,
   fetchKolConfig,
 } from "@/lib/kolApi";
+
+const CreateCampaignForm = lazy(() =>
+  import("@/components/kol/CreateCampaignForm").then((m) => ({
+    default: m.CreateCampaignForm,
+  })),
+);
+const EarningsDashboard = lazy(() =>
+  import("@/components/kol/EarningsDashboard").then((m) => ({
+    default: m.EarningsDashboard,
+  })),
+);
+const ProfileLeaderboard = lazy(() =>
+  import("@/components/kol/ProfileLeaderboard").then((m) => ({
+    default: m.ProfileLeaderboard,
+  })),
+);
+
+function TabPanelFallback() {
+  return <Skeleton className="h-64 rounded-2xl" />;
+}
 
 const VALID_TABS = ["browse", "leaderboard", "create", "earnings"] as const;
 type KolTab = (typeof VALID_TABS)[number];
@@ -37,6 +55,8 @@ function parseTab(value: string | null): KolTab {
 }
 
 function KolPageContent() {
+  const wallet = useWallet();
+  const walletAddress = wallet.publicKey?.toBase58();
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedCampaignId = searchParams.get("campaign");
   const tabFromUrl = searchParams.get("tab");
@@ -49,6 +69,7 @@ function KolPageContent() {
   const configQuery = useQuery({
     queryKey: ["kol-config"],
     queryFn: fetchKolConfig,
+    staleTime: 5 * 60 * 1000,
   });
 
   const campaignsQuery = useQuery({
@@ -59,8 +80,11 @@ function KolPageContent() {
   });
 
   const detailQuery = useQuery({
-    queryKey: ["kol-campaign", selectedCampaignId],
-    queryFn: () => fetchCampaignDetail(selectedCampaignId!),
+    queryKey: ["kol-campaign", selectedCampaignId, walletAddress],
+    queryFn: () =>
+      fetchCampaignDetail(selectedCampaignId!, {
+        wallet: walletAddress,
+      }),
     enabled: Boolean(selectedCampaignId),
   });
 
@@ -140,6 +164,7 @@ function KolPageContent() {
           <CampaignDetail
             campaign={detailQuery.data.campaign}
             leaderboard={detailQuery.data.leaderboard}
+            viewerClaimEligibility={detailQuery.data.viewerClaimEligibility}
             onClose={handleCloseDetail}
             onRefresh={() => {
               detailQuery.refetch();
@@ -246,44 +271,50 @@ function KolPageContent() {
                 </p>
               </div>
 
-              <div>
-                <h3 className="font-semibold text-base mb-1">Top funders</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Ranked by total SOL funded across campaigns
-                </p>
-                <ProfileLeaderboard variant="projects" />
-              </div>
+              <Suspense fallback={<TabPanelFallback />}>
+                <div>
+                  <h3 className="font-semibold text-base mb-1">Top funders</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Ranked by total SOL funded across campaigns
+                  </p>
+                  <ProfileLeaderboard variant="projects" />
+                </div>
 
-              <div>
-                <h3 className="font-semibold text-base mb-1">Top earners</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Ranked by reputation score from completed campaigns
-                </p>
-                <ProfileLeaderboard variant="kols" />
-              </div>
+                <div>
+                  <h3 className="font-semibold text-base mb-1">Top earners</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Ranked by reputation score from completed campaigns
+                  </p>
+                  <ProfileLeaderboard variant="kols" />
+                </div>
+              </Suspense>
             </TabsContent>
 
             <TabsContent value="create" className="mt-0 focus-visible:outline-none">
               {configQuery.isLoading ? (
                 <Skeleton className="h-96 rounded-2xl max-w-2xl" />
               ) : (
-                <CreateCampaignForm
-                  minRewardSol={config.minRewardSol}
-                  minKolRewardSol={config.minKolRewardSol}
-                  platformFeeSol={config.platformFeeSol}
-                  minDurationDays={config.minDurationDays}
-                  maxDurationDays={config.maxDurationDays}
-                  poolWalletAddress={config.poolWalletAddress}
-                  onCreated={() => {
-                    campaignsQuery.refetch();
-                    handleTabChange("browse");
-                  }}
-                />
+                <Suspense fallback={<TabPanelFallback />}>
+                  <CreateCampaignForm
+                    minRewardSol={config.minRewardSol}
+                    minKolRewardSol={config.minKolRewardSol}
+                    platformFeeSol={config.platformFeeSol}
+                    minDurationDays={config.minDurationDays}
+                    maxDurationDays={config.maxDurationDays}
+                    poolWalletAddress={config.poolWalletAddress}
+                    onCreated={() => {
+                      campaignsQuery.refetch();
+                      handleTabChange("browse");
+                    }}
+                  />
+                </Suspense>
               )}
             </TabsContent>
 
             <TabsContent value="earnings" className="mt-0 focus-visible:outline-none">
-              <EarningsDashboard />
+              <Suspense fallback={<TabPanelFallback />}>
+                <EarningsDashboard />
+              </Suspense>
             </TabsContent>
           </Tabs>
         )}

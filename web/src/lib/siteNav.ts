@@ -12,6 +12,7 @@ import {
   BookMarked,
   ExternalLink,
   Info,
+  Newspaper,
   Megaphone,
   Presentation,
   Coins,
@@ -178,6 +179,12 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
 ];
 
 export const SITE_NAV_MORE: NavLinkItem[] = [
+  {
+    href: "/articles",
+    label: "Articles",
+    icon: Newspaper,
+    description: "Insights, updates, and product deep dives",
+  },
   {
     href: "/about",
     label: "About",
