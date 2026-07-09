@@ -1,9 +1,11 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, Calendar, Clock } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { playgroundFilterRailClass } from "@/components/playground/playgroundStyles";
+import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 import type { ArticleItem } from "@/data/marketing/articles";
 import { ArticleCopyForXButton } from "@/components/marketing/ArticleCopyForXButton";
+import { cn } from "@/lib/utils";
 
 function formatPublishedDate(iso?: string) {
   if (!iso) return null;
@@ -27,7 +29,10 @@ export function FeaturedArticleHero({ article, showAdminCopy = false }: Featured
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.55 }}
-      className="group relative glass-card overflow-hidden rounded-2xl border border-transparent transition-all duration-300 hover:border-accent/40 hover:shadow-[0_0_40px_-12px_hsl(var(--accent)/0.25)]"
+      className={cn(
+        overviewCardShell,
+        "group relative overflow-hidden transition-colors hover:border-border/70",
+      )}
     >
       {showAdminCopy ? (
         <div className="absolute right-3 top-3 z-10">
@@ -37,10 +42,10 @@ export function FeaturedArticleHero({ article, showAdminCopy = false }: Featured
 
       <Link
         to={article.href}
-        className="grid outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background lg:grid-cols-2"
+        className="grid min-w-0 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background md:grid-cols-2"
       >
         {article.coverImage ? (
-          <div className="relative aspect-video overflow-hidden border-b border-border/40 bg-muted/20 lg:aspect-auto lg:min-h-[300px] lg:border-b-0 lg:border-r">
+          <div className="relative aspect-video overflow-hidden border-b border-border/40 bg-muted/20 md:aspect-auto md:min-h-[260px] md:border-b-0 md:border-r lg:min-h-[300px]">
             <img
               src={article.coverImage}
               alt=""
@@ -48,16 +53,16 @@ export function FeaturedArticleHero({ article, showAdminCopy = false }: Featured
               height={1080}
               className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent lg:bg-gradient-to-r lg:from-transparent lg:via-transparent lg:to-background/20" />
+            <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent md:bg-gradient-to-r md:from-transparent md:via-transparent md:to-background/20" />
           </div>
         ) : null}
 
-        <div className="flex flex-col justify-center gap-4 p-6 sm:p-8 lg:p-10">
+        <div className="flex min-w-0 flex-col justify-center gap-3 p-5 sm:gap-4 sm:p-6 md:p-8 lg:p-10">
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
             {article.source}
           </p>
 
-          <h2 className="text-2xl font-bold leading-tight transition-colors group-hover:text-primary sm:text-3xl">
+          <h2 className="text-xl font-bold leading-tight transition-colors group-hover:text-primary sm:text-2xl lg:text-3xl">
             {article.title}
           </h2>
 
@@ -114,14 +119,18 @@ export function ArticleTagFilter({ tags, activeTag, onChange }: ArticleTagFilter
 
   const pillClass = (active: boolean) =>
     cn(
-      "rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors",
+      "shrink-0 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors sm:px-3.5",
       active
         ? "border-accent/50 bg-accent/10 text-foreground"
         : "border-border/60 bg-muted/20 text-muted-foreground hover:border-accent/30 hover:text-foreground",
     );
 
   return (
-    <div className="mb-8 flex flex-wrap gap-2" role="group" aria-label="Filter articles by topic">
+    <div
+      className={cn(playgroundFilterRailClass, "mb-8")}
+      role="group"
+      aria-label="Filter articles by topic"
+    >
       <button type="button" onClick={() => onChange(null)} className={pillClass(activeTag === null)}>
         All
       </button>

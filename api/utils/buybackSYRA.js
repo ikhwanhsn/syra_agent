@@ -63,8 +63,8 @@ async function confirmTransactionByPolling(
 }
 
 /**
- * Buy SYRA with 80% of x402 revenue (USDC) via Jupiter swap. Tokens remain in the treasury
- * wallet (`AGENT_PRIVATE_KEY`) for future user airdrops (no burn).
+ * Swap accumulated x402 revenue into SYRA (80% of queued revenue) via Jupiter.
+ * Called by the 24h buyback scheduler — not on each individual x402 settlement.
  * Only runs in production (`NODE_ENV === 'production'`). In other environments, returns null without error.
  * @param {number} revenueAmountUSD - Revenue in USD (e.g. price charged for the API call)
  * @returns {Promise<{ swapSignature: string, outAmount: string } | null>}

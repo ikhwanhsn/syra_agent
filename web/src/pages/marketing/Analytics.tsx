@@ -85,7 +85,7 @@ export default function Analytics() {
           <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
             <div className="flex flex-col items-center justify-center min-h-[40vh] gap-4">
               <p className="text-destructive">{error}</p>
-              <Link to="/home" className="text-sm text-primary hover:underline">
+              <Link to="/" className="text-sm text-primary hover:underline">
                 ← Back to Home
               </Link>
             </div>
@@ -142,7 +142,7 @@ export default function Analytics() {
             className="flex flex-wrap items-center justify-center gap-4 mb-8"
           >
             <Link
-              to="/home"
+              to="/"
               className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all rounded-xl btn-secondary"
             >
               <ChevronLeft className="w-4 h-4" />

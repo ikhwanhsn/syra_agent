@@ -3,7 +3,7 @@
  * Surfaces Nasdaq vs on-chain premium/discount, liquidity context, and risk notes.
  *
  * x402 revenue from /spcx and /equity routes flows to $SYRA buybacks automatically
- * via settlePaymentAndSetResponse → buybackSYRAFromRevenue (production).
+ * via settlePaymentAndSetResponse → queueBuybackRevenue (batched every 24h in production).
  */
 
 import {

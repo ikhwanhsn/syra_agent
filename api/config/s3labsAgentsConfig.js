@@ -2,7 +2,7 @@
  * S3Labs Telegram agents — forum topics, schedules, and per-agent settings.
  *
  * Topics: News https://t.me/s3labs/402 | Developer https://t.me/s3labs/4 | Event https://t.me/s3labs/158
- * Jobs https://t.me/s3labs/513
+ * Jobs https://t.me/s3labs/513 | KOL campaigns → main group (optional S3LABS_KOL_TELEGRAM_THREAD_ID)
  *
  * Default volume is intentionally low (~1–3 Telegram posts/day total): jobs, events,
  * and hackathons live on the website, so Telegram only highlights a few items.

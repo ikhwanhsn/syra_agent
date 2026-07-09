@@ -19,7 +19,7 @@ import { settlePaymentAndSetResponse } from "./x402PaymentV2.js";
 import { getEffectivePriceUsd } from "../config/x402Pricing.js";
 import { X402_API_PRICE_USD } from "../config/x402Pricing.js";
 import { recordPaidApiCall } from "./recordPaidApiCall.js";
-import { buybackSYRAFromRevenue } from "./buybackSYRA.js";
+import { queueBuybackRevenue } from "../libs/buybackScheduler.js";
 import { isTesterAgentInternalProbeRequest } from "./testerAgentProbe.js";
 import { isShadowfeedPartnerRequest, markShadowfeedPartnerBypass } from "./shadowfeedPartner.js";
 
@@ -286,7 +286,7 @@ export async function settleSapEscrowOrFacilitator(res, req, serviceData) {
     process.env.NODE_ENV === "production" &&
     !isTesterAgentInternalProbeRequest(req)
   ) {
-    runAfterResponse(() => buybackSYRAFromRevenue(priceUsd).catch(() => {}));
+    runAfterResponse(() => queueBuybackRevenue(priceUsd).catch(() => {}));
   }
   return { txSignature, serviceHash: serviceHashOut, callsSettled, slot };
 }

@@ -67,7 +67,7 @@ export function EarningsDashboard() {
               </p>
             </div>
             <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/[0.06] p-4">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">Claimable</p>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Awaiting send</p>
               <p className="text-2xl font-semibold text-emerald-400 mt-1 tabular-nums">
                 {formatSol(data.totals.claimableSol ?? 0)} SOL
               </p>
@@ -111,7 +111,7 @@ export function EarningsDashboard() {
 
       {data?.claimable?.length ? (
         <section className="space-y-3">
-          <h3 className="font-semibold">Ready to claim</h3>
+          <h3 className="font-semibold">Awaiting auto-send</h3>
           <div className="grid gap-3">
             {data.claimable.map((row) => (
               <ClaimableRow
@@ -217,9 +217,9 @@ function ClaimableRow({
     mutationFn: () => claimCampaignReward(row.campaign.id, { wallet }),
     onSuccess: (data) => {
       if (data.status === "pending_minimum") {
-        toast.message("Reward queued below minimum payout threshold");
+        toast.message("Reward held in pool until 0.01 SOL minimum");
       } else {
-        toast.success("Reward claimed!");
+        toast.success("Reward sent!");
       }
       onClaimed();
     },
@@ -243,7 +243,7 @@ function ClaimableRow({
         </p>
         {claimBlocked ? (
           <p className="text-xs text-amber-400 mt-2">
-            Create one campaign first to claim your reward.
+            Create one campaign first to receive your reward.
           </p>
         ) : null}
       </div>
@@ -274,7 +274,7 @@ function ClaimableRow({
                 Claiming…
               </>
             ) : (
-              "Claim"
+              "Claim fallback"
             )}
           </Button>
         )}

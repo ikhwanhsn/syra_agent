@@ -13,9 +13,11 @@ import {
 } from "@/components/ui/table";
 import type { KolLeaderboardEntry, KolViewerClaimEligibility } from "@/lib/kolApi";
 import { formatCompact } from "@/lib/kolFormat";
+import { KOL_CREATE_CAMPAIGN_OWN_NOTE } from "@/lib/kolRewardEligibility";
 import { shortenAddress } from "@/lib/solanaKol";
 import { cn } from "@/lib/utils";
 import {
+  LeaderboardEligibilityBadge,
   LeaderboardKolCell,
   LeaderboardModeBadge,
   LeaderboardPayoutCell,
@@ -31,26 +33,45 @@ import { ScoreBreakdownTooltip } from "@/components/kol/ScoreBreakdownTooltip";
 interface CampaignLeaderboardProps {
   entries: KolLeaderboardEntry[];
   campaignStatus: string;
+  requireCreatedOneCampaign?: boolean;
   verifiedHandleKey?: string | null;
   viewerClaimEligibility?: KolViewerClaimEligibility | null;
 }
 
-function LeaderboardClaimGateNote({ message }: { message: string }) {
+function LeaderboardEligibilityNote({ message }: { message: string }) {
   return (
     <p className="text-[11px] leading-snug text-amber-400/95 mt-1.5">{message}</p>
   );
 }
 
-function getPayoutSol(entry: KolLeaderboardEntry): number {
+function getDisplayPayoutSol(entry: KolLeaderboardEntry): number {
   if (entry.earnedSol != null && entry.earnedSol > 0) return entry.earnedSol;
-  return entry.payout?.sol ?? entry.projectedSol;
+  if (entry.payout?.sol != null && entry.payout.sol > 0) return entry.payout.sol;
+  if (
+    entry.rewardEligible === false &&
+    entry.potentialProjectedSol != null &&
+    entry.potentialProjectedSol > 0
+  ) {
+    return entry.potentialProjectedSol;
+  }
+  return entry.projectedSol;
 }
 
 function getPayoutLabel(entry: KolLeaderboardEntry, campaignStatus: string): string {
   if (entry.payout?.status === "pending_minimum") return "Held";
-  if (entry.claimStatus === "claimed") return "Claimed";
+  if (entry.claimStatus === "claimed" || entry.payout?.status === "confirmed") {
+    return "Sent";
+  }
   if (entry.claimStatus === "claimable") return "Claimable";
   return campaignStatus === "completed" ? "Final" : "Projected";
+}
+
+function isEntryRewardEligible(
+  entry: KolLeaderboardEntry,
+  requireCreatedOneCampaign: boolean,
+): boolean {
+  if (!requireCreatedOneCampaign) return true;
+  return entry.rewardEligible === true;
 }
 
 function getWalletLabel(entry: KolLeaderboardEntry): string {
@@ -58,13 +79,18 @@ function getWalletLabel(entry: KolLeaderboardEntry): string {
   return `@${entry.authorHandle}`;
 }
 
-function walletsMatch(a: string, b: string): boolean {
+function walletsMatch(
+  a: string | null | undefined,
+  b: string | null | undefined,
+): boolean {
+  if (!a || !b) return false;
   return a.trim().toLowerCase() === b.trim().toLowerCase();
 }
 
 export function CampaignLeaderboard({
   entries,
   campaignStatus,
+  requireCreatedOneCampaign = false,
   verifiedHandleKey,
   viewerClaimEligibility,
 }: CampaignLeaderboardProps) {
@@ -96,9 +122,10 @@ export function CampaignLeaderboard({
   const claimGateMessage =
     viewerClaimEligibility?.requireCreatedOneCampaign &&
     !viewerClaimEligibility.hasCreatedCampaign
-      ? viewerClaimEligibility.message ??
-        "Create one campaign first to claim your reward."
+      ? viewerClaimEligibility.message ?? KOL_CREATE_CAMPAIGN_OWN_NOTE
       : null;
+
+  const showEligibilityColumn = requireCreatedOneCampaign;
 
   if (entries.length === 0) {
     return (
@@ -115,15 +142,19 @@ export function CampaignLeaderboard({
     );
   }
 
-  const podiumEntries: PodiumEntry[] = entries.slice(0, 3).map((entry, index) => ({
-    rank: (index + 1) as 1 | 2 | 3,
-    handle: entry.authorHandle,
-    verified: entry.verified,
-    score: entry.latestScore,
-    payoutSol: getPayoutSol(entry),
-    likes: entry.latestMetrics.likeCount,
-    views: entry.latestMetrics.viewCount,
-  }));
+  const podiumEntries: PodiumEntry[] = entries.slice(0, 3).map((entry, index) => {
+    const rewardEligible = isEntryRewardEligible(entry, requireCreatedOneCampaign);
+    return {
+      rank: (index + 1) as 1 | 2 | 3,
+      handle: entry.authorHandle,
+      verified: entry.verified,
+      score: entry.latestScore,
+      payoutSol: getDisplayPayoutSol(entry),
+      payoutLocked: requireCreatedOneCampaign && !rewardEligible,
+      likes: entry.latestMetrics.likeCount,
+      views: entry.latestMetrics.viewCount,
+    };
+  });
 
   return (
     <div className="panel-glass rounded-2xl border border-border/60 overflow-hidden min-w-0 shadow-[var(--shadow-card)]">
@@ -135,10 +166,12 @@ export function CampaignLeaderboard({
       <div className="md:hidden divide-y divide-border/50">
         {entries.map((entry, index) => {
           const rank = index + 1;
-          const payoutSol = getPayoutSol(entry);
+          const rewardEligible = isEntryRewardEligible(entry, requireCreatedOneCampaign);
+          const payoutSol = getDisplayPayoutSol(entry);
           const payoutLabel = getPayoutLabel(entry, campaignStatus);
+          const payoutLocked = requireCreatedOneCampaign && !rewardEligible;
           const own = isOwnEntry(entry);
-          const showClaimGate = own && claimGateMessage != null;
+          const showOwnGateNote = own && !rewardEligible && claimGateMessage != null;
           return (
             <Link
               key={entry.id}
@@ -159,12 +192,16 @@ export function CampaignLeaderboard({
                   />
                   <LeaderboardPayoutCell
                     payoutSol={payoutSol}
-                    payoutLabel={showClaimGate ? "Claim locked" : payoutLabel}
+                    payoutLabel={payoutLabel}
                     isTop={rank <= 3}
+                    locked={payoutLocked}
                   />
                 </div>
-                {showClaimGate ? (
-                  <LeaderboardClaimGateNote message={claimGateMessage} />
+                {showEligibilityColumn ? (
+                  <LeaderboardEligibilityBadge eligible={rewardEligible} />
+                ) : null}
+                {showOwnGateNote ? (
+                  <LeaderboardEligibilityNote message={claimGateMessage} />
                 ) : null}
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <LeaderboardModeBadge mode={entry.mode} />
@@ -200,6 +237,9 @@ export function CampaignLeaderboard({
               <TableHead className="w-[5.5rem]">Mode</TableHead>
               <TableHead className="text-right w-[7rem]">Score</TableHead>
               <TableHead className="text-right hidden lg:table-cell">Engagement</TableHead>
+              {showEligibilityColumn ? (
+                <TableHead className="w-[4.5rem]">Status</TableHead>
+              ) : null}
               <TableHead className="text-right w-[8rem]">{payoutLabelDefault}</TableHead>
               <TableHead className="w-10" />
             </TableRow>
@@ -207,10 +247,12 @@ export function CampaignLeaderboard({
           <TableBody>
             {entries.map((entry, index) => {
               const rank = index + 1;
-              const payoutSol = getPayoutSol(entry);
+              const rewardEligible = isEntryRewardEligible(entry, requireCreatedOneCampaign);
+              const payoutSol = getDisplayPayoutSol(entry);
               const payoutLabel = getPayoutLabel(entry, campaignStatus);
+              const payoutLocked = requireCreatedOneCampaign && !rewardEligible;
               const own = isOwnEntry(entry);
-              const showClaimGate = own && claimGateMessage != null;
+              const showOwnGateNote = own && !rewardEligible && claimGateMessage != null;
               return (
                 <TableRow
                   key={entry.id}
@@ -263,15 +305,21 @@ export function CampaignLeaderboard({
                       </span>
                     </div>
                   </TableCell>
+                  {showEligibilityColumn ? (
+                    <TableCell className="align-middle">
+                      <LeaderboardEligibilityBadge eligible={rewardEligible} />
+                      {showOwnGateNote ? (
+                        <LeaderboardEligibilityNote message={claimGateMessage} />
+                      ) : null}
+                    </TableCell>
+                  ) : null}
                   <TableCell className="align-middle">
                     <LeaderboardPayoutCell
                       payoutSol={payoutSol}
-                      payoutLabel={showClaimGate ? "Claim locked" : payoutLabel}
+                      payoutLabel={payoutLabel}
                       isTop={rank <= 3}
+                      locked={payoutLocked}
                     />
-                    {showClaimGate ? (
-                      <LeaderboardClaimGateNote message={claimGateMessage} />
-                    ) : null}
                   </TableCell>
                   <TableCell />
                 </TableRow>

@@ -170,7 +170,7 @@ export default function Leaderboard() {
             className="flex flex-wrap items-center justify-center gap-4 mb-8"
           >
             <Link
-              to="/home"
+              to="/"
               className="px-6 py-3 text-sm font-medium transition-all rounded-xl btn-secondary"
             >
               ← Back to Home

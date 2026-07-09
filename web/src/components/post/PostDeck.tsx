@@ -126,7 +126,7 @@ export function PostDeck({ post }: PostDeckProps) {
     >
       <header className="post-chrome-header relative z-20 flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 px-3 py-3 sm:px-6 sm:py-4 md:px-8">
         <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
-          <PostBackLink />
+          <PostBackLink to="/post" />
           <img
             src="/images/logo.jpg"
             alt=""

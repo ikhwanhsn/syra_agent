@@ -36,7 +36,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
       <SolanaWalletProvider>
-        <TooltipProvider>
+        <TooltipProvider delayDuration={200} skipDelayDuration={0}>
           <Toaster />
           <Sonner />
           <BrowserRouter>

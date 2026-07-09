@@ -28,30 +28,34 @@ export const SCALPER_DEFAULTS = Object.freeze({
   startingBankUsd: TRADING_EXPERIMENT_STARTING_USD,
   maxConcurrentPositions: 3,
   /** Fraction of free cash per scalp (0–1). */
-  notionalSlicePct: 0.25,
+  notionalSlicePct: 0.28,
   /** Floor fraction of notionalSlicePct for low-conviction entries. */
-  minNotionalSlicePct: 0.12,
+  minNotionalSlicePct: 0.1,
   minNotionalUsd: 5,
-  /** TP must clear ~2× quote slippage per side; R:R ≈ 2:1 vs SL. */
-  takeProfitPct: 1.6,
-  stopLossPct: 0.8,
-  maxHoldMinutes: 45,
-  /** Only trade high-conviction opportunities. */
-  minOpportunityScore: 0.5,
+  /** TP must clear round-trip slippage; R:R ≈ 2.5:1 vs SL. */
+  takeProfitPct: 2.0,
+  stopLossPct: 0.65,
+  maxHoldMinutes: 40,
+  /** Only trade high-conviction opportunities (raised for profitability). */
+  minOpportunityScore: 0.58,
   /**
    * Extra edge (%) above estimated round-trip fill cost before entry.
    * Round-trip ≈ 2 × quoteSlippageBps / 100.
    */
-  minEdgeBufferPct: 0.25,
+  minEdgeBufferPct: 0.35,
   /** Cooldown after closing same symbol (ms). */
-  symbolCooldownMs: 5 * 60_000,
+  symbolCooldownMs: 4 * 60_000,
   /** How long experiment signals stay valid (ms). */
-  experimentSignalMaxAgeMs: 15 * 60_000,
-  /** Momentum scan thresholds. */
-  momentumMinPct: 0.15,
-  momentumMaxVolatilityPct: 2.5,
+  experimentSignalMaxAgeMs: 12 * 60_000,
+  /** Momentum scan thresholds — require clearer move, reject chop. */
+  momentumMinPct: 0.22,
+  momentumMaxVolatilityPct: 2.0,
   /** Jupiter quote slippage for paper fills (bps). */
   quoteSlippageBps: 50,
+  /** Trailing stop activates after this unrealized gain (%). */
+  trailActivatePct: 0.7,
+  /** Trail distance below peak (%). */
+  trailDistancePct: 0.35,
 });
 
 /** Estimated round-trip fill cost as a percentage (entry + exit slippage). */

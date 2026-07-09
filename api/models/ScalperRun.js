@@ -14,6 +14,7 @@ const scalperRunSchema = new mongoose.Schema(
       enum: ["btc1", "btc2", "btc3", "stocks", "momentum"],
     },
     opportunityScore: { type: Number, default: 0 },
+    confluenceCount: { type: Number, default: 1 },
     rationale: { type: String, default: null },
     opportunitySnapshot: { type: mongoose.Schema.Types.Mixed, default: null },
 
@@ -26,6 +27,10 @@ const scalperRunSchema = new mongoose.Schema(
 
     takeProfitPriceUsd: { type: Number, default: null },
     stopLossPriceUsd: { type: Number, default: null },
+    peakPriceUsd: { type: Number, default: null },
+    trailingStopPriceUsd: { type: Number, default: null },
+    dynamicTakeProfitPct: { type: Number, default: null },
+    dynamicStopLossPct: { type: Number, default: null },
     maxHoldUntil: { type: Date, default: null },
 
     exitPriceUsd: { type: Number, default: null },

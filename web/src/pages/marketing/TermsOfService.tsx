@@ -13,7 +13,7 @@ export default function TermsOfService() {
         <div className="absolute inset-0 opacity-50 grid-pattern pointer-events-none" />
         <div className="relative px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
           <Link
-            to="/home"
+            to="/"
             className="inline-flex items-center gap-2 mb-8 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />

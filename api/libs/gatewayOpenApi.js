@@ -288,6 +288,7 @@ const RATE_LIMIT_INFO = {
       '/internal/trend-scout/run',
       '/internal/growth-scout/run',
       '/internal/partnership-scout/run',
+      '/internal/buyback/run',
       '/uponly-rise-market*',
       '/uponly-rise-portfolio*',
     ],

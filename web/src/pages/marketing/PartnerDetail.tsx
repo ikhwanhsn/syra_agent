@@ -59,7 +59,7 @@ export default function PartnerDetail() {
             <Link to="/partner" className="btn-primary">
               All partners
             </Link>
-            <Link to="/home" className="btn-secondary">
+            <Link to="/" className="btn-secondary">
               Home
             </Link>
           </div>
@@ -100,7 +100,7 @@ export default function PartnerDetail() {
             <ol className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
               <li>
                 <Link
-                  to="/home"
+                  to="/"
                   className="hover:text-foreground transition-colors"
                 >
                   Home

@@ -18,6 +18,14 @@ import {
   computeEquityMomentum,
   recordEquityPriceSample,
 } from "./pythPriceFeed.js";
+import {
+  computeAtrPct,
+  computeRsi,
+  computeTrendBias,
+  mergeOpportunitiesWithConfluence,
+  scoreMomentumQuality,
+} from "./scalperSignalEngine.js";
+import { fetchNasdaqPrice } from "../equityPriceFetchers.js";
 
 /** @typedef {'btc1' | 'btc2' | 'btc3' | 'stocks' | 'momentum'} ScalperOpportunitySource */
 /** @typedef {'long' | 'short' | 'neutral'} ScalperSide */
@@ -50,10 +58,13 @@ function strategyWeight(winRate, sampleSize) {
 /**
  * @returns {Promise<ScalperOpportunity[]>}
  */
-async function scanBtcQuantRuns() {
+async function scanBtcQuantRuns(btcBars) {
   /** @type {ScalperOpportunity[]} */
   const out = [];
   const since = new Date(Date.now() - SCALPER_DEFAULTS.experimentSignalMaxAgeMs);
+  const closes = (btcBars ?? []).map((b) => b[4]).filter((c) => c > 0);
+  const trend = computeTrendBias(closes);
+  if (trend === "bearish") return out;
 
   for (const lane of ["btc1", "btc2"]) {
     const state = await BtcQuantExperimentState.findOne({
@@ -97,8 +108,12 @@ async function scanBtcQuantRuns() {
       const wins = settled[0]?.wins ?? 0;
       const total = settled[0]?.total ?? 0;
       const winRate = total > 0 ? wins / total : 0.5;
+      if (winRate < 0.4 && total >= 5) continue;
+
       const weight = strategyWeight(winRate, total);
-      const baseScore = 0.55 + weight * 0.25;
+      const confidence = Number(run.confidence ?? 0.5);
+      const baseScore = 0.52 + weight * 0.28 + Math.min(0.12, confidence * 0.12);
+      if (baseScore < 0.58) continue;
 
       out.push({
         source: /** @type {ScalperOpportunitySource} */ (lane),
@@ -125,7 +140,7 @@ async function scanBtcQuantRuns() {
 /**
  * @returns {Promise<ScalperOpportunity[]>}
  */
-async function scanBtc3MacroBias() {
+async function scanBtc3MacroBias(btcBars) {
   const latest = await decisionRepo.findLatest(1);
   const decision = latest?.[0];
   if (!decision?.targetAllocation) return [];
@@ -133,13 +148,15 @@ async function scanBtc3MacroBias() {
   const currentBtc = Number(decision.currentAllocation?.btcPct ?? 50);
   const targetBtc = Number(decision.targetAllocation.btcPct ?? 50);
   const delta = targetBtc - currentBtc;
-  if (Math.abs(delta) < 2) return [];
+  if (delta < 3) return [];
 
-  const side = delta > 0 ? "long" : "neutral";
-  if (side === "neutral") return [];
+  const closes = (btcBars ?? []).map((b) => b[4]).filter((c) => c > 0);
+  const trend = computeTrendBias(closes);
+  if (trend === "bearish" && delta < 8) return [];
 
   const confidence = Number(decision.confidence ?? 0.5);
-  const score = Math.min(0.9, 0.45 + Math.abs(delta) / 100 + confidence * 0.2);
+  const score = Math.min(0.92, 0.5 + Math.abs(delta) / 80 + confidence * 0.22);
+  if (score < 0.58) return [];
 
   return [
     {
@@ -171,13 +188,29 @@ async function scanStocksSignals(universe) {
   const equities = universe.filter((u) => u.assetClass === "equity");
 
   for (const entry of equities) {
+    let nasdaqPriceUsd = null;
+    if (entry.nasdaqTicker) {
+      try {
+        const nasdaq = await fetchNasdaqPrice(entry.nasdaqTicker);
+        nasdaqPriceUsd = nasdaq?.priceUsd ?? null;
+      } catch {
+        /* optional */
+      }
+    }
+
     const signal = await fetchStockNewsSignal(entry.symbol, {
       priceUsd: entry.priceUsd,
+      nasdaqPriceUsd,
     });
     if (!signal || signal.direction !== "long") continue;
-    if (signal.compositeScore < 0.05) continue;
+    if (signal.compositeScore < 0.1) continue;
 
-    const score = Math.min(0.88, 0.4 + Math.max(0, signal.compositeScore) * 0.5);
+    let score = Math.min(0.9, 0.42 + Math.max(0, signal.compositeScore) * 0.55);
+    if (nasdaqPriceUsd && entry.priceUsd > 0) {
+      const discountPct = ((nasdaqPriceUsd - entry.priceUsd) / nasdaqPriceUsd) * 100;
+      if (discountPct > 0.5) score += Math.min(0.08, discountPct / 20);
+    }
+    if (score < 0.55) continue;
     out.push({
       source: "stocks",
       symbol: entry.symbol,
@@ -202,34 +235,39 @@ async function scanStocksSignals(universe) {
  * @param {Array<{ symbol: string; mint: string; assetClass: 'crypto' | 'equity'; priceUsd?: number }>} universe
  * @returns {Promise<ScalperOpportunity[]>}
  */
-async function scanMomentum(universe) {
+async function scanMomentum(universe, btcBars) {
   /** @type {ScalperOpportunity[]} */
   const out = [];
 
-  const btcBars = await fetchPythBtcOhlcvBars("5", 12);
-  const btcMom = computeBtcBarMomentum(btcBars);
+  const bars = btcBars ?? (await fetchPythBtcOhlcvBars("5", 20));
+  const btcMom = computeBtcBarMomentum(bars);
+  const btcCloses = bars.map((b) => b[4]).filter((c) => c > 0);
+  const btcRsi = computeRsi(btcCloses);
+  const btcTrend = computeTrendBias(btcCloses);
+  const btcAtr = computeAtrPct(bars) ?? btcMom?.volatilityPct ?? 0.8;
+
   const btcEntry = universe.find((u) => u.symbol === "cbBTC");
   if (btcMom && btcEntry) {
     const { momentumPct, volatilityPct } = btcMom;
-    if (
-      Math.abs(momentumPct) >= SCALPER_DEFAULTS.momentumMinPct &&
-      volatilityPct <= SCALPER_DEFAULTS.momentumMaxVolatilityPct
-    ) {
-      const side = momentumPct > 0 ? "long" : "neutral";
-      if (side === "long") {
-        const score = Math.min(0.85, 0.35 + Math.abs(momentumPct) / 2);
-        out.push({
-          source: "momentum",
-          symbol: "cbBTC",
-          mint: btcEntry.mint,
-          assetClass: "crypto",
-          side: "long",
-          score,
-          rationale: `5m Pyth momentum +${momentumPct.toFixed(2)}% · vol ${volatilityPct.toFixed(2)}%`,
-          expiresAt: new Date(Date.now() + 8 * 60_000).toISOString(),
-          meta: { momentumPct, volatilityPct },
-        });
-      }
+    const quality = scoreMomentumQuality({
+      momentumPct,
+      rsi: btcRsi,
+      trend: btcTrend,
+      volatilityPct,
+    });
+    if (!quality.reject) {
+      const score = Math.min(0.82, 0.38 + Math.abs(momentumPct) / 2.5 + quality.quality * 0.25);
+      out.push({
+        source: "momentum",
+        symbol: "cbBTC",
+        mint: btcEntry.mint,
+        assetClass: "crypto",
+        side: "long",
+        score,
+        rationale: `5m momentum +${momentumPct.toFixed(2)}% · RSI ${btcRsi?.toFixed(0) ?? "—"} · ${btcTrend} · vol ${volatilityPct.toFixed(2)}%`,
+        expiresAt: new Date(Date.now() + 6 * 60_000).toISOString(),
+        meta: { momentumPct, volatilityPct, rsi: btcRsi, trend: btcTrend, atrPct: btcAtr, quality: quality.quality },
+      });
     }
   }
 
@@ -238,23 +276,28 @@ async function scanMomentum(universe) {
     const mom = computeEquityMomentum(entry.symbol, 5 * 60_000);
     if (!mom) continue;
     const { momentumPct, volatilityPct } = mom;
-    if (
-      momentumPct >= SCALPER_DEFAULTS.momentumMinPct &&
-      volatilityPct <= SCALPER_DEFAULTS.momentumMaxVolatilityPct
-    ) {
-      const score = Math.min(0.8, 0.32 + momentumPct / 2);
-      out.push({
-        source: "momentum",
-        symbol: entry.symbol,
-        mint: entry.mint,
-        assetClass: "equity",
-        side: "long",
-        score,
-        rationale: `5m price momentum +${momentumPct.toFixed(2)}% · vol ${volatilityPct.toFixed(2)}%`,
-        expiresAt: new Date(Date.now() + 8 * 60_000).toISOString(),
-        meta: { momentumPct, volatilityPct, samples: mom.samples },
-      });
-    }
+
+    const quality = scoreMomentumQuality({
+      momentumPct,
+      rsi: null,
+      trend: momentumPct > 0.35 ? "bullish" : "neutral",
+      volatilityPct,
+    });
+    if (quality.reject) continue;
+
+    const score = Math.min(0.78, 0.34 + momentumPct / 2.8 + quality.quality * 0.22);
+    if (score < 0.55) continue;
+    out.push({
+      source: "momentum",
+      symbol: entry.symbol,
+      mint: entry.mint,
+      assetClass: "equity",
+      side: "long",
+      score,
+      rationale: `5m equity momentum +${momentumPct.toFixed(2)}% · vol ${volatilityPct.toFixed(2)}%`,
+      expiresAt: new Date(Date.now() + 6 * 60_000).toISOString(),
+      meta: { momentumPct, volatilityPct, samples: mom.samples, quality: quality.quality },
+    });
   }
 
   return out;
@@ -286,25 +329,17 @@ export async function scanScalperOpportunities() {
     priceUsd: priceMap[u.symbol] ?? null,
   }));
 
+  const btcBars = await fetchPythBtcOhlcvBars("5", 20);
+
   const [btcQuant, btc3, stocks, momentum] = await Promise.all([
-    scanBtcQuantRuns(),
-    scanBtc3MacroBias(),
+    scanBtcQuantRuns(btcBars),
+    scanBtc3MacroBias(btcBars),
     scanStocksSignals(enrichedUniverse),
-    scanMomentum(enrichedUniverse),
+    scanMomentum(enrichedUniverse, btcBars),
   ]);
 
   const all = [...btcQuant, ...btc3, ...stocks, ...momentum];
-  const byKey = new Map();
-
-  for (const opp of all) {
-    const key = `${opp.symbol}:${opp.side}`;
-    const existing = byKey.get(key);
-    if (!existing || opp.score > existing.score) {
-      byKey.set(key, opp);
-    }
-  }
-
-  const opportunities = [...byKey.values()].sort((a, b) => b.score - a.score);
+  const opportunities = mergeOpportunitiesWithConfluence(all);
 
   return {
     opportunities,

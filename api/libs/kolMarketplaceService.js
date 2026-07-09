@@ -53,11 +53,15 @@ import {
   awardCampaignCreationPoints,
   awardCampaignPoints,
 } from "./s3labsPointsService.js";
-import { notifyNewCampaign } from "./emailSubscriberService.js";
+import { notifyNewCampaignTelegram } from "./kolCampaignTelegramNotifier.js";
 import { discoverCampaignEngagements } from "./kolDiscoveryService.js";
+import { startupVerbose } from "../utils/startupLog.js";
 import {
+  getVerifiedWalletForHandle,
   getWalletVerification,
 } from "./kolXVerificationService.js";
+
+const AUTO_SWEEP_BATCH_LIMIT = 20;
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
 
@@ -556,9 +560,9 @@ export async function confirmCampaignDeposit(campaignId, input) {
 
   await awardCampaignCreationPoints(campaign);
 
-  notifyNewCampaign(serializeCampaign(campaign)).catch((e) => {
+  notifyNewCampaignTelegram(serializeCampaign(campaign)).catch((e) => {
     console.warn(
-      "[kol] campaign email notify failed:",
+      "[kol] campaign Telegram notify failed:",
       e instanceof Error ? e.message : e,
     );
   });
@@ -875,6 +879,62 @@ async function walletHasCreatedCampaign(kolWallet) {
 }
 
 /**
+ * Resolve the wallet used to check campaign-creation eligibility for a submission.
+ * @param {Record<string, unknown>} submission
+ */
+async function resolveSubmissionRewardWallet(submission) {
+  const directWallet = normalizeWallet(submission.kolWallet);
+  if (directWallet) return directWallet;
+
+  const handleKey =
+    submission.authorHandleKey || normalizeHandle(submission.authorHandle);
+  if (!handleKey) return null;
+
+  return getVerifiedWalletForHandle(handleKey);
+}
+
+/**
+ * @param {import("../models/KolCampaign.js").default | Record<string, unknown>} campaign
+ * @param {Array<Record<string, unknown>>} submissions
+ */
+async function buildRewardEligibilityMap(campaign, submissions) {
+  const map = new Map();
+  if (!campaign.requireCreatedOneCampaign) {
+    for (const submission of submissions) {
+      map.set(String(submission._id), true);
+    }
+    return map;
+  }
+
+  const walletCache = new Map();
+  for (const submission of submissions) {
+    const submissionId = String(submission._id);
+    const wallet = await resolveSubmissionRewardWallet(submission);
+    if (!wallet) {
+      map.set(submissionId, false);
+      continue;
+    }
+    if (!walletCache.has(wallet)) {
+      walletCache.set(wallet, await walletHasCreatedCampaign(wallet));
+    }
+    map.set(submissionId, walletCache.get(wallet) === true);
+  }
+  return map;
+}
+
+/**
+ * @param {import("../models/KolCampaign.js").default | Record<string, unknown>} campaign
+ * @param {Array<Record<string, unknown>>} submissions
+ */
+async function filterRewardEligibleSubmissions(campaign, submissions) {
+  const scored = submissions.filter((s) => (s.latestScore ?? 0) > 0);
+  if (!campaign.requireCreatedOneCampaign) return scored;
+
+  const eligibilityMap = await buildRewardEligibilityMap(campaign, scored);
+  return scored.filter((s) => eligibilityMap.get(String(s._id)) === true);
+}
+
+/**
  * @param {import("../models/KolCampaign.js").default | Record<string, unknown>} campaign
  * @param {string | null | undefined} wallet
  */
@@ -891,7 +951,7 @@ async function buildViewerClaimEligibility(campaign, wallet) {
     canClaim: hasCreatedCampaign,
     message: hasCreatedCampaign
       ? null
-      : "Create one campaign first to claim your reward.",
+      : "Create one campaign before this ends — otherwise your reward is forfeited.",
   };
 }
 
@@ -940,11 +1000,27 @@ export async function getCampaignDetail(campaignId, opts = {}) {
     campaign,
     opts.wallet,
   );
+  const rewardEligibilityMap = await buildRewardEligibilityMap(
+    campaign,
+    submissions,
+  );
+  const kolPool = getCampaignKolPoolLamports(campaign);
+  const scoredSubmissions = submissions.filter((s) => (s.latestScore ?? 0) > 0);
+  const potentialPayouts = computeProRataPayouts(scoredSubmissions, kolPool);
+  const potentialPayoutMap = new Map(
+    potentialPayouts.map((p) => [String(p.submissionId), p.lamports]),
+  );
 
   return {
     campaign: serializeCampaign(campaign),
     leaderboard: submissions.map((s) => ({
       ...serializeSubmission(s),
+      rewardEligible: campaign.requireCreatedOneCampaign
+        ? rewardEligibilityMap.get(String(s._id)) === true
+        : null,
+      potentialProjectedSol: campaign.requireCreatedOneCampaign
+        ? (potentialPayoutMap.get(String(s._id)) ?? 0) / LAMPORTS_PER_SOL
+        : null,
       payout: payoutMap.has(String(s._id))
         ? {
             lamports: payoutMap.get(String(s._id)).lamports,
@@ -1091,7 +1167,11 @@ export async function refreshCampaignProjections(campaignId) {
     campaignId: campaign._id,
   }).lean();
   const kolPool = getCampaignKolPoolLamports(campaign);
-  const payouts = computeProRataPayouts(submissions, kolPool);
+  const eligibleSubmissions = await filterRewardEligibleSubmissions(
+    campaign,
+    submissions,
+  );
+  const payouts = computeProRataPayouts(eligibleSubmissions, kolPool);
   const payoutMap = new Map(
     payouts.map((p) => [String(p.submissionId), p.lamports]),
   );
@@ -1100,7 +1180,11 @@ export async function refreshCampaignProjections(campaignId) {
     submissions.map((s) =>
       KolSubmission.updateOne(
         { _id: s._id },
-        { $set: { projectedLamports: payoutMap.get(String(s._id)) ?? 0 } },
+        {
+          $set: {
+            projectedLamports: payoutMap.get(String(s._id)) ?? 0,
+          },
+        },
       ),
     ),
   );
@@ -1282,7 +1366,11 @@ export async function finalizeCampaign(campaignId) {
   );
   const pointsResults = await awardCampaignPoints(campaign._id, submissions);
   const kolPool = getCampaignKolPoolLamports(campaign);
-  const payoutRows = computeProRataPayouts(submissions, kolPool);
+  const eligibleSubmissions = await filterRewardEligibleSubmissions(
+    campaign,
+    submissions,
+  );
+  const payoutRows = computeProRataPayouts(eligibleSubmissions, kolPool);
   const platformFeeLamports = getCampaignPlatformFeeLamports(campaign);
 
   if (!isPoolWalletConfigured()) {
@@ -1352,13 +1440,384 @@ export async function finalizeCampaign(campaignId) {
   campaign.finalizedAt = new Date();
   await campaign.save();
 
+  const claimableSubmissions = await KolSubmission.find({
+    campaignId: campaign._id,
+    claimStatus: "claimable",
+    earnedLamports: { $gt: 0 },
+  }).lean();
+
+  let autoDistributed = [];
+  try {
+    autoDistributed = await autoDistributeForCampaign(
+      campaign,
+      claimableSubmissions,
+    );
+  } catch (e) {
+    console.warn(
+      `[kol] auto-distribute failed campaign=${campaign._id}:`,
+      e instanceof Error ? e.message : e,
+    );
+  }
+
   return {
     success: true,
     claimable: results.filter((r) => r.type === "kol" && r.status === "claimable"),
     payouts: results,
     reputation: reputationResults,
     points: pointsResults,
+    autoDistributed,
   };
+}
+
+/**
+ * Core payout logic shared by manual claim and auto-distribute paths.
+ * @param {{
+ *   campaign: import("../models/KolCampaign.js").default | Record<string, unknown>;
+ *   submission: import("../models/KolSubmission.js").default | Record<string, unknown>;
+ *   kolWallet: string;
+ *   source?: "claim" | "finalize" | "verify" | "sweep";
+ *   enforceCampaignGate?: boolean;
+ * }}
+ */
+async function distributeSubmissionReward({
+  campaign,
+  submission,
+  kolWallet,
+  source = "claim",
+  enforceCampaignGate = false,
+}) {
+  if (campaign.requireCreatedOneCampaign) {
+    const hasCreatedCampaign = await walletHasCreatedCampaign(kolWallet);
+    if (!hasCreatedCampaign) {
+      if (enforceCampaignGate) {
+        const err = new Error("Create one campaign first to claim your reward");
+        err.code = "require_created_campaign";
+        throw err;
+      }
+      return {
+        status: "skipped",
+        reason: "require_created_campaign",
+        submissionId: String(submission._id),
+        source,
+      };
+    }
+  }
+
+  const existingPayout = await KolPayout.findOne({
+    campaignId: campaign._id,
+    submissionId: submission._id,
+    status: "confirmed",
+  });
+  if (existingPayout) {
+    if (enforceCampaignGate) {
+      const err = new Error("Reward already claimed for this campaign");
+      err.code = "already_claimed";
+      throw err;
+    }
+    return {
+      status: "skipped",
+      reason: "already_claimed",
+      submissionId: String(submission._id),
+      source,
+      payout: serializePayout(existingPayout),
+    };
+  }
+
+  const freshSubmission = await KolSubmission.findById(submission._id);
+  if (
+    !freshSubmission ||
+    freshSubmission.claimStatus !== "claimable" ||
+    (freshSubmission.earnedLamports ?? 0) <= 0
+  ) {
+    if (enforceCampaignGate) {
+      const err = new Error("No claimable reward found for your verified X account");
+      err.code = "not_found";
+      throw err;
+    }
+    return {
+      status: "skipped",
+      reason: "not_claimable",
+      submissionId: String(submission._id),
+      source,
+    };
+  }
+
+  const earnedLamports = freshSubmission.earnedLamports ?? 0;
+  const previousPendingLamports =
+    await getPendingPayoutBalanceLamports(kolWallet);
+  const totalSendLamports = previousPendingLamports + earnedLamports;
+
+  let payoutDoc = await KolPayout.findOne({
+    campaignId: campaign._id,
+    submissionId: freshSubmission._id,
+  });
+
+  if (!payoutDoc) {
+    payoutDoc = await KolPayout.create({
+      campaignId: campaign._id,
+      submissionId: freshSubmission._id,
+      kolWallet,
+      lamports: earnedLamports,
+      status: "pending",
+    });
+  }
+
+  if (totalSendLamports < MIN_KOL_PAYOUT_LAMPORTS) {
+    payoutDoc.status = "pending_minimum";
+    payoutDoc.kolWallet = kolWallet;
+    payoutDoc.error = null;
+    await payoutDoc.save();
+    await setPendingPayoutBalanceLamports(kolWallet, totalSendLamports);
+    freshSubmission.kolWallet = kolWallet;
+    await freshSubmission.save();
+
+    return {
+      status: "pending_minimum",
+      lamports: earnedLamports,
+      pendingBalanceLamports: totalSendLamports,
+      minPayoutLamports: MIN_KOL_PAYOUT_LAMPORTS,
+      minPayoutSol: MIN_KOL_PAYOUT_SOL,
+      submission: serializeSubmission(freshSubmission),
+      payout: serializePayout(payoutDoc),
+      source,
+    };
+  }
+
+  try {
+    const sent = await sendPayout({
+      toWallet: kolWallet,
+      lamports: totalSendLamports,
+    });
+
+    payoutDoc.txSignature = sent.txSignature;
+    payoutDoc.status = "confirmed";
+    payoutDoc.kolWallet = kolWallet;
+    payoutDoc.error = null;
+    await payoutDoc.save();
+
+    freshSubmission.claimStatus = "claimed";
+    freshSubmission.kolWallet = kolWallet;
+    await freshSubmission.save();
+
+    await KolPayout.updateMany(
+      {
+        kolWallet,
+        status: "pending_minimum",
+        _id: { $ne: payoutDoc._id },
+      },
+      {
+        $set: {
+          status: "confirmed",
+          txSignature: sent.txSignature,
+          error: null,
+        },
+      },
+    );
+    await clearPendingPayoutBalance(kolWallet);
+
+    return {
+      status: "confirmed",
+      txSignature: sent.txSignature,
+      lamports: earnedLamports,
+      sentLamports: totalSendLamports,
+      rolledFromPendingLamports: previousPendingLamports,
+      submission: serializeSubmission(freshSubmission),
+      payout: serializePayout(payoutDoc),
+      source,
+    };
+  } catch (e) {
+    payoutDoc.status = "failed";
+    payoutDoc.error = e instanceof Error ? e.message : String(e);
+    await payoutDoc.save();
+    await setPendingPayoutBalanceLamports(kolWallet, totalSendLamports);
+    if (enforceCampaignGate) {
+      throw e;
+    }
+    return {
+      status: "failed",
+      error: e instanceof Error ? e.message : String(e),
+      submissionId: String(freshSubmission._id),
+      source,
+    };
+  }
+}
+
+/**
+ * Auto-distribute claimable rewards for submissions on a just-finalized campaign.
+ * @param {import("../models/KolCampaign.js").default | Record<string, unknown>} campaign
+ * @param {Array<Record<string, unknown>>} submissions
+ */
+async function autoDistributeForCampaign(campaign, submissions) {
+  const results = [];
+
+  for (const submission of submissions) {
+    const earnedLamports = submission.earnedLamports ?? 0;
+    if (earnedLamports <= 0) continue;
+
+    const handleKey =
+      submission.authorHandleKey || normalizeHandle(submission.authorHandle);
+    if (!handleKey) continue;
+
+    const kolWallet = await getVerifiedWalletForHandle(handleKey);
+    if (!kolWallet) {
+      results.push({
+        submissionId: String(submission._id),
+        authorHandle: submission.authorHandle,
+        status: "skipped",
+        reason: "wallet_not_verified",
+      });
+      continue;
+    }
+
+    try {
+      const freshSubmission = await KolSubmission.findById(submission._id);
+      if (!freshSubmission) continue;
+      const result = await distributeSubmissionReward({
+        campaign,
+        submission: freshSubmission,
+        kolWallet,
+        source: "finalize",
+      });
+      results.push({
+        submissionId: String(submission._id),
+        authorHandle: submission.authorHandle,
+        wallet: kolWallet,
+        ...result,
+      });
+    } catch (e) {
+      results.push({
+        submissionId: String(submission._id),
+        authorHandle: submission.authorHandle,
+        status: "failed",
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Auto-distribute all claimable rewards for a verified X handle.
+ * @param {string} xHandleKey
+ * @param {string} wallet
+ */
+export async function autoDistributeClaimableForHandle(xHandleKey, wallet) {
+  assertMongo();
+
+  if (!isPoolWalletConfigured()) {
+    return { distributed: [], skipped: true, reason: "pool_wallet_unconfigured" };
+  }
+
+  const kolWallet = normalizeWallet(wallet);
+  const handleKey = normalizeHandle(xHandleKey);
+  if (!kolWallet || !handleKey) {
+    return { distributed: [], skipped: true, reason: "invalid_input" };
+  }
+
+  const submissions = await KolSubmission.find({
+    authorHandleKey: handleKey,
+    claimStatus: "claimable",
+    earnedLamports: { $gt: 0 },
+  }).lean();
+
+  const distributed = [];
+  for (const submission of submissions) {
+    const campaign = await KolCampaign.findById(submission.campaignId);
+    if (!campaign || campaign.status !== "completed") continue;
+
+    try {
+      const freshSubmission = await KolSubmission.findById(submission._id);
+      if (!freshSubmission) continue;
+      const result = await distributeSubmissionReward({
+        campaign,
+        submission: freshSubmission,
+        kolWallet,
+        source: "verify",
+      });
+      distributed.push({
+        campaignId: String(campaign._id),
+        submissionId: String(submission._id),
+        ...result,
+      });
+    } catch (e) {
+      distributed.push({
+        campaignId: String(submission.campaignId),
+        submissionId: String(submission._id),
+        status: "failed",
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  }
+
+  return { distributed };
+}
+
+/**
+ * Sweep claimable submissions that have verified wallets but were not yet paid.
+ * @param {{ limit?: number }} [opts]
+ */
+export async function sweepClaimableVerifiedSubmissions(opts = {}) {
+  if (!isPoolWalletConfigured()) {
+    return { swept: [], skipped: true, reason: "pool_wallet_unconfigured" };
+  }
+
+  const limit = Math.min(
+    Math.max(Number(opts.limit) || AUTO_SWEEP_BATCH_LIMIT, 1),
+    50,
+  );
+
+  const submissions = await KolSubmission.find({
+    claimStatus: "claimable",
+    earnedLamports: { $gt: 0 },
+  })
+    .sort({ updatedAt: 1 })
+    .limit(limit)
+    .lean();
+
+  const swept = [];
+  for (const submission of submissions) {
+    const handleKey =
+      submission.authorHandleKey || normalizeHandle(submission.authorHandle);
+    if (!handleKey) continue;
+
+    const kolWallet = await getVerifiedWalletForHandle(handleKey);
+    if (!kolWallet) continue;
+
+    const campaign = await KolCampaign.findById(submission.campaignId);
+    if (!campaign || campaign.status !== "completed") continue;
+
+    try {
+      const freshSubmission = await KolSubmission.findById(submission._id);
+      if (!freshSubmission || freshSubmission.claimStatus !== "claimable") {
+        continue;
+      }
+      const result = await distributeSubmissionReward({
+        campaign,
+        submission: freshSubmission,
+        kolWallet,
+        source: "sweep",
+      });
+      if (result.status === "skipped" && result.reason === "not_claimable") {
+        continue;
+      }
+      swept.push({
+        submissionId: String(submission._id),
+        campaignId: String(campaign._id),
+        wallet: kolWallet,
+        ...result,
+      });
+    } catch (e) {
+      swept.push({
+        submissionId: String(submission._id),
+        campaignId: String(submission.campaignId),
+        status: "failed",
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  }
+
+  return { swept };
 }
 
 /**
@@ -1415,113 +1874,13 @@ export async function claimCampaignReward(campaignId, input) {
     throw err;
   }
 
-  if (campaign.requireCreatedOneCampaign) {
-    const hasCreatedCampaign = await walletHasCreatedCampaign(kolWallet);
-    if (!hasCreatedCampaign) {
-      const err = new Error("Create one campaign first to claim your reward");
-      err.code = "require_created_campaign";
-      throw err;
-    }
-  }
-
-  const existingPayout = await KolPayout.findOne({
-    campaignId: campaign._id,
-    submissionId: submission._id,
-    status: "confirmed",
+  return distributeSubmissionReward({
+    campaign,
+    submission,
+    kolWallet,
+    source: "claim",
+    enforceCampaignGate: true,
   });
-  if (existingPayout) {
-    const err = new Error("Reward already claimed for this campaign");
-    err.code = "already_claimed";
-    throw err;
-  }
-
-  const earnedLamports = submission.earnedLamports ?? 0;
-  const previousPendingLamports =
-    await getPendingPayoutBalanceLamports(kolWallet);
-  const totalSendLamports = previousPendingLamports + earnedLamports;
-
-  let payoutDoc = await KolPayout.findOne({
-    campaignId: campaign._id,
-    submissionId: submission._id,
-  });
-
-  if (!payoutDoc) {
-    payoutDoc = await KolPayout.create({
-      campaignId: campaign._id,
-      submissionId: submission._id,
-      kolWallet,
-      lamports: earnedLamports,
-      status: "pending",
-    });
-  }
-
-  if (totalSendLamports < MIN_KOL_PAYOUT_LAMPORTS) {
-    payoutDoc.status = "pending_minimum";
-    payoutDoc.kolWallet = kolWallet;
-    payoutDoc.error = null;
-    await payoutDoc.save();
-    await setPendingPayoutBalanceLamports(kolWallet, totalSendLamports);
-    submission.kolWallet = kolWallet;
-    await submission.save();
-
-    return {
-      status: "pending_minimum",
-      lamports: earnedLamports,
-      pendingBalanceLamports: totalSendLamports,
-      minPayoutLamports: MIN_KOL_PAYOUT_LAMPORTS,
-      minPayoutSol: MIN_KOL_PAYOUT_SOL,
-      submission: serializeSubmission(submission),
-    };
-  }
-
-  try {
-    const sent = await sendPayout({
-      toWallet: kolWallet,
-      lamports: totalSendLamports,
-    });
-
-    payoutDoc.txSignature = sent.txSignature;
-    payoutDoc.status = "confirmed";
-    payoutDoc.kolWallet = kolWallet;
-    payoutDoc.error = null;
-    await payoutDoc.save();
-
-    submission.claimStatus = "claimed";
-    submission.kolWallet = kolWallet;
-    await submission.save();
-
-    await KolPayout.updateMany(
-      {
-        kolWallet,
-        status: "pending_minimum",
-        _id: { $ne: payoutDoc._id },
-      },
-      {
-        $set: {
-          status: "confirmed",
-          txSignature: sent.txSignature,
-          error: null,
-        },
-      },
-    );
-    await clearPendingPayoutBalance(kolWallet);
-
-    return {
-      status: "confirmed",
-      txSignature: sent.txSignature,
-      lamports: earnedLamports,
-      sentLamports: totalSendLamports,
-      rolledFromPendingLamports: previousPendingLamports,
-      submission: serializeSubmission(submission),
-      payout: serializePayout(payoutDoc),
-    };
-  } catch (e) {
-    payoutDoc.status = "failed";
-    payoutDoc.error = e instanceof Error ? e.message : String(e);
-    await payoutDoc.save();
-    await setPendingPayoutBalanceLamports(kolWallet, totalSendLamports);
-    throw e;
-  }
 }
 
 /**
@@ -1734,7 +2093,7 @@ export async function getWalletEarnings(wallet) {
     payoutPolicy: {
       minPayoutSol: MIN_KOL_PAYOUT_SOL,
       summary:
-        "Verify your X account, then claim rewards after a campaign ends. On-chain payouts require at least 0.01 SOL; smaller balances roll over until the minimum is reached.",
+        "Verify your X account to receive rewards automatically when a campaign ends. On-chain payouts require at least 0.01 SOL; smaller balances stay in the pool until the minimum is reached. You can also claim manually if auto-send did not run.",
     },
   };
 }
@@ -1784,7 +2143,28 @@ export async function runKolDailyTick() {
     );
   }
 
-  return { success: true, refreshed, finalized, profiles };
+  let sweep = { swept: [] };
+  try {
+    sweep = await sweepClaimableVerifiedSubmissions({
+      limit: AUTO_SWEEP_BATCH_LIMIT,
+    });
+    if (sweep.swept?.length > 0) {
+      startupVerbose(
+        `[kol] auto-sweep distributed=${sweep.swept.filter((r) => r.status === "confirmed").length} attempted=${sweep.swept.length}`,
+      );
+    }
+  } catch (e) {
+    console.warn(
+      "[kol] claimable sweep failed:",
+      e instanceof Error ? e.message : e,
+    );
+    sweep = {
+      swept: [],
+      error: e instanceof Error ? e.message : String(e),
+    };
+  }
+
+  return { success: true, refreshed, finalized, profiles, sweep };
 }
 
 /**

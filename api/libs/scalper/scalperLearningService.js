@@ -78,9 +78,11 @@ function computeWinRateStats(runs) {
  * @param {number} sampleSize
  */
 function deriveScoreMultiplier(winRate, sampleSize) {
-  if (sampleSize < 3) return 1;
-  if (winRate >= 0.6) return clamp(1 + (winRate - 0.5) * 0.5, 1, 1.25);
-  if (winRate < 0.35) return clamp(0.5 + winRate, 0.5, 0.85);
+  if (sampleSize < 2) return 1;
+  if (winRate >= 0.62) return clamp(1.05 + (winRate - 0.5) * 0.6, 1.05, 1.3);
+  if (winRate >= 0.55) return clamp(1 + (winRate - 0.5) * 0.4, 1, 1.15);
+  if (winRate < 0.38) return clamp(0.45 + winRate, 0.45, 0.75);
+  if (winRate < 0.45) return clamp(0.75 + (winRate - 0.38) * 2, 0.75, 0.9);
   return 1;
 }
 
@@ -214,14 +216,16 @@ export async function computeConvictionNotionalSlice({
   source,
   notionalSlicePct,
   minNotionalSlicePct,
+  confluenceCount = 1,
 }) {
   const doc = await getLearningDoc();
   const sourceWinRate = doc?.sourceStats?.[source]?.winRate ?? 0.5;
   const scoreRange = Math.max(0.01, 1 - minScore);
   const scoreFactor = clamp((score - minScore) / scoreRange, 0, 1);
   const sourceFactor = clamp(0.7 + sourceWinRate * 0.6, 0.5, 1.3);
+  const confluenceFactor = confluenceCount >= 2 ? 1.15 : confluenceCount >= 3 ? 1.25 : 1;
   const slice = minNotionalSlicePct + (notionalSlicePct - minNotionalSlicePct) * scoreFactor;
-  return clamp(slice * sourceFactor, minNotionalSlicePct, notionalSlicePct);
+  return clamp(slice * sourceFactor * confluenceFactor, minNotionalSlicePct, notionalSlicePct * 1.1);
 }
 
 /**
@@ -232,7 +236,8 @@ export async function computeConvictionNotionalSlice({
 export function passesCostAwareEdgeGate(cfg, score) {
   const roundTripCost = estimateRoundTripCostPct(cfg.quoteSlippageBps ?? SCALPER_DEFAULTS.quoteSlippageBps);
   const minEdge = toNum(cfg.minEdgeBufferPct, SCALPER_DEFAULTS.minEdgeBufferPct);
-  const expectedEdge = toNum(cfg.takeProfitPct) * clamp(score, 0.5, 1);
+  const scoreFactor = clamp((score - 0.5) / 0.45, 0.6, 1);
+  const expectedEdge = toNum(cfg.takeProfitPct) * scoreFactor;
   return expectedEdge >= roundTripCost + minEdge;
 }
 
@@ -240,7 +245,7 @@ export function passesCostAwareEdgeGate(cfg, score) {
  * Analyze closed scalper runs and derive lessons + threshold nudges.
  */
 export async function runScalperLearning() {
-  const minRuns = Number(process.env.SCALPER_LEARNING_MIN_RUNS || 8);
+  const minRuns = Number(process.env.SCALPER_LEARNING_MIN_RUNS || 5);
 
   const closed = await ScalperRun.find({
     status: { $in: ["win", "loss", "expired"] },
@@ -298,6 +303,36 @@ export async function runScalperLearning() {
       ? expiredRecent.filter((r) => toNum(r.simPnlUsd) < 0).length / expiredRecent.length
       : 0;
 
+  const confluenceRuns = decided.filter((r) => toNum(r.confluenceCount) >= 2);
+  if (confluenceRuns.length >= 4) {
+    const confStats = computeWinRateStats(confluenceRuns);
+    if (confStats.winRate >= 0.58) {
+      lessons.push(
+        `Confluence entries working (${(confStats.winRate * 100).toFixed(0)}% WR) — favoring multi-source setups.`,
+      );
+      thresholdOverrides.minOpportunityScore = Math.max(
+        baseCfg.minOpportunityScore - 0.03,
+        0.52,
+      );
+    }
+  }
+
+  const momentumOnly = decided.filter(
+    (r) => r.source === "momentum" && toNum(r.confluenceCount) < 2,
+  );
+  if (momentumOnly.length >= 5) {
+    const momStats = computeWinRateStats(momentumOnly);
+    if (momStats.winRate < 0.4) {
+      lessons.push(
+        `Solo momentum scalps underperforming (${(momStats.winRate * 100).toFixed(0)}% WR) — requiring higher scores.`,
+      );
+      thresholdOverrides.minOpportunityScore = Math.max(
+        thresholdOverrides.minOpportunityScore ?? baseCfg.minOpportunityScore,
+        0.62,
+      );
+    }
+  }
+
   if (overall.winRate < 0.42 || overall.avgPnlPct < 0) {
     lessons.push(
       `Recent scalps underperformed (win rate ${(overall.winRate * 100).toFixed(0)}%, avg PnL ${overall.avgPnlPct.toFixed(2)}%) — raising entry bar.`,
@@ -309,6 +344,14 @@ export async function runScalperLearning() {
     thresholdOverrides.minEdgeBufferPct = Math.min(
       (baseCfg.minEdgeBufferPct ?? 0.25) + 0.1,
       0.6,
+    );
+  } else if (overall.winRate >= 0.58 && overall.avgPnlPct > 0.35) {
+    lessons.push(
+      `Scalper is profitable (win rate ${(overall.winRate * 100).toFixed(0)}%, avg PnL ${overall.avgPnlPct.toFixed(2)}%) — slightly increasing size on strong signals.`,
+    );
+    thresholdOverrides.notionalSlicePct = Math.min(
+      baseCfg.notionalSlicePct * 1.1,
+      0.35,
     );
   } else if (overall.winRate >= 0.55 && overall.avgPnlPct > 0.3) {
     lessons.push(

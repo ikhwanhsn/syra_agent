@@ -55,7 +55,7 @@ export function ScalperLearningPanel({
       <div className="space-y-1">
         <h3 className="text-sm font-semibold text-foreground">Agent learning</h3>
         <p className="text-xs text-muted-foreground">
-          Lessons from closed scalps — adaptive thresholds, source weights, and cooldowns.
+          Adaptive thresholds, source weights, confluence tracking, and cooldowns.
         </p>
       </div>
 

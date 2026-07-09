@@ -36,3 +36,5 @@ export const siteNavZ = "z-[250]" as const;
 export const siteNavDropdownZ = "z-[280]" as const;
 export const siteMobileNavOverlayZ = "z-[260]" as const;
 export const siteMobileNavDrawerZ = "z-[270]" as const;
+/** Tooltips / hover hints — above navbar and mobile drawer. */
+export const siteTooltipZ = "z-[300]" as const;

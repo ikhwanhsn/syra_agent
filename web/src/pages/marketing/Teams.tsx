@@ -169,7 +169,7 @@ export default function Teams() {
             transition={{ duration: 0.4 }}
           >
             <Link
-              to="/home"
+              to="/"
               className="group mb-12 inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/40 px-4 py-2 text-sm font-medium text-muted-foreground backdrop-blur-sm transition-colors hover:border-primary/25 hover:bg-primary/[0.04] hover:text-foreground"
             >
               <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />

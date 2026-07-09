@@ -5,6 +5,7 @@ import express from "express";
 import { requireMongooseConnection } from "../../config/mongoose.js";
 import {
   claimCampaignReward,
+  autoDistributeClaimableForHandle,
   confirmCampaignDeposit,
   confirmCampaignTopUp,
   createCampaign,
@@ -34,11 +35,7 @@ import {
   claimDailyPoints,
   getDailyClaimStatus,
 } from "../../libs/s3labsDailyClaimService.js";
-import {
-  subscribeEmail,
-  unsubscribeByToken,
-} from "../../libs/emailSubscriberService.js";
-import { buildUnsubscribePageHtml } from "../../libs/emailTemplates/campaignEmails.js";
+import { sendTestKolCampaignTelegram } from "../../libs/kolCampaignTelegramNotifier.js";
 import { getPoolWalletAddress } from "../../services/kolPoolWallet.js";
 import {
   KOL_PLATFORM_FEE_SOL,
@@ -65,8 +62,6 @@ function handleServiceError(res, error) {
     invalid_tx: 400,
     invalid_id: 400,
     invalid_handle: 400,
-    invalid_email: 400,
-    invalid_token: 400,
     wallet_mismatch: 400,
     invalid_status: 400,
     campaign_ended: 400,
@@ -91,6 +86,7 @@ function handleServiceError(res, error) {
     twitterapi_unavailable: 503,
     twitterapi_error: 502,
     mongodb_not_connected: 503,
+    telegram_not_configured: 503,
     pool_wallet_unconfigured: 503,
   };
 
@@ -361,7 +357,24 @@ export function createKolRouter() {
       try {
         const { wallet, xHandle } = req.body || {};
         const result = await confirmXVerification({ wallet, xHandle });
-        return res.json({ success: true, data: result });
+        let autoDistributed = { distributed: [] };
+        if (result.verified && result.xHandleKey && result.wallet) {
+          try {
+            autoDistributed = await autoDistributeClaimableForHandle(
+              result.xHandleKey,
+              result.wallet,
+            );
+          } catch (e) {
+            console.warn(
+              "[kol] auto-distribute after verify failed:",
+              e instanceof Error ? e.message : e,
+            );
+          }
+        }
+        return res.json({
+          success: true,
+          data: { ...result, autoDistributed },
+        });
       } catch (e) {
         return handleServiceError(res, e);
       }
@@ -464,30 +477,25 @@ export function createKolRouter() {
     },
   );
 
-  router.post("/subscribe", requireMongooseConnection, async (req, res) => {
-    try {
-      const { email, source } = req.body || {};
-      const result = await subscribeEmail(email, source);
-      return res.status(201).json({ success: true, data: result });
-    } catch (e) {
-      return handleServiceError(res, e);
-    }
-  });
-
-  router.get("/unsubscribe", async (req, res) => {
-    try {
-      const token = typeof req.query.token === "string" ? req.query.token : "";
-      const result = await unsubscribeByToken(token);
-      const html = buildUnsubscribePageHtml({
-        success: true,
-        email: result.email,
-      });
-      return res.type("html").send(html);
-    } catch (e) {
-      const html = buildUnsubscribePageHtml({ success: false });
-      return res.status(400).type("html").send(html);
-    }
-  });
+  router.post(
+    "/admin/send-test-campaign-telegram",
+    requireMongooseConnection,
+    async (_req, res) => {
+      try {
+        const result = await sendTestKolCampaignTelegram();
+        if (!result.sent) {
+          return res.status(503).json({
+            success: false,
+            error: result.reason ?? "telegram_send_failed",
+            code: "telegram_not_configured",
+          });
+        }
+        return res.json({ success: true, data: result });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
 
   return router;
 }

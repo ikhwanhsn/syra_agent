@@ -10,8 +10,11 @@ export function BlogProgressBar() {
 
   return (
     <motion.div
-      className="blog-progress-bar fixed top-0 left-0 right-0 z-[10000] h-[2px] origin-left"
-      style={{ scaleX }}
+      className="fixed left-0 right-0 z-50 h-0.5 origin-left bg-primary"
+      style={{
+        scaleX,
+        top: "var(--syra-global-nav-height, 3.5rem)",
+      }}
       aria-hidden
     />
   );

@@ -439,6 +439,17 @@ Recommended mints to register:
 
 Logic lives in `api/libs/jupiterReferral.js`. The **jupiter-swap-order** agent tool applies the same referral account on both Jupiter Ultra (`referralAccount` + `referralFee`) and Swap V1 fallback (`platformFeeBps` + `feeAccount`).
 
+### x402 → SYRA buyback (batched)
+
+~80% of settled x402 revenue is **queued** in MongoDB (`buyback_accumulator`) and swapped to $SYRA **once every 24h** via `api/libs/buybackScheduler.js` (not per transaction).
+
+| Env | Purpose |
+|-----|---------|
+| `BUYBACK_CRON_MS` | In-process flush interval (default `86400000` = 24h). Set `0` to disable in-process scheduler. |
+| `BUYBACK_CRON_SECRET` | Optional secret for `POST /internal/buyback/run` (header `x-buyback-cron-secret`) |
+
+`GET /internal/buyback/status` — pending queued revenue and last flush metadata (internal).
+
 ---
 
 ## Pact Network (agent x402 refund coverage)

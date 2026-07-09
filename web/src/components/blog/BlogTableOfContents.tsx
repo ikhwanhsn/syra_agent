@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { List } from "lucide-react";
+import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 import { cn } from "@/lib/utils";
 
 interface TocItem {
@@ -56,35 +57,33 @@ export function BlogTableOfContents({
 
   return (
     <motion.nav
-      initial={{ opacity: 0, x: 12 }}
+      initial={{ opacity: 0, x: 8 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.5, delay: 0.3 }}
+      transition={{ duration: 0.45, delay: 0.15 }}
       aria-label="Table of contents"
-      className="blog-toc hidden lg:block"
+      className={cn(overviewCardShell, "p-4")}
     >
-      <div className="blog-toc-panel sticky top-28 rounded-2xl p-5">
-        <div className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-          <List className="h-3.5 w-3.5" />
-          On this page
-        </div>
-        <ul className="space-y-1">
-          {items.map((item) => (
-            <li key={item.id}>
-              <a
-                href={`#${item.id}`}
-                className={cn(
-                  "blog-toc-link block rounded-lg px-3 py-2 text-sm transition-all",
-                  activeId === item.id
-                    ? "blog-toc-link-active font-medium text-foreground"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {item.text}
-              </a>
-            </li>
-          ))}
-        </ul>
+      <div className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/80">
+        <List className="h-3.5 w-3.5" />
+        On this page
       </div>
+      <ul className="space-y-0.5">
+        {items.map((item) => (
+          <li key={item.id}>
+            <a
+              href={`#${item.id}`}
+              className={cn(
+                "block rounded-lg px-2.5 py-1.5 text-sm transition-colors",
+                activeId === item.id
+                  ? "bg-muted/30 font-medium text-foreground"
+                  : "text-muted-foreground hover:bg-muted/20 hover:text-foreground",
+              )}
+            >
+              {item.text}
+            </a>
+          </li>
+        ))}
+      </ul>
     </motion.nav>
   );
 }

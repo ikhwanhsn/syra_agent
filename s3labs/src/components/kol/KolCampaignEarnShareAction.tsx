@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import type { KolCampaign, KolLeaderboardEntry } from "@/lib/kolApi";
@@ -91,9 +90,8 @@ export function KolCampaignEarnShareAction({
 
   return (
     <div className={cn(prominent && variant === "button" && "w-full")}>
-      <TooltipProvider delayDuration={300}>
-        <Tooltip>
-          <TooltipTrigger asChild>
+      <Tooltip>
+        <TooltipTrigger asChild>
             {variant === "icon" ? (
               <Button
                 type="button"
@@ -121,9 +119,8 @@ export function KolCampaignEarnShareAction({
               </Button>
             )}
           </TooltipTrigger>
-          <TooltipContent side="bottom">{tooltip}</TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+        <TooltipContent side="bottom">{tooltip}</TooltipContent>
+      </Tooltip>
 
       <KolCampaignEarnShareDialog
         open={shareOpen}

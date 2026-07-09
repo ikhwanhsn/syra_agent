@@ -1,8 +1,5 @@
 import { useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Navbar } from "@/components/marketing/Navbar";
-import { Footer } from "@/components/marketing/Footer";
-import { BlogAmbient } from "@/components/blog/BlogAmbient";
 import { BlogProgressBar } from "@/components/blog/BlogProgressBar";
 import { BlogArticleHeader } from "@/components/blog/BlogArticleHeader";
 import { BlogAuthorCard } from "@/components/blog/BlogAuthorCard";
@@ -12,12 +9,14 @@ import { BlogTableOfContents } from "@/components/blog/BlogTableOfContents";
 import { BlogSocialShare } from "@/components/blog/BlogSocialShare";
 import { BlogRelatedPosts } from "@/components/blog/BlogRelatedPosts";
 import { BlogNewsletter } from "@/components/blog/BlogNewsletter";
-import { BlogComments } from "@/components/blog/BlogComments";
+import { ArticlePageShell, ARTICLE_SIDEBAR_STICKY } from "@/components/blog/ArticlePageShell";
+import { Button } from "@/components/ui/button";
 import {
   getArticleBySlug,
   getRelatedArticles,
 } from "@/data/marketing/articleContent";
 import { useDocumentMeta } from "@/lib/marketing/useDocumentMeta";
+import { cn } from "@/lib/utils";
 
 const SITE_ORIGIN = "https://www.syraa.fun" as const;
 
@@ -44,9 +43,8 @@ export default function ArticlePage() {
 
   if (!article) {
     return (
-      <div className="blog-root min-h-screen bg-background">
-        <Navbar />
-        <div className="mx-auto max-w-2xl px-4 py-32 text-center sm:px-6">
+      <ArticlePageShell>
+        <div className="mx-auto max-w-lg py-16 text-center">
           <h1 className="font-display text-3xl font-semibold tracking-tight">
             Article not found
           </h1>
@@ -54,67 +52,50 @@ export default function ArticlePage() {
             This article does not exist or the link is outdated.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Link to="/articles" className="btn-primary">
-              All articles
-            </Link>
-            <Link to="/home" className="btn-secondary">
-              Home
-            </Link>
+            <Button asChild className="rounded-xl">
+              <Link to="/articles">All articles</Link>
+            </Button>
+            <Button variant="outline" asChild className="rounded-xl">
+              <Link to="/">Back to Syra</Link>
+            </Button>
           </div>
         </div>
-        <Footer />
-      </div>
+      </ArticlePageShell>
     );
   }
 
   return (
-    <div className="blog-root relative min-h-screen overflow-x-hidden bg-background">
+    <ArticlePageShell>
       <BlogProgressBar />
-      <BlogAmbient />
-      <Navbar />
 
-      <main className="relative pt-24 pb-16 sm:pt-28">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-4xl lg:max-w-none">
-            <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_260px] lg:gap-12 xl:grid-cols-[minmax(0,1fr)_280px] xl:gap-16">
-              {/* Main column */}
-              <div className="min-w-0">
-                <BlogArticleHeader article={article} />
+      <BlogArticleHeader article={article} />
 
-                <div className="mb-8 lg:hidden">
-                  <BlogAuthorCard author={article.author} variant="card" />
-                </div>
+      <div className="mt-6 min-w-0 sm:mt-8 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(220px,280px)] lg:items-start lg:gap-6 xl:gap-8">
+        <div className="min-w-0 space-y-6 sm:space-y-8">
+          <BlogFeaturedImage src={article.coverImage} alt={article.title} />
 
-                <BlogFeaturedImage
-                  src={article.coverImage}
-                  alt={article.title}
-                />
-
-                <BlogContent content={article.content} />
-
-                <div className="mt-10 lg:hidden">
-                  <BlogSocialShare title={article.title} url={shareUrl} />
-                </div>
-
-                <BlogNewsletter />
-                <BlogComments />
-                <BlogRelatedPosts articles={related} />
-              </div>
-
-              {/* Sidebar */}
-              <aside className="hidden lg:block">
-                <div className="sticky top-28 space-y-6">
-                  <BlogAuthorCard author={article.author} variant="card" />
-                  <BlogTableOfContents />
-                  <BlogSocialShare title={article.title} url={shareUrl} />
-                </div>
-              </aside>
-            </div>
+          <div className="lg:hidden">
+            <BlogAuthorCard author={article.author} variant="card" />
           </div>
-        </div>
-      </main>
 
-      <Footer />
-    </div>
+          <BlogContent content={article.content} />
+
+          <div className="lg:hidden">
+            <BlogSocialShare title={article.title} url={shareUrl} />
+          </div>
+
+          <BlogNewsletter />
+          <BlogRelatedPosts articles={related} />
+        </div>
+
+        <aside className="hidden min-w-0 lg:block">
+          <div className={cn(ARTICLE_SIDEBAR_STICKY, "space-y-4")}>
+            <BlogAuthorCard author={article.author} variant="card" />
+            <BlogTableOfContents />
+            <BlogSocialShare title={article.title} url={shareUrl} />
+          </div>
+        </aside>
+      </div>
+    </ArticlePageShell>
   );
 }

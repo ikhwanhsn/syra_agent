@@ -1,7 +1,9 @@
 import { motion } from "framer-motion";
 import { ExternalLink } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 import type { ArticleAuthor } from "@/data/marketing/articleContent";
+import { cn } from "@/lib/utils";
 
 interface BlogAuthorCardProps {
   author: ArticleAuthor;
@@ -18,22 +20,19 @@ export function BlogAuthorCard({ author, variant = "card" }: BlogAuthorCardProps
 
   const content = (
     <>
-      <div className="blog-author-avatar-wrap relative shrink-0">
-        <div className="blog-author-avatar-ring absolute -inset-1 rounded-2xl" aria-hidden />
-        <Avatar className="relative h-14 w-14 rounded-xl border border-border/50 sm:h-16 sm:w-16">
-          <AvatarImage src={author.avatar} alt="" className="object-cover" />
-          <AvatarFallback className="rounded-xl bg-muted font-display text-sm">
-            {initials}
-          </AvatarFallback>
-        </Avatar>
-      </div>
+      <Avatar className="h-12 w-12 shrink-0 rounded-xl border border-border/50 sm:h-14 sm:w-14">
+        <AvatarImage src={author.avatar} alt="" className="object-cover" />
+        <AvatarFallback className="rounded-xl bg-muted font-display text-sm">
+          {initials}
+        </AvatarFallback>
+      </Avatar>
 
       <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/80">
           Written by
         </p>
         <div className="mt-1 flex flex-wrap items-center gap-2">
-          <p className="font-display text-lg font-semibold tracking-tight text-foreground">
+          <p className="font-display text-base font-semibold tracking-tight text-foreground">
             {author.name}
           </p>
           {author.xHandle && author.xUrl ? (
@@ -41,7 +40,7 @@ export function BlogAuthorCard({ author, variant = "card" }: BlogAuthorCardProps
               href={author.xUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/50 px-2.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:border-foreground/20 hover:text-foreground"
+              className="inline-flex items-center gap-1 rounded-full border border-border/55 bg-muted/15 px-2.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               {author.xHandle}
               <ExternalLink className="h-3 w-3" />
@@ -50,9 +49,7 @@ export function BlogAuthorCard({ author, variant = "card" }: BlogAuthorCardProps
         </div>
         <p className="mt-0.5 text-sm text-muted-foreground">{author.role}</p>
         {variant === "card" ? (
-          <p className="mt-3 text-sm leading-relaxed text-muted-foreground/90">
-            {author.bio}
-          </p>
+          <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground">{author.bio}</p>
         ) : null}
       </div>
     </>
@@ -63,7 +60,7 @@ export function BlogAuthorCard({ author, variant = "card" }: BlogAuthorCardProps
       <motion.div
         initial={{ opacity: 0, x: -12 }}
         animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.5, delay: 0.15 }}
+        transition={{ duration: 0.45 }}
         className="flex items-center gap-4"
       >
         {content}
@@ -73,14 +70,13 @@ export function BlogAuthorCard({ author, variant = "card" }: BlogAuthorCardProps
 
   return (
     <motion.aside
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.2 }}
-      className="blog-author-card group relative overflow-hidden rounded-2xl p-6 sm:p-7"
+      transition={{ duration: 0.45, delay: 0.1 }}
+      className={cn(overviewCardShell, "p-5")}
       aria-label="Author information"
     >
-      <div className="blog-author-card-shine pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100" aria-hidden />
-      <div className="relative flex gap-5">{content}</div>
+      <div className="flex gap-4">{content}</div>
     </motion.aside>
   );
 }

@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -43,9 +42,8 @@ export function ProfileShareAction({
 
   return (
     <div className={cn(prominent && "w-full")}>
-      <TooltipProvider delayDuration={300}>
-        <Tooltip>
-          <TooltipTrigger asChild>
+      <Tooltip>
+        <TooltipTrigger asChild>
             <Button
               type="button"
               variant="outline"
@@ -62,9 +60,8 @@ export function ProfileShareAction({
               {buttonLabel}
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="bottom">{tooltipText}</TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+        <TooltipContent side="bottom">{tooltipText}</TooltipContent>
+      </Tooltip>
 
       <KolProfileShareDialog
         open={shareOpen}

@@ -29,6 +29,12 @@ import {
   passesCostAwareEdgeGate,
   runScalperLearning,
 } from "./scalperLearningService.js";
+import {
+  computeDynamicTradeLevels,
+  computeTrailingStop,
+  priceLevelsFromPct,
+  shouldEarlyExitMomentumFade,
+} from "./scalperSignalEngine.js";
 
 const DEFAULT_LIST_LIMIT = 50;
 const MAX_LIST_LIMIT = 200;
@@ -194,6 +200,7 @@ function serializeRun(r, priceMap = {}) {
     side: r.side,
     source: r.source,
     opportunityScore: r.opportunityScore,
+    confluenceCount: r.confluenceCount ?? 1,
     rationale: r.rationale,
     notionalUsd: r.notionalUsd,
     entryPriceUsd: r.entryPriceUsd,
@@ -368,12 +375,16 @@ export async function runScalperSignalCycle() {
     }
 
     const adjustedScore = await applySourceScoreMultiplier(opp.source, opp.score);
-    if (adjustedScore < cfg.minOpportunityScore) {
+    const confluenceCount = Number(opp.meta?.confluenceCount ?? 1);
+    const confluenceBoost = confluenceCount >= 2 ? 0.04 : 0;
+    const effectiveScore = Math.min(0.99, adjustedScore + confluenceBoost);
+
+    if (effectiveScore < cfg.minOpportunityScore) {
       skipped.push({ symbol: opp.symbol, reason: "score_below_min" });
       continue;
     }
 
-    if (!passesCostAwareEdgeGate(cfg, adjustedScore)) {
+    if (!passesCostAwareEdgeGate(cfg, effectiveScore)) {
       skipped.push({ symbol: opp.symbol, reason: "insufficient_edge_vs_cost" });
       continue;
     }
@@ -396,11 +407,12 @@ export async function runScalperSignalCycle() {
     }
 
     const convictionSlice = await computeConvictionNotionalSlice({
-      score: adjustedScore,
+      score: effectiveScore,
       minScore: cfg.minOpportunityScore,
       source: opp.source,
       notionalSlicePct: cfg.notionalSlicePct,
       minNotionalSlicePct: baseCfg.minNotionalSlicePct ?? SCALPER_DEFAULTS.minNotionalSlicePct,
+      confluenceCount,
     });
 
     const notionalUsd = roundUsd(
@@ -424,9 +436,15 @@ export async function runScalperSignalCycle() {
         midPriceUsd: midPrice,
       });
 
-      const tp = roundUsd(fill.fillPriceUsd * (1 + cfg.takeProfitPct / 100));
-      const sl = roundUsd(fill.fillPriceUsd * (1 - cfg.stopLossPct / 100));
-      const maxHoldUntil = new Date(Date.now() + cfg.maxHoldMinutes * 60_000);
+      const volPct = Number(opp.meta?.atrPct ?? opp.meta?.volatilityPct ?? 0.8);
+      const dynamic = computeDynamicTradeLevels(cfg, volPct, confluenceCount);
+      const levels = priceLevelsFromPct(
+        fill.fillPriceUsd,
+        dynamic.takeProfitPct,
+        dynamic.stopLossPct,
+        cfg.quoteSlippageBps,
+      );
+      const maxHoldUntil = new Date(Date.now() + dynamic.maxHoldMinutes * 60_000);
 
       await ScalperRun.create({
         symbol: opp.symbol,
@@ -434,7 +452,8 @@ export async function runScalperSignalCycle() {
         assetClass: universeEntry.assetClass,
         side: "long",
         source: opp.source,
-        opportunityScore: adjustedScore,
+        opportunityScore: effectiveScore,
+        confluenceCount,
         rationale: opp.rationale,
         opportunitySnapshot: opp.meta ?? null,
         notionalUsd,
@@ -443,8 +462,11 @@ export async function runScalperSignalCycle() {
         entryFillSource: fill.fillSource,
         entryImpactBps: fill.impactBps,
         entryMidPriceUsd: midPrice,
-        takeProfitPriceUsd: tp,
-        stopLossPriceUsd: sl,
+        takeProfitPriceUsd: levels.takeProfitPriceUsd,
+        stopLossPriceUsd: levels.stopLossPriceUsd,
+        peakPriceUsd: fill.fillPriceUsd,
+        dynamicTakeProfitPct: dynamic.takeProfitPct,
+        dynamicStopLossPct: dynamic.stopLossPct,
         maxHoldUntil,
         status: "open",
         openedAt: new Date(),
@@ -497,7 +519,7 @@ export async function resolveOpenScalperRuns() {
 
   const openRuns = await ScalperRun.find({ status: "open" })
     .select(
-      "symbol mint assetClass notionalUsd entryPriceUsd entryTokenAmountRaw takeProfitPriceUsd stopLossPriceUsd maxHoldUntil openedAt",
+      "symbol mint assetClass notionalUsd entryPriceUsd entryTokenAmountRaw takeProfitPriceUsd stopLossPriceUsd peakPriceUsd trailingStopPriceUsd maxHoldUntil openedAt source",
     )
     .lean();
 
@@ -508,6 +530,8 @@ export async function resolveOpenScalperRuns() {
   const priceMap = await fetchCurrentPrices();
   /** @type {import('mongoose').AnyBulkWriteOperation[]} */
   const bulkOps = [];
+  /** @type {import('mongoose').AnyBulkWriteOperation[]} */
+  const trailOps = [];
   const errors = [];
   /** @type {Record<string, number>} */
   const cooldownUpdates = {};
@@ -519,15 +543,53 @@ export async function resolveOpenScalperRuns() {
       continue;
     }
 
+    const trail = computeTrailingStop({
+      entryPriceUsd: run.entryPriceUsd,
+      currentPriceUsd: currentPrice,
+      peakPriceUsd: run.peakPriceUsd,
+      stopLossPriceUsd: run.stopLossPriceUsd,
+      trailActivatePct: cfg.trailActivatePct ?? SCALPER_DEFAULTS.trailActivatePct,
+      trailDistancePct: cfg.trailDistancePct ?? SCALPER_DEFAULTS.trailDistancePct,
+    });
+
+    const effectiveStop = trail.effectiveStopUsd ?? run.stopLossPriceUsd;
+    const peakChanged = trail.peakPriceUsd > (run.peakPriceUsd ?? run.entryPriceUsd);
+    const trailChanged =
+      trail.trailingStopPriceUsd != null &&
+      trail.trailingStopPriceUsd !== run.trailingStopPriceUsd;
+
+    if (peakChanged || trailChanged) {
+      trailOps.push({
+        updateOne: {
+          filter: { _id: run._id, status: "open" },
+          update: {
+            $set: {
+              peakPriceUsd: trail.peakPriceUsd,
+              trailingStopPriceUsd: trail.trailingStopPriceUsd,
+              lastEvaluatedAt: new Date(),
+            },
+          },
+        },
+      });
+    }
+
     let status = "open";
     let resolution = null;
 
     if (currentPrice >= run.takeProfitPriceUsd) {
       status = "win";
       resolution = "take_profit";
-    } else if (currentPrice <= run.stopLossPriceUsd) {
-      status = "loss";
-      resolution = "stop_loss";
+    } else if (currentPrice <= effectiveStop) {
+      status = trail.trailingStopPriceUsd != null && currentPrice > run.stopLossPriceUsd ? "win" : "loss";
+      resolution = trail.trailingStopPriceUsd != null && currentPrice > run.stopLossPriceUsd
+        ? "trailing_stop"
+        : "stop_loss";
+    } else if (
+      run.source === "momentum" &&
+      shouldEarlyExitMomentumFade(run.entryPriceUsd, currentPrice, trail.peakPriceUsd)
+    ) {
+      status = currentPrice > run.entryPriceUsd ? "win" : "expired";
+      resolution = "momentum_fade";
     } else if (run.maxHoldUntil && new Date(run.maxHoldUntil).getTime() <= Date.now()) {
       status = "expired";
       resolution = "max_hold";
@@ -575,6 +637,10 @@ export async function resolveOpenScalperRuns() {
     } catch (e) {
       errors.push(`${run.symbol}: ${e instanceof Error ? e.message : String(e)}`);
     }
+  }
+
+  if (trailOps.length > 0) {
+    await ScalperRun.bulkWrite(trailOps, { ordered: false });
   }
 
   if (bulkOps.length > 0) {

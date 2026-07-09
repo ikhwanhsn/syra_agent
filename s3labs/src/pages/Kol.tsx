@@ -14,7 +14,7 @@ import { CampaignGrid } from "@/components/kol/CampaignCard";
 import { CampaignDetail } from "@/components/kol/CampaignDetail";
 import { KolHowItWorks } from "@/components/kol/KolHowItWorks";
 import { KolPointsInfo } from "@/components/kol/KolPointsInfo";
-import { CampaignNotifySignup } from "@/components/CampaignNotifySignup";
+import { CampaignTelegramNotify } from "@/components/CampaignTelegramNotify";
 import { MarketplaceStats } from "@/components/kol/MarketplaceStats";
 import { isCampaignFinalizing, isCampaignLive } from "@/lib/kolCampaignStatus";
 import {
@@ -323,7 +323,7 @@ function KolPageContent() {
           <div className="mt-14 sm:mt-16 space-y-10 border-t border-border/40 pt-12 sm:pt-14">
             <KolHowItWorks />
             <KolPointsInfo />
-            <CampaignNotifySignup />
+            <CampaignTelegramNotify />
           </div>
         ) : null}
     </div>

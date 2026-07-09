@@ -117,6 +117,10 @@ export interface ScalperOpportunity {
   expiresAt: string;
   taken?: boolean;
   skippedReason?: string | null;
+  meta?: {
+    confluenceCount?: number;
+    confluenceSources?: string[];
+  };
 }
 
 export interface ScalperRun {
@@ -127,6 +131,7 @@ export interface ScalperRun {
   side: "long";
   source: ScalperOpportunitySource;
   opportunityScore: number;
+  confluenceCount?: number;
   rationale: string | null;
   notionalUsd: number;
   entryPriceUsd: number;

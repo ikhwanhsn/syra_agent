@@ -29,7 +29,7 @@ const footerLinks = {
     { label: "Identity", href: "/identity", internal: true },
   ],
   company: [
-    { label: "About", href: "/home#product", internal: true },
+    { label: "About", href: "/about", internal: true },
     { label: "Team", href: "/teams", internal: true },
     { label: "Contact", href: `mailto:${EMAIL_SUPPORT}` },
   ],

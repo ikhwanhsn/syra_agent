@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BadgeCheck, Copy, Loader2, Wallet } from "lucide-react";
+import { BadgeCheck, ExternalLink, Loader2, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,17 @@ import {
   KolApiError,
   requestXVerification,
 } from "@/lib/kolApi";
+
+function buildXVerificationTweet(code: string, handle: string): string {
+  const cleanHandle = handle.trim().replace(/^@/, "");
+  return `Verifying @${cleanHandle} on @s3labs_ KOL Arena\n\n${code}`;
+}
+
+function openXVerificationTweet(code: string, handle: string): void {
+  const text = buildXVerificationTweet(code, handle);
+  const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+  window.open(url, "_blank", "noopener,noreferrer");
+}
 
 function formatVerifyError(error: unknown): string {
   if (error instanceof KolApiError) {
@@ -78,15 +89,19 @@ export function VerifyXAccountCard({
       if (data.alreadyVerified) {
         setPendingCode(null);
         toast.success("X account already verified", {
-          description: "You can claim rewards on any campaign without verifying again.",
+          description:
+            "Eligible rewards send automatically when campaigns end.",
         });
         queryClient.invalidateQueries({ queryKey: ["kol-x-verification", address] });
         onVerified?.();
         return;
       }
+      if (!data.code) return;
+      const handle = xHandle.trim().replace(/^@/, "");
       setPendingCode(data.code);
-      toast.success("Verification code generated", {
-        description: "Post it on X or add it to your bio, then click Verify.",
+      openXVerificationTweet(data.code, handle);
+      toast.success("Post the tweet on X", {
+        description: "Then come back here and click Confirm.",
       });
     },
     onError: (e: Error) => toast.error(formatVerifyError(e)),
@@ -104,17 +119,35 @@ export function VerifyXAccountCard({
     },
     onSuccess: (data) => {
       setPendingCode(null);
+      const sentCount =
+        data.autoDistributed?.distributed?.filter(
+          (row) => row.status === "confirmed",
+        ).length ?? 0;
+      const heldCount =
+        data.autoDistributed?.distributed?.filter(
+          (row) => row.status === "pending_minimum",
+        ).length ?? 0;
+
       if (data.alreadyVerified) {
         toast.success("X account already verified", {
-          description: "You can claim rewards on any campaign without verifying again.",
+          description:
+            sentCount > 0
+              ? `${sentCount} reward${sentCount === 1 ? "" : "s"} sent to your wallet.`
+              : "Eligible rewards send automatically when campaigns end.",
         });
       } else {
         toast.success("X account verified", {
-          description: "You can claim rewards on any campaign without verifying again.",
+          description:
+            sentCount > 0
+              ? `${sentCount} reward${sentCount === 1 ? "" : "s"} sent to your wallet.`
+              : heldCount > 0
+                ? "Some rewards are held in the pool until you reach 0.01 SOL."
+                : "Rewards will send automatically when campaigns end.",
         });
       }
       queryClient.invalidateQueries({ queryKey: ["kol-x-verification", address] });
       queryClient.invalidateQueries({ queryKey: ["kol-earnings", address] });
+      queryClient.invalidateQueries({ queryKey: ["kol-campaign"] });
       onVerified?.();
     },
     onError: (e: Error) => toast.error(formatVerifyError(e)),
@@ -129,17 +162,11 @@ export function VerifyXAccountCard({
         <BadgeCheck className="w-4 h-4 text-emerald-400 shrink-0" />
         <span>
           <span className="font-medium text-foreground">@{displayHandle}</span>{" "}
-          <span className="text-muted-foreground">verified — ready to claim on any campaign.</span>
+          <span className="text-muted-foreground">verified — rewards send automatically.</span>
         </span>
       </div>
     );
   }
-
-  const copyCode = async () => {
-    if (!pendingCode) return;
-    await navigator.clipboard.writeText(pendingCode);
-    toast.success("Code copied");
-  };
 
   return (
     <div className="relative overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 to-transparent p-5 sm:p-8 space-y-5 min-w-0">
@@ -147,8 +174,9 @@ export function VerifyXAccountCard({
         <p className="eyebrow mb-1">Verify your identity</p>
         <h3 className="font-semibold text-lg">Link your X account</h3>
         <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-          Post a short code on X (tweet or bio) to prove you own the account.
-          One-time setup — then you can claim rewards on any campaign.
+          Click Verify to post a short code on X, then Confirm once it&apos;s live.
+          One-time setup — rewards send automatically when campaigns end. Verify
+          before a campaign ends to get paid right away.
         </p>
       </div>
 
@@ -166,7 +194,7 @@ export function VerifyXAccountCard({
           <div>
             <p className="font-medium text-foreground">@{displayHandle} verified</p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Linked to this wallet — no need to verify again on other campaigns.
+              Linked to this wallet — rewards send automatically when eligible.
             </p>
           </div>
         </div>
@@ -178,32 +206,28 @@ export function VerifyXAccountCard({
               id="kol-x-handle"
               value={xHandle}
               onChange={(e) => setXHandle(e.target.value)}
-              placeholder="yourhandle"
+              placeholder="@yourhandle"
               className="bg-background/60"
             />
           </div>
 
           {pendingCode ? (
-            <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-3">
+            <div className="rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
               <p className="text-sm text-muted-foreground">
-                1. Post this code in a tweet <span className="text-foreground">or</span> add it to your bio.
-                <br />
-                2. Click Verify below once it&apos;s live.
+                Post the pre-filled tweet on X, then click Confirm below.
               </p>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 rounded-lg bg-background px-3 py-2 text-sm font-mono">
-                  {pendingCode}
-                </code>
-                <Button type="button" variant="outline" size="icon" onClick={copyCode}>
-                  <Copy className="w-4 h-4" />
-                </Button>
-              </div>
+              <button
+                type="button"
+                className="mt-2 text-xs text-primary hover:underline"
+                onClick={() => {
+                  const handle = xHandle.trim().replace(/^@/, "");
+                  if (handle) openXVerificationTweet(pendingCode, handle);
+                }}
+              >
+                Open X again
+              </button>
             </div>
-          ) : (
-            <p className="text-xs text-muted-foreground">
-              Step 1: enter your handle and get a code. Step 2: post it on X, then verify.
-            </p>
-          )}
+          ) : null}
 
           <div className="flex flex-wrap gap-2">
             {!pendingCode ? (
@@ -216,49 +240,35 @@ export function VerifyXAccountCard({
                 {requestMutation.isPending ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Generating…
+                    Opening X…
                   </>
                 ) : (
-                  "Get verification code"
+                  <>
+                    Verify
+                    <ExternalLink className="w-4 h-4 ml-2" />
+                  </>
                 )}
               </Button>
             ) : (
-              <>
-                <Button
-                  variant="outline"
-                  className="rounded-full"
-                  disabled={!address || requestMutation.isPending}
-                  onClick={() => requestMutation.mutate()}
-                >
-                  {requestMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      New code…
-                    </>
-                  ) : (
-                    "New code"
-                  )}
-                </Button>
-                <Button
-                  variant="hero"
-                  className="rounded-full"
-                  disabled={
-                    !address ||
-                    (!xHandle.trim() && !displayHandle) ||
-                    confirmMutation.isPending
-                  }
-                  onClick={() => confirmMutation.mutate()}
-                >
-                  {confirmMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Checking X…
-                    </>
-                  ) : (
-                    "Verify X account"
-                  )}
-                </Button>
-              </>
+              <Button
+                variant="hero"
+                className="rounded-full"
+                disabled={
+                  !address ||
+                  (!xHandle.trim() && !displayHandle) ||
+                  confirmMutation.isPending
+                }
+                onClick={() => confirmMutation.mutate()}
+              >
+                {confirmMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Checking…
+                  </>
+                ) : (
+                  "Confirm"
+                )}
+              </Button>
             )}
           </div>
         </>

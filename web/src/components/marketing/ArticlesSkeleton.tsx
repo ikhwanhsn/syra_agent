@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 import { cn } from "@/lib/utils";
 
 const thumbClass =
@@ -7,7 +8,7 @@ const thumbClass =
 function ArticleCardSkeleton() {
   return (
     <div
-      className="glass-card h-full overflow-hidden rounded-2xl border border-transparent"
+      className={cn(overviewCardShell, "h-full overflow-hidden")}
       aria-hidden
     >
       <Skeleton className={cn(thumbClass, "rounded-none")} />
@@ -27,10 +28,10 @@ function ArticleCardSkeleton() {
 function FeaturedArticleSkeleton() {
   return (
     <div
-      className="glass-card overflow-hidden rounded-2xl border border-transparent lg:grid lg:grid-cols-2"
+      className={cn(overviewCardShell, "overflow-hidden md:grid md:grid-cols-2")}
       aria-hidden
     >
-      <Skeleton className={cn(thumbClass, "lg:aspect-auto lg:min-h-[280px] lg:rounded-none lg:border-b-0 lg:border-r")} />
+      <Skeleton className={cn(thumbClass, "md:aspect-auto md:min-h-[260px] md:rounded-none md:border-b-0 md:border-r")} />
       <div className="flex flex-col justify-center gap-4 p-6 sm:p-8 lg:p-10">
         <Skeleton className="h-3 w-40" />
         <Skeleton className="h-8 w-full max-w-lg" />
@@ -75,7 +76,7 @@ export function ArticlesPageSkeleton() {
         ))}
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {Array.from({ length: 3 }).map((_, i) => (
           <ArticleCardSkeleton key={i} />
         ))}

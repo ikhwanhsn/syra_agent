@@ -33,7 +33,7 @@ export function ScalperOpportunityFeed({
         <div>
           <h2 className="text-sm font-semibold tracking-tight">Opportunity feed</h2>
           <p className="text-xs text-muted-foreground">
-            Hybrid signals from BTC experiments, stocks news, and momentum scan
+            Confluence-ranked signals · trend/RSI filters · cost-aware entry gate
           </p>
         </div>
         {scannedAt ? (
@@ -61,12 +61,21 @@ export function ScalperOpportunityFeed({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {opportunities.map((opp) => (
+              {opportunities.map((opp) => {
+                const confluence = opp.meta?.confluenceCount ?? (opp.rationale.startsWith("Confluence") ? 2 : 1);
+                return (
                 <TableRow key={`${opp.source}-${opp.symbol}-${opp.score}`}>
                   <TableCell>
-                    <Badge variant="outline" className="text-[10px]">
-                      {SCALPER_SOURCE_LABELS[opp.source]}
-                    </Badge>
+                    <div className="flex flex-wrap gap-1">
+                      <Badge variant="outline" className="text-[10px]">
+                        {SCALPER_SOURCE_LABELS[opp.source]}
+                      </Badge>
+                      {confluence >= 2 ? (
+                        <Badge className="bg-amber-500/15 text-amber-400 hover:bg-amber-500/15 text-[10px]">
+                          {confluence}× confluence
+                        </Badge>
+                      ) : null}
+                    </div>
                   </TableCell>
                   <TableCell className="font-medium">{opp.symbol}</TableCell>
                   <TableCell className="capitalize">{opp.side}</TableCell>
@@ -86,7 +95,8 @@ export function ScalperOpportunityFeed({
                     )}
                   </TableCell>
                 </TableRow>
-              ))}
+              );
+              })}
             </TableBody>
           </Table>
         </div>

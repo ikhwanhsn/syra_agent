@@ -3,7 +3,12 @@
  * No-ops safely when credentials are not configured.
  */
 import nodemailer from "nodemailer";
-import { getEmailFromAddress, GMAIL_USER, isEmailConfigured } from "../config/emailConfig.js";
+import {
+  getEmailFromAddress,
+  GMAIL_APP_PASSWORD,
+  GMAIL_USER,
+  isEmailConfigured,
+} from "../config/emailConfig.js";
 
 /** @type {import("nodemailer").Transporter | null} */
 let transporter = null;
@@ -15,11 +20,35 @@ function getTransporter() {
       service: "gmail",
       auth: {
         user: GMAIL_USER,
-        pass: process.env.GMAIL_APP_PASSWORD,
+        pass: GMAIL_APP_PASSWORD,
       },
     });
   }
   return transporter;
+}
+
+/**
+ * Verify SMTP credentials on startup (logs clear error if Gmail app password is invalid).
+ * @returns {Promise<{ ok: boolean, reason?: string }>}
+ */
+export async function verifyEmailTransport() {
+  const transport = getTransporter();
+  if (!transport) {
+    return { ok: false, reason: "not_configured" };
+  }
+
+  try {
+    await transport.verify();
+    return { ok: true };
+  } catch (e) {
+    const reason = e instanceof Error ? e.message : String(e);
+    console.error(
+      "[email] SMTP verify failed — campaign alerts will not send. Regenerate Gmail App Password for",
+      GMAIL_USER,
+    );
+    console.error("[email] Details:", reason);
+    return { ok: false, reason };
+  }
 }
 
 /**

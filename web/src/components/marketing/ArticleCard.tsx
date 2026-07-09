@@ -3,12 +3,15 @@ import type { TargetAndTransition, Transition } from "framer-motion";
 import { Link } from "react-router-dom";
 import { ArrowRight, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 import type { ArticleItem } from "@/data/marketing/articles";
 import { ArticleCopyForXButton } from "@/components/marketing/ArticleCopyForXButton";
 
-/** Shared surface: one accent color, same hover on every card (including coming soon). */
-const cardSurfaceClass =
-  "group glass-card h-full overflow-hidden rounded-2xl border border-transparent transition-all duration-300 hover:border-accent/40 hover:shadow-[0_0_32px_-10px_hsl(var(--accent)/0.2)]";
+/** Shared surface aligned with dashboard overview cards. */
+const cardSurfaceClass = cn(
+  overviewCardShell,
+  "group h-full overflow-hidden transition-colors hover:border-border/70",
+);
 
 /** All article thumbs use 16:9 (same as `article-two.webp` at 1920×1080). */
 const articleThumbFrameClass =

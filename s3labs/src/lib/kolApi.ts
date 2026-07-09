@@ -100,6 +100,10 @@ export interface KolPayoutInfo {
 
 export interface KolLeaderboardEntry extends KolSubmission {
   payout: KolPayoutInfo | null;
+  /** null when campaign does not require creating a campaign first. */
+  rewardEligible?: boolean | null;
+  /** Score-based payout before campaign-creation eligibility gate. */
+  potentialProjectedSol?: number | null;
 }
 
 export interface KolEngagementTotals {
@@ -638,6 +642,20 @@ export function confirmXVerification(input: {
   alreadyVerified?: boolean;
   message?: string;
   verifiedVia?: string;
+  autoDistributed?: {
+    distributed: Array<{
+      campaignId?: string;
+      submissionId?: string;
+      status: string;
+      txSignature?: string;
+      lamports?: number;
+      sentLamports?: number;
+      reason?: string;
+      error?: string;
+    }>;
+    skipped?: boolean;
+    reason?: string;
+  };
 }> {
   return kolFetch("/kol/verify/confirm", {
     method: "POST",
@@ -745,20 +763,4 @@ export function fetchKols(opts?: {
 export function fetchKolProfile(username: string): Promise<KolProfile> {
   const clean = username.trim().replace(/^@/, "");
   return kolFetch<KolProfile>(`/kol/profiles/${encodeURIComponent(clean)}`);
-}
-
-export interface SubscribeCampaignNotificationsResult {
-  subscribed: boolean;
-  email: string;
-  isNew: boolean;
-}
-
-export function subscribeCampaignNotifications(
-  email: string,
-  source?: string,
-): Promise<SubscribeCampaignNotificationsResult> {
-  return kolFetch<SubscribeCampaignNotificationsResult>("/kol/subscribe", {
-    method: "POST",
-    body: JSON.stringify({ email, source }),
-  });
 }

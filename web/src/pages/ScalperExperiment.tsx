@@ -53,7 +53,7 @@ export default function ScalperExperiment({ embedded = false }: { embedded?: boo
             <div>
               <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Scalper agent</h1>
               <p className="text-sm text-muted-foreground">
-                Short-hold paper scalper across cbBTC + xStocks · hybrid opportunity feed · Jupiter-quote fills
+                Smart short-hold scalper · confluence signals · volatility-aware TP/SL · trailing stops
               </p>
             </div>
           </div>

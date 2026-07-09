@@ -1,7 +1,13 @@
 import { Link } from "react-router-dom";
 import { BadgeCheck, ChevronRight, Crown, Medal, Trophy } from "lucide-react";
 
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { KOL_CREATE_CAMPAIGN_TOOLTIP } from "@/lib/kolRewardEligibility";
 import { formatCompact, formatSol } from "@/lib/kolFormat";
 import { KolProfileAvatar } from "@/components/kol/KolProfileAvatar";
 
@@ -74,6 +80,7 @@ export interface PodiumEntry {
   verified?: boolean;
   score: number;
   payoutSol: number;
+  payoutLocked?: boolean;
   likes: number;
   views: number;
 }
@@ -182,7 +189,12 @@ export function LeaderboardPodium({
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
                   {payoutLabel}
                 </p>
-                <p className="text-base sm:text-lg font-bold tabular-nums text-primary leading-tight">
+                <p
+                  className={cn(
+                    "text-base sm:text-lg font-bold tabular-nums text-primary leading-tight",
+                    entry.payoutLocked && "opacity-40",
+                  )}
+                >
                   {formatSol(entry.payoutSol)}
                   <span className="text-xs font-semibold ml-0.5 opacity-80">SOL</span>
                 </p>
@@ -240,27 +252,71 @@ export function LeaderboardModeBadge({ mode }: { mode: "reply" | "quote" }) {
   );
 }
 
+export function LeaderboardEligibilityBadge({
+  eligible,
+}: {
+  eligible: boolean;
+}) {
+  const badge = (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border whitespace-nowrap shrink-0",
+        eligible
+          ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/25"
+          : "bg-amber-500/10 text-amber-400 border-amber-500/25",
+      )}
+    >
+      {eligible ? "Eligible" : "Locked"}
+    </span>
+  );
+
+  if (eligible) return badge;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex">{badge}</span>
+      </TooltipTrigger>
+      <TooltipContent side="top">{KOL_CREATE_CAMPAIGN_TOOLTIP}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 export function LeaderboardPayoutCell({
   payoutSol,
   payoutLabel,
   isTop,
+  locked,
 }: {
   payoutSol: number;
   payoutLabel: string;
   isTop?: boolean;
+  locked?: boolean;
 }) {
-  return (
-    <div className="text-right">
+  const content = (
+    <div className={cn("text-right", locked && "cursor-help")}>
       <p
         className={cn(
-          "font-mono tabular-nums whitespace-nowrap",
+          "font-mono tabular-nums whitespace-nowrap transition-opacity",
+          locked && "opacity-40",
           isTop ? "text-base font-bold text-primary" : "text-sm font-semibold text-primary",
         )}
       >
         {formatSol(payoutSol)} <span className="text-xs font-medium opacity-75">SOL</span>
       </p>
-      <p className="text-[10px] uppercase tracking-wide text-muted-foreground mt-0.5">{payoutLabel}</p>
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground mt-0.5">
+        {payoutLabel}
+      </p>
     </div>
+  );
+
+  if (!locked) return content;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{content}</TooltipTrigger>
+      <TooltipContent side="top">{KOL_CREATE_CAMPAIGN_TOOLTIP}</TooltipContent>
+    </Tooltip>
   );
 }
 

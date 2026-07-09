@@ -3,7 +3,6 @@ import { Info } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import type { KolScoreBreakdown } from "@/lib/kolApi";
@@ -48,9 +47,8 @@ export function ScoreBreakdownTooltip({ score, breakdown, className }: ScoreBrea
     breakdown.integrityFlags.length > 0;
 
   return (
-    <TooltipProvider delayDuration={200}>
-      <Tooltip>
-        <TooltipTrigger asChild>
+    <Tooltip>
+      <TooltipTrigger asChild>
           <button
             type="button"
             className={cn(
@@ -124,8 +122,7 @@ export function ScoreBreakdownTooltip({ score, breakdown, className }: ScoreBrea
               Soft adjustments applied to keep scoring fair and resist bought engagement.
             </p>
           ) : null}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+      </TooltipContent>
+    </Tooltip>
   );
 }

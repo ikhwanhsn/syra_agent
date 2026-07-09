@@ -47,7 +47,6 @@ import PostVideoPage from "@/pages/PostVideoPage";
 import PostPhotoPage from "@/pages/PostPhotoPage";
 import { MarketingLayout } from "@/components/marketing/MarketingLayout";
 import { RedirectToUponlyApp } from "@/components/marketing/RedirectToUponlyApp";
-import MarketingHome from "@/pages/marketing/MarketingHome";
 import MarketingBrand from "@/pages/marketing/Brand";
 import MarketingIdentity from "@/pages/marketing/Identity";
 import MarketingTeams from "@/pages/marketing/Teams";
@@ -69,7 +68,6 @@ import TreasuryPage from "@/pages/TreasuryPage";
 import SwapPage from "@/pages/SwapPage";
 import MetricsPage from "@/pages/MetricsPage";
 import AnsemPage from "@/pages/AnsemPage";
-import AnsemLeaderboardPage from "@/pages/AnsemLeaderboardPage";
 import ReferenceScalperPage from "@/pages/ReferenceScalperPage";
 import MultiWalletRecoverPage from "@/pages/MultiWalletRecoverPage";
 import LabsPage from "@/pages/labs/LabsPage";
@@ -120,9 +118,11 @@ function AppRoutes() {
     <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/articles" element={<MarketingArticles />} />
+          <Route path="/articles/:slug" element={<ArticlePage />} />
+          <Route path="/home" element={<Navigate to="/" replace />} />
           <Route path="/metrics" element={<MetricsPage />} />
           <Route path="/ansem" element={<AnsemPage />} />
-          <Route path="/ansem/leaderboard" element={<AnsemLeaderboardPage />} />
           <Route path="/reference/scalper" element={<ReferenceScalperPage />} />
           <Route path="/settings" element={<Index />} />
           <Route path="/wallet" element={<AgentWalletPage />} />
@@ -339,14 +339,11 @@ const App = () => (
         </Route>
 
         <Route element={<MarketingLayout />}>
-          <Route path="/home" element={<MarketingHome />} />
           <Route path="/brand" element={<MarketingBrand />} />
           <Route path="/identity" element={<MarketingIdentity />} />
           <Route path="/teams" element={<MarketingTeams />} />
           <Route path="/partner" element={<MarketingPartner />} />
           <Route path="/partner/:slug" element={<MarketingPartnerDetail />} />
-          <Route path="/articles" element={<MarketingArticles />} />
-          <Route path="/articles/:slug" element={<ArticlePage />} />
           <Route path="/analytics" element={<MarketingAnalytics />} />
           <Route path="/leaderboard" element={<MarketingLeaderboard />} />
           <Route path="/privacy" element={<MarketingPrivacyPolicy />} />

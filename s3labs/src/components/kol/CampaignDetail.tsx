@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import {
   ArrowLeft,
@@ -33,10 +34,12 @@ import {
   isCampaignLive,
 } from "@/lib/kolCampaignStatus";
 import { formatSol, formatTimeLeft } from "@/lib/kolFormat";
+import { KOL_CREATE_CAMPAIGN_LEADERBOARD_INTRO } from "@/lib/kolRewardEligibility";
 import { cn } from "@/lib/utils";
 import { AddRewardForm } from "./AddRewardForm";
 import { CampaignClaimCard } from "./CampaignClaimCard";
 import { CampaignLeaderboard } from "./CampaignLeaderboard";
+import { CampaignParticipationGateCard } from "./CampaignParticipationGateCard";
 import { KolCampaignEarnShareAction } from "./KolCampaignEarnShareAction";
 import { KolMyRankShareAction } from "./KolMyRankShareBar";
 import { SourceTweetCard } from "./SourceTweetCard";
@@ -56,17 +59,26 @@ const statusMessages: Record<
 > = {
   live: "This campaign is live — reply or quote the post below. We auto-detect engagers every 6 hours.",
   finalizing:
-    "This campaign has ended. Final engagement snapshots are being processed — verify your X account to claim rewards.",
+    "This campaign has ended. Final engagement snapshots are being processed — verify your X account to receive rewards automatically.",
   pending_deposit: "Waiting for the project to fund this campaign.",
-  completed: "Campaign ended. Verify your X account and claim your earned SOL.",
+  completed:
+    "Campaign ended. Verified wallets receive SOL automatically. Claim manually if auto-send did not run.",
   cancelled: "This campaign was cancelled.",
 };
 
 const earnSteps = [
   { step: 1, text: "Reply or quote the source post on X — no form to submit here." },
   { step: 2, text: "We snapshot engagers every 6 hours and rank you on the live leaderboard." },
-  { step: 3, text: "After the campaign ends, verify your X account and claim your SOL share." },
+  { step: 3, text: "After the campaign ends, verify your X account — rewards send automatically (min 0.01 SOL)." },
 ] as const;
+
+function walletsMatch(
+  a: string | null | undefined,
+  b: string | null | undefined,
+): boolean {
+  if (!a || !b) return false;
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
 
 export function CampaignDetail({
   campaign,
@@ -103,6 +115,30 @@ export function CampaignDetail({
   const isFinalizing = isCampaignFinalizing(campaign);
   const timeLeft = formatTimeLeft(campaign.endAt);
   const participantCount = campaign.submissionCount ?? leaderboard.length;
+
+  const ownEntry = useMemo(() => {
+    if (!address && !verifiedHandleKey) return null;
+    return (
+      leaderboard.find((entry) => {
+        if (address && entry.kolWallet && walletsMatch(entry.kolWallet, address)) {
+          return true;
+        }
+        if (verifiedHandleKey) {
+          const entryKey = (entry.authorHandleKey ?? entry.authorHandle)
+            .trim()
+            .replace(/^@/, "")
+            .toLowerCase();
+          return entryKey === verifiedHandleKey.toLowerCase();
+        }
+        return false;
+      }) ?? null
+    );
+  }, [address, leaderboard, verifiedHandleKey]);
+
+  const showParticipationGate =
+    campaign.requireCreatedOneCampaign === true &&
+    viewerClaimEligibility != null &&
+    ownEntry != null;
 
   return (
     <div className="space-y-6 min-w-0">
@@ -290,6 +326,13 @@ export function CampaignDetail({
         <VerifyXAccountCard compactWhenVerified onVerified={onRefresh} />
       ) : null}
 
+      {showParticipationGate ? (
+        <CampaignParticipationGateCard
+          ownEntry={ownEntry}
+          viewerClaimEligibility={viewerClaimEligibility}
+        />
+      ) : null}
+
       {campaign.status === "completed" ? (
         <CampaignClaimCard
           campaignId={campaign.id}
@@ -312,11 +355,13 @@ export function CampaignDetail({
               </h3>
             </div>
             <p className="text-sm text-muted-foreground max-w-xl">
-              {campaign.status === "completed"
-                ? "Final rankings — claim your reward after verifying X."
-                : isFinalizing
-                  ? "Final rankings based on last snapshot. Verify X to claim when ready."
-                  : "Rankings update every 6 hours. Higher score = larger projected payout."}
+              {campaign.requireCreatedOneCampaign
+                ? KOL_CREATE_CAMPAIGN_LEADERBOARD_INTRO
+                : campaign.status === "completed"
+                  ? "Final rankings — claim your reward after verifying X."
+                  : isFinalizing
+                    ? "Final rankings based on last snapshot. Verify X to claim when ready."
+                    : "Rankings update every 6 hours. Higher score = larger projected payout."}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 shrink-0">
@@ -338,6 +383,7 @@ export function CampaignDetail({
         <CampaignLeaderboard
           entries={leaderboard}
           campaignStatus={campaign.status}
+          requireCreatedOneCampaign={campaign.requireCreatedOneCampaign === true}
           verifiedHandleKey={verifiedHandleKey}
           viewerClaimEligibility={viewerClaimEligibility}
         />

@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "@/lib/navigation";
 import { DECK_SLIDE_COUNT, SYRA_PITCH_DECK } from "@/content/syraPitchDeck";
 import { DeckSlideView } from "@/components/deck/DeckSlideView";
 import { cn } from "@/lib/utils";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export function PitchDeck() {
+  const navigate = useNavigate();
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState<"forward" | "back">("forward");
   const touchStartX = useRef<number | null>(null);
@@ -56,11 +58,14 @@ export function PitchDeck() {
       } else if (event.key === "End") {
         event.preventDefault();
         goTo(DECK_SLIDE_COUNT - 1);
+      } else if (event.key === "Escape") {
+        event.preventDefault();
+        navigate("/");
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [goNext, goPrev, goTo]);
+  }, [goNext, goPrev, goTo, navigate]);
 
   const onTouchStart = (event: React.TouchEvent) => {
     touchStartX.current = event.touches[0]?.clientX ?? null;
@@ -179,7 +184,7 @@ export function PitchDeck() {
         </div>
 
         <p className="hidden text-center font-mono text-[10px] text-white/25 sm:block">
-          Arrow keys · Space · Swipe on mobile
+          Arrow keys · Space · Esc to exit · Swipe on mobile
         </p>
       </footer>
 

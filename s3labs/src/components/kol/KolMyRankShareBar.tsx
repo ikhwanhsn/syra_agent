@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import type { KolLeaderboardEntry } from "@/lib/kolApi";
@@ -29,7 +28,8 @@ function getPayoutSol(entry: KolLeaderboardEntry): number {
   return entry.payout?.sol ?? entry.projectedSol;
 }
 
-function walletsMatch(a: string, b: string): boolean {
+function walletsMatch(a: string | null | undefined, b: string | null | undefined): boolean {
+  if (!a || !b) return false;
   return a.trim().toLowerCase() === b.trim().toLowerCase();
 }
 
@@ -99,10 +99,9 @@ export function KolMyRankShareAction({
 
   return (
     <>
-      <TooltipProvider delayDuration={300}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
               type="button"
               variant="outline"
               size="icon"
@@ -116,9 +115,8 @@ export function KolMyRankShareAction({
               <Share2 className="h-4 w-4" aria-hidden />
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="bottom">{tooltip}</TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+        <TooltipContent side="bottom">{tooltip}</TooltipContent>
+      </Tooltip>
 
       <KolRankShareDialog
         open={shareOpen}

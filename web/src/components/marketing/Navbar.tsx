@@ -13,13 +13,8 @@ import {
 import { LINK_AGENT, LINK_DOCS } from "@/lib/marketing/global";
 
 const navLinks = [
-  { label: "Product", href: "/home#product" },
-  { label: "API", href: "/home#api" },
-  { label: "Token", href: "/home#token" },
-  { label: "Staking", href: "/home#staking" },
-  { label: "Roadmap", href: "/home#roadmap" },
+  { label: "About", href: "/about" },
   { label: "Articles", href: "/articles" },
-  { label: "FAQ", href: "/home#faq" },
 ];
 
 export const Navbar = () => {
@@ -36,7 +31,7 @@ export const Navbar = () => {
         <nav className="px-3 py-3 mt-2 pointer-events-auto glass-card sm:mt-4 sm:px-6 sm:py-4">
           <div className="flex items-center justify-between">
             <Link
-              to="/home"
+              to="/"
               className="relative z-10 cursor-pointer text-foreground"
             >
               <SyraLogo />

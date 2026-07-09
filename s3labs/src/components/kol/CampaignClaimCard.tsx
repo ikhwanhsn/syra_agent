@@ -13,6 +13,10 @@ import {
   type KolViewerClaimEligibility,
 } from "@/lib/kolApi";
 import { formatSol } from "@/lib/kolFormat";
+import {
+  KOL_CREATE_CAMPAIGN_FORFEITED,
+  KOL_CREATE_CAMPAIGN_NEXT_TIME_NOTE,
+} from "@/lib/kolRewardEligibility";
 
 interface CampaignClaimCardProps {
   campaignId: string;
@@ -60,13 +64,20 @@ export function CampaignClaimCard({
     : null;
 
   const claimBlockedByCampaignRule =
-    viewerClaimEligibility?.requireCreatedOneCampaign === true &&
-    !viewerClaimEligibility.hasCreatedCampaign;
+    ownEntry.rewardEligible === false ||
+    (viewerClaimEligibility?.requireCreatedOneCampaign === true &&
+      !viewerClaimEligibility.hasCreatedCampaign);
 
+  const rewardSent =
+    ownEntry?.claimStatus === "claimed" ||
+    ownEntry?.payout?.status === "confirmed";
+  const rewardHeld = ownEntry?.payout?.status === "pending_minimum";
   const claimable =
     ownEntry?.claimStatus === "claimable" &&
     (ownEntry.earnedSol ?? 0) > 0 &&
-    !claimBlockedByCampaignRule;
+    !claimBlockedByCampaignRule &&
+    !rewardSent &&
+    !rewardHeld;
 
   const claimMutation = useMutation({
     mutationFn: async () => {
@@ -75,12 +86,12 @@ export function CampaignClaimCard({
     },
     onSuccess: (data) => {
       if (data.status === "pending_minimum") {
-        toast.message("Reward queued", {
+        toast.message("Reward held in pool", {
           description:
-            "Your balance is below the minimum on-chain payout. It will roll over until you reach 0.01 SOL.",
+            "Your balance is below the 0.01 SOL minimum. It stays in the pool until you reach the threshold.",
         });
       } else {
-        toast.success("Reward claimed!", {
+        toast.success("Reward sent!", {
           description: `${formatSol((data.sentLamports ?? data.lamports) / 1_000_000_000)} SOL sent to your wallet.`,
         });
       }
@@ -99,7 +110,6 @@ export function CampaignClaimCard({
   if (!ownEntry) return null;
 
   const earnedSol = ownEntry.earnedSol ?? ownEntry.projectedSol ?? 0;
-  const alreadyClaimed = ownEntry.claimStatus === "claimed";
 
   return (
     <div className="panel-glass rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.06] p-5 sm:p-8 space-y-4">
@@ -119,14 +129,13 @@ export function CampaignClaimCard({
 
       {!verificationQuery.data?.verified ? (
         <p className="text-sm text-amber-400">
-          Verify your X account above to claim this reward.
+          Verify your X account above. Rewards send automatically once verified
+          and the campaign ends. You can also claim manually afterward.
         </p>
       ) : claimBlockedByCampaignRule ? (
         <div className="space-y-3">
-          <p className="text-sm text-amber-400">
-            {viewerClaimEligibility?.message ??
-              "Create one campaign first to claim your reward."}
-          </p>
+          <p className="text-sm text-amber-400">{KOL_CREATE_CAMPAIGN_FORFEITED}</p>
+          <p className="text-sm text-muted-foreground">{KOL_CREATE_CAMPAIGN_NEXT_TIME_NOTE}</p>
           <Button
             variant="hero"
             className="rounded-full"
@@ -135,27 +144,39 @@ export function CampaignClaimCard({
             Create a campaign
           </Button>
         </div>
-      ) : alreadyClaimed ? (
-        <p className="text-sm text-muted-foreground">Reward already claimed.</p>
+      ) : rewardSent ? (
+        <p className="text-sm text-emerald-400">
+          Reward sent to your wallet.
+        </p>
+      ) : rewardHeld ? (
+        <p className="text-sm text-amber-400">
+          {formatSol(earnedSol)} SOL is held in the pool until your balance
+          reaches 0.01 SOL. It will send automatically once the minimum is met.
+        </p>
       ) : claimable ? (
-        <Button
-          variant="hero"
-          className="rounded-full"
-          disabled={!address || claimMutation.isPending}
-          onClick={() => claimMutation.mutate()}
-        >
-          {claimMutation.isPending ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Claiming…
-            </>
-          ) : (
-            `Claim ${formatSol(earnedSol)} SOL`
-          )}
-        </Button>
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground">
+            Auto-send did not run yet. Claim manually as a fallback.
+          </p>
+          <Button
+            variant="hero"
+            className="rounded-full"
+            disabled={!address || claimMutation.isPending}
+            onClick={() => claimMutation.mutate()}
+          >
+            {claimMutation.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Claiming…
+              </>
+            ) : (
+              `Claim ${formatSol(earnedSol)} SOL`
+            )}
+          </Button>
+        </div>
       ) : (
         <p className="text-sm text-muted-foreground">
-          No claimable reward for your verified account on this campaign.
+          No pending reward for your verified account on this campaign.
         </p>
       )}
 

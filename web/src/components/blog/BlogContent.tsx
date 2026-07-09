@@ -4,6 +4,7 @@ import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 import { BlogCallout, parseCalloutType } from "./BlogCallout";
 import { BlogCodeBlock } from "./BlogCodeBlock";
 import { BlogImage } from "./BlogImage";
@@ -41,7 +42,7 @@ export function BlogContent({ content }: BlogContentProps) {
         return (
           <h2
             id={id}
-            className="blog-h2 group relative mt-14 scroll-mt-28 font-display text-2xl font-semibold tracking-[-0.03em] text-foreground first:mt-0 sm:mt-16 sm:text-[1.75rem]"
+            className="blog-h2 group relative mt-10 scroll-mt-[calc(var(--syra-global-nav-height,3.5rem)+1rem)] font-display text-xl font-semibold tracking-[-0.03em] text-foreground first:mt-0 sm:mt-12 sm:text-2xl lg:text-[1.75rem]"
             {...props}
           >
             <span className="blog-heading-anchor absolute -left-6 hidden text-muted-foreground/0 transition-colors group-hover:text-muted-foreground/40 lg:inline">
@@ -57,7 +58,7 @@ export function BlogContent({ content }: BlogContentProps) {
         return (
           <h3
             id={id}
-            className="blog-h3 mt-10 scroll-mt-28 font-display text-xl font-semibold tracking-[-0.025em] text-foreground sm:mt-12"
+            className="blog-h3 mt-10 scroll-mt-[calc(var(--syra-global-nav-height,3.5rem)+1rem)] font-display text-xl font-semibold tracking-[-0.025em] text-foreground sm:mt-12"
             {...props}
           >
             {children}
@@ -66,7 +67,7 @@ export function BlogContent({ content }: BlogContentProps) {
       },
       p: ({ children, ...props }) => (
         <p
-          className="blog-p my-5 text-[17px] leading-[1.75] tracking-[-0.011em] text-foreground/90 sm:my-6"
+          className="blog-p my-4 text-base leading-[1.75] tracking-[-0.011em] text-foreground/90 sm:my-5 sm:text-[17px]"
           {...props}
         >
           {children}
@@ -170,8 +171,8 @@ export function BlogContent({ content }: BlogContentProps) {
         return <BlogImage src={src} alt={alt ?? ""} caption={alt} />;
       },
       table: ({ children, ...props }) => (
-        <div className="blog-table-wrap my-10 overflow-x-auto rounded-2xl sm:my-12">
-          <table className="blog-table w-full min-w-[480px] border-collapse text-sm" {...props}>
+        <div className="blog-table-wrap -mx-1 my-8 overflow-x-auto rounded-xl sm:my-10 sm:rounded-2xl">
+          <table className="blog-table w-full min-w-[min(100%,32rem)] border-collapse text-sm sm:min-w-[480px]" {...props}>
             {children}
           </table>
         </div>
@@ -212,8 +213,8 @@ export function BlogContent({ content }: BlogContentProps) {
   );
 
   return (
-    <article className={cn("blog-content relative")}>
-      <div className="blog-content-surface rounded-3xl p-6 sm:p-10 lg:p-12">
+    <article className="blog-content relative min-w-0">
+      <div className={cn(overviewCardShell, "min-w-0 p-4 sm:p-6 lg:p-8 xl:p-10")}>
         <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
           {content}
         </ReactMarkdown>

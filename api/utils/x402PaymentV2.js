@@ -71,7 +71,7 @@ import {
 } from "../libs/b402FacilitatorClient.js";
 import { recordPaidApiCall } from "./recordPaidApiCall.js";
 import { recordX402Call, resolveInboundFacilitator } from "./recordX402Call.js";
-import { buybackSYRAFromRevenue } from "./buybackSYRA.js";
+import { queueBuybackRevenue } from "../libs/buybackScheduler.js";
 import { isTesterAgentInternalProbeRequest } from "./testerAgentProbe.js";
 import { isShadowfeedPartnerRequest, markShadowfeedPartnerBypass } from "./shadowfeedPartner.js";
 import { isX402BazaarEnabled } from "../config/x402Bazaar.js";
@@ -1807,7 +1807,7 @@ export async function settlePaymentAndSetResponse(res, req) {
     !isTesterAgentInternalProbeRequest(req) &&
     !req.x402Payment?.skipRevenueBuyback
   ) {
-    runAfterResponse(() => buybackSYRAFromRevenue(priceUsd).catch(() => {}));
+    runAfterResponse(() => queueBuybackRevenue(priceUsd).catch(() => {}));
   }
   return settle;
 }
@@ -1841,7 +1841,7 @@ export function runAfterResponse(fn) {
 }
 
 /**
- * Run SYRA buyback after a paid request when the route uses settlePaymentWithFallback
+ * Queue SYRA buyback revenue after a paid request when the route uses settlePaymentWithFallback
  * instead of settlePaymentAndSetResponse. Call this after settling and setting Payment-Response.
  * @param {import('express').Request} req - Must have req.x402Payment.priceUsd (set by requirePayment)
  */
@@ -1851,7 +1851,7 @@ export function runBuybackForRequest(req) {
   if (isShadowfeedPartnerRequest(req)) return;
   const priceUsd = req.x402Payment?.priceUsd;
   if (typeof priceUsd === "number" && priceUsd > 0) {
-    runAfterResponse(() => buybackSYRAFromRevenue(priceUsd).catch(() => {}));
+    runAfterResponse(() => queueBuybackRevenue(priceUsd).catch(() => {}));
   }
 }
 

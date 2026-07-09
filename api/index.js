@@ -48,6 +48,7 @@ import { createInternalResearchRouter } from "./routes/internalResearch.js";
 import { createS3labsTelegramWebhookRouter } from "./routes/s3labsTelegramWebhook.js";
 import { createInternalPartnershipScoutRouter } from "./routes/internalPartnershipScout.js";
 import { createInternalHackathonsRouter } from "./routes/internalHackathons.js";
+import { createInternalBuybackRouter } from "./routes/internalBuyback.js";
 import { createInternalEventsRouter } from "./routes/internalEvents.js";
 import { createInternalGrowthRouter } from "./routes/internalGrowth.js";
 import { createInternalToolsRouter } from "./routes/internalTools.js";
@@ -819,6 +820,7 @@ app.use(
         p.startsWith("/internal/syra-telegram/webhook") ||
         p.startsWith("/internal/partnership-scout/run") ||
         p.startsWith("/internal/hackathons/run") ||
+        p.startsWith("/internal/buyback/run") ||
         p.startsWith("/uponly-rise-market") ||
         p.startsWith("/uponly-rise-portfolio") ||
         p.startsWith("/uponly-rise-create")
@@ -893,6 +895,16 @@ app.use(
         const got = (
           req.get("x-syra-partnership-scout-cron-secret") || ""
         ).trim();
+        if (got === secret) return true;
+      }
+    }
+    if (
+      p === "/internal/buyback/run" &&
+      String(req.method || "").toUpperCase() === "POST"
+    ) {
+      const secret = (process.env.BUYBACK_CRON_SECRET || "").trim();
+      if (secret) {
+        const got = (req.get("x-buyback-cron-secret") || "").trim();
         if (got === secret) return true;
       }
     }
@@ -1370,6 +1382,7 @@ app.use("/internal", createSyraTelegramWebhookRouter());
 // Internal dashboard: research-store + scouts (API key auth, no x402)
 app.use("/internal", createInternalPartnershipScoutRouter());
 app.use("/internal", createInternalHackathonsRouter());
+app.use("/internal", createInternalBuybackRouter());
 app.use("/internal", createInternalEventsRouter());
 app.use("/internal", createInternalGrowthRouter());
 app.use("/internal", createInternalToolsRouter());
@@ -2351,6 +2364,17 @@ app.listen(PORT, () => {
     .catch((e) =>
       console.warn(
         "[hackathon-scout] load failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
+
+  import("./libs/buybackScheduler.js")
+    .then(({ startBuybackScheduler }) => {
+      startBuybackScheduler();
+    })
+    .catch((e) =>
+      console.warn(
+        "[buyback-scheduler] load failed:",
         e instanceof Error ? e.message : e,
       ),
     );
