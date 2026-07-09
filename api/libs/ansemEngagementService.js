@@ -328,11 +328,41 @@ export async function getAnsemEngagementStatus(anonymousId) {
 /**
  * @param {import('mongoose').LeanDocument<import('../models/agent/AnsemEngagementRecord.js').default>} doc
  */
+export function discoveredRecordId(username) {
+  const u = String(username || '')
+    .trim()
+    .toLowerCase()
+    .replace(/^@/, '');
+  return u ? `discovered:${u}` : '';
+}
+
+/**
+ * @param {string} username
+ */
+export async function removeDiscoveredRecordsForUsername(username) {
+  const xUsername = String(username || '')
+    .trim()
+    .toLowerCase()
+    .replace(/^@/, '');
+  if (!xUsername) return;
+  const id = discoveredRecordId(xUsername);
+  try {
+    await AnsemEngagementRecord.deleteMany({
+      $or: [{ _id: id }, { xUsername, source: 'discovered' }],
+    }).exec();
+  } catch (e) {
+    console.warn('[ansemEngagement] removeDiscovered failed:', e?.message || e);
+  }
+}
+
 function serializeRecord(doc) {
+  const source = doc.source === 'discovered' ? 'discovered' : 'wallet';
+  const walletAddress = String(doc.walletAddress || '').trim();
   return {
     anonymousId: doc.anonymousId,
-    walletAddress: doc.walletAddress,
-    walletShort: shortenWallet(doc.walletAddress),
+    source,
+    walletAddress,
+    walletShort: walletAddress ? shortenWallet(walletAddress) : 'Not linked',
     xUsername: doc.xUsername,
     displayName: doc.displayName,
     profileImageUrl: doc.profileImageUrl,
@@ -402,11 +432,15 @@ export async function runAnsemEngagementCheck({ anonymousId, walletAddress, xHan
         ? /** @type {Record<string, unknown>} */ (u.public_metrics)
         : {};
 
+    const xUsername = String(u.username || username).toLowerCase();
+    await removeDiscoveredRecordsForUsername(xUsername);
+
     const record = {
       _id: anonymousId,
       anonymousId,
+      source: 'wallet',
       walletAddress,
-      xUsername: String(u.username || username).toLowerCase(),
+      xUsername,
       xUserId: String(resolved.xUserId || u.id || ''),
       displayName: String(u.name || u.username || username),
       profileImageUrl:
@@ -447,23 +481,134 @@ export async function runAnsemEngagementCheck({ anonymousId, walletAddress, xHan
 }
 
 /**
+ * Prefer wallet-linked rows when the same X handle appears twice.
+ * @param {import('mongoose').LeanDocument<import('../models/agent/AnsemEngagementRecord.js').default>[]} rows
+ */
+function dedupeLeaderboardRows(rows) {
+  /** @type {Map<string, import('mongoose').LeanDocument<import('../models/agent/AnsemEngagementRecord.js').default>>} */
+  const byUsername = new Map();
+  for (const doc of rows) {
+    const key = String(doc.xUsername || '')
+      .trim()
+      .toLowerCase();
+    if (!key) continue;
+    const existing = byUsername.get(key);
+    if (!existing) {
+      byUsername.set(key, doc);
+      continue;
+    }
+    const docWallet = doc.source !== 'discovered';
+    const existingWallet = existing.source !== 'discovered';
+    const docScore = Number(doc.engagementScore) || 0;
+    const existingScore = Number(existing.engagementScore) || 0;
+    const preferDoc =
+      (docWallet && !existingWallet) ||
+      (docWallet === existingWallet &&
+        (docScore > existingScore ||
+          (docScore === existingScore &&
+            new Date(doc.checkedAt).getTime() > new Date(existing.checkedAt).getTime())));
+    if (preferDoc) byUsername.set(key, doc);
+  }
+  return [...byUsername.values()].sort((a, b) => {
+    const scoreDiff = (Number(b.engagementScore) || 0) - (Number(a.engagementScore) || 0);
+    if (scoreDiff !== 0) return scoreDiff;
+    return new Date(b.checkedAt).getTime() - new Date(a.checkedAt).getTime();
+  });
+}
+
+/**
+ * @param {{
+ *   username: string;
+ *   user: Record<string, unknown>;
+ *   ansemTweets: unknown[];
+ *   xUserId?: string;
+ *   profileImageUrl?: string | null;
+ * }} params
+ */
+export async function upsertDiscoveredAnsemRecord({
+  username,
+  user,
+  ansemTweets,
+  xUserId,
+  profileImageUrl,
+}) {
+  const xUsername = String(username || '')
+    .trim()
+    .toLowerCase()
+    .replace(/^@/, '');
+  if (!xUsername) return null;
+
+  const walletLinked = await AnsemEngagementRecord.findOne({
+    xUsername,
+    source: { $ne: 'discovered' },
+    walletAddress: { $ne: '' },
+  })
+    .select('_id')
+    .lean()
+    .exec();
+  if (walletLinked) return null;
+
+  const scored = computeAnsemEngagementScore({ user, ansemTweets });
+  const dayUtc = new Date().toISOString().slice(0, 10);
+  const u = user;
+  const pm =
+    u.public_metrics && typeof u.public_metrics === 'object'
+      ? /** @type {Record<string, unknown>} */ (u.public_metrics)
+      : {};
+  const recordId = discoveredRecordId(xUsername);
+
+  const record = {
+    _id: recordId,
+    anonymousId: recordId,
+    source: 'discovered',
+    walletAddress: '',
+    xUsername,
+    xUserId: String(xUserId || u.id || ''),
+    displayName: String(u.name || u.username || xUsername),
+    profileImageUrl:
+      profileImageUrl ??
+      (typeof u.profile_image_url === 'string' ? u.profile_image_url : null),
+    followersCount: Math.max(Number(pm.followers_count) || 0, 0),
+    engagementScore: scored.score,
+    grade: scored.grade,
+    ansemMentionCount: scored.ansemMentionCount,
+    ansemEngagementTotal: scored.ansemEngagementTotal,
+    avgEngagementRatePct: scored.avgEngagementRatePct,
+    breakdown: scored.breakdown,
+    topTweets: serializeTopTweets(ansemTweets, xUsername),
+    checkedAt: new Date(),
+    dayUtc,
+  };
+
+  await AnsemEngagementRecord.findOneAndUpdate({ _id: recordId }, record, {
+    upsert: true,
+    new: true,
+    setDefaultsOnInsert: true,
+  }).exec();
+
+  return serializeRecord(record);
+}
+
+/**
  * @param {{ limit?: number }} [opts]
  */
 export async function getAnsemEngagementLeaderboard(opts = {}) {
   const limit = Math.min(Math.max(Number(opts.limit) || 50, 1), 100);
   const rows = await AnsemEngagementRecord.find({})
     .sort({ engagementScore: -1, checkedAt: -1 })
-    .limit(limit)
+    .limit(Math.min(limit * 4, 400))
     .lean()
     .exec();
 
+  const deduped = dedupeLeaderboardRows(rows).slice(0, limit);
+
   return {
-    entries: rows.map((doc, idx) => ({
+    entries: deduped.map((doc, idx) => ({
       rank: idx + 1,
       ...serializeRecord(doc),
       profileUrl: `https://x.com/${doc.xUsername}`,
     })),
-    total: rows.length,
+    total: deduped.length,
     updatedAt: new Date().toISOString(),
   };
 }

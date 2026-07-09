@@ -36,6 +36,12 @@ GET /binance-ticker
 Pricing tiers (machine-frequency)
 ---------------------------------
 Tier 1 — $0.001/call: lists, prices, health probes, jupiter/quote, coingecko scout, dexscreener/pairs, geckoterminal/pools, defillama/tvl, pyth/price, assets board, pumpfun trending/movers
+Insights (x402 Labs) — on-chain intelligence:
+  $0.01/call: insights/network-health, insights/gas-oracle
+  $0.02/call: insights/market-pulse
+  $0.03/call: insights/token-metrics
+  $0.05/call: insights/defi-tvl
+  $0.10/call: insights/volatility-index
 Tier 2 — $0.005/call: news, signal, sentiment, indicator, events, assets/detail, pumpfun scout, rise, bitcoin hub, rugcheck/report
 Tier 3 — $0.02/call: pumpfun/analyzer, spcx, equity, jupiter swap builds
 Tier 4 — $0.08/call: /brain (multi-tool AI synthesis)
@@ -65,6 +71,7 @@ Paid HTTP resources (see /.well-known/x402 for full list)
 brain, news, signal, sentiment, indicator, event, trending-headline, sundown-digest,
 spcx, equity, arbitrage, jupiter/quote, pumpfun/trending, pumpfun/movers, pumpfun/analyzer,
 pumpfun/scout, rise, coingecko, dexscreener/pairs, geckoterminal/pools, defillama/tvl, rugcheck/report, pyth/price,
+insights/network-health, insights/gas-oracle, insights/market-pulse, insights/token-metrics, insights/defi-tvl, insights/volatility-index,
 assets, assets/detail, bitcoin,
 chat/completions, images/generations, videos/generations,
 8004/stats, 8004/leaderboard, 8004/agents/search, health, mpp/health
@@ -104,4 +111,4 @@ Metrics:    https://syraa.fun/metrics
 Web agent:  https://syraa.fun
 Twitter:    https://x.com/syra_agent
 
-Last updated: 2026-07-07
+Last updated: 2026-07-09

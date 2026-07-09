@@ -52,6 +52,12 @@ import {
   X402_DISPLAY_PRICE_DEFILLAMA_TVL_USD,
   X402_DISPLAY_PRICE_RUGCHECK_REPORT_USD,
   X402_DISPLAY_PRICE_PYTH_PRICE_USD,
+  X402_DISPLAY_PRICE_INSIGHTS_NETWORK_HEALTH_USD,
+  X402_DISPLAY_PRICE_INSIGHTS_GAS_ORACLE_USD,
+  X402_DISPLAY_PRICE_INSIGHTS_MARKET_PULSE_USD,
+  X402_DISPLAY_PRICE_INSIGHTS_TOKEN_METRICS_USD,
+  X402_DISPLAY_PRICE_INSIGHTS_DEFI_TVL_USD,
+  X402_DISPLAY_PRICE_INSIGHTS_VOLATILITY_INDEX_USD,
 } from '../config/x402Pricing.js';
 
 /** @param {number} n */
@@ -157,6 +163,12 @@ function displayPriceForDiscoveryOnlyPath(apiPath) {
   if (p.startsWith('/defillama/')) return X402_DISPLAY_PRICE_DEFILLAMA_TVL_USD;
   if (p.startsWith('/rugcheck/')) return X402_DISPLAY_PRICE_RUGCHECK_REPORT_USD;
   if (p.startsWith('/pyth/')) return X402_DISPLAY_PRICE_PYTH_PRICE_USD;
+  if (p === '/insights/network-health') return X402_DISPLAY_PRICE_INSIGHTS_NETWORK_HEALTH_USD;
+  if (p === '/insights/gas-oracle') return X402_DISPLAY_PRICE_INSIGHTS_GAS_ORACLE_USD;
+  if (p === '/insights/market-pulse') return X402_DISPLAY_PRICE_INSIGHTS_MARKET_PULSE_USD;
+  if (p === '/insights/token-metrics') return X402_DISPLAY_PRICE_INSIGHTS_TOKEN_METRICS_USD;
+  if (p === '/insights/defi-tvl') return X402_DISPLAY_PRICE_INSIGHTS_DEFI_TVL_USD;
+  if (p === '/insights/volatility-index') return X402_DISPLAY_PRICE_INSIGHTS_VOLATILITY_INDEX_USD;
   if (p.startsWith('/nansen/')) return X402_DISPLAY_PRICE_NANSEN_USD;
   if (p.startsWith('/smart-money') || p.startsWith('/token-god-mode')) return X402_DISPLAY_PRICE_NANSEN_USD;
   if (p.startsWith('/x402/vault')) return X402_DISPLAY_PRICE_PURCH_VAULT_USD;

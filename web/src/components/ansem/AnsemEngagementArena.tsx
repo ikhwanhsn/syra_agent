@@ -242,6 +242,9 @@ function LeaderboardMobileCard({
             @{entry.xUsername}
           </a>
           <p className="truncate text-[11px] text-muted-foreground">{entry.walletShort}</p>
+          {entry.source === "discovered" ? (
+            <p className="text-[10px] text-amber-600 dark:text-amber-400">Auto-discovered</p>
+          ) : null}
         </div>
         <div className="shrink-0 text-right">
           <p className="font-mono text-lg font-bold tabular-nums">{entry.engagementScore}</p>
@@ -313,7 +316,11 @@ function LeaderboardRow({
               <span className="truncate font-mono text-[11px] tabular-nums text-muted-foreground/90">
                 {entry.walletShort}
               </span>
-              <WalletCopyButton address={entry.walletAddress} />
+              {entry.source === "discovered" ? (
+                <span className="text-[10px] text-amber-600 dark:text-amber-400">· auto</span>
+              ) : (
+                <WalletCopyButton address={entry.walletAddress} />
+              )}
             </div>
           </div>
         </div>
@@ -516,7 +523,7 @@ export function AnsemEngagementArena({ className }: { className?: string }) {
       <AnsemSectionHeader
         kicker="Bull squad"
         title="$ANSEM engagement arena"
-        description="Connect your wallet, paste your X profile, and get a live engagement score from recent $ANSEM posts. One check per wallet per day."
+        description="Connect your wallet, paste your X profile, and get a live engagement score from recent $ANSEM posts. One check per wallet per day. Recent $ANSEM posters are added to the board automatically."
         action={
           quota ? (
             <Badge variant="outline" className="rounded-lg px-2.5 py-1 text-xs font-medium">

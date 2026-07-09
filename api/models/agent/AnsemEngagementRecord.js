@@ -1,11 +1,14 @@
 import mongoose from 'mongoose';
 
-/** Latest $ANSEM X engagement check per connected wallet (leaderboard source). */
+/** Latest $ANSEM X engagement check per wallet or auto-discovered X author (leaderboard source). */
 const ansemEngagementRecordSchema = new mongoose.Schema(
   {
     _id: { type: String, required: true },
     anonymousId: { type: String, required: true, index: true },
-    walletAddress: { type: String, required: true, index: true },
+    /** Wallet-linked checks only; empty for auto-discovered authors. */
+    walletAddress: { type: String, default: '', index: true },
+    /** wallet = user scan; discovered = background $ANSEM post harvest */
+    source: { type: String, enum: ['wallet', 'discovered'], default: 'wallet', index: true },
     xUsername: { type: String, required: true, index: true },
     xUserId: { type: String, index: true },
     displayName: { type: String, default: '' },

@@ -9,7 +9,7 @@ import { AnsemTokenIntel } from "@/components/ansem/AnsemTokenIntel";
 import { AnsemHolderPulse } from "@/components/ansem/AnsemHolderPulse";
 import { AnsemSocialRadar } from "@/components/ansem/AnsemSocialRadar";
 import { AnsemCommunityHub } from "@/components/ansem/AnsemCommunityHub";
-import { AnsemEngagementArena } from "@/components/ansem/AnsemEngagementArena";
+import { AnsemLeaderboardCta } from "@/components/ansem/AnsemLeaderboardCta";
 import { AnsemVibesSection } from "@/components/ansem/AnsemVibesSection";
 import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import { pickAnsemHolderCount, useAnsemCommunity, useAnsemHolderCount } from "@/lib/ansemCommunityApi";
@@ -69,7 +69,7 @@ export function AnsemView() {
 
         <AnsemSocialRadar community={community} isLoading={communityLoading} />
 
-        <AnsemEngagementArena />
+        <AnsemLeaderboardCta />
 
         <AnsemCommunityHub social={community?.social} isLoading={communityLoading} />
 

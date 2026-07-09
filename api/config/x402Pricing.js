@@ -274,6 +274,14 @@ export const X402_API_PRICE_RUGCHECK_REPORT_USD = price(X402_TIER_2_USD);
 /** Pyth Hermes oracle prices — free upstream, Tier 1 */
 export const X402_API_PRICE_PYTH_PRICE_USD = price(X402_TIER_1_USD);
 
+/** x402 Labs /insights/* — on-chain intelligence endpoints */
+export const X402_API_PRICE_INSIGHTS_NETWORK_HEALTH_USD = price(0.01);
+export const X402_API_PRICE_INSIGHTS_GAS_ORACLE_USD = price(0.01);
+export const X402_API_PRICE_INSIGHTS_MARKET_PULSE_USD = price(0.02);
+export const X402_API_PRICE_INSIGHTS_TOKEN_METRICS_USD = price(0.03);
+export const X402_API_PRICE_INSIGHTS_DEFI_TVL_USD = price(0.05);
+export const X402_API_PRICE_INSIGHTS_VOLATILITY_INDEX_USD = price(0.1);
+
 /** Display prices: production API cost for tools list/catalog. */
 export const X402_DISPLAY_PRICE_USD = displayInternal(X402_TIER_2_USD);
 export const X402_DISPLAY_PRICE_CHECK_STATUS_USD = displayInternal(X402_TIER_1_USD);
@@ -339,3 +347,9 @@ export const X402_DISPLAY_PRICE_GECKOTERMINAL_POOLS_USD = displayInternal(X402_T
 export const X402_DISPLAY_PRICE_DEFILLAMA_TVL_USD = displayInternal(X402_TIER_1_USD);
 export const X402_DISPLAY_PRICE_RUGCHECK_REPORT_USD = displayInternal(X402_TIER_2_USD);
 export const X402_DISPLAY_PRICE_PYTH_PRICE_USD = displayInternal(X402_TIER_1_USD);
+export const X402_DISPLAY_PRICE_INSIGHTS_NETWORK_HEALTH_USD = displayInternal(0.01);
+export const X402_DISPLAY_PRICE_INSIGHTS_GAS_ORACLE_USD = displayInternal(0.01);
+export const X402_DISPLAY_PRICE_INSIGHTS_MARKET_PULSE_USD = displayInternal(0.02);
+export const X402_DISPLAY_PRICE_INSIGHTS_TOKEN_METRICS_USD = displayInternal(0.03);
+export const X402_DISPLAY_PRICE_INSIGHTS_DEFI_TVL_USD = displayInternal(0.05);
+export const X402_DISPLAY_PRICE_INSIGHTS_VOLATILITY_INDEX_USD = displayInternal(0.1);

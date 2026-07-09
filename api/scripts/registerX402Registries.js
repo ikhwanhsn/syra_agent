@@ -71,6 +71,35 @@ async function validateDiscovery() {
     detail: `status ${health.status}`,
   });
 
+  const openapiRes = await fetch(`${BASE_URL}/openapi.json`);
+  let insightsInOpenApi = 0;
+  if (openapiRes.ok) {
+    try {
+      const spec = await openapiRes.json();
+      insightsInOpenApi = Object.keys(spec?.paths ?? {}).filter((p) =>
+        p.includes("/insights/"),
+      ).length;
+    } catch {
+      insightsInOpenApi = 0;
+    }
+  }
+  checks.push({
+    name: "GET /openapi.json (insights paths)",
+    ok: openapiRes.ok && insightsInOpenApi >= 6,
+    detail: openapiRes.ok
+      ? `${insightsInOpenApi}/6 insights paths listed`
+      : `status ${openapiRes.status}`,
+  });
+
+  const insightsProbe = await fetch(`${BASE_URL}/insights/network-health`, {
+    headers: { Accept: "application/json" },
+  });
+  checks.push({
+    name: "GET /insights/network-health (402 probe)",
+    ok: insightsProbe.status === 402,
+    detail: `status ${insightsProbe.status}`,
+  });
+
   for (const c of checks) {
     if (c.ok) log(`OK  ${c.name} — ${c.detail}`);
     else fail(`${c.name} — ${c.detail}`);
@@ -126,6 +155,16 @@ function writeRegistryManifest() {
       ampersend: {
         script: "node -r dotenv/config scripts/registerAmpersendMarketplace.js --write-payload",
         marketplace: "https://api.ampersend.ai/api/v1/agents/marketplace",
+      },
+      zauth: {
+        note: "Provider Hub SDK auto-registers endpoints on traffic; database at https://zauth.inc/database",
+        provider_hub: "https://zauth.inc/provider-hub",
+        directory_api: "https://api.zauth.inc/api/directory",
+        sdk: "@zauthx402/sdk",
+      },
+      x402scan: {
+        note: "Register at https://www.x402scan.com/resources/register — requires openapi.json listing",
+        discovery: `${BASE_URL}/openapi.json`,
       },
     },
     updatedAt: new Date().toISOString(),

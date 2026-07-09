@@ -27,6 +27,12 @@ import {
   X402_DISPLAY_PRICE_DEFILLAMA_TVL_USD,
   X402_DISPLAY_PRICE_RUGCHECK_REPORT_USD,
   X402_DISPLAY_PRICE_PYTH_PRICE_USD,
+  X402_DISPLAY_PRICE_INSIGHTS_NETWORK_HEALTH_USD,
+  X402_DISPLAY_PRICE_INSIGHTS_GAS_ORACLE_USD,
+  X402_DISPLAY_PRICE_INSIGHTS_MARKET_PULSE_USD,
+  X402_DISPLAY_PRICE_INSIGHTS_TOKEN_METRICS_USD,
+  X402_DISPLAY_PRICE_INSIGHTS_DEFI_TVL_USD,
+  X402_DISPLAY_PRICE_INSIGHTS_VOLATILITY_INDEX_USD,
   X402_DISPLAY_PRICE_ASSETS_BOARD_USD,
   X402_DISPLAY_PRICE_ASSETS_DETAIL_USD,
   X402_DISPLAY_PRICE_BITCOIN_USD,
@@ -1011,6 +1017,66 @@ export function buildGatewayOpenApi() {
         X402_DISPLAY_PRICE_PYTH_PRICE_USD,
       ),
     },
+    '/insights/network-health': {
+      get: opGetCat(
+        'insights/network-health',
+        'Insights (x402)',
+        'getInsightsNetworkHealth',
+        [],
+        true,
+        X402_DISPLAY_PRICE_INSIGHTS_NETWORK_HEALTH_USD,
+      ),
+    },
+    '/insights/gas-oracle': {
+      get: opGetCat(
+        'insights/gas-oracle',
+        'Insights (x402)',
+        'getInsightsGasOracle',
+        [],
+        true,
+        X402_DISPLAY_PRICE_INSIGHTS_GAS_ORACLE_USD,
+      ),
+    },
+    '/insights/market-pulse': {
+      get: opGetCat(
+        'insights/market-pulse',
+        'Insights (x402)',
+        'getInsightsMarketPulse',
+        [],
+        true,
+        X402_DISPLAY_PRICE_INSIGHTS_MARKET_PULSE_USD,
+      ),
+    },
+    '/insights/token-metrics': {
+      get: opGetCat(
+        'insights/token-metrics',
+        'Insights (x402)',
+        'getInsightsTokenMetrics',
+        [],
+        true,
+        X402_DISPLAY_PRICE_INSIGHTS_TOKEN_METRICS_USD,
+      ),
+    },
+    '/insights/defi-tvl': {
+      get: opGetCat(
+        'insights/defi-tvl',
+        'Insights (x402)',
+        'getInsightsDefiTvl',
+        [],
+        true,
+        X402_DISPLAY_PRICE_INSIGHTS_DEFI_TVL_USD,
+      ),
+    },
+    '/insights/volatility-index': {
+      get: opGetCat(
+        'insights/volatility-index',
+        'Insights (x402)',
+        'getInsightsVolatilityIndex',
+        [],
+        true,
+        X402_DISPLAY_PRICE_INSIGHTS_VOLATILITY_INDEX_USD,
+      ),
+    },
     '/assets': {
       get: opGetCat(
         'assets',
@@ -1216,6 +1282,10 @@ export function buildGatewayOpenApi() {
       {
         name: 'Equity (x402)',
         description: 'Tokenized equity intelligence — SPCX SpaceX IPO + xStocks catalog',
+      },
+      {
+        name: 'Insights (x402)',
+        description: 'On-chain intelligence — Solana network health, gas oracle, market pulse, TVL, volatility',
       },
     ],
     components: {

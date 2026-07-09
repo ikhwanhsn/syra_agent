@@ -21,6 +21,7 @@ export interface AnsemEngagementTweetSample {
 
 export interface AnsemEngagementRecord {
   anonymousId: string;
+  source?: "wallet" | "discovered";
   walletAddress: string;
   walletShort: string;
   xUsername: string;

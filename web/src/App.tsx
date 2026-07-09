@@ -68,6 +68,7 @@ import TreasuryPage from "@/pages/TreasuryPage";
 import SwapPage from "@/pages/SwapPage";
 import MetricsPage from "@/pages/MetricsPage";
 import AnsemPage from "@/pages/AnsemPage";
+import AnsemLeaderboardPage from "@/pages/AnsemLeaderboardPage";
 import ReferenceScalperPage from "@/pages/ReferenceScalperPage";
 import MultiWalletRecoverPage from "@/pages/MultiWalletRecoverPage";
 import LabsPage from "@/pages/labs/LabsPage";
@@ -120,6 +121,7 @@ function AppRoutes() {
           <Route path="/about" element={<AboutPage />} />
           <Route path="/metrics" element={<MetricsPage />} />
           <Route path="/ansem" element={<AnsemPage />} />
+          <Route path="/ansem/leaderboard" element={<AnsemLeaderboardPage />} />
           <Route path="/reference/scalper" element={<ReferenceScalperPage />} />
           <Route path="/settings" element={<Index />} />
           <Route path="/wallet" element={<AgentWalletPage />} />

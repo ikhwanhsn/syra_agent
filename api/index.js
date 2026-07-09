@@ -1678,6 +1678,17 @@ app.listen(PORT, () => {
   startupInfo(`[syra-api] listening on port ${PORT}`);
   startMemoryHygiene();
 
+  import("./libs/x402DiscoveryBootstrap.js")
+    .then(({ scheduleX402DiscoveryBootstrap }) => {
+      scheduleX402DiscoveryBootstrap({ segmentPrefix: "insights/" });
+    })
+    .catch((e) =>
+      console.warn(
+        "[x402-discovery-bootstrap] load failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
+
   import("./libs/solanaServerRpc.js")
     .then(({ logSolanaRpcStartupProbe }) => logSolanaRpcStartupProbe())
     .catch((e) =>
@@ -2400,6 +2411,17 @@ app.listen(PORT, () => {
     .catch((e) =>
       console.warn(
         "[kol] daily scheduler load failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
+
+  import("./libs/ansemEngagementDiscoveryScheduler.js")
+    .then(({ startAnsemEngagementDiscoveryScheduler }) => {
+      startAnsemEngagementDiscoveryScheduler();
+    })
+    .catch((e) =>
+      console.warn(
+        "[ansem-discovery] scheduler load failed:",
         e instanceof Error ? e.message : e,
       ),
     );
