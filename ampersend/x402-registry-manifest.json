@@ -58,7 +58,17 @@
     "ampersend": {
       "script": "node -r dotenv/config scripts/registerAmpersendMarketplace.js --write-payload",
       "marketplace": "https://api.ampersend.ai/api/v1/agents/marketplace"
+    },
+    "zauth": {
+      "note": "Provider Hub SDK auto-registers endpoints on traffic; database at https://zauth.inc/database",
+      "provider_hub": "https://zauth.inc/provider-hub",
+      "directory_api": "https://api.zauth.inc/api/directory",
+      "sdk": "@zauthx402/sdk"
+    },
+    "x402scan": {
+      "note": "Register at https://www.x402scan.com/resources/register — requires openapi.json listing",
+      "discovery": "http://localhost:3000/openapi.json"
     }
   },
-  "updatedAt": "2026-07-07T03:53:18.600Z"
+  "updatedAt": "2026-07-09T04:55:00.269Z"
 }

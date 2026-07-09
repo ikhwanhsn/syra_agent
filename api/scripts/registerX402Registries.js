@@ -5,6 +5,8 @@
  *   node -r dotenv/config scripts/registerX402Registries.js
  *   node -r dotenv/config scripts/registerX402Registries.js --ampersend --pay
  *   node -r dotenv/config scripts/registerX402Registries.js --validate
+ *   node -r dotenv/config scripts/registerX402Registries.js --validate --local
+ *   node -r dotenv/config scripts/registerX402Registries.js --validate --base-url=https://api.syraa.fun
  *
  * @see https://docs.x402.org/extensions/bazaar
  * @see https://docs.payai.network/x402/sellers
@@ -20,9 +22,30 @@ import { buildPublicMetricsSnapshot } from "../libs/publicMetricsService.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
-const BASE_URL = String(process.env.BASE_URL || "https://api.syraa.fun").replace(/\/+$/, "");
+const PRODUCTION_BASE = "https://api.syraa.fun";
 const VALIDATE = process.argv.includes("--validate");
+const VALIDATE_LOCAL = process.argv.includes("--local");
+const VALIDATE_PRODUCTION =
+  process.argv.includes("--production") || (VALIDATE && !VALIDATE_LOCAL);
 const RUN_AMPERSEND = process.argv.includes("--ampersend") || process.argv.includes("--pay");
+
+/** Manifest / payTo config uses env BASE_URL (may be localhost in dev). */
+const BASE_URL = String(process.env.BASE_URL || PRODUCTION_BASE).replace(/\/+$/, "");
+
+/** HTTP probes for --validate: production by default so you need not run api locally. */
+function resolveValidationBaseUrl() {
+  const flagArg = process.argv.find((a) => a.startsWith("--base-url="));
+  if (flagArg) return flagArg.slice("--base-url=".length).replace(/\/+$/, "");
+
+  const envValidate = String(process.env.X402_VALIDATE_BASE_URL || "").trim();
+  if (envValidate) return envValidate.replace(/\/+$/, "");
+
+  if (VALIDATE_PRODUCTION) return PRODUCTION_BASE;
+
+  return BASE_URL;
+}
+
+const VALIDATION_BASE_URL = resolveValidationBaseUrl();
 
 function log(msg) {
   console.log(`[x402-registries] ${msg}`);
@@ -33,49 +56,100 @@ function fail(msg) {
   process.exitCode = 1;
 }
 
+async function probeUrl(url, init) {
+  try {
+    const res = await fetch(url, init);
+    return { res, error: null };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return { res: null, error: msg };
+  }
+}
+
 async function validateDiscovery() {
+  const base = VALIDATION_BASE_URL;
+  log(`Validating discovery at ${base}`);
+  if (VALIDATE_PRODUCTION && BASE_URL !== base) {
+    log(`(manifest BASE_URL remains ${BASE_URL} — use --local to probe localhost)`);
+  }
+
   const checks = [];
 
-  const wellKnown = await fetch(`${BASE_URL}/.well-known/x402`);
-  checks.push({
-    name: "GET /.well-known/x402",
-    ok: wellKnown.ok,
-    detail: wellKnown.ok ? `${(await wellKnown.json()).resources?.length ?? 0} resources` : `status ${wellKnown.status}`,
-  });
+  const wellKnownHit = await probeUrl(`${base}/.well-known/x402`);
+  if (wellKnownHit.error) {
+    checks.push({
+      name: "GET /.well-known/x402",
+      ok: false,
+      detail: wellKnownHit.error,
+    });
+  } else {
+    const wellKnown = wellKnownHit.res;
+    checks.push({
+      name: "GET /.well-known/x402",
+      ok: wellKnown.ok,
+      detail: wellKnown.ok
+        ? `${(await wellKnown.json()).resources?.length ?? 0} resources`
+        : `status ${wellKnown.status}`,
+    });
+  }
 
-  const metrics = await fetch(`${BASE_URL}/api/metrics`);
+  const metricsHit = await probeUrl(`${base}/api/metrics`);
   checks.push({
     name: "GET /api/metrics",
-    ok: metrics.ok,
-    detail: metrics.ok ? "public metrics live" : `status ${metrics.status}`,
+    ok: Boolean(metricsHit.res?.ok),
+    detail: metricsHit.error
+      ? metricsHit.error
+      : metricsHit.res?.ok
+        ? "public metrics live"
+        : `status ${metricsHit.res?.status ?? "unknown"}`,
   });
 
-  const llms = await fetch(`${BASE_URL}/llms-full.txt`);
-  checks.push({
-    name: "GET /llms-full.txt",
-    ok: llms.ok,
-    detail: llms.ok ? `${(await llms.text()).length} bytes` : `status ${llms.status}`,
-  });
+  const llmsHit = await probeUrl(`${base}/llms-full.txt`);
+  if (llmsHit.error) {
+    checks.push({
+      name: "GET /llms-full.txt",
+      ok: false,
+      detail: llmsHit.error,
+    });
+  } else {
+    const llms = llmsHit.res;
+    const text = llms.ok ? await llms.text() : "";
+    checks.push({
+      name: "GET /llms-full.txt",
+      ok: llms.ok && text.includes("insights/network-health"),
+      detail: llms.ok
+        ? `${text.length} bytes${text.includes("insights/network-health") ? ", insights listed" : ", insights missing"}`
+        : `status ${llms.status}`,
+    });
+  }
 
-  const freePillars = await fetch(`${BASE_URL}/free/pillars`);
+  const freePillarsHit = await probeUrl(`${base}/free/pillars`);
   checks.push({
     name: "GET /free/pillars",
-    ok: freePillars.ok,
-    detail: freePillars.ok ? "free tier live" : `status ${freePillars.status}`,
+    ok: Boolean(freePillarsHit.res?.ok),
+    detail: freePillarsHit.error
+      ? freePillarsHit.error
+      : freePillarsHit.res?.ok
+        ? "free tier live"
+        : `status ${freePillarsHit.res?.status ?? "unknown"}`,
   });
 
-  const health = await fetch(`${BASE_URL}/health`, { headers: { Accept: "application/json" } });
+  const healthHit = await probeUrl(`${base}/health`, {
+    headers: { Accept: "application/json" },
+  });
   checks.push({
     name: "GET /health (402 probe)",
-    ok: health.status === 402,
-    detail: `status ${health.status}`,
+    ok: healthHit.res?.status === 402,
+    detail: healthHit.error
+      ? healthHit.error
+      : `status ${healthHit.res?.status ?? "unknown"}`,
   });
 
-  const openapiRes = await fetch(`${BASE_URL}/openapi.json`);
+  const openapiHit = await probeUrl(`${base}/openapi.json`);
   let insightsInOpenApi = 0;
-  if (openapiRes.ok) {
+  if (openapiHit.res?.ok) {
     try {
-      const spec = await openapiRes.json();
+      const spec = await openapiHit.res.json();
       insightsInOpenApi = Object.keys(spec?.paths ?? {}).filter((p) =>
         p.includes("/insights/"),
       ).length;
@@ -85,19 +159,23 @@ async function validateDiscovery() {
   }
   checks.push({
     name: "GET /openapi.json (insights paths)",
-    ok: openapiRes.ok && insightsInOpenApi >= 6,
-    detail: openapiRes.ok
-      ? `${insightsInOpenApi}/6 insights paths listed`
-      : `status ${openapiRes.status}`,
+    ok: Boolean(openapiHit.res?.ok) && insightsInOpenApi >= 6,
+    detail: openapiHit.error
+      ? openapiHit.error
+      : openapiHit.res?.ok
+        ? `${insightsInOpenApi}/6 insights paths listed`
+        : `status ${openapiHit.res?.status ?? "unknown"}`,
   });
 
-  const insightsProbe = await fetch(`${BASE_URL}/insights/network-health`, {
+  const insightsHit = await probeUrl(`${base}/insights/network-health`, {
     headers: { Accept: "application/json" },
   });
   checks.push({
     name: "GET /insights/network-health (402 probe)",
-    ok: insightsProbe.status === 402,
-    detail: `status ${insightsProbe.status}`,
+    ok: insightsHit.res?.status === 402,
+    detail: insightsHit.error
+      ? insightsHit.error
+      : `status ${insightsHit.res?.status ?? "unknown"}`,
   });
 
   for (const c of checks) {
@@ -190,10 +268,14 @@ async function main() {
   }
 
   try {
-    const metrics = await buildPublicMetricsSnapshot();
-    log(
-      `Metrics snapshot: ${metrics.lifetime.totalCalls} calls, $${metrics.lifetime.totalUsdSettled} USDC, ${metrics.lifetime.uniquePayingWallets} wallets`,
-    );
+    if (VALIDATE) {
+      log("Skipping local Mongo metrics snapshot during --validate (remote HTTP probes only)");
+    } else {
+      const metrics = await buildPublicMetricsSnapshot();
+      log(
+        `Metrics snapshot: ${metrics.lifetime.totalCalls} calls, $${metrics.lifetime.totalUsdSettled} USDC, ${metrics.lifetime.uniquePayingWallets} wallets`,
+      );
+    }
   } catch (e) {
     log(`WARN: metrics snapshot failed — ${e instanceof Error ? e.message : e}`);
   }
