@@ -4,7 +4,7 @@ This file mirrors the **structure of the public documentation** published at [do
 
 **Canonical base URL:** `https://docs.syraa.fun`
 
-**This file on the main site:** [https://syraa.fun/docs.md](https://syraa.fun/docs.md) (served as static Markdown from the landing app).
+**This file on the main site:** [https://syraa.fun/docs.md](https://syraa.fun/docs.md) (served as static Markdown from the web app).
 
 ---
 
@@ -134,4 +134,4 @@ This file mirrors the **structure of the public documentation** published at [do
 
 ---
 
-*Mirror of `documentation/src/data/docsNav.ts`; keep in sync when navigation changes. Source in repo: `landing/public/docs.md`.*
+*Mirror of `documentation/src/data/docsNav.ts`; keep in sync when navigation changes. Source in repo: `web/public/docs.md`.*

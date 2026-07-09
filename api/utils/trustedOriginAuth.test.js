@@ -25,6 +25,13 @@ test("isBrowserCallablePath allows Jupiter swap UI routes", () => {
   assert.equal(isBrowserCallablePath("/jupiter/ui/swap"), true);
 });
 
+test("isBrowserCallablePath allows Labs admin routes", () => {
+  assert.equal(isBrowserCallablePath("/labs/x402/wallets"), true);
+  assert.equal(isBrowserCallablePath("/labs/x402/run"), true);
+  assert.equal(isBrowserCallablePath("/labs/organize/entries"), true);
+  assert.equal(isBrowserCallablePath("/labs/organize/meta"), true);
+});
+
 test("isBrowserCallablePath rejects unrelated paths", () => {
   assert.equal(isBrowserCallablePath("/post/other"), false);
   assert.equal(isBrowserCallablePath("/"), false);

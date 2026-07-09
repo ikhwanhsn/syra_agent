@@ -45,7 +45,7 @@ API vs browsable web apps
 
 Ecosystem
 ---------
-The Syra monorepo includes: api (backend), frontend, landing, documentation site, web marketplace (x402 catalog UI), ai-agent (chat + x402 tools), mcp-server (MCP tools wrapping API routes), and other apps. The canonical human-facing doc set is the documentation app, deployed at docs.syraa.fun.
+The Syra monorepo includes: api (backend), web (unified app + marketing), documentation site, mcp-server (MCP tools wrapping API routes), and other apps. The canonical human-facing doc set is the documentation app, deployed at docs.syraa.fun.
 
 This file
 ---------

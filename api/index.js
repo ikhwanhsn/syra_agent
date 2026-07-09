@@ -285,7 +285,6 @@ const CORS_ALLOWED_ORIGINS = [
   "https://www.playground.syraa.fun",
   "https://stake.syraa.fun",
   "https://www.stake.syraa.fun",
-  "https://dev-landing-syra.vercel.app",
   "https://dev-dashboard-syra.vercel.app",
   "https://dev-playground-syra.vercel.app",
   "https://dev-ai-agent-syra.vercel.app",

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Write landing/public/.well-known/shadowfeed-feeds.json from api/config/shadowfeedDiscovery.js
+ * Write web/public/.well-known/shadowfeed-feeds.json from api/config/shadowfeedDiscovery.js
  *
  * Run after changing feed catalog:
  *   node api/scripts/syncShadowfeedManifest.js
@@ -17,7 +17,7 @@ dotenv.config({ path: path.resolve(__dirname, "../.env") });
 const manifest = buildShadowfeedFeedsManifest();
 const json = `${JSON.stringify(manifest, null, 2)}\n`;
 
-const outDir = path.resolve(__dirname, "../../landing/public/.well-known");
+const outDir = path.resolve(__dirname, "../../web/public/.well-known");
 const outFile = path.join(outDir, "shadowfeed-feeds.json");
 
 fs.mkdirSync(outDir, { recursive: true });

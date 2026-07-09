@@ -18,6 +18,7 @@ const navLinks = [
   { label: "Token", href: "/home#token" },
   { label: "Staking", href: "/home#staking" },
   { label: "Roadmap", href: "/home#roadmap" },
+  { label: "Articles", href: "/articles" },
   { label: "FAQ", href: "/home#faq" },
 ];
 

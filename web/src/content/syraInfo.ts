@@ -211,10 +211,9 @@ export interface SyraMonorepoApp {
 }
 
 export const SYRA_MONOREPO_APPS: SyraMonorepoApp[] = [
-  { package: "web", role: "Syra Agent UI — chat, dashboard, experiments", url: "https://syraa.fun" },
+  { package: "web", role: "Syra app — agent chat, marketing, marketplace, dashboard", url: "https://syraa.fun" },
   { package: "api", role: "Backend — x402 routes, agent sessions, partner tools", url: "https://api.syraa.fun" },
   { package: "documentation", role: "Public docs site", url: "https://docs.syraa.fun" },
-  { package: "landing", role: "Marketing site", url: "https://syraa.fun" },
   { package: "api-playground", role: "x402 API playground", url: "https://playground.syraa.fun" },
   { package: "ai-agent", role: "Legacy/alternate agent package (if deployed separately)" },
   { package: "mcp-server", role: "MCP tools aligned with paid API surface" },

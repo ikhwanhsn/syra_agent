@@ -87,7 +87,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dir: [api, mcp-server, landing, documentation]
+        dir: [api, mcp-server, web, documentation]
       fail-fast: false
     steps:
       - uses: actions/checkout@v4

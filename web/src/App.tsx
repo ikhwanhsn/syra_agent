@@ -55,6 +55,7 @@ import MarketingPartner from "@/pages/marketing/Partner";
 import MarketingPartnerDetail from "@/pages/marketing/PartnerDetail";
 import MarketingArticles from "@/pages/marketing/Articles";
 import ArticlePage from "@/pages/marketing/ArticlePage";
+import MarketingAnalytics from "@/pages/marketing/Analytics";
 import MarketingLeaderboard from "@/pages/marketing/Leaderboard";
 import MarketingPrivacyPolicy from "@/pages/marketing/PrivacyPolicy";
 import MarketingTermsOfService from "@/pages/marketing/TermsOfService";
@@ -346,6 +347,7 @@ const App = () => (
           <Route path="/partner/:slug" element={<MarketingPartnerDetail />} />
           <Route path="/articles" element={<MarketingArticles />} />
           <Route path="/articles/:slug" element={<ArticlePage />} />
+          <Route path="/analytics" element={<MarketingAnalytics />} />
           <Route path="/leaderboard" element={<MarketingLeaderboard />} />
           <Route path="/privacy" element={<MarketingPrivacyPolicy />} />
           <Route path="/terms" element={<MarketingTermsOfService />} />

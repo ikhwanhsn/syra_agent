@@ -67,7 +67,7 @@ Up Only Fund is presented as its **own program brand**. Syra is referenced as th
 
 ### Legacy redirects
 
-`/uponly/overview`, `/uponly/fund`, `/uponly/rise`, and `/dashboard/*` redirect to the routes above. Set `LINK_UPONLY_APP` in the main Syra **`landing`** app’s `config/global.ts` so legacy paths on syraa.fun redirect to this app’s public origin.
+`/uponly/overview`, `/uponly/fund`, `/uponly/rise`, and `/dashboard/*` redirect to the routes above. `LINK_UPONLY_APP` in the Syra **`web`** app (`src/lib/marketing/global.ts`) points legacy paths on syraa.fun to this app’s public origin.
 
 ---
 
@@ -124,7 +124,7 @@ API calls use the same `API_BASE` as the main Syra app (`/api` in dev via Vite p
 
 1. Build and deploy the `uponly-fund` package to your host (e.g. Vercel).
 2. Set `VITE_PUBLIC_SITE_ORIGIN` to the live origin (e.g. `https://uponlyfund.com`).
-3. Update `LINK_UPONLY_APP` in `landing/config/global.ts` so syraa.fun legacy routes redirect correctly.
+3. Ensure `LINK_UPONLY_APP` in `web/src/lib/marketing/global.ts` points syraa.fun legacy routes to this app’s public origin.
 4. Ensure `uponlyfund.com` (and www) are in the Syra API trusted-origin allowlist.
 
 ---

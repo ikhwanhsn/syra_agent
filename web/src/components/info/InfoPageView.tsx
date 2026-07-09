@@ -447,7 +447,7 @@ export function InfoPageView({ scrollContainerRef }: InfoPageViewProps) {
             </div>
             <Prose>
               Public docs live in the <code className="text-xs bg-muted px-1 rounded">documentation</code> package.
-              Marketing copy on <code className="text-xs bg-muted px-1 rounded">landing</code>.
+              Marketing pages live in the <code className="text-xs bg-muted px-1 rounded">web</code> package.
             </Prose>
           </Section>
 

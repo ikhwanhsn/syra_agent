@@ -8,7 +8,7 @@ type RedirectToUponlyAppProps = {
 };
 
 /**
- * When `LINK_UPONLY_APP` is the placeholder ("/"), sends users to the Syra landing home.
+ * When `LINK_UPONLY_APP` is the placeholder ("/"), sends users to the Syra marketing home.
  * When set to the real deploy origin, full-page redirects to that app + `path`.
  */
 export function RedirectToUponlyApp({ path }: RedirectToUponlyAppProps): ReactElement {

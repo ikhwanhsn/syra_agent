@@ -68,7 +68,7 @@ npm run lint     # ESLint
 
 Set environment variables with the `VITE_*` prefix. `VITE_PRIVY_APP_ID` is required for wallet connect in production.
 
-**Production URLs:** [syraa.fun](https://syraa.fun), [syraa.fun/marketplace](https://syraa.fun/marketplace) (legacy `playground.syraa.fun` aliases redirect).
+**Production URLs:** [syraa.fun](https://syraa.fun) (agent + marketing), [syraa.fun/marketplace](https://syraa.fun/marketplace), [syraa.fun/articles](https://syraa.fun/articles) (legacy `playground.syraa.fun` aliases redirect).
 
 ---
 
@@ -88,7 +88,6 @@ Set environment variables with the `VITE_*` prefix. `VITE_PRIVY_APP_ID` is requi
 | [`api`](../api) | Backend gateway — x402, agent sessions, partner tools |
 | [`syra-sdk`](../syra-sdk) | Typed HTTP client for integrators |
 | [`mcp-server`](../mcp-server) | MCP distribution for Cursor / Claude |
-| [`landing`](../landing) | Marketing site at syraa.fun |
 | [`s3labs`](../s3labs) | Syra-backed growth studio |
 | [`uponly-fund`](../uponly-fund) | Syra-backed allocator app |
 

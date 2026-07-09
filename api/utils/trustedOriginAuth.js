@@ -30,7 +30,6 @@ const TRUSTED_ORIGINS = [
   "https://www.playground.syraa.fun",
   "https://stake.syraa.fun",
   "https://www.stake.syraa.fun",
-  "https://dev-landing-syra.vercel.app",
   "https://dev-dashboard-syra.vercel.app",
   "https://dev-playground-syra.vercel.app",
   "https://dev-ai-agent-syra.vercel.app",
@@ -75,7 +74,8 @@ export function isBrowserCallablePath(path) {
     path.startsWith("/post/studio") ||
     path.startsWith("/kol") ||
     path.startsWith("/btc") ||
-    path.startsWith("/jupiter/ui")
+    path.startsWith("/jupiter/ui") ||
+    path.startsWith("/labs")
   );
 }
 

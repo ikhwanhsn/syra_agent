@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="landing/public/images/logo.jpg" alt="Syra Logo" width="96" height="96" />
+<img src="web/public/images/logo.jpg" alt="Syra Logo" width="96" height="96" />
 
 # **Syra**
 
@@ -115,13 +115,12 @@ Syra is the parent **machine money** infrastructure. These programs ship on Syra
 
 | Package | Description |
 |---------|-------------|
-| **`web`** | Unified Syra app — Marketplace (x402 catalog), agent wallet, dashboard, proof demos |
+| **`web`** | Unified Syra app — agent chat, marketplace, marketing pages, dashboard, proof demos |
 | **`api`** | Backend API — machine money for agents: x402 APIs, agent wallets, policy engine, S3 Labs + UOF routes |
 | **`syra-sdk`** | Typed `@syra-ai/sdk` client for x402 API integration |
 | **`mcp-server`** | MCP server — `claude mcp add syra -- npx -y @syra-ai/mcp-server@latest` |
 | **`packages/syra-x402-payer`** | MIT `@syra-ai/x402-payer` — x402 sign/retry helper |
 | **`documentation`** | Docs site (docs.syraa.fun) |
-| **`landing`** | Marketing landing site (syraa.fun) |
 | **`s3labs`** | S3 Labs web app — growth programs, KOL marketplace, jobs, community ([s3labs README](./s3labs/README.md)) |
 | **`uponly-fund`** | Up Only Fund — Syra-backed allocator brand, mandate site, RISE command dashboard ([UOF README](./uponly-fund/README.md)) |
 | **`services/bnb-agent`** | BNB Chain ERC-8183 sidecar (Python) for multi-chain agent jobs |

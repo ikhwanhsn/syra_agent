@@ -39,13 +39,6 @@ updates:
     labels: ["dependencies", "mcp-server"]
     open-pull-requests-limit: 4
 
-  - package-ecosystem: "npm"
-    directory: "/landing"
-    schedule:
-      interval: "weekly"
-    labels: ["dependencies", "landing"]
-    open-pull-requests-limit: 4
-
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
