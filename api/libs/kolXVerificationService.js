@@ -340,3 +340,37 @@ export async function getVerifiedWalletForHandle(xHandleKey) {
 
   return doc?.wallet ?? null;
 }
+
+/**
+ * Batch-resolve verified wallets for X handles (leaderboard eligibility).
+ * @param {string[]} xHandleKeys
+ * @returns {Promise<Map<string, string>>}
+ */
+export async function getVerifiedWalletsForHandles(xHandleKeys) {
+  const keys = [
+    ...new Set(
+      xHandleKeys
+        .map((handle) => normalizeHandle(handle))
+        .filter(Boolean),
+    ),
+  ];
+  if (keys.length === 0) return new Map();
+
+  const docs = await KolXVerification.find({
+    xHandleKey: { $in: keys },
+    status: "verified",
+  })
+    .select("xHandleKey wallet")
+    .lean();
+
+  /** @type {Map<string, string>} */
+  const map = new Map();
+  for (const doc of docs) {
+    const key = doc.xHandleKey;
+    const wallet = normalizeWallet(doc.wallet);
+    if (key && wallet) {
+      map.set(key, wallet);
+    }
+  }
+  return map;
+}

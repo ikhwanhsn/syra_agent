@@ -58,6 +58,7 @@ import { discoverCampaignEngagements } from "./kolDiscoveryService.js";
 import { startupVerbose } from "../utils/startupLog.js";
 import {
   getVerifiedWalletForHandle,
+  getVerifiedWalletsForHandles,
   getWalletVerification,
 } from "./kolXVerificationService.js";
 
@@ -879,6 +880,48 @@ async function walletHasCreatedCampaign(kolWallet) {
 }
 
 /**
+ * Map X handles to project wallets for campaigns they created (source tweet author).
+ * Auto-discovered leaderboard rows have no kolWallet — this links handle → creator wallet.
+ * @param {string[]} handleKeys
+ * @returns {Promise<Map<string, string>>}
+ */
+async function getCreatorWalletsBySourceHandleKeys(handleKeys) {
+  const keys = [
+    ...new Set(
+      handleKeys
+        .map((handle) => normalizeHandle(handle))
+        .filter(Boolean),
+    ),
+  ];
+  if (keys.length === 0) return new Map();
+
+  const handleClauses = keys.map((key) => ({
+    sourceAuthorHandle: new RegExp(
+      `^${key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
+      "i",
+    ),
+  }));
+
+  const campaigns = await KolCampaign.find({
+    status: { $in: ["active", "completed", "pending_deposit"] },
+    $or: handleClauses,
+  })
+    .select("sourceAuthorHandle projectWallet")
+    .lean();
+
+  /** @type {Map<string, string>} */
+  const map = new Map();
+  for (const row of campaigns) {
+    const key = normalizeHandle(row.sourceAuthorHandle);
+    const wallet = normalizeWallet(row.projectWallet);
+    if (key && wallet && !map.has(key)) {
+      map.set(key, wallet);
+    }
+  }
+  return map;
+}
+
+/**
  * Resolve the wallet used to check campaign-creation eligibility for a submission.
  * @param {Record<string, unknown>} submission
  */
@@ -890,7 +933,11 @@ async function resolveSubmissionRewardWallet(submission) {
     submission.authorHandleKey || normalizeHandle(submission.authorHandle);
   if (!handleKey) return null;
 
-  return getVerifiedWalletForHandle(handleKey);
+  const verifiedWallet = await getVerifiedWalletForHandle(handleKey);
+  if (verifiedWallet) return verifiedWallet;
+
+  const creatorWallets = await getCreatorWalletsBySourceHandleKeys([handleKey]);
+  return creatorWallets.get(handleKey) ?? null;
 }
 
 /**
@@ -906,10 +953,35 @@ async function buildRewardEligibilityMap(campaign, submissions) {
     return map;
   }
 
+  const handlesNeedingLookup = new Set();
+  for (const submission of submissions) {
+    if (!normalizeWallet(submission.kolWallet)) {
+      const handleKey =
+        submission.authorHandleKey || normalizeHandle(submission.authorHandle);
+      if (handleKey) handlesNeedingLookup.add(handleKey);
+    }
+  }
+
+  const handleKeys = [...handlesNeedingLookup];
+  const [verifiedWalletsByHandle, creatorWalletsByHandle] = await Promise.all([
+    getVerifiedWalletsForHandles(handleKeys),
+    getCreatorWalletsBySourceHandleKeys(handleKeys),
+  ]);
+
   const walletCache = new Map();
   for (const submission of submissions) {
     const submissionId = String(submission._id);
-    const wallet = await resolveSubmissionRewardWallet(submission);
+    const handleKey =
+      submission.authorHandleKey || normalizeHandle(submission.authorHandle);
+
+    let wallet = normalizeWallet(submission.kolWallet);
+    if (!wallet && handleKey) {
+      wallet =
+        verifiedWalletsByHandle.get(handleKey) ??
+        creatorWalletsByHandle.get(handleKey) ??
+        null;
+    }
+
     if (!wallet) {
       map.set(submissionId, false);
       continue;
@@ -1658,7 +1730,7 @@ async function autoDistributeForCampaign(campaign, submissions) {
       submission.authorHandleKey || normalizeHandle(submission.authorHandle);
     if (!handleKey) continue;
 
-    const kolWallet = await getVerifiedWalletForHandle(handleKey);
+    const kolWallet = await resolveSubmissionRewardWallet(submission);
     if (!kolWallet) {
       results.push({
         submissionId: String(submission._id),
@@ -1781,7 +1853,7 @@ export async function sweepClaimableVerifiedSubmissions(opts = {}) {
       submission.authorHandleKey || normalizeHandle(submission.authorHandle);
     if (!handleKey) continue;
 
-    const kolWallet = await getVerifiedWalletForHandle(handleKey);
+    const kolWallet = await resolveSubmissionRewardWallet(submission);
     if (!kolWallet) continue;
 
     const campaign = await KolCampaign.findById(submission.campaignId);
