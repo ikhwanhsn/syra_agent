@@ -456,6 +456,18 @@ export async function createCampaign(input) {
     throw err;
   }
 
+  const existingPendingDeposit = await KolCampaign.countDocuments({
+    projectWallet,
+    status: "pending_deposit",
+  });
+  if (existingPendingDeposit >= 1) {
+    const err = new Error(
+      "You already have a pending deposit campaign. Fund or wait for it to expire before creating another.",
+    );
+    err.code = "pending_deposit_limit";
+    throw err;
+  }
+
   const rewardLamports = solToLamports(rewardSol);
   const { kolPoolLamports, platformFeeLamports } =
     splitRewardPool(rewardLamports);
@@ -883,7 +895,7 @@ async function ensureCampaignTweetMedia(campaignDoc) {
 async function walletHasCreatedCampaign(kolWallet) {
   const ownedCount = await KolCampaign.countDocuments({
     projectWallet: kolWallet,
-    status: { $in: ["active", "completed", "pending_deposit"] },
+    status: { $in: ["active", "completed"] },
   });
   return ownedCount >= 1;
 }
@@ -1032,7 +1044,7 @@ async function buildViewerClaimEligibility(campaign, wallet) {
     canClaim: hasCreatedCampaign,
     message: hasCreatedCampaign
       ? null
-      : "Create one campaign before this ends — otherwise your reward is forfeited.",
+      : "Create and fund one campaign before this ends — otherwise your reward is forfeited.",
   };
 }
 
@@ -1151,12 +1163,11 @@ export async function createSubmission(campaignId, input) {
   }
 
   if (campaign.requireCreatedOneCampaign) {
-    const ownedCount = await KolCampaign.countDocuments({
-      projectWallet: kolWallet,
-      status: { $in: ["active", "completed", "pending_deposit"] },
-    });
-    if (ownedCount < 1) {
-      const err = new Error("Create one campaign first to participate");
+    const hasCreatedCampaign = await walletHasCreatedCampaign(kolWallet);
+    if (!hasCreatedCampaign) {
+      const err = new Error(
+        "Create and fund one campaign first to participate",
+      );
       err.code = "require_created_campaign";
       throw err;
     }
@@ -1593,7 +1604,9 @@ async function distributeSubmissionReward({
     const hasCreatedCampaign = await walletHasCreatedCampaign(kolWallet);
     if (!hasCreatedCampaign) {
       if (enforceCampaignGate) {
-        const err = new Error("Create one campaign first to claim your reward");
+        const err = new Error(
+          "Create and fund one campaign first to claim your reward",
+        );
         err.code = "require_created_campaign";
         throw err;
       }

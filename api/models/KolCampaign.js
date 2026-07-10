@@ -41,7 +41,7 @@ const kolCampaignSchema = new mongoose.Schema(
     startAt: { type: Date, default: null },
     endAt: { type: Date, default: null, index: true },
     durationDays: { type: Number, required: true, min: 1, max: 30 },
-    /** When true, KOLs must have created ≥1 campaign before submitting. Admin-only at create time. */
+    /** When true, KOLs must have created and funded ≥1 campaign before rewards. Admin-only at create time. */
     requireCreatedOneCampaign: { type: Boolean, default: false },
     lastSnapshotAt: { type: Date, default: null },
     finalizedAt: { type: Date, default: null },

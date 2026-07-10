@@ -260,7 +260,7 @@ export function CreateCampaignForm({
                 htmlFor="kol-rule-created-campaign"
                 className="text-sm font-normal leading-snug"
               >
-                Already created 1 campaign
+                Require funded campaign to qualify
               </Label>
               <Switch
                 id="kol-rule-created-campaign"

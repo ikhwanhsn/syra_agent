@@ -32,7 +32,7 @@ export function CampaignParticipationGateCard({
           <p className="text-sm text-muted-foreground leading-relaxed">
             You joined as{" "}
             <span className="text-foreground font-medium">@{ownEntry.authorHandle}</span>.
-            This campaign only pays wallets that have created at least one campaign on S3 Labs.
+            This campaign only pays wallets that have created and funded at least one campaign on S3 Labs. Pending deposits do not count.
           </p>
           <p className="text-sm text-muted-foreground leading-relaxed">
             {KOL_CREATE_CAMPAIGN_GATE_BODY}
