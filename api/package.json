@@ -38,7 +38,7 @@
     "register-ampersend:until-listed": "node -r dotenv/config scripts/registerAmpersendMarketplace.js --until-listed --pay",
     "validate:routes": "node scripts/validateRoutesStartup.mjs",
     "publish:dune": "node -r dotenv/config scripts/dune/publishSyraDune.mjs",
-    "send-test-kol-telegram": "node -r dotenv/config scripts/sendTestKolCampaignTelegram.js",
+    "send-test-kol-telegram": "node -r dotenv/config scripts/sendTestKolCampaignTelegram.js"
   },
   "dependencies": {
     "@agent-score/commerce": "^2.5.0",
