@@ -6,6 +6,19 @@ const EST_SOL_PER_CALL = 0.00002;
 const SOL_RENT_BUFFER = 0.01;
 const BALANCE_SAFETY_MARGIN = 1.25;
 
+/** Matches api/libs/labs/labX402Refund.js low-balance top-up target. */
+export function computePayerRefundTarget(maxPriceUsd: number, avgPriceUsd: number): number {
+  return Math.max(maxPriceUsd * 2, avgPriceUsd * 3);
+}
+
+/** Approximate paid calls between low-balance USDC top-ups. */
+export function estimateCallsBetweenRefunds(maxPriceUsd: number, avgPriceUsd: number): number {
+  const target = computePayerRefundTarget(maxPriceUsd, avgPriceUsd);
+  const drainable = Math.max(0, target - maxPriceUsd);
+  if (drainable <= 0 || avgPriceUsd <= 0) return 1;
+  return Math.max(1, Math.floor(drainable / avgPriceUsd));
+}
+
 export interface WalletBalanceSuggestion {
   role: "payer" | "payto";
   suggestedUsdc: number;
@@ -84,20 +97,26 @@ export function computeWalletBalanceSuggestions(
   const targetCalls = Math.max(1, input.targetCallsPerDay ?? 1000);
   const callsPerPayerTarget = payerCount > 0 ? targetCalls / payerCount : targetCalls;
 
+  const payerRefundTarget = computePayerRefundTarget(input.maxPriceUsd, input.avgPriceUsd);
+  const callsBetweenRefunds = input.refundEnabled
+    ? estimateCallsBetweenRefunds(input.maxPriceUsd, input.avgPriceUsd)
+    : 1;
+  const refundSolFactor = input.refundEnabled ? 1 + 1 / callsBetweenRefunds : 1;
+
   const payerUsdc = input.refundEnabled
-    ? Math.max(input.maxPriceUsd * 2, input.avgPriceUsd * 3)
+    ? payerRefundTarget
     : callsPerPayerTarget * input.avgPriceUsd * BALANCE_SAFETY_MARGIN;
 
   const payerSol =
-    callsPerPayerTarget * EST_SOL_PER_CALL * (input.refundEnabled ? 2 : 1) * BALANCE_SAFETY_MARGIN +
+    callsPerPayerTarget * EST_SOL_PER_CALL * refundSolFactor * BALANCE_SAFETY_MARGIN +
     SOL_RENT_BUFFER;
 
   const paytoUsdc = input.refundEnabled
-    ? Math.max(payerCount * input.maxPriceUsd * 2, targetCalls * input.avgPriceUsd * 0.05)
+    ? Math.max(payerCount * payerRefundTarget, targetCalls * input.avgPriceUsd * 0.05)
     : 0;
 
   const paytoSol = input.refundEnabled
-    ? input.estSolPerDay * 0.5 * BALANCE_SAFETY_MARGIN + SOL_RENT_BUFFER
+    ? (input.estSolPerDay * (1 / callsBetweenRefunds)) * BALANCE_SAFETY_MARGIN + SOL_RENT_BUFFER
     : SOL_RENT_BUFFER;
 
   return [
@@ -106,18 +125,22 @@ export function computeWalletBalanceSuggestions(
       suggestedUsdc: Math.ceil(payerUsdc * 100) / 100,
       suggestedSol: Math.ceil(payerSol * 10000) / 10000,
       usdcNote: input.refundEnabled
-        ? "Working capital for in-flight x402 payments (refund returns USDC)"
+        ? `Low-balance working capital (~${callsBetweenRefunds} calls before top-up)`
         : `~${Math.ceil(callsPerPayerTarget)} calls/day at avg price`,
-      solNote: input.refundEnabled ? "Payment + refund tx fees + rent buffer" : "Payment tx fees + rent buffer",
+      solNote: input.refundEnabled
+        ? `Payment fees + ~1 refund tx per ${callsBetweenRefunds} calls`
+        : "Payment tx fees + rent buffer",
     },
     {
       role: "payto",
       suggestedUsdc: Math.ceil(paytoUsdc * 100) / 100,
       suggestedSol: Math.ceil(paytoSol * 10000) / 10000,
       usdcNote: input.refundEnabled
-        ? "Refund float when multiple payers settle in one tick"
+        ? "Top-up float when payer USDC drops below max endpoint price"
         : "Not required without refund loop",
-      solNote: input.refundEnabled ? "Refund transfer fees + rent buffer" : "Rent buffer only",
+      solNote: input.refundEnabled
+        ? `Refund transfer fees (~1 per ${callsBetweenRefunds} calls) + rent buffer`
+        : "Rent buffer only",
     },
   ];
 }
@@ -226,7 +249,11 @@ export function runLabsX402Simulation(input: LabsX402SimulationInput): LabsX402S
   const range = jitterIntervalRange(intervalMin, jitterPct);
 
   const suggestedIntervalMin = suggestIntervalMinutes(payerCount, targetCallsPerDay);
-  const estSolPerDay = callsPerDay * EST_SOL_PER_CALL * (input.refundEnabled ? 2 : 1);
+  const callsBetweenRefunds = input.refundEnabled
+    ? estimateCallsBetweenRefunds(maxPriceUsd, avgPriceUsd)
+    : 1;
+  const refundSolFactor = input.refundEnabled ? 1 + 1 / callsBetweenRefunds : 1;
+  const estSolPerDay = callsPerDay * EST_SOL_PER_CALL * refundSolFactor;
   const estSolPerWalletPerDay = payerCount > 0 ? estSolPerDay / payerCount : 0;
 
   const walletBalances = computeWalletBalanceSuggestions({
@@ -259,8 +286,10 @@ export function runLabsX402Simulation(input: LabsX402SimulationInput): LabsX402S
     targetCallsPerDay,
     estSolPerDay,
     estSolPerWalletPerDay,
-    payerUsdcBuffer: maxPriceUsd,
-    paytoUsdcBuffer: Math.max(maxPriceUsd, grossUsdcPerWalletPerDay * 2),
+    payerUsdcBuffer: input.refundEnabled ? computePayerRefundTarget(maxPriceUsd, avgPriceUsd) : maxPriceUsd,
+    paytoUsdcBuffer: input.refundEnabled
+      ? computePayerRefundTarget(maxPriceUsd, avgPriceUsd)
+      : Math.max(maxPriceUsd, grossUsdcPerWalletPerDay * 2),
     walletBalances,
   };
 }

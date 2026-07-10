@@ -33,7 +33,7 @@ import {
   isCampaignFinalizing,
   isCampaignLive,
 } from "@/lib/kolCampaignStatus";
-import { formatSol, formatTimeLeft } from "@/lib/kolFormat";
+import { formatSol, formatRelativePast, formatTimeLeft } from "@/lib/kolFormat";
 import { KOL_CREATE_CAMPAIGN_LEADERBOARD_INTRO } from "@/lib/kolRewardEligibility";
 import { cn } from "@/lib/utils";
 import { AddRewardForm } from "./AddRewardForm";
@@ -362,6 +362,11 @@ export function CampaignDetail({
                   : isFinalizing
                     ? "Final rankings based on last snapshot. Verify X to claim when ready."
                     : "Rankings update every 6 hours. Higher score = larger projected payout."}
+              {isLive && campaign.lastSnapshotAt ? (
+                <span className="block mt-1 text-xs text-muted-foreground/80">
+                  Last snapshot: {formatRelativePast(campaign.lastSnapshotAt)}
+                </span>
+              ) : null}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 shrink-0">

@@ -82,3 +82,21 @@ export function findLabX402Endpoint(pathOrId) {
     null
   );
 }
+
+/**
+ * @returns {number}
+ */
+export function getMaxLabX402PriceUsd() {
+  if (LAB_X402_ENDPOINTS.length === 0) return 0.1;
+  return Math.max(...LAB_X402_ENDPOINTS.map((e) => e.priceUsd));
+}
+
+/**
+ * @returns {number}
+ */
+export function getWeightedAvgLabX402PriceUsd() {
+  const totalWeight = LAB_X402_ENDPOINTS.reduce((s, e) => s + e.weight, 0);
+  if (totalWeight <= 0) return 0.029;
+  const sum = LAB_X402_ENDPOINTS.reduce((s, e) => s + e.priceUsd * e.weight, 0);
+  return sum / totalWeight;
+}

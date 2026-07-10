@@ -132,7 +132,7 @@ export function AutoCallSettingsPanel({
         <div>
           <Label htmlFor="refund">Auto-refund USDC</Label>
           <p className="text-xs text-muted-foreground">
-            PayTo wallet sends USDC back to payer after each successful payment
+            PayTo tops up payer only when USDC is too low for the next call — fewer refund txs and less SOL gas
           </p>
         </div>
         <Switch

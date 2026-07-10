@@ -86,6 +86,10 @@ function KolPageContent() {
         wallet: walletAddress,
       }),
     enabled: Boolean(selectedCampaignId),
+    refetchInterval: (query) => {
+      const status = query.state.data?.campaign?.status;
+      return status === "active" ? 5 * 60 * 1000 : false;
+    },
   });
 
   const handleSelectCampaign = useCallback(

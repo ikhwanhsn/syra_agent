@@ -65,6 +65,38 @@ function toNonNegativeInt(value) {
   return n > 0 ? n : 0;
 }
 
+const METRIC_COUNT_KEYS = [
+  "likeCount",
+  "retweetCount",
+  "replyCount",
+  "quoteCount",
+  "viewCount",
+];
+
+/**
+ * Sum raw engagement counts (likes + RTs + replies + quotes + views).
+ * @param {KolMetrics | null | undefined} metrics
+ * @returns {number}
+ */
+export function metricsEngagementTotal(metrics) {
+  return METRIC_COUNT_KEYS.reduce(
+    (sum, key) => sum + toNonNegativeInt(metrics?.[key]),
+    0,
+  );
+}
+
+/**
+ * True when incoming metrics beat existing on any count.
+ * @param {KolMetrics | null | undefined} existing
+ * @param {KolMetrics | null | undefined} incoming
+ * @returns {boolean}
+ */
+export function metricsIncreased(existing, incoming) {
+  return METRIC_COUNT_KEYS.some(
+    (key) => toNonNegativeInt(incoming?.[key]) > toNonNegativeInt(existing?.[key]),
+  );
+}
+
 /**
  * @param {number} score
  * @returns {number}

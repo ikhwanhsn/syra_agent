@@ -5,6 +5,8 @@ import KolCampaign from "../models/KolCampaign.js";
 import KolSubmission from "../models/KolSubmission.js";
 import KolEngagementSnapshot from "../models/KolEngagementSnapshot.js";
 import {
+  metricsEngagementTotal,
+  metricsIncreased,
   scoreSubmission,
 } from "./kolEngagementService.js";
 import {
@@ -78,7 +80,12 @@ async function collectEngagements(sourceTweetId, sourceAuthorHandleKey, mode, fe
       const { score, breakdown } = scoreSubmission(tweet.metrics, authorContext);
 
       const existing = byHandle.get(authorHandleKey);
-      if (existing && existing.score >= score) continue;
+      if (existing) {
+        const existingTotal = metricsEngagementTotal(existing.metrics);
+        const newTotal = metricsEngagementTotal(tweet.metrics);
+        if (existing.score > score) continue;
+        if (existing.score === score && existingTotal >= newTotal) continue;
+      }
 
       byHandle.set(authorHandleKey, {
         tweet,
@@ -142,7 +149,16 @@ export async function discoverCampaignEngagements(campaignId, opts = {}) {
   const bestByHandle = new Map();
   for (const row of [...replies, ...quotes]) {
     const existing = bestByHandle.get(row.authorHandleKey);
-    if (!existing || existing.score < row.score) {
+    if (!existing) {
+      bestByHandle.set(row.authorHandleKey, row);
+      continue;
+    }
+    const existingTotal = metricsEngagementTotal(existing.metrics);
+    const rowTotal = metricsEngagementTotal(row.metrics);
+    if (
+      row.score > existing.score ||
+      (row.score === existing.score && rowTotal > existingTotal)
+    ) {
       bestByHandle.set(row.authorHandleKey, row);
     }
   }
@@ -160,7 +176,8 @@ export async function discoverCampaignEngagements(campaignId, opts = {}) {
     if (existing) {
       const shouldUpdate =
         row.score > (existing.latestScore ?? 0) ||
-        row.tweetId !== existing.tweetId;
+        row.tweetId !== existing.tweetId ||
+        metricsIncreased(existing.latestMetrics, row.metrics);
 
       if (shouldUpdate) {
         existing.tweetId = row.tweetId;

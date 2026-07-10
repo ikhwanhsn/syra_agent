@@ -568,6 +568,15 @@ export async function confirmCampaignDeposit(campaignId, input) {
     );
   });
 
+  discoverCampaignEngagements(campaign._id, { force: true })
+    .then(() => refreshCampaignMetrics(campaign._id, { force: true }))
+    .catch((e) => {
+      console.warn(
+        `[kol] initial engagement snapshot failed campaign=${campaign._id}:`,
+        e instanceof Error ? e.message : e,
+      );
+    });
+
   return { campaign: serializeCampaign(campaign) };
 }
 
@@ -1290,6 +1299,8 @@ export async function refreshCampaignMetrics(campaignId, opts = {}) {
   const capturedAt = new Date();
   let refreshed = 0;
 
+  let failed = 0;
+
   for (const submission of submissions) {
     try {
       const metrics = await refreshSubmissionMetrics(submission.tweetId);
@@ -1312,6 +1323,7 @@ export async function refreshCampaignMetrics(campaignId, opts = {}) {
       });
       refreshed += 1;
     } catch (e) {
+      failed += 1;
       console.warn(
         `[kol] metric refresh failed submission=${submission._id}:`,
         e instanceof Error ? e.message : e,
@@ -1319,11 +1331,30 @@ export async function refreshCampaignMetrics(campaignId, opts = {}) {
     }
   }
 
-  campaign.lastSnapshotAt = capturedAt;
-  await campaign.save();
-  await refreshCampaignProjections(campaign._id);
+  const totalSubmissions = submissions.length;
+  const snapshotComplete =
+    totalSubmissions === 0 || refreshed === totalSubmissions;
 
-  return { refreshed, capturedAt: capturedAt.toISOString() };
+  if (snapshotComplete) {
+    campaign.lastSnapshotAt = capturedAt;
+    await campaign.save();
+  } else {
+    console.warn(
+      `[kol] partial metric refresh campaign=${campaign._id} refreshed=${refreshed}/${totalSubmissions} failed=${failed}, lastSnapshotAt unchanged — will retry next tick`,
+    );
+  }
+
+  if (refreshed > 0) {
+    await refreshCampaignProjections(campaign._id);
+  }
+
+  return {
+    refreshed,
+    failed,
+    totalSubmissions,
+    snapshotComplete,
+    capturedAt: snapshotComplete ? capturedAt.toISOString() : null,
+  };
 }
 
 /**

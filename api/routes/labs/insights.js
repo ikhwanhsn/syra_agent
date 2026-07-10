@@ -14,8 +14,15 @@ import {
   X402_API_PRICE_INSIGHTS_DEFI_TVL_USD,
   X402_API_PRICE_INSIGHTS_VOLATILITY_INDEX_USD,
 } from '../../config/x402Pricing.js';
-import { getActivePayToAddress } from '../../libs/labs/labWalletService.js';
-import { refundUsdcToPayer } from '../../libs/labs/labX402Refund.js';
+import { getActivePayToAddress, getLabWalletBalances } from '../../libs/labs/labWalletService.js';
+import {
+  evaluateLowBalanceRefund,
+  refundUsdcToPayer,
+} from '../../libs/labs/labX402Refund.js';
+import {
+  getMaxLabX402PriceUsd,
+  getWeightedAvgLabX402PriceUsd,
+} from '../../libs/labs/labX402Endpoints.js';
 import { getLabX402Settings } from '../../libs/labs/labX402Payer.js';
 import {
   isActiveLabPayer,
@@ -83,7 +90,26 @@ async function handleInsightRoute(req, res, endpointPath, catalogSegment, fetchD
           });
           return;
         }
-        const refund = await refundUsdcToPayer(payer, priceUsd);
+
+        const balances = await getLabWalletBalances(payer);
+        const maxPriceUsd = getMaxLabX402PriceUsd();
+        const avgPriceUsd = getWeightedAvgLabX402PriceUsd();
+        const decision = evaluateLowBalanceRefund(balances?.usdcBalance ?? 0, maxPriceUsd, avgPriceUsd);
+
+        if (!decision.shouldRefund) {
+          await logLabX402Call({
+            payerAddress: payer,
+            endpoint: endpointPath,
+            priceUsd,
+            status: 'refund_skipped',
+            paymentTx,
+            responseSnippet: `balance_ok:${(balances?.usdcBalance ?? 0).toFixed(4)}>=${decision.thresholdUsd}`,
+            trigger,
+          });
+          return;
+        }
+
+        const refund = await refundUsdcToPayer(payer, decision.refundAmountUsd);
         await logLabX402Call({
           payerAddress: payer,
           endpoint: endpointPath,
@@ -91,6 +117,7 @@ async function handleInsightRoute(req, res, endpointPath, catalogSegment, fetchD
           status: 'success',
           paymentTx,
           refundTx: refund?.signature ?? null,
+          responseSnippet: `topup:${decision.refundAmountUsd.toFixed(4)}→${decision.targetUsd}`,
           trigger,
         });
       } catch (e) {

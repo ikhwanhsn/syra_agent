@@ -4,7 +4,7 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { computeEngagementScore, scoreSubmission } from "./kolEngagementService.js";
+import { computeEngagementScore, metricsEngagementTotal, metricsIncreased, scoreSubmission } from "./kolEngagementService.js";
 
 test("scoreSubmission applies differentiated engagement weights", () => {
   const { score, breakdown } = scoreSubmission(
@@ -120,4 +120,26 @@ test("scoreSubmission is deterministic for fixed inputs", () => {
   const a = scoreSubmission(metrics, context);
   const b = scoreSubmission(metrics, context);
   assert.deepEqual(a, b);
+});
+
+test("metricsIncreased detects growth on any metric", () => {
+  const existing = { likeCount: 10, retweetCount: 2, replyCount: 1, quoteCount: 0, viewCount: 100 };
+  const sameScoreMoreLikes = { ...existing, likeCount: 15 };
+  const sameScoreMoreViews = { ...existing, viewCount: 200 };
+  const flat = { ...existing };
+
+  assert.equal(metricsIncreased(existing, sameScoreMoreLikes), true);
+  assert.equal(metricsIncreased(existing, sameScoreMoreViews), true);
+  assert.equal(metricsIncreased(existing, flat), false);
+});
+
+test("metricsEngagementTotal sums all engagement counts", () => {
+  const total = metricsEngagementTotal({
+    likeCount: 10,
+    retweetCount: 2,
+    replyCount: 3,
+    quoteCount: 1,
+    viewCount: 100,
+  });
+  assert.equal(total, 116);
 });
