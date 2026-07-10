@@ -81,7 +81,6 @@ async function fetchOrganizeJson<T>(
   const url = `${getApiBaseUrl()}${path}`;
   const headers = new Headers(init?.headers);
   headers.set("x-admin-wallet", adminWallet);
-  headers.set("x-wallet-address", adminWallet);
   if (init?.body && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }

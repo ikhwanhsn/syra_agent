@@ -1,0 +1,28 @@
+{
+  "name": "syra-plugins",
+  "owner": {
+    "name": "Syra",
+    "email": "hello@syraa.fun"
+  },
+  "metadata": {
+    "description": "Syra machine money plugins for Cursor — x402 APIs, agent wallets, and crypto research tools on Solana."
+  },
+  "plugins": [
+    {
+      "name": "syra",
+      "source": "plugins/syra",
+      "description": "Machine money for agents on Solana — x402 pay-per-call APIs, agent wallets, and treasury tools in Cursor.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Syra"
+      },
+      "homepage": "https://syraa.fun",
+      "repository": "https://github.com/ikhwanhsn/syra_agent",
+      "license": "MIT",
+      "keywords": ["syra", "x402", "solana", "agents", "mcp", "crypto", "defi"],
+      "logo": "assets/logo.jpg",
+      "category": "developer-tools",
+      "tags": ["solana", "x402", "agents", "defi", "mcp"]
+    }
+  ]
+}

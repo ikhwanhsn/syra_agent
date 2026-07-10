@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "syra": {
+      "command": "npx",
+      "args": ["-y", "@syra-ai/mcp-server@latest"],
+      "env": {
+        "SYRA_API_BASE_URL": "https://api.syraa.fun",
+        "SYRA_MCP_TOOL_PROFILE": "curated",
+        "SYRA_PAYER_KEYPAIR": "${SYRA_PAYER_KEYPAIR}",
+        "SYRA_MCP_API_KEY": "${SYRA_MCP_API_KEY}"
+      }
+    }
+  }
+}

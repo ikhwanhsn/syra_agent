@@ -1,0 +1,75 @@
+---
+description: x402 v2 payment flow for Syra paid routes — 402 challenge, PAYMENT-SIGNATURE retry, multi-rail support
+globs: "**/*.{ts,tsx,js,mjs,env*}"
+alwaysApply: false
+---
+
+# Syra x402 payment
+
+Production Syra routes return **HTTP 402** with a `Payment-Required` header (x402 v2). Payment is handled automatically when a payer is configured.
+
+## Payment flow
+
+1. Client sends request to `https://api.syraa.fun/<route>`.
+2. API returns **402** with payment challenge in response body.
+3. Client signs challenge and retries with `PAYMENT-SIGNATURE` header.
+4. API returns **200** with data on successful payment.
+
+The SDK (`createSyraPaidClient`) and MCP server (`@syra-ai/mcp-server`) handle this automatically when payer env vars are set.
+
+## Payment rails
+
+| Rail | Env vars |
+|------|----------|
+| **Solana USDC** (default) | `SYRA_PAYER_KEYPAIR` — base58 or JSON byte array |
+| **Base USDC** | `X402_PREFERRED_NETWORK=base` + `SYRA_EVM_PAYER_PRIVATE_KEY` |
+| **Algorand USDC** | `X402_PREFERRED_NETWORK=algorand` + `SYRA_ALGORAND_PAYER_PRIVATE_KEY` |
+
+Aliases: `PAYER_KEYPAIR` works as alias for `SYRA_PAYER_KEYPAIR`.
+
+## Adapter pattern for custom signers
+
+Keep payment logic separate from business logic:
+
+```typescript
+import { createSyraClient, type SyraPaymentSigner } from "@syra-ai/sdk";
+
+const signer: SyraPaymentSigner = {
+  async signPayment(challenge, context) {
+    // Use @x402/svm or your agent wallet adapter
+    return paymentSignatureHeader;
+  },
+};
+
+const syra = createSyraClient({ signer });
+```
+
+For scripts and agents, prefer `createSyraPaidClient()` or `@syra-ai/sdk/payment` (`getPaidFetch`, `hasPaidFetchConfigured`).
+
+## Local development (no payment)
+
+Point MCP or SDK at local API with dev routes:
+
+```env
+SYRA_API_BASE_URL=http://localhost:3000
+SYRA_USE_DEV_ROUTES=true
+```
+
+Dev routes append `/dev` to paths (e.g. `/news/dev`). Use only with local/non-production APIs.
+
+## Security rules
+
+- **Never** commit keypairs, private keys, or API secrets to the repository.
+- **Never** log full keypair material — log wallet address only.
+- Store payer credentials in environment variables or a secrets manager.
+- Validate external payment challenge payloads before signing.
+
+## Discovery
+
+- x402 resource list: `GET https://api.syraa.fun/.well-known/x402`
+- OpenAPI: `GET https://api.syraa.fun/openapi.json`
+- Marketplace UI: https://syraa.fun/marketplace
+
+## Trading safety
+
+x402 payments authorize API access, not trade execution. Separate analysis from execution. Never assume market direction from paid API responses.

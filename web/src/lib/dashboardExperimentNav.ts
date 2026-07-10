@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { BarChart3, Bitcoin, BrainCircuit, Droplets, Globe, Zap } from "lucide-react";
+import { BarChart3, Bitcoin, BrainCircuit, Droplets, Globe, Waves, Zap } from "lucide-react";
 
 export type DashboardExperimentNavItem = {
   id: string;
@@ -65,6 +65,15 @@ export const DASHBOARD_EXPERIMENT_NAV: readonly DashboardExperimentNavItem[] = [
     icon: Zap,
     to: "/scalper",
     isActive: (p) => p.startsWith("/scalper"),
+    badge: { label: "Experimental" },
+  },
+  {
+    id: "mm",
+    label: "SYRA MM",
+    description: "SYRA market maker · paper volume lab · Jupiter quotes · creator-fee projection",
+    icon: Waves,
+    to: "/mm",
+    isActive: (p) => p.startsWith("/mm"),
     badge: { label: "Experimental" },
   },
 ];

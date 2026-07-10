@@ -106,6 +106,7 @@ import { createLpAgentExperimentRouter } from "./routes/lpAgentExperiment.js";
 import { createLpAgentRealRouter } from "./routes/lpAgentReal.js";
 import { createStocksExperimentRouter } from "./routes/stocksExperiment.js";
 import { createScalperExperimentRouter } from "./routes/scalperExperiment.js";
+import { createMmExperimentRouter } from "./routes/mmExperiment.js";
 import { createBtcQuantExperimentRouter } from "./routes/btcQuantExperiment.js";
 import { createBtcQuantRealRouter } from "./routes/btcQuantReal.js";
 import { createBtc3MacroRouter } from "./routes/btc3Macro.js";
@@ -335,6 +336,8 @@ const CORS_OPTIONS_X402 = {
     "x-payer-address",
     "X-Admin-Wallet",
     "x-admin-wallet",
+    "X-Wallet-Address",
+    "x-wallet-address",
     "X-Sf-Partner",
     "x-sf-partner",
     "X-Sf-Timestamp",
@@ -402,6 +405,8 @@ const CORS_OPTIONS_REGULAR = {
     "x-payer-address",
     "X-Admin-Wallet",
     "x-admin-wallet",
+    "X-Wallet-Address",
+    "x-wallet-address",
     "X-Sf-Partner",
     "x-sf-partner",
     "X-Sf-Timestamp",
@@ -1402,6 +1407,8 @@ app.use("/experiment/btc3-real", createBtc3RealRouter());
 app.use("/experiment/stocks", createStocksExperimentRouter());
 // Scalper agent — hybrid opportunity feed, Jupiter-quote paper fills
 app.use("/experiment/scalper", createScalperExperimentRouter());
+// SYRA market-making agent — paper MM via Jupiter quotes, volume + creator-fee projection
+app.use("/experiment/mm", createMmExperimentRouter());
 app.use("/post/studio", createShipLogStudioRouter());
 // Analytics: KPI (/analytics/kpi, /analytics/errors) and x402 summary (/analytics/summary)
 app.use("/analytics", await createAnalyticsRouter());
@@ -1854,6 +1861,54 @@ app.listen(PORT, () => {
     }
   }
 
+  const MM_QUOTE_INTERVAL_MS = (() => {
+    const raw = Number(process.env.MM_QUOTE_MS);
+    return Number.isFinite(raw) && raw >= 15_000 ? Math.floor(raw) : 45_000;
+  })();
+  const MM_RESOLVE_INTERVAL_MS = (() => {
+    const raw = Number(process.env.MM_RESOLVE_MS);
+    return Number.isFinite(raw) && raw >= 5_000 ? Math.floor(raw) : 20_000;
+  })();
+  const MM_CRON_ENABLED = (() => {
+    const raw = process.env.MM_CRON_ENABLED;
+    return raw == null ? true : raw === "1" || raw === "true";
+  })();
+
+  const runMmQuote = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/mm/mmService.js")
+        .then(({ runMmQuoteCycle }) => runMmQuoteCycle())
+        .then((out) => {
+          if (out?.errors?.length) {
+            console.warn("[MM] quote errors:", out.errors.slice(0, 3));
+          }
+        })
+        .catch((err) => console.warn("[MM] quote failed:", err?.message || err)),
+    ),
+  );
+
+  const runMmResolve = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/mm/mmService.js")
+        .then(({ resolveOpenMmOrders }) => resolveOpenMmOrders())
+        .then((out) => {
+          if (out?.errors?.length) {
+            console.warn("[MM] resolve errors:", out.errors.slice(0, 3));
+          }
+        })
+        .catch((err) => console.warn("[MM] resolve failed:", err?.message || err)),
+    ),
+  );
+
+  if (MM_CRON_ENABLED) {
+    if (MM_QUOTE_INTERVAL_MS >= 15_000) {
+      setInterval(runMmQuote, MM_QUOTE_INTERVAL_MS);
+    }
+    if (MM_RESOLVE_INTERVAL_MS >= 5_000) {
+      setInterval(runMmResolve, MM_RESOLVE_INTERVAL_MS);
+    }
+  }
+
   const LP_AGENT_REAL_SIGNAL_INTERVAL_MS = 120_000;
   const LP_AGENT_REAL_RESOLVE_INTERVAL_MS = 30_000;
 
@@ -2137,6 +2192,24 @@ app.listen(PORT, () => {
               startupVerbose("[Scalper learning]", out.summary || "completed");
             })
             .catch((err) => console.warn("[Scalper learning failed]", err?.message || err)),
+        ),
+      );
+      setInterval(tick, evo.ms);
+    })
+    .catch(() => {});
+
+  import("./libs/mm/mmLearningService.js")
+    .then(({ mmLearningConfigFromEnv, runMmLearning }) => {
+      const evo = mmLearningConfigFromEnv();
+      if (!evo.enabled || evo.ms < 60_000) return;
+      const tick = runIfMongoConnected(
+        withSingleFlight(() =>
+          runMmLearning()
+            .then((out) => {
+              if (!out || out.skipped) return;
+              startupVerbose("[MM learning]", out.summary || "completed");
+            })
+            .catch((err) => console.warn("[MM learning failed]", err?.message || err)),
         ),
       );
       setInterval(tick, evo.ms);

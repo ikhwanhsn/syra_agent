@@ -1,0 +1,76 @@
+---
+description: TypeScript conventions for integrating @syra-ai/sdk — typed responses, pillars, and route discovery
+globs: "**/*.{ts,tsx,js,mjs}"
+alwaysApply: false
+---
+
+# Syra SDK integration
+
+When writing code that calls the Syra API via `@syra-ai/sdk`:
+
+## Response envelope
+
+Always type and check API results as `SyraApiResponse<T>`:
+
+```typescript
+type SyraApiResponse<T = unknown> = {
+  success: boolean;
+  data?: T;
+  error?: string;
+};
+```
+
+Never trust raw `fetch` responses. Always check `result.success` before using `result.data`.
+
+## Client factories
+
+- **Production with auto-pay:** `createSyraPaidClient({ baseUrl: "https://api.syraa.fun" })` — reads payer from env.
+- **Custom signer:** `createSyraClient({ signer })` — implement `SyraPaymentSigner.signPayment()`.
+- Default base URL: `https://api.syraa.fun` (no trailing slash).
+
+## Five pillars
+
+Syra organizes capabilities around **Earn**, **Treasury**, **Invest**, **Spend**, and **Grow**:
+
+```typescript
+const syra = await createSyraPaidClient();
+const pillars = await syra.get("/pillars");
+await syra.pillars.earn.summary();
+await syra.pillars.invest.opportunities();
+```
+
+Discover live routes at runtime via `GET /pillars` — do not hardcode undocumented paths.
+
+## Route discovery
+
+Use typed constants from the SDK:
+
+- `SYRA_HIGH_VALUE_ROUTES` — curated high-value routes (sentiment, signal, brain, etc.)
+- `SYRA_X402_ROUTE_PREFIXES` — x402-paid path prefixes
+- `isSyraX402Path(pathname)` — check if a path requires payment
+
+## Error handling
+
+```typescript
+const result = await syra.get("/news", { ticker: "BTC" });
+if (!result.success) {
+  // Log result.error; surface to user; do not proceed with partial data
+  throw new Error(result.error ?? "Syra API call failed");
+}
+```
+
+## Security
+
+- Never hardcode keypairs or API secrets in source code.
+- Use env vars: `SYRA_PAYER_KEYPAIR`, `SYRA_EVM_PAYER_PRIVATE_KEY`, `SYRA_MCP_API_KEY`.
+- Validate and sanitize all user-supplied params before passing to Syra routes.
+
+## Related packages
+
+| Package | Purpose |
+|---------|---------|
+| `@syra-ai/sdk` | Typed HTTP client with x402 auto-pay |
+| `@syra-ai/mcp-server` | MCP tool distribution for Cursor/Claude |
+| `@syra-ai/x402-payer` | Low-level x402 sign/retry helper |
+
+Docs: https://docs.syraa.fun · OpenAPI: https://api.syraa.fun/openapi.json

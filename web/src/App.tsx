@@ -29,6 +29,7 @@ import Btc2QuantAgentExperiment from "@/pages/Btc2QuantAgentExperiment";
 import Btc3MacroAgentExperiment from "@/pages/Btc3MacroAgentExperiment";
 import StocksNewsExperiment from "@/pages/StocksNewsExperiment";
 import ScalperExperiment from "@/pages/ScalperExperiment";
+import MmExperiment from "@/pages/MmExperiment";
 import NotFound from "@/pages/NotFound";
 import PumpfunAnalyzer from "@/pages/PumpfunAnalyzer";
 import PumpfunCallPage from "@/pages/PumpfunCallPage";
@@ -245,6 +246,14 @@ function AppRoutes() {
               element={
                 <AdminExperimentRoute>
                   <ScalperExperiment />
+                </AdminExperimentRoute>
+              }
+            />
+            <Route
+              path="/mm"
+              element={
+                <AdminExperimentRoute>
+                  <MmExperiment />
                 </AdminExperimentRoute>
               }
             />
