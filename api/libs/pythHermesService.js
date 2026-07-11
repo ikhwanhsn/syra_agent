@@ -15,12 +15,29 @@ const cache = createBoundedTtlCache({
   defaultTtlMs: CACHE_TTL_MS,
 });
 
-/** Common Pyth price feed IDs (hex without 0x prefix). */
+/** Official Pyth crypto feed IDs — https://docs.pyth.network/price-feeds/price-feeds */
+const ETH_USD_FEED_ID_DEFAULT =
+  '0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace';
+/** Stale/typo id that Hermes 404s; ignore if set via env so prod misconfig cannot break labs. */
+const ETH_USD_FEED_ID_STALE =
+  '0xff61491a931112df1cfa4d0423bf0dfed99b88f620e794fa17fcc9dcc1f5a665';
+
+function resolveEthUsdFeedId() {
+  const fromEnv = String(process.env.PYTH_ETH_USD_FEED_ID || '').trim();
+  if (!fromEnv) return ETH_USD_FEED_ID_DEFAULT;
+  if (normalizeFeedId(fromEnv) === normalizeFeedId(ETH_USD_FEED_ID_STALE)) {
+    console.warn(
+      '[pyth] PYTH_ETH_USD_FEED_ID is a stale Hermes id; using official ETH/USD feed instead',
+    );
+    return ETH_USD_FEED_ID_DEFAULT;
+  }
+  return fromEnv;
+}
+
+/** Common Pyth price feed IDs (hex with 0x prefix). @see https://docs.pyth.network/price-feeds/price-feeds */
 const SYMBOL_FEED_MAP = {
   'BTC/USD': PYTH_BTC_USD_FEED_ID,
-  'ETH/USD':
-    process.env.PYTH_ETH_USD_FEED_ID ||
-    '0xff61491a931112df1cfa4d0423bf0dfed99b88f620e794fa17fcc9dcc1f5a665',
+  'ETH/USD': resolveEthUsdFeedId(),
   'SOL/USD':
     process.env.PYTH_SOL_USD_FEED_ID ||
     '0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d',
@@ -109,22 +126,31 @@ export async function fetchPythPrices(params) {
   const cached = cache.get(cacheKey);
   if (cached) return cached;
 
-  const url = new URL(`${HERMES_BASE}/v2/updates/price/latest`);
-  for (const feed of params.feeds) {
-    url.searchParams.append('ids[]', feed.feedId);
+  let parsedList = [];
+  try {
+    parsedList = await fetchHermesParsedPrices(params.feeds.map((f) => f.feedId));
+  } catch (batchErr) {
+    // Batch can 404 when any single id is stale; fall back to per-feed so valid assets still return.
+    console.warn(
+      '[pyth] batch fetch failed, retrying per feed:',
+      batchErr instanceof Error ? batchErr.message : batchErr,
+    );
+    const rows = await Promise.all(
+      params.feeds.map(async (feed) => {
+        try {
+          const list = await fetchHermesParsedPrices([feed.feedId]);
+          return list[0] ?? null;
+        } catch (e) {
+          console.warn(
+            `[pyth] feed ${feed.symbol} (${feed.feedId}) failed:`,
+            e instanceof Error ? e.message : e,
+          );
+          return null;
+        }
+      }),
+    );
+    parsedList = rows.filter(Boolean);
   }
-
-  const res = await fetch(url.toString(), {
-    headers: { Accept: 'application/json' },
-    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(`Pyth Hermes upstream ${res.status}: ${text.slice(0, 200)}`);
-  }
-
-  const json = await res.json();
-  const parsedList = Array.isArray(json?.parsed) ? json.parsed : [];
 
   /** @type {Record<string, { id?: string; price?: { price: string; expo: number; conf?: string; publish_time?: number } }>} */
   const byFeedId = {};
@@ -154,6 +180,11 @@ export async function fetchPythPrices(params) {
     };
   });
 
+  const withPrice = prices.filter((p) => p.priceUsd != null);
+  if (withPrice.length === 0) {
+    throw new Error('Pyth Hermes returned no usable prices for requested symbols');
+  }
+
   const data = {
     prices,
     count: prices.length,
@@ -163,4 +194,27 @@ export async function fetchPythPrices(params) {
 
   cache.set(cacheKey, data);
   return data;
+}
+
+/**
+ * @param {string[]} feedIds
+ * @returns {Promise<Array<{ id?: string; price?: { price: string; expo: number; conf?: string; publish_time?: number } }>>}
+ */
+async function fetchHermesParsedPrices(feedIds) {
+  const url = new URL(`${HERMES_BASE}/v2/updates/price/latest`);
+  for (const id of feedIds) {
+    url.searchParams.append('ids[]', id);
+  }
+
+  const res = await fetch(url.toString(), {
+    headers: { Accept: 'application/json' },
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Pyth Hermes upstream ${res.status}: ${text.slice(0, 200)}`);
+  }
+
+  const json = await res.json();
+  return Array.isArray(json?.parsed) ? json.parsed : [];
 }

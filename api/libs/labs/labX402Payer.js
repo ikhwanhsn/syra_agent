@@ -104,11 +104,15 @@ export async function runLabX402Payment(payerAddress, opts = {}) {
         responseBody?.error ||
         responseBody?.message ||
         `HTTP ${res.status}`;
+      const looksLikeUpstreamData =
+        /pyth|hermes|upstream|oracle|not found|timeout|ECONN|ENOTFOUND|502|503/i.test(
+          String(errorMsg),
+        );
       await logLabX402Call({
         payerAddress: keypair.publicKey.toBase58(),
         endpoint: endpoint.path,
         priceUsd: endpoint.priceUsd,
-        status: 'payment_failed',
+        status: looksLikeUpstreamData ? 'error' : 'payment_failed',
         paymentTx,
         error: String(errorMsg).slice(0, 500),
         trigger,
