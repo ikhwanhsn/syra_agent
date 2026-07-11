@@ -1,16 +1,17 @@
 <div align="center">
 
-<img src="web/public/images/logo.jpg" alt="Syra Logo" width="96" height="96" />
+<img src="https://syraa.fun/images/logo.jpg" alt="Syra Logo" width="96" height="96" />
 
 # **Syra**
 
 ### Machine Money for Agents
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/ikhwanhsn/syra_agent/blob/main/LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-docs.syraa.fun-0ea5e9)](https://docs.syraa.fun)
 [![API Marketplace](https://img.shields.io/badge/build-syraa.fun%2Fmarketplace-26a5e4)](https://syraa.fun/marketplace)
+[![GitHub](https://img.shields.io/badge/GitHub-ikhwanhsn%2Fsyra__agent-181717?logo=github)](https://github.com/ikhwanhsn/syra_agent)
 
-**[Documentation](https://docs.syraa.fun)** · **[API Marketplace](https://syraa.fun/marketplace)** · **[Agent demo](https://syraa.fun)** · **[X (Twitter)](https://x.com/syra_agent)**
+**[Documentation](https://docs.syraa.fun)** · **[API Marketplace](https://syraa.fun/marketplace)** · **[Agent demo](https://syraa.fun)** · **[X (Twitter)](https://x.com/syra_agent)** · **[GitHub](https://github.com/ikhwanhsn/syra_agent)**
 
 </div>
 

@@ -1,7 +1,7 @@
 {
   "name": "@syra-ai/sdk",
-  "version": "0.2.0",
-  "description": "Typed client for Syra machine money — x402 pay-per-call APIs, auto-pay, agent wallets, and treasury on Solana",
+  "version": "0.2.1",
+  "description": "Typed TypeScript client for Syra machine money — x402 pay-per-call APIs, auto-pay wallets, and agent treasury on Solana, Base & Algorand.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -25,10 +25,27 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/syra-agent/syra-monorepo",
+    "url": "git+https://github.com/ikhwanhsn/syra_agent.git",
     "directory": "syra-sdk"
   },
-  "keywords": ["syra", "x402", "solana", "base", "agents", "trading", "api", "usdc"],
+  "homepage": "https://github.com/ikhwanhsn/syra_agent/tree/main/syra-sdk#readme",
+  "bugs": {
+    "url": "https://github.com/ikhwanhsn/syra_agent/issues"
+  },
+  "keywords": [
+    "syra",
+    "x402",
+    "solana",
+    "base",
+    "algorand",
+    "agents",
+    "trading",
+    "api",
+    "usdc",
+    "micropayments",
+    "typescript"
+  ],
+  "author": "Syra",
   "license": "MIT",
   "engines": {
     "node": ">=18"

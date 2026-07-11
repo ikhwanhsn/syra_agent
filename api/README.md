@@ -1,14 +1,15 @@
 <div align="center">
 
-<img src="../web/public/images/logo.jpg" alt="Syra Logo" width="96" height="96" />
+<img src="https://syraa.fun/images/logo.jpg" alt="Syra Logo" width="96" height="96" />
 
 # **Syra API**
 
 ### Backend services for Syra — machine money for agents on Solana
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/ikhwanhsn/syra_agent/blob/main/LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-docs.syraa.fun-0ea5e9)](https://docs.syraa.fun)
 [![API](https://img.shields.io/badge/API-Gateway-26a5e4)](https://api.syraa.fun)
+[![GitHub](https://img.shields.io/badge/GitHub-ikhwanhsn%2Fsyra__agent-181717?logo=github)](https://github.com/ikhwanhsn/syra_agent)
 
 **[Documentation](https://docs.syraa.fun)** · **[API Marketplace](https://syraa.fun/marketplace)** · **[Telegram Bot](https://t.me/syra_trading_bot)** · **[Agent](https://syraa.fun)**
 

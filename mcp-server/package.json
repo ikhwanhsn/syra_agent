@@ -1,7 +1,7 @@
 {
   "name": "@syra-ai/mcp-server",
-  "version": "0.4.1",
-  "description": "MCP server exposing Syra x402 API tools with auto-pay and full agentTools catalog",
+  "version": "0.4.2",
+  "description": "MCP server for Syra machine money — 240+ crypto research & agent tools with x402 auto-pay for Cursor, Claude Desktop, and agent frameworks.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -21,10 +21,26 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/syra-agent/syra-monorepo",
+    "url": "git+https://github.com/ikhwanhsn/syra_agent.git",
     "directory": "mcp-server"
   },
-  "keywords": ["syra", "mcp", "x402", "solana", "agents", "model-context-protocol"],
+  "homepage": "https://github.com/ikhwanhsn/syra_agent/tree/main/mcp-server#readme",
+  "bugs": {
+    "url": "https://github.com/ikhwanhsn/syra_agent/issues"
+  },
+  "keywords": [
+    "syra",
+    "mcp",
+    "x402",
+    "solana",
+    "agents",
+    "model-context-protocol",
+    "cursor",
+    "claude",
+    "crypto",
+    "usdc"
+  ],
+  "author": "Syra",
   "license": "MIT",
   "engines": {
     "node": ">=18"
