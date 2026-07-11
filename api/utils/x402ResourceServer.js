@@ -16,6 +16,10 @@ import {
   getEnabledCorbitsNetworks,
 } from "../config/corbitsX402Networks.js";
 import {
+  getDexterEvmUsdcAsset,
+  getEnabledDexterNetworks,
+} from "../config/dexterX402Networks.js";
+import {
   getPayaiEvmUsdcAsset,
   getEnabledPayaiNetworks,
 } from "../config/payaiX402Networks.js";
@@ -116,14 +120,22 @@ function newFacilitatorClient(url) {
 const corbitsFacilitatorUrl =
   env("CORBITS_FACILITATOR_URL") || "https://facilitator.corbits.dev";
 
-/** @typedef {'payai'|'corbits'} X402NetworkProfile */
+/**
+ * [Dexter facilitator](https://dexter.cash/facilitator) — free public x402 facilitator (no PayAI JWT).
+ * @see https://github.com/Dexter-DAO
+ */
+const dexterFacilitatorUrl = env("DEXTER_FACILITATOR_URL") || "https://x402.dexter.cash";
+
+/** @typedef {'payai'|'corbits'|'dexter'} X402NetworkProfile */
 
 /**
  * @param {X402NetworkProfile} profile
- * @returns {import('../config/payaiX402Networks.js').PayaiX402Network[] | import('../config/corbitsX402Networks.js').CorbitsX402Network[]}
+ * @returns {import('../config/payaiX402Networks.js').PayaiX402Network[] | import('../config/corbitsX402Networks.js').CorbitsX402Network[] | import('../config/dexterX402Networks.js').DexterX402Network[]}
  */
 function getEnabledNetworksForProfile(profile) {
-  return profile === "corbits" ? getEnabledCorbitsNetworks() : getEnabledPayaiNetworks();
+  if (profile === "corbits") return getEnabledCorbitsNetworks();
+  if (profile === "dexter") return getEnabledDexterNetworks();
+  return getEnabledPayaiNetworks();
 }
 
 /**
@@ -132,7 +144,9 @@ function getEnabledNetworksForProfile(profile) {
  * @returns {string | null}
  */
 function getEvmUsdcForProfile(profile, caip2) {
-  return profile === "corbits" ? getCorbitsEvmUsdcAsset(caip2) : getPayaiEvmUsdcAsset(caip2);
+  if (profile === "corbits") return getCorbitsEvmUsdcAsset(caip2);
+  if (profile === "dexter") return getDexterEvmUsdcAsset(caip2);
+  return getPayaiEvmUsdcAsset(caip2);
 }
 
 /** @param {import('@x402/core/server').x402ResourceServer} server */
@@ -202,6 +216,9 @@ let initPromise = null;
 let resourceServerCorbitsInstance = null;
 let initPromiseCorbits = null;
 
+let resourceServerDexterInstance = null;
+let initPromiseDexter = null;
+
 /**
  * Get the x402 resource server singleton (PayAI example–style).
  * Uses facilitator + ExactSvmScheme (Solana) and optionally ExactEvmScheme (Base).
@@ -251,6 +268,24 @@ export function getX402ResourceServerCorbits() {
 }
 
 /**
+ * Dexter-backed resource server: verify/settle via https://x402.dexter.cash (no PayAI auth).
+ * Used by x402 Labs `/insights/*` routes. Same payTo addresses as PayAI default.
+ * @see https://dexter.cash/facilitator
+ */
+export function getX402ResourceServerDexter() {
+  if (resourceServerDexterInstance) {
+    return resourceServerDexterInstance;
+  }
+  const clients = [new HTTPFacilitatorClient({ url: dexterFacilitatorUrl })];
+  const server = new x402ResourceServer(clients);
+  resourceServerDexterInstance = buildResourceServerBundle(server, {
+    multiNetwork: true,
+    networkProfile: "dexter",
+  });
+  return resourceServerDexterInstance;
+}
+
+/**
  * Ensure the resource server has been initialized (fetch supported kinds from facilitator).
  * Call once before first use (e.g. in first requirePayment).
  */
@@ -272,6 +307,11 @@ export {
   getCorbitsPayToAddresses,
 } from "../config/corbitsX402Networks.js";
 export {
+  DEXTER_X402_NETWORKS,
+  getEnabledDexterNetworks,
+  getDexterPayToAddresses,
+} from "../config/dexterX402Networks.js";
+export {
   PAYAI_X402_NETWORKS,
   getEnabledPayaiNetworks,
   getPayaiPayToAddresses,
@@ -286,4 +326,16 @@ export async function ensureX402CorbitsResourceServerInitialized() {
     });
   }
   await initPromiseCorbits;
+}
+
+/** Initialize Dexter-backed resource server (x402 Labs `/insights/*`). */
+export async function ensureX402DexterResourceServerInitialized() {
+  const { resourceServer } = getX402ResourceServerDexter();
+  if (!initPromiseDexter) {
+    initPromiseDexter = resourceServer.initialize().catch((e) => {
+      initPromiseDexter = null;
+      throw e;
+    });
+  }
+  await initPromiseDexter;
 }

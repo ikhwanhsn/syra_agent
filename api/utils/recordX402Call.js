@@ -52,6 +52,7 @@ export function resolveInboundFacilitator(req) {
   if (xp.useB402Facilitator) return 'b402';
   if (xp.useOkxFacilitator) return 'okx';
   if (xp.resourceServerProfile === 'corbits') return 'corbits';
+  if (xp.resourceServerProfile === 'dexter') return 'dexter';
   if (xp.resourceServerProfile === 'payai') return 'payai';
   return null;
 }

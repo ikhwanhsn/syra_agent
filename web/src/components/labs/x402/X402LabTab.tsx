@@ -54,8 +54,17 @@ export function X402LabTab() {
           </h2>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
             Manage lab wallets, fund them with SOL/USDC, and run paid calls against{" "}
-            <code className="text-xs">/insights/*</code> endpoints. Payments settle to the PayTo
-            wallet (buyback skipped) and are refunded to payers when enabled.
+            <code className="text-xs">/insights/*</code> endpoints. Settlements use the{" "}
+            <a
+              href="https://dexter.cash/facilitator"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-2 hover:text-foreground"
+            >
+              Dexter
+            </a>{" "}
+            facilitator; PayTo wallet receives funds (buyback skipped) and refunds payers when
+            enabled.
           </p>
         </div>
         <div className="flex shrink-0 gap-2">

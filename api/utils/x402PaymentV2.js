@@ -24,12 +24,18 @@ import {
   ensureX402ResourceServerInitialized,
   getX402ResourceServerCorbits,
   ensureX402CorbitsResourceServerInitialized,
+  getX402ResourceServerDexter,
+  ensureX402DexterResourceServerInitialized,
 } from "./x402ResourceServer.js";
-import { X402_API_PRICE_USD, getEffectivePriceUsd } from "../config/x402Pricing.js";
+import { X402_API_PRICE_USD, getEffectivePriceUsd, applyDexterPriceFloor } from "../config/x402Pricing.js";
 import {
   getCorbitsPayToAddresses,
   getEnabledCorbitsNetworks,
 } from "../config/corbitsX402Networks.js";
+import {
+  getDexterPayToAddresses,
+  getEnabledDexterNetworks,
+} from "../config/dexterX402Networks.js";
 import {
   getPayaiPayToAddresses,
   getEnabledPayaiNetworks,
@@ -124,7 +130,9 @@ function resolveInboundFacilitatorFromFlags(req, { useAlgorandFacilitator, useB4
   if (useAlgorandFacilitator) return "algorand";
   if (useB402Facilitator) return "b402";
   if (useOkxFacilitator) return "okx";
-  if (useCorbitsProfile(req)) return "corbits";
+  const profile = resolveResourceServerProfile(req);
+  if (profile === "corbits") return "corbits";
+  if (profile === "dexter") return "dexter";
   return "payai";
 }
 
@@ -691,14 +699,18 @@ function paymentAcceptedMatchesB402(acc) {
   );
 }
 
-/** @param {'payai'|'corbits'} profile */
+/** @param {'payai'|'corbits'|'dexter'} profile */
 function getPayToAddressesForProfile(profile) {
-  return profile === "corbits" ? getCorbitsPayToAddresses() : getPayaiPayToAddresses();
+  if (profile === "corbits") return getCorbitsPayToAddresses();
+  if (profile === "dexter") return getDexterPayToAddresses();
+  return getPayaiPayToAddresses();
 }
 
-/** @param {'payai'|'corbits'} profile */
+/** @param {'payai'|'corbits'|'dexter'} profile */
 function getEnabledNetworksForProfile(profile) {
-  return profile === "corbits" ? getEnabledCorbitsNetworks() : getEnabledPayaiNetworks();
+  if (profile === "corbits") return getEnabledCorbitsNetworks();
+  if (profile === "dexter") return getEnabledDexterNetworks();
+  return getEnabledPayaiNetworks();
 }
 
 /**
@@ -916,32 +928,60 @@ function getPayerOrConnectedWalletForPrice(req) {
 }
 
 /**
- * Default x402 verify/settle: PayAI (https://facilitator.payai.network).
- * Opt in to legacy Corbits: X402_USE_CORBITS_FACILITATOR=true or req.x402ResourceServerProfile = "corbits".
+ * Effective USD price for a request, including Dexter facilitator floor when applicable.
+ * @param {number} rawPrice
+ * @param {import('express').Request} req
+ * @param {object} [options]
  */
-function useCorbitsProfile(req) {
-  if (req?.x402ResourceServerProfile === "corbits") return true;
-  if (
-    req?.x402ResourceServerProfile === "payai" ||
-    req?.x402ResourceServerProfile === "default"
-  ) {
-    return false;
+function resolveEffectivePriceUsd(rawPrice, req, options) {
+  let priceUsd = getEffectivePriceUsd(rawPrice, getPayerOrConnectedWalletForPrice(req));
+  if (resolveResourceServerProfile(req, options) === "dexter") {
+    priceUsd = applyDexterPriceFloor(priceUsd);
   }
+  return priceUsd;
+}
+
+/**
+ * Default x402 verify/settle: PayAI (https://facilitator.payai.network).
+ * Opt in per-request via `options.resourceServerProfile` / `req.x402ResourceServerProfile`,
+ * or globally via X402_USE_CORBITS_FACILITATOR / X402_USE_DEXTER_FACILITATOR.
+ * @returns {'payai'|'corbits'|'dexter'}
+ */
+function resolveResourceServerProfile(req, options) {
+  const fromOptions =
+    options?.resourceServerProfile != null
+      ? String(options.resourceServerProfile).trim().toLowerCase()
+      : "";
+  const fromReq =
+    req?.x402ResourceServerProfile != null
+      ? String(req.x402ResourceServerProfile).trim().toLowerCase()
+      : "";
+  const explicit = fromOptions || fromReq;
+  if (explicit === "corbits" || explicit === "dexter" || explicit === "payai") return explicit;
+  if (explicit === "default") return "payai";
+
   const truthy = (v) => {
     const s = String(v || "").trim().toLowerCase();
     return s === "true" || s === "1";
   };
-  if (truthy(process.env.X402_USE_CORBITS_FACILITATOR)) return true;
-  return false;
+  if (truthy(process.env.X402_USE_CORBITS_FACILITATOR)) return "corbits";
+  if (truthy(process.env.X402_USE_DEXTER_FACILITATOR)) return "dexter";
+  return "payai";
 }
 
-function getX402BundleForReq(req) {
-  return useCorbitsProfile(req) ? getX402ResourceServerCorbits() : getX402ResourceServer();
+function getX402BundleForReq(req, options) {
+  const profile = resolveResourceServerProfile(req, options);
+  if (profile === "corbits") return getX402ResourceServerCorbits();
+  if (profile === "dexter") return getX402ResourceServerDexter();
+  return getX402ResourceServer();
 }
 
-async function ensureX402ForReq(req) {
-  if (useCorbitsProfile(req)) {
+async function ensureX402ForReq(req, options) {
+  const profile = resolveResourceServerProfile(req, options);
+  if (profile === "corbits") {
     await ensureX402CorbitsResourceServerInitialized();
+  } else if (profile === "dexter") {
+    await ensureX402DexterResourceServerInitialized();
   } else {
     await ensureX402ResourceServerInitialized();
   }
@@ -1107,7 +1147,7 @@ async function buildPaymentRequired(bundle, req, options, error) {
   const adapter = new ExpressAdapter(req);
   const { resourceServer, config, assets } = bundle;
   const rawPrice = await resolveRawPriceUsdForRequest(paymentOptions, req);
-  const priceUsd = getEffectivePriceUsd(rawPrice, getPayerOrConnectedWalletForPrice(req));
+  const priceUsd = resolveEffectivePriceUsd(rawPrice, req, paymentOptions);
   const microUnits = usdToMicroUsdc(priceUsd);
   // Bind x402 `resource.url` to the URL this HTTP request actually used (ExpressAdapter).
   // Previously we used `${BASE_URL}${options.resource}` when `resource` was set; that breaks
@@ -1291,9 +1331,12 @@ export function requirePayment(options) {
       }
 
       options = normalizePaymentOptions(req, options);
+      if (options.resourceServerProfile) {
+        req.x402ResourceServerProfile = options.resourceServerProfile;
+      }
 
-      await ensureX402ForReq(req);
-      const bundle = getX402BundleForReq(req);
+      await ensureX402ForReq(req, options);
+      const bundle = getX402BundleForReq(req, options);
       const { resourceServer, config, assets } = bundle;
       logB402StartupOnce();
       logAlgorandStartupOnce();
@@ -1306,7 +1349,7 @@ export function requirePayment(options) {
         json402(res, pr);
         try {
           const rawPrice = await resolveRawPriceUsdForRequest(options, req);
-          const priceUsd = getEffectivePriceUsd(rawPrice, getPayerOrConnectedWalletForPrice(req));
+          const priceUsd = resolveEffectivePriceUsd(rawPrice, req, options);
           recordInboundX402(req, {
             outcome: "payment_required",
             httpStatus: 402,
@@ -1340,7 +1383,7 @@ export function requirePayment(options) {
       }
 
       const rawPrice = await resolveRawPriceUsdForRequest(options, req);
-      const priceUsd = getEffectivePriceUsd(rawPrice, getPayerOrConnectedWalletForPrice(req));
+      const priceUsd = resolveEffectivePriceUsd(rawPrice, req, options);
       const expectedMicroUnits = usdToMicroUsdc(priceUsd);
       const acc = payload.accepted;
       const payToOverride = await resolvePayToForRequest(options, req);
@@ -1532,7 +1575,7 @@ export function requirePayment(options) {
         payload: payloadWithResource,
         accepted: acc,
         priceUsd,
-        resourceServerProfile: useCorbitsProfile(req) ? "corbits" : "payai",
+        resourceServerProfile: resolveResourceServerProfile(req, options),
         useB402Facilitator,
         useOkxFacilitator,
         useAlgorandFacilitator,
@@ -1635,7 +1678,11 @@ async function tryFacilitatorThenLocalSettle(payload, accepted, req) {
 
   const profile = req?.x402Payment?.resourceServerProfile;
   const { resourceServer } =
-    profile === "corbits" ? getX402ResourceServerCorbits() : getX402ResourceServer();
+    profile === "corbits"
+      ? getX402ResourceServerCorbits()
+      : profile === "dexter"
+        ? getX402ResourceServerDexter()
+        : getX402ResourceServer();
   let settlePayload = payload;
   const bazaarOpts = resolveBazaarSettleOptions(req);
   if (bazaarOpts?.bazaar) {

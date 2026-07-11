@@ -72,6 +72,9 @@ export const X402_PLAYGROUND_DEV_WALLET_BASE = '0xF9dcBFF7EdDd76c58412fd46f4160c
 /** All playground dev wallet addresses (Solana + Base). Payer matching any gets local-like price in production. */
 const PLAYGROUND_DEV_WALLETS = [X402_PLAYGROUND_DEV_WALLET, X402_PLAYGROUND_DEV_WALLET_BASE];
 
+/** Minimum charge when settling via Dexter facilitator (Solana floor ~427 atomic ≈ $0.000427). */
+export const X402_DEXTER_MIN_PAYMENT_USD = 0.0005;
+
 /**
  * Effective price for a given payer. In production, when payerAddress matches
  * a playground dev wallet (Solana or Base), returns price as if local (cheap). Otherwise returns priceUsd unchanged.
@@ -91,6 +94,17 @@ export function getEffectivePriceUsd(priceUsd, payerAddress) {
   if (!isDevWallet) return priceUsd;
   // Production price = base × 1; we want base × 0.01 (local). So effective = priceUsd × 0.01
   return priceUsd * (LOCAL_MULT / PRODUCTION_MULT);
+}
+
+/**
+ * Clamp price to Dexter facilitator minimum (dynamic floor on Solana/EVM).
+ * @param {number} priceUsd
+ * @returns {number}
+ */
+export function applyDexterPriceFloor(priceUsd) {
+  const n = Number(priceUsd);
+  if (!Number.isFinite(n) || n < 0) return X402_DEXTER_MIN_PAYMENT_USD;
+  return Math.max(n, X402_DEXTER_MIN_PAYMENT_USD);
 }
 
 /** Internal Syra route price (base × env mult). */

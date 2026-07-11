@@ -1,6 +1,7 @@
 /**
  * x402 paid /insights/* routes — professional on-chain data endpoints for x402 Labs.
  * Payments route to the lab payTo wallet when configured (buyback skipped via payToOverride).
+ * Verify/settle uses the Dexter facilitator (https://x402.dexter.cash); other Syra routes stay on PayAI.
  * Listed in GET /.well-known/x402 for x402scan discovery.
  */
 import express from 'express';
@@ -152,6 +153,8 @@ function labsPaymentMiddleware(priceUsd, resource, catalogSegment, outputSchema 
     inputSchema: { type: 'object', properties: {}, additionalProperties: false },
     outputSchema,
     getPayTo: labsPayToOverride,
+    /** Labs settle via Dexter facilitator; all other Syra x402 routes stay on PayAI. */
+    resourceServerProfile: 'dexter',
   });
 }
 
