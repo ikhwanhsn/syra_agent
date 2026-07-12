@@ -13,14 +13,37 @@ import {
   createTransferInstruction,
   TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
-import { getActivePayToKeypair } from './labWalletService.js';
-import { pickSolanaConnectionForReads } from '../solanaServerRpc.js';
+import { getActivePayToKeypair, getLabWalletBalances } from './labWalletService.js';
+import { pickSolanaConnectionForReads, isSolanaRpcRetryableError } from '../solanaServerRpc.js';
 import {
   getMaxLabX402PriceUsd,
+  getMinLabX402PriceUsd,
   getWeightedAvgLabX402PriceUsd,
 } from './labX402Endpoints.js';
 
 const USDC_MAINNET = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
+
+/** Distinguishable error so callers can skip (not hard-fail) when the PayTo wallet is underfunded. */
+export const PAYTO_INSUFFICIENT_FUNDS = 'PAYTO_INSUFFICIENT_FUNDS';
+
+/** Minimum SOL the PayTo wallet needs to cover fees + possible ATA rent for a refund transfer. */
+const PAYTO_MIN_SOL_FOR_REFUND = 0.003;
+
+const REFUND_MAX_ATTEMPTS = 3;
+const REFUND_RETRY_DELAY_MS = 800;
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Transient send errors worth retrying with a fresh blockhash / RPC. */
+function isRetryableRefundError(e) {
+  const msg = e?.message || String(e);
+  return (
+    isSolanaRpcRetryableError(e) ||
+    /blockhash|block height exceeded|not confirmed|expired|node is behind|transaction was not confirmed/i.test(
+      msg,
+    )
+  );
+}
 
 /** Refund only when payer USDC cannot cover the most expensive endpoint. */
 export function getLabX402RefundLowThresholdUsd() {
@@ -82,6 +105,9 @@ export function evaluateLowBalanceRefund(usdcBalance, maxPriceUsd, avgPriceUsd) 
 }
 
 /**
+ * Transfer USDC from the PayTo lab wallet to the payer.
+ * Preflights PayTo funding and retries transient send/confirm failures with a fresh
+ * blockhash + RPC so a temporary hiccup no longer surfaces as a permanent refund failure.
  * @param {string} payerAddress - Solana base58 payer address
  * @param {number} amountUsd - Human USDC amount to refund
  * @returns {Promise<{ signature: string; amountUsdc: number } | null>}
@@ -98,33 +124,137 @@ export async function refundUsdcToPayer(payerAddress, amountUsd) {
 
   const payerPk = new PublicKey(payer);
   const payToPk = payToKeypair.publicKey;
+  const payToAddr = payToPk.toBase58();
   const amountMicro = BigInt(Math.round(amount * 1e6));
 
-  const { connection } = await pickSolanaConnectionForReads(payToPk);
+  // Preflight: never attempt a transfer the PayTo wallet cannot cover — it would only ever fail.
+  const payToBalances = await getLabWalletBalances(payToAddr);
+  if (payToBalances) {
+    if (payToBalances.usdcBalance < amount) {
+      throw new Error(
+        `${PAYTO_INSUFFICIENT_FUNDS}: payTo USDC ${payToBalances.usdcBalance.toFixed(4)} < needed ${amount.toFixed(4)}`,
+      );
+    }
+    if (payToBalances.solBalance < PAYTO_MIN_SOL_FOR_REFUND) {
+      throw new Error(
+        `${PAYTO_INSUFFICIENT_FUNDS}: payTo SOL ${payToBalances.solBalance.toFixed(5)} < needed ${PAYTO_MIN_SOL_FOR_REFUND} for fees`,
+      );
+    }
+  }
 
   const sourceAta = await getAssociatedTokenAddress(USDC_MAINNET, payToPk);
   const destAta = await getAssociatedTokenAddress(USDC_MAINNET, payerPk);
 
-  const tx = new Transaction();
-  const destInfo = await connection.getAccountInfo(destAta);
-  if (!destInfo) {
-    tx.add(
-      createAssociatedTokenAccountInstruction(payToPk, destAta, payerPk, USDC_MAINNET),
-    );
+  let lastErr;
+  for (let attempt = 1; attempt <= REFUND_MAX_ATTEMPTS; attempt++) {
+    try {
+      // Fresh connection + blockhash each attempt so a stale/expired blockhash self-heals.
+      const { connection } = await pickSolanaConnectionForReads(payToPk);
+
+      const tx = new Transaction();
+      const destInfo = await connection.getAccountInfo(destAta);
+      if (!destInfo) {
+        tx.add(
+          createAssociatedTokenAccountInstruction(payToPk, destAta, payerPk, USDC_MAINNET),
+        );
+      }
+      tx.add(
+        createTransferInstruction(sourceAta, destAta, payToPk, amountMicro, [], TOKEN_PROGRAM_ID),
+      );
+
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+      tx.recentBlockhash = blockhash;
+      tx.lastValidBlockHeight = lastValidBlockHeight;
+      tx.feePayer = payToPk;
+
+      const signature = await sendAndConfirmTransaction(connection, tx, [payToKeypair], {
+        commitment: 'confirmed',
+        maxRetries: 3,
+      });
+
+      return { signature, amountUsdc: amount };
+    } catch (e) {
+      lastErr = e;
+      if (attempt < REFUND_MAX_ATTEMPTS && isRetryableRefundError(e)) {
+        console.warn(
+          `[labX402Refund] refund attempt ${attempt}/${REFUND_MAX_ATTEMPTS} failed, retrying:`,
+          e?.message || e,
+        );
+        await sleep(REFUND_RETRY_DELAY_MS * attempt);
+        continue;
+      }
+      throw e;
+    }
   }
-  tx.add(
-    createTransferInstruction(sourceAta, destAta, payToPk, amountMicro, [], TOKEN_PROGRAM_ID),
+
+  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
+}
+
+/**
+ * Proactively ensure a payer can afford the next call, topping it up from the PayTo wallet
+ * when its USDC is too low. This runs BEFORE a paid call so a wallet that drained to $0 can
+ * always recover and pay again (the post-payment refund alone cannot rescue a $0 wallet, since
+ * a $0 wallet can never make the payment that would trigger it).
+ *
+ * @param {string} payerAddress
+ * @param {{ refundEnabled?: boolean }} [opts]
+ * @returns {Promise<{ canPay: boolean; funded: boolean; balanceUsdc: number | null; reason: string; signature?: string | null; amountUsd?: number; error?: string }>}
+ */
+export async function ensurePayerFundedForNextCall(payerAddress, opts = {}) {
+  const minPriceUsd = getMinLabX402PriceUsd();
+  const balances = await getLabWalletBalances(payerAddress);
+
+  // Balance unknown (RPC unavailable) — stay optimistic and let the payment attempt decide.
+  if (!balances) {
+    return { canPay: true, funded: false, balanceUsdc: null, reason: 'balance_unavailable' };
+  }
+
+  // Manual funding mode: do not auto top-up, only report affordability.
+  if (opts.refundEnabled === false) {
+    return {
+      canPay: balances.usdcBalance >= minPriceUsd,
+      funded: false,
+      balanceUsdc: balances.usdcBalance,
+      reason: 'refund_disabled',
+    };
+  }
+
+  const decision = evaluateLowBalanceRefund(
+    balances.usdcBalance,
+    getMaxLabX402PriceUsd(),
+    getWeightedAvgLabX402PriceUsd(),
   );
 
-  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
-  tx.recentBlockhash = blockhash;
-  tx.lastValidBlockHeight = lastValidBlockHeight;
-  tx.feePayer = payToPk;
+  if (!decision.shouldRefund) {
+    return {
+      canPay: balances.usdcBalance >= minPriceUsd,
+      funded: false,
+      balanceUsdc: balances.usdcBalance,
+      reason: decision.reason,
+    };
+  }
 
-  const signature = await sendAndConfirmTransaction(connection, tx, [payToKeypair], {
-    commitment: 'confirmed',
-    maxRetries: 3,
-  });
-
-  return { signature, amountUsdc: amount };
+  try {
+    const refund = await refundUsdcToPayer(payerAddress, decision.refundAmountUsd);
+    return {
+      canPay: true,
+      funded: true,
+      balanceUsdc: balances.usdcBalance,
+      reason: 'topped_up',
+      signature: refund?.signature ?? null,
+      amountUsd: decision.refundAmountUsd,
+    };
+  } catch (e) {
+    const underfunded = String(e?.message || '').includes(PAYTO_INSUFFICIENT_FUNDS);
+    console.warn(
+      `[labX402Refund] proactive top-up failed for ${payerAddress} (${underfunded ? 'payTo underfunded' : e?.message || e})`,
+    );
+    return {
+      canPay: balances.usdcBalance >= minPriceUsd,
+      funded: false,
+      balanceUsdc: balances.usdcBalance,
+      reason: underfunded ? 'payto_underfunded' : 'topup_failed',
+      error: e?.message || String(e),
+    };
+  }
 }

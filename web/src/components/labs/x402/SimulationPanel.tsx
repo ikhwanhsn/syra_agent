@@ -285,13 +285,13 @@ export function SimulationPanel({ payerCount, wallets, settings, endpoints, draf
                               <td className="px-3 py-2 font-medium">{row.label}</td>
                               <td className="px-3 py-2 capitalize text-muted-foreground">{row.role}</td>
                               <td className="px-3 py-2 text-right font-mono tabular-nums">
-                                {row.currentUsdc.toFixed(2)}
+                                {row.currentUsdc != null ? row.currentUsdc.toFixed(2) : "—"}
                               </td>
                               <td className="px-3 py-2 text-right font-mono tabular-nums">
                                 {row.suggestedUsdc.toFixed(2)}
                               </td>
                               <td className="px-3 py-2 text-right font-mono tabular-nums">
-                                {row.currentSol.toFixed(4)}
+                                {row.currentSol != null ? row.currentSol.toFixed(4) : "—"}
                               </td>
                               <td className="px-3 py-2 text-right font-mono tabular-nums">
                                 {row.suggestedSol.toFixed(4)}

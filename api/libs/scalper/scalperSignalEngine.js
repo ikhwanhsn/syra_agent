@@ -1,5 +1,6 @@
 /**
- * Scalper signal intelligence — confluence, trend/RSI filters, volatility-aware levels.
+ * Scalper signal intelligence — confluence, trend/RSI filters, volatility-aware levels,
+ * regime gate, breakeven / profit-lock exits.
  */
 import { estimateRoundTripCostPct, SCALPER_DEFAULTS } from "../../config/scalperConfig.js";
 
@@ -67,6 +68,47 @@ export function computeTrendBias(closes, fast = 5, slow = 12) {
 }
 
 /**
+ * Market regime for entry gating — avoid chop and downtrends.
+ * @param {number[]} closes
+ * @param {number | null} atrPct
+ * @returns {{ regime: 'trend_up' | 'chop' | 'trend_down'; allowLong: boolean; reason: string | null }}
+ */
+export function assessMarketRegime(closes, atrPct = null) {
+  if (!Array.isArray(closes) || closes.length < 12) {
+    return { regime: "chop", allowLong: false, reason: "insufficient_bars" };
+  }
+
+  const trend = computeTrendBias(closes);
+  const rsi = computeRsi(closes);
+  const last = closes[closes.length - 1];
+  const lookback = closes.slice(-8);
+  const high = Math.max(...lookback);
+  const low = Math.min(...lookback);
+  const rangePct = last > 0 ? ((high - low) / last) * 100 : 0;
+  const vol = Number.isFinite(atrPct) ? atrPct : rangePct;
+
+  if (trend === "bearish" || (rsi != null && rsi < 38)) {
+    return { regime: "trend_down", allowLong: false, reason: "bearish_regime" };
+  }
+
+  // Whipsaw: wide range relative to net move
+  const netPct = last > 0 ? ((last - lookback[0]) / lookback[0]) * 100 : 0;
+  if (vol > SCALPER_DEFAULTS.momentumMaxVolatilityPct && Math.abs(netPct) < vol * 0.35) {
+    return { regime: "chop", allowLong: false, reason: "choppy_range" };
+  }
+
+  if (trend === "neutral" && (rsi == null || rsi < 48 || rsi > 62) && Math.abs(netPct) < 0.15) {
+    return { regime: "chop", allowLong: false, reason: "no_directional_edge" };
+  }
+
+  if (trend === "bullish" || (rsi != null && rsi >= 48 && rsi <= 68 && netPct > 0.1)) {
+    return { regime: "trend_up", allowLong: true, reason: null };
+  }
+
+  return { regime: "chop", allowLong: false, reason: "neutral_chop" };
+}
+
+/**
  * @param {object} params
  * @param {number} params.momentumPct
  * @param {number | null} params.rsi
@@ -75,66 +117,95 @@ export function computeTrendBias(closes, fast = 5, slow = 12) {
  * @returns {{ quality: number; reject: boolean; reason: string | null }}
  */
 export function scoreMomentumQuality({ momentumPct, rsi, trend, volatilityPct }) {
-  let quality = 0.5;
+  let quality = 0.45;
 
   if (momentumPct < SCALPER_DEFAULTS.momentumMinPct) {
     return { quality: 0, reject: true, reason: "momentum_too_weak" };
   }
 
-  // Reject chasing extended moves — classic scalper mistake
-  if (momentumPct > 1.2 && rsi != null && rsi > 68) {
+  // Reject chasing extended / exhausted moves
+  if (momentumPct > 0.95 && rsi != null && rsi > 65) {
     return { quality: 0, reject: true, reason: "overbought_chase" };
   }
-  if (momentumPct > 1.8) {
+  if (momentumPct > 1.4) {
     return { quality: 0, reject: true, reason: "extended_move" };
   }
 
+  // Prefer fresh impulse in healthy RSI band
   if (rsi != null) {
-    if (rsi > 72) quality -= 0.25;
-    else if (rsi > 65) quality -= 0.1;
-    else if (rsi >= 45 && rsi <= 60) quality += 0.15;
-    else if (rsi < 35) quality += 0.1;
+    if (rsi > 70) return { quality: 0, reject: true, reason: "rsi_overbought" };
+    if (rsi > 64) quality -= 0.18;
+    else if (rsi >= 48 && rsi <= 62) quality += 0.22;
+    else if (rsi >= 42 && rsi < 48) quality += 0.08;
+    else if (rsi < 35) quality -= 0.12;
   }
 
-  if (trend === "bullish") quality += 0.2;
-  else if (trend === "bearish") quality -= 0.3;
+  if (trend === "bullish") quality += 0.24;
+  else if (trend === "bearish") {
+    return { quality: 0, reject: true, reason: "bearish_trend" };
+  } else {
+    quality -= 0.08;
+  }
 
   if (volatilityPct > SCALPER_DEFAULTS.momentumMaxVolatilityPct) {
-    quality -= 0.15;
-  } else if (volatilityPct < 0.4) {
-    quality += 0.05;
+    return { quality: 0, reject: true, reason: "volatility_too_high" };
   }
+  if (volatilityPct < 0.25) quality -= 0.1;
+  else if (volatilityPct >= 0.35 && volatilityPct <= 1.0) quality += 0.1;
+
+  // Momentum sweet spot: strong enough but not exhausted
+  if (momentumPct >= 0.35 && momentumPct <= 0.9) quality += 0.12;
+  else if (momentumPct > 0.9) quality -= 0.05;
 
   quality = Math.max(0, Math.min(1, quality));
-  return { quality, reject: quality < 0.25, reason: quality < 0.25 ? "low_momentum_quality" : null };
+  return { quality, reject: quality < 0.42, reason: quality < 0.42 ? "low_momentum_quality" : null };
 }
 
 /**
+ * Volatility-aware TP/SL with enforced minimum R:R after fill cost.
  * @param {object} cfg - effective scalper config
  * @param {number} volatilityPct - ATR or realized vol %
  * @param {number} confluenceCount
  * @returns {{ takeProfitPct: number; stopLossPct: number; maxHoldMinutes: number }}
  */
 export function computeDynamicTradeLevels(cfg, volatilityPct, confluenceCount = 1) {
-  const vol = Number.isFinite(volatilityPct) && volatilityPct > 0 ? volatilityPct : 0.8;
+  const vol = Number.isFinite(volatilityPct) && volatilityPct > 0 ? volatilityPct : 0.7;
   const roundTrip = estimateRoundTripCostPct(cfg.quoteSlippageBps ?? SCALPER_DEFAULTS.quoteSlippageBps);
+  const edgeBuf = cfg.minEdgeBufferPct ?? SCALPER_DEFAULTS.minEdgeBufferPct;
 
-  let takeProfitPct = Math.max(cfg.takeProfitPct, vol * 1.4, roundTrip + (cfg.minEdgeBufferPct ?? 0.25));
-  let stopLossPct = Math.min(cfg.stopLossPct, vol * 0.75);
-  stopLossPct = Math.max(0.45, stopLossPct);
+  // TP must clear fill cost + buffer; scale modestly with vol
+  let takeProfitPct = Math.max(
+    cfg.takeProfitPct,
+    roundTrip + edgeBuf,
+    vol * 1.15 + roundTrip * 0.5,
+  );
 
-  // Confluence trades get slightly wider TP, tighter SL
+  // SL sits inside noise but not so tight we get wicked out every tick
+  let stopLossPct = Math.max(0.42, Math.min(cfg.stopLossPct, vol * 0.7 + 0.15));
+
+  // Confluence: slightly wider TP, tighter SL (better R:R)
   if (confluenceCount >= 2) {
-    takeProfitPct *= 1.08;
-    stopLossPct *= 0.92;
+    takeProfitPct *= 1.06;
+    stopLossPct *= 0.9;
+  }
+  if (confluenceCount >= 3) {
+    takeProfitPct *= 1.04;
   }
 
-  takeProfitPct = Math.min(3.2, takeProfitPct);
-  stopLossPct = Math.min(takeProfitPct * 0.55, stopLossPct);
+  // Enforce min ~2.4:1 reward:risk after costs
+  const minRr = 2.4;
+  if (takeProfitPct / stopLossPct < minRr) {
+    takeProfitPct = stopLossPct * minRr;
+  }
+
+  takeProfitPct = Math.min(2.6, takeProfitPct);
+  stopLossPct = Math.min(takeProfitPct / minRr, stopLossPct);
+  stopLossPct = Math.max(0.4, Math.min(0.75, stopLossPct));
 
   let maxHoldMinutes = cfg.maxHoldMinutes;
-  if (vol > 1.5) maxHoldMinutes = Math.max(25, maxHoldMinutes - 10);
-  if (confluenceCount >= 2) maxHoldMinutes = Math.min(60, maxHoldMinutes + 5);
+  if (vol > 1.2) maxHoldMinutes = Math.max(18, maxHoldMinutes - 8);
+  if (confluenceCount >= 2) maxHoldMinutes = Math.min(40, maxHoldMinutes + 4);
+  else maxHoldMinutes = Math.min(maxHoldMinutes, 24);
 
   return {
     takeProfitPct: Math.round(takeProfitPct * 100) / 100,
@@ -160,11 +231,14 @@ export function priceLevelsFromPct(fillPriceUsd, takeProfitPct, stopLossPct, sli
 
 /** @typedef {import('./scalperOpportunityScanner.js').ScalperOpportunity} ScalperOpportunity */
 
-const CONFLUENCE_BOOST_PER_SOURCE = 0.12;
-const MOMENTUM_SOLO_MIN_SCORE = 0.62;
+const CONFLUENCE_BOOST_PER_SOURCE = 0.14;
+const MOMENTUM_SOLO_MIN_SCORE = SCALPER_DEFAULTS.minSoloMomentumScore;
+const STOCKS_SOLO_MIN_SCORE = SCALPER_DEFAULTS.minSoloStocksScore;
+const GENERIC_SOLO_MIN_SCORE = SCALPER_DEFAULTS.minSoloScore;
 
 /**
  * Merge duplicate symbol opportunities; boost score when multiple independent sources agree.
+ * Drop weak solo setups that historically bleed PnL.
  * @param {ScalperOpportunity[]} opportunities
  * @returns {ScalperOpportunity[]}
  */
@@ -189,15 +263,17 @@ export function mergeOpportunitiesWithConfluence(opportunities) {
     const best = group.reduce((a, b) => (a.score >= b.score ? a : b));
     const avgScore = group.reduce((s, o) => s + o.score, 0) / group.length;
 
-    let score = avgScore * 0.4 + best.score * 0.6;
+    let score = avgScore * 0.35 + best.score * 0.65;
     if (confluenceCount >= 2) {
       score += CONFLUENCE_BOOST_PER_SOURCE * (confluenceCount - 1);
-      score = Math.min(0.97, score);
+      score = Math.min(0.98, score);
     }
 
-    // Solo momentum needs higher bar — weakest edge source
-    if (confluenceCount === 1 && best.source === "momentum" && score < MOMENTUM_SOLO_MIN_SCORE) {
-      continue;
+    // Solo sources need a higher bar — weakest historical edge
+    if (confluenceCount === 1) {
+      if (best.source === "momentum" && score < MOMENTUM_SOLO_MIN_SCORE) continue;
+      if (best.source === "stocks" && score < STOCKS_SOLO_MIN_SCORE) continue;
+      if (score < GENERIC_SOLO_MIN_SCORE) continue;
     }
 
     const sourceLabels = sources.map((s) => s.toUpperCase()).join(" + ");
@@ -219,11 +295,17 @@ export function mergeOpportunitiesWithConfluence(opportunities) {
     });
   }
 
-  return merged.sort((a, b) => b.score - a.score);
+  // Prefer confluence first, then score
+  return merged.sort((a, b) => {
+    const ca = Number(a.meta?.confluenceCount ?? 1);
+    const cb = Number(b.meta?.confluenceCount ?? 1);
+    if (cb !== ca) return cb - ca;
+    return b.score - a.score;
+  });
 }
 
 /**
- * Trailing stop: lock profit once trade moves favorably.
+ * Trailing stop + breakeven lock once trade moves favorably.
  * @param {object} params
  * @param {number} params.entryPriceUsd
  * @param {number} params.currentPriceUsd
@@ -231,37 +313,103 @@ export function mergeOpportunitiesWithConfluence(opportunities) {
  * @param {number} params.stopLossPriceUsd
  * @param {number} [params.trailActivatePct]
  * @param {number} [params.trailDistancePct]
+ * @param {number} [params.breakevenActivatePct]
  */
 export function computeTrailingStop({
   entryPriceUsd,
   currentPriceUsd,
   peakPriceUsd,
   stopLossPriceUsd,
-  trailActivatePct = 0.7,
-  trailDistancePct = 0.35,
+  trailActivatePct = SCALPER_DEFAULTS.trailActivatePct,
+  trailDistancePct = SCALPER_DEFAULTS.trailDistancePct,
+  breakevenActivatePct = SCALPER_DEFAULTS.breakevenActivatePct,
 }) {
   const peak = Math.max(peakPriceUsd ?? entryPriceUsd, currentPriceUsd, entryPriceUsd);
-  const gainPct = entryPriceUsd > 0 ? ((peak / entryPriceUsd - 1) * 100) : 0;
+  const gainPct = entryPriceUsd > 0 ? (peak / entryPriceUsd - 1) * 100 : 0;
 
-  if (gainPct < trailActivatePct) {
-    return { peakPriceUsd: peak, trailingStopPriceUsd: null, effectiveStopUsd: stopLossPriceUsd };
+  let effectiveStopUsd = stopLossPriceUsd;
+  let trailingStopPriceUsd = null;
+
+  // Lock breakeven (tiny buffer for exit slippage) once in the money
+  if (gainPct >= breakevenActivatePct) {
+    const breakeven = entryPriceUsd * 1.0015;
+    effectiveStopUsd = Math.max(effectiveStopUsd, breakeven);
   }
 
-  const trailStop = peak * (1 - trailDistancePct / 100);
-  const effectiveStopUsd = Math.max(stopLossPriceUsd, trailStop);
-  return { peakPriceUsd: peak, trailingStopPriceUsd: trailStop, effectiveStopUsd };
+  if (gainPct >= trailActivatePct) {
+    trailingStopPriceUsd = peak * (1 - trailDistancePct / 100);
+    effectiveStopUsd = Math.max(effectiveStopUsd, trailingStopPriceUsd);
+  }
+
+  return { peakPriceUsd: peak, trailingStopPriceUsd, effectiveStopUsd };
 }
 
 /**
- * Detect momentum reversal for early exit on open winners.
+ * Detect momentum reversal / stalled winner for early exit (all sources).
  * @param {number} entryPriceUsd
  * @param {number} currentPriceUsd
  * @param {number | null} peakPriceUsd
+ * @param {object} [opts]
  */
-export function shouldEarlyExitMomentumFade(entryPriceUsd, currentPriceUsd, peakPriceUsd) {
+export function shouldEarlyExitMomentumFade(
+  entryPriceUsd,
+  currentPriceUsd,
+  peakPriceUsd,
+  opts = {},
+) {
   if (!(entryPriceUsd > 0) || !(currentPriceUsd > 0)) return false;
   const peak = peakPriceUsd ?? currentPriceUsd;
   const peakGainPct = (peak / entryPriceUsd - 1) * 100;
   const drawdownFromPeakPct = peak > 0 ? ((peak - currentPriceUsd) / peak) * 100 : 0;
-  return peakGainPct >= 0.55 && drawdownFromPeakPct >= 0.35;
+  const lockGain = opts.profitLockGainPct ?? SCALPER_DEFAULTS.profitLockGainPct;
+  const lockGiveback = opts.profitLockGivebackPct ?? SCALPER_DEFAULTS.profitLockGivebackPct;
+
+  // Soft profit lock: once we had a solid push, don't give it all back
+  if (peakGainPct >= lockGain && drawdownFromPeakPct >= lockGiveback) return true;
+
+  // Earlier fade for smaller winners that stall
+  return peakGainPct >= 0.48 && drawdownFromPeakPct >= 0.28;
+}
+
+/**
+ * Cut rotting losers before max-hold turns into a larger loss.
+ * @param {number} entryPriceUsd
+ * @param {number} currentPriceUsd
+ * @param {Date | string | null} maxHoldUntil
+ * @param {Date | string | null} openedAt
+ */
+export function shouldCutStaleLoser(entryPriceUsd, currentPriceUsd, maxHoldUntil, openedAt) {
+  if (!(entryPriceUsd > 0) || !(currentPriceUsd > 0)) return false;
+  const pnlPct = (currentPriceUsd / entryPriceUsd - 1) * 100;
+  if (pnlPct >= -0.15) return false;
+
+  const now = Date.now();
+  const holdMs =
+    openedAt != null ? now - new Date(openedAt).getTime() : 0;
+  const untilMs = maxHoldUntil != null ? new Date(maxHoldUntil).getTime() : 0;
+  const remainingMs = untilMs > 0 ? untilMs - now : Infinity;
+
+  // If underwater past 55% of max hold with no recovery, cut
+  if (holdMs > 0 && remainingMs < Infinity) {
+    const totalWindow = holdMs + remainingMs;
+    if (totalWindow > 0 && holdMs / totalWindow >= 0.55 && pnlPct < -0.2) return true;
+  }
+
+  // Deep early drawdown — don't wait for hard SL if already bleeding
+  return pnlPct <= -0.45 && holdMs >= 6 * 60_000;
+}
+
+/**
+ * Whether a scored opportunity clears solo vs confluence bars.
+ * @param {number} score
+ * @param {string} source
+ * @param {number} confluenceCount
+ * @param {number} minOpportunityScore
+ */
+export function passesSelectivityGate(score, source, confluenceCount, minOpportunityScore) {
+  if (!(score >= minOpportunityScore)) return false;
+  if (confluenceCount >= 2) return true;
+  if (source === "momentum") return score >= SCALPER_DEFAULTS.minSoloMomentumScore;
+  if (source === "stocks") return score >= SCALPER_DEFAULTS.minSoloStocksScore;
+  return score >= SCALPER_DEFAULTS.minSoloScore;
 }

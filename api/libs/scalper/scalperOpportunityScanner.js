@@ -1,5 +1,6 @@
 /**
  * Hybrid opportunity scanner — harvests signals from BTC experiments, stocks, and own momentum.
+ * Profitability bias: higher score floors, regime gate, prefer confluence-ready setups.
  */
 import TradingExperimentRun from "../../models/TradingExperimentRun.js";
 import BtcQuantExperimentState from "../../models/BtcQuantExperimentState.js";
@@ -19,6 +20,7 @@ import {
   recordEquityPriceSample,
 } from "./pythPriceFeed.js";
 import {
+  assessMarketRegime,
   computeAtrPct,
   computeRsi,
   computeTrendBias,
@@ -51,16 +53,18 @@ import { fetchNasdaqPrice } from "../equityPriceFetchers.js";
 function strategyWeight(winRate, sampleSize) {
   const wr = Number.isFinite(winRate) ? winRate : 0.5;
   const n = Number.isFinite(sampleSize) ? sampleSize : 0;
-  const sampleBoost = Math.min(1, n / 10);
-  return 0.5 + wr * 0.35 + sampleBoost * 0.15;
+  const sampleBoost = Math.min(1, n / 12);
+  return 0.45 + wr * 0.4 + sampleBoost * 0.15;
 }
 
 /**
  * @returns {Promise<ScalperOpportunity[]>}
  */
-async function scanBtcQuantRuns(btcBars) {
+async function scanBtcQuantRuns(btcBars, regime) {
   /** @type {ScalperOpportunity[]} */
   const out = [];
+  if (!regime?.allowLong) return out;
+
   const since = new Date(Date.now() - SCALPER_DEFAULTS.experimentSignalMaxAgeMs);
   const closes = (btcBars ?? []).map((b) => b[4]).filter((c) => c > 0);
   const trend = computeTrendBias(closes);
@@ -108,12 +112,17 @@ async function scanBtcQuantRuns(btcBars) {
       const wins = settled[0]?.wins ?? 0;
       const total = settled[0]?.total ?? 0;
       const winRate = total > 0 ? wins / total : 0.5;
-      if (winRate < 0.4 && total >= 5) continue;
+      // Only follow agents that already show edge
+      if (total >= 4 && winRate < 0.48) continue;
+      if (total >= 8 && winRate < 0.52) continue;
 
       const weight = strategyWeight(winRate, total);
       const confidence = Number(run.confidence ?? 0.5);
-      const baseScore = 0.52 + weight * 0.28 + Math.min(0.12, confidence * 0.12);
-      if (baseScore < 0.58) continue;
+      if (confidence < 0.45 && total < 6) continue;
+
+      let baseScore = 0.55 + weight * 0.28 + Math.min(0.14, confidence * 0.14);
+      if (trend === "bullish") baseScore += 0.04;
+      if (baseScore < 0.64) continue;
 
       out.push({
         source: /** @type {ScalperOpportunitySource} */ (lane),
@@ -123,12 +132,16 @@ async function scanBtcQuantRuns(btcBars) {
         side: "long",
         score: Math.min(0.95, baseScore),
         rationale: `${lane.toUpperCase()} agent #${run.agentId} (${run.agentName}) open BUY · winRate ${Math.round(winRate * 100)}%`,
-        expiresAt: new Date(Date.now() + 10 * 60_000).toISOString(),
+        expiresAt: new Date(Date.now() + 8 * 60_000).toISOString(),
         meta: {
           agentId: run.agentId,
           agentName: run.agentName,
           confidence: run.confidence,
           entry: run.entry,
+          winRate,
+          sampleSize: total,
+          trend,
+          regime: regime.regime,
         },
       });
     }
@@ -140,7 +153,9 @@ async function scanBtcQuantRuns(btcBars) {
 /**
  * @returns {Promise<ScalperOpportunity[]>}
  */
-async function scanBtc3MacroBias(btcBars) {
+async function scanBtc3MacroBias(btcBars, regime) {
+  if (!regime?.allowLong) return [];
+
   const latest = await decisionRepo.findLatest(1);
   const decision = latest?.[0];
   if (!decision?.targetAllocation) return [];
@@ -148,15 +163,20 @@ async function scanBtc3MacroBias(btcBars) {
   const currentBtc = Number(decision.currentAllocation?.btcPct ?? 50);
   const targetBtc = Number(decision.targetAllocation.btcPct ?? 50);
   const delta = targetBtc - currentBtc;
-  if (delta < 3) return [];
+  // Need a clearer rebalance impulse
+  if (delta < 5) return [];
 
   const closes = (btcBars ?? []).map((b) => b[4]).filter((c) => c > 0);
   const trend = computeTrendBias(closes);
-  if (trend === "bearish" && delta < 8) return [];
+  if (trend === "bearish") return [];
+  if (trend === "neutral" && delta < 8) return [];
 
   const confidence = Number(decision.confidence ?? 0.5);
-  const score = Math.min(0.92, 0.5 + Math.abs(delta) / 80 + confidence * 0.22);
-  if (score < 0.58) return [];
+  if (confidence < 0.4) return [];
+
+  let score = Math.min(0.93, 0.52 + Math.abs(delta) / 70 + confidence * 0.24);
+  if (trend === "bullish") score += 0.03;
+  if (score < 0.66) return [];
 
   return [
     {
@@ -167,19 +187,21 @@ async function scanBtc3MacroBias(btcBars) {
       side: "long",
       score,
       rationale: `BTC3 macro rebalance bias: target BTC ${targetBtc.toFixed(1)}% (Δ${delta > 0 ? "+" : ""}${delta.toFixed(1)}%) · ${decision.headline?.slice(0, 80) || "macro decision"}`,
-      expiresAt: new Date(Date.now() + 20 * 60_000).toISOString(),
+      expiresAt: new Date(Date.now() + 15 * 60_000).toISOString(),
       meta: {
         currentBtcPct: currentBtc,
         targetBtcPct: targetBtc,
         confidence,
         headline: decision.headline,
+        trend,
+        regime: regime.regime,
       },
     },
   ];
 }
 
 /**
- * @param {Array<{ symbol: string; mint: string; nasdaqTicker?: string | null; priceUsd?: number }>} universe
+ * @param {Array<{ symbol: string; mint: string; nasdaqTicker?: string | null; priceUsd?: number; assetClass?: string }>} universe
  * @returns {Promise<ScalperOpportunity[]>}
  */
 async function scanStocksSignals(universe) {
@@ -203,14 +225,19 @@ async function scanStocksSignals(universe) {
       nasdaqPriceUsd,
     });
     if (!signal || signal.direction !== "long") continue;
-    if (signal.compositeScore < 0.1) continue;
+    // News alone is noisy for short holds — demand stronger composite
+    if (signal.compositeScore < 0.22) continue;
+    if ((signal.newsCount ?? 0) < 1) continue;
 
-    let score = Math.min(0.9, 0.42 + Math.max(0, signal.compositeScore) * 0.55);
+    let score = Math.min(0.88, 0.4 + Math.max(0, signal.compositeScore) * 0.5);
     if (nasdaqPriceUsd && entry.priceUsd > 0) {
       const discountPct = ((nasdaqPriceUsd - entry.priceUsd) / nasdaqPriceUsd) * 100;
-      if (discountPct > 0.5) score += Math.min(0.08, discountPct / 20);
+      // Prefer onchain discount vs NASDAQ (structural edge)
+      if (discountPct > 0.6) score += Math.min(0.1, discountPct / 18);
+      else if (discountPct < -0.8) score -= 0.08;
     }
-    if (score < 0.55) continue;
+    if (score < 0.66) continue;
+
     out.push({
       source: "stocks",
       symbol: entry.symbol,
@@ -219,11 +246,12 @@ async function scanStocksSignals(universe) {
       side: "long",
       score,
       rationale: `Stocks news long · composite ${signal.compositeScore.toFixed(2)} · ${signal.topHeadline?.slice(0, 80) || "news signal"}`,
-      expiresAt: new Date(Date.now() + 12 * 60_000).toISOString(),
+      expiresAt: new Date(Date.now() + 10 * 60_000).toISOString(),
       meta: {
         compositeScore: signal.compositeScore,
         sentimentScore: signal.sentimentScore,
         newsCount: signal.newsCount,
+        nasdaqPriceUsd,
       },
     });
   }
@@ -235,11 +263,12 @@ async function scanStocksSignals(universe) {
  * @param {Array<{ symbol: string; mint: string; assetClass: 'crypto' | 'equity'; priceUsd?: number }>} universe
  * @returns {Promise<ScalperOpportunity[]>}
  */
-async function scanMomentum(universe, btcBars) {
+async function scanMomentum(universe, btcBars, regime) {
   /** @type {ScalperOpportunity[]} */
   const out = [];
+  if (!regime?.allowLong) return out;
 
-  const bars = btcBars ?? (await fetchPythBtcOhlcvBars("5", 20));
+  const bars = btcBars ?? (await fetchPythBtcOhlcvBars("5", 24));
   const btcMom = computeBtcBarMomentum(bars);
   const btcCloses = bars.map((b) => b[4]).filter((c) => c > 0);
   const btcRsi = computeRsi(btcCloses);
@@ -255,19 +284,32 @@ async function scanMomentum(universe, btcBars) {
       trend: btcTrend,
       volatilityPct,
     });
-    if (!quality.reject) {
-      const score = Math.min(0.82, 0.38 + Math.abs(momentumPct) / 2.5 + quality.quality * 0.25);
-      out.push({
-        source: "momentum",
-        symbol: "cbBTC",
-        mint: btcEntry.mint,
-        assetClass: "crypto",
-        side: "long",
-        score,
-        rationale: `5m momentum +${momentumPct.toFixed(2)}% · RSI ${btcRsi?.toFixed(0) ?? "—"} · ${btcTrend} · vol ${volatilityPct.toFixed(2)}%`,
-        expiresAt: new Date(Date.now() + 6 * 60_000).toISOString(),
-        meta: { momentumPct, volatilityPct, rsi: btcRsi, trend: btcTrend, atrPct: btcAtr, quality: quality.quality },
-      });
+    if (!quality.reject && quality.quality >= 0.5) {
+      const score = Math.min(
+        0.86,
+        0.42 + Math.abs(momentumPct) / 2.8 + quality.quality * 0.32,
+      );
+      if (score >= 0.62) {
+        out.push({
+          source: "momentum",
+          symbol: "cbBTC",
+          mint: btcEntry.mint,
+          assetClass: "crypto",
+          side: "long",
+          score,
+          rationale: `5m momentum +${momentumPct.toFixed(2)}% · RSI ${btcRsi?.toFixed(0) ?? "—"} · ${btcTrend} · vol ${volatilityPct.toFixed(2)}%`,
+          expiresAt: new Date(Date.now() + 5 * 60_000).toISOString(),
+          meta: {
+            momentumPct,
+            volatilityPct,
+            rsi: btcRsi,
+            trend: btcTrend,
+            atrPct: btcAtr,
+            quality: quality.quality,
+            regime: regime.regime,
+          },
+        });
+      }
     }
   }
 
@@ -280,13 +322,13 @@ async function scanMomentum(universe, btcBars) {
     const quality = scoreMomentumQuality({
       momentumPct,
       rsi: null,
-      trend: momentumPct > 0.35 ? "bullish" : "neutral",
+      trend: momentumPct > 0.4 ? "bullish" : "neutral",
       volatilityPct,
     });
-    if (quality.reject) continue;
+    if (quality.reject || quality.quality < 0.5) continue;
 
-    const score = Math.min(0.78, 0.34 + momentumPct / 2.8 + quality.quality * 0.22);
-    if (score < 0.55) continue;
+    const score = Math.min(0.8, 0.38 + momentumPct / 2.6 + quality.quality * 0.28);
+    if (score < 0.64) continue;
     out.push({
       source: "momentum",
       symbol: entry.symbol,
@@ -295,8 +337,13 @@ async function scanMomentum(universe, btcBars) {
       side: "long",
       score,
       rationale: `5m equity momentum +${momentumPct.toFixed(2)}% · vol ${volatilityPct.toFixed(2)}%`,
-      expiresAt: new Date(Date.now() + 6 * 60_000).toISOString(),
-      meta: { momentumPct, volatilityPct, samples: mom.samples, quality: quality.quality },
+      expiresAt: new Date(Date.now() + 5 * 60_000).toISOString(),
+      meta: {
+        momentumPct,
+        volatilityPct,
+        samples: mom.samples,
+        quality: quality.quality,
+      },
     });
   }
 
@@ -304,7 +351,7 @@ async function scanMomentum(universe, btcBars) {
 }
 
 /**
- * @returns {Promise<{ opportunities: ScalperOpportunity[]; priceMap: Record<string, number>; scannedAt: string }>}
+ * @returns {Promise<{ opportunities: ScalperOpportunity[]; priceMap: Record<string, number>; scannedAt: string; regime: object }>}
  */
 export async function scanScalperOpportunities() {
   const universe = resolveScalperUniverse();
@@ -329,13 +376,17 @@ export async function scanScalperOpportunities() {
     priceUsd: priceMap[u.symbol] ?? null,
   }));
 
-  const btcBars = await fetchPythBtcOhlcvBars("5", 20);
+  const btcBars = await fetchPythBtcOhlcvBars("5", 24);
+  const btcCloses = btcBars.map((b) => b[4]).filter((c) => c > 0);
+  const btcAtr = computeAtrPct(btcBars);
+  const regime = assessMarketRegime(btcCloses, btcAtr);
 
   const [btcQuant, btc3, stocks, momentum] = await Promise.all([
-    scanBtcQuantRuns(btcBars),
-    scanBtc3MacroBias(btcBars),
+    scanBtcQuantRuns(btcBars, regime),
+    scanBtc3MacroBias(btcBars, regime),
+    // Equity news can still fire in BTC chop — but momentum/btc gated by regime
     scanStocksSignals(enrichedUniverse),
-    scanMomentum(enrichedUniverse, btcBars),
+    scanMomentum(enrichedUniverse, btcBars, regime),
   ]);
 
   const all = [...btcQuant, ...btc3, ...stocks, ...momentum];
@@ -345,5 +396,6 @@ export async function scanScalperOpportunities() {
     opportunities,
     priceMap,
     scannedAt: new Date().toISOString(),
+    regime,
   };
 }

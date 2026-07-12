@@ -4,6 +4,7 @@
 import { listActivePayerWallets } from './labWalletService.js';
 import { runLabX402Payment, getLabX402Settings } from './labX402Payer.js';
 import { checkLabDailyCallBudget } from './labX402CallLog.js';
+import { ensurePayerFundedForNextCall } from './labX402Refund.js';
 import { startupVerbose } from '../../utils/startupLog.js';
 
 /** @type {ReturnType<typeof setTimeout> | null} */
@@ -38,6 +39,17 @@ async function tick() {
       const remaining = await checkLabDailyCallBudget();
       if (!remaining.allowed) break;
       try {
+        // Top up the payer first so a drained wallet can always pay again.
+        const funding = await ensurePayerFundedForNextCall(payer.address, {
+          refundEnabled: settings.refundEnabled,
+        });
+        // Skip a call the payer genuinely cannot afford — avoids a guaranteed payment_failed log.
+        if (!funding.canPay) {
+          console.warn(
+            `[lab-x402-scheduler] skipping ${payer.address}: insufficient USDC (${funding.reason})`,
+          );
+          continue;
+        }
         await runLabX402Payment(payer.address, { trigger: 'scheduler' });
       } catch (e) {
         console.warn('[lab-x402-scheduler] payer call failed:', payer.address, e?.message || e);

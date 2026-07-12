@@ -21,8 +21,8 @@ function shortenAddress(addr: string): string {
   return `${addr.slice(0, 4)}…${addr.slice(-4)}`;
 }
 
-function formatBalance(n: number, decimals = 4): string {
-  if (!Number.isFinite(n)) return "—";
+function formatBalance(n: number | null | undefined, decimals = 4): string {
+  if (n == null || !Number.isFinite(n)) return "—";
   return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: decimals });
 }
 
@@ -103,10 +103,16 @@ export function WalletList({
                   ) : null}
                 </button>
               </TableCell>
-              <TableCell className="text-right font-mono text-sm">
+              <TableCell
+                className="text-right font-mono text-sm"
+                title={w.solBalance == null ? "Balance unavailable — RPC read failed" : undefined}
+              >
                 {formatBalance(w.solBalance)}
               </TableCell>
-              <TableCell className="text-right font-mono text-sm">
+              <TableCell
+                className="text-right font-mono text-sm"
+                title={w.usdcBalance == null ? "Balance unavailable — RPC read failed" : undefined}
+              >
                 {formatBalance(w.usdcBalance, 2)}
               </TableCell>
               <TableCell className="text-right">

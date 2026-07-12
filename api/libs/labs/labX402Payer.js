@@ -209,7 +209,7 @@ export async function updateLabX402Settings(patch) {
  * @returns {Promise<object[]>}
  */
 export async function listLabX402Calls(opts = {}) {
-  const limit = Math.min(Math.max(Number(opts.limit) || 50, 1), 200);
+  const limit = Math.min(Math.max(Number(opts.limit) || 10, 1), 200);
   const docs = await LabX402Call.find().sort({ createdAt: -1 }).limit(limit).lean();
   return docs.map((d) => ({
     id: d._id.toString(),

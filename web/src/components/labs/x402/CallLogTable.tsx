@@ -36,14 +36,18 @@ interface CallLogTableProps {
   isLoading: boolean;
 }
 
+/** Only the latest calls are shown; older entries are intentionally hidden. */
+const MAX_VISIBLE_CALLS = 10;
+
 export function CallLogTable({ calls, isLoading }: CallLogTableProps) {
   const showSkeleton = useMinimumSkeleton(isLoading);
+  const visibleCalls = calls.slice(0, MAX_VISIBLE_CALLS);
 
   if (showSkeleton) {
     return <CallLogTableSkeleton />;
   }
 
-  if (calls.length === 0) {
+  if (visibleCalls.length === 0) {
     return (
       <div className={cn(overviewCardShell, "p-8 text-center text-sm text-muted-foreground")}>
         No x402 calls yet. Run a payment manually or enable auto-calls.
@@ -65,7 +69,7 @@ export function CallLogTable({ calls, isLoading }: CallLogTableProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {calls.map((c) => (
+          {visibleCalls.map((c) => (
             <TableRow key={c.id}>
               <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                 {new Date(c.createdAt).toLocaleString()}

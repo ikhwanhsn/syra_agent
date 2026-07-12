@@ -73,16 +73,16 @@ function computeWinRateStats(runs) {
 }
 
 /**
- * Derive score multiplier from source win rate (0.5–1.25).
+ * Derive score multiplier from source win rate (0.4–1.35).
  * @param {number} winRate
  * @param {number} sampleSize
  */
 function deriveScoreMultiplier(winRate, sampleSize) {
   if (sampleSize < 2) return 1;
-  if (winRate >= 0.62) return clamp(1.05 + (winRate - 0.5) * 0.6, 1.05, 1.3);
-  if (winRate >= 0.55) return clamp(1 + (winRate - 0.5) * 0.4, 1, 1.15);
-  if (winRate < 0.38) return clamp(0.45 + winRate, 0.45, 0.75);
-  if (winRate < 0.45) return clamp(0.75 + (winRate - 0.38) * 2, 0.75, 0.9);
+  if (winRate >= 0.65) return clamp(1.1 + (winRate - 0.5) * 0.7, 1.1, 1.35);
+  if (winRate >= 0.55) return clamp(1.02 + (winRate - 0.5) * 0.5, 1.02, 1.2);
+  if (winRate < 0.35) return clamp(0.35 + winRate, 0.4, 0.65);
+  if (winRate < 0.45) return clamp(0.65 + (winRate - 0.35) * 2, 0.65, 0.85);
   return 1;
 }
 
@@ -223,22 +223,40 @@ export async function computeConvictionNotionalSlice({
   const scoreRange = Math.max(0.01, 1 - minScore);
   const scoreFactor = clamp((score - minScore) / scoreRange, 0, 1);
   const sourceFactor = clamp(0.7 + sourceWinRate * 0.6, 0.5, 1.3);
-  const confluenceFactor = confluenceCount >= 2 ? 1.15 : confluenceCount >= 3 ? 1.25 : 1;
+  const confluenceFactor = confluenceCount >= 3 ? 1.3 : confluenceCount >= 2 ? 1.18 : 0.92;
   const slice = minNotionalSlicePct + (notionalSlicePct - minNotionalSlicePct) * scoreFactor;
-  return clamp(slice * sourceFactor * confluenceFactor, minNotionalSlicePct, notionalSlicePct * 1.1);
+  return clamp(slice * sourceFactor * confluenceFactor, minNotionalSlicePct, notionalSlicePct * 1.15);
 }
 
 /**
  * Whether expected TP edge clears estimated round-trip cost + buffer.
+ * Slippage bps is a quote ceiling; expected fill cost is typically ~half of that.
+ * Confluence / higher scores raise assumed TP capture rate.
  * @param {object} cfg
  * @param {number} score
+ * @param {number} [confluenceCount]
  */
-export function passesCostAwareEdgeGate(cfg, score) {
-  const roundTripCost = estimateRoundTripCostPct(cfg.quoteSlippageBps ?? SCALPER_DEFAULTS.quoteSlippageBps);
+export function passesCostAwareEdgeGate(cfg, score, confluenceCount = 1) {
+  const maxRoundTrip = estimateRoundTripCostPct(cfg.quoteSlippageBps ?? SCALPER_DEFAULTS.quoteSlippageBps);
+  // Expected fill drag (not worst-case slip ceiling)
+  const expectedFillCost = maxRoundTrip * 0.55;
   const minEdge = toNum(cfg.minEdgeBufferPct, SCALPER_DEFAULTS.minEdgeBufferPct);
-  const scoreFactor = clamp((score - 0.5) / 0.45, 0.6, 1);
-  const expectedEdge = toNum(cfg.takeProfitPct) * scoreFactor;
-  return expectedEdge >= roundTripCost + minEdge;
+  const tp = toNum(cfg.takeProfitPct, SCALPER_DEFAULTS.takeProfitPct);
+  const sl = toNum(cfg.stopLossPct, SCALPER_DEFAULTS.stopLossPct);
+
+  if (tp < expectedFillCost + minEdge * 0.4) return false;
+
+  const scoreNorm = clamp((score - 0.55) / 0.4, 0, 1);
+  const captureRate = clamp(
+    0.5 + scoreNorm * 0.38 + (confluenceCount >= 2 ? 0.1 : 0) + (confluenceCount >= 3 ? 0.05 : 0),
+    0.5,
+    0.95,
+  );
+
+  const expectedNet = captureRate * tp - (1 - captureRate) * sl;
+  const required =
+    expectedFillCost + minEdge * (confluenceCount >= 2 ? 0.55 : confluenceCount >= 3 ? 0.45 : 0.85);
+  return expectedNet >= required;
 }
 
 /**
@@ -304,15 +322,15 @@ export async function runScalperLearning() {
       : 0;
 
   const confluenceRuns = decided.filter((r) => toNum(r.confluenceCount) >= 2);
-  if (confluenceRuns.length >= 4) {
+  if (confluenceRuns.length >= 3) {
     const confStats = computeWinRateStats(confluenceRuns);
-    if (confStats.winRate >= 0.58) {
+    if (confStats.winRate >= 0.55) {
       lessons.push(
         `Confluence entries working (${(confStats.winRate * 100).toFixed(0)}% WR) — favoring multi-source setups.`,
       );
       thresholdOverrides.minOpportunityScore = Math.max(
-        baseCfg.minOpportunityScore - 0.03,
-        0.52,
+        baseCfg.minOpportunityScore - 0.02,
+        0.62,
       );
     }
   }
@@ -320,106 +338,130 @@ export async function runScalperLearning() {
   const momentumOnly = decided.filter(
     (r) => r.source === "momentum" && toNum(r.confluenceCount) < 2,
   );
-  if (momentumOnly.length >= 5) {
+  if (momentumOnly.length >= 4) {
     const momStats = computeWinRateStats(momentumOnly);
-    if (momStats.winRate < 0.4) {
+    if (momStats.winRate < 0.45 || momStats.avgPnlPct < 0) {
       lessons.push(
         `Solo momentum scalps underperforming (${(momStats.winRate * 100).toFixed(0)}% WR) — requiring higher scores.`,
       );
       thresholdOverrides.minOpportunityScore = Math.max(
         thresholdOverrides.minOpportunityScore ?? baseCfg.minOpportunityScore,
-        0.62,
+        0.72,
       );
     }
   }
 
-  if (overall.winRate < 0.42 || overall.avgPnlPct < 0) {
+  const stocksOnly = decided.filter(
+    (r) => r.source === "stocks" && toNum(r.confluenceCount) < 2,
+  );
+  if (stocksOnly.length >= 4) {
+    const stockStats = computeWinRateStats(stocksOnly);
+    if (stockStats.winRate < 0.42 || stockStats.avgPnlPct < 0) {
+      lessons.push(
+        `Solo stocks news scalps underperforming (${(stockStats.winRate * 100).toFixed(0)}% WR) — cooling news-only entries.`,
+      );
+      sourceCooldowns.push({
+        source: "stocks",
+        reason: `solo_stocks_weak:wr_${(stockStats.winRate * 100).toFixed(0)}`,
+        until: new Date(Date.now() + 8 * 60 * 60_000),
+      });
+    }
+  }
+
+  if (overall.winRate < 0.45 || overall.avgPnlPct < 0) {
     lessons.push(
       `Recent scalps underperformed (win rate ${(overall.winRate * 100).toFixed(0)}%, avg PnL ${overall.avgPnlPct.toFixed(2)}%) — raising entry bar.`,
     );
     thresholdOverrides.minOpportunityScore = Math.min(
-      baseCfg.minOpportunityScore + 0.08,
-      0.75,
+      Math.max(baseCfg.minOpportunityScore + 0.06, 0.7),
+      0.82,
     );
     thresholdOverrides.minEdgeBufferPct = Math.min(
-      (baseCfg.minEdgeBufferPct ?? 0.25) + 0.1,
-      0.6,
+      (baseCfg.minEdgeBufferPct ?? 0.45) + 0.12,
+      0.7,
     );
-  } else if (overall.winRate >= 0.58 && overall.avgPnlPct > 0.35) {
+    thresholdOverrides.notionalSlicePct = Math.max(baseCfg.notionalSlicePct * 0.75, 0.1);
+  } else if (overall.winRate >= 0.6 && overall.avgPnlPct > 0.4) {
     lessons.push(
-      `Scalper is profitable (win rate ${(overall.winRate * 100).toFixed(0)}%, avg PnL ${overall.avgPnlPct.toFixed(2)}%) — slightly increasing size on strong signals.`,
+      `Scalper is profitable (win rate ${(overall.winRate * 100).toFixed(0)}%, avg PnL ${overall.avgPnlPct.toFixed(2)}%) — increasing size on strong confluence.`,
     );
-    thresholdOverrides.notionalSlicePct = Math.min(
-      baseCfg.notionalSlicePct * 1.1,
-      0.35,
-    );
-  } else if (overall.winRate >= 0.55 && overall.avgPnlPct > 0.3) {
+    thresholdOverrides.notionalSlicePct = Math.min(baseCfg.notionalSlicePct * 1.15, 0.28);
+  } else if (overall.winRate >= 0.55 && overall.avgPnlPct > 0.25) {
     lessons.push(
       `Scalper is profitable (win rate ${(overall.winRate * 100).toFixed(0)}%, avg PnL ${overall.avgPnlPct.toFixed(2)}%) — current policy is working.`,
     );
   }
 
-  if (expiredRecent.length >= 5 && expiredLossRate >= 0.6) {
+  if (expiredRecent.length >= 4 && expiredLossRate >= 0.5) {
     lessons.push(
-      `${expiredRecent.length} max-hold exits were mostly losers — extending hold window slightly.`,
+      `${expiredRecent.length} max-hold exits were mostly losers — shortening hold and cutting stale losers earlier.`,
     );
-    thresholdOverrides.maxHoldMinutes = Math.min(baseCfg.maxHoldMinutes + 10, 75);
+    thresholdOverrides.maxHoldMinutes = Math.max(baseCfg.maxHoldMinutes - 6, 18);
   }
 
   const lowScoreLosses = decided.filter(
-    (r) => toNum(r.opportunityScore) < 0.55 && r.status === "loss",
+    (r) => toNum(r.opportunityScore) < 0.65 && r.status === "loss",
   );
-  if (lowScoreLosses.length >= 4) {
+  if (lowScoreLosses.length >= 3) {
     lessons.push(
-      `${lowScoreLosses.length} losses came from sub-0.55 score entries — tightening min score.`,
+      `${lowScoreLosses.length} losses came from sub-0.65 score entries — tightening min score.`,
     );
     thresholdOverrides.minOpportunityScore = Math.max(
       thresholdOverrides.minOpportunityScore ?? baseCfg.minOpportunityScore,
-      0.58,
+      0.7,
     );
   }
 
   const highImpactLosses = decided.filter(
-    (r) => r.status === "loss" && toNum(r.entryImpactBps) > 60,
+    (r) => r.status === "loss" && toNum(r.entryImpactBps) > 45,
   );
-  if (highImpactLosses.length >= 3) {
+  if (highImpactLosses.length >= 2) {
     lessons.push(
-      `${highImpactLosses.length} losses had high entry impact (>60 bps) — reducing position size.`,
+      `${highImpactLosses.length} losses had high entry impact (>45 bps) — reducing position size.`,
     );
     thresholdOverrides.notionalSlicePct = Math.max(
-      baseCfg.notionalSlicePct * 0.8,
-      0.12,
+      baseCfg.notionalSlicePct * 0.7,
+      0.1,
     );
   }
 
-  if (overall.winRate < 0.38) {
-    thresholdOverrides.takeProfitPct = Math.min(baseCfg.takeProfitPct + 0.2, 2.2);
-    thresholdOverrides.stopLossPct = Math.max(baseCfg.stopLossPct - 0.1, 0.5);
-    lessons.push("Win rate very low — widening TP and tightening SL for better R:R.");
+  if (overall.winRate < 0.4) {
+    thresholdOverrides.takeProfitPct = Math.min(baseCfg.takeProfitPct + 0.15, 2.1);
+    thresholdOverrides.stopLossPct = Math.max(baseCfg.stopLossPct - 0.05, 0.42);
+    lessons.push("Win rate very low — adjusting TP/SL for cleaner R:R and faster cuts.");
   }
 
   for (const [source, stats] of Object.entries(sourceStats)) {
-    if (stats.decided >= 4 && stats.winRate < 0.3) {
+    if (stats.decided >= 3 && stats.winRate < 0.35) {
       lessons.push(
-        `Source "${source}" win rate ${(stats.winRate * 100).toFixed(0)}% — on 12h cooldown.`,
+        `Source "${source}" win rate ${(stats.winRate * 100).toFixed(0)}% — on 18h cooldown.`,
       );
       sourceCooldowns.push({
         source,
         reason: `repeated_losses:wr_${(stats.winRate * 100).toFixed(0)}`,
-        until: new Date(Date.now() + 12 * 60 * 60_000),
+        until: new Date(Date.now() + 18 * 60 * 60_000),
+      });
+    } else if (stats.decided >= 5 && stats.avgPnlPct < -0.15) {
+      lessons.push(
+        `Source "${source}" avg PnL ${stats.avgPnlPct.toFixed(2)}% — on 10h cooldown.`,
+      );
+      sourceCooldowns.push({
+        source,
+        reason: `negative_expectancy:${stats.avgPnlPct.toFixed(2)}`,
+        until: new Date(Date.now() + 10 * 60 * 60_000),
       });
     }
   }
 
   for (const [symbol, stats] of Object.entries(symbolStats)) {
-    if (stats.decided >= 3 && stats.losses >= 3 && stats.winRate < 0.25) {
+    if (stats.decided >= 3 && stats.losses >= 2 && stats.winRate < 0.35) {
       lessons.push(
-        `Symbol ${symbol} win rate ${(stats.winRate * 100).toFixed(0)}% — on 6h cooldown.`,
+        `Symbol ${symbol} win rate ${(stats.winRate * 100).toFixed(0)}% — on 8h cooldown.`,
       );
       symbolCooldowns.push({
         symbol,
         reason: `repeated_symbol_losses:${stats.losses}`,
-        until: new Date(Date.now() + 6 * 60 * 60_000),
+        until: new Date(Date.now() + 8 * 60 * 60_000),
       });
     }
   }

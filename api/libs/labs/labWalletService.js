@@ -9,7 +9,7 @@ import {
   decryptAgentSecretFromStorage,
 } from '../agentWalletSecretCrypto.js';
 import { getMaxPayerWallets } from './labX402CallLog.js';
-import { pickSolanaConnectionForReads } from '../solanaServerRpc.js';
+import { withSolanaRpcFallback } from '../solanaServerRpc.js';
 
 const USDC_MAINNET = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 
@@ -55,29 +55,43 @@ export async function getActivePayToKeypair() {
 }
 
 /**
+ * Read SOL + USDC balances for a lab wallet.
+ * Returns `null` when the balance is *unavailable* (all RPCs failed) so callers can
+ * distinguish "unknown" from a genuine zero balance — a false $0 would otherwise make a
+ * funded wallet look broke and trigger unnecessary refunds.
  * @param {string} address
  * @returns {Promise<{ solBalance: number; usdcBalance: number } | null>}
  */
 export async function getLabWalletBalances(address) {
   const addr = String(address || '').trim();
   if (!addr) return null;
+  let pubkey;
   try {
-    const pubkey = new PublicKey(addr);
-    const { connection, lamports } = await pickSolanaConnectionForReads(pubkey);
-    const tokenResp = await connection.getParsedTokenAccountsByOwner(pubkey, { mint: USDC_MAINNET });
-    const accounts = tokenResp?.value ?? [];
-    const usdcBalance = accounts.reduce((sum, acc) => {
-      const tokenAmount = acc?.account?.data?.parsed?.info?.tokenAmount;
-      const ui = tokenAmount?.uiAmount;
-      const raw = tokenAmount?.amount;
-      if (Number.isFinite(ui)) return sum + ui;
-      if (raw != null) return sum + Number(raw) / 1e6;
-      return sum;
-    }, 0);
-    return { solBalance: lamports / LAMPORTS_PER_SOL, usdcBalance };
+    pubkey = new PublicKey(addr);
+  } catch {
+    return null;
+  }
+
+  try {
+    return await withSolanaRpcFallback(async (connection) => {
+      const [lamports, tokenResp] = await Promise.all([
+        connection.getBalance(pubkey, 'confirmed'),
+        connection.getParsedTokenAccountsByOwner(pubkey, { mint: USDC_MAINNET }),
+      ]);
+      const accounts = tokenResp?.value ?? [];
+      const usdcBalance = accounts.reduce((sum, acc) => {
+        const tokenAmount = acc?.account?.data?.parsed?.info?.tokenAmount;
+        const ui = tokenAmount?.uiAmount;
+        const raw = tokenAmount?.amount;
+        if (Number.isFinite(ui)) return sum + ui;
+        if (raw != null) return sum + Number(raw) / 1e6;
+        return sum;
+      }, 0);
+      return { solBalance: lamports / LAMPORTS_PER_SOL, usdcBalance };
+    }, `lab wallet balance ${addr.slice(0, 4)}…${addr.slice(-4)}`);
   } catch (e) {
-    console.warn('[labWalletService] balance read failed:', e?.message || e);
-    return { solBalance: 0, usdcBalance: 0 };
+    console.warn('[labWalletService] balance read failed on all RPCs:', e?.message || e);
+    return null;
   }
 }
 
@@ -135,6 +149,7 @@ export async function listLabWallets() {
   const withBalances = await Promise.all(
     docs.map(async (d) => {
       const balances = await getLabWalletBalances(d.address);
+      const balanceAvailable = balances !== null;
       return {
         id: d._id.toString(),
         label: d.label,
@@ -142,8 +157,10 @@ export async function listLabWallets() {
         role: d.role,
         chain: d.chain,
         active: d.active,
-        solBalance: balances?.solBalance ?? 0,
-        usdcBalance: balances?.usdcBalance ?? 0,
+        // null (not 0) when RPC reads failed so the UI shows "—" instead of a false $0.
+        solBalance: balanceAvailable ? balances.solBalance : null,
+        usdcBalance: balanceAvailable ? balances.usdcBalance : null,
+        balanceAvailable,
         createdAt: d.createdAt,
         updatedAt: d.updatedAt,
       };

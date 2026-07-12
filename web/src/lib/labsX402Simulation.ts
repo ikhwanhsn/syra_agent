@@ -32,8 +32,9 @@ export interface PerWalletBalanceRow {
   label: string;
   role: "payer" | "payto";
   address: string;
-  currentUsdc: number;
-  currentSol: number;
+  /** null when the on-chain balance is currently unavailable (RPC read failed). */
+  currentUsdc: number | null;
+  currentSol: number | null;
   suggestedUsdc: number;
   suggestedSol: number;
   usdcShortfall: number;
@@ -151,8 +152,8 @@ export function buildPerWalletBalanceRows(
     label: string;
     role: "payer" | "payto";
     address: string;
-    usdcBalance: number;
-    solBalance: number;
+    usdcBalance: number | null;
+    solBalance: number | null;
   }>,
   suggestions: WalletBalanceSuggestion[],
 ): PerWalletBalanceRow[] {
@@ -165,17 +166,20 @@ export function buildPerWalletBalanceRows(
     const sug = byRole[w.role];
     const suggestedUsdc = sug?.suggestedUsdc ?? 0;
     const suggestedSol = sug?.suggestedSol ?? SOL_RENT_BUFFER;
+    const usdcKnown = typeof w.usdcBalance === "number" && Number.isFinite(w.usdcBalance);
+    const solKnown = typeof w.solBalance === "number" && Number.isFinite(w.solBalance);
     return {
       id: w.id,
       label: w.label,
       role: w.role,
       address: w.address,
-      currentUsdc: w.usdcBalance,
-      currentSol: w.solBalance,
+      currentUsdc: usdcKnown ? (w.usdcBalance as number) : null,
+      currentSol: solKnown ? (w.solBalance as number) : null,
       suggestedUsdc,
       suggestedSol,
-      usdcShortfall: Math.max(0, suggestedUsdc - w.usdcBalance),
-      solShortfall: Math.max(0, suggestedSol - w.solBalance),
+      // Shortfall only meaningful when the balance is known; unknown -> 0 (no false "deposit needed").
+      usdcShortfall: usdcKnown ? Math.max(0, suggestedUsdc - (w.usdcBalance as number)) : 0,
+      solShortfall: solKnown ? Math.max(0, suggestedSol - (w.solBalance as number)) : 0,
     };
   });
 }

@@ -7,8 +7,10 @@ export interface LabWallet {
   role: "payer" | "payto";
   chain: "solana";
   active: boolean;
-  solBalance: number;
-  usdcBalance: number;
+  /** null when the on-chain balance could not be read (RPC unavailable) — not a real zero. */
+  solBalance: number | null;
+  usdcBalance: number | null;
+  balanceAvailable?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -45,11 +47,14 @@ export interface LabX402Call {
 
 export interface LabX402RunResult {
   success: boolean;
-  endpoint: string;
-  priceUsd: number;
+  endpoint: string | null;
+  priceUsd?: number;
   httpStatus?: number;
   data?: unknown;
   paymentTx?: string | null;
+  /** true when the call was skipped because the payer could not be funded. */
+  skipped?: boolean;
+  reason?: string;
   error?: string;
 }
 
@@ -130,7 +135,7 @@ export async function runLabX402(
 
 export async function fetchLabX402Calls(
   adminWallet: string,
-  limit = 50,
+  limit = 10,
 ): Promise<LabX402Call[]> {
   const res = await fetchLabsJson<{ success: boolean; data: LabX402Call[] }>(
     `/labs/x402/calls?limit=${limit}`,

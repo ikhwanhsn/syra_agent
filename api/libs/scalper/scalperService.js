@@ -32,7 +32,9 @@ import {
 import {
   computeDynamicTradeLevels,
   computeTrailingStop,
+  passesSelectivityGate,
   priceLevelsFromPct,
+  shouldCutStaleLoser,
   shouldEarlyExitMomentumFade,
 } from "./scalperSignalEngine.js";
 
@@ -56,17 +58,26 @@ function normalizeLimit(limit) {
 function mergedSimConfig(stateDoc) {
   const cfg = scalperConfigFromEnv();
   const s = stateDoc?.simConfig || {};
+  // Prefer live env defaults over stale DB simConfig so profitability upgrades apply.
+  // Explicit learning overrides still win via getEffectiveScalperConfig.
   return {
     startingBankUsd: toNum(s.startingBankUsd, cfg.startingBankUsd),
-    maxConcurrentPositions: toNum(s.maxConcurrentPositions, cfg.maxConcurrentPositions),
-    notionalSlicePct: toNum(s.notionalSlicePct, cfg.notionalSlicePct),
-    minNotionalSlicePct: toNum(s.minNotionalSlicePct, cfg.minNotionalSlicePct),
-    takeProfitPct: toNum(s.takeProfitPct, cfg.takeProfitPct),
-    stopLossPct: toNum(s.stopLossPct, cfg.stopLossPct),
-    maxHoldMinutes: toNum(s.maxHoldMinutes, cfg.maxHoldMinutes),
-    minOpportunityScore: toNum(s.minOpportunityScore, cfg.minOpportunityScore),
-    minEdgeBufferPct: toNum(s.minEdgeBufferPct, cfg.minEdgeBufferPct),
-    quoteSlippageBps: toNum(s.quoteSlippageBps, cfg.quoteSlippageBps),
+    maxConcurrentPositions: cfg.maxConcurrentPositions,
+    notionalSlicePct: cfg.notionalSlicePct,
+    minNotionalSlicePct: cfg.minNotionalSlicePct,
+    takeProfitPct: cfg.takeProfitPct,
+    stopLossPct: cfg.stopLossPct,
+    maxHoldMinutes: cfg.maxHoldMinutes,
+    minOpportunityScore: cfg.minOpportunityScore,
+    minEdgeBufferPct: cfg.minEdgeBufferPct,
+    quoteSlippageBps: cfg.quoteSlippageBps,
+    trailActivatePct: cfg.trailActivatePct,
+    trailDistancePct: cfg.trailDistancePct,
+    breakevenActivatePct: cfg.breakevenActivatePct,
+    profitLockGainPct: cfg.profitLockGainPct,
+    profitLockGivebackPct: cfg.profitLockGivebackPct,
+    maxEntryImpactBps: cfg.maxEntryImpactBps,
+    minSoloScore: cfg.minSoloScore,
   };
 }
 
@@ -353,7 +364,7 @@ export async function runScalperSignalCycle() {
 
   /** @type {Array<{ symbol: string; reason: string }>} */
   const skipped = [];
-  /** @type {Array<{ symbol: string; source: string; notionalUsd: number }>} */
+  /** @type {Array<{ symbol: string; source: string; notionalUsd: number; confluenceCount: number }>} */
   const opened = [];
   const errors = [];
 
@@ -376,15 +387,22 @@ export async function runScalperSignalCycle() {
 
     const adjustedScore = await applySourceScoreMultiplier(opp.source, opp.score);
     const confluenceCount = Number(opp.meta?.confluenceCount ?? 1);
-    const confluenceBoost = confluenceCount >= 2 ? 0.04 : 0;
+    const confluenceBoost = confluenceCount >= 2 ? 0.05 : confluenceCount >= 3 ? 0.08 : 0;
     const effectiveScore = Math.min(0.99, adjustedScore + confluenceBoost);
 
-    if (effectiveScore < cfg.minOpportunityScore) {
-      skipped.push({ symbol: opp.symbol, reason: "score_below_min" });
+    if (
+      !passesSelectivityGate(
+        effectiveScore,
+        opp.source,
+        confluenceCount,
+        cfg.minOpportunityScore,
+      )
+    ) {
+      skipped.push({ symbol: opp.symbol, reason: "selectivity_gate" });
       continue;
     }
 
-    if (!passesCostAwareEdgeGate(cfg, effectiveScore)) {
+    if (!passesCostAwareEdgeGate(cfg, effectiveScore, confluenceCount)) {
       skipped.push({ symbol: opp.symbol, reason: "insufficient_edge_vs_cost" });
       continue;
     }
@@ -403,6 +421,12 @@ export async function runScalperSignalCycle() {
     const midPrice = scan.priceMap[opp.symbol];
     if (!(midPrice > 0)) {
       skipped.push({ symbol: opp.symbol, reason: "no_price" });
+      continue;
+    }
+
+    // Prefer confluence: if we already opened a solo trade this cycle, skip more solos
+    if (confluenceCount < 2 && opened.some((o) => o.confluenceCount < 2)) {
+      skipped.push({ symbol: opp.symbol, reason: "prefer_confluence_slot" });
       continue;
     }
 
@@ -436,7 +460,13 @@ export async function runScalperSignalCycle() {
         midPriceUsd: midPrice,
       });
 
-      const volPct = Number(opp.meta?.atrPct ?? opp.meta?.volatilityPct ?? 0.8);
+      const maxImpact = cfg.maxEntryImpactBps ?? SCALPER_DEFAULTS.maxEntryImpactBps;
+      if (fill.impactBps != null && fill.impactBps > maxImpact) {
+        skipped.push({ symbol: opp.symbol, reason: "entry_impact_too_high" });
+        continue;
+      }
+
+      const volPct = Number(opp.meta?.atrPct ?? opp.meta?.volatilityPct ?? 0.7);
       const dynamic = computeDynamicTradeLevels(cfg, volPct, confluenceCount);
       const levels = priceLevelsFromPct(
         fill.fillPriceUsd,
@@ -455,7 +485,10 @@ export async function runScalperSignalCycle() {
         opportunityScore: effectiveScore,
         confluenceCount,
         rationale: opp.rationale,
-        opportunitySnapshot: opp.meta ?? null,
+        opportunitySnapshot: {
+          ...(opp.meta ?? {}),
+          regime: scan.regime ?? null,
+        },
         notionalUsd,
         entryPriceUsd: fill.fillPriceUsd,
         entryTokenAmountRaw: fill.outAmountRaw,
@@ -472,7 +505,12 @@ export async function runScalperSignalCycle() {
         openedAt: new Date(),
       });
 
-      opened.push({ symbol: opp.symbol, source: opp.source, notionalUsd });
+      opened.push({
+        symbol: opp.symbol,
+        source: opp.source,
+        notionalUsd,
+        confluenceCount,
+      });
       openSymbols.add(opp.symbol);
       remainingCash = roundUsd(remainingCash - notionalUsd);
     } catch (e) {
@@ -492,8 +530,19 @@ export async function runScalperSignalCycle() {
     {
       $set: {
         lastSignalAt: new Date(),
+        simConfig: {
+          ...SCALPER_DEFAULTS,
+          maxConcurrentPositions: cfg.maxConcurrentPositions,
+          minOpportunityScore: cfg.minOpportunityScore,
+          takeProfitPct: cfg.takeProfitPct,
+          stopLossPct: cfg.stopLossPct,
+          maxHoldMinutes: cfg.maxHoldMinutes,
+          notionalSlicePct: cfg.notionalSlicePct,
+          minEdgeBufferPct: cfg.minEdgeBufferPct,
+        },
         lastOpportunityScan: {
           scannedAt: scan.scannedAt,
+          regime: scan.regime ?? null,
           opportunities: feedItems,
           openedCount: opened.length,
           skippedCount: skipped.length,
@@ -550,6 +599,8 @@ export async function resolveOpenScalperRuns() {
       stopLossPriceUsd: run.stopLossPriceUsd,
       trailActivatePct: cfg.trailActivatePct ?? SCALPER_DEFAULTS.trailActivatePct,
       trailDistancePct: cfg.trailDistancePct ?? SCALPER_DEFAULTS.trailDistancePct,
+      breakevenActivatePct:
+        cfg.breakevenActivatePct ?? SCALPER_DEFAULTS.breakevenActivatePct,
     });
 
     const effectiveStop = trail.effectiveStopUsd ?? run.stopLossPriceUsd;
@@ -575,24 +626,51 @@ export async function resolveOpenScalperRuns() {
 
     let status = "open";
     let resolution = null;
+    const wasProtected =
+      trail.trailingStopPriceUsd != null ||
+      effectiveStop > run.stopLossPriceUsd;
 
     if (currentPrice >= run.takeProfitPriceUsd) {
       status = "win";
       resolution = "take_profit";
     } else if (currentPrice <= effectiveStop) {
-      status = trail.trailingStopPriceUsd != null && currentPrice > run.stopLossPriceUsd ? "win" : "loss";
-      resolution = trail.trailingStopPriceUsd != null && currentPrice > run.stopLossPriceUsd
-        ? "trailing_stop"
-        : "stop_loss";
+      status = wasProtected && currentPrice >= run.entryPriceUsd * 0.998 ? "win" : "loss";
+      resolution =
+        trail.trailingStopPriceUsd != null && currentPrice > run.stopLossPriceUsd
+          ? "trailing_stop"
+          : wasProtected && currentPrice >= run.entryPriceUsd * 0.998
+            ? "breakeven_stop"
+            : "stop_loss";
     } else if (
-      run.source === "momentum" &&
-      shouldEarlyExitMomentumFade(run.entryPriceUsd, currentPrice, trail.peakPriceUsd)
+      shouldEarlyExitMomentumFade(run.entryPriceUsd, currentPrice, trail.peakPriceUsd, {
+        profitLockGainPct: cfg.profitLockGainPct ?? SCALPER_DEFAULTS.profitLockGainPct,
+        profitLockGivebackPct:
+          cfg.profitLockGivebackPct ?? SCALPER_DEFAULTS.profitLockGivebackPct,
+      })
     ) {
       status = currentPrice > run.entryPriceUsd ? "win" : "expired";
-      resolution = "momentum_fade";
+      resolution = "profit_lock";
+    } else if (
+      shouldCutStaleLoser(
+        run.entryPriceUsd,
+        currentPrice,
+        run.maxHoldUntil,
+        run.openedAt,
+      )
+    ) {
+      status = "loss";
+      resolution = "stale_cut";
     } else if (run.maxHoldUntil && new Date(run.maxHoldUntil).getTime() <= Date.now()) {
-      status = "expired";
-      resolution = "max_hold";
+      // Near TP at expiry — count as soft win if still green after costs buffer
+      const pnlPct =
+        run.entryPriceUsd > 0 ? (currentPrice / run.entryPriceUsd - 1) * 100 : 0;
+      if (pnlPct >= 0.35) {
+        status = "win";
+        resolution = "time_exit_green";
+      } else {
+        status = "expired";
+        resolution = "max_hold";
+      }
     }
 
     if (status === "open") continue;

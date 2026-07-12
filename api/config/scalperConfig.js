@@ -1,6 +1,8 @@
 /**
  * Scalper agent — short-hold paper trading across cbBTC + liquid xStocks.
  * Hybrid opportunity feed from BTC experiments, stocks news, and own momentum scan.
+ *
+ * Profitability bias: trade less, only when edge clears fill cost, lock gains early.
  */
 import { XSTOCKS_CATALOG } from "./equityTokens.js";
 import {
@@ -26,36 +28,54 @@ export const PYTH_BTC_USD_FEED_ID =
 
 export const SCALPER_DEFAULTS = Object.freeze({
   startingBankUsd: TRADING_EXPERIMENT_STARTING_USD,
-  maxConcurrentPositions: 3,
-  /** Fraction of free cash per scalp (0–1). */
-  notionalSlicePct: 0.28,
-  /** Floor fraction of notionalSlicePct for low-conviction entries. */
-  minNotionalSlicePct: 0.1,
-  minNotionalUsd: 5,
-  /** TP must clear round-trip slippage; R:R ≈ 2.5:1 vs SL. */
-  takeProfitPct: 2.0,
-  stopLossPct: 0.65,
-  maxHoldMinutes: 40,
-  /** Only trade high-conviction opportunities (raised for profitability). */
-  minOpportunityScore: 0.58,
+  /** Fewer concurrent bets = less correlated drawdown. */
+  maxConcurrentPositions: 2,
+  /** Fraction of free cash per scalp (0–1) — sized for high-conviction only. */
+  notionalSlicePct: 0.2,
+  /** Floor fraction of notionalSlicePct for borderline entries. */
+  minNotionalSlicePct: 0.08,
+  minNotionalUsd: 8,
+  /**
+   * Achievable scalp TP vs round-trip cost (~1% at 50bps/side).
+   * Sized so net after fills stays positive on wins.
+   */
+  takeProfitPct: 1.85,
+  /** Tight but noise-aware hard stop. */
+  stopLossPct: 0.55,
+  maxHoldMinutes: 28,
+  /** Only trade high-conviction opportunities. */
+  minOpportunityScore: 0.68,
   /**
    * Extra edge (%) above estimated round-trip fill cost before entry.
    * Round-trip ≈ 2 × quoteSlippageBps / 100.
    */
-  minEdgeBufferPct: 0.35,
+  minEdgeBufferPct: 0.3,
   /** Cooldown after closing same symbol (ms). */
-  symbolCooldownMs: 4 * 60_000,
+  symbolCooldownMs: 10 * 60_000,
   /** How long experiment signals stay valid (ms). */
-  experimentSignalMaxAgeMs: 12 * 60_000,
+  experimentSignalMaxAgeMs: 8 * 60_000,
   /** Momentum scan thresholds — require clearer move, reject chop. */
-  momentumMinPct: 0.22,
-  momentumMaxVolatilityPct: 2.0,
+  momentumMinPct: 0.32,
+  momentumMaxVolatilityPct: 1.45,
   /** Jupiter quote slippage for paper fills (bps). */
   quoteSlippageBps: 50,
   /** Trailing stop activates after this unrealized gain (%). */
-  trailActivatePct: 0.7,
+  trailActivatePct: 0.5,
   /** Trail distance below peak (%). */
-  trailDistancePct: 0.35,
+  trailDistancePct: 0.28,
+  /** Move stop to breakeven after this unrealized gain (%). */
+  breakevenActivatePct: 0.4,
+  /** Soft profit lock: exit if giveback from peak after this gain (%). */
+  profitLockGainPct: 0.85,
+  /** Max giveback from peak (%) once profit lock is armed. */
+  profitLockGivebackPct: 0.32,
+  /** Reject entries when Jupiter impact exceeds this (bps). */
+  maxEntryImpactBps: 40,
+  /** Solo (non-confluence) entries need at least this score. */
+  minSoloScore: 0.74,
+  /** Prefer confluence — solo news/momentum need still higher bars. */
+  minSoloMomentumScore: 0.78,
+  minSoloStocksScore: 0.76,
 });
 
 /** Estimated round-trip fill cost as a percentage (entry + exit slippage). */

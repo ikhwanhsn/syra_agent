@@ -17,6 +17,7 @@ import {
   listLabX402Calls,
 } from '../../libs/labs/labX402Payer.js';
 import { listLabX402Endpoints } from '../../libs/labs/labX402Endpoints.js';
+import { ensurePayerFundedForNextCall } from '../../libs/labs/labX402Refund.js';
 import { restartLabX402Scheduler } from '../../libs/labs/labX402Scheduler.js';
 
 /** @type {Map<string, number>} */
@@ -96,7 +97,9 @@ export function createLabsX402Router() {
     try {
       const balances = await getLabWalletBalances(req.params.address);
       if (!balances) {
-        return res.status(404).json({ success: false, error: 'wallet_not_found' });
+        return res
+          .status(503)
+          .json({ success: false, error: 'balance_unavailable', message: 'RPC balance read failed; try again shortly.' });
       }
       return res.json({ success: true, data: { address: req.params.address, ...balances } });
     } catch (e) {
@@ -129,7 +132,22 @@ export function createLabsX402Router() {
         typeof req.body?.payerAddress === 'string' ? req.body.payerAddress.trim() : null;
       const endpoint = typeof req.body?.endpoint === 'string' ? req.body.endpoint.trim() : undefined;
 
+      const { refundEnabled } = await getLabX402Settings();
+
       if (payerAddress) {
+        const funding = await ensurePayerFundedForNextCall(payerAddress, { refundEnabled });
+        if (!funding.canPay) {
+          return res.json({
+            success: false,
+            data: {
+              success: false,
+              endpoint: endpoint ?? null,
+              skipped: true,
+              reason: funding.reason,
+              error: `Payer cannot pay (${funding.reason}). Top up the PayTo/payer wallet.`,
+            },
+          });
+        }
         const result = await runLabX402Payment(payerAddress, { endpoint, trigger: 'manual' });
         return res.json({ success: true, data: result });
       }
@@ -142,6 +160,17 @@ export function createLabsX402Router() {
 
       const results = [];
       for (const p of payers) {
+        const funding = await ensurePayerFundedForNextCall(p.address, { refundEnabled });
+        if (!funding.canPay) {
+          results.push({
+            success: false,
+            endpoint: endpoint ?? null,
+            skipped: true,
+            reason: funding.reason,
+            error: `Payer cannot pay (${funding.reason}).`,
+          });
+          continue;
+        }
         results.push(await runLabX402Payment(p.address, { endpoint, trigger: 'manual' }));
       }
       return res.json({ success: true, data: { results } });
@@ -152,7 +181,7 @@ export function createLabsX402Router() {
 
   router.get('/calls', async (req, res) => {
     try {
-      const limit = Number(req.query?.limit) || 50;
+      const limit = Number(req.query?.limit) || 10;
       const calls = await listLabX402Calls({ limit });
       return res.json({ success: true, data: calls });
     } catch (e) {

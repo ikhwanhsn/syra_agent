@@ -92,6 +92,15 @@ export function getMaxLabX402PriceUsd() {
 }
 
 /**
+ * Cheapest endpoint price — the minimum USDC a payer needs to make any call.
+ * @returns {number}
+ */
+export function getMinLabX402PriceUsd() {
+  if (LAB_X402_ENDPOINTS.length === 0) return 0.01;
+  return Math.min(...LAB_X402_ENDPOINTS.map((e) => e.priceUsd));
+}
+
+/**
  * @returns {number}
  */
 export function getWeightedAvgLabX402PriceUsd() {

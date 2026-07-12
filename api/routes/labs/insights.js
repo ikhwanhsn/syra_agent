@@ -19,6 +19,7 @@ import { getActivePayToAddress, getLabWalletBalances } from '../../libs/labs/lab
 import {
   evaluateLowBalanceRefund,
   refundUsdcToPayer,
+  PAYTO_INSUFFICIENT_FUNDS,
 } from '../../libs/labs/labX402Refund.js';
 import {
   getMaxLabX402PriceUsd,
@@ -93,9 +94,23 @@ async function handleInsightRoute(req, res, endpointPath, catalogSegment, fetchD
         }
 
         const balances = await getLabWalletBalances(payer);
+        // Balance unknown (RPC unavailable): don't refund on a false low reading — skip cleanly.
+        if (!balances) {
+          await logLabX402Call({
+            payerAddress: payer,
+            endpoint: endpointPath,
+            priceUsd,
+            status: 'refund_skipped',
+            paymentTx,
+            responseSnippet: 'balance_unavailable',
+            trigger,
+          });
+          return;
+        }
+
         const maxPriceUsd = getMaxLabX402PriceUsd();
         const avgPriceUsd = getWeightedAvgLabX402PriceUsd();
-        const decision = evaluateLowBalanceRefund(balances?.usdcBalance ?? 0, maxPriceUsd, avgPriceUsd);
+        const decision = evaluateLowBalanceRefund(balances.usdcBalance, maxPriceUsd, avgPriceUsd);
 
         if (!decision.shouldRefund) {
           await logLabX402Call({
@@ -104,7 +119,7 @@ async function handleInsightRoute(req, res, endpointPath, catalogSegment, fetchD
             priceUsd,
             status: 'refund_skipped',
             paymentTx,
-            responseSnippet: `balance_ok:${(balances?.usdcBalance ?? 0).toFixed(4)}>=${decision.thresholdUsd}`,
+            responseSnippet: `balance_ok:${balances.usdcBalance.toFixed(4)}>=${decision.thresholdUsd}`,
             trigger,
           });
           return;
@@ -122,14 +137,23 @@ async function handleInsightRoute(req, res, endpointPath, catalogSegment, fetchD
           trigger,
         });
       } catch (e) {
-        console.warn('[insights] refund failed:', e?.message || e);
+        const msg = e?.message || String(e);
+        // PayTo underfunded is an operational funding issue, not a broken refund — log it as a
+        // clean skip (not a failure) and surface the actionable reason in server logs.
+        const underfunded = msg.includes(PAYTO_INSUFFICIENT_FUNDS);
+        if (underfunded) {
+          console.warn('[insights] refund skipped — payTo wallet underfunded:', msg);
+        } else {
+          console.warn('[insights] refund failed:', msg);
+        }
         await logLabX402Call({
           payerAddress: payer,
           endpoint: endpointPath,
           priceUsd,
-          status: 'refund_failed',
+          status: underfunded ? 'refund_skipped' : 'refund_failed',
           paymentTx,
-          error: e?.message || String(e),
+          responseSnippet: underfunded ? 'payto_underfunded' : undefined,
+          error: msg,
           trigger,
         }).catch(() => {});
       }
