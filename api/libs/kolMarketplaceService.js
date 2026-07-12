@@ -573,6 +573,14 @@ export async function confirmCampaignDeposit(campaignId, input) {
 
   await awardCampaignCreationPoints(campaign);
 
+  // Unlocking this wallet may change projected shares on gated campaigns.
+  refreshGatedCampaignProjectionsForWallet(projectWallet).catch((e) => {
+    console.warn(
+      `[kol] gated projection refresh after create failed wallet=${projectWallet}:`,
+      e instanceof Error ? e.message : e,
+    );
+  });
+
   notifyNewCampaignTelegram(serializeCampaign(campaign)).catch((e) => {
     console.warn(
       "[kol] campaign Telegram notify failed:",
@@ -901,6 +909,49 @@ async function walletHasCreatedCampaign(kolWallet) {
 }
 
 /**
+ * After a wallet funds its first campaign, refresh projections on gated campaigns
+ * where they appear on the leaderboard so unlocked rows stop showing 0 SOL.
+ * @param {string} kolWallet
+ */
+async function refreshGatedCampaignProjectionsForWallet(kolWallet) {
+  const wallet = normalizeWallet(kolWallet);
+  if (!wallet) return;
+
+  /** @type {string[]} */
+  const handleKeys = [];
+  try {
+    const verification = await getWalletVerification(wallet);
+    if (verification?.verified && verification.xHandleKey) {
+      handleKeys.push(normalizeHandle(verification.xHandleKey));
+    }
+  } catch {
+    // Wallet may be unverified — still match submissions by kolWallet.
+  }
+
+  const orClauses = [{ kolWallet: wallet }];
+  if (handleKeys.length > 0) {
+    orClauses.push({ authorHandleKey: { $in: handleKeys } });
+  }
+
+  const submissionCampaignIds = await KolSubmission.distinct("campaignId", {
+    $or: orClauses,
+  });
+  if (submissionCampaignIds.length === 0) return;
+
+  const gatedCampaigns = await KolCampaign.find({
+    _id: { $in: submissionCampaignIds },
+    status: "active",
+    requireCreatedOneCampaign: true,
+  })
+    .select("_id")
+    .lean();
+
+  await Promise.all(
+    gatedCampaigns.map((c) => refreshCampaignProjections(c._id)),
+  );
+}
+
+/**
  * Map X handles to project wallets for campaigns they created (source tweet author).
  * Auto-discovered leaderboard rows have no kolWallet — this links handle → creator wallet.
  * @param {string[]} handleKeys
@@ -1104,25 +1155,61 @@ export async function getCampaignDetail(campaignId, opts = {}) {
     potentialPayouts.map((p) => [String(p.submissionId), p.lamports]),
   );
 
+  // Live eligible-pool projections — stored projectedLamports can be stale until the
+  // next snapshot after someone unlocks by creating a campaign.
+  let liveProjectedMap = new Map(
+    scoredSubmissions.map((s) => [String(s._id), s.projectedLamports ?? 0]),
+  );
+  if (campaign.requireCreatedOneCampaign) {
+    const eligibleSubmissions = scoredSubmissions.filter(
+      (s) => rewardEligibilityMap.get(String(s._id)) === true,
+    );
+    const eligiblePayouts = computeProRataPayouts(eligibleSubmissions, kolPool);
+    liveProjectedMap = new Map(
+      eligiblePayouts.map((p) => [String(p.submissionId), p.lamports]),
+    );
+
+    const projectionsStale = submissions.some((s) => {
+      const live = liveProjectedMap.get(String(s._id)) ?? 0;
+      return (s.projectedLamports ?? 0) !== live;
+    });
+    if (projectionsStale && campaign.status === "active") {
+      refreshCampaignProjections(campaign._id).catch((e) => {
+        console.warn(
+          `[kol] projection refresh after eligibility change failed campaign=${campaign._id}:`,
+          e instanceof Error ? e.message : e,
+        );
+      });
+    }
+  }
+
   return {
     campaign: serializeCampaign(campaign),
-    leaderboard: submissions.map((s) => ({
-      ...serializeSubmission(s),
-      rewardEligible: campaign.requireCreatedOneCampaign
-        ? rewardEligibilityMap.get(String(s._id)) === true
-        : null,
-      potentialProjectedSol: campaign.requireCreatedOneCampaign
-        ? (potentialPayoutMap.get(String(s._id)) ?? 0) / LAMPORTS_PER_SOL
-        : null,
-      payout: payoutMap.has(String(s._id))
-        ? {
-            lamports: payoutMap.get(String(s._id)).lamports,
-            sol: payoutMap.get(String(s._id)).lamports / LAMPORTS_PER_SOL,
-            txSignature: payoutMap.get(String(s._id)).txSignature,
-            status: payoutMap.get(String(s._id)).status,
-          }
-        : null,
-    })),
+    leaderboard: submissions.map((s) => {
+      const submissionId = String(s._id);
+      const liveProjectedLamports = campaign.requireCreatedOneCampaign
+        ? (liveProjectedMap.get(submissionId) ?? 0)
+        : (s.projectedLamports ?? 0);
+      return {
+        ...serializeSubmission(s),
+        projectedLamports: liveProjectedLamports,
+        projectedSol: liveProjectedLamports / LAMPORTS_PER_SOL,
+        rewardEligible: campaign.requireCreatedOneCampaign
+          ? rewardEligibilityMap.get(submissionId) === true
+          : null,
+        potentialProjectedSol: campaign.requireCreatedOneCampaign
+          ? (potentialPayoutMap.get(submissionId) ?? 0) / LAMPORTS_PER_SOL
+          : null,
+        payout: payoutMap.has(submissionId)
+          ? {
+              lamports: payoutMap.get(submissionId).lamports,
+              sol: payoutMap.get(submissionId).lamports / LAMPORTS_PER_SOL,
+              txSignature: payoutMap.get(submissionId).txSignature,
+              status: payoutMap.get(submissionId).status,
+            }
+          : null,
+      };
+    }),
     viewerClaimEligibility,
   };
 }

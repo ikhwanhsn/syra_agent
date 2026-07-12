@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { useMutation } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -14,14 +14,16 @@ import {
   defaultCampaignEndDate,
   durationDaysFromEndDate,
 } from "@/components/kol/CampaignEndDatePicker";
+import { CampaignFundDepositCard } from "@/components/kol/CampaignFundDepositCard";
 import { isAdminWallet } from "@/lib/adminWallet";
 import {
-  confirmCampaignDeposit,
   createCampaign,
+  fetchCampaigns,
+  KolApiError,
   DEFAULT_KOL_CONFIG,
   type KolCampaign,
 } from "@/lib/kolApi";
-import { lamportsToSol, sendCampaignDeposit, solToLamports } from "@/lib/solanaKol";
+import { lamportsToSol, solToLamports } from "@/lib/solanaKol";
 
 interface CreateCampaignFormProps {
   minRewardSol: number;
@@ -31,6 +33,7 @@ interface CreateCampaignFormProps {
   maxDurationDays: number;
   poolWalletAddress: string;
   onCreated?: (campaign: KolCampaign) => void;
+  onOpenCampaign?: (campaignId: string) => void;
 }
 
 export function CreateCampaignForm({
@@ -41,6 +44,7 @@ export function CreateCampaignForm({
   maxDurationDays,
   poolWalletAddress,
   onCreated,
+  onOpenCampaign,
 }: CreateCampaignFormProps) {
   const wallet = useWallet();
   const minKolPoolSol = minKolRewardSol ?? minRewardSol - platformFeeSol;
@@ -55,15 +59,33 @@ export function CreateCampaignForm({
   const [pendingCampaign, setPendingCampaign] = useState<KolCampaign | null>(
     null,
   );
-  const [depositInfo, setDepositInfo] = useState<{
-    poolWalletAddress: string;
-    rewardLamports: number;
-    kolRewardPoolLamports?: number;
-    platformFeeLamports?: number;
-  } | null>(null);
+  const [dismissedResume, setDismissedResume] = useState(false);
 
   const walletAddress = wallet.publicKey?.toBase58() ?? null;
   const isAdmin = isAdminWallet(walletAddress);
+
+  const campaignsQuery = useQuery({
+    queryKey: ["kol-campaigns"],
+    queryFn: () => fetchCampaigns(),
+    staleTime: 60 * 1000,
+    enabled: Boolean(walletAddress),
+  });
+
+  const existingPending = useMemo(() => {
+    if (!walletAddress) return null;
+    return (
+      campaignsQuery.data?.campaigns.find(
+        (c) =>
+          c.status === "pending_deposit" &&
+          c.projectWallet.trim().toLowerCase() === walletAddress.trim().toLowerCase(),
+      ) ?? null
+    );
+  }, [campaignsQuery.data?.campaigns, walletAddress]);
+
+  useEffect(() => {
+    if (!existingPending || dismissedResume) return;
+    setPendingCampaign(existingPending);
+  }, [existingPending, dismissedResume]);
 
   const durationDays = durationDaysFromEndDate(endDate);
   const kolRewardNum = Number(rewardSol);
@@ -106,52 +128,28 @@ export function CreateCampaignForm({
       });
     },
     onSuccess: (data) => {
+      setDismissedResume(false);
       setPendingCampaign(data.campaign);
-      setDepositInfo(data.deposit);
+      void campaignsQuery.refetch();
       toast.message("Campaign draft created", {
         description: "Approve the SOL deposit in your wallet to activate it.",
       });
     },
     onError: (e: Error) => {
-      toast.error(e.message);
-    },
-  });
-
-  const depositMutation = useMutation({
-    mutationFn: async () => {
-      if (!wallet.publicKey)
-        throw new Error("Connect your Solana wallet first");
-      if (!pendingCampaign || !depositInfo) {
-        throw new Error("Create the campaign first");
+      if (e instanceof KolApiError && e.code === "pending_deposit_limit") {
+        void campaignsQuery.refetch().then(() => {
+          toast.error("You already have an unpaid campaign draft", {
+            description: "Open it to finish payment, or continue from the form below.",
+          });
+        });
+        return;
       }
-
-      const signature = await sendCampaignDeposit({
-        wallet,
-        poolWalletAddress: depositInfo.poolWalletAddress,
-        lamports: depositInfo.rewardLamports,
-      });
-
-      return confirmCampaignDeposit(pendingCampaign.id, {
-        txSignature: signature,
-        projectWallet: wallet.publicKey.toBase58(),
-      });
-    },
-    onSuccess: (data) => {
-      setPendingCampaign(null);
-      setDepositInfo(null);
-      onCreated?.(data.campaign);
-      toast.success("Campaign is live", {
-        description:
-          "+5 S3Labs Points credited. KOLs can now submit replies and quotes.",
-      });
-    },
-    onError: (e: Error) => {
       toast.error(e.message);
     },
   });
 
-  const isBusy = createMutation.isPending || depositMutation.isPending;
-  const awaitingDeposit = Boolean(pendingCampaign && depositInfo);
+  const isBusy = createMutation.isPending;
+  const awaitingDeposit = Boolean(pendingCampaign?.status === "pending_deposit");
   const rewardValid = kolRewardLamports >= minKolPoolLamports;
   const durationValid =
     durationDays >= minDurationDays && durationDays <= maxDurationDays;
@@ -183,166 +181,201 @@ export function CreateCampaignForm({
         )}
       </div>
 
-      <div className="grid gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="kol-title">Campaign title</Label>
-          <Input
-            id="kol-title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. Launch week awareness push"
-            disabled={awaitingDeposit}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="kol-tweet">X post URL to shill</Label>
-          <Input
-            id="kol-tweet"
-            value={sourceTweetUrl}
-            onChange={(e) => setSourceTweetUrl(e.target.value)}
-            placeholder="https://x.com/yourproject/status/..."
-            disabled={awaitingDeposit}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="kol-desc">Description (optional)</Label>
-          <Textarea
-            id="kol-desc"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Key talking points for KOLs"
-            rows={3}
-            disabled={awaitingDeposit}
-          />
-        </div>
-
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="kol-reward">KOL reward (SOL)</Label>
-            <Input
-              id="kol-reward"
-              type="number"
-              min={minKolPoolSol}
-              step="0.01"
-              value={rewardSol}
-              onChange={(e) => setRewardSol(e.target.value)}
-              disabled={awaitingDeposit}
-            />
+      {awaitingDeposit && pendingCampaign ? (
+        <div className="space-y-4">
+          <div className="rounded-xl border border-border/60 bg-muted/20 px-4 py-3 space-y-1">
+            <p className="text-sm font-medium text-foreground">{pendingCampaign.title}</p>
             <p className="text-xs text-muted-foreground">
-              Min {minKolPoolSol} SOL · total deposit{" "}
-              <span className="text-foreground/80 font-medium tabular-nums">
-                {totalDepositSol.toFixed(3)} SOL
-              </span>{" "}
-              (incl. {platformFeeSol} SOL platform fee)
+              Draft saved — finish payment to go live. You can also open it anytime from Browse.
             </p>
           </div>
-          <div className="space-y-2">
-            <Label>Campaign end date</Label>
-            <CampaignEndDatePicker
-              value={endDate}
-              onChange={setEndDate}
-              minDurationDays={minDurationDays}
-              maxDurationDays={maxDurationDays}
-              disabled={awaitingDeposit}
-            />
-          </div>
-        </div>
 
-        {isAdmin ? (
-          <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-3">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Admin participation rules
-            </p>
-            <div className="flex items-center justify-between gap-4">
-              <Label
-                htmlFor="kol-rule-created-campaign"
-                className="text-sm font-normal leading-snug"
+          <CampaignFundDepositCard
+            campaign={pendingCampaign}
+            compact
+            onFunded={(campaign) => {
+              setPendingCampaign(null);
+              setDismissedResume(true);
+              void campaignsQuery.refetch();
+              onCreated?.(campaign);
+            }}
+          />
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            {onOpenCampaign ? (
+              <Button
+                variant="outline"
+                className="rounded-full w-full sm:w-auto"
+                onClick={() => onOpenCampaign(pendingCampaign.id)}
               >
-                Require funded campaign to qualify
-              </Label>
-              <Switch
-                id="kol-rule-created-campaign"
-                checked={requireCreatedOneCampaign}
-                onCheckedChange={setRequireCreatedOneCampaign}
-                disabled={awaitingDeposit}
+                Open campaign page
+              </Button>
+            ) : null}
+            <Button
+              variant="ghost"
+              className="rounded-full w-full sm:w-auto text-muted-foreground"
+              disabled={isBusy}
+              onClick={() => {
+                setPendingCampaign(null);
+                setDismissedResume(true);
+              }}
+            >
+              Hide for now
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Hiding does not cancel the draft. Find it under{" "}
+            <span className="text-foreground/80">Browse → Your draft</span> to pay later.
+            Pool wallet:{" "}
+            <span className="font-mono break-all">{poolWalletAddress}</span>
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="grid gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="kol-title">Campaign title</Label>
+              <Input
+                id="kol-title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g. Launch week awareness push"
               />
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="kol-tweet">X post URL to shill</Label>
+              <Input
+                id="kol-tweet"
+                value={sourceTweetUrl}
+                onChange={(e) => setSourceTweetUrl(e.target.value)}
+                placeholder="https://x.com/yourproject/status/..."
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="kol-desc">Description (optional)</Label>
+              <Textarea
+                id="kol-desc"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Key talking points for KOLs"
+                rows={3}
+                autoResize
+              />
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="kol-reward">KOL reward (SOL)</Label>
+                <Input
+                  id="kol-reward"
+                  type="number"
+                  min={minKolPoolSol}
+                  step="0.01"
+                  value={rewardSol}
+                  onChange={(e) => setRewardSol(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Min {minKolPoolSol} SOL · total deposit{" "}
+                  <span className="text-foreground/80 font-medium tabular-nums">
+                    {totalDepositSol.toFixed(3)} SOL
+                  </span>{" "}
+                  (incl. {platformFeeSol} SOL platform fee)
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>Campaign end date</Label>
+                <CampaignEndDatePicker
+                  value={endDate}
+                  onChange={setEndDate}
+                  minDurationDays={minDurationDays}
+                  maxDurationDays={maxDurationDays}
+                />
+              </div>
+            </div>
+
+            {isAdmin ? (
+              <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Admin participation rules
+                </p>
+                <div className="flex items-center justify-between gap-4">
+                  <Label
+                    htmlFor="kol-rule-created-campaign"
+                    className="text-sm font-normal leading-snug"
+                  >
+                    Require funded campaign to qualify
+                  </Label>
+                  <Switch
+                    id="kol-rule-created-campaign"
+                    checked={requireCreatedOneCampaign}
+                    onCheckedChange={setRequireCreatedOneCampaign}
+                  />
+                </div>
+              </div>
+            ) : null}
           </div>
-        ) : null}
-      </div>
 
-      {depositInfo ? (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm space-y-2">
-          <p className="font-medium text-amber-300">Step 2 — Fund campaign</p>
-          <p className="text-muted-foreground">
-            Approve the transaction in your wallet to activate this campaign and
-            fund the KOL reward pool.
-          </p>
-          <p className="text-xs font-mono text-muted-foreground break-all">
-            Pool: {poolWalletAddress}
-          </p>
-          {pendingCampaign ? (
-            <p className="text-xs text-muted-foreground">
-              Campaign ID: {pendingCampaign.id}
-            </p>
+          {existingPending && dismissedResume ? (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm space-y-2">
+              <p className="text-muted-foreground leading-relaxed">
+                You still have an unpaid draft{" "}
+                <span className="font-medium text-foreground">
+                  “{existingPending.title}”
+                </span>
+                . Fund it before creating another.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="hero"
+                  size="sm"
+                  className="rounded-full"
+                  onClick={() => {
+                    setDismissedResume(false);
+                    setPendingCampaign(existingPending);
+                  }}
+                >
+                  Continue payment
+                </Button>
+                {onOpenCampaign ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full"
+                    onClick={() => onOpenCampaign(existingPending.id)}
+                  >
+                    Open campaign
+                  </Button>
+                ) : null}
+              </div>
+            </div>
           ) : null}
-        </div>
-      ) : null}
 
-      {!awaitingDeposit ? (
-        <Button
-          variant="hero"
-          className="rounded-full w-full sm:w-auto"
-          disabled={
-            !wallet.publicKey ||
-            isBusy ||
-            !title ||
-            !sourceTweetUrl ||
-            !rewardValid ||
-            !durationValid
-          }
-          onClick={() => createMutation.mutate()}
-        >
-          {createMutation.isPending ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Creating campaign…
-            </>
-          ) : (
-            "Step 1 — Create campaign"
-          )}
-        </Button>
-      ) : (
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <Button
             variant="hero"
             className="rounded-full w-full sm:w-auto"
-            disabled={!wallet.publicKey || isBusy}
-            onClick={() => depositMutation.mutate()}
+            disabled={
+              !wallet.publicKey ||
+              isBusy ||
+              !title ||
+              !sourceTweetUrl ||
+              !rewardValid ||
+              !durationValid ||
+              Boolean(existingPending)
+            }
+            onClick={() => createMutation.mutate()}
           >
-            {depositMutation.isPending ? (
+            {createMutation.isPending ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Waiting for wallet…
+                Creating campaign…
               </>
             ) : (
-              "Step 2 — Confirm in wallet"
+              "Create campaign draft"
             )}
           </Button>
-          <Button
-            variant="outline"
-            className="rounded-full w-full sm:w-auto"
-            disabled={isBusy}
-            onClick={() => {
-              setPendingCampaign(null);
-              setDepositInfo(null);
-            }}
-          >
-            Cancel
-          </Button>
-        </div>
+        </>
       )}
     </div>
   );

@@ -15,12 +15,15 @@ export const UNRELATED_REFUSAL =
 export const S3LABS_QA_KNOWLEDGE = `
 ## S3Labs (community)
 S3Labs is a global community for learning tech, crypto & web3 on Telegram (@s3labs).
+Website (canonical): https://s3labs.xyz — never use s3labs.id or s3labs.fun (retired domains).
+Key pages: https://s3labs.xyz/kol (KOL Marketplace), https://s3labs.xyz/events, https://s3labs.xyz/profile
 Main forum topics:
 - News (thread 402) — crypto/web3/tech headlines
 - Developer (thread 4) — programming, tools, open source, engineering
 - Event (thread 158) — hackathons, conferences, tech/crypto meetups
 - Jobs (thread 513) — remote tech/web3 roles
 This bot (S3Labs Assistant) answers questions when @mentioned in the group — focused on tech/crypto/web3.
+When linking to S3Labs products, always use https://s3labs.xyz (not .id or .fun).
 
 ## Syra (related ecosystem product)
 Syra = "machine money" infrastructure for agents on Solana — not just a chatbot.

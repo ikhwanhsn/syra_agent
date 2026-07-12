@@ -47,14 +47,18 @@ function LeaderboardEligibilityNote({ message }: { message: string }) {
 function getDisplayPayoutSol(entry: KolLeaderboardEntry): number {
   if (entry.earnedSol != null && entry.earnedSol > 0) return entry.earnedSol;
   if (entry.payout?.sol != null && entry.payout.sol > 0) return entry.payout.sol;
-  if (
-    entry.rewardEligible === false &&
-    entry.potentialProjectedSol != null &&
-    entry.potentialProjectedSol > 0
-  ) {
-    return entry.potentialProjectedSol;
+
+  const projected = entry.projectedSol ?? 0;
+  const potential = entry.potentialProjectedSol ?? 0;
+
+  // Locked rows show potential share. After unlock, projected may still be stale 0
+  // until refresh — fall back to potential so eligible users don't see 0 SOL.
+  if (entry.rewardEligible === false) {
+    return potential > 0 ? potential : projected;
   }
-  return entry.projectedSol;
+  if (projected > 0) return projected;
+  if (potential > 0) return potential;
+  return projected;
 }
 
 function getPayoutLabel(entry: KolLeaderboardEntry, campaignStatus: string): string {
@@ -133,10 +137,10 @@ export function CampaignLeaderboard({
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20">
           <Sparkles className="h-6 w-6 text-primary" aria-hidden />
         </div>
-        <p className="font-semibold text-base">No engagers yet</p>
+        <p className="font-semibold text-base">No one on the board yet</p>
         <p className="text-muted-foreground text-sm max-w-sm mx-auto leading-relaxed">
-          Be the first KOL to reply or quote the post on X — we auto-detect engagement every 6
-          hours.
+          Be the first to reply or quote the post on X. We scan for new posts about every 6 hours —
+          no link to submit here.
         </p>
       </div>
     );

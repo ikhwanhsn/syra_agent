@@ -3,6 +3,7 @@
  */
 
 import { S3LABS_JOB_AGENT } from "../../config/s3labsAgentsConfig.js";
+import { S3LABS_CANONICAL_ORIGIN } from "../../config/s3labsSiteConfig.js";
 import { escapeTelegramHtml } from "../telegramFormat.js";
 import { normalizeSalaryLabel } from "./s3labsJobSalary.js";
 
@@ -81,6 +82,7 @@ export function formatS3labsJobTelegram(job) {
     `🆔 <code>${identity}</code>`,
     `🕐 ${formatUtcNow()} UTC`,
     "",
+    `More roles → ${S3LABS_CANONICAL_ORIGIN}`,
     `— ${def.agentTag} · t.me/s3labs/${def.threadId}`,
   ];
 

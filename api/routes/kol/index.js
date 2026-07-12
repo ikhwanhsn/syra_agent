@@ -67,6 +67,7 @@ function handleServiceError(res, error) {
     campaign_ended: 400,
     require_created_campaign: 403,
     topup_pending: 409,
+    pending_deposit_limit: 409,
     duplicate_submission: 409,
     duplicate_kol_handle: 409,
     duplicate_post: 409,

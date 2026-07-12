@@ -169,7 +169,7 @@ export async function parseLumaEventPage(lumaUrl) {
     const res = await fetchWithRetry(normalized, {
       headers: {
         Accept: "text/html,application/xhtml+xml",
-        "User-Agent": "SyraEventScout/1.0 (+https://s3labs.fun)",
+        "User-Agent": "SyraEventScout/1.0 (+https://s3labs.xyz)",
       },
     }, { retries: 2, retryDelayMs: 1000 });
 

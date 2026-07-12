@@ -1,7 +1,7 @@
 /**
  * Professional HTML + plaintext email templates for S3Labs campaign notifications.
  */
-import { S3LABS_SITE_URL } from "../../config/emailConfig.js";
+import { S3LABS_SITE_URL, buildS3labsSiteUrl } from "../../config/emailConfig.js";
 
 const BRAND_COLOR = "#7c3aed";
 const BG_COLOR = "#0a0a0f";
@@ -125,7 +125,7 @@ export function buildWelcomeEmail({ unsubscribeUrl }) {
       Each alert includes the campaign reward pool, duration, and a direct link to
       participate as a KOL or explore opportunities for your project.
     </p>
-    ${ctaButton(`${S3LABS_SITE_URL}/kol`, "Browse KOL Marketplace")}
+    ${ctaButton(buildS3labsSiteUrl("/kol"), "Browse KOL Marketplace")}
     <p style="margin:24px 0 0;font-size:13px;line-height:1.6;color:${MUTED_COLOR};">
       You can unsubscribe at any time using the link below.
     </p>`;
@@ -138,7 +138,7 @@ Thank you for subscribing. You will receive a notification each time a new KOL c
 
 Each alert includes the campaign reward pool, duration, and a direct link to participate.
 
-Browse campaigns: ${S3LABS_SITE_URL}/kol
+Browse campaigns: ${buildS3labsSiteUrl("/kol")}
 
 ---
 S3 Labs — Growth partner for Solana developers
@@ -164,7 +164,9 @@ export function buildCampaignLiveEmail({ campaign, unsubscribeUrl }) {
   const endAt = campaign.endAt ? String(campaign.endAt) : null;
   const durationDays = campaign.durationDays ?? null;
   const campaignId = String(campaign.id || "");
-  const campaignUrl = `${S3LABS_SITE_URL}/kol?campaign=${encodeURIComponent(campaignId)}`;
+  const campaignUrl = buildS3labsSiteUrl(
+    `/kol?campaign=${encodeURIComponent(campaignId)}`,
+  );
 
   const subject = `New campaign live: ${title}`;
   const preheader = `${kolPoolSol.toFixed(2)} SOL KOL reward pool — join now on S3Labs`;
@@ -258,7 +260,7 @@ export function buildUnsubscribePageHtml({ success, email }) {
   <div class="card">
     <h1>${title}</h1>
     <p>${message}</p>
-    <a href="${S3LABS_SITE_URL}/kol">Return to KOL Marketplace</a>
+    <a href="${buildS3labsSiteUrl("/kol")}">Return to KOL Marketplace</a>
   </div>
 </body>
 </html>`;

@@ -6,7 +6,9 @@ import {
   BadgeCheck,
   Clock,
   Coins,
+  ExternalLink,
   MessageSquare,
+  Quote,
   Trophy,
   Users,
   X,
@@ -38,6 +40,7 @@ import { KOL_CREATE_CAMPAIGN_LEADERBOARD_INTRO } from "@/lib/kolRewardEligibilit
 import { cn } from "@/lib/utils";
 import { AddRewardForm } from "./AddRewardForm";
 import { CampaignClaimCard } from "./CampaignClaimCard";
+import { CampaignFundDepositCard } from "./CampaignFundDepositCard";
 import { CampaignLeaderboard } from "./CampaignLeaderboard";
 import { CampaignParticipationGateCard } from "./CampaignParticipationGateCard";
 import { KolCampaignEarnShareAction } from "./KolCampaignEarnShareAction";
@@ -57,19 +60,32 @@ const statusMessages: Record<
   ReturnType<typeof getCampaignDisplayPhase>,
   string
 > = {
-  live: "This campaign is live — reply or quote the post below. We auto-detect engagers every 6 hours.",
+  live: "Open now — reply or quote the post below on X. Nothing to submit on this page.",
   finalizing:
-    "This campaign has ended. Final engagement snapshots are being processed — verify your X account to receive rewards automatically.",
-  pending_deposit: "Waiting for the project to fund this campaign.",
+    "Time’s up. We’re finishing the final rankings — verify your X account so rewards can reach your wallet.",
+  pending_deposit:
+    "Draft saved — deposit SOL to open the reward pool. Only the creator can complete payment.",
   completed:
-    "Campaign ended. Verified wallets receive SOL automatically. Claim manually if auto-send did not run.",
-  cancelled: "This campaign was cancelled.",
+    "This campaign is over. Verified wallets get SOL automatically — claim manually only if yours didn’t arrive.",
+  cancelled: "This campaign was cancelled. No rewards will be paid.",
 };
 
-const earnSteps = [
-  { step: 1, text: "Reply or quote the source post on X — no form to submit here." },
-  { step: 2, text: "We snapshot engagers every 6 hours and rank you on the live leaderboard." },
-  { step: 3, text: "After the campaign ends, verify your X account — rewards send automatically (min 0.01 SOL)." },
+const joinSteps = [
+  {
+    step: 1,
+    title: "Reply or quote the post on X",
+    text: "Use the buttons below. Write your own take — likes, replies, and views on your post decide how much you earn.",
+  },
+  {
+    step: 2,
+    title: "We find you automatically",
+    text: "About every 6 hours we scan replies and quotes. When we see yours, you appear on the leaderboard. No link to paste here.",
+  },
+  {
+    step: 3,
+    title: "Verify X to get paid",
+    text: "Connect your Solana wallet and link your X handle once. When the campaign ends, your share of the pool goes to that wallet (min 0.01 SOL).",
+  },
 ] as const;
 
 function walletsMatch(
@@ -78,6 +94,21 @@ function walletsMatch(
 ): boolean {
   if (!a || !b) return false;
   return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
+function extractTweetId(tweetUrl: string): string | null {
+  const match = tweetUrl.match(/status(?:es)?\/(\d+)/i);
+  return match?.[1] ?? null;
+}
+
+function buildReplyIntentUrl(tweetUrl: string): string | null {
+  const id = extractTweetId(tweetUrl);
+  if (!id) return null;
+  return `https://twitter.com/intent/tweet?in_reply_to=${id}`;
+}
+
+function buildQuoteIntentUrl(tweetUrl: string): string {
+  return `https://twitter.com/intent/tweet?url=${encodeURIComponent(tweetUrl)}`;
 }
 
 export function CampaignDetail({
@@ -116,6 +147,15 @@ export function CampaignDetail({
   const timeLeft = formatTimeLeft(campaign.endAt);
   const participantCount = campaign.submissionCount ?? leaderboard.length;
 
+  const replyUrl = useMemo(
+    () => buildReplyIntentUrl(campaign.sourceTweetUrl),
+    [campaign.sourceTweetUrl],
+  );
+  const quoteUrl = useMemo(
+    () => buildQuoteIntentUrl(campaign.sourceTweetUrl),
+    [campaign.sourceTweetUrl],
+  );
+
   const ownEntry = useMemo(() => {
     if (!address && !verifiedHandleKey) return null;
     return (
@@ -140,6 +180,8 @@ export function CampaignDetail({
     viewerClaimEligibility != null &&
     ownEntry != null;
 
+  const isPendingDeposit = campaign.status === "pending_deposit";
+
   return (
     <div className="space-y-6 min-w-0">
       <Button
@@ -152,7 +194,7 @@ export function CampaignDetail({
         Back to campaigns
       </Button>
 
-      {/* Campaign hero — full-width dashboard layout */}
+      {/* Campaign hero */}
       <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-card/60 shadow-card backdrop-blur-xl">
         <div
           className="pointer-events-none absolute inset-0 bg-gradient-mesh opacity-80"
@@ -163,7 +205,6 @@ export function CampaignDetail({
           aria-hidden
         />
 
-        {/* Top bar */}
         <div className="relative flex items-center justify-between gap-3 border-b border-border/50 px-4 py-3 sm:px-6 sm:py-4">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <Badge variant="outline" className={getCampaignDisplayStyle(displayPhase)}>
@@ -200,14 +241,29 @@ export function CampaignDetail({
           </Button>
         </div>
 
-        {/* Title block */}
         <div className="relative px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-7">
-          <p className="eyebrow mb-3">{isLive ? "Earn now" : "Campaign"}</p>
+          <p className="eyebrow mb-3">{isLive ? "Earn SOL" : "Campaign"}</p>
           <h2 className="heading-section text-xl sm:text-2xl lg:text-3xl">{campaign.title}</h2>
           {campaign.description ? (
-            <p className="mt-2 text-base text-muted-foreground leading-relaxed">{campaign.description}</p>
+            <p className="mt-2 text-base text-muted-foreground leading-relaxed">
+              {campaign.description}
+            </p>
           ) : null}
-          <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{statusMessages[displayPhase]}</p>
+
+          <div className="mt-4 rounded-xl border border-border/50 bg-background/40 px-4 py-3 sm:px-5 sm:py-4 space-y-2">
+            <p className="text-sm sm:text-[15px] text-foreground leading-relaxed">
+              A project put{" "}
+              <span className="font-semibold text-primary tabular-nums">
+                {formatSol(rewardSol)} SOL
+              </span>{" "}
+              in a reward pool. People who{" "}
+              <span className="font-medium text-foreground">reply or quote</span> their X post
+              share that pool — more engagement on your post usually means a bigger cut.
+            </p>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {statusMessages[displayPhase]}
+            </p>
+          </div>
 
           {campaign.sourceAuthorHandle ? (
             <Link
@@ -225,7 +281,6 @@ export function CampaignDetail({
           ) : null}
         </div>
 
-        {/* Metrics rail — spans full width, no dead space */}
         <div className="relative border-t border-border/50 bg-muted/15">
           <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-border/50">
             <div className="flex flex-col justify-center gap-1 px-4 py-4 sm:px-6 sm:py-5 lg:col-span-1">
@@ -242,7 +297,7 @@ export function CampaignDetail({
             <div className="flex flex-col justify-center gap-1 px-4 py-4 sm:px-6 sm:py-5">
               <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 <Users className="w-3.5 h-3.5 text-primary" />
-                KOLs joined
+                People joined
               </div>
               <p className="text-2xl sm:text-3xl font-semibold tabular-nums tracking-tight">
                 {participantCount}
@@ -273,26 +328,117 @@ export function CampaignDetail({
         </div>
       </div>
 
+      {isPendingDeposit ? (
+        <CampaignFundDepositCard campaign={campaign} onFunded={() => onRefresh?.()} />
+      ) : null}
+
+      {/* How to join — first for newcomers */}
       {isLive ? (
-        <AddRewardForm
-          campaign={campaign}
-          currentPoolSol={rewardSol}
-          platformFeeSol={config.platformFeeSol}
-          minTopUpKolRewardSol={config.minTopUpKolRewardSol}
-          onAdded={onRefresh}
-        />
+        <div className="panel-glass rounded-2xl border border-primary/25 p-5 sm:p-8 space-y-5">
+          <div>
+            <p className="eyebrow mb-2">New here?</p>
+            <h3 className="font-semibold text-lg sm:text-xl tracking-tight">
+              How to join this campaign
+            </h3>
+            <p className="mt-2 text-sm text-muted-foreground leading-relaxed max-w-2xl">
+              You don’t apply or fill a form. Post on X, we track engagement, then you get paid in
+              SOL when it ends.
+            </p>
+          </div>
+
+          <ol className="space-y-4">
+            {joinSteps.map((item) => (
+              <li key={item.step} className="flex gap-3 sm:gap-4">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary text-sm font-semibold">
+                  {item.step}
+                </span>
+                <div className="min-w-0 pt-0.5">
+                  <p className="font-medium text-foreground leading-snug">{item.title}</p>
+                  <p className="mt-1 text-sm text-muted-foreground leading-relaxed">{item.text}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+
+          {campaign.requireCreatedOneCampaign ? (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-muted-foreground leading-relaxed">
+              <span className="font-medium text-foreground">Extra rule on this campaign: </span>
+              to receive SOL you must also create and fund at least one campaign on S3 Labs before
+              this one ends. Pending deposits don’t count.
+            </div>
+          ) : null}
+
+          <div className="flex flex-col sm:flex-row flex-wrap gap-2 pt-1">
+            {replyUrl ? (
+              <Button variant="hero" className="rounded-full gap-2" asChild>
+                <a href={replyUrl} target="_blank" rel="noopener noreferrer">
+                  <MessageSquare className="w-4 h-4" />
+                  Reply on X
+                  <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+                </a>
+              </Button>
+            ) : null}
+            <Button
+              variant={replyUrl ? "outline" : "hero"}
+              className="rounded-full gap-2"
+              asChild
+            >
+              <a href={quoteUrl} target="_blank" rel="noopener noreferrer">
+                <Quote className="w-4 h-4" />
+                Quote on X
+                <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+              </a>
+            </Button>
+            <Button variant="ghost" className="rounded-full gap-2 text-muted-foreground" asChild>
+              <a href={campaign.sourceTweetUrl} target="_blank" rel="noopener noreferrer">
+                View original post
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </Button>
+          </div>
+        </div>
       ) : null}
 
       {/* Source post */}
       <div className="panel-glass rounded-2xl border border-border/60 p-5 sm:p-8 space-y-4 min-w-0">
-        <div className="flex items-center gap-2">
-          <MessageSquare className="w-4 h-4 text-primary" />
-          <h3 className="font-semibold">Post to amplify</h3>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 mb-1.5">
+              <MessageSquare className="w-4 h-4 text-primary shrink-0" />
+              <h3 className="font-semibold">
+                {isLive ? "The post to reply or quote" : "Campaign post"}
+              </h3>
+            </div>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {isLive
+                ? `This is the project’s X post. Reply to it or quote it — then grow engagement. Your share of the ${formatSol(rewardSol)} SOL pool is based on how your post performs vs everyone else.`
+                : "The original X post this campaign was built around."}
+            </p>
+          </div>
+          {isLive ? (
+            <div className="flex flex-wrap gap-2 shrink-0">
+              {replyUrl ? (
+                <Button size="sm" variant="hero" className="rounded-full gap-1.5" asChild>
+                  <a href={replyUrl} target="_blank" rel="noopener noreferrer">
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    Reply
+                  </a>
+                </Button>
+              ) : null}
+              <Button
+                size="sm"
+                variant={replyUrl ? "outline" : "hero"}
+                className="rounded-full gap-1.5"
+                asChild
+              >
+                <a href={quoteUrl} target="_blank" rel="noopener noreferrer">
+                  <Quote className="w-3.5 h-3.5" />
+                  Quote
+                </a>
+              </Button>
+            </div>
+          ) : null}
         </div>
-        <p className="text-sm text-muted-foreground">
-          Reply to or quote this post on X. Your engagement on your submission determines your share of
-          the {formatSol(rewardSol)} SOL pool.
-        </p>
 
         <SourceTweetCard
           text={campaign.sourceTweetText}
@@ -304,26 +450,16 @@ export function CampaignDetail({
         />
       </div>
 
-      {/* How to earn — active campaigns */}
-      {isLive ? (
-        <div className="panel-glass rounded-2xl border border-border/60 p-5 sm:p-8">
-          <p className="eyebrow mb-2">Your path to rewards</p>
-          <h3 className="font-semibold text-lg mb-4">How to claim your share</h3>
-          <ol className="space-y-3">
-            {earnSteps.map((item) => (
-              <li key={item.step} className="flex gap-3 text-sm">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary text-xs font-semibold">
-                  {item.step}
-                </span>
-                <span className="text-muted-foreground pt-0.5 leading-relaxed">{item.text}</span>
-              </li>
-            ))}
-          </ol>
-        </div>
-      ) : null}
-
       {isLive || campaign.status === "completed" ? (
-        <VerifyXAccountCard compactWhenVerified onVerified={onRefresh} />
+        <div className="space-y-2">
+          {isLive ? (
+            <p className="text-sm text-muted-foreground px-1">
+              You can post on X first — verify anytime before the campaign ends so we know which
+              wallet should receive your SOL.
+            </p>
+          ) : null}
+          <VerifyXAccountCard compactWhenVerified onVerified={onRefresh} />
+        </div>
       ) : null}
 
       {showParticipationGate ? (
@@ -358,13 +494,13 @@ export function CampaignDetail({
               {campaign.requireCreatedOneCampaign
                 ? KOL_CREATE_CAMPAIGN_LEADERBOARD_INTRO
                 : campaign.status === "completed"
-                  ? "Final rankings — claim your reward after verifying X."
+                  ? "Final rankings — claim after verifying X if your reward didn’t auto-send."
                   : isFinalizing
-                    ? "Final rankings based on last snapshot. Verify X to claim when ready."
-                    : "Rankings update every 6 hours. Higher score = larger projected payout."}
+                    ? "Final rankings from the last scan. Verify X so payouts can reach you."
+                    : "Updates about every 6 hours. Higher score = larger projected payout."}
               {isLive && campaign.lastSnapshotAt ? (
                 <span className="block mt-1 text-xs text-muted-foreground/80">
-                  Last snapshot: {formatRelativePast(campaign.lastSnapshotAt)}
+                  Last update: {formatRelativePast(campaign.lastSnapshotAt)}
                 </span>
               ) : null}
             </p>
@@ -373,7 +509,7 @@ export function CampaignDetail({
             {leaderboard.length > 0 ? (
               <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground">
                 <Users className="w-3.5 h-3.5" />
-                {leaderboard.length} submission{leaderboard.length !== 1 ? "s" : ""}
+                {leaderboard.length} on the board
               </div>
             ) : null}
             <KolMyRankShareAction
@@ -393,6 +529,17 @@ export function CampaignDetail({
           viewerClaimEligibility={viewerClaimEligibility}
         />
       </div>
+
+      {/* Creator-only top-up — after participate flow so newcomers aren’t distracted */}
+      {isLive ? (
+        <AddRewardForm
+          campaign={campaign}
+          currentPoolSol={rewardSol}
+          platformFeeSol={config.platformFeeSol}
+          minTopUpKolRewardSol={config.minTopUpKolRewardSol}
+          onAdded={onRefresh}
+        />
+      ) : null}
     </div>
   );
 }

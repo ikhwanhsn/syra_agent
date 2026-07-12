@@ -30,7 +30,13 @@ export function CampaignCard({ campaign, onSelect }: CampaignCardProps) {
     <article className="card-premium-hover rounded-2xl border border-border/60 p-4 sm:p-5 flex flex-col gap-4 min-w-0">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="eyebrow mb-1">{isLive ? "Earn SOL" : "Campaign"}</p>
+          <p className="eyebrow mb-1">
+            {isLive
+              ? "Earn SOL"
+              : displayPhase === "pending_deposit"
+                ? "Needs payment"
+                : "Campaign"}
+          </p>
           <h3 className="font-semibold text-lg tracking-tight truncate">{campaign.title}</h3>
         </div>
         <Badge variant="outline" className={cn("shrink-0", getCampaignDisplayStyle(displayPhase))}>
@@ -85,7 +91,13 @@ export function CampaignCard({ campaign, onSelect }: CampaignCardProps) {
           className="rounded-full gap-1.5 w-full sm:w-auto shrink-0"
           onClick={() => onSelect?.(campaign.id)}
         >
-          {isLive ? "Join & earn" : displayPhase === "finalizing" ? "View status" : "View results"}
+          {isLive
+            ? "Join & earn"
+            : displayPhase === "pending_deposit"
+              ? "Continue & pay"
+              : displayPhase === "finalizing"
+                ? "View status"
+                : "View results"}
           <ArrowRight className="w-3.5 h-3.5" />
         </Button>
         <a

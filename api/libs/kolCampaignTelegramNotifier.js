@@ -4,7 +4,7 @@
  * Env: S3LABS_TELEGRAM_BOT_TOKEN, S3LABS_TELEGRAM_CHAT_ID
  * Optional: S3LABS_KOL_TELEGRAM_THREAD_ID — forum topic id (omit for main chat)
  */
-import { S3LABS_SITE_URL } from "../config/emailConfig.js";
+import { buildS3labsSiteUrl } from "../config/s3labsSiteConfig.js";
 import {
   getS3labsTelegramConfig,
   isS3labsTelegramConfigured,
@@ -55,7 +55,9 @@ export function formatKolCampaignTelegramMessage(campaign) {
     ? `@${String(campaign.sourceAuthorHandle).replace(/^@/, "")}`
     : null;
   const campaignId = String(campaign.id || "");
-  const campaignUrl = `${S3LABS_SITE_URL}/kol?campaign=${encodeURIComponent(campaignId)}`;
+  const campaignUrl = buildS3labsSiteUrl(
+    `/kol?campaign=${encodeURIComponent(campaignId)}`,
+  );
   const threadId = getKolCampaignThreadId();
 
   const lines = [

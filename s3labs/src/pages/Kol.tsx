@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { CampaignBrowseControls } from "@/components/kol/CampaignBrowseControls";
 import { CampaignGrid } from "@/components/kol/CampaignCard";
 import { CampaignDetail } from "@/components/kol/CampaignDetail";
 import { KolHowItWorks } from "@/components/kol/KolHowItWorks";
@@ -17,6 +18,11 @@ import { KolPointsInfo } from "@/components/kol/KolPointsInfo";
 import { CampaignTelegramNotify } from "@/components/CampaignTelegramNotify";
 import { MarketplaceStats } from "@/components/kol/MarketplaceStats";
 import { isCampaignFinalizing, isCampaignLive } from "@/lib/kolCampaignStatus";
+import {
+  parseKolCampaignSort,
+  sortKolCampaigns,
+  type KolCampaignSort,
+} from "@/lib/kolCampaignSort";
 import {
   DEFAULT_KOL_CONFIG,
   fetchCampaignDetail,
@@ -60,11 +66,19 @@ function KolPageContent() {
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedCampaignId = searchParams.get("campaign");
   const tabFromUrl = searchParams.get("tab");
+  const sortFromUrl = searchParams.get("sort");
   const [activeTab, setActiveTab] = useState<KolTab>(parseTab(tabFromUrl));
+  const [campaignSort, setCampaignSort] = useState<KolCampaignSort>(() =>
+    parseKolCampaignSort(sortFromUrl),
+  );
 
   useEffect(() => {
     setActiveTab(parseTab(tabFromUrl));
   }, [tabFromUrl]);
+
+  useEffect(() => {
+    setCampaignSort(parseKolCampaignSort(sortFromUrl));
+  }, [sortFromUrl]);
 
   const configQuery = useQuery({
     queryKey: ["kol-config"],
@@ -94,7 +108,11 @@ function KolPageContent() {
 
   const handleSelectCampaign = useCallback(
     (id: string) => {
-      setSearchParams({ campaign: id });
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("campaign", id);
+        return next;
+      });
     },
     [setSearchParams],
   );
@@ -121,17 +139,56 @@ function KolPageContent() {
     [setSearchParams],
   );
 
+  const handleSortChange = useCallback(
+    (sort: KolCampaignSort) => {
+      setCampaignSort(sort);
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        if (sort === "newest") next.delete("sort");
+        else next.set("sort", sort);
+        return next;
+      });
+    },
+    [setSearchParams],
+  );
+
   const allCampaigns = campaignsQuery.data?.campaigns ?? [];
 
   const liveCampaigns = useMemo(
-    () => allCampaigns.filter((c) => isCampaignLive(c)),
-    [allCampaigns],
+    () => sortKolCampaigns(
+      allCampaigns.filter((c) => isCampaignLive(c)),
+      campaignSort,
+    ),
+    [allCampaigns, campaignSort],
   );
 
   const finalizingCampaigns = useMemo(
-    () => allCampaigns.filter((c) => isCampaignFinalizing(c)),
-    [allCampaigns],
+    () => sortKolCampaigns(
+      allCampaigns.filter((c) => isCampaignFinalizing(c)),
+      campaignSort,
+    ),
+    [allCampaigns, campaignSort],
   );
+
+  const completedCampaigns = useMemo(
+    () => sortKolCampaigns(
+      allCampaigns.filter((c) => c.status === "completed"),
+      campaignSort,
+    ),
+    [allCampaigns, campaignSort],
+  );
+
+  const pendingDepositCampaigns = useMemo(() => {
+    if (!walletAddress) return [];
+    return sortKolCampaigns(
+      allCampaigns.filter(
+        (c) =>
+          c.status === "pending_deposit" &&
+          c.projectWallet.trim().toLowerCase() === walletAddress.trim().toLowerCase(),
+      ),
+      campaignSort,
+    );
+  }, [allCampaigns, campaignSort, walletAddress]);
 
   const config = configQuery.data ?? DEFAULT_KOL_CONFIG;
 
@@ -143,9 +200,9 @@ function KolPageContent() {
             Post on X, <span className="text-gradient">earn SOL</span>
           </h1>
           <p className="text-muted-foreground mt-4 text-base sm:text-lg leading-relaxed max-w-none w-full">
-            Solana projects fund reward pools for posts they want amplified. Reply or quote on X,
-            submit your link, and get paid automatically when the campaign ends — your share grows
-            with every like and view. You also earn{" "}
+            Solana projects fund reward pools for X posts they want more attention on. Reply or
+            quote the post — we find you automatically — and get paid in SOL when the campaign ends.
+            Your share grows with likes, replies, and views. You also earn{" "}
             <span className="text-foreground/90 font-medium">S3Labs Points</span> for every campaign
             you join.
           </p>
@@ -227,12 +284,35 @@ function KolPageContent() {
                 </div>
               ) : (
                 <>
+                  {allCampaigns.length > 0 ? (
+                    <CampaignBrowseControls
+                      sort={campaignSort}
+                      onSortChange={handleSortChange}
+                    />
+                  ) : null}
+
+                  {pendingDepositCampaigns.length > 0 ? (
+                    <div>
+                      <h2 className="font-semibold text-lg mb-1">
+                        Your draft — finish payment
+                      </h2>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        You created this campaign but haven’t funded it yet. Open it and confirm the
+                        SOL deposit to go live.
+                      </p>
+                      <CampaignGrid
+                        campaigns={pendingDepositCampaigns}
+                        onSelect={handleSelectCampaign}
+                      />
+                    </div>
+                  ) : null}
+
                   <div>
                     <h2 className="font-semibold text-lg mb-1">Live campaigns — start earning</h2>
                     <p className="text-sm text-muted-foreground mb-4">
                       {liveCampaigns.length === 0
                         ? "No live campaigns yet. Check back soon or launch one as a project."
-                        : `${liveCampaigns.length} campaign${liveCampaigns.length !== 1 ? "s" : ""} with SOL rewards · pick one, post on X, submit your link`}
+                        : `${liveCampaigns.length} campaign${liveCampaigns.length !== 1 ? "s" : ""} with SOL rewards · pick one, reply or quote on X`}
                     </p>
                     <CampaignGrid
                       campaigns={liveCampaigns}
@@ -253,11 +333,11 @@ function KolPageContent() {
                     </div>
                   ) : null}
 
-                  {allCampaigns.some((c) => c.status === "completed") ? (
+                  {completedCampaigns.length > 0 ? (
                     <div>
                       <h2 className="font-semibold text-lg mb-4">Completed</h2>
                       <CampaignGrid
-                        campaigns={allCampaigns.filter((c) => c.status === "completed")}
+                        campaigns={completedCampaigns}
                         onSelect={handleSelectCampaign}
                       />
                     </div>
@@ -310,6 +390,7 @@ function KolPageContent() {
                       campaignsQuery.refetch();
                       handleTabChange("browse");
                     }}
+                    onOpenCampaign={(id) => handleSelectCampaign(id)}
                   />
                 </Suspense>
               )}

@@ -39,7 +39,7 @@ let userAgentIndex = 0;
 function pickUserAgent() {
   const agents = WEB_SEARCH_USER_AGENTS;
   if (agents.length === 0) {
-    return "SyraWebSearch/1.0 (+https://s3labs.fun)";
+    return "SyraWebSearch/1.0 (+https://s3labs.xyz)";
   }
   const agent = agents[userAgentIndex % agents.length];
   userAgentIndex += 1;
