@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/button";
 const SCROLL_THRESHOLD = 400;
 
 const ScrollToTop = () => {
-  const { pathname, search, hash } = useLocation();
+  const { pathname, hash } = useLocation();
   const [visible, setVisible] = useState(false);
 
+  // Only reset scroll on real route / hash changes — not query-string updates
+  // (KOL tabs, filters, etc. use search params and must keep scroll position).
   useEffect(() => {
     if (hash) {
       const id = decodeURIComponent(hash.slice(1));
@@ -21,7 +23,7 @@ const ScrollToTop = () => {
     }
 
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-  }, [pathname, search, hash]);
+  }, [pathname, hash]);
 
   useEffect(() => {
     const handleScroll = () => {

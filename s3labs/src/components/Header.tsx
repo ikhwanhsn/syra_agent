@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { flushSync } from "react-dom";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useWallet } from "@solana/wallet-adapter-react";
 
 import { useTheme } from "@/contexts/ThemeContext";
@@ -9,12 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { NavLink } from "@/components/NavLink";
 import { NavbarWalletButton } from "@/components/NavbarWalletButton";
 import { MobileNavDrawer } from "@/components/MobileNavDrawer";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   mainNavLinks,
   otherNavLinks,
@@ -44,7 +37,7 @@ function NavItemLabel({ label, soon }: { label: string; soon?: boolean }) {
   );
 }
 
-const HOVER_CLOSE_DELAY_MS = 80;
+const HOVER_CLOSE_DELAY_MS = 150;
 
 function isNavGroupActive(pathname: string, links: SiteNavItem[]): boolean {
   return links.some((item) =>
@@ -52,6 +45,10 @@ function isNavGroupActive(pathname: string, links: SiteNavItem[]): boolean {
   );
 }
 
+/**
+ * Hover/click nav group — absolute panel (no Radix portal) so the pointer
+ * stays inside one hit-target from trigger → menu (padding bridge).
+ */
 function NavHoverDropdown({
   label,
   links,
@@ -62,11 +59,9 @@ function NavHoverDropdown({
   isActive: boolean;
 }) {
   const location = useLocation();
-  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  /** Blocks reopen while a route transition / Suspense load is in flight. */
-  const navLockedRef = useRef(false);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   const clearCloseTimer = useCallback(() => {
     if (closeTimer.current) {
@@ -76,7 +71,6 @@ function NavHoverDropdown({
   }, []);
 
   const openMenu = useCallback(() => {
-    if (navLockedRef.current) return;
     clearCloseTimer();
     setOpen(true);
   }, [clearCloseTimer]);
@@ -86,50 +80,55 @@ function NavHoverDropdown({
     closeTimer.current = setTimeout(() => setOpen(false), HOVER_CLOSE_DELAY_MS);
   }, [clearCloseTimer]);
 
+  const closeMenu = useCallback(() => {
+    clearCloseTimer();
+    setOpen(false);
+  }, [clearCloseTimer]);
+
   const toggleMenu = useCallback(() => {
-    if (navLockedRef.current) return;
     clearCloseTimer();
     setOpen((prev) => !prev);
   }, [clearCloseTimer]);
 
-  const handleOpenChange = useCallback(
-    (next: boolean) => {
-      if (next && navLockedRef.current) return;
-      if (!next) clearCloseTimer();
-      setOpen(next);
-    },
-    [clearCloseTimer],
-  );
-
-  /**
-   * Close the portaled menu synchronously, then navigate.
-   * Closing on pointerDown alone unmounted the link before click — use navigate() instead.
-   */
-  const goTo = useCallback(
-    (to: string) => {
-      navLockedRef.current = true;
-      clearCloseTimer();
-      flushSync(() => {
-        setOpen(false);
-      });
-      navigate(to);
-    },
-    [clearCloseTimer, navigate],
-  );
-
   useEffect(() => {
-    navLockedRef.current = false;
     clearCloseTimer();
     setOpen(false);
   }, [location.pathname, clearCloseTimer]);
 
   useEffect(() => () => clearCloseTimer(), [clearCloseTimer]);
 
+  useEffect(() => {
+    if (!open) return;
+
+    const onPointerDown = (event: PointerEvent) => {
+      const root = rootRef.current;
+      if (!root || root.contains(event.target as Node)) return;
+      closeMenu();
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeMenu();
+    };
+
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open, closeMenu]);
+
   return (
-    <DropdownMenu open={open} onOpenChange={handleOpenChange} modal={false}>
-      <DropdownMenuTrigger
-        onPointerEnter={openMenu}
-        onPointerLeave={scheduleClose}
+    <div
+      ref={rootRef}
+      className="relative"
+      onPointerEnter={openMenu}
+      onPointerLeave={scheduleClose}
+    >
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-haspopup="menu"
         onClick={toggleMenu}
         className={cn(
           "nav-link-premium group inline-flex items-center gap-1 whitespace-nowrap outline-none",
@@ -137,35 +136,51 @@ function NavHoverDropdown({
         )}
       >
         {label}
-        <ChevronDown className="h-3.5 w-3.5 opacity-60 transition-transform duration-150 ease-out group-data-[state=open]:rotate-180" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="center"
-        sideOffset={10}
-        onPointerEnter={openMenu}
-        onPointerLeave={scheduleClose}
-        onCloseAutoFocus={(event) => event.preventDefault()}
-        className={cn(
-          "nav-bar-panel min-w-[168px] rounded-xl border-border/60 p-1.5 shadow-elevated",
-          siteNavDropdownZ,
-        )}
-      >
-        {links.map((item) => (
-          <DropdownMenuItem
-            key={item.to}
-            className="cursor-pointer rounded-lg transition-colors duration-150"
-            onPointerEnter={() => prefetchRoute(item.to)}
-            onFocus={() => prefetchRoute(item.to)}
-            onSelect={(event) => {
-              event.preventDefault();
-              goTo(item.to);
-            }}
-          >
-            <NavItemLabel label={item.label} soon={item.soon} />
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+        <ChevronDown
+          className={cn(
+            "h-3.5 w-3.5 opacity-60 transition-transform duration-150 ease-out",
+            open && "rotate-180",
+          )}
+        />
+      </button>
+
+      {open ? (
+        <div
+          role="menu"
+          className={cn(
+            "absolute left-1/2 top-full z-[280] min-w-[168px] -translate-x-1/2 pt-2",
+            siteNavDropdownZ,
+          )}
+        >
+          <div className="nav-bar-panel rounded-xl border-border/60 p-1.5 shadow-elevated">
+            {links.map((item) => {
+              const itemActive =
+                item.to === "/"
+                  ? location.pathname === "/"
+                  : location.pathname.startsWith(item.to);
+
+              return (
+                <Link
+                  key={item.to}
+                  role="menuitem"
+                  to={item.to}
+                  onClick={closeMenu}
+                  onPointerEnter={() => prefetchRoute(item.to)}
+                  onFocus={() => prefetchRoute(item.to)}
+                  className={cn(
+                    "flex cursor-pointer items-center rounded-lg px-2 py-1.5 text-sm outline-none transition-colors duration-150",
+                    "text-foreground hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent",
+                    itemActive && "bg-accent/60",
+                  )}
+                >
+                  <NavItemLabel label={item.label} soon={item.soon} />
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }
 

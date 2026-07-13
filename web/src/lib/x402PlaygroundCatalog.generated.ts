@@ -5,7 +5,7 @@
 import type { HttpMethod } from "@/types/api";
 import type { RequestParam } from "@/types/api";
 
-export const X402_PLAYGROUND_GENERATED_AT = "2026-07-08T05:16:59.747Z";
+export const X402_PLAYGROUND_GENERATED_AT = "2026-07-13T00:10:30.717Z";
 
 export interface X402PlaygroundResourceTemplate {
   segment: string;
@@ -742,6 +742,96 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "summary": "Real-time Pyth oracle prices via Hermes",
       "description": "Latest Pyth oracle prices from Hermes for major crypto feeds. Use when an agent needs authoritative onchain-derived spot prices (BTC, ETH,…",
       "priceUsd": "0.001",
+      "category": "analytics"
+    }
+  },
+  {
+    "segment": "insights/network-health",
+    "id": "x402-insights-network-health",
+    "label": "Solana Network Health: Solana slot, epoch, TPS, and priority fee snapshot",
+    "method": "GET",
+    "params": [],
+    "catalogMeta": {
+      "segment": "insights/network-health",
+      "name": "Solana Network Health",
+      "summary": "Solana slot, epoch, TPS, and priority fee snapshot",
+      "description": "Real-time Solana mainnet health metrics: current slot, epoch progress, average TPS from recent performance samples, and median priority fee…",
+      "priceUsd": "0.01",
+      "category": "analytics"
+    }
+  },
+  {
+    "segment": "insights/gas-oracle",
+    "id": "x402-insights-gas-oracle",
+    "label": "Solana Gas Oracle: Solana priority fee percentiles for transaction inclusion",
+    "method": "GET",
+    "params": [],
+    "catalogMeta": {
+      "segment": "insights/gas-oracle",
+      "name": "Solana Gas Oracle",
+      "summary": "Solana priority fee percentiles for transaction inclusion",
+      "description": "Priority fee oracle derived from recent Solana mainnet samples. Returns min, p25, p50, p75, p95, and max priority fees in lamports. Use whe…",
+      "priceUsd": "0.01",
+      "category": "analytics"
+    }
+  },
+  {
+    "segment": "insights/market-pulse",
+    "id": "x402-insights-market-pulse",
+    "label": "Cross-Asset Market Pulse: SOL, BTC, ETH spot prices via Pyth oracle",
+    "method": "GET",
+    "params": [],
+    "catalogMeta": {
+      "segment": "insights/market-pulse",
+      "name": "Cross-Asset Market Pulse",
+      "summary": "SOL, BTC, ETH spot prices via Pyth oracle",
+      "description": "Cross-asset market pulse with latest Pyth oracle prices for SOL/USD, BTC/USD, and ETH/USD including confidence intervals and publish times.…",
+      "priceUsd": "0.02",
+      "category": "analytics"
+    }
+  },
+  {
+    "segment": "insights/token-metrics",
+    "id": "x402-insights-token-metrics",
+    "label": "Token Liquidity Metrics: SOL DEX pair metrics via DexScreener",
+    "method": "GET",
+    "params": [],
+    "catalogMeta": {
+      "segment": "insights/token-metrics",
+      "name": "Token Liquidity Metrics",
+      "summary": "SOL DEX pair metrics via DexScreener",
+      "description": "Token liquidity and trading metrics for SOL across major DEX pairs from DexScreener. Returns top pairs with price, 24h volume, price change…",
+      "priceUsd": "0.03",
+      "category": "analytics"
+    }
+  },
+  {
+    "segment": "insights/defi-tvl",
+    "id": "x402-insights-defi-tvl",
+    "label": "Solana DeFi TVL: Solana chain TVL overview from DefiLlama",
+    "method": "GET",
+    "params": [],
+    "catalogMeta": {
+      "segment": "insights/defi-tvl",
+      "name": "Solana DeFi TVL",
+      "summary": "Solana chain TVL overview from DefiLlama",
+      "description": "Solana DeFi total value locked overview from DefiLlama. Use when an agent assesses macro DeFi health and capital allocation on the Solana e…",
+      "priceUsd": "0.05",
+      "category": "defi"
+    }
+  },
+  {
+    "segment": "insights/volatility-index",
+    "id": "x402-insights-volatility-index",
+    "label": "Volatility Index: Computed volatility index from major Pyth price feeds",
+    "method": "GET",
+    "params": [],
+    "catalogMeta": {
+      "segment": "insights/volatility-index",
+      "name": "Volatility Index",
+      "summary": "Computed volatility index from major Pyth price feeds",
+      "description": "Volatility index computed from Pyth price feed confidence intervals across SOL, BTC, and ETH. Returns index score and per-asset uncertainty…",
+      "priceUsd": "0.1",
       "category": "analytics"
     }
   },

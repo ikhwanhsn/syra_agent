@@ -47,13 +47,8 @@ function parseMarkdownBlocks(markdown: string): ParsedBlock[] {
       continue;
     }
 
-    if (trimmed.startsWith("## ")) {
+    if (/^#{1,6}\s/.test(trimmed)) {
       blocks.push({ type: "heading", text: stripInlineMarkdown(trimmed) });
-      i += 1;
-      continue;
-    }
-
-    if (trimmed.startsWith("# ")) {
       i += 1;
       continue;
     }
@@ -126,6 +121,11 @@ function parseMarkdownBlocks(markdown: string): ParsedBlock[] {
     const text = stripInlineMarkdown(paraLines.join(" "));
     if (text && !text.startsWith("*Originally published")) {
       blocks.push({ type: "paragraph", text });
+    }
+
+    // Defensive: unrecognized single-line tokens must not stall the parser.
+    if (paraLines.length === 0) {
+      i += 1;
     }
   }
 

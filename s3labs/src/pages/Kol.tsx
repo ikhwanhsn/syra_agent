@@ -108,33 +108,43 @@ function KolPageContent() {
 
   const handleSelectCampaign = useCallback(
     (id: string) => {
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev);
-        next.set("campaign", id);
-        return next;
-      });
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set("campaign", id);
+          return next;
+        },
+        { preventScrollReset: true },
+      );
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
     },
     [setSearchParams],
   );
 
   const handleCloseDetail = useCallback(() => {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.delete("campaign");
-      return next;
-    });
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("campaign");
+        return next;
+      },
+      { preventScrollReset: true },
+    );
   }, [setSearchParams]);
 
   const handleTabChange = useCallback(
     (value: string) => {
       const tab = parseTab(value);
       setActiveTab(tab);
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev);
-        if (tab === "browse") next.delete("tab");
-        else next.set("tab", tab);
-        return next;
-      });
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (tab === "browse") next.delete("tab");
+          else next.set("tab", tab);
+          return next;
+        },
+        { preventScrollReset: true },
+      );
     },
     [setSearchParams],
   );
@@ -142,12 +152,15 @@ function KolPageContent() {
   const handleSortChange = useCallback(
     (sort: KolCampaignSort) => {
       setCampaignSort(sort);
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev);
-        if (sort === "newest") next.delete("sort");
-        else next.set("sort", sort);
-        return next;
-      });
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (sort === "newest") next.delete("sort");
+          else next.set("sort", sort);
+          return next;
+        },
+        { preventScrollReset: true },
+      );
     },
     [setSearchParams],
   );
