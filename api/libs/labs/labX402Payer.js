@@ -10,6 +10,7 @@ import { getLabWalletKeypairByAddress } from './labWalletService.js';
 import { pickRandomLabX402Endpoint, findLabX402Endpoint } from './labX402Endpoints.js';
 import {
   logLabX402Call,
+  resolveActiveDailyCallCap,
 } from './labX402CallLog.js';
 import LabX402Settings from '../../models/labs/LabX402Settings.js';
 import LabX402Call from '../../models/labs/LabX402Call.js';
@@ -154,29 +155,66 @@ export async function runLabX402Payment(payerAddress, opts = {}) {
 }
 
 /**
- * @returns {Promise<object>}
+ * @param {object} doc
+ * @returns {object}
  */
-export async function getLabX402Settings() {
-  let doc = await LabX402Settings.findOne({ singletonKey: 'default' }).lean();
-  if (!doc) {
-    doc = (await LabX402Settings.create({ singletonKey: 'default' })).toObject();
-  }
+function formatLabX402Settings(doc) {
+  const legacy = doc.maxDailyCalls ?? 2000;
+  const rawMin = typeof doc.maxDailyCallsMin === 'number' ? doc.maxDailyCallsMin : legacy;
+  const rawMax = typeof doc.maxDailyCallsMax === 'number' ? doc.maxDailyCallsMax : legacy;
+  const min = Math.min(Math.max(100, Math.round(rawMin)), 10_000);
+  const max = Math.min(Math.max(100, Math.round(rawMax)), 10_000);
+  const maxDailyCallsMin = Math.min(min, max);
+  const maxDailyCallsMax = Math.max(min, max);
+  const today = new Date().toISOString().slice(0, 10);
+  const activeDailyCallCap =
+    doc.activeDailyCallCapDay === today && typeof doc.activeDailyCallCap === 'number'
+      ? doc.activeDailyCallCap
+      : null;
+
   return {
     autoCallEnabled: doc.autoCallEnabled ?? false,
     intervalMs: doc.intervalMs ?? 300_000,
     refundEnabled: doc.refundEnabled ?? true,
     jitterPct: doc.jitterPct ?? 20,
-    maxDailyCalls: doc.maxDailyCalls ?? 2000,
+    maxDailyCallsMin,
+    maxDailyCallsMax,
+    /** Today's rolled cap when available; otherwise midpoint of the range. */
+    maxDailyCalls: activeDailyCallCap ?? Math.round((maxDailyCallsMin + maxDailyCallsMax) / 2),
+    activeDailyCallCap,
+    activeDailyCallCapDay: doc.activeDailyCallCapDay ?? null,
     updatedAt: doc.updatedAt,
   };
 }
 
 /**
- * @param {Partial<{ autoCallEnabled: boolean; intervalMs: number; refundEnabled: boolean; jitterPct: number }>} patch
+ * @returns {Promise<object>}
+ */
+export async function getLabX402Settings() {
+  // Ensure today's random cap is rolled so the Labs UI can show the active value.
+  await resolveActiveDailyCallCap();
+  let doc = await LabX402Settings.findOne({ singletonKey: 'default' }).lean();
+  if (!doc) {
+    doc = (await LabX402Settings.create({ singletonKey: 'default' })).toObject();
+  }
+  return formatLabX402Settings(doc);
+}
+
+/**
+ * @param {Partial<{
+ *   autoCallEnabled: boolean;
+ *   intervalMs: number;
+ *   refundEnabled: boolean;
+ *   jitterPct: number;
+ *   maxDailyCallsMin: number;
+ *   maxDailyCallsMax: number;
+ *   maxDailyCalls: number;
+ * }>} patch
  * @returns {Promise<object>}
  */
 export async function updateLabX402Settings(patch) {
   const update = {};
+  let clearActiveCap = false;
   if (typeof patch.autoCallEnabled === 'boolean') update.autoCallEnabled = patch.autoCallEnabled;
   if (typeof patch.intervalMs === 'number' && patch.intervalMs >= 60_000 && patch.intervalMs <= 3_600_000) {
     update.intervalMs = Math.round(patch.intervalMs);
@@ -185,23 +223,55 @@ export async function updateLabX402Settings(patch) {
   if (typeof patch.jitterPct === 'number' && patch.jitterPct >= 0 && patch.jitterPct <= 50) {
     update.jitterPct = Math.round(patch.jitterPct);
   }
-  if (typeof patch.maxDailyCalls === 'number' && patch.maxDailyCalls >= 100 && patch.maxDailyCalls <= 10_000) {
-    update.maxDailyCalls = Math.round(patch.maxDailyCalls);
+
+  const hasMin = typeof patch.maxDailyCallsMin === 'number';
+  const hasMax = typeof patch.maxDailyCallsMax === 'number';
+  const hasLegacy = typeof patch.maxDailyCalls === 'number';
+
+  if (hasMin || hasMax || hasLegacy) {
+    const existing = await LabX402Settings.findOne({ singletonKey: 'default' })
+      .select('maxDailyCalls maxDailyCallsMin maxDailyCallsMax')
+      .lean();
+    const legacyFallback = existing?.maxDailyCalls ?? 2000;
+    let min = hasMin
+      ? Math.round(patch.maxDailyCallsMin)
+      : (existing?.maxDailyCallsMin ?? (hasLegacy ? Math.round(patch.maxDailyCalls) : legacyFallback));
+    let max = hasMax
+      ? Math.round(patch.maxDailyCallsMax)
+      : (existing?.maxDailyCallsMax ?? (hasLegacy ? Math.round(patch.maxDailyCalls) : legacyFallback));
+    if (hasLegacy && !hasMin && !hasMax) {
+      min = Math.round(patch.maxDailyCalls);
+      max = Math.round(patch.maxDailyCalls);
+    }
+    min = Math.min(10_000, Math.max(100, min));
+    max = Math.min(10_000, Math.max(100, max));
+    if (min > max) {
+      const swap = min;
+      min = max;
+      max = swap;
+    }
+    update.maxDailyCallsMin = min;
+    update.maxDailyCallsMax = max;
+    update.maxDailyCalls = max;
+    // Force a fresh roll on next budget check with the new range.
+    clearActiveCap = true;
   }
 
   const doc = await LabX402Settings.findOneAndUpdate(
     { singletonKey: 'default' },
-    { $set: update, $setOnInsert: { singletonKey: 'default' } },
+    {
+      $set: update,
+      $setOnInsert: { singletonKey: 'default' },
+      ...(clearActiveCap ? { $unset: { activeDailyCallCap: 1, activeDailyCallCapDay: 1 } } : {}),
+    },
     { upsert: true, new: true, lean: true },
   );
-  return {
-    autoCallEnabled: doc.autoCallEnabled ?? false,
-    intervalMs: doc.intervalMs ?? 300_000,
-    refundEnabled: doc.refundEnabled ?? true,
-    jitterPct: doc.jitterPct ?? 20,
-    maxDailyCalls: doc.maxDailyCalls ?? 2000,
-    updatedAt: doc.updatedAt,
-  };
+  if (clearActiveCap) {
+    await resolveActiveDailyCallCap();
+    const refreshed = await LabX402Settings.findOne({ singletonKey: 'default' }).lean();
+    return formatLabX402Settings(refreshed ?? doc);
+  }
+  return formatLabX402Settings(doc);
 }
 
 /**

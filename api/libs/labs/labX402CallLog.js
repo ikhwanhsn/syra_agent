@@ -9,6 +9,7 @@ import LabX402Settings from '../../models/labs/LabX402Settings.js';
 const MAX_CALL_LOG_DOCS = Number(process.env.LAB_X402_MAX_CALL_LOG_DOCS) || 5_000;
 const DEFAULT_MAX_DAILY_CALLS = Number(process.env.LAB_X402_MAX_DAILY_CALLS) || 2_000;
 const MAX_PAYER_WALLETS = Number(process.env.LAB_X402_MAX_PAYER_WALLETS) || 20;
+const CALL_CAP_BOUNDS = { min: 100, max: 10_000 };
 
 /** @type {Map<string, number>} */
 const labPayerCache = new Map();
@@ -18,6 +19,92 @@ function startOfUtcDay() {
   const d = new Date();
   d.setUTCHours(0, 0, 0, 0);
   return d;
+}
+
+function utcDayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/**
+ * @param {number} value
+ * @param {number} lo
+ * @param {number} hi
+ */
+function clampInt(value, lo, hi) {
+  return Math.min(hi, Math.max(lo, Math.round(value)));
+}
+
+/**
+ * @param {number} min
+ * @param {number} max
+ */
+function randomIntInclusive(min, max) {
+  const lo = Math.min(min, max);
+  const hi = Math.max(min, max);
+  return lo + Math.floor(Math.random() * (hi - lo + 1));
+}
+
+/**
+ * Resolve configured min/max range from settings doc (supports legacy flat maxDailyCalls).
+ * @param {object | null | undefined} doc
+ * @returns {{ min: number; max: number }}
+ */
+export function resolveDailyCallCapRange(doc) {
+  const legacy = typeof doc?.maxDailyCalls === 'number' ? doc.maxDailyCalls : DEFAULT_MAX_DAILY_CALLS;
+  const rawMin = typeof doc?.maxDailyCallsMin === 'number' ? doc.maxDailyCallsMin : legacy;
+  const rawMax = typeof doc?.maxDailyCallsMax === 'number' ? doc.maxDailyCallsMax : legacy;
+  const min = clampInt(rawMin, CALL_CAP_BOUNDS.min, CALL_CAP_BOUNDS.max);
+  const max = clampInt(rawMax, CALL_CAP_BOUNDS.min, CALL_CAP_BOUNDS.max);
+  return { min: Math.min(min, max), max: Math.max(min, max) };
+}
+
+/**
+ * Pick (and persist) today's random daily call cap within the configured range.
+ * Stable for the UTC day across scheduler ticks and process restarts.
+ * @returns {Promise<{ max: number; min: number; maxBound: number; day: string; rolled: boolean }>}
+ */
+export async function resolveActiveDailyCallCap() {
+  const doc = await LabX402Settings.findOne({ singletonKey: 'default' })
+    .select(
+      'maxDailyCalls maxDailyCallsMin maxDailyCallsMax activeDailyCallCap activeDailyCallCapDay',
+    )
+    .lean();
+  const range = resolveDailyCallCapRange(doc);
+  const day = utcDayKey();
+
+  if (
+    doc?.activeDailyCallCapDay === day &&
+    typeof doc.activeDailyCallCap === 'number'
+  ) {
+    const capped = clampInt(doc.activeDailyCallCap, range.min, range.max);
+    if (capped !== doc.activeDailyCallCap) {
+      await LabX402Settings.updateOne(
+        { singletonKey: 'default' },
+        { $set: { activeDailyCallCap: capped, activeDailyCallCapDay: day } },
+        { upsert: true },
+      );
+    }
+    return { max: capped, min: range.min, maxBound: range.max, day, rolled: false };
+  }
+
+  const rolled = randomIntInclusive(range.min, range.max);
+  await LabX402Settings.findOneAndUpdate(
+    { singletonKey: 'default' },
+    {
+      $set: {
+        activeDailyCallCap: rolled,
+        activeDailyCallCapDay: day,
+        maxDailyCallsMin: range.min,
+        maxDailyCallsMax: range.max,
+      },
+      $setOnInsert: { singletonKey: 'default' },
+    },
+    { upsert: true },
+  );
+  console.info(
+    `[lab-x402-log] rolled daily call cap ${rolled} for ${day} (range ${range.min}-${range.max})`,
+  );
+  return { max: rolled, min: range.min, maxBound: range.max, day, rolled: true };
 }
 
 /**
@@ -52,13 +139,17 @@ export async function countLabCallsToday() {
 }
 
 /**
- * @returns {Promise<{ allowed: boolean; count: number; max: number }>}
+ * @returns {Promise<{ allowed: boolean; count: number; max: number; min: number; maxBound: number }>}
  */
 export async function checkLabDailyCallBudget() {
-  const doc = await LabX402Settings.findOne({ singletonKey: 'default' }).select('maxDailyCalls').lean();
-  const max = doc?.maxDailyCalls ?? DEFAULT_MAX_DAILY_CALLS;
-  const count = await countLabCallsToday();
-  return { allowed: count < max, count, max };
+  const [cap, count] = await Promise.all([resolveActiveDailyCallCap(), countLabCallsToday()]);
+  return {
+    allowed: count < cap.max,
+    count,
+    max: cap.max,
+    min: cap.min,
+    maxBound: cap.maxBound,
+  };
 }
 
 async function pruneOldCallLogs() {

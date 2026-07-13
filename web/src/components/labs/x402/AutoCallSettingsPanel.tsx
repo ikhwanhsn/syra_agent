@@ -20,6 +20,8 @@ interface AutoCallSettingsPanelProps {
     jitterPct: number;
     refundEnabled: boolean;
     autoCallEnabled: boolean;
+    maxDailyCallsMin: number;
+    maxDailyCallsMax: number;
   }) => void;
 }
 
@@ -29,6 +31,12 @@ function msToMinutes(ms: number): number {
 
 function minutesToMs(min: number): number {
   return Math.max(1, min) * 60_000;
+}
+
+function normalizeRange(min: number, max: number): { min: number; max: number } {
+  const lo = Math.min(10_000, Math.max(100, Math.round(min)));
+  const hi = Math.min(10_000, Math.max(100, Math.round(max)));
+  return lo <= hi ? { min: lo, max: hi } : { min: hi, max: lo };
 }
 
 export function AutoCallSettingsPanel({
@@ -42,7 +50,8 @@ export function AutoCallSettingsPanel({
   const [intervalMin, setIntervalMin] = useState(5);
   const [refundEnabled, setRefundEnabled] = useState(true);
   const [jitterPct, setJitterPct] = useState(20);
-  const [maxDailyCalls, setMaxDailyCalls] = useState(2000);
+  const [maxDailyCallsMin, setMaxDailyCallsMin] = useState(2000);
+  const [maxDailyCallsMax, setMaxDailyCallsMax] = useState(2000);
   const showSkeleton = useMinimumSkeleton(isLoading);
 
   useEffect(() => {
@@ -51,7 +60,13 @@ export function AutoCallSettingsPanel({
     setIntervalMin(msToMinutes(settings.intervalMs));
     setRefundEnabled(settings.refundEnabled);
     setJitterPct(settings.jitterPct);
-    setMaxDailyCalls(settings.maxDailyCalls ?? 2000);
+    const legacy = settings.maxDailyCalls ?? 2000;
+    const range = normalizeRange(
+      settings.maxDailyCallsMin ?? legacy,
+      settings.maxDailyCallsMax ?? legacy,
+    );
+    setMaxDailyCallsMin(range.min);
+    setMaxDailyCallsMax(range.max);
   }, [settings]);
 
   useEffect(() => {
@@ -60,13 +75,27 @@ export function AutoCallSettingsPanel({
       jitterPct,
       refundEnabled,
       autoCallEnabled,
-      maxDailyCalls,
+      maxDailyCallsMin,
+      maxDailyCallsMax,
     });
-  }, [intervalMin, jitterPct, refundEnabled, autoCallEnabled, maxDailyCalls, onDraftChange]);
+  }, [
+    intervalMin,
+    jitterPct,
+    refundEnabled,
+    autoCallEnabled,
+    maxDailyCallsMin,
+    maxDailyCallsMax,
+    onDraftChange,
+  ]);
 
   if (showSkeleton) {
     return <AutoCallSettingsSkeleton />;
   }
+
+  const todayCap =
+    settings?.activeDailyCallCap != null && settings.activeDailyCallCapDay
+      ? settings.activeDailyCallCap
+      : null;
 
   return (
     <div className={cn(overviewCardShell, "space-y-5 p-5")}>
@@ -112,18 +141,40 @@ export function AutoCallSettingsPanel({
             onChange={(e) => setJitterPct(Number(e.target.value))}
           />
         </div>
-        <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="max-daily-calls">Max calls per day (MongoDB cap)</Label>
+        <div className="space-y-2">
+          <Label htmlFor="max-daily-calls-min">Daily calls min (MongoDB cap)</Label>
           <Input
-            id="max-daily-calls"
+            id="max-daily-calls-min"
             type="number"
             min={100}
             max={10000}
-            value={maxDailyCalls}
-            onChange={(e) => setMaxDailyCalls(Number(e.target.value))}
+            value={maxDailyCallsMin}
+            onChange={(e) => setMaxDailyCallsMin(Number(e.target.value))}
           />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="max-daily-calls-max">Daily calls max (MongoDB cap)</Label>
+          <Input
+            id="max-daily-calls-max"
+            type="number"
+            min={100}
+            max={10000}
+            value={maxDailyCallsMax}
+            onChange={(e) => setMaxDailyCallsMax(Number(e.target.value))}
+          />
+        </div>
+        <div className="space-y-1 sm:col-span-2">
           <p className="text-xs text-muted-foreground">
-            Scheduler stops logging and running when this daily limit is reached.
+            Each UTC day the system picks a random cap in this range so volume is not identical every
+            day. Scheduler stops logging and running when that day&apos;s cap is reached.
+            {todayCap != null ? (
+              <>
+                {" "}
+                Today&apos;s rolled cap:{" "}
+                <span className="font-mono tabular-nums text-foreground">{todayCap.toLocaleString()}</span>
+                {settings?.activeDailyCallCapDay ? ` (${settings.activeDailyCallCapDay} UTC)` : null}.
+              </>
+            ) : null}
           </p>
         </div>
       </div>
@@ -143,15 +194,17 @@ export function AutoCallSettingsPanel({
       </div>
 
       <Button
-        onClick={() =>
+        onClick={() => {
+          const range = normalizeRange(maxDailyCallsMin, maxDailyCallsMax);
           onSave({
             autoCallEnabled,
             intervalMs: minutesToMs(intervalMin),
             refundEnabled,
             jitterPct,
-            maxDailyCalls,
-          })
-        }
+            maxDailyCallsMin: range.min,
+            maxDailyCallsMax: range.max,
+          });
+        }}
         disabled={isSaving}
         className="gap-2"
       >

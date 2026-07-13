@@ -20,7 +20,13 @@ export interface LabX402Settings {
   intervalMs: number;
   refundEnabled: boolean;
   jitterPct: number;
+  /** Inclusive daily cap range; system rolls a random value once per UTC day. */
+  maxDailyCallsMin: number;
+  maxDailyCallsMax: number;
+  /** Today's rolled cap (or midpoint of range if not rolled yet). */
   maxDailyCalls: number;
+  activeDailyCallCap?: number | null;
+  activeDailyCallCapDay?: string | null;
   updatedAt?: string;
 }
 

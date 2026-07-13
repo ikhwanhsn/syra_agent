@@ -31,6 +31,8 @@ export function X402LabTab() {
     jitterPct: number;
     refundEnabled: boolean;
     autoCallEnabled: boolean;
+    maxDailyCallsMin: number;
+    maxDailyCallsMax: number;
   } | null>(null);
 
   const wallets = walletsQ.data ?? [];
