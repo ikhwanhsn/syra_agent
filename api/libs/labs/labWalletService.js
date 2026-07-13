@@ -1,13 +1,13 @@
 /**
- * Lab wallet CRUD, keypair/account resolution, and balance reads for x402 Labs (Solana + Base).
+ * Lab wallet CRUD, keypair/account resolution, and balance reads for x402 Labs (Solana + Base + Celo).
  */
 import { Keypair, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import bs58 from 'bs58';
 import { createPublicClient, http, formatEther, formatUnits } from 'viem';
-import { base } from 'viem/chains';
+import { base, celo } from 'viem/chains';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import LabWallet from '../../models/labs/LabWallet.js';
-import { normalizeLabChain } from '../../models/labs/LabX402Settings.js';
+import { normalizeLabChain, isEvmLabChain } from '../../models/labs/LabX402Settings.js';
 import {
   encryptAgentSecretForStorage,
   decryptAgentSecretFromStorage,
@@ -15,6 +15,7 @@ import {
 import { getMaxPayerWallets } from './labX402CallLog.js';
 import { withSolanaRpcFallback } from '../solanaServerRpc.js';
 import { getDexterNetworkByCaip2 } from '../../config/dexterX402Networks.js';
+import { CELO_USDC_MAINNET, getCeloRpcUrl } from '../../config/celoX402Networks.js';
 
 const USDC_MAINNET = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 const BASE_USDC =
@@ -44,8 +45,12 @@ export function getBaseRpcUrl() {
   );
 }
 
+export { getCeloRpcUrl };
+
 /** @type {ReturnType<typeof createPublicClient> | null} */
 let basePublicClient = null;
+/** @type {ReturnType<typeof createPublicClient> | null} */
+let celoPublicClient = null;
 
 /**
  * @returns {ReturnType<typeof createPublicClient>}
@@ -58,6 +63,19 @@ function getBasePublicClient() {
     });
   }
   return basePublicClient;
+}
+
+/**
+ * @returns {ReturnType<typeof createPublicClient>}
+ */
+function getCeloPublicClient() {
+  if (!celoPublicClient) {
+    celoPublicClient = createPublicClient({
+      chain: celo,
+      transport: http(getCeloRpcUrl()),
+    });
+  }
+  return celoPublicClient;
 }
 
 /**
@@ -108,17 +126,19 @@ export async function getLabWalletKeypairByAddress(address) {
 }
 
 /**
- * Resolve a viem account for a Base lab wallet address.
+ * Resolve a viem account for an EVM lab wallet address (Base or Celo).
  * @param {string} address
+ * @param {'base' | 'celo'} [chain='base']
  * @returns {Promise<import('viem').Account | null>}
  */
-export async function getLabWalletEvmAccountByAddress(address) {
+export async function getLabWalletEvmAccountByAddress(address, chain = 'base') {
   const addr = String(address || '').trim();
   if (!addr) return null;
+  const c = chain === 'celo' ? 'celo' : 'base';
   const doc = await LabWallet.findOne({
     address: { $regex: new RegExp(`^${addr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
     active: true,
-    chain: 'base',
+    chain: c,
   })
     .select('+encryptedSecret')
     .lean();
@@ -129,7 +149,7 @@ export async function getLabWalletEvmAccountByAddress(address) {
 /**
  * Load active lab wallet doc (with secret) by address, optionally scoped to chain.
  * @param {string} address
- * @param {'solana' | 'base'} [chain]
+ * @param {'solana' | 'base' | 'celo'} [chain]
  * @returns {Promise<object | null>}
  */
 export async function getLabWalletDocByAddress(address, chain) {
@@ -137,8 +157,8 @@ export async function getLabWalletDocByAddress(address, chain) {
   if (!addr) return null;
   /** @type {Record<string, unknown>} */
   const filter = { active: true };
-  if (chain === 'base') {
-    filter.chain = 'base';
+  if (chain === 'base' || chain === 'celo') {
+    filter.chain = chain;
     filter.address = { $regex: new RegExp(`^${addr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') };
   } else if (chain === 'solana') {
     filter.chain = 'solana';
@@ -150,13 +170,17 @@ export async function getLabWalletDocByAddress(address, chain) {
         chain: 'base',
         address: { $regex: new RegExp(`^${addr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
       },
+      {
+        chain: 'celo',
+        address: { $regex: new RegExp(`^${addr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
+      },
     ];
   }
   return LabWallet.findOne(filter).select('+encryptedSecret').lean();
 }
 
 /**
- * @param {'solana' | 'base'} [chain]
+ * @param {'solana' | 'base' | 'celo'} [chain]
  * @returns {Promise<string | null>}
  */
 export async function getActivePayToAddress(chain = 'solana') {
@@ -168,15 +192,20 @@ export async function getActivePayToAddress(chain = 'solana') {
 }
 
 /**
- * @param {'solana' | 'base'} [chain]
- * @returns {Promise<{ solanaPayTo: string | null; evmPayTo: string | null }>}
+ * @returns {Promise<{ solanaPayTo: string | null; evmPayTo: string | null; celoPayTo: string | null; basePayTo: string | null }>}
  */
 export async function getActiveLabPayToAddresses() {
-  const [solanaPayTo, evmPayTo] = await Promise.all([
+  const [solanaPayTo, basePayTo, celoPayTo] = await Promise.all([
     getActivePayToAddress('solana'),
     getActivePayToAddress('base'),
+    getActivePayToAddress('celo'),
   ]);
-  return { solanaPayTo, evmPayTo };
+  return {
+    solanaPayTo,
+    evmPayTo: basePayTo,
+    basePayTo,
+    celoPayTo,
+  };
 }
 
 /**
@@ -191,10 +220,12 @@ export async function getActivePayToKeypair() {
 }
 
 /**
+ * @param {'base' | 'celo'} [chain='base']
  * @returns {Promise<import('viem').Account | null>}
  */
-export async function getActivePayToEvmAccount() {
-  const doc = await LabWallet.findOne({ role: 'payto', active: true, chain: 'base' })
+export async function getActivePayToEvmAccount(chain = 'base') {
+  const c = chain === 'celo' ? 'celo' : 'base';
+  const doc = await LabWallet.findOne({ role: 'payto', active: true, chain: c })
     .select('+encryptedSecret')
     .lean();
   if (!doc) return null;
@@ -271,15 +302,51 @@ export async function getBaseLabWalletBalances(address) {
 }
 
 /**
+ * Read CELO + USDC balances for a Celo lab wallet.
+ * @param {string} address
+ * @returns {Promise<{ nativeBalance: number; usdcBalance: number } | null>}
+ */
+export async function getCeloLabWalletBalances(address) {
+  const addr = String(address || '').trim();
+  if (!addr || !/^0x[0-9a-fA-F]{40}$/.test(addr)) return null;
+
+  try {
+    const client = getCeloPublicClient();
+    const [celoWei, usdcRaw] = await Promise.all([
+      client.getBalance({ address: /** @type {`0x${string}`} */ (addr) }),
+      client.readContract({
+        address: /** @type {`0x${string}`} */ (CELO_USDC_MAINNET),
+        abi: ERC20_BALANCE_ABI,
+        functionName: 'balanceOf',
+        args: [/** @type {`0x${string}`} */ (addr)],
+      }),
+    ]);
+    return {
+      nativeBalance: Number(formatEther(celoWei)),
+      usdcBalance: Number(formatUnits(/** @type {bigint} */ (usdcRaw), 6)),
+    };
+  } catch (e) {
+    console.warn('[labWalletService] Celo balance read failed:', e?.message || e);
+    return null;
+  }
+}
+
+/**
  * Chain-aware balance read. Normalized to nativeBalance + usdcBalance.
  * @param {string} address
- * @param {'solana' | 'base'} [chain]
- * @returns {Promise<{ nativeBalance: number; usdcBalance: number; chain: 'solana' | 'base' } | null>}
+ * @param {'solana' | 'base' | 'celo'} [chain]
+ * @returns {Promise<{ nativeBalance: number; usdcBalance: number; chain: 'solana' | 'base' | 'celo' } | null>}
  */
 export async function getLabWalletBalances(address, chain) {
-  const c = chain ? normalizeLabChain(chain) : /^0x/i.test(String(address || '')) ? 'base' : 'solana';
-  const balances =
-    c === 'base' ? await getBaseLabWalletBalances(address) : await getSolanaLabWalletBalances(address);
+  const c = chain
+    ? normalizeLabChain(chain)
+    : /^0x/i.test(String(address || ''))
+      ? 'base'
+      : 'solana';
+  let balances = null;
+  if (c === 'celo') balances = await getCeloLabWalletBalances(address);
+  else if (c === 'base') balances = await getBaseLabWalletBalances(address);
+  else balances = await getSolanaLabWalletBalances(address);
   if (!balances) return null;
   return { ...balances, chain: c };
 }
@@ -287,7 +354,7 @@ export async function getLabWalletBalances(address, chain) {
 /**
  * @deprecated Prefer getLabWalletBalances — kept for callers that still read solBalance.
  * @param {string} address
- * @param {'solana' | 'base'} [chain]
+ * @param {'solana' | 'base' | 'celo'} [chain]
  */
 export async function getLabWalletBalancesLegacyShape(address, chain) {
   const balances = await getLabWalletBalances(address, chain);
@@ -301,7 +368,7 @@ export async function getLabWalletBalancesLegacyShape(address, chain) {
 }
 
 /**
- * @param {{ label: string; role: 'payer' | 'payto'; chain?: 'solana' | 'base' }} input
+ * @param {{ label: string; role: 'payer' | 'payto'; chain?: 'solana' | 'base' | 'celo' }} input
  * @returns {Promise<object>}
  */
 export async function createLabWallet(input) {
@@ -327,11 +394,10 @@ export async function createLabWallet(input) {
   let address;
   let encryptedSecret;
 
-  if (chain === 'base') {
+  if (isEvmLabChain(chain)) {
     const privateKey = generatePrivateKey();
     const account = privateKeyToAccount(privateKey);
     address = account.address;
-    // Store without 0x prefix for consistency with decrypt path.
     encryptedSecret = encryptAgentSecretForStorage(privateKey.slice(2));
   } else {
     const keypair = Keypair.generate();
@@ -353,7 +419,7 @@ export async function createLabWallet(input) {
 
 /**
  * Create multiple payer wallets in one call.
- * @param {{ count: number; chain?: 'solana' | 'base'; labelPrefix?: string; role?: 'payer' | 'payto' }} input
+ * @param {{ count: number; chain?: 'solana' | 'base' | 'celo'; labelPrefix?: string; role?: 'payer' | 'payto' }} input
  * @returns {Promise<object[]>}
  */
 export async function createLabWalletsBulk(input) {
@@ -399,7 +465,17 @@ function formatLabWalletDoc(doc) {
 }
 
 /**
- * @param {'solana' | 'base'} [chain]
+ * @param {'solana' | 'base' | 'celo'} chain
+ * @returns {'SOL' | 'ETH' | 'CELO'}
+ */
+function nativeSymbolForChain(chain) {
+  if (chain === 'celo') return 'CELO';
+  if (chain === 'base') return 'ETH';
+  return 'SOL';
+}
+
+/**
+ * @param {'solana' | 'base' | 'celo'} [chain]
  * @returns {Promise<object[]>}
  */
 export async function listLabWallets(chain) {
@@ -413,7 +489,7 @@ export async function listLabWallets(chain) {
       const walletChain = normalizeLabChain(d.chain);
       const balances = await getLabWalletBalances(d.address, walletChain);
       const balanceAvailable = balances !== null;
-      const nativeSymbol = walletChain === 'base' ? 'ETH' : 'SOL';
+      const nativeSymbol = nativeSymbolForChain(walletChain);
       return {
         id: d._id.toString(),
         label: d.label,
@@ -423,7 +499,6 @@ export async function listLabWallets(chain) {
         active: d.active,
         nativeBalance: balanceAvailable ? balances.nativeBalance : null,
         nativeSymbol,
-        // Back-compat for older UI callers.
         solBalance: balanceAvailable ? balances.nativeBalance : null,
         usdcBalance: balanceAvailable ? balances.usdcBalance : null,
         balanceAvailable,
@@ -436,7 +511,7 @@ export async function listLabWallets(chain) {
 }
 
 /**
- * @param {'solana' | 'base'} [chain]
+ * @param {'solana' | 'base' | 'celo'} [chain]
  * @returns {Promise<object[]>}
  */
 export async function listActivePayerWallets(chain) {

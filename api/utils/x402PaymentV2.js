@@ -26,6 +26,8 @@ import {
   ensureX402CorbitsResourceServerInitialized,
   getX402ResourceServerDexter,
   ensureX402DexterResourceServerInitialized,
+  getX402ResourceServerCelo,
+  ensureX402CeloResourceServerInitialized,
 } from "./x402ResourceServer.js";
 import { X402_API_PRICE_USD, getEffectivePriceUsd, applyDexterPriceFloor } from "../config/x402Pricing.js";
 import {
@@ -40,6 +42,11 @@ import {
   getPayaiPayToAddresses,
   getEnabledPayaiNetworks,
 } from "../config/payaiX402Networks.js";
+import {
+  getCeloPayToAddresses,
+  getEnabledCeloNetworks,
+} from "../config/celoX402Networks.js";
+import { settleCeloX402Payment, isCeloX402Network, verifyCeloPaymentLocally } from "./celoX402Settle.js";
 import {
   BSC_CAIP2,
   getActiveB402PaymentKind,
@@ -699,17 +706,19 @@ function paymentAcceptedMatchesB402(acc) {
   );
 }
 
-/** @param {'payai'|'corbits'|'dexter'} profile */
+/** @param {'payai'|'corbits'|'dexter'|'celo'} profile */
 function getPayToAddressesForProfile(profile) {
   if (profile === "corbits") return getCorbitsPayToAddresses();
   if (profile === "dexter") return getDexterPayToAddresses();
+  if (profile === "celo") return getCeloPayToAddresses();
   return getPayaiPayToAddresses();
 }
 
-/** @param {'payai'|'corbits'|'dexter'} profile */
+/** @param {'payai'|'corbits'|'dexter'|'celo'} profile */
 function getEnabledNetworksForProfile(profile) {
   if (profile === "corbits") return getEnabledCorbitsNetworks();
   if (profile === "dexter") return getEnabledDexterNetworks();
+  if (profile === "celo") return getEnabledCeloNetworks();
   return getEnabledPayaiNetworks();
 }
 
@@ -945,7 +954,7 @@ function resolveEffectivePriceUsd(rawPrice, req, options) {
  * Default x402 verify/settle: PayAI (https://facilitator.payai.network).
  * Opt in per-request via `options.resourceServerProfile` / `req.x402ResourceServerProfile`,
  * or globally via X402_USE_CORBITS_FACILITATOR / X402_USE_DEXTER_FACILITATOR.
- * @returns {'payai'|'corbits'|'dexter'}
+ * @returns {'payai'|'corbits'|'dexter'|'celo'}
  */
 function resolveResourceServerProfile(req, options) {
   const fromOptions =
@@ -957,8 +966,19 @@ function resolveResourceServerProfile(req, options) {
       ? String(req.x402ResourceServerProfile).trim().toLowerCase()
       : "";
   const explicit = fromOptions || fromReq;
-  if (explicit === "corbits" || explicit === "dexter" || explicit === "payai") return explicit;
+  if (
+    explicit === "corbits" ||
+    explicit === "dexter" ||
+    explicit === "payai" ||
+    explicit === "celo"
+  ) {
+    return explicit;
+  }
   if (explicit === "default") return "payai";
+
+  // Labs Celo tab sets this header so the same /insights/* routes settle on Celo.
+  const labChain = String(req?.get?.("x-lab-x402-chain") || "").trim().toLowerCase();
+  if (labChain === "celo") return "celo";
 
   const truthy = (v) => {
     const s = String(v || "").trim().toLowerCase();
@@ -973,6 +993,7 @@ function getX402BundleForReq(req, options) {
   const profile = resolveResourceServerProfile(req, options);
   if (profile === "corbits") return getX402ResourceServerCorbits();
   if (profile === "dexter") return getX402ResourceServerDexter();
+  if (profile === "celo") return getX402ResourceServerCelo();
   return getX402ResourceServer();
 }
 
@@ -982,6 +1003,8 @@ async function ensureX402ForReq(req, options) {
     await ensureX402CorbitsResourceServerInitialized();
   } else if (profile === "dexter") {
     await ensureX402DexterResourceServerInitialized();
+  } else if (profile === "celo") {
+    await ensureX402CeloResourceServerInitialized();
   } else {
     await ensureX402ResourceServerInitialized();
   }
@@ -1526,6 +1549,21 @@ export function requirePayment(options) {
             return;
           }
         }
+        if (!verify && (isCeloX402Network(acc?.network) || resolveResourceServerProfile(req, options) === "celo")) {
+          const localCelo = await verifyCeloPaymentLocally(payload, acc);
+          if (localCelo?.isValid) {
+            verify = localCelo;
+          } else if (localCelo && !localCelo.isValid) {
+            const pr = await buildPaymentRequired(
+              bundle,
+              req,
+              options,
+              localCelo.invalidReason || "Payment verification failed"
+            );
+            json402(res, pr);
+            return;
+          }
+        }
         if (!verify) {
           const userMessage = isFacilitatorError(msg)
             ? "Payment verification is temporarily unavailable. Please try again in a moment."
@@ -1605,6 +1643,14 @@ export function requirePayment(options) {
  * So the client always gets the resource when payment was already verified.
  */
 async function tryFacilitatorThenLocalSettle(payload, accepted, req) {
+  const useCelo =
+    req?.x402Payment?.resourceServerProfile === "celo" ||
+    isCeloX402Network(accepted?.network) ||
+    String(req?.get?.("x-lab-x402-chain") || "").toLowerCase() === "celo";
+  if (useCelo) {
+    return settleCeloX402Payment(payload, accepted);
+  }
+
   const useAlgorand =
     req?.x402Payment?.useAlgorandFacilitator || shouldUseAlgorandFacilitator(accepted);
   if (useAlgorand) {
@@ -1682,7 +1728,9 @@ async function tryFacilitatorThenLocalSettle(payload, accepted, req) {
       ? getX402ResourceServerCorbits()
       : profile === "dexter"
         ? getX402ResourceServerDexter()
-        : getX402ResourceServer();
+        : profile === "celo"
+          ? getX402ResourceServerCelo()
+          : getX402ResourceServer();
   let settlePayload = payload;
   const bazaarOpts = resolveBazaarSettleOptions(req);
   if (bazaarOpts?.bazaar) {

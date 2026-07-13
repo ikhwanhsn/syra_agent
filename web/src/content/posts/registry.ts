@@ -20,6 +20,8 @@ import { OPENROUTER_X402_APIS_POST } from "./openrouterX402ApisUpdate";
 import { OKX_ASP_XLAYER_POST } from "./okxAspXlayerUpdate";
 import { STOCKS_NEWS_EXPERIMENT_POST } from "./stocksNewsExperimentUpdate";
 import { TOPLEDGER_DEFI_POST } from "./topledgerDeFiUpdate";
+import { CELO_AGENTIC_PAYMENTS_POST } from "./celoAgenticPaymentsUpdate";
+import { TEMPLATE_POST } from "./templateUpdate";
 import { AGENTSCORE_PHOTO } from "./photo/agentscorePhoto";
 import { INDICATOR_PHOTO } from "./photo/indicatorPhoto";
 import { BNB_X402_PHOTO } from "./photo/bnbX402Photo";
@@ -42,6 +44,8 @@ import { OPENROUTER_X402_APIS_PHOTO } from "./photo/openrouterX402ApisPhoto";
 import { OKX_ASP_XLAYER_PHOTO } from "./photo/okxAspXlayerPhoto";
 import { STOCKS_NEWS_EXPERIMENT_PHOTO } from "./photo/stocksNewsExperimentPhoto";
 import { TOPLEDGER_DEFI_PHOTO } from "./photo/topledgerDeFiPhoto";
+import { CELO_AGENTIC_PAYMENTS_PHOTO } from "./photo/celoAgenticPaymentsPhoto";
+import { TEMPLATE_PHOTO } from "./photo/templatePhoto";
 import type { PostPhotoUpdate } from "./photo/types";
 import type { PostUpdate } from "./types";
 import { validatePostUpdate } from "./validatePostUpdate";
@@ -54,11 +58,13 @@ export interface PostUpdateBundle {
 }
 
 /**
- * Append new ship-log updates here (oldest first). Remove published entries from the
- * studio via the delete control on /post (localStorage); source files stay in repo
- * until you clean them up manually.
+ * Append new ship-log updates here (oldest first).
+ * Update #0 (Format Template) is locked and must stay first — cannot be soft-deleted.
+ * New content must use defineVideoUpdate (8 kinds) + definePhotoUpdate (15 roles).
+ * Soft-delete published entries from /post; source files stay until cleaned up manually.
  */
 const POST_UPDATE_BUNDLES: PostUpdateBundle[] = [
+  { video: TEMPLATE_POST, photo: TEMPLATE_PHOTO },
   { video: LP_AGENT_POST, photo: LP_AGENT_PHOTO },
   { video: BNB_X402_POST, photo: BNB_X402_PHOTO },
   { video: AGENTSCORE_POST, photo: AGENTSCORE_PHOTO },
@@ -81,6 +87,7 @@ const POST_UPDATE_BUNDLES: PostUpdateBundle[] = [
   { video: OKX_ASP_XLAYER_POST, photo: OKX_ASP_XLAYER_PHOTO },
   { video: STOCKS_NEWS_EXPERIMENT_POST, photo: STOCKS_NEWS_EXPERIMENT_PHOTO },
   { video: TOPLEDGER_DEFI_POST, photo: TOPLEDGER_DEFI_PHOTO },
+  { video: CELO_AGENTIC_PAYMENTS_POST, photo: CELO_AGENTIC_PAYMENTS_PHOTO },
 ];
 
 function assertBundleMeta(bundle: PostUpdateBundle): void {
@@ -157,11 +164,11 @@ export function getAdjacentPostUpdateNumbers(updateNumber: number): {
   };
 }
 
-/** Next updateNumber to use when creating a new ship log. */
+/** Next updateNumber to use when creating a new ship log (skips locked template #0). */
 export function getNextUpdateNumber(): number {
   const max = POST_UPDATE_BUNDLES.reduce(
     (highest, bundle) => Math.max(highest, bundle.video.meta.updateNumber),
     0,
   );
-  return max + 1;
+  return Math.max(max + 1, 1);
 }

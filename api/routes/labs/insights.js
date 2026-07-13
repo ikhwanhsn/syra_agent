@@ -50,8 +50,13 @@ import { findLabX402Endpoint } from '../../libs/labs/labX402Endpoints.js';
 
 const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 
-async function labsPayToOverride() {
-  const { solanaPayTo, evmPayTo } = await getActiveLabPayToAddresses();
+async function labsPayToOverride(req) {
+  const { solanaPayTo, evmPayTo, celoPayTo } = await getActiveLabPayToAddresses();
+  const labChain = String(req?.get?.('x-lab-x402-chain') || '').trim().toLowerCase();
+  if (labChain === 'celo') {
+    if (!celoPayTo) return null;
+    return { solanaPayTo: null, evmPayTo: celoPayTo };
+  }
   if (!solanaPayTo && !evmPayTo) return null;
   return { solanaPayTo, evmPayTo };
 }
@@ -60,11 +65,11 @@ async function labsPayToOverride() {
  * Infer lab chain from payer address / request header.
  * @param {string} payer
  * @param {import('express').Request} req
- * @returns {'solana' | 'base'}
+ * @returns {'solana' | 'base' | 'celo'}
  */
 function inferPayerChain(payer, req) {
   const fromHeader = req.get('x-lab-x402-chain');
-  if (fromHeader === 'base' || fromHeader === 'solana') return fromHeader;
+  if (fromHeader === 'base' || fromHeader === 'solana' || fromHeader === 'celo') return fromHeader;
   return /^0x/i.test(payer) ? 'base' : 'solana';
 }
 
@@ -203,18 +208,25 @@ async function handleInsightRoute(req, res, endpointPath, catalogSegment, fetchD
 }
 
 function labsPaymentMiddleware(priceUsd, resource, catalogSegment, outputSchema = {}) {
-  return requirePayment({
-    price: priceUsd,
-    description: getResourceDescription(catalogSegment),
-    resource,
-    discoverable: true,
-    method: 'GET',
-    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
-    outputSchema,
-    getPayTo: labsPayToOverride,
-    /** Labs Dexter routes settle via Dexter facilitator; multi-network includes Base. */
-    resourceServerProfile: 'dexter',
-  });
+  return (req, res, next) => {
+    const labChain = String(req.get('x-lab-x402-chain') || '').trim().toLowerCase();
+    const profile = labChain === 'celo' ? 'celo' : 'dexter';
+    if (labChain === 'celo') {
+      req.x402ResourceServerProfile = 'celo';
+    }
+    return requirePayment({
+      price: priceUsd,
+      description: getResourceDescription(catalogSegment),
+      resource,
+      discoverable: true,
+      method: 'GET',
+      inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+      outputSchema,
+      getPayTo: labsPayToOverride,
+      /** Labs Dexter routes settle via Dexter; Celo Labs routes self-settle with ERC-8021 tags. */
+      resourceServerProfile: profile,
+    })(req, res, next);
+  };
 }
 
 function labsPayaiPaymentMiddleware(priceUsd, resource, catalogSegment, outputSchema = {}) {

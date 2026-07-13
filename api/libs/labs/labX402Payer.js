@@ -1,6 +1,6 @@
 /**
  * Outbound x402 payer for lab wallets — calls /insights/* endpoints with automatic payment.
- * Supports Solana (ExactSvmScheme) and Base (ExactEvmScheme).
+ * Supports Solana (ExactSvmScheme), Base (ExactEvmScheme), and Celo (ExactEvmScheme + self-settle).
  */
 import { wrapFetchWithPayment } from '@x402/fetch';
 import { x402Client } from '@x402/core/client';
@@ -23,8 +23,10 @@ import {
 import LabX402Settings, {
   normalizeLabChain,
   settingsKeyForChain,
+  isEvmLabChain,
 } from '../../models/labs/LabX402Settings.js';
 import LabX402Call from '../../models/labs/LabX402Call.js';
+import { CELO_MAINNET_CAIP2 } from '../../config/celoX402Networks.js';
 
 /** @type {Map<string, ReturnType<typeof wrapFetchWithPayment>>} */
 const paymentFetchCache = new Map();
@@ -52,15 +54,17 @@ async function getSolanaPaymentFetchForKeypair(keypair) {
 
 /**
  * @param {import('viem').Account} account
+ * @param {'base' | 'celo'} [chain='base']
  */
-async function getBasePaymentFetchForAccount(account) {
+async function getEvmPaymentFetchForAccount(account, chain = 'base') {
   const addr = account.address;
-  const cacheKey = `base:${addr.toLowerCase()}`;
+  const cacheKey = `${chain}:${addr.toLowerCase()}`;
   if (paymentFetchCache.has(cacheKey)) return paymentFetchCache.get(cacheKey);
 
   const scheme = new ExactEvmScheme(account);
+  const network = chain === 'celo' ? CELO_MAINNET_CAIP2 : 'eip155:*';
   const client = x402Client.fromConfig({
-    schemes: [{ network: 'eip155:*', client: scheme }],
+    schemes: [{ network, client: scheme }],
   });
   registerRequiredExtensionsHook(client);
   const pf = wrapFetchWithPayment(globalThis.fetch, client);
@@ -83,7 +87,7 @@ function getServerApiKey() {
 
 /**
  * @param {string} payerAddress
- * @param {{ endpoint?: string; trigger?: 'manual' | 'scheduler'; chain?: 'solana' | 'base' }} [opts]
+ * @param {{ endpoint?: string; trigger?: 'manual' | 'scheduler'; chain?: 'solana' | 'base' | 'celo' }} [opts]
  * @returns {Promise<object>}
  */
 export async function runLabX402Payment(payerAddress, opts = {}) {
@@ -95,17 +99,18 @@ export async function runLabX402Payment(payerAddress, opts = {}) {
   }
   const chain = normalizeLabChain(doc.chain);
 
-  // Base payers skip PayAI-only routes (ecosystem-brief) unless PayAI EVM is configured.
   let endpoint = opts.endpoint
     ? findLabX402Endpoint(opts.endpoint)
     : await pickRandomAvailableLabX402Endpoint({ chain });
   if (!endpoint) {
     throw new Error('Unknown x402 endpoint');
   }
-  if (chain === 'base' && endpoint.facilitator === 'payai') {
-    endpoint = await pickRandomAvailableLabX402Endpoint({ chain: 'base' });
+  if (isEvmLabChain(chain) && endpoint.facilitator === 'payai') {
+    endpoint = await pickRandomAvailableLabX402Endpoint({ chain });
     if (!endpoint || endpoint.facilitator === 'payai') {
-      throw new Error('No Base-compatible x402 endpoint available (PayAI routes skipped on Base)');
+      throw new Error(
+        `No ${chain}-compatible x402 endpoint available (PayAI routes skipped on ${chain})`,
+      );
     }
   }
 
@@ -138,10 +143,10 @@ export async function runLabX402Payment(payerAddress, opts = {}) {
 
   let paymentFetch;
   let payerAddrForLog;
-  if (chain === 'base') {
+  if (isEvmLabChain(chain)) {
     const account = evmAccountFromLabWalletDoc(doc);
     payerAddrForLog = account.address;
-    paymentFetch = await getBasePaymentFetchForAccount(account);
+    paymentFetch = await getEvmPaymentFetchForAccount(account, chain === 'celo' ? 'celo' : 'base');
   } else {
     const keypair = keypairFromLabWalletDoc(doc);
     payerAddrForLog = keypair.publicKey.toBase58();
@@ -170,10 +175,7 @@ export async function runLabX402Payment(payerAddress, opts = {}) {
     }
 
     if (!res.ok) {
-      errorMsg =
-        responseBody?.error ||
-        responseBody?.message ||
-        `HTTP ${res.status}`;
+      errorMsg = responseBody?.error || responseBody?.message || `HTTP ${res.status}`;
       const looksLikeUpstreamData =
         /pyth|hermes|upstream|oracle|not found|timeout|ECONN|ENOTFOUND|502|503/i.test(
           String(errorMsg),
@@ -243,6 +245,9 @@ function formatLabX402Settings(doc) {
       ? doc.activeDailyCallCap
       : null;
 
+  const key = String(doc.singletonKey || 'solana');
+  const chain = settingsKeyForChain(key === 'default' ? 'solana' : key);
+
   return {
     autoCallEnabled: doc.autoCallEnabled ?? false,
     intervalMs: doc.intervalMs ?? 300_000,
@@ -250,22 +255,20 @@ function formatLabX402Settings(doc) {
     jitterPct: doc.jitterPct ?? 20,
     maxDailyCallsMin,
     maxDailyCallsMax,
-    /** Today's rolled cap when available; otherwise midpoint of the range. */
     maxDailyCalls: activeDailyCallCap ?? Math.round((maxDailyCallsMin + maxDailyCallsMax) / 2),
     activeDailyCallCap,
     activeDailyCallCapDay: doc.activeDailyCallCapDay ?? null,
-    chain: settingsKeyForChain(doc.singletonKey === 'base' ? 'base' : 'solana'),
+    chain,
     updatedAt: doc.updatedAt,
   };
 }
 
 /**
- * @param {'solana' | 'base'} [chain]
+ * @param {'solana' | 'base' | 'celo'} [chain]
  * @returns {Promise<object>}
  */
 export async function getLabX402Settings(chain = 'solana') {
   const c = normalizeLabChain(chain);
-  // Ensure today's random cap is rolled so the Labs UI can show the active value.
   await resolveActiveDailyCallCap(c);
   let doc = await findLabX402SettingsDoc(c);
   if (!doc) {
@@ -284,7 +287,7 @@ export async function getLabX402Settings(chain = 'solana') {
  *   maxDailyCallsMax: number;
  *   maxDailyCalls: number;
  * }>} patch
- * @param {'solana' | 'base'} [chain]
+ * @param {'solana' | 'base' | 'celo'} [chain]
  * @returns {Promise<object>}
  */
 export async function updateLabX402Settings(patch, chain = 'solana') {
@@ -328,7 +331,6 @@ export async function updateLabX402Settings(patch, chain = 'solana') {
     update.maxDailyCallsMin = min;
     update.maxDailyCallsMax = max;
     update.maxDailyCalls = max;
-    // Force a fresh roll on next budget check with the new range.
     clearActiveCap = true;
   }
 
@@ -350,7 +352,7 @@ export async function updateLabX402Settings(patch, chain = 'solana') {
 }
 
 /**
- * @param {{ limit?: number; chain?: 'solana' | 'base' }} [opts]
+ * @param {{ limit?: number; chain?: 'solana' | 'base' | 'celo' }} [opts]
  * @returns {Promise<object[]>}
  */
 export async function listLabX402Calls(opts = {}) {

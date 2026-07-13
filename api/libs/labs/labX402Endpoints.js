@@ -144,14 +144,15 @@ async function filterAvailableEndpoints(endpoints) {
 
 /**
  * Pick a random endpoint weighted by `weight`, excluding PayAI routes at daily quota.
- * On Base, PayAI-facilitated routes are skipped (Dexter multi-network only).
- * @param {{ chain?: 'solana' | 'base' }} [opts]
+ * On Base/Celo, PayAI-facilitated routes are skipped.
+ * @param {{ chain?: 'solana' | 'base' | 'celo' }} [opts]
  * @returns {Promise<LabX402Endpoint>}
  */
 export async function pickRandomAvailableLabX402Endpoint(opts = {}) {
-  const chain = opts.chain === 'base' ? 'base' : 'solana';
+  const chain =
+    opts.chain === 'base' ? 'base' : opts.chain === 'celo' ? 'celo' : 'solana';
   const candidates =
-    chain === 'base'
+    chain === 'base' || chain === 'celo'
       ? LAB_X402_ENDPOINTS.filter((e) => e.facilitator !== 'payai')
       : [...LAB_X402_ENDPOINTS];
   const available = await filterAvailableEndpoints(candidates);

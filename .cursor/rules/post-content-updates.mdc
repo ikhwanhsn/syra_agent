@@ -8,6 +8,14 @@ alwaysApply: false
 
 When editing ship-log **photo** or **video** content under `web/src/content/posts/`, follow these rules so preview, copy-image, and download PNG/WebM match.
 
+## New ship logs (required)
+
+1. **Use `defineVideoUpdate()`** — exactly **8** slides in kind order from `videoSlideSlots.ts`:
+   `cover → statement → hero → flow → cards → surfaces → impact → closing`
+2. **Use `definePhotoUpdate()`** — exactly **15** cards in role order from `photoCardSlots.ts`
+3. Append `{ video, photo }` to `POST_UPDATE_BUNDLES` in `registry.ts` (after the locked Format Template `#0`)
+4. **Never soft-delete or remove** update `#0` (Format Template) — `meta.locked` / `postLocked.ts`
+
 ## Photo cards (1200×675)
 
 1. **Only change copy in content files** — `*Photo.ts`, `*Update.ts`, `shareCopies/*`. Do not edit layout CSS or template components unless fixing a systemic export bug.
@@ -25,7 +33,7 @@ When editing ship-log **photo** or **video** content under `web/src/content/post
 
 5. **Cover spotlight (`photo-cover-spotlight`)** — blocks: eyebrow, badge, logo-lockup (logo + title), subtitle. Title sits beside the logo; long titles wrap and break PNG export. Keep titles under ~28 chars and subtitles under ~160 chars.
 
-6. **After content edits**, run `npm run test -- validateAllPhotoPosts` — validates all 14 ship-log photo decks (210 cards).
+6. **After content edits**, run `npm run test -- validateAllPhotoPosts` — validates all ship-log photo decks (including the locked Format Template).
 
 7. **Export architecture** — PNG copy/download captures `PostPhotoExportStage` (off-screen 1200×675), not the scaled preview frame. Export-safe CSS lives on `.post-photo-export-root` and applies to every ship log automatically. Never point export refs at CSS-scaled preview nodes.
 
@@ -33,7 +41,8 @@ When editing ship-log **photo** or **video** content under `web/src/content/post
 
 1. Same copy discipline — shorter beats restyling.
 2. Video export uses `PostVideoExportStage` off-screen; do not capture the scaled preview stage.
-3. Slides use unique layouts per slide when possible (`validatePostUpdate` warns on duplicates in dev).
+3. New updates must use `defineVideoUpdate()` (8 kinds). Unique layouts per slide when possible (`validatePostUpdate` warns on duplicates in dev).
+4. Reference the locked Format Template at `/post/video/0` and `/post/photo/0`.
 
 ## Verification checklist
 
@@ -41,7 +50,7 @@ Before marking a post content task done:
 
 - [ ] Preview card/slide readable at default zoom
 - [ ] Download PNG (photo) or WebM (video) matches preview — no overlapping title/body
-- [ ] No validation errors from `definePhotoUpdate` / `validatePostUpdate`
+- [ ] No validation errors from `definePhotoUpdate` / `defineVideoUpdate`
 - [ ] Share copy files updated alongside card content when applicable
 
 ## What breaks exports (avoid)
@@ -50,3 +59,4 @@ Before marking a post content task done:
 - Capturing nodes inside `transform: scale(...)` wrappers
 - Adding blocks to a layout registry entry without checking the template supports them
 - Exceeding field limits in `POST_PHOTO_FIELD_LIMITS`
+- Deviating from the 8-slide / 15-card slot contract for new ship logs

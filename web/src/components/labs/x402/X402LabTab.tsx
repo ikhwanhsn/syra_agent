@@ -51,15 +51,17 @@ export function X402LabTab({ chain }: X402LabTabProps) {
   const showEndpointsSkeleton = useMinimumSkeleton(endpointsQ.isLoading);
 
   const isBase = chain === "base";
-  const chainLabel = isBase ? "Base" : "Solana";
-  const nativeSymbol = isBase ? "ETH" : "SOL";
+  const isCelo = chain === "celo";
+  const isEvm = isBase || isCelo;
+  const chainLabel = isCelo ? "Celo" : isBase ? "Base" : "Solana";
+  const nativeSymbol = isCelo ? "CELO" : isBase ? "ETH" : "SOL";
 
   const visibleEndpoints = useMemo(() => {
     const all = endpointsQ.data ?? [];
-    if (!isBase) return all;
-    // Base payers skip PayAI-only routes.
+    if (!isEvm) return all;
+    // Base/Celo payers skip PayAI-only routes.
     return all.filter((ep) => ep.facilitator !== "payai");
-  }, [endpointsQ.data, isBase]);
+  }, [endpointsQ.data, isEvm]);
 
   const handleCreate = (input: { label: string; role: "payer" | "payto" }) => {
     createWalletM.mutate(input, {
@@ -84,8 +86,28 @@ export function X402LabTab({ chain }: X402LabTabProps) {
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
             Manage {chainLabel} lab wallets, fund them with {nativeSymbol}/USDC, and run paid calls
             against <code className="text-xs">/insights/*</code> endpoints
-            {isBase ? " settling on Base via Dexter" : ""}.{" "}
-            {!isBase ? (
+            {isCelo
+              ? " with self-settled Celo x402 + ERC-8021 attribution tagging"
+              : isBase
+                ? " settling on Base via Dexter"
+                : ""}
+            .{" "}
+            {isCelo ? (
+              <>
+                Settlement is self-submitted on Celo mainnet (
+                <a
+                  href="https://api.x402.celo.org"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-2 hover:text-foreground"
+                >
+                  x402.celo.org
+                </a>{" "}
+                for verify) so every tx carries your{" "}
+                <code className="text-xs">celo_...</code> hackathon attribution tag. PayAI routes
+                are skipped on this tab.{" "}
+              </>
+            ) : !isBase ? (
               <>
                 Most routes settle via{" "}
                 <a

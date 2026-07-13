@@ -10,7 +10,7 @@ const labWalletSchema = new mongoose.Schema(
     address: { type: String, required: true, unique: true, index: true },
     encryptedSecret: { type: String, required: true, select: false },
     role: { type: String, enum: ['payer', 'payto'], required: true, index: true },
-    chain: { type: String, enum: ['solana', 'base'], default: 'solana', index: true },
+    chain: { type: String, enum: ['solana', 'base', 'celo'], default: 'solana', index: true },
     active: { type: Boolean, default: true, index: true },
   },
   { timestamps: true },

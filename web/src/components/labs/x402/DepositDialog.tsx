@@ -22,9 +22,12 @@ export function DepositDialog({ wallet, open, onOpenChange }: DepositDialogProps
   if (!wallet) return null;
 
   const isBase = wallet.chain === "base";
-  const depositHint = isBase
-    ? "Send ETH (for gas) and USDC to this address on Base mainnet."
-    : "Send SOL (for fees) and USDC to this address on Solana mainnet.";
+  const isCelo = wallet.chain === "celo";
+  const depositHint = isCelo
+    ? "Send CELO (for gas) and USDC to this address on Celo mainnet."
+    : isBase
+      ? "Send ETH (for gas) and USDC to this address on Base mainnet."
+      : "Send SOL (for fees) and USDC to this address on Solana mainnet.";
 
   const copyAddress = async () => {
     await navigator.clipboard.writeText(wallet.address);

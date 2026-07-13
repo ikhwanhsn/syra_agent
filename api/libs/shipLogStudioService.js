@@ -17,6 +17,7 @@ function normalizePostedOnX(raw) {
 
 function normalizeDeleted(raw) {
   if (!Array.isArray(raw)) return [];
+  // Update #0 is the permanent Format Template — never soft-delete it.
   return [...new Set(raw.filter((n) => Number.isFinite(n) && n > 0))].sort((a, b) => a - b);
 }
 
@@ -111,9 +112,10 @@ export async function setShipLogUpdatePosted(updateNumber, posted) {
 
 export async function deleteShipLogUpdates(updateNumbers) {
   assertMongo();
+  // n > 0 already excludes locked template #0
   const nums = normalizeDeleted(updateNumbers);
   if (nums.length === 0) {
-    const err = new Error("updateNumbers required");
+    const err = new Error("updateNumbers required (locked template cannot be deleted)");
     err.code = "invalid_update_numbers";
     throw err;
   }

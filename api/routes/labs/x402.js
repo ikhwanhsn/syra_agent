@@ -1,6 +1,6 @@
 /**
  * Admin-gated management API for x402 Labs — wallets, settings, manual runs, call log.
- * All endpoints accept a `chain` query/body param: `solana` (default) | `base`.
+ * All endpoints accept a `chain` query/body param: `solana` (default) | `base` | `celo`.
  */
 import express from 'express';
 import { getAdminDashboardWallets, isAdminWalletAddress } from '../../libs/adminWallet.js';
@@ -30,7 +30,7 @@ const MANUAL_RUN_COOLDOWN_MS = 30_000;
 
 /**
  * @param {import('express').Request} req
- * @returns {'solana' | 'base'}
+ * @returns {'solana' | 'base' | 'celo'}
  */
 function parseChain(req) {
   const raw = req.query?.chain ?? req.body?.chain;

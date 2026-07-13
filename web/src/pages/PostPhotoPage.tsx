@@ -8,9 +8,9 @@ import {
 } from "@/lib/postRegistryVisibility";
 
 function parseUpdateNumber(raw: string | undefined): number | null {
-  if (!raw) return null;
+  if (raw == null || raw === "") return null;
   const n = Number.parseInt(raw, 10);
-  return Number.isFinite(n) && n > 0 ? n : null;
+  return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
 /** Ship-log photo posts for X — static PNG templates at /post/photo/:updateNumber. */
@@ -21,7 +21,7 @@ export default function PostPhotoPage() {
 
   if (isLoading) return null;
 
-  if (!updateNumber) {
+  if (updateNumber == null) {
     return <Navigate to={`/post/photo/${getLatestVisiblePostUpdateNumber()}`} replace />;
   }
 

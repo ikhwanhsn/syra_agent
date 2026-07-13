@@ -5,7 +5,7 @@
 import type { HttpMethod } from "@/types/api";
 import type { RequestParam } from "@/types/api";
 
-export const X402_PLAYGROUND_GENERATED_AT = "2026-07-13T00:10:30.717Z";
+export const X402_PLAYGROUND_GENERATED_AT = "2026-07-13T12:21:05.036Z";
 
 export interface X402PlaygroundResourceTemplate {
   segment: string;
@@ -832,6 +832,21 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "summary": "Computed volatility index from major Pyth price feeds",
       "description": "Volatility index computed from Pyth price feed confidence intervals across SOL, BTC, and ETH. Returns index score and per-asset uncertainty…",
       "priceUsd": "0.1",
+      "category": "analytics"
+    }
+  },
+  {
+    "segment": "insights/ecosystem-brief",
+    "id": "x402-insights-ecosystem-brief",
+    "label": "Solana Ecosystem Brief: Premium combined network, market, and DeFi snapshot via PayAI",
+    "method": "GET",
+    "params": [],
+    "catalogMeta": {
+      "segment": "insights/ecosystem-brief",
+      "name": "Solana Ecosystem Brief",
+      "summary": "Premium combined network, market, and DeFi snapshot via PayAI",
+      "description": "Premium PayAI-facilitated Labs endpoint combining Solana network health, cross-asset market pulse (SOL/BTC/ETH), and DeFi TVL in one respon…",
+      "priceUsd": "0.05",
       "category": "analytics"
     }
   },

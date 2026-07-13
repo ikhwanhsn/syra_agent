@@ -124,7 +124,7 @@ export async function resolveActiveDailyCallCap(chain = 'solana') {
 
 /**
  * @param {string} address
- * @param {'solana' | 'base'} [chain]
+ * @param {'solana' | 'base' | 'celo'} [chain]
  * @returns {Promise<boolean>}
  */
 export async function isActiveLabPayer(address, chain) {
@@ -139,8 +139,8 @@ export async function isActiveLabPayer(address, chain) {
 
   /** @type {Record<string, unknown>} */
   const filter = { role: 'payer', active: true };
-  if (c === 'base') {
-    filter.chain = 'base';
+  if (c === 'base' || c === 'celo') {
+    filter.chain = c;
     filter.address = { $regex: new RegExp(`^${addr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') };
   } else if (c === 'solana') {
     filter.chain = 'solana';
@@ -150,6 +150,10 @@ export async function isActiveLabPayer(address, chain) {
       { address: addr, chain: 'solana' },
       {
         chain: 'base',
+        address: { $regex: new RegExp(`^${addr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
+      },
+      {
+        chain: 'celo',
         address: { $regex: new RegExp(`^${addr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
       },
     ];

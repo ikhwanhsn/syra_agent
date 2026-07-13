@@ -1,8 +1,14 @@
 import { Link } from "react-router-dom";
 import { useMemo } from "react";
-import { ImageIcon, Video } from "lucide-react";
+import { ImageIcon, Lock, Video } from "lucide-react";
 import { PostBackLink } from "@/components/post/PostBackLink";
 import { PostShipLogUpdateList } from "@/components/post/PostShipLogUpdateList";
+import {
+  POST_VIDEO_SLIDE_COUNT,
+  POST_VIDEO_SLIDE_SLOTS,
+} from "@/content/posts";
+import { POST_PHOTO_CARD_COUNT } from "@/content/posts/photo/photoCardSlots";
+import { isLockedShipLogUpdate, POST_TEMPLATE_UPDATE_NUMBER } from "@/lib/postLocked";
 import {
   getVisiblePostBundles,
   getLatestVisiblePostUpdateNumber,
@@ -18,10 +24,20 @@ export default function PostPage() {
     () => getLatestVisiblePostUpdateNumber(),
     [statusTick],
   );
-  const updates = useMemo(
-    () => [...getVisiblePostBundles()].reverse(),
-    [statusTick],
-  );
+  const updates = useMemo(() => {
+    const all = getVisiblePostBundles();
+    const locked = all.filter(
+      (bundle) =>
+        isLockedShipLogUpdate(bundle.video.meta.updateNumber) || bundle.video.meta.locked,
+    );
+    const rest = all
+      .filter(
+        (bundle) =>
+          !isLockedShipLogUpdate(bundle.video.meta.updateNumber) && !bundle.video.meta.locked,
+      )
+      .reverse();
+    return [...locked, ...rest];
+  }, [statusTick]);
 
   if (isLoading) {
     return (
@@ -69,10 +85,45 @@ export default function PostPage() {
           </div>
         </div>
 
-        <p className="mb-8 text-sm text-white/55">
+        <p className="mb-6 text-sm text-white/55">
           Turn each ship log into a growth-ready X post. Record the video deck
           or export branded photos with one-click share copy.
         </p>
+
+        <div className="mb-8 rounded-xl border border-[#F3BA2F]/20 bg-[#F3BA2F]/[0.04] px-4 py-3 text-left">
+          <div className="mb-2 flex items-center gap-2">
+            <Lock className="h-3.5 w-3.5 text-[#F3BA2F]/80" aria-hidden />
+            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#F3BA2F]/80">
+              Locked format · #{POST_TEMPLATE_UPDATE_NUMBER}
+            </p>
+          </div>
+          <p className="text-xs text-white/55">
+            Every future ship log follows this structure:{" "}
+            <span className="text-white/75">
+              {POST_VIDEO_SLIDE_COUNT} video slides
+            </span>{" "}
+            ({POST_VIDEO_SLIDE_SLOTS.map((s) => s.kind).join(" → ")}) and{" "}
+            <span className="text-white/75">
+              {POST_PHOTO_CARD_COUNT} photo cards
+            </span>{" "}
+            in fixed role order. The Format Template cannot be removed from the
+            studio.
+          </p>
+          <div className="mt-3 flex gap-3">
+            <Link
+              to={`/post/video/${POST_TEMPLATE_UPDATE_NUMBER}`}
+              className="font-mono text-[10px] uppercase tracking-[0.12em] text-[#F3BA2F]/80 transition-colors hover:text-[#F3BA2F]"
+            >
+              Open video template
+            </Link>
+            <Link
+              to={`/post/photo/${POST_TEMPLATE_UPDATE_NUMBER}`}
+              className="font-mono text-[10px] uppercase tracking-[0.12em] text-[#F3BA2F]/80 transition-colors hover:text-[#F3BA2F]"
+            >
+              Open photo template
+            </Link>
+          </div>
+        </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
           <Link
@@ -87,7 +138,7 @@ export default function PostPage() {
                 Video
               </p>
               <p className="mt-1 text-xs text-white/45">
-                16:9 slide deck · proof-first narrative · 74 templates
+                16:9 slide deck · {POST_VIDEO_SLIDE_COUNT} fixed kinds · proof-first
               </p>
             </div>
           </Link>
@@ -104,7 +155,7 @@ export default function PostPage() {
                 Photo
               </p>
               <p className="mt-1 text-xs text-white/45">
-                15 cards per update · matched X copy · 50 templates
+                {POST_PHOTO_CARD_COUNT} cards per update · matched X copy
               </p>
             </div>
           </Link>

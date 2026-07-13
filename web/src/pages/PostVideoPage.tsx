@@ -8,9 +8,9 @@ import {
 } from "@/lib/postRegistryVisibility";
 
 function parseUpdateNumber(raw: string | undefined): number | null {
-  if (!raw) return null;
+  if (raw == null || raw === "") return null;
   const n = Number.parseInt(raw, 10);
-  return Number.isFinite(n) && n > 0 ? n : null;
+  return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
 /** Ship-log video slides for X — 16:9 auto-play deck at /post/video/:updateNumber. */
@@ -21,7 +21,7 @@ export default function PostVideoPage() {
 
   if (isLoading) return null;
 
-  if (!updateNumber) {
+  if (updateNumber == null) {
     return <Navigate to={`/post/video/${getLatestVisiblePostUpdateNumber()}`} replace />;
   }
 

@@ -1,6 +1,6 @@
 /**
  * Scheduler for x402 Labs auto-caller — periodically runs paid /insights/* calls from payer wallets.
- * Runs independently per chain (solana | base).
+ * Runs independently per chain (solana | base | celo).
  */
 import { listActivePayerWallets } from './labWalletService.js';
 import { runLabX402Payment, getLabX402Settings } from './labX402Payer.js';
@@ -21,7 +21,7 @@ function computeJitteredDelay(baseMs, jitterPct) {
 }
 
 /**
- * @param {'solana' | 'base'} chain
+ * @param {'solana' | 'base' | 'celo'} chain
  */
 async function tick(chain) {
   const c = normalizeLabChain(chain);
@@ -74,7 +74,7 @@ async function tick(chain) {
 }
 
 /**
- * @param {'solana' | 'base'} chain
+ * @param {'solana' | 'base' | 'celo'} chain
  */
 async function scheduleNext(chain) {
   const c = normalizeLabChain(chain);
@@ -107,7 +107,7 @@ async function scheduleNext(chain) {
  * Start the lab x402 scheduler for all chains. Safe to call once at boot.
  */
 export function startLabX402Scheduler() {
-  startupVerbose('[lab-x402-scheduler] started (solana + base)');
+  startupVerbose('[lab-x402-scheduler] started (solana + base + celo)');
   for (const chain of LAB_X402_CHAINS) {
     scheduleNext(chain);
   }
@@ -115,7 +115,7 @@ export function startLabX402Scheduler() {
 
 /**
  * Restart scheduler after settings change (e.g. interval updated).
- * @param {'solana' | 'base'} [chain] - when omitted, restart all chains
+ * @param {'solana' | 'base' | 'celo'} [chain] - when omitted, restart all chains
  */
 export function restartLabX402Scheduler(chain) {
   if (chain) {

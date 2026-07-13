@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Lock, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -16,6 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { PostXStatusLabel } from "@/components/post/PostXStatusControl";
 import type { PostUpdateBundle } from "@/content/posts";
 import { useDeletePosts } from "@/lib/postDeleted";
+import { isLockedShipLogUpdate } from "@/lib/postLocked";
 import {
   getLatestVisiblePostUpdateNumber,
 } from "@/lib/postRegistryVisibility";
@@ -44,12 +45,25 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
   const [singleDeleteTarget, setSingleDeleteTarget] = useState<PostUpdateBundle | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
+  const deletableUpdates = useMemo(
+    () =>
+      updates.filter(
+        (bundle) =>
+          !isLockedShipLogUpdate(bundle.video.meta.updateNumber) && !bundle.video.meta.locked,
+      ),
+    [updates],
+  );
+
   const selectedVisible = useMemo(
-    () => [...selected].filter((n) => updates.some((bundle) => bundle.video.meta.updateNumber === n)),
-    [selected, updates],
+    () =>
+      [...selected].filter((n) =>
+        deletableUpdates.some((bundle) => bundle.video.meta.updateNumber === n),
+      ),
+    [selected, deletableUpdates],
   );
 
   const toggleSelected = (updateNumber: number, checked: boolean) => {
+    if (isLockedShipLogUpdate(updateNumber)) return;
     setSelected((current) => {
       const next = new Set(current);
       if (checked) next.add(updateNumber);
@@ -62,6 +76,11 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
 
   const confirmSingleDelete = async () => {
     if (!singleDeleteTarget || deleteM.isPending) return;
+    if (isLockedShipLogUpdate(singleDeleteTarget.video.meta.updateNumber)) {
+      toast.error("Format Template cannot be deleted");
+      setSingleDeleteTarget(null);
+      return;
+    }
     try {
       await deleteM.mutateAsync([singleDeleteTarget.video.meta.updateNumber]);
       setSelected((current) => {
@@ -101,11 +120,13 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
               <span className="mx-1.5 text-white/20">·</span>
               <span className="text-amber-300/70">● Not posted</span>
             </p>
-            {updates.length > 0 ? (
+            {deletableUpdates.length > 0 ? (
               <>
                 <button
                   type="button"
-                  onClick={() => setSelected(new Set(updates.map((bundle) => bundle.video.meta.updateNumber)))}
+                  onClick={() =>
+                    setSelected(new Set(deletableUpdates.map((bundle) => bundle.video.meta.updateNumber)))
+                  }
                   className="font-mono text-[9px] uppercase tracking-[0.12em] text-white/40 transition-colors hover:text-white/70"
                 >
                   Select all
@@ -144,6 +165,7 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
           {updates.map((bundle) => {
             const { meta } = bundle.video;
             const isLatest = meta.updateNumber === latestVisible;
+            const isLocked = isLockedShipLogUpdate(meta.updateNumber) || meta.locked === true;
             const isSelected = selected.has(meta.updateNumber);
 
             return (
@@ -151,21 +173,38 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
                 <div
                   className={cn(
                     "flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5",
-                    isSelected
-                      ? "border-red-500/25 bg-red-500/[0.04]"
-                      : "border-white/8 bg-white/[0.02]",
+                    isLocked
+                      ? "border-[#F3BA2F]/25 bg-[#F3BA2F]/[0.05]"
+                      : isSelected
+                        ? "border-red-500/25 bg-red-500/[0.04]"
+                        : "border-white/8 bg-white/[0.02]",
                   )}
                 >
                   <div className="flex min-w-0 items-center gap-2.5">
-                    <Checkbox
-                      checked={isSelected}
-                      onCheckedChange={(checked) => toggleSelected(meta.updateNumber, checked === true)}
-                      className="border-white/25 data-[state=checked]:border-red-500/50 data-[state=checked]:bg-red-500/80"
-                      aria-label={`Select update #${meta.updateNumber} for bulk delete`}
-                    />
+                    {isLocked ? (
+                      <span
+                        className="inline-flex h-4 w-4 shrink-0 items-center justify-center text-[#F3BA2F]/80"
+                        title="Locked format template"
+                        aria-label="Locked format template"
+                      >
+                        <Lock className="h-3.5 w-3.5" />
+                      </span>
+                    ) : (
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={(checked) => toggleSelected(meta.updateNumber, checked === true)}
+                        className="border-white/25 data-[state=checked]:border-red-500/50 data-[state=checked]:bg-red-500/80"
+                        aria-label={`Select update #${meta.updateNumber} for bulk delete`}
+                      />
+                    )}
                     <div className="min-w-0">
                       <p className="truncate text-sm text-white/85">
                         #{meta.updateNumber} · {meta.title}
+                        {isLocked ? (
+                          <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.12em] text-[#F3BA2F]/80">
+                            Template
+                          </span>
+                        ) : null}
                         {isLatest ? (
                           <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.12em] text-[#F3BA2F]/80">
                             Latest
@@ -176,7 +215,9 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
                     </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
-                    <PostXStatusLabel updateNumber={meta.updateNumber} defaultPosted={meta.postedOnX} />
+                    {!isLocked ? (
+                      <PostXStatusLabel updateNumber={meta.updateNumber} defaultPosted={meta.postedOnX} />
+                    ) : null}
                     <Link
                       to={`/post/video/${meta.updateNumber}`}
                       className="font-mono text-[10px] uppercase tracking-[0.12em] text-white/45 transition-colors hover:text-[#F3BA2F]/80"
@@ -189,15 +230,25 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
                     >
                       Photo
                     </Link>
-                    <button
-                      type="button"
-                      onClick={() => setSingleDeleteTarget(bundle)}
-                      className="inline-flex h-7 w-7 items-center justify-center rounded-md text-white/35 transition-colors hover:bg-red-500/10 hover:text-red-400/90"
-                      aria-label={`Delete update #${meta.updateNumber}`}
-                      title="Delete from studio"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                    {isLocked ? (
+                      <span
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-white/20"
+                        title="Cannot delete format template"
+                        aria-hidden
+                      >
+                        <Lock className="h-3.5 w-3.5" />
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setSingleDeleteTarget(bundle)}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-white/35 transition-colors hover:bg-red-500/10 hover:text-red-400/90"
+                        aria-label={`Delete update #${meta.updateNumber}`}
+                        title="Delete from studio"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
               </li>

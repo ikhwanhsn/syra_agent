@@ -8,6 +8,14 @@ export type { PostSlideLayoutTemplate } from "./layouts";
 export { POST_SLIDE_LAYOUTS, POST_LAYOUT_LABELS, POST_LAYOUT_TEMPLATE_COUNT } from "./layouts";
 
 export {
+  POST_VIDEO_SLIDE_SLOTS,
+  POST_VIDEO_SLIDE_COUNT,
+  POST_VIDEO_SLIDE_SLOT_BY_ROLE,
+} from "./videoSlideSlots";
+export type { PostVideoSlideRole, PostVideoSlideSlotDef } from "./videoSlideSlots";
+export { defineVideoUpdate } from "./videoDeck";
+
+export {
   POST_REGISTRY,
   ALL_POST_UPDATE_BUNDLES,
   LATEST_POST_UPDATE_NUMBER,

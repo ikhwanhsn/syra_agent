@@ -7,6 +7,11 @@
       "sourceType": "github",
       "skillPath": "skills/ampersend/SKILL.md",
       "computedHash": "f7d2d6877baa8fe54b3847b564f3c24272319593b06c89e3bcc2acd605a04136"
+    },
+    "celo-builders": {
+      "source": "celobuilders.xyz",
+      "sourceType": "well-known",
+      "computedHash": "af5d8003202a7f42f5ed11c97814b4cc0cff073ac1431bde2c81587962b3d5b0"
     }
   }
 }

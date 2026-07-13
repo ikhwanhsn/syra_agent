@@ -1,6 +1,6 @@
 import { getApiBaseUrl } from "@/lib/env";
 
-export type LabChain = "solana" | "base";
+export type LabChain = "solana" | "base" | "celo";
 
 export interface LabWallet {
   id: string;
@@ -9,9 +9,9 @@ export interface LabWallet {
   role: "payer" | "payto";
   chain: LabChain;
   active: boolean;
-  /** Native gas token balance (SOL or ETH). null when RPC unavailable. */
+  /** Native gas token balance (SOL, ETH, or CELO). null when RPC unavailable. */
   nativeBalance: number | null;
-  nativeSymbol: "SOL" | "ETH";
+  nativeSymbol: "SOL" | "ETH" | "CELO";
   /** @deprecated Prefer nativeBalance — kept for older simulation helpers. */
   solBalance: number | null;
   usdcBalance: number | null;
@@ -42,7 +42,7 @@ export interface LabX402Endpoint {
   priceUsd: number;
   weight: number;
   description: string;
-  facilitator?: "dexter" | "payai";
+  facilitator?: "dexter" | "payai" | "celo";
   dailyLimitMin?: number;
   dailyLimitMax?: number;
   dailyQuota?: {
@@ -109,13 +109,17 @@ async function fetchLabsJson<T>(
 }
 
 function normalizeWallet(raw: LabWallet): LabWallet {
-  const chain: LabChain = raw.chain === "base" ? "base" : "solana";
+  const chain: LabChain =
+    raw.chain === "base" ? "base" : raw.chain === "celo" ? "celo" : "solana";
   const nativeBalance = raw.nativeBalance ?? raw.solBalance ?? null;
+  const nativeSymbol: LabWallet["nativeSymbol"] =
+    raw.nativeSymbol ??
+    (chain === "celo" ? "CELO" : chain === "base" ? "ETH" : "SOL");
   return {
     ...raw,
     chain,
     nativeBalance,
-    nativeSymbol: raw.nativeSymbol ?? (chain === "base" ? "ETH" : "SOL"),
+    nativeSymbol,
     solBalance: nativeBalance,
   };
 }

@@ -23,7 +23,7 @@ interface CreateWalletDialogProps {
 }
 
 function roleOptions(chain: LabChain) {
-  const network = chain === "base" ? "Base" : "Solana";
+  const network = chain === "celo" ? "Celo" : chain === "base" ? "Base" : "Solana";
   return [
     {
       value: "payer" as const,
@@ -63,7 +63,8 @@ export function CreateWalletDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
-            Create {chain === "base" ? "Base" : "Solana"} lab wallet
+            Create{" "}
+            {chain === "celo" ? "Celo" : chain === "base" ? "Base" : "Solana"} lab wallet
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">

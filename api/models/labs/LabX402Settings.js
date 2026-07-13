@@ -1,25 +1,37 @@
 /**
  * LabX402Settings — per-chain singleton documents for x402 Labs auto-caller configuration.
- * singletonKey: 'solana' | 'base' (legacy 'default' migrates to 'solana' at read time).
+ * singletonKey: 'solana' | 'base' | 'celo' (legacy 'default' migrates to 'solana' at read time).
  */
 import mongoose from 'mongoose';
 
-export const LAB_X402_CHAINS = Object.freeze(['solana', 'base']);
+export const LAB_X402_CHAINS = Object.freeze(['solana', 'base', 'celo']);
 
 /**
  * @param {string} [chain]
- * @returns {'solana' | 'base'}
+ * @returns {'solana' | 'base' | 'celo'}
  */
 export function settingsKeyForChain(chain) {
-  return chain === 'base' ? 'base' : 'solana';
+  const c = normalizeLabChain(chain);
+  return c;
 }
 
 /**
  * @param {string} [raw]
- * @returns {'solana' | 'base'}
+ * @returns {'solana' | 'base' | 'celo'}
  */
 export function normalizeLabChain(raw) {
-  return String(raw || '').trim().toLowerCase() === 'base' ? 'base' : 'solana';
+  const c = String(raw || '').trim().toLowerCase();
+  if (c === 'base') return 'base';
+  if (c === 'celo') return 'celo';
+  return 'solana';
+}
+
+/**
+ * @param {'solana' | 'base' | 'celo'} chain
+ * @returns {boolean}
+ */
+export function isEvmLabChain(chain) {
+  return chain === 'base' || chain === 'celo';
 }
 
 const labX402SettingsSchema = new mongoose.Schema(

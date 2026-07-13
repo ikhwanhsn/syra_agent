@@ -16,6 +16,7 @@ import {
   readLegacyLocalStorageState,
   writeLegacyLocalStorageState,
 } from "@/lib/postStudioState";
+import { filterDeletableUpdateNumbers, stripLockedFromDeleted } from "@/lib/postLocked";
 import { usePostRegistryRefresh } from "@/lib/usePostRegistryRefresh";
 
 export const POST_STUDIO_QUERY_KEY = ["post-studio-state"] as const;
@@ -54,10 +55,11 @@ function patchPostedLocally(updateNumber: number, posted: boolean): PostStudioSt
 }
 
 function deleteUpdatesLocally(updateNumbers: number[]): PostStudioState {
+  const deletable = filterDeletableUpdateNumbers(updateNumbers);
   const current = getPostStudioState();
   return persistLocalPostStudioState({
     ...current,
-    deleted: [...new Set([...current.deleted, ...updateNumbers])].sort((a, b) => a - b),
+    deleted: [...new Set([...current.deleted, ...deletable])].sort((a, b) => a - b),
   });
 }
 
@@ -74,11 +76,15 @@ async function patchPostStudioPostedWithFallback(
 }
 
 async function deletePostStudioUpdatesWithFallback(updateNumbers: number[]): Promise<PostStudioState> {
+  const deletable = filterDeletableUpdateNumbers(updateNumbers);
+  if (deletable.length === 0) {
+    return getPostStudioState();
+  }
   try {
-    return await deletePostStudioUpdates(updateNumbers);
+    return await deletePostStudioUpdates(deletable);
   } catch (err) {
     if (!isPostStudioFallbackError(err)) throw err;
-    return deleteUpdatesLocally(updateNumbers);
+    return deleteUpdatesLocally(deletable);
   }
 }
 
@@ -96,13 +102,15 @@ async function loadPostStudioState() {
       clearLegacyLocalStorageState();
     }
 
-    applyPostStudioState(state);
-    return state;
+    const cleaned = { ...state, deleted: stripLockedFromDeleted(state.deleted) };
+    applyPostStudioState(cleaned);
+    return cleaned;
   } catch (err) {
     if (!isPostStudioFallbackError(err)) throw err;
     const state = fallbackPostStudioState();
-    applyPostStudioState(state);
-    return state;
+    const cleaned = { ...state, deleted: stripLockedFromDeleted(state.deleted) };
+    applyPostStudioState(cleaned);
+    return cleaned;
   }
 }
 
@@ -162,9 +170,10 @@ export function useDeletePostStudioUpdatesMutation() {
           POST_STUDIO_QUERY_KEY,
         ) ?? getCachedPostStudioQueryState();
       if (previous) {
+        const deletable = filterDeletableUpdateNumbers(updateNumbers);
         const optimistic = {
           ...previous,
-          deleted: [...new Set([...previous.deleted, ...updateNumbers])].sort((a, b) => a - b),
+          deleted: [...new Set([...previous.deleted, ...deletable])].sort((a, b) => a - b),
         };
         applyPostStudioState(optimistic);
         queryClient.setQueryData(POST_STUDIO_QUERY_KEY, optimistic);
