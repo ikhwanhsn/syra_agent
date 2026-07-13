@@ -322,6 +322,16 @@ export const X402_RESOURCE_CATALOG = {
       'Volatility index computed from Pyth price feed confidence intervals across SOL, BTC, and ETH. Returns index score and per-asset uncertainty metrics. Use when an agent gauges market uncertainty for risk-adjusted decisions.',
     suggestedPriceStx: 0.1,
   },
+  'insights/ecosystem-brief': {
+    slug: 'insights-ecosystem-brief',
+    name: 'Solana Ecosystem Brief',
+    category: 'analytics',
+    methods: ['GET'],
+    summary: 'Premium combined network, market, and DeFi snapshot via PayAI',
+    description:
+      'Premium PayAI-facilitated Labs endpoint combining Solana network health, cross-asset market pulse (SOL/BTC/ETH), and DeFi TVL in one response. Strictly limited to 5–10 calls per UTC day. Use when an agent needs a concise macro Solana briefing with PayAI settlement.',
+    suggestedPriceStx: 0.05,
+  },
   assets: {
     slug: 'assets-board',
     name: 'Assets Board',

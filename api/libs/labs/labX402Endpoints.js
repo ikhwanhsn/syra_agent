@@ -1,8 +1,22 @@
 /**
  * Registry of x402 Labs paid insight endpoints — shared by scheduler and management API.
  */
+import { checkPayaiEndpointDailyBudget } from './labPayaiEndpointDailyLimit.js';
 
-/** @typedef {{ id: string; path: string; priceUsd: number; weight: number; description: string }} LabX402Endpoint */
+/** @typedef {'dexter' | 'payai'} LabX402Facilitator */
+
+/**
+ * @typedef {{
+ *   id: string;
+ *   path: string;
+ *   priceUsd: number;
+ *   weight: number;
+ *   description: string;
+ *   facilitator?: LabX402Facilitator;
+ *   dailyLimitMin?: number;
+ *   dailyLimitMax?: number;
+ * }} LabX402Endpoint
+ */
 
 /** @type {readonly LabX402Endpoint[]} */
 export const LAB_X402_ENDPOINTS = Object.freeze([
@@ -47,6 +61,17 @@ export const LAB_X402_ENDPOINTS = Object.freeze([
     priceUsd: 0.1,
     weight: 1,
     description: 'Volatility index — computed from major asset price feeds',
+    facilitator: 'dexter',
+  },
+  {
+    id: 'ecosystem-brief',
+    path: '/insights/ecosystem-brief',
+    priceUsd: 0.05,
+    weight: 1,
+    description: 'Premium Solana ecosystem brief — network, market pulse, and DeFi TVL (PayAI, 5–10 calls/day)',
+    facilitator: 'payai',
+    dailyLimitMin: 5,
+    dailyLimitMax: 10,
   },
 ]);
 
@@ -55,6 +80,32 @@ export const LAB_X402_ENDPOINTS = Object.freeze([
  */
 export function listLabX402Endpoints() {
   return [...LAB_X402_ENDPOINTS];
+}
+
+/**
+ * Endpoints enriched with PayAI daily quota status for the Labs UI.
+ * @returns {Promise<(LabX402Endpoint & { dailyQuota?: { count: number; max: number; allowed: boolean; day: string } })[]>}
+ */
+export async function listLabX402EndpointsWithQuota() {
+  return Promise.all(
+    LAB_X402_ENDPOINTS.map(async (ep) => {
+      if (ep.facilitator !== 'payai') return { ...ep };
+      const budget = await checkPayaiEndpointDailyBudget(
+        ep.id,
+        ep.dailyLimitMin ?? 5,
+        ep.dailyLimitMax ?? 10,
+      );
+      return {
+        ...ep,
+        dailyQuota: {
+          count: budget.count,
+          max: budget.max,
+          allowed: budget.allowed,
+          day: budget.day,
+        },
+      };
+    }),
+  );
 }
 
 /**
@@ -69,6 +120,49 @@ export function pickRandomLabX402Endpoint() {
     if (r <= 0) return ep;
   }
   return LAB_X402_ENDPOINTS[LAB_X402_ENDPOINTS.length - 1];
+}
+
+/**
+ * Filter PayAI endpoints that have exhausted their daily quota.
+ * @param {LabX402Endpoint[]} endpoints
+ * @returns {Promise<LabX402Endpoint[]>}
+ */
+async function filterAvailableEndpoints(endpoints) {
+  const checks = await Promise.all(
+    endpoints.map(async (ep) => {
+      if (ep.facilitator !== 'payai') return { ep, allowed: true };
+      const budget = await checkPayaiEndpointDailyBudget(
+        ep.id,
+        ep.dailyLimitMin ?? 5,
+        ep.dailyLimitMax ?? 10,
+      );
+      return { ep, allowed: budget.allowed };
+    }),
+  );
+  return checks.filter((c) => c.allowed).map((c) => c.ep);
+}
+
+/**
+ * Pick a random endpoint weighted by `weight`, excluding PayAI routes at daily quota.
+ * On Base, PayAI-facilitated routes are skipped (Dexter multi-network only).
+ * @param {{ chain?: 'solana' | 'base' }} [opts]
+ * @returns {Promise<LabX402Endpoint>}
+ */
+export async function pickRandomAvailableLabX402Endpoint(opts = {}) {
+  const chain = opts.chain === 'base' ? 'base' : 'solana';
+  const candidates =
+    chain === 'base'
+      ? LAB_X402_ENDPOINTS.filter((e) => e.facilitator !== 'payai')
+      : [...LAB_X402_ENDPOINTS];
+  const available = await filterAvailableEndpoints(candidates);
+  const pool = available.length > 0 ? available : candidates.length > 0 ? candidates : [...LAB_X402_ENDPOINTS];
+  const total = pool.reduce((s, e) => s + e.weight, 0);
+  let r = Math.random() * total;
+  for (const ep of pool) {
+    r -= ep.weight;
+    if (r <= 0) return ep;
+  }
+  return pool[pool.length - 1];
 }
 
 /**

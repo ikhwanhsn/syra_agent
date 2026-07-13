@@ -115,6 +115,7 @@ import { createShipLogStudioRouter } from "./routes/shipLogStudio.js";
 import { createHealthRouter } from "./routes/health.js";
 import { createInsightsRouter } from "./routes/labs/insights.js";
 import { createLabsX402Router } from "./routes/labs/x402.js";
+import { createLlmPlaygroundRouter } from "./routes/labs/llm.js";
 import { createOrganizeRouter } from "./routes/labs/organize.js";
 import { createMppV1Router } from "./routes/mpp/v1.js";
 import { createMcpToolsRouter } from "./routes/mcp/tools.js";
@@ -757,14 +758,18 @@ app.post(
   },
 );
 
-app.use(
-  express.json({
-    limit: "200kb",
-    verify: (req, _res, buf) => {
-      if (buf?.length) req.rawBody = buf;
-    },
-  }),
-); // Prevent large-payload DoS; rawBody used by ShadowFeed HMAC for POST bodies
+const jsonBodyVerify = (req, _res, buf) => {
+  if (buf?.length) req.rawBody = buf;
+};
+const jsonBodySmall = express.json({ limit: "200kb", verify: jsonBodyVerify });
+const jsonBodyLlmPlayground = express.json({ limit: "25mb", verify: jsonBodyVerify });
+app.use((req, res, next) => {
+  // Admin LLM playground accepts base64 audio for transcription (larger payloads).
+  if (typeof req.path === "string" && req.path.startsWith("/labs/llm")) {
+    return jsonBodyLlmPlayground(req, res, next);
+  }
+  return jsonBodySmall(req, res, next);
+}); // Prevent large-payload DoS; rawBody used by ShadowFeed HMAC for POST bodies
 
 // ShadowFeed Partner Bridge: verify HMAC before x402 payment on paid routes.
 // Must run after body parser so POST body hash matches raw bytes (req.rawBody).
@@ -1294,6 +1299,7 @@ app.use("/rugcheck/report", await createRugcheckReportRouter());
 app.use("/pyth/price", await createPythPriceRouter());
 app.use("/insights", await createInsightsRouter());
 app.use("/labs/x402", createLabsX402Router());
+app.use("/labs/llm", createLlmPlaygroundRouter());
 app.use("/labs/organize", createOrganizeRouter());
 app.use("/assets/detail", await createAssetsDetailX402Router());
 app.use("/assets", await createAssetsX402Router());

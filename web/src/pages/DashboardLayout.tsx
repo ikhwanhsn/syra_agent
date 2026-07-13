@@ -6,6 +6,7 @@ import {
   UsersRound,
   FlaskConical,
   ClipboardList,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SidebarPanelToggle } from "@/components/layout/SidebarPanelToggle";
@@ -57,6 +58,7 @@ function dashboardPageTitle(pathname: string, search: string): string {
   if (parts[0] === "scalper") return "Scalper agent";
   if (parts[0] === "btc") return "Bitcoin";
   if (parts[0] === "labs") return "Labs";
+  if (parts[0] === "llm") return "LLM";
   if (parts[0] === "organize") return "Organize";
   if (parts[0] === "internal") {
     if (parts[1]) {
@@ -152,6 +154,13 @@ function DashboardSidebarContent({
                 badge={INTERNAL_TEAM_SIDEBAR_BADGE}
               >
                 Labs
+              </SidebarNavLink>
+              <SidebarNavLink
+                to="/llm"
+                icon={Sparkles}
+                badge={INTERNAL_TEAM_SIDEBAR_BADGE}
+              >
+                LLM
               </SidebarNavLink>
               <SidebarNavLink
                 to="/organize"

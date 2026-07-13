@@ -1,29 +1,41 @@
 /**
  * Outbound x402 payer for lab wallets — calls /insights/* endpoints with automatic payment.
+ * Supports Solana (ExactSvmScheme) and Base (ExactEvmScheme).
  */
 import { wrapFetchWithPayment } from '@x402/fetch';
 import { x402Client } from '@x402/core/client';
 import { ExactSvmScheme } from '@x402/svm/exact/client';
+import { ExactEvmScheme } from '@x402/evm/exact/client';
 import { createKeyPairSignerFromBytes } from '@solana/kit';
 import { registerRequiredExtensionsHook } from '../agentX402Client.js';
-import { getLabWalletKeypairByAddress } from './labWalletService.js';
-import { pickRandomLabX402Endpoint, findLabX402Endpoint } from './labX402Endpoints.js';
+import {
+  getLabWalletDocByAddress,
+  keypairFromLabWalletDoc,
+  evmAccountFromLabWalletDoc,
+} from './labWalletService.js';
+import { pickRandomAvailableLabX402Endpoint, findLabX402Endpoint } from './labX402Endpoints.js';
+import { checkPayaiEndpointDailyBudget } from './labPayaiEndpointDailyLimit.js';
 import {
   logLabX402Call,
   resolveActiveDailyCallCap,
+  findLabX402SettingsDoc,
 } from './labX402CallLog.js';
-import LabX402Settings from '../../models/labs/LabX402Settings.js';
+import LabX402Settings, {
+  normalizeLabChain,
+  settingsKeyForChain,
+} from '../../models/labs/LabX402Settings.js';
 import LabX402Call from '../../models/labs/LabX402Call.js';
 
 /** @type {Map<string, ReturnType<typeof wrapFetchWithPayment>>} */
 const paymentFetchCache = new Map();
 
 /**
- * @param {Keypair} keypair
+ * @param {import('@solana/web3.js').Keypair} keypair
  */
-async function getPaymentFetchForKeypair(keypair) {
+async function getSolanaPaymentFetchForKeypair(keypair) {
   const addr = keypair.publicKey.toBase58();
-  if (paymentFetchCache.has(addr)) return paymentFetchCache.get(addr);
+  const cacheKey = `solana:${addr}`;
+  if (paymentFetchCache.has(cacheKey)) return paymentFetchCache.get(cacheKey);
 
   const signer = await createKeyPairSignerFromBytes(keypair.secretKey);
   const rpcUrl =
@@ -34,7 +46,25 @@ async function getPaymentFetchForKeypair(keypair) {
   const client = x402Client.fromConfig({ schemes: [{ network: 'solana:*', client: scheme }] });
   registerRequiredExtensionsHook(client);
   const pf = wrapFetchWithPayment(globalThis.fetch, client);
-  paymentFetchCache.set(addr, pf);
+  paymentFetchCache.set(cacheKey, pf);
+  return pf;
+}
+
+/**
+ * @param {import('viem').Account} account
+ */
+async function getBasePaymentFetchForAccount(account) {
+  const addr = account.address;
+  const cacheKey = `base:${addr.toLowerCase()}`;
+  if (paymentFetchCache.has(cacheKey)) return paymentFetchCache.get(cacheKey);
+
+  const scheme = new ExactEvmScheme(account);
+  const client = x402Client.fromConfig({
+    schemes: [{ network: 'eip155:*', client: scheme }],
+  });
+  registerRequiredExtensionsHook(client);
+  const pf = wrapFetchWithPayment(globalThis.fetch, client);
+  paymentFetchCache.set(cacheKey, pf);
   return pf;
 }
 
@@ -53,32 +83,71 @@ function getServerApiKey() {
 
 /**
  * @param {string} payerAddress
- * @param {{ endpoint?: string; trigger?: 'manual' | 'scheduler' }} [opts]
+ * @param {{ endpoint?: string; trigger?: 'manual' | 'scheduler'; chain?: 'solana' | 'base' }} [opts]
  * @returns {Promise<object>}
  */
 export async function runLabX402Payment(payerAddress, opts = {}) {
   const trigger = opts.trigger === 'scheduler' ? 'scheduler' : 'manual';
-  const keypair = await getLabWalletKeypairByAddress(payerAddress);
-  if (!keypair) {
+  const chainHint = opts.chain ? normalizeLabChain(opts.chain) : undefined;
+  const doc = await getLabWalletDocByAddress(payerAddress, chainHint);
+  if (!doc) {
     throw new Error(`Lab payer wallet not found: ${payerAddress}`);
   }
+  const chain = normalizeLabChain(doc.chain);
 
-  const endpoint = opts.endpoint
+  // Base payers skip PayAI-only routes (ecosystem-brief) unless PayAI EVM is configured.
+  let endpoint = opts.endpoint
     ? findLabX402Endpoint(opts.endpoint)
-    : pickRandomLabX402Endpoint();
+    : await pickRandomAvailableLabX402Endpoint({ chain });
   if (!endpoint) {
     throw new Error('Unknown x402 endpoint');
+  }
+  if (chain === 'base' && endpoint.facilitator === 'payai') {
+    endpoint = await pickRandomAvailableLabX402Endpoint({ chain: 'base' });
+    if (!endpoint || endpoint.facilitator === 'payai') {
+      throw new Error('No Base-compatible x402 endpoint available (PayAI routes skipped on Base)');
+    }
+  }
+
+  if (endpoint.facilitator === 'payai') {
+    const budget = await checkPayaiEndpointDailyBudget(
+      endpoint.id,
+      endpoint.dailyLimitMin ?? 5,
+      endpoint.dailyLimitMax ?? 10,
+    );
+    if (!budget.allowed) {
+      return {
+        success: false,
+        endpoint: endpoint.path,
+        priceUsd: endpoint.priceUsd,
+        skipped: true,
+        reason: 'payai_daily_limit',
+        error: `PayAI endpoint daily limit reached (${budget.count}/${budget.max} for ${budget.day} UTC).`,
+      };
+    }
   }
 
   const url = `${getApiBaseUrl()}${endpoint.path}`;
   const headers = {
     Accept: 'application/json',
     'x-lab-x402-trigger': trigger,
+    'x-lab-x402-chain': chain,
   };
   const apiKey = getServerApiKey();
   if (apiKey) headers['X-API-Key'] = apiKey;
 
-  const paymentFetch = await getPaymentFetchForKeypair(keypair);
+  let paymentFetch;
+  let payerAddrForLog;
+  if (chain === 'base') {
+    const account = evmAccountFromLabWalletDoc(doc);
+    payerAddrForLog = account.address;
+    paymentFetch = await getBasePaymentFetchForAccount(account);
+  } else {
+    const keypair = keypairFromLabWalletDoc(doc);
+    payerAddrForLog = keypair.publicKey.toBase58();
+    paymentFetch = await getSolanaPaymentFetchForKeypair(keypair);
+  }
+
   let httpStatus = 0;
   let responseBody = null;
   let paymentTx = null;
@@ -110,9 +179,10 @@ export async function runLabX402Payment(payerAddress, opts = {}) {
           String(errorMsg),
         );
       await logLabX402Call({
-        payerAddress: keypair.publicKey.toBase58(),
+        payerAddress: payerAddrForLog,
         endpoint: endpoint.path,
         priceUsd: endpoint.priceUsd,
+        chain,
         status: looksLikeUpstreamData ? 'error' : 'payment_failed',
         paymentTx,
         error: String(errorMsg).slice(0, 500),
@@ -138,9 +208,10 @@ export async function runLabX402Payment(payerAddress, opts = {}) {
   } catch (e) {
     errorMsg = e?.message || String(e);
     await logLabX402Call({
-      payerAddress: keypair.publicKey.toBase58(),
+      payerAddress: payerAddrForLog,
       endpoint: endpoint.path,
       priceUsd: endpoint.priceUsd,
+      chain,
       status: 'error',
       error: errorMsg.slice(0, 500),
       trigger,
@@ -183,19 +254,22 @@ function formatLabX402Settings(doc) {
     maxDailyCalls: activeDailyCallCap ?? Math.round((maxDailyCallsMin + maxDailyCallsMax) / 2),
     activeDailyCallCap,
     activeDailyCallCapDay: doc.activeDailyCallCapDay ?? null,
+    chain: settingsKeyForChain(doc.singletonKey === 'base' ? 'base' : 'solana'),
     updatedAt: doc.updatedAt,
   };
 }
 
 /**
+ * @param {'solana' | 'base'} [chain]
  * @returns {Promise<object>}
  */
-export async function getLabX402Settings() {
+export async function getLabX402Settings(chain = 'solana') {
+  const c = normalizeLabChain(chain);
   // Ensure today's random cap is rolled so the Labs UI can show the active value.
-  await resolveActiveDailyCallCap();
-  let doc = await LabX402Settings.findOne({ singletonKey: 'default' }).lean();
+  await resolveActiveDailyCallCap(c);
+  let doc = await findLabX402SettingsDoc(c);
   if (!doc) {
-    doc = (await LabX402Settings.create({ singletonKey: 'default' })).toObject();
+    doc = (await LabX402Settings.create({ singletonKey: settingsKeyForChain(c) })).toObject();
   }
   return formatLabX402Settings(doc);
 }
@@ -210,9 +284,12 @@ export async function getLabX402Settings() {
  *   maxDailyCallsMax: number;
  *   maxDailyCalls: number;
  * }>} patch
+ * @param {'solana' | 'base'} [chain]
  * @returns {Promise<object>}
  */
-export async function updateLabX402Settings(patch) {
+export async function updateLabX402Settings(patch, chain = 'solana') {
+  const c = normalizeLabChain(chain);
+  const key = settingsKeyForChain(c);
   const update = {};
   let clearActiveCap = false;
   if (typeof patch.autoCallEnabled === 'boolean') update.autoCallEnabled = patch.autoCallEnabled;
@@ -229,9 +306,7 @@ export async function updateLabX402Settings(patch) {
   const hasLegacy = typeof patch.maxDailyCalls === 'number';
 
   if (hasMin || hasMax || hasLegacy) {
-    const existing = await LabX402Settings.findOne({ singletonKey: 'default' })
-      .select('maxDailyCalls maxDailyCallsMin maxDailyCallsMax')
-      .lean();
+    const existing = await findLabX402SettingsDoc(c);
     const legacyFallback = existing?.maxDailyCalls ?? 2000;
     let min = hasMin
       ? Math.round(patch.maxDailyCallsMin)
@@ -258,34 +333,37 @@ export async function updateLabX402Settings(patch) {
   }
 
   const doc = await LabX402Settings.findOneAndUpdate(
-    { singletonKey: 'default' },
+    { singletonKey: key },
     {
       $set: update,
-      $setOnInsert: { singletonKey: 'default' },
+      $setOnInsert: { singletonKey: key },
       ...(clearActiveCap ? { $unset: { activeDailyCallCap: 1, activeDailyCallCapDay: 1 } } : {}),
     },
     { upsert: true, new: true, lean: true },
   );
   if (clearActiveCap) {
-    await resolveActiveDailyCallCap();
-    const refreshed = await LabX402Settings.findOne({ singletonKey: 'default' }).lean();
+    await resolveActiveDailyCallCap(c);
+    const refreshed = await findLabX402SettingsDoc(c);
     return formatLabX402Settings(refreshed ?? doc);
   }
   return formatLabX402Settings(doc);
 }
 
 /**
- * @param {{ limit?: number }} [opts]
+ * @param {{ limit?: number; chain?: 'solana' | 'base' }} [opts]
  * @returns {Promise<object[]>}
  */
 export async function listLabX402Calls(opts = {}) {
   const limit = Math.min(Math.max(Number(opts.limit) || 10, 1), 200);
-  const docs = await LabX402Call.find().sort({ createdAt: -1 }).limit(limit).lean();
+  const filter = {};
+  if (opts.chain) filter.chain = normalizeLabChain(opts.chain);
+  const docs = await LabX402Call.find(filter).sort({ createdAt: -1 }).limit(limit).lean();
   return docs.map((d) => ({
     id: d._id.toString(),
     payerAddress: d.payerAddress,
     endpoint: d.endpoint,
     priceUsd: d.priceUsd,
+    chain: d.chain || 'solana',
     status: d.status,
     paymentTx: d.paymentTx,
     refundTx: d.refundTx,

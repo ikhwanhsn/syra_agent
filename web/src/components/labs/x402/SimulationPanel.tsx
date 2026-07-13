@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 import { cn } from "@/lib/utils";
-import type { LabWallet, LabX402Endpoint, LabX402Settings } from "@/lib/labsX402Api";
+import type { LabChain, LabWallet, LabX402Endpoint, LabX402Settings } from "@/lib/labsX402Api";
 import {
   buildPerWalletBalanceRows,
   formatSimulationSol,
@@ -19,6 +19,7 @@ interface SimulationPanelProps {
   wallets: LabWallet[];
   settings: LabX402Settings | undefined;
   endpoints: LabX402Endpoint[];
+  chain?: LabChain;
   /** Draft values from settings form (optional — falls back to saved settings) */
   draft?: {
     intervalMin?: number;
@@ -42,9 +43,25 @@ function StatRow({ label, value, hint }: { label: string; value: string; hint?: 
   );
 }
 
-export function SimulationPanel({ payerCount, wallets, settings, endpoints, draft }: SimulationPanelProps) {
+export function SimulationPanel({
+  payerCount,
+  wallets,
+  settings,
+  endpoints,
+  draft,
+  chain = "solana",
+}: SimulationPanelProps) {
   const [open, setOpen] = useState(false);
   const [targetCalls, setTargetCalls] = useState(1000);
+  const nativeSymbol = chain === "base" ? "ETH" : "SOL";
+
+  const formatNative = (n: number) => {
+    if (chain === "base") {
+      if (n < 0.0001 && n > 0) return "<0.0001 ETH";
+      return `~${n.toFixed(4)} ETH`;
+    }
+    return formatSimulationSol(n);
+  };
 
   const intervalMin = draft?.intervalMin ?? (settings ? Math.round(settings.intervalMs / 60_000) : 5);
   const jitterPct = draft?.jitterPct ?? settings?.jitterPct ?? 20;
@@ -188,13 +205,13 @@ export function SimulationPanel({ payerCount, wallets, settings, endpoints, draf
                     hint="gross flow"
                   />
                   <StatRow
-                    label="Est. SOL fees"
-                    value={`~${result.estSolPerDay.toFixed(4)} SOL`}
+                    label={`Est. ${nativeSymbol} fees`}
+                    value={`~${result.estSolPerDay.toFixed(4)} ${nativeSymbol}`}
                     hint={result.refundEnabled ? "pay + refund txs" : "pay txs only"}
                   />
                   <StatRow
-                    label="SOL / payer wallet"
-                    value={`~${result.estSolPerWalletPerDay.toFixed(4)} SOL`}
+                    label={`${nativeSymbol} / payer wallet`}
+                    value={`~${result.estSolPerWalletPerDay.toFixed(4)} ${nativeSymbol}`}
                   />
                 </dl>
               </div>
@@ -257,7 +274,11 @@ export function SimulationPanel({ payerCount, wallets, settings, endpoints, draf
                           value={formatSimulationUsd(s.suggestedUsdc)}
                           hint={s.usdcNote}
                         />
-                        <StatRow label="SOL" value={formatSimulationSol(s.suggestedSol)} hint={s.solNote} />
+                        <StatRow
+                          label={nativeSymbol}
+                          value={formatNative(s.suggestedSol)}
+                          hint={s.solNote.replace(/SOL/gi, nativeSymbol).replace(/rent/gi, chain === "base" ? "gas" : "rent")}
+                        />
                       </dl>
                     </div>
                   ))}
@@ -272,8 +293,8 @@ export function SimulationPanel({ payerCount, wallets, settings, endpoints, draf
                           <th className="px-3 py-2 font-medium">Role</th>
                           <th className="px-3 py-2 text-right font-medium">USDC now</th>
                           <th className="px-3 py-2 text-right font-medium">USDC need</th>
-                          <th className="px-3 py-2 text-right font-medium">SOL now</th>
-                          <th className="px-3 py-2 text-right font-medium">SOL need</th>
+                          <th className="px-3 py-2 text-right font-medium">{nativeSymbol} now</th>
+                          <th className="px-3 py-2 text-right font-medium">{nativeSymbol} need</th>
                           <th className="px-3 py-2 text-right font-medium">Deposit</th>
                         </tr>
                       </thead>
@@ -301,7 +322,7 @@ export function SimulationPanel({ payerCount, wallets, settings, endpoints, draf
                                   <span className="text-amber-400">
                                     +{row.usdcShortfall.toFixed(2)} USDC
                                     {row.solShortfall > 0
-                                      ? `, +${row.solShortfall.toFixed(4)} SOL`
+                                      ? `, +${row.solShortfall.toFixed(4)} ${nativeSymbol}`
                                       : ""}
                                   </span>
                                 ) : (

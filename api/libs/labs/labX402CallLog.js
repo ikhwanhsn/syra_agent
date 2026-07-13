@@ -1,10 +1,13 @@
 /**
  * Lab x402 call logging with daily caps, document pruning, and lab-payer-only writes.
- * Avoids MongoDB bloat from high-volume scheduler runs or external /insights traffic.
+ * Scoped per chain (solana | base).
  */
 import LabX402Call from '../../models/labs/LabX402Call.js';
 import LabWallet from '../../models/labs/LabWallet.js';
-import LabX402Settings from '../../models/labs/LabX402Settings.js';
+import LabX402Settings, {
+  normalizeLabChain,
+  settingsKeyForChain,
+} from '../../models/labs/LabX402Settings.js';
 
 const MAX_CALL_LOG_DOCS = Number(process.env.LAB_X402_MAX_CALL_LOG_DOCS) || 5_000;
 const DEFAULT_MAX_DAILY_CALLS = Number(process.env.LAB_X402_MAX_DAILY_CALLS) || 2_000;
@@ -59,27 +62,39 @@ export function resolveDailyCallCapRange(doc) {
 }
 
 /**
- * Pick (and persist) today's random daily call cap within the configured range.
- * Stable for the UTC day across scheduler ticks and process restarts.
+ * Load settings doc for a chain, migrating legacy `default` -> `solana` on first read.
+ * @param {'solana' | 'base'} [chain]
+ * @returns {Promise<object | null>}
+ */
+export async function findLabX402SettingsDoc(chain = 'solana') {
+  const key = settingsKeyForChain(chain);
+  let doc = await LabX402Settings.findOne({ singletonKey: key }).lean();
+  if (!doc && key === 'solana') {
+    const legacy = await LabX402Settings.findOne({ singletonKey: 'default' }).lean();
+    if (legacy) {
+      await LabX402Settings.updateOne({ _id: legacy._id }, { $set: { singletonKey: 'solana' } });
+      doc = { ...legacy, singletonKey: 'solana' };
+    }
+  }
+  return doc;
+}
+
+/**
+ * Pick (and persist) today's random daily call cap within the configured range for a chain.
+ * @param {'solana' | 'base'} [chain]
  * @returns {Promise<{ max: number; min: number; maxBound: number; day: string; rolled: boolean }>}
  */
-export async function resolveActiveDailyCallCap() {
-  const doc = await LabX402Settings.findOne({ singletonKey: 'default' })
-    .select(
-      'maxDailyCalls maxDailyCallsMin maxDailyCallsMax activeDailyCallCap activeDailyCallCapDay',
-    )
-    .lean();
+export async function resolveActiveDailyCallCap(chain = 'solana') {
+  const key = settingsKeyForChain(chain);
+  const doc = await findLabX402SettingsDoc(chain);
   const range = resolveDailyCallCapRange(doc);
   const day = utcDayKey();
 
-  if (
-    doc?.activeDailyCallCapDay === day &&
-    typeof doc.activeDailyCallCap === 'number'
-  ) {
+  if (doc?.activeDailyCallCapDay === day && typeof doc.activeDailyCallCap === 'number') {
     const capped = clampInt(doc.activeDailyCallCap, range.min, range.max);
     if (capped !== doc.activeDailyCallCap) {
       await LabX402Settings.updateOne(
-        { singletonKey: 'default' },
+        { singletonKey: key },
         { $set: { activeDailyCallCap: capped, activeDailyCallCapDay: day } },
         { upsert: true },
       );
@@ -89,7 +104,7 @@ export async function resolveActiveDailyCallCap() {
 
   const rolled = randomIntInclusive(range.min, range.max);
   await LabX402Settings.findOneAndUpdate(
-    { singletonKey: 'default' },
+    { singletonKey: key },
     {
       $set: {
         activeDailyCallCap: rolled,
@@ -97,33 +112,52 @@ export async function resolveActiveDailyCallCap() {
         maxDailyCallsMin: range.min,
         maxDailyCallsMax: range.max,
       },
-      $setOnInsert: { singletonKey: 'default' },
+      $setOnInsert: { singletonKey: key },
     },
     { upsert: true },
   );
   console.info(
-    `[lab-x402-log] rolled daily call cap ${rolled} for ${day} (range ${range.min}-${range.max})`,
+    `[lab-x402-log] rolled ${key} daily call cap ${rolled} for ${day} (range ${range.min}-${range.max})`,
   );
   return { max: rolled, min: range.min, maxBound: range.max, day, rolled: true };
 }
 
 /**
  * @param {string} address
+ * @param {'solana' | 'base'} [chain]
  * @returns {Promise<boolean>}
  */
-export async function isActiveLabPayer(address) {
+export async function isActiveLabPayer(address, chain) {
   const addr = String(address || '').trim();
   if (!addr) return false;
-  const hit = labPayerCache.get(addr);
+  const c = chain ? normalizeLabChain(chain) : null;
+  const cacheKey = c ? `${c}:${addr}` : addr;
+  const hit = labPayerCache.get(cacheKey);
   if (hit && hit > Date.now()) return true;
-  const cachedFalse = labPayerCache.get(`!${addr}`);
+  const cachedFalse = labPayerCache.get(`!${cacheKey}`);
   if (cachedFalse && cachedFalse > Date.now()) return false;
 
-  const doc = await LabWallet.findOne({ address: addr, role: 'payer', active: true })
-    .select('_id')
-    .lean();
+  /** @type {Record<string, unknown>} */
+  const filter = { role: 'payer', active: true };
+  if (c === 'base') {
+    filter.chain = 'base';
+    filter.address = { $regex: new RegExp(`^${addr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') };
+  } else if (c === 'solana') {
+    filter.chain = 'solana';
+    filter.address = addr;
+  } else {
+    filter.$or = [
+      { address: addr, chain: 'solana' },
+      {
+        chain: 'base',
+        address: { $regex: new RegExp(`^${addr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
+      },
+    ];
+  }
+
+  const doc = await LabWallet.findOne(filter).select('_id chain').lean();
   const isLab = Boolean(doc);
-  labPayerCache.set(isLab ? addr : `!${addr}`, Date.now() + LAB_PAYER_CACHE_MS);
+  labPayerCache.set(isLab ? cacheKey : `!${cacheKey}`, Date.now() + LAB_PAYER_CACHE_MS);
   return isLab;
 }
 
@@ -132,17 +166,22 @@ export function getMaxPayerWallets() {
 }
 
 /**
+ * @param {'solana' | 'base'} [chain]
  * @returns {Promise<number>}
  */
-export async function countLabCallsToday() {
-  return LabX402Call.countDocuments({ createdAt: { $gte: startOfUtcDay() } });
+export async function countLabCallsToday(chain) {
+  const filter = { createdAt: { $gte: startOfUtcDay() } };
+  if (chain) filter.chain = normalizeLabChain(chain);
+  return LabX402Call.countDocuments(filter);
 }
 
 /**
+ * @param {'solana' | 'base'} [chain]
  * @returns {Promise<{ allowed: boolean; count: number; max: number; min: number; maxBound: number }>}
  */
-export async function checkLabDailyCallBudget() {
-  const [cap, count] = await Promise.all([resolveActiveDailyCallCap(), countLabCallsToday()]);
+export async function checkLabDailyCallBudget(chain = 'solana') {
+  const c = normalizeLabChain(chain);
+  const [cap, count] = await Promise.all([resolveActiveDailyCallCap(c), countLabCallsToday(c)]);
   return {
     allowed: count < cap.max,
     count,
@@ -173,14 +212,15 @@ async function pruneOldCallLogs() {
 export async function logLabX402Call(doc) {
   const payerAddress = String(doc?.payerAddress || '').trim();
   if (!payerAddress) return false;
+  const chain = normalizeLabChain(doc?.chain);
 
-  const isLab = await isActiveLabPayer(payerAddress);
+  const isLab = await isActiveLabPayer(payerAddress, chain);
   if (!isLab) return false;
 
-  const budget = await checkLabDailyCallBudget();
+  const budget = await checkLabDailyCallBudget(chain);
   if (!budget.allowed) {
     console.warn(
-      `[lab-x402-log] daily cap reached (${budget.count}/${budget.max}); skipping log`,
+      `[lab-x402-log] ${chain} daily cap reached (${budget.count}/${budget.max}); skipping log`,
     );
     return false;
   }
@@ -189,6 +229,7 @@ export async function logLabX402Call(doc) {
     payerAddress,
     endpoint: doc.endpoint,
     priceUsd: doc.priceUsd,
+    chain,
     status: doc.status,
     paymentTx: doc.paymentTx ?? null,
     refundTx: doc.refundTx ?? null,

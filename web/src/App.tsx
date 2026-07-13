@@ -72,6 +72,7 @@ import AnsemPage from "@/pages/AnsemPage";
 import ReferenceScalperPage from "@/pages/ReferenceScalperPage";
 import MultiWalletRecoverPage from "@/pages/MultiWalletRecoverPage";
 import LabsPage from "@/pages/labs/LabsPage";
+import LlmPage from "@/pages/llm/LlmPage";
 import OrganizePage from "@/pages/organize/OrganizePage";
 import { RedirectToS3Labs } from "@/components/marketing/RedirectToS3Labs";
 
@@ -266,6 +267,14 @@ function AppRoutes() {
               element={
                 <AdminDashboardGate featureLabel="Labs">
                   <LabsPage />
+                </AdminDashboardGate>
+              }
+            />
+            <Route
+              path="/llm"
+              element={
+                <AdminDashboardGate featureLabel="LLM">
+                  <LlmPage />
                 </AdminDashboardGate>
               }
             />

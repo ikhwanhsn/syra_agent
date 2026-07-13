@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
+import type { LabChain } from "@/lib/labsX402Api";
 
 interface CreateWalletDialogProps {
   open: boolean;
@@ -18,20 +19,24 @@ interface CreateWalletDialogProps {
   onSubmit: (input: { label: string; role: "payer" | "payto" }) => void;
   isPending: boolean;
   hasPayTo: boolean;
+  chain?: LabChain;
 }
 
-const ROLE_OPTIONS = [
-  {
-    value: "payer" as const,
-    title: "Payer",
-    description: "Signs x402 payments to /insights/* endpoints",
-  },
-  {
-    value: "payto" as const,
-    title: "PayTo",
-    description: "Receives payments and refunds USDC back to payers",
-  },
-];
+function roleOptions(chain: LabChain) {
+  const network = chain === "base" ? "Base" : "Solana";
+  return [
+    {
+      value: "payer" as const,
+      title: "Payer",
+      description: `Signs x402 payments to /insights/* endpoints on ${network}`,
+    },
+    {
+      value: "payto" as const,
+      title: "PayTo",
+      description: `Receives payments and refunds USDC back to payers on ${network}`,
+    },
+  ];
+}
 
 export function CreateWalletDialog({
   open,
@@ -39,9 +44,11 @@ export function CreateWalletDialog({
   onSubmit,
   isPending,
   hasPayTo,
+  chain = "solana",
 }: CreateWalletDialogProps) {
   const [label, setLabel] = useState("");
   const [role, setRole] = useState<"payer" | "payto">("payer");
+  const options = roleOptions(chain);
 
   const handleSubmit = () => {
     const trimmed = label.trim();
@@ -55,7 +62,9 @@ export function CreateWalletDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Create lab wallet</DialogTitle>
+          <DialogTitle>
+            Create {chain === "base" ? "Base" : "Solana"} lab wallet
+          </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-2">
@@ -74,7 +83,7 @@ export function CreateWalletDialog({
               onValueChange={(v) => setRole(v as "payer" | "payto")}
               className="grid gap-2"
             >
-              {ROLE_OPTIONS.map((opt) => {
+              {options.map((opt) => {
                 const disabled = opt.value === "payto" && hasPayTo;
                 return (
                   <label

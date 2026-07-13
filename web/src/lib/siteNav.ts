@@ -21,6 +21,7 @@ import {
   Wrench,
   FlaskConical,
   ClipboardList,
+  Sparkles,
 } from "lucide-react";
 import { isDashboardPillarRoute } from "@/lib/dashboardPillarNav";
 import {
@@ -80,6 +81,7 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
       p.startsWith("/arbitrage") ||
       p.startsWith("/internal") ||
       p.startsWith("/labs") ||
+      p.startsWith("/llm") ||
       p.startsWith("/organize"),
     items: [
       { href: "/overview", label: "Overview", icon: LayoutDashboard },
@@ -91,6 +93,13 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
         label: "Labs",
         icon: FlaskConical,
         description: "x402 payment experiments",
+        adminOnly: true,
+      },
+      {
+        href: "/llm",
+        label: "LLM",
+        icon: Sparkles,
+        description: "OpenRouter multimodal playground",
         adminOnly: true,
       },
       {

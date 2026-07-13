@@ -21,6 +21,11 @@ export function DepositDialog({ wallet, open, onOpenChange }: DepositDialogProps
 
   if (!wallet) return null;
 
+  const isBase = wallet.chain === "base";
+  const depositHint = isBase
+    ? "Send ETH (for gas) and USDC to this address on Base mainnet."
+    : "Send SOL (for fees) and USDC to this address on Solana mainnet.";
+
   const copyAddress = async () => {
     await navigator.clipboard.writeText(wallet.address);
     setCopied(true);
@@ -37,9 +42,7 @@ export function DepositDialog({ wallet, open, onOpenChange }: DepositDialogProps
           <div className="rounded-xl bg-white p-4">
             <QRCodeSVG value={wallet.address} size={180} level="M" />
           </div>
-          <p className="text-center text-sm text-muted-foreground">
-            Send SOL (for fees) and USDC to this address on Solana mainnet.
-          </p>
+          <p className="text-center text-sm text-muted-foreground">{depositHint}</p>
           <div className="flex w-full items-center gap-2 rounded-lg border border-border/60 bg-muted/30 p-3">
             <code className="flex-1 break-all text-xs">{wallet.address}</code>
             <Button variant="ghost" size="icon" onClick={() => void copyAddress()} aria-label="Copy address">

@@ -295,6 +295,8 @@ export const X402_API_PRICE_INSIGHTS_MARKET_PULSE_USD = price(0.02);
 export const X402_API_PRICE_INSIGHTS_TOKEN_METRICS_USD = price(0.03);
 export const X402_API_PRICE_INSIGHTS_DEFI_TVL_USD = price(0.05);
 export const X402_API_PRICE_INSIGHTS_VOLATILITY_INDEX_USD = price(0.1);
+/** PayAI-facilitated Labs premium snapshot — limited to 5–10 calls/day */
+export const X402_API_PRICE_INSIGHTS_ECOSYSTEM_BRIEF_USD = price(0.05);
 
 /** Display prices: production API cost for tools list/catalog. */
 export const X402_DISPLAY_PRICE_USD = displayInternal(X402_TIER_2_USD);
@@ -367,3 +369,4 @@ export const X402_DISPLAY_PRICE_INSIGHTS_MARKET_PULSE_USD = displayInternal(0.02
 export const X402_DISPLAY_PRICE_INSIGHTS_TOKEN_METRICS_USD = displayInternal(0.03);
 export const X402_DISPLAY_PRICE_INSIGHTS_DEFI_TVL_USD = displayInternal(0.05);
 export const X402_DISPLAY_PRICE_INSIGHTS_VOLATILITY_INDEX_USD = displayInternal(0.1);
+export const X402_DISPLAY_PRICE_INSIGHTS_ECOSYSTEM_BRIEF_USD = displayInternal(0.05);

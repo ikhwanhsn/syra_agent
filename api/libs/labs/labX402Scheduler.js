@@ -1,15 +1,18 @@
 /**
  * Scheduler for x402 Labs auto-caller — periodically runs paid /insights/* calls from payer wallets.
+ * Runs independently per chain (solana | base).
  */
 import { listActivePayerWallets } from './labWalletService.js';
 import { runLabX402Payment, getLabX402Settings } from './labX402Payer.js';
 import { checkLabDailyCallBudget } from './labX402CallLog.js';
 import { ensurePayerFundedForNextCall } from './labX402Refund.js';
+import { LAB_X402_CHAINS, normalizeLabChain } from '../../models/labs/LabX402Settings.js';
 import { startupVerbose } from '../../utils/startupLog.js';
 
-/** @type {ReturnType<typeof setTimeout> | null} */
-let timerId = null;
-let running = false;
+/** @type {Map<string, ReturnType<typeof setTimeout>>} */
+const timerByChain = new Map();
+/** @type {Set<string>} */
+const runningByChain = new Set();
 
 function computeJitteredDelay(baseMs, jitterPct) {
   const jitter = (jitterPct / 100) * baseMs;
@@ -17,78 +20,109 @@ function computeJitteredDelay(baseMs, jitterPct) {
   return Math.max(60_000, Math.round(baseMs + offset));
 }
 
-async function tick() {
-  if (running) return;
-  running = true;
+/**
+ * @param {'solana' | 'base'} chain
+ */
+async function tick(chain) {
+  const c = normalizeLabChain(chain);
+  if (runningByChain.has(c)) return;
+  runningByChain.add(c);
   try {
-    const settings = await getLabX402Settings();
+    const settings = await getLabX402Settings(c);
     if (!settings.autoCallEnabled) return;
 
-    const budget = await checkLabDailyCallBudget();
+    const budget = await checkLabDailyCallBudget(c);
     if (!budget.allowed) {
       console.warn(
-        `[lab-x402-scheduler] daily cap reached (${budget.count}/${budget.max}); skipping tick`,
+        `[lab-x402-scheduler] ${c} daily cap reached (${budget.count}/${budget.max}); skipping tick`,
       );
       return;
     }
 
-    const payers = await listActivePayerWallets();
+    const payers = await listActivePayerWallets(c);
     if (payers.length === 0) return;
 
     for (const payer of payers) {
-      const remaining = await checkLabDailyCallBudget();
+      const remaining = await checkLabDailyCallBudget(c);
       if (!remaining.allowed) break;
       try {
-        // Top up the payer first so a drained wallet can always pay again.
         const funding = await ensurePayerFundedForNextCall(payer.address, {
           refundEnabled: settings.refundEnabled,
+          chain: c,
         });
-        // Skip a call the payer genuinely cannot afford — avoids a guaranteed payment_failed log.
         if (!funding.canPay) {
           console.warn(
-            `[lab-x402-scheduler] skipping ${payer.address}: insufficient USDC (${funding.reason})`,
+            `[lab-x402-scheduler] skipping ${c} ${payer.address}: insufficient USDC (${funding.reason})`,
           );
           continue;
         }
-        await runLabX402Payment(payer.address, { trigger: 'scheduler' });
+        await runLabX402Payment(payer.address, { trigger: 'scheduler', chain: c });
       } catch (e) {
-        console.warn('[lab-x402-scheduler] payer call failed:', payer.address, e?.message || e);
+        console.warn(
+          `[lab-x402-scheduler] ${c} payer call failed:`,
+          payer.address,
+          e?.message || e,
+        );
       }
     }
   } catch (e) {
-    console.warn('[lab-x402-scheduler] tick failed:', e?.message || e);
+    console.warn(`[lab-x402-scheduler] ${c} tick failed:`, e?.message || e);
   } finally {
-    running = false;
-    scheduleNext();
-  }
-}
-
-async function scheduleNext() {
-  if (timerId) {
-    clearTimeout(timerId);
-    timerId = null;
-  }
-  try {
-    const settings = await getLabX402Settings();
-    if (!settings.autoCallEnabled) return;
-    const delay = computeJitteredDelay(settings.intervalMs, settings.jitterPct);
-    timerId = setTimeout(tick, delay);
-  } catch {
-    timerId = setTimeout(tick, 300_000);
+    runningByChain.delete(c);
+    scheduleNext(c);
   }
 }
 
 /**
- * Start the lab x402 scheduler. Safe to call once at boot; re-reads settings each tick.
+ * @param {'solana' | 'base'} chain
+ */
+async function scheduleNext(chain) {
+  const c = normalizeLabChain(chain);
+  const existing = timerByChain.get(c);
+  if (existing) {
+    clearTimeout(existing);
+    timerByChain.delete(c);
+  }
+  try {
+    const settings = await getLabX402Settings(c);
+    if (!settings.autoCallEnabled) return;
+    const delay = computeJitteredDelay(settings.intervalMs, settings.jitterPct);
+    timerByChain.set(
+      c,
+      setTimeout(() => {
+        void tick(c);
+      }, delay),
+    );
+  } catch {
+    timerByChain.set(
+      c,
+      setTimeout(() => {
+        void tick(c);
+      }, 300_000),
+    );
+  }
+}
+
+/**
+ * Start the lab x402 scheduler for all chains. Safe to call once at boot.
  */
 export function startLabX402Scheduler() {
-  startupVerbose('[lab-x402-scheduler] started');
-  scheduleNext();
+  startupVerbose('[lab-x402-scheduler] started (solana + base)');
+  for (const chain of LAB_X402_CHAINS) {
+    scheduleNext(chain);
+  }
 }
 
 /**
  * Restart scheduler after settings change (e.g. interval updated).
+ * @param {'solana' | 'base'} [chain] - when omitted, restart all chains
  */
-export function restartLabX402Scheduler() {
-  scheduleNext();
+export function restartLabX402Scheduler(chain) {
+  if (chain) {
+    scheduleNext(normalizeLabChain(chain));
+    return;
+  }
+  for (const c of LAB_X402_CHAINS) {
+    scheduleNext(c);
+  }
 }

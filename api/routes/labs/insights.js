@@ -1,7 +1,7 @@
 /**
  * x402 paid /insights/* routes — professional on-chain data endpoints for x402 Labs.
  * Payments route to the lab payTo wallet when configured (buyback skipped via payToOverride).
- * Verify/settle uses the Dexter facilitator (https://x402.dexter.cash); other Syra routes stay on PayAI.
+ * Dexter routes settle via Dexter facilitator (Solana + Base multi-network); PayAI routes stay on PayAI.
  * Listed in GET /.well-known/x402 for x402scan discovery.
  */
 import express from 'express';
@@ -14,8 +14,13 @@ import {
   X402_API_PRICE_INSIGHTS_TOKEN_METRICS_USD,
   X402_API_PRICE_INSIGHTS_DEFI_TVL_USD,
   X402_API_PRICE_INSIGHTS_VOLATILITY_INDEX_USD,
+  X402_API_PRICE_INSIGHTS_ECOSYSTEM_BRIEF_USD,
 } from '../../config/x402Pricing.js';
-import { getActivePayToAddress, getLabWalletBalances } from '../../libs/labs/labWalletService.js';
+import {
+  getActiveLabPayToAddresses,
+  getActivePayToAddress,
+  getLabWalletBalances,
+} from '../../libs/labs/labWalletService.js';
 import {
   evaluateLowBalanceRefund,
   refundUsdcToPayer,
@@ -38,14 +43,29 @@ import {
   fetchTokenMetricsInsight,
   fetchDefiTvlInsight,
   fetchVolatilityIndexInsight,
+  fetchEcosystemBriefInsight,
 } from '../../libs/labs/insightsDataService.js';
+import { payaiEndpointDailyLimitMiddleware, recordPayaiEndpointDailyCall } from '../../libs/labs/labPayaiEndpointDailyLimit.js';
+import { findLabX402Endpoint } from '../../libs/labs/labX402Endpoints.js';
 
 const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 
 async function labsPayToOverride() {
-  const addr = await getActivePayToAddress();
-  if (!addr) return null;
-  return { solanaPayTo: addr };
+  const { solanaPayTo, evmPayTo } = await getActiveLabPayToAddresses();
+  if (!solanaPayTo && !evmPayTo) return null;
+  return { solanaPayTo, evmPayTo };
+}
+
+/**
+ * Infer lab chain from payer address / request header.
+ * @param {string} payer
+ * @param {import('express').Request} req
+ * @returns {'solana' | 'base'}
+ */
+function inferPayerChain(payer, req) {
+  const fromHeader = req.get('x-lab-x402-chain');
+  if (fromHeader === 'base' || fromHeader === 'solana') return fromHeader;
+  return /^0x/i.test(payer) ? 'base' : 'solana';
 }
 
 /**
@@ -55,7 +75,7 @@ async function labsPayToOverride() {
  * @param {string} catalogSegment
  * @param {() => Promise<object>} fetchData
  */
-async function handleInsightRoute(req, res, endpointPath, catalogSegment, fetchData) {
+async function handleInsightRoute(req, res, endpointPath, catalogSegment, fetchData, opts = {}) {
   try {
     const data = await fetchData();
     const settle = await settlePaymentAndSetResponse(res, req);
@@ -66,26 +86,37 @@ async function handleInsightRoute(req, res, endpointPath, catalogSegment, fetchD
       });
     }
 
+    if (opts.recordPayaiQuota && req.payaiEndpointId) {
+      const limits = req.payaiEndpointDailyLimits ?? {};
+      await recordPayaiEndpointDailyCall(
+        req.payaiEndpointId,
+        limits.minCap ?? 5,
+        limits.maxCap ?? 10,
+      );
+    }
+
     const payer = typeof settle?.payer === 'string' ? settle.payer.trim() : '';
     const priceUsd = req.x402Payment?.priceUsd ?? 0;
     const paymentTx = typeof settle?.transaction === 'string' ? settle.transaction : null;
     const trigger = req.get('x-lab-x402-trigger') === 'scheduler' ? 'scheduler' : 'manual';
+    const chain = inferPayerChain(payer, req);
 
     runAfterResponse(async () => {
       if (!payer) return;
-      const labPayer = await isActiveLabPayer(payer);
+      const labPayer = await isActiveLabPayer(payer, chain);
       if (!labPayer) return;
 
-      const payToAddr = await getActivePayToAddress();
+      const payToAddr = await getActivePayToAddress(chain);
       if (!payToAddr) return;
 
       try {
-        const settings = await getLabX402Settings();
+        const settings = await getLabX402Settings(chain);
         if (!settings.refundEnabled || priceUsd <= 0) {
           await logLabX402Call({
             payerAddress: payer,
             endpoint: endpointPath,
             priceUsd,
+            chain,
             status: 'refund_skipped',
             paymentTx,
             trigger,
@@ -93,13 +124,14 @@ async function handleInsightRoute(req, res, endpointPath, catalogSegment, fetchD
           return;
         }
 
-        const balances = await getLabWalletBalances(payer);
+        const balances = await getLabWalletBalances(payer, chain);
         // Balance unknown (RPC unavailable): don't refund on a false low reading — skip cleanly.
         if (!balances) {
           await logLabX402Call({
             payerAddress: payer,
             endpoint: endpointPath,
             priceUsd,
+            chain,
             status: 'refund_skipped',
             paymentTx,
             responseSnippet: 'balance_unavailable',
@@ -117,6 +149,7 @@ async function handleInsightRoute(req, res, endpointPath, catalogSegment, fetchD
             payerAddress: payer,
             endpoint: endpointPath,
             priceUsd,
+            chain,
             status: 'refund_skipped',
             paymentTx,
             responseSnippet: `balance_ok:${balances.usdcBalance.toFixed(4)}>=${decision.thresholdUsd}`,
@@ -125,11 +158,12 @@ async function handleInsightRoute(req, res, endpointPath, catalogSegment, fetchD
           return;
         }
 
-        const refund = await refundUsdcToPayer(payer, decision.refundAmountUsd);
+        const refund = await refundUsdcToPayer(payer, decision.refundAmountUsd, chain);
         await logLabX402Call({
           payerAddress: payer,
           endpoint: endpointPath,
           priceUsd,
+          chain,
           status: 'success',
           paymentTx,
           refundTx: refund?.signature ?? null,
@@ -150,6 +184,7 @@ async function handleInsightRoute(req, res, endpointPath, catalogSegment, fetchD
           payerAddress: payer,
           endpoint: endpointPath,
           priceUsd,
+          chain,
           status: underfunded ? 'refund_skipped' : 'refund_failed',
           paymentTx,
           responseSnippet: underfunded ? 'payto_underfunded' : undefined,
@@ -177,9 +212,37 @@ function labsPaymentMiddleware(priceUsd, resource, catalogSegment, outputSchema 
     inputSchema: { type: 'object', properties: {}, additionalProperties: false },
     outputSchema,
     getPayTo: labsPayToOverride,
-    /** Labs settle via Dexter facilitator; all other Syra x402 routes stay on PayAI. */
+    /** Labs Dexter routes settle via Dexter facilitator; multi-network includes Base. */
     resourceServerProfile: 'dexter',
   });
+}
+
+function labsPayaiPaymentMiddleware(priceUsd, resource, catalogSegment, outputSchema = {}) {
+  return requirePayment({
+    price: priceUsd,
+    description: getResourceDescription(catalogSegment),
+    resource,
+    discoverable: true,
+    method: 'GET',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+    outputSchema,
+    getPayTo: labsPayToOverride,
+    /** PayAI-facilitated Labs route — limited daily call cap enforced upstream. */
+    resourceServerProfile: 'payai',
+  });
+}
+
+/**
+ * @param {string} endpointId
+ */
+function createPayaiDailyLimitMiddleware(endpointId) {
+  const ep = findLabX402Endpoint(endpointId);
+  return (req, res, next) =>
+    payaiEndpointDailyLimitMiddleware(req, res, next, {
+      endpointId,
+      minCap: ep?.dailyLimitMin ?? 5,
+      maxCap: ep?.dailyLimitMax ?? 10,
+    });
 }
 
 export async function createInsightsRouter() {
@@ -307,6 +370,31 @@ export async function createInsightsRouter() {
       ),
   );
 
+  router.get(
+    '/ecosystem-brief',
+    createPayaiDailyLimitMiddleware('ecosystem-brief'),
+    labsPayaiPaymentMiddleware(
+      X402_API_PRICE_INSIGHTS_ECOSYSTEM_BRIEF_USD,
+      '/insights/ecosystem-brief',
+      'insights/ecosystem-brief',
+      {
+        facilitator: { type: 'string' },
+        network: { type: 'object' },
+        market: { type: 'object' },
+        defi: { type: 'object' },
+        computedAt: { type: 'string' },
+      },
+    ),
+    (req, res) =>
+      handleInsightRoute(
+        req,
+        res,
+        '/insights/ecosystem-brief',
+        'insights/ecosystem-brief',
+        fetchEcosystemBriefInsight,
+        { recordPayaiQuota: true },
+      ),
+  );
+
   return router;
 }
-

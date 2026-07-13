@@ -1,11 +1,30 @@
 /**
- * LabX402Settings — singleton document for x402 Labs auto-caller configuration.
+ * LabX402Settings — per-chain singleton documents for x402 Labs auto-caller configuration.
+ * singletonKey: 'solana' | 'base' (legacy 'default' migrates to 'solana' at read time).
  */
 import mongoose from 'mongoose';
 
+export const LAB_X402_CHAINS = Object.freeze(['solana', 'base']);
+
+/**
+ * @param {string} [chain]
+ * @returns {'solana' | 'base'}
+ */
+export function settingsKeyForChain(chain) {
+  return chain === 'base' ? 'base' : 'solana';
+}
+
+/**
+ * @param {string} [raw]
+ * @returns {'solana' | 'base'}
+ */
+export function normalizeLabChain(raw) {
+  return String(raw || '').trim().toLowerCase() === 'base' ? 'base' : 'solana';
+}
+
 const labX402SettingsSchema = new mongoose.Schema(
   {
-    singletonKey: { type: String, default: 'default', unique: true },
+    singletonKey: { type: String, default: 'solana', unique: true },
     autoCallEnabled: { type: Boolean, default: false },
     intervalMs: { type: Number, default: 300_000, min: 60_000, max: 3_600_000 },
     refundEnabled: { type: Boolean, default: true },

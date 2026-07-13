@@ -186,3 +186,34 @@ export async function fetchVolatilityIndexInsight() {
     computedAt: data.computedAt ?? new Date().toISOString(),
   };
 }
+
+/**
+ * Premium combined snapshot — network health, market pulse, and DeFi TVL.
+ * PayAI-facilitated Labs endpoint with a strict daily call cap.
+ * @returns {Promise<object>}
+ */
+export async function fetchEcosystemBriefInsight() {
+  const [network, market, defi] = await Promise.all([
+    fetchNetworkHealthInsight(),
+    fetchMarketPulseInsight(),
+    fetchDefiTvlInsight(),
+  ]);
+
+  return {
+    facilitator: 'payai',
+    network: {
+      slot: network.slot ?? null,
+      avgTps: network.avgTps ?? null,
+      medianPriorityFeeLamports: network.medianPriorityFeeLamports ?? null,
+    },
+    market: {
+      assets: market.assets ?? [],
+      count: market.count ?? 0,
+    },
+    defi: {
+      chain: defi.chain ?? 'Solana',
+      currentTvlUsd: defi.currentTvlUsd ?? null,
+    },
+    computedAt: new Date().toISOString(),
+  };
+}

@@ -30,12 +30,16 @@ export default function LabsPage() {
           </p>
         </div>
 
-        <Tabs defaultValue="x402">
+        <Tabs defaultValue="solana">
           <TabsList>
-            <TabsTrigger value="x402">x402</TabsTrigger>
+            <TabsTrigger value="solana">Solana</TabsTrigger>
+            <TabsTrigger value="base">Base</TabsTrigger>
           </TabsList>
-          <TabsContent value="x402" className="mt-6">
-            <X402LabTab />
+          <TabsContent value="solana" className="mt-6">
+            <X402LabTab chain="solana" />
+          </TabsContent>
+          <TabsContent value="base" className="mt-6">
+            <X402LabTab chain="base" />
           </TabsContent>
         </Tabs>
       </div>

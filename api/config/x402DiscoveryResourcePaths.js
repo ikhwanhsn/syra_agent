@@ -41,6 +41,7 @@ export const X402_DISCOVERY_RESOURCE_PATHS = [
   "insights/token-metrics",
   "insights/defi-tvl",
   "insights/volatility-index",
+  "insights/ecosystem-brief",
   "assets",
   "assets/detail",
   "bitcoin",

@@ -153,7 +153,8 @@ export function buildPerWalletBalanceRows(
     role: "payer" | "payto";
     address: string;
     usdcBalance: number | null;
-    solBalance: number | null;
+    solBalance?: number | null;
+    nativeBalance?: number | null;
   }>,
   suggestions: WalletBalanceSuggestion[],
 ): PerWalletBalanceRow[] {
@@ -167,19 +168,20 @@ export function buildPerWalletBalanceRows(
     const suggestedUsdc = sug?.suggestedUsdc ?? 0;
     const suggestedSol = sug?.suggestedSol ?? SOL_RENT_BUFFER;
     const usdcKnown = typeof w.usdcBalance === "number" && Number.isFinite(w.usdcBalance);
-    const solKnown = typeof w.solBalance === "number" && Number.isFinite(w.solBalance);
+    const native = w.nativeBalance ?? w.solBalance ?? null;
+    const solKnown = typeof native === "number" && Number.isFinite(native);
     return {
       id: w.id,
       label: w.label,
       role: w.role,
       address: w.address,
       currentUsdc: usdcKnown ? (w.usdcBalance as number) : null,
-      currentSol: solKnown ? (w.solBalance as number) : null,
+      currentSol: solKnown ? (native as number) : null,
       suggestedUsdc,
       suggestedSol,
       // Shortfall only meaningful when the balance is known; unknown -> 0 (no false "deposit needed").
       usdcShortfall: usdcKnown ? Math.max(0, suggestedUsdc - (w.usdcBalance as number)) : 0,
-      solShortfall: solKnown ? Math.max(0, suggestedSol - (w.solBalance as number)) : 0,
+      solShortfall: solKnown ? Math.max(0, suggestedSol - (native as number)) : 0,
     };
   });
 }

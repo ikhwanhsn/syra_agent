@@ -1,13 +1,18 @@
 import { getApiBaseUrl } from "@/lib/env";
 
+export type LabChain = "solana" | "base";
+
 export interface LabWallet {
   id: string;
   label: string;
   address: string;
   role: "payer" | "payto";
-  chain: "solana";
+  chain: LabChain;
   active: boolean;
-  /** null when the on-chain balance could not be read (RPC unavailable) — not a real zero. */
+  /** Native gas token balance (SOL or ETH). null when RPC unavailable. */
+  nativeBalance: number | null;
+  nativeSymbol: "SOL" | "ETH";
+  /** @deprecated Prefer nativeBalance — kept for older simulation helpers. */
   solBalance: number | null;
   usdcBalance: number | null;
   balanceAvailable?: boolean;
@@ -27,6 +32,7 @@ export interface LabX402Settings {
   maxDailyCalls: number;
   activeDailyCallCap?: number | null;
   activeDailyCallCapDay?: string | null;
+  chain?: LabChain;
   updatedAt?: string;
 }
 
@@ -36,6 +42,15 @@ export interface LabX402Endpoint {
   priceUsd: number;
   weight: number;
   description: string;
+  facilitator?: "dexter" | "payai";
+  dailyLimitMin?: number;
+  dailyLimitMax?: number;
+  dailyQuota?: {
+    count: number;
+    max: number;
+    allowed: boolean;
+    day: string;
+  };
 }
 
 export interface LabX402Call {
@@ -43,6 +58,7 @@ export interface LabX402Call {
   payerAddress: string;
   endpoint: string;
   priceUsd: number;
+  chain?: LabChain;
   status: "success" | "payment_failed" | "refund_failed" | "refund_skipped" | "error";
   paymentTx: string | null;
   refundTx: string | null;
@@ -62,6 +78,11 @@ export interface LabX402RunResult {
   skipped?: boolean;
   reason?: string;
   error?: string;
+}
+
+function withChain(path: string, chain: LabChain): string {
+  const sep = path.includes("?") ? "&" : "?";
+  return `${path}${sep}chain=${encodeURIComponent(chain)}`;
 }
 
 async function fetchLabsJson<T>(
@@ -87,29 +108,68 @@ async function fetchLabsJson<T>(
   return body as T;
 }
 
-export async function fetchLabWallets(adminWallet: string): Promise<LabWallet[]> {
+function normalizeWallet(raw: LabWallet): LabWallet {
+  const chain: LabChain = raw.chain === "base" ? "base" : "solana";
+  const nativeBalance = raw.nativeBalance ?? raw.solBalance ?? null;
+  return {
+    ...raw,
+    chain,
+    nativeBalance,
+    nativeSymbol: raw.nativeSymbol ?? (chain === "base" ? "ETH" : "SOL"),
+    solBalance: nativeBalance,
+  };
+}
+
+export async function fetchLabWallets(
+  adminWallet: string,
+  chain: LabChain = "solana",
+): Promise<LabWallet[]> {
   const res = await fetchLabsJson<{ success: boolean; data: LabWallet[] }>(
-    "/labs/x402/wallets",
+    withChain("/labs/x402/wallets", chain),
     adminWallet,
   );
-  return res.data;
+  return res.data.map(normalizeWallet);
 }
 
 export async function createLabWallet(
   adminWallet: string,
-  input: { label: string; role: "payer" | "payto" },
+  input: { label: string; role: "payer" | "payto"; chain?: LabChain },
 ): Promise<LabWallet> {
+  const chain = input.chain ?? "solana";
   const res = await fetchLabsJson<{ success: boolean; data: LabWallet }>(
-    "/labs/x402/wallets",
+    withChain("/labs/x402/wallets", chain),
     adminWallet,
-    { method: "POST", body: JSON.stringify(input) },
+    { method: "POST", body: JSON.stringify({ ...input, chain }) },
   );
-  return res.data;
+  return normalizeWallet(res.data);
 }
 
-export async function fetchLabX402Settings(adminWallet: string): Promise<LabX402Settings> {
+export async function createLabWalletsBulk(
+  adminWallet: string,
+  input: { count: number; chain?: LabChain; labelPrefix?: string },
+): Promise<LabWallet[]> {
+  const chain = input.chain ?? "solana";
+  const res = await fetchLabsJson<{ success: boolean; data: LabWallet[] }>(
+    withChain("/labs/x402/wallets/bulk", chain),
+    adminWallet,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        count: input.count,
+        chain,
+        labelPrefix: input.labelPrefix ?? "Payer",
+      }),
+    },
+  );
+  return res.data.map(normalizeWallet);
+}
+
+export async function fetchLabX402Settings(
+  adminWallet: string,
+  chain: LabChain = "solana",
+): Promise<LabX402Settings> {
   const res = await fetchLabsJson<{ success: boolean; data: LabX402Settings }>(
-    "/labs/x402/settings",
+    withChain("/labs/x402/settings", chain),
     adminWallet,
   );
   return res.data;
@@ -118,33 +178,38 @@ export async function fetchLabX402Settings(adminWallet: string): Promise<LabX402
 export async function updateLabX402Settings(
   adminWallet: string,
   patch: Partial<LabX402Settings>,
+  chain: LabChain = "solana",
 ): Promise<LabX402Settings> {
   const res = await fetchLabsJson<{ success: boolean; data: LabX402Settings }>(
-    "/labs/x402/settings",
+    withChain("/labs/x402/settings", chain),
     adminWallet,
-    { method: "PUT", body: JSON.stringify(patch) },
+    { method: "PUT", body: JSON.stringify({ ...patch, chain }) },
   );
   return res.data;
 }
 
 export async function runLabX402(
   adminWallet: string,
-  input?: { payerAddress?: string; endpoint?: string },
+  input?: { payerAddress?: string; endpoint?: string; chain?: LabChain },
 ): Promise<LabX402RunResult | { results: LabX402RunResult[] }> {
-  const res = await fetchLabsJson<{ success: boolean; data: LabX402RunResult | { results: LabX402RunResult[] } }>(
-    "/labs/x402/run",
-    adminWallet,
-    { method: "POST", body: JSON.stringify(input ?? {}) },
-  );
+  const chain = input?.chain ?? "solana";
+  const res = await fetchLabsJson<{
+    success: boolean;
+    data: LabX402RunResult | { results: LabX402RunResult[] };
+  }>(withChain("/labs/x402/run", chain), adminWallet, {
+    method: "POST",
+    body: JSON.stringify({ ...input, chain }),
+  });
   return res.data;
 }
 
 export async function fetchLabX402Calls(
   adminWallet: string,
   limit = 10,
+  chain: LabChain = "solana",
 ): Promise<LabX402Call[]> {
   const res = await fetchLabsJson<{ success: boolean; data: LabX402Call[] }>(
-    `/labs/x402/calls?limit=${limit}`,
+    withChain(`/labs/x402/calls?limit=${limit}`, chain),
     adminWallet,
   );
   return res.data;

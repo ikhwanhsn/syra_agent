@@ -8,6 +8,7 @@ const labX402CallSchema = new mongoose.Schema(
     payerAddress: { type: String, required: true, index: true },
     endpoint: { type: String, required: true, index: true },
     priceUsd: { type: Number, required: true },
+    chain: { type: String, enum: ['solana', 'base'], default: 'solana', index: true },
     status: {
       type: String,
       enum: ['success', 'payment_failed', 'refund_failed', 'refund_skipped', 'error'],
@@ -24,5 +25,6 @@ const labX402CallSchema = new mongoose.Schema(
 );
 
 labX402CallSchema.index({ createdAt: -1 });
+labX402CallSchema.index({ chain: 1, createdAt: -1 });
 
 export default mongoose.models.LabX402Call || mongoose.model('LabX402Call', labX402CallSchema);
