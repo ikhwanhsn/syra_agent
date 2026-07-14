@@ -16,7 +16,7 @@ import dotenv from "dotenv";
 import { X402_API_PRICE_USD } from "../config/x402Pricing.js";
 import { isShadowfeedPartnerRequest, markShadowfeedPartnerBypass } from "./shadowfeedPartner.js";
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 const { FACILITATOR_URL_PAYAI, ADDRESS_PAYAI, BASE_URL } = process.env;
 

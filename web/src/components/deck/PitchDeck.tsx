@@ -40,7 +40,7 @@ export function PitchDeck() {
   useEffect(() => {
     document.title = `Syra Pitch Deck · ${index + 1}/${DECK_SLIDE_COUNT}`;
     return () => {
-      document.title = "Syra | Machine money for agents";
+      document.title = "Machine Money for Agents | Syra";
     };
   }, [index]);
 

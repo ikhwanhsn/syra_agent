@@ -144,17 +144,24 @@ async function filterAvailableEndpoints(endpoints) {
 
 /**
  * Pick a random endpoint weighted by `weight`, excluding PayAI routes at daily quota.
- * On Base/Celo, PayAI-facilitated routes are skipped.
- * @param {{ chain?: 'solana' | 'base' | 'celo' }} [opts]
+ * On Base/Celo/Algorand, PayAI-facilitated routes are skipped.
+ * @param {{ chain?: 'solana' | 'base' | 'celo' | 'algorand' }} [opts]
  * @returns {Promise<LabX402Endpoint>}
  */
 export async function pickRandomAvailableLabX402Endpoint(opts = {}) {
+  const raw = String(opts.chain || '').trim().toLowerCase();
   const chain =
-    opts.chain === 'base' ? 'base' : opts.chain === 'celo' ? 'celo' : 'solana';
-  const candidates =
-    chain === 'base' || chain === 'celo'
-      ? LAB_X402_ENDPOINTS.filter((e) => e.facilitator !== 'payai')
-      : [...LAB_X402_ENDPOINTS];
+    raw === 'base'
+      ? 'base'
+      : raw === 'celo'
+        ? 'celo'
+        : raw === 'algorand' || raw === 'algo' || raw === 'avm'
+          ? 'algorand'
+          : 'solana';
+  const skipPayai = chain === 'base' || chain === 'celo' || chain === 'algorand';
+  const candidates = skipPayai
+    ? LAB_X402_ENDPOINTS.filter((e) => e.facilitator !== 'payai')
+    : [...LAB_X402_ENDPOINTS];
   const available = await filterAvailableEndpoints(candidates);
   const pool = available.length > 0 ? available : candidates.length > 0 ? candidates : [...LAB_X402_ENDPOINTS];
   const total = pool.reduce((s, e) => s + e.weight, 0);

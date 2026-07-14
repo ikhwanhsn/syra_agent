@@ -7,12 +7,13 @@ import { useLabsX402 } from "@/hooks/useLabsX402";
 import { WalletList } from "@/components/labs/x402/WalletList";
 import { CreateWalletDialog } from "@/components/labs/x402/CreateWalletDialog";
 import { DepositDialog } from "@/components/labs/x402/DepositDialog";
+import { DepositHubPanel } from "@/components/labs/x402/DepositHubPanel";
 import { AutoCallSettingsPanel } from "@/components/labs/x402/AutoCallSettingsPanel";
 import { SimulationPanel } from "@/components/labs/x402/SimulationPanel";
 import { CallLogTable } from "@/components/labs/x402/CallLogTable";
 import { EndpointsGridSkeleton } from "@/components/labs/LabsSkeleton";
 import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
-import type { LabChain, LabWallet } from "@/lib/labsX402Api";
+import type { LabChain, LabDepositDistributeResult, LabWallet } from "@/lib/labsX402Api";
 
 const MAX_BULK = 20;
 
@@ -26,15 +27,19 @@ export function X402LabTab({ chain }: X402LabTabProps) {
     settingsQ,
     callsQ,
     endpointsQ,
+    depositQ,
     createWalletM,
     createWalletsBulkM,
     updateSettingsM,
     runM,
+    distributeDepositM,
   } = useLabsX402(chain);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [depositWallet, setDepositWallet] = useState<LabWallet | null>(null);
   const [bulkCount, setBulkCount] = useState(5);
+  const [lastDistributeResult, setLastDistributeResult] =
+    useState<LabDepositDistributeResult | null>(null);
   const [settingsDraft, setSettingsDraft] = useState<{
     intervalMin: number;
     jitterPct: number;
@@ -52,16 +57,30 @@ export function X402LabTab({ chain }: X402LabTabProps) {
 
   const isBase = chain === "base";
   const isCelo = chain === "celo";
+  const isAlgorand = chain === "algorand";
   const isEvm = isBase || isCelo;
-  const chainLabel = isCelo ? "Celo" : isBase ? "Base" : "Solana";
-  const nativeSymbol = isCelo ? "CELO" : isBase ? "ETH" : "SOL";
+  const skipPayai = isEvm || isAlgorand;
+  const chainLabel = isAlgorand
+    ? "Algorand"
+    : isCelo
+      ? "Celo"
+      : isBase
+        ? "Base"
+        : "Solana";
+  const nativeSymbol = isAlgorand
+    ? "ALGO"
+    : isCelo
+      ? "CELO"
+      : isBase
+        ? "ETH"
+        : "SOL";
 
   const visibleEndpoints = useMemo(() => {
     const all = endpointsQ.data ?? [];
-    if (!isEvm) return all;
-    // Base/Celo payers skip PayAI-only routes.
+    if (!skipPayai) return all;
+    // Base/Celo/Algorand payers skip PayAI-only routes.
     return all.filter((ep) => ep.facilitator !== "payai");
-  }, [endpointsQ.data, isEvm]);
+  }, [endpointsQ.data, skipPayai]);
 
   const handleCreate = (input: { label: string; role: "payer" | "payto" }) => {
     createWalletM.mutate(input, {
@@ -86,13 +105,29 @@ export function X402LabTab({ chain }: X402LabTabProps) {
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
             Manage {chainLabel} lab wallets, fund them with {nativeSymbol}/USDC, and run paid calls
             against <code className="text-xs">/insights/*</code> endpoints
-            {isCelo
-              ? " with self-settled Celo x402 + ERC-8021 attribution tagging"
-              : isBase
-                ? " settling on Base via Dexter"
-                : ""}
+            {isAlgorand
+              ? " settling on Algorand via GoPlausible"
+              : isCelo
+                ? " with self-settled Celo x402 + ERC-8021 attribution tagging"
+                : isBase
+                  ? " settling on Base via Dexter"
+                  : ""}
             .{" "}
-            {isCelo ? (
+            {isAlgorand ? (
+              <>
+                Settlement uses{" "}
+                <a
+                  href="https://facilitator.goplausible.xyz"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-2 hover:text-foreground"
+                >
+                  GoPlausible
+                </a>{" "}
+                on Algorand mainnet (USDC ASA). Recipients must be opted into USDC before transfers.
+                PayAI routes are skipped on this tab.{" "}
+              </>
+            ) : isCelo ? (
               <>
                 Settlement is self-submitted on Celo mainnet (
                 <a
@@ -205,14 +240,16 @@ export function X402LabTab({ chain }: X402LabTabProps) {
       {(createWalletM.isError ||
         createWalletsBulkM.isError ||
         runM.isError ||
-        updateSettingsM.isError) && (
+        updateSettingsM.isError ||
+        depositQ.isError) && (
         <Alert variant="destructive">
           <AlertDescription>
             {(
               createWalletM.error ??
               createWalletsBulkM.error ??
               runM.error ??
-              updateSettingsM.error
+              updateSettingsM.error ??
+              depositQ.error
             )?.message}
           </AlertDescription>
         </Alert>
@@ -232,6 +269,24 @@ export function X402LabTab({ chain }: X402LabTabProps) {
           <AlertDescription>x402 run completed. Check the call log for results.</AlertDescription>
         </Alert>
       )}
+
+      <section className="space-y-3">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Deposit address
+        </h3>
+        <DepositHubPanel
+          deposit={depositQ.data}
+          isLoading={depositQ.isLoading}
+          onDistribute={() => {
+            distributeDepositM.mutate(undefined, {
+              onSuccess: (data) => setLastDistributeResult(data),
+            });
+          }}
+          isDistributing={distributeDepositM.isPending}
+          distributeError={distributeDepositM.error?.message ?? null}
+          lastResult={lastDistributeResult}
+        />
+      </section>
 
       <section className="space-y-3">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
@@ -296,10 +351,16 @@ export function X402LabTab({ chain }: X402LabTabProps) {
                       className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
                         ep.facilitator === "payai"
                           ? "bg-violet-500/15 text-violet-600 dark:text-violet-400"
-                          : "bg-sky-500/15 text-sky-600 dark:text-sky-400"
+                          : isAlgorand
+                            ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                            : "bg-sky-500/15 text-sky-600 dark:text-sky-400"
                       }`}
                     >
-                      {ep.facilitator === "payai" ? "PayAI" : "Dexter"}
+                      {ep.facilitator === "payai"
+                        ? "PayAI"
+                        : isAlgorand
+                          ? "GoPlausible"
+                          : "Dexter"}
                     </span>
                     {ep.facilitator === "payai" && ep.dailyQuota && (
                       <span

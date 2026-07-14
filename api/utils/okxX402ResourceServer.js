@@ -12,7 +12,7 @@ import {
   isOkxX402Enabled,
 } from "../config/okxX402Networks.js";
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 function env(name) {
   return String(process.env[name] || "").trim();

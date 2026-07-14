@@ -13,7 +13,7 @@ import {
   isAlgorandEnabled,
 } from "../config/algorandX402Networks.js";
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 /** @type {{ resourceServer: import('@x402-avm/core/server').x402ResourceServer, config: { networks: import('../config/algorandX402Networks.js').AlgorandX402Network[] } } | null} */
 let resourceServerInstance = null;

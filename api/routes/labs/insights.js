@@ -51,26 +51,64 @@ import { findLabX402Endpoint } from '../../libs/labs/labX402Endpoints.js';
 const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 
 async function labsPayToOverride(req) {
-  const { solanaPayTo, evmPayTo, celoPayTo } = await getActiveLabPayToAddresses();
+  const { solanaPayTo, evmPayTo, celoPayTo, algorandPayTo } =
+    await getActiveLabPayToAddresses();
   const labChain = String(req?.get?.('x-lab-x402-chain') || '').trim().toLowerCase();
   if (labChain === 'celo') {
     if (!celoPayTo) return null;
-    return { solanaPayTo: null, evmPayTo: celoPayTo };
+    return { solanaPayTo: null, evmPayTo: celoPayTo, algorandPayTo: null };
   }
-  if (!solanaPayTo && !evmPayTo) return null;
-  return { solanaPayTo, evmPayTo };
+  if (labChain === 'algorand') {
+    if (!algorandPayTo) return null;
+    req.x402LabAlgorandPayTo = algorandPayTo;
+    return { solanaPayTo: null, evmPayTo: null, algorandPayTo };
+  }
+  if (!solanaPayTo && !evmPayTo && !algorandPayTo) return null;
+  return { solanaPayTo, evmPayTo, algorandPayTo: algorandPayTo || null };
 }
 
 /**
  * Infer lab chain from payer address / request header.
  * @param {string} payer
  * @param {import('express').Request} req
- * @returns {'solana' | 'base' | 'celo'}
+ * @returns {'solana' | 'base' | 'celo' | 'algorand'}
  */
 function inferPayerChain(payer, req) {
   const fromHeader = req.get('x-lab-x402-chain');
-  if (fromHeader === 'base' || fromHeader === 'solana' || fromHeader === 'celo') return fromHeader;
+  if (
+    fromHeader === 'base' ||
+    fromHeader === 'solana' ||
+    fromHeader === 'celo' ||
+    fromHeader === 'algorand'
+  ) {
+    return fromHeader;
+  }
   return /^0x/i.test(payer) ? 'base' : 'solana';
+}
+
+/**
+ * Dexter/EVM settle often omits `payer` — recover it from the verified payment payload
+ * or request headers so lab refund logging still runs.
+ * @param {object | null | undefined} settle
+ * @param {import('express').Request} req
+ * @returns {string}
+ */
+function resolveInsightPayer(settle, req) {
+  const fromSettle = typeof settle?.payer === 'string' ? settle.payer.trim() : '';
+  if (fromSettle) return fromSettle;
+
+  const payload = req?.x402Payment?.payload;
+  const auth = payload?.payload?.authorization ?? payload?.authorization ?? null;
+  const fromAuth =
+    (typeof auth?.from === 'string' && auth.from.trim()) ||
+    (typeof payload?.payload?.from === 'string' && payload.payload.from.trim()) ||
+    '';
+  if (fromAuth) return fromAuth;
+
+  const fromHeader =
+    (req.get('X-Payer-Address') || req.get('x-payer-address') || '').trim() ||
+    (req.get('x-lab-x402-payer') || '').trim();
+  return fromHeader;
 }
 
 /**
@@ -100,7 +138,7 @@ async function handleInsightRoute(req, res, endpointPath, catalogSegment, fetchD
       );
     }
 
-    const payer = typeof settle?.payer === 'string' ? settle.payer.trim() : '';
+    const payer = resolveInsightPayer(settle, req);
     const priceUsd = req.x402Payment?.priceUsd ?? 0;
     const paymentTx = typeof settle?.transaction === 'string' ? settle.transaction : null;
     const trigger = req.get('x-lab-x402-trigger') === 'scheduler' ? 'scheduler' : 'manual';
@@ -116,52 +154,19 @@ async function handleInsightRoute(req, res, endpointPath, catalogSegment, fetchD
 
       try {
         const settings = await getLabX402Settings(chain);
-        if (!settings.refundEnabled || priceUsd <= 0) {
-          await logLabX402Call({
-            payerAddress: payer,
-            endpoint: endpointPath,
-            priceUsd,
-            chain,
-            status: 'refund_skipped',
-            paymentTx,
-            trigger,
-          });
-          return;
-        }
+        // Payment success is already logged by runLabX402Payment. Only log refund
+        // outcomes here so the Labs call log is not dominated by refund_skipped noise.
+        if (!settings.refundEnabled || priceUsd <= 0) return;
 
         const balances = await getLabWalletBalances(payer, chain);
-        // Balance unknown (RPC unavailable): don't refund on a false low reading — skip cleanly.
-        if (!balances) {
-          await logLabX402Call({
-            payerAddress: payer,
-            endpoint: endpointPath,
-            priceUsd,
-            chain,
-            status: 'refund_skipped',
-            paymentTx,
-            responseSnippet: 'balance_unavailable',
-            trigger,
-          });
-          return;
-        }
+        // Balance unknown (RPC unavailable): don't refund on a false low reading.
+        if (!balances) return;
 
         const maxPriceUsd = getMaxLabX402PriceUsd();
         const avgPriceUsd = getWeightedAvgLabX402PriceUsd();
         const decision = evaluateLowBalanceRefund(balances.usdcBalance, maxPriceUsd, avgPriceUsd);
 
-        if (!decision.shouldRefund) {
-          await logLabX402Call({
-            payerAddress: payer,
-            endpoint: endpointPath,
-            priceUsd,
-            chain,
-            status: 'refund_skipped',
-            paymentTx,
-            responseSnippet: `balance_ok:${balances.usdcBalance.toFixed(4)}>=${decision.thresholdUsd}`,
-            trigger,
-          });
-          return;
-        }
+        if (!decision.shouldRefund) return;
 
         const refund = await refundUsdcToPayer(payer, decision.refundAmountUsd, chain);
         await logLabX402Call({
@@ -214,6 +219,8 @@ function labsPaymentMiddleware(priceUsd, resource, catalogSegment, outputSchema 
     if (labChain === 'celo') {
       req.x402ResourceServerProfile = 'celo';
     }
+    // Algorand Labs settles via GoPlausible (appended accept); Dexter profile still builds
+    // Solana/Base offers that the Algorand client will ignore when selecting payment.
     return requirePayment({
       price: priceUsd,
       description: getResourceDescription(catalogSegment),

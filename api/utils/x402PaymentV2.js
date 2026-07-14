@@ -16,6 +16,7 @@ import { ExpressAdapter } from "@x402/express";
 import { declareDiscoveryExtension, BAZAAR, sanitizeResourceServiceMetadata } from "@x402/extensions/bazaar";
 import { BUILDER_CODE, declareBuilderCodeExtension } from "@x402/extensions/builder-code";
 import { getBaseBuilderCode } from "../config/baseBuilderCode.js";
+import { getCeloBuilderCode } from "../config/celoBuilderCode.js";
 import { Connection } from "@solana/web3.js";
 import { VersionedTransaction } from "@solana/web3.js";
 import bs58 from "bs58";
@@ -45,6 +46,7 @@ import {
 import {
   getCeloPayToAddresses,
   getEnabledCeloNetworks,
+  getCeloNetworkByCaip2,
 } from "../config/celoX402Networks.js";
 import { settleCeloX402Payment, isCeloX402Network, verifyCeloPaymentLocally } from "./celoX402Settle.js";
 import {
@@ -57,6 +59,7 @@ import {
   x402MicroToBscTokenAtomic,
 } from "../config/b402Networks.js";
 import {
+  ALGORAND_X402_NETWORKS,
   getAlgorandPayTo,
   getEnabledAlgorandNetworks,
   isAlgorandEnabled,
@@ -101,7 +104,7 @@ import {
 } from "../config/x402ResourceCatalog.js";
 import dotenv from "dotenv";
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 export { isTesterAgentInternalProbeRequest };
 
@@ -111,8 +114,9 @@ function isX402Debug() {
 }
 
 function x402Log(event, detail) {
-  const always =
-    /payment_required|payment_retry|verify_ok|verify_failed|mismatch|decode_failed/i.test(event);
+  // Routine flow (payment_required / payment_retry / verify_ok) is opt-in via X402_DEBUG.
+  // Always keep genuine problems so failures remain visible without the flag.
+  const always = /verify_failed|mismatch|decode_failed/i.test(event);
   if (!always && !isX402Debug()) return;
   const line = detail && typeof detail === "object" ? JSON.stringify(detail) : String(detail ?? "");
   console.log(`[x402] ${event}${line ? ` ${line}` : ""}`);
@@ -355,6 +359,7 @@ export function getPaymentSignatureHeaderFromReq(req) {
 
 /**
  * Ensure EVM/EIP-712 domain (name, version) for x402scan (same as payai_example_routes).
+ * Celo native USDC uses on-chain name()="USDC" (not "USD Coin") — wrong domain breaks EIP-3009 verify/settle.
  */
 function ensureEvmEip712Domain(requirements) {
   return requirements.map((r) => {
@@ -362,11 +367,23 @@ function ensureEvmEip712Domain(requirements) {
     if (!String(r.network || "").startsWith("eip155:")) return r;
     const existing = r.extra && typeof r.extra === "object" ? r.extra : {};
     const existingEip712 = existing?.eip712 && typeof existing.eip712 === "object" ? existing.eip712 : {};
+    const celoNet = isCeloX402Network(r.network) ? getCeloNetworkByCaip2(r.network) : null;
     const b402Token = isB402Network(r.network) ? getB402TokenById(process.env.B402_TOKEN) : null;
-    const defaultName = b402Token?.eip712Name ?? (isB402Network(r.network) ? "World Liberty Financial USD" : "USD Coin");
-    const defaultVersion = b402Token?.eip712Version ?? (isB402Network(r.network) ? "1" : "2");
-    const name = existingEip712?.name || existing?.name || defaultName;
-    const version = existingEip712?.version || existing?.version || defaultVersion;
+    const defaultName =
+      celoNet?.eip712?.name ??
+      b402Token?.eip712Name ??
+      (isB402Network(r.network) ? "World Liberty Financial USD" : "USD Coin");
+    const defaultVersion =
+      celoNet?.eip712?.version ??
+      b402Token?.eip712Version ??
+      (isB402Network(r.network) ? "1" : "2");
+    // Prefer known chain defaults when prior extra used a wrong generic ("USD Coin" on Celo).
+    const name = celoNet
+      ? celoNet.eip712.name
+      : existingEip712?.name || existing?.name || defaultName;
+    const version = celoNet
+      ? celoNet.eip712.version
+      : existingEip712?.version || existing?.version || defaultVersion;
     const nextExtra = {
       ...existing,
       name,
@@ -419,20 +436,44 @@ async function ensureB402AcceptInRequirements(requirements, microUnits, maxTimeo
 }
 
 /**
+ * Resolve Algorand payTo: lab override → env ALGORAND_PAYTO / AVM_ADDRESS.
+ * @param {string | null | undefined} [override]
+ * @returns {string}
+ */
+function resolveAlgorandPayToAddress(override) {
+  const fromOverride = typeof override === "string" ? override.trim() : "";
+  if (fromOverride) return fromOverride;
+  return getAlgorandPayTo() || "";
+}
+
+/**
+ * Networks for Algorand accepts. Prefers enabled env config; falls back to default mainnet
+ * when a payTo exists (e.g. lab Algorand PayTo without env ALGORAND_PAYTO).
+ * @param {string} payTo
+ */
+function resolveAlgorandNetworksForPayTo(payTo) {
+  if (!payTo) return [];
+  const enabled = getEnabledAlgorandNetworks();
+  if (enabled.length > 0) return enabled;
+  return ALGORAND_X402_NETWORKS.filter((n) => n.defaultEnabled);
+}
+
+/**
  * GoPlausible facilitator does not list Algorand on PayAI/Corbits — append AVM accepts when enabled.
  * Uses AVM resource server so feePayer and other facilitator extras are included.
+ * Lab Algorand PayTo override is preferred over env ALGORAND_PAYTO.
  * @param {object[]} requirements
  * @param {string} microUnits
  * @param {number} maxTimeoutSeconds
  * @param {object} ctx
  */
 async function ensureAlgorandAcceptInRequirements(requirements, microUnits, maxTimeoutSeconds, ctx) {
-  if (!isAlgorandEnabled()) return requirements;
+  const payTo = resolveAlgorandPayToAddress(ctx?.algorandPayTo);
+  if (!payTo && !isAlgorandEnabled()) return requirements;
   const list = Array.isArray(requirements) ? [...requirements] : [];
   if (list.some((r) => r && isAlgorandNetwork(r.network))) return list;
 
-  const payTo = getAlgorandPayTo();
-  const networks = getEnabledAlgorandNetworks();
+  const networks = resolveAlgorandNetworksForPayTo(payTo);
   if (!payTo || networks.length === 0) return list;
 
   await ensureX402AvmResourceServerInitialized();
@@ -479,12 +520,18 @@ async function ensureAlgorandAcceptInRequirements(requirements, microUnits, maxT
   return list;
 }
 
-/** Append Algorand accepted options for paid-request validation (must mirror 402 offers). */
-function appendAlgorandAcceptedOption(acceptedOptions, expectedMicroUnits) {
-  if (!isAlgorandEnabled()) return acceptedOptions;
+/**
+ * Append Algorand accepted options for paid-request validation (must mirror 402 offers).
+ * @param {object[]} acceptedOptions
+ * @param {string} expectedMicroUnits
+ * @param {string | null | undefined} [algorandPayToOverride]
+ */
+function appendAlgorandAcceptedOption(acceptedOptions, expectedMicroUnits, algorandPayToOverride) {
+  const payTo = resolveAlgorandPayToAddress(algorandPayToOverride);
+  if (!payTo && !isAlgorandEnabled()) return acceptedOptions;
   if (acceptedOptions.some((o) => o && isAlgorandNetwork(o.network))) return acceptedOptions;
-  const payTo = getAlgorandPayTo();
-  for (const net of getEnabledAlgorandNetworks()) {
+  if (!payTo) return acceptedOptions;
+  for (const net of resolveAlgorandNetworksForPayTo(payTo)) {
     acceptedOptions.push({
       network: net.caip2,
       payTo,
@@ -497,13 +544,17 @@ function appendAlgorandAcceptedOption(acceptedOptions, expectedMicroUnits) {
   return acceptedOptions;
 }
 
-/** True when payload.accepted matches configured Algorand merchant offer (amount checked separately). */
-function paymentAcceptedMatchesAlgorand(acc) {
+/**
+ * True when payload.accepted matches configured Algorand merchant offer (amount checked separately).
+ * @param {object} acc
+ * @param {string | null | undefined} [algorandPayToOverride]
+ */
+function paymentAcceptedMatchesAlgorand(acc, algorandPayToOverride) {
   if (!acc || !isAlgorandNetwork(acc.network)) return false;
   if ((acc.scheme || "exact") !== "exact") return false;
-  const payTo = getAlgorandPayTo();
+  const payTo = resolveAlgorandPayToAddress(algorandPayToOverride);
   if (!payTo) return false;
-  const net = getEnabledAlgorandNetworks().find((n) => n.caip2 === acc.network);
+  const net = resolveAlgorandNetworksForPayTo(payTo).find((n) => n.caip2 === acc.network);
   if (!net) return false;
   return String(acc.payTo) === String(payTo) && String(acc.asset) === String(net.usdcAsa);
 }
@@ -731,7 +782,7 @@ function normalizePayToOverride(raw) {
   if (!raw) return null;
   if (typeof raw === "string") {
     const trimmed = raw.trim();
-    return trimmed ? { solanaPayTo: trimmed, evmPayTo: null } : null;
+    return trimmed ? { solanaPayTo: trimmed, evmPayTo: null, algorandPayTo: null } : null;
   }
   if (typeof raw !== "object") return null;
   const solanaPayTo =
@@ -741,9 +792,14 @@ function normalizePayToOverride(raw) {
   const evmPayTo =
     (raw.evmPayTo && String(raw.evmPayTo).trim()) ||
     (raw.basePayTo && String(raw.basePayTo).trim()) ||
+    (raw.celoPayTo && String(raw.celoPayTo).trim()) ||
     null;
-  if (!solanaPayTo && !evmPayTo) return null;
-  return { solanaPayTo, evmPayTo };
+  const algorandPayTo =
+    (raw.algorandPayTo && String(raw.algorandPayTo).trim()) ||
+    (raw.avmPayTo && String(raw.avmPayTo).trim()) ||
+    null;
+  if (!solanaPayTo && !evmPayTo && !algorandPayTo) return null;
+  return { solanaPayTo, evmPayTo, algorandPayTo };
 }
 
 /**
@@ -856,6 +912,7 @@ function buildAcceptedOptionsForBundle(bundle, expectedMicroUnits, payToOverride
         expectedMicroUnits,
       ),
       expectedMicroUnits,
+      payToOverride?.algorandPayTo,
     );
   }
 
@@ -888,6 +945,7 @@ function buildAcceptedOptionsForBundle(bundle, expectedMicroUnits, payToOverride
       expectedMicroUnits,
     ),
     expectedMicroUnits,
+    payToOverride?.algorandPayTo,
   );
 }
 
@@ -903,7 +961,7 @@ function paymentAcceptedMatchesOption(acc, opt, expectedMicroUnits) {
     accAmt === expectedNative ||
     accAmt === optAmt ||
     (opt.isB402 && paymentAcceptedMatchesB402(acc)) ||
-    (opt.isAlgorand && paymentAcceptedMatchesAlgorand(acc));
+    (opt.isAlgorand && paymentAcceptedMatchesAlgorand(acc, opt.payTo));
   if (!amountOk) return false;
   if (opt.isEvm) {
     return (
@@ -1083,6 +1141,19 @@ function getSyraBazaarServiceMetadata() {
 }
 
 /**
+ * Resolve seller app builder code (`a`) for the active resource-server profile.
+ * Celo uses CELO_BUILDER_CODE / CELO_ATTRIBUTION_TAG; Base (and default EVM) use BASE_BUILDER_CODE.
+ * @param {import('express').Request} req
+ * @param {object} [options]
+ * @returns {string | null}
+ */
+function resolveBuilderCodeForRequest(req, options) {
+  const profile = resolveResourceServerProfile(req, options);
+  if (profile === "celo") return getCeloBuilderCode();
+  return getBaseBuilderCode();
+}
+
+/**
  * Build enriched x402 extensions (bazaar + optional builder-code) for 402 and settle indexing.
  * @param {import('@x402/core/server').x402ResourceServer} resourceServer
  * @param {import('express').Request} req
@@ -1093,6 +1164,7 @@ function buildBazaarExtensions(resourceServer, req, options) {
   const resourcePath = String(paymentOptions.resource ?? "").replace(/^\/+/, "");
   const category = getResourceCategory(resourcePath);
   const outputExample = options.outputExample ?? { ok: true, paid: true };
+  const builderCode = resolveBuilderCodeForRequest(req, options);
   const declared = {
     ...declareDiscoveryExtension({
       input: options.inputSchema ? { schema: options.inputSchema } : {},
@@ -1100,9 +1172,7 @@ function buildBazaarExtensions(resourceServer, req, options) {
       ...(req.method === "POST" ? { bodyType: "json" } : {}),
       output: { example: outputExample },
     }),
-    ...(getBaseBuilderCode()
-      ? { [BUILDER_CODE]: declareBuilderCodeExtension(getBaseBuilderCode()) }
-      : {}),
+    ...(builderCode ? { [BUILDER_CODE]: declareBuilderCodeExtension(builderCode) } : {}),
   };
   const enriched = resourceServer.enrichExtensions(declared, { method: req.method, adapter: {} });
   const bazaarKey = BAZAAR.key;
@@ -1193,6 +1263,7 @@ async function buildPaymentRequired(bundle, req, options, error) {
     path: req.path,
     method: req.method,
     paymentHeader: getPaymentSignatureHeaderFromReq(req),
+    algorandPayTo: payToOverride?.algorandPayTo ?? null,
   };
 
   let requirements;
@@ -1429,9 +1500,9 @@ export function requirePayment(options) {
         }
       }
 
-      if (!matchingOption && paymentAcceptedMatchesAlgorand(acc)) {
-        const payTo = getAlgorandPayTo();
-        const net = getEnabledAlgorandNetworks().find((n) => n.caip2 === acc.network);
+      if (!matchingOption && paymentAcceptedMatchesAlgorand(acc, payToOverride?.algorandPayTo)) {
+        const payTo = resolveAlgorandPayToAddress(payToOverride?.algorandPayTo);
+        const net = resolveAlgorandNetworksForPayTo(payTo).find((n) => n.caip2 === acc.network);
         if (payTo && net) {
           matchingOption = {
             network: net.caip2,
@@ -1617,7 +1688,9 @@ export function requirePayment(options) {
         useB402Facilitator,
         useOkxFacilitator,
         useAlgorandFacilitator,
-        skipRevenueBuyback: Boolean(payToOverride?.solanaPayTo || payToOverride?.evmPayTo),
+        skipRevenueBuyback: Boolean(
+          payToOverride?.solanaPayTo || payToOverride?.evmPayTo || payToOverride?.algorandPayTo,
+        ),
         bazaarExtensions,
       };
       x402Log("verify_ok", {

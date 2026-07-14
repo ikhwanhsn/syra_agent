@@ -1,6 +1,6 @@
 import { getApiBaseUrl } from "@/lib/env";
 
-export type LabChain = "solana" | "base" | "celo";
+export type LabChain = "solana" | "base" | "celo" | "algorand";
 
 export interface LabWallet {
   id: string;
@@ -9,9 +9,9 @@ export interface LabWallet {
   role: "payer" | "payto";
   chain: LabChain;
   active: boolean;
-  /** Native gas token balance (SOL, ETH, or CELO). null when RPC unavailable. */
+  /** Native gas token balance (SOL, ETH, CELO, or ALGO). null when RPC unavailable. */
   nativeBalance: number | null;
-  nativeSymbol: "SOL" | "ETH" | "CELO";
+  nativeSymbol: "SOL" | "ETH" | "CELO" | "ALGO";
   /** @deprecated Prefer nativeBalance — kept for older simulation helpers. */
   solBalance: number | null;
   usdcBalance: number | null;
@@ -32,8 +32,53 @@ export interface LabX402Settings {
   maxDailyCalls: number;
   activeDailyCallCap?: number | null;
   activeDailyCallCapDay?: string | null;
+  depositDistributeEnabled?: boolean;
+  depositMinUsdc?: number;
+  depositMinEth?: number;
+  depositEthGasReserve?: number;
+  depositLastDistributedAt?: string | null;
   chain?: LabChain;
   updatedAt?: string;
+}
+
+export interface LabDepositHub {
+  id: string;
+  label: string;
+  address: string;
+  chain: LabChain;
+  role: "deposit";
+  nativeBalance: number | null;
+  nativeSymbol: "SOL" | "ETH" | "CELO" | "ALGO";
+  usdcBalance: number | null;
+  balanceAvailable: boolean;
+  /** Algorand only — true once the hub has opted into USDC ASA. */
+  optedInUsdc?: boolean;
+  recipientsCount: number;
+  depositDistributeEnabled: boolean;
+  depositMinUsdc: number;
+  depositMinEth: number;
+  depositEthGasReserve: number;
+  lastDistributedAt: string | null;
+}
+
+export interface LabDepositTransfer {
+  asset: "USDC" | "SOL" | "ETH" | "CELO" | "ALGO";
+  to: string;
+  amount: number;
+  tx: string | null;
+  ok: boolean;
+  error?: string;
+}
+
+export interface LabDepositDistributeResult {
+  skipped: boolean;
+  reason?: string;
+  depositAddress?: string;
+  usdcBalance?: number;
+  ethBalance?: number;
+  recipientsCount?: number;
+  transfers: LabDepositTransfer[];
+  lastDistributedAt?: string | null;
 }
 
 export interface LabX402Endpoint {
@@ -42,7 +87,7 @@ export interface LabX402Endpoint {
   priceUsd: number;
   weight: number;
   description: string;
-  facilitator?: "dexter" | "payai" | "celo";
+  facilitator?: "dexter" | "payai" | "celo" | "goplausible";
   dailyLimitMin?: number;
   dailyLimitMax?: number;
   dailyQuota?: {
@@ -110,11 +155,23 @@ async function fetchLabsJson<T>(
 
 function normalizeWallet(raw: LabWallet): LabWallet {
   const chain: LabChain =
-    raw.chain === "base" ? "base" : raw.chain === "celo" ? "celo" : "solana";
+    raw.chain === "base"
+      ? "base"
+      : raw.chain === "celo"
+        ? "celo"
+        : raw.chain === "algorand"
+          ? "algorand"
+          : "solana";
   const nativeBalance = raw.nativeBalance ?? raw.solBalance ?? null;
   const nativeSymbol: LabWallet["nativeSymbol"] =
     raw.nativeSymbol ??
-    (chain === "celo" ? "CELO" : chain === "base" ? "ETH" : "SOL");
+    (chain === "celo"
+      ? "CELO"
+      : chain === "base"
+        ? "ETH"
+        : chain === "algorand"
+          ? "ALGO"
+          : "SOL");
   return {
     ...raw,
     chain,
@@ -223,6 +280,29 @@ export async function fetchLabX402Endpoints(adminWallet: string): Promise<LabX40
   const res = await fetchLabsJson<{ success: boolean; data: LabX402Endpoint[] }>(
     "/labs/x402/endpoints",
     adminWallet,
+  );
+  return res.data;
+}
+
+export async function fetchLabDeposit(
+  adminWallet: string,
+  chain: LabChain = "base",
+): Promise<LabDepositHub> {
+  const res = await fetchLabsJson<{ success: boolean; data: LabDepositHub }>(
+    withChain("/labs/x402/deposit", chain),
+    adminWallet,
+  );
+  return res.data;
+}
+
+export async function distributeLabDeposit(
+  adminWallet: string,
+  chain: LabChain = "base",
+): Promise<LabDepositDistributeResult> {
+  const res = await fetchLabsJson<{ success: boolean; data: LabDepositDistributeResult }>(
+    withChain("/labs/x402/deposit/distribute", chain),
+    adminWallet,
+    { method: "POST", body: JSON.stringify({ chain }) },
   );
   return res.data;
 }

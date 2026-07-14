@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { startupInfo, startupVerbose } from '../utils/startupLog.js';
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 // Fail fast when disconnected — avoids 10s "buffering timed out" spam per query.
 mongoose.set('bufferCommands', false);

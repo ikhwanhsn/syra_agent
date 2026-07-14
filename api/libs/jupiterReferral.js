@@ -15,9 +15,27 @@ const EXISTENCE_CACHE_TTL_MS = 5 * 60 * 1000;
 /** @type {Map<string, { exists: boolean; ts: number }>} */
 const existenceCache = new Map();
 
-function logReferral(message, meta = {}) {
+function isReferralDebug() {
+  const s = String(
+    process.env.JUPITER_REFERRAL_DEBUG || process.env.X402_DEBUG || "",
+  ).toLowerCase();
+  return s === "true" || s === "1";
+}
+
+/**
+ * @param {string} message
+ * @param {Record<string, unknown>} [meta]
+ * @param {'info'|'warn'} [level] - info is opt-in via JUPITER_REFERRAL_DEBUG / X402_DEBUG; warn always prints
+ */
+function logReferral(message, meta = {}, level = "info") {
+  if (level === "info" && !isReferralDebug()) return;
   const payload = Object.keys(meta).length > 0 ? ` ${JSON.stringify(meta)}` : "";
-  console.info(`[jupiter-referral] ${message}${payload}`);
+  const line = `[jupiter-referral] ${message}${payload}`;
+  if (level === "warn") {
+    console.warn(line);
+    return;
+  }
+  console.info(line);
 }
 
 /**
@@ -29,7 +47,7 @@ export function getReferralAccount() {
   try {
     return new PublicKey(raw);
   } catch {
-    logReferral("invalid_referral_account", { raw });
+    logReferral("invalid_referral_account", { raw }, "warn");
     return null;
   }
 }
@@ -69,7 +87,7 @@ export function deriveReferralTokenAccount(mint, referralAccount = getReferralAc
     logReferral("derive_failed", {
       mint: mintKey,
       error: err instanceof Error ? err.message : String(err),
-    });
+    }, "warn");
     return null;
   }
 }
@@ -99,7 +117,7 @@ async function referralTokenAccountExists(connection, mint) {
       mint,
       feeAccount: cacheKey,
       error: err instanceof Error ? err.message : String(err),
-    });
+    }, "warn");
     exists = false;
   }
 

@@ -18,7 +18,7 @@ export default function InfoPage() {
       document.head.appendChild(el);
     }
     return () => {
-      document.title = "Syra | Machine money for agents";
+      document.title = "Machine Money for Agents | Syra";
     };
   }, []);
 

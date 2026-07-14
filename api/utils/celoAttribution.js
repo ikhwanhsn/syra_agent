@@ -1,25 +1,31 @@
 /**
- * ERC-8021 attribution helpers for Celo hackathon tagging.
- * Uses @celo/attribution-tags (wraps ox/erc8021).
+ * ERC-8021 Schema 2 attribution helpers for Celo x402 / hackathon tagging.
+ * Uses @x402/extensions/builder-code (CBOR Schema 2) — required for Dune x402 volume columns.
+ * @see https://docs.x402.org/extensions/builder-code
  */
-import { toDataSuffix, fromDataSuffix, ERC_8021_MARKER } from '@celo/attribution-tags';
-import { getCeloAttributionTag } from '../config/celoX402Networks.js';
+import {
+  encodeBuilderCodeSuffix,
+  parseBuilderCodeSuffixFromCalldata,
+  ERC_8021_MARKER,
+} from '@x402/extensions/builder-code';
+import { getCeloBuilderCode } from '../config/celoBuilderCode.js';
 
 /**
+ * Build ERC-8021 Schema 2 data suffix with Syra's Celo app code (`a`).
  * @returns {`0x${string}` | null}
  */
 export function getCeloDataSuffix() {
-  const tag = getCeloAttributionTag();
-  if (!tag) {
+  const code = getCeloBuilderCode();
+  if (!code) {
     console.warn(
-      '[celoAttribution] CELO_ATTRIBUTION_TAG is not set — Celo txs will not be credited on the hackathon leaderboard',
+      '[celoAttribution] CELO_BUILDER_CODE / CELO_ATTRIBUTION_TAG is not set — Celo txs will not be credited on the hackathon leaderboard',
     );
     return null;
   }
   try {
-    return /** @type {`0x${string}`} */ (toDataSuffix(tag));
+    return /** @type {`0x${string}`} */ (encodeBuilderCodeSuffix({ a: code }));
   } catch (e) {
-    console.warn('[celoAttribution] invalid CELO_ATTRIBUTION_TAG:', e?.message || e);
+    console.warn('[celoAttribution] failed to encode Schema 2 builder-code suffix:', e?.message || e);
     return null;
   }
 }
@@ -44,15 +50,21 @@ export function appendCeloDataSuffix(calldata, suffix = getCeloDataSuffix()) {
 }
 
 /**
+ * Decode ERC-8021 Schema 2 builder-code attribution from calldata.
  * @param {`0x${string}` | string} data
- * @returns {{ codes: string[]; schemaId: number } | null}
+ * @returns {{ a?: string; w?: string; s?: string | string[]; schemaId: number } | null}
  */
 export function decodeCeloAttribution(data) {
   try {
-    return fromDataSuffix(/** @type {`0x${string}`} */ (data));
+    const hex = /** @type {`0x${string}`} */ (
+      String(data || '').startsWith('0x') ? data : `0x${data}`
+    );
+    const parsed = parseBuilderCodeSuffixFromCalldata(hex);
+    if (!parsed) return null;
+    return { ...parsed, schemaId: 2 };
   } catch {
     return null;
   }
 }
 
-export { ERC_8021_MARKER, toDataSuffix, fromDataSuffix };
+export { ERC_8021_MARKER, encodeBuilderCodeSuffix, parseBuilderCodeSuffixFromCalldata };

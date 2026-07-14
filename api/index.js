@@ -189,10 +189,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Always load api/.env first (so SOLANA_RPC_URL etc. are set even when run from monorepo root)
-dotenv.config({ path: path.resolve(__dirname, ".env") });
+dotenv.config({ path: path.resolve(__dirname, ".env"), quiet: true });
 // Dev: web/.env.local often defines VITE_ADMIN_DASHBOARD_WALLET — mirror for staking admin gate.
 if (process.env.NODE_ENV !== "production") {
-  dotenv.config({ path: path.resolve(__dirname, "../web/.env.local") });
+  dotenv.config({ path: path.resolve(__dirname, "../web/.env.local"), quiet: true });
 }
 
 const b402KeyBootstrap = bootstrapB402PrivateKeyFromEnv();

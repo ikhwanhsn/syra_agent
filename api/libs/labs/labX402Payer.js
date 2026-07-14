@@ -1,17 +1,22 @@
 /**
  * Outbound x402 payer for lab wallets — calls /insights/* endpoints with automatic payment.
- * Supports Solana (ExactSvmScheme), Base (ExactEvmScheme), and Celo (ExactEvmScheme + self-settle).
+ * Supports Solana (ExactSvmScheme), Base/Celo (ExactEvmScheme), and Algorand (ExactAvmScheme via GoPlausible).
  */
 import { wrapFetchWithPayment } from '@x402/fetch';
 import { x402Client } from '@x402/core/client';
 import { ExactSvmScheme } from '@x402/svm/exact/client';
 import { ExactEvmScheme } from '@x402/evm/exact/client';
 import { createKeyPairSignerFromBytes } from '@solana/kit';
-import { registerRequiredExtensionsHook } from '../agentX402Client.js';
+import {
+  registerRequiredExtensionsHook,
+  registerBuilderCodeClientExtension,
+} from '../agentX402Client.js';
+import { createAlgorandX402WrapFetch } from '../agentAvmX402Client.js';
 import {
   getLabWalletDocByAddress,
   keypairFromLabWalletDoc,
   evmAccountFromLabWalletDoc,
+  algorandAccountFromLabWalletDoc,
 } from './labWalletService.js';
 import { pickRandomAvailableLabX402Endpoint, findLabX402Endpoint } from './labX402Endpoints.js';
 import { checkPayaiEndpointDailyBudget } from './labPayaiEndpointDailyLimit.js';
@@ -24,9 +29,11 @@ import LabX402Settings, {
   normalizeLabChain,
   settingsKeyForChain,
   isEvmLabChain,
+  isAvmLabChain,
 } from '../../models/labs/LabX402Settings.js';
 import LabX402Call from '../../models/labs/LabX402Call.js';
 import { CELO_MAINNET_CAIP2 } from '../../config/celoX402Networks.js';
+import { getCeloBuilderCode } from '../../config/celoBuilderCode.js';
 
 /** @type {Map<string, ReturnType<typeof wrapFetchWithPayment>>} */
 const paymentFetchCache = new Map();
@@ -67,7 +74,27 @@ async function getEvmPaymentFetchForAccount(account, chain = 'base') {
     schemes: [{ network, client: scheme }],
   });
   registerRequiredExtensionsHook(client);
+  if (chain === 'celo') {
+    const code = getCeloBuilderCode();
+    if (code) {
+      const { BuilderCodeClientExtension } = await import('@x402/extensions/builder-code');
+      client.registerExtension(new BuilderCodeClientExtension(code));
+    }
+  } else {
+    await registerBuilderCodeClientExtension(client);
+  }
   const pf = wrapFetchWithPayment(globalThis.fetch, client);
+  paymentFetchCache.set(cacheKey, pf);
+  return pf;
+}
+
+/**
+ * @param {{ address: string; keyB64: string }} account
+ */
+async function getAlgorandPaymentFetchForAccount(account) {
+  const cacheKey = `algorand:${account.address}`;
+  if (paymentFetchCache.has(cacheKey)) return paymentFetchCache.get(cacheKey);
+  const pf = await createAlgorandX402WrapFetch(globalThis.fetch, account.keyB64);
   paymentFetchCache.set(cacheKey, pf);
   return pf;
 }
@@ -87,7 +114,7 @@ function getServerApiKey() {
 
 /**
  * @param {string} payerAddress
- * @param {{ endpoint?: string; trigger?: 'manual' | 'scheduler'; chain?: 'solana' | 'base' | 'celo' }} [opts]
+ * @param {{ endpoint?: string; trigger?: 'manual' | 'scheduler'; chain?: 'solana' | 'base' | 'celo' | 'algorand' }} [opts]
  * @returns {Promise<object>}
  */
 export async function runLabX402Payment(payerAddress, opts = {}) {
@@ -105,7 +132,8 @@ export async function runLabX402Payment(payerAddress, opts = {}) {
   if (!endpoint) {
     throw new Error('Unknown x402 endpoint');
   }
-  if (isEvmLabChain(chain) && endpoint.facilitator === 'payai') {
+  const skipPayai = isEvmLabChain(chain) || isAvmLabChain(chain);
+  if (skipPayai && endpoint.facilitator === 'payai') {
     endpoint = await pickRandomAvailableLabX402Endpoint({ chain });
     if (!endpoint || endpoint.facilitator === 'payai') {
       throw new Error(
@@ -133,17 +161,13 @@ export async function runLabX402Payment(payerAddress, opts = {}) {
   }
 
   const url = `${getApiBaseUrl()}${endpoint.path}`;
-  const headers = {
-    Accept: 'application/json',
-    'x-lab-x402-trigger': trigger,
-    'x-lab-x402-chain': chain,
-  };
-  const apiKey = getServerApiKey();
-  if (apiKey) headers['X-API-Key'] = apiKey;
-
   let paymentFetch;
   let payerAddrForLog;
-  if (isEvmLabChain(chain)) {
+  if (isAvmLabChain(chain)) {
+    const account = algorandAccountFromLabWalletDoc(doc);
+    payerAddrForLog = account.address;
+    paymentFetch = await getAlgorandPaymentFetchForAccount(account);
+  } else if (isEvmLabChain(chain)) {
     const account = evmAccountFromLabWalletDoc(doc);
     payerAddrForLog = account.address;
     paymentFetch = await getEvmPaymentFetchForAccount(account, chain === 'celo' ? 'celo' : 'base');
@@ -152,6 +176,16 @@ export async function runLabX402Payment(payerAddress, opts = {}) {
     payerAddrForLog = keypair.publicKey.toBase58();
     paymentFetch = await getSolanaPaymentFetchForKeypair(keypair);
   }
+
+  const headers = {
+    Accept: 'application/json',
+    'x-lab-x402-trigger': trigger,
+    'x-lab-x402-chain': chain,
+    'X-Payer-Address': payerAddrForLog,
+    'x-lab-x402-payer': payerAddrForLog,
+  };
+  const apiKey = getServerApiKey();
+  if (apiKey) headers['X-API-Key'] = apiKey;
 
   let httpStatus = 0;
   let responseBody = null;
@@ -198,6 +232,18 @@ export async function runLabX402Payment(payerAddress, opts = {}) {
         error: errorMsg,
       };
     }
+
+    // Always log paid successes here. Insights refund logging is secondary and may
+    // skip when Dexter settle omits `payer` — without this the UI only shows failures.
+    await logLabX402Call({
+      payerAddress: payerAddrForLog,
+      endpoint: endpoint.path,
+      priceUsd: endpoint.priceUsd,
+      chain,
+      status: 'success',
+      paymentTx,
+      trigger,
+    });
 
     return {
       success: true,
@@ -258,13 +304,19 @@ function formatLabX402Settings(doc) {
     maxDailyCalls: activeDailyCallCap ?? Math.round((maxDailyCallsMin + maxDailyCallsMax) / 2),
     activeDailyCallCap,
     activeDailyCallCapDay: doc.activeDailyCallCapDay ?? null,
+    depositDistributeEnabled: doc.depositDistributeEnabled !== false,
+    depositMinUsdc: typeof doc.depositMinUsdc === 'number' ? doc.depositMinUsdc : 1,
+    depositMinEth: typeof doc.depositMinEth === 'number' ? doc.depositMinEth : 0.001,
+    depositEthGasReserve:
+      typeof doc.depositEthGasReserve === 'number' ? doc.depositEthGasReserve : 0.0002,
+    depositLastDistributedAt: doc.depositLastDistributedAt ?? null,
     chain,
     updatedAt: doc.updatedAt,
   };
 }
 
 /**
- * @param {'solana' | 'base' | 'celo'} [chain]
+ * @param {'solana' | 'base' | 'celo' | 'algorand'} [chain]
  * @returns {Promise<object>}
  */
 export async function getLabX402Settings(chain = 'solana') {
@@ -287,7 +339,7 @@ export async function getLabX402Settings(chain = 'solana') {
  *   maxDailyCallsMax: number;
  *   maxDailyCalls: number;
  * }>} patch
- * @param {'solana' | 'base' | 'celo'} [chain]
+ * @param {'solana' | 'base' | 'celo' | 'algorand'} [chain]
  * @returns {Promise<object>}
  */
 export async function updateLabX402Settings(patch, chain = 'solana') {
@@ -352,7 +404,7 @@ export async function updateLabX402Settings(patch, chain = 'solana') {
 }
 
 /**
- * @param {{ limit?: number; chain?: 'solana' | 'base' | 'celo' }} [opts]
+ * @param {{ limit?: number; chain?: 'solana' | 'base' | 'celo' | 'algorand' }} [opts]
  * @returns {Promise<object[]>}
  */
 export async function listLabX402Calls(opts = {}) {

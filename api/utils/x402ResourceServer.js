@@ -30,7 +30,7 @@ import {
   CELO_FACILITATOR_URL,
 } from "../config/celoX402Networks.js";
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 function env(name) {
   return String(process.env[name] || "").trim();

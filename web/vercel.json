@@ -1,7 +1,7 @@
 {
   "rewrites": [
     { "source": "/qwerti/:path*", "destination": "https://widget.qwerti.ai/:path*" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/((?!favicon\\.ico|apple-touch-icon\\.png|site\\.webmanifest|favicon-.*\\.png|android-chrome-.*\\.png).*)", "destination": "/index.html" }
   ],
   "headers": [
     {

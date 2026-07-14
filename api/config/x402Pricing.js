@@ -72,8 +72,15 @@ export const X402_PLAYGROUND_DEV_WALLET_BASE = '0xF9dcBFF7EdDd76c58412fd46f4160c
 /** All playground dev wallet addresses (Solana + Base). Payer matching any gets local-like price in production. */
 const PLAYGROUND_DEV_WALLETS = [X402_PLAYGROUND_DEV_WALLET, X402_PLAYGROUND_DEV_WALLET_BASE];
 
-/** Minimum charge when settling via Dexter facilitator (Solana floor ~427 atomic ≈ $0.000427). */
-export const X402_DEXTER_MIN_PAYMENT_USD = 0.0005;
+/**
+ * Minimum charge when settling via Dexter facilitator.
+ * Dexter enforces a *dynamic* floor per network from live settlement/gas cost.
+ * Solana is typically ~$0.0004–$0.0005; Base (eip155:8453) commonly ~$0.001+ and
+ * rejects below that (`Payment amount below dynamic floor for eip155:8453`).
+ * Use a single shared floor high enough for Base with headroom for gas spikes.
+ * Atomic (6dp): 0.002 USD → 2000.
+ */
+export const X402_DEXTER_MIN_PAYMENT_USD = 0.002;
 
 /**
  * Effective price for a given payer. In production, when payerAddress matches
@@ -97,7 +104,7 @@ export function getEffectivePriceUsd(priceUsd, payerAddress) {
 }
 
 /**
- * Clamp price to Dexter facilitator minimum (dynamic floor on Solana/EVM).
+ * Clamp price to Dexter facilitator minimum (covers Base dynamic floor + buffer).
  * @param {number} priceUsd
  * @returns {number}
  */

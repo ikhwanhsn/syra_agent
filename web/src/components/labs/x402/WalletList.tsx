@@ -19,7 +19,15 @@ import type { LabChain, LabWallet } from "@/lib/labsX402Api";
 function shortenAddress(addr: string, chain: LabChain): string {
   if (addr.length <= 12) return addr;
   if (chain === "base" || chain === "celo") return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+  // Solana + Algorand: 4…4
   return `${addr.slice(0, 4)}…${addr.slice(-4)}`;
+}
+
+function nativeSymbolForChain(chain: LabChain): string {
+  if (chain === "celo") return "CELO";
+  if (chain === "base") return "ETH";
+  if (chain === "algorand") return "ALGO";
+  return "SOL";
 }
 
 function formatBalance(n: number | null | undefined, decimals = 4): string {
@@ -46,7 +54,7 @@ export function WalletList({
 }: WalletListProps) {
   const [copied, setCopied] = useState<string | null>(null);
   const showSkeleton = useMinimumSkeleton(isLoading);
-  const nativeSymbol = chain === "celo" ? "CELO" : chain === "base" ? "ETH" : "SOL";
+  const nativeSymbol = nativeSymbolForChain(chain);
 
   const copy = async (addr: string) => {
     await navigator.clipboard.writeText(addr);

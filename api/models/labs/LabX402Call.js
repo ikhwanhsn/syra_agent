@@ -8,7 +8,12 @@ const labX402CallSchema = new mongoose.Schema(
     payerAddress: { type: String, required: true, index: true },
     endpoint: { type: String, required: true, index: true },
     priceUsd: { type: Number, required: true },
-    chain: { type: String, enum: ['solana', 'base'], default: 'solana', index: true },
+    chain: {
+      type: String,
+      enum: ['solana', 'base', 'celo', 'algorand'],
+      default: 'solana',
+      index: true,
+    },
     status: {
       type: String,
       enum: ['success', 'payment_failed', 'refund_failed', 'refund_skipped', 'error'],

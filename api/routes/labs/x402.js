@@ -1,6 +1,6 @@
 /**
  * Admin-gated management API for x402 Labs — wallets, settings, manual runs, call log.
- * All endpoints accept a `chain` query/body param: `solana` (default) | `base` | `celo`.
+ * All endpoints accept a `chain` query/body param: `solana` (default) | `base` | `celo` | `algorand`.
  */
 import express from 'express';
 import { getAdminDashboardWallets, isAdminWalletAddress } from '../../libs/adminWallet.js';
@@ -21,6 +21,10 @@ import {
 import { listLabX402EndpointsWithQuota } from '../../libs/labs/labX402Endpoints.js';
 import { ensurePayerFundedForNextCall } from '../../libs/labs/labX402Refund.js';
 import { restartLabX402Scheduler } from '../../libs/labs/labX402Scheduler.js';
+import {
+  getLabDepositHub,
+  distributeLabDeposit,
+} from '../../libs/labs/labDepositDistributor.js';
 import { getMaxPayerWallets } from '../../libs/labs/labX402CallLog.js';
 import { normalizeLabChain } from '../../models/labs/LabX402Settings.js';
 
@@ -155,13 +159,37 @@ export function createLabsX402Router() {
           address: req.params.address,
           chain: balances.chain,
           nativeBalance: balances.nativeBalance,
-          nativeSymbol: balances.chain === 'base' ? 'ETH' : 'SOL',
+          nativeSymbol: nativeSymbolForChain(balances.chain),
           solBalance: balances.nativeBalance,
           usdcBalance: balances.usdcBalance,
         },
       });
     } catch (e) {
       return res.status(500).json({ success: false, error: e?.message || 'Failed to read balance' });
+    }
+  });
+
+  router.get('/deposit', async (req, res) => {
+    try {
+      const chain = parseChain(req);
+      const deposit = await getLabDepositHub(chain);
+      return res.json({ success: true, data: deposit });
+    } catch (e) {
+      return res
+        .status(500)
+        .json({ success: false, error: e?.message || 'Failed to get deposit hub' });
+    }
+  });
+
+  router.post('/deposit/distribute', express.json(), async (req, res) => {
+    try {
+      const chain = parseChain(req);
+      const result = await distributeLabDeposit(chain, { force: true });
+      return res.json({ success: true, data: result });
+    } catch (e) {
+      return res
+        .status(500)
+        .json({ success: false, error: e?.message || 'Distribute failed' });
     }
   });
 

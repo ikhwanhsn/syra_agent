@@ -35,6 +35,7 @@ export default function LabsPage() {
             <TabsTrigger value="solana">Solana</TabsTrigger>
             <TabsTrigger value="base">Base</TabsTrigger>
             <TabsTrigger value="celo">Celo</TabsTrigger>
+            <TabsTrigger value="algorand">Algorand</TabsTrigger>
           </TabsList>
           <TabsContent value="solana" className="mt-6">
             <X402LabTab chain="solana" />
@@ -44,6 +45,9 @@ export default function LabsPage() {
           </TabsContent>
           <TabsContent value="celo" className="mt-6">
             <X402LabTab chain="celo" />
+          </TabsContent>
+          <TabsContent value="algorand" className="mt-6">
+            <X402LabTab chain="algorand" />
           </TabsContent>
         </Tabs>
       </div>

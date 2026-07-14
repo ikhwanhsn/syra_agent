@@ -53,10 +53,17 @@ export function SimulationPanel({
 }: SimulationPanelProps) {
   const [open, setOpen] = useState(false);
   const [targetCalls, setTargetCalls] = useState(1000);
-  const nativeSymbol = chain === "celo" ? "CELO" : chain === "base" ? "ETH" : "SOL";
+  const nativeSymbol =
+    chain === "celo"
+      ? "CELO"
+      : chain === "base"
+        ? "ETH"
+        : chain === "algorand"
+          ? "ALGO"
+          : "SOL";
 
   const formatNative = (n: number) => {
-    if (chain === "base" || chain === "celo") {
+    if (chain === "base" || chain === "celo" || chain === "algorand") {
       if (n < 0.0001 && n > 0) return `<0.0001 ${nativeSymbol}`;
       return `~${n.toFixed(4)} ${nativeSymbol}`;
     }
@@ -277,7 +284,16 @@ export function SimulationPanel({
                         <StatRow
                           label={nativeSymbol}
                           value={formatNative(s.suggestedSol)}
-                          hint={s.solNote.replace(/SOL/gi, nativeSymbol).replace(/rent/gi, chain === "base" || chain === "celo" ? "gas" : "rent")}
+                          hint={s.solNote
+                            .replace(/SOL/gi, nativeSymbol)
+                            .replace(
+                              /rent/gi,
+                              chain === "base" || chain === "celo"
+                                ? "gas"
+                                : chain === "algorand"
+                                  ? "min-balance"
+                                  : "rent",
+                            )}
                         />
                       </dl>
                     </div>

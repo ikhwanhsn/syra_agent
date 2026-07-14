@@ -22,8 +22,15 @@ interface CreateWalletDialogProps {
   chain?: LabChain;
 }
 
+function chainNetworkLabel(chain: LabChain): string {
+  if (chain === "celo") return "Celo";
+  if (chain === "base") return "Base";
+  if (chain === "algorand") return "Algorand";
+  return "Solana";
+}
+
 function roleOptions(chain: LabChain) {
-  const network = chain === "celo" ? "Celo" : chain === "base" ? "Base" : "Solana";
+  const network = chainNetworkLabel(chain);
   return [
     {
       value: "payer" as const,
@@ -62,10 +69,7 @@ export function CreateWalletDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            Create{" "}
-            {chain === "celo" ? "Celo" : chain === "base" ? "Base" : "Solana"} lab wallet
-          </DialogTitle>
+          <DialogTitle>Create {chainNetworkLabel(chain)} lab wallet</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-2">

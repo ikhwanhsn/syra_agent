@@ -4,6 +4,8 @@ import { isAdminWallet } from "@/constants/adminWallet";
 import {
   createLabWallet,
   createLabWalletsBulk,
+  distributeLabDeposit,
+  fetchLabDeposit,
   fetchLabWallets,
   fetchLabX402Calls,
   fetchLabX402Endpoints,
@@ -52,6 +54,14 @@ export function useLabsX402(chain: LabChain = "solana") {
     staleTime: 60_000,
   });
 
+  const depositQ = useQuery({
+    queryKey: ["labs-x402", "deposit", chain, adminWallet],
+    queryFn: () => fetchLabDeposit(adminWallet, chain),
+    enabled: allowed && Boolean(adminWallet),
+    staleTime: STALE_MS,
+    refetchInterval: POLL_MS,
+  });
+
   const qc = useQueryClient();
 
   const createWalletM = useMutation({
@@ -87,6 +97,15 @@ export function useLabsX402(chain: LabChain = "solana") {
     },
   });
 
+  const distributeDepositM = useMutation({
+    mutationFn: () => distributeLabDeposit(adminWallet, chain),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["labs-x402", "deposit", chain] });
+      void qc.invalidateQueries({ queryKey: ["labs-x402", "wallets", chain] });
+      void qc.invalidateQueries({ queryKey: ["labs-x402", "settings", chain] });
+    },
+  });
+
   return {
     allowed,
     adminWallet,
@@ -95,9 +114,11 @@ export function useLabsX402(chain: LabChain = "solana") {
     settingsQ,
     callsQ,
     endpointsQ,
+    depositQ,
     createWalletM,
     createWalletsBulkM,
     updateSettingsM,
     runM,
+    distributeDepositM,
   };
 }

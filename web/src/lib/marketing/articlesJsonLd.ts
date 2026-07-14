@@ -17,6 +17,10 @@ export function buildArticlesListJsonLd(items: ArticleItem[]) {
       "@type": "Organization",
       name: "Syra",
       url: SITE_ORIGIN,
+      logo: {
+        "@type": "ImageObject",
+        url: `${SITE_ORIGIN}/images/logo.jpg`,
+      },
       sameAs: ["https://x.com/syra_agent"],
     },
     blogPost: published.map((article) => ({

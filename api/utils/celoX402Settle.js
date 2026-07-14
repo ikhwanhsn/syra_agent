@@ -1,7 +1,8 @@
 /**
- * Self-settle x402 Exact EVM payments on Celo with ERC-8021 attribution tagging.
- * Verifies optionally via x402.celo.org; always submits transferWithAuthorization locally
- * so CELO_ATTRIBUTION_TAG lands in calldata for the hackathon leaderboard.
+ * Self-settle x402 Exact EVM payments on Celo with ERC-8021 Schema 2 builder-code attribution.
+ * Verifies optionally via x402.celo.org; submits transferWithAuthorization locally with
+ * Schema 2 CBOR suffix (`a`/`w`/`s`) so Dune x402 volume columns credit Syra.
+ * Optional CELO_SETTLE_VIA_FACILITATOR=true tries the recognized Celo facilitator first.
  */
 import {
   createPublicClient,
@@ -16,13 +17,86 @@ import {
 import { privateKeyToAccount } from 'viem/accounts';
 import { celo } from 'viem/chains';
 import {
+  BUILDER_CODE,
+  BUILDER_CODE_PATTERN,
+  encodeBuilderCodeSuffix,
+} from '@x402/extensions/builder-code';
+import {
   CELO_FACILITATOR_URL,
   CELO_MAINNET_CAIP2,
   CELO_USDC_MAINNET,
   getCeloNetworkByCaip2,
   getCeloRpcUrl,
 } from '../config/celoX402Networks.js';
+import { getCeloBuilderCode, getCeloFacilitatorWalletCode } from '../config/celoBuilderCode.js';
 import { appendCeloDataSuffix, getCeloDataSuffix } from './celoAttribution.js';
+
+/**
+ * @param {unknown} extensions
+ * @returns {{ a?: string; w?: string; s?: string | string[] } | null}
+ */
+function extractBuilderCodeInfo(extensions) {
+  if (!extensions || typeof extensions !== 'object') return null;
+  const raw = /** @type {Record<string, unknown>} */ (extensions)[BUILDER_CODE];
+  if (!raw || typeof raw !== 'object') return null;
+  const info =
+    /** @type {Record<string, unknown>} */ (raw).info &&
+    typeof /** @type {Record<string, unknown>} */ (raw).info === 'object'
+      ? /** @type {Record<string, unknown>} */ (/** @type {Record<string, unknown>} */ (raw).info)
+      : /** @type {Record<string, unknown>} */ (raw);
+  return /** @type {{ a?: string; w?: string; s?: string | string[] }} */ (info);
+}
+
+/**
+ * Build ERC-8021 Schema 2 settlement suffix: `a` from payload/requirements (fallback env),
+ * `w` from CELO_FACILITATOR_WALLET_CODE, `s` from client payload when present.
+ * @param {object} payload
+ * @param {object} accepted
+ * @returns {`0x${string}` | null}
+ */
+function buildCeloSettlementDataSuffix(payload, accepted) {
+  const fromPayload = extractBuilderCodeInfo(payload?.extensions);
+  const fromAccepted = extractBuilderCodeInfo(accepted?.extensions);
+
+  const aCandidate =
+    (typeof fromPayload?.a === 'string' && BUILDER_CODE_PATTERN.test(fromPayload.a)
+      ? fromPayload.a
+      : null) ||
+    (typeof fromAccepted?.a === 'string' && BUILDER_CODE_PATTERN.test(fromAccepted.a)
+      ? fromAccepted.a
+      : null) ||
+    getCeloBuilderCode();
+
+  const w = getCeloFacilitatorWalletCode();
+
+  const sRaw = fromPayload?.s ?? fromAccepted?.s;
+  const sCandidates = typeof sRaw === 'string' ? [sRaw] : Array.isArray(sRaw) ? sRaw : [];
+  const s = sCandidates.filter((c) => typeof c === 'string' && BUILDER_CODE_PATTERN.test(c));
+
+  if (!aCandidate && !w && s.length === 0) {
+    return getCeloDataSuffix();
+  }
+
+  try {
+    return /** @type {`0x${string}`} */ (
+      encodeBuilderCodeSuffix({
+        ...(aCandidate ? { a: aCandidate } : {}),
+        ...(w ? { w } : {}),
+        ...(s.length > 0 ? { s } : {}),
+      })
+    );
+  } catch (e) {
+    console.warn('[celoX402Settle] encode Schema 2 suffix failed:', e?.message || e);
+    return getCeloDataSuffix();
+  }
+}
+
+function shouldSettleViaCeloFacilitator() {
+  const v = String(process.env.CELO_SETTLE_VIA_FACILITATOR || '')
+    .trim()
+    .toLowerCase();
+  return v === '1' || v === 'true' || v === 'yes';
+}
 
 const TRANSFER_WITH_AUTHORIZATION_ABI = [
   {
@@ -132,12 +206,21 @@ function extractAuthorization(payload, accepted) {
  * Local EIP-712 recovery check (does not replace facilitator verify when available).
  * @param {ReturnType<typeof extractAuthorization>} auth
  */
-async function verifyAuthorizationLocally(auth) {
+/**
+ * @param {ReturnType<typeof extractAuthorization>} auth
+ * @param {object} [accepted] - payment requirements (may carry extra.name/version used at sign time)
+ */
+async function verifyAuthorizationLocally(auth, accepted) {
   if (!auth) return false;
   const net = getCeloNetworkByCaip2(auth.network) || getCeloNetworkByCaip2(CELO_MAINNET_CAIP2);
+  const extra = accepted?.extra && typeof accepted.extra === 'object' ? accepted.extra : {};
+  const extraEip712 = extra.eip712 && typeof extra.eip712 === 'object' ? extra.eip712 : {};
+  // Prefer on-chain Celo USDC domain; fall back to accept.extra only if it matches known Celo values.
+  const domainName = net?.eip712?.name || extraEip712.name || extra.name || 'USDC';
+  const domainVersion = net?.eip712?.version || extraEip712.version || extra.version || '2';
   const domain = {
-    name: net?.eip712?.name || 'USDC',
-    version: net?.eip712?.version || '2',
+    name: domainName,
+    version: domainVersion,
     chainId: CELO_MAINNET_CHAIN_ID_SAFE(),
     verifyingContract: auth.asset,
   };
@@ -201,7 +284,45 @@ async function verifyViaCeloFacilitator(payload, accepted) {
 }
 
 /**
- * Settle an Exact EVM x402 payment on Celo with attribution tag in calldata.
+ * Optional settle via recognized Celo facilitator (tx sender = facilitator EOA).
+ * Only used when CELO_SETTLE_VIA_FACILITATOR=true; falls back to local self-settle on failure.
+ * @param {object} payload
+ * @param {object} accepted
+ * @returns {Promise<{ success: boolean; payer?: string; transaction?: string; network?: string; error?: string; errorReason?: string } | null>}
+ */
+async function settleViaCeloFacilitator(payload, accepted) {
+  try {
+    const res = await fetch(`${CELO_FACILITATOR_URL.replace(/\/+$/, '')}/settle`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        x402Version: payload?.x402Version ?? 2,
+        paymentPayload: payload,
+        paymentRequirements: accepted,
+      }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || !(body?.success ?? body?.transaction)) {
+      console.warn(
+        '[celoX402Settle] facilitator settle failed:',
+        body?.errorReason || body?.error || `HTTP ${res.status}`,
+      );
+      return null;
+    }
+    return {
+      success: true,
+      payer: body.payer || body.payerAddress || undefined,
+      transaction: body.transaction || body.txHash || body.hash,
+      network: body.network || CELO_MAINNET_CAIP2,
+    };
+  } catch (e) {
+    console.warn('[celoX402Settle] facilitator settle error:', e?.message || e);
+    return null;
+  }
+}
+
+/**
+ * Settle an Exact EVM x402 payment on Celo with ERC-8021 Schema 2 builder-code in calldata.
  * @param {object} payload - req.x402Payment.payload
  * @param {object} accepted - req.x402Payment.accepted
  * @returns {Promise<{ success: boolean; payer?: string; transaction?: string; network?: string; error?: string; errorReason?: string }>}
@@ -227,7 +348,7 @@ export async function settleCeloX402Payment(payload, accepted) {
 
   const remoteOk = await verifyViaCeloFacilitator(payload, accepted);
   if (!remoteOk) {
-    const localOk = await verifyAuthorizationLocally(auth);
+    const localOk = await verifyAuthorizationLocally(auth, accepted);
     if (!localOk) {
       return {
         success: false,
@@ -251,6 +372,16 @@ export async function settleCeloX402Payment(payload, accepted) {
       errorReason: 'Authorization expired',
       error: 'Authorization expired',
     };
+  }
+
+  if (shouldSettleViaCeloFacilitator()) {
+    const facilitated = await settleViaCeloFacilitator(payload, accepted);
+    if (facilitated?.success && facilitated.transaction) {
+      return facilitated;
+    }
+    console.warn(
+      '[celoX402Settle] facilitator settle unavailable — falling back to self-settle with Schema 2 suffix',
+    );
   }
 
   const settler = getSettlerAccount();
@@ -281,7 +412,7 @@ export async function settleCeloX402Payment(payload, accepted) {
     ],
   });
 
-  const dataSuffix = getCeloDataSuffix();
+  const dataSuffix = buildCeloSettlementDataSuffix(payload, accepted);
   const data = appendCeloDataSuffix(encoded, dataSuffix);
 
   try {
@@ -325,7 +456,7 @@ export async function verifyCeloPaymentLocally(payload, accepted) {
     if (!auth) {
       return { isValid: false, invalidReason: 'Missing EIP-3009 authorization' };
     }
-    const ok = await verifyAuthorizationLocally(auth);
+    const ok = await verifyAuthorizationLocally(auth, accepted);
     if (!ok) {
       return { isValid: false, invalidReason: 'Invalid EIP-3009 signature' };
     }
