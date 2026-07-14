@@ -4,10 +4,11 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Search, Star, Trophy } from "lucide-react";
 
-import { DISCOVERY_PAGE_SIZE } from "@/components/discovery/constants";
+import { DISCOVERY_PAGE_SIZE, DISCOVERY_STALE_MS } from "@/components/discovery/constants";
 import { DiscoveryEmptyState } from "@/components/discovery/DiscoveryEmptyState";
 import { DiscoveryListSkeleton, DiscoveryLoadMore } from "@/components/discovery/DiscoveryLoadMore";
 import { DiscoverySearchBar } from "@/components/discovery/DiscoverySearchBar";
+import { DiscoverySortSelect } from "@/components/discovery/DiscoverySortSelect";
 import { DiscoveryViewTabs } from "@/components/discovery/DiscoveryViewTabs";
 import { HackathonArenaCard } from "@/components/discovery/hackathons/HackathonCards";
 import { FadeIn } from "@/components/discovery/motion/FadeIn";
@@ -18,6 +19,11 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useHackathonSaves } from "@/hooks/useDiscoverySaves";
 import { formatDate } from "@/lib/discoveryFormatters";
+import {
+  DEFAULT_HACKATHON_SORT,
+  HACKATHON_SORT_OPTIONS,
+  type HackathonSortKey,
+} from "@/lib/discoverySort";
 import {
   fetchHackathonLatestRun,
   fetchHackathons,
@@ -40,21 +46,6 @@ const ADMIN_STATUS_TABS = [
   { id: "archived", label: "Archived" },
 ] as const;
 
-function pickFeaturedHackathon(items: HackathonRecord[]): HackathonRecord | null {
-  const openItems = items.filter((item) => item.openState === "open");
-  const pool = openItems.length > 0 ? openItems : items;
-  if (pool.length === 0) return null;
-
-  return [...pool].sort((a, b) => {
-    const prizeDiff = (b.prizeAmountUsd ?? 0) - (a.prizeAmountUsd ?? 0);
-    if (prizeDiff !== 0) return prizeDiff;
-    const aDeadline = new Date(a.deadline ?? 0).getTime();
-    const bDeadline = new Date(b.deadline ?? 0).getTime();
-    if (aDeadline && bDeadline && aDeadline !== bDeadline) return aDeadline - bDeadline;
-    return 0;
-  })[0];
-}
-
 function HackathonPageContent() {
   const navigate = useNavigate();
   const wallet = useWallet();
@@ -63,18 +54,20 @@ function HackathonPageContent() {
 
   const [statusTab, setStatusTab] = useState("all");
   const [view, setView] = useState<HackathonView>("all");
+  const [sort, setSort] = useState<HackathonSortKey>(DEFAULT_HACKATHON_SORT);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search.trim());
 
   const { toggleFlag, getFlags } = useHackathonSaves();
 
   const listQuery = useInfiniteQuery({
-    queryKey: ["hackathons", address, statusTab, debouncedSearch, isAdmin],
+    queryKey: ["hackathons", address, statusTab, debouncedSearch, sort, isAdmin],
     queryFn: ({ pageParam }) =>
       fetchHackathons(address, {
         status: isAdmin ? statusTab : "all",
         region: "all",
         search: debouncedSearch || undefined,
+        sort,
         limit: DISCOVERY_PAGE_SIZE,
         skip: pageParam,
       }),
@@ -83,13 +76,14 @@ function HackathonPageContent() {
       const loaded = allPages.reduce((sum, page) => sum + page.items.length, 0);
       return loaded < lastPage.total ? loaded : undefined;
     },
-    staleTime: 30_000,
+    staleTime: DISCOVERY_STALE_MS,
+    refetchOnMount: "always",
   });
 
   const runQuery = useQuery({
     queryKey: ["hackathon-latest-run", address],
     queryFn: () => fetchHackathonLatestRun(address),
-    staleTime: 60_000,
+    staleTime: DISCOVERY_STALE_MS,
     enabled: isAdmin,
   });
 
@@ -111,7 +105,7 @@ function HackathonPageContent() {
     [allItems, getFlags],
   );
 
-  const featured = useMemo(() => pickFeaturedHackathon(items), [items]);
+  const featured: HackathonRecord | null = items[0] ?? null;
   const gridItems = useMemo(
     () => (featured ? items.filter((item) => item._id !== featured._id) : items),
     [items, featured],
@@ -170,14 +164,21 @@ function HackathonPageContent() {
       </FadeIn>
 
       <FadeIn className="mb-8 space-y-4" delay={0.05}>
-        <DiscoveryViewTabs
-          tabs={[
-            { id: "all" as const, label: "All hackathons" },
-            { id: "saved" as const, label: "Saved", count: savedCount },
-          ]}
-          value={view}
-          onChange={setView}
-        />
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <DiscoveryViewTabs
+            tabs={[
+              { id: "all" as const, label: "All hackathons" },
+              { id: "saved" as const, label: "Saved", count: savedCount },
+            ]}
+            value={view}
+            onChange={setView}
+          />
+          <DiscoverySortSelect
+            value={sort}
+            onChange={setSort}
+            options={HACKATHON_SORT_OPTIONS}
+          />
+        </div>
         <DiscoverySearchBar
           id="hackathon-search"
           value={search}

@@ -12,6 +12,7 @@ import { fetchWebEventHits } from "./webEventSource.js";
 import { fetchXEventHits } from "./xEventSource.js";
 import { fetchLumaEvents } from "./lumaEventSource.js";
 import { applyEventFreshness, upcomingEventFilter } from "../discoveryFreshness.js";
+import { EVENT_SORT_SPECS, resolveDiscoverySort } from "../discoverySort.js";
 
 export { EVENT_SCOUT_DB_ID };
 
@@ -252,7 +253,7 @@ export async function runEventScoutPipeline() {
 }
 
 /**
- * @param {{ status?: string; region?: string; source?: string; category?: string; search?: string; limit?: number; skip?: number; freshOnly?: boolean }} [opts]
+ * @param {{ status?: string; region?: string; source?: string; category?: string; search?: string; sort?: string; limit?: number; skip?: number; freshOnly?: boolean }} [opts]
  */
 export async function listEvents(opts = {}) {
   let filter = {};
@@ -287,8 +288,10 @@ export async function listEvents(opts = {}) {
   const limit = Math.min(100, Math.max(1, Number(opts.limit) || 50));
   const skip = Math.max(0, Number(opts.skip) || 0);
 
+  const sortSpec = resolveDiscoverySort(EVENT_SORT_SPECS, opts.sort, "newest");
+
   const [items, total] = await Promise.all([
-    Event.find(filter).sort({ startAt: 1, discoveredAt: -1 }).skip(skip).limit(limit).lean(),
+    Event.find(filter).sort(sortSpec).skip(skip).limit(limit).lean(),
     Event.countDocuments(filter),
   ]);
 

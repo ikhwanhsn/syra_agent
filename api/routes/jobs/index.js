@@ -18,6 +18,8 @@ export function createJobsRouter() {
           : undefined;
       const search =
         typeof req.query.search === "string" ? req.query.search : undefined;
+      const sort =
+        typeof req.query.sort === "string" ? req.query.sort : "newest";
       const limit =
         typeof req.query.limit === "string"
           ? Number.parseInt(req.query.limit, 10)
@@ -31,6 +33,7 @@ export function createJobsRouter() {
         category,
         remote,
         search,
+        sort,
         limit,
         skip,
       });

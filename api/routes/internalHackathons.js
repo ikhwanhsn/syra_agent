@@ -49,6 +49,7 @@ export function createInternalHackathonsRouter() {
       const source = typeof req.query.source === "string" ? req.query.source : "all";
       const openState = typeof req.query.openState === "string" ? req.query.openState : "all";
       const search = typeof req.query.search === "string" ? req.query.search : "";
+      const sort = typeof req.query.sort === "string" ? req.query.sort : "newest";
       const limit = Number(req.query.limit) || 50;
       const skip = Number(req.query.skip) || 0;
 
@@ -58,6 +59,7 @@ export function createInternalHackathonsRouter() {
         source,
         openState,
         search,
+        sort,
         limit,
         skip,
       });

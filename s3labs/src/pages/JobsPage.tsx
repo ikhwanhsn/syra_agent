@@ -3,11 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Briefcase, Search, Star } from "lucide-react";
 
-import { DISCOVERY_PAGE_SIZE } from "@/components/discovery/constants";
+import { DISCOVERY_PAGE_SIZE, DISCOVERY_STALE_MS } from "@/components/discovery/constants";
 import { DiscoveryEmptyState } from "@/components/discovery/DiscoveryEmptyState";
 import { DiscoveryFilterPills } from "@/components/discovery/DiscoveryFilterPills";
 import { DiscoveryLoadMore } from "@/components/discovery/DiscoveryLoadMore";
 import { DiscoverySearchBar } from "@/components/discovery/DiscoverySearchBar";
+import { DiscoverySortSelect } from "@/components/discovery/DiscoverySortSelect";
 import { JobSpotlightCard, JobTicketCard } from "@/components/discovery/jobs/JobCards";
 import { FadeIn } from "@/components/discovery/motion/FadeIn";
 import { Stagger, StaggerItem } from "@/components/discovery/motion/Stagger";
@@ -17,6 +18,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useCountUp } from "@/hooks/useCountUp";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useJobFlags } from "@/hooks/useJobFlags";
+import {
+  DEFAULT_JOB_SORT,
+  JOB_SORT_OPTIONS,
+  type JobSortKey,
+} from "@/lib/discoverySort";
 import { fetchJobs, type JobCategory, type JobListing } from "@/lib/jobsApi";
 import { pageContent } from "@/lib/siteLayout";
 import { cn } from "@/lib/utils";
@@ -48,21 +54,11 @@ function JobGridSkeleton({ count = 6 }: { count?: number }) {
   );
 }
 
-function pickSpotlightJob(jobs: JobListing[]): JobListing | null {
-  if (jobs.length === 0) return null;
-  return [...jobs].sort((a, b) => {
-    const scoreDiff = (b.salaryScore ?? 0) - (a.salaryScore ?? 0);
-    if (scoreDiff !== 0) return scoreDiff;
-    const aTime = new Date(a.lastSeenAt ?? a.publishedAt ?? 0).getTime();
-    const bTime = new Date(b.lastSeenAt ?? b.publishedAt ?? 0).getTime();
-    return bTime - aTime;
-  })[0];
-}
-
 function JobsPageContent() {
   const navigate = useNavigate();
   const [filter, setFilter] = useState<JobQuickFilter>("all");
   const [view, setView] = useState<JobView>("all");
+  const [sort, setSort] = useState<JobSortKey>(DEFAULT_JOB_SORT);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search.trim());
 
@@ -70,12 +66,13 @@ function JobsPageContent() {
   const { category, remote } = filterToParams(filter);
 
   const jobsQuery = useInfiniteQuery({
-    queryKey: ["jobs", category, remote, debouncedSearch],
+    queryKey: ["jobs", category, remote, debouncedSearch, sort],
     queryFn: ({ pageParam }) =>
       fetchJobs({
         category,
         remote: remote || undefined,
         search: debouncedSearch || undefined,
+        sort,
         limit: DISCOVERY_PAGE_SIZE,
         skip: pageParam,
       }),
@@ -84,7 +81,8 @@ function JobsPageContent() {
       const loaded = allPages.reduce((sum, page) => sum + page.jobs.length, 0);
       return loaded < lastPage.total ? loaded : undefined;
     },
-    staleTime: 60_000,
+    staleTime: DISCOVERY_STALE_MS,
+    refetchOnMount: "always",
     retry: 1,
   });
 
@@ -106,7 +104,8 @@ function JobsPageContent() {
     [allJobs, getFlags],
   );
 
-  const spotlight = useMemo(() => pickSpotlightJob(jobs), [jobs]);
+  // Featured item follows the active sort (already newest by default).
+  const spotlight: JobListing | null = jobs[0] ?? null;
   const feedJobs = useMemo(
     () =>
       spotlight
@@ -221,6 +220,13 @@ function JobsPageContent() {
               onChange={setSearch}
               placeholder="Search by title, company, or keyword…"
               className="lg:max-w-md"
+            />
+
+            <DiscoverySortSelect
+              value={sort}
+              onChange={setSort}
+              options={JOB_SORT_OPTIONS}
+              className="lg:ml-auto"
             />
           </div>
 

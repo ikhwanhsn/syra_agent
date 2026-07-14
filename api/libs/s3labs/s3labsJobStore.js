@@ -5,6 +5,7 @@
 import S3labsJob from "../../models/S3labsJob.js";
 import { normalizeSalaryLabel } from "./s3labsJobSalary.js";
 import { applyJobFreshness } from "../discoveryFreshness.js";
+import { JOB_SORT_SPECS, resolveDiscoverySort } from "../discoverySort.js";
 
 /**
  * @typedef {import("./s3labsJobIdentity.js").JobListing} JobListing
@@ -121,6 +122,7 @@ function serializeJob(doc) {
  *   category?: string;
  *   remote?: boolean;
  *   search?: string;
+ *   sort?: string;
  *   limit?: number;
  *   skip?: number;
  *   freshOnly?: boolean;
@@ -153,10 +155,8 @@ export async function listJobs(opts = {}) {
 
   filter = applyJobFreshness(filter, { freshOnly: opts.freshOnly !== false });
 
-  const query = S3labsJob.find(filter).sort({
-    lastSeenAt: -1,
-    salaryScore: -1,
-  });
+  const sortSpec = resolveDiscoverySort(JOB_SORT_SPECS, opts.sort, "newest");
+  const query = S3labsJob.find(filter).sort(sortSpec);
 
   const [docs, total] = await Promise.all([
     query.skip(skip).limit(limit).lean(),

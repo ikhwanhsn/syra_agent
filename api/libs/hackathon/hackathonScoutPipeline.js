@@ -10,6 +10,7 @@ import { isDevTelegramConfigured, sendDevTelegram } from "../devTelegramNotifier
 import { fetchDevpostHackathons } from "./devpostSource.js";
 import { fetchWebHackathons } from "./webSource.js";
 import { applyHackathonFreshness, openHackathonFilter, recentLastSeenFilter, HACKATHON_STALE_DAYS } from "../discoveryFreshness.js";
+import { HACKATHON_SORT_SPECS, resolveDiscoverySort } from "../discoverySort.js";
 
 export { HACKATHON_SCOUT_DB_ID };
 
@@ -230,7 +231,7 @@ export async function runHackathonScoutPipeline() {
 }
 
 /**
- * @param {{ status?: string; region?: string; source?: string; openState?: string; search?: string; limit?: number; skip?: number; freshOnly?: boolean }} [opts]
+ * @param {{ status?: string; region?: string; source?: string; openState?: string; search?: string; sort?: string; limit?: number; skip?: number; freshOnly?: boolean }} [opts]
  */
 export async function listHackathons(opts = {}) {
   let filter = {};
@@ -264,8 +265,10 @@ export async function listHackathons(opts = {}) {
   const limit = Math.min(100, Math.max(1, Number(opts.limit) || 50));
   const skip = Math.max(0, Number(opts.skip) || 0);
 
+  const sortSpec = resolveDiscoverySort(HACKATHON_SORT_SPECS, opts.sort, "newest");
+
   const [items, total] = await Promise.all([
-    Hackathon.find(filter).sort({ discoveredAt: -1 }).skip(skip).limit(limit).lean(),
+    Hackathon.find(filter).sort(sortSpec).skip(skip).limit(limit).lean(),
     Hackathon.countDocuments(filter),
   ]);
 

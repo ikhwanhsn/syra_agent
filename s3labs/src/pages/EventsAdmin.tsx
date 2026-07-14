@@ -4,11 +4,12 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Calendar, Search, Star } from "lucide-react";
 
-import { DISCOVERY_PAGE_SIZE } from "@/components/discovery/constants";
+import { DISCOVERY_PAGE_SIZE, DISCOVERY_STALE_MS } from "@/components/discovery/constants";
 import { DiscoveryEmptyState } from "@/components/discovery/DiscoveryEmptyState";
 import { DiscoveryFilterPills } from "@/components/discovery/DiscoveryFilterPills";
 import { DiscoveryListSkeleton, DiscoveryLoadMore } from "@/components/discovery/DiscoveryLoadMore";
 import { DiscoverySearchBar } from "@/components/discovery/DiscoverySearchBar";
+import { DiscoverySortSelect } from "@/components/discovery/DiscoverySortSelect";
 import { DiscoveryViewTabs } from "@/components/discovery/DiscoveryViewTabs";
 import { EventBentoCard } from "@/components/discovery/events/EventCards";
 import { FadeIn } from "@/components/discovery/motion/FadeIn";
@@ -19,6 +20,11 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useEventSaves } from "@/hooks/useDiscoverySaves";
 import { formatDate } from "@/lib/discoveryFormatters";
+import {
+  DEFAULT_EVENT_SORT,
+  EVENT_SORT_OPTIONS,
+  type EventSortKey,
+} from "@/lib/discoverySort";
 import {
   fetchEventLatestRun,
   fetchEvents,
@@ -54,18 +60,6 @@ function filterToParams(filter: EventQuickFilter) {
   return { region: "all" as const, category: "all" as const };
 }
 
-function pickFeaturedEvent(items: EventRecord[]): EventRecord | null {
-  if (items.length === 0) return null;
-  return [...items].sort((a, b) => {
-    const aTime = new Date(a.startAt ?? 0).getTime();
-    const bTime = new Date(b.startAt ?? 0).getTime();
-    if (aTime && bTime && aTime !== bTime) return aTime - bTime;
-    if (a.thumbnailUrl && !b.thumbnailUrl) return -1;
-    if (!a.thumbnailUrl && b.thumbnailUrl) return 1;
-    return 0;
-  })[0];
-}
-
 function EventsAdminPageContent() {
   const navigate = useNavigate();
   const wallet = useWallet();
@@ -74,6 +68,7 @@ function EventsAdminPageContent() {
   const [statusTab, setStatusTab] = useState("all");
   const [view, setView] = useState<EventView>("all");
   const [filter, setFilter] = useState<EventQuickFilter>("all");
+  const [sort, setSort] = useState<EventSortKey>(DEFAULT_EVENT_SORT);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search.trim());
 
@@ -81,13 +76,14 @@ function EventsAdminPageContent() {
   const { region, category } = filterToParams(filter);
 
   const listQuery = useInfiniteQuery({
-    queryKey: ["events", address, statusTab, region, category, debouncedSearch, isAdmin],
+    queryKey: ["events", address, statusTab, region, category, debouncedSearch, sort, isAdmin],
     queryFn: ({ pageParam }) =>
       fetchEvents(address, {
         status: isAdmin ? statusTab : "all",
         region,
         category,
         search: debouncedSearch || undefined,
+        sort,
         limit: DISCOVERY_PAGE_SIZE,
         skip: pageParam,
       }),
@@ -96,13 +92,14 @@ function EventsAdminPageContent() {
       const loaded = allPages.reduce((sum, page) => sum + page.items.length, 0);
       return loaded < lastPage.total ? loaded : undefined;
     },
-    staleTime: 30_000,
+    staleTime: DISCOVERY_STALE_MS,
+    refetchOnMount: "always",
   });
 
   const runQuery = useQuery({
     queryKey: ["event-latest-run", address],
     queryFn: () => fetchEventLatestRun(address),
-    staleTime: 60_000,
+    staleTime: DISCOVERY_STALE_MS,
     enabled: isAdmin,
   });
 
@@ -124,7 +121,7 @@ function EventsAdminPageContent() {
     [allItems, getFlags],
   );
 
-  const featured = useMemo(() => pickFeaturedEvent(items), [items]);
+  const featured: EventRecord | null = items[0] ?? null;
   const gridItems = useMemo(
     () => (featured ? items.filter((item) => item._id !== featured._id) : items),
     [items, featured],
@@ -183,14 +180,21 @@ function EventsAdminPageContent() {
       </FadeIn>
 
       <FadeIn className="mb-8 space-y-4" delay={0.05}>
-        <DiscoveryViewTabs
-          tabs={[
-            { id: "all" as const, label: "All events" },
-            { id: "saved" as const, label: "Saved", count: savedCount },
-          ]}
-          value={view}
-          onChange={setView}
-        />
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <DiscoveryViewTabs
+            tabs={[
+              { id: "all" as const, label: "All events" },
+              { id: "saved" as const, label: "Saved", count: savedCount },
+            ]}
+            value={view}
+            onChange={setView}
+          />
+          <DiscoverySortSelect
+            value={sort}
+            onChange={setSort}
+            options={EVENT_SORT_OPTIONS}
+          />
+        </div>
         <DiscoverySearchBar
           id="events-search"
           value={search}

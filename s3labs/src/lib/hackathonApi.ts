@@ -81,6 +81,7 @@ export type FetchHackathonsParams = {
   source?: string;
   openState?: string;
   search?: string;
+  sort?: string;
   limit?: number;
   skip?: number;
 };
@@ -92,6 +93,7 @@ export function fetchHackathons(wallet: string | null | undefined, params: Fetch
   qs.set("source", params.source ?? "all");
   qs.set("openState", params.openState ?? "all");
   if (params.search) qs.set("search", params.search);
+  if (params.sort) qs.set("sort", params.sort);
   qs.set("limit", String(params.limit ?? 50));
   qs.set("skip", String(params.skip ?? 0));
 

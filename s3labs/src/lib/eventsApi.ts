@@ -102,6 +102,7 @@ export type FetchEventsParams = {
   source?: string;
   category?: string;
   search?: string;
+  sort?: string;
   limit?: number;
   skip?: number;
 };
@@ -113,6 +114,7 @@ export function fetchEvents(wallet: string | null | undefined, params: FetchEven
   qs.set("source", params.source ?? "all");
   qs.set("category", params.category ?? "all");
   if (params.search) qs.set("search", params.search);
+  if (params.sort) qs.set("sort", params.sort);
   qs.set("limit", String(params.limit ?? 50));
   qs.set("skip", String(params.skip ?? 0));
 

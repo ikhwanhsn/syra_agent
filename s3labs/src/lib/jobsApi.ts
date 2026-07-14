@@ -34,6 +34,7 @@ export interface FetchJobsParams {
   category?: JobCategory | "all";
   remote?: boolean;
   search?: string;
+  sort?: string;
   limit?: number;
   skip?: number;
 }
@@ -95,6 +96,9 @@ export function fetchJobs(
   }
   if (params.search?.trim()) {
     qs.set("search", params.search.trim());
+  }
+  if (params.sort) {
+    qs.set("sort", params.sort);
   }
   if (params.limit) {
     qs.set("limit", String(params.limit));

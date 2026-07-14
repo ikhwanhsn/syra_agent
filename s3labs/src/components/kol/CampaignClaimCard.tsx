@@ -60,24 +60,8 @@ export function CampaignClaimCard({
         (entry) =>
           normalizeHandle(entry.authorHandleKey ?? entry.authorHandle) ===
           verifiedHandleKey,
-      )
+      ) ?? null
     : null;
-
-  const claimBlockedByCampaignRule =
-    ownEntry.rewardEligible === false ||
-    (viewerClaimEligibility?.requireCreatedOneCampaign === true &&
-      !viewerClaimEligibility.hasCreatedCampaign);
-
-  const rewardSent =
-    ownEntry?.claimStatus === "claimed" ||
-    ownEntry?.payout?.status === "confirmed";
-  const rewardHeld = ownEntry?.payout?.status === "pending_minimum";
-  const claimable =
-    ownEntry?.claimStatus === "claimable" &&
-    (ownEntry.earnedSol ?? 0) > 0 &&
-    !claimBlockedByCampaignRule &&
-    !rewardSent &&
-    !rewardHeld;
 
   const claimMutation = useMutation({
     mutationFn: async () => {
@@ -108,6 +92,22 @@ export function CampaignClaimCard({
   });
 
   if (!ownEntry) return null;
+
+  const claimBlockedByCampaignRule =
+    ownEntry.rewardEligible === false ||
+    (viewerClaimEligibility?.requireCreatedOneCampaign === true &&
+      !viewerClaimEligibility.hasCreatedCampaign);
+
+  const rewardSent =
+    ownEntry.claimStatus === "claimed" ||
+    ownEntry.payout?.status === "confirmed";
+  const rewardHeld = ownEntry.payout?.status === "pending_minimum";
+  const claimable =
+    ownEntry.claimStatus === "claimable" &&
+    (ownEntry.earnedSol ?? 0) > 0 &&
+    !claimBlockedByCampaignRule &&
+    !rewardSent &&
+    !rewardHeld;
 
   const earnedSol = ownEntry.earnedSol ?? ownEntry.projectedSol ?? 0;
 

@@ -49,6 +49,7 @@ export function createInternalEventsRouter() {
       const source = typeof req.query.source === "string" ? req.query.source : "all";
       const category = typeof req.query.category === "string" ? req.query.category : "all";
       const search = typeof req.query.search === "string" ? req.query.search : "";
+      const sort = typeof req.query.sort === "string" ? req.query.sort : "newest";
       const limit = Number(req.query.limit) || 50;
       const skip = Number(req.query.skip) || 0;
 
@@ -58,6 +59,7 @@ export function createInternalEventsRouter() {
         source,
         category,
         search,
+        sort,
         limit,
         skip,
       });
