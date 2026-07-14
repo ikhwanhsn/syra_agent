@@ -377,8 +377,8 @@ export async function runScalperLearning() {
       0.82,
     );
     thresholdOverrides.minEdgeBufferPct = Math.min(
-      (baseCfg.minEdgeBufferPct ?? 0.45) + 0.12,
-      0.7,
+      (baseCfg.minEdgeBufferPct ?? SCALPER_DEFAULTS.minEdgeBufferPct) + 0.08,
+      0.4,
     );
     thresholdOverrides.notionalSlicePct = Math.max(baseCfg.notionalSlicePct * 0.75, 0.1);
   } else if (overall.winRate >= 0.6 && overall.avgPnlPct > 0.4) {
@@ -396,7 +396,7 @@ export async function runScalperLearning() {
     lessons.push(
       `${expiredRecent.length} max-hold exits were mostly losers — shortening hold and cutting stale losers earlier.`,
     );
-    thresholdOverrides.maxHoldMinutes = Math.max(baseCfg.maxHoldMinutes - 6, 18);
+    thresholdOverrides.maxHoldMinutes = Math.max(baseCfg.maxHoldMinutes - 4, 10);
   }
 
   const lowScoreLosses = decided.filter(
@@ -426,8 +426,8 @@ export async function runScalperLearning() {
   }
 
   if (overall.winRate < 0.4) {
-    thresholdOverrides.takeProfitPct = Math.min(baseCfg.takeProfitPct + 0.15, 2.1);
-    thresholdOverrides.stopLossPct = Math.max(baseCfg.stopLossPct - 0.05, 0.42);
+    thresholdOverrides.takeProfitPct = Math.min(baseCfg.takeProfitPct + 0.1, 1.5);
+    thresholdOverrides.stopLossPct = Math.max(baseCfg.stopLossPct - 0.05, 0.35);
     lessons.push("Win rate very low — adjusting TP/SL for cleaner R:R and faster cuts.");
   }
 

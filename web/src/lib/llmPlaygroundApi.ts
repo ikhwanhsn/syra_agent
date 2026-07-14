@@ -32,7 +32,7 @@ export type LlmModelsResponse = {
 
 export type LlmImageResult = {
   created?: number;
-  data?: Array<{ url?: string; b64_json?: string }>;
+  data?: Array<{ url?: string; b64_json?: string; media_type?: string }>;
   usage?: Record<string, unknown>;
 };
 
@@ -251,8 +251,8 @@ export function formatLlmPrice(
     case "transcription":
       return (
         pick(pricing.audio, "/aud") ??
-        pick(pricing.request, "/req") ??
         pick(pricing.prompt, "/tok") ??
+        pick(pricing.request, "/req") ??
         "—"
       );
     default:

@@ -12,6 +12,7 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
+    "generate:favicons": "node scripts/generate-favicons.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },

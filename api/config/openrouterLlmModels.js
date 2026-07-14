@@ -53,7 +53,8 @@ export const LLM_MODALITY_CONFIG = {
     id: 'embeddings',
     label: 'Embeddings',
     outputModality: 'embeddings',
-    modelsEndpoint: '/models?output_modalities=embeddings',
+    // Prefer dedicated embeddings catalog when available; general filter is the fallback path.
+    modelsEndpoint: '/embeddings/models',
     pricingKey: 'prompt',
     fallbackDefault: 'openai/text-embedding-3-small',
     fallbackModels: [
@@ -77,25 +78,32 @@ export const LLM_MODALITY_CONFIG = {
   speech: {
     id: 'speech',
     label: 'Audio (TTS)',
-    outputModality: 'audio',
-    modelsEndpoint: '/models?output_modalities=audio',
-    pricingKey: 'audio',
-    fallbackDefault: 'openai/gpt-4o-mini-tts',
+    // OpenRouter TTS uses output_modalities=speech. "audio" returns non-TTS models
+    // (e.g. gpt-audio / Lyria) that 404 on POST /audio/speech.
+    outputModality: 'speech',
+    modelsEndpoint: '/models?output_modalities=speech',
+    // OpenRouter currently exposes TTS rates under prompt (per-character/token), not audio.
+    pricingKey: 'prompt',
+    fallbackDefault: 'mistralai/voxtral-mini-tts-2603',
     fallbackModels: [
-      { id: 'openai/gpt-4o-mini-tts', name: 'GPT-4o Mini TTS' },
-      { id: 'openai/gpt-4o-mini-tts-2025-12-15', name: 'GPT-4o Mini TTS (2025-12-15)' },
       { id: 'mistralai/voxtral-mini-tts-2603', name: 'Voxtral Mini TTS' },
+      { id: 'hexgrad/kokoro-82m', name: 'Kokoro 82M' },
+      { id: 'microsoft/mai-voice-2', name: 'MAI Voice 2' },
+      { id: 'google/gemini-3.1-flash-tts-preview', name: 'Gemini 3.1 Flash TTS Preview' },
     ],
   },
   transcription: {
     id: 'transcription',
     label: 'Speech Transcription',
     outputModality: 'transcription',
-    modelsEndpoint: '/models?output_modalities=transcriptions',
-    pricingKey: 'audio',
+    // OpenRouter accepts "transcription" (singular); "transcriptions" returns 400.
+    modelsEndpoint: '/models?output_modalities=transcription',
+    // Live STT rates are currently on prompt (not audio).
+    pricingKey: 'prompt',
     fallbackDefault: 'openai/whisper-1',
     fallbackModels: [
       { id: 'openai/whisper-1', name: 'Whisper 1' },
+      { id: 'openai/whisper-large-v3', name: 'Whisper Large V3' },
       { id: 'openai/gpt-4o-mini-transcribe', name: 'GPT-4o Mini Transcribe' },
       { id: 'openai/gpt-4o-transcribe', name: 'GPT-4o Transcribe' },
     ],

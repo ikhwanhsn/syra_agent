@@ -88,7 +88,13 @@ function scorePricing(pricing, pricingKey) {
     candidates.push(pricing.image_output, pricing.output_image, pricing.completion);
   }
   if (pricingKey === 'audio') {
-    candidates.push(pricing.audio, pricing.audio_output, pricing.completion, pricing.request);
+    candidates.push(
+      pricing.audio,
+      pricing.audio_output,
+      pricing.completion,
+      pricing.request,
+      pricing.prompt
+    );
   }
   if (pricingKey === 'video') {
     candidates.push(pricing.video, pricing.video_per_second, pricing.per_second);
@@ -142,8 +148,53 @@ function normalizePricing(pricing) {
 }
 
 /**
+ * Pull a scoreable pricing object from general Models API or dedicated media catalogs.
+ * @param {Record<string, unknown>} model
+ * @returns {Record<string, unknown>}
+ */
+function extractRawPricing(model) {
+  if (!model || typeof model !== 'object') return {};
+
+  if (model.pricing && typeof model.pricing === 'object' && !Array.isArray(model.pricing)) {
+    return /** @type {Record<string, unknown>} */ (model.pricing);
+  }
+
+  // Dedicated Video Models API: pricing_skus.duration_seconds_*
+  if (model.pricing_skus && typeof model.pricing_skus === 'object' && !Array.isArray(model.pricing_skus)) {
+    const skus = /** @type {Record<string, unknown>} */ (model.pricing_skus);
+    const rates = Object.values(skus).map(parseUsdRate).filter((n) => n > 0);
+    const min = rates.length > 0 ? Math.min(...rates) : null;
+    return { video: min, video_per_second: min, per_second: min };
+  }
+
+  // Dedicated Image/Embeddings catalogs may return pricing line arrays
+  if (Array.isArray(model.pricing)) {
+    /** @type {Record<string, unknown>} */
+    const mapped = {};
+    for (const line of model.pricing) {
+      if (!line || typeof line !== 'object') continue;
+      const row = /** @type {Record<string, unknown>} */ (line);
+      const billable = String(row.billable || '').toLowerCase();
+      const unit = String(row.unit || '').toLowerCase();
+      const cost = parseUsdRate(row.cost_usd ?? row.cost);
+      if (!(cost > 0)) continue;
+      if (billable.includes('image') || unit === 'image' || unit === 'megapixel') {
+        mapped.image = mapped.image == null ? cost : Math.min(Number(mapped.image), cost);
+      } else if (billable.includes('prompt') || unit === 'token') {
+        mapped.prompt = mapped.prompt == null ? cost : Math.min(Number(mapped.prompt), cost);
+      } else if (billable.includes('request') || unit === 'request') {
+        mapped.request = mapped.request == null ? cost : Math.min(Number(mapped.request), cost);
+      }
+    }
+    return mapped;
+  }
+
+  return {};
+}
+
+/**
  * @param {string} modality
- * @param {Array<{ id: string; name?: string; pricing?: unknown }>} rawList
+ * @param {Array<Record<string, unknown>>} rawList
  * @returns {LlmModelInfo[]}
  */
 function rankModels(modality, rawList) {
@@ -153,11 +204,9 @@ function rankModels(modality, rawList) {
   for (const m of rawList) {
     const id = typeof m?.id === 'string' ? m.id : typeof m?.model === 'string' ? m.model : '';
     if (!id) continue;
-    const pricing = normalizePricing(m.pricing);
-    const priceScore = scorePricing(
-      /** @type {Record<string, unknown>} */ (m.pricing ?? {}),
-      cfg.pricingKey
-    );
+    const rawPricing = extractRawPricing(m);
+    const pricing = normalizePricing(rawPricing);
+    const priceScore = scorePricing(rawPricing, cfg.pricingKey);
     models.push({
       id,
       name: typeof m.name === 'string' && m.name.trim() ? m.name.trim() : id,
@@ -220,6 +269,17 @@ export async function listModelsForModality(modality) {
       const data = await res.json();
       rawList = data?.data ?? data?.models ?? [];
       if (!Array.isArray(rawList)) rawList = [];
+    } else if (modality === 'embeddings') {
+      // Older gateways may lack /embeddings/models — fall back to general filter.
+      const fallbackRes = await fetch(
+        `${OPENROUTER_BASE}/models?output_modalities=embeddings`,
+        { headers }
+      );
+      if (fallbackRes.ok) {
+        const data = await fallbackRes.json();
+        rawList = data?.data ?? data?.models ?? [];
+        if (!Array.isArray(rawList)) rawList = [];
+      }
     }
   } catch (e) {
     console.warn(
@@ -229,19 +289,18 @@ export async function listModelsForModality(modality) {
     );
   }
 
-  // Speech models may include multimodal LLMs; prefer TTS-looking ids when possible
-  if (modality === 'speech' && Array.isArray(rawList) && rawList.length > 0) {
-    const ttsOnly = rawList.filter((m) => {
-      const id = String(m?.id || '').toLowerCase();
-      return id.includes('tts') || id.includes('speech') || id.includes('voxtral');
-    });
-    if (ttsOnly.length > 0) rawList = ttsOnly;
-  }
-
+  // STT list can include chat-audio hybrids; keep transcription-oriented ids when possible.
   if (modality === 'transcription' && Array.isArray(rawList) && rawList.length > 0) {
     const sttOnly = rawList.filter((m) => {
       const id = String(m?.id || '').toLowerCase();
-      return id.includes('whisper') || id.includes('transcri') || id.includes('stt');
+      return (
+        id.includes('whisper') ||
+        id.includes('transcri') ||
+        id.includes('stt') ||
+        id.includes('asr') ||
+        id.includes('chirp') ||
+        id.includes('parakeet')
+      );
     });
     if (sttOnly.length > 0) rawList = sttOnly;
   }
@@ -293,7 +352,32 @@ export async function generateImage(params) {
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throwOpenRouterError(response, data);
-  return data;
+  return normalizeImageGenerationResult(data);
+}
+
+/**
+ * Ensure each image has a browser-loadable url (data URI with correct media type).
+ * @param {object} data
+ * @returns {object}
+ */
+function normalizeImageGenerationResult(data) {
+  if (!data || typeof data !== 'object') return data;
+  const items = Array.isArray(data.data) ? data.data : [];
+  return {
+    ...data,
+    data: items.map((item) => {
+      if (!item || typeof item !== 'object') return item;
+      const row = /** @type {Record<string, unknown>} */ (item);
+      if (typeof row.url === 'string' && row.url.trim()) return item;
+      const b64 = typeof row.b64_json === 'string' ? row.b64_json : '';
+      if (!b64) return item;
+      const mediaType =
+        typeof row.media_type === 'string' && row.media_type.trim()
+          ? row.media_type.trim()
+          : 'image/png';
+      return { ...row, media_type: mediaType, url: `data:${mediaType};base64,${b64}` };
+    }),
+  };
 }
 
 /**

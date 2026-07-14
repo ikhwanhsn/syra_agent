@@ -19,7 +19,9 @@ export function buildArticlesListJsonLd(items: ArticleItem[]) {
       url: SITE_ORIGIN,
       logo: {
         "@type": "ImageObject",
-        url: `${SITE_ORIGIN}/images/logo.jpg`,
+        url: `${SITE_ORIGIN}/android-chrome-512x512.png`,
+        width: 512,
+        height: 512,
       },
       sameAs: ["https://x.com/syra_agent"],
     },

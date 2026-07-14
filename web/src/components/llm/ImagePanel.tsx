@@ -21,7 +21,9 @@ export function ImagePanel() {
   const [prompt, setPrompt] = useState("");
   const [n, setN] = useState(1);
   const [aspectRatio, setAspectRatio] = useState("1:1");
-  const [images, setImages] = useState<Array<{ url?: string; b64_json?: string }>>([]);
+  const [images, setImages] = useState<
+    Array<{ url?: string; b64_json?: string; media_type?: string }>
+  >([]);
   const generate = useLlmGenerateImage();
 
   const onModelChange = useCallback((id: string) => setModel(id), []);
@@ -114,10 +116,14 @@ export function ImagePanel() {
         {images.length > 0 && (
           <div className="grid gap-4 sm:grid-cols-2">
             {images.map((img, i) => {
+              const mediaType =
+                typeof img.media_type === "string" && img.media_type.trim()
+                  ? img.media_type.trim()
+                  : "image/png";
               const src = img.url
                 ? img.url
                 : img.b64_json
-                  ? `data:image/png;base64,${img.b64_json}`
+                  ? `data:${mediaType};base64,${img.b64_json}`
                   : null;
               if (!src) return null;
               return (

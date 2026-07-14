@@ -181,7 +181,7 @@ export function computeDynamicTradeLevels(cfg, volatilityPct, confluenceCount = 
   );
 
   // SL sits inside noise but not so tight we get wicked out every tick
-  let stopLossPct = Math.max(0.42, Math.min(cfg.stopLossPct, vol * 0.7 + 0.15));
+  let stopLossPct = Math.max(0.35, Math.min(cfg.stopLossPct, vol * 0.7 + 0.12));
 
   // Confluence: slightly wider TP, tighter SL (better R:R)
   if (confluenceCount >= 2) {
@@ -198,14 +198,15 @@ export function computeDynamicTradeLevels(cfg, volatilityPct, confluenceCount = 
     takeProfitPct = stopLossPct * minRr;
   }
 
-  takeProfitPct = Math.min(2.6, takeProfitPct);
+  // Cap TP so vol scaling cannot push targets into unreachable territory
+  takeProfitPct = Math.min(1.6, takeProfitPct);
   stopLossPct = Math.min(takeProfitPct / minRr, stopLossPct);
-  stopLossPct = Math.max(0.4, Math.min(0.75, stopLossPct));
+  stopLossPct = Math.max(0.35, Math.min(0.55, stopLossPct));
 
   let maxHoldMinutes = cfg.maxHoldMinutes;
-  if (vol > 1.2) maxHoldMinutes = Math.max(18, maxHoldMinutes - 8);
-  if (confluenceCount >= 2) maxHoldMinutes = Math.min(40, maxHoldMinutes + 4);
-  else maxHoldMinutes = Math.min(maxHoldMinutes, 24);
+  if (vol > 1.2) maxHoldMinutes = Math.max(10, maxHoldMinutes - 4);
+  if (confluenceCount >= 2) maxHoldMinutes = Math.min(20, maxHoldMinutes + 3);
+  else maxHoldMinutes = Math.min(maxHoldMinutes, 15);
 
   return {
     takeProfitPct: Math.round(takeProfitPct * 100) / 100,
@@ -233,7 +234,6 @@ export function priceLevelsFromPct(fillPriceUsd, takeProfitPct, stopLossPct, sli
 
 const CONFLUENCE_BOOST_PER_SOURCE = 0.14;
 const MOMENTUM_SOLO_MIN_SCORE = SCALPER_DEFAULTS.minSoloMomentumScore;
-const STOCKS_SOLO_MIN_SCORE = SCALPER_DEFAULTS.minSoloStocksScore;
 const GENERIC_SOLO_MIN_SCORE = SCALPER_DEFAULTS.minSoloScore;
 
 /**
@@ -269,10 +269,11 @@ export function mergeOpportunitiesWithConfluence(opportunities) {
       score = Math.min(0.98, score);
     }
 
-    // Solo sources need a higher bar — weakest historical edge
+    // Solo sources need a higher bar — weakest historical edge.
+    // Solo stocks news is noise for short holds: drop entirely (confluence-only).
     if (confluenceCount === 1) {
+      if (best.source === "stocks") continue;
       if (best.source === "momentum" && score < MOMENTUM_SOLO_MIN_SCORE) continue;
-      if (best.source === "stocks" && score < STOCKS_SOLO_MIN_SCORE) continue;
       if (score < GENERIC_SOLO_MIN_SCORE) continue;
     }
 
@@ -409,7 +410,8 @@ export function shouldCutStaleLoser(entryPriceUsd, currentPriceUsd, maxHoldUntil
 export function passesSelectivityGate(score, source, confluenceCount, minOpportunityScore) {
   if (!(score >= minOpportunityScore)) return false;
   if (confluenceCount >= 2) return true;
+  // Solo stocks: never — news alone is noise for 15-min scalps
+  if (source === "stocks") return false;
   if (source === "momentum") return score >= SCALPER_DEFAULTS.minSoloMomentumScore;
-  if (source === "stocks") return score >= SCALPER_DEFAULTS.minSoloStocksScore;
   return score >= SCALPER_DEFAULTS.minSoloScore;
 }

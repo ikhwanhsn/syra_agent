@@ -1,8 +1,8 @@
 /**
- * Scalper agent — short-hold paper trading across cbBTC + liquid xStocks.
+ * Scalper v2 — short-hold paper trading across cbBTC + liquid xStocks.
  * Hybrid opportunity feed from BTC experiments, stocks news, and own momentum scan.
  *
- * Profitability bias: trade less, only when edge clears fill cost, lock gains early.
+ * Profitability bias: realistic fill cost, achievable TP, short holds, confluence first.
  */
 import { XSTOCKS_CATALOG } from "./equityTokens.js";
 import {
@@ -36,29 +36,29 @@ export const SCALPER_DEFAULTS = Object.freeze({
   minNotionalSlicePct: 0.08,
   minNotionalUsd: 8,
   /**
-   * Achievable scalp TP vs round-trip cost (~1% at 50bps/side).
-   * Sized so net after fills stays positive on wins.
+   * Achievable scalp TP vs round-trip cost (~0.36% at 18bps/side).
+   * Sized so net after fills stays positive on wins and targets are reachable.
    */
-  takeProfitPct: 1.85,
-  /** Tight but noise-aware hard stop. */
-  stopLossPct: 0.55,
-  maxHoldMinutes: 28,
+  takeProfitPct: 1.05,
+  /** Tight but noise-aware hard stop (~2.3:1 R:R with TP). */
+  stopLossPct: 0.45,
+  maxHoldMinutes: 15,
   /** Only trade high-conviction opportunities. */
   minOpportunityScore: 0.68,
   /**
    * Extra edge (%) above estimated round-trip fill cost before entry.
    * Round-trip ≈ 2 × quoteSlippageBps / 100.
    */
-  minEdgeBufferPct: 0.3,
+  minEdgeBufferPct: 0.18,
   /** Cooldown after closing same symbol (ms). */
   symbolCooldownMs: 10 * 60_000,
-  /** How long experiment signals stay valid (ms). */
-  experimentSignalMaxAgeMs: 8 * 60_000,
+  /** How long experiment signals stay valid (ms) — fresh only. */
+  experimentSignalMaxAgeMs: 3 * 60_000,
   /** Momentum scan thresholds — require clearer move, reject chop. */
   momentumMinPct: 0.32,
   momentumMaxVolatilityPct: 1.45,
-  /** Jupiter quote slippage for paper fills (bps). */
-  quoteSlippageBps: 50,
+  /** Jupiter quote slippage for paper fills (bps) — liquid cbBTC/USDC. */
+  quoteSlippageBps: 18,
   /** Trailing stop activates after this unrealized gain (%). */
   trailActivatePct: 0.5,
   /** Trail distance below peak (%). */
