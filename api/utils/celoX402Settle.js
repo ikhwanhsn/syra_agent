@@ -1,8 +1,12 @@
 /**
- * Self-settle x402 Exact EVM payments on Celo with ERC-8021 Schema 2 builder-code attribution.
- * Verifies optionally via x402.celo.org; submits transferWithAuthorization locally with
- * Schema 2 CBOR suffix (`a`/`w`/`s`) so Dune x402 volume columns credit Syra.
- * Optional CELO_SETTLE_VIA_FACILITATOR=true tries the recognized Celo facilitator first.
+ * Settle x402 Exact EVM payments on Celo.
+ *
+ * Hackathon FAQ: x402_settlements / x402_volume_usd only count settlements submitted by
+ * api.x402.celo.org (attributed to the registered payTo / agentWalletAddress). Self-settle
+ * never appears in those columns — it is kept only as an explicit fallback.
+ *
+ * @see https://celobuilders.xyz/hackathons/agentic-payments-defai/faqs
+ * @see https://x402.celo.org/
  */
 import {
   createPublicClient,
@@ -25,6 +29,7 @@ import {
   CELO_FACILITATOR_URL,
   CELO_MAINNET_CAIP2,
   CELO_USDC_MAINNET,
+  getCeloFacilitatorApiKey,
   getCeloNetworkByCaip2,
   getCeloRpcUrl,
 } from '../config/celoX402Networks.js';
@@ -91,11 +96,39 @@ function buildCeloSettlementDataSuffix(payload, accepted) {
   }
 }
 
+/**
+ * Default ON — hackathon x402_* metrics only count facilitator-submitted settlements.
+ * Set CELO_SETTLE_VIA_FACILITATOR=false to force self-settle only.
+ */
 function shouldSettleViaCeloFacilitator() {
-  const v = String(process.env.CELO_SETTLE_VIA_FACILITATOR || '')
+  const v = String(process.env.CELO_SETTLE_VIA_FACILITATOR || 'true')
     .trim()
     .toLowerCase();
-  return v === '1' || v === 'true' || v === 'yes';
+  return v !== '0' && v !== 'false' && v !== 'no';
+}
+
+/**
+ * Self-settle is opt-in (or auto when no facilitator API key is configured).
+ * Self-settled txs do NOT count toward x402_settlements / x402_volume_usd on the Dune board.
+ */
+function allowCeloSelfSettle() {
+  const v = String(process.env.CELO_ALLOW_SELF_SETTLE || '')
+    .trim()
+    .toLowerCase();
+  if (v === '0' || v === 'false' || v === 'no') return false;
+  if (v === '1' || v === 'true' || v === 'yes') return true;
+  return !getCeloFacilitatorApiKey();
+}
+
+/**
+ * @returns {Record<string, string>}
+ */
+function celoFacilitatorHeaders() {
+  /** @type {Record<string, string>} */
+  const headers = { 'Content-Type': 'application/json', Accept: 'application/json' };
+  const apiKey = getCeloFacilitatorApiKey();
+  if (apiKey) headers['X-API-Key'] = apiKey;
+  return headers;
 }
 
 const TRANSFER_WITH_AUTHORIZATION_ABI = [
@@ -267,7 +300,7 @@ async function verifyViaCeloFacilitator(payload, accepted) {
   try {
     const res = await fetch(`${CELO_FACILITATOR_URL.replace(/\/+$/, '')}/verify`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      headers: celoFacilitatorHeaders(),
       body: JSON.stringify({
         x402Version: payload?.x402Version ?? 2,
         paymentPayload: payload,
@@ -284,17 +317,29 @@ async function verifyViaCeloFacilitator(payload, accepted) {
 }
 
 /**
- * Optional settle via recognized Celo facilitator (tx sender = facilitator EOA).
- * Only used when CELO_SETTLE_VIA_FACILITATOR=true; falls back to local self-settle on failure.
+ * Settle via recognized Celo facilitator (tx.from = 0x0d74…FB48).
+ * These are the only settlements counted as x402_* on the hackathon Dune board.
  * @param {object} payload
  * @param {object} accepted
  * @returns {Promise<{ success: boolean; payer?: string; transaction?: string; network?: string; error?: string; errorReason?: string } | null>}
  */
 async function settleViaCeloFacilitator(payload, accepted) {
+  const apiKey = getCeloFacilitatorApiKey();
+  if (!apiKey) {
+    console.warn(
+      '[celoX402Settle] CELO_FACILITATOR_API_KEY missing — /settle requires X-API-Key from https://x402.celo.org',
+    );
+    return {
+      success: false,
+      errorReason: 'CELO_FACILITATOR_API_KEY required for Celo facilitator settle',
+      error: 'CELO_FACILITATOR_API_KEY required for Celo facilitator settle',
+    };
+  }
+
   try {
     const res = await fetch(`${CELO_FACILITATOR_URL.replace(/\/+$/, '')}/settle`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      headers: celoFacilitatorHeaders(),
       body: JSON.stringify({
         x402Version: payload?.x402Version ?? 2,
         paymentPayload: payload,
@@ -302,22 +347,34 @@ async function settleViaCeloFacilitator(payload, accepted) {
       }),
     });
     const body = await res.json().catch(() => ({}));
-    if (!res.ok || !(body?.success ?? body?.transaction)) {
-      console.warn(
-        '[celoX402Settle] facilitator settle failed:',
-        body?.errorReason || body?.error || `HTTP ${res.status}`,
-      );
-      return null;
+    const tx = body.transaction || body.txHash || body.hash || body?.settlement?.transaction;
+    if (!res.ok || !(body?.success || body?.settled || tx)) {
+      const reason =
+        body?.errorReason ||
+        body?.error ||
+        body?.message ||
+        (res.status === 401 ? 'unauthorized — check CELO_FACILITATOR_API_KEY / credits' : `HTTP ${res.status}`);
+      console.warn('[celoX402Settle] facilitator settle failed:', reason);
+      return {
+        success: false,
+        errorReason: reason,
+        error: reason,
+      };
     }
     return {
       success: true,
       payer: body.payer || body.payerAddress || undefined,
-      transaction: body.transaction || body.txHash || body.hash,
+      transaction: tx,
       network: body.network || CELO_MAINNET_CAIP2,
     };
   } catch (e) {
-    console.warn('[celoX402Settle] facilitator settle error:', e?.message || e);
-    return null;
+    const msg = e?.message || String(e);
+    console.warn('[celoX402Settle] facilitator settle error:', msg);
+    return {
+      success: false,
+      errorReason: msg,
+      error: msg,
+    };
   }
 }
 
@@ -379,8 +436,20 @@ export async function settleCeloX402Payment(payload, accepted) {
     if (facilitated?.success && facilitated.transaction) {
       return facilitated;
     }
+    if (!allowCeloSelfSettle()) {
+      return {
+        success: false,
+        errorReason:
+          facilitated?.errorReason ||
+          'Celo facilitator settle failed (x402_* leaderboard requires api.x402.celo.org). Set CELO_FACILITATOR_API_KEY + credits at https://x402.celo.org, or CELO_ALLOW_SELF_SETTLE=true for non-leaderboard fallback.',
+        error:
+          facilitated?.error ||
+          'Celo facilitator settle failed — CELO_FACILITATOR_API_KEY / credits required for x402_* metrics',
+        payer: auth.from,
+      };
+    }
     console.warn(
-      '[celoX402Settle] facilitator settle unavailable — falling back to self-settle with Schema 2 suffix',
+      '[celoX402Settle] facilitator settle unavailable — falling back to self-settle (will NOT count for x402_settlements / x402_volume_usd)',
     );
   }
 

@@ -13,48 +13,58 @@ Hackathon: https://celobuilders.xyz (slug: `agentic-payments-defai`)
 3. Save draft with `projectName=Syra`, `githubUrl=https://github.com/ikhwanhsn/syra_agent/`, `customFields.telegram=@ikhwanhsn`, `trackIds=["most-revenue-generated","most-x402-payments"]`
 4. Copy returned `attributionTag` (`celo_...`) into `api/.env` as `CELO_ATTRIBUTION_TAG` (or `CELO_BUILDER_CODE`)
 
+## How the Dune board credits activity (important)
+
+Per hackathon FAQ ([agentic-payments-defai](https://celobuilders.xyz/hackathons/agentic-payments-defai/faqs)):
+
+| Metric | What counts |
+| --- | --- |
+| `tagged_volume_usd` / `volume_usd` (Track 1) | Any direct txs your wallets send with your ERC-8021 tag (refunds, distribute, DeFi, …) |
+| `x402_settlements` / `x402_volume_usd` (Track 2) | **Only** settlements submitted by `api.x402.celo.org` — attributed to the **payTo / agentWalletAddress** in your submission. The facilitator tx **does not** carry your tag. |
+
+Self-settled `transferWithAuthorization` from `CELO_SETTLER_PRIVATE_KEY` will **never** fill `x402_*` columns. Do **not** send mirror/tagged transfers to fake x402 volume — they are ignored for Track 2.
+
 ## Env (`api/.env`)
 ```
-# App builder code (`a`) — hackathon attributionTag; required for Dune x402 volume columns
+# App builder code (`a`) — hackathon attributionTag; Track 1 tagged volume
 CELO_ATTRIBUTION_TAG=celo_xxxxxxxxxxxx
 # Optional alias (takes precedence over CELO_ATTRIBUTION_TAG when set)
 # CELO_BUILDER_CODE=celo_xxxxxxxxxxxx
-# Optional facilitator wallet code (`w`) on self-settled txs
-# CELO_FACILITATOR_WALLET_CODE=syra_celo_facil
-# Optional: try recognized Celo facilitator settle first (falls back to self-settle)
-# CELO_SETTLE_VIA_FACILITATOR=false
+
+# REQUIRED for Track 2 (x402_*): API key + prepaid credits from https://x402.celo.org
+CELO_FACILITATOR_API_KEY=x402_live_...
+CELO_FACILITATOR_URL=https://api.x402.celo.org
+# Default true — settle via facilitator. Set false only to force self-settle (no x402_* credit).
+# CELO_SETTLE_VIA_FACILITATOR=true
+# Opt-in self-settle fallback when facilitator fails (defaults to true only if no API key)
+# CELO_ALLOW_SELF_SETTLE=false
 
 CELO_RPC_URL=https://forno.celo.org
 CELO_USDC=0xcebA9300f2b948710d2653dD7B07f33A8B32118C
-CELO_FACILITATOR_URL=https://api.x402.celo.org
-CELO_SETTLER_PRIVATE_KEY=0x...   # EOA funded with CELO for gas (self-settle)
+CELO_SETTLER_PRIVATE_KEY=0x...   # only for self-settle fallback / 8004 mint gas
 CELO_PAYTO=0x...                 # optional; Labs uses active Celo payTo wallet
 ```
 
-## Attribution (ERC-8021 Schema 2)
-Settlements and Labs Celo USDC transfers append an **ERC-8021 Schema 2** (CBOR) builder-code suffix via `@x402/extensions/builder-code`, not Schema 0 `@celo/attribution-tags`. The dashboard's `x402_settlements` / `*_volume_usd` columns expect Schema 2 with our app code in field `a`.
+Register the **same** Labs Celo payTo address as `customFields.agentWalletAddress` on the hackathon submission so facilitator settlements are attributed to Syra.
 
-Default path: **self-settle** `transferWithAuthorization` with Schema 2 suffix (guarantees `a` lands on-chain). Set `CELO_SETTLE_VIA_FACILITATOR=true` to try `x402.celo.org/settle` first (known facilitator `tx.from`); local self-settle is used if that fails.
+## Attribution (ERC-8021 Schema 2) — Track 1
+Labs Celo refunds / deposit distribution append an **ERC-8021 Schema 2** builder-code suffix (`a` = your tag) for revenue volume. Default settlement path is the **Celo facilitator** (Track 2).
 
 ## Run volume
-1. Open Labs → **Celo** tab (admin wallet)
-2. Create **payTo** + **payer** wallets
-3. Fund payers/payTo with **CELO** (gas) + **USDC** on Celo mainnet
-4. Fund `CELO_SETTLER_PRIVATE_KEY` with CELO (settles `transferWithAuthorization` + Schema 2 tag)
+1. Get an API key + credits at https://x402.celo.org → set `CELO_FACILITATOR_API_KEY`
+2. Open Labs → **Celo** tab (admin wallet)
+3. Create **payTo** + **payer** wallets; put payTo in submission `agentWalletAddress`
+4. Fund payers/payTo with **CELO** (gas) + **USDC** on Celo mainnet
 5. Manual **Run** or enable auto-call + refund loop
+6. Confirm settlement tx `from` is the Celo facilitator `0x0d74D5Cefd2e7F24E623330ebE3d8D4cB45fFB48`
 
-## Verify tagging
+## Verify config
 ```bash
 node scripts/check-celo-labs-config.js
 ```
-The script must report `Schema 2 ok: true` and decode `{ a: 'celo_...' }`.
+Expect facilitator API key present + `Schema 2 ok: true` (for Track 1 tagging).
 
-After a payment, open the tx on https://celoscan.io and confirm calldata ends with `...02` + `80218021…8021` (schema id `0x02` + ERC-8021 marker). Decode with:
-
-```js
-import { parseBuilderCodeSuffixFromCalldata } from '@x402/extensions/builder-code';
-parseBuilderCodeSuffixFromCalldata(tx.input); // => { a: 'celo_...' }
-```
+After a Labs Run, celoscan settlement should be from the facilitator address above (Track 2). Tagged refund txs still carry Schema 2 `a` for Track 1.
 
 ## Why https://8004scan.io/agents?chain=42220&search=syra is empty
 

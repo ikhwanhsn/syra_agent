@@ -1,13 +1,24 @@
 /**
- * Celo mainnet x402 network config (self-settled Labs payments + ERC-8021 attribution).
- * Facilitator: https://x402.celo.org (verify); settlement is local with dataSuffix tagging.
+ * Celo mainnet x402 network config.
+ * Hackathon x402_* leaderboard metrics only count settlements submitted by
+ * api.x402.celo.org (attributed via registered payTo / agentWalletAddress).
+ * Tagged Schema 2 calldata is for Track 1 revenue volume on direct transfers.
  * @see https://docs.celo.org/build-on-celo/build-with-ai/x402
+ * @see https://x402.celo.org/
  */
 
 import { sortX402AcceptNetworks } from './x402NetworkOrder.js';
 
 function env(name) {
   return String(process.env[name] || '').trim();
+}
+
+/**
+ * API key from https://x402.celo.org (X-API-Key). Required for /settle credits.
+ * @returns {string}
+ */
+export function getCeloFacilitatorApiKey() {
+  return env('CELO_FACILITATOR_API_KEY') || env('X402_CELO_API_KEY');
 }
 
 /** @typedef {'evm'} CeloNetworkKind */

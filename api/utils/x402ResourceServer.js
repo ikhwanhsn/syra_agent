@@ -27,6 +27,7 @@ import {
   getCeloEvmUsdcAsset,
   getEnabledCeloNetworks,
   getCeloPayToAddresses,
+  getCeloFacilitatorApiKey,
   CELO_FACILITATOR_URL,
 } from "../config/celoX402Networks.js";
 
@@ -300,15 +301,30 @@ export function getX402ResourceServerDexter() {
 }
 
 /**
- * Celo-backed resource server: verify via https://x402.celo.org.
- * Settlement for Labs is intercepted in x402PaymentV2 to self-settle with ERC-8021 tags.
+ * Celo-backed resource server: verify/settle via https://api.x402.celo.org.
+ * Labs settlement prefers the facilitator (required for hackathon x402_* Dune metrics).
  * @see https://docs.celo.org/build-on-celo/build-with-ai/x402
+ * @see https://x402.celo.org/
  */
 export function getX402ResourceServerCelo() {
   if (resourceServerCeloInstance) {
     return resourceServerCeloInstance;
   }
-  const clients = [new HTTPFacilitatorClient({ url: CELO_FACILITATOR_URL })];
+  const apiKey = getCeloFacilitatorApiKey();
+  /** @type {ConstructorParameters<typeof HTTPFacilitatorClient>[0]} */
+  const clientOpts = { url: CELO_FACILITATOR_URL };
+  if (apiKey) {
+    clientOpts.createAuthHeaders = async () => ({
+      verify: { "X-API-Key": apiKey },
+      settle: { "X-API-Key": apiKey },
+      supported: { "X-API-Key": apiKey },
+    });
+  } else {
+    console.warn(
+      "[x402] CELO_FACILITATOR_API_KEY unset — Celo /settle will 401. Get a key at https://x402.celo.org",
+    );
+  }
+  const clients = [new HTTPFacilitatorClient(clientOpts)];
   const server = new x402ResourceServer(clients);
   const celoPay = getCeloPayToAddresses().evmPayTo || basePayTo || envAny(["CELO_PAYTO", "EVM_PAYTO"]);
   resourceServerCeloInstance = buildResourceServerBundle(server, {
