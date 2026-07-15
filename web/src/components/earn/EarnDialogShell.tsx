@@ -11,9 +11,13 @@ import {
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
+/** Shared responsive frame for earn tab modals (playbooks / skills / token). */
 const earnDialogSurface = cn(
-  "gap-0 overflow-hidden p-0",
-  "rounded-2xl border-border/50",
+  "flex flex-col gap-0 overflow-hidden p-0",
+  "w-[calc(100vw-0.75rem)] sm:w-[min(100%,calc(100vw-2rem))]",
+  "max-w-none sm:max-w-xl md:max-w-2xl lg:max-w-3xl xl:max-w-4xl",
+  "max-h-[min(94dvh,calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-0.75rem))]",
+  "rounded-xl sm:rounded-2xl border-border/50",
   "bg-gradient-to-br from-card/98 via-card to-muted/[0.05]",
   "shadow-[0_1px_0_0_hsl(var(--border)/0.45),0_32px_64px_-24px_rgba(0,0,0,0.55)]",
 );
@@ -69,17 +73,17 @@ export function EarnDialogShell({
         className={cn(earnDialogSurface, className)}
         overlayClassName={earnDialogOverlay}
       >
-        <DialogHeader className="relative space-y-0 border-b border-border/50 px-6 pb-5 pr-12 pt-6 text-left">
+        <DialogHeader className="relative shrink-0 space-y-0 border-b border-border/50 px-4 pb-4 pr-12 pt-5 text-left sm:px-6 sm:pb-5 sm:pt-6">
           <div
             aria-hidden
             className="pointer-events-none absolute inset-0 bg-[radial-gradient(420px_140px_at_8%_-20%,hsl(var(--primary)/0.1),transparent_60%)]"
           />
-          <div className="relative flex items-start gap-3.5">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 shadow-[inset_0_1px_0_0_hsl(var(--primary)/0.12)]">
+          <div className="relative flex items-start gap-3 sm:gap-3.5">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 shadow-[inset_0_1px_0_0_hsl(var(--primary)/0.12)] sm:h-11 sm:w-11">
               <Icon className="h-[18px] w-[18px] text-primary" aria-hidden />
             </div>
-            <div className="min-w-0 space-y-1.5 pt-0.5">
-              <DialogTitle className="text-lg font-semibold tracking-tight text-foreground">
+            <div className="min-w-0 space-y-1 sm:space-y-1.5 sm:pt-0.5">
+              <DialogTitle className="text-base font-semibold tracking-tight text-foreground sm:text-lg">
                 {title}
               </DialogTitle>
               <DialogDescription className="text-sm leading-relaxed text-muted-foreground">
@@ -91,14 +95,16 @@ export function EarnDialogShell({
 
         <div
           className={cn(
-            "max-h-[min(58dvh,520px)] space-y-5 overflow-y-auto overscroll-contain px-6 py-5",
+            "min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain",
+            "px-4 py-4 sm:px-6 sm:py-5",
+            "max-h-[min(62dvh,560px)] sm:max-h-[min(64dvh,640px)] md:max-h-[min(68dvh,720px)] lg:max-h-[min(70dvh,780px)]",
             bodyClassName,
           )}
         >
           {children}
         </div>
 
-        <DialogFooter className="gap-2 border-t border-border/50 bg-muted/15 px-6 py-4 sm:space-x-0">
+        <DialogFooter className="shrink-0 gap-2 border-t border-border/50 bg-muted/15 px-4 py-3.5 sm:space-x-0 sm:px-6 sm:py-4">
           {footer}
         </DialogFooter>
       </DialogContent>
@@ -160,7 +166,7 @@ export function EarnDialogSection({
   return (
     <section
       className={cn(
-        "space-y-4 rounded-xl border border-border/45 bg-muted/15 p-4",
+        "space-y-4 rounded-xl border border-border/45 bg-muted/15 p-3.5 sm:p-4",
         className,
       )}
     >

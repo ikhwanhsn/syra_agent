@@ -35,6 +35,7 @@ export const LLM_MODALITY_CONFIG = {
     id: 'image',
     label: 'Image',
     outputModality: 'image',
+    // General models catalog includes USD rates; dedicated /images/models omits pricing.
     modelsEndpoint: '/models?output_modalities=image',
     pricingKey: 'image',
     fallbackDefault: OPENROUTER_IMAGE_DEFAULT_MODEL,

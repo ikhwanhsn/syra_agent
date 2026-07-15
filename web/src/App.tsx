@@ -61,6 +61,7 @@ import MarketingPrivacyPolicy from "@/pages/marketing/PrivacyPolicy";
 import MarketingTermsOfService from "@/pages/marketing/TermsOfService";
 import MarketingCookiePolicy from "@/pages/marketing/CookiePolicy";
 import EarnPage from "@/pages/EarnPage";
+import EarnTokenDetailPage from "@/pages/EarnTokenDetailPage";
 import LpPoolsPage from "@/pages/LpPoolsPage";
 import GrowPage from "@/pages/GrowPage";
 import InvestPage from "@/pages/InvestPage";
@@ -153,6 +154,14 @@ function AppRoutes() {
               element={
                 <MachineMoneyRoute pillarId="earn">
                   <EarnPage />
+                </MachineMoneyRoute>
+              }
+            />
+            <Route
+              path="/earn/token/:mint"
+              element={
+                <MachineMoneyRoute pillarId="earn">
+                  <EarnTokenDetailPage />
                 </MachineMoneyRoute>
               }
             />

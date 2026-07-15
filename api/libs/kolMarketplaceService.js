@@ -54,6 +54,7 @@ import {
   awardCampaignPoints,
 } from "./s3labsPointsService.js";
 import { notifyNewCampaignTelegram } from "./kolCampaignTelegramNotifier.js";
+import { notifyNewCampaign } from "./emailSubscriberService.js";
 import { discoverCampaignEngagements } from "./kolDiscoveryService.js";
 import { startupVerbose } from "../utils/startupLog.js";
 import {
@@ -581,9 +582,18 @@ export async function confirmCampaignDeposit(campaignId, input) {
     );
   });
 
-  notifyNewCampaignTelegram(serializeCampaign(campaign)).catch((e) => {
+  const serializedCampaign = serializeCampaign(campaign);
+
+  notifyNewCampaignTelegram(serializedCampaign).catch((e) => {
     console.warn(
       "[kol] campaign Telegram notify failed:",
+      e instanceof Error ? e.message : e,
+    );
+  });
+
+  notifyNewCampaign(serializedCampaign).catch((e) => {
+    console.warn(
+      "[kol] campaign email notify failed:",
       e instanceof Error ? e.message : e,
     );
   });
@@ -598,6 +608,43 @@ export async function confirmCampaignDeposit(campaignId, input) {
     });
 
   return { campaign: serializeCampaign(campaign) };
+}
+
+/**
+ * Delete an unfunded campaign draft. Only the creator can delete, and only
+ * while status is still pending_deposit (no deposit confirmed yet).
+ *
+ * @param {string} campaignId
+ * @param {{ projectWallet: string }} input
+ */
+export async function cancelPendingCampaign(campaignId, input) {
+  assertMongo();
+
+  const id = assertObjectId(campaignId);
+  const campaign = await KolCampaign.findById(id);
+  if (!campaign) {
+    const err = new Error("Campaign not found");
+    err.code = "not_found";
+    throw err;
+  }
+
+  if (campaign.status !== "pending_deposit") {
+    const err = new Error("Only unpaid draft campaigns can be deleted");
+    err.code = "invalid_status";
+    throw err;
+  }
+
+  const projectWallet = normalizeWallet(input.projectWallet);
+  if (!projectWallet || projectWallet !== campaign.projectWallet) {
+    const err = new Error("projectWallet does not match campaign");
+    err.code = "wallet_mismatch";
+    throw err;
+  }
+
+  const snapshot = serializeCampaign(campaign);
+  await KolCampaign.deleteOne({ _id: campaign._id, status: "pending_deposit" });
+
+  return { deleted: true, campaignId: snapshot.id, campaign: snapshot };
 }
 
 /**
@@ -827,19 +874,38 @@ export async function confirmCampaignTopUp(campaignId, topUpId, input) {
 }
 
 /**
- * @param {{ status?: string; limit?: number }} [opts]
+ * Public list never exposes other creators' unpaid drafts.
+ * Own `pending_deposit` rows are included only when `wallet` matches projectWallet.
+ *
+ * @param {{ status?: string; limit?: number; wallet?: string }} [opts]
  */
 export async function listCampaigns(opts = {}) {
   assertMongo();
 
   const limit = Math.min(Math.max(Number(opts.limit) || 50, 1), 100);
-  const filter = {};
-
+  const viewerWallet = normalizeWallet(opts.wallet);
   const status = String(opts.status || "").trim();
-  if (status) {
-    filter.status = status;
+
+  /** @type {Record<string, unknown>} */
+  let filter;
+
+  if (status === "pending_deposit") {
+    // Unfunded drafts are private to the creator — never list all of them.
+    if (!viewerWallet) {
+      return { campaigns: [] };
+    }
+    filter = { status: "pending_deposit", projectWallet: viewerWallet };
+  } else if (status) {
+    filter = { status };
+  } else if (viewerWallet) {
+    filter = {
+      $or: [
+        { status: { $in: ["active", "completed"] } },
+        { status: "pending_deposit", projectWallet: viewerWallet },
+      ],
+    };
   } else {
-    filter.status = { $in: ["active", "completed", "pending_deposit"] };
+    filter = { status: { $in: ["active", "completed"] } };
   }
 
   const campaigns = await KolCampaign.find(filter)
@@ -1112,6 +1178,16 @@ export async function getCampaignDetail(campaignId, opts = {}) {
     const err = new Error("Campaign not found");
     err.code = "not_found";
     throw err;
+  }
+
+  // Unfunded drafts are only visible to the creator (pool address stays private to others).
+  if (campaign.status === "pending_deposit") {
+    const viewerWallet = normalizeWallet(opts.wallet);
+    if (!viewerWallet || viewerWallet !== campaign.projectWallet) {
+      const err = new Error("Campaign not found");
+      err.code = "not_found";
+      throw err;
+    }
   }
 
   if (campaign.status === "active" && isCampaignPastEnd(campaign)) {
@@ -2879,7 +2955,7 @@ export async function getProfile(username) {
     "i",
   );
 
-  const [campaigns, submissions, reputation] = await Promise.all([
+  const [campaignsRaw, submissions, reputation] = await Promise.all([
     KolCampaign.find({ sourceAuthorHandle: handleRegex })
       .sort({ createdAt: -1 })
       .lean(),
@@ -2888,6 +2964,11 @@ export async function getProfile(username) {
       .lean(),
     KolReputation.findOne({ handleKey: handle }).lean(),
   ]);
+
+  // Keep unfunded drafts off public profiles — payment is creator-only.
+  const campaigns = campaignsRaw.filter(
+    (c) => c.status === "active" || c.status === "completed",
+  );
 
   if (campaigns.length === 0 && submissions.length === 0) {
     const err = new Error("Profile not found");
@@ -3017,5 +3098,136 @@ export async function getProfile(username) {
       projectedSol: kolProjectedLamports / LAMPORTS_PER_SOL,
       engagements: engagementRows,
     },
+  };
+}
+
+/**
+ * Public earnings lookup by X handle — no wallet required.
+ * @param {string} username
+ */
+export async function getEarningsByHandle(username) {
+  assertMongo();
+
+  const handle = normalizeHandle(username);
+  if (!handle) {
+    const err = new Error("username is required");
+    err.code = "invalid_handle";
+    throw err;
+  }
+
+  const handleRegex = new RegExp(
+    `^${handle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
+    "i",
+  );
+
+  const submissions = await KolSubmission.find({
+    $or: [{ authorHandleKey: handle }, { authorHandle: handleRegex }],
+  })
+    .sort({ createdAt: -1 })
+    .lean();
+
+  if (submissions.length === 0) {
+    const err = new Error("No campaign participation found for this X account");
+    err.code = "not_found";
+    throw err;
+  }
+
+  const submissionIds = submissions.map((s) => s._id);
+  const campaignIds = [
+    ...new Set(submissions.map((s) => String(s.campaignId))),
+  ];
+
+  const [campaigns, payouts, cachedProfile, reputation] = await Promise.all([
+    KolCampaign.find({ _id: { $in: campaignIds } }).lean(),
+    KolPayout.find({ submissionId: { $in: submissionIds } }).lean(),
+    getCachedXProfile(handle),
+    KolReputation.findOne({ handleKey: handle }).lean(),
+  ]);
+
+  const campaignMap = new Map(campaigns.map((c) => [String(c._id), c]));
+  const payoutMap = new Map(payouts.map((p) => [String(p.submissionId), p]));
+
+  let paidLamports = 0;
+  let heldLamports = 0;
+  let projectedLamports = 0;
+  let claimableLamports = 0;
+
+  const rows = submissions.map((s) => {
+    const campaign = campaignMap.get(String(s.campaignId)) ?? null;
+    const payout = payoutMap.get(String(s._id)) ?? null;
+    const payoutStatus = payout?.status ?? null;
+
+    let amountLamports = 0;
+    /** @type {"paid" | "held" | "claimable" | "projected" | "none"} */
+    let amountKind = "none";
+
+    if (payoutStatus === "confirmed") {
+      amountLamports = payout.lamports ?? 0;
+      paidLamports += amountLamports;
+      amountKind = "paid";
+    } else if (payoutStatus === "pending_minimum") {
+      amountLamports = payout.lamports ?? 0;
+      heldLamports += amountLamports;
+      amountKind = "held";
+    } else if (
+      payoutStatus === "pending" ||
+      s.claimStatus === "claimable"
+    ) {
+      amountLamports =
+        payout?.lamports ?? s.earnedLamports ?? s.projectedLamports ?? 0;
+      claimableLamports += amountLamports;
+      amountKind = "claimable";
+    } else if (campaign?.status === "active") {
+      amountLamports = s.projectedLamports ?? 0;
+      projectedLamports += amountLamports;
+      amountKind = "projected";
+    }
+
+    return {
+      submission: serializeSubmission(s),
+      campaign: campaign ? serializeCampaign(campaign) : null,
+      payout: payout
+        ? {
+            lamports: payout.lamports ?? 0,
+            sol: (payout.lamports ?? 0) / LAMPORTS_PER_SOL,
+            txSignature: payout.txSignature ?? null,
+            status: payout.status,
+          }
+        : null,
+      amountLamports,
+      amountSol: amountLamports / LAMPORTS_PER_SOL,
+      amountKind,
+    };
+  });
+
+  const displayHandle =
+    cachedProfile?.handle ??
+    submissions[0]?.authorHandle ??
+    handle;
+
+  return {
+    handle: displayHandle,
+    name: cachedProfile?.name ?? displayHandle,
+    verified: Boolean(cachedProfile?.verified ?? submissions[0]?.authorVerified),
+    profilePicture: cachedProfile?.profilePicture ?? null,
+    followers: cachedProfile?.followers ?? submissions[0]?.authorFollowers ?? null,
+    totals: {
+      paidLamports,
+      paidSol: paidLamports / LAMPORTS_PER_SOL,
+      heldLamports,
+      heldSol: heldLamports / LAMPORTS_PER_SOL,
+      claimableLamports,
+      claimableSol: claimableLamports / LAMPORTS_PER_SOL,
+      projectedLamports,
+      projectedSol: projectedLamports / LAMPORTS_PER_SOL,
+      totalEarnedLamports: paidLamports + heldLamports + claimableLamports,
+      totalEarnedSol:
+        (paidLamports + heldLamports + claimableLamports) / LAMPORTS_PER_SOL,
+    },
+    campaignCount: campaignIds.length,
+    submissionCount: submissions.length,
+    campaignsCompleted: reputation?.campaignsCompleted ?? 0,
+    reputationScore: Math.round((reputation?.reputationScore ?? 0) * 10) / 10,
+    rows,
   };
 }

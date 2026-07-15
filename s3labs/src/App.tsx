@@ -16,6 +16,7 @@ const About = lazy(() => import("./pages/About"));
 const Kol = lazy(() => import("./pages/Kol"));
 const JobsPage = lazy(() => import("./pages/JobsPage"));
 const JobDetail = lazy(() => import("./pages/JobDetail"));
+const KolEarningsCheck = lazy(() => import("./pages/KolEarningsCheck"));
 const KolProfile = lazy(() => import("./pages/KolProfile"));
 const Profile = lazy(() => import("./pages/Profile"));
 const CampaignComingSoon = lazy(() =>
@@ -46,6 +47,7 @@ const App = () => (
                 <Route path="/community" element={<Community />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/kol" element={<Kol />} />
+                <Route path="/kol/check" element={<KolEarningsCheck />} />
                 <Route path="/kol/:username" element={<KolProfile />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/jobs" element={<JobsPage />} />

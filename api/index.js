@@ -16,6 +16,10 @@ import { createOpenRouterChatRouter } from "./routes/openrouterChat.js";
 import { createChatCompletionsRouter } from "./routes/chatCompletions.js";
 import { createImageGenerationsRouter } from "./routes/imageGenerations.js";
 import { createVideoGenerationsRouter } from "./routes/videoGenerations.js";
+import { createEmbeddingsRouter } from "./routes/embeddings.js";
+import { createRerankRouter } from "./routes/rerank.js";
+import { createAudioSpeechRouter } from "./routes/audioSpeech.js";
+import { createAudioTranscriptionsRouter } from "./routes/audioTranscriptions.js";
 import { createAgentChatRouter } from "./routes/agent/chat.js";
 import { createAgentAuthRouter } from "./routes/agent/auth.js";
 import { createAgentWalletIntentRouter } from "./routes/agent/walletIntent.js";
@@ -473,6 +477,14 @@ function isX402Route(p) {
   if (p === "/x" || p.startsWith("/x/")) return true;
   if (p === "/x-analyzer" || p.startsWith("/x-analyzer/")) return true;
   if (p === "/skills" || p.startsWith("/skills/")) return true;
+  // OpenRouter x402 family (agents pay; no Syra API key)
+  if (p === "/chat/completions" || p.startsWith("/chat/completions/")) return true;
+  if (p === "/images/generations" || p.startsWith("/images/generations/")) return true;
+  if (p === "/videos/generations" || p.startsWith("/videos/generations/")) return true;
+  if (p === "/embeddings" || p.startsWith("/embeddings/")) return true;
+  if (p === "/rerank" || p.startsWith("/rerank/")) return true;
+  if (p === "/audio/speech" || p.startsWith("/audio/speech/")) return true;
+  if (p === "/audio/transcriptions" || p.startsWith("/audio/transcriptions/")) return true;
   return false;
 }
 
@@ -764,8 +776,11 @@ const jsonBodyVerify = (req, _res, buf) => {
 const jsonBodySmall = express.json({ limit: "200kb", verify: jsonBodyVerify });
 const jsonBodyLlmPlayground = express.json({ limit: "25mb", verify: jsonBodyVerify });
 app.use((req, res, next) => {
-  // Admin LLM playground accepts base64 audio for transcription (larger payloads).
-  if (typeof req.path === "string" && req.path.startsWith("/labs/llm")) {
+  // Admin LLM playground + x402 STT accept base64 audio (larger payloads).
+  if (
+    typeof req.path === "string" &&
+    (req.path.startsWith("/labs/llm") || req.path.startsWith("/audio/transcriptions"))
+  ) {
     return jsonBodyLlmPlayground(req, res, next);
   }
   return jsonBodySmall(req, res, next);
@@ -1357,6 +1372,10 @@ app.use("/brain", await createBrainRouter());
 app.use("/chat/completions", await createChatCompletionsRouter());
 app.use("/images/generations", await createImageGenerationsRouter());
 app.use("/videos/generations", await createVideoGenerationsRouter());
+app.use("/embeddings", await createEmbeddingsRouter());
+app.use("/rerank", await createRerankRouter());
+app.use("/audio/speech", await createAudioSpeechRouter());
+app.use("/audio/transcriptions", await createAudioTranscriptionsRouter());
 app.use("/openrouter", await createOpenRouterChatRouter());
 // SECURITY P0.2 — wallet sign-in (SIWS/SIWE), token refresh, sign-out
 app.use("/agent/auth", await createAgentAuthRouter());

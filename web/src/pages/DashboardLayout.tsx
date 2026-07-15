@@ -1,13 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "@/lib/navigation";
 import type { ReactNode } from "react";
-import {
-  LayoutDashboard,
-  UsersRound,
-  FlaskConical,
-  ClipboardList,
-  Sparkles,
-} from "lucide-react";
+import { LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SidebarPanelToggle } from "@/components/layout/SidebarPanelToggle";
 import {
@@ -25,16 +19,17 @@ import {
   SidebarMobileDrawerHeader,
   SidebarNavLink,
   SidebarNavShell,
+  SidebarTeamNav,
   INTERNAL_TEAM_SIDEBAR_BADGE,
 } from "@/components/dashboard/SidebarPrimitives";
 import { useWalletContext } from "@/contexts/WalletContext";
 import { MachineMoneyPreviewProvider, useMachineMoneyPreview } from "@/contexts/MachineMoneyPreviewContext";
 import { isAdminWallet } from "@/constants/adminWallet";
-import { INTERNAL_BASE_PATH } from "@/lib/internalRoutes";
 import { getInternalAgentMeta, isInternalAgentSlug } from "@/lib/internalAgentsCatalog";
 import { DASHBOARD_PILLAR_NAV, isPillarGated, MACHINE_MONEY_SOON_BADGE } from "@/lib/dashboardPillarNav";
 import { DASHBOARD_MARKET_INTEL_NAV } from "@/lib/dashboardMarketIntelNav";
 import { DASHBOARD_EXPERIMENT_NAV } from "@/lib/dashboardExperimentNav";
+import { DASHBOARD_TEAM_NAV } from "@/lib/dashboardTeamNav";
 
 function dashboardPageTitle(pathname: string, search: string): string {
   const parts = pathname.split("/").filter(Boolean);
@@ -133,34 +128,10 @@ function DashboardSidebarContent({
                 items={DASHBOARD_EXPERIMENT_NAV}
                 groupBadge={INTERNAL_TEAM_SIDEBAR_BADGE}
               />
-              <SidebarNavLink
-                to="/labs"
-                icon={FlaskConical}
-                badge={INTERNAL_TEAM_SIDEBAR_BADGE}
-              >
-                Labs
-              </SidebarNavLink>
-              <SidebarNavLink
-                to="/llm"
-                icon={Sparkles}
-                badge={INTERNAL_TEAM_SIDEBAR_BADGE}
-              >
-                LLM
-              </SidebarNavLink>
-              <SidebarNavLink
-                to="/organize"
-                icon={ClipboardList}
-                badge={INTERNAL_TEAM_SIDEBAR_BADGE}
-              >
-                Organize
-              </SidebarNavLink>
-              <SidebarNavLink
-                to={INTERNAL_BASE_PATH}
-                icon={UsersRound}
-                badge={INTERNAL_TEAM_SIDEBAR_BADGE}
-              >
-                Internal
-              </SidebarNavLink>
+              <SidebarTeamNav
+                items={DASHBOARD_TEAM_NAV}
+                groupBadge={INTERNAL_TEAM_SIDEBAR_BADGE}
+              />
             </>
           ) : null}
         </div>

@@ -61,6 +61,7 @@ function respond(status, body) {
  *   anonymousId: string;
  *   toolId: string;
  *   params?: Record<string, unknown>;
+ *   skipUsdcCharge?: boolean;
  *   ctx?: {
  *     host?: string;
  *     user?: { guest?: boolean; sessionId?: string };
@@ -69,9 +70,10 @@ function respond(status, body) {
  *     skipGuestTxBlock?: boolean;
  *   };
  * }} input
+ * Earn token launch may set skipUsdcCharge so user pays SOL for pump.fun create/buy only.
  */
 export async function executeAgentToolCall(input) {
-  const { anonymousId, toolId, params: rawParams = {}, ctx = {} } = input;
+  const { anonymousId, toolId, params: rawParams = {}, ctx = {}, skipUsdcCharge = false } = input;
   try {
     if (!anonymousId || !toolId) {
       return respond(400, {
@@ -530,10 +532,13 @@ export async function executeAgentToolCall(input) {
     }
 
     const connectedWallet = await getConnectedWalletAddress(anonymousId);
-    const effectivePrice = getEffectiveAgentToolPriceUsd(tool, connectedWallet);
+    // Earn token launch pays pump.fun in SOL only — no Syra USDC tool fee.
+    const effectivePrice = skipUsdcCharge
+      ? 0
+      : getEffectiveAgentToolPriceUsd(tool, connectedWallet);
     const { usdcBalance } = balanceResult;
     const requiredUsdc = effectivePrice;
-    if (usdcBalance <= 0 || usdcBalance < requiredUsdc) {
+    if (!skipUsdcCharge && (usdcBalance <= 0 || usdcBalance < requiredUsdc)) {
       return respond(402, {
         success: false,
         insufficientBalance: true,

@@ -15,11 +15,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { DrawerDismissButton } from "@/components/ui/drawer-dismiss-button";
 import { SidebarPanelToggle } from "@/components/layout/SidebarPanelToggle";
 import { cn } from "@/lib/utils";
-import { INTERNAL_BASE_PATH } from "@/lib/internalRoutes";
 import { useMachineMoneyPreview } from "@/contexts/MachineMoneyPreviewContext";
 import { DASHBOARD_PILLAR_NAV, isPillarGated, MACHINE_MONEY_SOON_BADGE } from "@/lib/dashboardPillarNav";
 import { DASHBOARD_MARKET_INTEL_NAV } from "@/lib/dashboardMarketIntelNav";
 import { DASHBOARD_EXPERIMENT_NAV } from "@/lib/dashboardExperimentNav";
+import { DASHBOARD_TEAM_NAV } from "@/lib/dashboardTeamNav";
 
 export const INTERNAL_TEAM_SIDEBAR_BADGE = {
   label: "Team",
@@ -30,6 +30,7 @@ export const INTERNAL_TEAM_SIDEBAR_BADGE = {
 const EXPERIMENTS_STORAGE_KEY = "syra.dashboard.experimentsOpen";
 const MACHINE_MONEY_STORAGE_KEY = "syra.dashboard.machineMoneyOpen";
 const MARKET_INTEL_STORAGE_KEY = "syra.dashboard.marketIntelOpen";
+const TEAM_STORAGE_KEY = "syra.dashboard.teamOpen";
 
 const SIDEBAR_SHELL =
   "relative flex h-full min-h-0 w-full flex-col overflow-hidden border-r border-sidebar-border/80 bg-sidebar text-sidebar-foreground";
@@ -154,6 +155,7 @@ export function SidebarIconRail({
   const { machineMoneyUnlocked } = useMachineMoneyPreview();
   const marketIntelActive = DASHBOARD_MARKET_INTEL_NAV.some((item) => item.isActive(pathname));
   const experimentsActive = DASHBOARD_EXPERIMENT_NAV.some((item) => item.isActive(pathname));
+  const teamActive = DASHBOARD_TEAM_NAV.some((item) => item.isActive(pathname));
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -232,11 +234,24 @@ export function SidebarIconRail({
                 />
               ))}
               <SidebarDivider className="my-2 w-8" />
-              <SidebarIconNavLink
-                to={INTERNAL_BASE_PATH}
-                icon={UsersRound}
-                label={`Internal (${INTERNAL_TEAM_SIDEBAR_BADGE.label})`}
-              />
+              <div
+                className={cn(
+                  "mb-1 flex h-7 w-7 items-center justify-center rounded-lg transition-colors",
+                  teamActive ? "bg-primary/10 text-primary" : "text-muted-foreground/40",
+                )}
+                aria-hidden
+              >
+                <UsersRound className="h-3.5 w-3.5" strokeWidth={2} />
+              </div>
+              {DASHBOARD_TEAM_NAV.map((item) => (
+                <SidebarIconNavLink
+                  key={item.id}
+                  to={item.to}
+                  icon={item.icon}
+                  label={`${item.label} (${INTERNAL_TEAM_SIDEBAR_BADGE.label})`}
+                  matchActive={item.isActive}
+                />
+              ))}
             </>
           ) : null}
         </nav>
@@ -527,6 +542,26 @@ export function SidebarExperimentsNav({
       icon={FlaskConical}
       openHint={`${items.length} trading desks`}
       closedHint="Expand desks"
+    />
+  );
+}
+
+export function SidebarTeamNav({
+  items,
+  groupBadge,
+}: {
+  items: readonly SidebarCollapsibleNavItem[];
+  groupBadge?: SidebarNavBadge;
+}) {
+  return (
+    <SidebarCollapsibleNav
+      items={items}
+      groupBadge={groupBadge}
+      storageKey={TEAM_STORAGE_KEY}
+      title="Team"
+      icon={UsersRound}
+      openHint={`${items.length} tools`}
+      closedHint="Expand tools"
     />
   );
 }

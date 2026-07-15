@@ -9,6 +9,9 @@ const earnPumpfunLaunchSchema = new mongoose.Schema(
     name: { type: String, required: true },
     symbol: { type: String, required: true },
     metadataUri: { type: String, required: true },
+    /** Direct token logo URL (from IPFS upload / pump.fun coin metadata). */
+    imageUri: { type: String, default: null },
+    description: { type: String, default: null },
     launchSignature: { type: String, default: null },
     initialBuyLamports: { type: String, default: null },
     lastFeeCollectSignature: { type: String, default: null },

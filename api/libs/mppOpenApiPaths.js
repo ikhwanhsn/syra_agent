@@ -58,6 +58,13 @@ import {
   X402_DISPLAY_PRICE_INSIGHTS_TOKEN_METRICS_USD,
   X402_DISPLAY_PRICE_INSIGHTS_DEFI_TVL_USD,
   X402_DISPLAY_PRICE_INSIGHTS_VOLATILITY_INDEX_USD,
+  X402_DISPLAY_PRICE_EMBEDDINGS_USD,
+  X402_DISPLAY_PRICE_RERANK_USD,
+  X402_DISPLAY_PRICE_SPEECH_USD,
+  X402_DISPLAY_PRICE_TRANSCRIPTION_USD,
+  X402_DISPLAY_PRICE_CHAT_COMPLETIONS_USD,
+  X402_DISPLAY_PRICE_IMAGES_GENERATIONS_USD,
+  X402_DISPLAY_PRICE_VIDEOS_GENERATIONS_USD,
 } from '../config/x402Pricing.js';
 
 /** @param {number} n */
@@ -172,6 +179,21 @@ function displayPriceForDiscoveryOnlyPath(apiPath) {
   if (p.startsWith('/nansen/')) return X402_DISPLAY_PRICE_NANSEN_USD;
   if (p.startsWith('/smart-money') || p.startsWith('/token-god-mode')) return X402_DISPLAY_PRICE_NANSEN_USD;
   if (p.startsWith('/x402/vault')) return X402_DISPLAY_PRICE_PURCH_VAULT_USD;
+  if (p === '/chat/completions' || p.startsWith('/chat/completions/')) {
+    return X402_DISPLAY_PRICE_CHAT_COMPLETIONS_USD;
+  }
+  if (p === '/images/generations' || p.startsWith('/images/generations/')) {
+    return X402_DISPLAY_PRICE_IMAGES_GENERATIONS_USD;
+  }
+  if (p === '/videos/generations' || p.startsWith('/videos/generations/')) {
+    return X402_DISPLAY_PRICE_VIDEOS_GENERATIONS_USD;
+  }
+  if (p === '/embeddings' || p.startsWith('/embeddings/')) return X402_DISPLAY_PRICE_EMBEDDINGS_USD;
+  if (p === '/rerank' || p.startsWith('/rerank/')) return X402_DISPLAY_PRICE_RERANK_USD;
+  if (p === '/audio/speech' || p.startsWith('/audio/speech/')) return X402_DISPLAY_PRICE_SPEECH_USD;
+  if (p === '/audio/transcriptions' || p.startsWith('/audio/transcriptions/')) {
+    return X402_DISPLAY_PRICE_TRANSCRIPTION_USD;
+  }
   return X402_DISPLAY_PRICE_USD;
 }
 

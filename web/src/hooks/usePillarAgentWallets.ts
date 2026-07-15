@@ -64,7 +64,7 @@ export function usePillarAgentWallets(
           wallets: res.wallets,
           balances: null,
         };
-        seedPillarWalletSetCache(queryClient, res);
+        seedPillarWalletSetCache(queryClient, res, walletAddress);
         return payload;
       }
     },

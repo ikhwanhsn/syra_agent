@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useWalletContext } from "@/contexts/WalletContext";
 import { useSyraAuth } from "@/contexts/SyraAuthContext";
 import { resolveAgentTreasuryBalance } from "@/lib/agentWalletBalanceDisplay";
@@ -52,6 +52,8 @@ const USDC_DECIMALS = 6;
 const AGENT_SOL_WITHDRAW_FEE_BUFFER = 80_000 / LAMPORTS_PER_SOL;
 /** Above Dialog (`z-[250]`) so asset pickers stay clickable inside the modal. */
 const MODAL_SELECT_CONTENT_CLASS = "z-[300] min-w-[10rem]";
+/** Re-poll after deposit so RPC nodes catch up past broadcast success. */
+const DEPOSIT_BALANCE_RETRY_MS = [0, 2000, 5000] as const;
 
 function isRadixSelectPortalTarget(target: EventTarget | null): boolean {
   return target instanceof Element && target.closest("[data-radix-select-content]") != null;
@@ -182,6 +184,7 @@ export function FuelAgentModal({
     usdcBalance,
     refreshSolanaBalances,
   } = useWalletContext();
+  const queryClient = useQueryClient();
   const {
     agentAddress,
     anonymousId,
@@ -197,6 +200,7 @@ export function FuelAgentModal({
     reportNativeDebit,
   } = useAgentWallet();
   const { syraAuthReady, syraAuthenticated, requestSyraAuth } = useSyraAuth();
+  const depositRefreshTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const [selectedWallet, setSelectedWallet] = useState<AgentWalletPurpose>(initialAgentWallet);
   const isPage = variant === "page";
@@ -207,20 +211,20 @@ export function FuelAgentModal({
     const registry: Partial<Record<AgentWalletPurpose, AgentWalletFundTarget>> = {
       ...agentWalletTargets,
     };
-    if (agentAddress && anonymousId && !registry.spend) {
+    if (agentAddress && anonymousId) {
       registry.spend = {
         agentAddress,
         anonymousId,
-        solBalance: agentSolBalance,
-        usdcBalance: agentUsdcBalance,
+        solBalance: agentSolBalance ?? registry.spend?.solBalance ?? null,
+        usdcBalance: agentUsdcBalance ?? registry.spend?.usdcBalance ?? null,
       };
     }
-    if (lpAgentAddress && lpAnonymousId && !registry.lp) {
+    if (lpAgentAddress && lpAnonymousId) {
       registry.lp = {
         agentAddress: lpAgentAddress,
         anonymousId: lpAnonymousId,
-        solBalance: lpAgentSolBalance,
-        usdcBalance: lpAgentUsdcBalance,
+        solBalance: lpAgentSolBalance ?? registry.lp?.solBalance ?? null,
+        usdcBalance: lpAgentUsdcBalance ?? registry.lp?.usdcBalance ?? null,
       };
     }
     return registry;
@@ -284,17 +288,18 @@ export function FuelAgentModal({
     queryKey: ["agent-wallet-balance", activeAnonymousId],
     queryFn: () => agentWalletApi.getBalance(activeAnonymousId!),
     enabled: isActive && Boolean(activeAnonymousId) && walletQueriesEnabled,
-    staleTime: 45_000,
+    staleTime: 15_000,
     retry: 1,
   });
 
+  // Prefer live API balance over cached pillar-set registry (stale after deposit).
   const activeSolResolved = resolveAgentTreasuryBalance(
-    true,
+    false,
     activeTarget?.solBalance ?? null,
     activeBalanceQ.data?.solBalance,
   );
   const activeUsdcResolved = resolveAgentTreasuryBalance(
-    true,
+    false,
     activeTarget?.usdcBalance ?? null,
     activeBalanceQ.data?.usdcBalance,
   );
@@ -318,13 +323,27 @@ export function FuelAgentModal({
     for (const purpose of availableWallets) {
       const target = walletRegistry[purpose];
       if (!target) continue;
+      const isActivePurpose = purpose === activePurpose;
       out[purpose] = {
-        sol: target.solBalance ?? null,
-        usdc: target.usdcBalance ?? null,
+        sol: isActivePurpose ? activeSolResolved : (target.solBalance ?? null),
+        usdc: isActivePurpose ? activeUsdcResolved : (target.usdcBalance ?? null),
       };
     }
     return out;
-  }, [availableWallets, walletRegistry]);
+  }, [
+    availableWallets,
+    walletRegistry,
+    activePurpose,
+    activeSolResolved,
+    activeUsdcResolved,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      depositRefreshTimersRef.current.forEach((t) => clearTimeout(t));
+      depositRefreshTimersRef.current = [];
+    };
+  }, []);
 
   useEffect(() => {
     if (!isActive) return;
@@ -430,25 +449,72 @@ export function FuelAgentModal({
   const withdrawUsdcHuman = withdrawMode === "native" ? 0 : parseAmountInput(withdrawCustomUsd);
   const withdrawNativeHuman = withdrawMode === "native" ? parseAmountInput(withdrawCustomNative) : 0;
 
-  const runAgentBalanceRefresh = useCallback(async () => {
+  const runAgentBalanceRefresh = useCallback(async (opts?: { syncParent?: boolean }) => {
     if (isLockedExternal) {
-      onDepositComplete?.();
+      if (opts?.syncParent !== false) onDepositComplete?.();
       return;
     }
     await refreshSolanaBalances();
+    if (targetAnonymousId) {
+      await queryClient.invalidateQueries({ queryKey: ["agent-wallet-balance", targetAnonymousId] });
+    }
+    // Invalidate all pillar sets so spend/earn/treasury/invest/grow/lp cards catch the deposit.
+    await queryClient.invalidateQueries({ queryKey: ["agent-wallet-set"] });
     await activeBalanceQ.refetch();
     if (activePurpose === "spend") await refetchBalance();
     if (activePurpose === "lp") await refetchLpBalance();
-    onDepositComplete?.();
+    if (opts?.syncParent !== false) onDepositComplete?.();
   }, [
     activeBalanceQ,
     activePurpose,
     isLockedExternal,
     onDepositComplete,
+    queryClient,
     refetchBalance,
     refetchLpBalance,
     refreshSolanaBalances,
+    targetAnonymousId,
   ]);
+
+  const scheduleDepositBalanceRefresh = useCallback(() => {
+    depositRefreshTimersRef.current.forEach((t) => clearTimeout(t));
+    depositRefreshTimersRef.current = [];
+    DEPOSIT_BALANCE_RETRY_MS.forEach((delayMs, index) => {
+      const isLast = index === DEPOSIT_BALANCE_RETRY_MS.length - 1;
+      const timer = setTimeout(() => {
+        void runAgentBalanceRefresh({ syncParent: isLast });
+      }, delayMs);
+      depositRefreshTimersRef.current.push(timer);
+    });
+  }, [runAgentBalanceRefresh]);
+
+  const applyOptimisticDepositBalances = useCallback(
+    (usdcDelta: number, solDelta: number) => {
+      if (!targetAnonymousId) return;
+      queryClient.setQueryData(
+        ["agent-wallet-balance", targetAnonymousId],
+        (
+          old:
+            | { agentAddress: string; solBalance: number; usdcBalance: number }
+            | undefined,
+        ) => {
+          if (!old) {
+            return {
+              agentAddress: targetAgentAddress ?? "",
+              solBalance: Math.max(0, solDelta),
+              usdcBalance: Math.max(0, usdcDelta),
+            };
+          }
+          return {
+            ...old,
+            solBalance: Math.max(0, (old.solBalance ?? 0) + solDelta),
+            usdcBalance: Math.max(0, (old.usdcBalance ?? 0) + usdcDelta),
+          };
+        },
+      );
+    },
+    [queryClient, targetAnonymousId, targetAgentAddress],
+  );
 
   useEffect(() => {
     if (!isActive) return;
@@ -590,15 +656,21 @@ export function FuelAgentModal({
               return;
             }
             const signature = await sendTransaction(tx, sendOpts);
+            // Wait for confirmation before claiming success / refreshing balances.
+            const confirmation = await connection.confirmTransaction(signature, "confirmed");
+            if (confirmation.value.err) {
+              throw new Error("Deposit transaction failed on-chain. Check the explorer and try again.");
+            }
+
             const parts: string[] = [];
             if (depositUsdcHuman > 0) parts.push(`$${depositUsdcHuman.toFixed(2)} USDC`);
             if (depositNativeHuman > 0) parts.push(`${depositNativeHuman.toFixed(4)} SOL`);
+            applyOptimisticDepositBalances(depositUsdcHuman, depositNativeHuman);
             toast({
-              title: "Transfer sent",
-              description: `${parts.join(" + ")} sent to agent. Signature: ${signature.slice(0, 8)}…`,
+              title: "Deposit confirmed",
+              description: `${parts.join(" + ")} credited to agent. Signature: ${signature.slice(0, 8)}…`,
             });
-            void runAgentBalanceRefresh();
-            void refreshSolanaBalances();
+            scheduleDepositBalanceRefresh();
             setCustomUsd("");
             setCustomNative("");
             return;
@@ -629,8 +701,9 @@ export function FuelAgentModal({
     sendTransaction,
     buildSolanaTx,
     toast,
-    runAgentBalanceRefresh,
-    refreshSolanaBalances,
+    scheduleDepositBalanceRefresh,
+    applyOptimisticDepositBalances,
+    connection,
     depositMode,
     usdcBalance,
     solBalance,

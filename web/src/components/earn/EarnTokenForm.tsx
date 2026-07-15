@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { Loader2, Rocket } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   EarnDialogError,
   EarnDialogField,
@@ -16,8 +17,16 @@ import {
   launchEarnPumpfunToken,
   solToLamportsString,
   uploadEarnTokenMetadata,
+  withSyraTokenNameSuffix,
 } from "@/lib/earnPumpfunApi";
+import { notify } from "@/lib/notify";
 import { cn } from "@/lib/utils";
+
+function isEarnFundingError(message: string): boolean {
+  return /earn wallet needs|fund via earn wallet|insufficient (sol|balance)|platform fee/i.test(
+    message,
+  );
+}
 
 type EarnTokenFormProps = {
   open: boolean;
@@ -26,6 +35,7 @@ type EarnTokenFormProps = {
 };
 
 export function EarnTokenForm({ open, onOpenChange, onLaunched }: EarnTokenFormProps) {
+  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [symbol, setSymbol] = useState("");
   const [description, setDescription] = useState("");
@@ -58,7 +68,7 @@ export function EarnTokenForm({ open, onOpenChange, onLaunched }: EarnTokenFormP
 
   const mutation = useMutation({
     mutationFn: async () => {
-      const n = name.trim();
+      const n = withSyraTokenNameSuffix(name);
       const s = symbol.trim().toUpperCase();
       const lamports = solToLamportsString(solAmount);
       if (!n) throw new Error("Name is required.");
@@ -66,6 +76,8 @@ export function EarnTokenForm({ open, onOpenChange, onLaunched }: EarnTokenFormP
       if (!lamports) throw new Error("Enter a valid initial buy in SOL.");
 
       let uri = metadataUri.trim();
+      let imageUri: string | null = null;
+      let desc = description.trim() || null;
       if (!uri) {
         if (!imageFile) throw new Error("Upload an image or paste a metadata URI.");
         const uploaded = await uploadEarnTokenMetadata({
@@ -75,6 +87,8 @@ export function EarnTokenForm({ open, onOpenChange, onLaunched }: EarnTokenFormP
           description: description.trim() || undefined,
         });
         uri = uploaded.metadataUri;
+        imageUri = uploaded.imageUri;
+        desc = uploaded.description || desc;
       } else if (!uri.startsWith("http") && !uri.startsWith("ipfs://")) {
         throw new Error("Metadata URI must start with http(s):// or ipfs://");
       }
@@ -84,19 +98,39 @@ export function EarnTokenForm({ open, onOpenChange, onLaunched }: EarnTokenFormP
         symbol: s,
         uri,
         solLamports: lamports,
+        imageUri,
+        description: desc,
       });
     },
     onSuccess: (data) => {
       if (data.submitError) {
-        setError(data.submitError);
+        if (isEarnFundingError(data.submitError)) {
+          notify.error("Fund your Earn wallet", data.submitError);
+          onOpenChange(false);
+        } else {
+          setError(data.submitError);
+        }
         onLaunched();
         return;
       }
+      const mint = data.mint?.trim() || null;
       reset();
       onOpenChange(false);
       onLaunched();
+      notify.success("Token launch submitted");
+      if (mint) {
+        navigate(`/earn/token/${encodeURIComponent(mint)}`);
+      }
     },
-    onError: (e: Error) => setError(e.message),
+    onError: (e: Error) => {
+      const message = e.message || "Launch failed";
+      if (isEarnFundingError(message)) {
+        notify.error("Fund your Earn wallet", message);
+        onOpenChange(false);
+        return;
+      }
+      setError(message);
+    },
   });
 
   return (
@@ -108,9 +142,7 @@ export function EarnTokenForm({ open, onOpenChange, onLaunched }: EarnTokenFormP
       }}
       icon={Rocket}
       title="Launch on pump.fun"
-      description="Uses your earn wallet. You receive creator fees from trades."
-      className="sm:max-w-md"
-      bodyClassName="max-h-[min(62dvh,560px)]"
+      description="Uses your earn wallet SOL for pump.fun creation and the initial buy. You receive creator fees from trades."
       footer={
         <>
           <Button
@@ -142,12 +174,20 @@ export function EarnTokenForm({ open, onOpenChange, onLaunched }: EarnTokenFormP
       }
     >
       <div className="rounded-xl border border-border/45 bg-muted/15 px-3.5 py-3 text-xs leading-relaxed text-muted-foreground">
-        Needs SOL for the initial buy plus a small USDC fee from your earn wallet.
+        You only pay pump.fun costs — SOL for token creation and your initial buy from the earn wallet. No Syra USDC fee.
       </div>
 
       <EarnDialogSection title="Token identity">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <EarnDialogField label="Name" htmlFor="token-name">
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+          <EarnDialogField
+            label="Name"
+            htmlFor="token-name"
+            hint={
+              name.trim()
+                ? `On-chain name: ${withSyraTokenNameSuffix(name)}`
+                : 'Launches as “Your name by Syra”.'
+            }
+          >
             <Input
               id="token-name"
               value={name}
@@ -243,7 +283,7 @@ export function EarnTokenForm({ open, onOpenChange, onLaunched }: EarnTokenFormP
           placeholder="0.05"
           inputMode="decimal"
           disabled={mutation.isPending}
-          className={cn(earnFieldControlClass, "max-w-[9rem] font-mono tabular-nums")}
+          className={cn(earnFieldControlClass, "w-full max-w-[12rem] font-mono tabular-nums sm:max-w-[14rem]")}
         />
       </EarnDialogField>
 

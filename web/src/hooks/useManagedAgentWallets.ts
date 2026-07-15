@@ -34,7 +34,7 @@ async function fetchAgentSetup(
   queryClient: ReturnType<typeof useQueryClient>,
 ): Promise<AgentSetupRecord> {
   const res = await agentWalletApi.getOrCreateByWallet(walletAddress, "solana");
-  seedPillarWalletSetCache(queryClient, res);
+  seedPillarWalletSetCache(queryClient, res, walletAddress);
   return {
     anonymousId: res.anonymousId,
     agentAddress: res.agentAddress,
@@ -284,7 +284,7 @@ export function useManagedAgentWallets() {
       const ok = await requestSyraAuth();
       if (!ok) return false;
       const res = await provisionLinkedPillarWallets(solanaAddress);
-      seedPillarWalletSetCache(queryClient, res);
+      seedPillarWalletSetCache(queryClient, res, solanaAddress);
       await queryClient.invalidateQueries({ queryKey: ["agent-setup", "solana", solanaAddress] });
       await queryClient.invalidateQueries({ queryKey: ["agent-wallet-set", res.anonymousId] });
       if (activeAgent?.anonymousId && activeAgent.anonymousId !== res.anonymousId) {

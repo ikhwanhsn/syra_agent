@@ -32,7 +32,7 @@ export function ArticleCopyForXButton({
       const ok = await copyArticleXContent(article);
       if (ok) {
         setCopied(true);
-        toast.success("X article draft copied — includes AI image prompts");
+        toast.success("Article text copied for X");
         window.setTimeout(() => setCopied(false), 2200);
       } else {
         toast.error("Could not copy to clipboard");
@@ -50,7 +50,7 @@ export function ArticleCopyForXButton({
         variant === "featured" ? "px-3 py-2 text-sm" : "px-2.5 py-1.5 text-xs",
         className,
       )}
-      title="Copy full X article draft with AI image prompts"
+      title="Copy full article text for X"
     >
       {copied ? (
         <>

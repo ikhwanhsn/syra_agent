@@ -828,13 +828,66 @@ function validateVerifyInvoiceBody(params) {
   };
 }
 
+/** NestJS-style fun-block errors often use message[] + generic error: "Bad Request". */
+function formatPumpfunUpstreamError(data, status) {
+  if (data && typeof data === "object") {
+    const msg = data.message;
+    if (Array.isArray(msg) && msg.length) return msg.map(String).join("; ");
+    if (typeof msg === "string" && msg.trim()) return msg.trim();
+    if (typeof data.error === "string" && data.error.trim()) {
+      // Prefer validation detail above; fall back to error string last.
+      return data.error.trim();
+    }
+  }
+  return `pump.fun upstream error (HTTP ${status})`;
+}
+
+/** fun-block validates these as booleans; agent tool params are often stringified. */
+const PUMPFUN_BOOL_KEYS = Object.freeze([
+  "cashback",
+  "mayhemMode",
+  "tokenizedAgent",
+  "frontRunningProtection",
+]);
+
+/**
+ * @param {Record<string, unknown>} params
+ * @returns {Record<string, unknown>}
+ */
+function coercePumpfunAgentBody(params) {
+  const out = { ...(params && typeof params === "object" ? params : {}) };
+  for (const key of PUMPFUN_BOOL_KEYS) {
+    if (!(key in out)) continue;
+    const v = out[key];
+    if (typeof v === "boolean") continue;
+    if (typeof v === "string") {
+      const t = v.trim().toLowerCase();
+      if (t === "true" || t === "1") out[key] = true;
+      else if (t === "false" || t === "0") out[key] = false;
+      else delete out[key];
+      continue;
+    }
+    delete out[key];
+  }
+  if (out.tipAmount != null && out.tipAmount !== "" && typeof out.tipAmount === "string") {
+    const n = Number(out.tipAmount);
+    if (Number.isFinite(n)) out.tipAmount = n;
+  }
+  if (out.buybackBps != null && out.buybackBps !== "" && typeof out.buybackBps === "string") {
+    const n = Number(out.buybackBps);
+    if (Number.isFinite(n)) out.buybackBps = Math.trunc(n);
+  }
+  return out;
+}
+
 async function proxyPumpfun(url, init) {
   const { ok, status, data } = await fetchJson(url, init);
   if (!ok) {
-    const errMsg =
-      (data && typeof data === "object" && (data.error || data.message)) ||
-      `pump.fun upstream error (HTTP ${status})`;
-    return { ok: false, error: String(errMsg), status: status >= 400 ? status : 502 };
+    return {
+      ok: false,
+      error: formatPumpfunUpstreamError(data, status),
+      status: status >= 400 ? status : 502,
+    };
   }
   return { ok: true, data };
 }
@@ -844,37 +897,41 @@ async function handlePumpfun(toolId, params) {
     if (toolId === "pumpfun-agents-swap") {
       const v = validateSwapBody(params);
       if (!v.ok) return { ok: false, error: v.error, status: 400 };
+      const body = coercePumpfunAgentBody(params);
       return proxyPumpfun(`${FUN_BLOCK_BASE}/agents/swap`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify(params),
+        body: JSON.stringify(body),
       });
     }
     if (toolId === "pumpfun-agents-create-coin") {
       const v = validateCreateBody(params);
       if (!v.ok) return { ok: false, error: v.error, status: 400 };
+      const body = coercePumpfunAgentBody(params);
       return proxyPumpfun(`${FUN_BLOCK_BASE}/agents/create-coin`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify(params),
+        body: JSON.stringify(body),
       });
     }
     if (toolId === "pumpfun-collect-fees") {
       const v = validateCollectFeesBody(params);
       if (!v.ok) return { ok: false, error: v.error, status: 400 };
+      const body = coercePumpfunAgentBody(params);
       return proxyPumpfun(`${FUN_BLOCK_BASE}/agents/collect-fees`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify(params),
+        body: JSON.stringify(body),
       });
     }
     if (toolId === "pumpfun-sharing-config") {
       const v = validateSharingConfigBody(params);
       if (!v.ok) return { ok: false, error: v.error, status: 400 };
+      const body = coercePumpfunAgentBody(v.body);
       return proxyPumpfun(`${FUN_BLOCK_BASE}/agents/sharing-config`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify(v.body),
+        body: JSON.stringify(body),
       });
     }
     if (toolId === "pumpfun-coin" || toolId === "pumpfun-coin-query") {

@@ -114,8 +114,6 @@ export function SkillForm({ open, onOpenChange, onCreated }: SkillFormProps) {
       icon={Sparkles}
       title="New API skill"
       description="Point Syra at your HTTPS API. Agents pay USDC per call."
-      className="sm:max-w-lg"
-      bodyClassName="max-h-[min(62dvh,560px)]"
       footer={
         <>
           <Button
@@ -192,30 +190,32 @@ export function SkillForm({ open, onOpenChange, onCreated }: SkillFormProps) {
       </EarnDialogSection>
 
       <EarnDialogSection title="Upstream" description="Where Syra routes agent requests.">
-        <EarnDialogField label="Upstream URL (HTTPS)" htmlFor="skill-upstream">
-          <Input
-            id="skill-upstream"
-            value={upstreamUrl}
-            onChange={(e) => setUpstreamUrl(e.target.value)}
-            placeholder="https://your-service.com/api/skill"
-            className={cn(earnFieldControlClass, "font-mono text-[13px]")}
-          />
-        </EarnDialogField>
+        <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_7.5rem]">
+          <EarnDialogField label="Upstream URL (HTTPS)" htmlFor="skill-upstream">
+            <Input
+              id="skill-upstream"
+              value={upstreamUrl}
+              onChange={(e) => setUpstreamUrl(e.target.value)}
+              placeholder="https://your-service.com/api/skill"
+              className={cn(earnFieldControlClass, "font-mono text-[13px]")}
+            />
+          </EarnDialogField>
 
-        <EarnDialogField label="Method">
-          <Select
-            value={upstreamMethod}
-            onValueChange={(v) => setUpstreamMethod(v as "GET" | "POST")}
-          >
-            <SelectTrigger className={earnSelectTriggerClass}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="GET">GET</SelectItem>
-              <SelectItem value="POST">POST</SelectItem>
-            </SelectContent>
-          </Select>
-        </EarnDialogField>
+          <EarnDialogField label="Method">
+            <Select
+              value={upstreamMethod}
+              onValueChange={(v) => setUpstreamMethod(v as "GET" | "POST")}
+            >
+              <SelectTrigger className={earnSelectTriggerClass}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="GET">GET</SelectItem>
+                <SelectItem value="POST">POST</SelectItem>
+              </SelectContent>
+            </Select>
+          </EarnDialogField>
+        </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <EarnDialogField label="Auth header" htmlFor="skill-auth-name" optional>

@@ -11,11 +11,13 @@ import {
   generateImage,
   submitVideo,
   getVideoStatus,
+  getVideoContentResponse,
   createEmbeddings,
   rerankDocuments,
   synthesizeSpeech,
   transcribeAudio,
 } from '../../libs/labs/llmPlaygroundService.js';
+import { Readable } from 'node:stream';
 
 /**
  * @param {import('express').Request} req
@@ -111,6 +113,35 @@ export function createLlmPlaygroundRouter() {
     }
   });
 
+  router.get('/video/:id/content', async (req, res) => {
+    try {
+      const index = req.query?.index != null ? Number(req.query.index) : 0;
+      const { response, contentType } = await getVideoContentResponse(req.params.id, index);
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Cache-Control', 'private, max-age=300');
+      const len = response.headers.get('content-length');
+      if (len) res.setHeader('Content-Length', len);
+
+      if (!response.body) {
+        const buffer = Buffer.from(await response.arrayBuffer());
+        return res.status(200).send(buffer);
+      }
+
+      const nodeStream = Readable.fromWeb(/** @type {import('stream/web').ReadableStream} */ (response.body));
+      nodeStream.on('error', (err) => {
+        console.warn('[labs/llm] video content stream error:', err?.message || err);
+        if (!res.headersSent) {
+          sendError(err, res, 'Video content failed');
+        } else {
+          res.destroy(err instanceof Error ? err : undefined);
+        }
+      });
+      return nodeStream.pipe(res);
+    } catch (err) {
+      return sendError(err, res, 'Video content failed');
+    }
+  });
+
   router.post('/embeddings', async (req, res) => {
     try {
       const data = await createEmbeddings(req.body ?? {});
@@ -149,3 +180,5 @@ export function createLlmPlaygroundRouter() {
 
   return router;
 }
+
+

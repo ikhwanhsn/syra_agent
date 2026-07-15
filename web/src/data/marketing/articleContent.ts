@@ -45,7 +45,7 @@ export const articleDetails: ArticleDetail[] = [
       "Complete guide to @syra-ai/sdk — TypeScript client, x402 auto-pay, pillar modules, MCP, and production patterns for agent developers.",
     excerpt:
       "Install @syra-ai/sdk, wire x402 auto-pay, call intelligence routes, and ship production agents with typed pillar modules and MCP distribution.",
-    coverImage: "/images/articles/article-one.webp",
+    coverImage: "/images/articles/cover-syra-sdk-guide.webp",
     publishedAt: "2026-07-09",
     readingTimeMinutes: 12,
     tags: ["SDK", "TypeScript", "x402", "Developers", "MCP"],
@@ -332,7 +332,7 @@ The SDK is the thinnest path from "agent idea" to "agent that pays for intellige
       "Autonomous agents are scaling, but most cannot own capital or pay for tools without humans. How Syra positions as the machine money rail for the agentic era.",
     excerpt:
       "The agentic era needs more than smarter models — it needs financial infrastructure. Here is Syra's positioning as the machine money rail on Solana.",
-    coverImage: "/images/articles/article-two.webp",
+    coverImage: "/images/articles/cover-future-agentic-era.webp",
     publishedAt: "2026-07-05",
     readingTimeMinutes: 11,
     tags: ["Agents", "Strategy", "Solana", "Infrastructure", "x402"],
@@ -486,7 +486,7 @@ Syra is positioning to be that layer: **real-time, request-priced, policy-gated,
       "Syra is machine money for autonomous agents — Earn, Treasury, Invest, Spend (x402), and Grow. Complete product overview, pillars, and who Syra is built for.",
     excerpt:
       "A complete answer to what Syra is: machine money on Solana, five pillars, x402 APIs, agent wallets, and who the product is built for.",
-    coverImage: "/images/articles/article-two.webp",
+    coverImage: "/images/articles/cover-what-is-syra.webp",
     publishedAt: "2026-07-01",
     readingTimeMinutes: 10,
     tags: ["Product", "Overview", "Agents", "Solana", "x402"],
@@ -579,7 +579,7 @@ Beyond the five pillars, Syra ships:
 6. Earn and Grow compound returns over time
 \`\`\`
 
-![Syra intelligence pipeline — from on-chain data to agent-ready signals](/images/articles/article-two.webp)
+![Syra intelligence pipeline — from on-chain data to agent-ready signals](/images/articles/inline-what-is-syra-pipeline.webp)
 
 Every insight is grounded in verifiable data. Syra does not hallucinate prices or invent wallet labels.
 
@@ -656,7 +656,7 @@ If your agent can think but cannot transact, Syra is what you wire in next.
       "Most APIs today are designed for humans. Syra approaches access differently — on-demand, request-level payments powered by x402 and MPP.",
     excerpt:
       "A deep dive into request-level payments, agent-native API access, and why x402 + MPP change how autonomous systems pay for intelligence.",
-    coverImage: "/images/articles/article-one.webp",
+    coverImage: "/images/articles/cover-syra-access-x402-mpp.webp",
     publishedAt: "2026-03-12",
     readingTimeMinutes: 9,
     tags: ["x402", "MPP", "API", "Agents", "Infrastructure"],
@@ -736,7 +736,7 @@ curl -s https://api.syraa.fun/.well-known/x402
 curl -i https://api.syraa.fun/v1/market/pulse
 \`\`\`
 
-![Syra API playground — request builder with x402 payment flow](/images/articles/article-one.webp)
+![Syra API playground — request builder with x402 payment flow](/images/articles/inline-x402-playground.webp)
 
 Our [API playground](/playground) lets you test endpoints interactively. When a route requires payment, you'll see the 402 response, settlement flow, and final payload — exactly what your agent will experience in production.
 
@@ -772,7 +772,7 @@ The shift from "sign up and subscribe" to "pay and proceed" isn't cosmetic — i
       "How Syra delivers machine money infrastructure—x402 APIs, agent wallets, treasury policy, and execution-ready workflows for the agent economy on Solana.",
     excerpt:
       "From machine money infrastructure to execution-ready signals — how Syra combines x402 APIs, agent wallets, and agent workflows on Solana.",
-    coverImage: "/images/articles/article-two.webp",
+    coverImage: "/images/articles/cover-syra-explained.webp",
     publishedAt: "2026-02-18",
     readingTimeMinutes: 7,
     tags: ["Solana", "Trading", "Agents", "Intelligence"],
@@ -821,7 +821,7 @@ Syra isn't optimized for humans clicking through charts. It's optimized for **ag
 
 ## The Syra stack
 
-![Syra intelligence pipeline — from on-chain data to agent-ready signals](/images/articles/article-two.webp)
+![Syra intelligence pipeline — from on-chain data to agent-ready signals](/images/articles/inline-syra-explained-pipeline.webp)
 
 Our architecture follows a simple principle: **ground every insight in verifiable data**. Raw API responses pass through validation layers before they reach your agent. We don't hallucinate prices or invent wallet labels.
 

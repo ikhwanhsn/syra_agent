@@ -511,10 +511,14 @@ export function fetchKolConfig(): Promise<KolConfig> {
   return kolFetch<KolConfig>("/kol/config").catch(() => DEFAULT_KOL_CONFIG);
 }
 
-export function fetchCampaigns(
-  status?: string,
-): Promise<{ campaigns: KolCampaign[] }> {
-  const qs = status ? `?status=${encodeURIComponent(status)}` : "";
+export function fetchCampaigns(opts?: {
+  status?: string;
+  wallet?: string;
+}): Promise<{ campaigns: KolCampaign[] }> {
+  const params = new URLSearchParams();
+  if (opts?.status) params.set("status", opts.status);
+  if (opts?.wallet) params.set("wallet", opts.wallet);
+  const qs = params.toString() ? `?${params.toString()}` : "";
   return kolFetch<{ campaigns: KolCampaign[] }>(`/kol/campaigns${qs}`);
 }
 
@@ -571,6 +575,16 @@ export function confirmCampaignDeposit(
       body: JSON.stringify(input),
     },
   );
+}
+
+export function cancelPendingCampaign(
+  campaignId: string,
+  input: { projectWallet: string },
+): Promise<{ deleted: boolean; campaignId: string; campaign: KolCampaign }> {
+  return kolFetch(`/kol/campaigns/${encodeURIComponent(campaignId)}/cancel`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }
 
 export function createCampaignTopUp(
@@ -763,4 +777,72 @@ export function fetchKols(opts?: {
 export function fetchKolProfile(username: string): Promise<KolProfile> {
   const clean = username.trim().replace(/^@/, "");
   return kolFetch<KolProfile>(`/kol/profiles/${encodeURIComponent(clean)}`);
+}
+
+export type KolHandleEarningsAmountKind =
+  | "paid"
+  | "held"
+  | "claimable"
+  | "projected"
+  | "none";
+
+export interface KolHandleEarnings {
+  handle: string;
+  name: string;
+  verified: boolean;
+  profilePicture: string | null;
+  followers: number | null;
+  totals: {
+    paidLamports: number;
+    paidSol: number;
+    heldLamports: number;
+    heldSol: number;
+    claimableLamports: number;
+    claimableSol: number;
+    projectedLamports: number;
+    projectedSol: number;
+    totalEarnedLamports: number;
+    totalEarnedSol: number;
+  };
+  campaignCount: number;
+  submissionCount: number;
+  campaignsCompleted: number;
+  reputationScore: number;
+  rows: Array<{
+    submission: KolSubmission;
+    campaign: KolCampaign | null;
+    payout: KolPayoutInfo | null;
+    amountLamports: number;
+    amountSol: number;
+    amountKind: KolHandleEarningsAmountKind;
+  }>;
+}
+
+/** Public X-handle earnings lookup — no wallet required. */
+export function fetchEarningsByXHandle(
+  username: string,
+): Promise<KolHandleEarnings> {
+  const clean = username.trim().replace(/^@/, "");
+  return kolFetch<KolHandleEarnings>(
+    `/kol/earnings-by-x/${encodeURIComponent(clean)}`,
+  );
+}
+
+export interface SubscribeEmailResult {
+  subscribed: boolean;
+  email: string;
+  isNew: boolean;
+  welcomeEmailSent: boolean;
+  emailConfigured: boolean;
+}
+
+/** Subscribe to KOL campaign email alerts. */
+export function subscribeEmail(
+  email: string,
+  source = "kol_page",
+): Promise<SubscribeEmailResult> {
+  return kolFetch<SubscribeEmailResult>("/kol/subscribe", {
+    method: "POST",
+    body: JSON.stringify({ email, source }),
+  });
 }

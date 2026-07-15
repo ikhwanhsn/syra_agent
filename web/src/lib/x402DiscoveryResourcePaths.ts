@@ -42,6 +42,10 @@ export const X402_DISCOVERY_RESOURCE_PATHS = [
   "chat/completions",
   "images/generations",
   "videos/generations",
+  "embeddings",
+  "rerank",
+  "audio/speech",
+  "audio/transcriptions",
   "8004/stats",
   "8004/leaderboard",
   "8004/agents/search"

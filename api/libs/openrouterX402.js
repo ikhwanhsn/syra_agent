@@ -1,6 +1,7 @@
 /**
- * OpenRouter credentials for x402 paid routes (chat / images / videos).
- * Separate from OPENROUTER_API_KEY used by internal Syra agents and /agent/chat.
+ * OpenRouter credentials for x402 paid routes
+ * (chat / images / videos / embeddings / rerank / speech / transcriptions).
+ * Separate from OPENROUTER_API_KEY used by internal Syra agents and /labs/llm.
  */
 export const OPENROUTER_X402_API_KEY_ENV = 'OPENROUTER_API_KEY_x402';
 

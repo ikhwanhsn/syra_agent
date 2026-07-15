@@ -6,16 +6,18 @@ import { cn } from "@/lib/utils";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 import type { ArticleItem } from "@/data/marketing/articles";
 import { ArticleCopyForXButton } from "@/components/marketing/ArticleCopyForXButton";
+import {
+  ARTICLE_IMAGE_HEIGHT,
+  ARTICLE_IMAGE_WIDTH,
+  articleMediaFrameClass,
+  articleMediaImgClass,
+} from "@/lib/marketing/articleImageLayout";
 
 /** Shared surface aligned with dashboard overview cards. */
 const cardSurfaceClass = cn(
   overviewCardShell,
   "group h-full overflow-hidden transition-colors hover:border-border/70",
 );
-
-/** All article thumbs use 16:9 (same as `article-two.webp` at 1920×1080). */
-const articleThumbFrameClass =
-  "relative aspect-video w-full shrink-0 overflow-hidden border-b border-border/40 bg-muted/20";
 
 export interface ArticleCardProps {
   article: ArticleItem;
@@ -31,8 +33,8 @@ function ArticleMedia({ article }: { article: ArticleItem }) {
     return (
       <div
         className={cn(
-          articleThumbFrameClass,
-          "flex flex-col items-center justify-center gap-3 border-border/50 bg-gradient-to-br from-muted/50 via-muted/25 to-background",
+          articleMediaFrameClass,
+          "flex flex-col items-center justify-center gap-3 border-b border-border/50 bg-gradient-to-br from-muted/50 via-muted/25 to-background",
         )}
         aria-hidden
       >
@@ -46,20 +48,34 @@ function ArticleMedia({ article }: { article: ArticleItem }) {
 
   if (article.coverImage) {
     return (
-      <div className={articleThumbFrameClass}>
+      <div className={cn(articleMediaFrameClass, "border-b border-border/40")}>
         <img
           src={article.coverImage}
           alt=""
           loading="lazy"
-          width={1920}
-          height={1080}
-          className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+          decoding="async"
+          width={ARTICLE_IMAGE_WIDTH}
+          height={ARTICLE_IMAGE_HEIGHT}
+          className={cn(
+            articleMediaImgClass,
+            "transition-transform duration-300 group-hover:scale-[1.03]",
+          )}
+        />
+        <div
+          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/40 via-transparent to-transparent"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-white/[0.03]"
+          aria-hidden
         />
       </div>
     );
   }
 
-  return <div className={cn(articleThumbFrameClass, "bg-muted/25")} aria-hidden />;
+  return (
+    <div className={cn(articleMediaFrameClass, "border-b border-border/40 bg-muted/25")} aria-hidden />
+  );
 }
 
 export function ArticleCard({

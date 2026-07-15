@@ -5,6 +5,12 @@ import { playgroundFilterRailClass } from "@/components/playground/playgroundSty
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 import type { ArticleItem } from "@/data/marketing/articles";
 import { ArticleCopyForXButton } from "@/components/marketing/ArticleCopyForXButton";
+import {
+  ARTICLE_IMAGE_HEIGHT,
+  ARTICLE_IMAGE_WIDTH,
+  articleMediaFrameClass,
+  articleMediaImgClass,
+} from "@/lib/marketing/articleImageLayout";
 import { cn } from "@/lib/utils";
 
 function formatPublishedDate(iso?: string) {
@@ -45,15 +51,27 @@ export function FeaturedArticleHero({ article, showAdminCopy = false }: Featured
         className="grid min-w-0 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background md:grid-cols-2"
       >
         {article.coverImage ? (
-          <div className="relative aspect-video overflow-hidden border-b border-border/40 bg-muted/20 md:aspect-auto md:min-h-[260px] md:border-b-0 md:border-r lg:min-h-[300px]">
+          <div
+            className={cn(
+              articleMediaFrameClass,
+              "border-b border-border/40 md:self-start md:border-b-0 md:border-r",
+            )}
+          >
             <img
               src={article.coverImage}
               alt=""
-              width={1920}
-              height={1080}
-              className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+              width={ARTICLE_IMAGE_WIDTH}
+              height={ARTICLE_IMAGE_HEIGHT}
+              className={cn(
+                articleMediaImgClass,
+                "transition-transform duration-500 group-hover:scale-[1.03]",
+              )}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent md:bg-gradient-to-r md:from-transparent md:via-transparent md:to-background/20" />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/55 via-background/5 to-transparent md:bg-gradient-to-r md:from-transparent md:via-transparent md:to-background/25" />
+            <div
+              className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-white/[0.04]"
+              aria-hidden
+            />
           </div>
         ) : null}
 

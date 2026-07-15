@@ -18,12 +18,12 @@ import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import { fetchEarnSummary } from "@/lib/pillarsApi";
 import { cn } from "@/lib/utils";
 
-const EARN_TRACKS = ["prompts", "kol", "skills", "token"] as const;
+const EARN_TRACKS = ["token", "prompts", "kol", "skills"] as const;
 type EarnTrack = (typeof EARN_TRACKS)[number];
 
 function parseTrack(value: string | null): EarnTrack {
   if (value && EARN_TRACKS.includes(value as EarnTrack)) return value as EarnTrack;
-  return "prompts";
+  return "token";
 }
 
 export default function EarnPage() {
@@ -64,7 +64,7 @@ export default function EarnPage() {
       setActiveTrack(track);
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev);
-        if (track === "prompts") next.delete("track");
+        if (track === "token") next.delete("track");
         else next.set("track", track);
         return next;
       });
@@ -75,8 +75,8 @@ export default function EarnPage() {
   const handleSignIn = () => {
     void requestSyraAuth().then((session) => {
       if (session) {
-        void queryClient.invalidateQueries({ queryKey: skillsQueryKey });
-        void queryClient.invalidateQueries({ queryKey: ["earn", "prompts", key] });
+        void queryClient.invalidateQueries({ queryKey: ["earn", "skills"] });
+        void queryClient.invalidateQueries({ queryKey: ["earn", "prompts"] });
       }
     });
   };
@@ -84,14 +84,14 @@ export default function EarnPage() {
   const handleRequestAuth = async (): Promise<boolean> => {
     const session = await requestSyraAuth();
     if (session) {
-      void queryClient.invalidateQueries({ queryKey: skillsQueryKey });
-      void queryClient.invalidateQueries({ queryKey: ["earn", "prompts", key] });
+      void queryClient.invalidateQueries({ queryKey: ["earn", "skills"] });
+      void queryClient.invalidateQueries({ queryKey: ["earn", "prompts"] });
     }
     return Boolean(session);
   };
 
   const invalidateSkills = () => {
-    void queryClient.invalidateQueries({ queryKey: skillsQueryKey });
+    void queryClient.invalidateQueries({ queryKey: ["earn", "skills"] });
     void queryClient.invalidateQueries({ queryKey: ["earn", "summary", key] });
   };
 
@@ -137,6 +137,7 @@ export default function EarnPage() {
             kolContent={<EarnKolPanel walletAddress={address} connected={connected} />}
             skillsContent={
               <EarnSkillsPanel
+                anonymousId={anonymousId}
                 skillsQueryKey={skillsQueryKey}
                 connected={connected}
                 syraAuthenticated={syraAuthenticated}

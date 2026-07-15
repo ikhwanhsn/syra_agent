@@ -23,6 +23,7 @@ export type LlmModelInfo = {
   pricing: LlmModelPricing;
   cheapest: boolean;
   priceScore?: number;
+  supported_voices?: string[];
 };
 
 export type LlmModelsResponse = {
@@ -160,6 +161,27 @@ export async function fetchLlmVideoStatus(
     adminWallet,
   );
   return res.data;
+}
+
+/** Fetch video bytes via auth proxy (OpenRouter content URLs require API key). */
+export async function fetchLlmVideoContentBlob(
+  adminWallet: string,
+  generationId: string,
+  index = 0,
+): Promise<Blob> {
+  const url = `${getApiBaseUrl()}/labs/llm/video/${encodeURIComponent(generationId)}/content?index=${index}`;
+  const headers = new Headers();
+  headers.set("x-admin-wallet", adminWallet);
+  const res = await fetch(url, { headers, credentials: "include" });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    const msg =
+      (typeof body.error === "string" && body.error) ||
+      (typeof body.message === "string" && body.message) ||
+      `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+  return res.blob();
 }
 
 export async function createLlmEmbeddings(

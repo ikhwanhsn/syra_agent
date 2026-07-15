@@ -4,10 +4,13 @@ import { requireSession } from '../utils/requireSession.js';
 import { getEarnSummary, processEarnPayout } from '../libs/earnService.js';
 import {
   collectEarnPumpfunFees,
+  getEarnPumpfunLaunchByMint,
   launchEarnPumpfunToken,
   listEarnPumpfunLaunches,
+  listMarketplaceEarnPumpfunLaunches,
   resolveEarnWalletForSession,
   uploadPumpfunMetadata,
+  withSyraTokenNameSuffix,
 } from '../libs/earnPumpfunService.js';
 
 const upload = multer({
@@ -67,6 +70,24 @@ export function createEarnRouter() {
     }
   });
 
+  /**
+   * GET /earn/token/marketplace
+   * Public discovery — recent pump.fun launches from all earn creators.
+   */
+  router.get('/token/marketplace', async (req, res) => {
+    try {
+      const limit = req.query.limit;
+      const skip = req.query.skip;
+      const launches = await listMarketplaceEarnPumpfunLaunches({ limit, skip });
+      return res.json({ success: true, data: { launches } });
+    } catch (e) {
+      return res.status(500).json({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  });
+
   /** GET /earn/token/launches — tokens launched from earn wallet */
   router.get('/token/launches', requireSession({ allowGuest: true }), async (req, res) => {
     try {
@@ -113,7 +134,7 @@ export function createEarnRouter() {
         if (!req.file?.buffer?.length) {
           return res.status(400).json({ success: false, error: 'file is required (image)' });
         }
-        const name = String(req.body?.name || '').trim();
+        const name = withSyraTokenNameSuffix(String(req.body?.name || '').trim());
         const symbol = String(req.body?.symbol || '').trim();
         if (!name || !symbol) {
           return res.status(400).json({ success: false, error: 'name and symbol are required' });
@@ -146,7 +167,7 @@ export function createEarnRouter() {
   /** POST /earn/token/launch — create coin on pump.fun via earn agent wallet */
   router.post('/token/launch', requireSession({ allowGuest: false }), async (req, res) => {
     try {
-      const name = String(req.body?.name || '').trim();
+      const name = withSyraTokenNameSuffix(String(req.body?.name || '').trim());
       const symbol = String(req.body?.symbol || '').trim();
       const uri = String(req.body?.uri || req.body?.metadataUri || '').trim();
       const solLamports = String(req.body?.solLamports || '').trim();
@@ -162,6 +183,11 @@ export function createEarnRouter() {
         req.user?.walletAddress || null,
       );
 
+      const imageUri =
+        typeof req.body?.imageUri === 'string' ? req.body.imageUri.trim() : null;
+      const description =
+        typeof req.body?.description === 'string' ? req.body.description.trim() : null;
+
       const result = await launchEarnPumpfunToken({
         earnAnonymousId: resolved.earnAnonymousId,
         earnAgentAddress: resolved.earnAgentAddress,
@@ -169,6 +195,8 @@ export function createEarnRouter() {
         symbol,
         uri,
         solLamports,
+        imageUri,
+        description,
         ctx: {
           host: req.get('host'),
           user: req.user,
@@ -187,6 +215,7 @@ export function createEarnRouter() {
         data: {
           mint: result.mint,
           signature: result.signature,
+          imageUri: result.imageUri || null,
           submittedOnChain: result.submittedOnChain,
           submitError: result.submitError,
           confirmationRequired: result.confirmationRequired,
@@ -198,6 +227,26 @@ export function createEarnRouter() {
       return res.status(500).json({
         success: false,
         error: e instanceof Error ? e.message : 'launch_failed',
+      });
+    }
+  });
+
+  /** GET /earn/token/:mint — public token detail (after literal /token/* routes) */
+  router.get('/token/:mint', async (req, res) => {
+    try {
+      const mint = String(req.params.mint || '').trim();
+      if (!mint) {
+        return res.status(400).json({ success: false, error: 'invalid_mint' });
+      }
+      const launch = await getEarnPumpfunLaunchByMint(mint);
+      if (!launch) {
+        return res.status(404).json({ success: false, error: 'token_not_found' });
+      }
+      return res.json({ success: true, data: { launch } });
+    } catch (e) {
+      return res.status(500).json({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
       });
     }
   });

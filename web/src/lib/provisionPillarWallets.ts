@@ -11,7 +11,7 @@ export function linkedWalletAnonymousId(walletAddress: string): string {
   return `wallet:${walletAddress.trim()}`;
 }
 
-/** Whether an anonymousId belongs to the given linked wallet (base or sibling). */
+/** Whether an anonymousId belongs to the given linked Solana wallet (base or sibling). */
 export function isAnonymousIdForWallet(anonymousId: string, walletAddress: string): boolean {
   const base = linkedWalletAnonymousId(walletAddress);
   return anonymousId === base || anonymousId.startsWith(`${base}:`);
@@ -49,17 +49,33 @@ export function hasCompletePillarSet(set: AgentWalletSetResponse | undefined): b
 /** Seed react-query with wallet set returned from connect / sign-in provisioning. */
 export function seedPillarWalletSetCache(
   queryClient: QueryClient,
-  res: { anonymousId: string; agentAddress: string; avatarUrl?: string | null; wallets?: AgentWalletSetResponse["wallets"] },
+  res: {
+    anonymousId: string;
+    agentAddress: string;
+    avatarUrl?: string | null;
+    wallets?: AgentWalletSetResponse["wallets"];
+  },
+  walletAddress?: string | null,
 ): void {
   if (!res.wallets || !res.anonymousId) return;
-  queryClient.setQueryData<AgentWalletSetResponse>(["agent-wallet-set", res.anonymousId], {
+  const payload: AgentWalletSetResponse = {
     anonymousId: res.anonymousId,
     agentAddress: res.agentAddress,
     avatarUrl: res.avatarUrl ?? null,
     purpose: "spend",
     wallets: res.wallets,
     balances: null,
-  });
+  };
+  // Always seed the anonymousId-only key (legacy callers / invalidations).
+  queryClient.setQueryData<AgentWalletSetResponse>(["agent-wallet-set", res.anonymousId], payload);
+  // Match usePillarAgentWallets key that includes walletAddress — required for live cards.
+  const wallet = walletAddress?.trim();
+  if (wallet) {
+    queryClient.setQueryData<AgentWalletSetResponse>(
+      ["agent-wallet-set", res.anonymousId, wallet],
+      payload,
+    );
+  }
 }
 
 export type ProvisionedWalletFields = AgentWalletLpFields & {

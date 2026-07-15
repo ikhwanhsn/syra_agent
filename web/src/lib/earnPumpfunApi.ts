@@ -5,10 +5,14 @@ const base = () => getApiBaseUrl().replace(/\/$/, "");
 
 export type EarnPumpfunLaunch = {
   id: string;
+  earnAnonymousId?: string;
+  earnAgentAddress?: string;
   mint: string;
   name: string;
   symbol: string;
   metadataUri: string;
+  imageUri?: string | null;
+  description?: string | null;
   launchSignature: string | null;
   initialBuyLamports: string | null;
   lastFeeCollectSignature: string | null;
@@ -25,6 +29,7 @@ export type EarnPumpfunWalletInfo = {
 export type LaunchTokenResult = {
   mint: string | null;
   signature: string | null;
+  imageUri?: string | null;
   submittedOnChain?: boolean;
   submitError?: string;
   confirmationRequired?: boolean;
@@ -42,7 +47,23 @@ export type CollectFeesResult = {
 };
 
 async function parseJson<T>(res: Response): Promise<T & { success?: boolean; error?: string }> {
-  const data = (await res.json().catch(() => ({}))) as T & { success?: boolean; error?: string };
+  const contentType = res.headers.get("content-type") ?? "";
+  const raw = await res.text().catch(() => "");
+  let data = {} as T & { success?: boolean; error?: string };
+  if (raw) {
+    try {
+      data = JSON.parse(raw) as T & { success?: boolean; error?: string };
+    } catch {
+      if (!res.ok) {
+        throw new Error(res.statusText || "Request failed");
+      }
+      throw new Error(
+        contentType.includes("json")
+          ? "Invalid JSON response from server"
+          : "Server returned a non-JSON response",
+      );
+    }
+  }
   if (!res.ok) {
     throw new Error(data.error || res.statusText || "Request failed");
   }
@@ -60,6 +81,22 @@ export async function fetchEarnPumpfunLaunches(
   return json.data;
 }
 
+/** Public marketplace catalog — launches from all creators. */
+export async function fetchEarnPumpfunMarketplace(params?: {
+  limit?: number;
+  skip?: number;
+}): Promise<{ launches: EarnPumpfunLaunch[] }> {
+  const search = new URLSearchParams();
+  if (params?.limit != null) search.set("limit", String(params.limit));
+  if (params?.skip != null) search.set("skip", String(params.skip));
+  const qs = search.toString();
+  const res = await fetch(`${base()}/earn/token/marketplace${qs ? `?${qs}` : ""}`, {
+    headers: { Accept: "application/json" },
+  });
+  const json = await parseJson<{ data: { launches: EarnPumpfunLaunch[] } }>(res);
+  return { launches: json.data?.launches ?? [] };
+}
+
 export async function uploadEarnTokenMetadata(input: {
   file: File;
   name: string;
@@ -68,7 +105,7 @@ export async function uploadEarnTokenMetadata(input: {
   twitter?: string;
   telegram?: string;
   website?: string;
-}): Promise<{ metadataUri: string }> {
+}): Promise<{ metadataUri: string; imageUri: string | null; description: string | null }> {
   const form = new FormData();
   form.append("file", input.file);
   form.append("name", input.name.trim());
@@ -80,10 +117,30 @@ export async function uploadEarnTokenMetadata(input: {
 
   const res = await syraFetch(`${base()}/earn/token/metadata`, {
     method: "POST",
+    // Let the browser set multipart/form-data + boundary (syraFetch skips JSON Content-Type for FormData).
     body: form,
   });
-  const json = await parseJson<{ data: { metadataUri: string } }>(res);
-  return { metadataUri: json.data.metadataUri };
+  const json = await parseJson<{
+    data: { metadataUri: string; imageUri?: string | null; description?: string | null };
+  }>(res);
+  if (!json.data?.metadataUri) {
+    throw new Error("Metadata upload did not return a URI");
+  }
+  return {
+    metadataUri: json.data.metadataUri,
+    imageUri: json.data.imageUri?.trim() || null,
+    description: json.data.description?.trim() || null,
+  };
+}
+
+/** Public token detail by mint. */
+export async function fetchEarnPumpfunTokenDetail(mint: string): Promise<EarnPumpfunLaunch> {
+  const res = await fetch(`${base()}/earn/token/${encodeURIComponent(mint.trim())}`, {
+    headers: { Accept: "application/json" },
+  });
+  const json = await parseJson<{ data: { launch: EarnPumpfunLaunch } }>(res);
+  if (!json.data?.launch) throw new Error(json.error || "Token not found");
+  return json.data.launch;
 }
 
 export async function launchEarnPumpfunToken(input: {
@@ -91,6 +148,8 @@ export async function launchEarnPumpfunToken(input: {
   symbol: string;
   uri: string;
   solLamports: string;
+  imageUri?: string | null;
+  description?: string | null;
 }): Promise<LaunchTokenResult> {
   const res = await syraFetch(`${base()}/earn/token/launch`, {
     method: "POST",
@@ -100,6 +159,8 @@ export async function launchEarnPumpfunToken(input: {
       symbol: input.symbol.trim().toUpperCase(),
       uri: input.uri.trim(),
       solLamports: input.solLamports,
+      ...(input.imageUri?.trim() ? { imageUri: input.imageUri.trim() } : {}),
+      ...(input.description?.trim() ? { description: input.description.trim() } : {}),
     }),
   });
   const json = (await res.json().catch(() => ({}))) as {
@@ -112,9 +173,15 @@ export async function launchEarnPumpfunToken(input: {
   };
   if (!res.ok) {
     if (json.insufficientBalance) {
-      const need = json.requiredUsdc != null ? `$${json.requiredUsdc.toFixed(2)}` : "more USDC";
-      const have = json.usdcBalance != null ? `$${json.usdcBalance.toFixed(2)}` : "low balance";
-      throw new Error(`Earn wallet needs ${need} for the platform fee (current: ${have}). Fund via Earn wallet.`);
+      const need = typeof json.requiredUsdc === "number" ? json.requiredUsdc : null;
+      const have = typeof json.usdcBalance === "number" ? json.usdcBalance : 0;
+      // Legacy USDC fee path (should not fire for earn launches with skipUsdcCharge).
+      if (need != null && need > 0) {
+        throw new Error(
+          `Earn wallet needs $${need.toFixed(2)} USDC (current: $${have.toFixed(2)}). Fund via Earn wallet.`,
+        );
+      }
+      throw new Error(json.error || "Earn wallet not ready. Fund SOL via Earn wallet and try again.");
     }
     throw new Error(json.error || res.statusText || "Launch failed");
   }
@@ -145,4 +212,17 @@ export function shortenMint(mint: string): string {
   const t = mint.trim();
   if (t.length <= 12) return t;
   return `${t.slice(0, 4)}…${t.slice(-4)}`;
+}
+
+/** Appended to every earn-pillar pump.fun token display name. */
+export const SYRA_TOKEN_NAME_SUFFIX = " by Syra";
+
+/** Ensure token name ends with " by Syra" (idempotent, case-insensitive). */
+export function withSyraTokenNameSuffix(rawName: string): string {
+  const base = rawName.trim();
+  if (!base) return "";
+  if (/\s+by\s+syra$/i.test(base)) {
+    return base.replace(/\s+by\s+syra$/i, SYRA_TOKEN_NAME_SUFFIX);
+  }
+  return `${base}${SYRA_TOKEN_NAME_SUFFIX}`;
 }

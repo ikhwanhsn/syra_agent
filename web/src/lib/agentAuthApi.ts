@@ -286,7 +286,11 @@ export async function syraFetch(input: RequestInfo | URL, init?: RequestInit): P
   const doFetch = async (accessToken: string | null) => {
     const headers = new Headers(init?.headers);
     if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
-    if (!headers.has("Content-Type") && init?.body) {
+    // FormData must keep the browser-generated multipart boundary — never force JSON.
+    const isFormData = typeof FormData !== "undefined" && init?.body instanceof FormData;
+    if (isFormData) {
+      headers.delete("Content-Type");
+    } else if (!headers.has("Content-Type") && init?.body) {
       headers.set("Content-Type", "application/json");
     }
     return fetch(input, {

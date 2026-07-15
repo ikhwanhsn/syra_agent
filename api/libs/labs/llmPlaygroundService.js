@@ -14,6 +14,8 @@ const OPENROUTER_BASE = (process.env.OPENROUTER_API_BASE || 'https://openrouter.
 );
 
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+/** Bump when ranking/filter rules change so hot-reloads do not keep bad catalogs. */
+const MODEL_CACHE_EPOCH = 'v3-voices-and-auto-filter';
 
 /** @type {Map<string, { fetchedAt: number; models: LlmModelInfo[] }>} */
 const modelCache = new Map();
@@ -25,6 +27,7 @@ const modelCache = new Map();
  *   pricing: Record<string, number | null>;
  *   cheapest: boolean;
  *   priceScore: number;
+ *   supported_voices?: string[];
  * }} LlmModelInfo
  */
 
@@ -68,12 +71,42 @@ function throwOpenRouterError(response, data) {
 
 /**
  * @param {unknown} value
+ * @returns {number | null} USD rate, or null when missing / dynamic (-1) / invalid
+ */
+function parseUsdRateOrNull(value) {
+  if (value == null || value === '') return null;
+  const n = Number(value);
+  // OpenRouter uses -1 for dynamic / "contact for price" rates.
+  if (!Number.isFinite(n) || n < 0) return null;
+  return n;
+}
+
+/**
+ * @param {unknown} value
  * @returns {number}
  */
 function parseUsdRate(value) {
-  if (value == null) return 0;
-  const n = Number(value);
-  return Number.isFinite(n) && n >= 0 ? n : 0;
+  return parseUsdRateOrNull(value) ?? 0;
+}
+
+/**
+ * Meta routers (e.g. openrouter/auto) appear in image catalogs but have no
+ * POST /images endpoint — selecting them as "cheapest" breaks generation.
+ * @param {Record<string, unknown>} model
+ * @returns {boolean}
+ */
+function isUsableModalityModel(model) {
+  const id = String(model?.id || model?.model || '').toLowerCase();
+  if (!id) return false;
+  if (id === 'openrouter/auto' || id === 'openrouter/free') return false;
+  if (id.endsWith('/auto') || id.includes('auto-router') || id.includes('meta-router')) {
+    return false;
+  }
+  const tokenizer = String(
+    /** @type {Record<string, unknown>} */ (model.architecture || {})?.tokenizer || ''
+  ).toLowerCase();
+  if (tokenizer === 'router') return false;
+  return true;
 }
 
 /**
@@ -85,7 +118,7 @@ function scorePricing(pricing, pricingKey) {
   if (!pricing || typeof pricing !== 'object') return Number.POSITIVE_INFINITY;
   const candidates = [pricing[pricingKey]];
   if (pricingKey === 'image') {
-    candidates.push(pricing.image_output, pricing.output_image, pricing.completion);
+    candidates.push(pricing.image_output, pricing.output_image, pricing.completion, pricing.prompt);
   }
   if (pricingKey === 'audio') {
     candidates.push(
@@ -102,15 +135,20 @@ function scorePricing(pricing, pricingKey) {
   if (pricingKey === 'request') {
     candidates.push(pricing.request, pricing.prompt);
   }
+  let sawExplicitZero = false;
   for (const c of candidates) {
-    const n = parseUsdRate(c);
+    const n = parseUsdRateOrNull(c);
+    if (n == null) continue;
     if (n > 0) return n;
+    sawExplicitZero = true;
   }
-  // Prefer free / zero-cost models over unknown
+  // Explicit $0 rates beat unknown/dynamic (-1) pricing.
+  if (sawExplicitZero) return 0;
   const anyRate = Object.values(pricing)
-    .map(parseUsdRate)
-    .find((n) => n > 0);
-  return anyRate ?? 0;
+    .map(parseUsdRateOrNull)
+    .find((n) => n != null && n > 0);
+  if (anyRate != null) return anyRate;
+  return Number.POSITIVE_INFINITY;
 }
 
 /**
@@ -193,6 +231,29 @@ function extractRawPricing(model) {
 }
 
 /**
+ * @param {Record<string, unknown>} model
+ * @returns {string[] | undefined}
+ */
+function extractSupportedVoices(model) {
+  const raw = model.supported_voices;
+  if (Array.isArray(raw) && raw.length > 0) {
+    return raw
+      .map((v) => (typeof v === 'string' ? v.trim() : ''))
+      .filter(Boolean);
+  }
+  const arch = model.architecture;
+  if (arch && typeof arch === 'object' && !Array.isArray(arch)) {
+    const nested = /** @type {Record<string, unknown>} */ (arch).supported_voices;
+    if (Array.isArray(nested) && nested.length > 0) {
+      return nested
+        .map((v) => (typeof v === 'string' ? v.trim() : ''))
+        .filter(Boolean);
+    }
+  }
+  return undefined;
+}
+
+/**
  * @param {string} modality
  * @param {Array<Record<string, unknown>>} rawList
  * @returns {LlmModelInfo[]}
@@ -202,18 +263,23 @@ function rankModels(modality, rawList) {
   /** @type {LlmModelInfo[]} */
   const models = [];
   for (const m of rawList) {
+    if (!m || typeof m !== 'object' || !isUsableModalityModel(m)) continue;
     const id = typeof m?.id === 'string' ? m.id : typeof m?.model === 'string' ? m.model : '';
     if (!id) continue;
     const rawPricing = extractRawPricing(m);
     const pricing = normalizePricing(rawPricing);
     const priceScore = scorePricing(rawPricing, cfg.pricingKey);
-    models.push({
+    /** @type {LlmModelInfo} */
+    const info = {
       id,
       name: typeof m.name === 'string' && m.name.trim() ? m.name.trim() : id,
       pricing,
       cheapest: false,
       priceScore,
-    });
+    };
+    const voices = extractSupportedVoices(m);
+    if (voices && voices.length > 0) info.supported_voices = voices;
+    models.push(info);
   }
 
   if (models.length === 0) {
@@ -236,7 +302,13 @@ function rankModels(modality, rawList) {
   models.sort((a, b) => a.priceScore - b.priceScore || a.id.localeCompare(b.id));
   const cheapestScore = models[0].priceScore;
   for (const m of models) {
-    m.cheapest = m.priceScore === cheapestScore;
+    m.cheapest = Number.isFinite(cheapestScore) && m.priceScore === cheapestScore;
+  }
+  // When every rate is unknown, prefer the curated fallback if present.
+  if (!Number.isFinite(cheapestScore)) {
+    const preferred = models.find((m) => m.id === cfg.fallbackDefault);
+    if (preferred) preferred.cheapest = true;
+    else if (models[0]) models[0].cheapest = true;
   }
   return models;
 }
@@ -252,7 +324,8 @@ export async function listModelsForModality(modality) {
     throw err;
   }
 
-  const cached = modelCache.get(modality);
+  const cacheKey = `${MODEL_CACHE_EPOCH}:${modality}`;
+  const cached = modelCache.get(cacheKey);
   if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
     const cheapest = cached.models.find((m) => m.cheapest)?.id ?? cached.models[0]?.id;
     return { default_model: cheapest, models: cached.models };
@@ -306,7 +379,7 @@ export async function listModelsForModality(modality) {
   }
 
   const models = rankModels(modality, rawList);
-  modelCache.set(modality, { fetchedAt: Date.now(), models });
+  modelCache.set(cacheKey, { fetchedAt: Date.now(), models });
   const default_model = models.find((m) => m.cheapest)?.id ?? cfg.fallbackDefault;
   return { default_model, models };
 }
@@ -416,6 +489,32 @@ export async function submitVideo(params) {
 }
 
 /**
+ * OpenRouter returns unsigned_urls that require API-key auth — normalize a
+ * browser-usable `url` field for the playground UI / content proxy.
+ * @param {object} data
+ * @returns {object}
+ */
+function normalizeVideoStatusResult(data) {
+  if (!data || typeof data !== 'object') return data;
+  const row = /** @type {Record<string, unknown>} */ (data);
+  if (typeof row.url === 'string' && row.url.trim()) return data;
+  if (typeof row.video_url === 'string' && row.video_url.trim()) {
+    return { ...row, url: row.video_url };
+  }
+  const unsigned = row.unsigned_urls;
+  if (Array.isArray(unsigned) && typeof unsigned[0] === 'string' && unsigned[0].trim()) {
+    const id = typeof row.id === 'string' ? row.id : '';
+    return {
+      ...row,
+      url: unsigned[0],
+      // Playground proxy path (auth via x-admin-wallet) — used by the web UI.
+      content_proxy_path: id ? `/labs/llm/video/${encodeURIComponent(id)}/content` : null,
+    };
+  }
+  return data;
+}
+
+/**
  * @param {string} generationId
  * @returns {Promise<object>}
  */
@@ -430,7 +529,47 @@ export async function getVideoStatus(generationId) {
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throwOpenRouterError(response, data);
-  return data;
+  return normalizeVideoStatusResult(data);
+}
+
+/**
+ * Stream generated video bytes (OpenRouter content URLs require Authorization).
+ * Prefer streaming to avoid buffering large videos into the Node heap.
+ * @param {string} generationId
+ * @param {number} [index]
+ * @returns {Promise<{ response: Response; contentType: string }>}
+ */
+export async function getVideoContentResponse(generationId, index = 0) {
+  const id = String(generationId || '').trim();
+  if (!id) {
+    throw Object.assign(new Error('generation id is required'), { status: 400 });
+  }
+  const idx = Number.isFinite(Number(index)) ? Math.max(0, Math.floor(Number(index))) : 0;
+  const response = await fetch(
+    `${OPENROUTER_BASE}/videos/${encodeURIComponent(id)}/content?index=${idx}`,
+    {
+      method: 'GET',
+      headers: buildInternalHeaders(),
+    }
+  );
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throwOpenRouterError(response, data);
+  }
+  const contentType = response.headers.get('content-type') || 'video/mp4';
+  return { response, contentType };
+}
+
+/**
+ * @deprecated Prefer getVideoContentResponse for streaming; kept for small fixtures.
+ * @param {string} generationId
+ * @param {number} [index]
+ * @returns {Promise<{ buffer: Buffer; contentType: string }>}
+ */
+export async function getVideoContent(generationId, index = 0) {
+  const { response, contentType } = await getVideoContentResponse(generationId, index);
+  const buffer = Buffer.from(await response.arrayBuffer());
+  return { buffer, contentType };
 }
 
 /**
@@ -516,12 +655,29 @@ export async function synthesizeSpeech(params) {
       ? body.model.trim()
       : (await listModelsForModality('speech')).default_model;
 
+  const listed = await listModelsForModality('speech');
+  const modelMeta = listed.models.find((m) => m.id === model);
+  const defaultVoice =
+    modelMeta?.supported_voices?.[0] ||
+    (model.includes('kokoro')
+      ? 'af_heart'
+      : model.includes('voxtral')
+        ? 'en_paul_neutral'
+        : model.includes('gemini')
+          ? 'Kore'
+          : 'alloy');
+
   const voice =
-    typeof body.voice === 'string' && body.voice.trim() ? body.voice.trim() : 'alloy';
-  const response_format =
+    typeof body.voice === 'string' && body.voice.trim() ? body.voice.trim() : defaultVoice;
+
+  let response_format =
     typeof body.response_format === 'string' && body.response_format.trim()
       ? body.response_format.trim()
       : 'mp3';
+  // Gemini TTS rejects mp3 — only pcm is supported.
+  if (model.toLowerCase().includes('gemini') && response_format !== 'pcm') {
+    response_format = 'pcm';
+  }
 
   const payload = {
     model,
@@ -544,12 +700,53 @@ export async function synthesizeSpeech(params) {
 
   const contentType = response.headers.get('content-type') || 'audio/mpeg';
   const generationId = response.headers.get('x-generation-id');
-  const buf = Buffer.from(await response.arrayBuffer());
+  let buf = Buffer.from(await response.arrayBuffer());
+  let outType = contentType;
+
+  // Browser <audio> cannot play raw PCM — wrap as WAV for the playground UI.
+  if (/audio\/pcm/i.test(contentType) || response_format === 'pcm') {
+    const rateMatch = /rate=(\d+)/i.exec(contentType);
+    const chMatch = /channels=(\d+)/i.exec(contentType);
+    const sampleRate = rateMatch ? Number(rateMatch[1]) : 24000;
+    const channels = chMatch ? Number(chMatch[1]) : 1;
+    buf = pcmToWav(buf, sampleRate, channels);
+    outType = 'audio/wav';
+  }
+
   return {
     audioBase64: buf.toString('base64'),
-    contentType,
+    contentType: outType,
     generationId: generationId || null,
   };
+}
+
+/**
+ * Wrap 16-bit little-endian PCM into a WAV container.
+ * @param {Buffer} pcm
+ * @param {number} sampleRate
+ * @param {number} channels
+ * @returns {Buffer}
+ */
+function pcmToWav(pcm, sampleRate = 24000, channels = 1) {
+  const bitsPerSample = 16;
+  const blockAlign = (channels * bitsPerSample) / 8;
+  const byteRate = sampleRate * blockAlign;
+  const dataSize = pcm.length;
+  const header = Buffer.alloc(44);
+  header.write('RIFF', 0);
+  header.writeUInt32LE(36 + dataSize, 4);
+  header.write('WAVE', 8);
+  header.write('fmt ', 12);
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(channels, 22);
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(byteRate, 28);
+  header.writeUInt16LE(blockAlign, 32);
+  header.writeUInt16LE(bitsPerSample, 34);
+  header.write('data', 36);
+  header.writeUInt32LE(dataSize, 40);
+  return Buffer.concat([header, pcm]);
 }
 
 /**

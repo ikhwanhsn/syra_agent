@@ -65,19 +65,20 @@ export function CreateCampaignForm({
   const isAdmin = isAdminWallet(walletAddress);
 
   const campaignsQuery = useQuery({
-    queryKey: ["kol-campaigns"],
-    queryFn: () => fetchCampaigns(),
+    queryKey: ["kol-campaigns", walletAddress ?? null],
+    queryFn: () => fetchCampaigns({ wallet: walletAddress ?? undefined }),
     staleTime: 60 * 1000,
     enabled: Boolean(walletAddress),
   });
 
   const existingPending = useMemo(() => {
     if (!walletAddress) return null;
+    const wallet = walletAddress.trim();
     return (
       campaignsQuery.data?.campaigns.find(
         (c) =>
           c.status === "pending_deposit" &&
-          c.projectWallet.trim().toLowerCase() === walletAddress.trim().toLowerCase(),
+          c.projectWallet.trim() === wallet,
       ) ?? null
     );
   }, [campaignsQuery.data?.campaigns, walletAddress]);
@@ -198,6 +199,11 @@ export function CreateCampaignForm({
               setDismissedResume(true);
               void campaignsQuery.refetch();
               onCreated?.(campaign);
+            }}
+            onDeleted={() => {
+              setPendingCampaign(null);
+              setDismissedResume(true);
+              void campaignsQuery.refetch();
             }}
           />
 

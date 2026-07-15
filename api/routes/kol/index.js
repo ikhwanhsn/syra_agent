@@ -10,12 +10,14 @@ import {
   confirmCampaignTopUp,
   createCampaign,
   createCampaignTopUp,
+  cancelPendingCampaign,
   enrichMissingCampaignAuthors,
   backfillSubmissionAuthorKeys,
   backfillKolReputations,
   getCampaignDetail,
   getMarketplaceStats,
   getProfile,
+  getEarningsByHandle,
   getWalletEarnings,
   listCampaigns,
   listKols,
@@ -36,6 +38,12 @@ import {
   getDailyClaimStatus,
 } from "../../libs/s3labsDailyClaimService.js";
 import { sendTestKolCampaignTelegram } from "../../libs/kolCampaignTelegramNotifier.js";
+import {
+  sendTestCampaignEmail,
+  subscribeEmail,
+  unsubscribeByToken,
+} from "../../libs/emailSubscriberService.js";
+import { buildUnsubscribePageHtml } from "../../libs/emailTemplates/campaignEmails.js";
 import { getPoolWalletAddress } from "../../services/kolPoolWallet.js";
 import {
   KOL_PLATFORM_FEE_SOL,
@@ -62,6 +70,8 @@ function handleServiceError(res, error) {
     invalid_tx: 400,
     invalid_id: 400,
     invalid_handle: 400,
+    invalid_email: 400,
+    invalid_token: 400,
     wallet_mismatch: 400,
     invalid_status: 400,
     campaign_ended: 400,
@@ -88,6 +98,8 @@ function handleServiceError(res, error) {
     twitterapi_error: 502,
     mongodb_not_connected: 503,
     telegram_not_configured: 503,
+    email_not_configured: 503,
+    email_send_failed: 502,
     pool_wallet_unconfigured: 503,
   };
 
@@ -162,6 +174,19 @@ export function createKolRouter() {
     async (req, res) => {
       try {
         const result = await getProfile(req.params.username);
+        return res.json({ success: true, data: result });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
+
+  router.get(
+    "/earnings-by-x/:username",
+    requireMongooseConnection,
+    async (req, res) => {
+      try {
+        const result = await getEarningsByHandle(req.params.username);
         return res.json({ success: true, data: result });
       } catch (e) {
         return handleServiceError(res, e);
@@ -274,6 +299,22 @@ export function createKolRouter() {
   );
 
   router.post(
+    "/campaigns/:id/cancel",
+    requireMongooseConnection,
+    async (req, res) => {
+      try {
+        const { projectWallet } = req.body || {};
+        const result = await cancelPendingCampaign(req.params.id, {
+          projectWallet,
+        });
+        return res.json({ success: true, data: result });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
+
+  router.post(
     "/campaigns/:id/top-ups",
     requireMongooseConnection,
     async (req, res) => {
@@ -319,7 +360,9 @@ export function createKolRouter() {
         typeof req.query.limit === "string"
           ? Number(req.query.limit)
           : undefined;
-      const result = await listCampaigns({ status, limit });
+      const wallet =
+        typeof req.query.wallet === "string" ? req.query.wallet : undefined;
+      const result = await listCampaigns({ status, limit, wallet });
       return res.json({ success: true, data: result });
     } catch (e) {
       return handleServiceError(res, e);
@@ -478,6 +521,44 @@ export function createKolRouter() {
     },
   );
 
+  router.post("/subscribe", requireMongooseConnection, async (req, res) => {
+    try {
+      const { email, source } = req.body || {};
+      const result = await subscribeEmail(
+        email,
+        typeof source === "string" ? source : "kol_page",
+      );
+      return res.status(201).json({ success: true, data: result });
+    } catch (e) {
+      return handleServiceError(res, e);
+    }
+  });
+
+  router.get("/unsubscribe", requireMongooseConnection, async (req, res) => {
+    const token =
+      typeof req.query.token === "string" ? req.query.token : "";
+    try {
+      const result = await unsubscribeByToken(token);
+      return res
+        .type("html")
+        .send(
+          buildUnsubscribePageHtml({
+            success: true,
+            email: result.email,
+          }),
+        );
+    } catch (e) {
+      console.warn(
+        "[kol] unsubscribe failed:",
+        e instanceof Error ? e.message : e,
+      );
+      return res
+        .status(400)
+        .type("html")
+        .send(buildUnsubscribePageHtml({ success: false }));
+    }
+  });
+
   router.post(
     "/admin/send-test-campaign-telegram",
     requireMongooseConnection,
@@ -491,6 +572,23 @@ export function createKolRouter() {
             code: "telegram_not_configured",
           });
         }
+        return res.json({ success: true, data: result });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
+
+  router.post(
+    "/admin/send-test-campaign-email",
+    requireMongooseConnection,
+    async (req, res) => {
+      try {
+        const email =
+          typeof req.body?.email === "string" && req.body.email.trim()
+            ? req.body.email.trim()
+            : "ikhwanulhusna111@gmail.com";
+        const result = await sendTestCampaignEmail(email);
         return res.json({ success: true, data: result });
       } catch (e) {
         return handleServiceError(res, e);

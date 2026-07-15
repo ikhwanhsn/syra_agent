@@ -49,6 +49,10 @@ const DATA_PROVIDER_PATH_PREFIXES = [
   "chat/completions",
   "images/generations",
   "videos/generations",
+  "embeddings",
+  "rerank",
+  "audio/speech",
+  "audio/transcriptions",
 ] as const;
 
 const PARTNER_GROUP_SLUGS = new Set([
@@ -203,6 +207,10 @@ const PATH_BRAND_RULES: ReadonlyArray<{ prefix: string; brand: PartnerServiceBra
   { prefix: "chat/completions", brand: { slug: "openrouter", name: "OpenRouter" } },
   { prefix: "images/generations", brand: { slug: "openrouter", name: "OpenRouter" } },
   { prefix: "videos/generations", brand: { slug: "openrouter", name: "OpenRouter" } },
+  { prefix: "embeddings", brand: { slug: "openrouter", name: "OpenRouter" } },
+  { prefix: "rerank", brand: { slug: "openrouter", name: "OpenRouter" } },
+  { prefix: "audio/speech", brand: { slug: "openrouter", name: "OpenRouter" } },
+  { prefix: "audio/transcriptions", brand: { slug: "openrouter", name: "OpenRouter" } },
   { prefix: "8004/", brand: { slug: "erc-8004", name: "ERC-8004" } },
   { prefix: "nansen/", brand: { slug: "nansen", name: "Nansen" } },
   { prefix: "binance/", brand: { slug: "binance", name: "Binance" } },

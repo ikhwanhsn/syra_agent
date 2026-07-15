@@ -1,16 +1,31 @@
+import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { Coins, Loader2, Wallet } from "lucide-react";
+import { Coins, Loader2, Trash2, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { confirmCampaignDeposit, type KolCampaign } from "@/lib/kolApi";
+import {
+  cancelPendingCampaign,
+  confirmCampaignDeposit,
+  type KolCampaign,
+} from "@/lib/kolApi";
 import { formatSol } from "@/lib/kolFormat";
 import { lamportsToSol, sendCampaignDeposit } from "@/lib/solanaKol";
 
 interface CampaignFundDepositCardProps {
   campaign: KolCampaign;
   onFunded?: (campaign: KolCampaign) => void;
+  onDeleted?: (campaignId: string) => void;
   /** Compact variant for embedding in the create form. */
   compact?: boolean;
 }
@@ -18,13 +33,14 @@ interface CampaignFundDepositCardProps {
 export function CampaignFundDepositCard({
   campaign,
   onFunded,
+  onDeleted,
   compact = false,
 }: CampaignFundDepositCardProps) {
   const wallet = useWallet();
   const address = wallet.publicKey?.toBase58();
   const isOwner =
-    Boolean(address) &&
-    address!.trim().toLowerCase() === campaign.projectWallet.trim().toLowerCase();
+    Boolean(address) && address!.trim() === campaign.projectWallet.trim();
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   const depositAmountSol = lamportsToSol(campaign.rewardLamports);
 
@@ -53,6 +69,24 @@ export function CampaignFundDepositCard({
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      if (!wallet.publicKey) throw new Error("Connect your Solana wallet first");
+      if (!isOwner) throw new Error("Only the campaign creator can delete this draft");
+      return cancelPendingCampaign(campaign.id, {
+        projectWallet: wallet.publicKey.toBase58(),
+      });
+    },
+    onSuccess: (data) => {
+      setConfirmDeleteOpen(false);
+      onDeleted?.(data.campaignId);
+      toast.success("Draft deleted", {
+        description: "You can create a new campaign anytime.",
+      });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   if (campaign.status !== "pending_deposit") return null;
 
   if (!isOwner) {
@@ -70,64 +104,111 @@ export function CampaignFundDepositCard({
     );
   }
 
+  const busy = depositMutation.isPending || deleteMutation.isPending;
+
   return (
-    <div
-      className={
-        compact
-          ? "rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 space-y-3"
-          : "rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5 sm:p-8 space-y-5"
-      }
-    >
-      <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 border border-amber-500/30">
-          <Coins className="w-4 h-4 text-amber-400" />
+    <>
+      <div
+        className={
+          compact
+            ? "rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 space-y-3"
+            : "rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5 sm:p-8 space-y-5"
+        }
+      >
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 border border-amber-500/30">
+            <Coins className="w-4 h-4 text-amber-400" />
+          </div>
+          <div className="min-w-0 space-y-1">
+            <p className="eyebrow text-amber-400/90">Payment required</p>
+            <h3 className="font-semibold text-lg tracking-tight">
+              Finish funding to go live
+            </h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Your campaign draft is saved. Approve a{" "}
+              <span className="font-medium text-foreground tabular-nums">
+                {formatSol(depositAmountSol)} SOL
+              </span>{" "}
+              deposit to activate the reward pool. You can leave and come back anytime — open this
+              campaign again to continue.
+            </p>
+          </div>
         </div>
-        <div className="min-w-0 space-y-1">
-          <p className="eyebrow text-amber-400/90">Payment required</p>
-          <h3 className="font-semibold text-lg tracking-tight">
-            Finish funding to go live
-          </h3>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Your campaign draft is saved. Approve a{" "}
-            <span className="font-medium text-foreground tabular-nums">
-              {formatSol(depositAmountSol)} SOL
-            </span>{" "}
-            deposit to activate the reward pool. You can leave and come back anytime — open this
-            campaign again to continue.
-          </p>
+
+        {!wallet.publicKey ? (
+          <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-background/40 px-4 py-3 text-sm">
+            <Wallet className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+            <p className="text-muted-foreground">
+              Connect the wallet that created this campaign to pay.
+            </p>
+          </div>
+        ) : null}
+
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <Button
+            variant="hero"
+            className="rounded-full w-full sm:w-auto"
+            disabled={!wallet.publicKey || busy}
+            onClick={() => depositMutation.mutate()}
+          >
+            {depositMutation.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Waiting for wallet…
+              </>
+            ) : (
+              `Pay ${formatSol(depositAmountSol)} SOL & go live`
+            )}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="rounded-full w-full sm:w-auto gap-2 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            disabled={!wallet.publicKey || busy}
+            onClick={() => setConfirmDeleteOpen(true)}
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            Delete draft
+          </Button>
         </div>
+
+        <p className="text-xs font-mono text-muted-foreground break-all">
+          Pool: {campaign.poolWalletAddress}
+        </p>
       </div>
 
-      {!wallet.publicKey ? (
-        <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-background/40 px-4 py-3 text-sm">
-          <Wallet className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
-          <p className="text-muted-foreground">
-            Connect the wallet that created this campaign to pay.
-          </p>
-        </div>
-      ) : null}
-
-      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-        <Button
-          variant="hero"
-          className="rounded-full w-full sm:w-auto"
-          disabled={!wallet.publicKey || depositMutation.isPending}
-          onClick={() => depositMutation.mutate()}
-        >
-          {depositMutation.isPending ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Waiting for wallet…
-            </>
-          ) : (
-            `Pay ${formatSol(depositAmountSol)} SOL & go live`
-          )}
-        </Button>
-      </div>
-
-      <p className="text-xs font-mono text-muted-foreground break-all">
-        Pool: {campaign.poolWalletAddress}
-      </p>
-    </div>
+      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <AlertDialogContent className="border-border/60 bg-background sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this draft?</AlertDialogTitle>
+            <AlertDialogDescription>
+              “{campaign.title}” will be removed permanently. You can create a new campaign after
+              deleting. Only unpaid drafts can be deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Keep draft</AlertDialogCancel>
+            <Button
+              variant="destructive"
+              className="rounded-full gap-2"
+              disabled={deleteMutation.isPending}
+              onClick={() => deleteMutation.mutate()}
+            >
+              {deleteMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Deleting…
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4" />
+                  Delete draft
+                </>
+              )}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

@@ -1,0 +1,24 @@
+LLM Playground smoke results 2026-07-15
+
+ROOT CAUSE (Image tab):
+Default "cheapest" model was openrouter/auto (dynamic/-1 pricing scored as $0).
+That meta-router has no POST /images endpoint → 404 "No endpoint found for model openrouter/auto".
+
+FIXES:
+- Exclude openrouter/auto and router models from modality catalogs
+- Treat OpenRouter -1 (dynamic) pricing as unknown, not free
+- Speech: model-specific voices (Kokoro af_*, not OpenAI "alloy")
+- Video: read unsigned_urls + stream auth proxy /labs/llm/video/:id/content
+- Gemini TTS: auto pcm + wrap WAV for browser playback
+
+RESULTS (local files — open in Explorer / browser):
+image:          file:///d:/business/syra-monorepo/tmp/llm-playground-results/02-image.png
+embeddings:     file:///d:/business/syra-monorepo/tmp/llm-playground-results/03-embeddings.json
+speech:         file:///d:/business/syra-monorepo/tmp/llm-playground-results/04-speech.mp3
+rerank:         file:///d:/business/syra-monorepo/tmp/llm-playground-results/05-rerank.json
+video:          file:///d:/business/syra-monorepo/tmp/llm-playground-results/06-video-proxy.mp4
+transcription:  file:///d:/business/syra-monorepo/tmp/llm-playground-results/07-transcription.json
+
+Default image model now: google/gemini-2.5-flash-image
+Video job id: YMTO7GbtFvR2ht9AqDtJ
+Transcription text: "Hello from Sira LLM Playground. Image generation is fixed."

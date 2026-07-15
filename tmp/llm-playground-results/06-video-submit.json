@@ -1,0 +1,8 @@
+﻿{
+    "success":  true,
+    "data":  {
+                 "id":  "YMTO7GbtFvR2ht9AqDtJ",
+                 "polling_url":  "https://openrouter.ai/api/v1/videos/YMTO7GbtFvR2ht9AqDtJ",
+                 "status":  "pending"
+             }
+}

@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Loader2, Film } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -9,11 +9,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ModelSelector } from "@/components/llm/ModelSelector";
 import { useLlmSubmitVideo, useLlmVideoStatus } from "@/hooks/useLlmPlayground";
+import { fetchLlmVideoContentBlob } from "@/lib/llmPlaygroundApi";
+import { useWalletContext } from "@/contexts/WalletContext";
 
 function extractVideoUrl(data: Record<string, unknown> | undefined): string | null {
   if (!data) return null;
-  if (typeof data.url === "string") return data.url;
-  if (typeof data.video_url === "string") return data.video_url;
+  if (typeof data.url === "string" && data.url.trim()) return data.url;
+  if (typeof data.video_url === "string" && data.video_url.trim()) return data.video_url;
+  const unsigned = data.unsigned_urls;
+  if (Array.isArray(unsigned) && typeof unsigned[0] === "string" && unsigned[0].trim()) {
+    return unsigned[0];
+  }
   const nested = data.data;
   if (nested && typeof nested === "object" && !Array.isArray(nested)) {
     const obj = nested as Record<string, unknown>;
@@ -32,20 +38,59 @@ export function VideoPanel() {
   const [prompt, setPrompt] = useState("");
   const [duration, setDuration] = useState(5);
   const [generationId, setGenerationId] = useState<string | null>(null);
+  const [playUrl, setPlayUrl] = useState<string | null>(null);
+  const [loadingContent, setLoadingContent] = useState(false);
   const submit = useLlmSubmitVideo();
+  const { address } = useWalletContext();
 
   const statusQ = useLlmVideoStatus(generationId, Boolean(generationId));
   const statusData = statusQ.data as Record<string, unknown> | undefined;
   const status = String(statusData?.status ?? (generationId ? "pending" : "")).toLowerCase();
-  const videoUrl = extractVideoUrl(statusData);
+  const upstreamUrl = extractVideoUrl(statusData);
   const done =
     status === "completed" ||
     status === "complete" ||
     status === "failed" ||
     status === "error" ||
-    Boolean(videoUrl);
+    Boolean(upstreamUrl);
 
   const onModelChange = useCallback((id: string) => setModel(id), []);
+
+  useEffect(() => {
+    return () => {
+      if (playUrl?.startsWith("blob:")) URL.revokeObjectURL(playUrl);
+    };
+  }, [playUrl]);
+
+  useEffect(() => {
+    if (!generationId || !address || !done) return;
+    if (status === "failed" || status === "error") return;
+    if (!upstreamUrl && status !== "completed" && status !== "complete") return;
+
+    let cancelled = false;
+    setLoadingContent(true);
+    void (async () => {
+      try {
+        const blob = await fetchLlmVideoContentBlob(address, generationId);
+        if (cancelled) return;
+        const objectUrl = URL.createObjectURL(blob);
+        setPlayUrl((prev) => {
+          if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+          return objectUrl;
+        });
+      } catch (e) {
+        if (!cancelled) {
+          toast.error(e instanceof Error ? e.message : "Failed to load video content");
+        }
+      } finally {
+        if (!cancelled) setLoadingContent(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [generationId, address, done, status, upstreamUrl]);
 
   const onSubmit = async () => {
     const trimmed = prompt.trim();
@@ -54,6 +99,10 @@ export function VideoPanel() {
       return;
     }
     try {
+      setPlayUrl((prev) => {
+        if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+        return null;
+      });
       const result = await submit.mutateAsync({
         prompt: trimmed,
         model: model || undefined,
@@ -131,11 +180,13 @@ export function VideoPanel() {
           <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-4">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="secondary">{status || "pending"}</Badge>
-              {!done && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+              {(!done || loadingContent) && (
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              )}
               <span className="font-mono text-xs text-muted-foreground">{generationId}</span>
             </div>
-            {videoUrl && (
-              <video controls src={videoUrl} className="w-full rounded-md border border-border" />
+            {playUrl && (
+              <video controls src={playUrl} className="w-full rounded-md border border-border" />
             )}
             {statusQ.isError && (
               <p className="text-sm text-destructive">

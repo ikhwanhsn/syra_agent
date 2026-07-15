@@ -5,7 +5,7 @@
 import type { HttpMethod } from "@/types/api";
 import type { RequestParam } from "@/types/api";
 
-export const X402_PLAYGROUND_GENERATED_AT = "2026-07-13T12:21:05.036Z";
+export const X402_PLAYGROUND_GENERATED_AT = "2026-07-15T03:52:48.712Z";
 
 export interface X402PlaygroundResourceTemplate {
   segment: string;
@@ -1036,6 +1036,66 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "summary": "Async text-to-video submit via OpenRouter Video API",
       "description": "Paid POST /videos/generations submits an async OpenRouter video job (POST /api/v1/videos). Use when an agent needs short-form video clips f…",
       "priceUsd": "0.1",
+      "category": "ai"
+    }
+  },
+  {
+    "segment": "embeddings",
+    "id": "x402-embeddings",
+    "label": "Embeddings (OpenRouter): Text embeddings via OpenRouter",
+    "method": "POST",
+    "params": [],
+    "catalogMeta": {
+      "segment": "embeddings",
+      "name": "Embeddings (OpenRouter)",
+      "summary": "Text embeddings via OpenRouter",
+      "description": "Paid POST /embeddings for vector embeddings from curated OpenRouter embedding models. Use when an agent needs semantic search, clustering,…",
+      "priceUsd": "0.001",
+      "category": "ai"
+    }
+  },
+  {
+    "segment": "rerank",
+    "id": "x402-rerank",
+    "label": "Rerank (OpenRouter): Document reranking via OpenRouter",
+    "method": "POST",
+    "params": [],
+    "catalogMeta": {
+      "segment": "rerank",
+      "name": "Rerank (OpenRouter)",
+      "summary": "Document reranking via OpenRouter",
+      "description": "Paid POST /rerank ranks candidate documents against a query using curated OpenRouter rerank models. Use when an agent needs relevance scori…",
+      "priceUsd": "0.002",
+      "category": "ai"
+    }
+  },
+  {
+    "segment": "audio/speech",
+    "id": "x402-audio-speech",
+    "label": "Text-to-Speech (OpenRouter): TTS via OpenRouter /audio/speech",
+    "method": "POST",
+    "params": [],
+    "catalogMeta": {
+      "segment": "audio/speech",
+      "name": "Text-to-Speech (OpenRouter)",
+      "summary": "TTS via OpenRouter /audio/speech",
+      "description": "Paid POST /audio/speech synthesizes speech from text via curated OpenRouter TTS models (Kokoro, Voxtral, MAI, Gemini). Use when an agent ne…",
+      "priceUsd": "0.005",
+      "category": "ai"
+    }
+  },
+  {
+    "segment": "audio/transcriptions",
+    "id": "x402-audio-transcriptions",
+    "label": "Speech Transcription (OpenRouter): STT via OpenRouter /audio/transcriptions",
+    "method": "POST",
+    "params": [],
+    "catalogMeta": {
+      "segment": "audio/transcriptions",
+      "name": "Speech Transcription (OpenRouter)",
+      "summary": "STT via OpenRouter /audio/transcriptions",
+      "description": "Paid POST /audio/transcriptions for speech-to-text via curated OpenRouter STT models (Whisper / GPT-4o Transcribe). Use when an agent needs…",
+      "priceUsd": "0.01",
       "category": "ai"
     }
   },

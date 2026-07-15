@@ -7,9 +7,13 @@ import {
 
 export { buildS3labsSiteUrl } from "./s3labsSiteConfig.js";
 
-export const GMAIL_USER = process.env.GMAIL_USER || "s3labs.company@gmail.com";
+export const GMAIL_USER = String(process.env.GMAIL_USER || "s3labs.company@gmail.com")
+  .trim();
 
-export const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD || "";
+/** Google App Password — spaces (as shown in Google UI) are stripped. */
+export const GMAIL_APP_PASSWORD = String(process.env.GMAIL_APP_PASSWORD || "")
+  .replace(/\s+/g, "")
+  .trim();
 
 export const EMAIL_FROM_NAME = process.env.EMAIL_FROM_NAME || "S3Labs";
 

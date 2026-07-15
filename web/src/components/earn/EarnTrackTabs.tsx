@@ -2,10 +2,10 @@ import { Code2, Coins, FileText, Megaphone } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const TRACKS = [
+  { id: "token", label: "Token", icon: Coins },
   { id: "prompts", label: "Playbooks", icon: FileText },
   { id: "kol", label: "Promote", icon: Megaphone },
   { id: "skills", label: "API skills", icon: Code2 },
-  { id: "token", label: "Token", icon: Coins },
 ] as const;
 
 type EarnTrackTabsProps = {

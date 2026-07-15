@@ -141,7 +141,6 @@ export function PromptForm({ open, onOpenChange, anonymousId, onCreated, initial
       icon={BookOpen}
       title={isEdit ? "Edit playbook" : "New playbook"}
       description="Describe your strategy. You earn USDC when agents use it."
-      className="sm:max-w-lg"
       footer={
         <>
           <Button
@@ -206,31 +205,33 @@ export function PromptForm({ open, onOpenChange, anonymousId, onCreated, initial
         />
       </div>
 
-      <EarnDialogField label="Short description" htmlFor="prompt-description" optional>
-        <Input
-          id="prompt-description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Finds oversold alts with volume spikes"
-          disabled={aiBusy}
-          className={earnFieldControlClass}
-        />
-      </EarnDialogField>
+      <div className="grid gap-5 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+        <EarnDialogField label="Short description" htmlFor="prompt-description" optional>
+          <Input
+            id="prompt-description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Finds oversold alts with volume spikes"
+            disabled={aiBusy}
+            className={earnFieldControlClass}
+          />
+        </EarnDialogField>
 
-      <EarnDialogField label="Category">
-        <Select value={category} onValueChange={setCategory} disabled={aiBusy}>
-          <SelectTrigger className={earnSelectTriggerClass}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {CATEGORIES.map((c) => (
-              <SelectItem key={c.value} value={c.value}>
-                {c.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </EarnDialogField>
+        <EarnDialogField label="Category">
+          <Select value={category} onValueChange={setCategory} disabled={aiBusy}>
+            <SelectTrigger className={earnSelectTriggerClass}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {CATEGORIES.map((c) => (
+                <SelectItem key={c.value} value={c.value}>
+                  {c.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </EarnDialogField>
+      </div>
 
       <EarnDialogField
         label="Instructions"
@@ -244,7 +245,7 @@ export function PromptForm({ open, onOpenChange, anonymousId, onCreated, initial
           placeholder="What should the agent do?"
           rows={5}
           disabled={aiBusy}
-          className={earnTextareaClass}
+          className={cn(earnTextareaClass, "min-h-[8.5rem] md:min-h-[10rem]")}
         />
       </EarnDialogField>
 

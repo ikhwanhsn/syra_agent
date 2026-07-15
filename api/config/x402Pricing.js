@@ -63,6 +63,33 @@ export const X402_VIDEO_DEFAULT_DURATION_SEC = 4;
 /** Conservative per-second fallback when video model rates are unavailable. */
 export const X402_VIDEO_FALLBACK_USD_PER_SEC = 0.5;
 
+/** Margin over OpenRouter upstream cost for POST /embeddings. */
+export const X402_EMBEDDINGS_PRICE_MARGIN = 1.4;
+
+/** Minimum charge per /embeddings call (USD). */
+export const X402_EMBEDDINGS_PRICE_FLOOR_USD = 0.001;
+
+/** Margin over OpenRouter upstream cost for POST /rerank. */
+export const X402_RERANK_PRICE_MARGIN = 1.4;
+
+/** Minimum charge per /rerank call (USD). */
+export const X402_RERANK_PRICE_FLOOR_USD = 0.002;
+
+/** Margin over OpenRouter upstream cost for POST /audio/speech. */
+export const X402_SPEECH_PRICE_MARGIN = 1.4;
+
+/** Minimum charge per /audio/speech call (USD). */
+export const X402_SPEECH_PRICE_FLOOR_USD = 0.005;
+
+/** Margin over OpenRouter upstream cost for POST /audio/transcriptions. */
+export const X402_TRANSCRIPTION_PRICE_MARGIN = 1.4;
+
+/** Minimum charge per /audio/transcriptions call (USD). */
+export const X402_TRANSCRIPTION_PRICE_FLOOR_USD = 0.01;
+
+/** Fallback when STT model rates are missing: USD per MB of decoded audio. */
+export const X402_TRANSCRIPTION_FALLBACK_USD_PER_MB = 0.05;
+
 /** Solana address: when this wallet is the payer in production, use local (cheap) price. */
 export const X402_PLAYGROUND_DEV_WALLET = 'FiejqEgqQ8bxtUJpZMy5p1wVCcejKyy5PgZ4cwmLBvYD';
 
@@ -377,3 +404,12 @@ export const X402_DISPLAY_PRICE_INSIGHTS_TOKEN_METRICS_USD = displayInternal(0.0
 export const X402_DISPLAY_PRICE_INSIGHTS_DEFI_TVL_USD = displayInternal(0.05);
 export const X402_DISPLAY_PRICE_INSIGHTS_VOLATILITY_INDEX_USD = displayInternal(0.1);
 export const X402_DISPLAY_PRICE_INSIGHTS_ECOSYSTEM_BRIEF_USD = displayInternal(0.05);
+
+/** OpenRouter modality x402 — display (production) prices for discovery / MPP OpenAPI */
+export const X402_DISPLAY_PRICE_EMBEDDINGS_USD = displayInternal(0.001);
+export const X402_DISPLAY_PRICE_RERANK_USD = displayInternal(0.002);
+export const X402_DISPLAY_PRICE_SPEECH_USD = displayInternal(0.005);
+export const X402_DISPLAY_PRICE_TRANSCRIPTION_USD = displayInternal(0.01);
+export const X402_DISPLAY_PRICE_CHAT_COMPLETIONS_USD = displayInternal(0.004);
+export const X402_DISPLAY_PRICE_IMAGES_GENERATIONS_USD = displayInternal(0.02);
+export const X402_DISPLAY_PRICE_VIDEOS_GENERATIONS_USD = displayInternal(0.1);

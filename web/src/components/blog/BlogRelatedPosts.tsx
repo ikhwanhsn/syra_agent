@@ -3,6 +3,12 @@ import { motion } from "framer-motion";
 import { ArrowRight, Clock } from "lucide-react";
 import { overviewCardShell, overviewKickerClass } from "@/components/dashboard/overview/overviewStyles";
 import type { ArticleDetail } from "@/data/marketing/articleContent";
+import {
+  ARTICLE_IMAGE_HEIGHT,
+  ARTICLE_IMAGE_WIDTH,
+  articleMediaFrameClass,
+  articleMediaImgClass,
+} from "@/lib/marketing/articleImageLayout";
 import { cn } from "@/lib/utils";
 
 interface BlogRelatedPostsProps {
@@ -64,12 +70,22 @@ export function BlogRelatedPosts({ articles }: BlogRelatedPostsProps) {
                 "group flex h-full flex-col overflow-hidden transition-colors hover:border-border/70",
               )}
             >
-              <div className="relative aspect-video overflow-hidden border-b border-border/45 bg-muted/15">
+              <div className={cn(articleMediaFrameClass, "border-b border-border/45")}>
                 <img
                   src={article.coverImage}
                   alt=""
                   loading="lazy"
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                  decoding="async"
+                  width={ARTICLE_IMAGE_WIDTH}
+                  height={ARTICLE_IMAGE_HEIGHT}
+                  className={cn(
+                    articleMediaImgClass,
+                    "transition-transform duration-500 group-hover:scale-[1.03]",
+                  )}
+                />
+                <div
+                  className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/35 via-transparent to-transparent"
+                  aria-hidden
                 />
               </div>
               <div className="flex flex-1 flex-col p-5">

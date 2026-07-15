@@ -1,8 +1,8 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { Megaphone, Plus, Sparkles, Trophy, Wallet } from "lucide-react";
+import { Megaphone, Plus, Search, Sparkles, Trophy, Wallet } from "lucide-react";
 
 import { SitePageShell } from "@/components/landing/SitePageShell";
 import { pageContent } from "@/lib/siteLayout";
@@ -16,6 +16,7 @@ import { CampaignDetail } from "@/components/kol/CampaignDetail";
 import { KolHowItWorks } from "@/components/kol/KolHowItWorks";
 import { KolPointsInfo } from "@/components/kol/KolPointsInfo";
 import { CampaignTelegramNotify } from "@/components/CampaignTelegramNotify";
+import { CampaignEmailNotify } from "@/components/CampaignEmailNotify";
 import { MarketplaceStats } from "@/components/kol/MarketplaceStats";
 import { isCampaignFinalizing, isCampaignLive } from "@/lib/kolCampaignStatus";
 import {
@@ -29,6 +30,7 @@ import {
   fetchCampaigns,
   fetchKolConfig,
 } from "@/lib/kolApi";
+import { prefetchRoute } from "@/lib/routePrefetch";
 
 const CreateCampaignForm = lazy(() =>
   import("@/components/kol/CreateCampaignForm").then((m) => ({
@@ -87,8 +89,8 @@ function KolPageContent() {
   });
 
   const campaignsQuery = useQuery({
-    queryKey: ["kol-campaigns"],
-    queryFn: () => fetchCampaigns(),
+    queryKey: ["kol-campaigns", walletAddress ?? null],
+    queryFn: () => fetchCampaigns({ wallet: walletAddress }),
     staleTime: 60 * 1000,
     retry: 1,
   });
@@ -193,11 +195,12 @@ function KolPageContent() {
 
   const pendingDepositCampaigns = useMemo(() => {
     if (!walletAddress) return [];
+    const wallet = walletAddress.trim();
     return sortKolCampaigns(
       allCampaigns.filter(
         (c) =>
           c.status === "pending_deposit" &&
-          c.projectWallet.trim().toLowerCase() === walletAddress.trim().toLowerCase(),
+          c.projectWallet.trim() === wallet,
       ),
       campaignSort,
     );
@@ -234,6 +237,17 @@ function KolPageContent() {
             <Skeleton className="h-40 rounded-2xl" />
             <Skeleton className="h-64 rounded-2xl" />
           </div>
+        ) : selectedCampaignId && detailQuery.isError ? (
+          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-6 sm:p-8 space-y-4">
+            <h2 className="font-semibold text-lg tracking-tight">Campaign unavailable</h2>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              This campaign may still be waiting on its creator to fund the reward pool, or the link
+              is invalid. Unfunded drafts are only visible to the wallet that created them.
+            </p>
+            <Button variant="outline" className="rounded-full" onClick={handleCloseDetail}>
+              Back to campaigns
+            </Button>
+          </div>
         ) : selectedCampaignId && detailQuery.data ? (
           <CampaignDetail
             campaign={detailQuery.data.campaign}
@@ -267,6 +281,17 @@ function KolPageContent() {
                   <span className="sm:hidden">Earnings</span>
                   <span className="hidden sm:inline">My Earnings</span>
                 </TabsTrigger>
+                <Button
+                  asChild
+                  variant="ghost"
+                  className="shrink-0 rounded-full gap-1.5 px-3 h-auto py-1.5 text-xs sm:gap-2 sm:px-3 sm:text-sm text-muted-foreground hover:text-foreground"
+                >
+                  <Link to="/kol/check" onPointerEnter={() => prefetchRoute("/kol/check")}>
+                    <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    <span className="sm:hidden">Check</span>
+                    <span className="hidden sm:inline">Check by X</span>
+                  </Link>
+                </Button>
               </TabsList>
 
               {activeTab === "browse" ? (
@@ -409,7 +434,18 @@ function KolPageContent() {
               )}
             </TabsContent>
 
-            <TabsContent value="earnings" className="mt-0 focus-visible:outline-none">
+            <TabsContent value="earnings" className="mt-0 focus-visible:outline-none space-y-4">
+              <div className="rounded-xl border border-border/60 bg-muted/20 px-4 py-3 text-sm text-muted-foreground flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <p>
+                  Want totals without connecting a wallet? Look up any X account that joined campaigns.
+                </p>
+                <Button asChild variant="outline" size="sm" className="rounded-full gap-1.5 shrink-0">
+                  <Link to="/kol/check">
+                    <Search className="w-3.5 h-3.5" />
+                    Check by X
+                  </Link>
+                </Button>
+              </div>
               <Suspense fallback={<TabPanelFallback />}>
                 <EarningsDashboard />
               </Suspense>
@@ -422,6 +458,7 @@ function KolPageContent() {
             <KolHowItWorks />
             <KolPointsInfo />
             <CampaignTelegramNotify />
+            <CampaignEmailNotify />
           </div>
         ) : null}
     </div>

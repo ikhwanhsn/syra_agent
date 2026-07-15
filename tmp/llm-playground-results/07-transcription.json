@@ -1,0 +1,12 @@
+{
+    "success":  true,
+    "data":  {
+                 "text":  "Hello from Sira LLM Playground. Image generation is fixed.",
+                 "usage":  {
+                               "total_tokens":  74,
+                               "input_tokens":  59,
+                               "output_tokens":  15,
+                               "cost":  0.00014875
+                           }
+             }
+}

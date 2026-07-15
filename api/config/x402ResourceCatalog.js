@@ -392,6 +392,46 @@ export const X402_RESOURCE_CATALOG = {
       'Paid POST /videos/generations submits an async OpenRouter video job (POST /api/v1/videos). Use when an agent needs short-form video clips from a text prompt with x402 pay-per-call. Inputs: prompt (required), optional model, duration (1–60s), resolution, aspect_ratio, generate_audio, frame_images, input_references. Price is charged upfront at submit from model duration + resolution rates with margin — GET /videos/generations/models for allowlist. Returns generation_id, polling_url, and statusUrl; poll free GET /videos/generations/:id until completed for video_url. No auto-refund if upstream job fails after payment.',
     suggestedPriceStx: 0.1,
   },
+  embeddings: {
+    slug: 'embeddings',
+    name: 'Embeddings (OpenRouter)',
+    category: 'ai',
+    methods: ['POST'],
+    summary: 'Text embeddings via OpenRouter',
+    description:
+      'Paid POST /embeddings for vector embeddings from curated OpenRouter embedding models. Use when an agent needs semantic search, clustering, or RAG indexing with x402 pay-per-call. Inputs: input (string or string[], required), optional model, dimensions. Price is dynamic from live prompt rates × margin — GET /embeddings/models for allowlist. Returns OpenAI-style embeddings data[] + usage.',
+    suggestedPriceStx: 0.001,
+  },
+  rerank: {
+    slug: 'rerank',
+    name: 'Rerank (OpenRouter)',
+    category: 'ai',
+    methods: ['POST'],
+    summary: 'Document reranking via OpenRouter',
+    description:
+      'Paid POST /rerank ranks candidate documents against a query using curated OpenRouter rerank models. Use when an agent needs relevance scoring for search, RAG, or retrieval with x402 pay-per-call. Inputs: query (required), documents (string[], required, max 100), optional model, top_n. Price is dynamic from live rates × margin — GET /rerank/models for allowlist. Returns ranked results with relevance_score.',
+    suggestedPriceStx: 0.002,
+  },
+  'audio/speech': {
+    slug: 'audio-speech',
+    name: 'Text-to-Speech (OpenRouter)',
+    category: 'ai',
+    methods: ['POST'],
+    summary: 'TTS via OpenRouter /audio/speech',
+    description:
+      'Paid POST /audio/speech synthesizes speech from text via curated OpenRouter TTS models (Kokoro, Voxtral, MAI, Gemini). Use when an agent needs voice output with x402 pay-per-call. Inputs: input (required), optional model, voice (provider-specific), response_format (mp3|pcm), speed. Returns JSON { audioBase64, contentType, model, voice, generationId }. Gemini pcm is wrapped as wav. GET /audio/speech/models for allowlist. Price is dynamic from live character/token rates × margin.',
+    suggestedPriceStx: 0.005,
+  },
+  'audio/transcriptions': {
+    slug: 'audio-transcriptions',
+    name: 'Speech Transcription (OpenRouter)',
+    category: 'ai',
+    methods: ['POST'],
+    summary: 'STT via OpenRouter /audio/transcriptions',
+    description:
+      'Paid POST /audio/transcriptions for speech-to-text via curated OpenRouter STT models (Whisper / GPT-4o Transcribe). Use when an agent needs transcript text from audio with x402 pay-per-call. Inputs: input_audio { data: base64, format } (required), optional model, language, temperature. Returns { text, … }. GET /audio/transcriptions/models for allowlist. Price is dynamic from payload size / live rates × margin.',
+    suggestedPriceStx: 0.01,
+  },
   '8004/stats': {
     slug: '8004-stats',
     name: '8004 Global Stats',

@@ -35,10 +35,12 @@ import {
   isCampaignFinalizing,
   isCampaignLive,
 } from "@/lib/kolCampaignStatus";
+import { isAdminWallet } from "@/lib/adminWallet";
 import { formatSol, formatRelativePast, formatTimeLeft } from "@/lib/kolFormat";
 import { KOL_CREATE_CAMPAIGN_LEADERBOARD_INTRO } from "@/lib/kolRewardEligibility";
 import { cn } from "@/lib/utils";
 import { AddRewardForm } from "./AddRewardForm";
+import { AdminCampaignAnnounceCopy } from "./AdminCampaignAnnounceCopy";
 import { CampaignClaimCard } from "./CampaignClaimCard";
 import { CampaignFundDepositCard } from "./CampaignFundDepositCard";
 import { CampaignLeaderboard } from "./CampaignLeaderboard";
@@ -181,6 +183,7 @@ export function CampaignDetail({
     ownEntry != null;
 
   const isPendingDeposit = campaign.status === "pending_deposit";
+  const isAdmin = isAdminWallet(address);
 
   return (
     <div className="space-y-6 min-w-0">
@@ -329,7 +332,18 @@ export function CampaignDetail({
       </div>
 
       {isPendingDeposit ? (
-        <CampaignFundDepositCard campaign={campaign} onFunded={() => onRefresh?.()} />
+        <CampaignFundDepositCard
+          campaign={campaign}
+          onFunded={() => onRefresh?.()}
+          onDeleted={() => {
+            onRefresh?.();
+            onClose();
+          }}
+        />
+      ) : null}
+
+      {isAdmin && !isPendingDeposit ? (
+        <AdminCampaignAnnounceCopy campaign={campaign} />
       ) : null}
 
       {/* How to join — first for newcomers */}
