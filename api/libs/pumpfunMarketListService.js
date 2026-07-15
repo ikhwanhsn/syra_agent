@@ -1,5 +1,9 @@
 /**
  * pump.fun frontend-api-v3 market list proxy (trending / movers).
+ *
+ * Note: `/coins/trending` and `/coins/movers` are dead — pump.fun treats them as
+ * `/coins/:mint` and returns 404 "Coin not found for mint: trending|movers".
+ * Canonical list feeds are top-runners (trending) and currently-live (movers).
  */
 const FRONTEND_API_BASE = (
   process.env.PUMP_FUN_FRONTEND_API_URL ||
@@ -11,14 +15,14 @@ const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
 
 const PRIMARY_UPSTREAM = Object.freeze({
-  trending: "/coins/trending",
-  movers: "/coins/movers",
-});
-
-/** When primary list endpoints return an empty body (common without JWT), use these. */
-const FALLBACK_UPSTREAM = Object.freeze({
   trending: "/coins/top-runners",
   movers: "/coins/currently-live",
+});
+
+/** Cross-fallback so a single feed outage still returns coins when possible. */
+const FALLBACK_UPSTREAM = Object.freeze({
+  trending: "/coins/currently-live",
+  movers: "/coins/top-runners",
 });
 
 function pumpfunHeaders() {
@@ -98,6 +102,7 @@ function normalizeListBody(raw) {
 /**
  * @param {string} upstreamPath
  * @param {{ limit: number; offset: number; includeNsfw: boolean }} query
+ * @returns {Promise<{ coins: unknown[]; empty: boolean; ok: boolean; error?: string }>}
  */
 async function fetchUpstreamList(upstreamPath, query) {
   const url = new URL(`${FRONTEND_API_BASE}${upstreamPath}`);
@@ -122,21 +127,22 @@ async function fetchUpstreamList(upstreamPath, query) {
         message = text.slice(0, 200);
       }
     }
-    throw new Error(message);
+    return { coins: [], empty: true, ok: false, error: message };
   }
 
   if (!text || !text.trim()) {
-    return { coins: [], empty: true };
+    return { coins: [], empty: true, ok: true };
   }
 
   let parsed;
   try {
     parsed = JSON.parse(text);
   } catch {
-    throw new Error("pump.fun returned invalid JSON");
+    return { coins: [], empty: true, ok: false, error: "pump.fun returned invalid JSON" };
   }
 
-  return { coins: normalizeListBody(parsed), empty: false };
+  const coins = normalizeListBody(parsed);
+  return { coins, empty: coins.length === 0, ok: true };
 }
 
 /**
@@ -156,13 +162,19 @@ export async function fetchPumpfunMarketList(kind, input = {}) {
   const query = parseListQuery(src);
 
   const primaryPath = PRIMARY_UPSTREAM[kind];
+  const fallbackPath = FALLBACK_UPSTREAM[kind];
   let upstreamPath = primaryPath;
   let fallbackUsed = false;
+  /** @type {string | undefined} */
+  let lastError;
 
-  let { coins, empty } = await fetchUpstreamList(primaryPath, query);
-  if (empty || coins.length === 0) {
-    const fallbackPath = FALLBACK_UPSTREAM[kind];
+  const primary = await fetchUpstreamList(primaryPath, query);
+  let coins = primary.coins;
+  if (!primary.ok) lastError = primary.error;
+
+  if (primary.empty || coins.length === 0) {
     const fallback = await fetchUpstreamList(fallbackPath, query);
+    if (!fallback.ok && fallback.error) lastError = fallback.error;
     if (!fallback.empty && fallback.coins.length > 0) {
       coins = fallback.coins;
       upstreamPath = fallbackPath;
@@ -172,7 +184,8 @@ export async function fetchPumpfunMarketList(kind, input = {}) {
 
   if (coins.length === 0) {
     throw new Error(
-      "pump.fun returned no coins — set PUMP_FUN_FRONTEND_API_TOKEN if your deployment requires JWT auth",
+      lastError ||
+        "pump.fun returned no coins — set PUMP_FUN_FRONTEND_API_TOKEN if your deployment requires JWT auth",
     );
   }
 

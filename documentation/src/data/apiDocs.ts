@@ -2546,7 +2546,7 @@ curl "${BASE_URL}/preview/signal?token=solana&source=okx"`,
 
   "pumpfun-trending": doc({
     title: "pump.fun Trending",
-    overview: "Trending pump.fun coins from frontend-api-v3 (falls back to top-runners when primary feed is empty).",
+    overview: "Trending pump.fun coins from frontend-api-v3 top-runners (falls back to currently-live).",
     price: "$0.005 USD per request",
     endpoints: [
       {

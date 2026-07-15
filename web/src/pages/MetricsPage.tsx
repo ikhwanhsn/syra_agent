@@ -43,7 +43,7 @@ export default function MetricsPage() {
   useEffect(() => {
     document.title = "Syra Metrics · Live x402 traction";
     return () => {
-      document.title = "Machine Money for Agents | Syra";
+      document.title = "Syra";
     };
   }, []);
 

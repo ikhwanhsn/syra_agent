@@ -52,14 +52,15 @@ function createMarketListRouter(opts) {
     outputSchema,
   };
 
-  async function attachHandler(req, res, next) {
+  async function respond(req, res) {
     try {
-      req.pumpfunMarketListData = await fetchPumpfunMarketList(opts.kind, {
+      const data = await fetchPumpfunMarketList(opts.kind, {
         method: req.method,
         query: req.query,
         body: req.body,
       });
-      next();
+      await settlePaymentAndSetResponse(res, req);
+      res.json({ success: true, data });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       const status = /must be|required|kind must/i.test(msg) ? 400 : 502;
@@ -67,14 +68,8 @@ function createMarketListRouter(opts) {
     }
   }
 
-  async function respond(req, res) {
-    await settlePaymentAndSetResponse(res, req);
-    res.json({ success: true, data: req.pumpfunMarketListData });
-  }
-
   router.get(
     "/",
-    attachHandler,
     requirePayment({
       ...paymentOptionsBase,
       method: "GET",
@@ -86,7 +81,6 @@ function createMarketListRouter(opts) {
   router.post(
     "/",
     express.json(),
-    attachHandler,
     requirePayment({
       ...paymentOptionsBase,
       method: "POST",

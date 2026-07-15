@@ -159,7 +159,7 @@ export const X402_RESOURCE_CATALOG = {
     methods: ['GET', 'POST'],
     summary: 'Trending pump.fun coins list',
     description:
-      'Returns trending pump.fun coins from frontend-api-v3 (falls back to top-runners when primary feed is empty). Use when an agent scans hot memecoin launches or social momentum on pump.fun. Inputs: limit (default 20, max 50), offset, includeNsfw. Returns normalized coins[], count, upstream metadata.',
+      'Returns trending pump.fun coins from frontend-api-v3 top-runners (falls back to currently-live). Use when an agent scans hot memecoin launches or social momentum on pump.fun. Inputs: limit (default 20, max 50), offset, includeNsfw. Returns normalized coins[], count, upstream metadata.',
     suggestedPriceStx: 0.001,
   },
   'pumpfun/movers': {
@@ -169,7 +169,7 @@ export const X402_RESOURCE_CATALOG = {
     methods: ['GET', 'POST'],
     summary: 'pump.fun market movers list',
     description:
-      'Returns pump.fun market movers from frontend-api-v3 (falls back to currently-live when primary is empty). Use when an agent finds coins with unusual short-term price/volume action. Inputs: limit, offset, includeNsfw. Returns coins[], count, upstream metadata.',
+      'Returns pump.fun market movers from frontend-api-v3 currently-live (falls back to top-runners). Use when an agent finds coins with unusual short-term price/volume action. Inputs: limit, offset, includeNsfw. Returns coins[], count, upstream metadata.',
     suggestedPriceStx: 0.001,
   },
   'pumpfun/analyzer': {

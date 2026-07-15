@@ -37,7 +37,7 @@ export default function ReferenceScalperPage() {
   useEffect(() => {
     document.title = "Syra Scalper · Reference agent";
     return () => {
-      document.title = "Machine Money for Agents | Syra";
+      document.title = "Syra";
     };
   }, []);
 

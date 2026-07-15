@@ -3,7 +3,7 @@
 export const SYRA_TAGLINE = "Machine Money for Agents";
 
 /** Default `<title>` / document title restore value. */
-export const SYRA_DOCUMENT_TITLE = "Machine Money for Agents | Syra";
+export const SYRA_DOCUMENT_TITLE = "Syra";
 
 export const SYRA_AGENT_DESCRIPTION =
   "Machine money for agents on Solana — Earn, Treasury, Invest, Spend (x402), Grow. Agent wallets, policy engine, and autonomous capital deployment.";
