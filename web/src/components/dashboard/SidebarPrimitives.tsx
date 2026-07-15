@@ -4,6 +4,7 @@ import {
   ChevronRight,
   FileSearch,
   FlaskConical,
+  Layers,
   LayoutDashboard,
   UsersRound,
   type LucideIcon,
@@ -27,6 +28,8 @@ export const INTERNAL_TEAM_SIDEBAR_BADGE = {
 } as const;
 
 const EXPERIMENTS_STORAGE_KEY = "syra.dashboard.experimentsOpen";
+const MACHINE_MONEY_STORAGE_KEY = "syra.dashboard.machineMoneyOpen";
+const MARKET_INTEL_STORAGE_KEY = "syra.dashboard.marketIntelOpen";
 
 const SIDEBAR_SHELL =
   "relative flex h-full min-h-0 w-full flex-col overflow-hidden border-r border-sidebar-border/80 bg-sidebar text-sidebar-foreground";
@@ -162,6 +165,17 @@ export function SidebarIconRail({
         <nav className="relative z-10 flex min-h-0 flex-1 flex-col items-center gap-0.5 overflow-y-auto overflow-x-hidden px-2 py-3 scrollbar-thin">
           <SidebarIconNavLink to="/overview" icon={LayoutDashboard} label="Overview" end />
           <SidebarDivider className="my-2 w-8" />
+          <div
+            className={cn(
+              "mb-1 flex h-7 w-7 items-center justify-center rounded-lg transition-colors",
+              DASHBOARD_PILLAR_NAV.some((item) => item.isActive(pathname))
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground/40",
+            )}
+            aria-hidden
+          >
+            <Layers className="h-3.5 w-3.5" strokeWidth={2} />
+          </div>
           {DASHBOARD_PILLAR_NAV.map((item) => (
             <SidebarIconNavLink
               key={item.id}
@@ -279,15 +293,18 @@ export function SidebarNavLink({
 
 export type SidebarExperimentBadge = SidebarNavBadge;
 
-export type SidebarExperimentItem = {
+export type SidebarCollapsibleNavItem = {
   id: string;
   label: string;
   description?: string;
   icon: ComponentType<LucideProps>;
   to: string;
-  isActive: ActiveMatcher;
-  badge?: SidebarExperimentBadge;
+  isActive: (pathname: string, search?: string) => boolean;
+  badge?: SidebarNavBadge;
 };
+
+/** @deprecated Use SidebarCollapsibleNavItem */
+export type SidebarExperimentItem = SidebarCollapsibleNavItem;
 
 function SidebarNavBadge({ badge }: { badge: SidebarNavBadge }) {
   return (
@@ -302,17 +319,40 @@ function SidebarNavBadge({ badge }: { badge: SidebarNavBadge }) {
   );
 }
 
-export function SidebarExperimentsNav({
+export function SidebarCollapsibleNav({
   items,
   groupBadge,
+  storageKey,
+  title,
+  icon: GroupIcon,
+  openHint,
+  closedHint,
+  defaultOpen = false,
 }: {
-  items: readonly SidebarExperimentItem[];
+  items: readonly SidebarCollapsibleNavItem[];
   groupBadge?: SidebarNavBadge;
+  storageKey: string;
+  title: string;
+  icon: ComponentType<LucideProps>;
+  openHint: string;
+  closedHint: string;
+  /** Used when no localStorage preference exists yet. */
+  defaultOpen?: boolean;
 }) {
   const { pathname, search } = useLocation();
   const childActive = items.some((item) => item.isActive(pathname, search));
 
-  const [open, setOpen] = useState(childActive);
+  const [open, setOpen] = useState(() => {
+    if (childActive) return true;
+    try {
+      const stored = window.localStorage.getItem(storageKey);
+      if (stored === "1") return true;
+      if (stored === "0") return false;
+    } catch {
+      /* private mode */
+    }
+    return defaultOpen;
+  });
 
   useEffect(() => {
     if (childActive) {
@@ -320,18 +360,27 @@ export function SidebarExperimentsNav({
       return;
     }
     try {
-      if (window.localStorage.getItem(EXPERIMENTS_STORAGE_KEY) === "1") {
+      const stored = window.localStorage.getItem(storageKey);
+      if (stored === "1") {
         setOpen(true);
+      } else if (stored === "0") {
+        setOpen(false);
+      } else {
+        setOpen(defaultOpen);
       }
     } catch {
-      /* private mode */
+      setOpen(defaultOpen);
     }
-  }, [childActive]);
+  }, [childActive, storageKey, defaultOpen]);
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next);
     if (typeof window !== "undefined") {
-      window.localStorage.setItem(EXPERIMENTS_STORAGE_KEY, next ? "1" : "0");
+      try {
+        window.localStorage.setItem(storageKey, next ? "1" : "0");
+      } catch {
+        /* private mode */
+      }
     }
   };
 
@@ -349,15 +398,15 @@ export function SidebarExperimentsNav({
         aria-expanded={open}
       >
         <span className={navIconClasses(childActive)}>
-          <FlaskConical className="h-4 w-4" strokeWidth={childActive ? 2.25 : 2} aria-hidden />
+          <GroupIcon className="h-4 w-4" strokeWidth={childActive ? 2.25 : 2} aria-hidden />
         </span>
         <span className="min-w-0 flex-1 text-left">
           <span className="flex items-center gap-1.5">
-            <span className="truncate text-[13px] font-semibold tracking-tight">Experiment</span>
+            <span className="truncate text-[13px] font-semibold tracking-tight">{title}</span>
             {groupBadge ? <SidebarNavBadge badge={groupBadge} /> : null}
           </span>
           <span className="mt-0.5 block truncate text-[10px] font-medium text-muted-foreground/70">
-            {open ? `${items.length} trading desks` : "Expand desks"}
+            {open ? openHint : closedHint}
           </span>
         </span>
         <ChevronRight
@@ -423,6 +472,62 @@ export function SidebarExperimentsNav({
         </div>
       </CollapsibleContent>
     </Collapsible>
+  );
+}
+
+export function SidebarMachineMoneyNav({
+  items,
+}: {
+  items: readonly SidebarCollapsibleNavItem[];
+}) {
+  return (
+    <SidebarCollapsibleNav
+      items={items}
+      storageKey={MACHINE_MONEY_STORAGE_KEY}
+      title="Machine Money"
+      icon={Layers}
+      openHint={`${items.length} pillars`}
+      closedHint="Expand pillars"
+      defaultOpen
+    />
+  );
+}
+
+export function SidebarMarketIntelNav({
+  items,
+}: {
+  items: readonly SidebarCollapsibleNavItem[];
+}) {
+  return (
+    <SidebarCollapsibleNav
+      items={items}
+      storageKey={MARKET_INTEL_STORAGE_KEY}
+      title="Market Intel"
+      icon={FileSearch}
+      openHint={`${items.length} desks`}
+      closedHint="Expand desks"
+      defaultOpen
+    />
+  );
+}
+
+export function SidebarExperimentsNav({
+  items,
+  groupBadge,
+}: {
+  items: readonly SidebarCollapsibleNavItem[];
+  groupBadge?: SidebarNavBadge;
+}) {
+  return (
+    <SidebarCollapsibleNav
+      items={items}
+      groupBadge={groupBadge}
+      storageKey={EXPERIMENTS_STORAGE_KEY}
+      title="Experiment"
+      icon={FlaskConical}
+      openHint={`${items.length} trading desks`}
+      closedHint="Expand desks"
+    />
   );
 }
 

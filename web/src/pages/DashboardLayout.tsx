@@ -20,6 +20,8 @@ import {
   SidebarDivider,
   SidebarExperimentsNav,
   SidebarIconRail,
+  SidebarMachineMoneyNav,
+  SidebarMarketIntelNav,
   SidebarMobileDrawerHeader,
   SidebarNavLink,
   SidebarNavShell,
@@ -107,38 +109,21 @@ function DashboardSidebarContent({
 
           <SidebarDivider className="my-2" />
 
-          <p className="px-3 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/55">
-            Machine Money
-          </p>
-          {DASHBOARD_PILLAR_NAV.map((item) => (
-            <SidebarNavLink
-              key={item.id}
-              to={item.to}
-              icon={item.icon}
-              end
-              matchActive={item.isActive}
-              badge={isPillarGated(item.id, machineMoneyUnlocked) ? MACHINE_MONEY_SOON_BADGE : undefined}
-            >
-              {item.label}
-            </SidebarNavLink>
-          ))}
+          <SidebarMachineMoneyNav
+            items={DASHBOARD_PILLAR_NAV.map((item) => ({
+              id: item.id,
+              label: item.label,
+              description: item.description,
+              icon: item.icon,
+              to: item.to,
+              isActive: item.isActive,
+              badge: isPillarGated(item.id, machineMoneyUnlocked) ? MACHINE_MONEY_SOON_BADGE : undefined,
+            }))}
+          />
 
           <SidebarDivider className="my-2" />
 
-          <p className="px-3 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/55">
-            Market Intel
-          </p>
-          {DASHBOARD_MARKET_INTEL_NAV.map((item) => (
-            <SidebarNavLink
-              key={item.id}
-              to={item.to}
-              icon={item.icon}
-              end
-              matchActive={item.isActive}
-            >
-              {item.label}
-            </SidebarNavLink>
-          ))}
+          <SidebarMarketIntelNav items={DASHBOARD_MARKET_INTEL_NAV} />
 
           <SidebarDivider className="my-2" />
 

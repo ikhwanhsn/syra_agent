@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "clawpump-agents": {
+      "command": "npx",
+      "args": ["-y", "@clawpump/agents@0.1.23"],
+      "env": {
+        "CLAWPUMP_API_KEY": "${CLAWPUMP_API_KEY}",
+        "CLAWPUMP_API_URL": "https://ai-agents-production-6ca0.up.railway.app"
+      }
+    }
+  }
+}

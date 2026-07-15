@@ -129,18 +129,20 @@ export function X402LabTab({ chain }: X402LabTabProps) {
               </>
             ) : isCelo ? (
               <>
-                Settlement is self-submitted on Celo mainnet (
+                x402 settlements go through{" "}
                 <a
-                  href="https://api.x402.celo.org"
+                  href="https://x402.celo.org"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="underline underline-offset-2 hover:text-foreground"
                 >
-                  x402.celo.org
+                  api.x402.celo.org
                 </a>{" "}
-                for verify) so every tx carries your{" "}
-                <code className="text-xs">celo_...</code> hackathon attribution tag. PayAI routes
-                are skipped on this tab.{" "}
+                (requires <code className="text-xs">CELO_FACILITATOR_API_KEY</code>) so Dune{" "}
+                <code className="text-xs">x402_*</code> metrics count; register your Celo payTo as{" "}
+                <code className="text-xs">agentWalletAddress</code>. Tagged refunds use your{" "}
+                <code className="text-xs">celo_...</code> tag for revenue volume. PayAI routes are
+                skipped on this tab.{" "}
               </>
             ) : !isBase ? (
               <>
