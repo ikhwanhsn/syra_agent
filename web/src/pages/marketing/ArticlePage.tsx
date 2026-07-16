@@ -10,6 +10,7 @@ import { BlogSocialShare } from "@/components/blog/BlogSocialShare";
 import { BlogRelatedPosts } from "@/components/blog/BlogRelatedPosts";
 import { BlogNewsletter } from "@/components/blog/BlogNewsletter";
 import { ArticlePageShell, ARTICLE_SIDEBAR_STICKY } from "@/components/blog/ArticlePageShell";
+import { ArticleCopyForXButton } from "@/components/marketing/ArticleCopyForXButton";
 import { Button } from "@/components/ui/button";
 import {
   getArticleBySlug,
@@ -70,6 +71,10 @@ export default function ArticlePage() {
 
       <BlogArticleHeader article={article} />
 
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <ArticleCopyForXButton slug={article.slug} variant="featured" />
+      </div>
+
       <div className="mt-6 min-w-0 sm:mt-8 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(220px,280px)] lg:items-start lg:gap-6 xl:gap-8">
         <div className="min-w-0 space-y-6 sm:space-y-8">
           <BlogFeaturedImage src={article.coverImage} alt={article.title} />
@@ -92,6 +97,7 @@ export default function ArticlePage() {
           <div className={cn(ARTICLE_SIDEBAR_STICKY, "space-y-4")}>
             <BlogAuthorCard author={article.author} variant="card" />
             <BlogTableOfContents />
+            <ArticleCopyForXButton slug={article.slug} variant="featured" className="w-full justify-center" />
             <BlogSocialShare title={article.title} url={shareUrl} />
           </div>
         </aside>
