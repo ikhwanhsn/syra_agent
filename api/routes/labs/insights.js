@@ -47,8 +47,12 @@ import {
 } from '../../libs/labs/insightsDataService.js';
 import { payaiEndpointDailyLimitMiddleware, recordPayaiEndpointDailyCall } from '../../libs/labs/labPayaiEndpointDailyLimit.js';
 import { findLabX402Endpoint } from '../../libs/labs/labX402Endpoints.js';
+import { isDexterHealthyForLabChain } from '../../utils/dexterSolanaFeePayerHealth.js';
 
 const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
+
+/** Sticky log so we don't spam when Dexter stays dry / unreachable. */
+let loggedDexterPayaiFallback = false;
 
 async function labsPayToOverride(req) {
   const { solanaPayTo, evmPayTo, celoPayTo, algorandPayTo } =
@@ -212,27 +216,63 @@ async function handleInsightRoute(req, res, endpointPath, catalogSegment, fetchD
   }
 }
 
+/**
+ * Resolve facilitator profile for Labs `/insights/*` Dexter routes.
+ * Dexter remains the primary facilitator. When unhealthy for the active lab chain,
+ * fall back to PayAI until Dexter recovers:
+ * - Solana: fee payer underfunded → InsufficientFundsForRent on every Exact SVM pay
+ * - Base: Dexter /supported down or missing eip155:8453 exact
+ *
+ * Celo keeps its own facilitator. Algorand uses GoPlausible accepts (Dexter profile OK).
+ *
+ * @param {import('express').Request} req
+ * @returns {Promise<'dexter' | 'payai' | 'celo'>}
+ */
+async function resolveLabsFacilitatorProfile(req) {
+  const labChain = String(req.get('x-lab-x402-chain') || '').trim().toLowerCase();
+  if (labChain === 'celo') return 'celo';
+  // Algorand settles via GoPlausible; Dexter profile only supplies ignored SVM/EVM offers.
+  if (labChain === 'algorand') return 'dexter';
+
+  const healthChain = labChain === 'base' ? 'base' : 'solana';
+  const dexterOk = await isDexterHealthyForLabChain(healthChain);
+  if (dexterOk) return 'dexter';
+
+  if (!loggedDexterPayaiFallback) {
+    loggedDexterPayaiFallback = true;
+    console.warn(
+      `[insights] Dexter unhealthy for Labs ${healthChain} — falling back to PayAI (Dexter remains primary when healthy)`,
+    );
+  }
+  return 'payai';
+}
+
 function labsPaymentMiddleware(priceUsd, resource, catalogSegment, outputSchema = {}) {
-  return (req, res, next) => {
-    const labChain = String(req.get('x-lab-x402-chain') || '').trim().toLowerCase();
-    const profile = labChain === 'celo' ? 'celo' : 'dexter';
-    if (labChain === 'celo') {
-      req.x402ResourceServerProfile = 'celo';
+  return async (req, res, next) => {
+    try {
+      const profile = await resolveLabsFacilitatorProfile(req);
+      if (profile === 'celo') {
+        req.x402ResourceServerProfile = 'celo';
+      } else if (profile === 'payai') {
+        req.x402ResourceServerProfile = 'payai';
+      }
+      // Algorand Labs settles via GoPlausible (appended accept); Dexter/PayAI profile still
+      // builds Solana/Base offers that the Algorand client ignores when selecting payment.
+      return requirePayment({
+        price: priceUsd,
+        description: getResourceDescription(catalogSegment),
+        resource,
+        discoverable: true,
+        method: 'GET',
+        inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+        outputSchema,
+        getPayTo: labsPayToOverride,
+        /** Dexter primary; PayAI when Dexter unhealthy for Solana/Base; Celo for Celo tab. */
+        resourceServerProfile: profile,
+      })(req, res, next);
+    } catch (e) {
+      next(e);
     }
-    // Algorand Labs settles via GoPlausible (appended accept); Dexter profile still builds
-    // Solana/Base offers that the Algorand client will ignore when selecting payment.
-    return requirePayment({
-      price: priceUsd,
-      description: getResourceDescription(catalogSegment),
-      resource,
-      discoverable: true,
-      method: 'GET',
-      inputSchema: { type: 'object', properties: {}, additionalProperties: false },
-      outputSchema,
-      getPayTo: labsPayToOverride,
-      /** Labs Dexter → Dexter; Celo → facilitator (Track 2) with self-settle fallback. */
-      resourceServerProfile: profile,
-    })(req, res, next);
   };
 }
 

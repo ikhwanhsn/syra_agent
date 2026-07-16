@@ -1,0 +1,47 @@
+---
+description: Authoring rules for Syra marketing articles (X copy + prose style)
+globs: web/src/data/marketing/articleContent.ts,web/src/lib/marketing/articleXCopy.ts,web/src/components/marketing/Article*.tsx
+alwaysApply: false
+---
+
+# Marketing article authoring
+
+When editing or creating articles under `web/src/data/marketing/articleContent.ts`, follow these rules so site content and **Copy for X** stay consistent.
+
+## Em dash (required)
+
+1. **Never use the em dash character `—`** (U+2014) in titles, excerpts, descriptions, bios, or markdown body.
+2. Prefer a **comma** for clause breaks (`machine money, pay-per-call APIs`).
+3. Prefer a **colon** for label → value (`Package: Purpose`, table cells).
+4. `articleXCopy` normalizes leftover em dashes as a safety net, but source content must still be clean.
+
+## Structure
+
+1. Keep `excerpt` as the short dek (1–2 sentences) shown under the title and used in X copy.
+2. Use `##` for section headings and `###` for subheadings.
+3. Prefer short paragraphs (1–3 sentences). Long walls of text paste poorly on mobile X.
+4. Use `-` / `1.` lists and `> [!NOTE]` callouts where they help scanning.
+
+## X Articles paste behavior
+
+**Copy for X** writes `text/html` + `text/plain`. Only emit tags X auto-formats on paste.
+
+| Paste-supported | Remapped in copy | Manual in X Insert |
+| --- | --- | --- |
+| h2 / h3 heading | table → bullet list | Underline |
+| body paragraph | code fence → quote ("Code") | Native divider |
+| bold, italic, strike | inline `code` → bold | Native code block |
+| links (absolutized) | `---` → `· · ·` | LaTeX |
+| quote / callout | relative `/path` → `https://www.syraa.fun/path` | Native table |
+| bullet / numbered list | | Images (upload) |
+
+Never paste `<table>`, `<pre>`, `<h1>`, or `<hr>` into X. Title uses bold lead text (X title field owns h1).
+
+## Checklist for new articles
+
+- [ ] No `—` anywhere in the article object
+- [ ] Title, description, excerpt filled
+- [ ] Cover image path under `/images/articles/`
+- [ ] Tags / category set
+- [ ] Content uses headings + short paragraphs
+- [ ] Run `npx vitest run src/lib/marketing/articleXCopy.test.ts` after content edits

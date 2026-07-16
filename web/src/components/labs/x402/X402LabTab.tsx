@@ -271,7 +271,21 @@ export function X402LabTab({ chain }: X402LabTabProps) {
 
       {runM.isSuccess && (
         <Alert>
-          <AlertDescription>x402 run completed. Check the call log for results.</AlertDescription>
+          <AlertDescription>
+            {(() => {
+              const data = runM.data;
+              const results = data && "results" in data ? data.results : data ? [data] : [];
+              const failed = results.filter((r) => !r.success).length;
+              const ok = results.filter((r) => r.success).length;
+              if (failed > 0 && ok === 0) {
+                return `x402 run finished — ${failed} payment${failed === 1 ? "" : "s"} failed. See Error column in the call log.`;
+              }
+              if (failed > 0) {
+                return `x402 run finished — ${ok} succeeded, ${failed} failed. Check the call log.`;
+              }
+              return `x402 run completed${ok > 0 ? ` (${ok} succeeded)` : ""}. Check the call log for results.`;
+            })()}
+          </AlertDescription>
         </Alert>
       )}
 

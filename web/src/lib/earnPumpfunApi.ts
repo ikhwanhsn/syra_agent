@@ -6,18 +6,19 @@ const base = () => getApiBaseUrl().replace(/\/$/, "");
 export type EarnPumpfunLaunch = {
   id: string;
   earnAnonymousId?: string;
-  earnAgentAddress?: string;
   mint: string;
   name: string;
   symbol: string;
   metadataUri: string;
   imageUri?: string | null;
   description?: string | null;
-  launchSignature: string | null;
-  initialBuyLamports: string | null;
-  lastFeeCollectSignature: string | null;
-  lastFeeCollectedAt: string | null;
   createdAt: string;
+  /** Live market (DexScreener / pump.fun) — best-effort, may be null. */
+  priceUsd?: number | null;
+  marketCapUsd?: number | null;
+  liquidityUsd?: number | null;
+  volume24hUsd?: number | null;
+  priceChange24hPercent?: number | null;
 };
 
 export type EarnPumpfunWalletInfo = {

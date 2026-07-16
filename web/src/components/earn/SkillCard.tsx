@@ -5,12 +5,10 @@ import {
   Copy,
   Loader2,
   Trash2,
-  Users,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { playgroundStaggerStyle } from "@/components/playground/playgroundMotion";
-import { playgroundApiCardClass } from "@/components/playground/playgroundStyles";
 import {
   deleteSkill,
   publishSkill,
@@ -26,15 +24,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   trading: "Trading",
   learning: "Learning",
   tools: "Tools",
-};
-
-const CATEGORY_ACCENT: Record<string, string> = {
-  general: "bg-muted/50 text-muted-foreground ring-border/40",
-  live_data: "bg-sky-500/10 text-sky-700 ring-sky-500/20 dark:text-sky-300",
-  research: "bg-teal-500/10 text-teal-800 ring-teal-500/20 dark:text-teal-300",
-  trading: "bg-emerald-500/10 text-emerald-700 ring-emerald-500/20 dark:text-emerald-300",
-  learning: "bg-amber-500/10 text-amber-800 ring-amber-500/20 dark:text-amber-300",
-  tools: "bg-orange-500/10 text-orange-800 ring-orange-500/20 dark:text-orange-300",
 };
 
 function formatCalls(n: number): string {
@@ -85,7 +74,6 @@ export function SkillCard({ skill, isOwner, queryKeys, staggerIndex = 0 }: Skill
   const pending = publishM.isPending || unpublishM.isPending || deleteM.isPending;
   const isPublished = skill.status === "published";
   const categoryLabel = CATEGORY_LABELS[skill.category] ?? skill.category;
-  const categoryAccent = CATEGORY_ACCENT[skill.category] ?? CATEGORY_ACCENT.general;
 
   const handleCopyEndpoint = async () => {
     try {
@@ -100,95 +88,82 @@ export function SkillCard({ skill, isOwner, queryKeys, staggerIndex = 0 }: Skill
   return (
     <li
       className={cn(
-        playgroundApiCardClass(false),
-        "list-none animate-in fade-in slide-in-from-bottom-2 fill-mode-both duration-500",
+        "group relative list-none overflow-hidden rounded-[1.35rem]",
+        "border border-border/40 bg-card/40",
+        "shadow-[0_1px_0_0_hsl(var(--border)/0.35)]",
+        "transition-[border-color,box-shadow,transform,background-color] duration-300 ease-out",
+        "hover:-translate-y-0.5 hover:border-border/70 hover:bg-card/70",
+        "hover:shadow-[0_1px_0_0_hsl(var(--border)/0.4),0_24px_48px_-32px_rgba(0,0,0,0.45)]",
+        "animate-in fade-in slide-in-from-bottom-2 fill-mode-both duration-500",
       )}
       style={playgroundStaggerStyle(staggerIndex)}
     >
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-foreground/10 to-transparent"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-sky-500/[0.06] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-foreground/[0.08] to-transparent"
         aria-hidden
       />
 
-      <div className="relative flex flex-1 flex-col p-4 sm:p-5">
-        <div className="mb-3 flex items-start justify-between gap-2">
-          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-            <span
-              className={cn(
-                "inline-flex max-w-full truncate rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ring-1",
-                categoryAccent,
-              )}
-            >
-              {categoryLabel}
-            </span>
-            <span className="inline-flex rounded-md bg-muted/50 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground ring-1 ring-border/40">
-              {skill.upstreamMethod}
-            </span>
-            {isOwner ? (
-              <span
-                className={cn(
-                  "inline-flex rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ring-1",
-                  isPublished
-                    ? "bg-emerald-500/10 text-emerald-700 ring-emerald-500/20 dark:text-emerald-300"
-                    : "bg-amber-500/10 text-amber-800 ring-amber-500/20 dark:text-amber-300",
-                )}
-              >
-                {isPublished ? "Live" : "Draft"}
+      <div className="relative flex flex-1 flex-col gap-5 p-5 sm:p-6">
+        <div className="flex items-start gap-4">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-border/30 bg-muted/20 shadow-sm ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
+            <Code2 className="h-6 w-6 text-muted-foreground" aria-hidden />
+          </div>
+          <div className="min-w-0 flex-1 pt-0.5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="font-display text-[1.05rem] font-semibold leading-snug tracking-tight text-foreground line-clamp-1">
+                  {skill.title}
+                </h3>
+                <p className="mt-0.5 text-[13px] font-medium tracking-wide text-muted-foreground">
+                  {categoryLabel}
+                  <span className="mx-1.5 text-muted-foreground/40">·</span>
+                  <span className="font-mono text-[12px] uppercase">{skill.upstreamMethod}</span>
+                </p>
+              </div>
+              <span className="shrink-0 pt-1 text-[11px] tabular-nums text-muted-foreground/80">
+                {formatCalls(skill.useCount)} calls
               </span>
-            ) : null}
-          </div>
-
-          <span
-            className="inline-flex items-center gap-1 rounded-md bg-muted/40 px-2 py-1 text-[11px] font-medium tabular-nums text-muted-foreground ring-1 ring-border/40"
-            title="Agent calls"
-          >
-            <Users className="h-3 w-3" aria-hidden />
-            {formatCalls(skill.useCount)}
-          </span>
-        </div>
-
-        <div className="mb-3 flex items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-muted/40 shadow-[inset_0_1px_0_0_hsl(var(--border)/0.35)]">
-            <Code2 className="h-4 w-4 text-muted-foreground" aria-hidden />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h3 className="font-display text-[15px] font-semibold leading-snug tracking-tight text-foreground line-clamp-2">
-              {skill.title}
-            </h3>
-            <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
-              {skill.description?.trim() || "x402-ready HTTPS skill for Syra agents."}
-            </p>
+            </div>
           </div>
         </div>
 
-        <div className="mb-4 grid grid-cols-2 gap-2">
-          <div className="rounded-xl border border-border/40 bg-background/50 px-3 py-2.5 shadow-[inset_0_1px_0_0_hsl(var(--border)/0.3)]">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Price / call</p>
-            <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums tracking-tight text-foreground">
-              {formatPrice(skill.priceUsd)}{" "}
-              <span className="text-xs font-medium text-muted-foreground">USDC</span>
-            </p>
-          </div>
-          <div className="rounded-xl border border-border/40 bg-background/50 px-3 py-2.5 shadow-[inset_0_1px_0_0_hsl(var(--border)/0.3)]">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Slug</p>
-            <p className="mt-0.5 truncate font-mono text-sm font-semibold tracking-tight text-foreground" title={skill.slug}>
-              {skill.slug}
-            </p>
+        <p className="line-clamp-2 text-[13px] leading-relaxed text-muted-foreground">
+          {skill.description?.trim() || "x402-ready HTTPS skill for Syra agents."}
+        </p>
+
+        <div className="space-y-3">
+          <p className="font-mono text-2xl font-semibold tracking-tight tabular-nums text-foreground">
+            {formatPrice(skill.priceUsd)}
+            <span className="ml-1.5 text-sm font-medium text-muted-foreground">USDC</span>
+          </p>
+          <div className="grid grid-cols-2 gap-3 border-t border-border/30 pt-3">
+            <div className="min-w-0 overflow-hidden">
+              <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground/70">
+                Slug
+              </p>
+              <p className="mt-0.5 truncate font-mono text-[13px] font-medium text-foreground/90" title={skill.slug}>
+                {skill.slug}
+              </p>
+            </div>
+            <div className="min-w-0 overflow-hidden">
+              <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground/70">
+                Status
+              </p>
+              <p className="mt-0.5 text-[13px] font-medium text-foreground/90">
+                {isPublished ? "Live" : "Draft"}
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-border/40 pt-3">
+        <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-1">
           <Button
             size="sm"
             variant="ghost"
-            className="h-9 gap-1.5 rounded-xl px-2.5 text-muted-foreground"
+            className="h-9 gap-1.5 rounded-full px-3 text-[13px] text-muted-foreground hover:text-foreground"
             onClick={() => void handleCopyEndpoint()}
           >
-            <Copy className="h-3.5 w-3.5" />
+            <Copy className="h-3.5 w-3.5 opacity-60" />
             {copied ? "Copied" : "Endpoint"}
           </Button>
 
@@ -199,7 +174,7 @@ export function SkillCard({ skill, isOwner, queryKeys, staggerIndex = 0 }: Skill
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-9 rounded-xl"
+                    className="h-9 rounded-full px-3 text-[13px]"
                     onClick={() => unpublishM.mutate()}
                     disabled={pending}
                   >
@@ -208,18 +183,19 @@ export function SkillCard({ skill, isOwner, queryKeys, staggerIndex = 0 }: Skill
                 ) : (
                   <Button
                     size="sm"
-                    className="h-9 gap-1.5 rounded-xl shadow-sm"
+                    variant="secondary"
+                    className="h-9 gap-1.5 rounded-full px-4 text-[13px] shadow-none"
                     onClick={() => publishM.mutate()}
                     disabled={pending}
                   >
                     {publishM.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Publish"}
-                    {!publishM.isPending ? <ArrowUpRight className="h-3.5 w-3.5" /> : null}
+                    {!publishM.isPending ? <ArrowUpRight className="h-3.5 w-3.5 opacity-70" /> : null}
                   </Button>
                 )}
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-9 w-9 text-muted-foreground hover:text-destructive"
+                  className="h-9 w-9 rounded-full text-muted-foreground hover:text-destructive"
                   onClick={() => deleteM.mutate()}
                   disabled={pending}
                   title="Delete skill"
@@ -233,10 +209,15 @@ export function SkillCard({ skill, isOwner, queryKeys, staggerIndex = 0 }: Skill
                 </Button>
               </>
             ) : (
-              <Button size="sm" className="h-9 gap-1.5 rounded-xl px-3.5 shadow-sm" asChild>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-9 gap-1.5 rounded-full px-3.5 text-[13px] text-muted-foreground hover:text-foreground"
+                asChild
+              >
                 <a href={skill.endpointUrl} target="_blank" rel="noreferrer">
                   Open
-                  <ArrowUpRight className="h-3.5 w-3.5" />
+                  <ArrowUpRight className="h-3.5 w-3.5 opacity-60" />
                 </a>
               </Button>
             )}

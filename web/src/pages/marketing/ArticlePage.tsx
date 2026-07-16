@@ -11,6 +11,7 @@ import { BlogRelatedPosts } from "@/components/blog/BlogRelatedPosts";
 import { BlogNewsletter } from "@/components/blog/BlogNewsletter";
 import { ArticlePageShell, ARTICLE_SIDEBAR_STICKY } from "@/components/blog/ArticlePageShell";
 import { ArticleCopyForXButton } from "@/components/marketing/ArticleCopyForXButton";
+import { ArticleXFormatGuide } from "@/components/marketing/ArticleXFormatGuide";
 import { Button } from "@/components/ui/button";
 import {
   getArticleBySlug,
@@ -71,8 +72,11 @@ export default function ArticlePage() {
 
       <BlogArticleHeader article={article} />
 
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <ArticleCopyForXButton slug={article.slug} variant="featured" />
+      <div className="mt-4 space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <ArticleCopyForXButton slug={article.slug} variant="featured" />
+        </div>
+        <ArticleXFormatGuide className="max-w-2xl" />
       </div>
 
       <div className="mt-6 min-w-0 sm:mt-8 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(220px,280px)] lg:items-start lg:gap-6 xl:gap-8">

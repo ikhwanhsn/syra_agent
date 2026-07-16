@@ -192,7 +192,7 @@ export async function buildMintChart(input) {
     return { ok: false, error: 'Provide a valid Solana mint', status: 400 };
   }
 
-  const cacheKey = `chart|${mint}`;
+  const cacheKey = `chart|ltf|${mint}`;
   const cached = dossierCache.get(cacheKey);
   if (cached && Date.now() < cached.expires) {
     return { ok: true, data: cached.data };
@@ -217,11 +217,20 @@ export async function buildMintChart(input) {
   let includes = null;
   /** @type {Array<{ time: number; open: number; high: number; low: number; close: number; volume?: number }>} */
   let candles = [];
-  let chartInterval = '1H';
+  let chartInterval = '5m';
   /** @type {string | undefined} */
   let chartSource = resolved.ok ? 'tokens.xyz' : undefined;
   /** @type {string | undefined} */
   let ohlcvError = resolved.ok ? undefined : resolved.error || 'Could not resolve asset';
+
+  // Prefer pump.fun low-timeframe candles for fresh Solana mints (earn / pump launches).
+  const fallbackFirst = await fetchMintChartFallback(mint);
+  if (fallbackFirst?.source === 'pumpfun') {
+    candles = fallbackFirst.candles;
+    chartInterval = fallbackFirst.interval;
+    chartSource = fallbackFirst.source;
+    ohlcvError = undefined;
+  }
 
   if (resolved.ok) {
     const [detailResult, ohlcvResult] = await Promise.all([
@@ -230,32 +239,34 @@ export async function buildMintChart(input) {
         mint: chartMint,
         include: 'profile',
       }),
-      runTokensAgentTool('tokens-asset-ohlcv', {
-        assetId,
-        mint: chartMint,
-        interval: '1H',
-      }),
+      // Only hit Tokens.xyz OHLCV when pump.fun didn't already give enough low-TF bars.
+      hasEnoughCandles(candles)
+        ? Promise.resolve(null)
+        : runTokensAgentTool('tokens-asset-ohlcv', {
+            assetId,
+            mint: chartMint,
+            interval: '5m',
+          }),
     ]);
 
     asset = detailResult.ok ? detailResult.data?.asset ?? null : null;
     includes = detailResult.ok ? detailResult.data?.includes ?? null : null;
 
-    if (ohlcvResult?.ok && Array.isArray(ohlcvResult.data?.candles)) {
+    if (!hasEnoughCandles(candles) && ohlcvResult?.ok && Array.isArray(ohlcvResult.data?.candles)) {
       candles = ohlcvResult.data.candles;
-      chartInterval = ohlcvResult.data?.interval ?? '1H';
-    } else {
+      chartInterval = ohlcvResult.data?.interval ?? '5m';
+      chartSource = 'tokens.xyz';
+      ohlcvError = undefined;
+    } else if (!hasEnoughCandles(candles)) {
       ohlcvError = ohlcvResult?.error ?? 'Chart unavailable';
     }
   }
 
-  if (!hasEnoughCandles(candles)) {
-    const fallback = await fetchMintChartFallback(mint);
-    if (fallback) {
-      candles = fallback.candles;
-      chartInterval = fallback.interval;
-      chartSource = fallback.source;
-      ohlcvError = undefined;
-    }
+  if (!hasEnoughCandles(candles) && fallbackFirst) {
+    candles = fallbackFirst.candles;
+    chartInterval = fallbackFirst.interval;
+    chartSource = fallbackFirst.source;
+    ohlcvError = undefined;
   }
 
   if (!hasEnoughCandles(candles) && !resolved.ok) {

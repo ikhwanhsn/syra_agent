@@ -30,7 +30,7 @@ const UP_VOL = "rgba(34, 197, 94, 0.45)";
 const DOWN_VOL = "rgba(239, 68, 68, 0.4)";
 
 type ChartMode = "candles" | "area";
-type ChartRange = "24H" | "3D" | "7D";
+type ChartRange = "1H" | "6H" | "24H" | "3D" | "7D";
 
 type CandlePoint = {
   time: UTCTimestamp;
@@ -61,7 +61,8 @@ type CrosshairState = {
   time: string;
 };
 
-const RANGES: ChartRange[] = ["24H", "3D", "7D"];
+const RANGES_DEFAULT: ChartRange[] = ["24H", "3D", "7D"];
+const RANGES_LOW_TF: ChartRange[] = ["1H", "6H", "24H"];
 
 function formatChartPrice(p: number): string {
   if (!Number.isFinite(p)) return "—";
@@ -110,8 +111,13 @@ function toCandlePoints(candles: TokensDossierCandle[]): CandlePoint[] {
 
 function sliceByRange(points: CandlePoint[], range: ChartRange): CandlePoint[] {
   if (points.length === 0) return [];
-  const hours = range === "24H" ? 24 : range === "3D" ? 72 : 168;
-  return points.slice(-hours);
+  const hours =
+    range === "1H" ? 1 : range === "6H" ? 6 : range === "24H" ? 24 : range === "3D" ? 72 : 168;
+  const lastTime = points[points.length - 1]?.time;
+  if (lastTime == null) return points;
+  const cutoff = Number(lastTime) - hours * 3600;
+  const sliced = points.filter((p) => Number(p.time) >= cutoff);
+  return sliced.length >= 2 ? sliced : points;
 }
 
 function computeStats(points: CandlePoint[]): RangeStats | null {
@@ -162,6 +168,12 @@ export interface TokensOhlcvChartProps {
   height?: number;
   symbol?: string;
   intervalLabel?: string;
+  /** Default visible window. Use low-TF presets for new / pump.fun tokens. */
+  defaultRange?: ChartRange;
+  /** Range chips to show. Defaults to 24H/3D/7D, or 1H/6H/24H when `lowTimeframe`. */
+  ranges?: ChartRange[];
+  /** Shorter range chips (1H / 6H / 24H) for fresh launches. */
+  lowTimeframe?: boolean;
 }
 
 export function TokensOhlcvChart({
@@ -170,6 +182,9 @@ export function TokensOhlcvChart({
   height = 380,
   symbol,
   intervalLabel = "1H",
+  defaultRange,
+  ranges,
+  lowTimeframe = false,
 }: TokensOhlcvChartProps) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme !== "light";
@@ -181,8 +196,16 @@ export function TokensOhlcvChart({
   const openLineRef = useRef<ReturnType<ISeriesApi<"Candlestick", Time>["createPriceLine"]> | null>(null);
   const openLineOwnerRef = useRef<ISeriesApi<"Candlestick", Time> | ISeriesApi<"Area", Time> | null>(null);
 
+  const rangeOptions = ranges ?? (lowTimeframe ? RANGES_LOW_TF : RANGES_DEFAULT);
+  const initialRange =
+    defaultRange && rangeOptions.includes(defaultRange)
+      ? defaultRange
+      : lowTimeframe
+        ? "6H"
+        : "7D";
+
   const [mode, setMode] = useState<ChartMode>("candles");
-  const [range, setRange] = useState<ChartRange>("7D");
+  const [range, setRange] = useState<ChartRange>(initialRange);
   const [crosshair, setCrosshair] = useState<CrosshairState | null>(null);
 
   const allPoints = useMemo(() => toCandlePoints(candles), [candles]);
@@ -555,7 +578,7 @@ export function TokensOhlcvChart({
 
           <div className="flex shrink-0 flex-wrap items-center gap-2">
             <div className="flex gap-0.5 rounded-xl border border-border/50 bg-background/70 p-0.5 shadow-sm">
-              {RANGES.map((r) => (
+              {rangeOptions.map((r) => (
                 <Button
                   key={r}
                   type="button"

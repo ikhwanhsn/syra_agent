@@ -34,6 +34,17 @@ const manualRunCooldown = new Map();
 const MANUAL_RUN_COOLDOWN_MS = 30_000;
 
 /**
+ * @param {'solana' | 'base' | 'celo' | 'algorand'} chain
+ * @returns {'SOL' | 'ETH' | 'CELO' | 'ALGO'}
+ */
+function nativeSymbolForChain(chain) {
+  if (chain === 'celo') return 'CELO';
+  if (chain === 'base') return 'ETH';
+  if (chain === 'algorand') return 'ALGO';
+  return 'SOL';
+}
+
+/**
  * @param {import('express').Request} req
  * @returns {'solana' | 'base' | 'celo'}
  */

@@ -93,13 +93,11 @@ async function fetchJson(url, init = {}) {
 
 /**
  * @param {string} mint
+ * @param {{ interval: string; limit: number }} opts
  * @returns {Promise<{ candles: OhlcvCandle[]; interval: string } | null>}
  */
-async function fetchPumpfunOhlcv(mint) {
-  const trimmed = String(mint || '').trim();
-  if (!trimmed || trimmed === WSOL_MINT) return null;
-
-  const url = `${PUMP_SWAP_API}/v1/coins/${encodeURIComponent(trimmed)}/candles?interval=1h&limit=168`;
+async function fetchPumpfunOhlcvOnce(mint, opts) {
+  const url = `${PUMP_SWAP_API}/v1/coins/${encodeURIComponent(mint)}/candles?interval=${encodeURIComponent(opts.interval)}&limit=${opts.limit}`;
   const raw = await fetchJson(url, {
     headers: { Origin: 'https://pump.fun' },
   });
@@ -129,7 +127,29 @@ async function fetchPumpfunOhlcv(mint) {
 
   const deduped = dedupeCandles(candles);
   if (!hasEnoughCandles(deduped)) return null;
-  return { candles: deduped, interval: '1H' };
+  return { candles: deduped, interval: opts.interval.toUpperCase() };
+}
+
+/**
+ * Low timeframes first — earn / pump.fun launches are often minutes–hours old.
+ * @param {string} mint
+ * @returns {Promise<{ candles: OhlcvCandle[]; interval: string } | null>}
+ */
+async function fetchPumpfunOhlcv(mint) {
+  const trimmed = String(mint || '').trim();
+  if (!trimmed || trimmed === WSOL_MINT) return null;
+
+  const attempts = [
+    { interval: '1m', limit: 360 }, // ~6h
+    { interval: '5m', limit: 288 }, // ~24h
+    { interval: '15m', limit: 192 }, // ~48h
+  ];
+
+  for (const opts of attempts) {
+    const result = await fetchPumpfunOhlcvOnce(trimmed, opts);
+    if (result) return result;
+  }
+  return null;
 }
 
 /**

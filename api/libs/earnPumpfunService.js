@@ -10,6 +10,7 @@ import {
   siblingAnonymousId,
 } from './agentWalletPurpose.js';
 import { ensureAgentWalletSet } from './agentWalletProvision.js';
+import { createBoundedTtlCache } from '../utils/boundedTtlCache.js';
 
 const PUMPFUN_EARN_TOOLS = Object.freeze([
   'pumpfun-agents-create-coin',
@@ -21,6 +22,19 @@ const FRONTEND_API_BASE = (process.env.PUMP_FUN_FRONTEND_API_URL || 'https://fro
   /\/$/,
   '',
 );
+const DEXSCREENER_TOKENS_URL = 'https://api.dexscreener.com/latest/dex/tokens';
+const DEXSCREENER_V1_URL = 'https://api.dexscreener.com/tokens/v1/solana';
+const MARKET_CACHE_TTL_MS = 45_000;
+const MARKET_EMPTY_CACHE_TTL_MS = 8_000;
+const DEX_BATCH_SIZE = 30;
+const PUMP_CONCURRENCY = 6;
+
+/** @type {ReturnType<typeof createBoundedTtlCache>} */
+const launchMarketCache = createBoundedTtlCache({
+  name: 'earn-pumpfun-launch-market',
+  maxEntries: 500,
+  defaultTtlMs: MARKET_CACHE_TTL_MS,
+});
 
 /** Appended to every earn-pillar pump.fun token display name. */
 export const SYRA_TOKEN_NAME_SUFFIX = ' by Syra';
@@ -217,21 +231,390 @@ export async function resolveEarnWalletForSession(sessionAnonymousId, walletAddr
   };
 }
 
+/**
+ * @param {unknown} v
+ * @returns {number | null}
+ */
+function toFiniteNumber(v) {
+  const n = typeof v === 'number' ? v : Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * @typedef {{
+ *   priceUsd: number | null;
+ *   marketCapUsd: number | null;
+ *   liquidityUsd: number | null;
+ *   volume24hUsd: number | null;
+ *   priceChange24hPercent: number | null;
+ * }} EarnLaunchMarketSnapshot
+ */
+
+/** @returns {EarnLaunchMarketSnapshot} */
+function emptyMarketSnapshot() {
+  return {
+    priceUsd: null,
+    marketCapUsd: null,
+    liquidityUsd: null,
+    volume24hUsd: null,
+    priceChange24hPercent: null,
+  };
+}
+
+/**
+ * @param {EarnLaunchMarketSnapshot | null | undefined} snap
+ */
+function hasMarketData(snap) {
+  if (!snap) return false;
+  return (
+    snap.priceUsd != null ||
+    snap.marketCapUsd != null ||
+    snap.liquidityUsd != null ||
+    snap.volume24hUsd != null ||
+    snap.priceChange24hPercent != null
+  );
+}
+
+/**
+ * @param {Record<string, unknown>} pair
+ * @param {string} mint
+ * @returns {number | null}
+ */
+function pairTokenUsdPrice(pair, mint) {
+  const priceUsd = toFiniteNumber(pair.priceUsd);
+  if (priceUsd == null || priceUsd <= 0) return null;
+  const base = pair.baseToken && typeof pair.baseToken === 'object'
+    ? /** @type {Record<string, unknown>} */ (pair.baseToken)
+    : null;
+  const quote = pair.quoteToken && typeof pair.quoteToken === 'object'
+    ? /** @type {Record<string, unknown>} */ (pair.quoteToken)
+    : null;
+  if (base?.address === mint) return priceUsd;
+  if (quote?.address === mint) {
+    const priceNative = toFiniteNumber(pair.priceNative);
+    if (priceNative != null && priceNative > 0) return priceUsd / priceNative;
+  }
+  return priceUsd;
+}
+
+/**
+ * @param {Record<string, unknown>} pair
+ * @param {string} mint
+ * @returns {EarnLaunchMarketSnapshot}
+ */
+function snapshotFromDexPair(pair, mint) {
+  const liquidity =
+    pair.liquidity && typeof pair.liquidity === 'object'
+      ? toFiniteNumber(/** @type {Record<string, unknown>} */ (pair.liquidity).usd)
+      : null;
+  const volume =
+    pair.volume && typeof pair.volume === 'object'
+      ? toFiniteNumber(/** @type {Record<string, unknown>} */ (pair.volume).h24)
+      : null;
+  const priceChange =
+    pair.priceChange && typeof pair.priceChange === 'object'
+      ? toFiniteNumber(/** @type {Record<string, unknown>} */ (pair.priceChange).h24)
+      : null;
+  return {
+    priceUsd: pairTokenUsdPrice(pair, mint),
+    marketCapUsd: toFiniteNumber(pair.marketCap) ?? toFiniteNumber(pair.fdv),
+    liquidityUsd: liquidity,
+    volume24hUsd: volume,
+    priceChange24hPercent: priceChange,
+  };
+}
+
+/**
+ * @param {unknown[]} pairs
+ * @param {string[]} mints
+ * @returns {Map<string, EarnLaunchMarketSnapshot>}
+ */
+function mapBestDexPairsForMints(pairs, mints) {
+  /** @type {Map<string, EarnLaunchMarketSnapshot>} */
+  const out = new Map();
+  const mintSet = new Set(mints);
+
+  /** @type {Map<string, { snap: EarnLaunchMarketSnapshot; liq: number }>} */
+  const best = new Map();
+
+  for (const row of pairs) {
+    if (!row || typeof row !== 'object') continue;
+    const pair = /** @type {Record<string, unknown>} */ (row);
+    if (pair.chainId && pair.chainId !== 'solana') continue;
+
+    const base = pair.baseToken && typeof pair.baseToken === 'object'
+      ? /** @type {Record<string, unknown>} */ (pair.baseToken)
+      : null;
+    const quote = pair.quoteToken && typeof pair.quoteToken === 'object'
+      ? /** @type {Record<string, unknown>} */ (pair.quoteToken)
+      : null;
+
+    /** @type {string[]} */
+    const matched = [];
+    if (typeof base?.address === 'string' && mintSet.has(base.address)) matched.push(base.address);
+    if (typeof quote?.address === 'string' && mintSet.has(quote.address)) matched.push(quote.address);
+    if (!matched.length) continue;
+
+    for (const mint of matched) {
+      const snap = snapshotFromDexPair(pair, mint);
+      const liq = snap.liquidityUsd ?? 0;
+      const prev = best.get(mint);
+      if (!prev || liq >= prev.liq) best.set(mint, { snap, liq });
+    }
+  }
+
+  for (const [mint, entry] of best) out.set(mint, entry.snap);
+  return out;
+}
+
+/**
+ * @param {string[]} mints
+ * @returns {Promise<Map<string, EarnLaunchMarketSnapshot>>}
+ */
+async function fetchDexMarketBatch(mints) {
+  /** @type {Map<string, EarnLaunchMarketSnapshot>} */
+  const out = new Map();
+  if (!mints.length) return out;
+
+  for (let i = 0; i < mints.length; i += DEX_BATCH_SIZE) {
+    const chunk = mints.slice(i, i + DEX_BATCH_SIZE);
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 10_000);
+    try {
+      // Prefer v1 Solana endpoint (array body); fall back to latest/dex/tokens.
+      const [v1Res, latestRes] = await Promise.all([
+        fetch(`${DEXSCREENER_V1_URL}/${chunk.join(',')}`, {
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+          signal: ctrl.signal,
+        }).catch(() => null),
+        fetch(`${DEXSCREENER_TOKENS_URL}/${chunk.join(',')}`, {
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+          signal: ctrl.signal,
+        }).catch(() => null),
+      ]);
+
+      /** @type {unknown[]} */
+      let pairs = [];
+      if (v1Res?.ok) {
+        const raw = await v1Res.json().catch(() => null);
+        if (Array.isArray(raw)) pairs = raw;
+      }
+      if (!pairs.length && latestRes?.ok) {
+        const raw = await latestRes.json().catch(() => null);
+        if (raw && typeof raw === 'object' && Array.isArray(raw.pairs)) {
+          pairs = raw.pairs;
+        }
+      }
+
+      for (const [mint, snap] of mapBestDexPairsForMints(pairs, chunk)) {
+        out.set(mint, snap);
+      }
+    } catch {
+      // best-effort
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  return out;
+}
+
+/** @returns {Promise<number | null>} */
+async function fetchPumpfunSolUsd() {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 5_000);
+  try {
+    const res = await fetch(`${FRONTEND_API_BASE}/sol-price`, {
+      headers: { Accept: 'application/json' },
+      signal: ctrl.signal,
+    });
+    if (!res.ok) return null;
+    const raw = await res.json().catch(() => null);
+    if (!raw || typeof raw !== 'object') return null;
+    const o = /** @type {Record<string, unknown>} */ (raw);
+    return toFiniteNumber(o.solPrice ?? o.sol_price ?? o.price ?? o.usd);
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * @param {Record<string, unknown>} data
+ * @param {number | null} solUsd
+ * @returns {number | null}
+ */
+function resolvePumpfunSpotPriceUsd(data, solUsd) {
+  const apiPrice = toFiniteNumber(data.price_usd) ?? toFiniteNumber(data.priceUsd);
+  if (apiPrice != null && apiPrice > 0) return apiPrice;
+
+  if (solUsd == null || solUsd <= 0) return null;
+  const virtualSol =
+    toFiniteNumber(data.virtual_sol_reserves) ?? toFiniteNumber(data.real_sol_reserves);
+  const virtualToken =
+    toFiniteNumber(data.virtual_token_reserves) ?? toFiniteNumber(data.real_token_reserves);
+  const tokenDecimals = toFiniteNumber(data.decimals) ?? 6;
+  if (
+    virtualSol == null ||
+    virtualToken == null ||
+    virtualSol <= 0 ||
+    virtualToken <= 0 ||
+    tokenDecimals == null
+  ) {
+    return null;
+  }
+  const solHuman = virtualSol / 1e9;
+  const tokenHuman = virtualToken / 10 ** tokenDecimals;
+  if (tokenHuman <= 0) return null;
+  const computed = (solHuman / tokenHuman) * solUsd;
+  return Number.isFinite(computed) && computed > 0 ? computed : null;
+}
+
+/**
+ * Lightweight pump.fun market fallback for bonding-curve coins missing Dex pairs.
+ * @param {string} mint
+ * @param {number | null} solUsd
+ * @returns {Promise<EarnLaunchMarketSnapshot | null>}
+ */
+async function fetchPumpfunMarketFallback(mint, solUsd) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 8_000);
+  try {
+    const res = await fetch(`${FRONTEND_API_BASE}/coins-v2/${encodeURIComponent(mint)}`, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      signal: ctrl.signal,
+    });
+    if (!res.ok) return null;
+    const raw = await res.json().catch(() => null);
+    if (!raw || typeof raw !== 'object') return null;
+    const o = /** @type {Record<string, unknown>} */ (raw);
+    const marketCapUsd =
+      toFiniteNumber(o.usd_market_cap) ?? toFiniteNumber(o.market_cap) ?? toFiniteNumber(o.marketCap);
+    const priceUsd = resolvePumpfunSpotPriceUsd(o, solUsd);
+    const realSol =
+      toFiniteNumber(o.real_sol_reserves) ?? toFiniteNumber(o.virtual_sol_reserves);
+    let liquidityUsd = null;
+    if (realSol != null && solUsd != null && solUsd > 0) {
+      liquidityUsd = (realSol / 1e9) * solUsd * 2;
+    }
+    if (marketCapUsd == null && priceUsd == null) return null;
+    return {
+      priceUsd,
+      marketCapUsd,
+      liquidityUsd,
+      volume24hUsd: toFiniteNumber(o.volume_24h) ?? toFiniteNumber(o.volume24h) ?? null,
+      priceChange24hPercent:
+        toFiniteNumber(o.price_change_24h) ?? toFiniteNumber(o.priceChange24h) ?? null,
+    };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * @param {string[]} mints
+ * @param {number | null} solUsd
+ * @returns {Promise<Map<string, EarnLaunchMarketSnapshot>>}
+ */
+async function fetchPumpfunMarketBatch(mints, solUsd) {
+  /** @type {Map<string, EarnLaunchMarketSnapshot>} */
+  const out = new Map();
+  for (let i = 0; i < mints.length; i += PUMP_CONCURRENCY) {
+    const batch = mints.slice(i, i + PUMP_CONCURRENCY);
+    const results = await Promise.all(
+      batch.map((mint) => fetchPumpfunMarketFallback(mint, solUsd)),
+    );
+    for (let j = 0; j < batch.length; j += 1) {
+      const snap = results[j];
+      if (snap && hasMarketData(snap)) out.set(batch[j], snap);
+    }
+  }
+  return out;
+}
+
+/**
+ * @param {string[]} mints
+ * @returns {Promise<Map<string, EarnLaunchMarketSnapshot>>}
+ */
+async function resolveLaunchMarketSnapshots(mints) {
+  /** @type {Map<string, EarnLaunchMarketSnapshot>} */
+  const resolved = new Map();
+  const unique = [...new Set(mints.map((m) => String(m || '').trim()).filter(Boolean))];
+  if (!unique.length) return resolved;
+
+  /** @type {string[]} */
+  const missing = [];
+  for (const mint of unique) {
+    const cached = /** @type {EarnLaunchMarketSnapshot | null} */ (launchMarketCache.get(mint));
+    if (cached) {
+      resolved.set(mint, cached);
+    } else {
+      missing.push(mint);
+    }
+  }
+
+  if (!missing.length) return resolved;
+
+  const dexMap = await fetchDexMarketBatch(missing);
+  /** @type {string[]} */
+  const stillMissing = [];
+  for (const mint of missing) {
+    const snap = dexMap.get(mint);
+    if (snap && hasMarketData(snap)) {
+      launchMarketCache.set(mint, snap);
+      resolved.set(mint, snap);
+    } else {
+      stillMissing.push(mint);
+    }
+  }
+
+  if (stillMissing.length) {
+    const solUsd = await fetchPumpfunSolUsd();
+    const pumpMap = await fetchPumpfunMarketBatch(stillMissing, solUsd);
+    for (const mint of stillMissing) {
+      const snap = pumpMap.get(mint) ?? emptyMarketSnapshot();
+      // Cache empties briefly so a transient pump.fun blip doesn't hammer the API.
+      launchMarketCache.set(
+        mint,
+        snap,
+        hasMarketData(snap) ? MARKET_CACHE_TTL_MS : MARKET_EMPTY_CACHE_TTL_MS,
+      );
+      resolved.set(mint, snap);
+    }
+  }
+
+  return resolved;
+}
+
+/**
+ * @param {ReturnType<typeof serializeEarnPumpfunLaunch>[]} launches
+ */
+async function attachMarketToLaunches(launches) {
+  if (!launches.length) return launches;
+  const marketMap = await resolveLaunchMarketSnapshots(launches.map((l) => l.mint));
+  return launches.map((launch) => {
+    const market = marketMap.get(launch.mint) ?? emptyMarketSnapshot();
+    return { ...launch, ...market };
+  });
+}
+
 function serializeEarnPumpfunLaunch(r) {
   return {
     id: String(r._id),
+    // Ownership check only — no creator wallet / fee / initial-buy details on public payloads.
     earnAnonymousId: r.earnAnonymousId,
-    earnAgentAddress: r.earnAgentAddress,
     mint: r.mint,
     name: r.name,
     symbol: r.symbol,
     metadataUri: r.metadataUri,
     imageUri: normalizeTokenMediaUrl(r.imageUri) || null,
     description: typeof r.description === 'string' && r.description.trim() ? r.description.trim() : null,
-    launchSignature: r.launchSignature,
-    initialBuyLamports: r.initialBuyLamports,
-    lastFeeCollectSignature: r.lastFeeCollectSignature,
-    lastFeeCollectedAt: r.lastFeeCollectedAt,
     createdAt: r.createdAt,
   };
 }
@@ -248,7 +631,7 @@ export async function listEarnPumpfunLaunches(earnAnonymousId) {
   const enriched = await Promise.all(
     rows.map(async (row) => (row.imageUri ? row : enrichLaunchMedia(row))),
   );
-  return enriched.map(serializeEarnPumpfunLaunch);
+  return attachMarketToLaunches(enriched.map(serializeEarnPumpfunLaunch));
 }
 
 /**
@@ -268,7 +651,7 @@ export async function listMarketplaceEarnPumpfunLaunches(opts = {}) {
   const enriched = await Promise.all(
     rows.map(async (row) => (row.imageUri ? row : enrichLaunchMedia(row))),
   );
-  return enriched.map(serializeEarnPumpfunLaunch);
+  return attachMarketToLaunches(enriched.map(serializeEarnPumpfunLaunch));
 }
 
 /**
@@ -282,7 +665,8 @@ export async function getEarnPumpfunLaunchByMint(mint) {
   const row = await EarnPumpfunLaunch.findOne({ mint: mintTrim }).lean();
   if (!row) return null;
   const enriched = await enrichLaunchMedia(row);
-  return serializeEarnPumpfunLaunch(enriched);
+  const [withMarket] = await attachMarketToLaunches([serializeEarnPumpfunLaunch(enriched)]);
+  return withMarket ?? null;
 }
 
 /**

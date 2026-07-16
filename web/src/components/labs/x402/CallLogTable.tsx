@@ -31,6 +31,13 @@ function shortenAddress(addr: string): string {
   return `${addr.slice(0, 4)}…${addr.slice(-4)}`;
 }
 
+function shortenError(error: string | null): string {
+  if (!error) return "—";
+  const cleaned = error.replace(/\s+/g, " ").trim();
+  if (cleaned.length <= 72) return cleaned;
+  return `${cleaned.slice(0, 69)}…`;
+}
+
 interface CallLogTableProps {
   calls: LabX402Call[];
   isLoading: boolean;
@@ -65,6 +72,7 @@ export function CallLogTable({ calls, isLoading }: CallLogTableProps) {
             <TableHead>Payer</TableHead>
             <TableHead className="text-right">Price</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Error</TableHead>
             <TableHead>Trigger</TableHead>
           </TableRow>
         </TableHeader>
@@ -83,6 +91,12 @@ export function CallLogTable({ calls, isLoading }: CallLogTableProps) {
               </TableCell>
               <TableCell>
                 <Badge variant={statusVariant(c.status)}>{c.status}</Badge>
+              </TableCell>
+              <TableCell
+                className="max-w-[220px] truncate text-xs text-muted-foreground"
+                title={c.error ?? undefined}
+              >
+                {shortenError(c.error)}
               </TableCell>
               <TableCell className="text-xs capitalize text-muted-foreground">{c.trigger}</TableCell>
             </TableRow>

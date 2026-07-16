@@ -47,9 +47,12 @@ async function getSolanaPaymentFetchForKeypair(keypair) {
   if (paymentFetchCache.has(cacheKey)) return paymentFetchCache.get(cacheKey);
 
   const signer = await createKeyPairSignerFromBytes(keypair.secretKey);
+  // Prefer blockchain-capable RPC (same rules as agentX402Client). Never use a
+  // read-only Alchemy URL here — ExactSvmScheme needs getAccountInfo / blockhash.
   const rpcUrl =
     process.env.SOLANA_RPC_BLOCKCHAIN_URL ||
     process.env.SOLANA_RPC_URL ||
+    process.env.VITE_SOLANA_RPC_URL ||
     'https://api.mainnet-beta.solana.com';
   const scheme = new ExactSvmScheme(signer, { rpcUrl });
   const client = x402Client.fromConfig({ schemes: [{ network: 'solana:*', client: scheme }] });
@@ -210,10 +213,16 @@ export async function runLabX402Payment(payerAddress, opts = {}) {
 
     if (!res.ok) {
       errorMsg = responseBody?.error || responseBody?.message || `HTTP ${res.status}`;
+      const errText = String(errorMsg);
       const looksLikeUpstreamData =
-        /pyth|hermes|upstream|oracle|not found|timeout|ECONN|ENOTFOUND|502|503/i.test(
-          String(errorMsg),
-        );
+        /pyth|hermes|upstream|oracle|not found|timeout|ECONN|ENOTFOUND|502|503/i.test(errText);
+      // Facilitator fee-payer dry / rent failures are operational — keep as payment_failed
+      // but rewrite to an actionable message so the Labs UI is not opaque.
+      if (/InsufficientFundsForRent|transaction_simulation_failed/i.test(errText)) {
+        errorMsg =
+          'Facilitator Solana fee payer underfunded (InsufficientFundsForRent). ' +
+          'Syra falls back to PayAI automatically — retry after deploy, or top up Dexter fee payer.';
+      }
       await logLabX402Call({
         payerAddress: payerAddrForLog,
         endpoint: endpoint.path,
