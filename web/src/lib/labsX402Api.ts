@@ -30,6 +30,8 @@ export interface LabX402Settings {
   maxDailyCallsMax: number;
   /** Today's rolled cap (or midpoint of range if not rolled yet). */
   maxDailyCalls: number;
+  /** Ops target for gross x402 volume (USD) in a UTC day. */
+  targetVolumeUsd: number;
   activeDailyCallCap?: number | null;
   activeDailyCallCapDay?: string | null;
   depositDistributeEnabled?: boolean;
@@ -110,6 +112,16 @@ export interface LabX402Call {
   error: string | null;
   trigger: "manual" | "scheduler";
   createdAt: string;
+}
+
+export interface LabX402VolumeStats {
+  dayUtc: string;
+  volumeUsd: number;
+  callCount: number;
+  targetVolumeUsd: number;
+  remainingUsd: number;
+  progressPct: number;
+  chain: LabChain;
 }
 
 export interface LabX402RunResult {
@@ -271,6 +283,17 @@ export async function fetchLabX402Calls(
 ): Promise<LabX402Call[]> {
   const res = await fetchLabsJson<{ success: boolean; data: LabX402Call[] }>(
     withChain(`/labs/x402/calls?limit=${limit}`, chain),
+    adminWallet,
+  );
+  return res.data;
+}
+
+export async function fetchLabX402Volume(
+  adminWallet: string,
+  chain: LabChain = "solana",
+): Promise<LabX402VolumeStats> {
+  const res = await fetchLabsJson<{ success: boolean; data: LabX402VolumeStats }>(
+    withChain("/labs/x402/volume", chain),
     adminWallet,
   );
   return res.data;

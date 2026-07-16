@@ -108,16 +108,16 @@ function shouldSettleViaCeloFacilitator() {
 }
 
 /**
- * Self-settle is opt-in (or auto when no facilitator API key is configured).
- * Self-settled txs do NOT count toward x402_settlements / x402_volume_usd on the Dune board.
+ * Self-settle fallback — OFF by default for hackathon Track 2.
+ * Only settlements submitted by api.x402.celo.org count toward x402_settlements /
+ * x402_volume_usd. Set CELO_ALLOW_SELF_SETTLE=true only for local debugging.
+ * @see https://celobuilders.xyz/hackathons/agentic-payments-defai/faqs
  */
 function allowCeloSelfSettle() {
-  const v = String(process.env.CELO_ALLOW_SELF_SETTLE || '')
+  const v = String(process.env.CELO_ALLOW_SELF_SETTLE || 'false')
     .trim()
     .toLowerCase();
-  if (v === '0' || v === 'false' || v === 'no') return false;
-  if (v === '1' || v === 'true' || v === 'yes') return true;
-  return !getCeloFacilitatorApiKey();
+  return v === '1' || v === 'true' || v === 'yes';
 }
 
 /**
@@ -350,6 +350,7 @@ async function settleViaCeloFacilitator(payload, accepted) {
     const tx = body.transaction || body.txHash || body.hash || body?.settlement?.transaction;
     if (!res.ok || !(body?.success || body?.settled || tx)) {
       const reason =
+        body?.errorMessage ||
         body?.errorReason ||
         body?.error ||
         body?.message ||
@@ -441,10 +442,10 @@ export async function settleCeloX402Payment(payload, accepted) {
         success: false,
         errorReason:
           facilitated?.errorReason ||
-          'Celo facilitator settle failed (x402_* leaderboard requires api.x402.celo.org). Set CELO_FACILITATOR_API_KEY + credits at https://x402.celo.org, or CELO_ALLOW_SELF_SETTLE=true for non-leaderboard fallback.',
+          'Celo facilitator settle failed. Track 2 only counts api.x402.celo.org settlements — check CELO_FACILITATOR_API_KEY/credits and facilitator relayer CELO gas (0x0d74…FB48).',
         error:
           facilitated?.error ||
-          'Celo facilitator settle failed — CELO_FACILITATOR_API_KEY / credits required for x402_* metrics',
+          'Celo facilitator settle failed — self-settle disabled for hackathon Track 2',
         payer: auth.from,
       };
     }
@@ -453,38 +454,38 @@ export async function settleCeloX402Payment(payload, accepted) {
     );
   }
 
-  const settler = getSettlerAccount();
-  const rpcUrl = getCeloRpcUrl();
-  const publicClient = createPublicClient({
-    chain: celo,
-    transport: http(rpcUrl),
-  });
-  const walletClient = createWalletClient({
-    account: settler,
-    chain: celo,
-    transport: http(rpcUrl),
-  });
-
-  const encoded = encodeFunctionData({
-    abi: TRANSFER_WITH_AUTHORIZATION_ABI,
-    functionName: 'transferWithAuthorization',
-    args: [
-      auth.from,
-      auth.to,
-      auth.value,
-      auth.validAfter,
-      auth.validBefore,
-      auth.nonce,
-      auth.v,
-      auth.r,
-      auth.s,
-    ],
-  });
-
-  const dataSuffix = buildCeloSettlementDataSuffix(payload, accepted);
-  const data = appendCeloDataSuffix(encoded, dataSuffix);
-
   try {
+    const settler = getSettlerAccount();
+    const rpcUrl = getCeloRpcUrl();
+    const publicClient = createPublicClient({
+      chain: celo,
+      transport: http(rpcUrl),
+    });
+    const walletClient = createWalletClient({
+      account: settler,
+      chain: celo,
+      transport: http(rpcUrl),
+    });
+
+    const encoded = encodeFunctionData({
+      abi: TRANSFER_WITH_AUTHORIZATION_ABI,
+      functionName: 'transferWithAuthorization',
+      args: [
+        auth.from,
+        auth.to,
+        auth.value,
+        auth.validAfter,
+        auth.validBefore,
+        auth.nonce,
+        auth.v,
+        auth.r,
+        auth.s,
+      ],
+    });
+
+    const dataSuffix = buildCeloSettlementDataSuffix(payload, accepted);
+    const data = appendCeloDataSuffix(encoded, dataSuffix);
+
     const hash = await walletClient.sendTransaction({
       to: auth.asset,
       data,

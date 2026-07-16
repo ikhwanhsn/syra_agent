@@ -55,6 +55,8 @@ const labX402SettingsSchema = new mongoose.Schema(
     maxDailyCallsMax: { type: Number, default: 2000, min: 100, max: 10_000 },
     /** Legacy flat cap — kept for migration; prefer min/max. */
     maxDailyCalls: { type: Number, default: 2000, min: 100, max: 10_000 },
+    /** Ops target for gross x402 volume (USD) in a UTC day — guidance + simulation, not a hard cap. */
+    targetVolumeUsd: { type: Number, default: 50, min: 1, max: 100_000 },
     /** Rolled cap for the current UTC day (stable across process restarts). */
     activeDailyCallCap: { type: Number, min: 100, max: 10_000 },
     /** UTC date key `YYYY-MM-DD` for which activeDailyCallCap was rolled. */

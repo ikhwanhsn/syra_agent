@@ -230,7 +230,7 @@ function labsPaymentMiddleware(priceUsd, resource, catalogSegment, outputSchema 
       inputSchema: { type: 'object', properties: {}, additionalProperties: false },
       outputSchema,
       getPayTo: labsPayToOverride,
-      /** Labs Dexter routes settle via Dexter; Celo Labs routes self-settle with ERC-8021 tags. */
+      /** Labs Dexter → Dexter; Celo → facilitator (Track 2) with self-settle fallback. */
       resourceServerProfile: profile,
     })(req, res, next);
   };

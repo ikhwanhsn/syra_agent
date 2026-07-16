@@ -34,10 +34,14 @@ CELO_ATTRIBUTION_TAG=celo_xxxxxxxxxxxx
 # REQUIRED for Track 2 (x402_*): API key + prepaid credits from https://x402.celo.org
 CELO_FACILITATOR_API_KEY=x402_live_...
 CELO_FACILITATOR_URL=https://api.x402.celo.org
-# Default true — settle via facilitator. Set false only to force self-settle (no x402_* credit).
+# Default true — prefer facilitator settle (Track 2). Set false to force self-settle only.
 # CELO_SETTLE_VIA_FACILITATOR=true
-# Opt-in self-settle fallback when facilitator fails (defaults to true only if no API key)
+# Self-settle fallback — default false for hackathon Track 2 (only api.x402.celo.org counts).
+# Set true only for local debugging when the facilitator is down.
 # CELO_ALLOW_SELF_SETTLE=false
+
+# If facilitator settle returns unexpected_error / insufficient funds for gas, the public
+# relayer 0x0d74D5Cefd2e7F24E623330ebE3d8D4cB45fFB48 may need CELO gas topped up.
 
 CELO_RPC_URL=https://forno.celo.org
 CELO_USDC=0xcebA9300f2b948710d2653dD7B07f33A8B32118C

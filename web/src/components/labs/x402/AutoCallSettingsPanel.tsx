@@ -22,6 +22,7 @@ interface AutoCallSettingsPanelProps {
     autoCallEnabled: boolean;
     maxDailyCallsMin: number;
     maxDailyCallsMax: number;
+    targetVolumeUsd: number;
   }) => void;
 }
 
@@ -52,6 +53,7 @@ export function AutoCallSettingsPanel({
   const [jitterPct, setJitterPct] = useState(20);
   const [maxDailyCallsMin, setMaxDailyCallsMin] = useState(2000);
   const [maxDailyCallsMax, setMaxDailyCallsMax] = useState(2000);
+  const [targetVolumeUsd, setTargetVolumeUsd] = useState(50);
   const showSkeleton = useMinimumSkeleton(isLoading);
 
   useEffect(() => {
@@ -67,6 +69,11 @@ export function AutoCallSettingsPanel({
     );
     setMaxDailyCallsMin(range.min);
     setMaxDailyCallsMax(range.max);
+    setTargetVolumeUsd(
+      typeof settings.targetVolumeUsd === "number" && Number.isFinite(settings.targetVolumeUsd)
+        ? Math.min(100_000, Math.max(1, settings.targetVolumeUsd))
+        : 50,
+    );
   }, [settings]);
 
   useEffect(() => {
@@ -77,6 +84,7 @@ export function AutoCallSettingsPanel({
       autoCallEnabled,
       maxDailyCallsMin,
       maxDailyCallsMax,
+      targetVolumeUsd,
     });
   }, [
     intervalMin,
@@ -85,6 +93,7 @@ export function AutoCallSettingsPanel({
     autoCallEnabled,
     maxDailyCallsMin,
     maxDailyCallsMax,
+    targetVolumeUsd,
     onDraftChange,
   ]);
 
@@ -163,6 +172,25 @@ export function AutoCallSettingsPanel({
             onChange={(e) => setMaxDailyCallsMax(Number(e.target.value))}
           />
         </div>
+        <div className="space-y-2 sm:col-span-2">
+          <Label htmlFor="target-volume-usd">Target volume USD (24h)</Label>
+          <Input
+            id="target-volume-usd"
+            type="number"
+            min={1}
+            max={100000}
+            step={0.01}
+            value={targetVolumeUsd}
+            onChange={(e) =>
+              setTargetVolumeUsd(Math.min(100_000, Math.max(1, Number(e.target.value) || 1)))
+            }
+          />
+          <p className="text-xs text-muted-foreground">
+            Ops goal for gross paid volume today (UTC). Progress is tracked on this tab; simulation
+            uses this to recommend interval and funding. Does not stop the scheduler by itself —
+            use daily call caps for hard limits.
+          </p>
+        </div>
         <div className="space-y-1 sm:col-span-2">
           <p className="text-xs text-muted-foreground">
             Each UTC day the system picks a random cap in this range so volume is not identical every
@@ -203,6 +231,7 @@ export function AutoCallSettingsPanel({
             jitterPct,
             maxDailyCallsMin: range.min,
             maxDailyCallsMax: range.max,
+            targetVolumeUsd: Math.min(100_000, Math.max(1, Math.round(targetVolumeUsd * 100) / 100)),
           });
         }}
         disabled={isSaving}

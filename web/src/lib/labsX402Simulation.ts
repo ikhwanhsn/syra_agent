@@ -48,6 +48,9 @@ export interface LabsX402SimulationInput {
   refundEnabled: boolean;
   autoCallEnabled: boolean;
   endpoints: LabX402Endpoint[];
+  /** Preferred: target gross volume in USD per day. */
+  targetVolumeUsd?: number;
+  /** Legacy: derived from targetVolumeUsd when omitted. */
   targetCallsPerDay?: number;
 }
 
@@ -70,6 +73,10 @@ export interface LabsX402SimulationResult {
   intervalRangeMax: number;
   suggestedIntervalMin: number | null;
   targetCallsPerDay: number;
+  targetVolumeUsd: number;
+  projectedTargetGrossUsd: number;
+  volumeGapUsd: number;
+  achievementHints: string[];
   estSolPerDay: number;
   estSolPerWalletPerDay: number;
   payerUsdcBuffer: number;
@@ -95,7 +102,14 @@ export function computeWalletBalanceSuggestions(
   },
 ): WalletBalanceSuggestion[] {
   const payerCount = Math.max(0, input.payerCount);
-  const targetCalls = Math.max(1, input.targetCallsPerDay ?? 1000);
+  const avgPrice = input.avgPriceUsd > 0 ? input.avgPriceUsd : 0.029;
+  const targetCalls =
+    input.targetCallsPerDay != null && input.targetCallsPerDay > 0
+      ? Math.max(1, input.targetCallsPerDay)
+      : Math.max(
+          1,
+          Math.ceil(Math.max(1, input.targetVolumeUsd ?? 50) / avgPrice),
+        );
   const callsPerPayerTarget = payerCount > 0 ? targetCalls / payerCount : targetCalls;
 
   const payerRefundTarget = computePayerRefundTarget(input.maxPriceUsd, input.avgPriceUsd);
@@ -230,9 +244,18 @@ export function runLabsX402Simulation(input: LabsX402SimulationInput): LabsX402S
   const payerCount = Math.max(0, input.payerCount);
   const intervalMin = Math.max(1, Math.min(60, input.intervalMin));
   const jitterPct = Math.max(0, Math.min(50, input.jitterPct));
-  const targetCallsPerDay = Math.max(1, input.targetCallsPerDay ?? 1000);
 
   const avgPriceUsd = weightedAvgEndpointPrice(input.endpoints);
+  const safeAvgPrice = avgPriceUsd > 0 ? avgPriceUsd : 0.029;
+  const targetVolumeUsd =
+    typeof input.targetVolumeUsd === "number" && Number.isFinite(input.targetVolumeUsd)
+      ? Math.max(1, input.targetVolumeUsd)
+      : Math.max(1, (input.targetCallsPerDay ?? 1000) * safeAvgPrice);
+  const targetCallsPerDay =
+    typeof input.targetCallsPerDay === "number" && input.targetCallsPerDay > 0
+      ? Math.max(1, Math.round(input.targetCallsPerDay))
+      : Math.max(1, Math.ceil(targetVolumeUsd / safeAvgPrice));
+
   const minPriceUsd =
     input.endpoints.length > 0
       ? Math.min(...input.endpoints.map((e) => e.priceUsd))
@@ -255,6 +278,48 @@ export function runLabsX402Simulation(input: LabsX402SimulationInput): LabsX402S
   const range = jitterIntervalRange(intervalMin, jitterPct);
 
   const suggestedIntervalMin = suggestIntervalMinutes(payerCount, targetCallsPerDay);
+  const projectedTargetGrossUsd = Math.round(targetCallsPerDay * safeAvgPrice * 100) / 100;
+  const volumeGapUsd = Math.max(0, Math.round((targetVolumeUsd - grossUsdcPerDay) * 100) / 100);
+
+  const achievementHints: string[] = [];
+  if (!input.autoCallEnabled) {
+    achievementHints.push("Enable auto-call and save settings — projected volume is 0 while it is off.");
+  }
+  if (payerCount <= 0) {
+    achievementHints.push("Add at least one payer wallet so the scheduler can generate volume.");
+  } else if (suggestedIntervalMin != null && input.autoCallEnabled) {
+    if (grossUsdcPerDay + 0.005 < targetVolumeUsd) {
+      if (suggestedIntervalMin < intervalMin) {
+        achievementHints.push(
+          `Lower interval to ~${suggestedIntervalMin} min (with ${payerCount} payer${payerCount === 1 ? "" : "s"}) to hit ~${formatUsd(targetVolumeUsd)}/day.`,
+        );
+      } else if (suggestedIntervalMin >= intervalMin) {
+        const neededPayers = Math.max(
+          1,
+          Math.ceil((targetCallsPerDay * intervalMin) / MINUTES_PER_DAY),
+        );
+        if (neededPayers > payerCount) {
+          achievementHints.push(
+            `Add ~${neededPayers - payerCount} more payer wallet${neededPayers - payerCount === 1 ? "" : "s"} (≈${neededPayers} total) at ${intervalMin} min interval, or lower the interval.`,
+          );
+        } else {
+          achievementHints.push(
+            `Aim for ~${targetCallsPerDay.toLocaleString()} calls/day (~${formatUsd(projectedTargetGrossUsd)} at avg price).`,
+          );
+        }
+      }
+    } else {
+      achievementHints.push(
+        `Current config projects ~${formatUsd(grossUsdcPerDay)}/day — on track for the ${formatUsd(targetVolumeUsd)} target.`,
+      );
+    }
+  }
+  if (input.autoCallEnabled && payerCount > 0) {
+    achievementHints.push(
+      `Fund each payer with working USDC and gas; PayTo needs refund float if refund is on.`,
+    );
+  }
+
   const callsBetweenRefunds = input.refundEnabled
     ? estimateCallsBetweenRefunds(maxPriceUsd, avgPriceUsd)
     : 1;
@@ -264,6 +329,8 @@ export function runLabsX402Simulation(input: LabsX402SimulationInput): LabsX402S
 
   const walletBalances = computeWalletBalanceSuggestions({
     ...input,
+    targetCallsPerDay,
+    targetVolumeUsd,
     maxPriceUsd,
     avgPriceUsd,
     callsPerWalletPerDay,
@@ -290,6 +357,10 @@ export function runLabsX402Simulation(input: LabsX402SimulationInput): LabsX402S
     intervalRangeMax: range.max,
     suggestedIntervalMin,
     targetCallsPerDay,
+    targetVolumeUsd,
+    projectedTargetGrossUsd,
+    volumeGapUsd,
+    achievementHints,
     estSolPerDay,
     estSolPerWalletPerDay,
     payerUsdcBuffer: input.refundEnabled ? computePayerRefundTarget(maxPriceUsd, avgPriceUsd) : maxPriceUsd,

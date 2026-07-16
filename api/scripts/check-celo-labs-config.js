@@ -32,15 +32,11 @@ const settleViaRaw = String(process.env.CELO_SETTLE_VIA_FACILITATOR || 'true')
   .trim()
   .toLowerCase();
 const settleViaFacilitator = settleViaRaw !== '0' && settleViaRaw !== 'false' && settleViaRaw !== 'no';
-const allowSelfRaw = String(process.env.CELO_ALLOW_SELF_SETTLE || '')
+const allowSelfRaw = String(process.env.CELO_ALLOW_SELF_SETTLE || 'false')
   .trim()
   .toLowerCase();
 const allowSelfSettle =
-  allowSelfRaw === '1' || allowSelfRaw === 'true' || allowSelfRaw === 'yes'
-    ? true
-    : allowSelfRaw === '0' || allowSelfRaw === 'false' || allowSelfRaw === 'no'
-      ? false
-      : !facilitatorApiKey;
+  allowSelfRaw === '1' || allowSelfRaw === 'true' || allowSelfRaw === 'yes';
 
 console.log('Celo Labs config check');
 console.log('----------------------');

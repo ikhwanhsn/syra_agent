@@ -302,6 +302,10 @@ function formatLabX402Settings(doc) {
     maxDailyCallsMin,
     maxDailyCallsMax,
     maxDailyCalls: activeDailyCallCap ?? Math.round((maxDailyCallsMin + maxDailyCallsMax) / 2),
+    targetVolumeUsd:
+      typeof doc.targetVolumeUsd === 'number' && Number.isFinite(doc.targetVolumeUsd)
+        ? Math.min(100_000, Math.max(1, doc.targetVolumeUsd))
+        : 50,
     activeDailyCallCap,
     activeDailyCallCapDay: doc.activeDailyCallCapDay ?? null,
     depositDistributeEnabled: doc.depositDistributeEnabled !== false,
@@ -338,6 +342,7 @@ export async function getLabX402Settings(chain = 'solana') {
  *   maxDailyCallsMin: number;
  *   maxDailyCallsMax: number;
  *   maxDailyCalls: number;
+ *   targetVolumeUsd: number;
  * }>} patch
  * @param {'solana' | 'base' | 'celo' | 'algorand'} [chain]
  * @returns {Promise<object>}
@@ -354,6 +359,9 @@ export async function updateLabX402Settings(patch, chain = 'solana') {
   if (typeof patch.refundEnabled === 'boolean') update.refundEnabled = patch.refundEnabled;
   if (typeof patch.jitterPct === 'number' && patch.jitterPct >= 0 && patch.jitterPct <= 50) {
     update.jitterPct = Math.round(patch.jitterPct);
+  }
+  if (typeof patch.targetVolumeUsd === 'number' && Number.isFinite(patch.targetVolumeUsd)) {
+    update.targetVolumeUsd = Math.min(100_000, Math.max(1, Math.round(patch.targetVolumeUsd * 100) / 100));
   }
 
   const hasMin = typeof patch.maxDailyCallsMin === 'number';
@@ -425,4 +433,63 @@ export async function listLabX402Calls(opts = {}) {
     trigger: d.trigger,
     createdAt: d.createdAt,
   }));
+}
+
+/**
+ * Gross x402 volume for the current UTC day (successful paid calls only).
+ * @param {'solana' | 'base' | 'celo' | 'algorand'} [chain]
+ * @returns {Promise<{
+ *   dayUtc: string;
+ *   volumeUsd: number;
+ *   callCount: number;
+ *   targetVolumeUsd: number;
+ *   remainingUsd: number;
+ *   progressPct: number;
+ *   chain: string;
+ * }>}
+ */
+export async function getLabX402VolumeStats(chain = 'solana') {
+  const c = normalizeLabChain(chain);
+  const dayUtc = new Date().toISOString().slice(0, 10);
+  const start = new Date(`${dayUtc}T00:00:00.000Z`);
+  const end = new Date(`${dayUtc}T23:59:59.999Z`);
+
+  const [agg, settings] = await Promise.all([
+    LabX402Call.aggregate([
+      {
+        $match: {
+          chain: c,
+          status: 'success',
+          createdAt: { $gte: start, $lte: end },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          volumeUsd: { $sum: { $ifNull: ['$priceUsd', 0] } },
+          callCount: { $sum: 1 },
+        },
+      },
+    ]),
+    getLabX402Settings(c),
+  ]);
+
+  const volumeUsd = Math.round((agg[0]?.volumeUsd ?? 0) * 100) / 100;
+  const callCount = agg[0]?.callCount ?? 0;
+  const targetVolumeUsd = settings.targetVolumeUsd ?? 50;
+  const remainingUsd = Math.max(0, Math.round((targetVolumeUsd - volumeUsd) * 100) / 100);
+  const progressPct =
+    targetVolumeUsd > 0
+      ? Math.min(100, Math.round((volumeUsd / targetVolumeUsd) * 1000) / 10)
+      : 0;
+
+  return {
+    dayUtc,
+    volumeUsd,
+    callCount,
+    targetVolumeUsd,
+    remainingUsd,
+    progressPct,
+    chain: c,
+  };
 }

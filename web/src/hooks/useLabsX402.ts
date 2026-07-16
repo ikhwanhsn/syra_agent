@@ -10,6 +10,7 @@ import {
   fetchLabX402Calls,
   fetchLabX402Endpoints,
   fetchLabX402Settings,
+  fetchLabX402Volume,
   runLabX402,
   updateLabX402Settings,
   type LabChain,
@@ -42,6 +43,14 @@ export function useLabsX402(chain: LabChain = "solana") {
   const callsQ = useQuery({
     queryKey: ["labs-x402", "calls", chain, adminWallet],
     queryFn: () => fetchLabX402Calls(adminWallet, 10, chain),
+    enabled: allowed && Boolean(adminWallet),
+    staleTime: STALE_MS,
+    refetchInterval: POLL_MS,
+  });
+
+  const volumeQ = useQuery({
+    queryKey: ["labs-x402", "volume", chain, adminWallet],
+    queryFn: () => fetchLabX402Volume(adminWallet, chain),
     enabled: allowed && Boolean(adminWallet),
     staleTime: STALE_MS,
     refetchInterval: POLL_MS,
@@ -85,6 +94,7 @@ export function useLabsX402(chain: LabChain = "solana") {
       updateLabX402Settings(adminWallet, patch, chain),
     onSuccess: (data) => {
       qc.setQueryData(["labs-x402", "settings", chain, adminWallet], data);
+      void qc.invalidateQueries({ queryKey: ["labs-x402", "volume", chain] });
     },
   });
 
@@ -94,6 +104,7 @@ export function useLabsX402(chain: LabChain = "solana") {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["labs-x402", "calls", chain] });
       void qc.invalidateQueries({ queryKey: ["labs-x402", "wallets", chain] });
+      void qc.invalidateQueries({ queryKey: ["labs-x402", "volume", chain] });
     },
   });
 
@@ -113,6 +124,7 @@ export function useLabsX402(chain: LabChain = "solana") {
     walletsQ,
     settingsQ,
     callsQ,
+    volumeQ,
     endpointsQ,
     depositQ,
     createWalletM,

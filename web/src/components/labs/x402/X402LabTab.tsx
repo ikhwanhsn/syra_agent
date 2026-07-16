@@ -10,6 +10,7 @@ import { DepositDialog } from "@/components/labs/x402/DepositDialog";
 import { DepositHubPanel } from "@/components/labs/x402/DepositHubPanel";
 import { AutoCallSettingsPanel } from "@/components/labs/x402/AutoCallSettingsPanel";
 import { SimulationPanel } from "@/components/labs/x402/SimulationPanel";
+import { VolumeProgressCard } from "@/components/labs/x402/VolumeProgressCard";
 import { CallLogTable } from "@/components/labs/x402/CallLogTable";
 import { EndpointsGridSkeleton } from "@/components/labs/LabsSkeleton";
 import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
@@ -26,6 +27,7 @@ export function X402LabTab({ chain }: X402LabTabProps) {
     walletsQ,
     settingsQ,
     callsQ,
+    volumeQ,
     endpointsQ,
     depositQ,
     createWalletM,
@@ -47,6 +49,7 @@ export function X402LabTab({ chain }: X402LabTabProps) {
     autoCallEnabled: boolean;
     maxDailyCallsMin: number;
     maxDailyCallsMax: number;
+    targetVolumeUsd: number;
   } | null>(null);
 
   const wallets = walletsQ.data ?? [];
@@ -108,7 +111,7 @@ export function X402LabTab({ chain }: X402LabTabProps) {
             {isAlgorand
               ? " settling on Algorand via GoPlausible"
               : isCelo
-                ? " with self-settled Celo x402 + ERC-8021 attribution tagging"
+                ? " via the Celo x402 facilitator (Track 2) + tagged refunds (Track 1)"
                 : isBase
                   ? " settling on Base via Dexter"
                   : ""}
@@ -308,6 +311,7 @@ export function X402LabTab({ chain }: X402LabTabProps) {
         <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Auto-call settings
         </h3>
+        <VolumeProgressCard stats={volumeQ.data} isLoading={volumeQ.isLoading} />
         <AutoCallSettingsPanel
           settings={settingsQ.data}
           isLoading={settingsQ.isLoading}

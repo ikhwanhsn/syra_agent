@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Calculator, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,7 @@ interface SimulationPanelProps {
     jitterPct?: number;
     refundEnabled?: boolean;
     autoCallEnabled?: boolean;
+    targetVolumeUsd?: number;
   };
 }
 
@@ -51,8 +52,11 @@ export function SimulationPanel({
   draft,
   chain = "solana",
 }: SimulationPanelProps) {
+  const settingsTarget =
+    draft?.targetVolumeUsd ??
+    (typeof settings?.targetVolumeUsd === "number" ? settings.targetVolumeUsd : 50);
   const [open, setOpen] = useState(false);
-  const [targetCalls, setTargetCalls] = useState(1000);
+  const [targetVolumeUsd, setTargetVolumeUsd] = useState(settingsTarget);
   const nativeSymbol =
     chain === "celo"
       ? "CELO"
@@ -61,6 +65,10 @@ export function SimulationPanel({
         : chain === "algorand"
           ? "ALGO"
           : "SOL";
+
+  useEffect(() => {
+    setTargetVolumeUsd(Math.min(100_000, Math.max(1, settingsTarget)));
+  }, [settingsTarget]);
 
   const formatNative = (n: number) => {
     if (chain === "base" || chain === "celo" || chain === "algorand") {
@@ -84,9 +92,9 @@ export function SimulationPanel({
         refundEnabled,
         autoCallEnabled,
         endpoints,
-        targetCallsPerDay: targetCalls,
+        targetVolumeUsd,
       }),
-    [payerCount, intervalMin, jitterPct, refundEnabled, autoCallEnabled, endpoints, targetCalls],
+    [payerCount, intervalMin, jitterPct, refundEnabled, autoCallEnabled, endpoints, targetVolumeUsd],
   );
 
   const callsRange = useMemo(
@@ -108,7 +116,7 @@ export function SimulationPanel({
             Volume & cost simulation
           </h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            Estimate daily calls, USDC flow, and recommended interval for a target volume.
+            Plan how to hit a 24h USD volume target — calls, interval, and wallet funding.
           </p>
         </div>
         <Button
@@ -135,15 +143,22 @@ export function SimulationPanel({
       {open ? (
         <div className="space-y-5 border-t border-border/60 px-5 pb-5 pt-4">
           <div className="max-w-xs space-y-2">
-            <Label htmlFor="target-calls">Target calls per day</Label>
+            <Label htmlFor="target-volume-usd-sim">Target volume USD / day</Label>
             <Input
-              id="target-calls"
+              id="target-volume-usd-sim"
               type="number"
               min={1}
               max={100_000}
-              value={targetCalls}
-              onChange={(e) => setTargetCalls(Math.max(1, Number(e.target.value) || 1))}
+              step={0.01}
+              value={targetVolumeUsd}
+              onChange={(e) =>
+                setTargetVolumeUsd(Math.min(100_000, Math.max(1, Number(e.target.value) || 1)))
+              }
             />
+            <p className="text-xs text-muted-foreground">
+              ≈{result.targetCallsPerDay.toLocaleString()} calls at avg{" "}
+              {formatSimulationUsd(result.avgPriceUsd)} / call
+            </p>
           </div>
 
           {!autoCallEnabled ? (
@@ -181,8 +196,8 @@ export function SimulationPanel({
                     hint={autoCallEnabled ? `~${result.callsPerDay.toLocaleString()} avg` : undefined}
                   />
                   <StatRow
-                    label="Calls / wallet / day"
-                    value={autoCallEnabled ? result.callsPerWalletPerDay.toFixed(0) : "0"}
+                    label="Projected volume / day"
+                    value={autoCallEnabled ? formatSimulationUsd(result.grossUsdcPerDay) : "$0.00"}
                   />
                   <StatRow
                     label="Avg price / call"
@@ -228,9 +243,13 @@ export function SimulationPanel({
               {payerCount > 0 ? (
               <div className="space-y-3 rounded-lg border border-primary/30 bg-primary/5 p-4 lg:col-span-2">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Suggested for {targetCalls.toLocaleString()} calls / day
+                  How to achieve {formatSimulationUsd(targetVolumeUsd)} / day
                 </p>
                 <dl className="grid gap-2 sm:grid-cols-2">
+                  <StatRow
+                    label="Required calls / day"
+                    value={result.targetCallsPerDay.toLocaleString()}
+                  />
                   <StatRow
                     label="Recommended interval"
                     value={
@@ -241,8 +260,13 @@ export function SimulationPanel({
                     hint={`with ${payerCount} payer${payerCount === 1 ? "" : "s"}`}
                   />
                   <StatRow
-                    label="Projected gross USDC"
-                    value={formatSimulationUsd(targetCalls * result.avgPriceUsd)}
+                    label="Projected gross at target"
+                    value={formatSimulationUsd(result.projectedTargetGrossUsd)}
+                  />
+                  <StatRow
+                    label="Gap vs current config"
+                    value={formatSimulationUsd(result.volumeGapUsd)}
+                    hint={result.volumeGapUsd <= 0 ? "on track" : "shortfall"}
                   />
                   <StatRow
                     label="Payer USDC buffer (each)"
@@ -255,6 +279,16 @@ export function SimulationPanel({
                     hint="refund float"
                   />
                 </dl>
+                {result.achievementHints.length > 0 ? (
+                  <ul className="mt-3 space-y-1.5 border-t border-border/40 pt-3 text-xs text-muted-foreground">
+                    {result.achievementHints.map((hint) => (
+                      <li key={hint} className="flex gap-2">
+                        <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-primary" aria-hidden />
+                        <span>{hint}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
               </div>
               ) : null}
 
@@ -263,7 +297,8 @@ export function SimulationPanel({
                   Suggested wallet balances
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Recommended funding per wallet for {targetCalls.toLocaleString()} calls/day
+                  Recommended funding per wallet for {formatSimulationUsd(targetVolumeUsd)}/day
+                  (~{result.targetCallsPerDay.toLocaleString()} calls)
                   {result.refundEnabled ? " (refund on — USDC is working capital, not net spend)" : ""}.
                 </p>
                 <div className="grid gap-3 sm:grid-cols-2">

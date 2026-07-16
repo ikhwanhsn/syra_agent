@@ -17,6 +17,7 @@ import {
   getLabX402Settings,
   updateLabX402Settings,
   listLabX402Calls,
+  getLabX402VolumeStats,
 } from '../../libs/labs/labX402Payer.js';
 import { listLabX402EndpointsWithQuota } from '../../libs/labs/labX402Endpoints.js';
 import { ensurePayerFundedForNextCall } from '../../libs/labs/labX402Refund.js';
@@ -285,6 +286,16 @@ export function createLabsX402Router() {
       return res.json({ success: true, data: calls });
     } catch (e) {
       return res.status(500).json({ success: false, error: e?.message || 'Failed to list calls' });
+    }
+  });
+
+  router.get('/volume', async (req, res) => {
+    try {
+      const chain = parseChain(req);
+      const stats = await getLabX402VolumeStats(chain);
+      return res.json({ success: true, data: stats });
+    } catch (e) {
+      return res.status(500).json({ success: false, error: e?.message || 'Failed to read volume' });
     }
   });
 
