@@ -4,7 +4,15 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { computeEngagementScore, metricsEngagementTotal, metricsIncreased, scoreSubmission } from "./kolEngagementService.js";
+import {
+  aggregateContributions,
+  computeEngagementScore,
+  meetsMinLikes,
+  metricsEngagementTotal,
+  metricsIncreased,
+  scoreSubmission,
+} from "./kolEngagementService.js";
+import { MIN_LIKES_PER_POST } from "../config/kolScoringConfig.js";
 
 test("scoreSubmission applies differentiated engagement weights", () => {
   const { score, breakdown } = scoreSubmission(
@@ -142,4 +150,144 @@ test("metricsEngagementTotal sums all engagement counts", () => {
     viewCount: 100,
   });
   assert.equal(total, 116);
+});
+
+test("aggregateContributions sums top-N scores and ignores the rest", () => {
+  const rows = [
+    {
+      tweetId: "1",
+      tweetUrl: "https://x.com/a/status/1",
+      mode: "reply",
+      metrics: { likeCount: 10, retweetCount: 0, replyCount: 0, quoteCount: 0, viewCount: 100 },
+      score: 10,
+    },
+    {
+      tweetId: "2",
+      tweetUrl: "https://x.com/a/status/2",
+      mode: "quote",
+      metrics: { likeCount: 20, retweetCount: 0, replyCount: 0, quoteCount: 0, viewCount: 200 },
+      score: 20,
+    },
+    {
+      tweetId: "3",
+      tweetUrl: "https://x.com/a/status/3",
+      mode: "reply",
+      metrics: { likeCount: 5, retweetCount: 0, replyCount: 0, quoteCount: 0, viewCount: 50 },
+      score: 5,
+    },
+    {
+      tweetId: "4",
+      tweetUrl: "https://x.com/a/status/4",
+      mode: "reply",
+      metrics: { likeCount: 1, retweetCount: 0, replyCount: 0, quoteCount: 0, viewCount: 10 },
+      score: 1,
+    },
+  ];
+
+  const result = aggregateContributions(rows, 3);
+  assert.ok(result);
+  assert.equal(result.postCount, 3);
+  assert.equal(result.totalScore, 35);
+  assert.equal(result.primary.tweetId, "2");
+  assert.equal(result.primary.mode, "quote");
+  assert.deepEqual(
+    result.contributions.map((c) => c.tweetId),
+    ["2", "1", "3"],
+  );
+  assert.equal(result.aggregatedMetrics.likeCount, 35);
+  assert.equal(result.aggregatedMetrics.viewCount, 350);
+});
+
+test("aggregateContributions ignores spam beyond top-N cap", () => {
+  const spam = Array.from({ length: 10 }, (_, i) => ({
+    tweetId: `spam-${i}`,
+    tweetUrl: `https://x.com/a/status/${i}`,
+    mode: "reply",
+    metrics: { likeCount: 1, retweetCount: 0, replyCount: 0, quoteCount: 0, viewCount: 10 },
+    score: 1,
+  }));
+  const strong = {
+    tweetId: "strong",
+    tweetUrl: "https://x.com/a/status/strong",
+    mode: "quote",
+    metrics: { likeCount: 100, retweetCount: 10, replyCount: 5, quoteCount: 2, viewCount: 5_000 },
+    score: 50,
+  };
+
+  const result = aggregateContributions([strong, ...spam], 3);
+  assert.ok(result);
+  assert.equal(result.postCount, 3);
+  assert.equal(result.totalScore, 52);
+  assert.equal(result.primary.tweetId, "strong");
+  assert.ok(!result.contributions.some((c) => c.tweetId === "spam-9"));
+});
+
+test("aggregateContributions dedupes by tweetId keeping higher score", () => {
+  const result = aggregateContributions(
+    [
+      {
+        tweetId: "1",
+        tweetUrl: "https://x.com/a/status/1",
+        mode: "reply",
+        metrics: { likeCount: 5, retweetCount: 0, replyCount: 0, quoteCount: 0, viewCount: 50 },
+        score: 5,
+      },
+      {
+        tweetId: "1",
+        tweetUrl: "https://x.com/a/status/1",
+        mode: "reply",
+        metrics: { likeCount: 15, retweetCount: 0, replyCount: 0, quoteCount: 0, viewCount: 150 },
+        score: 15,
+      },
+    ],
+    3,
+  );
+  assert.ok(result);
+  assert.equal(result.postCount, 1);
+  assert.equal(result.totalScore, 15);
+  assert.equal(result.aggregatedMetrics.likeCount, 15);
+});
+
+test("aggregateContributions returns null for empty input", () => {
+  assert.equal(aggregateContributions([], 3), null);
+  assert.equal(aggregateContributions(null, 3), null);
+});
+
+test("meetsMinLikes fails for zero likes and passes for 1+", () => {
+  assert.ok(MIN_LIKES_PER_POST >= 1, "default MIN_LIKES_PER_POST should be >= 1");
+  assert.equal(meetsMinLikes({ likeCount: 0 }), false);
+  assert.equal(meetsMinLikes({ likeCount: null }), false);
+  assert.equal(meetsMinLikes({}), false);
+  assert.equal(meetsMinLikes(null), false);
+  assert.equal(meetsMinLikes({ likeCount: 1 }), true);
+  assert.equal(meetsMinLikes({ likeCount: 42 }), true);
+});
+
+test("pre-filtering zero-like rows excludes them from aggregateContributions", () => {
+  const rows = [
+    {
+      tweetId: "liked",
+      tweetUrl: "https://x.com/a/status/liked",
+      mode: "reply",
+      metrics: { likeCount: 5, retweetCount: 0, replyCount: 0, quoteCount: 0, viewCount: 100 },
+      score: 12,
+    },
+    {
+      tweetId: "spam",
+      tweetUrl: "https://x.com/a/status/spam",
+      mode: "reply",
+      metrics: { likeCount: 0, retweetCount: 0, replyCount: 0, quoteCount: 0, viewCount: 50 },
+      score: 3,
+    },
+  ];
+
+  const eligible = rows.filter((r) => meetsMinLikes(r.metrics));
+  assert.equal(eligible.length, 1);
+  assert.equal(eligible[0].tweetId, "liked");
+
+  const result = aggregateContributions(eligible, 3);
+  assert.ok(result);
+  assert.equal(result.postCount, 1);
+  assert.equal(result.totalScore, 12);
+  assert.equal(result.primary.tweetId, "liked");
 });

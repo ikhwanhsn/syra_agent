@@ -14,7 +14,7 @@ const steps = [
     icon: ArrowRight,
     title: "Reply or quote on X",
     description:
-      "Share your take — reply to or quote the project's post. We auto-detect your engagement every 6 hours.",
+      "Share your take — reply to or quote the project's post. Posts need at least 1 like to count. We auto-detect your engagement every 24 hours and combine your top posts.",
   },
   {
     number: "03",

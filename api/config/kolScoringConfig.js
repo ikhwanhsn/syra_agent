@@ -66,3 +66,26 @@ export const INTEGRITY_CEILING = 1.0;
  */
 export const INTEGRITY_ENGAGEMENT_VIEW_MIN = 0.005;
 export const INTEGRITY_ENGAGEMENT_VIEW_MAX = 0.35;
+
+/**
+ * Max reply/quote posts counted toward a handle's campaign score.
+ * Per-post scoring still applies; only the top N by score are summed.
+ */
+export const MAX_CONTRIBUTIONS_PER_HANDLE = (() => {
+  const n = Number.parseInt(
+    String(process.env.KOL_MAX_CONTRIBUTIONS_PER_HANDLE ?? "").trim(),
+    10,
+  );
+  return Number.isFinite(n) && n > 0 ? Math.min(n, 20) : 3;
+})();
+
+/**
+ * Minimum likes a reply/quote must have to be counted (anti-spam).
+ * Set KOL_MIN_LIKES_PER_POST=0 to disable.
+ */
+export const MIN_LIKES_PER_POST = (() => {
+  const raw = String(process.env.KOL_MIN_LIKES_PER_POST ?? "").trim();
+  if (raw === "") return 1;
+  const n = Number.parseInt(raw, 10);
+  return Number.isFinite(n) && n >= 0 ? n : 1;
+})();

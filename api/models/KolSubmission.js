@@ -24,6 +24,19 @@ const scoreBreakdownSchema = new mongoose.Schema(
   { _id: false },
 );
 
+/** One reply/quote post that contributes to a handle's campaign score. */
+const contributionSchema = new mongoose.Schema(
+  {
+    tweetId: { type: String, required: true },
+    tweetUrl: { type: String, required: true },
+    mode: { type: String, enum: ["reply", "quote"], required: true },
+    metrics: { type: metricsSchema, default: () => ({}) },
+    score: { type: Number, default: 0 },
+    scoreBreakdown: { type: scoreBreakdownSchema, default: null },
+  },
+  { _id: false },
+);
+
 const kolSubmissionSchema = new mongoose.Schema(
   {
     campaignId: {
@@ -33,6 +46,7 @@ const kolSubmissionSchema = new mongoose.Schema(
       index: true,
     },
     kolWallet: { type: String, default: null, index: true },
+    /** Primary (highest-scoring) contribution — kept for display + unique index. */
     tweetId: { type: String, required: true },
     tweetUrl: { type: String, required: true },
     mode: { type: String, enum: ["reply", "quote"], required: true },
@@ -41,8 +55,13 @@ const kolSubmissionSchema = new mongoose.Schema(
     authorFollowers: { type: Number, default: null },
     authorVerified: { type: Boolean, default: false },
     verified: { type: Boolean, default: true },
+    /** Top-N posts counted toward latestScore (sum of contribution scores). */
+    contributions: { type: [contributionSchema], default: () => [] },
+    /** Summed metrics across counted contributions. */
     latestMetrics: { type: metricsSchema, default: () => ({}) },
+    /** Combined score = sum of top-N contribution scores. */
     latestScore: { type: Number, default: 0 },
+    /** Breakdown of the primary (highest-scoring) contribution. */
     scoreBreakdown: { type: scoreBreakdownSchema, default: null },
     finalScore: { type: Number, default: null },
     reputationCreditedAt: { type: Date, default: null },

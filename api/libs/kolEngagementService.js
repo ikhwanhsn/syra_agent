@@ -13,6 +13,8 @@ import {
   INTEGRITY_ENGAGEMENT_VIEW_MAX,
   INTEGRITY_ENGAGEMENT_VIEW_MIN,
   INTEGRITY_FLOOR,
+  MAX_CONTRIBUTIONS_PER_HANDLE,
+  MIN_LIKES_PER_POST,
   VERIFIED_BONUS,
   VIEW_CAP,
 } from "../config/kolScoringConfig.js";
@@ -95,6 +97,17 @@ export function metricsIncreased(existing, incoming) {
   return METRIC_COUNT_KEYS.some(
     (key) => toNonNegativeInt(incoming?.[key]) > toNonNegativeInt(existing?.[key]),
   );
+}
+
+/**
+ * True when a post has enough likes to be counted (anti-spam gate).
+ * When MIN_LIKES_PER_POST is 0, all posts pass.
+ * @param {KolMetrics | null | undefined} metrics
+ * @returns {boolean}
+ */
+export function meetsMinLikes(metrics) {
+  if (MIN_LIKES_PER_POST <= 0) return true;
+  return toNonNegativeInt(metrics?.likeCount) >= MIN_LIKES_PER_POST;
 }
 
 /**
@@ -272,6 +285,100 @@ export function scoreSubmission(metrics, authorContext = {}) {
 }
 
 /**
+ * @typedef {object} ContributionInput
+ * @property {string} tweetId
+ * @property {string} tweetUrl
+ * @property {"reply" | "quote"} mode
+ * @property {KolMetrics} metrics
+ * @property {number} score
+ * @property {ScoreBreakdown | null | undefined} [scoreBreakdown]
+ */
+
+/**
+ * @typedef {object} AggregatedContributions
+ * @property {ContributionInput[]} contributions
+ * @property {ContributionInput} primary
+ * @property {number} totalScore
+ * @property {KolMetrics} aggregatedMetrics
+ * @property {number} postCount
+ */
+
+/**
+ * Keep the top-N posts by score and sum their scores.
+ * Per-post scoring (caps / integrity) already ran via scoreSubmission.
+ * @param {ContributionInput[]} rows
+ * @param {number} [maxCount]
+ * @returns {AggregatedContributions | null}
+ */
+export function aggregateContributions(rows, maxCount = MAX_CONTRIBUTIONS_PER_HANDLE) {
+  const limit = Number.isFinite(maxCount) && maxCount > 0 ? Math.floor(maxCount) : MAX_CONTRIBUTIONS_PER_HANDLE;
+
+  /** @type {Map<string, ContributionInput>} */
+  const byTweetId = new Map();
+  for (const row of rows || []) {
+    const tweetId = String(row?.tweetId || "").trim();
+    if (!tweetId) continue;
+    const score = Number(row.score) || 0;
+    const existing = byTweetId.get(tweetId);
+    if (existing) {
+      const existingTotal = metricsEngagementTotal(existing.metrics);
+      const newTotal = metricsEngagementTotal(row.metrics);
+      if (existing.score > score) continue;
+      if (existing.score === score && existingTotal >= newTotal) continue;
+    }
+    byTweetId.set(tweetId, {
+      tweetId,
+      tweetUrl: String(row.tweetUrl || "").trim(),
+      mode: row.mode === "quote" ? "quote" : "reply",
+      metrics: {
+        likeCount: toNonNegativeInt(row.metrics?.likeCount),
+        retweetCount: toNonNegativeInt(row.metrics?.retweetCount),
+        replyCount: toNonNegativeInt(row.metrics?.replyCount),
+        quoteCount: toNonNegativeInt(row.metrics?.quoteCount),
+        viewCount: toNonNegativeInt(row.metrics?.viewCount),
+      },
+      score,
+      scoreBreakdown: row.scoreBreakdown ?? null,
+    });
+  }
+
+  const sorted = [...byTweetId.values()].sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return metricsEngagementTotal(b.metrics) - metricsEngagementTotal(a.metrics);
+  });
+
+  if (sorted.length === 0) return null;
+
+  const contributions = sorted.slice(0, limit);
+  const primary = contributions[0];
+  const totalScore = roundScore(contributions.reduce((sum, c) => sum + (c.score || 0), 0));
+
+  /** @type {KolMetrics} */
+  const aggregatedMetrics = {
+    likeCount: 0,
+    retweetCount: 0,
+    replyCount: 0,
+    quoteCount: 0,
+    viewCount: 0,
+  };
+  for (const c of contributions) {
+    aggregatedMetrics.likeCount += toNonNegativeInt(c.metrics.likeCount);
+    aggregatedMetrics.retweetCount += toNonNegativeInt(c.metrics.retweetCount);
+    aggregatedMetrics.replyCount += toNonNegativeInt(c.metrics.replyCount);
+    aggregatedMetrics.quoteCount += toNonNegativeInt(c.metrics.quoteCount);
+    aggregatedMetrics.viewCount += toNonNegativeInt(c.metrics.viewCount);
+  }
+
+  return {
+    contributions,
+    primary,
+    totalScore,
+    aggregatedMetrics,
+    postCount: contributions.length,
+  };
+}
+
+/**
  * @param {string} url
  * @returns {string | null}
  */
@@ -349,6 +456,17 @@ export async function validateSubmissionTweet(sourceTweetId, submissionTweetUrl)
   if (!mode) {
     const err = new Error("Tweet must be a reply or quote of the campaign post");
     err.code = "submission_not_related";
+    throw err;
+  }
+
+  if (!meetsMinLikes(tweet.metrics)) {
+    const min = MIN_LIKES_PER_POST;
+    const err = new Error(
+      min === 1
+        ? "Post needs at least 1 like to be counted"
+        : `Post needs at least ${min} likes to be counted`,
+    );
+    err.code = "insufficient_likes";
     throw err;
   }
 

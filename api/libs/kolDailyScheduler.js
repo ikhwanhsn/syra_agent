@@ -5,7 +5,7 @@ import { isMongooseConnected } from "../config/mongoose.js";
 import { runKolDailyTick } from "./kolMarketplaceService.js";
 import { startupVerbose } from "../utils/startupLog.js";
 
-const DEFAULT_CRON_MS = 6 * 60 * 60 * 1000;
+const DEFAULT_CRON_MS = 24 * 60 * 60 * 1000;
 
 /** @type {ReturnType<typeof setInterval> | null} */
 let cronHandle = null;

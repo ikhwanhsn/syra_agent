@@ -974,7 +974,55 @@ export async function getTweetQuotes(opts) {
 }
 
 /**
- * Fetch one or more tweets by ID.
+ * Fetch one or more tweets by ID (batched, up to 100 IDs per HTTP call).
+ * twitterapi.io bills per returned tweet; batching cuts HTTP overhead.
+ * @param {string[]} tweetIds
+ * @returns {Promise<{ tweets: ReturnType<typeof normalizeTweet>[]; byId: Map<string, ReturnType<typeof normalizeTweet>> }>}
+ */
+export async function getTweetsByIds(tweetIds) {
+  const uniqueIds = [
+    ...new Set(
+      (Array.isArray(tweetIds) ? tweetIds : [])
+        .map((id) => String(id ?? "").trim())
+        .filter(Boolean),
+    ),
+  ];
+
+  if (uniqueIds.length === 0) {
+    return { tweets: [], byId: new Map() };
+  }
+
+  const CHUNK = 100;
+  /** @type {ReturnType<typeof normalizeTweet>[]} */
+  const allTweets = [];
+
+  for (let i = 0; i < uniqueIds.length; i += CHUNK) {
+    const chunk = uniqueIds.slice(i, i + CHUNK);
+    const body = await twitterApiIoGet("/twitter/tweets", {
+      tweet_ids: chunk.join(","),
+    });
+    const includesMedia = buildIncludesMediaMap(body);
+    const rawTweets = extractTweetsArray(body);
+    for (const t of rawTweets) {
+      if (!t || typeof t !== "object") continue;
+      const normalized = normalizeTweet(/** @type {Record<string, unknown>} */ (t), {
+        includesMedia,
+      });
+      if (normalized) allTweets.push(normalized);
+    }
+  }
+
+  /** @type {Map<string, ReturnType<typeof normalizeTweet>>} */
+  const byId = new Map();
+  for (const tweet of allTweets) {
+    if (tweet?.id) byId.set(tweet.id, tweet);
+  }
+
+  return { tweets: allTweets, byId };
+}
+
+/**
+ * Fetch a single tweet by ID.
  * @param {string} tweetId
  */
 export async function getTweetById(tweetId) {
@@ -985,20 +1033,8 @@ export async function getTweetById(tweetId) {
     throw err;
   }
 
-  const body = await twitterApiIoGet("/twitter/tweets", { tweet_ids: id });
-  const includesMedia = buildIncludesMediaMap(body);
-  const rawTweets = extractTweetsArray(body);
-  const tweets = rawTweets
-    .map((t) =>
-      t && typeof t === "object"
-        ? normalizeTweet(/** @type {Record<string, unknown>} */ (t), {
-            includesMedia,
-          })
-        : null,
-    )
-    .filter(Boolean);
-
-  const tweet = tweets.find((t) => t.id === id) ?? tweets[0] ?? null;
+  const { byId } = await getTweetsByIds([id]);
+  const tweet = byId.get(id) ?? null;
   if (!tweet) {
     const err = new Error(`Tweet ${id} not found`);
     err.code = "tweet_not_found";

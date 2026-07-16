@@ -4,6 +4,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import {
   ArrowLeft,
   BadgeCheck,
+  Check,
   Clock,
   Coins,
   ExternalLink,
@@ -81,7 +82,7 @@ const joinSteps = [
   {
     step: 2,
     title: "We find you automatically",
-    text: "About every 6 hours we scan replies and quotes. When we see yours, you appear on the leaderboard. No link to paste here.",
+    text: "About every 24 hours we scan replies and quotes. A post needs at least 1 like to count. Multiple posts from you are combined (top 3 by score). When we see yours, you appear on the leaderboard. No link to paste here.",
   },
   {
     step: 3,
@@ -177,6 +178,8 @@ export function CampaignDetail({
     );
   }, [address, leaderboard, verifiedHandleKey]);
 
+  const participated = campaign.participated === true || ownEntry != null;
+
   const showParticipationGate =
     campaign.requireCreatedOneCampaign === true &&
     viewerClaimEligibility != null &&
@@ -213,6 +216,15 @@ export function CampaignDetail({
             <Badge variant="outline" className={getCampaignDisplayStyle(displayPhase)}>
               {getCampaignDisplayLabel(displayPhase)}
             </Badge>
+            {participated ? (
+              <Badge
+                variant="outline"
+                className="gap-1 border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
+              >
+                <Check className="w-3 h-3" aria-hidden />
+                Participated
+              </Badge>
+            ) : null}
             {isLive && timeLeft !== "Ended" ? (
               <Badge variant="outline" className="gap-1 border-amber-500/30 text-amber-400">
                 <Clock className="w-3 h-3" />
@@ -511,7 +523,7 @@ export function CampaignDetail({
                   ? "Final rankings — claim after verifying X if your reward didn’t auto-send."
                   : isFinalizing
                     ? "Final rankings from the last scan. Verify X so payouts can reach you."
-                    : "Updates about every 6 hours. Higher score = larger projected payout."}
+                    : "Updates about every 24 hours. Posts need ≥1 like to count. Multiple posts combine (top 3). Higher score = larger projected payout."}
               {isLive && campaign.lastSnapshotAt ? (
                 <span className="block mt-1 text-xs text-muted-foreground/80">
                   Last update: {formatRelativePast(campaign.lastSnapshotAt)}

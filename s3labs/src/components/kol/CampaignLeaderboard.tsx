@@ -139,8 +139,9 @@ export function CampaignLeaderboard({
         </div>
         <p className="font-semibold text-base">No one on the board yet</p>
         <p className="text-muted-foreground text-sm max-w-sm mx-auto leading-relaxed">
-          Be the first to reply or quote the post on X. We scan for new posts about every 6 hours —
-          no link to submit here.
+          Be the first to reply or quote the post on X. We scan for new posts about every 24 hours —
+          no link to submit here. Your post needs at least 1 like to count. Multiple posts from you are
+          combined (top 3 by score).
         </p>
       </div>
     );
@@ -208,7 +209,7 @@ export function CampaignLeaderboard({
                   <LeaderboardEligibilityNote message={claimGateMessage} />
                 ) : null}
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  <LeaderboardModeBadge mode={entry.mode} />
+                  <LeaderboardModeBadge mode={entry.mode} postCount={entry.postCount} />
                   <ScoreBreakdownTooltip
                     score={entry.latestScore}
                     breakdown={entry.scoreBreakdown}
@@ -285,7 +286,7 @@ export function CampaignLeaderboard({
                     </Link>
                   </TableCell>
                   <TableCell>
-                    <LeaderboardModeBadge mode={entry.mode} />
+                    <LeaderboardModeBadge mode={entry.mode} postCount={entry.postCount} />
                   </TableCell>
                   <TableCell className="text-right align-middle">
                     <div className="flex flex-col items-end gap-1">

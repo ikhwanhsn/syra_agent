@@ -11,10 +11,11 @@ import KolPayout from "../models/KolPayout.js";
 import KolPendingPayoutBalance from "../models/KolPendingPayoutBalance.js";
 import KolReputation from "../models/KolReputation.js";
 import {
+  aggregateContributions,
   computeProRataPayouts,
   fetchSourceTweet,
   normalizeWallet,
-  refreshSubmissionMetrics,
+  scoreSubmission,
   validateSubmissionTweet,
 } from "./kolEngagementService.js";
 import { isAdminWalletAddress } from "./adminWallet.js";
@@ -41,6 +42,7 @@ import {
 } from "../services/kolPoolWallet.js";
 import {
   getTweetById,
+  getTweetsByIds,
   isTwitterApiIoConfigured,
 } from "./twitterApiIoClient.js";
 import {
@@ -57,6 +59,7 @@ import { notifyNewCampaignTelegram } from "./kolCampaignTelegramNotifier.js";
 import { notifyNewCampaign } from "./emailSubscriberService.js";
 import { discoverCampaignEngagements } from "./kolDiscoveryService.js";
 import { startupVerbose } from "../utils/startupLog.js";
+import { MAX_CONTRIBUTIONS_PER_HANDLE } from "../config/kolScoringConfig.js";
 import {
   getVerifiedWalletForHandle,
   getVerifiedWalletsForHandles,
@@ -372,6 +375,22 @@ function serializeCampaign(campaign) {
  */
 function serializeSubmission(submission) {
   const doc = submission.toObject ? submission.toObject() : submission;
+  const contributions = Array.isArray(doc.contributions)
+    ? doc.contributions.map((c) => ({
+        tweetId: c.tweetId,
+        tweetUrl: c.tweetUrl,
+        mode: c.mode,
+        metrics: c.metrics || {},
+        score: c.score ?? 0,
+        scoreBreakdown: c.scoreBreakdown ?? null,
+      }))
+    : [];
+  const postCount =
+    contributions.length > 0
+      ? contributions.length
+      : doc.tweetId
+        ? 1
+        : 0;
   return {
     id: String(doc._id),
     campaignId: String(doc.campaignId),
@@ -384,6 +403,8 @@ function serializeSubmission(submission) {
     authorFollowers: doc.authorFollowers ?? null,
     authorVerified: doc.authorVerified ?? false,
     verified: doc.verified,
+    contributions,
+    postCount,
     latestMetrics: doc.latestMetrics || {},
     latestScore: doc.latestScore ?? 0,
     scoreBreakdown: doc.scoreBreakdown ?? null,
@@ -874,6 +895,49 @@ export async function confirmCampaignTopUp(campaignId, topUpId, input) {
 }
 
 /**
+ * Campaign IDs where the viewer already has a submission (wallet or verified X handle).
+ * @param {import("mongoose").Types.ObjectId[]} campaignIds
+ * @param {string | null | undefined} wallet
+ * @returns {Promise<Set<string>>}
+ */
+async function findParticipatedCampaignIds(campaignIds, wallet) {
+  /** @type {Set<string>} */
+  const participated = new Set();
+  if (!campaignIds.length) return participated;
+
+  const viewerWallet = normalizeWallet(wallet);
+  if (!viewerWallet) return participated;
+
+  let handleKey = null;
+  try {
+    const verification = await getWalletVerification(viewerWallet);
+    if (verification?.verified && verification.xHandleKey) {
+      handleKey = normalizeHandle(verification.xHandleKey);
+    }
+  } catch {
+    // ignore — wallet-only match still works
+  }
+
+  /** @type {Record<string, unknown>[]} */
+  const orClauses = [{ kolWallet: viewerWallet }];
+  if (handleKey) {
+    orClauses.push({ authorHandleKey: handleKey });
+  }
+
+  const rows = await KolSubmission.find({
+    campaignId: { $in: campaignIds },
+    $or: orClauses,
+  })
+    .select("campaignId")
+    .lean();
+
+  for (const row of rows) {
+    participated.add(String(row.campaignId));
+  }
+  return participated;
+}
+
+/**
  * Public list never exposes other creators' unpaid drafts.
  * Own `pending_deposit` rows are included only when `wallet` matches projectWallet.
  *
@@ -922,10 +986,13 @@ export async function listCampaigns(opts = {}) {
     submissionCounts.map((r) => [String(r._id), r.count]),
   );
 
+  const participatedIds = await findParticipatedCampaignIds(ids, viewerWallet);
+
   return {
     campaigns: campaigns.map((c) => ({
       ...serializeCampaign(c),
       submissionCount: countMap.get(String(c._id)) ?? 0,
+      participated: participatedIds.has(String(c._id)),
     })),
   };
 }
@@ -1260,7 +1327,13 @@ export async function getCampaignDetail(campaignId, opts = {}) {
   }
 
   return {
-    campaign: serializeCampaign(campaign),
+    campaign: {
+      ...serializeCampaign(campaign),
+      submissionCount: submissions.length,
+      participated: (
+        await findParticipatedCampaignIds([campaign._id], opts.wallet)
+      ).has(String(campaign._id)),
+    },
     leaderboard: submissions.map((s) => {
       const submissionId = String(s._id);
       const liveProjectedLamports = campaign.requireCreatedOneCampaign
@@ -1393,6 +1466,16 @@ export async function createSubmission(campaignId, input) {
       authorFollowers: validated.authorFollowers ?? null,
       authorVerified: validated.authorVerified ?? false,
       verified: true,
+      contributions: [
+        {
+          tweetId,
+          tweetUrl: validated.tweetUrl,
+          mode: validated.mode,
+          metrics: validated.metrics,
+          score: validated.score,
+          scoreBreakdown: validated.scoreBreakdown ?? null,
+        },
+      ],
       latestMetrics: validated.metrics,
       latestScore: validated.score,
       scoreBreakdown: validated.scoreBreakdown ?? null,
@@ -1445,13 +1528,29 @@ export async function refreshCampaignProjections(campaignId) {
   );
 }
 
-/** Skip discovery/metric refresh when campaign was snapshotted recently (default 6h). */
+/** Skip discovery/metric refresh when campaign was snapshotted recently (default 24h). */
 const METRICS_FRESH_MS = (() => {
   const n = Number.parseInt(String(process.env.KOL_METRICS_FRESH_MS ?? "").trim(), 10);
-  return Number.isFinite(n) && n >= 60_000 ? n : 6 * 60 * 60 * 1000;
+  return Number.isFinite(n) && n >= 60_000 ? n : 24 * 60 * 60 * 1000;
 })();
 
 /**
+ * Collect contribution tweet IDs for a submission (legacy-safe).
+ * @param {import("../models/KolSubmission.js").default} submission
+ * @returns {string[]}
+ */
+function contributionTweetIds(submission) {
+  const stored = Array.isArray(submission.contributions) ? submission.contributions : [];
+  if (stored.length > 0) {
+    return stored.map((c) => String(c.tweetId || "").trim()).filter(Boolean);
+  }
+  const primary = String(submission.tweetId || "").trim();
+  return primary ? [primary] : [];
+}
+
+/**
+ * Batched metric refresh for all submission contributions.
+ * Used on finalize / deposit confirm — not on the daily tick (discovery is enough).
  * @param {import("mongoose").Types.ObjectId | string} campaignId
  * @param {{ force?: boolean }} [opts]
  */
@@ -1472,28 +1571,137 @@ export async function refreshCampaignMetrics(campaignId, opts = {}) {
   const submissions = await KolSubmission.find({ campaignId: campaign._id });
   const capturedAt = new Date();
   let refreshed = 0;
-
   let failed = 0;
+
+  /** @type {string[]} */
+  const allTweetIds = [];
+  for (const submission of submissions) {
+    allTweetIds.push(...contributionTweetIds(submission));
+  }
+
+  /** @type {Map<string, { metrics: object; score: number; scoreBreakdown: object | null; authorHandle: string; authorFollowers: number | null; authorVerified: boolean }>} */
+  const metricsByTweetId = new Map();
+
+  if (allTweetIds.length > 0) {
+    try {
+      const { byId } = await getTweetsByIds(allTweetIds);
+      for (const [tweetId, tweet] of byId) {
+        const authorContext = {
+          followers: Math.max(0, Math.floor(Number(tweet.author?.followers) || 0)),
+          verified: Boolean(tweet.author?.verified),
+        };
+        const { score, breakdown } = scoreSubmission(tweet.metrics, authorContext);
+        metricsByTweetId.set(tweetId, {
+          metrics: tweet.metrics,
+          score,
+          scoreBreakdown: breakdown ?? null,
+          authorHandle: tweet.author?.userName || "",
+          authorFollowers: authorContext.followers,
+          authorVerified: authorContext.verified,
+        });
+      }
+    } catch (e) {
+      console.warn(
+        `[kol] batched metric refresh failed campaign=${campaign._id}:`,
+        e instanceof Error ? e.message : e,
+      );
+      return {
+        refreshed: 0,
+        failed: submissions.length,
+        totalSubmissions: submissions.length,
+        snapshotComplete: false,
+        capturedAt: null,
+      };
+    }
+  }
 
   for (const submission of submissions) {
     try {
-      const metrics = await refreshSubmissionMetrics(submission.tweetId);
-      submission.latestMetrics = metrics.metrics;
-      submission.latestScore = metrics.score;
-      submission.scoreBreakdown = metrics.scoreBreakdown ?? null;
-      submission.authorHandle = metrics.authorHandle;
-      submission.authorHandleKey = normalizeHandle(metrics.authorHandle);
-      submission.authorFollowers = metrics.authorFollowers ?? null;
-      submission.authorVerified = metrics.authorVerified ?? false;
+      const tweetIds = contributionTweetIds(submission);
+      if (tweetIds.length === 0) {
+        failed += 1;
+        continue;
+      }
+
+      const missing = tweetIds.filter((id) => !metricsByTweetId.has(id));
+      if (missing.length === tweetIds.length) {
+        failed += 1;
+        console.warn(
+          `[kol] metric refresh missing all tweets submission=${submission._id}`,
+        );
+        continue;
+      }
+
+      const existingContributions =
+        Array.isArray(submission.contributions) && submission.contributions.length > 0
+          ? submission.contributions
+          : [
+              {
+                tweetId: submission.tweetId,
+                tweetUrl: submission.tweetUrl,
+                mode: submission.mode,
+                metrics: submission.latestMetrics || {},
+                score: submission.latestScore ?? 0,
+                scoreBreakdown: submission.scoreBreakdown ?? null,
+              },
+            ];
+
+      const refreshedRows = existingContributions.map((c) => {
+        const tweetId = String(c.tweetId || "").trim();
+        const fresh = metricsByTweetId.get(tweetId);
+        if (!fresh) {
+          return {
+            tweetId,
+            tweetUrl: String(c.tweetUrl || ""),
+            mode: c.mode === "quote" ? "quote" : "reply",
+            metrics: c.metrics || {},
+            score: Number(c.score) || 0,
+            scoreBreakdown: c.scoreBreakdown ?? null,
+          };
+        }
+        return {
+          tweetId,
+          tweetUrl: String(c.tweetUrl || ""),
+          mode: c.mode === "quote" ? "quote" : "reply",
+          metrics: fresh.metrics,
+          score: fresh.score,
+          scoreBreakdown: fresh.scoreBreakdown,
+        };
+      });
+
+      const aggregated = aggregateContributions(
+        refreshedRows,
+        MAX_CONTRIBUTIONS_PER_HANDLE,
+      );
+      if (!aggregated) {
+        failed += 1;
+        continue;
+      }
+
+      const sampleFresh = metricsByTweetId.get(aggregated.primary.tweetId);
+
+      submission.tweetId = aggregated.primary.tweetId;
+      submission.tweetUrl = aggregated.primary.tweetUrl;
+      submission.mode = aggregated.primary.mode;
+      submission.contributions = aggregated.contributions;
+      submission.latestMetrics = aggregated.aggregatedMetrics;
+      submission.latestScore = aggregated.totalScore;
+      submission.scoreBreakdown = aggregated.primary.scoreBreakdown ?? null;
+      if (sampleFresh?.authorHandle) {
+        submission.authorHandle = sampleFresh.authorHandle;
+        submission.authorHandleKey = normalizeHandle(sampleFresh.authorHandle);
+        submission.authorFollowers = sampleFresh.authorFollowers ?? null;
+        submission.authorVerified = sampleFresh.authorVerified ?? false;
+      }
       await submission.save();
 
       await KolEngagementSnapshot.create({
         campaignId: campaign._id,
         submissionId: submission._id,
         capturedAt,
-        metrics: metrics.metrics,
-        score: metrics.score,
-        scoreBreakdown: metrics.scoreBreakdown ?? null,
+        metrics: aggregated.aggregatedMetrics,
+        score: aggregated.totalScore,
+        scoreBreakdown: aggregated.primary.scoreBreakdown ?? null,
       });
       refreshed += 1;
     } catch (e) {
@@ -2378,7 +2586,8 @@ export async function getWalletEarnings(wallet) {
 }
 
 /**
- * Process all active campaigns — refresh metrics and finalize ended ones.
+ * Process all active campaigns — discover engagements (24h cadence) and finalize ended ones.
+ * Metric refresh is reserved for finalize / deposit confirm (batched getTweetsByIds).
  */
 export async function runKolDailyTick() {
   if (!isMongooseConnected()) {
@@ -2393,11 +2602,9 @@ export async function runKolDailyTick() {
   for (const campaign of activeCampaigns) {
     try {
       const discoveryResult = await discoverCampaignEngagements(campaign._id);
-      const refreshResult = await refreshCampaignMetrics(campaign._id);
       refreshed.push({
         campaignId: String(campaign._id),
         discovery: discoveryResult,
-        ...refreshResult,
       });
 
       if (campaign.endAt && now >= new Date(campaign.endAt)) {

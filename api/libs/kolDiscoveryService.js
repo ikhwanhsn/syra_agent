@@ -1,10 +1,14 @@
 /**
  * Auto-discover KOL engagers (replies + quotes) for active campaigns.
+ * Combines each handle's top-N posts into one submission score.
  */
+import { MAX_CONTRIBUTIONS_PER_HANDLE } from "../config/kolScoringConfig.js";
 import KolCampaign from "../models/KolCampaign.js";
 import KolSubmission from "../models/KolSubmission.js";
 import KolEngagementSnapshot from "../models/KolEngagementSnapshot.js";
 import {
+  aggregateContributions,
+  meetsMinLikes,
   metricsEngagementTotal,
   metricsIncreased,
   scoreSubmission,
@@ -23,7 +27,7 @@ const DEFAULT_MAX_PAGES = (() => {
 
 const DISCOVERY_FRESH_MS = (() => {
   const n = Number.parseInt(String(process.env.KOL_METRICS_FRESH_MS ?? "").trim(), 10);
-  return Number.isFinite(n) && n >= 60_000 ? n : 6 * 60 * 60 * 1000;
+  return Number.isFinite(n) && n >= 60_000 ? n : 24 * 60 * 60 * 1000;
 })();
 
 /**
@@ -47,13 +51,31 @@ function authorContextFromTweet(author) {
 }
 
 /**
+ * @typedef {{
+ *   tweetId: string;
+ *   tweetUrl: string;
+ *   mode: "reply" | "quote";
+ *   metrics: Record<string, number>;
+ *   score: number;
+ *   scoreBreakdown: unknown;
+ *   authorHandle: string;
+ *   authorHandleKey: string;
+ *   authorFollowers: number;
+ *   authorVerified: boolean;
+ * }} DiscoveredPost
+ */
+
+/**
+ * Collect all reply/quote posts for a source tweet, keyed by author handle.
+ * Dedupes by tweetId within each handle (keeps higher score).
  * @param {string} sourceTweetId
  * @param {string} sourceAuthorHandleKey
  * @param {"reply" | "quote"} mode
  * @param {(opts: { tweetId: string; cursor?: string | null }) => Promise<{ tweets: unknown[]; hasNextPage: boolean; nextCursor: string | null }>} fetchPage
+ * @returns {Promise<Map<string, DiscoveredPost[]>>}
  */
 async function collectEngagements(sourceTweetId, sourceAuthorHandleKey, mode, fetchPage) {
-  /** @type {Map<string, { tweet: Record<string, unknown>; mode: "reply" | "quote"; score: number; scoreBreakdown: unknown; metrics: unknown; authorHandle: string; authorHandleKey: string; authorFollowers: number; authorVerified: boolean; tweetId: string; tweetUrl: string }>} */
+  /** @type {Map<string, Map<string, DiscoveredPost>>} */
   const byHandle = new Map();
   let cursor = null;
   let pages = 0;
@@ -75,31 +97,39 @@ async function collectEngagements(sourceTweetId, sourceAuthorHandleKey, mode, fe
 
       if (mode === "reply" && tweet.inReplyToId !== sourceTweetId) continue;
       if (mode === "quote" && tweet.quotedTweetId !== sourceTweetId) continue;
+      if (!meetsMinLikes(tweet.metrics)) continue;
 
       const authorContext = authorContextFromTweet(tweet.author);
       const { score, breakdown } = scoreSubmission(tweet.metrics, authorContext);
 
-      const existing = byHandle.get(authorHandleKey);
-      if (existing) {
-        const existingTotal = metricsEngagementTotal(existing.metrics);
-        const newTotal = metricsEngagementTotal(tweet.metrics);
-        if (existing.score > score) continue;
-        if (existing.score === score && existingTotal >= newTotal) continue;
-      }
-
-      byHandle.set(authorHandleKey, {
-        tweet,
+      /** @type {DiscoveredPost} */
+      const row = {
+        tweetId: tweet.id,
+        tweetUrl: tweet.url,
         mode,
+        metrics: tweet.metrics,
         score,
         scoreBreakdown: breakdown,
-        metrics: tweet.metrics,
         authorHandle,
         authorHandleKey,
         authorFollowers: authorContext.followers,
         authorVerified: authorContext.verified,
-        tweetId: tweet.id,
-        tweetUrl: tweet.url,
-      });
+      };
+
+      let posts = byHandle.get(authorHandleKey);
+      if (!posts) {
+        posts = new Map();
+        byHandle.set(authorHandleKey, posts);
+      }
+
+      const existing = posts.get(row.tweetId);
+      if (existing) {
+        const existingTotal = metricsEngagementTotal(existing.metrics);
+        const newTotal = metricsEngagementTotal(row.metrics);
+        if (existing.score > score) continue;
+        if (existing.score === score && existingTotal >= newTotal) continue;
+      }
+      posts.set(row.tweetId, row);
     }
 
     pages += 1;
@@ -107,11 +137,88 @@ async function collectEngagements(sourceTweetId, sourceAuthorHandleKey, mode, fe
     cursor = page.nextCursor;
   }
 
-  return [...byHandle.values()];
+  /** @type {Map<string, DiscoveredPost[]>} */
+  const result = new Map();
+  for (const [handleKey, posts] of byHandle) {
+    result.set(handleKey, [...posts.values()]);
+  }
+  return result;
+}
+
+/**
+ * Merge reply + quote maps into one map of posts per handle.
+ * @param {Map<string, DiscoveredPost[]>} replies
+ * @param {Map<string, DiscoveredPost[]>} quotes
+ * @returns {Map<string, DiscoveredPost[]>}
+ */
+function mergePostsByHandle(replies, quotes) {
+  /** @type {Map<string, Map<string, DiscoveredPost>>} */
+  const merged = new Map();
+
+  for (const source of [replies, quotes]) {
+    for (const [handleKey, posts] of source) {
+      let byTweet = merged.get(handleKey);
+      if (!byTweet) {
+        byTweet = new Map();
+        merged.set(handleKey, byTweet);
+      }
+      for (const post of posts) {
+        const existing = byTweet.get(post.tweetId);
+        if (existing) {
+          const existingTotal = metricsEngagementTotal(existing.metrics);
+          const newTotal = metricsEngagementTotal(post.metrics);
+          if (existing.score > post.score) continue;
+          if (existing.score === post.score && existingTotal >= newTotal) continue;
+        }
+        byTweet.set(post.tweetId, post);
+      }
+    }
+  }
+
+  /** @type {Map<string, DiscoveredPost[]>} */
+  const result = new Map();
+  for (const [handleKey, byTweet] of merged) {
+    result.set(handleKey, [...byTweet.values()]);
+  }
+  return result;
+}
+
+/**
+ * Build contribution rows from an existing submission (legacy-safe).
+ * @param {import("../models/KolSubmission.js").default | Record<string, unknown>} existing
+ */
+function contributionsFromExisting(existing) {
+  const stored = Array.isArray(existing.contributions) ? existing.contributions : [];
+  if (stored.length > 0) {
+    return stored.map((c) => ({
+      tweetId: String(c.tweetId || "").trim(),
+      tweetUrl: String(c.tweetUrl || "").trim(),
+      mode: c.mode === "quote" ? "quote" : "reply",
+      metrics: c.metrics || {},
+      score: Number(c.score) || 0,
+      scoreBreakdown: c.scoreBreakdown ?? null,
+    }));
+  }
+
+  if (existing.tweetId) {
+    return [
+      {
+        tweetId: String(existing.tweetId),
+        tweetUrl: String(existing.tweetUrl || ""),
+        mode: existing.mode === "quote" ? "quote" : "reply",
+        metrics: existing.latestMetrics || {},
+        score: Number(existing.latestScore) || 0,
+        scoreBreakdown: existing.scoreBreakdown ?? null,
+      },
+    ];
+  }
+
+  return [];
 }
 
 /**
  * Discover and upsert submissions for one active campaign.
+ * Stores top-N contributions per handle; latestScore = sum of those scores.
  * @param {import("mongoose").Types.ObjectId | string} campaignId
  * @param {{ force?: boolean }} [opts]
  */
@@ -145,50 +252,59 @@ export async function discoverCampaignEngagements(campaignId, opts = {}) {
     collectEngagements(sourceTweetId, sourceAuthorHandleKey, "quote", getTweetQuotes),
   ]);
 
-  /** @type {Map<string, typeof replies[number]>} */
-  const bestByHandle = new Map();
-  for (const row of [...replies, ...quotes]) {
-    const existing = bestByHandle.get(row.authorHandleKey);
-    if (!existing) {
-      bestByHandle.set(row.authorHandleKey, row);
-      continue;
-    }
-    const existingTotal = metricsEngagementTotal(existing.metrics);
-    const rowTotal = metricsEngagementTotal(row.metrics);
-    if (
-      row.score > existing.score ||
-      (row.score === existing.score && rowTotal > existingTotal)
-    ) {
-      bestByHandle.set(row.authorHandleKey, row);
-    }
-  }
+  const postsByHandle = mergePostsByHandle(replies, quotes);
 
   const capturedAt = new Date();
   let discovered = 0;
   let updated = 0;
 
-  for (const row of bestByHandle.values()) {
+  for (const [authorHandleKey, discoveredPosts] of postsByHandle) {
+    if (discoveredPosts.length === 0) continue;
+
+    const sample = discoveredPosts[0];
     const existing = await KolSubmission.findOne({
       campaignId: campaign._id,
-      authorHandleKey: row.authorHandleKey,
+      authorHandleKey,
     });
+
+    const mergedRows = [
+      ...(existing ? contributionsFromExisting(existing) : []),
+      ...discoveredPosts.map((p) => ({
+        tweetId: p.tweetId,
+        tweetUrl: p.tweetUrl,
+        mode: p.mode,
+        metrics: p.metrics,
+        score: p.score,
+        scoreBreakdown: p.scoreBreakdown,
+      })),
+    ].filter((row) => meetsMinLikes(row.metrics));
+
+    const aggregated = aggregateContributions(mergedRows, MAX_CONTRIBUTIONS_PER_HANDLE);
+    if (!aggregated) {
+      // New handle with nothing eligible → skip. Existing handle → leave unchanged (no downgrade).
+      continue;
+    }
+
+    const { contributions, primary, totalScore, aggregatedMetrics } = aggregated;
 
     if (existing) {
       const shouldUpdate =
-        row.score > (existing.latestScore ?? 0) ||
-        row.tweetId !== existing.tweetId ||
-        metricsIncreased(existing.latestMetrics, row.metrics);
+        totalScore > (existing.latestScore ?? 0) ||
+        primary.tweetId !== existing.tweetId ||
+        contributions.length !== (existing.contributions?.length ?? 0) ||
+        metricsIncreased(existing.latestMetrics, aggregatedMetrics);
 
       if (shouldUpdate) {
-        existing.tweetId = row.tweetId;
-        existing.tweetUrl = row.tweetUrl;
-        existing.mode = row.mode;
-        existing.authorHandle = row.authorHandle;
-        existing.latestMetrics = row.metrics;
-        existing.latestScore = row.score;
-        existing.scoreBreakdown = row.scoreBreakdown;
-        existing.authorFollowers = row.authorFollowers;
-        existing.authorVerified = row.authorVerified;
+        existing.tweetId = primary.tweetId;
+        existing.tweetUrl = primary.tweetUrl;
+        existing.mode = primary.mode;
+        existing.authorHandle = sample.authorHandle;
+        existing.contributions = contributions;
+        existing.latestMetrics = aggregatedMetrics;
+        existing.latestScore = totalScore;
+        existing.scoreBreakdown = primary.scoreBreakdown ?? null;
+        existing.authorFollowers = sample.authorFollowers;
+        existing.authorVerified = sample.authorVerified;
         await existing.save();
         updated += 1;
       }
@@ -197,9 +313,9 @@ export async function discoverCampaignEngagements(campaignId, opts = {}) {
         campaignId: campaign._id,
         submissionId: existing._id,
         capturedAt,
-        metrics: row.metrics,
-        score: row.score,
-        scoreBreakdown: row.scoreBreakdown,
+        metrics: aggregatedMetrics,
+        score: totalScore,
+        scoreBreakdown: primary.scoreBreakdown ?? null,
       });
       continue;
     }
@@ -208,17 +324,18 @@ export async function discoverCampaignEngagements(campaignId, opts = {}) {
       const submission = await KolSubmission.create({
         campaignId: campaign._id,
         kolWallet: null,
-        tweetId: row.tweetId,
-        tweetUrl: row.tweetUrl,
-        mode: row.mode,
-        authorHandle: row.authorHandle,
-        authorHandleKey: row.authorHandleKey,
-        authorFollowers: row.authorFollowers,
-        authorVerified: row.authorVerified,
+        tweetId: primary.tweetId,
+        tweetUrl: primary.tweetUrl,
+        mode: primary.mode,
+        authorHandle: sample.authorHandle,
+        authorHandleKey,
+        authorFollowers: sample.authorFollowers,
+        authorVerified: sample.authorVerified,
         verified: true,
-        latestMetrics: row.metrics,
-        latestScore: row.score,
-        scoreBreakdown: row.scoreBreakdown,
+        contributions,
+        latestMetrics: aggregatedMetrics,
+        latestScore: totalScore,
+        scoreBreakdown: primary.scoreBreakdown ?? null,
         projectedLamports: 0,
         earnedLamports: 0,
         claimStatus: "unearned",
@@ -229,14 +346,14 @@ export async function discoverCampaignEngagements(campaignId, opts = {}) {
         campaignId: campaign._id,
         submissionId: submission._id,
         capturedAt,
-        metrics: row.metrics,
-        score: row.score,
-        scoreBreakdown: row.scoreBreakdown,
+        metrics: aggregatedMetrics,
+        score: totalScore,
+        scoreBreakdown: primary.scoreBreakdown ?? null,
       });
 
       await seedXProfileFromAuthor({
-        userName: row.authorHandle,
-        verified: row.authorVerified,
+        userName: sample.authorHandle,
+        verified: sample.authorVerified,
       }).catch(() => {});
 
       discovered += 1;
@@ -245,11 +362,15 @@ export async function discoverCampaignEngagements(campaignId, opts = {}) {
         continue;
       }
       console.warn(
-        `[kol] discovery upsert failed campaign=${campaign._id} handle=${row.authorHandle}:`,
+        `[kol] discovery upsert failed campaign=${campaign._id} handle=${sample.authorHandle}:`,
         e instanceof Error ? e.message : e,
       );
     }
   }
+
+  // Discovery is the primary daily snapshot path — mark freshness so ticks skip when fresh.
+  campaign.lastSnapshotAt = capturedAt;
+  await campaign.save();
 
   const { refreshCampaignProjections } = await import("./kolMarketplaceService.js");
   await refreshCampaignProjections(campaign._id);
@@ -257,7 +378,7 @@ export async function discoverCampaignEngagements(campaignId, opts = {}) {
   return {
     discovered,
     updated,
-    totalHandles: bestByHandle.size,
+    totalHandles: postsByHandle.size,
     capturedAt: capturedAt.toISOString(),
   };
 }

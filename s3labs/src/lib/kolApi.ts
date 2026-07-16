@@ -57,6 +57,23 @@ export interface KolCampaign {
   createdAt: string | null;
   poolWalletAddress: string;
   submissionCount?: number;
+  /** True when the viewer (wallet or verified X) already has a submission. */
+  participated?: boolean;
+}
+
+export interface KolContribution {
+  tweetId: string;
+  tweetUrl: string;
+  mode: "reply" | "quote";
+  metrics: {
+    likeCount: number;
+    retweetCount: number;
+    replyCount: number;
+    quoteCount: number;
+    viewCount: number;
+  };
+  score: number;
+  scoreBreakdown?: KolScoreBreakdown | null;
 }
 
 export interface KolSubmission {
@@ -71,6 +88,10 @@ export interface KolSubmission {
   authorFollowers?: number | null;
   authorVerified?: boolean;
   verified: boolean;
+  /** Top-N posts counted toward latestScore (combined). */
+  contributions?: KolContribution[];
+  /** Number of posts included in the combined score. */
+  postCount?: number;
   latestMetrics: {
     likeCount: number;
     retweetCount: number;
@@ -78,6 +99,7 @@ export interface KolSubmission {
     quoteCount: number;
     viewCount: number;
   };
+  /** Combined score = sum of top-N contribution scores. */
   latestScore: number;
   scoreBreakdown?: KolScoreBreakdown | null;
   finalScore?: number | null;
