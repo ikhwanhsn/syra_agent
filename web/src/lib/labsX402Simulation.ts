@@ -52,6 +52,8 @@ export interface LabsX402SimulationInput {
   targetVolumeUsd?: number;
   /** Legacy: derived from targetVolumeUsd when omitted. */
   targetCallsPerDay?: number;
+  /** Multiplies base endpoint prices (1–100). Default 1. */
+  priceMultiplier?: number;
 }
 
 export interface LabsX402SimulationResult {
@@ -60,9 +62,17 @@ export interface LabsX402SimulationResult {
   jitterPct: number;
   refundEnabled: boolean;
   autoCallEnabled: boolean;
+  /** Effective (multiplied) prices used for volume/funding math. */
   avgPriceUsd: number;
   minPriceUsd: number;
   maxPriceUsd: number;
+  /** Base catalog prices before priceMultiplier. */
+  baseAvgPriceUsd: number;
+  baseMinPriceUsd: number;
+  baseMaxPriceUsd: number;
+  priceMultiplier: number;
+  /** Calls needed at 1× for the same target volume (for comparison). */
+  callsAtBasePrice: number;
   callsPerDay: number;
   callsPerWalletPerDay: number;
   ticksPerDay: number;
@@ -244,9 +254,24 @@ export function runLabsX402Simulation(input: LabsX402SimulationInput): LabsX402S
   const payerCount = Math.max(0, input.payerCount);
   const intervalMin = Math.max(1, Math.min(60, input.intervalMin));
   const jitterPct = Math.max(0, Math.min(50, input.jitterPct));
+  const rawMult = Number(input.priceMultiplier);
+  const priceMultiplier = Number.isFinite(rawMult)
+    ? Math.min(100, Math.max(1, rawMult))
+    : 1;
 
-  const avgPriceUsd = weightedAvgEndpointPrice(input.endpoints);
-  const safeAvgPrice = avgPriceUsd > 0 ? avgPriceUsd : 0.029;
+  const baseAvgPriceUsd = weightedAvgEndpointPrice(input.endpoints);
+  const baseMinPriceUsd =
+    input.endpoints.length > 0
+      ? Math.min(...input.endpoints.map((e) => e.priceUsd))
+      : 0.01;
+  const baseMaxPriceUsd =
+    input.endpoints.length > 0
+      ? Math.max(...input.endpoints.map((e) => e.priceUsd))
+      : MAX_ENDPOINT_PRICE_USD;
+
+  const avgPriceUsd = baseAvgPriceUsd * priceMultiplier;
+  const safeAvgPrice = avgPriceUsd > 0 ? avgPriceUsd : 0.029 * priceMultiplier;
+  const safeBaseAvg = baseAvgPriceUsd > 0 ? baseAvgPriceUsd : 0.029;
   const targetVolumeUsd =
     typeof input.targetVolumeUsd === "number" && Number.isFinite(input.targetVolumeUsd)
       ? Math.max(1, input.targetVolumeUsd)
@@ -255,15 +280,10 @@ export function runLabsX402Simulation(input: LabsX402SimulationInput): LabsX402S
     typeof input.targetCallsPerDay === "number" && input.targetCallsPerDay > 0
       ? Math.max(1, Math.round(input.targetCallsPerDay))
       : Math.max(1, Math.ceil(targetVolumeUsd / safeAvgPrice));
+  const callsAtBasePrice = Math.max(1, Math.ceil(targetVolumeUsd / safeBaseAvg));
 
-  const minPriceUsd =
-    input.endpoints.length > 0
-      ? Math.min(...input.endpoints.map((e) => e.priceUsd))
-      : 0.01;
-  const maxPriceUsd =
-    input.endpoints.length > 0
-      ? Math.max(...input.endpoints.map((e) => e.priceUsd))
-      : MAX_ENDPOINT_PRICE_USD;
+  const minPriceUsd = baseMinPriceUsd * priceMultiplier;
+  const maxPriceUsd = baseMaxPriceUsd * priceMultiplier;
 
   const callsPerDay = input.autoCallEnabled
     ? estimateCallsPerDay(payerCount, intervalMin)
@@ -282,6 +302,14 @@ export function runLabsX402Simulation(input: LabsX402SimulationInput): LabsX402S
   const volumeGapUsd = Math.max(0, Math.round((targetVolumeUsd - grossUsdcPerDay) * 100) / 100);
 
   const achievementHints: string[] = [];
+  if (priceMultiplier > 1) {
+    const saved = Math.max(0, callsAtBasePrice - targetCallsPerDay);
+    achievementHints.push(
+      `Price multiplier ×${priceMultiplier}: each call transfers ${formatUsd(avgPriceUsd)} (base ${formatUsd(safeBaseAvg)}). ` +
+        `Target needs ~${targetCallsPerDay.toLocaleString()} calls instead of ~${callsAtBasePrice.toLocaleString()} at 1×` +
+        (saved > 0 ? ` — ~${saved.toLocaleString()} fewer calls.` : "."),
+    );
+  }
   if (!input.autoCallEnabled) {
     achievementHints.push("Enable auto-call and save settings — projected volume is 0 while it is off.");
   }
@@ -300,11 +328,14 @@ export function runLabsX402Simulation(input: LabsX402SimulationInput): LabsX402S
         );
         if (neededPayers > payerCount) {
           achievementHints.push(
-            `Add ~${neededPayers - payerCount} more payer wallet${neededPayers - payerCount === 1 ? "" : "s"} (≈${neededPayers} total) at ${intervalMin} min interval, or lower the interval.`,
+            `Add ~${neededPayers - payerCount} more payer wallet${neededPayers - payerCount === 1 ? "" : "s"} (≈${neededPayers} total) at ${intervalMin} min interval, or lower the interval` +
+              (priceMultiplier < 100
+                ? `, or raise the price multiplier (currently ×${priceMultiplier}).`
+                : "."),
           );
         } else {
           achievementHints.push(
-            `Aim for ~${targetCallsPerDay.toLocaleString()} calls/day (~${formatUsd(projectedTargetGrossUsd)} at avg price).`,
+            `Aim for ~${targetCallsPerDay.toLocaleString()} calls/day (~${formatUsd(projectedTargetGrossUsd)} at avg effective price).`,
           );
         }
       }
@@ -316,7 +347,9 @@ export function runLabsX402Simulation(input: LabsX402SimulationInput): LabsX402S
   }
   if (input.autoCallEnabled && payerCount > 0) {
     achievementHints.push(
-      `Fund each payer with working USDC and gas; PayTo needs refund float if refund is on.`,
+      priceMultiplier > 1
+        ? `Fund payers for the effective max call (${formatUsd(maxPriceUsd)}); PayTo refund float scales with ×${priceMultiplier}.`
+        : `Fund each payer with working USDC and gas; PayTo needs refund float if refund is on.`,
     );
   }
 
@@ -347,6 +380,11 @@ export function runLabsX402Simulation(input: LabsX402SimulationInput): LabsX402S
     avgPriceUsd,
     minPriceUsd,
     maxPriceUsd,
+    baseAvgPriceUsd,
+    baseMinPriceUsd,
+    baseMaxPriceUsd,
+    priceMultiplier,
+    callsAtBasePrice,
     callsPerDay,
     callsPerWalletPerDay,
     ticksPerDay: Math.round(ticksPerDay),

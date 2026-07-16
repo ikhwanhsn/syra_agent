@@ -494,7 +494,7 @@ export async function refundUsdcToPayer(payerAddress, amountUsd, chain) {
  * when its USDC is too low.
  *
  * @param {string} payerAddress
- * @param {{ refundEnabled?: boolean; chain?: 'solana' | 'base' | 'celo' | 'algorand' }} [opts]
+ * @param {{ refundEnabled?: boolean; chain?: 'solana' | 'base' | 'celo' | 'algorand'; priceMultiplier?: number }} [opts]
  * @returns {Promise<{ canPay: boolean; funded: boolean; balanceUsdc: number | null; reason: string; signature?: string | null; amountUsd?: number; error?: string }>}
  */
 export async function ensurePayerFundedForNextCall(payerAddress, opts = {}) {
@@ -504,7 +504,10 @@ export async function ensurePayerFundedForNextCall(payerAddress, opts = {}) {
       : /^0x/i.test(String(payerAddress || ''))
         ? 'base'
         : 'solana';
-  const minPriceUsd = getMinLabX402PriceUsd();
+  const rawMult = Number(opts.priceMultiplier);
+  const priceMultiplier =
+    Number.isFinite(rawMult) ? Math.min(100, Math.max(1, rawMult)) : 1;
+  const minPriceUsd = getMinLabX402PriceUsd() * priceMultiplier;
   const balances = await getLabWalletBalances(payerAddress, chain);
 
   // Balance unknown (RPC unavailable) — stay optimistic and let the payment attempt decide.
@@ -524,8 +527,8 @@ export async function ensurePayerFundedForNextCall(payerAddress, opts = {}) {
 
   const decision = evaluateLowBalanceRefund(
     balances.usdcBalance,
-    getMaxLabX402PriceUsd(),
-    getWeightedAvgLabX402PriceUsd(),
+    getMaxLabX402PriceUsd() * priceMultiplier,
+    getWeightedAvgLabX402PriceUsd() * priceMultiplier,
   );
 
   if (!decision.shouldRefund) {

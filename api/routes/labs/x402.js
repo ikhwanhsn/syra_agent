@@ -233,12 +233,13 @@ export function createLabsX402Router() {
         typeof req.body?.payerAddress === 'string' ? req.body.payerAddress.trim() : null;
       const endpoint = typeof req.body?.endpoint === 'string' ? req.body.endpoint.trim() : undefined;
 
-      const { refundEnabled } = await getLabX402Settings(chain);
+      const { refundEnabled, priceMultiplier } = await getLabX402Settings(chain);
 
       if (payerAddress) {
         const funding = await ensurePayerFundedForNextCall(payerAddress, {
           refundEnabled,
           chain,
+          priceMultiplier,
         });
         if (!funding.canPay) {
           return res.json({
@@ -268,7 +269,11 @@ export function createLabsX402Router() {
 
       const results = [];
       for (const p of payers) {
-        const funding = await ensurePayerFundedForNextCall(p.address, { refundEnabled, chain });
+        const funding = await ensurePayerFundedForNextCall(p.address, {
+          refundEnabled,
+          chain,
+          priceMultiplier,
+        });
         if (!funding.canPay) {
           results.push({
             success: false,

@@ -166,8 +166,12 @@ async function handleInsightRoute(req, res, endpointPath, catalogSegment, fetchD
         // Balance unknown (RPC unavailable): don't refund on a false low reading.
         if (!balances) return;
 
-        const maxPriceUsd = getMaxLabX402PriceUsd();
-        const avgPriceUsd = getWeightedAvgLabX402PriceUsd();
+        const mult =
+          typeof settings.priceMultiplier === 'number' && Number.isFinite(settings.priceMultiplier)
+            ? Math.min(100, Math.max(1, settings.priceMultiplier))
+            : 1;
+        const maxPriceUsd = getMaxLabX402PriceUsd() * mult;
+        const avgPriceUsd = getWeightedAvgLabX402PriceUsd() * mult;
         const decision = evaluateLowBalanceRefund(balances.usdcBalance, maxPriceUsd, avgPriceUsd);
 
         if (!decision.shouldRefund) return;
@@ -260,6 +264,17 @@ function labsPaymentMiddleware(priceUsd, resource, catalogSegment, outputSchema 
       // builds Solana/Base offers that the Algorand client ignores when selecting payment.
       return requirePayment({
         price: priceUsd,
+        getPriceUsd: async (r) => {
+          const labChainHeader = String(r?.get?.('x-lab-x402-chain') || '').trim();
+          if (!labChainHeader) return priceUsd;
+          const chain = inferPayerChain('', r);
+          const settings = await getLabX402Settings(chain);
+          const mult =
+            typeof settings.priceMultiplier === 'number' && Number.isFinite(settings.priceMultiplier)
+              ? Math.min(100, Math.max(1, settings.priceMultiplier))
+              : 1;
+          return Math.round(priceUsd * mult * 1e6) / 1e6;
+        },
         description: getResourceDescription(catalogSegment),
         resource,
         discoverable: true,
@@ -279,6 +294,17 @@ function labsPaymentMiddleware(priceUsd, resource, catalogSegment, outputSchema 
 function labsPayaiPaymentMiddleware(priceUsd, resource, catalogSegment, outputSchema = {}) {
   return requirePayment({
     price: priceUsd,
+    getPriceUsd: async (r) => {
+      const labChainHeader = String(r?.get?.('x-lab-x402-chain') || '').trim();
+      if (!labChainHeader) return priceUsd;
+      const chain = inferPayerChain('', r);
+      const settings = await getLabX402Settings(chain);
+      const mult =
+        typeof settings.priceMultiplier === 'number' && Number.isFinite(settings.priceMultiplier)
+          ? Math.min(100, Math.max(1, settings.priceMultiplier))
+          : 1;
+      return Math.round(priceUsd * mult * 1e6) / 1e6;
+    },
     description: getResourceDescription(catalogSegment),
     resource,
     discoverable: true,

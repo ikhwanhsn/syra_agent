@@ -49,6 +49,7 @@ async function tick(chain) {
         const funding = await ensurePayerFundedForNextCall(payer.address, {
           refundEnabled: settings.refundEnabled,
           chain: c,
+          priceMultiplier: settings.priceMultiplier,
         });
         if (!funding.canPay) {
           console.warn(

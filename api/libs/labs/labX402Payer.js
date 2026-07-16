@@ -145,6 +145,10 @@ export async function runLabX402Payment(payerAddress, opts = {}) {
     }
   }
 
+  const settings = await getLabX402Settings(chain);
+  const priceMultiplier = clampPriceMultiplier(settings.priceMultiplier);
+  const effectivePriceUsd = Math.round(endpoint.priceUsd * priceMultiplier * 1e6) / 1e6;
+
   if (endpoint.facilitator === 'payai') {
     const budget = await checkPayaiEndpointDailyBudget(
       endpoint.id,
@@ -155,7 +159,7 @@ export async function runLabX402Payment(payerAddress, opts = {}) {
       return {
         success: false,
         endpoint: endpoint.path,
-        priceUsd: endpoint.priceUsd,
+        priceUsd: effectivePriceUsd,
         skipped: true,
         reason: 'payai_daily_limit',
         error: `PayAI endpoint daily limit reached (${budget.count}/${budget.max} for ${budget.day} UTC).`,
@@ -226,7 +230,7 @@ export async function runLabX402Payment(payerAddress, opts = {}) {
       await logLabX402Call({
         payerAddress: payerAddrForLog,
         endpoint: endpoint.path,
-        priceUsd: endpoint.priceUsd,
+        priceUsd: effectivePriceUsd,
         chain,
         status: looksLikeUpstreamData ? 'error' : 'payment_failed',
         paymentTx,
@@ -236,7 +240,7 @@ export async function runLabX402Payment(payerAddress, opts = {}) {
       return {
         success: false,
         endpoint: endpoint.path,
-        priceUsd: endpoint.priceUsd,
+        priceUsd: effectivePriceUsd,
         httpStatus,
         error: errorMsg,
       };
@@ -247,7 +251,7 @@ export async function runLabX402Payment(payerAddress, opts = {}) {
     await logLabX402Call({
       payerAddress: payerAddrForLog,
       endpoint: endpoint.path,
-      priceUsd: endpoint.priceUsd,
+      priceUsd: effectivePriceUsd,
       chain,
       status: 'success',
       paymentTx,
@@ -257,7 +261,7 @@ export async function runLabX402Payment(payerAddress, opts = {}) {
     return {
       success: true,
       endpoint: endpoint.path,
-      priceUsd: endpoint.priceUsd,
+      priceUsd: effectivePriceUsd,
       httpStatus,
       data: responseBody,
       paymentTx,
@@ -267,7 +271,7 @@ export async function runLabX402Payment(payerAddress, opts = {}) {
     await logLabX402Call({
       payerAddress: payerAddrForLog,
       endpoint: endpoint.path,
-      priceUsd: endpoint.priceUsd,
+      priceUsd: effectivePriceUsd,
       chain,
       status: 'error',
       error: errorMsg.slice(0, 500),
@@ -276,10 +280,20 @@ export async function runLabX402Payment(payerAddress, opts = {}) {
     return {
       success: false,
       endpoint: endpoint.path,
-      priceUsd: endpoint.priceUsd,
+      priceUsd: effectivePriceUsd,
       error: errorMsg,
     };
   }
+}
+
+/**
+ * @param {unknown} raw
+ * @returns {number}
+ */
+function clampPriceMultiplier(raw) {
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return 1;
+  return Math.min(100, Math.max(1, Math.round(n * 100) / 100));
 }
 
 /**
@@ -315,6 +329,7 @@ function formatLabX402Settings(doc) {
       typeof doc.targetVolumeUsd === 'number' && Number.isFinite(doc.targetVolumeUsd)
         ? Math.min(100_000, Math.max(1, doc.targetVolumeUsd))
         : 50,
+    priceMultiplier: clampPriceMultiplier(doc.priceMultiplier),
     activeDailyCallCap,
     activeDailyCallCapDay: doc.activeDailyCallCapDay ?? null,
     depositDistributeEnabled: doc.depositDistributeEnabled !== false,
@@ -352,6 +367,7 @@ export async function getLabX402Settings(chain = 'solana') {
  *   maxDailyCallsMax: number;
  *   maxDailyCalls: number;
  *   targetVolumeUsd: number;
+ *   priceMultiplier: number;
  * }>} patch
  * @param {'solana' | 'base' | 'celo' | 'algorand'} [chain]
  * @returns {Promise<object>}
@@ -371,6 +387,9 @@ export async function updateLabX402Settings(patch, chain = 'solana') {
   }
   if (typeof patch.targetVolumeUsd === 'number' && Number.isFinite(patch.targetVolumeUsd)) {
     update.targetVolumeUsd = Math.min(100_000, Math.max(1, Math.round(patch.targetVolumeUsd * 100) / 100));
+  }
+  if (typeof patch.priceMultiplier === 'number' && Number.isFinite(patch.priceMultiplier)) {
+    update.priceMultiplier = clampPriceMultiplier(patch.priceMultiplier);
   }
 
   const hasMin = typeof patch.maxDailyCallsMin === 'number';

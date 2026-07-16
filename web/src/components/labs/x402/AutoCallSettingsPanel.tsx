@@ -23,6 +23,7 @@ interface AutoCallSettingsPanelProps {
     maxDailyCallsMin: number;
     maxDailyCallsMax: number;
     targetVolumeUsd: number;
+    priceMultiplier: number;
   }) => void;
 }
 
@@ -54,6 +55,7 @@ export function AutoCallSettingsPanel({
   const [maxDailyCallsMin, setMaxDailyCallsMin] = useState(2000);
   const [maxDailyCallsMax, setMaxDailyCallsMax] = useState(2000);
   const [targetVolumeUsd, setTargetVolumeUsd] = useState(50);
+  const [priceMultiplier, setPriceMultiplier] = useState(1);
   const showSkeleton = useMinimumSkeleton(isLoading);
 
   useEffect(() => {
@@ -74,6 +76,11 @@ export function AutoCallSettingsPanel({
         ? Math.min(100_000, Math.max(1, settings.targetVolumeUsd))
         : 50,
     );
+    setPriceMultiplier(
+      typeof settings.priceMultiplier === "number" && Number.isFinite(settings.priceMultiplier)
+        ? Math.min(100, Math.max(1, Math.round(settings.priceMultiplier * 100) / 100))
+        : 1,
+    );
   }, [settings]);
 
   useEffect(() => {
@@ -85,6 +92,7 @@ export function AutoCallSettingsPanel({
       maxDailyCallsMin,
       maxDailyCallsMax,
       targetVolumeUsd,
+      priceMultiplier,
     });
   }, [
     intervalMin,
@@ -94,6 +102,7 @@ export function AutoCallSettingsPanel({
     maxDailyCallsMin,
     maxDailyCallsMax,
     targetVolumeUsd,
+    priceMultiplier,
     onDraftChange,
   ]);
 
@@ -191,6 +200,26 @@ export function AutoCallSettingsPanel({
             use daily call caps for hard limits.
           </p>
         </div>
+        <div className="space-y-2 sm:col-span-2">
+          <Label htmlFor="price-multiplier">Price multiplier (×)</Label>
+          <Input
+            id="price-multiplier"
+            type="number"
+            min={1}
+            max={100}
+            step={0.5}
+            value={priceMultiplier}
+            onChange={(e) =>
+              setPriceMultiplier(
+                Math.min(100, Math.max(1, Math.round((Number(e.target.value) || 1) * 100) / 100)),
+              )
+            }
+          />
+          <p className="text-xs text-muted-foreground">
+            Multiplies base endpoint price for lab calls — reach target volume with fewer calls.
+            Example: 10× turns a $0.01 call into $0.10 on-chain.
+          </p>
+        </div>
         <div className="space-y-1 sm:col-span-2">
           <p className="text-xs text-muted-foreground">
             Each UTC day the system picks a random cap in this range so volume is not identical every
@@ -232,6 +261,7 @@ export function AutoCallSettingsPanel({
             maxDailyCallsMin: range.min,
             maxDailyCallsMax: range.max,
             targetVolumeUsd: Math.min(100_000, Math.max(1, Math.round(targetVolumeUsd * 100) / 100)),
+            priceMultiplier: Math.min(100, Math.max(1, Math.round(priceMultiplier * 100) / 100)),
           });
         }}
         disabled={isSaving}

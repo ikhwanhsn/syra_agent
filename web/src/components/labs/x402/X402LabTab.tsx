@@ -50,6 +50,7 @@ export function X402LabTab({ chain }: X402LabTabProps) {
     maxDailyCallsMin: number;
     maxDailyCallsMax: number;
     targetVolumeUsd: number;
+    priceMultiplier: number;
   } | null>(null);
 
   const wallets = walletsQ.data ?? [];
@@ -77,6 +78,13 @@ export function X402LabTab({ chain }: X402LabTabProps) {
       : isBase
         ? "ETH"
         : "SOL";
+
+  const priceMultiplier =
+    settingsDraft?.priceMultiplier ??
+    (typeof settingsQ.data?.priceMultiplier === "number" &&
+    Number.isFinite(settingsQ.data.priceMultiplier)
+      ? Math.min(100, Math.max(1, settingsQ.data.priceMultiplier))
+      : 1);
 
   const visibleEndpoints = useMemo(() => {
     const all = endpointsQ.data ?? [];
@@ -362,8 +370,13 @@ export function X402LabTab({ chain }: X402LabTabProps) {
                 >
                   <div className="flex items-center justify-between gap-2">
                     <code className="text-xs font-medium">{ep.path}</code>
-                    <span className="font-mono text-xs text-muted-foreground">
-                      ${ep.priceUsd.toFixed(2)}
+                    <span className="flex items-center gap-1.5 font-mono text-xs text-muted-foreground">
+                      ${(ep.priceUsd * priceMultiplier).toFixed(2)}
+                      {priceMultiplier !== 1 ? (
+                        <span className="rounded bg-amber-500/15 px-1 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                          ×{priceMultiplier}
+                        </span>
+                      ) : null}
                     </span>
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-1.5">

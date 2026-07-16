@@ -32,6 +32,8 @@ export interface LabX402Settings {
   maxDailyCalls: number;
   /** Ops target for gross x402 volume (USD) in a UTC day. */
   targetVolumeUsd: number;
+  /** Multiplies base /insights endpoint price for lab calls (1–100). */
+  priceMultiplier: number;
   activeDailyCallCap?: number | null;
   activeDailyCallCapDay?: string | null;
   depositDistributeEnabled?: boolean;
