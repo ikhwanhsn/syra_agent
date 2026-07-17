@@ -1721,7 +1721,16 @@ async function tryFacilitatorThenLocalSettle(payload, accepted, req) {
     isCeloX402Network(accepted?.network) ||
     String(req?.get?.("x-lab-x402-chain") || "").toLowerCase() === "celo";
   if (useCelo) {
-    return settleCeloX402Payment(payload, accepted);
+    const settle = await settleCeloX402Payment(payload, accepted);
+    if (settle?.settledVia) {
+      console.info(
+        `[x402PaymentV2] Celo settle via ${settle.settledVia}`,
+        settle.success
+          ? { transaction: settle.transaction, network: settle.network }
+          : { errorReason: settle.errorReason || settle.error },
+      );
+    }
+    return settle;
   }
 
   const useAlgorand =

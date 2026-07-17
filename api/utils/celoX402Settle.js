@@ -108,9 +108,10 @@ function shouldSettleViaCeloFacilitator() {
 }
 
 /**
- * Self-settle fallback — OFF by default for hackathon Track 2.
+ * Explicit self-settle allow — OFF by default for hackathon Track 2.
  * Only settlements submitted by api.x402.celo.org count toward x402_settlements /
- * x402_volume_usd. Set CELO_ALLOW_SELF_SETTLE=true only for local debugging.
+ * x402_volume_usd. Set CELO_ALLOW_SELF_SETTLE=true for local debugging or to force
+ * self-settle even when CELO_SELF_SETTLE_FALLBACK is disabled.
  * @see https://celobuilders.xyz/hackathons/agentic-payments-defai/faqs
  */
 function allowCeloSelfSettle() {
@@ -118,6 +119,40 @@ function allowCeloSelfSettle() {
     .trim()
     .toLowerCase();
   return v === '1' || v === 'true' || v === 'yes';
+}
+
+/**
+ * Auto-fallback to self-settle when the Celo facilitator /settle fails
+ * (e.g. relayer out of CELO gas). Default ON so Labs payments keep working.
+ * Set CELO_SELF_SETTLE_FALLBACK=false to restore strict facilitator-only settle.
+ * Requires CELO_SETTLER_PRIVATE_KEY (wallet must hold CELO for gas).
+ * Self-settled txs preserve Track 1 ERC-8021 tags but do NOT count for Track 2 x402_*.
+ */
+function shouldSelfSettleFallback() {
+  const v = String(process.env.CELO_SELF_SETTLE_FALLBACK || 'true')
+    .trim()
+    .toLowerCase();
+  return v !== '0' && v !== 'false' && v !== 'no';
+}
+
+/**
+ * True when CELO_SETTLER_PRIVATE_KEY is present and looks like a valid 32-byte hex key.
+ * Does not throw — used to decide whether self-settle fallback can run.
+ * @returns {boolean}
+ */
+function hasCeloSettlerKey() {
+  let hex = String(process.env.CELO_SETTLER_PRIVATE_KEY || '').trim();
+  if (!hex) return false;
+  if (hex.startsWith('0x') || hex.startsWith('0X')) hex = hex.slice(2);
+  return /^[0-9a-fA-F]{64}$/.test(hex);
+}
+
+/**
+ * Whether self-settle may run after a facilitator failure (or when facilitator is disabled).
+ * @returns {boolean}
+ */
+function canUseCeloSelfSettle() {
+  return (allowCeloSelfSettle() || shouldSelfSettleFallback()) && hasCeloSettlerKey();
 }
 
 /**
@@ -321,7 +356,7 @@ async function verifyViaCeloFacilitator(payload, accepted) {
  * These are the only settlements counted as x402_* on the hackathon Dune board.
  * @param {object} payload
  * @param {object} accepted
- * @returns {Promise<{ success: boolean; payer?: string; transaction?: string; network?: string; error?: string; errorReason?: string } | null>}
+ * @returns {Promise<{ success: boolean; payer?: string; transaction?: string; network?: string; settledVia?: 'facilitator' | 'self'; error?: string; errorReason?: string }>}
  */
 async function settleViaCeloFacilitator(payload, accepted) {
   const apiKey = getCeloFacilitatorApiKey();
@@ -367,6 +402,7 @@ async function settleViaCeloFacilitator(payload, accepted) {
       payer: body.payer || body.payerAddress || undefined,
       transaction: tx,
       network: body.network || CELO_MAINNET_CAIP2,
+      settledVia: 'facilitator',
     };
   } catch (e) {
     const msg = e?.message || String(e);
@@ -383,7 +419,7 @@ async function settleViaCeloFacilitator(payload, accepted) {
  * Settle an Exact EVM x402 payment on Celo with ERC-8021 Schema 2 builder-code in calldata.
  * @param {object} payload - req.x402Payment.payload
  * @param {object} accepted - req.x402Payment.accepted
- * @returns {Promise<{ success: boolean; payer?: string; transaction?: string; network?: string; error?: string; errorReason?: string }>}
+ * @returns {Promise<{ success: boolean; payer?: string; transaction?: string; network?: string; settledVia?: 'facilitator' | 'self'; error?: string; errorReason?: string }>}
  */
 export async function settleCeloX402Payment(payload, accepted) {
   const network = String(accepted?.network || payload?.network || '');
@@ -432,26 +468,43 @@ export async function settleCeloX402Payment(payload, accepted) {
     };
   }
 
+  /** @type {string | undefined} */
+  let facilitatorErrorReason;
   if (shouldSettleViaCeloFacilitator()) {
     const facilitated = await settleViaCeloFacilitator(payload, accepted);
     if (facilitated?.success && facilitated.transaction) {
       return facilitated;
     }
-    if (!allowCeloSelfSettle()) {
+    facilitatorErrorReason =
+      facilitated?.errorReason ||
+      facilitated?.error ||
+      'Celo facilitator settle failed';
+
+    if (!canUseCeloSelfSettle()) {
+      const needsKey = !hasCeloSettlerKey() && (allowCeloSelfSettle() || shouldSelfSettleFallback());
       return {
         success: false,
-        errorReason:
-          facilitated?.errorReason ||
-          'Celo facilitator settle failed. Track 2 only counts api.x402.celo.org settlements — check CELO_FACILITATOR_API_KEY/credits and facilitator relayer CELO gas (0x0d74…FB48).',
-        error:
-          facilitated?.error ||
-          'Celo facilitator settle failed — self-settle disabled for hackathon Track 2',
+        errorReason: needsKey
+          ? `${facilitatorErrorReason}. Self-settle fallback needs CELO_SETTLER_PRIVATE_KEY (EOA with CELO gas).`
+          : `${facilitatorErrorReason}. Track 2 only counts api.x402.celo.org settlements — check CELO_FACILITATOR_API_KEY/credits and facilitator relayer CELO gas (0x0d74…FB48). Set CELO_SELF_SETTLE_FALLBACK=true + CELO_SETTLER_PRIVATE_KEY to auto-fallback.`,
+        error: needsKey
+          ? `${facilitatorErrorReason} — self-settle needs CELO_SETTLER_PRIVATE_KEY`
+          : `${facilitatorErrorReason} — self-settle fallback disabled`,
         payer: auth.from,
       };
     }
     console.warn(
-      '[celoX402Settle] facilitator settle unavailable — falling back to self-settle (will NOT count for x402_settlements / x402_volume_usd)',
+      '[celoX402Settle] facilitator settle unavailable — falling back to self-settle (will NOT count for x402_settlements / x402_volume_usd):',
+      facilitatorErrorReason,
     );
+  } else if (!canUseCeloSelfSettle()) {
+    return {
+      success: false,
+      errorReason:
+        'Celo facilitator settle disabled (CELO_SETTLE_VIA_FACILITATOR=false) and self-settle unavailable — set CELO_SETTLER_PRIVATE_KEY (and CELO_ALLOW_SELF_SETTLE or CELO_SELF_SETTLE_FALLBACK).',
+      error: 'Celo self-settle unavailable — missing CELO_SETTLER_PRIVATE_KEY or fallback disabled',
+      payer: auth.from,
+    };
   }
 
   try {
@@ -498,13 +551,14 @@ export async function settleCeloX402Payment(payload, accepted) {
       payer: auth.from,
       transaction: hash,
       network: CELO_MAINNET_CAIP2,
+      settledVia: 'self',
     };
   } catch (e) {
     const msg = e?.message || String(e);
-    console.error('[celoX402Settle] settlement failed:', msg);
+    console.error('[celoX402Settle] self-settle failed:', msg);
     return {
       success: false,
-      errorReason: msg,
+      errorReason: facilitatorErrorReason ? `${facilitatorErrorReason}; self-settle: ${msg}` : msg,
       error: msg,
       payer: auth.from,
     };

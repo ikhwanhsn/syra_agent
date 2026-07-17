@@ -22,7 +22,7 @@ Per hackathon FAQ ([agentic-payments-defai](https://celobuilders.xyz/hackathons/
 | `tagged_volume_usd` / `volume_usd` (Track 1) | Any direct txs your wallets send with your ERC-8021 tag (refunds, distribute, DeFi, …) |
 | `x402_settlements` / `x402_volume_usd` (Track 2) | **Only** settlements submitted by `api.x402.celo.org` — attributed to the **payTo / agentWalletAddress** in your submission. The facilitator tx **does not** carry your tag. |
 
-Self-settled `transferWithAuthorization` from `CELO_SETTLER_PRIVATE_KEY` will **never** fill `x402_*` columns. Do **not** send mirror/tagged transfers to fake x402 volume — they are ignored for Track 2.
+Self-settled `transferWithAuthorization` from `CELO_SETTLER_PRIVATE_KEY` will **never** fill `x402_*` columns. Do **not** send mirror/tagged transfers to fake x402 volume — they are ignored for Track 2. Self-settle is still useful as an automatic fallback when the facilitator relayer is out of CELO gas (`CELO_SELF_SETTLE_FALLBACK=true`, default) — Track 1 tagged volume is preserved.
 
 ## Env (`api/.env`)
 ```
@@ -36,23 +36,28 @@ CELO_FACILITATOR_API_KEY=x402_live_...
 CELO_FACILITATOR_URL=https://api.x402.celo.org
 # Default true — prefer facilitator settle (Track 2). Set false to force self-settle only.
 # CELO_SETTLE_VIA_FACILITATOR=true
-# Self-settle fallback — default false for hackathon Track 2 (only api.x402.celo.org counts).
-# Set true only for local debugging when the facilitator is down.
+# Auto-fallback to self-settle when facilitator /settle fails (e.g. relayer out of CELO gas).
+# Default true — payments keep working; Track 1 tag preserved, Track 2 x402_* not counted.
+# Set false for strict facilitator-only (hackathon Track 2 leaderboard purity).
+# CELO_SELF_SETTLE_FALLBACK=true
+# Explicit self-settle allow — default false. Set true only for local debugging when
+# CELO_SELF_SETTLE_FALLBACK is disabled.
 # CELO_ALLOW_SELF_SETTLE=false
 
 # If facilitator settle returns unexpected_error / insufficient funds for gas, the public
 # relayer 0x0d74D5Cefd2e7F24E623330ebE3d8D4cB45fFB48 may need CELO gas topped up.
+# With CELO_SELF_SETTLE_FALLBACK=true (default), Syra falls back to CELO_SETTLER_PRIVATE_KEY.
 
 CELO_RPC_URL=https://forno.celo.org
 CELO_USDC=0xcebA9300f2b948710d2653dD7B07f33A8B32118C
-CELO_SETTLER_PRIVATE_KEY=0x...   # only for self-settle fallback / 8004 mint gas
+CELO_SETTLER_PRIVATE_KEY=0x...   # required for self-settle fallback (EOA with CELO gas) / 8004 mint
 CELO_PAYTO=0x...                 # optional; Labs uses active Celo payTo wallet
 ```
 
 Register the **same** Labs Celo payTo address as `customFields.agentWalletAddress` on the hackathon submission so facilitator settlements are attributed to Syra.
 
 ## Attribution (ERC-8021 Schema 2) — Track 1
-Labs Celo refunds / deposit distribution append an **ERC-8021 Schema 2** builder-code suffix (`a` = your tag) for revenue volume. Default settlement path is the **Celo facilitator** (Track 2).
+Labs Celo refunds / deposit distribution append an **ERC-8021 Schema 2** builder-code suffix (`a` = your tag) for revenue volume. Default settlement path is the **Celo facilitator** (Track 2). When facilitator `/settle` fails (e.g. relayer out of gas), Syra auto-falls back to self-settle with the same Schema 2 suffix (`CELO_SELF_SETTLE_FALLBACK`, default on) — Track 1 still counts; Track 2 does not.
 
 ## Run volume
 1. Get an API key + credits at https://x402.celo.org → set `CELO_FACILITATOR_API_KEY`

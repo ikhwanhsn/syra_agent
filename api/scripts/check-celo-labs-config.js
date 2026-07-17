@@ -37,6 +37,21 @@ const allowSelfRaw = String(process.env.CELO_ALLOW_SELF_SETTLE || 'false')
   .toLowerCase();
 const allowSelfSettle =
   allowSelfRaw === '1' || allowSelfRaw === 'true' || allowSelfRaw === 'yes';
+const selfSettleFallbackRaw = String(process.env.CELO_SELF_SETTLE_FALLBACK || 'true')
+  .trim()
+  .toLowerCase();
+const selfSettleFallback =
+  selfSettleFallbackRaw !== '0' &&
+  selfSettleFallbackRaw !== 'false' &&
+  selfSettleFallbackRaw !== 'no';
+const selfSettleEnabled = allowSelfSettle || selfSettleFallback;
+
+function hasValidSettlerKey() {
+  let hex = settlerKey;
+  if (!hex) return false;
+  if (hex.startsWith('0x') || hex.startsWith('0X')) hex = hex.slice(2);
+  return /^[0-9a-fA-F]{64}$/.test(hex);
+}
 
 console.log('Celo Labs config check');
 console.log('----------------------');
@@ -56,6 +71,7 @@ console.log(
 );
 console.log('CELO_FACILITATOR_WALLET_CODE (w):', walletCode || '(optional, unset)');
 console.log('CELO_SETTLE_VIA_FACILITATOR:', settleViaFacilitator);
+console.log('CELO_SELF_SETTLE_FALLBACK:', selfSettleFallback, '(default true)');
 console.log('CELO_ALLOW_SELF_SETTLE:', allowSelfSettle);
 console.log('Schema 2 dataSuffix (Track 1 tagged volume):', suffix || '(none)');
 
@@ -89,9 +105,12 @@ if (settleViaFacilitator && !facilitatorApiKey) {
   );
 }
 
-if (allowSelfSettle) {
-  if (!settlerKey) {
-    console.log('CELO_SETTLER_PRIVATE_KEY: (missing — needed if self-settle fallback is used)');
+if (selfSettleEnabled) {
+  if (!hasValidSettlerKey()) {
+    console.warn(
+      'WARNING: CELO_SELF_SETTLE_FALLBACK/CELO_ALLOW_SELF_SETTLE is on but CELO_SETTLER_PRIVATE_KEY is missing or invalid — facilitator failures will not fall back to self-settle.',
+    );
+    console.log('CELO_SETTLER_PRIVATE_KEY: (missing — needed for self-settle fallback)');
   } else {
     let hex = settlerKey;
     if (hex.startsWith('0x') || hex.startsWith('0X')) hex = hex.slice(2);
@@ -100,9 +119,16 @@ if (allowSelfSettle) {
     const bal = await client.getBalance({ address: account.address });
     console.log('Settler address:', account.address);
     console.log('Settler CELO balance:', formatEther(bal));
+    if (bal === 0n) {
+      console.warn(
+        'WARNING: Settler CELO balance is 0 — self-settle fallback will fail until the wallet is funded with CELO for gas.',
+      );
+    }
   }
 } else {
-  console.log('Self-settle: disabled (facilitator-only — correct for x402_* leaderboard)');
+  console.log(
+    'Self-settle: disabled (facilitator-only — set CELO_SELF_SETTLE_FALLBACK=true to auto-fallback when facilitator is dry)',
+  );
 }
 
 // Ready when Track 1 tagging works AND Track 2 facilitator key is configured (when facilitator settle is on).

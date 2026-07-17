@@ -151,7 +151,10 @@ export function X402LabTab({ chain }: X402LabTabProps) {
                 </a>{" "}
                 (requires <code className="text-xs">CELO_FACILITATOR_API_KEY</code>) so Dune{" "}
                 <code className="text-xs">x402_*</code> metrics count; register your Celo payTo as{" "}
-                <code className="text-xs">agentWalletAddress</code>. Tagged refunds use your{" "}
+                <code className="text-xs">agentWalletAddress</code>. If the facilitator relayer is
+                out of CELO gas, Syra auto-falls back to self-settle (Track 1 tag preserved; Track 2{" "}
+                <code className="text-xs">x402_*</code> not counted — needs{" "}
+                <code className="text-xs">CELO_SETTLER_PRIVATE_KEY</code>). Tagged refunds use your{" "}
                 <code className="text-xs">celo_...</code> tag for revenue volume. PayAI routes are
                 skipped on this tab.{" "}
               </>
