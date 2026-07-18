@@ -39,14 +39,17 @@ import {
 import { isAdminWallet } from "@/lib/adminWallet";
 import { formatSol, formatRelativePast } from "@/lib/kolFormat";
 import { LiveCountdown, useLiveCountdownLabel } from "@/components/ui/LiveCountdown";
-import { KOL_CREATE_CAMPAIGN_LEADERBOARD_INTRO } from "@/lib/kolRewardEligibility";
+import { KOL_CREATE_CAMPAIGN_LEADERBOARD_INTRO, KOL_CREATE_CAMPAIGN_DETAIL_RULE, KOL_CREATE_CAMPAIGN_HINT, KOL_CREATE_CAMPAIGN_SHORT } from "@/lib/kolRewardEligibility";
+import { InfoHint } from "@/components/ui/info-hint";
 import { cn } from "@/lib/utils";
 import { AddRewardForm } from "./AddRewardForm";
 import { AdminCampaignAnnounceCopy } from "./AdminCampaignAnnounceCopy";
+import { AdminCampaignSnapshotButton } from "./AdminCampaignSnapshotButton";
 import { CampaignClaimCard } from "./CampaignClaimCard";
 import { CampaignFundDepositCard } from "./CampaignFundDepositCard";
 import { CampaignLeaderboard } from "./CampaignLeaderboard";
 import { CampaignParticipationGateCard } from "./CampaignParticipationGateCard";
+import { CampaignSubmitForm } from "./CampaignSubmitForm";
 import { KolCampaignEarnShareAction } from "./KolCampaignEarnShareAction";
 import { KolInvitePanel } from "./KolInvitePanel";
 import { KolMyRankShareAction } from "./KolMyRankShareBar";
@@ -65,7 +68,7 @@ const statusMessages: Record<
   ReturnType<typeof getCampaignDisplayPhase>,
   string
 > = {
-  live: "Open now — reply or quote the post below on X. Nothing to submit on this page.",
+  live: "Open now — verify X, reply or quote on X, then paste your post link here (1 per campaign).",
   finalizing:
     "Time’s up. We’re finishing the final rankings — verify your X account so rewards can reach your wallet.",
   pending_deposit:
@@ -78,18 +81,18 @@ const statusMessages: Record<
 const joinSteps = [
   {
     step: 1,
+    title: "Verify your X account",
+    text: "Connect your Solana wallet and link your X handle once. Only verified accounts can submit posts.",
+  },
+  {
+    step: 2,
     title: "Reply or quote the post on X",
     text: "Use the buttons below. Write your own take — likes, replies, and views on your post decide how much you earn.",
   },
   {
-    step: 2,
-    title: "We find you automatically",
-    text: "About every 24 hours we scan replies and quotes. Everyone who replies or quotes appears on the leaderboard. Rewards go only to posts with engagement (likes, retweets, replies, or quotes). Multiple posts from you are combined (top 3 by score). No link to paste here.",
-  },
-  {
     step: 3,
-    title: "Verify X to get paid",
-    text: "Connect your Solana wallet and link your X handle once. When the campaign ends, your share of the pool goes to that wallet (min 0.01 SOL).",
+    title: "Paste your post link here",
+    text: "Submit the X post URL from your verified handle. Limit: 1 post per campaign. Engagement updates about every 24 hours.",
   },
 ] as const;
 
@@ -361,7 +364,16 @@ export function CampaignDetail({
       ) : null}
 
       {isAdmin && !isPendingDeposit ? (
-        <AdminCampaignAnnounceCopy campaign={campaign} />
+        <div className="space-y-3">
+          <AdminCampaignAnnounceCopy campaign={campaign} />
+          {campaign.status === "active" && address ? (
+            <AdminCampaignSnapshotButton
+              campaignId={campaign.id}
+              wallet={address}
+              onRefresh={onRefresh}
+            />
+          ) : null}
+        </div>
       ) : null}
 
       {isCreator && campaign.status === "completed" && (campaign.creatorRefundSol ?? 0) > 0 ? (
@@ -396,8 +408,9 @@ export function CampaignDetail({
               How to join this campaign
             </h3>
             <p className="mt-2 text-sm text-muted-foreground leading-relaxed max-w-2xl">
-              You don’t apply or fill a form. Post on X, we track engagement, then you get paid in
-              SOL when it ends.
+              Verify your X account, reply or quote on X, then paste your post
+              link here (1 per campaign). Get paid in SOL when it ends —
+              engagement updates about every 24 hours.
             </p>
           </div>
 
@@ -417,9 +430,14 @@ export function CampaignDetail({
 
           {campaign.requireCreatedOneCampaign ? (
             <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-muted-foreground leading-relaxed">
-              <span className="font-medium text-foreground">Extra rule on this campaign: </span>
-              to receive SOL you must also create and fund at least one campaign on S3 Labs before
-              this one ends. Pending deposits don’t count.
+              <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
+                Extra rule on this campaign
+                <InfoHint
+                  content={KOL_CREATE_CAMPAIGN_HINT}
+                  label="Explain this campaign rule"
+                />
+              </span>
+              <p className="mt-1.5">{KOL_CREATE_CAMPAIGN_DETAIL_RULE}</p>
             </div>
           ) : null}
 
@@ -466,7 +484,7 @@ export function CampaignDetail({
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
               {isLive
-                ? `This is the project’s X post. Reply to it or quote it — then grow engagement. Your share of the ${formatSol(rewardSol)} SOL pool is based on how your post performs vs everyone else.`
+                ? `This is the project’s X post. Reply to it or quote it from your verified X account, then paste your post link below. Your share of the ${formatSol(rewardSol)} SOL pool is based on how your post performs vs everyone else.`
                 : "The original X post this campaign was built around."}
             </p>
           </div>
@@ -509,12 +527,20 @@ export function CampaignDetail({
         <div className="space-y-2">
           {isLive ? (
             <p className="text-sm text-muted-foreground px-1">
-              You can post on X first — verify anytime before the campaign ends so we know which
-              wallet should receive your SOL.
+              Verify your X account before submitting a post. Rewards also go to
+              this linked wallet when the campaign ends.
             </p>
           ) : null}
           <VerifyXAccountCard compactWhenVerified onVerified={onRefresh} />
         </div>
+      ) : null}
+
+      {isLive ? (
+        <CampaignSubmitForm
+          campaignId={campaign.id}
+          alreadyParticipated={participated}
+          onSubmitted={() => onRefresh?.()}
+        />
       ) : null}
 
       {showParticipationGate ? (
@@ -546,13 +572,24 @@ export function CampaignDetail({
               </h3>
             </div>
             <p className="w-full text-sm text-muted-foreground">
-              {campaign.requireCreatedOneCampaign
-                ? KOL_CREATE_CAMPAIGN_LEADERBOARD_INTRO
-                : campaign.status === "completed"
-                  ? "Final rankings — claim after verifying X if your reward didn’t auto-send."
-                  : isFinalizing
-                    ? "Final rankings from the last scan. Verify X so payouts can reach you."
-                    : "Updates about every 24 hours. All replies/quotes appear; rewards need engagement. Multiple posts combine (top 3). Higher score = larger projected payout."}
+              <span className="inline-flex items-start gap-1.5">
+                <span className="min-w-0">
+                  {campaign.requireCreatedOneCampaign
+                    ? KOL_CREATE_CAMPAIGN_SHORT
+                    : campaign.status === "completed"
+                      ? "Final rankings — claim after verifying X if your reward didn’t auto-send."
+                      : isFinalizing
+                        ? "Final rankings from the last snapshot. Verify X so payouts can reach you."
+                        : "Verify X, then submit your reply/quote link to appear here (1 per campaign). Engagement updates about every 24 hours. Higher score = larger projected payout."}
+                </span>
+                {campaign.requireCreatedOneCampaign ? (
+                  <InfoHint
+                    content={KOL_CREATE_CAMPAIGN_LEADERBOARD_INTRO}
+                    label="How do I get paid on this campaign?"
+                    className="mt-0.5"
+                  />
+                ) : null}
+              </span>
               {isLive && campaign.lastSnapshotAt ? (
                 <span className="block mt-1 text-xs text-muted-foreground/80">
                   Last update: {formatRelativePast(campaign.lastSnapshotAt)}

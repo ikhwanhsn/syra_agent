@@ -40,7 +40,7 @@ export const KOL_MARKETPLACE_PHOTO = definePhotoUpdate(KOL_MARKETPLACE_POST.meta
     shareCopyFooter: footers.quote,
     content: photoContent({
       quote: "Fund posts. Earn by impact.",
-      narrative: "Reply or quote the campaign post. Climb the leaderboard. Get paid on Solana at snapshot.",
+      narrative: "Verify X. Reply or quote. Submit your link. Climb the leaderboard. Get paid on Solana.",
     }),
   },
   {
@@ -52,9 +52,9 @@ export const KOL_MARKETPLACE_PHOTO = definePhotoUpdate(KOL_MARKETPLACE_POST.meta
       headline: "From launch to payout.",
       steps: [
         { step: "01", title: "Launch", description: "Project funds SOL reward pool for a source post." },
-        { step: "02", title: "Submit", description: "KOLs post verified reply or quote tweets." },
-        { step: "03", title: "Score", description: "Engagement refreshes daily on the leaderboard." },
-        { step: "04", title: "Payout", description: "Pro-rata SOL sent automatically at snapshot." },
+        { step: "02", title: "Submit", description: "Verified KOLs paste one reply or quote link." },
+        { step: "03", title: "Score", description: "Engagement refreshes about every 24 hours." },
+        { step: "04", title: "Payout", description: "Pro-rata SOL sent automatically when it ends." },
       ],
     }),
   },
@@ -67,9 +67,9 @@ export const KOL_MARKETPLACE_PHOTO = definePhotoUpdate(KOL_MARKETPLACE_POST.meta
       headline: "Four phases.",
       steps: [
         { step: "01", title: "Fund pool", description: "Connect wallet and deposit SOL rewards." },
-        { step: "02", title: "KOL submissions", description: "Reply or quote tweets verified against source." },
-        { step: "03", title: "Daily refresh", description: "Likes, RTs, replies, quotes, views scored." },
-        { step: "04", title: "Snapshot", description: "Automatic on-chain payout to KOL wallets." },
+        { step: "02", title: "KOL submissions", description: "Verify X, then submit one reply/quote URL." },
+        { step: "03", title: "24h refresh", description: "Likes, RTs, replies, quotes, views scored." },
+        { step: "04", title: "Payout", description: "Automatic on-chain payout to KOL wallets." },
       ],
     }),
   },
@@ -83,7 +83,7 @@ export const KOL_MARKETPLACE_PHOTO = definePhotoUpdate(KOL_MARKETPLACE_POST.meta
       headline: "Marketplace stack.",
       cards: [
         { title: "Projects", subtitle: "Launch", detail: "Fund SOL rewards and track KOL performance.", accent: "gold" },
-        { title: "KOLs", subtitle: "Earn", detail: "Submit tweets and compete on engagement.", accent: "gold" },
+        { title: "KOLs", subtitle: "Earn", detail: "Verify X, submit one post, compete on engagement.", accent: "gold" },
         { title: "Pro-rata", subtitle: "Fair split", detail: "Share scales with score at snapshot." },
         { title: "On-chain", subtitle: "SOL", detail: "Transparent funding and payouts on Solana." },
       ],
@@ -99,8 +99,8 @@ export const KOL_MARKETPLACE_PHOTO = definePhotoUpdate(KOL_MARKETPLACE_POST.meta
       headline: "KOL Marketplace is live.",
       highlights: [
         "Campaign creation with Solana wallet",
-        "Reply and quote tweet submissions",
-        "Daily engagement scoring",
+        "Verified X required to submit posts",
+        "Engagement scoring every ~24 hours",
         "Live leaderboard and earnings dashboard",
       ],
     }),
@@ -115,8 +115,8 @@ export const KOL_MARKETPLACE_PHOTO = definePhotoUpdate(KOL_MARKETPLACE_POST.meta
       headline: "Performance drives payout.",
       stats: [
         { value: "Pro-rata", label: "Engagement-weighted split" },
-        { value: "Daily", label: "Metric refresh" },
-        { value: "Auto", label: "SOL at snapshot" },
+        { value: "~24h", label: "Metric refresh" },
+        { value: "Auto", label: "SOL at campaign end" },
       ],
       narrative: "No flat rates. No manual spreadsheets.",
     }),
@@ -187,7 +187,7 @@ export const KOL_MARKETPLACE_PHOTO = definePhotoUpdate(KOL_MARKETPLACE_POST.meta
       headline: "Projects fund. KOLs earn.",
       highlights: [
         "Projects: source post + SOL reward pool",
-        "KOLs: reply or quote tweet submissions",
+        "KOLs: verify X, submit one reply/quote link",
         "Leaderboard: live engagement rankings",
       ],
       body: "One marketplace. On-chain SOL. Automatic payout.",
@@ -203,8 +203,9 @@ export const KOL_MARKETPLACE_PHOTO = definePhotoUpdate(KOL_MARKETPLACE_POST.meta
       terminalLines: [
         "$ kol create --post <x-url> --reward 1.5SOL",
         "> pool funded · campaign active",
+        "$ kol verify --x <handle>",
         "$ kol submit --tweet <quote-url>",
-        "> verified quote · score tracking on",
+        "> submission saved · score updates every 24h",
         "$ kol snapshot",
         "> pro-rata payout sent on Solana",
       ],
@@ -215,7 +216,7 @@ export const KOL_MARKETPLACE_PHOTO = definePhotoUpdate(KOL_MARKETPLACE_POST.meta
     layout: "photo-closing-banner",
     shareCopy: copies.cta,
     content: photoContent({
-      headline: "Launch a campaign. Start earning.",
+      headline: "Launch a campaign. Verify X. Start earning.",
       subtitle: "KOL Marketplace is live on S3 Labs.",
       links: [
         { label: "KOL Marketplace", value: "s3labs.xyz/kol", href: "https://s3labs.xyz/kol" },

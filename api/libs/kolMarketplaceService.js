@@ -16,8 +16,9 @@ import {
   fetchSourceTweet,
   hasRewardEngagement,
   normalizeWallet,
+  parseHandleFromTweetUrl,
+  parseTweetIdFromUrl,
   scoreSubmission,
-  validateSubmissionTweet,
 } from "./kolEngagementService.js";
 import {
   CREATOR_SCORE_BONUS,
@@ -58,9 +59,12 @@ import {
   awardCampaignCreationPoints,
   awardCampaignPoints,
 } from "./s3labsPointsService.js";
+import {
+  awardReferralOnCampaignCreation,
+  awardReferralOnCampaignFinalize,
+} from "./s3labsReferralService.js";
 import { notifyNewCampaignTelegram } from "./kolCampaignTelegramNotifier.js";
 import { notifyNewCampaign } from "./emailSubscriberService.js";
-import { discoverCampaignEngagements } from "./kolDiscoveryService.js";
 import { startupVerbose } from "../utils/startupLog.js";
 import { MAX_CONTRIBUTIONS_PER_HANDLE } from "../config/kolScoringConfig.js";
 import {
@@ -664,6 +668,12 @@ export async function confirmCampaignDeposit(campaignId, input) {
   await campaign.save();
 
   await awardCampaignCreationPoints(campaign);
+  awardReferralOnCampaignCreation(campaign).catch((e) => {
+    console.warn(
+      `[kol] referral creation award failed campaign=${campaign._id}:`,
+      e instanceof Error ? e.message : e,
+    );
+  });
 
   // Unlocking this wallet may change projected shares on gated campaigns.
   refreshGatedCampaignProjectionsForWallet(projectWallet).catch((e) => {
@@ -688,15 +698,6 @@ export async function confirmCampaignDeposit(campaignId, input) {
       e instanceof Error ? e.message : e,
     );
   });
-
-  discoverCampaignEngagements(campaign._id, { force: true })
-    .then(() => refreshCampaignMetrics(campaign._id, { force: true }))
-    .catch((e) => {
-      console.warn(
-        `[kol] initial engagement snapshot failed campaign=${campaign._id}:`,
-        e instanceof Error ? e.message : e,
-      );
-    });
 
   return { campaign: serializeCampaign(campaign) };
 }
@@ -1410,7 +1411,7 @@ async function buildViewerClaimEligibility(campaign, wallet) {
     canClaim: hasCreatedCampaign,
     message: hasCreatedCampaign
       ? null
-      : "Create and fund one campaign before this ends — otherwise your reward is forfeited.",
+      : "Create your own campaign and deposit SOL to open it before this ends — drafts without a deposit don’t count, otherwise you won’t get paid.",
   };
 }
 
@@ -1562,12 +1563,13 @@ export async function getCampaignDetail(campaignId, opts = {}) {
 }
 
 /**
+ * Manual KOL submission — parse tweet id + @handle from the URL (no X API call).
+ * Engagement metrics are filled later by the daily batched snapshot.
  * @param {string} campaignId
- * @param {{ kolWallet: string; tweetUrl: string }} input
+ * @param {{ kolWallet: string; tweetUrl: string; mode?: "reply" | "quote" }} input
  */
 export async function createSubmission(campaignId, input) {
   assertMongo();
-  assertTwitter();
 
   const id = assertObjectId(campaignId);
   const campaign = await KolCampaign.findById(id);
@@ -1596,24 +1598,78 @@ export async function createSubmission(campaignId, input) {
     throw err;
   }
 
+  const verification = await getWalletVerification(kolWallet);
+  if (!verification.verified || !verification.xHandleKey) {
+    const err = new Error(
+      "Verify your X account before submitting a post to this campaign",
+    );
+    err.code = "x_not_verified";
+    throw err;
+  }
+
   if (campaign.requireCreatedOneCampaign) {
     const hasCreatedCampaign = await walletHasCreatedCampaign(kolWallet);
     if (!hasCreatedCampaign) {
       const err = new Error(
-        "Create and fund one campaign first to participate",
+        "Create your own campaign and deposit SOL to open it before you can participate",
       );
       err.code = "require_created_campaign";
       throw err;
     }
   }
 
-  const validated = await validateSubmissionTweet(
-    campaign.sourceTweetId,
-    input.tweetUrl,
+  const tweetUrlRaw = String(input.tweetUrl || "").trim();
+  const tweetId = parseTweetIdFromUrl(tweetUrlRaw);
+  const parsedHandle = parseHandleFromTweetUrl(tweetUrlRaw);
+  if (!tweetId || !parsedHandle) {
+    const err = new Error(
+      "Invalid X post URL — use a link like https://x.com/handle/status/123…",
+    );
+    err.code = "invalid_tweet_url";
+    throw err;
+  }
+
+  const authorHandleKey = normalizeHandle(parsedHandle);
+  if (authorHandleKey !== verification.xHandleKey) {
+    const err = new Error(
+      `Post must be from your verified X account @${verification.xHandle ?? verification.xHandleKey}`,
+    );
+    err.code = "handle_mismatch";
+    throw err;
+  }
+
+  // Prefer the verified display handle for consistency on the leaderboard.
+  const authorHandle = String(verification.xHandle || parsedHandle).replace(
+    /^@/,
+    "",
   );
-  const authorHandle = validated.authorHandle;
-  const authorHandleKey = normalizeHandle(authorHandle);
-  const tweetId = validated.tweetId;
+  const mode = input.mode === "quote" ? "quote" : "reply";
+  const tweetUrl = `https://x.com/${encodeURIComponent(authorHandle)}/status/${tweetId}`;
+
+  const sourceAuthorHandleKey = normalizeHandle(campaign.sourceAuthorHandle);
+  if (authorHandleKey && authorHandleKey === sourceAuthorHandleKey) {
+    const err = new Error(
+      "Cannot submit the campaign author's own post as a KOL entry",
+    );
+    err.code = "invalid_tweet_url";
+    throw err;
+  }
+
+  if (tweetId === String(campaign.sourceTweetId || "").trim()) {
+    const err = new Error(
+      "That URL is the campaign source post itself, not a reply or quote",
+    );
+    err.code = "invalid_tweet_url";
+    throw err;
+  }
+
+  const zeroMetrics = {
+    likeCount: 0,
+    retweetCount: 0,
+    replyCount: 0,
+    quoteCount: 0,
+    viewCount: 0,
+  };
 
   const existingByTweet = await KolSubmission.findOne({
     campaignId: campaign._id,
@@ -1657,27 +1713,28 @@ export async function createSubmission(campaignId, input) {
       campaignId: campaign._id,
       kolWallet,
       tweetId,
-      tweetUrl: validated.tweetUrl,
-      mode: validated.mode,
+      tweetUrl,
+      mode,
       authorHandle,
       authorHandleKey,
-      authorFollowers: validated.authorFollowers ?? null,
-      authorVerified: validated.authorVerified ?? false,
+      authorFollowers: null,
+      authorVerified: false,
       verified: true,
       contributions: [
         {
           tweetId,
-          tweetUrl: validated.tweetUrl,
-          mode: validated.mode,
-          metrics: validated.metrics,
-          score: validated.score,
-          scoreBreakdown: validated.scoreBreakdown ?? null,
+          tweetUrl,
+          mode,
+          metrics: zeroMetrics,
+          score: 0,
+          scoreBreakdown: null,
         },
       ],
-      latestMetrics: validated.metrics,
-      latestScore: validated.score,
-      scoreBreakdown: validated.scoreBreakdown ?? null,
+      latestMetrics: zeroMetrics,
+      latestScore: 0,
+      scoreBreakdown: null,
       projectedLamports: 0,
+      discoveredAt: new Date(),
     });
   } catch (e) {
     throwIfDuplicateSubmissionError(e);
@@ -1685,7 +1742,7 @@ export async function createSubmission(campaignId, input) {
 
   await seedXProfileFromAuthor({
     userName: authorHandle,
-    verified: true,
+    verified: false,
   }).catch(() => {});
   await refreshCampaignProjections(campaign._id);
 
@@ -1726,10 +1783,10 @@ export async function refreshCampaignProjections(campaignId) {
   );
 }
 
-/** Skip discovery/metric refresh when campaign was snapshotted recently (default 6h). */
+/** Skip metric refresh when campaign was snapshotted recently (default 24h). */
 const METRICS_FRESH_MS = (() => {
   const n = Number.parseInt(String(process.env.KOL_METRICS_FRESH_MS ?? "").trim(), 10);
-  return Number.isFinite(n) && n >= 60_000 ? n : 6 * 60 * 60 * 1000;
+  return Number.isFinite(n) && n >= 60_000 ? n : 24 * 60 * 60 * 1000;
 })();
 
 /**
@@ -1748,7 +1805,7 @@ function contributionTweetIds(submission) {
 
 /**
  * Batched metric refresh for all submission contributions.
- * Used on finalize / deposit confirm — not on the daily tick (discovery is enough).
+ * Used on the daily tick and finalize — not on manual submit.
  * @param {import("mongoose").Types.ObjectId | string} campaignId
  * @param {{ force?: boolean }} [opts]
  */
@@ -2037,7 +2094,6 @@ export async function finalizeCampaign(campaignId) {
     return { success: false, error: "invalid_status" };
   }
 
-  await discoverCampaignEngagements(campaign._id, { force: true });
   await refreshCampaignMetrics(campaign._id, { force: true });
 
   const submissions = await KolSubmission.find({
@@ -2048,6 +2104,18 @@ export async function finalizeCampaign(campaignId) {
     submissions,
   );
   const pointsResults = await awardCampaignPoints(campaign._id, submissions);
+  let referralPointsResults = { awarded: [] };
+  try {
+    referralPointsResults = await awardReferralOnCampaignFinalize(
+      campaign._id,
+      submissions,
+    );
+  } catch (e) {
+    console.warn(
+      `[kol] referral finalize awards failed campaign=${campaign._id}:`,
+      e instanceof Error ? e.message : e,
+    );
+  }
   const kolPool = getCampaignKolPoolLamports(campaign);
   const payoutRows = await computeEligibleCampaignPayouts(
     campaign,
@@ -2193,6 +2261,7 @@ export async function finalizeCampaign(campaignId) {
     payouts: results,
     reputation: reputationResults,
     points: pointsResults,
+    referralPoints: referralPointsResults,
     autoDistributed,
     creatorRefundLamports: campaign.creatorRefundLamports ?? 0,
   };
@@ -2220,7 +2289,7 @@ async function distributeSubmissionReward({
     if (!hasCreatedCampaign) {
       if (enforceCampaignGate) {
         const err = new Error(
-          "Create and fund one campaign first to claim your reward",
+          "Create your own campaign and deposit SOL to open it before you can claim your reward",
         );
         err.code = "require_created_campaign";
         throw err;
@@ -2830,8 +2899,8 @@ export async function getWalletEarnings(wallet) {
 }
 
 /**
- * Process all active campaigns — discover engagements (24h cadence) and finalize ended ones.
- * Metric refresh is reserved for finalize / deposit confirm (batched getTweetsByIds).
+ * Process all active campaigns — refresh engagement metrics (24h cadence) and finalize ended ones.
+ * Manual submissions only; batched getTweetsByIds keeps X API cost low.
  */
 export async function runKolDailyTick() {
   if (!isMongooseConnected()) {
@@ -2845,10 +2914,10 @@ export async function runKolDailyTick() {
 
   for (const campaign of activeCampaigns) {
     try {
-      const discoveryResult = await discoverCampaignEngagements(campaign._id);
+      const metricsResult = await refreshCampaignMetrics(campaign._id);
       refreshed.push({
         campaignId: String(campaign._id),
-        discovery: discoveryResult,
+        metrics: metricsResult,
       });
 
       if (campaign.endAt && now >= new Date(campaign.endAt)) {

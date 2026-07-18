@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import { KolProfileAvatar } from "@/components/kol/KolProfileAvatar";
+import { KolEarningsFlexShareSection } from "@/components/kol/KolEarningsFlexShareSection";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -166,6 +167,8 @@ function EarningsResult({ data }: { data: KolHandleEarnings }) {
           </div>
         )}
       </section>
+
+      <KolEarningsFlexShareSection data={data} />
 
       <section className="overflow-hidden rounded-2xl border border-border/70 bg-card/60 shadow-card backdrop-blur-xl">
         <div className="border-b border-border/50 px-4 py-4 sm:px-6">

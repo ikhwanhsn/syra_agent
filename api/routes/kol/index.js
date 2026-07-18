@@ -4,12 +4,17 @@
 import express from "express";
 import { requireMongooseConnection } from "../../config/mongoose.js";
 import {
+  getAdminDashboardWallets,
+  isAdminWalletAddress,
+} from "../../libs/adminWallet.js";
+import {
   claimCampaignReward,
   autoDistributeClaimableForHandle,
   confirmCampaignDeposit,
   confirmCampaignTopUp,
   createCampaign,
   createCampaignTopUp,
+  createSubmission,
   cancelPendingCampaign,
   enrichMissingCampaignAuthors,
   backfillSubmissionAuthorKeys,
@@ -24,7 +29,13 @@ import {
   listKols,
   listProjects,
   listWalletCampaigns,
+  refreshCampaignMetrics,
 } from "../../libs/kolMarketplaceService.js";
+import {
+  discoverCampaignHandle,
+  discoverCampaignTweet,
+} from "../../libs/kolDiscoveryService.js";
+import KolCampaign from "../../models/KolCampaign.js";
 import {
   confirmXVerification,
   getWalletVerification,
@@ -39,6 +50,11 @@ import {
   claimDailyPoints,
   getDailyClaimStatus,
 } from "../../libs/s3labsDailyClaimService.js";
+import {
+  claimReferralAttribution,
+  createReferralCode,
+  getReferralProfile,
+} from "../../libs/s3labsReferralService.js";
 import { sendTestKolCampaignTelegram } from "../../libs/kolCampaignTelegramNotifier.js";
 import {
   sendTestCampaignEmail,
@@ -58,6 +74,27 @@ import {
   getS3labsFeeWallet,
   minTotalDepositSol,
 } from "../../config/kolMarketplaceConfig.js";
+
+function requireAdminWallet(req, res, next) {
+  const allow = getAdminDashboardWallets();
+  if (allow.length === 0) {
+    return res.status(403).json({ success: false, error: "admin_disabled", code: "admin_disabled" });
+  }
+
+  const fromHeader = req.get("x-admin-wallet") || req.get("x-wallet-address");
+  const walletAddress =
+    typeof fromHeader === "string" && fromHeader.trim() ? fromHeader.trim() : null;
+
+  if (!walletAddress) {
+    return res.status(403).json({ success: false, error: "admin_required", code: "admin_required" });
+  }
+  if (!isAdminWalletAddress(walletAddress)) {
+    return res.status(403).json({ success: false, error: "not_admin", code: "not_admin" });
+  }
+
+  req.adminWallet = walletAddress;
+  next();
+}
 
 function handleServiceError(res, error) {
   const code = error?.code;
@@ -86,6 +123,7 @@ function handleServiceError(res, error) {
     duplicate_post: 409,
     already_claimed: 409,
     handle_already_verified: 409,
+    handle_mismatch: 400,
     x_not_verified: 403,
     verification_expired: 400,
     verification_code_not_found: 400,
@@ -97,6 +135,10 @@ function handleServiceError(res, error) {
     deposit_amount_mismatch: 400,
     tweet_not_found: 404,
     not_found: 404,
+    invalid_code: 400,
+    code_taken: 409,
+    already_set: 409,
+    self_referral: 400,
     twitterapi_unavailable: 503,
     twitterapi_error: 502,
     mongodb_not_connected: 503,
@@ -104,6 +146,9 @@ function handleServiceError(res, error) {
     email_not_configured: 503,
     email_send_failed: 502,
     pool_wallet_unconfigured: 503,
+    admin_disabled: 403,
+    admin_required: 403,
+    not_admin: 403,
   };
 
   const status = statusByCode[code] ?? 500;
@@ -419,6 +464,130 @@ export function createKolRouter() {
   });
 
   router.post(
+    "/campaigns/:id/submit",
+    requireMongooseConnection,
+    async (req, res) => {
+      try {
+        const { kolWallet, tweetUrl, mode } = req.body || {};
+        const result = await createSubmission(req.params.id, {
+          kolWallet,
+          tweetUrl,
+          mode,
+        });
+        return res.status(201).json({ success: true, data: result });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
+
+  router.post(
+    "/campaigns/:id/admin/snapshot",
+    requireMongooseConnection,
+    requireAdminWallet,
+    async (req, res) => {
+      try {
+        const campaignId = req.params.id;
+        const campaign = await KolCampaign.findById(campaignId).lean();
+        if (!campaign) {
+          const err = new Error("Campaign not found");
+          err.code = "not_found";
+          throw err;
+        }
+        if (campaign.status !== "active") {
+          const err = new Error("Campaign must be active to snapshot");
+          err.code = "invalid_status";
+          throw err;
+        }
+
+        const metrics = await refreshCampaignMetrics(campaignId, {
+          force: true,
+        });
+
+        const refreshed = await KolCampaign.findById(campaignId)
+          .select("lastSnapshotAt")
+          .lean();
+
+        return res.json({
+          success: true,
+          data: {
+            metrics,
+            lastSnapshotAt: refreshed?.lastSnapshotAt
+              ? new Date(refreshed.lastSnapshotAt).toISOString()
+              : null,
+          },
+        });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
+
+  router.post(
+    "/campaigns/:id/admin/discover-handle",
+    requireMongooseConnection,
+    requireAdminWallet,
+    async (req, res) => {
+      try {
+        const handle =
+          typeof req.body?.handle === "string" ? req.body.handle : "";
+        if (!handle.trim()) {
+          const err = new Error("Handle is required");
+          err.code = "invalid_handle";
+          throw err;
+        }
+
+        const result = await discoverCampaignHandle(req.params.id, handle, {
+          force: true,
+        });
+
+        let metrics = null;
+        if (result.found) {
+          metrics = await refreshCampaignMetrics(req.params.id, { force: true });
+        }
+
+        return res.json({ success: true, data: { ...result, metrics } });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
+
+  router.post(
+    "/campaigns/:id/admin/track-tweet",
+    requireMongooseConnection,
+    requireAdminWallet,
+    async (req, res) => {
+      try {
+        const tweetUrl =
+          typeof req.body?.tweetUrl === "string"
+            ? req.body.tweetUrl
+            : typeof req.body?.url === "string"
+              ? req.body.url
+              : "";
+        if (!tweetUrl.trim()) {
+          const err = new Error("X post URL is required");
+          err.code = "invalid_tweet_url";
+          throw err;
+        }
+
+        const result = await discoverCampaignTweet(req.params.id, tweetUrl, {
+          force: true,
+        });
+
+        let metrics = null;
+        if (result.found) {
+          metrics = await refreshCampaignMetrics(req.params.id, { force: true });
+        }
+
+        return res.json({ success: true, data: { ...result, metrics } });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
+
+  router.post(
     "/verify/request",
     requireMongooseConnection,
     async (req, res) => {
@@ -552,6 +721,48 @@ export function createKolRouter() {
             ? Number(req.query.limit)
             : undefined;
         const result = await getPointsLeaderboard({ limit });
+        return res.json({ success: true, data: result });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
+
+  router.get("/referrals/me", requireMongooseConnection, async (req, res) => {
+    try {
+      const wallet =
+        typeof req.query.wallet === "string" ? req.query.wallet : "";
+      const result = await getReferralProfile(wallet);
+      return res.json({ success: true, data: result });
+    } catch (e) {
+      return handleServiceError(res, e);
+    }
+  });
+
+  router.post(
+    "/referrals/code",
+    requireMongooseConnection,
+    async (req, res) => {
+      try {
+        const { wallet, code } = req.body || {};
+        const result = await createReferralCode({ wallet, code });
+        return res.status(201).json({ success: true, data: result });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
+
+  router.post(
+    "/referrals/claim",
+    requireMongooseConnection,
+    async (req, res) => {
+      try {
+        const { wallet, code } = req.body || {};
+        const result = await claimReferralAttribution({
+          inviteeWallet: wallet,
+          code,
+        });
         return res.json({ success: true, data: result });
       } catch (e) {
         return handleServiceError(res, e);

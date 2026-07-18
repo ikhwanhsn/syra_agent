@@ -9,6 +9,7 @@ const s3LabsPointsSchema = new mongoose.Schema(
     earlyPoints: { type: Number, default: 0 },
     creationPoints: { type: Number, default: 0 },
     dailyClaimPoints: { type: Number, default: 0 },
+    referralPoints: { type: Number, default: 0 },
     campaignsParticipated: { type: Number, default: 0 },
     campaignsCreated: { type: Number, default: 0 },
     lastHandle: { type: String, default: null },

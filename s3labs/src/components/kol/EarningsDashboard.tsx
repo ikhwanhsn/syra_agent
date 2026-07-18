@@ -243,7 +243,8 @@ function ClaimableRow({
         </p>
         {claimBlocked ? (
           <p className="text-xs text-amber-400 mt-2">
-            Create one campaign first to receive your reward.
+            Create your own campaign and deposit SOL to open it before you can
+            receive this reward.
           </p>
         ) : null}
       </div>
@@ -258,7 +259,7 @@ function ClaimableRow({
             className="rounded-full"
             onClick={() => navigate("/kol?tab=create")}
           >
-            Create campaign
+            Create &amp; deposit SOL
           </Button>
         ) : (
           <Button

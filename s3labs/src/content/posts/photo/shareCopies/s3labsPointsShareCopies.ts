@@ -19,7 +19,7 @@ Earlier submissions earn a larger share of the 3-point early-bird pool. Connect 
   flow: `S3Labs Points — four steps:
 
 1. Connect your Solana wallet on S3 Labs
-2. Submit a reply or quote to a live KOL campaign
+2. Verify X, then submit a reply or quote to a live KOL campaign
 3. Campaign ends — points credit automatically
 4. View totals and history on s3labs.xyz/profile`,
 
@@ -55,7 +55,7 @@ With N participants, weights run N, N−1, …, 1. First submitter always gets t
 s3labs.xyz/profile`,
 
   comparison: `SOL rewards only:
-Paid at snapshot by engagement score — no persistent cross-campaign score.
+Paid at campaign end by engagement score — no persistent cross-campaign score.
 
 S3Labs Points:
 +1 every campaign + early-bird bonus for fast submitters. Wallet profile tracks it all.`,
@@ -67,7 +67,7 @@ Earn points for every KOL campaign you join. Early submitters get more.
 → s3labs.xyz/profile`,
 
   deepDive: `Who earns points:
-— KOLs who submit reply or quote tweets to live campaigns
+— KOLs who verify X and submit reply or quote links to live campaigns
 — Anyone with a connected Solana wallet on S3 Labs
 — Participants verified at campaign finalization
 — Early submitters who rank higher in the bonus pool`,
@@ -79,7 +79,8 @@ Early bird: +3 points split by submission order.
 
 Up to ~4 points per campaign.`,
 
-  terminal: `$ kol submit --campaign active --tweet <quote-url>
+  terminal: `$ kol verify --x <handle> --wallet <solana>
+$ kol submit --campaign active --tweet <quote-url>
 > verified · rank #1 recorded
 $ kol finalize --campaign ended
 > +1 participation · +1.5 early-bird credited

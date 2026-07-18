@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { KolApiError, subscribeEmail } from "@/lib/kolApi";
+import { markKolEmailSubscribed } from "@/lib/kolEmailSubscribeStorage";
 import { cn } from "@/lib/utils";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -29,6 +30,7 @@ export function CampaignEmailNotify({
     onSuccess: (data) => {
       setSubmitted(true);
       setEmail("");
+      markKolEmailSubscribed();
       if (data.isNew && data.welcomeEmailSent) {
         toast.success("Subscribed", {
           description: "Check your inbox for a confirmation email.",

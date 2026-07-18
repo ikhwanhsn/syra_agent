@@ -162,7 +162,7 @@ export function VerifyXAccountCard({
         <BadgeCheck className="w-4 h-4 text-emerald-400 shrink-0" />
         <span>
           <span className="font-medium text-foreground">@{displayHandle}</span>{" "}
-          <span className="text-muted-foreground">verified — rewards send automatically.</span>
+          <span className="text-muted-foreground">verified — you can submit posts and receive rewards.</span>
         </span>
       </div>
     );
@@ -175,8 +175,8 @@ export function VerifyXAccountCard({
         <h3 className="font-semibold text-lg">Link your X account</h3>
         <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
           Click Verify to post a short code on X, then Confirm once it&apos;s live.
-          One-time setup — rewards send automatically when campaigns end. Verify
-          before a campaign ends to get paid right away.
+          Required before you can submit a campaign post. One-time setup — rewards
+          also send to this wallet when campaigns end.
         </p>
       </div>
 
@@ -194,7 +194,7 @@ export function VerifyXAccountCard({
           <div>
             <p className="font-medium text-foreground">@{displayHandle} verified</p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Linked to this wallet — rewards send automatically when eligible.
+              Linked to this wallet — submit posts and receive rewards when eligible.
             </p>
           </div>
         </div>

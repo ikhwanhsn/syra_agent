@@ -540,7 +540,8 @@ function normalizeTweet(tweetRaw, ctx = {}) {
     typeof tweetRaw.quoted_status === "object"
   ) {
     quotedTweetId = extractTweetId(
-      /** @type {Record<string, unknown>} */ (tweetRaw.quoted_status).id,
+      /** @type {Record<string, unknown>} */ (tweetRaw.quoted_status).id ??
+        /** @type {Record<string, unknown>} */ (tweetRaw.quoted_status).id_str,
     );
   }
 
@@ -550,9 +551,48 @@ function normalizeTweet(tweetRaw, ctx = {}) {
     quotedTweetId = extractTweetId(
       /** @type {Record<string, unknown>} */ (quotedTweetRaw).id ??
         /** @type {Record<string, unknown>} */ (quotedTweetRaw).tweetId ??
-        /** @type {Record<string, unknown>} */ (quotedTweetRaw).tweet_id,
+        /** @type {Record<string, unknown>} */ (quotedTweetRaw).tweet_id ??
+        /** @type {Record<string, unknown>} */ (quotedTweetRaw).id_str,
     );
   }
+
+  // Quote tweets often only embed the quoted status as a URL in entities.
+  if (!quotedTweetId) {
+    const entityBuckets = [
+      tweetRaw?.entities,
+      tweetRaw?.extended_entities,
+      tweetRaw?.extendedEntities,
+    ];
+    for (const bucket of entityBuckets) {
+      if (!bucket || typeof bucket !== "object") continue;
+      const urls = /** @type {Record<string, unknown>} */ (bucket).urls;
+      if (!Array.isArray(urls)) continue;
+      for (const item of urls) {
+        if (!item || typeof item !== "object") continue;
+        const u = /** @type {Record<string, unknown>} */ (item);
+        const candidate = String(
+          u.expanded_url ?? u.expandedUrl ?? u.url ?? u.display_url ?? "",
+        );
+        const match = candidate.match(/(?:twitter\.com|x\.com)\/[^/\s]+\/status\/(\d+)/i);
+        if (match?.[1] && match[1] !== id) {
+          quotedTweetId = match[1];
+          break;
+        }
+      }
+      if (quotedTweetId) break;
+    }
+  }
+
+  const conversationId = extractTweetId(
+    tweetRaw?.conversationId ?? tweetRaw?.conversation_id,
+  );
+
+  const isQuoteFlag =
+    tweetRaw?.isQuote === true ||
+    tweetRaw?.is_quote === true ||
+    tweetRaw?.isQuoteStatus === true ||
+    tweetRaw?.is_quote_status === true ||
+    String(tweetRaw?.type ?? "").toLowerCase() === "quote";
 
   // Fallback for reply threads: some payloads omit inReplyToId but set conversationId
   // to the root (campaign) tweet, or set isReply without the parent id.
@@ -565,10 +605,14 @@ function normalizeTweet(tweetRaw, ctx = {}) {
       inReplyToId = extractTweetId(
         tweetRaw?.inReplyToId ??
           tweetRaw?.in_reply_to_status_id_str ??
-          tweetRaw?.conversationId ??
-          tweetRaw?.conversation_id,
+          conversationId,
       );
     }
+  }
+
+  // Quote without explicit parent id: conversation_id is often the quoted root.
+  if (!quotedTweetId && isQuoteFlag && conversationId && conversationId !== id) {
+    quotedTweetId = conversationId;
   }
 
   return {
@@ -581,6 +625,8 @@ function normalizeTweet(tweetRaw, ctx = {}) {
     media,
     inReplyToId,
     quotedTweetId,
+    conversationId,
+    isQuote: isQuoteFlag,
   };
 }
 
@@ -1030,9 +1076,10 @@ export async function getTweetQuotes(opts) {
  * Fetch one or more tweets by ID (batched, up to 100 IDs per HTTP call).
  * twitterapi.io bills per returned tweet; batching cuts HTTP overhead.
  * @param {string[]} tweetIds
+ * @param {{ skipCache?: boolean }} [options]
  * @returns {Promise<{ tweets: ReturnType<typeof normalizeTweet>[]; byId: Map<string, ReturnType<typeof normalizeTweet>> }>}
  */
-export async function getTweetsByIds(tweetIds) {
+export async function getTweetsByIds(tweetIds, options = {}) {
   const uniqueIds = [
     ...new Set(
       (Array.isArray(tweetIds) ? tweetIds : [])
@@ -1051,9 +1098,11 @@ export async function getTweetsByIds(tweetIds) {
 
   for (let i = 0; i < uniqueIds.length; i += CHUNK) {
     const chunk = uniqueIds.slice(i, i + CHUNK);
-    const body = await twitterApiIoGet("/twitter/tweets", {
-      tweet_ids: chunk.join(","),
-    });
+    const body = await twitterApiIoGet(
+      "/twitter/tweets",
+      { tweet_ids: chunk.join(",") },
+      { skipCache: options.skipCache === true },
+    );
     const includesMedia = buildIncludesMediaMap(body);
     const rawTweets = extractTweetsArray(body);
     for (const t of rawTweets) {
@@ -1077,8 +1126,9 @@ export async function getTweetsByIds(tweetIds) {
 /**
  * Fetch a single tweet by ID.
  * @param {string} tweetId
+ * @param {{ skipCache?: boolean }} [options]
  */
-export async function getTweetById(tweetId) {
+export async function getTweetById(tweetId, options = {}) {
   const id = String(tweetId ?? "").trim();
   if (!id) {
     const err = new Error("tweetId is required");
@@ -1086,7 +1136,7 @@ export async function getTweetById(tweetId) {
     throw err;
   }
 
-  const { byId } = await getTweetsByIds([id]);
+  const { byId } = await getTweetsByIds([id], options);
   const tweet = byId.get(id) ?? null;
   if (!tweet) {
     const err = new Error(`Tweet ${id} not found`);

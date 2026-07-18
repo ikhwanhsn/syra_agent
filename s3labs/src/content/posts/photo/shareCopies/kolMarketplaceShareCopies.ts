@@ -16,36 +16,36 @@ S3 Labs KOL Marketplace — on-chain SOL, verified tweets, engagement-weighted p
 
   quote: `"Fund posts. Earn by impact."
 
-Reply or quote the campaign post. Climb the leaderboard. Get paid automatically on Solana at snapshot.`,
+Verify your X. Reply or quote the campaign post. Submit your link. Climb the leaderboard. Get paid on Solana.`,
 
   flow: `KOL Marketplace — four steps:
 
 1. Project launches campaign and funds SOL rewards
-2. KOLs submit verified reply or quote tweets
-3. Engagement scored daily on the leaderboard
-4. Pro-rata SOL payout at campaign snapshot`,
+2. KOLs verify X, then submit one reply or quote link
+3. Engagement scored about every 24 hours on the leaderboard
+4. Pro-rata SOL payout when the campaign ends`,
 
   timeline: `Campaign lifecycle:
 
 • Project posts X URL and funds KOL reward pool
-• KOLs submit reply or quote tweet URLs
-• Metrics refresh daily — likes, RTs, replies, quotes, views
+• KOLs verify X and submit reply or quote tweet URLs (1 per campaign)
+• Metrics refresh about every 24 hours — likes, RTs, replies, quotes, views
 • Automatic SOL payout when the campaign ends`,
 
   pillars: `For projects — launch campaigns, fund SOL, track KOLs
-For KOLs — submit tweets, earn by engagement
+For KOLs — verify X, submit one post, earn by engagement
 Pro-rata pool — fair share by score at snapshot
 On-chain SOL — transparent funding and payouts`,
 
   checklist: `What's live today:
 — KOL Marketplace at s3labs.xyz/kol
 — Project campaign creation with Solana wallet
-— KOL reply and quote tweet submissions
-— Daily engagement scoring and leaderboard
+— Verified X required to submit reply/quote links
+— Engagement scoring every ~24h and live leaderboard
 — Automatic SOL payout at campaign end`,
 
   metrics: `Pro-rata reward split
-Daily metric refresh
+~24h metric refresh
 Automatic SOL payout
 
 Performance drives payout — not flat rates.`,
@@ -60,11 +60,11 @@ s3labs.xyz/kol`,
 DMs, spreadsheets, opaque rates, manual payouts.
 
 KOL Marketplace:
-Verified tweets, live leaderboard, pro-rata SOL, automatic on-chain payout at snapshot.`,
+Verified X, manual post submit, live leaderboard, pro-rata SOL, automatic on-chain payout.`,
 
   launch: `LIVE — S3 Labs KOL Marketplace.
 
-Projects fund SOL for X amplification. KOLs earn by engagement on reply and quote posts.
+Projects fund SOL for X amplification. Verified KOLs submit reply/quote links and earn by engagement.
 
 → s3labs.xyz/kol`,
 
@@ -77,20 +77,22 @@ Projects fund SOL for X amplification. KOLs earn by engagement on reply and quot
   split: `Projects vs KOLs:
 
 Projects fund the reward pool and pick the source post.
-KOLs submit reply or quote tweets and compete on engagement.
+KOLs verify X, submit one reply or quote link, and compete on engagement.
 
 One marketplace. On-chain SOL.`,
 
   terminal: `$ kol campaign create --post <x-url> --reward 1.5SOL
 > pool funded · campaign active
+$ kol verify --x <handle> --wallet <solana>
+> x verified
 $ kol submit --tweet <quote-url> --wallet <solana>
-> verified quote · score tracking started
+> submission saved · score updates every 24h
 $ kol snapshot --campaign active
 > pro-rata payout sent on Solana`,
 
   cta: `KOL Marketplace is live.
 
-Launch a campaign or start earning on reply and quote posts.
+Launch a campaign or verify X and start earning on reply and quote posts.
 
 s3labs.xyz/kol`,
 };

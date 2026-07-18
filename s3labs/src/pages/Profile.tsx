@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { useQuery } from "@tanstack/react-query";
@@ -5,13 +6,16 @@ import { Link } from "react-router-dom";
 import {
   ArrowLeft,
   Award,
+  Check,
   Clock,
   Coins,
   Copy,
   ExternalLink,
+  Gift,
   Info,
   Sparkles,
   Trophy,
+  Users,
   Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -22,18 +26,37 @@ import { ProfileSectionHeader } from "@/components/profile/ProfileSectionHeader"
 import { ProfileShareAction } from "@/components/profile/ProfileShareAction";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { fetchKolProfile, fetchWalletEarnings, fetchWalletPoints } from "@/lib/kolApi";
+import { InfoHint } from "@/components/ui/info-hint";
+import {
+  fetchKolProfile,
+  fetchReferralProfile,
+  fetchWalletEarnings,
+  fetchWalletPoints,
+} from "@/lib/kolApi";
 import { formatSol } from "@/lib/kolFormat";
+import { REFERRAL_POINTS_HINT, POINTS_CREATED_HINT, POINTS_EARLY_BIRD_HINT } from "@/lib/kolRewardEligibility";
 import { buildProfileShareFromWallet } from "@/lib/profileShareData";
 import { pageContent } from "@/lib/siteLayout";
 import { cn } from "@/lib/utils";
 
-function StatTile({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function StatTile({
+  label,
+  value,
+  sub,
+  hint,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  hint?: string;
+}) {
   return (
     <div className="rounded-2xl border border-border/60 panel-glass p-4 sm:p-5 min-w-0">
-      <p className="text-[11px] sm:text-xs uppercase tracking-wider text-muted-foreground leading-snug">
+      <p className="text-[11px] sm:text-xs uppercase tracking-wider text-muted-foreground leading-snug inline-flex items-center gap-1">
         {label}
+        {hint ? <InfoHint content={hint} label={`About ${label}`} /> : null}
       </p>
       <p className="text-lg min-[400px]:text-xl sm:text-2xl font-semibold tabular-nums mt-2 break-words">
         {value}
@@ -53,10 +76,19 @@ function shortenAddress(address: string, chars = 6): string {
   return `${address.slice(0, chars)}…${address.slice(-chars)}`;
 }
 
+function referralShareUrl(sharePath: string | null, code: string | null): string {
+  if (typeof window === "undefined") {
+    return sharePath ? `https://s3labs.xyz${sharePath}` : "";
+  }
+  const path = sharePath ?? (code ? `/r/${code}` : "");
+  return path ? `${window.location.origin}${path}` : "";
+}
+
 function ProfileContent() {
   const wallet = useWallet();
   const { setVisible } = useWalletModal();
   const address = wallet.publicKey?.toBase58() ?? null;
+  const [refLinkCopied, setRefLinkCopied] = useState(false);
 
   const pointsQuery = useQuery({
     queryKey: ["wallet-points", address],
@@ -70,6 +102,13 @@ function ProfileContent() {
     queryFn: () => fetchWalletEarnings(address!),
     enabled: Boolean(address && wallet.connected),
     staleTime: 60_000,
+  });
+
+  const referralQuery = useQuery({
+    queryKey: ["referral-profile", address],
+    queryFn: () => fetchReferralProfile(address!),
+    enabled: Boolean(address && wallet.connected),
+    staleTime: 30_000,
   });
 
   const kolProfileQuery = useQuery({
@@ -397,35 +436,153 @@ function ProfileContent() {
             ) : null}
           </section>
 
-          <section className="grid grid-cols-1 min-[400px]:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 min-w-0">
-            <StatTile
-              label="Daily claims"
-              value={formatPoints(data?.dailyClaimPoints ?? 0)}
-              sub="0.1 pt/day + streak bonuses"
-            />
-            <StatTile
-              label="Campaign created"
-              value={formatPoints(data?.creationPoints ?? 0)}
-              sub="5 pts per live campaign"
-            />
-            <StatTile
-              label="Participation"
-              value={formatPoints(data?.participationPoints ?? 0)}
-              sub="1 pt per completed campaign"
-            />
-            <StatTile
-              label="Early bird"
-              value={formatPoints(data?.earlyPoints ?? 0)}
-              sub="Up to 3 pts split by submit order"
-            />
-            <StatTile
-              label="Campaigns joined"
-              value={String(data?.campaignsParticipated ?? 0)}
-            />
-            <StatTile
-              label="Campaigns created"
-              value={String(data?.campaignsCreated ?? 0)}
-            />
+          <section className="space-y-4 min-w-0">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <ProfileSectionHeader
+                icon={<Sparkles className="w-4 h-4" />}
+                title="Points"
+              />
+              <Button asChild variant="outline" size="sm" className="rounded-full shrink-0 self-start sm:self-auto">
+                <Link to="/profile/points">
+                  <Trophy className="mr-1.5 h-3.5 w-3.5" />
+                  Points leaderboard
+                </Link>
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 min-[400px]:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 min-w-0">
+              <StatTile
+                label="Daily claims"
+                value={formatPoints(data?.dailyClaimPoints ?? 0)}
+                sub="0.1 pt/day + streak bonuses"
+              />
+              <StatTile
+                label="Campaign created"
+                value={formatPoints(data?.creationPoints ?? 0)}
+                sub="5 pts when your campaign goes live"
+                hint={POINTS_CREATED_HINT}
+              />
+              <StatTile
+                label="Participation"
+                value={formatPoints(data?.participationPoints ?? 0)}
+                sub="1 pt per completed campaign"
+              />
+              <StatTile
+                label="Early bird"
+                value={formatPoints(data?.earlyPoints ?? 0)}
+                sub="Up to 3 pts by who submitted first"
+                hint={POINTS_EARLY_BIRD_HINT}
+              />
+              <StatTile
+                label="Referrals"
+                value={formatPoints(data?.referralPoints ?? 0)}
+                sub="From invitees who join, top 3, or go live"
+                hint={REFERRAL_POINTS_HINT}
+              />
+              <StatTile
+                label="Campaigns joined"
+                value={String(data?.campaignsParticipated ?? 0)}
+              />
+              <StatTile
+                label="Campaigns created"
+                value={String(data?.campaignsCreated ?? 0)}
+              />
+            </div>
+          </section>
+
+          <section className="space-y-4 min-w-0">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="inline-flex items-center gap-1.5 min-w-0">
+                <ProfileSectionHeader
+                  icon={<Gift className="w-4 h-4" />}
+                  title="Referral"
+                />
+                <InfoHint
+                  content={REFERRAL_POINTS_HINT}
+                  label="How do referral points work?"
+                />
+              </div>
+              {referralQuery.data?.code ? (
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full shrink-0 self-start sm:self-auto"
+                >
+                  <Link to="/profile/referral">
+                    <Users className="mr-1.5 h-3.5 w-3.5" />
+                    View invited
+                    {referralQuery.data.inviteeCount > 0
+                      ? ` (${referralQuery.data.inviteeCount})`
+                      : ""}
+                  </Link>
+                </Button>
+              ) : null}
+            </div>
+
+            {referralQuery.isLoading ? (
+              <Skeleton className="h-28 rounded-2xl" />
+            ) : referralQuery.data?.code ? (
+              <div className="panel-glass space-y-3 rounded-2xl border border-border/60 p-4 sm:p-5">
+                <div>
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Your referral link
+                  </p>
+                  <p className="mt-1 font-mono text-sm font-medium">
+                    {referralQuery.data.code}
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <Input
+                    readOnly
+                    value={referralShareUrl(
+                      referralQuery.data.sharePath,
+                      referralQuery.data.code,
+                    )}
+                    className="font-mono text-sm"
+                    aria-label="Referral share link"
+                  />
+                  <Button
+                    type="button"
+                    variant="hero"
+                    size="sm"
+                    className="rounded-full shrink-0"
+                    onClick={async () => {
+                      const link = referralShareUrl(
+                        referralQuery.data!.sharePath,
+                        referralQuery.data!.code,
+                      );
+                      if (!link) return;
+                      await navigator.clipboard.writeText(link);
+                      setRefLinkCopied(true);
+                      toast.success("Referral link copied");
+                      window.setTimeout(() => setRefLinkCopied(false), 2000);
+                    }}
+                  >
+                    {refLinkCopied ? (
+                      <Check className="mr-1.5 h-3.5 w-3.5" />
+                    ) : (
+                      <Copy className="mr-1.5 h-3.5 w-3.5" />
+                    )}
+                    Copy
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Share this link. You earn points when people who join with it take part in
+                  campaigns, place top 3, or open their own live campaign.
+                </p>
+              </div>
+            ) : (
+              <div className="panel-glass space-y-3 rounded-2xl border border-border/60 p-4 sm:p-5">
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Create a one-time referral name to share your invite link and earn points from
+                  invitees.
+                </p>
+                <Button asChild variant="hero" size="sm" className="rounded-full">
+                  <Link to="/profile/referral">Create referral name</Link>
+                </Button>
+              </div>
+            )}
           </section>
 
           <section className="space-y-4 min-w-0">

@@ -14,6 +14,7 @@ import {
 } from "@/lib/kolApi";
 import { formatSol } from "@/lib/kolFormat";
 import {
+  KOL_CREATE_CAMPAIGN_CTA,
   KOL_CREATE_CAMPAIGN_FORFEITED,
   KOL_CREATE_CAMPAIGN_NEXT_TIME_NOTE,
 } from "@/lib/kolRewardEligibility";
@@ -141,7 +142,7 @@ export function CampaignClaimCard({
             className="rounded-full"
             onClick={() => navigate("/kol?tab=create")}
           >
-            Create a campaign
+            {KOL_CREATE_CAMPAIGN_CTA}
           </Button>
         </div>
       ) : rewardSent ? (

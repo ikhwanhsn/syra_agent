@@ -24,8 +24,8 @@ export function KolAudienceSplit({
           <p className="font-semibold tracking-tight">For projects</p>
         </div>
         <p className="text-sm text-muted-foreground leading-relaxed">
-          Fund a SOL pool on your X post. Top engagers compete automatically —
-          unused pool is refunded when the campaign ends.
+          Put SOL on your X post. Top engagers compete on a leaderboard — unused
+          pool is refunded when the campaign ends.
         </p>
         <Button variant="hero" className="rounded-full w-full sm:w-auto" onClick={onCreate}>
           Create campaign
@@ -40,8 +40,9 @@ export function KolAudienceSplit({
           <p className="font-semibold tracking-tight">For KOLs</p>
         </div>
         <p className="text-sm text-muted-foreground leading-relaxed">
-          Reply or quote a live campaign post. We scan about every 24 hours —
-          earn a pro-rata share of the pool when it ends.
+          Verify your X account, reply or quote the campaign post, then paste your
+          link (1 per campaign). Engagement updates about every 24 hours — you earn
+          a share of the pool when it ends.
         </p>
         <Button variant="outline" className="rounded-full w-full sm:w-auto" onClick={onBrowse}>
           Browse &amp; earn

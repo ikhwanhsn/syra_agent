@@ -63,7 +63,7 @@ export function CampaignFundDepositCard({
     onSuccess: (data) => {
       onFunded?.(data.campaign);
       toast.success("Campaign is live", {
-        description: "+5 S3Labs Points credited. KOLs can now reply or quote on X.",
+        description: "+5 S3Labs Points credited. KOLs can now verify X and submit reply/quote links.",
       });
     },
     onError: (e: Error) => toast.error(e.message),

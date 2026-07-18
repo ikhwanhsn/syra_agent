@@ -16,6 +16,15 @@ export const POINTS_DAILY_CLAIM_WEEKLY_BONUS = 1;
 /** Bonus when user claims every day through the last day of the calendar month (UTC). */
 export const POINTS_DAILY_CLAIM_MONTHLY_BONUS = 10;
 
+/** Referral: invitee participates in a campaign (finalize with submission). */
+export const POINTS_REFERRAL_PARTICIPATION = 0.1;
+
+/** Referral: invitee places top 1–3 by score at finalize. */
+export const POINTS_REFERRAL_PODIUM = 0.3;
+
+/** Referral: invitee creates a campaign and deposits (go-live). */
+export const POINTS_REFERRAL_CREATION = 0.5;
+
 /**
  * Compute early-bird points per rank (index 0 = earliest submitter).
  * Linear weights: N, N-1, ..., 1 normalized to POINTS_EARLY_POOL.

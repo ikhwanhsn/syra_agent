@@ -59,12 +59,12 @@ export function KolInvitePanel({
   };
 
   return (
-    <div className="rounded-2xl border border-border/60 bg-muted/15 p-4 sm:p-5 space-y-4">
+    <div className="w-full min-w-0 rounded-2xl border border-border/60 bg-muted/15 p-4 sm:p-5 lg:p-6 space-y-4">
       <div className="flex items-start gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 border border-primary/20">
           <UserPlus className="h-4 w-4 text-primary" aria-hidden />
         </div>
-        <div>
+        <div className="min-w-0">
           <h3 className="font-semibold tracking-tight text-sm sm:text-base">
             Invite top KOLs
           </h3>
@@ -83,7 +83,7 @@ export function KolInvitePanel({
           No KOL rankings yet — share your campaign link in Telegram / X.
         </p>
       ) : (
-        <ul className="space-y-2">
+        <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
           {kols.map((kol) => {
             const handle = kol.handle || "";
             if (!handle) return null;
@@ -96,7 +96,7 @@ export function KolInvitePanel({
             return (
               <li
                 key={handle}
-                className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-border/50 bg-background/40 px-3 py-2.5"
+                className="flex flex-col gap-2 rounded-xl border border-border/50 bg-background/40 px-3 py-2.5 min-w-0"
               >
                 <div className="min-w-0">
                   <p className="font-medium text-sm truncate">@{handle}</p>
@@ -105,7 +105,7 @@ export function KolInvitePanel({
                     {formatCompact(kol.earnedSol)} SOL
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-2 shrink-0">
+                <div className="flex flex-wrap gap-2 shrink-0 mt-auto">
                   <Button
                     type="button"
                     size="sm"

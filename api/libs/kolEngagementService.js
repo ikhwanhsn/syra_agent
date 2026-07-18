@@ -419,6 +419,38 @@ export function parseTweetIdFromUrl(url) {
 }
 
 /**
+ * Extract the author @handle from an X/Twitter status URL.
+ * e.g. https://x.com/Web3Divaa/status/123 → "Web3Divaa"
+ * Does not call the X API. Caller should normalize for keys.
+ * @param {string} url
+ * @returns {string | null}
+ */
+export function parseHandleFromTweetUrl(url) {
+  const raw = String(url || "").trim();
+  if (!raw) return null;
+
+  const match = raw.match(
+    /(?:twitter\.com|x\.com)\/([A-Za-z0-9_]{1,15})\/status(?:es)?\/\d+/i,
+  );
+  if (!match?.[1]) return null;
+
+  const handle = match[1].replace(/^@/, "");
+  const key = handle.toLowerCase();
+  // Reject reserved path segments that are not real handles.
+  if (
+    key === "i" ||
+    key === "intent" ||
+    key === "share" ||
+    key === "home" ||
+    key === "explore" ||
+    key === "search"
+  ) {
+    return null;
+  }
+  return handle;
+}
+
+/**
  * @param {string} wallet
  * @returns {string}
  */

@@ -287,6 +287,7 @@ export interface WalletPoints {
   earlyPoints: number;
   creationPoints: number;
   dailyClaimPoints?: number;
+  referralPoints?: number;
   campaignsParticipated: number;
   campaignsCreated: number;
   lastHandle: string | null;
@@ -363,8 +364,53 @@ export interface PointsLeaderboardEntry {
   totalPoints: number;
   participationPoints: number;
   earlyPoints: number;
+  creationPoints?: number;
+  referralPoints?: number;
+  dailyClaimPoints?: number;
   campaignsParticipated: number;
+  campaignsCreated?: number;
   lastAwardedAt: string | null;
+}
+
+export type ReferralEventType = "participation" | "podium" | "creation";
+
+export interface ReferralLedgerEntry {
+  id: string;
+  eventType: ReferralEventType;
+  inviteeWallet: string;
+  campaignId: string | null;
+  points: number;
+  awardedAt: string | null;
+}
+
+export interface ReferralProfile {
+  wallet: string;
+  code: string | null;
+  sharePath: string | null;
+  createdAt: string | null;
+  canCreate: boolean;
+  inviteeCount: number;
+  referralPoints: number;
+  totalsByEvent: {
+    participation: number;
+    podium: number;
+    creation: number;
+  };
+  recent: ReferralLedgerEntry[];
+}
+
+export interface ReferralCodeResult {
+  code: string;
+  wallet: string;
+  sharePath: string;
+  createdAt: string | null;
+}
+
+export interface ReferralClaimResult {
+  attributed: boolean;
+  alreadyAttributed: boolean;
+  code: string;
+  referrerWallet: string | null;
 }
 
 export type ProjectSortKey = "funded" | "campaigns" | "kols" | "recent";
@@ -593,6 +639,20 @@ export function fetchCampaignDetail(
   return kolFetch(`/kol/campaigns/${encodeURIComponent(id)}${qs}`);
 }
 
+export function submitCampaignPost(
+  campaignId: string,
+  input: {
+    kolWallet: string;
+    tweetUrl: string;
+    mode?: "reply" | "quote";
+  },
+): Promise<{ submission: KolSubmission }> {
+  return kolFetch(`/kol/campaigns/${encodeURIComponent(campaignId)}/submit`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
 export function createCampaign(input: {
   projectWallet: string;
   sourceTweetUrl: string;
@@ -808,6 +868,31 @@ export function fetchPointsLeaderboard(opts?: {
   );
 }
 
+export function fetchReferralProfile(wallet: string): Promise<ReferralProfile> {
+  const params = new URLSearchParams({ wallet });
+  return kolFetch<ReferralProfile>(`/kol/referrals/me?${params.toString()}`);
+}
+
+export function createReferralCode(input: {
+  wallet: string;
+  code: string;
+}): Promise<ReferralCodeResult> {
+  return kolFetch<ReferralCodeResult>("/kol/referrals/code", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function claimReferralAttribution(input: {
+  wallet: string;
+  code: string;
+}): Promise<ReferralClaimResult> {
+  return kolFetch<ReferralClaimResult>("/kol/referrals/claim", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
 export function fetchKolStats(): Promise<KolMarketplaceStats> {
   return kolFetch<KolMarketplaceStats>("/kol/stats");
 }
@@ -905,4 +990,180 @@ export function subscribeEmail(
     method: "POST",
     body: JSON.stringify({ email, source }),
   });
+}
+
+export interface KolAdminSnapshotResult {
+  metrics: {
+    refreshed?: number;
+    failed?: number;
+    skipped?: boolean;
+    reason?: string;
+    totalSubmissions?: number;
+    snapshotComplete?: boolean;
+    capturedAt?: string | null;
+  };
+  lastSnapshotAt: string | null;
+}
+
+/**
+ * Admin-only: force metric refresh for a campaign (batched getTweetsByIds).
+ * Requires connected admin wallet via X-Admin-Wallet header.
+ */
+export async function adminSnapshotCampaign(
+  campaignId: string,
+  wallet: string,
+): Promise<KolAdminSnapshotResult> {
+  const res = await fetch(
+    `${API_BASE}/kol/campaigns/${encodeURIComponent(campaignId)}/admin/snapshot`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Admin-Wallet": wallet,
+      },
+      body: JSON.stringify({}),
+    },
+  );
+
+  const body = (await res.json().catch(() => ({}))) as KolApiResponse<KolAdminSnapshotResult>;
+  if (!res.ok || !body.success) {
+    throw new KolApiError(
+      body.error || `Request failed (${res.status})`,
+      body.code ?? "unknown",
+    );
+  }
+  if (body.data === undefined) {
+    throw new Error("Empty API response");
+  }
+  return body.data;
+}
+
+export interface KolAdminDiscoverHandleResult {
+  found: boolean;
+  handle?: string;
+  sourceTweetId?: string;
+  sourceTweetUrl?: string;
+  sourceAuthorHandle?: string;
+  tweetsScanned?: number;
+  targetedQuoteHits?: number;
+  targetedReplyHits?: number;
+  hydrated?: number;
+  matched?: number;
+  created?: number;
+  updated?: number;
+  skipped?: boolean;
+  reason?: string;
+  posts?: Array<{
+    id: string;
+    mode: string;
+    via?: string;
+    inReplyToId: string | null;
+    quotedTweetId: string | null;
+  }>;
+  sample?: Array<{
+    id: string;
+    text: string;
+    inReplyToId: string | null;
+    quotedTweetId: string | null;
+  }>;
+  capturedAt?: string;
+}
+
+/**
+ * Admin-only: deterministically scan a single handle's tweets for a reply/quote
+ * to the campaign source tweet and upsert it. Requires admin wallet header.
+ */
+export async function adminDiscoverHandle(
+  campaignId: string,
+  handle: string,
+  wallet: string,
+): Promise<KolAdminDiscoverHandleResult> {
+  const res = await fetch(
+    `${API_BASE}/kol/campaigns/${encodeURIComponent(campaignId)}/admin/discover-handle`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Admin-Wallet": wallet,
+      },
+      body: JSON.stringify({ handle }),
+    },
+  );
+
+  const body = (await res.json().catch(() => ({}))) as KolApiResponse<KolAdminDiscoverHandleResult>;
+  if (!res.ok || !body.success) {
+    throw new KolApiError(
+      body.error || `Request failed (${res.status})`,
+      body.code ?? "unknown",
+    );
+  }
+  if (body.data === undefined) {
+    throw new Error("Empty API response");
+  }
+  return body.data;
+}
+
+export interface KolAdminTrackTweetResult {
+  found: boolean;
+  alreadyTracked?: boolean;
+  handle?: string;
+  mode?: "reply" | "quote" | string;
+  sourceTweetId?: string;
+  sourceTweetUrl?: string;
+  sourceAuthorHandle?: string;
+  tweetId?: string;
+  tweetUrl?: string;
+  inReplyToId?: string | null;
+  quotedTweetId?: string | null;
+  conversationId?: string | null;
+  isQuote?: boolean;
+  text?: string;
+  score?: number;
+  created?: number;
+  updated?: number;
+  skipped?: boolean;
+  reason?: string;
+  message?: string;
+  capturedAt?: string;
+  metrics?: {
+    likeCount?: number;
+    retweetCount?: number;
+    replyCount?: number;
+    quoteCount?: number;
+    viewCount?: number;
+  };
+}
+
+/**
+ * Admin-only: track one engagement by pasting its X post URL.
+ * Fetches that tweet by id and upserts if it replies/quotes the campaign post.
+ */
+export async function adminTrackTweet(
+  campaignId: string,
+  tweetUrl: string,
+  wallet: string,
+): Promise<KolAdminTrackTweetResult> {
+  const res = await fetch(
+    `${API_BASE}/kol/campaigns/${encodeURIComponent(campaignId)}/admin/track-tweet`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Admin-Wallet": wallet,
+      },
+      body: JSON.stringify({ tweetUrl }),
+    },
+  );
+
+  const body = (await res.json().catch(() => ({}))) as KolApiResponse<KolAdminTrackTweetResult>;
+  if (!res.ok || !body.success) {
+    throw new KolApiError(
+      body.error || `Request failed (${res.status})`,
+      body.code ?? "unknown",
+    );
+  }
+  if (body.data === undefined) {
+    throw new Error("Empty API response");
+  }
+  return body.data;
 }

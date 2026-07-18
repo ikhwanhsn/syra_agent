@@ -14,9 +14,9 @@ const products = [
     status: "live" as const,
     href: "/kol",
     description:
-      "Projects fund SOL rewards for X posts they want amplified. KOLs submit reply or quote tweets, climb the engagement leaderboard, and get paid pro-rata on Solana at snapshot.",
+      "Projects fund SOL rewards for X posts they want amplified. Verified KOLs submit reply or quote links, climb the engagement leaderboard, and get paid pro-rata on Solana.",
     highlights: [
-      "Browse and join active campaigns",
+      "Verify X, then submit one post per campaign",
       "Fund rewards with Solana wallet",
       "Automatic on-chain payouts",
     ],

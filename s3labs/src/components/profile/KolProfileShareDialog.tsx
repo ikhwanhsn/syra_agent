@@ -84,9 +84,10 @@ export function KolProfileShareDialog({
       const ok = await copyKolRankShareToClipboard(node);
       if (ok) {
         toast.success("Image copied — paste into X, Telegram, or Discord");
-      } else {
-        toast.error("Copy not supported in this browser — use Download");
+        return;
       }
+      await exportKolRankSharePng(node, buildKolProfileShareFilename(data.handle));
+      toast.message("Clipboard blocked — PNG downloaded instead");
     } catch {
       toast.error("Copy failed — try Download instead");
     } finally {

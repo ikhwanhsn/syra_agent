@@ -3,7 +3,13 @@ import { Megaphone } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { KolLeaderboardEntry, KolViewerClaimEligibility } from "@/lib/kolApi";
-import { KOL_CREATE_CAMPAIGN_GATE_BODY } from "@/lib/kolRewardEligibility";
+import {
+  KOL_CREATE_CAMPAIGN_CTA,
+  KOL_CREATE_CAMPAIGN_GATE_BODY,
+  KOL_CREATE_CAMPAIGN_GATE_TITLE,
+  KOL_CREATE_CAMPAIGN_HINT,
+} from "@/lib/kolRewardEligibility";
+import { InfoHint } from "@/components/ui/info-hint";
 
 interface CampaignParticipationGateCardProps {
   ownEntry: KolLeaderboardEntry;
@@ -28,11 +34,17 @@ export function CampaignParticipationGateCard({
       <div className="flex items-start gap-3">
         <Megaphone className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
         <div className="space-y-2 min-w-0">
-          <h3 className="font-semibold">You&apos;re on the board — one step left</h3>
+          <h3 className="font-semibold inline-flex items-center gap-1.5 flex-wrap">
+            {KOL_CREATE_CAMPAIGN_GATE_TITLE}
+            <InfoHint content={KOL_CREATE_CAMPAIGN_HINT} label="Why do I need my own campaign?" />
+          </h3>
           <p className="text-sm text-muted-foreground leading-relaxed">
             You joined as{" "}
-            <span className="text-foreground font-medium">@{ownEntry.authorHandle}</span>.
-            This campaign only pays wallets that have created and funded at least one campaign on S3 Labs. Pending deposits do not count.
+            <span className="text-foreground font-medium">
+              @{ownEntry.authorHandle}
+            </span>
+            . This campaign only pays KOLs who also open their own live campaign
+            (create + deposit SOL). A draft without a deposit does not unlock pay.
           </p>
           <p className="text-sm text-muted-foreground leading-relaxed">
             {KOL_CREATE_CAMPAIGN_GATE_BODY}
@@ -44,7 +56,7 @@ export function CampaignParticipationGateCard({
         className="rounded-full"
         onClick={() => navigate("/kol?tab=create")}
       >
-        Create a campaign
+        {KOL_CREATE_CAMPAIGN_CTA}
       </Button>
     </div>
   );

@@ -32,6 +32,7 @@ import {
   fetchKolConfig,
 } from "@/lib/kolApi";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { captureReferralFromSearch, claimIfNeeded } from "@/lib/referralCapture";
 
 const CreateCampaignForm = lazy(() =>
   import("@/components/kol/CreateCampaignForm").then((m) => ({
@@ -94,6 +95,15 @@ function KolPageContent() {
   useEffect(() => {
     setCampaignSort(parseKolCampaignSort(sortFromUrl));
   }, [sortFromUrl]);
+
+  useEffect(() => {
+    captureReferralFromSearch(searchParams.toString());
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!wallet.connected || !walletAddress) return;
+    void claimIfNeeded(walletAddress);
+  }, [wallet.connected, walletAddress]);
 
   const configQuery = useQuery({
     queryKey: ["kol-config", walletAddress ?? null],
@@ -249,9 +259,10 @@ function KolPageContent() {
               <span className="text-gradient">KOLs compete for SOL</span>
             </h1>
             <p className="text-muted-foreground mt-4 text-base sm:text-lg leading-relaxed w-full max-w-none">
-              Put up a SOL pool on your X post — or reply and quote to earn. We scan about every
-              24 hours, rank by fair engagement, and pay automatically. Unused pool SOL is refunded
-              to projects. Everyone earns{" "}
+              Put up a SOL pool on your X post — or verify X, reply/quote, and
+              submit your link to earn (1 per campaign). Engagement updates about
+              every 24 hours; we rank by fair engagement and pay automatically.
+              Unused pool SOL is refunded to projects. Everyone earns{" "}
               <span className="text-foreground/90 font-medium">S3Labs Points</span>.
             </p>
           </div>
@@ -466,7 +477,7 @@ function KolPageContent() {
 
             <TabsContent value="create" className="mt-0 focus-visible:outline-none">
               {configQuery.isLoading ? (
-                <Skeleton className="h-96 rounded-2xl max-w-2xl" />
+                <Skeleton className="h-96 w-full rounded-2xl" />
               ) : (
                 <Suspense fallback={<TabPanelFallback />}>
                   <CreateCampaignForm

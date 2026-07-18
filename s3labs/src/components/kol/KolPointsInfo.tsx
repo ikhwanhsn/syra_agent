@@ -1,6 +1,11 @@
 import { Link } from "react-router-dom";
 import { Award, Clock, Sparkles } from "lucide-react";
 
+import { InfoHint } from "@/components/ui/info-hint";
+import {
+  POINTS_CREATED_HINT,
+  POINTS_EARLY_BIRD_HINT,
+} from "@/lib/kolRewardEligibility";
 import { cn } from "@/lib/utils";
 
 interface KolPointsInfoProps {
@@ -23,13 +28,16 @@ export function KolPointsInfo({ compact = false, className }: KolPointsInfoProps
         )}
       >
         <Award className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-        <p className="text-muted-foreground leading-relaxed">
-          <span className="text-foreground font-medium">S3Labs Points:</span> +5 when you launch a
-          campaign; KOLs get +1 at end plus up to +3 early-bird by submit order —{" "}
-          <span className="text-foreground/90">earlier = more</span>.{" "}
-          <Link to="/profile" className="text-primary hover:underline">
-            View your profile
-          </Link>
+        <p className="text-muted-foreground leading-relaxed inline-flex items-start gap-1.5 min-w-0">
+          <span className="min-w-0">
+            <span className="text-foreground font-medium">S3Labs Points:</span> +5 when you launch a
+            campaign; KOLs get +1 at end plus up to +3 early-bird by submit order —{" "}
+            <span className="text-foreground/90">earlier = more</span>.{" "}
+            <Link to="/profile" className="text-primary hover:underline">
+              View your profile
+            </Link>
+          </span>
+          <InfoHint content={POINTS_EARLY_BIRD_HINT} label="How do S3Labs Points work?" />
         </p>
       </div>
     );
@@ -68,9 +76,12 @@ export function KolPointsInfo({ compact = false, className }: KolPointsInfoProps
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border border-border/60 bg-background/40 p-4">
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">Campaign created</p>
+          <p className="text-xs uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1">
+            Campaign created
+            <InfoHint content={POINTS_CREATED_HINT} label="When do creation points credit?" />
+          </p>
           <p className="text-2xl font-semibold tabular-nums text-primary mt-1">+5</p>
-          <p className="text-xs text-muted-foreground mt-1">Project wallet when campaign goes live</p>
+          <p className="text-xs text-muted-foreground mt-1">After you deposit SOL (go live)</p>
         </div>
         <div className="rounded-xl border border-border/60 bg-background/40 p-4">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">Participation</p>
@@ -78,9 +89,12 @@ export function KolPointsInfo({ compact = false, className }: KolPointsInfoProps
           <p className="text-xs text-muted-foreground mt-1">Every KOL when campaign ends</p>
         </div>
         <div className="rounded-xl border border-border/60 bg-background/40 p-4">
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">Early bird</p>
+          <p className="text-xs uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1">
+            Early bird
+            <InfoHint content={POINTS_EARLY_BIRD_HINT} label="What is early bird?" />
+          </p>
           <p className="text-2xl font-semibold tabular-nums text-primary mt-1">+3</p>
-          <p className="text-xs text-muted-foreground mt-1">Pool split by submission order</p>
+          <p className="text-xs text-muted-foreground mt-1">Split by who submitted first</p>
         </div>
         <div className="rounded-xl border border-border/60 bg-background/40 p-4">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">Example (3 KOLs)</p>
@@ -92,8 +106,8 @@ export function KolPointsInfo({ compact = false, className }: KolPointsInfoProps
       <div className="mt-4 flex items-start gap-2 text-sm text-muted-foreground rounded-xl border border-border/50 bg-muted/20 px-3.5 py-3">
         <Clock className="w-4 h-4 text-primary shrink-0 mt-0.5" />
         <span>
-          Submit sooner to rank higher and capture more of the early-bird pool. Points credit
-          automatically when the campaign finalizes — no extra steps.
+          Submit sooner to rank higher in the early-bird pool. Points credit automatically when the
+          campaign ends — no extra steps.
         </span>
       </div>
     </section>

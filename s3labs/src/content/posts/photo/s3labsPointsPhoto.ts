@@ -169,7 +169,7 @@ export const S3LABS_POINTS_PHOTO = definePhotoUpdate(S3LABS_POINTS_POST.meta, [
       kicker: "Who earns",
       headline: "Every participant scores.",
       steps: [
-        { step: "01", title: "KOLs", description: "Submit reply or quote tweets to live campaigns." },
+        { step: "01", title: "KOLs", description: "Verify X and submit reply/quote links to live campaigns." },
         { step: "02", title: "Wallets", description: "Points keyed to your connected Solana address." },
         { step: "03", title: "Early birds", description: "Rank higher by submitting sooner." },
         { step: "04", title: "Profile", description: "Full history at s3labs.xyz/profile." },
@@ -200,6 +200,7 @@ export const S3LABS_POINTS_PHOTO = definePhotoUpdate(S3LABS_POINTS_POST.meta, [
     content: photoContent({
       headline: "Points pipeline.",
       terminalLines: [
+        "$ kol verify --x <handle>",
         "$ kol submit --campaign active --tweet <url>",
         "> verified · rank #1 recorded",
         "$ kol finalize --campaign ended",

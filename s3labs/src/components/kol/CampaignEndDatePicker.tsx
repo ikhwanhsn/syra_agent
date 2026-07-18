@@ -14,6 +14,10 @@ interface CampaignEndDatePickerProps {
   minDurationDays: number;
   maxDurationDays: number;
   disabled?: boolean;
+  /** Hide the duration caption under the trigger (parent can show its own). */
+  hideSummary?: boolean;
+  className?: string;
+  triggerClassName?: string;
 }
 
 const rangeClassNames = {
@@ -32,6 +36,9 @@ export function CampaignEndDatePicker({
   minDurationDays,
   maxDurationDays,
   disabled,
+  hideSummary = false,
+  className,
+  triggerClassName,
 }: CampaignEndDatePickerProps) {
   const today = useMemo(() => startOfDay(new Date()), []);
   const minEndDate = useMemo(() => addDays(today, minDurationDays), [today, minDurationDays]);
@@ -54,7 +61,7 @@ export function CampaignEndDatePicker({
   };
 
   return (
-    <div className="space-y-2">
+    <div className={cn("space-y-2 w-full min-w-0", className)}>
       <Popover>
         <PopoverTrigger asChild>
           <Button
@@ -62,16 +69,19 @@ export function CampaignEndDatePicker({
             variant="outline"
             disabled={disabled}
             className={cn(
-              "w-full justify-start gap-2 rounded-xl border-border/70 bg-background/50 font-normal h-10",
+              "w-full justify-start gap-2 rounded-xl border-border/50 bg-background/50 font-normal h-11 px-4 shadow-sm",
               !value && "text-muted-foreground",
+              triggerClassName,
             )}
           >
             <CalendarIcon className="h-4 w-4 shrink-0 text-primary" />
-            <span className="truncate">{format(endDate, "EEEE, MMM d, yyyy")}</span>
+            <span className="truncate text-left">
+              {format(endDate, "EEE, MMM d, yyyy")}
+            </span>
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0 panel-glass border-border/60" align="start">
-          <div className="px-3 pt-3 pb-1 flex items-center gap-3 text-[11px] text-muted-foreground">
+          <div className="px-3 pt-3 pb-1 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
             <span className="inline-flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-sm bg-primary/30 ring-1 ring-primary/25" />
               Today
@@ -116,10 +126,14 @@ export function CampaignEndDatePicker({
           </div>
         </PopoverContent>
       </Popover>
-      <p className="text-xs text-muted-foreground">
-        <span className="text-foreground/80 font-medium">{durationDays} day{durationDays === 1 ? "" : "s"}</span>
-        {" · "}Campaign ends {format(endDate, "MMM d, yyyy")}
-      </p>
+      {!hideSummary ? (
+        <p className="text-xs text-muted-foreground">
+          <span className="text-foreground/80 font-medium">
+            {durationDays} day{durationDays === 1 ? "" : "s"}
+          </span>
+          {" · "}Campaign ends {format(endDate, "MMM d, yyyy")}
+        </p>
+      ) : null}
     </div>
   );
 }

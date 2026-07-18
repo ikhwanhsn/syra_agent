@@ -1,6 +1,13 @@
 import { Award, Building2, Coins, MessageSquare, Rocket, ShieldCheck, Trophy, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 
+import { InfoHint } from "@/components/ui/info-hint";
+import {
+  HOW_IT_WORKS_CREATOR_BONUS_HINT,
+  HOW_IT_WORKS_SCORE_HINT,
+  POINTS_EARLY_BIRD_HINT,
+} from "@/lib/kolRewardEligibility";
+
 const projectSteps = [
   {
     number: "01",
@@ -21,7 +28,7 @@ const projectSteps = [
     icon: Trophy,
     title: "See results, auto-pay",
     description:
-      "We scan replies/quotes about every 24 hours. When the campaign ends, engagers are paid pro-rata — leftovers return to you.",
+      "Submitted posts refresh engagement about every 24 hours. When the campaign ends, engagers are paid pro-rata — leftovers return to you.",
   },
 ] as const;
 
@@ -36,16 +43,17 @@ const kolSteps = [
   {
     number: "02",
     icon: Building2,
-    title: "Reply or quote on X",
+    title: "Verify, reply or quote, then submit",
     description:
-      "You appear on the leaderboard automatically. Rewards need engagement (likes, RTs, replies, or quotes). Top posts combine (up to 3).",
+      "Verify your X account, post on X, then paste your post link (1 per campaign, from your verified handle). Engagement updates about every 24 hours.",
   },
   {
     number: "03",
     icon: Coins,
-    title: "Verify & claim SOL",
+    title: "Get paid in SOL",
     description:
-      "Link your X to your wallet. Creators who also fund a campaign get a 1.15× score bonus on payouts.",
+      "When the campaign ends, your share goes to the wallet linked to your verified X. Creators who also fund a campaign get a 1.15× score bonus.",
+    hint: HOW_IT_WORKS_CREATOR_BONUS_HINT,
   },
 ] as const;
 
@@ -65,6 +73,7 @@ function StepGrid({
     icon: typeof MessageSquare;
     title: string;
     description: string;
+    hint?: string;
   }[];
 }) {
   return (
@@ -82,7 +91,12 @@ function StepGrid({
               <step.icon className="w-4 h-4 text-primary-foreground" />
             </div>
           </div>
-          <h3 className="font-semibold mb-2 tracking-tight">{step.title}</h3>
+          <h3 className="font-semibold mb-2 tracking-tight inline-flex items-center gap-1.5">
+            {step.title}
+            {step.hint ? (
+              <InfoHint content={step.hint} label={`More about: ${step.title}`} />
+            ) : null}
+          </h3>
           <p className="text-sm text-muted-foreground leading-relaxed">{step.description}</p>
         </div>
       ))}
@@ -117,7 +131,7 @@ export function KolHowItWorks() {
             </h2>
           </div>
           <p className="text-sm text-muted-foreground max-w-sm sm:text-right">
-            No applications. Reply or quote on X — we track engagement and you claim after verify.
+            Verify X, reply or quote, submit your link — get paid when the campaign ends.
           </p>
         </div>
         <StepGrid steps={kolSteps} />
@@ -126,18 +140,24 @@ export function KolHowItWorks() {
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <div className="flex items-start gap-2 text-sm text-muted-foreground panel-glass rounded-xl px-4 py-3 border border-border/60">
           <Trophy className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-          <span>
-            Your share = your fair engagement score ÷ total score × reward pool. Higher rank =
-            bigger payout.
+          <span className="inline-flex items-start gap-1.5 min-w-0">
+            <span className="min-w-0">
+              Your share = your fair engagement score ÷ total score × reward pool. Higher rank =
+              bigger payout.
+            </span>
+            <InfoHint content={HOW_IT_WORKS_SCORE_HINT} label="How is my SOL share calculated?" />
           </span>
         </div>
         <div className="flex items-start gap-2 text-sm text-muted-foreground panel-glass rounded-xl px-4 py-3 border border-primary/15">
           <Award className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-          <span>
-            +1 S3Labs Point per campaign, plus up to +3 early-bird points for submitting early.{" "}
-            <Link to="/profile" className="text-primary hover:underline">
-              Track on profile
-            </Link>
+          <span className="inline-flex items-start gap-1.5 min-w-0">
+            <span className="min-w-0">
+              +1 S3Labs Point per campaign, plus up to +3 early-bird points for submitting early.{" "}
+              <Link to="/profile" className="text-primary hover:underline">
+                Track on profile
+              </Link>
+            </span>
+            <InfoHint content={POINTS_EARLY_BIRD_HINT} label="What are early-bird points?" />
           </span>
         </div>
       </div>
@@ -174,7 +194,15 @@ export function KolHowItWorks() {
           <li>Engagement cannot exceed views — blocks impossible like/view ratios.</li>
           <li>Volume above your reach is capped and compressed — farming stops paying off.</li>
           <li>Credibility scales with your real follower base; verified accounts get a small bonus.</li>
-          <li>Wallets that create+fund a campaign get a 1.15× payout score bonus.</li>
+          <li className="flex items-start gap-1.5">
+            <span className="min-w-0">
+              Wallets that create and fund a campaign get a 1.15× payout score bonus.
+            </span>
+            <InfoHint
+              content={HOW_IT_WORKS_CREATOR_BONUS_HINT}
+              label="What is the creator score bonus?"
+            />
+          </li>
         </ul>
       </div>
     </section>

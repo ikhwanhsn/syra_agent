@@ -352,7 +352,7 @@ export const KolProfileShareCard = forwardRef<HTMLDivElement, KolProfileShareCar
                     </p>
                   ) : (
                     <p className="mt-6 max-w-[560px] text-[17px] leading-relaxed text-white/42">
-                      Building reputation on S3 Labs KOL Arena — reply or quote on X, climb
+                      Building reputation on S3 Labs KOL Arena — verify X, submit reply/quote links, climb
                       leaderboards, get paid in SOL.
                     </p>
                   )}
