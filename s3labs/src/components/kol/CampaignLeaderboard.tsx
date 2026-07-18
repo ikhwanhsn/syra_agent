@@ -140,8 +140,8 @@ export function CampaignLeaderboard({
         <p className="font-semibold text-base">No one on the board yet</p>
         <p className="text-muted-foreground text-sm max-w-sm mx-auto leading-relaxed">
           Be the first to reply or quote the post on X. We scan for new posts about every 24 hours —
-          no link to submit here. Your post needs at least 1 like to count. Multiple posts from you are
-          combined (top 3 by score).
+          no link to submit here. All replies and quotes appear here; rewards require engagement
+          (likes, retweets, replies, or quotes). Multiple posts from you are combined (top 3 by score).
         </p>
       </div>
     );

@@ -50,8 +50,15 @@ export interface KolCampaign {
   startAt: string | null;
   endAt: string | null;
   durationDays: number;
-  /** Admin participation rule — not shown in public UI. */
+  /** When true, KOLs must have funded a campaign to earn rewards. */
   requireCreatedOneCampaign?: boolean;
+  allowedHandleKeys?: string[];
+  payoutTopN?: number | null;
+  payoutTopNShareBps?: number;
+  creatorRefundLamports?: number | null;
+  creatorRefundSol?: number | null;
+  creatorRefundTxSignature?: string | null;
+  creatorRefundStatus?: "pending" | "confirmed" | "failed" | "skipped" | null;
   lastSnapshotAt: string | null;
   finalizedAt: string | null;
   createdAt: string | null;
@@ -377,7 +384,22 @@ export interface KolConfig {
   minDurationDays?: number;
   maxDurationDays: number;
   platformFeeSol: number;
+  platformFeeSolDefault?: number;
+  firstCampaignFeeWaived?: boolean;
+  creatorScoreBonus?: number;
+  discoveryIntervalHours?: number;
   platformFeeWallet: string;
+}
+
+export interface KolWalletCampaign extends KolCampaign {
+  participants: number;
+  engagedParticipants: number;
+  projectedLamports: number;
+  projectedSol: number;
+  earnedLamports: number;
+  earnedSol: number;
+  paidLamports: number;
+  paidSol: number;
 }
 
 export interface KolViewerClaimEligibility {
@@ -504,6 +526,10 @@ export const DEFAULT_KOL_CONFIG: KolConfig = {
   minDurationDays: 1,
   maxDurationDays: 30,
   platformFeeSol: 0.005,
+  platformFeeSolDefault: 0.005,
+  firstCampaignFeeWaived: false,
+  creatorScoreBonus: 1.15,
+  discoveryIntervalHours: 24,
   platformFeeWallet: "854tpY9AnaMYDpviWeo4eWXzoUmvLrYwkU16F2MtzHz8",
 };
 
@@ -529,8 +555,17 @@ async function kolFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return body.data;
 }
 
-export function fetchKolConfig(): Promise<KolConfig> {
-  return kolFetch<KolConfig>("/kol/config").catch(() => DEFAULT_KOL_CONFIG);
+export function fetchKolConfig(opts?: { wallet?: string }): Promise<KolConfig> {
+  const params = new URLSearchParams();
+  if (opts?.wallet) params.set("wallet", opts.wallet);
+  const qs = params.toString() ? `?${params.toString()}` : "";
+  return kolFetch<KolConfig>(`/kol/config${qs}`).catch(() => DEFAULT_KOL_CONFIG);
+}
+
+export function fetchWalletCampaigns(
+  wallet: string,
+): Promise<{ wallet: string; firstCampaignFeeWaived: boolean; campaigns: KolWalletCampaign[] }> {
+  return kolFetch(`/kol/wallets/${encodeURIComponent(wallet)}/campaigns`);
 }
 
 export function fetchCampaigns(opts?: {
@@ -565,8 +600,10 @@ export function createCampaign(input: {
   description?: string;
   rewardSol: number;
   durationDays: number;
-  /** Admin-only participation rule. Ignored for non-admin wallets on the API. */
   requireCreatedOneCampaign?: boolean;
+  allowedHandles?: string[];
+  payoutTopN?: number | null;
+  payoutTopNShareBps?: number | null;
 }): Promise<{
   campaign: KolCampaign;
   deposit: {
@@ -578,6 +615,7 @@ export function createCampaign(input: {
     platformFeeLamports: number;
     platformFeeSol: number;
     platformFeeWallet: string;
+    firstCampaignFeeWaived?: boolean;
   };
 }> {
   return kolFetch("/kol/campaigns", {

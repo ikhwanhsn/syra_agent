@@ -8,7 +8,6 @@ import KolSubmission from "../models/KolSubmission.js";
 import KolEngagementSnapshot from "../models/KolEngagementSnapshot.js";
 import {
   aggregateContributions,
-  meetsMinLikes,
   metricsEngagementTotal,
   metricsIncreased,
   scoreSubmission,
@@ -27,7 +26,7 @@ const DEFAULT_MAX_PAGES = (() => {
 
 const DISCOVERY_FRESH_MS = (() => {
   const n = Number.parseInt(String(process.env.KOL_METRICS_FRESH_MS ?? "").trim(), 10);
-  return Number.isFinite(n) && n >= 60_000 ? n : 24 * 60 * 60 * 1000;
+  return Number.isFinite(n) && n >= 60_000 ? n : 6 * 60 * 60 * 1000;
 })();
 
 /**
@@ -95,9 +94,26 @@ async function collectEngagements(sourceTweetId, sourceAuthorHandleKey, mode, fe
       if (!authorHandleKey) continue;
       if (authorHandleKey === sourceAuthorHandleKey) continue;
 
-      if (mode === "reply" && tweet.inReplyToId !== sourceTweetId) continue;
-      if (mode === "quote" && tweet.quotedTweetId !== sourceTweetId) continue;
-      if (!meetsMinLikes(tweet.metrics)) continue;
+      // Trust the replies/quotes endpoint for this source tweet. Only reject when
+      // a relation id is present and clearly points at a different post (nested
+      // replies). Missing relation fields are common in twitterapi.io payloads and
+      // previously caused valid engagers to never appear on the leaderboard.
+      if (
+        mode === "reply" &&
+        tweet.inReplyToId != null &&
+        String(tweet.inReplyToId) !== sourceTweetId
+      ) {
+        continue;
+      }
+      if (
+        mode === "quote" &&
+        tweet.quotedTweetId != null &&
+        String(tweet.quotedTweetId) !== sourceTweetId
+      ) {
+        continue;
+      }
+      // Include zero-engagement posts on the leaderboard; rewards still require
+      // engagement via hasRewardEngagement in payout projection.
 
       const authorContext = authorContextFromTweet(tweet.author);
       const { score, breakdown } = scoreSubmission(tweet.metrics, authorContext);
@@ -277,7 +293,7 @@ export async function discoverCampaignEngagements(campaignId, opts = {}) {
         score: p.score,
         scoreBreakdown: p.scoreBreakdown,
       })),
-    ].filter((row) => meetsMinLikes(row.metrics));
+    ];
 
     const aggregated = aggregateContributions(mergedRows, MAX_CONTRIBUTIONS_PER_HANDLE);
     if (!aggregated) {

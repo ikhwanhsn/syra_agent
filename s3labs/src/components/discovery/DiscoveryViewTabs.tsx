@@ -22,7 +22,7 @@ export function DiscoveryViewTabs<T extends string>({
   return (
     <div
       className={cn(
-        "flex items-center gap-1 rounded-xl border border-border/60 bg-muted/30 p-1 sm:w-fit",
+        "flex shrink-0 items-center gap-1 rounded-xl border border-border/50 bg-muted/25 p-1 sm:w-fit",
         className,
       )}
     >
@@ -33,7 +33,7 @@ export function DiscoveryViewTabs<T extends string>({
           onClick={() => onChange(tab.id)}
           aria-pressed={value === tab.id}
           className={cn(
-            "inline-flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-lg px-4 text-sm font-medium transition-colors sm:flex-none",
+            "inline-flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-lg px-4 text-sm font-medium transition-colors duration-150 sm:flex-none",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
             value === tab.id
               ? "bg-background text-foreground shadow-sm"

@@ -4,20 +4,34 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Calendar, Search, Star } from "lucide-react";
 
-import { DISCOVERY_PAGE_SIZE, DISCOVERY_STALE_MS } from "@/components/discovery/constants";
+import {
+  DISCOVERY_PAGE_SIZE,
+  DISCOVERY_REFETCH_MS,
+  DISCOVERY_STALE_MS,
+} from "@/components/discovery/constants";
 import { DiscoveryEmptyState } from "@/components/discovery/DiscoveryEmptyState";
-import { DiscoveryFilterPills } from "@/components/discovery/DiscoveryFilterPills";
-import { DiscoveryListSkeleton, DiscoveryLoadMore } from "@/components/discovery/DiscoveryLoadMore";
+import { DiscoveryFilterSelect } from "@/components/discovery/DiscoveryFilterSelect";
+import { DiscoveryLoadMore } from "@/components/discovery/DiscoveryLoadMore";
+import { DiscoveryEventSkeleton } from "@/components/discovery/DiscoverySkeletons";
+import {
+  DiscoveryCountStat,
+  DiscoveryPageHeader,
+} from "@/components/discovery/DiscoveryPageHeader";
+import { DiscoverySavedToggle } from "@/components/discovery/DiscoverySavedToggle";
 import { DiscoverySearchBar } from "@/components/discovery/DiscoverySearchBar";
 import { DiscoverySortSelect } from "@/components/discovery/DiscoverySortSelect";
-import { DiscoveryViewTabs } from "@/components/discovery/DiscoveryViewTabs";
+import {
+  DiscoverySectionLabel,
+  DiscoveryToolbar,
+  DiscoveryToolbarRow,
+} from "@/components/discovery/DiscoveryToolbar";
 import { EventBentoCard } from "@/components/discovery/events/EventCards";
 import { FadeIn } from "@/components/discovery/motion/FadeIn";
 import { Stagger, StaggerItem } from "@/components/discovery/motion/Stagger";
 import { SitePageShell } from "@/components/landing/SitePageShell";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useCountUp } from "@/hooks/useCountUp";
+import { useDiscoveryControlPending } from "@/hooks/useDiscoveryControlPending";
 import { useEventSaves } from "@/hooks/useDiscoverySaves";
 import { formatDate } from "@/lib/discoveryFormatters";
 import {
@@ -38,19 +52,19 @@ type EventQuickFilter = "all" | "tech" | "crypto" | "web3";
 type EventView = "all" | "saved";
 
 const EVENT_FILTERS: { value: EventQuickFilter; label: string }[] = [
-  { value: "all", label: "All events" },
+  { value: "all", label: "All categories" },
   { value: "tech", label: "Tech" },
   { value: "crypto", label: "Crypto" },
   { value: "web3", label: "Web3" },
 ];
 
-const ADMIN_STATUS_TABS = [
-  { id: "all", label: "All" },
-  { id: "new", label: "New" },
-  { id: "interested", label: "Interested" },
-  { id: "registered", label: "Registered" },
-  { id: "attended", label: "Attended" },
-  { id: "skipped", label: "Skipped" },
+const ADMIN_STATUS_OPTIONS = [
+  { value: "all", label: "All statuses" },
+  { value: "new", label: "New" },
+  { value: "interested", label: "Interested" },
+  { value: "registered", label: "Registered" },
+  { value: "attended", label: "Attended" },
+  { value: "skipped", label: "Skipped" },
 ] as const;
 
 function filterToParams(filter: EventQuickFilter) {
@@ -70,20 +84,36 @@ function EventsAdminPageContent() {
   const [filter, setFilter] = useState<EventQuickFilter>("all");
   const [sort, setSort] = useState<EventSortKey>(DEFAULT_EVENT_SORT);
   const [search, setSearch] = useState("");
-  const debouncedSearch = useDebouncedValue(search.trim());
 
   const { toggleFlag, getFlags } = useEventSaves();
-  const { region, category } = filterToParams(filter);
+
+  const controlPending = useDiscoveryControlPending(
+    { search, filter, sort, status: statusTab },
+    false,
+  );
+  const debouncedFilter = (controlPending.debouncedFilter || "all") as EventQuickFilter;
+  const debouncedSort = (controlPending.debouncedSort || DEFAULT_EVENT_SORT) as EventSortKey;
+  const debouncedStatus = controlPending.debouncedStatus || "all";
+  const { region, category } = filterToParams(debouncedFilter);
 
   const listQuery = useInfiniteQuery({
-    queryKey: ["events", address, statusTab, region, category, debouncedSearch, sort, isAdmin],
+    queryKey: [
+      "events",
+      address,
+      debouncedStatus,
+      region,
+      category,
+      controlPending.debouncedSearch,
+      debouncedSort,
+      isAdmin,
+    ],
     queryFn: ({ pageParam }) =>
       fetchEvents(address, {
-        status: isAdmin ? statusTab : "all",
+        status: isAdmin ? debouncedStatus : "all",
         region,
         category,
-        search: debouncedSearch || undefined,
-        sort,
+        search: controlPending.debouncedSearch || undefined,
+        sort: debouncedSort,
         limit: DISCOVERY_PAGE_SIZE,
         skip: pageParam,
       }),
@@ -94,12 +124,15 @@ function EventsAdminPageContent() {
     },
     staleTime: DISCOVERY_STALE_MS,
     refetchOnMount: "always",
+    refetchInterval: DISCOVERY_REFETCH_MS,
   });
 
+  const showSkeleton = controlPending.isControlsPending || listQuery.isLoading;
   const runQuery = useQuery({
     queryKey: ["event-latest-run", address],
     queryFn: () => fetchEventLatestRun(address),
     staleTime: DISCOVERY_STALE_MS,
+    refetchInterval: DISCOVERY_REFETCH_MS,
     enabled: isAdmin,
   });
 
@@ -128,14 +161,18 @@ function EventsAdminPageContent() {
   );
 
   const total = listQuery.data?.pages[0]?.total ?? 0;
+  const animatedTotal = useCountUp(total, {
+    enabled: !showSkeleton && total > 0,
+  });
   const hasMore = allItems.length < total;
   const lastRun = runQuery.data?.data;
 
   const statusOptions = useMemo(
     () =>
-      ADMIN_STATUS_TABS.map((tab) => ({
-        ...tab,
-        count: tab.id === "all" ? counts.all : counts[tab.id],
+      ADMIN_STATUS_OPTIONS.map((option) => ({
+        value: option.value,
+        label: option.label,
+        count: option.value === "all" ? counts.all : counts[option.value],
       })),
     [counts],
   );
@@ -148,85 +185,71 @@ function EventsAdminPageContent() {
 
   return (
     <div className={cn(pageContent, "pb-20")}>
-      <FadeIn className="mb-10 flex w-full flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-        <div className="min-w-0 flex-1">
-          <p className="eyebrow mb-3">
-            <Calendar className="h-4 w-4" aria-hidden />
-            Events
-          </p>
-          <h1 className="heading-display">
+      <DiscoveryPageHeader
+        icon={Calendar}
+        eyebrow="Events"
+        title={
+          <>
             Meetups, workshops, <span className="text-gradient">conferences</span>
-          </h1>
-          <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Tech, crypto, and web3 events from Indonesia and worldwide. Find something near you or online.
-          </p>
-          {isAdmin && lastRun ? (
-            <p className="mt-3 text-xs text-muted-foreground">
+          </>
+        }
+        description="Tech, crypto, and web3 events from Indonesia and worldwide. Find something near you or online."
+        meta={
+          isAdmin && lastRun ? (
+            <>
               Last updated {formatDate(lastRun.ranAt)} · {lastRun.totalNew ?? 0} new,{" "}
               {lastRun.totalUpdated ?? 0} updated
-            </p>
-          ) : null}
-        </div>
-        {!listQuery.isLoading && total > 0 ? (
-          <div className="panel-glass shrink-0 px-6 py-5 text-center lg:text-right">
-            <p className="text-4xl font-semibold tabular-nums text-foreground sm:text-5xl">
-              {total}
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {total === 1 ? "event" : "events"} available
-            </p>
-          </div>
-        ) : null}
-      </FadeIn>
+            </>
+          ) : null
+        }
+        aside={
+          !showSkeleton && total > 0 ? (
+            <DiscoveryCountStat
+              value={animatedTotal}
+              label={total === 1 ? "event" : "events"}
+            />
+          ) : null
+        }
+      />
 
-      <FadeIn className="mb-8 space-y-4" delay={0.05}>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <DiscoveryViewTabs
-            tabs={[
-              { id: "all" as const, label: "All events" },
-              { id: "saved" as const, label: "Saved", count: savedCount },
-            ]}
-            value={view}
-            onChange={setView}
+      <DiscoveryToolbar>
+        <DiscoveryToolbarRow>
+          <DiscoverySearchBar
+            id="events-search"
+            value={search}
+            onChange={setSearch}
+            placeholder="Search events…"
+            className="min-w-[12rem]"
+          />
+          <DiscoveryFilterSelect
+            options={EVENT_FILTERS}
+            value={filter}
+            onChange={setFilter}
+            label="Category"
           />
           <DiscoverySortSelect
             value={sort}
             onChange={setSort}
             options={EVENT_SORT_OPTIONS}
           />
-        </div>
-        <DiscoverySearchBar
-          id="events-search"
-          value={search}
-          onChange={setSearch}
-          placeholder="Search events by name, organizer, or keyword…"
-        />
-        <DiscoveryFilterPills
-          options={EVENT_FILTERS}
-          value={filter}
-          onChange={setFilter}
-        />
-      </FadeIn>
+          {isAdmin ? (
+            <DiscoveryFilterSelect
+              options={statusOptions}
+              value={statusTab}
+              onChange={setStatusTab}
+              label="Status"
+            />
+          ) : null}
+          <DiscoverySavedToggle
+            saved={view === "saved"}
+            count={savedCount}
+            onChange={(saved) => setView(saved ? "saved" : "all")}
+          />
+        </DiscoveryToolbarRow>
+      </DiscoveryToolbar>
 
-      {isAdmin ? (
-        <FadeIn className="mb-8" delay={0.08}>
-          <Tabs value={statusTab} onValueChange={setStatusTab} className="min-w-0">
-            <TabsList className="scrollbar-hide-md h-auto w-full justify-start overflow-x-auto rounded-xl border border-border/60 bg-muted/30 p-1 sm:w-fit">
-              {statusOptions.map((tab) => (
-                <TabsTrigger key={tab.id} value={tab.id} className="shrink-0 gap-1.5 rounded-lg text-xs">
-                  {tab.label}
-                  {typeof tab.count === "number" ? (
-                    <span className="tabular-nums text-muted-foreground">{tab.count}</span>
-                  ) : null}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-        </FadeIn>
-      ) : null}
-
-      {listQuery.isLoading ? (
-        <DiscoveryListSkeleton />
+      {showSkeleton ? (
+        <DiscoveryEventSkeleton />
       ) : listQuery.isError ? (
         <DiscoveryEmptyState
           icon={Calendar}
@@ -256,9 +279,9 @@ function EventsAdminPageContent() {
           }
         />
       ) : (
-        <>
+        <div className="space-y-8">
           {featured ? (
-            <FadeIn className="mb-5">
+            <FadeIn>
               <EventBentoCard
                 item={featured}
                 isSaved={getFlags(featured._id).saved}
@@ -269,21 +292,29 @@ function EventsAdminPageContent() {
             </FadeIn>
           ) : null}
 
-          <Stagger className="grid auto-rows-fr gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {gridItems.map((item) => {
-              const flags = getFlags(item._id);
-              return (
-                <StaggerItem key={item._id} className="h-full">
-                  <EventBentoCard
-                    item={item}
-                    isSaved={flags.saved}
-                    onSelect={() => openEvent(item)}
-                    onToggleSaved={() => toggleFlag(item._id, "saved")}
-                  />
-                </StaggerItem>
-              );
-            })}
-          </Stagger>
+          {gridItems.length > 0 ? (
+            <div>
+              <DiscoverySectionLabel
+                title={view === "saved" ? "Saved events" : "Upcoming"}
+                meta={`Showing ${gridItems.length}${hasMore ? "+" : ""} of ${total}`}
+              />
+              <Stagger className="grid auto-rows-fr gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {gridItems.map((item) => {
+                  const flags = getFlags(item._id);
+                  return (
+                    <StaggerItem key={item._id} className="h-full">
+                      <EventBentoCard
+                        item={item}
+                        isSaved={flags.saved}
+                        onSelect={() => openEvent(item)}
+                        onToggleSaved={() => toggleFlag(item._id, "saved")}
+                      />
+                    </StaggerItem>
+                  );
+                })}
+              </Stagger>
+            </div>
+          ) : null}
 
           <DiscoveryLoadMore
             hasMore={hasMore}
@@ -293,7 +324,7 @@ function EventsAdminPageContent() {
             onLoadMore={() => void listQuery.fetchNextPage()}
             itemLabel="events"
           />
-        </>
+        </div>
       )}
     </div>
   );

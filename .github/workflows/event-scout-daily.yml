@@ -1,9 +1,10 @@
-# Event Scout — daily scrape (Exa + X + Luma). POST /internal/events/run
-name: Event scout daily
+# Event Scout — scrape (Web + X + Luma). POST /internal/events/run
+name: Event scout
 
 on:
   schedule:
-    - cron: "30 1 * * *"
+    # Every 6 hours — near-realtime for s3labs /events
+    - cron: "30 */6 * * *"
   workflow_dispatch: {}
 
 jobs:

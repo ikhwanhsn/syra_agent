@@ -100,14 +100,32 @@ export function metricsIncreased(existing, incoming) {
 }
 
 /**
- * True when a post has enough likes to be counted (anti-spam gate).
+ * True when a post has enough likes (legacy/optional gate).
  * When MIN_LIKES_PER_POST is 0, all posts pass.
+ * Leaderboard inclusion no longer uses this — see hasRewardEngagement.
  * @param {KolMetrics | null | undefined} metrics
  * @returns {boolean}
  */
 export function meetsMinLikes(metrics) {
   if (MIN_LIKES_PER_POST <= 0) return true;
   return toNonNegativeInt(metrics?.likeCount) >= MIN_LIKES_PER_POST;
+}
+
+/**
+ * True when a post/submission has real engagement (likes, RTs, replies, or quotes).
+ * Views alone do not count. Used to decide reward eligibility — zero-engagement
+ * replies/quotes still appear on the leaderboard with score/payout 0.
+ * @param {KolMetrics | null | undefined} metrics
+ * @returns {boolean}
+ */
+export function hasRewardEngagement(metrics) {
+  return (
+    toNonNegativeInt(metrics?.likeCount) +
+      toNonNegativeInt(metrics?.retweetCount) +
+      toNonNegativeInt(metrics?.replyCount) +
+      toNonNegativeInt(metrics?.quoteCount) >
+    0
+  );
 }
 
 /**
@@ -446,27 +464,19 @@ export async function validateSubmissionTweet(sourceTweetId, submissionTweetUrl)
 
   const { tweet } = await getTweetById(submissionTweetId);
 
+  const replyTo = tweet.inReplyToId != null ? String(tweet.inReplyToId) : null;
+  const quoted = tweet.quotedTweetId != null ? String(tweet.quotedTweetId) : null;
+
   let mode = null;
-  if (tweet.inReplyToId === sourceId) {
+  if (replyTo === sourceId) {
     mode = "reply";
-  } else if (tweet.quotedTweetId === sourceId) {
+  } else if (quoted === sourceId) {
     mode = "quote";
   }
 
   if (!mode) {
     const err = new Error("Tweet must be a reply or quote of the campaign post");
     err.code = "submission_not_related";
-    throw err;
-  }
-
-  if (!meetsMinLikes(tweet.metrics)) {
-    const min = MIN_LIKES_PER_POST;
-    const err = new Error(
-      min === 1
-        ? "Post needs at least 1 like to be counted"
-        : `Post needs at least ${min} likes to be counted`,
-    );
-    err.code = "insufficient_likes";
     throw err;
   }
 
@@ -506,32 +516,51 @@ export async function refreshSubmissionMetrics(tweetId) {
 }
 
 /**
- * @param {Array<{ _id: unknown; kolWallet: string; latestScore: number }>} submissions
- * @param {number} rewardLamports
+ * @param {Array<{ _id: unknown; kolWallet?: string; payoutScore?: number; latestScore?: number; latestMetrics?: KolMetrics }>} submissions
+ * @returns {Array<{ submissionId: unknown; kolWallet: string | undefined; score: number; payoutScore: number; latestMetrics?: KolMetrics }>}
  */
-export function computeProRataPayouts(submissions, rewardLamports) {
-  const pool = BigInt(Math.floor(Number(rewardLamports) || 0));
-  if (pool <= 0n) return [];
+function rewardEligibleScoredRows(submissions) {
+  return (submissions || [])
+    .map((s) => {
+      const payoutScore = Number(s.payoutScore ?? s.latestScore) || 0;
+      return {
+        submissionId: s._id,
+        kolWallet: s.kolWallet,
+        score: Number(s.latestScore) || 0,
+        payoutScore,
+        latestMetrics: s.latestMetrics,
+      };
+    })
+    .filter((s) => s.payoutScore > 0 && hasRewardEngagement(s.latestMetrics))
+    .sort((a, b) => b.payoutScore - a.payoutScore);
+}
 
-  const eligible = submissions.filter((s) => (s.latestScore ?? 0) > 0);
-  const totalScore = eligible.reduce((sum, s) => sum + (s.latestScore ?? 0), 0);
+/**
+ * Pro-rata allocate a lamport pool by payoutScore.
+ * @param {Array<{ submissionId: unknown; kolWallet?: string; score: number; payoutScore: number }>} eligible
+ * @param {bigint} pool
+ */
+function allocateProRataByPayoutScore(eligible, pool) {
+  if (pool <= 0n || eligible.length === 0) return [];
+
+  const totalScore = eligible.reduce((sum, s) => sum + s.payoutScore, 0);
   if (totalScore <= 0) return [];
 
   const rows = eligible.map((s) => {
-    const share = (s.latestScore ?? 0) / totalScore;
+    const share = s.payoutScore / totalScore;
     const lamports = BigInt(Math.floor(share * Number(pool)));
     return {
-      submissionId: s._id,
+      submissionId: s.submissionId,
       kolWallet: s.kolWallet,
-      score: s.latestScore ?? 0,
+      score: s.score,
+      payoutScore: s.payoutScore,
       lamports: lamports > 0n ? lamports : 0n,
     };
   });
 
   const allocated = rows.reduce((sum, r) => sum + r.lamports, 0n);
   let remainder = pool - allocated;
-
-  const sorted = [...rows].sort((a, b) => b.score - a.score);
+  const sorted = [...rows].sort((a, b) => b.payoutScore - a.payoutScore);
   let i = 0;
   while (remainder > 0n && sorted.length > 0) {
     sorted[i % sorted.length].lamports += 1n;
@@ -545,8 +574,75 @@ export function computeProRataPayouts(submissions, rewardLamports) {
       submissionId: r.submissionId,
       kolWallet: r.kolWallet,
       score: r.score,
+      payoutScore: r.payoutScore,
       lamports: Number(r.lamports),
     }));
+}
+
+/**
+ * @param {Array<{ _id: unknown; kolWallet: string; latestScore: number; payoutScore?: number; latestMetrics?: KolMetrics }>} submissions
+ * @param {number} rewardLamports
+ */
+export function computeProRataPayouts(submissions, rewardLamports) {
+  const pool = BigInt(Math.floor(Number(rewardLamports) || 0));
+  if (pool <= 0n) return [];
+  return allocateProRataByPayoutScore(rewardEligibleScoredRows(submissions), pool);
+}
+
+/**
+ * Campaign payouts with optional top-N pool split.
+ * Uses payoutScore when present (creator bonus), else latestScore.
+ * @param {Array<{ _id: unknown; kolWallet: string; latestScore: number; payoutScore?: number; latestMetrics?: KolMetrics }>} submissions
+ * @param {number} rewardLamports
+ * @param {{ topN?: number | null; topNShareBps?: number | null }} [opts]
+ */
+export function computeCampaignPayouts(submissions, rewardLamports, opts = {}) {
+  const pool = BigInt(Math.floor(Number(rewardLamports) || 0));
+  if (pool <= 0n) return [];
+
+  const eligible = rewardEligibleScoredRows(submissions);
+  if (eligible.length === 0) return [];
+
+  const topNRaw = opts.topN;
+  const topN =
+    topNRaw != null && Number.isFinite(Number(topNRaw)) && Number(topNRaw) > 0
+      ? Math.min(100, Math.floor(Number(topNRaw)))
+      : null;
+
+  if (!topN || topN >= eligible.length) {
+    return allocateProRataByPayoutScore(eligible, pool);
+  }
+
+  const shareBpsRaw = Number(opts.topNShareBps);
+  const shareBps = Number.isFinite(shareBpsRaw)
+    ? Math.min(10_000, Math.max(0, Math.floor(shareBpsRaw)))
+    : 10_000;
+
+  const topBucket = eligible.slice(0, topN);
+  const restBucket = eligible.slice(topN);
+  const topPool = (pool * BigInt(shareBps)) / 10_000n;
+  const restPool = pool - topPool;
+
+  /** @type {Map<string, ReturnType<typeof allocateProRataByPayoutScore>[number]>} */
+  const byId = new Map();
+  for (const row of allocateProRataByPayoutScore(topBucket, topPool)) {
+    byId.set(String(row.submissionId), row);
+  }
+  if (restBucket.length > 0 && restPool > 0n && shareBps < 10_000) {
+    for (const row of allocateProRataByPayoutScore(restBucket, restPool)) {
+      const key = String(row.submissionId);
+      const existing = byId.get(key);
+      if (existing) {
+        existing.lamports += row.lamports;
+      } else {
+        byId.set(key, row);
+      }
+    }
+  } else if (restPool > 0n && restBucket.length === 0) {
+    // No rest engagers — dust stays unallocated (creator refund on finalize).
+  }
+
+  return [...byId.values()].filter((r) => r.lamports > 0);
 }
 
 /**

@@ -6,7 +6,8 @@ export const HACKATHON_SCOUT_DB_ID = "hackathon-scout-latest-run";
 
 export const HACKATHON_SCOUT_CRON_SECRET_ENV = "HACKATHON_SCOUT_CRON_SECRET";
 
-const DEFAULT_CRON_MS = 24 * 60 * 60 * 1000;
+/** Default: every 6h so /hackathon stays near-realtime without hammering sources. */
+const DEFAULT_CRON_MS = 6 * 60 * 60 * 1000;
 
 export const HACKATHON_SCOUT_CRON_MS = Math.max(
   60_000,

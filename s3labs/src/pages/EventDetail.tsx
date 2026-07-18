@@ -16,6 +16,7 @@ import { DiscoveryDetailShell } from "@/components/discovery/DiscoveryDetailShel
 import { EventDateChip } from "@/components/discovery/events/EventCards";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { LiveCountdown } from "@/components/ui/LiveCountdown";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -147,11 +148,26 @@ function EventDetailContent({ event }: { event: EventRecord }) {
           <dl className="space-y-3 text-sm">
             <div className="flex gap-3 rounded-xl border border-border/50 bg-muted/20 p-3">
               <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-              <div>
-                <dt className="text-xs text-muted-foreground">Date</dt>
-                <dd className="mt-0.5 font-medium">
-                  {event.dateText || formatDate(event.startAt) || "Not listed"}
-                </dd>
+              <div className="min-w-0 flex-1 space-y-2">
+                <div>
+                  <dt className="text-xs text-muted-foreground">Date</dt>
+                  <dd className="mt-0.5 font-medium">
+                    {event.dateText || formatDate(event.startAt) || "Not listed"}
+                  </dd>
+                </div>
+                {event.startAt && new Date(event.startAt).getTime() > Date.now() ? (
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-1.5">
+                      Starts in
+                    </p>
+                    <LiveCountdown
+                      endAt={event.startAt}
+                      variant="blocks"
+                      compact
+                      expiredLabel="Started"
+                    />
+                  </div>
+                ) : null}
               </div>
             </div>
             <div className="flex gap-3 rounded-xl border border-border/50 bg-muted/20 p-3">

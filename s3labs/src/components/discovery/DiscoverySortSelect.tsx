@@ -32,14 +32,14 @@ export function DiscoverySortSelect<T extends string>({
   triggerClassName,
 }: DiscoverySortSelectProps<T>) {
   return (
-    <div className={cn("flex items-center gap-2", className)}>
-      <ArrowUpDown className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+    <div className={cn("flex shrink-0 items-center gap-1.5", className)}>
+      <ArrowUpDown className="hidden h-3.5 w-3.5 text-muted-foreground sm:block" aria-hidden />
       <span className="sr-only">{label}</span>
       <Select value={value} onValueChange={(next) => onChange(next as T)}>
         <SelectTrigger
           aria-label={label}
           className={cn(
-            "h-10 w-full min-w-[10.5rem] rounded-full border-border/70 bg-card/50 sm:w-[11.5rem]",
+            "h-10 w-auto min-w-[8.5rem] rounded-full border-border/70 bg-card/50 px-3.5",
             triggerClassName,
           )}
         >

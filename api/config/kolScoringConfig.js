@@ -80,8 +80,9 @@ export const MAX_CONTRIBUTIONS_PER_HANDLE = (() => {
 })();
 
 /**
- * Minimum likes a reply/quote must have to be counted (anti-spam).
- * Set KOL_MIN_LIKES_PER_POST=0 to disable.
+ * Legacy min-likes helper (meetsMinLikes). Leaderboard now lists all replies/quotes;
+ * rewards require hasRewardEngagement (likes/RTs/replies/quotes > 0), not this gate.
+ * Kept for env compatibility / tests. Set KOL_MIN_LIKES_PER_POST=0 to disable.
  */
 export const MIN_LIKES_PER_POST = (() => {
   const raw = String(process.env.KOL_MIN_LIKES_PER_POST ?? "").trim();

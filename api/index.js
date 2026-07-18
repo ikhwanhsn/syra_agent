@@ -841,10 +841,12 @@ app.use(
         p.startsWith("/internal/s3labs-developer/run") ||
         p.startsWith("/internal/s3labs-event/run") ||
         p.startsWith("/internal/s3labs-job/run") ||
+        p.startsWith("/internal/s3labs-job/sync") ||
         p.startsWith("/internal/s3labs-telegram/webhook") ||
         p.startsWith("/internal/syra-telegram/webhook") ||
         p.startsWith("/internal/partnership-scout/run") ||
         p.startsWith("/internal/hackathons/run") ||
+        p.startsWith("/internal/events/run") ||
         p.startsWith("/internal/buyback/run") ||
         p.startsWith("/uponly-rise-market") ||
         p.startsWith("/uponly-rise-portfolio") ||
@@ -978,7 +980,8 @@ app.use(
     if (
       (p === "/internal/s3labs-developer/run" ||
         p === "/internal/s3labs-event/run" ||
-        p === "/internal/s3labs-job/run") &&
+        p === "/internal/s3labs-job/run" ||
+        p === "/internal/s3labs-job/sync") &&
       String(req.method || "").toUpperCase() === "POST"
     ) {
       const shared = (process.env.S3LABS_AGENTS_CRON_SECRET || "").trim();
@@ -998,7 +1001,7 @@ app.use(
           return true;
         }
       }
-      if (p === "/internal/s3labs-job/run") {
+      if (p === "/internal/s3labs-job/run" || p === "/internal/s3labs-job/sync") {
         const secret = (process.env.S3LABS_JOB_CRON_SECRET || "").trim();
         if (secret && (req.get("x-s3labs-job-cron-secret") || "").trim() === secret) {
           return true;
@@ -2411,6 +2414,17 @@ app.listen(PORT, () => {
     .catch((e) =>
       console.warn(
         "[s3labs-job] load failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
+
+  import("./libs/s3labs/s3labsJobSyncScheduler.js")
+    .then(({ startS3labsJobSyncScheduler }) => {
+      startS3labsJobSyncScheduler();
+    })
+    .catch((e) =>
+      console.warn(
+        "[s3labs-job-sync] load failed:",
         e instanceof Error ? e.message : e,
       ),
     );

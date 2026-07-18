@@ -1,9 +1,10 @@
-# Hackathon Scout — daily scrape (Devpost + Exa). POST /internal/hackathons/run
-name: Hackathon scout daily
+# Hackathon Scout — scrape (Devpost + Web). POST /internal/hackathons/run
+name: Hackathon scout
 
 on:
   schedule:
-    - cron: "0 1 * * *"
+    # Every 6 hours — near-realtime for s3labs /hackathon
+    - cron: "0 */6 * * *"
   workflow_dispatch: {}
 
 jobs:

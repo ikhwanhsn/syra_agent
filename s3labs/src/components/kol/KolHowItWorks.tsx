@@ -1,27 +1,51 @@
-import { ArrowRight, Award, Coins, MessageSquare, ShieldCheck, Trophy } from "lucide-react";
+import { Award, Building2, Coins, MessageSquare, Rocket, ShieldCheck, Trophy, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 
-const steps = [
+const projectSteps = [
+  {
+    number: "01",
+    icon: Rocket,
+    title: "Create & fund a campaign",
+    description:
+      "Paste your X post URL, set a SOL pool and end date. First campaign: platform fee waived. Unused pool is refunded when it ends.",
+  },
+  {
+    number: "02",
+    icon: Users,
+    title: "Attract the best KOLs",
+    description:
+      "Invite top earners from the directory, or keep it open. Optional allowlist and top-N payout split give you control.",
+  },
+  {
+    number: "03",
+    icon: Trophy,
+    title: "See results, auto-pay",
+    description:
+      "We scan replies/quotes about every 24 hours. When the campaign ends, engagers are paid pro-rata — leftovers return to you.",
+  },
+] as const;
+
+const kolSteps = [
   {
     number: "01",
     icon: MessageSquare,
     title: "Pick a live campaign",
     description:
-      "Browse active campaigns from Solana projects. Each one has a reward pool in SOL and a post they want amplified on X.",
+      "Browse active campaigns. Each has a SOL reward pool and a post to amplify on X.",
   },
   {
     number: "02",
-    icon: ArrowRight,
+    icon: Building2,
     title: "Reply or quote on X",
     description:
-      "Share your take — reply to or quote the project's post. Posts need at least 1 like to count. We auto-detect your engagement every 24 hours and combine your top posts.",
+      "You appear on the leaderboard automatically. Rewards need engagement (likes, RTs, replies, or quotes). Top posts combine (up to 3).",
   },
   {
     number: "03",
     icon: Coins,
     title: "Verify & claim SOL",
     description:
-      "When the campaign ends, verify your X account and claim your pro-rata share of the reward pool.",
+      "Link your X to your wallet. Creators who also fund a campaign get a 1.15× score bonus on payouts.",
   },
 ] as const;
 
@@ -33,39 +57,70 @@ const ENGAGEMENT_WEIGHTS = [
   { label: "Views", weight: "per 1k", note: "reach, capped" },
 ] as const;
 
+function StepGrid({
+  steps,
+}: {
+  steps: readonly {
+    number: string;
+    icon: typeof MessageSquare;
+    title: string;
+    description: string;
+  }[];
+}) {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+      {steps.map((step) => (
+        <div
+          key={step.number}
+          className="group card-premium-hover rounded-2xl border border-border/60 p-5 sm:p-6 h-full"
+        >
+          <div className="flex items-start justify-between mb-4">
+            <span className="text-3xl font-semibold text-primary/15 group-hover:text-primary/25 transition-colors tabular-nums">
+              {step.number}
+            </span>
+            <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center shadow-md">
+              <step.icon className="w-4 h-4 text-primary-foreground" />
+            </div>
+          </div>
+          <h3 className="font-semibold mb-2 tracking-tight">{step.title}</h3>
+          <p className="text-sm text-muted-foreground leading-relaxed">{step.description}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function KolHowItWorks() {
   return (
-    <section className="mb-8 sm:mb-10 min-w-0">
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-5">
-        <div>
-          <p className="eyebrow mb-2">How it works</p>
-          <h2 className="heading-section text-xl sm:text-2xl">
-            Three steps to <span className="text-gradient">earn SOL</span>
-          </h2>
+    <section className="mb-8 sm:mb-10 min-w-0 space-y-10">
+      <div>
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-5">
+          <div>
+            <p className="eyebrow mb-2">For projects</p>
+            <h2 className="heading-section text-xl sm:text-2xl">
+              Hire reach with a <span className="text-gradient">SOL pool</span>
+            </h2>
+          </div>
+          <p className="text-sm text-muted-foreground max-w-sm sm:text-right">
+            Fund amplification. KOLs compete. You get a leaderboard and auto-payouts — unused SOL comes back.
+          </p>
         </div>
-        <p className="text-sm text-muted-foreground max-w-sm sm:text-right">
-          No applications. Reply or quote on X — we track engagement automatically and you claim after verify.
-        </p>
+        <StepGrid steps={projectSteps} />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-        {steps.map((step) => (
-          <div
-            key={step.number}
-            className="group card-premium-hover rounded-2xl border border-border/60 p-5 sm:p-6 h-full"
-          >
-            <div className="flex items-start justify-between mb-4">
-              <span className="text-3xl font-semibold text-primary/15 group-hover:text-primary/25 transition-colors tabular-nums">
-                {step.number}
-              </span>
-              <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center shadow-md">
-                <step.icon className="w-4 h-4 text-primary-foreground" />
-              </div>
-            </div>
-            <h3 className="font-semibold mb-2 tracking-tight">{step.title}</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">{step.description}</p>
+      <div>
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-5">
+          <div>
+            <p className="eyebrow mb-2">For KOLs</p>
+            <h2 className="heading-section text-xl sm:text-2xl">
+              Three steps to <span className="text-gradient">earn SOL</span>
+            </h2>
           </div>
-        ))}
+          <p className="text-sm text-muted-foreground max-w-sm sm:text-right">
+            No applications. Reply or quote on X — we track engagement and you claim after verify.
+          </p>
+        </div>
+        <StepGrid steps={kolSteps} />
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -87,7 +142,7 @@ export function KolHowItWorks() {
         </div>
       </div>
 
-      <div className="mt-4 panel-glass rounded-2xl border border-border/60 p-5 sm:p-6">
+      <div className="panel-glass rounded-2xl border border-border/60 p-5 sm:p-6">
         <div className="flex items-start gap-3 mb-4">
           <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
             <ShieldCheck className="w-4 h-4 text-primary" aria-hidden />
@@ -119,7 +174,7 @@ export function KolHowItWorks() {
           <li>Engagement cannot exceed views — blocks impossible like/view ratios.</li>
           <li>Volume above your reach is capped and compressed — farming stops paying off.</li>
           <li>Credibility scales with your real follower base; verified accounts get a small bonus.</li>
-          <li>Hover any score on the leaderboard to see the full breakdown.</li>
+          <li>Wallets that create+fund a campaign get a 1.15× payout score bonus.</li>
         </ul>
       </div>
     </section>

@@ -7,6 +7,8 @@ import assert from "node:assert/strict";
 import {
   aggregateContributions,
   computeEngagementScore,
+  computeProRataPayouts,
+  hasRewardEngagement,
   meetsMinLikes,
   metricsEngagementTotal,
   metricsIncreased,
@@ -263,7 +265,26 @@ test("meetsMinLikes fails for zero likes and passes for 1+", () => {
   assert.equal(meetsMinLikes({ likeCount: 42 }), true);
 });
 
-test("pre-filtering zero-like rows excludes them from aggregateContributions", () => {
+test("hasRewardEngagement requires likes/RTs/replies/quotes — views alone do not count", () => {
+  assert.equal(hasRewardEngagement(null), false);
+  assert.equal(hasRewardEngagement({}), false);
+  assert.equal(
+    hasRewardEngagement({
+      likeCount: 0,
+      retweetCount: 0,
+      replyCount: 0,
+      quoteCount: 0,
+      viewCount: 50_000,
+    }),
+    false,
+  );
+  assert.equal(hasRewardEngagement({ likeCount: 1 }), true);
+  assert.equal(hasRewardEngagement({ retweetCount: 1 }), true);
+  assert.equal(hasRewardEngagement({ replyCount: 1 }), true);
+  assert.equal(hasRewardEngagement({ quoteCount: 1 }), true);
+});
+
+test("aggregateContributions keeps zero-engagement posts for leaderboard display", () => {
   const rows = [
     {
       tweetId: "liked",
@@ -273,21 +294,71 @@ test("pre-filtering zero-like rows excludes them from aggregateContributions", (
       score: 12,
     },
     {
-      tweetId: "spam",
-      tweetUrl: "https://x.com/a/status/spam",
+      tweetId: "zero-eng",
+      tweetUrl: "https://x.com/a/status/zero-eng",
       mode: "reply",
       metrics: { likeCount: 0, retweetCount: 0, replyCount: 0, quoteCount: 0, viewCount: 50 },
-      score: 3,
+      score: 0,
     },
   ];
 
-  const eligible = rows.filter((r) => meetsMinLikes(r.metrics));
-  assert.equal(eligible.length, 1);
-  assert.equal(eligible[0].tweetId, "liked");
-
-  const result = aggregateContributions(eligible, 3);
+  const result = aggregateContributions(rows, 3);
   assert.ok(result);
-  assert.equal(result.postCount, 1);
-  assert.equal(result.totalScore, 12);
+  assert.equal(result.postCount, 2);
   assert.equal(result.primary.tweetId, "liked");
+  assert.equal(hasRewardEngagement(result.aggregatedMetrics), true);
+
+  const zeroOnly = aggregateContributions([rows[1]], 3);
+  assert.ok(zeroOnly);
+  assert.equal(zeroOnly.postCount, 1);
+  assert.equal(hasRewardEngagement(zeroOnly.aggregatedMetrics), false);
+});
+
+test("computeProRataPayouts skips zero-engagement submissions even with score", () => {
+  const lamports = 1_000_000_000;
+  const payouts = computeProRataPayouts(
+    [
+      {
+        _id: "engaged",
+        kolWallet: "WalletEngaged",
+        latestScore: 10,
+        latestMetrics: {
+          likeCount: 5,
+          retweetCount: 0,
+          replyCount: 0,
+          quoteCount: 0,
+          viewCount: 100,
+        },
+      },
+      {
+        _id: "views-only",
+        kolWallet: "WalletViews",
+        latestScore: 8,
+        latestMetrics: {
+          likeCount: 0,
+          retweetCount: 0,
+          replyCount: 0,
+          quoteCount: 0,
+          viewCount: 50_000,
+        },
+      },
+      {
+        _id: "zero",
+        kolWallet: "WalletZero",
+        latestScore: 0,
+        latestMetrics: {
+          likeCount: 0,
+          retweetCount: 0,
+          replyCount: 0,
+          quoteCount: 0,
+          viewCount: 0,
+        },
+      },
+    ],
+    lamports,
+  );
+
+  assert.equal(payouts.length, 1);
+  assert.equal(String(payouts[0].submissionId), "engaged");
+  assert.equal(payouts[0].lamports, lamports);
 });

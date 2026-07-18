@@ -109,10 +109,62 @@ interface CampaignTweetPreviewProps {
   className?: string;
 }
 
+function CampaignTweetNoImage({
+  tweetUrl,
+  className,
+}: {
+  tweetUrl: string;
+  className?: string;
+}) {
+  return (
+    <a
+      href={tweetUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={(e) => e.stopPropagation()}
+      className={cn(
+        "group relative flex aspect-[1.91/1] w-full flex-col items-center justify-center overflow-hidden rounded-xl border border-dashed border-border/60 bg-muted/25",
+        className,
+      )}
+    >
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.45]"
+        style={{
+          backgroundImage:
+            "radial-gradient(ellipse 70% 80% at 50% 40%, hsl(var(--primary) / 0.1), transparent 65%), linear-gradient(135deg, hsl(var(--muted) / 0.5) 0%, transparent 50%)",
+        }}
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.07]"
+        style={{
+          backgroundImage:
+            "linear-gradient(hsl(var(--border)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px)",
+          backgroundSize: "18px 18px",
+        }}
+        aria-hidden
+      />
+      <span className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-border/60 bg-background/70 text-muted-foreground shadow-sm transition-colors group-hover:border-primary/30 group-hover:text-primary">
+        <ImageIcon className="h-5 w-5" aria-hidden />
+      </span>
+      <span className="relative mt-2.5 text-xs font-medium tracking-wide text-muted-foreground">
+        No image
+      </span>
+      <span className="relative mt-0.5 text-[10px] text-muted-foreground/70">
+        Open source post
+      </span>
+    </a>
+  );
+}
+
 /** Compact image preview for campaign browse cards. */
 export function CampaignTweetPreview({ media, tweetUrl, className }: CampaignTweetPreviewProps) {
+  const [failed, setFailed] = useState(false);
   const items = media?.filter((item) => item.url) ?? [];
-  if (items.length === 0) return null;
+
+  if (items.length === 0 || failed) {
+    return <CampaignTweetNoImage tweetUrl={tweetUrl} className={className} />;
+  }
 
   const preview = items.find((item) => !isVideoType(item.mediaType)) ?? items[0];
 
@@ -133,6 +185,7 @@ export function CampaignTweetPreview({ media, tweetUrl, className }: CampaignTwe
         loading="lazy"
         decoding="async"
         referrerPolicy="no-referrer"
+        onError={() => setFailed(true)}
         className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
       />
       {items.length > 1 ? (

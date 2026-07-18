@@ -12,14 +12,16 @@ import KolPendingPayoutBalance from "../models/KolPendingPayoutBalance.js";
 import KolReputation from "../models/KolReputation.js";
 import {
   aggregateContributions,
-  computeProRataPayouts,
+  computeCampaignPayouts,
   fetchSourceTweet,
+  hasRewardEngagement,
   normalizeWallet,
   scoreSubmission,
   validateSubmissionTweet,
 } from "./kolEngagementService.js";
-import { isAdminWalletAddress } from "./adminWallet.js";
 import {
+  CREATOR_SCORE_BONUS,
+  DEFAULT_PAYOUT_TOP_N_SHARE_BPS,
   KOL_PLATFORM_FEE_SOL,
   MAX_DURATION_DAYS,
   MIN_DURATION_DAYS,
@@ -29,6 +31,7 @@ import {
   MIN_KOL_PAYOUT_SOL,
   MIN_TOPUP_KOL_REWARD_SOL,
   computeTopUpDeposit,
+  getCreatePlatformFeeLamports,
   getS3labsFeeWallet,
   minTotalDepositSol,
   solToLamports,
@@ -359,6 +362,27 @@ function serializeCampaign(campaign) {
     endAt: doc.endAt ? new Date(doc.endAt).toISOString() : null,
     durationDays: doc.durationDays,
     requireCreatedOneCampaign: Boolean(doc.requireCreatedOneCampaign),
+    allowedHandleKeys: Array.isArray(doc.allowedHandleKeys)
+      ? doc.allowedHandleKeys.map((h) => String(h || "").trim()).filter(Boolean)
+      : [],
+    payoutTopN:
+      doc.payoutTopN != null && Number(doc.payoutTopN) > 0
+        ? Math.floor(Number(doc.payoutTopN))
+        : null,
+    payoutTopNShareBps:
+      doc.payoutTopNShareBps != null
+        ? Math.min(
+            10_000,
+            Math.max(0, Math.floor(Number(doc.payoutTopNShareBps))),
+          )
+        : DEFAULT_PAYOUT_TOP_N_SHARE_BPS,
+    creatorRefundLamports: doc.creatorRefundLamports ?? null,
+    creatorRefundSol:
+      doc.creatorRefundLamports != null
+        ? Number(doc.creatorRefundLamports) / LAMPORTS_PER_SOL
+        : null,
+    creatorRefundTxSignature: doc.creatorRefundTxSignature ?? null,
+    creatorRefundStatus: doc.creatorRefundStatus ?? null,
     lastSnapshotAt: doc.lastSnapshotAt
       ? new Date(doc.lastSnapshotAt).toISOString()
       : null,
@@ -433,6 +457,9 @@ function serializeSubmission(submission) {
  *   rewardSol: number;
  *   durationDays: number;
  *   requireCreatedOneCampaign?: boolean;
+ *   allowedHandles?: string[];
+ *   payoutTopN?: number | null;
+ *   payoutTopNShareBps?: number | null;
  * }} input
  */
 export async function createCampaign(input) {
@@ -446,10 +473,33 @@ export async function createCampaign(input) {
     throw err;
   }
 
-  // Participation rules are admin-only; ignore the flag for non-admin creators.
-  const requireCreatedOneCampaign =
-    Boolean(input.requireCreatedOneCampaign) &&
-    isAdminWalletAddress(projectWallet);
+  // Any creator may opt into the growth gate (default OFF).
+  const requireCreatedOneCampaign = Boolean(input.requireCreatedOneCampaign);
+  const allowedHandleKeys = normalizeAllowedHandleKeys(
+    input.allowedHandles ?? input.allowedHandleKeys ?? [],
+  );
+
+  let payoutTopN = null;
+  if (input.payoutTopN != null && input.payoutTopN !== "") {
+    const n = Math.floor(Number(input.payoutTopN));
+    if (!Number.isFinite(n) || n < 1 || n > 100) {
+      const err = new Error("payoutTopN must be between 1 and 100");
+      err.code = "invalid_payout_top_n";
+      throw err;
+    }
+    payoutTopN = n;
+  }
+
+  let payoutTopNShareBps = DEFAULT_PAYOUT_TOP_N_SHARE_BPS;
+  if (input.payoutTopNShareBps != null && input.payoutTopNShareBps !== "") {
+    const bps = Math.floor(Number(input.payoutTopNShareBps));
+    if (!Number.isFinite(bps) || bps < 0 || bps > 10_000) {
+      const err = new Error("payoutTopNShareBps must be between 0 and 10000");
+      err.code = "invalid_payout_share";
+      throw err;
+    }
+    payoutTopNShareBps = bps;
+  }
 
   const title = String(input.title || "").trim();
   if (!title) {
@@ -490,12 +540,19 @@ export async function createCampaign(input) {
     throw err;
   }
 
+  const hasFundedBefore = await walletHasFundedCampaign(projectWallet);
+  const platformFeeLamports = getCreatePlatformFeeLamports(!hasFundedBefore);
   const rewardLamports = solToLamports(rewardSol);
-  const { kolPoolLamports, platformFeeLamports } =
-    splitRewardPool(rewardLamports);
+  const { kolPoolLamports, platformFeeLamports: feeStored } = splitRewardPool(
+    rewardLamports,
+    platformFeeLamports,
+  );
   if (kolPoolLamports < MIN_KOL_REWARD_LAMPORTS) {
+    const feeSol = feeStored / LAMPORTS_PER_SOL;
     const err = new Error(
-      `Minimum KOL reward is ${MIN_KOL_REWARD_SOL} SOL — deposit at least ${minTotalDepositSol()} SOL total (${MIN_KOL_REWARD_SOL} SOL reward + ${KOL_PLATFORM_FEE_SOL} SOL platform fee)`,
+      feeStored > 0
+        ? `Minimum KOL reward is ${MIN_KOL_REWARD_SOL} SOL — deposit at least ${minTotalDepositSol(feeSol)} SOL total (${MIN_KOL_REWARD_SOL} SOL reward + ${feeSol} SOL platform fee)`
+        : `Minimum KOL reward is ${MIN_KOL_REWARD_SOL} SOL (first campaign: platform fee waived)`,
     );
     err.code = "reward_too_low";
     throw err;
@@ -515,8 +572,13 @@ export async function createCampaign(input) {
     title,
     description: String(input.description || "").trim(),
     rewardLamports,
+    kolRewardPoolLamports: kolPoolLamports,
+    platformFeeLamports: feeStored,
     durationDays,
     requireCreatedOneCampaign,
+    allowedHandleKeys,
+    payoutTopN,
+    payoutTopNShareBps,
     status: "pending_deposit",
   });
 
@@ -528,9 +590,10 @@ export async function createCampaign(input) {
       rewardSol: rewardLamports / LAMPORTS_PER_SOL,
       kolRewardPoolLamports: kolPoolLamports,
       kolRewardPoolSol: kolPoolLamports / LAMPORTS_PER_SOL,
-      platformFeeLamports,
-      platformFeeSol: platformFeeLamports / LAMPORTS_PER_SOL,
+      platformFeeLamports: feeStored,
+      platformFeeSol: feeStored / LAMPORTS_PER_SOL,
       platformFeeWallet: getS3labsFeeWallet(),
+      firstCampaignFeeWaived: !hasFundedBefore,
     },
   };
 }
@@ -582,12 +645,19 @@ export async function confirmCampaignDeposit(campaignId, input) {
   );
 
   campaign.depositTxSignature = txSignature;
-  const { kolPoolLamports, platformFeeLamports } = splitRewardPool(
-    campaign.rewardLamports,
-  );
-  campaign.kolRewardPoolLamports = kolPoolLamports;
-  campaign.platformFeeLamports = platformFeeLamports;
-  campaign.platformFeeStatus = "pending";
+  // Prefer fee/pool stored at create (supports first-campaign fee waiver).
+  if (
+    campaign.kolRewardPoolLamports == null ||
+    campaign.platformFeeLamports == null
+  ) {
+    const hasFundedBefore = await walletHasFundedCampaign(projectWallet);
+    const feeLamports = getCreatePlatformFeeLamports(!hasFundedBefore);
+    const split = splitRewardPool(campaign.rewardLamports, feeLamports);
+    campaign.kolRewardPoolLamports = split.kolPoolLamports;
+    campaign.platformFeeLamports = split.platformFeeLamports;
+  }
+  campaign.platformFeeStatus =
+    (campaign.platformFeeLamports ?? 0) > 0 ? "pending" : "confirmed";
   campaign.status = "active";
   campaign.startAt = now;
   campaign.endAt = endAt;
@@ -1041,6 +1111,58 @@ async function walletHasCreatedCampaign(kolWallet) {
   return ownedCount >= 1;
 }
 
+/** Alias — funded = active or completed campaign as project. */
+const walletHasFundedCampaign = walletHasCreatedCampaign;
+
+/**
+ * @param {string[]} rawHandles
+ * @returns {string[]}
+ */
+function normalizeAllowedHandleKeys(rawHandles) {
+  if (!Array.isArray(rawHandles)) return [];
+  const keys = [];
+  const seen = new Set();
+  for (const raw of rawHandles) {
+    const key = normalizeHandle(raw);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    keys.push(key);
+    if (keys.length >= 100) break;
+  }
+  return keys;
+}
+
+/**
+ * @param {import("../models/KolCampaign.js").default | Record<string, unknown>} campaign
+ * @param {Record<string, unknown>} submission
+ */
+function passesAllowlist(campaign, submission) {
+  const allowed = Array.isArray(campaign.allowedHandleKeys)
+    ? campaign.allowedHandleKeys.map((h) => normalizeHandle(h)).filter(Boolean)
+    : [];
+  if (allowed.length === 0) return true;
+  const handleKey = normalizeHandle(
+    submission.authorHandleKey || submission.authorHandle,
+  );
+  return Boolean(handleKey && allowed.includes(handleKey));
+}
+
+/**
+ * @param {import("../models/KolCampaign.js").default | Record<string, unknown>} campaign
+ */
+function payoutOptsFromCampaign(campaign) {
+  return {
+    topN:
+      campaign.payoutTopN != null && Number(campaign.payoutTopN) > 0
+        ? Math.floor(Number(campaign.payoutTopN))
+        : null,
+    topNShareBps:
+      campaign.payoutTopNShareBps != null
+        ? Math.floor(Number(campaign.payoutTopNShareBps))
+        : DEFAULT_PAYOUT_TOP_N_SHARE_BPS,
+  };
+}
+
 /**
  * After a wallet funds its first campaign, refresh projections on gated campaigns
  * where they appear on the leaderboard so unlocked rows stop showing 0 SOL.
@@ -1204,11 +1326,71 @@ async function buildRewardEligibilityMap(campaign, submissions) {
  * @param {Array<Record<string, unknown>>} submissions
  */
 async function filterRewardEligibleSubmissions(campaign, submissions) {
-  const scored = submissions.filter((s) => (s.latestScore ?? 0) > 0);
-  if (!campaign.requireCreatedOneCampaign) return scored;
+  let scored = submissions.filter(
+    (s) => (s.latestScore ?? 0) > 0 && hasRewardEngagement(s.latestMetrics),
+  );
+  scored = scored.filter((s) => passesAllowlist(campaign, s));
 
-  const eligibilityMap = await buildRewardEligibilityMap(campaign, scored);
-  return scored.filter((s) => eligibilityMap.get(String(s._id)) === true);
+  if (campaign.requireCreatedOneCampaign) {
+    const eligibilityMap = await buildRewardEligibilityMap(campaign, scored);
+    scored = scored.filter((s) => eligibilityMap.get(String(s._id)) === true);
+  }
+
+  const handlesNeedingLookup = new Set();
+  for (const s of scored) {
+    if (!normalizeWallet(s.kolWallet)) {
+      const handleKey = s.authorHandleKey || normalizeHandle(s.authorHandle);
+      if (handleKey) handlesNeedingLookup.add(handleKey);
+    }
+  }
+  const handleKeys = [...handlesNeedingLookup];
+  const [verifiedWalletsByHandle, creatorWalletsByHandle] = await Promise.all([
+    getVerifiedWalletsForHandles(handleKeys),
+    getCreatorWalletsBySourceHandleKeys(handleKeys),
+  ]);
+
+  /** @type {Map<string, boolean>} */
+  const creatorMap = new Map();
+  /** @type {Map<string, string>} */
+  const submissionWallet = new Map();
+
+  for (const s of scored) {
+    const handleKey = s.authorHandleKey || normalizeHandle(s.authorHandle);
+    let wallet = normalizeWallet(s.kolWallet);
+    if (!wallet && handleKey) {
+      wallet =
+        verifiedWalletsByHandle.get(handleKey) ??
+        creatorWalletsByHandle.get(handleKey) ??
+        null;
+    }
+    if (wallet) {
+      submissionWallet.set(String(s._id), wallet);
+      if (!creatorMap.has(wallet)) {
+        creatorMap.set(wallet, await walletHasFundedCampaign(wallet));
+      }
+    }
+  }
+
+  return scored.map((s) => {
+    const wallet = submissionWallet.get(String(s._id));
+    const isCreator = wallet ? creatorMap.get(wallet) === true : false;
+    const base = Number(s.latestScore) || 0;
+    const payoutScore = isCreator
+      ? Math.round(base * CREATOR_SCORE_BONUS * 10) / 10
+      : base;
+    return { ...s, payoutScore, creatorBonusApplied: isCreator && base > 0 };
+  });
+}
+
+/**
+ * Build payout rows for a campaign (creator bonus + allowlist + top-N).
+ * @param {import("../models/KolCampaign.js").default | Record<string, unknown>} campaign
+ * @param {Array<Record<string, unknown>>} submissions
+ * @param {number} kolPool
+ */
+async function computeEligibleCampaignPayouts(campaign, submissions, kolPool) {
+  const eligible = await filterRewardEligibleSubmissions(campaign, submissions);
+  return computeCampaignPayouts(eligible, kolPool, payoutOptsFromCampaign(campaign));
 }
 
 /**
@@ -1292,26 +1474,30 @@ export async function getCampaignDetail(campaignId, opts = {}) {
     submissions,
   );
   const kolPool = getCampaignKolPoolLamports(campaign);
-  const scoredSubmissions = submissions.filter((s) => (s.latestScore ?? 0) > 0);
-  const potentialPayouts = computeProRataPayouts(scoredSubmissions, kolPool);
+  const livePayouts = await computeEligibleCampaignPayouts(
+    campaign,
+    submissions,
+    kolPool,
+  );
+  const liveProjectedMap = new Map(
+    livePayouts.map((p) => [String(p.submissionId), p.lamports]),
+  );
+
+  // Potential shares ignoring the create-campaign gate (locked-row UI).
+  const openCampaignView = {
+    ...(campaign.toObject ? campaign.toObject() : campaign),
+    requireCreatedOneCampaign: false,
+  };
+  const openPayouts = await computeEligibleCampaignPayouts(
+    openCampaignView,
+    submissions,
+    kolPool,
+  );
   const potentialPayoutMap = new Map(
-    potentialPayouts.map((p) => [String(p.submissionId), p.lamports]),
+    openPayouts.map((p) => [String(p.submissionId), p.lamports]),
   );
 
-  // Live eligible-pool projections — stored projectedLamports can be stale until the
-  // next snapshot after someone unlocks by creating a campaign.
-  let liveProjectedMap = new Map(
-    scoredSubmissions.map((s) => [String(s._id), s.projectedLamports ?? 0]),
-  );
-  if (campaign.requireCreatedOneCampaign) {
-    const eligibleSubmissions = scoredSubmissions.filter(
-      (s) => rewardEligibilityMap.get(String(s._id)) === true,
-    );
-    const eligiblePayouts = computeProRataPayouts(eligibleSubmissions, kolPool);
-    liveProjectedMap = new Map(
-      eligiblePayouts.map((p) => [String(p.submissionId), p.lamports]),
-    );
-
+  if (campaign.requireCreatedOneCampaign || campaign.payoutTopN != null) {
     const projectionsStale = submissions.some((s) => {
       const live = liveProjectedMap.get(String(s._id)) ?? 0;
       return (s.projectedLamports ?? 0) !== live;
@@ -1326,6 +1512,12 @@ export async function getCampaignDetail(campaignId, opts = {}) {
     }
   }
 
+  const hasAllowlist =
+    Array.isArray(campaign.allowedHandleKeys) &&
+    campaign.allowedHandleKeys.length > 0;
+  const showEligibility =
+    Boolean(campaign.requireCreatedOneCampaign) || hasAllowlist;
+
   return {
     campaign: {
       ...serializeCampaign(campaign),
@@ -1336,17 +1528,23 @@ export async function getCampaignDetail(campaignId, opts = {}) {
     },
     leaderboard: submissions.map((s) => {
       const submissionId = String(s._id);
-      const liveProjectedLamports = campaign.requireCreatedOneCampaign
-        ? (liveProjectedMap.get(submissionId) ?? 0)
-        : (s.projectedLamports ?? 0);
+      const onAllowlist = passesAllowlist(campaign, s);
+      const gateOk = campaign.requireCreatedOneCampaign
+        ? rewardEligibilityMap.get(submissionId) === true
+        : true;
+      const rewardEligible = showEligibility
+        ? onAllowlist && gateOk
+        : null;
+      const liveProjectedLamports =
+        showEligibility
+          ? (liveProjectedMap.get(submissionId) ?? 0)
+          : (liveProjectedMap.get(submissionId) ?? s.projectedLamports ?? 0);
       return {
         ...serializeSubmission(s),
         projectedLamports: liveProjectedLamports,
         projectedSol: liveProjectedLamports / LAMPORTS_PER_SOL,
-        rewardEligible: campaign.requireCreatedOneCampaign
-          ? rewardEligibilityMap.get(submissionId) === true
-          : null,
-        potentialProjectedSol: campaign.requireCreatedOneCampaign
+        rewardEligible,
+        potentialProjectedSol: showEligibility
           ? (potentialPayoutMap.get(submissionId) ?? 0) / LAMPORTS_PER_SOL
           : null,
         payout: payoutMap.has(submissionId)
@@ -1505,11 +1703,11 @@ export async function refreshCampaignProjections(campaignId) {
     campaignId: campaign._id,
   }).lean();
   const kolPool = getCampaignKolPoolLamports(campaign);
-  const eligibleSubmissions = await filterRewardEligibleSubmissions(
+  const payouts = await computeEligibleCampaignPayouts(
     campaign,
     submissions,
+    kolPool,
   );
-  const payouts = computeProRataPayouts(eligibleSubmissions, kolPool);
   const payoutMap = new Map(
     payouts.map((p) => [String(p.submissionId), p.lamports]),
   );
@@ -1528,10 +1726,10 @@ export async function refreshCampaignProjections(campaignId) {
   );
 }
 
-/** Skip discovery/metric refresh when campaign was snapshotted recently (default 24h). */
+/** Skip discovery/metric refresh when campaign was snapshotted recently (default 6h). */
 const METRICS_FRESH_MS = (() => {
   const n = Number.parseInt(String(process.env.KOL_METRICS_FRESH_MS ?? "").trim(), 10);
-  return Number.isFinite(n) && n >= 60_000 ? n : 24 * 60 * 60 * 1000;
+  return Number.isFinite(n) && n >= 60_000 ? n : 6 * 60 * 60 * 1000;
 })();
 
 /**
@@ -1851,11 +2049,11 @@ export async function finalizeCampaign(campaignId) {
   );
   const pointsResults = await awardCampaignPoints(campaign._id, submissions);
   const kolPool = getCampaignKolPoolLamports(campaign);
-  const eligibleSubmissions = await filterRewardEligibleSubmissions(
+  const payoutRows = await computeEligibleCampaignPayouts(
     campaign,
     submissions,
+    kolPool,
   );
-  const payoutRows = computeProRataPayouts(eligibleSubmissions, kolPool);
   const platformFeeLamports = getCampaignPlatformFeeLamports(campaign);
 
   if (!isPoolWalletConfigured()) {
@@ -1892,13 +2090,24 @@ export async function finalizeCampaign(campaignId) {
         lamports: platformFeeLamports,
       });
     }
-  } else if (campaign.platformFeeStatus === "confirmed") {
+  } else if (
+    campaign.platformFeeStatus === "confirmed" ||
+    platformFeeLamports <= 0
+  ) {
+    if (platformFeeLamports <= 0) {
+      campaign.platformFeeStatus = "confirmed";
+    }
     results.push({ type: "platform_fee", status: "confirmed", skipped: true });
   }
 
   const payoutMap = new Map(
     payoutRows.map((row) => [String(row.submissionId), row.lamports]),
   );
+  const allocatedKolLamports = payoutRows.reduce(
+    (sum, row) => sum + (row.lamports || 0),
+    0,
+  );
+  const refundLamports = Math.max(0, kolPool - allocatedKolLamports);
 
   for (const submission of submissions) {
     const earnedLamports = payoutMap.get(String(submission._id)) ?? 0;
@@ -1919,6 +2128,40 @@ export async function finalizeCampaign(campaignId) {
       status: earnedLamports > 0 ? "claimable" : "unearned",
       lamports: earnedLamports,
     });
+  }
+
+  if (refundLamports > 0 && campaign.creatorRefundStatus !== "confirmed") {
+    campaign.creatorRefundLamports = refundLamports;
+    try {
+      const refundSent = await sendPayout({
+        toWallet: campaign.projectWallet,
+        lamports: refundLamports,
+      });
+      campaign.creatorRefundTxSignature = refundSent.txSignature;
+      campaign.creatorRefundStatus = "confirmed";
+      results.push({
+        type: "creator_refund",
+        status: "confirmed",
+        txSignature: refundSent.txSignature,
+        lamports: refundLamports,
+        toWallet: campaign.projectWallet,
+      });
+    } catch (e) {
+      campaign.creatorRefundStatus = "failed";
+      results.push({
+        type: "creator_refund",
+        status: "failed",
+        error: e instanceof Error ? e.message : String(e),
+        lamports: refundLamports,
+      });
+      console.warn(
+        `[kol] creator refund failed campaign=${campaign._id}:`,
+        e instanceof Error ? e.message : e,
+      );
+    }
+  } else if (refundLamports <= 0) {
+    campaign.creatorRefundLamports = 0;
+    campaign.creatorRefundStatus = "skipped";
   }
 
   campaign.status = "completed";
@@ -1951,6 +2194,7 @@ export async function finalizeCampaign(campaignId) {
     reputation: reputationResults,
     points: pointsResults,
     autoDistributed,
+    creatorRefundLamports: campaign.creatorRefundLamports ?? 0,
   };
 }
 
@@ -2753,6 +2997,139 @@ export async function backfillKolReputations(opts = {}) {
   }
 
   return { campaignsProcessed: campaigns.length, credited: results };
+}
+
+/**
+ * Creator dashboard — campaigns owned by a wallet with participation stats.
+ * @param {string} wallet
+ */
+export async function listWalletCampaigns(wallet) {
+  assertMongo();
+  const projectWallet = normalizeWallet(wallet);
+  if (!projectWallet) {
+    const err = new Error("wallet is required");
+    err.code = "invalid_wallet";
+    throw err;
+  }
+
+  const campaigns = await KolCampaign.find({ projectWallet })
+    .sort({ createdAt: -1 })
+    .lean();
+
+  const campaignIds = campaigns.map((c) => c._id);
+  const [submissionStats, payoutStats] = await Promise.all([
+    KolSubmission.aggregate([
+      { $match: { campaignId: { $in: campaignIds } } },
+      {
+        $group: {
+          _id: "$campaignId",
+          participants: { $sum: 1 },
+          engaged: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $gt: [{ $ifNull: ["$latestScore", 0] }, 0] },
+                    {
+                      $gt: [
+                        {
+                          $add: [
+                            { $ifNull: ["$latestMetrics.likeCount", 0] },
+                            { $ifNull: ["$latestMetrics.retweetCount", 0] },
+                            { $ifNull: ["$latestMetrics.replyCount", 0] },
+                            { $ifNull: ["$latestMetrics.quoteCount", 0] },
+                          ],
+                        },
+                        0,
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          projectedLamports: { $sum: { $ifNull: ["$projectedLamports", 0] } },
+          earnedLamports: { $sum: { $ifNull: ["$earnedLamports", 0] } },
+        },
+      },
+    ]),
+    KolPayout.aggregate([
+      {
+        $match: {
+          campaignId: { $in: campaignIds },
+          status: "confirmed",
+        },
+      },
+      {
+        $group: {
+          _id: "$campaignId",
+          paidLamports: { $sum: { $ifNull: ["$lamports", 0] } },
+        },
+      },
+    ]),
+  ]);
+
+  const statsById = new Map(
+    submissionStats.map((row) => [String(row._id), row]),
+  );
+  const paidById = new Map(
+    payoutStats.map((row) => [String(row._id), row.paidLamports ?? 0]),
+  );
+
+  const hasFundedBefore = await walletHasFundedCampaign(projectWallet);
+
+  return {
+    wallet: projectWallet,
+    firstCampaignFeeWaived: !hasFundedBefore,
+    campaigns: campaigns.map((c) => {
+      const id = String(c._id);
+      const stats = statsById.get(id);
+      const serialized = serializeCampaign(c);
+      return {
+        ...serialized,
+        participants: stats?.participants ?? 0,
+        engagedParticipants: stats?.engaged ?? 0,
+        projectedLamports: stats?.projectedLamports ?? 0,
+        projectedSol: (stats?.projectedLamports ?? 0) / LAMPORTS_PER_SOL,
+        earnedLamports: stats?.earnedLamports ?? 0,
+        earnedSol: (stats?.earnedLamports ?? 0) / LAMPORTS_PER_SOL,
+        paidLamports: paidById.get(id) ?? 0,
+        paidSol: (paidById.get(id) ?? 0) / LAMPORTS_PER_SOL,
+      };
+    }),
+  };
+}
+
+/**
+ * Fee preview for create form (wallet-aware first-campaign waiver).
+ * @param {string | null | undefined} wallet
+ */
+export async function getKolConfigForWallet(wallet) {
+  const projectWallet = normalizeWallet(wallet);
+  let firstCampaignFeeWaived = false;
+  let platformFeeSol = KOL_PLATFORM_FEE_SOL;
+  if (projectWallet && isMongooseConnected()) {
+    const hasFunded = await walletHasFundedCampaign(projectWallet);
+    firstCampaignFeeWaived = !hasFunded;
+    platformFeeSol = firstCampaignFeeWaived ? 0 : KOL_PLATFORM_FEE_SOL;
+  }
+  return {
+    poolWalletAddress: getPoolWalletAddress(),
+    minRewardSol: minTotalDepositSol(platformFeeSol),
+    minKolRewardSol: MIN_KOL_REWARD_SOL,
+    minDurationDays: MIN_DURATION_DAYS,
+    maxDurationDays: MAX_DURATION_DAYS,
+    platformFeeSol,
+    platformFeeSolDefault: KOL_PLATFORM_FEE_SOL,
+    firstCampaignFeeWaived,
+    creatorScoreBonus: CREATOR_SCORE_BONUS,
+    minTopUpKolRewardSol: MIN_TOPUP_KOL_REWARD_SOL,
+    minPayoutSol: MIN_KOL_PAYOUT_SOL,
+    platformFeeWallet: getS3labsFeeWallet(),
+    discoveryIntervalHours: 24,
+  };
 }
 
 /**

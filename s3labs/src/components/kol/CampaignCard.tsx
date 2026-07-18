@@ -1,8 +1,10 @@
-import { ExternalLink, Users, Clock, Coins, ArrowRight, Check } from "lucide-react";
+import { ExternalLink, Users, Clock, Coins, ArrowRight, Check, Crown, Medal } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useMemo } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { LiveCountdown } from "@/components/ui/LiveCountdown";
 import { CampaignTweetPreview } from "@/components/kol/SourceTweetMedia";
 import type { KolCampaign } from "@/lib/kolApi";
 import { getKolRewardSol } from "@/lib/kolApi";
@@ -12,23 +14,133 @@ import {
   getCampaignDisplayStyle,
   isCampaignLive,
 } from "@/lib/kolCampaignStatus";
-import { formatSol, formatTimeLeft } from "@/lib/kolFormat";
+import { formatSol } from "@/lib/kolFormat";
 import { cn } from "@/lib/utils";
+
+type RewardTier = 1 | 2 | 3;
+
+const REWARD_TIER_META: Record<
+  RewardTier,
+  { label: string; icon: typeof Crown; badgeClass: string }
+> = {
+  1: {
+    label: "Top reward",
+    icon: Crown,
+    badgeClass:
+      "border-amber-400/45 bg-amber-500/15 text-amber-700 dark:text-amber-300",
+  },
+  2: {
+    label: "High reward",
+    icon: Medal,
+    badgeClass:
+      "border-slate-300/50 bg-slate-400/15 text-slate-700 dark:text-slate-200",
+  },
+  3: {
+    label: "Top 3",
+    icon: Medal,
+    badgeClass:
+      "border-orange-400/45 bg-orange-500/15 text-orange-700 dark:text-orange-300",
+  },
+};
+
+/** Highest reward → tier 1–3 among the given campaigns. */
+function getTopRewardTiersMap(campaigns: KolCampaign[]): Map<string, RewardTier> {
+  const ranked = [...campaigns]
+    .map((campaign) => ({
+      id: campaign.id,
+      reward: getKolRewardSol(campaign),
+    }))
+    .sort((a, b) => {
+      if (b.reward !== a.reward) return b.reward - a.reward;
+      return a.id.localeCompare(b.id);
+    });
+
+  const map = new Map<string, RewardTier>();
+  for (let i = 0; i < Math.min(3, ranked.length); i++) {
+    if (ranked[i].reward <= 0) continue;
+    map.set(ranked[i].id, (i + 1) as RewardTier);
+  }
+  return map;
+}
+
+function Bone({ className }: { className?: string }) {
+  return <div className={cn("skeleton-bone", className)} aria-hidden />;
+}
+
+export function CampaignCardSkeleton() {
+  return (
+    <article className="flex min-w-0 flex-col gap-4 rounded-2xl border border-border/60 p-4 sm:p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1 space-y-2">
+          <Bone className="h-3 w-16 rounded-full" />
+          <Bone className="h-5 w-[70%] rounded-md" />
+        </div>
+        <Bone className="h-6 w-16 shrink-0 rounded-full" />
+      </div>
+      <Bone className="h-3 w-28 rounded-md" />
+      <Bone className="aspect-[1.91/1] w-full rounded-xl" />
+      <div className="space-y-2">
+        <Bone className="h-3.5 w-full rounded-md" />
+        <Bone className="h-3.5 w-[85%] rounded-md" />
+      </div>
+      <Bone className="h-12 w-full rounded-xl" />
+      <div className="grid grid-cols-2 gap-3">
+        <Bone className="h-4 w-24 rounded-md" />
+        <Bone className="h-4 w-20 rounded-md" />
+      </div>
+      <Bone className="h-9 w-32 rounded-full" />
+    </article>
+  );
+}
+
+export function CampaignBrowseSkeleton({ count = 6 }: { count?: number }) {
+  return (
+    <div
+      className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+      aria-busy="true"
+      aria-live="polite"
+    >
+      <span className="sr-only">Updating campaign list…</span>
+      {Array.from({ length: count }, (_, i) => (
+        <div
+          key={i}
+          className="animate-fade-in opacity-0"
+          style={{ animationDelay: `${i * 60}ms`, animationFillMode: "forwards" }}
+        >
+          <CampaignCardSkeleton />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 interface CampaignCardProps {
   campaign: KolCampaign;
   onSelect?: (id: string) => void;
+  /** 1 = gold, 2 = silver, 3 = bronze — top reward pool ranks. */
+  rewardTier?: RewardTier;
 }
 
-export function CampaignCard({ campaign, onSelect }: CampaignCardProps) {
+export function CampaignCard({ campaign, onSelect, rewardTier }: CampaignCardProps) {
   const rewardSol = getKolRewardSol(campaign);
   const displayPhase = getCampaignDisplayPhase(campaign);
   const isLive = isCampaignLive(campaign);
-  const timeLeft = formatTimeLeft(campaign.endAt);
   const participated = campaign.participated === true;
+  const tierMeta = rewardTier ? REWARD_TIER_META[rewardTier] : null;
+  const TierIcon = tierMeta?.icon;
 
   return (
-    <article className="card-premium-hover rounded-2xl border border-border/60 p-4 sm:p-5 flex flex-col gap-4 min-w-0">
+    <article
+      className={cn(
+        "card-premium-hover flex min-w-0 flex-col gap-4 rounded-2xl border border-border/60 p-4 sm:p-5",
+        rewardTier && "campaign-tier-card",
+        rewardTier === 1 && "campaign-tier-1",
+        rewardTier === 2 && "campaign-tier-2",
+        rewardTier === 3 && "campaign-tier-3",
+      )}
+    >
+      {rewardTier ? <span className="campaign-tier-sheen" aria-hidden /> : null}
+
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="eyebrow mb-1">
@@ -41,6 +153,15 @@ export function CampaignCard({ campaign, onSelect }: CampaignCardProps) {
           <h3 className="font-semibold text-lg tracking-tight truncate">{campaign.title}</h3>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1.5">
+          {tierMeta && TierIcon ? (
+            <Badge
+              variant="outline"
+              className={cn("gap-1 shrink-0 font-semibold", tierMeta.badgeClass)}
+            >
+              <TierIcon className="w-3 h-3" aria-hidden />
+              {tierMeta.label}
+            </Badge>
+          ) : null}
           <Badge variant="outline" className={cn("shrink-0", getCampaignDisplayStyle(displayPhase))}>
             {getCampaignDisplayLabel(displayPhase)}
           </Badge>
@@ -92,7 +213,20 @@ export function CampaignCard({ campaign, onSelect }: CampaignCardProps) {
         </div>
         <div className="flex items-center gap-2 text-muted-foreground min-w-0">
           <Clock className="w-4 h-4 text-primary shrink-0" />
-          <span className="truncate">{isLive ? timeLeft : timeLeft === "Ended" ? "Ended" : `${campaign.durationDays} days`}</span>
+          {isLive ? (
+            <LiveCountdown
+              endAt={campaign.endAt}
+              compact
+              showIcon={false}
+              className="min-w-0 truncate text-muted-foreground"
+            />
+          ) : (
+            <span className="truncate">
+              {displayPhase === "finalizing" || displayPhase === "completed"
+                ? "Ended"
+                : `${campaign.durationDays} days`}
+            </span>
+          )}
         </div>
       </div>
 
@@ -133,9 +267,20 @@ export function CampaignCard({ campaign, onSelect }: CampaignCardProps) {
 interface CampaignGridProps {
   campaigns: KolCampaign[];
   onSelect?: (id: string) => void;
+  /** Highlight the 3 highest reward pools in this list. */
+  highlightTopRewards?: boolean;
 }
 
-export function CampaignGrid({ campaigns, onSelect }: CampaignGridProps) {
+export function CampaignGrid({
+  campaigns,
+  onSelect,
+  highlightTopRewards = false,
+}: CampaignGridProps) {
+  const topRewardTiers = useMemo(
+    () => (highlightTopRewards ? getTopRewardTiersMap(campaigns) : new Map<string, RewardTier>()),
+    [campaigns, highlightTopRewards],
+  );
+
   if (campaigns.length === 0) {
     return (
       <div className="panel-glass rounded-2xl p-10 text-center space-y-2">
@@ -152,7 +297,12 @@ export function CampaignGrid({ campaigns, onSelect }: CampaignGridProps) {
   return (
     <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
       {campaigns.map((campaign) => (
-        <CampaignCard key={campaign.id} campaign={campaign} onSelect={onSelect} />
+        <CampaignCard
+          key={campaign.id}
+          campaign={campaign}
+          onSelect={onSelect}
+          rewardTier={topRewardTiers.get(campaign.id)}
+        />
       ))}
     </div>
   );

@@ -1,8 +1,8 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { Megaphone, Plus, Search, Sparkles, Trophy, Wallet } from "lucide-react";
+import { FolderKanban, Megaphone, Plus, Search, Sparkles, Trophy, Wallet } from "lucide-react";
 
 import { SitePageShell } from "@/components/landing/SitePageShell";
 import { pageContent } from "@/lib/siteLayout";
@@ -11,8 +11,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { CampaignBrowseControls } from "@/components/kol/CampaignBrowseControls";
-import { CampaignGrid } from "@/components/kol/CampaignCard";
+import { CampaignBrowseSkeleton, CampaignGrid } from "@/components/kol/CampaignCard";
 import { CampaignDetail } from "@/components/kol/CampaignDetail";
+import { KolAudienceSplit } from "@/components/kol/KolAudienceSplit";
 import { KolHowItWorks } from "@/components/kol/KolHowItWorks";
 import { KolPointsInfo } from "@/components/kol/KolPointsInfo";
 import { CampaignTelegramNotify } from "@/components/CampaignTelegramNotify";
@@ -30,7 +31,7 @@ import {
   fetchCampaigns,
   fetchKolConfig,
 } from "@/lib/kolApi";
-import { prefetchRoute } from "@/lib/routePrefetch";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 const CreateCampaignForm = lazy(() =>
   import("@/components/kol/CreateCampaignForm").then((m) => ({
@@ -42,9 +43,19 @@ const EarningsDashboard = lazy(() =>
     default: m.EarningsDashboard,
   })),
 );
+const KolEarningsCheckPanel = lazy(() =>
+  import("@/components/kol/KolEarningsCheckPanel").then((m) => ({
+    default: m.KolEarningsCheckPanel,
+  })),
+);
 const ProfileLeaderboard = lazy(() =>
   import("@/components/kol/ProfileLeaderboard").then((m) => ({
     default: m.ProfileLeaderboard,
+  })),
+);
+const ProjectDashboard = lazy(() =>
+  import("@/components/kol/ProjectDashboard").then((m) => ({
+    default: m.ProjectDashboard,
   })),
 );
 
@@ -52,12 +63,12 @@ function TabPanelFallback() {
   return <Skeleton className="h-64 rounded-2xl" />;
 }
 
-const VALID_TABS = ["browse", "leaderboard", "create", "earnings"] as const;
+const VALID_TABS = ["browse", "leaderboard", "projects", "create", "earnings", "check"] as const;
 type KolTab = (typeof VALID_TABS)[number];
 
-/** Legacy `projects` / `kols` URLs map to the unified leaderboard tab. */
+/** Legacy `kols` URL maps to leaderboard; `projects` is now the creator dashboard. */
 function parseTab(value: string | null): KolTab {
-  if (value === "projects" || value === "kols") return "leaderboard";
+  if (value === "kols") return "leaderboard";
   if (value && VALID_TABS.includes(value as KolTab)) return value as KolTab;
   return "browse";
 }
@@ -73,6 +84,8 @@ function KolPageContent() {
   const [campaignSort, setCampaignSort] = useState<KolCampaignSort>(() =>
     parseKolCampaignSort(sortFromUrl),
   );
+  const appliedSort = useDebouncedValue(campaignSort, 450);
+  const isSortPending = campaignSort !== appliedSort;
 
   useEffect(() => {
     setActiveTab(parseTab(tabFromUrl));
@@ -83,8 +96,8 @@ function KolPageContent() {
   }, [sortFromUrl]);
 
   const configQuery = useQuery({
-    queryKey: ["kol-config"],
-    queryFn: fetchKolConfig,
+    queryKey: ["kol-config", walletAddress ?? null],
+    queryFn: () => fetchKolConfig({ wallet: walletAddress }),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -143,12 +156,30 @@ function KolPageContent() {
           const next = new URLSearchParams(prev);
           if (tab === "browse") next.delete("tab");
           else next.set("tab", tab);
+          if (tab !== "check") next.delete("handle");
           return next;
         },
         { preventScrollReset: true },
       );
     },
     [setSearchParams],
+  );
+
+  /** Hero CTAs sit above the fold — bring the tab strip into view after switching. */
+  const goToTab = useCallback(
+    (value: KolTab) => {
+      handleTabChange(value);
+      requestAnimationFrame(() => {
+        const el = document.getElementById("kol-marketplace-tabs");
+        if (!el) return;
+        const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        el.scrollIntoView({
+          behavior: reduceMotion ? "auto" : "smooth",
+          block: "start",
+        });
+      });
+    },
+    [handleTabChange],
   );
 
   const handleSortChange = useCallback(
@@ -172,25 +203,25 @@ function KolPageContent() {
   const liveCampaigns = useMemo(
     () => sortKolCampaigns(
       allCampaigns.filter((c) => isCampaignLive(c)),
-      campaignSort,
+      appliedSort,
     ),
-    [allCampaigns, campaignSort],
+    [allCampaigns, appliedSort],
   );
 
   const finalizingCampaigns = useMemo(
     () => sortKolCampaigns(
       allCampaigns.filter((c) => isCampaignFinalizing(c)),
-      campaignSort,
+      appliedSort,
     ),
-    [allCampaigns, campaignSort],
+    [allCampaigns, appliedSort],
   );
 
   const completedCampaigns = useMemo(
     () => sortKolCampaigns(
       allCampaigns.filter((c) => c.status === "completed"),
-      campaignSort,
+      appliedSort,
     ),
-    [allCampaigns, campaignSort],
+    [allCampaigns, appliedSort],
   );
 
   const pendingDepositCampaigns = useMemo(() => {
@@ -202,26 +233,34 @@ function KolPageContent() {
           c.status === "pending_deposit" &&
           c.projectWallet.trim() === wallet,
       ),
-      campaignSort,
+      appliedSort,
     );
-  }, [allCampaigns, campaignSort, walletAddress]);
+  }, [allCampaigns, appliedSort, walletAddress]);
 
   const config = configQuery.data ?? DEFAULT_KOL_CONFIG;
 
   return (
     <div className={cn(pageContent, "pb-20 min-w-0")}>
-        <section className="mb-8 sm:mb-10 min-w-0">
-          <p className="eyebrow mb-3">KOL Marketplace</p>
-          <h1 className="heading-display">
-            Post on X, <span className="text-gradient">earn SOL</span>
-          </h1>
-          <p className="text-muted-foreground mt-4 text-base sm:text-lg leading-relaxed max-w-none w-full">
-            Solana projects fund reward pools for X posts they want more attention on. Reply or
-            quote the post — we find you automatically — and get paid in SOL when the campaign ends.
-            Your share grows with likes, replies, and views. You also earn{" "}
-            <span className="text-foreground/90 font-medium">S3Labs Points</span> for every campaign
-            you join.
-          </p>
+        <section className="mb-8 sm:mb-10 min-w-0 space-y-6">
+          <div>
+            <p className="eyebrow mb-3">KOL Marketplace</p>
+            <h1 className="heading-display">
+              Projects fund reach.{" "}
+              <span className="text-gradient">KOLs compete for SOL</span>
+            </h1>
+            <p className="text-muted-foreground mt-4 text-base sm:text-lg leading-relaxed w-full max-w-none">
+              Put up a SOL pool on your X post — or reply and quote to earn. We scan about every
+              24 hours, rank by fair engagement, and pay automatically. Unused pool SOL is refunded
+              to projects. Everyone earns{" "}
+              <span className="text-foreground/90 font-medium">S3Labs Points</span>.
+            </p>
+          </div>
+          {!selectedCampaignId ? (
+            <KolAudienceSplit
+              onCreate={() => goToTab("create")}
+              onBrowse={() => goToTab("browse")}
+            />
+          ) : null}
         </section>
 
         {!selectedCampaignId ? (
@@ -260,7 +299,12 @@ function KolPageContent() {
             }}
           />
         ) : (
-          <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6 sm:space-y-8 min-w-0">
+          <Tabs
+            id="kol-marketplace-tabs"
+            value={activeTab}
+            onValueChange={handleTabChange}
+            className="scroll-mt-[6.5rem] space-y-6 sm:space-y-8 min-w-0"
+          >
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 min-w-0">
               <TabsList className="panel-glass scrollbar-hide h-auto w-full max-w-full justify-start overflow-x-auto rounded-full p-1 sm:w-fit sm:flex-wrap sm:overflow-visible">
                 <TabsTrigger value="browse" className="shrink-0 rounded-full gap-1.5 px-3 text-xs sm:gap-2 sm:px-3 sm:text-sm">
@@ -270,6 +314,11 @@ function KolPageContent() {
                 <TabsTrigger value="leaderboard" className="shrink-0 rounded-full gap-1.5 px-3 text-xs sm:gap-2 sm:px-3 sm:text-sm">
                   <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   Leaderboard
+                </TabsTrigger>
+                <TabsTrigger value="projects" className="shrink-0 rounded-full gap-1.5 px-3 text-xs sm:gap-2 sm:px-3 sm:text-sm">
+                  <FolderKanban className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="sm:hidden">Mine</span>
+                  <span className="hidden sm:inline">My campaigns</span>
                 </TabsTrigger>
                 <TabsTrigger value="create" className="shrink-0 rounded-full gap-1.5 px-3 text-xs sm:gap-2 sm:px-3 sm:text-sm">
                   <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -281,28 +330,31 @@ function KolPageContent() {
                   <span className="sm:hidden">Earnings</span>
                   <span className="hidden sm:inline">My Earnings</span>
                 </TabsTrigger>
-                <Button
-                  asChild
-                  variant="ghost"
-                  className="shrink-0 rounded-full gap-1.5 px-3 h-auto py-1.5 text-xs sm:gap-2 sm:px-3 sm:text-sm text-muted-foreground hover:text-foreground"
-                >
-                  <Link to="/kol/check" onPointerEnter={() => prefetchRoute("/kol/check")}>
-                    <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    <span className="sm:hidden">Check</span>
-                    <span className="hidden sm:inline">Check by X</span>
-                  </Link>
-                </Button>
+                <TabsTrigger value="check" className="shrink-0 rounded-full gap-1.5 px-3 text-xs sm:gap-2 sm:px-3 sm:text-sm">
+                  <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="sm:hidden">Check</span>
+                  <span className="hidden sm:inline">Check by X</span>
+                </TabsTrigger>
               </TabsList>
 
               {activeTab === "browse" ? (
-                <Button
-                  variant="hero"
-                  className="w-full rounded-full gap-2 shrink-0 sm:w-auto"
-                  onClick={() => handleTabChange("create")}
-                >
-                  <Plus className="w-4 h-4" />
-                  Create campaign
-                </Button>
+                <div className="flex w-full shrink-0 flex-col gap-2 min-[400px]:flex-row min-[400px]:items-center sm:w-auto">
+                  {allCampaigns.length > 0 ? (
+                    <CampaignBrowseControls
+                      sort={campaignSort}
+                      onSortChange={handleSortChange}
+                      className="w-full min-[400px]:w-auto"
+                    />
+                  ) : null}
+                  <Button
+                    variant="hero"
+                    className="h-11 w-full shrink-0 gap-2 rounded-full min-[400px]:w-auto"
+                    onClick={() => handleTabChange("create")}
+                  >
+                    <Plus className="w-4 h-4" />
+                    Create campaign
+                  </Button>
+                </div>
               ) : null}
             </div>
 
@@ -314,21 +366,10 @@ function KolPageContent() {
             ) : null}
 
             <TabsContent value="browse" className="mt-0 space-y-6 focus-visible:outline-none">
-              {campaignsQuery.isLoading ? (
-                <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <Skeleton key={i} className="h-48 rounded-2xl" />
-                  ))}
-                </div>
+              {campaignsQuery.isLoading || isSortPending ? (
+                <CampaignBrowseSkeleton count={campaignsQuery.isLoading ? 3 : 6} />
               ) : (
                 <>
-                  {allCampaigns.length > 0 ? (
-                    <CampaignBrowseControls
-                      sort={campaignSort}
-                      onSortChange={handleSortChange}
-                    />
-                  ) : null}
-
                   {pendingDepositCampaigns.length > 0 ? (
                     <div>
                       <h2 className="font-semibold text-lg mb-1">
@@ -355,6 +396,7 @@ function KolPageContent() {
                     <CampaignGrid
                       campaigns={liveCampaigns}
                       onSelect={handleSelectCampaign}
+                      highlightTopRewards
                     />
                   </div>
 
@@ -386,14 +428,23 @@ function KolPageContent() {
 
             <TabsContent value="leaderboard" className="mt-0 space-y-8 focus-visible:outline-none">
               <div>
-                <h2 className="font-semibold text-lg mb-1">Leaderboard</h2>
-                <p className="text-sm text-muted-foreground max-w-2xl">
-                  One wallet, both roles — fund campaigns as a project and earn as a KOL. Rankings
-                  update from the same accounts across the marketplace.
+                <h2 className="font-semibold text-lg mb-1">Marketplace leaderboard</h2>
+                <p className="w-full text-sm text-muted-foreground">
+                  One wallet, both roles — fund campaigns as a project and earn as a KOL.
                 </p>
               </div>
 
               <Suspense fallback={<TabPanelFallback />}>
+                <div>
+                  <h3 className="font-semibold text-base mb-1">
+                    Hire reach — invite these KOLs
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Top earners by reputation. Invite them when you launch a campaign.
+                  </p>
+                  <ProfileLeaderboard variant="kols" />
+                </div>
+
                 <div>
                   <h3 className="font-semibold text-base mb-1">Top funders</h3>
                   <p className="text-sm text-muted-foreground mb-4">
@@ -401,14 +452,15 @@ function KolPageContent() {
                   </p>
                   <ProfileLeaderboard variant="projects" />
                 </div>
+              </Suspense>
+            </TabsContent>
 
-                <div>
-                  <h3 className="font-semibold text-base mb-1">Top earners</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Ranked by reputation score from completed campaigns
-                  </p>
-                  <ProfileLeaderboard variant="kols" />
-                </div>
+            <TabsContent value="projects" className="mt-0 focus-visible:outline-none">
+              <Suspense fallback={<TabPanelFallback />}>
+                <ProjectDashboard
+                  onSelectCampaign={handleSelectCampaign}
+                  onCreate={() => handleTabChange("create")}
+                />
               </Suspense>
             </TabsContent>
 
@@ -439,15 +491,25 @@ function KolPageContent() {
                 <p>
                   Want totals without connecting a wallet? Look up any X account that joined campaigns.
                 </p>
-                <Button asChild variant="outline" size="sm" className="rounded-full gap-1.5 shrink-0">
-                  <Link to="/kol/check">
-                    <Search className="w-3.5 h-3.5" />
-                    Check by X
-                  </Link>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full gap-1.5 shrink-0"
+                  onClick={() => handleTabChange("check")}
+                >
+                  <Search className="w-3.5 h-3.5" />
+                  Check by X
                 </Button>
               </div>
               <Suspense fallback={<TabPanelFallback />}>
                 <EarningsDashboard />
+              </Suspense>
+            </TabsContent>
+
+            <TabsContent value="check" className="mt-0 focus-visible:outline-none">
+              <Suspense fallback={<TabPanelFallback />}>
+                <KolEarningsCheckPanel />
               </Suspense>
             </TabsContent>
           </Tabs>

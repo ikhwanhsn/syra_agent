@@ -411,6 +411,73 @@ function normalizeAuthor(authorRaw) {
 }
 
 /**
+ * Pick the first present metric value from public_metrics and/or top-level fields.
+ * Prefers public_metrics (X API v2), then top-level twitterapi.io camelCase fields.
+ * @param {Record<string, unknown>} tweetRaw
+ * @param {string[]} keys
+ * @returns {unknown}
+ */
+function pickMetricValue(tweetRaw, keys) {
+  const publicMetrics =
+    tweetRaw?.public_metrics && typeof tweetRaw.public_metrics === "object"
+      ? /** @type {Record<string, unknown>} */ (tweetRaw.public_metrics)
+      : null;
+
+  for (const key of keys) {
+    if (publicMetrics && publicMetrics[key] != null && publicMetrics[key] !== "") {
+      return publicMetrics[key];
+    }
+  }
+  for (const key of keys) {
+    if (tweetRaw[key] != null && tweetRaw[key] !== "") {
+      return tweetRaw[key];
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Normalize engagement counters from mixed twitterapi.io / X API v2 shapes.
+ * Critical: public_metrics uses like_count (snake_case). Missing that alias made
+ * likes parse as 0 → MIN_LIKES gate dropped every reply/quote from leaderboard.
+ * @param {Record<string, unknown>} tweetRaw
+ * @returns {{ likeCount: number; retweetCount: number; replyCount: number; quoteCount: number; viewCount: number }}
+ */
+export function extractTweetMetrics(tweetRaw) {
+  const raw = tweetRaw && typeof tweetRaw === "object" ? tweetRaw : {};
+  return {
+    likeCount: toNonNegativeInt(
+      pickMetricValue(raw, [
+        "likeCount",
+        "like_count",
+        "favoriteCount",
+        "favorite_count",
+        "favourites_count",
+        "likes",
+      ]),
+    ),
+    retweetCount: toNonNegativeInt(
+      pickMetricValue(raw, ["retweetCount", "retweet_count", "repost_count"]),
+    ),
+    replyCount: toNonNegativeInt(
+      pickMetricValue(raw, ["replyCount", "reply_count"]),
+    ),
+    quoteCount: toNonNegativeInt(
+      pickMetricValue(raw, ["quoteCount", "quote_count"]),
+    ),
+    viewCount: toNonNegativeInt(
+      pickMetricValue(raw, [
+        "viewCount",
+        "view_count",
+        "views",
+        "impression_count",
+        "impressions",
+      ]),
+    ),
+  };
+}
+
+/**
  * @param {Record<string, unknown>} tweetRaw
  * @param {{ includesMedia?: Map<string, Record<string, unknown>> }} [ctx]
  */
@@ -434,28 +501,7 @@ function normalizeTweet(tweetRaw, ctx = {}) {
   const author = normalizeAuthor(authorRaw);
   if (!author.userName) return null;
 
-  const metricsRaw =
-    tweetRaw?.public_metrics && typeof tweetRaw.public_metrics === "object"
-      ? /** @type {Record<string, unknown>} */ (tweetRaw.public_metrics)
-      : tweetRaw;
-
-  const likeCount = toNonNegativeInt(
-    metricsRaw?.likeCount ??
-      metricsRaw?.favorite_count ??
-      metricsRaw?.favourites_count,
-  );
-  const retweetCount = toNonNegativeInt(
-    metricsRaw?.retweetCount ?? metricsRaw?.retweet_count,
-  );
-  const replyCount = toNonNegativeInt(
-    metricsRaw?.replyCount ?? metricsRaw?.reply_count,
-  );
-  const quoteCount = toNonNegativeInt(
-    metricsRaw?.quoteCount ?? metricsRaw?.quote_count,
-  );
-  const viewCount = toNonNegativeInt(
-    metricsRaw?.viewCount ?? metricsRaw?.views ?? metricsRaw?.impression_count,
-  );
+  const metrics = extractTweetMetrics(tweetRaw);
 
   const createdAt = extractCreatedAt(
     tweetRaw?.createdAt ?? tweetRaw?.created_at,
@@ -463,24 +509,28 @@ function normalizeTweet(tweetRaw, ctx = {}) {
 
   let inReplyToId = extractTweetId(
     tweetRaw?.inReplyToId ??
+      tweetRaw?.inReplyToStatusId ??
       tweetRaw?.in_reply_to_status_id ??
-      tweetRaw?.in_reply_to_status_id_str,
+      tweetRaw?.in_reply_to_status_id_str ??
+      tweetRaw?.in_reply_to_tweet_id,
   );
   let quotedTweetId = extractTweetId(
     tweetRaw?.quotedTweetId ??
+      tweetRaw?.quotedStatusId ??
       tweetRaw?.quoted_status_id ??
-      tweetRaw?.quoted_status_id_str,
+      tweetRaw?.quoted_status_id_str ??
+      tweetRaw?.quoted_tweet_id,
   );
 
   if (Array.isArray(tweetRaw?.referenced_tweets)) {
     for (const ref of tweetRaw.referenced_tweets) {
       if (!ref || typeof ref !== "object") continue;
       const refObj = /** @type {Record<string, unknown>} */ (ref);
-      const refType = String(refObj.type ?? "").trim();
-      const refId = extractTweetId(refObj.id);
+      const refType = String(refObj.type ?? "").trim().toLowerCase();
+      const refId = extractTweetId(refObj.id ?? refObj.tweet_id ?? refObj.tweetId);
       if (!refId) continue;
-      if (refType === "replied_to") inReplyToId = refId;
-      if (refType === "quoted") quotedTweetId = refId;
+      if (refType === "replied_to" || refType === "reply_to") inReplyToId = refId;
+      if (refType === "quoted" || refType === "quote") quotedTweetId = refId;
     }
   }
 
@@ -504,12 +554,21 @@ function normalizeTweet(tweetRaw, ctx = {}) {
     );
   }
 
-  if (!inReplyToId && tweetRaw?.isReply === true) {
-    inReplyToId = extractTweetId(
-      tweetRaw?.inReplyToId ??
-        tweetRaw?.in_reply_to_status_id_str ??
-        tweetRaw?.conversationId,
-    );
+  // Fallback for reply threads: some payloads omit inReplyToId but set conversationId
+  // to the root (campaign) tweet, or set isReply without the parent id.
+  if (!inReplyToId) {
+    const isReplyFlag =
+      tweetRaw?.isReply === true ||
+      tweetRaw?.is_reply === true ||
+      String(tweetRaw?.type ?? "").toLowerCase() === "reply";
+    if (isReplyFlag) {
+      inReplyToId = extractTweetId(
+        tweetRaw?.inReplyToId ??
+          tweetRaw?.in_reply_to_status_id_str ??
+          tweetRaw?.conversationId ??
+          tweetRaw?.conversation_id,
+      );
+    }
   }
 
   return {
@@ -518,13 +577,7 @@ function normalizeTweet(tweetRaw, ctx = {}) {
     url: `https://x.com/${encodeURIComponent(author.userName)}/status/${id}`,
     createdAt,
     author,
-    metrics: {
-      likeCount,
-      retweetCount,
-      replyCount,
-      quoteCount,
-      viewCount,
-    },
+    metrics,
     media,
     inReplyToId,
     quotedTweetId,

@@ -38,6 +38,7 @@ function computeParts(target: Date | null): CountdownParts {
   return { days, hours, minutes, seconds, isExpired: false, isValid: true };
 }
 
+/** Live countdown ticking on whole-second boundaries for smoother UI updates. */
 export function useCountdown(deadline: string | null | undefined): CountdownParts {
   const target = useMemo(() => parseDeadline(deadline), [deadline]);
   const [parts, setParts] = useState<CountdownParts>(() => computeParts(target));
@@ -46,11 +47,20 @@ export function useCountdown(deadline: string | null | undefined): CountdownPart
     setParts(computeParts(target));
     if (!target) return undefined;
 
-    const id = window.setInterval(() => {
-      setParts(computeParts(target));
-    }, 1000);
+    let intervalId = 0;
+    const tick = () => setParts(computeParts(target));
 
-    return () => window.clearInterval(id);
+    // Align to the next second so every display flips together.
+    const msToNextSecond = 1000 - (Date.now() % 1000);
+    const timeoutId = window.setTimeout(() => {
+      tick();
+      intervalId = window.setInterval(tick, 1000);
+    }, msToNextSecond);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      if (intervalId) window.clearInterval(intervalId);
+    };
   }, [target]);
 
   return parts;

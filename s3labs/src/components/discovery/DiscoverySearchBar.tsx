@@ -30,7 +30,7 @@ export function DiscoverySearchBar({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-11 rounded-xl pl-10"
+        className="h-10 rounded-full pl-10"
         autoComplete="off"
       />
     </div>

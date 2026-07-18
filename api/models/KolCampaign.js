@@ -31,6 +31,14 @@ const kolCampaignSchema = new mongoose.Schema(
       enum: ["pending", "confirmed", "failed", null],
       default: null,
     },
+    /** Unused KOL pool returned to project creator after finalize. */
+    creatorRefundLamports: { type: Number, default: null },
+    creatorRefundTxSignature: { type: String, default: null },
+    creatorRefundStatus: {
+      type: String,
+      enum: ["pending", "confirmed", "failed", "skipped", null],
+      default: null,
+    },
     depositTxSignature: { type: String, default: null, index: true },
     status: {
       type: String,
@@ -41,8 +49,25 @@ const kolCampaignSchema = new mongoose.Schema(
     startAt: { type: Date, default: null },
     endAt: { type: Date, default: null, index: true },
     durationDays: { type: Number, required: true, min: 1, max: 30 },
-    /** When true, KOLs must have created and funded ≥1 campaign before rewards. Admin-only at create time. */
+    /** When true, KOLs must have created and funded ≥1 campaign before rewards. */
     requireCreatedOneCampaign: { type: Boolean, default: false },
+    /**
+     * Normalized X handles allowed to earn rewards. Empty = open campaign.
+     * Non-allowlisted engagers still appear on the leaderboard.
+     */
+    allowedHandleKeys: { type: [String], default: [] },
+    /** If set, only top N by (bonus-adjusted) score share the top bucket. */
+    payoutTopN: { type: Number, default: null, min: 1, max: 100 },
+    /**
+     * Basis points of the KOL pool for the top-N bucket (rest → remaining engagers).
+     * 10000 = 100% to top N. 7000 = 70% top N / 30% rest.
+     */
+    payoutTopNShareBps: {
+      type: Number,
+      default: 10_000,
+      min: 0,
+      max: 10_000,
+    },
     lastSnapshotAt: { type: Date, default: null },
     finalizedAt: { type: Date, default: null },
   },
@@ -51,6 +76,7 @@ const kolCampaignSchema = new mongoose.Schema(
 
 kolCampaignSchema.index({ status: 1, endAt: 1 });
 kolCampaignSchema.index({ createdAt: -1 });
+kolCampaignSchema.index({ projectWallet: 1, status: 1 });
 
 const KolCampaign =
   mongoose.models.KolCampaign ||

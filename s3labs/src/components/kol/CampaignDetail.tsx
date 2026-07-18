@@ -37,7 +37,8 @@ import {
   isCampaignLive,
 } from "@/lib/kolCampaignStatus";
 import { isAdminWallet } from "@/lib/adminWallet";
-import { formatSol, formatRelativePast, formatTimeLeft } from "@/lib/kolFormat";
+import { formatSol, formatRelativePast } from "@/lib/kolFormat";
+import { LiveCountdown, useLiveCountdownLabel } from "@/components/ui/LiveCountdown";
 import { KOL_CREATE_CAMPAIGN_LEADERBOARD_INTRO } from "@/lib/kolRewardEligibility";
 import { cn } from "@/lib/utils";
 import { AddRewardForm } from "./AddRewardForm";
@@ -47,6 +48,7 @@ import { CampaignFundDepositCard } from "./CampaignFundDepositCard";
 import { CampaignLeaderboard } from "./CampaignLeaderboard";
 import { CampaignParticipationGateCard } from "./CampaignParticipationGateCard";
 import { KolCampaignEarnShareAction } from "./KolCampaignEarnShareAction";
+import { KolInvitePanel } from "./KolInvitePanel";
 import { KolMyRankShareAction } from "./KolMyRankShareBar";
 import { SourceTweetCard } from "./SourceTweetCard";
 import { VerifyXAccountCard } from "./VerifyXAccountCard";
@@ -82,7 +84,7 @@ const joinSteps = [
   {
     step: 2,
     title: "We find you automatically",
-    text: "About every 24 hours we scan replies and quotes. A post needs at least 1 like to count. Multiple posts from you are combined (top 3 by score). When we see yours, you appear on the leaderboard. No link to paste here.",
+    text: "About every 24 hours we scan replies and quotes. Everyone who replies or quotes appears on the leaderboard. Rewards go only to posts with engagement (likes, retweets, replies, or quotes). Multiple posts from you are combined (top 3 by score). No link to paste here.",
   },
   {
     step: 3,
@@ -147,7 +149,7 @@ export function CampaignDetail({
   const displayPhase = getCampaignDisplayPhase(campaign);
   const isLive = isCampaignLive(campaign);
   const isFinalizing = isCampaignFinalizing(campaign);
-  const timeLeft = formatTimeLeft(campaign.endAt);
+  const timeLeft = useLiveCountdownLabel(campaign.endAt);
   const participantCount = campaign.submissionCount ?? leaderboard.length;
 
   const replyUrl = useMemo(
@@ -187,6 +189,7 @@ export function CampaignDetail({
 
   const isPendingDeposit = campaign.status === "pending_deposit";
   const isAdmin = isAdminWallet(address);
+  const isCreator = walletsMatch(address, campaign.projectWallet);
 
   return (
     <div className="space-y-6 min-w-0">
@@ -223,12 +226,6 @@ export function CampaignDetail({
               >
                 <Check className="w-3 h-3" aria-hidden />
                 Participated
-              </Badge>
-            ) : null}
-            {isLive && timeLeft !== "Ended" ? (
-              <Badge variant="outline" className="gap-1 border-amber-500/30 text-amber-400">
-                <Clock className="w-3 h-3" />
-                {timeLeft}
               </Badge>
             ) : null}
             {campaign.sourceAuthorHandle ? (
@@ -319,14 +316,23 @@ export function CampaignDetail({
               </p>
             </div>
 
-            <div className="flex flex-col justify-center gap-1 px-4 py-4 sm:px-6 sm:py-5">
+            <div className="flex flex-col justify-center gap-2 px-4 py-4 sm:px-6 sm:py-5">
               <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 <Clock className="w-3.5 h-3.5 text-primary" />
                 {isLive ? "Time left" : "Duration"}
               </div>
-              <p className="text-2xl sm:text-3xl font-semibold tabular-nums tracking-tight">
-                {isLive ? timeLeft : isFinalizing ? "Ended" : `${campaign.durationDays}d`}
-              </p>
+              {isLive ? (
+                <LiveCountdown
+                  endAt={campaign.endAt}
+                  variant="blocks"
+                  compact
+                  expiredLabel="Ended"
+                />
+              ) : (
+                <p className="text-2xl sm:text-3xl font-semibold tabular-nums tracking-tight">
+                  {isFinalizing ? "Ended" : `${campaign.durationDays}d`}
+                </p>
+              )}
             </div>
 
             <div className="col-span-2 w-full px-4 py-4 sm:px-6 sm:py-5 lg:col-span-1 lg:flex lg:items-center">
@@ -356,6 +362,29 @@ export function CampaignDetail({
 
       {isAdmin && !isPendingDeposit ? (
         <AdminCampaignAnnounceCopy campaign={campaign} />
+      ) : null}
+
+      {isCreator && campaign.status === "completed" && (campaign.creatorRefundSol ?? 0) > 0 ? (
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm space-y-1">
+          <p className="font-medium text-foreground">
+            Unused pool refunded: {formatSol(campaign.creatorRefundSol ?? 0)} SOL
+          </p>
+          <p className="text-muted-foreground text-xs">
+            Status: {campaign.creatorRefundStatus ?? "—"}
+            {campaign.creatorRefundTxSignature
+              ? ` · ${campaign.creatorRefundTxSignature.slice(0, 12)}…`
+              : ""}
+          </p>
+        </div>
+      ) : null}
+
+      {isCreator && (isLive || isPendingDeposit) ? (
+        <KolInvitePanel
+          campaignId={campaign.id}
+          campaignTitle={campaign.title}
+          brief={campaign.description}
+          previewMode={isPendingDeposit}
+        />
       ) : null}
 
       {/* How to join — first for newcomers */}
@@ -507,7 +536,7 @@ export function CampaignDetail({
 
       <div className="space-y-4 min-w-0">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0">
+          <div className="min-w-0 w-full flex-1">
             <div className="flex items-center gap-2 mb-1.5">
               <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 shrink-0">
                 <Trophy className="w-4 h-4 text-primary" />
@@ -516,14 +545,14 @@ export function CampaignDetail({
                 {isFinalizing ? "Final leaderboard" : "Live leaderboard"}
               </h3>
             </div>
-            <p className="text-sm text-muted-foreground max-w-xl">
+            <p className="w-full text-sm text-muted-foreground">
               {campaign.requireCreatedOneCampaign
                 ? KOL_CREATE_CAMPAIGN_LEADERBOARD_INTRO
                 : campaign.status === "completed"
                   ? "Final rankings — claim after verifying X if your reward didn’t auto-send."
                   : isFinalizing
                     ? "Final rankings from the last scan. Verify X so payouts can reach you."
-                    : "Updates about every 24 hours. Posts need ≥1 like to count. Multiple posts combine (top 3). Higher score = larger projected payout."}
+                    : "Updates about every 24 hours. All replies/quotes appear; rewards need engagement. Multiple posts combine (top 3). Higher score = larger projected payout."}
               {isLive && campaign.lastSnapshotAt ? (
                 <span className="block mt-1 text-xs text-muted-foreground/80">
                   Last update: {formatRelativePast(campaign.lastSnapshotAt)}

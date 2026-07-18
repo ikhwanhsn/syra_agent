@@ -3,20 +3,34 @@ import { useNavigate } from "react-router-dom";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Briefcase, Search, Star } from "lucide-react";
 
-import { DISCOVERY_PAGE_SIZE, DISCOVERY_STALE_MS } from "@/components/discovery/constants";
+import {
+  DISCOVERY_PAGE_SIZE,
+  DISCOVERY_REFETCH_MS,
+  DISCOVERY_STALE_MS,
+} from "@/components/discovery/constants";
 import { DiscoveryEmptyState } from "@/components/discovery/DiscoveryEmptyState";
-import { DiscoveryFilterPills } from "@/components/discovery/DiscoveryFilterPills";
+import { DiscoveryFilterSelect } from "@/components/discovery/DiscoveryFilterSelect";
+import { DiscoveryJobSkeleton } from "@/components/discovery/DiscoverySkeletons";
 import { DiscoveryLoadMore } from "@/components/discovery/DiscoveryLoadMore";
+import {
+  DiscoveryCountStat,
+  DiscoveryPageHeader,
+} from "@/components/discovery/DiscoveryPageHeader";
+import { DiscoverySavedToggle } from "@/components/discovery/DiscoverySavedToggle";
 import { DiscoverySearchBar } from "@/components/discovery/DiscoverySearchBar";
 import { DiscoverySortSelect } from "@/components/discovery/DiscoverySortSelect";
+import {
+  DiscoverySectionLabel,
+  DiscoveryToolbar,
+  DiscoveryToolbarRow,
+} from "@/components/discovery/DiscoveryToolbar";
 import { JobSpotlightCard, JobTicketCard } from "@/components/discovery/jobs/JobCards";
 import { FadeIn } from "@/components/discovery/motion/FadeIn";
 import { Stagger, StaggerItem } from "@/components/discovery/motion/Stagger";
 import { SitePageShell } from "@/components/landing/SitePageShell";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useCountUp } from "@/hooks/useCountUp";
-import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useDiscoveryControlPending } from "@/hooks/useDiscoveryControlPending";
 import { useJobFlags } from "@/hooks/useJobFlags";
 import {
   DEFAULT_JOB_SORT,
@@ -31,7 +45,7 @@ type JobQuickFilter = "all" | JobCategory | "remote";
 type JobView = "all" | "saved";
 
 const JOB_FILTERS: { value: JobQuickFilter; label: string }[] = [
-  { value: "all", label: "All" },
+  { value: "all", label: "All categories" },
   { value: "web3", label: "Web3" },
   { value: "crypto", label: "Crypto" },
   { value: "tech", label: "Tech" },
@@ -44,35 +58,37 @@ function filterToParams(filter: JobQuickFilter) {
   return { category: filter, remote: false };
 }
 
-function JobGridSkeleton({ count = 6 }: { count?: number }) {
-  return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-      {Array.from({ length: count }).map((_, i) => (
-        <Skeleton key={i} className="h-56 rounded-2xl" />
-      ))}
-    </div>
-  );
-}
-
 function JobsPageContent() {
   const navigate = useNavigate();
   const [filter, setFilter] = useState<JobQuickFilter>("all");
   const [view, setView] = useState<JobView>("all");
   const [sort, setSort] = useState<JobSortKey>(DEFAULT_JOB_SORT);
   const [search, setSearch] = useState("");
-  const debouncedSearch = useDebouncedValue(search.trim());
 
   const { toggleFlag, getFlags } = useJobFlags();
-  const { category, remote } = filterToParams(filter);
+
+  const controlPending = useDiscoveryControlPending(
+    { search, filter, sort },
+    false,
+  );
+  const debouncedFilter = (controlPending.debouncedFilter || "all") as JobQuickFilter;
+  const debouncedSort = (controlPending.debouncedSort || DEFAULT_JOB_SORT) as JobSortKey;
+  const { category, remote } = filterToParams(debouncedFilter);
 
   const jobsQuery = useInfiniteQuery({
-    queryKey: ["jobs", category, remote, debouncedSearch, sort],
+    queryKey: [
+      "jobs",
+      category,
+      remote,
+      controlPending.debouncedSearch,
+      debouncedSort,
+    ],
     queryFn: ({ pageParam }) =>
       fetchJobs({
         category,
         remote: remote || undefined,
-        search: debouncedSearch || undefined,
-        sort,
+        search: controlPending.debouncedSearch || undefined,
+        sort: debouncedSort,
         limit: DISCOVERY_PAGE_SIZE,
         skip: pageParam,
       }),
@@ -83,8 +99,12 @@ function JobsPageContent() {
     },
     staleTime: DISCOVERY_STALE_MS,
     refetchOnMount: "always",
+    refetchInterval: DISCOVERY_REFETCH_MS,
     retry: 1,
   });
+
+  const showSkeleton =
+    controlPending.isControlsPending || jobsQuery.isLoading;
 
   const allJobs = useMemo(() => {
     const list = jobsQuery.data?.pages.flatMap((page) => page.jobs) ?? [];
@@ -104,7 +124,6 @@ function JobsPageContent() {
     [allJobs, getFlags],
   );
 
-  // Featured item follows the active sort (already newest by default).
   const spotlight: JobListing | null = jobs[0] ?? null;
   const feedJobs = useMemo(
     () =>
@@ -115,9 +134,10 @@ function JobsPageContent() {
   );
 
   const total = jobsQuery.data?.pages[0]?.total ?? 0;
-  const animatedTotal = useCountUp(total, { enabled: !jobsQuery.isLoading && total > 0 });
+  const animatedTotal = useCountUp(total, {
+    enabled: !showSkeleton && total > 0,
+  });
   const hasMore = allJobs.length < total;
-  const isInitialLoading = jobsQuery.isLoading;
 
   const openJob = (job: JobListing) => {
     void navigate(`/jobs/${encodeURIComponent(job.jobIdentityKey)}`, {
@@ -127,121 +147,73 @@ function JobsPageContent() {
 
   return (
     <div className={cn(pageContent, "pb-20")}>
-      {/* Hero band */}
-      <FadeIn>
-        <section className="relative mb-8 overflow-hidden rounded-3xl border border-border/60 bg-card/40 p-6 sm:p-8 lg:p-10">
-          <div
-            className="pointer-events-none absolute inset-0 bg-gradient-mesh opacity-80"
-            aria-hidden
-          />
-          <div className="relative flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-2xl">
-              <p className="eyebrow mb-4">
-                <Briefcase className="h-4 w-4" aria-hidden />
-                Jobs
-              </p>
-              <h1 className="heading-display">
-                Open roles in <span className="text-gradient">web3 & tech</span>
-              </h1>
-              <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:text-lg">
-                Curated listings updated daily. Save roles you like, then apply on the
-                original site.
-              </p>
-            </div>
-
-            {!isInitialLoading && total > 0 ? (
-              <div className="flex shrink-0 flex-wrap items-center gap-3 lg:flex-col lg:items-end">
-                <div className="rounded-2xl border border-primary/20 bg-primary/[0.06] px-5 py-4 text-center lg:min-w-[9rem]">
-                  <p className="text-4xl font-bold tabular-nums tracking-tight text-foreground">
-                    {animatedTotal}
-                  </p>
-                  <p className="mt-0.5 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                    {total === 1 ? "opening" : "openings"}
-                  </p>
-                </div>
-                {savedCount > 0 ? (
-                  <button
-                    type="button"
-                    onClick={() => setView("saved")}
-                    className={cn(
-                      "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors",
-                      view === "saved"
-                        ? "border-primary/40 bg-primary/10 text-foreground"
-                        : "border-border/60 bg-background/60 text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    <Star className={cn("h-4 w-4", view === "saved" && "fill-current text-primary")} />
-                    {savedCount} saved
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-        </section>
-      </FadeIn>
-
-      {/* Sticky toolbar */}
-      <FadeIn delay={0.05} className="sticky top-[5.5rem] z-20 mb-8">
-        <div className="panel-glass space-y-4 p-4 sm:p-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
-            <div className="flex shrink-0 items-center gap-1 rounded-xl border border-border/60 bg-muted/30 p-1 sm:w-fit">
-              {(
-                [
-                  { id: "all" as const, label: "All roles" },
-                  { id: "saved" as const, label: "Saved", count: savedCount },
-                ] as const
-              ).map((tab) => (
+      <DiscoveryPageHeader
+        icon={Briefcase}
+        eyebrow="Jobs"
+        title={
+          <>
+            Open roles in <span className="text-gradient">web3 & tech</span>
+          </>
+        }
+        description="Curated listings updated daily. Save roles you like, then apply on the original site."
+        aside={
+          !showSkeleton && total > 0 ? (
+            <>
+              <DiscoveryCountStat
+                value={animatedTotal}
+                label={total === 1 ? "opening" : "openings"}
+              />
+              {savedCount > 0 ? (
                 <button
-                  key={tab.id}
                   type="button"
-                  onClick={() => setView(tab.id)}
-                  aria-pressed={view === tab.id}
+                  onClick={() => setView("saved")}
                   className={cn(
-                    "inline-flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-lg px-4 text-sm font-medium transition-colors sm:flex-none",
+                    "inline-flex min-h-10 items-center gap-2 rounded-full border px-4 text-sm font-medium transition-colors",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                    view === tab.id
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground",
+                    view === "saved"
+                      ? "border-primary/40 bg-primary/10 text-foreground"
+                      : "border-border/60 bg-background/60 text-muted-foreground hover:text-foreground",
                   )}
                 >
-                  {tab.label}
-                  {"count" in tab && tab.count > 0 ? (
-                    <span className="tabular-nums text-xs text-muted-foreground">
-                      {tab.count}
-                    </span>
-                  ) : null}
+                  <Star className={cn("h-4 w-4", view === "saved" && "fill-current text-primary")} />
+                  {savedCount} saved
                 </button>
-              ))}
-            </div>
+              ) : null}
+            </>
+          ) : null
+        }
+      />
 
-            <DiscoverySearchBar
-              id="jobs-search"
-              value={search}
-              onChange={setSearch}
-              placeholder="Search by title, company, or keyword…"
-              className="lg:max-w-md"
-            />
-
-            <DiscoverySortSelect
-              value={sort}
-              onChange={setSort}
-              options={JOB_SORT_OPTIONS}
-              className="lg:ml-auto"
-            />
-          </div>
-
-          <DiscoveryFilterPills
+      <DiscoveryToolbar>
+        <DiscoveryToolbarRow>
+          <DiscoverySearchBar
+            id="jobs-search"
+            value={search}
+            onChange={setSearch}
+            placeholder="Search jobs…"
+            className="min-w-[12rem]"
+          />
+          <DiscoveryFilterSelect
             options={JOB_FILTERS}
             value={filter}
             onChange={setFilter}
-            scrollable
+            label="Category"
           />
-        </div>
-      </FadeIn>
+          <DiscoverySortSelect
+            value={sort}
+            onChange={setSort}
+            options={JOB_SORT_OPTIONS}
+          />
+          <DiscoverySavedToggle
+            saved={view === "saved"}
+            count={savedCount}
+            onChange={(saved) => setView(saved ? "saved" : "all")}
+          />
+        </DiscoveryToolbarRow>
+      </DiscoveryToolbar>
 
-      {/* Results */}
-      {isInitialLoading ? (
-        <JobGridSkeleton />
+      {showSkeleton ? (
+        <DiscoveryJobSkeleton />
       ) : jobsQuery.isError ? (
         <DiscoveryEmptyState
           icon={Briefcase}
@@ -287,16 +259,10 @@ function JobsPageContent() {
 
           {feedJobs.length > 0 ? (
             <div>
-              <div className="mb-5 flex items-baseline justify-between gap-4">
-                <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  {view === "saved" ? "Saved roles" : "All openings"}
-                </h2>
-                <p className="text-xs tabular-nums text-muted-foreground">
-                  Showing {feedJobs.length}
-                  {hasMore ? "+" : ""} of {total}
-                </p>
-              </div>
-
+              <DiscoverySectionLabel
+                title={view === "saved" ? "Saved roles" : "All openings"}
+                meta={`Showing ${feedJobs.length}${hasMore ? "+" : ""} of ${total}`}
+              />
               <Stagger className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {feedJobs.map((job) => {
                   const flags = getFlags(job.jobIdentityKey);

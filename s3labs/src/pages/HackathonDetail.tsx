@@ -13,7 +13,7 @@ import {
   Trophy,
 } from "lucide-react";
 
-import { CountdownDisplay } from "@/components/discovery/hackathons/HackathonCards";
+import { LiveCountdown } from "@/components/ui/LiveCountdown";
 import { DiscoveryDetailShell } from "@/components/discovery/DiscoveryDetailShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -115,7 +115,12 @@ function HackathonDetailContent({ hackathon }: { hackathon: HackathonRecord }) {
                 {prize}
               </p>
               <div className="mt-4">
-                <CountdownDisplay deadline={hackathon.deadline} />
+                <LiveCountdown
+                  endAt={hackathon.deadline}
+                  variant="blocks"
+                  expiredLabel="Deadline passed"
+                  invalidLabel={hackathon.deadline || "Deadline TBD"}
+                />
               </div>
             </div>
           </div>

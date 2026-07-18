@@ -18,7 +18,13 @@ import { parseSalaryFromText, formatSalaryLabel } from "./s3labsJobSalary.js";
  * @typedef {import("./s3labsJobIdentity.js").JobListing} JobListing
  */
 
-const WEB3_CAREER_URL = "https://web3.career/";
+/** Homepage + high-signal listing pages (more coverage than a single scrape). */
+const WEB3_CAREER_URLS = Object.freeze([
+  "https://web3.career/",
+  "https://web3.career/remote-jobs",
+  "https://web3.career/?page=2",
+]);
+
 const FETCH_TIMEOUT_MS = 20_000;
 
 /**
@@ -42,12 +48,60 @@ async function fetchHtml(url) {
 }
 
 /**
+ * @param {string} block
+ * @param {string} path
+ * @param {string} externalId
+ * @param {string} title
+ * @param {string} company
+ * @returns {JobListing}
+ */
+function buildWeb3CareerJob(block, path, externalId, title, company) {
+  const salary = parseSalaryFromText(block);
+  const locM =
+    block.match(
+      /job-location-mobile[^>]*>\s*(?:<span[^>]*>[\s\S]*?<\/span>\s*)?([^<]{2,80})/i,
+    ) || block.match(/<p[^>]*>\s*([^<]{2,80})\s*<\/p>/i);
+  const location = locM?.[1]?.trim() || "Remote";
+  const remote = /remote/i.test(location) || /remote/i.test(block);
+  const url = path.startsWith("http") ? path : `https://web3.career${path}`;
+  const timeM = block.match(/datetime="([^"]+)"/);
+  const publishedAt = timeM?.[1] ? new Date(timeM[1]).toISOString() : new Date().toISOString();
+
+  const partial = {
+    sourceId: "web3career",
+    externalId,
+    company,
+    title,
+    url,
+  };
+
+  return {
+    jobIdentityKey: buildJobIdentityKey(partial),
+    dedupeKey: buildJobDedupeKey(partial),
+    externalId,
+    title,
+    company,
+    location,
+    remote,
+    salaryLabel: formatSalaryLabel(salary),
+    salaryScore: salary?.score ?? 0,
+    url,
+    source: "Web3.Career",
+    sourceId: "web3career",
+    category: "web3",
+    description: `${title} at ${company}. ${location}.`,
+    publishedAt,
+  };
+}
+
+/**
+ * Primary parser — turbo table row click handlers.
  * @param {string} html
  * @returns {JobListing[]}
  */
-export function parseWeb3CareerJobs(html) {
+function parseWeb3CareerJobsViaOnclick(html) {
   const rowRe =
-    /onclick="tableTurboRowClick\(event, '(\/[^']+\/(\d+))'\)"[\s\S]*?<h2[^>]*>\s*([^<]+?)\s*<\/h2>[\s\S]*?<h3[^>]*>\s*([^<]+?)\s*<\/h3>/gi;
+    /onclick="tableTurboRowClick\(event,\s*'(\/[^']+\/(\d+))'\)"[\s\S]*?<h2[^>]*>\s*([^<]+?)\s*<\/h2>[\s\S]*?<h3[^>]*>\s*([^<]+?)\s*<\/h3>/gi;
 
   /** @type {JobListing[]} */
   const jobs = [];
@@ -60,58 +114,73 @@ export function parseWeb3CareerJobs(html) {
     seen.add(externalId);
 
     const block = html.slice(m.index, m.index + 4500);
-    const title = m[3].trim();
-    const company = m[4].trim();
-    const salary = parseSalaryFromText(block);
-    const locM = block.match(/<p[^>]*>\s*([^<]{2,80})\s*<\/p>/i);
-    const location = locM?.[1]?.trim() || "Remote";
-    const remote = /remote/i.test(location);
-    const url = `https://web3.career${m[1]}`;
-    const timeM = block.match(/datetime="([^"]+)"/);
-    const publishedAt = timeM?.[1] ? new Date(timeM[1]).toISOString() : new Date().toISOString();
-
-    const partial = {
-      sourceId: "web3career",
-      externalId,
-      company,
-      title,
-      url,
-    };
-
-    jobs.push({
-      jobIdentityKey: buildJobIdentityKey(partial),
-      dedupeKey: buildJobDedupeKey(partial),
-      externalId,
-      title,
-      company,
-      location,
-      remote,
-      salaryLabel: formatSalaryLabel(salary),
-      salaryScore: salary?.score ?? 0,
-      url,
-      source: "Web3.Career",
-      sourceId: "web3career",
-      category: "web3",
-      description: `${title} at ${company}. ${location}.`,
-      publishedAt,
-    });
+    jobs.push(buildWeb3CareerJob(block, m[1], externalId, m[3].trim(), m[4].trim()));
   }
 
   return jobs;
 }
 
 /**
+ * Fallback when onclick markup changes — use data-jobid + title/company anchors.
+ * @param {string} html
+ * @returns {JobListing[]}
+ */
+function parseWeb3CareerJobsViaDataJobId(html) {
+  const rowRe =
+    /data-jobid=(\d+)[^>]*onclick="tableTurboRowClick\(event,\s*'(\/[^']+\/\d+)'\)"[\s\S]{0,3500}?<h2[^>]*>\s*([^<]+?)\s*<\/h2>[\s\S]{0,800}?<h3[^>]*>\s*([^<]+?)\s*<\/h3>/gi;
+
+  /** @type {JobListing[]} */
+  const jobs = [];
+  const seen = new Set();
+  let m;
+
+  while ((m = rowRe.exec(html)) !== null) {
+    const externalId = m[1];
+    if (seen.has(externalId)) continue;
+    seen.add(externalId);
+
+    const block = html.slice(m.index, m.index + 4500);
+    jobs.push(buildWeb3CareerJob(block, m[2], externalId, m[3].trim(), m[4].trim()));
+  }
+
+  return jobs;
+}
+
+/**
+ * @param {string} html
+ * @returns {JobListing[]}
+ */
+export function parseWeb3CareerJobs(html) {
+  const primary = parseWeb3CareerJobsViaOnclick(html);
+  if (primary.length > 0) return primary;
+  return parseWeb3CareerJobsViaDataJobId(html);
+}
+
+/**
  * @returns {Promise<JobListing[]>}
  */
 export async function fetchWeb3CareerJobs() {
-  try {
-    const html = await fetchHtml(WEB3_CAREER_URL);
-    return parseWeb3CareerJobs(html);
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    console.warn("[s3labs-jobs] web3.career scrape failed:", msg);
-    return [];
+  const results = await Promise.allSettled(WEB3_CAREER_URLS.map((url) => fetchHtml(url)));
+
+  /** @type {JobListing[]} */
+  const jobs = [];
+
+  for (let i = 0; i < results.length; i++) {
+    const r = results[i];
+    const url = WEB3_CAREER_URLS[i];
+    if (r.status !== "fulfilled") {
+      const msg = r.reason instanceof Error ? r.reason.message : String(r.reason);
+      console.warn(`[s3labs-jobs] web3.career scrape failed (${url}):`, msg);
+      continue;
+    }
+    const parsed = parseWeb3CareerJobs(r.value);
+    if (parsed.length === 0) {
+      console.warn(`[s3labs-jobs] web3.career parse returned 0 jobs (${url})`);
+    }
+    jobs.push(...parsed);
   }
+
+  return jobs;
 }
 
 /**

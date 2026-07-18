@@ -15,6 +15,7 @@ import {
   backfillSubmissionAuthorKeys,
   backfillKolReputations,
   getCampaignDetail,
+  getKolConfigForWallet,
   getMarketplaceStats,
   getProfile,
   getEarningsByHandle,
@@ -22,6 +23,7 @@ import {
   listCampaigns,
   listKols,
   listProjects,
+  listWalletCampaigns,
 } from "../../libs/kolMarketplaceService.js";
 import {
   confirmXVerification,
@@ -46,6 +48,7 @@ import {
 import { buildUnsubscribePageHtml } from "../../libs/emailTemplates/campaignEmails.js";
 import { getPoolWalletAddress } from "../../services/kolPoolWallet.js";
 import {
+  CREATOR_SCORE_BONUS,
   KOL_PLATFORM_FEE_SOL,
   MAX_DURATION_DAYS,
   MIN_DURATION_DAYS,
@@ -112,22 +115,49 @@ function handleServiceError(res, error) {
 export function createKolRouter() {
   const router = express.Router();
 
-  router.get("/config", (_req, res) => {
-    return res.json({
-      success: true,
-      data: {
-        poolWalletAddress: getPoolWalletAddress(),
-        minRewardSol: minTotalDepositSol(),
-        minKolRewardSol: MIN_KOL_REWARD_SOL,
-        minDurationDays: MIN_DURATION_DAYS,
-        maxDurationDays: MAX_DURATION_DAYS,
-        platformFeeSol: KOL_PLATFORM_FEE_SOL,
-        minTopUpKolRewardSol: MIN_TOPUP_KOL_REWARD_SOL,
-        minPayoutSol: MIN_KOL_PAYOUT_SOL,
-        platformFeeWallet: getS3labsFeeWallet(),
-      },
-    });
+  router.get("/config", async (req, res) => {
+    try {
+      const wallet =
+        typeof req.query.wallet === "string" ? req.query.wallet : null;
+      if (wallet) {
+        const data = await getKolConfigForWallet(wallet);
+        return res.json({ success: true, data });
+      }
+      return res.json({
+        success: true,
+        data: {
+          poolWalletAddress: getPoolWalletAddress(),
+          minRewardSol: minTotalDepositSol(),
+          minKolRewardSol: MIN_KOL_REWARD_SOL,
+          minDurationDays: MIN_DURATION_DAYS,
+          maxDurationDays: MAX_DURATION_DAYS,
+          platformFeeSol: KOL_PLATFORM_FEE_SOL,
+          platformFeeSolDefault: KOL_PLATFORM_FEE_SOL,
+          firstCampaignFeeWaived: false,
+          creatorScoreBonus: CREATOR_SCORE_BONUS,
+          minTopUpKolRewardSol: MIN_TOPUP_KOL_REWARD_SOL,
+          minPayoutSol: MIN_KOL_PAYOUT_SOL,
+          platformFeeWallet: getS3labsFeeWallet(),
+          discoveryIntervalHours: 24,
+        },
+      });
+    } catch (e) {
+      return handleServiceError(res, e);
+    }
   });
+
+  router.get(
+    "/wallets/:wallet/campaigns",
+    requireMongooseConnection,
+    async (req, res) => {
+      try {
+        const result = await listWalletCampaigns(req.params.wallet);
+        return res.json({ success: true, data: result });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
 
   router.get("/stats", requireMongooseConnection, async (_req, res) => {
     try {
@@ -265,6 +295,10 @@ export function createKolRouter() {
         rewardSol,
         durationDays,
         requireCreatedOneCampaign,
+        allowedHandles,
+        allowedHandleKeys,
+        payoutTopN,
+        payoutTopNShareBps,
       } = req.body || {};
       const result = await createCampaign({
         projectWallet,
@@ -274,6 +308,10 @@ export function createKolRouter() {
         rewardSol,
         durationDays,
         requireCreatedOneCampaign,
+        allowedHandles,
+        allowedHandleKeys,
+        payoutTopN,
+        payoutTopNShareBps,
       });
       return res.status(201).json({ success: true, data: result });
     } catch (e) {

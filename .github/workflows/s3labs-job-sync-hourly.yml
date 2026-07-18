@@ -1,0 +1,46 @@
+# S3Labs Jobs website sync — scrape boards into Mongo (no Telegram).
+# POST /internal/s3labs-job/sync
+name: S3Labs job sync hourly
+
+on:
+  schedule:
+    # Every hour — keeps /jobs lastSeenAt fresh so listings don't expire.
+    - cron: "15 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  run-job-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /internal/s3labs-job/sync
+        env:
+          BASE_URL: ${{ secrets.S3LABS_JOB_SYNC_BASE_URL }}
+          FALLBACK_BASE_URL: ${{ secrets.EVENT_SCOUT_BASE_URL }}
+          S3LABS_JOB_CRON_SECRET: ${{ secrets.S3LABS_JOB_CRON_SECRET }}
+          S3LABS_AGENTS_CRON_SECRET: ${{ secrets.S3LABS_AGENTS_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          ORIGIN_RAW="${BASE_URL:-${FALLBACK_BASE_URL:-}}"
+          if [ -z "${ORIGIN_RAW}" ]; then
+            echo "::warning::Set S3LABS_JOB_SYNC_BASE_URL (or EVENT_SCOUT_BASE_URL) for job sync cron."
+            exit 0
+          fi
+          SECRET="${S3LABS_JOB_CRON_SECRET:-${S3LABS_AGENTS_CRON_SECRET:-}}"
+          if [ -z "${SECRET}" ]; then
+            echo "::warning::Set S3LABS_JOB_CRON_SECRET or S3LABS_AGENTS_CRON_SECRET."
+            exit 0
+          fi
+          ORIGIN="${ORIGIN_RAW%/}"
+          if [ -n "${S3LABS_JOB_CRON_SECRET:-}" ]; then
+            HDR="x-s3labs-job-cron-secret: ${S3LABS_JOB_CRON_SECRET}"
+          else
+            HDR="x-s3labs-agents-cron-secret: ${S3LABS_AGENTS_CRON_SECRET}"
+          fi
+          HTTP_CODE=$(curl -sS -o /tmp/job-sync.json -w "%{http_code}" -X POST "${ORIGIN}/internal/s3labs-job/sync" \
+            -H "${HDR}" \
+            -H "Accept: application/json" \
+            -H "Content-Type: application/json" \
+            -d "{}")
+          echo "HTTP ${HTTP_CODE}"
+          cat /tmp/job-sync.json
+          test "$HTTP_CODE" = "200"

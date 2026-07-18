@@ -23,6 +23,10 @@ import { runS3labsDeveloperPipeline } from "../libs/s3labsDeveloperPipeline.js";
 import { runS3labsEventPipeline } from "../libs/s3labsEventPipeline.js";
 import { runS3labsJobPipeline } from "../libs/s3labs/s3labsJobPipeline.js";
 import {
+  runS3labsJobSyncPipeline,
+  S3LABS_JOB_SYNC_DB_ID,
+} from "../libs/s3labs/s3labsJobSyncPipeline.js";
+import {
   getS3labsAgentDefinition,
   S3LABS_JOB_AGENT,
 } from "../config/s3labsAgentsConfig.js";
@@ -282,6 +286,37 @@ export async function createInternalResearchRouter() {
       return res.status(500).json({
         success: false,
         error: "S3Labs jobs pipeline failed",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  /** Website-only scrape → Mongo (no Telegram). Used by hourly cron / GH Actions. */
+  router.post("/s3labs-job/sync", async (_req, res) => {
+    try {
+      const out = await runS3labsJobSyncPipeline();
+      return res.json(out);
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: "S3Labs jobs sync failed",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  router.get("/s3labs-job/sync/latest", async (_req, res) => {
+    try {
+      const doc = await DashboardResearch.findOne({ id: S3LABS_JOB_SYNC_DB_ID }).lean();
+      if (!doc?.payload) {
+        return res.json({ success: true, data: null, savedAt: undefined });
+      }
+      const savedAt = doc.savedAt ? new Date(doc.savedAt).toISOString() : undefined;
+      return res.json({ success: true, data: doc.payload, savedAt });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: "Internal server error",
         message: error instanceof Error ? error.message : String(error),
       });
     }

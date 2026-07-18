@@ -8,7 +8,7 @@ export const KOL_CREATE_CAMPAIGN_GATE_BODY =
   "Create and fund your campaign before this one ends. Pending deposits do not count — when it closes without a funded campaign, your reward is forfeited.";
 
 export const KOL_CREATE_CAMPAIGN_LEADERBOARD_INTRO =
-  "Rankings update every 6 hours. Only wallets that created and funded a campaign on S3 Labs receive rewards. Pending deposits do not count. Create yours before this campaign ends — or your reward is forfeited.";
+  "Rankings update about every 24 hours. Only wallets that created and funded a campaign on S3 Labs receive rewards. Pending deposits do not count. Create yours before this campaign ends — or your reward is forfeited.";
 
 export const KOL_CREATE_CAMPAIGN_FORFEITED =
   "This campaign ended without a funded campaign on your wallet — your reward was forfeited.";

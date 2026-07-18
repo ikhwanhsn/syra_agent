@@ -29,13 +29,14 @@ export function JobSpotlightCard({
   return (
     <article
       className={cn(
-        "group relative overflow-hidden rounded-3xl border border-primary/20",
-        "bg-gradient-to-br from-primary/[0.09] via-card/90 to-card/70 shadow-elevated",
-        "transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/35",
+        "group relative overflow-hidden rounded-[1.75rem] border border-primary/20",
+        "bg-gradient-to-br from-primary/[0.08] via-card/90 to-card/60 shadow-elevated",
+        "transition-[transform,border-color,box-shadow] duration-300 ease-out",
+        "hover:-translate-y-0.5 hover:border-primary/35",
       )}
     >
       <div
-        className="pointer-events-none absolute inset-0 bg-gradient-mesh opacity-60"
+        className="pointer-events-none absolute inset-0 bg-gradient-mesh opacity-50"
         aria-hidden
       />
       <div
@@ -47,7 +48,7 @@ export function JobSpotlightCard({
         <div className="min-w-0">
           <p className="eyebrow mb-4">
             <Briefcase className="h-4 w-4" aria-hidden />
-            Spotlight pick
+            Featured role
           </p>
 
           <div className="flex items-start gap-4">
@@ -135,14 +136,15 @@ export function JobTicketCard({
   return (
     <article
       className={cn(
-        "group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border/60 bg-card/60",
-        "transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-elevated",
-        isInteresting && "border-primary/25 bg-primary/[0.04]",
-        isApplied && "ring-1 ring-emerald-500/35",
+        "group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border/55 bg-card/55",
+        "shadow-card transition-[transform,border-color,box-shadow] duration-300 ease-out",
+        "hover:-translate-y-1 hover:border-primary/30 hover:shadow-elevated",
+        isInteresting && "border-primary/25 bg-primary/[0.03]",
+        isApplied && "ring-1 ring-emerald-500/30",
       )}
     >
       <div
-        className={cn("absolute inset-x-0 top-0 h-1", categoryStyle.accent)}
+        className={cn("absolute inset-x-0 top-0 h-0.5", categoryStyle.accent)}
         aria-hidden
       />
 
@@ -195,13 +197,13 @@ export function JobTicketCard({
         </div>
       </button>
 
-      <div className="flex items-center justify-between gap-2 border-t border-border/50 px-4 py-3">
+      <div className="flex items-center justify-between gap-2 border-t border-border/40 bg-muted/20 px-4 py-3">
         <Button
           type="button"
           size="sm"
           variant="ghost"
           className={cn(
-            "h-8 gap-1.5 rounded-lg px-2 text-muted-foreground",
+            "h-9 gap-1.5 rounded-lg px-2.5 text-muted-foreground",
             isInteresting && "text-primary",
           )}
           onClick={onToggleSaved}
@@ -214,7 +216,7 @@ export function JobTicketCard({
         <Button
           size="sm"
           variant="default"
-          className="h-8 rounded-full px-4"
+          className="h-9 rounded-full px-4"
           onClick={onNavigate}
         >
           View

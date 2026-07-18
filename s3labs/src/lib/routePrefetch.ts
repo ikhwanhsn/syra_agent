@@ -4,7 +4,6 @@ const routeLoaders: Record<string, () => Promise<unknown>> = {
   "/community": () => import("@/pages/Community"),
   "/about": () => import("@/pages/About"),
   "/kol": () => import("@/pages/Kol"),
-  "/kol/check": () => import("@/pages/KolEarningsCheck"),
   "/jobs": () => import("@/pages/JobsPage"),
   "/campaign": () => import("@/pages/ComingSoon"),
   "/contest": () => import("@/pages/ComingSoon"),

@@ -47,11 +47,11 @@ export function DiscoveryFilterPills<T extends string>({
               onClick={() => onChange(option.value)}
               aria-pressed={isActive}
               className={cn(
-                "inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition-colors",
+                "inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition-colors duration-150",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                 isActive
-                  ? "border-primary/40 bg-primary/10 text-foreground"
-                  : "border-border/70 bg-card/50 text-muted-foreground hover:border-primary/25 hover:text-foreground",
+                  ? "border-primary/35 bg-primary/10 text-foreground"
+                  : "border-transparent bg-muted/40 text-muted-foreground hover:border-border/60 hover:text-foreground",
               )}
             >
               {option.label}

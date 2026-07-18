@@ -1,6 +1,7 @@
 /**
- * S3Labs Jobs agent — daily WIB schedule (0–1 post/day).
- * Full job listings live on the website; Telegram only posts occasional highlights.
+ * S3Labs Jobs Telegram agent — daily WIB schedule (0–1 post/day).
+ * Website listings are refreshed by s3labsJobSyncScheduler (hourly scrape → Mongo).
+ * This scheduler only posts occasional Telegram highlights.
  */
 
 import { getMsUntilNextWibWallClock, getWibWallClockUtcMsToday } from "../wibDailyWallClock.js";

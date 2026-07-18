@@ -21,12 +21,15 @@ export function formatTimeLeft(endAt: string | null): string {
   if (!endAt) return "—";
   const diff = new Date(endAt).getTime() - Date.now();
   if (diff <= 0) return "Ended";
-  const days = Math.floor(diff / (24 * 60 * 60 * 1000));
-  const hours = Math.floor((diff % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
-  if (days > 0) return `${days}d ${hours}h left`;
-  const minutes = Math.floor((diff % (60 * 60 * 1000)) / (60 * 1000));
-  if (hours > 0) return `${hours}h ${minutes}m left`;
-  return `${minutes}m left`;
+  const totalSeconds = Math.floor(diff / 1000);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  if (days > 0) return `${days}d ${pad(hours)}h ${pad(minutes)}m ${pad(seconds)}s left`;
+  if (hours > 0) return `${hours}h ${pad(minutes)}m ${pad(seconds)}s left`;
+  return `${minutes}m ${pad(seconds)}s left`;
 }
 
 export function formatRelativePast(iso: string | null | undefined): string {

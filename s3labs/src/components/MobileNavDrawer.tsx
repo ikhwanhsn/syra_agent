@@ -137,7 +137,7 @@ export function MobileNavDrawer({ open, onClose }: MobileNavDrawerProps) {
         className={cn(
           "mobile-nav-drawer nav-bar-panel fixed inset-y-0 right-0 flex w-[min(100vw,20rem)] flex-col border-l border-border/60 shadow-elevated transition-transform duration-200 ease-out lg:hidden",
           siteMobileNavDrawerZ,
-          open ? "translate-x-0" : "translate-x-full pointer-events-none",
+          open ? "translate-x-0 pointer-events-auto" : "translate-x-full pointer-events-none",
         )}
         style={{
           paddingTop: "max(0.75rem, env(safe-area-inset-top, 0px))",

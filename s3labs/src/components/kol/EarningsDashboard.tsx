@@ -47,7 +47,7 @@ export function EarningsDashboard() {
             <p className="eyebrow mb-2">My Earnings</p>
             <h2 className="heading-section">KOL wallet dashboard</h2>
             <p className="text-sm text-muted-foreground mt-2">
-              Auto-tracked every 6h. Verify X and claim SOL after campaigns end.
+              Auto-tracked every 24h. Verify X and claim SOL after campaigns end.
             </p>
           </div>
         </div>

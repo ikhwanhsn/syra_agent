@@ -305,6 +305,228 @@
   .btn-premium {
     @apply rounded-full shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300;
   }
+
+  .skeleton-bone {
+    @apply relative overflow-hidden rounded-md bg-muted/80;
+  }
+
+  .skeleton-bone::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      hsl(var(--foreground) / 0.06) 45%,
+      hsl(var(--foreground) / 0.1) 50%,
+      hsl(var(--foreground) / 0.06) 55%,
+      transparent 100%
+    );
+    animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton-bone::after {
+      animation: none;
+    }
+  }
+
+  /* Top-reward campaign cards — gold / silver / bronze */
+  .campaign-tier-card {
+    @apply relative overflow-hidden rounded-2xl;
+    isolation: isolate;
+  }
+
+  .campaign-tier-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1.5px;
+    background: conic-gradient(
+      from var(--campaign-tier-angle, 0deg),
+      var(--campaign-tier-a),
+      var(--campaign-tier-b),
+      var(--campaign-tier-c),
+      var(--campaign-tier-a)
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: campaign-tier-spin 14s linear infinite;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .campaign-tier-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background:
+      radial-gradient(ellipse 80% 55% at 20% 0%, var(--campaign-tier-glow), transparent 55%),
+      radial-gradient(ellipse 70% 50% at 90% 100%, var(--campaign-tier-glow-soft), transparent 50%);
+    animation: campaign-tier-aurora 16s ease-in-out infinite alternate;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .campaign-tier-card > *:not(.campaign-tier-sheen) {
+    position: relative;
+    z-index: 1;
+  }
+
+  .campaign-tier-sheen {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .campaign-tier-sheen::before {
+    content: "";
+    position: absolute;
+    top: -40%;
+    left: -50%;
+    width: 45%;
+    height: 180%;
+    background: linear-gradient(
+      105deg,
+      transparent 35%,
+      hsl(0 0% 100% / 0.14) 48%,
+      hsl(0 0% 100% / 0.22) 50%,
+      hsl(0 0% 100% / 0.14) 52%,
+      transparent 65%
+    );
+    transform: translateX(-120%) rotate(12deg);
+    animation: campaign-tier-sheen 11s ease-in-out infinite;
+  }
+
+  .campaign-tier-1 {
+    --campaign-tier-a: hsl(43 96% 58%);
+    --campaign-tier-b: hsl(32 95% 48%);
+    --campaign-tier-c: hsl(48 100% 72%);
+    --campaign-tier-glow: hsl(43 96% 56% / 0.22);
+    --campaign-tier-glow-soft: hsl(32 90% 50% / 0.12);
+    border-color: hsl(43 80% 50% / 0.45);
+    animation: campaign-tier-glow-1 8s ease-in-out infinite;
+  }
+
+  .campaign-tier-2 {
+    --campaign-tier-a: hsl(210 20% 78%);
+    --campaign-tier-b: hsl(200 40% 58%);
+    --campaign-tier-c: hsl(220 16% 92%);
+    --campaign-tier-glow: hsl(205 35% 65% / 0.2);
+    --campaign-tier-glow-soft: hsl(215 25% 70% / 0.12);
+    border-color: hsl(210 20% 70% / 0.45);
+    animation: campaign-tier-glow-2 8.5s ease-in-out infinite;
+  }
+
+  .campaign-tier-3 {
+    --campaign-tier-a: hsl(24 85% 55%);
+    --campaign-tier-b: hsl(16 70% 42%);
+    --campaign-tier-c: hsl(35 90% 62%);
+    --campaign-tier-glow: hsl(24 85% 52% / 0.2);
+    --campaign-tier-glow-soft: hsl(16 70% 45% / 0.12);
+    border-color: hsl(24 70% 48% / 0.45);
+    animation: campaign-tier-glow-3 9s ease-in-out infinite;
+  }
+}
+
+@property --campaign-tier-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes campaign-tier-spin {
+  to {
+    --campaign-tier-angle: 360deg;
+  }
+}
+
+@keyframes campaign-tier-aurora {
+  0% {
+    opacity: 0.55;
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1.04) translate3d(1.5%, -1.5%, 0);
+  }
+}
+
+@keyframes campaign-tier-sheen {
+  0%,
+  55% {
+    transform: translateX(-120%) rotate(12deg);
+  }
+  85%,
+  100% {
+    transform: translateX(320%) rotate(12deg);
+  }
+}
+
+@keyframes campaign-tier-glow-1 {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px hsl(43 90% 55% / 0.2),
+      0 8px 28px hsl(43 90% 45% / 0.12),
+      0 0 36px hsl(43 96% 56% / 0.16);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px hsl(43 90% 55% / 0.4),
+      0 12px 36px hsl(43 90% 45% / 0.2),
+      0 0 56px hsl(43 96% 56% / 0.32);
+  }
+}
+
+@keyframes campaign-tier-glow-2 {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px hsl(210 25% 70% / 0.22),
+      0 8px 28px hsl(210 20% 40% / 0.1),
+      0 0 32px hsl(205 35% 65% / 0.14);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px hsl(210 25% 75% / 0.4),
+      0 12px 34px hsl(210 20% 40% / 0.16),
+      0 0 48px hsl(205 40% 70% / 0.28);
+  }
+}
+
+@keyframes campaign-tier-glow-3 {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px hsl(24 75% 50% / 0.22),
+      0 8px 28px hsl(20 70% 35% / 0.1),
+      0 0 32px hsl(24 85% 52% / 0.14);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px hsl(24 80% 52% / 0.4),
+      0 12px 34px hsl(20 70% 35% / 0.18),
+      0 0 48px hsl(24 85% 52% / 0.28);
+  }
 }
 
 @keyframes fadeUp {
@@ -592,5 +814,16 @@
   .ecosystem-node-glow,
   .ecosystem-edge {
     animation: none !important;
+  }
+
+  .campaign-tier-card,
+  .campaign-tier-card::before,
+  .campaign-tier-card::after,
+  .campaign-tier-sheen::before {
+    animation: none !important;
+  }
+
+  .campaign-tier-card::after {
+    opacity: 0.7;
   }
 }
