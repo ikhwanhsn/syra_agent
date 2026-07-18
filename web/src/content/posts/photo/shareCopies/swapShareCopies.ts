@@ -79,7 +79,7 @@ Research on Syra. Swap somewhere else. Reconnect wallet. Lose context.
 Now:
 Earn → Swap on Syra. Same wallet. Jupiter prices. One dashboard.`,
 
-  launch: `SHIP LOG · Syra �- Jupiter Swap is live.
+  launch: `SHIP LOG · Syra × Jupiter Swap is live.
 
 Earn nav · wallet-signed swaps · referral adapter on Syra API.
 

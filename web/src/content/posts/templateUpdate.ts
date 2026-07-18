@@ -48,7 +48,7 @@ Replace placeholder copy. Keep the slot order.`,
       label: "Cover",
       eyebrow: "Ship log template",
       title: "Format Template",
-      subtitle: "Locked reference deck. Every future video update uses these 8 slide kinds in order.",
+      subtitle: "Locked reference deck. Every future video update uses these 8 kinds in order.",
       badge: "8 slides · locked",
     },
     {

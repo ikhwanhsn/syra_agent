@@ -2,7 +2,7 @@ import { Bot, Cpu, Layers, Lock, ShieldCheck, Terminal } from "lucide-react";
 import type { PostUpdate } from "./types";
 
 /**
- * Ship log: Covenant agent-native operating layer �- Syra machine money.
+ * Ship log: Covenant agent-native operating layer × Syra machine money.
  */
 export const COVENANT_POST: PostUpdate = {
   meta: {
@@ -23,7 +23,7 @@ Open infrastructure for agent-native computing: signed grants, append-only audit
 402 for price. Covenant for authority. Same Syra agent brain.
 
 Full breakdown in the video ↓`,
-    shareCopyPhoto: `SHIP LOG · Syra �- Covenant is live.
+    shareCopyPhoto: `SHIP LOG · Syra × Covenant is live.
 
 Covenant is the agent-native OS layer: identity, permissions, memory, runtime, and settlement as host-level services. Syra is the machine-money rail: pay-per-call intelligence over x402 from agents running under signed grants.
 
@@ -40,7 +40,7 @@ Install covenantd. Point agents at Syra MCP. Pay USDC per call. Every action lea
       layout: "cover-dual-badge",
       label: "Cover",
       eyebrow: "Ship log",
-      title: "Covenant �- Syra",
+      title: "Covenant × Syra",
       subtitle: "Open agent-native OS infrastructure meets Syra machine money. Signed grants, audit receipts, and x402 intelligence in one stack.",
       badge: "OS layer · x402 · Audit",
     },

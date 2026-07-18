@@ -144,7 +144,7 @@ export const SWAP_PHOTO = definePhotoUpdate(SWAP_POST.meta, [
       badge: "Now live · Earn · Swap",
       partnerName: "Jupiter",
       partnerLogo: "/images/partners/jupiter.png",
-      headline: "Syra �- Jupiter",
+      headline: "Syra × Jupiter",
       subtitle: "Best-route swaps from your connected wallet. Referral adapter on Syra API.",
     }),
   },

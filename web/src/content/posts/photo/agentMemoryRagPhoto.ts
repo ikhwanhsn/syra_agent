@@ -147,7 +147,7 @@ export const AGENT_MEMORY_RAG_PHOTO = definePhotoUpdate(AGENT_MEMORY_RAG_POST.me
       eyebrow: "Ship log",
       badge: "Agent Memory RAG",
       partnerName: "NVIDIA",
-      partnerLogo: "/images/partners/placeholder.svg",
+      partnerLogo: "/images/partners/nvidia.png",
       partnerLogoSolidBg: false,
       headline: "Syra × Nemotron",
       subtitle:

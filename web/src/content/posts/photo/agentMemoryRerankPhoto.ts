@@ -147,7 +147,7 @@ export const AGENT_MEMORY_RERANK_PHOTO = definePhotoUpdate(AGENT_MEMORY_RERANK_P
       eyebrow: "Ship log",
       badge: "Two-stage RAG",
       partnerName: "NVIDIA",
-      partnerLogo: "/images/partners/placeholder.svg",
+      partnerLogo: "/images/partners/nvidia.png",
       partnerLogoSolidBg: false,
       headline: "Syra × Nemotron",
       subtitle:

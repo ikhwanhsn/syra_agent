@@ -14,7 +14,7 @@ export const COVENANT_PHOTO = definePhotoUpdate(COVENANT_POST.meta, [
     content: photoContent({
       eyebrow: "Ship log",
       badge: "OS layer · x402 · Audit",
-      title: "Covenant �- Syra",
+      title: "Covenant × Syra",
       subtitle: "Open agent-native OS infrastructure meets machine money. Signed grants, audit receipts, and x402 intelligence in one stack.",
     }),
   },
@@ -86,7 +86,7 @@ export const COVENANT_PHOTO = definePhotoUpdate(COVENANT_POST.meta, [
     layout: "photo-hero-checklist",
     shareCopy: copies.checklist,
     content: photoContent({
-      headline: "Covenant �- Syra is live today.",
+      headline: "Covenant × Syra is live today.",
       highlights: [
         "Syra MCP server for covenantd-run agents",
         "skill.md at api.syraa.fun/skill.md",
@@ -145,7 +145,7 @@ export const COVENANT_PHOTO = definePhotoUpdate(COVENANT_POST.meta, [
       badge: "Now live · OS layer · x402",
       partnerName: "Covenant",
       partnerLogo: "/images/partners/covenant.png",
-      headline: "Syra �- Covenant",
+      headline: "Syra × Covenant",
       subtitle: "Open infrastructure for agent-native computing. Signed grants, sandboxed runtime, and x402 machine money.",
     }),
   },

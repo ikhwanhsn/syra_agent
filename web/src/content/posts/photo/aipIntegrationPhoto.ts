@@ -14,7 +14,7 @@ export const AIP_INTEGRATION_PHOTO = definePhotoUpdate(AIP_INTEGRATION_POST.meta
     content: photoContent({
       eyebrow: "Ship log",
       badge: "AIP-01 · AIP-02 · AIP-04",
-      title: "AIP �- Syra",
+      title: "AIP × Syra",
       subtitle: "Agent Card. A2A tasks. did:aip identity. x402 commerce unchanged.",
     }),
   },
@@ -146,7 +146,7 @@ export const AIP_INTEGRATION_PHOTO = definePhotoUpdate(AIP_INTEGRATION_POST.meta
       partnerName: "Agent Internet Protocol",
       partnerLogo: "/images/partners/aip-agents.png",
       partnerLogoSolidBg: true,
-      headline: "Syra �- AIP",
+      headline: "Syra × AIP",
       subtitle: "Agent Card. A2A tasks. did:aip identity. Open standards for the agentic web.",
     }),
   },

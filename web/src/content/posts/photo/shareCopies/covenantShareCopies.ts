@@ -2,7 +2,7 @@ import type { PostPhotoCardRole } from "../photoCardSlots";
 
 /** Per-card X copy for Covenant photo deck - 15 distinct topics. */
 export const COVENANT_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `SHIP LOG · Syra �- Covenant is live.
+  cover: `SHIP LOG · Syra × Covenant is live.
 
 Open infrastructure for agent-native computing. Signed grants, audit receipts, and x402 machine money in one stack.
 
@@ -20,7 +20,7 @@ Covenant owns the agent-native OS layer. Syra owns machine money. Agents dispatc
 
 → api.syraa.fun/skill.md`,
 
-  flow: `How Syra �- Covenant works:
+  flow: `How Syra × Covenant works:
 
 1. covenantd issues signed capability grant
 2. Agent calls Syra MCP or x402 API
@@ -45,7 +45,7 @@ Install covenantd. Point agents at Syra. Pay per call.`,
 → Settlement: USDC per call on Solana
 → Audit: append-only receipts on both sides`,
 
-  checklist: `Covenant �- Syra is live today:
+  checklist: `Covenant × Syra is live today:
 
 → Syra MCP server for covenantd agents
 → skill.md at api.syraa.fun/skill.md
@@ -55,7 +55,7 @@ Install covenantd. Point agents at Syra. Pay per call.`,
 
 → opencovenant.org`,
 
-  metrics: `Covenant �- Syra by the numbers:
+  metrics: `Covenant × Syra by the numbers:
 
 → 8 OS primitives (intent, runtime, memory, identity…)
 → 100+ x402 tools on Syra MCP
@@ -78,7 +78,7 @@ Shared OS layer + shared machine-money rail.
 
 Same agent brain. Governed execution. Pay per call.`,
 
-  launch: `SHIP LOG · Syra �- Covenant.
+  launch: `SHIP LOG · Syra × Covenant.
 
 Open infrastructure for agent-native computing.
 

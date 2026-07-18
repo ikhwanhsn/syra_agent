@@ -14,7 +14,7 @@ export const AMPERSEND_MARKETPLACE_PHOTO = definePhotoUpdate(AMPERSEND_MARKETPLA
     content: photoContent({
       eyebrow: "Ship log",
       badge: "Bazaar · Base · 26 APIs",
-      title: "Syra �- Ampersend",
+      title: "Syra × Ampersend",
       subtitle: "Paid intelligence APIs discoverable on the Ampersend agent marketplace. Base mainnet checkout. Pay per call.",
     }),
   },
@@ -146,7 +146,7 @@ export const AMPERSEND_MARKETPLACE_PHOTO = definePhotoUpdate(AMPERSEND_MARKETPLA
       partnerName: "Ampersend",
       partnerLogo: "/images/partners/ampersend.png",
       partnerLogoSolidBg: true,
-      headline: "Syra �- Ampersend",
+      headline: "Syra × Ampersend",
       subtitle: "26 paid x402 APIs discoverable for agent wallets. Pay on Base. No API keys.",
     }),
   },

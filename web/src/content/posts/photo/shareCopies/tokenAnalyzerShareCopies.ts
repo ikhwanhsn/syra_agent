@@ -77,10 +77,10 @@ Now: Token Analyzer. Solana + EVM.
 Latest 10 with search and filter.
 Same Syra Alpha verdict.`,
 
-  launch: `SHIP LOG · Token Analyzer multi-chain.
+  launch: `SHIP LOG · Syra × Robinhood.
 
-Paste Solana or Ethereum.
-Scan. Score. Track the latest 10.
+Token Analyzer goes multi-chain.
+Paste Solana or Ethereum. Scan. Score. Track.
 
 → syraa.fun/analyzer
 → syraa.fun/assets`,

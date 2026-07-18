@@ -2,7 +2,7 @@ import type { PostPhotoCardRole } from "../photoCardSlots";
 
 /** Per-card X copy for AIP integration photo deck - 15 distinct topics. */
 export const AIP_INTEGRATION_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `SHIP LOG · Syra �- Agent Internet Protocol is live.
+  cover: `SHIP LOG · Syra × Agent Internet Protocol is live.
 
 Agent Card discovery, A2A JSON-RPC tasks, and did:aip identity on Solana. x402 commerce unchanged.
 
@@ -20,7 +20,7 @@ Syra implements three AIP standards natively. Commerce rail was already live.
 
 Try → api.syraa.fun/.well-known/agent.json`,
 
-  flow: `How Syra �- AIP works:
+  flow: `How Syra × AIP works:
 
 1. GET /.well-known/agent.json for capabilities + pricing
 2. POST /a2a for task/create + task/status (JSON-RPC 2.0)
@@ -77,7 +77,7 @@ Agent Card + A2A JSON-RPC + did:aip verify + x402 payment.
 
 Same intelligence. Standard agent protocol.`,
 
-  launch: `SHIP LOG · Syra �- Agent Internet Protocol.
+  launch: `SHIP LOG · Syra × Agent Internet Protocol.
 
 Agent Card · A2A tasks · did:aip identity.
 

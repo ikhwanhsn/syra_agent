@@ -15,7 +15,7 @@ export const TEMPLATE_PHOTO = definePhotoUpdate(TEMPLATE_POST.meta, [
       eyebrow: "Ship log template",
       badge: "15 cards · locked",
       title: "Format Template",
-      subtitle: "Permanent reference. Every future photo deck uses these 15 narrative slots in order.",
+      subtitle: "Locked reference. Every future photo deck uses these 15 slots in order.",
     }),
   },
   {
@@ -145,8 +145,8 @@ export const TEMPLATE_PHOTO = definePhotoUpdate(TEMPLATE_POST.meta, [
     content: photoContent({
       eyebrow: "Studio",
       badge: "Format locked",
-      title: "Ship from the template",
-      subtitle: "Open /post → Format Template → Video or Photo, then clone the structure for the next update.",
+      title: "Ship from template",
+      subtitle: "Open /post → Format Template → Video or Photo, then clone the structure.",
     }),
   },
   {

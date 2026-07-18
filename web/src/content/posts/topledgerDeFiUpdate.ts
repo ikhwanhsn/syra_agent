@@ -11,7 +11,7 @@ export const TOPLEDGER_DEFI_POST: PostUpdate = {
     title: "TopLedger DeFi Intelligence",
     published: "July 2026",
     tagline: "Full Solana DeFi positions, net worth, and PnL wired into Grow, Portfolio, and paid agent tools",
-    shareCopyVideo: `SHIP LOG · Syra �- TopLedger is live.
+    shareCopyVideo: `SHIP LOG · Syra × TopLedger is live.
 
 Tokens were only half the wallet. DeFi is the rest.
 
@@ -23,7 +23,7 @@ Tokens were only half the wallet. DeFi is the rest.
 Full DeFi net worth. Agents pay per call.
 
 Full breakdown in the video ↓`,
-    shareCopyPhoto: `SHIP LOG · Syra �- TopLedger DeFi intelligence.
+    shareCopyPhoto: `SHIP LOG · Syra × TopLedger DeFi intelligence.
 
 Portfolio and Grow now surface lending, perps, LP, staking, yield, and rewards across 20+ Solana protocols. Agents call it via x402. Operators see it on /wallet.
 
@@ -37,7 +37,7 @@ Portfolio and Grow now surface lending, perps, LP, staking, yield, and rewards a
       layout: "cover-brand-lockup",
       label: "Cover",
       eyebrow: "Ship log",
-      title: "TopLedger �- Syra",
+      title: "TopLedger × Syra",
       subtitle: "Solana DeFi intelligence across 20+ protocols. Net worth, positions, and PnL inside Grow and Portfolio.",
       badge: "DeFi · MPP · 9 tools",
     },

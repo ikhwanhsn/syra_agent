@@ -25,7 +25,7 @@ export const SPCX_PHOTO = definePhotoUpdate(SPCX_POST.meta, [
     shareCopy: copies.thesis,
     content: photoContent({
       kicker: "The problem",
-      headline: "The IPO is live. Trading it shouldn't mean guessing spreads.",
+      headline: "The IPO is live. Trading should not mean guessing.",
       body: "SPCX trades on Nasdaq. SPCXx trades on Solana. Spreads move fast. Fake tokens still copy the ticker. Syra built realtime tracking plus two-way wallet trading on one page.",
     }),
   },

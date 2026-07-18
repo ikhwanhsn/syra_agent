@@ -72,7 +72,7 @@ export const AGENTSCORE_PHOTO = definePhotoUpdate(AGENTSCORE_POST.meta, [
     layout: "photo-cards-quad",
     shareCopy: copies.pillars,
     content: photoContent({
-      headline: "Compliance when it matters. Permissionless when it doesn't.",
+      headline: "Compliance when required. Permissionless when not.",
       cards: [
         { title: "Gate", subtitle: "Merchant", detail: "KYC, sanctions, age, jurisdiction on paid retry.", accent: "gold" },
         { title: "Passport", subtitle: "Buyer", detail: "Verify once. Works at every gated merchant.", accent: "gold" },

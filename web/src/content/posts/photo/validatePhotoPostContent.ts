@@ -7,13 +7,14 @@ import type { PhotoBlockId } from "@/components/post/photo/postPhotoLayoutRegist
 export const POST_PHOTO_FIELD_LIMITS: Record<string, number> = {
   eyebrow: 24,
   badge: 42,
-  title: 36,
-  subtitle: 180,
+  /** Cover lockup titles stay one line next to the logo */
+  title: 28,
+  subtitle: 160,
   kicker: 28,
-  headline: 64,
-  body: 240,
-  quote: 120,
-  narrative: 200,
+  headline: 56,
+  body: 220,
+  quote: 110,
+  narrative: 180,
   partnerName: 24,
 };
 

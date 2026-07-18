@@ -1471,12 +1471,13 @@ body.syra-qwerti-active #qwerti-widget-root {
   text-align: center;
 }
 
+/* Disabled: html-to-image collapses balance and reflows titles vs preview */
 .post-slide-balance {
-  text-wrap: balance;
+  text-wrap: normal;
 }
 
 .post-slide-prose {
-  max-width: 46ch;
+  max-width: 640px;
   width: 100%;
 }
 
@@ -1542,7 +1543,8 @@ body.syra-qwerti-active #qwerti-widget-root {
 
 .post-slide-headline {
   margin-top: clamp(0.25rem, 0.8cqh, 0.5rem);
-  max-width: 24ch;
+  /* px not ch — font-embed export metrics diverge from live preview */
+  max-width: 520px;
   margin-inline: auto;
   font-family: var(--font-space), sans-serif;
   font-size: clamp(1.125rem, 5.2cqw, 1.625rem);
@@ -1550,6 +1552,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   line-height: 1.2;
   letter-spacing: -0.02em;
   color: hsl(0 0% 100%);
+  text-wrap: normal;
 }
 
 .post-slide-headline--compact {
@@ -3259,6 +3262,9 @@ body.syra-qwerti-active #qwerti-widget-root {
 }
 
 .post-record-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   width: min(
     960px,
     calc(100vw - 1rem),
@@ -3268,6 +3274,18 @@ body.syra-qwerti-active #qwerti-widget-root {
   min-width: 0;
   flex-shrink: 1;
   margin-inline: auto;
+}
+
+/* Scales the fixed 960×540 stage — same layout box as video export */
+.post-record-frame-wrap {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: clamp(0.5rem, 2vw, 0.75rem);
+  box-shadow:
+    inset 0 0 0 1px hsl(0 0% 100% / 0.05),
+    inset 0 0 80px hsl(0 0% 0% / 0.25),
+    0 24px 80px hsl(0 0% 0% / 0.45);
 }
 
 .post-record-hint {
@@ -3292,22 +3310,20 @@ body.syra-qwerti-active #qwerti-widget-root {
 }
 
 .post-record-stage {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  max-height: calc(100dvh - var(--post-chrome-block));
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 960px;
+  height: 540px;
+  transform-origin: top left;
   overflow: hidden;
-  border-radius: clamp(0.5rem, 2vw, 0.75rem);
+  border-radius: 0;
   background: #030303;
   isolation: isolate;
-  flex-shrink: 1;
+  flex-shrink: 0;
   container-type: size;
   container-name: post-stage;
-  box-shadow:
-    inset 0 0 0 1px hsl(0 0% 100% / 0.05),
-    inset 0 0 80px hsl(0 0% 0% / 0.25),
-    0 24px 80px hsl(0 0% 0% / 0.45);
-  /* Broadcast-style safe area — keeps copy off frame edges in preview + export */
+  /* Broadcast-style safe area — identical in scaled preview + export */
   --post-frame-inset-inline: clamp(1.125rem, 7cqw, 6.5rem);
   --post-frame-inset-block: clamp(1rem, 8.5cqh, 5.25rem);
 }
@@ -3325,12 +3341,14 @@ body.syra-qwerti-active #qwerti-widget-root {
 }
 
 .post-video-export-stage {
+  position: relative;
   aspect-ratio: auto;
   max-height: none;
   border-radius: 0;
   flex-shrink: 0;
   width: 960px;
   height: 540px;
+  transform: none !important;
   container-type: size;
   container-name: post-stage;
   --post-frame-inset-inline: clamp(1.125rem, 7cqw, 6.5rem);
@@ -3494,8 +3512,9 @@ body.syra-qwerti-active #qwerti-widget-root {
 .post-export-capturing .post-photo-stat-label,
 .post-export-capturing .post-photo-list-item {
   text-wrap: normal !important;
-  overflow-wrap: break-word;
-  word-wrap: break-word;
+  overflow-wrap: normal;
+  word-wrap: normal;
+  word-break: normal;
 }
 
 .post-photo-export-root .post-photo-title,
@@ -3566,8 +3585,15 @@ body.syra-qwerti-active #qwerti-widget-root {
 .post-photo-export-root .post-photo-cover-lockup .post-photo-title,
 .post-export-capturing .post-photo-cover-lockup .post-photo-title {
   display: block;
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
+  font-size: 44px !important;
+  white-space: nowrap !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  overflow-wrap: normal !important;
+  word-wrap: normal !important;
+  word-break: normal !important;
 }
 
 .post-photo-export-root .post-photo-pulse-dot,
@@ -4927,16 +4953,24 @@ body.syra-qwerti-active #qwerti-widget-root {
   letter-spacing: -0.03em;
   color: hsl(0 0% 100%);
   text-shadow: 0 2px 20px hsl(0 0% 0% / 0.45);
+  /* Match export — html-to-image collapses text-wrap:balance */
+  text-wrap: normal;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 .post-photo-headline {
-  max-width: 22ch;
+  /* px not ch — ch metrics diverge under font-embed export */
+  max-width: 720px;
   font-family: var(--font-space), sans-serif;
   font-size: 36px;
   font-weight: 600;
   line-height: 1.2;
   letter-spacing: -0.02em;
   color: hsl(0 0% 100%);
+  text-wrap: normal;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 .post-photo-headline--lg {
@@ -4944,23 +4978,29 @@ body.syra-qwerti-active #qwerti-widget-root {
 }
 
 .post-photo-copy {
-  max-width: 52ch;
+  max-width: 720px;
   font-size: 16px;
   line-height: 1.55;
   color: hsl(0 0% 100% / 0.72);
+  text-wrap: normal;
 }
 
 .post-photo-cover-lockup {
   display: flex;
   align-items: center;
   gap: 16px;
-  max-width: min(100%, 760px);
+  max-width: min(100%, 920px);
 }
 
 .post-photo-cover-lockup .post-photo-title {
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
   text-align: left;
+  /* Keep lockup titles on one line in preview + PNG export */
+  font-size: 44px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .post-photo-stack--center .post-photo-cover-lockup {
@@ -4968,11 +5008,11 @@ body.syra-qwerti-active #qwerti-widget-root {
 }
 
 .post-photo-tmpl-cover-spotlight {
-  max-width: 820px;
+  max-width: 900px;
 }
 
 .post-photo-tmpl-cover-spotlight .post-photo-copy {
-  max-width: 58ch;
+  max-width: 780px;
 }
 
 .post-photo-cover-logo {
@@ -5044,7 +5084,7 @@ body.syra-qwerti-active #qwerti-widget-root {
 }
 
 .post-photo-quote {
-  max-width: 36ch;
+  max-width: 640px;
   margin: 0;
   border-left: 3px solid hsl(45 92% 55% / 0.45);
   padding-left: 20px;
@@ -5053,6 +5093,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   line-height: 1.45;
   color: hsl(0 0% 100% / 0.85);
   text-align: left;
+  text-wrap: normal;
 }
 
 .post-photo-list {

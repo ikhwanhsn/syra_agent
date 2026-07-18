@@ -11,7 +11,7 @@ export const AIP_INTEGRATION_POST: PostUpdate = {
     title: "AIP Integration",
     published: "June 2026",
     tagline: "Syra joins the Agent Internet Protocol: Agent Card, A2A tasks, did:aip identity",
-    shareCopyVideo: `SHIP LOG · Syra �- Agent Internet Protocol is live.
+    shareCopyVideo: `SHIP LOG · Syra × Agent Internet Protocol is live.
 
 Four open standards for the agentic web: Agent Card discovery, A2A JSON-RPC tasks, x402 payment, and did:aip identity. Syra ships all four layers on one API gateway.
 
@@ -23,7 +23,7 @@ Four open standards for the agentic web: Agent Card discovery, A2A JSON-RPC task
 x402 already handled commerce. AIP adds the agent handshake.
 
 Full breakdown in the video ↓`,
-    shareCopyPhoto: `SHIP LOG · Syra �- AIP is live.
+    shareCopyPhoto: `SHIP LOG · Syra × AIP is live.
 
 Agent Card at /.well-known/agent.json. A2A server at POST /a2a. did:aip identity via @aipagents/did-resolver. Brain can delegate to AIP specialists.
 
@@ -38,7 +38,7 @@ Agent Card → api.syraa.fun/.well-known/agent.json`,
       layout: "cover-dual-badge",
       label: "Cover",
       eyebrow: "Ship log",
-      title: "AIP �- Syra",
+      title: "AIP × Syra",
       subtitle: "Agent Card. A2A tasks. did:aip identity. x402 commerce unchanged.",
       badge: "AIP-01 · AIP-02 · AIP-04",
     },
