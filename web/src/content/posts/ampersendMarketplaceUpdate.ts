@@ -13,7 +13,7 @@ export const AMPERSEND_MARKETPLACE_POST: PostUpdate = {
     tagline: "Syra x402 APIs are listed on the Ampersend agent marketplace via Bazaar discovery",
     shareCopyVideo: `SHIP LOG · Syra is on the Ampersend marketplace.
 
-Every paid Syra API is now Bazaar-discoverable for agent wallets on Base mainnet — 26 endpoints, catalog metadata, and PayAI settle indexing wired for app.ampersend.ai/discover.
+Every paid Syra API is now Bazaar-discoverable for agent wallets on Base mainnet: 26 endpoints, catalog metadata, and PayAI settle indexing wired for app.ampersend.ai/discover.
 
 → x402 Bazaar extensions on 402 + PayAI settle
 → Base mainnet (eip155:8453) for Ampersend production listings
@@ -23,7 +23,7 @@ Every paid Syra API is now Bazaar-discoverable for agent wallets on Base mainnet
 Agents find Syra. Pay per call. No API keys.
 
 Full breakdown in the video ↓`,
-    shareCopyPhoto: `MAJOR SHIP · Syra x402 APIs are on the Ampersend marketplace.
+    shareCopyPhoto: `SHIP LOG · Syra x402 APIs are on the Ampersend marketplace.
 
 Bazaar discovery is live: Base mainnet checkout, 26 paid endpoints, agent-readable metadata. Ampersend agents can browse and pay from their wallet.
 
@@ -39,7 +39,7 @@ Try → syraa.fun/playground`,
       layout: "cover-brand-lockup",
       label: "Cover",
       eyebrow: "Ship log",
-      title: "Syra × Ampersend",
+      title: "Syra �- Ampersend",
       subtitle: "Paid intelligence APIs discoverable on the Ampersend agent marketplace via x402 Bazaar.",
       badge: "Bazaar · Base · 26 endpoints",
     },
@@ -49,7 +49,7 @@ Try → syraa.fun/playground`,
       layout: "statement-boxed",
       label: "Context",
       kicker: "Why this matters",
-      headline: "Agents need a directory — not a spreadsheet of URLs.",
+      headline: "Agents need a directory, not a spreadsheet of URLs.",
       body: "Ampersend is the control layer for agent payments. Its marketplace lists x402-payable services so autonomous agents can discover, pay, and call APIs without contracts or API keys. Syra belongs in that catalog.",
     },
     {
@@ -59,11 +59,11 @@ Try → syraa.fun/playground`,
       label: "Shipped",
       kicker: "What we built",
       headline: "Bazaar discovery for every paid Syra API",
-      body: "We extended x402 Bazaar indexing beyond BSC B402 to PayAI settles on Base mainnet — the network Ampersend production filters to — with per-endpoint categories, tags, and service metadata from our resource catalog.",
+      body: "We extended x402 Bazaar indexing beyond BSC B402 to PayAI settles on Base mainnet, the network Ampersend production filters to, with per-endpoint categories, tags, and service metadata from our resource catalog.",
       highlights: [
         "Bazaar extensions on every 402 Payment Required response",
         "PayAI settle payloads include Bazaar blob for facilitator indexing",
-        "Base mainnet eip155:8453 — Ampersend production network filter",
+        "Base mainnet eip155:8453: Ampersend production network filter",
         "validate-ampersend npm script for readiness + optional paid E2E",
       ],
     },
@@ -157,12 +157,12 @@ Try → syraa.fun/playground`,
         {
           icon: Globe,
           title: "Open discovery",
-          description: "GET /.well-known/x402 and GET /openapi.json — no API key required.",
+          description: "GET /.well-known/x402 and GET /openapi.json: no API key required.",
         },
         {
           icon: Network,
           title: "Multi-rail checkout",
-          description: "Solana, PayAI EVM, BSC B402, and Algorand — Ampersend filters to Base in prod.",
+          description: "Solana, PayAI EVM, BSC B402, and Algorand. Ampersend filters to Base in prod.",
         },
         {
           icon: Layers,

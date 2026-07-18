@@ -47,7 +47,8 @@ export const SYRA_PRODUCT_FLOW = [
   {
     step: "03",
     title: "Invest",
-    description: "Deploy capital via Giza, Meteora LP, Jupiter, and RISE — policy-gated.",
+    description:
+      "Deploy capital via Marinade, Jito, Kamino, marginfi, and Meteora — policy-gated.",
   },
   {
     step: "04",

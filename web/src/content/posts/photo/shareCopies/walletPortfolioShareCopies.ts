@@ -1,10 +1,10 @@
 import type { PostPhotoCardRole } from "../photoCardSlots";
 
-/** Per-card X copy for Wallet Portfolio photo deck — 15 distinct topics. */
+/** Per-card X copy for Wallet Portfolio photo deck: 15 distinct topics. */
 export const WALLET_PORTFOLIO_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `Ship log: Wallet Portfolio is live on Syra.
+  cover: `SHIP LOG · Wallet Portfolio is live on Syra.
 
-One tab shows every SPL token across Chat and LP agent wallets — live USD, allocation %, and Solscan links.
+One tab shows every SPL token across Chat and LP agent wallets: live USD, allocation %, and Solscan links.
 
 Treasuries fund ops. Portfolio proves what you actually hold.
 
@@ -14,11 +14,11 @@ Treasuries fund ops. Portfolio proves what you actually hold.
 
 Portfolio answers: "What did they actually accumulate?"
 
-Memecoins, swap receipts, LP dust — all surfaced in one auditable view across Chat + LP wallets.`,
+Memecoins, swap receipts, LP dust. All surfaced in one auditable view across Chat + LP wallets.`,
 
   quote: `"You cannot rebalance what you cannot see."
 
-Wallet Portfolio lists every SPL holding with names, USD value, allocation bars, and Solscan proof — one page, two tabs.`,
+Wallet Portfolio lists every SPL holding with names, USD value, allocation bars, and Solscan proof. One page, two tabs.`,
 
   flow: `Audit your agent bag in 4 steps:
 
@@ -44,7 +44,7 @@ Full holdings. No explorer tab hopping.`,
 → Wallet filter: All · Chat · LP with treasury badges
 → Dust toggle + Solscan verify per mint`,
 
-  checklist: `Wallet Portfolio is live — verify it yourself:
+  checklist: `Wallet Portfolio checklist. Verify it yourself:
 
 → Portfolio tab beside Treasuries on /wallet
 → Real symbols from DEX + on-chain metadata (not raw mints)
@@ -56,7 +56,7 @@ Full holdings. No explorer tab hopping.`,
 
 Portfolio turns scattered SPL balances into a holdings table operators can verify before they rebalance or withdraw.`,
 
-  featured: `100% of SPL holdings surfaced — not just SOL/USDC totals.
+  featured: `100% of SPL holdings surfaced. Not just SOL/USDC totals.
 
 Every token your Chat and LP agents picked up: named, priced in USD, tagged by wallet, linked to Solscan.`,
 
@@ -64,7 +64,7 @@ Every token your Chat and LP agents picked up: named, priced in USD, tagged by w
 Treasuries showed operational SOL/USDC. Swap leftovers and agent trades stayed invisible until you opened explorers wallet by wallet.
 
 Now:
-Portfolio tab — every SPL token, live USD, allocation %, wallet filter, and one-click Solscan proof.`,
+Portfolio tab. Every SPL token, live USD, allocation %, wallet filter, and one-click Solscan proof.`,
 
   launch: `SHIP LOG · Wallet Portfolio is live.
 
@@ -83,11 +83,11 @@ syraa.fun/wallet?view=portfolio`,
 
 Treasuries: deposit, withdraw, billing caps, operational SOL/USDC.
 
-Portfolio: full SPL bag audit — per-token USD, allocation bars, dust filter, refresh.
+Portfolio: full SPL bag audit. Per-token USD, allocation bars, dust filter, refresh.
 
 Fund in one tab. Verify in the other.`,
 
-  terminal: `Portfolio API — real response shape:
+  terminal: `Portfolio API. Real response shape:
 
 $ syra wallet portfolio --lp
 > SOL     8.3321   $565.25   96.1%

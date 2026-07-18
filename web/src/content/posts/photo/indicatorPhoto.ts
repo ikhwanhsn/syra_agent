@@ -5,7 +5,7 @@ import { INDICATOR_PHOTO_SHARE_COPIES } from "./shareCopies/indicatorShareCopies
 
 const copies = INDICATOR_PHOTO_SHARE_COPIES;
 
-/** Photo-format content for the x402 Indicator API ship log — 15 cards, 15 X posts. */
+/** Photo-format content for the x402 Indicator API ship log: 15 cards, 15 X posts. */
 export const INDICATOR_PHOTO = definePhotoUpdate(INDICATOR_POST.meta, [
   {
     role: "cover",
@@ -15,7 +15,7 @@ export const INDICATOR_PHOTO = definePhotoUpdate(INDICATOR_POST.meta, [
       eyebrow: "Ship log",
       badge: "x402 · /indicator",
       title: "Indicator API",
-      subtitle: "27 TA indicators as agent-readable JSON. RSI, MACD, Bollinger — one x402 call.",
+      subtitle: "27 TA indicators as agent-readable JSON. RSI, MACD, Bollinger. One x402 call.",
     }),
   },
   {
@@ -25,7 +25,7 @@ export const INDICATOR_PHOTO = definePhotoUpdate(INDICATOR_POST.meta, [
     content: photoContent({
       kicker: "The gap",
       headline: "Agents can't read chart screenshots.",
-      body: "Autonomous agents need structured latest values, descriptive signals, and optional per-bar series — not TradingView pixels. One candle fetch, many indicators, one micropayment.",
+      body: "Autonomous agents need structured latest values, descriptive signals, and optional per-bar series, not TradingView pixels. One candle fetch, many indicators, one micropayment.",
     }),
   },
   {
@@ -107,7 +107,7 @@ export const INDICATOR_PHOTO = definePhotoUpdate(INDICATOR_POST.meta, [
         { value: "10", label: "CEX sources" },
         { value: "1", label: "Fetch per call" },
       ],
-      narrative: "Momentum, trend, volatility, and volume from the same candle series — structured for agent pipelines.",
+      narrative: "Momentum, trend, volatility, and volume from the same candle series, structured for agent pipelines.",
     }),
   },
   {
@@ -117,7 +117,7 @@ export const INDICATOR_PHOTO = definePhotoUpdate(INDICATOR_POST.meta, [
     content: photoContent({
       headline: "Stack indicators in one call.",
       stats: [{ value: "2+", label: "Indicators per request" }],
-      narrative: "Request rsi,macd,bollinger together. Each returns latest, signal, and resolved params. Descriptive output — not trade directives.",
+      narrative: "Request rsi,macd,bollinger together. Each returns latest, signal, and resolved params. Descriptive output, not trade directives.",
     }),
   },
   {

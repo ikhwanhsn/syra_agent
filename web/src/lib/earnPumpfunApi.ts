@@ -19,6 +19,23 @@ export type EarnPumpfunLaunch = {
   liquidityUsd?: number | null;
   volume24hUsd?: number | null;
   priceChange24hPercent?: number | null;
+  /** SAID Protocol identity for the token's earn wallet. */
+  saidVerified?: boolean;
+  saidAgentPDA?: string | null;
+  saidAgentWallet?: string | null;
+  saidProfileUrl?: string | null;
+};
+
+export type VerifySaidResult = {
+  saidVerified: boolean;
+  alreadyVerified?: boolean;
+  alreadyRegistered?: boolean;
+  saidAgentWallet?: string | null;
+  saidAgentPDA?: string | null;
+  saidMetadataUri?: string | null;
+  saidRegisterSignature?: string | null;
+  saidVerifySignature?: string | null;
+  saidProfileUrl?: string | null;
 };
 
 export type EarnPumpfunWalletInfo = {
@@ -170,9 +187,14 @@ export async function launchEarnPumpfunToken(input: {
     insufficientBalance?: boolean;
     usdcBalance?: number;
     requiredUsdc?: number;
+    limitReached?: boolean;
+    existingMint?: string | null;
     data?: LaunchTokenResult;
   };
   if (!res.ok) {
+    if (res.status === 409 || json.limitReached || json.error === "earn_token_limit_reached") {
+      throw new Error("You can only create one token per wallet.");
+    }
     if (json.insufficientBalance) {
       const need = typeof json.requiredUsdc === "number" ? json.requiredUsdc : null;
       const have = typeof json.usdcBalance === "number" ? json.usdcBalance : 0;
@@ -187,6 +209,36 @@ export async function launchEarnPumpfunToken(input: {
     throw new Error(json.error || res.statusText || "Launch failed");
   }
   if (!json.data) throw new Error(json.error || "Launch failed");
+  return json.data;
+}
+
+export async function verifyEarnTokenOnSaid(mint: string): Promise<VerifySaidResult> {
+  const res = await syraFetch(
+    `${base()}/earn/token/${encodeURIComponent(mint.trim())}/verify-said`,
+    {
+      method: "POST",
+      headers: { Accept: "application/json" },
+    },
+  );
+  const json = (await res.json().catch(() => ({}))) as {
+    success?: boolean;
+    error?: string;
+    insufficientBalance?: boolean;
+    requiredSol?: number;
+    solBalance?: number;
+    data?: VerifySaidResult;
+  };
+  if (!res.ok) {
+    if (json.insufficientBalance) {
+      const need = typeof json.requiredSol === "number" ? json.requiredSol : 0.012;
+      const have = typeof json.solBalance === "number" ? json.solBalance : 0;
+      throw new Error(
+        `Earn wallet needs at least ${need} SOL for SAID verification (current: ${have.toFixed(4)} SOL). Fund via Earn wallet.`,
+      );
+    }
+    throw new Error(json.error || res.statusText || "SAID verification failed");
+  }
+  if (!json.data) throw new Error(json.error || "SAID verification failed");
   return json.data;
 }
 

@@ -5,7 +5,7 @@ import { BTC_INTELLIGENCE_PHOTO_SHARE_COPIES } from "./shareCopies/btcIntelligen
 
 const copies = BTC_INTELLIGENCE_PHOTO_SHARE_COPIES;
 
-/** Photo-format content for the BTC Intelligence Hub ship log — 15 cards, 15 X posts. */
+/** Photo-format content for the BTC Intelligence Hub ship log: 15 cards, 15 X posts. */
 export const BTC_INTELLIGENCE_PHOTO = definePhotoUpdate(BTC_INTELLIGENCE_POST.meta, [
   {
     role: "cover",
@@ -15,7 +15,7 @@ export const BTC_INTELLIGENCE_PHOTO = definePhotoUpdate(BTC_INTELLIGENCE_POST.me
       eyebrow: "Ship log",
       badge: "Dashboard · /btc",
       title: "BTC Intelligence Hub",
-      subtitle: "One premium Bitcoin page — flow chart, 15 analysis blocks, shareable cards, sticky nav.",
+      subtitle: "One premium Bitcoin page. Flow chart, 15 analysis blocks, shareable cards, sticky nav.",
     }),
   },
   {
@@ -25,7 +25,7 @@ export const BTC_INTELLIGENCE_PHOTO = definePhotoUpdate(BTC_INTELLIGENCE_POST.me
     content: photoContent({
       kicker: "The gap",
       headline: "BTC research lived in ten tabs.",
-      body: "Spot on one exchange. Funding on another. Sentiment in a feed. Syra /btc unifies overview, cross-venue compare, flow bubblemap, and fifteen analysis sections — with export on every block.",
+      body: "Spot on one exchange. Funding on another. Sentiment in a feed. Syra /btc unifies overview, cross-venue compare, flow bubblemap, and fifteen analysis sections, with export on every block.",
     }),
   },
   {
@@ -91,7 +91,7 @@ export const BTC_INTELLIGENCE_PHOTO = definePhotoUpdate(BTC_INTELLIGENCE_POST.me
         "20 scrollable sections with sticky nav",
         "15 analysis blocks in one dashboard payload",
         "Flow bubblemap with branded chart export",
-        "DB-backed reads — no per-visit API hammering",
+        "DB-backed reads. No per-visit API hammering",
       ],
     }),
   },
@@ -119,7 +119,7 @@ export const BTC_INTELLIGENCE_PHOTO = definePhotoUpdate(BTC_INTELLIGENCE_POST.me
         { value: "20", label: "Shareable cards" },
         { value: "1", label: "Tap to export" },
       ],
-      narrative: "Hero, metrics, bubblemap, technicals, funding, sentiment — branded dark frame + X copy on each.",
+      narrative: "Hero, metrics, bubblemap, technicals, funding, sentiment. Branded dark frame + X copy on each.",
     }),
   },
   {
@@ -146,7 +146,7 @@ export const BTC_INTELLIGENCE_PHOTO = definePhotoUpdate(BTC_INTELLIGENCE_POST.me
       eyebrow: "Now live",
       badge: "Free · Dashboard · /btc",
       title: "BTC Intelligence Hub",
-      subtitle: "Premium Bitcoin command center — flow chart, analysis stack, shareable cards.",
+      subtitle: "Premium Bitcoin command center. Flow chart, analysis stack, shareable cards.",
     }),
   },
   {
@@ -157,11 +157,11 @@ export const BTC_INTELLIGENCE_PHOTO = definePhotoUpdate(BTC_INTELLIGENCE_POST.me
       kicker: "Technical surface",
       headline: "API + scheduler wiring.",
       items: [
-        "GET /btc/overview — price, dominance, fear & greed",
-        "GET /btc/dashboard — 15 analysis sections",
-        "GET /btc/bubblemap — exchange + interval presets",
-        "btcIntelligenceScheduler — tiered MongoDB snapshots",
-        "BtcShareableSection — branded export on every block",
+        "GET /btc/overview: price, dominance, fear & greed",
+        "GET /btc/dashboard: 15 analysis sections",
+        "GET /btc/bubblemap: exchange + interval presets",
+        "btcIntelligenceScheduler: tiered MongoDB snapshots",
+        "BtcShareableSection: branded export on every block",
       ],
     }),
   },
@@ -172,7 +172,7 @@ export const BTC_INTELLIGENCE_PHOTO = definePhotoUpdate(BTC_INTELLIGENCE_POST.me
     content: photoContent({
       badge: "Research → Distribution",
       headline: "Read the stack. Post the proof.",
-      body: "Scroll fifteen analysis blocks for conviction — then share any section as a branded card without rebuilding the graphic.",
+      body: "Scroll fifteen analysis blocks for conviction, then share any section as a branded card without rebuilding the graphic.",
       highlights: [
         "Technicals through supply in one scroll",
         "Sticky section nav with smooth jump",

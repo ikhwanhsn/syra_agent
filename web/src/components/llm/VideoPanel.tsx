@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, Film } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,9 @@ import { ModelSelector } from "@/components/llm/ModelSelector";
 import { useLlmSubmitVideo, useLlmVideoStatus } from "@/hooks/useLlmPlayground";
 import { fetchLlmVideoContentBlob } from "@/lib/llmPlaygroundApi";
 import { useWalletContext } from "@/contexts/WalletContext";
+
+const CONTENT_FETCH_ATTEMPTS = 4;
+const CONTENT_FETCH_RETRY_MS = 2000;
 
 function extractVideoUrl(data: Record<string, unknown> | undefined): string | null {
   if (!data) return null;
@@ -33,6 +36,12 @@ function extractVideoUrl(data: Record<string, unknown> | undefined): string | nu
   return null;
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
+
 export function VideoPanel() {
   const [model, setModel] = useState("");
   const [prompt, setPrompt] = useState("");
@@ -40,6 +49,7 @@ export function VideoPanel() {
   const [generationId, setGenerationId] = useState<string | null>(null);
   const [playUrl, setPlayUrl] = useState<string | null>(null);
   const [loadingContent, setLoadingContent] = useState(false);
+  const playUrlRef = useRef<string | null>(null);
   const submit = useLlmSubmitVideo();
   const { address } = useWalletContext();
 
@@ -56,11 +66,22 @@ export function VideoPanel() {
 
   const onModelChange = useCallback((id: string) => setModel(id), []);
 
+  const revokePlayUrl = useCallback(() => {
+    if (playUrlRef.current?.startsWith("blob:")) {
+      URL.revokeObjectURL(playUrlRef.current);
+    }
+    playUrlRef.current = null;
+    setPlayUrl(null);
+  }, []);
+
   useEffect(() => {
     return () => {
-      if (playUrl?.startsWith("blob:")) URL.revokeObjectURL(playUrl);
+      if (playUrlRef.current?.startsWith("blob:")) {
+        URL.revokeObjectURL(playUrlRef.current);
+      }
+      playUrlRef.current = null;
     };
-  }, [playUrl]);
+  }, []);
 
   useEffect(() => {
     if (!generationId || !address || !done) return;
@@ -70,20 +91,35 @@ export function VideoPanel() {
     let cancelled = false;
     setLoadingContent(true);
     void (async () => {
-      try {
-        const blob = await fetchLlmVideoContentBlob(address, generationId);
+      let lastError: unknown;
+      for (let attempt = 0; attempt < CONTENT_FETCH_ATTEMPTS; attempt += 1) {
         if (cancelled) return;
-        const objectUrl = URL.createObjectURL(blob);
-        setPlayUrl((prev) => {
-          if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
-          return objectUrl;
-        });
-      } catch (e) {
-        if (!cancelled) {
-          toast.error(e instanceof Error ? e.message : "Failed to load video content");
+        try {
+          const blob = await fetchLlmVideoContentBlob(address, generationId);
+          if (cancelled) return;
+          if (blob.size === 0) {
+            throw new Error("Video content was empty");
+          }
+          const objectUrl = URL.createObjectURL(blob);
+          if (playUrlRef.current?.startsWith("blob:")) {
+            URL.revokeObjectURL(playUrlRef.current);
+          }
+          playUrlRef.current = objectUrl;
+          setPlayUrl(objectUrl);
+          setLoadingContent(false);
+          return;
+        } catch (e) {
+          lastError = e;
+          if (attempt < CONTENT_FETCH_ATTEMPTS - 1) {
+            await sleep(CONTENT_FETCH_RETRY_MS);
+          }
         }
-      } finally {
-        if (!cancelled) setLoadingContent(false);
+      }
+      if (!cancelled) {
+        setLoadingContent(false);
+        toast.error(
+          lastError instanceof Error ? lastError.message : "Failed to load video content",
+        );
       }
     })();
 
@@ -99,10 +135,7 @@ export function VideoPanel() {
       return;
     }
     try {
-      setPlayUrl((prev) => {
-        if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
-        return null;
-      });
+      revokePlayUrl();
       const result = await submit.mutateAsync({
         prompt: trimmed,
         model: model || undefined,
@@ -186,7 +219,12 @@ export function VideoPanel() {
               <span className="font-mono text-xs text-muted-foreground">{generationId}</span>
             </div>
             {playUrl && (
-              <video controls src={playUrl} className="w-full rounded-md border border-border" />
+              <video
+                key={playUrl}
+                controls
+                src={playUrl}
+                className="w-full rounded-md border border-border"
+              />
             )}
             {statusQ.isError && (
               <p className="text-sm text-destructive">

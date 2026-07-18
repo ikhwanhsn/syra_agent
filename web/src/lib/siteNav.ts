@@ -61,6 +61,7 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
       !p.startsWith("/agent-setup") &&
       !p.includes("-experiment") &&
       !p.startsWith("/assets") &&
+      !p.startsWith("/analyzer") &&
       !p.startsWith("/pumpfun") &&
       !p.startsWith("/internal-team") &&
       !p.startsWith("/internal"),
@@ -76,6 +77,7 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
       isDashboardPillarRoute(p) ||
       p.startsWith("/agent-setup") ||
       p.startsWith("/assets") ||
+      p.startsWith("/analyzer") ||
       p.startsWith("/pumpfun") ||
       p.includes("-experiment") ||
       p.startsWith("/arbitrage") ||
@@ -86,7 +88,7 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/overview", label: "Overview", icon: LayoutDashboard },
       { href: "/assets", label: "Assets", icon: FileSearch },
-      { href: "/pumpfun", label: "Pumpfun Alpha", icon: Rocket },
+      { href: "/analyzer", label: "Token Analyzer", icon: Rocket },
       { href: "/lp-experiment", label: "LP agents", icon: Droplets },
       {
         href: "/labs",

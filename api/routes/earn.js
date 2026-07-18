@@ -10,6 +10,7 @@ import {
   listMarketplaceEarnPumpfunLaunches,
   resolveEarnWalletForSession,
   uploadPumpfunMetadata,
+  verifyEarnTokenOnSaid,
   withSyraTokenNameSuffix,
 } from '../libs/earnPumpfunService.js';
 
@@ -206,6 +207,14 @@ export function createEarnRouter() {
       });
 
       if (!result.success) {
+        if (result.limitReached) {
+          return res.status(409).json({
+            success: false,
+            error: result.error || 'earn_token_limit_reached',
+            existingMint: result.existingMint || null,
+            limitReached: true,
+          });
+        }
         const status = result.insufficientBalance ? 402 : 400;
         return res.status(status).json(result);
       }
@@ -247,6 +256,60 @@ export function createEarnRouter() {
       return res.status(500).json({
         success: false,
         error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  });
+
+  /** POST /earn/token/:mint/verify-said — register + verify token earn wallet on SAID Protocol */
+  router.post('/token/:mint/verify-said', requireSession({ allowGuest: false }), async (req, res) => {
+    try {
+      const mint = String(req.params.mint || '').trim();
+      if (!mint) {
+        return res.status(400).json({ success: false, error: 'invalid_mint' });
+      }
+
+      const resolved = await resolveEarnWalletForSession(
+        req.user?.anonymousId,
+        req.user?.walletAddress || null,
+      );
+
+      const result = await verifyEarnTokenOnSaid({
+        earnAnonymousId: resolved.earnAnonymousId,
+        earnAgentAddress: resolved.earnAgentAddress,
+        mint,
+      });
+
+      if (!result.success) {
+        if (result.error === 'not_owner') {
+          return res.status(403).json(result);
+        }
+        if (result.error === 'token_not_found') {
+          return res.status(404).json(result);
+        }
+        if (result.insufficientBalance) {
+          return res.status(402).json(result);
+        }
+        return res.status(400).json(result);
+      }
+
+      return res.json({
+        success: true,
+        data: {
+          saidVerified: result.saidVerified,
+          alreadyVerified: result.alreadyVerified,
+          alreadyRegistered: result.alreadyRegistered,
+          saidAgentWallet: result.saidAgentWallet,
+          saidAgentPDA: result.saidAgentPDA,
+          saidMetadataUri: result.saidMetadataUri,
+          saidRegisterSignature: result.saidRegisterSignature,
+          saidVerifySignature: result.saidVerifySignature,
+          saidProfileUrl: result.saidProfileUrl,
+        },
+      });
+    } catch (e) {
+      return res.status(500).json({
+        success: false,
+        error: e instanceof Error ? e.message : 'said_verify_failed',
       });
     }
   });

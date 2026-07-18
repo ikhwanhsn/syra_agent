@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   fetchMemecoinAnalysis,
   fetchMemecoinAnalysisQuota,
-  isValidSolanaMint,
+  isValidTokenAddress,
   MemecoinAnalysisQuotaError,
   type MemecoinAnalysisPayload,
   type PumpfunScanRecordSummary,
@@ -77,7 +77,7 @@ export function useMemecoinAnalysis(
   const queryClient = useQueryClient();
   const trimmed = mint?.trim() ?? "";
   const bust = options?.bust ?? 0;
-  const hasMint = trimmed.length > 0 && isValidSolanaMint(trimmed);
+  const hasMint = trimmed.length > 0 && isValidTokenAddress(trimmed);
   const scanReady = options?.scanReady ?? true;
   const guestScanReady = options?.guestScanReady ?? false;
   const sessionCache = options?.sessionCache ?? false;

@@ -460,13 +460,14 @@ export async function getPumpfunCallerLeaderboard(opts = {}) {
  * @param {import('./memecoinAnalysisService.js').buildMemecoinAnalysis extends (...args: any) => Promise<{ ok: boolean; data?: any }> ? any : never} data
  */
 export function extractScanSnapshotFromAnalysis(data) {
+  const token = data.token && typeof data.token === 'object' ? data.token : null;
   const pumpfun = data.pumpfun?.ok ? data.pumpfun.data : null;
   const market = data.market ?? {};
   return {
     mint: data.mint,
-    symbol: pumpfun?.symbol ?? 'TOKEN',
-    name: pumpfun?.name ?? 'Token',
-    imageUri: pumpfun?.imageUri ?? null,
+    symbol: token?.symbol ?? pumpfun?.symbol ?? 'TOKEN',
+    name: token?.name ?? pumpfun?.name ?? 'Token',
+    imageUri: token?.imageUri ?? pumpfun?.imageUri ?? null,
     scanPriceUsd: market.priceUsd ?? pumpfun?.priceUsd ?? null,
     scanMarketCapUsd: market.marketCapUsd ?? pumpfun?.marketCapUsd ?? null,
     syraAlphaScore: data.syraAlpha?.score ?? 0,

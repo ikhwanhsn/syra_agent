@@ -25,7 +25,7 @@ export const BNB_X402_PHOTO = definePhotoUpdate(BNB_X402_POST.meta, [
     content: photoContent({
       kicker: "The problem",
       headline: "BNB builders shouldn't bridge to pay.",
-      body: "Syra agents trade on Solana and Base. BNB Smart Chain is one of the largest EVM ecosystems — intelligence APIs needed native x402 settlement there, not a bridge workaround.",
+      body: "Syra agents trade on Solana and Base. BNB Smart Chain is one of the largest EVM ecosystems. Intelligence APIs needed native x402 settlement there, not a bridge workaround.",
     }),
   },
   {
@@ -34,7 +34,7 @@ export const BNB_X402_PHOTO = definePhotoUpdate(BNB_X402_POST.meta, [
     shareCopy: copies.quote,
     content: photoContent({
       quote: "List once. Settle where your treasury lives.",
-      narrative: "Solana, Base, and BSC — one intelligence stack, three native payment rails.",
+      narrative: "Solana, Base, and BSC: one intelligence stack, three native payment rails.",
     }),
   },
   {
@@ -62,7 +62,7 @@ export const BNB_X402_PHOTO = definePhotoUpdate(BNB_X402_POST.meta, [
       steps: [
         { step: "01", title: "Paid endpoint", description: "Agent chat or playground calls a Syra intelligence API." },
         { step: "02", title: "HTTP 402", description: "B402 accept header with eip155:56 and stablecoin options." },
-        { step: "03", title: "Sign on BSC", description: "MetaMask EIP-3009 or Permit2 — USD1, U, USDC, or USDT." },
+        { step: "03", title: "Sign on BSC", description: "MetaMask EIP-3009 or Permit2: USD1, U, USDC, or USDT." },
         { step: "04", title: "Settled natively", description: "B402 verify + settle. Payload unlocked on BSC." },
       ],
     }),
@@ -106,7 +106,7 @@ export const BNB_X402_PHOTO = definePhotoUpdate(BNB_X402_POST.meta, [
         { value: "4", label: "BSC stable options" },
         { value: "402", label: "HTTP-native micropayments" },
       ],
-      narrative: "BNB-native agents pay for Nansen-grade flows, market data, and research — without bridging or leaving BSC.",
+      narrative: "BNB-native agents pay for Nansen-grade flows, market data, and research without bridging or leaving BSC.",
     }),
   },
   {
@@ -124,7 +124,7 @@ export const BNB_X402_PHOTO = definePhotoUpdate(BNB_X402_POST.meta, [
     layout: "photo-comparison",
     shareCopy: copies.comparison,
     content: photoContent({
-      headline: "Bridge to pay vs. pay on BNB.",
+      headline: "Bridge to pay vs pay on BNB.",
       compareLeft: {
         title: "Before",
         body: "BNB agents bridged or skipped paid Syra APIs. No native B402 settlement path.",
@@ -170,7 +170,7 @@ export const BNB_X402_PHOTO = definePhotoUpdate(BNB_X402_POST.meta, [
     content: photoContent({
       badge: "Multi-chain",
       headline: "One stack. Three native treasuries.",
-      body: "Solana and Base x402 for existing agents. B402 on eip155:56 for BNB builders — no bridge workaround.",
+      body: "Solana and Base x402 for existing agents. B402 on eip155:56 for BNB builders. No bridge workaround.",
       highlights: [
         "Solana: autonomous traders + x402",
         "Base: agent wallet + facilitator",

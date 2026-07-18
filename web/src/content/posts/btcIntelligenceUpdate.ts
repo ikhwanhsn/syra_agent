@@ -2,7 +2,7 @@ import { BarChart3, Bitcoin, LineChart, Newspaper, Share2 } from "lucide-react";
 import type { PostUpdate } from "./types";
 
 /**
- * Ship log: BTC Intelligence Hub — /btc dashboard with bubblemap, 20 sections, shareable cards.
+ * Ship log: BTC Intelligence Hub. /btc dashboard with bubblemap, 20 sections, shareable cards.
  */
 export const BTC_INTELLIGENCE_POST: PostUpdate = {
   meta: {
@@ -10,26 +10,26 @@ export const BTC_INTELLIGENCE_POST: PostUpdate = {
     id: "btc-intelligence-hub",
     title: "BTC Intelligence Hub",
     published: "June 2026",
-    tagline: "One premium BTC command center — flow chart, 15 analysis blocks, and shareable section cards",
+    tagline: "One premium BTC command center: flow chart, 15 analysis blocks, and shareable section cards",
     shareCopyVideo: `SHIP LOG · Syra just shipped the BTC Intelligence Hub.
 
-One dashboard page for Bitcoin conviction — not ten scattered tabs.
+One dashboard page for Bitcoin conviction. Not ten scattered tabs.
 
 → Live overview + cross-exchange compare
 → Flow bubblemap on TradingView Lightweight Charts
 → 15 analysis sections: technicals, funding, OI, sentiment, signal, and more
 → Sticky section nav with smooth scroll
-→ Every section is a shareable card — copy, download, or post to X
+→ Every section is a shareable card: copy, download, or post to X
 → DB-backed snapshots on a rate-limit-aware schedule
 
 Free on the dashboard. Open /btc and scroll the full stack.
 
-Full walkthrough in the video ↓`,
-    shareCopyPhoto: `MAJOR SHIP · BTC Intelligence Hub is live on Syra.
+Full breakdown in the video ↓`,
+    shareCopyPhoto: `SHIP LOG · BTC Intelligence Hub is live on Syra.
 
-One page: price overview, exchange compare, flow bubblemap, and 15 analysis sections — technicals, order book, funding, fear & greed, news, sentiment, signal, supply.
+One page: price overview, exchange compare, flow bubblemap, and 15 analysis sections. Technicals, order book, funding, fear & greed, news, sentiment, signal, supply.
 
-Sticky nav. Shareable cards. Server snapshots — no per-visit API hammering.
+Sticky nav. Shareable cards. Server snapshots. No per-visit API hammering.
 
 Try it → syraa.fun/btc`,
   },
@@ -41,7 +41,7 @@ Try it → syraa.fun/btc`,
       label: "Cover",
       eyebrow: "Ship log",
       title: "BTC Intelligence Hub",
-      subtitle: "Premium Bitcoin command center on Syra — flow chart, 15 analysis blocks, shareable cards, one scroll.",
+      subtitle: "Premium Bitcoin command center on Syra. Flow chart, 15 analysis blocks, shareable cards, one scroll.",
       badge: "Dashboard · /btc",
     },
     {
@@ -51,7 +51,7 @@ Try it → syraa.fun/btc`,
       label: "Context",
       kicker: "Why this matters",
       headline: "BTC research was scattered. Now it's one page.",
-      body: "Traders bounced between exchange tabs, chart sites, and sentiment feeds. Syra /btc pulls overview, cross-venue pricing, on-chain flow visualization, and fifteen analysis sections into a single premium dashboard — with every block exportable for X.",
+      body: "Traders bounced between exchange tabs, chart sites, and sentiment feeds. Syra /btc pulls overview, cross-venue pricing, on-chain flow visualization, and fifteen analysis sections into a single premium dashboard, with every block exportable for X.",
     },
     {
       id: "shipped",
@@ -60,7 +60,7 @@ Try it → syraa.fun/btc`,
       label: "Shipped",
       kicker: "What we built",
       headline: "20 sections. One hub.",
-      body: "Hero metrics, exchange compare, interactive bubblemap, and a deep dashboard of technicals, derivatives, correlations, news, sentiment, and supply — all backed by precomputed MongoDB snapshots.",
+      body: "Hero metrics, exchange compare, interactive bubblemap, and a deep dashboard of technicals, derivatives, correlations, news, sentiment, and supply. All backed by precomputed MongoDB snapshots.",
       highlights: [
         "Overview price, dominance, fear & greed, and volume",
         "Flow bubblemap with exchange + interval controls",
@@ -78,7 +78,7 @@ Try it → syraa.fun/btc`,
         {
           step: "01",
           title: "Open /btc",
-          description: "Dashboard sidebar → BTC Intelligence. Snapshots load from Syra API — not live provider calls per user.",
+          description: "Dashboard sidebar → BTC Intelligence. Snapshots load from Syra API, not live provider calls per user.",
         },
         {
           step: "02",
@@ -93,7 +93,7 @@ Try it → syraa.fun/btc`,
         {
           step: "04",
           title: "Share a card",
-          description: "Any section exports a branded dark frame — copy text, download PNG, or native share to X.",
+          description: "Any section exports a branded dark frame: copy text, download PNG, or native share to X.",
         },
       ],
     },
@@ -146,13 +146,13 @@ Try it → syraa.fun/btc`,
         {
           title: "Rate limits",
           subtitle: "Provider budgets",
-          detail: "CoinGecko, Binance, and Coinbase fetches respect per-minute ceilings — no hammering on page load.",
+          detail: "CoinGecko, Binance, and Coinbase fetches respect per-minute ceilings. No hammering on page load.",
           accent: "gold",
         },
         {
           title: "API surface",
           subtitle: "GET /btc/*",
-          detail: "GET /btc/overview, /btc/dashboard, /btc/bubblemap — 503 until first snapshot is warm.",
+          detail: "GET /btc/overview, /btc/dashboard, /btc/bubblemap. 503 until first snapshot is warm.",
         },
       ],
     },
@@ -182,7 +182,7 @@ Try it → syraa.fun/btc`,
         {
           icon: LineChart,
           title: "Flow bubblemap",
-          description: "TradingView Lightweight Charts bubblemap — exchange, interval, and variant toggles.",
+          description: "TradingView Lightweight Charts bubblemap. Exchange, interval, and variant toggles.",
           href: "https://www.syraa.fun/btc#section-bubblemap",
         },
         {
@@ -194,7 +194,7 @@ Try it → syraa.fun/btc`,
         {
           icon: Share2,
           title: "Shareable cards",
-          description: "Every section exports branded PNG + X copy — hero, metrics, chart, and analysis blocks.",
+          description: "Every section exports branded PNG + X copy. Hero, metrics, chart, and analysis blocks.",
         },
         {
           icon: Newspaper,
@@ -216,7 +216,7 @@ Try it → syraa.fun/btc`,
         { value: "3", label: "API endpoints" },
       ],
       narrative:
-        "Researchers get a single scrollable command center. Creators get share-ready cards from every block. The backend refreshes on a schedule — visitors read snapshots, not raw provider quotas.",
+        "Researchers get a single scrollable command center. Creators get share-ready cards from every block. The backend refreshes on a schedule. Visitors read snapshots, not raw provider quotas.",
     },
     {
       id: "closing",

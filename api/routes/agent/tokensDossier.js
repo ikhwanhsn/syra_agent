@@ -1,7 +1,7 @@
 import express from 'express';
 import { buildMintDossier, buildMintChart } from '../../libs/tokensDossierService.js';
 import { buildAssetIntelligence } from '../../libs/assetIntelligenceService.js';
-import { buildMemecoinAnalysis } from '../../libs/memecoinAnalysisService.js';
+import { buildTokenAnalysis } from '../../libs/tokenAnalysisService.js';
 import { fetchTokenKolShills } from '../../libs/tokenKolShillService.js';
 import { buildSwapMarketNews } from '../../libs/swapMarketNews.js';
 import { buildHolderOverlapBatch } from '../../libs/holderOverlapService.js';
@@ -29,13 +29,7 @@ import { optionalWalletSession, requireSession } from '../../utils/requireSessio
 import { fetchAssetsBoard } from '../../libs/tokensBoardService.js';
 import { runTokensAgentTool } from '../../libs/tokensAgentService.js';
 import { createBoundedTtlCache } from '../../utils/boundedTtlCache.js';
-
-/** @param {string} s */
-function isLikelySolanaMint(s) {
-  const t = typeof s === 'string' ? s.trim() : '';
-  if (t.length < 32 || t.length > 44) return false;
-  return /^[1-9A-HJ-NP-Za-km-z]+$/.test(t);
-}
+import { detectTokenChainKind, isLikelySolanaMint } from '../../libs/tokenChainDetect.js';
 
 const DEFAULT_TRADE_TAPE_LIMIT = 50;
 
@@ -582,10 +576,10 @@ export function createTokensDossierRouter() {
       }
 
       const mint = typeof req.query.mint === 'string' ? req.query.mint.trim() : '';
-      if (!mint || !isLikelySolanaMint(mint)) {
+      if (!mint || !detectTokenChainKind(mint)) {
         return res.status(400).json({
           success: false,
-          error: 'Provide a valid Solana mint address via ?mint=',
+          error: 'Provide a valid Solana mint or EVM token address via ?mint=',
         });
       }
 
@@ -609,7 +603,7 @@ export function createTokensDossierRouter() {
 
       const force = req.query.force === 'true';
 
-      const result = await buildMemecoinAnalysis({ mint, force });
+      const result = await buildTokenAnalysis({ address: mint, force });
       if (!result.ok) {
         return res.status(result.status ?? 502).json({
           success: false,

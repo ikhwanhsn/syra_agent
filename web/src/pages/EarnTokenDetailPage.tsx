@@ -2,10 +2,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   ArrowUpRight,
+  BadgeCheck,
   Copy,
   ExternalLink,
   Loader2,
   Rocket,
+  ShieldCheck,
 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { EarnTokenLogo } from "@/components/earn/EarnTokenLogo";
@@ -18,6 +20,7 @@ import {
   collectEarnPumpfunFees,
   fetchEarnPumpfunTokenDetail,
   shortenMint,
+  verifyEarnTokenOnSaid,
 } from "@/lib/earnPumpfunApi";
 import { siblingAnonymousId } from "@/lib/agentWalletPurpose";
 import { formatPct } from "@/lib/dashboardOverviewAggregates";
@@ -152,6 +155,33 @@ export default function EarnTokenDetailPage() {
     },
   });
 
+  const verifySaidMutation = useMutation({
+    mutationFn: () => verifyEarnTokenOnSaid(mint),
+    onSuccess: (data) => {
+      if (data.saidVerified) {
+        notify.success(
+          data.alreadyVerified ? "Already verified on SAID" : "Verified on SAID",
+          "Your token’s earn wallet is now a verified SAID agent.",
+        );
+      } else {
+        notify.error("Verification incomplete", "SAID registration ran but verification did not confirm.");
+      }
+      void queryClient.invalidateQueries({ queryKey: ["earn", "token-detail", mint] });
+      void queryClient.invalidateQueries({ queryKey: ["earn", "token-launches"] });
+      void queryClient.invalidateQueries({ queryKey: ["earn", "token-marketplace"] });
+    },
+    onError: (e: Error) => {
+      notify.error("SAID verify failed", e.message || "Could not verify on SAID");
+    },
+  });
+
+  const saidProfileUrl =
+    launch?.saidProfileUrl?.trim() ||
+    (launch?.saidAgentWallet
+      ? `https://www.saidprotocol.com/agents/${launch.saidAgentWallet}`
+      : null);
+  const isSaidVerified = launch?.saidVerified === true;
+
   const copyMint = async () => {
     if (!mint) return;
     try {
@@ -223,6 +253,18 @@ export default function EarnTokenDetailPage() {
                     <span className="mx-2 text-muted-foreground/35">·</span>
                     <span className="text-muted-foreground/80">pump.fun</span>
                   </p>
+                  {isSaidVerified && saidProfileUrl ? (
+                    <a
+                      href={saidProfileUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[12px] font-medium text-emerald-700 transition-colors hover:bg-emerald-500/15 dark:text-emerald-300"
+                    >
+                      <BadgeCheck className="h-3.5 w-3.5" aria-hidden />
+                      Verified on SAID
+                      <ExternalLink className="h-3 w-3 opacity-60" aria-hidden />
+                    </a>
+                  ) : null}
                   {launch.description ? (
                     <p className="max-w-xl pt-1 text-[15px] leading-relaxed text-muted-foreground">
                       {launch.description}
@@ -231,40 +273,62 @@ export default function EarnTokenDetailPage() {
                 </div>
               </div>
 
-              <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
-                <Button
-                  className="h-11 gap-2 rounded-full px-5 text-[13px] font-medium shadow-sm"
-                  asChild
-                >
-                  <a href={pumpUrl!} target="_blank" rel="noreferrer">
-                    Trade
-                    <ArrowUpRight className="h-4 w-4 opacity-80" />
-                  </a>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="h-11 gap-2 rounded-full px-5 text-[13px] font-medium shadow-none"
-                  asChild
-                >
-                  <a href={solscanUrl!} target="_blank" rel="noreferrer">
-                    Solscan
-                    <ExternalLink className="h-3.5 w-3.5 opacity-60" />
-                  </a>
-                </Button>
-                {isOwner && syraAuthenticated ? (
+              <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
+                <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                   <Button
-                    variant="secondary"
-                    className="h-11 gap-2 rounded-full px-5 text-[13px] font-medium shadow-none"
-                    disabled={collectMutation.isPending}
-                    onClick={() => collectMutation.mutate()}
+                    className="h-11 gap-2 rounded-full px-5 text-[13px] font-medium shadow-sm"
+                    asChild
                   >
-                    {collectMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Rocket className="h-4 w-4 opacity-70" />
-                    )}
-                    Claim fees
+                    <a href={pumpUrl!} target="_blank" rel="noreferrer">
+                      Trade
+                      <ArrowUpRight className="h-4 w-4 opacity-80" />
+                    </a>
                   </Button>
+                  <Button
+                    variant="outline"
+                    className="h-11 gap-2 rounded-full px-5 text-[13px] font-medium shadow-none"
+                    asChild
+                  >
+                    <a href={solscanUrl!} target="_blank" rel="noreferrer">
+                      Solscan
+                      <ExternalLink className="h-3.5 w-3.5 opacity-60" />
+                    </a>
+                  </Button>
+                  {isOwner && syraAuthenticated ? (
+                    <Button
+                      variant="secondary"
+                      className="h-11 gap-2 rounded-full px-5 text-[13px] font-medium shadow-none"
+                      disabled={collectMutation.isPending}
+                      onClick={() => collectMutation.mutate()}
+                    >
+                      {collectMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Rocket className="h-4 w-4 opacity-70" />
+                      )}
+                      Claim fees
+                    </Button>
+                  ) : null}
+                  {isOwner && syraAuthenticated && !isSaidVerified ? (
+                    <Button
+                      variant="outline"
+                      className="h-11 gap-2 rounded-full px-5 text-[13px] font-medium shadow-none"
+                      disabled={verifySaidMutation.isPending}
+                      onClick={() => verifySaidMutation.mutate()}
+                    >
+                      {verifySaidMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <ShieldCheck className="h-4 w-4 opacity-70" />
+                      )}
+                      Verify on SAID
+                    </Button>
+                  ) : null}
+                </div>
+                {isOwner && syraAuthenticated && !isSaidVerified ? (
+                  <p className="max-w-xs text-right text-[11px] leading-relaxed text-muted-foreground/80">
+                    Pays ~0.012 SOL from your Earn wallet for on-chain SAID registration + verified badge.
+                  </p>
                 ) : null}
               </div>
             </header>

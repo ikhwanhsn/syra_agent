@@ -5,7 +5,7 @@ import { AIP_INTEGRATION_PHOTO_SHARE_COPIES } from "./shareCopies/aipIntegration
 
 const copies = AIP_INTEGRATION_PHOTO_SHARE_COPIES;
 
-/** Photo-format content for the AIP integration ship log — 15 cards, 15 X posts. */
+/** Photo-format content for the AIP integration ship log - 15 cards, 15 X posts. */
 export const AIP_INTEGRATION_PHOTO = definePhotoUpdate(AIP_INTEGRATION_POST.meta, [
   {
     role: "cover",
@@ -14,7 +14,7 @@ export const AIP_INTEGRATION_PHOTO = definePhotoUpdate(AIP_INTEGRATION_POST.meta
     content: photoContent({
       eyebrow: "Ship log",
       badge: "AIP-01 · AIP-02 · AIP-04",
-      title: "AIP × Syra",
+      title: "AIP �- Syra",
       subtitle: "Agent Card. A2A tasks. did:aip identity. x402 commerce unchanged.",
     }),
   },
@@ -25,7 +25,7 @@ export const AIP_INTEGRATION_PHOTO = definePhotoUpdate(AIP_INTEGRATION_POST.meta
     content: photoContent({
       kicker: "The gap",
       headline: "Agents need a handshake.",
-      body: "Syra runs x402, 8004, SAID, and Ampersend. AIP standardizes discovery, task lifecycle, and did:aip identity — the open protocol layer for autonomous agents on Solana.",
+      body: "Syra runs x402, 8004, SAID, and Ampersend. AIP standardizes discovery, task lifecycle, and did:aip identity: the open protocol layer for autonomous agents on Solana.",
     }),
   },
   {
@@ -34,7 +34,7 @@ export const AIP_INTEGRATION_PHOTO = definePhotoUpdate(AIP_INTEGRATION_POST.meta
     shareCopy: copies.quote,
     content: photoContent({
       quote: "Discover. Task. Pay. Verify.",
-      narrative: "Agent Card for discovery. A2A JSON-RPC for tasks. x402 for settlement. did:aip for identity — four standards, one Syra gateway.",
+      narrative: "Agent Card for discovery. A2A JSON-RPC for tasks. x402 for settlement. did:aip for identity: four standards, one Syra gateway.",
     }),
   },
   {
@@ -45,10 +45,10 @@ export const AIP_INTEGRATION_PHOTO = definePhotoUpdate(AIP_INTEGRATION_POST.meta
       kicker: "AIP flow",
       headline: "Discover. Task. Pay. Settle.",
       steps: [
-        { step: "01", title: "Agent Card", description: "GET /.well-known/agent.json — capabilities + pricing." },
-        { step: "02", title: "A2A task", description: "POST /a2a — task/create with x402 payment." },
-        { step: "03", title: "did:aip verify", description: "GET /aip/verify/:did — on-chain counterparty check." },
-        { step: "04", title: "Registry", description: "npm run register-aip — AgentRecord on Solana." },
+        { step: "01", title: "Agent Card", description: "GET /.well-known/agent.json: capabilities + pricing." },
+        { step: "02", title: "A2A task", description: "POST /a2a: task/create with x402 payment." },
+        { step: "03", title: "did:aip verify", description: "GET /aip/verify/:did: on-chain counterparty check." },
+        { step: "04", title: "Registry", description: "npm run register-aip: AgentRecord on Solana." },
       ],
     }),
   },
@@ -76,7 +76,7 @@ export const AIP_INTEGRATION_PHOTO = definePhotoUpdate(AIP_INTEGRATION_POST.meta
       cards: [
         { title: "AIP-01", subtitle: "Agent Card", detail: "/.well-known/agent.json discovery.", accent: "gold" },
         { title: "AIP-02", subtitle: "A2A JSON-RPC", detail: "POST /a2a task lifecycle.", accent: "gold" },
-        { title: "AIP-03", subtitle: "x402 payment", detail: "Already live — multi-chain Syra rail." },
+        { title: "AIP-03", subtitle: "x402 payment", detail: "Already live: multi-chain Syra rail." },
         { title: "AIP-04", subtitle: "did:aip", detail: "On-chain identity + W3C DID Document." },
       ],
     }),
@@ -88,8 +88,8 @@ export const AIP_INTEGRATION_PHOTO = definePhotoUpdate(AIP_INTEGRATION_POST.meta
     content: photoContent({
       headline: "AIP is live on Syra today.",
       highlights: [
-        "GET /.well-known/agent.json — 7 A2A capabilities",
-        "POST /a2a — task/create + task/status",
+        "GET /.well-known/agent.json: 7 A2A capabilities",
+        "POST /a2a: task/create + task/status",
         "GET /aip/status · /aip/resolve · /aip/verify",
         "aip-discover · aip-resolve · aip-delegate tools",
         "npm run register-aip for on-chain registry",
@@ -117,7 +117,7 @@ export const AIP_INTEGRATION_PHOTO = definePhotoUpdate(AIP_INTEGRATION_POST.meta
     content: photoContent({
       headline: "One catalog. Two protocols.",
       stats: [{ value: "26+", label: "x402 resources" }],
-      narrative: "Agent Card and x402 discovery share the same catalog — one source of truth for capabilities and pricing.",
+      narrative: "Agent Card and x402 discovery share the same catalog: one source of truth for capabilities and pricing.",
     }),
   },
   {
@@ -146,7 +146,7 @@ export const AIP_INTEGRATION_PHOTO = definePhotoUpdate(AIP_INTEGRATION_POST.meta
       partnerName: "Agent Internet Protocol",
       partnerLogo: "/images/partners/aip-agents.png",
       partnerLogoSolidBg: true,
-      headline: "Syra × AIP",
+      headline: "Syra �- AIP",
       subtitle: "Agent Card. A2A tasks. did:aip identity. Open standards for the agentic web.",
     }),
   },
@@ -158,11 +158,11 @@ export const AIP_INTEGRATION_PHOTO = definePhotoUpdate(AIP_INTEGRATION_POST.meta
       kicker: "Technical surface",
       headline: "Wired into Syra API.",
       items: [
-        "api/libs/aipAgentCard.js — Agent Card from x402 catalog",
-        "api/routes/a2a/index.js — JSON-RPC 2.0 server",
-        "api/libs/aipDidClient.js — did:aip resolver adapter",
-        "api/libs/aipClient.js — discover, resolve, delegate",
-        "scripts/register-aip-agent.js — on-chain registry",
+        "api/libs/aipAgentCard.js: Agent Card from x402 catalog",
+        "api/routes/a2a/index.js: JSON-RPC 2.0 server",
+        "api/libs/aipDidClient.js: did:aip resolver adapter",
+        "api/libs/aipClient.js: discover, resolve, delegate",
+        "scripts/register-aip-agent.js: on-chain registry",
       ],
     }),
   },

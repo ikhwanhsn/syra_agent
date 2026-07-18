@@ -5,7 +5,7 @@
 import type { HttpMethod } from "@/types/api";
 import type { RequestParam } from "@/types/api";
 
-export const X402_PLAYGROUND_GENERATED_AT = "2026-07-15T03:52:48.712Z";
+export const X402_PLAYGROUND_GENERATED_AT = "2026-07-18T05:13:59.866Z";
 
 export interface X402PlaygroundResourceTemplate {
   segment: string;
@@ -412,7 +412,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "segment": "pumpfun/trending",
       "name": "pump.fun Trending",
       "summary": "Trending pump.fun coins list",
-      "description": "Returns trending pump.fun coins from frontend-api-v3 (falls back to top-runners when primary feed is empty). Use when an agent scans hot me…",
+      "description": "Returns trending pump.fun coins from frontend-api-v3 top-runners (falls back to currently-live). Use when an agent scans hot memecoin launc…",
       "priceUsd": "0.001",
       "category": "defi"
     }
@@ -446,7 +446,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "segment": "pumpfun/movers",
       "name": "pump.fun Movers",
       "summary": "pump.fun market movers list",
-      "description": "Returns pump.fun market movers from frontend-api-v3 (falls back to currently-live when primary is empty). Use when an agent finds coins wit…",
+      "description": "Returns pump.fun market movers from frontend-api-v3 currently-live (falls back to top-runners). Use when an agent finds coins with unusual…",
       "priceUsd": "0.001",
       "category": "defi"
     }

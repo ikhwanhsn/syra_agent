@@ -27,24 +27,28 @@ function SidePanelSkeleton() {
   );
 }
 
-function MetricSkeleton() {
+function SpendToolCardSkeleton() {
   return (
-    <div className="min-w-0 space-y-2">
-      <Skeleton className="h-3 w-14" />
-      <Skeleton className="h-8 w-20 sm:h-9" />
-    </div>
+    <li className={cn(overviewCardShell, "min-w-0 p-4 sm:p-5")}>
+      <div className="mb-2.5 flex items-start justify-between gap-2">
+        <Skeleton className="h-5 w-16 rounded-md" />
+        <Skeleton className="h-4 w-12" />
+      </div>
+      <Skeleton className="h-5 w-36 max-w-full" />
+      <Skeleton className="mt-2 h-4 w-full" />
+      <Skeleton className="mt-1 h-4 w-4/5" />
+      <Skeleton className="mt-4 h-3 w-28" />
+    </li>
   );
 }
 
-function CatalogRowSkeleton() {
+function GlassMetricSkeleton() {
   return (
-    <li className="flex items-center gap-3 px-4 py-3.5 sm:gap-4 sm:px-5">
-      <div className="min-w-0 flex-1 space-y-2">
-        <Skeleton className="h-4 w-40 max-w-full" />
-        <Skeleton className="h-3 w-56 max-w-full" />
-      </div>
-      <Skeleton className="h-4 w-12 shrink-0" />
-    </li>
+    <div className={cn(overviewCardShell, "p-4")}>
+      <Skeleton className="h-3 w-14" />
+      <Skeleton className="mt-3 h-7 w-20 sm:h-8" />
+      <Skeleton className="mt-2 h-3 w-28" />
+    </div>
   );
 }
 
@@ -105,13 +109,32 @@ export function SpendPageSkeleton() {
       aria-label="Loading spend page"
     >
       <Skeleton className="h-14 w-full rounded-2xl" />
-      <div className="grid grid-cols-3 gap-3 sm:gap-8">
-        <MetricSkeleton />
-        <MetricSkeleton />
-        <MetricSkeleton />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+        <GlassMetricSkeleton />
+        <GlassMetricSkeleton />
+        <GlassMetricSkeleton />
       </div>
       <div className="grid w-full gap-6 lg:grid-cols-12 lg:gap-8">
-        <div className="flex min-w-0 flex-col gap-6 lg:col-span-4">
+        <section className="min-w-0 order-1 lg:col-span-8">
+          <div className="mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:items-end sm:justify-between">
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-20" />
+              <Skeleton className="h-4 w-36" />
+            </div>
+            <Skeleton className="h-10 w-full rounded-full sm:h-9 sm:w-64" />
+          </div>
+          <div className="mb-4 flex gap-1.5">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-8 w-16 shrink-0 rounded-full" />
+            ))}
+          </div>
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <SpendToolCardSkeleton key={i} />
+            ))}
+          </ul>
+        </section>
+        <aside className="flex min-w-0 order-2 flex-col gap-6 lg:col-span-4">
           <div className={cn(overviewCardShell, "p-4 sm:p-6")}>
             <Skeleton className="h-3 w-16" />
             <Skeleton className="mt-3 h-4 w-full" />
@@ -120,29 +143,18 @@ export function SpendPageSkeleton() {
               <Skeleton className="h-9 flex-1 rounded-full" />
               <Skeleton className="h-9 flex-1 rounded-full" />
             </div>
-            <div className="mt-5 space-y-2">
+            <div className={cn(overviewCardShell, "mt-5 space-y-2 p-3.5 sm:p-4")}>
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-4/5" />
               <Skeleton className="h-4 w-2/3" />
             </div>
           </div>
-        </div>
-        <section className="min-w-0 lg:col-span-8">
-          <div className="mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
-            <Skeleton className="h-4 w-16" />
-            <Skeleton className="h-10 w-full rounded-full sm:h-9 sm:w-64" />
+          <div className={cn(overviewCardShell, "p-4 sm:p-6")}>
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="mt-3 h-8 w-28" />
+            <Skeleton className="mt-4 h-16 w-full rounded-xl" />
           </div>
-          <div className="mb-3 flex gap-1.5">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-8 w-16 shrink-0 rounded-full" />
-            ))}
-          </div>
-          <ul className={cn(overviewCardShell, "divide-y divide-border/40")}>
-            {Array.from({ length: 6 }).map((_, i) => (
-              <CatalogRowSkeleton key={i} />
-            ))}
-          </ul>
-        </section>
+        </aside>
       </div>
     </div>
   );
@@ -168,21 +180,23 @@ export function GrowAnalysisSkeleton() {
       aria-label="Loading portfolio analysis"
     >
       <Skeleton className="h-12 w-full rounded-2xl" />
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-12 lg:items-end lg:gap-8">
-        <div className="min-w-0 space-y-2 lg:col-span-5">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-12 lg:gap-4">
+        <div className={cn(overviewCardShell, "p-4 sm:p-5 lg:col-span-5 lg:p-6")}>
           <Skeleton className="h-3 w-16" />
-          <Skeleton className="h-10 w-40 sm:h-12 lg:h-14" />
+          <Skeleton className="mt-3 h-10 w-40 sm:h-12" />
+          <Skeleton className="mt-2 h-3 w-36" />
         </div>
-        <div className="grid grid-cols-3 gap-3 sm:gap-6 lg:col-span-7">
-          <MetricSkeleton />
-          <MetricSkeleton />
-          <MetricSkeleton />
+        <div className="grid grid-cols-1 gap-3 sm:col-span-2 sm:grid-cols-3 lg:col-span-7 lg:gap-4">
+          <GlassMetricSkeleton />
+          <GlassMetricSkeleton />
+          <GlassMetricSkeleton />
         </div>
       </div>
       <div className="grid gap-6 sm:grid-cols-2 lg:gap-8">
         {Array.from({ length: 2 }).map((_, i) => (
           <section key={i} className={cn(overviewCardShell, "p-4 sm:p-6")}>
-            <Skeleton className="mb-4 h-4 w-20" />
+            <Skeleton className="mb-1 h-5 w-24" />
+            <Skeleton className="mb-4 h-4 w-36" />
             <div className="space-y-4">
               {Array.from({ length: 4 }).map((_, j) => (
                 <ProgressRowSkeleton key={j} />
@@ -192,7 +206,8 @@ export function GrowAnalysisSkeleton() {
         ))}
       </div>
       <section>
-        <Skeleton className="mb-3 h-4 w-24 sm:mb-4" />
+        <Skeleton className="mb-1 h-5 w-28" />
+        <Skeleton className="mb-4 h-4 w-48" />
         <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           <SuggestionCardSkeleton />
           <SuggestionCardSkeleton />

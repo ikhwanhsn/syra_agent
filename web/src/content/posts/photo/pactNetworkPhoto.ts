@@ -5,7 +5,7 @@ import { PACT_NETWORK_PHOTO_SHARE_COPIES } from "./shareCopies/pactNetworkShareC
 
 const copies = PACT_NETWORK_PHOTO_SHARE_COPIES;
 
-/** Photo-format content for the Pact Network ship log — 15 cards, 15 X posts. */
+/** Photo-format content for the Pact Network ship log: 15 cards, 15 X posts. */
 export const PACT_NETWORK_PHOTO = definePhotoUpdate(PACT_NETWORK_POST.meta, [
   {
     role: "cover",
@@ -25,7 +25,7 @@ export const PACT_NETWORK_PHOTO = definePhotoUpdate(PACT_NETWORK_POST.meta, [
     content: photoContent({
       kicker: "The gap",
       headline: "Agent wallets had no chargebacks.",
-      body: "Syra agents pay Nansen, Birdeye, Zerion, and dozens of x402 providers per chat turn. Call fails after payment — USDC is gone. Pact adds automatic on-chain refunds for covered breaches.",
+      body: "Syra agents pay Nansen, Birdeye, Zerion, and dozens of x402 providers per chat turn. Call fails after payment: USDC is gone. Pact adds automatic on-chain refunds for covered breaches.",
     }),
   },
   {
@@ -106,7 +106,7 @@ export const PACT_NETWORK_PHOTO = definePhotoUpdate(PACT_NETWORK_POST.meta, [
         { value: "0", label: "Dispute forms" },
         { value: "402", label: "Same payment rail" },
       ],
-      narrative: "Agents burn USDC on flaky APIs. Pact returns funds when covered calls fail — no ticket queue.",
+      narrative: "Agents burn USDC on flaky APIs. Pact returns funds when covered calls fail. No ticket queue.",
     }),
   },
   {
@@ -170,7 +170,7 @@ export const PACT_NETWORK_PHOTO = definePhotoUpdate(PACT_NETWORK_POST.meta, [
     content: photoContent({
       badge: "Composable",
       headline: "Audit optional. Refunds always on.",
-      body: "Sentinel wraps fetch for budget and compliance when enabled. Pact wraps on top — refund coverage on every paid upstream call.",
+      body: "Sentinel wraps fetch for budget and compliance when enabled. Pact wraps on top. Refund coverage on every paid upstream call.",
       highlights: [
         "Sentinel: optional audit + spend caps",
         "Pact: always-on refund coverage",
@@ -200,7 +200,7 @@ export const PACT_NETWORK_PHOTO = definePhotoUpdate(PACT_NETWORK_POST.meta, [
     shareCopy: copies.cta,
     content: photoContent({
       headline: "Pay upstream APIs. Get refunded on failure.",
-      subtitle: "Run agent chat with x402 tools. Covered call fails — principal + premium return on-chain.",
+      subtitle: "Run agent chat with x402 tools. Covered call fails: principal + premium return on-chain.",
       links: [
         { label: "Agent chat", value: "syraa.fun/chat", href: "https://www.syraa.fun/chat" },
         { label: "Pact docs", value: "pactnetwork.io/docs", href: "https://www.pactnetwork.io/docs" },

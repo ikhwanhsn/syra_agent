@@ -9,7 +9,7 @@ import {
 const copies = ASSETS_HUB_PHOTO_SHARE_COPIES;
 const footers = ASSETS_HUB_PHOTO_SHARE_FOOTERS;
 
-/** Photo-format content for the Assets Hub ship log — 15 cards, 15 X posts. */
+/** Photo-format content for the Assets Hub ship log: 15 cards, 15 X posts. */
 export const ASSETS_HUB_PHOTO = definePhotoUpdate(ASSETS_HUB_POST.meta, [
   {
     role: "cover",
@@ -30,7 +30,7 @@ export const ASSETS_HUB_PHOTO = definePhotoUpdate(ASSETS_HUB_POST.meta, [
     content: photoContent({
       kicker: "The gap",
       headline: "Research shouldn't need six tabs.",
-      body: "Traders needed the full Tokens.xyz universe — not eight hardcoded rows. They needed dossier data plus news, sentiment, events, and signal on the same asset page.",
+      body: "Traders needed the full Tokens.xyz universe, not eight hardcoded rows. They needed dossier data plus news, sentiment, events, and signal on the same asset page.",
     }),
   },
   {
@@ -40,7 +40,7 @@ export const ASSETS_HUB_PHOTO = definePhotoUpdate(ASSETS_HUB_POST.meta, [
     shareCopyFooter: footers.quote,
     content: photoContent({
       quote: "Find the asset. Read the conviction. One scroll.",
-      narrative: "Board → detail → dossier → sentiment, signal, news, events. Discovery and research on one page.",
+      narrative: "Board to detail to dossier to sentiment, signal, news, events. Discovery and research on one page.",
     }),
   },
   {
@@ -52,7 +52,7 @@ export const ASSETS_HUB_PHOTO = definePhotoUpdate(ASSETS_HUB_POST.meta, [
       headline: "Board to conviction in four steps.",
       steps: [
         { step: "01", title: "Open Assets", description: "Browse /assets with search, filters, and pagination." },
-        { step: "02", title: "Pick an asset", description: "Tap any row — navigates to /assets/{assetId}." },
+        { step: "02", title: "Pick an asset", description: "Tap any row. Navigates to /assets/{assetId}." },
         { step: "03", title: "Read dossier", description: "Price, chart, risk, and markets from Tokens.xyz." },
         { step: "04", title: "Scan intelligence", description: "Sentiment, signal, news, and events below the chart." },
       ],
@@ -83,7 +83,7 @@ export const ASSETS_HUB_PHOTO = definePhotoUpdate(ASSETS_HUB_POST.meta, [
       cards: [
         { title: "Sentiment", subtitle: "Headline tone", detail: "Bullish / bearish / neutral from asset-matched news.", accent: "gold" },
         { title: "Signal", subtitle: "OHLC engine", detail: "CoinGecko recommendation with confidence meter.", accent: "gold" },
-        { title: "News", subtitle: "Scoped headlines", detail: "Primary keyword required — no unrelated crypto fallback." },
+        { title: "News", subtitle: "Scoped headlines", detail: "Primary keyword required. No unrelated crypto fallback." },
         { title: "Events", subtitle: "Calendar rows", detail: "Filtered events plus headline-derived items." },
       ],
     }),
@@ -126,7 +126,7 @@ export const ASSETS_HUB_PHOTO = definePhotoUpdate(ASSETS_HUB_POST.meta, [
     content: photoContent({
       headline: "Dossier plus intel. One URL.",
       stats: [{ value: "4", label: "Intelligence panels" }],
-      narrative: "Price chart, risk, sentiment, signal, news, and events — without leaving /assets/{assetId}.",
+      narrative: "Price chart, risk, sentiment, signal, news, and events without leaving /assets/{assetId}.",
     }),
   },
   {
@@ -138,7 +138,7 @@ export const ASSETS_HUB_PHOTO = definePhotoUpdate(ASSETS_HUB_POST.meta, [
       headline: "Before vs now.",
       compareLeft: {
         title: "Before",
-        body: "Eight hardcoded assets. Query-string URLs. Dossier only — no news or signal on page.",
+        body: "Eight hardcoded assets. Query-string URLs. Dossier only. No news or signal on page.",
       },
       compareRight: {
         title: "Now",
@@ -156,7 +156,7 @@ export const ASSETS_HUB_PHOTO = definePhotoUpdate(ASSETS_HUB_POST.meta, [
       partnerName: "Tokens.xyz",
       partnerLogo: "/images/partners/tokens.png",
       headline: "Syra × Tokens.xyz",
-      subtitle: "Full asset board, dossier detail, and per-asset intelligence — one research page.",
+      subtitle: "Full asset board, dossier detail, and per-asset intelligence on one research page.",
     }),
   },
   {

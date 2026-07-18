@@ -5,7 +5,7 @@ import { PAYAI_X402_PHOTO_SHARE_COPIES } from "./shareCopies/payaiX402ShareCopie
 
 const copies = PAYAI_X402_PHOTO_SHARE_COPIES;
 
-/** Photo-format content for the PayAI all-networks ship log — 15 cards, 15 X posts. */
+/** Photo-format content for the PayAI all-networks ship log: 15 cards, 15 X posts. */
 export const PAYAI_X402_PHOTO = definePhotoUpdate(PAYAI_X402_POST.meta, [
   {
     role: "cover",
@@ -125,7 +125,7 @@ export const PAYAI_X402_PHOTO = definePhotoUpdate(PAYAI_X402_POST.meta, [
     layout: "photo-comparison",
     shareCopy: copies.comparison,
     content: photoContent({
-      headline: "Partial coverage vs. full PayAI stack.",
+      headline: "Partial coverage vs full PayAI stack.",
       compareLeft: {
         title: "Before",
         body: "Corbits facilitator. Limited network list. Shutdown approaching.",

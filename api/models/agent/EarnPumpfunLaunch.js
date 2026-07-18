@@ -16,6 +16,14 @@ const earnPumpfunLaunchSchema = new mongoose.Schema(
     initialBuyLamports: { type: String, default: null },
     lastFeeCollectSignature: { type: String, default: null },
     lastFeeCollectedAt: { type: Date, default: null },
+    /** SAID Protocol identity for this token's earn wallet. */
+    saidAgentWallet: { type: String, default: null },
+    saidAgentPDA: { type: String, default: null },
+    saidMetadataUri: { type: String, default: null },
+    saidRegisterSignature: { type: String, default: null },
+    saidVerifySignature: { type: String, default: null },
+    saidVerified: { type: Boolean, default: false },
+    saidVerifiedAt: { type: Date, default: null },
   },
   { timestamps: true },
 );

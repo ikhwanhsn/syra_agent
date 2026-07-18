@@ -25,7 +25,7 @@ export const LP_AGENT_PHOTO = definePhotoUpdate(LP_AGENT_POST.meta, [
     content: photoContent({
       kicker: "The problem",
       headline: "Meteora bins don't wait for you.",
-      body: "Fee yield, impermanent loss, and out-of-range exits demand constant attention. Syra LP agents screen pools, size positions, and manage exits — so you deploy capital without watching charts all day.",
+      body: "Fee yield, impermanent loss, and out-of-range exits demand constant attention. Syra LP agents screen pools, size positions, and manage exits so you deploy capital without watching charts all day.",
     }),
   },
   {
@@ -34,7 +34,7 @@ export const LP_AGENT_PHOTO = definePhotoUpdate(LP_AGENT_POST.meta, [
     shareCopy: copies.quote,
     content: photoContent({
       quote: "Prove it in sim. Deploy the same math on-chain.",
-      narrative: "Paper winners and live LP used different economics. Syra unified the model — trust earned in the lab transfers directly to real SOL.",
+      narrative: "Paper winners and live LP used different economics. Syra unified the model. Trust earned in the lab transfers directly to real SOL.",
     }),
   },
   {
@@ -89,7 +89,7 @@ export const LP_AGENT_PHOTO = definePhotoUpdate(LP_AGENT_POST.meta, [
       headline: "What ships with LP agents.",
       highlights: [
         "78 strategies: static roster + daily evo spawns + real mirror",
-        "One lpEconomicsModel — same math in sim and live",
+        "One lpEconomicsModel: same math in sim and live",
         "Meteora DLMM open, hold, claim, close on-chain",
         "Jupiter sidecar sweeps with optional platform fees",
       ],
@@ -131,7 +131,7 @@ export const LP_AGENT_PHOTO = definePhotoUpdate(LP_AGENT_POST.meta, [
       },
       compareRight: {
         title: "Now",
-        body: "One economics model. Mirror agent. Profit gates. Meteora DLMM execution — sim to live, same rules.",
+        body: "One economics model. Mirror agent. Profit gates. Meteora DLMM execution: sim to live, same rules.",
       },
     }),
   },

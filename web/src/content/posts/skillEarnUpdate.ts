@@ -11,7 +11,7 @@ import {
 import type { PostUpdate } from "./types";
 
 /**
- * Ship log: Skill Endpoints Earn Rail — publish skills as paid x402 APIs, payTo = earn wallet.
+ * Ship log: Skill Endpoints Earn Rail - publish skills as paid x402 APIs, payTo = earn wallet.
  */
 export const SKILL_EARN_POST: PostUpdate = {
   meta: {
@@ -19,10 +19,10 @@ export const SKILL_EARN_POST: PostUpdate = {
     id: "skill-endpoints-earn",
     title: "Skill Endpoints",
     published: "June 2026",
-    tagline: "Publish skills as paid Syra x402 endpoints — USDC settles to your earn wallet",
+    tagline: "Publish skills as paid Syra x402 endpoints. USDC settles to your earn wallet",
     shareCopyVideo: `SHIP LOG · Syra just shipped Skill Endpoints on the Earn rail.
 
-Creators publish an upstream HTTPS URL as a paid Syra API. Other agents discover it, pay USDC via x402, and you keep every micropayment — direct to your earn wallet.
+Creators publish an upstream HTTPS URL as a paid Syra API. Other agents discover it, pay USDC via x402, and you keep every micropayment, direct to your earn wallet.
 
 → Dashboard → Earn → Create skill
 → GET/POST api.syraa.fun/skills/:slug with dynamic payTo
@@ -31,14 +31,14 @@ Creators publish an upstream HTTPS URL as a paid Syra API. Other agents discover
 
 Build once. Agents pay per call. You earn on-chain.
 
-Full walkthrough in the video ↓`,
-    shareCopyPhoto: `MAJOR SHIP · Skill Endpoints are live on Syra Earn.
+Full breakdown in the video ↓`,
+    shareCopyPhoto: `SHIP LOG · Skill Endpoints are live on Syra Earn.
 
 Publish your API as a paid x402 endpoint. Agents call it. USDC goes straight to your earn wallet.
 
 Create → publish → earn per call.
 
-syraa.fun/overview/earn`,
+→ syraa.fun/overview/earn`,
   },
   slides: [
     {
@@ -59,7 +59,7 @@ syraa.fun/overview/earn`,
       label: "Context",
       kicker: "Why this matters",
       headline: "Creators should monetize APIs without running payment infra.",
-      body: "Syra already gates intelligence with x402. Now any builder can register an upstream HTTPS endpoint, set a price, and expose it as a first-class Syra route — discoverable by agents, settled straight to the creator earn wallet.",
+      body: "Syra already gates intelligence with x402. Now any builder can register an upstream HTTPS endpoint, set a price, and expose it as a first-class Syra route: discoverable by agents, settled straight to the creator earn wallet.",
     },
     {
       id: "shipped",
@@ -70,9 +70,9 @@ syraa.fun/overview/earn`,
       headline: "Earn rail + skill marketplace API",
       body: "Dashboard Earn page lets creators draft skills, publish with wallet sign-in, and manage live endpoints. The dispatcher proxies paid calls to upstream URLs with SSRF guards while x402 payTo points at the creator earn wallet.",
       highlights: [
-        "POST /agent/marketplace/skills — create, publish, unpublish",
-        "GET/POST /skills/:slug — x402 gate + upstream proxy",
-        "Dynamic payTo per skill — creator earn wallet on Solana",
+        "POST /agent/marketplace/skills: create, publish, unpublish",
+        "GET/POST /skills/:slug: x402 gate + upstream proxy",
+        "Dynamic payTo per skill: creator earn wallet on Solana",
         "GET /skills + /.well-known/x402 discovery for agents",
       ],
     },
@@ -121,7 +121,7 @@ syraa.fun/overview/earn`,
         {
           title: "Direct payTo",
           subtitle: "Earn wallet",
-          detail: "x402 Payment Required offers the creator earn wallet — no treasury escrow on this rail.",
+          detail: "x402 Payment Required offers the creator earn wallet. No treasury escrow on this rail.",
           accent: "gold",
         },
         {
@@ -176,7 +176,7 @@ syraa.fun/overview/earn`,
         {
           icon: Link2,
           title: "Public endpoint",
-          description: "Each skill slug maps to api.syraa.fun/skills/:slug — shareable and callable.",
+          description: "Each skill slug maps to api.syraa.fun/skills/:slug. Shareable and callable.",
         },
         {
           icon: ShieldCheck,

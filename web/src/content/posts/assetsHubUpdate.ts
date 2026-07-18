@@ -11,9 +11,9 @@ export const ASSETS_HUB_POST: PostUpdate = {
     title: "Assets Hub + Intelligence",
     published: "June 2026",
     tagline: "Browse every Tokens.xyz asset, open clean detail URLs, and read Syra intelligence per asset",
-    shareCopyVideo: `SHIP LOG · Syra Assets just leveled up.
+    shareCopyVideo: `SHIP LOG · Assets Hub just became a real research desk.
 
-The /assets board now lists the full Tokens.xyz universe with search, filters, and pagination — not a tiny preset list.
+Eight hardcoded rows was never enough. /assets now lists the full Tokens.xyz universe with search, filters, and pagination.
 
 Open any asset at clean URLs like /assets/solana, then scroll into Syra intelligence:
 → Sentiment + trading signal
@@ -22,12 +22,12 @@ Open any asset at clean URLs like /assets/solana, then scroll into Syra intellig
 
 All server-side. Free on the dashboard. No x402 from the detail page.
 
-Full walkthrough in the video ↓`,
-    shareCopyPhoto: `MAJOR SHIP · Assets Hub + per-asset intelligence on Syra.
+Full breakdown in the video ↓`,
+    shareCopyPhoto: `SHIP LOG · Assets Hub + per-asset intelligence is live.
 
-Browse the full Tokens.xyz board, open /assets/{assetId}, and get sentiment, signal, news, and events scoped to that asset.
+Browse the full Tokens.xyz board. Open /assets/{assetId}. Read sentiment, signal, news, and events on the same page.
 
-Try it at syraa.fun/assets`,
+Try it → syraa.fun/assets`,
   },
   slides: [
     {
@@ -47,7 +47,7 @@ Try it at syraa.fun/assets`,
       label: "Context",
       kicker: "Why this matters",
       headline: "Discovery and conviction belong on one page.",
-      body: "Traders needed the whole Tokens.xyz universe in Syra — not eight hardcoded rows. They also needed dossier market data plus news, sentiment, events, and signal without leaving the asset.",
+      body: "Traders needed the whole Tokens.xyz universe in Syra, not eight hardcoded rows. They also needed dossier market data plus news, sentiment, events, and signal without leaving the asset.",
     },
     {
       id: "shipped",
@@ -79,7 +79,7 @@ Try it at syraa.fun/assets`,
         {
           step: "02",
           title: "Pick an asset",
-          description: "Tap any row or command-palette hit — navigates to /assets/{assetId}.",
+          description: "Tap any row or command-palette hit. Navigates to /assets/{assetId}.",
         },
         {
           step: "03",
@@ -99,7 +99,7 @@ Try it at syraa.fun/assets`,
       layout: "cards-row",
       label: "Features",
       kicker: "Under the hood",
-      headline: "Built for any asset — crypto or xStock",
+      headline: "Built for any asset: crypto or xStock",
       cards: [
         {
           title: "Board API",
@@ -116,7 +116,7 @@ Try it at syraa.fun/assets`,
         {
           title: "Asset keywords",
           subtitle: "Name-first search",
-          detail: "Roblox matches roblox — not unrelated crypto headlines.",
+          detail: "Roblox matches roblox, not unrelated crypto headlines.",
         },
         {
           title: "35+ RSS + Google",

@@ -11,7 +11,7 @@ import {
 import type { PostUpdate } from "./types";
 
 /**
- * Ship log: Jupiter Swap on /swap under Earn nav — wallet-signed swaps with Syra referral adapter.
+ * Ship log: Jupiter Swap on /swap under Earn nav - wallet-signed swaps with Syra referral adapter.
  */
 export const SWAP_POST: PostUpdate = {
   meta: {
@@ -22,21 +22,23 @@ export const SWAP_POST: PostUpdate = {
     tagline: "Wallet-signed token swaps at Jupiter prices, now live under Earn on Syra",
     shareCopyVideo: `SHIP LOG · Syra just shipped Jupiter Swap.
 
-Trade any Solana token from your connected wallet — best-route quotes, slippage controls, and instant submit after you sign. Staking and Swap now live together under Earn in the navbar.
+Trade any Solana token from your connected wallet: best-route quotes, slippage controls, and instant submit after you sign. Staking and Swap now live together under Earn in the navbar.
 
 → /swap with Jupiter quote + build adapter on Syra API
-→ Sign in Phantom, Privy, Solflare, or Backpack — non-custodial
+→ Sign in Phantom, Privy, Solflare, or Backpack. Non-custodial
 → Token search, balances, slippage presets, live quote refresh
 → Syra referral platform fee on routed swaps when configured
 
 Research on Syra. Swap on Syra. Same wallet.
 
-Full walkthrough in the video ↓`,
-    shareCopyPhoto: `MAJOR SHIP · Jupiter Swap is live on Syra.
+Full breakdown in the video ↓`,
+    shareCopyPhoto: `SHIP LOG · Jupiter Swap is live on Syra.
 
 Earn in the navbar: Staking + Swap. Connect your wallet, pick tokens, review the quote, sign once, done.
 
-Best routes via Jupiter. Non-custodial. syraa.fun/swap`,
+Best routes via Jupiter. Non-custodial.
+
+→ syraa.fun/swap`,
   },
   slides: [
     {
@@ -70,7 +72,7 @@ Best routes via Jupiter. Non-custodial. syraa.fun/swap`,
       highlights: [
         "Earn nav: Staking locks + Jupiter Swap in one menu",
         "GET /jupiter/ui/quote · POST /jupiter/ui/swap · GET /jupiter/ui/tokens",
-        "Connected wallet signs — Phantom, Privy, Solflare, Backpack",
+        "Connected wallet signs: Phantom, Privy, Solflare, Backpack",
         "Referral platform fee via Syra backend when configured",
       ],
     },
@@ -162,7 +164,7 @@ Best routes via Jupiter. Non-custodial. syraa.fun/swap`,
         {
           icon: Lock,
           title: "Staking",
-          description: "Streamflow locks stay under Earn alongside Swap — one section for yield actions.",
+          description: "Streamflow locks stay under Earn alongside Swap: one section for yield actions.",
           href: "https://www.syraa.fun/staking",
         },
         {
@@ -179,7 +181,7 @@ Best routes via Jupiter. Non-custodial. syraa.fun/swap`,
         {
           icon: ShieldCheck,
           title: "Free UI routes",
-          description: "Quote, swap build, and token search on /jupiter/ui — no x402 required for the swap UI.",
+          description: "Quote, swap build, and token search on /jupiter/ui. No x402 required for the swap UI.",
         },
       ],
     },

@@ -11,7 +11,7 @@ export const WALLET_PORTFOLIO_POST: PostUpdate = {
     title: "Agent Wallet Portfolio",
     published: "June 2026",
     tagline: "See every token your agent wallets hold in one portfolio view",
-    shareCopyVideo: `SHIP LOG · Syra Wallets just got a Portfolio tab.
+    shareCopyVideo: `SHIP LOG · Wallets just got a Portfolio tab.
 
 Your agent treasuries are not just SOL and USDC anymore. Open Wallets → Portfolio to see every SPL token across Chat and LP wallets, total USD value, and per-token allocation.
 
@@ -23,13 +23,13 @@ Your agent treasuries are not just SOL and USDC anymore. Open Wallets → Portfo
 Fund agents, let them trade, then audit the full bag in one place.
 
 Full breakdown in the video ↓`,
-    shareCopyPhoto: `MAJOR SHIP · Agent Wallet Portfolio is live on Syra.
+    shareCopyPhoto: `SHIP LOG · Agent Wallet Portfolio is live on Syra.
 
 Wallets page now has a Portfolio tab. See every token your Chat and LP agent wallets hold, with USD value and allocation %.
 
 Treasuries for funding. Portfolio for the full picture.
 
-Try it at syraa.fun/wallet?view=portfolio`,
+Try it → syraa.fun/wallet?view=portfolio`,
   },
   slides: [
     {

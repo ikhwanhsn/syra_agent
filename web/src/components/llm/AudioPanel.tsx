@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, Volume2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -18,11 +18,35 @@ import { useLlmModels, useLlmSpeech } from "@/hooks/useLlmPlayground";
 
 const FALLBACK_VOICES = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"] as const;
 
+/** Strip params and map common TTS MIME types to browser-playable values. */
+function normalizeAudioMime(contentType: string): string {
+  const raw = contentType.split(";")[0]?.trim().toLowerCase() || "audio/mpeg";
+  if (raw === "audio/mp3" || raw === "audio/x-mpeg" || raw === "application/octet-stream") {
+    return "audio/mpeg";
+  }
+  if (raw === "audio/x-wav" || raw === "audio/wave") {
+    return "audio/wav";
+  }
+  if (raw.startsWith("audio/")) return raw;
+  return "audio/mpeg";
+}
+
+function base64ToUint8Array(base64: string): Uint8Array {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
 export function AudioPanel() {
   const [model, setModel] = useState("");
   const [input, setInput] = useState("");
   const [voice, setVoice] = useState<string>("");
   const [audio, setAudio] = useState<{ base64: string; contentType: string } | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const audioUrlRef = useRef<string | null>(null);
   const speech = useLlmSpeech();
   const modelsQ = useLlmModels("speech");
 
@@ -43,9 +67,33 @@ export function AudioPanel() {
     }
   }, [voices, voice]);
 
-  const audioUrl = useMemo(() => {
-    if (!audio) return null;
-    return `data:${audio.contentType};base64,${audio.base64}`;
+  useEffect(() => {
+    if (!audio) {
+      if (audioUrlRef.current?.startsWith("blob:")) {
+        URL.revokeObjectURL(audioUrlRef.current);
+      }
+      audioUrlRef.current = null;
+      setAudioUrl(null);
+      return;
+    }
+
+    const mime = normalizeAudioMime(audio.contentType);
+    const bytes = base64ToUint8Array(audio.base64);
+    const blob = new Blob([bytes], { type: mime });
+    const objectUrl = URL.createObjectURL(blob);
+
+    if (audioUrlRef.current?.startsWith("blob:")) {
+      URL.revokeObjectURL(audioUrlRef.current);
+    }
+    audioUrlRef.current = objectUrl;
+    setAudioUrl(objectUrl);
+
+    return () => {
+      if (audioUrlRef.current === objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+        audioUrlRef.current = null;
+      }
+    };
   }, [audio]);
 
   const onSubmit = async () => {
@@ -67,6 +115,8 @@ export function AudioPanel() {
       toast.error(e instanceof Error ? e.message : "Speech synthesis failed");
     }
   };
+
+  const mimeLabel = audio ? normalizeAudioMime(audio.contentType) : "audio";
 
   return (
     <Card>
@@ -125,10 +175,10 @@ export function AudioPanel() {
 
         {audioUrl && (
           <div className="space-y-2 rounded-lg border border-border bg-muted/20 p-4">
-            <audio controls src={audioUrl} className="w-full" />
+            <audio key={audioUrl} controls src={audioUrl} className="w-full" />
             <Input
               readOnly
-              value={`${audio?.contentType ?? "audio"} · ${(audio?.base64.length ?? 0) * 0.75} bytes (approx)`}
+              value={`${mimeLabel} · ${Math.round((audio?.base64.length ?? 0) * 0.75)} bytes (approx)`}
               className="font-mono text-xs"
             />
           </div>

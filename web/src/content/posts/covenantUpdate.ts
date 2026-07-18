@@ -2,7 +2,7 @@ import { Bot, Cpu, Layers, Lock, ShieldCheck, Terminal } from "lucide-react";
 import type { PostUpdate } from "./types";
 
 /**
- * Ship log: Covenant agent-native operating layer × Syra machine money.
+ * Ship log: Covenant agent-native operating layer �- Syra machine money.
  */
 export const COVENANT_POST: PostUpdate = {
   meta: {
@@ -13,7 +13,7 @@ export const COVENANT_POST: PostUpdate = {
     tagline: "Agent-native OS primitives meet Syra x402 machine money",
     shareCopyVideo: `SHIP LOG · Syra just integrated with Covenant.
 
-Open infrastructure for agent-native computing — signed grants, append-only audit, sandboxed runtime, and eight host-level primitives. Syra is now the machine-money layer Covenant agents can call over x402.
+Open infrastructure for agent-native computing: signed grants, append-only audit, sandboxed runtime, and eight host-level primitives. Syra is now the machine-money layer Covenant agents can call over x402.
 
 → Syra MCP + skill.md for covenantd-run agents
 → x402 intelligence APIs under capability-scoped grants
@@ -23,9 +23,9 @@ Open infrastructure for agent-native computing — signed grants, append-only au
 402 for price. Covenant for authority. Same Syra agent brain.
 
 Full breakdown in the video ↓`,
-    shareCopyPhoto: `MAJOR SHIP · Syra × Covenant is live.
+    shareCopyPhoto: `SHIP LOG · Syra �- Covenant is live.
 
-Covenant is the agent-native OS layer — identity, permissions, memory, runtime, and settlement as host-level services. Syra is the machine-money rail: pay-per-call intelligence over x402 from agents running under signed grants.
+Covenant is the agent-native OS layer: identity, permissions, memory, runtime, and settlement as host-level services. Syra is the machine-money rail: pay-per-call intelligence over x402 from agents running under signed grants.
 
 Install covenantd. Point agents at Syra MCP. Pay USDC per call. Every action leaves a receipt.
 
@@ -40,7 +40,7 @@ Install covenantd. Point agents at Syra MCP. Pay USDC per call. Every action lea
       layout: "cover-dual-badge",
       label: "Cover",
       eyebrow: "Ship log",
-      title: "Covenant × Syra",
+      title: "Covenant �- Syra",
       subtitle: "Open agent-native OS infrastructure meets Syra machine money. Signed grants, audit receipts, and x402 intelligence in one stack.",
       badge: "OS layer · x402 · Audit",
     },
@@ -60,7 +60,7 @@ Install covenantd. Point agents at Syra MCP. Pay USDC per call. Every action lea
       label: "Shipped",
       kicker: "What we built",
       headline: "Syra as Covenant's commerce layer",
-      body: "Covenant agents dispatch intents under signed capability grants. Syra exposes 100+ x402 tools via MCP and skill.md — Nansen, Birdeye, signals, swaps — callable from any Covenant runtime without reinventing payment rails.",
+      body: "Covenant agents dispatch intents under signed capability grants. Syra exposes 100+ x402 tools via MCP and skill.md: Nansen, Birdeye, signals, swaps. Callable from any Covenant runtime without reinventing payment rails.",
       highlights: [
         "Syra MCP server for covenantd-run agents",
         "skill.md + x402 checkout under capability scope",
@@ -78,7 +78,7 @@ Install covenantd. Point agents at Syra MCP. Pay USDC per call. Every action lea
         {
           step: "01",
           title: "Covenant grant",
-          description: "covenantd issues a signed capability grant — scoped permissions for tools, budget, and runtime.",
+          description: "covenantd issues a signed capability grant: scoped permissions for tools, budget, and runtime.",
         },
         {
           step: "02",
@@ -114,7 +114,7 @@ Install covenantd. Point agents at Syra MCP. Pay USDC per call. Every action lea
         {
           title: "Syra MCP",
           subtitle: "Agent tools",
-          detail: "100+ x402 tools exposed via MCP — intelligence, market data, swaps, and enrichment.",
+          detail: "100+ x402 tools exposed via MCP: intelligence, market data, swaps, and enrichment.",
           accent: "gold",
         },
         {
@@ -135,7 +135,7 @@ Install covenantd. Point agents at Syra MCP. Pay USDC per call. Every action lea
         {
           title: "Settlement",
           subtitle: "x402 USDC",
-          detail: "Syra handles micropayment settlement — Covenant tracks budget and capability scope.",
+          detail: "Syra handles micropayment settlement. Covenant tracks budget and capability scope.",
         },
         {
           title: "Identity",
@@ -201,7 +201,7 @@ Install covenantd. Point agents at Syra MCP. Pay USDC per call. Every action lea
         {
           icon: Bot,
           title: "Agent chat",
-          description: "Same Syra intelligence surface — now callable from Covenant-managed agent processes.",
+          description: "Same Syra intelligence surface, now callable from Covenant-managed agent processes.",
           href: "https://www.syraa.fun/chat",
         },
         {
@@ -225,7 +225,7 @@ Install covenantd. Point agents at Syra MCP. Pay USDC per call. Every action lea
         { value: "402", label: "Pay per call" },
       ],
       narrative:
-        "Covenant gives agents a governed operating layer. Syra gives them machine money. Build agent apps on Covenant, pay for intelligence on Syra — without rebuilding identity, permissions, or settlement from scratch.",
+        "Covenant gives agents a governed operating layer. Syra gives them machine money. Build agent apps on Covenant, pay for intelligence on Syra, without rebuilding identity, permissions, or settlement from scratch.",
     },
     {
       id: "closing",

@@ -27,17 +27,28 @@ export type ApiEnvelope<T> = {
   error?: string;
 };
 
-/** Public Invest adapters only. Internal adapters (giza, lp_real, rise) are not listed. */
-export type InvestAdapterId = "jupiter";
+/** Public Invest adapters (onchain Solana). Internal adapters (giza, lp_real, rise) are not listed. */
+export type InvestAdapterId = "marinade" | "jito" | "kamino" | "marginfi" | "meteora";
+
+export type InvestKind = "liquid_staking" | "lending" | "lp";
 
 export type InvestOpportunity = {
   adapter: InvestAdapterId | string;
   label: string;
+  protocol?: string;
   chain?: string;
+  kind?: InvestKind | string;
   description: string;
   status: string;
   actions?: string[];
   toolId?: string;
+  executable?: boolean;
+  deepLinkUrl?: string | null;
+  riskNote?: string;
+  apyPct?: number | null;
+  tvlUsd?: number | null;
+  yieldSource?: string | null;
+  yieldSymbol?: string | null;
   summary?: {
     enabled?: boolean;
     openPositions?: number;
@@ -75,7 +86,30 @@ export type InvestAprRange = {
 };
 
 export const INVEST_ILLUSTRATIVE_APR: Record<string, InvestAprRange> = {
-  jupiter: { lowPct: 0, highPct: 0, label: "Swap only — no yield estimate" },
+  marinade: { lowPct: 5, highPct: 8, label: "Liquid staking (illustrative)" },
+  jito: { lowPct: 6, highPct: 10, label: "Liquid staking + MEV (illustrative)" },
+  kamino: { lowPct: 3, highPct: 15, label: "Lending / vaults (illustrative)" },
+  marginfi: { lowPct: 3, highPct: 12, label: "Lending (illustrative)" },
+  meteora: { lowPct: 5, highPct: 40, label: "DLMM LP (illustrative; IL risk)" },
+};
+
+export type InvestDepositResult = {
+  adapter: string;
+  toolId?: string;
+  amountSol: number;
+  status: "ok" | "pending_confirmation" | string;
+  signature?: string;
+  intentId?: string;
+  expiresAt?: number;
+  summary?: {
+    action?: string;
+    toolId?: string;
+    estimatedUsd?: number;
+    message?: string;
+    reasons?: string[];
+    riskScore?: number;
+  };
+  agentAddress?: string;
 };
 
 export type RiseMarketRow = {
@@ -320,6 +354,22 @@ export async function fetchInvestPositions(
   return res.json() as Promise<ApiEnvelope<InvestPositionsData>>;
 }
 
+/** Deposit SOL into an executable invest adapter (marinade | jito) via invest agent wallet. */
+export async function depositInvest(params: {
+  adapter: InvestAdapterId | string;
+  amountSol: number;
+}): Promise<ApiEnvelope<InvestDepositResult>> {
+  const res = await syraFetch(`${base()}/invest/deposit`, {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({
+      adapter: params.adapter,
+      amountSol: params.amountSol,
+    }),
+  });
+  return res.json() as Promise<ApiEnvelope<InvestDepositResult>>;
+}
+
 /** Free public RISE markets digest — no x402. */
 export async function fetchRiseMarketsAggregate(): Promise<RiseMarketsAggregate> {
   const res = await fetch(`${base()}/uponly-rise-markets/aggregate`, {
@@ -431,7 +481,7 @@ export const PILLAR_COPY: Record<
   },
   invest: {
     headline: "Invest",
-    description: "Deploy capital into yield, LP, and trading strategies.",
+    description: "Deploy capital into Solana liquid staking, lending, and LP.",
     href: "/invest",
   },
   spend: {

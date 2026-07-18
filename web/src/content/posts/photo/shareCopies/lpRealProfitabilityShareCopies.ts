@@ -1,8 +1,8 @@
 import type { PostPhotoCardRole } from "../photoCardSlots";
 
-/** Per-card X copy for LP Real Profitability photo deck — 15 distinct topics. */
+/** Per-card X copy for LP Real Profitability photo deck: 15 distinct topics. */
 export const LP_REAL_PROFITABILITY_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `Your live LP agent was closing winners on price drift alone. Fixed.
+  cover: `SHIP LOG · Your live LP agent was closing winners on price drift alone. Fixed.
 
 Fee-aware stops. Stricter pool gates. Trailing exits. On-chain fee grounding.
 
@@ -12,7 +12,7 @@ Explore → syraa.fun/lp-experiment`,
 
   thesis: `The sim lab caught it first: Loss status with positive PnL.
 
-Price hit stop loss. LP fees still outweighed the move. The live agent used the same blunt rule — and dumped fee-positive trades.
+Price hit stop loss. LP fees still outweighed the move. The live agent used the same blunt rule, and dumped fee-positive trades.
 
 Real exits now follow net economics, not price drift alone.`,
 
@@ -44,7 +44,7 @@ Fee-positive trades stay open longer. Tail risk stays capped.`,
 → Pool screen: 0.55 R:R hurdle, extreme pools banned
 → Adaptive exits: pool-aware rules frozen at open`,
 
-  checklist: `LP real profitability — what changed:
+  checklist: `LP real profitability checklist. What changed:
 
 → Fee-aware stop loss with hard IL cap
 → Chain-cost viability gate before every open
@@ -61,7 +61,7 @@ Sim proved the edge case. Real agent now enforces it.`,
 
 When LP fees outweigh price drift, the live agent holds. When fees can't cover chain costs, it never opens.
 
-Net economics drive every exit — not raw price alone.`,
+Net economics drive every exit, not raw price alone.`,
 
   comparison: `Before:
 Closed on raw price drift. Fee-positive positions exited as losses. Extreme pools could qualify.
@@ -79,7 +79,7 @@ Your Meteora LP agent now holds fee winners and skips pools that can't pay for t
 
 Try it → syraa.fun/lp-experiment`,
 
-  deepDive: `LP real profitability — technical surface:
+  deepDive: `LP real profitability technical surface:
 
 → evaluateRealPositionExit: fee-aware stop + trailing
 → passesRealPoolScreen: 0.55 R:R, extreme tier banned

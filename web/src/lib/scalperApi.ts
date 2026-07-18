@@ -155,6 +155,26 @@ export interface ScalperRun {
   createdAt: string | null;
 }
 
+export interface ScalperScanDiagnostics {
+  rawCandidates: number;
+  perSource: Record<string, number>;
+  droppedReasons: Array<{
+    symbol: string;
+    source: string;
+    score: number;
+    reason: string;
+  }>;
+  regimeReason: string | null;
+  mergedCount: number;
+  cycleSkipped?: Array<{ symbol: string; reason: string }>;
+}
+
+export interface ScalperMarketRegime {
+  regime: "trend_up" | "chop" | "trend_down";
+  allowLong: boolean;
+  reason: string | null;
+}
+
 export interface ScalperOverview {
   title: string;
   startedAt: string | null;
@@ -173,9 +193,11 @@ export interface ScalperOverview {
   }>;
   opportunityFeed: {
     scannedAt: string;
+    regime?: ScalperMarketRegime | null;
     opportunities: ScalperOpportunity[];
     openedCount: number;
     skippedCount: number;
+    diagnostics?: ScalperScanDiagnostics | null;
   } | null;
   openRuns: ScalperRun[];
   recentClosed: ScalperRun[];

@@ -28,6 +28,7 @@ function isDashboardRoute(pathname: string): boolean {
       "/agent-setup",
       "/lp-experiment",
       "/assets",
+      "/analyzer",
       "/pumpfun",
       INTERNAL_BASE_PATH,
     ].some((route) => pathname === route || pathname.startsWith(`${route}/`)) ||

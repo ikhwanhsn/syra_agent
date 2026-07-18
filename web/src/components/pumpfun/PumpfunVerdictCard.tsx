@@ -29,12 +29,23 @@ export function PumpfunVerdictCard({ data, className }: PumpfunVerdictCardProps)
   const { syraAlpha, mint } = data;
   const pumpfun = data.pumpfun.ok ? data.pumpfun.data : null;
   const dossierAsset = data.dossier.ok ? data.dossier.data?.asset : null;
-  const name = pumpfun?.name ?? dossierAsset?.name ?? "Unknown token";
-  const symbol = pumpfun?.symbol ?? dossierAsset?.symbol ?? "—";
-  const image = pumpfun?.imageUri ?? dossierAsset?.imageUrl;
+  const name = data.token?.name ?? pumpfun?.name ?? dossierAsset?.name ?? "Unknown token";
+  const symbol = data.token?.symbol ?? pumpfun?.symbol ?? dossierAsset?.symbol ?? "—";
+  const image = data.token?.imageUri ?? pumpfun?.imageUri ?? dossierAsset?.imageUrl;
+  const chain = data.chain ?? "solana";
+  const isSolana = chain === "solana";
   const score = syraAlpha.score;
   const circumference = 2 * Math.PI * 54;
   const offset = circumference - (score / 100) * circumference;
+
+  const chainLabel =
+    chain === "solana"
+      ? "Solana"
+      : chain === "ethereum"
+        ? "Ethereum"
+        : chain === "bsc"
+          ? "BSC"
+          : chain.charAt(0).toUpperCase() + chain.slice(1);
 
   return (
     <article className={cn(overviewCardShell, "p-5 sm:p-6", className)}>
@@ -57,11 +68,14 @@ export function PumpfunVerdictCard({ data, className }: PumpfunVerdictCardProps)
               <Badge variant="secondary" className="font-mono text-[10px]">
                 {truncateMint(mint)}
               </Badge>
-              {pumpfun?.complete === true ? (
+              <Badge variant="outline" className="text-[10px]">
+                {chainLabel}
+              </Badge>
+              {isSolana && pumpfun?.complete === true ? (
                 <Badge className="border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                   Graduated
                 </Badge>
-              ) : pumpfun?.complete === false ? (
+              ) : isSolana && pumpfun?.complete === false ? (
                 <Badge variant="outline">Bonding curve</Badge>
               ) : null}
             </div>

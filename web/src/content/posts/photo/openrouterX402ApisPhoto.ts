@@ -5,7 +5,7 @@ import { OPENROUTER_X402_APIS_PHOTO_SHARE_COPIES } from "./shareCopies/openroute
 
 const copies = OPENROUTER_X402_APIS_PHOTO_SHARE_COPIES;
 
-/** Photo-format content for OpenRouter x402 APIs ship log — 15 cards. */
+/** Photo-format content for OpenRouter x402 APIs ship log. 15 cards. */
 export const OPENROUTER_X402_APIS_PHOTO = definePhotoUpdate(OPENROUTER_X402_APIS_POST.meta, [
   {
     role: "cover",
@@ -13,8 +13,8 @@ export const OPENROUTER_X402_APIS_PHOTO = definePhotoUpdate(OPENROUTER_X402_APIS
     shareCopy: copies.cover,
     content: photoContent({
       eyebrow: "Ship log",
-      badge: "Chat · Image · Video",
-      title: "OpenRouter × x402",
+      badge: "Chat � Image � Video",
+      title: "OpenRouter ?- x402",
       subtitle: "Pay-per-call chat, image, and video for agents. Curated models. Dynamic pricing. No API keys for callers.",
     }),
   },
@@ -25,7 +25,7 @@ export const OPENROUTER_X402_APIS_PHOTO = definePhotoUpdate(OPENROUTER_X402_APIS
     content: photoContent({
       kicker: "Why Syra",
       headline: "Generative AI on the same rails as crypto intel.",
-      body: "Agents already pay Syra for news, signals, and brain synthesis via x402. Now they pay for LLM reasoning, images, and video in the same HTTP 402 flow — no OpenRouter accounts, no key sprawl.",
+      body: "Agents already pay Syra for news, signals, and brain synthesis via x402. Now they pay for LLM reasoning, images, and video in the same HTTP 402 flow. No OpenRouter accounts, no key sprawl.",
     }),
   },
   {
@@ -43,10 +43,10 @@ export const OPENROUTER_X402_APIS_PHOTO = definePhotoUpdate(OPENROUTER_X402_APIS
     shareCopy: copies.flow,
     content: photoContent({
       kicker: "How it works",
-      headline: "402 → pay → generate.",
+      headline: "402 ? pay ? generate.",
       steps: [
         { step: "01", title: "Send request", description: "Chat messages, image prompt, or video prompt." },
-        { step: "02", title: "Dynamic 402", description: "Price from live OpenRouter rates × margin." },
+        { step: "02", title: "Dynamic 402", description: "Price from live OpenRouter rates ?- margin." },
         { step: "03", title: "Sign USDC", description: "Solana, Base, or any enabled x402 network." },
         { step: "04", title: "Get payload", description: "JSON, images, or video job id." },
       ],
@@ -77,7 +77,7 @@ export const OPENROUTER_X402_APIS_PHOTO = definePhotoUpdate(OPENROUTER_X402_APIS
         { title: "Chat", subtitle: "15 models", detail: "Claude, GPT-5, Gemini, Kimi, DeepSeek, Qwen3.", accent: "gold" },
         { title: "Image", subtitle: "10 models", detail: "Flux, Seedream, GPT Image, Recraft, Gemini.", accent: "gold" },
         { title: "Video", subtitle: "6 models", detail: "Veo 3.1, Seedance, Wan, Sora 2 Pro.", accent: "gold" },
-        { title: "Pricing", subtitle: "Dynamic", detail: "Live rates × margin. Profitable per call." },
+        { title: "Pricing", subtitle: "Dynamic", detail: "Live rates ?- margin. Profitable per call." },
       ],
     }),
   },
@@ -89,7 +89,7 @@ export const OPENROUTER_X402_APIS_PHOTO = definePhotoUpdate(OPENROUTER_X402_APIS
       headline: "Why this is best for Syra.",
       highlights: [
         "One x402 checkout for intel + generative AI",
-        "Dynamic pricing — sustainable unit economics",
+        "Dynamic pricing. Sustainable unit economics",
         "No API keys for agent callers",
         "Agent-tuned defaults: tools, temp 0.2, seed",
         "Listed in x402 bazaar and discovery",
@@ -117,7 +117,7 @@ export const OPENROUTER_X402_APIS_PHOTO = definePhotoUpdate(OPENROUTER_X402_APIS
     content: photoContent({
       headline: "Machine payments meet generative AI.",
       stats: [{ value: "402", label: "HTTP-native checkout" }],
-      narrative: "Syra is the agent runtime: crypto data, brain synthesis, and now OpenRouter chat, image, and video — one treasury, one flow.",
+      narrative: "Syra is the agent runtime: crypto data, brain synthesis, and now OpenRouter chat, image, and video. One treasury, one flow.",
     }),
   },
   {
@@ -142,11 +142,11 @@ export const OPENROUTER_X402_APIS_PHOTO = definePhotoUpdate(OPENROUTER_X402_APIS
     shareCopy: copies.launch,
     content: photoContent({
       eyebrow: "Integration",
-      badge: "Now live · OpenRouter · x402",
+      badge: "Now live � OpenRouter � x402",
       partnerName: "OpenRouter",
       partnerLogo: "/images/partners/placeholder.svg",
-      headline: "Syra × OpenRouter",
-      subtitle: "Chat, image, video — pay per call. Built for agents.",
+      headline: "Syra ?- OpenRouter",
+      subtitle: "Chat, image, video. Pay per call. Built for agents.",
     }),
   },
   {
@@ -157,7 +157,7 @@ export const OPENROUTER_X402_APIS_PHOTO = definePhotoUpdate(OPENROUTER_X402_APIS
       kicker: "Under the hood",
       headline: "x402-native generative stack.",
       items: [
-        "getPriceUsd(req) — dynamic quote before payment",
+        "getPriceUsd(req): dynamic quote before payment",
         "Dedicated OPENROUTER_API_KEY_x402 upstream billing",
         "Image: POST /api/v1/images passthrough",
         "Video: async submit + GET /videos/generations/:id",
@@ -172,7 +172,7 @@ export const OPENROUTER_X402_APIS_PHOTO = definePhotoUpdate(OPENROUTER_X402_APIS
     content: photoContent({
       badge: "Agent defaults",
       headline: "Tuned for autonomous agents.",
-      body: "Low temperature, tool calling, structured output, and provider require_parameters so agents get reliable completions — not random provider drift.",
+      body: "Low temperature, tool calling, structured output, and provider require_parameters so agents get reliable completions. Not random provider drift.",
       highlights: [
         "Chat: tools, tool_choice, response_format",
         "Image: resolution, aspect_ratio, n, seed",
@@ -191,9 +191,9 @@ export const OPENROUTER_X402_APIS_PHOTO = definePhotoUpdate(OPENROUTER_X402_APIS
         "$ curl api.syraa.fun/chat/completions/models",
         "< 15 agentic models + live rates",
         "$ curl -X POST .../chat/completions -d '{...}'",
-        "< HTTP/402 · dynamic price $0.004",
+        "< HTTP/402 � dynamic price $0.004",
         "$ syra-x402 pay && retry",
-        "< HTTP/200 · chat.completion + usage",
+        "< HTTP/200 � chat.completion + usage",
       ],
     }),
   },

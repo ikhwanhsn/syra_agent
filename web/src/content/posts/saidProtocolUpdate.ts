@@ -13,7 +13,7 @@ export const SAID_PROTOCOL_POST: PostUpdate = {
     tagline: "Verified on-chain agent identity for Syra on Solana",
     shareCopyVideo: `SHIP LOG · Syra just registered on SAID Protocol.
 
-Verified on-chain agent identity — register once, build reputation, prove who you are across platforms. Syra is live with the verification badge on Solana mainnet.
+Verified on-chain agent identity. Register once, build reputation, prove who you are across platforms. Syra is live with the verification badge on Solana mainnet.
 
 → On-chain register + verify via said-sdk
 → GET /said/status · /said/verify · /said/trust · /said/agent
@@ -23,7 +23,7 @@ Verified on-chain agent identity — register once, build reputation, prove who 
 402 for commerce. SAID for trust. Same Syra brain.
 
 Full breakdown in the video ↓`,
-    shareCopyPhoto: `MAJOR SHIP · Syra × SAID Protocol is live.
+    shareCopyPhoto: `SHIP LOG · Syra × SAID Protocol is live.
 
 Syra now has verified on-chain agent identity on Solana. Persistent reputation. Trust tier reads. Runtime API routes on Syra.
 
@@ -49,7 +49,7 @@ Profile → saidprotocol.com/agents/53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t
       label: "Context",
       kicker: "Why this matters",
       headline: "Agents need identity, not just wallets.",
-      body: "Syra already runs machine money over x402 and registers agents on 8004. Platforms still ask: is this agent real? SAID Protocol adds persistent, verifiable on-chain identity with a permanent verification badge — the trust layer autonomous agents were missing.",
+      body: "Syra already runs machine money over x402 and registers agents on 8004. Platforms still ask: is this agent real? SAID Protocol adds persistent, verifiable on-chain identity with a permanent verification badge. The trust layer autonomous agents were missing.",
     },
     {
       id: "shipped",
@@ -118,7 +118,7 @@ Profile → saidprotocol.com/agents/53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t
         {
           title: "/said routes",
           subtitle: "Runtime API",
-          detail: "status · verify · trust · agent — API-key protected, no x402.",
+          detail: "status · verify · trust · agent. API-key protected, no x402.",
         },
       ],
     },
@@ -155,7 +155,7 @@ Profile → saidprotocol.com/agents/53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t
         {
           icon: Bot,
           title: "Identity stack",
-          description: "SAID complements 8004 registry and AgentScore Passport — commerce + compliance + trust.",
+          description: "SAID complements 8004 registry and AgentScore Passport. Commerce + compliance + trust.",
         },
         {
           icon: Globe,
@@ -178,7 +178,7 @@ Profile → saidprotocol.com/agents/53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t
         { value: "402", label: "Commerce unchanged" },
       ],
       narrative:
-        "Platforms can gate token launches, escrow, and agent marketplaces on SAID verification without building identity infrastructure from scratch. Syra ships the adapter — you query /said/trust/:wallet.",
+        "Platforms can gate token launches, escrow, and agent marketplaces on SAID verification without building identity infrastructure from scratch. Syra ships the adapter. You query /said/trust/:wallet.",
     },
     {
       id: "closing",

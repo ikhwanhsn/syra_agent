@@ -14,28 +14,26 @@ export const BNB_X402_POST: PostUpdate = {
     title: "x402 on BNB Smart Chain",
     published: "June 2026",
     tagline: "Binance B402 settlement for Syra intelligence APIs",
-    shareCopyVideo: `SHIP LOG · Syra just shipped x402 on BNB Smart Chain.
+    shareCopyVideo: `SHIP LOG · x402 is live on BNB Smart Chain.
 
-Binance B402 settlement is live, end to end. Payment Required on BSC, MetaMask signing, verify and settle through Binance's facilitator, wired into the same x402 pipeline as Solana and Base.
+Binance B402 settlement, end to end. Payment Required on BSC, MetaMask signing, verify and settle through Binance's facilitator. Same x402 pipeline as Solana and Base.
 
 → eip155:56 in every 402 accept
 → USD1, U, USDC, USDT on mainnet
 → Live in Playground, agent wallet, and chat tools
 
-Your agents should not leave their chain to pay for intelligence. Now they do not have to.
-
-Multi-chain treasuries. One Syra brain. Pay per call, not per seat.
+Agents should not leave their chain to pay for intelligence. Now they do not have to.
 
 Full breakdown in the video ↓`,
-    shareCopyPhoto: `MAJOR SHIP · x402 is live on BNB Smart Chain through Binance B402.
+    shareCopyPhoto: `SHIP LOG · x402 settles natively on BNB Smart Chain.
 
-Syra intelligence APIs now settle natively on BSC. Hit a paid endpoint, get 402, sign with MetaMask, unlock the response. No bridge. No subscription. No compromise.
+Syra intelligence APIs take payment on BSC via Binance B402. Hit a paid endpoint, get 402, sign with MetaMask, unlock the response. No bridge. No subscription.
 
 402 → sign on BSC → intelligence delivered.
 
-3 chains live. 4 BSC stables. HTTP-native micropayments for autonomous agents.
+3 chains live. 4 BSC stables. HTTP-native micropayments for agents.
 
-If you build on BNB, this is the stack your agents have been waiting for.`,
+Try it → syraa.fun/playground`,
   },
   slides: [
     {
@@ -55,7 +53,7 @@ If you build on BNB, this is the stack your agents have been waiting for.`,
       label: "Context",
       kicker: "Why this matters",
       headline: "Agents don't stop at one chain.",
-      body: "Syra already powers autonomous traders on Solana and Base. BNB Smart Chain is one of the largest EVM ecosystems, so our APIs needed native x402 settlement there, not a bridge workaround.",
+      body: "Syra already powers autonomous traders on Solana and Base. BNB Smart Chain is one of the largest EVM ecosystems. Our APIs needed native x402 settlement there, not a bridge workaround.",
     },
     {
       id: "shipped",
@@ -64,7 +62,7 @@ If you build on BNB, this is the stack your agents have been waiting for.`,
       label: "Shipped",
       kicker: "What we built",
       headline: "Binance B402 × Syra x402 v2",
-      body: "Full merchant inbound on BSC: Payment Required responses, EIP-712 signing in the browser, and verify/settle through Binance's B402 facilitator, wired into the same x402 pipeline as Solana and Base.",
+      body: "Full merchant inbound on BSC: Payment Required responses, EIP-712 signing in the browser, and verify/settle through Binance's B402 facilitator. Wired into the same x402 pipeline as Solana and Base.",
       highlights: [
         "BSC network id eip155:56 in 402 accepts",
         "B402 verify + settle on paid API calls",

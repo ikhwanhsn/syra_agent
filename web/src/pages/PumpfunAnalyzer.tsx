@@ -25,7 +25,7 @@ import {
   MEMECOIN_ANALYSIS_QUERY_ROOT,
 } from "@/hooks/useMemecoinAnalysis";
 import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
-import { isValidSolanaMint, MemecoinAnalysisQuotaError, normalizeMintInput } from "@/lib/pumpfunAnalysisApi";
+import { isValidTokenAddress, MemecoinAnalysisQuotaError, normalizeTokenAddress } from "@/lib/pumpfunAnalysisApi";
 import { isGuestScanEligible } from "@/lib/pumpfunGuestScan";
 import { isPumpfunScanLimitReached } from "@/lib/pumpfunScanQuota";
 import type { PumpfunScanRecord } from "@/lib/pumpfunScanHistoryApi";
@@ -55,7 +55,7 @@ export default function PumpfunAnalyzer() {
   const urlSub = parsePumpfunScanSubTab(searchParams.get("sub"));
   const [input, setInput] = useState(urlMint);
   const [activeMint, setActiveMint] = useState<string | null>(
-    urlMint && isValidSolanaMint(urlMint) ? urlMint : null,
+    urlMint && isValidTokenAddress(urlMint) ? urlMint : null,
   );
   const [tab, setTab] = useState<PumpfunTab>(urlTab);
   const [scanSubTab, setScanSubTab] = useState<PumpfunScanSubTab>(urlSub);
@@ -177,7 +177,7 @@ export default function PumpfunAnalyzer() {
 
   const handleAnalyze = useCallback(
     async (raw: string, opts?: { force?: boolean }) => {
-      const mint = normalizeMintInput(raw);
+      const mint = normalizeTokenAddress(raw);
       if (!mint) return;
       const ready = await ensureScanSession();
       if (!ready) return;
@@ -210,7 +210,7 @@ export default function PumpfunAnalyzer() {
   );
 
   useEffect(() => {
-    if (urlMint && isValidSolanaMint(urlMint) && urlMint !== activeMint) {
+    if (urlMint && isValidTokenAddress(urlMint) && urlMint !== activeMint) {
       setInput(urlMint);
       setActiveMint(urlMint);
     }
@@ -250,17 +250,18 @@ export default function PumpfunAnalyzer() {
   }, [analysisQ.data?.scanRecord, analysisPayload?.syraAlpha]);
 
   useEffect(() => {
-    if (analysisPayload?.pumpfun.ok || analysisPayload?.dossier.ok) {
+    if (analysisPayload?.pumpfun.ok || analysisPayload?.dossier.ok || analysisPayload?.token) {
       const name =
+        analysisPayload.token?.symbol ??
         analysisPayload.pumpfun.data?.symbol ??
         analysisPayload.dossier.data?.asset?.symbol ??
         "Token";
-      document.title = `${name} · Pumpfun Alpha · Syra`;
+      document.title = `${name} · Token Analyzer · Syra`;
       return () => {
         document.title = "Syra";
       };
     }
-    document.title = "Pumpfun Alpha · Syra";
+    document.title = "Token Analyzer · Syra";
     return () => {
       document.title = "Syra";
     };

@@ -5,7 +5,7 @@ import { ALGORAND_X402_PHOTO_SHARE_COPIES } from "./shareCopies/algorandX402Shar
 
 const copies = ALGORAND_X402_PHOTO_SHARE_COPIES;
 
-/** Photo-format content for the Algorand x402 ship log — 15 cards, 15 X posts. */
+/** Photo-format content for the Algorand x402 ship log: 15 cards, 15 X posts. */
 export const ALGORAND_X402_PHOTO = definePhotoUpdate(ALGORAND_X402_POST.meta, [
   {
     role: "cover",
@@ -33,7 +33,7 @@ export const ALGORAND_X402_PHOTO = definePhotoUpdate(ALGORAND_X402_POST.meta, [
     layout: "photo-quote-gilded",
     shareCopy: copies.quote,
     content: photoContent({
-      quote: "Settle where your treasury lives — including Algorand.",
+      quote: "Settle where your treasury lives, including Algorand.",
       narrative: "Solana, PayAI EVM, BSC B402, and Algorand Mainnet in one x402 v2 surface. One Syra brain. Pay per call.",
     }),
   },
@@ -125,7 +125,7 @@ export const ALGORAND_X402_PHOTO = definePhotoUpdate(ALGORAND_X402_POST.meta, [
     layout: "photo-compare-gradient",
     shareCopy: copies.comparison,
     content: photoContent({
-      headline: "Bridge to pay vs. pay on Algorand.",
+      headline: "Bridge to pay vs pay on Algorand.",
       compareLeft: {
         title: "Before",
         body: "Algorand agents bridged or skipped paid Syra APIs. No native AVM x402 path.",
@@ -157,10 +157,10 @@ export const ALGORAND_X402_PHOTO = definePhotoUpdate(ALGORAND_X402_POST.meta, [
       kicker: "Under the hood",
       headline: "AVM-native x402 v2.",
       items: [
-        "algorandX402Networks.js — CAIP-2 + USDC ASA config",
-        "x402AvmResourceServer.js — GoPlausible singleton",
-        "x402PaymentV2.js — Algorand verify/settle routing",
-        "agentAvmX402Client.js — mainnet Algod client fix",
+        "algorandX402Networks.js: CAIP-2 + USDC ASA config",
+        "x402AvmResourceServer.js: GoPlausible singleton",
+        "x402PaymentV2.js: Algorand verify/settle routing",
+        "agentAvmX402Client.js: mainnet Algod client fix",
         "PaidApiCall.network field for challenge KPIs",
       ],
     }),

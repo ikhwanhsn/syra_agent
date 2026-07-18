@@ -27,7 +27,7 @@ export const LP_AGENT_POST: PostUpdate = {
 Practice in the lab. Flip on your agent when you are ready. Earn trading fees, not subscriptions.
 
 Full breakdown in the video ↓`,
-    shareCopyPhoto: `MAJOR SHIP · Syra LP agents now run sim and live on one economics stack.
+    shareCopyPhoto: `SHIP LOG · Syra LP agents run sim and live on one economics stack.
 
 The lab screens Meteora pools, scores 78 strategies, and evolves winners daily. Your real agent uses the same fee/IL math, wider OOR floors, and profit gates before it opens the next position.
 
@@ -35,7 +35,7 @@ Sim leaderboard → mirror agent → Meteora DLMM → Jupiter sidecar sweep.
 
 Non-custodial. Policy-gated. Built for operators who want fee yield, not manual LP babysitting.
 
-Try the lab at syraa.fun/lp-experiment`,
+Try the lab → syraa.fun/lp-experiment`,
   },
   slides: [
     {

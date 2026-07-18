@@ -104,7 +104,8 @@ export const SYRA_PILLARS: SyraPillar[] = [
   {
     icon: TrendingUp,
     title: "Invest",
-    description: "Deploy capital autonomously via Giza yield, Meteora LP, Jupiter, and RISE markets.",
+    description:
+      "Deploy capital onchain via Marinade, Jito, Kamino, marginfi, and Meteora — plus Jupiter swaps.",
   },
   {
     icon: Zap,

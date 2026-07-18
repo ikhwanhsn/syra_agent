@@ -14,7 +14,18 @@ export type MemecoinAnalysisSection<T> = {
   data?: T;
   error?: string;
   status?: number;
+  /** True when this section is not supported for the token's chain (e.g. EVM holders). */
+  unsupported?: boolean;
 };
+
+export interface AnalyzerTokenMeta {
+  symbol: string;
+  name: string;
+  imageUri?: string | null;
+  twitter?: string | null;
+  telegram?: string | null;
+  website?: string | null;
+}
 
 export interface PumpfunDexPairSnapshot {
   dexId?: string | null;
@@ -205,6 +216,9 @@ export interface TokenKolShillsPayload {
 
 export interface MemecoinAnalysisPayload {
   mint: string;
+  /** Chain id — `solana` or DexScreener chainId (ethereum, base, bsc, arbitrum, …). */
+  chain?: string;
+  token?: AnalyzerTokenMeta;
   syraAlpha: SyraAlphaScore;
   market: MemecoinMarketStats;
   dossier: MemecoinAnalysisSection<TokensDossierPayload>;
@@ -216,14 +230,34 @@ export interface MemecoinAnalysisPayload {
   fetchedAt: string;
 }
 
+export function isValidEvmAddress(raw: string): boolean {
+  return /^0x[a-fA-F0-9]{40}$/.test(raw.trim());
+}
+
 export function isValidSolanaMint(raw: string): boolean {
   const parsed = parseAssetLookupInput(raw);
   return parsed?.mint != null;
 }
 
+/** Accepts Solana mint OR EVM token address. */
+export function isValidTokenAddress(raw: string): boolean {
+  const t = raw.trim();
+  if (!t) return false;
+  if (isValidEvmAddress(t)) return true;
+  return isValidSolanaMint(t);
+}
+
 export function normalizeMintInput(raw: string): string | null {
   const parsed = parseAssetLookupInput(raw.trim());
   return parsed?.mint ?? null;
+}
+
+/** Normalize Solana mint or EVM address for analysis requests. */
+export function normalizeTokenAddress(raw: string): string | null {
+  const t = raw.trim();
+  if (!t) return null;
+  if (isValidEvmAddress(t)) return t.toLowerCase();
+  return normalizeMintInput(t);
 }
 
 export function pickMarketScoreFromDossier(
@@ -290,8 +324,8 @@ export async function fetchMemecoinAnalysis(
   scanRecord: PumpfunScanRecordSummary | null;
 }> {
   const trimmed = mint.trim();
-  if (!isValidSolanaMint(trimmed)) {
-    throw new Error("Enter a valid Solana mint address");
+  if (!isValidTokenAddress(trimmed)) {
+    throw new Error("Enter a valid Solana mint or EVM token address");
   }
 
   const base = getApiBaseUrl().replace(/\/$/, "");

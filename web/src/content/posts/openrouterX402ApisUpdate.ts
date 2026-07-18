@@ -2,7 +2,7 @@ import { Bot, Coins, Image, MessageSquare, Terminal, Zap } from "lucide-react";
 import type { PostUpdate } from "./types";
 
 /**
- * Ship log: OpenRouter x402 APIs — chat, image, and video generation with dynamic pricing.
+ * Ship log: OpenRouter x402 APIs: chat, image, and video generation with dynamic pricing.
  */
 export const OPENROUTER_X402_APIS_POST: PostUpdate = {
   meta: {
@@ -10,31 +10,31 @@ export const OPENROUTER_X402_APIS_POST: PostUpdate = {
     id: "openrouter-x402-apis",
     title: "OpenRouter x402 APIs",
     published: "June 2026",
-    tagline: "Pay-per-call chat, image, and video for agents — curated models, dynamic pricing, zero API keys",
-    shareCopyVideo: `SHIP LOG · Syra just shipped OpenRouter x402 APIs.
+    tagline: "Pay-per-call chat, image, and video for agents. Curated models, dynamic pricing, zero API keys",
+    shareCopyVideo: `SHIP LOG � Syra just shipped OpenRouter x402 APIs.
 
-Agents can now pay per call for LLM reasoning, image generation, and video generation — no OpenRouter account, no API key management. Just x402 USDC on the chain you already use.
+Agents pay per call for LLM reasoning, image generation, and video generation. No OpenRouter account. No API key management. Just x402 USDC on the chain you already use.
 
-→ POST /chat/completions — 15 top agentic text models
-→ POST /images/generations — Unified Image API, sync delivery
-→ POST /videos/generations — async video jobs + free status poll
-→ Dynamic pricing: live OpenRouter rates × margin, profitable per call
-→ Agent defaults: tools, response_format, low temperature, seed
+? POST /chat/completions: 15 top agentic text models
+? POST /images/generations: Unified Image API, sync delivery
+? POST /videos/generations: async video jobs + free status poll
+? Dynamic pricing: live OpenRouter rates ?- margin, profitable per call
+? Agent defaults: tools, response_format, low temperature, seed
 
 Crypto intelligence + generative AI. One Syra checkout.
 
-Full breakdown in the video ↓`,
-    shareCopyPhoto: `MAJOR SHIP · OpenRouter x402 APIs are live on Syra.
+Full breakdown in the video ?`,
+    shareCopyPhoto: `SHIP LOG � OpenRouter x402 APIs are live on Syra.
 
 Pay-per-call chat, image, and video for autonomous agents. Curated agentic models. Dynamic pricing so every call is sustainable.
 
-POST /chat/completions — reasoning + tool calling
-POST /images/generations — text-to-image, sync
-POST /videos/generations — submit job, poll status
+? POST /chat/completions: reasoning + tool calling
+? POST /images/generations: text-to-image, sync
+? POST /videos/generations: submit job, poll status
 
 No API keys for callers. x402 only.
 
-Try it → syraa.fun/playground`,
+Try it ? syraa.fun/playground`,
   },
   slides: [
     {
@@ -43,9 +43,9 @@ Try it → syraa.fun/playground`,
       layout: "cover-split",
       label: "Cover",
       eyebrow: "Ship log",
-      title: "OpenRouter × x402",
-      subtitle: "Chat, image, and video generation — pay per call on Syra. Built for agents, priced to scale.",
-      badge: "3 APIs · dynamic pricing",
+      title: "OpenRouter ?- x402",
+      subtitle: "Chat, image, and video generation. Pay per call on Syra. Built for agents, priced to scale.",
+      badge: "3 APIs � dynamic pricing",
     },
     {
       id: "context",
@@ -54,7 +54,7 @@ Try it → syraa.fun/playground`,
       label: "Context",
       kicker: "Why Syra",
       headline: "Agents need generative AI on the same rails as crypto intelligence.",
-      body: "Syra already sells news, signals, on-chain reads, and brain synthesis via x402. Now agents pay for LLM reasoning, images, and video in the same HTTP 402 flow — no separate OpenRouter billing, no key sprawl, no subscription lock-in.",
+      body: "Syra already sells news, signals, on-chain reads, and brain synthesis via x402. Now agents pay for LLM reasoning, images, and video in the same HTTP 402 flow. No separate OpenRouter billing, no key sprawl, no subscription lock-in.",
     },
     {
       id: "shipped",
@@ -65,10 +65,10 @@ Try it → syraa.fun/playground`,
       headline: "Three OpenRouter APIs behind x402",
       body: "Curated allowlists of the best agentic models on OpenRouter. Dynamic per-request pricing from live upstream rates with margin. Dedicated billing isolation for sustainable unit economics.",
       highlights: [
-        "POST /chat/completions — 15 agentic text models, OpenAI-compatible",
-        "POST /images/generations — Unified Image API, synchronous delivery",
-        "POST /videos/generations — async submit + free GET status poll",
-        "GET /models on each route — allowlist + live rates, no payment",
+        "POST /chat/completions: 15 agentic text models, OpenAI-compatible",
+        "POST /images/generations: Unified Image API, synchronous delivery",
+        "POST /videos/generations: async submit + free GET status poll",
+        "GET /models on each route: allowlist + live rates, no payment",
       ],
     },
     {
@@ -77,7 +77,7 @@ Try it → syraa.fun/playground`,
       layout: "flow-numbered",
       label: "Flow",
       kicker: "How it works",
-      headline: "402 quote → pay → generate.",
+      headline: "402 quote ? pay ? generate.",
       steps: [
         {
           step: "01",
@@ -87,7 +87,7 @@ Try it → syraa.fun/playground`,
         {
           step: "02",
           title: "Dynamic 402 price",
-          description: "Syra computes cost from live OpenRouter rates × margin. Same body on retry = same price.",
+          description: "Syra computes cost from live OpenRouter rates ?- margin. Same body on retry = same price.",
         },
         {
           step: "03",
@@ -107,7 +107,7 @@ Try it → syraa.fun/playground`,
       layout: "cards-row",
       label: "APIs",
       kicker: "Generative stack",
-      headline: "Chat · Image · Video",
+      headline: "Chat � Image � Video",
       cards: [
         {
           title: "Chat",
@@ -150,7 +150,7 @@ Try it → syraa.fun/playground`,
         {
           icon: Coins,
           title: "Sustainable pricing",
-          description: "Dynamic rates × margin on every call. Charge for output budget upfront. Profitable by design.",
+          description: "Dynamic rates ?- margin on every call. Charge for output budget upfront. Profitable by design.",
         },
         {
           icon: Bot,
@@ -187,7 +187,7 @@ Try it → syraa.fun/playground`,
         { value: "402", label: "Pay per call" },
       ],
       narrative:
-        "Syra is no longer just crypto intelligence. It is a full agent runtime: research, reason, generate images, produce video — all settled in USDC on the chain your treasury already uses.",
+        "Syra is no longer just crypto intelligence. It is a full agent runtime: research, reason, generate images, produce video. All settled in USDC on the chain your treasury already uses.",
     },
     {
       id: "closing",

@@ -12,7 +12,7 @@ export const LP_REAL_PROFITABILITY_POST: PostUpdate = {
     title: "LP Real Agent Profitability",
     published: "June 2026",
     tagline: "Fee-aware exits, stricter pool gates, and trailing stops for live Meteora LP",
-    shareCopyVideo: `SHIP LOG · Syra just upgraded the live LP agent for profitability.
+    shareCopyVideo: `SHIP LOG · Live LP agent just got a profitability upgrade.
 
 Real positions no longer close on raw price drift when fees already paid for the trade. New pool gates block extreme-risk pools and require expected fees to beat chain costs before any open.
 
@@ -24,7 +24,7 @@ Real positions no longer close on raw price drift when fees already paid for the
 The sim lab showed the bug: Loss status with positive PnL. Real money now uses smarter exits.
 
 Full breakdown in the video ↓`,
-    shareCopyPhoto: `MAJOR SHIP · Live LP agent just got a profitability overhaul.
+    shareCopyPhoto: `SHIP LOG · Live LP agent just got a profitability overhaul.
 
 Fee-aware stops. Stricter pool screen. Trailing exits. On-chain fee grounding.
 
@@ -32,7 +32,7 @@ Your real agent will not dump a fee-positive position just because price drifted
 
 Sim proved the edge case. Real agent now closes the gap.
 
-Try it at syraa.fun/lp-experiment`,
+Try it → syraa.fun/lp-experiment`,
   },
   slides: [
     {

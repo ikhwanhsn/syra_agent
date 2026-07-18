@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Search } from "lucide-react";
+import { Activity, Search, Sparkles, Wrench } from "lucide-react";
 import { Link } from "@/lib/navigation";
 import { PillarLayout } from "@/components/pillars/PillarLayout";
 import { PillarConnectCTA } from "@/components/pillars/PillarConnectCTA";
@@ -8,8 +8,16 @@ import {
   SpendPageSkeleton,
   SpendPreviewSkeleton,
 } from "@/components/pillars/PillarPageSkeletons";
+import { SpendToolCard } from "@/components/spend/SpendToolCard";
 import { AgentBillingDashboard } from "@/components/wallet/AgentBillingDashboard";
-import { overviewCardShell, overviewKickerClass } from "@/components/dashboard/overview/overviewStyles";
+import { OverviewStatCard } from "@/components/dashboard/overview/OverviewStatCard";
+import {
+  overviewAccentBackground,
+  overviewCardGlow,
+  overviewCardShell,
+  overviewChartPanelShell,
+  overviewKickerClass,
+} from "@/components/dashboard/overview/overviewStyles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSyraAuth } from "@/contexts/SyraAuthContext";
@@ -44,12 +52,6 @@ type PreviewResult =
   | { kind: "news"; data: PreviewNewsResponse }
   | { kind: "sentiment"; data: PreviewSentimentResponse }
   | { kind: "signal"; data: PreviewSignalResponse };
-
-function formatPrice(usd: number): string {
-  if (!Number.isFinite(usd)) return "—";
-  if (usd < 0.01) return `$${usd.toFixed(4)}`;
-  return `$${usd.toFixed(2)}`;
-}
 
 function formatCount(n: number): string {
   if (!Number.isFinite(n)) return "—";
@@ -94,7 +96,7 @@ function PreviewOutput({ result }: { result: PreviewResult }) {
       );
     }
     return (
-      <div className="grid grid-cols-3 gap-3 sm:gap-6">
+      <div className="grid grid-cols-3 gap-3 sm:gap-4">
         <div>
           <p className={overviewKickerClass}>Score</p>
           <p className="mt-1 font-mono text-lg font-semibold tabular-nums sm:text-xl">
@@ -183,6 +185,11 @@ export default function SpendPage() {
     previewMutation.mutate(kind);
   }
 
+  function clearFilters() {
+    setQuery("");
+    setCategory("All");
+  }
+
   const tools = toolsQ.data?.tools ?? [];
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -197,6 +204,8 @@ export default function SpendPage() {
       );
     });
   }, [tools, query, category]);
+
+  const hasActiveFilters = query.trim().length > 0 || category !== "All";
 
   const initialLoading =
     (toolsQ.isLoading && !toolsQ.data) || (kpiQ.isLoading && !kpiQ.data);
@@ -224,95 +233,81 @@ export default function SpendPage() {
               title="Connect to pay from your agent wallet"
               description="Catalog is free. Fund USDC to run full tools."
             />
-          ) : null}
+          ) : (
+            <PillarConnectCTA
+              title="Fund your spend wallet to run paid tools"
+              description="Browse freely. Fund USDC when you're ready to settle calls."
+              fundHref="/wallet"
+              fundLabel="Fund wallet"
+            />
+          )}
 
-          <div className="grid grid-cols-3 gap-3 sm:gap-8">
-            <div className="min-w-0">
-              <p className={overviewKickerClass}>Settled</p>
-              <p className="mt-1 font-mono text-xl font-semibold tabular-nums tracking-tight sm:text-2xl lg:text-3xl">
-                {formatCount(kpiQ.data?.totalPaidApiCalls ?? 0)}
-              </p>
-            </div>
-            <div className="min-w-0">
-              <p className={overviewKickerClass}>7 days</p>
-              <p className="mt-1 font-mono text-xl font-semibold tabular-nums tracking-tight sm:text-2xl lg:text-3xl">
-                {formatCount(kpiQ.data?.paidApiCallsLast7Days ?? 0)}
-              </p>
-            </div>
-            <div className="min-w-0">
-              <p className={overviewKickerClass}>Tools</p>
-              <p className="mt-1 font-mono text-xl font-semibold tabular-nums tracking-tight sm:text-2xl lg:text-3xl">
-                {tools.length}
-              </p>
-            </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+            <OverviewStatCard
+              compact
+              label="Settled"
+              value={formatCount(kpiQ.data?.totalPaidApiCalls ?? 0)}
+              hint="Paid API calls all time"
+              icon={Activity}
+              accent="marketplace"
+              error={kpiQ.isError}
+            />
+            <OverviewStatCard
+              compact
+              label="7 days"
+              value={formatCount(kpiQ.data?.paidApiCallsLast7Days ?? 0)}
+              hint="Recent settled volume"
+              icon={Sparkles}
+              accent="neutral"
+              error={kpiQ.isError}
+            />
+            <OverviewStatCard
+              compact
+              label="Tools"
+              value={formatCount(tools.length)}
+              hint="x402 catalog endpoints"
+              icon={Wrench}
+              accent="alpha"
+              href="/marketplace"
+              error={toolsQ.isError}
+            />
           </div>
 
           <div className="grid w-full gap-6 lg:grid-cols-12 lg:gap-8">
-            <div className="flex min-w-0 flex-col gap-6 lg:col-span-4">
-              <section className={cn(overviewCardShell, "p-4 sm:p-6")}>
-                <p className={overviewKickerClass}>Try free</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Live previews — no payment required.
-                </p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {(["news", "sentiment", "signal"] as const).map((kind) => (
-                    <button
-                      key={kind}
-                      type="button"
-                      disabled={previewMutation.isPending}
-                      onClick={() => runPreview(kind)}
-                      className={cn(
-                        "h-9 min-w-[4.5rem] flex-1 rounded-full px-3 text-sm capitalize transition-colors sm:flex-none sm:px-4",
-                        activePreview === kind
-                          ? "bg-foreground text-background"
-                          : "bg-muted/40 text-muted-foreground hover:bg-muted/60 hover:text-foreground",
-                      )}
-                    >
-                      {kind}
-                    </button>
-                  ))}
-                </div>
-                <div className="mt-5 min-h-[5rem]">
-                  {showPreviewSkeleton ? (
-                    <SpendPreviewSkeleton />
-                  ) : previewMutation.isError ? (
-                    <p className="text-sm text-muted-foreground">Preview unavailable.</p>
-                  ) : previewResult ? (
-                    <PreviewOutput result={previewResult} />
-                  ) : (
-                    <p className="text-sm text-muted-foreground">Pick a preview above.</p>
-                  )}
-                </div>
-              </section>
-
-              {syraAuthenticated ? <AgentBillingDashboard compact /> : null}
-            </div>
-
             <section className="min-w-0 lg:col-span-8">
-              <div className="mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
-                <h2 className="text-sm font-medium text-muted-foreground">Catalog</h2>
+              <div className="mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:items-end sm:justify-between">
+                <div className="min-w-0">
+                  <h2 className="text-base font-medium tracking-tight text-foreground sm:text-lg">
+                    Catalog
+                  </h2>
+                  <p className="mt-0.5 text-sm text-muted-foreground">
+                    {filtered.length === tools.length
+                      ? `${tools.length} tools · pay per call`
+                      : `${filtered.length} of ${tools.length} tools`}
+                  </p>
+                </div>
                 <div className="relative w-full sm:w-64 lg:w-72">
                   <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Search"
+                    placeholder="Search tools"
                     className="h-10 w-full rounded-full border-border/40 bg-muted/20 pl-9 text-sm sm:h-9"
                   />
                 </div>
               </div>
 
-              <div className="-mx-1 mb-3 flex gap-1.5 overflow-x-auto px-1 pb-1 scrollbar-none">
+              <div className="-mx-1 mb-4 flex gap-1.5 overflow-x-auto px-1 pb-1 scrollbar-none">
                 {CATEGORIES.map((c) => (
                   <button
                     key={c}
                     type="button"
                     onClick={() => setCategory(c)}
                     className={cn(
-                      "h-8 shrink-0 rounded-full px-3 text-xs transition-colors",
+                      "h-8 shrink-0 rounded-full border px-3 text-xs font-medium transition-colors duration-200",
                       category === c
-                        ? "bg-foreground text-background"
-                        : "text-muted-foreground hover:text-foreground",
+                        ? "border-foreground/10 bg-foreground text-background shadow-sm"
+                        : "border-border/40 bg-muted/30 text-muted-foreground hover:border-border/60 hover:bg-muted/50 hover:text-foreground",
                     )}
                   >
                     {c}
@@ -321,35 +316,109 @@ export default function SpendPage() {
               </div>
 
               {toolsQ.isError ? (
-                <p className="text-sm text-muted-foreground">Could not load catalog.</p>
-              ) : filtered.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No matches.</p>
-              ) : (
-                <ul
+                <div
                   className={cn(
                     overviewCardShell,
-                    "max-h-[min(28rem,60vh)] divide-y divide-border/40 overflow-y-auto sm:max-h-[min(32rem,65vh)] lg:max-h-[min(36rem,70vh)]",
+                    "flex flex-col items-center justify-center px-6 py-14 text-center",
                   )}
                 >
-                  {filtered.map((tool) => (
-                    <li
-                      key={tool.id}
-                      className="flex items-start gap-3 px-4 py-3.5 sm:items-center sm:gap-4 sm:px-5"
+                  <p className="text-sm font-medium tracking-tight text-foreground">
+                    Could not load catalog
+                  </p>
+                  <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+                    Check your connection and try again.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4 h-9 rounded-full px-4"
+                    onClick={() => void toolsQ.refetch()}
+                  >
+                    Retry
+                  </Button>
+                </div>
+              ) : filtered.length === 0 ? (
+                <div
+                  className={cn(
+                    overviewCardShell,
+                    "flex flex-col items-center justify-center px-6 py-14 text-center",
+                  )}
+                >
+                  <p className="text-sm font-medium tracking-tight text-foreground">
+                    No matching tools
+                  </p>
+                  <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+                    Try a different search or category.
+                  </p>
+                  {hasActiveFilters ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-4 h-9 rounded-full px-4"
+                      onClick={clearFilters}
                     >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium tracking-tight">{tool.name}</p>
-                        <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground sm:line-clamp-1">
-                          {tool.description}
-                        </p>
-                      </div>
-                      <span className="shrink-0 pt-0.5 font-mono text-sm tabular-nums text-muted-foreground sm:pt-0">
-                        {formatPrice(tool.priceUsd)}
-                      </span>
-                    </li>
+                      Clear filters
+                    </Button>
+                  ) : null}
+                </div>
+              ) : (
+                <ul className="grid gap-3 sm:grid-cols-2">
+                  {filtered.map((tool, index) => (
+                    <SpendToolCard key={tool.id} tool={tool} staggerIndex={index} />
                   ))}
                 </ul>
               )}
             </section>
+
+            <aside className="flex min-w-0 flex-col gap-6 lg:col-span-4">
+              <section className={cn(overviewCardShell, "relative overflow-hidden")}>
+                <div
+                  className={overviewCardGlow}
+                  style={{ background: overviewAccentBackground("marketplace") }}
+                  aria-hidden
+                />
+                <div className="relative z-[1] p-4 sm:p-6">
+                  <p className={overviewKickerClass}>Try free</p>
+                  <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
+                    Live previews — no payment required.
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {(["news", "sentiment", "signal"] as const).map((kind) => (
+                      <button
+                        key={kind}
+                        type="button"
+                        disabled={previewMutation.isPending}
+                        onClick={() => runPreview(kind)}
+                        className={cn(
+                          "h-9 min-w-[4.5rem] flex-1 rounded-full border px-3 text-sm capitalize transition-colors duration-200 sm:flex-none sm:px-4",
+                          activePreview === kind
+                            ? "border-foreground/10 bg-foreground text-background shadow-sm"
+                            : "border-border/40 bg-muted/30 text-muted-foreground hover:border-border/60 hover:bg-muted/50 hover:text-foreground",
+                          previewMutation.isPending && "opacity-60",
+                        )}
+                      >
+                        {kind}
+                      </button>
+                    ))}
+                  </div>
+                  <div className={cn(overviewChartPanelShell, "mt-5 min-h-[6.5rem] p-3.5 sm:p-4")}>
+                    {showPreviewSkeleton ? (
+                      <SpendPreviewSkeleton />
+                    ) : previewMutation.isError ? (
+                      <p className="text-sm text-muted-foreground">Preview unavailable.</p>
+                    ) : previewResult ? (
+                      <PreviewOutput result={previewResult} />
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Pick a preview above to taste live data.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </section>
+
+              {syraAuthenticated ? <AgentBillingDashboard compact /> : null}
+            </aside>
           </div>
         </div>
       )}

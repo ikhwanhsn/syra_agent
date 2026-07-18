@@ -122,7 +122,7 @@ async function scanBtcQuantRuns(btcBars, regime) {
 
       let baseScore = 0.55 + weight * 0.28 + Math.min(0.14, confidence * 0.14);
       if (trend === "bullish") baseScore += 0.04;
-      if (baseScore < 0.64) continue;
+      if (baseScore < 0.58) continue;
 
       out.push({
         source: /** @type {ScalperOpportunitySource} */ (lane),
@@ -176,7 +176,7 @@ async function scanBtc3MacroBias(btcBars, regime) {
 
   let score = Math.min(0.93, 0.52 + Math.abs(delta) / 70 + confidence * 0.24);
   if (trend === "bullish") score += 0.03;
-  if (score < 0.66) return [];
+  if (score < 0.58) return [];
 
   return [
     {
@@ -260,23 +260,50 @@ async function scanStocksSignals(universe) {
 }
 
 /**
- * @param {Array<{ symbol: string; mint: string; assetClass: 'crypto' | 'equity'; priceUsd?: number }>} universe
- * @returns {Promise<ScalperOpportunity[]>}
+ * Prefer the stronger of standard (~30m) vs short-horizon (~15m) BTC momentum.
+ * @param {number[][]} bars
  */
-async function scanMomentum(universe, btcBars, regime) {
+function pickBtcMomentum(bars) {
+  const standard = computeBtcBarMomentum(bars);
+  // computeBtcBarMomentum needs >= 4 bars; short window ≈ 15–20m
+  if (!Array.isArray(bars) || bars.length < 4) return standard;
+  const shortBars = bars.slice(-4);
+  const short = computeBtcBarMomentum(shortBars);
+  if (!standard) return short;
+  if (!short) return standard;
+  // Prefer the window with clearer absolute move (active-demo cadence)
+  return Math.abs(short.momentumPct) >= Math.abs(standard.momentumPct) ? short : standard;
+}
+
+async function scanMomentum(universe, btcBars, regime, rejectSink = null) {
   /** @type {ScalperOpportunity[]} */
   const out = [];
-  if (!regime?.allowLong) return out;
+  if (!regime?.allowLong) {
+    rejectSink?.push({
+      symbol: "cbBTC",
+      source: "momentum",
+      score: 0,
+      reason: `regime_blocked:${regime?.reason ?? regime?.regime ?? "unknown"}`,
+    });
+    return out;
+  }
 
   const bars = btcBars ?? (await fetchPythBtcOhlcvBars("5", 24));
-  const btcMom = computeBtcBarMomentum(bars);
+  const btcMom = pickBtcMomentum(bars);
   const btcCloses = bars.map((b) => b[4]).filter((c) => c > 0);
   const btcRsi = computeRsi(btcCloses);
   const btcTrend = computeTrendBias(btcCloses);
   const btcAtr = computeAtrPct(bars) ?? btcMom?.volatilityPct ?? 0.8;
 
   const btcEntry = universe.find((u) => u.symbol === "cbBTC");
-  if (btcMom && btcEntry) {
+  if (!btcMom) {
+    rejectSink?.push({
+      symbol: "cbBTC",
+      source: "momentum",
+      score: 0,
+      reason: "insufficient_bars",
+    });
+  } else if (btcEntry) {
     const { momentumPct, volatilityPct } = btcMom;
     const quality = scoreMomentumQuality({
       momentumPct,
@@ -284,12 +311,26 @@ async function scanMomentum(universe, btcBars, regime) {
       trend: btcTrend,
       volatilityPct,
     });
-    if (!quality.reject && quality.quality >= 0.5) {
+    if (quality.reject || quality.quality < 0.4) {
+      rejectSink?.push({
+        symbol: "cbBTC",
+        source: "momentum",
+        score: quality.quality,
+        reason: quality.reason ?? "low_momentum_quality",
+      });
+    } else {
       const score = Math.min(
         0.86,
         0.42 + Math.abs(momentumPct) / 2.8 + quality.quality * 0.32,
       );
-      if (score >= 0.62) {
+      if (score < 0.55) {
+        rejectSink?.push({
+          symbol: "cbBTC",
+          source: "momentum",
+          score,
+          reason: "score_below_emit_floor",
+        });
+      } else {
         out.push({
           source: "momentum",
           symbol: "cbBTC",
@@ -325,10 +366,10 @@ async function scanMomentum(universe, btcBars, regime) {
       trend: momentumPct > 0.4 ? "bullish" : "neutral",
       volatilityPct,
     });
-    if (quality.reject || quality.quality < 0.5) continue;
+    if (quality.reject || quality.quality < 0.4) continue;
 
     const score = Math.min(0.8, 0.38 + momentumPct / 2.6 + quality.quality * 0.28);
-    if (score < 0.64) continue;
+    if (score < 0.55) continue;
     out.push({
       source: "momentum",
       symbol: entry.symbol,
@@ -351,7 +392,19 @@ async function scanMomentum(universe, btcBars, regime) {
 }
 
 /**
- * @returns {Promise<{ opportunities: ScalperOpportunity[]; priceMap: Record<string, number>; scannedAt: string; regime: object }>}
+ * @returns {Promise<{
+ *   opportunities: ScalperOpportunity[];
+ *   priceMap: Record<string, number>;
+ *   scannedAt: string;
+ *   regime: object;
+ *   diagnostics: {
+ *     rawCandidates: number;
+ *     perSource: Record<string, number>;
+ *     droppedReasons: Array<{ symbol: string; source: string; score: number; reason: string }>;
+ *     regimeReason: string | null;
+ *     mergedCount: number;
+ *   };
+ * }>}
  */
 export async function scanScalperOpportunities() {
   const universe = resolveScalperUniverse();
@@ -381,21 +434,43 @@ export async function scanScalperOpportunities() {
   const btcAtr = computeAtrPct(btcBars);
   const regime = assessMarketRegime(btcCloses, btcAtr);
 
+  /** @type {Array<{ symbol: string; source: string; score: number; reason: string }>} */
+  const momentumRejects = [];
+
   const [btcQuant, btc3, stocks, momentum] = await Promise.all([
     scanBtcQuantRuns(btcBars, regime),
     scanBtc3MacroBias(btcBars, regime),
     // Equity news can still fire in BTC chop — but momentum/btc gated by regime
     scanStocksSignals(enrichedUniverse),
-    scanMomentum(enrichedUniverse, btcBars, regime),
+    scanMomentum(enrichedUniverse, btcBars, regime, momentumRejects),
   ]);
 
   const all = [...btcQuant, ...btc3, ...stocks, ...momentum];
-  const opportunities = mergeOpportunitiesWithConfluence(all);
+  const { merged: opportunities, diagnostics: mergeDiag } =
+    mergeOpportunitiesWithConfluence(all);
+
+  const perSource = {
+    btc1: btcQuant.filter((o) => o.source === "btc1").length,
+    btc2: btcQuant.filter((o) => o.source === "btc2").length,
+    btc3: btc3.length,
+    stocks: stocks.length,
+    momentum: momentum.length,
+    ...mergeDiag.perSource,
+  };
+
+  const droppedReasons = [...momentumRejects, ...mergeDiag.droppedReasons].slice(0, 20);
 
   return {
     opportunities,
     priceMap,
     scannedAt: new Date().toISOString(),
     regime,
+    diagnostics: {
+      rawCandidates: all.length,
+      perSource,
+      droppedReasons,
+      regimeReason: regime?.reason ?? null,
+      mergedCount: opportunities.length,
+    },
   };
 }

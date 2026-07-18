@@ -10,20 +10,20 @@ export const AIP_INTEGRATION_POST: PostUpdate = {
     id: "aip-integration",
     title: "AIP Integration",
     published: "June 2026",
-    tagline: "Syra joins the Agent Internet Protocol — Agent Card, A2A tasks, did:aip identity",
-    shareCopyVideo: `SHIP LOG · Syra × Agent Internet Protocol is live.
+    tagline: "Syra joins the Agent Internet Protocol: Agent Card, A2A tasks, did:aip identity",
+    shareCopyVideo: `SHIP LOG · Syra �- Agent Internet Protocol is live.
 
-Four open standards for the agentic web — Agent Card discovery, A2A JSON-RPC tasks, x402 payment, and did:aip identity. Syra ships all four layers on one API gateway.
+Four open standards for the agentic web: Agent Card discovery, A2A JSON-RPC tasks, x402 payment, and did:aip identity. Syra ships all four layers on one API gateway.
 
-→ GET /.well-known/agent.json — AIP-01 Agent Card
-→ POST /a2a — task/create + task/status (JSON-RPC 2.0)
-→ GET /aip/resolve · /aip/verify — did:aip on-chain
+→ GET /.well-known/agent.json: AIP-01 Agent Card
+→ POST /a2a: task/create + task/status (JSON-RPC 2.0)
+→ GET /aip/resolve · /aip/verify: did:aip on-chain
 → npm run register-aip for on-chain registry
 
 x402 already handled commerce. AIP adds the agent handshake.
 
 Full breakdown in the video ↓`,
-    shareCopyPhoto: `MAJOR SHIP · Syra × AIP is live.
+    shareCopyPhoto: `SHIP LOG · Syra �- AIP is live.
 
 Agent Card at /.well-known/agent.json. A2A server at POST /a2a. did:aip identity via @aipagents/did-resolver. Brain can delegate to AIP specialists.
 
@@ -38,7 +38,7 @@ Agent Card → api.syraa.fun/.well-known/agent.json`,
       layout: "cover-dual-badge",
       label: "Cover",
       eyebrow: "Ship log",
-      title: "AIP × Syra",
+      title: "AIP �- Syra",
       subtitle: "Agent Card. A2A tasks. did:aip identity. x402 commerce unchanged.",
       badge: "AIP-01 · AIP-02 · AIP-04",
     },
@@ -49,7 +49,7 @@ Agent Card → api.syraa.fun/.well-known/agent.json`,
       label: "Context",
       kicker: "Why this matters",
       headline: "The agentic web needs a handshake.",
-      body: "Syra already runs machine money over x402, registers on 8004 and SAID, and lists on Ampersend. AIP standardizes how agents discover each other, submit tasks, and verify identity — four open standards on Solana that Syra now speaks natively.",
+      body: "Syra already runs machine money over x402, registers on 8004 and SAID, and lists on Ampersend. AIP standardizes how agents discover each other, submit tasks, and verify identity: four open standards on Solana that Syra now speaks natively.",
     },
     {
       id: "shipped",
@@ -76,12 +76,12 @@ Agent Card → api.syraa.fun/.well-known/agent.json`,
         {
           step: "01",
           title: "Agent Card",
-          description: "AIP-01 JSON at /.well-known/agent.json — capabilities + pricing from x402 catalog.",
+          description: "AIP-01 JSON at /.well-known/agent.json: capabilities + pricing from x402 catalog.",
         },
         {
           step: "02",
           title: "A2A task",
-          description: "POST /a2a JSON-RPC 2.0 — task/create with capability id + input, x402-gated.",
+          description: "POST /a2a JSON-RPC 2.0: task/create with capability id + input, x402-gated.",
         },
         {
           step: "03",
@@ -112,7 +112,7 @@ Agent Card → api.syraa.fun/.well-known/agent.json`,
         {
           title: "AIP-02",
           subtitle: "A2A JSON-RPC",
-          detail: "POST /a2a — crypto.brain, crypto.signal, crypto.news, and more.",
+          detail: "POST /a2a: crypto.brain, crypto.signal, crypto.news, and more.",
           accent: "gold",
         },
         {
@@ -145,7 +145,7 @@ Agent Card → api.syraa.fun/.well-known/agent.json`,
         {
           icon: Network,
           title: "/aip routes",
-          description: "status · resolve · verify · identity — did:aip reads and counterparty checks.",
+          description: "status · resolve · verify · identity: did:aip reads and counterparty checks.",
           href: "https://api.syraa.fun/aip/status",
         },
         {
@@ -161,7 +161,7 @@ Agent Card → api.syraa.fun/.well-known/agent.json`,
         {
           icon: Terminal,
           title: "register-aip",
-          description: "On-chain registry script — npm run register-aip on Solana devnet.",
+          description: "On-chain registry script: npm run register-aip on Solana devnet.",
           href: "https://aipagents.xyz",
         },
       ],
@@ -179,7 +179,7 @@ Agent Card → api.syraa.fun/.well-known/agent.json`,
         { value: "402", label: "Commerce unchanged" },
       ],
       narrative:
-        "External AIP agents can discover Syra, submit paid tasks, and verify our did:aip on-chain. Syra agents can discover, resolve, and delegate to AIP specialists with wallet-funded x402 — same treasury, new handshake.",
+        "External AIP agents can discover Syra, submit paid tasks, and verify our did:aip on-chain. Syra agents can discover, resolve, and delegate to AIP specialists with wallet-funded x402: same treasury, new handshake.",
     },
     {
       id: "closing",

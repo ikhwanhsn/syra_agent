@@ -711,6 +711,8 @@ export async function synthesizeSpeech(params) {
     const channels = chMatch ? Number(chMatch[1]) : 1;
     buf = pcmToWav(buf, sampleRate, channels);
     outType = 'audio/wav';
+  } else {
+    outType = normalizeSpeechContentType(contentType);
   }
 
   return {
@@ -718,6 +720,25 @@ export async function synthesizeSpeech(params) {
     contentType: outType,
     generationId: generationId || null,
   };
+}
+
+/**
+ * Strip charset/params and map common TTS MIME aliases for browser playback.
+ * @param {string} contentType
+ * @returns {string}
+ */
+function normalizeSpeechContentType(contentType) {
+  const raw = String(contentType || '')
+    .split(';')[0]
+    .trim()
+    .toLowerCase();
+  if (!raw || raw === 'application/octet-stream' || raw === 'binary/octet-stream') {
+    return 'audio/mpeg';
+  }
+  if (raw === 'audio/mp3' || raw === 'audio/x-mpeg') return 'audio/mpeg';
+  if (raw === 'audio/x-wav' || raw === 'audio/wave') return 'audio/wav';
+  if (raw.startsWith('audio/')) return raw;
+  return 'audio/mpeg';
 }
 
 /**

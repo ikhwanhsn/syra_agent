@@ -200,6 +200,56 @@ export function buildSyraAgentCard(wallet) {
 }
 
 /**
+ * AgentCard for an Earn pump.fun token (registered under the token's earn wallet).
+ *
+ * @param {{
+ *   wallet: string;
+ *   name: string;
+ *   symbol: string;
+ *   description?: string | null;
+ *   image?: string | null;
+ *   mint: string;
+ * }} input
+ * @returns {import('said-sdk').AgentCard}
+ */
+export function buildTokenAgentCard(input) {
+  const wallet = String(input.wallet || "").trim();
+  const name = String(input.name || "").trim() || "Syra Token";
+  const symbol = String(input.symbol || "").trim().toUpperCase();
+  const mint = String(input.mint || "").trim();
+  const description =
+    (typeof input.description === "string" && input.description.trim()) ||
+    `${name}${symbol ? ` ($${symbol})` : ""} — community token launched on Syra Earn / pump.fun.`;
+  const image =
+    (typeof input.image === "string" && input.image.trim()) ||
+    process.env.SYRA_AGENT_IMAGE_URI?.trim() ||
+    "https://syraa.fun/images/logo.jpg";
+  const website = mint
+    ? `https://syraa.fun/earn/token/${encodeURIComponent(mint)}`
+    : process.env.SYRA_COLLECTION_EXTERNAL_URL?.trim() || "https://syraa.fun";
+  const rawTwitter = process.env.SYRA_COLLECTION_X_URL?.trim() || "@syra_agent";
+  const twitter = normalizeSaidTwitterHandle(rawTwitter);
+
+  return {
+    name,
+    description,
+    twitter,
+    website,
+    wallet,
+    capabilities: ["x402", "token", "pumpfun", "earn"],
+    skills: [
+      "natural_language_processing/information_retrieval_synthesis/knowledge_synthesis",
+      "tool_interaction/tool_use_planning",
+    ],
+    serviceTypes: ["A2A"],
+    mcpEndpoint: "https://api.syraa.fun",
+    a2aEndpoint: "https://api.syraa.fun",
+    image,
+    created: new Date().toISOString(),
+  };
+}
+
+/**
  * @param {Record<string, unknown>} card
  * @returns {Promise<string>}
  */
@@ -452,10 +502,20 @@ export async function syncSyraSaidMetadata(wallet) {
 }
 
 /**
- * Register Syra on SAID on-chain and obtain the verification badge.
- * Idempotent: skips register/verify when already present.
+ * Register + verify any AgentCard on SAID (idempotent).
  *
- * @param {{ signerKeypair?: Keypair; skipOffChain?: boolean }} [input]
+ * @param {{
+ *   signerKeypair: Keypair;
+ *   card: import('said-sdk').AgentCard;
+ *   skipOffChain?: boolean;
+ *   offChainCard?: {
+ *     name: string;
+ *     description: string;
+ *     twitter?: string;
+ *     website?: string;
+ *     capabilities?: string[];
+ *   };
+ * }} input
  * @returns {Promise<{
  *   wallet: string;
  *   agentPDA?: string;
@@ -467,10 +527,13 @@ export async function syncSyraSaidMetadata(wallet) {
  *   alreadyVerified: boolean;
  * }>}
  */
-export async function registerAndVerifySyra(input = {}) {
-  const signer = input.signerKeypair || getSaidSigner();
+export async function registerAndVerifyAgentCard(input) {
+  const signer = input.signerKeypair;
+  if (!signer) {
+    throw new Error("signerKeypair is required");
+  }
   const wallet = signer.publicKey.toBase58();
-  const card = buildSyraAgentCard(wallet);
+  const card = { ...input.card, wallet };
 
   const { SAID } = await import("said-sdk");
   const said = new SAID({ rpcUrl: getSaidRpcUrl() });
@@ -495,7 +558,21 @@ export async function registerAndVerifySyra(input = {}) {
   }
 
   if (!input.skipOffChain) {
-    const offChain = await syncSyraSaidMetadata(wallet);
+    const off = input.offChainCard || {
+      name: card.name,
+      description: card.description || SYRA_TAGLINE_SHORT,
+      twitter: card.twitter,
+      website: card.website,
+      capabilities: card.capabilities,
+    };
+    const offChain = await registerOffChain({
+      wallet,
+      name: off.name,
+      description: off.description,
+      twitter: off.twitter,
+      website: off.website,
+      capabilities: off.capabilities,
+    });
     if (!offChain.success) {
       console.warn("[saidClient] off-chain directory sync failed:", offChain.error);
     }
@@ -514,4 +591,38 @@ export async function registerAndVerifySyra(input = {}) {
     alreadyRegistered: !!existing,
     alreadyVerified: wasVerified,
   };
+}
+
+/**
+ * Register Syra on SAID on-chain and obtain the verification badge.
+ * Idempotent: skips register/verify when already present.
+ *
+ * @param {{ signerKeypair?: Keypair; skipOffChain?: boolean }} [input]
+ * @returns {Promise<{
+ *   wallet: string;
+ *   agentPDA?: string;
+ *   metadataUri?: string;
+ *   registerSignature?: string | null;
+ *   verifySignature?: string | null;
+ *   verified: boolean;
+ *   alreadyRegistered: boolean;
+ *   alreadyVerified: boolean;
+ * }>}
+ */
+export async function registerAndVerifySyra(input = {}) {
+  const signer = input.signerKeypair || getSaidSigner();
+  const wallet = signer.publicKey.toBase58();
+  const card = buildSyraAgentCard(wallet);
+  return registerAndVerifyAgentCard({
+    signerKeypair: signer,
+    card,
+    skipOffChain: input.skipOffChain,
+    offChainCard: {
+      name: card.name,
+      description: card.description || SYRA_TAGLINE_SHORT,
+      twitter: card.twitter,
+      website: card.website,
+      capabilities: card.capabilities,
+    },
+  });
 }

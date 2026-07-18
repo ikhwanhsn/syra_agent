@@ -235,7 +235,9 @@ async function handleInsightRoute(req, res, endpointPath, catalogSegment, fetchD
 async function resolveLabsFacilitatorProfile(req) {
   const labChain = String(req.get('x-lab-x402-chain') || '').trim().toLowerCase();
   if (labChain === 'celo') return 'celo';
-  // Algorand settles via GoPlausible; Dexter profile only supplies ignored SVM/EVM offers.
+  // Algorand settles via GoPlausible AVM (appended accepts). Profile is unused for
+  // accept building when x-lab-x402-chain=algorand (see buildPaymentRequired), but
+  // keep Dexter so non-Algorand middleware paths stay consistent.
   if (labChain === 'algorand') return 'dexter';
 
   const healthChain = labChain === 'base' ? 'base' : 'solana';

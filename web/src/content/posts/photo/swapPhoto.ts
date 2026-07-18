@@ -5,7 +5,7 @@ import { SWAP_PHOTO_SHARE_COPIES } from "./shareCopies/swapShareCopies";
 
 const copies = SWAP_PHOTO_SHARE_COPIES;
 
-/** Photo-format content for the Jupiter Swap ship log — 15 cards, 15 X posts. */
+/** Photo-format content for the Jupiter Swap ship log - 15 cards, 15 X posts. */
 export const SWAP_PHOTO = definePhotoUpdate(SWAP_POST.meta, [
   {
     role: "cover",
@@ -34,7 +34,7 @@ export const SWAP_PHOTO = definePhotoUpdate(SWAP_POST.meta, [
     shareCopy: copies.quote,
     content: photoContent({
       quote: "Research on Syra. Swap on Syra.",
-      narrative: "Same connected wallet from chat to trade. Jupiter routes. Syra quote adapter and premium swap UI — no custodial keys.",
+      narrative: "Same connected wallet from chat to trade. Jupiter routes. Syra quote adapter and premium swap UI. No custodial keys.",
     }),
   },
   {
@@ -144,7 +144,7 @@ export const SWAP_PHOTO = definePhotoUpdate(SWAP_POST.meta, [
       badge: "Now live · Earn · Swap",
       partnerName: "Jupiter",
       partnerLogo: "/images/partners/jupiter.png",
-      headline: "Syra × Jupiter",
+      headline: "Syra �- Jupiter",
       subtitle: "Best-route swaps from your connected wallet. Referral adapter on Syra API.",
     }),
   },
@@ -156,9 +156,9 @@ export const SWAP_PHOTO = definePhotoUpdate(SWAP_POST.meta, [
       kicker: "Technical surface",
       headline: "Swap UI API for builders.",
       items: [
-        "GET /jupiter/ui/quote — inputMint, outputMint, amount, slippageBps",
-        "POST /jupiter/ui/swap — quoteResponse + userPublicKey → swap tx",
-        "GET /jupiter/ui/tokens — search + verified bootstrap list",
+        "GET /jupiter/ui/quote: inputMint, outputMint, amount, slippageBps",
+        "POST /jupiter/ui/swap: quoteResponse + userPublicKey → swap tx",
+        "GET /jupiter/ui/tokens: search + verified bootstrap list",
         "Client: sign + sendRawTransaction with RPC fallback",
       ],
     }),

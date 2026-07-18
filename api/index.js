@@ -229,7 +229,7 @@ if (algorandBootStatus.enabled) {
   );
 } else {
   startupWarn(
-    "[algorand-x402] not ready at boot",
+    "[algorand-x402] merchant inbound disabled at boot (Labs Algorand PayTo can still run without ALGORAND_PAYTO)",
     JSON.stringify({ missing: algorandBootStatus.missing }),
   );
 }

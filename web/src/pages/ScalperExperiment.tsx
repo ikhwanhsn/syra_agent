@@ -77,6 +77,8 @@ export default function ScalperExperiment({ embedded = false }: { embedded?: boo
           <ScalperOpportunityFeed
             opportunities={overview?.opportunityFeed?.opportunities ?? []}
             scannedAt={overview?.opportunityFeed?.scannedAt ?? null}
+            regime={overview?.opportunityFeed?.regime ?? null}
+            diagnostics={overview?.opportunityFeed?.diagnostics ?? null}
             loading={overviewQ.isLoading}
           />
           <ScalperOpenPositions

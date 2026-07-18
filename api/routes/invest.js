@@ -3,6 +3,7 @@ import { optionalWalletSession, requireSession } from '../utils/requireSession.j
 import { resolveLpViewerAnonymousId } from '../libs/agentWalletPurpose.js';
 import {
   deployInvestCapital,
+  deployInvestDeposit,
   getInvestOpportunities,
   getInvestPositions,
 } from '../libs/investService.js';
@@ -64,6 +65,45 @@ export function createInvestRouter() {
           guest: Boolean(req.user?.guest),
         },
       });
+      if (!result.success) {
+        return res.status(400).json(result);
+      }
+      return res.json(result);
+    } catch (e) {
+      res.status(500).json({ success: false, error: e instanceof Error ? e.message : String(e) });
+    }
+  });
+
+  router.post('/deposit', requireSession(), async (req, res) => {
+    try {
+      const anonymousId = req.user?.anonymousId;
+      if (!anonymousId) {
+        return res.status(401).json({ success: false, error: 'Authentication required' });
+      }
+      const { adapter, amountSol } = req.body ?? {};
+      if (!adapter || typeof adapter !== 'string') {
+        return res
+          .status(400)
+          .json({ success: false, error: 'adapter is required (marinade | jito)' });
+      }
+      const amount = Number(amountSol);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        return res.status(400).json({ success: false, error: 'amountSol must be a positive number' });
+      }
+
+      const result = await deployInvestDeposit({
+        anonymousId,
+        adapter: adapter.trim().toLowerCase(),
+        amountSol: amount,
+        requestContext: {
+          anonymousId,
+          sessionId: req.user?.sessionId,
+          ip: req.ip,
+          userAgent: req.get('user-agent') ?? undefined,
+          guest: Boolean(req.user?.guest),
+        },
+      });
+
       if (!result.success) {
         return res.status(400).json(result);
       }

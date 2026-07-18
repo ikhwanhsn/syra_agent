@@ -15,4 +15,4 @@ export const PUMPFUN_CALL_SHARE_PREVIEW_HEIGHT = Math.round(
 );
 
 /** Shown on flex cards and share captions. */
-export const PUMPFUN_CALL_SHARE_SITE_PATH = "syraa.fun/pumpfun";
+export const PUMPFUN_CALL_SHARE_SITE_PATH = "syraa.fun/analyzer";

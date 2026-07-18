@@ -5,7 +5,7 @@ import { COVENANT_PHOTO_SHARE_COPIES } from "./shareCopies/covenantShareCopies";
 
 const copies = COVENANT_PHOTO_SHARE_COPIES;
 
-/** Photo-format content for the Covenant ship log — 15 cards, 15 X posts. */
+/** Photo-format content for the Covenant ship log - 15 cards, 15 X posts. */
 export const COVENANT_PHOTO = definePhotoUpdate(COVENANT_POST.meta, [
   {
     role: "cover",
@@ -14,7 +14,7 @@ export const COVENANT_PHOTO = definePhotoUpdate(COVENANT_POST.meta, [
     content: photoContent({
       eyebrow: "Ship log",
       badge: "OS layer · x402 · Audit",
-      title: "Covenant × Syra",
+      title: "Covenant �- Syra",
       subtitle: "Open agent-native OS infrastructure meets machine money. Signed grants, audit receipts, and x402 intelligence in one stack.",
     }),
   },
@@ -86,7 +86,7 @@ export const COVENANT_PHOTO = definePhotoUpdate(COVENANT_POST.meta, [
     layout: "photo-hero-checklist",
     shareCopy: copies.checklist,
     content: photoContent({
-      headline: "Covenant × Syra is live today.",
+      headline: "Covenant �- Syra is live today.",
       highlights: [
         "Syra MCP server for covenantd-run agents",
         "skill.md at api.syraa.fun/skill.md",
@@ -117,7 +117,7 @@ export const COVENANT_PHOTO = definePhotoUpdate(COVENANT_POST.meta, [
     content: photoContent({
       headline: "Eight primitives. One rail.",
       stats: [{ value: "8", label: "OS primitives" }],
-      narrative: "Intent, runtime, memory, identity, permissions, comms, compositor, settlement — Covenant owns the host. Syra owns x402 commerce.",
+      narrative: "Intent, runtime, memory, identity, permissions, comms, compositor, settlement. Covenant owns the host. Syra owns x402 commerce.",
     }),
   },
   {
@@ -145,7 +145,7 @@ export const COVENANT_PHOTO = definePhotoUpdate(COVENANT_POST.meta, [
       badge: "Now live · OS layer · x402",
       partnerName: "Covenant",
       partnerLogo: "/images/partners/covenant.png",
-      headline: "Syra × Covenant",
+      headline: "Syra �- Covenant",
       subtitle: "Open infrastructure for agent-native computing. Signed grants, sandboxed runtime, and x402 machine money.",
     }),
   },
@@ -157,9 +157,9 @@ export const COVENANT_PHOTO = definePhotoUpdate(COVENANT_POST.meta, [
       kicker: "Technical surface",
       headline: "Where Syra plugs into Covenant.",
       items: [
-        "covenantd — Rust daemon, eight OS primitives",
-        "Syra MCP — agent tool dispatch over x402",
-        "skill.md — agent discovery at api.syraa.fun",
+        "covenantd: Rust daemon, eight OS primitives",
+        "Syra MCP: agent tool dispatch over x402",
+        "skill.md: agent discovery at api.syraa.fun",
         "Capability grants scope which Syra routes agents call",
         "Settlement receipts align with Covenant audit log",
       ],

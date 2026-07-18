@@ -1,8 +1,8 @@
 import type { PostPhotoCardRole } from "../photoCardSlots";
 
-/** Per-card X copy for AgentScore photo deck — 15 distinct topics. */
+/** Per-card X copy for AgentScore photo deck: 15 distinct topics. */
 export const AGENTSCORE_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `Agents need to pay. Regulated merchants need KYC. One stack now does both.
+  cover: `SHIP LOG · Agents need to pay. Regulated merchants need KYC. One stack now does both.
 
 AgentScore on Syra: merchant gates on high-risk routes, Passport for buyers, pay tools wired into x402.
 
@@ -10,7 +10,7 @@ AgentScore on Syra: merchant gates on high-risk routes, Passport for buyers, pay
 
 Try it → syraa.fun/chat`,
 
-  thesis: `The gap wasn't payments — it was identity.
+  thesis: `The gap wasn't payments. It was identity.
 
 Syra sells intelligence over x402. Regulated merchants need KYC before checkout. AgentScore adds merchant gates and buyer Passport without replacing payment middleware.
 
@@ -24,7 +24,7 @@ Permissionless x402 stays unchanged. Compliance is optional, route-specific, and
 
 Sell intelligence. Buy from regulated merchants. One agent loop.`,
 
-  flow: `Agent commerce on Syra — 4 steps:
+  flow: `Agent commerce on Syra. 4 steps:
 
 1. Anonymous 402: first request returns pricing. Permissionless unchanged.
 2. Pay with x402: Payment-Signature verified via facilitator.
@@ -33,11 +33,11 @@ Sell intelligence. Buy from regulated merchants. One agent loop.`,
 
 Compliance when it matters. Permissionless when it doesn't.`,
 
-  timeline: `AgentScore checkout — verify once, buy everywhere:
+  timeline: `AgentScore checkout. Verify once, buy everywhere:
 
 → Discover gated merchants from agent chat
 → Get 402 pricing, pay USDC via x402
-→ Gate assesses on paid retry — 403 if Passport missing
+→ Gate assesses on paid retry. 403 if Passport missing
 → Verify once at verify_url, save operator token
 → Retry with X-Operator-Token → order confirmed
 
@@ -63,7 +63,7 @@ Build with it → syraa.fun/chat`,
 
   metrics: `4 agent tools. 2 gated routes. 1 Passport for every merchant.
 
-Discover gated merchants, verify identity once, checkout with USDC — while Syra gates sensitive routes when regulation matters.
+Discover gated merchants, verify identity once, checkout with USDC, while Syra gates sensitive routes when regulation matters.
 
 Identity + payments + intelligence. One loop.
 
@@ -92,7 +92,7 @@ Buyer side: Passport + pay tools from agent chat.
 
 Try it → syraa.fun/chat`,
 
-  deepDive: `AgentScore on Syra — API-first:
+  deepDive: `AgentScore on Syra. API-first:
 
 → agentscore-discover through agentscore-pay agent tools
 → Public GET /agentscore/discover and /check

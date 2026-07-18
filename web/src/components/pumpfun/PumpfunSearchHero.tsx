@@ -128,10 +128,10 @@ export function PumpfunSearchHero({
       <div className="space-y-4">
         <div>
           <h1 className="font-display text-xl font-semibold tracking-tight sm:text-2xl">
-            Pumpfun Alpha
+            Token Analyzer
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Paste a mint address to analyze, track your calls, and flex on social.
+            Paste a Solana mint or EVM token address to analyze, track your calls, and flex on social.
           </p>
         </div>
 
@@ -184,10 +184,10 @@ export function PumpfunSearchHero({
               }}
               placeholder={
                 canScan
-                  ? "Mint address"
+                  ? "Solana mint or EVM token address (0x…)"
                   : needsWalletForNextScan
                     ? "Connect wallet to scan again"
-                    : "Mint address"
+                    : "Solana mint or EVM token address (0x…)"
               }
               className="h-11 pl-9 font-mono text-sm"
               spellCheck={false}

@@ -156,15 +156,15 @@ export function truncateWallet(address: string, chars = 4): string {
 
 export function buildPumpfunCallShareUrl(callId: string): string {
   if (typeof window !== "undefined") {
-    return `${window.location.origin}/pumpfun/call/${callId}`;
+    return `${window.location.origin}/analyzer/call/${callId}`;
   }
-  return `https://syraa.fun/pumpfun/call/${callId}`;
+  return `https://syraa.fun/analyzer/call/${callId}`;
 }
 
 export function buildPumpfunCallShareText(record: PumpfunScanRecord): string {
   const gain = formatGainMultiplier(record.peakGainMultiplier ?? record.gainMultiplier);
   const lines = [
-    `🚀 ${gain} on $${record.symbol} — called via Syra Pumpfun Alpha`,
+    `🚀 ${gain} on $${record.symbol} — called via Syra Token Analyzer`,
     "",
     `Called at ${formatCompactUsd(record.scanMarketCapUsd)} mcap`,
     record.peakMarketCapUsd

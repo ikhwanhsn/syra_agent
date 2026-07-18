@@ -10,7 +10,16 @@ import {
   siblingAnonymousId,
 } from './agentWalletPurpose.js';
 import { ensureAgentWalletSet } from './agentWalletProvision.js';
+import { getSolanaAgentKeypair } from './agentWallet.js';
+import {
+  MIN_SOL_FOR_SAID_VERIFY,
+  buildTokenAgentCard,
+  getSignerSolBalance,
+  registerAndVerifyAgentCard,
+} from './saidClient.js';
 import { createBoundedTtlCache } from '../utils/boundedTtlCache.js';
+
+const SAID_PROFILE_BASE = 'https://www.saidprotocol.com/agents';
 
 const PUMPFUN_EARN_TOOLS = Object.freeze([
   'pumpfun-agents-create-coin',
@@ -605,6 +614,12 @@ async function attachMarketToLaunches(launches) {
 }
 
 function serializeEarnPumpfunLaunch(r) {
+  const saidVerified = r.saidVerified === true;
+  // Only expose SAID wallet/profile after a verify attempt — avoid leaking earn addresses on marketplace.
+  const saidAgentWallet =
+    typeof r.saidAgentWallet === 'string' && r.saidAgentWallet.trim()
+      ? r.saidAgentWallet.trim()
+      : null;
   return {
     id: String(r._id),
     // Ownership check only — no creator wallet / fee / initial-buy details on public payloads.
@@ -616,6 +631,10 @@ function serializeEarnPumpfunLaunch(r) {
     imageUri: normalizeTokenMediaUrl(r.imageUri) || null,
     description: typeof r.description === 'string' && r.description.trim() ? r.description.trim() : null,
     createdAt: r.createdAt,
+    saidVerified,
+    saidAgentPDA: typeof r.saidAgentPDA === 'string' && r.saidAgentPDA.trim() ? r.saidAgentPDA.trim() : null,
+    saidAgentWallet,
+    saidProfileUrl: saidAgentWallet ? `${SAID_PROFILE_BASE}/${saidAgentWallet}` : null,
   };
 }
 
@@ -755,6 +774,18 @@ export async function launchEarnPumpfunToken(input) {
   let description =
     typeof input.description === 'string' && input.description.trim() ? input.description.trim() : null;
   const brandedName = withSyraTokenNameSuffix(name);
+
+  if (isMongooseConnected()) {
+    const existing = await EarnPumpfunLaunch.findOne({ earnAnonymousId }).lean();
+    if (existing?.mint) {
+      return {
+        success: false,
+        limitReached: true,
+        existingMint: existing.mint,
+        error: 'earn_token_limit_reached',
+      };
+    }
+  }
 
   const result = await executeAgentToolCall({
     anonymousId: earnAnonymousId,
@@ -896,5 +927,137 @@ export async function collectEarnPumpfunFees(input) {
     confirmationRequired: data.confirmationRequired === true,
     intentId: typeof data.intentId === 'string' ? data.intentId : undefined,
     data,
+  };
+}
+
+/**
+ * Register + verify the token's earn wallet as a SAID Protocol agent (owner-only, idempotent).
+ *
+ * @param {{
+ *   earnAnonymousId: string;
+ *   earnAgentAddress: string;
+ *   mint: string;
+ * }} input
+ */
+export async function verifyEarnTokenOnSaid(input) {
+  const earnAnonymousId = String(input.earnAnonymousId || '').trim();
+  const earnAgentAddress = String(input.earnAgentAddress || '').trim();
+  const mintTrim = String(input.mint || '').trim();
+  if (!earnAnonymousId || !earnAgentAddress || !mintTrim) {
+    return { success: false, error: 'mint_and_earn_wallet_required' };
+  }
+  if (!isMongooseConnected()) {
+    return { success: false, error: 'database_unavailable' };
+  }
+
+  const launch = await EarnPumpfunLaunch.findOne({ mint: mintTrim }).lean();
+  if (!launch) {
+    return { success: false, error: 'token_not_found' };
+  }
+  if (launch.earnAnonymousId !== earnAnonymousId) {
+    return { success: false, error: 'not_owner' };
+  }
+
+  if (launch.saidVerified === true) {
+    const wallet =
+      (typeof launch.saidAgentWallet === 'string' && launch.saidAgentWallet.trim()) ||
+      earnAgentAddress;
+    return {
+      success: true,
+      alreadyVerified: true,
+      saidVerified: true,
+      saidAgentWallet: wallet,
+      saidAgentPDA: launch.saidAgentPDA || null,
+      saidMetadataUri: launch.saidMetadataUri || null,
+      saidProfileUrl: `${SAID_PROFILE_BASE}/${wallet}`,
+    };
+  }
+
+  const keypair = await getSolanaAgentKeypair(earnAnonymousId);
+  if (!keypair) {
+    return {
+      success: false,
+      error: 'earn_wallet_signer_unavailable',
+    };
+  }
+
+  const signerAddress = keypair.publicKey.toBase58();
+  if (signerAddress !== earnAgentAddress) {
+    console.warn(
+      '[earnPumpfun] SAID verify signer mismatch:',
+      signerAddress,
+      'expected',
+      earnAgentAddress,
+    );
+  }
+
+  const solBalance = await getSignerSolBalance(keypair);
+  if (solBalance < MIN_SOL_FOR_SAID_VERIFY) {
+    return {
+      success: false,
+      insufficientBalance: true,
+      requiredSol: MIN_SOL_FOR_SAID_VERIFY,
+      solBalance,
+      error: `Earn wallet needs at least ${MIN_SOL_FOR_SAID_VERIFY} SOL for SAID verification (current: ${solBalance.toFixed(4)} SOL).`,
+    };
+  }
+
+  const card = buildTokenAgentCard({
+    wallet: signerAddress,
+    name: launch.name,
+    symbol: launch.symbol,
+    description: launch.description,
+    image: launch.imageUri,
+    mint: mintTrim,
+  });
+
+  let saidResult;
+  try {
+    saidResult = await registerAndVerifyAgentCard({
+      signerKeypair: keypair,
+      card,
+      offChainCard: {
+        name: card.name,
+        description: card.description || `${launch.name} by Syra`,
+        twitter: card.twitter,
+        website: card.website,
+        capabilities: card.capabilities,
+      },
+    });
+  } catch (e) {
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : 'said_verify_failed',
+    };
+  }
+
+  const verifiedAt = saidResult.verified ? new Date() : null;
+  await EarnPumpfunLaunch.updateOne(
+    { mint: mintTrim, earnAnonymousId },
+    {
+      $set: {
+        saidAgentWallet: saidResult.wallet || signerAddress,
+        saidAgentPDA: saidResult.agentPDA || null,
+        saidMetadataUri: saidResult.metadataUri || null,
+        saidRegisterSignature: saidResult.registerSignature || null,
+        saidVerifySignature: saidResult.verifySignature || null,
+        saidVerified: saidResult.verified === true,
+        ...(verifiedAt ? { saidVerifiedAt: verifiedAt } : {}),
+      },
+    },
+  );
+
+  const wallet = saidResult.wallet || signerAddress;
+  return {
+    success: true,
+    alreadyVerified: saidResult.alreadyVerified === true,
+    alreadyRegistered: saidResult.alreadyRegistered === true,
+    saidVerified: saidResult.verified === true,
+    saidAgentWallet: wallet,
+    saidAgentPDA: saidResult.agentPDA || null,
+    saidMetadataUri: saidResult.metadataUri || null,
+    saidRegisterSignature: saidResult.registerSignature || null,
+    saidVerifySignature: saidResult.verifySignature || null,
+    saidProfileUrl: `${SAID_PROFILE_BASE}/${wallet}`,
   };
 }

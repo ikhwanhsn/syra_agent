@@ -23,7 +23,7 @@ Your agents pay upstream APIs over x402. When a call fails after payment, the mo
 Pay for intelligence. Get your money back when providers fail.
 
 Full breakdown in the video ↓`,
-    shareCopyPhoto: `MAJOR SHIP · Pact Network is live on Syra.
+    shareCopyPhoto: `SHIP LOG · Pact Network is live on Syra.
 
 Agent x402 calls now have buyer protection. Pay Nansen, Birdeye, or Zerion from your agent wallet. If the API fails after settlement, Pact refunds principal + premium on-chain.
 
@@ -31,7 +31,7 @@ No dispute form. No API key. Same fetch stack, new risk layer.
 
 402 for price. Pact for recourse. Same Syra agent brain.
 
-Try it at syraa.fun/chat`,
+Try it → syraa.fun/chat`,
   },
   slides: [
     {

@@ -2,36 +2,36 @@ import { Bot, Coins, Globe, Store, TrendingUp, Wallet, Zap } from "lucide-react"
 import type { PostUpdate } from "./types";
 
 /**
- * Ship log: OKX.AI ASP registration + X Layer x402 — $SYRA revenue flywheel.
+ * Ship log: OKX.AI ASP registration + X Layer x402 + $SYRA revenue flywheel.
  */
 export const OKX_ASP_XLAYER_POST: PostUpdate = {
   meta: {
     updateNumber: 21,
     id: "okx-asp-xlayer",
-    title: "OKX × Syra ASP",
+    title: "OKX ?- Syra ASP",
     published: "June 2026",
     tagline: "Official OKX.AI ASP, X Layer x402, and a $SYRA buyback flywheel tied to agent payments",
-    shareCopyVideo: `SHIP LOG · Syra just joined the OKX agent economy.
+    shareCopyVideo: `SHIP LOG � Syra just joined the OKX agent economy.
 
-We registered as an official Agent Service Provider on OKX.AI (ASP #2311), shipped OKX facilitator settlement on X Layer, and wired every paid call into the $SYRA revenue flywheel.
+Official ASP on OKX.AI. X Layer x402 live. Every paid call feeds the $SYRA flywheel.
 
-→ ASP #2311 on X Layer — A2MCP + A2A services listed
-→ OKX Agentic Wallets pay USDT per API call (x402)
-→ ~80% of x402 revenue → programmatic $SYRA buybacks for airdrops
-→ 28+ intelligence APIs + Syra Brain research agent
+? ASP #2311 on X Layer: A2MCP + A2A services listed
+? OKX Agentic Wallets pay USDT per API call (x402)
+? ~80% of x402 revenue ? programmatic $SYRA buybacks for airdrops
+? 28+ intelligence APIs + Syra Brain research agent
 
 More OKX agents using Syra = more real demand for $SYRA.
 
-Full breakdown in the video ↓`,
-    shareCopyPhoto: `MAJOR SHIP · Syra is an OKX.AI Agent Service Provider.
+Full breakdown in the video ?`,
+    shareCopyPhoto: `SHIP LOG � Syra is an OKX.AI Agent Service Provider.
 
 ASP #2311. X Layer x402 live. Every micropayment feeds $SYRA buybacks.
 
-OKX agents discover Syra → pay USDT per call → revenue buys $SYRA for holder airdrops.
+OKX agents discover Syra ? pay USDT per call ? revenue buys $SYRA for holder airdrops.
 
 Machine money meets machine demand.
 
-→ syraa.fun`,
+? syraa.fun`,
   },
   slides: [
     {
@@ -40,9 +40,9 @@ Machine money meets machine demand.
       layout: "cover-brand-lockup",
       label: "Cover",
       eyebrow: "Ship log",
-      title: "Syra × OKX",
+      title: "Syra ?- OKX",
       subtitle: "Official ASP on OKX.AI. X Layer x402. Every agent payment fuels the $SYRA flywheel.",
-      badge: "ASP #2311 · X Layer · buyback",
+      badge: "ASP #2311 � X Layer � buyback",
     },
     {
       id: "context",
@@ -51,7 +51,7 @@ Machine money meets machine demand.
       label: "Thesis",
       kicker: "Why $SYRA",
       headline: "OKX-scale distribution. Usage-backed token demand.",
-      body: "OKX Agentic Wallets are built to pay agents per task. Syra is now listed as an ASP with 28+ paid APIs and a research brain. Every USDT settlement on X Layer routes into programmatic $SYRA buybacks — demand from real agent usage, not narrative alone.",
+      body: "OKX Agentic Wallets are built to pay agents per task. Syra is now listed as an ASP with 28+ paid APIs and a research brain. Every USDT settlement on X Layer routes into programmatic $SYRA buybacks. Demand from real agent usage, not narrative alone.",
     },
     {
       id: "shipped",
@@ -60,11 +60,11 @@ Machine money meets machine demand.
       label: "Shipped",
       kicker: "What we built",
       headline: "OKX marketplace + X Layer rails",
-      body: "On-chain ASP identity, OKX Payment SDK settlement, and marketplace services submitted for OKX review — so agents can discover and pay Syra inside the OKX economy.",
+      body: "On-chain ASP identity, OKX Payment SDK settlement, and marketplace services submitted for OKX review. Agents can discover and pay Syra inside the OKX economy.",
       highlights: [
         "ASP Agent #2311 on X Layer (ERC-8004)",
-        "A2MCP: Syra x402 Crypto API · api.syraa.fun",
-        "A2A: Syra Brain Research · negotiated deep dives",
+        "A2MCP: Syra x402 Crypto API � api.syraa.fun",
+        "A2A: Syra Brain Research � negotiated deep dives",
         "OKX facilitator verify/settle on eip155:196 USDT0",
       ],
     },
@@ -74,7 +74,7 @@ Machine money meets machine demand.
       layout: "flow-numbered",
       label: "Flywheel",
       kicker: "$SYRA demand loop",
-      headline: "Pay → revenue → buyback → airdrop",
+      headline: "Pay ? revenue ? buyback ? airdrop",
       steps: [
         {
           step: "01",
@@ -84,17 +84,17 @@ Machine money meets machine demand.
         {
           step: "02",
           title: "USDT micropayment",
-          description: "Wallet pays on X Layer via x402. No API keys — HTTP 402 native checkout.",
+          description: "Wallet pays on X Layer via x402. No API keys. HTTP 402 native checkout.",
         },
         {
           step: "03",
           title: "Intelligence delivered",
-          description: "Signals, news, brain research, OpenRouter APIs — per-call machine money.",
+          description: "Signals, news, brain research, OpenRouter APIs. Per-call machine money.",
         },
         {
           step: "04",
           title: "$SYRA buyback",
-          description: "~80% of production revenue swaps to $SYRA via Jupiter — pooled for community airdrops.",
+          description: "~80% of production revenue swaps to $SYRA via Jupiter. Pooled for community airdrops.",
         },
       ],
     },
@@ -115,7 +115,7 @@ Machine money meets machine demand.
         {
           title: "Airdrop pool",
           subtitle: "Community share",
-          detail: "Buybacks accumulate for holder airdrops — value flows back to ecosystem.",
+          detail: "Buybacks accumulate for holder airdrops. Value flows back to ecosystem.",
           accent: "gold",
         },
         {
@@ -142,7 +142,7 @@ Machine money meets machine demand.
         {
           icon: Store,
           title: "OKX.AI marketplace",
-          description: "ASP #2311 — A2MCP API catalog + A2A Brain research. Listing under OKX review.",
+          description: "ASP #2311: A2MCP API catalog + A2A Brain research. Listing under OKX review.",
           href: "https://www.okx.ai",
         },
         {
@@ -159,7 +159,7 @@ Machine money meets machine demand.
         {
           icon: Coins,
           title: "$SYRA flywheel",
-          description: "Production x402 revenue → Jupiter buyback → airdrop pool for holders.",
+          description: "Production x402 revenue ? Jupiter buyback ? airdrop pool for holders.",
         },
         {
           icon: Wallet,
@@ -170,7 +170,7 @@ Machine money meets machine demand.
         {
           icon: Globe,
           title: "Multi-rail x402",
-          description: "Solana, Base, BSC, Algorand, PayAI networks — plus OKX X Layer for OKX users.",
+          description: "Solana, Base, BSC, Algorand, PayAI networks. Plus OKX X Layer for OKX users.",
         },
       ],
     },
@@ -180,14 +180,14 @@ Machine money meets machine demand.
       layout: "metric-strip",
       label: "Impact",
       kicker: "Numbers",
-      headline: "Agent economy × token utility",
+      headline: "Agent economy ?- token utility",
       stats: [
         { value: "#2311", label: "OKX ASP ID" },
         { value: "28+", label: "Paid APIs" },
-        { value: "~80%", label: "Revenue → buyback" },
+        { value: "~80%", label: "Revenue ? buyback" },
       ],
       narrative:
-        "OKX brings wallet distribution. Syra brings paid intelligence. $SYRA captures the value of every call — stake for discounts, hold for the airdrop flywheel.",
+        "OKX brings wallet distribution. Syra brings paid intelligence. $SYRA captures the value of every call. Stake for discounts, hold for the airdrop flywheel.",
     },
     {
       id: "closing",

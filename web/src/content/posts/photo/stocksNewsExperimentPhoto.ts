@@ -5,7 +5,7 @@ import { STOCKS_NEWS_EXPERIMENT_PHOTO_SHARE_COPIES } from "./shareCopies/stocksN
 
 const copies = STOCKS_NEWS_EXPERIMENT_PHOTO_SHARE_COPIES;
 
-/** Photo deck — Stocks News Lab (update #22). Trader-friendly copy. */
+/** Photo deck: Stocks News Lab (update #22). Trader-friendly copy. */
 export const STOCKS_NEWS_EXPERIMENT_PHOTO = definePhotoUpdate(STOCKS_NEWS_EXPERIMENT_POST.meta, [
   {
     role: "cover",
@@ -15,7 +15,7 @@ export const STOCKS_NEWS_EXPERIMENT_PHOTO = definePhotoUpdate(STOCKS_NEWS_EXPERI
       eyebrow: "Ship log",
       badge: "Paper $1K · xStocks",
       title: "Stocks News Lab",
-      subtitle: "15 agents paper-trade tokenized stocks on headlines. Jupiter prices. Zero real money at risk.",
+      subtitle: "15 agents trade tokenized stocks on headlines. Jupiter marks. Zero real money at risk.",
     }),
   },
   {
@@ -24,8 +24,8 @@ export const STOCKS_NEWS_EXPERIMENT_PHOTO = definePhotoUpdate(STOCKS_NEWS_EXPERI
     shareCopy: copies.thesis,
     content: photoContent({
       kicker: "For traders",
-      headline: "News moves stocks. React with proof, not guesswork.",
-      body: "Headlines hit before you finish reading. Syra runs 15 agents that score news and sentiment for TSLAx, AAPLx, NVDAx, SPYx, and SPCXx — then paper-trade so you see what works.",
+      headline: "News moves stocks. Most traders are already late.",
+      body: "The headline drops. Price moves. You are still scrolling. Syra runs 15 agents that score news and sentiment for TSLAx, AAPLx, NVDAx, SPYx, and SPCXx, then paper-trade so you see what works.",
     }),
   },
   {
@@ -33,8 +33,8 @@ export const STOCKS_NEWS_EXPERIMENT_PHOTO = definePhotoUpdate(STOCKS_NEWS_EXPERI
     layout: "photo-quote",
     shareCopy: copies.quote,
     content: photoContent({
-      quote: "Let agents fight the headlines. You watch who wins.",
-      narrative: "Fifteen strategies. One thousand dollars paper each. Daily evolution keeps only what earns. Find the edge before real size.",
+      quote: "Agents fight the news. You keep the proof.",
+      narrative: "Fifteen strategies. $1,000 paper each. Daily evolution keeps only what earns. Spot the edge before you size real capital.",
     }),
   },
   {
@@ -43,10 +43,10 @@ export const STOCKS_NEWS_EXPERIMENT_PHOTO = definePhotoUpdate(STOCKS_NEWS_EXPERI
     shareCopy: copies.flow,
     content: photoContent({
       kicker: "How it works",
-      headline: "Scan. Trade. Rank. Evolve.",
+      headline: "Scan. Enter. Close. Evolve.",
       steps: [
         { step: "01", title: "Scan news", description: "Headlines + sentiment per xStock symbol." },
-        { step: "02", title: "Paper enter", description: "Rules pass → open at Jupiter price." },
+        { step: "02", title: "Paper enter", description: "Rules pass, open at Jupiter price." },
         { step: "03", title: "Close on rules", description: "Take-profit, stop-loss, or time limit." },
         { step: "04", title: "Evolve daily", description: "Losers culled. Winners spawn copies." },
       ],
@@ -58,7 +58,7 @@ export const STOCKS_NEWS_EXPERIMENT_PHOTO = definePhotoUpdate(STOCKS_NEWS_EXPERI
     shareCopy: copies.timeline,
     content: photoContent({
       kicker: "Every day",
-      headline: "The lab gets sharper.",
+      headline: "The cohort gets sharper.",
       steps: [
         { step: "01", title: "News refresh", description: "Live feeds score each tokenized stock." },
         { step: "02", title: "Agents compete", description: "$1K paper bank. Leaderboard updates." },
@@ -72,7 +72,7 @@ export const STOCKS_NEWS_EXPERIMENT_PHOTO = definePhotoUpdate(STOCKS_NEWS_EXPERI
     layout: "photo-cards-quad",
     shareCopy: copies.pillars,
     content: photoContent({
-      headline: "Built for traders who want proof first.",
+      headline: "Proof first. Capital later.",
       cards: [
         { title: "Paper $1K", subtitle: "Zero risk", detail: "Virtual bank per agent. No real swaps.", accent: "gold" },
         { title: "News edge", subtitle: "Headlines in", detail: "Sentiment + event signals drive entries.", accent: "gold" },
@@ -86,7 +86,7 @@ export const STOCKS_NEWS_EXPERIMENT_PHOTO = definePhotoUpdate(STOCKS_NEWS_EXPERI
     layout: "photo-hero-checklist",
     shareCopy: copies.checklist,
     content: photoContent({
-      headline: "What you get in the lab.",
+      headline: "Inside the Stocks News Lab.",
       highlights: [
         "15 news-driven strategies with unique rules",
         "TSLAx, AAPLx, NVDAx, SPYx, SPCXx universe",
@@ -100,13 +100,13 @@ export const STOCKS_NEWS_EXPERIMENT_PHOTO = definePhotoUpdate(STOCKS_NEWS_EXPERI
     layout: "photo-stat-trio",
     shareCopy: copies.metrics,
     content: photoContent({
-      headline: "Paper first. Proof second.",
+      headline: "Paper bank. Real signal.",
       stats: [
         { value: "$1K", label: "Paper per agent" },
         { value: "15", label: "Competing strategies" },
         { value: "0", label: "Real money risk" },
       ],
-      narrative: "Watch which news rules win on tokenized stocks before you size a real position on Jupiter.",
+      narrative: "See which news rules win on tokenized stocks before you size a real position on Jupiter.",
     }),
   },
   {
@@ -114,9 +114,9 @@ export const STOCKS_NEWS_EXPERIMENT_PHOTO = definePhotoUpdate(STOCKS_NEWS_EXPERI
     layout: "photo-stat-featured",
     shareCopy: copies.featured,
     content: photoContent({
-      headline: "One question: which agent wins?",
+      headline: "Which news agent is winning?",
       stats: [{ value: "15", label: "Agents racing on headlines" }],
-      narrative: "The leaderboard answers it. Paper P&L, win rate, and return % updated live. No wallet required.",
+      narrative: "The leaderboard answers it. Paper P&L, win rate, and return % update live. No wallet required.",
     }),
   },
   {
@@ -124,10 +124,10 @@ export const STOCKS_NEWS_EXPERIMENT_PHOTO = definePhotoUpdate(STOCKS_NEWS_EXPERI
     layout: "photo-comparison",
     shareCopy: copies.comparison,
     content: photoContent({
-      headline: "Guessing vs. watching proof.",
+      headline: "Guesswork vs a live paper tournament.",
       compareLeft: {
         title: "Before",
-        body: "You read a headline and guess the trade. No record of what news rules actually work.",
+        body: "You read a headline and guess the trade. No record of which news rules actually work.",
       },
       compareRight: {
         title: "Now",
@@ -167,8 +167,8 @@ export const STOCKS_NEWS_EXPERIMENT_PHOTO = definePhotoUpdate(STOCKS_NEWS_EXPERI
     shareCopy: copies.split,
     content: photoContent({
       badge: "Paper only",
-      headline: "Watch the winner. Trade when ready.",
-      body: "Fifteen agents compete on news rules. You follow P&L and win rate without risking capital on-chain.",
+      headline: "Watch the winner. Size when ready.",
+      body: "Fifteen agents compete on news rules. You follow P&L and win rate without putting capital on-chain.",
       highlights: [
         "Leaderboard ranks most profitable agent",
         "Equity curve for top performer",
@@ -198,7 +198,7 @@ export const STOCKS_NEWS_EXPERIMENT_PHOTO = definePhotoUpdate(STOCKS_NEWS_EXPERI
     layout: "photo-closing-cta",
     shareCopy: copies.cta,
     content: photoContent({
-      headline: "See which news agent wins.",
+      headline: "Open the lab. Watch who wins.",
       subtitle: "Paper $1K. xStocks on Jupiter. Daily evolution. No wallet risk.",
       links: [
         { label: "Stocks lab", value: "syraa.fun/stocks", href: "https://www.syraa.fun/stocks" },

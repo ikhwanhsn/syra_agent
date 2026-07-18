@@ -9,6 +9,7 @@ import { analyzeHolderDistribution } from './holderDistributionService.js';
 import { fetchOnChainMintSecurity } from './onChainMintSecurity.js';
 import { buildPumpfunMarketProfile, mergeMemecoinMarketStats } from './pumpfunCoinAnalysis.js';
 import { formatSolanaReadError } from './solanaMintProgram.js';
+import { isLikelySolanaMint } from './tokenChainDetect.js';
 
 const ANALYSIS_CACHE_TTL_MS = 45_000;
 const HOLDER_SAMPLE_LIMIT = 10;
@@ -19,13 +20,6 @@ const analysisCache = new Map();
 /** @param {string} s */
 function trim(s) {
   return s != null ? String(s).trim() : '';
-}
-
-/** @param {string} s */
-function isLikelySolanaMint(s) {
-  const t = trim(s);
-  if (t.length < 32 || t.length > 44) return false;
-  return /^[1-9A-HJ-NP-Za-km-z]+$/.test(t);
 }
 
 /**
@@ -167,7 +161,7 @@ function decentralizationScoreDelta(decentralizationScore) {
 }
 
 /** @param {number} score */
-function scoreToVerdict(score) {
+export function scoreToVerdict(score) {
   if (score >= 80) return { verdict: 'Strong Alpha', tone: 'safe' };
   if (score >= 65) return { verdict: 'Solid Setup', tone: 'safe' };
   if (score >= 50) return { verdict: 'Mixed Signals', tone: 'warning' };
@@ -186,7 +180,7 @@ function scoreToVerdict(score) {
  *   kolShills?: unknown;
  * }} inputs
  */
-function computeSyraAlphaScore(inputs) {
+export function computeSyraAlphaScore(inputs) {
   let score = 50;
   const factors = [];
 
@@ -415,8 +409,28 @@ export async function buildMemecoinAnalysis(input) {
     };
   }
 
+  const tokenMeta = {
+    symbol:
+      (pumpfunData && typeof pumpfunData.symbol === 'string' && pumpfunData.symbol) ||
+      (dossierData?.asset?.symbol && String(dossierData.asset.symbol)) ||
+      'TOKEN',
+    name:
+      (pumpfunData && typeof pumpfunData.name === 'string' && pumpfunData.name) ||
+      (dossierData?.asset?.name && String(dossierData.asset.name)) ||
+      'Token',
+    imageUri:
+      (pumpfunData && typeof pumpfunData.imageUri === 'string' && pumpfunData.imageUri) ||
+      (dossierData?.asset?.imageUrl && String(dossierData.asset.imageUrl)) ||
+      null,
+    twitter: (pumpfunData && typeof pumpfunData.twitter === 'string' && pumpfunData.twitter) || null,
+    telegram: (pumpfunData && typeof pumpfunData.telegram === 'string' && pumpfunData.telegram) || null,
+    website: (pumpfunData && typeof pumpfunData.website === 'string' && pumpfunData.website) || null,
+  };
+
   const payload = {
     mint,
+    chain: 'solana',
+    token: tokenMeta,
     syraAlpha,
     market,
     dossier: dossierSection,

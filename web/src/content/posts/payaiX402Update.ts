@@ -2,7 +2,7 @@ import { Bot, Globe, Layers, Network, Terminal, Wallet } from "lucide-react";
 import type { PostUpdate } from "./types";
 
 /**
- * Ship log: PayAI facilitator migration — all PayAI x402 networks live on Syra.
+ * Ship log: PayAI facilitator migration. All PayAI x402 networks live on Syra.
  */
 export const PAYAI_X402_POST: PostUpdate = {
   meta: {
@@ -23,7 +23,7 @@ We migrated our x402 facilitator to PayAI and turned on all 16 networks from the
 One brain. Every chain PayAI supports. Pay per call.
 
 Full breakdown in the video ↓`,
-    shareCopyPhoto: `MAJOR SHIP · Syra now uses all PayAI x402 networks.
+    shareCopyPhoto: `SHIP LOG · Syra now uses all PayAI x402 networks.
 
 Paid intelligence APIs settle through facilitator.payai.network on Solana, Base, Polygon, Arbitrum, Avalanche, Sei, SKALE, and X Layer.
 
@@ -109,19 +109,19 @@ Try it → syraa.fun/playground`,
         {
           title: "Solana",
           subtitle: "Mainnet + Devnet",
-          detail: "solana:5eykt… · solana:EtWTR… — agent auto-pay and playground checkout.",
+          detail: "solana:5eykt… · solana:EtWTR…. Agent auto-pay and playground checkout.",
           accent: "gold",
         },
         {
           title: "Core EVM",
           subtitle: "4 mainnets",
-          detail: "Base · Polygon · Arbitrum One · Avalanche — native USDC on each chain.",
+          detail: "Base · Polygon · Arbitrum One · Avalanche. Native USDC on each chain.",
           accent: "gold",
         },
         {
           title: "SKALE · Sei · X Layer",
           subtitle: "3 more mainnets",
-          detail: "eip155:1187947933 · eip155:1329 · eip155:196 — same EVM payTo, chain-specific USDC.",
+          detail: "eip155:1187947933 · eip155:1329 · eip155:196. Same EVM payTo, chain-specific USDC.",
         },
         {
           title: "Testnets",

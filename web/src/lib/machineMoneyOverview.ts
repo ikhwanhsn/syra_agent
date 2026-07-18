@@ -32,7 +32,7 @@ export const PILLAR_OVERVIEW_META: Record<PillarId, PillarOverviewMeta> = {
     iconRing: "border-sky-500/30 bg-sky-500/10",
     iconGlow: "from-sky-500/15 to-transparent",
     borderHover: "hover:border-sky-500/35",
-    features: ["Giza yield", "Meteora LP", "Jupiter + RISE"],
+    features: ["Marinade + Jito LST", "Kamino + marginfi", "Meteora DLMM"],
   },
   spend: {
     step: 4,

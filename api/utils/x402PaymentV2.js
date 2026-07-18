@@ -193,10 +193,10 @@ async function logAlgorandStartupOnce() {
     return;
   }
   console.warn(
-    "[algorand-x402] merchant inbound disabled — Algorand will not appear in 402 accepts",
+    "[algorand-x402] merchant inbound disabled — public 402 accepts omit Algorand (Labs Algorand PayTo still works)",
     JSON.stringify({
       missing: status.missing,
-      hint: "Set ALGORAND_PAYTO (or AVM_ADDRESS), then restart. Check GET /x402/capabilities",
+      hint: "Set ALGORAND_PAYTO (or AVM_ADDRESS) for merchant inbound, or use Labs Algorand PayTo. Check GET /x402/capabilities",
     }),
   );
 }
@@ -1238,7 +1238,7 @@ function resolveBazaarSettleOptions(req) {
 async function buildPaymentRequired(bundle, req, options, error) {
   const paymentOptions = normalizePaymentOptions(req, options);
   const adapter = new ExpressAdapter(req);
-  const { resourceServer, config, assets } = bundle;
+  const { resourceServer } = bundle;
   const rawPrice = await resolveRawPriceUsdForRequest(paymentOptions, req);
   const priceUsd = resolveEffectivePriceUsd(rawPrice, req, paymentOptions);
   const microUnits = usdToMicroUsdc(priceUsd);
@@ -1251,13 +1251,6 @@ async function buildPaymentRequired(bundle, req, options, error) {
   const maxTimeout = paymentOptions.maxTimeoutSeconds ?? 60;
   const payToOverride = await resolvePayToForRequest(paymentOptions, req);
 
-  const facilitatorPaymentOptions = paymentOptionsForFacilitator(
-    bundle,
-    microUnits,
-    maxTimeout,
-    payToOverride
-  );
-
   const ctx = {
     adapter,
     path: req.path,
@@ -1265,38 +1258,6 @@ async function buildPaymentRequired(bundle, req, options, error) {
     paymentHeader: getPaymentSignatureHeaderFromReq(req),
     algorandPayTo: payToOverride?.algorandPayTo ?? null,
   };
-
-  let requirements;
-  try {
-    requirements = await resourceServer.buildPaymentRequirementsFromOptions(
-      facilitatorPaymentOptions,
-      ctx
-    );
-  } catch (e) {
-    console.warn(
-      "[x402] buildPaymentRequirementsFromOptions failed:",
-      e?.message || e
-    );
-    requirements = [];
-  }
-  const solanaOnlyOverride = Boolean(payToOverride?.solanaPayTo && !payToOverride?.evmPayTo);
-  if (!solanaOnlyOverride) {
-    requirements = await ensureB402AcceptInRequirements(requirements, microUnits, maxTimeout);
-    requirements = await ensureAlgorandAcceptInRequirements(
-      requirements,
-      microUnits,
-      maxTimeout,
-      ctx
-    );
-    requirements = await ensureOkxAcceptInRequirements(
-      requirements,
-      microUnits,
-      maxTimeout,
-      ctx,
-    );
-  }
-  requirements = ensureEvmEip712Domain(requirements);
-  requirements = await enrichB402Requirements(requirements);
 
   const resourceInfo =
     buildPaymentResourceInfo({
@@ -1312,6 +1273,74 @@ async function buildPaymentRequired(bundle, req, options, error) {
   const extensions = isX402BazaarEnabled()
     ? buildBazaarExtensions(resourceServer, req, paymentOptions)
     : undefined;
+
+  // Labs Algorand tab: offer AVM accepts only (like Celo). Avoid Dexter Solana/Base
+  // offers that the Algorand client would fall back to if GoPlausible accept build fails.
+  const labChain = String(req?.get?.("x-lab-x402-chain") || "")
+    .trim()
+    .toLowerCase();
+  if (labChain === "algorand") {
+    const requirements = await ensureAlgorandAcceptInRequirements(
+      [],
+      microUnits,
+      maxTimeout,
+      ctx,
+    );
+    if (requirements.length === 0) {
+      return resourceServer.createPaymentRequiredResponse(
+        [],
+        resourceInfo,
+        error ||
+          "Algorand x402 not configured — create a Labs Algorand PayTo wallet or set ALGORAND_PAYTO",
+        extensions,
+      );
+    }
+    return resourceServer.createPaymentRequiredResponse(
+      requirements,
+      resourceInfo,
+      error,
+      extensions,
+    );
+  }
+
+  const facilitatorPaymentOptions = paymentOptionsForFacilitator(
+    bundle,
+    microUnits,
+    maxTimeout,
+    payToOverride,
+  );
+
+  let requirements;
+  try {
+    requirements = await resourceServer.buildPaymentRequirementsFromOptions(
+      facilitatorPaymentOptions,
+      ctx,
+    );
+  } catch (e) {
+    console.warn(
+      "[x402] buildPaymentRequirementsFromOptions failed:",
+      e?.message || e,
+    );
+    requirements = [];
+  }
+  const solanaOnlyOverride = Boolean(payToOverride?.solanaPayTo && !payToOverride?.evmPayTo);
+  if (!solanaOnlyOverride) {
+    requirements = await ensureB402AcceptInRequirements(requirements, microUnits, maxTimeout);
+    requirements = await ensureAlgorandAcceptInRequirements(
+      requirements,
+      microUnits,
+      maxTimeout,
+      ctx,
+    );
+    requirements = await ensureOkxAcceptInRequirements(
+      requirements,
+      microUnits,
+      maxTimeout,
+      ctx,
+    );
+  }
+  requirements = ensureEvmEip712Domain(requirements);
+  requirements = await enrichB402Requirements(requirements);
 
   return resourceServer.createPaymentRequiredResponse(requirements, resourceInfo, error, extensions);
 }
@@ -1482,7 +1511,13 @@ export function requirePayment(options) {
       const acc = payload.accepted;
       const payToOverride = await resolvePayToForRequest(options, req);
 
-      const acceptedOptions = buildAcceptedOptionsForBundle(bundle, expectedMicroUnits, payToOverride);
+      const labChain = String(req?.get?.("x-lab-x402-chain") || "")
+        .trim()
+        .toLowerCase();
+      const acceptedOptions =
+        labChain === "algorand"
+          ? appendAlgorandAcceptedOption([], expectedMicroUnits, payToOverride?.algorandPayTo)
+          : buildAcceptedOptionsForBundle(bundle, expectedMicroUnits, payToOverride);
       let matchingOption = acceptedOptions.find((opt) =>
         paymentAcceptedMatchesOption(acc, opt, expectedMicroUnits)
       );

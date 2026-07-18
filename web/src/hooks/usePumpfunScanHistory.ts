@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   fetchPumpfunCallerLeaderboard,
   fetchPumpfunLiveCalls,
@@ -10,12 +10,16 @@ export const PUMPFUN_SCAN_HISTORY_KEY = ["pumpfun-scan-history"] as const;
 export const PUMPFUN_CALLERS_KEY = ["pumpfun-callers"] as const;
 export const PUMPFUN_LIVE_CALLS_KEY = ["pumpfun-live-calls"] as const;
 
-export const PUMPFUN_LIVE_CALLS_PAGE_SIZE = 20;
+/** Latest items shown on Live / My calls / Best callers tabs. */
+export const PUMPFUN_LIST_LIMIT = 10;
+
+/** @deprecated Use PUMPFUN_LIST_LIMIT */
+export const PUMPFUN_LIVE_CALLS_PAGE_SIZE = PUMPFUN_LIST_LIMIT;
 
 export function usePumpfunScanHistory(enabled: boolean) {
   return useQuery({
-    queryKey: PUMPFUN_SCAN_HISTORY_KEY,
-    queryFn: ({ signal }) => fetchPumpfunScanHistory({ signal }),
+    queryKey: [...PUMPFUN_SCAN_HISTORY_KEY, PUMPFUN_LIST_LIMIT],
+    queryFn: ({ signal }) => fetchPumpfunScanHistory({ limit: PUMPFUN_LIST_LIMIT, signal }),
     enabled,
     staleTime: 60_000,
   });
@@ -23,26 +27,22 @@ export function usePumpfunScanHistory(enabled: boolean) {
 
 export function usePumpfunCallerLeaderboard() {
   return useQuery({
-    queryKey: PUMPFUN_CALLERS_KEY,
-    queryFn: ({ signal }) => fetchPumpfunCallerLeaderboard({ signal }),
+    queryKey: [...PUMPFUN_CALLERS_KEY, PUMPFUN_LIST_LIMIT],
+    queryFn: ({ signal }) =>
+      fetchPumpfunCallerLeaderboard({ limit: PUMPFUN_LIST_LIMIT, signal }),
     staleTime: 120_000,
   });
 }
 
 export function usePumpfunLiveCalls(enabled: boolean) {
-  return useInfiniteQuery({
-    queryKey: PUMPFUN_LIVE_CALLS_KEY,
-    queryFn: ({ pageParam, signal }) =>
+  return useQuery({
+    queryKey: [...PUMPFUN_LIVE_CALLS_KEY, PUMPFUN_LIST_LIMIT],
+    queryFn: ({ signal }) =>
       fetchPumpfunLiveCalls({
-        limit: PUMPFUN_LIVE_CALLS_PAGE_SIZE,
-        offset: pageParam,
+        limit: PUMPFUN_LIST_LIMIT,
+        offset: 0,
         signal,
       }),
-    initialPageParam: 0,
-    getNextPageParam: (lastPage, allPages) => {
-      if (!lastPage.hasMore) return undefined;
-      return allPages.length * PUMPFUN_LIVE_CALLS_PAGE_SIZE;
-    },
     enabled,
     staleTime: 30_000,
   });

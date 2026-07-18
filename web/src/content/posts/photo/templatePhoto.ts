@@ -15,7 +15,7 @@ export const TEMPLATE_PHOTO = definePhotoUpdate(TEMPLATE_POST.meta, [
       eyebrow: "Ship log template",
       badge: "15 cards · locked",
       title: "Format Template",
-      subtitle: "Permanent reference — every future photo deck uses these 15 narrative slots in order.",
+      subtitle: "Permanent reference. Every future photo deck uses these 15 narrative slots in order.",
     }),
   },
   {
@@ -45,8 +45,8 @@ export const TEMPLATE_PHOTO = definePhotoUpdate(TEMPLATE_POST.meta, [
       kicker: "How to ship",
       headline: "Clone. Fill. Register. Export.",
       steps: [
-        { step: "01", title: "Video file", description: "defineVideoUpdate — 8 kinds in order." },
-        { step: "02", title: "Photo file", description: "definePhotoUpdate — 15 roles in order." },
+        { step: "01", title: "Video file", description: "defineVideoUpdate: 8 kinds in order." },
+        { step: "02", title: "Photo file", description: "definePhotoUpdate: 15 roles in order." },
         { step: "03", title: "Register", description: "Append the bundle in registry.ts." },
         { step: "04", title: "Export", description: "Record video or download PNGs from /post." },
       ],
@@ -61,7 +61,7 @@ export const TEMPLATE_PHOTO = definePhotoUpdate(TEMPLATE_POST.meta, [
       headline: "Eight slides, fixed kinds.",
       steps: [
         { step: "01", title: "Cover", description: "Announce the ship with title and badge." },
-        { step: "02", title: "Thesis", description: "Why it matters — problem statement." },
+        { step: "02", title: "Thesis", description: "Why it matters: problem statement." },
         { step: "03", title: "Shipped", description: "What you built with highlights." },
         { step: "04", title: "Flow → CTA", description: "Walkthrough, features, surfaces, impact, close." },
       ],
@@ -89,8 +89,8 @@ export const TEMPLATE_PHOTO = definePhotoUpdate(TEMPLATE_POST.meta, [
       kicker: "Before register",
       headline: "Checklist for every new update",
       highlights: [
-        "defineVideoUpdate — 8 kinds in template order",
-        "definePhotoUpdate — 15 roles in slot order",
+        "defineVideoUpdate: 8 kinds in template order",
+        "definePhotoUpdate: 15 roles in slot order",
         "Share copy file for all 15 photo cards",
         "Field limits pass; bundle appended in registry",
       ],
@@ -130,7 +130,7 @@ export const TEMPLATE_PHOTO = definePhotoUpdate(TEMPLATE_POST.meta, [
       headline: "Freeform decks vs locked format",
       compareLeft: {
         title: "Before",
-        body: "Uneven slide counts, missing CTAs, export overflows — every ship log looked different.",
+        body: "Uneven slide counts, missing CTAs, export overflows. Every ship log looked different.",
       },
       compareRight: {
         title: "After",
@@ -157,11 +157,11 @@ export const TEMPLATE_PHOTO = definePhotoUpdate(TEMPLATE_POST.meta, [
       kicker: "Code map",
       headline: "Where the contract lives",
       items: [
-        "videoSlideSlots.ts — 8 kind slots",
-        "photoCardSlots.ts — 15 role slots",
+        "videoSlideSlots.ts: 8 kind slots",
+        "photoCardSlots.ts: 15 role slots",
         "defineVideoUpdate / definePhotoUpdate",
-        "postLocked.ts — undeletable #0",
-        "registry — TEMPLATE_POST + TEMPLATE_PHOTO",
+        "postLocked.ts: undeletable #0",
+        "registry: TEMPLATE_POST + TEMPLATE_PHOTO",
       ],
     }),
   },

@@ -55,7 +55,15 @@ export const PILLARS = {
       '/bankr',
       '/squid',
     ],
-    toolIdPatterns: [/^giza-/, /^jupiter-swap/, /^rise-/, /^lp_real_/, /^lp-real/, /^squid-/],
+    toolIdPatterns: [
+      /^giza-/,
+      /^jupiter-swap/,
+      /^rise-/,
+      /^lp_real_/,
+      /^lp-real/,
+      /^squid-/,
+      /^invest-/,
+    ],
   },
   spend: {
     id: 'spend',

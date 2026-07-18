@@ -43,8 +43,8 @@ export const SCALPER_DEFAULTS = Object.freeze({
   /** Tight but noise-aware hard stop (~2.3:1 R:R with TP). */
   stopLossPct: 0.45,
   maxHoldMinutes: 15,
-  /** Only trade high-conviction opportunities. */
-  minOpportunityScore: 0.68,
+  /** Active-demo floor — high enough to skip junk, low enough to trade. */
+  minOpportunityScore: 0.6,
   /**
    * Extra edge (%) above estimated round-trip fill cost before entry.
    * Round-trip ≈ 2 × quoteSlippageBps / 100.
@@ -54,8 +54,8 @@ export const SCALPER_DEFAULTS = Object.freeze({
   symbolCooldownMs: 10 * 60_000,
   /** How long experiment signals stay valid (ms) — fresh only. */
   experimentSignalMaxAgeMs: 3 * 60_000,
-  /** Momentum scan thresholds — require clearer move, reject chop. */
-  momentumMinPct: 0.32,
+  /** Momentum scan thresholds — active-demo friendly, still reject near-zero noise. */
+  momentumMinPct: 0.05,
   momentumMaxVolatilityPct: 1.45,
   /** Jupiter quote slippage for paper fills (bps) — liquid cbBTC/USDC. */
   quoteSlippageBps: 18,
@@ -69,12 +69,12 @@ export const SCALPER_DEFAULTS = Object.freeze({
   profitLockGainPct: 0.85,
   /** Max giveback from peak (%) once profit lock is armed. */
   profitLockGivebackPct: 0.32,
-  /** Reject entries when Jupiter impact exceeds this (bps). */
-  maxEntryImpactBps: 40,
+  /** Reject entries when Jupiter impact exceeds this (bps). Quote impact can be noisy vs mid. */
+  maxEntryImpactBps: 120,
   /** Solo (non-confluence) entries need at least this score. */
-  minSoloScore: 0.74,
-  /** Prefer confluence — solo news/momentum need still higher bars. */
-  minSoloMomentumScore: 0.78,
+  minSoloScore: 0.6,
+  /** Solo momentum floor — primary 24/7 signal source for active demo. */
+  minSoloMomentumScore: 0.6,
   minSoloStocksScore: 0.76,
 });
 

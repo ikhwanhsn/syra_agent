@@ -1,11 +1,16 @@
-import { useCallback, useEffect, useRef } from "react";
-import { Loader2, Radar, TrendingUp } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Radar, TrendingUp } from "lucide-react";
 import { PumpfunListPanelSkeleton } from "@/components/pumpfun/PumpfunListPanelSkeleton";
-import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
+import {
+  matchesTokenSearch,
+  PumpfunListToolbar,
+  type PumpfunListFilterOption,
+} from "@/components/pumpfun/PumpfunListToolbar";
+import { useDelayedMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
-import { usePumpfunLiveCalls } from "@/hooks/usePumpfunScanHistory";
+import { PUMPFUN_LIST_LIMIT, usePumpfunLiveCalls } from "@/hooks/usePumpfunScanHistory";
 import {
   formatCompactUsd,
   formatGainMultiplier,
@@ -13,6 +18,12 @@ import {
   type PumpfunLiveCallRecord,
 } from "@/lib/pumpfunScanHistoryApi";
 import { cn } from "@/lib/utils";
+
+const LIVE_FILTERS: readonly PumpfunListFilterOption[] = [
+  { value: "all", label: "All calls" },
+  { value: "alpha", label: "High alpha" },
+  { value: "runners", label: "Runners" },
+] as const;
 
 function formatRelativeTime(iso: string): string {
   try {
@@ -33,6 +44,12 @@ function scoreBadgeClass(score: number): string {
   if (score >= 75) return "border-emerald-500/40 bg-emerald-500/10 text-emerald-400";
   if (score >= 50) return "border-amber-500/40 bg-amber-500/10 text-amber-400";
   return "border-rose-500/40 bg-rose-500/10 text-rose-400";
+}
+
+function filterLiveRecord(record: PumpfunLiveCallRecord, filter: string): boolean {
+  if (filter === "alpha") return record.syraAlphaScore >= 65;
+  if (filter === "runners") return (record.peakGainMultiplier ?? 0) >= 1.05;
+  return true;
 }
 
 interface LiveCallRowProps {
@@ -110,35 +127,31 @@ export interface PumpfunLiveCallsPanelProps {
 
 export function PumpfunLiveCallsPanel({ onScanMint, scanning = false }: PumpfunLiveCallsPanelProps) {
   const liveQ = usePumpfunLiveCalls(true);
-  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("all");
 
-  const records = liveQ.data?.pages.flatMap((p) => p.items) ?? [];
-  const total = liveQ.data?.pages[0]?.total ?? 0;
+  const records = useMemo(
+    () => (liveQ.data?.items ?? []).slice(0, PUMPFUN_LIST_LIMIT),
+    [liveQ.data?.items],
+  );
 
-  const loadMore = useCallback(() => {
-    if (liveQ.hasNextPage && !liveQ.isFetchingNextPage) {
-      void liveQ.fetchNextPage();
-    }
-  }, [liveQ]);
-
-  useEffect(() => {
-    const node = loadMoreRef.current;
-    if (!node || !liveQ.hasNextPage) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) loadMore();
-      },
-      { rootMargin: "200px" },
+  const filtered = useMemo(() => {
+    return records.filter(
+      (record) =>
+        filterLiveRecord(record, filter) &&
+        matchesTokenSearch(search, [
+          record.symbol,
+          record.name,
+          record.mint,
+          record.callerWallet,
+        ]),
     );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [loadMore, liveQ.hasNextPage]);
+  }, [records, search, filter]);
 
-  const showSkeleton = useMinimumSkeleton(liveQ.isLoading);
+  const showSkeleton = useDelayedMinimumSkeleton(liveQ.isLoading, 450);
 
   if (showSkeleton) {
-    return <PumpfunListPanelSkeleton />;
+    return <PumpfunListPanelSkeleton rows={10} />;
   }
 
   if (liveQ.isError) {
@@ -161,7 +174,7 @@ export function PumpfunLiveCallsPanel({ onScanMint, scanning = false }: PumpfunL
           <div>
             <h2 className="font-display text-lg font-semibold">Live calls</h2>
             <p className="text-xs text-muted-foreground">
-              Latest {total} scans from the community — tap a token to scan (uses 1 free call).
+              Latest {PUMPFUN_LIST_LIMIT} community scans — tap a token to analyze.
             </p>
           </div>
           <Button
@@ -176,35 +189,37 @@ export function PumpfunLiveCallsPanel({ onScanMint, scanning = false }: PumpfunL
           </Button>
         </div>
 
+        <PumpfunListToolbar
+          search={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Search symbol, name, mint…"
+          filter={filter}
+          onFilterChange={setFilter}
+          filterOptions={LIVE_FILTERS}
+          resultCount={filtered.length}
+          totalCount={records.length}
+          className="mb-4"
+        />
+
         {records.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
             No live scans yet. Be the first to scan a token.
           </p>
+        ) : filtered.length === 0 ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            No calls match your search or filter.
+          </p>
         ) : (
-          <>
-            <div>
-              {records.map((record) => (
-                <LiveCallRow
-                  key={`${record.callId}-${record.feedAt}`}
-                  record={record}
-                  onScan={onScanMint}
-                  scanning={scanning}
-                />
-              ))}
-            </div>
-
-            <div ref={loadMoreRef} className="flex justify-center py-4">
-              {liveQ.isFetchingNextPage ? (
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              ) : liveQ.hasNextPage ? (
-                <Button type="button" variant="ghost" size="sm" onClick={loadMore}>
-                  Load more
-                </Button>
-              ) : records.length > 0 ? (
-                <p className="text-xs text-muted-foreground">Showing all recent live calls</p>
-              ) : null}
-            </div>
-          </>
+          <div>
+            {filtered.map((record) => (
+              <LiveCallRow
+                key={`${record.callId}-${record.feedAt}`}
+                record={record}
+                onScan={onScanMint}
+                scanning={scanning}
+              />
+            ))}
+          </div>
         )}
       </CardContent>
     </Card>

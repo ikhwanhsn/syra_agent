@@ -29,6 +29,7 @@ function statusBadgeClass(status: CheckStatus): string {
 }
 
 function buildChecks(data: MemecoinAnalysisPayload): SafetyCheck[] {
+  const isSolana = !data.chain || data.chain === "solana";
   const onChain = data.onChainSecurity.ok ? data.onChainSecurity.data : null;
   const distribution = data.distribution.ok ? data.distribution.data : null;
   const pumpfun = data.pumpfun.ok ? data.pumpfun.data : null;
@@ -41,6 +42,66 @@ function buildChecks(data: MemecoinAnalysisPayload): SafetyCheck[] {
   const liquidityUsd = market.liquidityUsd ?? pumpfun?.bondingLiquidityUsd ?? null;
   const mcapUsd = market.marketCapUsd ?? pumpfun?.marketCapUsd ?? null;
   const liqRatio = liquidityUsd != null && mcapUsd != null && mcapUsd > 0 ? (liquidityUsd / mcapUsd) * 100 : null;
+
+  const volume24h = market.volume24hUsd;
+
+  if (!isSolana) {
+    return [
+      {
+        id: "liquidity",
+        label: "Liquidity depth",
+        status:
+          liqRatio == null
+            ? liquidityUsd == null
+              ? "unknown"
+              : liquidityUsd >= 50_000
+                ? "pass"
+                : liquidityUsd >= 10_000
+                  ? "warn"
+                  : "fail"
+            : liqRatio >= 5
+              ? "pass"
+              : liqRatio >= 2
+                ? "warn"
+                : "fail",
+        detail:
+          liquidityUsd != null
+            ? `${formatCompactUsd(liquidityUsd)}${liqRatio != null ? ` · ${liqRatio.toFixed(1)}% of mcap` : ""}`
+            : "Unknown",
+      },
+      {
+        id: "volume",
+        label: "24h volume",
+        status:
+          volume24h == null
+            ? "unknown"
+            : volume24h >= 100_000
+              ? "pass"
+              : volume24h >= 10_000
+                ? "warn"
+                : "fail",
+        detail: volume24h != null ? formatCompactUsd(volume24h) : "Unknown",
+      },
+      {
+        id: "mcap",
+        label: "Market cap",
+        status: mcapUsd == null ? "unknown" : mcapUsd >= 1_000_000 ? "pass" : mcapUsd >= 100_000 ? "warn" : "fail",
+        detail: mcapUsd != null ? formatCompactUsd(mcapUsd) : "Unknown",
+      },
+      {
+        id: "security",
+        label: "On-chain security",
+        status: "unknown",
+        detail: "EVM honeypot checks coming soon",
+      },
+      {
+        id: "holders",
+        label: "Holder distribution",
+        status: "unknown",
+        detail: "Not available for EVM yet",
+      },
+    ];
+  }
 
   return [
     {

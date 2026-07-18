@@ -5,7 +5,7 @@ import { SPCX_PHOTO_SHARE_COPIES } from "./shareCopies/spcxShareCopies";
 
 const copies = SPCX_PHOTO_SHARE_COPIES;
 
-/** Photo-format content for the SpaceX IPO Agent ship log — 15 cards, 15 X posts. */
+/** Photo-format content for the SpaceX IPO Agent ship log: 15 cards, 15 X posts. */
 export const SPCX_PHOTO = definePhotoUpdate(SPCX_POST.meta, [
   {
     role: "cover",
@@ -88,7 +88,7 @@ export const SPCX_PHOTO = definePhotoUpdate(SPCX_POST.meta, [
     layout: "photo-hero-checklist",
     shareCopy: copies.checklist,
     content: photoContent({
-      headline: "SpaceX IPO Agent — what's live.",
+      headline: "SpaceX IPO Agent. What's live.",
       highlights: [
         "Realtime Nasdaq vs SPCXx spread tracking",
         "Buy and sell SPCXx from the Trade tab",
@@ -157,7 +157,7 @@ export const SPCX_PHOTO = definePhotoUpdate(SPCX_POST.meta, [
       kicker: "System update",
       headline: "Backend and swap reliability.",
       items: [
-        "GET /experiment/spcx/latest — lazy tick on poll (~10s cooldown)",
+        "GET /experiment/spcx/latest: lazy tick on poll (~10s cooldown)",
         "Frontend polling: latest every 10s, feed every 15s",
         "Jupiter Ultra with V1 fallback for USDC/SOL ↔ SPCXx swaps",
         "Auth-required tx_sign: guest wallets blocked from swap signing",

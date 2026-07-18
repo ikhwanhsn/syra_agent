@@ -163,6 +163,16 @@ export async function fetchLlmVideoStatus(
   return res.data;
 }
 
+/** Normalize upstream Content-Type so <video> can decode the blob. */
+function normalizeVideoMime(contentType: string | null): string {
+  const raw = (contentType ?? "").split(";")[0]?.trim().toLowerCase() || "";
+  if (!raw || raw === "application/octet-stream" || raw === "binary/octet-stream") {
+    return "video/mp4";
+  }
+  if (raw.startsWith("video/")) return raw;
+  return "video/mp4";
+}
+
 /** Fetch video bytes via auth proxy (OpenRouter content URLs require API key). */
 export async function fetchLlmVideoContentBlob(
   adminWallet: string,
@@ -181,7 +191,10 @@ export async function fetchLlmVideoContentBlob(
       `HTTP ${res.status}`;
     throw new Error(msg);
   }
-  return res.blob();
+  const raw = await res.blob();
+  const type = normalizeVideoMime(res.headers.get("content-type") || raw.type);
+  if (raw.type === type) return raw;
+  return new Blob([raw], { type });
 }
 
 export async function createLlmEmbeddings(

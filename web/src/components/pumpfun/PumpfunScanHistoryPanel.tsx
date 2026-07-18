@@ -1,19 +1,31 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ExternalLink, Share2, TrendingUp } from "lucide-react";
 import { PumpfunListPanelSkeleton } from "@/components/pumpfun/PumpfunListPanelSkeleton";
-import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
+import {
+  matchesTokenSearch,
+  PumpfunListToolbar,
+  type PumpfunListFilterOption,
+} from "@/components/pumpfun/PumpfunListToolbar";
+import { useDelayedMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import { Link } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PumpfunCallShareModal } from "@/components/pumpfun/PumpfunCallShareModal";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
-import { usePumpfunScanHistory } from "@/hooks/usePumpfunScanHistory";
+import { PUMPFUN_LIST_LIMIT, usePumpfunScanHistory } from "@/hooks/usePumpfunScanHistory";
 import {
   formatCompactUsd,
   formatGainMultiplier,
   type PumpfunScanRecord,
 } from "@/lib/pumpfunScanHistoryApi";
 import { cn } from "@/lib/utils";
+
+const HISTORY_FILTERS: readonly PumpfunListFilterOption[] = [
+  { value: "all", label: "All calls" },
+  { value: "winners", label: "2x+" },
+  { value: "10x", label: "10x+" },
+  { value: "flat", label: "Under 2x" },
+] as const;
 
 function gainBadgeClass(gain: number | null): string {
   const g = gain ?? 1;
@@ -36,13 +48,25 @@ function formatScanTime(iso: string): string {
   }
 }
 
+function peakGainOf(record: PumpfunScanRecord): number {
+  return record.peakGainMultiplier ?? record.gainMultiplier ?? 1;
+}
+
+function filterHistoryRecord(record: PumpfunScanRecord, filter: string): boolean {
+  const peak = peakGainOf(record);
+  if (filter === "winners") return peak >= 2;
+  if (filter === "10x") return peak >= 10;
+  if (filter === "flat") return peak < 2;
+  return true;
+}
+
 interface HistoryRowProps {
   record: PumpfunScanRecord;
   onShare: (record: PumpfunScanRecord) => void;
 }
 
 function HistoryRow({ record, onShare }: HistoryRowProps) {
-  const peakGain = record.peakGainMultiplier ?? record.gainMultiplier;
+  const peakGain = peakGainOf(record);
 
   return (
     <div className="flex flex-col gap-3 border-b border-border/40 py-4 last:border-0 sm:flex-row sm:items-center">
@@ -81,7 +105,7 @@ function HistoryRow({ record, onShare }: HistoryRowProps) {
           {formatGainMultiplier(peakGain)}
         </span>
         <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5" asChild>
-          <Link to={`/pumpfun?mint=${encodeURIComponent(record.mint)}`}>
+          <Link to={`/analyzer?mint=${encodeURIComponent(record.mint)}`}>
             <ExternalLink className="h-3.5 w-3.5" />
             View
           </Link>
@@ -121,9 +145,25 @@ export function PumpfunScanHistoryPanel({
   const historyEnabled = walletConnected && syraAuthenticated;
   const historyQ = usePumpfunScanHistory(historyEnabled);
   const [shareRecord, setShareRecord] = useState<PumpfunScanRecord | null>(null);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("all");
+
   const sessionLoading = Boolean(authPending || signingIn);
-  const showSessionSkeleton = useMinimumSkeleton(sessionLoading);
-  const showHistorySkeleton = useMinimumSkeleton(historyQ.isLoading);
+  const showSessionSkeleton = useDelayedMinimumSkeleton(sessionLoading, 450);
+  const showHistorySkeleton = useDelayedMinimumSkeleton(historyQ.isLoading, 450);
+
+  const records = useMemo(
+    () => (historyQ.data ?? []).slice(0, PUMPFUN_LIST_LIMIT),
+    [historyQ.data],
+  );
+
+  const filtered = useMemo(() => {
+    return records.filter(
+      (record) =>
+        filterHistoryRecord(record, filter) &&
+        matchesTokenSearch(search, [record.symbol, record.name, record.mint]),
+    );
+  }, [records, search, filter]);
 
   if (!walletConnected) {
     return (
@@ -141,7 +181,7 @@ export function PumpfunScanHistoryPanel({
   }
 
   if (showSessionSkeleton) {
-    return <PumpfunListPanelSkeleton />;
+    return <PumpfunListPanelSkeleton rows={10} />;
   }
 
   if (!syraAuthenticated) {
@@ -160,7 +200,7 @@ export function PumpfunScanHistoryPanel({
   }
 
   if (showHistorySkeleton) {
-    return <PumpfunListPanelSkeleton />;
+    return <PumpfunListPanelSkeleton rows={10} />;
   }
 
   if (historyQ.isError) {
@@ -176,8 +216,6 @@ export function PumpfunScanHistoryPanel({
     );
   }
 
-  const records = historyQ.data ?? [];
-
   return (
     <>
       <Card className={overviewCardShell}>
@@ -186,7 +224,7 @@ export function PumpfunScanHistoryPanel({
             <div>
               <h2 className="font-display text-lg font-semibold">Your calls</h2>
               <p className="text-xs text-muted-foreground">
-                One entry per token — your first call is locked in. Peak gain updates on rescan.
+                Latest {PUMPFUN_LIST_LIMIT} calls — peak gain updates on rescan.
               </p>
             </div>
             <Button
@@ -200,13 +238,29 @@ export function PumpfunScanHistoryPanel({
             </Button>
           </div>
 
+          <PumpfunListToolbar
+            search={search}
+            onSearchChange={setSearch}
+            searchPlaceholder="Search symbol, name, mint…"
+            filter={filter}
+            onFilterChange={setFilter}
+            filterOptions={HISTORY_FILTERS}
+            resultCount={filtered.length}
+            totalCount={records.length}
+            className="mb-4"
+          />
+
           {records.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
               No scans yet. Scan a token to start building your call history.
             </p>
+          ) : filtered.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              No calls match your search or filter.
+            </p>
           ) : (
             <div>
-              {records.map((record) => (
+              {filtered.map((record) => (
                 <HistoryRow key={record.callId} record={record} onShare={setShareRecord} />
               ))}
             </div>

@@ -5,7 +5,7 @@ import { AGENTSCORE_PHOTO_SHARE_COPIES } from "./shareCopies/agentscoreShareCopi
 
 const copies = AGENTSCORE_PHOTO_SHARE_COPIES;
 
-/** Photo-format content for the AgentScore ship log — 15 cards, 15 X posts. */
+/** Photo-format content for the AgentScore ship log: 15 cards, 15 X posts. */
 export const AGENTSCORE_PHOTO = definePhotoUpdate(AGENTSCORE_POST.meta, [
   {
     role: "cover",
@@ -25,7 +25,7 @@ export const AGENTSCORE_PHOTO = definePhotoUpdate(AGENTSCORE_POST.meta, [
     content: photoContent({
       kicker: "The gap",
       headline: "Payments worked. Identity didn't.",
-      body: "Syra sells intelligence over x402. Regulated merchants need KYC before checkout. AgentScore adds merchant gates and buyer Passport — without replacing payment middleware.",
+      body: "Syra sells intelligence over x402. Regulated merchants need KYC before checkout. AgentScore adds merchant gates and buyer Passport, without replacing payment middleware.",
     }),
   },
   {
@@ -116,7 +116,7 @@ export const AGENTSCORE_PHOTO = definePhotoUpdate(AGENTSCORE_POST.meta, [
     content: photoContent({
       headline: "One Passport. No re-KYC per checkout.",
       stats: [{ value: "1", label: "Passport · every gated merchant" }],
-      narrative: "Martin Estate, Sayer & Stone, and the full AgentScore network — verify once, buy anywhere.",
+      narrative: "Martin Estate, Sayer & Stone, and the full AgentScore network. Verify once, buy anywhere.",
     }),
   },
   {
@@ -143,7 +143,7 @@ export const AGENTSCORE_PHOTO = definePhotoUpdate(AGENTSCORE_POST.meta, [
       badge: "Now live",
       title: "AgentScore × Syra",
       subtitle: "Merchant gates. Buyer Passport. Pay tools in agent chat.",
-      body: "Syra is an x402 merchant with optional compliance gates — and an x402 buyer for regulated commerce.",
+      body: "Syra is an x402 merchant with optional compliance gates, and an x402 buyer for regulated commerce.",
     }),
   },
   {

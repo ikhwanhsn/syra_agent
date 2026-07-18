@@ -13,23 +13,30 @@ export const TEMPLATE_POST = defineVideoUpdate(
     published: "Permanent",
     tagline: "Locked reference for every future ship-log video + photo deck",
     locked: true,
-    shareCopyVideo: `SHIP LOG FORMAT · Syra template (do not post as a product update).
+    shareCopyVideo: `FORMAT TEMPLATE · Syra ship log (instructional exemplar, not a product post).
 
 Every ship log follows this deck:
-1. Cover — announce the ship
-2. Thesis — why it matters
-3. Shipped — what we built
-4. Flow — how it works
-5. Features — cards
-6. Surfaces — where to find it
-7. Impact — proof stats
-8. CTA — links
 
-Photo decks use 15 fixed narrative slots. Copy only — keep layouts in slot order.`,
-    shareCopyPhoto: `FORMAT TEMPLATE · Syra ship log.
+1. Cover: announce the ship
+2. Thesis: why it matters
+3. Shipped: what we built
+4. Flow: how it works
+5. Features: cards
+6. Surfaces: where to find it
+7. Impact: proof stats
+8. CTA: links
 
-Video: 8 slides (cover → thesis → shipped → flow → features → surfaces → impact → CTA).
-Photo: 15 cards (cover → thesis → quote → flow → … → CTA).
+Photo decks use 15 fixed narrative slots. Copy only. Keep layouts in slot order.
+
+Clone this structure for every future ship log.`,
+    shareCopyPhoto: `FORMAT TEMPLATE · Syra ship log voice exemplar.
+
+Hook line. Blank line. Short paragraph or list. Blank line. CTA.
+
+→ One idea per block
+→ No em dashes. Use comma, colon, or period.
+→ Product posts open with SHIP LOG ·
+→ This template opens with FORMAT TEMPLATE ·
 
 Replace placeholder copy. Keep the slot order.`,
   },
@@ -41,7 +48,7 @@ Replace placeholder copy. Keep the slot order.`,
       label: "Cover",
       eyebrow: "Ship log template",
       title: "Format Template",
-      subtitle: "Locked reference deck — every future video update uses these 8 slide kinds in order.",
+      subtitle: "Locked reference deck. Every future video update uses these 8 slide kinds in order.",
       badge: "8 slides · locked",
     },
     {
@@ -51,7 +58,7 @@ Replace placeholder copy. Keep the slot order.`,
       label: "Thesis",
       kicker: "Why this exists",
       headline: "One format. Every ship log.",
-      body: "Without a fixed narrative, decks drift — different slide counts, missing CTAs, broken exports. This template locks the story arc so growth posts stay consistent.",
+      body: "Without a fixed narrative, decks drift: different slide counts, missing CTAs, broken exports. This template locks the story arc so growth posts stay consistent.",
     },
     {
       id: "hero",
@@ -59,8 +66,8 @@ Replace placeholder copy. Keep the slot order.`,
       layout: "hero-compact",
       label: "Shipped",
       kicker: "What to fill in",
-      headline: "Replace placeholders — keep the structure",
-      body: "New updates clone this arc: announce, explain, prove, and close. Change copy and layouts within each kind; do not add, remove, or reorder slide kinds.",
+      headline: "Replace placeholders. Keep the structure.",
+      body: "New updates clone this arc: announce, explain, prove, and close. Change copy and layouts within each kind. Do not add, remove, or reorder slide kinds.",
       highlights: [
         "8 video slides in fixed kind order via defineVideoUpdate()",
         "15 photo cards in fixed role order via definePhotoUpdate()",
@@ -93,7 +100,7 @@ Replace placeholder copy. Keep the slot order.`,
         {
           step: "04",
           title: "Export and post",
-          description: "Record video or download PNGs from /post — share copy is per card.",
+          description: "Record video or download PNGs from /post. Share copy is per card.",
         },
       ],
     },
@@ -108,7 +115,7 @@ Replace placeholder copy. Keep the slot order.`,
         {
           title: "Cover",
           subtitle: "Announce",
-          detail: "Eyebrow, title, subtitle, badge — the ship headline.",
+          detail: "Eyebrow, title, subtitle, badge: the ship headline.",
           accent: "gold",
         },
         {
@@ -140,7 +147,7 @@ Replace placeholder copy. Keep the slot order.`,
         {
           icon: LayoutTemplate,
           title: "/post hub",
-          description: "Pinned Format Template — always visible, never deletable.",
+          description: "Pinned Format Template. Always visible, never deletable.",
           href: "https://www.syraa.fun/post",
         },
         {
@@ -163,12 +170,12 @@ Replace placeholder copy. Keep the slot order.`,
         {
           icon: Lock,
           title: "Locked meta",
-          description: "meta.locked: true — studio delete UI and API skip this update.",
+          description: "meta.locked: true. Studio delete UI and API skip this update.",
         },
         {
           icon: Sparkles,
           title: "Future logs",
-          description: "Append new bundles only — never remove this template entry.",
+          description: "Append new bundles only. Never remove this template entry.",
         },
       ],
     },

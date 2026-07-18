@@ -5,7 +5,7 @@ import { LP_REAL_PROFITABILITY_PHOTO_SHARE_COPIES } from "./shareCopies/lpRealPr
 
 const copies = LP_REAL_PROFITABILITY_PHOTO_SHARE_COPIES;
 
-/** Photo-format content for the LP real profitability ship log — 15 cards, 15 X posts. */
+/** Photo-format content for the LP real profitability ship log: 15 cards, 15 X posts. */
 export const LP_REAL_PROFITABILITY_PHOTO = definePhotoUpdate(LP_REAL_PROFITABILITY_POST.meta, [
   {
     role: "cover",
@@ -16,7 +16,7 @@ export const LP_REAL_PROFITABILITY_PHOTO = definePhotoUpdate(LP_REAL_PROFITABILI
       badge: "Fee-aware · Pool gates · Trailing stop",
       title: "LP Real Profitability",
       subtitle:
-        "Live Meteora LP agents now hold fee winners, skip unprofitable pools, and exit on net economics — not price drift alone.",
+        "Live Meteora LP agents now hold fee winners, skip unprofitable pools, and exit on net economics, not price drift alone.",
     }),
   },
   {
@@ -26,7 +26,7 @@ export const LP_REAL_PROFITABILITY_PHOTO = definePhotoUpdate(LP_REAL_PROFITABILI
     content: photoContent({
       kicker: "The problem",
       headline: "Price stops were ignoring fees already earned.",
-      body: "In the sim lab, positions could show Loss while Sim PnL stayed green. The live agent used the same blunt rule — and closed fee-positive trades on raw price drift.",
+      body: "In the sim lab, positions could show Loss while Sim PnL stayed green. The live agent used the same blunt rule, and closed fee-positive trades on raw price drift.",
     }),
   },
   {
@@ -88,7 +88,7 @@ export const LP_REAL_PROFITABILITY_PHOTO = definePhotoUpdate(LP_REAL_PROFITABILI
     layout: "photo-hero-compact",
     shareCopy: copies.checklist,
     content: photoContent({
-      headline: "LP real profitability — what changed.",
+      headline: "LP real profitability. What changed.",
       highlights: [
         "Fee-aware stop loss with hard IL cap",
         "Chain-cost viability gate before every open",

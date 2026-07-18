@@ -2,7 +2,7 @@ import { BarChart3, Bot, Layers, LineChart, Terminal } from "lucide-react";
 import type { PostUpdate } from "./types";
 
 /**
- * Ship log: x402 /indicator API — agent-readable technical indicators from OHLCV.
+ * Ship log: x402 /indicator API: agent-readable technical indicators from OHLCV.
  */
 export const INDICATOR_POST: PostUpdate = {
   meta: {
@@ -11,9 +11,9 @@ export const INDICATOR_POST: PostUpdate = {
     title: "x402 Indicator API",
     published: "June 2026",
     tagline: "27 TradingView-style indicators, combinable in one agent call",
-    shareCopyVideo: `SHIP LOG · Syra just shipped the x402 Indicator API.
+    shareCopyVideo: `SHIP LOG · The x402 Indicator API is live.
 
-Agents can now request RSI, MACD, EMA, Bollinger Bands, and 23 more indicators from live OHLCV candles. Combine multiple in one paid call. GET with dotted params or POST JSON.
+Agents can request RSI, MACD, EMA, Bollinger Bands, and 23 more indicators from live OHLCV candles. Combine multiple in one paid call. GET with dotted params or POST JSON.
 
 → GET/POST /indicator (x402)
 → 27 indicators: momentum, trend, volatility, volume
@@ -25,7 +25,7 @@ Agents can now request RSI, MACD, EMA, Bollinger Bands, and 23 more indicators f
 TradingView math. Agent-readable JSON. Pay per call.
 
 Full breakdown in the video ↓`,
-    shareCopyPhoto: `MAJOR SHIP · x402 Indicator API is live on Syra.
+    shareCopyPhoto: `SHIP LOG · x402 Indicator API is live on Syra.
 
 27 technical indicators from OHLCV candles. RSI, MACD, EMA, Bollinger, ADX, ATR, Ichimoku, VWAP, and more. Request 2+ indicators in one call.
 

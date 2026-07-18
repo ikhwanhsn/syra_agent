@@ -222,7 +222,7 @@ await syra.pillars.invest.rise.scout({ query: "SOL yield" });
 | --- | --- | --- |
 | Earn | \`syra.pillars.earn\` | KOL campaigns, attribution, revenue paths |
 | Treasury | \`syra.pillars.treasury\` | Balances, allocations, policy caps |
-| Invest | \`syra.pillars.invest\` | Giza yield, RISE markets, Jupiter swaps |
+| Invest | \`syra.pillars.invest\` | Marinade, Jito, Kamino, marginfi, Meteora |
 | Spend | \`syra.pillars.spend\` | x402 intelligence, sentiment, risk, signals |
 | Grow | \`syra.pillars.grow\` | Portfolio recommendations, confirm-gated execution |
 
@@ -529,7 +529,7 @@ Syra organizes capabilities into five composable pillars:
 | --- | --- |
 | **Earn** | Agents monetize skills, KOL campaigns, creator attribution, revenue paths from paid calls |
 | **Treasury** | Allocate and manage capital across chat, LP, and connected wallets with policy caps |
-| **Invest** | Deploy capital via Giza yield, Meteora LP, Jupiter swaps, and RISE markets |
+| **Invest** | Deploy capital via Marinade, Jito, Kamino, marginfi, and Meteora |
 | **Spend** | x402 native payments, sentiment, risk, signals, smart-money flow, execution APIs |
 | **Grow** | Yield and portfolio optimization with deterministic recommendations and confirm-gated execution |
 

@@ -12,7 +12,7 @@ export const AGENTSCORE_POST: PostUpdate = {
     title: "AgentScore Integration",
     published: "June 2026",
     tagline: "Identity, compliance, and agent commerce on Syra x402",
-    shareCopyVideo: `SHIP LOG · Syra just integrated AgentScore.
+    shareCopyVideo: `SHIP LOG · AgentScore is wired into Syra.
 
 Merchant side: KYC, age, sanctions, and jurisdiction gates on high-risk routes. Buyer side: discover gated merchants, verify once with Passport, pay from your agent wallet.
 
@@ -24,7 +24,7 @@ Merchant side: KYC, age, sanctions, and jurisdiction gates on high-risk routes. 
 Pay for intelligence. Buy from regulated merchants. One stack for agent commerce.
 
 Full breakdown in the video ↓`,
-    shareCopyPhoto: `MAJOR SHIP · AgentScore is live on Syra.
+    shareCopyPhoto: `SHIP LOG · AgentScore is live on Syra.
 
 Syra is now both an x402 merchant with optional compliance gates and an x402 buyer that can reach AgentScore-gated merchants like Martin Estate.
 
@@ -32,7 +32,7 @@ Verify once with Passport. Pay per call. Gate when regulation matters.
 
 402 for price. Passport for identity. Same Syra agent brain.
 
-Try the tools at syraa.fun · skill.md at api.syraa.fun/skill.md`,
+Try it → syraa.fun/chat · skill.md → api.syraa.fun/skill.md`,
   },
   slides: [
     {

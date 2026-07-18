@@ -25,7 +25,7 @@ Algorand treasuries should not bridge to pay for intelligence. Now they do not h
 Built for the Global x402 Challenge. Pay per call. Stay on Algorand.
 
 Full breakdown in the video ↓`,
-    shareCopyPhoto: `MAJOR SHIP · x402 is live on Algorand Mainnet through GoPlausible.
+    shareCopyPhoto: `SHIP LOG · x402 is live on Algorand Mainnet through GoPlausible.
 
 Syra intelligence APIs now settle USDC on AVM. Hit a paid endpoint, get 402, sign the ASA transfer, unlock the response. Fee payer covered. No bridge. No subscription.
 
@@ -111,7 +111,7 @@ Try it → syraa.fun/playground`,
         {
           title: "Network",
           subtitle: "Mainnet CAIP-2",
-          detail: "algorand:wGHE2… — genesis hash verified on every settlement.",
+          detail: "algorand:wGHE2…. Genesis hash verified on every settlement.",
           accent: "gold",
         },
         {
@@ -123,7 +123,7 @@ Try it → syraa.fun/playground`,
         {
           title: "Facilitator",
           subtitle: "GoPlausible",
-          detail: "facilitator.goplausible.xyz — verify, settle, and fee payer sponsorship.",
+          detail: "facilitator.goplausible.xyz. Verify, settle, and fee payer sponsorship.",
         },
         {
           title: "Challenge",

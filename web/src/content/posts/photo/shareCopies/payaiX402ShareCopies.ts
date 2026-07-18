@@ -1,44 +1,52 @@
 import type { PostPhotoCardRole } from "../photoCardSlots";
 
-/** Per-card X copy for PayAI all-networks photo deck — 15 distinct topics. */
+/** Per-card X copy for PayAI all-networks photo deck: 15 distinct topics. */
 export const PAYAI_X402_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `Syra now settles x402 on every PayAI-supported network.
+  cover: `SHIP LOG · Syra now settles x402 on every PayAI-supported network.
 
 Solana. Base. Polygon. Arbitrum. Avalanche. Sei. SKALE. X Layer. Plus testnets.
 
 PayAI verify + settle. One intelligence stack. Pay on the chain you already use.
 
-→ syraa.fun/playground`,
+Try it → syraa.fun/playground`,
 
   thesis: `Agents should not be stuck on one chain or one facilitator.
 
 Syra migrated to PayAI and enabled all 16 networks from their docs. Your treasury pays where it already holds USDC.
 
-Playground, Syra agents, and external x402 clients share the same rails.`,
+Playground, Syra agents, and external x402 clients share the same rails.
+
+Try it → syraa.fun/playground`,
 
   quote: `"List every chain PayAI supports. Let treasuries pay natively."
 
 16 networks in dev. 8 mainnets in production. Same x402 v2 surface. Same Syra brain.
 
-402 for price. PayAI for settlement. Intelligence on delivery.`,
+402 for price. PayAI for settlement. Intelligence on delivery.
 
-  flow: `PayAI x402 on Syra — 4 steps:
+Try it → syraa.fun/playground`,
+
+  flow: `PayAI x402 on Syra, 4 steps:
 
 1. Call any paid Syra API
 2. Receive 402 with every enabled PayAI network
 3. Sign USDC on your chain
-4. PayAI verifies and settles — payload unlocked
+4. PayAI verifies and settles. Payload unlocked.
 
-Agents and external callers. Same checkout.`,
+Agents and external callers. Same checkout.
 
-  timeline: `PayAI migration — what changed:
+Test → syraa.fun/playground`,
+
+  timeline: `PayAI migration, what changed:
 
 → Default facilitator: facilitator.payai.network
 → All PayAI CAIP-2 networks in 402 accepts
 → USDC assets aligned with PayAI settlement
 → Agent-to-agent x402 unchanged on Solana
 
-BSC B402 still live for BNB treasuries.`,
+BSC B402 still live for BNB treasuries.
+
+Try it → syraa.fun/playground`,
 
   pillars: `8 mainnets live in production:
 
@@ -51,7 +59,9 @@ BSC B402 still live for BNB treasuries.`,
 → SKALE Base
 → X Layer
 
-Plus 8 PayAI testnets in non-production environments.`,
+Plus 8 PayAI testnets in non-production environments.
+
+Try it → syraa.fun/playground`,
 
   checklist: `Live today on Syra:
 
@@ -67,19 +77,25 @@ Test → syraa.fun/playground`,
 
 Syra intelligence APIs settle through PayAI on Solana, Base, Polygon, Arbitrum, Avalanche, Sei, SKALE, and X Layer.
 
-Multi-chain treasuries deserve multi-chain checkout.`,
+Multi-chain treasuries deserve multi-chain checkout.
 
-  featured: `402 — pay per call across every PayAI network.
+Try it → syraa.fun/playground`,
+
+  featured: `402: pay per call across every PayAI network.
 
 No single-chain lock-in. No facilitator sunset risk. Hit an endpoint, pick your network, unlock intelligence.
 
-Syra now uses all of PayAI.`,
+Syra now uses all of PayAI.
+
+Try it → syraa.fun/playground`,
 
   comparison: `Before: Corbits facilitator, partial network list, shutdown risk.
 
 Now: PayAI default, all 16 documented networks, production-ready auth and settlement.
 
-Same agent brain. Fuller chain coverage. Future-proof facilitator.`,
+Same agent brain. Fuller chain coverage. Future-proof facilitator.
+
+Try it → syraa.fun/playground`,
 
   launch: `SHIP LOG · Syra × PayAI is live.
 
@@ -87,28 +103,27 @@ Every PayAI-supported x402 network is enabled on Syra intelligence APIs.
 
 Solana to X Layer. Verify and settle through facilitator.payai.network.
 
-Try now → syraa.fun/playground`,
+Try it → syraa.fun/playground`,
 
-  deepDive: `PayAI integration — technical surface:
+  deepDive: `PayAI integration, technical surface:
 
 → payaiX402Networks config mirrors PayAI docs
 → Multi-network 402 accepts on every paid route
 → PayAI JWT auth for production settlement volume
 → Jupiter direct APIs (no Corbits proxy dependency)
-→ B402 BSC lane unchanged alongside PayAI`,
+→ B402 BSC lane unchanged alongside PayAI
+
+Docs → docs.payai.network`,
 
   split: `One stack. Every PayAI network.
 
-SOLANA
-Agent auto-pay, playground, external agents.
+→ Solana: agent auto-pay, playground, external agents
+→ EVM mainnets: Base, Polygon, Arbitrum, Avalanche, Sei, SKALE, X Layer
+→ BNB: B402 on eip155:56 for BSC-native treasuries
 
-EVM MAINNETS
-Base, Polygon, Arbitrum, Avalanche, Sei, SKALE, X Layer.
+Pick your chain. Pay per call.
 
-BNB
-B402 on eip155:56 for BSC-native treasuries.
-
-→ syraa.fun/playground`,
+Try it → syraa.fun/playground`,
 
   terminal: `PayAI x402 from the terminal:
 
@@ -117,13 +132,15 @@ $ curl api.syraa.fun/health
 < Payment-Required: solana, base, polygon, arbitrum…
 $ syra-x402 pay --network solana
 > signing USDC on Solana…
-< HTTP/200 OK · PayAI settled · healthy`,
+< HTTP/200 OK · PayAI settled · healthy
+
+Try it → syraa.fun/playground`,
 
   cta: `Every PayAI network. One Syra checkout.
 
-→ Playground: syraa.fun/playground
-→ PayAI networks: docs.payai.network
-→ API docs: docs.syraa.fun
+Hit a paid endpoint. Pay on your chain. Unlock intelligence.
 
-Hit a paid endpoint. Pay on your chain. Unlock intelligence.`,
+→ syraa.fun/playground
+→ docs.payai.network
+→ docs.syraa.fun`,
 };

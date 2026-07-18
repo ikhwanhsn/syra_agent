@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Coins, ExternalLink, Plus, Search } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { EarnTokenForm } from "@/components/earn/EarnTokenForm";
 import { EarnTokenLogo } from "@/components/earn/EarnTokenLogo";
@@ -9,7 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import { usePillarAgentWallets } from "@/hooks/usePillarAgentWallets";
-import { fetchEarnPumpfunMarketplace, type EarnPumpfunLaunch } from "@/lib/earnPumpfunApi";
+import {
+  fetchEarnPumpfunLaunches,
+  fetchEarnPumpfunMarketplace,
+  type EarnPumpfunLaunch,
+} from "@/lib/earnPumpfunApi";
 import { formatPct } from "@/lib/dashboardOverviewAggregates";
 import { formatPortfolioTokenAmount } from "@/lib/format";
 import { notify } from "@/lib/notify";
@@ -203,11 +207,13 @@ export function EarnTokenPanel({
   onRequestAuth,
 }: EarnTokenPanelProps) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [launchOpen, setLaunchOpen] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>("newest");
   const [search, setSearch] = useState("");
 
   const marketQueryKey = ["earn", "token-marketplace"] as const;
+  const myLaunchesQueryKey = ["earn", "token-launches", baseAnonymousId ?? ""] as const;
 
   const pillars = usePillarAgentWallets(baseAnonymousId, walletAddress ?? "", {
     enabled: Boolean(baseAnonymousId && walletAddress),
@@ -221,6 +227,19 @@ export function EarnTokenPanel({
     staleTime: 30_000,
   });
 
+  const myLaunchesQ = useQuery({
+    queryKey: myLaunchesQueryKey,
+    queryFn: () => fetchEarnPumpfunLaunches(baseAnonymousId!),
+    enabled: Boolean(connected && syraAuthenticated && baseAnonymousId),
+    staleTime: 30_000,
+  });
+
+  const existingMint = myLaunchesQ.data?.launches?.[0]?.mint?.trim() || null;
+  const hasExistingToken = Boolean(existingMint);
+  const existingTokenPath = existingMint
+    ? `/earn/token/${encodeURIComponent(existingMint)}`
+    : null;
+
   const handleLaunch = async () => {
     if (!connected || !baseAnonymousId) {
       notify.error("Connect wallet", "Connect a wallet to launch a token.");
@@ -229,6 +248,11 @@ export function EarnTokenPanel({
     if (!syraAuthenticated) {
       const ok = await onRequestAuth();
       if (!ok) return;
+    }
+    if (existingMint) {
+      notify.error("One token per wallet", "You can only create one token per wallet.");
+      void navigate(`/earn/token/${encodeURIComponent(existingMint)}`);
+      return;
     }
     const sol = earnBalances.solBalance;
     if (sol != null && sol <= 0) {
@@ -274,13 +298,22 @@ export function EarnTokenPanel({
             Community launches on pump.fun.
           </p>
         </div>
-        <Button
-          className="h-11 shrink-0 gap-2 rounded-full px-5 text-[13px] font-medium shadow-sm"
-          onClick={() => void handleLaunch()}
-        >
-          <Plus className="h-4 w-4" />
-          Launch
-        </Button>
+        {hasExistingToken && existingTokenPath ? (
+          <Button
+            className="h-11 shrink-0 gap-2 rounded-full px-5 text-[13px] font-medium shadow-sm"
+            asChild
+          >
+            <Link to={existingTokenPath}>View your token</Link>
+          </Button>
+        ) : (
+          <Button
+            className="h-11 shrink-0 gap-2 rounded-full px-5 text-[13px] font-medium shadow-sm"
+            onClick={() => void handleLaunch()}
+          >
+            <Plus className="h-4 w-4" />
+            Launch
+          </Button>
+        )}
       </header>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -365,6 +398,10 @@ export function EarnTokenPanel({
             <Button className="mt-6 rounded-full" variant="outline" onClick={() => setSearch("")}>
               Clear
             </Button>
+          ) : hasExistingToken && existingTokenPath ? (
+            <Button className="mt-6 rounded-full" asChild>
+              <Link to={existingTokenPath}>View your token</Link>
+            </Button>
           ) : (
             <Button className="mt-6 gap-1.5 rounded-full" onClick={() => void handleLaunch()}>
               <Plus className="h-4 w-4" />
@@ -385,6 +422,7 @@ export function EarnTokenPanel({
         onOpenChange={setLaunchOpen}
         onLaunched={() => {
           void queryClient.invalidateQueries({ queryKey: marketQueryKey });
+          void queryClient.invalidateQueries({ queryKey: myLaunchesQueryKey });
           void pillars.refreshSet();
         }}
       />

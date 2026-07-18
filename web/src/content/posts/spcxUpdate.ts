@@ -10,7 +10,7 @@ import {
 import type { PostUpdate } from "./types";
 
 /**
- * Ship log: SpaceX IPO Agent (SPCX) — live Nasdaq vs on-chain premium tracker with buy/sell trading.
+ * Ship log: SpaceX IPO Agent (SPCX): live Nasdaq vs on-chain premium tracker with buy/sell trading.
  * Slide copy: avoid em dashes; use commas, periods, or colons instead.
  */
 export const SPCX_POST: PostUpdate = {
@@ -20,7 +20,7 @@ export const SPCX_POST: PostUpdate = {
     title: "SpaceX IPO Agent",
     published: "June 2026",
     tagline: "Live Nasdaq vs SPCXx tracking with realtime buy and sell trading on Solana",
-    shareCopyVideo: `SHIP LOG · Syra just shipped buy and sell for the SpaceX IPO Agent.
+    shareCopyVideo: `SHIP LOG · Buy and sell just shipped for the SpaceX IPO Agent.
 
 SpaceX is live as SPCX on Nasdaq. Syra tracks the stock vs tokenized SPCXx on Solana in realtime, then lets you buy or sell from one Trade tab with a live price chart.
 
@@ -32,7 +32,7 @@ SpaceX is live as SPCX on Nasdaq. Syra tracks the stock vs tokenized SPCXx on So
 Never overpay. Never buy a fake. Trade the spread on one page.
 
 Full breakdown in the video ↓`,
-    shareCopyPhoto: `MAJOR UPDATE · SpaceX IPO Agent now supports buy and sell.
+    shareCopyPhoto: `SHIP LOG · SpaceX IPO Agent now supports buy and sell.
 
 SPCX is live on Nasdaq. Track realtime spreads vs SPCXx on Solana. Buy or sell from the Trade tab with a live chart and wallet swap.
 
@@ -40,7 +40,7 @@ Realtime prices. Buy + sell. Venue comparison. Scam protection built in.
 
 The IPO is live. Syra makes trading it legible.
 
-Try it at syraa.fun/spcx`,
+Try it → syraa.fun/spcx`,
   },
   slides: [
     {

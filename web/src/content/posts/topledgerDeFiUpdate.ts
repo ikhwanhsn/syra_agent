@@ -10,20 +10,20 @@ export const TOPLEDGER_DEFI_POST: PostUpdate = {
     id: "topledger-defi-intelligence",
     title: "TopLedger DeFi Intelligence",
     published: "July 2026",
-    tagline: "Full Solana DeFi positions, net worth, and PnL — wired into Grow, Portfolio, and paid agent tools",
-    shareCopyVideo: `SHIP LOG · Syra × TopLedger is live.
+    tagline: "Full Solana DeFi positions, net worth, and PnL wired into Grow, Portfolio, and paid agent tools",
+    shareCopyVideo: `SHIP LOG · Syra �- TopLedger is live.
 
-Real-time Solana DeFi intelligence across 20+ protocols — Kamino, Jupiter, Raydium, Orca, Meteora, Flash Trade, and more. Lending, perps, LP, staking, yield, rewards, and FIFO DEX PnL.
+Tokens were only half the wallet. DeFi is the rest.
 
-→ Grow + Wallet Portfolio now show DeFi positions and net worth
+→ Grow + Wallet Portfolio show lending, perps, LP, staking, yield, rewards
+→ 20+ Solana protocols indexed (Kamino, Jupiter, Raydium, Orca, Meteora, Flash Trade, more)
 → 9 paid agent tools (MPP upstream, x402 resale)
-→ Public GET /topledger/wallet/* routes for agents
-→ MCP catalog synced for Cursor and Claude
+→ Public GET /topledger/wallet/* + MCP catalog for Cursor and Claude
 
-Tokens were only half the picture. DeFi is the rest.
+Full DeFi net worth. Agents pay per call.
 
 Full breakdown in the video ↓`,
-    shareCopyPhoto: `MAJOR SHIP · Syra × TopLedger DeFi intelligence.
+    shareCopyPhoto: `SHIP LOG · Syra �- TopLedger DeFi intelligence.
 
 Portfolio and Grow now surface lending, perps, LP, staking, yield, and rewards across 20+ Solana protocols. Agents call it via x402. Operators see it on /wallet.
 
@@ -37,8 +37,8 @@ Portfolio and Grow now surface lending, perps, LP, staking, yield, and rewards a
       layout: "cover-brand-lockup",
       label: "Cover",
       eyebrow: "Ship log",
-      title: "TopLedger × Syra",
-      subtitle: "Solana DeFi intelligence across 20+ protocols — net worth, positions, and PnL inside Grow and Portfolio.",
+      title: "TopLedger �- Syra",
+      subtitle: "Solana DeFi intelligence across 20+ protocols. Net worth, positions, and PnL inside Grow and Portfolio.",
       badge: "DeFi · MPP · 9 tools",
     },
     {
@@ -48,7 +48,7 @@ Portfolio and Grow now surface lending, perps, LP, staking, yield, and rewards a
       label: "Context",
       kicker: "Why this matters",
       headline: "Token balances miss the DeFi layer.",
-      body: "Agent wallets hold SPL tokens — but Kamino loans, Jupiter perps, Meteora LP, and staking positions were invisible. TopLedger indexes 20+ protocols so Syra shows full net worth, not just wallet dust.",
+      body: "Agent wallets hold SPL tokens, but Kamino loans, Jupiter perps, Meteora LP, and staking positions were invisible. TopLedger indexes 20+ protocols so Syra shows full net worth, not just wallet dust.",
     },
     {
       id: "shipped",
@@ -59,7 +59,7 @@ Portfolio and Grow now surface lending, perps, LP, staking, yield, and rewards a
       headline: "DeFi intelligence in product and API",
       body: "We integrated TopLedger via MPP pay-per-call (Solana USDC), enriched Grow recommendations and Wallet Portfolio with DeFi breakdowns, and registered nine resellable agent tools plus public /topledger routes.",
       highlights: [
-        "DeFi panel on Portfolio — lending, perps, LP, staking, yield, rewards",
+        "DeFi panel on Portfolio: lending, perps, LP, staking, yield, rewards",
         "Grow portfolio folds DeFi into total net worth and rebalance signals",
         "9 agent tools: analyze, holdings, lending, perps, LP, staking, yield, rewards, DEX PnL",
       ],
@@ -80,7 +80,7 @@ Portfolio and Grow now surface lending, perps, LP, staking, yield, and rewards a
         {
           step: "02",
           title: "TopLedger analyze",
-          description: "Treasury calls analyze_wallet — net worth plus per-protocol categories.",
+          description: "Treasury calls analyze_wallet: net worth plus per-protocol categories.",
         },
         {
           step: "03",
@@ -137,7 +137,7 @@ Portfolio and Grow now surface lending, perps, LP, staking, yield, and rewards a
         {
           icon: PieChart,
           title: "Wallet Portfolio",
-          description: "DeFi positions panel beside SPL holdings — net worth includes lending and LP.",
+          description: "DeFi positions panel beside SPL holdings. Net worth includes lending and LP.",
           href: "https://www.syraa.fun/wallet?view=portfolio",
         },
         {
@@ -154,7 +154,7 @@ Portfolio and Grow now surface lending, perps, LP, staking, yield, and rewards a
         {
           icon: LineChart,
           title: "Public x402 API",
-          description: "GET /topledger/wallet/analyze?wallet= — resold with 20% margin over MPP.",
+          description: "GET /topledger/wallet/analyze?wallet=. Resold with 20% margin over MPP.",
         },
         {
           icon: Layers,
@@ -181,7 +181,7 @@ Portfolio and Grow now surface lending, perps, LP, staking, yield, and rewards a
         { value: "$0.0004", label: "MPP upstream / call" },
       ],
       narrative:
-        "Syra resells TopLedger intelligence with x402 checkout. Operators get DeFi visibility in Grow and Portfolio. Agents pay per call — no TopLedger API key required when using MPP.",
+        "Syra resells TopLedger intelligence with x402 checkout. Operators get DeFi visibility in Grow and Portfolio. Agents pay per call. No TopLedger API key required when using MPP.",
     },
     {
       id: "closing",

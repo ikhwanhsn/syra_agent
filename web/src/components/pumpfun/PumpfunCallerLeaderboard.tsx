@@ -1,12 +1,17 @@
 import { Crown, Medal, Share2, Trophy } from "lucide-react";
+import { useMemo, useState } from "react";
 import { PumpfunListPanelSkeleton } from "@/components/pumpfun/PumpfunListPanelSkeleton";
-import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
-import { useState } from "react";
+import {
+  matchesTokenSearch,
+  PumpfunListToolbar,
+  type PumpfunListFilterOption,
+} from "@/components/pumpfun/PumpfunListToolbar";
+import { useDelayedMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PumpfunCallShareModal } from "@/components/pumpfun/PumpfunCallShareModal";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
-import { usePumpfunCallerLeaderboard } from "@/hooks/usePumpfunScanHistory";
+import { PUMPFUN_LIST_LIMIT, usePumpfunCallerLeaderboard } from "@/hooks/usePumpfunScanHistory";
 import {
   formatCompactUsd,
   formatGainMultiplier,
@@ -15,6 +20,12 @@ import {
   type PumpfunScanRecord,
 } from "@/lib/pumpfunScanHistoryApi";
 import { cn } from "@/lib/utils";
+
+const CALLER_FILTERS: readonly PumpfunListFilterOption[] = [
+  { value: "all", label: "All callers" },
+  { value: "10x", label: "10x+ callers" },
+  { value: "100x", label: "100x+ callers" },
+] as const;
 
 function rankIcon(rank: number) {
   if (rank === 1) return <Crown className="h-4 w-4 text-yellow-400" aria-hidden />;
@@ -46,6 +57,12 @@ function entryToShareRecord(entry: PumpfunCallerLeaderboardEntry): PumpfunScanRe
     scannedAt: top.scannedAt,
     lastRefreshedAt: null,
   };
+}
+
+function filterCallerEntry(entry: PumpfunCallerLeaderboardEntry, filter: string): boolean {
+  if (filter === "10x") return entry.calls10x > 0 || entry.bestPeakGain >= 10;
+  if (filter === "100x") return entry.calls100x > 0 || entry.bestPeakGain >= 100;
+  return true;
 }
 
 interface LeaderboardRowProps {
@@ -109,11 +126,31 @@ function LeaderboardRow({ entry, onShareTop }: LeaderboardRowProps) {
 export function PumpfunCallerLeaderboard() {
   const leaderboardQ = usePumpfunCallerLeaderboard();
   const [shareRecord, setShareRecord] = useState<PumpfunScanRecord | null>(null);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("all");
 
-  const showSkeleton = useMinimumSkeleton(leaderboardQ.isLoading);
+  const entries = useMemo(
+    () => (leaderboardQ.data ?? []).slice(0, PUMPFUN_LIST_LIMIT),
+    [leaderboardQ.data],
+  );
+
+  const filtered = useMemo(() => {
+    return entries.filter(
+      (entry) =>
+        filterCallerEntry(entry, filter) &&
+        matchesTokenSearch(search, [
+          entry.callerWallet,
+          entry.topCall.symbol,
+          entry.topCall.name,
+          entry.topCall.mint,
+        ]),
+    );
+  }, [entries, search, filter]);
+
+  const showSkeleton = useDelayedMinimumSkeleton(leaderboardQ.isLoading, 450);
 
   if (showSkeleton) {
-    return <PumpfunListPanelSkeleton variant="leaderboard" />;
+    return <PumpfunListPanelSkeleton rows={10} variant="leaderboard" />;
   }
 
   if (leaderboardQ.isError) {
@@ -137,8 +174,6 @@ export function PumpfunCallerLeaderboard() {
     );
   }
 
-  const entries = leaderboardQ.data ?? [];
-
   return (
     <>
       <Card className={overviewCardShell}>
@@ -150,18 +185,34 @@ export function PumpfunCallerLeaderboard() {
             <div>
               <h2 className="font-display text-lg font-semibold">Best callers</h2>
               <p className="text-xs text-muted-foreground">
-                Ranked by peak gain from scan call — flex the alpha.
+                Top {PUMPFUN_LIST_LIMIT} by peak gain from scan call.
               </p>
             </div>
           </div>
+
+          <PumpfunListToolbar
+            search={search}
+            onSearchChange={setSearch}
+            searchPlaceholder="Search wallet, symbol, name…"
+            filter={filter}
+            onFilterChange={setFilter}
+            filterOptions={CALLER_FILTERS}
+            resultCount={filtered.length}
+            totalCount={entries.length}
+            className="mb-4"
+          />
 
           {entries.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
               No callers on the board yet. Be the first to scan and call a runner.
             </p>
+          ) : filtered.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              No callers match your search or filter.
+            </p>
           ) : (
             <div>
-              {entries.map((entry) => (
+              {filtered.map((entry) => (
                 <LeaderboardRow
                   key={entry.callerWallet}
                   entry={entry}

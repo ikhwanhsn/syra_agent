@@ -5,7 +5,7 @@ import { AMPERSEND_MARKETPLACE_PHOTO_SHARE_COPIES } from "./shareCopies/ampersen
 
 const copies = AMPERSEND_MARKETPLACE_PHOTO_SHARE_COPIES;
 
-/** Photo-format content for the Ampersend marketplace ship log — 15 cards, 15 X posts. */
+/** Photo-format content for the Ampersend marketplace ship log - 15 cards, 15 X posts. */
 export const AMPERSEND_MARKETPLACE_PHOTO = definePhotoUpdate(AMPERSEND_MARKETPLACE_POST.meta, [
   {
     role: "cover",
@@ -14,7 +14,7 @@ export const AMPERSEND_MARKETPLACE_PHOTO = definePhotoUpdate(AMPERSEND_MARKETPLA
     content: photoContent({
       eyebrow: "Ship log",
       badge: "Bazaar · Base · 26 APIs",
-      title: "Syra × Ampersend",
+      title: "Syra �- Ampersend",
       subtitle: "Paid intelligence APIs discoverable on the Ampersend agent marketplace. Base mainnet checkout. Pay per call.",
     }),
   },
@@ -146,7 +146,7 @@ export const AMPERSEND_MARKETPLACE_PHOTO = definePhotoUpdate(AMPERSEND_MARKETPLA
       partnerName: "Ampersend",
       partnerLogo: "/images/partners/ampersend.png",
       partnerLogoSolidBg: true,
-      headline: "Syra × Ampersend",
+      headline: "Syra �- Ampersend",
       subtitle: "26 paid x402 APIs discoverable for agent wallets. Pay on Base. No API keys.",
     }),
   },
@@ -158,11 +158,11 @@ export const AMPERSEND_MARKETPLACE_PHOTO = definePhotoUpdate(AMPERSEND_MARKETPLA
       kicker: "Under the hood",
       headline: "Bazaar discovery plumbing.",
       items: [
-        "x402Bazaar.js — X402_BAZAAR_ENABLED toggle",
-        "x402PaymentV2.js — Bazaar on 402 + PayAI settle",
-        "x402ResourceCatalog.js — category per endpoint",
-        "validateAmpersendDiscovery.js — readiness checks",
-        "syraBranding.js — serviceName, tags, iconUrl",
+        "x402Bazaar.js: X402_BAZAAR_ENABLED toggle",
+        "x402PaymentV2.js: Bazaar on 402 + PayAI settle",
+        "x402ResourceCatalog.js: category per endpoint",
+        "validateAmpersendDiscovery.js: readiness checks",
+        "syraBranding.js: serviceName, tags, iconUrl",
       ],
     }),
   },
@@ -173,7 +173,7 @@ export const AMPERSEND_MARKETPLACE_PHOTO = definePhotoUpdate(AMPERSEND_MARKETPLA
     content: photoContent({
       badge: "Multi-rail",
       headline: "Solana checkout. Base for Ampersend.",
-      body: "Agents pay on Solana, PayAI EVM, BSC, or Algorand. Ampersend production marketplace filters to Base — we index Bazaar there first.",
+      body: "Agents pay on Solana, PayAI EVM, BSC, or Algorand. Ampersend production marketplace filters to Base. We index Bazaar there first.",
       highlights: [
         "Solana: agent wallet auto-pay",
         "Base: Ampersend marketplace rail",

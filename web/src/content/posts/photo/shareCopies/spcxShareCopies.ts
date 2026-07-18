@@ -1,8 +1,8 @@
 import type { PostPhotoCardRole } from "../photoCardSlots";
 
-/** Per-card X copy for SpaceX IPO Agent photo deck — 15 distinct topics. */
+/** Per-card X copy for SpaceX IPO Agent photo deck: 15 distinct topics. */
 export const SPCX_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `SPCX is live on Nasdaq. Syra shipped buy and sell on the IPO Agent.
+  cover: `SHIP LOG · SPCX is live on Nasdaq. Syra shipped buy and sell on the IPO Agent.
 
 Realtime Nasdaq vs SPCXx spreads. Live price chart. Wallet swap both ways.
 
@@ -14,7 +14,7 @@ Try it → syraa.fun/spcx`,
 
 SPCX trades on Nasdaq. SPCXx trades on Solana. Premiums move fast. Scammers still copy the ticker.
 
-Syra built realtime tracking plus buy and sell on one page — with safety checks before every swap.`,
+Syra built realtime tracking plus buy and sell on one page, with safety checks before every swap.`,
 
   quote: `"Track live. Trade both ways. Stay protected."
 
@@ -33,7 +33,7 @@ One page. Full loop → syraa.fun/spcx`,
 
   timeline: `From spread check to confirmed trade:
 
-→ Open syraa.fun/spcx — realtime Nasdaq vs on-chain quotes
+→ Open syraa.fun/spcx: realtime Nasdaq vs on-chain quotes
 → Read Syra agent take on premium/discount
 → Open Trade tab, pick Buy or Sell, choose amount
 → Review live chart and safety strip
@@ -46,7 +46,7 @@ One page. Full loop → syraa.fun/spcx`,
 → Live chart: premium trade UI with quick amount chips
 → Reliable routing: Jupiter Ultra with V1 fallback`,
 
-  checklist: `SpaceX IPO Agent — what's live:
+  checklist: `SpaceX IPO Agent checklist. Live now:
 
 → Realtime Nasdaq vs SPCXx spread tracking
 → Buy and sell SPCXx from the Trade tab
@@ -76,7 +76,7 @@ Now: realtime tracking, buy and sell, live price chart, premium Trade tab, relia
 
 The IPO is live. The desk caught up.`,
 
-  launch: `NOW LIVE · Buy and sell SpaceX on Syra.
+  launch: `SHIP LOG · Buy and sell SpaceX on Syra.
 
 SPCX is trading on Nasdaq. Track realtime spreads vs SPCXx on Solana. Buy or sell from the Trade tab.
 
@@ -84,10 +84,10 @@ Realtime intel. Wallet execution. Safety checks built in.
 
 → syraa.fun/spcx`,
 
-  deepDive: `SpaceX IPO Agent — system update:
+  deepDive: `SpaceX IPO Agent system update:
 
-→ GET /experiment/spcx/latest — lazy tick on poll (~10s cooldown)
-→ GET /experiment/spcx/feed — historical ticks every 15s on web
+→ GET /experiment/spcx/latest: lazy tick on poll (~10s cooldown)
+→ GET /experiment/spcx/feed: historical ticks every 15s on web
 → Jupiter Ultra → V1 fallback for reliable USDC/SOL ↔ SPCXx swaps
 → Auth-required signing: guest wallets blocked from tx_sign
 → Swap tools enabled on agent wallet allowlists

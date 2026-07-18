@@ -2,7 +2,7 @@ import { Bot, Coins, Layers, Network, Shield, Wallet } from "lucide-react";
 import { defineVideoUpdate } from "./videoDeck";
 
 /**
- * Ship log: Celo Agentic Payments & DeFAI Hackathon — x402 self-settle + ERC-8021 tags + ERC-8004.
+ * Ship log: Celo Agentic Payments & DeFAI Hackathon. x402 self-settle + ERC-8021 tags + ERC-8004.
  */
 export const CELO_AGENTIC_PAYMENTS_POST = defineVideoUpdate(
   {
@@ -11,10 +11,10 @@ export const CELO_AGENTIC_PAYMENTS_POST = defineVideoUpdate(
     title: "Celo Agentic Payments",
     published: "July 2026",
     tagline:
-      "Labs x402 on Celo mainnet — self-settled USDC with ERC-8021 attribution for Most Revenue + Most x402 Payments",
+      "Labs x402 on Celo mainnet. Self-settled USDC with ERC-8021 attribution for Most Revenue + Most x402 Payments.",
     shareCopyVideo: `I am building for the @CeloDevs Agent Hackathon
 
-Working on: Syra — agentic x402 payments with tagged Celo volume for Most Revenue + Most x402 Payments.
+Working on: Syra, agentic x402 payments with tagged Celo volume for Most Revenue + Most x402 Payments.
 
 → Labs Celo tab: payers → insights → self-settle USDC
 → ERC-8021 attribution on every settle + refund
@@ -42,7 +42,7 @@ x402 USDC on Celo mainnet with self-settlement and ERC-8021 tags so revenue + pa
       eyebrow: "Ship log",
       title: "Celo × Syra",
       subtitle:
-        "Agentic x402 payments on Celo mainnet — tagged USDC volume for the Agentic Payments & DeFAI Hackathon.",
+        "Agentic x402 payments on Celo mainnet. Tagged USDC volume for the Agentic Payments & DeFAI Hackathon.",
       badge: "x402 · ERC-8021 · 8004",
     },
     {
@@ -52,7 +52,7 @@ x402 USDC on Celo mainnet with self-settlement and ERC-8021 tags so revenue + pa
       label: "Context",
       kicker: "Why this matters",
       headline: "Hackathon volume only counts when every tx carries your tag.",
-      body: "Celo’s Agentic Payments & DeFAI Hackathon ranks Most Revenue and Most x402 Payments from Dune — but only transfers with your locked ERC-8021 attribution suffix. Syra self-settles Exact EIP-3009 USDC and appends that tag on settle and refund.",
+      body: "Celo's Agentic Payments & DeFAI Hackathon ranks Most Revenue and Most x402 Payments from Dune, but only transfers with your locked ERC-8021 attribution suffix. Syra self-settles Exact EIP-3009 USDC and appends that tag on settle and refund.",
     },
     {
       id: "shipped",
@@ -153,7 +153,7 @@ x402 USDC on Celo mainnet with self-settlement and ERC-8021 tags so revenue + pa
         {
           icon: Shield,
           title: "ERC-8004",
-          description: "On-chain agent identity — Syra #9673 on Celo.",
+          description: "On-chain agent identity. Syra #9673 on Celo.",
           href: "https://8004scan.io/agents/celo/9673",
         },
         {
@@ -170,7 +170,7 @@ x402 USDC on Celo mainnet with self-settlement and ERC-8021 tags so revenue + pa
         {
           icon: Network,
           title: "Multi-chain Labs",
-          description: "Solana · Base · Celo — same Labs ops model.",
+          description: "Solana · Base · Celo. Same Labs ops model.",
         },
       ],
     },

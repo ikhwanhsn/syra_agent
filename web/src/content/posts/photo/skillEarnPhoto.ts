@@ -5,7 +5,7 @@ import { SKILL_EARN_PHOTO_SHARE_COPIES } from "./shareCopies/skillEarnShareCopie
 
 const copies = SKILL_EARN_PHOTO_SHARE_COPIES;
 
-/** Photo-format content for Skill Endpoints Earn ship log — 15 cards, 15 X posts. */
+/** Photo-format content for Skill Endpoints Earn ship log - 15 cards, 15 X posts. */
 export const SKILL_EARN_PHOTO = definePhotoUpdate(SKILL_EARN_POST.meta, [
   {
     role: "cover",
@@ -25,7 +25,7 @@ export const SKILL_EARN_PHOTO = definePhotoUpdate(SKILL_EARN_POST.meta, [
     content: photoContent({
       kicker: "The gap",
       headline: "Creators should not run payment infra.",
-      body: "Syra already gates intelligence with x402. Now builders register an upstream URL, set a price, and expose a discoverable /skills/:slug route — payTo is the earn wallet.",
+      body: "Syra already gates intelligence with x402. Now builders register an upstream URL, set a price, and expose a discoverable /skills/:slug route. payTo is the earn wallet.",
     }),
   },
   {
@@ -74,7 +74,7 @@ export const SKILL_EARN_PHOTO = definePhotoUpdate(SKILL_EARN_POST.meta, [
     content: photoContent({
       headline: "Four layers. One endpoint.",
       cards: [
-        { title: "payTo", subtitle: "Earn wallet", detail: "402 offers creator earn address — direct USDC.", accent: "gold" },
+        { title: "payTo", subtitle: "Earn wallet", detail: "402 offers creator earn address. Direct USDC.", accent: "gold" },
         { title: "Proxy", subtitle: "Your API", detail: "HTTPS upstream after verify. SSRF guarded.", accent: "gold" },
         { title: "CRUD", subtitle: "Publish flow", detail: "Draft → publish with Syra JWT session." },
         { title: "Index", subtitle: "Agents", detail: "Public catalog for x402 callers." },
@@ -154,10 +154,10 @@ export const SKILL_EARN_PHOTO = definePhotoUpdate(SKILL_EARN_POST.meta, [
       kicker: "Technical surface",
       headline: "Skill API for builders.",
       items: [
-        "POST /agent/marketplace/skills — create draft skill",
-        "POST .../skills/:id/publish — earn wallet payTo",
-        "GET/POST /skills/:slug — x402 + upstream proxy",
-        "GET /skills — published skill discovery catalog",
+        "POST /agent/marketplace/skills: create draft skill",
+        "POST .../skills/:id/publish: earn wallet payTo",
+        "GET/POST /skills/:slug: x402 + upstream proxy",
+        "GET /skills: published skill discovery catalog",
       ],
     }),
   },

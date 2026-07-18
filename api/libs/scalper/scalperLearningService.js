@@ -330,7 +330,7 @@ export async function runScalperLearning() {
       );
       thresholdOverrides.minOpportunityScore = Math.max(
         baseCfg.minOpportunityScore - 0.02,
-        0.62,
+        0.56,
       );
     }
   }
@@ -342,11 +342,12 @@ export async function runScalperLearning() {
     const momStats = computeWinRateStats(momentumOnly);
     if (momStats.winRate < 0.45 || momStats.avgPnlPct < 0) {
       lessons.push(
-        `Solo momentum scalps underperforming (${(momStats.winRate * 100).toFixed(0)}% WR) — requiring higher scores.`,
+        `Solo momentum scalps underperforming (${(momStats.winRate * 100).toFixed(0)}% WR) — slightly raising entry bar.`,
       );
+      // Cap raise so active-demo cadence is not choked off
       thresholdOverrides.minOpportunityScore = Math.max(
         thresholdOverrides.minOpportunityScore ?? baseCfg.minOpportunityScore,
-        0.72,
+        Math.min(0.64, baseCfg.minOpportunityScore + 0.04),
       );
     }
   }
@@ -372,13 +373,14 @@ export async function runScalperLearning() {
     lessons.push(
       `Recent scalps underperformed (win rate ${(overall.winRate * 100).toFixed(0)}%, avg PnL ${overall.avgPnlPct.toFixed(2)}%) — raising entry bar.`,
     );
+    // Soft raise only — keep active-demo trading alive
     thresholdOverrides.minOpportunityScore = Math.min(
-      Math.max(baseCfg.minOpportunityScore + 0.06, 0.7),
-      0.82,
+      Math.max(baseCfg.minOpportunityScore + 0.04, 0.6),
+      0.68,
     );
     thresholdOverrides.minEdgeBufferPct = Math.min(
-      (baseCfg.minEdgeBufferPct ?? SCALPER_DEFAULTS.minEdgeBufferPct) + 0.08,
-      0.4,
+      (baseCfg.minEdgeBufferPct ?? SCALPER_DEFAULTS.minEdgeBufferPct) + 0.05,
+      0.3,
     );
     thresholdOverrides.notionalSlicePct = Math.max(baseCfg.notionalSlicePct * 0.75, 0.1);
   } else if (overall.winRate >= 0.6 && overall.avgPnlPct > 0.4) {
@@ -400,15 +402,15 @@ export async function runScalperLearning() {
   }
 
   const lowScoreLosses = decided.filter(
-    (r) => toNum(r.opportunityScore) < 0.65 && r.status === "loss",
+    (r) => toNum(r.opportunityScore) < 0.58 && r.status === "loss",
   );
   if (lowScoreLosses.length >= 3) {
     lessons.push(
-      `${lowScoreLosses.length} losses came from sub-0.65 score entries — tightening min score.`,
+      `${lowScoreLosses.length} losses came from sub-0.58 score entries — tightening min score.`,
     );
     thresholdOverrides.minOpportunityScore = Math.max(
       thresholdOverrides.minOpportunityScore ?? baseCfg.minOpportunityScore,
-      0.7,
+      0.62,
     );
   }
 
@@ -432,6 +434,15 @@ export async function runScalperLearning() {
   }
 
   for (const [source, stats] of Object.entries(sourceStats)) {
+    // Never long-cool momentum — it is the primary 24/7 active-demo signal source
+    if (source === "momentum") {
+      if (stats.decided >= 5 && stats.winRate < 0.3) {
+        lessons.push(
+          `Source "momentum" win rate ${(stats.winRate * 100).toFixed(0)}% — score multiplier reduced (no long cooldown).`,
+        );
+      }
+      continue;
+    }
     if (stats.decided >= 3 && stats.winRate < 0.35) {
       lessons.push(
         `Source "${source}" win rate ${(stats.winRate * 100).toFixed(0)}% — on 18h cooldown.`,

@@ -5,7 +5,7 @@ import { SAID_PROTOCOL_PHOTO_SHARE_COPIES } from "./shareCopies/saidProtocolShar
 
 const copies = SAID_PROTOCOL_PHOTO_SHARE_COPIES;
 
-/** Photo-format content for the SAID Protocol ship log — 15 cards, 15 X posts. */
+/** Photo-format content for the SAID Protocol ship log: 15 cards, 15 X posts. */
 export const SAID_PROTOCOL_PHOTO = definePhotoUpdate(SAID_PROTOCOL_POST.meta, [
   {
     role: "cover",
@@ -25,7 +25,7 @@ export const SAID_PROTOCOL_PHOTO = definePhotoUpdate(SAID_PROTOCOL_POST.meta, [
     content: photoContent({
       kicker: "The gap",
       headline: "Wallets are not identity.",
-      body: "Syra agents pay per call over x402 and register on 8004. Platforms still ask: is this agent real? SAID adds persistent on-chain identity with a permanent verification badge — the trust layer the agent economy was missing.",
+      body: "Syra agents pay per call over x402 and register on 8004. Platforms still ask: is this agent real? SAID adds persistent on-chain identity with a permanent verification badge. The trust layer the agent economy was missing.",
     }),
   },
   {
@@ -34,7 +34,7 @@ export const SAID_PROTOCOL_PHOTO = definePhotoUpdate(SAID_PROTOCOL_POST.meta, [
     shareCopy: copies.quote,
     content: photoContent({
       quote: "402 for commerce. SAID for trust.",
-      narrative: "Same machine money stack. Same agent wallets. New verifiable identity surface — registered, verified, and queryable from Syra API routes.",
+      narrative: "Same machine money stack. Same agent wallets. New verifiable identity surface: registered, verified, and queryable from Syra API routes.",
     }),
   },
   {
@@ -61,7 +61,7 @@ export const SAID_PROTOCOL_PHOTO = definePhotoUpdate(SAID_PROTOCOL_POST.meta, [
       headline: "Full SAID integration in one pass.",
       steps: [
         { step: "01", title: "said-sdk adapter", description: "On-chain register + verify via saidClient.js." },
-        { step: "02", title: "register-said script", description: "npm run register-said — idempotent setup." },
+        { step: "02", title: "register-said script", description: "npm run register-said. Idempotent setup." },
         { step: "03", title: "Runtime routes", description: "/said mounted on Syra API gateway." },
         { step: "04", title: "Verified live", description: "Syra profile on SAID Protocol mainnet." },
       ],
@@ -158,9 +158,9 @@ export const SAID_PROTOCOL_PHOTO = definePhotoUpdate(SAID_PROTOCOL_POST.meta, [
       kicker: "Technical surface",
       headline: "Wired into Syra API.",
       items: [
-        "api/libs/saidClient.js — said-sdk + HTTP adapter",
-        "scripts/register-said-agent.js — one-time setup",
-        "routes/said/index.js — status, verify, trust, agent",
+        "api/libs/saidClient.js: said-sdk + HTTP adapter",
+        "scripts/register-said-agent.js: one-time setup",
+        "routes/said/index.js: status, verify, trust, agent",
         "Flexible on-chain account parser (342-byte layout)",
         "SAID_AGENT_WALLET env for /said/status",
       ],

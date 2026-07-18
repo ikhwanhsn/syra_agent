@@ -7,6 +7,8 @@ import {
   OPENROUTER_EMPTY_RESPONSE_PLACEHOLDER,
 } from '../../libs/openrouter.js';
 import { OPENROUTER_MODELS, OPENROUTER_DEFAULT_MODEL } from '../../config/openrouterModels.js';
+import { isMemoryEnabled } from '../../config/memoryConfig.js';
+import { ingestTurn, retrieveRelevant } from '../../libs/memory/memoryService.js';
 import {
   getAgentTool,
   getCapabilitiesList,
@@ -1450,6 +1452,31 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
     if (systemPrompt && typeof systemPrompt === 'string') {
       systemParts.push(systemPrompt);
     }
+
+    // Long-term semantic memory (NVIDIA Nemotron embeddings via OpenRouter).
+    // Soft-fail: never block chat if retrieval fails.
+    if (isMemoryEnabled() && anonymousId && lastUserMessage) {
+      try {
+        const excludeTexts = apiMessages
+          .filter((m) => m.role === 'user' || m.role === 'assistant')
+          .map((m) => (typeof m.content === 'string' ? m.content : ''))
+          .filter(Boolean);
+        const memory = await retrieveRelevant({
+          anonymousId: String(anonymousId).trim(),
+          query: lastUserMessage,
+          excludeTexts,
+        });
+        if (memory.block) {
+          systemParts.push(memory.block);
+        }
+      } catch (memErr) {
+        console.warn(
+          '[agent/chat/completion] memory retrieve failed:',
+          memErr?.message || memErr
+        );
+      }
+    }
+
     apiMessages.unshift({ role: 'system', content: systemParts.join('\n\n') });
 
     let amountChargedUsd = 0;
@@ -2249,6 +2276,28 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
         { _id: chatIdForBudget, anonymousId: String(anonymousId).trim() },
         { $inc: { llmSessionTokensTotal: tokensThisTurn } }
       ).catch(() => {});
+    }
+
+    // Fire-and-forget long-term memory ingest (Nemotron embeddings). Errors logged only.
+    if (isMemoryEnabled() && anonymousId && (lastUserMessage || response)) {
+      const brandedResponse = enforceSyraBranding(response);
+      ingestTurn({
+        anonymousId: String(anonymousId).trim(),
+        chatId: chatIdForBudget,
+        messages: [
+          ...(lastUserMessage
+            ? [{ role: 'user', content: lastUserMessage, id: `u-${Date.now()}` }]
+            : []),
+          ...(brandedResponse
+            ? [{ role: 'assistant', content: brandedResponse, id: `a-${Date.now()}` }]
+            : []),
+        ],
+      }).catch((ingestErr) => {
+        console.warn(
+          '[agent/chat/completion] memory ingest failed:',
+          ingestErr?.message || ingestErr
+        );
+      });
     }
 
     const payload = { success: true, response: enforceSyraBranding(response) };

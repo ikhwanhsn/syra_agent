@@ -68,7 +68,8 @@ export function computeTrendBias(closes, fast = 5, slow = 12) {
 }
 
 /**
- * Market regime for entry gating — avoid chop and downtrends.
+ * Market regime for entry gating — avoid clear downtrends and hard chop.
+ * Mild neutral-with-positive-momentum is allowed for active-demo cadence.
  * @param {number[]} closes
  * @param {number | null} atrPct
  * @returns {{ regime: 'trend_up' | 'chop' | 'trend_down'; allowLong: boolean; reason: string | null }}
@@ -97,12 +98,32 @@ export function assessMarketRegime(closes, atrPct = null) {
     return { regime: "chop", allowLong: false, reason: "choppy_range" };
   }
 
-  if (trend === "neutral" && (rsi == null || rsi < 48 || rsi > 62) && Math.abs(netPct) < 0.15) {
-    return { regime: "chop", allowLong: false, reason: "no_directional_edge" };
-  }
-
   if (trend === "bullish" || (rsi != null && rsi >= 48 && rsi <= 68 && netPct > 0.1)) {
     return { regime: "trend_up", allowLong: true, reason: null };
+  }
+
+  // Mild neutral with positive drift — allow longs for active demo
+  if (
+    trend === "neutral" &&
+    netPct > 0.03 &&
+    (rsi == null || (rsi >= 45 && rsi <= 68))
+  ) {
+    return { regime: "trend_up", allowLong: true, reason: "mild_neutral_up" };
+  }
+
+  // Soft allow: mid-range RSI, not clearly down — momentum scorer still filters flat noise
+  if (
+    trend !== "bearish" &&
+    rsi != null &&
+    rsi >= 45 &&
+    rsi <= 65 &&
+    netPct > -0.05
+  ) {
+    return { regime: "trend_up", allowLong: true, reason: "soft_mid_rsi" };
+  }
+
+  if (trend === "neutral" && (rsi == null || rsi < 45 || rsi > 68) && Math.abs(netPct) < 0.1) {
+    return { regime: "chop", allowLong: false, reason: "no_directional_edge" };
   }
 
   return { regime: "chop", allowLong: false, reason: "neutral_chop" };
@@ -144,7 +165,8 @@ export function scoreMomentumQuality({ momentumPct, rsi, trend, volatilityPct })
   else if (trend === "bearish") {
     return { quality: 0, reject: true, reason: "bearish_trend" };
   } else {
-    quality -= 0.08;
+    // Neutral trend still qualifies at reduced quality (active-demo cadence)
+    quality -= 0.02;
   }
 
   if (volatilityPct > SCALPER_DEFAULTS.momentumMaxVolatilityPct) {
@@ -155,6 +177,7 @@ export function scoreMomentumQuality({ momentumPct, rsi, trend, volatilityPct })
 
   // Momentum sweet spot: strong enough but not exhausted
   if (momentumPct >= 0.35 && momentumPct <= 0.9) quality += 0.12;
+  else if (momentumPct >= 0.08 && momentumPct < 0.35) quality += 0.06;
   else if (momentumPct > 0.9) quality -= 0.05;
 
   quality = Math.max(0, Math.min(1, quality));
@@ -237,17 +260,38 @@ const MOMENTUM_SOLO_MIN_SCORE = SCALPER_DEFAULTS.minSoloMomentumScore;
 const GENERIC_SOLO_MIN_SCORE = SCALPER_DEFAULTS.minSoloScore;
 
 /**
+ * @typedef {Object} ScalperMergeDiagnostics
+ * @property {number} rawCount
+ * @property {Record<string, number>} perSource
+ * @property {Array<{ symbol: string; source: string; score: number; reason: string }>} droppedReasons
+ */
+
+/**
  * Merge duplicate symbol opportunities; boost score when multiple independent sources agree.
- * Drop weak solo setups that historically bleed PnL.
+ * Solo momentum/generic that clear floors survive; solo stocks stay confluence-only.
  * @param {ScalperOpportunity[]} opportunities
- * @returns {ScalperOpportunity[]}
+ * @returns {{ merged: ScalperOpportunity[]; diagnostics: ScalperMergeDiagnostics }}
  */
 export function mergeOpportunitiesWithConfluence(opportunities) {
   /** @type {Map<string, ScalperOpportunity[]>} */
   const bySymbol = new Map();
+  /** @type {Record<string, number>} */
+  const perSource = {};
+  /** @type {Array<{ symbol: string; source: string; score: number; reason: string }>} */
+  const droppedReasons = [];
 
-  for (const opp of opportunities) {
-    if (opp.side !== "long") continue;
+  const longOnly = Array.isArray(opportunities) ? opportunities : [];
+  for (const opp of longOnly) {
+    perSource[opp.source] = (perSource[opp.source] ?? 0) + 1;
+    if (opp.side !== "long") {
+      droppedReasons.push({
+        symbol: opp.symbol,
+        source: opp.source,
+        score: opp.score,
+        reason: "not_long",
+      });
+      continue;
+    }
     const key = opp.symbol;
     const list = bySymbol.get(key) ?? [];
     list.push(opp);
@@ -269,12 +313,36 @@ export function mergeOpportunitiesWithConfluence(opportunities) {
       score = Math.min(0.98, score);
     }
 
-    // Solo sources need a higher bar — weakest historical edge.
     // Solo stocks news is noise for short holds: drop entirely (confluence-only).
+    // Solo momentum/generic survive when they clear the (active-demo) floors.
     if (confluenceCount === 1) {
-      if (best.source === "stocks") continue;
-      if (best.source === "momentum" && score < MOMENTUM_SOLO_MIN_SCORE) continue;
-      if (score < GENERIC_SOLO_MIN_SCORE) continue;
+      if (best.source === "stocks") {
+        droppedReasons.push({
+          symbol: best.symbol,
+          source: best.source,
+          score,
+          reason: "solo_stocks_blocked",
+        });
+        continue;
+      }
+      if (best.source === "momentum" && score < MOMENTUM_SOLO_MIN_SCORE) {
+        droppedReasons.push({
+          symbol: best.symbol,
+          source: best.source,
+          score,
+          reason: "solo_momentum_below_floor",
+        });
+        continue;
+      }
+      if (score < GENERIC_SOLO_MIN_SCORE) {
+        droppedReasons.push({
+          symbol: best.symbol,
+          source: best.source,
+          score,
+          reason: "solo_below_floor",
+        });
+        continue;
+      }
     }
 
     const sourceLabels = sources.map((s) => s.toUpperCase()).join(" + ");
@@ -297,12 +365,21 @@ export function mergeOpportunitiesWithConfluence(opportunities) {
   }
 
   // Prefer confluence first, then score
-  return merged.sort((a, b) => {
+  merged.sort((a, b) => {
     const ca = Number(a.meta?.confluenceCount ?? 1);
     const cb = Number(b.meta?.confluenceCount ?? 1);
     if (cb !== ca) return cb - ca;
     return b.score - a.score;
   });
+
+  return {
+    merged,
+    diagnostics: {
+      rawCount: longOnly.length,
+      perSource,
+      droppedReasons,
+    },
+  };
 }
 
 /**

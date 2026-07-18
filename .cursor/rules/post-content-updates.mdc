@@ -16,6 +16,53 @@ When editing ship-log **photo** or **video** content under `web/src/content/post
 3. Append `{ video, photo }` to `POST_UPDATE_BUNDLES` in `registry.ts` (after the locked Format Template `#0`)
 4. **Never soft-delete or remove** update `#0` (Format Template) — `meta.locked` / `postLocked.ts`
 
+## Copy voice (X + on-image)
+
+All story copy (`*Update.ts` slides + meta share, `*Photo.ts` content, `shareCopies/*`) must be persuasive, scannable, and ready to paste on X.
+
+### Voice
+
+1. **One idea per block.** Short paragraphs (1–3 lines). Prefer scan over essay.
+2. **Persuasion arc:** outcome or tension → proof (what shipped) → single CTA. No hype without a concrete claim.
+3. **Facts stay true.** Rephrase existing product claims only. Do not invent metrics, partners, or URLs.
+4. **Ship framing:** product posts open with `SHIP LOG ·`. Hackathon posts may keep their existing framing (e.g. Celo). Template uses `FORMAT TEMPLATE ·`.
+
+### X paste format (`shareCopies` + `shareCopyVideo` / `shareCopyPhoto`)
+
+1. **Structure:** hook line → blank line → short paragraph OR list → blank line → CTA.
+2. **Lists:** `→` for feature bullets; `1. 2. 3.` for flows. Do not mix bullet styles in one paste.
+3. **CTAs:** video share ends with `Full breakdown in the video ↓`. Photo share ends with a product CTA when relevant (`Try it → syraa.fun` or a specific path).
+4. **Fifteen distinct angles.** Every `PostPhotoCardRole` gets unique paste text. Never reuse one caption across cards.
+
+### Role → X angle map
+
+| Role | Angle |
+|------|--------|
+| `cover` | Announce the ship; strongest hook + CTA |
+| `thesis` | Why it matters; problem → relief |
+| `quote` | One memorable line + one proof sentence |
+| `flow` | Numbered how-it-works steps |
+| `timeline` | What shipped (arrow list) |
+| `pillars` | 3–4 named layers of the stack |
+| `checklist` | Live-now checklist with CTA |
+| `metrics` | Numbers that prove the ship |
+| `featured` | Spotlight one model, partner, or surface |
+| `comparison` | Before vs now |
+| `launch` | Ship-log announcement variant |
+| `deepDive` | One technical detail, plain language |
+| `split` | Two sides of the value (user vs agent, research vs execute) |
+| `terminal` | CLI / API / “under the hood” feel |
+| `cta` | Short push with links only |
+
+### Punctuation
+
+1. **Never use the em dash `—`** (U+2014) in ship-log copy.
+2. Prefer comma, colon, or period for clause breaks.
+
+### On-image discipline
+
+Same char limits as below. Punchy headlines; shorter beats restyling. Align photo card thesis with video statement and X thesis paste (same story, length tuned per surface).
+
 ## Photo cards (1200×675)
 
 1. **Only change copy in content files** — `*Photo.ts`, `*Update.ts`, `shareCopies/*`. Do not edit layout CSS or template components unless fixing a systemic export bug.
@@ -52,6 +99,9 @@ Before marking a post content task done:
 - [ ] Download PNG (photo) or WebM (video) matches preview — no overlapping title/body
 - [ ] No validation errors from `definePhotoUpdate` / `defineVideoUpdate`
 - [ ] Share copy files updated alongside card content when applicable
+- [ ] No em dash `—` in any ship-log copy string
+- [ ] Each of the 15 photo shareCopies is a distinct angle (see role map)
+- [ ] `shareCopyVideo` ends with video CTA; photo shares end with product CTA when relevant
 
 ## What breaks exports (avoid)
 

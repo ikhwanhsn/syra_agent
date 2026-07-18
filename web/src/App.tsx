@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useParams } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { AdminDashboardGate } from "@/components/dashboard/AdminDashboardGate";
 import { MachineMoneyPageGate } from "@/components/dashboard/MachineMoneyPageGate";
@@ -68,6 +68,16 @@ import InvestPage from "@/pages/InvestPage";
 import SpendPage from "@/pages/SpendPage";
 import TreasuryPage from "@/pages/TreasuryPage";
 import SwapPage from "@/pages/SwapPage";
+
+function LegacyPumpfunPageRedirect() {
+  const { search } = useLocation();
+  return <Navigate to={`/analyzer${search}`} replace />;
+}
+
+function LegacyPumpfunCallRedirect() {
+  const { callId } = useParams<{ callId: string }>();
+  return <Navigate to={`/analyzer/call/${callId ?? ""}`} replace />;
+}
 import MetricsPage from "@/pages/MetricsPage";
 import AnsemPage from "@/pages/AnsemPage";
 import ReferenceScalperPage from "@/pages/ReferenceScalperPage";
@@ -201,8 +211,10 @@ function AppRoutes() {
             <Route path="/agents/*" element={<Navigate to="/overview" replace />} />
             <Route path="/assets" element={<AssetsPage />} />
             <Route path="/assets/:assetKey" element={<AssetDetailPage />} />
-            <Route path="/pumpfun" element={<PumpfunAnalyzer />} />
-            <Route path="/pumpfun/call/:callId" element={<PumpfunCallPage />} />
+            <Route path="/analyzer" element={<PumpfunAnalyzer />} />
+            <Route path="/analyzer/call/:callId" element={<PumpfunCallPage />} />
+            <Route path="/pumpfun" element={<LegacyPumpfunPageRedirect />} />
+            <Route path="/pumpfun/call/:callId" element={<LegacyPumpfunCallRedirect />} />
             <Route
               path="/lp-experiment"
               element={

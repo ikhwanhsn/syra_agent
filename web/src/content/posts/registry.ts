@@ -21,6 +21,11 @@ import { OKX_ASP_XLAYER_POST } from "./okxAspXlayerUpdate";
 import { STOCKS_NEWS_EXPERIMENT_POST } from "./stocksNewsExperimentUpdate";
 import { TOPLEDGER_DEFI_POST } from "./topledgerDeFiUpdate";
 import { CELO_AGENTIC_PAYMENTS_POST } from "./celoAgenticPaymentsUpdate";
+import { AGENT_MEMORY_RAG_POST } from "./agentMemoryRagUpdate";
+import { AGENT_MEMORY_RERANK_POST } from "./agentMemoryRerankUpdate";
+import { EARN_TOKEN_SAID_VERIFY_POST } from "./earnTokenSaidVerifyUpdate";
+import { INVEST_SOLANA_POST } from "./investSolanaUpdate";
+import { TOKEN_ANALYZER_POST } from "./tokenAnalyzerUpdate";
 import { TEMPLATE_POST } from "./templateUpdate";
 import { AGENTSCORE_PHOTO } from "./photo/agentscorePhoto";
 import { INDICATOR_PHOTO } from "./photo/indicatorPhoto";
@@ -45,6 +50,11 @@ import { OKX_ASP_XLAYER_PHOTO } from "./photo/okxAspXlayerPhoto";
 import { STOCKS_NEWS_EXPERIMENT_PHOTO } from "./photo/stocksNewsExperimentPhoto";
 import { TOPLEDGER_DEFI_PHOTO } from "./photo/topledgerDeFiPhoto";
 import { CELO_AGENTIC_PAYMENTS_PHOTO } from "./photo/celoAgenticPaymentsPhoto";
+import { AGENT_MEMORY_RAG_PHOTO } from "./photo/agentMemoryRagPhoto";
+import { AGENT_MEMORY_RERANK_PHOTO } from "./photo/agentMemoryRerankPhoto";
+import { EARN_TOKEN_SAID_VERIFY_PHOTO } from "./photo/earnTokenSaidVerifyPhoto";
+import { INVEST_SOLANA_PHOTO } from "./photo/investSolanaPhoto";
+import { TOKEN_ANALYZER_PHOTO } from "./photo/tokenAnalyzerPhoto";
 import { TEMPLATE_PHOTO } from "./photo/templatePhoto";
 import type { PostPhotoUpdate } from "./photo/types";
 import type { PostUpdate } from "./types";
@@ -88,6 +98,11 @@ const POST_UPDATE_BUNDLES: PostUpdateBundle[] = [
   { video: STOCKS_NEWS_EXPERIMENT_POST, photo: STOCKS_NEWS_EXPERIMENT_PHOTO },
   { video: TOPLEDGER_DEFI_POST, photo: TOPLEDGER_DEFI_PHOTO },
   { video: CELO_AGENTIC_PAYMENTS_POST, photo: CELO_AGENTIC_PAYMENTS_PHOTO },
+  { video: AGENT_MEMORY_RAG_POST, photo: AGENT_MEMORY_RAG_PHOTO },
+  { video: AGENT_MEMORY_RERANK_POST, photo: AGENT_MEMORY_RERANK_PHOTO },
+  { video: EARN_TOKEN_SAID_VERIFY_POST, photo: EARN_TOKEN_SAID_VERIFY_PHOTO },
+  { video: INVEST_SOLANA_POST, photo: INVEST_SOLANA_PHOTO },
+  { video: TOKEN_ANALYZER_POST, photo: TOKEN_ANALYZER_PHOTO },
 ];
 
 function assertBundleMeta(bundle: PostUpdateBundle): void {

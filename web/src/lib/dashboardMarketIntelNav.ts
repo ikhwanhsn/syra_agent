@@ -18,11 +18,11 @@ export const DASHBOARD_MARKET_INTEL_NAV: readonly DashboardMarketIntelNavItem[] 
     isActive: (p) => p.startsWith("/assets"),
   },
   {
-    id: "pumpfun-alpha",
-    label: "Pumpfun Alpha",
-    to: "/pumpfun",
+    id: "token-analyzer",
+    label: "Token Analyzer",
+    to: "/analyzer",
     icon: Search,
-    isActive: (p) => p.startsWith("/pumpfun"),
+    isActive: (p) => p.startsWith("/analyzer") || p.startsWith("/pumpfun"),
   },
   {
     id: "bitcoin",

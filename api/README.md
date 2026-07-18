@@ -488,6 +488,25 @@ Cron header: `x-hackathon-scout-cron-secret`. Workflow: `.github/workflows/hacka
 
 ---
 
+## Agent long-term memory (RAG)
+
+Semantic memory for **POST /agent/chat/completion** is **always on in code** (`MEMORY_ENABLED = true` in `api/config/memoryConfig.js`). Each turn is embedded with the free NVIDIA **llama-nemotron-embed-vl-1b-v2** model via OpenRouter; relevant past turns (scoped by `anonymousId`) are injected into the system prompt on later requests.
+
+**Two-stage retrieve-then-rerank** (`MEMORY_RERANK_ENABLED = true`): vector search fetches a wider candidate set, then free **llama-nemotron-rerank-vl-1b-v2** reorders by relevance before injecting top-K. If rerank fails or times out, Syra falls back to vector-score order (chat never breaks).
+
+Search uses **Qdrant** when `QDRANT_URL` is set, otherwise **MongoDB cosine similarity**. To disable memory globally, set `MEMORY_ENABLED = false` in `api/config/memoryConfig.js`. To disable only the rerank stage, set `MEMORY_RERANK_ENABLED = false`.
+
+| Setting | Source |
+|---------|--------|
+| Embed model / dims / topK / minScore / TTL | Hardcoded in `api/config/memoryConfig.js` |
+| Rerank model / candidates / timeout | Hardcoded (`MEMORY_RERANK_*`) |
+| `OPENROUTER_API_KEY` | Required for embeddings + rerank (same key as agent chat) |
+| `QDRANT_URL` / `QDRANT_API_KEY` | Optional vector DB; Mongo fallback if unset |
+
+Implementation: `api/config/memoryConfig.js`, `api/libs/memory/*` (including `nemotronRerankClient.js`), wired in `api/routes/agent/chat.js`.
+
+---
+
 ## API key and trusted origins
 
 - **Never embed `API_KEY` or `API_KEYS` in client-side code.** The API injects the key for requests from trusted origins (syraa.fun, dashboard, agent, marketplace) so frontends do not need to send it.

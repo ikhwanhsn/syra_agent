@@ -45,7 +45,7 @@ function dashboardPageTitle(pathname: string, search: string): string {
   if (parts[0] === "agent-setup") return "Agent setup";
   if (parts[0] === "assets" && parts[1]) return "Asset detail";
   if (parts[0] === "assets") return "Assets";
-  if (parts[0] === "pumpfun") return "Pumpfun Alpha";
+  if (parts[0] === "analyzer" || parts[0] === "pumpfun") return "Token Analyzer";
   if (parts[0] === "multiwallet" && parts[1] === "recover") return "Recover farm wallets";
   if (parts[0] === "lp-experiment") return "LP agent experiment";
   if (parts[0] === "btc2-experiment") return "BTC quant agent";

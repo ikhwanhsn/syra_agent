@@ -1,10 +1,10 @@
 import type { PostPhotoCardRole } from "../photoCardSlots";
 
-/** Per-card X copy for x402 Indicator API photo deck — 15 distinct topics. */
+/** Per-card X copy for x402 Indicator API photo deck: 15 distinct topics. */
 export const INDICATOR_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `Your agent can't read a TradingView screenshot.
+  cover: `SHIP LOG · Your agent can't read a TradingView screenshot.
 
-Syra shipped GET/POST /indicator: 27 technical indicators from live OHLCV — combinable in one x402 call.
+Syra shipped GET/POST /indicator: 27 technical indicators from live OHLCV, combinable in one x402 call.
 
 RSI. MACD. Bollinger. Ichimoku. VWAP. Agent-readable JSON.
 
@@ -22,7 +22,7 @@ GET ?indicators=rsi,macd&rsi.period=21
 POST JSON for complex combos
 series=true when you need full arrays
 
-Analysis output — not trade directives.`,
+Analysis output, not trade directives.`,
 
   flow: `How the Indicator API works:
 
@@ -35,7 +35,7 @@ Analysis output — not trade directives.`,
 
   timeline: `From catalog to combined analytics:
 
-→ GET /indicator/catalog (free) — discover all 27 ids + params
+→ GET /indicator/catalog (free): discover all 27 ids + params
 → Choose symbol, source, interval, limit
 → Combine indicators=rsi,macd with dotted params
 → x402 payment unlocks structured OHLCV analytics
@@ -51,7 +51,7 @@ No chart scraping. No custom TA per agent.`,
 
 All combinable in one /indicator request.`,
 
-  checklist: `Indicator API — what's live:
+  checklist: `Indicator API checklist. Live now:
 
 → 27 TradingView-style indicators
 → GET dotted params + POST JSON body
@@ -62,13 +62,13 @@ All combinable in one /indicator request.`,
 
   metrics: `27 indicators. 10 CEX sources. 1 candle fetch per call.
 
-Momentum, trend, volatility, and volume metrics from live OHLCV — structured for agents, gated by x402.
+Momentum, trend, volatility, and volume metrics from live OHLCV, structured for agents, gated by x402.
 
 Pay per call. Combine freely.`,
 
   featured: `Stack RSI + MACD + Bollinger in one x402 checkout.
 
-Each returns latest, signal, and resolved params. Descriptive signals — overbought, bullish_momentum — not trade directives.
+Each returns latest, signal, and resolved params. Descriptive signals like overbought or bullish_momentum, not trade directives.
 
 TradingView math. Agent-readable JSON.`,
 
@@ -78,7 +78,7 @@ Now: GET/POST /indicator with 27 indicators, combinable params, x402 micropaymen
 
 Structured analytics without building your own indicator stack.`,
 
-  launch: `LIVE — x402 Indicator API on Syra.
+  launch: `SHIP LOG · x402 Indicator API on Syra.
 
 27 indicators from OHLCV candles. Combine rsi,macd in one call. Free catalog at /indicator/catalog.
 
@@ -86,7 +86,7 @@ Momentum. Trend. Volatility. Volume. Built for agents.
 
 Try it → api.syraa.fun/indicator/catalog`,
 
-  deepDive: `For builders — Indicator API surface:
+  deepDive: `For builders. Indicator API surface:
 
 → GET/POST api.syraa.fun/indicator (x402)
 → technicalindicators library for computation

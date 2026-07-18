@@ -5,7 +5,7 @@ import { CELO_AGENTIC_PAYMENTS_PHOTO_SHARE_COPIES } from "./shareCopies/celoAgen
 
 const copies = CELO_AGENTIC_PAYMENTS_PHOTO_SHARE_COPIES;
 
-/** Photo-format content for Celo Agentic Payments ship log — 15 cards, 15 X posts. */
+/** Photo-format content for Celo Agentic Payments ship log. 15 cards, 15 X posts. */
 export const CELO_AGENTIC_PAYMENTS_PHOTO = definePhotoUpdate(CELO_AGENTIC_PAYMENTS_POST.meta, [
   {
     role: "cover",
@@ -16,7 +16,7 @@ export const CELO_AGENTIC_PAYMENTS_PHOTO = definePhotoUpdate(CELO_AGENTIC_PAYMEN
       badge: "x402 · ERC-8021 · 8004",
       title: "Celo × Syra",
       subtitle:
-        "Agentic x402 on Celo mainnet — tagged USDC volume for Most Revenue + Most x402 Payments.",
+        "Agentic x402 on Celo mainnet. Tagged USDC volume for Most Revenue + Most x402 Payments.",
     }),
   },
   {
@@ -88,7 +88,7 @@ export const CELO_AGENTIC_PAYMENTS_PHOTO = definePhotoUpdate(CELO_AGENTIC_PAYMEN
     layout: "photo-hero-compact",
     shareCopy: copies.checklist,
     content: photoContent({
-      headline: "Hackathon checklist — live.",
+      headline: "Hackathon checklist. Live now.",
       highlights: [
         "Labs Celo tab beside Solana and Base",
         "Self-settled USDC on paid insight calls",
@@ -119,7 +119,7 @@ export const CELO_AGENTIC_PAYMENTS_PHOTO = definePhotoUpdate(CELO_AGENTIC_PAYMEN
     content: photoContent({
       headline: "On-chain agent identity.",
       stats: [{ value: "#9673", label: "Celo ERC-8004" }],
-      narrative: "Syra on Celo Identity Registry — discoverable on 8004scan for the hackathon submission.",
+      narrative: "Syra on Celo Identity Registry. Discoverable on 8004scan for the hackathon submission.",
     }),
   },
   {
@@ -130,7 +130,7 @@ export const CELO_AGENTIC_PAYMENTS_PHOTO = definePhotoUpdate(CELO_AGENTIC_PAYMEN
       headline: "Untagged volume vs tagged settle.",
       compareLeft: {
         title: "Before",
-        body: "No Celo Labs rail — no self-settle path that stamps ERC-8021 for Dune KPIs.",
+        body: "No Celo Labs rail. No self-settle path that stamps ERC-8021 for Dune KPIs.",
       },
       compareRight: {
         title: "Now",
@@ -149,7 +149,7 @@ export const CELO_AGENTIC_PAYMENTS_PHOTO = definePhotoUpdate(CELO_AGENTIC_PAYMEN
       partnerLogo: "/images/partners/celo.png",
       partnerLogoSolidBg: true,
       headline: "Syra × Celo",
-      subtitle: "x402 self-settle, ERC-8021 tags, ERC-8004 agent #9673 — building for @CeloDevs.",
+      subtitle: "x402 self-settle, ERC-8021 tags, ERC-8004 agent #9673. Building for @CeloDevs.",
     }),
   },
   {
@@ -160,10 +160,10 @@ export const CELO_AGENTIC_PAYMENTS_PHOTO = definePhotoUpdate(CELO_AGENTIC_PAYMEN
       kicker: "Technical surface",
       headline: "Wired into Syra API + Labs.",
       items: [
-        "celoX402Networks.js — CAIP-2 + USDC + facilitator",
-        "celoX402Settle.js — self-settle + toDataSuffix",
-        "labX402Payer.js — ExactEvmScheme on 42220",
-        "Labs UI — Celo tab wallets / sim / schedule",
+        "celoX402Networks.js: CAIP-2 + USDC + facilitator",
+        "celoX402Settle.js: self-settle + toDataSuffix",
+        "labX402Payer.js: ExactEvmScheme on 42220",
+        "Labs UI: Celo tab wallets / sim / schedule",
       ],
     }),
   },
@@ -174,7 +174,7 @@ export const CELO_AGENTIC_PAYMENTS_PHOTO = definePhotoUpdate(CELO_AGENTIC_PAYMEN
     content: photoContent({
       badge: "Multi-chain Labs",
       headline: "Solana. Base. Now Celo.",
-      body: "Same Labs ops model — wallets, deposit, simulation, scheduled payers — with Celo self-settle and hackathon attribution.",
+      body: "Same Labs ops model: wallets, deposit, simulation, scheduled payers, with Celo self-settle and hackathon attribution.",
       highlights: [
         "Solana SPL USDC loop",
         "Base Exact EVM payers",
