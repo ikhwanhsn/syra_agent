@@ -88,6 +88,272 @@ function normalizeHandle(handle) {
 }
 
 /**
+ * Stable handle key for a submission (normalized).
+ * @param {Record<string, unknown>} submission
+ */
+function submissionHandleKey(submission) {
+  return normalizeHandle(
+    submission?.authorHandleKey || submission?.authorHandle || "",
+  );
+}
+
+/**
+ * Contribution rows from a submission (legacy-safe when contributions[] is empty).
+ * @param {Record<string, unknown>} submission
+ */
+function contributionRowsFromSubmission(submission) {
+  const stored = Array.isArray(submission?.contributions)
+    ? submission.contributions
+    : [];
+  if (stored.length > 0) {
+    return stored.map((c) => ({
+      tweetId: String(c.tweetId || "").trim(),
+      tweetUrl: String(c.tweetUrl || "").trim(),
+      mode: c.mode === "quote" ? "quote" : "reply",
+      metrics: c.metrics || {},
+      score: Number(c.score) || 0,
+      scoreBreakdown: c.scoreBreakdown ?? null,
+    }));
+  }
+
+  if (submission?.tweetId) {
+    return [
+      {
+        tweetId: String(submission.tweetId),
+        tweetUrl: String(submission.tweetUrl || ""),
+        mode: submission.mode === "quote" ? "quote" : "reply",
+        metrics: submission.latestMetrics || {},
+        score: Number(submission.latestScore) || 0,
+        scoreBreakdown: submission.scoreBreakdown ?? null,
+      },
+    ];
+  }
+
+  return [];
+}
+
+/**
+ * Prefer wallet-linked / claimed / higher-score / older row when collapsing dupes.
+ * @param {Record<string, unknown>[]} docs
+ */
+function pickPreferredSubmission(docs) {
+  if (!docs || docs.length === 0) return null;
+  const claimRank = (s) => {
+    const status = String(s.claimStatus || "unearned");
+    if (status === "claimed") return 3;
+    if (status === "claimable") return 2;
+    return 1;
+  };
+  return [...docs].sort((a, b) => {
+    const aWallet = a.kolWallet ? 1 : 0;
+    const bWallet = b.kolWallet ? 1 : 0;
+    if (bWallet !== aWallet) return bWallet - aWallet;
+    if (claimRank(b) !== claimRank(a)) return claimRank(b) - claimRank(a);
+    const scoreDiff = (Number(b.latestScore) || 0) - (Number(a.latestScore) || 0);
+    if (scoreDiff !== 0) return scoreDiff;
+    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return aTime - bTime;
+  })[0];
+}
+
+/**
+ * Collapse multiple submissions for the same X handle into one aggregated row.
+ * Used for leaderboard/payout correctness when duplicate docs exist in Mongo.
+ * @template {Record<string, unknown>} T
+ * @param {T[]} submissions
+ * @returns {T[]}
+ */
+export function dedupeSubmissionsByHandle(submissions) {
+  if (!Array.isArray(submissions) || submissions.length <= 1) {
+    return submissions || [];
+  }
+
+  /** @type {Map<string, T[]>} */
+  const byHandle = new Map();
+  /** @type {T[]} */
+  const unkeyed = [];
+
+  for (const row of submissions) {
+    const key = submissionHandleKey(row);
+    if (!key) {
+      unkeyed.push(row);
+      continue;
+    }
+    const group = byHandle.get(key);
+    if (group) group.push(row);
+    else byHandle.set(key, [row]);
+  }
+
+  /** @type {T[]} */
+  const out = [...unkeyed];
+
+  for (const [handleKey, group] of byHandle) {
+    if (group.length === 1) {
+      out.push(group[0]);
+      continue;
+    }
+
+    const keeper = pickPreferredSubmission(group);
+    if (!keeper) continue;
+
+    const mergedRows = group.flatMap((doc) => contributionRowsFromSubmission(doc));
+    const aggregated = aggregateContributions(
+      mergedRows,
+      MAX_CONTRIBUTIONS_PER_HANDLE,
+    );
+
+    /** @type {T} */
+    const merged = { ...keeper };
+    merged.authorHandleKey = handleKey;
+    if (!merged.authorHandle) {
+      merged.authorHandle =
+        group.find((g) => g.authorHandle)?.authorHandle || handleKey;
+    }
+
+    if (aggregated) {
+      merged.tweetId = aggregated.primary.tweetId;
+      merged.tweetUrl = aggregated.primary.tweetUrl;
+      merged.mode = aggregated.primary.mode;
+      merged.contributions = aggregated.contributions;
+      merged.latestMetrics = aggregated.aggregatedMetrics;
+      merged.latestScore = aggregated.totalScore;
+      merged.scoreBreakdown = aggregated.primary.scoreBreakdown ?? null;
+    }
+
+    // Preserve wallet / earned / claim from any sibling when keeper lacks them.
+    if (!merged.kolWallet) {
+      const withWallet = group.find((g) => g.kolWallet);
+      if (withWallet) merged.kolWallet = withWallet.kolWallet;
+    }
+    const earned = group.reduce(
+      (sum, g) => sum + (Number(g.earnedLamports) || 0),
+      0,
+    );
+    if (earned > (Number(merged.earnedLamports) || 0)) {
+      merged.earnedLamports = earned;
+    }
+    const bestClaim = pickPreferredSubmission(group);
+    if (bestClaim?.claimStatus) merged.claimStatus = bestClaim.claimStatus;
+
+    out.push(merged);
+  }
+
+  return out.sort((a, b) => {
+    const scoreDiff = (Number(b.latestScore) || 0) - (Number(a.latestScore) || 0);
+    if (scoreDiff !== 0) return scoreDiff;
+    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return aTime - bTime;
+  });
+}
+
+/**
+ * Persist merge of duplicate handle submissions for one campaign.
+ * Reassigns payouts from deleted rows onto the keeper.
+ * @param {import("mongoose").Types.ObjectId | string} campaignId
+ * @returns {Promise<{ mergedGroups: number; deleted: number }>}
+ */
+export async function mergeDuplicateHandleSubmissions(campaignId) {
+  assertMongo();
+  const id = assertObjectId(campaignId);
+  const submissions = await KolSubmission.find({ campaignId: id });
+  if (submissions.length <= 1) {
+    return { mergedGroups: 0, deleted: 0 };
+  }
+
+  /** @type {Map<string, import("../models/KolSubmission.js").default[]>} */
+  const byHandle = new Map();
+  for (const doc of submissions) {
+    const key = submissionHandleKey(doc);
+    if (!key) continue;
+    const group = byHandle.get(key);
+    if (group) group.push(doc);
+    else byHandle.set(key, [doc]);
+  }
+
+  let mergedGroups = 0;
+  let deleted = 0;
+
+  for (const [handleKey, group] of byHandle) {
+    if (group.length <= 1) continue;
+
+    const keeper = pickPreferredSubmission(group);
+    if (!keeper) continue;
+
+    const orphans = group.filter((d) => String(d._id) !== String(keeper._id));
+    const mergedRows = group.flatMap((doc) => contributionRowsFromSubmission(doc));
+    const aggregated = aggregateContributions(
+      mergedRows,
+      MAX_CONTRIBUTIONS_PER_HANDLE,
+    );
+    if (!aggregated) continue;
+
+    keeper.authorHandleKey = handleKey;
+    keeper.tweetId = aggregated.primary.tweetId;
+    keeper.tweetUrl = aggregated.primary.tweetUrl;
+    keeper.mode = aggregated.primary.mode;
+    keeper.contributions = aggregated.contributions;
+    keeper.latestMetrics = aggregated.aggregatedMetrics;
+    keeper.latestScore = aggregated.totalScore;
+    keeper.scoreBreakdown = aggregated.primary.scoreBreakdown ?? null;
+
+    if (!keeper.kolWallet) {
+      const withWallet = group.find((g) => g.kolWallet);
+      if (withWallet) keeper.kolWallet = withWallet.kolWallet;
+    }
+    const earned = group.reduce(
+      (sum, g) => sum + (Number(g.earnedLamports) || 0),
+      0,
+    );
+    if (earned > (Number(keeper.earnedLamports) || 0)) {
+      keeper.earnedLamports = earned;
+    }
+    const claimKeeper = pickPreferredSubmission(group);
+    if (claimKeeper?.claimStatus) keeper.claimStatus = claimKeeper.claimStatus;
+
+    const sampleHandle = group.find((g) => g.authorHandle)?.authorHandle;
+    if (sampleHandle) keeper.authorHandle = sampleHandle;
+
+    const orphanIds = orphans.map((o) => o._id);
+
+    // Delete orphans before saving keeper so campaignId+tweetId unique
+    // index does not block promoting an orphan's tweet as primary.
+    if (orphanIds.length > 0) {
+      await KolPayout.updateMany(
+        { campaignId: id, submissionId: { $in: orphanIds } },
+        { $set: { submissionId: keeper._id } },
+      );
+      await KolEngagementSnapshot.updateMany(
+        { campaignId: id, submissionId: { $in: orphanIds } },
+        { $set: { submissionId: keeper._id } },
+      );
+      const removeResult = await KolSubmission.deleteMany({
+        _id: { $in: orphanIds },
+      });
+      deleted += removeResult.deletedCount ?? orphanIds.length;
+    }
+
+    try {
+      await keeper.save();
+    } catch (e) {
+      console.warn(
+        `[kol] merge duplicate handles failed campaign=${id} handle=${handleKey}:`,
+        e instanceof Error ? e.message : e,
+      );
+      continue;
+    }
+
+    mergedGroups += 1;
+    console.info(
+      `[kol] merged ${group.length} duplicate submissions campaign=${id} handle=${handleKey} → ${keeper._id}`,
+    );
+  }
+
+  return { mergedGroups, deleted };
+}
+
+/**
  * Fill missing profile pictures from the DB X profile cache only.
  * Never calls twitterapi.io on page load — pictures are filled by the daily
  * refreshAllMarketplaceXProfiles job (and write-path seedXProfileFromAuthor).
@@ -1459,9 +1725,42 @@ export async function getCampaignDetail(campaignId, opts = {}) {
 
   await ensureCampaignTweetMedia(campaign);
 
-  const submissions = await KolSubmission.find({ campaignId: campaign._id })
+  const submissionsRaw = await KolSubmission.find({ campaignId: campaign._id })
     .sort({ latestScore: -1, createdAt: 1 })
     .lean();
+
+  // Detect duplicate X handles (same KOL twice on the board) and heal in DB.
+  const handleCounts = new Map();
+  for (const row of submissionsRaw) {
+    const key = submissionHandleKey(row);
+    if (!key) continue;
+    handleCounts.set(key, (handleCounts.get(key) || 0) + 1);
+  }
+  const hasDuplicateHandles = [...handleCounts.values()].some((n) => n > 1);
+
+  let submissions = submissionsRaw;
+  if (hasDuplicateHandles) {
+    try {
+      await mergeDuplicateHandleSubmissions(campaign._id);
+      submissions = await KolSubmission.find({ campaignId: campaign._id })
+        .sort({ latestScore: -1, createdAt: 1 })
+        .lean();
+      refreshCampaignProjections(campaign._id).catch((e) => {
+        console.warn(
+          `[kol] projection refresh after dupe merge failed campaign=${campaign._id}:`,
+          e instanceof Error ? e.message : e,
+        );
+      });
+    } catch (e) {
+      console.warn(
+        `[kol] duplicate handle merge failed campaign=${campaign._id}:`,
+        e instanceof Error ? e.message : e,
+      );
+    }
+  }
+
+  // Always collapse in-memory so leaderboard/payouts stay correct even if merge fails.
+  submissions = dedupeSubmissionsByHandle(submissions);
 
   const payouts = await KolPayout.find({ campaignId: campaign._id }).lean();
   const payoutMap = new Map(payouts.map((p) => [String(p.submissionId), p]));
@@ -1795,9 +2094,19 @@ export async function refreshCampaignProjections(campaignId) {
   const campaign = await KolCampaign.findById(campaignId);
   if (!campaign) return;
 
-  const submissions = await KolSubmission.find({
+  try {
+    await mergeDuplicateHandleSubmissions(campaign._id);
+  } catch (e) {
+    console.warn(
+      `[kol] dupe merge before projections failed campaign=${campaignId}:`,
+      e instanceof Error ? e.message : e,
+    );
+  }
+
+  const submissionsRaw = await KolSubmission.find({
     campaignId: campaign._id,
   }).lean();
+  const submissions = dedupeSubmissionsByHandle(submissionsRaw);
   const kolPool = getCampaignKolPoolLamports(campaign);
   const payouts = await computeEligibleCampaignPayouts(
     campaign,
@@ -1862,6 +2171,15 @@ export async function refreshCampaignMetrics(campaignId, opts = {}) {
     Date.now() - new Date(campaign.lastSnapshotAt).getTime() < METRICS_FRESH_MS
   ) {
     return { refreshed: 0, skipped: true, reason: "fresh" };
+  }
+
+  try {
+    await mergeDuplicateHandleSubmissions(campaign._id);
+  } catch (e) {
+    console.warn(
+      `[kol] dupe merge before metrics refresh failed campaign=${campaignId}:`,
+      e instanceof Error ? e.message : e,
+    );
   }
 
   const submissions = await KolSubmission.find({ campaignId: campaign._id });
@@ -2152,9 +2470,20 @@ export async function finalizeCampaign(campaignId) {
 
   await refreshCampaignMetrics(campaign._id, { force: true });
 
-  const submissions = await KolSubmission.find({
-    campaignId: campaign._id,
-  }).lean();
+  try {
+    await mergeDuplicateHandleSubmissions(campaign._id);
+  } catch (e) {
+    console.warn(
+      `[kol] dupe merge before finalize failed campaign=${campaignId}:`,
+      e instanceof Error ? e.message : e,
+    );
+  }
+
+  const submissions = dedupeSubmissionsByHandle(
+    await KolSubmission.find({
+      campaignId: campaign._id,
+    }).lean(),
+  );
   const reputationResults = await creditKolReputationsForCampaign(
     campaign._id,
     submissions,
@@ -3066,7 +3395,8 @@ export async function enrichMissingCampaignAuthors(opts = {}) {
 
 /**
  * Backfill authorHandleKey on legacy submissions (required for one-KOL-per-campaign index).
- * @param {{ limit?: number }} [opts]
+ * Also merges duplicate-handle rows that blocked the unique index / caused double leaderboard entries.
+ * @param {{ limit?: number; mergeDuplicates?: boolean }} [opts]
  */
 export async function backfillSubmissionAuthorKeys(opts = {}) {
   assertMongo();
@@ -3083,17 +3413,80 @@ export async function backfillSubmissionAuthorKeys(opts = {}) {
     .lean();
 
   let updated = 0;
+  /** @type {Set<string>} */
+  const campaignIds = new Set();
   for (const submission of submissions) {
     const authorHandleKey = normalizeHandle(submission.authorHandle);
     if (!authorHandleKey) continue;
-    await KolSubmission.updateOne(
-      { _id: submission._id },
-      { $set: { authorHandleKey } },
-    );
-    updated += 1;
+    try {
+      await KolSubmission.updateOne(
+        { _id: submission._id },
+        { $set: { authorHandleKey } },
+      );
+      updated += 1;
+      if (submission.campaignId) {
+        campaignIds.add(String(submission.campaignId));
+      }
+    } catch (e) {
+      // Unique index conflict — leave for merge step.
+      if (submission.campaignId) {
+        campaignIds.add(String(submission.campaignId));
+      }
+      console.warn(
+        `[kol] backfill authorHandleKey conflict submission=${submission._id}:`,
+        e instanceof Error ? e.message : e,
+      );
+    }
   }
 
-  return { updated, attempted: submissions.length };
+  let mergedGroups = 0;
+  let deleted = 0;
+  if (opts.mergeDuplicates !== false) {
+    // Find campaigns that already have more than one row per normalized handle.
+    const dupeCampaigns = await KolSubmission.aggregate([
+      {
+        $project: {
+          campaignId: 1,
+          handleKey: {
+            $toLower: {
+              $ifNull: ["$authorHandleKey", { $ifNull: ["$authorHandle", ""] }],
+            },
+          },
+        },
+      },
+      { $match: { handleKey: { $ne: "" } } },
+      {
+        $group: {
+          _id: { campaignId: "$campaignId", handleKey: "$handleKey" },
+          count: { $sum: 1 },
+        },
+      },
+      { $match: { count: { $gt: 1 } } },
+      {
+        $group: {
+          _id: "$_id.campaignId",
+        },
+      },
+      { $limit: 100 },
+    ]);
+
+    for (const row of dupeCampaigns) {
+      campaignIds.add(String(row._id));
+    }
+
+    for (const campaignId of campaignIds) {
+      const result = await mergeDuplicateHandleSubmissions(campaignId);
+      mergedGroups += result.mergedGroups;
+      deleted += result.deleted;
+    }
+  }
+
+  return {
+    updated,
+    attempted: submissions.length,
+    mergedGroups,
+    deleted,
+  };
 }
 
 /**

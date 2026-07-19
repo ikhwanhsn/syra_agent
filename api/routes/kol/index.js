@@ -29,6 +29,7 @@ import {
   listKols,
   listProjects,
   listWalletCampaigns,
+  mergeDuplicateHandleSubmissions,
   refreshCampaignMetrics,
 } from "../../libs/kolMarketplaceService.js";
 import {
@@ -297,6 +298,26 @@ export function createKolRouter() {
         const limit =
           typeof req.body?.limit === "number" ? req.body.limit : undefined;
         const result = await backfillSubmissionAuthorKeys({ limit });
+        return res.json({ success: true, data: result });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
+
+  router.post(
+    "/admin/merge-duplicate-handles",
+    requireMongooseConnection,
+    async (req, res) => {
+      try {
+        const campaignId = String(req.body?.campaignId || "").trim();
+        if (!campaignId) {
+          return res.status(400).json({
+            success: false,
+            error: "campaignId is required",
+          });
+        }
+        const result = await mergeDuplicateHandleSubmissions(campaignId);
         return res.json({ success: true, data: result });
       } catch (e) {
         return handleServiceError(res, e);

@@ -366,6 +366,19 @@ export async function discoverCampaignEngagements(campaignId, opts = {}) {
 
   const sourceAuthorHandleKey = normalizeHandle(campaign.sourceAuthorHandle);
 
+  // Heal any duplicate-handle orphans before scoring this snapshot.
+  try {
+    const { mergeDuplicateHandleSubmissions } = await import(
+      "./kolMarketplaceService.js"
+    );
+    await mergeDuplicateHandleSubmissions(campaign._id);
+  } catch (e) {
+    console.warn(
+      `[kol] pre-discovery dupe merge failed campaign=${campaign._id}:`,
+      e instanceof Error ? e.message : e,
+    );
+  }
+
   // Dedicated endpoints + advanced_search fallback so high-volume threads
   // (beyond ~25 pages of replies/quotes) still surface every engager.
   const [replies, quotes, searchReplies, searchQuotes] = await Promise.all([
@@ -427,10 +440,39 @@ async function upsertHandlePosts(campaign, authorHandleKey, discoveredPosts, cap
   }
 
   const sample = discoveredPosts[0];
-  const existing = await KolSubmission.findOne({
+  const handleKey = normalizeHandle(authorHandleKey);
+  if (!handleKey) {
+    return { created: 0, updated: 0 };
+  }
+
+  // Collapse any orphan duplicate rows for this handle before upserting.
+  // Unique index on authorHandleKey may be missing in some environments, and
+  // case-variant keys can also leave the same KOL twice on the leaderboard.
+  const handleRegex = new RegExp(
+    `^${handleKey.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
+    "i",
+  );
+  const siblings = await KolSubmission.find({
     campaignId: campaign._id,
-    authorHandleKey,
+    $or: [{ authorHandleKey: handleKey }, { authorHandle: handleRegex }],
   });
+
+  if (siblings.length > 1) {
+    const { mergeDuplicateHandleSubmissions } = await import(
+      "./kolMarketplaceService.js"
+    );
+    await mergeDuplicateHandleSubmissions(campaign._id);
+  }
+
+  let existing = await KolSubmission.findOne({
+    campaignId: campaign._id,
+    $or: [{ authorHandleKey: handleKey }, { authorHandle: handleRegex }],
+  });
+
+  // Normalize key on legacy / case-variant rows so the unique index can hold.
+  if (existing && existing.authorHandleKey !== handleKey) {
+    existing.authorHandleKey = handleKey;
+  }
 
   const mergedRows = [
     ...(existing ? contributionsFromExisting(existing) : []),
@@ -457,7 +499,8 @@ async function upsertHandlePosts(campaign, authorHandleKey, discoveredPosts, cap
       totalScore > (existing.latestScore ?? 0) ||
       primary.tweetId !== existing.tweetId ||
       contributions.length !== (existing.contributions?.length ?? 0) ||
-      metricsIncreased(existing.latestMetrics, aggregatedMetrics);
+      metricsIncreased(existing.latestMetrics, aggregatedMetrics) ||
+      existing.authorHandleKey !== handleKey;
 
     let updated = 0;
     if (shouldUpdate) {
@@ -465,6 +508,7 @@ async function upsertHandlePosts(campaign, authorHandleKey, discoveredPosts, cap
       existing.tweetUrl = primary.tweetUrl;
       existing.mode = primary.mode;
       existing.authorHandle = sample.authorHandle;
+      existing.authorHandleKey = handleKey;
       existing.contributions = contributions;
       existing.latestMetrics = aggregatedMetrics;
       existing.latestScore = totalScore;
@@ -494,7 +538,7 @@ async function upsertHandlePosts(campaign, authorHandleKey, discoveredPosts, cap
       tweetUrl: primary.tweetUrl,
       mode: primary.mode,
       authorHandle: sample.authorHandle,
-      authorHandleKey,
+      authorHandleKey: handleKey,
       authorFollowers: sample.authorFollowers,
       authorVerified: sample.authorVerified,
       verified: true,
@@ -524,7 +568,63 @@ async function upsertHandlePosts(campaign, authorHandleKey, discoveredPosts, cap
 
     return { created: 1, updated: 0 };
   } catch (e) {
+    // Race: another worker created this handle/tweet — merge into the winner.
     if (e && typeof e === "object" && /** @type {{ code?: number }} */ (e).code === 11000) {
+      const raced = await KolSubmission.findOne({
+        campaignId: campaign._id,
+        $or: [
+          { authorHandleKey: handleKey },
+          { authorHandle: handleRegex },
+          { tweetId: primary.tweetId },
+        ],
+      });
+      if (raced) {
+        const retryRows = [
+          ...contributionsFromExisting(raced),
+          ...discoveredPosts.map((p) => ({
+            tweetId: p.tweetId,
+            tweetUrl: p.tweetUrl,
+            mode: p.mode,
+            metrics: p.metrics,
+            score: p.score,
+            scoreBreakdown: p.scoreBreakdown,
+          })),
+        ];
+        const retryAgg = aggregateContributions(
+          retryRows,
+          MAX_CONTRIBUTIONS_PER_HANDLE,
+        );
+        if (retryAgg) {
+          raced.authorHandleKey = handleKey;
+          raced.authorHandle = sample.authorHandle || raced.authorHandle;
+          raced.tweetId = retryAgg.primary.tweetId;
+          raced.tweetUrl = retryAgg.primary.tweetUrl;
+          raced.mode = retryAgg.primary.mode;
+          raced.contributions = retryAgg.contributions;
+          raced.latestMetrics = retryAgg.aggregatedMetrics;
+          raced.latestScore = retryAgg.totalScore;
+          raced.scoreBreakdown = retryAgg.primary.scoreBreakdown ?? null;
+          raced.authorFollowers = sample.authorFollowers;
+          raced.authorVerified = sample.authorVerified;
+          try {
+            await raced.save();
+            await KolEngagementSnapshot.create({
+              campaignId: campaign._id,
+              submissionId: raced._id,
+              capturedAt,
+              metrics: retryAgg.aggregatedMetrics,
+              score: retryAgg.totalScore,
+              scoreBreakdown: retryAgg.primary.scoreBreakdown ?? null,
+            });
+            return { created: 0, updated: 1 };
+          } catch (saveErr) {
+            console.warn(
+              `[kol] discovery race-merge failed campaign=${campaign._id} handle=${sample.authorHandle}:`,
+              saveErr instanceof Error ? saveErr.message : saveErr,
+            );
+          }
+        }
+      }
       return { created: 0, updated: 0 };
     }
     console.warn(
