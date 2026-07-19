@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import {
   POST_VIDEO_LAYOUT_HEIGHT,
   POST_VIDEO_LAYOUT_WIDTH,
-} from "@/components/post/postVideoExport";
+} from "@/video/constants";
 
 interface PostRecordStageProps {
   children: ReactNode;

@@ -25,6 +25,11 @@ import {
   PostSlideLayout,
 } from "@/components/post/PostSlideLayout";
 import { PostReveal } from "@/components/post/PostStagger";
+import {
+  PostVideoChip,
+  PostVideoCtaLink,
+  PostVideoLinkArrow,
+} from "@/components/post/PostVideoChip";
 import { cn } from "@/lib/utils";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
 import type { ReactNode } from "react";
@@ -40,13 +45,7 @@ function CoverBadge({
 }) {
   return (
     <PostReveal isActive={isActive} delayMs={delayMs}>
-      <span className="post-badge-bnb inline-flex items-center gap-2 rounded-full border border-[#F3BA2F]/25 bg-[#F3BA2F]/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[#F3BA2F]/90">
-        <span
-          className="post-pulse-dot h-1.5 w-1.5 rounded-full bg-[#F3BA2F]"
-          aria-hidden
-        />
-        {text}
-      </span>
+      <PostVideoChip showDot>{text}</PostVideoChip>
     </PostReveal>
   );
 }
@@ -91,17 +90,19 @@ export function renderCoverExtended(
               className="post-cover-logo mx-auto h-16 w-16 rounded-2xl border border-white/10 object-cover sm:h-[4.5rem] sm:w-[4.5rem]"
             />
           </PostReveal>
-          <CoverBadge text={slide.badge} isActive={isActive} delayMs={100} />
-          <PostReveal isActive={isActive} delayMs={200}>
-            <h1 className="post-slide-title post-slide-balance">
+          <PostReveal isActive={isActive} delayMs={80}>
+            <p className="post-slide-kicker">{slide.eyebrow}</p>
+          </PostReveal>
+          <PostReveal isActive={isActive} delayMs={160}>
+            <h1 className="post-slide-title post-slide-title--xl post-slide-balance">
               {slide.title}
             </h1>
           </PostReveal>
-          <PostReveal isActive={isActive} delayMs={300}>
-            <p className="post-slide-kicker">{slide.eyebrow}</p>
-          </PostReveal>
-          <PostReveal isActive={isActive} delayMs={400}>
-            <p className="post-slide-copy post-slide-prose">{slide.subtitle}</p>
+          <CoverBadge text={slide.badge} isActive={isActive} delayMs={240} />
+          <PostReveal isActive={isActive} delayMs={320}>
+            <p className="post-slide-lead post-slide-balance post-slide-prose">
+              {slide.subtitle}
+            </p>
           </PostReveal>
         </PostSlideLayout>
       );
@@ -853,7 +854,8 @@ export function renderClosingExtended(
                   className="post-slide-card group flex items-center justify-between gap-2"
                 >
                   <span className="post-slide-card-title">{link.label}</span>
-                  <ArrowUpRight className="h-3.5 w-3.5 text-white/40 group-hover:text-[#F3BA2F]/80" />
+                  <ArrowUpRight className="post-video-lucide-icon h-3.5 w-3.5 text-white/40 group-hover:text-[#F3BA2F]/80" />
+                  <PostVideoLinkArrow />
                 </a>
               </PostReveal>
             ))}
@@ -887,7 +889,8 @@ export function renderClosingExtended(
                   className="post-closing-stack-link"
                 >
                   <span>{link.value}</span>
-                  <ArrowUpRight className="h-4 w-4" />
+                  <ArrowUpRight className="post-video-lucide-icon h-4 w-4" />
+                  <PostVideoLinkArrow />
                 </a>
               </PostReveal>
             ))}
@@ -907,15 +910,10 @@ export function renderClosingExtended(
           </PostReveal>
           {slide.links[0] ? (
             <PostReveal isActive={isActive} delayMs={200}>
-              <a
+              <PostVideoCtaLink
                 href={slide.links[0].href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="post-slide-cta-primary"
-              >
-                {slide.links[0].label}: {slide.links[0].value}
-                <ArrowUpRight className="h-4 w-4" />
-              </a>
+                label={`${slide.links[0].label}: ${slide.links[0].value}`}
+              />
             </PostReveal>
           ) : null}
         </PostSlideLayout>

@@ -120,10 +120,19 @@ export default defineConfig(({ mode }) => {
     },
   },
   define: { "process.env": {}, global: "globalThis" },
+  assetsInclude: ["**/*.wasm"],
   optimizeDeps: {
     esbuildOptions: { define: { global: "globalThis" } },
-    include: ["@solana/wallet-adapter-base", "@solana/wallet-adapter-react", "@solana/wallet-adapter-wallets", "@solana/web3.js"],
-    exclude: ["random-avatar-generator"],
+    include: [
+      "@solana/wallet-adapter-base",
+      "@solana/wallet-adapter-react",
+      "@solana/wallet-adapter-wallets",
+      "@solana/web3.js",
+      "remotion",
+      "@remotion/player",
+      "@remotion/web-renderer",
+    ],
+    exclude: ["random-avatar-generator", "@resvg/resvg-wasm"],
   },
   };
 });

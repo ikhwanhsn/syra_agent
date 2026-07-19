@@ -8,7 +8,10 @@ import {
   POST_VIDEO_SLIDE_SLOTS,
 } from "@/content/posts";
 import { POST_PHOTO_CARD_COUNT } from "@/content/posts/photo/photoCardSlots";
-import { isLockedShipLogUpdate, POST_TEMPLATE_UPDATE_NUMBER } from "@/lib/postLocked";
+import {
+  isLockedShipLogUpdate,
+  POST_TEMPLATE_UPDATE_NUMBER,
+} from "@/lib/postLocked";
 import {
   getVisiblePostBundles,
   getLatestVisiblePostUpdateNumber,
@@ -28,12 +31,14 @@ export default function PostPage() {
     const all = getVisiblePostBundles();
     const locked = all.filter(
       (bundle) =>
-        isLockedShipLogUpdate(bundle.video.meta.updateNumber) || bundle.video.meta.locked,
+        isLockedShipLogUpdate(bundle.video.meta.updateNumber) ||
+        bundle.video.meta.locked,
     );
     const rest = all
       .filter(
         (bundle) =>
-          !isLockedShipLogUpdate(bundle.video.meta.updateNumber) && !bundle.video.meta.locked,
+          !isLockedShipLogUpdate(bundle.video.meta.updateNumber) &&
+          !bundle.video.meta.locked,
       )
       .reverse();
     return [...locked, ...rest];
@@ -138,7 +143,8 @@ export default function PostPage() {
                 Video
               </p>
               <p className="mt-1 text-xs text-white/45">
-                16:9 slide deck · {POST_VIDEO_SLIDE_COUNT} fixed kinds · proof-first
+                16:9 slide deck · {POST_VIDEO_SLIDE_COUNT} fixed kinds ·
+                proof-first
               </p>
             </div>
           </Link>

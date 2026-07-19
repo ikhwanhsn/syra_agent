@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   POST_PHOTO_CARD_COUNT,
@@ -9,12 +9,10 @@ import {
 } from "@/content/posts/photo";
 import { getPostShareCopyWithUrl } from "@/lib/postShare";
 import { PostBackLink } from "@/components/post/PostBackLink";
-import { PostPhotoExportStage } from "@/components/post/photo/PostPhotoExportStage";
-import { PostPhotoFrame } from "@/components/post/photo/PostPhotoFrame";
+import { PostPhotoSatoriPreview } from "@/components/post/photo/satori/PostPhotoSatoriPreview";
 import { PostShareCopyPanel } from "@/components/post/PostShareCopyPanel";
 import { PostUpdateNav } from "@/components/post/PostUpdateNav";
 import { PostXStatusControl } from "@/components/post/PostXStatusControl";
-import { renderPostPhotoTemplate } from "@/components/post/photo/PostPhotoTemplates";
 import {
   buildPostPhotoFilename,
   copyPostPhotoToClipboard,
@@ -65,7 +63,6 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
   const [cardIndex, setCardIndex] = useState(0);
   const [exporting, setExporting] = useState(false);
   const [imageCopied, setImageCopied] = useState(false);
-  const exportRef = useRef<HTMLDivElement | null>(null);
 
   const activeCard = cards[cardIndex];
   const cardShareText = getPostShareCopyWithUrl(post.meta, "photo", {
@@ -82,15 +79,12 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
     };
   }, [meta.title]);
 
-  const getExportNode = useCallback(() => exportRef.current, []);
-
   const handleDownload = useCallback(async () => {
-    const node = getExportNode();
-    if (!node || exporting) return;
+    if (exporting) return;
     setExporting(true);
     try {
       await exportPostPhotoPng(
-        node,
+        activeCard,
         buildPostPhotoFilename(meta.id, activeCard.role),
       );
       toast.success("Image downloaded");
@@ -99,14 +93,13 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
     } finally {
       setExporting(false);
     }
-  }, [exporting, getExportNode, activeCard.role, meta.id]);
+  }, [exporting, activeCard, meta.id]);
 
   const handleCopy = useCallback(async () => {
-    const node = getExportNode();
-    if (!node || exporting) return;
+    if (exporting) return;
     setExporting(true);
     try {
-      const ok = await copyPostPhotoToClipboard(node);
+      const ok = await copyPostPhotoToClipboard(activeCard);
       if (ok) {
         setImageCopied(true);
         toast.success("Image copied to clipboard");
@@ -119,7 +112,7 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
     } finally {
       setExporting(false);
     }
-  }, [exporting, getExportNode]);
+  }, [exporting, activeCard]);
 
   return (
     <div className="post-root post-photo-root relative flex min-h-[100dvh] w-full min-w-0 flex-col overflow-x-hidden bg-[#030303] text-white">
@@ -216,7 +209,7 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
                 <CardButton
                   key={card.role}
                   label={slot?.label ?? card.role}
-                  sublabel={POST_PHOTO_LAYOUT_LABELS[card.layout]}
+                  sublabel={POST_PHOTO_LAYOUT_LABELS[card.layout] ?? card.role}
                   active={cardIndex === index}
                   onSelect={() => setCardIndex(index)}
                 />
@@ -255,20 +248,14 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
           <p className="relative z-10 mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/35">
             {slotLabel}
             {" · "}
-            {POST_PHOTO_LAYOUT_LABELS[activeCard.layout]}
+            {activeCard.role}
             {" · "}
             {String(cardIndex + 1).padStart(2, "0")}/
             {String(POST_PHOTO_CARD_COUNT).padStart(2, "0")}
             {" · 1200×675"}
           </p>
           <div className="relative z-10 w-full">
-            <PostPhotoFrame>
-              {renderPostPhotoTemplate(
-                activeCard.layout,
-                activeCard.content,
-                activeCard.role,
-              )}
-            </PostPhotoFrame>
+            <PostPhotoSatoriPreview card={activeCard} />
           </div>
           <p className="post-footer-hint relative z-10 mt-3 hidden text-center font-mono text-[10px] text-white/30 sm:block">
             Export each card as PNG, then paste the matching X post — 15 posts
@@ -276,8 +263,6 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
           </p>
         </div>
       </div>
-
-      <PostPhotoExportStage card={activeCard} exportRef={exportRef} />
     </div>
   );
 }

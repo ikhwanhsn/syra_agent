@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
+import { RemotionReveal, useIsRemotionReveal } from "@/video/engine/revealContext";
 
 interface PostStaggerProps {
   isActive: boolean;
@@ -29,7 +30,21 @@ interface PostRevealProps {
   className?: string;
 }
 
+/**
+ * Entrance reveal. Outside Remotion: CSS keyframes.
+ * Inside RemotionRevealProvider: frame-driven styles for deterministic export.
+ */
 export function PostReveal({ isActive, delayMs = 0, children, className }: PostRevealProps) {
+  const remotion = useIsRemotionReveal();
+
+  if (remotion) {
+    return (
+      <RemotionReveal delayMs={delayMs} className={className}>
+        {children}
+      </RemotionReveal>
+    );
+  }
+
   return (
     <div
       className={cn("post-reveal", isActive && "post-reveal-active", className)}

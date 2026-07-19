@@ -5,6 +5,10 @@ import { getDuplicateLayouts, getLayoutKindMismatches } from "./validatePostUpda
 /**
  * Build a video update with exactly 8 slides in canonical kind order.
  * Throws at import if misconfigured — use for all new ship logs.
+ *
+ * Visual style: preview + export always go through Remotion `PostDeckVideo`
+ * (single Syra cinematic theme). New content inherits that look automatically —
+ * do not add per-update video CSS.
  */
 export function defineVideoUpdate(meta: PostUpdateMeta, slides: PostSlide[]): PostUpdate {
   const expectedKinds = POST_VIDEO_SLIDE_SLOTS.map((slot) => slot.kind);

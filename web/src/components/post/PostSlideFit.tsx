@@ -1,6 +1,7 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { computePostSlideFitScale } from "@/components/post/postSlideFitMeasure";
+import { useIsRemotionReveal } from "@/video/engine/revealContext";
 
 interface PostSlideFitProps {
   isActive: boolean;
@@ -10,11 +11,13 @@ interface PostSlideFitProps {
 /**
  * Scales slide content down when it exceeds the 16:9 frame so all text stays visible.
  * Re-runs on resize and when the slide becomes active.
+ * Inside Remotion: measure synchronously per frame (no wall-clock timeouts).
  */
 export function PostSlideFit({ isActive, children }: PostSlideFitProps) {
   const outerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
+  const remotion = useIsRemotionReveal();
 
   const measure = useCallback(() => {
     const outer = outerRef.current;
@@ -36,13 +39,17 @@ export function PostSlideFit({ isActive, children }: PostSlideFitProps) {
     const inner = innerRef.current;
     if (!outer || !inner) return;
 
+    if (remotion) {
+      return;
+    }
+
     const observer = new ResizeObserver(() => {
       measure();
     });
     observer.observe(outer);
     observer.observe(inner);
 
-    // Re-fit after stagger/reveal animations finish
+    // Re-fit after stagger/reveal animations finish (live deck only)
     const t1 = window.setTimeout(measure, 450);
     const t2 = window.setTimeout(measure, 950);
 
@@ -51,7 +58,7 @@ export function PostSlideFit({ isActive, children }: PostSlideFitProps) {
       window.clearTimeout(t1);
       window.clearTimeout(t2);
     };
-  }, [isActive, measure, children]);
+  }, [isActive, measure, children, remotion]);
 
   return (
     <div ref={outerRef} className="post-slide-fit">

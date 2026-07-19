@@ -27,9 +27,14 @@ export function applyPostStudioState(next: PostStudioState): void {
   }
 }
 
-export function getPostXStatus(updateNumber: number, defaultPosted = false): boolean {
+export function getPostXStatus(
+  updateNumber: number,
+  defaultPosted = false,
+): boolean {
   const key = String(updateNumber);
-  return key in cachedState.postedOnX ? cachedState.postedOnX[key]! : defaultPosted;
+  return key in cachedState.postedOnX
+    ? cachedState.postedOnX[key]!
+    : defaultPosted;
 }
 
 export function isPostDeleted(updateNumber: number): boolean {
@@ -71,7 +76,10 @@ export function readLegacyLocalStorageState(): {
     if (rawDeleted) {
       const parsed: unknown = JSON.parse(rawDeleted);
       if (Array.isArray(parsed)) {
-        deleted = parsed.filter((n): n is number => typeof n === "number" && Number.isFinite(n) && n > 0);
+        deleted = parsed.filter(
+          (n): n is number =>
+            typeof n === "number" && Number.isFinite(n) && n > 0,
+        );
       }
     }
   } catch {
@@ -86,8 +94,14 @@ export function writeLegacyLocalStorageState(state: {
   deleted: number[];
 }): void {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(LEGACY_POSTED_KEY, JSON.stringify(state.postedOnX));
-  window.localStorage.setItem(LEGACY_DELETED_KEY, JSON.stringify(state.deleted));
+  window.localStorage.setItem(
+    LEGACY_POSTED_KEY,
+    JSON.stringify(state.postedOnX),
+  );
+  window.localStorage.setItem(
+    LEGACY_DELETED_KEY,
+    JSON.stringify(state.deleted),
+  );
 }
 
 export function clearLegacyLocalStorageState(): void {

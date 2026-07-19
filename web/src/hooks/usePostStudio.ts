@@ -16,7 +16,10 @@ import {
   readLegacyLocalStorageState,
   writeLegacyLocalStorageState,
 } from "@/lib/postStudioState";
-import { filterDeletableUpdateNumbers, stripLockedFromDeleted } from "@/lib/postLocked";
+import {
+  filterDeletableUpdateNumbers,
+  stripLockedFromDeleted,
+} from "@/lib/postLocked";
 import { usePostRegistryRefresh } from "@/lib/usePostRegistryRefresh";
 
 export const POST_STUDIO_QUERY_KEY = ["post-studio-state"] as const;
@@ -26,8 +29,13 @@ function hasLegacyLocalData(): boolean {
   return Object.keys(legacy.postedOnX).length > 0 || legacy.deleted.length > 0;
 }
 
-function isServerStateEmpty(state: { postedOnX: Record<string, boolean>; deleted: number[] }): boolean {
-  return Object.keys(state.postedOnX).length === 0 && state.deleted.length === 0;
+function isServerStateEmpty(state: {
+  postedOnX: Record<string, boolean>;
+  deleted: number[];
+}): boolean {
+  return (
+    Object.keys(state.postedOnX).length === 0 && state.deleted.length === 0
+  );
 }
 
 function fallbackPostStudioState(): PostStudioState {
@@ -40,13 +48,19 @@ function fallbackPostStudioState(): PostStudioState {
 }
 
 function persistLocalPostStudioState(state: PostStudioState): PostStudioState {
-  const next = { ...state, updatedAt: state.updatedAt ?? new Date().toISOString() };
+  const next = {
+    ...state,
+    updatedAt: state.updatedAt ?? new Date().toISOString(),
+  };
   applyPostStudioState(next);
   writeLegacyLocalStorageState(next);
   return next;
 }
 
-function patchPostedLocally(updateNumber: number, posted: boolean): PostStudioState {
+function patchPostedLocally(
+  updateNumber: number,
+  posted: boolean,
+): PostStudioState {
   const current = getPostStudioState();
   return persistLocalPostStudioState({
     ...current,
@@ -59,7 +73,9 @@ function deleteUpdatesLocally(updateNumbers: number[]): PostStudioState {
   const current = getPostStudioState();
   return persistLocalPostStudioState({
     ...current,
-    deleted: [...new Set([...current.deleted, ...deletable])].sort((a, b) => a - b),
+    deleted: [...new Set([...current.deleted, ...deletable])].sort(
+      (a, b) => a - b,
+    ),
   });
 }
 
@@ -75,7 +91,9 @@ async function patchPostStudioPostedWithFallback(
   }
 }
 
-async function deletePostStudioUpdatesWithFallback(updateNumbers: number[]): Promise<PostStudioState> {
+async function deletePostStudioUpdatesWithFallback(
+  updateNumbers: number[],
+): Promise<PostStudioState> {
   const deletable = filterDeletableUpdateNumbers(updateNumbers);
   if (deletable.length === 0) {
     return getPostStudioState();
@@ -102,13 +120,19 @@ async function loadPostStudioState() {
       clearLegacyLocalStorageState();
     }
 
-    const cleaned = { ...state, deleted: stripLockedFromDeleted(state.deleted) };
+    const cleaned = {
+      ...state,
+      deleted: stripLockedFromDeleted(state.deleted),
+    };
     applyPostStudioState(cleaned);
     return cleaned;
   } catch (err) {
     if (!isPostStudioFallbackError(err)) throw err;
     const state = fallbackPostStudioState();
-    const cleaned = { ...state, deleted: stripLockedFromDeleted(state.deleted) };
+    const cleaned = {
+      ...state,
+      deleted: stripLockedFromDeleted(state.deleted),
+    };
     applyPostStudioState(cleaned);
     return cleaned;
   }
@@ -119,7 +143,8 @@ export function usePostStudioQuery() {
     queryKey: POST_STUDIO_QUERY_KEY,
     queryFn: loadPostStudioState,
     staleTime: 15_000,
-    retry: (failureCount, error) => !isPostStudioFallbackError(error) && failureCount < 2,
+    retry: (failureCount, error) =>
+      !isPostStudioFallbackError(error) && failureCount < 2,
   });
 }
 
@@ -127,14 +152,19 @@ export function useSetPostPostedMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ updateNumber, posted }: { updateNumber: number; posted: boolean }) =>
-      patchPostStudioPostedWithFallback(updateNumber, posted),
+    mutationFn: ({
+      updateNumber,
+      posted,
+    }: {
+      updateNumber: number;
+      posted: boolean;
+    }) => patchPostStudioPostedWithFallback(updateNumber, posted),
     onMutate: async ({ updateNumber, posted }) => {
       await queryClient.cancelQueries({ queryKey: POST_STUDIO_QUERY_KEY });
       const previous =
-        queryClient.getQueryData<Awaited<ReturnType<typeof loadPostStudioState>>>(
-          POST_STUDIO_QUERY_KEY,
-        ) ?? getCachedPostStudioQueryState();
+        queryClient.getQueryData<
+          Awaited<ReturnType<typeof loadPostStudioState>>
+        >(POST_STUDIO_QUERY_KEY) ?? getCachedPostStudioQueryState();
       if (previous) {
         const optimistic = {
           ...previous,
@@ -162,18 +192,21 @@ export function useDeletePostStudioUpdatesMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (updateNumbers: number[]) => deletePostStudioUpdatesWithFallback(updateNumbers),
+    mutationFn: (updateNumbers: number[]) =>
+      deletePostStudioUpdatesWithFallback(updateNumbers),
     onMutate: async (updateNumbers) => {
       await queryClient.cancelQueries({ queryKey: POST_STUDIO_QUERY_KEY });
       const previous =
-        queryClient.getQueryData<Awaited<ReturnType<typeof loadPostStudioState>>>(
-          POST_STUDIO_QUERY_KEY,
-        ) ?? getCachedPostStudioQueryState();
+        queryClient.getQueryData<
+          Awaited<ReturnType<typeof loadPostStudioState>>
+        >(POST_STUDIO_QUERY_KEY) ?? getCachedPostStudioQueryState();
       if (previous) {
         const deletable = filterDeletableUpdateNumbers(updateNumbers);
         const optimistic = {
           ...previous,
-          deleted: [...new Set([...previous.deleted, ...deletable])].sort((a, b) => a - b),
+          deleted: [...new Set([...previous.deleted, ...deletable])].sort(
+            (a, b) => a - b,
+          ),
         };
         applyPostStudioState(optimistic);
         queryClient.setQueryData(POST_STUDIO_QUERY_KEY, optimistic);
@@ -215,5 +248,10 @@ export function usePostXStatus(updateNumber: number, defaultPosted = false) {
     [updateNumber, setPostedM],
   );
 
-  return { posted, toggle, setPosted: setStatus, isPending: setPostedM.isPending };
+  return {
+    posted,
+    toggle,
+    setPosted: setStatus,
+    isPending: setPostedM.isPending,
+  };
 }

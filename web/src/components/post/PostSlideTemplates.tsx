@@ -26,6 +26,11 @@ import {
   renderSurfacesExtended,
 } from "@/components/post/PostSlideTemplatesExtended";
 import { PostReveal } from "@/components/post/PostStagger";
+import {
+  PostVideoChip,
+  PostVideoCtaLink,
+  PostVideoLinkArrow,
+} from "@/components/post/PostVideoChip";
 import { cn } from "@/lib/utils";
 import { ArrowUpRight } from "lucide-react";
 import type { ReactNode } from "react";
@@ -41,13 +46,7 @@ function CoverBadge({
 }) {
   return (
     <PostReveal isActive={isActive} delayMs={delayMs}>
-      <span className="post-badge-bnb inline-flex items-center gap-2 rounded-full border border-[#F3BA2F]/25 bg-[#F3BA2F]/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[#F3BA2F]/90">
-        <span
-          className="post-pulse-dot h-1.5 w-1.5 rounded-full bg-[#F3BA2F]"
-          aria-hidden
-        />
-        {text}
-      </span>
+      <PostVideoChip showDot>{text}</PostVideoChip>
     </PostReveal>
   );
 }
@@ -666,7 +665,10 @@ function renderSurfaces(
                       strokeWidth={1.5}
                     />
                     {item.href ? (
-                      <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-white/25 group-hover:text-[#F3BA2F]/80" />
+                      <>
+                        <ArrowUpRight className="post-video-lucide-icon h-3.5 w-3.5 shrink-0 text-white/25 group-hover:text-[#F3BA2F]/80" />
+                        <PostVideoLinkArrow />
+                      </>
                     ) : null}
                   </div>
                   <h3 className="post-slide-card-title mt-2">{item.title}</h3>
@@ -739,7 +741,8 @@ function renderSurfaces(
                       rel="noopener noreferrer"
                       className="shrink-0 text-white/30 hover:text-[#F3BA2F]/80"
                     >
-                      <ArrowUpRight className="h-3.5 w-3.5" />
+                      <ArrowUpRight className="post-video-lucide-icon h-3.5 w-3.5" />
+                      <PostVideoLinkArrow />
                     </a>
                   ) : null}
                 </li>
@@ -932,7 +935,8 @@ function renderClosing(slide: PostClosingSlide, isActive: boolean): ReactNode {
                       {link.value}
                     </p>
                   </div>
-                  <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-white/30 group-hover:text-[#F3BA2F]/80" />
+                  <ArrowUpRight className="post-video-lucide-icon h-3.5 w-3.5 shrink-0 text-white/30 group-hover:text-[#F3BA2F]/80" />
+                  <PostVideoLinkArrow />
                 </a>
               </PostReveal>
             ))}
@@ -957,15 +961,7 @@ function renderClosing(slide: PostClosingSlide, isActive: boolean): ReactNode {
           </PostReveal>
           {slide.links[0] ? (
             <PostReveal isActive={isActive} delayMs={260}>
-              <a
-                href={slide.links[0].href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="post-slide-cta-primary"
-              >
-                {slide.links[0].value}
-                <ArrowUpRight className="h-4 w-4" />
-              </a>
+              <PostVideoCtaLink href={slide.links[0].href} label={slide.links[0].value} />
             </PostReveal>
           ) : null}
         </PostSlideLayout>
