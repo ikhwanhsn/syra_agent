@@ -21,6 +21,7 @@ const KolProfile = lazy(() => import("./pages/KolProfile"));
 const Profile = lazy(() => import("./pages/Profile"));
 const ReferralPage = lazy(() => import("./pages/ReferralPage"));
 const PointsLeaderboardPage = lazy(() => import("./pages/PointsLeaderboardPage"));
+const MissionsPage = lazy(() => import("./pages/MissionsPage"));
 const ReferralRedirect = lazy(() => import("./pages/ReferralRedirect"));
 const CampaignComingSoon = lazy(() =>
   import("./pages/ComingSoon").then((m) => ({ default: m.CampaignComingSoon })),
@@ -55,6 +56,7 @@ const App = () => (
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/profile/referral" element={<ReferralPage />} />
                 <Route path="/profile/points" element={<PointsLeaderboardPage />} />
+                <Route path="/profile/missions" element={<MissionsPage />} />
                 <Route path="/r/:code" element={<ReferralRedirect />} />
                 <Route path="/jobs" element={<JobsPage />} />
                 <Route path="/jobs/:id" element={<JobDetail />} />

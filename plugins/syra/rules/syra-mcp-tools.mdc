@@ -5,39 +5,40 @@ alwaysApply: false
 
 # Syra MCP tools
 
-The Syra plugin bundles `@syra-ai/mcp-server` — ~240 codegen tools from the Syra API catalog.
+The Syra plugin bundles `@syra-ai/mcp-server` — **257** codegen tools from the Syra API catalog.
 
 ## Tool profiles
 
 | Profile | Env | Tools exposed |
 |---------|-----|---------------|
-| **curated** (default) | `SYRA_MCP_TOOL_PROFILE=curated` | ~42 high-value tools + `syra_call_tool` escape hatch |
-| **full** | `SYRA_MCP_TOOL_PROFILE=full` | Every agent tool (~240) |
+| **curated** (default) | `SYRA_MCP_TOOL_PROFILE=curated` | **47** high-value tools + `syra_call_tool` + free helpers |
+| **full** | `SYRA_MCP_TOOL_PROFILE=full` | Every agent tool (257) |
 
 Prefer **curated** for most workflows. Use **full** only when you need a specific tool not in the curated set.
+
+Naming: `syra_{pillar}_{toolId}` (e.g. `syra_spend_news`).
 
 ## When to use MCP tools
 
 Use Syra MCP tools when the user asks for:
 
 - **Market research** — news, sentiment, events, trending headlines
-- **Trading signals** — `syra_v2_signal` (analysis only, not execution)
-- **On-chain intelligence** — smart money, Nansen token god mode, memecoin screens
-- **Synthesized answers** — `syra_v2_brain` (natural-language question → multi-tool answer)
-- **Agent registry** — 8004 stats, leaderboard, liveness, integrity checks
-- **Cross-chain** — Squid route/status, Quicknode balance/RPC
+- **Trading signals** — `syra_spend_signal` (analysis only, not execution)
+- **On-chain intelligence** — smart money netflow, RugCheck, DexScreener, memecoin scout
+- **Composite analytics** — `syra_spend_analytics_summary`
+- **Agent registry** — `syra_earn_8004_*`
+- **Cross-chain** — `syra_invest_squid_route` / `syra_invest_squid_status`
 
 ## Key tools
 
 | Tool | Use case |
 |------|----------|
-| `syra_v2_news` | Latest crypto news; optional `ticker` (BTC, ETH, general) |
-| `syra_v2_signal` | AI trading signals with entry/exit context |
-| `syra_v2_sentiment` | 30-day market sentiment |
-| `syra_v2_smart_money` | Nansen smart-money aggregate flows |
-| `syra_v2_brain` | One NL question → synthesized multi-tool answer |
-| `syra_v2_analytics_summary` | Composite analytics (Jupiter, Nansen, Binance) |
-| `syra_v2_check_status` | API health check |
+| `syra_spend_news` | Latest crypto news; optional `ticker` (BTC, ETH, general) |
+| `syra_spend_signal` | Trading signals with entry/exit context |
+| `syra_spend_sentiment` | Market sentiment |
+| `syra_spend_nansen_smart_money_netflow` | Nansen smart-money netflow |
+| `syra_spend_analytics_summary` | Composite analytics (Jupiter, Nansen, Binance) |
+| `syra_spend_health` | API health check |
 | `syra_call_tool` | Escape hatch: `{ toolId, params }` for any catalog tool |
 
 ## Escape hatch
@@ -71,3 +72,4 @@ Without `SYRA_PAYER_KEYPAIR` (or EVM/Algorand equivalent), paid tools return **4
 - MCP server README: `mcp-server/README.md` in the Syra monorepo
 - Live tool catalog: `GET https://api.syraa.fun/agent/tools`
 - Skills catalog: https://syraa.fun/skills.md
+- Agent skill: https://api.syraa.fun/skill.md

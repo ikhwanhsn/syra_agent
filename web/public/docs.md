@@ -32,6 +32,13 @@ This file mirrors the **structure of the public documentation** published at [do
 
 ---
 
+## Build with packages
+
+- [Install MCP](https://docs.syraa.fun/docs/build/mcp) — `@syra-ai/mcp-server` for Cursor / Claude / agents
+- [Install SDK](https://docs.syraa.fun/docs/build/sdk) — `@syra-ai/sdk` typed client + auto-pay
+
+---
+
 ## Build with the API
 
 - [API reference overview](https://docs.syraa.fun/docs/api-reference)
@@ -128,9 +135,10 @@ This file mirrors the **structure of the public documentation** published at [do
 
 ## Related technical sources (not the docs app)
 
-- API base: [https://api.syraa.fun](https://api.syraa.fun) — `/.well-known/x402`, `openapi.json`, `mpp-openapi.json`
+- API base: [https://api.syraa.fun](https://api.syraa.fun) — `/.well-known/x402`, `openapi.json`, `mpp-openapi.json`, `llms-full.txt`, `skill.md`
 - Web agent: [https://syraa.fun](https://syraa.fun)
 - API marketplace: [https://syraa.fun/marketplace](https://syraa.fun/marketplace) — browse x402 APIs, per-route detail pages, SDK/MCP integrate tab (`/playground` redirects here)
+- npm: [`@syra-ai/mcp-server`](https://www.npmjs.com/package/@syra-ai/mcp-server) · [`@syra-ai/sdk`](https://www.npmjs.com/package/@syra-ai/sdk) · [`@syra-ai/x402-payer`](https://www.npmjs.com/package/@syra-ai/x402-payer)
 
 ---
 

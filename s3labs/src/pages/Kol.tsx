@@ -261,7 +261,7 @@ function KolPageContent() {
             <p className="text-muted-foreground mt-4 text-base sm:text-lg leading-relaxed w-full max-w-none">
               Put up a SOL pool on your X post — or verify X, reply/quote, and
               submit your link to earn (1 per campaign). Engagement updates about
-              every 24 hours; we rank by fair engagement and pay automatically.
+              every 6 hours; we rank by fair engagement and pay automatically.
               Unused pool SOL is refunded to projects. Everyone earns{" "}
               <span className="text-foreground/90 font-medium">S3Labs Points</span>.
             </p>

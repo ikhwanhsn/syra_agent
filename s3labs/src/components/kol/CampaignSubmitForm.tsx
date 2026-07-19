@@ -77,7 +77,7 @@ export function CampaignSubmitForm({
     },
     onSuccess: (data) => {
       toast.success("Post submitted", {
-        description: `@${data.submission.authorHandle} is on the leaderboard. Engagement updates about every 24 hours.`,
+        description: `@${data.submission.authorHandle} is on the leaderboard. Engagement updates about every 6 hours.`,
       });
       setTweetUrl("");
       onSubmitted?.(data.submission);
@@ -127,7 +127,7 @@ export function CampaignSubmitForm({
             <h3 className="font-semibold tracking-tight">You’re on the board</h3>
           </div>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            One post per campaign. Engagement and score update about every 24
+            One post per campaign. Engagement and score update about every 6
             hours — no need to resubmit.
           </p>
         </div>
@@ -147,7 +147,7 @@ export function CampaignSubmitForm({
           <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
             After you reply or quote on X, paste the link here. Only verified X
             accounts can submit — 1 post per campaign. Engagement updates about
-            every 24 hours.
+            every 6 hours.
           </p>
         </div>
 

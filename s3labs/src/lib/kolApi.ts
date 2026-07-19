@@ -288,11 +288,68 @@ export interface WalletPoints {
   creationPoints: number;
   dailyClaimPoints?: number;
   referralPoints?: number;
+  missionPoints?: number;
   campaignsParticipated: number;
   campaignsCreated: number;
   lastHandle: string | null;
   lastAwardedAt: string | null;
   entries: WalletPointsEntry[];
+}
+
+export interface S3LabsMission {
+  id: string;
+  tweetId: string;
+  tweetUrl: string;
+  text: string;
+  authorHandle: string;
+  authorName: string | null;
+  mediaUrls: string[];
+  likeCount: number;
+  replyCount: number;
+  tweetCreatedAt: string | null;
+  status: "active" | "archived";
+  pointsReward: number;
+  submissionCount: number;
+  syncedAt: string | null;
+  submitted: boolean;
+  pointsAwarded: number;
+  replyTweetUrl: string | null;
+}
+
+export interface MissionsResponse {
+  handle: string;
+  pointsReward: number;
+  walletVerified: boolean;
+  xHandle: string | null;
+  completedCount: number;
+  totalMissionPoints: number;
+  missions: S3LabsMission[];
+}
+
+export interface MissionSubmitResult {
+  submission: {
+    id: string;
+    missionId: string;
+    missionTweetId: string;
+    wallet: string;
+    xHandle: string | null;
+    replyTweetId: string;
+    replyTweetUrl: string;
+    pointsAwarded: number;
+    submittedAt: string | null;
+  };
+  totals: {
+    totalPoints: number;
+    missionPoints: number;
+  };
+}
+
+export interface MissionSyncResult {
+  handle: string;
+  fetched: number;
+  created: number;
+  updated: number;
+  syncedAt: string;
 }
 
 export interface DailyClaimStatus {
@@ -367,6 +424,7 @@ export interface PointsLeaderboardEntry {
   creationPoints?: number;
   referralPoints?: number;
   dailyClaimPoints?: number;
+  missionPoints?: number;
   campaignsParticipated: number;
   campaignsCreated?: number;
   lastAwardedAt: string | null;
@@ -575,7 +633,7 @@ export const DEFAULT_KOL_CONFIG: KolConfig = {
   platformFeeSolDefault: 0.005,
   firstCampaignFeeWaived: false,
   creatorScoreBonus: 1.15,
-  discoveryIntervalHours: 24,
+  discoveryIntervalHours: 6,
   platformFeeWallet: "854tpY9AnaMYDpviWeo4eWXzoUmvLrYwkU16F2MtzHz8",
 };
 
@@ -866,6 +924,64 @@ export function fetchPointsLeaderboard(opts?: {
   return kolFetch<{ leaderboard: PointsLeaderboardEntry[] }>(
     `/kol/points/leaderboard${qs}`,
   );
+}
+
+export function fetchMissions(opts?: {
+  wallet?: string;
+  limit?: number;
+}): Promise<MissionsResponse> {
+  const params = new URLSearchParams();
+  if (opts?.wallet) params.set("wallet", opts.wallet);
+  if (opts?.limit != null) params.set("limit", String(opts.limit));
+  const qs = params.toString() ? `?${params.toString()}` : "";
+  return kolFetch<MissionsResponse>(`/kol/missions${qs}`);
+}
+
+export function submitMissionComment(input: {
+  missionId: string;
+  wallet: string;
+  tweetUrl: string;
+}): Promise<MissionSubmitResult> {
+  return kolFetch<MissionSubmitResult>(
+    `/kol/missions/${encodeURIComponent(input.missionId)}/submit`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        wallet: input.wallet,
+        tweetUrl: input.tweetUrl,
+      }),
+    },
+  );
+}
+
+/**
+ * Admin-only: sync latest @s3labs_ X posts into missions.
+ * Requires connected admin wallet via X-Admin-Wallet header.
+ */
+export async function syncMissions(
+  wallet: string,
+  opts?: { limit?: number },
+): Promise<MissionSyncResult> {
+  const res = await fetch(`${API_BASE}/kol/missions/sync`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Admin-Wallet": wallet,
+    },
+    body: JSON.stringify({ limit: opts?.limit }),
+  });
+
+  const body = (await res.json().catch(() => ({}))) as KolApiResponse<MissionSyncResult>;
+  if (!res.ok || !body.success) {
+    throw new KolApiError(
+      body.error || `Request failed (${res.status})`,
+      body.code ?? "unknown",
+    );
+  }
+  if (body.data === undefined) {
+    throw new Error("Empty API response");
+  }
+  return body.data;
 }
 
 export function fetchReferralProfile(wallet: string): Promise<ReferralProfile> {

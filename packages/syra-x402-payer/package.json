@@ -28,11 +28,15 @@
     "usdc",
     "solana",
     "base",
+    "algorand",
     "micropayments",
     "agents",
     "syra",
     "http-402",
-    "payment"
+    "payment",
+    "typescript",
+    "fetch",
+    "mcp"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",

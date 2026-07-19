@@ -1,0 +1,127 @@
+- generic [ref=e1]:
+  - region "Notifications alt+T"
+  - alert [ref=e2]: x402scan
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - heading "Command Palette" [level=2] [ref=e5]
+      - paragraph [ref=e6]: Search for a command to run...
+    - link [ref=e8] [cursor=pointer]:
+      - /url: /
+      - img "x402scan Logo" [ref=e10]
+    - banner [ref=e11]:
+      - generic [ref=e12]:
+        - link [ref=e14] [cursor=pointer]:
+          - /url: /
+          - paragraph [ref=e16]: x402scan
+        - generic [ref=e17]:
+          - button "All Chains" [ref=e18] [cursor=pointer]
+          - button "Navigate ⌘K" [ref=e23] [cursor=pointer]:
+            - generic [ref=e24]: Navigate
+            - generic [ref=e29]: ⌘K
+          - button [ref=e30] [cursor=pointer]
+          - link [ref=e34] [cursor=pointer]:
+            - /url: https://github.com/Merit-Systems/x402scan
+            - button [ref=e35]:
+              - img "GitHub" [ref=e36]
+          - button [ref=e37] [cursor=pointer]
+    - generic [ref=e47]:
+      - navigation [ref=e49]:
+        - list [ref=e50]:
+          - link "Discover" [ref=e52] [cursor=pointer]:
+            - /url: /
+            - listitem [ref=e53]:
+              - generic [ref=e54]: Discover
+          - link "All" [ref=e58] [cursor=pointer]:
+            - /url: /all
+            - listitem [ref=e59]:
+              - generic [ref=e60]: All
+          - link "Marketplace" [ref=e63] [cursor=pointer]:
+            - /url: /resources
+            - listitem [ref=e64]:
+              - generic [ref=e65]: Marketplace
+          - link "Transactions" [ref=e68] [cursor=pointer]:
+            - /url: /transactions
+            - listitem [ref=e69]:
+              - generic [ref=e70]: Transactions
+          - link "Facilitators" [ref=e73] [cursor=pointer]:
+            - /url: /facilitators
+            - listitem [ref=e74]:
+              - generic [ref=e75]: Facilitators
+          - link "Networks" [ref=e78] [cursor=pointer]:
+            - /url: /networks
+            - listitem [ref=e79]:
+              - generic [ref=e80]: Networks
+          - link "Ecosystem" [ref=e83] [cursor=pointer]:
+            - /url: /ecosystem
+            - listitem [ref=e84]:
+              - generic [ref=e85]: Ecosystem
+      - generic [ref=e88]:
+        - generic [ref=e89]:
+          - generic [ref=e90]:
+            - generic [ref=e91]:
+              - generic [ref=e92]:
+                - img "x402scan Logo" [ref=e94]
+                - heading "x402scan" [level=1] [ref=e95]
+              - link [ref=e96] [cursor=pointer]:
+                - /url: /resources/register
+                - button "Add your API" [ref=e97]
+            - paragraph [ref=e99]: The x402 block explorer, analytics dashboard and marketplace for paid APIs and agentic commerce
+          - generic [ref=e100]:
+            - generic [ref=e101]:
+              - 'textbox "Try: send email, generate image, search the web, buy a mug…" [active] [ref=e102]': syra
+              - button [ref=e1185]
+            - button "Search" [disabled]
+        - generic [ref=e1189]:
+          - table [ref=e1192]:
+            - rowgroup [ref=e1193]:
+              - row [ref=e1194]:
+                - columnheader [ref=e1195]
+                - columnheader [ref=e1200]
+                - columnheader [ref=e1204]
+                - columnheader [ref=e1208]
+                - columnheader [ref=e1215]
+                - columnheader [ref=e1222]
+                - columnheader [ref=e1226]
+                - columnheader [ref=e1231]:
+                  - link "Call all x402 resources with AgentCash" [ref=e1232] [cursor=pointer]:
+                    - /url: https://agentcash.dev
+            - rowgroup [ref=e1233]:
+              - row [ref=e1234]:
+                - cell [ref=e1235]:
+                  - link "X402 Protocol Test x402 micropayments demo server. AI agents pay 0.001 USDC for billing verification. x402helper.xyz" [ref=e1236] [cursor=pointer]:
+                    - /url: /server/23cd0267-0ff1-4f24-878d-cda0637cd4b4
+                    - generic [ref=e1241]:
+                      - generic [ref=e1242]: X402 Protocol Test
+                      - generic [ref=e1244]: x402 micropayments demo server. AI agents pay 0.001 USDC for billing verification.
+                      - generic [ref=e1245]: x402helper.xyz
+                - cell [ref=e1246]
+                - cell "$24.75" [ref=e1256]
+                - cell "1.08K" [ref=e1258]
+                - cell "108" [ref=e1260]
+                - cell "1d ago" [ref=e1262]
+                - cell [ref=e1264]:
+                  - img "Base" [ref=e1266]
+                - cell [ref=e1267]:
+                  - button "Try it" [ref=e1268]
+          - generic [ref=e1272]:
+            - button [disabled]
+            - paragraph [ref=e1273]: Page 1 of 1
+            - button [disabled]
+      - contentinfo [ref=e1153]:
+        - generic [ref=e1155]:
+          - link "x402scan Logo x402scan" [ref=e1156] [cursor=pointer]:
+            - /url: /
+            - img "x402scan Logo" [ref=e1158]
+            - generic [ref=e1159]: x402scan
+          - link "Merit" [ref=e1160] [cursor=pointer]:
+            - /url: https://merit.systems
+          - generic [ref=e1174]:
+            - link "GitHub" [ref=e1175] [cursor=pointer]:
+              - /url: https://github.com/Merit-Systems/x402scan
+              - img "GitHub" [ref=e1176]
+            - link "Twitter" [ref=e1177] [cursor=pointer]:
+              - /url: https://x.com/x402scan
+            - link "Privacy" [ref=e1180] [cursor=pointer]:
+              - /url: /privacy
+            - link "Terms" [ref=e1181] [cursor=pointer]:
+              - /url: /tos

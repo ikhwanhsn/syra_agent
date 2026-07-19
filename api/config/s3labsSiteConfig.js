@@ -7,6 +7,11 @@
 export const S3LABS_CANONICAL_HOST = "s3labs.xyz";
 export const S3LABS_CANONICAL_ORIGIN = `https://${S3LABS_CANONICAL_HOST}`;
 
+/** Official S3Labs X/Twitter handle used as the missions source account. */
+export const S3LABS_X_HANDLE = String(process.env.S3LABS_X_HANDLE || "s3labs_")
+  .trim()
+  .replace(/^@/, "");
+
 /** Hostnames that must never appear in outbound product links. */
 const LEGACY_S3LABS_HOSTS = new Set([
   "s3labs.id",

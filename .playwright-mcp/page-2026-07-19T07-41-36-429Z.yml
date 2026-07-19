@@ -1,0 +1,414 @@
+- generic [active] [ref=e1]:
+  - region "Notifications alt+T"
+  - alert [ref=e2]
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - heading "Command Palette" [level=2] [ref=e5]
+      - paragraph [ref=e6]: Search for a command to run...
+    - link [ref=e8] [cursor=pointer]:
+      - /url: /
+      - img "x402scan Logo" [ref=e10]
+    - banner [ref=e11]:
+      - generic [ref=e12]:
+        - link [ref=e14] [cursor=pointer]:
+          - /url: /
+          - paragraph [ref=e16]: x402scan
+        - generic [ref=e17]:
+          - button "All Chains" [ref=e18] [cursor=pointer]
+          - button "Navigate ⌘K" [ref=e23] [cursor=pointer]:
+            - generic [ref=e24]: Navigate
+            - generic [ref=e29]: ⌘K
+          - button [ref=e30] [cursor=pointer]
+          - link [ref=e34] [cursor=pointer]:
+            - /url: https://github.com/Merit-Systems/x402scan
+            - button [ref=e35]:
+              - img "GitHub" [ref=e36]
+          - button [ref=e37] [cursor=pointer]
+    - generic [ref=e47]:
+      - navigation [ref=e49]:
+        - list [ref=e50]:
+          - link "Discover" [ref=e52] [cursor=pointer]:
+            - /url: /
+            - listitem [ref=e53]:
+              - generic [ref=e54]: Discover
+          - link "All" [ref=e58] [cursor=pointer]:
+            - /url: /all
+            - listitem [ref=e59]:
+              - generic [ref=e60]: All
+          - link "Marketplace" [ref=e63] [cursor=pointer]:
+            - /url: /resources
+            - listitem [ref=e64]:
+              - generic [ref=e65]: Marketplace
+          - link "Transactions" [ref=e68] [cursor=pointer]:
+            - /url: /transactions
+            - listitem [ref=e69]:
+              - generic [ref=e70]: Transactions
+          - link "Facilitators" [ref=e73] [cursor=pointer]:
+            - /url: /facilitators
+            - listitem [ref=e74]:
+              - generic [ref=e75]: Facilitators
+          - link "Networks" [ref=e78] [cursor=pointer]:
+            - /url: /networks
+            - listitem [ref=e79]:
+              - generic [ref=e80]: Networks
+          - link "Ecosystem" [ref=e83] [cursor=pointer]:
+            - /url: /ecosystem
+            - listitem [ref=e84]:
+              - generic [ref=e85]: Ecosystem
+      - generic [ref=e88]:
+        - generic [ref=e89]:
+          - generic [ref=e90]:
+            - generic [ref=e91]:
+              - generic [ref=e92]:
+                - img "x402scan Logo" [ref=e94]
+                - heading "x402scan" [level=1] [ref=e95]
+              - link [ref=e96] [cursor=pointer]:
+                - /url: /resources/register
+                - button "Add your API" [ref=e97]
+            - paragraph [ref=e99]: The x402 block explorer, analytics dashboard and marketplace for paid APIs and agentic commerce
+          - 'textbox "Try: send email, generate image, search the web, buy a mug…" [ref=e102]'
+        - generic [ref=e103]:
+          - generic [ref=e104]:
+            - generic [ref=e105]:
+              - generic [ref=e106]:
+                - heading "Overall Stats" [level=1] [ref=e108]
+                - generic [ref=e109]:
+                  - combobox [ref=e110] [cursor=pointer]:
+                    - generic [ref=e111]: Per Bucket
+                  - combobox [ref=e112] [cursor=pointer]:
+                    - generic [ref=e113]: Past 30 Days
+              - paragraph [ref=e114]: Global statistics for the x402 ecosystem
+            - generic [ref=e115]:
+              - generic [ref=e117]:
+                - paragraph [ref=e118]: Transactions
+                - heading "16.53M" [level=3] [ref=e120]
+              - generic [ref=e226]:
+                - paragraph [ref=e227]: Volume
+                - heading "$808.12K" [level=3] [ref=e229]
+              - generic [ref=e335]:
+                - paragraph [ref=e336]: Buyers
+                - heading "44.76K" [level=3] [ref=e338]
+              - generic [ref=e444]:
+                - paragraph [ref=e445]: Sellers
+                - heading "67K" [level=3] [ref=e447]
+          - generic [ref=e552]:
+            - generic [ref=e553]:
+              - generic [ref=e554]:
+                - heading "Featured Services" [level=1] [ref=e556]
+                - combobox [ref=e558] [cursor=pointer]:
+                  - generic [ref=e559]: Past 30 Days
+              - paragraph [ref=e560]: x402scan curated services
+            - generic [ref=e561]:
+              - table [ref=e564]:
+                - rowgroup [ref=e565]:
+                  - row [ref=e566]:
+                    - columnheader [ref=e567]
+                    - columnheader [ref=e572]
+                    - columnheader [ref=e576]
+                    - columnheader [ref=e580]
+                    - columnheader [ref=e587]
+                    - columnheader [ref=e594]
+                    - columnheader [ref=e598]
+                    - columnheader [ref=e603]:
+                      - link "Call all x402 resources with AgentCash" [ref=e604] [cursor=pointer]:
+                        - /url: https://agentcash.dev
+                - rowgroup [ref=e605]:
+                  - row [ref=e606]:
+                    - cell [ref=e607]:
+                      - link "BlockRun +1 14M+ on-chain transactions. The routing & payment layer for AI. One endpoint routes to every frontier model — payment built in, settled in USDC on Base & Solana. No API keys. One install for OpenClaw (ClawRouter), Claude Code (MCP), or Franklin Agent. Per call, per token, no subscription. blockrun.ai" [ref=e608] [cursor=pointer]:
+                        - /url: /server/cbe8caef-6324-4bd1-aee7-63d09fb4d1b9
+                        - generic [ref=e610]:
+                          - generic [ref=e611]:
+                            - generic [ref=e612]: BlockRun
+                            - generic [ref=e613]: "+1"
+                          - generic [ref=e614]: 14M+ on-chain transactions. The routing & payment layer for AI. One endpoint routes to every frontier model — payment built in, settled in USDC on Base & Solana. No API keys. One install for OpenClaw (ClawRouter), Claude Code (MCP), or Franklin Agent. Per call, per token, no subscription.
+                          - generic [ref=e615]: blockrun.ai
+                    - cell [ref=e616]
+                    - cell "$167.44K" [ref=e626]
+                    - cell "13.36M" [ref=e628]
+                    - cell "1.15K" [ref=e630]
+                    - cell "~1h ago" [ref=e632]
+                    - cell [ref=e634]:
+                      - img "Base" [ref=e636]
+                    - cell [ref=e637]:
+                      - button "Try it" [ref=e638]
+                  - row [ref=e642]:
+                    - cell [ref=e643]:
+                      - link "twit.sh Real-time Twitter/X data for AI agents. No sign-up, no API keys. Pay per request in USDC on Base via x402. x402.twit.sh" [ref=e644] [cursor=pointer]:
+                        - /url: /server/b6242036-97a3-439b-901b-abdded377045
+                        - generic [ref=e646]:
+                          - generic [ref=e647]: twit.sh
+                          - generic [ref=e649]: Real-time Twitter/X data for AI agents. No sign-up, no API keys. Pay per request in USDC on Base via x402.
+                          - generic [ref=e650]: x402.twit.sh
+                    - cell [ref=e651]
+                    - cell "$661.51" [ref=e661]
+                    - cell "108.59K" [ref=e663]
+                    - cell "125" [ref=e665]
+                    - cell "~1h ago" [ref=e667]
+                    - cell [ref=e669]:
+                      - img "Base" [ref=e671]
+                    - cell [ref=e672]:
+                      - button "Try it" [ref=e673]
+                  - row [ref=e677]:
+                    - cell [ref=e678]:
+                      - link "Otto AI x402 74 pay-per-call AI services on x402 V2 — market intel, DeFi execution, AI creative tools. USDC on Base, Polygon, or Solana. From $0.001 per call. x402.ottoai.services" [ref=e679] [cursor=pointer]:
+                        - /url: /server/2a58f75f-bd11-4020-a347-0e1c7f4912ef
+                        - generic [ref=e681]:
+                          - generic [ref=e682]: Otto AI x402
+                          - generic [ref=e684]: 74 pay-per-call AI services on x402 V2 — market intel, DeFi execution, AI creative tools. USDC on Base, Polygon, or Solana. From $0.001 per call.
+                          - generic [ref=e685]: x402.ottoai.services
+                    - cell [ref=e686]
+                    - cell "$118.43" [ref=e696]
+                    - cell "76.76K" [ref=e698]
+                    - cell "544" [ref=e700]
+                    - cell "~1h ago" [ref=e702]
+                    - cell [ref=e704]:
+                      - generic [ref=e705]:
+                        - img "Base" [ref=e706]
+                        - img "Solana" [ref=e707]
+                    - cell [ref=e708]:
+                      - button "Try it" [ref=e709]
+                  - row [ref=e713]:
+                    - cell [ref=e714]:
+                      - link "StableEnrich Pay-per-request access to FullEnrich, CompanyEnrich, LeadMagic, Clado, Exa, Firecrawl, Google Maps, Serper, and Whitepages APIs. No auth, no subscriptions. stableenrich.dev" [ref=e715] [cursor=pointer]:
+                        - /url: /server/b8a06bde-b6e8-4a10-b4e0-cc6a25fb9efb
+                        - generic [ref=e717]:
+                          - generic [ref=e718]: StableEnrich
+                          - generic [ref=e720]: Pay-per-request access to FullEnrich, CompanyEnrich, LeadMagic, Clado, Exa, Firecrawl, Google Maps, Serper, and Whitepages APIs. No auth, no subscriptions.
+                          - generic [ref=e721]: stableenrich.dev
+                    - cell [ref=e722]
+                    - cell "$1.66K" [ref=e732]
+                    - cell "44.63K" [ref=e734]
+                    - cell "569" [ref=e736]
+                    - cell "~1h ago" [ref=e738]
+                    - cell [ref=e740]:
+                      - generic [ref=e741]:
+                        - img "Base" [ref=e742]
+                        - img "Solana" [ref=e743]
+                    - cell [ref=e744]:
+                      - button "Try it" [ref=e745]
+                  - row [ref=e749]:
+                    - cell [ref=e750]:
+                      - link "agentutility Paid x402 endpoints organized into product clusters. USDC-settled on Base. MCP-callable. ERC-8004 identity registry agentId 47167. x402.agentutility.ai" [ref=e751] [cursor=pointer]:
+                        - /url: /server/149f1288-2ae3-4ef0-99b8-032971513cec
+                        - generic [ref=e753]:
+                          - generic [ref=e754]: agentutility
+                          - generic [ref=e756]: Paid x402 endpoints organized into product clusters. USDC-settled on Base. MCP-callable. ERC-8004 identity registry agentId 47167.
+                          - generic [ref=e757]: x402.agentutility.ai
+                    - cell [ref=e758]
+                    - cell "$619.90" [ref=e768]
+                    - cell "26.69K" [ref=e770]
+                    - cell "240" [ref=e772]
+                    - cell "~1h ago" [ref=e774]
+                    - cell [ref=e776]:
+                      - generic [ref=e777]:
+                        - img "Base" [ref=e778]
+                        - img "Solana" [ref=e779]
+                    - cell [ref=e780]:
+                      - button "Try it" [ref=e781]
+                  - row [ref=e785]:
+                    - cell [ref=e786]:
+                      - link "OneSource Ethereum mainnet and Sepolia testnet RPC for AI agents, served from OneSource-operated nodes. Live block, balance, contract, NFT, transaction, and event data. Pay per call or use batch/session mode — USDC on Base via x402, or pathUSD/USDC.e on Tempo via MPP. No API keys required. api.onesource.io" [ref=e787] [cursor=pointer]:
+                        - /url: /server/bbb78e94-611e-4f0c-9a48-6df8fd9b26be
+                        - generic [ref=e789]:
+                          - generic [ref=e790]: OneSource
+                          - generic [ref=e792]: Ethereum mainnet and Sepolia testnet RPC for AI agents, served from OneSource-operated nodes. Live block, balance, contract, NFT, transaction, and event data. Pay per call or use batch/session mode — USDC on Base via x402, or pathUSD/USDC.e on Tempo via MPP. No API keys required.
+                          - generic [ref=e793]: api.onesource.io
+                    - cell [ref=e794]
+                    - cell "$82.83" [ref=e804]
+                    - cell "23.39K" [ref=e806]
+                    - cell "1.26K" [ref=e808]
+                    - cell "~2h ago" [ref=e810]
+                    - cell [ref=e812]:
+                      - img "Base" [ref=e814]
+                    - cell [ref=e815]:
+                      - button "Try it" [ref=e816]
+                  - row [ref=e820]:
+                    - cell [ref=e821]:
+                      - 'link "2s The (most) everything API for AI agents: 575+ endpoints — data, AI gateway, agent infra. USDC via x402, no keys, pay actual usage with upto billing. 2s.io" [ref=e822] [cursor=pointer]':
+                        - /url: /server/443fe614-d6b6-4647-9ff9-fd324767c6cf
+                        - generic [ref=e824]:
+                          - generic [ref=e825]: 2s
+                          - generic [ref=e827]: "The (most) everything API for AI agents: 575+ endpoints — data, AI gateway, agent infra. USDC via x402, no keys, pay actual usage with upto billing."
+                          - generic [ref=e828]: 2s.io
+                    - cell [ref=e829]
+                    - cell "$43.81" [ref=e839]
+                    - cell "16.58K" [ref=e841]
+                    - cell "352" [ref=e843]
+                    - cell "~1h ago" [ref=e845]
+                    - cell [ref=e847]:
+                      - generic [ref=e848]:
+                        - img "Base" [ref=e849]
+                        - img "Solana" [ref=e850]
+                    - cell [ref=e851]:
+                      - button "Try it" [ref=e852]
+                  - row [ref=e856]:
+                    - cell [ref=e857]:
+                      - link "BlockRun 14M+ on-chain transactions. The routing & payment layer for AI. One endpoint routes to every frontier model — payment built in, settled in USDC on Base & Solana. One install for OpenClaw, Claude Code, or Franklin Agent. blockrun.ai" [ref=e858] [cursor=pointer]:
+                        - /url: /server/b85dcf0f-d4a9-47ce-9d0b-6ec70e2844e0
+                        - generic [ref=e860]:
+                          - generic [ref=e861]: BlockRun
+                          - generic [ref=e863]: 14M+ on-chain transactions. The routing & payment layer for AI. One endpoint routes to every frontier model — payment built in, settled in USDC on Base & Solana. One install for OpenClaw, Claude Code, or Franklin Agent.
+                          - generic [ref=e864]: blockrun.ai
+                    - cell [ref=e865]
+                    - cell "$49.39" [ref=e875]
+                    - cell "12.74K" [ref=e877]
+                    - cell "298" [ref=e879]
+                    - cell "~1h ago" [ref=e881]
+                    - cell [ref=e883]:
+                      - img "Base" [ref=e885]
+                    - cell [ref=e886]:
+                      - button "Try it" [ref=e887]
+                  - row [ref=e891]:
+                    - cell [ref=e892]:
+                      - link "JarvisClaw API AI API Gateway with smart routing, pay per call via x402. OpenAI-compatible. Settled in USDC on Base & Solana. api.jarvisclaw.ai" [ref=e893] [cursor=pointer]:
+                        - /url: /server/e26bd614-0441-4af5-83db-53ab301e85d6
+                        - generic [ref=e895]:
+                          - generic [ref=e896]: JarvisClaw API
+                          - generic [ref=e898]: AI API Gateway with smart routing, pay per call via x402. OpenAI-compatible. Settled in USDC on Base & Solana.
+                          - generic [ref=e899]: api.jarvisclaw.ai
+                    - cell [ref=e900]
+                    - cell "$555.37" [ref=e910]
+                    - cell "12.63K" [ref=e912]
+                    - cell "51" [ref=e914]
+                    - cell "~1h ago" [ref=e916]
+                    - cell [ref=e918]:
+                      - generic [ref=e919]:
+                        - img "Base" [ref=e920]
+                        - img "Solana" [ref=e921]
+                    - cell [ref=e922]:
+                      - button "Try it" [ref=e923]
+                  - row [ref=e927]:
+                    - cell [ref=e928]:
+                      - link "sol.blockrun.ai +1 No description available. sol.blockrun.ai" [ref=e929] [cursor=pointer]:
+                        - /url: /server/4e7a72e6-aba4-4e02-b271-da1b6f7019eb
+                        - generic [ref=e934]:
+                          - generic [ref=e935]:
+                            - generic [ref=e936]: sol.blockrun.ai
+                            - generic [ref=e937]: "+1"
+                          - generic [ref=e938]: No description available.
+                          - generic [ref=e939]: sol.blockrun.ai
+                    - cell [ref=e940]
+                    - cell "$1.27K" [ref=e950]
+                    - cell "9.85K" [ref=e952]
+                    - cell "26" [ref=e954]
+                    - cell "~2h ago" [ref=e956]
+                    - cell [ref=e958]:
+                      - img "Solana" [ref=e960]
+                    - cell [ref=e961]:
+                      - button "Try it" [ref=e962]
+                  - row [ref=e966]:
+                    - cell [ref=e967]:
+                      - link "dTelecom x402 Gateway Pay-per-use WebRTC, Speech-to-Text, and Text-to-Speech for AI agents. Pay with USDC via x402. No API keys, no accounts. Built on dTelecom DePIN. x402.dtelecom.org" [ref=e968] [cursor=pointer]:
+                        - /url: /server/ed6e501d-6817-400e-8e6c-810222318856
+                        - generic [ref=e970]:
+                          - generic [ref=e971]: dTelecom x402 Gateway
+                          - generic [ref=e973]: Pay-per-use WebRTC, Speech-to-Text, and Text-to-Speech for AI agents. Pay with USDC via x402. No API keys, no accounts. Built on dTelecom DePIN.
+                          - generic [ref=e974]: x402.dtelecom.org
+                    - cell [ref=e975]
+                    - cell "$20.45K" [ref=e985]
+                    - cell "9.69K" [ref=e987]
+                    - cell "24" [ref=e989]
+                    - cell "~1h ago" [ref=e991]
+                    - cell [ref=e993]:
+                      - img "Base" [ref=e995]
+                    - cell [ref=e996]:
+                      - button "Try it" [ref=e997]
+                  - row [ref=e1001]:
+                    - cell [ref=e1002]:
+                      - link "glim.sh One remote endpoint gives your agent live data from Twitter, Reddit, the open web, GitHub and more. No API keys, no scraping stack - just connect the URL and pay per call. surf.cascade.fyi" [ref=e1003] [cursor=pointer]:
+                        - /url: /server/22d38147-8bb0-4efc-a087-a1dc54f4ca9d
+                        - generic [ref=e1005]:
+                          - generic [ref=e1006]: glim.sh
+                          - generic [ref=e1008]: One remote endpoint gives your agent live data from Twitter, Reddit, the open web, GitHub and more. No API keys, no scraping stack - just connect the URL and pay per call.
+                          - generic [ref=e1009]: surf.cascade.fyi
+                    - cell [ref=e1010]
+                    - cell "$33.62" [ref=e1020]
+                    - cell "9.24K" [ref=e1022]
+                    - cell "28" [ref=e1024]
+                    - cell "~1h ago" [ref=e1026]
+                    - cell [ref=e1028]:
+                      - generic [ref=e1029]:
+                        - img "Base" [ref=e1030]
+                        - img "Solana" [ref=e1031]
+                    - cell [ref=e1032]:
+                      - button "Try it" [ref=e1033]
+                  - row [ref=e1037]:
+                    - cell [ref=e1038]:
+                      - link "Nansen AI Trade everything onchain with AI, powered by 500M+ labeled addresses. Track Smart Money, analyze any token, and execute instantly - all in one place. api.nansen.ai" [ref=e1039] [cursor=pointer]:
+                        - /url: /server/21252dba-de2a-4432-a9dd-387f79ce5922
+                        - generic [ref=e1041]:
+                          - generic [ref=e1042]: Nansen AI
+                          - generic [ref=e1044]: Trade everything onchain with AI, powered by 500M+ labeled addresses. Track Smart Money, analyze any token, and execute instantly - all in one place.
+                          - generic [ref=e1045]: api.nansen.ai
+                    - cell [ref=e1046]
+                    - cell "$130.53" [ref=e1056]
+                    - cell "6.25K" [ref=e1058]
+                    - cell "99" [ref=e1060]
+                    - cell "~1h ago" [ref=e1062]
+                    - cell [ref=e1064]:
+                      - generic [ref=e1065]:
+                        - img "Base" [ref=e1066]
+                        - img "Solana" [ref=e1067]
+                    - cell [ref=e1068]:
+                      - button "Try it" [ref=e1069]
+                  - row [ref=e1073]:
+                    - cell [ref=e1074]:
+                      - link "Exa Real-time AI search engine with a powerful web search API, web crawling API, SERP API, and deep research tools. Search and extract structured content from websites and live data. api.exa.ai" [ref=e1075] [cursor=pointer]:
+                        - /url: /server/a6c0793e-51e9-4038-9fdd-bfe58e46fba5
+                        - generic [ref=e1077]:
+                          - generic [ref=e1078]: Exa
+                          - generic [ref=e1080]: Real-time AI search engine with a powerful web search API, web crawling API, SERP API, and deep research tools. Search and extract structured content from websites and live data.
+                          - generic [ref=e1081]: api.exa.ai
+                    - cell [ref=e1082]
+                    - cell "$37.74" [ref=e1092]
+                    - cell "5.53K" [ref=e1094]
+                    - cell "196" [ref=e1096]
+                    - cell "~2h ago" [ref=e1098]
+                    - cell [ref=e1100]:
+                      - img "Base" [ref=e1102]
+                    - cell [ref=e1103]:
+                      - button "Try it" [ref=e1104]
+                  - row [ref=e1108]:
+                    - cell [ref=e1109]:
+                      - link "defi.hugen.tokyo +19 No description available. defi.hugen.tokyo" [ref=e1110] [cursor=pointer]:
+                        - /url: /server/835299d9-d4e7-4b2a-8933-4441efa2a5d8
+                        - generic [ref=e1115]:
+                          - generic [ref=e1116]:
+                            - generic [ref=e1117]: defi.hugen.tokyo
+                            - generic [ref=e1118]: "+19"
+                          - generic [ref=e1119]: No description available.
+                          - generic [ref=e1120]: defi.hugen.tokyo
+                    - cell [ref=e1121]
+                    - cell "$91.54" [ref=e1131]
+                    - cell "5.47K" [ref=e1133]
+                    - cell "491" [ref=e1135]
+                    - cell "~1h ago" [ref=e1137]
+                    - cell [ref=e1139]:
+                      - generic [ref=e1140]:
+                        - img "Base" [ref=e1141]
+                        - img "Solana" [ref=e1142]
+                    - cell [ref=e1143]:
+                      - button "Try it" [ref=e1144]
+              - generic [ref=e1148]:
+                - button [disabled]
+                - paragraph [ref=e1149]: Page 1 of 11
+                - button [ref=e1150] [cursor=pointer]
+      - contentinfo [ref=e1153]:
+        - generic [ref=e1155]:
+          - link "x402scan Logo x402scan" [ref=e1156] [cursor=pointer]:
+            - /url: /
+            - img "x402scan Logo" [ref=e1158]
+            - generic [ref=e1159]: x402scan
+          - link "Merit" [ref=e1160] [cursor=pointer]:
+            - /url: https://merit.systems
+          - generic [ref=e1174]:
+            - link "GitHub" [ref=e1175] [cursor=pointer]:
+              - /url: https://github.com/Merit-Systems/x402scan
+              - img "GitHub" [ref=e1176]
+            - link "Twitter" [ref=e1177] [cursor=pointer]:
+              - /url: https://x.com/x402scan
+            - link "Privacy" [ref=e1180] [cursor=pointer]:
+              - /url: /privacy
+            - link "Terms" [ref=e1181] [cursor=pointer]:
+              - /url: /tos

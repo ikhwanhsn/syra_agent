@@ -92,7 +92,7 @@ const joinSteps = [
   {
     step: 3,
     title: "Paste your post link here",
-    text: "Submit the X post URL from your verified handle. Limit: 1 post per campaign. Engagement updates about every 24 hours.",
+    text: "Submit the X post URL from your verified handle. Limit: 1 post per campaign. Engagement updates about every 6 hours.",
   },
 ] as const;
 
@@ -410,7 +410,7 @@ export function CampaignDetail({
             <p className="mt-2 text-sm text-muted-foreground leading-relaxed max-w-2xl">
               Verify your X account, reply or quote on X, then paste your post
               link here (1 per campaign). Get paid in SOL when it ends —
-              engagement updates about every 24 hours.
+              engagement updates about every 6 hours.
             </p>
           </div>
 
@@ -580,7 +580,7 @@ export function CampaignDetail({
                       ? "Final rankings — claim after verifying X if your reward didn’t auto-send."
                       : isFinalizing
                         ? "Final rankings from the last snapshot. Verify X so payouts can reach you."
-                        : "Verify X, then submit your reply/quote link to appear here (1 per campaign). Engagement updates about every 24 hours. Higher score = larger projected payout."}
+                        : "Verify X, then submit your reply/quote link to appear here (1 per campaign). Engagement updates about every 6 hours. Higher score = larger projected payout."}
                 </span>
                 {campaign.requireCreatedOneCampaign ? (
                   <InfoHint

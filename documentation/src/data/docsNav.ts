@@ -57,6 +57,13 @@ export const navigation: NavItem[] = [
     ],
   },
   {
+    title: "Build with packages",
+    items: [
+      { title: "Install MCP", href: "/docs/build/mcp" },
+      { title: "Install SDK", href: "/docs/build/sdk" },
+    ],
+  },
+  {
     title: "Build with the API",
     items: [
       { title: "Overview", href: "/docs/api-reference" },

@@ -1,5 +1,0 @@
-{
-    "dimensions":  2048,
-    "model":  "private/openrouter/nvidia/llama-nemotron-embed-vl-1b-v2",
-    "success":  true
-}

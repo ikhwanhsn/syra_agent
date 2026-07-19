@@ -689,6 +689,7 @@ async function twitterApiIoGet(path, params = {}, options = {}) {
   const bodyMsg =
     (typeof body?.msg === "string" && body.msg.trim()) ||
     (typeof body?.message === "string" && body.message.trim()) ||
+    (typeof body?.detail === "string" && body.detail.trim()) ||
     "";
 
   if (!res.ok || bodyStatus === "error") {
@@ -1072,9 +1073,14 @@ export async function getTweetQuotes(opts) {
   };
 }
 
+/** twitterapi.io `/twitter/tweets` rejects more than 50 IDs per request. */
+export const TWEETS_BY_IDS_CHUNK_SIZE = 50;
+
 /**
- * Fetch one or more tweets by ID (batched, up to 100 IDs per HTTP call).
+ * Fetch one or more tweets by ID (batched, up to 50 IDs per HTTP call).
  * twitterapi.io bills per returned tweet; batching cuts HTTP overhead.
+ * Per-chunk failures are logged and skipped so a single bad chunk does not
+ * discard the rest of the batch. Rethrows only when every chunk fails.
  * @param {string[]} tweetIds
  * @param {{ skipCache?: boolean }} [options]
  * @returns {Promise<{ tweets: ReturnType<typeof normalizeTweet>[]; byId: Map<string, ReturnType<typeof normalizeTweet>> }>}
@@ -1092,26 +1098,45 @@ export async function getTweetsByIds(tweetIds, options = {}) {
     return { tweets: [], byId: new Map() };
   }
 
-  const CHUNK = 100;
+  const CHUNK = TWEETS_BY_IDS_CHUNK_SIZE;
   /** @type {ReturnType<typeof normalizeTweet>[]} */
   const allTweets = [];
+  let chunkFailures = 0;
+  let chunkAttempts = 0;
+  /** @type {Error | null} */
+  let lastChunkError = null;
 
   for (let i = 0; i < uniqueIds.length; i += CHUNK) {
     const chunk = uniqueIds.slice(i, i + CHUNK);
-    const body = await twitterApiIoGet(
-      "/twitter/tweets",
-      { tweet_ids: chunk.join(",") },
-      { skipCache: options.skipCache === true },
-    );
-    const includesMedia = buildIncludesMediaMap(body);
-    const rawTweets = extractTweetsArray(body);
-    for (const t of rawTweets) {
-      if (!t || typeof t !== "object") continue;
-      const normalized = normalizeTweet(/** @type {Record<string, unknown>} */ (t), {
-        includesMedia,
-      });
-      if (normalized) allTweets.push(normalized);
+    chunkAttempts += 1;
+    try {
+      const body = await twitterApiIoGet(
+        "/twitter/tweets",
+        { tweet_ids: chunk.join(",") },
+        { skipCache: options.skipCache === true },
+      );
+      const includesMedia = buildIncludesMediaMap(body);
+      const rawTweets = extractTweetsArray(body);
+      for (const t of rawTweets) {
+        if (!t || typeof t !== "object") continue;
+        const normalized = normalizeTweet(
+          /** @type {Record<string, unknown>} */ (t),
+          { includesMedia },
+        );
+        if (normalized) allTweets.push(normalized);
+      }
+    } catch (e) {
+      chunkFailures += 1;
+      lastChunkError = e instanceof Error ? e : new Error(String(e));
+      console.warn(
+        `[twitterapi.io] getTweetsByIds chunk failed size=${chunk.length} offset=${i}:`,
+        lastChunkError.message,
+      );
     }
+  }
+
+  if (chunkAttempts > 0 && chunkFailures === chunkAttempts) {
+    throw lastChunkError || new Error("getTweetsByIds: all chunks failed");
   }
 
   /** @type {Map<string, ReturnType<typeof normalizeTweet>>} */

@@ -41,7 +41,7 @@ export function KolAudienceSplit({
         </div>
         <p className="text-sm text-muted-foreground leading-relaxed">
           Verify your X account, reply or quote the campaign post, then paste your
-          link (1 per campaign). Engagement updates about every 24 hours — you earn
+          link (1 per campaign). Engagement updates about every 6 hours — you earn
           a share of the pool when it ends.
         </p>
         <Button variant="outline" className="rounded-full w-full sm:w-auto" onClick={onBrowse}>

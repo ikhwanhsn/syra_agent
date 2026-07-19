@@ -33,12 +33,17 @@
     "mcp",
     "x402",
     "solana",
+    "base",
+    "algorand",
     "agents",
     "model-context-protocol",
     "cursor",
     "claude",
     "crypto",
-    "usdc"
+    "usdc",
+    "defi",
+    "nansen",
+    "typescript"
   ],
   "author": "Syra",
   "license": "MIT",

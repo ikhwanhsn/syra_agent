@@ -41,7 +41,7 @@ Try these in Cursor chat after MCP is connected:
 - "Get the latest crypto news for BTC"
 - "What's the market sentiment for ETH?"
 - "Show me smart money flows on Solana"
-- "Ask Syra Brain: what are the trending tokens on Jupiter?"
+- "Get the analytics summary"
 - "Get a trading signal for bitcoin"
 - "Check Syra API health status"
 - "Memecoins with fastest holder growth"
@@ -50,20 +50,21 @@ Try these in Cursor chat after MCP is connected:
 
 | User intent | Tool |
 |-------------|------|
-| News | `syra_v2_news` |
-| Events | `syra_v2_event` |
-| Sentiment | `syra_v2_sentiment` |
-| Trading signal | `syra_v2_signal` |
-| Multi-source answer | `syra_v2_brain` |
-| Smart money | `syra_v2_smart_money` |
-| Jupiter trending | `syra_v2_trending_jupiter` |
-| Analytics composite | `syra_v2_analytics_summary` |
+| News | `syra_spend_news` |
+| Events | `syra_spend_event` |
+| Sentiment | `syra_spend_sentiment` |
+| Trading signal | `syra_spend_signal` |
+| Analytics / trending | `syra_spend_analytics_summary` |
+| Smart money | `syra_spend_nansen_smart_money_netflow` |
+| Health | `syra_spend_health` |
 | Any catalog tool | `syra_call_tool` with `{ toolId, params }` |
+
+Naming: `syra_{pillar}_{toolId}`. Full curated list: https://syraa.fun/skills.md
 
 ## Curated vs full profile
 
-- **curated** (default): ~42 high-value tools — sufficient for most research workflows
-- **full**: all ~240 tools — set `SYRA_MCP_TOOL_PROFILE=full` when you need a specific tool not in curated set
+- **curated** (default): **47** high-value tools — sufficient for most research workflows
+- **full**: all **257** tools — set `SYRA_MCP_TOOL_PROFILE=full` when you need a specific tool not in curated set
 
 ## Output handling
 
@@ -92,7 +93,8 @@ Try these in Cursor chat after MCP is connected:
 
 ## References
 
-- Docs: https://docs.syraa.fun
+- Docs: https://docs.syraa.fun/docs/build/mcp
 - Skills catalog: https://syraa.fun/skills.md
+- Agent skill: https://api.syraa.fun/skill.md
 - Marketplace: https://syraa.fun/marketplace
 - One-line CLI: `claude mcp add syra -- npx -y @syra-ai/mcp-server@latest`

@@ -35,15 +35,19 @@
   "keywords": [
     "syra",
     "x402",
+    "http-402",
     "solana",
     "base",
     "algorand",
     "agents",
+    "mcp",
+    "machine-money",
     "trading",
     "api",
     "usdc",
     "micropayments",
-    "typescript"
+    "typescript",
+    "typescript-sdk"
   ],
   "author": "Syra",
   "license": "MIT",

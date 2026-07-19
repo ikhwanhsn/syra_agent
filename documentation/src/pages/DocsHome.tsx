@@ -3,7 +3,7 @@ import { DocsLayout } from "@/components/docs/DocsLayout";
 import { Button } from "@/components/ui/button";
 import { SYRA_DOCS_BADGE, SYRA_HIGHLIGHT, SYRA_MISSION, SYRA_TAGLINE } from "@/content/syraBrand";
 import { SYRA_AGENT_URL, SYRA_MARKETPLACE_URL } from "@/content/syraUrls";
-import { ArrowRight, Bot, ExternalLink, Zap } from "lucide-react";
+import { ArrowRight, Bot, ExternalLink, Package, Zap } from "lucide-react";
 
 const PATHS = [
   {
@@ -14,9 +14,16 @@ const PATHS = [
     cta: { label: "Try Agent", href: SYRA_AGENT_URL, external: true },
   },
   {
+    icon: Package,
+    title: "Build with packages",
+    description: "Install MCP for Cursor/Claude or the typed SDK with x402 auto-pay.",
+    href: "/docs/build/mcp",
+    cta: { label: "Install SDK", href: "/docs/build/sdk", external: false },
+  },
+  {
     icon: Zap,
     title: "Build with the API",
-    description: "Integrate pay-per-call endpoints with x402 micropayments on Base.",
+    description: "Integrate pay-per-call endpoints with x402 micropayments.",
     href: "/docs/api-reference",
     cta: { label: "API Marketplace", href: SYRA_MARKETPLACE_URL, external: true },
   },
@@ -71,7 +78,7 @@ export default function DocsHome() {
         <h2 className="docs-display text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">
           Choose your path
         </h2>
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {PATHS.map((path) => (
             <div
               key={path.title}

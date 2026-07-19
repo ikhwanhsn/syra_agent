@@ -1563,8 +1563,9 @@ export async function getCampaignDetail(campaignId, opts = {}) {
 }
 
 /**
- * Manual KOL submission — parse tweet id + @handle from the URL (no X API call).
- * Engagement metrics are filled later by the daily batched snapshot.
+ * Manual KOL submission — parse tweet id + @handle from the URL (no X API call required).
+ * Best-effort: fetch live metrics for the submitted tweet so the submitter sees a
+ * non-zero score immediately; full campaign snapshot still runs on the 6h tick.
  * @param {string} campaignId
  * @param {{ kolWallet: string; tweetUrl: string; mode?: "reply" | "quote" }} input
  */
@@ -1671,6 +1672,44 @@ export async function createSubmission(campaignId, input) {
     viewCount: 0,
   };
 
+  /** @type {{ likeCount: number; retweetCount: number; replyCount: number; quoteCount: number; viewCount: number }} */
+  let initialMetrics = zeroMetrics;
+  let initialScore = 0;
+  /** @type {object | null} */
+  let initialBreakdown = null;
+  let authorFollowers = null;
+  let authorVerified = false;
+
+  if (isTwitterApiIoConfigured()) {
+    try {
+      const { byId } = await getTweetsByIds([tweetId], { skipCache: true });
+      const tweet = byId.get(tweetId);
+      if (tweet) {
+        const authorContext = {
+          followers: Math.max(0, Math.floor(Number(tweet.author?.followers) || 0)),
+          verified: Boolean(tweet.author?.verified),
+        };
+        const scored = scoreSubmission(tweet.metrics, authorContext);
+        initialMetrics = {
+          likeCount: Math.max(0, Math.floor(Number(tweet.metrics?.likeCount) || 0)),
+          retweetCount: Math.max(0, Math.floor(Number(tweet.metrics?.retweetCount) || 0)),
+          replyCount: Math.max(0, Math.floor(Number(tweet.metrics?.replyCount) || 0)),
+          quoteCount: Math.max(0, Math.floor(Number(tweet.metrics?.quoteCount) || 0)),
+          viewCount: Math.max(0, Math.floor(Number(tweet.metrics?.viewCount) || 0)),
+        };
+        initialScore = scored.score;
+        initialBreakdown = scored.breakdown ?? null;
+        authorFollowers = authorContext.followers;
+        authorVerified = authorContext.verified;
+      }
+    } catch (e) {
+      console.warn(
+        `[kol] initial metric fetch failed tweet=${tweetId}:`,
+        e instanceof Error ? e.message : e,
+      );
+    }
+  }
+
   const existingByTweet = await KolSubmission.findOne({
     campaignId: campaign._id,
     tweetId,
@@ -1717,22 +1756,22 @@ export async function createSubmission(campaignId, input) {
       mode,
       authorHandle,
       authorHandleKey,
-      authorFollowers: null,
-      authorVerified: false,
+      authorFollowers,
+      authorVerified,
       verified: true,
       contributions: [
         {
           tweetId,
           tweetUrl,
           mode,
-          metrics: zeroMetrics,
-          score: 0,
-          scoreBreakdown: null,
+          metrics: initialMetrics,
+          score: initialScore,
+          scoreBreakdown: initialBreakdown,
         },
       ],
-      latestMetrics: zeroMetrics,
-      latestScore: 0,
-      scoreBreakdown: null,
+      latestMetrics: initialMetrics,
+      latestScore: initialScore,
+      scoreBreakdown: initialBreakdown,
       projectedLamports: 0,
       discoveredAt: new Date(),
     });
@@ -1742,7 +1781,7 @@ export async function createSubmission(campaignId, input) {
 
   await seedXProfileFromAuthor({
     userName: authorHandle,
-    verified: false,
+    verified: authorVerified,
   }).catch(() => {});
   await refreshCampaignProjections(campaign._id);
 
@@ -1783,10 +1822,10 @@ export async function refreshCampaignProjections(campaignId) {
   );
 }
 
-/** Skip metric refresh when campaign was snapshotted recently (default 24h). */
+/** Skip metric refresh when campaign was snapshotted recently (default ~5.5h so 6h ticks never skip). */
 const METRICS_FRESH_MS = (() => {
   const n = Number.parseInt(String(process.env.KOL_METRICS_FRESH_MS ?? "").trim(), 10);
-  return Number.isFinite(n) && n >= 60_000 ? n : 24 * 60 * 60 * 1000;
+  return Number.isFinite(n) && n >= 60_000 ? n : 5.5 * 60 * 60 * 1000;
 })();
 
 /**
@@ -1806,6 +1845,8 @@ function contributionTweetIds(submission) {
 /**
  * Batched metric refresh for all submission contributions.
  * Used on the daily tick and finalize — not on manual submit.
+ * Missing/deleted tweets keep prior metrics and still count as refreshed so
+ * one dead post cannot freeze lastSnapshotAt for the whole campaign.
  * @param {import("mongoose").Types.ObjectId | string} campaignId
  * @param {{ force?: boolean }} [opts]
  */
@@ -1827,6 +1868,7 @@ export async function refreshCampaignMetrics(campaignId, opts = {}) {
   const capturedAt = new Date();
   let refreshed = 0;
   let failed = 0;
+  let staleKept = 0;
 
   /** @type {string[]} */
   const allTweetIds = [];
@@ -1878,15 +1920,6 @@ export async function refreshCampaignMetrics(campaignId, opts = {}) {
         continue;
       }
 
-      const missing = tweetIds.filter((id) => !metricsByTweetId.has(id));
-      if (missing.length === tweetIds.length) {
-        failed += 1;
-        console.warn(
-          `[kol] metric refresh missing all tweets submission=${submission._id}`,
-        );
-        continue;
-      }
-
       const existingContributions =
         Array.isArray(submission.contributions) && submission.contributions.length > 0
           ? submission.contributions
@@ -1900,6 +1933,28 @@ export async function refreshCampaignMetrics(campaignId, opts = {}) {
                 scoreBreakdown: submission.scoreBreakdown ?? null,
               },
             ];
+
+      const missing = tweetIds.filter((id) => !metricsByTweetId.has(id));
+      const allMissing = missing.length === tweetIds.length;
+
+      // Deleted/suspended posts are omitted by the API. Keep prior metrics and
+      // still write a snapshot so lastSnapshotAt can advance.
+      if (allMissing) {
+        console.warn(
+          `[kol] metric refresh keeping stale metrics submission=${submission._id} (tweets missing/deleted)`,
+        );
+        await KolEngagementSnapshot.create({
+          campaignId: campaign._id,
+          submissionId: submission._id,
+          capturedAt,
+          metrics: submission.latestMetrics || {},
+          score: submission.latestScore ?? 0,
+          scoreBreakdown: submission.scoreBreakdown ?? null,
+        });
+        refreshed += 1;
+        staleKept += 1;
+        continue;
+      }
 
       const refreshedRows = existingContributions.map((c) => {
         const tweetId = String(c.tweetId || "").trim();
@@ -1977,7 +2032,7 @@ export async function refreshCampaignMetrics(campaignId, opts = {}) {
     await campaign.save();
   } else {
     console.warn(
-      `[kol] partial metric refresh campaign=${campaign._id} refreshed=${refreshed}/${totalSubmissions} failed=${failed}, lastSnapshotAt unchanged — will retry next tick`,
+      `[kol] partial metric refresh campaign=${campaign._id} refreshed=${refreshed}/${totalSubmissions} failed=${failed} staleKept=${staleKept}, lastSnapshotAt unchanged — will retry next tick`,
     );
   }
 
@@ -1988,6 +2043,7 @@ export async function refreshCampaignMetrics(campaignId, opts = {}) {
   return {
     refreshed,
     failed,
+    staleKept,
     totalSubmissions,
     snapshotComplete,
     capturedAt: snapshotComplete ? capturedAt.toISOString() : null,
@@ -2899,7 +2955,7 @@ export async function getWalletEarnings(wallet) {
 }
 
 /**
- * Process all active campaigns — refresh engagement metrics (24h cadence) and finalize ended ones.
+ * Process all active campaigns — refresh engagement metrics (6h cadence) and finalize ended ones.
  * Manual submissions only; batched getTweetsByIds keeps X API cost low.
  */
 export async function runKolDailyTick() {
@@ -3197,7 +3253,7 @@ export async function getKolConfigForWallet(wallet) {
     minTopUpKolRewardSol: MIN_TOPUP_KOL_REWARD_SOL,
     minPayoutSol: MIN_KOL_PAYOUT_SOL,
     platformFeeWallet: getS3labsFeeWallet(),
-    discoveryIntervalHours: 24,
+    discoveryIntervalHours: 6,
   };
 }
 

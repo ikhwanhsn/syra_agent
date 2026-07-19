@@ -55,6 +55,11 @@ import {
   createReferralCode,
   getReferralProfile,
 } from "../../libs/s3labsReferralService.js";
+import {
+  listMissions,
+  submitMissionComment,
+  syncMissionsFromX,
+} from "../../libs/s3labsMissionService.js";
 import { sendTestKolCampaignTelegram } from "../../libs/kolCampaignTelegramNotifier.js";
 import {
   sendTestCampaignEmail,
@@ -722,6 +727,55 @@ export function createKolRouter() {
             : undefined;
         const result = await getPointsLeaderboard({ limit });
         return res.json({ success: true, data: result });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
+
+  router.get("/missions", requireMongooseConnection, async (req, res) => {
+    try {
+      const wallet =
+        typeof req.query.wallet === "string" ? req.query.wallet : undefined;
+      const limit =
+        typeof req.query.limit === "string"
+          ? Number(req.query.limit)
+          : undefined;
+      const result = await listMissions({ wallet, limit });
+      return res.json({ success: true, data: result });
+    } catch (e) {
+      return handleServiceError(res, e);
+    }
+  });
+
+  router.post(
+    "/missions/sync",
+    requireMongooseConnection,
+    requireAdminWallet,
+    async (req, res) => {
+      try {
+        const limit =
+          typeof req.body?.limit === "number" ? req.body.limit : undefined;
+        const result = await syncMissionsFromX({ limit });
+        return res.json({ success: true, data: result });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
+
+  router.post(
+    "/missions/:id/submit",
+    requireMongooseConnection,
+    async (req, res) => {
+      try {
+        const { wallet, tweetUrl } = req.body || {};
+        const result = await submitMissionComment({
+          missionId: req.params.id,
+          wallet,
+          tweetUrl,
+        });
+        return res.status(201).json({ success: true, data: result });
       } catch (e) {
         return handleServiceError(res, e);
       }

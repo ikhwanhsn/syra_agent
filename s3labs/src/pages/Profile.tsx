@@ -14,6 +14,7 @@ import {
   Gift,
   Info,
   Sparkles,
+  Target,
   Trophy,
   Users,
   Wallet,
@@ -285,7 +286,13 @@ function ProfileContent() {
               </div>
             </div>
 
-            <div className="relative px-4 py-4 sm:px-6 sm:py-5">
+            <div className="relative px-4 py-4 sm:px-6 sm:py-5 space-y-3">
+              <Button asChild variant="hero" className="w-full rounded-full sm:w-auto">
+                <Link to="/profile/missions">
+                  <Target className="mr-1.5 h-4 w-4" />
+                  Missions
+                </Link>
+              </Button>
               {profileShareData ? (
                 <ProfileShareAction data={profileShareData} prominent />
               ) : null}
@@ -478,6 +485,11 @@ function ProfileContent() {
                 value={formatPoints(data?.referralPoints ?? 0)}
                 sub="From invitees who join, top 3, or go live"
                 hint={REFERRAL_POINTS_HINT}
+              />
+              <StatTile
+                label="Missions"
+                value={formatPoints(data?.missionPoints ?? 0)}
+                sub="0.3 pts per verified comment on S3Labs posts"
               />
               <StatTile
                 label="Campaigns joined"

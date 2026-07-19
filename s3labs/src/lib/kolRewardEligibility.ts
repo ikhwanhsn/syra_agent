@@ -22,7 +22,7 @@ export const KOL_CREATE_CAMPAIGN_GATE_BODY =
   "Go to Create campaign, set a reward, then deposit SOL so it goes live. Only a live campaign unlocks your reward here. Finish before this campaign ends.";
 
 export const KOL_CREATE_CAMPAIGN_LEADERBOARD_INTRO =
-  "Verify X and submit your post to appear here. Rankings refresh about every 24 hours. This campaign only pays KOLs who also open their own live campaign (create + deposit SOL) before it ends.";
+  "Verify X and submit your post to appear here. Rankings refresh about every 6 hours. This campaign only pays KOLs who also open their own live campaign (create + deposit SOL) before it ends.";
 
 export const KOL_CREATE_CAMPAIGN_FORFEITED =
   "This campaign ended before you opened a live campaign (create + deposit SOL) — your reward was forfeited.";

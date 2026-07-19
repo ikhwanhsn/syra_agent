@@ -174,7 +174,7 @@ s3labs.xyz/kol`,
       headline: "Performance drives payout",
       stats: [
         { value: "Pro-rata", label: "Reward split by engagement score" },
-        { value: "Daily", label: "Metric refresh on all submissions" },
+        { value: "Every 6h", label: "Metric refresh on all submissions" },
         { value: "Auto", label: "SOL payout at campaign snapshot" },
       ],
       narrative:

@@ -80,10 +80,12 @@ Run the Syra API locally from the monorepo `api/` package first.
 
 | Resource | URL |
 |----------|-----|
-| Docs | https://docs.syraa.fun |
+| Install docs | https://docs.syraa.fun/docs/build/sdk |
+| Agent skill | https://api.syraa.fun/skill.md |
 | OpenAPI | https://api.syraa.fun/openapi.json |
 | x402 discovery | https://api.syraa.fun/.well-known/x402 |
 | Marketplace | https://syraa.fun/marketplace |
+| MCP (chat agents) | https://docs.syraa.fun/docs/build/mcp |
 
 ## Security
 

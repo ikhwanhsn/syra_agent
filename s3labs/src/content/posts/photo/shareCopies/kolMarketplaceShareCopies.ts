@@ -22,14 +22,14 @@ Verify your X. Reply or quote the campaign post. Submit your link. Climb the lea
 
 1. Project launches campaign and funds SOL rewards
 2. KOLs verify X, then submit one reply or quote link
-3. Engagement scored about every 24 hours on the leaderboard
+3. Engagement scored about every 6 hours on the leaderboard
 4. Pro-rata SOL payout when the campaign ends`,
 
   timeline: `Campaign lifecycle:
 
 • Project posts X URL and funds KOL reward pool
 • KOLs verify X and submit reply or quote tweet URLs (1 per campaign)
-• Metrics refresh about every 24 hours — likes, RTs, replies, quotes, views
+• Metrics refresh about every 6 hours — likes, RTs, replies, quotes, views
 • Automatic SOL payout when the campaign ends`,
 
   pillars: `For projects — launch campaigns, fund SOL, track KOLs
@@ -41,11 +41,11 @@ On-chain SOL — transparent funding and payouts`,
 — KOL Marketplace at s3labs.xyz/kol
 — Project campaign creation with Solana wallet
 — Verified X required to submit reply/quote links
-— Engagement scoring every ~24h and live leaderboard
+— Engagement scoring every ~6h and live leaderboard
 — Automatic SOL payout at campaign end`,
 
   metrics: `Pro-rata reward split
-~24h metric refresh
+~6h metric refresh
 Automatic SOL payout
 
 Performance drives payout — not flat rates.`,
@@ -86,7 +86,7 @@ One marketplace. On-chain SOL.`,
 $ kol verify --x <handle> --wallet <solana>
 > x verified
 $ kol submit --tweet <quote-url> --wallet <solana>
-> submission saved · score updates every 24h
+> submission saved · score updates every 6h
 $ kol snapshot --campaign active
 > pro-rata payout sent on Solana`,
 

@@ -28,7 +28,7 @@ const projectSteps = [
     icon: Trophy,
     title: "See results, auto-pay",
     description:
-      "Submitted posts refresh engagement about every 24 hours. When the campaign ends, engagers are paid pro-rata — leftovers return to you.",
+      "Submitted posts refresh engagement about every 6 hours. When the campaign ends, engagers are paid pro-rata — leftovers return to you.",
   },
 ] as const;
 
@@ -45,7 +45,7 @@ const kolSteps = [
     icon: Building2,
     title: "Verify, reply or quote, then submit",
     description:
-      "Verify your X account, post on X, then paste your post link (1 per campaign, from your verified handle). Engagement updates about every 24 hours.",
+      "Verify your X account, post on X, then paste your post link (1 per campaign, from your verified handle). Engagement updates about every 6 hours.",
   },
   {
     number: "03",

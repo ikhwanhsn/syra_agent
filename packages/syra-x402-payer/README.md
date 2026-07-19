@@ -33,6 +33,13 @@ Use it when you want payment plumbing without the full [`@syra-ai/sdk`](https://
 
 **For agents:** wire `signPayment` to `@x402/svm`, `@x402/evm`, or your wallet. Discovery: [/.well-known/x402](https://api.syraa.fun/.well-known/x402).
 
+| Need | Use |
+|------|-----|
+| Full typed client + auto-pay | [`@syra-ai/sdk`](https://www.npmjs.com/package/@syra-ai/sdk) |
+| MCP tools in Cursor / Claude | [`@syra-ai/mcp-server`](https://www.npmjs.com/package/@syra-ai/mcp-server) |
+| This package | Minimal 402 → sign → retry on any x402 HTTP API |
+| Agent skill | https://api.syraa.fun/skill.md |
+
 ---
 
 ## Install

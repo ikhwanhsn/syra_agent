@@ -4,8 +4,15 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { extractTweetMetrics } from "./twitterApiIoClient.js";
+import {
+  extractTweetMetrics,
+  TWEETS_BY_IDS_CHUNK_SIZE,
+} from "./twitterApiIoClient.js";
 import { meetsMinLikes } from "./kolEngagementService.js";
+
+test("getTweetsByIds chunks at twitterapi.io max of 50 IDs", () => {
+  assert.equal(TWEETS_BY_IDS_CHUNK_SIZE, 50);
+});
 
 test("extractTweetMetrics reads public_metrics.like_count (X API v2)", () => {
   const metrics = extractTweetMetrics({

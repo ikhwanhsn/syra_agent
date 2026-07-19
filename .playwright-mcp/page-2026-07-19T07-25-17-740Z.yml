@@ -1,0 +1,73 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e5]:
+        - button "Open menu" [ref=e6] [cursor=pointer]
+        - link "Syra home" [ref=e7] [cursor=pointer]:
+          - /url: /
+          - img "Syra" [ref=e9]
+          - generic [ref=e10]: Syra
+        - generic [ref=e11]:
+          - button "Toggle theme" [ref=e12] [cursor=pointer]
+          - search [ref=e13]:
+            - combobox "Search pages…" [ref=e14]
+            - generic: /
+          - link "Swap SOL for $SYRA" [ref=e15] [cursor=pointer]:
+            - /url: /swap?inputMint=So11111111111111111111111111111111111111112&outputMint=8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump&outputSymbol=SYRA&outputName=SYRA
+            - generic [ref=e16]:
+              - generic [ref=e17]: Buy
+              - text: $SYRA
+          - button "Connect wallet" [ref=e22] [cursor=pointer]
+    - main [ref=e24]:
+      - main [ref=e27]:
+        - generic [ref=e28]:
+          - button "Show chats" [ref=e29] [cursor=pointer]
+          - generic [ref=e32]:
+            - img "Syra" [ref=e37]
+            - paragraph [ref=e38]: Syra Agent
+            - heading "How can I help you today?" [level=1] [ref=e39]
+            - paragraph [ref=e40]: Markets, Solana, and machine money for agents — ask anything or pick a suggestion below.
+            - generic [ref=e41]:
+              - link "Get $SYRA" [ref=e42] [cursor=pointer]:
+                - /url: /swap?inputMint=So11111111111111111111111111111111111111112&outputMint=8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump&outputSymbol=SYRA&outputName=SYRA
+              - link "API marketplace" [ref=e46] [cursor=pointer]:
+                - /url: /marketplace
+              - link "Documentation" [ref=e52] [cursor=pointer]:
+                - /url: https://docs.syraa.fun
+          - generic [ref=e59]:
+            - generic "Example questions" [ref=e60]:
+              - generic [ref=e61]:
+                - button "What is a rug pull?" [ref=e62] [cursor=pointer]
+                - button "How do DEXs differ from CEXs?" [ref=e63] [cursor=pointer]
+                - button "What is a bonding curve?" [ref=e64] [cursor=pointer]
+                - button "Explain stop loss vs take profit" [ref=e65] [cursor=pointer]
+                - button "Explain market cap vs FDV" [ref=e66] [cursor=pointer]
+                - button "Explain spot vs futures trading" [ref=e67] [cursor=pointer]
+                - button "How do limit orders work?" [ref=e68] [cursor=pointer]
+                - button "What are tokenomics?" [ref=e69] [cursor=pointer]
+                - button "Explain gas fees on Solana" [ref=e70] [cursor=pointer]
+                - button "What can Syra Agent help me with?" [ref=e71] [cursor=pointer]
+                - button "Explain impermanent loss simply" [ref=e72] [cursor=pointer]
+                - button "What is yield farming?" [ref=e73] [cursor=pointer]
+                - button "What are common memecoin red flags?" [ref=e74] [cursor=pointer]
+                - button "What is DCA and when to use it?" [ref=e75] [cursor=pointer]
+                - button "What is MEV on Solana?" [ref=e76] [cursor=pointer]
+                - button "How does Solana differ from Ethereum?" [ref=e77] [cursor=pointer]
+                - button "How do I read a candlestick chart?" [ref=e78] [cursor=pointer]
+                - button "What is a DAO?" [ref=e79] [cursor=pointer]
+                - button "Buy $10 of $SYRA" [ref=e80] [cursor=pointer]
+                - button "What is a seed phrase?" [ref=e81] [cursor=pointer]
+                - button "What is slippage in crypto trading?" [ref=e82] [cursor=pointer]
+                - button "What is a smart contract?" [ref=e83] [cursor=pointer]
+                - button "What is TVL in DeFi?" [ref=e84] [cursor=pointer]
+                - button "How does liquidity provision work?" [ref=e85] [cursor=pointer]
+                - button "What is FOMO in trading?" [ref=e86] [cursor=pointer]
+                - button "Explain staking vs providing LP" [ref=e87] [cursor=pointer]
+            - generic [ref=e88]:
+              - textbox "Message input" [active] [ref=e89]:
+                - /placeholder: Message Syra Agent…
+              - generic [ref=e90]:
+                - button "Send message" [disabled]
+  - region "Notifications (F8)":
+    - list
+  - region "Notifications alt+T"

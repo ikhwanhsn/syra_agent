@@ -359,7 +359,7 @@ Optional: **`QUICKNODE_RPC_TIMEOUT_MS`** (default 15000).
 | GET | `/quicknode/transaction` | Query params: `chain`, and `signature` (Solana) or `txHash` (Base). Returns transaction status. |
 | POST | `/quicknode/rpc` | Body: `{ "chain": "solana" \| "base", "method": "...", "params": [...], "id"?: number }`. Forwards raw JSON-RPC. |
 
-If neither env var is set, these routes return **503** with a message to configure Quicknode. The MCP server exposes `syra_v2_quicknode_balance`, `syra_v2_quicknode_transaction`, and `syra_v2_quicknode_rpc`.
+If neither env var is set, these routes return **503** with a message to configure Quicknode. The MCP server exposes `syra_spend_quicknode_balance`, `syra_spend_quicknode_transaction`, and `syra_spend_quicknode_rpc` (full profile; or via `syra_call_tool`).
 
 ---
 

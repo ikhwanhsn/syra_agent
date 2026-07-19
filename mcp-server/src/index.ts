@@ -14,16 +14,30 @@
  * - SYRA_CONNECTED_WALLET — optional X-Connected-Wallet for dev/playground pricing
  */
 
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { registerSyraTools, getToolRegistrationSummary } from "./registerTools.js";
 
+function readPackageVersion(): string {
+  try {
+    const pkgPath = join(dirname(fileURLToPath(import.meta.url)), "..", "package.json");
+    const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as { version?: string };
+    return pkg.version || "0.0.0";
+  } catch {
+    return "0.0.0";
+  }
+}
+
 async function main() {
   const summary = getToolRegistrationSummary();
+  const version = readPackageVersion();
   const server = new McpServer(
     {
       name: "syra-mcp-server",
-      version: "0.4.0",
+      version,
       description: `Syra machine money MCP — profile=${summary.profile}, tools=${summary.registered}/${summary.total}`,
     },
     { capabilities: { tools: {} } },

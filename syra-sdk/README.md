@@ -34,6 +34,13 @@ Solana · Base · Algorand
 
 **For agents:** prefer `createSyraPaidClient` + env payer keys. Discovery: `GET https://api.syraa.fun/.well-known/x402` and [llms-full.txt](https://api.syraa.fun/llms-full.txt).
 
+| Need | Use |
+|------|-----|
+| Chat / IDE tools | [`@syra-ai/mcp-server`](https://www.npmjs.com/package/@syra-ai/mcp-server) — `npx -y @syra-ai/mcp-server@latest` |
+| This package | Typed HTTP client for apps and scripts |
+| Raw fetch only | [`@syra-ai/x402-payer`](https://www.npmjs.com/package/@syra-ai/x402-payer) |
+| Agent skill | https://api.syraa.fun/skill.md · https://docs.syraa.fun/docs/build/sdk |
+
 ---
 
 ## Install

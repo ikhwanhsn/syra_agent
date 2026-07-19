@@ -53,7 +53,7 @@ export const KOL_MARKETPLACE_PHOTO = definePhotoUpdate(KOL_MARKETPLACE_POST.meta
       steps: [
         { step: "01", title: "Launch", description: "Project funds SOL reward pool for a source post." },
         { step: "02", title: "Submit", description: "Verified KOLs paste one reply or quote link." },
-        { step: "03", title: "Score", description: "Engagement refreshes about every 24 hours." },
+        { step: "03", title: "Score", description: "Engagement refreshes about every 6 hours." },
         { step: "04", title: "Payout", description: "Pro-rata SOL sent automatically when it ends." },
       ],
     }),
@@ -68,7 +68,7 @@ export const KOL_MARKETPLACE_PHOTO = definePhotoUpdate(KOL_MARKETPLACE_POST.meta
       steps: [
         { step: "01", title: "Fund pool", description: "Connect wallet and deposit SOL rewards." },
         { step: "02", title: "KOL submissions", description: "Verify X, then submit one reply/quote URL." },
-        { step: "03", title: "24h refresh", description: "Likes, RTs, replies, quotes, views scored." },
+        { step: "03", title: "6h refresh", description: "Likes, RTs, replies, quotes, views scored." },
         { step: "04", title: "Payout", description: "Automatic on-chain payout to KOL wallets." },
       ],
     }),
@@ -100,7 +100,7 @@ export const KOL_MARKETPLACE_PHOTO = definePhotoUpdate(KOL_MARKETPLACE_POST.meta
       highlights: [
         "Campaign creation with Solana wallet",
         "Verified X required to submit posts",
-        "Engagement scoring every ~24 hours",
+        "Engagement scoring every ~6 hours",
         "Live leaderboard and earnings dashboard",
       ],
     }),
@@ -115,7 +115,7 @@ export const KOL_MARKETPLACE_PHOTO = definePhotoUpdate(KOL_MARKETPLACE_POST.meta
       headline: "Performance drives payout.",
       stats: [
         { value: "Pro-rata", label: "Engagement-weighted split" },
-        { value: "~24h", label: "Metric refresh" },
+        { value: "~6h", label: "Metric refresh" },
         { value: "Auto", label: "SOL at campaign end" },
       ],
       narrative: "No flat rates. No manual spreadsheets.",
@@ -205,7 +205,7 @@ export const KOL_MARKETPLACE_PHOTO = definePhotoUpdate(KOL_MARKETPLACE_POST.meta
         "> pool funded · campaign active",
         "$ kol verify --x <handle>",
         "$ kol submit --tweet <quote-url>",
-        "> submission saved · score updates every 24h",
+        "> submission saved · score updates every 6h",
         "$ kol snapshot",
         "> pro-rata payout sent on Solana",
       ],

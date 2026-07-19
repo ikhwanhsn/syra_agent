@@ -306,7 +306,7 @@ export function CampaignLeaderboard({
         <p className="text-muted-foreground text-sm max-w-sm mx-auto leading-relaxed">
           Be the first — verify your X account, reply or quote the campaign post,
           then paste your link above. Limit: 1 post per campaign from your
-          verified handle. Engagement updates about every 24 hours; rewards
+          verified handle. Engagement updates about every 6 hours; rewards
           require engagement (likes, retweets, replies, or quotes).
         </p>
       </div>

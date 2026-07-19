@@ -25,6 +25,9 @@ export const POINTS_REFERRAL_PODIUM = 0.3;
 /** Referral: invitee creates a campaign and deposits (go-live). */
 export const POINTS_REFERRAL_CREATION = 0.5;
 
+/** Mission: user submits a verified reply/quote on an S3Labs X post. */
+export const POINTS_MISSION_SUBMISSION = 0.3;
+
 /**
  * Compute early-bird points per rank (index 0 = earliest submitter).
  * Linear weights: N, N-1, ..., 1 normalized to POINTS_EARLY_POOL.

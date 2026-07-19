@@ -22,10 +22,13 @@ Syra is built as machine money infrastructure: clarity, explainability, and mult
 Where Syra runs
 ----------------
 - Public documentation: https://docs.syraa.fun
+- Install MCP: https://docs.syraa.fun/docs/build/mcp
+- Install SDK: https://docs.syraa.fun/docs/build/sdk
 - API gateway (x402 pay-per-use on many routes): https://api.syraa.fun
 - API discovery: GET https://api.syraa.fun/.well-known/x402
 - Public metrics: GET https://api.syraa.fun/api/metrics
 - Agent full reference: GET https://api.syraa.fun/llms-full.txt
+- Agent skill: GET https://api.syraa.fun/skill.md
 - MCP install: claude mcp add syra -- npx -y @syra-ai/mcp-server@latest
 - API specs: GET https://api.syraa.fun/openapi.json and GET https://api.syraa.fun/mpp-openapi.json
 - Web agent: https://syraa.fun
@@ -33,9 +36,23 @@ Where Syra runs
 - X (Twitter): https://x.com/syra_agent
 - Marketing site: https://syraa.fun
 
+npm packages (for agents)
+-------------------------
+- @syra-ai/mcp-server — MCP stdio server; curated (~47) or full (257) tools; x402 auto-pay
+- @syra-ai/sdk — typed TypeScript client + createSyraPaidClient auto-pay
+- @syra-ai/x402-payer — lightweight 402 → sign → retry helper for raw fetch
+
 Payments and access
 -------------------
-Many API routes use HTTP 402 and the x402 (micropayment) model on Solana. Clients must pay or use documented dev/skip paths for local development. The Syra MCP server proxies HTTP only; it does not inject payment headers (production calls may return 402 without a wallet/facilitator flow).
+Many API routes use HTTP 402 and the x402 (micropayment) model (Solana USDC default; Base and Algorand also supported).
+
+MCP auto-pay: configure a payer env on the MCP process. On HTTP 402 the server signs PAYMENT-SIGNATURE and retries.
+- Solana (default): SYRA_PAYER_KEYPAIR
+- Base: X402_PREFERRED_NETWORK=base + SYRA_EVM_PAYER_PRIVATE_KEY
+- Algorand: X402_PREFERRED_NETWORK=algorand + SYRA_ALGORAND_PAYER_PRIVATE_KEY
+Without a payer, production MCP tool calls may return 402 with pricing. Local testing: SYRA_USE_DEV_ROUTES=true against a local API.
+
+Tool naming: MCP tools use syra_{pillar}_{toolId} (example: syra_spend_news). Escape hatch: syra_call_tool with { toolId, params }. See https://syraa.fun/skills.md for the curated list.
 
 API vs browsable web apps
 --------------------------
@@ -45,7 +62,7 @@ API vs browsable web apps
 
 Ecosystem
 ---------
-The Syra monorepo includes: api (backend), web (unified app + marketing), documentation site, mcp-server (MCP tools wrapping API routes), and other apps. The canonical human-facing doc set is the documentation app, deployed at docs.syraa.fun.
+The Syra monorepo includes: api (backend), web (unified app + marketing), documentation site, mcp-server (MCP tools wrapping API routes), syra-sdk, packages/syra-x402-payer, and other apps. The canonical human-facing doc set is the documentation app, deployed at docs.syraa.fun.
 
 This file
 ---------
@@ -55,5 +72,6 @@ Public URLs (main Syra domain):
 - This file: https://syraa.fun/llms.txt
 - Documentation index (Markdown): https://syraa.fun/docs.md
 - Agent capability list (Markdown): https://syraa.fun/skills.md
+- Agent skill: https://api.syraa.fun/skill.md
 
-Last updated: 2026-06-18 (repository snapshot).
+Last updated: 2026-07-19 (repository snapshot).

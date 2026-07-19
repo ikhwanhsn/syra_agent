@@ -1,0 +1,108 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - banner [ref=e4]:
+        - generic [ref=e5]:
+          - button "Open menu" [ref=e6] [cursor=pointer]
+          - link "Syra home" [ref=e7] [cursor=pointer]:
+            - /url: /
+            - img "Syra" [ref=e9]
+            - generic [ref=e10]: Syra
+          - generic [ref=e11]:
+            - button "Toggle theme" [ref=e12] [cursor=pointer]
+            - search [ref=e13]:
+              - combobox "Search pages…" [ref=e14]
+              - generic: /
+            - link "Swap SOL for $SYRA" [ref=e15] [cursor=pointer]:
+              - /url: /swap?inputMint=So11111111111111111111111111111111111111112&outputMint=8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump&outputSymbol=SYRA&outputName=SYRA
+              - generic [ref=e16]:
+                - generic [ref=e17]: Buy
+                - text: $SYRA
+            - button "Connect wallet" [ref=e22] [cursor=pointer]
+      - main [ref=e24]:
+        - main [ref=e27]:
+          - generic [ref=e28]:
+            - button "Show chats" [ref=e29] [cursor=pointer]
+            - generic "Chat messages" [ref=e138]:
+              - generic [ref=e139]:
+                - generic [ref=e140]:
+                  - img "You" [ref=e143]
+                  - generic [ref=e144]:
+                    - generic [ref=e145]:
+                      - generic [ref=e146]: You
+                      - generic [ref=e147]: 02:26 PM
+                    - paragraph [ref=e150]: What is Solana and how does it differ from Ethereum?
+                    - generic [ref=e151]:
+                      - button "Copy" [ref=e152] [cursor=pointer]
+                      - button "Edit" [ref=e153] [cursor=pointer]
+                - generic [ref=e154]:
+                  - img "Syra Agent" [ref=e158]
+                  - generic [ref=e163]:
+                    - generic [ref=e165]:
+                      - generic [ref=e166]: Syra Agent
+                      - generic [ref=e167]: 02:26 PM
+                    - generic [ref=e168]:
+                      - generic [ref=e169]:
+                        - paragraph [ref=e170]: Solana is a high-performance blockchain platform designed for decentralized applications and digital asset creation. It's known for its speed and low transaction costs.
+                        - paragraph [ref=e171]: "Here's how Solana differs from Ethereum:"
+                        - list [ref=e172]:
+                          - listitem [ref=e173]:
+                            - strong [ref=e174]: "Speed and Throughput:"
+                            - text: Solana boasts significantly higher transaction speeds and throughput compared to Ethereum. This is achieved through its unique consensus mechanism, Proof-of-History (PoH), combined with Proof-of-Stake (PoS). Ethereum, while also transitioning to PoS, has historically had lower throughput and higher fees, especially during periods of high network congestion.
+                          - listitem [ref=e175]:
+                            - strong [ref=e176]: "Transaction Costs:"
+                            - text: Solana's transaction fees are generally much lower than Ethereum's, making it more accessible for everyday transactions and micro-payments.
+                          - listitem [ref=e177]:
+                            - strong [ref=e178]: "Consensus Mechanism:"
+                            - text: Solana uses Proof-of-History (PoH) as a key component of its consensus mechanism. PoH creates a historical record that proves an event occurred at a specific moment in time, enabling faster transaction processing. Ethereum primarily uses Proof-of-Stake (PoS) after its Merge.
+                          - listitem [ref=e179]:
+                            - strong [ref=e180]: "Scalability:"
+                            - text: Solana's architecture is designed for massive scalability, aiming to support thousands of transactions per second. Ethereum's scalability has been a major focus, with ongoing upgrades (like sharding) aimed at improving its capacity.
+                          - listitem [ref=e181]:
+                            - strong [ref=e182]: "Development Ecosystem:"
+                            - text: Ethereum has a more mature and extensive developer ecosys
+                      - generic [ref=e183]: Writing
+            - generic [ref=e88]:
+              - textbox "Message input" [disabled] [ref=e89]:
+                - /placeholder: Message Syra Agent…
+              - button "Stop generating" [ref=e189] [cursor=pointer]
+    - region "Notifications (F8)":
+      - list
+    - region "Notifications alt+T"
+  - generic [ref=e92]:
+    - button "Close Qwerti Widget" [expanded] [ref=e93] [cursor=pointer]:
+      - img "Token" [ref=e97]
+    - dialog "Qwerti widget panel" [ref=e101]:
+      - generic [ref=e102]:
+        - generic [ref=e104]:
+          - generic [ref=e105]:
+            - img "SYRA logo" [ref=e106]
+            - img "Solana logo" [ref=e107]
+          - generic [ref=e108]:
+            - generic [ref=e109]:
+              - generic [ref=e110]:
+                - heading "SYRA" [level=3] [ref=e111]
+                - generic "Verified token" [ref=e112]:
+                  - img "Verified token" [ref=e113]
+              - generic [ref=e116]: Solana
+            - generic [ref=e117]:
+              - generic [ref=e118]: $0.0₄7546
+              - generic [ref=e119]:
+                - generic [ref=e120]: 1H
+                - generic [ref=e121]: +0.76%
+        - generic [ref=e122]:
+          - generic [ref=e123]:
+            - generic [ref=e124]: MarketCap
+            - generic [ref=e125]: $74.9K
+          - generic [ref=e126]:
+            - generic [ref=e127]: Volume
+            - generic [ref=e128]: $3,346
+          - generic [ref=e129]:
+            - generic [ref=e130]: Liquidity
+            - generic [ref=e131]: $12.8K
+          - generic [ref=e132]:
+            - generic [ref=e133]: 24H
+            - generic [ref=e134]: "-11.2%"
+      - generic [ref=e135]:
+        - generic [ref=e136]: ✋ Hi there! Want to buy SYRA? You cando this in few clicks via Qwerti AI DEX 😎
+        - button "Buy Token" [expanded] [ref=e137] [cursor=pointer]

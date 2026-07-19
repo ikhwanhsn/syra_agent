@@ -1,0 +1,109 @@
+---
+description: World-class UI/UX standards for designing, building, reviewing, and polishing interfaces
+globs: **/*.{tsx,jsx,css},**/components/**/*.{ts,tsx},**/pages/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# UI/UX Design Standard
+
+Act as a world-class UI/UX designer whenever designing, building, reviewing, or polishing any interface. Optimize for clarity, usability, accessibility, consistency, and craft. Prefer product quality over novelty.
+
+## Precedence
+
+- Match this project's established brand, design tokens, component library, spacing scale, typography, and interaction patterns. Do not invent a new visual language unless asked.
+- Prefer existing tokens and components over one-off styles.
+- Apply these standards whenever UI/UX work is in scope. Do not wait to be asked to "make it look good."
+
+## Before Designing
+
+1. Identify the user goal, context, frequency, and risk (especially destructive or financial actions).
+2. Define the primary action, secondary actions, and what success looks like on the screen.
+3. Inspect nearby UI for established patterns before inventing new ones.
+
+## Visual Hierarchy and Layout
+
+- Make the primary action obvious within 1–2 seconds of scanning.
+- Use hierarchy intentionally: size, weight, contrast, spacing, and position — not decoration.
+- Align to a consistent grid/spacing scale. Avoid arbitrary values when a token/scale exists.
+- Group related content. Separate unrelated content with clear spacing, not random dividers.
+- Prefer progressive disclosure for complexity. Do not dump every control into the first view.
+- Keep density usable: information-rich when needed, never cramped or sparse without reason.
+- One clear focal point per section. Avoid competing CTAs of equal visual weight.
+
+## Typography and Copy
+
+- Establish a clear type hierarchy (title > section > body > meta/helper).
+- Prefer readable line lengths and generous line-height for body text.
+- Write concise, specific, active UI copy. Prefer "Save changes" over "Click here to save your changes."
+- Empty, error, and success messages must explain what happened and what to do next.
+- Avoid jargon unless the audience already uses it. Never blame the user.
+
+## Color, Contrast, and Iconography
+
+- Use color with meaning (status, emphasis, brand). Do not decorate with random accents.
+- Meet WCAG AA contrast: 4.5:1 for body text, 3:1 for large text and essential icons/controls.
+- Never rely on color alone to convey state. Pair with text, icon, or pattern.
+- Prefer semantic tokens (`background`, `foreground`, `muted`, `destructive`, etc.) over hardcoded colors.
+- Icons must be recognizable, optically aligned, and labeled when meaning is not obvious. Decorative icons are `aria-hidden`.
+
+## Responsive and Mobile-First
+
+- Design mobile-first, then adapt upward. Do not merely shrink a desktop layout.
+- Validate at ~375px, ~768px, and ~1280px before calling UI work done.
+- Touch targets should be at least 40×40px (prefer 44×44px). Increase hit area with padding when visuals are smaller.
+- Navigation, forms, tables, and charts must adapt intentionally (stack, collapse, summarize, or paginate — not overflow chaos).
+- Avoid horizontal scrolling for core content unless the content type requires it (e.g., wide data tables with a clear affordance).
+
+## Interaction and Accessibility
+
+- Use semantic controls: real buttons, links, inputs, labels — never clickable `div`/`span` as a substitute.
+- Every interactive element needs a visible focus state. Do not remove focus outlines without a strong replacement.
+- Full keyboard support: Tab order must be logical; Enter/Space activates; Escape closes overlays; arrows where expected for menus/lists.
+- Forms need visible labels, correct input types, autocomplete where useful, inline errors next to fields, and disabled/submit pending states.
+- Dialogs/menus/drawers must trap focus appropriately, restore focus on close, and have accessible names.
+- Support screen readers with meaningful names, roles, and live announcements for important status changes.
+- Destructive or irreversible actions require clear consequence copy and confirmation when risk is high.
+
+## States, Feedback, and Continuity
+
+- Implement loading, empty, error, success, disabled, hover, pressed/active, and focus states for interactive UI.
+- Prefer skeletons or content placeholders over generic spinners when layout is known.
+- Empty states explain the situation and offer a next action.
+- Error states include recovery (retry, edit, go back, contact support) when possible.
+- Preserve user input across recoverable errors whenever possible.
+- Optimistic UI is fine only when failure can be clearly undone or corrected.
+
+## Motion and Performance
+
+- Use motion only to communicate state change, hierarchy, or spatial continuity.
+- Keep transitions short and purposeful (typically ~100–250ms for micro-interactions).
+- Respect `prefers-reduced-motion`. Provide a non-animated equivalent.
+- Avoid animating layout thrash, large blurs, or continuous decorative motion that hurts focus or performance.
+- Do not ship jank: avoid layout shift, late-loading content jumps, and blocked input during critical actions.
+
+## Anti-Patterns
+
+Avoid:
+
+- Generic "AI slop" layouts: vague hero copy, evenly weighted cards, meaningless gradients, stock icon grids
+- Low-contrast gray-on-gray text
+- Multiple primary buttons competing in one view
+- Missing empty/error/loading states
+- Tiny touch targets and hover-only interactions for essential actions
+- Inconsistent spacing, radii, shadows, or button styles across nearby screens
+- Hardcoded colors/spacing that fight the design system
+- Modal overuse when inline UI would be clearer
+
+## Definition of Done (UI/UX)
+
+Before finishing any UI task, self-review:
+
+1. Can a new user identify the goal and primary action immediately?
+2. Does hierarchy, spacing, and alignment feel deliberate and consistent with the project?
+3. Are loading/empty/error/success and interactive states covered?
+4. Is it usable by keyboard and readable with AA contrast?
+5. Does it work at mobile, tablet, and desktop widths?
+6. Does motion help rather than distract, with reduced-motion support?
+7. Any accessibility, consistency, or regression risks called out if not fixed?
+
+If a tradeoff remains, state it briefly to the user instead of silently shipping a weak default.
