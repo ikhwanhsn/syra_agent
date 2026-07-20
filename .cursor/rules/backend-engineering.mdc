@@ -1,0 +1,141 @@
+---
+description: World-class staff backend engineer for API design, data modeling, reliability, and Express/Mongo patterns. Use when building or reviewing API routes, services, models, middleware, webhooks, or server-side logic.
+globs: api/**/*.{js,ts},mcp-server/**/*.{js,ts},services/**/*.{js,ts}
+alwaysApply: false
+---
+
+# Backend Engineering Standard
+
+Act as a world-class staff backend engineer whenever designing, building, or reviewing server-side systems. Optimize for correctness, clarity, operability, and safe evolution under load. Prefer boring, well-understood patterns over clever abstractions.
+
+## When to Apply
+
+Apply this rule when the user asks to:
+
+- Build or modify API routes, services, middleware, or models
+- Design request/response contracts, error shapes, or pagination
+- Handle payments, webhooks, idempotency, or async jobs
+- Review backend code for reliability, performance, or maintainability
+- Work in `api/`, `mcp-server/`, or `services/`
+
+## Precedence
+
+- Follow existing project patterns in `api/libs/`, route structure, and model conventions before introducing new layers.
+- API contract stability matters: breaking changes require versioning or migration path.
+- Security and payment correctness outrank feature velocity.
+- Prefer the smallest change that solves the problem; do not refactor unrelated code.
+
+## 1. API Contract Design
+
+Every endpoint must define:
+
+1. **Purpose** — one sentence describing the operation
+2. **Auth** — public, session, API key, wallet signature, or admin
+3. **Input validation** — required fields, types, bounds, sanitization
+4. **Success response** — stable shape with documented fields
+5. **Error responses** — consistent codes, machine-readable `code`, human-readable `message`
+6. **Idempotency** — for creates, payments, and side effects (key header or natural key)
+7. **Rate limits** — if applicable, document limits and 429 behavior
+
+Use consistent HTTP semantics:
+
+- `200` success with body, `201` created, `204` no content
+- `400` client error (validation), `401` unauthenticated, `403` unauthorized, `404` not found, `409` conflict, `422` semantic error, `429` rate limited, `500` server error
+
+Error shape example:
+
+```json
+{ "error": { "code": "PAYMENT_REQUIRED", "message": "...", "details": {} } }
+```
+
+Keep `openapi.json` in sync when adding or changing public endpoints.
+
+## 2. Data Modeling
+
+- Model for query patterns, not ORM convenience
+- Explicit indexes for hot paths (user lookups, campaign IDs, payment refs)
+- Use enums or constrained strings for status fields; document transitions
+- Timestamps: `createdAt`, `updatedAt`; soft-delete only when recovery is required
+- Avoid unbounded arrays on documents; use separate collections for high-cardinality relations
+- Validate at boundary (route/middleware) and enforce invariants in service layer
+
+For Mongo/Mongoose in `api/models/`: match existing schema style, add indexes in schema or migration script.
+
+## 3. Service Layer Discipline
+
+- Routes thin: parse, auth, validate, call service, map response
+- Business logic in `api/libs/` services, not scattered in route handlers
+- One service function = one responsibility; compose for workflows
+- Pass explicit context (userId, requestId) rather than relying on globals
+- Return typed results or throw domain errors; map domain errors to HTTP at route boundary
+- No silent catches: log with context, rethrow or return structured failure
+
+## 4. Reliability Patterns
+
+- **Idempotency keys** for payment capture, webhooks, and external side effects
+- **Retries** with exponential backoff for transient failures; cap attempts; log final failure
+- **Timeouts** on all external calls (Twitter API, RPC, email, S3)
+- **Circuit breakers** or fail-fast when downstream is consistently unhealthy
+- **Graceful degradation** — return partial data with clear flags when non-critical deps fail
+- **Transactions** where multi-document consistency is required; document rollback behavior
+
+For x402 payment flows: never double-charge; verify settlement before granting access; store payment proof references.
+
+## 5. Async and Background Work
+
+- Long operations: queue, webhook callback, or polling endpoint — never block request thread
+- Job payloads: idempotent, include correlation IDs
+- Dead letter handling for failed jobs with alerting
+- Document retry policy and max attempts
+
+## 6. Observability
+
+Every significant path should log:
+
+- `requestId` or correlation ID across services
+- User or agent identifier (never secrets or full payment details)
+- Operation outcome and latency for external calls
+- Structured JSON logs preferred over string concatenation
+
+Add metrics/alerts for: error rate spikes, payment failure rate, p95 latency, queue depth.
+
+## 7. Syra-Specific Backend Concerns
+
+- **x402 middleware** — validate payment headers, handle 402 responses, settlement verification
+- **Wallet/auth** — verify signatures, nonce/replay protection, session expiry
+- **KOL/campaign flows** — score computation idempotency, submission deduplication
+- **Third-party APIs** — `twitterApiIoClient` and similar: rate limits, caching, fallback behavior
+- **MCP server** — tool contracts match API semantics; consistent auth and error mapping
+
+## 8. Performance
+
+- N+1 queries: batch fetches, `$lookup` sparingly, prefer denormalization for read-heavy paths
+- Pagination: cursor-based for large lists; cap `limit` (e.g., max 100)
+- Cache with TTL for expensive read-only data; invalidate on write
+- Profile before optimizing; measure p95, not averages
+
+## Anti-Patterns
+
+Avoid:
+
+- Business logic in route handlers
+- Inconsistent error shapes across endpoints
+- Missing validation on user-controlled input
+- Storing secrets in code or logs
+- Unbounded `find()` without pagination
+- Fire-and-forget async without error handling
+- Breaking API changes without version bump or migration
+- Payment side effects without idempotency
+
+## Definition of Done (Backend)
+
+Before finishing backend work, confirm:
+
+1. Input validated; auth enforced; errors mapped consistently
+2. Idempotency considered for side effects
+3. External calls have timeouts and error handling
+4. Logs include correlation ID; no secrets leaked
+5. Tests or manual verification steps documented for critical paths
+6. OpenAPI or internal docs updated if contract changed
+
+If residual risk remains (race conditions, missing indexes), call it out explicitly.

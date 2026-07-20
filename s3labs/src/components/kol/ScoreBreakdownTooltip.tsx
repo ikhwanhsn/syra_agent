@@ -20,15 +20,27 @@ const INTEGRITY_FLAG_LABELS: Record<string, string> = {
   high_engagement_to_view_ratio: "High engagement vs views",
   low_engagement_to_view_ratio: "Low engagement vs views",
   engagement_without_views: "Engagement without views",
+  high_reply_to_view_ratio: "Unusual reply rate vs views",
+  high_quote_to_view_ratio: "Unusual quote rate vs views",
+  engagement_spike: "Sudden engagement spike",
+  late_surge: "Late engagement surge",
 };
 
 interface ScoreBreakdownTooltipProps {
   score: number;
   breakdown?: KolScoreBreakdown | null;
+  authenticityMultiplier?: number | null;
+  authenticityQualityShare?: number | null;
   className?: string;
 }
 
-export function ScoreBreakdownTooltip({ score, breakdown, className }: ScoreBreakdownTooltipProps) {
+export function ScoreBreakdownTooltip({
+  score,
+  breakdown,
+  authenticityMultiplier,
+  authenticityQualityShare,
+  className,
+}: ScoreBreakdownTooltipProps) {
   if (!breakdown || breakdown.version < 2) {
     return (
       <span className={cn("font-mono font-medium tabular-nums", className)}>
@@ -41,10 +53,22 @@ export function ScoreBreakdownTooltip({ score, breakdown, className }: ScoreBrea
     ([, m]) => m && (m.weighted > 0 || m.raw > 0),
   );
 
+  const authenticity =
+    authenticityMultiplier != null && Number.isFinite(authenticityMultiplier)
+      ? authenticityMultiplier
+      : null;
+  const qualityPct =
+    authenticityQualityShare != null && Number.isFinite(authenticityQualityShare)
+      ? Math.round(authenticityQualityShare * 100)
+      : authenticity != null
+        ? Math.round(authenticity * 100)
+        : null;
+
   const hasDiscount =
     breakdown.credibilityMultiplier < 0.999 ||
     breakdown.integrityFactor < 0.999 ||
-    breakdown.integrityFlags.length > 0;
+    breakdown.integrityFlags.length > 0 ||
+    (authenticity != null && authenticity < 0.999);
 
   return (
     <Tooltip>
@@ -105,13 +129,24 @@ export function ScoreBreakdownTooltip({ score, breakdown, className }: ScoreBrea
                 <span>×{breakdown.integrityFactor.toFixed(2)}</span>
               </div>
             ) : null}
+            {authenticity != null && authenticity < 0.999 ? (
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground">Authenticity</span>
+                <span>×{authenticity.toFixed(2)}</span>
+              </div>
+            ) : null}
             <div className="flex justify-between gap-3 font-semibold text-foreground">
               <span>Final</span>
               <span>{breakdown.finalScore.toFixed(1)} pts</span>
             </div>
           </div>
 
-          {hasDiscount && breakdown.integrityFlags.length > 0 ? (
+          {qualityPct != null && authenticity != null && authenticity < 0.999 ? (
+            <p className="text-muted-foreground leading-relaxed border-t border-border/60 pt-2">
+              Engagement quality check: {qualityPct}% of sampled commenters look genuine.
+              Bought engagement is discounted at payout.
+            </p>
+          ) : hasDiscount && breakdown.integrityFlags.length > 0 ? (
             <p className="text-muted-foreground leading-relaxed border-t border-border/60 pt-2">
               {breakdown.integrityFlags
                 .map((f) => INTEGRITY_FLAG_LABELS[f] ?? f)

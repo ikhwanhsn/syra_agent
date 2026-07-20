@@ -42,7 +42,8 @@ export function CampaignEmailNotify({
         });
       } else {
         toast.success("Already subscribed", {
-          description: "You'll keep getting alerts when new campaigns go live.",
+          description:
+            "You'll keep getting alerts when new campaigns and missions go live.",
         });
       }
     },
@@ -96,12 +97,11 @@ export function CampaignEmailNotify({
         <div className="flex items-center gap-2">
           <Mail className="h-4 w-4 text-primary shrink-0" />
           <h4 className="text-sm font-semibold text-foreground">
-            Email campaign alerts
+            Email alerts
           </h4>
         </div>
         <p className="text-xs text-muted-foreground leading-relaxed">
-          Get an email when a new KOL campaign goes live — reward pool,
-          duration, and a direct link.
+          Get an email when a new KOL campaign or S3Labs mission goes live.
         </p>
         {submitted ? (
           <p className="text-xs text-primary font-medium">
@@ -135,15 +135,15 @@ export function CampaignEmailNotify({
           </div>
           <h2 className="heading-section">Get notified by email</h2>
           <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-            Subscribe once — we email you when a new KOL campaign goes live with
-            the reward pool, duration, and a link to join.
+            Subscribe once — we email you when a new KOL campaign or S3Labs mission
+            goes live, with a direct link to join or earn points.
           </p>
         </div>
 
         <div className="w-full lg:max-w-md shrink-0 space-y-3">
           {submitted ? (
             <div className="rounded-full border border-primary/30 bg-primary/10 px-4 py-3 text-center text-sm text-foreground">
-              You&apos;re on the list. New campaigns will hit your inbox.
+              You&apos;re on the list. New campaigns and missions will hit your inbox.
             </div>
           ) : (
             form

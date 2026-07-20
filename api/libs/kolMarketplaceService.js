@@ -39,6 +39,14 @@ import {
   splitRewardPool,
 } from "../config/kolMarketplaceConfig.js";
 import {
+  AUTHENTICITY_AUDIT_TOP_N,
+  AUTHENTICITY_CEILING,
+} from "../config/kolScoringConfig.js";
+import {
+  auditCampaignAuthenticity,
+  resolveClaimStatusAfterAudit,
+} from "./kolAuthenticityService.js";
+import {
   getPoolWalletAddress,
   isPoolWalletConfigured,
   sendPayout,
@@ -142,6 +150,7 @@ function pickPreferredSubmission(docs) {
     const status = String(s.claimStatus || "unearned");
     if (status === "claimed") return 3;
     if (status === "claimable") return 2;
+    if (status === "held_review") return 1.5;
     return 1;
   };
   return [...docs].sort((a, b) => {
@@ -711,6 +720,12 @@ function serializeSubmission(submission) {
     earnedLamports: doc.earnedLamports ?? 0,
     earnedSol: (doc.earnedLamports ?? 0) / LAMPORTS_PER_SOL,
     claimStatus: doc.claimStatus ?? "unearned",
+    authenticityMultiplier:
+      doc.authenticityMultiplier != null ? Number(doc.authenticityMultiplier) : null,
+    authenticityBreakdown: doc.authenticityBreakdown ?? null,
+    authenticityAuditedAt: doc.authenticityAuditedAt
+      ? new Date(doc.authenticityAuditedAt).toISOString()
+      : null,
     discoveredAt: doc.discoveredAt
       ? new Date(doc.discoveredAt).toISOString()
       : null,
@@ -1642,10 +1657,22 @@ async function filterRewardEligibleSubmissions(campaign, submissions) {
     const wallet = submissionWallet.get(String(s._id));
     const isCreator = wallet ? creatorMap.get(wallet) === true : false;
     const base = Number(s.latestScore) || 0;
-    const payoutScore = isCreator
-      ? Math.round(base * CREATOR_SCORE_BONUS * 10) / 10
-      : base;
-    return { ...s, payoutScore, creatorBonusApplied: isCreator && base > 0 };
+    const authenticityRaw =
+      s.authenticityMultiplier != null
+        ? Number(s.authenticityMultiplier)
+        : AUTHENTICITY_CEILING;
+    const authenticity =
+      Number.isFinite(authenticityRaw) && authenticityRaw > 0
+        ? Math.min(AUTHENTICITY_CEILING, Math.max(0, authenticityRaw))
+        : AUTHENTICITY_CEILING;
+    const withCreator = isCreator ? base * CREATOR_SCORE_BONUS : base;
+    const payoutScore = Math.round(withCreator * authenticity * 10) / 10;
+    return {
+      ...s,
+      payoutScore,
+      creatorBonusApplied: isCreator && base > 0,
+      authenticityMultiplier: authenticity,
+    };
   });
 }
 
@@ -2194,7 +2221,7 @@ export async function refreshCampaignMetrics(campaignId, opts = {}) {
     allTweetIds.push(...contributionTweetIds(submission));
   }
 
-  /** @type {Map<string, { metrics: object; score: number; scoreBreakdown: object | null; authorHandle: string; authorFollowers: number | null; authorVerified: boolean }>} */
+  /** @type {Map<string, { metrics: object; score: number; scoreBreakdown: object | null; authorHandle: string; authorFollowers: number | null; authorVerified: boolean; createdAt: string | null }>} */
   const metricsByTweetId = new Map();
 
   if (allTweetIds.length > 0) {
@@ -2205,14 +2232,16 @@ export async function refreshCampaignMetrics(campaignId, opts = {}) {
           followers: Math.max(0, Math.floor(Number(tweet.author?.followers) || 0)),
           verified: Boolean(tweet.author?.verified),
         };
-        const { score, breakdown } = scoreSubmission(tweet.metrics, authorContext);
+        // Velocity context is applied per-contribution below (needs previous metrics).
         metricsByTweetId.set(tweetId, {
           metrics: tweet.metrics,
-          score,
-          scoreBreakdown: breakdown ?? null,
+          score: 0,
+          scoreBreakdown: null,
           authorHandle: tweet.author?.userName || "",
           authorFollowers: authorContext.followers,
           authorVerified: authorContext.verified,
+          createdAt: tweet.createdAt ?? null,
+          authorContext,
         });
       }
     } catch (e) {
@@ -2252,6 +2281,24 @@ export async function refreshCampaignMetrics(campaignId, opts = {}) {
               },
             ];
 
+      /** @type {Map<string, object>} */
+      const previousMetricsByTweetId = new Map();
+      for (const c of existingContributions) {
+        const id = String(c.tweetId || "").trim();
+        if (id) previousMetricsByTweetId.set(id, c.metrics || {});
+      }
+
+      // Prefer prior snapshot when contribution metrics were never stored (legacy rows).
+      let previousSnapshotMetrics = null;
+      if (previousMetricsByTweetId.size === 0 || !submission.contributions?.length) {
+        const priorSnap = await KolEngagementSnapshot.findOne({
+          submissionId: submission._id,
+        })
+          .sort({ capturedAt: -1 })
+          .lean();
+        if (priorSnap?.metrics) previousSnapshotMetrics = priorSnap.metrics;
+      }
+
       const missing = tweetIds.filter((id) => !metricsByTweetId.has(id));
       const allMissing = missing.length === tweetIds.length;
 
@@ -2287,13 +2334,22 @@ export async function refreshCampaignMetrics(campaignId, opts = {}) {
             scoreBreakdown: c.scoreBreakdown ?? null,
           };
         }
+
+        const previousMetrics =
+          previousMetricsByTweetId.get(tweetId) || previousSnapshotMetrics || null;
+        const { score, breakdown } = scoreSubmission(fresh.metrics, fresh.authorContext, {
+          previousMetrics,
+          postCreatedAt: fresh.createdAt,
+          now: capturedAt,
+        });
+
         return {
           tweetId,
           tweetUrl: String(c.tweetUrl || ""),
           mode: c.mode === "quote" ? "quote" : "reply",
           metrics: fresh.metrics,
-          score: fresh.score,
-          scoreBreakdown: fresh.scoreBreakdown,
+          score,
+          scoreBreakdown: breakdown ?? null,
         };
       });
 
@@ -2479,11 +2535,61 @@ export async function finalizeCampaign(campaignId) {
     );
   }
 
-  const submissions = dedupeSubmissionsByHandle(
+  let submissions = dedupeSubmissionsByHandle(
     await KolSubmission.find({
       campaignId: campaign._id,
     }).lean(),
   );
+
+  // Tier-2 authenticity audit on top payout candidates (cheap, once per campaign).
+  /** @type {Map<string, Record<string, unknown>>} */
+  const authenticityBySubmissionId = new Map();
+  try {
+    const prelimEligible = await filterRewardEligibleSubmissions(
+      campaign,
+      submissions,
+    );
+    const audit = await auditCampaignAuthenticity(prelimEligible, {
+      topN: AUTHENTICITY_AUDIT_TOP_N,
+    });
+    const auditedAt = new Date();
+    for (const row of audit.results || []) {
+      authenticityBySubmissionId.set(String(row.submissionId), row);
+      await KolSubmission.updateOne(
+        { _id: row.submissionId },
+        {
+          $set: {
+            authenticityMultiplier: row.multiplier ?? AUTHENTICITY_CEILING,
+            authenticityBreakdown: {
+              sampleSize: row.sampleSize ?? 0,
+              qualityShare: row.qualityShare ?? null,
+              duplicateShare: row.duplicateShare ?? null,
+              mixedCreationWeekShare: row.mixedCreationWeekShare ?? null,
+              reasons: row.reasons ?? [],
+              flaggedHandles: row.flaggedHandles ?? [],
+              auditedTweetIds: row.auditedTweetIds ?? [],
+              holdRecommended: Boolean(row.holdRecommended),
+              skipped: Boolean(row.skipped),
+              skipReason: row.reason ?? null,
+            },
+            authenticityAuditedAt: auditedAt,
+          },
+        },
+      );
+    }
+    // Reload so payoutScore uses stored authenticity multipliers.
+    submissions = dedupeSubmissionsByHandle(
+      await KolSubmission.find({
+        campaignId: campaign._id,
+      }).lean(),
+    );
+  } catch (e) {
+    console.warn(
+      `[kol] authenticity audit failed campaign=${campaign._id}:`,
+      e instanceof Error ? e.message : e,
+    );
+  }
+
   const reputationResults = await creditKolReputationsForCampaign(
     campaign._id,
     submissions,
@@ -2564,13 +2670,21 @@ export async function finalizeCampaign(campaignId) {
 
   for (const submission of submissions) {
     const earnedLamports = payoutMap.get(String(submission._id)) ?? 0;
+    const auditRow = authenticityBySubmissionId.get(String(submission._id));
+    const claimStatus = resolveClaimStatusAfterAudit({
+      earnedLamports,
+      authenticityMultiplier:
+        submission.authenticityMultiplier ?? auditRow?.multiplier ?? null,
+      integrityFlags: submission.scoreBreakdown?.integrityFlags ?? [],
+      holdRecommended: Boolean(auditRow?.holdRecommended),
+    });
     await KolSubmission.updateOne(
       { _id: submission._id },
       {
         $set: {
           earnedLamports,
           projectedLamports: earnedLamports,
-          claimStatus: earnedLamports > 0 ? "claimable" : "unearned",
+          claimStatus,
         },
       },
     );
@@ -2578,8 +2692,10 @@ export async function finalizeCampaign(campaignId) {
       type: "kol",
       submissionId: String(submission._id),
       authorHandle: submission.authorHandle,
-      status: earnedLamports > 0 ? "claimable" : "unearned",
+      status: claimStatus,
       lamports: earnedLamports,
+      authenticityMultiplier:
+        submission.authenticityMultiplier ?? auditRow?.multiplier ?? null,
     });
   }
 
@@ -2643,6 +2759,7 @@ export async function finalizeCampaign(campaignId) {
   return {
     success: true,
     claimable: results.filter((r) => r.type === "kol" && r.status === "claimable"),
+    heldReview: results.filter((r) => r.type === "kol" && r.status === "held_review"),
     payouts: results,
     reputation: reputationResults,
     points: pointsResults,
@@ -4260,7 +4377,7 @@ export async function getEarningsByHandle(username) {
     const payoutStatus = payout?.status ?? null;
 
     let amountLamports = 0;
-    /** @type {"paid" | "held" | "claimable" | "projected" | "none"} */
+    /** @type {"paid" | "held" | "held_review" | "claimable" | "projected" | "none"} */
     let amountKind = "none";
 
     if (payoutStatus === "confirmed") {
@@ -4271,6 +4388,10 @@ export async function getEarningsByHandle(username) {
       amountLamports = payout.lamports ?? 0;
       heldLamports += amountLamports;
       amountKind = "held";
+    } else if (s.claimStatus === "held_review") {
+      amountLamports = s.earnedLamports ?? s.projectedLamports ?? 0;
+      heldLamports += amountLamports;
+      amountKind = "held_review";
     } else if (
       payoutStatus === "pending" ||
       s.claimStatus === "claimable"
@@ -4331,5 +4452,154 @@ export async function getEarningsByHandle(username) {
     campaignsCompleted: reputation?.campaignsCompleted ?? 0,
     reputationScore: Math.round((reputation?.reputationScore ?? 0) * 10) / 10,
     rows,
+  };
+}
+
+/**
+ * List submissions held for authenticity / integrity review.
+ * @param {{ campaignId?: string | null }} [opts]
+ */
+export async function listHeldReviewPayouts(opts = {}) {
+  assertMongo();
+  const filter = { claimStatus: "held_review", earnedLamports: { $gt: 0 } };
+  if (opts.campaignId) {
+    filter.campaignId = assertObjectId(opts.campaignId);
+  }
+
+  const submissions = await KolSubmission.find(filter)
+    .sort({ earnedLamports: -1, updatedAt: -1 })
+    .limit(200)
+    .lean();
+
+  const campaignIds = [
+    ...new Set(submissions.map((s) => String(s.campaignId))),
+  ];
+  const campaigns = await KolCampaign.find({ _id: { $in: campaignIds } })
+    .select("title status sourceAuthorHandle")
+    .lean();
+  const campaignMap = new Map(campaigns.map((c) => [String(c._id), c]));
+
+  return submissions.map((s) => ({
+    submission: serializeSubmission(s),
+    campaign: campaignMap.has(String(s.campaignId))
+      ? {
+          id: String(s.campaignId),
+          title: campaignMap.get(String(s.campaignId)).title,
+          status: campaignMap.get(String(s.campaignId)).status,
+          sourceAuthorHandle:
+            campaignMap.get(String(s.campaignId)).sourceAuthorHandle ?? null,
+        }
+      : null,
+  }));
+}
+
+/**
+ * Admin: release a held_review payout to claimable (and optionally auto-distribute).
+ * @param {string} campaignId
+ * @param {string} submissionId
+ * @param {{ autoDistribute?: boolean }} [opts]
+ */
+export async function releaseHeldReviewPayout(campaignId, submissionId, opts = {}) {
+  assertMongo();
+  const campaign = await KolCampaign.findById(assertObjectId(campaignId));
+  if (!campaign) {
+    const err = new Error("Campaign not found");
+    err.code = "not_found";
+    throw err;
+  }
+
+  const submission = await KolSubmission.findOne({
+    _id: assertObjectId(submissionId),
+    campaignId: campaign._id,
+  });
+  if (!submission) {
+    const err = new Error("Submission not found");
+    err.code = "not_found";
+    throw err;
+  }
+  if (submission.claimStatus !== "held_review") {
+    const err = new Error("Submission is not held for review");
+    err.code = "invalid_status";
+    throw err;
+  }
+  if ((submission.earnedLamports ?? 0) <= 0) {
+    const err = new Error("No earned reward to release");
+    err.code = "invalid_status";
+    throw err;
+  }
+
+  submission.claimStatus = "claimable";
+  await submission.save();
+
+  let autoDistributed = null;
+  if (opts.autoDistribute !== false) {
+    try {
+      const results = await autoDistributeForCampaign(campaign, [submission.toObject()]);
+      autoDistributed = results?.[0] ?? null;
+    } catch (e) {
+      console.warn(
+        `[kol] auto-distribute after release failed submission=${submission._id}:`,
+        e instanceof Error ? e.message : e,
+      );
+    }
+  }
+
+  return {
+    submission: serializeSubmission(submission),
+    autoDistributed,
+  };
+}
+
+/**
+ * Admin: slash a held_review payout (forfeit reward; funds remain in pool wallet).
+ * @param {string} campaignId
+ * @param {string} submissionId
+ * @param {{ reason?: string }} [opts]
+ */
+export async function slashHeldReviewPayout(campaignId, submissionId, opts = {}) {
+  assertMongo();
+  const campaign = await KolCampaign.findById(assertObjectId(campaignId));
+  if (!campaign) {
+    const err = new Error("Campaign not found");
+    err.code = "not_found";
+    throw err;
+  }
+
+  const submission = await KolSubmission.findOne({
+    _id: assertObjectId(submissionId),
+    campaignId: campaign._id,
+  });
+  if (!submission) {
+    const err = new Error("Submission not found");
+    err.code = "not_found";
+    throw err;
+  }
+  if (submission.claimStatus !== "held_review") {
+    const err = new Error("Submission is not held for review");
+    err.code = "invalid_status";
+    throw err;
+  }
+
+  const previousEarned = submission.earnedLamports ?? 0;
+  const reason = String(opts.reason || "admin_slash").slice(0, 200);
+
+  submission.earnedLamports = 0;
+  submission.projectedLamports = 0;
+  submission.claimStatus = "unearned";
+  submission.authenticityBreakdown = {
+    ...(submission.authenticityBreakdown &&
+    typeof submission.authenticityBreakdown === "object"
+      ? submission.authenticityBreakdown
+      : {}),
+    slashedAt: new Date().toISOString(),
+    slashReason: reason,
+    previousEarnedLamports: previousEarned,
+  };
+  await submission.save();
+
+  return {
+    submission: serializeSubmission(submission),
+    previousEarnedLamports: previousEarned,
+    slashReason: reason,
   };
 }

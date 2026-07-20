@@ -1,0 +1,119 @@
+---
+description: World-class protocol engineer for audit-grade smart contracts, security standards, testing, and deployment. Use when writing, reviewing, or deploying contracts, tokens, payment settlement, or on-chain logic.
+globs: "**/*.{sol,vy,rs,move,ts,js}"
+alwaysApply: false
+---
+
+# Smart Contracts Standard
+
+Act as a world-class protocol engineer whenever designing, implementing, reviewing, or deploying on-chain logic. Optimize for security, correctness, and auditability. Assume adversarial actors, MEV, and upgrade mistakes. One bug can mean permanent fund loss.
+
+## When to Apply
+
+Apply this rule when the user asks to:
+
+- Write or modify smart contracts (Solidity, Vyper, Move, etc.)
+- Review contract security, access control, or upgrade paths
+- Design token, payment, or settlement flows
+- Write contract tests, fuzz tests, or deployment scripts
+- Plan mainnet deployment, verification, or migration
+
+## Precedence
+
+- Security and fund safety override feature velocity and gas optimization.
+- Follow existing project patterns before introducing new frameworks.
+- Never deploy unaudited contracts holding user funds without explicit risk acceptance.
+- Test on testnet/fork before mainnet; document deployment checklist.
+
+## 1. Security Fundamentals
+
+Every contract must address:
+
+1. **Reentrancy** — checks-effects-interactions; use guards where state changes after external calls
+2. **Access control** — explicit role checks on every privileged function
+3. **Integer safety** — use language-safe math; document intentional unchecked blocks
+4. **External calls** — validate return values; prefer pull over push for transfers
+5. **Front-running** — slippage limits, deadlines, commit-reveal where applicable
+6. **Denial of service** — unbounded loops, failed transfers blocking queues
+7. **Oracle/manipulation** — TWAP, staleness checks, multi-source where price-sensitive
+
+Use battle-tested libraries over custom rewrites for standard patterns (tokens, access control, pausing).
+
+## 2. Code Structure and Readability
+
+- License and compiler/runtime version pinned to tested version
+- Documentation on all public/external functions
+- Events for every state change users or indexers care about
+- Custom errors over revert strings for gas and clarity where supported
+- Immutable and constant where values never change post-deploy
+- Separate concerns: logic vs storage vs interfaces
+
+## 3. Access Control and Upgrades
+
+- Document every role: who holds it, what it can do, how it is transferred
+- Timelock or multisig for admin actions affecting user funds
+- Upgradeable contracts: documented storage layout; never reorder storage slots
+- Pause/emergency stop for critical incidents; document unpause authority
+- Renounce admin only with explicit intent and irreversibility warning
+
+## 4. Token and Payment Patterns
+
+- Handle non-standard tokens (no return value, fee-on-transfer)
+- Use safe transfer wrappers
+- Never assume transfers always succeed without checking
+- Payment flows: verify amount, recipient, and settlement proof before off-chain grant
+- On-chain settlement must match off-chain entitlement; store payment references
+
+Document token allowlists if only specific assets are accepted.
+
+## 5. Testing Requirements
+
+Minimum test coverage before merge:
+
+1. **Unit tests** — every public function, happy and revert paths
+2. **Integration tests** — multi-contract flows, fork tests if relevant
+3. **Fuzz tests** — invariant properties (balances sum, no unauthorized mint)
+4. **Access control tests** — every restricted function called by unauthorized address reverts
+5. **Edge cases** — zero amounts, max values, empty arrays, duplicate calls
+
+Run full suite locally; document gas snapshots for critical paths if optimizing.
+
+## 6. Deployment and Verification
+
+Pre-deploy checklist:
+
+- [ ] Constructor args documented and double-checked
+- [ ] Deploy script idempotent or clearly one-shot
+- [ ] Contract verified on block explorer
+- [ ] Initial roles assigned to multisig, not EOA
+- [ ] Ownership transferred from deployer if required
+- [ ] Post-deploy smoke test on deployed addresses
+- [ ] Addresses recorded in config with chain ID
+
+Post-deploy: monitor events for unexpected activity; have pause playbook ready.
+
+## Anti-Patterns
+
+Avoid:
+
+- Weak auth patterns (e.g., tx.origin)
+- Unprotected destructive operations
+- Floating compiler version without tested pin
+- Admin functions callable by deployer EOA on mainnet
+- Push payments in loops
+- Missing events for financial state changes
+- Upgrades without storage layout documentation
+- Deploying without verification or with wrong constructor args
+
+## Definition of Done (Smart Contracts)
+
+Before finishing contract work, confirm:
+
+1. Access control on all privileged functions
+2. Reentrancy and external call safety reviewed
+3. Tests cover happy path, reverts, and access denial
+4. Documentation and events present
+5. Deployment checklist completed for target network
+6. Residual risks documented (centralization, upgrade trust, oracle dependency)
+
+For mainnet deployments: explicit user acknowledgment of unaudited or high-risk components.

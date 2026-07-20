@@ -13,8 +13,16 @@ import {
   INTEGRITY_ENGAGEMENT_VIEW_MAX,
   INTEGRITY_ENGAGEMENT_VIEW_MIN,
   INTEGRITY_FLOOR,
+  INTEGRITY_QUOTE_VIEW_MAX,
+  INTEGRITY_REPLY_VIEW_MAX,
   MAX_CONTRIBUTIONS_PER_HANDLE,
   MIN_LIKES_PER_POST,
+  VELOCITY_LATE_SURGE_MIN_ABSOLUTE,
+  VELOCITY_LATE_SURGE_MIN_AGE_MS,
+  VELOCITY_LATE_SURGE_MIN_RATIO,
+  VELOCITY_SPIKE_MAX_VIEW_GROWTH_RATIO,
+  VELOCITY_SPIKE_MIN_ABSOLUTE,
+  VELOCITY_SPIKE_MIN_RATIO,
   VERIFIED_BONUS,
   VIEW_CAP,
 } from "../config/kolScoringConfig.js";
@@ -33,6 +41,14 @@ import { getTweetById, isTwitterApiIoConfigured } from "./twitterApiIoClient.js"
  * @typedef {object} KolAuthorContext
  * @property {number} [followers]
  * @property {boolean} [verified]
+ */
+
+/**
+ * Optional velocity context for Tier-1 spike detection (previous snapshot / metrics).
+ * @typedef {object} KolVelocityContext
+ * @property {KolMetrics | null | undefined} [previousMetrics]
+ * @property {Date | string | number | null} [postCreatedAt]
+ * @property {Date | string | number | null} [now]
  */
 
 /**
@@ -163,16 +179,103 @@ function computeCredibilityMultiplier(followers, verified) {
 }
 
 /**
- * @param {Record<string, number>} capped
- * @returns {{ factor: number; flags: string[] }}
+ * @param {unknown} value
+ * @returns {number | null}
  */
-function computeIntegrityFactor(capped) {
-  const views = capped.view ?? 0;
-  const engagementSum =
+function toEpochMs(value) {
+  if (value == null || value === "") return null;
+  if (value instanceof Date) {
+    const t = value.getTime();
+    return Number.isFinite(t) ? t : null;
+  }
+  const t = new Date(value).getTime();
+  return Number.isFinite(t) ? t : null;
+}
+
+/**
+ * Engagement sum excluding views.
+ * @param {Record<string, number>} capped
+ */
+function engagementSumFromCapped(capped) {
+  return (
     (capped.like ?? 0) +
     (capped.retweet ?? 0) +
     (capped.reply ?? 0) +
-    (capped.quote ?? 0);
+    (capped.quote ?? 0)
+  );
+}
+
+/**
+ * Detect bought-engagement velocity signatures between consecutive snapshots.
+ * @param {Record<string, number>} current
+ * @param {KolVelocityContext} [velocity]
+ * @returns {{ flags: string[]; penalty: number }}
+ */
+export function computeVelocityFlags(current, velocity = {}) {
+  const flags = [];
+  let penalty = 1;
+
+  const prevRaw = velocity?.previousMetrics;
+  if (!prevRaw) return { flags, penalty };
+
+  const previous = {
+    like: toNonNegativeInt(prevRaw.likeCount),
+    reply: toNonNegativeInt(prevRaw.replyCount),
+    retweet: toNonNegativeInt(prevRaw.retweetCount),
+    quote: toNonNegativeInt(prevRaw.quoteCount),
+    view: toNonNegativeInt(prevRaw.viewCount),
+  };
+
+  const curEng = engagementSumFromCapped(current);
+  const prevEng = engagementSumFromCapped(previous);
+  const engDelta = Math.max(0, curEng - prevEng);
+  const engGrowthRatio = prevEng > 0 ? curEng / prevEng : engDelta > 0 ? Infinity : 1;
+
+  const viewDelta = Math.max(0, (current.view ?? 0) - previous.view);
+  const viewGrowthRatio =
+    previous.view > 0
+      ? (current.view ?? 0) / previous.view
+      : viewDelta > 0
+        ? Infinity
+        : 1;
+
+  const isEngagementSpike =
+    engDelta >= VELOCITY_SPIKE_MIN_ABSOLUTE &&
+    engGrowthRatio >= VELOCITY_SPIKE_MIN_RATIO &&
+    viewGrowthRatio <= VELOCITY_SPIKE_MAX_VIEW_GROWTH_RATIO;
+
+  if (isEngagementSpike) {
+    flags.push("engagement_spike");
+    penalty *= 0.55;
+  }
+
+  const nowMs = toEpochMs(velocity.now) ?? Date.now();
+  const createdMs = toEpochMs(velocity.postCreatedAt);
+  const ageMs = createdMs != null ? Math.max(0, nowMs - createdMs) : null;
+
+  const isLateSurge =
+    ageMs != null &&
+    ageMs >= VELOCITY_LATE_SURGE_MIN_AGE_MS &&
+    engDelta >= VELOCITY_LATE_SURGE_MIN_ABSOLUTE &&
+    engGrowthRatio >= VELOCITY_LATE_SURGE_MIN_RATIO &&
+    viewGrowthRatio <= VELOCITY_SPIKE_MAX_VIEW_GROWTH_RATIO;
+
+  if (isLateSurge) {
+    flags.push("late_surge");
+    penalty *= 0.7;
+  }
+
+  return { flags, penalty };
+}
+
+/**
+ * @param {Record<string, number>} capped
+ * @param {KolVelocityContext} [velocity]
+ * @returns {{ factor: number; flags: string[] }}
+ */
+export function computeIntegrityFactor(capped, velocity = {}) {
+  const views = capped.view ?? 0;
+  const engagementSum = engagementSumFromCapped(capped);
 
   const flags = [];
   let factor = INTEGRITY_CEILING;
@@ -182,16 +285,44 @@ function computeIntegrityFactor(capped) {
     if (ratio > INTEGRITY_ENGAGEMENT_VIEW_MAX) {
       flags.push("high_engagement_to_view_ratio");
       const excess = ratio / INTEGRITY_ENGAGEMENT_VIEW_MAX;
-      factor = Math.max(INTEGRITY_FLOOR, INTEGRITY_CEILING / Math.sqrt(excess));
+      factor = Math.min(factor, INTEGRITY_CEILING / Math.sqrt(excess));
     } else if (ratio < INTEGRITY_ENGAGEMENT_VIEW_MIN && engagementSum > 10) {
       flags.push("low_engagement_to_view_ratio");
-      factor = Math.max(INTEGRITY_FLOOR, factor * 0.85);
+      factor *= 0.85;
+    }
+
+    const replyRatio = (capped.reply ?? 0) / views;
+    if ((capped.reply ?? 0) >= 10 && replyRatio > INTEGRITY_REPLY_VIEW_MAX) {
+      flags.push("high_reply_to_view_ratio");
+      const excess = replyRatio / INTEGRITY_REPLY_VIEW_MAX;
+      factor = Math.min(factor, INTEGRITY_CEILING / Math.sqrt(excess));
+    }
+
+    const quoteRatio = (capped.quote ?? 0) / views;
+    if ((capped.quote ?? 0) >= 8 && quoteRatio > INTEGRITY_QUOTE_VIEW_MAX) {
+      flags.push("high_quote_to_view_ratio");
+      const excess = quoteRatio / INTEGRITY_QUOTE_VIEW_MAX;
+      factor = Math.min(factor, INTEGRITY_CEILING / Math.sqrt(excess));
     }
   } else if (engagementSum > 20) {
     flags.push("engagement_without_views");
-    factor = Math.max(INTEGRITY_FLOOR, factor * 0.7);
+    factor *= 0.7;
   }
 
+  const velocityResult = computeVelocityFlags(capped, velocity);
+  for (const flag of velocityResult.flags) {
+    if (!flags.includes(flag)) flags.push(flag);
+  }
+  factor *= velocityResult.penalty;
+
+  // Stacked flags deepen the discount (bought engagement often trips several).
+  if (flags.length >= 3) {
+    factor *= 0.75;
+  } else if (flags.length >= 2) {
+    factor *= 0.85;
+  }
+
+  factor = Math.max(INTEGRITY_FLOOR, Math.min(INTEGRITY_CEILING, factor));
   return { factor, flags };
 }
 
@@ -225,19 +356,21 @@ function weightMetric(metricKey, value) {
  * Legacy wrapper — returns final score only.
  * @param {KolMetrics | null | undefined} metrics
  * @param {KolAuthorContext} [authorContext]
+ * @param {KolVelocityContext} [velocity]
  * @returns {number}
  */
-export function computeEngagementScore(metrics, authorContext = {}) {
-  return scoreSubmission(metrics, authorContext).score;
+export function computeEngagementScore(metrics, authorContext = {}, velocity = {}) {
+  return scoreSubmission(metrics, authorContext, velocity).score;
 }
 
 /**
  * Multi-factor fair scoring with anti-fake-engagement layers.
  * @param {KolMetrics | null | undefined} metrics
  * @param {KolAuthorContext} [authorContext]
+ * @param {KolVelocityContext} [velocity]
  * @returns {{ score: number; breakdown: ScoreBreakdown }}
  */
-export function scoreSubmission(metrics, authorContext = {}) {
+export function scoreSubmission(metrics, authorContext = {}, velocity = {}) {
   const followers = toNonNegativeInt(authorContext.followers);
   const verified = Boolean(authorContext.verified);
 
@@ -268,7 +401,6 @@ export function scoreSubmission(metrics, authorContext = {}) {
       afterFollowerCap,
       DIMINISHING_KNEES[key] ?? 100,
     );
-    const weight = key === "view" ? ENGAGEMENT_WEIGHTS.viewPer1000 / 1000 : (ENGAGEMENT_WEIGHTS[key] ?? 1);
     const weighted = weightMetric(key, afterDiminishing);
 
     metricBreakdown[key] = {
@@ -284,7 +416,10 @@ export function scoreSubmission(metrics, authorContext = {}) {
 
   const baseScore = METRIC_KEYS.reduce((sum, key) => sum + metricBreakdown[key].weighted, 0);
   const credibilityMultiplier = Math.round(computeCredibilityMultiplier(followers, verified) * 1000) / 1000;
-  const { factor: integrityFactor, flags: integrityFlags } = computeIntegrityFactor(capped);
+  const { factor: integrityFactor, flags: integrityFlags } = computeIntegrityFactor(
+    capped,
+    velocity,
+  );
   const roundedIntegrity = Math.round(integrityFactor * 1000) / 1000;
   const finalScore = roundScore(baseScore * credibilityMultiplier * roundedIntegrity);
 

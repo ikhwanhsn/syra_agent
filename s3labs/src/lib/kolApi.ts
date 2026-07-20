@@ -115,7 +115,23 @@ export interface KolSubmission {
   projectedSol: number;
   earnedLamports?: number;
   earnedSol?: number;
-  claimStatus?: "unearned" | "claimable" | "claimed";
+  claimStatus?: "unearned" | "claimable" | "held_review" | "claimed";
+  authenticityMultiplier?: number | null;
+  authenticityBreakdown?: {
+    sampleSize?: number;
+    qualityShare?: number | null;
+    duplicateShare?: number | null;
+    mixedCreationWeekShare?: number | null;
+    reasons?: string[];
+    flaggedHandles?: string[];
+    holdRecommended?: boolean;
+    skipped?: boolean;
+    skipReason?: string | null;
+    slashedAt?: string;
+    slashReason?: string;
+    previousEarnedLamports?: number;
+  } | null;
+  authenticityAuditedAt?: string | null;
   discoveredAt?: string | null;
   createdAt: string | null;
 }
@@ -349,6 +365,8 @@ export interface MissionSyncResult {
   fetched: number;
   created: number;
   updated: number;
+  /** Number of newly created missions that triggered email notify (best-effort). */
+  notified?: number;
   syncedAt: string;
 }
 
@@ -955,8 +973,9 @@ export function submitMissionComment(input: {
 }
 
 /**
- * Admin-only: sync latest @s3labs_ X posts into missions.
+ * Admin-only: sync the latest @s3labs_ X post into missions.
  * Requires connected admin wallet via X-Admin-Wallet header.
+ * Defaults to 1 post.
  */
 export async function syncMissions(
   wallet: string,
@@ -968,7 +987,7 @@ export async function syncMissions(
       "Content-Type": "application/json",
       "X-Admin-Wallet": wallet,
     },
-    body: JSON.stringify({ limit: opts?.limit }),
+    body: JSON.stringify({ limit: opts?.limit ?? 1 }),
   });
 
   const body = (await res.json().catch(() => ({}))) as KolApiResponse<MissionSyncResult>;

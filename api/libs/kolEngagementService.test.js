@@ -8,13 +8,14 @@ import {
   aggregateContributions,
   computeEngagementScore,
   computeProRataPayouts,
+  computeVelocityFlags,
   hasRewardEngagement,
   meetsMinLikes,
   metricsEngagementTotal,
   metricsIncreased,
   scoreSubmission,
 } from "./kolEngagementService.js";
-import { MIN_LIKES_PER_POST } from "../config/kolScoringConfig.js";
+import { INTEGRITY_FLOOR, MIN_LIKES_PER_POST } from "../config/kolScoringConfig.js";
 
 test("scoreSubmission applies differentiated engagement weights", () => {
   const { score, breakdown } = scoreSubmission(
@@ -361,4 +362,118 @@ test("computeProRataPayouts skips zero-engagement submissions even with score", 
   assert.equal(payouts.length, 1);
   assert.equal(String(payouts[0].submissionId), "engaged");
   assert.equal(payouts[0].lamports, lamports);
+});
+
+test("scoreSubmission flags engagement spikes when views stay flat", () => {
+  const previous = {
+    likeCount: 10,
+    retweetCount: 2,
+    replyCount: 1,
+    quoteCount: 0,
+    viewCount: 5_000,
+  };
+  const spiked = {
+    likeCount: 200,
+    retweetCount: 40,
+    replyCount: 30,
+    quoteCount: 10,
+    viewCount: 5_200,
+  };
+
+  const clean = scoreSubmission(spiked, { followers: 10_000, verified: false });
+  const withVelocity = scoreSubmission(
+    spiked,
+    { followers: 10_000, verified: false },
+    { previousMetrics: previous, postCreatedAt: Date.now() - 6 * 60 * 60 * 1000 },
+  );
+
+  assert.ok(withVelocity.breakdown.integrityFlags.includes("engagement_spike"));
+  assert.ok(withVelocity.score < clean.score);
+  assert.ok(withVelocity.breakdown.integrityFactor < clean.breakdown.integrityFactor);
+});
+
+test("scoreSubmission flags late surge on old posts", () => {
+  const previous = {
+    likeCount: 20,
+    retweetCount: 5,
+    replyCount: 2,
+    quoteCount: 1,
+    viewCount: 8_000,
+  };
+  const surged = {
+    likeCount: 120,
+    retweetCount: 25,
+    replyCount: 15,
+    quoteCount: 8,
+    viewCount: 8_100,
+  };
+
+  const { breakdown } = scoreSubmission(
+    surged,
+    { followers: 20_000, verified: false },
+    {
+      previousMetrics: previous,
+      postCreatedAt: Date.now() - 96 * 60 * 60 * 1000,
+      now: Date.now(),
+    },
+  );
+
+  assert.ok(breakdown.integrityFlags.includes("late_surge"));
+  assert.ok(breakdown.integrityFactor < 1);
+});
+
+test("scoreSubmission flags abnormal reply-to-view ratios", () => {
+  const { breakdown, score } = scoreSubmission(
+    {
+      likeCount: 5,
+      retweetCount: 0,
+      replyCount: 80,
+      quoteCount: 0,
+      viewCount: 1_000,
+    },
+    { followers: 50_000, verified: false },
+  );
+
+  assert.ok(breakdown.integrityFlags.includes("high_reply_to_view_ratio"));
+  assert.ok(breakdown.integrityFactor < 1);
+  assert.ok(score > 0);
+});
+
+test("integrity factor can drop toward the hardened floor for stacked fake signals", () => {
+  const { breakdown } = scoreSubmission(
+    {
+      likeCount: 400,
+      retweetCount: 50,
+      replyCount: 120,
+      quoteCount: 40,
+      viewCount: 800,
+    },
+    { followers: 100_000, verified: false },
+    {
+      previousMetrics: {
+        likeCount: 10,
+        retweetCount: 1,
+        replyCount: 1,
+        quoteCount: 0,
+        viewCount: 750,
+      },
+      postCreatedAt: Date.now() - 100 * 60 * 60 * 1000,
+    },
+  );
+
+  assert.ok(breakdown.integrityFlags.length >= 2);
+  assert.ok(breakdown.integrityFactor <= 0.6);
+  assert.ok(breakdown.integrityFactor >= INTEGRITY_FLOOR);
+});
+
+test("computeVelocityFlags is a no-op without previous metrics", () => {
+  const result = computeVelocityFlags({
+    like: 100,
+    reply: 20,
+    retweet: 10,
+    quote: 5,
+    view: 5_000,
+  });
+  assert.deepEqual(result.flags, []);
+  assert.equal(result.penalty, 1);
 });

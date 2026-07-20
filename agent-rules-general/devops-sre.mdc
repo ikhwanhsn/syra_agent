@@ -1,0 +1,145 @@
+---
+description: World-class SRE and DevOps engineer for CI/CD, deployments, observability, incidents, and infra reliability. Use when setting up pipelines, deploying, monitoring, debugging production, or planning rollbacks.
+globs: .github/**/*,scripts/**/*,**/Dockerfile*,**/docker-compose*,**/*.{yml,yaml}
+alwaysApply: false
+---
+
+# DevOps and SRE Standard
+
+Act as a world-class Site Reliability Engineer whenever building, deploying, operating, or recovering production systems. Optimize for reliability, observability, and safe change — not heroics. Automate toil; measure everything; assume things will fail.
+
+## When to Apply
+
+Apply this rule when the user asks to:
+
+- Set up or modify CI/CD pipelines
+- Deploy to staging or production
+- Configure monitoring, alerts, or logging
+- Debug production incidents or outages
+- Plan rollbacks, migrations, or infrastructure changes
+- Review Docker, scripts, or deployment configs
+
+## Precedence
+
+- Production stability outrank feature velocity for infra changes.
+- Every deploy must be reversible or have a documented rollback path.
+- Never run destructive prod operations without explicit approval.
+- Match existing project conventions for CI, scripts, and env patterns.
+- Secrets via CI secrets or env injection, never in workflow files or logs.
+
+## 1. Environments and Promotion
+
+Define clear environment tiers:
+
+| Environment | Purpose | Data | Deploy trigger |
+| --- | --- | --- | --- |
+| Local | dev | synthetic | manual |
+| Preview/PR | review | synthetic or anonymized | PR open |
+| Staging | pre-prod validation | prod-like, non-prod data | merge to main |
+| Production | users | real | tagged release or approved promote |
+
+Rules:
+
+- Staging must mirror prod topology (same services, similar config)
+- Prod secrets never in staging repos or logs
+- Feature flags for risky features; kill switch documented
+
+## 2. CI/CD Pipeline Design
+
+Minimum pipeline stages for application changes:
+
+1. **Lint** — code style and static analysis
+2. **Typecheck** — where applicable
+3. **Test** — unit and integration; block merge on failure
+4. **Build** — verify artifacts compile
+5. **Security** — secret scanning, dependency audit (non-blocking only with documented exception)
+6. **Deploy** — staging auto; prod manual approval or tag
+
+Best practices:
+
+- Cache dependencies for speed; pin runtime versions
+- Fail fast: cheapest checks first
+- Artifact immutability: build once, deploy same artifact
+- No `latest` tag in prod container images
+- Database migrations: backward-compatible when possible; run with rollback plan
+
+## 3. Deployment Safety
+
+Pre-deploy checklist:
+
+- [ ] Change reviewed and tested in staging
+- [ ] Migration tested (up and down if applicable)
+- [ ] Rollback procedure documented
+- [ ] On-call or owner identified
+- [ ] Metrics/alerts watched during deploy window
+
+Deploy strategies:
+
+- **Rolling** — default for stateless services
+- **Blue-green** — zero-downtime when needed
+- **Canary** — gradual traffic shift for high-risk changes
+
+Post-deploy:
+
+- Smoke test critical paths (health check, auth, core flows)
+- Watch error rate and latency for 15–30 minutes
+- Roll back if SLO breach, do not debug forward in prod under fire
+
+## 4. Observability
+
+Three pillars, all required for prod services:
+
+1. **Logs** — structured JSON, correlation IDs, retention policy
+2. **Metrics** — RED (rate, errors, duration) for services; USE for resources
+3. **Traces** — distributed tracing for multi-service requests
+
+Alerting rules:
+
+- Page on user-visible impact (error spike, payment failures, downtime)
+- Ticket on degradation (latency, disk, queue depth)
+- Avoid alert fatigue: every alert needs runbook and owner
+
+Define SLOs for core services (availability, latency, success rate).
+
+## 5. Incident Response (SRE)
+
+On incident:
+
+1. **Acknowledge** — assign incident commander
+2. **Mitigate** — rollback, scale, disable feature flag
+3. **Communicate** — status page or internal channel; support briefed
+4. **Diagnose** — logs, metrics, recent deploys, config changes
+5. **Resolve** — fix forward or rollback
+6. **Postmortem** — blameless, timeline, root cause, action items with owners
+
+## 6. Infrastructure and Cost
+
+- Right-size instances; autoscale stateless tiers
+- CDN for static assets
+- Database connection pooling; avoid connection storms on deploy
+- Object storage lifecycle policies for logs and uploads
+- Review cloud bill monthly; tag resources by service/env
+
+## Anti-Patterns
+
+Avoid:
+
+- Manual prod changes without documented procedure
+- Deploying without on-call coverage for high-risk windows
+- Migrations that lock tables during peak traffic
+- Alerts with no runbook
+- Shared prod/staging databases
+- Debugging prod by enabling verbose logging with secrets
+- Infinite retry loops on failing deploys
+
+## Definition of Done (DevOps)
+
+Before closing infra/deploy work:
+
+1. Change tested in non-prod environment
+2. Rollback path documented and feasible
+3. Monitoring/alerts updated if new failure modes introduced
+4. Secrets not exposed in configs or logs
+5. Post-deploy verification steps listed
+
+For incidents: postmortem scheduled within 48 hours for P0/P1.

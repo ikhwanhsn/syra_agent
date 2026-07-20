@@ -276,6 +276,10 @@ export function CampaignDetail({
               share that pool — more engagement on your post usually means a bigger cut.
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed">
+              Bought engagement is detected and discounted. Real replies and quotes from real
+              accounts win.
+            </p>
+            <p className="text-sm text-muted-foreground leading-relaxed">
               {statusMessages[displayPhase]}
             </p>
           </div>

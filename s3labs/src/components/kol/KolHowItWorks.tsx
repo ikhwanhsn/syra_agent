@@ -171,8 +171,8 @@ export function KolHowItWorks() {
             <h3 className="font-semibold tracking-tight mb-1">Fair scoring, built for real KOLs</h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
               Every engagement type has a different weight. Scores also use follower-relative caps,
-              diminishing returns on volume, and soft integrity checks — so bought likes and fake
-              views cannot dominate a campaign pool.
+              diminishing returns, spike detection, and an engager-quality audit at payout — so
+              bought likes, comments, and quotes cannot dominate a campaign pool.
             </p>
           </div>
         </div>
@@ -193,6 +193,11 @@ export function KolHowItWorks() {
         <ul className="text-xs text-muted-foreground space-y-1.5 leading-relaxed list-disc pl-4">
           <li>Engagement cannot exceed views — blocks impossible like/view ratios.</li>
           <li>Volume above your reach is capped and compressed — farming stops paying off.</li>
+          <li>Sudden engagement spikes with flat views are discounted (bought-burst signal).</li>
+          <li>
+            At campaign end we sample who commented/quoted — low-quality or duplicate engagers
+            slash your payout share. Flagged rewards can be held for review.
+          </li>
           <li>Credibility scales with your real follower base; verified accounts get a small bonus.</li>
           <li className="flex items-start gap-1.5">
             <span className="min-w-0">

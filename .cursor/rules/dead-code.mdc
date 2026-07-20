@@ -1,0 +1,193 @@
+---
+description: World-class dead code hunter for unused components, APIs, duplicated logic, and unnecessary dependencies. Use when cleaning the codebase, reducing bloat, finding unused exports, or pruning packages.
+alwaysApply: false
+---
+
+# Dead Code Elimination Standard
+
+Act as a world-class codebase archaeologist whenever hunting unused code, duplicate logic, or unnecessary dependencies. Optimize for evidence-based deletion — never delete on guesswork. Prefer proving unused over assuming unused. Every removal must be reversible via git and justified with references.
+
+## When to Apply
+
+Apply this rule when the user asks to:
+
+- Find unused components, pages, hooks, utilities, or styles
+- Find unused API routes, handlers, models, or SDK methods
+- Find duplicated logic across packages
+- Find unnecessary npm/dependencies
+- Clean bloat, reduce bundle size, or prune the monorepo
+- Audit "is this still used?" before a refactor or rewrite
+
+## Precedence
+
+- Evidence over intuition: cite import graphs, grep hits, dynamic references, or build output.
+- Do not delete without listing evidence and asking for confirmation unless the user explicitly says "delete."
+- Prefer marking deprecated + removing callers first over silent deletion of public APIs.
+- Dynamic usage (string routes, reflection, CMS, OpenAPI-generated clients, MCP tool names) can hide live code — treat as **suspect**, not dead, until proven.
+- Match Syra layout: `api/`, `web/`, `s3labs/`, `mcp-server/`, `syra-sdk/`, `contracts/`, `packages/`, `services/`.
+
+## 1. Hunt Protocol (always)
+
+Work in this order and report in this structure:
+
+### Unused components
+### Unused APIs
+### Duplicated logic
+### Unnecessary dependencies
+
+For each finding:
+
+- **Item** — path / symbol / package name
+- **Confidence** — high | medium | low
+- **Evidence** — why unused (zero imports, no route registration, etc.)
+- **Caveat** — dynamic use, public export, feature flag, docs-only
+- **Action** — delete | deprecate | merge | keep | investigate
+
+Never claim "every" without stating search method and residual risk.
+
+## 2. Unused Components (UI / Frontend)
+
+Search surfaces: `web/`, `s3labs/`, shared `packages/`.
+
+High-confidence unused when **all** hold:
+
+1. No static imports of the module/symbol outside its own file
+2. Not registered in a router, barrel re-export consumed elsewhere, or lazy `import()`
+3. Not referenced by string-based registries (storybook, tests-only counts as unused for prod unless user wants test fixtures kept)
+
+Also check:
+
+- Unused props / dead branches inside live components
+- CSS modules / Tailwind classes only referenced by deleted JSX
+- Icons and assets with zero references
+- Pages with no route entry
+
+Commands / techniques (prefer project tools):
+
+- Grep for symbol and filename stem across repo
+- Trace from route entries outward (keep only reachable tree)
+- Bundle analyzer for orphaned chunks when available
+
+**Syra caveat:** Privy/wallet wrappers, feature-flagged KOL pages, and marketing article components may look unused if only CMS/data-driven — verify before delete.
+
+## 3. Unused APIs (Backend / SDK / MCP)
+
+Search surfaces: `api/routes/`, `api/libs/`, `api/models/`, `mcp-server/`, `syra-sdk/`, `openapi.json`, `services/`.
+
+An API is unused when **all** hold:
+
+1. Route/handler not mounted in the app router
+2. No callers in frontend, SDK, MCP tools, scripts, or cron
+3. Not listed as a public contract consumers rely on (or marked internal and zero internal use)
+
+Also find:
+
+- Dead middleware
+- Models with no reads/writes
+- SDK methods with no app usage and no external publish need
+- MCP tools never exposed or never called
+- OpenAPI paths that do not match any live route (drift)
+
+**Do not delete** public endpoints solely because this monorepo has no caller — they may be used by external agents. Flag as **external contract: confirm before delete**.
+
+## 4. Duplicated Logic
+
+Find clones that increase bug surface:
+
+- Copy-pasted fetch/auth/payment helpers across `web/` and `s3labs/`
+- Same validation rules in route and service
+- Parallel scoring/formatting utilities with slight drift
+- Duplicate types that should live in `packages/` or `syra-sdk/`
+- Near-identical React components with one prop difference
+
+For each duplicate cluster:
+
+- **Canonical candidate** — which copy should survive
+- **Diff summary** — how they diverge
+- **Merge plan** — extract shared module, update imports, delete extras
+
+Prefer one shared implementation over premature abstraction of one-off code.
+
+## 5. Unnecessary Dependencies
+
+A dependency is unnecessary when:
+
+- Not imported anywhere (direct)
+- Only used by dead code already flagged for deletion
+- Overlaps a smaller already-used library (duplicate utility libs)
+- DevDependency used in production or vice versa
+- Heavy package used for a one-liner replaceable by native APIs
+
+Check:
+
+- `package.json` / workspace package manifests
+- Transitive bloat only if it blocks installs or security (note; do not chase endlessly)
+- Peer dependency mismatches after removals
+
+After removal: run install + lint/test/build for affected packages.
+
+## 6. Search Methodology (evidence bar)
+
+| Confidence | Criteria |
+| --- | --- |
+| High | Zero references repo-wide; not in router/OpenAPI; not a public package export |
+| Medium | Only self-references or test-only; possible dynamic string use |
+| Low | Name matches patterns of dead code but dynamic/registry use possible |
+
+Always document:
+
+1. Patterns searched
+2. Packages/directories included and excluded
+3. Known blind spots (runtime config, DB-driven routes, external consumers)
+
+## 7. Safe Removal Workflow
+
+1. List candidates with confidence and evidence
+2. Get user confirmation for deletes (unless explicitly authorized)
+3. Remove in small commits by category (deps separate from UI separate from API)
+4. Update barrels, OpenAPI, and docs if public surface changes
+5. Run affected package lint/typecheck/test/build
+6. Re-scan to confirm no new broken imports
+
+## 8. Report Template
+
+### Unused components
+- [confidence] `path` — evidence — action
+
+### Unused APIs
+- [confidence] `method path` / `symbol` — evidence — action — external?
+
+### Duplicated logic
+- Cluster: `A` vs `B` — canonical — merge plan
+
+### Unnecessary dependencies
+- [confidence] `package` in `manifest` — evidence — action
+
+### Summary
+- Counts by category and confidence
+- Recommended delete set (high only)
+- Investigate set (medium/low)
+- Residual risk (dynamic routes, published SDK, production configs not in repo)
+
+## Anti-Patterns
+
+Avoid:
+
+- Deleting because "looks old"
+- Removing public API/SDK exports without consumer check
+- Mass-deleting on low confidence
+- Refactors mixed into deletion PRs
+- Ignoring dynamic `import(variable)` and string-based tool names
+- Declaring "clean" without stating blind spots
+
+## Definition of Done (Dead Code)
+
+Before closing:
+
+1. All four sections reported (or N/A with reason)
+2. High-confidence items have concrete evidence paths
+3. Medium/low items labeled, not silently deleted
+4. External/public contract risks called out
+5. If deletions applied: verification commands run and outcomes cited
+
+Be skeptical. Unused-looking code that handles money, auth, or settlement needs extra proof before removal.

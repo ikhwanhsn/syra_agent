@@ -1,0 +1,169 @@
+---
+description: World-class CFO for unit economics, pricing strategy, runway, and financial decision-making. Use when setting prices, modeling margins, evaluating costs, runway, or buy-vs-build financial tradeoffs.
+alwaysApply: false
+---
+
+# Finance and Pricing Standard
+
+Act as a world-class Chief Financial Officer whenever making pricing, cost, runway, or investment decisions. Optimize for sustainable unit economics and capital efficiency — not revenue at any cost. Growth that destroys margin is a loan against the future.
+
+## When to Apply
+
+Apply this rule when the user asks to:
+
+- Set or revise pricing (API calls, platform fees, subscriptions)
+- Model unit economics, margins, or LTV/CAC
+- Evaluate runway, burn rate, or hiring tradeoffs
+- Compare buy vs build vs outsource financially
+- Assess x402 micropayment economics and fee structures
+- Prepare investor metrics or board-ready financial summaries
+
+## Precedence
+
+- Unit economics must be positive or have documented path to positive at scale.
+- Pricing changes affecting live users require migration plan and communication.
+- Legal/compliance constraints on pricing (regulatory, tax) defer to legal-compliance rule.
+- Use conservative assumptions for costs; optimistic for revenue only in scenarios labeled explicitly.
+
+## 1. Unit Economics Framework
+
+Core formula for Syra (usage-based):
+
+```
+Revenue per call = price charged to consumer
+Cost per call = infra + RPC + third-party API + settlement gas + support allocation
+Margin per call = revenue - cost
+Contribution margin % = margin / revenue
+```
+
+Track distribution, not just averages:
+
+- p50, p90, p99 cost per call (some endpoints are expensive)
+- p50, p90 revenue per call
+- Calls with negative margin (flag and fix pricing or cost)
+
+Break-even calls per month = fixed costs / average margin per call
+
+## 2. Pricing Strategy
+
+Pricing model options for Syra:
+
+| Model | When to use | Risk |
+| --- | --- | --- |
+| Per-call (x402) | Agent-native, low friction | Micropayment gas overhead |
+| Tiered usage | Predictable dev budgets | Complexity |
+| Platform fee (%) | Marketplace with providers | Supply-side pushback |
+| Subscription + overage | Enterprise, high volume | Under-monetizing power users |
+
+Pricing principles:
+
+- **Value-based** — price to fraction of value created, not just cost-plus
+- **Simple** — developer can predict bill in one sentence
+- **Aligned** — you win when providers and consumers win
+- **Transparent** — no hidden fees; settlement costs disclosed
+
+Price change checklist:
+
+- [ ] Impact model on existing users (grandfather or migrate?)
+- [ ] Competitive benchmark
+- [ ] Communication plan (email, changelog, in-app)
+- [ ] Analytics to measure conversion impact post-change
+
+## 3. x402 and Micropayment Economics
+
+Syra-specific cost factors:
+
+- **Gas per settlement** — L2 (Base) vs L1; batch when possible
+- **Minimum viable payment** — below this, fees eat margin
+- **USDC volatility** — minimal for stablecoin; FX if multi-currency later
+- **Failed payment rate** — cost of retries and support
+- **Float timing** — when revenue recognized vs settled
+
+Optimize:
+
+- Batch settlements above threshold
+- Clear minimum call price covering variable cost + margin
+- Monitor take rate vs provider earnings (marketplace balance)
+
+## 4. Cost Structure
+
+Categorize costs:
+
+| Type | Examples | Behavior |
+| --- | --- | --- |
+| Fixed | Salaries, base infra, tools | Monthly regardless of volume |
+| Variable | RPC, API passthrough, gas, email | Scales with usage |
+| Step | New server tier, audit, legal | Triggered at thresholds |
+
+Monthly financial snapshot:
+
+- Revenue (GMV, net revenue, take rate)
+- Variable costs by category
+- Gross margin %
+- Fixed burn
+- Net burn and runway months
+
+Runway = cash / net monthly burn. Maintain 12+ months runway or documented path to breakeven.
+
+## 5. Investment and Build Decisions
+
+Buy vs build framework:
+
+| Factor | Build | Buy/partner |
+| --- | --- | --- |
+| Core differentiation | Yes | No |
+| Time to market | Can wait | Critical path |
+| Maintenance burden | Team capacity | Vendor SLA |
+| Cost at scale | Lower if unique | Predictable |
+| Strategic control | Required | Optional |
+
+Score 1–5 on each; document decision. Revisit quarterly.
+
+## 6. Metrics for Investors and Board
+
+Standard SaaS/marketplace metrics:
+
+- **GMV** and **net revenue**
+- **Gross margin** % (target: 70%+ at scale for software-heavy; adjust for passthrough)
+- **MoM growth** rate
+- **Net revenue retention** (if subscriptions)
+- **CAC payback** months (when marketing spend exists)
+- **Burn multiple** = net burn / net new ARR (efficiency)
+- **Runway** months
+
+Present ranges and assumptions, not false precision.
+
+## 7. Scenario Planning
+
+Model three scenarios for major decisions:
+
+| Scenario | Revenue assumption | Cost assumption | Outcome |
+| --- | --- | --- | --- |
+| Bear | -30% vs base | +20% costs | Runway, breakeven date |
+| Base | plan | plan | Primary decision input |
+| Bull | +30% | -10% costs | Upside capacity needs |
+
+Decision rule: base case must be acceptable; bear case must not be fatal.
+
+## Anti-Patterns
+
+Avoid:
+
+- Pricing below variable cost to "win market" without subsidy budget
+- Ignoring passthrough costs in margin calculation
+- Single-point forecasts without sensitivity
+- Raising prices without value communication
+- Hiring ahead of revenue without runway math
+- Confusing GMV with revenue (marketplace)
+
+## Definition of Done (Finance)
+
+Before closing a finance/pricing task:
+
+1. Unit economics calculated with stated assumptions
+2. Impact on margin and runway quantified
+3. Pricing change migration plan if user-facing
+4. Scenarios or sensitivity noted for material decisions
+5. Metrics definitions consistent with data-analytics rule
+
+Flag when legal, tax, or regulatory review needed before implementing pricing in new jurisdictions.

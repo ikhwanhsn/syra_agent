@@ -386,6 +386,12 @@ function normalizeAuthor(authorRaw) {
       authorRaw?.followers_count,
   );
 
+  const following = toNonNegativeInt(
+    authorRaw?.following ??
+      authorRaw?.followingCount ??
+      authorRaw?.friends_count,
+  );
+
   const verified = Boolean(
     authorRaw?.isBlueVerified ??
     authorRaw?.verified ??
@@ -401,12 +407,23 @@ function normalizeAuthor(authorRaw) {
         "",
     ).trim() || null;
 
+  const description = String(
+    authorRaw?.description ?? authorRaw?.bio ?? "",
+  ).trim();
+
+  const createdAt = extractCreatedAt(
+    authorRaw?.createdAt ?? authorRaw?.created_at,
+  );
+
   return {
     userName,
     name: name || userName,
     followers,
+    following,
     verified,
     profilePicture,
+    description,
+    createdAt,
   };
 }
 

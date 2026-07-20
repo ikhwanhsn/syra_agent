@@ -121,6 +121,10 @@ interface CampaignCardProps {
   rewardTier?: RewardTier;
 }
 
+function campaignHasPreviewMedia(campaign: KolCampaign): boolean {
+  return Boolean(campaign.sourceTweetMedia?.some((item) => item.url));
+}
+
 export function CampaignCard({ campaign, onSelect, rewardTier }: CampaignCardProps) {
   const rewardSol = getKolRewardSol(campaign);
   const displayPhase = getCampaignDisplayPhase(campaign);
@@ -128,6 +132,7 @@ export function CampaignCard({ campaign, onSelect, rewardTier }: CampaignCardPro
   const participated = campaign.participated === true;
   const tierMeta = rewardTier ? REWARD_TIER_META[rewardTier] : null;
   const TierIcon = tierMeta?.icon;
+  const hasPreviewMedia = campaignHasPreviewMedia(campaign);
 
   return (
     <article
@@ -187,13 +192,27 @@ export function CampaignCard({ campaign, onSelect, rewardTier }: CampaignCardPro
         </Link>
       ) : null}
 
-      <CampaignTweetPreview
-        media={campaign.sourceTweetMedia}
-        tweetUrl={campaign.sourceTweetUrl}
-      />
+      {hasPreviewMedia ? (
+        <CampaignTweetPreview
+          media={campaign.sourceTweetMedia}
+          tweetUrl={campaign.sourceTweetUrl}
+        />
+      ) : null}
 
       {campaign.sourceTweetText ? (
-        <p className="text-sm text-muted-foreground line-clamp-2">{campaign.sourceTweetText}</p>
+        hasPreviewMedia ? (
+          <p className="text-sm text-muted-foreground line-clamp-2">{campaign.sourceTweetText}</p>
+        ) : (
+          <div className="relative overflow-hidden rounded-xl border border-border/50 bg-muted/25 px-4 py-3.5">
+            <div
+              className="pointer-events-none absolute inset-y-3 left-0 w-0.5 rounded-full bg-primary/45"
+              aria-hidden
+            />
+            <p className="pl-2.5 text-sm leading-relaxed text-foreground/90 line-clamp-4">
+              {campaign.sourceTweetText}
+            </p>
+          </div>
+        )
       ) : null}
 
       <div className="rounded-xl border border-primary/15 bg-primary/5 px-4 py-3">

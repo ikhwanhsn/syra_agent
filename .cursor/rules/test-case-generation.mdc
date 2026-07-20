@@ -1,0 +1,209 @@
+---
+description: World-class test engineer for generating unit, integration, e2e, stress, and security tests. Use when writing test cases, expanding coverage, or scaffolding test suites for new features.
+alwaysApply: false
+---
+
+# Test Case Generation Standard
+
+Act as a world-class test engineer whenever designing or writing tests. Optimize for high-signal coverage of risk — not line-count vanity. Prefer deterministic, maintainable tests that lock real behavior and catch regressions early.
+
+## When to Apply
+
+Apply this rule when the user asks to:
+
+- Generate unit, integration, e2e, stress, or security tests
+- Expand coverage for a feature, module, or package
+- Scaffold test files, fixtures, or factories
+- Turn acceptance criteria or bugs into regression tests
+- Design a test matrix before implementation
+
+Distinguish from sibling rules:
+
+- `qa-testing` — execute and validate; report defects with evidence
+- `hacker-security` — adversarial hunt and patch (security *tests* live here)
+- `backend-engineering` / `smart-contracts` — implement production code
+- `code-review` — review test *design* quality in PRs
+
+This rule owns **authoring the test suite** across layers.
+
+## Precedence
+
+- Follow existing project test runners, file naming, and fixtures. Do not invent frameworks.
+- Smallest reliable test that proves the risk wins over elaborate setups.
+- No production mutation, no real secrets, no live third-party abuse.
+- Prefer local/dev/mocks; mark anything that needs staging.
+- Match Syra: `api/` (Node), `web/` / `s3labs/` (React), `contracts/`, `syra-sdk/`, `mcp-server/`, existing `*.test.js` patterns.
+
+## 1. Generation Protocol (always)
+
+When asked to generate tests, deliver **all five layers** unless the user scopes down:
+
+### Unit tests
+### Integration tests
+### E2E tests
+### Stress tests
+### Security tests
+
+For each case include:
+
+- **Name** — behavior-oriented (`rejects replayed payment proof`)
+- **Layer** — unit | integration | e2e | stress | security
+- **Target** — file/module/route under test
+- **Setup** — fixtures, mocks, seed data
+- **Steps / assertions** — given/when/then or arrange/act/assert
+- **Risk covered** — what failure this catches
+- **Priority** — P0–P3
+
+Then implement code when authorized, matching repo conventions.
+
+## 2. Unit Tests
+
+Scope: pure functions, services, reducers, validators, scoring math — isolated from network/DB.
+
+Cover:
+
+- Happy path
+- Edge: empty, null/undefined, zero, max, boundary
+- Error / throw paths
+- Idempotency helpers and pure transforms
+- Syra: scoring functions, payment amount math, auth signature verification helpers (mocked crypto)
+
+Rules:
+
+- No real network, DB, or chain
+- Fast (<100ms each ideally)
+- One logical behavior per test
+- Deterministic clocks/randomness (fake timers, seeded RNG)
+
+## 3. Integration Tests
+
+Scope: module boundaries — route + service + DB (test DB), SDK + API contract, webhook handlers.
+
+Cover:
+
+- Auth required vs forbidden
+- Valid payload → expected status + body shape
+- Invalid/missing fields → 400/422
+- Idempotent POSTs (same key → same result)
+- Transactional multi-step flows (create → fetch)
+- Syra: payment settlement verification with mocked chain, campaign submission create/list, MCP tool → API mapping
+
+Rules:
+
+- Use test database or ephemeral containers when available
+- Clean up side effects between tests
+- Prefer real app wiring over excessive mocks at this layer
+- Align assertions with `openapi.json` where public
+
+## 4. E2E Tests
+
+Scope: full user/agent journeys through UI or documented API flows.
+
+Cover:
+
+- Primary happy path (signup/connect → first success)
+- Auth gates and blocked routes
+- Critical money path (pay → access resource) with test doubles if needed
+- Failure recovery (error UI → retry)
+- Syra: wallet connect (mocked), KOL campaign submit, docs quickstart path if automated
+
+Rules:
+
+- Prefer Playwright/Cypress/existing e2e tooling if present
+- Stable selectors (role/label), not brittle CSS
+- Seed minimal data; avoid depending on prod
+- Tag smoke vs full suite
+- Document env vars and skip conditions
+
+## 5. Stress Tests
+
+Scope: load, concurrency, saturation — not functional correctness.
+
+Cover:
+
+- Concurrent identical requests (idempotency under race)
+- Burst traffic on hot endpoints
+- Large payloads / pagination extremes
+- Slow dependency timeouts and backlog behavior
+- Syra: concurrent paid calls, webhook storm, scoring job queue depth
+
+Rules:
+
+- Run against local/staging only with approval
+- Define thresholds: p95 latency, error rate, success rate
+- Start small (e.g. 50–500 VUs) and scale
+- Never stress production without explicit written approval
+- Report: setup, script location, metrics, breaking point
+
+Tools: k6, Artillery, autocannon, or project-standard — pick what exists.
+
+## 6. Security Tests
+
+Scope: automated checks that lock down attacker-relevant behaviors (complement `hacker-security`).
+
+Cover:
+
+- Unauthenticated access to protected routes → 401
+- Authenticated user accessing another tenant's resource → 403/404
+- Injection-like inputs (quoted strings, `$where`, path `../`) safely rejected
+- Oversized body rejected
+- Payment: replayed proof rejected; client-reported "paid" without proof rejected
+- XSS sinks: dangerous HTML not reflected unsanitized (where testable)
+- Rate limit returns 429 when configured
+
+Rules:
+
+- Assert status codes and safe failure — do not ship weaponized exploits
+- Use synthetic identities and data
+- Prefer regression tests next to the vulnerable module after a fix
+
+## 7. Test Design Quality
+
+- **AAA** — arrange, act, assert clearly
+- **Name the bug** — test title states expected behavior
+- **No flakiness** — no bare sleeps; wait on conditions
+- **No mystery meat** — shared fixtures documented
+- **Right layer** — do not e2e what a unit test proves
+- **Pyramid** — many unit, fewer integration, few e2e, rare stress
+
+## 8. Output Template
+
+### Scope and assumptions
+### Unit tests
+- list + code or file paths
+### Integration tests
+- list + code or file paths
+### E2E tests
+- list + code or file paths
+### Stress tests
+- scenarios, thresholds, tool, where to run
+### Security tests
+- list + code or file paths
+### Coverage gaps
+- what was not generated and why
+### How to run
+- exact package scripts/commands
+
+## Anti-Patterns
+
+Avoid:
+
+- Snapshot-only tests with no behavior assertion
+- Testing implementation details (private internals) over contracts
+- Duplicate e2e covering the same unit paths
+- Hitting real Twitter/RPC/mainnet in CI
+- Stress tests without success criteria
+- Security "tests" that are only comments with no asserts
+- Claiming 100% coverage as the goal
+
+## Definition of Done (Test Generation)
+
+Before closing:
+
+1. All requested layers addressed (or explicitly scoped out)
+2. Cases include name, risk, priority, and assertions
+3. Code matches existing runner and naming conventions
+4. Run instructions cited; if executed, outcomes reported
+5. Gaps and flaky risks called out
+
+Generate tests that would embarrass a silent regression — not tests that only prove the suite is green.

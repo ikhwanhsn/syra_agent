@@ -70,6 +70,7 @@ function getDisplayPayoutSol(entry: KolLeaderboardEntry): number {
 
 function getPayoutLabel(entry: KolLeaderboardEntry, campaignStatus: string): string {
   if (entry.payout?.status === "pending_minimum") return "Held";
+  if (entry.claimStatus === "held_review") return "Under review";
   if (entry.claimStatus === "claimed" || entry.payout?.status === "confirmed") {
     return "Sent";
   }
@@ -469,6 +470,10 @@ export function CampaignLeaderboard({
                       <ScoreBreakdownTooltip
                         score={entry.latestScore}
                         breakdown={entry.scoreBreakdown}
+                        authenticityMultiplier={entry.authenticityMultiplier}
+                        authenticityQualityShare={
+                          entry.authenticityBreakdown?.qualityShare ?? null
+                        }
                       />
                       <span className="text-border">·</span>
                       <span className="inline-flex items-center gap-1 tabular-nums">
@@ -552,6 +557,10 @@ export function CampaignLeaderboard({
                           <ScoreBreakdownTooltip
                             score={entry.latestScore}
                             breakdown={entry.scoreBreakdown}
+                            authenticityMultiplier={entry.authenticityMultiplier}
+                            authenticityQualityShare={
+                              entry.authenticityBreakdown?.qualityShare ?? null
+                            }
                             className="text-xs text-muted-foreground"
                           />
                         </div>

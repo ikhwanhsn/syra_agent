@@ -22,6 +22,7 @@ import {
   getUserLastTweets,
   isTwitterApiIoConfigured,
 } from "./twitterApiIoClient.js";
+import { notifyNewMission } from "./emailSubscriberService.js";
 
 function assertMongo() {
   if (!isMongooseConnected()) {
@@ -136,14 +137,14 @@ function serializeSubmission(row) {
 }
 
 /**
- * Fetch latest original posts from @s3labs_ and upsert as missions.
+ * Fetch the latest original post from @s3labs_ and upsert as a mission.
  * @param {{ limit?: number }} [opts]
  */
 export async function syncMissionsFromX(opts = {}) {
   assertMongo();
   assertTwitter();
 
-  const limit = Math.min(Math.max(Number(opts.limit) || 20, 1), 50);
+  const limit = Math.min(Math.max(Number(opts.limit) || 1, 1), 50);
   const handle = S3LABS_X_HANDLE || "s3labs_";
   const now = new Date();
 
@@ -170,6 +171,8 @@ export async function syncMissionsFromX(opts = {}) {
 
   let created = 0;
   let updated = 0;
+  /** @type {Array<Record<string, unknown>>} */
+  const createdMissions = [];
 
   for (const tweet of collected) {
     const tweetId = String(tweet.id);
@@ -210,9 +213,23 @@ export async function syncMissionsFromX(opts = {}) {
       await S3LabsMission.updateOne({ tweetId }, { $set: payload });
       updated += 1;
     } else {
-      await S3LabsMission.create({ tweetId, ...payload, submissionCount: 0 });
+      const createdDoc = await S3LabsMission.create({
+        tweetId,
+        ...payload,
+        submissionCount: 0,
+      });
       created += 1;
+      createdMissions.push(serializeMission(createdDoc));
     }
+  }
+
+  for (const mission of createdMissions) {
+    notifyNewMission(mission).catch((e) => {
+      console.warn(
+        "[missions] mission email notify failed:",
+        e instanceof Error ? e.message : e,
+      );
+    });
   }
 
   return {
@@ -220,6 +237,7 @@ export async function syncMissionsFromX(opts = {}) {
     fetched: collected.length,
     created,
     updated,
+    notified: createdMissions.length,
     syncedAt: now.toISOString(),
   };
 }

@@ -69,10 +69,17 @@ const kolSubmissionSchema = new mongoose.Schema(
     earnedLamports: { type: Number, default: 0 },
     claimStatus: {
       type: String,
-      enum: ["unearned", "claimable", "claimed"],
+      enum: ["unearned", "claimable", "held_review", "claimed"],
       default: "unearned",
       index: true,
     },
+    /** Tier-2 authenticity multiplier applied to payoutScore at finalize (0.25–1.0). */
+    authenticityMultiplier: { type: Number, default: null },
+    authenticityBreakdown: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
+    },
+    authenticityAuditedAt: { type: Date, default: null },
     discoveredAt: { type: Date, default: null },
   },
   { timestamps: true },

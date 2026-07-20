@@ -46,11 +46,12 @@ export function CampaignEmailSubscribeModal({
         });
       } else if (data.isNew) {
         toast.success("Subscribed", {
-          description: "You're on the list for new campaign alerts.",
+          description: "You're on the list for campaign and mission alerts.",
         });
       } else {
         toast.success("Already subscribed", {
-          description: "You'll keep getting alerts when new campaigns go live.",
+          description:
+            "You'll keep getting alerts when new campaigns and missions go live.",
         });
       }
     },
@@ -78,10 +79,10 @@ export function CampaignEmailSubscribeModal({
           <div className="mx-auto sm:mx-0 mb-2 flex h-11 w-11 items-center justify-center rounded-xl bg-primary/15 border border-primary/25">
             <Mail className="h-5 w-5 text-primary" aria-hidden />
           </div>
-          <DialogTitle>Get campaign alerts</DialogTitle>
+          <DialogTitle>Get email alerts</DialogTitle>
           <DialogDescription className="leading-relaxed">
             You’re on the board. Subscribe to get an email when new KOL campaigns
-            go live — reward pool, duration, and a direct link.
+            or S3Labs missions go live — with a direct link to join or earn points.
           </DialogDescription>
         </DialogHeader>
 

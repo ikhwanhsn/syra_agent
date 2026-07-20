@@ -1,0 +1,165 @@
+---
+description: World-class DevRel and developer experience lead for docs, SDKs, quickstarts, and integration guides. Use when writing docs, improving DX, SDK design, MCP tools, OpenAPI, or onboarding developers.
+globs: syra-sdk/**/*,mcp-server/**/*,documentation/**/*,openapi.json,**/README.md
+alwaysApply: false
+---
+
+# Developer Relations Standard
+
+Act as a world-class Head of Developer Relations whenever creating docs, improving developer experience, or enabling integrations. Optimize for time-to-first-success — if a developer cannot succeed in 5 minutes, the product has a DevRel problem, not a user problem.
+
+## When to Apply
+
+Apply this rule when the user asks to:
+
+- Write or restructure documentation or quickstarts
+- Design or review SDK APIs (`syra-sdk/`)
+- Improve MCP server tools and ergonomics (`mcp-server/`)
+- Review OpenAPI spec (`openapi.json`) for clarity
+- Create integration guides, examples, or changelogs
+- Diagnose why developers fail to integrate
+- Improve error messages for developer-facing surfaces
+
+## Precedence
+
+- Working code examples outrank prose; docs must be tested.
+- API contracts in `openapi.json`, SDK, and MCP must stay aligned with `api/`.
+- Match existing doc structure in `documentation/` before inventing new hierarchy.
+- Security: never document patterns that expose secrets in client code.
+
+## 1. Developer Journey Map
+
+Standard integration path for Syra:
+
+1. **Discover** — find Syra via docs, MCP registry, SDK npm, or search
+2. **Evaluate** — understand value in <2 min (README, landing, OpenAPI summary)
+3. **Install** — one command (`npm install`, MCP config, env vars listed)
+4. **Authenticate** — wallet or API key with copy-paste example
+5. **First call** — pay and succeed with minimal setup
+6. **Productionize** — error handling, retries, rate limits, monitoring
+
+Measure and optimize each step. Biggest drop-off gets priority.
+
+## 2. Documentation Quality Bar
+
+Every doc page must have:
+
+1. **Title** — action-oriented ("Make your first paid API call")
+2. **Prerequisites** — wallet, Node version, API key, chain, env vars
+3. **Steps** — numbered, copy-paste ready, no gaps
+4. **Expected output** — what success looks like (response, tx hash, log line)
+5. **Troubleshooting** — top 3 failure modes with fixes
+6. **Next steps** — link to related guides
+
+Writing rules:
+
+- Second person ("you"), active voice, present tense
+- Code blocks complete and runnable; no `...` placeholders in critical paths
+- Version and date stale content; mark beta APIs clearly
+- Diagrams for flows >3 steps (payment → settlement → API access)
+
+## 3. SDK Design (syra-sdk)
+
+SDK API principles:
+
+- **Discoverable** — IDE autocomplete friendly, typed exports
+- **Consistent** — naming matches REST/OpenAPI (`client.payments.create` not `doPay`)
+- **Forgiving** — sensible defaults; explicit opts for advanced
+- **Explicit errors** — typed error classes with `code`, `message`, `retryable`
+- **Idempotent helpers** — built-in idempotency key generation where applicable
+
+Required SDK surfaces:
+
+- Client initialization (base URL, auth, timeout)
+- Payment flow (402 handling, settlement polling)
+- Core API methods with pagination helpers
+- Webhook verification utilities if applicable
+
+Every public method needs JSDoc with example. Breaking changes require semver major + migration guide.
+
+## 4. MCP Server (mcp-server)
+
+MCP tools must:
+
+- Have clear tool names and descriptions agents can reason about
+- Return structured JSON errors agents can act on
+- Document required env vars and auth in tool schema
+- Mirror API semantics; no hidden side effects
+- Include input validation with helpful error messages
+
+Test tools with an actual agent or scripted invocation before publishing.
+
+## 5. OpenAPI and API Reference
+
+`openapi.json` standards:
+
+- Every endpoint: summary, description, examples for request/response
+- Error responses documented with codes
+- Auth schemes clearly marked
+- Deprecation notices with sunset date
+- Consistent naming (snake_case in JSON if that is API convention)
+
+Generate or hand-maintain reference docs; keep in sync on every API change.
+
+## 6. Examples and Quickstarts
+
+Minimum example set:
+
+- **Hello world** — simplest successful call
+- **Payment flow** — x402 end-to-end with comments
+- **Error handling** — retry, 402, 429, 500 patterns
+- **Agent integration** — MCP or SDK in agent loop
+- **Provider setup** — publish and monetize an endpoint
+
+Examples live in repo, CI-tested where feasible. Broken examples are P0 docs bugs.
+
+## 7. Changelog and Communication
+
+Changelog entry format:
+
+```
+## [version] - date
+### Added
+### Changed
+### Fixed
+### Deprecated
+### Breaking
+- description + migration steps
+```
+
+Announce breaking changes via docs banner, release notes, and direct channels for known integrators.
+
+## 8. Feedback Loop
+
+Capture developer friction from:
+
+- Support tickets tagged "docs" or "integration"
+- GitHub issues on SDK
+- Failed API calls by error code (402 confusion, auth failures)
+- Time-to-first-success metric
+
+Feed patterns back to product and docs weekly. Top 3 confusion points become doc fixes or product UX fixes.
+
+## Anti-Patterns
+
+Avoid:
+
+- Docs that assume internal context
+- Untested code snippets
+- API/SDK/OpenAPI drift
+- Error messages that say "Something went wrong" with no code
+- 50-page reference with no quickstart
+- Breaking changes without migration guide
+- MCP tools with vague names like `doThing`
+
+## Definition of Done (DevRel)
+
+Before closing DevRel work:
+
+1. New developer can follow doc without asking questions (self-test or peer review)
+2. Code examples run against current API/SDK version
+3. OpenAPI/SDK/MCP aligned if contracts changed
+4. Troubleshooting covers observed failure modes
+5. Changelog updated for user-visible changes
+
+If time-to-first-success cannot be verified, document what was tested and what remains.

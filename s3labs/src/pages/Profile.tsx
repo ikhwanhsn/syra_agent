@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import {
   ArrowLeft,
   Award,
+  BadgeCheck,
   Check,
   Clock,
   Coins,
@@ -14,7 +15,6 @@ import {
   Gift,
   Info,
   Sparkles,
-  Target,
   Trophy,
   Users,
   Wallet,
@@ -22,6 +22,7 @@ import {
 import { toast } from "sonner";
 
 import { SitePageShell } from "@/components/landing/SitePageShell";
+import { KolProfileAvatar } from "@/components/kol/KolProfileAvatar";
 import { DailyClaimCard } from "@/components/profile/DailyClaimCard";
 import { ProfileSectionHeader } from "@/components/profile/ProfileSectionHeader";
 import { ProfileShareAction } from "@/components/profile/ProfileShareAction";
@@ -36,7 +37,7 @@ import {
   fetchWalletEarnings,
   fetchWalletPoints,
 } from "@/lib/kolApi";
-import { formatSol } from "@/lib/kolFormat";
+import { formatFollowers, formatSol } from "@/lib/kolFormat";
 import { REFERRAL_POINTS_HINT, POINTS_CREATED_HINT, POINTS_EARLY_BIRD_HINT } from "@/lib/kolRewardEligibility";
 import { buildProfileShareFromWallet } from "@/lib/profileShareData";
 import { pageContent } from "@/lib/siteLayout";
@@ -112,10 +113,17 @@ function ProfileContent() {
     staleTime: 30_000,
   });
 
+  const data = pointsQuery.data;
+  const earnings = earningsQuery.data;
+  const xHandle =
+    data?.lastHandle?.replace(/^@/, "") ||
+    earnings?.xVerification?.xHandle?.replace(/^@/, "") ||
+    null;
+
   const kolProfileQuery = useQuery({
-    queryKey: ["kol-profile", pointsQuery.data?.lastHandle],
-    queryFn: () => fetchKolProfile(pointsQuery.data!.lastHandle!),
-    enabled: Boolean(pointsQuery.data?.lastHandle),
+    queryKey: ["kol-profile", xHandle],
+    queryFn: () => fetchKolProfile(xHandle!),
+    enabled: Boolean(xHandle),
     staleTime: 5 * 60 * 1000,
     retry: 1,
   });
@@ -145,9 +153,14 @@ function ProfileContent() {
     );
   }
 
-  const data = pointsQuery.data;
-  const earnings = earningsQuery.data;
   const kolProfile = kolProfileQuery.data;
+  const displayName =
+    kolProfile?.name?.trim() ||
+    (xHandle ? `@${xHandle}` : null) ||
+    shortenAddress(address, 4);
+  const isXVerified = Boolean(
+    kolProfile?.verified || earnings?.xVerification?.verified,
+  );
   const minPayoutSol = earnings?.totals.minPayoutSol ?? 0.01;
   const pendingBalanceSol = earnings?.totals.pendingBalanceSol ?? 0;
   const hasPendingPayout = pendingBalanceSol > 0;
@@ -155,9 +168,9 @@ function ProfileContent() {
   const isLoading = pointsQuery.isLoading || earningsQuery.isLoading;
 
   const profileShareData = buildProfileShareFromWallet({
-    handle: data?.lastHandle ?? null,
-    displayName: kolProfile?.name ?? data?.lastHandle ?? shortenAddress(address ?? "", 4),
-    verified: kolProfile?.verified,
+    handle: xHandle,
+    displayName,
+    verified: isXVerified,
     profilePicture: kolProfile?.profilePicture,
     followers: kolProfile?.followers,
     reputationScore: kolProfile?.roles.includes("kol") ? kolProfile.asKol.totalScore : null,
@@ -203,51 +216,150 @@ function ProfileContent() {
               aria-hidden
             />
 
-            <div className="relative border-b border-border/50 px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-7">
-              <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-5 gap-y-4 sm:gap-x-6 lg:gap-x-8">
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10 sm:h-20 sm:w-20">
-                  <Award className="h-8 w-8 text-primary sm:h-9 sm:w-9" />
-                </div>
-
-                <div className="min-w-0 space-y-2">
-                  <p className="eyebrow">Your profile</p>
-                  <h1 className="heading-section text-xl min-[400px]:text-2xl sm:text-3xl">S3Labs Points</h1>
-                  <p className="font-mono text-xs text-muted-foreground break-all leading-relaxed sm:text-sm">
-                    <span className="sm:hidden">{shortenAddress(address, 8)}</span>
-                    <span className="hidden sm:inline">{address}</span>
-                  </p>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="mt-1 h-8 px-2 text-xs text-muted-foreground"
-                    onClick={() => void copyAddress()}
+            <div className="relative flex items-center justify-between gap-3 border-b border-border/50 px-4 py-3 sm:px-6 sm:py-4">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <p className="eyebrow shrink-0">Your profile</p>
+                {kolProfile?.roles.includes("kol") ? (
+                  <Badge
+                    variant="outline"
+                    className="gap-1 border-primary/30 bg-primary/10 text-primary"
                   >
-                    <Copy className="mr-1.5 h-3.5 w-3.5 shrink-0" />
-                    Copy address
-                  </Button>
-                </div>
-
-                {data?.lastHandle ? (
-                  <div className="col-span-2 flex flex-wrap items-center gap-2 border-t border-border/40 pt-4">
-                    <Badge variant="outline" className="max-w-full gap-1">
-                      <Sparkles className="h-3 w-3 shrink-0" />
-                      <span className="truncate">@{data.lastHandle}</span>
-                    </Badge>
+                    <Users className="h-3 w-3" aria-hidden />
+                    KOL
+                  </Badge>
+                ) : null}
+                {kolProfile?.roles.includes("project") ? (
+                  <Badge
+                    variant="outline"
+                    className="gap-1 border-primary/30 bg-primary/10 text-primary"
+                  >
+                    <Sparkles className="h-3 w-3" aria-hidden />
+                    Project
+                  </Badge>
+                ) : null}
+                {isXVerified ? (
+                  <Badge
+                    variant="outline"
+                    className="gap-1 border-primary/30 text-primary"
+                  >
+                    <BadgeCheck className="h-3 w-3" aria-hidden />
+                    Verified X
+                  </Badge>
+                ) : null}
+              </div>
+              {xHandle ? (
+                <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                  <Button asChild variant="outline" size="sm" className="rounded-full gap-1.5">
                     <a
-                      href={`https://x.com/${encodeURIComponent(data.lastHandle)}`}
+                      href={`https://x.com/${encodeURIComponent(xHandle)}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex shrink-0 items-center gap-1 text-xs text-primary hover:underline"
                     >
                       View on X
-                      <ExternalLink className="h-3 w-3" />
+                      <ExternalLink className="h-3.5 w-3.5" aria-hidden />
                     </a>
-                    <Link
-                      to={`/kol/${encodeURIComponent(data.lastHandle)}`}
-                      className="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground hover:text-primary"
+                  </Button>
+                  <Button asChild variant="ghost" size="sm" className="rounded-full gap-1.5">
+                    <Link to={`/kol/${encodeURIComponent(xHandle)}`}>Public profile</Link>
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="relative border-b border-border/50 px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-7">
+              <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-5 gap-y-4 sm:gap-x-6 lg:gap-x-8">
+                {xHandle && kolProfileQuery.isLoading ? (
+                  <Skeleton className="h-20 w-20 rounded-2xl sm:h-24 sm:w-24" />
+                ) : xHandle ? (
+                  <KolProfileAvatar
+                    handle={xHandle}
+                    name={kolProfile?.name ?? xHandle}
+                    profilePicture={kolProfile?.profilePicture}
+                    size="lg"
+                    className="h-20 w-20 rounded-2xl sm:h-24 sm:w-24 ring-2 ring-primary/20"
+                  />
+                ) : (
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10 sm:h-24 sm:w-24">
+                    <Award className="h-9 w-9 text-primary sm:h-10 sm:w-10" aria-hidden />
+                  </div>
+                )}
+
+                <div className="min-w-0 space-y-2">
+                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                    <h1 className="heading-section text-xl min-[400px]:text-2xl sm:text-3xl">
+                      {displayName}
+                    </h1>
+                    {isXVerified ? (
+                      <BadgeCheck
+                        className="h-5 w-5 shrink-0 text-primary sm:h-6 sm:w-6"
+                        aria-label="Verified on X"
+                      />
+                    ) : null}
+                  </div>
+
+                  {xHandle ? (
+                    <p className="text-sm text-muted-foreground sm:text-base">@{xHandle}</p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Verify your X account to personalize this profile.
+                    </p>
+                  )}
+
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground sm:text-sm">
+                    {kolProfile?.followers != null ? (
+                      <span>
+                        <span className="font-semibold tabular-nums text-foreground">
+                          {formatFollowers(kolProfile.followers)}
+                        </span>{" "}
+                        followers
+                      </span>
+                    ) : null}
+                    {kolProfile?.roles.includes("kol") ? (
+                      <span>
+                        <span className="font-semibold tabular-nums text-foreground">
+                          {kolProfile.asKol.totalScore.toFixed(1)}
+                        </span>{" "}
+                        reputation
+                      </span>
+                    ) : null}
+                    {data?.campaignsCreated ? (
+                      <span>
+                        <span className="font-semibold tabular-nums text-foreground">
+                          {data.campaignsCreated}
+                        </span>{" "}
+                        campaign{data.campaignsCreated === 1 ? "" : "s"} created
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <p className="font-mono text-[11px] text-muted-foreground break-all leading-relaxed sm:text-xs">
+                      <span className="sm:hidden">{shortenAddress(address, 8)}</span>
+                      <span className="hidden sm:inline">{address}</span>
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2 text-xs text-muted-foreground"
+                      onClick={() => void copyAddress()}
                     >
-                      Public profile
-                    </Link>
+                      <Copy className="mr-1.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+                      Copy wallet
+                    </Button>
+                  </div>
+                </div>
+
+                {kolProfile?.description ? (
+                  <p className="col-span-2 self-start border-t border-border/40 pt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
+                    {kolProfile.description}
+                  </p>
+                ) : null}
+
+                {!xHandle ? (
+                  <div className="col-span-2 border-t border-border/40 pt-4">
+                    <Button asChild variant="outline" size="sm" className="rounded-full">
+                      <Link to="/kol">Verify X on marketplace</Link>
+                    </Button>
                   </div>
                 ) : null}
               </div>
@@ -286,17 +398,11 @@ function ProfileContent() {
               </div>
             </div>
 
-            <div className="relative px-4 py-4 sm:px-6 sm:py-5 space-y-3">
-              <Button asChild variant="hero" className="w-full rounded-full sm:w-auto">
-                <Link to="/profile/missions">
-                  <Target className="mr-1.5 h-4 w-4" />
-                  Missions
-                </Link>
-              </Button>
-              {profileShareData ? (
+            {profileShareData ? (
+              <div className="relative px-4 py-4 sm:px-6 sm:py-5">
                 <ProfileShareAction data={profileShareData} prominent />
-              ) : null}
-            </div>
+              </div>
+            ) : null}
           </section>
 
           <DailyClaimCard wallet={address} />

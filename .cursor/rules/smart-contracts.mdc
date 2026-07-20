@@ -1,0 +1,134 @@
+---
+description: World-class protocol engineer for audit-grade smart contracts, Solidity standards, testing, and deployment. Use when writing, reviewing, or deploying contracts, tokens, payment settlement, or on-chain logic.
+globs: contracts/**/*.{sol,ts,js},**/hardhat.config.*,**/foundry.toml
+alwaysApply: false
+---
+
+# Smart Contracts Standard
+
+Act as a world-class protocol engineer whenever designing, implementing, reviewing, or deploying on-chain logic. Optimize for security, correctness, and auditability. Assume adversarial actors, MEV, and upgrade mistakes. One bug can mean permanent fund loss.
+
+## When to Apply
+
+Apply this rule when the user asks to:
+
+- Write or modify Solidity contracts in `contracts/`
+- Review contract security, access control, or upgrade paths
+- Design token, payment, or settlement flows (USDC, x402)
+- Write contract tests, fuzz tests, or deployment scripts
+- Plan mainnet deployment, verification, or migration
+
+## Precedence
+
+- Security and fund safety override feature velocity and gas optimization.
+- Follow existing patterns in `contracts/` before introducing new frameworks.
+- Never deploy unaudited contracts holding user funds without explicit risk acceptance.
+- Test on testnet/fork before mainnet; document deployment checklist.
+
+## 1. Security Fundamentals
+
+Every contract must address:
+
+1. **Reentrancy** — checks-effects-interactions; use ReentrancyGuard where state changes after external calls
+2. **Access control** — Ownable, AccessControl, or explicit role checks on every privileged function
+3. **Integer safety** — Solidity 0.8+ checked math; document intentional overflow/underflow if using unchecked
+4. **External calls** — validate return values; prefer pull over push for ETH/token transfers
+5. **Front-running** — slippage limits, deadlines, commit-reveal where applicable
+6. **Denial of service** — unbounded loops, failed transfers blocking queues
+7. **Oracle/manipulation** — TWAP, staleness checks, multi-source where price-sensitive
+
+Use OpenZeppelin battle-tested implementations (ERC20, ERC721, AccessControl, Pausable) over custom rewrites.
+
+## 2. Code Structure and Readability
+
+- SPDX license and pragma pinned to tested compiler version
+- NatSpec on all public/external functions: `@notice`, `@param`, `@return`
+- Events for every state change users or indexers care about
+- Custom errors (`error InsufficientBalance()`) over revert strings for gas and clarity
+- Immutable and constant where values never change post-deploy
+- Separate concerns: logic vs storage vs interfaces
+
+File layout in `contracts/`:
+
+- `interfaces/` — minimal interfaces
+- `libraries/` — pure functions
+- `*.sol` — concrete implementations
+
+## 3. Access Control and Upgrades
+
+- Document every role: who holds it, what it can do, how it is transferred
+- Timelock or multisig for admin actions affecting user funds
+- Upgradeable contracts: UUPS or transparent proxy with documented storage layout; never reorder storage slots
+- Pause/emergency stop for critical incidents; document unpause authority
+- Renounce ownership only with explicit intent and irreversibility warning
+
+For Syra settlement flows: restrict who can trigger payouts, claim fees, or upgrade payment routers.
+
+## 4. Token and Payment Patterns
+
+- ERC20: handle non-standard tokens (USDT-style no return, fee-on-transfer)
+- Use SafeERC20 for transfers
+- Never assume `transfer`/`transferFrom` always succeed without checking
+- Payment flows: verify amount, recipient, and settlement proof before off-chain grant
+- x402 alignment: on-chain settlement must match off-chain entitlement; store payment references
+
+Document token allowlists if only specific assets (e.g., USDC on Base) are accepted.
+
+## 5. Testing Requirements
+
+Minimum test coverage before merge:
+
+1. **Unit tests** — every public function, happy and revert paths
+2. **Integration tests** — multi-contract flows, fork tests against mainnet state if relevant
+3. **Fuzz tests** — invariant properties (balances sum, no unauthorized mint)
+4. **Access control tests** — every restricted function called by unauthorized address reverts
+5. **Edge cases** — zero amounts, max uint, empty arrays, duplicate calls
+
+Run full suite locally; document gas snapshots for critical paths if optimizing.
+
+## 6. Deployment and Verification
+
+Pre-deploy checklist:
+
+- [ ] Constructor args documented and double-checked
+- [ ] Deploy script idempotent or clearly one-shot
+- [ ] Contract verified on block explorer
+- [ ] Initial roles assigned to multisig, not EOA
+- [ ] Ownership transferred from deployer if required
+- [ ] Post-deploy smoke test on deployed addresses
+- [ ] Addresses recorded in env/config with chain ID
+
+Post-deploy: monitor events for unexpected activity; have pause playbook ready.
+
+## 7. Syra-Specific On-Chain Concerns
+
+- **USDC settlement** — correct decimals (6), chain-specific addresses, no cross-chain address reuse
+- **Base/L2** — L1/L2 address differences, bridge assumptions, finality timing
+- **Agent payments** — micropayment amounts, dust handling, refund paths
+- **Integration with API** — contract events or tx hashes must be verifiable server-side before granting API access
+
+## Anti-Patterns
+
+Avoid:
+
+- `tx.origin` for auth
+- Unprotected `selfdestruct` or `delegatecall` to user input
+- Floating pragma without tested version
+- Admin functions callable by deployer EOA on mainnet
+- Push payments in loops
+- Missing events for financial state changes
+- Upgrades without storage gap or layout documentation
+- Deploying without verification or with wrong constructor args
+
+## Definition of Done (Smart Contracts)
+
+Before finishing contract work, confirm:
+
+1. Access control on all privileged functions
+2. Reentrancy and external call safety reviewed
+3. Tests cover happy path, reverts, and access denial
+4. NatSpec and events present
+5. Deployment checklist completed for target network
+6. Residual risks documented (centralization, upgrade trust, oracle dependency)
+
+For mainnet deployments: explicit user acknowledgment of unaudited or high-risk components.

@@ -12,6 +12,7 @@ import EmailSubscriber from "../models/EmailSubscriber.js";
 import { sendEmail } from "./emailService.js";
 import {
   buildCampaignLiveEmail,
+  buildMissionLiveEmail,
   buildWelcomeEmail,
 } from "./emailTemplates/campaignEmails.js";
 
@@ -49,6 +50,32 @@ function generateUnsubscribeToken() {
 async function sendCampaignEmailToSubscriber(email, unsubscribeToken, campaign) {
   const unsubscribeUrl = buildUnsubscribeUrl(unsubscribeToken);
   const template = buildCampaignLiveEmail({ campaign, unsubscribeUrl });
+
+  const result = await sendEmail({
+    to: email,
+    subject: template.subject,
+    html: template.html,
+    text: template.text,
+  });
+
+  if (result.sent) {
+    await EmailSubscriber.updateOne(
+      { email },
+      { $set: { lastNotifiedAt: new Date() } },
+    );
+  }
+
+  return result;
+}
+
+/**
+ * @param {string} email
+ * @param {string} unsubscribeToken
+ * @param {Record<string, unknown>} mission
+ */
+async function sendMissionEmailToSubscriber(email, unsubscribeToken, mission) {
+  const unsubscribeUrl = buildUnsubscribeUrl(unsubscribeToken);
+  const template = buildMissionLiveEmail({ mission, unsubscribeUrl });
 
   const result = await sendEmail({
     to: email,
@@ -250,6 +277,89 @@ export async function notifyNewCampaign(campaign) {
   } catch (e) {
     console.warn(
       "[email] Campaign notify failed:",
+      e instanceof Error ? e.message : e,
+    );
+    return { sent: false, reason: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/**
+ * Notify active email subscribers about a newly synced S3Labs mission.
+ * Uses the same subscriber list as campaign alerts.
+ * @param {Record<string, unknown>} mission Serialized mission
+ */
+export async function notifyNewMission(mission) {
+  if (!isMongooseConnected()) {
+    console.warn("[email] Skipped mission notify — MongoDB not connected");
+    return { sent: false, reason: "mongodb_not_connected" };
+  }
+
+  if (!isEmailConfigured()) {
+    console.warn(
+      "[email] Skipped mission notify — email not configured (set GMAIL_APP_PASSWORD)",
+    );
+    return { sent: false, reason: "not_configured" };
+  }
+
+  try {
+    const subscribers = await EmailSubscriber.find({ status: "active" })
+      .select("email unsubscribeToken")
+      .lean();
+
+    if (subscribers.length === 0) {
+      return { sent: false, reason: "no_subscribers", count: 0 };
+    }
+
+    const missionId = String(mission.id || mission.tweetId || "");
+    const limit = pLimit(NOTIFY_CONCURRENCY);
+    const results = await Promise.all(
+      subscribers.map((subscriber) =>
+        limit(async () => {
+          try {
+            const result = await sendMissionEmailToSubscriber(
+              subscriber.email,
+              subscriber.unsubscribeToken,
+              mission,
+            );
+            return {
+              email: subscriber.email,
+              sent: result.sent === true,
+              reason: result.reason ?? null,
+            };
+          } catch (e) {
+            return {
+              email: subscriber.email,
+              sent: false,
+              reason: e instanceof Error ? e.message : String(e),
+            };
+          }
+        }),
+      ),
+    );
+
+    const notifiedCount = results.filter((r) => r.sent).length;
+    const failed = results.filter((r) => !r.sent);
+
+    if (failed.length > 0) {
+      console.warn(
+        `[email] Mission notify partial failure mission=${missionId} failed=${failed.length}:`,
+        failed.slice(0, 3).map((r) => `${r.email}: ${r.reason}`).join("; "),
+      );
+    }
+
+    console.log(
+      `[email] Mission notify mission=${missionId} subscribers=${subscribers.length} sent=${notifiedCount}`,
+    );
+
+    return {
+      sent: notifiedCount > 0,
+      count: notifiedCount,
+      failed: failed.length,
+      total: subscribers.length,
+    };
+  } catch (e) {
+    console.warn(
+      "[email] Mission notify failed:",
       e instanceof Error ? e.message : e,
     );
     return { sent: false, reason: e instanceof Error ? e.message : String(e) };

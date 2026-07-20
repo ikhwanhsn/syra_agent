@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarCheck, CalendarDays, Gift, Sparkles, Trophy } from "lucide-react";
+import { Link } from "react-router-dom";
+import { CalendarCheck, CalendarDays, Gift, Sparkles, Target, Trophy } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -87,6 +88,12 @@ export function DailyClaimCard({ wallet }: DailyClaimCardProps) {
           <p className="text-[11px] sm:text-xs text-muted-foreground font-mono break-all">
             UTC day · {status.todayUtc}
           </p>
+          <Button asChild variant="outline" size="sm" className="rounded-full w-fit">
+            <Link to="/profile/missions">
+              <Target className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+              Missions
+            </Link>
+          </Button>
         </div>
 
         <div className="w-full lg:w-auto lg:min-w-[11rem] rounded-2xl border border-primary/20 bg-background/50 backdrop-blur-sm p-4 sm:p-5 text-center shrink-0">

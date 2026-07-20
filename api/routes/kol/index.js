@@ -26,11 +26,14 @@ import {
   getEarningsByHandle,
   getWalletEarnings,
   listCampaigns,
+  listHeldReviewPayouts,
   listKols,
   listProjects,
   listWalletCampaigns,
   mergeDuplicateHandleSubmissions,
   refreshCampaignMetrics,
+  releaseHeldReviewPayout,
+  slashHeldReviewPayout,
 } from "../../libs/kolMarketplaceService.js";
 import {
   discoverCampaignHandle,
@@ -607,6 +610,61 @@ export function createKolRouter() {
         }
 
         return res.json({ success: true, data: { ...result, metrics } });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
+
+  router.get(
+    "/admin/held-payouts",
+    requireMongooseConnection,
+    requireAdminWallet,
+    async (req, res) => {
+      try {
+        const campaignId =
+          typeof req.query?.campaignId === "string" ? req.query.campaignId : null;
+        const rows = await listHeldReviewPayouts({ campaignId });
+        return res.json({ success: true, data: { rows, count: rows.length } });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
+
+  router.post(
+    "/campaigns/:id/admin/payouts/:submissionId/release",
+    requireMongooseConnection,
+    requireAdminWallet,
+    async (req, res) => {
+      try {
+        const autoDistribute = req.body?.autoDistribute !== false;
+        const result = await releaseHeldReviewPayout(
+          req.params.id,
+          req.params.submissionId,
+          { autoDistribute },
+        );
+        return res.json({ success: true, data: result });
+      } catch (e) {
+        return handleServiceError(res, e);
+      }
+    },
+  );
+
+  router.post(
+    "/campaigns/:id/admin/payouts/:submissionId/slash",
+    requireMongooseConnection,
+    requireAdminWallet,
+    async (req, res) => {
+      try {
+        const reason =
+          typeof req.body?.reason === "string" ? req.body.reason : "admin_slash";
+        const result = await slashHeldReviewPayout(
+          req.params.id,
+          req.params.submissionId,
+          { reason },
+        );
+        return res.json({ success: true, data: result });
       } catch (e) {
         return handleServiceError(res, e);
       }

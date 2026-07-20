@@ -103,12 +103,14 @@ export function CampaignClaimCard({
     ownEntry.claimStatus === "claimed" ||
     ownEntry.payout?.status === "confirmed";
   const rewardHeld = ownEntry.payout?.status === "pending_minimum";
+  const rewardUnderReview = ownEntry.claimStatus === "held_review";
   const claimable =
     ownEntry.claimStatus === "claimable" &&
     (ownEntry.earnedSol ?? 0) > 0 &&
     !claimBlockedByCampaignRule &&
     !rewardSent &&
-    !rewardHeld;
+    !rewardHeld &&
+    !rewardUnderReview;
 
   const earnedSol = ownEntry.earnedSol ?? ownEntry.projectedSol ?? 0;
 
@@ -153,6 +155,11 @@ export function CampaignClaimCard({
         <p className="text-sm text-amber-400">
           {formatSol(earnedSol)} SOL is held in the pool until your balance
           reaches 0.01 SOL. It will send automatically once the minimum is met.
+        </p>
+      ) : rewardUnderReview ? (
+        <p className="text-sm text-amber-400">
+          {formatSol(earnedSol)} SOL is under review while we verify engagement
+          quality. Bought or fake engagement may be reduced or forfeited.
         </p>
       ) : claimable ? (
         <div className="space-y-2">

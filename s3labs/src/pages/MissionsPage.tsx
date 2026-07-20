@@ -268,7 +268,7 @@ function MissionsContent() {
   });
 
   const syncMutation = useMutation({
-    mutationFn: () => syncMissions(address!),
+    mutationFn: () => syncMissions(address!, { limit: 1 }),
     onSuccess: (result) => {
       toast.success(
         `Synced ${result.fetched} posts (${result.created} new, ${result.updated} updated)`,
