@@ -182,7 +182,18 @@ export async function executeAgentToolCall(input) {
 
       const memo =
         params.memo != null && String(params.memo).trim() ? String(params.memo).trim() : undefined;
-      const payout = await sendTempoPayout({ to: recipient, amountUsd, memo });
+      const explicitKey =
+        params.idempotencyKey != null && String(params.idempotencyKey).trim()
+          ? String(params.idempotencyKey).trim()
+          : undefined;
+      const payout = await sendTempoPayout({
+        to: recipient,
+        amountUsd,
+        memo,
+        // Only lock when caller supplies a key or memo — avoid blocking intentional repeat payouts.
+        idempotencyKey: explicitKey || (memo ? `tool:${anonymousId}:${memo}` : undefined),
+        source: "agent_tool",
+      });
       if (!payout.success) {
         return respond(502, {
           success: false,

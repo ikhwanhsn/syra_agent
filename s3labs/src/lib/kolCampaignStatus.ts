@@ -10,10 +10,14 @@ export function isCampaignLive(campaign: Pick<KolCampaign, "status" | "endAt">):
 }
 
 export function isCampaignFinalizing(campaign: Pick<KolCampaign, "status" | "endAt">): boolean {
+  if (campaign.status === "finalizing") return true;
   return campaign.status === "active" && isCampaignEnded(campaign);
 }
 
-export type KolCampaignDisplayPhase = "live" | "finalizing" | Exclude<KolCampaign["status"], "active">;
+export type KolCampaignDisplayPhase =
+  | "live"
+  | "finalizing"
+  | Exclude<KolCampaign["status"], "active" | "finalizing">;
 
 export function getCampaignDisplayPhase(
   campaign: Pick<KolCampaign, "status" | "endAt">,

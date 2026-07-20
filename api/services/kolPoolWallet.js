@@ -168,9 +168,15 @@ export async function verifyDeposit({ txSignature, expectedLamports, fromWallet 
 
 /**
  * Send SOL payout from pool wallet to a KOL wallet.
- * @param {{ toWallet: string; lamports: number }} opts
+ * Persist the signature as soon as it is submitted (before confirm) via onSigned
+ * so a confirm timeout cannot cause a blind re-send.
+ * @param {{
+ *   toWallet: string;
+ *   lamports: number;
+ *   onSigned?: (signature: string) => void | Promise<void>;
+ * }} opts
  */
-export async function sendPayout({ toWallet, lamports }) {
+export async function sendPayout({ toWallet, lamports, onSigned }) {
   const amount = BigInt(Math.floor(Number(lamports) || 0));
   if (amount <= 0n) {
     const err = new Error("lamports must be positive");
@@ -207,7 +213,31 @@ export async function sendPayout({ toWallet, lamports }) {
       preflightCommitment: "confirmed",
     });
 
-    await confirmSolanaTransaction(connection, signature, { lastValidBlockHeight });
+    if (typeof onSigned === "function") {
+      try {
+        await onSigned(signature);
+      } catch (persistErr) {
+        console.warn(
+          "[kolPool] onSigned persist failed (tx already submitted):",
+          persistErr instanceof Error ? persistErr.message : persistErr,
+        );
+      }
+    }
+
+    try {
+      await confirmSolanaTransaction(connection, signature, { lastValidBlockHeight });
+    } catch (confirmErr) {
+      const msg = confirmErr instanceof Error ? confirmErr.message : String(confirmErr);
+      // Ambiguous: tx may still land. Callers must not treat this as a safe retry.
+      if (msg === "tx_confirm_timeout" || msg === "tx_blockhash_expired") {
+        const err = new Error(msg);
+        err.code = msg;
+        err.txSignature = signature;
+        err.ambiguous = true;
+        throw err;
+      }
+      throw confirmErr;
+    }
 
     return {
       success: true,

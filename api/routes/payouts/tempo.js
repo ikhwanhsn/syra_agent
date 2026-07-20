@@ -42,6 +42,13 @@ export function createTempoPayoutRouter() {
         to: to.trim(),
         amountUsd: amount,
         memo: memo != null ? String(memo).trim() : undefined,
+        idempotencyKey:
+          req.get("idempotency-key") ||
+          req.get("x-idempotency-key") ||
+          (req.body?.idempotencyKey != null
+            ? String(req.body.idempotencyKey).trim()
+            : undefined),
+        source: "api_route",
       });
 
       if (result.success) {

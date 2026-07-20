@@ -46,7 +46,7 @@ export interface KolCampaign {
   platformFeeTxSignature?: string | null;
   platformFeeStatus?: "pending" | "confirmed" | "failed" | null;
   depositTxSignature: string | null;
-  status: "pending_deposit" | "active" | "completed" | "cancelled";
+  status: "pending_deposit" | "active" | "finalizing" | "completed" | "cancelled";
   startAt: string | null;
   endAt: string | null;
   durationDays: number;

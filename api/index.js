@@ -695,6 +695,12 @@ app.post(
           to: tempoChallenge.recipient,
           amountUsd: tempoChallenge.amountUsd,
           memo,
+          idempotencyKey: tempoChallenge.id
+            ? `mpp:${tempoChallenge.id}`
+            : memo
+              ? `mpp-memo:${memo}`
+              : undefined,
+          source: "mpp_relay",
         });
 
         if (!payout.success) {

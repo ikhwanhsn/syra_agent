@@ -73,6 +73,10 @@ const labX402SettingsSchema = new mongoose.Schema(
     depositEthGasReserve: { type: Number, default: 0.0002, min: 0 },
     /** Last successful distribute timestamp (informational). */
     depositLastDistributedAt: { type: Date },
+    /** Multi-instance distribute lock — do not start another run until this time. */
+    depositDistributeLockUntil: { type: Date, default: null },
+    /** Optional owner label for the lock (pid / host). */
+    depositDistributeLockOwner: { type: String, default: null },
   },
   { timestamps: true },
 );

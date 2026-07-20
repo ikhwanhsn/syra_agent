@@ -28,7 +28,7 @@ const kolCampaignSchema = new mongoose.Schema(
     platformFeeTxSignature: { type: String, default: null },
     platformFeeStatus: {
       type: String,
-      enum: ["pending", "confirmed", "failed", null],
+      enum: ["pending", "sending", "confirmed", "failed", null],
       default: null,
     },
     /** Unused KOL pool returned to project creator after finalize. */
@@ -36,13 +36,19 @@ const kolCampaignSchema = new mongoose.Schema(
     creatorRefundTxSignature: { type: String, default: null },
     creatorRefundStatus: {
       type: String,
-      enum: ["pending", "confirmed", "failed", "skipped", null],
+      enum: ["pending", "sending", "confirmed", "failed", "skipped", null],
       default: null,
     },
     depositTxSignature: { type: String, default: null, index: true },
     status: {
       type: String,
-      enum: ["pending_deposit", "active", "completed", "cancelled"],
+      enum: [
+        "pending_deposit",
+        "active",
+        "finalizing",
+        "completed",
+        "cancelled",
+      ],
       default: "pending_deposit",
       index: true,
     },
@@ -69,6 +75,8 @@ const kolCampaignSchema = new mongoose.Schema(
       max: 10_000,
     },
     lastSnapshotAt: { type: Date, default: null },
+    /** Set when finalize atomically claims the campaign (status → finalizing). */
+    finalizeStartedAt: { type: Date, default: null },
     finalizedAt: { type: Date, default: null },
   },
   { timestamps: true },

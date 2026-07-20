@@ -52,6 +52,8 @@ import {
   sendPayout,
   verifyDeposit,
 } from "../services/kolPoolWallet.js";
+import { isSolanaTxConfirmedOnAnyRpc } from "./solanaConfirm.js";
+import { isAmbiguousPayoutError } from "./kolPayoutSafety.js";
 import {
   getTweetById,
   getTweetsByIds,
@@ -82,6 +84,8 @@ import {
 } from "./kolXVerificationService.js";
 
 const AUTO_SWEEP_BATCH_LIMIT = 20;
+/** Reclaim `finalizing` campaigns stuck longer than this (process crash mid-finalize). */
+const FINALIZE_STUCK_MS = 30 * 60 * 1000;
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
 
@@ -452,15 +456,23 @@ function isPayoutSettled(payout) {
   if (!payout) return false;
   if (payout.status === "failed") return false;
   if (payout.status === "pending_minimum") return false;
+  if (payout.status === "sending") return false;
   if (payout.status === "confirmed") return true;
   return Boolean(payout.txSignature);
 }
 
 /**
+ * Atomically claim pending rollover balance (set to 0, return previous value).
+ * Prevents concurrent distributes from both including the same pending lamports.
  * @param {string} kolWallet
+ * @returns {Promise<number>}
  */
-async function getPendingPayoutBalanceLamports(kolWallet) {
-  const doc = await KolPendingPayoutBalance.findOne({ kolWallet }).lean();
+async function claimPendingPayoutBalanceLamports(kolWallet) {
+  const doc = await KolPendingPayoutBalance.findOneAndUpdate(
+    { kolWallet, pendingLamports: { $gt: 0 } },
+    { $set: { pendingLamports: 0 } },
+    { new: false },
+  );
   return doc?.pendingLamports ?? 0;
 }
 
@@ -487,6 +499,25 @@ async function clearPendingPayoutBalance(kolWallet) {
     { $set: { pendingLamports: 0 } },
     { upsert: true },
   );
+}
+
+/**
+ * Resolve an in-flight Solana payout by checking the chain for a stored signature.
+ * Never re-sends when status is "sending" with a signature.
+ * @param {string | null | undefined} txSignature
+ * @returns {Promise<"confirmed" | "pending" | "missing">}
+ */
+async function resolveSendingTxStatus(txSignature) {
+  const sig = String(txSignature || "").trim();
+  if (!sig) return "missing";
+  try {
+    if (await isSolanaTxConfirmedOnAnyRpc(sig)) {
+      return "confirmed";
+    }
+  } catch {
+    // RPC flaky — treat as still pending (do not re-send)
+  }
+  return "pending";
 }
 
 /**
@@ -1316,12 +1347,12 @@ export async function listCampaigns(opts = {}) {
   } else if (viewerWallet) {
     filter = {
       $or: [
-        { status: { $in: ["active", "completed"] } },
+        { status: { $in: ["active", "finalizing", "completed"] } },
         { status: "pending_deposit", projectWallet: viewerWallet },
       ],
     };
   } else {
-    filter = { status: { $in: ["active", "completed"] } };
+    filter = { status: { $in: ["active", "finalizing", "completed"] } };
   }
 
   const campaigns = await KolCampaign.find(filter)
@@ -1388,7 +1419,7 @@ async function ensureCampaignTweetMedia(campaignDoc) {
 async function walletHasCreatedCampaign(kolWallet) {
   const ownedCount = await KolCampaign.countDocuments({
     projectWallet: kolWallet,
-    status: { $in: ["active", "completed"] },
+    status: { $in: ["active", "finalizing", "completed"] },
   });
   return ownedCount >= 1;
 }
@@ -1512,7 +1543,7 @@ async function getCreatorWalletsBySourceHandleKeys(handleKeys) {
   }));
 
   const campaigns = await KolCampaign.find({
-    status: { $in: ["active", "completed", "pending_deposit"] },
+    status: { $in: ["active", "finalizing", "completed", "pending_deposit"] },
     $or: handleClauses,
   })
     .select("sourceAuthorHandle projectWallet")
@@ -1734,20 +1765,14 @@ export async function getCampaignDetail(campaignId, opts = {}) {
   }
 
   if (campaign.status === "active" && isCampaignPastEnd(campaign)) {
-    try {
-      await finalizeCampaign(campaign._id);
-      campaign = await KolCampaign.findById(id);
-      if (!campaign) {
-        const err = new Error("Campaign not found");
-        err.code = "not_found";
-        throw err;
-      }
-    } catch (e) {
+    // Do not await finalize on GET — page views must not drive money movement.
+    // Cron (runKolDailyTick) owns finalize; nudge fire-and-forget for freshness.
+    finalizeCampaign(campaign._id).catch((e) => {
       console.warn(
-        `[kol] auto-finalize failed campaign=${id}:`,
+        `[kol] background finalize nudge failed campaign=${id}:`,
         e instanceof Error ? e.message : e,
       );
-    }
+    });
   }
 
   await ensureCampaignTweetMedia(campaign);
@@ -2473,14 +2498,21 @@ function isCampaignPastEnd(campaign) {
 
 /**
  * Finalize active campaigns whose endAt has passed (rewards, reputation, points).
+ * Also reclaims campaigns stuck in `finalizing` longer than FINALIZE_STUCK_MS.
  * @param {{ limit?: number }} [opts]
  */
 export async function finalizeEndedActiveCampaigns(opts = {}) {
   const limit = Math.min(Math.max(Number(opts.limit) || 10, 1), 25);
   const now = new Date();
+  const stuckBefore = new Date(now.getTime() - FINALIZE_STUCK_MS);
   const ended = await KolCampaign.find({
-    status: "active",
-    endAt: { $lte: now },
+    $or: [
+      { status: "active", endAt: { $lte: now } },
+      {
+        status: "finalizing",
+        finalizeStartedAt: { $lte: stuckBefore },
+      },
+    ],
   })
     .sort({ endAt: 1 })
     .limit(limit)
@@ -2508,21 +2540,390 @@ export async function finalizeEndedActiveCampaigns(opts = {}) {
 }
 
 /**
+ * Atomically claim a campaign for finalize. Only one winner may send money.
+ * @param {import("mongoose").Types.ObjectId | string} campaignId
+ * @returns {Promise<{
+ *   success: boolean;
+ *   campaign?: import("../models/KolCampaign.js").default;
+ *   alreadyFinalized?: boolean;
+ *   finalizeInProgress?: boolean;
+ *   error?: string;
+ * }>}
+ */
+async function claimCampaignForFinalize(campaignId) {
+  const id = campaignId;
+  const now = new Date();
+  const stuckBefore = new Date(now.getTime() - FINALIZE_STUCK_MS);
+
+  // Fast path: already done
+  const existing = await KolCampaign.findById(id);
+  if (!existing) {
+    return { success: false, error: "not_found" };
+  }
+  if (existing.status === "completed") {
+    return { success: true, alreadyFinalized: true, campaign: existing };
+  }
+
+  // Claim active → finalizing
+  let claimed = await KolCampaign.findOneAndUpdate(
+    { _id: id, status: "active" },
+    { $set: { status: "finalizing", finalizeStartedAt: now } },
+    { new: true },
+  );
+
+  if (claimed) {
+    return { success: true, campaign: claimed };
+  }
+
+  // Reclaim stuck finalizing (crash recovery) — safe because per-payout sends are idempotent
+  claimed = await KolCampaign.findOneAndUpdate(
+    {
+      _id: id,
+      status: "finalizing",
+      $or: [
+        { finalizeStartedAt: { $lte: stuckBefore } },
+        { finalizeStartedAt: null },
+      ],
+    },
+    { $set: { finalizeStartedAt: now } },
+    { new: true },
+  );
+
+  if (claimed) {
+    return { success: true, campaign: claimed };
+  }
+
+  const current = await KolCampaign.findById(id);
+  if (current?.status === "completed") {
+    return { success: true, alreadyFinalized: true, campaign: current };
+  }
+  if (current?.status === "finalizing") {
+    return {
+      success: false,
+      finalizeInProgress: true,
+      error: "finalize_in_progress",
+      campaign: current,
+    };
+  }
+  return { success: false, error: "invalid_status", campaign: current ?? undefined };
+}
+
+/**
+ * Send platform fee once with sending→confirmed state machine.
+ * @param {import("../models/KolCampaign.js").default} campaign
+ * @param {number} platformFeeLamports
+ * @param {Array<Record<string, unknown>>} results
+ */
+async function sendPlatformFeeIdempotent(campaign, platformFeeLamports, results) {
+  if (platformFeeLamports <= 0) {
+    campaign.platformFeeStatus = "confirmed";
+    await campaign.save();
+    results.push({ type: "platform_fee", status: "confirmed", skipped: true });
+    return;
+  }
+
+  if (campaign.platformFeeStatus === "confirmed") {
+    results.push({ type: "platform_fee", status: "confirmed", skipped: true });
+    return;
+  }
+
+  if (
+    campaign.platformFeeStatus === "sending" &&
+    campaign.platformFeeTxSignature
+  ) {
+    const resolved = await resolveSendingTxStatus(campaign.platformFeeTxSignature);
+    if (resolved === "confirmed") {
+      campaign.platformFeeStatus = "confirmed";
+      await campaign.save();
+      results.push({
+        type: "platform_fee",
+        status: "confirmed",
+        skipped: true,
+        txSignature: campaign.platformFeeTxSignature,
+      });
+      return;
+    }
+    if (resolved === "pending") {
+      results.push({
+        type: "platform_fee",
+        status: "sending",
+        pending: true,
+        txSignature: campaign.platformFeeTxSignature,
+      });
+      return;
+    }
+    // missing on every RPC — allow one retry below by clearing sending claim
+  }
+
+  // Claim sending slot (also reclaim bare "sending" with no signature after crash)
+  const claimed = await KolCampaign.findOneAndUpdate(
+    {
+      _id: campaign._id,
+      $or: [
+        { platformFeeStatus: { $nin: ["confirmed", "sending"] } },
+        {
+          platformFeeStatus: "sending",
+          $or: [
+            { platformFeeTxSignature: null },
+            { platformFeeTxSignature: { $exists: false } },
+            { platformFeeTxSignature: "" },
+          ],
+        },
+      ],
+    },
+    { $set: { platformFeeStatus: "sending" } },
+    { new: true },
+  );
+  if (!claimed) {
+    // Another worker claimed or already confirmed — reload
+    const fresh = await KolCampaign.findById(campaign._id);
+    if (fresh) {
+      campaign.platformFeeStatus = fresh.platformFeeStatus;
+      campaign.platformFeeTxSignature = fresh.platformFeeTxSignature;
+    }
+    results.push({ type: "platform_fee", status: campaign.platformFeeStatus || "sending", skipped: true });
+    return;
+  }
+  Object.assign(campaign, {
+    platformFeeStatus: claimed.platformFeeStatus,
+    platformFeeTxSignature: claimed.platformFeeTxSignature,
+  });
+
+  try {
+    const feeSent = await sendPayout({
+      toWallet: getS3labsFeeWallet(),
+      lamports: platformFeeLamports,
+      onSigned: async (signature) => {
+        campaign.platformFeeTxSignature = signature;
+        campaign.platformFeeStatus = "sending";
+        await KolCampaign.updateOne(
+          { _id: campaign._id },
+          {
+            $set: {
+              platformFeeTxSignature: signature,
+              platformFeeStatus: "sending",
+            },
+          },
+        );
+      },
+    });
+    campaign.platformFeeTxSignature = feeSent.txSignature;
+    campaign.platformFeeStatus = "confirmed";
+    await campaign.save();
+    results.push({
+      type: "platform_fee",
+      status: "confirmed",
+      txSignature: feeSent.txSignature,
+      lamports: platformFeeLamports,
+      toWallet: getS3labsFeeWallet(),
+    });
+  } catch (e) {
+    const sig =
+      (e && typeof e === "object" && "txSignature" in e
+        ? /** @type {{ txSignature?: string }} */ (e).txSignature
+        : null) || campaign.platformFeeTxSignature;
+    if (isAmbiguousPayoutError(e) && sig) {
+      campaign.platformFeeTxSignature = sig;
+      campaign.platformFeeStatus = "sending";
+      await campaign.save();
+      results.push({
+        type: "platform_fee",
+        status: "sending",
+        pending: true,
+        txSignature: sig,
+        error: e instanceof Error ? e.message : String(e),
+        lamports: platformFeeLamports,
+      });
+      return;
+    }
+    campaign.platformFeeStatus = "failed";
+    await campaign.save();
+    results.push({
+      type: "platform_fee",
+      status: "failed",
+      error: e instanceof Error ? e.message : String(e),
+      lamports: platformFeeLamports,
+    });
+  }
+}
+
+/**
+ * Send creator unused-pool refund once with sending→confirmed state machine.
+ * @param {import("../models/KolCampaign.js").default} campaign
+ * @param {number} refundLamports
+ * @param {Array<Record<string, unknown>>} results
+ */
+async function sendCreatorRefundIdempotent(campaign, refundLamports, results) {
+  if (refundLamports <= 0) {
+    campaign.creatorRefundLamports = 0;
+    campaign.creatorRefundStatus = "skipped";
+    await campaign.save();
+    return;
+  }
+
+  campaign.creatorRefundLamports = refundLamports;
+
+  if (campaign.creatorRefundStatus === "confirmed") {
+    results.push({
+      type: "creator_refund",
+      status: "confirmed",
+      skipped: true,
+      txSignature: campaign.creatorRefundTxSignature,
+    });
+    return;
+  }
+
+  if (
+    campaign.creatorRefundStatus === "sending" &&
+    campaign.creatorRefundTxSignature
+  ) {
+    const resolved = await resolveSendingTxStatus(campaign.creatorRefundTxSignature);
+    if (resolved === "confirmed") {
+      campaign.creatorRefundStatus = "confirmed";
+      await campaign.save();
+      results.push({
+        type: "creator_refund",
+        status: "confirmed",
+        skipped: true,
+        txSignature: campaign.creatorRefundTxSignature,
+        lamports: refundLamports,
+      });
+      return;
+    }
+    if (resolved === "pending") {
+      results.push({
+        type: "creator_refund",
+        status: "sending",
+        pending: true,
+        txSignature: campaign.creatorRefundTxSignature,
+        lamports: refundLamports,
+      });
+      return;
+    }
+  }
+
+  const claimed = await KolCampaign.findOneAndUpdate(
+    {
+      _id: campaign._id,
+      $or: [
+        { creatorRefundStatus: { $nin: ["confirmed", "sending", "skipped"] } },
+        {
+          creatorRefundStatus: "sending",
+          $or: [
+            { creatorRefundTxSignature: null },
+            { creatorRefundTxSignature: { $exists: false } },
+            { creatorRefundTxSignature: "" },
+          ],
+        },
+      ],
+    },
+    {
+      $set: {
+        creatorRefundStatus: "sending",
+        creatorRefundLamports: refundLamports,
+      },
+    },
+    { new: true },
+  );
+  if (!claimed) {
+    const fresh = await KolCampaign.findById(campaign._id);
+    if (fresh) {
+      campaign.creatorRefundStatus = fresh.creatorRefundStatus;
+      campaign.creatorRefundTxSignature = fresh.creatorRefundTxSignature;
+      campaign.creatorRefundLamports = fresh.creatorRefundLamports;
+    }
+    results.push({
+      type: "creator_refund",
+      status: campaign.creatorRefundStatus || "sending",
+      skipped: true,
+    });
+    return;
+  }
+  campaign.creatorRefundStatus = "sending";
+
+  try {
+    const refundSent = await sendPayout({
+      toWallet: campaign.projectWallet,
+      lamports: refundLamports,
+      onSigned: async (signature) => {
+        campaign.creatorRefundTxSignature = signature;
+        campaign.creatorRefundStatus = "sending";
+        await KolCampaign.updateOne(
+          { _id: campaign._id },
+          {
+            $set: {
+              creatorRefundTxSignature: signature,
+              creatorRefundStatus: "sending",
+              creatorRefundLamports: refundLamports,
+            },
+          },
+        );
+      },
+    });
+    campaign.creatorRefundTxSignature = refundSent.txSignature;
+    campaign.creatorRefundStatus = "confirmed";
+    await campaign.save();
+    results.push({
+      type: "creator_refund",
+      status: "confirmed",
+      txSignature: refundSent.txSignature,
+      lamports: refundLamports,
+      toWallet: campaign.projectWallet,
+    });
+  } catch (e) {
+    const sig =
+      (e && typeof e === "object" && "txSignature" in e
+        ? /** @type {{ txSignature?: string }} */ (e).txSignature
+        : null) || campaign.creatorRefundTxSignature;
+    if (isAmbiguousPayoutError(e) && sig) {
+      campaign.creatorRefundTxSignature = sig;
+      campaign.creatorRefundStatus = "sending";
+      await campaign.save();
+      results.push({
+        type: "creator_refund",
+        status: "sending",
+        pending: true,
+        txSignature: sig,
+        error: e instanceof Error ? e.message : String(e),
+        lamports: refundLamports,
+      });
+      console.warn(
+        `[kol] creator refund confirm ambiguous campaign=${campaign._id}:`,
+        e instanceof Error ? e.message : e,
+      );
+      return;
+    }
+    campaign.creatorRefundStatus = "failed";
+    await campaign.save();
+    results.push({
+      type: "creator_refund",
+      status: "failed",
+      error: e instanceof Error ? e.message : String(e),
+      lamports: refundLamports,
+    });
+    console.warn(
+      `[kol] creator refund failed campaign=${campaign._id}:`,
+      e instanceof Error ? e.message : e,
+    );
+  }
+}
+
+/**
  * @param {import("mongoose").Types.ObjectId | string} campaignId
  */
 export async function finalizeCampaign(campaignId) {
-  const campaign = await KolCampaign.findById(campaignId);
-  if (!campaign) {
-    return { success: false, error: "not_found" };
-  }
-
-  if (campaign.status === "completed") {
+  const claim = await claimCampaignForFinalize(campaignId);
+  if (claim.alreadyFinalized) {
     return { success: true, alreadyFinalized: true };
   }
-
-  if (campaign.status !== "active") {
-    return { success: false, error: "invalid_status" };
+  if (claim.finalizeInProgress) {
+    return { success: false, error: "finalize_in_progress" };
   }
+  if (!claim.success || !claim.campaign) {
+    return { success: false, error: claim.error || "invalid_status" };
+  }
+
+  const campaign = claim.campaign;
 
   await refreshCampaignMetrics(campaign._id, { force: true });
 
@@ -2623,41 +3024,7 @@ export async function finalizeCampaign(campaignId) {
 
   const results = [];
 
-  if (platformFeeLamports > 0 && campaign.platformFeeStatus !== "confirmed") {
-    try {
-      const feeSent = await sendPayout({
-        toWallet: getS3labsFeeWallet(),
-        lamports: platformFeeLamports,
-      });
-      campaign.platformFeeTxSignature = feeSent.txSignature;
-      campaign.platformFeeStatus = "confirmed";
-      await campaign.save();
-      results.push({
-        type: "platform_fee",
-        status: "confirmed",
-        txSignature: feeSent.txSignature,
-        lamports: platformFeeLamports,
-        toWallet: getS3labsFeeWallet(),
-      });
-    } catch (e) {
-      campaign.platformFeeStatus = "failed";
-      await campaign.save();
-      results.push({
-        type: "platform_fee",
-        status: "failed",
-        error: e instanceof Error ? e.message : String(e),
-        lamports: platformFeeLamports,
-      });
-    }
-  } else if (
-    campaign.platformFeeStatus === "confirmed" ||
-    platformFeeLamports <= 0
-  ) {
-    if (platformFeeLamports <= 0) {
-      campaign.platformFeeStatus = "confirmed";
-    }
-    results.push({ type: "platform_fee", status: "confirmed", skipped: true });
-  }
+  await sendPlatformFeeIdempotent(campaign, platformFeeLamports, results);
 
   const payoutMap = new Map(
     payoutRows.map((row) => [String(row.submissionId), row.lamports]),
@@ -2699,39 +3066,7 @@ export async function finalizeCampaign(campaignId) {
     });
   }
 
-  if (refundLamports > 0 && campaign.creatorRefundStatus !== "confirmed") {
-    campaign.creatorRefundLamports = refundLamports;
-    try {
-      const refundSent = await sendPayout({
-        toWallet: campaign.projectWallet,
-        lamports: refundLamports,
-      });
-      campaign.creatorRefundTxSignature = refundSent.txSignature;
-      campaign.creatorRefundStatus = "confirmed";
-      results.push({
-        type: "creator_refund",
-        status: "confirmed",
-        txSignature: refundSent.txSignature,
-        lamports: refundLamports,
-        toWallet: campaign.projectWallet,
-      });
-    } catch (e) {
-      campaign.creatorRefundStatus = "failed";
-      results.push({
-        type: "creator_refund",
-        status: "failed",
-        error: e instanceof Error ? e.message : String(e),
-        lamports: refundLamports,
-      });
-      console.warn(
-        `[kol] creator refund failed campaign=${campaign._id}:`,
-        e instanceof Error ? e.message : e,
-      );
-    }
-  } else if (refundLamports <= 0) {
-    campaign.creatorRefundLamports = 0;
-    campaign.creatorRefundStatus = "skipped";
-  }
+  await sendCreatorRefundIdempotent(campaign, refundLamports, results);
 
   campaign.status = "completed";
   campaign.finalizedAt = new Date();
@@ -2771,6 +3106,7 @@ export async function finalizeCampaign(campaignId) {
 
 /**
  * Core payout logic shared by manual claim and auto-distribute paths.
+ * Claim-before-send: only one caller may transition a payout into "sending".
  * @param {{
  *   campaign: import("../models/KolCampaign.js").default | Record<string, unknown>;
  *   submission: import("../models/KolSubmission.js").default | Record<string, unknown>;
@@ -2805,12 +3141,12 @@ async function distributeSubmissionReward({
     }
   }
 
-  const existingPayout = await KolPayout.findOne({
+  const existingConfirmed = await KolPayout.findOne({
     campaignId: campaign._id,
     submissionId: submission._id,
     status: "confirmed",
   });
-  if (existingPayout) {
+  if (existingConfirmed) {
     if (enforceCampaignGate) {
       const err = new Error("Reward already claimed for this campaign");
       err.code = "already_claimed";
@@ -2821,8 +3157,67 @@ async function distributeSubmissionReward({
       reason: "already_claimed",
       submissionId: String(submission._id),
       source,
-      payout: serializePayout(existingPayout),
+      payout: serializePayout(existingConfirmed),
     };
+  }
+
+  // In-flight send with signature — resolve on-chain, never re-send
+  const existingSending = await KolPayout.findOne({
+    campaignId: campaign._id,
+    submissionId: submission._id,
+    status: "sending",
+  });
+  if (existingSending) {
+    if (existingSending.txSignature) {
+      const resolved = await resolveSendingTxStatus(existingSending.txSignature);
+      if (resolved === "confirmed") {
+        existingSending.status = "confirmed";
+        existingSending.error = null;
+        await existingSending.save();
+        await KolSubmission.updateOne(
+          { _id: submission._id },
+          { $set: { claimStatus: "claimed", kolWallet } },
+        );
+        await KolPayout.updateMany(
+          {
+            kolWallet,
+            status: "pending_minimum",
+            _id: { $ne: existingSending._id },
+          },
+          {
+            $set: {
+              status: "confirmed",
+              txSignature: existingSending.txSignature,
+              error: null,
+            },
+          },
+        );
+        await clearPendingPayoutBalance(kolWallet);
+        return {
+          status: "confirmed",
+          txSignature: existingSending.txSignature,
+          lamports: existingSending.lamports,
+          submissionId: String(submission._id),
+          source,
+          payout: serializePayout(existingSending),
+          resolvedFromSending: true,
+        };
+      }
+      // Still pending / unknown — do not re-send
+      return {
+        status: "sending",
+        pending: true,
+        txSignature: existingSending.txSignature,
+        submissionId: String(submission._id),
+        source,
+        payout: serializePayout(existingSending),
+      };
+    }
+    // sending without signature — release slot so claim-before-send can retry
+    await KolPayout.updateOne(
+      { _id: existingSending._id, status: "sending", txSignature: null },
+      { $set: { status: "failed", error: "sending_without_signature_reclaim" } },
+    );
   }
 
   const freshSubmission = await KolSubmission.findById(submission._id);
@@ -2845,24 +3240,57 @@ async function distributeSubmissionReward({
   }
 
   const earnedLamports = freshSubmission.earnedLamports ?? 0;
-  const previousPendingLamports =
-    await getPendingPayoutBalanceLamports(kolWallet);
-  const totalSendLamports = previousPendingLamports + earnedLamports;
 
-  let payoutDoc = await KolPayout.findOne({
-    campaignId: campaign._id,
-    submissionId: freshSubmission._id,
-  });
+  // Atomically claim the send slot (pending / failed / pending_minimum / missing → sending)
+  let payoutDoc;
+  try {
+    payoutDoc = await KolPayout.findOneAndUpdate(
+      {
+        campaignId: campaign._id,
+        submissionId: freshSubmission._id,
+        status: { $nin: ["sending", "confirmed"] },
+      },
+      {
+        $set: {
+          kolWallet,
+          lamports: earnedLamports,
+          status: "sending",
+          error: null,
+        },
+        $setOnInsert: {
+          campaignId: campaign._id,
+          submissionId: freshSubmission._id,
+        },
+      },
+      { upsert: true, new: true },
+    );
+  } catch (e) {
+    // E11000: another worker inserted / claimed the unique key
+    const code = e && typeof e === "object" && "code" in e ? e.code : null;
+    if (code === 11000) {
+      return {
+        status: "skipped",
+        reason: "send_in_progress",
+        submissionId: String(freshSubmission._id),
+        source,
+      };
+    }
+    throw e;
+  }
 
   if (!payoutDoc) {
-    payoutDoc = await KolPayout.create({
-      campaignId: campaign._id,
-      submissionId: freshSubmission._id,
-      kolWallet,
-      lamports: earnedLamports,
-      status: "pending",
-    });
+    return {
+      status: "skipped",
+      reason: "send_in_progress",
+      submissionId: String(freshSubmission._id),
+      source,
+    };
   }
+
+  // Claim pending rollover atomically so concurrent sends don't both include it
+  const previousPendingLamports =
+    await claimPendingPayoutBalanceLamports(kolWallet);
+  const totalSendLamports = previousPendingLamports + earnedLamports;
 
   if (totalSendLamports < MIN_KOL_PAYOUT_LAMPORTS) {
     payoutDoc.status = "pending_minimum";
@@ -2889,6 +3317,14 @@ async function distributeSubmissionReward({
     const sent = await sendPayout({
       toWallet: kolWallet,
       lamports: totalSendLamports,
+      onSigned: async (signature) => {
+        payoutDoc.txSignature = signature;
+        payoutDoc.status = "sending";
+        await KolPayout.updateOne(
+          { _id: payoutDoc._id },
+          { $set: { txSignature: signature, status: "sending" } },
+        );
+      },
     });
 
     payoutDoc.txSignature = sent.txSignature;
@@ -2928,10 +3364,40 @@ async function distributeSubmissionReward({
       source,
     };
   } catch (e) {
+    const sig =
+      (e && typeof e === "object" && "txSignature" in e
+        ? /** @type {{ txSignature?: string }} */ (e).txSignature
+        : null) || payoutDoc.txSignature;
+
+    if (isAmbiguousPayoutError(e) && sig) {
+      // Do NOT mark failed or restore pending — tx may land; next sweep resolves via chain check
+      payoutDoc.txSignature = sig;
+      payoutDoc.status = "sending";
+      payoutDoc.error = e instanceof Error ? e.message : String(e);
+      await payoutDoc.save();
+      if (enforceCampaignGate) {
+        const err = e instanceof Error ? e : new Error(String(e));
+        /** @type {any} */ (err).code = "payout_confirm_pending";
+        /** @type {any} */ (err).txSignature = sig;
+        throw err;
+      }
+      return {
+        status: "sending",
+        pending: true,
+        txSignature: sig,
+        error: e instanceof Error ? e.message : String(e),
+        submissionId: String(freshSubmission._id),
+        source,
+      };
+    }
+
+    // Definitive failure — release claim slot and restore pending rollover
     payoutDoc.status = "failed";
     payoutDoc.error = e instanceof Error ? e.message : String(e);
     await payoutDoc.save();
-    await setPendingPayoutBalanceLamports(kolWallet, totalSendLamports);
+    if (previousPendingLamports > 0 || earnedLamports > 0) {
+      await setPendingPayoutBalanceLamports(kolWallet, totalSendLamports);
+    }
     if (enforceCampaignGate) {
       throw e;
     }
@@ -3295,7 +3761,7 @@ export async function getWalletEarnings(wallet) {
         payout: null,
       });
       seenClaimableSubmissionIds.add(String(s._id));
-    } else if (campaign.status === "active") {
+    } else if (campaign.status === "active" || campaign.status === "finalizing") {
       totalProjectedLamports += s.projectedLamports ?? 0;
       active.push({
         submission: serializeSubmission(s),
@@ -3402,7 +3868,7 @@ export async function getWalletEarnings(wallet) {
 
 /**
  * Process all active campaigns — refresh engagement metrics (6h cadence) and finalize ended ones.
- * Manual submissions only; batched getTweetsByIds keeps X API cost low.
+ * Also reclaims campaigns stuck in `finalizing`. Manual submissions only.
  */
 export async function runKolDailyTick() {
   if (!isMongooseConnected()) {
@@ -3410,7 +3876,15 @@ export async function runKolDailyTick() {
   }
 
   const now = new Date();
+  const stuckBefore = new Date(now.getTime() - FINALIZE_STUCK_MS);
   const activeCampaigns = await KolCampaign.find({ status: "active" }).lean();
+  const stuckFinalizing = await KolCampaign.find({
+    status: "finalizing",
+    $or: [
+      { finalizeStartedAt: { $lte: stuckBefore } },
+      { finalizeStartedAt: null },
+    ],
+  }).lean();
   const refreshed = [];
   const finalized = [];
 
@@ -3429,6 +3903,22 @@ export async function runKolDailyTick() {
     } catch (e) {
       console.warn(
         `[kol] daily tick failed campaign=${campaign._id}:`,
+        e instanceof Error ? e.message : e,
+      );
+    }
+  }
+
+  for (const campaign of stuckFinalizing) {
+    try {
+      const result = await finalizeCampaign(campaign._id);
+      finalized.push({
+        campaignId: String(campaign._id),
+        reclaimed: true,
+        ...result,
+      });
+    } catch (e) {
+      console.warn(
+        `[kol] stuck finalize reclaim failed campaign=${campaign._id}:`,
         e instanceof Error ? e.message : e,
       );
     }
@@ -3807,7 +4297,7 @@ export async function getMarketplaceStats() {
       sourceAuthorHandle: { $nin: [null, ""] },
     }),
     KolCampaign.aggregate([
-      { $match: { status: { $in: ["active", "completed"] } } },
+      { $match: { status: { $in: ["active", "finalizing", "completed"] } } },
       {
         $group: {
           _id: null,
@@ -4186,7 +4676,10 @@ export async function getProfile(username) {
 
   // Keep unfunded drafts off public profiles — payment is creator-only.
   const campaigns = campaignsRaw.filter(
-    (c) => c.status === "active" || c.status === "completed",
+    (c) =>
+      c.status === "active" ||
+      c.status === "finalizing" ||
+      c.status === "completed",
   );
 
   if (campaigns.length === 0 && submissions.length === 0) {
@@ -4215,11 +4708,21 @@ export async function getProfile(username) {
   const payoutMap = new Map(payouts.map((p) => [String(p.submissionId), p]));
 
   const projectFundedLamports = campaigns
-    .filter((c) => c.status === "active" || c.status === "completed")
+    .filter(
+      (c) =>
+        c.status === "active" ||
+        c.status === "finalizing" ||
+        c.status === "completed",
+    )
     .reduce((sum, c) => sum + (c.rewardLamports ?? 0), 0);
 
   const projectKolPoolLamports = campaigns
-    .filter((c) => c.status === "active" || c.status === "completed")
+    .filter(
+      (c) =>
+        c.status === "active" ||
+        c.status === "finalizing" ||
+        c.status === "completed",
+    )
     .reduce((sum, c) => sum + getCampaignKolPoolLamports(c), 0);
 
   let kolEngagement = {

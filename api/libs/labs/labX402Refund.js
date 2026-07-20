@@ -7,7 +7,6 @@
 import {
   PublicKey,
   Transaction,
-  sendAndConfirmTransaction,
 } from '@solana/web3.js';
 import {
   getAssociatedTokenAddress,
@@ -36,6 +35,7 @@ import {
   isAlgorandAddressOptedInUsdc,
 } from './labWalletService.js';
 import { pickSolanaConnectionForReads, isSolanaRpcRetryableError } from '../solanaServerRpc.js';
+import { confirmSolanaTransaction, isSolanaTxConfirmedOnAnyRpc } from '../solanaConfirm.js';
 import {
   getMaxLabX402PriceUsd,
   getMinLabX402PriceUsd,
@@ -98,6 +98,59 @@ function isRetryableRefundError(e) {
       msg,
     )
   );
+}
+
+/**
+ * Extract a submitted tx hash/signature from an error if present.
+ * @param {unknown} e
+ * @returns {string | null}
+ */
+function extractSubmittedTxId(e) {
+  if (!e || typeof e !== 'object') return null;
+  const err = /** @type {Record<string, unknown>} */ (e);
+  for (const key of ['txSignature', 'signature', 'hash', 'transactionHash', 'txid']) {
+    const v = err[key];
+    if (typeof v === 'string' && v.trim()) return v.trim();
+  }
+  const msg = String(err.message || '');
+  const m = msg.match(/\b([1-9A-HJ-NP-Za-km-z]{64,100})\b/) || msg.match(/\b(0x[0-9a-fA-F]{64})\b/);
+  return m ? m[1] : null;
+}
+
+/**
+ * Before retrying a refund, check whether a previously submitted tx already landed.
+ * @param {string | null | undefined} txId
+ * @param {'solana' | 'base' | 'celo' | 'algorand'} chain
+ * @param {object} [clients]
+ * @returns {Promise<boolean>}
+ */
+async function isRefundTxAlreadyConfirmed(txId, chain, clients = {}) {
+  const id = String(txId || '').trim();
+  if (!id) return false;
+  try {
+    if (chain === 'solana') {
+      return await isSolanaTxConfirmedOnAnyRpc(id);
+    }
+    if (chain === 'base' && clients.publicClient) {
+      const receipt = await clients.publicClient.getTransactionReceipt({
+        hash: /** @type {`0x${string}`} */ (id),
+      });
+      return Boolean(receipt && receipt.status === 'success');
+    }
+    if (chain === 'celo' && clients.publicClient) {
+      const receipt = await clients.publicClient.getTransactionReceipt({
+        hash: /** @type {`0x${string}`} */ (id),
+      });
+      return Boolean(receipt && receipt.status === 'success');
+    }
+    if (chain === 'algorand' && clients.algod) {
+      const info = await clients.algod.pendingTransactionInformation(id).do();
+      return Boolean(info?.confirmedRound || info?.['confirmed-round']);
+    }
+  } catch {
+    // unknown — do not assume confirmed
+  }
+  return false;
 }
 
 /** Refund only when payer USDC cannot cover the most expensive endpoint. */
@@ -198,7 +251,12 @@ async function refundUsdcToPayerSolana(payerAddress, amountUsd) {
   const destAta = await getAssociatedTokenAddress(USDC_MAINNET, payerPk);
 
   let lastErr;
+  /** @type {string | null} */
+  let submittedSig = null;
   for (let attempt = 1; attempt <= REFUND_MAX_ATTEMPTS; attempt++) {
+    if (submittedSig && (await isRefundTxAlreadyConfirmed(submittedSig, 'solana'))) {
+      return { signature: submittedSig, amountUsdc: amount };
+    }
     try {
       const { connection } = await pickSolanaConnectionForReads(payToPk);
 
@@ -217,16 +275,37 @@ async function refundUsdcToPayerSolana(payerAddress, amountUsd) {
       tx.recentBlockhash = blockhash;
       tx.lastValidBlockHeight = lastValidBlockHeight;
       tx.feePayer = payToPk;
+      tx.sign(payToKeypair);
 
-      const signature = await sendAndConfirmTransaction(connection, tx, [payToKeypair], {
-        commitment: 'confirmed',
+      const signature = await connection.sendRawTransaction(tx.serialize(), {
+        skipPreflight: false,
+        preflightCommitment: 'confirmed',
         maxRetries: 3,
       });
+      submittedSig = signature;
 
+      await confirmSolanaTransaction(connection, signature, { lastValidBlockHeight });
       return { signature, amountUsdc: amount };
     } catch (e) {
       lastErr = e;
-      if (attempt < REFUND_MAX_ATTEMPTS && isRetryableRefundError(e)) {
+      const fromErr = extractSubmittedTxId(e);
+      if (fromErr) submittedSig = fromErr;
+      if (submittedSig && (await isRefundTxAlreadyConfirmed(submittedSig, 'solana'))) {
+        return { signature: submittedSig, amountUsdc: amount };
+      }
+      // Ambiguous confirm — do NOT re-broadcast a new transfer
+      const msg = e?.message || String(e);
+      if (
+        submittedSig &&
+        (/tx_confirm_timeout|tx_blockhash_expired|not confirmed|timeout/i.test(msg) ||
+          e?.ambiguous)
+      ) {
+        console.warn(
+          `[labX402Refund] Solana refund confirm ambiguous; not retrying send. sig=${submittedSig}`,
+        );
+        throw e;
+      }
+      if (attempt < REFUND_MAX_ATTEMPTS && isRetryableRefundError(e) && !submittedSig) {
         console.warn(
           `[labX402Refund] Solana refund attempt ${attempt}/${REFUND_MAX_ATTEMPTS} failed, retrying:`,
           e?.message || e,
@@ -290,7 +369,15 @@ async function refundUsdcToPayerBase(payerAddress, amountUsd) {
   }
 
   let lastErr;
+  /** @type {string | null} */
+  let submittedHash = null;
   for (let attempt = 1; attempt <= REFUND_MAX_ATTEMPTS; attempt++) {
+    if (
+      submittedHash &&
+      (await isRefundTxAlreadyConfirmed(submittedHash, 'base', { publicClient }))
+    ) {
+      return { signature: submittedHash, amountUsdc: amount };
+    }
     try {
       const hash = await walletClient.writeContract({
         address: /** @type {`0x${string}`} */ (BASE_USDC),
@@ -298,10 +385,25 @@ async function refundUsdcToPayerBase(payerAddress, amountUsd) {
         functionName: 'transfer',
         args: [/** @type {`0x${string}`} */ (payer), amountRaw],
       });
+      submittedHash = hash;
       await publicClient.waitForTransactionReceipt({ hash });
       return { signature: hash, amountUsdc: amount };
     } catch (e) {
       lastErr = e;
+      const fromErr = extractSubmittedTxId(e);
+      if (fromErr) submittedHash = fromErr;
+      if (
+        submittedHash &&
+        (await isRefundTxAlreadyConfirmed(submittedHash, 'base', { publicClient }))
+      ) {
+        return { signature: submittedHash, amountUsdc: amount };
+      }
+      if (submittedHash) {
+        console.warn(
+          `[labX402Refund] Base refund confirm ambiguous; not retrying send. hash=${submittedHash}`,
+        );
+        throw e;
+      }
       if (attempt < REFUND_MAX_ATTEMPTS && isRetryableRefundError(e)) {
         console.warn(
           `[labX402Refund] Base refund attempt ${attempt}/${REFUND_MAX_ATTEMPTS} failed, retrying:`,
@@ -370,16 +472,39 @@ async function refundUsdcToPayerCelo(payerAddress, amountUsd) {
   }
 
   let lastErr;
+  /** @type {string | null} */
+  let submittedHash = null;
   for (let attempt = 1; attempt <= REFUND_MAX_ATTEMPTS; attempt++) {
+    if (
+      submittedHash &&
+      (await isRefundTxAlreadyConfirmed(submittedHash, 'celo', { publicClient: celoClient }))
+    ) {
+      return { signature: submittedHash, amountUsdc: amount };
+    }
     try {
       const hash = await sendTaggedCeloUsdcTransfer(
         payToAccount,
         /** @type {`0x${string}`} */ (payer),
         amountRaw,
       );
+      submittedHash = hash;
       return { signature: hash, amountUsdc: amount };
     } catch (e) {
       lastErr = e;
+      const fromErr = extractSubmittedTxId(e);
+      if (fromErr) submittedHash = fromErr;
+      if (
+        submittedHash &&
+        (await isRefundTxAlreadyConfirmed(submittedHash, 'celo', { publicClient: celoClient }))
+      ) {
+        return { signature: submittedHash, amountUsdc: amount };
+      }
+      if (submittedHash) {
+        console.warn(
+          `[labX402Refund] Celo refund confirm ambiguous; not retrying send. hash=${submittedHash}`,
+        );
+        throw e;
+      }
       if (attempt < REFUND_MAX_ATTEMPTS && isRetryableRefundError(e)) {
         console.warn(
           `[labX402Refund] Celo refund attempt ${attempt}/${REFUND_MAX_ATTEMPTS} failed, retrying:`,
@@ -438,7 +563,15 @@ async function refundUsdcToPayerAlgorand(payerAddress, amountUsd) {
   const amountMicro = Math.round(amount * 1e6);
 
   let lastErr;
+  /** @type {string | null} */
+  let submittedTxid = null;
   for (let attempt = 1; attempt <= REFUND_MAX_ATTEMPTS; attempt++) {
+    if (
+      submittedTxid &&
+      (await isRefundTxAlreadyConfirmed(submittedTxid, 'algorand', { algod: client }))
+    ) {
+      return { signature: submittedTxid, amountUsdc: amount };
+    }
     try {
       const sp = await client.getTransactionParams().do();
       const txn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
@@ -450,10 +583,25 @@ async function refundUsdcToPayerAlgorand(payerAddress, amountUsd) {
       });
       const signed = txn.signTxn(payToAccount.sk);
       const { txid } = await client.sendRawTransaction(signed).do();
+      submittedTxid = txid;
       await algosdk.waitForConfirmation(client, txid, 8);
       return { signature: txid, amountUsdc: amount };
     } catch (e) {
       lastErr = e;
+      const fromErr = extractSubmittedTxId(e);
+      if (fromErr) submittedTxid = fromErr;
+      if (
+        submittedTxid &&
+        (await isRefundTxAlreadyConfirmed(submittedTxid, 'algorand', { algod: client }))
+      ) {
+        return { signature: submittedTxid, amountUsdc: amount };
+      }
+      if (submittedTxid) {
+        console.warn(
+          `[labX402Refund] Algorand refund confirm ambiguous; not retrying send. txid=${submittedTxid}`,
+        );
+        throw e;
+      }
       if (attempt < REFUND_MAX_ATTEMPTS && isRetryableRefundError(e)) {
         console.warn(
           `[labX402Refund] Algorand refund attempt ${attempt}/${REFUND_MAX_ATTEMPTS} failed, retrying:`,

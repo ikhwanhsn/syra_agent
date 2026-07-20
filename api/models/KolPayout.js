@@ -19,7 +19,7 @@ const kolPayoutSchema = new mongoose.Schema(
     txSignature: { type: String, default: null },
     status: {
       type: String,
-      enum: ["pending", "pending_minimum", "confirmed", "failed"],
+      enum: ["pending", "pending_minimum", "sending", "confirmed", "failed"],
       default: "pending",
       index: true,
     },

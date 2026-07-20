@@ -74,6 +74,8 @@ const ERC20_ABI = [
 ];
 
 const DISTRIBUTE_LOCK_MS = 30_000;
+/** DB lock TTL — covers a full distribute run across instances. */
+const DISTRIBUTE_DB_LOCK_MS = 120_000;
 /** ~5000 lamports base fee + cushion per Solana tx. */
 const SOL_FEE_LAMPORTS_PER_TX = 10_000n;
 /** ATA rent-exempt minimum (~2.04M lamports) for reserve planning. */
@@ -114,6 +116,68 @@ async function markDistributed(chain, at = new Date()) {
       $setOnInsert: { singletonKey: settingsKeyForChain(chain) },
     },
     { upsert: true },
+  );
+}
+
+/**
+ * Claim a cross-process distribute lock via LabX402Settings.
+ * @param {'solana' | 'base' | 'celo' | 'algorand'} chain
+ * @returns {Promise<boolean>}
+ */
+async function claimDistributeDbLock(chain) {
+  const now = new Date();
+  const lockUntil = new Date(now.getTime() + DISTRIBUTE_DB_LOCK_MS);
+  const owner = `pid:${process.pid}`;
+  try {
+    const claimed = await LabX402Settings.findOneAndUpdate(
+      {
+        singletonKey: settingsKeyForChain(chain),
+        $or: [
+          { depositDistributeLockUntil: { $exists: false } },
+          { depositDistributeLockUntil: null },
+          { depositDistributeLockUntil: { $lte: now } },
+        ],
+      },
+      {
+        $set: {
+          depositDistributeLockUntil: lockUntil,
+          depositDistributeLockOwner: owner,
+        },
+        $setOnInsert: { singletonKey: settingsKeyForChain(chain) },
+      },
+      { upsert: true, new: true },
+    );
+    return Boolean(
+      claimed &&
+        claimed.depositDistributeLockOwner === owner &&
+        claimed.depositDistributeLockUntil &&
+        new Date(claimed.depositDistributeLockUntil).getTime() > now.getTime(),
+    );
+  } catch (e) {
+    const code = e && typeof e === 'object' && 'code' in e ? e.code : null;
+    if (code === 11000) {
+      return false;
+    }
+    throw e;
+  }
+}
+
+/**
+ * @param {'solana' | 'base' | 'celo' | 'algorand'} chain
+ */
+async function releaseDistributeDbLock(chain) {
+  const owner = `pid:${process.pid}`;
+  await LabX402Settings.updateOne(
+    {
+      singletonKey: settingsKeyForChain(chain),
+      depositDistributeLockOwner: owner,
+    },
+    {
+      $set: {
+        depositDistributeLockUntil: null,
+        depositDistributeLockOwner: null,
+      },
+    },
   );
 }
 
@@ -165,6 +229,11 @@ export async function distributeLabDeposit(chain = 'base', opts = {}) {
     return { skipped: true, reason: 'cooldown', transfers: [] };
   }
 
+  const locked = await claimDistributeDbLock(c);
+  if (!locked) {
+    return { skipped: true, reason: 'db_lock_held', transfers: [] };
+  }
+
   runningByChain.add(c);
   lastRunAtByChain.set(c, Date.now());
 
@@ -191,6 +260,12 @@ export async function distributeLabDeposit(chain = 'base', opts = {}) {
     return await distributeBaseDeposit(depositDoc, recipients, settings);
   } finally {
     runningByChain.delete(c);
+    await releaseDistributeDbLock(c).catch((e) => {
+      console.warn(
+        `[labDeposit] release lock failed chain=${c}:`,
+        e instanceof Error ? e.message : e,
+      );
+    });
   }
 }
 
