@@ -94,7 +94,7 @@ export function registerSyraTools(server: McpServer): void {
   // Free facade + AgentScore tools
   server.tool(
     "syra_pillars",
-    "Discover Syra five pillars: Earn, Treasury, Invest, Spend, Grow. Free GET /pillars.",
+    "Discover Syra platform modules (Earn, Treasury, Invest, Spend, Grow). Live GTM is Spend/x402 pay-per-call; others are roadmap. Free GET /pillars.",
     {},
     async () => {
       const result = await callFreeRoute("/pillars");

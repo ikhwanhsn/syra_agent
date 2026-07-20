@@ -62,7 +62,7 @@ const changelogEntries: { period: string; items: string[] }[] = [
 /** Items already shipped / finished in the system — update as you ship */
 const completed = [
   "Syra token ($SYRA) launch on Solana (Pump.fun)",
-  "Five-pillar machine money stack — Earn, Treasury, Invest, Spend (x402), Grow",
+  "x402 pay-per-call Spend rail — MCP, SDK, marketplace (Earn / Treasury / Invest / Grow as platform modules)",
   "Documentation site and API reference (docs.syraa.fun)",
   "x402 API standard and payment flow (incl. MPP and Tempo where applicable)",
   "API Marketplace at syraa.fun/marketplace — Core vs Partners catalog, detail pages, SDK/MCP integrate",
@@ -192,7 +192,7 @@ export default function Changelog() {
       <DocSection
         id="roadmap"
         title="Roadmap"
-        description="Machine money for agents on Solana — what we've shipped and what's next across Earn, Treasury, Invest, Spend, and Grow."
+        description="Pay-per-call x402 for agents — what we've shipped and what's next. Spend is live GTM; Earn, Treasury, Invest, and Grow are platform roadmap."
       >
         <div className="not-prose space-y-0">
           {roadmapByQuarter.map((q) => (

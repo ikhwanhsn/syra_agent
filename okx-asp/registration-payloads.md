@@ -21,7 +21,7 @@ When prompted, paste each block.
 | Field | Paste this |
 |-------|------------|
 | **Name** | Syra |
-| **Description** | Machine money for agents on Solana — pay-per-call crypto intelligence APIs (x402), agent wallets, and autonomous research. Earn, Treasury, Invest, Spend, Grow. |
+| **Description** | Pay-per-call crypto intelligence for agents on Solana — x402 APIs, MCP tools, and typed SDK. |
 
 **Avatar:** attach `d:\business\syra-monorepo\web\public\images\logo.jpg`
 

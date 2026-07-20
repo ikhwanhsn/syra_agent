@@ -38,7 +38,7 @@ async function main() {
     {
       name: "syra-mcp-server",
       version,
-      description: `Syra machine money MCP — profile=${summary.profile}, tools=${summary.registered}/${summary.total}`,
+      description: `Syra pay-per-call MCP — profile=${summary.profile}, tools=${summary.registered}/${summary.total}`,
     },
     { capabilities: { tools: {} } },
   );

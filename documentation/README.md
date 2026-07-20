@@ -4,14 +4,14 @@
 
 # **Syra Documentation**
 
-### Machine money for agents — docs, API reference, and guides
+### Pay-per-call crypto APIs for agents — x402 docs, API reference, and guides
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/ikhwanhsn/syra_agent/blob/main/LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-docs.syraa.fun-0ea5e9)](https://docs.syraa.fun)
 [![Docs Site](https://img.shields.io/badge/Docs-docs.syraa.fun-26a5e4)](https://docs.syraa.fun)
 [![GitHub](https://img.shields.io/badge/GitHub-ikhwanhsn%2Fsyra__agent-181717?logo=github)](https://github.com/ikhwanhsn/syra_agent)
 
-**[Documentation](https://docs.syraa.fun)** · **[API Reference](https://docs.syraa.fun)** · **[Web app](https://syraa.fun)** · **[Marketplace](https://syraa.fun/marketplace)** · **[Telegram Bot](https://t.me/syra_trading_bot)** · **[X (Twitter)](https://x.com/syra_agent)**
+**[Documentation](https://docs.syraa.fun)** · **[API Reference](https://docs.syraa.fun)** · **[Web app](https://syraa.fun)** · **[Marketplace](https://syraa.fun/marketplace)** · **[MCP](https://docs.syraa.fun/docs/build/mcp)** · **[X (Twitter)](https://x.com/syra_agent)**
 
 </div>
 
@@ -21,7 +21,7 @@
 
 The **documentation** package is the **Syra documentation site** built with **Vite**, **React**, and **React Router**. It provides:
 
-- **Welcome & overview** — machine money positioning, five pillars, and where Syra runs.
+- **Welcome & overview** — pay-per-call x402 + MCP/SDK positioning, platform roadmap modules, and where Syra runs.
 - **API reference** — x402 (and MPP discovery) endpoints, payment flow, preview routes.
 - **Syra Agent** — getting started, features, trading guidance, supported tokens, catalog, system prompt.
 - **x402 Agent** — autonomous agent on x402scan.

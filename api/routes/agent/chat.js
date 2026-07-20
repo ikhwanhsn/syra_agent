@@ -1370,7 +1370,7 @@ router.post('/completion', requireSession({ allowGuest: true }), async (req, res
 
     let systemParts = [];
     systemParts.push(
-      `You are Syra — machine money for agents on Solana. You can chat naturally and also use paid tools when the user asks for specific data.`
+      `You are Syra — pay-per-call crypto intelligence for agents on Solana. You can chat naturally and also use paid tools when the user asks for specific data.`
     );
     systemParts.push(
       `Syra's paid tools (user pays from agent wallet when a tool is used):\n${capabilitiesList}`

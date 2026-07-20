@@ -3,7 +3,6 @@ import {
   Bot,
   Coins,
   Cpu,
-  MessageSquare,
   Shield,
   Sparkles,
   Terminal,
@@ -12,16 +11,17 @@ import {
   Zap,
   Sprout,
 } from "lucide-react";
+import { SYRA_AGENT_DESCRIPTION } from "@/lib/syraBranding";
 
-export const SYRA_TAGLINE = "Machine Money for Agents";
+export { SYRA_TAGLINE } from "@/lib/syraBranding";
+
 export const SYRA_MISSION =
-  "Syra enables autonomous agents to earn, allocate treasury, invest, spend via x402, and grow yield on Solana — wealth as the narrative, payments as one feature.";
+  "Syra lets autonomous agents pay for crypto intelligence and tools on every call — x402 micropayments, MCP, and a typed SDK on Solana.";
 
 export const SYRA_VISION =
-  "Our vision is an economy where millions of AI agents become productive economic actors powered by Solana — reasoning, earning, managing capital, and coordinating value in real time.";
+  "Our vision is an economy where millions of AI agents pay for tools, settle in USDC, and coordinate value without human billing ops.";
 
-export const SYRA_HIGHLIGHT =
-  "Syra is machine money for agents — Earn, Treasury, Invest, Spend (x402), and Grow. x402 becomes one module; wealth becomes the narrative.";
+export const SYRA_HIGHLIGHT = SYRA_AGENT_DESCRIPTION;
 
 export interface SyraStat {
   label: string;
@@ -38,18 +38,18 @@ export const SYRA_STATS: SyraStat[] = [
 ];
 
 export const SYRA_PROBLEM = {
-  title: "Agents can think — but they cannot own capital",
+  title: "Agents can think — but they cannot pay for tools",
   body: [
-    "AI agents are becoming capable of research, automation, and complex workflows — yet most still cannot autonomously earn, manage, invest, or spend onchain without a human in the loop for treasury and coordination.",
-    "The missing layer is native financial infrastructure: ownership of capital, treasury management, and machine-to-machine economic coordination at scale.",
+    "AI agents run research and automation workflows — yet most still need humans to sign up for API keys, manage vendor accounts, and approve every paid request.",
+    "The missing layer is machine-native payments: discover a route, settle USDC on HTTP 402, and call again without human billing ops.",
   ],
 };
 
 export const SYRA_SOLUTION = {
-  title: "Machine money on Solana",
+  title: "Pay-per-call crypto APIs on Solana",
   body: [
-    "Syra is machine money for autonomous agents — revenue generation, asset custody patterns, DeFi participation, rewards distribution, and coordinated value transfer.",
-    "Agents use Solana's speed and composability to hold assets, execute strategies, and interact economically in real time — not as demos, but as production infrastructure.",
+    "Syra is pay-per-call crypto intelligence for agents — x402 micropayments, MCP tools, and a typed SDK so agents fund tools autonomously.",
+    "One wallet pays many routes: news, sentiment, signals, smart money, and execution — no per-vendor API keys.",
   ],
 };
 
@@ -62,25 +62,25 @@ export const SYRA_WHY_SOLANA = {
 };
 
 export const SYRA_DIFFERENTIATION = {
-  headline: "We build the financial layer — not another chatbot",
-  body: "Most AI-agent projects optimize for intelligence, workflows, or user interfaces. Syra focuses on economic autonomy: the long-term winner in the agent market will be the stack that lets agents generate, manage, and deploy capital efficiently — not the agent with the slickest UI.",
+  headline: "We build pay-per-call rails — not another chatbot",
+  body: "Most AI-agent projects optimize for chat UIs or orchestration. Syra focuses on pay-per-call crypto intelligence: agents discover paid routes, settle USDC via x402, and call tools without human billing ops.",
 };
 
 export const SYRA_PRODUCT_FLOW = [
   {
     step: "01",
-    title: "Earn",
-    description: "Agents capture revenue from work they perform — onchain paths built for machines.",
+    title: "Install",
+    description: "Add MCP in Cursor/Claude or npm i @syra-ai/sdk — one payer wallet for many tools.",
   },
   {
     step: "02",
-    title: "Manage",
-    description: "Treasury balances, allocations, and auditable movement of agent-held assets.",
+    title: "Pay",
+    description: "HTTP 402 returns payment terms; the client settles USDC via x402 and retries.",
   },
   {
     step: "03",
-    title: "Deploy",
-    description: "DeFi, rewards, and coordinated settlement as independent economic actors.",
+    title: "Call",
+    description: "News, sentiment, signals, smart money, and execution — structured JSON agents can act on.",
   },
 ] as const;
 
@@ -90,7 +90,13 @@ export interface SyraPillar {
   description: string;
 }
 
+/** Platform roadmap modules (GET /pillars) — not the public GTM hero. */
 export const SYRA_PILLARS: SyraPillar[] = [
+  {
+    icon: Zap,
+    title: "Spend (live)",
+    description: "x402 pay-per-call APIs — the live growth wedge for agents and builders.",
+  },
   {
     icon: Coins,
     title: "Earn",
@@ -106,11 +112,6 @@ export const SYRA_PILLARS: SyraPillar[] = [
     title: "Invest",
     description:
       "Deploy capital onchain via Marinade, Jito, Kamino, marginfi, and Meteora — plus Jupiter swaps.",
-  },
-  {
-    icon: Zap,
-    title: "Spend",
-    description: "x402 native payments — one module for pay-per-call machine money (not the whole story).",
   },
   {
     icon: Sprout,
@@ -131,28 +132,29 @@ export interface SyraCapability {
 
 export const SYRA_CAPABILITIES: SyraCapability[] = [
   {
-    title: "Earn onchain",
-    description: "Revenue paths and integrations so agents can capture value from work they perform.",
+    title: "Pay per call",
+    description: "x402 USDC settlement so agents discover and fund tools without vendor API keys.",
   },
   {
-    title: "Manage treasuries",
-    description: "Balances, allocations, and policy-aware movement of agent-held assets.",
+    title: "MCP in the IDE",
+    description: "Curated crypto tools in Cursor and Claude — news, signals, research in chat.",
   },
   {
-    title: "Participate in DeFi",
-    description: "Liquidity, yield, and protocol surfaces agents can use with clear risk context.",
+    title: "Typed SDK",
+    description: "createSyraPaidClient handles 402 → pay → retry for app and agent code.",
   },
   {
-    title: "Distribute rewards",
-    description: "Value flows back to operators, stakeholders, and communities agents serve.",
+    title: "Agent discovery",
+    description:
+      "Machine indexes at api.syraa.fun (/.well-known/x402, /agent/tools, OpenAPI). Optional human preview at syraa.fun/marketplace.",
   },
   {
-    title: "Pay per capability",
-    description: "x402 and composable HTTP payments so agents discover and fund tools autonomously.",
+    title: "Agent wallets",
+    description: "Optional spend caps and policy so agents pay without babysitting every request.",
   },
   {
-    title: "Coordinate at scale",
-    description: "Machine-to-machine settlement and handoffs without human bottlenecks on every tx.",
+    title: "Platform roadmap",
+    description: "Earn, Treasury, Invest, Grow modules ship on the same rails — discover via GET /pillars.",
   },
 ];
 
@@ -176,7 +178,7 @@ export const SYRA_TRACTION: SyraTractionItem[] = [
   },
   {
     title: "Current focus",
-    description: "Autonomous revenue, DeFi participation, treasury management, and agent coordination.",
+    description: "x402 paid-call volume, MCP/SDK activation, and crypto intelligence routes agents reuse.",
   },
 ];
 
@@ -197,10 +199,10 @@ export const SYRA_PLATFORMS: SyraPlatform[] = [
     external: false,
   },
   {
-    icon: MessageSquare,
-    name: "Telegram",
-    description: "Agent access and updates on the go via @syra_trading_bot.",
-    href: "https://t.me/syra_trading_bot",
+    icon: Cpu,
+    name: "MCP",
+    description: "Install @syra-ai/mcp-server for Cursor, Claude, and agent hosts — pay-per-call tools.",
+    href: "https://docs.syraa.fun/docs/build/mcp",
     external: true,
   },
   {

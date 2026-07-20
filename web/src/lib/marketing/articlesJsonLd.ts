@@ -11,7 +11,7 @@ export function buildArticlesListJsonLd(items: ArticleItem[]) {
     "@type": "Blog",
     name: "Syra Articles",
     description:
-      "Insights, product updates, and deep dives on machine money, x402 APIs, and agent infrastructure on Solana.",
+      "Insights, product updates, and deep dives on pay-per-call crypto APIs, x402, and agent infrastructure on Solana.",
     url: `${SITE_ORIGIN}/articles`,
     publisher: {
       "@type": "Organization",

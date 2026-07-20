@@ -8,12 +8,21 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { SYRA_AGENT_DESCRIPTION } from "@/lib/syraBranding";
+import {
+  SYRA_PLATFORM_FEE_NOTE,
+  SYRA_PRICING_BANDS,
+  SYRA_PRICING_DOCS_URL,
+  SYRA_TOKEN_PAGE_PATH,
+  SYRA_VS_DIY,
+} from "@/content/syraFocus";
+
+const vsDiySummary = SYRA_VS_DIY.map((b) => b.title).join("; ");
 
 const faqs = [
   {
     question: "What is Syra and how does it work?",
     answer:
-      `${SYRA_AGENT_DESCRIPTION} You fund your wallet and approve actions; agents research, call paid tools when useful, and can support execution workflows alongside non-custodial guardrails.`,
+      `${SYRA_AGENT_DESCRIPTION} Install MCP or the SDK, fund a USDC wallet, and agents pay per successful API call via HTTP 402 — no per-vendor API keys.`,
   },
   {
     question: "Is Syra custodial? Do you hold my funds?",
@@ -23,12 +32,17 @@ const faqs = [
   {
     question: "What chains does Syra support?",
     answer:
-      "Syra currently supports only Solana. In the future, we plan to expand to Ethereum, Polygon, Arbitrum, Optimism, BSC, Avalanche, and more. We're continuously adding support for new networks based on user demand and ecosystem growth.",
+      "Settlement defaults to Solana USDC via x402; Base and Algorand payer rails are also supported in MCP/SDK env. Product focus is Solana-first agent payments.",
+  },
+  {
+    question: "How is pricing set? Why not call Birdeye/Nansen myself?",
+    answer:
+      `You pay only for successful calls. ${SYRA_PRICING_BANDS.passthrough} ${SYRA_PRICING_BANDS.openRouter} ${SYRA_PRICING_BANDS.firstParty} ${SYRA_PLATFORM_FEE_NOTE} Vs DIY: ${vsDiySummary}. Details: ${SYRA_PRICING_DOCS_URL}`,
   },
   {
     question: "What is the $SYRA token used for?",
     answer:
-      "$SYRA is the utility and governance token: holders vote on protocol direction, feature prioritization, and treasury use. Staking unlocks premium modules, higher API limits, and exclusive signals. Stakers receive 10% of protocol revenue (distributed weekly in SOL/USDC). A portion of x402-driven fees funds programmatic buybacks of $SYRA, held for future community airdrops.",
+      `$SYRA is optional utility/governance — mint, staking, and buyback disclosure live on syraa.fun${SYRA_TOKEN_PAGE_PATH}. Growth and day-to-day product use are pay-per-call USDC via x402, not token purchase.`,
   },
   {
     question: "What is Syra's $SPCX / SpaceX IPO feature?",
@@ -43,22 +57,22 @@ const faqs = [
   {
     question: "How do I get started with Syra?",
     answer:
-      "Open syraa.fun and connect a wallet to run the agent and paid tools. Try the API at playground.syraa.fun, read docs at docs.syraa.fun, and join the community on Telegram (t.me/syra_ai) or X (@syra_agent). For deeper product access, stake $SYRA where premium tiers apply.",
+      "Fastest path: install MCP (`npx -y @syra-ai/mcp-server`) or `npm i @syra-ai/sdk`, set a funded USDC payer, call a tool like news. Browse routes at syraa.fun/marketplace; docs at docs.syraa.fun. Token details (optional) are at syraa.fun/token.",
   },
   {
     question: "Is there an API for developers?",
     answer:
-      "Yes. Syra exposes Solana x402 / MPP pay-per-request HTTP APIs (REST-style, any HTTP client): call an endpoint, complete payment when you receive 402 Payment Required, then get JSON back—no subscription wall. Higher limits and premium modules align with $SYRA staking tiers. OpenAPI and discovery live on api.syraa.fun; guides and references are at docs.syraa.fun and playground.syraa.fun.",
+      "Yes. Syra exposes Solana x402 / MPP pay-per-request HTTP APIs: call an endpoint, complete payment when you receive 402 Payment Required, then get JSON back—no subscription wall. OpenAPI and discovery live on api.syraa.fun; MCP/SDK guides at docs.syraa.fun.",
   },
   {
     question: "Why does api.syraa.fun ask for a key or payment, but the website works fine?",
     answer:
-      "They are different surfaces. api.syraa.fun is the JSON API: non-paid routes expect an API key or Bearer token, and paid routes use x402 micropayments. syraa.fun, docs.syraa.fun, and playground.syraa.fun are normal web apps—open them in a browser without pasting keys. Syra frontends never embed API keys; the gateway injects server-side auth only for trusted origins. If an automated monitor or crawler reports “401” on the marketing sites, it may be hitting deployment protection or API docs—not a broken product for real visitors.",
+      "They are different surfaces. api.syraa.fun is the JSON API: non-paid routes expect an API key or Bearer token, and paid routes use x402 micropayments. syraa.fun, docs.syraa.fun, and the marketplace are normal web apps—open them in a browser without pasting keys. Syra frontends never embed API keys; the gateway injects server-side auth only for trusted origins.",
   },
   {
     question: "What are the fees?",
     answer:
-      "API access is priced per successful paid request via x402 and MPP on Solana—you pay only for calls you make, not a flat subscription. Exact per-route pricing comes from each endpoint’s payment requirements. Staking $SYRA can improve tiers and limits; on-chain network fees still apply to your own transactions.",
+      `API access is priced per successful paid request via x402 on Solana—you pay only for calls you make. Exact per-route pricing is in each endpoint’s 402 accepts[]. ${SYRA_PRICING_BANDS.passthrough} See ${SYRA_PRICING_DOCS_URL}. On-chain network fees still apply to your own transactions.`,
   },
 ];
 

@@ -1,8 +1,7 @@
 "use client";
 
 import { Link } from "@/lib/navigation";
-import { ArrowUpRight, BookOpen, ShoppingBag, Terminal } from "lucide-react";
-import { SYRA_BUY_SWAP_URL } from "@/lib/swapNavigation";
+import { ArrowUpRight, BookOpen, Plug, Terminal } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface EmptyStateProps {
@@ -10,7 +9,13 @@ interface EmptyStateProps {
 }
 
 const RESOURCE_LINKS = [
-  { href: "/marketplace", label: "API marketplace", icon: Terminal, external: false },
+  { href: "/marketplace", label: "APIs / Integrate", icon: Terminal, external: false },
+  {
+    href: "https://docs.syraa.fun/docs/build/mcp",
+    label: "Install MCP",
+    icon: Plug,
+    external: true,
+  },
   { href: "https://docs.syraa.fun", label: "Documentation", icon: BookOpen, external: true },
 ] as const;
 
@@ -107,26 +112,27 @@ export function EmptyState({ agentName = "Syra Agent" }: EmptyStateProps) {
           className="animate-in fade-in slide-in-from-bottom-2 fill-mode-both mt-8 flex flex-wrap items-center justify-center gap-2 duration-500"
           style={{ animationDelay: "180ms" }}
         >
-          <Link
-            to={SYRA_BUY_SWAP_URL}
-            className={cn(
-              chipClass,
-              "border-neon-gold/35 bg-neon-gold/8 text-neon-gold hover:border-neon-gold/50 hover:bg-neon-gold/12 hover:text-neon-gold",
-            )}
-          >
-            <ShoppingBag className="h-3.5 w-3.5 opacity-80" strokeWidth={2} aria-hidden />
-            Get $SYRA
-          </Link>
-          {RESOURCE_LINKS.map(({ href, label, icon: Icon, external }) => (
+          {RESOURCE_LINKS.map(({ href, label, icon: Icon, external }, index) => (
             <Link
               key={href}
               to={href}
               {...(external
                 ? { target: "_blank", rel: "noopener noreferrer" }
                 : {})}
-              className={chipClass}
+              className={cn(
+                chipClass,
+                index === 0 &&
+                  "border-primary/35 bg-primary/8 text-primary hover:border-primary/50 hover:bg-primary/12 hover:text-primary",
+              )}
             >
-              <Icon className="h-3.5 w-3.5 text-muted-foreground/60 transition-colors group-hover:text-foreground/70" strokeWidth={2} aria-hidden />
+              <Icon
+                className={cn(
+                  "h-3.5 w-3.5 transition-colors",
+                  index === 0 ? "opacity-80" : "text-muted-foreground/60 group-hover:text-foreground/70",
+                )}
+                strokeWidth={2}
+                aria-hidden
+              />
               {label}
               <ArrowUpRight
                 className="h-3 w-3 text-muted-foreground/40 transition-[color,transform] duration-200 group-hover:-translate-y-px group-hover:translate-x-px group-hover:text-muted-foreground/70"

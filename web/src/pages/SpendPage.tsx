@@ -217,10 +217,10 @@ export default function SpendPage() {
       embedded
       title="Spend"
       tagline="Pay per call"
-      description="Browse free. Taste live data. Pay in USDC when you connect."
+      description="Free catalog preview. Wire agents via MCP/SDK. Pay in USDC per call."
       actions={
         <Button variant="outline" size="sm" className="h-9 w-full rounded-full px-4 sm:w-auto" asChild>
-          <Link to="/marketplace">Marketplace</Link>
+          <Link to="/marketplace">Wire via MCP / SDK</Link>
         </Button>
       }
     >
@@ -268,7 +268,7 @@ export default function SpendPage() {
               hint="x402 catalog endpoints"
               icon={Wrench}
               accent="alpha"
-              href="/marketplace"
+              href="/marketplace?tab=syra"
               error={toolsQ.isError}
             />
           </div>

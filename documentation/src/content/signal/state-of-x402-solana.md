@@ -57,4 +57,4 @@ Cursor/Claude developers install with one command. Agent crawlers read `llms-ful
 
 ---
 
-*Syra is machine money for agents — Earn, Treasury, Invest, Spend, Grow. [docs.syraa.fun](https://docs.syraa.fun)*
+*Syra is pay-per-call crypto intelligence for agents — x402 + MCP + SDK. [docs.syraa.fun](https://docs.syraa.fun)*

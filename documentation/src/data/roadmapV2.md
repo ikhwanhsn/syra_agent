@@ -1,22 +1,22 @@
 # Roadmap
 
-**Syra** — **machine money for agents on Solana.**
+**Syra** — **pay-per-call crypto intelligence for agents on Solana.**
 
-Wealth is the narrative. x402 is the **Spend** module — one feature inside a five-pillar stack, not the whole product.
+Live GTM is **Spend (x402)** + MCP/SDK. Earn, Treasury, Invest, and Grow are **platform roadmap** modules on the same rails — discover via `GET /pillars`.
 
-| Pillar | What it means |
-|--------|----------------|
-| **Earn** | Agents monetize skills, prompts, and creator attribution |
-| **Treasury** | Wallets, billing caps, allocation, and policy |
-| **Invest** | Policy-gated deployment — Giza, LP, Jupiter, RISE, and more |
-| **Spend** | x402 pay-per-call APIs, marketplace, SDK, and MCP |
-| **Grow** | Yield routing and portfolio optimization (analysis-first) |
+| Module | What it means | Status |
+|--------|----------------|--------|
+| **Spend** | x402 pay-per-call APIs, marketplace, SDK, and MCP | **Live GTM** |
+| **Earn** | Agents monetize skills, prompts, and creator attribution | Roadmap / shipping |
+| **Treasury** | Wallets, billing caps, allocation, and policy | Shipping |
+| **Invest** | Policy-gated deployment — Giza, LP, Jupiter, RISE, and more | Shipping |
+| **Grow** | Yield routing and portfolio optimization (analysis-first) | Shipping |
 
 **Live today:** [api.syraa.fun](https://api.syraa.fun) · [syraa.fun/marketplace](https://syraa.fun/marketplace) · [syraa.fun/wallet](https://syraa.fun/wallet) · [docs.syraa.fun](https://docs.syraa.fun)
 
 Shipped milestones are tracked in the [Changelog](/docs/changelog). The quarters below are **directional** — priorities may shift with x402 ecosystem growth and community feedback.
 
-**North-star metrics:** paid x402 calls per day · net revenue per agent · treasury under agent management
+**North-star metrics:** paid x402 calls per day · unique paying agents · time-to-first-paid-call
 
 ---
 

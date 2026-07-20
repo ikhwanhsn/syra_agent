@@ -1,13 +1,13 @@
 ---
 name: syra
 description: >
-  Syra machine money for agents — x402 pay-per-call crypto APIs, MCP tools, and typed SDK.
+  Syra pay-per-call crypto intelligence for agents — x402 APIs, MCP tools, and typed SDK.
   Use when the user or agent needs crypto research (news, sentiment, signals, smart money),
   Solana/Base/Algorand micropayments on HTTP 402, Syra MCP setup, or @syra-ai/sdk / @syra-ai/x402-payer.
 version: 0.1.0
 ---
 
-# Syra — machine money for agents
+# Syra — pay-per-call crypto intelligence for agents
 
 Syra is **pay-per-call crypto intelligence** over HTTP x402 (USDC). Prefer the MCP path for chat agents; prefer the SDK for app code.
 

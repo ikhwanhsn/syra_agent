@@ -53,16 +53,16 @@ export const PILLAR_OVERVIEW_META: Record<PillarId, PillarOverviewMeta> = {
 };
 
 export const MACHINE_MONEY_FLOW_COPY =
-  "Wealth is the narrative — agents earn revenue, allocate treasury, deploy capital, pay for intelligence via x402, and compound yield. Payments are one module, not the whole product.";
+  "Live wedge: pay for intelligence via x402. Platform modules on the same rails: earn, treasury, invest, spend, and grow.";
 
 /** Plain-language hero copy for the dashboard overview. */
 export const OVERVIEW_HERO_COPY = {
   titleLine1: "Your agent's",
-  titleLine2: "financial home",
+  titleLine2: "money rails",
   subtitle:
-    "Earn revenue, manage treasury, deploy capital, and pay for APIs — all from one place.",
+    "Pay for APIs via x402, manage wallets, and explore platform modules from one place.",
   connectedSubtitle:
-    "Five wallets power your agent — earn, allocate, invest, spend, and grow.",
+    "Spend is live. Earn, treasury, invest, and grow share the same agent wallets.",
   ctaHint: "Connect your wallet to unlock balances and agent wallets.",
 } as const;
 

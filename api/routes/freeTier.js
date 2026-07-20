@@ -32,7 +32,7 @@ router.get('/pillars', async (_req, res) => {
       success: true,
       tier: 'free',
       data: {
-        narrative: 'Machine Money for Agents',
+        narrative: 'Pay-per-call crypto APIs for agents',
         pillars,
         upsell: 'Deep intelligence routes (signal, brain, dossier forensics) are x402 paid — see GET /.well-known/x402',
       },

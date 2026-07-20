@@ -189,9 +189,9 @@ function buildHomeText(firstName, { isNewWallet = false, referralLinkedCode = nu
   const lines = [
     `<b>⚡ ${greeting} — Syra Agent</b>`,
     '',
-    '<b>Machine money for agents on Solana.</b>',
+    '<b>Pay-per-call crypto APIs for agents on Solana.</b>',
     '',
-    'Earn, treasury, invest, spend, and grow — plus an AI copilot for crypto intel.',
+    'Settle USDC via x402, call news and signals, plus an AI copilot for crypto intel.',
     '',
     '<b>Talk to me about</b>',
     '• DeFi, trading, and tokenomics',

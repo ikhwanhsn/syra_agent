@@ -1194,7 +1194,7 @@ app.get("/", (req, res) => {
 
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║                                                                              ║
-║      "The Market Never Sleeps. Neither Does Machine Money for Agents."       ║
+║      "The Market Never Sleeps. Neither Do Pay-Per-Call Agents."              ║
 ║                                                                              ║
 ║              © 2026 SYRA AI Labs. All Rights Reserved.                       ║
 ║         Documentation & API Access • https://docs.syraa.fun                  ║

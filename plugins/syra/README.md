@@ -1,6 +1,6 @@
 # Syra Cursor Plugin
 
-**Machine money for agents on Solana** — x402 pay-per-call APIs, agent wallets, and treasury tools, packaged for Cursor.
+**Pay-per-call crypto APIs for agents on Solana** — x402 micropayments, MCP tools, and typed SDK, packaged for Cursor.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](../../LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-docs.syraa.fun-0ea5e9)](https://docs.syraa.fun)
@@ -76,16 +76,16 @@ const syra = await createSyraPaidClient();
 const news = await syra.get("/news", { ticker: "BTC" });
 ```
 
-## Five pillars
+## Platform roadmap
 
-Syra organizes machine money around five pillars:
+Live GTM is **Spend (x402)** + MCP/SDK. These modules share the same rails:
 
-| Pillar | Purpose |
+| Module | Purpose |
 |--------|---------|
+| **Spend** | x402 native pay-per-call APIs (**live**) |
 | **Earn** | Agents monetize skills |
 | **Treasury** | Allocate and manage capital |
 | **Invest** | Deploy capital autonomously |
-| **Spend** | x402 native pay-per-call APIs |
 | **Grow** | Yield + portfolio optimization |
 
 Discovery: `GET https://api.syraa.fun/pillars`

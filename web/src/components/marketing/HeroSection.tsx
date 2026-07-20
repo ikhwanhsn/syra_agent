@@ -64,11 +64,11 @@ export const HeroSection = () => {
               transition={{ duration: 0.6, delay: 0.1 }}
               className="mb-6 text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl"
             >
-              <span className="text-foreground">Machine Money</span>
+              <span className="text-foreground">Syra</span>
               <br />
-              <span className="neon-text">for Agents</span>
+              <span className="neon-text">Pay-per-call crypto APIs</span>
               <br />
-              <span className="text-foreground">on Solana</span>
+              <span className="text-foreground">for agents</span>
             </motion.h1>
 
             <motion.p
@@ -77,9 +77,8 @@ export const HeroSection = () => {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="mx-auto mb-8 w-full max-w-xl text-base text-muted-foreground sm:text-lg lg:mx-0"
             >
-              The rail agents pay to think and trade — intelligence and execution
-              APIs via x402, plus agent wallets and treasury policy. Build once;
-              your agents discover, fund, and call tools autonomously.
+              Settle USDC on HTTP 402. Install MCP or the SDK once, then call
+              news, sentiment, and signals without per-vendor API keys.
             </motion.p>
 
             <motion.form

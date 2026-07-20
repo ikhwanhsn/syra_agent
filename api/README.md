@@ -4,14 +4,14 @@
 
 # **Syra API**
 
-### Backend services for Syra — machine money for agents on Solana
+### Backend services for Syra — pay-per-call crypto APIs for agents on Solana
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/ikhwanhsn/syra_agent/blob/main/LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-docs.syraa.fun-0ea5e9)](https://docs.syraa.fun)
 [![API](https://img.shields.io/badge/API-Gateway-26a5e4)](https://api.syraa.fun)
 [![GitHub](https://img.shields.io/badge/GitHub-ikhwanhsn%2Fsyra__agent-181717?logo=github)](https://github.com/ikhwanhsn/syra_agent)
 
-**[Documentation](https://docs.syraa.fun)** · **[API Marketplace](https://syraa.fun/marketplace)** · **[Telegram Bot](https://t.me/syra_trading_bot)** · **[Agent](https://syraa.fun)**
+**[Documentation](https://docs.syraa.fun)** · **[API Marketplace](https://syraa.fun/marketplace)** · **[MCP](https://docs.syraa.fun/docs/build/mcp)** · **[Agent](https://syraa.fun)**
 
 </div>
 
@@ -28,7 +28,7 @@ The **api** package is the **backend service** for Syra. It is a Node.js (Expres
 - **Serves the prediction-game** — creators, events, staking (shared models and routes).
 - **Uses MongoDB** (Mongoose) for persistence where needed.
 
-This API backs the **Telegram bot**, **web agent**, **API marketplace**, **MCP bridge**, **S3 Labs** (KOL, jobs, events, Telegram QA), **Up Only Fund** (RISE terminal routes), and other Syra monorepo apps. It is the single backend for machine-money infrastructure.
+This API backs the **MCP bridge**, **SDK clients**, **API marketplace**, **web agent**, **S3 Labs** (KOL, jobs, events, Telegram QA), **Up Only Fund** (RISE terminal routes), and other Syra monorepo apps. It is the single backend for machine-money infrastructure.
 
 ### Syra ecosystem (served by this API)
 

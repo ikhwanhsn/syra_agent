@@ -191,7 +191,7 @@ function writeRegistryManifest() {
   const { solanaPayTo, evmPayTo } = getPayaiPayToAddresses();
   const manifest = {
     service: "Syra",
-    tagline: "Machine money for agents — Solana intelligence, execution, treasury",
+    tagline: "Pay-per-call crypto APIs for agents — x402, MCP, SDK on Solana",
     discovery_url: `${BASE_URL}/.well-known/x402`,
     openapi_url: `${BASE_URL}/openapi.json`,
     metrics_url: `${BASE_URL}/api/metrics`,

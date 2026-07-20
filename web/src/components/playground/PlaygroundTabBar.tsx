@@ -20,13 +20,13 @@ const TAB_CONFIG: Record<
   PlaygroundTab,
   { label: string; icon: ReactNode }
 > = {
-  syra: {
-    label: "Browse",
-    icon: <Layers className="h-4 w-4 shrink-0" aria-hidden />,
-  },
   build: {
     label: "Integrate",
     icon: <Code2 className="h-4 w-4 shrink-0" aria-hidden />,
+  },
+  syra: {
+    label: "Catalog",
+    icon: <Layers className="h-4 w-4 shrink-0" aria-hidden />,
   },
   custom: {
     label: "Custom",
@@ -45,11 +45,11 @@ export function PlaygroundTabBar({ active, onChange }: PlaygroundTabBarProps) {
       className="playground-tab-bar marketplace-tab-bar sticky top-0 z-20 shrink-0 border-b border-border/50 bg-background/90 backdrop-blur-xl"
       style={{ ["--playground-tab-bar-height" as string]: "3.25rem" }}
       role="tablist"
-      aria-label="Marketplace sections"
+      aria-label="API sections"
     >
       <div className="mx-auto flex w-full max-w-[1680px] items-center gap-4 px-4 py-2.5 sm:px-6 lg:px-8">
         <p className="hidden shrink-0 font-display text-sm font-semibold tracking-tight text-foreground sm:block">
-          Marketplace
+          APIs
         </p>
         <div className={cn(playgroundSegmentedRoot(PLAYGROUND_TAB_ORDER.length), "min-w-0 flex-1 sm:max-w-md")}>
           {PLAYGROUND_TAB_ORDER.map((id) => {

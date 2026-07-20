@@ -45,9 +45,9 @@ const valueProps = [
   },
   {
     icon: Coins,
-    title: "Low Fees",
+    title: "Pay-per-call, not subscriptions",
     description:
-      "Competitive pricing with volume discounts and $SYRA holder benefits",
+      "One USDC wallet + MCP/SDK — no per-vendor API keys. Listed prices include a clear platform fee over upstream.",
   },
 ];
 

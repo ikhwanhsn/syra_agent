@@ -4,9 +4,9 @@
 
 # @syra-ai/sdk
 
-**Typed TypeScript client for Syra machine money**
+**Typed TypeScript client for Syra pay-per-call APIs**
 
-Pay-per-call x402 APIs · auto-pay wallets · agent treasury  
+Pay-per-call x402 APIs · auto-pay wallets · MCP companion  
 Solana · Base · Algorand
 
 [![npm version](https://img.shields.io/npm/v/@syra-ai/sdk.svg)](https://www.npmjs.com/package/@syra-ai/sdk)
@@ -22,17 +22,16 @@ Solana · Base · Algorand
 
 ## What this package does
 
-`@syra-ai/sdk` is the official TypeScript client for the [Syra](https://syraa.fun) API gateway. It wraps HTTP calls to Syra’s machine-money rails and handles **x402 payment** (HTTP 402 → sign → retry) so agents and apps can call paid routes without custom payment plumbing.
+`@syra-ai/sdk` is the official TypeScript client for the [Syra](https://syraa.fun) API gateway. It wraps HTTP calls to Syra’s pay-per-call crypto APIs and handles **x402 payment** (HTTP 402 → sign → retry) so agents and apps can call paid routes without custom payment plumbing.
 
 | Capability | Detail |
 |------------|--------|
 | **Auto-pay client** | `createSyraPaidClient()` wires Solana / Base / Algorand signers |
 | **Manual signer** | Pass a custom `SyraPaymentSigner` for production wallets |
 | **Low-level fetch** | `@syra-ai/sdk/payment` — x402-wrapped `fetch` only |
-| **Pillars** | Discover Earn / Treasury / Invest / Spend / Grow via `/pillars` |
 | **Typed responses** | All methods return `{ success, data?, error? }` |
 
-**For agents:** prefer `createSyraPaidClient` + env payer keys. Discovery: `GET https://api.syraa.fun/.well-known/x402` and [llms-full.txt](https://api.syraa.fun/llms-full.txt).
+**For agents:** prefer `createSyraPaidClient` + env payer keys. Discovery: `GET https://api.syraa.fun/.well-known/x402` and [llms-full.txt](https://api.syraa.fun/llms-full.txt). Platform modules (Earn / Treasury / Invest / Spend / Grow) are available via `GET /pillars` — Spend (x402) is the live GTM wedge.
 
 | Need | Use |
 |------|-----|

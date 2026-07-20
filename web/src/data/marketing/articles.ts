@@ -26,7 +26,7 @@ export const articles: ArticleItem[] = [
     slug: "syra-sdk-guide",
     title: "Syra SDK: Build Agents That Pay for Intelligence on Every Call",
     description:
-      "A complete guide to @syra-ai/sdk — install, auto-pay x402 routes, pillar modules, MCP integration, and production patterns for TypeScript agents on Solana and Base.",
+      "A complete guide to @syra-ai/sdk, install, auto-pay x402 routes, Spend intelligence, MCP integration, and production patterns for TypeScript agents on Solana and Base.",
     href: "/articles/syra-sdk-guide",
     external: false,
     comingSoon: false,
@@ -39,9 +39,9 @@ export const articles: ArticleItem[] = [
   {
     id: "future-agentic-era",
     slug: "future-agentic-era-syra-positioning",
-    title: "The Agentic Era Is Here — How Syra Positions for Machine Economies",
+    title: "The Agentic Era Is Here, How Syra Positions for Pay-Per-Call Agents",
     description:
-      "Autonomous agents are scaling fast, but most still cannot own capital or pay for tools without humans in the loop. Here is how Syra positions as the machine money rail for the agentic era on Solana.",
+      "Autonomous agents are scaling fast, but most still cannot pay for tools without humans in the loop. Here is how Syra positions as pay-per-call crypto intelligence on Solana.",
     href: "/articles/future-agentic-era-syra-positioning",
     external: false,
     comingSoon: false,
@@ -54,9 +54,9 @@ export const articles: ArticleItem[] = [
   {
     id: "what-is-syra",
     slug: "what-is-syra",
-    title: "What Is Syra? Machine Money for Agents on Solana",
+    title: "What Is Syra? Pay-Per-Call Crypto APIs for Agents",
     description:
-      "Syra is machine money for autonomous agents — Earn, Treasury, Invest, Spend (x402), and Grow on Solana. A complete overview of what Syra is, who it is for, and how the five-pillar rail works.",
+      "Syra is pay-per-call crypto intelligence for agents: settle USDC via x402, integrate with MCP or the SDK. A complete overview of what Syra is and who it is for.",
     href: "/articles/what-is-syra",
     external: false,
     comingSoon: false,
@@ -86,9 +86,9 @@ export const articles: ArticleItem[] = [
     id: "syra-x",
     slug: "syra-explained-smart-intelligence-agent",
     title:
-      "Syra Explained: Machine Money for Agents on Solana",
+      "Syra Explained: Pay-Per-Call Crypto APIs for Agents on Solana",
     description:
-      "How Syra delivers machine money infrastructure—x402 APIs, agent wallets, treasury policy, and execution-ready workflows for the agent economy on Solana.",
+      "How Syra delivers pay-per-call crypto intelligence: x402 APIs, MCP, SDK, and agent-ready workflows on Solana.",
     href: "/articles/syra-explained-smart-intelligence-agent",
     external: false,
     comingSoon: false,

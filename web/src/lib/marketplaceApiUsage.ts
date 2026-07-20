@@ -33,8 +33,9 @@ export function buildExampleRequestUrl(
 }
 
 export interface MarketplaceUsageSnippets {
-  curl: string;
+  mcp: string;
   sdk: string;
+  curl: string;
 }
 
 export function buildMarketplaceUsageSnippets(
@@ -45,6 +46,8 @@ export function buildMarketplaceUsageSnippets(
   const card = buildFlowCardDisplay(flow, path);
   const absoluteUrl = parsePlaygroundRequestUrl(requestUrl)?.toString() ?? requestUrl;
   const priceHint = card.priceLabel ? ` (~${card.priceLabel} USDC per call)` : "";
+  const parsed = parsePlaygroundRequestUrl(requestUrl);
+  const apiBase = parsed ? `${parsed.origin}` : "https://api.syraa.fun";
 
   const curlGet = `# 1. First call returns HTTP 402 with x402 payment requirements${priceHint}
 curl -i "${absoluteUrl}"
@@ -78,8 +81,30 @@ const res = await paidFetch("${absoluteUrl}", {
 
 const data = await res.json();`;
 
+  const mcp = `# Prefer MCP for chat agents — auto-pays on HTTP 402
+# Path: ${path}${priceHint}
+
+# Cursor / Claude Desktop mcp.json
+{
+  "mcpServers": {
+    "syra": {
+      "command": "npx",
+      "args": ["-y", "@syra-ai/mcp-server"],
+      "env": {
+        "SYRA_API_BASE_URL": "${apiBase}",
+        "SYRA_PAYER_KEYPAIR": "\${SYRA_PAYER_KEYPAIR}"
+      }
+    }
+  }
+}
+
+# Or: claude mcp add syra -- npx -y @syra-ai/mcp-server@latest
+# Then call curated tools (e.g. syra_spend_news) or syra_call_tool with this path.
+# Docs: https://docs.syraa.fun/docs/build/mcp`;
+
   return {
-    curl: flow.method === "GET" ? curlGet : curlPost,
+    mcp,
     sdk,
+    curl: flow.method === "GET" ? curlGet : curlPost,
   };
 }

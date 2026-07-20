@@ -4,7 +4,7 @@
 
 # **Syra**
 
-### Machine Money for Agents
+### Pay-per-call crypto APIs for agents
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/ikhwanhsn/syra_agent/blob/main/LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-docs.syraa.fun-0ea5e9)](https://docs.syraa.fun)
@@ -19,47 +19,17 @@
 
 ## What Is Syra?
 
-**Syra** is **machine money for agents** on Solana — organized around five pillars: **Earn**, **Treasury**, **Invest**, **Spend**, and **Grow**. Wealth is the narrative; x402 is one module (Spend), not the whole story.
+**Syra** is **pay-per-call crypto intelligence for agents** — settle USDC via **x402**, integrate with **MCP** or the **SDK**, no per-vendor API keys. Not a five-pillar wealth OS pitch.
 
-| Pillar | Purpose |
-|--------|---------|
-| **Earn** | Agents monetize skills (prompts, KOL, creator attribution) |
-| **Treasury** | Allocate and manage capital (wallets, billing, policy) |
-| **Invest** | Deploy capital autonomously (Giza, LP, Jupiter, RISE) |
-| **Spend** | x402 native pay-per-call APIs |
-| **Grow** | Yield + portfolio optimization (analysis-first) |
+| Integrate | How |
+|-----------|-----|
+| **MCP** | `claude mcp add syra -- npx -y @syra-ai/mcp-server@latest` |
+| **SDK** | `npm i @syra-ai/sdk` → `createSyraPaidClient` |
+| **Marketplace** | [syraa.fun/marketplace](https://syraa.fun/marketplace) |
 
-Discovery: `GET /pillars` on [api.syraa.fun](https://api.syraa.fun)
+Discovery: [api.syraa.fun](https://api.syraa.fun) — `/.well-known/x402`, `/openapi.json`. The web chat agent is a reference client.
 
-Integrate via **SDK** (`client.pillars`, `client.invest`, …), **MCP**, or the **API marketplace** at [syraa.fun/marketplace](https://syraa.fun/marketplace). The web chat agent is a reference client — the product is machine money for agents.
-
-**Ecosystem:** [S3 Labs](https://s3labs.xyz) (Syra-backed growth studio for Solana developers) and [Up Only Fund](https://uponlyfund.com) (Syra-backed onchain allocator) ship as sibling brands on the same rails.
-
-**Notice:** x402 becomes one module (Spend). Payments become one feature. Wealth becomes the narrative.
-
----
-
-## Capabilities at a Glance
-
-| Section | Description |
-|--------|-------------|
-| **Market Overview** | Price, volume, volatility, trend strength |
-| **Technical Indicators** | RSI, MACD, SMA, EMA, Bollinger Bands |
-| **Action Perspectives** | Key levels, momentum bias, scenario outlooks |
-| **Risk Context** | R/R awareness and exposure considerations |
-| **AI Insights** | Confidence levels and sentiment interpretation |
-
----
-
-## Where Syra Runs
-
-| Platform | Description |
-|----------|-------------|
-| **x402 Autonomous Agent** | Research & insights workflows on x402scan |
-| **Telegram Bot** | Chat-based access to market analysis and insights |
-| **API & Workflows** | Integrates with n8n and automation pipelines |
-| **Data & Signal Engine** | Indicators, trends, and on-chain movements |
-| **AI Reasoning Layer** | Synthesizes signals into structured interpretations |
+**Ecosystem:** [S3 Labs](https://s3labs.xyz) (Syra-backed growth studio) and [Up Only Fund](https://uponlyfund.com) (Syra-backed allocator) ship on the same rails.
 
 ---
 
@@ -75,24 +45,13 @@ Set `SYRA_API_BASE_URL=https://api.syraa.fun`. For auto-pay, set `SYRA_PAYER_KEY
 
 **Public metrics:** [syraa.fun/metrics](https://syraa.fun/metrics) · **Reference agent:** [syraa.fun/reference/scalper](https://syraa.fun/reference/scalper) · **Agent docs:** [api.syraa.fun/llms-full.txt](https://api.syraa.fun/llms-full.txt)
 
-### Telegram Bot
+### SDK
 
-1. Open [Syra Trading Agent Bot](https://t.me/syra_trading_bot)
-2. Press **Start**
-3. Use `/list` to view supported tokens
-4. Try `/signal bitcoin` for a live analysis
+```bash
+npm i @syra-ai/sdk
+```
 
-**Example commands**
-
-| Command | Description |
-|---------|-------------|
-| `/start` | View available commands |
-| `/signal bitcoin` | Get latest BTC trading analysis |
-| `/list` | Show supported tokens |
-| `/news BTC` | Get latest BTC-related news |
-| `/top_mention today` | Most-discussed tokens today |
-| `/docs` | Open documentation |
-| `/feedback` | Send suggestions or issues |
+See [docs.syraa.fun/docs/build/sdk](https://docs.syraa.fun/docs/build/sdk).
 
 ### x402 Autonomous Agent
 
@@ -100,13 +59,50 @@ Syra runs as an autonomous research agent on **x402scan** for automated research
 
 ---
 
+## Platform roadmap
+
+Live GTM is **Spend (x402)**. These modules share the same API rails and are discoverable via `GET /pillars` — not the growth thesis:
+
+| Module | Purpose |
+|--------|---------|
+| **Spend** | x402 native pay-per-call APIs (**live**) |
+| **Earn** | Agents monetize skills (prompts, KOL, creator attribution) |
+| **Treasury** | Allocate and manage capital (wallets, billing, policy) |
+| **Invest** | Deploy capital autonomously (Giza, LP, Jupiter, RISE) |
+| **Grow** | Yield + portfolio optimization (analysis-first) |
+
+---
+
+## Example intelligence routes
+
+| Section | Description |
+|--------|-------------|
+| **Market Overview** | Price, volume, volatility, trend strength |
+| **Technical Indicators** | RSI, MACD, SMA, EMA, Bollinger Bands |
+| **Action Perspectives** | Key levels, momentum bias, scenario outlooks |
+| **Risk Context** | R/R awareness and exposure considerations |
+| **AI Insights** | Confidence levels and sentiment interpretation |
+
+---
+
+## Where Syra Runs
+
+| Platform | Description |
+|----------|-------------|
+| **MCP / SDK** | Primary agent integration — Cursor, Claude, app code |
+| **API Marketplace** | Browse and test x402 routes at syraa.fun/marketplace |
+| **Web agent** | Reference chat client at syraa.fun |
+| **x402 Autonomous Agent** | Research workflows on x402scan |
+
+---
+
 ## Syra ecosystem (backed brands)
 
-Syra is the parent **machine money** infrastructure. These programs ship on Syra rails but maintain their own public brands:
+These programs ship on Syra rails but maintain their own public brands:
 
 | Brand | Site | Role |
 |-------|------|------|
-| **Syra** | [syraa.fun](https://syraa.fun) | Core product — agent wallets, x402 APIs, treasury, invest/spend rails |
+| **Syra** | [syraa.fun](https://syraa.fun) | Core product — x402 APIs, MCP/SDK, agent wallets |
 | **S3 Labs** | [s3labs.xyz](https://s3labs.xyz) | Syra-backed growth partner for Solana developers — programs, KOL, jobs, community |
 | **Up Only Fund** | [uponlyfund.com](https://uponlyfund.com) | Syra-backed onchain allocator — 80/20 mandate, RISE tooling, `$UPONLY` tranche |
 
@@ -117,7 +113,7 @@ Syra is the parent **machine money** infrastructure. These programs ship on Syra
 | Package | Description |
 |---------|-------------|
 | **`web`** | Unified Syra app — agent chat, marketplace, marketing pages, dashboard, proof demos |
-| **`api`** | Backend API — machine money for agents: x402 APIs, agent wallets, policy engine, S3 Labs + UOF routes |
+| **`api`** | Backend API — x402 pay-per-call APIs, agent wallets, policy engine, S3 Labs + UOF routes |
 | **`syra-sdk`** | Typed `@syra-ai/sdk` client for x402 API integration |
 | **`mcp-server`** | MCP server — `claude mcp add syra -- npx -y @syra-ai/mcp-server@latest` |
 | **`packages/syra-x402-payer`** | MIT `@syra-ai/x402-payer` — x402 sign/retry helper |
@@ -130,7 +126,7 @@ Syra is the parent **machine money** infrastructure. These programs ship on Syra
 
 ## Colosseum Frontier — hackathon submission
 
-**Hero product (what to demo):** [`api`](./api) + [`web`](./web) — the **Syra rail**: machine money for agents (x402 APIs + agent wallets + treasury). Treat **S3 Labs**, **Up Only Fund**, and the chat reference agent as **Syra-backed proof surfaces**, not equal demo time to the core rail.
+**Hero product (what to demo):** [`api`](./api) + [`web`](./web) — the **Syra rail**: pay-per-call x402 APIs + MCP/SDK for agents. Treat **S3 Labs**, **Up Only Fund**, and the chat reference agent as **Syra-backed proof surfaces**, not equal demo time to the core rail.
 
 ### Golden path (live)
 
@@ -194,21 +190,20 @@ The API **must** use an RPC that allows **`getAccountInfo`** and full blockchain
 
 ### Deferred (stay honest in pitch)
 
-- **$SYRA staking → x402 discount** is **roadmap** until wired into API pricing (see [tokenomics](./documentation/src/data/tokenomicsV2.md)).
-- **MCP + automated x402 signing** — shipped in `@syra-ai/mcp-server@0.4.1` via `SYRA_PAYER_KEYPAIR` and MCP bridge for agent-direct tools.
+- **$SYRA** (mint, staking, buyback disclosure) lives at [syraa.fun/token](https://syraa.fun/token) — not the primary growth CTA. Staking → x402 discount remains **roadmap** until wired into API pricing (see [tokenomics](./documentation/src/data/tokenomicsV2.md)).
+- **MCP + automated x402 signing** — shipped in `@syra-ai/mcp-server` via `SYRA_PAYER_KEYPAIR` and MCP bridge for agent-direct tools.
 
 ---
 
 ## Why Syra?
 
-- **AI-assisted insights** — Multiple indicators and reasoning combined into structured trade outlooks  
-- **Real-time market data** — Powered by live technical and contextual sources  
-- **Research-driven output** — Focused on understanding, not blind execution  
-- **Multi-platform access** — Telegram, x402 Agent, and automation workflows  
-- **Educational context** — Every output includes explanations and indicator context  
-- **Agentic automation** — Analysis pipelines that run across platforms  
+- **Pay per call** — USDC via x402; no per-vendor API keys or monthly plans
+- **MCP + SDK first** — install in Cursor/Claude or wire typed clients in minutes
+- **Crypto intelligence** — news, sentiment, signals, smart money, risk context
+- **Agent-native** — structured JSON agents can act on; auto-pay on HTTP 402
+- **Same rails, more modules** — Earn / Treasury / Invest / Grow as platform roadmap
 
-Syra is built for **clarity**, **consistency**, and **structured reasoning**. It blends AI insight with traditional market analysis and is designed for automation and agent workflows. It is not built to replace decision-making—it is built to **enhance understanding**.
+Syra is built for **agents that pay for tools**. It is not financial advice and does not replace operator judgment.
 
 ---
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowRight, BarChart3, BookOpen, Bot, ExternalLink } from "lucide-react";
-import { AboutTokenBar } from "@/components/about/AboutTokenBar";
+import { Link } from "@/lib/navigation";
 import type { AboutTabId } from "@/components/about/aboutTabs";
 import {
   aboutDisplayTitleClass,
@@ -10,6 +10,7 @@ import {
   aboutProseClass,
 } from "@/components/about/aboutStyles";
 import { SYRA_MISSION, SYRA_STATS, SYRA_TAGLINE } from "@/content/syraAbout";
+import { SYRA_TOKEN_PAGE_PATH } from "@/content/syraFocus";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -47,7 +48,7 @@ export function AboutHero({ onSelectTab, activeTab }: AboutHeroProps) {
                     </span>
                   </span>
                 </div>
-                <p className="mt-1 text-[12px] font-medium text-muted-foreground/80">Machine money · Solana · x402</p>
+                <p className="mt-1 text-[12px] font-medium text-muted-foreground/80">Pay-per-call · Solana · x402</p>
               </div>
             </div>
 
@@ -109,7 +110,15 @@ export function AboutHero({ onSelectTab, activeTab }: AboutHeroProps) {
           </div>
 
           <div className="about-hero-token-rail pt-1">
-            <AboutTokenBar />
+            <p className="text-sm text-muted-foreground">
+              <Link
+                to={SYRA_TOKEN_PAGE_PATH}
+                className="underline-offset-4 hover:text-foreground hover:underline"
+              >
+                $SYRA token details
+              </Link>
+              <span className="text-muted-foreground/50"> · mint, staking, buyback</span>
+            </p>
           </div>
         </div>
       </div>

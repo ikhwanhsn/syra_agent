@@ -5,54 +5,71 @@ import {
   SYRA_API_URL,
   SYRA_DOCS_URL,
   SYRA_MARKETPLACE_URL,
-  SYRA_PLAYGROUND_URL,
-  SYRA_TELEGRAM_BOT_URL,
   SYRA_WEB_LABEL,
-  SYRA_WEB_ORIGIN,
 } from "./syraUrls";
 
-export const SYRA_TAGLINE = "Machine Money for Agents";
+export const SYRA_TAGLINE = "Pay-per-call crypto APIs for agents";
 
 export const SYRA_DOCS_BLURB =
-  "Documentation for Syra: machine money for agents on Solana — Earn, Treasury, Invest, Spend (x402), and Grow.";
+  "Documentation for Syra: pay-per-call crypto intelligence for agents — x402, MCP, and typed SDK on Solana.";
 
-export const SYRA_DOCS_BADGE = "Five-pillar machine money";
+export const SYRA_DOCS_BADGE = "x402 pay-per-call for agents";
 
 export const SYRA_HIGHLIGHT =
-  "Wealth is the narrative. x402 is the Spend module — one feature, not the whole product.";
+  "Syra is pay-per-call crypto intelligence for agents — settle USDC via x402, integrate with MCP or the SDK, no per-vendor API keys.";
 
 export const SYRA_MISSION =
-  "Syra enables autonomous agents to earn, allocate treasury, invest, spend via x402, and grow yield on Solana.";
+  "Syra lets autonomous agents pay for crypto intelligence and tools on every call — x402 micropayments, MCP, and a typed SDK on Solana.";
 
 export const SYRA_VISION =
-  "An economy where millions of AI agents become productive economic actors — earning, managing capital, and coordinating value in real time.";
+  "An economy where millions of AI agents pay for tools, settle in USDC, and coordinate value without human billing ops.";
 
+/** Live GTM capabilities — what builders do today. */
+export const SYRA_LIVE_CAPABILITIES = [
+  {
+    title: "Pay per call",
+    description: "Settle USDC via x402 on HTTP 402 — no per-vendor API keys or monthly plans.",
+  },
+  {
+    title: "MCP tools",
+    description: "Install @syra-ai/mcp-server in Cursor or Claude and call news, signals, and research in chat.",
+  },
+  {
+    title: "Typed SDK",
+    description: "createSyraPaidClient auto-pays and retries so app code stays thin.",
+  },
+  {
+    title: "API marketplace",
+    description: "Browse routes at syraa.fun/marketplace — OpenAPI + /.well-known/x402 discovery.",
+  },
+] as const;
+
+/**
+ * Platform roadmap modules (GET /pillars). Not public GTM hero copy.
+ * @deprecated Prefer SYRA_LIVE_CAPABILITIES for docs Welcome / home.
+ */
 export const SYRA_PILLARS = [
   { title: "Earn", description: "Agents monetize skills." },
   { title: "Treasury", description: "Allocate and manage capital." },
   { title: "Invest", description: "Deploy capital autonomously." },
-  { title: "Spend", description: "x402 native payments." },
+  { title: "Spend", description: "x402 native payments (live)." },
   { title: "Grow", description: "Yield + portfolio optimization." },
 ] as const;
 
+/** @deprecated Prefer SYRA_LIVE_CAPABILITIES */
 export const SYRA_FLOW_STEPS = SYRA_PILLARS.map((p, i) => ({
   step: String(i + 1).padStart(2, "0"),
   title: p.title,
   description: p.description,
 }));
 
-export const SYRA_AGENT_CAPABILITIES = [
-  { title: "Earn", description: "Monetize prompts, skills, and KOL campaigns with creator attribution." },
-  { title: "Treasury", description: "Agent wallets, billing caps, and allocation across chat/LP purposes." },
-  { title: "Invest", description: "Giza yield, Meteora LP, Jupiter swaps, RISE markets — policy-gated." },
-  { title: "Spend", description: "x402 pay-per-call APIs — the Spend module for machine money." },
-  { title: "Grow", description: "Portfolio recommendations and yield optimization (analysis-first)." },
-];
+/** @deprecated Prefer SYRA_LIVE_CAPABILITIES — kept for any remaining imports */
+export const SYRA_AGENT_CAPABILITIES = [...SYRA_LIVE_CAPABILITIES];
 
 export const SYRA_PLATFORMS = [
   {
     name: "Web app",
-    description: `${SYRA_WEB_LABEL} — agent chat, wallet, dashboard, and five-pillar navigation`,
+    description: `${SYRA_WEB_LABEL} — agent chat, marketplace, wallet, and dashboard`,
     href: SYRA_AGENT_URL,
     linkLabel: SYRA_WEB_LABEL,
   },
@@ -64,15 +81,15 @@ export const SYRA_PLATFORMS = [
   },
   {
     name: "API gateway",
-    description: `${SYRA_API_URL.replace("https://", "")} — GET /pillars discovery, x402 routes, OpenAPI`,
+    description: `${SYRA_API_URL.replace("https://", "")} — x402 routes, OpenAPI, GET /pillars discovery`,
     href: SYRA_API_URL,
     linkLabel: "api.syraa.fun",
   },
   {
-    name: "Telegram",
-    description: "Agent access on the go via @syra_trading_bot",
-    href: SYRA_TELEGRAM_BOT_URL,
-    linkLabel: "@syra_trading_bot",
+    name: "MCP",
+    description: "@syra-ai/mcp-server — pay-per-call crypto tools for Cursor, Claude, and agent hosts",
+    href: `${SYRA_DOCS_URL}/docs/build/mcp`,
+    linkLabel: "Install MCP",
   },
   {
     name: "Documentation",
@@ -81,9 +98,9 @@ export const SYRA_PLATFORMS = [
     linkLabel: "docs.syraa.fun",
   },
   {
-    name: "SDK & MCP",
-    description: "@syra-ai/sdk pillar modules + syra_pillars MCP tool",
-    href: SYRA_WEB_ORIGIN,
-    linkLabel: SYRA_WEB_LABEL,
+    name: "SDK",
+    description: "@syra-ai/sdk — typed client with createSyraPaidClient auto-pay",
+    href: `${SYRA_DOCS_URL}/docs/build/sdk`,
+    linkLabel: "Install SDK",
   },
 ];

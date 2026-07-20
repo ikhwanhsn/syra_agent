@@ -223,7 +223,7 @@ export function InfoPageView({ scrollContainerRef }: InfoPageViewProps) {
             ))}
           </Section>
 
-          <Section id="product-flow" title="Product flow">
+          <Section id="product-flow" title="Activation flow">
             <div className="grid gap-3 sm:grid-cols-3">
               {SYRA_PRODUCT_FLOW.map((step) => (
                 <div key={step.step} className={cn(overviewCardShell, "rounded-2xl px-4 py-5")}>
@@ -235,7 +235,7 @@ export function InfoPageView({ scrollContainerRef }: InfoPageViewProps) {
             </div>
           </Section>
 
-          <Section id="pillars" title="Core pillars">
+          <Section id="pillars" title="Platform roadmap">
             <div className="grid gap-3 sm:grid-cols-2">
               {SYRA_PILLARS.map(({ icon: Icon, title, description }) => (
                 <div key={title} className={cn(overviewCardShell, "rounded-2xl px-4 py-4")}>

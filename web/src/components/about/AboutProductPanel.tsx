@@ -20,8 +20,8 @@ export function AboutProductPanel() {
     <div className="about-tab-panel space-y-5 sm:space-y-6">
       <AboutSectionHeader
         kicker="Product"
-        title="From autonomous work to onchain economics"
-        description="Three layers of machine money — earn, manage, deploy."
+        title="From install to first paid call"
+        description="Three steps — install MCP or SDK, settle USDC on 402, call crypto intelligence."
         align="center"
       />
 
@@ -50,9 +50,9 @@ export function AboutProductPanel() {
       </div>
 
       <AboutSectionHeader
-        kicker="Core pillars"
-        title="Built for the machine economy"
-        description="Financial infrastructure designed for autonomous actors — not human dashboards."
+        kicker="Platform roadmap"
+        title="Modules on the same rails"
+        description="Spend (x402) is live GTM. Earn, Treasury, Invest, and Grow ship as platform modules — discover via GET /pillars."
       />
 
       <div className="about-pillar-bento grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -76,7 +76,7 @@ export function AboutProductPanel() {
 
       <AboutSectionHeader
         kicker="Capabilities"
-        title="Financial primitives for autonomous actors"
+        title="What builders use today"
         align="center"
       />
 

@@ -13,6 +13,7 @@ import DashboardOverview from "@/pages/DashboardOverview";
 import DashboardSettings from "@/pages/DashboardSettings";
 import AgentWalletPage from "@/pages/AgentWalletPage";
 import AboutPage from "@/pages/AboutPage";
+import TokenPage from "@/pages/TokenPage";
 import Index from "@/pages/Index";
 import InternalTeamAgentsMonitor from "@/pages/InternalTeamAgentsMonitor";
 import InternalWalletsPage from "@/pages/InternalWalletsPage";
@@ -131,6 +132,7 @@ function AppRoutes() {
     <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/token" element={<TokenPage />} />
           <Route path="/articles" element={<MarketingArticles />} />
           <Route path="/articles/:slug" element={<ArticlePage />} />
           <Route path="/home" element={<Navigate to="/" replace />} />

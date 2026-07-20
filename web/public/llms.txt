@@ -2,22 +2,26 @@ Syra — machine-readable product summary
 ========================================
 
 Name: Syra
-Tagline: Machine money for agents (Solana ecosystem).
+Tagline: Pay-per-call crypto APIs for agents (Solana ecosystem).
 
 What Syra is
 ------------
-Syra is machine money for agents on Solana — x402 pay-per-call APIs, agent wallets, treasury policy, and autonomous execution. It is not a promise of returns or financial advice. Agents and operators use Syra to pay for intelligence, coordinate capital, and execute workflows — not hype or blind automation.
+Syra is pay-per-call crypto intelligence for agents — settle USDC via x402, integrate with MCP or the SDK, no per-vendor API keys. It is not a promise of returns or financial advice. Agents use Syra to pay for intelligence and tools on every call — not a five-pillar wealth OS pitch.
 
 Core value
 ------------
-- Real-time and contextual market data.
-- On-chain and venue signals (e.g. smart money, DEX/trending, token-level research where APIs exist).
-- Narrative and sentiment views (news, trends, social/trending where exposed by the product).
-- Structured output: market overview, technical context, action perspectives, risk context, and AI-interpreted insights (confidence/sentiment framing as provided by the product).
+- HTTP 402 / x402 micropayments (USDC) for crypto API routes.
+- MCP tools (@syra-ai/mcp-server) and typed SDK (@syra-ai/sdk) for agent builders.
+- Real-time and contextual market data: news, sentiment, signals, smart money, risk.
+- Structured JSON output agents can act on immediately.
 
 Design stance
 -------------
-Syra is built as machine money infrastructure: clarity, explainability, and multi-platform access. It augments agent and operator decisions; it does not replace the user’s responsibility for risk, compliance, and execution.
+Syra is built so agents can discover, pay, and call tools without human billing ops. It augments agent and operator decisions; it does not replace the user’s responsibility for risk, compliance, and execution.
+
+Platform roadmap (not GTM hero)
+-------------------------------
+Earn, Treasury, Invest, Spend, Grow are API modules discoverable via GET /pillars. Live growth wedge is Spend (x402) + MCP/SDK.
 
 Where Syra runs
 ----------------
@@ -32,9 +36,8 @@ Where Syra runs
 - MCP install: claude mcp add syra -- npx -y @syra-ai/mcp-server@latest
 - API specs: GET https://api.syraa.fun/openapi.json and GET https://api.syraa.fun/mpp-openapi.json
 - Web agent: https://syraa.fun
-- Telegram: https://t.me/syra_trading_bot
+- Marketplace: https://syraa.fun/marketplace
 - X (Twitter): https://x.com/syra_agent
-- Marketing site: https://syraa.fun
 
 npm packages (for agents)
 -------------------------
@@ -74,4 +77,4 @@ Public URLs (main Syra domain):
 - Agent capability list (Markdown): https://syraa.fun/skills.md
 - Agent skill: https://api.syraa.fun/skill.md
 
-Last updated: 2026-07-19 (repository snapshot).
+Last updated: 2026-07-20 (repository snapshot).

@@ -18,7 +18,7 @@ const footerLinks = {
     { label: "Agent", href: LINK_AGENT, internal: true },
     { label: "Staking", href: LINK_STAKING, internal: true },
     { label: "API Docs", href: LINK_DOCS },
-    { label: "Marketplace", href: LINK_PLAYGROUND, internal: true },
+    { label: "APIs", href: LINK_PLAYGROUND, internal: true },
     { label: "Partners", href: "/partner", internal: true },
     { label: "Leaderboard", href: "/leaderboard", internal: true },
   ],

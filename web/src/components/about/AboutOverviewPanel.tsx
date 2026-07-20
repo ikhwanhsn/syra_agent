@@ -25,8 +25,8 @@ export function AboutOverviewPanel() {
     <div className="about-tab-panel space-y-5 sm:space-y-6">
       <AboutSectionHeader
         kicker="Company"
-        title="Building machine money on Solana"
-        description="Agent-native financial infrastructure — live product, open development, bootstrapped team."
+        title="Building pay-per-call rails on Solana"
+        description="Crypto intelligence APIs agents can fund on every call — live product, open development, bootstrapped team."
       />
 
       <div className="about-bento-grid grid grid-cols-2 gap-3 sm:grid-cols-5 sm:gap-3">

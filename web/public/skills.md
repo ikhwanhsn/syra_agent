@@ -12,7 +12,7 @@ This document lists **what automated agents and integrators can do** with Syra: 
 
 ## 1. Product output shape (what “Syra analysis” contains)
 
-When users get trading or research output from Syra (e.g. Telegram, agent chat), it is designed to include structured sections where applicable:
+When users get trading or research output from Syra (e.g. agent chat, MCP tools), it is designed to include structured sections where applicable:
 
 | Capability | Description |
 |------------|-------------|
@@ -168,7 +168,7 @@ The API and MCP expose [8004 Trustless Agent Registry](https://docs.syraa.fun/do
 | API | https://api.syraa.fun |
 | Web agent | https://syraa.fun |
 | Marketplace | https://syraa.fun/marketplace |
-| Telegram | https://t.me/syra_trading_bot |
+| MCP docs | https://docs.syraa.fun/docs/build/mcp |
 
 ---
 

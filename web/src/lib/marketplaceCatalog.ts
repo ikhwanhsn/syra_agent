@@ -150,10 +150,10 @@ export const MARKETPLACE_FILTER_LABELS: Record<MarketplaceFilter, string> = {
 };
 
 export const MARKETPLACE_FILTER_DESCRIPTIONS: Record<MarketplaceFilter, string> = {
-  core: "Internal intelligence — scraping, signals, and Syra-built synthesis. No third-party API passthrough.",
+  core: "Syra-built intelligence (signals, synthesis). No third-party passthrough.",
   partner:
-    "External services — onchain data providers (Jupiter, DexScreener, …) and partner gateways (Nansen, Binance, Bankr, …).",
-  all: "All x402 endpoints — Syra Core and external partners.",
+    "External services — onchain providers (Jupiter, DexScreener, …) and partner gateways.",
+  all: "All x402 endpoints — Core and partners.",
 };
 
 /** Brand / service label for grouping partner-tier APIs in the marketplace. */

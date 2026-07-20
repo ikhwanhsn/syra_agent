@@ -120,8 +120,8 @@ const roadmapData = [
         items: [
           "Market Regime Detection & Correlation Matrix APIs",
           "Exit Timing & Liquidation Prediction APIs",
-          "$SYRA staking for API discounts",
-          "x402-linked $SYRA buyback for community airdrops",
+          "MCP + SDK packages for agent builders",
+          "Marketplace discovery for paid x402 routes",
         ],
         status: "completed",
       },

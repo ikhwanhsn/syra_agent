@@ -4,7 +4,6 @@ import {
   Coins,
   Cpu,
   Layers,
-  MessageSquare,
   Network,
   Shield,
   Sparkles,
@@ -193,8 +192,8 @@ export const SYRA_PITCH_DECK: DeckSlide[] = [
     label: "Cover",
     eyebrow: "Investor overview · Confidential",
     title: "Syra",
-    subtitle: "Machine money for agents on Solana",
-    footnote: "Autonomous revenue · Treasury · DeFi · Non-custodial",
+    subtitle: "Pay-per-call crypto APIs for agents on Solana",
+    footnote: "x402 · MCP · SDK · Non-custodial",
   },
   {
     id: "problem",
@@ -333,7 +332,7 @@ export const SYRA_PITCH_DECK: DeckSlide[] = [
         label: "Experience",
         items: [
           "Web agent · syraa.fun",
-          "Telegram · @syra_trading_bot",
+          "MCP · @syra-ai/mcp-server",
           "Docs & operator guides · docs.syraa.fun",
         ],
       },
@@ -420,10 +419,10 @@ export const SYRA_PITCH_DECK: DeckSlide[] = [
         href: "https://syraa.fun",
       },
       {
-        icon: MessageSquare,
-        title: "Telegram",
-        description: "Agent access and community on the go.",
-        href: "https://t.me/syra_trading_bot",
+        icon: Cpu,
+        title: "MCP",
+        description: "Install @syra-ai/mcp-server for Cursor, Claude, and agent hosts.",
+        href: "https://docs.syraa.fun/docs/build/mcp",
       },
       {
         icon: Terminal,

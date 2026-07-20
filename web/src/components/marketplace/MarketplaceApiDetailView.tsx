@@ -10,7 +10,9 @@ import {
   ExternalLink,
   Info,
   Loader2,
+  Package,
   Play,
+  Plug,
   SlidersHorizontal,
   Wallet,
   Zap,
@@ -36,24 +38,24 @@ import {
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
-type SnippetTab = "curl" | "sdk";
+type SnippetTab = "mcp" | "sdk" | "curl";
 
 const PAYMENT_STEPS = [
   {
-    title: "Connect wallet",
-    detail: "Use a wallet with USDC on Solana or Base. No API keys or Syra account required.",
+    title: "Wire MCP or SDK",
+    detail: "Install @syra-ai/mcp-server or @syra-ai/x402-payer. Agents discover routes via /.well-known/x402 and /agent/tools — no shopping cart.",
   },
   {
-    title: "Send the request",
-    detail: "Call the endpoint normally. The first response is HTTP 402 with x402 payment requirements (amount, recipient, network).",
+    title: "Call the endpoint",
+    detail: "First response is HTTP 402 with x402 payment requirements (amount, recipient, network).",
   },
   {
     title: "Sign & retry",
-    detail: "Sign the micropayment, add the PAYMENT-SIGNATURE header, and resend the same request to receive the JSON payload.",
+    detail: "Signer settles USDC, adds PAYMENT-SIGNATURE, and retries the same request for the JSON payload.",
   },
   {
-    title: "Or try in-browser",
-    detail: "Click Try this API on this page — Syra handles the 402 → pay → retry loop in the browser.",
+    title: "Optional: try in-browser",
+    detail: "Use Try in browser below if you want a human preview — Syra handles the 402 → pay → retry loop.",
   },
 ] as const;
 
@@ -111,9 +113,10 @@ export function MarketplaceApiDetailView({ flow }: MarketplaceApiDetailViewProps
     setIsResponsePanelOpen,
   } = usePlaygroundSession();
 
-  const [snippetTab, setSnippetTab] = useState<SnippetTab>("curl");
+  const [snippetTab, setSnippetTab] = useState<SnippetTab>("mcp");
   const [copiedSnippet, setCopiedSnippet] = useState(false);
   const [copiedManifest, setCopiedManifest] = useState(false);
+  const [copiedQuick, setCopiedQuick] = useState<"mcp" | "sdk" | null>(null);
   const [paramsModalFlow, setParamsModalFlow] = useState<ExampleFlowPreset | null>(null);
   const [paramsModalInitialParams, setParamsModalInitialParams] = useState<
     import("@/types/api").RequestParam[]
@@ -140,11 +143,11 @@ export function MarketplaceApiDetailView({ flow }: MarketplaceApiDetailViewProps
   );
 
   useEffect(() => {
-    document.title = `${detail.name} · Syra Marketplace`;
+    document.title = `${detail.name} · Syra APIs`;
     const meta = document.querySelector('meta[name="description"]');
     if (meta) meta.setAttribute("content", detail.summary || detail.description.slice(0, 160));
     return () => {
-      document.title = "Syra Marketplace";
+      document.title = "Syra APIs";
     };
   }, [detail.name, detail.summary, detail.description]);
 
@@ -194,15 +197,18 @@ export function MarketplaceApiDetailView({ flow }: MarketplaceApiDetailViewProps
     [flow, runExampleFlowFromPreset, setIsResponsePanelOpen],
   );
 
-  const copyText = async (text: string, kind: "snippet" | "manifest") => {
+  const copyText = async (text: string, kind: "snippet" | "manifest" | "mcp" | "sdk") => {
     try {
       await navigator.clipboard.writeText(text);
       if (kind === "snippet") {
         setCopiedSnippet(true);
         window.setTimeout(() => setCopiedSnippet(false), 2000);
-      } else {
+      } else if (kind === "manifest") {
         setCopiedManifest(true);
         window.setTimeout(() => setCopiedManifest(false), 2000);
+      } else {
+        setCopiedQuick(kind);
+        window.setTimeout(() => setCopiedQuick(null), 2000);
       }
       toast({ title: "Copied to clipboard" });
     } catch {
@@ -225,11 +231,11 @@ export function MarketplaceApiDetailView({ flow }: MarketplaceApiDetailViewProps
           aria-label="Breadcrumb"
         >
           <Link
-            to={MARKETPLACE_ROUTE}
+            to={`${MARKETPLACE_ROUTE}?tab=syra`}
             className="inline-flex items-center gap-1 rounded-lg px-2 py-1 font-medium transition-colors hover:bg-muted/50 hover:text-foreground"
           >
             <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
-            Marketplace
+            Catalog
           </Link>
           <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-50" aria-hidden />
           <span className="truncate rounded-lg px-2 py-1 text-foreground">{detail.name}</span>
@@ -285,37 +291,124 @@ export function MarketplaceApiDetailView({ flow }: MarketplaceApiDetailViewProps
                   </span>
                 ) : null}
               </div>
+              {detail.priceLabel ? (
+                <p className="text-xs text-muted-foreground">
+                  Includes Syra platform fee over upstream.{" "}
+                  <a
+                    href="https://docs.syraa.fun/docs/build/pricing"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary underline-offset-2 hover:underline"
+                  >
+                    Pricing vs DIY
+                  </a>
+                </p>
+              ) : null}
             </div>
 
-            <div className="flex shrink-0 flex-col gap-2 sm:flex-row lg:flex-col">
-              {wallet.connected ? (
-                <span className="inline-flex items-center justify-center gap-2 rounded-xl border border-border/50 bg-muted/20 px-3 py-2 text-xs font-medium tabular-nums text-foreground">
-                  <Wallet className="h-4 w-4 text-primary" aria-hidden />
-                  {wallet.balance || "0 USDC"}
-                </span>
-              ) : (
-                <Button type="button" variant="outline" size="sm" onClick={() => openConnectModal()}>
-                  <Wallet className="mr-1.5 h-4 w-4" aria-hidden />
-                  Connect wallet
-                </Button>
-              )}
+            <div className="flex shrink-0 flex-col gap-2 sm:min-w-[12rem]">
               <Button
                 type="button"
                 size="sm"
                 className="h-10 rounded-xl px-4"
-                disabled={isLoading}
-                onClick={handleTry}
+                onClick={() => void copyText(snippets.mcp, "mcp")}
               >
-                {isLoading ? (
-                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden />
+                {copiedQuick === "mcp" ? (
+                  <Check className="mr-1.5 h-4 w-4" aria-hidden />
                 ) : (
-                  <Play className="mr-1.5 h-4 w-4" aria-hidden />
+                  <Plug className="mr-1.5 h-4 w-4" aria-hidden />
                 )}
-                Try this API
+                {copiedQuick === "mcp" ? "Copied MCP" : "Copy MCP snippet"}
               </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="h-10 rounded-xl px-4"
+                onClick={() => void copyText(snippets.sdk, "sdk")}
+              >
+                {copiedQuick === "sdk" ? (
+                  <Check className="mr-1.5 h-4 w-4" aria-hidden />
+                ) : (
+                  <Package className="mr-1.5 h-4 w-4" aria-hidden />
+                )}
+                {copiedQuick === "sdk" ? "Copied SDK" : "Copy SDK snippet"}
+              </Button>
+              <div className="flex flex-col gap-2 border-t border-border/40 pt-2 sm:flex-row lg:flex-col">
+                {wallet.connected ? (
+                  <span className="inline-flex items-center justify-center gap-2 rounded-xl border border-border/50 bg-muted/20 px-3 py-2 text-xs font-medium tabular-nums text-foreground">
+                    <Wallet className="h-4 w-4 text-primary" aria-hidden />
+                    {wallet.balance || "0 USDC"}
+                  </span>
+                ) : (
+                  <Button type="button" variant="outline" size="sm" onClick={() => openConnectModal()}>
+                    <Wallet className="mr-1.5 h-4 w-4" aria-hidden />
+                    Connect wallet
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-10 rounded-xl px-4"
+                  disabled={isLoading}
+                  onClick={handleTry}
+                >
+                  {isLoading ? (
+                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden />
+                  ) : (
+                    <Play className="mr-1.5 h-4 w-4" aria-hidden />
+                  )}
+                  Try in browser
+                </Button>
+              </div>
             </div>
           </div>
         </header>
+
+        <section
+          className={cn(playgroundPanelClass, "border-primary/20 bg-primary/[0.03] p-5 sm:p-6")}
+          id="agent-reference"
+          aria-labelledby="agent-reference-title"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20">
+                <Bot className="h-5 w-5" aria-hidden />
+              </span>
+              <div>
+                <h2 id="agent-reference-title" className="text-base font-semibold text-foreground">
+                  For AI agents
+                </h2>
+                <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                  Primary path: MCP / SDK / paid fetch. Copy the agent manifest for routers and
+                  autonomous callers, or read the{" "}
+                  <code className="rounded bg-muted/50 px-1 py-0.5 font-mono text-[11px]">
+                    #syra-api-agent-manifest
+                  </code>{" "}
+                  script tag on this page.
+                </p>
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9 rounded-xl text-xs"
+              onClick={() => void copyText(manifestJson, "manifest")}
+            >
+              {copiedManifest ? <Check className="mr-1.5 h-3.5 w-3.5" /> : <Copy className="mr-1.5 h-3.5 w-3.5" />}
+              Copy agent manifest
+            </Button>
+          </div>
+
+          <pre
+            id="syra-api-agent-manifest-display"
+            className="mt-4 max-h-[20rem] overflow-auto rounded-xl border border-border/50 bg-background/80 p-4 font-mono text-[11px] leading-relaxed text-foreground/90"
+          >
+            {manifestJson}
+          </pre>
+        </section>
 
         <section className={cn(playgroundPanelClass, "p-5 sm:p-6")}>
           <SectionTitle>Quick reference</SectionTitle>
@@ -474,20 +567,26 @@ export function MarketplaceApiDetailView({ flow }: MarketplaceApiDetailViewProps
 
         <section className={cn(playgroundPanelClass, "p-5 sm:p-6")}>
           <SectionTitle>Code examples</SectionTitle>
-          <div className="mt-4 flex gap-2 border-b border-border/40 pb-3">
-            {(["curl", "sdk"] as const).map((tab) => (
+          <div className="mt-4 flex flex-wrap gap-2 border-b border-border/40 pb-3">
+            {(
+              [
+                { id: "mcp" as const, label: "MCP" },
+                { id: "sdk" as const, label: "TypeScript" },
+                { id: "curl" as const, label: "curl" },
+              ] as const
+            ).map(({ id, label }) => (
               <button
-                key={tab}
+                key={id}
                 type="button"
-                onClick={() => setSnippetTab(tab)}
+                onClick={() => setSnippetTab(id)}
                 className={cn(
                   "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
-                  snippetTab === tab
+                  snippetTab === id
                     ? "bg-foreground text-background"
                     : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
                 )}
               >
-                {tab === "curl" ? "curl" : "TypeScript"}
+                {label}
               </button>
             ))}
             <Button
@@ -503,50 +602,6 @@ export function MarketplaceApiDetailView({ flow }: MarketplaceApiDetailViewProps
           </div>
           <pre className="mt-3 overflow-x-auto rounded-xl border border-border/50 bg-muted/20 p-4 font-mono text-xs leading-relaxed text-foreground/90">
             {activeSnippet}
-          </pre>
-        </section>
-
-        <section
-          className={cn(playgroundPanelClass, "border-violet-500/20 bg-violet-500/[0.03] p-5 sm:p-6")}
-          id="agent-reference"
-          aria-labelledby="agent-reference-title"
-        >
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="flex items-start gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-violet-600 ring-1 ring-violet-500/20 dark:text-violet-300">
-                <Bot className="h-5 w-5" aria-hidden />
-              </span>
-              <div>
-                <h2 id="agent-reference-title" className="text-base font-semibold text-foreground">
-                  For AI agents
-                </h2>
-                <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                  Machine-readable manifest for agent routers, MCP hosts, and autonomous callers.
-                  Copy JSON or fetch this page and read the{" "}
-                  <code className="rounded bg-muted/50 px-1 py-0.5 font-mono text-[11px]">
-                    #syra-api-agent-manifest
-                  </code>{" "}
-                  script tag.
-                </p>
-              </div>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-9 rounded-xl text-xs"
-              onClick={() => void copyText(manifestJson, "manifest")}
-            >
-              {copiedManifest ? <Check className="mr-1.5 h-3.5 w-3.5" /> : <Copy className="mr-1.5 h-3.5 w-3.5" />}
-              Copy agent manifest
-            </Button>
-          </div>
-
-          <pre
-            id="syra-api-agent-manifest-display"
-            className="mt-4 max-h-[28rem] overflow-auto rounded-xl border border-border/50 bg-background/80 p-4 font-mono text-[11px] leading-relaxed text-foreground/90"
-          >
-            {manifestJson}
           </pre>
         </section>
       </article>

@@ -3,7 +3,6 @@
 import { ArrowRight, ArrowUpRight, Bot, ExternalLink } from "lucide-react";
 import { Link } from "@/lib/navigation";
 import { AboutSaidBadge } from "@/components/about/AboutSaidBadge";
-import { AboutTokenBar } from "@/components/about/AboutTokenBar";
 import { overviewCardShell, overviewKickerClass } from "@/components/dashboard/overview/overviewStyles";
 import {
   SYRA_COMMUNITY_LINKS,
@@ -13,6 +12,7 @@ import {
   SYRA_PLATFORMS,
   SYRA_TAGLINE,
 } from "@/content/syraAbout";
+import { SYRA_TOKEN_PAGE_PATH } from "@/content/syraFocus";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -54,11 +54,12 @@ export function AboutSinglePage() {
               <ExternalLink className="ml-2 h-3.5 w-3.5 opacity-50" />
             </a>
           </Button>
+          <Button variant="outline" size="default" className="rounded-xl px-5" asChild>
+            <Link to="/marketplace">Marketplace</Link>
+          </Button>
         </div>
 
         <AboutSaidBadge />
-
-        <AboutTokenBar />
       </header>
 
       {/* Five pillars */}
@@ -155,10 +156,21 @@ export function AboutSinglePage() {
         </div>
       </section>
 
-      {/* Disclaimer */}
-      <footer className="rounded-xl border border-border/30 bg-muted/[0.04] px-5 py-4 sm:px-6">
-        <p className={overviewKickerClass}>Disclaimer</p>
-        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{SYRA_DISCLAIMER}</p>
+      {/* Disclaimer + quiet token link */}
+      <footer className="space-y-4">
+        <p className="text-center text-sm text-muted-foreground sm:text-left">
+          <Link
+            to={SYRA_TOKEN_PAGE_PATH}
+            className="underline-offset-4 hover:text-foreground hover:underline"
+          >
+            $SYRA token details
+          </Link>
+          <span className="text-muted-foreground/50"> · mint, staking, buyback disclosure</span>
+        </p>
+        <div className="rounded-xl border border-border/30 bg-muted/[0.04] px-5 py-4 sm:px-6">
+          <p className={overviewKickerClass}>Disclaimer</p>
+          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{SYRA_DISCLAIMER}</p>
+        </div>
       </footer>
     </div>
   );

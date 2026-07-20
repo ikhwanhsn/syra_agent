@@ -10,13 +10,15 @@ export function isPlaygroundPath(pathname: string): boolean {
   return isMarketplacePath(pathname);
 }
 
-export const MARKETPLACE_NAV_BROWSE = MARKETPLACE_ROUTE;
-export const MARKETPLACE_NAV_BUILD = `${MARKETPLACE_ROUTE}?tab=build`;
+/** Catalog (human preview) — explicit `?tab=syra`. */
+export const MARKETPLACE_NAV_BROWSE = `${MARKETPLACE_ROUTE}?tab=syra`;
+/** Integrate (default) — bare `/marketplace`. */
+export const MARKETPLACE_NAV_BUILD = MARKETPLACE_ROUTE;
 export const MARKETPLACE_NAV_CUSTOM = `${MARKETPLACE_ROUTE}?tab=custom`;
 
 function parseMarketplaceTabFromHref(href: string): ReturnType<typeof parsePlaygroundTab> {
   const queryIndex = href.indexOf("?");
-  if (queryIndex < 0) return "syra";
+  if (queryIndex < 0) return parsePlaygroundTab(null);
   const params = new URLSearchParams(href.slice(queryIndex + 1));
   return parsePlaygroundTab(params.get("tab"));
 }
@@ -26,7 +28,7 @@ function parseMarketplaceTabFromSearch(search: string): ReturnType<typeof parseP
   return parsePlaygroundTab(new URLSearchParams(normalized).get("tab"));
 }
 
-/** Active state for marketplace nav links (Browse / Integrate / Custom). */
+/** Active state for APIs nav links (Integrate / Catalog / Custom). */
 export function isMarketplaceNavItemActive(
   pathname: string,
   search: string,

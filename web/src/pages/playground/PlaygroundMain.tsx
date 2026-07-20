@@ -34,7 +34,7 @@ function PlaygroundMainInner() {
   );
 }
 
-/** Default `/marketplace` — Syra API catalog + integrate + custom request tabs. */
+/** Default `/marketplace` — Integrate first; Catalog + Custom are secondary tabs. */
 export default function PlaygroundMain() {
   const [searchParams] = useSearchParams();
   if (searchParams.has("view")) {

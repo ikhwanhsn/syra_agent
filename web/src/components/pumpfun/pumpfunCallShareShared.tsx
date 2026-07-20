@@ -262,7 +262,7 @@ export function ShareCardHeader() {
             color: "rgba(255,255,255,0.35)",
           }}
         >
-          Machine Money for Agents
+          Pay-per-call crypto APIs for agents
         </p>
       </div>
       <AgentTerminalBadge />

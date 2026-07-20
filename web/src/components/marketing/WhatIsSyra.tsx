@@ -3,7 +3,11 @@ import { useInView } from "framer-motion";
 import { useRef } from "react";
 import { Link } from "react-router-dom";
 import { Brain, Shield, Zap, Globe, Lock, BarChart3, ArrowRight } from "lucide-react";
-import { SYRA_ONE_LINER, SYRA_USP } from "@/content/syraFocus";
+import {
+  SYRA_PRICING_DOCS_URL,
+  SYRA_USP,
+  SYRA_VS_DIY,
+} from "@/content/syraFocus";
 
 const features = [
   {
@@ -79,8 +83,10 @@ export const WhatIsSyra = () => {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="text-lg text-muted-foreground max-w-3xl mx-auto"
           >
-            {SYRA_USP} {SYRA_ONE_LINER} Integrate via SDK, MCP, or the API marketplace —
-            ship agents that pay for intelligence and execution on every call.
+            {SYRA_USP} Integrate via SDK or MCP — ship agents that pay for
+            crypto intelligence on every call. Prefer Syra over wiring each
+            upstream vendor when you want {SYRA_VS_DIY[0].title.toLowerCase()} and{" "}
+            {SYRA_VS_DIY[1].title.toLowerCase()}.
           </motion.p>
 
           <motion.div
@@ -102,6 +108,14 @@ export const WhatIsSyra = () => {
             >
               Try reference agent
             </Link>
+            <a
+              href={SYRA_PRICING_DOCS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-xl border border-border/60 px-5 py-2.5 text-sm font-medium text-muted-foreground no-underline transition-colors hover:text-foreground"
+            >
+              Pricing vs DIY
+            </a>
           </motion.div>
         </div>
 

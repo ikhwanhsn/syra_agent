@@ -21,44 +21,34 @@ export {
 export const SYRA_INFO_EYEBROW = "Internal reference · URL only";
 
 export const SYRA_PROBLEM_BULLETS = [
-  "Agents create value but lack native financial infrastructure",
-  "Treasury management stays manual — a bottleneck on every deployment",
-  "No standard layer for machines to earn, hold, and deploy capital at scale",
-  "The agent economy cannot scale until money moves as autonomously as intelligence",
+  "Agents need crypto data mid-loop but hit vendor API-key and billing walls",
+  "Humans still approve every paid tool call — agents cannot settle autonomously",
+  "No standard layer for machines to discover, pay, and compose paid HTTP APIs",
+  "The agent economy cannot scale until payments move as autonomously as intelligence",
 ];
 
 export const SYRA_SOLUTION_BULLETS = [
-  "Syra is not building another AI agent — we build the economic layer agents run on",
-  "Solana: low latency, high throughput, composable financial primitives",
-  "Non-custodial: operators keep keys; Syra coordinates intelligence and flows",
+  "Syra is not building another AI chatbot — we sell pay-per-call crypto APIs for agents",
+  "x402 + MCP + SDK: one USDC wallet, many tools, no per-vendor API keys",
+  "Solana settlement: low fees and fast finality for micropayments",
 ];
 
+/** Live activation flow — public GTM. Pillars live under /pillars roadmap. */
 export const SYRA_PRODUCT_FLOW = [
   {
     step: "01",
-    title: "Earn",
-    description: "Agents monetize skills — creator attribution, KOL marketplace, 8004 registry.",
+    title: "Install MCP or SDK",
+    description: "npx @syra-ai/mcp-server or createSyraPaidClient — one payer for many routes.",
   },
   {
     step: "02",
-    title: "Treasury",
-    description: "Allocate and manage capital across agent wallets with policy caps and billing.",
+    title: "Fund USDC",
+    description: "Solana (default), Base, or Algorand payer keys — settle on HTTP 402.",
   },
   {
     step: "03",
-    title: "Invest",
-    description:
-      "Deploy capital via Marinade, Jito, Kamino, marginfi, and Meteora — policy-gated.",
-  },
-  {
-    step: "04",
-    title: "Spend",
-    description: "x402 native payments — one module, not the whole product narrative.",
-  },
-  {
-    step: "05",
-    title: "Grow",
-    description: "Yield and portfolio optimization — analysis-first recommendations.",
+    title: "First paid call",
+    description: "News, sentiment, signals — structured JSON agents can act on immediately.",
   },
 ] as const;
 
@@ -119,8 +109,8 @@ export const SYRA_ROADMAP = [
   {
     period: "Now",
     items: [
-      "Autonomous revenue generation and treasury management",
-      "DeFi participation and agent coordination on Solana",
+      "x402 pay-per-call activation (MCP + SDK) and paid-call volume",
+      "Crypto intelligence routes agents reuse weekly",
     ],
   },
   {
@@ -174,7 +164,7 @@ export const SYRA_STACK_LAYERS = [
     label: "Experience",
     items: [
       "Web agent · syraa.fun (this app)",
-      "Telegram · @syra_trading_bot",
+      "MCP · @syra-ai/mcp-server",
       "Docs · docs.syraa.fun",
       "API Playground · playground.syraa.fun",
     ],
@@ -238,8 +228,8 @@ export const SYRA_INFO_SECTIONS = [
   { id: "solution", title: "Solution" },
   { id: "why-now", title: "Why now" },
   { id: "why-solana", title: "Why Solana" },
-  { id: "product-flow", title: "Product flow" },
-  { id: "pillars", title: "Pillars" },
+  { id: "product-flow", title: "Activation flow" },
+  { id: "pillars", title: "Platform roadmap" },
   { id: "capabilities", title: "Capabilities" },
   { id: "differentiation", title: "Differentiation" },
   { id: "market", title: "Market & revenue" },

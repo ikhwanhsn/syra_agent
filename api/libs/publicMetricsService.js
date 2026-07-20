@@ -114,7 +114,7 @@ export async function buildPublicMetricsSnapshot() {
   return {
     success: true,
     service: 'Syra',
-    tagline: 'Machine money for agents — Solana intelligence, execution, treasury',
+    tagline: 'Pay-per-call crypto APIs for agents — x402, MCP, SDK on Solana',
     updatedAt: now.toISOString(),
     lifetime: {
       totalCalls: callCount,

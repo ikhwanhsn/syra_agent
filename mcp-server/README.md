@@ -4,7 +4,7 @@
 
 # @syra-ai/mcp-server
 
-**MCP server for Syra machine money**
+**MCP server for Syra pay-per-call APIs**
 
 240+ crypto & agent tools · x402 auto-pay · Cursor / Claude / any MCP client
 

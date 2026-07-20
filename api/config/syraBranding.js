@@ -1,27 +1,30 @@
 /** Canonical Syra product branding — single source for agent registrations and public copy. */
 
-export const SYRA_TAGLINE = "Machine Money for Agents";
+export const SYRA_TAGLINE = "Pay-per-call crypto APIs for agents";
 
 /** Short one-liner (≤160 chars) for agent directories, OpenAPI, meta tags. */
 export const SYRA_AGENT_DESCRIPTION =
-  "Machine money for agents on Solana — Earn, Treasury, Invest, Spend (x402), Grow. Agent wallets, policy engine, and autonomous capital deployment.";
+  "Pay-per-call crypto intelligence for agents — settle USDC via x402, integrate with MCP or the SDK, no per-vendor API keys.";
 
 /** Ultra-short tagline variant. */
-export const SYRA_TAGLINE_SHORT = "Machine money for agents";
+export const SYRA_TAGLINE_SHORT = "Pay-per-call crypto APIs for agents";
 
 /** OG / Twitter meta description. */
 export const SYRA_META_DESCRIPTION =
-  "Machine money for agents — five pillars: Earn, Treasury, Invest, Spend, Grow. Solana-native agent wallets and x402.";
+  "Pay-per-call crypto APIs for agents on Solana — x402 micropayments, MCP tools, and typed SDK.";
 
 /** SAP / compact registry blurb. */
 export const SYRA_SAP_DESCRIPTION =
-  "Machine money for agents: Earn · Treasury · Invest · Spend (x402) · Grow on Solana.";
+  "Pay-per-call crypto intelligence for agents: x402 + MCP + SDK on Solana.";
 
-/** Five-pillar discovery notice (product narrative). */
+/**
+ * Platform roadmap modules (API discovery via GET /pillars).
+ * Not public GTM — live wedge is x402 pay-per-call + MCP/SDK.
+ */
 export const SYRA_PILLAR_NOTICE = [
-  "x402 becomes one module (Spend)",
-  "Payments become one feature",
-  "Wealth becomes the narrative",
+  "Live GTM: x402 pay-per-call APIs + MCP/SDK",
+  "Platform roadmap: Earn · Treasury · Invest · Spend · Grow",
+  "Discovery: GET /pillars on api.syraa.fun",
 ];
 
 /** Bazaar / Ampersend marketplace discovery metadata (paymentPayload.resource service fields). */

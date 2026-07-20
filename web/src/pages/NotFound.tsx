@@ -59,8 +59,8 @@ const QUICK_DESTINATIONS = [
   },
   {
     href: "/marketplace",
-    label: "Marketplace",
-    description: "Test x402 and MPP API endpoints",
+    label: "APIs",
+    description: "Wire agents via MCP/SDK; preview catalog in browser",
     icon: Code2,
   },
 ] as const;

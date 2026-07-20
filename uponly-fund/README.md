@@ -75,7 +75,7 @@ Up Only Fund is presented as its **own program brand**. Syra is referenced as th
 
 | Brand | Role |
 |-------|------|
-| **Syra** | Parent infrastructure — machine money for agents (Earn, Treasury, Invest, Spend, Grow) |
+| **Syra** | Parent infrastructure — pay-per-call x402 APIs + MCP/SDK for agents |
 | **Up Only Fund** | Syra-backed allocator — published mandate, RISE tooling, fund command dashboard |
 | **S3 Labs** | Syra-backed growth studio — developer programs and community ([s3labs.xyz](https://s3labs.xyz)) |
 

@@ -162,22 +162,22 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
   },
   {
     id: "marketplace",
-    label: "Marketplace",
-    href: MARKETPLACE_NAV_BROWSE,
+    label: "APIs",
+    href: MARKETPLACE_NAV_BUILD,
     icon: Code2,
     match: (p) => p.startsWith("/marketplace") || p.startsWith("/playground"),
     items: [
       {
-        href: MARKETPLACE_NAV_BROWSE,
-        label: "Browse",
-        icon: Layers,
-        description: "Browse & call x402 APIs",
-      },
-      {
         href: MARKETPLACE_NAV_BUILD,
         label: "Integrate",
         icon: Code2,
-        description: "SDK, MCP & x402 quickstart",
+        description: "Wire agents via MCP, SDK & x402",
+      },
+      {
+        href: MARKETPLACE_NAV_BROWSE,
+        label: "Catalog",
+        icon: Layers,
+        description: "Preview routes in the browser",
       },
       {
         href: MARKETPLACE_NAV_CUSTOM,

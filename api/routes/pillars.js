@@ -1,5 +1,6 @@
 import express from 'express';
 import { buildPillarsDiscovery, PILLARS, PILLAR_ORDER } from '../config/pillars.js';
+import { SYRA_PILLAR_NOTICE, SYRA_TAGLINE } from '../config/syraBranding.js';
 
 export function createPillarsRouter() {
   const router = express.Router();
@@ -10,12 +11,8 @@ export function createPillarsRouter() {
       res.json({
         success: true,
         data: {
-          narrative: 'Machine Money for Agents',
-          notice: [
-            'x402 becomes one module (Spend)',
-            'Payments become one feature',
-            'Wealth becomes the narrative',
-          ],
+          narrative: SYRA_TAGLINE,
+          notice: [...SYRA_PILLAR_NOTICE],
           pillars,
         },
       });

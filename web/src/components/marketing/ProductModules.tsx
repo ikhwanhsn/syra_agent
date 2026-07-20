@@ -232,7 +232,7 @@ export const ProductModules = () => {
             to="/marketplace"
             className="btn-primary inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold no-underline"
           >
-            Open API marketplace
+            Wire agents to Syra
           </Link>
         </motion.div>
       </div>
