@@ -4,6 +4,7 @@
  */
 import express from 'express';
 import { buildPillarsDiscovery } from '../config/pillars.js';
+import { SYRA_LIVE_SUBLINE, SYRA_TAGLINE } from '../config/syraBranding.js';
 import { ANSEM_MINT } from '../config/multiWalletRecovery.js';
 import { fetchAssetsBoard } from '../libs/tokensBoardService.js';
 import { buildMintDossier } from '../libs/tokensDossierService.js';
@@ -13,8 +14,38 @@ import { getAnsemEngagementLeaderboard } from '../libs/ansemEngagementService.js
 
 const router = express.Router();
 
+/**
+ * Machine-readable upsell so agents discover the paid path programmatically.
+ * Keep string `upsell` fields for backward compatibility.
+ */
+export function buildFreeTierUpsell(extra = {}) {
+  return {
+    message: 'Deep intelligence routes are x402 paid. Complete a first paid call via MCP or marketplace.',
+    tagline: SYRA_TAGLINE,
+    live: SYRA_LIVE_SUBLINE,
+    firstPaidCall: {
+      minutes: 5,
+      marketplaceQuickstart: 'https://syraa.fun/marketplace',
+      mcpDocs: 'https://docs.syraa.fun/docs/build/mcp',
+      sdkDocs: 'https://docs.syraa.fun/docs/build/sdk',
+      recommendedTool: 'syra_spend_news',
+      examplePath: '/news?ticker=BTC',
+      minUsdc: 1,
+      payerEnv: 'SYRA_PAYER_KEYPAIR',
+    },
+    discovery: {
+      x402: 'https://api.syraa.fun/.well-known/x402',
+      pillars: 'https://api.syraa.fun/pillars',
+      agentTools: 'https://api.syraa.fun/agent/tools',
+      metrics: 'https://syraa.fun',
+      agent: 'https://syraa.fun/agent',
+    },
+    ...extra,
+  };
+}
+
 const ANSEM_COMMUNITY_CACHE_MS = 15 * 60_000;
-/** @type {{ data: object; expires: number; cachedAt: string } | null} */
+/** @type {{ data: object; expires: number; cachedAt: string; version?: number } | null} */
 let ansemCommunityCache = null;
 
 /** Bust stale cache shape from older builds. */
@@ -32,9 +63,12 @@ router.get('/pillars', async (_req, res) => {
       success: true,
       tier: 'free',
       data: {
-        narrative: 'Pay-per-call crypto APIs for agents',
+        narrative: SYRA_TAGLINE,
         pillars,
         upsell: 'Deep intelligence routes (signal, brain, dossier forensics) are x402 paid — see GET /.well-known/x402',
+        upsellPayload: buildFreeTierUpsell({
+          hint: 'Use status on each pillar — Spend is live; others are beta/infra/roadmap.',
+        }),
       },
     });
   } catch (e) {
@@ -53,6 +87,9 @@ router.get('/assets', async (req, res) => {
       data: {
         assets: (board?.assets ?? board?.items ?? []).slice(0, limit),
         upsell: 'Full asset dossier: GET /assets/detail (x402) or /agent/tokens/dossier',
+        upsellPayload: buildFreeTierUpsell({
+          nextPaid: ['GET /assets/detail', 'GET /agent/tokens/dossier'],
+        }),
       },
     });
   } catch (e) {
@@ -76,7 +113,14 @@ router.get('/coingecko/price', async (req, res) => {
     res.json({
       success: true,
       tier: 'free',
-      data: { prices, source: 'coingecko', upsell: 'Scout + signals: GET /coingecko, /signal (x402)' },
+      data: {
+        prices,
+        source: 'coingecko',
+        upsell: 'Scout + signals: GET /coingecko, /signal (x402)',
+        upsellPayload: buildFreeTierUpsell({
+          nextPaid: ['GET /coingecko', 'GET /signal', 'GET /news'],
+        }),
+      },
     });
   } catch (e) {
     res.status(500).json({ success: false, error: e instanceof Error ? e.message : String(e) });
@@ -110,6 +154,9 @@ router.get('/dossier/basic', async (req, res) => {
       tier: 'free',
       data: basic,
       upsell: 'Deep forensics (KOL shills, snipers, overlap): paid /agent/tokens/* and x402 /pumpfun/analyzer',
+      upsellPayload: buildFreeTierUpsell({
+        nextPaid: ['GET /agent/tokens/dossier', 'GET /pumpfun/analyzer'],
+      }),
     });
   } catch (e) {
     res.status(500).json({ success: false, error: e instanceof Error ? e.message : String(e) });
@@ -131,6 +178,7 @@ router.get('/ansem/holder-count', async (_req, res) => {
           count: ansemHolderCountCache.count,
           source: ansemHolderCountCache.source,
         },
+        upsellPayload: buildFreeTierUpsell(),
       });
     }
 
@@ -162,6 +210,7 @@ router.get('/ansem/holder-count', async (_req, res) => {
         source,
         stale: result.stale === true,
       },
+      upsellPayload: buildFreeTierUpsell(),
     });
   } catch (e) {
     res.status(500).json({ success: false, error: e instanceof Error ? e.message : String(e) });
@@ -174,7 +223,12 @@ router.get('/ansem/engagement/leaderboard', async (req, res) => {
     const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 100);
     const data = await getAnsemEngagementLeaderboard({ limit });
     res.setHeader('Cache-Control', 'public, max-age=60');
-    return res.json({ success: true, tier: 'free', data });
+    return res.json({
+      success: true,
+      tier: 'free',
+      data,
+      upsellPayload: buildFreeTierUpsell(),
+    });
   } catch (e) {
     res.status(500).json({ success: false, error: e instanceof Error ? e.message : String(e) });
   }
@@ -196,6 +250,7 @@ router.get('/ansem/community', async (_req, res) => {
         tier: 'free',
         data: ansemCommunityCache.data,
         cachedAt: ansemCommunityCache.cachedAt,
+        upsellPayload: buildFreeTierUpsell(),
       });
     }
 
@@ -214,6 +269,7 @@ router.get('/ansem/community', async (_req, res) => {
       tier: 'free',
       data,
       cachedAt,
+      upsellPayload: buildFreeTierUpsell(),
     });
   } catch (e) {
     res.status(500).json({ success: false, error: e instanceof Error ? e.message : String(e) });

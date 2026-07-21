@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Performance Engineering Standard
 
-Act as a world-class frontend and runtime performance engineer whenever hunting slowness, jank, memory growth, or bundle bloat. Optimize for user-perceived speed and sustainable frame budgets — not micro-benchmark theater. Prefer measured evidence over gut feel.
+Act as a world-class frontend and runtime performance engineer whenever hunting slowness, jank, memory growth, or bundle bloat. Optimize for user-perceived speed and sustainable frame budgets â€” not micro-benchmark theater. Prefer measured evidence over gut feel.
 
 ## When to Apply
 
@@ -20,20 +20,20 @@ Apply this rule when the user asks to:
 
 Distinguish from sibling rules:
 
-- `cto-architecture` — system-scale bottlenecks (API, DB, queues)
-- `backend-engineering` — server latency and query performance
-- `dead-code` — unused code/deps (overlap on deps; this rule owns *cost* of used deps)
-- `ui-ux-design` — perceived polish; this rule owns measurable cost
-- `qa-testing` — functional verification, not profiling
+- `cto-architecture` â€” system-scale bottlenecks (API, DB, queues)
+- `backend-engineering` â€” server latency and query performance
+- `dead-code` â€” unused code/deps (overlap on deps; this rule owns *cost* of used deps)
+- `ui-ux-design` â€” perceived polish; this rule owns measurable cost
+- `qa-testing` â€” functional verification, not profiling
 
 This rule owns **client/runtime performance diagnosis and fixes**.
 
 ## Precedence
 
-- Measure before rewriting. Hypothesis → profile → fix → remeasure.
+- Measure before rewriting. Hypothesis â†’ profile â†’ fix â†’ remeasure.
 - User-facing metrics (LCP, INP, CLS, TTI) outrank micro-optimizations.
 - Do not break accessibility or correctness for marginal gains.
-- Match Syra frontends: `web/`, `s3labs/`; respect existing React patterns (avoid needless `useMemo`/`useCallback` if the project relies on React Compiler — follow local guidance).
+- Match Syra frontends: `web/`; respect existing React patterns (avoid needless `useMemo`/`useCallback` if the project relies on React Compiler â€” follow local guidance).
 
 ## 1. Hunt Protocol (always)
 
@@ -48,12 +48,12 @@ Report in this structure:
 
 For each finding:
 
-- **Item** — route/component/module
-- **Severity** — blocker | high | medium | low
-- **Evidence** — profiler, Lighthouse, bundle report, code citation
-- **Impact** — what the user feels
-- **Fix** — concrete change
-- **Effort** — S/M/L
+- **Item** â€” route/component/module
+- **Severity** â€” blocker | high | medium | low
+- **Evidence** â€” profiler, Lighthouse, bundle report, code citation
+- **Impact** â€” what the user feels
+- **Fix** â€” concrete change
+- **Effort** â€” S/M/L
 
 ## 2. Slow Rendering
 
@@ -96,9 +96,9 @@ Look for:
 - Parent rerendering children that could be isolated
 - Derived state that should be computed selectively
 
-Evidence: React Profiler — commit duration, “why did this render”.
+Evidence: React Profiler â€” commit duration, â€œwhy did this renderâ€.
 
-Fixes: push state down, split context, stable selectors, avoid redundant state, list keys correctness. Do **not** sprinkle `memo`/`useMemo` everywhere by default — only where profiler shows benefit, unless project conventions say otherwise.
+Fixes: push state down, split context, stable selectors, avoid redundant state, list keys correctness. Do **not** sprinkle `memo`/`useMemo` everywhere by default â€” only where profiler shows benefit, unless project conventions say otherwise.
 
 ## 5. Bundle Size
 
@@ -122,10 +122,10 @@ For each heavy dependency:
 - **Package** + approximate cost (if known)
 - **Where imported**
 - **Why used** (one feature vs core)
-- **Alternatives** — native API, lighter lib, dynamic import
-- **Action** — remove | replace | lazy-load | keep (justified)
+- **Alternatives** â€” native API, lighter lib, dynamic import
+- **Action** â€” remove | replace | lazy-load | keep (justified)
 
-Syra-sensitive: wallet SDKs, chart libs, animation libs, full UI kits — justify or defer off critical path.
+Syra-sensitive: wallet SDKs, chart libs, animation libs, full UI kits â€” justify or defer off critical path.
 
 ## 7. Expensive Components
 
@@ -151,7 +151,7 @@ Prefer project scripts; otherwise:
 | Memory | Chrome Memory heap snapshots |
 | Network | DevTools Network waterfall |
 
-Always state environment (dev vs prod build). Dev mode lies about React cost — confirm critical claims on production build when possible.
+Always state environment (dev vs prod build). Dev mode lies about React cost â€” confirm critical claims on production build when possible.
 
 ## 9. Fix Priority
 
@@ -181,7 +181,7 @@ Avoid:
 - Premature micro-optimizations while LCP image is 3MB
 - Ignoring prod vs dev profiling differences
 - Breaking UX (removing useful feedback) to save 2ms
-- Claiming “fixed performance” without before/after
+- Claiming â€œfixed performanceâ€ without before/after
 
 ## Definition of Done (Performance)
 
@@ -193,4 +193,4 @@ Before closing:
 4. If code changed: how to verify (Profiler/Lighthouse/bundle) stated
 5. Residual unmeasured areas called out
 
-Be skeptical. Fast feels simple — prove it.
+Be skeptical. Fast feels simple â€” prove it.

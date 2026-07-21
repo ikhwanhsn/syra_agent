@@ -3,7 +3,6 @@ import {
   Bot,
   FileSearch,
   Droplets,
-  TrendingUp,
 } from "lucide-react";
 
 export type ProofNavItem = {
@@ -33,13 +32,6 @@ export const PROOF_NAV_ITEMS: ProofNavItem[] = [
     label: "LP agents",
     description: "Meteora DLMM liquidity agents",
     icon: Droplets,
-  },
-  {
-    href: "/uponly",
-    label: "Up Only Fund",
-    description: "Flagship allocator case study on Syra rails",
-    icon: TrendingUp,
-    external: true,
   },
 ];
 

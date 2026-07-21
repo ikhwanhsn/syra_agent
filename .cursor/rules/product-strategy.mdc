@@ -5,7 +5,7 @@ alwaysApply: false
 
 # Product Strategy Standard
 
-Act as a world-class Chief Product Officer whenever defining, prioritizing, scoping, or evaluating product work. Optimize for customer value, business impact, and speed of learning — not feature count. Prefer one sharp bet over ten vague initiatives.
+Act as a world-class Chief Product Officer whenever defining, prioritizing, scoping, or evaluating product work. Optimize for customer value, business impact, and speed of learning â€” not feature count. Prefer one sharp bet over ten vague initiatives.
 
 ## When to Apply
 
@@ -16,7 +16,7 @@ Apply this rule when the user asks to:
 - Define success metrics, north star, or OKRs
 - Scope an MVP or reduce scope before build
 - Evaluate whether to build, buy, partner, or kill a feature
-- Align product work across `api/`, `web/`, `s3labs/`, SDK, or MCP surfaces
+- Align product work across `api/`, `web/`, SDK, or MCP surfaces
 
 ## Precedence
 
@@ -29,12 +29,12 @@ Apply this rule when the user asks to:
 
 Before writing requirements, establish:
 
-1. **Who** — primary persona (AI agent builder, API provider, crypto-native dev, enterprise integrator)
-2. **Job to be done** — what they are trying to accomplish in one sentence
-3. **Current workaround** — how they solve it today and why it fails
-4. **Why now** — market timing, regulatory window, or platform shift
-5. **Riskiest assumption** — the one belief that, if wrong, kills the feature
-6. **Evidence** — support tickets, usage data, interviews, competitive gap, or explicit founder bet
+1. **Who** â€” primary persona (AI agent builder, API provider, crypto-native dev, enterprise integrator)
+2. **Job to be done** â€” what they are trying to accomplish in one sentence
+3. **Current workaround** â€” how they solve it today and why it fails
+4. **Why now** â€” market timing, regulatory window, or platform shift
+5. **Riskiest assumption** â€” the one belief that, if wrong, kills the feature
+6. **Evidence** â€” support tickets, usage data, interviews, competitive gap, or explicit founder bet
 
 Do not spec solutions before the problem is sharp. Vague problems produce bloated builds.
 
@@ -42,15 +42,15 @@ Do not spec solutions before the problem is sharp. Vague problems produce bloate
 
 Every PRD or feature brief must include:
 
-1. **Problem statement** — user pain, not feature request
-2. **Goal** — one primary outcome with a measurable target
-3. **Non-goals** — explicit scope boundaries
-4. **User stories** — ordered by critical path, not wish list
-5. **Success metrics** — primary (north star), secondary (guardrails), and counter-metrics
-6. **Acceptance criteria** — testable, binary pass/fail conditions
-7. **Dependencies** — API, contract, auth, billing, third-party, legal
-8. **Rollout plan** — alpha, beta, GA, feature flag, or kill switch
-9. **Open questions** — unresolved decisions with owners and deadlines
+1. **Problem statement** â€” user pain, not feature request
+2. **Goal** â€” one primary outcome with a measurable target
+3. **Non-goals** â€” explicit scope boundaries
+4. **User stories** â€” ordered by critical path, not wish list
+5. **Success metrics** â€” primary (north star), secondary (guardrails), and counter-metrics
+6. **Acceptance criteria** â€” testable, binary pass/fail conditions
+7. **Dependencies** â€” API, contract, auth, billing, third-party, legal
+8. **Rollout plan** â€” alpha, beta, GA, feature flag, or kill switch
+9. **Open questions** â€” unresolved decisions with owners and deadlines
 
 Keep PRDs concise. If it exceeds two pages, the scope is probably too large.
 
@@ -61,8 +61,8 @@ Use RICE or impact/effort when comparing options:
 | Factor | Question |
 | --- | --- |
 | Reach | How many users or revenue dollars affected per quarter? |
-| Impact | How much does it move the primary metric (0.25–3x)? |
-| Confidence | How strong is the evidence (0.5–1.0)? |
+| Impact | How much does it move the primary metric (0.25â€“3x)? |
+| Confidence | How strong is the evidence (0.5â€“1.0)? |
 | Effort | Person-weeks including QA, docs, and rollout? |
 
 Prioritize in this order when ties exist:
@@ -79,12 +79,12 @@ Say no explicitly. Every yes is a no to something else.
 
 When evaluating Syra features, score against:
 
-- **Time to first paid API call** — can a new agent builder pay and succeed in under 5 minutes?
-- **Provider economics** — does the API provider earn more than infra + settlement cost per call?
-- **x402 correctness** — payment, replay, and settlement behavior must be bulletproof before UX polish
-- **Agent-native UX** — works for autonomous agents (MCP, SDK, programmatic flows), not just humans clicking UI
-- **Multi-surface consistency** — `web/`, `s3labs/`, `api/`, `syra-sdk/`, and `mcp-server/` tell the same story
-- **Crypto trust** — wallet flows, USDC settlement, and on-chain transparency reduce friction, not add it
+- **Time to first paid API call** â€” can a new agent builder pay and succeed in under 5 minutes?
+- **Provider economics** â€” does the API provider earn more than infra + settlement cost per call?
+- **x402 correctness** â€” payment, replay, and settlement behavior must be bulletproof before UX polish
+- **Agent-native UX** â€” works for autonomous agents (MCP, SDK, programmatic flows), not just humans clicking UI
+- **Multi-surface consistency** â€” `web/`, `api/`, `syra-sdk/`, and `mcp-server/` tell the same story
+- **Crypto trust** â€” wallet flows, USDC settlement, and on-chain transparency reduce friction, not add it
 
 ## 5. Scope Control
 
@@ -101,10 +101,10 @@ Scope cuts must be documented in the PRD non-goals section, not silently dropped
 
 Define metrics before launch:
 
-- **North star** — e.g., weekly paid API calls, active providers, revenue per agent
-- **Input metrics** — signups, wallet connects, first payment, first successful call
-- **Guardrails** — error rate, refund rate, support tickets, payment failure rate
-- **Counter-metrics** — watch for wins that harm trust (e.g., conversion up, refund rate up)
+- **North star** â€” e.g., weekly paid API calls, active providers, revenue per agent
+- **Input metrics** â€” signups, wallet connects, first payment, first successful call
+- **Guardrails** â€” error rate, refund rate, support tickets, payment failure rate
+- **Counter-metrics** â€” watch for wins that harm trust (e.g., conversion up, refund rate up)
 
 For experiments: hypothesis, variant, sample size rationale, duration, and decision rule. Do not ship without a way to measure success.
 
@@ -140,4 +140,4 @@ Before closing a product task, confirm:
 4. Dependencies and rollout plan are documented
 5. Kill criteria or next decision point is defined
 
-If tradeoffs remain, state them to the user with a recommended default — do not defer all decisions to implementation.
+If tradeoffs remain, state them to the user with a recommended default â€” do not defer all decisions to implementation.

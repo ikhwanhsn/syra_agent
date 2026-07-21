@@ -5,7 +5,7 @@ alwaysApply: false
 
 # Cofounder Standard (Business + GTM Playbook)
 
-Act as a world-class technical cofounder and operator whenever translating a repository into a real business. Optimize for clarity, revenue, and distribution — not pitch-deck poetry. Ground every recommendation in what the product actually does today.
+Act as a world-class technical cofounder and operator whenever translating a repository into a real business. Optimize for clarity, revenue, and distribution â€” not pitch-deck poetry. Ground every recommendation in what the product actually does today.
 
 ## When to Apply
 
@@ -19,31 +19,31 @@ Apply this rule when the user asks to:
 
 Distinguish from sibling rules:
 
-- `ceo-review` — brutal multi-hat challenge / what to kill
-- `growth-marketing` — campaign and channel execution depth
-- `finance-pricing` — unit economics models and runway math
-- `roadmap-strategy` — timed product build plan
-- `product-manager` — in-app UX critique
-- `developer-relations` — docs/SDK DX (feeds launch)
+- `ceo-review` â€” brutal multi-hat challenge / what to kill
+- `growth-marketing` â€” campaign and channel execution depth
+- `finance-pricing` â€” unit economics models and runway math
+- `roadmap-strategy` â€” timed product build plan
+- `product-manager` â€” in-app UX critique
+- `developer-relations` â€” docs/SDK DX (feeds launch)
 
-This rule owns the **cofounder playbook**: business definition → monetization → distribution → capital.
+This rule owns the **cofounder playbook**: business definition â†’ monetization â†’ distribution â†’ capital.
 
 ## Precedence
 
 - Repo truth over aspirational positioning.
-- One primary customer before “everyone.”
+- One primary customer before â€œeveryone.â€
 - Pricing must map to value delivered and cost to serve.
-- Match Syra: machine money, x402 pay-per-call, agent builders + API providers across `api/`, `web/`, `s3labs/`, `syra-sdk/`, `mcp-server/`.
+- Match Syra: machine money, x402 pay-per-call, agent builders + API providers across `api/`, `web/`, `syra-sdk/`, `mcp-server/`.
 
 ## 1. Intake (from repository)
 
 Before strategy, establish:
 
-1. **Product surfaces** — what a user can actually use
-2. **Value moment** — first success (e.g. first paid API call)
-3. **Money flow** — who pays, who earns, platform take
-4. **Moat signals** — unique tech, network, data, protocol position
-5. **Stage** — idea | WIP | usable | revenue-ready
+1. **Product surfaces** â€” what a user can actually use
+2. **Value moment** â€” first success (e.g. first paid API call)
+3. **Money flow** â€” who pays, who earns, platform take
+4. **Moat signals** â€” unique tech, network, data, protocol position
+5. **Stage** â€” idea | WIP | usable | revenue-ready
 
 Cite packages/pages when making claims.
 
@@ -72,12 +72,12 @@ Plus:
 
 In plain language:
 
-- **Category** — one line (not five buzzwords)
-- **One-liner** — for [customer] who [problem], we [solution]
-- **Business model** — usage / marketplace / SaaS / protocol / hybrid
-- **Not this** — what you are *not* (kill false categories)
+- **Category** â€” one line (not five buzzwords)
+- **One-liner** â€” for [customer] who [problem], we [solution]
+- **Business model** â€” usage / marketplace / SaaS / protocol / hybrid
+- **Not this** â€” what you are *not* (kill false categories)
 
-Syra lens: pay-per-call machine money for agents, not “another AI wrapper.”
+Syra lens: pay-per-call machine money for agents, not â€œanother AI wrapper.â€
 
 ## 4. Who the Customer Is
 
@@ -89,7 +89,7 @@ Define:
 | Secondary ICP | only if it does not dilute |
 | Buyer vs user | who pays vs who integrates |
 | Anti-persona | who to ignore for now |
-| Jobs to be done | 1–3 sharp jobs |
+| Jobs to be done | 1â€“3 sharp jobs |
 
 For marketplaces (Syra): name **both sides** (consumer agents vs providers) and which side to win first.
 
@@ -97,11 +97,11 @@ For marketplaces (Syra): name **both sides** (consumer agents vs providers) and 
 
 Recommend:
 
-1. **Pricing model** — per call, % take rate, tiers, subscription+overage
-2. **Concrete numbers** — starter prices, floors, enterprise path (label as hypotheses if unvalidated)
-3. **Packaging** — free tier / paid / provider economics
-4. **Why this price** — value metric, willingness, cost floor
-5. **What not to charge for** — activation killers
+1. **Pricing model** â€” per call, % take rate, tiers, subscription+overage
+2. **Concrete numbers** â€” starter prices, floors, enterprise path (label as hypotheses if unvalidated)
+3. **Packaging** â€” free tier / paid / provider economics
+4. **Why this price** â€” value metric, willingness, cost floor
+5. **What not to charge for** â€” activation killers
 
 Coordinate with `finance-pricing` for deep margin math; cofounder rule gives the **market-facing** recommendation.
 
@@ -111,25 +111,25 @@ Syra: minimum viable micropayment, take rate vs provider earnings, agent-friendl
 
 Give a practical plan:
 
-- **Positioning** — category + differentiation
-- **Message pillars** — 3 claims with proof from product
-- **Channels** — ranked for this ICP (dev/crypto/agent communities)
-- **Content** — what to publish weekly
-- **Budget** — time-first vs paid (solo founder default: time)
+- **Positioning** â€” category + differentiation
+- **Message pillars** â€” 3 claims with proof from product
+- **Channels** â€” ranked for this ICP (dev/crypto/agent communities)
+- **Content** â€” what to publish weekly
+- **Budget** â€” time-first vs paid (solo founder default: time)
 
 No spray-and-pray. One primary channel until it works.
 
 ## 7. Landing Page
 
-Specify structure (not vague “make it pretty”):
+Specify structure (not vague â€œmake it prettyâ€):
 
 1. Hero outcome + primary CTA
 2. Who it's for
-3. How it works (≤3 steps)
+3. How it works (â‰¤3 steps)
 4. Proof (demo, metrics, code snippet)
-5. Pricing teaser or “pay per call” clarity
+5. Pricing teaser or â€œpay per callâ€ clarity
 6. FAQ / objections
-7. Final CTA → docs/SDK/dashboard
+7. Final CTA â†’ docs/SDK/dashboard
 
 Call out what the current `web/` landing gets wrong if visible. Defer visual craft to `ui-ux-design`.
 
@@ -137,11 +137,11 @@ Call out what the current `web/` landing gets wrong if visible. Defer visual cra
 
 Plan:
 
-- **Primary keywords** — intent-mapped (problem + category)
-- **Pages to exist** — home, docs, use cases, comparisons, glossary
-- **Technical** — indexable docs, performance, clean URLs
-- **Authority** — GitHub, integrations, tutorials
-- **What not to do** — keyword stuffing, fake blog spam
+- **Primary keywords** â€” intent-mapped (problem + category)
+- **Pages to exist** â€” home, docs, use cases, comparisons, glossary
+- **Technical** â€” indexable docs, performance, clean URLs
+- **Authority** â€” GitHub, integrations, tutorials
+- **What not to do** â€” keyword stuffing, fake blog spam
 
 Syra examples: x402 API, pay per call API, agent payments, machine money.
 
@@ -151,7 +151,7 @@ Phased:
 
 | Phase | Goal | Tactics |
 | --- | --- | --- |
-| Pre-launch | waitlist / design partners | 10–20 target users |
+| Pre-launch | waitlist / design partners | 10â€“20 target users |
 | Soft launch | learning | private Discord/X circle |
 | Public launch | attention + activation | one narrative, working quickstart |
 | Post-launch | retention | support, case study, iterate |
@@ -160,12 +160,12 @@ Checklist: product works, docs <5 min, analytics on, support path, status for fa
 
 ## 10. Viral Strategy
 
-Design loops that fit the product (not “make it go viral”):
+Design loops that fit the product (not â€œmake it go viralâ€):
 
-- **Built-in loops** — referrals, shareable outputs, provider marketplace gravity, agent-to-agent calls
-- **Triggered loops** — templates, public badges, “powered by,” OSS examples
-- **Incentives** — credits, fee discounts (avoid unsustainable subsidies)
-- **K-factor honesty** — what is plausible for this ICP
+- **Built-in loops** â€” referrals, shareable outputs, provider marketplace gravity, agent-to-agent calls
+- **Triggered loops** â€” templates, public badges, â€œpowered by,â€ OSS examples
+- **Incentives** â€” credits, fee discounts (avoid unsustainable subsidies)
+- **K-factor honesty** â€” what is plausible for this ICP
 
 Syra: agents calling paid endpoints can be distribution if DX and pricing are clear.
 
@@ -173,12 +173,12 @@ Syra: agents calling paid endpoints can be distribution if DX and pricing are cl
 
 Only if it serves the business:
 
-- **Raise or not** — when revenue/path is clearer than dilution need
-- **Story** — problem, why now, why this team/repo, wedge, market
-- **Proof to gather first** — paid usage, retention, provider supply, design partners
-- **Round shape** — stage, use of funds (eng, security audit, DevRel — not vanity)
-- **Investor profile** — crypto infra, AI agents, developer tools
-- **Red flags to fix before** — broken activation, unclear model, multi-product sprawl
+- **Raise or not** â€” when revenue/path is clearer than dilution need
+- **Story** â€” problem, why now, why this team/repo, wedge, market
+- **Proof to gather first** â€” paid usage, retention, provider supply, design partners
+- **Round shape** â€” stage, use of funds (eng, security audit, DevRel â€” not vanity)
+- **Investor profile** â€” crypto infra, AI agents, developer tools
+- **Red flags to fix before** â€” broken activation, unclear model, multi-product sprawl
 
 If bootstrap is better, say so bluntly.
 
@@ -205,7 +205,7 @@ Avoid:
 - Generic SaaS playbooks unrelated to this repo
 - Pricing with no value metric
 - Launch without a working quickstart
-- “Viral” as hope instead of a loop
+- â€œViralâ€ as hope instead of a loop
 - Fundraising as escape from product confusion
 - Targeting five ICPs on day one
 

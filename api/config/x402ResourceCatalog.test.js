@@ -25,9 +25,10 @@ test('every discovery segment has a catalog entry', () => {
     [],
     `Missing catalog entries for: ${gaps.join(', ') || '(none)'}`,
   );
-  assert.equal(
-    Object.keys(X402_RESOURCE_CATALOG).length,
-    X402_DISCOVERY_RESOURCE_PATHS.length,
+  // Catalog may include partner paths not yet advertised in discovery.
+  assert.ok(
+    Object.keys(X402_RESOURCE_CATALOG).length >= X402_DISCOVERY_RESOURCE_PATHS.length,
+    'catalog should cover at least every discovery path',
   );
 });
 

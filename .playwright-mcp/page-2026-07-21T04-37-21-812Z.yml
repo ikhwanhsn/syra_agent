@@ -1,0 +1,77 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e5]:
+        - button "Open menu" [ref=e6] [cursor=pointer]
+        - link "Syra home" [ref=e7] [cursor=pointer]:
+          - /url: /
+          - img "Syra" [ref=e9]
+          - generic [ref=e10]: Syra
+        - generic [ref=e11]:
+          - button "Toggle theme" [ref=e12] [cursor=pointer]
+          - search [ref=e13]:
+            - combobox "Search pages…" [ref=e14]
+            - generic: /
+          - link "Swap SOL for $SYRA" [ref=e15] [cursor=pointer]:
+            - /url: /swap?inputMint=So11111111111111111111111111111111111111112&outputMint=8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump&outputSymbol=SYRA&outputName=SYRA
+            - generic [ref=e16]:
+              - generic [ref=e17]: Buy
+              - text: $SYRA
+          - button "Connect wallet" [ref=e22] [cursor=pointer]
+    - main [ref=e24]:
+      - generic [ref=e27]:
+        - generic [ref=e29]:
+          - button "Open navigation" [ref=e31] [cursor=pointer]
+          - generic [ref=e32]:
+            - paragraph [ref=e33]: Dashboard
+            - heading "Earn" [level=1] [ref=e34]
+        - generic [ref=e37]:
+          - generic [ref=e38]:
+            - paragraph [ref=e39]: Get paid for what you create
+            - generic [ref=e40]:
+              - generic [ref=e41]:
+                - heading "Earn" [level=1] [ref=e42]
+                - paragraph [ref=e43]: Share playbooks, promote on X, publish APIs, or launch a pump.fun token for creator fees.
+              - link "Earn wallet" [ref=e45] [cursor=pointer]:
+                - /url: /wallet?wallet=earn
+          - generic [ref=e87]:
+            - generic [ref=e89]:
+              - generic [ref=e90]:
+                - paragraph [ref=e91]: Pending
+                - paragraph [ref=e92]: $0.00
+              - generic [ref=e93]:
+                - paragraph [ref=e94]: Paid out
+                - paragraph [ref=e95]: $0.00
+            - generic [ref=e96]:
+              - tablist [ref=e97]:
+                - tab "Tokens" [selected] [ref=e98] [cursor=pointer]
+                - tab "Playbooks" [ref=e104] [cursor=pointer]
+                - tab "Promote" [ref=e108] [cursor=pointer]
+                - tab "Skills" [ref=e112] [cursor=pointer]
+              - tabpanel "Tokens" [ref=e117]:
+                - generic [ref=e118]:
+                  - generic [ref=e119]:
+                    - generic [ref=e120]:
+                      - heading "Tokens" [level=2] [ref=e121]
+                      - paragraph [ref=e122]: Launch a pump.fun token from your Earn wallet — one per wallet.
+                    - button "Launch token" [active] [ref=e123] [cursor=pointer]
+                  - generic [ref=e124]:
+                    - textbox "Search token launches" [ref=e126]:
+                      - /placeholder: Search
+                    - listbox "Sort" [ref=e127]:
+                      - option "New" [selected] [ref=e128] [cursor=pointer]
+                      - option "Mcap" [ref=e129] [cursor=pointer]
+                  - generic [ref=e130]:
+                    - paragraph [ref=e131]: Couldn’t load launches
+                    - paragraph [ref=e132]: Try again in a moment.
+                    - button "Retry" [ref=e133] [cursor=pointer]
+  - region "Notifications (F8)":
+    - list
+  - region "Notifications alt+T":
+    - list:
+      - listitem [ref=e134]:
+        - status [ref=e135]:
+          - generic [ref=e139]:
+            - paragraph [ref=e140]: Connect wallet
+            - paragraph [ref=e141]: Connect a wallet to launch a token.
+          - button "Dismiss notification" [ref=e142] [cursor=pointer]

@@ -1,7 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { useCallback, useEffect, useState } from "react";
-import { EarnKolPanel } from "@/components/earn/EarnKolPanel";
 import { EarnPromptPanel } from "@/components/earn/EarnPromptPanel";
 import { EarnSkillsPanel } from "@/components/earn/EarnSkillsPanel";
 import { EarnSummarySection } from "@/components/earn/EarnSummarySection";
@@ -18,7 +17,7 @@ import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import { fetchEarnSummary } from "@/lib/pillarsApi";
 import { cn } from "@/lib/utils";
 
-const EARN_TRACKS = ["token", "prompts", "kol", "skills"] as const;
+const EARN_TRACKS = ["token", "prompts", "skills"] as const;
 type EarnTrack = (typeof EARN_TRACKS)[number];
 
 function parseTrack(value: string | null): EarnTrack {
@@ -100,7 +99,7 @@ export default function EarnPage() {
       embedded
       title="Earn"
       tagline="Get paid for what you create"
-      description="Share playbooks, promote on X, publish APIs, or launch a pump.fun token for creator fees."
+      description="Share playbooks, publish APIs, or launch a pump.fun token for creator fees."
       actions={
         <Button variant="outline" size="sm" asChild>
           <Link to="/wallet?wallet=earn">Earn wallet</Link>
@@ -134,7 +133,6 @@ export default function EarnPage() {
                 onRequestAuth={handleRequestAuth}
               />
             }
-            kolContent={<EarnKolPanel walletAddress={address} connected={connected} />}
             skillsContent={
               <EarnSkillsPanel
                 anonymousId={anonymousId}

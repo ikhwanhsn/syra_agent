@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { OverviewPageBackdrop } from "@/components/dashboard/overview/OverviewPageBackdrop";
+import { GrowthFooter } from "@/components/growth/GrowthFooter";
 import { PlaygroundPageShell } from "@/components/playground/PlaygroundPageShell";
 import {
   PLAYGROUND_PAGE_CLASS,
@@ -31,6 +32,7 @@ export function ArticlePageShell({ children, className }: ArticlePageShellProps)
       >
         {children}
       </div>
+      <GrowthFooter />
     </PlaygroundPageShell>
   );
 }

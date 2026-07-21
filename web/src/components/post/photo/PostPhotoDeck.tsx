@@ -10,6 +10,12 @@ import {
 import { getPostShareCopyWithUrl } from "@/lib/postShare";
 import { PostBackLink } from "@/components/post/PostBackLink";
 import { PostPhotoSatoriPreview } from "@/components/post/photo/satori/PostPhotoSatoriPreview";
+import {
+  PHOTO_LAYOUT_VARIANT_COUNT,
+  PHOTO_LAYOUT_VARIANT_LABELS,
+  PHOTO_LAYOUT_VARIANT_SHORT,
+  type PhotoLayoutVariant,
+} from "@/components/post/photo/satori/variants";
 import { PostShareCopyPanel } from "@/components/post/PostShareCopyPanel";
 import { PostUpdateNav } from "@/components/post/PostUpdateNav";
 import { PostXStatusControl } from "@/components/post/PostXStatusControl";
@@ -53,6 +59,44 @@ function CardButton({
   );
 }
 
+function LayoutVariantSelector({
+  value,
+  onChange,
+}: {
+  value: PhotoLayoutVariant;
+  onChange: (next: PhotoLayoutVariant) => void;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label="Layout variant"
+      className="inline-flex items-center gap-0.5 rounded-full border border-white/10 bg-white/[0.04] p-0.5"
+    >
+      {Array.from({ length: PHOTO_LAYOUT_VARIANT_COUNT }, (_, i) => {
+        const variant = i as PhotoLayoutVariant;
+        const active = value === variant;
+        return (
+          <button
+            key={variant}
+            type="button"
+            aria-pressed={active}
+            aria-label={PHOTO_LAYOUT_VARIANT_LABELS[variant]}
+            onClick={() => onChange(variant)}
+            className={cn(
+              "inline-flex h-10 min-w-10 items-center justify-center rounded-full px-3 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F3BA2F]",
+              active
+                ? "bg-[#F3BA2F]/15 text-[#F3BA2F]"
+                : "text-white/50 hover:bg-white/[0.06] hover:text-white/80",
+            )}
+          >
+            {PHOTO_LAYOUT_VARIANT_SHORT[variant]}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 interface PostPhotoDeckProps {
   post: PostPhotoUpdate;
 }
@@ -61,10 +105,14 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
   const { meta, cards } = post;
 
   const [cardIndex, setCardIndex] = useState(0);
+  const [variantByCard, setVariantByCard] = useState<
+    Record<number, PhotoLayoutVariant>
+  >({});
   const [exporting, setExporting] = useState(false);
   const [imageCopied, setImageCopied] = useState(false);
 
   const activeCard = cards[cardIndex];
+  const activeVariant: PhotoLayoutVariant = variantByCard[cardIndex] ?? 0;
   const cardShareText = getPostShareCopyWithUrl(post.meta, "photo", {
     photoPost: post,
     photoCardIndex: cardIndex,
@@ -79,13 +127,21 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
     };
   }, [meta.title]);
 
+  const setActiveVariant = useCallback(
+    (next: PhotoLayoutVariant) => {
+      setVariantByCard((prev) => ({ ...prev, [cardIndex]: next }));
+    },
+    [cardIndex],
+  );
+
   const handleDownload = useCallback(async () => {
     if (exporting) return;
     setExporting(true);
     try {
       await exportPostPhotoPng(
         activeCard,
-        buildPostPhotoFilename(meta.id, activeCard.role),
+        buildPostPhotoFilename(meta.id, activeCard.role, activeVariant),
+        activeVariant,
       );
       toast.success("Image downloaded");
     } catch {
@@ -93,13 +149,13 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
     } finally {
       setExporting(false);
     }
-  }, [exporting, activeCard, meta.id]);
+  }, [exporting, activeCard, meta.id, activeVariant]);
 
   const handleCopy = useCallback(async () => {
     if (exporting) return;
     setExporting(true);
     try {
-      const ok = await copyPostPhotoToClipboard(activeCard);
+      const ok = await copyPostPhotoToClipboard(activeCard, activeVariant);
       if (ok) {
         setImageCopied(true);
         toast.success("Image copied to clipboard");
@@ -112,7 +168,7 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
     } finally {
       setExporting(false);
     }
-  }, [exporting, activeCard]);
+  }, [exporting, activeCard, activeVariant]);
 
   return (
     <div className="post-root post-photo-root relative flex min-h-[100dvh] w-full min-w-0 flex-col overflow-x-hidden bg-[#030303] text-white">
@@ -245,21 +301,29 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
             className="post-orb post-orb-b pointer-events-none absolute rounded-full scale-75"
             aria-hidden
           />
-          <p className="relative z-10 mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-white/35">
-            {slotLabel}
-            {" · "}
-            {activeCard.role}
-            {" · "}
-            {String(cardIndex + 1).padStart(2, "0")}/
-            {String(POST_PHOTO_CARD_COUNT).padStart(2, "0")}
-            {" · 1200×675"}
-          </p>
+          <div className="relative z-10 mb-2 flex w-full max-w-[1200px] flex-col items-center gap-2 sm:flex-row sm:justify-between sm:gap-3">
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/35">
+              {slotLabel}
+              {" · "}
+              {activeCard.role}
+              {" · "}
+              {String(cardIndex + 1).padStart(2, "0")}/
+              {String(POST_PHOTO_CARD_COUNT).padStart(2, "0")}
+              {" · "}
+              {PHOTO_LAYOUT_VARIANT_LABELS[activeVariant]}
+              {" · 1200×675"}
+            </p>
+            <LayoutVariantSelector
+              value={activeVariant}
+              onChange={setActiveVariant}
+            />
+          </div>
           <div className="relative z-10 w-full">
-            <PostPhotoSatoriPreview card={activeCard} />
+            <PostPhotoSatoriPreview card={activeCard} variant={activeVariant} />
           </div>
           <p className="post-footer-hint relative z-10 mt-3 hidden text-center font-mono text-[10px] text-white/30 sm:block">
-            Export each card as PNG, then paste the matching X post — 15 posts
-            per ship log
+            Pick layout A/B/C per card, export PNG, then paste the matching X
+            post — 15 posts per ship log
           </p>
         </div>
       </div>

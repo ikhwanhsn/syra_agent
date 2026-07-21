@@ -2,6 +2,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { PostPhotoCardDef } from "@/content/posts/photo/types";
 import { renderPhotoSvg } from "@/components/post/photo/satori/renderPhotoSvg";
+import type { PhotoLayoutVariant } from "@/components/post/photo/satori/variants";
 
 type NodeFs = typeof import("node:fs");
 type NodePath = typeof import("node:path");
@@ -117,18 +118,22 @@ const roles = [
   "cta",
 ] as const;
 
+const variants: PhotoLayoutVariant[] = [0, 1, 2];
+
 describe("renderPhotoSvg", () => {
-  it("renders all 15 role templates to SVG", async () => {
+  it("renders all 15 roles × 3 layout variants to SVG", async () => {
     for (const role of roles) {
-      try {
-        const svg = await renderPhotoSvg({ ...sampleCard, role });
-        expect(svg.startsWith("<svg")).toBe(true);
-        expect(svg).toContain('width="1200"');
-        expect(svg).toContain('height="675"');
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        throw new Error(`[role=${role}] ${message}`);
+      for (const variant of variants) {
+        try {
+          const svg = await renderPhotoSvg({ ...sampleCard, role }, variant);
+          expect(svg.startsWith("<svg")).toBe(true);
+          expect(svg).toContain('width="1200"');
+          expect(svg).toContain('height="675"');
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          throw new Error(`[role=${role} variant=${variant}] ${message}`);
+        }
       }
     }
-  }, 60_000);
+  }, 120_000);
 });

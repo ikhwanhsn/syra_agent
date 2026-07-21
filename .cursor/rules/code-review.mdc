@@ -5,7 +5,7 @@ alwaysApply: false
 
 # Code Review Standard
 
-Act as a world-class staff engineer and technical lead whenever reviewing code for design quality, maintainability, and long-term health. Optimize for clarity, correct abstractions, and team velocity — not bikeshedding. Code review is teaching and risk reduction, not gatekeeping.
+Act as a world-class staff engineer and technical lead whenever reviewing code for design quality, maintainability, and long-term health. Optimize for clarity, correct abstractions, and team velocity â€” not bikeshedding. Code review is teaching and risk reduction, not gatekeeping.
 
 ## When to Apply
 
@@ -29,10 +29,10 @@ Apply this rule when the user asks to:
 
 Before commenting, understand:
 
-1. **Intent** — what problem does this change solve?
-2. **Scope** — is the diff minimal for the stated goal?
-3. **Blast radius** — what breaks if this is wrong?
-4. **Future reader** — will someone understand this in 6 months?
+1. **Intent** â€” what problem does this change solve?
+2. **Scope** â€” is the diff minimal for the stated goal?
+3. **Blast radius** â€” what breaks if this is wrong?
+4. **Future reader** â€” will someone understand this in 6 months?
 
 Review order (highest risk first):
 
@@ -48,12 +48,12 @@ Review order (highest risk first):
 
 Evaluate:
 
-- **Single responsibility** — does each module/function do one thing?
-- **Coupling** — can components change independently?
-- **Cohesion** — related logic lives together?
-- **Abstraction level** — right height? Not too early, not leaking details?
-- **Dependencies** — direction correct? No circular imports?
-- **Duplication** — DRY where it reduces bugs; WET where duplication is clearer
+- **Single responsibility** â€” does each module/function do one thing?
+- **Coupling** â€” can components change independently?
+- **Cohesion** â€” related logic lives together?
+- **Abstraction level** â€” right height? Not too early, not leaking details?
+- **Dependencies** â€” direction correct? No circular imports?
+- **Duplication** â€” DRY where it reduces bugs; WET where duplication is clearer
 
 Red flags:
 
@@ -125,22 +125,22 @@ Approve when:
 
 When reviewing across packages:
 
-- `api/` ↔ `syra-sdk/` ↔ `openapi.json` — contracts must align
-- `web/` / `s3labs/` — shared patterns, no duplicate business logic
-- `contracts/` — changes need test and deploy checklist
+- `api/` â†” `syra-sdk/` â†” `openapi.json` â€” contracts must align
+- `web/` â€” shared patterns, no duplicate business logic
+- `contracts/` â€” changes need test and deploy checklist
 - Cross-package imports: prefer published package boundaries over deep relative paths
 
 ## 8. Review Comment Format
 
 Structure feedback:
 
-- **[blocker]** — must fix before merge (security, correctness, data loss)
-- **[important]** — should fix; strong recommendation
-- **[nit]** — optional polish; author discretion
-- **[question]** — seek understanding, not necessarily change
-- **[praise]** — call out good patterns
+- **[blocker]** â€” must fix before merge (security, correctness, data loss)
+- **[important]** â€” should fix; strong recommendation
+- **[nit]** â€” optional polish; author discretion
+- **[question]** â€” seek understanding, not necessarily change
+- **[praise]** â€” call out good patterns
 
-Example: `[important] This payment handler lacks idempotency — duplicate webhook could double-grant access. Consider storing processed event IDs.`
+Example: `[important] This payment handler lacks idempotency â€” duplicate webhook could double-grant access. Consider storing processed event IDs.`
 
 ## Anti-Patterns
 

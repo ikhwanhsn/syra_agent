@@ -6,7 +6,7 @@ alwaysApply: false
 
 # DevOps and SRE Standard
 
-Act as a world-class Site Reliability Engineer whenever building, deploying, operating, or recovering production systems. Optimize for reliability, observability, and safe change — not heroics. Automate toil; measure everything; assume things will fail.
+Act as a world-class Site Reliability Engineer whenever building, deploying, operating, or recovering production systems. Optimize for reliability, observability, and safe change â€” not heroics. Automate toil; measure everything; assume things will fail.
 
 ## When to Apply
 
@@ -48,12 +48,12 @@ Rules:
 
 Minimum pipeline stages for application changes:
 
-1. **Lint** — ESLint, Prettier, solhint as applicable
-2. **Typecheck** — TypeScript where used
-3. **Test** — unit and integration; block merge on failure
-4. **Build** — verify artifacts compile
-5. **Security** — gitleaks, dependency audit (non-blocking only with documented exception)
-6. **Deploy** — staging auto; prod manual approval or tag
+1. **Lint** â€” ESLint, Prettier, solhint as applicable
+2. **Typecheck** â€” TypeScript where used
+3. **Test** â€” unit and integration; block merge on failure
+4. **Build** â€” verify artifacts compile
+5. **Security** â€” gitleaks, dependency audit (non-blocking only with documented exception)
+6. **Deploy** â€” staging auto; prod manual approval or tag
 
 Best practices:
 
@@ -75,23 +75,23 @@ Pre-deploy checklist:
 
 Deploy strategies:
 
-- **Rolling** — default for stateless services
-- **Blue-green** — zero-downtime when needed
-- **Canary** — gradual traffic shift for high-risk changes
+- **Rolling** â€” default for stateless services
+- **Blue-green** â€” zero-downtime when needed
+- **Canary** â€” gradual traffic shift for high-risk changes
 
 Post-deploy:
 
 - Smoke test critical paths (health check, auth, payment, API call)
-- Watch error rate and latency for 15–30 minutes
+- Watch error rate and latency for 15â€“30 minutes
 - Roll back if SLO breach, do not debug forward in prod under fire
 
 ## 4. Observability
 
 Three pillars, all required for prod services:
 
-1. **Logs** — structured JSON, correlation IDs, retention policy
-2. **Metrics** — RED (rate, errors, duration) for services; USE for resources
-3. **Traces** — distributed tracing for multi-service requests
+1. **Logs** â€” structured JSON, correlation IDs, retention policy
+2. **Metrics** â€” RED (rate, errors, duration) for services; USE for resources
+3. **Traces** â€” distributed tracing for multi-service requests
 
 Alerting rules:
 
@@ -109,26 +109,26 @@ SLO examples for Syra API:
 
 On incident:
 
-1. **Acknowledge** — assign incident commander
-2. **Mitigate** — rollback, scale, disable feature flag, pause payments if fund risk
-3. **Communicate** — status page or internal channel; customer support briefed
-4. **Diagnose** — logs, metrics, recent deploys, config changes
-5. **Resolve** — fix forward or rollback
-6. **Postmortem** — blameless, timeline, root cause, action items with owners
+1. **Acknowledge** â€” assign incident commander
+2. **Mitigate** â€” rollback, scale, disable feature flag, pause payments if fund risk
+3. **Communicate** â€” status page or internal channel; customer support briefed
+4. **Diagnose** â€” logs, metrics, recent deploys, config changes
+5. **Resolve** â€” fix forward or rollback
+6. **Postmortem** â€” blameless, timeline, root cause, action items with owners
 
 Severity mapping aligns with security-engineering rule for cross-team consistency.
 
 ## 6. Infrastructure and Cost
 
 - Right-size instances; autoscale stateless tiers
-- CDN for static assets (`web/`, `s3labs/`)
+- CDN for static assets (`web/`)
 - Database connection pooling; avoid connection storms on deploy
 - S3 lifecycle policies for logs and uploads
 - Review cloud bill monthly; tag resources by service/env
 
 ## 7. Syra Monorepo Operations
 
-- **Packages**: `api/`, `web/`, `s3labs/`, `mcp-server/`, `syra-sdk/` may deploy independently
+- **Packages**: `api/`, `web/`, `mcp-server/`, `syra-sdk/` may deploy independently
 - **Contracts**: separate deploy pipeline; verify on explorer post-deploy
 - **Scripts**: `scripts/` for one-off ops; document usage and required env
 - **OpenAPI**: regenerate or validate `openapi.json` on API changes if part of release

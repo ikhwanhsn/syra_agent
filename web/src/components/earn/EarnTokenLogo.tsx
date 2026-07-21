@@ -7,17 +7,29 @@ type EarnTokenLogoProps = {
   alt: string;
   className?: string;
   iconClassName?: string;
+  /** `cover` fills the container edge-to-edge for hero bands. */
+  variant?: "logo" | "cover";
 };
 
 /** Token logo with graceful fallback when URL is missing or fails to load. */
-export function EarnTokenLogo({ src, alt, className, iconClassName }: EarnTokenLogoProps) {
+export function EarnTokenLogo({
+  src,
+  alt,
+  className,
+  iconClassName,
+  variant = "logo",
+}: EarnTokenLogoProps) {
   const [failed, setFailed] = useState(false);
   const showImg = Boolean(src?.trim()) && !failed;
+  const isCover = variant === "cover";
 
   return (
     <div
       className={cn(
-        "relative flex shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border/50 bg-muted/40 shadow-[inset_0_1px_0_0_hsl(var(--border)/0.35)]",
+        "relative flex shrink-0 items-center justify-center overflow-hidden",
+        isCover
+          ? "bg-muted/50"
+          : "rounded-xl border border-border/50 bg-muted/40 shadow-[inset_0_1px_0_0_hsl(var(--border)/0.35)]",
         className,
       )}
     >
@@ -30,6 +42,11 @@ export function EarnTokenLogo({ src, alt, className, iconClassName }: EarnTokenL
           decoding="async"
           referrerPolicy="no-referrer"
           onError={() => setFailed(true)}
+        />
+      ) : isCover ? (
+        <div
+          className="absolute inset-0 bg-gradient-to-br from-muted/80 via-muted/40 to-background/60"
+          aria-hidden
         />
       ) : (
         <Coins className={cn("text-muted-foreground", iconClassName ?? "h-4 w-4")} aria-hidden />

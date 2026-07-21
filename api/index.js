@@ -49,12 +49,9 @@ import { createAnalyticsRouter } from "./routes/analytics.js";
 import { createPublicMetricsRouter } from "./routes/publicMetrics.js";
 import { createFreeTierRouter } from "./routes/freeTier.js";
 import { createInternalResearchRouter } from "./routes/internalResearch.js";
-import { createS3labsTelegramWebhookRouter } from "./routes/s3labsTelegramWebhook.js";
 import { createInternalPartnershipScoutRouter } from "./routes/internalPartnershipScout.js";
-import { createInternalHackathonsRouter } from "./routes/internalHackathons.js";
 import { createInternalBuybackRouter } from "./routes/internalBuyback.js";
-import { createInternalEventsRouter } from "./routes/internalEvents.js";
-import { createInternalGrowthRouter } from "./routes/internalGrowth.js";
+import { createInternalHackathonScoutRouter } from "./routes/internalHackathonScout.js";
 import { createInternalToolsRouter } from "./routes/internalTools.js";
 import { createInternalAgentWalletsRouter } from "./routes/internalAgentWallets.js";
 import { createInternalTesterAgentRouter } from "./routes/internalTesterAgent.js";
@@ -70,12 +67,6 @@ import { createSyraTradingTelegramWebhookRouter } from "./routes/syraTradingTele
 import { createSyraTelegramWebhookRouter } from "./routes/syraTelegramWebhook.js";
 import { createSentinelDashboardRouter } from "./routes/sentinelDashboard.js";
 import { createDashboardSummaryRouterRegular } from "./routes/dashboardSummary.js";
-import {
-  createUponlyRiseMarketRouter,
-  createUponlyRiseMarketsRouter,
-  createUponlyRisePortfolioRouter,
-} from "./routes/uponlyRiseMarket.js";
-import { createUponlyRiseCreateRouter } from "./routes/uponlyRiseCreate.js";
 import { createXApiRouter } from "./routes/partner/x-api/index.js";
 import { createBinanceTickerPriceRouter } from "./routes/partner/binance/ticker-price.js";
 // x402 route imports (consolidated from v2 into routes)
@@ -153,8 +144,6 @@ import { createPlaygroundShareRouter } from "./routes/playgroundShare.js";
 import { createStreamflowLocksRouter } from "./routes/streamflowLocks.js";
 import { createStakingAppRouter } from "./routes/stakingApp.js";
 import { createTempoPayoutRouter } from "./routes/payouts/tempo.js";
-import { createKolRouter } from "./routes/kol/index.js";
-import { createJobsRouter } from "./routes/jobs/index.js";
 import { createAgentscoreRouter } from "./routes/agentscore/index.js";
 import { createPillarsRouter } from "./routes/pillars.js";
 import { createInvestRouter } from "./routes/invest.js";
@@ -297,10 +286,6 @@ const CORS_ALLOWED_ORIGINS = [
   "https://dev-ai-agent-syra.vercel.app",
   "https://predict.syraa.fun",
   "https://www.predict.syraa.fun",
-  "https://uponlyfund.com",
-  "https://www.uponlyfund.com",
-  "https://s3labs.xyz",
-  "https://www.s3labs.xyz",
   ...CORS_EXTRA,
 ];
 /** Hoisted once — the CORS origin callback runs on every non-x402 browser request; avoid new Set() per hit. */
@@ -502,10 +487,10 @@ function isX402Route(p) {
 // external agents and pay-per-call clients can integrate.
 //
 // Every other route — /agent/*, /api/playground-proxy, /api/signal, /preview/*,
-// /dashboard-summary, /binance-ticker, /uponly-rise-*, /streamflow-locks, /staking, etc. —
+// /dashboard-summary, /binance-ticker, /streamflow-locks, /staking, etc. —
 // falls through to CORS_OPTIONS_REGULAR which only allows Syra's own origins (syraa.fun,
 // playground.syraa.fun, dashboard.syraa.fun, predict.syraa.fun,
-// uponlyfund.com, configured dev origins). This prevents external websites from consuming
+// configured dev origins). This prevents external websites from consuming
 // non-x402 Syra APIs while still letting Syra frontends call them transparently
 // (trusted-origin API-key injection covers auth for browser callers).
 app.use((req, res, next) => {
@@ -825,7 +810,7 @@ app.get("/favicon.ico", (req, res) => {
 
 // Rate limit all non-x402 routes (preview, dashboard-summary, x, agent, playground, analytics, prediction-game) to prevent spam, DDoS, abuse
 // Strict dual-window: burst 25/10s + sustained 100/min. Only x402 (paid) routes skip.
-// Skip RISE proxies: one session loads many list pages (full-universe); counting each page toward burst breaks the UpOnly dashboard with 429.
+// Skip RISE proxies: one session loads many list pages (full-universe); counting each page toward burst breaks the client with 429.
 app.use(
   rateLimit({
     strict: true,
@@ -843,20 +828,9 @@ app.use(
         p.startsWith("/internal/tester-agent") ||
         p.startsWith("/internal/trend-scout/run") ||
         p.startsWith("/internal/growth-scout/run") ||
-        p.startsWith("/internal/s3labs-news/run") ||
-        p.startsWith("/internal/s3labs-developer/run") ||
-        p.startsWith("/internal/s3labs-event/run") ||
-        p.startsWith("/internal/s3labs-job/run") ||
-        p.startsWith("/internal/s3labs-job/sync") ||
-        p.startsWith("/internal/s3labs-telegram/webhook") ||
         p.startsWith("/internal/syra-telegram/webhook") ||
         p.startsWith("/internal/partnership-scout/run") ||
-        p.startsWith("/internal/hackathons/run") ||
-        p.startsWith("/internal/events/run") ||
-        p.startsWith("/internal/buyback/run") ||
-        p.startsWith("/uponly-rise-market") ||
-        p.startsWith("/uponly-rise-portfolio") ||
-        p.startsWith("/uponly-rise-create")
+        p.startsWith("/internal/buyback/run")
       );
     },
   }),
@@ -866,9 +840,6 @@ app.use(
 // server API key so frontends never need to embed it in client bundles (security fix).
 app.use(injectTrustedOriginApiKey);
 
-// KOL marketplace — public, no API key (s3labs /kol). Mount before requireApiKey.
-app.use("/kol", createKolRouter());
-app.use("/jobs", createJobsRouter());
 app.use("/pillars", createPillarsRouter());
 app.use("/invest", createInvestRouter());
 app.use("/grow", createGrowRouter());
@@ -881,7 +852,7 @@ app.use("/multiwallet-recover", createMultiWalletRecoveryRouter());
 //   - landing/static surface (/, /favicon.ico, /og*, /info*) and the playground / prediction game
 //     surfaces that have their own session model.
 // All other non-x402 routes — including the preview/dashboard tier
-// (/preview/*, /dashboard-summary, /binance-ticker, /streamflow-locks, /staking, /uponly-rise-*)
+// (/preview/*, /dashboard-summary, /binance-ticker, /streamflow-locks, /staking)
 // and /agent/* — require a valid API key. Syra's own browser frontends keep working transparently
 // because injectTrustedOriginApiKey above injects the server key when Origin/Referer is a trusted
 // Syra origin (see utils/trustedOriginAuth.js). External sites and scripts cannot reach these
@@ -942,77 +913,10 @@ app.use(
       }
     }
     if (
-      p === "/internal/hackathons/run" &&
-      String(req.method || "").toUpperCase() === "POST"
-    ) {
-      const secret = (process.env.HACKATHON_SCOUT_CRON_SECRET || "").trim();
-      if (secret) {
-        const got = (req.get("x-hackathon-scout-cron-secret") || "").trim();
-        if (got === secret) return true;
-      }
-    }
-    if (
-      p === "/internal/events/run" &&
-      String(req.method || "").toUpperCase() === "POST"
-    ) {
-      const secret = (process.env.EVENT_SCOUT_CRON_SECRET || "").trim();
-      if (secret) {
-        const got = (req.get("x-event-scout-cron-secret") || "").trim();
-        if (got === secret) return true;
-      }
-    }
-    if (
-      p.startsWith("/internal/s3labs-telegram/webhook") &&
-      String(req.method || "").toUpperCase() === "POST"
-    ) {
-      return true;
-    }
-    if (
       p.startsWith("/internal/syra-telegram/webhook") &&
       String(req.method || "").toUpperCase() === "POST"
     ) {
       return true;
-    }
-    if (
-      p === "/internal/s3labs-news/run" &&
-      String(req.method || "").toUpperCase() === "POST"
-    ) {
-      const secret = (process.env.S3LABS_NEWS_CRON_SECRET || "").trim();
-      if (secret) {
-        const got = (req.get("x-s3labs-news-cron-secret") || "").trim();
-        if (got === secret) return true;
-      }
-    }
-    if (
-      (p === "/internal/s3labs-developer/run" ||
-        p === "/internal/s3labs-event/run" ||
-        p === "/internal/s3labs-job/run" ||
-        p === "/internal/s3labs-job/sync") &&
-      String(req.method || "").toUpperCase() === "POST"
-    ) {
-      const shared = (process.env.S3LABS_AGENTS_CRON_SECRET || "").trim();
-      if (shared) {
-        const got = (req.get("x-s3labs-agents-cron-secret") || "").trim();
-        if (got === shared) return true;
-      }
-      if (p === "/internal/s3labs-developer/run") {
-        const secret = (process.env.S3LABS_DEVELOPER_CRON_SECRET || "").trim();
-        if (secret && (req.get("x-s3labs-developer-cron-secret") || "").trim() === secret) {
-          return true;
-        }
-      }
-      if (p === "/internal/s3labs-event/run") {
-        const secret = (process.env.S3LABS_EVENT_CRON_SECRET || "").trim();
-        if (secret && (req.get("x-s3labs-event-cron-secret") || "").trim() === secret) {
-          return true;
-        }
-      }
-      if (p === "/internal/s3labs-job/run" || p === "/internal/s3labs-job/sync") {
-        const secret = (process.env.S3LABS_JOB_CRON_SECRET || "").trim();
-        if (secret && (req.get("x-s3labs-job-cron-secret") || "").trim() === secret) {
-          return true;
-        }
-      }
     }
     if (
       p === "/agent/bnb8183/execute" &&
@@ -1033,8 +937,7 @@ app.use(
       p.startsWith("/info") ||
       p.startsWith("/agentscore/") ||
       p.startsWith("/playground") ||
-      p.startsWith("/prediction-game") ||
-      p.startsWith("/kol")
+      p.startsWith("/prediction-game")
     );
   }),
 );
@@ -1276,10 +1179,6 @@ app.use("/preview/news", await createNewsRouterRegular());
 app.use("/preview/sentiment", await createSentimentRouterRegular());
 app.use("/preview/signal", await createSignalRouterRegular());
 app.use("/dashboard-summary", await createDashboardSummaryRouterRegular());
-app.use("/uponly-rise-market", createUponlyRiseMarketRouter());
-app.use("/uponly-rise-markets", createUponlyRiseMarketsRouter());
-app.use("/uponly-rise-portfolio", createUponlyRisePortfolioRouter());
-app.use("/uponly-rise-create", createUponlyRiseCreateRouter());
 app.use("/binance-ticker", await createBinanceTickerPriceRouter());
 app.use("/btc", await createBtcRouter());
 // Legacy /v1 → 410
@@ -1414,16 +1313,12 @@ app.use("/leaderboard", await createLeaderboardRouter());
 app.use("/internal/sentinel", await createSentinelDashboardRouter());
 // Tester agent (cron smoke); mount before /internal so paths are not swallowed by research router
 app.use("/internal/tester-agent", createInternalTesterAgentRouter());
-// S3Labs Telegram @mention Q&A (webhook secret; no API key)
-app.use("/internal", createS3labsTelegramWebhookRouter());
 app.use("/internal", createSyraTradingTelegramWebhookRouter());
 app.use("/internal", createSyraTelegramWebhookRouter());
 // Internal dashboard: research-store + scouts (API key auth, no x402)
 app.use("/internal", createInternalPartnershipScoutRouter());
-app.use("/internal", createInternalHackathonsRouter());
 app.use("/internal", createInternalBuybackRouter());
-app.use("/internal", createInternalEventsRouter());
-app.use("/internal", createInternalGrowthRouter());
+app.use("/internal", createInternalHackathonScoutRouter());
 app.use("/internal", createInternalToolsRouter());
 app.use("/internal", createInternalAgentWalletsRouter());
 app.use("/internal", await createInternalResearchRouter());
@@ -2402,48 +2297,6 @@ app.listen(PORT, () => {
       ),
     );
 
-  import("./libs/s3labs/s3labsScheduler.js")
-    .then(({ startS3labsAgentsScheduler }) => {
-      startS3labsAgentsScheduler();
-    })
-    .catch((e) =>
-      console.warn(
-        "[s3labs-agents] load failed:",
-        e instanceof Error ? e.message : e,
-      ),
-    );
-
-  import("./libs/s3labs/s3labsJobScheduler.js")
-    .then(({ startS3labsJobScheduler }) => {
-      startS3labsJobScheduler();
-    })
-    .catch((e) =>
-      console.warn(
-        "[s3labs-job] load failed:",
-        e instanceof Error ? e.message : e,
-      ),
-    );
-
-  import("./libs/s3labs/s3labsJobSyncScheduler.js")
-    .then(({ startS3labsJobSyncScheduler }) => {
-      startS3labsJobSyncScheduler();
-    })
-    .catch((e) =>
-      console.warn(
-        "[s3labs-job-sync] load failed:",
-        e instanceof Error ? e.message : e,
-      ),
-    );
-
-  import("./libs/s3labs/s3labsTelegramBootstrap.js")
-    .then(({ startS3labsTelegramQa }) => startS3labsTelegramQa())
-    .catch((e) =>
-      console.warn(
-        "[s3labs-telegram-qa] load failed:",
-        e instanceof Error ? e.message : e,
-      ),
-    );
-
   import("./libs/syraTelegramBot/bootstrap.js")
     .then(({ startSyraTelegramBot }) => startSyraTelegramBot())
     .catch((e) =>
@@ -2475,17 +2328,6 @@ app.listen(PORT, () => {
       ),
     );
 
-  import("./libs/hackathon/hackathonScoutScheduler.js")
-    .then(({ startHackathonScoutScheduler }) => {
-      startHackathonScoutScheduler();
-    })
-    .catch((e) =>
-      console.warn(
-        "[hackathon-scout] load failed:",
-        e instanceof Error ? e.message : e,
-      ),
-    );
-
   import("./libs/buybackScheduler.js")
     .then(({ startBuybackScheduler }) => {
       startBuybackScheduler();
@@ -2512,17 +2354,6 @@ app.listen(PORT, () => {
     .then(({ ensureLabX402CallIndexes }) => ensureLabX402CallIndexes())
     .catch(() => {});
 
-  import("./libs/events/eventScoutScheduler.js")
-    .then(({ startEventScoutScheduler }) => {
-      startEventScoutScheduler();
-    })
-    .catch((e) =>
-      console.warn(
-        "[event-scout] load failed:",
-        e instanceof Error ? e.message : e,
-      ),
-    );
-
   import("./libs/binanceKlineWsBuffer.js")
     .then(({ prewarmBinanceKlineWsBuffers }) => {
       prewarmBinanceKlineWsBuffers();
@@ -2541,17 +2372,6 @@ app.listen(PORT, () => {
     .catch((e) =>
       console.warn(
         "[internal-news] sentiment scheduler load failed:",
-        e instanceof Error ? e.message : e,
-      ),
-    );
-
-  import("./libs/kolDailyScheduler.js")
-    .then(({ startKolDailyScheduler }) => {
-      startKolDailyScheduler();
-    })
-    .catch((e) =>
-      console.warn(
-        "[kol] daily scheduler load failed:",
         e instanceof Error ? e.message : e,
       ),
     );

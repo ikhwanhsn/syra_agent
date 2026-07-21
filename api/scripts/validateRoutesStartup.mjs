@@ -34,10 +34,7 @@ import { createAgentSignalRouter } from "../agents/create-signal.js";
 import { createLeaderboardRouter } from "../routes/leaderboard.js";
 import { createAnalyticsRouter } from "../routes/analytics.js";
 import { createInternalResearchRouter } from "../routes/internalResearch.js";
-import { createS3labsTelegramWebhookRouter } from "../routes/s3labsTelegramWebhook.js";
 import { createInternalPartnershipScoutRouter } from "../routes/internalPartnershipScout.js";
-import { createInternalHackathonsRouter } from "../routes/internalHackathons.js";
-import { createInternalEventsRouter } from "../routes/internalEvents.js";
 import { createInternalToolsRouter } from "../routes/internalTools.js";
 import { createInternalAgentWalletsRouter } from "../routes/internalAgentWallets.js";
 import { createInternalTesterAgentRouter } from "../routes/internalTesterAgent.js";
@@ -48,12 +45,6 @@ import { createSpcxExperimentRouter } from "../routes/experiment/spcx.js";
 import { createSyraTradingTelegramWebhookRouter } from "../routes/syraTradingTelegramWebhook.js";
 import { createSentinelDashboardRouter } from "../routes/sentinelDashboard.js";
 import { createDashboardSummaryRouterRegular } from "../routes/dashboardSummary.js";
-import {
-  createUponlyRiseMarketRouter,
-  createUponlyRiseMarketsRouter,
-  createUponlyRisePortfolioRouter,
-} from "../routes/uponlyRiseMarket.js";
-import { createUponlyRiseCreateRouter } from "../routes/uponlyRiseCreate.js";
 import { createXApiRouter } from "../routes/partner/x-api/index.js";
 import { createBinanceTickerPriceRouter } from "../routes/partner/binance/ticker-price.js";
 import {
@@ -104,7 +95,6 @@ import { createPlaygroundShareRouter } from "../routes/playgroundShare.js";
 import { createStreamflowLocksRouter } from "../routes/streamflowLocks.js";
 import { createStakingAppRouter } from "../routes/stakingApp.js";
 import { createTempoPayoutRouter } from "../routes/payouts/tempo.js";
-import { createKolRouter } from "../routes/kol/index.js";
 import { createAgentscoreRouter } from "../routes/agentscore/index.js";
 import { createPillarsRouter } from "../routes/pillars.js";
 import { createInvestRouter } from "../routes/invest.js";
@@ -146,10 +136,7 @@ const factories = [
   ["createLeaderboardRouter", createLeaderboardRouter],
   ["createAnalyticsRouter", createAnalyticsRouter],
   ["createInternalResearchRouter", createInternalResearchRouter],
-  ["createS3labsTelegramWebhookRouter", createS3labsTelegramWebhookRouter],
   ["createInternalPartnershipScoutRouter", createInternalPartnershipScoutRouter],
-  ["createInternalHackathonsRouter", createInternalHackathonsRouter],
-  ["createInternalEventsRouter", createInternalEventsRouter],
   ["createInternalToolsRouter", createInternalToolsRouter],
   ["createInternalAgentWalletsRouter", createInternalAgentWalletsRouter],
   ["createInternalTesterAgentRouter", createInternalTesterAgentRouter],
@@ -161,10 +148,6 @@ const factories = [
   ["createSyraTradingTelegramWebhookRouter", createSyraTradingTelegramWebhookRouter],
   ["createSentinelDashboardRouter", createSentinelDashboardRouter],
   ["createDashboardSummaryRouterRegular", createDashboardSummaryRouterRegular],
-  ["createUponlyRiseMarketRouter", createUponlyRiseMarketRouter],
-  ["createUponlyRiseMarketsRouter", createUponlyRiseMarketsRouter],
-  ["createUponlyRisePortfolioRouter", createUponlyRisePortfolioRouter],
-  ["createUponlyRiseCreateRouter", createUponlyRiseCreateRouter],
   ["createXApiRouter", createXApiRouter],
   ["createBinanceTickerPriceRouter", createBinanceTickerPriceRouter],
   ["createCryptonewsRouter", createCryptonewsRouter],
@@ -211,7 +194,6 @@ const factories = [
   ["createStreamflowLocksRouter", createStreamflowLocksRouter],
   ["createStakingAppRouter", createStakingAppRouter],
   ["createTempoPayoutRouter", createTempoPayoutRouter],
-  ["createKolRouter", createKolRouter],
   ["createAgentscoreRouter", createAgentscoreRouter],
   ["createPillarsRouter", createPillarsRouter],
   ["createInvestRouter", createInvestRouter],

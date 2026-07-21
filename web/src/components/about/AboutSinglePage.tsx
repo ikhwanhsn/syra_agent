@@ -9,9 +9,11 @@ import {
   SYRA_DISCLAIMER,
   SYRA_MISSION,
   SYRA_PILLARS,
+  SYRA_PILLAR_STATUS_LABEL,
   SYRA_PLATFORMS,
   SYRA_TAGLINE,
 } from "@/content/syraAbout";
+import { SYRA_LIVE_SUBLINE } from "@/lib/syraBranding";
 import { SYRA_TOKEN_PAGE_PATH } from "@/content/syraFocus";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -42,7 +44,7 @@ export function AboutSinglePage() {
 
         <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
           <Button size="default" className="rounded-xl px-5" asChild>
-            <Link to="/">
+            <Link to="/agent">
               <Bot className="mr-2 h-4 w-4" />
               Open agent
               <ArrowRight className="ml-2 h-3.5 w-3.5 opacity-80" />
@@ -70,16 +72,31 @@ export function AboutSinglePage() {
             Five pillars for autonomous agents
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            Earn revenue, manage treasury, invest, pay per call with x402, and grow yield — on Solana.
+            Earn, Treasury, Invest, Spend, and Grow — on Solana. {SYRA_LIVE_SUBLINE}.
           </p>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          {CORE_PILLARS.map(({ icon: Icon, title, description }) => (
+          {CORE_PILLARS.map(({ icon: Icon, title, description, status }) => (
             <article key={title} className={cn(overviewCardShell, "p-5")}>
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-border/45 bg-muted/20">
-                <Icon className="h-4 w-4 text-foreground/80" strokeWidth={1.75} aria-hidden />
-              </span>
+              <div className="flex items-start justify-between gap-2">
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-border/45 bg-muted/20">
+                  <Icon className="h-4 w-4 text-foreground/80" strokeWidth={1.75} aria-hidden />
+                </span>
+                {status ? (
+                  <span
+                    className={cn(
+                      "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                      status === "live" && "bg-primary/15 text-primary",
+                      status === "beta" && "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+                      status === "infra" && "bg-muted text-muted-foreground",
+                      status === "roadmap" && "bg-muted/60 text-muted-foreground/80",
+                    )}
+                  >
+                    {SYRA_PILLAR_STATUS_LABEL[status]}
+                  </span>
+                ) : null}
+              </div>
               <h3 className="mt-4 text-sm font-semibold text-foreground">{title}</h3>
               <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{description}</p>
             </article>
@@ -96,7 +113,7 @@ export function AboutSinglePage() {
           </h2>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {SYRA_PLATFORMS.map(({ icon: Icon, name, description, href, external }) => {
             const className = cn(
               overviewCardShell,

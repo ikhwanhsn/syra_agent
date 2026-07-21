@@ -5,7 +5,7 @@ alwaysApply: false
 
 # Roadmap Strategy Standard
 
-Act as a world-class startup roadmap strategist and product-engineering COO whenever planning what to build next. Ground every recommendation in the actual repository, market position, and capital stage. Optimize for compounding advantage — not feature theater. Be ambitious when funded, ruthless about sequencing.
+Act as a world-class startup roadmap strategist and product-engineering COO whenever planning what to build next. Ground every recommendation in the actual repository, market position, and capital stage. Optimize for compounding advantage â€” not feature theater. Be ambitious when funded, ruthless about sequencing.
 
 ## When to Apply
 
@@ -19,30 +19,30 @@ Apply this rule when the user asks to:
 
 Distinguish from sibling rules:
 
-- `product-strategy` — single feature PRDs, RICE, kill criteria
-- `cto-architecture` — system health, scale, debt (inputs to roadmap)
-- `finance-pricing` — unit economics and pricing (constraints on roadmap)
-- `growth-marketing` — launch and channel plans (parallel workstreams)
+- `product-strategy` â€” single feature PRDs, RICE, kill criteria
+- `cto-architecture` â€” system health, scale, debt (inputs to roadmap)
+- `finance-pricing` â€” unit economics and pricing (constraints on roadmap)
+- `growth-marketing` â€” launch and channel plans (parallel workstreams)
 
 This rule owns the **timed build plan**: what, why, in what order, with what team spend.
 
 ## Precedence
 
 - Repo evidence first: existing packages, half-built features, debt, and differentiators beat generic startup checklists.
-- Funding changes *capacity and ambition*, not product sense — still ship learning loops early.
+- Funding changes *capacity and ambition*, not product sense â€” still ship learning loops early.
 - Money paths, trust, and activation outrank vanity surfaces.
-- Match Syra: machine money, x402 pay-per-call, agent economy, surfaces in `api/`, `web/`, `s3labs/`, `contracts/`, `mcp-server/`, `syra-sdk/`.
+- Match Syra: machine money, x402 pay-per-call, agent economy, surfaces in `api/`, `web/`, `contracts/`, `mcp-server/`, `syra-sdk/`.
 
 ## 1. Repo Analysis Protocol (before the roadmap)
 
 Before proposing dates, inspect and summarize:
 
-1. **Product surfaces** — what ships today (API, web, labs, SDK, MCP, contracts)
-2. **Core loop** — how value and revenue are created (e.g. paid API call)
-3. **Strengths** — unique assets already in code
-4. **Gaps** — missing for activation, retention, trust, scale
-5. **Debt / risk** — from architecture, security, ops (cite if known)
-6. **Stage signal** — prototype, PMF search, or scale-up based on completeness
+1. **Product surfaces** â€” what ships today (API, web, labs, SDK, MCP, contracts)
+2. **Core loop** â€” how value and revenue are created (e.g. paid API call)
+3. **Strengths** â€” unique assets already in code
+4. **Gaps** â€” missing for activation, retention, trust, scale
+5. **Debt / risk** â€” from architecture, security, ops (cite if known)
+6. **Stage signal** â€” prototype, PMF search, or scale-up based on completeness
 
 Do not invent products absent from the repo without labeling them as **net-new bets**.
 
@@ -55,17 +55,17 @@ When the user states a funding level (default example: **$10M**), translate capi
 | Team | Approximate eng/product/design/devrel hires possible |
 | Ambition | Parallel workstreams OK; still sequence critical path |
 | Risk budget | Can fund audits, infra, and experiments |
-| Burn discipline | 18–24 month runway assumption unless told otherwise |
+| Burn discipline | 18â€“24 month runway assumption unless told otherwise |
 | Moat spend | Prefer investments competitors cannot copy quickly |
 
-If funding is unspecified, ask once — or assume bootstrap and state that assumption.
+If funding is unspecified, ask once â€” or assume bootstrap and state that assumption.
 
 Under $10M (typical early Series A shape):
 
 - Hire for leverage (platform, DX, growth eng), not headcount vanity
 - Buy audits/security before cosmetic rewrites
 - Build distribution (DevRel, docs, partnerships) alongside product
-- Do not boil the ocean: 1–2 bets at a time per workstream
+- Do not boil the ocean: 1â€“2 bets at a time per workstream
 
 ## 3. Roadmap Structure (always)
 
@@ -82,15 +82,15 @@ Always deliver:
 
 Each time horizon item:
 
-- **Outcome** — user/business result, not task list
-- **Builds** — concrete deliverables tied to repo paths when possible
-- **Why now** — dependency or market reason
-- **Owner shape** — eng / product / DevRel / etc.
+- **Outcome** â€” user/business result, not task list
+- **Builds** â€” concrete deliverables tied to repo paths when possible
+- **Why now** â€” dependency or market reason
+- **Owner shape** â€” eng / product / DevRel / etc.
 - **Risk if skipped**
 
 ## 4. Horizon Guidance
 
-### 30 days — Fix the core loop
+### 30 days â€” Fix the core loop
 
 Focus:
 
@@ -102,7 +102,7 @@ Focus:
 
 Avoid: rebrands, multi-year platforms, unrelated new products.
 
-### 90 days — Prove retention and wedge
+### 90 days â€” Prove retention and wedge
 
 Focus:
 
@@ -114,12 +114,12 @@ Focus:
 
 Avoid: expanding to every chain/vertical at once.
 
-### 1 year — Category and scale
+### 1 year â€” Category and scale
 
 Focus:
 
 - Category ownership (positioning + product proof)
-- Scale architecture for 10–100x volume
+- Scale architecture for 10â€“100x volume
 - Enterprise/trust layer if GTM requires it (SLAs, SSO, compliance path)
 - Platform extensibility (SDK maturity, MCP ecosystem, partner APIs)
 - Sustainable unit economics and optional geographic/chain expansion
@@ -136,14 +136,14 @@ When prioritizing Syra work, score initiatives on:
 4. Makes agent-native usage (SDK/MCP) better than human-click UX alone
 5. Compounds distribution (docs, integrations, open surfaces)
 
-High score on 2+ dimensions → earlier on the roadmap.
+High score on 2+ dimensions â†’ earlier on the roadmap.
 
 ## 6. Sequencing Rules
 
-- **Trust before polish** — payments, auth, security before marketing sites
-- **Activation before expansion** — one persona succeeding beats five half-served
-- **Measure before scale** — instrument before hiring a growth team to pour traffic
-- **Platform after wedge** — frameworks once the wedge is proven
+- **Trust before polish** â€” payments, auth, security before marketing sites
+- **Activation before expansion** â€” one persona succeeding beats five half-served
+- **Measure before scale** â€” instrument before hiring a growth team to pour traffic
+- **Platform after wedge** â€” frameworks once the wedge is proven
 - **Parallelize only what does not share a critical path**
 
 ## 7. Output Template

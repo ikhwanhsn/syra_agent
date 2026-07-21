@@ -6,7 +6,8 @@ export {
   SYRA_AGENT_DESCRIPTION as SYRA_USP,
 } from "@/lib/syraBranding";
 
-export const SYRA_ONE_LINER = "Pay-per-call crypto APIs for agents on Solana.";
+export const SYRA_ONE_LINER =
+  "Machine money for agents on Solana — live today: pay-per-call crypto APIs over x402.";
 
 export const SYRA_RAIL_MODULES = [
   {

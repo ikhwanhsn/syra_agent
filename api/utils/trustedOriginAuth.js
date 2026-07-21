@@ -35,10 +35,6 @@ const TRUSTED_ORIGINS = [
   "https://dev-ai-agent-syra.vercel.app",
   "https://predict.syraa.fun",
   "https://www.predict.syraa.fun",
-  "https://uponlyfund.com",
-  "https://www.uponlyfund.com",
-  "https://s3labs.xyz",
-  "https://www.s3labs.xyz",
   ...(process.env.CORS_EXTRA_ORIGINS || "")
     .split(",")
     .map((o) => o.trim())
@@ -63,16 +59,11 @@ export function isBrowserCallablePath(path) {
     path.startsWith("/x-projects-analyze") ||
     path.startsWith("/x-analyzer") ||
     path.startsWith("/8004") ||
-    path.startsWith("/uponly-rise-market") ||
-    path.startsWith("/uponly-rise-markets") ||
-    path.startsWith("/uponly-rise-portfolio") ||
-    path.startsWith("/uponly-rise-create") ||
     path === "/api/playground-proxy" ||
     path.startsWith("/streamflow-locks") ||
     path.startsWith("/staking") ||
     path.startsWith("/wallet") ||
     path.startsWith("/post/studio") ||
-    path.startsWith("/kol") ||
     path.startsWith("/btc") ||
     path.startsWith("/jupiter/ui") ||
     path.startsWith("/labs")

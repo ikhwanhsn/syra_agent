@@ -1,7 +1,7 @@
 "use client";
 
 import { Link } from "@/lib/navigation";
-import { ArrowUpRight, BookOpen, Plug, Terminal } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BookOpen, Plug, Terminal, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface EmptyStateProps {
@@ -105,31 +105,46 @@ export function EmptyState({ agentName = "Syra Agent" }: EmptyStateProps) {
           )}
           style={{ animationDelay: "140ms" }}
         >
-          Markets, Solana, and machine money for agents — ask anything or pick a suggestion below.
+          Machine money for agents — ask anything or open the marketplace for your first paid call.
         </p>
 
         <div
-          className="animate-in fade-in slide-in-from-bottom-2 fill-mode-both mt-8 flex flex-wrap items-center justify-center gap-2 duration-500"
-          style={{ animationDelay: "180ms" }}
+          className="animate-in fade-in slide-in-from-bottom-2 fill-mode-both mt-7 duration-500"
+          style={{ animationDelay: "160ms" }}
         >
-          {RESOURCE_LINKS.map(({ href, label, icon: Icon, external }, index) => (
+          <Link
+            to="/marketplace"
+            className={cn(
+              "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 py-2.5",
+              "bg-primary text-sm font-semibold text-primary-foreground",
+              "shadow-[0_8px_28px_-12px_hsl(var(--primary)/0.55)]",
+              "transition-[transform,box-shadow,background-color] duration-200",
+              "hover:brightness-110 hover:shadow-[0_10px_32px_-12px_hsl(var(--primary)/0.65)]",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              "active:scale-[0.98]",
+            )}
+          >
+            <Zap className="h-4 w-4" strokeWidth={2} aria-hidden />
+            First paid call in 5 minutes
+            <ArrowRight className="h-4 w-4 opacity-90" strokeWidth={2} aria-hidden />
+          </Link>
+        </div>
+
+        <div
+          className="animate-in fade-in slide-in-from-bottom-2 fill-mode-both mt-5 flex flex-wrap items-center justify-center gap-2 duration-500"
+          style={{ animationDelay: "200ms" }}
+        >
+          {RESOURCE_LINKS.map(({ href, label, icon: Icon, external }) => (
             <Link
               key={href}
               to={href}
               {...(external
                 ? { target: "_blank", rel: "noopener noreferrer" }
                 : {})}
-              className={cn(
-                chipClass,
-                index === 0 &&
-                  "border-primary/35 bg-primary/8 text-primary hover:border-primary/50 hover:bg-primary/12 hover:text-primary",
-              )}
+              className={chipClass}
             >
               <Icon
-                className={cn(
-                  "h-3.5 w-3.5 transition-colors",
-                  index === 0 ? "opacity-80" : "text-muted-foreground/60 group-hover:text-foreground/70",
-                )}
+                className="h-3.5 w-3.5 text-muted-foreground/60 transition-colors group-hover:text-foreground/70"
                 strokeWidth={2}
                 aria-hidden
               />

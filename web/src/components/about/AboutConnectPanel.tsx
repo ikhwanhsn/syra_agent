@@ -95,7 +95,7 @@ export function AboutConnectPanel() {
             </p>
             <div className="mt-6 flex flex-col gap-2.5 sm:flex-row">
               <Button variant="primary" size="lg" className="about-hero-cta-primary h-11" asChild>
-                <a href="/">
+                <a href="/agent">
                   <Bot className="mr-2 h-4 w-4" />
                   Try the agent
                   <ArrowRight className="ml-2 h-4 w-4" />

@@ -130,8 +130,7 @@
         "/internal/trend-scout/run",
         "/internal/growth-scout/run",
         "/internal/partnership-scout/run",
-        "/uponly-rise-market*",
-        "/uponly-rise-portfolio*"
+        "/internal/buyback/run"
       ]
     }
   },
@@ -2791,7 +2790,7 @@
           "pump.fun trending (x402)"
         ],
         "summary": "Trending pump.fun coins list",
-        "description": "Returns trending pump.fun coins from frontend-api-v3 (falls back to top-runners when primary feed is empty). Use when an agent scans hot memecoin launches or social momentum on pump.fun. Inputs: limit (default 20, max 50), offset, includeNsfw. Returns normalized coins[], count, upstream metadata.",
+        "description": "Returns trending pump.fun coins from frontend-api-v3 top-runners (falls back to currently-live). Use when an agent scans hot memecoin launches or social momentum on pump.fun. Inputs: limit (default 20, max 50), offset, includeNsfw. Returns normalized coins[], count, upstream metadata.",
         "operationId": "getPumpfunTrending",
         "security": [
           {
@@ -2910,7 +2909,7 @@
           "pump.fun movers (x402)"
         ],
         "summary": "pump.fun market movers list",
-        "description": "Returns pump.fun market movers from frontend-api-v3 (falls back to currently-live when primary is empty). Use when an agent finds coins with unusual short-term price/volume action. Inputs: limit, offset, includeNsfw. Returns coins[], count, upstream metadata.",
+        "description": "Returns pump.fun market movers from frontend-api-v3 currently-live (falls back to top-runners). Use when an agent finds coins with unusual short-term price/volume action. Inputs: limit, offset, includeNsfw. Returns coins[], count, upstream metadata.",
         "operationId": "getPumpfunMovers",
         "security": [
           {
@@ -3351,7 +3350,7 @@
           "pump.fun scout (x402)"
         ],
         "summary": "Live pump.fun alpha/beta/predicted/utility scout",
-        "description": "Live pump.fun intelligence with selector param segment=alpha|beta|predicted|utility. Optional period, limit, minPumpScore, llm. Returns scored tokens, analysis, and meta — deterministic by default.",
+        "description": "Live pump.fun intelligence with selector param segment=alpha|beta|predicted|utility. Use when an agent needs scored live pump.fun candidates. Optional period, limit, minPumpScore, llm. Returns scored tokens, analysis, and meta — deterministic by default.",
         "operationId": "getPumpfunScout",
         "security": [
           {
@@ -3486,7 +3485,7 @@
           "RISE scout (x402)"
         ],
         "summary": "Live RISE market intel and agent targets",
-        "description": "Live RISE intelligence with view=intel|markets|targets. Optional mint, limit, tier=ready|watch. Returns UPONLY token snapshot, fund lens, ranked markets, and agent-ready mint targets.",
+        "description": "Live RISE intelligence with view=intel|markets|targets. Use when an agent needs ranked RISE markets or agent-ready mint targets. Optional mint, limit, tier=ready|watch. Returns top-market snapshot, market lens, ranked markets, and mint targets.",
         "operationId": "getRiseScout",
         "security": [
           {
@@ -3602,7 +3601,7 @@
             }
           }
         },
-        "x-syra-pillar": "spend"
+        "x-syra-pillar": "invest"
       }
     },
     "/coingecko": {
@@ -3611,7 +3610,7 @@
           "CoinGecko scout (x402)"
         ],
         "summary": "Live CoinGecko top gainers brief",
-        "description": "Live CoinGecko scout with view=brief|gainers|predictions. Optional topN, minMarketCap, includeNews, llm. Returns top gainers, digests, predictions, and narrative meta — deterministic by default.",
+        "description": "Live CoinGecko scout with view=brief|gainers|predictions. Use when an agent needs top gainers or a short market brief. Optional topN, minMarketCap, includeNews, llm. Returns top gainers, digests, predictions, and narrative meta — deterministic by default.",
         "operationId": "getCoingeckoScout",
         "security": [
           {

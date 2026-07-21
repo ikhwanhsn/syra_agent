@@ -11,8 +11,10 @@ import {
   SYRA_CAPABILITIES,
   SYRA_DIFFERENTIATION,
   SYRA_PILLARS,
+  SYRA_PILLAR_STATUS_LABEL,
   SYRA_PRODUCT_FLOW,
 } from "@/content/syraAbout";
+import { SYRA_LIVE_SUBLINE } from "@/lib/syraBranding";
 import { cn } from "@/lib/utils";
 
 export function AboutProductPanel() {
@@ -50,13 +52,13 @@ export function AboutProductPanel() {
       </div>
 
       <AboutSectionHeader
-        kicker="Platform roadmap"
-        title="Modules on the same rails"
-        description="Spend (x402) is live GTM. Earn, Treasury, Invest, and Grow ship as platform modules — discover via GET /pillars."
+        kicker="Machine money"
+        title="Five pillars — honest status"
+        description={`${SYRA_LIVE_SUBLINE}. Earn, Treasury, Invest, and Grow graduate as they hit production criteria — discover via GET /pillars.`}
       />
 
       <div className="about-pillar-bento grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {SYRA_PILLARS.map(({ icon: Icon, title, description }, index) => (
+        {SYRA_PILLARS.map(({ icon: Icon, title, description, status }, index) => (
           <article
             key={title}
             className={cn(
@@ -65,9 +67,24 @@ export function AboutProductPanel() {
               index === 0 && "about-pillar-spotlight sm:col-span-2 lg:col-span-1",
             )}
           >
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-border/40 about-pillar-icon text-foreground/75">
-              <Icon className="h-[17px] w-[17px]" strokeWidth={1.75} aria-hidden />
-            </span>
+            <div className="flex items-start justify-between gap-2">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-border/40 about-pillar-icon text-foreground/75">
+                <Icon className="h-[17px] w-[17px]" strokeWidth={1.75} aria-hidden />
+              </span>
+              {status ? (
+                <span
+                  className={cn(
+                    "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                    status === "live" && "bg-primary/15 text-primary",
+                    status === "beta" && "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+                    status === "infra" && "bg-muted text-muted-foreground",
+                    status === "roadmap" && "bg-muted/60 text-muted-foreground/80",
+                  )}
+                >
+                  {SYRA_PILLAR_STATUS_LABEL[status]}
+                </span>
+              ) : null}
+            </div>
             <h3 className="mt-4 font-display text-[15px] font-semibold tracking-[-0.02em] text-foreground">{title}</h3>
             <p className="mt-2 text-[13px] leading-[1.62] text-muted-foreground/90">{description}</p>
           </article>

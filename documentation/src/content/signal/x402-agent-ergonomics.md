@@ -73,4 +73,4 @@ Check live: `GET /x402/capabilities`.
 - `GET /api/metrics` — lifetime calls, USDC, wallets, treasury
 - `GET /api/live/calls` — SSE feed of recent settlements (sanitized)
 
-Web UI: https://syraa.fun/metrics
+Web UI: https://syraa.fun (growth home; `/metrics` redirects there)

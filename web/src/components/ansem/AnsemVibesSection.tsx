@@ -20,7 +20,7 @@ const SYRA_LINKS = [
     icon: BarChart3,
   },
   {
-    href: "/metrics",
+    href: "/",
     label: "Syra live metrics",
     description: "x402 traction, treasury, and agent economy proof.",
     icon: Sparkles,

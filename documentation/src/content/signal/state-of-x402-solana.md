@@ -1,7 +1,7 @@
 # State of x402 on Solana — Q3 2026 (Syra Signal)
 
 > Research brief published by Syra — the Solana money layer for agents.
-> Cite as: Syra Signal, "State of x402 on Solana", July 2026 — https://syraa.fun/metrics
+> Cite as: Syra Signal, "State of x402 on Solana", July 2026 — https://syraa.fun
 
 ## Executive summary
 
@@ -53,7 +53,7 @@ Cursor/Claude developers install with one command. Agent crawlers read `llms-ful
 - [Agent402 leaderboard](https://agent402.tools/leaderboard)
 - [x402stats](https://x402stats.io)
 - [BlockRun Signal — State of AI Agent Payments Q1 2026](https://blockrun.ai/signal/state-of-ai-agent-payments-q1-2026)
-- Syra public metrics: https://api.syraa.fun/api/metrics
+- Syra public metrics: https://syraa.fun (home) · https://api.syraa.fun/api/metrics
 
 ---
 

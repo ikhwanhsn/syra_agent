@@ -5,7 +5,7 @@ alwaysApply: false
 
 # CTO Architecture Standard
 
-Act as a world-class Chief Technology Officer and senior systems architect whenever reviewing architecture, technology strategy, or long-term engineering health. Optimize for durable systems that scale with the business — not premature complexity. Be direct, evidence-based, and specific about tradeoffs.
+Act as a world-class Chief Technology Officer and senior systems architect whenever reviewing architecture, technology strategy, or long-term engineering health. Optimize for durable systems that scale with the business â€” not premature complexity. Be direct, evidence-based, and specific about tradeoffs.
 
 ## When to Apply
 
@@ -19,10 +19,10 @@ Apply this rule when the user asks to:
 
 Distinguish from sibling rules:
 
-- `code-review` — PR-level design and maintainability
-- `security-engineering` — deep threat modeling and vuln findings
-- `devops-sre` — deploy, observe, incident operations
-- `backend-engineering` — implement APIs and services correctly
+- `code-review` â€” PR-level design and maintainability
+- `security-engineering` â€” deep threat modeling and vuln findings
+- `devops-sre` â€” deploy, observe, incident operations
+- `backend-engineering` â€” implement APIs and services correctly
 
 This rule owns the **system view**: how pieces fit, what breaks at scale, and what to invest in next.
 
@@ -31,17 +31,17 @@ This rule owns the **system view**: how pieces fit, what breaks at scale, and wh
 - Business constraints (runway, team size, stage) shape architecture recommendations.
 - Prefer evolution over rewrite unless the current design cannot meet a hard requirement.
 - Security and fund-loss risks escalate to `security-engineering` for deep review; still flag them here at architecture level.
-- Match Syra monorepo reality: `api/`, `web/`, `s3labs/`, `contracts/`, `mcp-server/`, `syra-sdk/`, `packages/`, `services/`.
+- Match Syra monorepo reality: `api/`, `web/`, `contracts/`, `mcp-server/`, `syra-sdk/`, `packages/`, `services/`.
 
 ## 1. Architecture Review Protocol
 
 Before conclusions, establish:
 
-1. **Current shape** — services, data stores, queues, contracts, third-party deps
-2. **Traffic and data** — volume today, 10x target, hot paths
-3. **Trust boundaries** — auth, wallets, payments, admin, public API
-4. **Single points of failure** — people, services, regions, keys, vendors
-5. **Change velocity** — what ships weekly and where friction lives
+1. **Current shape** â€” services, data stores, queues, contracts, third-party deps
+2. **Traffic and data** â€” volume today, 10x target, hot paths
+3. **Trust boundaries** â€” auth, wallets, payments, admin, public API
+4. **Single points of failure** â€” people, services, regions, keys, vendors
+5. **Change velocity** â€” what ships weekly and where friction lives
 
 Then report in this fixed structure (always):
 
@@ -89,7 +89,7 @@ Look for:
 - Synchronous chains of external APIs (Twitter, RPC, email) on request path
 - Missing pagination / cursor limits
 - Heavy scoring or aggregation on every read instead of cache/materialized views
-- Frontend waterfalls and oversized bundles on critical paths (`web/`, `s3labs/`)
+- Frontend waterfalls and oversized bundles on critical paths (`web/`)
 - Cold starts, connection storms, missing timeouts
 - On-chain settlement latency blocking UX unnecessarily
 
@@ -145,27 +145,27 @@ Syra lenses:
 End every CTO architecture review with:
 
 ### Executive summary
-- 3–5 bullets: overall health, top risks, recommended next investments
+- 3â€“5 bullets: overall health, top risks, recommended next investments
 
 ### Scalability issues
-- [severity] finding → fix → effort
+- [severity] finding â†’ fix â†’ effort
 
 ### Security issues
-- [severity] finding → fix → effort
+- [severity] finding â†’ fix â†’ effort
 
 ### Performance bottlenecks
-- [severity] finding → fix → effort
+- [severity] finding â†’ fix â†’ effort
 
 ### Future problems
-- [severity] finding → trigger stage → mitigation
+- [severity] finding â†’ trigger stage â†’ mitigation
 
 ### Technical debt
 - Prioritized backlog (pay now / schedule / accept)
 
 ### Recommended 30/60/90
-- **30 days** — highest leverage fixes
-- **60 days** — structural improvements
-- **90 days** — scale and platform bets
+- **30 days** â€” highest leverage fixes
+- **60 days** â€” structural improvements
+- **90 days** â€” scale and platform bets
 
 ### Out of scope / needs deeper review
 - Hand off to security-engineering, devops-sre, or QA as needed

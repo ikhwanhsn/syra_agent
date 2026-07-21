@@ -3,6 +3,7 @@
 import { ExternalLink } from "lucide-react";
 import { Link } from "@/lib/navigation";
 import { AboutTokenBar } from "@/components/about/AboutTokenBar";
+import { GrowthFooter } from "@/components/growth/GrowthFooter";
 import { TokenSection } from "@/components/marketing/TokenSection";
 import { PlaygroundPageShell } from "@/components/playground/PlaygroundPageShell";
 import { PLAYGROUND_PAGE_CLASS } from "@/components/playground/playgroundStyles";
@@ -23,10 +24,13 @@ export function TokenPageView() {
             Token details
           </h1>
           <p className="text-base leading-relaxed text-muted-foreground sm:text-[17px]">
-            Mint, buy links, utility, and buyback disclosure for $SYRA. Product growth lives on
-            pay-per-call APIs, MCP, and the SDK — this page is the token home, not the primary CTA.
+            Mint, buy links, utility, and buyback disclosure for $SYRA. Live product traction is on the
+            home metrics page — this page is the token detail surface.
           </p>
           <div className="flex flex-wrap gap-2 pt-1">
+            <Button variant="outline" size="sm" className="h-9 rounded-lg" asChild>
+              <Link to="/">← Live metrics</Link>
+            </Button>
             <Button variant="outline" size="sm" className="h-9 rounded-lg" asChild>
               <Link to="/staking">Stake $SYRA</Link>
             </Button>
@@ -54,6 +58,7 @@ export function TokenPageView() {
 
         <TokenSection />
       </div>
+      <GrowthFooter />
     </PlaygroundPageShell>
   );
 }

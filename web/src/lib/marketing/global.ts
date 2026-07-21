@@ -71,9 +71,6 @@ const LINK_TELEGRAM = "https://t.me/syra_ai";
 const LINK_X = "https://x.com/syra_agent";
 const EMAIL_SUPPORT = "support@syraa.fun";
 
-/** Base URL of the Up Only Fund app. */
-const LINK_UPONLY_APP = "https://uponlyfund.com" as const;
-
 /** Syra staking — same web app at `/staking`. */
 const LINK_STAKING = "/staking";
 
@@ -102,6 +99,5 @@ export {
   getApiHeaders,
   LINK_TELEGRAM,
   LINK_X,
-  LINK_UPONLY_APP,
   LINK_STAKING,
 };

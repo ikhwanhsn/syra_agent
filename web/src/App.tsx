@@ -48,7 +48,6 @@ import PostPage from "@/pages/PostPage";
 import PostVideoPage from "@/pages/PostVideoPage";
 import PostPhotoPage from "@/pages/PostPhotoPage";
 import { MarketingLayout } from "@/components/marketing/MarketingLayout";
-import { RedirectToUponlyApp } from "@/components/marketing/RedirectToUponlyApp";
 import MarketingBrand from "@/pages/marketing/Brand";
 import MarketingIdentity from "@/pages/marketing/Identity";
 import MarketingTeams from "@/pages/marketing/Teams";
@@ -79,14 +78,13 @@ function LegacyPumpfunCallRedirect() {
   const { callId } = useParams<{ callId: string }>();
   return <Navigate to={`/analyzer/call/${callId ?? ""}`} replace />;
 }
-import MetricsPage from "@/pages/MetricsPage";
+import GrowthHomePage from "@/pages/GrowthHomePage";
 import AnsemPage from "@/pages/AnsemPage";
 import ReferenceScalperPage from "@/pages/ReferenceScalperPage";
 import MultiWalletRecoverPage from "@/pages/MultiWalletRecoverPage";
 import LabsPage from "@/pages/labs/LabsPage";
 import LlmPage from "@/pages/llm/LlmPage";
 import OrganizePage from "@/pages/organize/OrganizePage";
-import { RedirectToS3Labs } from "@/components/marketing/RedirectToS3Labs";
 
 function DashboardLayoutRoute() {
   return (
@@ -130,13 +128,17 @@ function MachineMoneyRoute({
 function AppRoutes() {
   return (
     <Routes>
-          <Route path="/" element={<Index />} />
+          <Route path="/" element={<GrowthHomePage />} />
+          <Route path="/agent" element={<Index />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/token" element={<TokenPage />} />
+          <Route path="/privacy" element={<MarketingPrivacyPolicy />} />
+          <Route path="/terms" element={<MarketingTermsOfService />} />
+          <Route path="/cookies" element={<MarketingCookiePolicy />} />
           <Route path="/articles" element={<MarketingArticles />} />
           <Route path="/articles/:slug" element={<ArticlePage />} />
           <Route path="/home" element={<Navigate to="/" replace />} />
-          <Route path="/metrics" element={<MetricsPage />} />
+          <Route path="/metrics" element={<Navigate to="/" replace />} />
           <Route path="/ansem" element={<AnsemPage />} />
           <Route path="/reference/scalper" element={<ReferenceScalperPage />} />
           <Route path="/settings" element={<Index />} />
@@ -283,8 +285,6 @@ function AppRoutes() {
             />
             <Route path="/spcx" element={<Navigate to="/marketplace" replace />} />
             <Route path="/btc" element={<BtcPage />} />
-            <Route path="/hackathon" element={<RedirectToS3Labs path="/hackathon" />} />
-            <Route path="/hackathon/*" element={<RedirectToS3Labs path="/hackathon" />} />
             <Route
               path="/labs"
               element={
@@ -357,7 +357,6 @@ function AppRoutes() {
           <Route path="/lp-experiment/history/:id" element={<Navigate to="/lp-experiment" replace />} />
           <Route path="/token-check" element={<Navigate to="/assets" replace />} />
           <Route path="/dossier" element={<Navigate to="/assets" replace />} />
-          <Route path="/internal-hackathons" element={<RedirectToS3Labs path="/hackathon" />} />
           <Route path="/staking/dashboard/internal" element={<Navigate to="/staking/admin" replace />} />
           <Route path="/mpp" element={<Navigate to="/marketplace" replace />} />
           <Route path="/playground/mpp" element={<Navigate to="/marketplace" replace />} />
@@ -387,14 +386,6 @@ const App = () => (
           <Route path="/partner/:slug" element={<MarketingPartnerDetail />} />
           <Route path="/analytics" element={<MarketingAnalytics />} />
           <Route path="/leaderboard" element={<MarketingLeaderboard />} />
-          <Route path="/privacy" element={<MarketingPrivacyPolicy />} />
-          <Route path="/terms" element={<MarketingTermsOfService />} />
-          <Route path="/cookies" element={<MarketingCookiePolicy />} />
-          <Route path="/uponly" element={<RedirectToUponlyApp path="/" />} />
-          <Route path="/uponly/overview" element={<RedirectToUponlyApp path="/uponly/overview" />} />
-          <Route path="/uponly/fund" element={<RedirectToUponlyApp path="/" />} />
-          <Route path="/uponly/rise" element={<RedirectToUponlyApp path="/uponly/rise" />} />
-          <Route path="/rise" element={<RedirectToUponlyApp path="/" />} />
         </Route>
 
         <Route

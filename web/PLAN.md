@@ -2,15 +2,15 @@
 
 **Last updated:** June 2026  
 **Owner:** Syra core team  
-**Status:** Living document — update quarterly as metrics and market shift.
+**Status:** Living document â€” update quarterly as metrics and market shift.
 
 ---
 
 ## Executive summary
 
-Syra’s path to multi-billion-dollar scale is **not** “win the AI chatbot race.” It is to become the **default machine money rail for autonomous trading agents** — the infrastructure layer agents pay to think, pay to trade, and pay repeatedly as they scale.
+Syraâ€™s path to multi-billion-dollar scale is **not** â€œwin the AI chatbot race.â€ It is to become the **default machine money rail for autonomous trading agents** â€” the infrastructure layer agents pay to think, pay to trade, and pay repeatedly as they scale.
 
-**One-line positioning:** Machine money for agents on Solana — *Stripe + Plaid for the agent economy.*
+**One-line positioning:** Machine money for agents on Solana â€” *Stripe + Plaid for the agent economy.*
 
 **North-star metrics (what actually compounds):**
 
@@ -19,10 +19,10 @@ Syra’s path to multi-billion-dollar scale is **not** “win the AI chatbot rac
 | **Paid API calls / day** | Usage-based revenue; grows with every agent transaction |
 | **Net revenue per agent / month** | Quality of rail + pricing power |
 | **Active integrations** (SDK, MCP, direct API) | Distribution and lock-in |
-| **Agent wallet TVL** (USDC in treasuries) | Stickiness; agents don’t leave money behind |
+| **Agent wallet TVL** (USDC in treasuries) | Stickiness; agents donâ€™t leave money behind |
 | **Gross margin on x402 routes** | Infra multiples require software-like margins |
 
-Signups, Twitter followers, and “cool demos” are **lagging indicators**. Paid usage is the only scoreboard.
+Signups, Twitter followers, and â€œcool demosâ€ are **lagging indicators**. Paid usage is the only scoreboard.
 
 ---
 
@@ -32,8 +32,8 @@ Signups, Twitter followers, and “cool demos” are **lagging indicators**. Pai
 
 Two inseparable halves of one product:
 
-1. **Intelligence + execution APIs** — agents pay per call (USDC via x402) for sentiment, risk, smart-money flow, signals, charts, swaps, and partner data (Nansen, Binance, Jupiter, etc.).
-2. **Agent money layer** — wallets, treasury, policy engine (caps, allowlists, audit trail) so agents hold and spend autonomously without human babysitting every micropayment.
+1. **Intelligence + execution APIs** â€” agents pay per call (USDC via x402) for sentiment, risk, smart-money flow, signals, charts, swaps, and partner data (Nansen, Binance, Jupiter, etc.).
+2. **Agent money layer** â€” wallets, treasury, policy engine (caps, allowlists, audit trail) so agents hold and spend autonomously without human babysitting every micropayment.
 
 ### 1.2 What Syra is not (reject as the core company)
 
@@ -41,7 +41,7 @@ Two inseparable halves of one product:
 |---------|------|-------------------|
 | Web chat agent (`/`) | Reference client | Commodity LLM wrapper; weak moat |
 | 7 trading experiments | Proof / marketing | Research, not a business model |
-| Up Only Fund | Flagship case study | Separate brand; Syra is infra |
+| Proof surfaces | Live demos | Syra product demos |
 | Alpha / assets terminal | Power user UI | Nice-to-have; not the revenue engine |
 | $SYRA token | Utility + alignment | Amplifier, not the product |
 
@@ -50,9 +50,9 @@ Two inseparable halves of one product:
 ### 1.3 Why this wedge can reach billions
 
 - **TAM:** Every autonomous agent that trades or researches crypto needs intelligence + payments. Agent count is projected to grow faster than human trader count.
-- **Moat:** x402 payment rail + 8004 registry + policy engine + usage history = switching cost. Agents that already fund treasuries and have spend policies don’t migrate lightly.
+- **Moat:** x402 payment rail + 8004 registry + policy engine + usage history = switching cost. Agents that already fund treasuries and have spend policies donâ€™t migrate lightly.
 - **Monetization:** Take-rate on every paid call scales linearly with agent activity, then super-linearly as agents run 24/7.
-- **Timing:** x402, agent frameworks (Cursor, Claude, ElizaOS), and Solana micropayments are converging now — picks-and-shovels wins in platform shifts.
+- **Timing:** x402, agent frameworks (Cursor, Claude, ElizaOS), and Solana micropayments are converging now â€” picks-and-shovels wins in platform shifts.
 
 Comparable mental models (not exact comps): Stripe (~$100B+), Plaid (~$10B+ acquisition), Chainlink (oracle/network effects), Bloomberg Terminal (data monopoly for a profession). Syra aims at the **intersection**: agent-native payments + machine money infrastructure.
 
@@ -73,20 +73,20 @@ Use this inventory so the plan builds on reality, not slides.
 | Billing / spend dashboard | `/wallet`, `/overview`, `GET /agent/wallet/billing/summary` | Trust + transparency |
 | 8004 agent registry | `/8004` | Discovery network effects |
 | Partner integrations | Nansen, Binance, Meteora, Bitget, Jupiter, etc. | Route catalog depth |
-| Proof layer | Experiments, Up Only Fund, `/analytics`, `/leaderboard` | Credibility |
+| Proof layer | Experiments, `/analytics`, `/leaderboard` | Credibility |
 | Docs + OpenAPI | `docs.syraa.fun` | Enterprise + dev trust |
 
 **Gap to close:** Reliability SLAs, enterprise sales motion, multi-chain rail, and default-status in agent frameworks.
 
 ---
 
-## Part 3: Phased roadmap (0 → multi-billion)
+## Part 3: Phased roadmap (0 â†’ multi-billion)
 
 Each phase has **objectives**, **concrete steps**, **metrics**, and **exit criteria** before scaling spend into the next phase.
 
 ---
 
-### Phase 0 — Focus lock (Weeks 1–4)
+### Phase 0 â€” Focus lock (Weeks 1â€“4)
 
 **Objective:** One message, one scoreboard, no internal confusion.
 
@@ -99,7 +99,7 @@ Each phase has **objectives**, **concrete steps**, **metrics**, and **exit crite
 
 2. **Assign roles to every surface**
    - **Product:** Playground, SDK, MCP, API, agent wallet, billing dashboard
-   - **Proof:** Chat demo, experiments, Up Only Fund, analytics, leaderboard
+   - **Proof:** Chat demo, experiments, analytics, leaderboard
    - **Secondary:** Staking, marketing site, internal tools
 
 3. **Instrument the scoreboard**
@@ -107,7 +107,7 @@ Each phase has **objectives**, **concrete steps**, **metrics**, and **exit crite
    - Per-agent: spend 7d/30d, tool breakdown (already started in billing API)
    - Public: `/analytics` as credibility page
 
-4. **Stop net-new “product identities”**
+4. **Stop net-new â€œproduct identitiesâ€**
    - No new experiment types, no new hero products, no new taglines until Phase 1 metrics hit
 
 #### Exit criteria
@@ -118,7 +118,7 @@ Each phase has **objectives**, **concrete steps**, **metrics**, and **exit crite
 
 ---
 
-### Phase 1 — Rail productization (Months 1–3)
+### Phase 1 â€” Rail productization (Months 1â€“3)
 
 **Objective:** Any developer or agent can integrate Syra in **under 30 minutes** and make a **paid call**.
 
@@ -128,10 +128,10 @@ Each phase has **objectives**, **concrete steps**, **metrics**, and **exit crite
 
 | Step | Action | Detail |
 |------|--------|--------|
-| 1.1 | Playground as primary CTA | Hero CTAs → `/playground`; quickstart with curl, SDK, MCP |
+| 1.1 | Playground as primary CTA | Hero CTAs â†’ `/playground`; quickstart with curl, SDK, MCP |
 | 1.2 | SDK hardening | `@syra-ai/sdk`: x402 signer examples, error types, retry, route helpers |
 | 1.3 | MCP one-liner | `npx -y @syra-ai/mcp-server` in docs; publish to Cursor/Claude config templates |
-| 1.4 | “First paid call” tutorial | Docs page: wallet → fund → 402 → pay → 200, with Solscan link |
+| 1.4 | â€œFirst paid callâ€ tutorial | Docs page: wallet â†’ fund â†’ 402 â†’ pay â†’ 200, with Solscan link |
 | 1.5 | OpenAPI + x402 discovery | Keep `/.well-known/x402` and discovery paths in sync with catalog |
 
 **2. Agent money layer**
@@ -139,9 +139,9 @@ Each phase has **objectives**, **concrete steps**, **metrics**, and **exit crite
 | Step | Action | Detail |
 |------|--------|--------|
 | 2.1 | Self-serve billing UI | Expand `/wallet` + `/overview`: caps, daily spend, top tools, export CSV |
-| 2.2 | Policy templates | Presets: “research only”, “trade with cap”, “full auto” with clear UX |
+| 2.2 | Policy templates | Presets: â€œresearch onlyâ€, â€œtrade with capâ€, â€œfull autoâ€ with clear UX |
 | 2.3 | Audit trail for operators | SignAudit surfaced in UI: every x402_pay with amount, tool, timestamp |
-| 2.4 | Fund flow clarity | Deposit → treasury → per-call debit; show balance before/after each tool run in chat |
+| 2.4 | Fund flow clarity | Deposit â†’ treasury â†’ per-call debit; show balance before/after each tool run in chat |
 
 **3. High-value routes (agents pay repeatedly)**
 
@@ -149,8 +149,8 @@ Each phase has **objectives**, **concrete steps**, **metrics**, and **exit crite
 |------|--------|--------|
 | 3.1 | Smart money bundle | Nansen netflow + holdings + DEX trades as documented paid routes |
 | 3.2 | Risk scoring | Token risk endpoint with clear pricing and structured JSON for agents |
-| 3.3 | Signal + execution path | Signal → optional swap intent; document human-in-the-loop vs auto |
-| 3.4 | Analytics summary | Keep as “one call, many sources” upsell route |
+| 3.3 | Signal + execution path | Signal â†’ optional swap intent; document human-in-the-loop vs auto |
+| 3.4 | Analytics summary | Keep as â€œone call, many sourcesâ€ upsell route |
 
 **4. Reliability (infra trust)**
 
@@ -166,7 +166,7 @@ Each phase has **objectives**, **concrete steps**, **metrics**, and **exit crite
 | Metric | Target |
 |--------|--------|
 | Paying integrators (unique wallets/agents with paid calls) | 50+ |
-| Paid API calls / day | 10× baseline |
+| Paid API calls / day | 10Ã— baseline |
 | Time-to-first-paid-call (median developer) | < 30 min |
 | MCP + SDK installs (tracked via npm if published) | 100+ |
 | Agent wallet TVL | $50K+ USDC |
@@ -179,7 +179,7 @@ Each phase has **objectives**, **concrete steps**, **metrics**, and **exit crite
 
 ---
 
-### Phase 2 — Distribution & proof flywheel (Months 4–9)
+### Phase 2 â€” Distribution & proof flywheel (Months 4â€“9)
 
 **Objective:** Syra becomes **discoverable where agents are born** and **credible where capital allocators look**.
 
@@ -189,18 +189,18 @@ Each phase has **objectives**, **concrete steps**, **metrics**, and **exit crite
 
 | Step | Action | Detail |
 |------|--------|--------|
-| 2.1 | Cursor + Claude marketplace | Submit MCP server; “Add Syra in one line” blog post + video |
+| 2.1 | Cursor + Claude marketplace | Submit MCP server; â€œAdd Syra in one lineâ€ blog post + video |
 | 2.2 | ElizaOS / agent framework plugins | Package as plugin; example character with Syra tools |
 | 2.3 | x402scan + agent directories | Register all routes; maintain pricing accuracy |
 | 2.4 | 8004 registry push | Register Syra + encourage integrators to register; leaderboard tie-in |
 | 2.5 | Hackathon sponsorships | Bitget-style tracks; prize = API credits + dev support |
-| 2.6 | “Built on Syra” badge | For integrators who show paid volume on leaderboard |
+| 2.6 | â€œBuilt on Syraâ€ badge | For integrators who show paid volume on leaderboard |
 
-**2. Proof flywheel (trust → usage → more trust)**
+**2. Proof flywheel (trust â†’ usage â†’ more trust)**
 
 | Step | Action | Detail |
 |------|--------|--------|
-| 2.7 | Up Only Fund case study | Public page: “Fund running on Syra rail” with auditable API spend |
+| 2.7 | Public proof metrics case study | Public page: â€œFund running on Syra railâ€ with auditable API spend |
 | 2.8 | Experiment dashboards | Trading/LP/Arena: headline metrics powered by Syra (volume, calls, PnL context) |
 | 2.9 | `/analytics` + `/leaderboard` | Market as **rail credibility**, not vanity; share on X weekly |
 | 2.10 | Customer stories | 3 written case studies: indie dev, trading desk, autonomous agent |
@@ -211,36 +211,36 @@ Each phase has **objectives**, **concrete steps**, **metrics**, and **exit crite
 |------|--------|--------|
 | 2.11 | Free tier | SIWX / identity-gated routes for activation (no payment) |
 | 2.12 | Paid tier | x402 per route; volume discounts at wallet level |
-| 2.13 | Staking tier | $SYRA stake → 10–25% API discount (align token with usage) |
+| 2.13 | Staking tier | $SYRA stake â†’ 10â€“25% API discount (align token with usage) |
 | 2.14 | Enterprise tier | Custom SLA, dedicated support, white-label (Phase 3 prep) |
 
 **4. Partnerships (each partner = more paid routes)**
 
 | Step | Action | Detail |
 |------|--------|--------|
-| 2.15 | Data partners | Nansen, Birdeye, etc. — co-marketing, bundled routes |
-| 2.16 | Execution partners | Jupiter, Meteora, Bitget — execution fees + Syra take |
-| 2.17 | Chain / infra | Solana Foundation, x402 ecosystem — grants + visibility |
+| 2.15 | Data partners | Nansen, Birdeye, etc. â€” co-marketing, bundled routes |
+| 2.16 | Execution partners | Jupiter, Meteora, Bitget â€” execution fees + Syra take |
+| 2.17 | Chain / infra | Solana Foundation, x402 ecosystem â€” grants + visibility |
 
 #### Phase 2 metrics
 
 | Metric | Target |
 |--------|--------|
 | Active integrations | 1,000+ |
-| Paid API calls / day | 100× Phase 0 baseline |
+| Paid API calls / day | 100Ã— Phase 0 baseline |
 | Net revenue / month | $50K+ |
 | Agent wallet TVL | $500K+ USDC |
 | Organic inbound (dev signups from MCP/SDK) | 30%+ of new integrators |
 
 #### Exit criteria
 
-- [ ] 1,000 active integrations with ≥1 paid call in 30d
+- [ ] 1,000 active integrations with â‰¥1 paid call in 30d
 - [ ] $50K MRR equivalent from x402 + take-rate
 - [ ] 3 public case studies live
 
 ---
 
-### Phase 3 — Default rail for Solana trading agents (Months 10–18)
+### Phase 3 â€” Default rail for Solana trading agents (Months 10â€“18)
 
 **Objective:** **Syra is the default** when an agent needs crypto intelligence or agent-native payments on Solana.
 
@@ -250,9 +250,9 @@ Each phase has **objectives**, **concrete steps**, **metrics**, and **exit crite
 
 | Step | Action | Detail |
 |------|--------|--------|
-| 3.1 | Route catalog 10× | 50+ high-value paid routes; documented pricing matrix |
+| 3.1 | Route catalog 10Ã— | 50+ high-value paid routes; documented pricing matrix |
 | 3.2 | Agent reputation | Score agents by paid volume, uptime, policy compliance (8004 tie-in) |
-| 3.3 | Cross-agent learning (careful) | Aggregated anonymized signals — never financial advice |
+| 3.3 | Cross-agent learning (careful) | Aggregated anonymized signals â€” never financial advice |
 | 3.4 | Backtesting API | Paid historical runs for strategy agents |
 | 3.5 | Compliance-aware endpoints | Geo / entity flags for institutional pilots |
 
@@ -262,7 +262,7 @@ Each phase has **objectives**, **concrete steps**, **metrics**, and **exit crite
 |------|--------|--------|
 | 3.6 | Base rail | Extend x402 + agent wallet patterns (existing BSC sidecar as template) |
 | 3.7 | Unified SDK | One client, chain param; same operator dashboard |
-| 3.8 | Cross-chain narrative | “Machine money for agents” not “Solana only” in investor materials |
+| 3.8 | Cross-chain narrative | â€œMachine money for agentsâ€ not â€œSolana onlyâ€ in investor materials |
 
 **3. Enterprise & institutional**
 
@@ -278,7 +278,7 @@ Each phase has **objectives**, **concrete steps**, **metrics**, and **exit crite
 | Step | Action | Detail |
 |------|--------|--------|
 | 3.13 | Staking live | Discount tiers tied to paid usage |
-| 3.14 | Revenue buyback | x402 fees → $SYRA buyback (per tokenomics doc) |
+| 3.14 | Revenue buyback | x402 fees â†’ $SYRA buyback (per tokenomics doc) |
 | 3.15 | No pay-to-win optics | Utility = discounts + governance, not exclusive alpha |
 
 #### Phase 3 metrics
@@ -294,14 +294,14 @@ Each phase has **objectives**, **concrete steps**, **metrics**, and **exit crite
 #### Exit criteria
 
 - [ ] $5M ARR run-rate
-- [ ] Recognized in ≥2 third-party “agent infra” market maps
-- [ ] Default integration in ≥1 major agent framework template
+- [ ] Recognized in â‰¥2 third-party â€œagent infraâ€ market maps
+- [ ] Default integration in â‰¥1 major agent framework template
 
 ---
 
-### Phase 4 — Category leader & platform economics (Months 18–36)
+### Phase 4 â€” Category leader & platform economics (Months 18â€“36)
 
-**Objective:** Syra is the **category name** for agent financial infrastructure — network effects defend share.
+**Objective:** Syra is the **category name** for agent financial infrastructure â€” network effects defend share.
 
 #### Steps
 
@@ -310,9 +310,9 @@ Each phase has **objectives**, **concrete steps**, **metrics**, and **exit crite
 | Step | Action | Detail |
 |------|--------|--------|
 | 4.1 | Agent marketplace | Third-party routes on Syra rail; Syra take on all flows |
-| 4.2 | Data flywheel | More agents → more calls → better route ranking → more agents |
-| 4.3 | 8004 as trust layer | Standard for “this agent pays and behaves” |
-| 4.4 | Grants program | x402 Intelligence Grant — fund agents built on Syra |
+| 4.2 | Data flywheel | More agents â†’ more calls â†’ better route ranking â†’ more agents |
+| 4.3 | 8004 as trust layer | Standard for â€œthis agent pays and behavesâ€ |
+| 4.4 | Grants program | x402 Intelligence Grant â€” fund agents built on Syra |
 
 **2. M&A and acqui-hires**
 
@@ -326,7 +326,7 @@ Each phase has **objectives**, **concrete steps**, **metrics**, and **exit crite
 
 | Step | Action | Detail |
 |------|--------|--------|
-| 4.8 | Seed / Series A narrative | “Stripe for agents” + usage charts + net dollar retention |
+| 4.8 | Seed / Series A narrative | â€œStripe for agentsâ€ + usage charts + net dollar retention |
 | 4.9 | Target investors | Infra / fintech / crypto infra funds; not consumer AI |
 | 4.10 | Valuation drivers | ARR growth, gross margin, integration count, TVL |
 
@@ -334,37 +334,37 @@ Each phase has **objectives**, **concrete steps**, **metrics**, and **exit crite
 
 | Step | Action | Detail |
 |------|--------|--------|
-| 4.11 | Team ~15–25 | Eng (rail), 1–2 sales, 1 DevRel, 1 ops/security |
-| 4.12 | Single roadmap | Kill parallel “products”; proof stays small team |
+| 4.11 | Team ~15â€“25 | Eng (rail), 1â€“2 sales, 1 DevRel, 1 ops/security |
+| 4.12 | Single roadmap | Kill parallel â€œproductsâ€; proof stays small team |
 | 4.13 | Geo | Remote-first; optional SG/US entity for enterprise |
 
 #### Phase 4 metrics (multi-billion path)
 
 | Metric | Indicative scale |
 |--------|------------------|
-| ARR | $50M–$100M+ (infra multiples → $500M–$2B+ valuation) |
+| ARR | $50Mâ€“$100M+ (infra multiples â†’ $500Mâ€“$2B+ valuation) |
 | Paid calls / year | Billions |
 | Agent wallet TVL | $100M+ |
-| Platform take-rate | 5–15% on third-party routes |
+| Platform take-rate | 5â€“15% on third-party routes |
 | Net dollar retention | >120% on enterprise integrators |
 
-**Note:** Multi-billion **company** valuation typically requires **$50M+ ARR** at infra multiples (10–20×) or **platform dominance** with strategic premium. This phase is where both become realistic.
+**Note:** Multi-billion **company** valuation typically requires **$50M+ ARR** at infra multiples (10â€“20Ã—) or **platform dominance** with strategic premium. This phase is where both become realistic.
 
 ---
 
 ## Part 4: Go-to-market playbook (week-by-week starter)
 
-### Weeks 1–2: Foundation
+### Weeks 1â€“2: Foundation
 
-- [ ] Publish “First paid call in 15 minutes” doc + Loom
+- [ ] Publish â€œFirst paid call in 15 minutesâ€ doc + Loom
 - [ ] Post MCP install thread on X with playground link
 - [ ] DM 20 agent builders personally; offer $50 API credits for feedback
 - [ ] Add Syra to x402scan if not fully listed
 
-### Weeks 3–4: First integrators
+### Weeks 3â€“4: First integrators
 
 - [ ] Ship 1 ElizaOS example repo
-- [ ] Host Twitter Space: “Building agents that pay for intelligence”
+- [ ] Host Twitter Space: â€œBuilding agents that pay for intelligenceâ€
 - [ ] Track 10 design partners in a spreadsheet (wallet, calls/day, blockers)
 
 ### Month 2: Content engine
@@ -387,11 +387,11 @@ These activities **feel productive** but **do not compound** toward billions:
 
 1. **Building new experiment types** without tying spend to Syra rail metrics  
 2. **Competing on chat UX** with ChatGPT / generic agents  
-3. **Marketing “AI trading bot”** instead of “infra for agents”  
+3. **Marketing â€œAI trading botâ€** instead of â€œinfra for agentsâ€  
 4. **Optimizing for Telegram users** before API integrators (unless Telegram is a distribution channel to SDK)  
 5. **Token-first GTM** before usage proof  
-6. **Spreading eng across 8 nav identities** — keep nav; keep narrative on rail  
-7. **Promising returns** — stay infrastructure; probabilistic insights only  
+6. **Spreading eng across 8 nav identities** â€” keep nav; keep narrative on rail  
+7. **Promising returns** â€” stay infrastructure; probabilistic insights only  
 
 ---
 
@@ -400,11 +400,11 @@ These activities **feel productive** but **do not compound** toward billions:
 | Risk | Mitigation |
 |------|------------|
 | x402 ecosystem slow to adopt | Dual path: human devs via SDK + agents via MCP |
-| Solana-only TAM cap | Phase 3 multi-chain; narrative “agents” not “Solana traders” |
+| Solana-only TAM cap | Phase 3 multi-chain; narrative â€œagentsâ€ not â€œSolana tradersâ€ |
 | Partner API cost > revenue | Own routes where margin is best; bundle pricing |
 | Regulatory scrutiny on agent trading | Analysis separate from execution; disclosures; enterprise compliance tier |
 | Competitor clones rail | Moat = wallet TVL + policy history + 8004 reputation + integration depth |
-| Team distraction from proof | Cap proof eng to ≤20% of sprint capacity |
+| Team distraction from proof | Cap proof eng to â‰¤20% of sprint capacity |
 
 ---
 
@@ -438,14 +438,14 @@ These activities **feel productive** but **do not compound** toward billions:
 ### Metrics
 
 - [ ] Weekly dashboard: paid calls, revenue, integrators, TVL
-- [ ] Baseline → Week 12: 10× paid calls target
+- [ ] Baseline â†’ Week 12: 10Ã— paid calls target
 - [ ] 50 paying integrators
 
 ### Narrative
 
-- [ ] All public copy uses “machine money for agents”
+- [ ] All public copy uses â€œmachine money for agentsâ€
 - [ ] Deck updated: rail diagram, usage charts, case studies
-- [ ] `/analytics` linked from footer as “Rail volume”
+- [ ] `/analytics` linked from footer as â€œRail volumeâ€
 
 ---
 
@@ -469,7 +469,6 @@ flowchart TB
   subgraph proof [Proof layer]
     Chat[Reference chat]
     Exps[Experiments]
-    UOF[Up Only Fund]
     Stats[Analytics Leaderboard]
   end
 
@@ -510,11 +509,11 @@ flowchart TB
 
 ---
 
-## Appendix C: Honest note on “multi-billion”
+## Appendix C: Honest note on â€œmulti-billionâ€
 
 A **multi-billion-dollar company** in this space requires at least one of:
 
-1. **$50M–$100M+ ARR** with infra-grade margins and retention, or  
+1. **$50Mâ€“$100M+ ARR** with infra-grade margins and retention, or  
 2. **Dominant platform position** where most agent payments/intelligence on Solana (then multi-chain) flow through Syra, or  
 3. **Strategic acquisition** by a major exchange, data vendor, or cloud/agent platform at a premium.
 

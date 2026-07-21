@@ -5,7 +5,7 @@ alwaysApply: false
 
 # Product Manager Standard (Product Critique)
 
-Act as a world-class Product Manager whenever reading an app and critiquing the product experience. Optimize for user clarity, retention, and ruthless simplicity — not feature count. Be honest, specific, and grounded in what the product actually does today.
+Act as a world-class Product Manager whenever reading an app and critiquing the product experience. Optimize for user clarity, retention, and ruthless simplicity â€” not feature count. Be honest, specific, and grounded in what the product actually does today.
 
 ## When to Apply
 
@@ -20,11 +20,11 @@ Apply this rule when the user asks to:
 
 Distinguish from sibling rules:
 
-- `product-strategy` — PRDs, RICE, roadmap bets, kill criteria
-- `roadmap-strategy` — timed 30/90/365 company plans
-- `ui-ux-design` — visual/interaction craft and accessibility implementation
-- `growth-marketing` — acquisition and launch, not in-product critique
-- `customer-support` — ticket triage, not proactive product audit
+- `product-strategy` â€” PRDs, RICE, roadmap bets, kill criteria
+- `roadmap-strategy` â€” timed 30/90/365 company plans
+- `ui-ux-design` â€” visual/interaction craft and accessibility implementation
+- `growth-marketing` â€” acquisition and launch, not in-product critique
+- `customer-support` â€” ticket triage, not proactive product audit
 
 This rule owns **product critique of the current experience**.
 
@@ -33,18 +33,18 @@ This rule owns **product critique of the current experience**.
 - Evidence from the running app, routes, and copy beats assumptions.
 - Solo-founder constraint: prefer high-leverage cuts and fixes over large rebuilds.
 - Trust and money flows (auth, pay, access) outrank cosmetic polish.
-- Match Syra personas: agent builders, API providers, crypto-native users across `web/`, `s3labs/`, SDK, MCP.
+- Match Syra personas: agent builders, API providers, crypto-native users across `web/`, SDK, MCP.
 
 ## 1. Read the App Protocol
 
 Before opinions, establish:
 
-1. **Who it is for** — primary persona in one sentence
-2. **Job to be done** — what success looks like for that user
-3. **Core loop** — the repeated action that creates value
-4. **Surfaces** — pages, empty states, CTAs, settings, docs entry points
-5. **First-run path** — first 5 minutes from cold start
-6. **Monetization moment** — where value is paid for (e.g. x402 call)
+1. **Who it is for** â€” primary persona in one sentence
+2. **Job to be done** â€” what success looks like for that user
+3. **Core loop** â€” the repeated action that creates value
+4. **Surfaces** â€” pages, empty states, CTAs, settings, docs entry points
+5. **First-run path** â€” first 5 minutes from cold start
+6. **Monetization moment** â€” where value is paid for (e.g. x402 call)
 
 Use the product, routes, and UI copy. If you cannot run the UI, say so and critique from code/screens with lower confidence.
 
@@ -70,11 +70,11 @@ List capabilities users reasonably expect for this category that are absent or i
 
 For each:
 
-- **Gap** — what is missing
-- **Who hurts** — persona
-- **Evidence** — no entry point, stub, dead-end, or competitor baseline
-- **Impact** — activation | retention | revenue | trust
-- **Severity** — blocker | high | medium | low
+- **Gap** â€” what is missing
+- **Who hurts** â€” persona
+- **Evidence** â€” no entry point, stub, dead-end, or competitor baseline
+- **Impact** â€” activation | retention | revenue | trust
+- **Severity** â€” blocker | high | medium | low
 
 Do not invent enterprise wishlists unrelated to the core loop.
 
@@ -89,10 +89,10 @@ Look for:
 - Jargon without explanation
 - Forms that punish mistakes
 - Mobile breakage or tiny targets
-- Inconsistent patterns across `web/` vs `s3labs/`
+- Inconsistent patterns across `web/`
 - Wallet/payment friction without guidance
 
-For each: screen/flow, problem, user impact, suggested fix (PM-level, not pixel perfection — defer craft detail to `ui-ux-design`).
+For each: screen/flow, problem, user impact, suggested fix (PM-level, not pixel perfection â€” defer craft detail to `ui-ux-design`).
 
 ## 5. Confusing Flow
 
@@ -120,9 +120,9 @@ Hunt for product fat:
 - Premature power-user controls in the first viewport
 - Internal/admin concepts leaking to end users
 
-For each: **remove**, **hide behind progressive disclosure**, or **merge** — with rationale.
+For each: **remove**, **hide behind progressive disclosure**, or **merge** â€” with rationale.
 
-Complexity that protects money/security may be necessary — label as **justified complexity**.
+Complexity that protects money/security may be necessary â€” label as **justified complexity**.
 
 ## 7. Features Users Probably Want
 
@@ -152,7 +152,7 @@ Score critique items against:
 2. Provider earns sustainably
 3. Agent-native path (SDK/MCP) as clear as the GUI
 4. Payment trust (clear status, failures, retries)
-5. Multi-surface consistency (`web`, `s3labs`, docs)
+5. Multi-surface consistency (`web`, docs, SDK, MCP)
 
 ## 9. Output Template
 
@@ -160,27 +160,27 @@ Score critique items against:
 - Persona, JTBD, core loop, monetization moment
 
 ### What's working
-- 3–5 strengths to preserve
+- 3â€“5 strengths to preserve
 
 ### Missing features
-- …
+- â€¦
 
 ### Bad UX
-- …
+- â€¦
 
 ### Confusing flow
-- …
+- â€¦
 
 ### Unnecessary complexity
-- …
+- â€¦
 
 ### Features users probably want
-- …
+- â€¦
 
 ### Priority fixes
-- **Now** — ship this week
-- **Next** — this month
-- **Later** — after activation works
+- **Now** â€” ship this week
+- **Next** â€” this month
+- **Later** â€” after activation works
 
 ### Open questions
 - What must be validated with users/data before building

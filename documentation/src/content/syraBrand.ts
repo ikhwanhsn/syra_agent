@@ -8,26 +8,37 @@ import {
   SYRA_WEB_LABEL,
 } from "./syraUrls";
 
-export const SYRA_TAGLINE = "Pay-per-call crypto APIs for agents";
+export const SYRA_TAGLINE = "Machine Money for Agents";
+
+export const SYRA_LIVE_SUBLINE = "Live today: pay-per-call crypto APIs over x402";
 
 export const SYRA_DOCS_BLURB =
-  "Documentation for Syra: pay-per-call crypto intelligence for agents — x402, MCP, and typed SDK on Solana.";
+  "Documentation for Syra: machine money for agents — Earn, Treasury, Invest, Spend, Grow. Live today: x402, MCP, and typed SDK on Solana.";
 
-export const SYRA_DOCS_BADGE = "x402 pay-per-call for agents";
+export const SYRA_DOCS_BADGE = "Machine Money · Spend live (x402)";
 
 export const SYRA_HIGHLIGHT =
-  "Syra is pay-per-call crypto intelligence for agents — settle USDC via x402, integrate with MCP or the SDK, no per-vendor API keys.";
+  "Syra is machine money for agents — Earn, Treasury, Invest, Spend, and Grow on Solana. Live today: settle USDC via x402, integrate with MCP or the SDK.";
 
 export const SYRA_MISSION =
-  "Syra lets autonomous agents pay for crypto intelligence and tools on every call — x402 micropayments, MCP, and a typed SDK on Solana.";
+  "Syra lets autonomous agents earn, allocate, invest, spend, and grow capital — with live pay-per-call crypto intelligence over x402, MCP, and a typed SDK on Solana.";
 
 export const SYRA_VISION =
-  "An economy where millions of AI agents pay for tools, settle in USDC, and coordinate value without human billing ops.";
+  "An economy where millions of AI agents hold capital, pay for tools, and coordinate value without human billing ops — machine money as infrastructure.";
+
+/** Pillar maturity — keep in sync with api/config/syraBranding.js */
+export const SYRA_PILLAR_STATUS = {
+  spend: "live",
+  invest: "beta",
+  earn: "beta",
+  treasury: "infra",
+  grow: "roadmap",
+} as const;
 
 /** Live GTM capabilities — what builders do today. */
 export const SYRA_LIVE_CAPABILITIES = [
   {
-    title: "Pay per call",
+    title: "Pay per call (Spend)",
     description: "Settle USDC via x402 on HTTP 402 — no per-vendor API keys or monthly plans.",
   },
   {
@@ -45,18 +56,17 @@ export const SYRA_LIVE_CAPABILITIES = [
 ] as const;
 
 /**
- * Platform roadmap modules (GET /pillars). Not public GTM hero copy.
- * @deprecated Prefer SYRA_LIVE_CAPABILITIES for docs Welcome / home.
+ * Platform pillars with honest status (GET /pillars).
  */
 export const SYRA_PILLARS = [
-  { title: "Earn", description: "Agents monetize skills." },
-  { title: "Treasury", description: "Allocate and manage capital." },
-  { title: "Invest", description: "Deploy capital autonomously." },
-  { title: "Spend", description: "x402 native payments (live)." },
-  { title: "Grow", description: "Yield + portfolio optimization." },
+  { title: "Earn", description: "Agents monetize skills.", status: "beta" as const },
+  { title: "Treasury", description: "Allocate and manage capital.", status: "infra" as const },
+  { title: "Invest", description: "Deploy capital autonomously.", status: "beta" as const },
+  { title: "Spend", description: "x402 native pay-per-call APIs.", status: "live" as const },
+  { title: "Grow", description: "Yield + portfolio optimization.", status: "roadmap" as const },
 ] as const;
 
-/** @deprecated Prefer SYRA_LIVE_CAPABILITIES */
+/** @deprecated Prefer SYRA_LIVE_CAPABILITIES for docs Welcome / home. */
 export const SYRA_FLOW_STEPS = SYRA_PILLARS.map((p, i) => ({
   step: String(i + 1).padStart(2, "0"),
   title: p.title,

@@ -5,7 +5,7 @@ alwaysApply: false
 
 # Security Engineering Standard
 
-Act as a world-class Chief Information Security Officer and application security engineer whenever reviewing, designing, or responding to security concerns. Assume breach. Optimize for preventing fund loss, data exposure, and trust destruction. Security is not a checkbox — it is a continuous discipline.
+Act as a world-class Chief Information Security Officer and application security engineer whenever reviewing, designing, or responding to security concerns. Assume breach. Optimize for preventing fund loss, data exposure, and trust destruction. Security is not a checkbox â€” it is a continuous discipline.
 
 ## When to Apply
 
@@ -30,14 +30,14 @@ Apply this rule when the user asks to:
 
 For each feature or change, identify:
 
-1. **Assets** — funds, keys, user data, API access, reputation
-2. **Actors** — unauthenticated user, authenticated user, insider, bot, nation-state
-3. **Entry points** — API routes, webhooks, MCP tools, admin panels, contracts
-4. **Trust boundaries** — where data crosses from untrusted to trusted
-5. **STRIDE classes** — spoofing, tampering, repudiation, info disclosure, DoS, elevation
-6. **Impact** — fund loss, data breach, service outage, compliance violation
+1. **Assets** â€” funds, keys, user data, API access, reputation
+2. **Actors** â€” unauthenticated user, authenticated user, insider, bot, nation-state
+3. **Entry points** â€” API routes, webhooks, MCP tools, admin panels, contracts
+4. **Trust boundaries** â€” where data crosses from untrusted to trusted
+5. **STRIDE classes** â€” spoofing, tampering, repudiation, info disclosure, DoS, elevation
+6. **Impact** â€” fund loss, data breach, service outage, compliance violation
 
-Prioritize mitigations by likelihood × impact. Document accepted risks with owner and review date.
+Prioritize mitigations by likelihood Ã— impact. Document accepted risks with owner and review date.
 
 ## 2. Secrets and Key Management
 
@@ -65,16 +65,16 @@ Fail closed: invalid or expired credentials reject immediately; no partial acces
 
 Review for:
 
-- **Injection** — SQL, NoSQL, command, template; parameterize and validate
-- **XSS** — encode output; CSP headers; no `dangerouslySetInnerHTML` without sanitization
-- **SSRF** — validate URLs in webhooks, fetchers, image proxies
-- **IDOR** — authorize resource access by owner/tenant, not just ID presence
-- **Mass assignment** — allowlist updatable fields
-- **Deserialization** — safe parsing; reject unexpected types
-- **Open redirect** — validate redirect targets
-- **Rate limiting** — auth endpoints, payment, expensive API calls
+- **Injection** â€” SQL, NoSQL, command, template; parameterize and validate
+- **XSS** â€” encode output; CSP headers; no `dangerouslySetInnerHTML` without sanitization
+- **SSRF** â€” validate URLs in webhooks, fetchers, image proxies
+- **IDOR** â€” authorize resource access by owner/tenant, not just ID presence
+- **Mass assignment** â€” allowlist updatable fields
+- **Deserialization** â€” safe parsing; reject unexpected types
+- **Open redirect** â€” validate redirect targets
+- **Rate limiting** â€” auth endpoints, payment, expensive API calls
 
-For `api/`, `web/`, `s3labs/`: trace user input from request to DB/external call.
+For `api/`, `web/`: trace user input from request to DB/external call.
 
 ## 5. Crypto and Payment Security
 
@@ -112,13 +112,13 @@ Incident steps: contain, assess scope, rotate/revoke, patch, notify affected use
 
 For each finding:
 
-- **Title** — specific vulnerability class
-- **Severity** — blocker | critical | major | minor
-- **Location** — file, route, or component
-- **Description** — what can go wrong
-- **Exploit scenario** — realistic attack path
-- **Recommendation** — concrete fix
-- **Residual risk** — if not fully mitigated
+- **Title** â€” specific vulnerability class
+- **Severity** â€” blocker | critical | major | minor
+- **Location** â€” file, route, or component
+- **Description** â€” what can go wrong
+- **Exploit scenario** â€” realistic attack path
+- **Recommendation** â€” concrete fix
+- **Residual risk** â€” if not fully mitigated
 
 ## Anti-Patterns
 

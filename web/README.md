@@ -2,7 +2,7 @@
 
 **Pay-per-call crypto APIs for agents** — the unified Syra web application: API marketplace (Spend), agent wallet, operator dashboard, and proof demos.
 
-Part of the [Syra monorepo](../README.md). Syra-backed ecosystem brands ([S3 Labs](https://s3labs.xyz), [Up Only Fund](https://uponlyfund.com)) ship as separate apps in `s3labs/` and `uponly-fund/`.
+Part of the [Syra monorepo](../README.md). This package is the **Syra-only** web surface (agent, marketplace, dashboard, marketing).
 
 ---
 
@@ -31,8 +31,6 @@ On localhost, API calls go through **`/api`** (Vite proxies to `https://api.syra
 | **Dashboard** | `/overview` | Usage, spend, agent monitoring |
 | **Agent chat** | `/` | Reference client — research, tools, onchain actions |
 | **Proof / experiments** | `/alpha`, experiments routes | Live demos powered by the Syra rail |
-
-Legacy marketing routes (`/uponly`, `/rise`, `/s3labs`) may redirect to standalone ecosystem apps — see `src/components/marketing/`.
 
 ---
 
@@ -88,8 +86,6 @@ Set environment variables with the `VITE_*` prefix. `VITE_PRIVY_APP_ID` is requi
 | [`api`](../api) | Backend gateway — x402, agent sessions, partner tools |
 | [`syra-sdk`](../syra-sdk) | Typed HTTP client for integrators |
 | [`mcp-server`](../mcp-server) | MCP distribution for Cursor / Claude |
-| [`s3labs`](../s3labs) | Syra-backed growth studio |
-| [`uponly-fund`](../uponly-fund) | Syra-backed allocator app |
 
 ---
 

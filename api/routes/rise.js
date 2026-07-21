@@ -40,8 +40,8 @@ const paymentOptionsBase = {
   outputSchema: {
     view: { type: 'string' },
     nowMs: { type: 'integer' },
-    token: { type: 'object', description: 'UPONLY token snapshot (intel view)' },
-    rise: { type: 'object', description: 'Fund lens metrics (intel view)' },
+    token: { type: 'object', description: 'Top-ranked or requested mint token snapshot (intel view)' },
+    rise: { type: 'object', description: 'Market lens metrics (intel view)' },
     riseAlphaMintTargets: { type: 'array' },
     markets: { type: 'array' },
     targets: { type: 'array' },

@@ -1,5 +1,15 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Coins, ExternalLink, Plus, Search } from "lucide-react";
+import {
+  BadgeCheck,
+  Coins,
+  ExternalLink,
+  Flame,
+  Plus,
+  Search,
+  Sparkles,
+  TrendingDown,
+  TrendingUp,
+} from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { EarnTokenForm } from "@/components/earn/EarnTokenForm";
@@ -20,6 +30,10 @@ import { notify } from "@/lib/notify";
 import { cn } from "@/lib/utils";
 
 type SortMode = "newest" | "mcap";
+
+const HOT_CHANGE_PCT = 10;
+const HOT_VOLUME_USD = 5_000;
+const NEW_MS = 24 * 60 * 60 * 1000;
 
 function formatTokenPriceUsd(price: number | null | undefined): string {
   if (price == null || !Number.isFinite(price) || price <= 0) return "—";
@@ -51,6 +65,20 @@ function formatRelativeTime(iso: string | undefined): string {
   return new Date(iso).toLocaleDateString();
 }
 
+function isNewLaunch(createdAt: string | undefined): boolean {
+  if (!createdAt) return false;
+  const t = new Date(createdAt).getTime();
+  if (!Number.isFinite(t)) return false;
+  return Date.now() - t < NEW_MS;
+}
+
+function isHotLaunch(launch: EarnPumpfunLaunch): boolean {
+  const change = launch.priceChange24hPercent;
+  if (change != null && Number.isFinite(change) && change >= HOT_CHANGE_PCT) return true;
+  const vol = launch.volume24hUsd;
+  return vol != null && Number.isFinite(vol) && vol >= HOT_VOLUME_USD;
+}
+
 function TokenCard({
   launch,
   staggerIndex = 0,
@@ -64,6 +92,11 @@ function TokenCard({
   const hasChange = change24 != null && Number.isFinite(change24);
   const changeUp = hasChange && change24 > 0;
   const changeDown = hasChange && change24 < 0;
+  const showNew = isNewLaunch(launch.createdAt);
+  const showHot = isHotLaunch(launch);
+  const showSaid = Boolean(launch.saidVerified);
+  const description =
+    launch.description?.trim() || "Community launch on pump.fun via Syra Earn.";
 
   return (
     <li
@@ -72,118 +105,155 @@ function TokenCard({
         "border border-border/40 bg-card/40",
         "shadow-[0_1px_0_0_hsl(var(--border)/0.35)]",
         "transition-[border-color,box-shadow,transform,background-color] duration-300 ease-out",
-        "hover:-translate-y-0.5 hover:border-border/70 hover:bg-card/70",
+        "motion-safe:hover:-translate-y-0.5 hover:border-border/70 hover:bg-card/70",
         "hover:shadow-[0_1px_0_0_hsl(var(--border)/0.4),0_24px_48px_-32px_rgba(0,0,0,0.45)]",
         "animate-in fade-in slide-in-from-bottom-2 fill-mode-both duration-500",
+        "motion-reduce:animate-none motion-reduce:transition-none",
       )}
       style={playgroundStaggerStyle(staggerIndex)}
     >
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-foreground/[0.08] to-transparent"
-        aria-hidden
-      />
-
       <Link
         to={detailPath}
         className="absolute inset-0 z-0 rounded-[1.35rem] outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         aria-label={`View ${launch.name}`}
       />
 
-      <div className="relative z-[1] flex flex-col gap-5 p-5 pointer-events-none sm:p-6">
-        <div className="flex items-start gap-4">
+      <div className="relative z-[1] pointer-events-none">
+        <div className="relative h-[5.75rem] overflow-hidden sm:h-[6.25rem]">
           <EarnTokenLogo
             src={launch.imageUri}
-            alt={launch.name}
-            className="h-14 w-14 rounded-2xl border-border/30 shadow-sm ring-1 ring-black/[0.04] dark:ring-white/[0.06]"
-            iconClassName="h-6 w-6"
+            alt=""
+            variant="cover"
+            className="absolute inset-0 h-full w-full rounded-none border-0"
           />
-          <div className="min-w-0 flex-1 pt-0.5">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h3 className="font-display text-[1.05rem] font-semibold leading-snug tracking-tight text-foreground line-clamp-1">
-                  {launch.name}
-                </h3>
-                <p className="mt-0.5 text-[13px] font-medium tracking-wide text-muted-foreground">
-                  ${launch.symbol}
+          <div
+            className="absolute inset-0 bg-gradient-to-t from-card/90 via-card/20 to-transparent"
+            aria-hidden
+          />
+          {(showNew || showHot || showSaid) && (
+            <div className="absolute left-3 top-3 flex flex-wrap gap-1.5 sm:left-4 sm:top-3.5">
+              {showNew ? (
+                <span className="inline-flex items-center gap-1 rounded-full border border-border/50 bg-background/85 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-foreground backdrop-blur-sm">
+                  <Sparkles className="h-3 w-3" aria-hidden />
+                  New
+                </span>
+              ) : null}
+              {showHot ? (
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-background/85 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-800 dark:text-amber-300 backdrop-blur-sm">
+                  <Flame className="h-3 w-3" aria-hidden />
+                  Hot
+                </span>
+              ) : null}
+              {showSaid ? (
+                <span className="inline-flex items-center gap-1 rounded-full border border-border/50 bg-background/85 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-foreground backdrop-blur-sm">
+                  <BadgeCheck className="h-3 w-3" aria-hidden />
+                  SAID
+                </span>
+              ) : null}
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-4 px-5 pb-5 pt-0 sm:gap-5 sm:px-6 sm:pb-6">
+          <div className="-mt-7 flex items-end gap-3 sm:-mt-8">
+            <EarnTokenLogo
+              src={launch.imageUri}
+              alt={launch.name}
+              className="h-14 w-14 rounded-2xl border-2 border-card shadow-md ring-1 ring-black/[0.04] dark:ring-white/[0.06] sm:h-16 sm:w-16"
+              iconClassName="h-6 w-6"
+            />
+            <div className="min-w-0 flex-1 pb-0.5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="font-display text-[1.05rem] font-semibold leading-snug tracking-tight text-foreground line-clamp-1">
+                    {launch.name}
+                  </h3>
+                  <p className="mt-0.5 text-[13px] font-medium tracking-wide text-muted-foreground">
+                    ${launch.symbol}
+                  </p>
+                </div>
+                <span className="shrink-0 pt-1 text-[11px] tabular-nums text-muted-foreground/80">
+                  {formatRelativeTime(launch.createdAt)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <p className="line-clamp-2 text-[13px] leading-relaxed text-muted-foreground">{description}</p>
+
+          <div className="space-y-3">
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="min-w-0 truncate font-mono text-2xl font-semibold tracking-tight tabular-nums text-foreground">
+                {formatTokenPriceUsd(launch.priceUsd)}
+              </p>
+              {hasChange ? (
+                <p
+                  className={cn(
+                    "inline-flex shrink-0 items-center gap-1 font-mono text-sm font-medium tabular-nums",
+                    changeUp && "text-emerald-600 dark:text-emerald-400",
+                    changeDown && "text-rose-600 dark:text-rose-400",
+                    !changeUp && !changeDown && "text-muted-foreground",
+                  )}
+                >
+                  {changeUp ? <TrendingUp className="h-3.5 w-3.5" aria-hidden /> : null}
+                  {changeDown ? <TrendingDown className="h-3.5 w-3.5" aria-hidden /> : null}
+                  <span>{formatPct(change24)}</span>
+                </p>
+              ) : (
+                <p className="shrink-0 font-mono text-sm tabular-nums text-muted-foreground/60">—</p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 border-t border-border/30 pt-3 sm:gap-3">
+              <div className="min-w-0 overflow-hidden">
+                <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground/70">
+                  Mcap
+                </p>
+                <p
+                  className="mt-0.5 font-mono text-[13px] font-medium tabular-nums text-foreground/90"
+                  title={formatCardUsd(launch.marketCapUsd)}
+                >
+                  {formatCardUsd(launch.marketCapUsd)}
                 </p>
               </div>
-              <span className="shrink-0 pt-1 text-[11px] tabular-nums text-muted-foreground/80">
-                {formatRelativeTime(launch.createdAt)}
-              </span>
+              <div className="min-w-0 overflow-hidden">
+                <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground/70">
+                  Vol
+                </p>
+                <p
+                  className="mt-0.5 font-mono text-[13px] font-medium tabular-nums text-foreground/90"
+                  title={formatCardUsd(launch.volume24hUsd)}
+                >
+                  {formatCardUsd(launch.volume24hUsd)}
+                </p>
+              </div>
+              <div className="min-w-0 overflow-hidden">
+                <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground/70">
+                  Liq
+                </p>
+                <p
+                  className="mt-0.5 font-mono text-[13px] font-medium tabular-nums text-foreground/90"
+                  title={formatCardUsd(launch.liquidityUsd)}
+                >
+                  {formatCardUsd(launch.liquidityUsd)}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="space-y-3">
-          <div className="flex items-baseline justify-between gap-3">
-            <p className="min-w-0 truncate font-mono text-2xl font-semibold tracking-tight tabular-nums text-foreground">
-              {formatTokenPriceUsd(launch.priceUsd)}
-            </p>
-            {hasChange ? (
-              <p
-                className={cn(
-                  "shrink-0 font-mono text-sm font-medium tabular-nums",
-                  changeUp && "text-emerald-600 dark:text-emerald-400",
-                  changeDown && "text-rose-600 dark:text-rose-400",
-                  !changeUp && !changeDown && "text-muted-foreground",
-                )}
-              >
-                {formatPct(change24)}
-              </p>
-            ) : (
-              <p className="shrink-0 font-mono text-sm tabular-nums text-muted-foreground/60">—</p>
-            )}
+          <div className="pointer-events-auto mt-auto flex items-center justify-end pt-1">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-9 gap-1.5 rounded-full border-border/50 px-3.5 text-[13px]"
+              asChild
+            >
+              <a href={pumpUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
+                Trade
+                <ExternalLink className="h-3.5 w-3.5 opacity-60" />
+              </a>
+            </Button>
           </div>
-
-          <div className="grid grid-cols-3 gap-2 border-t border-border/30 pt-3 sm:gap-3">
-            <div className="min-w-0 overflow-hidden">
-              <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground/70">
-                Mcap
-              </p>
-              <p
-                className="mt-0.5 font-mono text-[13px] font-medium tabular-nums text-foreground/90"
-                title={formatCardUsd(launch.marketCapUsd)}
-              >
-                {formatCardUsd(launch.marketCapUsd)}
-              </p>
-            </div>
-            <div className="min-w-0 overflow-hidden">
-              <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground/70">
-                Vol
-              </p>
-              <p
-                className="mt-0.5 font-mono text-[13px] font-medium tabular-nums text-foreground/90"
-                title={formatCardUsd(launch.volume24hUsd)}
-              >
-                {formatCardUsd(launch.volume24hUsd)}
-              </p>
-            </div>
-            <div className="min-w-0 overflow-hidden">
-              <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground/70">
-                Liq
-              </p>
-              <p
-                className="mt-0.5 font-mono text-[13px] font-medium tabular-nums text-foreground/90"
-                title={formatCardUsd(launch.liquidityUsd)}
-              >
-                {formatCardUsd(launch.liquidityUsd)}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="pointer-events-auto mt-auto flex items-center justify-end pt-1">
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-9 gap-1.5 rounded-full px-3.5 text-[13px] text-muted-foreground hover:text-foreground"
-            asChild
-          >
-            <a href={pumpUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
-              Trade
-              <ExternalLink className="h-3.5 w-3.5 opacity-60" />
-            </a>
-          </Button>
         </div>
       </div>
     </li>
@@ -268,6 +338,7 @@ export function EarnTokenPanel({
   const marketplace = marketQ.data?.launches ?? [];
   const showSkeleton = useMinimumSkeleton(marketQ.isLoading);
   const q = search.trim().toLowerCase();
+  const showLaunchStrip = !hasExistingToken && marketplace.length > 0 && !showSkeleton && !marketQ.isError;
 
   const visibleLaunches = [...marketplace]
     .filter((l) => {
@@ -295,7 +366,7 @@ export function EarnTokenPanel({
             Tokens
           </h2>
           <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
-            Community launches on pump.fun.
+            Launch a pump.fun token from your Earn wallet — one per wallet.
           </p>
         </div>
         {hasExistingToken && existingTokenPath ? (
@@ -307,11 +378,12 @@ export function EarnTokenPanel({
           </Button>
         ) : (
           <Button
-            className="h-11 shrink-0 gap-2 rounded-full px-5 text-[13px] font-medium shadow-sm"
+            variant="neon"
+            className="h-11 shrink-0 gap-2 rounded-full px-5 text-[13px]"
             onClick={() => void handleLaunch()}
           >
             <Plus className="h-4 w-4" />
-            Launch
+            Launch token
           </Button>
         )}
       </header>
@@ -365,12 +437,33 @@ export function EarnTokenPanel({
         </div>
       </div>
 
+      {showLaunchStrip && visibleLaunches.length > 0 ? (
+        <div className="flex flex-col gap-3 rounded-[1.35rem] border border-border/40 bg-muted/15 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div className="min-w-0">
+            <p className="font-display text-[15px] font-semibold tracking-tight text-foreground">
+              Launch yours on Syra
+            </p>
+            <p className="mt-0.5 text-[13px] text-muted-foreground">
+              Join the marketplace — create one token from your Earn wallet.
+            </p>
+          </div>
+          <Button
+            variant="neon"
+            className="h-10 shrink-0 gap-1.5 rounded-full px-4 text-[13px]"
+            onClick={() => void handleLaunch()}
+          >
+            <Plus className="h-4 w-4" />
+            Launch token
+          </Button>
+        </div>
+      ) : null}
+
       {showSkeleton ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <div
               key={i}
-              className="h-[15.5rem] animate-pulse rounded-[1.35rem] border border-border/30 bg-muted/15"
+              className="h-[19.5rem] animate-pulse rounded-[1.35rem] border border-border/30 bg-muted/15"
               style={playgroundStaggerStyle(i)}
             />
           ))}
@@ -389,10 +482,12 @@ export function EarnTokenPanel({
             <Coins className="h-5 w-5 text-muted-foreground" aria-hidden />
           </div>
           <p className="font-display text-lg font-semibold tracking-tight">
-            {q ? "No matches" : "Nothing here yet"}
+            {q ? "No matches" : "Be the first to launch"}
           </p>
           <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
-            {q ? "Try a different search." : "Be the first to launch."}
+            {q
+              ? "Try a different search."
+              : "Create a pump.fun token from your Earn wallet and show up here."}
           </p>
           {q ? (
             <Button className="mt-6 rounded-full" variant="outline" onClick={() => setSearch("")}>
@@ -403,9 +498,13 @@ export function EarnTokenPanel({
               <Link to={existingTokenPath}>View your token</Link>
             </Button>
           ) : (
-            <Button className="mt-6 gap-1.5 rounded-full" onClick={() => void handleLaunch()}>
+            <Button
+              variant="neon"
+              className="mt-6 gap-1.5 rounded-full"
+              onClick={() => void handleLaunch()}
+            >
               <Plus className="h-4 w-4" />
-              Launch
+              Launch token
             </Button>
           )}
         </div>

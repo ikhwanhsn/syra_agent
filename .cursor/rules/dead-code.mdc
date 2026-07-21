@@ -5,7 +5,7 @@ alwaysApply: false
 
 # Dead Code Elimination Standard
 
-Act as a world-class codebase archaeologist whenever hunting unused code, duplicate logic, or unnecessary dependencies. Optimize for evidence-based deletion — never delete on guesswork. Prefer proving unused over assuming unused. Every removal must be reversible via git and justified with references.
+Act as a world-class codebase archaeologist whenever hunting unused code, duplicate logic, or unnecessary dependencies. Optimize for evidence-based deletion â€” never delete on guesswork. Prefer proving unused over assuming unused. Every removal must be reversible via git and justified with references.
 
 ## When to Apply
 
@@ -23,8 +23,8 @@ Apply this rule when the user asks to:
 - Evidence over intuition: cite import graphs, grep hits, dynamic references, or build output.
 - Do not delete without listing evidence and asking for confirmation unless the user explicitly says "delete."
 - Prefer marking deprecated + removing callers first over silent deletion of public APIs.
-- Dynamic usage (string routes, reflection, CMS, OpenAPI-generated clients, MCP tool names) can hide live code — treat as **suspect**, not dead, until proven.
-- Match Syra layout: `api/`, `web/`, `s3labs/`, `mcp-server/`, `syra-sdk/`, `contracts/`, `packages/`, `services/`.
+- Dynamic usage (string routes, reflection, CMS, OpenAPI-generated clients, MCP tool names) can hide live code â€” treat as **suspect**, not dead, until proven.
+- Match Syra layout: `api/`, `web/`, `mcp-server/`, `syra-sdk/`, `contracts/`, `packages/`, `services/`.
 
 ## 1. Hunt Protocol (always)
 
@@ -37,17 +37,17 @@ Work in this order and report in this structure:
 
 For each finding:
 
-- **Item** — path / symbol / package name
-- **Confidence** — high | medium | low
-- **Evidence** — why unused (zero imports, no route registration, etc.)
-- **Caveat** — dynamic use, public export, feature flag, docs-only
-- **Action** — delete | deprecate | merge | keep | investigate
+- **Item** â€” path / symbol / package name
+- **Confidence** â€” high | medium | low
+- **Evidence** â€” why unused (zero imports, no route registration, etc.)
+- **Caveat** â€” dynamic use, public export, feature flag, docs-only
+- **Action** â€” delete | deprecate | merge | keep | investigate
 
 Never claim "every" without stating search method and residual risk.
 
 ## 2. Unused Components (UI / Frontend)
 
-Search surfaces: `web/`, `s3labs/`, shared `packages/`.
+Search surfaces: `web/`, shared `packages/`.
 
 High-confidence unused when **all** hold:
 
@@ -68,7 +68,7 @@ Commands / techniques (prefer project tools):
 - Trace from route entries outward (keep only reachable tree)
 - Bundle analyzer for orphaned chunks when available
 
-**Syra caveat:** Privy/wallet wrappers, feature-flagged KOL pages, and marketing article components may look unused if only CMS/data-driven — verify before delete.
+**Syra caveat:** Privy/wallet wrappers, feature-flagged KOL pages, and marketing article components may look unused if only CMS/data-driven â€” verify before delete.
 
 ## 3. Unused APIs (Backend / SDK / MCP)
 
@@ -88,13 +88,13 @@ Also find:
 - MCP tools never exposed or never called
 - OpenAPI paths that do not match any live route (drift)
 
-**Do not delete** public endpoints solely because this monorepo has no caller — they may be used by external agents. Flag as **external contract: confirm before delete**.
+**Do not delete** public endpoints solely because this monorepo has no caller â€” they may be used by external agents. Flag as **external contract: confirm before delete**.
 
 ## 4. Duplicated Logic
 
 Find clones that increase bug surface:
 
-- Copy-pasted fetch/auth/payment helpers across `web/` and `s3labs/`
+- Copy-pasted fetch/auth/payment helpers across `web/` packages
 - Same validation rules in route and service
 - Parallel scoring/formatting utilities with slight drift
 - Duplicate types that should live in `packages/` or `syra-sdk/`
@@ -102,9 +102,9 @@ Find clones that increase bug surface:
 
 For each duplicate cluster:
 
-- **Canonical candidate** — which copy should survive
-- **Diff summary** — how they diverge
-- **Merge plan** — extract shared module, update imports, delete extras
+- **Canonical candidate** â€” which copy should survive
+- **Diff summary** â€” how they diverge
+- **Merge plan** â€” extract shared module, update imports, delete extras
 
 Prefer one shared implementation over premature abstraction of one-off code.
 
@@ -152,16 +152,16 @@ Always document:
 ## 8. Report Template
 
 ### Unused components
-- [confidence] `path` — evidence — action
+- [confidence] `path` â€” evidence â€” action
 
 ### Unused APIs
-- [confidence] `method path` / `symbol` — evidence — action — external?
+- [confidence] `method path` / `symbol` â€” evidence â€” action â€” external?
 
 ### Duplicated logic
-- Cluster: `A` vs `B` — canonical — merge plan
+- Cluster: `A` vs `B` â€” canonical â€” merge plan
 
 ### Unnecessary dependencies
-- [confidence] `package` in `manifest` — evidence — action
+- [confidence] `package` in `manifest` â€” evidence â€” action
 
 ### Summary
 - Counts by category and confidence

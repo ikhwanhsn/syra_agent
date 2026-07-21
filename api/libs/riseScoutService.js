@@ -3,11 +3,10 @@
  */
 
 import { riseGetMarketByAddress, riseGetMarkets } from "./riseClient.js";
-import { normalizeRiseMarketRow } from "../routes/uponlyRiseMarket.js";
+import { normalizeRiseMarketRow } from "../libs/riseMarketNormalize.js";
 import { enrichRiseMarket, rankEnrichedByAlpha } from "./riseIntelligence.js";
 import { clampInt, withScoutCache } from "./scoutCache.js";
 
-const RISE_UPONLY_MINT = "DzpB6nC3qnL7WUewVumi5dqWWtM1Le76E3v2HLCXrise";
 const PAGE_SIZE = 100;
 const MAX_PAGES = 20;
 const RISE_TIMEOUT_MS = 12_000;
@@ -43,7 +42,7 @@ async function withTimeout(promise, ms) {
   }
 }
 
-function deriveFundLens(nowMs, marketCapUsd) {
+function deriveMarketLens(nowMs, marketCapUsd) {
   const mc = marketCapUsd != null && Number.isFinite(marketCapUsd) ? marketCapUsd : 420_000;
   const seed = Number(nowMs) % 100_000;
   const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
@@ -52,7 +51,7 @@ function deriveFundLens(nowMs, marketCapUsd) {
   const lendAprPct = clamp(borrowAprPct * 0.62 + (seed % 5) * 0.04, 4, 16);
   const borrowPoolUsd = mc * (2.4 + (seed % 120) / 100);
   const alphaNlvUsd = borrowPoolUsd * (0.55 + (seed % 40) / 200);
-  const flow24hUsd = alphaNlvUsd * ((seed % 17) - 8) / 400;
+  const flow24hUsd = (alphaNlvUsd * ((seed % 17) - 8)) / 400;
   return {
     borrowPoolUsd,
     utilizationPct,
@@ -101,10 +100,6 @@ async function fetchAllRiseMarketRows() {
     if (s.status === "fulfilled") pageResults.push(s.value);
   }
 
-  const uponlyResult = await withTimeout(riseGetMarketByAddress(RISE_UPONLY_MINT), RISE_TIMEOUT_MS).catch(
-    () => ({ ok: false }),
-  );
-
   const allRows = [];
   const seen = new Set();
 
@@ -113,14 +108,6 @@ async function fetchAllRiseMarketRows() {
     for (const m of r.data.markets) {
       const row = normalizeRiseMarketRow(m);
       if (!row?.mint || seen.has(row.mint)) continue;
-      seen.add(row.mint);
-      allRows.push(row);
-    }
-  }
-
-  if (uponlyResult.ok && uponlyResult.data?.market) {
-    const row = normalizeRiseMarketRow(uponlyResult.data.market);
-    if (row?.mint && !seen.has(row.mint)) {
       seen.add(row.mint);
       allRows.push(row);
     }
@@ -136,7 +123,7 @@ export function parseRiseScoutParams(reqLike = {}) {
   const src =
     reqLike.method === "POST" && reqLike.body && typeof reqLike.body === "object"
       ? reqLike.body
-      : reqLike.query ?? {};
+      : (reqLike.query ?? {});
 
   const viewRaw = String(src.view ?? "intel").trim().toLowerCase();
   const tierRaw = String(src.tier ?? "").trim().toLowerCase();
@@ -169,7 +156,7 @@ export async function getRiseScout(params) {
 
       const enriched = enrichRiseMarket(row);
       const token = rowToTokenSnapshot(row);
-      const rise = deriveFundLens(nowMs, token.marketCapUsd);
+      const rise = deriveMarketLens(nowMs, token.marketCapUsd);
 
       return {
         view: params.view,
@@ -187,29 +174,9 @@ export async function getRiseScout(params) {
     const markets = await fetchAllRiseMarketRows();
     const enriched = rankEnrichedByAlpha(markets.map(enrichRiseMarket));
 
-    const uponlyRow =
-      markets.find((m) => m.mint === RISE_UPONLY_MINT) ??
-      enriched.find((e) => e.market.mint === RISE_UPONLY_MINT)?.market ??
-      null;
-
-    const token = uponlyRow
-      ? rowToTokenSnapshot(uponlyRow)
-      : {
-          mint: RISE_UPONLY_MINT,
-          symbol: "UPONLY",
-          name: "UPONLY",
-          imageUrl: null,
-          priceUsd: null,
-          marketCapUsd: null,
-          floorPriceUsd: null,
-          volume24hUsd: null,
-          holders: null,
-          priceChange24hPct: null,
-          level: null,
-          isVerified: false,
-        };
-
-    const rise = deriveFundLens(nowMs, token.marketCapUsd);
+    const topRow = enriched[0]?.market ?? markets[0] ?? null;
+    const token = topRow ? rowToTokenSnapshot(topRow) : null;
+    const rise = deriveMarketLens(nowMs, token?.marketCapUsd ?? null);
 
     const tierFilter = params.tier;
     const targets = enriched

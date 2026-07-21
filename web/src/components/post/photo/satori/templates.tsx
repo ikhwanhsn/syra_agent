@@ -7,10 +7,46 @@ import {
   PHOTO_TYPE,
   getRoleTint,
 } from "@/components/post/photo/satori/tokens";
+import type { PhotoLayoutVariant } from "@/components/post/photo/satori/variants";
+import {
+  ChecklistLayoutB,
+  ChecklistLayoutC,
+  ComparisonLayoutB,
+  ComparisonLayoutC,
+  CoverLayoutB,
+  CoverLayoutC,
+  CtaLayoutB,
+  CtaLayoutC,
+  DeepDiveLayoutB,
+  DeepDiveLayoutC,
+  FeaturedLayoutB,
+  FeaturedLayoutC,
+  FlowLayoutB,
+  FlowLayoutC,
+  LaunchLayoutB,
+  LaunchLayoutC,
+  MetricsLayoutB,
+  MetricsLayoutC,
+  PillarsLayoutB,
+  PillarsLayoutC,
+  QuoteLayoutB,
+  QuoteLayoutC,
+  SplitLayoutB,
+  SplitLayoutC,
+  TerminalLayoutB,
+  TerminalLayoutC,
+  ThesisLayoutB,
+  ThesisLayoutC,
+  TimelineLayoutB,
+  TimelineLayoutC,
+} from "@/components/post/photo/satori/templatesVariantBC";
 
 type Assets = Record<string, string>;
 
 const LOGO_PATH = "/images/logo.jpg";
+
+/** Canvas chrome treatment — paired with layout variant for structural variety. */
+type PhotoShellVariant = 0 | 1 | 2;
 
 /* ── Primitives ─────────────────────────────────────────────── */
 
@@ -362,14 +398,18 @@ function PhotoCanvas({
   children,
   hideBrand,
   hideFooter,
+  shell = 0,
 }: {
   role: PostPhotoCardRole;
   logoSrc: string;
   children: ReactNode;
   hideBrand?: boolean;
   hideFooter?: boolean;
+  shell?: PhotoShellVariant;
 }) {
   const tint = getRoleTint(role);
+  const padX = shell === 2 ? PHOTO_SIZE.padX + 12 : PHOTO_SIZE.padX;
+  const padY = shell === 2 ? PHOTO_SIZE.padY + 8 : PHOTO_SIZE.padY;
 
   return (
     <div
@@ -383,45 +423,97 @@ function PhotoCanvas({
         overflow: "hidden",
       }}
     >
-      {/* Ambient glow */}
-      <div
-        style={{
-          position: "absolute",
-          top: -120,
-          right: -80,
-          width: 520,
-          height: 520,
-          borderRadius: 999,
-          background: `radial-gradient(circle, ${tint} 0%, transparent 68%)`,
-        }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          bottom: -160,
-          left: -100,
-          width: 480,
-          height: 480,
-          borderRadius: 999,
-          background: `radial-gradient(circle, ${PHOTO.accentDim} 0%, transparent 70%)`,
-        }}
-      />
-      {/* Subtle top gold rule */}
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 2,
-          background: `linear-gradient(90deg, transparent 0%, ${PHOTO.accent} 40%, ${PHOTO.accent} 60%, transparent 100%)`,
-        }}
-      />
+      {/* Ambient glow — shell A dual orbs, B/C single softer orb */}
+      {shell === 0 ? (
+        <div
+          style={{
+            position: "absolute",
+            top: -120,
+            right: -80,
+            width: 520,
+            height: 520,
+            borderRadius: 999,
+            background: `radial-gradient(circle, ${tint} 0%, transparent 68%)`,
+          }}
+        />
+      ) : (
+        <div
+          style={{
+            position: "absolute",
+            top: shell === 1 ? -80 : -140,
+            right: shell === 1 ? -60 : 180,
+            width: shell === 1 ? 420 : 560,
+            height: shell === 1 ? 420 : 560,
+            borderRadius: 999,
+            background: `radial-gradient(circle, ${tint} 0%, transparent 70%)`,
+          }}
+        />
+      )}
+      {shell === 0 ? (
+        <div
+          style={{
+            position: "absolute",
+            bottom: -160,
+            left: -100,
+            width: 480,
+            height: 480,
+            borderRadius: 999,
+            background: `radial-gradient(circle, ${PHOTO.accentDim} 0%, transparent 70%)`,
+          }}
+        />
+      ) : null}
 
-      <CornerBracket top left />
-      <CornerBracket top />
-      <CornerBracket left />
-      <CornerBracket />
+      {/* Top gold rule — A full gradient, B none (left rail instead), C thin full */}
+      {shell !== 1 ? (
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: shell === 2 ? 1 : 2,
+            background:
+              shell === 2
+                ? PHOTO.accentLine
+                : `linear-gradient(90deg, transparent 0%, ${PHOTO.accent} 40%, ${PHOTO.accent} 60%, transparent 100%)`,
+          }}
+        />
+      ) : null}
+
+      {/* Shell B: left accent rail */}
+      {shell === 1 ? (
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            bottom: 0,
+            width: 6,
+            background: `linear-gradient(180deg, ${PHOTO.accent} 0%, ${PHOTO.accentDim} 100%)`,
+          }}
+        />
+      ) : null}
+
+      {/* Shell A: corner brackets */}
+      {shell === 0 ? <CornerBracket top left /> : null}
+      {shell === 0 ? <CornerBracket top /> : null}
+      {shell === 0 ? <CornerBracket left /> : null}
+      {shell === 0 ? <CornerBracket /> : null}
+
+      {/* Shell C: inner framed panel inset */}
+      {shell === 2 ? (
+        <div
+          style={{
+            position: "absolute",
+            top: 28,
+            left: 28,
+            right: 28,
+            bottom: 28,
+            borderRadius: 16,
+            border: `1px solid ${PHOTO.cardBorder}`,
+          }}
+        />
+      ) : null}
 
       {!hideBrand ? (
         <div
@@ -429,10 +521,10 @@ function PhotoCanvas({
             display: "flex",
             alignItems: "center",
             gap: 12,
-            paddingTop: PHOTO_SIZE.padY,
-            paddingLeft: PHOTO_SIZE.padX,
-            paddingRight: PHOTO_SIZE.padX,
-            height: PHOTO_SIZE.brandH + PHOTO_SIZE.padY,
+            paddingTop: padY,
+            paddingLeft: padX + (shell === 1 ? 12 : 0),
+            paddingRight: padX,
+            height: PHOTO_SIZE.brandH + padY,
           }}
         >
           <img
@@ -455,7 +547,7 @@ function PhotoCanvas({
           </div>
         </div>
       ) : (
-        <div style={{ height: PHOTO_SIZE.padY }} />
+        <div style={{ height: padY }} />
       )}
 
       <div
@@ -463,9 +555,9 @@ function PhotoCanvas({
           display: "flex",
           flexDirection: "column",
           flex: 1,
-          paddingLeft: PHOTO_SIZE.padX,
-          paddingRight: PHOTO_SIZE.padX,
-          paddingBottom: hideFooter ? PHOTO_SIZE.padY : 8,
+          paddingLeft: padX + (shell === 1 ? 12 : 0),
+          paddingRight: padX,
+          paddingBottom: hideFooter ? padY : 8,
           justifyContent: "center",
           minHeight: 0,
         }}
@@ -479,10 +571,10 @@ function PhotoCanvas({
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            paddingLeft: PHOTO_SIZE.padX,
-            paddingRight: PHOTO_SIZE.padX,
-            paddingBottom: PHOTO_SIZE.padY - 8,
-            height: PHOTO_SIZE.footerH + PHOTO_SIZE.padY - 8,
+            paddingLeft: padX + (shell === 1 ? 12 : 0),
+            paddingRight: padX,
+            paddingBottom: padY - 8,
+            height: PHOTO_SIZE.footerH + padY - 8,
           }}
         >
           <div
@@ -1496,57 +1588,122 @@ function PartnershipExtras({
 
 /* ── Public builder ─────────────────────────────────────────── */
 
+type RoleLayoutRenderer = (
+  content: PostPhotoContent,
+  assets: Assets,
+  logoSrc: string,
+) => ReactNode;
+
+const ROLE_LAYOUTS: Record<
+  PostPhotoCardRole,
+  [RoleLayoutRenderer, RoleLayoutRenderer, RoleLayoutRenderer]
+> = {
+  cover: [
+    (content, assets, logoSrc) => (
+      <CoverLayout content={content} logoSrc={logoSrc} assets={assets} />
+    ),
+    (content, assets, logoSrc) => (
+      <CoverLayoutB content={content} logoSrc={logoSrc} assets={assets} />
+    ),
+    (content, assets, logoSrc) => (
+      <CoverLayoutC content={content} logoSrc={logoSrc} assets={assets} />
+    ),
+  ],
+  thesis: [
+    (content) => <ThesisLayout content={content} />,
+    (content) => <ThesisLayoutB content={content} />,
+    (content) => <ThesisLayoutC content={content} />,
+  ],
+  quote: [
+    (content) => <QuoteLayout content={content} />,
+    (content) => <QuoteLayoutB content={content} />,
+    (content) => <QuoteLayoutC content={content} />,
+  ],
+  flow: [
+    (content) => <FlowLayout content={content} />,
+    (content) => <FlowLayoutB content={content} />,
+    (content) => <FlowLayoutC content={content} />,
+  ],
+  timeline: [
+    (content) => <TimelineLayout content={content} />,
+    (content) => <TimelineLayoutB content={content} />,
+    (content) => <TimelineLayoutC content={content} />,
+  ],
+  pillars: [
+    (content) => <PillarsLayout content={content} />,
+    (content) => <PillarsLayoutB content={content} />,
+    (content) => <PillarsLayoutC content={content} />,
+  ],
+  checklist: [
+    (content) => <ChecklistLayout content={content} />,
+    (content) => <ChecklistLayoutB content={content} />,
+    (content) => <ChecklistLayoutC content={content} />,
+  ],
+  metrics: [
+    (content) => <MetricsLayout content={content} />,
+    (content) => <MetricsLayoutB content={content} />,
+    (content) => <MetricsLayoutC content={content} />,
+  ],
+  featured: [
+    (content) => <FeaturedLayout content={content} />,
+    (content) => <FeaturedLayoutB content={content} />,
+    (content) => <FeaturedLayoutC content={content} />,
+  ],
+  comparison: [
+    (content) => <ComparisonLayout content={content} />,
+    (content) => <ComparisonLayoutB content={content} />,
+    (content) => <ComparisonLayoutC content={content} />,
+  ],
+  launch: [
+    (content, assets) => <LaunchLayout content={content} assets={assets} />,
+    (content, assets) => <LaunchLayoutB content={content} assets={assets} />,
+    (content, assets) => <LaunchLayoutC content={content} assets={assets} />,
+  ],
+  deepDive: [
+    (content) => <DeepDiveLayout content={content} />,
+    (content) => <DeepDiveLayoutB content={content} />,
+    (content) => <DeepDiveLayoutC content={content} />,
+  ],
+  split: [
+    (content) => <SplitLayout content={content} />,
+    (content) => <SplitLayoutB content={content} />,
+    (content) => <SplitLayoutC content={content} />,
+  ],
+  terminal: [
+    (content) => <TerminalLayout content={content} />,
+    (content) => <TerminalLayoutB content={content} />,
+    (content) => <TerminalLayoutC content={content} />,
+  ],
+  cta: [
+    (content) => <CtaLayout content={content} />,
+    (content) => <CtaLayoutB content={content} />,
+    (content) => <CtaLayoutC content={content} />,
+  ],
+};
+
 function renderRoleBody(
   role: PostPhotoCardRole,
   content: PostPhotoContent,
   assets: Assets,
+  variant: PhotoLayoutVariant,
 ): ReactNode {
   const logoSrc = assets[LOGO_PATH] ?? "";
-
-  switch (role) {
-    case "cover":
-      return <CoverLayout content={content} logoSrc={logoSrc} assets={assets} />;
-    case "thesis":
-      return <ThesisLayout content={content} />;
-    case "quote":
-      return <QuoteLayout content={content} />;
-    case "flow":
-      return <FlowLayout content={content} />;
-    case "timeline":
-      return <TimelineLayout content={content} />;
-    case "pillars":
-      return <PillarsLayout content={content} />;
-    case "checklist":
-      return <ChecklistLayout content={content} />;
-    case "metrics":
-      return <MetricsLayout content={content} />;
-    case "featured":
-      return <FeaturedLayout content={content} />;
-    case "comparison":
-      return <ComparisonLayout content={content} />;
-    case "launch":
-      return <LaunchLayout content={content} assets={assets} />;
-    case "deepDive":
-      return <DeepDiveLayout content={content} />;
-    case "split":
-      return <SplitLayout content={content} />;
-    case "terminal":
-      return <TerminalLayout content={content} />;
-    case "cta":
-      return <CtaLayout content={content} />;
-    default:
-      return (
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <Headline>{content.headline || content.title}</Headline>
-          <Body>{content.body || content.subtitle}</Body>
-        </div>
-      );
+  const layouts = ROLE_LAYOUTS[role];
+  if (!layouts) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        <Headline>{content.headline || content.title}</Headline>
+        <Body>{content.body || content.subtitle}</Body>
+      </div>
+    );
   }
+  return layouts[variant](content, assets, logoSrc);
 }
 
 export function buildPhotoTemplate(
   card: PostPhotoCardDef,
   assets: Assets,
+  variant: PhotoLayoutVariant = 0,
 ): ReactNode {
   const hasPartner = Boolean(card.content.partnerName && card.content.partnerLogo);
   const hideBrand =
@@ -1556,6 +1713,7 @@ export function buildPhotoTemplate(
     hasPartner;
   const hideFooter = card.role === "cover";
   const logoSrc = assets[LOGO_PATH] ?? "";
+  const shell: PhotoShellVariant = variant;
 
   return (
     <PhotoCanvas
@@ -1563,8 +1721,9 @@ export function buildPhotoTemplate(
       logoSrc={logoSrc}
       hideBrand={hideBrand}
       hideFooter={hideFooter}
+      shell={shell}
     >
-      {renderRoleBody(card.role, card.content, assets)}
+      {renderRoleBody(card.role, card.content, assets, variant)}
     </PhotoCanvas>
   );
 }

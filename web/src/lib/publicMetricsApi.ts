@@ -13,8 +13,26 @@ export interface PublicMetricsSnapshot {
     avgUsdPerCall: number;
   };
   last24h: { calls: number; usdSettled: number };
-  last7d: { calls: number; usdSettled: number };
+  last7d: {
+    calls: number;
+    usdSettled: number;
+    uniquePayingWallets?: number | null;
+  };
   last30d: { calls: number };
+  northStar?: {
+    paidCallsLast7d: number;
+    uniquePayingWalletsLast7d: number | null;
+  };
+  funnel?: {
+    payersSawPaymentRequired: number;
+    payersConvertedToPaid: number;
+    paymentRequiredToPaidRate: number;
+    firstPaidPayersLast30d: number;
+    d7EligiblePayers: number;
+    d7RepeatPayers: number;
+    d7RepeatRate: number;
+  } | null;
+  bySource?: Record<string, number> | null;
   treasury: { solana: string | null; base: string | null };
   verifyOnChain: {
     hint: string;

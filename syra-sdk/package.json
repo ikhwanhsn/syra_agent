@@ -1,6 +1,6 @@
 {
   "name": "@syra-ai/sdk",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Typed TypeScript client for Syra machine money — x402 pay-per-call APIs, auto-pay wallets, and agent treasury on Solana, Base & Algorand.",
   "type": "module",
   "main": "./dist/index.js",

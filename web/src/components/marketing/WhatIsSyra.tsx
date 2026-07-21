@@ -103,7 +103,7 @@ export const WhatIsSyra = () => {
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
-              to="/"
+              to="/agent"
               className="inline-flex items-center gap-2 rounded-xl border border-border/60 px-5 py-2.5 text-sm font-medium text-muted-foreground no-underline transition-colors hover:text-foreground"
             >
               Try reference agent

@@ -112,29 +112,6 @@ export type InvestDepositResult = {
   agentAddress?: string;
 };
 
-export type RiseMarketRow = {
-  address?: string;
-  symbol?: string;
-  name?: string;
-  volume24hUsd?: number | null;
-  marketCapUsd?: number | null;
-  priceChange24hPct?: number | null;
-  holders?: number | null;
-};
-
-export type RiseMarketsAggregate = {
-  success: boolean;
-  updatedAt?: string;
-  degraded?: boolean;
-  ecosystem?: {
-    marketCount?: number;
-    totalVolume24hUsd?: number;
-    totalMarketCapUsd?: number;
-  };
-  topVolume24h?: RiseMarketRow[];
-  topGainers24h?: RiseMarketRow[];
-};
-
 export type SpendTool = {
   id: string;
   name: string;
@@ -368,15 +345,6 @@ export async function depositInvest(params: {
     }),
   });
   return res.json() as Promise<ApiEnvelope<InvestDepositResult>>;
-}
-
-/** Free public RISE markets digest — no x402. */
-export async function fetchRiseMarketsAggregate(): Promise<RiseMarketsAggregate> {
-  const res = await fetch(`${base()}/uponly-rise-markets/aggregate`, {
-    headers: { Accept: "application/json" },
-  });
-  if (!res.ok) throw new Error(`RISE markets failed (${res.status})`);
-  return res.json() as Promise<RiseMarketsAggregate>;
 }
 
 export async function fetchGrowRecommendations(

@@ -17,6 +17,7 @@ import {
   fetchSmartMoney,
   fetchBinanceCorrelation,
 } from "../libs/analyticsFetchers.js";
+import { buildActivationFunnel } from "../libs/activationFunnelService.js";
 
 const router = express.Router();
 
@@ -34,7 +35,8 @@ router.get("/kpi", async (req, res) => {
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    const [totalPaidApiCalls, paidApiCallsLast7Days, paidApiCallsLast30Days, byPath] = await Promise.all([
+    const [totalPaidApiCalls, paidApiCallsLast7Days, paidApiCallsLast30Days, byPath, activation] =
+      await Promise.all([
       PaidApiCall.countDocuments(),
       PaidApiCall.countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
       PaidApiCall.countDocuments({ createdAt: { $gte: thirtyDaysAgo } }),
@@ -43,6 +45,7 @@ router.get("/kpi", async (req, res) => {
         { $sort: { count: -1 } },
         { $limit: 20 },
       ]),
+      buildActivationFunnel().catch(() => null),
     ]);
 
     const dailyPaidCalls = await PaidApiCall.aggregate([
@@ -140,6 +143,7 @@ router.get("/kpi", async (req, res) => {
       dailyPaidCalls: dailyPaidCalls.map((d) => ({ date: d._id, count: d.count })),
       kpiTargets: { paidApiCalls: KPI_TARGET_PAID_API_CALLS, agentSessions: KPI_TARGET_AGENT_SESSIONS },
       insights,
+      activation: activation ?? undefined,
       updatedAt: now.toISOString(),
     });
   } catch (error) {

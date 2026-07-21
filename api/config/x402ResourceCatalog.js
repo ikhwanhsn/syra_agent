@@ -189,7 +189,7 @@ export const X402_RESOURCE_CATALOG = {
     methods: ['GET', 'POST'],
     summary: 'Live pump.fun alpha/beta/predicted/utility scout',
     description:
-      'Live pump.fun intelligence with selector param segment=alpha|beta|predicted|utility. Optional period, limit, minPumpScore, llm. Returns scored tokens, analysis, and meta — deterministic by default.',
+      'Live pump.fun intelligence with selector param segment=alpha|beta|predicted|utility. Use when an agent needs scored live pump.fun candidates. Optional period, limit, minPumpScore, llm. Returns scored tokens, analysis, and meta — deterministic by default.',
     suggestedPriceStx: 0.005,
   },
   rise: {
@@ -199,7 +199,7 @@ export const X402_RESOURCE_CATALOG = {
     methods: ['GET', 'POST'],
     summary: 'Live RISE market intel and agent targets',
     description:
-      'Live RISE intelligence with view=intel|markets|targets. Optional mint, limit, tier=ready|watch. Returns UPONLY token snapshot, fund lens, ranked markets, and agent-ready mint targets.',
+      'Live RISE intelligence with view=intel|markets|targets. Use when an agent needs ranked RISE markets or agent-ready mint targets. Optional mint, limit, tier=ready|watch. Returns top-market snapshot, market lens, ranked markets, and mint targets.',
     suggestedPriceStx: 0.005,
   },
   coingecko: {
@@ -209,7 +209,7 @@ export const X402_RESOURCE_CATALOG = {
     methods: ['GET', 'POST'],
     summary: 'Live CoinGecko top gainers brief',
     description:
-      'Live CoinGecko scout with view=brief|gainers|predictions. Optional topN, minMarketCap, includeNews, llm. Returns top gainers, digests, predictions, and narrative meta — deterministic by default.',
+      'Live CoinGecko scout with view=brief|gainers|predictions. Use when an agent needs top gainers or a short market brief. Optional topN, minMarketCap, includeNews, llm. Returns top gainers, digests, predictions, and narrative meta — deterministic by default.',
     suggestedPriceStx: 0.001,
   },
   'dexscreener/pairs': {
@@ -469,7 +469,7 @@ export const X402_RESOURCE_CATALOG = {
     methods: ['GET'],
     summary: 'Full Solana DeFi portfolio analysis (20+ protocols)',
     description:
-      'Analyze a Solana wallet net worth including lending, perps, LP, staking, yield, rewards, and governance via TopLedger MPP. Input: wallet (base58). Returns total_net_worth_usd and per-category breakdown.',
+      'Analyze a Solana wallet net worth including lending, perps, LP, staking, yield, rewards, and governance via TopLedger MPP. Use when an agent needs a full DeFi portfolio breakdown. Input: wallet (base58). Returns total_net_worth_usd and per-category breakdown.',
     suggestedPriceStx: 0.00048,
   },
   'topledger/wallet/lending': {
@@ -479,7 +479,7 @@ export const X402_RESOURCE_CATALOG = {
     methods: ['GET'],
     summary: 'Solana lending deposits and borrows across protocols',
     description:
-      'Return lending deposits, borrows, and net value for a Solana wallet across Kamino, marginfi, Jupiter Lend, Loopscale, and more. Input: wallet (base58).',
+      'Return lending deposits, borrows, and net value for a Solana wallet across Kamino, marginfi, Jupiter Lend, Loopscale, and more. Use when an agent needs Solana lending exposure. Input: wallet (base58).',
     suggestedPriceStx: 0.00048,
   },
 };

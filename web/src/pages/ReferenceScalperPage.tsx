@@ -57,8 +57,8 @@ export default function ReferenceScalperPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2 text-sm">
-            <Link to="/metrics" className="rounded-lg border border-border/70 px-3 py-1.5 hover:bg-card">
-              Metrics
+            <Link to="/" className="rounded-lg border border-border/70 px-3 py-1.5 hover:bg-card">
+              Live metrics
             </Link>
             <a
               href="https://docs.syraa.fun"

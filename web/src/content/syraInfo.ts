@@ -210,7 +210,6 @@ export const SYRA_MONOREPO_APPS: SyraMonorepoApp[] = [
   { package: "mcp-server", role: "MCP tools aligned with paid API surface" },
   { package: "staking", role: "Streamflow staking UI" },
   { package: "prediction-game", role: "Prediction game product" },
-  { package: "uponly-fund", role: "Uponly fund dashboard" },
 ];
 
 export const SYRA_HIDDEN_ROUTES = [

@@ -28,15 +28,7 @@ The **api** package is the **backend service** for Syra. It is a Node.js (Expres
 - **Serves the prediction-game** — creators, events, staking (shared models and routes).
 - **Uses MongoDB** (Mongoose) for persistence where needed.
 
-This API backs the **MCP bridge**, **SDK clients**, **API marketplace**, **web agent**, **S3 Labs** (KOL, jobs, events, Telegram QA), **Up Only Fund** (RISE terminal routes), and other Syra monorepo apps. It is the single backend for machine-money infrastructure.
-
-### Syra ecosystem (served by this API)
-
-| Brand | Public site | API surfaces (examples) |
-|-------|-------------|-------------------------|
-| **Syra** | syraa.fun | x402 routes, `/agent/*`, `/pillars`, `/brain` |
-| **S3 Labs** | s3labs.xyz | `/kol/*`, jobs pipeline, S3 Labs Telegram webhook, points ledger |
-| **Up Only Fund** | uponlyfund.com | RISE market routes, terminal KPIs, uponly rise create |
+This API backs the **MCP bridge**, **SDK clients**, **API marketplace**, and **web agent**. It is the single backend for Syra machine-money infrastructure.
 
 ---
 

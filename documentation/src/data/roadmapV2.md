@@ -43,7 +43,7 @@ Shipped milestones are tracked in the [Changelog](/docs/changelog). The quarters
 
 ### Earn
 
-- S3 Labs growth studio (KOL, jobs, community) on Syra rails
+- Skills marketplace groundwork (x402 skills, agent registries)
 - Purch Vault x402 paths and skill-marketplace groundwork
 
 ### Grow
@@ -69,11 +69,11 @@ Shipped milestones are tracked in the [Changelog](/docs/changelog). The quarters
 ### Invest
 
 - Deeper Meteora LP and Jupiter execution paths with clearer pre-trade risk context
-- RISE and allocator dashboards (Up Only Fund) as reference Invest surfaces
+- RISE scout and market intelligence as Invest/Spend surfaces (`/rise`)
 
 ### Earn
 
-- KOL campaign tooling and creator payout attribution on Syra rails
+- Creator payout attribution on Syra rails
 - Expanded skill listings via Purch Vault and agent registries (8004)
 
 ### Grow

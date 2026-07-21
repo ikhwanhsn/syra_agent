@@ -3,6 +3,7 @@
  * Single source of truth for Earn, Treasury, Invest, Spend, Grow classification.
  */
 import { X402_DISCOVERY_RESOURCE_PATHS } from './x402DiscoveryResourcePaths.js';
+import { SYRA_PILLAR_STATUS } from './syraBranding.js';
 
 /** Lazy import to avoid circular dependency with agentTools.js */
 async function loadAgentTools() {
@@ -12,7 +13,9 @@ async function loadAgentTools() {
 
 /** @typedef {'earn' | 'treasury' | 'invest' | 'spend' | 'grow'} PillarId */
 
-/** @typedef {{ id: PillarId; label: string; tagline: string; order: number; routePrefixes: string[]; toolIdPatterns: (string | RegExp)[] }} PillarDef */
+/** @typedef {'live' | 'beta' | 'infra' | 'roadmap'} PillarStatus */
+
+/** @typedef {{ id: PillarId; label: string; tagline: string; order: number; status: PillarStatus; routePrefixes: string[]; toolIdPatterns: (string | RegExp)[] }} PillarDef */
 
 /** @type {Record<PillarId, PillarDef>} */
 export const PILLARS = {
@@ -21,7 +24,8 @@ export const PILLARS = {
     label: 'Earn',
     tagline: 'Agents monetize skills',
     order: 1,
-    routePrefixes: ['/earn', '/kol', '/agent/marketplace', '/8004', '/agentscore', '/payouts'],
+    status: SYRA_PILLAR_STATUS.earn,
+    routePrefixes: ['/earn', '/agent/marketplace', '/8004', '/agentscore', '/payouts'],
     toolIdPatterns: [/^8004/, /^purch-vault/, 'register-agent'],
   },
   treasury: {
@@ -29,6 +33,7 @@ export const PILLARS = {
     label: 'Treasury',
     tagline: 'Allocate and manage capital',
     order: 2,
+    status: SYRA_PILLAR_STATUS.treasury,
     routePrefixes: [
       '/agent/wallet',
       '/agent/billing',
@@ -43,6 +48,7 @@ export const PILLARS = {
     label: 'Invest',
     tagline: 'Deploy capital autonomously',
     order: 3,
+    status: SYRA_PILLAR_STATUS.invest,
     routePrefixes: [
       '/invest',
       '/giza',
@@ -51,7 +57,7 @@ export const PILLARS = {
       '/experiment/lp-agent',
       '/experiment/btc-quant-real',
       '/experiment/btc-quant',
-      '/uponly-rise',
+      '/rise',
       '/bankr',
       '/squid',
     ],
@@ -70,6 +76,7 @@ export const PILLARS = {
     label: 'Spend',
     tagline: 'x402 native payments',
     order: 4,
+    status: SYRA_PILLAR_STATUS.spend,
     routePrefixes: [
       '/brain',
       '/news',
@@ -106,6 +113,7 @@ export const PILLARS = {
     label: 'Grow',
     tagline: 'Yield + portfolio optimization',
     order: 5,
+    status: SYRA_PILLAR_STATUS.grow,
     routePrefixes: ['/grow', '/topledger', '/staking', '/streamflow-locks', '/analytics/kpi'],
     toolIdPatterns: [/^zerion-/, /^topledger-/, /^gmgn-portfolio/, /^giza-/],
   },
@@ -213,6 +221,7 @@ export async function buildPillarsDiscovery() {
       label: def.label,
       tagline: def.tagline,
       order: def.order,
+      status: def.status,
       routePrefixes: def.routePrefixes,
       routeCount: routeCounts[id] ?? 0,
       toolCount: toolCounts[id] ?? 0,

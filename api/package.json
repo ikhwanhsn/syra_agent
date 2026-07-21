@@ -9,7 +9,7 @@
   "scripts": {
     "start": "node --max-old-space-size=448 index.js",
     "dev": "nodemon --exec node --max-old-space-size=448 index.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test config/**/*.test.js libs/**/*.test.js services/**/*.test.js utils/**/*.test.js",
     "register-8004": "node scripts/register-8004-agent.js",
     "register-8004-celo": "node scripts/register-8004-celo-agent.js",
     "create-8004-collection": "node scripts/create-8004-collection.js",
@@ -38,8 +38,7 @@
     "register-ampersend": "node -r dotenv/config scripts/registerAmpersendMarketplace.js",
     "register-ampersend:until-listed": "node -r dotenv/config scripts/registerAmpersendMarketplace.js --until-listed --pay",
     "validate:routes": "node scripts/validateRoutesStartup.mjs",
-    "publish:dune": "node -r dotenv/config scripts/dune/publishSyraDune.mjs",
-    "send-test-kol-telegram": "node -r dotenv/config scripts/sendTestKolCampaignTelegram.js"
+    "publish:dune": "node -r dotenv/config scripts/dune/publishSyraDune.mjs"
   },
   "dependencies": {
     "@agent-score/commerce": "^2.5.0",

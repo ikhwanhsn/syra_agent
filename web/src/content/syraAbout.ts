@@ -10,16 +10,17 @@ import {
   Wallet,
   Zap,
   Sprout,
+  Activity,
 } from "lucide-react";
-import { SYRA_AGENT_DESCRIPTION } from "@/lib/syraBranding";
+import { SYRA_AGENT_DESCRIPTION, SYRA_LIVE_SUBLINE } from "@/lib/syraBranding";
 
-export { SYRA_TAGLINE } from "@/lib/syraBranding";
+export { SYRA_TAGLINE, SYRA_LIVE_SUBLINE, SYRA_PILLAR_STATUS } from "@/lib/syraBranding";
 
 export const SYRA_MISSION =
-  "Syra lets autonomous agents pay for crypto intelligence and tools on every call — x402 micropayments, MCP, and a typed SDK on Solana.";
+  "Syra is machine money for agents — Earn, Treasury, Invest, Spend, and Grow on Solana. Live today: pay-per-call crypto intelligence over x402, MCP, and a typed SDK.";
 
 export const SYRA_VISION =
-  "Our vision is an economy where millions of AI agents pay for tools, settle in USDC, and coordinate value without human billing ops.";
+  "Our vision is an economy where millions of AI agents hold capital, pay for tools, and coordinate value without human billing ops — machine money as infrastructure.";
 
 export const SYRA_HIGHLIGHT = SYRA_AGENT_DESCRIPTION;
 
@@ -46,9 +47,9 @@ export const SYRA_PROBLEM = {
 };
 
 export const SYRA_SOLUTION = {
-  title: "Pay-per-call crypto APIs on Solana",
+  title: "Machine money on Solana — Spend live today",
   body: [
-    "Syra is pay-per-call crypto intelligence for agents — x402 micropayments, MCP tools, and a typed SDK so agents fund tools autonomously.",
+    "Syra is machine money for agents: Earn, Treasury, Invest, Spend, and Grow. Live today is Spend — x402 micropayments, MCP tools, and a typed SDK so agents fund tools autonomously.",
     "One wallet pays many routes: news, sentiment, signals, smart money, and execution — no per-vendor API keys.",
   ],
 };
@@ -62,8 +63,8 @@ export const SYRA_WHY_SOLANA = {
 };
 
 export const SYRA_DIFFERENTIATION = {
-  headline: "We build pay-per-call rails — not another chatbot",
-  body: "Most AI-agent projects optimize for chat UIs or orchestration. Syra focuses on pay-per-call crypto intelligence: agents discover paid routes, settle USDC via x402, and call tools without human billing ops.",
+  headline: "We build machine money — not another chatbot",
+  body: "Most AI-agent projects optimize for chat UIs or orchestration. Syra builds the money layer: agents earn, allocate, invest, spend via x402, and grow capital — with Spend live today and the other pillars graduating as they meet production criteria.",
 };
 
 export const SYRA_PRODUCT_FLOW = [
@@ -84,38 +85,53 @@ export const SYRA_PRODUCT_FLOW = [
   },
 ] as const;
 
+export type SyraPillarStatus = "live" | "beta" | "infra" | "roadmap";
+
 export interface SyraPillar {
   icon: LucideIcon;
   title: string;
   description: string;
+  /** Omit for non-pillar cards (e.g. policy). */
+  status?: SyraPillarStatus;
+  id?: string;
 }
 
-/** Platform roadmap modules (GET /pillars) — not the public GTM hero. */
+/** Five pillars + policy note. Status badges keep Machine Money honest. */
 export const SYRA_PILLARS: SyraPillar[] = [
   {
     icon: Zap,
-    title: "Spend (live)",
+    id: "spend",
+    title: "Spend",
+    status: "live",
     description: "x402 pay-per-call APIs — the live growth wedge for agents and builders.",
   },
   {
     icon: Coins,
+    id: "earn",
     title: "Earn",
+    status: "beta",
     description: "Agents monetize skills — prompts, KOL campaigns, creator attribution on paid calls.",
   },
   {
     icon: Wallet,
+    id: "treasury",
     title: "Treasury",
+    status: "infra",
     description: "Allocate and manage capital across chat, LP, and connected wallets with policy caps.",
   },
   {
     icon: TrendingUp,
+    id: "invest",
     title: "Invest",
+    status: "beta",
     description:
       "Deploy capital onchain via Marinade, Jito, Kamino, marginfi, and Meteora — plus Jupiter swaps.",
   },
   {
     icon: Sprout,
+    id: "grow",
     title: "Grow",
+    status: "roadmap",
     description: "Yield and portfolio optimization — deterministic recommendations, confirm-gated execution.",
   },
   {
@@ -124,6 +140,13 @@ export const SYRA_PILLARS: SyraPillar[] = [
     description: "walletBroker + policyEngine enforce caps, allowlists, and explicit confirm for high-risk moves.",
   },
 ];
+
+export const SYRA_PILLAR_STATUS_LABEL: Record<SyraPillarStatus, string> = {
+  live: "Live",
+  beta: "Beta",
+  infra: "Infra",
+  roadmap: "Roadmap",
+};
 
 export interface SyraCapability {
   title: string;
@@ -153,8 +176,8 @@ export const SYRA_CAPABILITIES: SyraCapability[] = [
     description: "Optional spend caps and policy so agents pay without babysitting every request.",
   },
   {
-    title: "Platform roadmap",
-    description: "Earn, Treasury, Invest, Grow modules ship on the same rails — discover via GET /pillars.",
+    title: "Five pillars",
+    description: `${SYRA_LIVE_SUBLINE}. Earn · Treasury · Invest · Grow graduate as they hit production criteria — discover via GET /pillars.`,
   },
 ];
 
@@ -194,7 +217,14 @@ export const SYRA_PLATFORMS: SyraPlatform[] = [
   {
     icon: Bot,
     name: "Web agent",
-    description: "Research, tools, treasury workflows, and onchain actions at syraa.fun.",
+    description: "Research, tools, treasury workflows, and onchain actions at syraa.fun/agent.",
+    href: "/agent",
+    external: false,
+  },
+  {
+    icon: Activity,
+    name: "Live metrics",
+    description: "Public x402 traction, paid calls, and USDC settled — the growth home at syraa.fun.",
     href: "/",
     external: false,
   },
@@ -231,7 +261,12 @@ export const SYRA_COMMUNITY_LINKS: SyraCommunityLink[] = [
   {
     label: "Website",
     href: "https://syraa.fun",
-    description: "Product overview and updates",
+    description: "Live metrics and product home",
+  },
+  {
+    label: "Agent",
+    href: "https://syraa.fun/agent",
+    description: "Reference chat agent",
   },
   {
     label: "Documentation",

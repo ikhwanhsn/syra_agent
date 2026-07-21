@@ -2,12 +2,17 @@ import { useEffect, useRef, useState } from "react";
 import type { PostPhotoCardDef } from "@/content/posts/photo/types";
 import { renderPhotoSvg } from "@/components/post/photo/satori/renderPhotoSvg";
 import { PHOTO_SIZE } from "@/components/post/photo/satori/tokens";
+import type { PhotoLayoutVariant } from "@/components/post/photo/satori/variants";
 
 interface PostPhotoSatoriPreviewProps {
   card: PostPhotoCardDef;
+  variant?: PhotoLayoutVariant;
 }
 
-export function PostPhotoSatoriPreview({ card }: PostPhotoSatoriPreviewProps) {
+export function PostPhotoSatoriPreview({
+  card,
+  variant = 0,
+}: PostPhotoSatoriPreviewProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const [svg, setSvg] = useState<string | null>(null);
@@ -35,7 +40,7 @@ export function PostPhotoSatoriPreview({ card }: PostPhotoSatoriPreviewProps) {
     setLoading(true);
     setError(null);
 
-    renderPhotoSvg(card)
+    renderPhotoSvg(card, variant)
       .then((next) => {
         if (cancelled) return;
         setSvg(next);
@@ -52,7 +57,7 @@ export function PostPhotoSatoriPreview({ card }: PostPhotoSatoriPreviewProps) {
     return () => {
       cancelled = true;
     };
-  }, [card]);
+  }, [card, variant]);
 
   const scaledHeight = PHOTO_SIZE.height * scale;
 

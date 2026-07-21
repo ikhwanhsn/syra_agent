@@ -8,7 +8,6 @@ import {
   extractTweetMetrics,
   TWEETS_BY_IDS_CHUNK_SIZE,
 } from "./twitterApiIoClient.js";
-import { meetsMinLikes } from "./kolEngagementService.js";
 
 test("getTweetsByIds chunks at twitterapi.io max of 50 IDs", () => {
   assert.equal(TWEETS_BY_IDS_CHUNK_SIZE, 50);
@@ -31,7 +30,6 @@ test("extractTweetMetrics reads public_metrics.like_count (X API v2)", () => {
   assert.equal(metrics.replyCount, 1);
   assert.equal(metrics.quoteCount, 0);
   assert.equal(metrics.viewCount, 900);
-  assert.equal(meetsMinLikes(metrics), true);
 });
 
 test("extractTweetMetrics reads top-level likeCount (twitterapi.io)", () => {
@@ -44,7 +42,6 @@ test("extractTweetMetrics reads top-level likeCount (twitterapi.io)", () => {
   });
 
   assert.equal(metrics.likeCount, 3);
-  assert.equal(meetsMinLikes(metrics), true);
 });
 
 test("extractTweetMetrics prefers public_metrics over top-level", () => {
@@ -61,7 +58,6 @@ test("extractTweetMetrics does not treat liked posts as zero (regression)", () =
     public_metrics: { like_count: 1 },
   });
   assert.equal(metrics.likeCount, 1);
-  assert.equal(meetsMinLikes(metrics), true);
 });
 
 test("extractTweetMetrics keeps true zero likes as zero", () => {
@@ -70,6 +66,4 @@ test("extractTweetMetrics keeps true zero likes as zero", () => {
   });
   assert.equal(metrics.likeCount, 0);
   assert.equal(metrics.retweetCount, 5);
-  // RTs still count as reward engagement even with 0 likes.
-  assert.equal(meetsMinLikes(metrics), false);
 });

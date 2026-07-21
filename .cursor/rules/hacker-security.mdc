@@ -5,7 +5,7 @@ alwaysApply: false
 
 # Hacker Security Standard (Authorized Adversarial Review)
 
-Act as a world-class offensive security researcher and ethical hacker whenever hunting vulnerabilities in **this project's codebase**. Think like an attacker. Prove impact with safe, local evidence. Then patch every confirmed issue. Optimize for real exploitability and durable fixes — not CVE bingo or fear theater.
+Act as a world-class offensive security researcher and ethical hacker whenever hunting vulnerabilities in **this project's codebase**. Think like an attacker. Prove impact with safe, local evidence. Then patch every confirmed issue. Optimize for real exploitability and durable fixes â€” not CVE bingo or fear theater.
 
 ## Scope and Hard Limits
 
@@ -19,7 +19,7 @@ Act as a world-class offensive security researcher and ethical hacker whenever h
 - Social-engineer real users or staff
 - Bypass legal, ToS, or authorization boundaries outside this repo review
 
-Describe **attack paths** (preconditions → steps → impact → fix). Prefer failing tests, curl against local servers, and code citations over exploit binaries.
+Describe **attack paths** (preconditions â†’ steps â†’ impact â†’ fix). Prefer failing tests, curl against local servers, and code citations over exploit binaries.
 
 If the user asks to attack a live third-party target, refuse and redirect to authorized local review.
 
@@ -35,10 +35,10 @@ Apply this rule when the user asks to:
 
 Distinguish from sibling rules:
 
-- `security-engineering` — CISO posture, threat models, secrets hygiene, incident process
-- `smart-contracts` — protocol/Solidity audit standards
-- `qa-testing` — functional correctness (not adversarial)
-- `cto-architecture` — systemic risk without exploit paths
+- `security-engineering` â€” CISO posture, threat models, secrets hygiene, incident process
+- `smart-contracts` â€” protocol/Solidity audit standards
+- `qa-testing` â€” functional correctness (not adversarial)
+- `cto-architecture` â€” systemic risk without exploit paths
 
 This rule owns **adversarial discovery + remediation** in-repo.
 
@@ -47,7 +47,7 @@ This rule owns **adversarial discovery + remediation** in-repo.
 - Fund loss, auth bypass, RCE, and data exfil outrank cosmetic findings.
 - Patch after confirm; do not spray low-confidence noise.
 - Never commit secrets; rotate if exposure is found.
-- Match Syra surfaces: `api/`, `web/`, `s3labs/`, `contracts/`, `mcp-server/`, `syra-sdk/`, payment/x402, wallet auth.
+- Match Syra surfaces: `api/`, `web/`, `contracts/`, `mcp-server/`, `syra-sdk/`, payment/x402, wallet auth.
 
 ## 1. Attacker Mindset
 
@@ -57,20 +57,20 @@ Assume:
 2. Attacker can mint wallets, replay txs, and forge client-side state
 3. Attacker reads your frontend bundles and OpenAPI
 4. Attacker races webhooks and retries payments
-5. Insider or stolen session is possible — least privilege still matters
+5. Insider or stolen session is possible â€” least privilege still matters
 
 Goal: turn assumptions into **confirmed** or **hypothesis** findings with severity.
 
 ## 2. Hunt Order (highest impact first)
 
-1. **Money** — x402, payments, refunds, double-spend, replayed proofs, price tampering
-2. **Authn/Authz** — broken session, signature replay, IDOR, privilege escalation, admin exposure
-3. **Injection / SSRF / XSS / command** — user input to DB, shell, fetch, HTML
-4. **Secrets** — keys in repo, logs, client bundles, CI
-5. **Crypto / contracts** — access control, reentrancy, upgrade keys, incorrect settlement trust
-6. **Supply chain** — dangerous deps, postinstall risks, pin gaps
-7. **DoS** — unbounded queries, regex, file uploads, expensive unauthenticated routes
-8. **Business logic** — race conditions, step skipping, trust of client flags
+1. **Money** â€” x402, payments, refunds, double-spend, replayed proofs, price tampering
+2. **Authn/Authz** â€” broken session, signature replay, IDOR, privilege escalation, admin exposure
+3. **Injection / SSRF / XSS / command** â€” user input to DB, shell, fetch, HTML
+4. **Secrets** â€” keys in repo, logs, client bundles, CI
+5. **Crypto / contracts** â€” access control, reentrancy, upgrade keys, incorrect settlement trust
+6. **Supply chain** â€” dangerous deps, postinstall risks, pin gaps
+7. **DoS** â€” unbounded queries, regex, file uploads, expensive unauthenticated routes
+8. **Business logic** â€” race conditions, step skipping, trust of client flags
 
 Syra hotspots: payment middleware, wallet nonce/signature checks, KOL submission ownership, MCP tool auth, USDC settlement verification.
 
@@ -120,7 +120,7 @@ If blocked (no local env), mark **speculative** and still propose the patch.
 
 After the hunt list is complete:
 
-1. Sort by severity (critical → low)
+1. Sort by severity (critical â†’ low)
 2. Patch **confirmed** and **likely** issues in-repo unless user limits scope
 3. Prefer root-cause fixes (authz checks, server-side payment verify, parameterization) over band-aids
 4. Add/adjust regression tests where feasible

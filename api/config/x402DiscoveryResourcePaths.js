@@ -56,4 +56,7 @@ export const X402_DISCOVERY_RESOURCE_PATHS = [
   "8004/stats",
   "8004/leaderboard",
   "8004/agents/search",
+  // Grow / DeFi intelligence
+  "topledger/wallet/analyze",
+  "topledger/wallet/lending",
 ];

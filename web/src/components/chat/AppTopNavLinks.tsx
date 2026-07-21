@@ -15,7 +15,7 @@ const linkBase =
   "rounded-lg px-2.5 py-1.5 text-[13px] font-medium tracking-tight transition-colors duration-200 sm:px-3";
 
 const sections = [
-  { id: "agent" as const, label: "Agent", to: "/", icon: Bot },
+  { id: "agent" as const, label: "Agent", to: "/agent", icon: Bot },
   { id: "dashboard" as const, label: "Dashboard", to: "/overview", icon: LayoutDashboard },
 ] as const;
 
@@ -36,9 +36,18 @@ function isDashboardRoute(pathname: string): boolean {
   );
 }
 
+function isAgentRoute(pathname: string): boolean {
+  return (
+    pathname === "/agent" ||
+    pathname === "/settings" ||
+    pathname === "/wallet" ||
+    pathname.startsWith("/c/")
+  );
+}
+
 function sectionActive(pathname: string, id: (typeof sections)[number]["id"]): boolean {
   if (id === "dashboard") return isDashboardRoute(pathname);
-  return !isDashboardRoute(pathname);
+  return isAgentRoute(pathname);
 }
 
 /**
@@ -48,8 +57,8 @@ export function AppTopNavLinks() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const isDashboard = isDashboardRoute(pathname);
-  const isAgent = !isDashboard;
-  const currentLabel = isDashboard ? "Dashboard" : "Agent";
+  const isAgent = isAgentRoute(pathname);
+  const currentLabel = isDashboard ? "Dashboard" : isAgent ? "Agent" : "Home";
 
   return (
     <>
@@ -105,7 +114,7 @@ export function AppTopNavLinks() {
       {/* Tablet/desktop: inline links */}
       <nav className="hidden min-w-0 items-center gap-0.5 sm:gap-1 md:flex" aria-label="Main sections">
         <Link
-          to="/"
+          to="/agent"
           className={cn(
             linkBase,
             "no-underline",

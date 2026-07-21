@@ -6,7 +6,7 @@ export const SYRA_PILLAR_IDS = ["earn", "treasury", "invest", "spend", "grow"] a
 export type SyraPillarId = (typeof SYRA_PILLAR_IDS)[number];
 
 export const SYRA_PILLAR_ROUTES: Record<SyraPillarId, readonly string[]> = {
-  earn: ["/earn", "/kol", "/agent/marketplace", "/8004", "/agentscore", "/payouts"],
+  earn: ["/earn", "/agent/marketplace", "/8004", "/agentscore", "/payouts"],
   treasury: ["/agent/wallet", "/agent/billing", "/dashboard-summary", "/wallet/solana", "/pillars"],
   invest: [
     "/invest",
@@ -14,7 +14,9 @@ export const SYRA_PILLAR_ROUTES: Record<SyraPillarId, readonly string[]> = {
     "/jupiter",
     "/experiment/lp-agent-real",
     "/experiment/lp-agent",
-    "/uponly-rise",
+    "/experiment/btc-quant-real",
+    "/experiment/btc-quant",
+    "/rise",
     "/bankr",
     "/squid",
   ],
@@ -31,10 +33,14 @@ export const SYRA_PILLAR_ROUTES: Record<SyraPillarId, readonly string[]> = {
     "/nansen",
     "/binance",
     "/x-analyzer",
+    "/x-projects-analyze",
+    "/x/",
     "/agent/tools",
     "/indicator",
     "/arbitrage",
     "/pumpfun",
+    "/rise",
+    "/coingecko",
     "/assets",
     "/bitcoin",
     "/spcx",
@@ -43,7 +49,7 @@ export const SYRA_PILLAR_ROUTES: Record<SyraPillarId, readonly string[]> = {
     "/siwa",
     "/analytics/summary",
   ],
-  grow: ["/grow", "/staking", "/streamflow-locks", "/analytics/kpi"],
+  grow: ["/grow", "/topledger", "/staking", "/streamflow-locks", "/analytics/kpi"],
 } as const;
 
 export function resolveSyraPillarForPath(pathname: string): SyraPillarId {

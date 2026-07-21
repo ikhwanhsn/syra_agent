@@ -87,7 +87,7 @@ const roadmapByQuarter: {
       "API Marketplace — browse, detail pages, Core vs Partners, agent manifests",
       "Treasury — agent wallets, billing dashboard, policy-gated execution",
       "Invest proof surfaces — Giza, Meteora LP, Jupiter, RISE, trading experiments",
-      "Earn groundwork — S3 Labs, Purch Vault x402, 8004 agent registry",
+      "Earn groundwork — skills x402, Purch Vault, 8004 agent registry",
       "Grow intelligence — assets board, dossier, Syra Brain, equity/SPCX context",
     ],
   },

@@ -37,6 +37,7 @@ export function createPillarsRouter() {
         label: def.label,
         tagline: def.tagline,
         order: def.order,
+        status: def.status,
         routePrefixes: def.routePrefixes,
       },
     });

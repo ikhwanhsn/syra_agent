@@ -1,0 +1,84 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e4]:
+      - link "X" [ref=e6] [cursor=pointer]:
+        - /url: /
+    - main [ref=e9]:
+      - generic [ref=e12]:
+        - button "Back" [ref=e13] [cursor=pointer]
+        - heading "Post" [level=2] [ref=e17]
+      - article [ref=e21]:
+        - generic [ref=e22]:
+          - generic [ref=e23]:
+            - generic [ref=e24]:
+              - link [ref=e27] [cursor=pointer]:
+                - /url: /direkturcrypto
+                - img "user avatar" [ref=e29]
+              - generic [ref=e31]:
+                - generic [ref=e32]:
+                  - generic [ref=e33]:
+                    - link "direktur.crypto" [ref=e34] [cursor=pointer]:
+                      - /url: https://x.com/direkturcrypto
+                    - button "Verified account" [ref=e38] [cursor=pointer]
+                  - link "@direkturcrypto" [ref=e42] [cursor=pointer]:
+                    - /url: https://x.com/direkturcrypto
+                - button "More" [ref=e44] [cursor=pointer]
+            - generic [ref=e47]:
+              - generic [ref=e48]: memecoin naik 1000× bukan berarti $10 juta masuk. dari FDV $10K ke $10M, pool tipis bisa terdorong oleh sekitar $30K net buy. screenshot profit juga belum tentu bisa dicairkan. lalu, siapa yang membayar profit holder awal?
+              - generic [ref=e50]:
+                - generic [ref=e55]:
+                  - button "Pause" [ref=e134] [cursor=pointer]
+                  - generic: 01:40
+                - link "View media" [ref=e64] [cursor=pointer]:
+                  - /url: /direkturcrypto/status/2079377964765212981/photo/1
+              - generic [ref=e65]:
+                - link "1:28 AM · Jul 21, 2026" [ref=e67] [cursor=pointer]:
+                  - /url: /direkturcrypto/status/2079377964765212981
+                - generic [ref=e68]:
+                  - text: ·
+                  - link "1.8K Views" [ref=e69] [cursor=pointer]:
+                    - /url: https://x.com/direkturcrypto/status/2079377964765212981
+                    - generic [ref=e70]: 1.8K
+                    - generic [ref=e71]: Views
+          - generic [ref=e73]:
+            - generic [ref=e75]:
+              - button "Reply" [ref=e76] [cursor=pointer]
+              - button [ref=e79] [cursor=pointer]:
+                - generic [ref=e80]:
+                  - generic [ref=e81]: "10"
+                  - generic [ref=e82]:
+                    - generic [ref=e83]: "1"
+                    - generic [ref=e84]: "0"
+            - generic [ref=e86]:
+              - button "Repost" [ref=e87] [cursor=pointer]
+              - button [ref=e90] [cursor=pointer]:
+                - generic [ref=e91]:
+                  - generic [ref=e92]: "3"
+                  - generic [ref=e93]: "3"
+            - generic [ref=e96]:
+              - button "Like" [ref=e97] [cursor=pointer]
+              - button [ref=e100] [cursor=pointer]:
+                - generic [ref=e101]:
+                  - generic [ref=e102]: "26"
+                  - generic [ref=e103]:
+                    - generic [ref=e104]: "2"
+                    - generic [ref=e105]: "6"
+            - generic [ref=e107]:
+              - button "Bookmark" [ref=e108] [cursor=pointer]
+              - button [ref=e111] [cursor=pointer]:
+                - generic [ref=e112]:
+                  - generic [ref=e113]: "6"
+                  - generic [ref=e114]: "6"
+            - button "Share" [ref=e116] [cursor=pointer]
+          - button "Read 10 replies" [ref=e119] [cursor=pointer]
+    - generic [ref=e126]:
+      - generic [ref=e127]:
+        - generic [ref=e128]: Don't miss what's happening
+        - generic [ref=e129]: People on X are the first to know.
+      - generic [ref=e130]:
+        - link "Log in" [ref=e131] [cursor=pointer]:
+          - /url: /i/jf/onboarding/web?mode=login&redirect_after_login=%2Fdirekturcrypto%2Fstatus%2F2079377964765212981%3Fs%3D20
+        - link "Sign up" [ref=e132] [cursor=pointer]:
+          - /url: /i/jf/onboarding/web?mode=signup&redirect_after_login=%2Fdirekturcrypto%2Fstatus%2F2079377964765212981%3Fs%3D20
+  - generic [ref=e133]: "direktur.crypto on X: \"memecoin naik 1000× bukan berarti $10 juta masuk. dari FDV $10K ke $10M, pool tipis bisa terdorong oleh sekitar $30K net buy. screenshot profit juga belum tentu bisa dicairkan. lalu, siapa yang membayar profit holder awal? https://t.co/PSaCW9IW5P\" / X"
+  - region "Notifications alt+T"

@@ -5,6 +5,8 @@
 import PaidApiCall from '../models/PaidApiCall.js';
 import X402CallLog from '../models/X402CallLog.js';
 import { getPayaiPayToAddresses } from '../config/payaiX402Networks.js';
+import { SYRA_LIVE_SUBLINE, SYRA_TAGLINE } from '../config/syraBranding.js';
+import { buildActivationFunnel } from './activationFunnelService.js';
 
 const PAID_MATCH = { outcome: 'paid', direction: 'inbound' };
 
@@ -48,6 +50,7 @@ export async function buildPublicMetricsSnapshot() {
     uniquePayers,
     byNetworkAgg,
     recentPaid,
+    activation,
   ] = await Promise.all([
     PaidApiCall.countDocuments(),
     PaidApiCall.countDocuments({ createdAt: { $gte: oneDayAgo } }),
@@ -102,6 +105,7 @@ export async function buildPublicMetricsSnapshot() {
       .sort({ createdAt: -1 })
       .limit(50)
       .lean(),
+    buildActivationFunnel().catch(() => null),
   ]);
 
   const totalUsd = totalUsdAgg[0]?.total ?? 0;
@@ -114,7 +118,7 @@ export async function buildPublicMetricsSnapshot() {
   return {
     success: true,
     service: 'Syra',
-    tagline: 'Pay-per-call crypto APIs for agents — x402, MCP, SDK on Solana',
+    tagline: `${SYRA_TAGLINE} — ${SYRA_LIVE_SUBLINE}`,
     updatedAt: now.toISOString(),
     lifetime: {
       totalCalls: callCount,
@@ -129,10 +133,17 @@ export async function buildPublicMetricsSnapshot() {
     last7d: {
       calls: paidCallsLast7d,
       usdSettled: roundUsd(usdLast7d),
+      uniquePayingWallets: activation?.northStar?.uniquePayingWalletsLast7d ?? null,
     },
     last30d: {
       calls: paidCallsLast30d,
     },
+    northStar: activation?.northStar ?? {
+      paidCallsLast7d,
+      uniquePayingWalletsLast7d: null,
+    },
+    funnel: activation?.funnel ?? null,
+    bySource: activation?.bySource ?? null,
     treasury,
     verifyOnChain: {
       hint: 'USDC transfers to treasury addresses below confirm settlements',

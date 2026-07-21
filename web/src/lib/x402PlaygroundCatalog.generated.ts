@@ -5,7 +5,7 @@
 import type { HttpMethod } from "@/types/api";
 import type { RequestParam } from "@/types/api";
 
-export const X402_PLAYGROUND_GENERATED_AT = "2026-07-19T02:40:22.554Z";
+export const X402_PLAYGROUND_GENERATED_AT = "2026-07-21T08:54:39.944Z";
 
 export interface X402PlaygroundResourceTemplate {
   segment: string;
@@ -514,7 +514,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "segment": "pumpfun/scout",
       "name": "pump.fun Scout",
       "summary": "Live pump.fun alpha/beta/predicted/utility scout",
-      "description": "Live pump.fun intelligence with selector param segment=alpha|beta|predicted|utility. Optional period, limit, minPumpScore, llm. Returns sco…",
+      "description": "Live pump.fun intelligence with selector param segment=alpha|beta|predicted|utility. Use when an agent needs scored live pump.fun candidate…",
       "priceUsd": "0.005",
       "category": "analytics"
     }
@@ -554,7 +554,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "segment": "rise",
       "name": "RISE Scout",
       "summary": "Live RISE market intel and agent targets",
-      "description": "Live RISE intelligence with view=intel|markets|targets. Optional mint, limit, tier=ready|watch. Returns UPONLY token snapshot, fund lens, r…",
+      "description": "Live RISE intelligence with view=intel|markets|targets. Use when an agent needs ranked RISE markets or agent-ready mint targets. Optional m…",
       "priceUsd": "0.005",
       "category": "analytics"
     }
@@ -600,7 +600,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "segment": "coingecko",
       "name": "CoinGecko Scout",
       "summary": "Live CoinGecko top gainers brief",
-      "description": "Live CoinGecko scout with view=brief|gainers|predictions. Optional topN, minMarketCap, includeNews, llm. Returns top gainers, digests, pred…",
+      "description": "Live CoinGecko scout with view=brief|gainers|predictions. Use when an agent needs top gainers or a short market brief. Optional topN, minMa…",
       "priceUsd": "0.001",
       "category": "analytics"
     }
@@ -1142,6 +1142,36 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "description": "Search the 8004 agent index by owner wallet, creator, or collection pointer. Use when an agent discovers agents to hire, verify, or compose…",
       "priceUsd": "0.012",
       "category": "agents"
+    }
+  },
+  {
+    "segment": "topledger/wallet/analyze",
+    "id": "x402-topledger-wallet-analyze",
+    "label": "TopLedger Wallet Analyze: Full Solana DeFi portfolio analysis (20+ protocols)",
+    "method": "GET",
+    "params": [],
+    "catalogMeta": {
+      "segment": "topledger/wallet/analyze",
+      "name": "TopLedger Wallet Analyze",
+      "summary": "Full Solana DeFi portfolio analysis (20+ protocols)",
+      "description": "Analyze a Solana wallet net worth including lending, perps, LP, staking, yield, rewards, and governance via TopLedger MPP. Use when an agen…",
+      "priceUsd": "0.00048",
+      "category": "analytics"
+    }
+  },
+  {
+    "segment": "topledger/wallet/lending",
+    "id": "x402-topledger-wallet-lending",
+    "label": "TopLedger Lending Positions: Solana lending deposits and borrows across protocols",
+    "method": "GET",
+    "params": [],
+    "catalogMeta": {
+      "segment": "topledger/wallet/lending",
+      "name": "TopLedger Lending Positions",
+      "summary": "Solana lending deposits and borrows across protocols",
+      "description": "Return lending deposits, borrows, and net value for a Solana wallet across Kamino, marginfi, Jupiter Lend, Loopscale, and more. Use when an…",
+      "priceUsd": "0.00048",
+      "category": "analytics"
     }
   }
 ];

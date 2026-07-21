@@ -5,7 +5,7 @@ alwaysApply: false
 
 # Test Case Generation Standard
 
-Act as a world-class test engineer whenever designing or writing tests. Optimize for high-signal coverage of risk — not line-count vanity. Prefer deterministic, maintainable tests that lock real behavior and catch regressions early.
+Act as a world-class test engineer whenever designing or writing tests. Optimize for high-signal coverage of risk â€” not line-count vanity. Prefer deterministic, maintainable tests that lock real behavior and catch regressions early.
 
 ## When to Apply
 
@@ -19,10 +19,10 @@ Apply this rule when the user asks to:
 
 Distinguish from sibling rules:
 
-- `qa-testing` — execute and validate; report defects with evidence
-- `hacker-security` — adversarial hunt and patch (security *tests* live here)
-- `backend-engineering` / `smart-contracts` — implement production code
-- `code-review` — review test *design* quality in PRs
+- `qa-testing` â€” execute and validate; report defects with evidence
+- `hacker-security` â€” adversarial hunt and patch (security *tests* live here)
+- `backend-engineering` / `smart-contracts` â€” implement production code
+- `code-review` â€” review test *design* quality in PRs
 
 This rule owns **authoring the test suite** across layers.
 
@@ -32,7 +32,7 @@ This rule owns **authoring the test suite** across layers.
 - Smallest reliable test that proves the risk wins over elaborate setups.
 - No production mutation, no real secrets, no live third-party abuse.
 - Prefer local/dev/mocks; mark anything that needs staging.
-- Match Syra: `api/` (Node), `web/` / `s3labs/` (React), `contracts/`, `syra-sdk/`, `mcp-server/`, existing `*.test.js` patterns.
+- Match Syra: `api/` (Node), `web/` (React), `contracts/`, `syra-sdk/`, `mcp-server/`, existing `*.test.js` patterns.
 
 ## 1. Generation Protocol (always)
 
@@ -46,19 +46,19 @@ When asked to generate tests, deliver **all five layers** unless the user scopes
 
 For each case include:
 
-- **Name** — behavior-oriented (`rejects replayed payment proof`)
-- **Layer** — unit | integration | e2e | stress | security
-- **Target** — file/module/route under test
-- **Setup** — fixtures, mocks, seed data
-- **Steps / assertions** — given/when/then or arrange/act/assert
-- **Risk covered** — what failure this catches
-- **Priority** — P0–P3
+- **Name** â€” behavior-oriented (`rejects replayed payment proof`)
+- **Layer** â€” unit | integration | e2e | stress | security
+- **Target** â€” file/module/route under test
+- **Setup** â€” fixtures, mocks, seed data
+- **Steps / assertions** â€” given/when/then or arrange/act/assert
+- **Risk covered** â€” what failure this catches
+- **Priority** â€” P0â€“P3
 
 Then implement code when authorized, matching repo conventions.
 
 ## 2. Unit Tests
 
-Scope: pure functions, services, reducers, validators, scoring math — isolated from network/DB.
+Scope: pure functions, services, reducers, validators, scoring math â€” isolated from network/DB.
 
 Cover:
 
@@ -77,16 +77,16 @@ Rules:
 
 ## 3. Integration Tests
 
-Scope: module boundaries — route + service + DB (test DB), SDK + API contract, webhook handlers.
+Scope: module boundaries â€” route + service + DB (test DB), SDK + API contract, webhook handlers.
 
 Cover:
 
 - Auth required vs forbidden
-- Valid payload → expected status + body shape
-- Invalid/missing fields → 400/422
-- Idempotent POSTs (same key → same result)
-- Transactional multi-step flows (create → fetch)
-- Syra: payment settlement verification with mocked chain, campaign submission create/list, MCP tool → API mapping
+- Valid payload â†’ expected status + body shape
+- Invalid/missing fields â†’ 400/422
+- Idempotent POSTs (same key â†’ same result)
+- Transactional multi-step flows (create â†’ fetch)
+- Syra: payment settlement verification with mocked chain, campaign submission create/list, MCP tool â†’ API mapping
 
 Rules:
 
@@ -101,10 +101,10 @@ Scope: full user/agent journeys through UI or documented API flows.
 
 Cover:
 
-- Primary happy path (signup/connect → first success)
+- Primary happy path (signup/connect â†’ first success)
 - Auth gates and blocked routes
-- Critical money path (pay → access resource) with test doubles if needed
-- Failure recovery (error UI → retry)
+- Critical money path (pay â†’ access resource) with test doubles if needed
+- Failure recovery (error UI â†’ retry)
 - Syra: wallet connect (mocked), KOL campaign submit, docs quickstart path if automated
 
 Rules:
@@ -117,7 +117,7 @@ Rules:
 
 ## 5. Stress Tests
 
-Scope: load, concurrency, saturation — not functional correctness.
+Scope: load, concurrency, saturation â€” not functional correctness.
 
 Cover:
 
@@ -131,11 +131,11 @@ Rules:
 
 - Run against local/staging only with approval
 - Define thresholds: p95 latency, error rate, success rate
-- Start small (e.g. 50–500 VUs) and scale
+- Start small (e.g. 50â€“500 VUs) and scale
 - Never stress production without explicit written approval
 - Report: setup, script location, metrics, breaking point
 
-Tools: k6, Artillery, autocannon, or project-standard — pick what exists.
+Tools: k6, Artillery, autocannon, or project-standard â€” pick what exists.
 
 ## 6. Security Tests
 
@@ -143,8 +143,8 @@ Scope: automated checks that lock down attacker-relevant behaviors (complement `
 
 Cover:
 
-- Unauthenticated access to protected routes → 401
-- Authenticated user accessing another tenant's resource → 403/404
+- Unauthenticated access to protected routes â†’ 401
+- Authenticated user accessing another tenant's resource â†’ 403/404
 - Injection-like inputs (quoted strings, `$where`, path `../`) safely rejected
 - Oversized body rejected
 - Payment: replayed proof rejected; client-reported "paid" without proof rejected
@@ -153,18 +153,18 @@ Cover:
 
 Rules:
 
-- Assert status codes and safe failure — do not ship weaponized exploits
+- Assert status codes and safe failure â€” do not ship weaponized exploits
 - Use synthetic identities and data
 - Prefer regression tests next to the vulnerable module after a fix
 
 ## 7. Test Design Quality
 
-- **AAA** — arrange, act, assert clearly
-- **Name the bug** — test title states expected behavior
-- **No flakiness** — no bare sleeps; wait on conditions
-- **No mystery meat** — shared fixtures documented
-- **Right layer** — do not e2e what a unit test proves
-- **Pyramid** — many unit, fewer integration, few e2e, rare stress
+- **AAA** â€” arrange, act, assert clearly
+- **Name the bug** â€” test title states expected behavior
+- **No flakiness** â€” no bare sleeps; wait on conditions
+- **No mystery meat** â€” shared fixtures documented
+- **Right layer** â€” do not e2e what a unit test proves
+- **Pyramid** â€” many unit, fewer integration, few e2e, rare stress
 
 ## 8. Output Template
 
@@ -206,4 +206,4 @@ Before closing:
 4. Run instructions cited; if executed, outcomes reported
 5. Gaps and flaky risks called out
 
-Generate tests that would embarrass a silent regression — not tests that only prove the suite is green.
+Generate tests that would embarrass a silent regression â€” not tests that only prove the suite is green.

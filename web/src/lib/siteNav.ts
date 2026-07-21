@@ -52,10 +52,13 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
   {
     id: "agent",
     label: "Agent",
-    href: "/",
+    href: "/agent",
     icon: Bot,
     match: (p) =>
-      (p === "/" || p === "/settings" || p.startsWith("/c/") || p === "/wallet") &&
+      (p === "/agent" ||
+        p === "/settings" ||
+        p.startsWith("/c/") ||
+        p === "/wallet") &&
       !p.startsWith("/overview") &&
       !isDashboardPillarRoute(p) &&
       !p.startsWith("/agent-setup") &&
@@ -190,6 +193,12 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
 ];
 
 export const SITE_NAV_MORE: NavLinkItem[] = [
+  {
+    href: "/token",
+    label: "$SYRA token",
+    icon: Coins,
+    description: "Mint, buy links, utility, and buyback",
+  },
   {
     href: "/articles",
     label: "Articles",
