@@ -2,7 +2,8 @@
  * Batch X Project Analyzer — same scoring as /x-analyzer, no x402.
  * Only dynamic input: **type** (registry in config). X handles are static per type.
  *
- * Batch list GET serves a Mongo snapshot refreshed by `alphaXBatchScheduler` (default every 24h).
+ * Batch list GET serves a Mongo snapshot from `alphaXBatchPipeline`
+ * (refresh via ops/manual run — there is no auto scheduler wired in index.js).
  * Account detail still uses short in-memory cache + live X on miss.
  *
  * Env (optional): X_BATCH_ANALYZER_CACHE_MS (default 300000, max 1800000),

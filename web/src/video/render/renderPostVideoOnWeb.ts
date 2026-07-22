@@ -1,4 +1,3 @@
-import { canRenderMediaOnWeb, renderMediaOnWeb } from "@remotion/web-renderer";
 import type { PostSlide } from "@/content/posts/types";
 import { PostDeckVideo } from "@/video/compositions/PostDeckVideo";
 import {
@@ -36,8 +35,13 @@ function videoCodecFor(format: PostVideoExportFormat): "h264" | "vp8" {
   return format === "mp4" ? "h264" : "vp8";
 }
 
+async function loadWebRenderer() {
+  return import("@remotion/web-renderer");
+}
+
 export async function isPostVideoFormatSupported(format: PostVideoExportFormat): Promise<boolean> {
   try {
+    const { canRenderMediaOnWeb } = await loadWebRenderer();
     const result = await canRenderMediaOnWeb({
       width: POST_VIDEO_LAYOUT_WIDTH * POST_VIDEO_EXPORT_SCALE,
       height: POST_VIDEO_LAYOUT_HEIGHT * POST_VIDEO_EXPORT_SCALE,
@@ -70,6 +74,7 @@ export async function renderPostVideoOnWeb(
   const durationInFrames = getDeckDurationInFrames(slides);
   const container = format;
   const videoCodec = videoCodecFor(format);
+  const { canRenderMediaOnWeb, renderMediaOnWeb } = await loadWebRenderer();
 
   const capability = await canRenderMediaOnWeb({
     width: POST_VIDEO_LAYOUT_WIDTH * POST_VIDEO_EXPORT_SCALE,

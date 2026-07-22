@@ -84,10 +84,25 @@ export function InvestPageSkeleton() {
       aria-label="Loading invest page"
     >
       <Skeleton className="h-14 w-full rounded-2xl" />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+        <GlassMetricSkeleton />
+        <GlassMetricSkeleton />
+        <GlassMetricSkeleton />
+      </div>
       <div className="grid w-full gap-6 lg:grid-cols-12 lg:gap-8">
         <section className="min-w-0 lg:col-span-8">
-          <Skeleton className="mb-3 h-4 w-28 sm:mb-4" />
+          <div className="mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:items-end sm:justify-between">
+            <Skeleton className="h-4 w-28" />
+            <div className="flex gap-2">
+              <Skeleton className="h-8 w-12 rounded-full" />
+              <Skeleton className="h-8 w-24 rounded-full" />
+              <Skeleton className="h-8 w-16 rounded-full" />
+              <Skeleton className="h-8 w-16 rounded-full" />
+            </div>
+          </div>
           <ul className="grid gap-3 sm:grid-cols-2">
+            <OpportunityCardSkeleton />
+            <OpportunityCardSkeleton />
             <OpportunityCardSkeleton />
             <OpportunityCardSkeleton />
           </ul>

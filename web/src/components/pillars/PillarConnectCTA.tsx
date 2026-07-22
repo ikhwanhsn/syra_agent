@@ -35,11 +35,16 @@ export function PillarConnectCTA({
     return (
       <div
         className={cn(
-          "flex w-full flex-col gap-3 rounded-2xl border border-border/40 bg-muted/15 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5",
+          "flex w-full flex-col gap-3 rounded-2xl border border-border/40 bg-muted/15 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5",
           className,
         )}
       >
-        <p className="text-sm text-muted-foreground">Fund your treasury to act.</p>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium tracking-tight text-foreground">{title}</p>
+          {description ? (
+            <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
+          ) : null}
+        </div>
         <Button
           variant="outline"
           size="sm"

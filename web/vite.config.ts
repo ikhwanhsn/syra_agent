@@ -123,16 +123,18 @@ export default defineConfig(({ mode }) => {
   assetsInclude: ["**/*.wasm"],
   optimizeDeps: {
     esbuildOptions: { define: { global: "globalThis" } },
-    include: [
-      "@solana/wallet-adapter-base",
-      "@solana/wallet-adapter-react",
-      "@solana/wallet-adapter-wallets",
-      "@solana/web3.js",
-      "remotion",
-      "@remotion/player",
-      "@remotion/web-renderer",
-    ],
-    exclude: ["random-avatar-generator", "@resvg/resvg-wasm"],
+    include: ["@solana/web3.js"],
+    exclude: ["random-avatar-generator", "@resvg/resvg-wasm", "remotion", "@remotion/player", "@remotion/web-renderer"],
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          remotion: ["remotion", "@remotion/player", "@remotion/web-renderer"],
+          "vendor-charts": ["recharts", "lightweight-charts"],
+        },
+      },
+    },
   },
   };
 });

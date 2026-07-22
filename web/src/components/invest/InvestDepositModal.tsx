@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { ExternalLink, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { CheckCircle2, ExternalLink, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -44,6 +45,7 @@ export function InvestDepositModal({
   opportunity,
   onOpenChange,
 }: InvestDepositModalProps) {
+  const queryClient = useQueryClient();
   const [amount, setAmount] = useState("0.1");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +53,7 @@ export function InvestDepositModal({
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
 
   const label = opportunity?.label ?? "Protocol";
+  const adapterKey = opportunity?.adapter ?? null;
 
   const resetState = () => {
     setError(null);
@@ -59,12 +62,23 @@ export function InvestDepositModal({
     setSubmitting(false);
   };
 
+  useEffect(() => {
+    if (!open || !adapterKey) return;
+    resetState();
+    setAmount("0.1");
+  }, [adapterKey, open]);
+
   const handleOpenChange = (next: boolean) => {
     if (!next) {
       resetState();
       setAmount("0.1");
     }
     onOpenChange(next);
+  };
+
+  const invalidateInvestQueries = () => {
+    void queryClient.invalidateQueries({ queryKey: ["invest", "opportunities"] });
+    void queryClient.invalidateQueries({ queryKey: ["invest", "positions"] });
   };
 
   const handleDeposit = async () => {
@@ -104,6 +118,7 @@ export function InvestDepositModal({
 
       if (res.data.status === "ok" && res.data.signature) {
         setSignature(res.data.signature);
+        invalidateInvestQueries();
         return;
       }
 
@@ -129,9 +144,22 @@ export function InvestDepositModal({
 
         {signature ? (
           <div className="space-y-3 rounded-xl border border-border/50 bg-muted/20 p-4">
-            <p className="text-sm font-medium text-foreground">Deposit submitted</p>
-            <p className="text-xs text-muted-foreground break-all">{signature}</p>
-            <Button variant="outline" size="sm" className="rounded-full" asChild>
+            <div className="flex items-start gap-3">
+              <CheckCircle2
+                className="mt-0.5 h-5 w-5 shrink-0 text-foreground"
+                aria-hidden
+              />
+              <div className="min-w-0 space-y-1">
+                <p className="text-sm font-medium text-foreground">Deposit submitted</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Your position will update shortly. You can verify the transaction on Solscan.
+                </p>
+              </div>
+            </div>
+            <p className="break-all rounded-lg bg-background/50 px-3 py-2 font-mono text-[11px] text-muted-foreground">
+              {signature}
+            </p>
+            <Button variant="outline" size="sm" className="h-9 rounded-full" asChild>
               <a href={solscanTxUrl(signature)} target="_blank" rel="noopener noreferrer">
                 View on Solscan
                 <ExternalLink className="ml-1.5 h-3.5 w-3.5" aria-hidden />
@@ -141,7 +169,10 @@ export function InvestDepositModal({
         ) : (
           <div className="space-y-3">
             <div>
-              <label htmlFor="invest-deposit-amount" className="text-xs font-medium text-muted-foreground">
+              <label
+                htmlFor="invest-deposit-amount"
+                className="text-xs font-medium text-muted-foreground"
+              >
                 Amount (SOL)
               </label>
               <Input
@@ -155,20 +186,26 @@ export function InvestDepositModal({
                 disabled={submitting}
                 className="mt-1.5"
               />
+              <p className="mt-1.5 text-xs text-muted-foreground">Minimum 0.01 SOL</p>
             </div>
             {opportunity?.riskNote ? (
-              <p className="text-xs text-muted-foreground leading-relaxed">{opportunity.riskNote}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {opportunity.riskNote}
+              </p>
             ) : null}
             {pendingMessage ? (
-              <p className="text-sm text-amber-600 dark:text-amber-400 leading-relaxed">
+              <p
+                className="text-sm text-amber-600 dark:text-amber-400 leading-relaxed"
+                role="status"
+              >
                 {pendingMessage}
               </p>
             ) : null}
             {error ? (
-              <div className="space-y-2">
+              <div className="space-y-2" role="alert">
                 <p className="text-sm text-destructive leading-relaxed">{error}</p>
                 {/not provisioned|fund/i.test(error) ? (
-                  <Button variant="outline" size="sm" className="rounded-full" asChild>
+                  <Button variant="outline" size="sm" className="h-9 rounded-full" asChild>
                     <Link to="/wallet">Fund invest wallet</Link>
                   </Button>
                 ) : null}
@@ -180,14 +217,18 @@ export function InvestDepositModal({
         <DialogFooter className="gap-2 sm:gap-0">
           <Button
             variant="outline"
-            className="rounded-full"
+            className="h-10 rounded-full sm:h-9"
             onClick={() => handleOpenChange(false)}
             disabled={submitting}
           >
             {signature ? "Close" : "Cancel"}
           </Button>
           {!signature ? (
-            <Button className="rounded-full" onClick={() => void handleDeposit()} disabled={submitting}>
+            <Button
+              className="h-10 rounded-full sm:h-9"
+              onClick={() => void handleDeposit()}
+              disabled={submitting}
+            >
               {submitting ? (
                 <>
                   <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden />
