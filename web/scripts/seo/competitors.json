@@ -1,0 +1,98 @@
+[
+  {
+    "slug": "nansen",
+    "name": "Nansen",
+    "category": "Smart money / on-chain analytics",
+    "primaryKeyword": "Syra vs Nansen",
+    "theirModel": "API key or subscription for smart-money and wallet analytics.",
+    "syraAngle": "Syra exposes Nansen-style smart-money netflow as a pay-per-call x402 route and MCP tool — one USDC wallet, no separate Nansen key for agent loops that also need news, DEX, and oracle data.",
+    "whenTheyWin": "You only need Nansen continuously at enterprise volume with a negotiated contract.",
+    "whenSyraWins": "Your agent needs many intel sources mid-task without vendor onboarding, and you want HTTP 402 auto-pay.",
+    "relatedTools": ["nansen-smart-money-netflow", "analytics-summary"],
+    "ctaNote": "Try syra_spend_nansen_smart_money_netflow via MCP or the marketplace."
+  },
+  {
+    "slug": "coingecko",
+    "name": "CoinGecko API",
+    "category": "Market data",
+    "primaryKeyword": "Syra vs CoinGecko API",
+    "theirModel": "Free tier + paid API keys for market, trending, and price data.",
+    "syraAngle": "Syra wraps CoinGecko scout and related market intel behind x402 so agents pay per successful call instead of managing another API key and billing account.",
+    "whenTheyWin": "You only call CoinGecko and already have a key with spare quota.",
+    "whenSyraWins": "Your agent mixes CoinGecko with on-chain, news, and risk tools under one payer.",
+    "relatedTools": ["coingecko-scout", "pyth-price", "signal"],
+    "ctaNote": "Try syra_spend_coingecko_scout via MCP or the marketplace."
+  },
+  {
+    "slug": "defillama",
+    "name": "DefiLlama",
+    "category": "TVL / DeFi metrics",
+    "primaryKeyword": "Syra vs DefiLlama API",
+    "theirModel": "Mostly free public API for protocol and chain TVL.",
+    "syraAngle": "Syra packages DefiLlama TVL as an agent-callable x402/MCP tool next to DEX pairs, sentiment, and smart money — useful when TVL is one step in a multi-tool agent plan.",
+    "whenTheyWin": "You only need raw TVL dumps in a script with no payment rails.",
+    "whenSyraWins": "An autonomous agent should fetch TVL then act (scout, swap quote, risk) without human key pasting.",
+    "relatedTools": ["defillama-tvl", "dexscreener-pairs", "geckoterminal-pools"],
+    "ctaNote": "Try syra_spend_defillama_tvl via MCP or the marketplace."
+  },
+  {
+    "slug": "dexscreener",
+    "name": "DexScreener",
+    "category": "DEX pair discovery",
+    "primaryKeyword": "Syra vs DexScreener API",
+    "theirModel": "Public pair search and charts; rate limits and key policies vary by use.",
+    "syraAngle": "Syra offers DexScreener pairs as a paid x402 route with MCP packaging so trading agents can discover liquidity alongside rug checks and oracles on one wallet.",
+    "whenTheyWin": "Human browsers and dashboards hitting DexScreener directly.",
+    "whenSyraWins": "Agents that need pairs + risk + price in one paid session.",
+    "relatedTools": ["dexscreener-pairs", "rugcheck-report", "pyth-price"],
+    "ctaNote": "Try syra_spend_dexscreener_pairs via MCP or the marketplace."
+  },
+  {
+    "slug": "messari",
+    "name": "Messari",
+    "category": "Research / market intelligence",
+    "primaryKeyword": "Syra vs Messari API",
+    "theirModel": "Research subscriptions and API access for fundamentals and news-grade intel.",
+    "syraAngle": "Syra focuses on agent-native pay-per-call crypto intel (news, sentiment, signals, on-chain scouts) with USDC settlement — not a research seat license.",
+    "whenTheyWin": "Human analysts who need deep research reports and a Messari workflow.",
+    "whenSyraWins": "Agents that must pay for discrete intel calls and continue the task automatically.",
+    "relatedTools": ["news", "sentiment", "signal", "sundown-digest"],
+    "ctaNote": "Browse Spend tools on the Syra marketplace."
+  },
+  {
+    "slug": "birdeye",
+    "name": "Birdeye",
+    "category": "Solana token / market data",
+    "primaryKeyword": "Syra vs Birdeye API",
+    "theirModel": "API keys for Solana token prices, markets, and wallets.",
+    "syraAngle": "Syra aggregates partner and first-party Spend routes under x402 so Solana agents avoid N vendor keys; partner passthrough typically prices at ~1.2× upstream.",
+    "whenTheyWin": "High-volume single-vendor Birdeye usage with an existing key.",
+    "whenSyraWins": "Multi-tool agents that need Birdeye-class data plus news, risk, and MCP install in one loop.",
+    "relatedTools": ["analytics-summary", "pumpfun-scout", "geckoterminal-pools"],
+    "ctaNote": "Explore Solana intel routes on syraa.fun/marketplace."
+  },
+  {
+    "slug": "diy-x402",
+    "name": "Build-your-own x402 payer",
+    "category": "DIY integration",
+    "primaryKeyword": "Syra vs DIY x402",
+    "theirModel": "Wire each upstream vendor yourself, implement HTTP 402 payment, MCP schemas, and catalog maintenance.",
+    "syraAngle": "Syra ships the gateway, OpenAPI/x402 catalog, MCP server, and typed SDK so agent builders pay per call instead of rebuilding settlement and tool packaging.",
+    "whenTheyWin": "You only need one internal route and already own the settlement stack.",
+    "whenSyraWins": "You want many crypto intel tools with one USDC payer and minutes-to-first-call DX.",
+    "relatedTools": ["health", "web-search", "news"],
+    "ctaNote": "Install @syra-ai/mcp-server or @syra-ai/sdk and make a first paid call."
+  },
+  {
+    "slug": "api-keys",
+    "name": "Per-vendor API keys",
+    "category": "Traditional API billing",
+    "primaryKeyword": "pay per call API vs API keys",
+    "theirModel": "Sign up, get keys, manage quotas and invoices per vendor (Nansen, CoinGecko, news, etc.).",
+    "syraAngle": "Machine money for agents: settle USDC on HTTP 402, discover routes via OpenAPI and MCP, no key sprawl for the agent runtime.",
+    "whenTheyWin": "Stable single-vendor production services with procurement already done.",
+    "whenSyraWins": "Autonomous agents and hackathon builds that cannot pause for vendor dashboards.",
+    "relatedTools": ["news", "signal", "sentiment"],
+    "ctaNote": "Read /pricing and install MCP for a wallet-native path."
+  }
+]
