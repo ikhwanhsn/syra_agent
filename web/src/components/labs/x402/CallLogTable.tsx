@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 import { cn } from "@/lib/utils";
-import type { LabX402Call } from "@/lib/labsX402Api";
+import type { LabChain, LabX402Call } from "@/lib/labsX402Api";
 
 function statusVariant(status: LabX402Call["status"]) {
   switch (status) {
@@ -31,6 +31,11 @@ function shortenAddress(addr: string): string {
   return `${addr.slice(0, 4)}…${addr.slice(-4)}`;
 }
 
+function shortenTx(tx: string): string {
+  if (tx.length <= 14) return tx;
+  return `${tx.slice(0, 6)}…${tx.slice(-4)}`;
+}
+
 function shortenError(error: string | null): string {
   if (!error) return "—";
   const cleaned = error.replace(/\s+/g, " ").trim();
@@ -38,15 +43,30 @@ function shortenError(error: string | null): string {
   return `${cleaned.slice(0, 69)}…`;
 }
 
+function explorerTxUrl(chain: LabChain, tx: string): string {
+  const id = encodeURIComponent(tx);
+  switch (chain) {
+    case "algorand":
+      return `https://allo.info/tx/${id}`;
+    case "base":
+      return `https://basescan.org/tx/${id}`;
+    case "celo":
+      return `https://celoscan.io/tx/${id}`;
+    default:
+      return `https://solscan.io/tx/${id}`;
+  }
+}
+
 interface CallLogTableProps {
   calls: LabX402Call[];
   isLoading: boolean;
+  chain?: LabChain;
 }
 
 /** Only the latest calls are shown; older entries are intentionally hidden. */
 const MAX_VISIBLE_CALLS = 10;
 
-export function CallLogTable({ calls, isLoading }: CallLogTableProps) {
+export function CallLogTable({ calls, isLoading, chain = "solana" }: CallLogTableProps) {
   const showSkeleton = useMinimumSkeleton(isLoading);
   const visibleCalls = calls.slice(0, MAX_VISIBLE_CALLS);
 
@@ -72,35 +92,73 @@ export function CallLogTable({ calls, isLoading }: CallLogTableProps) {
             <TableHead>Payer</TableHead>
             <TableHead className="text-right">Price</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Tx</TableHead>
             <TableHead>Error</TableHead>
             <TableHead>Trigger</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {visibleCalls.map((c) => (
-            <TableRow key={c.id}>
-              <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                {new Date(c.createdAt).toLocaleString()}
-              </TableCell>
-              <TableCell className="font-mono text-xs">{c.endpoint}</TableCell>
-              <TableCell className="font-mono text-xs" title={c.payerAddress}>
-                {shortenAddress(c.payerAddress)}
-              </TableCell>
-              <TableCell className="text-right font-mono text-xs">
-                ${c.priceUsd.toFixed(2)}
-              </TableCell>
-              <TableCell>
-                <Badge variant={statusVariant(c.status)}>{c.status}</Badge>
-              </TableCell>
-              <TableCell
-                className="max-w-[220px] truncate text-xs text-muted-foreground"
-                title={c.error ?? undefined}
-              >
-                {shortenError(c.error)}
-              </TableCell>
-              <TableCell className="text-xs capitalize text-muted-foreground">{c.trigger}</TableCell>
-            </TableRow>
-          ))}
+          {visibleCalls.map((c) => {
+            const rowChain = c.chain ?? chain;
+            const paymentTx = c.paymentTx?.trim() || null;
+            const refundTx = c.refundTx?.trim() || null;
+            return (
+              <TableRow key={c.id}>
+                <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                  {new Date(c.createdAt).toLocaleString()}
+                </TableCell>
+                <TableCell className="font-mono text-xs">{c.endpoint}</TableCell>
+                <TableCell className="font-mono text-xs" title={c.payerAddress}>
+                  {shortenAddress(c.payerAddress)}
+                </TableCell>
+                <TableCell className="text-right font-mono text-xs">
+                  ${c.priceUsd.toFixed(2)}
+                </TableCell>
+                <TableCell>
+                  <Badge variant={statusVariant(c.status)}>{c.status}</Badge>
+                </TableCell>
+                <TableCell className="font-mono text-xs">
+                  {paymentTx || refundTx ? (
+                    <div className="flex flex-col gap-0.5">
+                      {paymentTx ? (
+                        <a
+                          href={explorerTxUrl(rowChain, paymentTx)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary underline-offset-2 hover:underline"
+                          title={paymentTx}
+                        >
+                          {shortenTx(paymentTx)}
+                        </a>
+                      ) : null}
+                      {refundTx ? (
+                        <a
+                          href={explorerTxUrl(rowChain, refundTx)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-muted-foreground underline-offset-2 hover:underline"
+                          title={`Refund: ${refundTx}`}
+                        >
+                          r:{shortenTx(refundTx)}
+                        </a>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </TableCell>
+                <TableCell
+                  className="max-w-[220px] truncate text-xs text-muted-foreground"
+                  title={c.error ?? undefined}
+                >
+                  {shortenError(c.error)}
+                </TableCell>
+                <TableCell className="text-xs capitalize text-muted-foreground">
+                  {c.trigger}
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>

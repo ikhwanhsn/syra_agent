@@ -1974,19 +1974,34 @@ export async function settlePaymentAndSetResponse(res, req) {
     settle = await settlePaymentWithFallback(payload, accepted, req);
   } catch (e) {
     const msg = getErrorMessage(e);
-    const looksLikeFacilitatorOrSettle =
-      isFacilitatorErrorFromThrow(e) ||
-      /settle|500|Internal\s*server|Facilitator|simulation|transaction_simulation/i.test(msg);
-    if (looksLikeFacilitatorOrSettle) {
-      try {
-        const local = await settleSolanaPaymentLocally(payload, accepted);
-        settle = local?.success ? local : { success: true };
-      } catch (_) {
-        settle = { success: true };
-      }
-      /* Never rethrow facilitator/settle errors: payment was already verified in requirePayment */
+    const isAlgorandSettle =
+      Boolean(req?.x402Payment?.useAlgorandFacilitator) ||
+      shouldUseAlgorandFacilitator(accepted) ||
+      String(req?.get?.("x-lab-x402-chain") || "")
+        .trim()
+        .toLowerCase() === "algorand";
+    // Never invent a Solana local settle (or success:true) for Algorand failures.
+    if (isAlgorandSettle) {
+      settle = {
+        success: false,
+        errorReason: msg || "Algorand settlement failed",
+        error: msg || "Algorand settlement failed",
+      };
     } else {
-      throw e;
+      const looksLikeFacilitatorOrSettle =
+        isFacilitatorErrorFromThrow(e) ||
+        /settle|500|Internal\s*server|Facilitator|simulation|transaction_simulation/i.test(msg);
+      if (looksLikeFacilitatorOrSettle) {
+        try {
+          const local = await settleSolanaPaymentLocally(payload, accepted);
+          settle = local?.success ? local : { success: true };
+        } catch (_) {
+          settle = { success: true };
+        }
+        /* Never rethrow facilitator/settle errors: payment was already verified in requirePayment */
+      } else {
+        throw e;
+      }
     }
   }
   if (!settle?.success) {

@@ -258,7 +258,8 @@ export function X402LabTab({ chain }: X402LabTabProps) {
         createWalletsBulkM.isError ||
         runM.isError ||
         updateSettingsM.isError ||
-        depositQ.isError) && (
+        depositQ.isError ||
+        callsQ.isError) && (
         <Alert variant="destructive">
           <AlertDescription>
             {(
@@ -266,7 +267,8 @@ export function X402LabTab({ chain }: X402LabTabProps) {
               createWalletsBulkM.error ??
               runM.error ??
               updateSettingsM.error ??
-              depositQ.error
+              depositQ.error ??
+              callsQ.error
             )?.message}
           </AlertDescription>
         </Alert>
@@ -423,7 +425,7 @@ export function X402LabTab({ chain }: X402LabTabProps) {
         <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Call log
         </h3>
-        <CallLogTable calls={callsQ.data ?? []} isLoading={callsQ.isLoading} />
+        <CallLogTable calls={callsQ.data ?? []} isLoading={callsQ.isLoading} chain={chain} />
       </section>
 
       <CreateWalletDialog

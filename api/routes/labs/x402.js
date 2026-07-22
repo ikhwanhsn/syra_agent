@@ -26,8 +26,40 @@ import {
   getLabDepositHub,
   distributeLabDeposit,
 } from '../../libs/labs/labDepositDistributor.js';
-import { getMaxBulkCreateCount } from '../../libs/labs/labX402CallLog.js';
+import { getMaxBulkCreateCount, logLabX402Call } from '../../libs/labs/labX402CallLog.js';
+import { formatFundingSkipError } from '../../libs/labs/labFundingSkipMessage.js';
 import { normalizeLabChain } from '../../models/labs/LabX402Settings.js';
+
+/**
+ * Persist a funding skip so the Labs Call log is not empty when Run says "see Error column".
+ * @param {{
+ *   payerAddress: string;
+ *   chain: 'solana' | 'base' | 'celo' | 'algorand';
+ *   endpoint?: string;
+ *   reason: string;
+ *   error?: string;
+ *   trigger?: 'manual' | 'scheduler';
+ * }} input
+ */
+async function logFundingSkip(input) {
+  try {
+    await logLabX402Call({
+      payerAddress: input.payerAddress,
+      endpoint: input.endpoint || '(funding)',
+      priceUsd: 0,
+      chain: input.chain,
+      status: 'error',
+      error: formatFundingSkipError({
+        reason: input.reason,
+        error: input.error,
+        includeTopUpHint: true,
+      }),
+      trigger: input.trigger === 'scheduler' ? 'scheduler' : 'manual',
+    });
+  } catch {
+    /* never block the run response on log failure */
+  }
+}
 
 /** @type {Map<string, number>} */
 const manualRunCooldown = new Map();
@@ -242,6 +274,14 @@ export function createLabsX402Router() {
           priceMultiplier,
         });
         if (!funding.canPay) {
+          await logFundingSkip({
+            payerAddress,
+            chain,
+            endpoint,
+            reason: funding.reason,
+            error: funding.error,
+            trigger: 'manual',
+          });
           return res.json({
             success: false,
             data: {
@@ -275,6 +315,14 @@ export function createLabsX402Router() {
           priceMultiplier,
         });
         if (!funding.canPay) {
+          await logFundingSkip({
+            payerAddress: p.address,
+            chain,
+            endpoint,
+            reason: funding.reason,
+            error: funding.error,
+            trigger: 'manual',
+          });
           results.push({
             success: false,
             endpoint: endpoint ?? null,

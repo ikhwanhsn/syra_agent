@@ -49,6 +49,7 @@ import { payaiEndpointDailyLimitMiddleware, recordPayaiEndpointDailyCall } from 
 import { findLabX402Endpoint } from '../../libs/labs/labX402Endpoints.js';
 import { isDexterHealthyForLabChain } from '../../utils/dexterSolanaFeePayerHealth.js';
 import { resolveLabsPayToOverride } from '../../libs/labs/labsPayToOverride.js';
+import { inferLabPayerChain } from '../../libs/labs/inferLabPayerChain.js';
 
 const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 
@@ -72,16 +73,7 @@ async function labsPayToOverride(req) {
  * @returns {'solana' | 'base' | 'celo' | 'algorand'}
  */
 function inferPayerChain(payer, req) {
-  const fromHeader = req.get('x-lab-x402-chain');
-  if (
-    fromHeader === 'base' ||
-    fromHeader === 'solana' ||
-    fromHeader === 'celo' ||
-    fromHeader === 'algorand'
-  ) {
-    return fromHeader;
-  }
-  return /^0x/i.test(payer) ? 'base' : 'solana';
+  return inferLabPayerChain(payer, req.get('x-lab-x402-chain'));
 }
 
 /**

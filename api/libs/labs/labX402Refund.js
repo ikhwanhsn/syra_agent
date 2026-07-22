@@ -33,6 +33,7 @@ import {
   getAlgorandAlgodClient,
   getAlgorandUsdcAsaId,
   isAlgorandAddressOptedInUsdc,
+  ensureAlgorandLabWalletUsdcOptIn,
 } from './labWalletService.js';
 import { pickSolanaConnectionForReads, isSolanaRpcRetryableError } from '../solanaServerRpc.js';
 import { confirmSolanaTransaction, isSolanaTxConfirmedOnAnyRpc } from '../solanaConfirm.js';
@@ -656,7 +657,26 @@ export async function ensurePayerFundedForNextCall(payerAddress, opts = {}) {
   const priceMultiplier =
     Number.isFinite(rawMult) ? Math.min(100, Math.max(1, rawMult)) : 1;
   const minPriceUsd = getMinLabX402PriceUsd() * priceMultiplier;
-  const balances = await getLabWalletBalances(payerAddress, chain);
+
+  // Algorand payers must opt into USDC ASA before balance/top-up can succeed.
+  if (chain === 'algorand') {
+    const optIn = await ensureAlgorandLabWalletUsdcOptIn(payerAddress);
+    if (!optIn.ok && !optIn.already) {
+      const balancesAfterFail = await getLabWalletBalances(payerAddress, chain);
+      const reason = String(optIn.error || '').includes('insufficient_algo_for_opt_in')
+        ? 'insufficient_algo_for_opt_in'
+        : 'usdc_opt_in_failed';
+      return {
+        canPay: false,
+        funded: false,
+        balanceUsdc: balancesAfterFail?.usdcBalance ?? null,
+        reason,
+        error: optIn.error || reason,
+      };
+    }
+  }
+
+  let balances = await getLabWalletBalances(payerAddress, chain);
 
   // Balance unknown (RPC unavailable) — stay optimistic and let the payment attempt decide.
   if (!balances) {
@@ -690,6 +710,8 @@ export async function ensurePayerFundedForNextCall(payerAddress, opts = {}) {
 
   try {
     const refund = await refundUsdcToPayer(payerAddress, decision.refundAmountUsd, chain);
+    // Re-read after top-up so Algorand opt-in + ASA balance are current.
+    balances = (await getLabWalletBalances(payerAddress, chain)) ?? balances;
     return {
       canPay: true,
       funded: true,
@@ -699,16 +721,22 @@ export async function ensurePayerFundedForNextCall(payerAddress, opts = {}) {
       amountUsd: decision.refundAmountUsd,
     };
   } catch (e) {
-    const underfunded = String(e?.message || '').includes(PAYTO_INSUFFICIENT_FUNDS);
+    const msg = e?.message || String(e);
+    const underfunded = String(msg).includes(PAYTO_INSUFFICIENT_FUNDS);
+    const notOptedIn = /not opted into USDC ASA/i.test(String(msg));
     console.warn(
-      `[labX402Refund] proactive top-up failed for ${payerAddress} (${underfunded ? 'payTo underfunded' : e?.message || e})`,
+      `[labX402Refund] proactive top-up failed for ${payerAddress} (${underfunded ? 'payTo underfunded' : msg})`,
     );
     return {
       canPay: balances.usdcBalance >= minPriceUsd,
       funded: false,
       balanceUsdc: balances.usdcBalance,
-      reason: underfunded ? 'payto_underfunded' : 'topup_failed',
-      error: e?.message || String(e),
+      reason: notOptedIn
+        ? 'usdc_opt_in_required'
+        : underfunded
+          ? 'payto_underfunded'
+          : 'topup_failed',
+      error: msg,
     };
   }
 }

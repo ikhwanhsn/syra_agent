@@ -4,7 +4,8 @@
  */
 import { listActivePayerWallets } from './labWalletService.js';
 import { runLabX402Payment, getLabX402Settings } from './labX402Payer.js';
-import { checkLabDailyCallBudget } from './labX402CallLog.js';
+import { checkLabDailyCallBudget, logLabX402Call } from './labX402CallLog.js';
+import { formatFundingSkipError } from './labFundingSkipMessage.js';
 import { ensurePayerFundedForNextCall } from './labX402Refund.js';
 import { LAB_X402_CHAINS, normalizeLabChain } from '../../models/labs/LabX402Settings.js';
 import { startupVerbose } from '../../utils/startupLog.js';
@@ -55,6 +56,19 @@ async function tick(chain) {
           console.warn(
             `[lab-x402-scheduler] skipping ${c} ${payer.address}: insufficient USDC (${funding.reason})`,
           );
+          await logLabX402Call({
+            payerAddress: payer.address,
+            endpoint: '(funding)',
+            priceUsd: 0,
+            chain: c,
+            status: 'error',
+            error: formatFundingSkipError({
+              reason: funding.reason,
+              error: funding.error,
+              includeTopUpHint: false,
+            }),
+            trigger: 'scheduler',
+          }).catch(() => {});
           continue;
         }
         await runLabX402Payment(payer.address, { trigger: 'scheduler', chain: c });
