@@ -51,7 +51,7 @@
     "@solana/wallet-adapter-base": "^0.9.27",
     "@solana/web3.js": "^1.98.4",
     "@streamflow/stream": "^11.2.2",
-    "@tanstack/react-query": "^5.83.0",
+    "@tanstack/react-query": "^5.101.2",
     "@vercel/analytics": "^1.6.1",
     "@x402/core": "^2.2.0",
     "@x402/evm": "^2.2.0",
