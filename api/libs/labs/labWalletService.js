@@ -25,7 +25,7 @@ import {
   encryptAgentSecretForStorage,
   decryptAgentSecretFromStorage,
 } from '../agentWalletSecretCrypto.js';
-import { getMaxPayerWallets } from './labX402CallLog.js';
+import { getMaxBulkCreateCount } from './labX402CallLog.js';
 import { withSolanaRpcFallback } from '../solanaServerRpc.js';
 import { getDexterNetworkByCaip2 } from '../../config/dexterX402Networks.js';
 import { CELO_USDC_MAINNET, getCeloRpcUrl } from '../../config/celoX402Networks.js';
@@ -728,11 +728,6 @@ export async function createLabWallet(input) {
         `An active ${chain} deposit wallet already exists. Deactivate it first or use the existing one.`,
       );
     }
-  } else {
-    const payerCount = await LabWallet.countDocuments({ role: 'payer', active: true, chain });
-    if (payerCount >= getMaxPayerWallets()) {
-      throw new Error(`Maximum of ${getMaxPayerWallets()} ${chain} payer wallets allowed`);
-    }
   }
 
   let address;
@@ -773,7 +768,10 @@ export async function createLabWallet(input) {
 export async function createLabWalletsBulk(input) {
   const chain = normalizeLabChain(input.chain);
   const role = input.role === 'payto' ? 'payto' : 'payer';
-  const count = Math.min(Math.max(Math.round(Number(input.count) || 0), 1), getMaxPayerWallets());
+  const count = Math.min(
+    Math.max(Math.round(Number(input.count) || 0), 1),
+    getMaxBulkCreateCount(),
+  );
   const labelPrefix = String(input.labelPrefix || 'Payer').trim() || 'Payer';
 
   if (role === 'payto') {
@@ -781,14 +779,9 @@ export async function createLabWalletsBulk(input) {
   }
 
   const existingCount = await LabWallet.countDocuments({ role: 'payer', active: true, chain });
-  const remaining = getMaxPayerWallets() - existingCount;
-  if (remaining <= 0) {
-    throw new Error(`Maximum of ${getMaxPayerWallets()} ${chain} payer wallets allowed`);
-  }
-  const toCreate = Math.min(count, remaining);
 
   const created = [];
-  for (let i = 0; i < toCreate; i++) {
+  for (let i = 0; i < count; i++) {
     const label = `${labelPrefix} #${existingCount + i + 1}`;
     created.push(await createLabWallet({ label, role: 'payer', chain }));
   }

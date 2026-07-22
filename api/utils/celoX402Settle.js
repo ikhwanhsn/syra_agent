@@ -3,7 +3,8 @@
  *
  * Hackathon FAQ: x402_settlements / x402_volume_usd only count settlements submitted by
  * api.x402.celo.org (attributed to the registered payTo / agentWalletAddress). Self-settle
- * never appears in those columns — it is kept only as an explicit fallback.
+ * never appears in those columns — Labs Celo force-disables it; opt-in only via
+ * CELO_SELF_SETTLE_FALLBACK / CELO_ALLOW_SELF_SETTLE for non-Labs debugging.
  *
  * @see https://celobuilders.xyz/hackathons/agentic-payments-defai/faqs
  * @see https://x402.celo.org/
@@ -35,6 +36,34 @@ import {
 } from '../config/celoX402Networks.js';
 import { getCeloBuilderCode, getCeloFacilitatorWalletCode } from '../config/celoBuilderCode.js';
 import { appendCeloDataSuffix, getCeloDataSuffix } from './celoAttribution.js';
+
+/** Cap Celo facilitator HTTP so settle never hangs indefinitely. */
+const CELO_FACILITATOR_TIMEOUT_MS = Number.parseInt(
+  process.env.CELO_FACILITATOR_TIMEOUT_MS || '6000',
+  10,
+);
+
+/**
+ * @param {string} url
+ * @param {RequestInit} [init]
+ * @returns {Promise<Response>}
+ */
+async function fetchCeloFacilitator(url, init = {}) {
+  const timeoutMs =
+    Number.isFinite(CELO_FACILITATOR_TIMEOUT_MS) && CELO_FACILITATOR_TIMEOUT_MS > 0
+      ? CELO_FACILITATOR_TIMEOUT_MS
+      : 6000;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: init.signal || controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 /**
  * @param {unknown} extensions
@@ -123,16 +152,16 @@ function allowCeloSelfSettle() {
 
 /**
  * Auto-fallback to self-settle when the Celo facilitator /settle fails
- * (e.g. relayer out of CELO gas). Default ON so Labs payments keep working.
- * Set CELO_SELF_SETTLE_FALLBACK=false to restore strict facilitator-only settle.
+ * (e.g. relayer out of CELO gas). Default OFF — Track 2 x402_* only counts
+ * facilitator settlements. Set CELO_SELF_SETTLE_FALLBACK=true to opt into
+ * self-settle after facilitator failure (Track 1 tags preserved; x402_* not counted).
  * Requires CELO_SETTLER_PRIVATE_KEY (wallet must hold CELO for gas).
- * Self-settled txs preserve Track 1 ERC-8021 tags but do NOT count for Track 2 x402_*.
  */
 function shouldSelfSettleFallback() {
-  const v = String(process.env.CELO_SELF_SETTLE_FALLBACK || 'true')
+  const v = String(process.env.CELO_SELF_SETTLE_FALLBACK || 'false')
     .trim()
     .toLowerCase();
-  return v !== '0' && v !== 'false' && v !== 'no';
+  return v === '1' || v === 'true' || v === 'yes';
 }
 
 /**
@@ -153,6 +182,24 @@ function hasCeloSettlerKey() {
  */
 function canUseCeloSelfSettle() {
   return (allowCeloSelfSettle() || shouldSelfSettleFallback()) && hasCeloSettlerKey();
+}
+
+/**
+ * Gate for self-settle on a specific settle call.
+ * Labs Celo passes `forceFacilitatorOnly: true` so runs never silently self-settle
+ * (non-counting Track 2 volume).
+ *
+ * @param {{ forceFacilitatorOnly?: boolean }} [opts]
+ * @returns {boolean}
+ */
+export function canUseCeloSelfSettleForRequest(opts = {}) {
+  if (opts.forceFacilitatorOnly) return false;
+  return canUseCeloSelfSettle();
+}
+
+/** @returns {boolean} exported for unit tests */
+export function isCeloSelfSettleFallbackEnabled() {
+  return shouldSelfSettleFallback();
 }
 
 /**
@@ -280,45 +327,50 @@ function extractAuthorization(payload, accepted) {
  */
 async function verifyAuthorizationLocally(auth, accepted) {
   if (!auth) return false;
-  const net = getCeloNetworkByCaip2(auth.network) || getCeloNetworkByCaip2(CELO_MAINNET_CAIP2);
-  const extra = accepted?.extra && typeof accepted.extra === 'object' ? accepted.extra : {};
-  const extraEip712 = extra.eip712 && typeof extra.eip712 === 'object' ? extra.eip712 : {};
-  // Prefer on-chain Celo USDC domain; fall back to accept.extra only if it matches known Celo values.
-  const domainName = net?.eip712?.name || extraEip712.name || extra.name || 'USDC';
-  const domainVersion = net?.eip712?.version || extraEip712.version || extra.version || '2';
-  const domain = {
-    name: domainName,
-    version: domainVersion,
-    chainId: CELO_MAINNET_CHAIN_ID_SAFE(),
-    verifyingContract: auth.asset,
-  };
-  const types = {
-    TransferWithAuthorization: [
-      { name: 'from', type: 'address' },
-      { name: 'to', type: 'address' },
-      { name: 'value', type: 'uint256' },
-      { name: 'validAfter', type: 'uint256' },
-      { name: 'validBefore', type: 'uint256' },
-      { name: 'nonce', type: 'bytes32' },
-    ],
-  };
-  const message = {
-    from: auth.from,
-    to: auth.to,
-    value: auth.value,
-    validAfter: auth.validAfter,
-    validBefore: auth.validBefore,
-    nonce: auth.nonce,
-  };
-  const sig = { v: auth.v, r: auth.r, s: auth.s };
-  const recovered = await recoverTypedDataAddress({
-    domain,
-    types,
-    primaryType: 'TransferWithAuthorization',
-    message,
-    signature: sig,
-  });
-  return isAddressEqual(recovered, auth.from);
+  try {
+    const net = getCeloNetworkByCaip2(auth.network) || getCeloNetworkByCaip2(CELO_MAINNET_CAIP2);
+    const extra = accepted?.extra && typeof accepted.extra === 'object' ? accepted.extra : {};
+    const extraEip712 = extra.eip712 && typeof extra.eip712 === 'object' ? extra.eip712 : {};
+    // Prefer on-chain Celo USDC domain; fall back to accept.extra only if it matches known Celo values.
+    const domainName = net?.eip712?.name || extraEip712.name || extra.name || 'USDC';
+    const domainVersion = net?.eip712?.version || extraEip712.version || extra.version || '2';
+    const domain = {
+      name: domainName,
+      version: domainVersion,
+      chainId: CELO_MAINNET_CHAIN_ID_SAFE(),
+      verifyingContract: auth.asset,
+    };
+    const types = {
+      TransferWithAuthorization: [
+        { name: 'from', type: 'address' },
+        { name: 'to', type: 'address' },
+        { name: 'value', type: 'uint256' },
+        { name: 'validAfter', type: 'uint256' },
+        { name: 'validBefore', type: 'uint256' },
+        { name: 'nonce', type: 'bytes32' },
+      ],
+    };
+    const message = {
+      from: auth.from,
+      to: auth.to,
+      value: auth.value,
+      validAfter: auth.validAfter,
+      validBefore: auth.validBefore,
+      nonce: auth.nonce,
+    };
+    const sig = { v: auth.v, r: auth.r, s: auth.s };
+    const recovered = await recoverTypedDataAddress({
+      domain,
+      types,
+      primaryType: 'TransferWithAuthorization',
+      message,
+      signature: sig,
+    });
+    return isAddressEqual(recovered, auth.from);
+  } catch (e) {
+    console.warn('[celoX402Settle] local EIP-712 verify failed:', e?.message || e);
+    return false;
+  }
 }
 
 function CELO_MAINNET_CHAIN_ID_SAFE() {
@@ -333,7 +385,7 @@ function CELO_MAINNET_CHAIN_ID_SAFE() {
  */
 async function verifyViaCeloFacilitator(payload, accepted) {
   try {
-    const res = await fetch(`${CELO_FACILITATOR_URL.replace(/\/+$/, '')}/verify`, {
+    const res = await fetchCeloFacilitator(`${CELO_FACILITATOR_URL.replace(/\/+$/, '')}/verify`, {
       method: 'POST',
       headers: celoFacilitatorHeaders(),
       body: JSON.stringify({
@@ -372,7 +424,7 @@ async function settleViaCeloFacilitator(payload, accepted) {
   }
 
   try {
-    const res = await fetch(`${CELO_FACILITATOR_URL.replace(/\/+$/, '')}/settle`, {
+    const res = await fetchCeloFacilitator(`${CELO_FACILITATOR_URL.replace(/\/+$/, '')}/settle`, {
       method: 'POST',
       headers: celoFacilitatorHeaders(),
       body: JSON.stringify({
@@ -419,9 +471,12 @@ async function settleViaCeloFacilitator(payload, accepted) {
  * Settle an Exact EVM x402 payment on Celo with ERC-8021 Schema 2 builder-code in calldata.
  * @param {object} payload - req.x402Payment.payload
  * @param {object} accepted - req.x402Payment.accepted
+ * @param {{ forceFacilitatorOnly?: boolean }} [opts]
+ *   When `forceFacilitatorOnly` is true (Labs Celo), never self-settle — fail if facilitator cannot settle.
  * @returns {Promise<{ success: boolean; payer?: string; transaction?: string; network?: string; settledVia?: 'facilitator' | 'self'; error?: string; errorReason?: string }>}
  */
-export async function settleCeloX402Payment(payload, accepted) {
+export async function settleCeloX402Payment(payload, accepted, opts = {}) {
+  const forceFacilitatorOnly = Boolean(opts.forceFacilitatorOnly);
   const network = String(accepted?.network || payload?.network || '');
   if (network && network !== CELO_MAINNET_CAIP2 && !network.includes('42220')) {
     return {
@@ -440,16 +495,15 @@ export async function settleCeloX402Payment(payload, accepted) {
     };
   }
 
-  const remoteOk = await verifyViaCeloFacilitator(payload, accepted);
-  if (!remoteOk) {
-    const localOk = await verifyAuthorizationLocally(auth, accepted);
-    if (!localOk) {
-      return {
-        success: false,
-        errorReason: 'Celo payment authorization verification failed',
-        error: 'Celo payment authorization verification failed',
-      };
-    }
+  // Verify already ran in requirePayment middleware — skip redundant remote /verify
+  // round-trip on settle. Keep local EIP-712 recovery as the offline guard.
+  const localOk = await verifyAuthorizationLocally(auth, accepted);
+  if (!localOk) {
+    return {
+      success: false,
+      errorReason: 'Celo payment authorization verification failed',
+      error: 'Celo payment authorization verification failed',
+    };
   }
 
   const now = BigInt(Math.floor(Date.now() / 1000));
@@ -480,7 +534,15 @@ export async function settleCeloX402Payment(payload, accepted) {
       facilitated?.error ||
       'Celo facilitator settle failed';
 
-    if (!canUseCeloSelfSettle()) {
+    if (!canUseCeloSelfSettleForRequest({ forceFacilitatorOnly })) {
+      if (forceFacilitatorOnly) {
+        return {
+          success: false,
+          errorReason: `${facilitatorErrorReason}. Labs Celo is facilitator-only (Track 2) — check CELO_FACILITATOR_API_KEY/credits and facilitator relayer CELO gas (0x0d74…FB48). Self-settle is disabled so runs count toward x402_*.`,
+          error: `${facilitatorErrorReason} — facilitator-only (Labs Celo)`,
+          payer: auth.from,
+        };
+      }
       const needsKey = !hasCeloSettlerKey() && (allowCeloSelfSettle() || shouldSelfSettleFallback());
       return {
         success: false,
@@ -497,12 +559,15 @@ export async function settleCeloX402Payment(payload, accepted) {
       '[celoX402Settle] facilitator settle unavailable — falling back to self-settle (will NOT count for x402_settlements / x402_volume_usd):',
       facilitatorErrorReason,
     );
-  } else if (!canUseCeloSelfSettle()) {
+  } else if (!canUseCeloSelfSettleForRequest({ forceFacilitatorOnly })) {
     return {
       success: false,
-      errorReason:
-        'Celo facilitator settle disabled (CELO_SETTLE_VIA_FACILITATOR=false) and self-settle unavailable — set CELO_SETTLER_PRIVATE_KEY (and CELO_ALLOW_SELF_SETTLE or CELO_SELF_SETTLE_FALLBACK).',
-      error: 'Celo self-settle unavailable — missing CELO_SETTLER_PRIVATE_KEY or fallback disabled',
+      errorReason: forceFacilitatorOnly
+        ? 'Labs Celo requires facilitator settle (CELO_SETTLE_VIA_FACILITATOR must be enabled) — self-settle is disabled for Track 2.'
+        : 'Celo facilitator settle disabled (CELO_SETTLE_VIA_FACILITATOR=false) and self-settle unavailable — set CELO_SETTLER_PRIVATE_KEY (and CELO_ALLOW_SELF_SETTLE or CELO_SELF_SETTLE_FALLBACK).',
+      error: forceFacilitatorOnly
+        ? 'Labs Celo facilitator-only — facilitator settle disabled'
+        : 'Celo self-settle unavailable — missing CELO_SETTLER_PRIVATE_KEY or fallback disabled',
       payer: auth.from,
     };
   }

@@ -16,7 +16,8 @@ import { EndpointsGridSkeleton } from "@/components/labs/LabsSkeleton";
 import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import type { LabChain, LabDepositDistributeResult, LabWallet } from "@/lib/labsX402Api";
 
-const MAX_BULK = 20;
+/** Max wallets created in a single bulk request (not a total wallet cap). */
+const MAX_BULK_PER_REQUEST = 100;
 
 interface X402LabTabProps {
   chain: LabChain;
@@ -56,7 +57,6 @@ export function X402LabTab({ chain }: X402LabTabProps) {
   const wallets = walletsQ.data ?? [];
   const payerCount = wallets.filter((w) => w.role === "payer").length;
   const hasPayTo = wallets.some((w) => w.role === "payto");
-  const remainingPayerSlots = Math.max(0, MAX_BULK - payerCount);
   const showEndpointsSkeleton = useMinimumSkeleton(endpointsQ.isLoading);
 
   const isBase = chain === "base";
@@ -100,8 +100,8 @@ export function X402LabTab({ chain }: X402LabTabProps) {
   };
 
   const handleBulkCreate = () => {
-    const count = Math.min(Math.max(Math.round(bulkCount), 1), remainingPayerSlots || MAX_BULK);
-    if (count < 1 || remainingPayerSlots < 1) return;
+    const count = Math.min(Math.max(Math.round(bulkCount), 1), MAX_BULK_PER_REQUEST);
+    if (count < 1) return;
     createWalletsBulkM.mutate({ count, labelPrefix: "Payer" });
   };
 
@@ -151,12 +151,11 @@ export function X402LabTab({ chain }: X402LabTabProps) {
                 </a>{" "}
                 (requires <code className="text-xs">CELO_FACILITATOR_API_KEY</code>) so Dune{" "}
                 <code className="text-xs">x402_*</code> metrics count; register your Celo payTo as{" "}
-                <code className="text-xs">agentWalletAddress</code>. If the facilitator relayer is
-                out of CELO gas, Syra auto-falls back to self-settle (Track 1 tag preserved; Track 2{" "}
-                <code className="text-xs">x402_*</code> not counted — needs{" "}
-                <code className="text-xs">CELO_SETTLER_PRIVATE_KEY</code>). Tagged refunds use your{" "}
-                <code className="text-xs">celo_...</code> tag for revenue volume. PayAI routes are
-                skipped on this tab.{" "}
+                <code className="text-xs">agentWalletAddress</code>. Settlement is facilitator-only
+                (no self-settle) — if the facilitator is down, out of credits, or the relayer lacks
+                CELO gas, the run fails with a clear error instead of a non-counting self-settle.
+                Tagged refunds use your <code className="text-xs">celo_...</code> tag for Track 1
+                revenue volume. PayAI routes are skipped on this tab.{" "}
               </>
             ) : !isBase ? (
               <>
@@ -220,35 +219,37 @@ export function X402LabTab({ chain }: X402LabTabProps) {
             <Input
               type="number"
               min={1}
-              max={Math.max(1, remainingPayerSlots)}
+              max={MAX_BULK_PER_REQUEST}
               value={bulkCount}
-              onChange={(e) => setBulkCount(Number(e.target.value) || 1)}
+              onChange={(e) =>
+                setBulkCount(
+                  Math.min(
+                    Math.max(Number(e.target.value) || 1, 1),
+                    MAX_BULK_PER_REQUEST,
+                  ),
+                )
+              }
               className="h-9 w-20"
               aria-label="Number of wallets to create"
             />
             <Button
               variant="secondary"
               className="gap-2"
-              disabled={
-                createWalletsBulkM.isPending || remainingPayerSlots < 1 || bulkCount < 1
-              }
+              disabled={createWalletsBulkM.isPending || bulkCount < 1}
               onClick={handleBulkCreate}
-              title={
-                remainingPayerSlots < 1
-                  ? `Maximum of ${MAX_BULK} payer wallets reached`
-                  : `Create ${bulkCount} payer wallets`
-              }
+              title={`Create ${Math.min(bulkCount, MAX_BULK_PER_REQUEST)} payer wallets`}
             >
               {createWalletsBulkM.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
               ) : (
                 <Layers className="h-4 w-4" aria-hidden />
               )}
-              Create {Math.min(bulkCount, remainingPayerSlots || bulkCount)} wallets
+              Create {Math.min(bulkCount, MAX_BULK_PER_REQUEST)} wallets
             </Button>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            {remainingPayerSlots} payer slot{remainingPayerSlots === 1 ? "" : "s"} remaining
+            {payerCount} payer{payerCount === 1 ? "" : "s"} · max {MAX_BULK_PER_REQUEST}{" "}
+            per bulk create
           </p>
         </div>
       </div>

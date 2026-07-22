@@ -33,9 +33,11 @@ export function isSolanaRpcAccessDeniedError(e) {
 /** Transient / overload errors — try the next RPC URL. */
 export function isSolanaRpcRetryableError(e) {
   const msg = e?.message || String(e);
+  const name = e?.name || '';
   return (
     isSolanaRpcAccessDeniedError(e) ||
-    /503|502|504|-32001|-32005|Unable to complete request|rate limit|too many requests|timeout|timed out|ECONNRESET|fetch failed|429/i.test(
+    name === 'AbortError' ||
+    /503|502|504|-32001|-32005|Unable to complete request|rate limit|too many requests|timeout|timed out|aborted|ECONNRESET|fetch failed|429/i.test(
       msg,
     )
   );
@@ -89,11 +91,25 @@ function getOrderedCandidates(stickyFirst) {
   return [stickyFirst, ...base.filter((u) => u !== stickyFirst)];
 }
 
-/** @param {string} rpcUrl */
-export function createSolanaConnection(rpcUrl) {
+/**
+ * @param {string} rpcUrl
+ * @param {{ timeoutMs?: number }} [options] — override per-request RPC timeout (ms)
+ */
+export function createSolanaConnection(rpcUrl, options = {}) {
+  const timeoutMs = Number(options?.timeoutMs);
+  const fetchFn =
+    Number.isFinite(timeoutMs) && timeoutMs > 0
+      ? (url, init = {}) => {
+          const controller = new AbortController();
+          const id = setTimeout(() => controller.abort(), timeoutMs);
+          return fetch(url, { ...init, signal: init.signal || controller.signal }).finally(() =>
+            clearTimeout(id),
+          );
+        }
+      : fetchWithTimeout;
   return new Connection(rpcUrl, {
     commitment: 'confirmed',
-    fetch: fetchWithTimeout,
+    fetch: fetchFn,
   });
 }
 
@@ -166,16 +182,17 @@ export async function pickSolanaConnectionForReads(pubkey) {
  * @template T
  * @param {(connection: import('@solana/web3.js').Connection, rpcUrl: string) => Promise<T>} fn
  * @param {string} [context]
+ * @param {{ timeoutMs?: number }} [options] — per-connection RPC timeout override
  * @returns {Promise<T>}
  */
-export async function withSolanaRpcFallback(fn, context = 'rpc read') {
+export async function withSolanaRpcFallback(fn, context = 'rpc read', options = {}) {
   const candidates = getOrderedCandidates(preferredRpcUrl);
   /** @type {Array<{ host: string; message: string }>} */
   const failures = [];
   /** @type {unknown} */
   let lastErr;
   for (const rpcUrl of candidates) {
-    const connection = createSolanaConnection(rpcUrl);
+    const connection = createSolanaConnection(rpcUrl, options);
     try {
       const result = await fn(connection, rpcUrl);
       preferredRpcUrl = rpcUrl;

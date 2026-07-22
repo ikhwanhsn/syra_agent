@@ -37,13 +37,13 @@ const allowSelfRaw = String(process.env.CELO_ALLOW_SELF_SETTLE || 'false')
   .toLowerCase();
 const allowSelfSettle =
   allowSelfRaw === '1' || allowSelfRaw === 'true' || allowSelfRaw === 'yes';
-const selfSettleFallbackRaw = String(process.env.CELO_SELF_SETTLE_FALLBACK || 'true')
+const selfSettleFallbackRaw = String(process.env.CELO_SELF_SETTLE_FALLBACK || 'false')
   .trim()
   .toLowerCase();
 const selfSettleFallback =
-  selfSettleFallbackRaw !== '0' &&
-  selfSettleFallbackRaw !== 'false' &&
-  selfSettleFallbackRaw !== 'no';
+  selfSettleFallbackRaw === '1' ||
+  selfSettleFallbackRaw === 'true' ||
+  selfSettleFallbackRaw === 'yes';
 const selfSettleEnabled = allowSelfSettle || selfSettleFallback;
 
 function hasValidSettlerKey() {
@@ -71,7 +71,7 @@ console.log(
 );
 console.log('CELO_FACILITATOR_WALLET_CODE (w):', walletCode || '(optional, unset)');
 console.log('CELO_SETTLE_VIA_FACILITATOR:', settleViaFacilitator);
-console.log('CELO_SELF_SETTLE_FALLBACK:', selfSettleFallback, '(default true)');
+console.log('CELO_SELF_SETTLE_FALLBACK:', selfSettleFallback, '(default false)');
 console.log('CELO_ALLOW_SELF_SETTLE:', allowSelfSettle);
 console.log('Schema 2 dataSuffix (Track 1 tagged volume):', suffix || '(none)');
 
@@ -106,6 +106,9 @@ if (settleViaFacilitator && !facilitatorApiKey) {
 }
 
 if (selfSettleEnabled) {
+  console.warn(
+    'WARNING: Self-settle fallback is enabled — facilitator failures may self-settle and will NOT count for Track 2 x402_*. Labs Celo still force-disables self-settle.',
+  );
   if (!hasValidSettlerKey()) {
     console.warn(
       'WARNING: CELO_SELF_SETTLE_FALLBACK/CELO_ALLOW_SELF_SETTLE is on but CELO_SETTLER_PRIVATE_KEY is missing or invalid — facilitator failures will not fall back to self-settle.',
@@ -127,7 +130,7 @@ if (selfSettleEnabled) {
   }
 } else {
   console.log(
-    'Self-settle: disabled (facilitator-only — set CELO_SELF_SETTLE_FALLBACK=true to auto-fallback when facilitator is dry)',
+    'Self-settle: disabled (facilitator-only — Labs Celo never self-settles; set CELO_SELF_SETTLE_FALLBACK=true only for non-Labs debugging)',
   );
 }
 

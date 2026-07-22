@@ -26,7 +26,7 @@ import {
   getLabDepositHub,
   distributeLabDeposit,
 } from '../../libs/labs/labDepositDistributor.js';
-import { getMaxPayerWallets } from '../../libs/labs/labX402CallLog.js';
+import { getMaxBulkCreateCount } from '../../libs/labs/labX402CallLog.js';
 import { normalizeLabChain } from '../../models/labs/LabX402Settings.js';
 
 /** @type {Map<string, number>} */
@@ -135,10 +135,10 @@ export function createLabsX402Router() {
       if (!Number.isFinite(count) || count < 1) {
         return res.status(400).json({ success: false, error: 'count must be a positive number' });
       }
-      if (count > getMaxPayerWallets()) {
+      if (count > getMaxBulkCreateCount()) {
         return res.status(400).json({
           success: false,
-          error: `count cannot exceed ${getMaxPayerWallets()}`,
+          error: `count cannot exceed ${getMaxBulkCreateCount()} per request`,
         });
       }
       const wallets = await createLabWalletsBulk({

@@ -298,4 +298,49 @@ export const SYRA_SAID_AGENT_ID = "53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t"
 
 export const SYRA_SAID_PROFILE_URL = `https://www.saidprotocol.com/agents/${SYRA_SAID_AGENT_ID}`;
 
+export const SYRA_SAID_DIRECTORY_URL = "https://www.saidprotocol.com/directory";
+
 export const SYRA_SAID_BADGE_URL = `https://api.saidprotocol.com/api/badge/${SYRA_SAID_AGENT_ID}.svg`;
+
+/** zauth live registry of verified x402 endpoints. */
+export const ZAUTH_DATABASE_URL = "https://zauth.inc/database";
+
+/** x402scan ecosystem explorer — Top Servers board. */
+export const X402SCAN_ALL_URL = "https://www.x402scan.com/all";
+
+export interface SyraTrustRanking {
+  id: "said" | "zauth" | "x402scan";
+  rank: string;
+  label: string;
+  sub: string;
+  href: string;
+  ariaLabel: string;
+}
+
+/** Homepage ecosystem trust rankings — static, verifiable claims. */
+export const SYRA_TRUST_RANKINGS: SyraTrustRanking[] = [
+  {
+    id: "said",
+    rank: "#1",
+    label: "Agent on SAID",
+    sub: "Top Reputation",
+    href: SYRA_SAID_DIRECTORY_URL,
+    ariaLabel: "Syra is #1 agent on SAID Protocol by Top Reputation — view directory",
+  },
+  {
+    id: "zauth",
+    rank: "#2",
+    label: "Verified provider",
+    sub: "zauth.inc",
+    href: ZAUTH_DATABASE_URL,
+    ariaLabel: "Syra is #2 verified provider on zauth — view database",
+  },
+  {
+    id: "x402scan",
+    rank: "Live",
+    label: "x402scan Top Servers",
+    sub: "api.syraa.fun",
+    href: X402SCAN_ALL_URL,
+    ariaLabel: "Syra is listed on x402scan Top Servers — view explorer",
+  },
+];

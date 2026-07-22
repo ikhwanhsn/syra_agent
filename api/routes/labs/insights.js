@@ -48,6 +48,7 @@ import {
 import { payaiEndpointDailyLimitMiddleware, recordPayaiEndpointDailyCall } from '../../libs/labs/labPayaiEndpointDailyLimit.js';
 import { findLabX402Endpoint } from '../../libs/labs/labX402Endpoints.js';
 import { isDexterHealthyForLabChain } from '../../utils/dexterSolanaFeePayerHealth.js';
+import { resolveLabsPayToOverride } from '../../libs/labs/labsPayToOverride.js';
 
 const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 
@@ -55,20 +56,13 @@ const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 let loggedDexterPayaiFallback = false;
 
 async function labsPayToOverride(req) {
-  const { solanaPayTo, evmPayTo, celoPayTo, algorandPayTo } =
-    await getActiveLabPayToAddresses();
+  const addresses = await getActiveLabPayToAddresses();
   const labChain = String(req?.get?.('x-lab-x402-chain') || '').trim().toLowerCase();
-  if (labChain === 'celo') {
-    if (!celoPayTo) return null;
-    return { solanaPayTo: null, evmPayTo: celoPayTo, algorandPayTo: null };
+  const override = resolveLabsPayToOverride(labChain, addresses);
+  if (labChain === 'algorand' && override?.algorandPayTo) {
+    req.x402LabAlgorandPayTo = override.algorandPayTo;
   }
-  if (labChain === 'algorand') {
-    if (!algorandPayTo) return null;
-    req.x402LabAlgorandPayTo = algorandPayTo;
-    return { solanaPayTo: null, evmPayTo: null, algorandPayTo };
-  }
-  if (!solanaPayTo && !evmPayTo && !algorandPayTo) return null;
-  return { solanaPayTo, evmPayTo, algorandPayTo: algorandPayTo || null };
+  return override;
 }
 
 /**
@@ -124,8 +118,12 @@ function resolveInsightPayer(settle, req) {
  */
 async function handleInsightRoute(req, res, endpointPath, catalogSegment, fetchData, opts = {}) {
   try {
-    const data = await fetchData();
-    const settle = await settlePaymentAndSetResponse(res, req);
+    // Parallelize data fetch + settle (both only need verify already done in middleware).
+    // Still gate on settle success before returning paid data (money-safe).
+    const [data, settle] = await Promise.all([
+      fetchData(),
+      settlePaymentAndSetResponse(res, req),
+    ]);
     if (settle?.success === false) {
       return res.status(502).json({
         success: false,

@@ -20,6 +20,33 @@ function buildHealthPayload() {
 }
 
 /**
+ * Settle then return health payload. Payload is sync/cheap; settle uses the
+ * shared facilitator fail-fast timeouts from x402PaymentV2.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {'GET' | 'POST'} method
+ */
+async function handleHealthRoute(req, res, method) {
+  try {
+    const settle = await settleSapEscrowOrFacilitator(
+      res,
+      req,
+      JSON.stringify({ resource: "/health", method })
+    );
+    if (settle?.success === false) {
+      return res.status(502).json({
+        success: false,
+        error: settle.errorReason || settle.error || "Payment settlement failed",
+      });
+    }
+    return res.status(200).json(buildHealthPayload());
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return res.status(502).json({ success: false, error: msg });
+  }
+}
+
+/**
  * x402 v2: GET/POST /health — paid liveness probe (replaces legacy /check-status; redirect 308 to /health).
  */
 export async function createHealthRouter() {
@@ -46,35 +73,8 @@ export async function createHealthRouter() {
   const payGet = requirePaymentSapEscrowOrExact(requirePayment, { ...paymentOptions, method: "GET" });
   const payPost = requirePaymentSapEscrowOrExact(requirePayment, { ...paymentOptions, method: "POST" });
 
-  router.get("/", payGet, async (req, res) => {
-    const settle = await settleSapEscrowOrFacilitator(
-      res,
-      req,
-      JSON.stringify({ resource: "/health", method: "GET" })
-    );
-    if (settle?.success === false) {
-      return res.status(502).json({
-        success: false,
-        error: settle.errorReason || settle.error || "Payment settlement failed",
-      });
-    }
-    res.status(200).json(buildHealthPayload());
-  });
-
-  router.post("/", payPost, async (req, res) => {
-    const settle = await settleSapEscrowOrFacilitator(
-      res,
-      req,
-      JSON.stringify({ resource: "/health", method: "POST" })
-    );
-    if (settle?.success === false) {
-      return res.status(502).json({
-        success: false,
-        error: settle.errorReason || settle.error || "Payment settlement failed",
-      });
-    }
-    res.status(200).json(buildHealthPayload());
-  });
+  router.get("/", payGet, async (req, res) => handleHealthRoute(req, res, "GET"));
+  router.post("/", payPost, async (req, res) => handleHealthRoute(req, res, "POST"));
 
   return router;
 }

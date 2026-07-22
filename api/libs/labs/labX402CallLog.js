@@ -11,7 +11,11 @@ import LabX402Settings, {
 
 const MAX_CALL_LOG_DOCS = Number(process.env.LAB_X402_MAX_CALL_LOG_DOCS) || 5_000;
 const DEFAULT_MAX_DAILY_CALLS = Number(process.env.LAB_X402_MAX_DAILY_CALLS) || 2_000;
-const MAX_PAYER_WALLETS = Number(process.env.LAB_X402_MAX_PAYER_WALLETS) || 20;
+/** Max wallets created in a single bulk request (not a total wallet cap). */
+const MAX_BULK_CREATE =
+  Number(process.env.LAB_X402_MAX_BULK_CREATE) ||
+  Number(process.env.LAB_X402_MAX_PAYER_WALLETS) ||
+  100;
 const CALL_CAP_BOUNDS = { min: 100, max: 10_000 };
 
 /** @type {Map<string, number>} */
@@ -166,8 +170,8 @@ export async function isActiveLabPayer(address, chain) {
   return isLab;
 }
 
-export function getMaxPayerWallets() {
-  return MAX_PAYER_WALLETS;
+export function getMaxBulkCreateCount() {
+  return MAX_BULK_CREATE;
 }
 
 /**

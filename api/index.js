@@ -1617,10 +1617,32 @@ onMongooseConnected(() => {
   ]);
 });
 
-// Eager-init x402 V2 PayAI bundle (default facilitator) so first paid request doesn't wait for /supported
-import("./utils/x402ResourceServer.js").then(({ ensureX402ResourceServerInitialized }) => {
-  ensureX402ResourceServerInitialized().catch(() => {});
-});
+// Eager-init x402 facilitator profiles so first paid request doesn't wait for /supported
+import("./utils/x402ResourceServer.js")
+  .then(
+    ({
+      ensureX402ResourceServerInitialized,
+      ensureX402DexterResourceServerInitialized,
+      ensureX402CeloResourceServerInitialized,
+    }) => {
+      ensureX402ResourceServerInitialized().catch(() => {});
+      ensureX402DexterResourceServerInitialized().catch(() => {});
+      ensureX402CeloResourceServerInitialized().catch(() => {});
+    },
+  )
+  .catch(() => {});
+
+// Pre-warm Dexter health (Solana fee payer + Base /supported) off the hot path
+import("./utils/dexterSolanaFeePayerHealth.js")
+  .then(({ startDexterHealthBackgroundRefresh }) => {
+    startDexterHealthBackgroundRefresh();
+  })
+  .catch((e) =>
+    console.warn(
+      "[dexter-health] background refresh start failed:",
+      e instanceof Error ? e.message : e,
+    ),
+  );
 
 app.listen(PORT, () => {
   startupInfo(`[syra-api] listening on port ${PORT}`);

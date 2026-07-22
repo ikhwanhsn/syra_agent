@@ -229,13 +229,13 @@ async function logB402StartupOnce() {
   );
 }
 
-/** Cap slow facilitator HTTP calls so paid routes return in seconds, not ~90s. 0 = no timeout. */
+/** Cap slow facilitator HTTP calls so paid routes fail fast. 0 = no timeout. */
 const X402_VERIFY_FACILITATOR_TIMEOUT_MS = Number.parseInt(
-  process.env.X402_VERIFY_FACILITATOR_TIMEOUT_MS || "12000",
+  process.env.X402_VERIFY_FACILITATOR_TIMEOUT_MS || "4000",
   10
 );
 const X402_SETTLE_FACILITATOR_TIMEOUT_MS = Number.parseInt(
-  process.env.X402_SETTLE_FACILITATOR_TIMEOUT_MS || "8000",
+  process.env.X402_SETTLE_FACILITATOR_TIMEOUT_MS || "4000",
   10
 );
 
@@ -1323,6 +1323,33 @@ async function buildPaymentRequired(bundle, req, options, error) {
     );
     requirements = [];
   }
+
+  // Labs Base tab: ExactEvmScheme only — drop SVM/other chains so a Solana PayTo
+  // (or env SOLANA_PAYTO) cannot poison the 402 offer via solanaOnlyOverride / mixed accepts.
+  if (labChain === "base") {
+    const evmReqs = (requirements || []).filter((r) =>
+      String(r?.network || "").startsWith("eip155:"),
+    );
+    const baseMainnet = evmReqs.filter((r) => r.network === "eip155:8453");
+    requirements = baseMainnet.length > 0 ? baseMainnet : evmReqs;
+    requirements = ensureEvmEip712Domain(requirements);
+    if (requirements.length === 0) {
+      return resourceServer.createPaymentRequiredResponse(
+        [],
+        resourceInfo,
+        error ||
+          "Base x402 not configured — create a Labs Base PayTo wallet or set BASE_PAYTO",
+        extensions,
+      );
+    }
+    return resourceServer.createPaymentRequiredResponse(
+      requirements,
+      resourceInfo,
+      error,
+      extensions,
+    );
+  }
+
   const solanaOnlyOverride = Boolean(payToOverride?.solanaPayTo && !payToOverride?.evmPayTo);
   if (!solanaOnlyOverride) {
     requirements = await ensureB402AcceptInRequirements(requirements, microUnits, maxTimeout);
@@ -1514,10 +1541,15 @@ export function requirePayment(options) {
       const labChain = String(req?.get?.("x-lab-x402-chain") || "")
         .trim()
         .toLowerCase();
-      const acceptedOptions =
+      let acceptedOptions =
         labChain === "algorand"
           ? appendAlgorandAcceptedOption([], expectedMicroUnits, payToOverride?.algorandPayTo)
           : buildAcceptedOptionsForBundle(bundle, expectedMicroUnits, payToOverride);
+      if (labChain === "base") {
+        const evmOpts = acceptedOptions.filter((opt) => opt?.isEvm);
+        const baseMainnet = evmOpts.filter((opt) => opt.network === "eip155:8453");
+        acceptedOptions = baseMainnet.length > 0 ? baseMainnet : evmOpts;
+      }
       let matchingOption = acceptedOptions.find((opt) =>
         paymentAcceptedMatchesOption(acc, opt, expectedMicroUnits)
       );
@@ -1756,7 +1788,12 @@ async function tryFacilitatorThenLocalSettle(payload, accepted, req) {
     isCeloX402Network(accepted?.network) ||
     String(req?.get?.("x-lab-x402-chain") || "").toLowerCase() === "celo";
   if (useCelo) {
-    const settle = await settleCeloX402Payment(payload, accepted);
+    const labsCelo =
+      String(req?.get?.("x-lab-x402-chain") || "").toLowerCase() === "celo" ||
+      req?.x402Payment?.resourceServerProfile === "celo";
+    const settle = await settleCeloX402Payment(payload, accepted, {
+      forceFacilitatorOnly: labsCelo,
+    });
     if (settle?.settledVia) {
       console.info(
         `[x402PaymentV2] Celo settle via ${settle.settledVia}`,

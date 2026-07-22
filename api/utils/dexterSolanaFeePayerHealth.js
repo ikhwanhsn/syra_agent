@@ -23,7 +23,18 @@ export const DEXTER_BASE_CAIP2 = 'eip155:8453';
 const DEFAULT_MIN_SOL = 0.05;
 const CACHE_TTL_MS = 60_000;
 const FAIL_OPEN_CACHE_TTL_MS = 15_000;
-const SUPPORTED_TIMEOUT_MS = 8_000;
+/** Fail fast so cold probes never drag the hot path; background refresh keeps cache warm. */
+const SUPPORTED_TIMEOUT_MS = Number.parseInt(
+  process.env.DEXTER_SUPPORTED_TIMEOUT_MS || '3000',
+  10,
+) || 3000;
+/** Refresh slightly before TTL so hot-path reads almost always hit a fresh cache. */
+const BACKGROUND_REFRESH_MS = Math.max(10_000, CACHE_TTL_MS - 10_000);
+
+/** @type {ReturnType<typeof setInterval> | null} */
+let backgroundRefreshTimer = null;
+/** @type {Promise<void> | null} */
+let backgroundRefreshInFlight = null;
 
 /**
  * @typedef {{
@@ -275,6 +286,51 @@ export async function getDexterHealthForLabChain(chain, forceRefresh = false) {
 export async function isDexterHealthyForLabChain(chain, forceRefresh = false) {
   const status = await getDexterHealthForLabChain(chain, forceRefresh);
   return status.healthy;
+}
+
+/**
+ * Force-refresh Solana fee-payer + Base /supported caches in parallel.
+ * Safe to call on boot and from the background interval.
+ * @returns {Promise<void>}
+ */
+export async function warmDexterHealthCaches() {
+  if (backgroundRefreshInFlight) return backgroundRefreshInFlight;
+  backgroundRefreshInFlight = Promise.all([
+    getDexterSolanaFeePayerHealth(true).catch((e) => {
+      console.warn('[dexter-health] Solana warm failed:', e?.message || e);
+    }),
+    getDexterSupportedHealth(true).catch((e) => {
+      console.warn('[dexter-health] Base /supported warm failed:', e?.message || e);
+    }),
+  ]).then(() => undefined).finally(() => {
+    backgroundRefreshInFlight = null;
+  });
+  return backgroundRefreshInFlight;
+}
+
+/**
+ * Warm Dexter health on boot and refresh in the background so Labs `/insights/*`
+ * never pays an inline cold probe (up to SUPPORTED_TIMEOUT_MS) on the request path.
+ * Idempotent — safe to call once from server startup.
+ * @returns {void}
+ */
+export function startDexterHealthBackgroundRefresh() {
+  if (backgroundRefreshTimer) return;
+  warmDexterHealthCaches().catch(() => {});
+  backgroundRefreshTimer = setInterval(() => {
+    warmDexterHealthCaches().catch(() => {});
+  }, BACKGROUND_REFRESH_MS);
+  if (typeof backgroundRefreshTimer.unref === 'function') {
+    backgroundRefreshTimer.unref();
+  }
+}
+
+/** Stop background refresh (tests / graceful shutdown). */
+export function stopDexterHealthBackgroundRefresh() {
+  if (backgroundRefreshTimer) {
+    clearInterval(backgroundRefreshTimer);
+    backgroundRefreshTimer = null;
+  }
 }
 
 /** Test helper — reset sticky caches between unit tests. */

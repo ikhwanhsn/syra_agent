@@ -18,6 +18,7 @@ import { SYRA_LIVE_SUBLINE, SYRA_TAGLINE } from "@/lib/syraBranding";
 import { SYRA_TOKEN_PAGE_PATH } from "@/content/syraFocus";
 import { SyraBuyButton } from "@/components/syra/SyraBuyButton";
 import { GrowthTokenSection } from "@/components/growth/GrowthTokenSection";
+import { GrowthTrustRankings } from "@/components/growth/GrowthTrustRankings";
 import { GrowthFooter } from "@/components/growth/GrowthFooter";
 import { cn } from "@/lib/utils";
 import {
@@ -457,10 +458,14 @@ export default function GrowthHomePage() {
             </Link>
           </motion.p>
 
+          <motion.div {...fadeUp(0.14)} className="mt-10">
+            <GrowthTrustRankings />
+          </motion.div>
+
           {/* Hero proof strip — not a card grid */}
           <motion.div
             {...fadeUp(0.16)}
-            className="mx-auto mt-12 max-w-2xl"
+            className="mx-auto mt-8 max-w-2xl"
             aria-live="polite"
           >
             <div
