@@ -54,6 +54,20 @@ import {
   resolvePayerAnonymousId,
   refreshTelegramUser,
 } from './referralService.js';
+import { recordTelegramBotEvent } from '../../utils/recordTelegramBotEvent.js';
+import { getTelegramFreeToolDailyLimit } from '../../config/syraTelegramBotConfig.js';
+import { getTelegramFreeToolRemaining } from './telegramFreeToolQuota.js';
+import {
+  setDigestPreference,
+  muteDigests,
+  enableDigestIfUnset,
+  markDigestEngagement,
+  resolveDigestQuestion,
+} from './digestService.js';
+import {
+  tryRunExclusiveForChat,
+  tryAcquireBrainSlot,
+} from './chatQueue.js';
 
 const PENDING_ACTION_TTL_MS = 10 * 60 * 1000;
 const TYPING_REFRESH_MS = 4200;
@@ -139,18 +153,31 @@ async function reply(chatId, text, opts = {}) {
  */
 async function withTyping(chatId, work) {
   let active = true;
+  /** @type {ReturnType<typeof setTimeout> | null} */
+  let sleepTimer = null;
+
   const pump = (async () => {
     while (active) {
-      await sendTelegramChatAction({ token: getSyraTelegramBotToken(), chatId: String(chatId), action: 'typing' });
+      await sendTelegramChatAction({
+        token: getSyraTelegramBotToken(),
+        chatId: String(chatId),
+        action: 'typing',
+      });
       if (!active) break;
-      await new Promise((r) => setTimeout(r, TYPING_REFRESH_MS));
+      await new Promise((resolve) => {
+        sleepTimer = setTimeout(resolve, TYPING_REFRESH_MS);
+      });
+      sleepTimer = null;
     }
   })();
+
   try {
     await work();
   } finally {
     active = false;
-    await pump.catch(() => {});
+    if (sleepTimer) clearTimeout(sleepTimer);
+    // Do not await remaining sleep — resolve pump without blocking the reply path.
+    void pump.catch(() => {});
   }
 }
 
@@ -182,34 +209,34 @@ function extractTelegramUser(message) {
 
 /**
  * @param {string | null | undefined} [firstName]
- * @param {{ isNewWallet?: boolean }} [opts]
+ * @param {{ isNewWallet?: boolean; referralLinkedCode?: string | null; freeRemaining?: number; freeLimit?: number }} [opts]
  */
-function buildHomeText(firstName, { isNewWallet = false, referralLinkedCode = null } = {}) {
+function buildHomeText(firstName, { isNewWallet = false, referralLinkedCode = null, freeRemaining = 3, freeLimit = 3 } = {}) {
   const greeting = firstName ? `Hey ${escapeTelegramHtml(firstName)}` : 'Hey there';
   const lines = [
-    `<b>⚡ ${greeting} — Syra Agent</b>`,
+    `<b>⚡ ${greeting} — Syra</b>`,
     '',
-    '<b>Pay-per-call crypto APIs for agents on Solana.</b>',
+    'Walleted crypto intel on Telegram. Ask anything — live news, signals, and on-chain data.',
     '',
-    'Settle USDC via x402, call news and signals, plus an AI copilot for crypto intel.',
+    '<b>Try one now</b> (free live-data credits today):',
+    '• <code>BTC news</code>',
+    '• <code>SOL signal</code>',
+    '• <code>ETH sentiment</code>',
     '',
-    '<b>Talk to me about</b>',
-    '• DeFi, trading, and tokenomics',
-    '• Live prices, news, and on-chain intel',
-    '• Anything crypto — casual or deep dive',
+    `<i>${freeRemaining}/${freeLimit} free live-data calls left today · then pay with USDC via /wallet</i>`,
     '',
     'Type a question anytime, or pick a starter below.',
     '',
     formatSyraSocialLinksTelegramHtml(),
     '',
     isNewWallet
-      ? '<i>✓ Your agent wallet is ready — /wallet to view & deposit.</i>'
-      : '<i>Wallet & balance: /wallet</i>',
+      ? '<i>✓ Agent wallet ready — /wallet to deposit when you want more.</i>'
+      : '<i>Wallet &amp; balance: /wallet · Daily briefing: /digest</i>',
   ];
   if (referralLinkedCode) {
     lines.push(
       '',
-      `<i>🔗 Linked to referral <code>${escapeTelegramHtml(String(referralLinkedCode))}</code> — paid tools bill their wallet.</i>`,
+      `<i>🔗 Linked to referral <code>${escapeTelegramHtml(String(referralLinkedCode))}</code> — paid tools bill their wallet (daily sponsor cap applies).</i>`,
     );
   }
   return lines.join('\n');
@@ -219,10 +246,12 @@ function buildHomeText(firstName, { isNewWallet = false, referralLinkedCode = nu
  * @param {string | number} chatId
  * @param {string | null | undefined} [firstName]
  * @param {number} [editMessageId]
- * @param {{ isNewWallet?: boolean; referralLinkedCode?: string | null }} [opts]
+ * @param {{ isNewWallet?: boolean; referralLinkedCode?: string | null; freeRemaining?: number; freeLimit?: number }} [opts]
  */
 async function showHomeMenu(chatId, firstName, editMessageId, opts = {}) {
-  const text = buildHomeText(firstName, opts);
+  const freeLimit = opts.freeLimit ?? getTelegramFreeToolDailyLimit();
+  const freeRemaining = opts.freeRemaining ?? freeLimit;
+  const text = buildHomeText(firstName, { ...opts, freeRemaining, freeLimit });
   const replyMarkup = mainMenuKeyboard();
 
   if (editMessageId) {
@@ -282,11 +311,14 @@ function buildHelpText() {
     '/start — Welcome + create wallet',
     '/wallet — View balance & manage wallet',
     '/portfolio — View all token holdings',
-    '/referral — Referral link & stats',
+    '/referral — Referral link & sponsor stats',
+    '/digest on|off — Syra Daily briefing',
+    '/mute — Pause digests',
     '/help — This message',
     '',
     '<b>Chat</b>',
-    'General crypto questions work anytime — no wallet or tools required.',
+    'General crypto questions work anytime.',
+    `You get <b>${getTelegramFreeToolDailyLimit()}</b> free live-data tool calls per day (UTC), then pay with USDC.`,
     'Examples:',
     escapeTelegramHtml(formatTelegramNoToolExampleBullets(3)),
     '',
@@ -294,21 +326,21 @@ function buildHelpText() {
     'Deposit SOL/USDC → use Withdraw to send funds out.',
     '',
     '<b>Referral</b>',
-    '/referral — Create a custom link. Referred users bill paid tools from your wallet.',
+    'Create a link — friends bill paid tools from your wallet (daily spend cap).',
   ].join('\n');
 }
 
 /**
  * @param {object} tgUser
- * @returns {Promise<string>}
+ * @returns {Promise<{ text: string; dash: Awaited<ReturnType<typeof getReferralDashboard>> }>}
  */
-async function buildReferralText(tgUser) {
+async function buildReferralPayload(tgUser) {
   const dash = await getReferralDashboard(tgUser);
   const lines = [
     '<b>🔗 Referral</b>',
     '',
-    'Share your link — friends who join via it use <b>your wallet</b> for paid Syra tools (signals, news, etc.).',
-    'Keep USDC + a little SOL in your wallet for their tool calls.',
+    'Share your link — friends who join via it use <b>your wallet</b> for paid Syra tools.',
+    'Keep USDC + a little SOL funded. A daily sponsor cap protects your balance.',
     '',
   ];
 
@@ -318,6 +350,14 @@ async function buildReferralText(tgUser) {
       lines.push(`<b>Link:</b> ${escapeTelegramHtml(dash.shareUrl)}`);
     }
     lines.push(`<b>Referrals joined:</b> ${dash.referralCount}`);
+    if (dash.spendCapUsd > 0) {
+      lines.push(
+        `<b>Sponsored today:</b> $${dash.spendTodayUsd.toFixed(2)} / $${dash.spendCapUsd.toFixed(2)} (${dash.sponsorCallCount} calls)`,
+      );
+      lines.push(`<b>Remaining today:</b> $${dash.spendRemainingUsd.toFixed(2)}`);
+    } else {
+      lines.push(`<b>Sponsored today:</b> $${dash.spendTodayUsd.toFixed(2)} (${dash.sponsorCallCount} calls · uncapped)`);
+    }
   } else {
     lines.push('<i>No referral name yet.</i> Tap <b>Create name</b> or send:');
     lines.push('<code>/referral create yourname</code>');
@@ -334,7 +374,7 @@ async function buildReferralText(tgUser) {
     '<code>/referral remove</code> — remove your name',
   );
 
-  return lines.join('\n');
+  return { text: lines.join('\n'), dash };
 }
 
 /**
@@ -343,8 +383,7 @@ async function buildReferralText(tgUser) {
  * @param {number} [editMessageId]
  */
 async function showReferral(tgUser, chatId, editMessageId) {
-  const text = await buildReferralText(tgUser);
-  const dash = await getReferralDashboard(tgUser);
+  const { text, dash } = await buildReferralPayload(tgUser);
   const replyMarkup = referralKeyboard({
     hasCode: Boolean(dash.referralCode),
     shareUrl: dash.shareUrl,
@@ -421,12 +460,17 @@ async function handleReferralCommand(tgUser, chatId, text) {
         `Name: <code>${escapeTelegramHtml(result.code)}</code>`,
         `Link: ${escapeTelegramHtml(result.shareUrl)}`,
         '',
-        'Share it — referred users bill paid tools from your wallet.',
+        'Share it — referred users bill paid tools from your wallet (daily sponsor cap applies).',
       ].join('\n'),
       {
         replyMarkup: referralKeyboard({ hasCode: true, shareUrl: result.shareUrl }),
       },
     );
+    void recordTelegramBotEvent('tg_referral_share', {
+      telegramUserId: tgUser.telegramUserId,
+      anonymousId: tgUser.anonymousId,
+      props: { referralCode: result.code, source: 'command' },
+    });
     void refreshed;
     return;
   }
@@ -631,73 +675,142 @@ async function showPortfolio(tgUser, chatId, editMessageId) {
  * @param {string} question
  */
 async function handleBrainQuestion(tgUser, chatId, question) {
-  await withTyping(chatId, async () => {
-    const payerAnonymousId = resolvePayerAnonymousId(tgUser);
-    const {
-      text,
-      chartAttachment,
-      showFollowUps,
-      followUpQuestions,
-      showMainMenu,
-      followUpExpiresAt,
-    } = await askSyraBrain({
-      anonymousId: tgUser.anonymousId,
-      payerAnonymousId,
-      question,
+  if (!tryAcquireBrainSlot(chatId)) {
+    await reply(chatId, 'Easy — give me a couple of seconds, then ask again.', {
+      replyMarkup: mainMenuKeyboard(),
     });
+    return;
+  }
 
-    await incrementMessageCount(tgUser.telegramUserId);
-
-    const followUps =
-      showFollowUps && Array.isArray(followUpQuestions) ? followUpQuestions.slice(0, 3) : [];
-    if (followUps.length > 0 && followUpExpiresAt) {
-      await setSuggestedQuestions(tgUser.telegramUserId, followUps, followUpExpiresAt);
-    }
-
-    const replyMarkup =
-      followUps.length > 0 || showMainMenu
-        ? followUpQuestionsKeyboard(followUps, { showHome: showMainMenu })
-        : undefined;
-
-    const token = getSyraTelegramBotToken();
-
-    if (chartAttachment?.png && token) {
-      await sendTelegramChatAction({ token, chatId: String(chatId), action: 'upload_photo' });
-      const chartKeyboard = chartAttachment.detailUrl
-        ? {
-            inline_keyboard: [[{ text: 'Open full chart ↗', url: chartAttachment.detailUrl }]],
-          }
-        : undefined;
-      const combinedKeyboard = mergeInlineKeyboards(chartKeyboard, replyMarkup);
-      const caption = buildChartPhotoCaption(chartAttachment.caption, text);
-
-      let photoResult = await sendTelegramPhoto({
-        token,
-        chatId: String(chatId),
-        photo: chartAttachment.png,
-        caption,
-        parseMode: 'HTML',
-        replyMarkup: combinedKeyboard,
+  const outcome = await tryRunExclusiveForChat(chatId, async () => {
+    await withTyping(chatId, async () => {
+      const wasFirstMessage = !(Number(tgUser.messagesCount) > 0);
+      const payerAnonymousId = resolvePayerAnonymousId(tgUser);
+      const {
+        text,
+        chartAttachment,
+        showFollowUps,
+        followUpQuestions,
+        showMainMenu,
+        followUpExpiresAt,
+      } = await askSyraBrain({
+        anonymousId: tgUser.anonymousId,
+        payerAnonymousId,
+        question,
+        telegramUserId: tgUser.telegramUserId,
       });
-      if (!photoResult.ok && isTelegramParseEntityError(photoResult.error)) {
-        photoResult = await sendTelegramPhoto({
+
+      await incrementMessageCount(tgUser.telegramUserId);
+      await enableDigestIfUnset(tgUser.telegramUserId);
+      await markDigestEngagement(tgUser.telegramUserId);
+
+      if (wasFirstMessage) {
+        void recordTelegramBotEvent('tg_first_message', {
+          telegramUserId: tgUser.telegramUserId,
+          anonymousId: tgUser.anonymousId,
+        });
+      }
+
+      const followUps =
+        showFollowUps && Array.isArray(followUpQuestions) ? followUpQuestions.slice(0, 3) : [];
+      if (followUps.length > 0 && followUpExpiresAt) {
+        await setSuggestedQuestions(tgUser.telegramUserId, followUps, followUpExpiresAt);
+      }
+
+      const replyMarkup =
+        followUps.length > 0 || showMainMenu
+          ? followUpQuestionsKeyboard(followUps, { showHome: showMainMenu })
+          : undefined;
+
+      const token = getSyraTelegramBotToken();
+
+      if (chartAttachment?.png && token) {
+        await sendTelegramChatAction({ token, chatId: String(chatId), action: 'upload_photo' });
+        const chartKeyboard = chartAttachment.detailUrl
+          ? {
+              inline_keyboard: [[{ text: 'Open full chart ↗', url: chartAttachment.detailUrl }]],
+            }
+          : undefined;
+        const combinedKeyboard = mergeInlineKeyboards(chartKeyboard, replyMarkup);
+        const caption = buildChartPhotoCaption(chartAttachment.caption, text);
+
+        let photoResult = await sendTelegramPhoto({
           token,
           chatId: String(chatId),
           photo: chartAttachment.png,
-          caption: buildChartPhotoCaption(chartAttachment.caption, text).replace(/<[^>]+>/g, ''),
-          parseMode: null,
+          caption,
+          parseMode: 'HTML',
           replyMarkup: combinedKeyboard,
         });
+        if (!photoResult.ok && isTelegramParseEntityError(photoResult.error)) {
+          photoResult = await sendTelegramPhoto({
+            token,
+            chatId: String(chatId),
+            photo: chartAttachment.png,
+            caption: buildChartPhotoCaption(chartAttachment.caption, text).replace(/<[^>]+>/g, ''),
+            parseMode: null,
+            replyMarkup: combinedKeyboard,
+          });
+        }
+        if (photoResult.ok) return;
       }
-      if (photoResult.ok) return;
-    }
 
-    let body = markdownToTelegramHtml(text);
-    const result = await reply(chatId, body, { replyMarkup });
-    if (!result.ok && isTelegramParseEntityError(result.error)) {
-      await reply(chatId, text, { parseMode: null, replyMarkup });
-    }
+      let body = markdownToTelegramHtml(text);
+      const result = await reply(chatId, body, { replyMarkup });
+      if (!result.ok && isTelegramParseEntityError(result.error)) {
+        await reply(chatId, text, { parseMode: null, replyMarkup });
+      }
+    });
   });
+
+  if (!outcome.started) {
+    await reply(chatId, 'Still working on your previous question — hang tight a moment.', {
+      replyMarkup: mainMenuKeyboard(),
+    });
+  }
+}
+
+/**
+ * @param {object} tgUser
+ * @param {string | number} chatId
+ * @param {string} text
+ */
+async function handleDigestCommand(tgUser, chatId, text) {
+  const parts = String(text || '').trim().split(/\s+/);
+  const sub = (parts[1] || '').toLowerCase();
+
+  if (sub === 'off' || sub === 'stop' || sub === 'disable') {
+    await setDigestPreference(tgUser.telegramUserId, false);
+    await reply(chatId, 'Syra Daily is <b>off</b>. Send <code>/digest on</code> anytime to resume.', {
+      replyMarkup: mainMenuKeyboard(),
+    });
+    return;
+  }
+
+  if (sub === 'on' || sub === 'start' || sub === 'enable') {
+    await setDigestPreference(tgUser.telegramUserId, true);
+    await reply(
+      chatId,
+      'Syra Daily is <b>on</b> — one morning briefing (Asia/Jakarta). Use <code>/mute</code> to pause.',
+      { replyMarkup: mainMenuKeyboard() },
+    );
+    return;
+  }
+
+  const enabled = tgUser.digestEnabled !== false && !tgUser.digestMutedAt;
+  await reply(
+    chatId,
+    [
+      '<b>☀️ Syra Daily</b>',
+      '',
+      `Status: <b>${enabled ? 'on' : 'off'}</b>`,
+      '',
+      '<code>/digest on</code> — enable morning briefing',
+      '<code>/digest off</code> — pause',
+      '<code>/mute</code> — same as off',
+    ].join('\n'),
+    { replyMarkup: mainMenuKeyboard() },
+  );
 }
 
 /**
@@ -734,10 +847,15 @@ async function handlePendingAction(tgUser, text, chatId) {
         `Name: <code>${escapeTelegramHtml(result.code)}</code>`,
         `Link: ${escapeTelegramHtml(result.shareUrl)}`,
         '',
-        'Share it — referred users bill paid tools from your wallet.',
+        'Share it — referred users bill paid tools from your wallet (daily sponsor cap applies).',
       ].join('\n'),
       { replyMarkup: referralKeyboard({ hasCode: true, shareUrl: result.shareUrl }) },
     );
+    void recordTelegramBotEvent('tg_referral_share', {
+      telegramUserId: tgUser.telegramUserId,
+      anonymousId: tgUser.anonymousId,
+      props: { referralCode: result.code, source: 'create' },
+    });
     return true;
   }
 
@@ -842,12 +960,34 @@ async function handleCallbackQuery(callbackQuery) {
       });
       return;
     }
+    await markDigestEngagement(tgUser.telegramUserId);
+    await handleBrainQuestion(tgUser, chatId, question);
+    return;
+  }
+
+  if (data.startsWith('digest:q:')) {
+    const key = data.slice('digest:q:'.length);
+    const question = resolveDigestQuestion(key);
+    void recordTelegramBotEvent('tg_digest_open', {
+      telegramUserId: tgUser.telegramUserId,
+      anonymousId: tgUser.anonymousId,
+      props: { key },
+    });
+    await markDigestEngagement(tgUser.telegramUserId);
+    if (!question) {
+      await reply(chatId, 'Ask me anything about crypto.', { replyMarkup: mainMenuKeyboard() });
+      return;
+    }
     await handleBrainQuestion(tgUser, chatId, question);
     return;
   }
 
   if (data === 'menu:main') {
-    await showHomeMenu(chatId, from.first_name, messageId);
+    const freeInfo = await getTelegramFreeToolRemaining(tgUser.anonymousId);
+    await showHomeMenu(chatId, from.first_name, messageId, {
+      freeRemaining: freeInfo.remaining,
+      freeLimit: freeInfo.limit,
+    });
     return;
   }
 
@@ -867,6 +1007,11 @@ async function handleCallbackQuery(callbackQuery) {
       await reply(chatId, 'Wallet not found. Send /start first.');
       return;
     }
+    void recordTelegramBotEvent('tg_deposit_prompt', {
+      telegramUserId: tgUser.telegramUserId,
+      anonymousId: tgUser.anonymousId,
+      props: { source: 'wallet_button' },
+    });
     const text = buildDepositText(summary.agentAddress);
     if (messageId) {
       await editTelegramMessageText({
@@ -1113,11 +1258,30 @@ export async function handleSyraTelegramUpdate(update) {
           const link = await linkReferredUser(userInput.telegramUserId, startPayload);
           if (link.linked && link.referrerCode) {
             referralLinkedCode = link.referrerCode;
+            void recordTelegramBotEvent('tg_referral_linked', {
+              telegramUserId: userInput.telegramUserId,
+              anonymousId: walletResult.telegramUser?.anonymousId,
+              props: { referralCode: link.referrerCode },
+            });
           }
         }
+        const freeLimit = getTelegramFreeToolDailyLimit();
+        const freeInfo = walletResult.telegramUser?.anonymousId
+          ? await getTelegramFreeToolRemaining(walletResult.telegramUser.anonymousId)
+          : { remaining: freeLimit, limit: freeLimit };
+        void recordTelegramBotEvent('tg_start', {
+          telegramUserId: userInput.telegramUserId,
+          anonymousId: walletResult.telegramUser?.anonymousId,
+          props: {
+            isNewWallet: walletResult.isNewWallet,
+            hasReferral: Boolean(referralLinkedCode),
+          },
+        });
         await showHomeMenu(chatId, userInput.firstName, undefined, {
           isNewWallet: walletResult.isNewWallet,
           referralLinkedCode,
+          freeRemaining: freeInfo.remaining,
+          freeLimit: freeInfo.limit,
         });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -1154,6 +1318,19 @@ export async function handleSyraTelegramUpdate(update) {
     const command = lower.split(/\s/)[0].split('@')[0];
     if (command === '/referral' || command === '/ref') {
       await handleReferralCommand(tgUser, chatId, text);
+      return;
+    }
+
+    if (command === '/digest') {
+      await handleDigestCommand(tgUser, chatId, text);
+      return;
+    }
+
+    if (command === '/mute') {
+      await muteDigests(tgUser.telegramUserId);
+      await reply(chatId, 'Digests muted. Send <code>/digest on</code> to resume.', {
+        replyMarkup: mainMenuKeyboard(),
+      });
       return;
     }
 

@@ -18,6 +18,7 @@ import {
   fetchBinanceCorrelation,
 } from "../libs/analyticsFetchers.js";
 import { buildActivationFunnel } from "../libs/activationFunnelService.js";
+import { buildSettlementHealthSnapshot } from "../libs/settlementHealthService.js";
 
 const router = express.Router();
 
@@ -35,7 +36,7 @@ router.get("/kpi", async (req, res) => {
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    const [totalPaidApiCalls, paidApiCallsLast7Days, paidApiCallsLast30Days, byPath, activation] =
+    const [totalPaidApiCalls, paidApiCallsLast7Days, paidApiCallsLast30Days, byPath, activation, settlement] =
       await Promise.all([
       PaidApiCall.countDocuments(),
       PaidApiCall.countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
@@ -46,6 +47,7 @@ router.get("/kpi", async (req, res) => {
         { $limit: 20 },
       ]),
       buildActivationFunnel().catch(() => null),
+      buildSettlementHealthSnapshot().catch(() => null),
     ]);
 
     const dailyPaidCalls = await PaidApiCall.aggregate([
@@ -144,6 +146,7 @@ router.get("/kpi", async (req, res) => {
       kpiTargets: { paidApiCalls: KPI_TARGET_PAID_API_CALLS, agentSessions: KPI_TARGET_AGENT_SESSIONS },
       insights,
       activation: activation ?? undefined,
+      settlement: settlement ?? undefined,
       updatedAt: now.toISOString(),
     });
   } catch (error) {

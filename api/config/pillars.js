@@ -105,8 +105,11 @@ export const PILLARS = {
       '/neynar',
       '/siwa',
       '/analytics/summary',
+      '/blocksize',
+      '/dexter',
+      '/mevx',
     ],
-    toolIdPatterns: [],
+    toolIdPatterns: [/^blocksize-/, /^dexter-/, /^mevx-/],
   },
   grow: {
     id: 'grow',

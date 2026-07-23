@@ -36,12 +36,35 @@ import {
 } from '../config/celoX402Networks.js';
 import { getCeloBuilderCode, getCeloFacilitatorWalletCode } from '../config/celoBuilderCode.js';
 import { appendCeloDataSuffix, getCeloDataSuffix } from './celoAttribution.js';
+import {
+  openCeloCreditCircuit,
+  closeCeloCreditCircuit,
+  isCeloCreditCircuitOpen,
+  isCeloInsufficientCreditsReason,
+  getCeloCreditCircuitStatus,
+} from '../libs/celoFacilitatorCreditGate.js';
 
-/** Cap Celo facilitator HTTP so settle never hangs indefinitely. */
+/** Cap Celo facilitator HTTP so settle never hangs indefinitely. Default 12s (was 6s). */
 const CELO_FACILITATOR_TIMEOUT_MS = Number.parseInt(
-  process.env.CELO_FACILITATOR_TIMEOUT_MS || '6000',
+  process.env.CELO_FACILITATOR_TIMEOUT_MS || '12000',
   10,
 );
+
+/** Bounded retries on timeout / transient network / 5xx facilitator errors. Default 2. */
+const CELO_FACILITATOR_SETTLE_RETRIES = Math.max(
+  0,
+  Number.parseInt(process.env.CELO_FACILITATOR_SETTLE_RETRIES || '2', 10) || 0,
+);
+
+/**
+ * HTTP statuses that are safe to retry (facilitator flake / overload).
+ * Do not retry 401/402/403/400 — those are auth/credits/business failures.
+ * @param {number} status
+ */
+function isTransientCeloHttpStatus(status) {
+  const n = Number(status);
+  return n === 408 || n === 425 || n === 429 || n === 500 || n === 502 || n === 503 || n === 504;
+}
 
 /**
  * @param {string} url
@@ -52,7 +75,7 @@ async function fetchCeloFacilitator(url, init = {}) {
   const timeoutMs =
     Number.isFinite(CELO_FACILITATOR_TIMEOUT_MS) && CELO_FACILITATOR_TIMEOUT_MS > 0
       ? CELO_FACILITATOR_TIMEOUT_MS
-      : 6000;
+      : 12000;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -63,6 +86,23 @@ async function fetchCeloFacilitator(url, init = {}) {
   } finally {
     clearTimeout(timer);
   }
+}
+
+/**
+ * @param {unknown} err
+ * @returns {boolean}
+ */
+function isTransientCeloFacilitatorError(err) {
+  const msg = String(err?.message || err || '').toLowerCase();
+  return (
+    msg.includes('abort') ||
+    msg.includes('timeout') ||
+    msg.includes('network') ||
+    msg.includes('fetch failed') ||
+    msg.includes('econnreset') ||
+    msg.includes('etimedout') ||
+    msg.includes('socket')
+  );
 }
 
 /**
@@ -423,48 +463,90 @@ async function settleViaCeloFacilitator(payload, accepted) {
     };
   }
 
-  try {
-    const res = await fetchCeloFacilitator(`${CELO_FACILITATOR_URL.replace(/\/+$/, '')}/settle`, {
-      method: 'POST',
-      headers: celoFacilitatorHeaders(),
-      body: JSON.stringify({
-        x402Version: payload?.x402Version ?? 2,
-        paymentPayload: payload,
-        paymentRequirements: accepted,
-      }),
-    });
-    const body = await res.json().catch(() => ({}));
-    const tx = body.transaction || body.txHash || body.hash || body?.settlement?.transaction;
-    if (!res.ok || !(body?.success || body?.settled || tx)) {
-      const reason =
-        body?.errorMessage ||
-        body?.errorReason ||
-        body?.error ||
-        body?.message ||
-        (res.status === 401 ? 'unauthorized — check CELO_FACILITATOR_API_KEY / credits' : `HTTP ${res.status}`);
-      console.warn('[celoX402Settle] facilitator settle failed:', reason);
+  const settleUrl = `${CELO_FACILITATOR_URL.replace(/\/+$/, '')}/settle`;
+  const body = JSON.stringify({
+    x402Version: payload?.x402Version ?? 2,
+    paymentPayload: payload,
+    paymentRequirements: accepted,
+  });
+
+  let lastFailure = null;
+  const maxAttempts = 1 + CELO_FACILITATOR_SETTLE_RETRIES;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const res = await fetchCeloFacilitator(settleUrl, {
+        method: 'POST',
+        headers: celoFacilitatorHeaders(),
+        body,
+      });
+      const resBody = await res.json().catch(() => ({}));
+      const tx =
+        resBody.transaction || resBody.txHash || resBody.hash || resBody?.settlement?.transaction;
+      if (!res.ok || !(resBody?.success || resBody?.settled || tx)) {
+        const reason =
+          resBody?.errorMessage ||
+          resBody?.errorReason ||
+          resBody?.error ||
+          resBody?.message ||
+          (res.status === 401
+            ? 'unauthorized — check CELO_FACILITATOR_API_KEY / credits'
+            : `HTTP ${res.status}`);
+        lastFailure = {
+          success: false,
+          errorReason: reason,
+          error: reason,
+          retries: attempt - 1,
+        };
+        // Retry transient HTTP (5xx / 429) with backoff; never retry auth/credits/4xx business failures
+        if (attempt < maxAttempts && isTransientCeloHttpStatus(res.status)) {
+          console.warn(
+            `[celoX402Settle] facilitator settle transient HTTP ${res.status} (attempt ${attempt}/${maxAttempts}), retrying:`,
+            reason,
+          );
+          await new Promise((r) => setTimeout(r, 300 * attempt));
+          continue;
+        }
+        console.warn(
+          `[celoX402Settle] facilitator settle failed (attempt ${attempt}/${maxAttempts}):`,
+          reason,
+        );
+        return lastFailure;
+      }
       return {
-        success: false,
-        errorReason: reason,
-        error: reason,
+        success: true,
+        payer: resBody.payer || resBody.payerAddress || undefined,
+        transaction: tx,
+        network: resBody.network || CELO_MAINNET_CAIP2,
+        settledVia: 'facilitator',
       };
+    } catch (e) {
+      const msg = e?.message || String(e);
+      lastFailure = {
+        success: false,
+        errorReason: msg,
+        error: msg,
+      };
+      console.warn(
+        `[celoX402Settle] facilitator settle error (attempt ${attempt}/${maxAttempts}):`,
+        msg,
+      );
+      if (attempt < maxAttempts && isTransientCeloFacilitatorError(e)) {
+        await new Promise((r) => setTimeout(r, 300 * attempt));
+        continue;
+      }
+      lastFailure.retries = attempt - 1;
+      return lastFailure;
     }
-    return {
-      success: true,
-      payer: body.payer || body.payerAddress || undefined,
-      transaction: tx,
-      network: body.network || CELO_MAINNET_CAIP2,
-      settledVia: 'facilitator',
-    };
-  } catch (e) {
-    const msg = e?.message || String(e);
-    console.warn('[celoX402Settle] facilitator settle error:', msg);
-    return {
-      success: false,
-      errorReason: msg,
-      error: msg,
-    };
   }
+
+  return (
+    lastFailure || {
+      success: false,
+      errorReason: 'Celo facilitator settle failed',
+      error: 'Celo facilitator settle failed',
+    }
+  );
 }
 
 /**
@@ -483,6 +565,17 @@ export async function settleCeloX402Payment(payload, accepted, opts = {}) {
       success: false,
       errorReason: `Unsupported Celo network: ${network}`,
       error: `Unsupported Celo network: ${network}`,
+    };
+  }
+
+  // Hard stop when prepaid credits are empty — avoid verify→settle_failed loops.
+  if (isCeloCreditCircuitOpen() && forceFacilitatorOnly) {
+    const st = getCeloCreditCircuitStatus();
+    return {
+      success: false,
+      errorReason: `celo_credits_circuit_open: ${st?.reason || 'insufficient_credits'}. Top up at https://x402.celo.org (openUntil=${st?.openUntil || 'n/a'}).`,
+      error: 'Celo facilitator credits depleted — circuit open',
+      circuitOpen: true,
     };
   }
 
@@ -527,12 +620,17 @@ export async function settleCeloX402Payment(payload, accepted, opts = {}) {
   if (shouldSettleViaCeloFacilitator()) {
     const facilitated = await settleViaCeloFacilitator(payload, accepted);
     if (facilitated?.success && facilitated.transaction) {
+      closeCeloCreditCircuit();
       return facilitated;
     }
     facilitatorErrorReason =
       facilitated?.errorReason ||
       facilitated?.error ||
       'Celo facilitator settle failed';
+
+    if (isCeloInsufficientCreditsReason(facilitatorErrorReason)) {
+      openCeloCreditCircuit(facilitatorErrorReason);
+    }
 
     if (!canUseCeloSelfSettleForRequest({ forceFacilitatorOnly })) {
       if (forceFacilitatorOnly) {

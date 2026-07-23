@@ -30,7 +30,7 @@ import {
   getX402ResourceServerCelo,
   ensureX402CeloResourceServerInitialized,
 } from "./x402ResourceServer.js";
-import { X402_API_PRICE_USD, getEffectivePriceUsd, applyDexterPriceFloor } from "../config/x402Pricing.js";
+import { X402_API_PRICE_USD, resolveEffectivePriceUsdAsync, applyDexterPriceFloor } from "../config/x402Pricing.js";
 import {
   getCorbitsPayToAddresses,
   getEnabledCorbitsNetworks,
@@ -144,6 +144,7 @@ function resolveInboundFacilitatorFromFlags(req, { useAlgorandFacilitator, useB4
   const profile = resolveResourceServerProfile(req);
   if (profile === "corbits") return "corbits";
   if (profile === "dexter") return "dexter";
+  if (profile === "celo") return "celo";
   return "payai";
 }
 
@@ -238,6 +239,11 @@ const X402_SETTLE_FACILITATOR_TIMEOUT_MS = Number.parseInt(
   process.env.X402_SETTLE_FACILITATOR_TIMEOUT_MS || "4000",
   10
 );
+/** Extra facilitator settle attempts after the first (transient flake only). Default 1 → 2 total tries. */
+const X402_SETTLE_FACILITATOR_RETRIES = Math.max(
+  0,
+  Number.parseInt(process.env.X402_SETTLE_FACILITATOR_RETRIES || "1", 10) || 0
+);
 
 const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
 const SOLANA_RPC = process.env.SOLANA_RPC_URL || process.env.VITE_SOLANA_RPC_URL || "https://rpc.ankr.com/solana";
@@ -312,6 +318,45 @@ function withTimeout(promise, ms, rejectMessage = "timeout") {
     timer = setTimeout(() => reject(new Error(rejectMessage)), n);
   });
   return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timer));
+}
+
+/**
+ * Bounded retry for transient facilitator settle flakes (timeout / 500 / network).
+ * Does not retry definitive business failures.
+ * @template T
+ * @param {() => Promise<T>} fn
+ * @param {{ maxRetries?: number; label?: string }} [opts]
+ * @returns {Promise<{ result: T; retries: number }>}
+ */
+async function withSettleRetries(fn, opts = {}) {
+  const maxRetries =
+    Number.isFinite(opts.maxRetries) && opts.maxRetries >= 0
+      ? opts.maxRetries
+      : X402_SETTLE_FACILITATOR_RETRIES;
+  const maxAttempts = 1 + maxRetries;
+  let lastErr;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const result = await fn();
+      return { result, retries: attempt - 1 };
+    } catch (e) {
+      lastErr = e;
+      const msg = getErrorMessage(e);
+      const transient =
+        isFacilitatorError(msg) ||
+        /settle_timeout|timeout|econnreset|etimedout|network|fetch failed|503|502|504/i.test(msg);
+      if (attempt < maxAttempts && transient) {
+        console.warn(
+          `[x402PaymentV2] settle retry ${attempt}/${maxAttempts}${opts.label ? ` (${opts.label})` : ""}:`,
+          msg.slice(0, 160),
+        );
+        await new Promise((r) => setTimeout(r, 250 * attempt));
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr || "settle_retry_exhausted"));
 }
 
 /** Extract error message from thrown value (Error, string, or object with message/errorReason). */
@@ -995,13 +1040,24 @@ function getPayerOrConnectedWalletForPrice(req) {
 }
 
 /**
- * Effective USD price for a request, including Dexter facilitator floor when applicable.
+ * Effective USD price for a request, including holder/staker discount + Dexter floor.
  * @param {number} rawPrice
  * @param {import('express').Request} req
  * @param {object} [options]
  */
-function resolveEffectivePriceUsd(rawPrice, req, options) {
-  let priceUsd = getEffectivePriceUsd(rawPrice, getPayerOrConnectedWalletForPrice(req));
+async function resolveEffectivePriceUsd(rawPrice, req, options) {
+  const priced = await resolveEffectivePriceUsdAsync(
+    rawPrice,
+    getPayerOrConnectedWalletForPrice(req),
+  );
+  let priceUsd = priced.priceUsd;
+  if (priced.tier && priced.discount > 0) {
+    req.x402SyraDiscount = {
+      tier: priced.tier,
+      discount: priced.discount,
+      syraAmount: priced.syraAmount,
+    };
+  }
   if (resolveResourceServerProfile(req, options) === "dexter") {
     priceUsd = applyDexterPriceFloor(priceUsd);
   }
@@ -1240,7 +1296,7 @@ async function buildPaymentRequired(bundle, req, options, error) {
   const adapter = new ExpressAdapter(req);
   const { resourceServer } = bundle;
   const rawPrice = await resolveRawPriceUsdForRequest(paymentOptions, req);
-  const priceUsd = resolveEffectivePriceUsd(rawPrice, req, paymentOptions);
+  const priceUsd = await resolveEffectivePriceUsd(rawPrice, req, paymentOptions);
   const microUnits = usdToMicroUsdc(priceUsd);
   // Bind x402 `resource.url` to the URL this HTTP request actually used (ExpressAdapter).
   // Previously we used `${BASE_URL}${options.resource}` when `resource` was set; that breaks
@@ -1486,6 +1542,23 @@ export function requirePayment(options) {
       }
 
       await ensureX402ForReq(req, options);
+      const profileEarly = resolveResourceServerProfile(req, options);
+      if (profileEarly === "celo") {
+        const { isCeloCreditCircuitOpen, getCeloCreditCircuitStatus } = await import(
+          "../libs/celoFacilitatorCreditGate.js"
+        );
+        if (isCeloCreditCircuitOpen()) {
+          const st = getCeloCreditCircuitStatus();
+          res.status(503).json({
+            success: false,
+            error: "celo_facilitator_credits_depleted",
+            message:
+              "Celo x402 facilitator prepaid credits are empty. Top up at https://x402.celo.org or pay on Solana.",
+            circuit: st,
+          });
+          return;
+        }
+      }
       const bundle = getX402BundleForReq(req, options);
       const { resourceServer, config, assets } = bundle;
       logB402StartupOnce();
@@ -1499,7 +1572,7 @@ export function requirePayment(options) {
         json402(res, pr);
         try {
           const rawPrice = await resolveRawPriceUsdForRequest(options, req);
-          const priceUsd = resolveEffectivePriceUsd(rawPrice, req, options);
+          const priceUsd = await resolveEffectivePriceUsd(rawPrice, req, options);
           recordInboundX402(req, {
             outcome: "payment_required",
             httpStatus: 402,
@@ -1533,7 +1606,7 @@ export function requirePayment(options) {
       }
 
       const rawPrice = await resolveRawPriceUsdForRequest(options, req);
-      const priceUsd = resolveEffectivePriceUsd(rawPrice, req, options);
+      const priceUsd = await resolveEffectivePriceUsd(rawPrice, req, options);
       const expectedMicroUnits = usdToMicroUsdc(priceUsd);
       const acc = payload.accepted;
       const payToOverride = await resolvePayToForRequest(options, req);
@@ -1891,22 +1964,41 @@ async function tryFacilitatorThenLocalSettle(payload, accepted, req) {
     settlePayload = injectBazaarIntoPaymentPayload(payload, bazaarOpts.bazaar);
   }
   let settle;
+  let settleRetries = 0;
   try {
-    settle = await withTimeout(
-      resourceServer.settlePayment(settlePayload, accepted),
-      X402_SETTLE_FACILITATOR_TIMEOUT_MS,
-      "settle_timeout"
+    const wrapped = await withSettleRetries(
+      () =>
+        withTimeout(
+          resourceServer.settlePayment(settlePayload, accepted),
+          X402_SETTLE_FACILITATOR_TIMEOUT_MS,
+          "settle_timeout"
+        ),
+      { label: "solana-facilitator" },
     );
+    settle = wrapped.result;
+    settleRetries = wrapped.retries;
   } catch (e) {
     const msg = getErrorMessage(e);
     if (isFacilitatorError(msg)) {
       try {
         const local = await settleSolanaPaymentLocally(payload, accepted);
-        if (local?.success) return local;
-      } catch (_) {
-        /* RPC or local error; treat as success when facilitator failed */
+        if (local?.success) {
+          return { ...local, retries: settleRetries };
+        }
+      } catch (localErr) {
+        return {
+          success: false,
+          errorReason: `Facilitator settle failed (${msg}); local Solana confirm failed: ${getErrorMessage(localErr)}`,
+          error: "Settlement could not be confirmed",
+          retries: settleRetries,
+        };
       }
-      return { success: true };
+      return {
+        success: false,
+        errorReason: `Facilitator settle failed (${msg}); local Solana settle did not confirm`,
+        error: "Settlement could not be confirmed",
+        retries: settleRetries,
+      };
     }
     throw e;
   }
@@ -1915,15 +2007,27 @@ async function tryFacilitatorThenLocalSettle(payload, accepted, req) {
     if (isFacilitatorError(reason)) {
       try {
         const local = await settleSolanaPaymentLocally(payload, accepted);
-        if (local?.success) return local;
-      } catch (_) {
-        /* RPC or local error; treat as success when facilitator failed */
+        if (local?.success) {
+          return { ...local, retries: settleRetries };
+        }
+      } catch (localErr) {
+        return {
+          success: false,
+          errorReason: `Facilitator settle failed (${reason}); local Solana confirm failed: ${getErrorMessage(localErr)}`,
+          error: "Settlement could not be confirmed",
+          retries: settleRetries,
+        };
       }
-      return { success: true };
+      return {
+        success: false,
+        errorReason: `Facilitator settle failed (${reason}); local Solana settle did not confirm`,
+        error: "Settlement could not be confirmed",
+        retries: settleRetries,
+      };
     }
     throw new Error(reason || "Settlement failed");
   }
-  return settle;
+  return settle?.retries != null ? settle : { ...settle, retries: settleRetries };
 }
 
 /**
@@ -1945,10 +2049,18 @@ export async function settlePaymentWithFallback(payload, accepted, req) {
       try {
         const local = await settleSolanaPaymentLocally(payload, accepted);
         if (local?.success) return local;
-      } catch (_) {
-        /* RPC or local error; treat as success when facilitator failed */
+      } catch (localErr) {
+        return {
+          success: false,
+          errorReason: `Facilitator settle failed (${msg}); local Solana confirm failed: ${getErrorMessage(localErr)}`,
+          error: "Settlement could not be confirmed",
+        };
       }
-      return { success: true };
+      return {
+        success: false,
+        errorReason: `Facilitator settle failed (${msg}); local Solana settle did not confirm`,
+        error: "Settlement could not be confirmed",
+      };
     }
     throw e;
   }
@@ -1994,11 +2106,21 @@ export async function settlePaymentAndSetResponse(res, req) {
       if (looksLikeFacilitatorOrSettle) {
         try {
           const local = await settleSolanaPaymentLocally(payload, accepted);
-          settle = local?.success ? local : { success: true };
-        } catch (_) {
-          settle = { success: true };
+          settle = local?.success
+            ? local
+            : {
+                success: false,
+                errorReason: msg || "Facilitator settle failed; local Solana settle did not confirm",
+                error: "Settlement could not be confirmed",
+              };
+        } catch (localErr) {
+          settle = {
+            success: false,
+            errorReason: `Facilitator/settle error (${msg}); local confirm failed: ${getErrorMessage(localErr)}`,
+            error: "Settlement could not be confirmed",
+          };
         }
-        /* Never rethrow facilitator/settle errors: payment was already verified in requirePayment */
+        /* Never invent success:true — only local on-chain confirm may mark paid */
       } else {
         throw e;
       }
@@ -2019,6 +2141,7 @@ export async function settlePaymentAndSetResponse(res, req) {
       amountMicroUsdc: accepted?.amount,
       errorReason: reason,
       latencyMs: Date.now() - settleStartedAt,
+      retries: Number.isFinite(settle?.retries) ? settle.retries : 0,
     });
     return settle;
   }
@@ -2073,6 +2196,18 @@ export async function settlePaymentAndSetResponse(res, req) {
   ) {
     runAfterResponse(() => queueBuybackRevenue(priceUsd).catch(() => {}));
   }
+  // Accrue usage → $SYRA rewards for the paying wallet (all envs when Mongo is up).
+  runAfterResponse(() => {
+    const payer =
+      (typeof settle?.payer === "string" && settle.payer.trim()) ||
+      (typeof req.x402Payment?.payer === "string" && req.x402Payment.payer.trim()) ||
+      "";
+    if (!payer || !(typeof priceUsd === "number" && priceUsd > 0)) return;
+    if (isTesterAgentInternalProbeRequest(req)) return;
+    import("../libs/syraUsageRewards.js")
+      .then(({ accrueUsageReward }) => accrueUsageReward({ payer, amountUsd: priceUsd }))
+      .catch(() => {});
+  });
   return settle;
 }
 
@@ -2116,6 +2251,17 @@ export function runBuybackForRequest(req) {
   const priceUsd = req.x402Payment?.priceUsd;
   if (typeof priceUsd === "number" && priceUsd > 0) {
     runAfterResponse(() => queueBuybackRevenue(priceUsd).catch(() => {}));
+    const payer =
+      (typeof req.x402Payment?.payer === "string" && req.x402Payment.payer.trim()) ||
+      (req.header("X-Payer-Address") || req.header("x-payer-address") || "").trim() ||
+      "";
+    if (payer) {
+      runAfterResponse(() => {
+        import("../libs/syraUsageRewards.js")
+          .then(({ accrueUsageReward }) => accrueUsageReward({ payer, amountUsd: priceUsd }))
+          .catch(() => {});
+      });
+    }
   }
 }
 

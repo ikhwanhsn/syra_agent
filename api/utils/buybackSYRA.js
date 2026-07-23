@@ -166,5 +166,7 @@ export async function buybackSYRAFromRevenue(revenueAmountUSD) {
   return {
     swapSignature,
     outAmount,
+    buybackUsd: buybackAmountUSD,
+    revenueUsd: revenue,
   };
 }

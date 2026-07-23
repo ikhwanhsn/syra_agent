@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { AlertCircle, Moon, RefreshCw, Sun } from "lucide-react";
 import DashboardSettings from "@/pages/DashboardSettings";
 import { resolveUserAvatarUrl } from "@/lib/agentAvatar";
+import { PageLoader } from "@/components/PageLoader";
 
 /** Dedupes `?q=` auto-send across React Strict Mode double-invoke in dev. */
 let lastConsumedUrlPromptParam: string | null = null;
@@ -1238,31 +1239,11 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
 
   if (!ready) {
     return (
-      <div className="min-h-dvh flex flex-col items-center justify-center bg-background px-4 overflow-hidden">
-        {/* Animated rings */}
-        <div className="relative flex items-center justify-center w-32 h-32 sm:w-40 sm:h-40">
-          <div className="absolute inset-0 rounded-full border-2 border-accent/30 loader-app-glow" />
-          <div className="absolute w-full h-full rounded-full border-2 border-dashed border-primary/30 loader-app-ring" />
-          <div className="absolute w-[70%] h-[70%] rounded-full border border-primary/20 loader-app-ring-slow" />
-          {/* Center orb with logo */}
-          <div className="relative z-10 flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-card border border-border shadow-xl loader-app-orb overflow-hidden">
-            <img
-              src="/logo.jpg"
-              alt="Syra"
-              className="w-full h-full object-cover"
-            />
-          </div>
-        </div>
-        <p className="mt-8 text-sm font-medium text-foreground loader-text-fade">
-          Preparing your experience...
-        </p>
-        <p className="mt-1 text-xs text-muted-foreground">Just a moment</p>
-        <div className="mt-6 flex items-center gap-1.5 text-muted-foreground">
-          <span className="loader-dot" />
-          <span className="loader-dot" />
-          <span className="loader-dot" />
-        </div>
-      </div>
+      <PageLoader
+        label="Preparing your experience..."
+        sublabel="Just a moment"
+        variant="page"
+      />
     );
   }
 

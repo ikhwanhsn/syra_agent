@@ -254,9 +254,9 @@ async function pickEliteParent(experimentId) {
   const ranked = await rankStocksStrategiesByPnl(experimentId);
   const elites = ranked.filter(
     (row) =>
-      row.decided >= 3 &&
+      row.decided >= 6 &&
       row.sumPnlUsd > 0 &&
-      (row.winRate ?? 0) >= 0.48 &&
+      (row.winRate ?? 0) >= 0.5 &&
       computeStocksLeaderScore(row) > 0,
   );
   elites.sort((a, b) => (b.leaderScore ?? 0) - (a.leaderScore ?? 0));

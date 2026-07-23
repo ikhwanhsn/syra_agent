@@ -266,6 +266,69 @@ export const SYRA_PARTNERS: readonly SyraPartner[] = [
       ],
     },
   },
+  {
+    slug: "mevx",
+    name: "MevX",
+    href: "https://mevx.io",
+    category: "liquidity",
+    tagline: "Trading terminal data",
+    summary:
+      "Multi-chain trading data and execution APIs for Solana meme and DEX workflows.",
+    integration: {
+      status: "beta",
+      overview:
+        "Syra agents can pull MevX trades, token, and pool data via agent tools (mevx-*) when MEVX_API_KEY is configured. X: https://x.com/MEVX_Official",
+      capabilities: [
+        "Recent DEX trade history by pool or wallet",
+        "Token and pool market lookups for Solana",
+        "API-key partner billed through the Syra agent wallet",
+      ],
+      technical:
+        "Agent tools: mevx-trades, mevx-token, mevx-pools via POST /agent/tools/call. Set MEVX_API_KEY from https://landing-api.mevx.io/",
+    },
+  },
+  {
+    slug: "dexter",
+    name: "Dexter AI",
+    href: "https://dexter.cash",
+    category: "infrastructure",
+    tagline: "x402 facilitator + onchain intel",
+    summary:
+      "Solana x402 settlement rails plus paid onchain activity and entity APIs for agents.",
+    integration: {
+      status: "live",
+      overview:
+        "Syra already settles Labs routes via the Dexter facilitator. Agents can also call Dexter onchain activity/entity x402 tools and list the Dexter resource catalog. X: https://x.com/dexteraisol",
+      capabilities: [
+        "Labs facilitator settlement (existing)",
+        "dexter-onchain-activity and dexter-onchain-entity agent tools",
+        "Free dexter-x402-catalog discovery",
+      ],
+      technical:
+        "Agent tools dexter-* pay https://x402.dexter.cash with the agent Solana USDC wallet.",
+    },
+  },
+  {
+    slug: "blocksize",
+    name: "Blocksize",
+    href: "https://blocksize.info",
+    category: "data",
+    tagline: "Institutional VWAP & bid/ask",
+    summary:
+      "Oracle-grade aggregated crypto market data for AI agents over MCP and x402.",
+    integration: {
+      status: "beta",
+      overview:
+        "Syra agents query Blocksize VWAP, bid/ask, instrument search, and pre-trade checks via blocksize-* tools. X: https://x.com/blocksizecap",
+      capabilities: [
+        "Real-time VWAP snapshots (e.g. SOLUSD)",
+        "Bid/ask and pre-trade sanity checks",
+        "Instrument search before paid quotes",
+      ],
+      technical:
+        "Agent tools blocksize-* against https://mcp.blocksize.info with agent-wallet x402 / credits.",
+    },
+  },
 ] as const;
 
 export const PARTNER_SLUGS: readonly string[] = SYRA_PARTNERS.map((p) => p.slug);

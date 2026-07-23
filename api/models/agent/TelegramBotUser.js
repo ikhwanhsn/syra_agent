@@ -38,6 +38,17 @@ const telegramBotUserSchema = new mongoose.Schema(
     referredAt: { type: Date, default: null },
     /** Count of users who joined via this user's referralCode. */
     referralCount: { type: Number, default: 0 },
+    /**
+     * Syra Daily digest preference.
+     * null = not set (auto-enable after first message); true/false = explicit.
+     */
+    digestEnabled: { type: Boolean, default: null },
+    /** Soft mute — no digests until unmuted (also sets digestEnabled false). */
+    digestMutedAt: { type: Date, default: null },
+    /** Consecutive days the user received a digest and replied the same UTC day. */
+    digestDayStreak: { type: Number, default: 0 },
+    lastDigestAt: { type: Date, default: null },
+    lastDigestReplyAt: { type: Date, default: null },
   },
   { timestamps: true },
 );

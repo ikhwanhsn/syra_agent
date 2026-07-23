@@ -64,9 +64,8 @@ export const AGENT_WALLET_SLOTS: readonly AgentWalletSlotMeta[] = [
     id: "lp",
     label: "LP agent",
     shortLabel: "LP",
-    description: "Meteora LP experiments (internal)",
+    description: "Meteora DLMM auto-LP (Earn Yield)",
     icon: Droplets,
-    internalOnly: true,
   },
 ] as const;
 

@@ -59,7 +59,7 @@ Shipped milestones are tracked in the [Changelog](/docs/changelog). The quarters
 
 - Expand **Partners** catalog — more external data providers and branded gateway groups
 - Marketplace search, filtering, and agent-manifest quality for autonomous discovery
-- Staking-linked x402 discounts (wire `$SYRA` tiers into `x402Pricing`)
+- ~~Staking-linked x402 discounts~~ **Shipped** — hold/stake tiers in `resolveEffectivePriceUsdAsync`
 
 ### Treasury
 
@@ -124,6 +124,6 @@ Shipped milestones are tracked in the [Changelog](/docs/changelog). The quarters
 ---
 
 > **Token utility**  
-> Agents pay for APIs with USDC via x402 today. `$SYRA` staking discounts and treasury buybacks are **roadmap** until wired into live pricing — see [Tokenomics](/docs/token/tokenomics).
+> Agents pay for APIs with USDC via x402. **Live:** holder/staker fee discounts, production buybacks (~80% → Jupiter), usage rewards (`/rewards`), public proof on `/token` and `GET /api/metrics`. **Roadmap:** governance voting. See [Tokenomics](/docs/token/tokenomics).
 >
 > This roadmap is subject to change based on market conditions, x402 ecosystem evolution, and community feedback.

@@ -5,8 +5,9 @@ import { useAgentWallet } from "@/contexts/AgentWalletContext";
 import { ChatMessage } from "@/components/chat/ChatMessage";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Lock, MessageSquare, Home, Loader2 } from "lucide-react";
+import { Lock, MessageSquare, Home } from "lucide-react";
 import { defaultAgents } from "@/components/chat/AgentSelector";
+import { PageLoader } from "@/components/PageLoader";
 
 function toMessage(m: {
   id: string;
@@ -96,22 +97,7 @@ export default function SharedChat({
 
   if (status === "loading") {
     return (
-      <div className="min-h-dvh flex flex-col items-center justify-center bg-background px-4 py-8 pb-[max(2rem,env(safe-area-inset-bottom))]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative flex items-center justify-center w-20 h-20">
-            <div className="absolute inset-0 rounded-full border-2 border-dashed border-primary/30 animate-spin" style={{ animationDuration: "2.5s" }} />
-            <div className="w-12 h-12 rounded-xl bg-card border border-border flex items-center justify-center loader-avatar-pulse">
-              <Loader2 className="w-6 h-6 text-primary" />
-            </div>
-          </div>
-          <p className="text-sm text-muted-foreground loader-text-fade">Loading shared chat...</p>
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <span className="loader-dot" />
-            <span className="loader-dot" />
-            <span className="loader-dot" />
-          </div>
-        </div>
-      </div>
+      <PageLoader label="Loading shared chat..." sublabel="Just a moment" variant="page" />
     );
   }
 

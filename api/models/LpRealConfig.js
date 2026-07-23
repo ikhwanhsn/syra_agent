@@ -29,6 +29,16 @@ const lpRealConfigSchema = new mongoose.Schema(
     closeAllRequested: { type: Boolean, default: false },
     /** Wallet equity + deployed at first enable — used for total return / unrealized PnL. */
     capitalBaselineSol: { type: Number, default: null, min: 0 },
+    /** Set when strategy selector finds no qualified leader — opens paused, resolve still runs. */
+    pausedNoStrategyAt: { type: Date, default: null },
+    /** Public Earn Yield beta: performance fee on net-positive realized PnL (0–1). */
+    performanceFeeBps: { type: Number, default: 1000, min: 0, max: 5000 },
+    /** Cap deposit for public Earn Yield beta (SOL). */
+    publicMaxDepositSol: { type: Number, default: 5, min: 0.1, max: 50 },
+    /** When true, agent is listed on the public Earn Yield board (beta allowlist). */
+    publicEarnListed: { type: Boolean, default: false, index: true },
+    /** Kill switch: refuse new deposits / opens even if enabled. */
+    depositsPaused: { type: Boolean, default: false },
   },
   { collection: "lp_real_config", timestamps: true },
 );

@@ -1,8 +1,9 @@
-import { Code2, Coins, FileText } from "lucide-react";
+import { Code2, Coins, Droplets, FileText } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
 const TRACKS = [
+  { id: "yield", label: "Yield", icon: Droplets },
   { id: "token", label: "Tokens", icon: Coins },
   { id: "prompts", label: "Playbooks", icon: FileText },
   { id: "skills", label: "Skills", icon: Code2 },
@@ -11,6 +12,7 @@ const TRACKS = [
 type EarnTrackTabsProps = {
   activeTrack: string;
   onTrackChange: (value: string) => void;
+  yieldContent: React.ReactNode;
   promptsContent: React.ReactNode;
   skillsContent: React.ReactNode;
   tokenContent: React.ReactNode;
@@ -19,6 +21,7 @@ type EarnTrackTabsProps = {
 export function EarnTrackTabs({
   activeTrack,
   onTrackChange,
+  yieldContent,
   promptsContent,
   skillsContent,
   tokenContent,
@@ -27,7 +30,7 @@ export function EarnTrackTabs({
     <Tabs value={activeTrack} onValueChange={onTrackChange}>
       <TabsList
         className={cn(
-          "grid h-auto w-full max-w-xl grid-cols-3 gap-1 rounded-full border border-border/40 bg-muted/15 p-1",
+          "grid h-auto w-full max-w-2xl grid-cols-4 gap-1 rounded-full border border-border/40 bg-muted/15 p-1",
           "shadow-none",
         )}
       >
@@ -49,6 +52,9 @@ export function EarnTrackTabs({
         })}
       </TabsList>
 
+      <TabsContent value="yield" className="mt-8">
+        {yieldContent}
+      </TabsContent>
       <TabsContent value="prompts" className="mt-8">
         {promptsContent}
       </TabsContent>

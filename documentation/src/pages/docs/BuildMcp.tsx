@@ -7,6 +7,7 @@ import { SYRA_API_URL, SYRA_MARKETPLACE_URL } from "@/content/syraUrls";
 
 const tocItems = [
   { id: "what", title: "What you get", level: 2 },
+  { id: "first-paid", title: "First paid call (5 min)", level: 2 },
   { id: "install", title: "Install", level: 2 },
   { id: "cursor", title: "Cursor config", level: 2 },
   { id: "env", title: "Environment", level: 2 },
@@ -39,6 +40,41 @@ export default function BuildMcp() {
             Escape hatch <code>syra_call_tool</code> for any <code>toolId</code>
           </li>
         </ul>
+      </DocSection>
+
+      <DocSection id="first-paid" title="First paid call in 5 minutes" prose>
+        <p>
+          Same path as the README and marketplace <strong>Integrate</strong> tab. Primary CTA for agent builders:
+        </p>
+        <ol>
+          <li>
+            Install MCP:{" "}
+            <code className="text-sm">claude mcp add syra -- npx -y @syra-ai/mcp-server@latest</code>
+          </li>
+          <li>
+            Set <code className="text-sm">SYRA_API_BASE_URL=https://api.syraa.fun</code>
+          </li>
+          <li>
+            Fund a Solana wallet with ≥ $1 USDC (+ a little SOL) and set{" "}
+            <code className="text-sm">SYRA_PAYER_KEYPAIR</code>
+          </li>
+          <li>
+            Call <code className="text-sm">syra_spend_news</code> with ticker <code className="text-sm">BTC</code>
+          </li>
+          <li>
+            Confirm settled HTTP 402 → JSON. Live proof:{" "}
+            <a href="https://syraa.fun" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+              syraa.fun
+            </a>{" "}
+            / <code className="text-sm">GET /api/metrics</code>
+          </li>
+        </ol>
+        <Callout variant="tip" title="Hot paths after first success">
+          Expand to insights that already convert:{" "}
+          <code className="text-sm">/insights/volatility-index</code>,{" "}
+          <code className="text-sm">/insights/market-pulse</code>,{" "}
+          <code className="text-sm">/insights/defi-tvl</code>, then the rest of Spend.
+        </Callout>
       </DocSection>
 
       <DocSection id="install" title="Install" prose>

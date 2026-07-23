@@ -26,6 +26,15 @@ import { AGENT_MEMORY_RERANK_POST } from "./agentMemoryRerankUpdate";
 import { EARN_TOKEN_SAID_VERIFY_POST } from "./earnTokenSaidVerifyUpdate";
 import { INVEST_SOLANA_POST } from "./investSolanaUpdate";
 import { TOKEN_ANALYZER_POST } from "./tokenAnalyzerUpdate";
+import { MEVX_INTEGRATION_POST } from "./mevxIntegrationUpdate";
+import { DEXTER_INTEGRATION_POST } from "./dexterIntegrationUpdate";
+import { BLOCKSIZE_INTEGRATION_POST } from "./blocksizeIntegrationUpdate";
+import { TELEGRAM_BOT_GROWTH_POST } from "./telegramBotGrowthUpdate";
+import { BUYBACK_REWARDS_PROOF_POST } from "./buybackRewardsProofUpdate";
+import { LP_EARN_YIELD_POST } from "./lpEarnYieldUpdate";
+import { MOMENTUM_ROTATOR_POST } from "./momentumRotatorLabUpdate";
+import { LST_LOOP_LAB_POST } from "./lstLoopLabUpdate";
+import { ALPHA_SNIPER_LAB_POST } from "./alphaSniperLabUpdate";
 import { TEMPLATE_POST } from "./templateUpdate";
 import { AGENTSCORE_PHOTO } from "./photo/agentscorePhoto";
 import { INDICATOR_PHOTO } from "./photo/indicatorPhoto";
@@ -55,6 +64,15 @@ import { AGENT_MEMORY_RERANK_PHOTO } from "./photo/agentMemoryRerankPhoto";
 import { EARN_TOKEN_SAID_VERIFY_PHOTO } from "./photo/earnTokenSaidVerifyPhoto";
 import { INVEST_SOLANA_PHOTO } from "./photo/investSolanaPhoto";
 import { TOKEN_ANALYZER_PHOTO } from "./photo/tokenAnalyzerPhoto";
+import { MEVX_INTEGRATION_PHOTO } from "./photo/mevxIntegrationPhoto";
+import { DEXTER_INTEGRATION_PHOTO } from "./photo/dexterIntegrationPhoto";
+import { BLOCKSIZE_INTEGRATION_PHOTO } from "./photo/blocksizeIntegrationPhoto";
+import { TELEGRAM_BOT_GROWTH_PHOTO } from "./photo/telegramBotGrowthPhoto";
+import { BUYBACK_REWARDS_PROOF_PHOTO } from "./photo/buybackRewardsProofPhoto";
+import { LP_EARN_YIELD_PHOTO } from "./photo/lpEarnYieldPhoto";
+import { MOMENTUM_ROTATOR_PHOTO } from "./photo/momentumRotatorLabPhoto";
+import { LST_LOOP_LAB_PHOTO } from "./photo/lstLoopLabPhoto";
+import { ALPHA_SNIPER_LAB_PHOTO } from "./photo/alphaSniperLabPhoto";
 import { TEMPLATE_PHOTO } from "./photo/templatePhoto";
 import type { PostPhotoUpdate } from "./photo/types";
 import type { PostUpdate } from "./types";
@@ -103,6 +121,15 @@ const POST_UPDATE_BUNDLES: PostUpdateBundle[] = [
   { video: EARN_TOKEN_SAID_VERIFY_POST, photo: EARN_TOKEN_SAID_VERIFY_PHOTO },
   { video: INVEST_SOLANA_POST, photo: INVEST_SOLANA_PHOTO },
   { video: TOKEN_ANALYZER_POST, photo: TOKEN_ANALYZER_PHOTO },
+  { video: MEVX_INTEGRATION_POST, photo: MEVX_INTEGRATION_PHOTO },
+  { video: DEXTER_INTEGRATION_POST, photo: DEXTER_INTEGRATION_PHOTO },
+  { video: BLOCKSIZE_INTEGRATION_POST, photo: BLOCKSIZE_INTEGRATION_PHOTO },
+  { video: TELEGRAM_BOT_GROWTH_POST, photo: TELEGRAM_BOT_GROWTH_PHOTO },
+  { video: BUYBACK_REWARDS_PROOF_POST, photo: BUYBACK_REWARDS_PROOF_PHOTO },
+  { video: LP_EARN_YIELD_POST, photo: LP_EARN_YIELD_PHOTO },
+  { video: MOMENTUM_ROTATOR_POST, photo: MOMENTUM_ROTATOR_PHOTO },
+  { video: LST_LOOP_LAB_POST, photo: LST_LOOP_LAB_PHOTO },
+  { video: ALPHA_SNIPER_LAB_POST, photo: ALPHA_SNIPER_LAB_PHOTO },
 ];
 
 function assertBundleMeta(bundle: PostUpdateBundle): void {

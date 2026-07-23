@@ -6,6 +6,8 @@
 
 import { getAgentTool } from '../config/agentTools.js';
 import { getBirdeyeGateMissing } from '../config/birdeyeAgentTools.js';
+import { getBlocksizeGateMissing } from '../config/blocksizeAgentTools.js';
+import { getDexterGateMissing } from '../config/dexterAgentTools.js';
 import { getTokensGateMissing } from '../config/tokensAgentTools.js';
 import { getStablecryptoGateMissing } from '../config/stablecryptoAgentTools.js';
 import { getStablesocialGateMissing } from '../config/stablesocialAgentTools.js';
@@ -92,6 +94,10 @@ const REQUIRE_ALL_KEYS = {
   'heylol-create-post': ['content'],
   'bankr-prompt': ['prompt'],
   'bankr-job': ['jobId'],
+  'blocksize-search': ['q'],
+  'blocksize-vwap': ['pair'],
+  'blocksize-bidask': ['pair'],
+  'blocksize-pre-trade': ['pair'],
   'neynar-search': ['q'],
   'siwa-nonce': ['address', 'agentId'],
   'siwa-verify': ['message', 'signature'],
@@ -316,6 +322,12 @@ export function getAgentToolParamGateMessage(toolId, method, params) {
   const birdeyeMissing = getBirdeyeGateMissing(id, p);
   if (birdeyeMissing?.length) return skipMsg(toolName, birdeyeMissing);
 
+  const blocksizeMissing = getBlocksizeGateMissing(id, p);
+  if (blocksizeMissing?.length) return skipMsg(toolName, blocksizeMissing);
+
+  const dexterMissing = getDexterGateMissing(id, p);
+  if (dexterMissing?.length) return skipMsg(toolName, dexterMissing);
+
   const tokensMissing = getTokensGateMissing(id, p);
   if (tokensMissing?.length) return skipMsg(toolName, tokensMissing);
 
@@ -363,6 +375,21 @@ export function getAgentToolParamGateMessage(toolId, method, params) {
       if (!hasTrimmedString(p[k])) missing.push(k);
     }
     if (missing.length) return skipMsg(toolName, missing);
+  }
+
+  if (tool?.blocksizePath) {
+    const missing = [];
+    for (const k of bracePathParamNames(tool.blocksizePath)) {
+      if (!hasTrimmedString(p[k])) missing.push(k);
+    }
+    if (missing.length) return skipMsg(toolName, missing);
+  }
+
+  // mevx-token: accept mint alias for address
+  if (id === 'mevx-token') {
+    if (!hasTrimmedString(p.address) && !hasTrimmedString(p.mint) && !hasTrimmedString(p.token)) {
+      return skipMsg(toolName, ['address (or mint)']);
+    }
   }
 
   return null;

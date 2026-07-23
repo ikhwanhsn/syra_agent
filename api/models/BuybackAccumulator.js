@@ -12,6 +12,10 @@ const buybackAccumulatorSchema = new mongoose.Schema(
     totalAccumulatedUsd: { type: Number, default: 0 },
     /** Lifetime revenue USD successfully flushed to buyback. */
     totalFlushedUsd: { type: Number, default: 0 },
+    /** Lifetime USD spent on Jupiter swaps (~80% of flushed revenue). */
+    totalBuybackUsdSpent: { type: Number, default: 0 },
+    /** Lifetime $SYRA acquired via buybacks (human-readable, 6 decimals). */
+    totalSyraAcquired: { type: Number, default: 0 },
     lastFlushAt: { type: Date, default: null },
     lastBuybackSignature: { type: String, default: null },
     lastBuybackOutAmount: { type: String, default: null },

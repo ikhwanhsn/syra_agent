@@ -16,7 +16,11 @@ import {
   resolveOpenBtcQuantRuns,
   runBtcQuantSignalCycle,
 } from "./btcQuantExperimentService.js";
-import { pickBestBtcQuantStrategy } from "./btcQuantExperimentEvolution.js";
+import {
+  pickBestBtcQuantStrategy,
+  getBtcQuantEvolutionSnapshot,
+  getEvolutionCooldownStrategyIds,
+} from "./btcQuantExperimentEvolution.js";
 import { resolveBtcQuantStrategyById } from "./btcQuantStrategyResolve.js";
 import { executeBtcQuantJupiterSwap, BTC_QUANT_SWAP_MINTS } from "./btcQuantJupiterSwap.js";
 import BtcQuantExperimentState from "../models/BtcQuantExperimentState.js";
@@ -313,6 +317,42 @@ export async function runBtcQuantRealSignalCycle(lane = "btc1") {
     return { lane: laneKey, skipped: true, reason: "holding_open_position" };
   }
 
+  // Refresh leader from sim when a better qualified strategy exists (do not freeze forever at enable).
+  const best = cfg.experimentId ? await pickBestBtcQuantStrategy(cfg.experimentId) : null;
+  if (!best) {
+    if (shouldTouchRealConfigMeta(cfg, "no_qualified_leader", "signal")) {
+      await BtcQuantRealConfig.updateOne(
+        { _id: configId },
+        { $set: { lastSignalAt: new Date(), lastError: "no_qualified_leader" } },
+      );
+    }
+    return { lane: laneKey, skipped: true, reason: "no_qualified_leader" };
+  }
+  if (best.strategyId !== cfg.leaderStrategyId) {
+    cfg.leaderStrategyId = best.strategyId;
+    await BtcQuantRealConfig.updateOne(
+      { _id: configId },
+      { $set: { leaderStrategyId: best.strategyId, lastError: null } },
+    );
+  }
+
+  const cooldownIds = await getEvolutionCooldownStrategyIds(laneKey);
+  if (cooldownIds.has(Number(cfg.leaderStrategyId))) {
+    if (shouldTouchRealConfigMeta(cfg, "leader_on_cooldown", "signal")) {
+      await BtcQuantRealConfig.updateOne(
+        { _id: configId },
+        { $set: { lastSignalAt: new Date(), lastError: "leader_on_cooldown" } },
+      );
+    }
+    return { lane: laneKey, skipped: true, reason: "leader_on_cooldown" };
+  }
+
+  const evoSnap = await getBtcQuantEvolutionSnapshot(laneKey);
+  const notionalMult = Math.min(
+    1,
+    Math.max(0.25, toNum(evoSnap?.thresholdOverrides?.maxNotionalMultiplier, 1)),
+  );
+
   const strategy = await resolveBtcQuantStrategyById(laneKey, cfg.leaderStrategyId ?? 14);
   if (!strategy) {
     return { lane: laneKey, skipped: true, reason: "invalid_strategy" };
@@ -350,10 +390,9 @@ export async function runBtcQuantRealSignalCycle(lane = "btc1") {
     return { lane: laneKey, skipped: true, reason: "no_sim_buy_signal" };
   }
 
-  const notionalUsd = Math.min(
-    toNum(simOpen.notionalUsd, cfg.maxNotionalUsd),
-    toNum(cfg.maxNotionalUsd, 200),
-  );
+  const notionalUsd =
+    Math.min(toNum(simOpen.notionalUsd, cfg.maxNotionalUsd), toNum(cfg.maxNotionalUsd, 200)) *
+    notionalMult;
   const usdcRaw = usdcRawFromUsd(notionalUsd);
   if (usdcRaw <= 0n) {
     return { lane: laneKey, skipped: true, reason: "zero_notional" };

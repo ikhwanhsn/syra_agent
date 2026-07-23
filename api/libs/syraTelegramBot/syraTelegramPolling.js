@@ -18,12 +18,43 @@ let polling = false;
 let conflictFailures = 0;
 
 const MAX_CONFLICT_FAILURES = 5;
+const POLL_HANDLER_CONCURRENCY = 5;
 
 /**
  * @param {number} ms
  */
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Run async tasks with a concurrency cap.
+ * @template T
+ * @param {T[]} items
+ * @param {number} concurrency
+ * @param {(item: T) => Promise<void>} worker
+ */
+async function mapWithConcurrency(items, concurrency, worker) {
+  if (items.length === 0) return;
+  const limit = Math.max(1, Math.min(concurrency, items.length));
+  let nextIndex = 0;
+
+  async function runOne() {
+    while (nextIndex < items.length) {
+      const i = nextIndex;
+      nextIndex += 1;
+      try {
+        await worker(items[i]);
+      } catch (e) {
+        console.error(
+          '[syra-telegram] update handler error:',
+          e instanceof Error ? e.message : e,
+        );
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: limit }, () => runOne()));
 }
 
 async function pollOnce() {
@@ -64,16 +95,16 @@ async function pollOnce() {
 
   const updates = Array.isArray(data?.result) ? data.result : [];
 
+  // Advance offset before handling so a slow brain call cannot re-deliver updates.
   for (const update of updates) {
     if (typeof update?.update_id === 'number') {
-      offset = update.update_id + 1;
-    }
-    try {
-      await handleSyraTelegramUpdate(update);
-    } catch (e) {
-      console.error('[syra-telegram] update handler error:', e instanceof Error ? e.message : e);
+      offset = Math.max(offset, update.update_id + 1);
     }
   }
+
+  await mapWithConcurrency(updates, POLL_HANDLER_CONCURRENCY, async (update) => {
+    await handleSyraTelegramUpdate(update);
+  });
 }
 
 /**

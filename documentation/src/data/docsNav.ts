@@ -41,6 +41,7 @@ export const navigation: NavItem[] = [
       { title: "Getting Started", href: "/docs/agent/getting-started" },
       { title: "How It Works", href: "/docs/agent/how-it-works" },
       { title: "Agent Features", href: "/docs/agent/features" },
+      { title: "Telegram Bot", href: "/docs/telegram-bot" },
       { title: "Supported Tokens", href: "/docs/agent/supported-tokens" },
       {
         title: "Data & reference",

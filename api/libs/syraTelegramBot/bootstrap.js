@@ -1,5 +1,9 @@
 /**
  * Boot Syra Telegram AI bot (webhook registration + optional polling).
+ *
+ * Product policy: secondary consumer surface — maintenance only until settlement
+ * + weekly unique payers ungate. See docs/TELEGRAM_MAINTENANCE_POLICY.md.
+ * Do not add acquisition / viral features here without Product sign-off.
  */
 import {
   isSyraTelegramBotEnabled,

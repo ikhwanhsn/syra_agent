@@ -60,12 +60,16 @@ Cost floor: upstream API keys, RPC, settlement facilitators, infra. Price so fir
 
 | Outcome | Builds | Owner |
 |---------|--------|--------|
+| Settlement trustworthy | Facilitator credits/gas ops; settle_failed alerts; settled-only metrics | Eng / Ops |
 | Stranger completes first paid call in &lt;10 min | Canonical MCP quickstart + funding steps | Product / DevRel |
 | Funnel is measurable | First 402 → first paid → D7 repeat on KPI + public metrics | Eng |
 | One brand story | Machine Money + pillar status everywhere | Product |
-| Proof line public | Weekly paid calls + unique payers on home (`/`) | Eng / Growth |
+| Proof line public | Weekly **settled** paid calls + unique payers on home (`/`) | Eng / Growth |
+| Agent GTM | [docs/AGENT_BUILDER_GTM.md](./AGENT_BUILDER_GTM.md) — MCP/SDK only | Growth |
+| Telegram hold | [docs/TELEGRAM_MAINTENANCE_POLICY.md](./TELEGRAM_MAINTENANCE_POLICY.md) | Product |
 
-**Risk if skipped:** Marketing burns attention into a broken activation gate.
+**Risk if skipped:** Marketing burns attention into a broken activation gate.  
+**Ops runbook:** [api/docs/CELO_FACILITATOR_OPS.md](../api/docs/CELO_FACILITATOR_OPS.md)
 
 ### 90 days — Prove retention and wedge
 
@@ -129,6 +133,8 @@ Gather before pitching:
 | Token-led growth / buyback as primary CTA | Wrong ICP; dilutes product story |
 | Multi-brand distraction outside Syra | This repo is Syra-only; keep GTM on Spend activation |
 | Trading-bot heritage as hero CTA | Off-path for Machine Money |
+| Telegram as primary acquisition | Secondary until settlement + payer growth ungate — see TELEGRAM_MAINTENANCE_POLICY.md |
+| Waitlist / email as activation | Not a paid-call rail; starve vs MCP GTM |
 | Shipping Grow as “optimizer” before edge exists | Trust risk |
 | Rewriting the monorepo | Activation & measurement first |
 
@@ -145,4 +151,7 @@ This repository ships **Syra only** — x402 Spend wedge, MCP/SDK distribution, 
 - Brand modules: `web/src/lib/syraBranding.ts`, `api/config/syraBranding.js`, `documentation/src/content/syraBrand.ts`
 - Pillars: `api/config/pillars.js` · `GET /pillars`
 - Quickstart: `web` marketplace Integrate tab · docs MCP/SDK
-- Metrics: `api/libs/publicMetricsService.js` · `GET /analytics/kpi`
+- Metrics: `api/libs/publicMetricsService.js` · `GET /api/metrics` · `GET /analytics/kpi`
+- Settlement ops: `api/docs/CELO_FACILITATOR_OPS.md` · `api/libs/settleFailedMonitor.js`
+- Agent GTM: `docs/AGENT_BUILDER_GTM.md`
+- Telegram hold: `docs/TELEGRAM_MAINTENANCE_POLICY.md`

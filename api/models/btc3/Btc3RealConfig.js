@@ -24,6 +24,11 @@ const btc3RealConfigSchema = new mongoose.Schema(
     lastEnabledBy: { type: String, default: null },
     capitalBaselineUsd: { type: Number, default: null, min: 0 },
     processing: { type: Boolean, default: false },
+    /** Earn Yield public listing + fee/cap fields. */
+    performanceFeeBps: { type: Number, default: 1000, min: 0, max: 5000 },
+    publicMaxDepositUsdc: { type: Number, default: 500, min: 10, max: 10000 },
+    publicEarnListed: { type: Boolean, default: false, index: true },
+    depositsPaused: { type: Boolean, default: false },
   },
   { collection: "btc3_real_config", timestamps: true },
 );

@@ -3,6 +3,7 @@
 import { ExternalLink } from "lucide-react";
 import { Link } from "@/lib/navigation";
 import { AboutTokenBar } from "@/components/about/AboutTokenBar";
+import { GrowthBuybackProofPanel } from "@/components/growth/GrowthBuybackProofPanel";
 import { GrowthFooter } from "@/components/growth/GrowthFooter";
 import { TokenSection } from "@/components/marketing/TokenSection";
 import { PlaygroundPageShell } from "@/components/playground/PlaygroundPageShell";
@@ -24,8 +25,8 @@ export function TokenPageView() {
             Token details
           </h1>
           <p className="text-base leading-relaxed text-muted-foreground sm:text-[17px]">
-            Mint, buy links, utility, and buyback disclosure for $SYRA. Live product traction is on the
-            home metrics page — this page is the token detail surface.
+            Mint, buy links, live utility, and verifiable revenue → $SYRA buybacks. Product traction
+            stays on the home metrics page — this page is the token detail + proof surface.
           </p>
           <div className="flex flex-wrap gap-2 pt-1">
             <Button variant="outline" size="sm" className="h-9 rounded-lg" asChild>
@@ -33,6 +34,9 @@ export function TokenPageView() {
             </Button>
             <Button variant="outline" size="sm" className="h-9 rounded-lg" asChild>
               <Link to="/staking">Stake $SYRA</Link>
+            </Button>
+            <Button variant="outline" size="sm" className="h-9 rounded-lg" asChild>
+              <Link to="/rewards">Usage rewards</Link>
             </Button>
             <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-lg" asChild>
               <a href={DOCS_TOKENOMICS} target="_blank" rel="noopener noreferrer">
@@ -51,6 +55,10 @@ export function TokenPageView() {
             </Button>
           </div>
         </header>
+
+        <div className="mb-8">
+          <GrowthBuybackProofPanel />
+        </div>
 
         <div className="mb-10">
           <AboutTokenBar />

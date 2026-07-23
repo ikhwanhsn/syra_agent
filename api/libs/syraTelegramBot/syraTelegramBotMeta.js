@@ -103,6 +103,8 @@ export async function registerSyraTelegramCommands() {
     { command: 'wallet', description: 'View wallet & balances' },
     { command: 'portfolio', description: 'View all token holdings' },
     { command: 'referral', description: 'Referral link & stats' },
+    { command: 'digest', description: 'Syra Daily on/off' },
+    { command: 'mute', description: 'Mute daily digests' },
     { command: 'help', description: 'How to use Syra bot' },
   ];
 

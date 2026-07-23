@@ -53,7 +53,13 @@ export function resolveInboundFacilitator(req) {
   if (xp.useOkxFacilitator) return 'okx';
   if (xp.resourceServerProfile === 'corbits') return 'corbits';
   if (xp.resourceServerProfile === 'dexter') return 'dexter';
+  if (xp.resourceServerProfile === 'celo') return 'celo';
   if (xp.resourceServerProfile === 'payai') return 'payai';
+  // Labs header path may settle Celo before resourceServerProfile is mirrored
+  const labChain = String(req?.get?.('x-lab-x402-chain') || '')
+    .trim()
+    .toLowerCase();
+  if (labChain === 'celo') return 'celo';
   return null;
 }
 

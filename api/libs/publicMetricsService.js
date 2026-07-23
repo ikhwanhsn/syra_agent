@@ -7,6 +7,10 @@ import X402CallLog from '../models/X402CallLog.js';
 import { getPayaiPayToAddresses } from '../config/payaiX402Networks.js';
 import { SYRA_LIVE_SUBLINE, SYRA_TAGLINE } from '../config/syraBranding.js';
 import { buildActivationFunnel } from './activationFunnelService.js';
+import { buildSettlementHealthSnapshot } from './settlementHealthService.js';
+import { buildPublicBuybackSnapshot } from './publicBuybackMetrics.js';
+import { buildPublicHolderFunnelSnapshot } from './holderFunnelService.js';
+import { buildPublicRewardsSnapshot } from './syraUsageRewards.js';
 
 const PAID_MATCH = { outcome: 'paid', direction: 'inbound' };
 
@@ -51,6 +55,10 @@ export async function buildPublicMetricsSnapshot() {
     byNetworkAgg,
     recentPaid,
     activation,
+    settlement,
+    buyback,
+    holders,
+    rewards,
   ] = await Promise.all([
     PaidApiCall.countDocuments(),
     PaidApiCall.countDocuments({ createdAt: { $gte: oneDayAgo } }),
@@ -106,13 +114,18 @@ export async function buildPublicMetricsSnapshot() {
       .limit(50)
       .lean(),
     buildActivationFunnel().catch(() => null),
+    buildSettlementHealthSnapshot().catch(() => null),
+    buildPublicBuybackSnapshot().catch(() => null),
+    buildPublicHolderFunnelSnapshot().catch(() => null),
+    buildPublicRewardsSnapshot().catch(() => null),
   ]);
 
   const totalUsd = totalUsdAgg[0]?.total ?? 0;
   const usdLast24h = usdLast24hAgg[0]?.total ?? 0;
   const usdLast7d = usdLast7dAgg[0]?.total ?? 0;
   const treasury = getPublicTreasuryAddresses();
-  const callCount = Math.max(totalPaidCalls, x402PaidCalls);
+  // Prefer X402 paid outcomes for call counts so PaidApiCall duplicates cannot inflate traction.
+  const callCount = x402PaidCalls > 0 ? x402PaidCalls : totalPaidCalls;
   const avgPerCall = callCount > 0 ? totalUsd / callCount : 0;
 
   return {
@@ -120,6 +133,9 @@ export async function buildPublicMetricsSnapshot() {
     service: 'Syra',
     tagline: `${SYRA_TAGLINE} — ${SYRA_LIVE_SUBLINE}`,
     updatedAt: now.toISOString(),
+    /** All USD fields below are outcome=paid (settled) only — never quoted 402 amounts. */
+    accountingNote:
+      'totalUsdSettled / usdSettled are sum(amountUsd) where outcome=paid. Do not market sum(amountUsd) across payment_required.',
     lifetime: {
       totalCalls: callCount,
       totalUsdSettled: roundUsd(totalUsd),
@@ -143,6 +159,7 @@ export async function buildPublicMetricsSnapshot() {
       uniquePayingWalletsLast7d: null,
     },
     funnel: activation?.funnel ?? null,
+    settlement: settlement ?? null,
     bySource: activation?.bySource ?? null,
     treasury,
     verifyOnChain: {
@@ -160,6 +177,9 @@ export async function buildPublicMetricsSnapshot() {
     })),
     dailyCalls: dailyCallsAgg.map((d) => ({ date: d._id, count: d.count })),
     recentCalls: recentPaid.map(sanitizeLiveCall),
+    buyback: buyback ?? null,
+    holders: holders ?? null,
+    rewards: rewards ?? null,
   };
 }
 

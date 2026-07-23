@@ -134,6 +134,27 @@ if (selfSettleEnabled) {
   );
 }
 
+// Public facilitator relayer (Track 2 settlements are submitted by this address).
+const CELO_FACILITATOR_RELAYER = '0x0d74D5Cefd2e7F24E623330ebE3d8D4cB45fFB48';
+try {
+  const client = createPublicClient({ chain: celo, transport: http(getCeloRpcUrl()) });
+  const relayerBal = await client.getBalance({
+    address: /** @type {`0x${string}`} */ (CELO_FACILITATOR_RELAYER),
+  });
+  console.log('Facilitator relayer:', CELO_FACILITATOR_RELAYER);
+  console.log('Facilitator relayer CELO balance:', formatEther(relayerBal));
+  if (relayerBal === 0n) {
+    console.warn(
+      'WARNING: Facilitator relayer CELO is 0 — settle_failed with insufficient gas is likely. See api/docs/CELO_FACILITATOR_OPS.md',
+    );
+  }
+} catch (e) {
+  console.warn(
+    'Could not read facilitator relayer balance:',
+    e instanceof Error ? e.message : e,
+  );
+}
+
 // Ready when Track 1 tagging works AND Track 2 facilitator key is configured (when facilitator settle is on).
 process.exitCode = track1Ok && (!settleViaFacilitator || track2Ok) ? 0 : 1;
 

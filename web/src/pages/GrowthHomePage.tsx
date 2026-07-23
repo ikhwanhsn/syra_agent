@@ -11,11 +11,9 @@ import {
   Plug,
   Terminal,
   Wallet,
-  Zap,
 } from "lucide-react";
 import { usePublicMetrics, type PublicMetricsSnapshot } from "@/lib/publicMetricsApi";
 import { SYRA_LIVE_SUBLINE, SYRA_TAGLINE } from "@/lib/syraBranding";
-import { SYRA_TOKEN_PAGE_PATH } from "@/content/syraFocus";
 import { SyraBuyButton } from "@/components/syra/SyraBuyButton";
 import { GrowthTokenSection } from "@/components/growth/GrowthTokenSection";
 import { GrowthTrustRankings } from "@/components/growth/GrowthTrustRankings";
@@ -50,27 +48,27 @@ function formatUsd(n: number): string {
 const HOW_STEPS = [
   {
     n: "01",
-    title: "Install once",
-    body: "MCP in Cursor or Claude — or the typed SDK. One payer wallet for the catalog.",
+    title: "Install MCP",
+    body: "One command in Cursor or Claude. Same path as the marketplace Integrate tab.",
     href: "https://docs.syraa.fun/docs/build/mcp",
     external: true,
     icon: Plug,
   },
   {
     n: "02",
-    title: "Pay per call",
-    body: "HTTP 402 settles Solana USDC. First successful paid call in about five minutes.",
+    title: "Fund Solana USDC",
+    body: "Set SYRA_PAYER_KEYPAIR with ≥ $1 USDC (and a little SOL for fees).",
     href: "/marketplace",
     external: false,
-    icon: Terminal,
+    icon: Wallet,
   },
   {
     n: "03",
-    title: "Hold $SYRA",
-    body: "Utility on the same rails — swap, stake, and follow buyback disclosure.",
-    href: SYRA_TOKEN_PAGE_PATH,
+    title: "Call syra_spend_news",
+    body: "First settled paid call in about five minutes — then expand the catalog.",
+    href: "/marketplace",
     external: false,
-    icon: Zap,
+    icon: Terminal,
   },
 ] as const;
 
@@ -193,6 +191,43 @@ function MetricsBody({
             <ProofStat
               label="First paid · 30d"
               value={formatNum(data.funnel.firstPaidPayersLast30d)}
+            />
+          </div>
+        </div>
+      ) : null}
+
+      {data.settlement?.last7d ? (
+        <div className={cn(growthPanelQuietClass, "p-5 sm:p-6")}>
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <p className={growthKickerClass}>Settlement</p>
+              <h3 className="mt-1 font-display text-lg font-semibold tracking-tight">
+                Settled USDC only (not quoted 402s)
+              </h3>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Fail rate 7d: {(data.settlement.last7d.settleFailRate * 100).toFixed(1)}%
+              {data.settlement.last1h?.aboveAlertThreshold ? " · alert 1h" : ""}
+            </p>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <ProofStat
+              label="Settled USD · 7d"
+              value={formatUsd(data.settlement.last7d.settledUsd)}
+              hint={`${formatUsd(data.settlement.last24h?.settledUsd ?? 0)} last 24h`}
+            />
+            <ProofStat
+              label="Paid settles · 7d"
+              value={formatNum(data.settlement.last7d.outcomes.paid)}
+            />
+            <ProofStat
+              label="Settle failed · 7d"
+              value={formatNum(data.settlement.last7d.outcomes.settle_failed)}
+              hint="Target under 5% of attempts"
+            />
+            <ProofStat
+              label="402 challenges · 7d"
+              value={formatNum(data.settlement.last7d.outcomes.payment_required)}
             />
           </div>
         </div>

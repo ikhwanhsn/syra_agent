@@ -330,15 +330,18 @@ export async function applyPaperRebalance(input) {
   let direction = "hold";
   let usdcAmount = toNum(paper.usdcAmount);
   let btcAmount = toNum(paper.btcAmount);
+  const notionalUsd = roundUsd(Math.abs(usdcDelta));
+  const roundTripBps = toNum(cfg.roundTripCostBps, 110);
+  const feeUsd = roundUsd(notionalUsd * (roundTripBps / 10_000));
 
   if (usdcDelta < 0) {
     direction = "buy_btc";
     const usdcSpend = Math.abs(usdcDelta);
-    usdcAmount = roundUsd(usdcAmount - usdcSpend);
+    usdcAmount = roundUsd(usdcAmount - usdcSpend - feeUsd);
     btcAmount += usdcSpend / btcPriceUsd;
   } else if (usdcDelta > 0) {
     direction = "sell_btc";
-    usdcAmount = roundUsd(usdcAmount + usdcDelta);
+    usdcAmount = roundUsd(usdcAmount + usdcDelta - feeUsd);
     btcAmount -= btcDelta;
   }
 
@@ -355,7 +358,7 @@ export async function applyPaperRebalance(input) {
     btcPriceUsd,
     usdcDelta: direction === "buy_btc" ? -Math.abs(usdcDelta) : usdcDelta,
     btcDelta: direction === "buy_btc" ? Math.abs(btcDelta) : -Math.abs(btcDelta),
-    notionalUsd: roundUsd(Math.abs(usdcDelta)),
+    notionalUsd,
     beforeAllocation: { btcPct: before.btcPct, usdcPct: before.usdcPct, totalUsd: before.totalUsd },
     afterAllocation: { btcPct: after.btcPct, usdcPct: after.usdcPct, totalUsd: after.totalUsd },
     equityUsd: after.totalUsd,

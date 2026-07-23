@@ -9,6 +9,7 @@ import { AppProviders } from "@/components/providers/AppProviders";
 import Index from "@/pages/Index";
 import NotFound from "@/pages/NotFound";
 import GrowthHomePage from "@/pages/GrowthHomePage";
+import { RoutePageLoader } from "@/components/PageLoader";
 
 const DashboardLayout = lazy(() => import("@/pages/DashboardLayout"));
 const DashboardOverview = lazy(() => import("@/pages/DashboardOverview"));
@@ -16,6 +17,7 @@ const DashboardSettings = lazy(() => import("@/pages/DashboardSettings"));
 const AgentWalletPage = lazy(() => import("@/pages/AgentWalletPage"));
 const AboutPage = lazy(() => import("@/pages/AboutPage"));
 const TokenPage = lazy(() => import("@/pages/TokenPage"));
+const RewardsPage = lazy(() => import("@/pages/RewardsPage"));
 const AssetsPage = lazy(() => import("@/pages/AssetsPage"));
 const AssetDetailPage = lazy(() => import("@/pages/AssetDetailPage"));
 const ShareableChatRoute = lazy(() => import("@/pages/ShareableChatRoute"));
@@ -62,6 +64,9 @@ const BtcQuantExperiment = lazy(() => import("@/pages/BtcQuantExperiment"));
 const Btc2QuantAgentExperiment = lazy(() => import("@/pages/Btc2QuantAgentExperiment"));
 const Btc3MacroAgentExperiment = lazy(() => import("@/pages/Btc3MacroAgentExperiment"));
 const StocksNewsExperiment = lazy(() => import("@/pages/StocksNewsExperiment"));
+const MomentumRotatorExperiment = lazy(() => import("@/pages/MomentumRotatorExperiment"));
+const LstLoopExperiment = lazy(() => import("@/pages/LstLoopExperiment"));
+const SniperExperiment = lazy(() => import("@/pages/SniperExperiment"));
 const ScalperExperiment = lazy(() => import("@/pages/ScalperExperiment"));
 const MmExperiment = lazy(() => import("@/pages/MmExperiment"));
 const LabsPage = lazy(() => import("@/pages/labs/LabsPage"));
@@ -93,14 +98,6 @@ const PostStudioLayout = lazy(() =>
 const PostPage = lazy(() => import("@/pages/PostPage"));
 const PostVideoPage = lazy(() => import("@/pages/PostVideoPage"));
 const PostPhotoPage = lazy(() => import("@/pages/PostPhotoPage"));
-
-function RouteFallback() {
-  return (
-    <div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">
-      Loading…
-    </div>
-  );
-}
 
 function LegacyPumpfunPageRedirect() {
   const { search } = useLocation();
@@ -158,6 +155,7 @@ function AppRoutes() {
       <Route path="/agent" element={<Index />} />
       <Route path="/about" element={<AboutPage />} />
       <Route path="/token" element={<TokenPage />} />
+      <Route path="/rewards" element={<RewardsPage />} />
       <Route path="/privacy" element={<MarketingPrivacyPolicy />} />
       <Route path="/terms" element={<MarketingTermsOfService />} />
       <Route path="/cookies" element={<MarketingCookiePolicy />} />
@@ -294,6 +292,30 @@ function AppRoutes() {
           }
         />
         <Route
+          path="/momentum-rotator"
+          element={
+            <AdminExperimentRoute>
+              <MomentumRotatorExperiment />
+            </AdminExperimentRoute>
+          }
+        />
+        <Route
+          path="/lst-loop"
+          element={
+            <AdminExperimentRoute>
+              <LstLoopExperiment />
+            </AdminExperimentRoute>
+          }
+        />
+        <Route
+          path="/alpha-sniper"
+          element={
+            <AdminExperimentRoute>
+              <SniperExperiment />
+            </AdminExperimentRoute>
+          }
+        />
+        <Route
           path="/scalper"
           element={
             <AdminExperimentRoute>
@@ -395,7 +417,7 @@ function AppRoutes() {
 const App = () => (
   <AppProviders>
     <BrowserRouter>
-      <Suspense fallback={<RouteFallback />}>
+      <Suspense fallback={<RoutePageLoader />}>
         <Routes>
           <Route path="/deck" element={<DeckPage />} />
           <Route path="/info" element={<InfoPage />} />

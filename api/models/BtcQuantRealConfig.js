@@ -25,6 +25,11 @@ const btcQuantRealConfigSchema = new mongoose.Schema(
     lastEnabledBy: { type: String, default: null },
     closeAllRequested: { type: Boolean, default: false },
     capitalBaselineUsd: { type: Number, default: null, min: 0 },
+    /** Earn Yield public listing + fee/cap fields. */
+    performanceFeeBps: { type: Number, default: 1000, min: 0, max: 5000 },
+    publicMaxDepositUsdc: { type: Number, default: 200, min: 10, max: 5000 },
+    publicEarnListed: { type: Boolean, default: false, index: true },
+    depositsPaused: { type: Boolean, default: false },
   },
   { collection: "btc_quant_real_config", timestamps: true },
 );

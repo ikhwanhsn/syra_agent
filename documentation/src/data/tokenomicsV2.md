@@ -39,7 +39,7 @@ Our distribution prioritizes community ownership and long-term sustainability.
 
 ## Token Utility (x402-Optimized)
 
-$SYRA supports the live x402 Spend rail and broader platform modules. Today, agents pay for APIs with **USDC via x402**; staking discounts and governance are **roadmap** until wired into live billing.
+$SYRA supports the live x402 Spend rail and broader platform modules. Agents pay for APIs with **USDC via x402**; **holder/staker fee discounts and usage rewards are live**. Governance voting remains **roadmap**.
 
 ### 1. **x402 API Access**
 
@@ -54,38 +54,36 @@ $SYRA supports the live x402 Spend rail and broader platform modules. Today, age
 - Birdeye on-chain read: $0.004 per call (upstream + 20%)
 - Syra Brain (tool selection + synthesis): $0.08 per request
 
-### 2. **Staking for Discounts (roadmap — not applied in API pricing yet)**
+### 2. **Hold / stake for x402 discounts (live)**
 
-> **Note:** x402 API prices are set in the Syra API (`x402Pricing` / `getEffectivePriceUsd`) and **do not** currently read on-chain stake or tier. The table below describes **planned** utility once staking is wired to billing.
+> **Live:** `resolveEffectivePriceUsdAsync` in the Syra API reads wallet $SYRA balance and active Streamflow stake (max of both) and applies the discount when building payment requirements.
 
-Lock $SYRA tokens to unlock tiered discounts on all x402 API calls:
+| Tier | Min $SYRA (hold or stake) | Discount | Additional benefits |
+| ---- | ------------------------- | -------- | ------------------- |
+| **Bronze** | 10,000 | 5% | — |
+| **Silver** | 100,000 | 10% | Elevated memecoin scan quota when staked |
+| **Gold** | 1,000,000 | 20% | Free agent tools (≥100k holder threshold configurable) |
+| **Whale** | 10,000,000 | 30% | Unlimited memecoin scans when staked |
 
-| Staking Tier | Tokens Required | Discount | Additional Benefits |
-| ------------ | --------------- | -------- | ------------------- |
-| **Bronze**   | 10,000          | 10%      | soon                |
-| **Silver**   | 50,000          | 25%      | soon                |
-| **Gold**     | 100,000         | 40%      | soon                |
-| **Platinum** | 500,000         | 50%      | soon                |
+Verify buybacks and claim usage rewards: [syraa.fun/token](https://www.syraa.fun/token), [syraa.fun/rewards](https://www.syraa.fun/rewards).
 
-**Lock periods:** 30-day minimum. Longer locks can unlock higher reward tiers.
-
-### 3. **Governance Rights**
+### 3. **Governance Rights (roadmap — not shipped)**
 
 - Vote on new intelligence API features
-- Approve data partnership investments (e.g., Bloomberg Terminal)
+- Approve data partnership investments
 - Decide airdrop rules, treasury allocation, and economic parameters
-- Community-driven roadmap prioritization
 
-**Voting Power:** 1 staked token = 1 vote
+**Status:** No on-chain or off-chain voting is live. Do not treat $SYRA as a governance token until this ships.
 
 ## x402 Buyback & Community Airdrops
 
-Paid x402 API traffic settles in USDC (and stablecoins). **In production, a fixed share of each settled payment is swapped into $SYRA** (via Jupiter) and **held in the Syra treasury wallet for future user airdrops**—tokens are **not** burned as part of this program.
+Paid x402 API traffic settles in USDC (and stablecoins). **In production, a fixed share of each settled payment is swapped into $SYRA** (via Jupiter) and **held in the Syra treasury wallet for usage rewards / community airdrops**—tokens are **not** burned as part of this program. Public proof: `GET /api/metrics` → `buyback` and [syraa.fun/token](https://www.syraa.fun/token).
 
 | Mechanism              | Allocation / behavior                         | Frequency        |
 | ---------------------- | ----------------------------------------------- | ---------------- |
-| **USDC x402 payments** | ~80% of each settled fee → SYRA buyback (Jupiter), kept for airdrops | Each settled paid call (production) |
-| **Other burns / sinks** | e.g. optional governance fees, unclaimed staking (roadmap) | If / when enabled |
+| **USDC x402 payments** | ~80% of settled fee → SYRA buyback (Jupiter), kept for rewards | Batched ~24h (production) |
+| **Usage rewards** | Paying wallets accrue points → claimable $SYRA from treasury | Epoch fund + `/rewards/claim` |
+| **Other burns / sinks** | e.g. optional governance fees (roadmap) | If / when enabled |
 
 **Illustrative buyback volume (directional):**
 

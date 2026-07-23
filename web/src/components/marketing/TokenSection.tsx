@@ -193,33 +193,38 @@ const SOLSCAN_TOKEN_URL = `https://solscan.io/token/${SYRA_TOKEN_MINT}?activity_
 const utilities = [
   {
     icon: Gift,
-    title: "Buyback & Airdrops",
+    title: "Buyback & usage rewards",
     description:
-      "A portion of every x402 payment is used to buy $SYRA on-market and hold it in treasury for future community airdrops—rewarding users as usage grows.",
-    highlight: "",
-    solscanUrl: SOLSCAN_TOKEN_URL,
+      "In production, ~80% of settled x402 USDC revenue is swapped to $SYRA via Jupiter and held in treasury. Paying wallets accrue claimable usage rewards from that inventory.",
+    highlight: "Live — verify on /token",
+    href: "/token",
+    status: "live" as const,
+  },
+  {
+    icon: Lock,
+    title: "x402 fee discounts",
+    description:
+      "Hold or stake $SYRA for tiered API fee discounts (10k / 100k / 1M / 10M). Higher tiers also unlock elevated memecoin scan limits and free agent tools.",
+    highlight: "Live in API pricing",
+    href: LINK_STAKING,
+    status: "live" as const,
+  },
+  {
+    icon: TrendingUp,
+    title: "Premium access",
+    description:
+      "Stake $SYRA on Streamflow to raise Pumpfun Alpha scan quotas and unlock holder perks in the agent.",
+    highlight: "Live on Syra Staking",
+    href: LINK_STAKING,
+    status: "live" as const,
   },
   {
     icon: Vote,
     title: "Governance",
     description:
-      "Hold $SYRA to vote on protocol upgrades, new feature prioritization, and treasury allocations.",
-    highlight: "1 token = 1 vote",
-  },
-  {
-    icon: Lock,
-    title: "Premium Access",
-    description:
-      "Stake $SYRA to unlock premium modules, higher API limits, and exclusive alpha signals.",
-    highlight: "Live on Syra Staking",
-    href: LINK_STAKING,
-  },
-  {
-    icon: TrendingUp,
-    title: "Revenue Share",
-    description:
-      "Stakers receive 10% of protocol revenue, distributed weekly in SOL/USDC.",
-    highlight: "10% to stakers",
+      "On-chain / off-chain voting for roadmap and treasury allocations is planned — not shipped yet. Do not treat $SYRA as a governance token today.",
+    highlight: "Roadmap",
+    status: "roadmap" as const,
   },
 ];
 
@@ -279,9 +284,11 @@ export const TokenSection = () => {
         href: LINK_STAKING,
       },
       {
-        label: "Buybacks → airdrops",
-        value: "Active",
+        label: "Buybacks → rewards",
+        value: "Live",
         valueClass: "text-success" as const,
+        subLabel: "Verify flushes on /token",
+        href: "/token",
       },
     ],
     [isPendingStaking, stakingDisplay],
@@ -332,9 +339,10 @@ export const TokenSection = () => {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="max-w-3xl mx-auto text-lg text-muted-foreground"
           >
-            $SYRA aligns incentives for the agent economy around Syra—govern
-            the roadmap, unlock premium agent modules and API tiers, and share
-            in protocol revenue as usage scales.
+            $SYRA is the alignment token for Syra&apos;s agent economy. Hold or
+            stake for live x402 fee discounts; paid API usage funds on-market
+            buybacks that feed claimable usage rewards. Governance voting is
+            roadmap — not live yet.
           </motion.p>
 
           {/* Token Details Card */}
@@ -486,35 +494,37 @@ export const TokenSection = () => {
                     </p>
                     {util.highlight && (
                       "href" in util && util.href ? (
-                        <a
-                          href={util.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={cn(
-                            "inline-flex items-center gap-1 text-xs font-medium hover:underline",
-                            accentText,
-                          )}
-                        >
-                          {util.highlight}
-                          <ExternalLink className="h-3 w-3" aria-hidden />
-                        </a>
+                        util.href.startsWith("http") ? (
+                          <a
+                            href={util.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={cn(
+                              "inline-flex items-center gap-1 text-xs font-medium hover:underline",
+                              accentText,
+                            )}
+                          >
+                            {util.highlight}
+                            <ExternalLink className="h-3 w-3" aria-hidden />
+                          </a>
+                        ) : (
+                          <Link
+                            to={util.href}
+                            className={cn(
+                              "inline-flex items-center gap-1 text-xs font-medium hover:underline",
+                              accentText,
+                            )}
+                          >
+                            {util.highlight}
+                            {"status" in util && util.status === "roadmap" ? " · soon" : ""}
+                          </Link>
+                        )
                       ) : (
                         <span className={cn("text-xs font-medium", accentText)}>
                           {util.highlight}
+                          {"status" in util && util.status === "roadmap" ? " · not shipped" : ""}
                         </span>
                       )
-                    )}
-                    {"solscanUrl" in util && util.solscanUrl && (
-                      <a
-                        href={util.solscanUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={cn("mt-3 inline-flex items-center gap-1.5 text-xs font-medium hover:underline", accentText)}
-                        title="View $SYRA on Solscan"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        View $SYRA on Solscan
-                      </a>
                     )}
                   </div>
                 </div>

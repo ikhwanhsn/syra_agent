@@ -1451,7 +1451,38 @@ async function filterQualifiedRealStrategyRows(ranked, experimentId) {
     return shadowed.length > 0 ? shadowed : sorted;
   }
 
+  // Safe fallback: best eligible with positive net PnL and ≥3 decided — prevents starvation
+  // when win-rate gate is temporarily unmet. Prefer highest realLeaderScore.
+  const safeFallback = eligible
+    .filter((row) => row.sumNetPnlSol > 0 && row.decided >= 3)
+    .sort((a, b) => b.realLeaderScore - a.realLeaderScore);
+  if (safeFallback.length > 0) {
+    const top = [{ ...safeFallback[0], safeFallback: true }];
+    const shadowed = await applyRealShadowGate(top, experimentId);
+    return shadowed.length > 0 ? shadowed : top;
+  }
+
   return [];
+}
+
+/**
+ * Soft fallback when no strategy passes profit gates — pick best eligible by composite score
+ * even if slightly negative, so the agent can stay warm with reduced size rather than starve.
+ * Caller must treat `safeFallback` / `softFallback` as lower conviction.
+ * Prefer returning null over softFallback for live opens — softFallback is negative PnL.
+ */
+export async function selectSafeFallbackStrategyLeader(ranked) {
+  const eligible = (ranked || []).filter((row) => isLpRealEligibleStrategyId(row.strategyId));
+  if (eligible.length === 0) return null;
+  const byScore = [...eligible].sort((a, b) => b.realLeaderScore - a.realLeaderScore);
+  const positive = byScore.find((row) => row.sumNetPnlSol > 0 && row.decided >= 3);
+  if (positive) return { ...positive, safeFallback: true };
+  // Soft (negative) fallback — marked for size cut or skip by caller; do not prefer it.
+  const leastBad = byScore.find((row) => row.decided >= 6 && (row.winRate ?? 0) >= 0.55);
+  if (leastBad && leastBad.sumNetPnlSol > -0.05) {
+    return { ...leastBad, softFallback: true };
+  }
+  return null;
 }
 
 async function selectProfitableStrategyLeader(ranked, experimentId) {
@@ -1468,7 +1499,12 @@ export async function selectQualifiedStrategiesForReal(ranked, { maxCount = 8, e
   const expId =
     experimentId ??
     (await getSingletonStateDoc().then((s) => s?.activeExperimentId ?? null).catch(() => null));
-  const rows = (await filterQualifiedRealStrategyRows(ranked, expId)).slice(0, Math.max(1, maxCount));
+  let rows = (await filterQualifiedRealStrategyRows(ranked, expId)).slice(0, Math.max(1, maxCount));
+  if (rows.length === 0) {
+    const fallback = await selectSafeFallbackStrategyLeader(ranked);
+    // Never promote softFallback (negative/thin) to full-size opens — pause instead.
+    if (fallback && !fallback.softFallback) rows = [fallback];
+  }
   const out = [];
   for (const stats of rows) {
     if (!isLpRealEligibleStrategyId(stats.strategyId)) continue;
@@ -1485,6 +1521,8 @@ export async function selectQualifiedStrategiesForReal(ranked, { maxCount = 8, e
       runCount: stats.runCount,
       winRate: stats.winRate,
       realLeaderScore: stats.realLeaderScore,
+      safeFallback: Boolean(stats.safeFallback),
+      softFallback: Boolean(stats.softFallback),
       strategy,
     });
   }
@@ -1510,6 +1548,34 @@ export async function pickBestNetPnlStrategy() {
 
   const selected = await selectProfitableStrategyLeader(ranked, experimentId);
   if (!selected) {
+    const fallback = await selectSafeFallbackStrategyLeader(ranked);
+    // softFallback = negative/thin — pause opens rather than trade full-size losers.
+    if (fallback && !fallback.softFallback) {
+      const strategy = await resolveLpStrategyById(fallback.strategyId);
+      if (strategy) {
+        return {
+          strategy: {
+            strategyId: strategy.id,
+            strategyName: strategy.name,
+            lpShape: strategy.lpShape,
+            sumNetPnlSol: fallback.sumNetPnlSol,
+            avgNetPnlSol: fallback.avgDecidedNetPnlSol,
+            rankScore: fallback.rankScore,
+            decided: fallback.decided,
+            runCount: fallback.runCount,
+            winRate: fallback.winRate,
+            realLeaderScore: fallback.realLeaderScore,
+            safeFallback: true,
+            softFallback: false,
+            strategy,
+          },
+          stats: fallback,
+          failureReason: null,
+          ranked,
+          usedSafeFallback: true,
+        };
+      }
+    }
     return { strategy: null, stats: null, failureReason: "no_profitable_strategy", ranked };
   }
 

@@ -15,6 +15,7 @@ import {
 } from "./binanceSpotClient.js";
 import { getGiza, getAgentByOwner, hasGizaCredentials } from "./gizaClient.js";
 import { getBalances, submitPrompt, getJob, cancelJob, bankrConfig } from "./bankrClient.js";
+import { getMevxTrades, getMevxToken, getMevxPools, mevxConfig } from "./mevxClient.js";
 import {
   getUsersByFids,
   getUserByUsername,
@@ -503,6 +504,48 @@ export async function runAgentPartnerDirectTool(toolId, params, opts = {}) {
         if (!agent) return { ok: false, error: "Failed to get Giza agent", status: 502 };
         await agent.updateProtocols(protocolList);
         return { ok: true, data: { success: true, message: "Protocols updated" } };
+      }
+
+      case "mevx-trades": {
+        if (!mevxConfig.configured) {
+          return {
+            ok: false,
+            error:
+              "MevX not configured. Set MEVX_API_KEY in API .env (https://landing-api.mevx.io/).",
+            status: 503,
+          };
+        }
+        const result = await getMevxTrades(params);
+        if (result.error) return { ok: false, error: result.error, status: 502 };
+        return { ok: true, data: result.data };
+      }
+
+      case "mevx-token": {
+        if (!mevxConfig.configured) {
+          return {
+            ok: false,
+            error:
+              "MevX not configured. Set MEVX_API_KEY in API .env (https://landing-api.mevx.io/).",
+            status: 503,
+          };
+        }
+        const result = await getMevxToken(params);
+        if (result.error) return { ok: false, error: result.error, status: 502 };
+        return { ok: true, data: result.data };
+      }
+
+      case "mevx-pools": {
+        if (!mevxConfig.configured) {
+          return {
+            ok: false,
+            error:
+              "MevX not configured. Set MEVX_API_KEY in API .env (https://landing-api.mevx.io/).",
+            status: 503,
+          };
+        }
+        const result = await getMevxPools(params);
+        if (result.error) return { ok: false, error: result.error, status: 502 };
+        return { ok: true, data: result.data };
       }
 
       case "bankr-balances": {

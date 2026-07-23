@@ -35,7 +35,8 @@ const COLUMNS = [
       { label: "Articles", href: "/articles" },
       { label: "Identity", href: "/identity" },
       { label: "X / Twitter", href: "https://x.com/syra_agent", external: true },
-      { label: "Telegram", href: "https://t.me/syra_ai", external: true },
+      { label: "Telegram bot", href: "https://t.me/syra_trading_bot", external: true },
+      { label: "Telegram community", href: "https://t.me/syra_ai", external: true },
     ],
   },
   {

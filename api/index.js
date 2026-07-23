@@ -51,6 +51,10 @@ import { createFreeTierRouter } from "./routes/freeTier.js";
 import { createInternalResearchRouter } from "./routes/internalResearch.js";
 import { createInternalPartnershipScoutRouter } from "./routes/internalPartnershipScout.js";
 import { createInternalBuybackRouter } from "./routes/internalBuyback.js";
+import {
+  createSyraRewardsRouter,
+  createInternalRewardsRouter,
+} from "./routes/syraRewards.js";
 import { createInternalHackathonScoutRouter } from "./routes/internalHackathonScout.js";
 import { createInternalToolsRouter } from "./routes/internalTools.js";
 import { createInternalAgentWalletsRouter } from "./routes/internalAgentWallets.js";
@@ -104,6 +108,17 @@ import { createScalperExperimentRouter } from "./routes/scalperExperiment.js";
 import { createMmExperimentRouter } from "./routes/mmExperiment.js";
 import { createBtcQuantExperimentRouter } from "./routes/btcQuantExperiment.js";
 import { createBtcQuantRealRouter } from "./routes/btcQuantReal.js";
+import { createMomentumRotatorExperimentRouter } from "./routes/momentumRotatorExperiment.js";
+import { createMomentumRotatorRealRouter } from "./routes/momentumRotatorReal.js";
+import { createLstLoopExperimentRouter } from "./routes/lstLoopExperiment.js";
+import { createLstLoopRealRouter } from "./routes/lstLoopReal.js";
+import { createSniperExperimentRouter } from "./routes/sniperExperiment.js";
+import { createSniperRealRouter } from "./routes/sniperReal.js";
+import {
+  MOMENTUM_CRON,
+  LST_LOOP_CRON,
+  SNIPER_CRON,
+} from "./config/onchainEarnExperiments.js";
 import { createBtc3MacroRouter } from "./routes/btc3Macro.js";
 import { createBtc3RealRouter } from "./routes/btc3Real.js";
 import { createShipLogStudioRouter } from "./routes/shipLogStudio.js";
@@ -1318,6 +1333,8 @@ app.use("/internal", createSyraTelegramWebhookRouter());
 // Internal dashboard: research-store + scouts (API key auth, no x402)
 app.use("/internal", createInternalPartnershipScoutRouter());
 app.use("/internal", createInternalBuybackRouter());
+app.use("/internal", createInternalRewardsRouter());
+app.use("/rewards", createSyraRewardsRouter());
 app.use("/internal", createInternalHackathonScoutRouter());
 app.use("/internal", createInternalToolsRouter());
 app.use("/internal", createInternalAgentWalletsRouter());
@@ -1330,6 +1347,12 @@ app.use("/experiment/lp-agent-real", createLpAgentRealRouter());
 // BTC onchain quant lab (paper sim + real cbBTC via Jupiter)
 app.use("/experiment/btc-quant", createBtcQuantExperimentRouter());
 app.use("/experiment/btc-quant-real", createBtcQuantRealRouter());
+app.use("/experiment/momentum-rotator", createMomentumRotatorExperimentRouter());
+app.use("/experiment/momentum-rotator-real", createMomentumRotatorRealRouter());
+app.use("/experiment/lst-loop", createLstLoopExperimentRouter());
+app.use("/experiment/lst-loop-real", createLstLoopRealRouter());
+app.use("/experiment/sniper", createSniperExperimentRouter());
+app.use("/experiment/sniper-real", createSniperRealRouter());
 app.use("/experiment/btc3-macro", createBtc3MacroRouter());
 app.use("/experiment/btc3-real", createBtc3RealRouter());
 // Stocks news experiment — paper xStocks trading via Jupiter + news signals
@@ -1543,7 +1566,7 @@ ${paymentNetworkLines.join("\n")}
 
 ## Authentication
 
-No API key required for the resources listed above — all are gated by the x402 protocol (HTTP 402). **Free onboarding tier** (no payment): \`/free/pillars\`, \`/free/assets\`, \`/free/coingecko/price\`, \`/free/dossier/basic\`. **Public metrics**: \`GET /api/metrics\` (verifiable traction), \`GET /api/live/calls\` (SSE). Agent docs: \`GET /llms-full.txt\`.
+No API key required for the resources listed above — all are gated by the x402 protocol (HTTP 402). **Free onboarding tier** (no payment): \`/free/pillars\`, \`/free/assets\`, \`/free/coingecko/price\`, \`/free/dossier/basic\`. **Public metrics**: \`GET /api/metrics\` (traction + buyback proof + holders + rewards), \`GET /api/live/calls\` (SSE). **Usage rewards**: \`GET /rewards/me\`, \`POST /rewards/claim\`. Agent docs: \`GET /llms-full.txt\`.
 
 ## Agent payment ergonomics
 
@@ -1763,6 +1786,139 @@ app.listen(PORT, () => {
   if (STOCKS_RESOLVE_INTERVAL_MS >= 5_000) {
     setInterval(runStocksResolve, STOCKS_RESOLVE_INTERVAL_MS);
   }
+
+  // --- Momentum Rotator / LST Loop / Alpha Sniper paper + real crons ---
+  // Intervals + realEnabled live in api/config/onchainEarnExperiments.js (not env).
+  const MOMENTUM_SIGNAL_MS = MOMENTUM_CRON.paperSignalMs;
+  const MOMENTUM_RESOLVE_MS = MOMENTUM_CRON.paperResolveMs;
+  const LST_LOOP_SIGNAL_MS = LST_LOOP_CRON.paperSignalMs;
+  const LST_LOOP_RESOLVE_MS = LST_LOOP_CRON.paperResolveMs;
+  const SNIPER_SIGNAL_MS = SNIPER_CRON.paperSignalMs;
+  const SNIPER_RESOLVE_MS = SNIPER_CRON.paperResolveMs;
+  const MOMENTUM_REAL_SIGNAL_MS = MOMENTUM_CRON.realSignalMs;
+  const MOMENTUM_REAL_RESOLVE_MS = MOMENTUM_CRON.realResolveMs;
+  const LST_LOOP_REAL_SIGNAL_MS = LST_LOOP_CRON.realSignalMs;
+  const LST_LOOP_REAL_RESOLVE_MS = LST_LOOP_CRON.realResolveMs;
+  const SNIPER_REAL_SIGNAL_MS = SNIPER_CRON.realSignalMs;
+  const SNIPER_REAL_RESOLVE_MS = SNIPER_CRON.realResolveMs;
+
+  const runMomentumSignal = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/momentumRotatorService.js")
+        .then(({ runMomentumSignalCycle }) => runMomentumSignalCycle())
+        .catch((err) => console.warn("[Momentum] signal failed:", err?.message || err)),
+    ),
+  );
+  const runMomentumResolve = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/momentumRotatorService.js")
+        .then(({ resolveOpenMomentumRuns }) => resolveOpenMomentumRuns())
+        .catch((err) => console.warn("[Momentum] resolve failed:", err?.message || err)),
+    ),
+  );
+  const runLstLoopSignal = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/lstLoopService.js")
+        .then(({ runLstLoopSignalCycle }) => runLstLoopSignalCycle())
+        .catch((err) => console.warn("[LST loop] signal failed:", err?.message || err)),
+    ),
+  );
+  const runLstLoopResolve = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/lstLoopService.js")
+        .then(({ resolveOpenLstLoopRuns }) => resolveOpenLstLoopRuns())
+        .catch((err) => console.warn("[LST loop] resolve failed:", err?.message || err)),
+    ),
+  );
+  const runSniperSignal = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/sniperService.js")
+        .then(({ runSniperSignalCycle }) => runSniperSignalCycle())
+        .catch((err) => console.warn("[Sniper] signal failed:", err?.message || err)),
+    ),
+  );
+  const runSniperResolve = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/sniperService.js")
+        .then(({ resolveOpenSniperRuns }) => resolveOpenSniperRuns())
+        .catch((err) => console.warn("[Sniper] resolve failed:", err?.message || err)),
+    ),
+  );
+
+  if (MOMENTUM_SIGNAL_MS >= 60_000) setInterval(runMomentumSignal, MOMENTUM_SIGNAL_MS);
+  if (MOMENTUM_RESOLVE_MS >= 5_000) setInterval(runMomentumResolve, MOMENTUM_RESOLVE_MS);
+  if (LST_LOOP_SIGNAL_MS >= 60_000) setInterval(runLstLoopSignal, LST_LOOP_SIGNAL_MS);
+  if (LST_LOOP_RESOLVE_MS >= 5_000) setInterval(runLstLoopResolve, LST_LOOP_RESOLVE_MS);
+  if (SNIPER_SIGNAL_MS >= 60_000) setInterval(runSniperSignal, SNIPER_SIGNAL_MS);
+  if (SNIPER_RESOLVE_MS >= 5_000) setInterval(runSniperResolve, SNIPER_RESOLVE_MS);
+
+  const runMomentumRealSignal = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/momentumRotatorRealService.js")
+        .then(({ isMomentumRealCronEnabled, runMomentumRealSignalCycle }) => {
+          if (!isMomentumRealCronEnabled()) return null;
+          return runMomentumRealSignalCycle();
+        })
+        .catch((err) => console.warn("[Momentum real] signal failed:", err?.message || err)),
+    ),
+  );
+  const runMomentumRealResolve = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/momentumRotatorRealService.js")
+        .then(({ isMomentumRealCronEnabled, resolveMomentumRealPositions }) => {
+          if (!isMomentumRealCronEnabled()) return null;
+          return resolveMomentumRealPositions();
+        })
+        .catch((err) => console.warn("[Momentum real] resolve failed:", err?.message || err)),
+    ),
+  );
+  const runLstLoopRealSignal = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/lstLoopRealService.js")
+        .then(({ isLstLoopRealCronEnabled, runLstLoopRealSignalCycle }) => {
+          if (!isLstLoopRealCronEnabled()) return null;
+          return runLstLoopRealSignalCycle();
+        })
+        .catch((err) => console.warn("[LST loop real] signal failed:", err?.message || err)),
+    ),
+  );
+  const runLstLoopRealResolve = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/lstLoopRealService.js")
+        .then(({ isLstLoopRealCronEnabled, resolveLstLoopRealPositions }) => {
+          if (!isLstLoopRealCronEnabled()) return null;
+          return resolveLstLoopRealPositions();
+        })
+        .catch((err) => console.warn("[LST loop real] resolve failed:", err?.message || err)),
+    ),
+  );
+  const runSniperRealSignal = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/sniperRealService.js")
+        .then(({ isSniperRealCronEnabled, runSniperRealSignalCycle }) => {
+          if (!isSniperRealCronEnabled()) return null;
+          return runSniperRealSignalCycle();
+        })
+        .catch((err) => console.warn("[Sniper real] signal failed:", err?.message || err)),
+    ),
+  );
+  const runSniperRealResolve = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/sniperRealService.js")
+        .then(({ isSniperRealCronEnabled, resolveSniperRealPositions }) => {
+          if (!isSniperRealCronEnabled()) return null;
+          return resolveSniperRealPositions();
+        })
+        .catch((err) => console.warn("[Sniper real] resolve failed:", err?.message || err)),
+    ),
+  );
+
+  if (MOMENTUM_REAL_SIGNAL_MS >= 60_000) setInterval(runMomentumRealSignal, MOMENTUM_REAL_SIGNAL_MS);
+  if (MOMENTUM_REAL_RESOLVE_MS >= 5_000) setInterval(runMomentumRealResolve, MOMENTUM_REAL_RESOLVE_MS);
+  if (LST_LOOP_REAL_SIGNAL_MS >= 60_000) setInterval(runLstLoopRealSignal, LST_LOOP_REAL_SIGNAL_MS);
+  if (LST_LOOP_REAL_RESOLVE_MS >= 5_000) setInterval(runLstLoopRealResolve, LST_LOOP_REAL_RESOLVE_MS);
+  if (SNIPER_REAL_SIGNAL_MS >= 60_000) setInterval(runSniperRealSignal, SNIPER_REAL_SIGNAL_MS);
+  if (SNIPER_REAL_RESOLVE_MS >= 5_000) setInterval(runSniperRealResolve, SNIPER_REAL_RESOLVE_MS);
 
   const SCALPER_SIGNAL_INTERVAL_MS = (() => {
     const raw = Number(process.env.SCALPER_SIGNAL_MS);
@@ -2237,6 +2393,50 @@ app.listen(PORT, () => {
     })
     .catch(() => {});
 
+  for (const [mod, label] of [
+    ["./libs/momentumRotatorEvolution.js", "Momentum"],
+    ["./libs/lstLoopEvolution.js", "LST loop"],
+    ["./libs/sniperEvolution.js", "Sniper"],
+  ]) {
+    import(mod)
+      .then((m) => {
+        const cfgFn =
+          m.momentumEvolutionConfigFromEnv ||
+          m.lstLoopEvolutionConfigFromEnv ||
+          m.sniperEvolutionConfigFromEnv;
+        const runFn =
+          m.runMomentumExperimentEvolution ||
+          m.runLstLoopExperimentEvolution ||
+          m.runSniperExperimentEvolution;
+        if (!cfgFn || !runFn) return;
+        const evo = cfgFn();
+        if (!evo.enabled || evo.ms < 60_000) return;
+        const tick = runIfMongoConnected(
+          withSingleFlight(() =>
+            runFn()
+              .then((out) => {
+                if (out?.skipped) {
+                  startupVerbose(`[${label} evolution] skipped:`, out.skipped);
+                  return;
+                }
+                startupVerbose(
+                  `[${label} evolution]`,
+                  "removed",
+                  out?.removed ?? 0,
+                  "spawned",
+                  out?.spawned ?? 0,
+                );
+              })
+              .catch((err) =>
+                console.warn(`[${label} evolution failed]`, err?.message || err),
+              ),
+          ),
+        );
+        setInterval(tick, evo.ms);
+      })
+      .catch(() => {});
+  }
+
   import("./libs/lpRealEvolution.js")
     .then(({ lpRealEvolutionConfigFromEnv, runLpRealEvolution }) => {
       const evo = lpRealEvolutionConfigFromEnv();
@@ -2308,6 +2508,39 @@ app.listen(PORT, () => {
       ),
     );
 
+  import("./libs/settleFailedMonitor.js")
+    .then(({ startSettleFailedMonitor }) => {
+      startSettleFailedMonitor();
+    })
+    .catch((e) =>
+      console.warn(
+        "[settle-failed-monitor] load failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
+
+  import("./libs/celoFacilitatorCreditGate.js")
+    .then(({ seedCeloCreditCircuitFromRecentFailures }) => {
+      void seedCeloCreditCircuitFromRecentFailures();
+    })
+    .catch((e) =>
+      console.warn(
+        "[celo-credit-gate] seed failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
+
+  import("./libs/earnYieldKillMonitor.js")
+    .then(({ startEarnYieldKillMonitor }) => {
+      startEarnYieldKillMonitor();
+    })
+    .catch((e) =>
+      console.warn(
+        "[earn-yield-kill] load failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
+
   import("./libs/syraTrendScoutScheduler.js")
     .then(({ startSyraTrendScoutScheduler }) => {
       startSyraTrendScoutScheduler();
@@ -2324,6 +2557,24 @@ app.listen(PORT, () => {
     .catch((e) =>
       console.warn(
         "[syra-telegram] load failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
+
+  import("./libs/syraTelegramBot/digestScheduler.js")
+    .then(({ startSyraTelegramDigestScheduler }) => startSyraTelegramDigestScheduler())
+    .catch((e) =>
+      console.warn(
+        "[syra-telegram-digest] load failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
+
+  import("./libs/syraTelegramBot/scoreboardScheduler.js")
+    .then(({ startSyraTelegramScoreboardScheduler }) => startSyraTelegramScoreboardScheduler())
+    .catch((e) =>
+      console.warn(
+        "[syra-telegram-scoreboard] load failed:",
         e instanceof Error ? e.message : e,
       ),
     );

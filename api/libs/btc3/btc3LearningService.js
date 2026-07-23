@@ -53,6 +53,7 @@ export async function getEffectiveBtc3PaperConfig(state) {
     minRebalancePct: toNum(overrides.minRebalancePct, base.minRebalancePct),
     minConfidence: toNum(overrides.minConfidence, 0),
     maxBtcTiltPct: overrides.maxBtcTiltPct != null ? toNum(overrides.maxBtcTiltPct) : null,
+    roundTripCostBps: toNum(overrides.roundTripCostBps, base.roundTripCostBps),
   };
 }
 

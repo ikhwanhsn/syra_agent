@@ -35,6 +35,7 @@ import {
   X402_API_PRICE_PURCH_VAULT_USD,
   X402_API_PRICE_QUICKNODE_USD,
   X402_API_PRICE_BANKR_USD,
+  X402_API_PRICE_MEVX_USD,
   X402_API_PRICE_NEYNAR_USD,
   X402_API_PRICE_SIWA_USD,
   X402_API_PRICE_SPCX_USD,
@@ -74,12 +75,15 @@ import {
   X402_DISPLAY_PRICE_PURCH_VAULT_USD,
   X402_DISPLAY_PRICE_QUICKNODE_USD,
   X402_DISPLAY_PRICE_BANKR_USD,
+  X402_DISPLAY_PRICE_MEVX_USD,
   X402_DISPLAY_PRICE_NEYNAR_USD,
   X402_DISPLAY_PRICE_SIWA_USD,
   X402_DISPLAY_PRICE_SPCX_USD,
   X402_DISPLAY_PRICE_EQUITY_USD,
 } from './x402Pricing.js';
 import { BIRDEYE_AGENT_TOOLS, getBirdeyeParamsHintForLlm } from './birdeyeAgentTools.js';
+import { BLOCKSIZE_AGENT_TOOLS, getBlocksizeParamsHintForLlm } from './blocksizeAgentTools.js';
+import { DEXTER_AGENT_TOOLS, getDexterParamsHintForLlm } from './dexterAgentTools.js';
 import { TOKENS_AGENT_TOOLS, getTokensParamsHintForLlm } from './tokensAgentTools.js';
 import {
   STABLECRYPTO_AGENT_TOOLS,
@@ -95,7 +99,7 @@ import {
 } from './stableenrichAgentTools.js';
 import { resolvePillarForToolId } from './pillars.js';
 
-/** @typedef {{ id: string; path: string; method: string; priceUsd: number; displayPriceUsd?: number; name: string; description: string; pillar?: import('./pillars.js').PillarId; nansenPath?: string; zerionPath?: string; birdeyePath?: string; topledgerPath?: string; stablecryptoPath?: string; stablesocialPath?: string; stableenrichPath?: string; stableenrichMethod?: 'GET' | 'POST'; stableenrichAsync?: boolean; purchVaultPath?: string; agentDirect?: boolean; tempoPayout?: boolean; tempoPublic?: 'tokenlist' | 'networks'; paysh?: 'discover' | 'endpoints' | 'call'; agentscore?: 'discover' | 'check' | 'passport-status' | 'pay' }} AgentTool */
+/** @typedef {{ id: string; path: string; method: string; priceUsd: number; displayPriceUsd?: number; name: string; description: string; pillar?: import('./pillars.js').PillarId; nansenPath?: string; zerionPath?: string; birdeyePath?: string; blocksizePath?: string; dexterPath?: string | null; dexterCatalog?: boolean; topledgerPath?: string; stablecryptoPath?: string; stablesocialPath?: string; stableenrichPath?: string; stableenrichMethod?: 'GET' | 'POST'; stableenrichAsync?: boolean; purchVaultPath?: string; agentDirect?: boolean; tempoPayout?: boolean; tempoPublic?: 'tokenlist' | 'networks'; paysh?: 'discover' | 'endpoints' | 'call'; agentscore?: 'discover' | 'check' | 'passport-status' | 'pay' }} AgentTool */
 
 /**
  * List of agent tools (x402 endpoints). Path is relative to API base (e.g. /news). Nansen calls api.nansen.ai; Zerion calls api.zerion.io (x402); Birdeye uses birdeyePath on public-api.birdeye.so (x402).
@@ -383,6 +387,42 @@ export const AGENT_TOOLS = [
     description: 'Forward a raw JSON-RPC request to Quicknode (chain: solana or base; method, params in body).',
   },
   // Bankr – agent prompts, job status, balances (api.bankr.bot); no public /bankr routes
+  {
+    id: 'mevx-trades',
+    agentDirect: true,
+    path: '/mevx/trades',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_MEVX_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_MEVX_USD,
+    pillar: 'spend',
+    name: 'MevX: trades',
+    description:
+      'Recent DEX trades from MevX (requires MEVX_API_KEY). Params: chain (default sol), poolAddress and/or wallet, optional limit/offset/orderBy.',
+  },
+  {
+    id: 'mevx-token',
+    agentDirect: true,
+    path: '/mevx/token',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_MEVX_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_MEVX_USD,
+    pillar: 'spend',
+    name: 'MevX: token info',
+    description:
+      'Token market info via MevX Data API (requires MEVX_API_KEY). Params: address or mint; optional chain (default sol).',
+  },
+  {
+    id: 'mevx-pools',
+    agentDirect: true,
+    path: '/mevx/pools',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_MEVX_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_MEVX_USD,
+    pillar: 'spend',
+    name: 'MevX: pools',
+    description:
+      'Pool lookup via MevX Data API (requires MEVX_API_KEY). Params: address/poolAddress and/or token/mint; optional chain.',
+  },
   {
     id: 'bankr-balances',
     agentDirect: true,
@@ -1759,6 +1799,8 @@ export const AGENT_TOOLS = [
   ...STABLESOCIAL_AGENT_TOOLS,
   ...STABLEENRICH_AGENT_TOOLS,
   ...BIRDEYE_AGENT_TOOLS,
+  ...BLOCKSIZE_AGENT_TOOLS,
+  ...DEXTER_AGENT_TOOLS,
   ...TOKENS_AGENT_TOOLS,
 ];
 
@@ -2961,6 +3003,30 @@ export function getCapabilitiesList() {
       ''
     );
   }
+  const blocksizeX402 = AGENT_TOOLS.filter((t) => t.blocksizePath).map((t) => t.id);
+  if (blocksizeX402.length) {
+    lines.push(
+      'Blocksize market data (VWAP / bid-ask / pre-trade; x402 or credits — pair like SOLUSD):',
+      ...fmt(blocksizeX402),
+      ''
+    );
+  }
+  const dexterX402 = AGENT_TOOLS.filter((t) => t.dexterPath != null || t.dexterCatalog).map((t) => t.id);
+  if (dexterX402.length) {
+    lines.push(
+      'Dexter onchain x402 (activity/entity trade summaries + free catalog — https://x.com/dexteraisol):',
+      ...fmt(dexterX402),
+      ''
+    );
+  }
+  const mevxTools = AGENT_TOOLS.filter((t) => t.id.startsWith('mevx-')).map((t) => t.id);
+  if (mevxTools.length) {
+    lines.push(
+      'MevX trading data (API-key; trades/token/pools — https://x.com/MEVX_Official):',
+      ...fmt(mevxTools),
+      ''
+    );
+  }
   const tokensTools = AGENT_TOOLS.filter((t) => t.id.startsWith('tokens-')).map((t) => t.id);
   if (tokensTools.length) {
     lines.push(
@@ -3251,6 +3317,25 @@ export function getToolsForLlmSelection() {
     if (t.birdeyePath) {
       const hint = getBirdeyeParamsHintForLlm(t.id);
       if (hint) out.paramsHint = hint;
+    }
+    if (t.blocksizePath) {
+      const hint = getBlocksizeParamsHintForLlm(t.id);
+      if (hint) out.paramsHint = hint;
+    }
+    if (t.dexterPath != null || t.dexterCatalog) {
+      const hint = getDexterParamsHintForLlm(t.id);
+      if (hint) out.paramsHint = hint;
+    }
+    if (t.id === 'mevx-trades') {
+      out.paramsHint =
+        'chain (default sol), poolAddress and/or wallet, optional limit/offset/orderBy. Requires MEVX_API_KEY.';
+    }
+    if (t.id === 'mevx-token') {
+      out.paramsHint = 'address or mint (required); optional chain (default sol). Requires MEVX_API_KEY.';
+    }
+    if (t.id === 'mevx-pools') {
+      out.paramsHint =
+        'address/poolAddress and/or token/mint; optional chain (default sol). Requires MEVX_API_KEY.';
     }
     if (t.id === 'gmgn-token-info' || t.id === 'gmgn-token-security' || t.id === 'gmgn-token-pool') {
       out.paramsHint =

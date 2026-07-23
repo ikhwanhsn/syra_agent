@@ -1,6 +1,6 @@
 import express from 'express';
 import multer from 'multer';
-import { requireSession } from '../utils/requireSession.js';
+import { requireSession, optionalWalletSession } from '../utils/requireSession.js';
 import { getEarnSummary, processEarnPayout } from '../libs/earnService.js';
 import {
   collectEarnPumpfunFees,
@@ -13,6 +13,17 @@ import {
   verifyEarnTokenOnSaid,
   withSyraTokenNameSuffix,
 } from '../libs/earnPumpfunService.js';
+import {
+  disableEarnYieldForUser,
+  enableEarnYieldForUser,
+  getEarnYieldBoard,
+  getEarnYieldLaunchReadiness,
+  getEarnYieldProductReadiness,
+  getEarnYieldUserStatus,
+} from '../libs/earnYieldService.js';
+import { EARN_PRODUCT_LP, getEarnProduct } from '../config/earnProducts.js';
+import { isAdminWalletAddress } from '../libs/adminWallet.js';
+import { resolveLpViewerAnonymousId } from '../libs/agentWalletPurpose.js';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -358,6 +369,254 @@ export function createEarnRouter() {
       return res.status(500).json({
         success: false,
         error: e instanceof Error ? e.message : 'collect_failed',
+      });
+    }
+  });
+
+  // ─── Earn Yield (multi-product: LP / cbBTC / BTC3) ─────────────────────────
+
+  function resolveYieldAnonymousId(req, productId) {
+    const queryAid =
+      typeof req.query.anonymousId === 'string' && req.query.anonymousId.trim()
+        ? req.query.anonymousId.trim()
+        : null;
+    // LP uses purpose-scoped anonymous id; invest products use session id (sibling resolved in adapter).
+    if (!productId || productId === EARN_PRODUCT_LP) {
+      return resolveLpViewerAnonymousId(req.user ?? {}, queryAid);
+    }
+    return (
+      queryAid ||
+      (typeof req.user?.anonymousId === 'string' ? req.user.anonymousId.trim() : null)
+    );
+  }
+
+  function enableErrorStatus(code) {
+    if (code === 'earn_yield_beta_not_allowed' || code === 'earn_yield_deposits_paused') return 403;
+    if (
+      code === 'insufficient_balance' ||
+      code === 'lp_agent_wallet_required' ||
+      code === 'invest_agent_wallet_required' ||
+      code === 'unknown_earn_product'
+    ) {
+      return 400;
+    }
+    return 500;
+  }
+
+  router.get('/yield/board', optionalWalletSession(), async (req, res) => {
+    try {
+      const ownerWallet =
+        (typeof req.user?.walletAddress === 'string' && req.user.walletAddress.trim()) ||
+        (typeof req.query.wallet === 'string' && req.query.wallet.trim()) ||
+        null;
+      const isAdmin = isAdminWalletAddress(ownerWallet);
+      const data = await getEarnYieldBoard({ ownerWallet, isAdmin });
+      res.json({ success: true, data });
+    } catch (e) {
+      res.status(500).json({ success: false, error: e instanceof Error ? e.message : String(e) });
+    }
+  });
+
+  router.get('/yield/readiness', async (req, res) => {
+    try {
+      const productId =
+        (typeof req.query.productId === 'string' && req.query.productId.trim()) ||
+        EARN_PRODUCT_LP;
+      const data =
+        productId === EARN_PRODUCT_LP
+          ? await getEarnYieldLaunchReadiness()
+          : await getEarnYieldProductReadiness(productId);
+      res.json({ success: true, data });
+    } catch (e) {
+      const code = e?.code || 'readiness_failed';
+      res.status(enableErrorStatus(code)).json({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+        code,
+      });
+    }
+  });
+
+  router.get('/yield/status', optionalWalletSession(), async (req, res) => {
+    try {
+      const productId =
+        (typeof req.query.productId === 'string' && req.query.productId.trim()) ||
+        EARN_PRODUCT_LP;
+      const anonymousId = resolveYieldAnonymousId(req, productId);
+      const ownerWallet =
+        (typeof req.user?.walletAddress === 'string' && req.user.walletAddress.trim()) || null;
+      const data = await getEarnYieldUserStatus({ productId, anonymousId, ownerWallet });
+      res.json({ success: true, data });
+    } catch (e) {
+      const code = e?.code || 'status_failed';
+      res.status(enableErrorStatus(code)).json({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+        code,
+      });
+    }
+  });
+
+  router.post('/yield/enable', requireSession(), async (req, res) => {
+    try {
+      const anonymousId = req.user?.anonymousId;
+      if (!anonymousId) {
+        return res.status(401).json({ success: false, error: 'Authentication required' });
+      }
+      const productId =
+        (typeof req.body?.productId === 'string' && req.body.productId.trim()) ||
+        EARN_PRODUCT_LP;
+      const ownerWallet =
+        (typeof req.user?.walletAddress === 'string' && req.user.walletAddress.trim()) || null;
+      const maxDeposit =
+        req.body?.maxDeposit != null
+          ? Number(req.body.maxDeposit)
+          : req.body?.maxDepositSol != null
+            ? Number(req.body.maxDepositSol)
+            : req.body?.maxDepositUsdc != null
+              ? Number(req.body.maxDepositUsdc)
+              : undefined;
+      const data = await enableEarnYieldForUser({
+        productId,
+        anonymousId,
+        ownerWallet,
+        maxDeposit,
+        maxDepositSol: maxDeposit,
+        enabledBy: ownerWallet || anonymousId,
+      });
+      res.json({ success: true, data });
+    } catch (e) {
+      const code = e?.code || (e instanceof Error ? e.message : 'enable_failed');
+      res.status(enableErrorStatus(code)).json({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+        code,
+        blockers: e?.blockers,
+      });
+    }
+  });
+
+  router.post('/yield/disable', requireSession(), async (req, res) => {
+    try {
+      const anonymousId = req.user?.anonymousId;
+      if (!anonymousId) {
+        return res.status(401).json({ success: false, error: 'Authentication required' });
+      }
+      const productId =
+        (typeof req.body?.productId === 'string' && req.body.productId.trim()) ||
+        EARN_PRODUCT_LP;
+      const closeAll = Boolean(req.body?.closeAll);
+      const data = await disableEarnYieldForUser({ productId, anonymousId, closeAll });
+      res.json({ success: true, data });
+    } catch (e) {
+      const code = e?.code || 'disable_failed';
+      res.status(enableErrorStatus(code)).json({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+        code,
+      });
+    }
+  });
+
+  // Product-scoped aliases: /yield/:productId/status|readiness|enable|disable
+  router.get('/yield/:productId/readiness', async (req, res) => {
+    try {
+      const productId = String(req.params.productId || '').trim();
+      if (!getEarnProduct(productId)) {
+        return res.status(400).json({ success: false, error: `unknown_earn_product:${productId}`, code: 'unknown_earn_product' });
+      }
+      const data = await getEarnYieldProductReadiness(productId);
+      res.json({ success: true, data });
+    } catch (e) {
+      const code = e?.code || 'readiness_failed';
+      res.status(enableErrorStatus(code)).json({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+        code,
+      });
+    }
+  });
+
+  router.get('/yield/:productId/status', optionalWalletSession(), async (req, res) => {
+    try {
+      const productId = String(req.params.productId || '').trim();
+      if (!getEarnProduct(productId)) {
+        return res.status(400).json({ success: false, error: `unknown_earn_product:${productId}`, code: 'unknown_earn_product' });
+      }
+      const anonymousId = resolveYieldAnonymousId(req, productId);
+      const ownerWallet =
+        (typeof req.user?.walletAddress === 'string' && req.user.walletAddress.trim()) || null;
+      const data = await getEarnYieldUserStatus({ productId, anonymousId, ownerWallet });
+      res.json({ success: true, data });
+    } catch (e) {
+      const code = e?.code || 'status_failed';
+      res.status(enableErrorStatus(code)).json({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+        code,
+      });
+    }
+  });
+
+  router.post('/yield/:productId/enable', requireSession(), async (req, res) => {
+    try {
+      const anonymousId = req.user?.anonymousId;
+      if (!anonymousId) {
+        return res.status(401).json({ success: false, error: 'Authentication required' });
+      }
+      const productId = String(req.params.productId || '').trim();
+      if (!getEarnProduct(productId)) {
+        return res.status(400).json({ success: false, error: `unknown_earn_product:${productId}`, code: 'unknown_earn_product' });
+      }
+      const ownerWallet =
+        (typeof req.user?.walletAddress === 'string' && req.user.walletAddress.trim()) || null;
+      const maxDeposit =
+        req.body?.maxDeposit != null
+          ? Number(req.body.maxDeposit)
+          : req.body?.maxDepositSol != null
+            ? Number(req.body.maxDepositSol)
+            : req.body?.maxDepositUsdc != null
+              ? Number(req.body.maxDepositUsdc)
+              : undefined;
+      const data = await enableEarnYieldForUser({
+        productId,
+        anonymousId,
+        ownerWallet,
+        maxDeposit,
+        maxDepositSol: maxDeposit,
+        enabledBy: ownerWallet || anonymousId,
+      });
+      res.json({ success: true, data });
+    } catch (e) {
+      const code = e?.code || (e instanceof Error ? e.message : 'enable_failed');
+      res.status(enableErrorStatus(code)).json({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+        code,
+        blockers: e?.blockers,
+      });
+    }
+  });
+
+  router.post('/yield/:productId/disable', requireSession(), async (req, res) => {
+    try {
+      const anonymousId = req.user?.anonymousId;
+      if (!anonymousId) {
+        return res.status(401).json({ success: false, error: 'Authentication required' });
+      }
+      const productId = String(req.params.productId || '').trim();
+      if (!getEarnProduct(productId)) {
+        return res.status(400).json({ success: false, error: `unknown_earn_product:${productId}`, code: 'unknown_earn_product' });
+      }
+      const closeAll = Boolean(req.body?.closeAll);
+      const data = await disableEarnYieldForUser({ productId, anonymousId, closeAll });
+      res.json({ success: true, data });
+    } catch (e) {
+      const code = e?.code || 'disable_failed';
+      res.status(enableErrorStatus(code)).json({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+        code,
       });
     }
   });

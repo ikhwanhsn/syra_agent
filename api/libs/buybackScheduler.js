@@ -2,15 +2,46 @@
  * Batch x402 revenue into a single SYRA buyback every 24h instead of per-transaction swaps.
  */
 
+import { Keypair } from "@solana/web3.js";
+import bs58 from "bs58";
 import { isMongooseConnected } from "../config/mongoose.js";
 import {
   BUYBACK_ACCUMULATOR_ID,
   BUYBACK_SCHEDULER_CRON_MS,
 } from "../config/buybackSchedulerConfig.js";
 import BuybackAccumulator from "../models/BuybackAccumulator.js";
+import BuybackEvent from "../models/BuybackEvent.js";
 import { buybackSYRAFromRevenue } from "../utils/buybackSYRA.js";
 
 const isProduction = process.env.NODE_ENV === "production";
+/** Default SPL decimals for $SYRA. */
+const SYRA_DECIMALS = Number(process.env.SYRA_TOKEN_DECIMALS) || 6;
+
+function outAmountToHuman(outAmountRaw) {
+  const raw = String(outAmountRaw ?? "").trim();
+  if (!raw || !/^\d+$/.test(raw)) return null;
+  try {
+    const n = BigInt(raw);
+    const divisor = 10n ** BigInt(SYRA_DECIMALS);
+    const whole = n / divisor;
+    const frac = n % divisor;
+    const fracStr = frac.toString().padStart(SYRA_DECIMALS, "0").replace(/0+$/, "");
+    const human = fracStr ? Number(`${whole}.${fracStr}`) : Number(whole);
+    return Number.isFinite(human) ? human : null;
+  } catch {
+    return null;
+  }
+}
+
+function resolveTreasuryWallet() {
+  const raw = (process.env.AGENT_PRIVATE_KEY || "").trim();
+  if (!raw) return null;
+  try {
+    return Keypair.fromSecretKey(bs58.decode(raw)).publicKey.toBase58();
+  } catch {
+    return null;
+  }
+}
 
 /** @type {ReturnType<typeof setInterval> | null} */
 let cronHandle = null;
@@ -117,10 +148,21 @@ export async function runBuybackSchedulerTick() {
 
     try {
       const result = await buybackSYRAFromRevenue(revenueUsd);
+      const buybackUsd =
+        typeof result?.buybackUsd === "number"
+          ? result.buybackUsd
+          : revenueUsd * 0.8;
+      const outAmountHuman = outAmountToHuman(result?.outAmount);
+      const treasuryWallet = resolveTreasuryWallet();
+
       await BuybackAccumulator.findOneAndUpdate(
         { _id: BUYBACK_ACCUMULATOR_ID },
         {
-          $inc: { totalFlushedUsd: revenueUsd },
+          $inc: {
+            totalFlushedUsd: revenueUsd,
+            totalBuybackUsdSpent: buybackUsd,
+            ...(outAmountHuman != null ? { totalSyraAcquired: outAmountHuman } : {}),
+          },
           $set: {
             lastBuybackSignature: result?.swapSignature ?? null,
             lastBuybackOutAmount: result?.outAmount ?? null,
@@ -130,6 +172,22 @@ export async function runBuybackSchedulerTick() {
         { upsert: true },
       );
 
+      if (result?.swapSignature) {
+        await BuybackEvent.create({
+          revenueUsd,
+          buybackUsd,
+          outAmountRaw: result?.outAmount ?? null,
+          outAmountHuman,
+          swapSignature: result.swapSignature,
+          treasuryWallet,
+        }).catch((err) => {
+          console.warn(
+            "[buyback-scheduler] BuybackEvent create failed:",
+            err?.message ?? err,
+          );
+        });
+      }
+
       console.log(
         `[buyback-scheduler] flushed $${revenueUsd.toFixed(4)} revenue → SYRA buyback sig=${result?.swapSignature ?? "n/a"}`,
       );
@@ -137,8 +195,10 @@ export async function runBuybackSchedulerTick() {
       return {
         success: true,
         revenueUsd,
+        buybackUsd,
         swapSignature: result?.swapSignature,
         outAmount: result?.outAmount,
+        outAmountHuman,
       };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);

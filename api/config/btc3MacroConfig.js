@@ -202,7 +202,10 @@ export const BTC3_DEFAULT_PORTFOLIO = Object.freeze({
 export const BTC3_PAPER_SIM_DEFAULTS = Object.freeze({
   startingBankUsd: TRADING_EXPERIMENT_STARTING_USD,
   initialBtcPct: 40,
-  minRebalancePct: 2,
+  /** Align with real default (5%) so paper does not overtrade vs live. */
+  minRebalancePct: 5,
+  /** Round-trip cost (bps) applied to each executed paper rebalance. */
+  roundTripCostBps: 110,
   paperAutoExecute: true,
 });
 
@@ -219,7 +222,11 @@ export function getBtc3PaperSimConfig(stateDoc) {
     ),
     minRebalancePct: Math.max(
       0.5,
-      Number.parseFloat(String(s.minRebalancePct ?? BTC3_PAPER_SIM_DEFAULTS.minRebalancePct)) || 2,
+      Number.parseFloat(String(s.minRebalancePct ?? BTC3_PAPER_SIM_DEFAULTS.minRebalancePct)) || 5,
+    ),
+    roundTripCostBps: Math.max(
+      0,
+      Number.parseFloat(String(s.roundTripCostBps ?? BTC3_PAPER_SIM_DEFAULTS.roundTripCostBps)) || 110,
     ),
     paperAutoExecute: s.paperAutoExecute !== false,
   };

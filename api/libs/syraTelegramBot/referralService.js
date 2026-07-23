@@ -176,7 +176,7 @@ export async function linkReferredUser(telegramUserId, payload) {
     { $inc: { referralCount: 1 } },
   );
 
-  return { linked: true, referrerCode: normalized.code };
+  return { linked: true, referrerCode: normalized.code, referrerAnonymousId: referrer.anonymousId };
 }
 
 /**
@@ -196,7 +196,7 @@ export function parseStartReferralPayload(text) {
 
 /**
  * @param {object} tgUser
- * @returns {Promise<{ referralCode: string | null; shareUrl: string | null; referralCount: number; referredByCode: string | null; payerAnonymousId: string }>}
+ * @returns {Promise<{ referralCode: string | null; shareUrl: string | null; referralCount: number; referredByCode: string | null; payerAnonymousId: string; spendTodayUsd: number; spendCapUsd: number; spendRemainingUsd: number; sponsorCallCount: number }>}
  */
 export async function getReferralDashboard(tgUser) {
   const referralCode = tgUser?.referralCode ? String(tgUser.referralCode) : null;
@@ -210,12 +210,20 @@ export async function getReferralDashboard(tgUser) {
       .lean();
     referredByCode = ref?.referralCode || ref?.firstName || ref?.username || null;
   }
+
+  const { getReferralDailySpend } = await import('./telegramReferralSpend.js');
+  const spend = await getReferralDailySpend(tgUser?.anonymousId);
+
   return {
     referralCode,
     shareUrl,
     referralCount: Number(tgUser?.referralCount) || 0,
     referredByCode,
     payerAnonymousId: resolvePayerAnonymousId(tgUser),
+    spendTodayUsd: spend.spentUsd,
+    spendCapUsd: spend.capUsd,
+    spendRemainingUsd: spend.remainingUsd,
+    sponsorCallCount: spend.callCount,
   };
 }
 

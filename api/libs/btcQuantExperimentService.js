@@ -713,7 +713,13 @@ export async function resolveOpenBtcQuantRuns(lane = "btc1") {
 
       if (!status) continue;
 
-      const simPnlUsd = entry > 0 && exitPx > 0 ? roundUsd(notional * (exitPx / entry - 1)) : 0;
+      // Debit round-trip cost so paper leaders must clear live Jupiter edge before promotion.
+      // Aligns with real default slippageBps=50 each way + ~10 bps platform/fee cushion.
+      const roundTripCostBps = Number(process.env.BTC_QUANT_PAPER_ROUND_TRIP_BPS || 110);
+      const grossPnl =
+        entry > 0 && exitPx > 0 ? roundUsd(notional * (exitPx / entry - 1)) : 0;
+      const costUsd = roundUsd(notional * (Math.max(0, roundTripCostBps) / 10_000));
+      const simPnlUsd = roundUsd(grossPnl - costUsd);
       bulkOps.push({
         updateOne: {
           filter: { _id: run._id, status: "open" },

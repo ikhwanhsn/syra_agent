@@ -4,7 +4,7 @@ import { chatApi, type ApiChat } from "@/lib/chatApi";
 import { useAgentWallet } from "@/contexts/AgentWalletContext";
 import Index from "./Index";
 import SharedChat from "./SharedChat";
-import { Loader2 } from "lucide-react";
+import { PageLoader } from "@/components/PageLoader";
 
 type Status = "loading" | "owner" | "shared" | "private" | "notfound" | "error";
 
@@ -71,24 +71,7 @@ export default function ShareableChatRoute() {
   }, [shareId, ready, anonymousId, fromOwner, stateChat?.id]);
 
   if (status === "loading") {
-    return (
-      <div className="min-h-dvh flex flex-col items-center justify-center bg-background px-4 pb-[max(2rem,env(safe-area-inset-bottom))]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative flex items-center justify-center w-20 h-20">
-            <div className="absolute inset-0 rounded-full border-2 border-dashed border-primary/30 animate-spin" style={{ animationDuration: "2.5s" }} />
-            <div className="w-12 h-12 rounded-xl bg-card border border-border flex items-center justify-center loader-avatar-pulse">
-              <Loader2 className="w-6 h-6 text-primary" />
-            </div>
-          </div>
-          <p className="text-sm text-muted-foreground loader-text-fade">Loading...</p>
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <span className="loader-dot" />
-            <span className="loader-dot" />
-            <span className="loader-dot" />
-          </div>
-        </div>
-      </div>
-    );
+    return <PageLoader label="Loading" sublabel="Just a moment" variant="page" />;
   }
 
   if (status === "owner" && chat) {

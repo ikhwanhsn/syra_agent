@@ -12,6 +12,7 @@ import APIReference from "./pages/docs/APIReference";
 import ApiDocPage from "./pages/docs/ApiDocPage";
 import Changelog from "./pages/docs/Changelog";
 import Community from "./pages/docs/Community";
+import TelegramBot from "./pages/docs/TelegramBot";
 import AgentGettingStarted from "./pages/docs/AgentGettingStarted";
 import AgentHowItWorks from "./pages/docs/AgentHowItWorks";
 import AgentFeatures from "./pages/docs/AgentFeatures";
@@ -71,6 +72,7 @@ const App = () => (
           <Route path="/docs/token/roadmap" element={<Token />} />
           <Route path="/docs/changelog" element={<Changelog />} />
           <Route path="/docs/community" element={<Community />} />
+          <Route path="/docs/telegram-bot" element={<TelegramBot />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

@@ -4,10 +4,15 @@
 import AgentWallet from '../../models/agent/AgentWallet.js';
 import TelegramBotUser, { telegramAnonymousIdFrom } from '../../models/agent/TelegramBotUser.js';
 import { createAgentWalletRecord } from '../agentWalletProvision.js';
-import { ensureTelegramIntelToolsAllowed } from '../agentWallet.js';
+import { ensureTelegramIntelToolsAllowed, getAgentBalances } from '../agentWallet.js';
 import { fetchAgentWalletBalances } from '../agentWalletBalance.js';
 import { decryptAgentSecretFromStorage } from '../agentWalletSecretCrypto.js';
 import { withdrawTelegramAgentToAddress } from '../telegramAgentWithdraw.js';
+import {
+  getCachedBalances,
+  setCachedBalances,
+  invalidateBalanceCache,
+} from './balanceCache.js';
 
 /**
  * @typedef {{
@@ -54,8 +59,34 @@ export async function ensureTelegramUserWallet(telegramUser) {
 
   const anonymousId = telegramAnonymousIdFrom(telegramUserId);
   const syntheticWalletAddress = telegramSyntheticWalletAddress(telegramUserId);
-  let tgUser = await TelegramBotUser.findOne({ telegramUserId }).lean();
   let isNewWallet = false;
+
+  /** @type {Record<string, unknown>} */
+  const $set = {
+    chatId,
+    lastActiveAt: new Date(),
+  };
+  /** @type {Record<string, unknown>} */
+  const $setOnInsert = {
+    telegramUserId,
+    anonymousId,
+  };
+  if (telegramUser.username) {
+    $set.username = telegramUser.username;
+  } else {
+    $setOnInsert.username = null;
+  }
+  if (telegramUser.firstName) {
+    $set.firstName = telegramUser.firstName;
+  } else {
+    $setOnInsert.firstName = null;
+  }
+
+  let tgUser = await TelegramBotUser.findOneAndUpdate(
+    { telegramUserId },
+    { $set, $setOnInsert },
+    { upsert: true, new: true, lean: true, setDefaultsOnInsert: true },
+  );
 
   if (!tgUser) {
     tgUser = (
@@ -67,19 +98,6 @@ export async function ensureTelegramUserWallet(telegramUser) {
         anonymousId,
       })
     ).toObject();
-  } else {
-    await TelegramBotUser.updateOne(
-      { telegramUserId },
-      {
-        $set: {
-          chatId,
-          username: telegramUser.username || tgUser.username || null,
-          firstName: telegramUser.firstName || tgUser.firstName || null,
-          lastActiveAt: new Date(),
-        },
-      },
-    );
-    tgUser = await TelegramBotUser.findOne({ telegramUserId }).lean();
   }
 
   let spendDoc = await AgentWallet.findOne({
@@ -140,20 +158,64 @@ export async function ensureTelegramUserWallet(telegramUser) {
  * @param {string} anonymousId
  * @returns {Promise<{ agentAddress: string; solBalance: number; usdcBalance: number } | null>}
  */
+export async function getAgentBalancesCached(anonymousId) {
+  const id = String(anonymousId || '').trim();
+  if (!id) return null;
+  const cached = getCachedBalances(id);
+  if (cached) {
+    return {
+      agentAddress: cached.agentAddress,
+      solBalance: cached.solBalance,
+      usdcBalance: cached.usdcBalance,
+    };
+  }
+  const balances = await getAgentBalances(id);
+  if (!balances?.agentAddress) return balances;
+  setCachedBalances(id, {
+    agentAddress: balances.agentAddress,
+    solBalance: balances.solBalance,
+    usdcBalance: balances.usdcBalance,
+  });
+  setCachedBalances(balances.agentAddress, {
+    agentAddress: balances.agentAddress,
+    solBalance: balances.solBalance,
+    usdcBalance: balances.usdcBalance,
+  });
+  return balances;
+}
+
+/**
+ * @param {string} anonymousId
+ * @returns {Promise<{ agentAddress: string; solBalance: number; usdcBalance: number } | null>}
+ */
 export async function getWalletSummary(anonymousId) {
+  const id = String(anonymousId || '').trim();
+  const cached = getCachedBalances(id);
+  if (cached) {
+    return {
+      agentAddress: cached.agentAddress,
+      solBalance: cached.solBalance,
+      usdcBalance: cached.usdcBalance,
+      custody: cached.custody || 'legacy',
+    };
+  }
+
   const doc = await AgentWallet.findOne({
-    anonymousId: String(anonymousId || '').trim(),
+    anonymousId: id,
     status: { $ne: 'retired' },
   }).lean();
   if (!doc?.agentAddress) return null;
   const balances = await fetchAgentWalletBalances(doc.agentAddress);
   if (!balances) return null;
-  return {
+  const summary = {
     agentAddress: doc.agentAddress,
     solBalance: balances.solBalance,
     usdcBalance: balances.usdcBalance,
     custody: doc.custody || 'legacy',
   };
+  setCachedBalances(id, summary);
+  setCachedBalances(doc.agentAddress, summary);
+  return summary;
 }
 
 /**
@@ -178,7 +240,9 @@ export async function withdraw(anonymousId, toAddress, amount, token = 'usdc') {
       ? { asset: /** @type {'usdc'} */ ('usdc'), usdcAmount: amount }
       : { asset: /** @type {'sol'} */ ('sol'), solAmount: amount };
 
-  return withdrawTelegramAgentToAddress(id, recipient, opts);
+  const result = await withdrawTelegramAgentToAddress(id, recipient, opts);
+  invalidateBalanceCache(id);
+  return result;
 }
 
 /**

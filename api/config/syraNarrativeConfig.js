@@ -61,7 +61,7 @@ Product (live):
 - API gateway at api.syraa.fun — x402 micropayments, OpenAPI, partner integrations
 - API Playground at syraa.fun/playground — shareable paid API request links
 - Experiments: trading agents, LP agents, SpaceX IPO agent (SPCX), alpha scouts
-- Telegram bot @syra_trading_bot
+- Telegram bot @syra_trading_bot — walleted crypto intel agent (same tools as web; daily digest + referral)
 
 Token utility ($SYRA on Solana / Pump.fun):
 - Staking via Streamflow locks — API fee discounts (e.g. 10K $SYRA = 25% off)

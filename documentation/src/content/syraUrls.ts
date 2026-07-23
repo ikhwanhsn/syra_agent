@@ -24,6 +24,8 @@ export const SYRA_DOCS_URL = "https://docs.syraa.fun";
 
 export const SYRA_TELEGRAM_BOT_URL = "https://t.me/syra_trading_bot";
 export const SYRA_TELEGRAM_COMMUNITY_URL = "https://t.me/syra_ai";
+/** Prefer the bot for product CTAs; community for social. */
+export const SYRA_TELEGRAM_CTA_URL = SYRA_TELEGRAM_BOT_URL;
 export const SYRA_X_URL = "https://x.com/syra_agent";
 
 /** Human-readable label for the main web app hostname. */

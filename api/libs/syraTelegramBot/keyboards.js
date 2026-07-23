@@ -121,7 +121,12 @@ export function confirmWithdrawKeyboard() {
 export function referralKeyboard(opts = {}) {
   const rows = [];
   if (opts.shareUrl) {
-    rows.push([{ text: '📤 Share referral link', url: opts.shareUrl }]);
+    const shareUrl = String(opts.shareUrl);
+    const shareText = encodeURIComponent(
+      'Try Syra on Telegram — walleted crypto intel (news, signals, on-chain). Friends I invite use my stack.',
+    );
+    const telegramShare = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${shareText}`;
+    rows.push([{ text: '📤 Share referral link', url: telegramShare }]);
   }
   rows.push([
     { text: opts.hasCode ? '✏️ Change name' : '✨ Create name', callback_data: 'ref:create' },

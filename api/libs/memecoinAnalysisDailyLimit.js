@@ -10,8 +10,10 @@ import { isActiveStakerEligible } from './syraStakingEligibility.js';
 
 export const MEMECOIN_SCAN_LIMIT_DEFAULT = 3;
 export const MEMECOIN_SCAN_LIMIT_STAKER = 15;
-export const MEMECOIN_SCAN_SYRA_STAKER_THRESHOLD = 1_000_000;
-export const MEMECOIN_SCAN_SYRA_WHALE_THRESHOLD = 10_000_000;
+/** Lowered from 1M so ordinary stakers get elevated limits. */
+export const MEMECOIN_SCAN_SYRA_STAKER_THRESHOLD = 100_000;
+/** Lowered from 10M — still a serious stake, not unreachable. */
+export const MEMECOIN_SCAN_SYRA_WHALE_THRESHOLD = 1_000_000;
 
 /** @deprecated Wallet-balance tier removed; kept for env compat only. */
 export const MEMECOIN_SCAN_LIMIT_HOLDER = 15;
@@ -234,9 +236,9 @@ export async function getMemecoinAnalysisQuotaStatus(req) {
 
 export function buildMemecoinAnalysisDailyLimitMessage(quota) {
   const tierHints = {
-    free: 'Stake 1M+ $SYRA for 15 scans/day, or 10M+ $SYRA staked for unlimited scans/day.',
-    holder: 'Stake 1M+ $SYRA for 15 scans/day, or 10M+ $SYRA staked for unlimited scans/day.',
-    staker: 'Stake 10M+ $SYRA staked for unlimited scans/day.',
+    free: 'Stake 100k+ $SYRA for 15 scans/day, or 1M+ $SYRA staked for unlimited scans/day.',
+    holder: 'Stake 100k+ $SYRA for 15 scans/day, or 1M+ $SYRA staked for unlimited scans/day.',
+    staker: 'Stake 1M+ $SYRA for unlimited scans/day.',
     unlimited: '',
     bypass: '',
   };

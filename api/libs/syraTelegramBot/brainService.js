@@ -12,8 +12,9 @@ import {
 import { executeAgentToolCall } from '../agentToolExecutor.js';
 import { callOpenRouter } from '../openrouter.js';
 import { sanitizeUserMessage } from '../promptSanitizer.js';
-import { getAgentBalances } from '../agentWallet.js';
 import { getEffectiveAgentToolPriceUsd } from '../pactPricing.js';
+import { recordTelegramBotEvent } from '../../utils/recordTelegramBotEvent.js';
+import { getTelegramReferralMinBalanceUsd } from '../../config/syraTelegramBotConfig.js';
 import { planTelegramAnswerButtons } from './answerButtonsService.js';
 import { buildTelegramChartAttachment } from './chartService.js';
 import {
@@ -25,6 +26,17 @@ import {
   formatTelegramToolDirect,
   TELEGRAM_DIRECT_FORMAT_TOOLS,
 } from './telegramToolFormat.js';
+import {
+  tryConsumeTelegramFreeTool,
+  canSubsidyTelegramTool,
+  getTelegramFreeToolRemaining,
+} from './telegramFreeToolQuota.js';
+import {
+  canReferrerSponsor,
+  recordReferralSponsoredSpend,
+} from './telegramReferralSpend.js';
+import { getAgentBalancesCached } from './walletService.js';
+import { invalidateBalanceCache } from './balanceCache.js';
 
 const MAX_TOKENS_WITH_TOOLS = 900;
 const MAX_TOKENS_DEFAULT = 700;
@@ -33,6 +45,7 @@ const TELEGRAM_TOOL_TIMEOUT_MS = 45_000;
 const TELEGRAM_BALANCE_TIMEOUT_MS = 8_000;
 const MAX_HISTORY_MESSAGES = 10;
 const TELEGRAM_CHAT_TITLE = 'Telegram';
+const MAX_PARALLEL_TOOLS = 3;
 
 function enforceSyraBranding(text) {
   if (typeof text !== 'string' || !text.trim()) return '';
@@ -44,11 +57,16 @@ function enforceSyraBranding(text) {
 
 /**
  * @param {string} err
- * @param {{ budgetExceeded?: boolean }} result
+ * @param {{ budgetExceeded?: boolean; referralCap?: boolean }} result
  * @param {boolean} billingReferral
  * @returns {string | null}
  */
 function buildLiveDataFailureText(err, result, billingReferral) {
+  if (result.referralCap) {
+    return billingReferral
+      ? 'Your referrer hit today\'s sponsor spend cap for paid tools. Ask them to raise the cap or deposit more USDC, or deposit to **your** wallet via **Wallet** to pay yourself.'
+      : 'Daily referral sponsor spend cap reached. Deposit USDC to your own wallet (**Wallet**) to continue, or try again tomorrow.';
+  }
   const needsUsdc = result.budgetExceeded || /USDC|insufficient|no USDC|token account/i.test(err);
   const needsSol = /SOL|transaction fee|debit an account|no record of a prior credit/i.test(err);
   const isWalletConfig =
@@ -59,8 +77,8 @@ function buildLiveDataFailureText(err, result, billingReferral) {
   }
   if (needsUsdc) {
     return billingReferral
-      ? 'Live data tools bill from your referrer\'s wallet. Ask them to deposit USDC via **Wallet**, then try again.'
-      : 'Deposit a small amount of USDC to your Syra wallet (**Wallet** button) to fetch live prices and news, then try again.';
+      ? 'Live data tools bill from your referrer\'s wallet. Ask them to deposit USDC via **Wallet**, then try again. Or deposit to your own wallet to pay yourself.'
+      : 'Deposit a small amount of USDC to your Syra wallet (**Wallet** button) to fetch live prices and news, then try again.\n\nYou get a few free live-data calls per day — try a short ask like **BTC news** or **SOL signal** first.';
   }
   if (needsSol) {
     return 'Your agent wallet needs a small amount of SOL (about 0.01) for transaction fees. Add SOL via **Wallet**, then try again.';
@@ -73,14 +91,41 @@ function buildLiveDataFailureText(err, result, billingReferral) {
 }
 
 /**
- * @param {string} anonymousId
+ * @param {string} anonymousId - payer wallet identity
  * @param {import('../../config/agentTools.js').AgentToolDefinition} tool
  * @param {Record<string, string>} params
  * @param {number} usdcBalance
+ * @param {{ freeSubsidy?: boolean; billingReferral?: boolean; userAnonymousId?: string; telegramUserId?: number | null }} [opts]
  */
-async function executeTelegramTool(anonymousId, tool, params, usdcBalance) {
+async function executeTelegramTool(anonymousId, tool, params, usdcBalance, opts = {}) {
   const requiredUsdc = getEffectiveAgentToolPriceUsd(tool, null);
-  if (requiredUsdc > 0 && (usdcBalance <= 0 || usdcBalance < requiredUsdc)) {
+  const freeSubsidy = opts.freeSubsidy === true;
+  const billingReferral = opts.billingReferral === true;
+
+  if (!freeSubsidy && billingReferral && requiredUsdc > 0) {
+    const sponsor = await canReferrerSponsor(anonymousId, requiredUsdc);
+    if (!sponsor.allowed) {
+      return {
+        status: 402,
+        error: `Referrer daily sponsor cap reached ($${sponsor.spentUsd.toFixed(2)} / $${sponsor.capUsd.toFixed(2)}).`,
+        budgetExceeded: true,
+        referralCap: true,
+      };
+    }
+    const minBal = getTelegramReferralMinBalanceUsd();
+    if (usdcBalance < Math.max(minBal, requiredUsdc)) {
+      return {
+        status: 402,
+        error:
+          usdcBalance <= 0
+            ? `Referrer wallet has no USDC. Deposit USDC to sponsor tools.`
+            : `Referrer wallet has insufficient USDC ($${usdcBalance.toFixed(2)}; needs ~$${requiredUsdc.toFixed(4)}).`,
+        budgetExceeded: true,
+      };
+    }
+  }
+
+  if (!freeSubsidy && requiredUsdc > 0 && (usdcBalance <= 0 || usdcBalance < requiredUsdc)) {
     const msg =
       usdcBalance <= 0
         ? `Your agent wallet has no USDC. Deposit USDC to your Syra wallet to use ${tool.name}.`
@@ -100,6 +145,8 @@ async function executeTelegramTool(anonymousId, tool, params, usdcBalance) {
       toolId: tool.id,
       params: normalizedParams,
       ctx: {},
+      skipUsdcCharge: freeSubsidy && Boolean(tool.agentDirect),
+      useTreasury: freeSubsidy && !tool.agentDirect,
     }),
     TELEGRAM_TOOL_TIMEOUT_MS,
     tool.name || tool.id,
@@ -107,7 +154,21 @@ async function executeTelegramTool(anonymousId, tool, params, usdcBalance) {
 
   const { status, body } = execResult;
   if (body?.success) {
-    return { status: 200, data: body.data };
+    if (!freeSubsidy && billingReferral && requiredUsdc > 0) {
+      await recordReferralSponsoredSpend(anonymousId, requiredUsdc);
+    }
+    void recordTelegramBotEvent(freeSubsidy ? 'tg_free_tool' : 'tg_paid_tool', {
+      telegramUserId: opts.telegramUserId ?? null,
+      anonymousId: opts.userAnonymousId || anonymousId,
+      props: {
+        toolId: tool.id,
+        toolName: tool.name,
+        priceUsd: freeSubsidy ? 0 : requiredUsdc,
+        billingReferral,
+        freeSubsidy,
+      },
+    });
+    return { status: 200, data: body.data, freeSubsidy, priceUsd: requiredUsdc };
   }
 
   const budgetExceeded = body?.budgetExceeded === true || body?.insufficientBalance === true;
@@ -199,12 +260,12 @@ async function persistChatTurn(chat, userContent, assistantContent, toolUsages =
 }
 
 /**
- * @param {{ anonymousId: string; payerAnonymousId?: string; question: string }} input
- * @returns {Promise<{ text: string; toolsUsed: string[]; chartAttachment?: object; showFollowUps: boolean; followUpQuestions: string[]; showMainMenu: boolean; followUpExpiresAt?: Date; limited?: boolean }>}
+ * @param {{ anonymousId: string; payerAnonymousId?: string; question: string; telegramUserId?: number | null }} input
+ * @returns {Promise<{ text: string; toolsUsed: string[]; chartAttachment?: object; showFollowUps: boolean; followUpQuestions: string[]; showMainMenu: boolean; followUpExpiresAt?: Date; limited?: boolean; depositPrompted?: boolean }>}
  */
-export async function askSyraBrain({ anonymousId, payerAnonymousId, question }) {
+export async function askSyraBrain({ anonymousId, payerAnonymousId, question, telegramUserId = null }) {
   try {
-    return await askSyraBrainInner({ anonymousId, payerAnonymousId, question });
+    return await askSyraBrainInner({ anonymousId, payerAnonymousId, question, telegramUserId });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error('[syra-telegram] askSyraBrain failed:', e instanceof Error ? e.stack || msg : msg);
@@ -217,20 +278,25 @@ export async function askSyraBrain({ anonymousId, payerAnonymousId, question }) 
       showFollowUps: false,
       followUpQuestions: [],
       showMainMenu: true,
+      depositPrompted: false,
     };
   }
 }
 
 /**
- * @param {{ anonymousId: string; payerAnonymousId?: string; question: string }} input
+ * @param {{ anonymousId: string; payerAnonymousId?: string; question: string; telegramUserId?: number | null }} input
  */
-async function askSyraBrainInner({ anonymousId, payerAnonymousId, question }) {
+async function askSyraBrainInner({ anonymousId, payerAnonymousId, question, telegramUserId = null }) {
+  const t0 = Date.now();
+  /** @type {Record<string, number>} */
+  const timing = {};
+
   const id = String(anonymousId || '').trim();
   const payerId = String(payerAnonymousId || anonymousId || '').trim();
   const billingReferral = payerId !== id;
   const rawQuestion = String(question || '').trim();
   if (!id || !rawQuestion) {
-    return { text: 'Please send a question.', toolsUsed: [], showFollowUps: false, followUpQuestions: [], showMainMenu: false };
+    return { text: 'Please send a question.', toolsUsed: [], showFollowUps: false, followUpQuestions: [], showMainMenu: false, depositPrompted: false };
   }
 
   const { text: sanitizedQuestion } = sanitizeUserMessage(rawQuestion);
@@ -250,11 +316,15 @@ async function askSyraBrainInner({ anonymousId, payerAnonymousId, question }) {
       '• BTC trading signal',
     ].join('\n');
     await persistChatTurn(chat, userQuestion, declineText, []);
+    const tButtons = Date.now();
     const buttonPlan = await planTelegramAnswerButtons({
       userQuestion,
       assistantAnswer: declineText,
       toolsUsed: [],
     });
+    timing.buttonsMs = Date.now() - tButtons;
+    timing.totalMs = Date.now() - t0;
+    console.info('[syra-telegram] brain timing', { intent: 'off_topic', ...timing });
     return {
       text: declineText,
       toolsUsed: [],
@@ -262,30 +332,40 @@ async function askSyraBrainInner({ anonymousId, payerAnonymousId, question }) {
       followUpQuestions: buttonPlan.followUpQuestions,
       showMainMenu: buttonPlan.showMainMenu,
       followUpExpiresAt: buttonPlan.followUpExpiresAt,
+      depositPrompted: false,
     };
   }
 
   const conversationSnippet = buildConversationSnippet(chat);
+  const freeRemainingPeek = await getTelegramFreeToolRemaining(id);
 
+  const tMatch = Date.now();
   const [matchedTools, balanceResult] = await Promise.all([
     resolveTelegramMatchedTools(userQuestion, conversationSnippet),
-    withTelegramTimeout(getAgentBalances(payerId), TELEGRAM_BALANCE_TIMEOUT_MS, 'Balance check').catch(
+    withTelegramTimeout(getAgentBalancesCached(payerId), TELEGRAM_BALANCE_TIMEOUT_MS, 'Balance check').catch(
       () => null,
     ),
   ]);
+  timing.toolMatchMs = Date.now() - tMatch;
 
   let usdcBalance = balanceResult?.usdcBalance ?? 0;
 
   const capabilitiesList = getCapabilitiesList().join('\n');
   const apiMessages = [{ role: 'user', content: userQuestion }];
 
+  const freeHint =
+    freeRemainingPeek.remaining > 0
+      ? `This user has ${freeRemainingPeek.remaining} free live-data tool call(s) left today (of ${freeRemainingPeek.limit}). Prefer using tools when they ask for live data — do not push deposits until free calls are exhausted.`
+      : 'Free live-data calls for today are used up. If a paid tool fails for USDC, tell them to deposit via Wallet.';
+
   const systemContent = [
     'You are Syra — machine money for agents on Solana. You can chat naturally and use paid tools when the user asks for specific live data.',
     buildTelegramIntentSystemNotes(questionIntent),
     `Syra's live-data tools (only when the user needs current prices, news, signals, etc.):\n${capabilitiesList}`,
-    'If a paid tool was skipped or failed because of insufficient USDC, tell the user to deposit USDC to their Syra agent wallet (Wallet button) and try again. Do not mention daily limits or pricing tiers.',
+    freeHint,
+    'If a paid tool was skipped or failed because of insufficient USDC, tell the user to deposit USDC to their Syra agent wallet (Wallet button) and try again.',
     billingReferral
-      ? 'This user joined via a referral — paid tools are billed from their referrer\'s wallet. If USDC is insufficient, tell them their referrer must deposit USDC to their Syra wallet.'
+      ? 'This user joined via a referral — paid tools are billed from their referrer\'s wallet (subject to a daily sponsor cap). If USDC/cap blocks them, tell them their referrer must deposit or they can fund their own wallet.'
       : '',
     'Response format: clear, concise Telegram-friendly markdown. Never mention third-party API brands — always present as Syra.',
   ]
@@ -309,15 +389,29 @@ async function askSyraBrainInner({ anonymousId, payerAnonymousId, question }) {
   const toolUsages = [];
   /** @type {{ png: Buffer; caption: string; detailUrl: string } | null} */
   let chartAttachment = null;
+  let depositPrompted = false;
+  let usedFreeSubsidy = false;
+
+  /** @type {Array<{ toolId: string; toolName: string; params: Record<string, string>; data: unknown }>} */
+  const chartCandidates = [];
 
   if (matchedTools && matchedTools.length > 0) {
     const toolResults = [];
     const toolErrors = [];
 
-    /** @type {Array<{ err: string; result: { budgetExceeded?: boolean } }>} */
+    /** @type {Array<{ err: string; result: { budgetExceeded?: boolean; referralCap?: boolean } }>} */
     const liveDataFailures = [];
 
-    for (const matched of matchedTools) {
+    /** @type {Array<{
+     *   matched: { toolId: string; params?: object };
+     *   tool: import('../../config/agentTools.js').AgentToolDefinition;
+     *   params: Record<string, string>;
+     *   priceUsd: number;
+     *   freeSubsidy: boolean;
+     * }>} */
+    const jobs = [];
+
+    for (const matched of matchedTools.slice(0, MAX_PARALLEL_TOOLS)) {
       const tool = getAgentTool(matched.toolId);
       if (!tool) continue;
 
@@ -336,10 +430,37 @@ async function askSyraBrainInner({ anonymousId, payerAnonymousId, question }) {
           .map(([k, v]) => [k, typeof v === 'string' ? v : String(v)]),
       );
 
-      const result = await executeTelegramTool(payerId, tool, params, usdcBalance).catch((e) => ({
-        status: 502,
-        error: e instanceof Error ? e.message : String(e),
-      }));
+      const priceUsd = getEffectiveAgentToolPriceUsd(tool, null);
+      let freeSubsidy = false;
+      // Allocate free slots sequentially before parallel execution (quota must stay correct).
+      if (priceUsd > 0 && canSubsidyTelegramTool(tool) && !billingReferral) {
+        const slot = await tryConsumeTelegramFreeTool(id);
+        freeSubsidy = slot.allowed;
+        if (freeSubsidy) usedFreeSubsidy = true;
+      }
+
+      jobs.push({ matched, tool, params, priceUsd, freeSubsidy });
+    }
+
+    const tTools = Date.now();
+    const settled = await Promise.all(
+      jobs.map(async (job) => {
+        const result = await executeTelegramTool(payerId, job.tool, job.params, usdcBalance, {
+          freeSubsidy: job.freeSubsidy,
+          billingReferral,
+          userAnonymousId: id,
+          telegramUserId,
+        }).catch((e) => ({
+          status: 502,
+          error: e instanceof Error ? e.message : String(e),
+        }));
+        return { job, result };
+      }),
+    );
+    timing.toolsMs = Date.now() - tTools;
+
+    for (const { job, result } of settled) {
+      const { tool, params, priceUsd, freeSubsidy, matched } = job;
 
       if (result.status !== 200) {
         const err = result.error || 'Request failed';
@@ -348,13 +469,18 @@ async function askSyraBrainInner({ anonymousId, payerAnonymousId, question }) {
         const isWalletConfig =
           /Agent wallet not found|privy_not_configured|missing_privy_wallet_id/i.test(err);
         let hint = 'Do not invent data.';
-        if (isWalletConfig) {
+        if (result.referralCap) {
+          hint =
+            'Tell the user the referrer hit today\'s sponsor spend cap — they can deposit to their own wallet or ask the referrer to fund more.';
+          depositPrompted = true;
+        } else if (isWalletConfig) {
           hint =
             'Tell the user to open Wallet in the bot and ensure their Syra agent wallet is ready, then try again.';
         } else if (result.budgetExceeded || needsUsdc) {
+          depositPrompted = true;
           hint = billingReferral
-            ? 'Tell the user their referrer must deposit USDC to their Syra wallet — paid tools bill the referrer, not this user.'
-            : 'Tell the user to deposit USDC to their Syra agent wallet (Wallet button) to pay for this tool.';
+            ? 'Tell the user their referrer must deposit USDC to their Syra wallet — paid tools bill the referrer, not this user. Or they can deposit to their own wallet.'
+            : 'Tell the user to deposit USDC to their Syra agent wallet (Wallet button) to pay for this tool. Mention free daily live-data calls reset at midnight UTC.';
         } else if (needsSol) {
           hint =
             'Tell the user their agent wallet needs a small amount of SOL (e.g. 0.01) for transaction fees.';
@@ -367,24 +493,38 @@ async function askSyraBrainInner({ anonymousId, payerAnonymousId, question }) {
       } else {
         hadToolResults = true;
         toolUsages.push({ name: tool.name, status: 'complete' });
+        if (!freeSubsidy && priceUsd > 0) {
+          usdcBalance = Math.max(0, usdcBalance - priceUsd);
+          invalidateBalanceCache(payerId, balanceResult?.agentAddress);
+        }
         if (TELEGRAM_DIRECT_FORMAT_TOOLS.has(matched.toolId)) {
           const direct = formatTelegramToolDirect(matched.toolId, result.data, params);
           if (direct) directTelegramParts.push(direct);
         } else {
           needsLlmForToolResults = true;
         }
-        if (!chartAttachment) {
-          try {
-            chartAttachment = await buildTelegramChartAttachment(matched.toolId, params, result.data);
-          } catch (chartErr) {
-            console.warn('[syraTelegramBot] chart render failed:', chartErr?.message || chartErr);
-          }
-        }
+        chartCandidates.push({
+          toolId: matched.toolId,
+          toolName: tool.name,
+          params,
+          data: result.data,
+        });
         const formatted = formatToolResultForLlm(result.data, tool.id);
+        const freeNote = result.freeSubsidy
+          ? '\n\n[Note for reply: this live-data call used one of the user\'s free daily tool credits. Mention briefly if useful.]'
+          : '';
         toolResults.push(
-          `[Result from tool "${tool.name}" — present clearly for Telegram.]\n\n${formatted}`,
+          `[Result from tool "${tool.name}" — present clearly for Telegram.]${freeNote}\n\n${formatted}`,
         );
       }
+    }
+
+    if (depositPrompted) {
+      void recordTelegramBotEvent('tg_deposit_prompt', {
+        telegramUserId,
+        anonymousId: id,
+        props: { billingReferral },
+      });
     }
 
     if (toolErrors.length > 0 && toolResults.length === 0 && matchedTools.length > 0) {
@@ -394,11 +534,15 @@ async function askSyraBrainInner({ anonymousId, payerAnonymousId, question }) {
         : 'I could not fetch that live data right now. Please try again in a moment.';
       const text = enforceSyraBranding(directFailure) || directFailure;
       await persistChatTurn(chat, userQuestion, text, toolUsages);
+      const tButtons = Date.now();
       const buttonPlan = await planTelegramAnswerButtons({
         userQuestion,
         assistantAnswer: text,
         toolsUsed: [],
       });
+      timing.buttonsMs = Date.now() - tButtons;
+      timing.totalMs = Date.now() - t0;
+      console.info('[syra-telegram] brain timing', { intent: questionIntent, path: 'tool_fail', ...timing });
       return {
         text,
         toolsUsed: [],
@@ -407,6 +551,7 @@ async function askSyraBrainInner({ anonymousId, payerAnonymousId, question }) {
         followUpQuestions: buttonPlan.followUpQuestions,
         showMainMenu: buttonPlan.showMainMenu,
         followUpExpiresAt: buttonPlan.followUpExpiresAt,
+        depositPrompted,
       };
     }
 
@@ -428,18 +573,46 @@ async function askSyraBrainInner({ anonymousId, payerAnonymousId, question }) {
     }
   }
 
+  /**
+   * Build first available chart (off the tool serial path).
+   * @returns {Promise<{ png: Buffer; caption: string; detailUrl: string } | null>}
+   */
+  async function resolveChart() {
+    for (const c of chartCandidates) {
+      try {
+        const chart = await buildTelegramChartAttachment(c.toolId, c.params, c.data);
+        if (chart) return chart;
+      } catch (chartErr) {
+        console.warn('[syraTelegramBot] chart render failed:', chartErr?.message || chartErr);
+      }
+    }
+    return null;
+  }
+
   const toolsUsed = toolUsages.filter((t) => t.status === 'complete').map((t) => t.name);
   const directTelegramText =
     directTelegramParts.length > 0 ? directTelegramParts.join('\n\n---\n\n') : null;
 
   if (directTelegramText && !needsLlmForToolResults) {
-    const text = enforceSyraBranding(directTelegramText) || directTelegramText;
+    const tChart = Date.now();
+    chartAttachment = await resolveChart();
+    timing.chartMs = Date.now() - tChart;
+
+    let text = enforceSyraBranding(directTelegramText) || directTelegramText;
+    if (usedFreeSubsidy) {
+      const rem = await getTelegramFreeToolRemaining(id);
+      text = `${text}\n\n_Free live-data credit used · ${rem.remaining} left today_`;
+    }
     await persistChatTurn(chat, userQuestion, text, toolUsages);
+    const tButtons = Date.now();
     const buttonPlan = await planTelegramAnswerButtons({
       userQuestion,
       assistantAnswer: text,
       toolsUsed,
     });
+    timing.buttonsMs = Date.now() - tButtons;
+    timing.totalMs = Date.now() - t0;
+    console.info('[syra-telegram] brain timing', { intent: questionIntent, path: 'direct', ...timing });
     return {
       text,
       toolsUsed,
@@ -448,6 +621,7 @@ async function askSyraBrainInner({ anonymousId, payerAnonymousId, question }) {
       followUpQuestions: buttonPlan.followUpQuestions,
       showMainMenu: buttonPlan.showMainMenu,
       followUpExpiresAt: buttonPlan.followUpExpiresAt,
+      depositPrompted,
     };
   }
 
@@ -457,21 +631,32 @@ async function askSyraBrainInner({ anonymousId, payerAnonymousId, question }) {
     temperature: hadToolResults ? 0.35 : 0.6,
   };
 
-  const { response } = await callOpenRouter(
-    withLlmIdentitySystemNote(apiMessages, OPENROUTER_DEFAULT_MODEL),
-    llmOptions,
-  );
+  const tLlm = Date.now();
+  const [llmSettled, chartSettled] = await Promise.all([
+    callOpenRouter(withLlmIdentitySystemNote(apiMessages, OPENROUTER_DEFAULT_MODEL), llmOptions),
+    resolveChart(),
+  ]);
+  timing.llmMs = Date.now() - tLlm;
+  chartAttachment = chartSettled;
 
-  const text =
-    enforceSyraBranding(response) || "I couldn't generate a response. Please try again.";
+  let text =
+    enforceSyraBranding(llmSettled.response) || "I couldn't generate a response. Please try again.";
+  if (usedFreeSubsidy) {
+    const rem = await getTelegramFreeToolRemaining(id);
+    text = `${text}\n\n_Free live-data credit used · ${rem.remaining} left today_`;
+  }
 
   await persistChatTurn(chat, userQuestion, text, toolUsages);
 
+  const tButtons = Date.now();
   const buttonPlan = await planTelegramAnswerButtons({
     userQuestion,
     assistantAnswer: text,
     toolsUsed,
   });
+  timing.buttonsMs = Date.now() - tButtons;
+  timing.totalMs = Date.now() - t0;
+  console.info('[syra-telegram] brain timing', { intent: questionIntent, path: 'llm', ...timing });
 
   return {
     text,
@@ -481,5 +666,6 @@ async function askSyraBrainInner({ anonymousId, payerAnonymousId, question }) {
     followUpQuestions: buttonPlan.followUpQuestions,
     showMainMenu: buttonPlan.showMainMenu,
     followUpExpiresAt: buttonPlan.followUpExpiresAt,
+    depositPrompted,
   };
 }

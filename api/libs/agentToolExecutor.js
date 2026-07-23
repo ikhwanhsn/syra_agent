@@ -7,9 +7,11 @@ import { getEffectiveAgentToolPriceUsd } from './pactPricing.js';
 import {
   callX402V2WithAgent,
   callX402V2WithAgentForSyraPath,
+  callX402V2WithTreasury,
   signAndSubmitSerializedTransaction,
   signAndSubmitSwapTransaction,
 } from './agentX402Client.js';
+import { resolveAgentBaseUrlCandidates } from '../routes/agent/utils.js';
 import {
   enrichPumpfunToolParams,
   omitParamsKeys,
@@ -23,6 +25,8 @@ import { callNansenWithAgent } from './agentNansenClient.js';
 import { callZerionWithAgent } from './agentZerionClient.js';
 import { callTopledgerWithAgent } from './topledgerClient.js';
 import { callBirdeyeWithAgent } from './agentBirdeyeClient.js';
+import { callBlocksizeWithAgent } from './agentBlocksizeClient.js';
+import { callDexterWithAgent, fetchDexterX402Catalog } from './agentDexterClient.js';
 import { callStablecryptoWithAgent } from './agentStablecryptoClient.js';
 import { callStablesocialWithAgent } from './agentStablesocialClient.js';
 import { callStableenrichWithAgent } from './agentStableenrichClient.js';
@@ -62,6 +66,7 @@ function respond(status, body) {
  *   toolId: string;
  *   params?: Record<string, unknown>;
  *   skipUsdcCharge?: boolean;
+ *   useTreasury?: boolean;
  *   ctx?: {
  *     host?: string;
  *     user?: { guest?: boolean; sessionId?: string };
@@ -71,9 +76,18 @@ function respond(status, body) {
  *   };
  * }} input
  * Earn token launch may set skipUsdcCharge so user pays SOL for pump.fun create/buy only.
+ * useTreasury: Syra treasury pays x402 (Telegram free quota / holder subsidy patterns).
  */
 export async function executeAgentToolCall(input) {
-  const { anonymousId, toolId, params: rawParams = {}, ctx = {}, skipUsdcCharge = false } = input;
+  const {
+    anonymousId,
+    toolId,
+    params: rawParams = {},
+    ctx = {},
+    skipUsdcCharge = false,
+    useTreasury = false,
+  } = input;
+  const skipCharge = skipUsdcCharge || useTreasury;
   try {
     if (!anonymousId || !toolId) {
       return respond(400, {
@@ -532,7 +546,7 @@ export async function executeAgentToolCall(input) {
     }
 
     const balanceResult = await getAgentUsdcBalance(anonymousId);
-    if (!balanceResult) {
+    if (!useTreasury && !balanceResult) {
       return respond(404, {
         success: false,
         insufficientBalance: true,
@@ -544,12 +558,13 @@ export async function executeAgentToolCall(input) {
 
     const connectedWallet = await getConnectedWalletAddress(anonymousId);
     // Earn token launch pays pump.fun in SOL only — no Syra USDC tool fee.
-    const effectivePrice = skipUsdcCharge
+    // useTreasury / skipUsdcCharge: no agent USDC debit for this call.
+    const effectivePrice = skipCharge
       ? 0
       : getEffectiveAgentToolPriceUsd(tool, connectedWallet);
-    const { usdcBalance } = balanceResult;
+    const { usdcBalance } = balanceResult || { usdcBalance: 0 };
     const requiredUsdc = effectivePrice;
-    if (!skipUsdcCharge && (usdcBalance <= 0 || usdcBalance < requiredUsdc)) {
+    if (!skipCharge && (usdcBalance <= 0 || usdcBalance < requiredUsdc)) {
       return respond(402, {
         success: false,
         insufficientBalance: true,
@@ -636,6 +651,60 @@ export async function executeAgentToolCall(input) {
         tool.method || 'GET',
         params,
         connectedWallet || undefined
+      );
+      if (!result.success) {
+        const status = result.budgetExceeded ? 402 : 502;
+        return respond(status, {
+          success: false,
+          error: result.error,
+          toolId: tool.id,
+          ...(result.budgetExceeded && { budgetExceeded: true }),
+        });
+      }
+      return respond(200, {
+        success: true,
+        toolId: tool.id,
+        data: result.data,
+      });
+    }
+
+    if (tool.blocksizePath) {
+      const result = await callBlocksizeWithAgent(
+        anonymousId,
+        tool.blocksizePath,
+        tool.method || 'GET',
+        params
+      );
+      if (!result.success) {
+        const status = result.budgetExceeded ? 402 : 502;
+        return respond(status, {
+          success: false,
+          error: result.error,
+          toolId: tool.id,
+          ...(result.budgetExceeded && { budgetExceeded: true }),
+        });
+      }
+      return respond(200, {
+        success: true,
+        toolId: tool.id,
+        data: result.data,
+      });
+    }
+
+    if (tool.dexterCatalog) {
+      const result = await fetchDexterX402Catalog();
+      if (!result.success) {
+        return respond(502, { success: false, error: result.error, toolId: tool.id });
+      }
+      return respond(200, { success: true, toolId: tool.id, data: result.data });
+    }
+
+    if (tool.dexterPath) {
+      const result = await callDexterWithAgent(
+        anonymousId,
+        tool.dexterPath,
+        tool.method || 'GET',
+        params
       );
       if (!result.success) {
         const status = result.budgetExceeded ? 402 : 502;
@@ -899,14 +968,27 @@ export async function executeAgentToolCall(input) {
     const query = method === 'GET' || method === 'DELETE' ? params : {};
     const body = method === 'POST' ? params : undefined;
 
-    const result = await callX402V2WithAgentForSyraPath({
-      anonymousId,
-      path: toolPath,
-      method,
-      query,
-      body,
-      connectedWalletAddress: connectedWallet || undefined,
-    });
+    let result;
+    if (useTreasury) {
+      const bases = resolveAgentBaseUrlCandidates();
+      const base = bases[0] || '';
+      const url = `${base}${toolPath}`;
+      result = await callX402V2WithTreasury({
+        url,
+        method,
+        query,
+        body,
+      });
+    } else {
+      result = await callX402V2WithAgentForSyraPath({
+        anonymousId,
+        path: toolPath,
+        method,
+        query,
+        body,
+        connectedWalletAddress: connectedWallet || undefined,
+      });
+    }
 
   if (!result.success) {
     const status = result.budgetExceeded ? 402 : 502;

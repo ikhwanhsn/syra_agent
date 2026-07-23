@@ -43,6 +43,8 @@ import { enrichGmgnToolParams } from '../../libs/gmgnToolParams.js';
 import { callNansenWithAgent } from '../../libs/agentNansenClient.js';
 import { callZerionWithAgent } from '../../libs/agentZerionClient.js';
 import { callBirdeyeWithAgent } from '../../libs/agentBirdeyeClient.js';
+import { callBlocksizeWithAgent } from '../../libs/agentBlocksizeClient.js';
+import { callDexterWithAgent, fetchDexterX402Catalog } from '../../libs/agentDexterClient.js';
 import { callStablecryptoWithAgent } from '../../libs/agentStablecryptoClient.js';
 import { callStablesocialWithAgent } from '../../libs/agentStablesocialClient.js';
 import { callStableenrichWithAgent } from '../../libs/agentStableenrichClient.js';
@@ -1754,6 +1756,39 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
                 status: birdeyeResult.budgetExceeded ? 402 : 502,
                 error: birdeyeResult.error,
                 budgetExceeded: birdeyeResult.budgetExceeded,
+              };
+        } else if (tool.blocksizePath) {
+          const blocksizeResult = await callBlocksizeWithAgent(
+            anonymousId,
+            tool.blocksizePath,
+            tool.method || 'GET',
+            params
+          );
+          result = blocksizeResult.success
+            ? { status: 200, data: blocksizeResult.data }
+            : {
+                status: blocksizeResult.budgetExceeded ? 402 : 502,
+                error: blocksizeResult.error,
+                budgetExceeded: blocksizeResult.budgetExceeded,
+              };
+        } else if (tool.dexterCatalog) {
+          const catalogResult = await fetchDexterX402Catalog();
+          result = catalogResult.success
+            ? { status: 200, data: catalogResult.data }
+            : { status: 502, error: catalogResult.error };
+        } else if (tool.dexterPath) {
+          const dexterResult = await callDexterWithAgent(
+            anonymousId,
+            tool.dexterPath,
+            tool.method || 'GET',
+            params
+          );
+          result = dexterResult.success
+            ? { status: 200, data: dexterResult.data }
+            : {
+                status: dexterResult.budgetExceeded ? 402 : 502,
+                error: dexterResult.error,
+                budgetExceeded: dexterResult.budgetExceeded,
               };
         } else if (tool.purchVaultPath) {
           if (tool.id === 'purch-vault-search') {

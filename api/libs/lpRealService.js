@@ -692,6 +692,43 @@ async function tryRecoverLpRealOpenAfterFailure({ positionPubkey, poolAddress, s
 }
 
 /**
+ * After broker deny/timeout on close, check if close txs landed and position is gone on-chain.
+ * @returns {Promise<{ status: 'closed'|'closing'|'failed'; closeTxSig?: string|null }>}
+ */
+async function tryRecoverLpRealCloseAfterFailure({ positionPubkey, poolAddress, submit }) {
+  const signatures = (submit?.signatures || []).filter(Boolean);
+  let confirmedSig = null;
+  for (const sig of signatures) {
+    if (await isSolanaTxConfirmedOnAnyRpc(sig)) {
+      confirmedSig = sig;
+      break;
+    }
+  }
+  const fallbackSig = signatures[signatures.length - 1] || null;
+  if (!confirmedSig && fallbackSig) {
+    if (await pollTxConfirmedOnAnyRpc(fallbackSig)) {
+      confirmedSig = fallbackSig;
+    }
+  }
+
+  // If position is no longer fetchable on-chain, treat close as succeeded.
+  try {
+    await waitForPositionOnChain(positionPubkey, poolAddress, {
+      attempts: 4,
+      delayMs: 1500,
+    });
+    // Still on-chain — close did not complete
+    if (confirmedSig) {
+      return { status: "closing", closeTxSig: confirmedSig };
+    }
+    return { status: "failed" };
+  } catch {
+    // Position gone from chain → closed
+    return { status: "closed", closeTxSig: confirmedSig || fallbackSig };
+  }
+}
+
+/**
  * Poll on-chain position after open — RPC index lag can cause false "not on chain" errors.
  */
 async function waitForPositionOnChain(positionPubkey, poolAddress, { attempts = 15, delayMs = 3000 } = {}) {
@@ -1976,9 +2013,17 @@ async function runLpRealSignalCycleForConfig(config) {
     if (qualified.length === 0) {
       const reason = pick.failureReason || "no_profitable_strategy";
       skipped.push({ reason });
+      // Pause opens clearly — do not silently disable the agent. Operator can keep resolve/claim running.
       await LpRealConfig.updateOne(agentFilter, {
-        $set: { lastSignalAt: new Date(), lastError: reason },
+        $set: {
+          lastSignalAt: new Date(),
+          lastError: reason,
+          pausedNoStrategyAt: new Date(),
+        },
       });
+      console.info(
+        `[LP real] paused opens for ${config.agentAddress}: ${reason} (resolve cycle still active)`,
+      );
       return {
         agentAddress: config.agentAddress,
         opened: 0,
@@ -1986,11 +2031,18 @@ async function runLpRealSignalCycleForConfig(config) {
         errors,
         openedRows: opened,
         skippedRows: skipped,
+        paused: true,
+        pauseReason: reason,
       };
     }
 
     await LpRealConfig.updateOne(agentFilter, {
-      $set: { currentStrategyId: qualified[0].strategyId, lastSignalAt: new Date(), lastError: null },
+      $set: {
+        currentStrategyId: qualified[0].strategyId,
+        lastSignalAt: new Date(),
+        lastError: null,
+        pausedNoStrategyAt: null,
+      },
     });
 
     const rankedIds = (pick.ranked || []).map((row) => row.strategyId);
@@ -2029,19 +2081,28 @@ async function runLpRealSignalCycleForConfig(config) {
       if (!strategyLeader) break;
 
       const feeHeadroom = lpOpenFeeHeadroomSol();
-      const cappedDepositSol = Math.min(
+      let cappedDepositSol = Math.min(
         plan.depositSol,
         Math.max(0, availableSol - feeHeadroom),
       );
+      // Safe-fallback leaders (thin sample / temporary gate miss): half size to protect capital.
+      if (strategyLeader.safeFallback || strategyLeader.softFallback) {
+        cappedDepositSol = Math.min(cappedDepositSol, plan.depositSol * 0.5);
+      }
       if (cappedDepositSol < getLpRealMinDepositSol() - 1e-9) {
         if (opensThisTick === 0) {
           skipped.push({
-            reason: "insufficient_available_sol",
+            reason: strategyLeader.safeFallback
+              ? "safe_fallback_deposit_too_small"
+              : "insufficient_available_sol",
             availableSol,
             deployableSol: plan.deployableSol,
             feeHeadroom,
           });
-          await noteLpRealSignalSkip(agentFilter, "insufficient_available_sol");
+          await noteLpRealSignalSkip(
+            agentFilter,
+            strategyLeader.safeFallback ? "safe_fallback_deposit_too_small" : "insufficient_available_sol",
+          );
         }
         break;
       }
@@ -2326,20 +2387,52 @@ async function resolveLpRealPositionsForConfig(config, { forceCloseAll = false }
 
       if (!closeSubmit.ok) {
         const { errMsg, policyReasons } = formatBrokerFailure(closeSubmit.brokerResult, "close_broker_failed");
-        await LpRealPosition.updateOne(
-          { _id: position._id },
-          {
-            $set: {
-              status: "error",
-              errorMessage: errMsg,
-              policyReasons,
-              processing: false,
-              resolvedAt: new Date(),
+        const isTransientConfirm =
+          /timeout|confirm|blockhash|network|429|503|502/i.test(errMsg) ||
+          (closeSubmit.signatures?.length ?? 0) > 0;
+        let recovery = { status: "failed" };
+        if (isTransientConfirm) {
+          recovery = await tryRecoverLpRealCloseAfterFailure({
+            positionPubkey: position.positionPubkey,
+            poolAddress: position.poolAddress,
+            submit: closeSubmit,
+          });
+        }
+        if (recovery.status === "closed") {
+          // Proceed with PnL snapshot using recovered close sig
+          closeSubmit.ok = true;
+          closeSubmit.signature = recovery.closeTxSig || closeSubmit.signature;
+        } else if (recovery.status === "closing" && recovery.closeTxSig) {
+          await LpRealPosition.updateOne(
+            { _id: position._id },
+            {
+              $set: {
+                status: "closing",
+                closeTxSig: recovery.closeTxSig,
+                errorMessage: `close_pending_confirm: ${errMsg}`,
+                policyReasons,
+                processing: false,
+              },
             },
-          },
-        );
-        errors.push(errMsg);
-        continue;
+          );
+          errors.push(`close_pending_confirm:${String(position._id)}`);
+          continue;
+        } else {
+          // Keep position open-ish for retry on next resolve tick — do not set resolvedAt
+          await LpRealPosition.updateOne(
+            { _id: position._id },
+            {
+              $set: {
+                status: "error",
+                errorMessage: errMsg,
+                policyReasons,
+                processing: false,
+              },
+            },
+          );
+          errors.push(errMsg);
+          continue;
+        }
       }
 
       await new Promise((r) => setTimeout(r, 2000));

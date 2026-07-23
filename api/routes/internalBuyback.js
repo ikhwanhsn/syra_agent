@@ -21,8 +21,11 @@ export function createInternalBuybackRouter() {
           pendingRevenueUsd: doc?.pendingRevenueUsd ?? 0,
           totalAccumulatedUsd: doc?.totalAccumulatedUsd ?? 0,
           totalFlushedUsd: doc?.totalFlushedUsd ?? 0,
+          totalBuybackUsdSpent: doc?.totalBuybackUsdSpent ?? 0,
+          totalSyraAcquired: doc?.totalSyraAcquired ?? 0,
           lastFlushAt: doc?.lastFlushAt ?? null,
           lastBuybackSignature: doc?.lastBuybackSignature ?? null,
+          lastBuybackOutAmount: doc?.lastBuybackOutAmount ?? null,
           lastFlushError: doc?.lastFlushError ?? null,
         },
       });

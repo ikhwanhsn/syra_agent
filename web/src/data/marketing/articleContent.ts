@@ -634,7 +634,8 @@ We build **pay-per-call rails for tool calls**, not another chatbot.
 | Marketplace | [syraa.fun/marketplace](https://syraa.fun/marketplace) |
 | X | [@syra_agent](https://x.com/syra_agent) |
 | Docs | [docs.syraa.fun](https://docs.syraa.fun) |
-| Telegram bot | @syra_trading_bot |
+| Telegram bot | [@syra_trading_bot](https://t.me/syra_trading_bot) |
+| Telegram community | [t.me/syra_ai](https://t.me/syra_ai) |
 | Support | support@syraa.fun |
 
 ## Summary

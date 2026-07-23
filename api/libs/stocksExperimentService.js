@@ -617,8 +617,11 @@ export async function resolveOpenStocksRuns() {
         continue;
       }
 
-      const simPnlUsd =
+      const roundTripCostBps = Number(process.env.STOCKS_PAPER_ROUND_TRIP_BPS || 110);
+      const grossPnl =
         entry > 0 && exitPx > 0 ? roundUsd(notional * (exitPx / entry - 1)) : 0;
+      const costUsd = roundUsd(notional * (Math.max(0, roundTripCostBps) / 10_000));
+      const simPnlUsd = roundUsd(grossPnl - costUsd);
       const simPnlPct = entry > 0 ? roundUsd(((exitPx - entry) / entry) * 100) : 0;
       bulkOps.push({
         updateOne: {

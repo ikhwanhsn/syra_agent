@@ -109,12 +109,13 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
 
   return (
     <>
-      <div className="mt-8 text-left">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <div className="mt-8 w-full min-w-0 text-left sm:mt-10">
+        <div className="mb-3 flex flex-col gap-2 sm:mb-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
           <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/35">
             Ship log updates
+            <span className="ml-2 text-white/25">({updates.length})</span>
           </p>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-white/30">
               <span className="text-emerald-400/80">● Posted</span>
               <span className="mx-1.5 text-white/20">·</span>
@@ -127,7 +128,7 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
                   onClick={() =>
                     setSelected(new Set(deletableUpdates.map((bundle) => bundle.video.meta.updateNumber)))
                   }
-                  className="font-mono text-[9px] uppercase tracking-[0.12em] text-white/40 transition-colors hover:text-white/70"
+                  className="min-h-9 font-mono text-[9px] uppercase tracking-[0.12em] text-white/40 transition-colors hover:text-white/70 sm:min-h-0"
                 >
                   Select all
                 </button>
@@ -135,7 +136,7 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
                   <button
                     type="button"
                     onClick={clearSelection}
-                    className="font-mono text-[9px] uppercase tracking-[0.12em] text-white/40 transition-colors hover:text-white/70"
+                    className="min-h-9 font-mono text-[9px] uppercase tracking-[0.12em] text-white/40 transition-colors hover:text-white/70 sm:min-h-0"
                   >
                     Clear
                   </button>
@@ -146,12 +147,12 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
         </div>
 
         {selectedVisible.length > 0 ? (
-          <div className="mb-3 flex justify-end">
+          <div className="mb-3 flex justify-stretch sm:justify-end">
             <Button
               type="button"
               variant="destructive"
               size="sm"
-              className="h-8 gap-1.5 font-mono text-[10px] uppercase tracking-[0.12em]"
+              className="h-9 w-full gap-1.5 font-mono text-[10px] uppercase tracking-[0.12em] sm:h-8 sm:w-auto"
               disabled={deleteM.isPending}
               onClick={() => setBulkDeleteOpen(true)}
             >
@@ -161,7 +162,7 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
           </div>
         ) : null}
 
-        <ul className="space-y-2">
+        <ul className="space-y-2 sm:space-y-2.5">
           {updates.map((bundle) => {
             const { meta } = bundle.video;
             const isLatest = meta.updateNumber === latestVisible;
@@ -172,7 +173,7 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
               <li key={meta.updateNumber}>
                 <div
                   className={cn(
-                    "flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5",
+                    "flex flex-col gap-3 rounded-lg border px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-4 sm:py-3",
                     isLocked
                       ? "border-[#F3BA2F]/25 bg-[#F3BA2F]/[0.05]"
                       : isSelected
@@ -180,10 +181,10 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
                         : "border-white/8 bg-white/[0.02]",
                   )}
                 >
-                  <div className="flex min-w-0 items-center gap-2.5">
+                  <div className="flex min-w-0 items-start gap-2.5 sm:items-center">
                     {isLocked ? (
                       <span
-                        className="inline-flex h-4 w-4 shrink-0 items-center justify-center text-[#F3BA2F]/80"
+                        className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center text-[#F3BA2F]/80 sm:mt-0 sm:h-4 sm:w-4"
                         title="Locked format template"
                         aria-label="Locked format template"
                       >
@@ -193,46 +194,46 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
                       <Checkbox
                         checked={isSelected}
                         onCheckedChange={(checked) => toggleSelected(meta.updateNumber, checked === true)}
-                        className="border-white/25 data-[state=checked]:border-red-500/50 data-[state=checked]:bg-red-500/80"
+                        className="mt-0.5 border-white/25 data-[state=checked]:border-red-500/50 data-[state=checked]:bg-red-500/80 sm:mt-0"
                         aria-label={`Select update #${meta.updateNumber} for bulk delete`}
                       />
                     )}
-                    <div className="min-w-0">
-                      <p className="truncate text-sm text-white/85">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm leading-snug text-white/85 break-words">
                         #{meta.updateNumber} · {meta.title}
                         {isLocked ? (
-                          <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.12em] text-[#F3BA2F]/80">
+                          <span className="ml-2 inline-block font-mono text-[10px] uppercase tracking-[0.12em] text-[#F3BA2F]/80">
                             Template
                           </span>
                         ) : null}
                         {isLatest ? (
-                          <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.12em] text-[#F3BA2F]/80">
+                          <span className="ml-2 inline-block font-mono text-[10px] uppercase tracking-[0.12em] text-[#F3BA2F]/80">
                             Latest
                           </span>
                         ) : null}
                       </p>
-                      <p className="truncate font-mono text-[10px] text-white/35">{meta.published}</p>
+                      <p className="mt-0.5 font-mono text-[10px] text-white/35">{meta.published}</p>
                     </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2 pl-7 sm:shrink-0 sm:pl-0">
                     {!isLocked ? (
                       <PostXStatusLabel updateNumber={meta.updateNumber} defaultPosted={meta.postedOnX} />
                     ) : null}
                     <Link
                       to={`/post/video/${meta.updateNumber}`}
-                      className="font-mono text-[10px] uppercase tracking-[0.12em] text-white/45 transition-colors hover:text-[#F3BA2F]/80"
+                      className="inline-flex min-h-9 items-center font-mono text-[10px] uppercase tracking-[0.12em] text-white/45 transition-colors hover:text-[#F3BA2F]/80 sm:min-h-0"
                     >
                       Video
                     </Link>
                     <Link
                       to={`/post/photo/${meta.updateNumber}`}
-                      className="font-mono text-[10px] uppercase tracking-[0.12em] text-white/45 transition-colors hover:text-[#F3BA2F]/80"
+                      className="inline-flex min-h-9 items-center font-mono text-[10px] uppercase tracking-[0.12em] text-white/45 transition-colors hover:text-[#F3BA2F]/80 sm:min-h-0"
                     >
                       Photo
                     </Link>
                     {isLocked ? (
                       <span
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-white/20"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-md text-white/20 sm:h-7 sm:w-7"
                         title="Cannot delete format template"
                         aria-hidden
                       >
@@ -242,7 +243,7 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
                       <button
                         type="button"
                         onClick={() => setSingleDeleteTarget(bundle)}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-white/35 transition-colors hover:bg-red-500/10 hover:text-red-400/90"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-md text-white/35 transition-colors hover:bg-red-500/10 hover:text-red-400/90 sm:h-7 sm:w-7"
                         aria-label={`Delete update #${meta.updateNumber}`}
                         title="Delete from studio"
                       >

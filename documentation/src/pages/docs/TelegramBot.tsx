@@ -1,49 +1,49 @@
 /**
- * Telegram Bot docs page — HIDDEN: focus on website.
- * Content commented out below; uncomment to show again.
+ * Telegram Bot docs — Syra AI agent on Telegram (wallet + live intel + referral).
  */
 import { Link } from "react-router-dom";
 import { DocsLayout } from "@/components/docs/DocsLayout";
 import { CodeBlock } from "@/components/docs/CodeBlock";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, CheckCircle } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { SYRA_TELEGRAM_BOT_URL, SYRA_TELEGRAM_COMMUNITY_URL } from "@/content/syraUrls";
 
 const tocItems = [
   { id: "what-you-need", title: "What You'll Need", level: 2 },
   { id: "step-1", title: "Step 1: Start the Bot", level: 2 },
-  { id: "step-2", title: "Step 2: Explore Tokens", level: 2 },
-  { id: "step-3", title: "Step 3: Request a Signal", level: 2 },
+  { id: "step-2", title: "Step 2: Ask for Live Intel", level: 2 },
+  { id: "step-3", title: "Step 3: Wallet & Referral", level: 2 },
   { id: "commands", title: "Commands Summary", level: 2 },
 ];
-
-const listOutput = `📜 Available Token Signals
-- Bitcoin (BTC)
-- Ethereum (ETH)
-- Solana (SOL)
-- BNB (BNB)
-- XRP (XRP)
-- Cardano (ADA)
-- Dogecoin (DOGE)
-... View all supported token`;
 
 export default function TelegramBot() {
   return (
     <DocsLayout toc={tocItems}>
       <div className="mb-8">
         <div className="text-sm text-primary font-medium mb-2">Telegram Bot</div>
-        <h1 className="text-4xl font-bold tracking-tight mb-4">⚙️ Getting Started</h1>
+        <h1 className="text-4xl font-bold tracking-tight mb-4">Getting Started</h1>
         <p className="text-xl text-muted-foreground leading-relaxed">
-          Welcome to the Syra AI Agent Trading Assistant setup guide. Connect to the bot, understand how it works, and run your first signal in just a few minutes.
+          Syra on Telegram is a walleted crypto intel agent: ask natural-language questions, get live news and
+          signals, and share a referral link that sponsors friends&apos; paid tool calls.
         </p>
       </div>
 
       <section id="what-you-need" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">What You'll Need</h2>
+        <h2 className="text-2xl font-semibold mb-4">What You&apos;ll Need</h2>
         <ul className="list-disc pl-6 space-y-1 text-muted-foreground">
-          <li>A Telegram account (mobile or desktop)</li>
-          <li>Access to the <a href="https://t.me/syra_trading_bot" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">Syra AI Agent Trading Assistant Bot</a></li>
-          <li>An internet connection</li>
-          <li>(Optional) Familiarity with trading basics (RSI, MACD, price action)</li>
+          <li>A Telegram account</li>
+          <li>
+            The{" "}
+            <a
+              href={SYRA_TELEGRAM_BOT_URL}
+              className="text-primary hover:underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Syra Telegram bot
+            </a>
+          </li>
+          <li>Optional: a little USDC + SOL on Solana after your free daily live-data credits</li>
         </ul>
       </section>
 
@@ -51,42 +51,74 @@ export default function TelegramBot() {
         <h2 className="text-2xl font-semibold mb-4">Step 1: Start the Bot</h2>
         <ol className="list-decimal pl-6 space-y-2 text-muted-foreground mb-4">
           <li>Open Telegram.</li>
-          <li>Open <a href="https://t.me/syra_trading_bot" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">Syra AI Agent Trading Assistant Bot</a>.</li>
-          <li>Click <strong className="text-foreground">Start</strong> or type <code className="px-1.5 py-0.5 rounded bg-muted text-primary">/start</code>.</li>
-          <li>You'll receive a welcome message and list of available commands.</li>
+          <li>
+            Open{" "}
+            <a
+              href={SYRA_TELEGRAM_BOT_URL}
+              className="text-primary hover:underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {SYRA_TELEGRAM_BOT_URL.replace("https://", "")}
+            </a>
+            .
+          </li>
+          <li>
+            Tap <strong className="text-foreground">Start</strong> or send{" "}
+            <code className="px-1.5 py-0.5 rounded bg-muted text-primary">/start</code>.
+          </li>
+          <li>Syra provisions an agent wallet and shows starter prompts.</li>
         </ol>
-        <p className="text-sm text-muted-foreground">Tip: Type <code className="px-1.5 py-0.5 rounded bg-muted text-primary">/help</code> anytime to redisplay commands.</p>
+        <p className="text-sm text-muted-foreground">
+          Tip: send <code className="px-1.5 py-0.5 rounded bg-muted text-primary">/help</code> anytime for
+          commands. Community chat:{" "}
+          <a
+            href={SYRA_TELEGRAM_COMMUNITY_URL}
+            className="text-primary hover:underline"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            t.me/syra_ai
+          </a>
+          .
+        </p>
       </section>
 
       <section id="step-2" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">Step 2: Explore Available Tokens</h2>
-        <p className="text-muted-foreground mb-4">Type <code className="px-1.5 py-0.5 rounded bg-muted text-primary">/list</code> to see currently supported cryptocurrencies.</p>
-        <CodeBlock plain code={listOutput} language="text" showLineNumbers={false} />
+        <h2 className="text-2xl font-semibold mb-4">Step 2: Ask for Live Intel</h2>
+        <p className="text-muted-foreground mb-4">
+          Type naturally. Short live-data asks work best. New users get a few free live-data tool calls per day
+          (UTC); after that, tools settle in USDC from your Syra wallet.
+        </p>
+        <CodeBlock plain code={"BTC news\nSOL signal\nETH sentiment"} language="text" showLineNumbers={false} />
+        <p className="text-muted-foreground mt-4">
+          General crypto Q&amp;A (no live tools) works anytime without depositing.
+        </p>
       </section>
 
       <section id="step-3" className="mb-12 scroll-mt-24">
-        <h2 className="text-2xl font-semibold mb-4">Step 3: Request a Trading Signal</h2>
-        <p className="text-muted-foreground mb-4">Use the <code className="px-1.5 py-0.5 rounded bg-muted text-primary">/signal</code> command followed by the token name.</p>
-        <CodeBlock plain code={"/signal bitcoin"} language="text" showLineNumbers={false} />
-        <p className="text-muted-foreground mt-2 mb-4">
-          On the Syra API, trading signals default to <strong className="text-foreground">Binance</strong> spot OHLC plus technicals unless you pass another <code className="text-sm font-mono bg-muted px-1 rounded">source</code> (see Signal API docs).
-        </p>
-        <p className="text-muted-foreground mb-4">The bot returns a complete analysis including:</p>
-        <ul className="list-disc pl-6 space-y-1 text-muted-foreground mb-4">
-          <li>Current price and 24h change</li>
-          <li>RSI, MACD, and Moving Averages</li>
-          <li>Support and resistance levels</li>
-          <li>Action plan (entry, targets, stop loss)</li>
-          <li>Risk/reward ratio and confidence level</li>
+        <h2 className="text-2xl font-semibold mb-4">Step 3: Wallet, Digest &amp; Referral</h2>
+        <ul className="list-disc pl-6 space-y-2 text-muted-foreground mb-4">
+          <li>
+            <code className="text-primary">/wallet</code> — deposit SOL/USDC, withdraw, check balances
+          </li>
+          <li>
+            <code className="text-primary">/digest on</code> — morning Syra Daily briefing (one message / day)
+          </li>
+          <li>
+            <code className="text-primary">/referral</code> — create a share link; friends&apos; paid tools bill
+            your wallet (daily sponsor cap)
+          </li>
         </ul>
         <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 text-sm text-muted-foreground">
-          Syra doesn't just give signals — it explains why each trade setup is suggested.
+          Same pay-per-call tools as the Syra web agent and MCP. Telegram is a consumer surface, not a separate
+          trading-bot product.
         </div>
       </section>
 
       <section id="commands" className="mb-12 scroll-mt-24">
         <h2 className="text-2xl font-semibold mb-4">Commands Summary</h2>
-        <div className="rounded-lg border border-border overflow-hidden overflow-x-auto overflow-x-auto-touch">
+        <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">
           <table className="w-full text-sm min-w-[280px]">
             <thead>
               <tr className="border-b border-border bg-muted/30">
@@ -95,12 +127,48 @@ export default function TelegramBot() {
               </tr>
             </thead>
             <tbody className="text-muted-foreground">
-              <tr className="border-b border-border/50"><td className="p-2 sm:p-3 whitespace-nowrap"><code className="text-primary">/start</code></td><td className="p-2 sm:p-3">View available commands</td></tr>
-              <tr className="border-b border-border/50"><td className="p-2 sm:p-3 whitespace-nowrap"><code className="text-primary">/signal bitcoin</code></td><td className="p-2 sm:p-3">Get latest BTC trading analysis</td></tr>
-              <tr className="border-b border-border/50"><td className="p-2 sm:p-3 whitespace-nowrap"><code className="text-primary">/list</code></td><td className="p-2 sm:p-3">Show supported tokens</td></tr>
-              <tr className="border-b border-border/50"><td className="p-2 sm:p-3 whitespace-nowrap"><code className="text-primary">/news BTC</code></td><td className="p-2 sm:p-3">Get latest BTC-related news</td></tr>
-              <tr className="border-b border-border/50"><td className="p-2 sm:p-3 whitespace-nowrap"><code className="text-primary">/top_mention today</code></td><td className="p-2 sm:p-3">Most-discussed tokens today</td></tr>
-              <tr><td className="p-2 sm:p-3"><code className="text-primary">/docs</code>, <code className="text-primary">/feedback</code>, <code className="text-primary">/soon</code></td><td className="p-2 sm:p-3">Documentation, feedback, upcoming features</td></tr>
+              <tr className="border-b border-border/50">
+                <td className="p-2 sm:p-3 whitespace-nowrap">
+                  <code className="text-primary">/start</code>
+                </td>
+                <td className="p-2 sm:p-3">Welcome + create wallet</td>
+              </tr>
+              <tr className="border-b border-border/50">
+                <td className="p-2 sm:p-3 whitespace-nowrap">
+                  <code className="text-primary">/wallet</code>
+                </td>
+                <td className="p-2 sm:p-3">Balances, deposit, withdraw</td>
+              </tr>
+              <tr className="border-b border-border/50">
+                <td className="p-2 sm:p-3 whitespace-nowrap">
+                  <code className="text-primary">/portfolio</code>
+                </td>
+                <td className="p-2 sm:p-3">Token holdings</td>
+              </tr>
+              <tr className="border-b border-border/50">
+                <td className="p-2 sm:p-3 whitespace-nowrap">
+                  <code className="text-primary">/referral</code>
+                </td>
+                <td className="p-2 sm:p-3">Share link + sponsor spend stats</td>
+              </tr>
+              <tr className="border-b border-border/50">
+                <td className="p-2 sm:p-3 whitespace-nowrap">
+                  <code className="text-primary">/digest</code>
+                </td>
+                <td className="p-2 sm:p-3">Syra Daily on/off</td>
+              </tr>
+              <tr className="border-b border-border/50">
+                <td className="p-2 sm:p-3 whitespace-nowrap">
+                  <code className="text-primary">/mute</code>
+                </td>
+                <td className="p-2 sm:p-3">Pause digests</td>
+              </tr>
+              <tr>
+                <td className="p-2 sm:p-3 whitespace-nowrap">
+                  <code className="text-primary">/help</code>
+                </td>
+                <td className="p-2 sm:p-3">Command list</td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -108,7 +176,7 @@ export default function TelegramBot() {
 
       <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3">
         <Button variant="primary" size="lg" className="w-full sm:min-w-[12rem] sm:w-auto justify-center" asChild>
-          <a href="https://t.me/syra_trading_bot" target="_blank" rel="noopener noreferrer">
+          <a href={SYRA_TELEGRAM_BOT_URL} target="_blank" rel="noopener noreferrer">
             Open Telegram Bot
             <ArrowRight className="ml-2 h-4 w-4 shrink-0" />
           </a>

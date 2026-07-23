@@ -17,6 +17,7 @@ import { fetchAgentWalletPortfolio } from "../agentWalletPortfolio.js";
 import { siblingAnonymousId, purposeQuery } from "../agentWalletPurpose.js";
 import { fetchCbbtcSpotPriceUsd } from "../btcQuantOnchainMarket.js";
 import { ensureBtc3PaperBootstrapped } from "./btc3PaperTradingService.js";
+import { getEffectiveBtc3PaperConfig } from "./btc3LearningService.js";
 import { agentStateRepo } from "../../repositories/btc3/index.js";
 import { computeAgentReturnPct, roundUsd } from "../../config/tradingExperimentSim.js";
 import {
@@ -363,7 +364,16 @@ export async function applyRealRebalance(input = {}) {
     const before = await readWalletAllocation(cfg.agentAddress, btcPriceUsd);
     const reserveUsdc = toNum(cfg.reserveUsdc, 25);
     const maxNotional = toNum(cfg.maxNotionalUsd, 200);
-    const minRebalancePct = toNum(cfg.minRebalancePct, 5);
+
+    // Wire paper learning overrides into real so learned gates actually protect capital.
+    const paperCfg = await getEffectiveBtc3PaperConfig(state).catch(() => null);
+    const minRebalancePct = Math.max(
+      toNum(cfg.minRebalancePct, 5),
+      toNum(paperCfg?.minRebalancePct, 0),
+    );
+    const minConfidence = toNum(paperCfg?.minConfidence, 0);
+    const maxBtcTiltPct =
+      paperCfg?.maxBtcTiltPct != null ? toNum(paperCfg.maxBtcTiltPct) : null;
     const diffPct = Math.abs(targetBtcPct - before.btcPct);
 
     const skipBase = {
@@ -396,6 +406,24 @@ export async function applyRealRebalance(input = {}) {
         "insufficient_wallet_balance",
       );
       return { applied: false, reason: "insufficient_wallet_balance", rebalance: skipped };
+    }
+
+    if (minConfidence > 0 && confidence > 0 && confidence < minConfidence) {
+      const skipped = await finishSkip(
+        cfg,
+        { ...skipBase, status: "skipped_below_threshold" },
+        "below_confidence",
+      );
+      return { applied: false, reason: "below_confidence", rebalance: skipped };
+    }
+
+    if (maxBtcTiltPct != null && diffPct > maxBtcTiltPct) {
+      const skipped = await finishSkip(
+        cfg,
+        { ...skipBase, status: "skipped_below_threshold" },
+        "max_tilt_exceeded",
+      );
+      return { applied: false, reason: "max_tilt_exceeded", rebalance: skipped };
     }
 
     if (diffPct < minRebalancePct) {

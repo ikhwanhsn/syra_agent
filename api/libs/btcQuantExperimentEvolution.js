@@ -46,12 +46,14 @@ export const BTC_QUANT_MIN_WIN_RATE = (() => {
 })();
 
 /**
- * @param {{ decided?: number; winRate?: number | null; sumPnlUsd?: number }} row
+ * Score leaders on *decided* PnL only (open rows at 0 inflate sumPnlUsd).
+ * @param {{ decided?: number; winRate?: number | null; sumPnlUsd?: number; sumDecidedPnlUsd?: number }} row
  */
 export function computeBtcLeaderScore(row) {
   const decided = toNum(row.decided);
   const winRate = row.winRate ?? 0;
-  const sumPnl = toNum(row.sumPnlUsd);
+  const sumPnl =
+    row.sumDecidedPnlUsd != null ? toNum(row.sumDecidedPnlUsd) : toNum(row.sumPnlUsd);
   if (sumPnl <= 0 || decided <= 0) return -999;
 
   const sampleFactor = Math.min(1, decided / BTC_QUANT_MIN_DECIDED_FOR_LEADER);
@@ -105,13 +107,20 @@ export async function rankBtcQuantStrategiesByPnl(experimentId) {
       const wins = toNum(row.wins);
       const winRate = decided > 0 ? wins / decided : null;
       const sumPnlUsd = toNum(row.sumPnlUsd);
-      const leaderScore = computeBtcLeaderScore({ decided, winRate, sumPnlUsd });
+      const sumDecidedPnlUsd = toNum(row.sumDecidedPnlUsd);
+      const leaderScore = computeBtcLeaderScore({
+        decided,
+        winRate,
+        sumPnlUsd,
+        sumDecidedPnlUsd,
+      });
       return {
         strategyId: row._id,
         decided,
         wins,
         winRate,
         sumPnlUsd,
+        sumDecidedPnlUsd,
         openPositions: toNum(row.openPositions),
         leaderScore,
       };
@@ -308,11 +317,12 @@ export function mutateBtcStrategyFromElite(parent, strategyId, meta = {}) {
  */
 async function pickEliteParent(experimentId, strategyList, lane) {
   const ranked = await rankBtcQuantStrategiesByPnl(experimentId);
+  // Elite bar aligned closer to leader bar — weak parents spawn weak mutations.
   const elites = ranked.filter(
     (row) =>
-      row.decided >= 3 &&
-      row.sumPnlUsd > 0 &&
-      (row.winRate ?? 0) >= 0.48 &&
+      row.decided >= Math.min(6, BTC_QUANT_MIN_DECIDED_FOR_LEADER) &&
+      toNum(row.sumDecidedPnlUsd, row.sumPnlUsd) > 0 &&
+      (row.winRate ?? 0) >= 0.5 &&
       row.leaderScore > 0,
   );
   if (elites.length === 0) return null;
@@ -431,7 +441,8 @@ export function btcQuantEvolutionConfigFromEnv() {
   if (pinnedRaw) {
     for (const part of pinnedRaw.split(",")) {
       const n = Number(part.trim());
-      if (Number.isInteger(n) && n >= 0 && n < BTC_QUANT_STATIC_STRATEGY_COUNT) pinned.add(n);
+      // Allow pinning evolved strategy ids (≥ static count) — live real leaders often live there.
+      if (Number.isInteger(n) && n >= 0) pinned.add(n);
     }
   }
   return {
@@ -483,7 +494,24 @@ export async function runBtcQuantEvolution(lane = "btc1", opts = {}) {
   const envCfg = btcQuantEvolutionConfigFromEnv();
   const removeCount = opts.removeCount ?? envCfg.removeCount;
   const minDecided = opts.minDecided ?? envCfg.minDecided;
-  const pinned = opts.pinned ?? envCfg.pinned;
+  const pinned = new Set(opts.pinned ?? envCfg.pinned);
+
+  // Pin any live real leaders so cull cannot wipe/mutate mid-trade.
+  try {
+    const BtcQuantRealConfig = (await import("../models/BtcQuantRealConfig.js")).default;
+    const live = await BtcQuantRealConfig.find({
+      enabled: true,
+      leaderStrategyId: { $ne: null },
+    })
+      .select("leaderStrategyId lane")
+      .lean();
+    for (const cfg of live) {
+      const id = Number(cfg.leaderStrategyId);
+      if (Number.isInteger(id) && id >= 0) pinned.add(id);
+    }
+  } catch {
+    /* real config optional during paper-only boots */
+  }
 
   const state = await BtcQuantExperimentState.findById(laneDef.stateId).lean();
   const experimentId = state?.activeExperimentId;
@@ -683,13 +711,29 @@ export async function runBtcQuantRealEvolution() {
   const { BTC_QUANT_LANE_IDS } = await import("../config/btcQuantLanes.js");
   for (const lane of BTC_QUANT_LANE_IDS) {
     const existing = await getEvolutionDoc(lane);
+    // Merge cooldowns per-lane instead of overwriting all lanes with the same set.
+    const existingCool = Array.isArray(existing?.strategyCooldowns)
+      ? existing.strategyCooldowns.filter((c) => new Date(c.until).getTime() > Date.now())
+      : [];
+    const byId = new Map();
+    for (const c of existingCool) {
+      if (c?.strategyId != null) byId.set(Number(c.strategyId), c);
+    }
+    for (const c of strategyCooldowns) {
+      if (c?.strategyId != null) byId.set(Number(c.strategyId), c);
+    }
     await BtcQuantEvolutionState.updateOne(
       { _id: lane },
       {
         $set: {
           lessons: [...lessons, ...(existing?.lessons ?? [])].slice(0, 30),
-          strategyCooldowns,
-          thresholdOverrides,
+          strategyCooldowns: [...byId.values()].slice(0, 40),
+          thresholdOverrides: {
+            ...(existing?.thresholdOverrides && typeof existing.thresholdOverrides === "object"
+              ? existing.thresholdOverrides
+              : {}),
+            ...thresholdOverrides,
+          },
           lastEvolutionAt: new Date(),
           lastEvolutionSummary: summary,
           closedPositionsAnalyzed: closed.length,
@@ -732,6 +776,7 @@ export function btcQuantRealEvolutionConfigFromEnv() {
 
 /**
  * Pick best sim strategy for real leader selection.
+ * Returns null when nothing clears the profit gates — callers must skip opens (no negative fallback).
  * @param {string} experimentId
  */
 export async function pickBestBtcQuantStrategy(experimentId) {
@@ -739,9 +784,9 @@ export async function pickBestBtcQuantStrategy(experimentId) {
   const qualified = ranked.filter(
     (row) =>
       row.decided >= BTC_QUANT_MIN_DECIDED_FOR_LEADER &&
-      row.sumPnlUsd > 0 &&
-      (row.winRate ?? 0) >= BTC_QUANT_MIN_WIN_RATE,
+      toNum(row.sumDecidedPnlUsd, row.sumPnlUsd) > 0 &&
+      (row.winRate ?? 0) >= BTC_QUANT_MIN_WIN_RATE &&
+      row.leaderScore > 0,
   );
-  if (qualified.length > 0) return qualified[0];
-  return ranked.find((row) => row.sumPnlUsd >= 0 && row.decided > 0) ?? ranked[0] ?? null;
+  return qualified[0] ?? null;
 }

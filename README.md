@@ -84,11 +84,13 @@ Open **[syraa.fun/marketplace](https://syraa.fun/marketplace)** → Integrate ta
 
 | Platform | Description |
 |----------|-------------|
-| **MCP / SDK** | Primary agent integration — Cursor, Claude, app code |
-| **API Marketplace** | Browse and test x402 routes at syraa.fun/marketplace |
+| **MCP / SDK** | **Primary** agent integration — Cursor, Claude, app code |
+| **API Marketplace** | Browse and test x402 routes at syraa.fun/marketplace (Integrate = 5-min path) |
 | **Web agent** | Reference chat client at syraa.fun/agent |
-| **Live metrics** | Public x402 traction at syraa.fun |
+| **Live metrics** | Settled x402 traction at syraa.fun (`GET /api/metrics`) |
 | **x402 Autonomous Agent** | Research workflows on x402scan |
+
+Telegram bot is a **secondary** consumer surface (maintenance mode until settlement + payer growth — see [docs/TELEGRAM_MAINTENANCE_POLICY.md](./docs/TELEGRAM_MAINTENANCE_POLICY.md)). Do not lead GTM with waitlist/email.
 
 ---
 

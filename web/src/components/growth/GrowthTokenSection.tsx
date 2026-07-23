@@ -7,6 +7,7 @@ import { SYRA_BUY_SWAP_URL } from "@/lib/swapNavigation";
 import { SYRA_TOKEN_MINT, truncateBase58 } from "@/data/marketing/agentIdentity";
 import { SYRA_TOKEN_PAGE_PATH } from "@/content/syraFocus";
 import { cn } from "@/lib/utils";
+import { GrowthBuybackProofPanel } from "@/components/growth/GrowthBuybackProofPanel";
 import {
   growthCtaPrimaryClass,
   growthCtaSecondaryClass,
@@ -20,7 +21,7 @@ const DEXSCREENER_URL = `https://dexscreener.com/solana/${SYRA_TOKEN_MINT}`;
 const PUMPFUN_URL = `https://pump.fun/coin/${SYRA_TOKEN_MINT}`;
 
 /**
- * Single-panel $SYRA acquisition block for the growth home — no nested cards.
+ * Single-panel $SYRA acquisition block for the growth home — plus live buyback proof.
  */
 export function GrowthTokenSection() {
   const [copied, setCopied] = useState(false);
@@ -50,8 +51,8 @@ export function GrowthTokenSection() {
           The machine-money token
         </h2>
         <p className={cn(growthProseClass, "mt-3")}>
-          Utility for the layer agents settle on. Product growth is paid calls; $SYRA rides the same
-          rails.
+          Utility for the layer agents settle on. Product growth is paid calls; ~80% of settled revenue
+          buys $SYRA — verify it below.
         </p>
       </div>
 
@@ -137,6 +138,12 @@ export function GrowthTokenSection() {
           >
             Stake $SYRA
           </Link>
+          <Link
+            to="/rewards"
+            className="text-sm font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+          >
+            Usage rewards
+          </Link>
           <a
             href="https://docs.syraa.fun/docs/token/tokenomics"
             target="_blank"
@@ -147,6 +154,10 @@ export function GrowthTokenSection() {
             <ExternalLink className="h-3 w-3 opacity-50" aria-hidden />
           </a>
         </div>
+      </div>
+
+      <div className="mt-6">
+        <GrowthBuybackProofPanel />
       </div>
     </section>
   );

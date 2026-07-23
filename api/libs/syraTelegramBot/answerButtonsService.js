@@ -1,8 +1,7 @@
 /**
  * Decides when Telegram answer messages should show follow-up buttons and/or Main Menu.
+ * Heuristic + fallback only — no extra LLM round-trip on the reply path.
  */
-import { callOpenRouter } from '../openrouter.js';
-import { parseJsonObjectFromLlm } from '../llmJsonObjectParse.js';
 import { pickTelegramShortExamples } from '../../config/telegramExampleQuestions.js';
 
 const FOLLOW_UP_TTL_MS = 24 * 60 * 60 * 1000;
@@ -73,30 +72,12 @@ function pickToolFollowUpFallback(userQuestion) {
 }
 
 /**
+ * @param {string} userQuestion
  * @returns {string[]}
  */
-function buildFallbackFollowUps(userQuestion) {
+export function buildFallbackFollowUps(userQuestion) {
   const free = pickTelegramShortExamples(2);
   return shuffle([...free, pickToolFollowUpFallback(userQuestion)]).map(normalizeFollowUpQuestion);
-}
-
-/**
- * @param {unknown} value
- * @returns {string[] | null}
- */
-function normalizeQuestions(value) {
-  const list = Array.isArray(value)
-    ? value
-    : value && typeof value === 'object' && Array.isArray(value.questions)
-      ? value.questions
-      : null;
-  if (!list) return null;
-
-  const cleaned = list
-    .map((item) => normalizeFollowUpQuestion(item))
-    .filter((item) => item.length >= FOLLOW_UP_MIN_CHARS && item.length <= FOLLOW_UP_MAX_CHARS);
-
-  return cleaned.length > 0 ? cleaned.slice(0, 3) : null;
 }
 
 /**
@@ -188,80 +169,6 @@ export async function planTelegramAnswerButtons({ userQuestion, assistantAnswer,
       showMainMenu: false,
       followUpExpiresAt: followUpSuggestionsExpiry(),
     };
-  }
-
-  try {
-    const { response } = await callOpenRouter(
-      [
-        {
-          role: 'system',
-          content: [
-            'You decide whether a Telegram crypto bot reply should show inline buttons below the message.',
-            'Return ONLY valid JSON:',
-            '{"showFollowUps":boolean,"showMainMenu":boolean,"questions":["q1","q2","q3"]}',
-            '',
-            'showFollowUps = false when:',
-            '- User sent a greeting, thanks, goodbye, or simple ack',
-            '- Answer fully closes the topic with nothing useful to explore next',
-            '- Answer is a short confirmation or off-topic chitchat',
-            '- Answer is mostly an error/instruction with no educational follow-up',
-            '',
-            'showFollowUps = true when:',
-            '- Substantive crypto Q&A where 3 natural next questions help',
-            '- Educational or market answers where digging deeper makes sense',
-            '',
-            'showMainMenu = true when:',
-            '- User may need navigation (errors, wallet hints, vague meta questions, dead ends)',
-            '- showFollowUps is false but user might feel stuck',
-            '',
-            'showMainMenu = false when:',
-            '- showFollowUps is true and conversation flow is enough',
-            '- No buttons at all (both false) for casual hi/thanks/bye',
-            '',
-            `If showFollowUps is true, provide exactly 3 questions (${FOLLOW_UP_MIN_CHARS}-${FOLLOW_UP_MAX_CHARS} chars each, end with "?").`,
-            '2 general-knowledge + 1 that naturally needs current market data — same tone, no tool/payment mentions.',
-            'If showFollowUps is false, questions must be [].',
-          ].join('\n'),
-        },
-        {
-          role: 'user',
-          content: [
-            `User asked:\n${question}`,
-            '',
-            `Assistant answered:\n${answer.slice(0, 1400)}`,
-            tools.length ? `\nTools used: ${tools.join(', ')}` : '',
-          ]
-            .filter(Boolean)
-            .join('\n'),
-        },
-      ],
-      { max_tokens: 280, temperature: 0.4 },
-    );
-
-    const parsed = /** @type {Record<string, unknown>} */ (parseJsonObjectFromLlm(response));
-    const showFollowUps = parsed.showFollowUps === true;
-    const showMainMenu = parsed.showMainMenu === true;
-    let followUpQuestions = showFollowUps ? normalizeQuestions(parsed.questions) : [];
-
-    if (showFollowUps && (!followUpQuestions || followUpQuestions.length < 3)) {
-      followUpQuestions = buildFallbackFollowUps(question);
-    }
-
-    if (!showFollowUps && !showMainMenu) {
-      return { showFollowUps: false, followUpQuestions: [], showMainMenu: false };
-    }
-
-    return {
-      showFollowUps: showFollowUps && followUpQuestions.length > 0,
-      followUpQuestions: showFollowUps ? followUpQuestions.slice(0, 3) : [],
-      showMainMenu,
-      followUpExpiresAt: showFollowUps ? followUpSuggestionsExpiry() : undefined,
-    };
-  } catch (err) {
-    console.warn(
-      '[syra-telegram] answer button plan failed:',
-      err instanceof Error ? err.message : err,
-    );
   }
 
   const substantive = question.includes('?') || answer.length > 180 || tools.length > 0;

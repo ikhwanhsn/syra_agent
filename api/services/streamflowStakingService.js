@@ -7,9 +7,9 @@ export const DEFAULT_STAKING_MINT =
 
 export const DEFAULT_STAKING_DECIMALS = Number(process.env.STAKING_DECIMALS || '6');
 
-/** Human-readable SYRA amount required for premium utilities (e.g. trading agent). */
+/** Human-readable SYRA amount required for premium utilities (e.g. trading agent). Default 100k. */
 export const DEFAULT_MIN_ACTIVE_STAKE_AMOUNT = Number(
-  process.env.STAKING_UTILITY_MIN_ACTIVE_AMOUNT || '1000000'
+  process.env.STAKING_UTILITY_MIN_ACTIVE_AMOUNT || '100000'
 );
 
 export function getDefaultStakingNetwork() {

@@ -111,7 +111,10 @@ export const X402_DEXTER_MIN_PAYMENT_USD = 0.002;
 
 /**
  * Effective price for a given payer. In production, when payerAddress matches
- * a playground dev wallet (Solana or Base), returns price as if local (cheap). Otherwise returns priceUsd unchanged.
+ * a playground dev wallet (Solana or Base), returns price as if local (cheap).
+ * Otherwise returns priceUsd unchanged (sync path — no on-chain lookup).
+ * Prefer `resolveEffectivePriceUsdAsync` for holder/staker discounts.
+ *
  * @param {number} priceUsd - Price in USD (typically the route's production price).
  * @param {string|null|undefined} payerAddress - Payer wallet (e.g. from X-Payer-Address header).
  * @returns {number} Effective price in USD.
@@ -128,6 +131,71 @@ export function getEffectivePriceUsd(priceUsd, payerAddress) {
   if (!isDevWallet) return priceUsd;
   // Production price = base × 1; we want base × 0.01 (local). So effective = priceUsd × 0.01
   return priceUsd * (LOCAL_MULT / PRODUCTION_MULT);
+}
+
+/**
+ * $SYRA holder / staker discount tiers (applied after playground-dev discount check).
+ * Uses max(wallet balance, active Streamflow stake).
+ *
+ * | Tier   | Min $SYRA | Discount |
+ * |--------|-----------|----------|
+ * | bronze | 10k       | 5%       |
+ * | silver | 100k      | 10%      |
+ * | gold   | 1M        | 20%      |
+ * | whale  | 10M       | 30%      |
+ *
+ * @param {number} priceUsd
+ * @param {string|null|undefined} payerAddress
+ * @returns {Promise<{ priceUsd: number; discount: number; tier: string | null; syraAmount: number }>}
+ */
+export async function resolveEffectivePriceUsdAsync(priceUsd, payerAddress) {
+  const base = getEffectivePriceUsd(priceUsd, payerAddress);
+  if (base == null || Number.isNaN(base)) {
+    return { priceUsd: base, discount: 0, tier: null, syraAmount: 0 };
+  }
+  // Already on playground-dev cheap rate — don't stack holder discount further.
+  if (
+    isProduction &&
+    typeof payerAddress === 'string' &&
+    PLAYGROUND_DEV_WALLETS.some(
+      (dev) =>
+        payerAddress.trim() === dev ||
+        payerAddress.trim().toLowerCase() === dev.toLowerCase()
+    )
+  ) {
+    return { priceUsd: base, discount: 0, tier: 'playground_dev', syraAmount: 0 };
+  }
+
+  const payer = typeof payerAddress === 'string' ? payerAddress.trim() : '';
+  if (!payer || payer.startsWith('0x')) {
+    return { priceUsd: base, discount: 0, tier: null, syraAmount: 0 };
+  }
+
+  try {
+    const [{ getSyraBalance, resolveUtilityTierFromAmount }, { getActiveStakedSyra }] =
+      await Promise.all([
+        import('../libs/syraToken.js'),
+        import('../libs/syraStakingEligibility.js'),
+      ]);
+    const [bal, staked] = await Promise.all([
+      getSyraBalance(payer),
+      getActiveStakedSyra(payer),
+    ]);
+    const amount = Math.max(Number(bal?.balance) || 0, Number(staked?.amount) || 0);
+    const tier = resolveUtilityTierFromAmount(amount);
+    if (!tier || !(tier.discount > 0)) {
+      return { priceUsd: base, discount: 0, tier: null, syraAmount: amount };
+    }
+    const discounted = Math.round(base * (1 - tier.discount) * 1_000_000) / 1_000_000;
+    return {
+      priceUsd: Math.max(discounted, 0),
+      discount: tier.discount,
+      tier: tier.id,
+      syraAmount: amount,
+    };
+  } catch {
+    return { priceUsd: base, discount: 0, tier: null, syraAmount: 0 };
+  }
 }
 
 /**
@@ -175,6 +243,18 @@ export const X402_API_PRICE_ZERION_USD = passthrough(0.01);
 
 /** Birdeye Data public API via x402 — upstream ~$0.003/call × 1.2 */
 export const X402_API_PRICE_BIRDEYE_USD = passthrough(0.003);
+
+/** Blocksize VWAP / bidask / search (upstream ~$0.002 core crypto). */
+export const X402_API_PRICE_BLOCKSIZE_USD = passthrough(0.002);
+
+/** Blocksize pre-trade sanity check (docs: ~$0.10 / 5 credits). */
+export const X402_API_PRICE_BLOCKSIZE_PRETRADE_USD = passthrough(0.1);
+
+/** Dexter onchain activity/entity (upstream ~$0.05 USDC = 50000 atomic). */
+export const X402_API_PRICE_DEXTER_USD = passthrough(0.05);
+
+/** MevX data API (API-key partner; Syra charges agent USDC to treasury). */
+export const X402_API_PRICE_MEVX_USD = passthrough(0.01);
 
 /** TopLedger Solana DeFi intelligence via MPP — upstream $0.0004/call × 1.2 */
 export const X402_API_PRICE_TOPLEDGER_USD = passthrough(0.0004);
@@ -341,6 +421,10 @@ export const X402_DISPLAY_PRICE_NANSEN_USD = displayPassthrough(0.01);
 export const X402_DISPLAY_PRICE_NANSEN_PREMIUM_USD = displayPassthrough(0.05);
 export const X402_DISPLAY_PRICE_ZERION_USD = displayPassthrough(0.01);
 export const X402_DISPLAY_PRICE_BIRDEYE_USD = displayPassthrough(0.003);
+export const X402_DISPLAY_PRICE_BLOCKSIZE_USD = displayPassthrough(0.002);
+export const X402_DISPLAY_PRICE_BLOCKSIZE_PRETRADE_USD = displayPassthrough(0.1);
+export const X402_DISPLAY_PRICE_DEXTER_USD = displayPassthrough(0.05);
+export const X402_DISPLAY_PRICE_MEVX_USD = displayPassthrough(0.01);
 export const X402_DISPLAY_PRICE_TOPLEDGER_USD = displayPassthrough(0.0004);
 export const X402_DISPLAY_PRICE_STABLECRYPTO_USD = displayPassthrough(0.01);
 export const X402_DISPLAY_PRICE_STABLESOCIAL_USD = displayPassthrough(0.06);
