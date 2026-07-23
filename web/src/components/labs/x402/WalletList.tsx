@@ -18,13 +18,12 @@ import type { LabChain, LabWallet } from "@/lib/labsX402Api";
 
 function shortenAddress(addr: string, chain: LabChain): string {
   if (addr.length <= 12) return addr;
-  if (chain === "base" || chain === "celo") return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+  if (chain === "base") return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
   // Solana + Algorand: 4…4
   return `${addr.slice(0, 4)}…${addr.slice(-4)}`;
 }
 
 function nativeSymbolForChain(chain: LabChain): string {
-  if (chain === "celo") return "CELO";
   if (chain === "base") return "ETH";
   if (chain === "algorand") return "ALGO";
   return "SOL";

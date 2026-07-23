@@ -70,7 +70,7 @@ async function labsPayToOverride(req) {
  * Infer lab chain from payer address / request header.
  * @param {string} payer
  * @param {import('express').Request} req
- * @returns {'solana' | 'base' | 'celo' | 'algorand'}
+ * @returns {'solana' | 'base' | 'algorand'}
  */
 function inferPayerChain(payer, req) {
   return inferLabPayerChain(payer, req.get('x-lab-x402-chain'));
@@ -217,14 +217,13 @@ async function handleInsightRoute(req, res, endpointPath, catalogSegment, fetchD
  * - Solana: fee payer underfunded → InsufficientFundsForRent on every Exact SVM pay
  * - Base: Dexter /supported down or missing eip155:8453 exact
  *
- * Celo keeps its own facilitator. Algorand uses GoPlausible accepts (Dexter profile OK).
+ * Algorand uses GoPlausible accepts (Dexter profile OK).
  *
  * @param {import('express').Request} req
- * @returns {Promise<'dexter' | 'payai' | 'celo'>}
+ * @returns {Promise<'dexter' | 'payai'>}
  */
 async function resolveLabsFacilitatorProfile(req) {
   const labChain = String(req.get('x-lab-x402-chain') || '').trim().toLowerCase();
-  if (labChain === 'celo') return 'celo';
   // Algorand settles via GoPlausible AVM (appended accepts). Profile is unused for
   // accept building when x-lab-x402-chain=algorand (see buildPaymentRequired), but
   // keep Dexter so non-Algorand middleware paths stay consistent.
@@ -247,9 +246,7 @@ function labsPaymentMiddleware(priceUsd, resource, catalogSegment, outputSchema 
   return async (req, res, next) => {
     try {
       const profile = await resolveLabsFacilitatorProfile(req);
-      if (profile === 'celo') {
-        req.x402ResourceServerProfile = 'celo';
-      } else if (profile === 'payai') {
+      if (profile === 'payai') {
         req.x402ResourceServerProfile = 'payai';
       }
       // Algorand Labs settles via GoPlausible (appended accept); Dexter/PayAI profile still
@@ -274,7 +271,7 @@ function labsPaymentMiddleware(priceUsd, resource, catalogSegment, outputSchema 
         inputSchema: { type: 'object', properties: {}, additionalProperties: false },
         outputSchema,
         getPayTo: labsPayToOverride,
-        /** Dexter primary; PayAI when Dexter unhealthy for Solana/Base; Celo for Celo tab. */
+        /** Dexter primary; PayAI when Dexter unhealthy for Solana/Base. */
         resourceServerProfile: profile,
       })(req, res, next);
     } catch (e) {

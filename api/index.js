@@ -1646,11 +1646,9 @@ import("./utils/x402ResourceServer.js")
     ({
       ensureX402ResourceServerInitialized,
       ensureX402DexterResourceServerInitialized,
-      ensureX402CeloResourceServerInitialized,
     }) => {
       ensureX402ResourceServerInitialized().catch(() => {});
       ensureX402DexterResourceServerInitialized().catch(() => {});
-      ensureX402CeloResourceServerInitialized().catch(() => {});
     },
   )
   .catch(() => {});
@@ -2515,17 +2513,6 @@ app.listen(PORT, () => {
     .catch((e) =>
       console.warn(
         "[settle-failed-monitor] load failed:",
-        e instanceof Error ? e.message : e,
-      ),
-    );
-
-  import("./libs/celoFacilitatorCreditGate.js")
-    .then(({ seedCeloCreditCircuitFromRecentFailures }) => {
-      void seedCeloCreditCircuitFromRecentFailures();
-    })
-    .catch((e) =>
-      console.warn(
-        "[celo-credit-gate] seed failed:",
         e instanceof Error ? e.message : e,
       ),
     );

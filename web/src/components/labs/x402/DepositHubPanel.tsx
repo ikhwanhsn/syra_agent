@@ -38,7 +38,6 @@ function formatRelativeTime(iso: string | null | undefined): string | null {
 }
 
 function chainLabelFor(chain: LabDepositHub["chain"]): string {
-  if (chain === "celo") return "Celo";
   if (chain === "base") return "Base";
   if (chain === "algorand") return "Algorand";
   return "Solana";
@@ -50,7 +49,6 @@ function isNativeReservedError(error: string | undefined, nativeSymbol: string):
   if (nativeSymbol === "SOL") return lower.includes("sol_reserved") || lower.includes("reserved_for_fees");
   if (nativeSymbol === "ALGO")
     return lower.includes("algo_reserved") || lower.includes("reserved_for_fees");
-  if (nativeSymbol === "CELO") return lower.includes("celo_reserved") || lower.includes("reserved_for_gas");
   return lower.includes("eth_reserved") || lower.includes("reserved_for_gas");
 }
 

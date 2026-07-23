@@ -23,13 +23,6 @@ import {
   getPayaiEvmUsdcAsset,
   getEnabledPayaiNetworks,
 } from "../config/payaiX402Networks.js";
-import {
-  getCeloEvmUsdcAsset,
-  getEnabledCeloNetworks,
-  getCeloPayToAddresses,
-  getCeloFacilitatorApiKey,
-  CELO_FACILITATOR_URL,
-} from "../config/celoX402Networks.js";
 
 dotenv.config({ quiet: true });
 
@@ -133,16 +126,15 @@ const corbitsFacilitatorUrl =
  */
 const dexterFacilitatorUrl = env("DEXTER_FACILITATOR_URL") || "https://x402.dexter.cash";
 
-/** @typedef {'payai'|'corbits'|'dexter'|'celo'} X402NetworkProfile */
+/** @typedef {'payai'|'corbits'|'dexter'} X402NetworkProfile */
 
 /**
  * @param {X402NetworkProfile} profile
- * @returns {import('../config/payaiX402Networks.js').PayaiX402Network[] | import('../config/corbitsX402Networks.js').CorbitsX402Network[] | import('../config/dexterX402Networks.js').DexterX402Network[] | import('../config/celoX402Networks.js').CeloX402Network[]}
+ * @returns {import('../config/payaiX402Networks.js').PayaiX402Network[] | import('../config/corbitsX402Networks.js').CorbitsX402Network[] | import('../config/dexterX402Networks.js').DexterX402Network[]}
  */
 function getEnabledNetworksForProfile(profile) {
   if (profile === "corbits") return getEnabledCorbitsNetworks();
   if (profile === "dexter") return getEnabledDexterNetworks();
-  if (profile === "celo") return getEnabledCeloNetworks();
   return getEnabledPayaiNetworks();
 }
 
@@ -154,7 +146,6 @@ function getEnabledNetworksForProfile(profile) {
 function getEvmUsdcForProfile(profile, caip2) {
   if (profile === "corbits") return getCorbitsEvmUsdcAsset(caip2);
   if (profile === "dexter") return getDexterEvmUsdcAsset(caip2);
-  if (profile === "celo") return getCeloEvmUsdcAsset(caip2);
   return getPayaiEvmUsdcAsset(caip2);
 }
 
@@ -182,11 +173,8 @@ function buildResourceServerBundle(
   });
   server.register("solana:*", svmScheme);
 
-  const evmPayConfigured =
-    profile === "celo"
-      ? Boolean(getCeloPayToAddresses().evmPayTo || basePayTo || envAny(["EVM_PAYTO", "EVM_ADDRESS", "CELO_PAYTO"]))
-      : Boolean(basePayTo || envAny(["EVM_PAYTO", "EVM_ADDRESS"]));
-  if (profile ? evmPayConfigured || profile === "celo" : basePayTo && baseUsdcAsset) {
+  const evmPayConfigured = Boolean(basePayTo || envAny(["EVM_PAYTO", "EVM_ADDRESS"]));
+  if (profile ? evmPayConfigured : basePayTo && baseUsdcAsset) {
     const evmScheme = new ExactEvmScheme().registerMoneyParser(async (amount, net) => {
       if (!String(net).startsWith("eip155:")) return null;
       if (profile) {
@@ -230,9 +218,6 @@ let initPromiseCorbits = null;
 
 let resourceServerDexterInstance = null;
 let initPromiseDexter = null;
-
-let resourceServerCeloInstance = null;
-let initPromiseCelo = null;
 
 /**
  * Get the x402 resource server singleton (PayAI example–style).
@@ -301,44 +286,6 @@ export function getX402ResourceServerDexter() {
 }
 
 /**
- * Celo-backed resource server: verify/settle via https://api.x402.celo.org.
- * Labs settlement prefers the facilitator (required for hackathon x402_* Dune metrics).
- * @see https://docs.celo.org/build-on-celo/build-with-ai/x402
- * @see https://x402.celo.org/
- */
-export function getX402ResourceServerCelo() {
-  if (resourceServerCeloInstance) {
-    return resourceServerCeloInstance;
-  }
-  const apiKey = getCeloFacilitatorApiKey();
-  /** @type {ConstructorParameters<typeof HTTPFacilitatorClient>[0]} */
-  const clientOpts = { url: CELO_FACILITATOR_URL };
-  if (apiKey) {
-    clientOpts.createAuthHeaders = async () => ({
-      verify: { "X-API-Key": apiKey },
-      settle: { "X-API-Key": apiKey },
-      supported: { "X-API-Key": apiKey },
-    });
-  } else {
-    console.warn(
-      "[x402] CELO_FACILITATOR_API_KEY unset — Celo /settle will 401. Get a key at https://x402.celo.org",
-    );
-  }
-  const clients = [new HTTPFacilitatorClient(clientOpts)];
-  const server = new x402ResourceServer(clients);
-  const celoPay = getCeloPayToAddresses().evmPayTo || basePayTo || envAny(["CELO_PAYTO", "EVM_PAYTO"]);
-  resourceServerCeloInstance = buildResourceServerBundle(server, {
-    multiNetwork: true,
-    networkProfile: "celo",
-  });
-  // Ensure Celo payTo is preferred when configured.
-  if (celoPay && resourceServerCeloInstance?.config) {
-    resourceServerCeloInstance.config.basePayTo = celoPay;
-  }
-  return resourceServerCeloInstance;
-}
-
-/**
  * Ensure the resource server has been initialized (fetch supported kinds from facilitator).
  * Call once before first use (e.g. in first requirePayment).
  */
@@ -392,21 +339,3 @@ export async function ensureX402DexterResourceServerInitialized() {
   }
   await initPromiseDexter;
 }
-
-/** Initialize Celo-backed resource server (x402 Labs Celo tab). */
-export async function ensureX402CeloResourceServerInitialized() {
-  const { resourceServer } = getX402ResourceServerCelo();
-  if (!initPromiseCelo) {
-    initPromiseCelo = resourceServer.initialize().catch((e) => {
-      initPromiseCelo = null;
-      throw e;
-    });
-  }
-  await initPromiseCelo;
-}
-
-export {
-  CELO_X402_NETWORKS,
-  getEnabledCeloNetworks,
-  getCeloPayToAddresses,
-} from "../config/celoX402Networks.js";

@@ -25,7 +25,6 @@ describe('inferLabPayerChain', () => {
   test('prefers x-lab-x402-chain header', () => {
     assert.equal(inferLabPayerChain(SOL, 'algorand'), 'algorand');
     assert.equal(inferLabPayerChain(ALGO, 'solana'), 'solana');
-    assert.equal(inferLabPayerChain(EVM, 'celo'), 'celo');
     assert.equal(inferLabPayerChain(EVM, 'base'), 'base');
   });
 

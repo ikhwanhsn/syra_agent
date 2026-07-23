@@ -59,20 +59,18 @@ export function SimulationPanel({
   const [open, setOpen] = useState(false);
   const [targetVolumeUsd, setTargetVolumeUsd] = useState(settingsTarget);
   const nativeSymbol =
-    chain === "celo"
-      ? "CELO"
-      : chain === "base"
-        ? "ETH"
-        : chain === "algorand"
-          ? "ALGO"
-          : "SOL";
+    chain === "base"
+      ? "ETH"
+      : chain === "algorand"
+        ? "ALGO"
+        : "SOL";
 
   useEffect(() => {
     setTargetVolumeUsd(Math.min(100_000, Math.max(1, settingsTarget)));
   }, [settingsTarget]);
 
   const formatNative = (n: number) => {
-    if (chain === "base" || chain === "celo" || chain === "algorand") {
+    if (chain === "base" || chain === "algorand") {
       if (n < 0.0001 && n > 0) return `<0.0001 ${nativeSymbol}`;
       return `~${n.toFixed(4)} ${nativeSymbol}`;
     }
@@ -425,7 +423,7 @@ export function SimulationPanel({
                             .replace(/SOL/gi, nativeSymbol)
                             .replace(
                               /rent/gi,
-                              chain === "base" || chain === "celo"
+                              chain === "base"
                                 ? "gas"
                                 : chain === "algorand"
                                   ? "min-balance"

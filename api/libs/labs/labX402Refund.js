@@ -1,7 +1,7 @@
 /**
  * Refund USDC from the lab payTo wallet back to the x402 payer after successful settlement.
  * Isolated signer — does not route through walletBroker (lab wallets are outside agent policy).
- * Supports Solana (SPL USDC), Base (ERC-20 USDC via viem), Celo (tagged ERC-20 USDC),
+ * Supports Solana (SPL USDC), Base (ERC-20 USDC via viem),
  * and Algorand (USDC ASA via algosdk).
  */
 import {
@@ -29,7 +29,6 @@ import {
   getLabWalletBalances,
   getBasePublicClient,
   createBaseWalletClient,
-  getCeloRpcUrl,
   getAlgorandAlgodClient,
   getAlgorandUsdcAsaId,
   isAlgorandAddressOptedInUsdc,
@@ -43,9 +42,12 @@ import {
   getWeightedAvgLabX402PriceUsd,
 } from './labX402Endpoints.js';
 import { getDexterNetworkByCaip2 } from '../../config/dexterX402Networks.js';
-import { CELO_USDC_MAINNET } from '../../config/celoX402Networks.js';
-import { sendTaggedCeloUsdcTransfer } from '../../utils/celoX402Settle.js';
 import { normalizeLabChain } from '../../models/labs/LabX402Settings.js';
+import {
+  classifyAlgorandRefundError,
+  ensurePayToAlgoForUsdcRefund,
+  PAYTO_USDC_REFUND_FEE_NEED_MICRO,
+} from './labAlgorandFeeBuffer.js';
 
 const USDC_MAINNET = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 const BASE_USDC =
@@ -80,10 +82,6 @@ export const PAYTO_INSUFFICIENT_FUNDS = 'PAYTO_INSUFFICIENT_FUNDS';
 const PAYTO_MIN_SOL_FOR_REFUND = 0.003;
 /** Minimum ETH the Base PayTo wallet needs for gas on a USDC transfer. */
 const PAYTO_MIN_ETH_FOR_REFUND = 0.00005;
-/** Minimum CELO the Celo PayTo wallet needs for gas on a tagged USDC transfer. */
-const PAYTO_MIN_CELO_FOR_REFUND = 0.001;
-/** Minimum ALGO the Algorand PayTo wallet needs for fees on a USDC ASA transfer. */
-const PAYTO_MIN_ALGO_FOR_REFUND = 0.1;
 
 const REFUND_MAX_ATTEMPTS = 3;
 const REFUND_RETRY_DELAY_MS = 800;
@@ -121,7 +119,7 @@ function extractSubmittedTxId(e) {
 /**
  * Before retrying a refund, check whether a previously submitted tx already landed.
  * @param {string | null | undefined} txId
- * @param {'solana' | 'base' | 'celo' | 'algorand'} chain
+ * @param {'solana' | 'base' | 'algorand'} chain
  * @param {object} [clients]
  * @returns {Promise<boolean>}
  */
@@ -133,12 +131,6 @@ async function isRefundTxAlreadyConfirmed(txId, chain, clients = {}) {
       return await isSolanaTxConfirmedOnAnyRpc(id);
     }
     if (chain === 'base' && clients.publicClient) {
-      const receipt = await clients.publicClient.getTransactionReceipt({
-        hash: /** @type {`0x${string}`} */ (id),
-      });
-      return Boolean(receipt && receipt.status === 'success');
-    }
-    if (chain === 'celo' && clients.publicClient) {
       const receipt = await clients.publicClient.getTransactionReceipt({
         hash: /** @type {`0x${string}`} */ (id),
       });
@@ -421,107 +413,6 @@ async function refundUsdcToPayerBase(payerAddress, amountUsd) {
 }
 
 /**
- * Transfer USDC from the Celo PayTo lab wallet to the payer (ERC-20 + ERC-8021 tag).
- * @param {string} payerAddress
- * @param {number} amountUsd
- * @returns {Promise<{ signature: string; amountUsdc: number } | null>}
- */
-async function refundUsdcToPayerCelo(payerAddress, amountUsd) {
-  const payer = String(payerAddress || '').trim();
-  const amount = Number(amountUsd);
-  if (!payer || !/^0x[0-9a-fA-F]{40}$/.test(payer) || !Number.isFinite(amount) || amount <= 0) {
-    return null;
-  }
-
-  const payToAccount = await getActivePayToEvmAccount('celo');
-  if (!payToAccount) {
-    throw new Error('No active Celo payTo lab wallet configured');
-  }
-
-  const payToAddr = payToAccount.address;
-  const { createPublicClient: createCeloPublic, http: httpCelo } = await import('viem');
-  const { celo } = await import('viem/chains');
-  const celoClient = createCeloPublic({
-    chain: celo,
-    transport: httpCelo(getCeloRpcUrl()),
-  });
-
-  const amountRaw = parseUnits(amount.toFixed(6), 6);
-
-  const [usdcBal, celoBal] = await Promise.all([
-    celoClient.readContract({
-      address: /** @type {`0x${string}`} */ (CELO_USDC_MAINNET),
-      abi: ERC20_ABI,
-      functionName: 'balanceOf',
-      args: [/** @type {`0x${string}`} */ (payToAddr)],
-    }),
-    celoClient.getBalance({ address: /** @type {`0x${string}`} */ (payToAddr) }),
-  ]);
-
-  const usdcBalance = Number(formatUnits(/** @type {bigint} */ (usdcBal), 6));
-  const celoBalance = Number(formatEther(celoBal));
-
-  if (usdcBalance < amount) {
-    throw new Error(
-      `${PAYTO_INSUFFICIENT_FUNDS}: payTo USDC ${usdcBalance.toFixed(4)} < needed ${amount.toFixed(4)}`,
-    );
-  }
-  if (celoBalance < PAYTO_MIN_CELO_FOR_REFUND) {
-    throw new Error(
-      `${PAYTO_INSUFFICIENT_FUNDS}: payTo CELO ${celoBalance.toFixed(6)} < needed ${PAYTO_MIN_CELO_FOR_REFUND} for gas`,
-    );
-  }
-
-  let lastErr;
-  /** @type {string | null} */
-  let submittedHash = null;
-  for (let attempt = 1; attempt <= REFUND_MAX_ATTEMPTS; attempt++) {
-    if (
-      submittedHash &&
-      (await isRefundTxAlreadyConfirmed(submittedHash, 'celo', { publicClient: celoClient }))
-    ) {
-      return { signature: submittedHash, amountUsdc: amount };
-    }
-    try {
-      const hash = await sendTaggedCeloUsdcTransfer(
-        payToAccount,
-        /** @type {`0x${string}`} */ (payer),
-        amountRaw,
-      );
-      submittedHash = hash;
-      return { signature: hash, amountUsdc: amount };
-    } catch (e) {
-      lastErr = e;
-      const fromErr = extractSubmittedTxId(e);
-      if (fromErr) submittedHash = fromErr;
-      if (
-        submittedHash &&
-        (await isRefundTxAlreadyConfirmed(submittedHash, 'celo', { publicClient: celoClient }))
-      ) {
-        return { signature: submittedHash, amountUsdc: amount };
-      }
-      if (submittedHash) {
-        console.warn(
-          `[labX402Refund] Celo refund confirm ambiguous; not retrying send. hash=${submittedHash}`,
-        );
-        throw e;
-      }
-      if (attempt < REFUND_MAX_ATTEMPTS && isRetryableRefundError(e)) {
-        console.warn(
-          `[labX402Refund] Celo refund attempt ${attempt}/${REFUND_MAX_ATTEMPTS} failed, retrying:`,
-          e?.message || e,
-        );
-        await sleep(REFUND_RETRY_DELAY_MS * attempt);
-        continue;
-      }
-      throw e;
-    }
-  }
-
-  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
-}
-
-/**
  * Transfer USDC ASA from the Algorand PayTo lab wallet to the payer.
  * Payer must already be opted into the USDC ASA.
  * @param {string} payerAddress
@@ -546,20 +437,28 @@ async function refundUsdcToPayerAlgorand(payerAddress, amountUsd) {
   }
 
   const payToBalances = await getLabWalletBalances(payToAccount.address, 'algorand');
-  if (payToBalances) {
-    if (payToBalances.usdcBalance < amount) {
-      throw new Error(
-        `${PAYTO_INSUFFICIENT_FUNDS}: payTo USDC ${payToBalances.usdcBalance.toFixed(4)} < needed ${amount.toFixed(4)}`,
-      );
-    }
-    if (payToBalances.nativeBalance < PAYTO_MIN_ALGO_FOR_REFUND) {
-      throw new Error(
-        `${PAYTO_INSUFFICIENT_FUNDS}: payTo ALGO ${payToBalances.nativeBalance.toFixed(4)} < needed ${PAYTO_MIN_ALGO_FOR_REFUND} for fees`,
-      );
-    }
+  if (payToBalances && payToBalances.usdcBalance < amount) {
+    throw new Error(
+      `${PAYTO_INSUFFICIENT_FUNDS}: payTo USDC ${payToBalances.usdcBalance.toFixed(4)} < needed ${amount.toFixed(4)}`,
+    );
   }
 
   const client = getAlgorandAlgodClient();
+  const feeReady = await ensurePayToAlgoForUsdcRefund(payToAccount.address, {
+    needMicro: PAYTO_USDC_REFUND_FEE_NEED_MICRO,
+    client,
+  });
+  if (!feeReady.ok) {
+    throw new Error(
+      `${PAYTO_INSUFFICIENT_FUNDS}: ${feeReady.error || 'payTo ALGO insufficient for USDC refund fees'}`,
+    );
+  }
+  if (feeReady.funded) {
+    console.info(
+      `[labX402Refund] PayTo fee top-up ${feeReady.amount} ALGO from ${feeReady.from}`,
+    );
+  }
+
   const asaId = getAlgorandUsdcAsaId();
   const amountMicro = Math.round(amount * 1e6);
 
@@ -588,7 +487,7 @@ async function refundUsdcToPayerAlgorand(payerAddress, amountUsd) {
       await algosdk.waitForConfirmation(client, txid, 8);
       return { signature: txid, amountUsdc: amount };
     } catch (e) {
-      lastErr = e;
+      lastErr = classifyAlgorandRefundError(e, PAYTO_INSUFFICIENT_FUNDS);
       const fromErr = extractSubmittedTxId(e);
       if (fromErr) submittedTxid = fromErr;
       if (
@@ -601,7 +500,7 @@ async function refundUsdcToPayerAlgorand(payerAddress, amountUsd) {
         console.warn(
           `[labX402Refund] Algorand refund confirm ambiguous; not retrying send. txid=${submittedTxid}`,
         );
-        throw e;
+        throw lastErr;
       }
       if (attempt < REFUND_MAX_ATTEMPTS && isRetryableRefundError(e)) {
         console.warn(
@@ -611,18 +510,18 @@ async function refundUsdcToPayerAlgorand(payerAddress, amountUsd) {
         await sleep(REFUND_RETRY_DELAY_MS * attempt);
         continue;
       }
-      throw e;
+      throw lastErr;
     }
   }
 
-  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
+  throw classifyAlgorandRefundError(lastErr, PAYTO_INSUFFICIENT_FUNDS);
 }
 
 /**
  * Transfer USDC from the PayTo lab wallet to the payer (chain-aware).
  * @param {string} payerAddress
  * @param {number} amountUsd
- * @param {'solana' | 'base' | 'celo' | 'algorand'} [chain]
+ * @param {'solana' | 'base' | 'algorand'} [chain]
  * @returns {Promise<{ signature: string; amountUsdc: number } | null>}
  */
 export async function refundUsdcToPayer(payerAddress, amountUsd, chain) {
@@ -633,7 +532,6 @@ export async function refundUsdcToPayer(payerAddress, amountUsd, chain) {
         ? 'base'
         : 'solana';
   if (c === 'algorand') return refundUsdcToPayerAlgorand(payerAddress, amountUsd);
-  if (c === 'celo') return refundUsdcToPayerCelo(payerAddress, amountUsd);
   if (c === 'base') return refundUsdcToPayerBase(payerAddress, amountUsd);
   return refundUsdcToPayerSolana(payerAddress, amountUsd);
 }
@@ -643,7 +541,7 @@ export async function refundUsdcToPayer(payerAddress, amountUsd, chain) {
  * when its USDC is too low.
  *
  * @param {string} payerAddress
- * @param {{ refundEnabled?: boolean; chain?: 'solana' | 'base' | 'celo' | 'algorand'; priceMultiplier?: number }} [opts]
+ * @param {{ refundEnabled?: boolean; chain?: 'solana' | 'base' | 'algorand'; priceMultiplier?: number }} [opts]
  * @returns {Promise<{ canPay: boolean; funded: boolean; balanceUsdc: number | null; reason: string; signature?: string | null; amountUsd?: number; error?: string }>}
  */
 export async function ensurePayerFundedForNextCall(payerAddress, opts = {}) {

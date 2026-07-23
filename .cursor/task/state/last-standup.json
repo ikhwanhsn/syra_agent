@@ -1,0 +1,25 @@
+{
+  "date": null,
+  "updatedAt": null,
+  "source": "https://api.syraa.fun/api/metrics",
+  "note": "Placeholder — first successful daily-growth-standup run will overwrite with live snapshot.",
+  "northStar": {
+    "paidCallsLast7d": null,
+    "uniquePayingWalletsLast7d": null
+  },
+  "last7d": { "calls": null, "usdSettled": null },
+  "buyback": {
+    "totalBuybackUsdSpent": null,
+    "totalSyraAcquired": null,
+    "treasurySyraBalance": null,
+    "lastBuybackSignature": null
+  },
+  "rewards": {
+    "uniqueEarners": null,
+    "totalClaimableSyra": null,
+    "totalClaimedSyra": null
+  },
+  "settlement": { "settleFailRate24h": null },
+  "oneAction": null,
+  "bottleneck": null
+}

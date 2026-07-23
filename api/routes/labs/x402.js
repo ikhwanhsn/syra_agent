@@ -1,6 +1,6 @@
 /**
  * Admin-gated management API for x402 Labs — wallets, settings, manual runs, call log.
- * All endpoints accept a `chain` query/body param: `solana` (default) | `base` | `celo` | `algorand`.
+ * All endpoints accept a `chain` query/body param: `solana` (default) | `base` | `algorand`.
  */
 import express from 'express';
 import { getAdminDashboardWallets, isAdminWalletAddress } from '../../libs/adminWallet.js';
@@ -34,7 +34,7 @@ import { normalizeLabChain } from '../../models/labs/LabX402Settings.js';
  * Persist a funding skip so the Labs Call log is not empty when Run says "see Error column".
  * @param {{
  *   payerAddress: string;
- *   chain: 'solana' | 'base' | 'celo' | 'algorand';
+ *   chain: 'solana' | 'base' | 'algorand';
  *   endpoint?: string;
  *   reason: string;
  *   error?: string;
@@ -66,11 +66,10 @@ const manualRunCooldown = new Map();
 const MANUAL_RUN_COOLDOWN_MS = 30_000;
 
 /**
- * @param {'solana' | 'base' | 'celo' | 'algorand'} chain
- * @returns {'SOL' | 'ETH' | 'CELO' | 'ALGO'}
+ * @param {'solana' | 'base' | 'algorand'} chain
+ * @returns {'SOL' | 'ETH' | 'ALGO'}
  */
 function nativeSymbolForChain(chain) {
-  if (chain === 'celo') return 'CELO';
   if (chain === 'base') return 'ETH';
   if (chain === 'algorand') return 'ALGO';
   return 'SOL';
@@ -78,7 +77,7 @@ function nativeSymbolForChain(chain) {
 
 /**
  * @param {import('express').Request} req
- * @returns {'solana' | 'base' | 'celo'}
+ * @returns {'solana' | 'base' | 'algorand'}
  */
 function parseChain(req) {
   const raw = req.query?.chain ?? req.body?.chain;

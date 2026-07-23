@@ -1,6 +1,6 @@
 /**
  * Lab wallet CRUD, keypair/account resolution, and balance reads for x402 Labs
- * (Solana + Base + Celo + Algorand).
+ * (Solana + Base + Algorand).
  */
 import { Keypair, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import bs58 from 'bs58';
@@ -13,7 +13,7 @@ import {
   formatEther,
   formatUnits,
 } from 'viem';
-import { base, celo } from 'viem/chains';
+import { base } from 'viem/chains';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import LabWallet from '../../models/labs/LabWallet.js';
 import {
@@ -28,7 +28,6 @@ import {
 import { getMaxBulkCreateCount } from './labX402CallLog.js';
 import { withSolanaRpcFallback } from '../solanaServerRpc.js';
 import { getDexterNetworkByCaip2 } from '../../config/dexterX402Networks.js';
-import { CELO_USDC_MAINNET, getCeloRpcUrl } from '../../config/celoX402Networks.js';
 import { USDC_MAINNET_ASA_ID } from '../../config/algorandX402Networks.js';
 
 const USDC_MAINNET = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
@@ -122,8 +121,6 @@ export function createBaseTransport() {
   );
 }
 
-export { getCeloRpcUrl };
-
 const DEFAULT_ALGOD_MAINNET = 'https://mainnet-api.algonode.cloud';
 const MICRO_ALGO = 1_000_000;
 
@@ -154,8 +151,6 @@ export function getAlgorandUsdcAsaId() {
 
 /** @type {ReturnType<typeof createPublicClient> | null} */
 let basePublicClient = null;
-/** @type {ReturnType<typeof createPublicClient> | null} */
-let celoPublicClient = null;
 
 /**
  * Shared Base public client with multi-RPC fallback (handles public endpoint rate limits).
@@ -181,33 +176,6 @@ export function createBaseWalletClient(account) {
     account,
     chain: base,
     transport: createBaseTransport(),
-  });
-}
-
-/**
- * Shared Celo public client.
- * @returns {ReturnType<typeof createPublicClient>}
- */
-export function getCeloPublicClient() {
-  if (!celoPublicClient) {
-    celoPublicClient = createPublicClient({
-      chain: celo,
-      transport: http(getCeloRpcUrl()),
-    });
-  }
-  return celoPublicClient;
-}
-
-/**
- * Wallet client for Celo writes.
- * @param {import('viem').Account} account
- * @returns {ReturnType<typeof createWalletClient>}
- */
-export function createCeloWalletClient(account) {
-  return createWalletClient({
-    account,
-    chain: celo,
-    transport: http(getCeloRpcUrl()),
   });
 }
 
@@ -311,19 +279,17 @@ export async function getLabWalletKeypairByAddress(address) {
 }
 
 /**
- * Resolve a viem account for an EVM lab wallet address (Base or Celo).
+ * Resolve a viem account for an EVM lab wallet address (Base).
  * @param {string} address
- * @param {'base' | 'celo'} [chain='base']
  * @returns {Promise<import('viem').Account | null>}
  */
-export async function getLabWalletEvmAccountByAddress(address, chain = 'base') {
+export async function getLabWalletEvmAccountByAddress(address) {
   const addr = String(address || '').trim();
   if (!addr) return null;
-  const c = chain === 'celo' ? 'celo' : 'base';
   const doc = await LabWallet.findOne({
     address: { $regex: new RegExp(`^${addr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
     active: true,
-    chain: c,
+    chain: 'base',
   })
     .select('+encryptedSecret')
     .lean();
@@ -334,7 +300,7 @@ export async function getLabWalletEvmAccountByAddress(address, chain = 'base') {
 /**
  * Load active lab wallet doc (with secret) by address, optionally scoped to chain.
  * @param {string} address
- * @param {'solana' | 'base' | 'celo' | 'algorand'} [chain]
+ * @param {'solana' | 'base' | 'algorand'} [chain]
  * @returns {Promise<object | null>}
  */
 export async function getLabWalletDocByAddress(address, chain) {
@@ -342,7 +308,7 @@ export async function getLabWalletDocByAddress(address, chain) {
   if (!addr) return null;
   /** @type {Record<string, unknown>} */
   const filter = { active: true };
-  if (chain === 'base' || chain === 'celo') {
+  if (chain === 'base') {
     filter.chain = chain;
     filter.address = { $regex: new RegExp(`^${addr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') };
   } else if (chain === 'solana' || chain === 'algorand') {
@@ -356,17 +322,13 @@ export async function getLabWalletDocByAddress(address, chain) {
         chain: 'base',
         address: { $regex: new RegExp(`^${addr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
       },
-      {
-        chain: 'celo',
-        address: { $regex: new RegExp(`^${addr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
-      },
     ];
   }
   return LabWallet.findOne(filter).select('+encryptedSecret').lean();
 }
 
 /**
- * @param {'solana' | 'base' | 'celo' | 'algorand'} [chain]
+ * @param {'solana' | 'base' | 'algorand'} [chain]
  * @returns {Promise<string | null>}
  */
 export async function getActivePayToAddress(chain = 'solana') {
@@ -381,23 +343,20 @@ export async function getActivePayToAddress(chain = 'solana') {
  * @returns {Promise<{
  *   solanaPayTo: string | null;
  *   evmPayTo: string | null;
- *   celoPayTo: string | null;
  *   basePayTo: string | null;
  *   algorandPayTo: string | null;
  * }>}
  */
 export async function getActiveLabPayToAddresses() {
-  const [solanaPayTo, basePayTo, celoPayTo, algorandPayTo] = await Promise.all([
+  const [solanaPayTo, basePayTo, algorandPayTo] = await Promise.all([
     getActivePayToAddress('solana'),
     getActivePayToAddress('base'),
-    getActivePayToAddress('celo'),
     getActivePayToAddress('algorand'),
   ]);
   return {
     solanaPayTo,
     evmPayTo: basePayTo,
     basePayTo,
-    celoPayTo,
     algorandPayTo,
   };
 }
@@ -414,12 +373,10 @@ export async function getActivePayToKeypair() {
 }
 
 /**
- * @param {'base' | 'celo'} [chain='base']
  * @returns {Promise<import('viem').Account | null>}
  */
-export async function getActivePayToEvmAccount(chain = 'base') {
-  const c = chain === 'celo' ? 'celo' : 'base';
-  const doc = await LabWallet.findOne({ role: 'payto', active: true, chain: c })
+export async function getActivePayToEvmAccount() {
+  const doc = await LabWallet.findOne({ role: 'payto', active: true, chain: 'base' })
     .select('+encryptedSecret')
     .lean();
   if (!doc) return null;
@@ -518,36 +475,6 @@ export async function getBaseLabWalletBalances(address) {
   }
   console.warn('[labWalletService] Base balance read failed:', lastErr?.message || lastErr);
   return null;
-}
-
-/**
- * Read CELO + USDC balances for a Celo lab wallet.
- * @param {string} address
- * @returns {Promise<{ nativeBalance: number; usdcBalance: number } | null>}
- */
-export async function getCeloLabWalletBalances(address) {
-  const addr = String(address || '').trim();
-  if (!addr || !/^0x[0-9a-fA-F]{40}$/.test(addr)) return null;
-
-  try {
-    const client = getCeloPublicClient();
-    const [celoWei, usdcRaw] = await Promise.all([
-      client.getBalance({ address: /** @type {`0x${string}`} */ (addr) }),
-      client.readContract({
-        address: /** @type {`0x${string}`} */ (CELO_USDC_MAINNET),
-        abi: ERC20_BALANCE_ABI,
-        functionName: 'balanceOf',
-        args: [/** @type {`0x${string}`} */ (addr)],
-      }),
-    ]);
-    return {
-      nativeBalance: Number(formatEther(celoWei)),
-      usdcBalance: Number(formatUnits(/** @type {bigint} */ (usdcRaw), 6)),
-    };
-  } catch (e) {
-    console.warn('[labWalletService] Celo balance read failed:', e?.message || e);
-    return null;
-  }
 }
 
 /**
@@ -669,8 +596,8 @@ export async function ensureAlgorandLabWalletUsdcOptIn(address) {
 /**
  * Chain-aware balance read. Normalized to nativeBalance + usdcBalance.
  * @param {string} address
- * @param {'solana' | 'base' | 'celo' | 'algorand'} [chain]
- * @returns {Promise<{ nativeBalance: number; usdcBalance: number; chain: 'solana' | 'base' | 'celo' | 'algorand'; optedInUsdc?: boolean } | null>}
+ * @param {'solana' | 'base' | 'algorand'} [chain]
+ * @returns {Promise<{ nativeBalance: number; usdcBalance: number; chain: 'solana' | 'base' | 'algorand'; optedInUsdc?: boolean } | null>}
  */
 export async function getLabWalletBalances(address, chain) {
   const c = chain
@@ -679,8 +606,7 @@ export async function getLabWalletBalances(address, chain) {
       ? 'base'
       : 'solana';
   let balances = null;
-  if (c === 'celo') balances = await getCeloLabWalletBalances(address);
-  else if (c === 'base') balances = await getBaseLabWalletBalances(address);
+  if (c === 'base') balances = await getBaseLabWalletBalances(address);
   else if (c === 'algorand') balances = await getAlgorandLabWalletBalances(address);
   else balances = await getSolanaLabWalletBalances(address);
   if (!balances) return null;
@@ -690,7 +616,7 @@ export async function getLabWalletBalances(address, chain) {
 /**
  * @deprecated Prefer getLabWalletBalances — kept for callers that still read solBalance.
  * @param {string} address
- * @param {'solana' | 'base' | 'celo' | 'algorand'} [chain]
+ * @param {'solana' | 'base' | 'algorand'} [chain]
  */
 export async function getLabWalletBalancesLegacyShape(address, chain) {
   const balances = await getLabWalletBalances(address, chain);
@@ -704,7 +630,7 @@ export async function getLabWalletBalancesLegacyShape(address, chain) {
 }
 
 /**
- * @param {{ label: string; role: 'payer' | 'payto' | 'deposit'; chain?: 'solana' | 'base' | 'celo' | 'algorand' }} input
+ * @param {{ label: string; role: 'payer' | 'payto' | 'deposit'; chain?: 'solana' | 'base' | 'algorand' }} input
  * @returns {Promise<object>}
  */
 export async function createLabWallet(input) {
@@ -762,7 +688,7 @@ export async function createLabWallet(input) {
 
 /**
  * Create multiple payer wallets in one call.
- * @param {{ count: number; chain?: 'solana' | 'base' | 'celo' | 'algorand'; labelPrefix?: string; role?: 'payer' | 'payto' }} input
+ * @param {{ count: number; chain?: 'solana' | 'base' | 'algorand'; labelPrefix?: string; role?: 'payer' | 'payto' }} input
  * @returns {Promise<object[]>}
  */
 export async function createLabWalletsBulk(input) {
@@ -806,18 +732,17 @@ function formatLabWalletDoc(doc) {
 }
 
 /**
- * @param {'solana' | 'base' | 'celo' | 'algorand'} chain
- * @returns {'SOL' | 'ETH' | 'CELO' | 'ALGO'}
+ * @param {'solana' | 'base' | 'algorand'} chain
+ * @returns {'SOL' | 'ETH' | 'ALGO'}
  */
 function nativeSymbolForChain(chain) {
-  if (chain === 'celo') return 'CELO';
   if (chain === 'base') return 'ETH';
   if (chain === 'algorand') return 'ALGO';
   return 'SOL';
 }
 
 /**
- * @param {'solana' | 'base' | 'celo' | 'algorand'} [chain]
+ * @param {'solana' | 'base' | 'algorand'} [chain]
  * @returns {Promise<object[]>}
  */
 export async function listLabWallets(chain) {
@@ -853,7 +778,7 @@ export async function listLabWallets(chain) {
 }
 
 /**
- * @param {'solana' | 'base' | 'celo' | 'algorand'} [chain]
+ * @param {'solana' | 'base' | 'algorand'} [chain]
  * @returns {Promise<object[]>}
  */
 export async function listActivePayerWallets(chain) {
@@ -865,7 +790,7 @@ export async function listActivePayerWallets(chain) {
 
 /**
  * Active payer + payto wallets that receive deposit distributions (excludes deposit hub).
- * @param {'solana' | 'base' | 'celo' | 'algorand'} [chain]
+ * @param {'solana' | 'base' | 'algorand'} [chain]
  * @returns {Promise<object[]>}
  */
 export async function listDepositRecipients(chain) {
@@ -877,7 +802,7 @@ export async function listDepositRecipients(chain) {
 
 /**
  * Load active deposit hub wallet (with secret) for a chain.
- * @param {'solana' | 'base' | 'celo' | 'algorand'} [chain='base']
+ * @param {'solana' | 'base' | 'algorand'} [chain='base']
  * @returns {Promise<object | null>}
  */
 export async function getActiveDepositWalletDoc(chain = 'base') {
@@ -888,14 +813,14 @@ export async function getActiveDepositWalletDoc(chain = 'base') {
 }
 
 /**
- * Get or create the per-chain deposit hub wallet (solana | base | celo | algorand).
- * @param {'solana' | 'base' | 'celo' | 'algorand'} [chain='base']
+ * Get or create the per-chain deposit hub wallet (solana | base | algorand).
+ * @param {'solana' | 'base' | 'algorand'} [chain='base']
  * @returns {Promise<object>}
  */
 export async function getOrCreateDepositWallet(chain = 'base') {
   const c = normalizeLabChain(chain);
   const chainLabel =
-    c === 'celo' ? 'Celo' : c === 'base' ? 'Base' : c === 'algorand' ? 'Algorand' : 'Solana';
+    c === 'base' ? 'Base' : c === 'algorand' ? 'Algorand' : 'Solana';
 
   const existing = await getActiveDepositWalletDoc(c);
   if (existing) {

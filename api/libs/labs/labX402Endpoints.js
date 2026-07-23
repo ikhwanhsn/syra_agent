@@ -144,8 +144,8 @@ async function filterAvailableEndpoints(endpoints) {
 
 /**
  * Pick a random endpoint weighted by `weight`, excluding PayAI routes at daily quota.
- * On Base/Celo/Algorand, PayAI-facilitated routes are skipped.
- * @param {{ chain?: 'solana' | 'base' | 'celo' | 'algorand' }} [opts]
+ * On Base/Algorand, PayAI-facilitated routes are skipped.
+ * @param {{ chain?: 'solana' | 'base' | 'algorand' }} [opts]
  * @returns {Promise<LabX402Endpoint>}
  */
 export async function pickRandomAvailableLabX402Endpoint(opts = {}) {
@@ -153,12 +153,10 @@ export async function pickRandomAvailableLabX402Endpoint(opts = {}) {
   const chain =
     raw === 'base'
       ? 'base'
-      : raw === 'celo'
-        ? 'celo'
-        : raw === 'algorand' || raw === 'algo' || raw === 'avm'
-          ? 'algorand'
-          : 'solana';
-  const skipPayai = chain === 'base' || chain === 'celo' || chain === 'algorand';
+      : raw === 'algorand' || raw === 'algo' || raw === 'avm'
+        ? 'algorand'
+        : 'solana';
+  const skipPayai = chain === 'base' || chain === 'algorand';
   const candidates = skipPayai
     ? LAB_X402_ENDPOINTS.filter((e) => e.facilitator !== 'payai')
     : [...LAB_X402_ENDPOINTS];

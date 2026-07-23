@@ -1,6 +1,6 @@
 import { getApiBaseUrl } from "@/lib/env";
 
-export type LabChain = "solana" | "base" | "celo" | "algorand";
+export type LabChain = "solana" | "base" | "algorand";
 
 export interface LabWallet {
   id: string;
@@ -9,9 +9,9 @@ export interface LabWallet {
   role: "payer" | "payto";
   chain: LabChain;
   active: boolean;
-  /** Native gas token balance (SOL, ETH, CELO, or ALGO). null when RPC unavailable. */
+  /** Native gas token balance (SOL, ETH, or ALGO). null when RPC unavailable. */
   nativeBalance: number | null;
-  nativeSymbol: "SOL" | "ETH" | "CELO" | "ALGO";
+  nativeSymbol: "SOL" | "ETH" | "ALGO";
   /** @deprecated Prefer nativeBalance — kept for older simulation helpers. */
   solBalance: number | null;
   usdcBalance: number | null;
@@ -52,7 +52,7 @@ export interface LabDepositHub {
   chain: LabChain;
   role: "deposit";
   nativeBalance: number | null;
-  nativeSymbol: "SOL" | "ETH" | "CELO" | "ALGO";
+  nativeSymbol: "SOL" | "ETH" | "ALGO";
   usdcBalance: number | null;
   balanceAvailable: boolean;
   /** Algorand only — true once the hub has opted into USDC ASA. */
@@ -66,7 +66,7 @@ export interface LabDepositHub {
 }
 
 export interface LabDepositTransfer {
-  asset: "USDC" | "SOL" | "ETH" | "CELO" | "ALGO";
+  asset: "USDC" | "SOL" | "ETH" | "ALGO";
   to: string;
   amount: number;
   tx: string | null;
@@ -91,7 +91,7 @@ export interface LabX402Endpoint {
   priceUsd: number;
   weight: number;
   description: string;
-  facilitator?: "dexter" | "payai" | "celo" | "goplausible";
+  facilitator?: "dexter" | "payai" | "goplausible";
   dailyLimitMin?: number;
   dailyLimitMax?: number;
   dailyQuota?: {
@@ -171,21 +171,17 @@ function normalizeWallet(raw: LabWallet): LabWallet {
   const chain: LabChain =
     raw.chain === "base"
       ? "base"
-      : raw.chain === "celo"
-        ? "celo"
-        : raw.chain === "algorand"
-          ? "algorand"
-          : "solana";
+      : raw.chain === "algorand"
+        ? "algorand"
+        : "solana";
   const nativeBalance = raw.nativeBalance ?? raw.solBalance ?? null;
   const nativeSymbol: LabWallet["nativeSymbol"] =
     raw.nativeSymbol ??
-    (chain === "celo"
-      ? "CELO"
-      : chain === "base"
-        ? "ETH"
-        : chain === "algorand"
-          ? "ALGO"
-          : "SOL");
+    (chain === "base"
+      ? "ETH"
+      : chain === "algorand"
+        ? "ALGO"
+        : "SOL");
   return {
     ...raw,
     chain,

@@ -50,8 +50,6 @@ function explorerTxUrl(chain: LabChain, tx: string): string {
       return `https://allo.info/tx/${id}`;
     case "base":
       return `https://basescan.org/tx/${id}`;
-    case "celo":
-      return `https://celoscan.io/tx/${id}`;
     default:
       return `https://solscan.io/tx/${id}`;
   }

@@ -22,9 +22,7 @@ export function DepositDialog({ wallet, open, onOpenChange }: DepositDialogProps
   if (!wallet) return null;
 
   const depositHint =
-    wallet.chain === "celo"
-      ? "Send CELO (for gas) and USDC to this address on Celo mainnet."
-      : wallet.chain === "base"
+    wallet.chain === "base"
         ? "Send ETH (for gas) and USDC to this address on Base mainnet."
         : wallet.chain === "algorand"
           ? "Send ALGO first (~0.2+) so this wallet can opt into USDC ASA, then send USDC on Algorand mainnet. Sending USDC before opt-in shows a Pera Inbox Router warning — wait for opt-in first."

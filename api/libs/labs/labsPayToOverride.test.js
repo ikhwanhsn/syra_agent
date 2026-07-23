@@ -7,7 +7,6 @@ import { resolveLabsPayToOverride } from './labsPayToOverride.js';
 
 const SOL = 'So11111111111111111111111111111111111111112';
 const BASE = '0xBasePayTo000000000000000000000000000001';
-const CELO = '0xCeloPayTo000000000000000000000000000001';
 const ALGO = 'ALGORANDPAYTOADDRESS00000000000000000000000000000000000';
 
 describe('resolveLabsPayToOverride', () => {
@@ -16,7 +15,6 @@ describe('resolveLabsPayToOverride', () => {
       solanaPayTo: SOL,
       basePayTo: BASE,
       evmPayTo: BASE,
-      celoPayTo: CELO,
       algorandPayTo: ALGO,
     });
     assert.deepEqual(out, {
@@ -31,7 +29,6 @@ describe('resolveLabsPayToOverride', () => {
       solanaPayTo: SOL,
       basePayTo: null,
       evmPayTo: null,
-      celoPayTo: null,
       algorandPayTo: null,
     });
     assert.equal(out, null);
@@ -55,19 +52,6 @@ describe('resolveLabsPayToOverride', () => {
     assert.deepEqual(out, {
       solanaPayTo: SOL,
       evmPayTo: null,
-      algorandPayTo: null,
-    });
-  });
-
-  test('celo tab isolates Celo PayTo onto evmPayTo', () => {
-    const out = resolveLabsPayToOverride('celo', {
-      solanaPayTo: SOL,
-      basePayTo: BASE,
-      celoPayTo: CELO,
-    });
-    assert.deepEqual(out, {
-      solanaPayTo: null,
-      evmPayTo: CELO,
       algorandPayTo: null,
     });
   });

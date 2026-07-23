@@ -1,6 +1,6 @@
 /**
  * Outbound x402 payer for lab wallets — calls /insights/* endpoints with automatic payment.
- * Supports Solana (ExactSvmScheme), Base/Celo (ExactEvmScheme), and Algorand (ExactAvmScheme via GoPlausible).
+ * Supports Solana (ExactSvmScheme), Base (ExactEvmScheme), and Algorand (ExactAvmScheme via GoPlausible).
  */
 import { wrapFetchWithPayment } from '@x402/fetch';
 import { x402Client } from '@x402/core/client';
@@ -32,8 +32,6 @@ import LabX402Settings, {
   isAvmLabChain,
 } from '../../models/labs/LabX402Settings.js';
 import LabX402Call from '../../models/labs/LabX402Call.js';
-import { CELO_MAINNET_CAIP2 } from '../../config/celoX402Networks.js';
-import { getCeloBuilderCode } from '../../config/celoBuilderCode.js';
 
 /** @type {Map<string, ReturnType<typeof wrapFetchWithPayment>>} */
 const paymentFetchCache = new Map();
@@ -64,28 +62,18 @@ async function getSolanaPaymentFetchForKeypair(keypair) {
 
 /**
  * @param {import('viem').Account} account
- * @param {'base' | 'celo'} [chain='base']
  */
-async function getEvmPaymentFetchForAccount(account, chain = 'base') {
+async function getEvmPaymentFetchForAccount(account) {
   const addr = account.address;
-  const cacheKey = `${chain}:${addr.toLowerCase()}`;
+  const cacheKey = `base:${addr.toLowerCase()}`;
   if (paymentFetchCache.has(cacheKey)) return paymentFetchCache.get(cacheKey);
 
   const scheme = new ExactEvmScheme(account);
-  const network = chain === 'celo' ? CELO_MAINNET_CAIP2 : 'eip155:*';
   const client = x402Client.fromConfig({
-    schemes: [{ network, client: scheme }],
+    schemes: [{ network: 'eip155:*', client: scheme }],
   });
   registerRequiredExtensionsHook(client);
-  if (chain === 'celo') {
-    const code = getCeloBuilderCode();
-    if (code) {
-      const { BuilderCodeClientExtension } = await import('@x402/extensions/builder-code');
-      client.registerExtension(new BuilderCodeClientExtension(code));
-    }
-  } else {
-    await registerBuilderCodeClientExtension(client);
-  }
+  await registerBuilderCodeClientExtension(client);
   const pf = wrapFetchWithPayment(globalThis.fetch, client);
   paymentFetchCache.set(cacheKey, pf);
   return pf;
@@ -117,7 +105,7 @@ function getServerApiKey() {
 
 /**
  * @param {string} payerAddress
- * @param {{ endpoint?: string; trigger?: 'manual' | 'scheduler'; chain?: 'solana' | 'base' | 'celo' | 'algorand' }} [opts]
+ * @param {{ endpoint?: string; trigger?: 'manual' | 'scheduler'; chain?: 'solana' | 'base' | 'algorand' }} [opts]
  * @returns {Promise<object>}
  */
 export async function runLabX402Payment(payerAddress, opts = {}) {
@@ -177,7 +165,7 @@ export async function runLabX402Payment(payerAddress, opts = {}) {
   } else if (isEvmLabChain(chain)) {
     const account = evmAccountFromLabWalletDoc(doc);
     payerAddrForLog = account.address;
-    paymentFetch = await getEvmPaymentFetchForAccount(account, chain === 'celo' ? 'celo' : 'base');
+    paymentFetch = await getEvmPaymentFetchForAccount(account);
   } else {
     const keypair = keypairFromLabWalletDoc(doc);
     payerAddrForLog = keypair.publicKey.toBase58();
@@ -344,7 +332,7 @@ function formatLabX402Settings(doc) {
 }
 
 /**
- * @param {'solana' | 'base' | 'celo' | 'algorand'} [chain]
+ * @param {'solana' | 'base' | 'algorand'} [chain]
  * @returns {Promise<object>}
  */
 export async function getLabX402Settings(chain = 'solana') {
@@ -369,7 +357,7 @@ export async function getLabX402Settings(chain = 'solana') {
  *   targetVolumeUsd: number;
  *   priceMultiplier: number;
  * }>} patch
- * @param {'solana' | 'base' | 'celo' | 'algorand'} [chain]
+ * @param {'solana' | 'base' | 'algorand'} [chain]
  * @returns {Promise<object>}
  */
 export async function updateLabX402Settings(patch, chain = 'solana') {
@@ -440,7 +428,7 @@ export async function updateLabX402Settings(patch, chain = 'solana') {
 }
 
 /**
- * @param {{ limit?: number; chain?: 'solana' | 'base' | 'celo' | 'algorand' }} [opts]
+ * @param {{ limit?: number; chain?: 'solana' | 'base' | 'algorand' }} [opts]
  * @returns {Promise<object[]>}
  */
 export async function listLabX402Calls(opts = {}) {
@@ -465,7 +453,7 @@ export async function listLabX402Calls(opts = {}) {
 
 /**
  * Gross x402 volume for the current UTC day (successful paid calls only).
- * @param {'solana' | 'base' | 'celo' | 'algorand'} [chain]
+ * @param {'solana' | 'base' | 'algorand'} [chain]
  * @returns {Promise<{
  *   dayUtc: string;
  *   volumeUsd: number;

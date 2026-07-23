@@ -1,10 +1,10 @@
 /**
  * Supported Syra agent execution chains.
- * @typedef {'solana'|'base'|'bsc'|'celo'} SyraAgentChain
+ * @typedef {'solana'|'base'|'bsc'} SyraAgentChain
  */
 
 /** @type {readonly SyraAgentChain[]} */
-export const SYRA_AGENT_CHAINS = ['solana', 'base', 'bsc', 'celo'];
+export const SYRA_AGENT_CHAINS = ['solana', 'base', 'bsc'];
 
 /**
  * @param {unknown} raw
@@ -13,7 +13,6 @@ export const SYRA_AGENT_CHAINS = ['solana', 'base', 'bsc', 'celo'];
 export function normalizeAgentChain(raw) {
   const c = String(raw || 'solana').toLowerCase().trim();
   if (c === 'base') return 'base';
-  if (c === 'celo') return 'celo';
   if (c === 'bsc' || c === 'bnb' || c === 'bsc-testnet') return 'bsc';
   return 'solana';
 }
@@ -23,7 +22,7 @@ export function normalizeAgentChain(raw) {
  * @returns {boolean}
  */
 export function isEvmAgentChain(chain) {
-  return chain === 'base' || chain === 'bsc' || chain === 'celo';
+  return chain === 'base' || chain === 'bsc';
 }
 
 /**
@@ -33,7 +32,6 @@ export function isEvmAgentChain(chain) {
 export function chainDisplayName(chain) {
   if (chain === 'base') return 'Base';
   if (chain === 'bsc') return 'BNB Chain';
-  if (chain === 'celo') return 'Celo';
   return 'Solana';
 }
 
@@ -43,7 +41,6 @@ export function chainDisplayName(chain) {
  */
 export function evmChainId(chain) {
   if (chain === 'base') return 8453;
-  if (chain === 'celo') return 42220;
   if (chain === 'bsc') {
     const net = String(process.env.BNB_AGENT_NETWORK || process.env.NETWORK || 'bsc-testnet').toLowerCase();
     return net.includes('mainnet') && !net.includes('test') ? 56 : 97;
@@ -94,15 +91,6 @@ export function getSyraChainsStatus() {
         note: bnbEnabled
           ? 'BNB agent commerce via ERC-8183 sidecar; intelligence executed by Syra API.'
           : 'Set BNB_AGENT_ENABLED=true, ERC8183_INTERNAL_SECRET, and deploy services/bnb-agent.',
-      },
-      {
-        id: 'celo',
-        name: 'Celo',
-        caip2: 'eip155:42220',
-        status: 'active',
-        features: ['x402', 'labs'],
-        note:
-          'Celo x402 Labs self-settlement with ERC-8021 attribution tagging for Agentic Payments hackathon.',
       },
     ],
   };

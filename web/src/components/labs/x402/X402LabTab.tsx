@@ -60,24 +60,19 @@ export function X402LabTab({ chain }: X402LabTabProps) {
   const showEndpointsSkeleton = useMinimumSkeleton(endpointsQ.isLoading);
 
   const isBase = chain === "base";
-  const isCelo = chain === "celo";
   const isAlgorand = chain === "algorand";
-  const isEvm = isBase || isCelo;
+  const isEvm = isBase;
   const skipPayai = isEvm || isAlgorand;
   const chainLabel = isAlgorand
     ? "Algorand"
-    : isCelo
-      ? "Celo"
-      : isBase
-        ? "Base"
-        : "Solana";
+    : isBase
+      ? "Base"
+      : "Solana";
   const nativeSymbol = isAlgorand
     ? "ALGO"
-    : isCelo
-      ? "CELO"
-      : isBase
-        ? "ETH"
-        : "SOL";
+    : isBase
+      ? "ETH"
+      : "SOL";
 
   const priceMultiplier =
     settingsDraft?.priceMultiplier ??
@@ -89,7 +84,7 @@ export function X402LabTab({ chain }: X402LabTabProps) {
   const visibleEndpoints = useMemo(() => {
     const all = endpointsQ.data ?? [];
     if (!skipPayai) return all;
-    // Base/Celo/Algorand payers skip PayAI-only routes.
+    // Base/Algorand payers skip PayAI-only routes.
     return all.filter((ep) => ep.facilitator !== "payai");
   }, [endpointsQ.data, skipPayai]);
 
@@ -118,11 +113,9 @@ export function X402LabTab({ chain }: X402LabTabProps) {
             against <code className="text-xs">/insights/*</code> endpoints
             {isAlgorand
               ? " settling on Algorand via GoPlausible"
-              : isCelo
-                ? " via the Celo x402 facilitator (Track 2) + tagged refunds (Track 1)"
-                : isBase
-                  ? " settling on Base via Dexter"
-                  : ""}
+              : isBase
+                ? " settling on Base via Dexter"
+                : ""}
             .{" "}
             {isAlgorand ? (
               <>
@@ -137,25 +130,6 @@ export function X402LabTab({ chain }: X402LabTabProps) {
                 </a>{" "}
                 on Algorand mainnet (USDC ASA). Recipients must be opted into USDC before transfers.
                 PayAI routes are skipped on this tab.{" "}
-              </>
-            ) : isCelo ? (
-              <>
-                x402 settlements go through{" "}
-                <a
-                  href="https://x402.celo.org"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline underline-offset-2 hover:text-foreground"
-                >
-                  api.x402.celo.org
-                </a>{" "}
-                (requires <code className="text-xs">CELO_FACILITATOR_API_KEY</code>) so Dune{" "}
-                <code className="text-xs">x402_*</code> metrics count; register your Celo payTo as{" "}
-                <code className="text-xs">agentWalletAddress</code>. Settlement is facilitator-only
-                (no self-settle) — if the facilitator is down, out of credits, or the relayer lacks
-                CELO gas, the run fails with a clear error instead of a non-counting self-settle.
-                Tagged refunds use your <code className="text-xs">celo_...</code> tag for Track 1
-                revenue volume. PayAI routes are skipped on this tab.{" "}
               </>
             ) : !isBase ? (
               <>

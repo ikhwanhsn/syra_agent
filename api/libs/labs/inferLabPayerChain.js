@@ -15,7 +15,7 @@ export function looksLikeAlgorandAddress(addr) {
 /**
  * @param {string} payer
  * @param {string | null | undefined} labChainHeader
- * @returns {'solana' | 'base' | 'celo' | 'algorand'}
+ * @returns {'solana' | 'base' | 'algorand'}
  */
 export function inferLabPayerChain(payer, labChainHeader) {
   const fromHeader = String(labChainHeader || '')
@@ -24,7 +24,6 @@ export function inferLabPayerChain(payer, labChainHeader) {
   if (
     fromHeader === 'base' ||
     fromHeader === 'solana' ||
-    fromHeader === 'celo' ||
     fromHeader === 'algorand'
   ) {
     return fromHeader;

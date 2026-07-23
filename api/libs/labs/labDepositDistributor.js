@@ -1,5 +1,5 @@
 /**
- * Labs deposit hub — equal-split USDC + native (SOL / ETH / CELO / ALGO) to active payer/payto wallets.
+ * Labs deposit hub — equal-split USDC + native (SOL / ETH / ALGO) to active payer/payto wallets.
  * Distribution is manual only (Distribute button) to avoid RPC rate limits from polling.
  */
 import {
@@ -22,8 +22,6 @@ import LabX402Settings, {
   settingsKeyForChain,
 } from '../../models/labs/LabX402Settings.js';
 import { getDexterNetworkByCaip2 } from '../../config/dexterX402Networks.js';
-import { CELO_USDC_MAINNET } from '../../config/celoX402Networks.js';
-import { sendTaggedCeloUsdcTransfer } from '../../utils/celoX402Settle.js';
 import { pickSolanaConnectionForReads } from '../solanaServerRpc.js';
 import {
   getActiveDepositWalletDoc,
@@ -34,8 +32,6 @@ import {
   algorandAccountFromLabWalletDoc,
   getBasePublicClient,
   createBaseWalletClient,
-  getCeloPublicClient,
-  createCeloWalletClient,
   getLabWalletBalances,
   getAlgorandAlgodClient,
   getAlgorandUsdcAsaId,
@@ -87,11 +83,10 @@ const runningByChain = new Set();
 const lastRunAtByChain = new Map();
 
 /**
- * @param {'solana' | 'base' | 'celo' | 'algorand'} chain
- * @returns {'SOL' | 'ETH' | 'CELO' | 'ALGO'}
+ * @param {'solana' | 'base' | 'algorand'} chain
+ * @returns {'SOL' | 'ETH' | 'ALGO'}
  */
 function nativeSymbolForChain(chain) {
-  if (chain === 'celo') return 'CELO';
   if (chain === 'base') return 'ETH';
   if (chain === 'algorand') return 'ALGO';
   return 'SOL';
@@ -105,7 +100,7 @@ const MICRO_ALGO = 1_000_000n;
 const ALGO_OPT_IN_FUND_MICRO = 150_000n;
 
 /**
- * @param {'solana' | 'base' | 'celo' | 'algorand'} chain
+ * @param {'solana' | 'base' | 'algorand'} chain
  * @param {Date | string | null | undefined} at
  */
 async function markDistributed(chain, at = new Date()) {
@@ -121,7 +116,7 @@ async function markDistributed(chain, at = new Date()) {
 
 /**
  * Claim a cross-process distribute lock via LabX402Settings.
- * @param {'solana' | 'base' | 'celo' | 'algorand'} chain
+ * @param {'solana' | 'base' | 'algorand'} chain
  * @returns {Promise<boolean>}
  */
 async function claimDistributeDbLock(chain) {
@@ -163,7 +158,7 @@ async function claimDistributeDbLock(chain) {
 }
 
 /**
- * @param {'solana' | 'base' | 'celo' | 'algorand'} chain
+ * @param {'solana' | 'base' | 'algorand'} chain
  */
 async function releaseDistributeDbLock(chain) {
   const owner = `pid:${process.pid}`;
@@ -182,7 +177,7 @@ async function releaseDistributeDbLock(chain) {
 }
 
 /**
- * @param {'solana' | 'base' | 'celo' | 'algorand'} [chain='base']
+ * @param {'solana' | 'base' | 'algorand'} [chain='base']
  * @returns {Promise<object>}
  */
 export async function getLabDepositHub(chain = 'base') {
@@ -213,7 +208,7 @@ export async function getLabDepositHub(chain = 'base') {
 
 /**
  * Equal-split USDC + native from the deposit hub to all active payer/payto wallets.
- * @param {'solana' | 'base' | 'celo' | 'algorand'} [chain='base']
+ * @param {'solana' | 'base' | 'algorand'} [chain='base']
  * @param {{ force?: boolean }} [opts]
  * @returns {Promise<object>}
  */
@@ -255,7 +250,6 @@ export async function distributeLabDeposit(chain = 'base', opts = {}) {
     }
 
     if (c === 'solana') return await distributeSolanaDeposit(depositDoc, recipients, settings);
-    if (c === 'celo') return await distributeCeloDeposit(depositDoc, recipients, settings);
     if (c === 'algorand') return await distributeAlgorandDeposit(depositDoc, recipients, settings);
     return await distributeBaseDeposit(depositDoc, recipients, settings);
   } finally {
@@ -422,165 +416,6 @@ async function distributeBaseDeposit(depositDoc, recipients, settings) {
     nativeBalanceBefore: ethBalance,
     nativeAfterWeiOrLamports: ethWeiCursor,
     ethGasReserveAll,
-    perUsdc,
-    transfers,
-    settings,
-    n,
-  });
-}
-
-/**
- * @param {object} depositDoc
- * @param {object[]} recipients
- * @param {object} settings
- */
-async function distributeCeloDeposit(depositDoc, recipients, settings) {
-  const account = evmAccountFromLabWalletDoc(depositDoc);
-  const publicClient = getCeloPublicClient();
-  const walletClient = createCeloWalletClient(account);
-  const depositAddr = /** @type {`0x${string}`} */ (account.address);
-  const n = recipients.length;
-
-  let usdcRaw;
-  let celoWei;
-  let gasPrice;
-  try {
-    [usdcRaw, celoWei, gasPrice] = await Promise.all([
-      publicClient.readContract({
-        address: /** @type {`0x${string}`} */ (CELO_USDC_MAINNET),
-        abi: ERC20_ABI,
-        functionName: 'balanceOf',
-        args: [depositAddr],
-      }),
-      publicClient.getBalance({ address: depositAddr }),
-      publicClient.getGasPrice(),
-    ]);
-  } catch (e) {
-    console.warn('[lab-deposit] Celo balance read failed:', e?.message || e);
-    return {
-      skipped: true,
-      reason: 'rpc_unavailable',
-      depositAddress: depositAddr,
-      error: e?.message || String(e),
-      transfers: [],
-    };
-  }
-
-  const usdcRawBi = /** @type {bigint} */ (usdcRaw);
-  const usdcBalance = Number(formatUnits(usdcRawBi, 6));
-  const celoBalance = Number(formatEther(celoWei));
-  /** @type {object[]} */
-  const transfers = [];
-
-  const gasPriceBi = /** @type {bigint} */ (gasPrice);
-  const nativeGasPerTx = 21_000n;
-  const estimateGasWei = (gasUnits) => (gasUnits * gasPriceBi * 125n) / 100n;
-
-  const perUsdc = usdcRawBi > 0n ? usdcRawBi / BigInt(n) : 0n;
-  if (perUsdc > 0n) {
-    for (const recipient of recipients) {
-      const to = String(recipient.address || '').trim();
-      if (!/^0x[0-9a-fA-F]{40}$/.test(to)) continue;
-      try {
-        const hash = await sendTaggedCeloUsdcTransfer(
-          account,
-          /** @type {`0x${string}`} */ (to),
-          perUsdc,
-        );
-        transfers.push({
-          asset: 'USDC',
-          to,
-          amount: Number(formatUnits(perUsdc, 6)),
-          tx: hash,
-          ok: true,
-        });
-      } catch (e) {
-        console.warn(`[lab-deposit] Celo USDC transfer to ${to} failed:`, e?.message || e);
-        transfers.push({
-          asset: 'USDC',
-          to,
-          amount: Number(formatUnits(perUsdc, 6)),
-          tx: null,
-          ok: false,
-          error: e?.message || String(e),
-        });
-      }
-    }
-  }
-
-  let celoWeiCursor = await publicClient.getBalance({ address: depositAddr });
-  const celoBalanceAfterUsdc = Number(formatEther(celoWeiCursor));
-  const validRecipients = recipients.filter((r) =>
-    /^0x[0-9a-fA-F]{40}$/.test(String(r.address || '').trim()),
-  );
-  let remaining = validRecipients.length;
-  const gasReserveAll = estimateGasWei(nativeGasPerTx * BigInt(Math.max(remaining, 1)));
-
-  if (celoWeiCursor > gasReserveAll) {
-    for (const recipient of validRecipients) {
-      const to = String(recipient.address || '').trim();
-      celoWeiCursor = await publicClient.getBalance({ address: depositAddr });
-      const keep = estimateGasWei(nativeGasPerTx * BigInt(Math.max(remaining, 1)));
-      const avail = celoWeiCursor > keep ? celoWeiCursor - keep : 0n;
-      const perWei = remaining > 0 ? avail / BigInt(remaining) : 0n;
-      remaining -= 1;
-
-      if (perWei <= 0n) {
-        transfers.push({
-          asset: 'CELO',
-          to,
-          amount: 0,
-          tx: null,
-          ok: false,
-          error: 'insufficient_celo_after_gas',
-        });
-        continue;
-      }
-
-      try {
-        const hash = await walletClient.sendTransaction({
-          to: /** @type {`0x${string}`} */ (to),
-          value: perWei,
-        });
-        await publicClient.waitForTransactionReceipt({ hash });
-        transfers.push({
-          asset: 'CELO',
-          to,
-          amount: Number(formatEther(perWei)),
-          tx: hash,
-          ok: true,
-        });
-      } catch (e) {
-        console.warn(`[lab-deposit] CELO transfer to ${to} failed:`, e?.message || e);
-        transfers.push({
-          asset: 'CELO',
-          to,
-          amount: Number(formatEther(perWei)),
-          tx: null,
-          ok: false,
-          error: e?.message || String(e),
-        });
-      }
-    }
-  } else if (celoBalanceAfterUsdc > 0 && celoWeiCursor <= gasReserveAll) {
-    transfers.push({
-      asset: 'CELO',
-      to: depositAddr,
-      amount: celoBalanceAfterUsdc,
-      tx: null,
-      ok: false,
-      error: 'celo_reserved_for_gas',
-    });
-  }
-
-  void usdcBalance;
-  return finalizeDistributeResult({
-    chain: 'celo',
-    depositAddr,
-    usdcRawBi,
-    nativeBalanceBefore: celoBalance,
-    nativeAfterWeiOrLamports: celoWeiCursor,
-    ethGasReserveAll: gasReserveAll,
     perUsdc,
     transfers,
     settings,
@@ -1216,7 +1051,7 @@ async function distributeAlgorandDeposit(depositDoc, recipients, settings) {
 /**
  * Shared result finalizer for all chains.
  * @param {{
- *   chain: 'solana' | 'base' | 'celo' | 'algorand';
+ *   chain: 'solana' | 'base' | 'algorand';
  *   depositAddr: string;
  *   usdcRawBi: bigint;
  *   nativeBalanceBefore: number;

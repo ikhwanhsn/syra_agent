@@ -84,8 +84,6 @@ export function startSettleFailedMonitor() {
         `Settled USD (paid only): $${settledUsd}`,
         `payment_required: ${outcomes.payment_required}`,
         top ? `Top reasons:\n${top}` : '',
-        'Ops: fund CELO_FACILITATOR credits at https://x402.celo.org + relayer gas — see api/docs/CELO_FACILITATOR_OPS.md',
-        'Credit circuit breaker auto-opens on insufficient_credits (Labs Celo returns 503 until cooldown).',
       ]
         .filter(Boolean)
         .join('\n');

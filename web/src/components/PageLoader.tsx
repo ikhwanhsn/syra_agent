@@ -11,68 +11,26 @@ export interface PageLoaderProps {
   className?: string;
 }
 
-function LoadingDots() {
-  return (
-    <div className="flex items-center gap-1.5 text-muted-foreground" aria-hidden>
-      <span className="loader-dot" />
-      <span className="loader-dot" />
-      <span className="loader-dot" />
-    </div>
-  );
-}
-
-function LoaderMark({ size }: { size: "sm" | "md" | "lg" }) {
-  const wrap =
-    size === "lg"
-      ? "h-32 w-32 sm:h-40 sm:w-40"
-      : size === "md"
-        ? "h-24 w-24"
-        : "h-16 w-16";
-  const orb =
-    size === "lg"
-      ? "h-16 w-16 sm:h-20 sm:w-20 rounded-2xl"
-      : size === "md"
-        ? "h-12 w-12 rounded-xl"
-        : "h-10 w-10 rounded-xl";
-
-  return (
-    <div className={cn("relative flex items-center justify-center", wrap)}>
-      <div className="absolute inset-0 rounded-full border-2 border-accent/30 loader-app-glow" aria-hidden />
-      <div
-        className="absolute inset-0 rounded-full border-2 border-dashed border-primary/30 loader-app-ring"
-        aria-hidden
-      />
-      <div
-        className="absolute inset-[15%] rounded-full border border-primary/20 loader-app-ring-slow"
-        aria-hidden
-      />
-      <div
-        className={cn(
-          "relative z-10 flex items-center justify-center overflow-hidden border border-border bg-card shadow-xl loader-app-orb",
-          orb,
-        )}
-      >
-        <img src="/logo.jpg" alt="" className="h-full w-full object-cover" width={80} height={80} decoding="async" />
-      </div>
-    </div>
-  );
-}
-
+/**
+ * Exact Syra boot loader: logo orb + dual spinning rings + glow + bouncing dots.
+ * Markup/timing match the original Index.tsx ready-gate loader.
+ */
 export function PageLoader({
   label = "Loading",
   sublabel,
   variant = "page",
   className,
 }: PageLoaderProps) {
-  const markSize = variant === "compact" ? "sm" : variant === "section" ? "md" : "lg";
+  const isCompact = variant === "compact";
+  const isSection = variant === "section";
 
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center gap-6 overflow-hidden bg-background px-4",
+        "flex flex-col items-center justify-center overflow-hidden bg-background px-4",
         variant === "page" && "min-h-dvh w-full",
-        variant === "section" && "min-h-[min(28rem,60dvh)] w-full py-16",
-        variant === "compact" && "min-h-[40vh] w-full py-10",
+        isSection && "min-h-[min(28rem,60dvh)] w-full py-16",
+        isCompact && "min-h-[40vh] w-full py-10",
         className,
       )}
       role="status"
@@ -80,17 +38,76 @@ export function PageLoader({
       aria-busy="true"
       aria-label={label}
     >
-      <LoaderMark size={markSize} />
-      <div className="flex flex-col items-center gap-1 text-center">
-        <p className="text-sm font-medium text-foreground loader-text-fade">{label}</p>
-        {sublabel ? <p className="text-xs text-muted-foreground">{sublabel}</p> : null}
+      {/* Animated rings — same structure as original Index boot loader */}
+      <div
+        className={cn(
+          "relative flex items-center justify-center",
+          isCompact ? "h-20 w-20" : isSection ? "h-28 w-28 sm:h-32 sm:w-32" : "h-32 w-32 sm:h-40 sm:w-40",
+        )}
+      >
+        <div className="absolute inset-0 rounded-full border-2 border-primary/25 loader-app-glow" aria-hidden />
+        <div
+          className="absolute h-full w-full rounded-full border-2 border-dashed border-primary/30 loader-app-ring"
+          aria-hidden
+        />
+        <div
+          className="absolute h-[70%] w-[70%] rounded-full border border-primary/20 loader-app-ring-slow"
+          aria-hidden
+        />
+        {/* Center orb with logo */}
+        <div
+          className={cn(
+            "relative z-10 flex items-center justify-center overflow-hidden rounded-2xl border border-border bg-card shadow-xl loader-app-orb",
+            isCompact
+              ? "h-10 w-10 rounded-xl"
+              : isSection
+                ? "h-14 w-14 sm:h-16 sm:w-16"
+                : "h-16 w-16 sm:h-20 sm:w-20",
+          )}
+        >
+          <img
+            src="/logo.jpg"
+            alt="Syra"
+            className="h-full w-full object-cover"
+            width={80}
+            height={80}
+            decoding="async"
+          />
+        </div>
       </div>
-      <LoadingDots />
+
+      <p
+        className={cn(
+          "text-sm font-medium text-foreground loader-text-fade",
+          isCompact ? "mt-5" : "mt-8",
+        )}
+      >
+        {label}
+      </p>
+      {sublabel ? <p className="mt-1 text-xs text-muted-foreground">{sublabel}</p> : null}
+      <div
+        className={cn(
+          "flex items-center gap-1.5 text-muted-foreground",
+          isCompact ? "mt-4" : "mt-6",
+        )}
+        aria-hidden
+      >
+        <span className="loader-dot" />
+        <span className="loader-dot" />
+        <span className="loader-dot" />
+      </div>
     </div>
   );
 }
 
-/** Suspense fallback for lazy route chunks. */
+/** Suspense fallback for lazy route chunks — same orb/rings effect as boot loader. */
 export function RoutePageLoader() {
-  return <PageLoader label="Loading" sublabel="Just a moment" variant="section" />;
+  return (
+    <PageLoader
+      label="Loading"
+      sublabel="Just a moment"
+      variant="section"
+      className="min-h-[min(28rem,60dvh)]"
+    />
+  );
 }

@@ -23,7 +23,6 @@ interface CreateWalletDialogProps {
 }
 
 function chainNetworkLabel(chain: LabChain): string {
-  if (chain === "celo") return "Celo";
   if (chain === "base") return "Base";
   if (chain === "algorand") return "Algorand";
   return "Solana";
