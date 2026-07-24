@@ -9,7 +9,7 @@ import { AppProviders } from "@/components/providers/AppProviders";
 import Index from "@/pages/Index";
 import NotFound from "@/pages/NotFound";
 import GrowthHomePage from "@/pages/GrowthHomePage";
-import { RoutePageLoader } from "@/components/PageLoader";
+import { RouteFallback } from "@/components/RouteFallback";
 
 const DashboardLayout = lazy(() => import("@/pages/DashboardLayout"));
 const DashboardOverview = lazy(() => import("@/pages/DashboardOverview"));
@@ -112,7 +112,9 @@ function LegacyPumpfunCallRedirect() {
 function DashboardLayoutRoute() {
   return (
     <DashboardLayout>
-      <Outlet />
+      <Suspense fallback={<RouteFallback />}>
+        <Outlet />
+      </Suspense>
     </DashboardLayout>
   );
 }
@@ -414,20 +416,56 @@ function AppRoutes() {
   );
 }
 
+function SuspenseOutlet() {
+  return (
+    <Suspense fallback={<RouteFallback />}>
+      <Outlet />
+    </Suspense>
+  );
+}
+
 const App = () => (
   <AppProviders>
     <BrowserRouter>
-      <Suspense fallback={<RoutePageLoader />}>
-        <Routes>
-          <Route path="/deck" element={<DeckPage />} />
-          <Route path="/info" element={<InfoPage />} />
-          <Route element={<PostStudioLayout />}>
+      <Routes>
+        <Route
+          path="/deck"
+          element={
+            <Suspense fallback={<RouteFallback />}>
+              <DeckPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/info"
+          element={
+            <Suspense fallback={<RouteFallback />}>
+              <InfoPage />
+            </Suspense>
+          }
+        />
+        <Route
+          element={
+            <Suspense fallback={<RouteFallback />}>
+              <PostStudioLayout />
+            </Suspense>
+          }
+        >
+          <Route element={<SuspenseOutlet />}>
             <Route path="/post" element={<PostPage />} />
             <Route path="/post/video/:updateNumber?" element={<PostVideoPage />} />
             <Route path="/post/photo/:updateNumber?" element={<PostPhotoPage />} />
           </Route>
+        </Route>
 
-          <Route element={<MarketingLayout />}>
+        <Route
+          element={
+            <Suspense fallback={<RouteFallback />}>
+              <MarketingLayout />
+            </Suspense>
+          }
+        >
+          <Route element={<SuspenseOutlet />}>
             <Route path="/brand" element={<MarketingBrand />} />
             <Route path="/identity" element={<MarketingIdentity />} />
             <Route path="/teams" element={<MarketingTeams />} />
@@ -436,18 +474,20 @@ const App = () => (
             <Route path="/analytics" element={<MarketingAnalytics />} />
             <Route path="/leaderboard" element={<MarketingLeaderboard />} />
           </Route>
+        </Route>
 
-          <Route
-            path="*"
-            element={
-              <AppShell>
-                <QwertiAgentIntegration />
+        <Route
+          path="*"
+          element={
+            <AppShell>
+              <QwertiAgentIntegration />
+              <Suspense fallback={<RouteFallback />}>
                 <AppRoutes />
-              </AppShell>
-            }
-          />
-        </Routes>
-      </Suspense>
+              </Suspense>
+            </AppShell>
+          }
+        />
+      </Routes>
     </BrowserRouter>
   </AppProviders>
 );

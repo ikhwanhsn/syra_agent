@@ -1,7 +1,7 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  AlertTriangle,
   Bitcoin,
+  Clock,
   Crosshair,
   Droplets,
   ExternalLink,
@@ -49,6 +49,75 @@ function fmtUsd(n: number | null | undefined) {
   if (n == null || !Number.isFinite(n)) return "—";
   const sign = n > 0 ? "+" : "";
   return `${sign}$${n.toFixed(2)}`;
+}
+
+/** Map API readiness codes → short, user-facing reasons (no snake_case dumps). */
+function humanizeReadinessBlocker(code: string): string | null {
+  const raw = code.trim();
+  if (!raw) return null;
+
+  let m = raw.match(/^insufficient_real_sample_(\d+)_need_(\d+)$/);
+  if (m) {
+    const have = Number(m[1]);
+    const need = Number(m[2]);
+    if (have <= 0) return `Needs ${need} real lab trades before deposits open`;
+    return `Lab progress: ${have} of ${need} real trades completed`;
+  }
+
+  m = raw.match(/^paper_sample_(\d+)_need_(\d+)$/);
+  if (m) {
+    return `Paper lab progress: ${m[1]} of ${m[2]} trades`;
+  }
+
+  m = raw.match(/^error_rate_([\d.]+)pct_above_([\d.]+)pct$/);
+  if (m) return "Lab error rate is still above the safety limit";
+
+  m = raw.match(/^solana_settlement_success_([\d.]+)pct_below_([\d.]+)pct$/);
+  if (m) return "On-chain settlement reliability needs to improve";
+
+  m = raw.match(/^drawdown_([\d.]+)pct_above_([\d.]+)pct$/);
+  if (m) return "Lab drawdown is above the safety limit";
+
+  switch (raw) {
+    case "realized_net_pnl_not_positive":
+      return "Waiting for a net-positive lab track record";
+    case "error_rate_kill_threshold":
+      return "Temporarily paused while reliability improves";
+    case "paper_expectancy_not_positive":
+      return "Paper lab still needs positive results";
+    case "paper_graduation_failed":
+      return "Paper lab has not graduated yet";
+    default:
+      // Skip opaque internal codes rather than dumping them to users
+      if (/^[a-z0-9_]+$/i.test(raw)) return null;
+      return raw;
+  }
+}
+
+function readinessReasons(blockers: string[] | undefined): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const code of blockers || []) {
+    const text = humanizeReadinessBlocker(code);
+    if (!text || seen.has(text)) continue;
+    seen.add(text);
+    out.push(text);
+  }
+  return out;
+}
+
+function humanizeAgentNote(lastError: string | null | undefined): string | null {
+  if (!lastError) return null;
+  if (lastError.startsWith("auto_pause:")) {
+    const reasons = readinessReasons(lastError.slice("auto_pause:".length).split(","));
+    if (reasons.length === 0) return "Deposits are paused until the lab clears safety checks.";
+    return reasons.join(" · ");
+  }
+  if (/^[a-z0-9_,:.-]+$/i.test(lastError) && lastError.includes("_")) {
+    const reasons = readinessReasons(lastError.split(","));
+    return reasons.length > 0 ? reasons.join(" · ") : null;
+  }
+  return lastError;
 }
 
 function productIcon(product: EarnYieldProduct) {
@@ -209,6 +278,8 @@ export function EarnYieldPanel({
               const stats = product.stats;
               const paused = product.readiness?.depositsPaused;
               const walletQ = product.walletQuery || (denom === "SOL" ? "lp" : "invest");
+              const pauseReasons = readinessReasons(product.readiness?.blockers);
+              const agentNote = humanizeAgentNote(status?.config?.lastError);
 
               return (
                 <div key={product.id} className={cn(overviewCardShell, "space-y-4 p-5")}>
@@ -263,13 +334,36 @@ export function EarnYieldPanel({
                   </div>
 
                   {paused && (
-                    <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-muted-foreground">
-                      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
-                      <span>
-                        Deposits gated:{" "}
-                        {(product.readiness?.blockers || []).join(", ") || "not ready"}. Lab track
-                        record must pass readiness before public enable.
-                      </span>
+                    <div className="rounded-lg border border-border/45 bg-muted/15 px-3.5 py-3">
+                      <div className="flex items-start gap-2.5">
+                        <Clock
+                          className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                          aria-hidden
+                        />
+                        <div className="min-w-0 space-y-1.5">
+                          <p className="text-sm font-medium text-foreground">
+                            {product.status === "coming_soon"
+                              ? "Not open for deposits yet"
+                              : "Deposits are paused for now"}
+                          </p>
+                          <p className="text-xs leading-relaxed text-muted-foreground">
+                            {product.status === "coming_soon"
+                              ? "This strategy is still proving itself in the lab. Funding unlocks after it clears the readiness checks below."
+                              : "New deposits are on hold until the strategy clears the safety checks below."}
+                          </p>
+                          {pauseReasons.length === 0 ? (
+                            <p className="text-xs text-muted-foreground">
+                              Waiting on lab graduation.
+                            </p>
+                          ) : (
+                            <ul className="list-disc space-y-0.5 pl-4 text-xs leading-relaxed text-muted-foreground">
+                              {pauseReasons.map((reason) => (
+                                <li key={reason}>{reason}</li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   )}
 
@@ -361,7 +455,7 @@ export function EarnYieldPanel({
                       {!board?.beta.allowed && (
                         <span className="text-xs text-muted-foreground">Not on beta allowlist.</span>
                       )}
-                      {product.status !== "beta" && (
+                      {product.status !== "beta" && !paused && (
                         <span className="text-xs text-muted-foreground">
                           Waiting for lab graduation.
                         </span>
@@ -369,11 +463,9 @@ export function EarnYieldPanel({
                     </div>
                   )}
 
-                  {status?.config?.lastError && (
-                    <p className="text-xs text-amber-600 dark:text-amber-400">
-                      Agent note: {status.config.lastError}
-                    </p>
-                  )}
+                  {agentNote && !paused ? (
+                    <p className="text-xs text-muted-foreground">Note: {agentNote}</p>
+                  ) : null}
                 </div>
               );
             })}

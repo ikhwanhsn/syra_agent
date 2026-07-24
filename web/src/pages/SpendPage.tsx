@@ -207,8 +207,7 @@ export default function SpendPage() {
 
   const hasActiveFilters = query.trim().length > 0 || category !== "All";
 
-  const initialLoading =
-    (toolsQ.isLoading && !toolsQ.data) || (kpiQ.isLoading && !kpiQ.data);
+  const initialLoading = toolsQ.isLoading && !toolsQ.data;
   const showSkeleton = useMinimumSkeleton(initialLoading);
   const showPreviewSkeleton = useMinimumSkeleton(previewMutation.isPending);
 

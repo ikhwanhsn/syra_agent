@@ -20,6 +20,8 @@ const buybackAccumulatorSchema = new mongoose.Schema(
     lastBuybackSignature: { type: String, default: null },
     lastBuybackOutAmount: { type: String, default: null },
     lastFlushError: { type: String, default: null },
+    /** Last time a manual / on-chain (non-x402) buyback was recorded. */
+    lastManualBuybackAt: { type: Date, default: null },
   },
   { collection: "buyback_accumulator", timestamps: true },
 );

@@ -493,7 +493,7 @@ export default function GrowthHomePage() {
             </Link>
           </motion.p>
 
-          <motion.div {...fadeUp(0.14)} className="mt-10">
+          <motion.div {...fadeUp(0.14)} className="mt-12 sm:mt-14">
             <GrowthTrustRankings />
           </motion.div>
 

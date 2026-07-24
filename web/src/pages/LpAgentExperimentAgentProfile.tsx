@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "@/lib/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ChevronLeft, ChevronRight, Info, Loader2, RefreshCw, Waves } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Info, RefreshCw, Waves } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -17,6 +17,7 @@ import {
   PAGE_PADDING_TOP_STANDARD,
   PAGE_SAFE_AREA_BOTTOM_COMPACT,
 } from "@/lib/layoutConstants";
+import { ProfileDetailSkeleton } from "@/components/RouteFallback";
 import { AgentBackgroundLiveIndicator } from "@/components/experiment/AgentBackgroundLiveIndicator";
 import { LpExperimentRiskAgreementDialog } from "@/components/experiment/LpExperimentRiskAgreementDialog";
 import {
@@ -200,12 +201,7 @@ export default function LpAgentExperimentAgentProfile({ embedded = false }: { em
         </div>
       ) : null}
 
-      {loading && !strategy ? (
-        <div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
-          <Loader2 className="h-5 w-5 animate-spin" />
-          Loading agent profile...
-        </div>
-      ) : null}
+      {loading && !strategy ? <ProfileDetailSkeleton /> : null}
 
       {strategy && stats ? (
         <>

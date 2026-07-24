@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Navigate, useParams } from "@/lib/navigation";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { useWalletContext } from "@/contexts/WalletContext";
 import {
   isAdminWallet,
@@ -26,6 +26,7 @@ import {
   priorityBadgeClass,
   priorityLabel,
 } from "@/components/internal/internalAgentUi";
+import { ProfileDetailSkeleton } from "@/components/RouteFallback";
 import { DASHBOARD_CONTENT_SHELL, PAGE_PADDING_TOP_MEDIUM } from "@/lib/layoutConstants";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -461,10 +462,7 @@ export default function InternalAgentDetailPage() {
         />
 
         {q.isLoading ? (
-          <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
-            <Loader2 className="h-5 w-5 animate-spin" />
-            Loading report…
-          </div>
+          <ProfileDetailSkeleton />
         ) : q.isError ? (
           <Alert variant="destructive">
             <AlertTitle>Could not load report</AlertTitle>

@@ -1,9 +1,11 @@
-import { Loader2, Share2 } from "lucide-react";
+import { Share2 } from "lucide-react";
 import { useParams } from "@/lib/navigation";
 import { OverviewPageBackdrop } from "@/components/dashboard/overview/OverviewPageBackdrop";
 import { PumpfunCallSharePreview } from "@/components/pumpfun/PumpfunCallSharePreview";
 import { PumpfunCallShareDesignPicker } from "@/components/pumpfun/PumpfunCallShareDesignPicker";
 import { PumpfunCallShareModal } from "@/components/pumpfun/PumpfunCallShareModal";
+import { PumpfunAnalysisSkeleton } from "@/components/pumpfun/PumpfunAnalysisSkeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   getStoredPumpfunShareDesign,
   setStoredPumpfunShareDesign,
@@ -32,9 +34,23 @@ export default function PumpfunCallPage() {
 
   if (callQ.isLoading) {
     return (
-      <div className="relative flex min-h-full items-center justify-center">
+      <div className="relative min-h-full">
         <OverviewPageBackdrop />
-        <Loader2 className="relative z-[1] h-8 w-8 animate-spin text-muted-foreground" />
+        <div
+          className={cn(
+            DASHBOARD_CONTENT_SHELL,
+            PAGE_PADDING_TOP_MEDIUM,
+            PAGE_SAFE_AREA_BOTTOM,
+            "relative z-[1] flex flex-col items-center gap-6 pb-14",
+          )}
+        >
+          <div className="flex w-full max-w-xl flex-col items-center gap-2 text-center">
+            <Skeleton className="h-7 w-56" />
+            <Skeleton className="h-4 w-40" />
+          </div>
+          <Skeleton className="h-10 w-full max-w-xl rounded-xl" />
+          <PumpfunAnalysisSkeleton className="w-full max-w-xl" />
+        </div>
       </div>
     );
   }

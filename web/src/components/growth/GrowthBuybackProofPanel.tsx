@@ -46,8 +46,8 @@ export function GrowthBuybackProofPanel({ className }: { className?: string }) {
             Revenue → $SYRA
           </h3>
           <p className={cn(growthProseClass, "mt-2 max-w-xl text-sm")}>
-            ~80% of settled x402 USDC revenue is batched into Jupiter buys. Tokens stay in treasury for
-            usage rewards — verify every flush on Solscan.
+            ~80% of settled x402 USDC goes to Jupiter buys. $SYRA acquired is the live treasury holding
+            (verify the wallet on Solscan). Tokens fund usage rewards — not burned.
           </p>
         </div>
         <Link
@@ -71,7 +71,7 @@ export function GrowthBuybackProofPanel({ className }: { className?: string }) {
 
       {buyback && (
         <>
-          <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
             <div>
               <p className={growthKickerClass}>Buyback spent</p>
               <p className={cn(growthStatValueClass, "mt-1 text-2xl")}>
@@ -79,15 +79,9 @@ export function GrowthBuybackProofPanel({ className }: { className?: string }) {
               </p>
             </div>
             <div>
-              <p className={growthKickerClass}>$SYRA acquired</p>
+              <p className={growthKickerClass}>$SYRA in treasury</p>
               <p className={cn(growthStatValueClass, "mt-1 text-2xl")}>
-                {formatSyra(buyback.totalSyraAcquired)}
-              </p>
-            </div>
-            <div>
-              <p className={growthKickerClass}>Treasury balance</p>
-              <p className={cn(growthStatValueClass, "mt-1 text-2xl")}>
-                {formatSyra(buyback.treasurySyraBalance)}
+                {formatSyra(buyback.totalSyraAcquired ?? buyback.treasurySyraBalance)}
               </p>
             </div>
             <div>
@@ -138,6 +132,9 @@ export function GrowthBuybackProofPanel({ className }: { className?: string }) {
                     <span className="text-muted-foreground">
                       {formatUsd(tx.buybackUsd)}
                       {tx.syraAcquired != null ? ` → ${formatSyra(tx.syraAcquired)} $SYRA` : ""}
+                      {tx.source && tx.source !== "x402_scheduler" ? (
+                        <span className="ml-1 text-xs text-muted-foreground/70">(manual)</span>
+                      ) : null}
                     </span>
                     {tx.solscanUrl ? (
                       <a

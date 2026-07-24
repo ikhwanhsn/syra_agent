@@ -154,9 +154,8 @@ export default function LpPoolsPage() {
 
   const totalTvl = useMemo(() => pools.reduce((sum, p) => sum + p.tvlUsd, 0), [pools]);
 
-  const isInitialLoad = poolsQ.isLoading;
-  const isRefreshing = poolsQ.isFetching && !poolsQ.isLoading;
-  const showSkeleton = useMinimumSkeleton(isInitialLoad || isRefreshing);
+  const isInitialLoad = poolsQ.isLoading && !poolsQ.data;
+  const showSkeleton = useMinimumSkeleton(isInitialLoad);
 
   return (
     <div className="relative flex min-h-screen flex-col">

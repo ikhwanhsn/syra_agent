@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation, useNavigate, useParams } from "@/lib/navigation";
 import { PlaygroundPageShell } from "@/components/playground/PlaygroundPageShell";
+import { PlaygroundCatalogSkeleton } from "@/components/playground/PlaygroundCatalogSkeleton";
 import { PlaygroundCustomTester } from "@/pages/playground/PlaygroundCustomTester";
 import { PlaygroundModals } from "@/components/playground/PlaygroundModals";
 import { usePlaygroundSession } from "@/contexts/PlaygroundSessionContext";
@@ -126,12 +127,12 @@ const Index = () => {
   if (shareSlug && shareLoadStatus === "loading") {
     return (
       <PlaygroundPageShell>
-        <div className="relative z-[1] flex flex-1 items-center justify-center">
-          <div className="flex flex-col items-center gap-3 text-muted-foreground">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            <p className="text-sm">Loading shared request…</p>
+        <div className={cn("relative z-[1] flex min-h-0 flex-1 flex-col", MAIN_CONTENT_PB_SAFE_CLASS)}>
+          <div className="px-4 py-8 sm:px-6">
+            <PlaygroundCatalogSkeleton count={4} />
           </div>
         </div>
+        <PlaygroundModals />
       </PlaygroundPageShell>
     );
   }

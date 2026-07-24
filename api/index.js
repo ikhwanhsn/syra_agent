@@ -845,7 +845,9 @@ app.use(
         p.startsWith("/internal/growth-scout/run") ||
         p.startsWith("/internal/syra-telegram/webhook") ||
         p.startsWith("/internal/partnership-scout/run") ||
-        p.startsWith("/internal/buyback/run")
+        p.startsWith("/internal/buyback/run") ||
+        p.startsWith("/internal/buyback/sync") ||
+        p.startsWith("/internal/buyback/record")
       );
     },
   }),
@@ -918,7 +920,9 @@ app.use(
       }
     }
     if (
-      p === "/internal/buyback/run" &&
+      (p === "/internal/buyback/run" ||
+        p === "/internal/buyback/sync" ||
+        p === "/internal/buyback/record") &&
       String(req.method || "").toUpperCase() === "POST"
     ) {
       const secret = (process.env.BUYBACK_CRON_SECRET || "").trim();

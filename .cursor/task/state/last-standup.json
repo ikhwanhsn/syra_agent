@@ -1,25 +1,29 @@
 {
-  "date": null,
-  "updatedAt": null,
+  "date": "2026-07-24",
+  "updatedAt": "2026-07-24T00:28:38.598Z",
   "source": "https://api.syraa.fun/api/metrics",
-  "note": "Placeholder — first successful daily-growth-standup run will overwrite with live snapshot.",
   "northStar": {
-    "paidCallsLast7d": null,
-    "uniquePayingWalletsLast7d": null
+    "paidCallsLast7d": 22065,
+    "uniquePayingWalletsLast7d": 43
   },
-  "last7d": { "calls": null, "usdSettled": null },
+  "last7d": {
+    "calls": 22065,
+    "usdSettled": 387.87
+  },
   "buyback": {
-    "totalBuybackUsdSpent": null,
-    "totalSyraAcquired": null,
-    "treasurySyraBalance": null,
-    "lastBuybackSignature": null
+    "totalBuybackUsdSpent": 0.26,
+    "totalSyraAcquired": 0,
+    "treasurySyraBalance": 165644.59225,
+    "lastBuybackSignature": "4gXLobVgMrfAeMU21JkWe88Zgwj7n9jXMWhEED3VzeJqkg9t4jwnjYM8zQjZCTKMGTEDpf5hrPuut3aPq3CtLcjC"
   },
   "rewards": {
-    "uniqueEarners": null,
-    "totalClaimableSyra": null,
-    "totalClaimedSyra": null
+    "uniqueEarners": 29,
+    "totalClaimableSyra": 0,
+    "totalClaimedSyra": 0
   },
-  "settlement": { "settleFailRate24h": null },
-  "oneAction": null,
-  "bottleneck": null
+  "settlement": {
+    "settleFailRate24h": 0.6212
+  },
+  "oneAction": "Verify production no longer routes x402 settle through Celo Labs facilitator; fund/disable until settleFailRate24h < 5%",
+  "bottleneck": "settlement"
 }

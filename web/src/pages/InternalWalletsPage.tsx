@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@/lib/navigation";
-import { ArrowLeft, Loader2, Search, Wallet } from "lucide-react";
+import { ArrowLeft, Search, Wallet } from "lucide-react";
 import { AdminDashboardGate } from "@/components/dashboard/AdminDashboardGate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
+import { InternalTableSkeleton } from "@/components/RouteFallback";
 import { useWalletContext } from "@/contexts/WalletContext";
 import { isAdminWallet } from "@/constants/adminWallet";
 import { fetchInternalAgentWallets } from "@/lib/internalAgentWalletsApi";
@@ -64,10 +65,7 @@ export default function InternalWalletsPage() {
         </div>
 
         {q.isLoading ? (
-          <div className="flex items-center justify-center py-16 text-muted-foreground">
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden />
-            Loading wallet sets…
-          </div>
+          <InternalTableSkeleton rows={5} />
         ) : q.isError ? (
           <div className={cn(overviewCardShell, "p-8 text-center text-sm text-destructive")}>
             {(q.error as Error).message}

@@ -1,47 +1,23 @@
 /**
  * Batch x402 revenue into a single SYRA buyback every 24h instead of per-transaction swaps.
+ * Also syncs manual Jupiter / on-chain treasury buys into the same proof ledger.
  */
 
-import { Keypair } from "@solana/web3.js";
-import bs58 from "bs58";
 import { isMongooseConnected } from "../config/mongoose.js";
 import {
   BUYBACK_ACCUMULATOR_ID,
   BUYBACK_SCHEDULER_CRON_MS,
 } from "../config/buybackSchedulerConfig.js";
 import BuybackAccumulator from "../models/BuybackAccumulator.js";
-import BuybackEvent from "../models/BuybackEvent.js";
 import { buybackSYRAFromRevenue } from "../utils/buybackSYRA.js";
+import {
+  outAmountToHuman,
+  recordBuybackEvent,
+  resolveTreasuryWallet,
+} from "./buybackRecord.js";
+import { syncOnchainBuybacks } from "./buybackOnchainSync.js";
 
 const isProduction = process.env.NODE_ENV === "production";
-/** Default SPL decimals for $SYRA. */
-const SYRA_DECIMALS = Number(process.env.SYRA_TOKEN_DECIMALS) || 6;
-
-function outAmountToHuman(outAmountRaw) {
-  const raw = String(outAmountRaw ?? "").trim();
-  if (!raw || !/^\d+$/.test(raw)) return null;
-  try {
-    const n = BigInt(raw);
-    const divisor = 10n ** BigInt(SYRA_DECIMALS);
-    const whole = n / divisor;
-    const frac = n % divisor;
-    const fracStr = frac.toString().padStart(SYRA_DECIMALS, "0").replace(/0+$/, "");
-    const human = fracStr ? Number(`${whole}.${fracStr}`) : Number(whole);
-    return Number.isFinite(human) ? human : null;
-  } catch {
-    return null;
-  }
-}
-
-function resolveTreasuryWallet() {
-  const raw = (process.env.AGENT_PRIVATE_KEY || "").trim();
-  if (!raw) return null;
-  try {
-    return Keypair.fromSecretKey(bs58.decode(raw)).publicKey.toBase58();
-  } catch {
-    return null;
-  }
-}
 
 /** @type {ReturnType<typeof setInterval> | null} */
 let cronHandle = null;
@@ -124,9 +100,27 @@ async function restorePendingRevenueUsd(amount, errorMessage) {
   );
 }
 
+async function syncManualBuysQuietly() {
+  try {
+    const sync = await syncOnchainBuybacks({ requireUsdcSpend: true });
+    if (sync.recorded > 0) {
+      console.log(
+        `[buyback-scheduler] on-chain sync recorded ${sync.recorded} manual buy(s)`,
+      );
+    }
+    return sync;
+  } catch (err) {
+    console.warn(
+      "[buyback-scheduler] on-chain sync failed:",
+      err?.message ?? err,
+    );
+    return { success: false, recorded: 0, error: err?.message ?? String(err) };
+  }
+}
+
 /**
- * Flush accumulated revenue into a single SYRA buyback swap.
- * @returns {Promise<{ success: boolean; skipped?: boolean; revenueUsd?: number; swapSignature?: string; outAmount?: string; error?: string }>}
+ * Flush accumulated revenue into a single SYRA buyback swap, then sync on-chain buys.
+ * @returns {Promise<{ success: boolean; skipped?: boolean; revenueUsd?: number; swapSignature?: string; outAmount?: string; error?: string; onchainSync?: object }>}
  */
 export async function runBuybackSchedulerTick() {
   if (!isProduction) {
@@ -143,7 +137,8 @@ export async function runBuybackSchedulerTick() {
   try {
     const revenueUsd = await claimPendingRevenueUsd();
     if (revenueUsd <= 0) {
-      return { success: true, skipped: true, revenueUsd: 0 };
+      const onchainSync = await syncManualBuysQuietly();
+      return { success: true, skipped: true, revenueUsd: 0, onchainSync };
     }
 
     try {
@@ -160,12 +155,8 @@ export async function runBuybackSchedulerTick() {
         {
           $inc: {
             totalFlushedUsd: revenueUsd,
-            totalBuybackUsdSpent: buybackUsd,
-            ...(outAmountHuman != null ? { totalSyraAcquired: outAmountHuman } : {}),
           },
           $set: {
-            lastBuybackSignature: result?.swapSignature ?? null,
-            lastBuybackOutAmount: result?.outAmount ?? null,
             lastFlushError: null,
           },
         },
@@ -173,24 +164,43 @@ export async function runBuybackSchedulerTick() {
       );
 
       if (result?.swapSignature) {
-        await BuybackEvent.create({
+        const recorded = await recordBuybackEvent({
           revenueUsd,
           buybackUsd,
           outAmountRaw: result?.outAmount ?? null,
           outAmountHuman,
           swapSignature: result.swapSignature,
           treasuryWallet,
-        }).catch((err) => {
-          console.warn(
-            "[buyback-scheduler] BuybackEvent create failed:",
-            err?.message ?? err,
-          );
+          source: "x402_scheduler",
         });
+        if (!recorded.recorded && !recorded.duplicate) {
+          console.warn(
+            "[buyback-scheduler] recordBuybackEvent failed:",
+            recorded.error,
+          );
+        }
+      } else {
+        // Swap returned without signature — still track USD spend on accumulator.
+        await BuybackAccumulator.findOneAndUpdate(
+          { _id: BUYBACK_ACCUMULATOR_ID },
+          {
+            $inc: {
+              totalBuybackUsdSpent: buybackUsd,
+              ...(outAmountHuman != null ? { totalSyraAcquired: outAmountHuman } : {}),
+            },
+            $set: {
+              lastBuybackOutAmount: result?.outAmount ?? null,
+            },
+          },
+          { upsert: true },
+        );
       }
 
       console.log(
         `[buyback-scheduler] flushed $${revenueUsd.toFixed(4)} revenue → SYRA buyback sig=${result?.swapSignature ?? "n/a"}`,
       );
+
+      const onchainSync = await syncManualBuysQuietly();
 
       return {
         success: true,
@@ -199,6 +209,7 @@ export async function runBuybackSchedulerTick() {
         swapSignature: result?.swapSignature,
         outAmount: result?.outAmount,
         outAmountHuman,
+        onchainSync,
       };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -207,7 +218,8 @@ export async function runBuybackSchedulerTick() {
         `[buyback-scheduler] buyback failed — restored $${revenueUsd.toFixed(4)} to queue:`,
         msg,
       );
-      return { success: false, revenueUsd, error: msg };
+      const onchainSync = await syncManualBuysQuietly();
+      return { success: false, revenueUsd, error: msg, onchainSync };
     }
   } finally {
     tickInFlight = false;
@@ -234,7 +246,7 @@ export function startBuybackScheduler() {
   }
 
   console.info(
-    `[buyback-scheduler] started (every ${Math.round(ms / 3_600_000)}h; revenue queued per x402 settle)`,
+    `[buyback-scheduler] started (every ${Math.round(ms / 3_600_000)}h; x402 queue + on-chain manual buy sync)`,
   );
 }
 

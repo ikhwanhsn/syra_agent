@@ -66,10 +66,11 @@ async function fetchTreasurySyraBalance(wallet) {
  */
 export async function buildPublicBuybackSnapshot() {
   const treasuryWallet = resolveTreasuryWallet();
+  const note =
+    "In production, ~80% of settled x402 revenue is batched into Jupiter USDC→$SYRA buys. $SYRA acquired is the live treasury wallet holding (manual + automated buys) — not a sum of scanned swap txs. Tokens fund usage rewards / airdrops — not burned.";
   const empty = {
     buybackShareOfRevenue: BUYBACK_SHARE,
-    note:
-      "In production, ~80% of settled x402 revenue is batched into Jupiter USDC→$SYRA buys. Tokens are held in treasury for usage rewards / airdrops — not burned.",
+    note,
     pendingRevenueUsd: 0,
     totalAccumulatedUsd: 0,
     totalFlushedUsd: 0,
@@ -85,6 +86,8 @@ export async function buildPublicBuybackSnapshot() {
 
   if (!isMongooseConnected()) {
     empty.treasurySyraBalance = await fetchTreasurySyraBalance(treasuryWallet);
+    // Source of truth for acquired = on-chain holding, not tx ledger.
+    empty.totalSyraAcquired = Number(empty.treasurySyraBalance) || 0;
     return empty;
   }
 
@@ -102,16 +105,20 @@ export async function buildPublicBuybackSnapshot() {
   const totalBuybackUsdSpent =
     doc?.totalBuybackUsdSpent ??
     (doc?.totalFlushedUsd != null ? Number(doc.totalFlushedUsd) * BUYBACK_SHARE : 0);
+  // Prefer live treasury holding over summed swap events (manual buys, transfers, etc.).
+  const totalSyraAcquired =
+    treasurySyraBalance != null && Number.isFinite(treasurySyraBalance)
+      ? treasurySyraBalance
+      : Number(doc?.totalSyraAcquired) || 0;
 
   return {
     buybackShareOfRevenue: BUYBACK_SHARE,
-    note:
-      "In production, ~80% of settled x402 revenue is batched into Jupiter USDC→$SYRA buys. Tokens are held in treasury for usage rewards / airdrops — not burned.",
+    note,
     pendingRevenueUsd: roundUsd(doc?.pendingRevenueUsd ?? 0),
     totalAccumulatedUsd: roundUsd(doc?.totalAccumulatedUsd ?? 0),
     totalFlushedUsd: roundUsd(doc?.totalFlushedUsd ?? 0),
     totalBuybackUsdSpent: roundUsd(totalBuybackUsdSpent),
-    totalSyraAcquired: Number(doc?.totalSyraAcquired) || 0,
+    totalSyraAcquired,
     treasuryWallet,
     treasurySyraBalance,
     lastFlushAt: doc?.lastFlushAt
@@ -127,6 +134,7 @@ export async function buildPublicBuybackSnapshot() {
       buybackUsd: roundUsd(e.buybackUsd),
       syraAcquired: e.outAmountHuman ?? null,
       swapSignature: e.swapSignature,
+      source: e.source || "x402_scheduler",
       solscanUrl: e.swapSignature
         ? `https://solscan.io/tx/${e.swapSignature}`
         : null,

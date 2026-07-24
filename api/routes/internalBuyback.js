@@ -1,11 +1,17 @@
 /**
- * Internal cron hook for batched SYRA buyback flush.
+ * Internal cron hooks for batched SYRA buyback flush + manual Jupiter tracking.
  *
- * POST /internal/buyback/run
+ * POST /internal/buyback/run   — flush x402 queue + sync on-chain buys
+ * POST /internal/buyback/sync  — scan treasury for manual Jupiter/DEX buys
+ * POST /internal/buyback/record — ingest one Solscan/Jupiter signature
  * Header: x-buyback-cron-secret (when BUYBACK_CRON_SECRET is set)
  */
 import { Router } from "express";
 import { runBuybackSchedulerTick } from "../libs/buybackScheduler.js";
+import {
+  ingestBuybackSignature,
+  syncOnchainBuybacks,
+} from "../libs/buybackOnchainSync.js";
 import BuybackAccumulator from "../models/BuybackAccumulator.js";
 import { BUYBACK_ACCUMULATOR_ID } from "../config/buybackSchedulerConfig.js";
 
@@ -26,6 +32,7 @@ export function createInternalBuybackRouter() {
           lastFlushAt: doc?.lastFlushAt ?? null,
           lastBuybackSignature: doc?.lastBuybackSignature ?? null,
           lastBuybackOutAmount: doc?.lastBuybackOutAmount ?? null,
+          lastManualBuybackAt: doc?.lastManualBuybackAt ?? null,
           lastFlushError: doc?.lastFlushError ?? null,
         },
       });
@@ -42,6 +49,43 @@ export function createInternalBuybackRouter() {
       const out = await runBuybackSchedulerTick();
       const status = out.success ? 200 : out.skipped ? 200 : 500;
       return res.status(status).json({ success: out.success, ...out });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  router.post("/buyback/sync", async (req, res) => {
+    try {
+      const limit = req.body?.limit;
+      const requireUsdcSpend = req.body?.requireUsdcSpend;
+      const out = await syncOnchainBuybacks({
+        ...(limit != null ? { limit: Number(limit) } : {}),
+        ...(requireUsdcSpend != null
+          ? { requireUsdcSpend: Boolean(requireUsdcSpend) }
+          : {}),
+      });
+      const status = out.success ? 200 : 500;
+      return res.status(status).json(out);
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  router.post("/buyback/record", async (req, res) => {
+    try {
+      const out = await ingestBuybackSignature({
+        swapSignature: req.body?.swapSignature || req.body?.signature,
+        buybackUsd: req.body?.buybackUsd,
+        outAmountHuman: req.body?.outAmountHuman ?? req.body?.syraAcquired,
+      });
+      const status = out.success ? 200 : 400;
+      return res.status(status).json(out);
     } catch (error) {
       return res.status(500).json({
         success: false,

@@ -289,6 +289,8 @@ const RATE_LIMIT_INFO = {
       '/internal/growth-scout/run',
       '/internal/partnership-scout/run',
       '/internal/buyback/run',
+      '/internal/buyback/sync',
+      '/internal/buyback/record',
     ],
   },
 };

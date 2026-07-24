@@ -12,6 +12,7 @@ import { GrowthFooter } from "@/components/growth/GrowthFooter";
 import { PlaygroundPageShell } from "@/components/playground/PlaygroundPageShell";
 import { PLAYGROUND_PAGE_CLASS } from "@/components/playground/playgroundStyles";
 import { overviewKickerClass } from "@/components/dashboard/overview/overviewStyles";
+import { RewardsStatsSkeleton } from "@/components/RouteFallback";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -208,10 +209,9 @@ export default function RewardsPage() {
           )}
 
           {wallet && isPending && (
-            <p className="mt-6 flex items-center gap-2 text-sm text-muted-foreground" role="status">
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-              Loading rewards…
-            </p>
+            <div className="mt-6" role="status" aria-label="Loading rewards">
+              <RewardsStatsSkeleton />
+            </div>
           )}
 
           {wallet && isError && (

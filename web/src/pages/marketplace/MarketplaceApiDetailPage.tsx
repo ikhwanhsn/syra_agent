@@ -1,11 +1,11 @@
 import { Link, useParams } from "@/lib/navigation";
-import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PlaygroundPageShell } from "@/components/playground/PlaygroundPageShell";
 import { MarketplaceApiDetailView } from "@/components/marketplace/MarketplaceApiDetailView";
 import { PlaygroundSessionProvider } from "@/contexts/PlaygroundSessionContext";
 import { useMarketplaceCatalogFlows } from "@/hooks/useMarketplaceCatalogFlows";
 import { MARKETPLACE_ROUTE } from "@/lib/marketplaceConstants";
+import { GenericPageSkeleton } from "@/components/RouteFallback";
 
 function MarketplaceApiDetailInner() {
   const { flowId } = useParams<{ flowId: string }>();
@@ -16,9 +16,8 @@ function MarketplaceApiDetailInner() {
   if (loading && !flow) {
     return (
       <PlaygroundPageShell>
-        <div className="relative z-[1] flex min-h-[40vh] flex-col items-center justify-center gap-3 text-muted-foreground">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden />
-          <p className="text-sm font-medium">Loading API details…</p>
+        <div className="relative z-[1]">
+          <GenericPageSkeleton />
         </div>
       </PlaygroundPageShell>
     );

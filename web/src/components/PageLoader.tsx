@@ -100,7 +100,7 @@ export function PageLoader({
   );
 }
 
-/** Suspense fallback for lazy route chunks — same orb/rings effect as boot loader. */
+/** @deprecated Prefer RouteFallback for Suspense — kept for any external imports. */
 export function RoutePageLoader() {
   return (
     <PageLoader

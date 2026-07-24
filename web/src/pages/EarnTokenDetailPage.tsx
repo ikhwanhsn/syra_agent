@@ -12,6 +12,7 @@ import {
 import { Link, useParams } from "react-router-dom";
 import { EarnTokenLogo } from "@/components/earn/EarnTokenLogo";
 import { TokensOhlcvChart } from "@/components/dossier/TokensOhlcvChart";
+import { EarnTokenDetailSkeleton } from "@/components/RouteFallback";
 import { Button } from "@/components/ui/button";
 import { useSyraAuth } from "@/contexts/SyraAuthContext";
 import { useAgentWallet } from "@/contexts/AgentWalletContext";
@@ -220,10 +221,7 @@ export default function EarnTokenDetailPage() {
             </Button>
           </div>
         ) : detailQ.isLoading ? (
-          <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-hidden />
-            <p className="text-sm text-muted-foreground">Loading…</p>
-          </div>
+          <EarnTokenDetailSkeleton />
         ) : detailQ.isError || !launch ? (
           <div className="flex flex-col items-center justify-center rounded-[1.35rem] border border-border/40 bg-card/30 px-6 py-20 text-center">
             <p className="font-display text-lg font-semibold tracking-tight">Token not found</p>

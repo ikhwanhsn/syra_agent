@@ -97,6 +97,7 @@ export interface PublicMetricsSnapshot {
       buybackUsd: number;
       syraAcquired: number | null;
       swapSignature: string;
+      source?: "x402_scheduler" | "manual_onchain" | "manual_ingest" | string;
       solscanUrl: string | null;
     }>;
   } | null;
