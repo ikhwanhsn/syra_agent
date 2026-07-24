@@ -4,9 +4,11 @@ import { cn } from "@/lib/utils";
 
 export function PumpfunAnalysisSkeleton({ className }: { className?: string }) {
   return (
-    <div className={cn("space-y-4 animate-in fade-in duration-300", className)}>
-      <Skeleton className="h-12 rounded-xl" />
-
+    <div
+      className={cn("space-y-4 animate-in fade-in duration-300", className)}
+      aria-busy="true"
+      aria-label="Loading analysis"
+    >
       <div className="flex gap-2 overflow-hidden">
         {Array.from({ length: 7 }).map((_, i) => (
           <Skeleton key={i} className="h-9 w-24 shrink-0 rounded-lg" />

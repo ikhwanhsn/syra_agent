@@ -1650,9 +1650,11 @@ import("./utils/x402ResourceServer.js")
     ({
       ensureX402ResourceServerInitialized,
       ensureX402DexterResourceServerInitialized,
+      ensureX402GoplausibleResourceServerInitialized,
     }) => {
       ensureX402ResourceServerInitialized().catch(() => {});
       ensureX402DexterResourceServerInitialized().catch(() => {});
+      ensureX402GoplausibleResourceServerInitialized().catch(() => {});
     },
   )
   .catch(() => {});
@@ -1665,6 +1667,18 @@ import("./utils/dexterSolanaFeePayerHealth.js")
   .catch((e) =>
     console.warn(
       "[dexter-health] background refresh start failed:",
+      e instanceof Error ? e.message : e,
+    ),
+  );
+
+// Pre-warm GoPlausible health (Labs Solana/Base failover after Dexter)
+import("./utils/goplausibleFacilitatorHealth.js")
+  .then(({ startGoplausibleHealthBackgroundRefresh }) => {
+    startGoplausibleHealthBackgroundRefresh();
+  })
+  .catch((e) =>
+    console.warn(
+      "[goplausible-health] background refresh start failed:",
       e instanceof Error ? e.message : e,
     ),
   );

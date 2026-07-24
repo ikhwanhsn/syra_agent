@@ -1,114 +1,102 @@
 import type { PostPhotoCardRole } from "../photoCardSlots";
 
 export const LST_LOOP_LAB_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `SHIP LOG · LST Loop lab is live.
+  cover: `This cover announces the Leveraged LST Loop lab running on paper before Earn.
 
-Paper leverage on mSOL / JitoSOL.
-Earn card: coming soon.
+It loops staked SOL through mSOL or JitoSOL positions with borrowed SOL layered on top, but only in simulation for now. An Earn card is coming soon, once the health rules prove out.
 
-→ syraa.fun/earn?track=yield`,
+syraa.fun/earn?track=yield`,
 
-  thesis: `Looping LST yield amplifies APY — and liquidations.
+  thesis: `This card names the tradeoff at the center of a leveraged LST loop.
 
-Paper first.
-Health-factor rules before your SOL.
+Looping amplifies staking yield, and it amplifies liquidation risk the same way. Leverage tiers and rate spikes get simulated on paper first, before any depositor's SOL touches the actual loop.
 
-→ syraa.fun/earn?track=yield`,
+syraa.fun/earn?track=yield`,
 
-  quote: `"Stake. Borrow. Restake. Guard."
+  quote: `The line on this card is the loop mechanics in order: stake, borrow, restake, guard.
 
-Leverage without a kill band is how accounts die.
-We simulate the band first.
+Leverage without a kill band is how accounts get liquidated. The health band gets simulated on paper before it ever runs against real deposits.
 
-→ syraa.fun/earn?track=yield`,
+syraa.fun/earn?track=yield`,
 
-  flow: `The loop:
+  flow: `This image walks the loop mechanics in four steps.
 
-1. Stake SOL → LST
-2. Borrow SOL (capped LTV)
-3. Restake to target leverage
-4. Deleverage on health / rate trips
+1. Stake SOL into mSOL or JitoSOL
+2. Borrow SOL against the LST under a capped LTV
+3. Restake the borrowed SOL to reach target leverage
+4. Deleverage automatically on a health or rate trip
 
-→ syraa.fun/earn?track=yield`,
+syraa.fun/earn?track=yield`,
 
-  timeline: `What you do now:
+  timeline: `This timeline shows what to do now versus once the lab graduates.
 
-→ Watch Earn → Yield
-→ Follow Leveraged LST Loop
-→ Fund invest wallet when beta opens
-→ Stay inside the SOL cap
+1. Open the Yield tab to see the LST Loop card
+2. Wait for the paper gate to clear
+3. Fund the invest wallet with SOL once beta opens
+4. Enable it and stay inside the deposit cap
 
-→ syraa.fun/wallet?wallet=invest`,
+syraa.fun/wallet?wallet=invest`,
 
-  pillars: `Guardrails:
+  pillars: `This bento layout shows the guardrails built in before any leverage runs live.
 
-→ Leverage tier caps
-→ Min health factor
-→ Borrow-rate kill
-→ ≥50 paper trades to graduate
+Leverage caps are tiered, so loops cannot run unbounded. A minimum health factor triggers auto-exit if it slips. A borrow-rate kill unwinds the loop if borrow APR spikes. A paper gate of 50 or more trades has to clear with positive expectancy first.
 
-→ syraa.fun/earn?track=yield`,
+syraa.fun/earn?track=yield`,
 
-  checklist: `Before you enable (when live):
+  checklist: `This checklist is what to read before enabling LST Loop, once it opens.
 
-→ Understand liquidation risk
-→ Only risk what you can lose
-→ Borrow can exceed staking yield
-→ Past paper ≠ future returns
+1. Understand that leverage can get you liquidated
+2. Only risk what you can afford to lose
+3. Borrow rates can exceed the staking yield they're funding
+4. Past paper performance is not a guarantee of future returns
 
-→ syraa.fun/earn?track=yield`,
+syraa.fun/earn?track=yield`,
 
-  metrics: `Status:
+  metrics: `The numbers on this card describe status, not a promise.
 
-~2x typical leverage in lab
-≥50 decided trades to graduate
-1–10 SOL planned beta cap
+The lab runs at roughly 2x typical leverage and needs 50 or more decided trades to graduate. The planned beta cap is 1 to 10 SOL per depositor.
 
-→ syraa.fun/earn?track=yield`,
+syraa.fun/earn?track=yield`,
 
-  featured: `The path:
+  featured: `This featured card lays out the path once LST Loop opens.
 
-Earn → Yield → LST Loop
-→ Wait for beta
-→ Fund invest wallet (SOL)
+Go to Earn, open the Yield tab, and find the LST Loop card, currently listed as coming soon. SOL deposits unlock only after the strategy graduates.
 
-→ syraa.fun/earn?track=yield`,
+syraa.fun/earn?track=yield`,
 
-  comparison: `Before: no leveraged LST product on Earn.
+  comparison: `This before-and-after card compares the state of Earn before and after this ship.
 
-Now: paper loop lab live + Earn card (coming soon).
+Before, there was no leveraged LST product on Earn at all. Now the paper loop lab is live and an Earn card is listed, marked coming soon until it graduates.
 
-→ syraa.fun/earn?track=yield`,
+syraa.fun/earn?track=yield`,
 
-  launch: `SHIP LOG · Leveraged LST Loop paper lab is live.
+  launch: `This launch card marks the LST Loop lab as live in paper form.
 
-Steady yield experiments — gated hard.
-No public deposits yet.
+It is looping on simulated positions right now. Earn deposits open only after graduation, not before.
 
-→ syraa.fun/earn?track=yield`,
+syraa.fun/earn?track=yield`,
 
-  deepDive: `Fee / risk, plain:
+  deepDive: `This deep-dive card is a plain statement of the risk involved.
 
-Leverage amplifies losses.
-Auto-deleverage on health slips.
-Rate spikes can force exits.
+Leverage amplifies losses the same way it amplifies yield. The strategy auto-deleverages when health slips, and rate spikes can still force an exit. It is not free yield.
 
-→ syraa.fun/earn?track=yield`,
+syraa.fun/earn?track=yield`,
 
-  split: `You watch.
-Loop accrues on paper.
-You deposit only after graduation.
+  split: `This split card explains the sequence depositors should expect.
 
-→ syraa.fun/earn?track=yield`,
+You watch the lab first. The loop accrues a track record on paper. You only deposit after it graduates, there is no early or FOMO enable option.
 
-  terminal: `Where it lives:
+syraa.fun/earn?track=yield`,
 
-/earn?track=yield → LST Loop card
-/wallet?wallet=invest → SOL (when beta)
-/lst-loop → admin lab`,
+  terminal: `This terminal card shows where the LST Loop lives today and later.
 
-  cta: `Follow the LST Loop lab.
-Deposit only after graduation.
+The Leveraged LST Loop card sits under syraa.fun/earn?track=yield. SOL deposits will go to syraa.fun/wallet?wallet=invest once beta opens. Right now the paper lab is accruing toward graduation into a capped real strategy.
 
-→ syraa.fun/earn?track=yield`,
+syraa.fun/earn?track=yield`,
+
+  cta: `This closing card is the ship summary: follow the LST Loop lab and deposit only after graduation.
+
+Open Earn, go to Yield, and watch for the cap to lift.
+
+syraa.fun/earn?track=yield`,
 };

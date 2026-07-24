@@ -2,113 +2,104 @@ import type { PostPhotoCardRole } from "../photoCardSlots";
 
 /** Per-card X copy: Stocks News Lab (update #22). Trader-friendly, plain language. */
 export const STOCKS_NEWS_EXPERIMENT_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `SHIP LOG · Stocks News Lab just shipped.
+  cover: `This cover image announces the Stocks News Lab shipping on Syra.
 
-15 AI agents paper-trade tokenized stocks on headlines. $1,000 virtual bank each. TSLAx, AAPLx, NVDAx, SPYx, SPCXx.
+Fifteen agents paper-trade tokenized stocks, TSLAx, AAPLx, NVDAx, SPYx, and SPCXx, using a $1,000 virtual bank each, priced through Jupiter, with no real money at risk.
 
-Jupiter prices. Live news. Zero real money at risk.
+syraa.fun/stocks`,
 
-Watch the leaderboard → syraa.fun/stocks`,
+  thesis: `This card names the problem traders face with news-driven moves.
 
-  thesis: `News moves stocks before most traders react.
+Headlines move stock prices before most traders can react. Syra runs 15 agents that score news and sentiment for TSLAx, AAPLx, NVDAx, SPYx, and SPCXx, then paper-trade the signal so you can see what would have worked before risking real capital.
 
-Syra's Stocks News Lab runs 15 agents that scan headlines and sentiment for tokenized stocks on Solana, then paper-trade so you see what would have worked.
+syraa.fun/stocks`,
 
-No capital at risk. Just proof.`,
+  quote: `The line on this card sums up the lab in one sentence: let the agents fight over headlines while you watch who wins.
 
-  quote: `"Let the agents fight over headlines. You watch who wins."
+Fifteen strategies each start with $1,000 paper capital, and daily evolution culls the losers so only working ideas survive.
 
-15 strategies. $1,000 paper each. Daily evolution culls losers and spawns smarter copies.
+syraa.fun/stocks`,
 
-Find the edge before you size a real trade.`,
+  flow: `This image walks the lab loop in four steps.
 
-  flow: `How Stocks News Lab works:
+1. Agents scan headlines and sentiment for each xStock symbol
+2. Rules pass, and a paper trade opens at the Jupiter price
+3. Take-profit, stop-loss, or a time limit closes the position
+4. The leaderboard updates and losers get culled at the daily evolution tick
 
-1. Agents scan headlines + sentiment per xStock
-2. Rules pass, paper trade opens at Jupiter price
-3. TP / SL / time limit closes the position
-4. Leaderboard updates. Losers culled daily.
+syraa.fun/stocks`,
 
-Paper only → syraa.fun/stocks`,
+  timeline: `This timeline shows what runs inside the lab every day.
 
-  timeline: `What runs in the lab every day:
+1. News feeds refresh and score TSLAx, AAPLx, NVDAx, SPYx, and SPCXx
+2. Fifteen agents compete on their own $1,000 paper bank
+3. Trades resolve and Jupiter marks the P&L on every close
+4. The worst strategies get removed and the best ones spawn mutated copies
 
-→ News feeds score TSLAx, AAPLx, NVDAx, SPYx, SPCXx
-→ 15 agents compete on $1,000 paper banks
-→ Best strategy climbs the leaderboard
-→ Worst performers removed, elite agents mutate offspring
+syraa.fun/stocks`,
 
-Gets smarter daily.`,
+  pillars: `This bento layout breaks down the four things the lab tracks.
 
-  pillars: `Four layers traders actually care about:
+Paper $1K keeps every agent's bank virtual, so no real swaps happen. News edge means headlines and sentiment signals drive entries. Jupiter marks means real on-chain prices decide the P&L. Evolution means only the strategies that stay profitable keep trading.
 
-→ Paper $1K: learn without wallet risk
-→ News signals: headlines + sentiment drive entries
-→ Jupiter prices: real on-chain marks for P&L
-→ Evolution: only profitable strategies survive`,
+syraa.fun/stocks`,
 
-  checklist: `Live now in Stocks News Lab:
+  checklist: `This checklist is what shipped with the Stocks News Lab.
 
-→ 15 news-driven strategies with unique entry rules
-→ xStocks universe on Solana (TSLAx, AAPLx, NVDAx, SPYx, SPCXx)
-→ Live leaderboard + equity curve for the top agent
-→ Daily evolution: cull losers, mutate winners
+1. 15 news-driven strategies, each with its own entry rules
+2. TSLAx, AAPLx, NVDAx, SPYx, and SPCXx make up the tradable universe
+3. A live leaderboard and equity curve track the top agent
+4. A live news panel shows the headline that triggered each trade
 
-Open the lab → syraa.fun/stocks`,
+syraa.fun/stocks`,
 
-  metrics: `$1,000 paper. 15 agents. Zero real risk.
+  metrics: `The numbers on this card describe the lab's setup.
 
-Tokenized stocks trade 24/7 on Solana. Syra scores the news, paper-trades the signal, and ranks who actually makes money.
+Each of the 15 agents starts with $1,000 in paper capital and zero real money is ever at risk. Tokenized stocks trade around the clock on Solana, so the news score and the paper trade can happen the moment a headline lands.
 
-Watch before you trade → syraa.fun/stocks`,
+syraa.fun/stocks`,
 
-  featured: `Spotlight: the $1,000 paper bank.
+  featured: `This featured card zooms in on the $1,000 paper bank every agent starts with.
 
-Every agent starts equal. No real swaps. No wallet risk. Just a live tournament on which news rules win on xStocks.
+No real swaps happen and no wallet is required to watch. It is a live tournament on which news-reading rules actually make money on xStocks, and the leaderboard tells you who is winning it.
 
-The leaderboard tells you who to copy when you're ready.`,
+syraa.fun/stocks`,
 
-  comparison: `Before: you read headlines and guess the trade.
+  comparison: `This before-and-after card compares reading headlines by hand to running a paper tournament.
 
-Now: 15 agents paper-trade the same news on xStocks. Jupiter marks entry and exit. Leaderboard shows who wins.
+Before, a trader reads a headline and guesses the trade with no record of which rules actually work. Now, 15 agents paper-trade that same news on xStocks, Jupiter marks every entry and exit, and the leaderboard shows who came out ahead.
 
-Stop guessing. Start watching proof.`,
+syraa.fun/stocks`,
 
-  launch: `SHIP LOG · Stocks News Lab is live.
+  launch: `This launch card marks the Stocks News Lab as live.
 
-15 AI agents. Tokenized stocks on Solana. Headlines in, paper trades out.
+Fifteen AI agents trade tokenized stocks on Solana, turning headlines into paper trades with a $1,000 virtual bank each. The best agent sits on top of the leaderboard while daily evolution culls the rest.
 
-$1,000 virtual bank each. Best agent on top. Losers culled daily.
+syraa.fun/stocks`,
 
-→ syraa.fun/stocks`,
+  deepDive: `This deep-dive card lists what powers each paper trade.
 
-  deepDive: `Under the hood, trader view:
+News and sentiment scoring runs per xStock symbol, Jupiter price v2 handles entry and mark-to-market, and every position closes on a take-profit, stop-loss, or max-hold rule. Evolution spawns smarter agents from whichever strategies won the day before.
 
-→ News + sentiment scoring per xStock symbol
-→ Jupiter price v2 for paper entry and mark-to-market
-→ Take-profit, stop-loss, max-hold exits
-→ Evolution spawns smarter agents from daily winners`,
+syraa.fun/stocks`,
 
-  split: `Paper first. Proof second. Real size later.
+  split: `This split card shows the order of operations: paper first, proof second, real size later.
 
-15 agents compete on news-driven rules. You watch P&L, win rate, and the equity curve without risking a dollar on-chain.
+Fifteen agents compete on their own news-driven rules while you watch P&L, win rate, and the equity curve without putting a dollar on-chain. Once a leader earns your trust, you know which style to follow with real capital.
 
-When a leader earns your trust, you know which style to follow.`,
+syraa.fun/stocks`,
 
-  terminal: `Stocks News Lab under the hood:
+  terminal: `This terminal card shows the lab's live status pulled straight from the stack.
 
-$ syra stocks lab --status
-> 15 agents active · cohort stocks-cohort-…
-> leader: Event Catalyst Hunter (+$84.20 paper)
-> scanning: TSLAx NVDAx AAPLx SPYx SPCXx
-> last signal: NVDAx bullish · earnings headline
-> open: 3 paper positions · $2,940 deployed virtual
+Fifteen agents are active in the current cohort, with Event Catalyst Hunter leading on paper P&L. The scan covers TSLAx, NVDAx, AAPLx, SPYx, and SPCXx, and the last signal was a bullish read on an NVDAx earnings headline.
 
-→ syraa.fun/stocks`,
+syraa.fun/stocks`,
 
-  cta: `See which news agent wins before you trade for real.
+  cta: `This closing card is the ship summary: watch which news agent wins before you ever trade for real.
 
-15 strategies. $1,000 paper each. xStocks on Jupiter. Daily evolution.
+Fifteen strategies, $1,000 paper each, priced on Jupiter, and evolving daily.
 
-Open the lab → syraa.fun/stocks`,
+syraa.fun/stocks
+syraa.fun/overview
+syraa.fun/swap`,
 };

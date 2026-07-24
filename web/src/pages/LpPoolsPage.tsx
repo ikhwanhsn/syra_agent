@@ -1,10 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowUpRight, Droplets, RefreshCw } from "lucide-react";
 import { OverviewPageBackdrop } from "@/components/dashboard/overview/OverviewPageBackdrop";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
+import { LpPoolsContentSkeleton } from "@/components/lp/LpPoolsContentSkeleton";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import {
   DASHBOARD_CONTENT_SHELL,
   PAGE_PADDING_TOP_MEDIUM,
@@ -21,44 +19,9 @@ import {
   type MeteoraLpPool,
 } from "@/lib/meteoraPoolsApi";
 import { cn } from "@/lib/utils";
-
-const POOLS_SKELETON_MIN_MS = 450;
-
-/** Keep skeleton visible for at least `minMs` so fast responses do not flash. */
-function useMinimumSkeleton(active: boolean, minMs = POOLS_SKELETON_MIN_MS): boolean {
-  const [visible, setVisible] = useState(active);
-  const loadStartedAt = useRef<number | null>(active ? Date.now() : null);
-
-  useEffect(() => {
-    if (active) {
-      loadStartedAt.current = Date.now();
-      setVisible(true);
-      return;
-    }
-
-    const started = loadStartedAt.current;
-    if (started == null) {
-      setVisible(false);
-      return;
-    }
-
-    const remaining = minMs - (Date.now() - started);
-    if (remaining <= 0) {
-      loadStartedAt.current = null;
-      setVisible(false);
-      return;
-    }
-
-    const timer = window.setTimeout(() => {
-      loadStartedAt.current = null;
-      setVisible(false);
-    }, remaining);
-
-    return () => window.clearTimeout(timer);
-  }, [active, minMs]);
-
-  return visible;
-}
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowUpRight, Droplets, RefreshCw } from "lucide-react";
 
 function SyraPoolCard({ pool }: { pool: MeteoraLpPool }) {
   const apr = feeAprFromDailyRatio(pool.feeTvlRatio);
@@ -90,47 +53,6 @@ function SyraPoolCard({ pool }: { pool: MeteoraLpPool }) {
         </Button>
       </div>
     </article>
-  );
-}
-
-function StatsSkeleton() {
-  return (
-    <div className="grid grid-cols-3 gap-3">
-      {Array.from({ length: 3 }).map((_, i) => (
-        <Skeleton key={i} className="h-[4.5rem] w-full rounded-2xl" />
-      ))}
-    </div>
-  );
-}
-
-function PoolCardSkeleton() {
-  return (
-    <div className={cn(overviewCardShell, "flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between")}>
-      <div className="min-w-0 space-y-2">
-        <Skeleton className="h-6 w-28" />
-        <Skeleton className="h-4 w-44 max-w-full" />
-      </div>
-      <div className="flex shrink-0 items-center gap-4">
-        <div className="space-y-1.5 text-right">
-          <Skeleton className="ml-auto h-3 w-12" />
-          <Skeleton className="ml-auto h-6 w-16" />
-        </div>
-        <Skeleton className="h-10 w-[8.5rem] rounded-xl" />
-      </div>
-    </div>
-  );
-}
-
-function PoolsContentSkeleton({ poolCount = 3 }: { poolCount?: number }) {
-  return (
-    <div className="animate-in fade-in duration-300 space-y-8">
-      <StatsSkeleton />
-      <div className="space-y-3">
-        {Array.from({ length: poolCount }).map((_, i) => (
-          <PoolCardSkeleton key={i} />
-        ))}
-      </div>
-    </div>
   );
 }
 
@@ -196,7 +118,7 @@ export default function LpPoolsPage() {
           </header>
 
           {showSkeleton ? (
-            <PoolsContentSkeleton poolCount={Math.max(pools.length, 3)} />
+            <LpPoolsContentSkeleton poolCount={Math.max(pools.length, 3)} />
           ) : poolsQ.isError ? (
             <div className={cn(overviewCardShell, "animate-in fade-in duration-300 p-6 text-center")}>
               <p className="text-sm font-medium text-destructive">Could not load SYRA pools.</p>

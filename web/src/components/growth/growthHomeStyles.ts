@@ -2,27 +2,29 @@ import { cn } from "@/lib/utils";
 
 export const growthRootClass = "relative min-h-full w-full overflow-x-hidden bg-background";
 
-export const growthShellClass = "relative mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8";
+/** Shared with GrowthFooter — keep home content and footer on the same edge. */
+export const growthShellClass =
+  "relative mx-auto w-full max-w-[1680px] px-4 sm:px-6 lg:px-8";
 
 export const growthKickerClass =
-  "font-mono text-[10px] font-medium uppercase tracking-[0.28em] text-muted-foreground/65";
+  "font-mono text-[10px] font-medium uppercase tracking-[0.28em] text-muted-foreground/70";
 
 export const growthSectionTitleClass =
-  "font-display text-[1.65rem] font-semibold tracking-[-0.04em] text-foreground sm:text-[2rem] lg:text-[2.25rem]";
+  "font-display text-[1.75rem] font-semibold tracking-[-0.045em] text-foreground sm:text-[2.15rem] lg:text-[2.5rem]";
 
 export const growthProseClass =
   "text-[15px] leading-[1.7] text-muted-foreground sm:text-[16px] sm:leading-[1.75]";
 
 export const growthPanelClass = cn(
-  "relative overflow-hidden rounded-[1.35rem] border border-border/45",
-  "bg-gradient-to-br from-card/[0.97] via-card/88 to-muted/[0.04]",
-  "shadow-[0_1px_0_0_hsl(var(--border)/0.35),0_28px_64px_-40px_rgba(0,0,0,0.55)]",
+  "relative overflow-hidden rounded-2xl border border-border/40",
+  "bg-gradient-to-br from-card/[0.98] via-card/90 to-muted/[0.03]",
+  "shadow-[0_1px_0_0_hsl(var(--border)/0.3),0_32px_72px_-44px_rgba(0,0,0,0.55)]",
   "backdrop-blur-xl",
 );
 
 export const growthPanelQuietClass = cn(
-  "relative overflow-hidden rounded-[1.25rem] border border-border/35",
-  "bg-gradient-to-b from-card/70 via-card/40 to-transparent",
+  "relative overflow-hidden rounded-2xl border border-border/30",
+  "bg-gradient-to-b from-card/65 via-card/35 to-transparent",
 );
 
 export const growthStatValueClass =

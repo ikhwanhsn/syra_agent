@@ -2,119 +2,106 @@ import type { PostPhotoCardRole } from "../photoCardSlots";
 
 /** Per-card X copy for AIP integration photo deck - 15 distinct topics. */
 export const AIP_INTEGRATION_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `SHIP LOG · Syra × Agent Internet Protocol is live.
+  cover: `This cover announces that Syra now speaks the Agent Internet Protocol.
 
-Agent Card discovery, A2A JSON-RPC tasks, and did:aip identity on Solana. x402 commerce unchanged.
+The badge lists the three standards involved: AIP-01, AIP-02, and AIP-04. Agent Card discovery and A2A tasks sit alongside did:aip identity, while x402 commerce keeps running exactly as it did before.
 
-Agent Card → api.syraa.fun/.well-known/agent.json`,
+api.syraa.fun/.well-known/agent.json`,
 
-  thesis: `The agentic web still lacks a standard handshake.
+  thesis: `This card names the gap AIP fills: agents need a standard handshake, not a one-off integration each time.
 
-Syra already runs x402, 8004, SAID, and Ampersend. AIP adds discovery, task lifecycle, and did:aip identity. Four open standards. One Syra gateway.
+Syra already runs x402, 8004, SAID, and Ampersend. AIP adds an open protocol layer on top: discovery, task lifecycle, and did:aip identity for autonomous agents on Solana.
 
-Same brain. Standard protocol.`,
+api.syraa.fun/.well-known/agent.json`,
 
-  quote: `"Discover with Agent Card. Task via A2A. Pay with x402. Verify with did:aip."
+  quote: `The line on this card is the four-step handshake AIP defines: discover, task, pay, verify.
 
-Syra implements three AIP standards natively. Commerce rail was already live.
+Agent Card handles discovery, A2A's JSON-RPC handles tasks, x402 handles settlement, and did:aip handles identity. Four standards, all routed through the same Syra gateway.
 
-Try → api.syraa.fun/.well-known/agent.json`,
+api.syraa.fun/aip/status`,
 
-  flow: `How Syra × AIP works:
+  flow: `This image walks the AIP flow in four steps.
 
-1. GET /.well-known/agent.json for capabilities + pricing
-2. POST /a2a for task/create + task/status (JSON-RPC 2.0)
-3. GET /aip/verify/:did for on-chain counterparty check
-4. npm run register-aip for AgentRecord on Solana
+1. Fetch the Agent Card at GET /.well-known/agent.json for capabilities and pricing
+2. Create a task with POST /a2a, paying through x402 as part of the request
+3. Verify a counterparty on-chain with GET /aip/verify/:did
+4. Register the agent itself as an AgentRecord on Solana with npm run register-aip
 
-Discover → task → pay → settle.`,
+api.syraa.fun/.well-known/agent.json`,
 
-  timeline: `What shipped in one integration pass:
+  timeline: `This timeline covers the full AIP stack, shipped in one pass.
 
-→ AIP-01 Agent Card from x402 catalog
-→ AIP-02 POST /a2a JSON-RPC server
-→ AIP-04 did:aip resolver + /aip routes
-→ aip-discover · aip-resolve · aip-delegate tools
-→ Brain delegation to AIP specialists`,
+1. Agent Card generated as AIP-01 JSON straight from the existing x402 catalog
+2. A2A server built as a JSON-RPC 2.0 endpoint at POST /a2a
+3. did:aip adapter added, using the aipagents did-resolver package plus new /aip routes
+4. Buy-side tools added for discovery, resolving identities, and delegating tasks through Brain
 
-  pillars: `Four AIP standards. Syra wires three:
+api.syraa.fun/aip/status`,
 
-→ AIP-01 Agent Card: /.well-known/agent.json
-→ AIP-02 A2A: POST /a2a task lifecycle
-→ AIP-03 x402: already live (multi-chain)
-→ AIP-04 did:aip: on-chain identity + verify`,
+  pillars: `This bento layout maps the four AIP standards and which ones Syra wires in.
 
-  checklist: `AIP is live on Syra today:
+AIP-01, the Agent Card, is served at /.well-known/agent.json. AIP-02, A2A, runs as a JSON-RPC task lifecycle at POST /a2a. AIP-03 is x402 payment, which was already live as Syra's multi-chain rail. AIP-04 is did:aip, giving Syra on-chain identity with a W3C DID Document.
 
-→ GET /.well-known/agent.json (7 A2A capabilities)
-→ POST /a2a: task/create + task/status
-→ GET /aip/status · /aip/resolve · /aip/verify
-→ aip-discover · aip-resolve · aip-delegate tools
-→ npm run register-aip for on-chain registry
+api.syraa.fun/.well-known/agent.json`,
 
-Agent Card → api.syraa.fun/.well-known/agent.json`,
+  checklist: `This checklist is what AIP brought to Syra.
 
-  metrics: `AIP by the numbers:
+1. GET /.well-known/agent.json exposes 7 A2A capabilities
+2. POST /a2a handles task/create and task/status
+3. GET /aip/status, /aip/resolve, and /aip/verify are all live
+4. aip-discover, aip-resolve, and aip-delegate tools are available to agents
+5. npm run register-aip writes the on-chain registry entry
 
-→ 7 A2A capabilities (signal, brain, news, …)
-→ 4 AIP standards (3 newly wired)
-→ 26+ x402 resources in Agent Card
-→ 402 commerce unchanged
+api.syraa.fun/aip/status`,
 
-Interoperable agents. Same Syra stack.`,
+  metrics: `The numbers on this card describe how much of AIP is actually wired in.
 
-  featured: `One catalog. Two protocols.
+Syra exposes 7 A2A capabilities across 4 AIP standards, and x402 commerce underneath all of it stays unchanged. The Agent Card is generated from more than 26 x402 resources, the A2A server reuses Syra's existing tool executor, and did:aip verification happens before payment.
 
-Syra generates its AIP Agent Card from the existing x402 catalog. One source of truth for discovery, pricing, and capabilities.
+api.syraa.fun/aip/status`,
 
-Fetch → api.syraa.fun/.well-known/agent.json`,
+  featured: `This featured card makes the point that discovery is not duplicated work.
 
-  comparison: `Before AIP:
-Custom tool calls only. No standard agent handshake.
+Syra's Agent Card and its x402 discovery both read from the same catalog of more than 26 resources, so capabilities and pricing only have to be defined once.
 
-With AIP on Syra:
-Agent Card + A2A JSON-RPC + did:aip verify + x402 payment.
+api.syraa.fun/.well-known/agent.json`,
 
-Same intelligence. Standard agent protocol.`,
+  comparison: `This before-and-after card compares custom tool calls with a standard handshake.
 
-  launch: `SHIP LOG · Syra × Agent Internet Protocol.
+Before, agents could only reach Syra through POST /agent/tools/call, with no standard agent-to-agent protocol. Now Syra offers an Agent Card, an A2A JSON-RPC interface, and did:aip verification, all backed by the same brain.
 
-Agent Card · A2A tasks · did:aip identity.
+api.syraa.fun/.well-known/agent.json`,
 
-Discover → task → pay → settle on Solana.
+  launch: `This partnership card marks Syra and the Agent Internet Protocol as live together.
 
-Agent Card → api.syraa.fun/.well-known/agent.json`,
+Agent Card discovery, A2A tasks, and did:aip identity are open standards for the agentic web, and Syra now implements all three.
 
-  deepDive: `AIP integration under the hood:
+api.syraa.fun/.well-known/agent.json
+aipagents.xyz`,
 
-→ api/libs/aipAgentCard.js: Agent Card builder
-→ api/routes/a2a/index.js: JSON-RPC 2.0 server
-→ api/libs/aipDidClient.js: @aipagents/did-resolver
-→ api/libs/aipClient.js: discover, resolve, delegate
-→ scripts/register-aip-agent.js: on-chain registry`,
+  deepDive: `This deep-dive card lists where AIP lives in Syra's codebase.
 
-  split: `Agent stack on Syra:
+api/libs/aipAgentCard.js builds the Agent Card from the x402 catalog. api/routes/a2a/index.js runs the JSON-RPC 2.0 server. api/libs/aipDidClient.js wraps the did:aip resolver. api/libs/aipClient.js handles discover, resolve, and delegate calls, and scripts/register-aip-agent.js writes the on-chain registry entry.
 
-→ x402: pay-per-call commerce (AIP-03 ✓)
-→ 8004 + SAID: agent identity registries
-→ AIP: Agent Card + A2A + did:aip handshake
-→ Brain: auto-delegate to AIP specialists
+api.syraa.fun/.well-known/agent.json`,
 
-Commerce + identity + interoperability.`,
+  split: `This split card places AIP inside Syra's broader agent stack.
 
-  terminal: `Try Syra's AIP surface:
+x402 handles multi-chain USDC commerce. 8004 and SAID cover agent identity registries. AIP adds discovery, tasks, and did:aip identity on top. Brain, Syra's orchestrator, can delegate work out to AIP specialists.
 
-$ curl api.syraa.fun/.well-known/agent.json
-{ "did": "did:aip:…:syra", "capabilities": […] }
+docs.syraa.fun`,
 
-$ curl -X POST api.syraa.fun/a2a \\
-  -d '{"jsonrpc":"2.0","method":"task/status",…}'`,
+  terminal: `This terminal card shows two real calls against Syra's AIP surface.
 
-  cta: `Syra speaks AIP.
+Fetching /.well-known/agent.json returns a did:aip identifier, the A2A endpoint, and a list of capabilities. Checking /aip/status confirms the agent is registered with its did:aip identifier attached.
 
-Fetch the Agent Card. Resolve a did:aip. Submit an A2A task.
+api.syraa.fun/aip/status`,
 
-→ api.syraa.fun/.well-known/agent.json
-→ aipagents.xyz
-→ docs.syraa.fun`,
+  cta: `This closing card is the summary: Syra speaks AIP.
+
+Fetch the Agent Card, resolve a did:aip identifier, or submit an A2A task straight from the playground.
+
+api.syraa.fun/.well-known/agent.json
+aipagents.xyz
+api.syraa.fun/aip/status`,
 };

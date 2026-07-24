@@ -15,6 +15,7 @@ import { useState } from "react";
 import { EarnTokenForm } from "@/components/earn/EarnTokenForm";
 import { EarnTokenLogo } from "@/components/earn/EarnTokenLogo";
 import { playgroundStaggerStyle, playgroundTabPanelEnter } from "@/components/playground/playgroundMotion";
+import { EarnCardGridSkeleton } from "@/components/earn/EarnSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
@@ -459,15 +460,7 @@ export function EarnTokenPanel({
       ) : null}
 
       {showSkeleton ? (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-[19.5rem] animate-pulse rounded-[1.35rem] border border-border/30 bg-muted/15"
-              style={playgroundStaggerStyle(i)}
-            />
-          ))}
-        </div>
+        <EarnCardGridSkeleton count={6} heightClass="h-[19.5rem]" />
       ) : marketQ.isError ? (
         <div className="flex flex-col items-center justify-center rounded-[1.35rem] border border-border/40 bg-card/30 px-6 py-20 text-center">
           <p className="font-display text-lg font-semibold tracking-tight">Couldn’t load launches</p>

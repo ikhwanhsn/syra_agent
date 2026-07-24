@@ -20,6 +20,11 @@ import {
   getEnabledDexterNetworks,
 } from "../config/dexterX402Networks.js";
 import {
+  getGoplausibleEvmUsdcAsset,
+  getEnabledGoplausibleNetworks,
+  getGoplausibleFacilitatorUrl,
+} from "../config/goplausibleX402Networks.js";
+import {
   getPayaiEvmUsdcAsset,
   getEnabledPayaiNetworks,
 } from "../config/payaiX402Networks.js";
@@ -126,15 +131,16 @@ const corbitsFacilitatorUrl =
  */
 const dexterFacilitatorUrl = env("DEXTER_FACILITATOR_URL") || "https://x402.dexter.cash";
 
-/** @typedef {'payai'|'corbits'|'dexter'} X402NetworkProfile */
+/** @typedef {'payai'|'corbits'|'dexter'|'goplausible'} X402NetworkProfile */
 
 /**
  * @param {X402NetworkProfile} profile
- * @returns {import('../config/payaiX402Networks.js').PayaiX402Network[] | import('../config/corbitsX402Networks.js').CorbitsX402Network[] | import('../config/dexterX402Networks.js').DexterX402Network[]}
+ * @returns {import('../config/payaiX402Networks.js').PayaiX402Network[] | import('../config/corbitsX402Networks.js').CorbitsX402Network[] | import('../config/dexterX402Networks.js').DexterX402Network[] | import('../config/goplausibleX402Networks.js').GoplausibleX402Network[]}
  */
 function getEnabledNetworksForProfile(profile) {
   if (profile === "corbits") return getEnabledCorbitsNetworks();
   if (profile === "dexter") return getEnabledDexterNetworks();
+  if (profile === "goplausible") return getEnabledGoplausibleNetworks();
   return getEnabledPayaiNetworks();
 }
 
@@ -146,6 +152,7 @@ function getEnabledNetworksForProfile(profile) {
 function getEvmUsdcForProfile(profile, caip2) {
   if (profile === "corbits") return getCorbitsEvmUsdcAsset(caip2);
   if (profile === "dexter") return getDexterEvmUsdcAsset(caip2);
+  if (profile === "goplausible") return getGoplausibleEvmUsdcAsset(caip2);
   return getPayaiEvmUsdcAsset(caip2);
 }
 
@@ -219,6 +226,9 @@ let initPromiseCorbits = null;
 let resourceServerDexterInstance = null;
 let initPromiseDexter = null;
 
+let resourceServerGoplausibleInstance = null;
+let initPromiseGoplausible = null;
+
 /**
  * Get the x402 resource server singleton (PayAI example–style).
  * Uses facilitator + ExactSvmScheme (Solana) and optionally ExactEvmScheme (Base).
@@ -286,6 +296,26 @@ export function getX402ResourceServerDexter() {
 }
 
 /**
+ * GoPlausible-backed resource server for Solana + Base (no PayAI auth).
+ * Used by Labs `/insights/*` when Dexter is unhealthy. Same payTo as PayAI/Dexter.
+ * Algorand AVM still uses x402AvmResourceServer — this profile is SVM/EVM only.
+ * @see https://facilitator.goplausible.xyz/supported
+ */
+export function getX402ResourceServerGoplausible() {
+  if (resourceServerGoplausibleInstance) {
+    return resourceServerGoplausibleInstance;
+  }
+  const url = getGoplausibleFacilitatorUrl();
+  const clients = [new HTTPFacilitatorClient({ url })];
+  const server = new x402ResourceServer(clients);
+  resourceServerGoplausibleInstance = buildResourceServerBundle(server, {
+    multiNetwork: true,
+    networkProfile: "goplausible",
+  });
+  return resourceServerGoplausibleInstance;
+}
+
+/**
  * Ensure the resource server has been initialized (fetch supported kinds from facilitator).
  * Call once before first use (e.g. in first requirePayment).
  */
@@ -311,6 +341,11 @@ export {
   getEnabledDexterNetworks,
   getDexterPayToAddresses,
 } from "../config/dexterX402Networks.js";
+export {
+  GOPLAUSIBLE_X402_NETWORKS,
+  getEnabledGoplausibleNetworks,
+  getGoplausiblePayToAddresses,
+} from "../config/goplausibleX402Networks.js";
 export {
   PAYAI_X402_NETWORKS,
   getEnabledPayaiNetworks,
@@ -338,4 +373,16 @@ export async function ensureX402DexterResourceServerInitialized() {
     });
   }
   await initPromiseDexter;
+}
+
+/** Initialize GoPlausible-backed resource server (Labs Solana/Base failover). */
+export async function ensureX402GoplausibleResourceServerInitialized() {
+  const { resourceServer } = getX402ResourceServerGoplausible();
+  if (!initPromiseGoplausible) {
+    initPromiseGoplausible = resourceServer.initialize().catch((e) => {
+      initPromiseGoplausible = null;
+      throw e;
+    });
+  }
+  await initPromiseGoplausible;
 }

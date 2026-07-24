@@ -21,6 +21,7 @@ async function parseJson<T>(res: Response): Promise<T> {
 }
 
 export type EarnDenom = "SOL" | "USDC";
+export type EarnRiskLevel = "lower" | "moderate" | "higher" | "extreme";
 
 export type EarnYieldProductStats = {
   productId?: string;
@@ -60,6 +61,10 @@ export type EarnYieldProduct = {
   declaredStatus?: string;
   chain: string;
   description: string;
+  summary?: string | null;
+  howItWorks?: string[];
+  rails?: string[];
+  riskLevel?: EarnRiskLevel | null;
   denom: EarnDenom;
   walletPurpose?: string;
   walletQuery?: string;

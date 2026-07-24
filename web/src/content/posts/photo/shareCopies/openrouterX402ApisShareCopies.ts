@@ -2,122 +2,105 @@ import type { PostPhotoCardRole } from "../photoCardSlots";
 
 /** Per-card X copy for OpenRouter x402 APIs photo deck. 15 distinct topics. */
 export const OPENROUTER_X402_APIS_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `SHIP LOG � Syra just shipped OpenRouter x402 APIs.
+  cover: `This cover announces that Syra now sells chat, image, and video generation the same way it sells crypto data.
 
-Pay-per-call chat, image, and video for agents. No OpenRouter account. No API keys. Just x402 USDC.
+The badge marks the three new categories: chat, image, and video. Every call is pay-per-call for agents, using a curated model list, dynamic pricing, and no OpenRouter account required from the caller.
 
-3 generative endpoints. Curated agentic models. Dynamic pricing.
+syraa.fun/playground`,
 
-? syraa.fun/playground`,
+  thesis: `This card names why OpenRouter sits on the same rails as Syra's other APIs: agents already pay per call for news, signals, and brain synthesis, so reasoning and generation belong in the same flow.
 
-  thesis: `Agents should not juggle OpenRouter keys, Stripe, and crypto APIs separately.
+The same 402 checkout now covers LLM chat, image generation, and video generation. There is no separate OpenRouter account to set up and no extra API key to manage.
 
-Syra now sells LLM reasoning, image generation, and video generation on the same x402 rails as /brain, /news, and /signal.
+syraa.fun/playground`,
 
-One treasury. One checkout. Full agent runtime.`,
+  quote: `The line on this card is the pitch in short form: crypto intelligence and generative AI, one Syra checkout.
 
-  quote: `"Pay per token, per image, per second. On the chain you already use."
+Fifteen agentic chat models, plus top image and video models, priced from live upstream rates with a margin added. Pay on whichever chain your treasury already uses.
 
-15 agentic chat models. Top image and video models. Live OpenRouter rates ?- margin.
+syraa.fun/playground`,
 
-Crypto intelligence + generative AI. One Syra brain.`,
+  flow: `This image walks a generative call through Syra's x402 flow in four steps.
 
-  flow: `OpenRouter x402 on Syra:
+1. Send a request: chat messages, an image prompt, or a video prompt
+2. Get a 402 with a price built from live OpenRouter rates plus margin
+3. Sign a USDC payment on Solana, Base, or any other enabled network
+4. Receive the payload: JSON for chat, images for image requests, or a job id for video
 
-1. Agent sends chat, image, or video request
-2. Syra returns 402 with dynamic price from live rates
-3. Wallet signs USDC on Solana, Base, or EVM
-4. Payload delivered: JSON, images, or video job id
+syraa.fun/playground`,
 
-Same flow as every Syra paid API.`,
+  timeline: `This timeline covers the three APIs that shipped under one payment surface.
 
-  timeline: `What shipped:
+1. /chat/completions launched with 15 agentic models, tool calling, and structured output
+2. /images/generations launched on the Unified Image API with synchronous delivery
+3. /videos/generations launched as an async submit with a free status poll
+4. GET /models added on each route, listing the allowlist and live rates
 
-? POST /chat/completions: 15 agentic models, OpenAI-compatible
-? POST /images/generations: Unified Image API, sync
-? POST /videos/generations: async submit + free status poll
-? GET /models on each: allowlist + live rates
+api.syraa.fun/chat/completions/models`,
 
-Dedicated upstream billing. Profitable per call.`,
+  pillars: `This bento layout breaks down the models curated for each category.
 
-  pillars: `Three generative APIs:
+Chat covers 15 models, including Claude, GPT-5, Gemini, Kimi, DeepSeek, and Qwen3. Image covers 10 models, including Flux, Seedream, GPT Image, Recraft, and Gemini. Video covers 6 models, including Veo 3.1, Seedance, Wan, and Sora 2 Pro. Pricing is dynamic, built from live rates plus margin, so each call stays profitable.
 
-? Chat: Claude, GPT-5, Gemini, Kimi, DeepSeek, Qwen3
-? Image: Flux, Seedream, GPT Image, Recraft, Gemini
-? Video: Veo 3.1, Seedance, Wan, Sora 2 Pro
+api.syraa.fun/chat/completions/models`,
 
-Curated for agents. Not a raw OpenRouter dump.`,
+  checklist: `This checklist is why the OpenRouter APIs fit Syra's model.
 
-  checklist: `Live today:
+1. One x402 checkout now covers intelligence and generative AI together
+2. Dynamic pricing keeps the unit economics sustainable
+3. Agent callers never need an API key
+4. Defaults are tuned for agents: tool calling, a temperature of 0.2, and seed support
+5. All three routes are listed in the x402 bazaar and discovery catalog
 
-? Dynamic pricing: upstream rates ?- 40% margin
-? Agent defaults: tools, response_format, temp 0.2
-? Free /models discovery on each endpoint
-? x402 bazaar + /.well-known/x402 listing
-? Separate upstream key for unit economics
+syraa.fun/playground`,
 
-Test ? syraa.fun/playground`,
+  metrics: `The numbers on this card describe the full agent runtime.
 
-  metrics: `3 generative APIs. 15 chat models. 1 checkout.
+3 generative APIs sit alongside 15 chat models, and 402 is the pay-per-call mechanism for all of them. An agent can research crypto, reason with an LLM, generate images, and produce video, all settled in USDC on Syra.
 
-Syra agents can reason, generate images, and submit video jobs without leaving the x402 payment surface.
+syraa.fun/playground`,
 
-Machine payments meet generative AI.`,
+  featured: `This featured card is about what Syra has become: a runtime, not just a data feed.
 
-  featured: `402. Pay per call for chat, image, and video.
+402 stays the HTTP-native checkout for everything, from crypto data and brain synthesis to the new OpenRouter chat, image, and video routes. One treasury, one payment flow, across all of it.
 
-No subscriptions. No API key management for callers. Syra handles OpenRouter upstream.
+syraa.fun/playground`,
 
-The agent runtime Syra was built to be.`,
+  comparison: `This before-and-after card compares a fragmented setup with a single checkout.
 
-  comparison: `Before: agents needed OpenRouter keys + Syra keys + separate billing.
+Before, an agent needed OpenRouter keys, separate billing, and Syra's crypto APIs somewhere else entirely, stitching all of it together itself. Now one x402 surface on api.syraa.fun covers intelligence, chat, image, and video, priced dynamically.
 
-Now: one x402 flow for crypto data and generative AI. Dynamic pricing keeps Syra sustainable.
+api.syraa.fun/chat/completions/models`,
 
-Same brain. Fuller stack. Better economics.`,
+  launch: `This partnership card marks Syra and OpenRouter as live together.
 
-  launch: `SHIP LOG � OpenRouter x402 APIs are live.
+Chat, image, and video generation are now pay-per-call, built specifically for agents rather than a raw OpenRouter passthrough.
 
-Chat completions. Image generation. Video generation.
+syraa.fun/playground`,
 
-Pay per call on Syra. Curated agentic models. Dynamic pricing.
+  deepDive: `This deep-dive card lists the technical surface behind the OpenRouter integration.
 
-Try now ? syraa.fun/playground`,
+getPriceUsd builds a dynamic quote for each request before payment. A dedicated OPENROUTER_API_KEY_x402 keeps upstream billing isolated. Image requests pass through to OpenRouter's /api/v1/images. Video requests submit asynchronously and poll GET /videos/generations/:id. All three routes are listed in x402ResourceCatalog for discovery.
 
-  deepDive: `Technical surface:
+docs.syraa.fun`,
 
-? /chat/completions: OpenAI-compatible, getPriceUsd per request
-? /images/generations: POST /api/v1/images passthrough
-? /videos/generations: job submit + GET /:id poll
-? OPENROUTER_API_KEY_x402: isolated upstream billing
-? Listed in x402ResourceCatalog + discovery`,
+  split: `This split card explains why the defaults are tuned specifically for agents, not general chat users.
 
-  split: `One stack. Generative + intelligence.
+Chat requests default to tool calling, tool_choice, and structured response formats. Image requests expose resolution, aspect ratio, count, and seed. Video requests expose duration, resolution, and frame images. GET /models is free on every route, so an agent can check pricing before spending anything.
 
-CHAT
-15 agentic models. Tools. Structured output.
+api.syraa.fun/chat/completions/models`,
 
-IMAGE
-Sync delivery. resolution, aspect_ratio, n.
+  terminal: `This terminal card shows a real chat completion call end to end.
 
-VIDEO
-Async jobs. Poll until ready.
+Checking /chat/completions/models lists the 15 agentic models with live rates. Posting a chat request returns 402 with a dynamic price. Paying and retrying returns 200 with the completion and usage data.
 
-? api.syraa.fun/chat/completions/models`,
+api.syraa.fun/chat/completions/models`,
 
-  terminal: `OpenRouter x402 from the terminal:
+  cta: `This closing card is the summary: reason, generate, and pay per call.
 
-$ curl -X POST api.syraa.fun/chat/completions \\
-  -d '{"messages":[{"role":"user","content":"Summarize BTC"}]}'
-< HTTP/402 Payment Required � $0.004
-$ syra-x402 pay && retry
-< HTTP/200 OK � chat.completion + usage`,
+Open the playground or call api.syraa.fun directly from any x402 agent.
 
-  cta: `Reason. Generate. Pay per call.
-
-? Playground: syraa.fun/playground
-? Chat models: api.syraa.fun/chat/completions/models
-? Docs: docs.syraa.fun
-
-Crypto intelligence + generative AI on x402.`,
+syraa.fun/playground
+api.syraa.fun/chat/completions/models
+docs.syraa.fun`,
 };

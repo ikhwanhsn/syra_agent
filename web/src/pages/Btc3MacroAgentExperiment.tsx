@@ -40,7 +40,7 @@ export default function Btc3MacroAgentExperiment() {
         )}
       >
         {loading && !state ? (
-          <BtcAgentExperimentPageSkeleton accent="blue" panelCount={8} />
+          <BtcAgentExperimentPageSkeleton accent="blue" panelCount={12} />
         ) : error && !state ? (
           <div className={cn(overviewCardShell, "space-y-4 rounded-2xl p-8 text-center")}>
             <p className="text-sm text-red-500">{error}</p>

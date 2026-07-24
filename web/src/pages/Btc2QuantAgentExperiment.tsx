@@ -48,7 +48,7 @@ export default function Btc2QuantAgentExperiment() {
         )}
       >
         {loading && !state ? (
-          <BtcAgentExperimentPageSkeleton accent="amber" panelCount={6} />
+          <BtcAgentExperimentPageSkeleton accent="amber" panelCount={12} />
         ) : error && !state ? (
           <div className={cn(overviewCardShell, "space-y-4 rounded-2xl p-8 text-center")}>
             <p className="text-sm text-red-500">{error}</p>

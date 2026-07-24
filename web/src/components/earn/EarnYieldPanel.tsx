@@ -1,19 +1,9 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  Bitcoin,
-  Clock,
-  Crosshair,
-  Droplets,
-  ExternalLink,
-  Pause,
-  Play,
-  RefreshCw,
-  Shield,
-  Layers,
-} from "lucide-react";
+import { Clock, ExternalLink, Pause, Play } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useMemo, useState } from "react";
 import { EarnPanelHeader } from "@/components/earn/EarnPanelHeader";
+import { EarnYieldPanelSkeleton } from "@/components/earn/EarnSkeleton";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,9 +12,15 @@ import {
   fetchEarnYieldBoard,
   fetchEarnYieldStatus,
   type EarnDenom,
-  type EarnYieldProduct,
   type EarnYieldUserStatus,
 } from "@/lib/earnYieldApi";
+import {
+  earnProductIcon,
+  fmtEarnAmount,
+  fmtEarnUsd,
+  humanizeAgentNote,
+  readinessReasons,
+} from "@/lib/earnYieldUi";
 import { notify } from "@/lib/notify";
 import { cn } from "@/lib/utils";
 
@@ -37,97 +33,6 @@ type EarnYieldPanelProps = {
   onSignIn: () => void;
   onRequestAuth: () => Promise<boolean>;
 };
-
-function fmtAmount(n: number | null | undefined, denom: EarnDenom = "SOL") {
-  if (n == null || !Number.isFinite(n)) return "—";
-  const sign = n > 0 ? "+" : "";
-  if (denom === "USDC") return `${sign}$${n.toFixed(2)}`;
-  return `${sign}${n.toFixed(3)} ${denom}`;
-}
-
-function fmtUsd(n: number | null | undefined) {
-  if (n == null || !Number.isFinite(n)) return "—";
-  const sign = n > 0 ? "+" : "";
-  return `${sign}$${n.toFixed(2)}`;
-}
-
-/** Map API readiness codes → short, user-facing reasons (no snake_case dumps). */
-function humanizeReadinessBlocker(code: string): string | null {
-  const raw = code.trim();
-  if (!raw) return null;
-
-  let m = raw.match(/^insufficient_real_sample_(\d+)_need_(\d+)$/);
-  if (m) {
-    const have = Number(m[1]);
-    const need = Number(m[2]);
-    if (have <= 0) return `Needs ${need} real lab trades before deposits open`;
-    return `Lab progress: ${have} of ${need} real trades completed`;
-  }
-
-  m = raw.match(/^paper_sample_(\d+)_need_(\d+)$/);
-  if (m) {
-    return `Paper lab progress: ${m[1]} of ${m[2]} trades`;
-  }
-
-  m = raw.match(/^error_rate_([\d.]+)pct_above_([\d.]+)pct$/);
-  if (m) return "Lab error rate is still above the safety limit";
-
-  m = raw.match(/^solana_settlement_success_([\d.]+)pct_below_([\d.]+)pct$/);
-  if (m) return "On-chain settlement reliability needs to improve";
-
-  m = raw.match(/^drawdown_([\d.]+)pct_above_([\d.]+)pct$/);
-  if (m) return "Lab drawdown is above the safety limit";
-
-  switch (raw) {
-    case "realized_net_pnl_not_positive":
-      return "Waiting for a net-positive lab track record";
-    case "error_rate_kill_threshold":
-      return "Temporarily paused while reliability improves";
-    case "paper_expectancy_not_positive":
-      return "Paper lab still needs positive results";
-    case "paper_graduation_failed":
-      return "Paper lab has not graduated yet";
-    default:
-      // Skip opaque internal codes rather than dumping them to users
-      if (/^[a-z0-9_]+$/i.test(raw)) return null;
-      return raw;
-  }
-}
-
-function readinessReasons(blockers: string[] | undefined): string[] {
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const code of blockers || []) {
-    const text = humanizeReadinessBlocker(code);
-    if (!text || seen.has(text)) continue;
-    seen.add(text);
-    out.push(text);
-  }
-  return out;
-}
-
-function humanizeAgentNote(lastError: string | null | undefined): string | null {
-  if (!lastError) return null;
-  if (lastError.startsWith("auto_pause:")) {
-    const reasons = readinessReasons(lastError.slice("auto_pause:".length).split(","));
-    if (reasons.length === 0) return "Deposits are paused until the lab clears safety checks.";
-    return reasons.join(" · ");
-  }
-  if (/^[a-z0-9_,:.-]+$/i.test(lastError) && lastError.includes("_")) {
-    const reasons = readinessReasons(lastError.split(","));
-    return reasons.length > 0 ? reasons.join(" · ") : null;
-  }
-  return lastError;
-}
-
-function productIcon(product: EarnYieldProduct) {
-  if (product.id === "lp_meteora_dlmm") return Droplets;
-  if (product.id === "cbbtc_onchain_signal") return Bitcoin;
-  if (product.id === "momentum_rotator") return RefreshCw;
-  if (product.id === "lst_loop") return Layers;
-  if (product.id === "alpha_sniper") return Crosshair;
-  return Shield;
-}
 
 export function EarnYieldPanel({
   anonymousId,
@@ -223,7 +128,7 @@ export function EarnYieldPanel({
       </p>
 
       {boardQ.isLoading ? (
-        <div className={cn(overviewCardShell, "h-40 animate-pulse bg-muted/20")} />
+        <EarnYieldPanelSkeleton includeHeader={false} />
       ) : boardQ.isError ? (
         <div className={cn(overviewCardShell, "p-4 text-sm text-destructive")}>
           Failed to load yield board.
@@ -240,11 +145,11 @@ export function EarnYieldPanel({
             />
             <StatCard
               label="LP realized PnL"
-              value={fmtAmount(
+              value={fmtEarnAmount(
                 flagshipStats?.netPnl ?? flagshipStats?.realizedNetPnlSol,
                 "SOL",
               )}
-              hint={fmtUsd(flagshipStats?.netPnlUsd ?? flagshipStats?.realizedNetPnlUsd)}
+              hint={fmtEarnUsd(flagshipStats?.netPnlUsd ?? flagshipStats?.realizedNetPnlUsd)}
               positive={(flagshipStats?.netPnl ?? flagshipStats?.realizedNetPnlSol ?? 0) > 0}
             />
             <StatCard
@@ -269,7 +174,7 @@ export function EarnYieldPanel({
 
           <div className="space-y-4">
             {products.map((product) => {
-              const Icon = productIcon(product);
+              const Icon = earnProductIcon(product);
               const status = statusByProduct.get(product.id);
               const denom = (product.denom || "SOL") as EarnDenom;
               const minDep = product.minDeposit ?? 1;
@@ -280,6 +185,7 @@ export function EarnYieldPanel({
               const walletQ = product.walletQuery || (denom === "SOL" ? "lp" : "invest");
               const pauseReasons = readinessReasons(product.readiness?.blockers);
               const agentNote = humanizeAgentNote(status?.config?.lastError);
+              const detailTo = `/earn/yield/${encodeURIComponent(product.id)}`;
 
               return (
                 <div key={product.id} className={cn(overviewCardShell, "space-y-4 p-5")}>
@@ -289,7 +195,14 @@ export function EarnYieldPanel({
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-sm font-semibold text-foreground">{product.label}</h3>
+                        <h3 className="text-sm font-semibold text-foreground">
+                          <Link
+                            to={detailTo}
+                            className="transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                          >
+                            {product.label}
+                          </Link>
+                        </h3>
                         <span className="rounded-full border border-border/60 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                           {product.status.replace("_", " ")}
                         </span>
@@ -302,6 +215,12 @@ export function EarnYieldPanel({
                         Cap {minDep}–{maxDep} {denom} · Fee {product.performanceFeePct ?? 10}% of
                         net-positive PnL
                       </p>
+                      <Link
+                        to={detailTo}
+                        className="mt-2 inline-flex text-xs font-medium text-primary transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      >
+                        How it works
+                      </Link>
                     </div>
                     <Button variant="ghost" size="sm" asChild className="shrink-0">
                       <Link to={`/wallet?wallet=${walletQ}`}>
@@ -324,7 +243,7 @@ export function EarnYieldPanel({
                     />
                     <MiniStat
                       label="Net PnL"
-                      value={fmtAmount(stats?.netPnl ?? stats?.netPnlUsd, denom)}
+                      value={fmtEarnAmount(stats?.netPnl ?? stats?.netPnlUsd, denom)}
                       positive={(stats?.netPnl ?? stats?.netPnlUsd ?? 0) > 0}
                     />
                     <MiniStat
@@ -383,7 +302,7 @@ export function EarnYieldPanel({
                       {status.summary && (
                         <span className="text-xs text-muted-foreground">
                           Your PnL{" "}
-                          {fmtAmount(
+                          {fmtEarnAmount(
                             status.summary.netPnl ??
                               status.summary.realizedNetPnlSol ??
                               status.summary.netPnlUsd,

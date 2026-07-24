@@ -14,6 +14,7 @@ import { EarnTokenLogo } from "@/components/earn/EarnTokenLogo";
 import { TokensOhlcvChart } from "@/components/dossier/TokensOhlcvChart";
 import { EarnTokenDetailSkeleton } from "@/components/RouteFallback";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useSyraAuth } from "@/contexts/SyraAuthContext";
 import { useAgentWallet } from "@/contexts/AgentWalletContext";
 import { useDelayedMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
@@ -372,7 +373,7 @@ export default function EarnTokenDetailPage() {
               </div>
 
               {showChartSkeleton ? (
-                <div className="h-[280px] w-full animate-pulse rounded-[1.25rem] border border-border/30 bg-muted/15 sm:h-[340px]" />
+                <Skeleton className="h-[280px] w-full rounded-[1.25rem] sm:h-[340px]" />
               ) : chartQ.isError && !chartQ.data ? (
                 <div className="flex h-[280px] flex-col items-center justify-center gap-3 rounded-[1.25rem] border border-dashed border-border/40 bg-muted/10 px-4 text-center sm:h-[340px]">
                   <p className="text-sm text-muted-foreground">

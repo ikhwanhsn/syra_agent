@@ -19,19 +19,15 @@ function EarnSummarySkeleton() {
 
 function EarnTabListSkeleton() {
   return (
-    <div className="grid h-auto w-full max-w-xl grid-cols-2 gap-1 rounded-lg bg-muted p-1 sm:grid-cols-4">
+    <div
+      className={cn(
+        "grid h-auto w-full max-w-2xl grid-cols-4 gap-1 rounded-full border border-border/40 bg-muted/15 p-1",
+      )}
+      aria-hidden
+    >
       {Array.from({ length: 4 }).map((_, i) => (
-        <Skeleton key={i} className="h-9 rounded-md" />
+        <Skeleton key={i} className="h-10 rounded-full" />
       ))}
-    </div>
-  );
-}
-
-function EarnPanelHeaderSkeleton() {
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <Skeleton className="h-5 w-36" />
-      <Skeleton className="h-9 w-20 rounded-md" />
     </div>
   );
 }
@@ -77,23 +73,95 @@ export function EarnStatsGridSkeleton({ cols = 2 }: { cols?: 2 | 3 }) {
   );
 }
 
-function EarnPanelContentSkeleton({ rows = 3 }: { rows?: number }) {
+/** Yield-shaped default panel (matches EarnYieldPanel: header + 4 stats + product cards). */
+export function EarnYieldPanelSkeleton({
+  count = 2,
+  includeHeader = true,
+}: {
+  count?: number;
+  includeHeader?: boolean;
+}) {
   return (
-    <div className="space-y-4" aria-busy="true" aria-label="Loading earn panel">
-      <EarnPanelHeaderSkeleton />
-      <Skeleton className="h-4 w-full max-w-lg" />
-      <EarnPanelListSkeleton rows={rows} />
+    <div className="space-y-6" aria-busy="true" aria-label="Loading yield">
+      {includeHeader ? (
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Skeleton className="h-5 w-40" />
+            <Skeleton className="h-9 w-28 rounded-md" />
+          </div>
+          <Skeleton className="h-4 w-full max-w-2xl" />
+        </>
+      ) : null}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className={cn(overviewCardShell, "space-y-2 p-4")}>
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-6 w-16" />
+            <Skeleton className="h-3 w-24" />
+          </div>
+        ))}
+      </div>
+      <div className="space-y-4">
+        {Array.from({ length: count }).map((_, i) => (
+          <div key={i} className={cn(overviewCardShell, "space-y-4 p-4 sm:p-5")}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1 space-y-2">
+                <Skeleton className="h-5 w-40 max-w-full" />
+                <Skeleton className="h-4 w-full max-w-md" />
+                <Skeleton className="h-3 w-48" />
+              </div>
+              <Skeleton className="h-8 w-16 shrink-0 rounded-md" />
+            </div>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, j) => (
+                <div key={j} className="space-y-1.5 rounded-lg border border-border/40 p-3">
+                  <Skeleton className="h-3 w-14" />
+                  <Skeleton className="h-5 w-16" />
+                </div>
+              ))}
+            </div>
+            <Skeleton className="h-10 w-full rounded-full sm:w-36" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function EarnCardGridSkeleton({
+  count = 6,
+  heightClass = "h-[14rem]",
+}: {
+  count?: number;
+  heightClass?: string;
+}) {
+  return (
+    <div
+      className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+      aria-busy="true"
+      aria-label="Loading cards"
+    >
+      {Array.from({ length: count }).map((_, i) => (
+        <Skeleton
+          key={i}
+          className={cn(heightClass, "w-full rounded-[1.35rem]")}
+        />
+      ))}
     </div>
   );
 }
 
 export function EarnPageSkeleton() {
   return (
-    <div className="space-y-6 animate-in fade-in duration-300" aria-busy="true" aria-label="Loading earn page">
+    <div
+      className="space-y-6 animate-in fade-in duration-300"
+      aria-busy="true"
+      aria-label="Loading earn page"
+    >
       <EarnSummarySkeleton />
-      <div className="space-y-6">
+      <div className="space-y-8">
         <EarnTabListSkeleton />
-        <EarnPanelContentSkeleton rows={4} />
+        <EarnYieldPanelSkeleton />
       </div>
     </div>
   );

@@ -38,11 +38,11 @@ export function GrowthTokenSection() {
 
   return (
     <section id="token" className="scroll-mt-24" aria-labelledby="token-heading">
-      <div className="mb-8 max-w-xl">
+      <div className="mb-10 max-w-2xl sm:mb-12">
         <p
           className={cn(
             growthKickerClass,
-            "mb-2 inline-flex items-center gap-2.5 before:h-px before:w-5 before:bg-foreground/20",
+            "mb-3 inline-flex items-center gap-2.5 before:h-px before:w-6 before:bg-foreground/25",
           )}
         >
           $SYRA
@@ -50,13 +50,13 @@ export function GrowthTokenSection() {
         <h2 id="token-heading" className={growthSectionTitleClass}>
           The machine-money token
         </h2>
-        <p className={cn(growthProseClass, "mt-3")}>
+        <p className={cn(growthProseClass, "mt-3 max-w-xl")}>
           Utility for the layer agents settle on. Product growth is paid calls; ~80% of settled revenue
           buys $SYRA — verify it below.
         </p>
       </div>
 
-      <div className={cn(growthPanelClass, "p-6 sm:p-8")}>
+      <div className={cn(growthPanelClass, "p-6 sm:p-8 lg:p-10")}>
         <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between lg:gap-10">
           <div className="min-w-0 flex-1">
             <p className={growthKickerClass}>Contract</p>

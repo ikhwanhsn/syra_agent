@@ -1,7 +1,9 @@
 /**
  * x402 paid /insights/* routes — professional on-chain data endpoints for x402 Labs.
  * Payments route to the lab payTo wallet when configured (buyback skipped via payToOverride).
- * Dexter routes settle via Dexter facilitator (Solana + Base multi-network); PayAI routes stay on PayAI.
+ * Dexter routes settle via Dexter facilitator (Solana + Base multi-network);
+ * when Dexter is unhealthy, Labs falls back to GoPlausible then PayAI.
+ * PayAI-only routes stay on PayAI.
  * Listed in GET /.well-known/x402 for x402scan discovery.
  */
 import express from 'express';
@@ -47,14 +49,11 @@ import {
 } from '../../libs/labs/insightsDataService.js';
 import { payaiEndpointDailyLimitMiddleware, recordPayaiEndpointDailyCall } from '../../libs/labs/labPayaiEndpointDailyLimit.js';
 import { findLabX402Endpoint } from '../../libs/labs/labX402Endpoints.js';
-import { isDexterHealthyForLabChain } from '../../utils/dexterSolanaFeePayerHealth.js';
+import { resolveLabsFacilitatorProfile } from '../../utils/labsFacilitatorFailover.js';
 import { resolveLabsPayToOverride } from '../../libs/labs/labsPayToOverride.js';
 import { inferLabPayerChain } from '../../libs/labs/inferLabPayerChain.js';
 
 const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
-
-/** Sticky log so we don't spam when Dexter stays dry / unreachable. */
-let loggedDexterPayaiFallback = false;
 
 async function labsPayToOverride(req) {
   const addresses = await getActiveLabPayToAddresses();
@@ -210,46 +209,14 @@ async function handleInsightRoute(req, res, endpointPath, catalogSegment, fetchD
   }
 }
 
-/**
- * Resolve facilitator profile for Labs `/insights/*` Dexter routes.
- * Dexter remains the primary facilitator. When unhealthy for the active lab chain,
- * fall back to PayAI until Dexter recovers:
- * - Solana: fee payer underfunded → InsufficientFundsForRent on every Exact SVM pay
- * - Base: Dexter /supported down or missing eip155:8453 exact
- *
- * Algorand uses GoPlausible accepts (Dexter profile OK).
- *
- * @param {import('express').Request} req
- * @returns {Promise<'dexter' | 'payai'>}
- */
-async function resolveLabsFacilitatorProfile(req) {
-  const labChain = String(req.get('x-lab-x402-chain') || '').trim().toLowerCase();
-  // Algorand settles via GoPlausible AVM (appended accepts). Profile is unused for
-  // accept building when x-lab-x402-chain=algorand (see buildPaymentRequired), but
-  // keep Dexter so non-Algorand middleware paths stay consistent.
-  if (labChain === 'algorand') return 'dexter';
-
-  const healthChain = labChain === 'base' ? 'base' : 'solana';
-  const dexterOk = await isDexterHealthyForLabChain(healthChain);
-  if (dexterOk) return 'dexter';
-
-  if (!loggedDexterPayaiFallback) {
-    loggedDexterPayaiFallback = true;
-    console.warn(
-      `[insights] Dexter unhealthy for Labs ${healthChain} — falling back to PayAI (Dexter remains primary when healthy)`,
-    );
-  }
-  return 'payai';
-}
-
 function labsPaymentMiddleware(priceUsd, resource, catalogSegment, outputSchema = {}) {
   return async (req, res, next) => {
     try {
       const profile = await resolveLabsFacilitatorProfile(req);
-      if (profile === 'payai') {
-        req.x402ResourceServerProfile = 'payai';
+      if (profile !== 'dexter') {
+        req.x402ResourceServerProfile = profile;
       }
-      // Algorand Labs settles via GoPlausible (appended accept); Dexter/PayAI profile still
+      // Algorand Labs settles via GoPlausible (appended accept); Dexter/GoPlausible/PayAI profile still
       // builds Solana/Base offers that the Algorand client ignores when selecting payment.
       return requirePayment({
         price: priceUsd,
@@ -271,7 +238,7 @@ function labsPaymentMiddleware(priceUsd, resource, catalogSegment, outputSchema 
         inputSchema: { type: 'object', properties: {}, additionalProperties: false },
         outputSchema,
         getPayTo: labsPayToOverride,
-        /** Dexter primary; PayAI when Dexter unhealthy for Solana/Base. */
+        /** Dexter primary; GoPlausible then PayAI when Dexter unhealthy for Solana/Base. */
         resourceServerProfile: profile,
       })(req, res, next);
     } catch (e) {

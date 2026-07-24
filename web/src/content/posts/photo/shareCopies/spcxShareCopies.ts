@@ -2,120 +2,104 @@ import type { PostPhotoCardRole } from "../photoCardSlots";
 
 /** Per-card X copy for SpaceX IPO Agent photo deck: 15 distinct topics. */
 export const SPCX_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `SHIP LOG · SPCX is live on Nasdaq. Syra shipped buy and sell on the IPO Agent.
+  cover: `This cover announces buy and sell support on the SpaceX IPO Agent.
 
-Realtime Nasdaq vs SPCXx spreads. Live price chart. Wallet swap both ways.
+The hub tracks Nasdaq SPCX against on-chain SPCXx in realtime and now lets you trade both directions from your own wallet, with safety checks running before every swap.
 
-See the spread. Trade with checks. Skip fake tokens.
+syraa.fun/spcx`,
 
-Try it → syraa.fun/spcx`,
+  thesis: `This card states the problem the SpaceX IPO Agent solves.
 
-  thesis: `The SpaceX IPO is live. Trading it shouldn't mean guessing spreads or chasing fake tokens.
+SPCX trades on Nasdaq while SPCXx trades on Solana, and spreads between the two can move fast. Fake tokens still copy the ticker. Syra built realtime tracking alongside two-way wallet trading on one page so traders are not guessing.
 
-SPCX trades on Nasdaq. SPCXx trades on Solana. Premiums move fast. Scammers still copy the ticker.
+syraa.fun/spcx`,
 
-Syra built realtime tracking plus buy and sell on one page, with safety checks before every swap.`,
+  quote: `This card carries the line behind the update: track live, trade both ways, stay protected.
 
-  quote: `"Track live. Trade both ways. Stay protected."
+Realtime Nasdaq versus SPCXx spreads sit next to buy and sell controls, with safety checks running before every swap on a market that is genuinely live.
 
-Realtime Nasdaq vs SPCXx spreads. Buy or sell from your wallet. Safety checks before every swap.
+syraa.fun/spcx`,
 
-The IPO is live. Syra makes the spread legible.`,
+  flow: `This image walks through trading SpaceX exposure, in four steps.
 
-  flow: `How to trade SpaceX on Syra:
+1. Watch live prices, with Nasdaq SPCX compared against SPCXx on a roughly ten second refresh
+2. Read the agent bias, which calls the spread fair, stretched, or worth watching
+3. Open the Trade tab and toggle between Buy and Sell with a live chart and preset amounts
+4. Confirm the swap, sending USDC or SOL in, or SPCXx out, through Jupiter
 
-1. Watch live prices: Nasdaq SPCX vs SPCXx quotes (~10s refresh)
-2. Read agent bias: fair, stretched, or watch
-3. Open Trade tab: toggle Buy or Sell with live chart
-4. Confirm swap: USDC/SOL in, or SPCXx out via Jupiter
+syraa.fun/spcx`,
 
-One page. Full loop → syraa.fun/spcx`,
+  timeline: `This timeline traces a trade from spread check to confirmation.
 
-  timeline: `From spread check to confirmed trade:
+1. Open the SPCX hub to see realtime Nasdaq quotes against on-chain venues
+2. Read the agent's premium or discount summary and venue status
+3. Pick Buy or Sell in the Trade tab, using balance presets and the live chart
+4. Confirm the swap through Jupiter routing, with safety checks running before execution
 
-→ Open syraa.fun/spcx: realtime Nasdaq vs on-chain quotes
-→ Read Syra agent take on premium/discount
-→ Open Trade tab, pick Buy or Sell, choose amount
-→ Review live chart and safety strip
-→ Confirm wallet swap via Jupiter with auth signing`,
+syraa.fun/spcx`,
 
-  pillars: `4 layers between you and a bad SpaceX trade:
+  pillars: `This bento layout shows the four layers between you and a bad SpaceX trade.
 
-→ Realtime tracking: live Nasdaq with ~10s polling
-→ Buy + sell: wallet swap both ways with balance presets
-→ Live chart: premium trade UI with quick amount chips
-→ Reliable routing: Jupiter Ultra with V1 fallback`,
+Realtime tracking polls Nasdaq roughly every ten seconds against on-chain quotes. Buy and sell both work from the wallet with USDC, SOL, and a Max preset. The Trade tab adds a live chart with quick amount chips and a compact safety strip. Jupiter Ultra handles routing with a V1 fallback and authenticated signing.
 
-  checklist: `SpaceX IPO Agent checklist. Live now:
+syraa.fun/spcx`,
 
-→ Realtime Nasdaq vs SPCXx spread tracking
-→ Buy and sell SPCXx from the Trade tab
-→ Live price chart and compact safety checks
-→ Agent bias, venue quotes, and public API
-→ Jupiter swap with authenticated wallet signing`,
+  checklist: `This checklist covers what's live on the SpaceX IPO Agent.
 
-  metrics: `Three numbers for live SpaceX trading:
+1. Realtime Nasdaq versus SPCXx spread tracking
+2. Buy and sell SPCXx from the Trade tab
+3. A live price chart with compact safety checks
+4. Agent bias, venue quotes, and a public API
 
-→ Buy + Sell: two-way wallet trading on Solana
-→ ~10s: realtime price refresh on web and API
-→ 24/7: on-chain venue tracking
+syraa.fun/spcx`,
 
-Watch the spread move. Trade when it makes sense → syraa.fun/spcx`,
+  metrics: `This card lists the numbers behind live SpaceX trading.
 
-  featured: `One page. Track and trade SpaceX exposure.
+Trading works two ways from the wallet. Prices refresh roughly every ten seconds. On-chain tracking runs around the clock, so spreads stay visible and both sides of a trade stay protected from fake tokens.
 
-Nasdaq SPCX live. SPCXx on Solana. Buy or sell from your wallet. xStocks, Backpack, and Ondo compared in plain English.
+syraa.fun/spcx`,
 
-Spreads legible. Trading protected.`,
+  featured: `This featured card highlights the single page that covers tracking and trading.
 
-  comparison: `Before vs now for SpaceX traders:
+Nasdaq SPCX prices update live, SPCXx trades on Solana, and buying or selling both happen from the same wallet. Venues like xStocks, Backpack, and Ondo get compared in plain English.
 
-Before: buy-only swap, slower refresh, pre-IPO framing, cluttered safety UI.
+syraa.fun/spcx`,
 
-Now: realtime tracking, buy and sell, live price chart, premium Trade tab, reliable Jupiter routing.
+  comparison: `This before and after card compares the old and new SpaceX trading experience.
 
-The IPO is live. The desk caught up.`,
+Before, the page only supported buying, refreshed slower, still framed things as pre-IPO, and had a cluttered safety UI on the trade flow. Now, tracking is realtime, both buy and sell work, a live price chart sits in a premium Trade tab, and Jupiter routing is more reliable.
 
-  launch: `SHIP LOG · Buy and sell SpaceX on Syra.
+syraa.fun/spcx`,
 
-SPCX is trading on Nasdaq. Track realtime spreads vs SPCXx on Solana. Buy or sell from the Trade tab.
+  launch: `This launch card marks buy and sell trading as live on the SpaceX IPO Agent.
 
-Realtime intel. Wallet execution. Safety checks built in.
+The hub tracks Nasdaq and on-chain venues in realtime, then lets you buy or sell SPCXx from a single Trade tab.
 
-→ syraa.fun/spcx`,
+syraa.fun/spcx`,
 
-  deepDive: `SpaceX IPO Agent system update:
+  deepDive: `This deep-dive card lists the backend and swap reliability work behind the update.
 
-→ GET /experiment/spcx/latest: lazy tick on poll (~10s cooldown)
-→ GET /experiment/spcx/feed: historical ticks every 15s on web
-→ Jupiter Ultra → V1 fallback for reliable USDC/SOL ↔ SPCXx swaps
-→ Auth-required signing: guest wallets blocked from tx_sign
-→ Swap tools enabled on agent wallet allowlists
+The latest endpoint runs a lazy tick on poll with roughly a ten second cooldown, while the frontend polls the latest data every ten seconds and the feed every fifteen. Swaps route through Jupiter Ultra with a V1 fallback, guest wallets are blocked from signing, and swap tools are enabled on agent wallet allowlists.
 
-Built for live markets, not pre-IPO demos.`,
+syraa.fun/spcx`,
 
-  split: `Two markets. One spread. Trade both ways.
+  split: `This split card explains the two markets behind one spread.
 
-Stock side: SPCX on Nasdaq via live Yahoo Finance feed.
+SPCX trades on Nasdaq through a live Yahoo Finance feed. SPCXx trades on Solana through xStocks, Backpack, and Ondo. Syra tracks the gap between them in realtime and supports buying or selling from the same Trade tab.
 
-On-chain side: SPCXx on Solana via xStocks, Backpack, and Ondo.
+syraa.fun/spcx`,
 
-Syra tracks the gap in realtime and lets you buy or sell from one Trade tab.`,
+  terminal: `This terminal card shows the SpaceX intelligence API and trade flow.
 
-  terminal: `SpaceX IPO Agent from CLI:
+Calling the latest endpoint returns the Nasdaq ticker and price alongside on-chain venue quotes like SPCXx on xStocks, plus an agent bias such as observe and a refresh time around ten seconds old. From there, opening the SPCX hub and switching to the Trade tab lets you buy or sell directly.
 
-$ curl api.syraa.fun/experiment/spcx/latest
-< nasdaqTicker: SPCX · nasdaqPriceUsd: live
-< venues: [{ symbol: SPCXx, venue: xstocks, spreadPct: live }]
-< agentBias: observe · refreshedAt: ~10s ago
+syraa.fun/spcx`,
 
-$ open syraa.fun/spcx → Trade tab → Buy or Sell`,
+  cta: `This closing card points to where to trade SpaceX exposure.
 
-  cta: `Trade SpaceX exposure on Syra.
+Open the SPCX hub to watch live spreads and trade both directions, or pull the latest report and Telegram preview from the API if you want the raw data. This is not financial advice.
 
-Watch live spreads. Buy or sell SPCXx from your wallet. Compare venues. Safety checks before every swap.
-
-Not financial advice. Do your own research.
-
-→ syraa.fun/spcx`,
+syraa.fun/spcx
+api.syraa.fun/experiment/spcx/latest
+api.syraa.fun/experiment/spcx/telegram-preview`,
 };

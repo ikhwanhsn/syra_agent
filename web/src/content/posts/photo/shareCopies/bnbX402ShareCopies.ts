@@ -1,130 +1,106 @@
 import type { PostPhotoCardRole } from "../photoCardSlots";
 
-/** Per-card X copy for BNB x402 photo deck — 15 distinct topics. */
+/** Per-card X copy for BNB x402 photo deck: 15 distinct topics. */
 export const BNB_X402_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `SHIP LOG · x402 is live on BNB Smart Chain.
+  cover: `This cover announces x402 support landing on BNB Smart Chain.
 
-Pay-per-call intelligence APIs settle natively via Binance B402. Your treasury stays on BSC. No bridge. No subscription.
+Pay-per-call intelligence APIs now settle on BSC through Binance's B402 facilitator, network id eip155:56. Your treasury never has to leave BNB to pay for a Syra endpoint.
 
-Solana. Base. BSC. One brain. Three native rails.
+syraa.fun/playground`,
 
-Try it → syraa.fun/playground`,
+  thesis: `This card states the gap x402 on BNB closes.
 
-  thesis: `BNB builders should not bridge just to pay for intelligence.
+Syra agents already trade on Solana and Base, and BNB Smart Chain is one of the largest EVM ecosystems around. Intelligence APIs needed native x402 settlement there instead of a bridge workaround, so BNB builders can pay without leaving their chain.
 
-Syra agents already trade on Solana and Base. BNB Smart Chain is one of the largest EVM ecosystems. APIs needed native x402 settlement, not a workaround.
+syraa.fun/playground`,
 
-Your treasury stays on BSC. Same checkout. Same agent brain.`,
+  quote: `This card carries the line behind the multi-chain rollout: list an API once, then let each buyer settle on whichever chain their treasury already lives on.
 
-  quote: `"List once on x402 directories. Settle where your treasury lives."
+Solana, Base, and BSC now share one intelligence stack with three native payment rails.
 
-Solana, Base, and BSC: one intelligence stack, three native payment rails.
+syraa.fun/playground`,
 
-402 for price. Sign on your chain. Get the data.`,
+  flow: `This image walks through an x402 payment on BNB, in four steps.
 
-  flow: `x402 on BNB in 4 steps:
+1. An agent or the playground calls a paid Syra endpoint
+2. The server returns HTTP 402 with a B402 option on eip155:56
+3. The wallet signs an EIP-3009 or Permit2 transfer on BSC through MetaMask
+4. B402 verifies and settles the payment, then the payload unlocks
 
-1. Agent hits a paid Syra API
-2. Server returns 402 with B402 on eip155:56
-3. Wallet signs EIP-3009 or Permit2 on BSC
-4. Intelligence unlocked. Settled natively.
+syraa.fun/playground`,
 
-BNB builders stay on BNB.
+  timeline: `This timeline shows the checkout path for a native BSC payment.
 
-Test it → syraa.fun/playground`,
+1. Agent chat or the API playground calls a paid Syra intelligence endpoint
+2. The B402 accept header lists eip155:56 with stablecoin options
+3. MetaMask signs an EIP-3009 or Permit2 transfer using USD1, U, USDC, or USDT
+4. B402 verifies and settles the payment natively on BSC and unlocks the payload
 
-  timeline: `What shipped for BNB checkout:
+syraa.fun/playground`,
 
-→ Call a paid Syra endpoint from agent or playground
-→ Receive HTTP 402 with B402 accept on eip155:56
-→ MetaMask signs EIP-3009 or Permit2 on BSC
-→ B402 verifies and settles. Payload unlocked.
+  pillars: `This bento layout shows the four BSC stablecoins accepted for x402 checkout.
 
-Your treasury never leaves BSC.`,
+USD1 from World Liberty Financial and U from United Stables both sign with EIP-3009 transfer authorization. USDC and USDT on BSC sign through Permit2 instead. Which token settles is configurable through the B402_TOKEN setting.
 
-  pillars: `4 BSC stablecoins. One x402 checkout:
+syraa.fun/playground`,
 
-→ USD1 (EIP-3009)
-→ U / United Stables (EIP-3009)
-→ USDC on BSC (Permit2)
-→ USDT on BSC (Permit2)
+  checklist: `This checklist covers what shipped for BNB builders.
 
-List once. Settle where your treasury lives.`,
+1. BSC network id eip155:56 now appears in 402 accepts
+2. B402 handles verify and settle on paid API calls
+3. Micro-unit pricing maps correctly to 18-decimal BSC stablecoins
+4. Full merchant inbound payments work on BSC through Binance B402
 
-  checklist: `Live for BNB builders today:
+syraa.fun/playground`,
 
-→ BSC network id eip155:56 in 402 accepts
-→ B402 verify + settle on paid API calls
-→ Micro-unit pricing mapped to 18-decimal BSC stables
-→ Full merchant inbound on BSC via Binance B402
+  metrics: `This card lists the numbers behind multi-chain x402 checkout.
 
-Test in playground → syraa.fun/playground`,
+Three chains, Solana, Base, and BSC, can now settle a Syra payment. Four BSC stablecoins are supported for checkout. Every payment still runs through the same HTTP 402 flow, so BNB-native agents can pay for Nansen-grade flows, market data, and research without bridging.
 
-  metrics: `3 chains. 4 BSC stables. HTTP-native micropayments.
+syraa.fun/playground`,
 
-Syra intelligence APIs settle on Solana, Base, and BNB Smart Chain through Binance B402, not a bridge.
+  featured: `This featured card highlights how the pay-per-call model works.
 
-Multi-chain treasuries deserve multi-chain checkout.`,
+Hit an endpoint, get a price back as an HTTP 402, sign on BSC, and the intelligence payload unlocks immediately. There are no API keys and no subscriptions involved.
 
-  featured: `Pay per call. Not per month.
+syraa.fun/playground`,
 
-No API keys. No subscriptions. Hit an endpoint, get a price, sign on your chain, unlock intelligence.
+  comparison: `This before and after card compares bridging with paying natively on BNB.
 
-The payment primitive agents were built for, now native on BSC.`,
+Before, BNB agents either bridged to another chain or skipped paid Syra APIs entirely, since there was no native B402 settlement path. Now, a 402 response, a signature on BSC, and verification through Binance B402 complete the same checkout with a BNB-native treasury.
 
-  comparison: `Before: BNB agents bridged or skipped paid Syra APIs. No native settlement.
+syraa.fun/playground`,
 
-Now: 402 → sign on BSC → verify/settle via Binance B402. Same brain, BNB-native treasury.
+  launch: `This launch card marks Binance B402 as live on Syra.
 
-The friction between "I build on BNB" and "I need Syra data" just disappeared.
+Intelligence APIs now settle natively on BNB Smart Chain, so BNB builders can pay per call without leaving their own chain.
 
-→ syraa.fun/playground`,
+syraa.fun/playground
+docs.syraa.fun`,
 
-  launch: `SHIP LOG · x402 on BNB Smart Chain is live.
+  deepDive: `This deep-dive card lists the technical surface behind BNB support.
 
-Pay-per-call intelligence APIs settle natively via Binance B402 on eip155:56.
+The API Playground has a Binance chain tab, agent wallets can fund and sign on BSC, and agent chat tools inject x402 payments automatically. All three chains share the same x402 v2 core underneath.
 
-USD1, U, USDC, USDT. Four stables. One checkout. No bridge.
+syraa.fun/playground`,
 
-Test now → syraa.fun/playground`,
+  split: `This split card explains how the three chains divide up.
 
-  deepDive: `BNB x402 under the hood:
+Solana and Base already carry x402 for existing agents and the agent wallet facilitator. BNB Smart Chain now adds B402 with EIP-3009 and Permit2 signing for builders who never want to bridge. The same intelligence APIs sit behind all three.
 
-→ API Playground with Binance chain tab
-→ Agent wallet BSC funding and signing
-→ Agent chat tools with x402 injection
-→ Shared x402 v2 core across Solana, Base, BSC
+syraa.fun/playground`,
 
-Docs → docs.syraa.fun`,
+  terminal: `This terminal card shows an x402 checkout on BSC end to end.
 
-  split: `One stack. Three native treasuries.
+Calling the intelligence endpoint returns HTTP 402 with a B402 accept for eip155:56 in USD1. Paying with the chain flag set to bsc signs an EIP-3009 transfer in MetaMask, and the retry comes back HTTP 200 with the intelligence payload unlocked.
 
-SOLANA + BASE
-Existing x402 rails for autonomous traders and agents.
+syraa.fun/playground`,
 
-BNB SMART CHAIN
-B402 on eip155:56. EIP-3009 and Permit2 via MetaMask.
+  cta: `This closing card points BNB builders to where to start.
 
-Same intelligence APIs. No bridge workaround.
+Open the API playground to try a call, read the docs for the full x402 and B402 reference, or check Binance's own Onchain Pay spec for how B402 verification works.
 
-→ syraa.fun/playground`,
-
-  terminal: `x402 on BSC from the terminal:
-
-$ curl api.syraa.fun/v1/intelligence
-< HTTP/402 Payment Required
-< x402-accepts: B402 eip155:56 USD1
-$ syra-x402 pay --chain bsc --token USD1
-> signing EIP-3009 on MetaMask…
-< HTTP/200 OK · intelligence payload unlocked
-
-Build on BNB. Pay on BNB. Stay on BNB.`,
-
-  cta: `BNB-native agents: your payment rail is live.
-
-→ Playground: syraa.fun/playground
-→ API docs: docs.syraa.fun
-→ B402 spec: Binance Onchain Pay
-
-Hit a paid endpoint. Get 402. Sign with MetaMask. Unlock intelligence without leaving BSC.`,
+syraa.fun/playground
+docs.syraa.fun/docs/api-reference
+developers.binance.com/docs/onchainpay-x402/introduction`,
 };

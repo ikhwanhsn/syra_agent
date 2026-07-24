@@ -2,147 +2,104 @@ import type { PostPhotoCardRole } from "../photoCardSlots";
 
 /** Per-card X copy for BTC Intelligence Hub photo deck: 15 distinct topics. */
 export const BTC_INTELLIGENCE_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `SHIP LOG · Bitcoin research was scattered across ten tabs.
+  cover: `This cover announces the BTC Intelligence Hub.
 
-Not anymore.
+One premium Bitcoin page now holds a flow chart, fifteen analysis blocks, shareable cards, and a sticky navigation rail.
 
-Syra BTC Intelligence Hub: one premium /btc page. Flow bubblemap, 15 analysis sections, shareable cards, sticky nav.
+syraa.fun/btc`,
 
-Free on the dashboard → syraa.fun/btc`,
+  thesis: `This card states the gap the BTC Intelligence Hub closes.
 
-  thesis: `Price on one site. Funding on another. Sentiment somewhere else.
+Spot price sat on one exchange, funding data on another, and sentiment in a separate feed. Syra's BTC page unifies an overview, cross-venue comparison, a flow bubblemap, and fifteen analysis sections, with export available on every block.
 
-Traders needed one Bitcoin command center, not another tab maze.
+syraa.fun/btc`,
 
-Syra /btc pulls overview, exchange compare, flow chart, and 15 analysis blocks into a single scrollable hub.
+  quote: `This card carries the line behind the hub: one page, twenty sections, every block shareable.
 
-Try it → syraa.fun/btc`,
+Scrolling moves through technicals down to supply data, sticky navigation jumps between sections, and any section can post as a branded card to X.
 
-  quote: `"One page. Twenty sections. Every block shareable."
+syraa.fun/btc`,
 
-Overview, bubblemap, technicals, funding, OI, correlations, fear & greed, news, sentiment, signal, supply. Scroll the stack or jump with sticky nav.
+  flow: `This image walks through using the BTC Intelligence Hub, in four steps.
 
-Export any section as a branded card for X.
+1. Open the BTC page from the dashboard sidebar
+2. Overview and dashboard data load from precomputed API snapshots
+3. Use the sticky right-hand navigation to jump between sections with a smooth scroll
+4. Export any section as a branded PNG card with matching X copy
 
-Try it → syraa.fun/btc`,
+syraa.fun/btc`,
 
-  flow: `How the BTC Intelligence Hub works:
+  timeline: `This timeline traces the page from hero to supply data in one scroll.
 
-1. Open syraa.fun/btc from the dashboard
-2. Snapshots load from GET /btc/overview + /btc/dashboard
-3. Scroll 20 sections or use sticky right nav
-4. Share any block: copy, PNG, or native X post
+1. The overview shows price, dominance, fear and greed, and volume tiles
+2. A flow bubblemap renders on TradingView Lightweight Charts
+3. Derivatives cover funding, open interest, long and short ratios, and taker flow
+4. Conviction sections cover news, sentiment, a trading signal, and supply data
 
-No per-visit provider hammering.
+syraa.fun/btc`,
 
-Try it → syraa.fun/btc`,
+  pillars: `This bento layout shows the four layers behind the hub.
 
-  timeline: `From open to conviction:
+A tiered scheduler precomputes overview and dashboard snapshots into MongoDB. Provider budgets keep CoinGecko and Binance refreshes inside their per-minute rate limits. The bubblemap runs on Lightweight Charts with exchange and interval controls plus share themes. Every section carries its own copy, download, or native share to X.
 
-→ Hero: price, dominance, fear & greed, volume
-→ Exchange compare across major venues
-→ Flow bubblemap with interval + exchange toggles
-→ 15 analysis cards: technicals through supply
-→ Share button on every section
+syraa.fun/btc`,
 
-One scroll. Full stack.
+  checklist: `This checklist covers what's live on the BTC Intelligence Hub.
 
-Try it → syraa.fun/btc`,
+1. Twenty scrollable sections with a sticky navigation rail
+2. Fifteen analysis blocks returned in one dashboard payload
+3. A flow bubblemap with branded chart export
+4. Database-backed reads instead of hammering providers on every visit
 
-  pillars: `Four layers. One BTC page:
+syraa.fun/btc`,
 
-→ Snapshot store: MongoDB precomputes overview + dashboard
-→ Rate-limit scheduler: respectful CoinGecko/Binance refresh
-→ TradingView LWC bubblemap with share themes
-→ Branded export on every section card
+  metrics: `This card lists the numbers behind the BTC Intelligence Hub.
 
-Fast reads. Premium UI.
+Twenty sections make up the page. Fifteen of them are analysis blocks. Three API endpoints power the whole hub, so researchers scroll one page, creators share any block, and the backend refreshes on its own schedule.
 
-Try it → syraa.fun/btc`,
+syraa.fun/btc`,
 
-  checklist: `BTC Intelligence Hub is live today:
+  featured: `This featured card highlights how shareable the hub is.
 
-→ 20 page sections with smooth scroll nav
-→ 15 analysis blocks in one dashboard payload
-→ Flow bubblemap on Lightweight Charts
-→ Shareable cards: hero, metrics, chart, analysis
-→ DB snapshots. 503 until warm, then instant reads
+All twenty sections, from the hero and metrics to the bubblemap, technicals, funding, and sentiment, export as a branded dark-frame card with matching X copy in a single tap.
 
-Open → syraa.fun/btc`,
+syraa.fun/btc`,
 
-  metrics: `BTC Hub by the numbers:
+  comparison: `This before and after card compares scattered research with the unified hub.
 
-→ 20 scrollable sections
-→ 15 analysis blocks (technicals → supply)
-→ 3 API routes: overview, dashboard, bubblemap
-→ Tiered background refresh, not per-user fetches
+Before, price, funding, and sentiment data sat scattered across different tabs, and none of it was packaged for sharing. Now, one BTC page with sticky navigation holds fifteen analysis blocks, and any section exports in one tap.
 
-Bitcoin conviction, packaged.
+syraa.fun/btc`,
 
-Try it → syraa.fun/btc`,
+  launch: `This launch card marks the BTC Intelligence Hub as live and free on the dashboard.
 
-  featured: `Every section is a shareable card.
+The page works as a premium Bitcoin command center, with a flow chart, a full analysis stack, and shareable cards on every section.
 
-Technicals, funding, fear & greed, news, signal. Tap Share, get branded dark export + X copy.
+syraa.fun/btc`,
 
-Built for researchers who read the stack and creators who post the proof.
+  deepDive: `This deep-dive card lists the API and scheduler wiring behind the hub.
 
-Try it → syraa.fun/btc`,
+A GET to the overview endpoint returns price, dominance, and fear and greed data. A GET to the dashboard endpoint returns all fifteen analysis sections. A GET to the bubblemap endpoint takes exchange and interval presets. A tiered scheduler keeps MongoDB snapshots warm, and a shareable section component handles branded export on every block.
 
-  comparison: `Before:
-Price here. Funding there. Sentiment in a fourth tab. Nothing shareable.
+syraa.fun/btc`,
 
-Now:
-One /btc page. Sticky nav. 15 analysis blocks. Export any section to X in one tap.
+  split: `This split card explains how research and sharing sit on the same page.
 
-Try it → syraa.fun/btc`,
+Scrolling through technicals, funding, open interest, correlations, news, and sentiment builds the case, and any section can then post as a branded card without rebuilding the graphic. Sticky navigation and a theme picker on the chart share tie the two together.
 
-  launch: `SHIP LOG · BTC Intelligence Hub is live on Syra.
+syraa.fun/btc`,
 
-Premium Bitcoin dashboard:
+  terminal: `This terminal card shows the overview and dashboard endpoints responding.
 
-→ Flow bubblemap
-→ Cross-exchange compare
-→ 15 analysis sections
-→ Shareable cards on every block
+Calling the overview endpoint returns a price object nested under data. Calling the dashboard endpoint returns a sections object with all fifteen analysis blocks. Either call can return a 503 until the background scheduler finishes warming its snapshots.
 
-Dashboard → BTC → syraa.fun/btc`,
+syraa.fun/btc`,
 
-  deepDive: `Technical surface:
+  cta: `This closing card points to where to open the hub.
 
-→ GET /btc/overview: price, dominance, fear & greed
-→ GET /btc/dashboard: 15 analysis sections
-→ GET /btc/bubblemap?exchange=&interval=
-→ btcIntelligenceScheduler: tiered MongoDB snapshots
-→ BtcShareableSection + chart share modals on web
+Go to the dashboard and open BTC to scroll the stack, jump between sections, and share any card to X. The dashboard and bubblemap endpoints are open for anyone building on top of the data.
 
-Try it → syraa.fun/btc`,
-
-  split: `Read the stack. Post the proof.
-
-→ Left: scroll technicals, funding, OI, correlations, news, sentiment
-→ Right: share any section as branded PNG + copy for X
-
-Same data. Two modes: research and distribution.
-
-Try it → syraa.fun/btc`,
-
-  terminal: `Read BTC snapshots from the API:
-
-$ curl api.syraa.fun/btc/overview
-{ "success": true, "data": { "price": { ... } } }
-
-$ curl api.syraa.fun/btc/dashboard
-{ "success": true, "data": { "sections": { ... } } }
-
-# 503 until background scheduler warms snapshots
-
-Try it → syraa.fun/btc`,
-
-  cta: `Open the BTC Intelligence Hub.
-
-Scroll twenty sections. Jump with sticky nav. Share any analysis card to X.
-
-→ syraa.fun/btc
-→ api.syraa.fun/btc/dashboard`,
+syraa.fun/btc
+api.syraa.fun/btc/dashboard
+api.syraa.fun/btc/bubblemap`,
 };

@@ -2,110 +2,104 @@ import type { PostPhotoCardRole } from "../photoCardSlots";
 
 /** Per-card X copy for Skill Endpoints Earn photo deck - 15 distinct voices. */
 export const SKILL_EARN_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `SHIP LOG · Syra just shipped Skill Endpoints on Earn.
+  cover: `This cover announces Skill Endpoints, a way for anyone to publish a paid API on Syra's Earn page.
 
-Publish your HTTPS API as a paid x402 route. Agents call it. USDC settles to your earn wallet.
+The badge marks it as Earn, x402, and a creator rail. A creator wires up their own HTTPS API, and agents pay USDC per call, with the money routed straight to the creator's earn wallet.
 
-→ syraa.fun/overview/earn`,
+syraa.fun/overview/earn`,
 
-  thesis: `Running payment infra for every agent skill is a tax on builders.
+  thesis: `This card names the problem Skill Endpoints solves: creators should not have to build their own billing system just to charge for an API.
 
-Syra is the x402 gateway. You host the logic. We gate access and route payTo to your earn wallet.
+Syra already gates intelligence behind x402. Now a builder registers an upstream URL, sets a price, and gets a discoverable route at /skills/:slug, with payTo pointed at their own earn wallet.
 
-Build once. Earn per call.`,
+syraa.fun/overview/earn`,
 
-  quote: `"Build the API. Syra handles discovery and payment."
+  quote: `The line on this card splits the work cleanly: build the API, and Syra handles getting paid.
 
-Creators set price + upstream URL. Agents pay per call. You earn on-chain.
+The creator hosts the logic on their own HTTPS endpoint. Syra proxies the paid calls, lists the skill for agents to discover, and routes the USDC straight to the creator's earn wallet.
 
-Open → syraa.fun/overview/earn`,
+syraa.fun/overview/earn`,
 
-  flow: `Publish a skill in four steps:
+  flow: `This image walks a creator from idea to paid endpoint in four steps.
 
-1. Dashboard → Earn. Sign in with wallet
-2. Create skill: upstream URL + price
-3. Publish: payTo = your earn wallet
-4. Share api.syraa.fun/skills/:slug
+1. Open the Earn dashboard and sign in with a wallet
+2. Create a skill with an upstream HTTPS URL, a price, and an optional auth header
+3. Publish it, which makes the earn wallet the x402 payTo and puts the slug live
+4. Get paid as agents call it, with earnings tracked on the Earn page
 
-Create → publish → earn.`,
+syraa.fun/overview/earn`,
 
-  timeline: `What shipped in Skill Endpoints:
+  timeline: `This timeline covers the full earn rail, shipped in one pass.
 
-→ Earn page: create + manage skills
-→ /agent/marketplace/skills CRUD + publish
-→ /skills/:slug x402 dispatcher + proxy
-→ Dynamic payTo to creator earn wallet
-→ GET /skills + /.well-known/x402 discovery`,
+1. Earn UI built, with a create-skill form and skill cards on /overview/earn
+2. Marketplace API added, with session-gated CRUD at /agent/marketplace/skills
+3. Dispatcher built, proxying paid calls at /skills/:slug with a dynamic payTo
+4. Discovery wired up, through GET /skills and entries in /.well-known/x402
 
-  pillars: `Four layers. One paid endpoint:
+syraa.fun/overview/earn`,
 
-→ Creator CRUD with Syra session
-→ x402 gate with per-skill payTo
-→ SSRF-safe HTTPS upstream proxy
-→ SkillEarning ledger on Earn dashboard`,
+  pillars: `This bento layout shows the four pieces behind one published skill.
 
-  checklist: `Skill Endpoints are live now:
+The payTo field points every 402 offer at the creator's earn wallet, so USDC lands there directly. The proxy calls the creator's own HTTPS upstream after verifying payment, with SSRF protections in place. CRUD covers drafting and publishing under a Syra session. The index makes the skill discoverable in a public catalog for x402 callers.
 
-→ Publish upstream APIs as Syra x402 routes
-→ USDC direct to earn pillar wallet
-→ Agent discovery via /skills catalog
-→ Copy curl + endpoint URL from Earn UI
-→ Wallet sign-in to create and publish
+syraa.fun/overview/earn`,
 
-Open → syraa.fun/overview/earn`,
+  checklist: `This checklist is what Skill Endpoints shipped with.
 
-  metrics: `Creator-native monetization:
+1. Anyone can publish an upstream API as a Syra x402 route
+2. USDC settles directly to the creator's earn pillar wallet
+3. Agents can discover published skills through the /skills catalog
+4. The Earn UI provides a ready-to-copy endpoint URL and curl command
 
-→ 100% to creator wallet
-→ 1 publish flow
-→ x402 agent-native pay
+api.syraa.fun/skills`,
 
-Monetize skills without building billing.`,
+  metrics: `The numbers on this card make the economics plain.
 
-  featured: `payTo = your earn wallet.
+100% of the payment goes to the creator's earn wallet. There is one publish flow to get there, and x402 is the pay rail agents use to call it.
 
-Every 402 offer on your skill points at your Syra earn agent address. Agents pay you directly on-chain.
+syraa.fun/overview/earn`,
 
-Earn wallet → syraa.fun/wallet?wallet=earn`,
+  featured: `This featured card is about where the money actually goes.
 
-  comparison: `Before:
-Build API + payment stack + discovery docs. Hope agents find you.
+Every skill's 402 offer points directly at the creator's earn agent wallet on Solana, so payment never passes through an intermediate account.
 
-Now:
-Register upstream URL on Syra Earn. x402 + discovery + payTo wired for you.`,
+syraa.fun/overview/earn`,
 
-  launch: `SHIP LOG · Skill Endpoints are live on Syra Earn.
+  comparison: `This before-and-after card compares building a paid API from scratch with publishing one on Syra.
 
-Create · publish · earn per agent call.
+Before, a creator had to build the API, the billing, and the discovery docs, then hope agents found their pay flow. Now they register a URL on Syra Earn, and x402, discovery, and payTo are already wired, ready to share as /skills/:slug.
 
-→ syraa.fun/overview/earn`,
+syraa.fun/overview/earn`,
 
-  deepDive: `Builder surface:
+  launch: `This announcement card marks Skill Endpoints as live on Syra Earn.
 
-→ POST /agent/marketplace/skills: draft skill
-→ POST .../skills/:id/publish: set payTo from earn wallet
-→ GET/POST /skills/:slug: paid proxy (x402)
-→ GET /skills: public discovery catalog`,
+Publish a paid API, and agents discover and pay for it through x402, with USDC settling straight to your earn wallet.
 
-  split: `Two sides of Earn:
+syraa.fun/overview/earn`,
 
-→ Creators publish skill endpoints and collect USDC
-→ Agents discover paid routes in /.well-known/x402 and call with x402 payment
+  deepDive: `This deep-dive card lists the Skill Endpoints API for builders.
 
-One dashboard. Machine money both ways.`,
+POST /agent/marketplace/skills creates a draft skill. POST to .../skills/:id/publish sets the earn wallet as payTo and takes it live. GET and POST on /skills/:slug run the x402 gate and the upstream proxy. GET /skills returns the public discovery catalog of published skills.
 
-  terminal: `Call a published skill:
+api.syraa.fun/skills`,
 
-$ curl api.syraa.fun/skills/my-skill
-< 402 Payment Required
-> payTo: creator earn wallet · USDC exact
-$ retry with PAYMENT-SIGNATURE
-< 200 { success: true, data: ... }`,
+  split: `This split card shows the two sides of the same feature.
 
-  cta: `Publish a paid skill endpoint on Syra.
+Creators publish skill endpoints on the Earn page and collect USDC as agents call them. Agents discover those paid routes through /.well-known/x402 and call them with an x402 payment. It is one dashboard, with machine money moving in both directions.
 
-Earn → Create skill. Set price. Agents pay you.
+api.syraa.fun/.well-known/x402`,
 
-→ syraa.fun/overview/earn
-→ api.syraa.fun/skills`,
+  terminal: `This terminal card shows a real call against a published skill.
+
+Calling /skills/token-sentiment returns 402, with payTo set to the creator's earn wallet in USDC. Retrying with a PAYMENT-SIGNATURE header returns 200, with the actual data in the response.
+
+api.syraa.fun/skills`,
+
+  cta: `This closing card is the invitation: publish your first skill today.
+
+Go to Earn, create a skill, set a price, and share the endpoint with agents.
+
+syraa.fun/overview/earn
+api.syraa.fun/skills
+api.syraa.fun/.well-known/x402`,
 };

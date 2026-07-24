@@ -2,138 +2,105 @@ import type { PostPhotoCardRole } from "../photoCardSlots";
 
 /** Per-card X copy for SAID Protocol photo deck: 15 distinct topics. */
 export const SAID_PROTOCOL_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `SHIP LOG · Agents need identity, not just wallets.
+  cover: `This cover announces that Syra registered a verified on-chain identity through SAID Protocol.
 
-Syra × SAID Protocol: verified on-chain agent identity on Solana. Register once. Build reputation. Prove who you are across platforms.
+The badge marks it as identity, verified, and Solana. Registering once gives Syra a permanent on-chain badge and a public profile that any platform can check, on top of the wallet it already used for payments.
 
-Profile → saidprotocol.com/agents/53Jhu…`,
+saidprotocol.com/agents/53Jhu…`,
 
-  thesis: `Every agent had a wallet. Few had verifiable identity.
+  thesis: `This card names the gap SAID closes: a wallet address alone is not identity.
 
-Syra just registered on SAID Protocol: persistent on-chain identity with a verified badge. Same treasury wallet. Permanent reputation layer alongside 8004 and AgentScore.
+Syra agents already pay per call over x402 and are registered on 8004. Platforms still had to guess whether an agent was real. SAID adds a persistent on-chain identity with a permanent verification badge, so that question has an on-chain answer.
 
-Try it → syraa.fun`,
+syraa.fun`,
 
-  quote: `"Pay with x402. Prove identity with SAID."
+  quote: `The line on this card sums up the split between the two systems: x402 handles commerce, and SAID handles trust.
 
-Syra sells intelligence per call. SAID gives the agent a verifiable face: registered, verified, and discoverable across the agent economy.
+Same machine money stack, same agent wallets, but now there is a verifiable identity surface too: registered, verified, and queryable straight from Syra's own API routes.
 
-Profile → saidprotocol.com/agents/53Jhu…`,
+api.syraa.fun/said/status`,
 
-  flow: `How Syra × SAID works:
+  flow: `This image walks the SAID identity flow in four steps.
 
-1. On-chain register + verify (0.01 SOL badge)
-2. AgentCard metadata pinned to IPFS
-3. SAID directory sync + reputation surface
-4. Runtime checks via GET /said/status and /said/verify/:wallet
+1. Register on-chain, with an AgentCard pinned to IPFS and a SAID program identity account created
+2. Pay the one-time 0.01 SOL verification fee for a permanent verified badge
+3. Sync to the SAID directory, where the profile shows up with a trust tier
+4. Query the identity at runtime through /said/status, /said/verify, or /said/trust
 
-Identity that persists across wallet rotations.
+api.syraa.fun/said/status`,
 
-→ api.syraa.fun/said/status`,
+  timeline: `This timeline covers the full SAID integration, shipped in one pass.
 
-  timeline: `What shipped:
+1. said-sdk adapter added for on-chain register and verify in saidClient.js
+2. register-said script added, run once with npm run register-said
+3. Runtime routes mounted at /said on the Syra API gateway
+4. Syra's profile went live and verified on SAID Protocol mainnet
 
-→ said-sdk adapter + npm run register-said
-→ On-chain identity + verification badge live
-→ GET /said/status · /said/verify · /said/trust · /said/agent
-→ Syra profile on saidprotocol.com
+saidprotocol.com/agents/53Jhu…`,
 
-Verify once. Show the badge everywhere.
+  pillars: `This bento layout breaks the identity stack into four layers.
 
-Profile → saidprotocol.com/agents/53Jhu…`,
+On-chain, the SAID program holds a persistent identity account on Solana mainnet. The AgentCard metadata, including name, skills, and MCP endpoint, is pinned to IPFS through Pinata. Runtime routes on Syra's API expose status, verify, trust, and agent lookups. Discovery happens through the SAID directory, which shows the trust tier and reputation on saidprotocol.com.
 
-  pillars: `Four layers. One identity stack:
+syraa.fun`,
 
-→ On-chain: SAID program on Solana mainnet
-→ Metadata: AgentCard on IPFS via Pinata
-→ Runtime: /said/* API routes on Syra
-→ Discovery: SAID directory + trust tier reads
+  checklist: `This checklist is what SAID brought to Syra.
 
-Try it → syraa.fun`,
+1. Syra's own agent is registered and verified on-chain
+2. The saidClient adapter handles register, verify, and lookup
+3. GET /said/status reports Syra's own identity
+4. GET /said/verify/:wallet returns full reputation for any wallet
+5. npm run register-said re-runs safely without duplicating the registration
 
-  checklist: `SAID is live on Syra today:
+api.syraa.fun/said/status`,
 
-→ Syra agent registered + verified on-chain
-→ saidClient adapter (register, verify, lookup)
-→ GET /said/status for Syra's own identity
-→ GET /said/verify/:wallet for full reputation
-→ npm run register-said for idempotent setup
+  metrics: `The numbers on this card describe what verification actually costs and returns.
 
-Query → api.syraa.fun/said/status`,
+Syra paid a one-time 0.01 SOL fee for a permanent on-chain verified badge. Four runtime endpoints expose that identity to callers, and reputation keeps accruing over time without any renewal.
 
-  metrics: `SAID by the numbers:
+api.syraa.fun/said/status`,
 
-→ 1 verified Syra agent identity
-→ 0.01 SOL verification badge (permanent)
-→ 4 runtime read endpoints on Syra API
-→ Reputation accrues over time
+  featured: `This featured card makes the point that verification is a one-time cost.
 
-402 for commerce. SAID for trust.
+Syra paid 0.01 SOL once for the SAID verification badge. It sits on-chain permanently, with no subscription and no recurring fee to keep it active.
 
-Profile → saidprotocol.com/agents/53Jhu…`,
+saidprotocol.com/agents/53Jhu…`,
 
-  featured: `Verified badge. Permanent.
+  comparison: `This before-and-after card compares having a wallet with having a verified identity.
 
-Syra paid 0.01 SOL once for the SAID verification badge. On-chain forever. No subscription. No API key for identity reads on /said/*.
+Before, Syra had a wallet address and nothing else. Platforms had to guess whether to trust it. Now Syra has an on-chain identity, a verified badge, and a /said/trust endpoint other systems can gate on, all backed by the same agent brain.
 
-Profile → saidprotocol.com/agents/53Jhu…`,
+syraa.fun`,
 
-  comparison: `Before SAID:
-Wallet address only. No verifiable agent identity.
+  launch: `This partnership card marks Syra and SAID Protocol as live.
 
-With SAID on Syra:
-On-chain identity + verified badge + runtime trust checks.
+Syra's agent identity is registered and verified on-chain. Anyone can look up the profile, check the trust tier, or query the reputation that builds over time.
 
-Same agent brain. New trust layer for builders and platforms.
+saidprotocol.com/agents/53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t`,
 
-Try it → syraa.fun`,
+  deepDive: `This deep-dive card lists where SAID lives inside Syra's codebase.
 
-  launch: `SHIP LOG · Syra × SAID Protocol is live.
+api/libs/saidClient.js wraps the said-sdk and its HTTP fallback. scripts/register-said-agent.js runs the one-time setup. routes/said/index.js exposes status, verify, trust, and agent endpoints. A flexible parser reads the 342-byte on-chain account layout, and SAID_AGENT_WALLET is the env variable behind /said/status.
 
-Verified on-chain agent identity.
+saidprotocol.com/docs`,
 
-Register. Verify. Query trust tier. Build reputation.
+  split: `This split card places SAID inside Syra's broader identity and commerce stack.
 
-Profile → saidprotocol.com/agents/53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t`,
+8004 gives Syra a discoverable agent registry entry. AgentScore gates compliance through Passport checks. SAID adds verified on-chain identity and reputation. x402 remains the pay-per-call commerce rail underneath all of it.
 
-  deepDive: `SAID integration, technical surface:
+api.syraa.fun/said/status`,
 
-→ api/libs/saidClient.js adapter (said-sdk + HTTP)
-→ scripts/register-said-agent.js one-time setup
-→ routes/said/index.js mounted at /said
-→ Flexible on-chain account parser (342-byte layout)
-→ SAID_AGENT_WALLET env for /said/status
+  terminal: `This terminal card shows two real calls against Syra's SAID identity.
 
-Docs → saidprotocol.com/docs`,
+Checking /said/status returns verified true with Syra's wallet. Checking /said/trust for the same wallet returns a medium trust tier along with the verified badge.
 
-  split: `Identity stack on Syra:
+syraa.fun`,
 
-→ 8004: discoverable agent NFT registry
-→ AgentScore: compliance + Passport gates
-→ SAID: verified on-chain identity + reputation
-→ x402: pay-per-call commerce rail
+  cta: `This closing card is the summary: Syra is SAID-verified.
 
-Commerce + compliance + identity. One API gateway.
+Check the profile, query the trust tier, or gate an integration on verified agent identity.
 
-→ api.syraa.fun/said/status`,
-
-  terminal: `Check Syra's SAID identity:
-
-$ curl api.syraa.fun/said/status \\
-  -H "X-API-Key: …"
-{ "verified": true, "wallet": "53Jhu…" }
-
-$ curl api.syraa.fun/said/verify/53Jhu… \\
-  -H "X-API-Key: …"
-{ "registered": true, "verified": true }
-
-Try it → syraa.fun`,
-
-  cta: `Syra is SAID-verified.
-
-Query trust. Gate integrations. Build reputation over time.
-
-→ saidprotocol.com/agents/53Jhu…
-→ api.syraa.fun/said/status
-→ docs.syraa.fun`,
+saidprotocol.com/agents/53Jhu…
+api.syraa.fun/said/status
+docs.syraa.fun`,
 };

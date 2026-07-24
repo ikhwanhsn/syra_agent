@@ -3,7 +3,8 @@ import { Code2, Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { SkillCard } from "@/components/earn/SkillCard";
 import { SkillForm } from "@/components/earn/SkillForm";
-import { playgroundStaggerStyle, playgroundTabPanelEnter } from "@/components/playground/playgroundMotion";
+import { EarnCardGridSkeleton } from "@/components/earn/EarnSkeleton";
+import { playgroundTabPanelEnter } from "@/components/playground/playgroundMotion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
@@ -175,15 +176,7 @@ export function EarnSkillsPanel({
       </div>
 
       {showSkeleton ? (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-[16rem] animate-pulse rounded-[1.35rem] border border-border/30 bg-muted/15"
-              style={playgroundStaggerStyle(i)}
-            />
-          ))}
-        </div>
+        <EarnCardGridSkeleton count={6} heightClass="h-[16rem]" />
       ) : publishedQ.isError ? (
         <div className="flex flex-col items-center justify-center rounded-[1.35rem] border border-border/40 bg-card/30 px-6 py-20 text-center">
           <p className="font-display text-lg font-semibold tracking-tight">Couldn’t load skills</p>

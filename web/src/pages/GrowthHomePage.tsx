@@ -18,6 +18,7 @@ import { SyraBuyButton } from "@/components/syra/SyraBuyButton";
 import { GrowthTokenSection } from "@/components/growth/GrowthTokenSection";
 import { GrowthTrustRankings } from "@/components/growth/GrowthTrustRankings";
 import { GrowthFooter } from "@/components/growth/GrowthFooter";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
   growthCtaPrimaryClass,
@@ -72,15 +73,92 @@ const HOW_STEPS = [
   },
 ] as const;
 
+function ProofStatSkeleton({ large }: { large?: boolean }) {
+  return (
+    <div className="min-w-0" aria-hidden>
+      <Skeleton className="h-2.5 w-24 rounded-sm" />
+      <Skeleton
+        className={cn(
+          "mt-2 rounded-md",
+          large ? "h-9 w-28 sm:h-10 sm:w-32" : "h-8 w-24 sm:h-8 sm:w-28",
+        )}
+      />
+      <Skeleton className="mt-1.5 h-3 w-28 max-w-full rounded-sm" />
+    </div>
+  );
+}
+
 function MetricSkeleton() {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-hidden>
-      {Array.from({ length: 4 }).map((_, i) => (
-        <div
-          key={i}
-          className="h-[108px] animate-pulse rounded-2xl border border-border/30 bg-muted/25"
-        />
-      ))}
+    <div className="space-y-8" aria-hidden>
+      <div className="grid gap-6 border-b border-border/35 pb-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+        <ProofStatSkeleton large />
+        <ProofStatSkeleton large />
+        <ProofStatSkeleton />
+        <ProofStatSkeleton />
+      </div>
+
+      <div className={cn(growthPanelQuietClass, "p-5 sm:p-6")}>
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-2">
+          <div className="space-y-2">
+            <Skeleton className="h-2.5 w-16 rounded-sm" />
+            <Skeleton className="h-5 w-48 max-w-full rounded-md" />
+          </div>
+          <Skeleton className="h-3 w-28 rounded-sm" />
+        </div>
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <ProofStatSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+
+      <div className={cn(growthPanelQuietClass, "p-5 sm:p-6")}>
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-2">
+          <div className="space-y-2">
+            <Skeleton className="h-2.5 w-20 rounded-sm" />
+            <Skeleton className="h-5 w-56 max-w-full rounded-md" />
+          </div>
+          <Skeleton className="h-3 w-24 rounded-sm" />
+        </div>
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <ProofStatSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-5">
+        <div className={cn(growthPanelQuietClass, "p-5 sm:p-6 lg:col-span-2")}>
+          <Skeleton className="mb-4 h-4 w-24 rounded-md" />
+          <Skeleton className="mb-4 h-3 w-full rounded-sm" />
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Skeleton className="h-2.5 w-20 rounded-sm" />
+              <Skeleton className="h-3 w-full rounded-sm" />
+            </div>
+            <div className="space-y-1.5">
+              <Skeleton className="h-2.5 w-16 rounded-sm" />
+              <Skeleton className="h-3 w-4/5 rounded-sm" />
+            </div>
+          </div>
+          <div className="mt-5 grid grid-cols-2 gap-4 border-t border-border/35 pt-4">
+            <ProofStatSkeleton />
+            <ProofStatSkeleton />
+          </div>
+        </div>
+        <div className={cn(growthPanelQuietClass, "p-5 sm:p-6 lg:col-span-3")}>
+          <Skeleton className="mb-4 h-4 w-28 rounded-md" />
+          <div className="space-y-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex items-center justify-between gap-3">
+                <Skeleton className="h-3 w-32 max-w-[50%] rounded-sm" />
+                <Skeleton className="h-3 w-16 rounded-sm" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -428,18 +506,21 @@ export default function GrowthHomePage() {
         <div className={cn(growthDividerClass, "absolute inset-x-0 bottom-0 opacity-60")} />
       </div>
 
-      <div className={cn(growthShellClass, "relative pb-20 pt-12 sm:pb-28 sm:pt-16 lg:pt-20")}>
-        {/* Hero */}
-        <header className="mx-auto max-w-3xl text-center">
-          <motion.div {...fadeUp(0)} className="flex flex-col items-center">
-            <div className="relative mb-8">
+      <div className={cn(growthShellClass, "relative pb-24 pt-10 sm:pb-32 sm:pt-14 lg:pt-16")}>
+        {/* Hero — one wide composition: brand story + live proof */}
+        <header className="grid items-center gap-12 lg:grid-cols-12 lg:gap-14 xl:gap-20">
+          <motion.div
+            {...fadeUp(0)}
+            className="flex flex-col items-center text-center lg:col-span-6 lg:items-start lg:text-left xl:col-span-7"
+          >
+            <div className="relative mb-7 sm:mb-8">
               <div
-                className="absolute -inset-6 rounded-[2rem] bg-foreground/[0.04] blur-2xl motion-reduce:hidden"
+                className="absolute -inset-7 rounded-[2rem] bg-foreground/[0.045] blur-2xl motion-reduce:hidden"
                 aria-hidden
               />
               <div
                 className={cn(
-                  "relative flex h-[4.5rem] w-[4.5rem] items-center justify-center overflow-hidden rounded-[1.35rem] sm:h-20 sm:w-20 sm:rounded-[1.5rem]",
+                  "relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl sm:h-[4.75rem] sm:w-[4.75rem]",
                   "border border-border/50 bg-gradient-to-br from-card via-card to-muted/40",
                   "shadow-[0_1px_0_0_hsl(var(--border)/0.5)_inset,0_24px_48px_-28px_rgba(0,0,0,0.7)]",
                   "ring-1 ring-inset ring-white/[0.04]",
@@ -448,6 +529,8 @@ export default function GrowthHomePage() {
                 <img
                   src="/logo.jpg"
                   alt=""
+                  width={76}
+                  height={76}
                   className="h-full w-full object-cover"
                   draggable={false}
                 />
@@ -458,144 +541,160 @@ export default function GrowthHomePage() {
               <span className="gradient-text font-semibold tracking-[0.32em]">Syra</span>
             </p>
 
-            <h1 className="text-balance font-display text-[2.35rem] font-semibold leading-[1.05] tracking-[-0.05em] text-foreground sm:text-5xl md:text-[3.5rem] md:leading-[1.02]">
+            <h1 className="max-w-[14ch] text-balance font-display text-[2.5rem] font-semibold leading-[1.02] tracking-[-0.055em] text-foreground sm:text-5xl md:text-[3.65rem] md:leading-[0.98] lg:max-w-none">
               <span className="gradient-text">{SYRA_TAGLINE}</span>
             </h1>
 
-            <p className={cn(growthProseClass, "mx-auto mt-5 max-w-lg text-pretty")}>
+            <p className={cn(growthProseClass, "mt-5 max-w-md text-pretty lg:max-w-lg")}>
               Earn · Treasury · Invest · Spend · Grow on Solana.
-              <span className="mt-1 block text-foreground/75">{SYRA_LIVE_SUBLINE}.</span>
+              <span className="mt-1.5 block text-foreground/80">{SYRA_LIVE_SUBLINE}.</span>
+            </p>
+
+            <div className="mt-9 flex w-full max-w-md flex-col gap-3 sm:max-w-none sm:flex-row sm:flex-wrap lg:justify-start">
+              <Link to="/marketplace" className={cn(growthCtaPrimaryClass, "w-full sm:w-auto")}>
+                First paid call in 5 minutes
+                <ArrowRight className="h-4 w-4 opacity-90" aria-hidden />
+              </Link>
+              <SyraBuyButton
+                variant="default"
+                className={cn(
+                  growthCtaSecondaryClass,
+                  "w-full border-border/55 bg-background/50 sm:w-auto",
+                )}
+                label="Buy $SYRA"
+              />
+            </div>
+
+            <p className="mt-4 text-sm text-muted-foreground/85">
+              Or{" "}
+              <Link
+                to="/agent"
+                className="font-medium text-foreground/90 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                open the reference agent
+              </Link>
             </p>
           </motion.div>
 
           <motion.div
-            {...fadeUp(0.08)}
-            className="mt-9 flex flex-col items-center gap-3 sm:flex-row sm:justify-center sm:gap-3"
-          >
-            <Link to="/marketplace" className={growthCtaPrimaryClass}>
-              First paid call in 5 minutes
-              <ArrowRight className="h-4 w-4 opacity-90" aria-hidden />
-            </Link>
-            <SyraBuyButton
-              variant="default"
-              className={cn(growthCtaSecondaryClass, "border-border/55 bg-background/50")}
-              label="Buy $SYRA"
-            />
-          </motion.div>
-
-          <motion.p {...fadeUp(0.12)} className="mt-4 text-sm text-muted-foreground/80">
-            Or{" "}
-            <Link
-              to="/agent"
-              className="font-medium text-foreground/85 underline-offset-4 hover:underline"
-            >
-              open the reference agent
-            </Link>
-          </motion.p>
-
-          <motion.div {...fadeUp(0.14)} className="mt-12 sm:mt-14">
-            <GrowthTrustRankings />
-          </motion.div>
-
-          {/* Hero proof strip — not a card grid */}
-          <motion.div
-            {...fadeUp(0.16)}
-            className="mx-auto mt-8 max-w-2xl"
+            {...fadeUp(0.1)}
+            className="flex flex-col gap-5 lg:col-span-6 xl:col-span-5"
             aria-live="polite"
           >
             <div
               className={cn(
                 growthPanelClass,
-                "flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-6",
+                "px-5 py-5 sm:px-6 sm:py-6",
               )}
             >
-              <div className="inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                <LivePulse />
-                <span className="inline-flex items-center gap-1.5">
-                  <Activity className="h-3.5 w-3.5" aria-hidden />
-                  Live traction
+              <div className="mb-5 flex items-center justify-between gap-3">
+                <div className="inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                  <LivePulse />
+                  <span className="inline-flex items-center gap-1.5">
+                    <Activity className="h-3.5 w-3.5" aria-hidden />
+                    Live traction
+                  </span>
+                </div>
+                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/60">
+                  x402
                 </span>
               </div>
 
               {isLoading && !data ? (
-                <p className="text-sm text-muted-foreground">Loading proof…</p>
+                <div className="grid grid-cols-3 gap-3 sm:gap-5" aria-hidden>
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="min-w-0">
+                      <Skeleton className="h-2.5 w-14 rounded-sm" />
+                      <Skeleton className="mt-2 h-6 w-16 sm:h-7 sm:w-20 rounded-md" />
+                    </div>
+                  ))}
+                </div>
               ) : isError && !data ? (
                 <p className="text-sm text-destructive">
                   {error instanceof Error ? error.message : "Metrics unavailable"}
                 </p>
               ) : data ? (
-                <div className="flex flex-wrap items-baseline gap-x-5 gap-y-2 text-sm sm:justify-end">
-                  <span>
-                    <span className={cn(growthStatValueClass, "text-base sm:text-lg")}>
+                <div className="grid grid-cols-3 gap-3 sm:gap-5">
+                  <div className="min-w-0">
+                    <p className={cn(growthKickerClass, "tracking-[0.16em]")}>Calls · 7d</p>
+                    <p className={cn(growthStatValueClass, "mt-2 text-xl sm:text-2xl")}>
                       {formatNum(paid7d)}
-                    </span>
-                    <span className="ml-1.5 text-muted-foreground">calls / 7d</span>
-                  </span>
-                  <span className="hidden text-border sm:inline" aria-hidden>
-                    /
-                  </span>
-                  <span>
-                    <span className={cn(growthStatValueClass, "text-base sm:text-lg")}>
+                    </p>
+                  </div>
+                  <div className="min-w-0">
+                    <p className={cn(growthKickerClass, "tracking-[0.16em]")}>Wallets</p>
+                    <p className={cn(growthStatValueClass, "mt-2 text-xl sm:text-2xl")}>
                       {formatNum(payers7d)}
-                    </span>
-                    <span className="ml-1.5 text-muted-foreground">wallets</span>
-                  </span>
-                  <span className="hidden text-border sm:inline" aria-hidden>
-                    /
-                  </span>
-                  <span>
-                    <span className={cn(growthStatValueClass, "text-base sm:text-lg")}>
+                    </p>
+                  </div>
+                  <div className="min-w-0">
+                    <p className={cn(growthKickerClass, "tracking-[0.16em]")}>Settled</p>
+                    <p className={cn(growthStatValueClass, "mt-2 text-xl sm:text-2xl")}>
                       {formatUsd(data.lifetime.totalUsdSettled)}
-                    </span>
-                    <span className="ml-1.5 text-muted-foreground">settled</span>
-                  </span>
+                    </p>
+                  </div>
                 </div>
               ) : null}
             </div>
+
+            <GrowthTrustRankings className="mx-0 max-w-none" />
           </motion.div>
         </header>
 
-        {/* How it works — editorial steps, not icon-card grid */}
+        {/* How it works — editorial path across full shell */}
         <motion.section
-          {...fadeUp(0.2)}
-          className="mt-20 sm:mt-28"
+          {...fadeUp(0.16)}
+          className="mt-24 sm:mt-32"
           aria-labelledby="how-heading"
         >
-          <div className="mb-8 max-w-xl">
-            <p className={cn(growthKickerClass, "mb-2 inline-flex items-center gap-2.5 before:h-px before:w-5 before:bg-foreground/20")}>
-              Path
+          <div className="mb-10 flex flex-col gap-4 sm:mb-12 lg:flex-row lg:items-end lg:justify-between lg:gap-10">
+            <div className="max-w-2xl">
+              <p
+                className={cn(
+                  growthKickerClass,
+                  "mb-3 inline-flex items-center gap-2.5 before:h-px before:w-6 before:bg-foreground/25",
+                )}
+              >
+                Path
+              </p>
+              <h2 id="how-heading" className={growthSectionTitleClass}>
+                From install to capital
+              </h2>
+            </div>
+            <p className={cn(growthProseClass, "max-w-md lg:text-right")}>
+              Same three steps as the marketplace Integrate tab — settle your first paid call, then expand.
             </p>
-            <h2 id="how-heading" className={growthSectionTitleClass}>
-              From install to capital
-            </h2>
           </div>
 
-          <ol className="grid gap-px overflow-hidden rounded-[1.35rem] border border-border/40 bg-border/30 sm:grid-cols-3">
+          <ol className="grid gap-px overflow-hidden rounded-2xl border border-border/40 bg-border/25 lg:grid-cols-3">
             {HOW_STEPS.map(({ n, title, body, href, external, icon: Icon }) => {
               const className = cn(
-                "group relative flex flex-col bg-background/90 p-6 sm:p-7",
+                "group relative flex min-h-[14rem] flex-col bg-background/92 p-7 sm:p-8 xl:p-10",
                 "transition-colors duration-200 hover:bg-card",
                 "focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               );
               const inner = (
                 <>
-                  <div className="mb-5 flex items-center justify-between gap-3">
-                    <span className="font-mono text-[11px] font-medium tracking-[0.2em] text-muted-foreground/70">
+                  <div className="mb-8 flex items-center justify-between gap-3">
+                    <span className="font-mono text-[11px] font-medium tracking-[0.22em] text-muted-foreground/75">
                       {n}
                     </span>
-                    <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-border/40 bg-muted/20 text-foreground/70 transition-colors group-hover:border-border/60 group-hover:text-foreground">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-border/40 bg-muted/15 text-foreground/70 transition-colors group-hover:border-border/65 group-hover:text-foreground">
                       <Icon className="h-4 w-4" strokeWidth={1.75} aria-hidden />
                     </span>
                   </div>
-                  <h3 className="font-display text-[15px] font-semibold tracking-[-0.02em] text-foreground">
+                  <h3 className="font-display text-lg font-semibold tracking-[-0.03em] text-foreground">
                     {title}
                   </h3>
-                  <p className="mt-2 flex-1 text-[13px] leading-[1.65] text-muted-foreground">
+                  <p className="mt-3 flex-1 text-sm leading-[1.7] text-muted-foreground">
                     {body}
                   </p>
-                  <span className="mt-5 inline-flex items-center gap-1 text-xs font-medium text-foreground/70 transition-colors group-hover:text-foreground">
+                  <span className="mt-8 inline-flex items-center gap-1.5 text-xs font-medium text-foreground/75 transition-colors group-hover:text-foreground">
                     Continue
-                    <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden />
+                    <ArrowRight
+                      className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5"
+                      aria-hidden
+                    />
                   </span>
                 </>
               );
@@ -625,18 +724,23 @@ export default function GrowthHomePage() {
         <motion.section
           {...fadeUp(0.08)}
           id="metrics"
-          className="mt-20 scroll-mt-24 sm:mt-28"
+          className="mt-24 scroll-mt-24 sm:mt-32"
           aria-labelledby="metrics-heading"
         >
-          <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-            <div className="max-w-xl">
-              <p className={cn(growthKickerClass, "mb-2 inline-flex items-center gap-2.5 before:h-px before:w-5 before:bg-foreground/20")}>
+          <div className="mb-10 flex flex-wrap items-end justify-between gap-6 sm:mb-12">
+            <div className="max-w-2xl">
+              <p
+                className={cn(
+                  growthKickerClass,
+                  "mb-3 inline-flex items-center gap-2.5 before:h-px before:w-6 before:bg-foreground/25",
+                )}
+              >
                 On-chain verifiable
               </p>
               <h2 id="metrics-heading" className={growthSectionTitleClass}>
                 Public proof
               </h2>
-              <p className={cn(growthProseClass, "mt-3")}>
+              <p className={cn(growthProseClass, "mt-3 max-w-xl")}>
                 Paid volume, unique payers, and activation — the traction line for machine money.
               </p>
             </div>
@@ -644,7 +748,7 @@ export default function GrowthHomePage() {
               href="https://api.syraa.fun/api/metrics"
               className={cn(
                 growthCtaSecondaryClass,
-                "h-10 min-h-10 gap-1.5 px-4 text-xs font-medium",
+                "h-11 min-h-11 gap-1.5 px-4 text-xs font-medium",
               )}
               target="_blank"
               rel="noreferrer"
@@ -654,7 +758,7 @@ export default function GrowthHomePage() {
             </a>
           </div>
 
-          <div className={cn(growthPanelClass, "p-5 sm:p-8")}>
+          <div className={cn(growthPanelClass, "p-5 sm:p-8 lg:p-10")}>
             {isLoading && !data ? <MetricSkeleton /> : null}
             {isError && !data ? (
               <p className="text-sm text-destructive">
@@ -668,20 +772,20 @@ export default function GrowthHomePage() {
         </motion.section>
 
         {/* Token — single panel, no nested cards */}
-        <motion.div {...fadeUp(0.06)} className="mt-20 sm:mt-28">
+        <motion.div {...fadeUp(0.06)} className="mt-24 sm:mt-32">
           <GrowthTokenSection />
         </motion.div>
 
         {/* Close — editorial CTA band */}
         <motion.section
           {...fadeUp(0.04)}
-          className="mt-20 sm:mt-28"
+          className="mt-24 sm:mt-32"
           aria-labelledby="close-heading"
         >
           <div
             className={cn(
               growthPanelClass,
-              "relative overflow-hidden px-6 py-10 sm:px-10 sm:py-14 lg:px-14 lg:py-16",
+              "relative overflow-hidden px-6 py-12 sm:px-12 sm:py-16 lg:px-16 lg:py-20",
             )}
           >
             <div
@@ -695,14 +799,14 @@ export default function GrowthHomePage() {
               }}
             />
             <div
-              className="pointer-events-none absolute inset-0 opacity-[0.18] motion-reduce:opacity-[0.08]"
+              className="pointer-events-none absolute inset-0 opacity-[0.16] motion-reduce:opacity-[0.08]"
               aria-hidden
               style={{
                 backgroundImage: `
                   linear-gradient(to right, hsl(var(--border) / 0.25) 1px, transparent 1px),
                   linear-gradient(to bottom, hsl(var(--border) / 0.25) 1px, transparent 1px)
                 `,
-                backgroundSize: "48px 48px",
+                backgroundSize: "56px 56px",
                 maskImage:
                   "radial-gradient(ellipse 75% 70% at 40% 40%, black 0%, transparent 78%)",
                 WebkitMaskImage:
@@ -710,30 +814,30 @@ export default function GrowthHomePage() {
               }}
             />
 
-            <div className="relative flex flex-col gap-10 lg:flex-row lg:items-end lg:justify-between lg:gap-16">
-              <div className="max-w-xl">
+            <div className="relative flex flex-col gap-12 lg:flex-row lg:items-end lg:justify-between lg:gap-20">
+              <div className="max-w-2xl">
                 <p
                   className={cn(
                     growthKickerClass,
-                    "mb-4 inline-flex items-center gap-2.5 before:h-px before:w-5 before:bg-foreground/25",
+                    "mb-4 inline-flex items-center gap-2.5 before:h-px before:w-6 before:bg-foreground/25",
                   )}
                 >
                   Activate
                 </p>
                 <h2
                   id="close-heading"
-                  className="text-balance font-display text-[1.85rem] font-semibold leading-[1.08] tracking-[-0.045em] text-foreground sm:text-[2.35rem] lg:text-[2.65rem]"
+                  className="text-balance font-display text-[2rem] font-semibold leading-[1.06] tracking-[-0.05em] text-foreground sm:text-[2.6rem] lg:text-[3rem]"
                 >
                   Ship the call.
-                  <span className="mt-1 block text-foreground/55">Then hold the token.</span>
+                  <span className="mt-1.5 block text-foreground/50">Then hold the token.</span>
                 </h2>
-                <p className={cn(growthProseClass, "mt-5 max-w-md text-pretty")}>
+                <p className={cn(growthProseClass, "mt-5 max-w-lg text-pretty")}>
                   Builders activate on MCP and the marketplace. Token interest follows real usage —
                   not the other way around.
                 </p>
               </div>
 
-              <div className="flex w-full flex-col gap-3 sm:w-auto sm:min-w-[16rem]">
+              <div className="flex w-full flex-col gap-3 sm:w-auto sm:min-w-[17rem]">
                 <Link
                   to="/marketplace"
                   className={cn(growthCtaPrimaryClass, "w-full sm:w-auto")}
@@ -750,7 +854,7 @@ export default function GrowthHomePage() {
                   Install MCP
                   <ExternalLink className="h-3.5 w-3.5 opacity-55" aria-hidden />
                 </a>
-                <p className="pt-1 text-center font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground/55 sm:text-left">
+                <p className="pt-1 text-center font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground/60 sm:text-left">
                   First paid call · ~5 min
                 </p>
               </div>

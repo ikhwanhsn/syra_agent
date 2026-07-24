@@ -21,6 +21,7 @@ import {
 } from "@/components/staking/stakingStyles";
 import { StakingShell } from "@/components/StakingShell";
 import { StakingStatsStrip } from "@/components/StakingStatsStrip";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   parseStakeErrorForNotify,
   StakePreflightChecklist,
@@ -44,16 +45,20 @@ const lockExplorerUrl = (streamId: string) =>
 
 function LockListSkeleton() {
   return (
-    <div className="space-y-3" aria-hidden>
+    <div className="space-y-3" aria-busy="true" aria-label="Loading locks">
       {[0, 1, 2].map((i) => (
         <div
           key={i}
-          className="animate-pulse rounded-xl border border-border/40 bg-muted/15 p-5 sm:p-6"
-          style={{ animationDelay: `${i * 90}ms` }}
+          className="rounded-xl border border-border/40 bg-muted/15 p-5 sm:p-6"
         >
-          <div className="mb-2 h-3 w-20 rounded bg-muted-foreground/15" />
-          <div className="mb-2 h-7 w-28 rounded bg-muted-foreground/12" />
-          <div className="h-3 w-32 max-w-full rounded bg-muted-foreground/10" />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+            <div className="min-w-0 flex-1 space-y-2">
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-7 w-36 max-w-full" />
+              <Skeleton className="h-3 w-44 max-w-full" />
+            </div>
+            <Skeleton className="h-9 w-full rounded-md sm:w-28" />
+          </div>
         </div>
       ))}
     </div>

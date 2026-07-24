@@ -35,6 +35,7 @@ import { LP_EARN_YIELD_POST } from "./lpEarnYieldUpdate";
 import { MOMENTUM_ROTATOR_POST } from "./momentumRotatorLabUpdate";
 import { LST_LOOP_LAB_POST } from "./lstLoopLabUpdate";
 import { ALPHA_SNIPER_LAB_POST } from "./alphaSniperLabUpdate";
+import { GOPLAUSIBLE_SOLANA_BASE_FAILOVER_POST } from "./goplausibleSolanaBaseFailoverUpdate";
 import { TEMPLATE_POST } from "./templateUpdate";
 import { AGENTSCORE_PHOTO } from "./photo/agentscorePhoto";
 import { INDICATOR_PHOTO } from "./photo/indicatorPhoto";
@@ -73,6 +74,7 @@ import { LP_EARN_YIELD_PHOTO } from "./photo/lpEarnYieldPhoto";
 import { MOMENTUM_ROTATOR_PHOTO } from "./photo/momentumRotatorLabPhoto";
 import { LST_LOOP_LAB_PHOTO } from "./photo/lstLoopLabPhoto";
 import { ALPHA_SNIPER_LAB_PHOTO } from "./photo/alphaSniperLabPhoto";
+import { GOPLAUSIBLE_SOLANA_BASE_FAILOVER_PHOTO } from "./photo/goplausibleSolanaBaseFailoverPhoto";
 import { TEMPLATE_PHOTO } from "./photo/templatePhoto";
 import type { PostPhotoUpdate } from "./photo/types";
 import type { PostUpdate } from "./types";
@@ -130,6 +132,7 @@ const POST_UPDATE_BUNDLES: PostUpdateBundle[] = [
   { video: MOMENTUM_ROTATOR_POST, photo: MOMENTUM_ROTATOR_PHOTO },
   { video: LST_LOOP_LAB_POST, photo: LST_LOOP_LAB_PHOTO },
   { video: ALPHA_SNIPER_LAB_POST, photo: ALPHA_SNIPER_LAB_PHOTO },
+  { video: GOPLAUSIBLE_SOLANA_BASE_FAILOVER_POST, photo: GOPLAUSIBLE_SOLANA_BASE_FAILOVER_PHOTO },
 ];
 
 function assertBundleMeta(bundle: PostUpdateBundle): void {

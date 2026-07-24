@@ -14,9 +14,12 @@ import { PumpfunAnalysisSkeleton } from "@/components/pumpfun/PumpfunAnalysisSke
 import { TreasuryPanelSkeleton } from "@/components/treasury/TreasurySkeleton";
 import { BtcAgentExperimentPageSkeleton } from "@/components/experiment/btc/BtcExperimentSkeletons";
 import { EndpointsGridSkeleton } from "@/components/labs/LabsSkeleton";
+import { LpPoolsContentSkeleton } from "@/components/lp/LpPoolsContentSkeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 import { cn } from "@/lib/utils";
+
+export { LpPoolsContentSkeleton };
 
 /** Generic content skeleton when no path-specific match exists. */
 export function GenericPageSkeleton() {
@@ -50,25 +53,6 @@ export function GenericPageSkeleton() {
   );
 }
 
-export function LpPoolsContentSkeleton() {
-  return (
-    <div
-      className="mx-auto w-full max-w-2xl space-y-4 animate-in fade-in duration-300"
-      aria-busy="true"
-      aria-label="Loading pools"
-      role="status"
-    >
-      <div className="grid grid-cols-2 gap-3">
-        <Skeleton className="h-20 rounded-2xl" />
-        <Skeleton className="h-20 rounded-2xl" />
-      </div>
-      {Array.from({ length: 4 }).map((_, i) => (
-        <Skeleton key={i} className="h-24 w-full rounded-2xl" />
-      ))}
-    </div>
-  );
-}
-
 export function EarnTokenDetailSkeleton() {
   return (
     <div
@@ -83,23 +67,32 @@ export function EarnTokenDetailSkeleton() {
           <div className="min-w-0 space-y-2 pt-0.5">
             <Skeleton className="h-9 w-48 max-w-full" />
             <Skeleton className="h-4 w-28" />
-            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-4 w-full max-w-xl" />
           </div>
         </div>
-        <div className="flex gap-2">
-          <Skeleton className="h-10 w-24 rounded-full" />
-          <Skeleton className="h-10 w-28 rounded-full" />
+        <div className="flex flex-wrap gap-2 sm:justify-end">
+          <Skeleton className="h-11 w-24 rounded-full" />
+          <Skeleton className="h-11 w-28 rounded-full" />
         </div>
       </header>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className={cn(overviewCardShell, "p-4")}>
-            <Skeleton className="h-3 w-14" />
-            <Skeleton className="mt-3 h-7 w-20" />
-          </div>
-        ))}
-      </div>
-      <Skeleton className="h-[280px] w-full rounded-[1.35rem]" />
+      <section className="space-y-6">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <Skeleton className="h-12 w-40 sm:h-14 sm:w-48" />
+          <Skeleton className="h-7 w-20 sm:h-8" />
+        </div>
+        <div className="grid grid-cols-3 gap-4 border-t border-border/30 pt-6 sm:gap-8">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="space-y-2">
+              <Skeleton className="h-3 w-12" />
+              <Skeleton className="h-5 w-20" />
+            </div>
+          ))}
+        </div>
+      </section>
+      <section className="space-y-3 border-t border-border/30 pt-6">
+        <Skeleton className="h-3 w-12" />
+        <Skeleton className="h-[280px] w-full rounded-[1.25rem] sm:h-[340px]" />
+      </section>
     </div>
   );
 }
@@ -109,9 +102,9 @@ export function RewardsStatsSkeleton() {
     <div className="space-y-6 animate-in fade-in duration-300" aria-busy="true" aria-label="Loading rewards">
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="space-y-2">
-            <Skeleton className="h-3 w-16" />
-            <Skeleton className="h-7 w-20" />
+          <div key={i} className="min-w-0 space-y-2">
+            <Skeleton className="h-2.5 w-20 rounded-sm" />
+            <Skeleton className="h-7 w-24 rounded-md" />
           </div>
         ))}
       </div>
@@ -129,12 +122,11 @@ export function RewardsPageSkeleton() {
       aria-label="Loading rewards"
       role="status"
     >
-      <RewardsStatsSkeleton />
-      <div className={cn(overviewCardShell, "space-y-3 p-5")}>
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-14 w-full rounded-xl" />
-        ))}
+      <div className="space-y-3">
+        <Skeleton className="h-9 w-40" />
+        <Skeleton className="h-4 w-72 max-w-full" />
       </div>
+      <RewardsStatsSkeleton />
     </div>
   );
 }
@@ -151,13 +143,26 @@ export function StreamflowPageSkeleton() {
         <Skeleton className="h-9 w-48" />
         <Skeleton className="h-4 w-72 max-w-full" />
       </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Skeleton className="h-32 rounded-2xl" />
-        <Skeleton className="h-32 rounded-2xl" />
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className={cn(overviewCardShell, "space-y-2 p-4")}>
+            <Skeleton className="h-3 w-16" />
+            <Skeleton className="h-7 w-20" />
+          </div>
+        ))}
       </div>
       <div className={cn(overviewCardShell, "space-y-3 p-5")}>
         {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-12 w-full rounded-lg" />
+          <div
+            key={i}
+            className="flex items-center justify-between gap-3 rounded-lg border border-border/40 p-3"
+          >
+            <div className="min-w-0 flex-1 space-y-2">
+              <Skeleton className="h-4 w-40 max-w-full" />
+              <Skeleton className="h-3 w-24" />
+            </div>
+            <Skeleton className="h-8 w-20 shrink-0 rounded-md" />
+          </div>
         ))}
       </div>
     </div>
@@ -220,11 +225,27 @@ export function PostStudioSkeleton() {
         <Skeleton className="h-32 w-full rounded-xl bg-white/10" />
         <Skeleton className="h-32 w-full rounded-xl bg-white/10" />
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className="space-y-2">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="aspect-video w-full rounded-2xl bg-white/10" />
+          <li
+            key={i}
+            className="flex flex-col gap-3 rounded-xl border border-white/8 bg-white/[0.02] p-3.5 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div className="flex min-w-0 items-start gap-2.5">
+              <Skeleton className="mt-0.5 h-5 w-5 shrink-0 rounded-sm bg-white/10" />
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <Skeleton className="h-4 w-56 max-w-full bg-white/10" />
+                <Skeleton className="h-3 w-24 bg-white/10" />
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 pl-7 sm:pl-0">
+              <Skeleton className="h-4 w-12 bg-white/10" />
+              <Skeleton className="h-4 w-12 bg-white/10" />
+              <Skeleton className="h-7 w-7 rounded-md bg-white/10" />
+            </div>
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   );
 }
@@ -234,6 +255,7 @@ function skeletonForPath(pathname: string) {
   const root = parts[0] ?? "";
 
   if (root === "earn" && parts[1] === "token") return <EarnTokenDetailSkeleton />;
+  if (root === "earn" && parts[1] === "yield") return <EarnTokenDetailSkeleton />;
   if (root === "earn") return <EarnPageSkeleton />;
   if (root === "invest") return <InvestPageSkeleton />;
   if (root === "spend") return <SpendPageSkeleton />;
@@ -266,7 +288,7 @@ function skeletonForPath(pathname: string) {
     root === "btc2-experiment" ||
     root === "btc3-experiment"
   ) {
-    return <BtcAgentExperimentPageSkeleton />;
+    return <BtcAgentExperimentPageSkeleton panelCount={12} />;
   }
   if (root === "post") return <PostStudioSkeleton />;
   if (

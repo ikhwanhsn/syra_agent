@@ -26,6 +26,8 @@ import {
   ensureX402CorbitsResourceServerInitialized,
   getX402ResourceServerDexter,
   ensureX402DexterResourceServerInitialized,
+  getX402ResourceServerGoplausible,
+  ensureX402GoplausibleResourceServerInitialized,
 } from "./x402ResourceServer.js";
 import { X402_API_PRICE_USD, resolveEffectivePriceUsdAsync, applyDexterPriceFloor } from "../config/x402Pricing.js";
 import {
@@ -36,6 +38,10 @@ import {
   getDexterPayToAddresses,
   getEnabledDexterNetworks,
 } from "../config/dexterX402Networks.js";
+import {
+  getGoplausiblePayToAddresses,
+  getEnabledGoplausibleNetworks,
+} from "../config/goplausibleX402Networks.js";
 import {
   getPayaiPayToAddresses,
   getEnabledPayaiNetworks,
@@ -135,6 +141,7 @@ function resolveInboundFacilitatorFromFlags(req, { useAlgorandFacilitator, useB4
   const profile = resolveResourceServerProfile(req);
   if (profile === "corbits") return "corbits";
   if (profile === "dexter") return "dexter";
+  if (profile === "goplausible") return "goplausible";
   return "payai";
 }
 
@@ -783,17 +790,19 @@ function paymentAcceptedMatchesB402(acc) {
   );
 }
 
-/** @param {'payai'|'corbits'|'dexter'} profile */
+/** @param {'payai'|'corbits'|'dexter'|'goplausible'} profile */
 function getPayToAddressesForProfile(profile) {
   if (profile === "corbits") return getCorbitsPayToAddresses();
   if (profile === "dexter") return getDexterPayToAddresses();
+  if (profile === "goplausible") return getGoplausiblePayToAddresses();
   return getPayaiPayToAddresses();
 }
 
-/** @param {'payai'|'corbits'|'dexter'} profile */
+/** @param {'payai'|'corbits'|'dexter'|'goplausible'} profile */
 function getEnabledNetworksForProfile(profile) {
   if (profile === "corbits") return getEnabledCorbitsNetworks();
   if (profile === "dexter") return getEnabledDexterNetworks();
+  if (profile === "goplausible") return getEnabledGoplausibleNetworks();
   return getEnabledPayaiNetworks();
 }
 
@@ -1046,7 +1055,7 @@ async function resolveEffectivePriceUsd(rawPrice, req, options) {
  * Default x402 verify/settle: PayAI (https://facilitator.payai.network).
  * Opt in per-request via `options.resourceServerProfile` / `req.x402ResourceServerProfile`,
  * or globally via X402_USE_CORBITS_FACILITATOR / X402_USE_DEXTER_FACILITATOR.
- * @returns {'payai'|'corbits'|'dexter'}
+ * @returns {'payai'|'corbits'|'dexter'|'goplausible'}
  */
 function resolveResourceServerProfile(req, options) {
   const fromOptions =
@@ -1061,6 +1070,7 @@ function resolveResourceServerProfile(req, options) {
   if (
     explicit === "corbits" ||
     explicit === "dexter" ||
+    explicit === "goplausible" ||
     explicit === "payai"
   ) {
     return explicit;
@@ -1080,6 +1090,7 @@ function getX402BundleForReq(req, options) {
   const profile = resolveResourceServerProfile(req, options);
   if (profile === "corbits") return getX402ResourceServerCorbits();
   if (profile === "dexter") return getX402ResourceServerDexter();
+  if (profile === "goplausible") return getX402ResourceServerGoplausible();
   return getX402ResourceServer();
 }
 
@@ -1089,6 +1100,8 @@ async function ensureX402ForReq(req, options) {
     await ensureX402CorbitsResourceServerInitialized();
   } else if (profile === "dexter") {
     await ensureX402DexterResourceServerInitialized();
+  } else if (profile === "goplausible") {
+    await ensureX402GoplausibleResourceServerInitialized();
   } else {
     await ensureX402ResourceServerInitialized();
   }
@@ -1869,7 +1882,9 @@ async function tryFacilitatorThenLocalSettle(payload, accepted, req) {
       ? getX402ResourceServerCorbits()
       : profile === "dexter"
         ? getX402ResourceServerDexter()
-        : getX402ResourceServer();
+        : profile === "goplausible"
+          ? getX402ResourceServerGoplausible()
+          : getX402ResourceServer();
   let settlePayload = payload;
   const bazaarOpts = resolveBazaarSettleOptions(req);
   if (bazaarOpts?.bazaar) {

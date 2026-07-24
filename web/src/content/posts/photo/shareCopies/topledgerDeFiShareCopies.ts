@@ -2,105 +2,106 @@ import type { PostPhotoCardRole } from "../photoCardSlots";
 
 /** Per-card X copy for TopLedger DeFi intelligence photo deck. 15 distinct topics. */
 export const TOPLEDGER_DEFI_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `SHIP LOG · Syra ?- TopLedger DeFi intelligence is live.
+  cover: `This cover announces Syra wiring TopLedger DeFi intelligence into the product.
 
-Portfolio and Grow now show lending, perps, LP, staking, yield, and rewards across 20+ Solana protocols. Not just SPL balances.
+Portfolio and Grow now show lending, perps, LP, staking, yield, and rewards across more than 20 Solana protocols, instead of just SPL token balances.
 
-? syraa.fun/wallet?view=portfolio`,
+syraa.fun/wallet?view=portfolio`,
 
-  thesis: `Token holdings are half the wallet story.
+  thesis: `This card names the gap TopLedger closes.
 
-Kamino loans, Jupiter perps, Meteora LP, and staking were invisible in Syra Portfolio. TopLedger indexes 20+ protocols so operators see full net worth.`,
+Token holdings were only half the wallet story: Kamino loans, Jupiter perps, Meteora LP, and staking positions were invisible in Syra Portfolio. TopLedger indexes more than 20 protocols so operators can finally see their full net worth.
 
-  quote: `"You cannot grow what you cannot measure in DeFi."
+syraa.fun/wallet?view=portfolio`,
 
-TopLedger brings lending health, LP value, pending rewards, and perps collateral into Syra Grow and Portfolio. One panel. Live USD.`,
+  quote: `The line on this card is the reason the integration exists: you cannot grow what you cannot measure in DeFi.
 
-  flow: `Full DeFi picture in 4 steps:
+TopLedger brings lending health, LP value, pending rewards, and perps collateral into Grow and Portfolio in one panel, priced live in USD.
 
-1. Connect on syraa.fun
-2. Wallets ? Portfolio (or open Grow)
-3. TopLedger analyze_wallet runs via treasury
-4. DeFi panel shows lending, perps, LP, staking, yield, rewards
+syraa.fun/wallet?view=portfolio`,
 
-Agents: topledger-analyze-wallet via /agent/tools/call`,
+  flow: `This image walks the full DeFi picture in four steps.
 
-  timeline: `TopLedger integration shipped end to end:
+1. Connect your wallet on syraa.fun
+2. Open Wallet, then Portfolio, or open Grow directly
+3. TopLedger's analyze_wallet call runs through the Syra treasury
+4. The DeFi panel shows lending, perps, LP, staking, yield, and rewards together
 
-? defiPositionsService + Grow enrichment
-? DeFi panel on Wallet Portfolio UI
-? 9 agent tools (analyze, lending, perps, LP, staking, yield, rewards, DEX PnL)
-? GET /topledger/wallet/* x402 routes
-? MCP catalog + Ampersend listings`,
+Agents can call the same data through the topledger-analyze-wallet tool.
 
-  pillars: `4 surfaces now DeFi-aware:
+syraa.fun/wallet?view=portfolio`,
 
-? Wallet Portfolio: DeFi positions panel + net worth
-? Grow: lending risk + unclaimed reward signals
-? Agent tools: 9 topledger-* x402 tools
-? Public API: /topledger/wallet/analyze?wallet=`,
+  timeline: `This timeline shows how the TopLedger integration shipped end to end.
 
-  checklist: `TopLedger ?- Syra. Verify it:
+1. A defiPositionsService adapter enriches Grow's recommendations
+2. A DeFi panel was added to the Wallet Portfolio UI
+3. Nine agent tools cover analyze, lending, perps, LP, staking, yield, rewards, and DEX PnL
+4. Public GET /topledger/wallet/* routes went live with x402 pricing
 
-? Portfolio shows DeFi panel when positions exist
-? Grow recommendations mention lending and rewards
-? Agent tool topledger-analyze-wallet returns net worth
-? GET /topledger/wallet/analyze returns 402 without payment
-? MCP: syra_grow_topledger_analyze_wallet`,
+syraa.fun/wallet?view=portfolio`,
 
-  metrics: `Integration by the numbers:
+  pillars: `This bento layout groups the four surfaces that became DeFi-aware.
 
-? 20+ Solana DeFi protocols indexed
-? 9 resellable agent tools
-? ~$0.0004 MPP upstream per call
-? 5 min cache for portfolio enrichment`,
+Wallet Portfolio gets a DeFi positions panel alongside net worth. Grow adds lending risk and unclaimed reward signals to its recommendations. Nine topledger-* agent tools sit behind the same x402 pricing as the rest of Syra. The public API exposes it all at /topledger/wallet/analyze.
 
-  featured: `Before: SPL tokens only.
-Now: full DeFi net worth.
+syraa.fun/wallet?view=portfolio`,
 
-Lending deposits and borrows. Perp collateral. LP positions. Staking. Yield vaults. Pending rewards. FIFO DEX PnL for agents.`,
+  checklist: `This checklist is what shipped with TopLedger.
 
-  comparison: `Portfolio before vs after TopLedger:
+1. A DeFi panel shows on Wallet Portfolio whenever a wallet holds DeFi positions
+2. Grow's recommendations reference lending risk and unclaimed rewards
+3. The topledger-analyze-wallet agent tool returns full net worth
+4. GET /topledger/wallet/analyze answers as a public x402 route
 
-Before: SPL holdings + USD prices. Kamino and Meteora positions required manual explorer checks.
+syraa.fun/wallet?view=portfolio`,
 
-After: DeFi breakdown panel, net worth includes lending/LP/staking, Grow flags unclaimed rewards and leverage risk.`,
+  metrics: `The numbers on this card describe the integration's reach.
 
-  launch: `SHIP LOG · Syra ?- TopLedger is live.
+More than 20 Solana DeFi protocols are indexed, spread across nine resellable agent tools, at roughly $0.0004 in upstream cost per call. Portfolio enrichment is cached for five minutes to keep it fast.
 
-Solana DeFi intelligence in Grow, Portfolio, and nine paid agent tools. MPP upstream. x402 resale. No TopLedger API key required for agents.
+syraa.fun/wallet?view=portfolio`,
 
-Try Portfolio ? syraa.fun/wallet?view=portfolio`,
+  featured: `This featured card is about what net worth means now that DeFi is included.
 
-  deepDive: `Technical surface:
+A single analyze_wallet response covers holdings, lending, perps, LP, staking, yield, rewards, and governance positions, all in one call.
 
-? api/libs/topledgerClient.js: MPP / x402 client
-? api/libs/defiPositionsService.js: analyze + cache
-? api/routes/partner/topledger/: public x402 proxy
-? 9 tools in agentTools.js + agentToolExecutor branch
-? DefiPositionsPanel.tsx on Wallet Portfolio`,
+syraa.fun/wallet?view=portfolio`,
 
-  split: `Product depth + agent resale.
+  comparison: `This before-and-after card compares a token-only portfolio to a full DeFi picture.
 
-Operators see DeFi on Portfolio and Grow.
-Agents pay per call via topledger-* tools or /topledger routes.
-Treasury funds internal enrichment when AGENT_PRIVATE_KEY is set.`,
+Before, Portfolio only showed SPL balances and USD prices, so Kamino and Meteora positions needed a manual explorer check. Now, a DeFi breakdown panel folds lending, LP, and staking into net worth, and Grow flags unclaimed rewards and leverage risk automatically.
 
-  terminal: `Agent tool call:
+syraa.fun/wallet?view=portfolio`,
 
-$ syra agent tools call \\
-  --tool topledger-analyze-wallet \\
-  --params '{"wallet":"..."}'
+  launch: `This launch card marks Syra and TopLedger going live together.
 
-> total_net_worth_usd: 12450.22
-> categories.lending.net_usd: 3200.00
-> categories.lp_positions.value_usd: 890.50
-> active_protocols: 7`,
+Solana DeFi intelligence now runs through Grow, Portfolio, and nine paid agent tools, priced through TopLedger's MPP upstream and resold over x402. No TopLedger API key is required on the agent side.
 
-  cta: `See your full Solana DeFi stack on Syra.
+syraa.fun/wallet?view=portfolio`,
 
-Open Portfolio for the DeFi panel. Agents: topledger-analyze-wallet.
+  deepDive: `This deep-dive card lists the technical surface behind the integration.
 
-? syraa.fun/wallet?view=portfolio
-? api.topledger.xyz`,
+api/libs/topledgerClient.js handles the MPP and x402 client calls, api/libs/defiPositionsService.js runs the analysis with a cache, and a public x402 proxy sits under api/routes/partner/topledger. The DefiPositionsPanel component renders it on Wallet Portfolio.
+
+syraa.fun/wallet?view=portfolio`,
+
+  split: `This split card explains the two ways TopLedger data reaches people.
+
+Operators see DeFi positions directly inside Portfolio and Grow, funded by the Syra treasury. External agents pay per call through the topledger-* tools or the public /topledger routes, settled in USDC over x402.
+
+syraa.fun/wallet?view=portfolio`,
+
+  terminal: `This terminal card shows a real agent tool call in the request path.
+
+Calling topledger-analyze-wallet with a wallet address returns a total net worth of $12,450.22, a lending net position of $3,200, LP value of $890.50, and seven active protocols.
+
+syraa.fun/wallet?view=portfolio`,
+
+  cta: `This closing card is the ship summary: see your full Solana DeFi stack in one place.
+
+Open Portfolio for the DeFi panel, or call topledger-analyze-wallet directly as an agent.
+
+syraa.fun/wallet?view=portfolio
+syraa.fun/grow
+api.topledger.xyz`,
 };

@@ -38,10 +38,10 @@ export function GrowthTrustRankings({ className }: { className?: string }) {
       };
 
   return (
-    <div className={cn("relative mx-auto max-w-2xl", className)}>
+    <div className={cn("relative mx-auto w-full max-w-2xl", className)}>
       {/* Soft spotlight — pulls the strip forward in the hero */}
       <div
-        className="pointer-events-none absolute -inset-x-8 -inset-y-6 -z-10 motion-reduce:hidden"
+        className="pointer-events-none absolute -inset-x-6 -inset-y-5 -z-10 motion-reduce:hidden"
         aria-hidden
       >
         <div
@@ -55,11 +55,11 @@ export function GrowthTrustRankings({ className }: { className?: string }) {
         />
       </div>
 
-      <div className="mb-4 text-center">
+      <div className="mb-3.5 flex flex-wrap items-baseline justify-between gap-2">
         <p
           className={cn(
             growthKickerClass,
-            "mb-2 inline-flex items-center gap-2.5 before:h-px before:w-4 before:bg-foreground/25 after:h-px after:w-4 after:bg-foreground/25",
+            "inline-flex items-center gap-2.5 before:h-px before:w-4 before:bg-foreground/25",
           )}
         >
           Achievements
@@ -111,8 +111,8 @@ export function GrowthTrustRankings({ className }: { className?: string }) {
                 "hover:bg-foreground/[0.04] active:scale-[0.99]",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
                 "sm:min-h-0 sm:px-4 sm:py-5 sm:active:scale-100",
-                "first:rounded-t-[1.35rem] last:rounded-b-[1.35rem]",
-                "sm:first:rounded-l-[1.35rem] sm:first:rounded-tr-none sm:last:rounded-r-[1.35rem] sm:last:rounded-bl-none",
+                "first:rounded-t-2xl last:rounded-b-2xl",
+                "sm:first:rounded-l-2xl sm:first:rounded-tr-none sm:last:rounded-r-2xl sm:last:rounded-bl-none",
                 isLead && "sm:bg-foreground/[0.02]",
               )}
             >

@@ -2,119 +2,106 @@ import type { PostPhotoCardRole } from "../photoCardSlots";
 
 /** Per-card X copy for Agent Memory RAG photo deck. 15 distinct topics. */
 export const AGENT_MEMORY_RAG_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `SHIP LOG · Syra agents just got long-term memory.
+  cover: `This cover announces long-term memory shipping for Syra agents.
 
-NVIDIA Nemotron embeddings + RAG on agent chat.
-Past turns become searchable context for the next reply.
+Chat turns get embedded with NVIDIA's free Nemotron model and stored per user, so past conversations become searchable context for the next reply instead of disappearing when the context window fills up.
 
-Try it → syraa.fun`,
+syraa.fun`,
 
-  thesis: `Context windows forget. Memory does not.
+  thesis: `This card names the problem memory solves.
 
-Syra embeds each chat turn, stores vectors per user, and pulls the most relevant past context into new completions.
+A context window forgets once it fills up, but memory does not have to. Syra embeds each chat turn, stores the vectors per user, and pulls the most relevant past context into new completions, so a follow-up weeks later still lands correctly.
 
-Follow-ups stay grounded without stuffing the whole transcript.`,
+syraa.fun`,
 
-  quote: `"Embed the past. Retrieve what matters. Answer smarter."
+  quote: `The line on this card is the loop in plain words: embed the past, retrieve what matters, answer smarter.
 
-Same Syra chat model. Better memory layer underneath.
+It runs on the same Syra chat model, with a free Nemotron VL embedding call from OpenRouter underneath.
 
-Free Nemotron VL embed via OpenRouter.`,
+syraa.fun`,
 
-  flow: `Agent Memory loop:
+  flow: `This image walks the memory loop in four steps.
 
-1. User asks on /agent/chat/completion
-2. Embed query, search top-K past turns
-3. Inject labelled past context into system prompt
-4. After reply, embed user + assistant as passages
+1. A user asks something on /agent/chat/completion
+2. The question gets embedded and searched against past turns
+3. The most relevant past context gets injected into the system prompt
+4. After the reply, both sides of the exchange get embedded and stored
 
-Write memory. Read memory. Repeat.`,
+syraa.fun`,
 
-  timeline: `What shipped:
+  timeline: `This timeline shows what shipped, from client to chat wire.
 
-→ Nemotron embedding client (query vs passage)
-→ Mongo agent_memories + optional Qdrant
-→ retrieveRelevant on every completion
-→ ingestTurn fire-and-forget after reply
-→ Always on in code. Soft-fail if key missing.`,
+1. MEMORY_ENABLED was turned on in code
+2. A Nemotron embedding client was added, with separate query and passage modes
+3. Vectors get stored in Qdrant, with a Mongo cosine fallback
+4. Chat now retrieves before replying and ingests after, without blocking the response
 
-  pillars: `4 layers. One memory stack:
+syraa.fun`,
 
-→ MODEL: Nemotron VL 1B (free)
-→ DIMS: 1024 lean vectors
-→ STORE: Qdrant or Mongo cosine
-→ SCOPE: anonymousId isolation`,
+  pillars: `This bento layout breaks the memory stack into four pieces.
 
-  checklist: `Agent Memory RAG is live:
+Model is Nemotron VL, a free 1B-parameter embedder. Dims is 1024, kept lean for fast recall. Store is Qdrant, or Mongo cosine search when Qdrant is not configured. Scope is per anonymousId, so no memory crosses between users.
 
-→ Free NVIDIA llama-nemotron-embed-vl-1b-v2
-→ Semantic recall across chat sessions
-→ Per-user isolation (no cross leakage)
-→ Never blocks chat on embed failure
-→ Past context labelled, not live prices
+syraa.fun`,
 
-Open → syraa.fun`,
+  checklist: `This checklist is what is live now.
 
-  metrics: `Memory by the numbers:
+1. Embeddings run on the free NVIDIA Nemotron model via OpenRouter
+2. Semantic recall works across separate chat sessions
+3. Each user's memory is isolated, with no cross-leakage
+4. A failed embed never blocks the chat reply
+5. Retrieved context is labelled as past context, not live prices
 
-→ 1024 embedding dimensions
-→ 4 top-K recalls per turn
-→ 0$ Nemotron embed cost via OpenRouter
+syraa.fun`,
 
-Same brain. Better memory.`,
+  metrics: `The numbers on this card describe the memory setup.
 
-  featured: `The model that powers memory:
+Vectors run at 1024 dimensions, with the top 4 most relevant recalled per turn, and the Nemotron embed itself costs nothing through OpenRouter's free tier. Retrieval only feeds context; live prices still come from tools.
 
-nvidia/llama-nemotron-embed-vl-1b-v2
+syraa.fun`,
 
-Free on OpenRouter. Multimodal-ready.
-Syra uses text-first today; charts and images next.`,
+  featured: `This featured card is about the model doing the embedding work.
 
-  comparison: `Before: trimmed history, lost preferences, broken follow-ups.
+nvidia/llama-nemotron-embed-vl-1b-v2, free on OpenRouter. It handles text today, with multimodal embedding support planned next.
 
-Now: embed, store, retrieve, inject.
-Ask again weeks later. Syra pulls the relevant thread.
+openrouter.ai/nvidia/llama-nemotron-embed-vl-1b-v2`,
 
-Friction gone. Continuity on.`,
+  comparison: `This before-and-after card compares trimmed history to semantic memory.
 
-  launch: `SHIP LOG · Agent Memory RAG on Syra.
+Before, trimming the context window dropped old preferences and broke the thread on long follow-ups. Now, each turn gets embedded, stored, retrieved, and injected, so continuity holds across sessions.
 
-NVIDIA Nemotron embeddings. User-scoped vectors. Soft-fail RAG.
+syraa.fun`,
 
-Chat that remembers, without a bigger context bill.
+  launch: `This launch card marks Agent Memory RAG going live on Syra.
 
-→ syraa.fun
-→ syraa.fun/llm`,
+NVIDIA Nemotron embeddings power it, memory is always on in code, and a failed embed call soft-fails instead of breaking chat.
 
-  deepDive: `Technical surface:
+syraa.fun
+syraa.fun/llm`,
 
-→ memoryConfig.js: MEMORY_ENABLED = true
-→ nemotronEmbeddingClient.js: OpenRouter /embeddings
-→ memoryStore.js: Qdrant + Mongo cosine
-→ memoryService.js: ingestTurn + retrieveRelevant
-→ chat.js: inject + fire-and-forget ingest`,
+  deepDive: `This deep-dive card lists the technical surface behind memory.
 
-  split: `Two paths. One smarter agent:
+memoryConfig.js sets MEMORY_ENABLED to true, nemotronEmbeddingClient.js calls OpenRouter, memoryStore.js handles Qdrant with a Mongo cosine fallback, and chat.js wires in the retrieve step before the reply and the ingestTurn call after it.
 
-WRITE: passage embed after each turn
-READ: query embed before the LLM call
+syraa.fun`,
 
-Retrieval only. Tools still own live prices.`,
+  split: `This split card lays out the two directions memory moves in.
 
-  terminal: `Memory from the stack:
+Writing happens after each turn, with a passage embed of both sides of the exchange. Reading happens before the LLM call, with a query embed used to search prior turns. It is retrieval only; tools still own live prices.
 
-$ POST /agent/chat/completion
-> embed query · input_type=query
-> search top-K · anonymousId filter
-> systemParts.push(past context)
-$ reply → ingestTurn · input_type=passage
-< stored · Qdrant or Mongo`,
+syraa.fun`,
 
-  cta: `Syra remembers now.
+  terminal: `This terminal card shows memory in a real request path.
 
-Set a preference. Start a new chat. Ask again.
+A call to /agent/chat/completion embeds the query, searches the top candidates filtered by anonymousId, and pushes the matched past context into the system prompt. After the reply goes out, ingestTurn stores both messages as passages in Qdrant or Mongo.
 
-Agent → syraa.fun
-LLM lab → syraa.fun/llm
-Model → openrouter.ai/nvidia/llama-nemotron-embed-vl-1b-v2`,
+syraa.fun`,
+
+  cta: `This closing card is the ship summary: Syra remembers now.
+
+Set a preference, start a new chat later, and ask again to see it recalled.
+
+syraa.fun
+syraa.fun/llm
+openrouter.ai/nvidia/llama-nemotron-embed-vl-1b-v2`,
 };

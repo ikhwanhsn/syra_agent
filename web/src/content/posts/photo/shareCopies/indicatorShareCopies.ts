@@ -2,130 +2,105 @@ import type { PostPhotoCardRole } from "../photoCardSlots";
 
 /** Per-card X copy for x402 Indicator API photo deck: 15 distinct topics. */
 export const INDICATOR_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `SHIP LOG · Your agent can't read a TradingView screenshot.
+  cover: `This cover announces the new Indicator API.
 
-Syra shipped GET/POST /indicator: 27 technical indicators from live OHLCV, combinable in one x402 call.
+It turns 27 technical analysis indicators, including RSI, MACD, and Bollinger Bands, into agent-readable JSON behind a single x402 call.
 
-RSI. MACD. Bollinger. Ichimoku. VWAP. Agent-readable JSON.
+api.syraa.fun/indicator/catalog`,
 
-Start free → api.syraa.fun/indicator/catalog`,
+  thesis: `This card states the gap the Indicator API closes.
 
-  thesis: `Charts are for humans. Agents need structured indicator output.
+Autonomous agents need structured latest values, descriptive signals, and optional per-bar series, not TradingView pixels. One candle fetch can now feed many indicators through a single micropayment.
 
-Syra's x402 Indicator API returns latest values, descriptive signals, and optional per-bar series from 10 CEX sources.
+api.syraa.fun/indicator/catalog`,
 
-One candle fetch. Many indicators. One micropayment.`,
+  quote: `This card carries the line behind the API: one candle fetch, many indicators, one checkout.
 
-  quote: `"One candle fetch. Many indicators. One checkout."
+RSI, MACD, and Bollinger Bands can combine in a single x402 call, so agents never double-fetch OHLCV data or pay twice for the same candles.
 
-GET ?indicators=rsi,macd&rsi.period=21
-POST JSON for complex combos
-series=true when you need full arrays
+api.syraa.fun/indicator/catalog`,
 
-Analysis output, not trade directives.`,
+  flow: `This image walks through calling the Indicator API, in four steps.
 
-  flow: `How the Indicator API works:
+1. Pick the OHLCV source, for example symbol BTCUSDT, source binance, interval 1h, limit 200
+2. List the indicators, either as a comma-separated query string or a POST body with parameters
+3. Pay through x402: a 402 response, a signature, then a retry
+4. Read the output, which includes a latest value, a signal, and an optional full series per indicator
 
-1. Pick symbol + interval (BTCUSDT, 1h)
-2. List indicators (rsi, macd, bollinger…)
-3. Pay via x402 (402 → sign → retry)
-4. Read JSON: latest, signal, optional series
+api.syraa.fun/indicator/catalog`,
 
-27 indicators. One call. Agent-parseable.`,
+  timeline: `This timeline traces a request from catalog to combined analytics.
 
-  timeline: `From catalog to combined analytics:
+1. A free GET to the catalog endpoint lists all 27 indicator ids and their parameters
+2. Dotted GET parameters or a POST JSON body configure more complex combinations
+3. An x402 v2 payment settles on Solana, Base, or BSC
+4. The agent reads descriptive signals like overbought or bullish momentum from the response
 
-→ GET /indicator/catalog (free): discover all 27 ids + params
-→ Choose symbol, source, interval, limit
-→ Combine indicators=rsi,macd with dotted params
-→ x402 payment unlocks structured OHLCV analytics
+api.syraa.fun/indicator/catalog`,
 
-No chart scraping. No custom TA per agent.`,
+  pillars: `This bento layout shows the four indicator families behind the API.
 
-  pillars: `4 indicator families. 27 total:
+Momentum covers RSI, MACD, Stochastic, StochRSI, Williams %R, CCI, ROC, TRIX, KST, and Awesome Oscillator. Trend covers SMA, EMA, WMA, WEMA, ADX, PSAR, and Ichimoku Cloud. Volatility covers Bollinger Bands, ATR, True Range, Keltner Channels, and Chandelier Exit. Volume covers MFI, OBV, ADL, Force Index, and VWAP.
 
-→ Momentum: RSI, MACD, Stochastic, CCI, ROC…
-→ Trend: SMA, EMA, ADX, PSAR, Ichimoku
-→ Volatility: Bollinger, ATR, Keltner, Chandelier
-→ Volume: MFI, OBV, VWAP, Force Index
+api.syraa.fun/indicator/catalog`,
 
-All combinable in one /indicator request.`,
+  checklist: `This checklist covers what's live on the Indicator API.
 
-  checklist: `Indicator API checklist. Live now:
+1. GET and POST both work on the x402-gated indicator endpoint
+2. Multiple indicators can combine in a single call
+3. Latest value and signal come back by default
+4. Setting series to true returns the full per-bar array
+5. Ten CEX sources are supported for OHLCV data
 
-→ 27 TradingView-style indicators
-→ GET dotted params + POST JSON body
-→ latest + signal by default
-→ series=true for full per-bar arrays
-→ 10 CEX sources (Binance, OKX, Coinbase…)
-→ Free /indicator/catalog discovery`,
+api.syraa.fun/indicator/catalog`,
 
-  metrics: `27 indicators. 10 CEX sources. 1 candle fetch per call.
+  metrics: `This card lists the numbers behind the Indicator API.
 
-Momentum, trend, volatility, and volume metrics from live OHLCV, structured for agents, gated by x402.
+27 indicators are available across momentum, trend, volatility, and volume. 10 CEX sources supply the underlying OHLCV candles. Every combination still runs on one fetch per call, structured for agent pipelines rather than chart rendering.
 
-Pay per call. Combine freely.`,
+api.syraa.fun/indicator/catalog`,
 
-  featured: `Stack RSI + MACD + Bollinger in one x402 checkout.
+  featured: `This featured card highlights combining indicators in a single request.
 
-Each returns latest, signal, and resolved params. Descriptive signals like overbought or bullish_momentum, not trade directives.
+Requesting rsi, macd, and bollinger together returns latest values, signals, and resolved parameters for each one. The output stays descriptive, not a trade directive.
 
-TradingView math. Agent-readable JSON.`,
+api.syraa.fun/indicator/catalog`,
 
-  comparison: `Before: agents scraped charts or ran custom TA per indicator. Fragile. Expensive. Hard to combine.
+  comparison: `This before and after card compares custom TA with the new API.
 
-Now: GET/POST /indicator with 27 indicators, combinable params, x402 micropayments, and a free catalog.
+Before, agents ran custom technical analysis per indicator or scraped charts, fetching one indicator at a time with fragile parsing. Now, one x402 endpoint covers 27 indicators as structured JSON, with a free catalog for discovery.
 
-Structured analytics without building your own indicator stack.`,
+api.syraa.fun/indicator/catalog`,
 
-  launch: `SHIP LOG · x402 Indicator API on Syra.
+  launch: `This launch card marks the Indicator API as live on Syra.
 
-27 indicators from OHLCV candles. Combine rsi,macd in one call. Free catalog at /indicator/catalog.
+Agent-readable indicators now compute from live OHLCV data, and multiple indicators can combine in a single x402 call.
 
-Momentum. Trend. Volatility. Volume. Built for agents.
+api.syraa.fun/indicator/catalog`,
 
-Try it → api.syraa.fun/indicator/catalog`,
+  deepDive: `This deep-dive card lists the API contract for builders.
 
-  deepDive: `For builders. Indicator API surface:
+A GET request can look like symbol BTCUSDT with indicators rsi and macd and rsi.period set to 21. A POST body instead sends a symbol, interval, and an indicators array with per-id parameters. The response returns success, data, indicators, candle count, and last close, with signals staying descriptive only, and the endpoint is registered on both x402 and MPP discovery catalogs.
 
-→ GET/POST api.syraa.fun/indicator (x402)
-→ technicalindicators library for computation
-→ Binance, OKX, Coinbase, Bybit, Kraken + more
-→ Response: { success, data: { indicators: { rsi: { latest, signal } } } }
-→ MPP + x402 discovery registered`,
+api.syraa.fun/indicator/catalog`,
 
-  split: `AGENT OUTPUT
-latest value + descriptive signal per indicator
-Optional series=true for charting pipelines
+  split: `This split card explains the two ways to call the API.
 
-REQUEST FORMAT
-GET: indicators=rsi,macd&rsi.period=21
-POST: { indicators: [{ id: "rsi", period: 21 }] }
+A GET request uses dotted query parameters for simple multi-indicator calls, like indicators set to rsi and macd with macd.fastPeriod set separately. A POST request instead sends an indicators array for nested parameters and longer lists. Either way, setting series to true adds an aligned time series, and source picks between binance, okx, coinbase, and more.
 
-One endpoint. Many indicators. x402 gated.`,
+api.syraa.fun/indicator/catalog`,
 
-  terminal: `RSI + MACD from the terminal:
+  terminal: `This terminal card shows an RSI and MACD request end to end.
 
-$ curl "api.syraa.fun/indicator?symbol=BTCUSDT&indicators=rsi,macd"
-< HTTP/402 Payment Required
+Calling the indicator endpoint for BTCUSDT on the 1h interval with rsi and macd returns HTTP 402 first. Retrying with a payment signature and an rsi period of 14 comes back HTTP 200, with RSI's latest value at 58.21 marked neutral and MACD's latest values at 142.3 against a signal line of 138.1.
 
-$ curl -H "PAYMENT-SIGNATURE: …" "…&rsi.period=14"
-< HTTP/200 OK
-{
-  "success": true,
-  "data": {
-    "indicators": {
-      "rsi": { "latest": 58.2, "signal": "neutral" },
-      "macd": { "latest": { "MACD": 120, "signal": 115 } }
-    }
-  }
-}`,
+api.syraa.fun/indicator/catalog`,
 
-  cta: `Wire TA into your agent stack.
+  cta: `This closing card points to where to wire the Indicator API into an agent.
 
-→ Catalog: api.syraa.fun/indicator/catalog
-→ Playground: syraa.fun/playground
-→ Example: ?symbol=BTCUSDT&indicators=rsi,macd
+Browse the free catalog to see all 27 indicators, try a call in the playground, or hit the RSI and MACD example directly to see the response shape.
 
-27 indicators. Combinable. x402 pay-per-call.`,
+api.syraa.fun/indicator/catalog
+syraa.fun/playground
+api.syraa.fun/indicator?symbol=BTCUSDT&indicators=rsi,macd`,
 };

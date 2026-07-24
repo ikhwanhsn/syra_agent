@@ -8,8 +8,8 @@ import { cn } from "@/lib/utils";
 import {
   growthDividerClass,
   growthKickerClass,
+  growthShellClass,
 } from "@/components/growth/growthHomeStyles";
-import { PLAYGROUND_CONTENT_SHELL } from "@/components/playground/playgroundStyles";
 
 const COLUMNS = [
   {
@@ -65,9 +65,9 @@ export function GrowthFooter() {
         aria-hidden
       />
 
-      <div className={cn(PLAYGROUND_CONTENT_SHELL, "relative pb-10 pt-14 sm:pb-12 sm:pt-16")}>
-        <div className="grid gap-12 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)] lg:gap-16">
-          <div className="max-w-sm">
+      <div className={cn(growthShellClass, "relative pb-10 pt-14 sm:pb-12 sm:pt-16")}>
+        <div className="grid gap-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,2.2fr)] lg:gap-20 xl:gap-24">
+          <div className="max-w-md">
             <Link
               to="/"
               className="inline-flex items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -85,19 +85,19 @@ export function GrowthFooter() {
               </span>
             </Link>
             <p className={cn(growthKickerClass, "mt-5")}>{SYRA_TAGLINE}</p>
-            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+            <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">
               {SYRA_META_DESCRIPTION}
             </p>
             <a
               href="mailto:support@syraa.fun"
-              className="mt-6 inline-flex h-10 min-h-10 items-center gap-2 rounded-xl border border-border/45 bg-card/40 px-3.5 text-xs font-medium text-muted-foreground transition-colors hover:border-border/70 hover:text-foreground"
+              className="mt-6 inline-flex h-10 min-h-10 items-center gap-2 rounded-xl border border-border/45 bg-card/40 px-3.5 text-xs font-medium text-muted-foreground transition-colors hover:border-border/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Mail className="h-3.5 w-3.5" aria-hidden />
               Contact
             </a>
           </div>
 
-          <div className="grid grid-cols-2 gap-8 sm:grid-cols-4 sm:gap-6">
+          <div className="grid grid-cols-2 gap-8 sm:grid-cols-4 sm:gap-8 xl:gap-10">
             {COLUMNS.map((col) => (
               <div key={col.title}>
                 <h3 className={cn(growthKickerClass, "mb-4")}>{col.title}</h3>

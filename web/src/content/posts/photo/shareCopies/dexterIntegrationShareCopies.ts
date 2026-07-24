@@ -2,125 +2,105 @@ import type { PostPhotoCardRole } from "../photoCardSlots";
 
 /** Per-card X copy for Dexter onchain x402 photo deck. */
 export const DEXTER_INTEGRATION_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `SHIP LOG · Syra × Dexter goes deeper.
+  cover: `This cover announces Dexter going beyond Labs settlement on Syra.
 
-Facilitator settle was step one.
-Onchain activity + entity x402 is step two.
+Dexter already settles Labs facilitator payments. Agents can now call the Dexter onchain activity and entity APIs directly over Solana x402, paying per call for trade summaries and wallet or token intelligence.
 
-dexter-onchain-activity · dexter-onchain-entity
-Free catalog: dexter-x402-catalog
+syraa.fun/chat`,
 
-Try → syraa.fun/chat`,
+  thesis: `This card names the gap Dexter closes for Syra agents.
 
-  thesis: `Settlement without context is half a stack.
+Syra already settles Labs through Dexter. Settlement alone was only half the stack, so agents now buy onchain activity and entity summaries from x402.dexter.cash, paying with Solana USDC per request.
 
-Syra already settles Labs via Dexter.
-Agents now buy Dexter onchain summaries — volumes, counterparties, entity deltas — with Solana USDC x402.
+syraa.fun/chat`,
 
-X → x.com/dexteraisol`,
+  quote: `The line on this card sums up Dexter's two jobs on Syra.
 
-  quote: `"Pay for the settle. Pay for the signal."
+Labs pays for the settle. Agents pay for the signal. Same partner, two separate surfaces: one is the Labs facilitator, the other is a paid tool an agent calls when it needs onchain context.
 
-Same partner. Two Syra surfaces.
-Labs facilitator + agent spend tools on x402.dexter.cash.
+syraa.fun/chat`,
 
-Try → syraa.fun/chat`,
+  flow: `This image walks the Dexter call path in four steps.
 
-  flow: `Dexter x402 on Syra, 4 steps:
+1. Pick a tool: the free catalog, or the paid activity and entity endpoints
+2. Probe x402.dexter.cash and get a Payment Required response
+3. Agent pays with Solana USDC from the Syra wallet
+4. Onchain payload returns: volumes, counterparties, and deltas
 
-1. Pick catalog (free) or activity/entity
-2. Probe x402.dexter.cash → Payment Required
-3. Agent Solana USDC settles
-4. Onchain payload returns to chat
+syraa.fun/chat`,
 
-Test → syraa.fun/chat`,
+  timeline: `This timeline shows Dexter's move from settlement partner to spend-tool partner.
 
-  timeline: `Dexter depth shipped:
+1. Labs facilitator settle path, already live
+2. agentDexterClient plus an external x402 helper added
+3. dexter-x402-catalog shipped as a free discovery endpoint
+4. Paid activity and entity tools added at roughly $0.05 per call
 
-→ Labs facilitator (existing)
-→ agentDexterClient + external x402 helper
-→ dexter-x402-catalog (free)
-→ dexter-onchain-activity / entity (~$0.05)
-→ Partner page /partner/dexter`,
+syraa.fun/chat`,
 
-  pillars: `Dexter stack on Syra:
+  pillars: `This bento layout shows the two layers Dexter now covers.
 
-→ Facilitator — Labs settle rails
-→ Activity — trade summaries
-→ Entity — token/wallet/trade insight
-→ Catalog — free well-known discovery
+Facilitator keeps the existing Labs settle rails unchanged. Activity sells trade summaries and counterparties. Entity sells token, wallet, and trade insight. Catalog is the free well-known endpoint that lists what is available before an agent pays for anything.
 
-X → x.com/dexteraisol`,
+syraa.fun/chat`,
 
-  checklist: `Live today:
+  checklist: `This checklist is what shipped with the Dexter onchain integration.
 
-→ dexter-x402-catalog free discovery
-→ Paid activity + entity agent tools
-→ Agent wallet Solana USDC checkout
-→ Labs facilitator path unchanged
-→ Partner: syraa.fun/partner/dexter
-
-Try → syraa.fun/chat`,
-
-  metrics: `3 tools. ~$0.05 per onchain call. 402 Solana checkout.
-
-Dexter is infrastructure and intelligence for Syra agents.
-
-Try → syraa.fun/chat`,
-
-  featured: `x402.dexter.cash inside Syra agents.
-
-Browse the catalog free.
-Pay for activity and entity when you need the tape.
+1. dexter-x402-catalog free discovery
+2. Paid activity and entity agent tools
+3. Agent wallet Solana USDC checkout
+4. Labs facilitator path unchanged
+5. Partner page at syraa.fun/partner/dexter
 
 syraa.fun/partner/dexter`,
 
-  comparison: `Before: Dexter = Labs facilitator only.
+  metrics: `The numbers on this card describe the new Dexter agent stack.
 
-Now: facilitator + onchain activity/entity tools.
-Agents buy Solana trade context per call.
+Three tools sit behind the integration: the free catalog plus paid activity and entity endpoints, priced around $0.05 per onchain call. Checkout runs on Solana through the same 402 flow Labs already uses.
 
-Try → syraa.fun/chat`,
+syraa.fun/chat`,
 
-  launch: `SHIP LOG · Syra × Dexter onchain x402 is live.
+  featured: `This featured card highlights x402.dexter.cash living inside Syra agents.
 
-Activity. Entity. Free catalog.
-X → x.com/dexteraisol
+Browsing the catalog costs nothing. Paying only kicks in when an agent asks for activity or entity data, the kind of tape a trader would otherwise pull manually from a block explorer.
 
-Try → syraa.fun/chat`,
+syraa.fun/partner/dexter`,
 
-  deepDive: `Dexter technical surface:
+  comparison: `This before-and-after card compares Dexter's role before and after this update.
 
-→ Base: x402.dexter.cash
-→ Free: /.well-known/x402
-→ Paid: /onchain/activity · /onchain/entity
-→ Agent wallet settles Solana USDC accepts
+Before, Dexter on Syra meant Labs facilitator settlement only, with no way for an agent to buy onchain context. Now the facilitator is unchanged and agents can also pay for activity and entity data, Solana context bought per call instead of scraped by hand.
 
-Explore → dexter.cash`,
+syraa.fun/chat`,
 
-  split: `One partner. Two jobs.
+  launch: `This partnership card marks Syra x Dexter as live for onchain x402 tools.
 
-→ Labs: facilitator settle
-→ Agents: onchain intel spend tools
+Facilitator settlement keeps running as before. Paid activity and entity intelligence for agents is the new surface, both settled with Solana USDC through the same partner.
 
-Machine money on both rails.
+syraa.fun/partner/dexter`,
 
-Try → syraa.fun/chat`,
+  deepDive: `This deep-dive card lists the technical surface behind the Dexter integration.
 
-  terminal: `Dexter catalog from agents:
+The base is x402.dexter.cash. /.well-known/x402 is the free catalog. /onchain/activity and /onchain/entity are paid. callExternalX402WithAgent handles the settle path, and Dexter posts as dexteraisol on X.
 
-$ tool dexter-x402-catalog
-→ resources: activity, entity, …
-$ tool dexter-onchain-activity
-  scope=token mint=<mint>
-→ 402 → pay → trade summary
+dexter.cash`,
 
-Try → syraa.fun/chat`,
+  split: `This split card explains Dexter's two jobs on Syra.
 
-  cta: `Syra × Dexter. Settle + onchain intel.
+Labs keeps the facilitator settle rails it already had. Agents get a second surface: paid activity and entity tools plus the free catalog for discovery, all settled in Solana USDC.
 
-→ syraa.fun/chat
-→ syraa.fun/partner/dexter
-→ dexter.cash
-→ x.com/dexteraisol`,
+syraa.fun/chat`,
+
+  terminal: `This terminal card shows an agent calling Dexter directly.
+
+Calling dexter-x402-catalog returns the available resources, including activity and entity. Calling dexter-onchain-activity with a token mint triggers a 402, the agent pays in Solana USDC, and the trade summary unlocks.
+
+syraa.fun/chat`,
+
+  cta: `This closing card is the ship summary: call Dexter from a Syra agent for onchain intelligence, not just settlement.
+
+Start with the free catalog, then pay for activity or entity on a specific mint or wallet.
+
+syraa.fun/chat
+syraa.fun/partner/dexter
+dexter.cash`,
 };

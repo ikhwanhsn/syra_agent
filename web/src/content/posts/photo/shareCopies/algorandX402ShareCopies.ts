@@ -2,134 +2,105 @@ import type { PostPhotoCardRole } from "../photoCardSlots";
 
 /** Per-card X copy for Algorand x402 photo deck: 15 distinct topics. */
 export const ALGORAND_X402_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `SHIP LOG · Algorand treasuries should stay on Algorand.
+  cover: `This cover announces that Syra's pay-per-call intelligence APIs now settle USDC natively on Algorand Mainnet.
 
-x402 intelligence APIs now settle USDC on Algorand Mainnet via GoPlausible. Pay-per-call. No bridge. No subscription.
+GoPlausible verifies and settles the payment, so an Algorand treasury never has to bridge to another chain just to pay for data. The badge on this card marks it as AVM, USDC, and Mainnet, all live.
 
-402 → sign ASA transfer → unlock data.
+syraa.fun/playground`,
 
-Try it → syraa.fun/playground`,
+  thesis: `This card names the gap Algorand builders were hitting before this update: paying for intelligence meant bridging off Algorand.
 
-  thesis: `Algorand builders should not bridge just to pay for intelligence.
+Syra agents already settled on Solana, PayAI's EVM chains, and BSC. Algorand needed the same native x402 path, with USDC ASA as the asset and GoPlausible handling verify and settle.
 
-Syra agents already settle on Solana, PayAI EVM chains, and BSC. Algorand needed native x402: USDC ASA, GoPlausible verify/settle, fee payer included.
+syraa.fun/playground`,
 
-Now it ships.
+  quote: `The line on this card is the point of the whole release: settle where your treasury lives, including Algorand.
 
-Try it → syraa.fun/playground`,
+Solana, PayAI's EVM chains, BSC B402, and Algorand Mainnet all sit inside the same x402 v2 surface now, so a builder pays with whatever wallet they already run.
 
-  quote: `"List once on x402. Settle where your treasury lives, including Algorand."
+syraa.fun/playground`,
 
-Solana · PayAI EVM · BSC B402 · Algorand Mainnet. One Syra checkout.
+  flow: `This image walks the Algorand payment path in four steps.
 
-Try it → syraa.fun/playground`,
+1. Call any paid Syra API
+2. Get a 402 that lists an Algorand accept alongside USDC ASA 31566704
+3. Sign the ASA transfer, with GoPlausible's fee payer covering the ALGO fee
+4. GoPlausible verifies the genesis hash, settles, and the payload unlocks
 
-  flow: `x402 on Algorand, 4 steps:
+syraa.fun/playground`,
 
-1. Call paid Syra API
-2. 402 with algorand:* accept + USDC ASA 31566704
-3. Sign ASA transfer (GoPlausible fee payer covers ALGO)
-4. Verify → settle → 200 with payload
+  timeline: `This timeline covers how the Algorand integration went from config to a proven mainnet payment.
 
-Test → syraa.fun/playground`,
+1. AVM resource server built on x402-avm/core plus a GoPlausible facilitator client
+2. 402 middleware updated so every paid response appends an Algorand accept
+3. Agent client shipped with a mainnet Algod configuration fix
+4. Full loop validated end to end: 402, pay, verify_ok, then 200 on GET /news
 
-  timeline: `Algorand x402 rollout:
+syraa.fun/playground`,
 
-→ @x402-avm resource server + GoPlausible facilitator
-→ Algorand accept appended to every 402 response
-→ Agent AVM client with mainnet Algod fix
-→ E2E: 402 → pay → verify → settle → 200 on /news
+  pillars: `This bento layout breaks down the four pieces of the Algorand checkout stack.
 
-Mainnet validated.
+The network card confirms Algorand Mainnet with its genesis hash verified. USDC ASA 31566704 is the asset, using the exact scheme with 6-decimal micropayments. GoPlausible is the facilitator, handling verify, settle, and fee payer sponsorship. The fourth card ties it to the Global x402 Challenge, where mainnet volume counts toward the leaderboard.
 
-Try it → syraa.fun/playground`,
+syraa.fun/playground`,
 
-  pillars: `4 layers. One AVM checkout:
+  checklist: `This checklist is what shipped with Algorand support.
 
-→ Network: Algorand Mainnet CAIP-2
-→ Asset: USDC ASA 31566704
-→ Facilitator: GoPlausible verify + settle
-→ Client: @x402-avm/fetch agent payments
+1. Every paid Syra API now includes an algorand accept
+2. USDC ASA 31566704 settles on Algorand Mainnet
+3. GoPlausible's fee payer is included in the payment extra field
+4. GET /x402/capabilities reports algorand as enabled
+5. The validate-algorand-x402 npm script proves the full paid loop end to end
 
-Try it → syraa.fun/playground`,
+syraa.fun/playground`,
 
-  checklist: `Live for Algorand builders:
+  metrics: `The numbers on this card are the mainnet proof for Algorand support.
 
-→ algorand:* in every paid 402 accept
-→ USDC ASA micropayments (6 decimals)
-→ GoPlausible fee payer on payment extra
-→ GET /x402/capabilities shows algorand enabled
-→ npm run validate-algorand-x402 E2E script
+A 402 Payment Required response uses the AVM exact scheme, and the loop ends in a 200 on the paid resource. Capabilities, the 402 offer, the signed USDC transfer, GoPlausible's verify step, and delivery of the resource have all been validated together.
 
-Test → syraa.fun/playground`,
+syraa.fun/playground`,
 
-  metrics: `Algorand x402 by the numbers:
+  featured: `This featured card is the end-to-end confirmation on Algorand Mainnet.
 
-→ 402: HTTP-native checkout
-→ AVM: exact scheme on mainnet
-→ 200: paid /news E2E confirmed
+A paid GET /news call returned 200 after the genesis hash matched and GoPlausible's fee payer signed the transaction. The response carried a Payment-Response header, which is what the Global x402 Challenge checks for.
 
-GoPlausible settles. Your agents stay on Algorand.
+syraa.fun/playground`,
 
-Try it → syraa.fun/playground`,
+  comparison: `This before-and-after card compares bridging off Algorand with paying natively.
 
-  featured: `Mainnet E2E confirmed on Syra.
+Before, Algorand agents either bridged to another chain or skipped Syra's paid APIs, since there was no native AVM x402 path. Now a 402 response accepts USDC ASA on mainnet, GoPlausible settles it, and the agent never leaves Algorand.
 
-402 Payment Required → USDC ASA transfer → GoPlausible verify_ok → 200 with news payload.
+syraa.fun/playground`,
 
-Genesis hash matched. Fee payer signed. Challenge-ready volume.
+  launch: `This partnership card marks x402 on Algorand Mainnet as live.
 
-Try it → syraa.fun/playground`,
+Syra and GoPlausible now support USDC payments on every paid intelligence API, built with the Global x402 Challenge in mind.
 
-  comparison: `Before: Algorand agents bridged or skipped paid Syra APIs. No native AVM settlement.
+syraa.fun/playground
+algorand.co/global-x402-challenge`,
 
-Now: 402 → sign USDC on Algorand → GoPlausible settles. Same brain, Algorand-native treasury.
+  deepDive: `This deep-dive card lists the technical surface behind Algorand support.
 
-The friction just disappeared.
+algorandX402Networks.js holds the CAIP-2 network and USDC ASA config. x402AvmResourceServer.js wraps a GoPlausible facilitator singleton. x402PaymentV2.js routes verify and settle calls for the algorand network. agentAvmX402Client.js carries the mainnet Algod client fix, and a network field on PaidApiCall tracks volume for challenge reporting.
 
-Try it → syraa.fun/playground`,
+facilitator.goplausible.xyz/docs`,
 
-  launch: `SHIP LOG · x402 on Algorand Mainnet is live.
+  split: `This split card lays out the four payment rails a Syra caller can choose from.
 
-Syra × GoPlausible: USDC ASA payments on every paid intelligence API. Fee abstraction included. Global x402 Challenge ready.
+Solana covers agent wallet auto-pay. PayAI's EVM chains cover eight mainnets. BSC runs its own B402 lane for USD1 and USDC. Algorand settles through GoPlausible with USDC ASA. Every paid endpoint advertises all four, and the client picks whichever matches its treasury.
 
-Try it → syraa.fun/playground`,
+syraa.fun/playground`,
 
-  deepDive: `Algorand x402 integration, technical surface:
+  terminal: `This terminal card shows the Algorand path inside a real request.
 
-→ algorandX402Networks.js: mainnet CAIP-2 + USDC ASA
-→ x402AvmResourceServer.js: GoPlausible facilitator
-→ x402PaymentV2.js: verify/settle routing for algorand:*
-→ agentAvmX402Client.js: @x402-avm/fetch payer
-→ validateAlgorandX402.js: capabilities + paid E2E
+Checking capabilities returns algorand enabled as true. A paid news call comes back 402 with an Algorand accept, and running the validate-algorand-x402 script completes the loop with a 200 and a Payment-Response header.
 
-Docs → facilitator.goplausible.xyz/docs`,
+syraa.fun/playground`,
 
-  split: `Multi-rail x402 on Syra:
+  cta: `This closing card is the summary for Algorand-native agents: the payment rail is live, and it is the same Syra brain on the other side.
 
-→ Solana: agent auto-pay + PayAI
-→ EVM: Base, Polygon, Arbitrum, Avalanche, Sei, SKALE, X Layer
-→ BSC: B402 USD1 / USDC
-→ Algorand: GoPlausible USDC ASA
+Hit a paid endpoint, pay USDC on Algorand Mainnet, and the intelligence unlocks.
 
-Pick your chain. Pay per call.
-
-Try it → syraa.fun/playground`,
-
-  terminal: `Algorand x402 from the terminal:
-
-$ curl api.syraa.fun/news?ticker=general
-< HTTP/402 Payment Required
-< accepts: algorand:wGHE2… asset 31566704
-$ npm run validate-algorand-x402
-< HTTP/200 OK · 37 articles · Payment-Response
-
-Try it → syraa.fun/playground`,
-
-  cta: `Algorand-native agents: your payment rail is live.
-
-Hit a paid Syra endpoint. Pay USDC on mainnet. Unlock intelligence.
-
-→ syraa.fun/playground
-→ algorand.co/global-x402-challenge`,
+syraa.fun/playground
+algorand.co/global-x402-challenge`,
 };

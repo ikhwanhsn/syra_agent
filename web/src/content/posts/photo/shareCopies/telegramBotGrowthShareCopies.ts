@@ -2,127 +2,105 @@ import type { PostPhotoCardRole } from "../photoCardSlots";
 
 /** Per-card X copy for Syra Telegram bot growth photo deck. User-facing only. */
 export const TELEGRAM_BOT_GROWTH_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `SHIP LOG · Syra Telegram just leveled up.
+  cover: `This cover announces the Syra Telegram bot with daily habits built in.
 
-Ask for BTC news or a SOL signal in chat.
-Free daily live-data credits. Morning briefing. Referral invites.
+Ask it for live news or a signal in plain language and get an answer in chat. Free daily credits cover the first asks, a morning briefing runs on its own, and a referral link lets you invite friends onto your stack.
 
-→ t.me/syra_trading_bot`,
+t.me/syra_trading_bot`,
 
-  thesis: `Crypto intel should live where you already chat.
+  thesis: `This card names why Syra lives inside Telegram instead of a separate app.
 
-Tabs kill momentum. Syra puts a walleted agent in Telegram:
-short asks, live data, morning pulse.
+Switching tabs kills momentum. Syra puts a walleted agent directly in the chat you already have open, so a short question gets live data and a morning pulse without leaving Telegram.
 
-→ t.me/syra_trading_bot`,
+t.me/syra_trading_bot`,
 
-  quote: `"Start. Ask. Brief. Share."
+  quote: `The line on this card is the four-step habit the bot is built around.
 
-3 free live-data calls per day.
-Syra Daily in the morning.
-Invite friends on your stack.
+Start the bot, ask it something, keep the morning brief on, then share it. Three free live-data calls run every day, Syra Daily delivers a pulse each morning, and referral is there when you want friends on your stack.
 
-→ t.me/syra_trading_bot`,
+t.me/syra_trading_bot`,
 
-  flow: `Syra on Telegram, 4 steps:
+  flow: `This image walks the path from opening the bot to making it a habit.
 
-1. /start on t.me/syra_trading_bot
-2. Ask "BTC news" or "SOL signal"
-3. Keep Syra Daily on for the morning pulse
-4. /referral to invite friends
+1. Open with /start on the Syra bot
+2. Ask something like BTC news or SOL signal
+3. Keep Syra Daily on for the morning brief
+4. Run /referral to invite friends
 
-Try → t.me/syra_trading_bot`,
+t.me/syra_trading_bot`,
 
-  timeline: `What shipped for you:
+  timeline: `This timeline shows what was built to make the bot a daily habit.
 
-→ Free live-data credits every UTC day
-→ Syra Daily morning briefing + shortcuts
-→ /digest on|off and /mute
-→ Referral share with daily sponsor cap
-→ Same tools as the web agent`,
+1. Three free live-data calls reset every UTC day
+2. Syra Daily digest ships with a /mute option
+3. Referral sponsor link with a daily cap
+4. Same tools as the web agent, so nothing is Telegram-only
 
-  pillars: `3 reasons to open Syra daily:
+t.me/syra_trading_bot`,
 
-→ Free credits: feel live data before you deposit
-→ Syra Daily: one morning briefing
-→ Referral: friends use your USDC (capped)
+  pillars: `This bento layout shows three reasons to open Syra on Telegram every day.
 
-→ t.me/syra_trading_bot`,
+Free credits let you feel live data before depositing anything, three calls reset daily. Syra Daily delivers one morning briefing with shortcuts. Referral lets friends use your USDC under a daily cap.
 
-  checklist: `Live today:
+t.me/syra_trading_bot`,
 
-→ /start creates your agent wallet
-→ 3 free live-data calls / day
-→ Syra Daily briefing
-→ /referral create yourname
-→ /wallet when you want more depth
+  checklist: `This checklist is what you can already do on the Syra Telegram bot.
 
-→ t.me/syra_trading_bot`,
+1. /start creates your agent wallet
+2. 3 free live-data calls every day
+3. Syra Daily morning briefing
+4. /referral create yourname
+5. /wallet when you want more depth
 
-  metrics: `3 free calls. 1 daily briefing. Native Telegram.
+t.me/syra_trading_bot`,
 
-General crypto Q&A stays free.
-Live tools use credits first, then USDC.
+  metrics: `The numbers on this card describe daily usage on the bot.
 
-→ t.me/syra_trading_bot`,
+Three free live-data calls reset every day, one digest arrives each morning, and it runs natively inside Telegram. General crypto questions stay free; live tools spend credits first, then USDC.
 
-  featured: `Try this first:
+t.me/syra_trading_bot`,
 
-"BTC news"
-"SOL signal"
-"ETH sentiment"
+  featured: `This featured card suggests the first thing to try on the bot.
 
-Free credits cover your first live asks.
+Typing BTC news is enough to get a live answer. Free credits cover your first live-data asks, so you can feel the bot work before depositing anything.
 
-→ t.me/syra_trading_bot`,
+t.me/syra_trading_bot`,
 
-  comparison: `Before: ten tabs for news and signals.
+  comparison: `This before-and-after card compares checking crypto across ten tabs versus one chat.
 
-Now: one Telegram chat.
-Free credits → deposit when you want more.
+Before, getting news, signals, and charts meant jumping across separate sites. Now it is one Telegram chat: free credits to start, then your Syra wallet when you want more.
 
-→ t.me/syra_trading_bot`,
+t.me/syra_trading_bot`,
 
-  launch: `SHIP LOG · Syra Telegram is ready for daily use.
+  launch: `This launch card marks the Syra Telegram bot as ready for daily use.
 
-Free credits. Morning briefing. Referral invites.
+Free credits, a morning briefing, and referral invites are all live. Open /start and ask it something to see it work.
 
-→ t.me/syra_trading_bot
-→ Community: t.me/syra_ai`,
+t.me/syra_trading_bot`,
 
-  deepDive: `Commands worth knowing:
+  deepDive: `This deep-dive card lists the commands worth knowing on the bot.
 
-→ /start · /wallet · /portfolio
-→ /digest on|off · /mute
-→ /referral create yourname
-→ Ask anything in plain language
+/start, /wallet, and /portfolio cover the basics. /digest on or off and /mute control the morning briefing. /referral create yourname sets up your invite link, and you can otherwise just ask in plain language.
 
-Docs → docs.syraa.fun/docs/telegram-bot`,
+docs.syraa.fun/docs/telegram-bot`,
 
-  split: `Free win → funded depth.
+  split: `This split card explains the path from free credits to funded depth.
 
-→ Credits: 3 live-data calls / day
-→ Wallet: deposit USDC + a little SOL
-→ Referral: sponsor friends with a daily cap
+Use the daily credits first, they reset every UTC day. Deposit USDC and a little SOL when you want unlimited live tools. Referral sponsors friends under a daily cap, and /digest off mutes the briefing anytime.
 
-→ t.me/syra_trading_bot`,
+t.me/syra_trading_bot`,
 
-  terminal: `In Telegram:
+  terminal: `This terminal card shows a real session inside Telegram.
 
-/start
-→ wallet ready
-BTC news
-→ free live-data credit used
-/digest on
-→ morning briefing armed
+Running /start sets up the agent wallet. Asking BTC news spends one free live-data credit. Turning /digest on arms the morning briefing.
 
-→ t.me/syra_trading_bot`,
+t.me/syra_trading_bot`,
 
-  cta: `Open Syra on Telegram.
+  cta: `This closing card is the ship summary: open Syra on Telegram and start asking.
 
-→ t.me/syra_trading_bot
-→ docs.syraa.fun/docs/telegram-bot
-→ Community: t.me/syra_ai
+Run /start, then try BTC news. Turn on Syra Daily for the morning pulse.
 
-/start then ask "BTC news".`,
+t.me/syra_trading_bot
+docs.syraa.fun/docs/telegram-bot
+t.me/syra_ai`,
 };

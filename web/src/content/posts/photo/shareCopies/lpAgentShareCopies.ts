@@ -1,129 +1,105 @@
 import type { PostPhotoCardRole } from "../photoCardSlots";
 
-/** Per-card X copy for LP Agent photo deck — 15 distinct topics. */
+/** Per-card X copy for LP Agent photo deck: 15 distinct topics. */
 export const LP_AGENT_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `SHIP LOG · Syra LP agents just leveled up.
+  cover: `This cover introduces the LP Agent System launching on Syra.
 
-78 strategies compete in sim, then deploy SOL on Meteora DLMM when a leader clears the profit gate.
+78 strategies compete against each other in a simulation lab built on Meteora DLMM pools. Your agent only deploys real SOL once a leader proves itself in sim.
 
-Zero SOL at risk until you are convinced.
+syraa.fun/lp-experiment`,
 
-Start the lab → syraa.fun/lp-experiment`,
+  thesis: `This card states the problem LP agents solve.
 
-  thesis: `Meteora bins do not wait for you.
+Meteora bins do not wait for you. Fee yield, impermanent loss, and out-of-range exits all need constant attention. Syra's LP agents screen pools, size positions, and manage exits so you can deploy capital without watching charts all day.
 
-Fee yield, impermanent loss, out-of-range exits: manual LP is a full-time job. Syra agents screen pools, size positions, and manage exits so you deploy capital without chart-watching.
+syraa.fun/lp-experiment`,
 
-Autonomous LP should not require screen time.`,
+  quote: `This card carries the line that sums up the LP agent thesis: prove the strategy in simulation, then deploy the same math on-chain.
 
-  quote: `"Prove it in sim. Deploy the same math on-chain."
+Paper winners and live LP used to run on different economics. Syra unified the model, so trust earned in the lab transfers directly to real SOL.
 
-Paper winners and live LP used different economics. Syra unified the model. Trust earned in the lab transfers directly to real SOL.
+syraa.fun/lp-experiment`,
 
-Run the sim first → syraa.fun/lp-experiment`,
+  flow: `This image walks through how Syra LP agents work, in four steps.
 
-  flow: `How Syra LP agents work:
+1. Screen Meteora pools on fee to TVL ratio, organic score, smart money, and risk to reward
+2. Run 78 strategies through the sim lab daily with zero SOL at risk
+3. Flip a strategy live once it clears the profit gate
+4. Collect fees and let the Jupiter sidecar handle exits
 
-1. Screen Meteora pools (fee/TVL, smart money, risk/reward)
-2. 78 strategies compete daily. Zero SOL at risk.
-3. Flip live when a leader clears the profit gate
-4. Earn fees, claim yield, sweep via Jupiter sidecar
+syraa.fun/lp-experiment`,
 
-Stop babysitting bins.
+  timeline: `This timeline traces how a strategy moves from sim to live capital.
 
-Start the lab → syraa.fun/lp-experiment`,
+1. Pool screen ranks Meteora SOL pools by fee to TVL and smart money signals
+2. 78 strategies compete daily while a real mirror agent tracks the PnL leader
+3. A profit gate blocks live opens until the leader clears a 52 percent win rate
+4. Once cleared, the agent opens DLMM bins, earns fees, and sweeps exits through Jupiter
 
-  timeline: `What shipped for sim-to-live LP:
+syraa.fun/lp-experiment`,
 
-→ Screen Meteora SOL pools on fee/TVL + smart money
-→ 78 strategies compete daily. Real mirror tracks PnL leader
-→ Profit gate blocks live until 52% win rate clears
-→ Fund LP wallet, open DLMM bins, earn fees, Jupiter sweep
+  pillars: `This bento layout shows four things that separate Syra LP agents from paper trading.
 
-Proof before SOL → syraa.fun/lp-experiment`,
+The real mirror strategy tracks the live PnL leader and pool screen. Hold guards wait 45 to 90 minutes before an out-of-range exit fires, so fees get collected first. The profit gate blocks live deployment until a leader clears its win rate, and the Jupiter sidecar handles on-chain exits with an optional fee on referral accounts.
 
-  pillars: `4 things that separate Syra LP agents from paper trading:
+syraa.fun/lp-experiment`,
 
-→ Real mirror: sim tracks live PnL leader + pool screen
-→ Hold guards: collect fees before out-of-range exits
-→ Profit gate: live blocked until leader clears win rate
-→ Jupiter sweep: on-chain exits, fee on referral accounts`,
+  checklist: `This checklist covers what shipped with LP agents.
 
-  checklist: `What ships with LP agents:
+1. 78 strategies: a static roster, daily evolutionary spawns, and one real mirror
+2. One lpEconomicsModel shared between sim and live math
+3. Meteora DLMM open, hold, claim, and close on-chain
+4. A Jupiter sidecar that sweeps exits with optional platform fees
 
-→ 78 strategies: static roster + daily evo spawns + real mirror
-→ One lpEconomicsModel: same math in sim and live
-→ Meteora DLMM open, hold, claim, close on-chain
-→ Jupiter sidecar sweeps with optional platform fees
+syraa.fun/lp-experiment`,
 
-See it in action → syraa.fun/lp-experiment`,
+  metrics: `This card lists the core numbers behind the LP agent system.
 
-  metrics: `78 strategies. DLMM on-chain. One shared economics model.
+78 strategies evolve and compete every day inside the sim lab. Meteora DLMM handles the on-chain execution. Both sim and live share one economics model, so the fee math and exit rules never diverge between paper and real trades.
 
-Syra screens Meteora pools, runs daily sim competition, and mirrors the leader into live deployment. Same fee math. Same exit rules.
+syraa.fun/lp-experiment`,
 
-Watch the lab → syraa.fun/lp-experiment`,
+  featured: `This featured card highlights the sim lab where strategies prove themselves before risking SOL.
 
-  featured: `Test 78 strategies. Risk zero SOL.
+78 strategies compete daily, screening Meteora pools and evolving overnight. Your SOL only deploys once a leader clears the profit gate, so strategies earn their shot at real capital instead of guessing.
 
-The sim lab screens Meteora pools and evolves strategies daily. Your SOL only deploys when a leader clears the profit gate.
+syraa.fun/lp-experiment`,
 
-Strategies prove out before they touch your wallet.`,
+  comparison: `This before and after card compares paper LP trading with live deployment.
 
-  comparison: `Before: sim and live ran different math. Deploying SOL meant guessing if paper PnL would hold.
+Before, sim and live ran on different economics, so a winning paper strategy was still a guess once real SOL was on the line. Now, one economics model, a real mirror agent, and profit gates carry the same rules from sim straight into Meteora DLMM execution.
 
-Now: one economics model. Mirror agent. Profit gates. Meteora DLMM. Sim to live, same rules.
+syraa.fun/lp-experiment`,
 
-The gap between "looks good in sim" and "deploy with proof" just closed.
+  launch: `This launch card marks the LP Agent System as live on Syra.
 
-→ syraa.fun/lp-experiment`,
+The sim lab runs 78 competing strategies against Meteora pools every day. A real mirror agent tracks the leader, profit gates decide when live capital is justified, and execution stays non-custodial on-chain.
 
-  launch: `SHIP LOG · LP Agent System is live.
+syraa.fun/lp-experiment`,
 
-78 strategies compete in sim. Your agent deploys SOL on Meteora DLMM only when a leader clears the profit gate.
+  deepDive: `This deep-dive card lists the technical surface behind the LP agent stack.
 
-Real mirror. Profit gates. Non-custodial on-chain execution.
+The LP experiment lab runs a 78-strategy leaderboard. The live Meteora DLMM agent tracks open positions, the dashboard shows LP analytics and a treasury chart, and execution runs through a dedicated LP wallet with policy-gated permissions.
 
-Start in the lab → syraa.fun/lp-experiment`,
+syraa.fun/lp-experiment`,
 
-  deepDive: `LP agent stack, API to on-chain:
+  split: `This split card explains the two halves of the LP agent system.
 
-→ LP experiment lab with 78-strategy leaderboard
-→ Live Meteora DLMM agent with position tracking
-→ Dashboard LP analytics and treasury chart
-→ Dedicated LP wallet and policy-gated execution
+The sim side runs 78 strategies through daily evolution with zero SOL at risk, while a real mirror agent tracks the PnL leader. The live side only opens once the profit gate clears, then manages Meteora DLMM positions and sweeps exits through a Jupiter sidecar.
 
-Explore → syraa.fun/lp-experiment`,
+syraa.fun/lp-experiment`,
 
-  split: `Sim proves it. Live runs it.
+  terminal: `This terminal card shows an LP agent session end to end.
 
-SIM LAB
-78 strategies evolve daily. Zero SOL at risk. Real mirror tracks PnL leader.
+Running the LP lab command screens Meteora SOL pools across 78 strategies and surfaces the current leader, in this case a Conservative Spot plus Smart Money strategy up 12.4 percent in sim. Enabling the real agent with 2.5 SOL passes the policy check and profit gate, then opens a DLMM position with 30 bins on each side of the SOL/USDC pool.
 
-LIVE AGENT
-Fund LP wallet. Pass profit gate. Meteora DLMM open, hold, claim, close on-chain.
+syraa.fun/lp-experiment`,
 
-Same signals. Same exit rules. Deploy only when convinced.
+  cta: `This closing card points to where to start using LP agents.
 
-→ syraa.fun/lp-experiment`,
+Open the LP experiment page to watch 78 strategies compete, check the dashboard for treasury performance, or fund your LP wallet in settings to go live once a leader proves out.
 
-  terminal: `LP agents from the terminal:
-
-$ syra lp lab --cohort active
-> 78 strategies screening Meteora SOL pools…
-> leader: Conservative Spot + Smart Money (+12.4% sim)
-$ syra lp real --enable --fund 2.5 SOL
-> policy check passed · profit gate clear
-> opening DLMM position · bins 30/30 · pool SOL/USDC
-< position open · tx confirmed · earning fees
-
-Run the lab → syraa.fun/lp-experiment`,
-
-  cta: `Stop babysitting bins. Start the sim lab.
-
-→ LP experiment: syraa.fun/lp-experiment
-→ Dashboard: syraa.fun/overview
-→ Fund LP wallet: syraa.fun/settings
-
-78 strategies compete daily. Deploy live when a leader clears the gate.`,
+syraa.fun/lp-experiment
+syraa.fun/overview
+syraa.fun/settings`,
 };

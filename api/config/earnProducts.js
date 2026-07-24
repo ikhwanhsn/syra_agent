@@ -8,6 +8,7 @@
 /** @typedef {'SOL' | 'USDC'} EarnDenom */
 /** @typedef {'lp' | 'btcQuant' | 'btc3' | 'momentumRotator' | 'lstLoop' | 'alphaSniper'} EarnAdapterKey */
 /** @typedef {'beta' | 'coming_soon' | 'lab'} EarnProductStatus */
+/** @typedef {'lower' | 'moderate' | 'higher' | 'extreme'} EarnRiskLevel */
 
 /**
  * @typedef {object} EarnProductDef
@@ -16,6 +17,10 @@
  * @property {EarnProductStatus} status
  * @property {string} chain
  * @property {string} description
+ * @property {string} summary - one-line plain-language pitch
+ * @property {string[]} howItWorks - ordered steps explaining the mechanism
+ * @property {string[]} rails - protocols / venues used
+ * @property {EarnRiskLevel} riskLevel - UI badge only; not a guarantee
  * @property {EarnAdapterKey} adapterKey
  * @property {EarnDenom} denom
  * @property {string} walletPurpose - agent wallet purpose for deposits
@@ -47,6 +52,16 @@ export const EARN_PRODUCTS = [
     chain: "solana",
     description:
       "Automated Meteora DLMM liquidity — earn trading fees from your LP agent wallet. Non-custodial; you fund the agent, Syra runs the strategy.",
+    summary: "Earn trading fees by providing automated liquidity on Meteora DLMM pools.",
+    howItWorks: [
+      "You deposit SOL into your LP agent wallet (Syra never takes custody of your keys).",
+      "Syra opens and manages Meteora DLMM positions that collect trading fees from swaps.",
+      "Positions rebalance and exit based on a sim-qualified strategy leader and risk limits.",
+      "A performance fee applies only on net-positive realized PnL; principal stays in your wallet.",
+      "If error-rate or PnL guardrails trip, new deposits pause automatically while open positions are still managed.",
+    ],
+    rails: ["Meteora DLMM"],
+    riskLevel: "moderate",
     adapterKey: "lp",
     denom: "SOL",
     walletPurpose: "lp",
@@ -76,6 +91,16 @@ export const EARN_PRODUCTS = [
     chain: "solana",
     description:
       "BTC onchain signal agent — mirrors paper BUY signals into real USDC↔cbBTC Jupiter swaps on your invest wallet. Graduates to beta after lab track record passes readiness guards.",
+    summary: "Follow BTC onchain BUY signals into spot USDC↔cbBTC swaps on your invest wallet.",
+    howItWorks: [
+      "You deposit USDC into your invest agent wallet.",
+      "A paper signal lane scores BTC onchain conditions and emits BUY / hold decisions.",
+      "When a BUY qualifies, Syra swaps USDC → cbBTC via Jupiter on your wallet.",
+      "Exits reverse the swap back to USDC when the signal invalidates or risk limits hit.",
+      "The product stays gated until real lab PnL and error rates clear readiness guards.",
+    ],
+    rails: ["Jupiter", "cbBTC"],
+    riskLevel: "higher",
     adapterKey: "btcQuant",
     denom: "USDC",
     walletPurpose: "invest",
@@ -106,6 +131,16 @@ export const EARN_PRODUCTS = [
     chain: "solana",
     description:
       "Macro-driven USDC↔cbBTC allocation on your invest wallet. Equity/drawdown based — graduates to beta after lab track record passes readiness guards.",
+    summary: "Macro-driven USDC↔cbBTC allocation that rebalances on equity and drawdown.",
+    howItWorks: [
+      "You deposit USDC into your invest agent wallet.",
+      "BTC3 tracks equity vs a baseline and current drawdown from peak.",
+      "When allocation rules fire, Syra rebalances between USDC and cbBTC via Jupiter.",
+      "Success is measured by equity and drawdown — not classic win rate.",
+      "Deposits unlock only after lab equity and error-rate guards pass.",
+    ],
+    rails: ["Jupiter", "cbBTC"],
+    riskLevel: "moderate",
     adapterKey: "btc3",
     denom: "USDC",
     walletPurpose: "invest",
@@ -135,6 +170,16 @@ export const EARN_PRODUCTS = [
     chain: "solana",
     description:
       "Trend-following rotator across liquid Solana majors (SOL, cbBTC, JLP, blue-chips) via Jupiter swaps on your invest wallet. Paper lab first; graduates to beta after positive expectancy.",
+    summary: "Rotate USDC across liquid Solana majors when momentum favors a trend.",
+    howItWorks: [
+      "You deposit USDC into your invest agent wallet.",
+      "The rotator scores trend strength across liquid Solana majors (SOL, cbBTC, JLP, blue-chips).",
+      "When a leader qualifies, Syra rotates into that asset via Jupiter.",
+      "Positions exit or rotate again when momentum fades or risk limits trip.",
+      "Paper lab must show positive expectancy before real deposits open.",
+    ],
+    rails: ["Jupiter", "walletBroker"],
+    riskLevel: "higher",
     adapterKey: "momentumRotator",
     denom: "USDC",
     walletPurpose: "invest",
@@ -164,6 +209,16 @@ export const EARN_PRODUCTS = [
     chain: "solana",
     description:
       "Loop SOL → mSOL/JitoSOL → Rise borrow → restake to amplify LST staking yield. Auto-manages LTV and deleverages on rate spikes. Graduates after paper loop PnL proves out.",
+    summary: "Loop SOL into LST collateral, borrow, and restake to amplify staking yield.",
+    howItWorks: [
+      "You deposit SOL into your invest agent wallet.",
+      "Syra stakes into an LST (mSOL / JitoSOL), posts it as collateral, and borrows SOL via Rise.",
+      "Borrowed SOL is restaked to increase LST exposure — a leveraged yield loop.",
+      "LTV is monitored continuously; the agent deleverages when borrow rates spike or health worsens.",
+      "Loops can go negative when borrow cost exceeds staking yield — paper proof is required before beta.",
+    ],
+    rails: ["Marinade", "Jito", "Rise", "walletBroker"],
+    riskLevel: "higher",
     adapterKey: "lstLoop",
     denom: "SOL",
     walletPurpose: "invest",
@@ -193,6 +248,16 @@ export const EARN_PRODUCTS = [
     chain: "solana",
     description:
       "RugCheck-gated sniper for high-quality new pump.fun / graduated pairs. Entries via pump.fun swap, exits via Jupiter. Highest variance — paper lab mandatory before beta.",
+    summary: "Snipe RugCheck-gated new pump.fun pairs; exit via Jupiter when targets hit.",
+    howItWorks: [
+      "You deposit SOL into your LP agent wallet.",
+      "New pairs are screened with RugCheck gates to filter obvious rugs and honeypots.",
+      "Qualified entries buy via pump.fun swap; exits route through Jupiter.",
+      "Position size and hold time stay tightly capped — this is high-variance alpha, not yield farming.",
+      "Paper lab must clear readiness before any real beta deposits open.",
+    ],
+    rails: ["pump.fun", "Jupiter", "RugCheck"],
+    riskLevel: "extreme",
     adapterKey: "alphaSniper",
     denom: "SOL",
     walletPurpose: "lp",

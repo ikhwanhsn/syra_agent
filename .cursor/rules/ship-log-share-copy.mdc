@@ -1,0 +1,46 @@
+---
+description: Authoring rules for Syra ship-log photo share copies (X captions per card)
+globs: web/src/content/posts/photo/shareCopies/**
+alwaysApply: false
+---
+
+# Ship-log photo share copy
+
+Per-card X captions live in `web/src/content/posts/photo/shareCopies/*ShareCopies.ts`. They paste after attaching the exported PNG. Do **not** rewrite on-image fields in `*Photo.ts` when only the post caption needs work.
+
+## Structure (each of 15 roles)
+
+1. Opening paragraph: what this image is about (cover, problem, flow, metrics, etc.).
+2. One or two short paragraphs that explain the visual, using facts from the companion `*Photo.ts` only.
+3. Close with a plain product URL already used by that post (`syraa.fun/...` or full `https://...`) so `shareCopyHasLink` stays true when intended.
+
+Keep export shape: `Record<PostPhotoCardRole, string>`.
+
+## Voice
+
+- Founder-plain, specific, active.
+- Prefer commas, periods, and colons. Short paragraphs (1–3 sentences).
+- Syra positioning (machine money, pay-per-call, x402) only when the card is about that.
+
+## Forbidden
+
+- Quotation marks wrapping slogans
+- Arrow bullets or CTA arrows (`→`, `Try →`, `Test →`)
+- Em dashes (`—`)
+- Staccato slogan stacks (`One partner. Three chains.`)
+- Metric triad one-liners with middle dots (`3 rails · 2 chains · 0 client changes`)
+- Empty mantras unless replaced by a concrete explanation of the image
+
+## Allowed
+
+- Numbered `1. 2. 3.` lists for flow, timeline, and checklist cards (still wrap with explanatory paragraphs)
+- Plain `syraa.fun/...` or full `https://...` links
+- Factual product and partner names from the photo content
+
+## Checklist
+
+- [ ] All 15 roles present and typed
+- [ ] Each caption explains the matching card image
+- [ ] No forbidden symbols or slogan patterns
+- [ ] Facts match companion `*Photo.ts` (no invented features)
+- [ ] At least one paste-ready Syra or product link where the post already used one

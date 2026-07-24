@@ -31,6 +31,7 @@ const StreamflowPage = lazy(() => import("@/pages/staking/StreamflowPage"));
 const StakingAdminDashboardPage = lazy(() => import("@/pages/staking/StakingAdminDashboardPage"));
 const EarnPage = lazy(() => import("@/pages/EarnPage"));
 const EarnTokenDetailPage = lazy(() => import("@/pages/EarnTokenDetailPage"));
+const EarnYieldDetailPage = lazy(() => import("@/pages/EarnYieldDetailPage"));
 const LpPoolsPage = lazy(() => import("@/pages/LpPoolsPage"));
 const GrowPage = lazy(() => import("@/pages/GrowPage"));
 const InvestPage = lazy(() => import("@/pages/InvestPage"));
@@ -202,6 +203,14 @@ function AppRoutes() {
           element={
             <MachineMoneyRoute pillarId="earn">
               <EarnTokenDetailPage />
+            </MachineMoneyRoute>
+          }
+        />
+        <Route
+          path="/earn/yield/:productId"
+          element={
+            <MachineMoneyRoute pillarId="earn">
+              <EarnYieldDetailPage />
             </MachineMoneyRoute>
           }
         />

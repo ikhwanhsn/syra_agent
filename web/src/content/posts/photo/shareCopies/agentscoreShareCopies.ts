@@ -2,132 +2,104 @@ import type { PostPhotoCardRole } from "../photoCardSlots";
 
 /** Per-card X copy for AgentScore photo deck: 15 distinct topics. */
 export const AGENTSCORE_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `SHIP LOG · Agents need to pay. Regulated merchants need KYC. One stack now does both.
+  cover: `This cover announces AgentScore joining Syra's payment stack.
 
-AgentScore on Syra: merchant gates on high-risk routes, Passport for buyers, pay tools wired into x402.
+Agents can now pay with x402, comply through an AgentScore Passport, and get gated on routes where regulation actually matters. Payments and identity work together without replacing either system.
 
-402 for price. Passport for identity. Same agent brain.
+syraa.fun/chat`,
 
-Try it → syraa.fun/chat`,
+  thesis: `This card states the gap AgentScore closes.
 
-  thesis: `The gap wasn't payments. It was identity.
+Syra already sells intelligence over x402, but regulated merchants need KYC before checkout. AgentScore adds merchant gates and a buyer Passport on top of the existing payment middleware, instead of replacing it.
 
-Syra sells intelligence over x402. Regulated merchants need KYC before checkout. AgentScore adds merchant gates and buyer Passport without replacing payment middleware.
+syraa.fun/chat`,
 
-Agents can pay AND comply. In one loop.
+  quote: `This card carries the rule behind the integration: 402 handles price, Passport handles identity.
 
-skill.md → api.syraa.fun/skill.md`,
+Permissionless x402 checkout stays unchanged everywhere else. Compliance only applies on specific routes, and it lives on the buyer side through one Passport.
 
-  quote: `"402 for price. Passport for identity. Same Syra agent brain."
+syraa.fun/chat`,
 
-Permissionless x402 stays unchanged. Compliance is optional, route-specific, and buyer-side with one Passport.
+  flow: `This image walks through agent commerce on Syra, in four steps.
 
-Sell intelligence. Buy from regulated merchants. One agent loop.`,
+1. The first request to a route returns anonymous 402 pricing, unchanged from before
+2. Payment settles with x402 through the existing facilitator
+3. A gated route reassesses on the paid retry and returns 403 with a verify_url if Passport is missing
+4. Passport holders buy from gated merchants using agentscore-pay with an operator token from the agent wallet
 
-  flow: `Agent commerce on Syra. 4 steps:
+syraa.fun/chat`,
 
-1. Anonymous 402: first request returns pricing. Permissionless unchanged.
-2. Pay with x402: Payment-Signature verified via facilitator.
-3. Gate if required: 403 + verify_url without Passport.
-4. Buy merchants: agentscore-pay with operator token from agent wallet.
+  timeline: `This timeline traces a checkout from discovery to a confirmed order.
 
-Compliance when it matters. Permissionless when it doesn't.`,
+1. The agent discovers a merchant through agentscore-discover in chat or the public API
+2. It pays with x402, turning 402 pricing into a USDC Payment-Signature on retry
+3. A gated merchant returns 403 with a verify_url if Passport is missing, so KYC only runs once
+4. The agent retries with its operator token and gets back HTTP 200 with the order confirmed
 
-  timeline: `AgentScore checkout. Verify once, buy everywhere:
+syraa.fun/chat`,
 
-→ Discover gated merchants from agent chat
-→ Get 402 pricing, pay USDC via x402
-→ Gate assesses on paid retry. 403 if Passport missing
-→ Verify once at verify_url, save operator token
-→ Retry with X-Operator-Token → order confirmed
+  pillars: `This bento layout shows the four pillars of AgentScore on Syra.
 
-One Passport. Every gated merchant.`,
+Gate checks KYC, sanctions, age, and jurisdiction on the paid retry for merchant routes that need it. Passport lets a buyer verify once and reuse that verification at every gated merchant. Four pay tools cover discover, check, status, and pay from agent chat, and verified operators get higher policy caps.
 
-  pillars: `4 pillars of agent commerce on Syra:
+syraa.fun/chat`,
 
-→ Gate: KYC, sanctions, age, jurisdiction on paid retry
-→ Passport: verify once, works at every gated merchant
-→ Pay tools: discover, check, status, pay from agent chat
-→ Policy boost: higher caps for KYC-verified operators
+  checklist: `This checklist covers what shipped in Syra times AgentScore.
 
-Sell intelligence. Buy from regulated merchants.`,
+1. AgentScore Gate now covers 8004 registration and Tempo payouts
+2. Agent tools ship for discover, check, passport status, and pay
+3. Public /agentscore routes, an MCP server, and a skill.md are all live
+4. The policy engine gives verified operators a higher cap
 
-  checklist: `What's live in Syra × AgentScore:
+syraa.fun/chat`,
 
-→ AgentScore Gate on 8004 registration + Tempo payouts
-→ agentscore-discover, check, passport-status, pay
-→ Public /agentscore routes, MCP, and skill.md
-→ Policy engine boost for verified operators
+  metrics: `This card lists the numbers behind the AgentScore integration.
 
-Build with it → syraa.fun/chat`,
+Four new agent tools cover the full commerce loop. Two routes carry a compliance gate today. One Passport works across every gated merchant, so identity, payments, and intelligence all sit in the same agent loop.
 
-  metrics: `4 agent tools. 2 gated routes. 1 Passport for every merchant.
+syraa.fun/chat`,
 
-Discover gated merchants, verify identity once, checkout with USDC, while Syra gates sensitive routes when regulation matters.
+  featured: `This featured card highlights how far one Passport reaches.
 
-Identity + payments + intelligence. One loop.
+Verify identity once through AgentScore Passport and it works at Martin Estate, Sayer & Stone, and the rest of the AgentScore network, with no re-KYC required at each new merchant.
 
-→ syraa.fun/chat`,
+syraa.fun/chat`,
 
-  featured: `1 Passport. Every gated merchant. No re-KYC.
+  comparison: `This before and after card compares paying for data with buying from merchants.
 
-Verify identity once with AgentScore Passport. Works at Martin Estate, Sayer & Stone, and the full AgentScore network.
+Before, Syra had no KYC gates, so agents could not check out at merchants that required AgentScore compliance. Now, an optional Gate sits on sensitive routes and Passport plus the pay tools handle regulated agent commerce end to end.
 
-The buyer side of agent payments just got real.`,
+syraa.fun/chat`,
 
-  comparison: `Before: no KYC gates. Agents couldn't checkout at AgentScore-gated merchants.
+  launch: `This launch card marks AgentScore as live on Syra.
 
-Now: optional Gate on sensitive routes. Passport + pay tools for compliant agent commerce.
+Syra now works as an x402 merchant with optional compliance gates on its own routes, and as an x402 buyer that can check out at AgentScore-gated merchants using Passport and the pay tools in agent chat.
 
-The gap between "pay for intelligence" and "buy from regulated merchants" just closed.
+syraa.fun/chat`,
 
-→ syraa.fun/chat`,
+  deepDive: `This deep-dive card lists the technical surface behind AgentScore.
 
-  launch: `SHIP LOG · AgentScore is live on Syra.
+Agent tools range from agentscore-discover through agentscore-pay, and the same functionality is exposed as public GET /agentscore/discover and /check routes. Gate covers 8004 agent registration and Tempo payouts, and MCP tools expose the same actions to external agents.
 
-Syra is now an x402 merchant with optional compliance gates AND an x402 buyer for AgentScore-gated merchants.
+syraa.fun/chat`,
 
-Merchant side: Gate on high-risk routes.
-Buyer side: Passport + pay tools from agent chat.
+  split: `This split card explains the two sides of AgentScore on Syra.
 
-Try it → syraa.fun/chat`,
+On the merchant side, an optional Gate checks KYC, sanctions, age, and jurisdiction on high-risk routes. On the buyer side, an agent discovers gated merchants, verifies once with Passport, and pays through agentscore-pay from its own wallet.
 
-  deepDive: `AgentScore on Syra. API-first:
+syraa.fun/chat`,
 
-→ agentscore-discover through agentscore-pay agent tools
-→ Public GET /agentscore/discover and /check
-→ Gate on 8004 register-agent and Tempo payouts
-→ MCP syra_agentscore_* tools for external agents
+  terminal: `This terminal card shows an AgentScore checkout end to end.
 
-Wired into skill.md → api.syraa.fun/skill.md`,
+Discovering merchants returns a list that includes Martin Estate and Sayer & Stone. Logging into Passport opens a verify_url, completes KYC, and saves an operator token. Calling agentscore-pay against a merchant purchase URL gets a 402, pays in USDC, attaches the operator token, and comes back with the order confirmed.
 
-  split: `Two sides. One agent loop.
+syraa.fun/chat`,
 
-MERCHANT SIDE
-Optional Gate on sensitive routes. KYC, sanctions, age, jurisdiction on paid retry.
+  cta: `This closing card points to where to try AgentScore on Syra.
 
-BUYER SIDE
-Discover gated merchants. Verify once with Passport. Pay with agentscore-pay.
+Open agent chat to pay per call and check out at gated merchants, read the skill.md for the full tool reference, or check the AgentScore docs for how Passport and Gate work.
 
-Sell intelligence with optional compliance. Buy from regulated merchants.`,
-
-  terminal: `AgentScore checkout from the terminal:
-
-$ curl api.syraa.fun/agentscore/discover
-< merchants: Martin Estate, Sayer & Stone, …
-$ agentscore-pay passport login
-> verify_url opened · KYC complete · opc_… saved
-$ syra agent tools call agentscore-pay --url https://agents.martinestate.com/purchase
-> 402 → pay USDC → X-Operator-Token attached
-< HTTP/200 · order confirmed
-
-Ship compliant agent commerce → syraa.fun/chat`,
-
-  cta: `Agent commerce is here. Compliance built in.
-
-→ Agent chat: syraa.fun/chat
-→ skill.md: api.syraa.fun/skill.md
-→ AgentScore docs: docs.agentscore.sh
-
-Verify once with Passport. Pay per call. Gate when it matters.`,
+syraa.fun/chat
+api.syraa.fun/skill.md
+docs.agentscore.sh`,
 };

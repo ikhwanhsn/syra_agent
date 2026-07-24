@@ -6,32 +6,23 @@ export function BtcExperimentHeroSkeleton({ ringClass = "ring-amber-500/15" }: {
   return (
     <div className={cn(overviewCardShell, "overflow-hidden rounded-3xl ring-1", ringClass)}>
       <div className="relative px-5 py-7 sm:px-8 sm:py-8">
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="min-w-0 space-y-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <Skeleton className="h-9 w-9 rounded-xl" />
-                <Skeleton className="h-7 w-32 rounded-full" />
-                <Skeleton className="h-7 w-20 rounded-lg" />
-                <Skeleton className="h-7 w-24 rounded-lg" />
-                <Skeleton className="h-7 w-16 rounded-lg" />
-              </div>
-              <div className="space-y-2">
-                <Skeleton className="h-8 w-72 max-w-full rounded-lg" />
-                <Skeleton className="h-4 w-full max-w-2xl rounded-md" />
-                <Skeleton className="h-4 w-[80%] max-w-xl rounded-md" />
-              </div>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0 space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <Skeleton className="h-9 w-9 rounded-xl" />
+              <Skeleton className="h-7 w-32 rounded-full" />
+              <Skeleton className="h-7 w-20 rounded-lg" />
+              <Skeleton className="h-7 w-24 rounded-lg" />
             </div>
-            <div className="flex shrink-0 gap-2">
-              <Skeleton className="h-10 w-24 rounded-xl" />
-              <Skeleton className="h-10 w-24 rounded-xl" />
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-72 max-w-full rounded-lg" />
+              <Skeleton className="h-4 w-full max-w-2xl rounded-md" />
+              <Skeleton className="h-4 w-[80%] max-w-xl rounded-md" />
             </div>
           </div>
-
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-            {Array.from({ length: 7 }).map((_, i) => (
-              <Skeleton key={i} className="h-[72px] rounded-xl" />
-            ))}
+          <div className="flex shrink-0 gap-2">
+            <Skeleton className="h-10 w-24 rounded-xl" />
+            <Skeleton className="h-10 w-24 rounded-xl" />
           </div>
         </div>
       </div>

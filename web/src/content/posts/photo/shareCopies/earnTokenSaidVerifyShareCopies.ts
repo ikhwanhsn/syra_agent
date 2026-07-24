@@ -2,117 +2,106 @@ import type { PostPhotoCardRole } from "../photoCardSlots";
 
 /** Per-card X copy for Earn Token SAID Verify photo deck. 15 distinct topics. */
 export const EARN_TOKEN_SAID_VERIFY_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `SHIP LOG · Earn Tokens × SAID Protocol.
+  cover: `This cover announces Earn Tokens getting identity verification through SAID Protocol.
 
-One launch per wallet.
-Then Verify on SAID from token detail.
+Each wallet can now launch only one token, and the owner can verify that same wallet on SAID directly from the token's detail page.
 
-Same trust rails Syra used to hit #1.
+syraa.fun/earn`,
 
-Try it → syraa.fun/earn`,
+  thesis: `This card names why the limit exists.
 
-  thesis: `Launches need trust, not just a mint.
+A launch needs trust behind it, not just a mint. Earn now caps launches at one token per wallet, then lets the owner register that same wallet on SAID Protocol once they are ready to back it with an on-chain identity.
 
-Earn now caps one token per wallet, then lets owners register that earn wallet on SAID Protocol.
+syraa.fun/earn`,
 
-Scarcer. Verifiable. On-chain.`,
+  quote: `The line on this card is the rule in plain words: launch once, verify when ready.
 
-  quote: `"Launch once. Verify when ready."
+Verification is owner-only, costs roughly 0.012 SOL paid from the Earn wallet, and the result is a public profile on saidprotocol.com.
 
-Owner-only Verify on SAID.
-~0.012 SOL from the Earn wallet.
-Profile on saidprotocol.com.`,
+syraa.fun/earn`,
 
-  flow: `Earn token identity loop:
+  flow: `This image walks the identity loop in four steps.
 
-1. Launch on Earn (one per wallet)
-2. Open your token detail page
-3. Verify on SAID (~0.012 SOL)
-4. Badge + profile on saidprotocol.com
+1. Launch a token on Earn, capped at one per wallet
+2. Open that token's detail page
+3. Verify on SAID for roughly 0.012 SOL
+4. A badge appears, linked to the SAID profile
 
-Same register + verify path Syra ships.`,
+syraa.fun/earn`,
 
-  timeline: `What shipped:
+  timeline: `This timeline shows how the feature shipped.
 
-→ One token per earnAnonymousId (API 409)
-→ Tokens tab: View your token when capped
-→ POST /earn/token/:mint/verify-said
-→ said-sdk register + verify via earn keypair
-→ Verified badge → SAID profile link`,
+1. A limit was added that returns 409 on a second launch attempt
+2. The Tokens tab now shows View your token once a wallet has hit the cap
+3. A new POST /earn/token/:mint/verify-said route was added
+4. Verifying calls the SAID SDK and stores a saidVerified badge on the launch record
 
-  pillars: `4 layers. One Earn identity stack:
+syraa.fun/earn`,
 
-→ LIMIT: one mint per wallet
-→ SIGN: earn custodial keypair
-→ SAID: registerAgent + verifyAgent
-→ BADGE: on-chain verified profile`,
+  pillars: `This bento layout breaks the identity stack into four pieces.
 
-  checklist: `Earn × SAID is live:
+Limit means one mint per wallet, enforced by the API. Sign means the Earn wallet's own custodial keypair signs the SAID transaction. SAID means registering and verifying that agent on-chain. Badge means the resulting verified profile is live and linkable.
 
-→ One token per connected wallet
-→ Owner Verify on SAID on detail
-→ ~0.012 SOL from Earn wallet
-→ Verified badge after success
-→ Profile on saidprotocol.com
+syraa.fun/earn`,
 
-Open → syraa.fun/earn`,
+  checklist: `This checklist is what is live now.
 
-  metrics: `By the numbers:
+1. Each connected wallet can launch only one Earn token
+2. The owner sees a Verify on SAID option from the token's detail page
+3. Verifying costs roughly 0.012 SOL, paid from the Earn wallet
+4. A verified badge appears once the transaction succeeds
+5. The resulting profile is live on saidprotocol.com
 
-→ 1 token per wallet
-→ ~0.012 SOL to verify
-→ Same SAID stack as Syra #1*
+syraa.fun/earn`,
 
-*Syra already leads SAID reputation.`,
+  metrics: `The numbers on this card describe the setup.
 
-  featured: `The protocol behind the badge:
+One token is allowed per wallet, verification costs roughly 0.012 SOL, and it reuses the same SAID registration path Syra's own agent already used to reach the top of that leaderboard.
 
-SAID Protocol on Solana.
+syraa.fun/earn`,
 
-On-chain agent identity + verified badge.
-Now wired to every Earn token owner.`,
+  featured: `This featured card is about the protocol behind the badge.
 
-  comparison: `Before: unlimited Earn launches. No token-level SAID identity.
+SAID Protocol runs on-chain agent identity and verification on Solana, and it is now wired into every Earn token owner's detail page.
 
-Now: one mint per wallet.
-Owner Verify on SAID from detail.
-Reputation that can climb the leaderboard.`,
+saidprotocol.com`,
 
-  launch: `SHIP LOG · Earn Tokens get SAID verify.
+  comparison: `This before-and-after card compares open launches to verified ones.
 
-One launch. One identity.
-Syra's #1 path, applied to your token.
+Before, Earn allowed unlimited launches per wallet with no token-level identity attached. Now, each wallet gets one mint, and the owner can verify it on SAID directly from the detail page, building reputation that can climb SAID's own leaderboard.
 
-→ syraa.fun/earn
-→ saidprotocol.com`,
+syraa.fun/earn`,
 
-  deepDive: `Technical surface:
+  launch: `This launch card marks SAID verification going live for Earn Tokens.
 
-→ earnPumpfunService: launch limit + verifyEarnTokenOnSaid
-→ saidClient: buildTokenAgentCard + registerAndVerifyAgentCard
-→ POST /earn/token/:mint/verify-said (owner session)
-→ EarnPumpfunLaunch stores saidVerified + PDA
-→ Privy earn wallets: clear signer unavailable error`,
+It is the same path Syra used to reach #1 on SAID, now applied to one launch per wallet.
 
-  split: `Two moves. One cleaner Earn surface:
+syraa.fun/earn
+saidprotocol.com`,
 
-CREATORS: one serious launch, not spam
-TRUST: Verify on SAID when you are ready
+  deepDive: `This deep-dive card lists the technical surface behind verification.
 
-Scarcer mints. Verifiable agents.`,
+earnPumpfunService enforces the launch limit and runs verifyEarnTokenOnSaid, saidClient builds the token's AgentCard and handles the register-and-verify call, and the route lives at POST /earn/token/:mint/verify-said, gated to the token owner's session. The launch record stores saidVerified alongside the resulting PDA.
 
-  terminal: `Verify from the stack:
+syraa.fun/earn`,
 
-$ POST /earn/token/:mint/verify-said
-> resolve earn wallet · owner check
-> getSolanaAgentKeypair(earn)
-> said-sdk registerAgent + verifyAgent
-> persist saidVerified on launch
-< badge → saidprotocol.com/agents/:wallet`,
+  split: `This split card explains the two effects of this change.
 
-  cta: `Ready to launch once and verify?
+Creators get pushed toward one serious launch instead of spamming mints. Trust becomes something they can add later, by verifying that same wallet on SAID whenever they are ready.
 
-Earn Tokens → syraa.fun/earn
-SAID → saidprotocol.com
-Syra profile → saidprotocol.com/agents`,
+syraa.fun/earn`,
+
+  terminal: `This terminal card shows verification in a real request path.
+
+A call to POST /earn/token/:mint/verify-said resolves the Earn wallet, checks that the caller owns it, loads its keypair, and runs the SAID SDK's register and verify calls. The result gets persisted as saidVerified on the launch record, with a badge linking out to the wallet's SAID profile.
+
+syraa.fun/earn`,
+
+  cta: `This closing card is the ship summary: launch once, then verify on SAID.
+
+Open Earn Tokens, ship a mint, and verify it from the detail page whenever you are ready.
+
+syraa.fun/earn
+saidprotocol.com
+saidprotocol.com/agents/53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t`,
 };

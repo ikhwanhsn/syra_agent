@@ -2,122 +2,105 @@ import type { PostPhotoCardRole } from "../photoCardSlots";
 
 /** Per-card X copy for Blocksize market data photo deck. */
 export const BLOCKSIZE_INTEGRATION_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `SHIP LOG · Syra × Blocksize is live.
+  cover: `This cover announces Blocksize live on Syra for institutional market data.
 
-Institutional VWAP + bid/ask for AI agents.
-mcp.blocksize.info · x402 / credits
+Agents can now pull VWAP and bid/ask quotes from mcp.blocksize.info, settling with x402 or credits instead of opening a Blocksize account.
 
-blocksize-search · vwap · bidask · pre-trade
+syraa.fun/chat`,
 
-Try → syraa.fun/chat`,
+  thesis: `This card names the pricing problem Blocksize solves for autonomous agents.
 
-  thesis: `Autonomous size needs a reference price.
+Retail mids lie under thin order books. Blocksize aggregates institutional crypto VWAP and bid/ask data so a Syra agent can quote a real reference price before it moves size.
 
-Retail mids lie under thin books. Blocksize aggregates institutional crypto VWAP and bid/ask so Syra agents can quote before they move.
+syraa.fun/chat`,
 
-X → x.com/blocksizecap`,
+  quote: `The line on this card sums up what Blocksize adds to Syra.
 
-  quote: `"Oracle-grade tape. Agent checkout."
+Search is free. VWAP and bid/ask are paid. A pre-trade check can run before an agent sizes a ticket, so the guard happens before the trade, not after.
 
-Search free. Pay for VWAP and bid/ask.
-Pre-trade guards before you size the ticket.
+syraa.fun/chat`,
 
-Try → syraa.fun/chat`,
+  flow: `This image walks the Blocksize call path in four steps.
 
-  flow: `Blocksize on Syra, 4 steps:
+1. Search a pair, for example blocksize-search q=SOLUSD
+2. Quote VWAP or bid/ask, the agent pays through a 402
+3. Optionally run a pre-trade check
+4. Feed the result into Syra's swap or invest logic
 
-1. blocksize-search q=SOLUSD
-2. Pull VWAP or bid/ask (402)
-3. Optional pre-trade check
-4. Feed the quote into swap / invest logic
+syraa.fun/chat`,
 
-Test → syraa.fun/chat`,
+  timeline: `This timeline shows how the Blocksize MCP integration was wired end to end.
 
-  timeline: `Blocksize integration shipped:
+1. agentBlocksizeClient added with an X-AGENT-ID header
+2. x402 settlement from the agent's Solana USDC balance
+3. search, vwap, bidask, and pre-trade tools registered
+4. Surfaced on the Spend pillar and a dedicated partner page
 
-→ agentBlocksizeClient → mcp.blocksize.info
-→ X-AGENT-ID + x402 settle
-→ search · vwap · bidask · pre-trade tools
-→ Spend pillar + /partner/blocksize`,
+syraa.fun/chat`,
 
-  pillars: `4 Blocksize tools:
+  pillars: `This bento layout shows the four Blocksize tools available to agents.
 
-→ search — free instrument discovery
-→ vwap — institutional VWAP snapshots
-→ bidask — bid/ask + spread
-→ pre-trade — freshness / spread guards (~$0.10)
+Search is free and finds pairs before an agent spends anything. VWAP returns institutional VWAP snapshots. Bid/Ask returns spread-aware quotes. Pre-trade, at roughly $0.10, checks freshness and drift before a trade goes out.
 
-Try → syraa.fun/chat`,
+syraa.fun/chat`,
 
-  checklist: `Live today:
+  checklist: `This checklist is what shipped with the Blocksize integration.
 
-→ blocksize-* agent tools registered
-→ Free search before paid quotes
-→ Agent Solana USDC / credits checkout
-→ Partner page: syraa.fun/partner/blocksize
-→ Host: mcp.blocksize.info
-
-Try → syraa.fun/chat`,
-
-  metrics: `4 tools. MCP host. 402 agent checkout.
-
-Institutional market data without opening a Blocksize account form.
-
-Try → syraa.fun/chat`,
-
-  featured: `Ask Syra for SOLUSD VWAP.
-
-Blocksize answers. Agent wallet pays.
-Institutional reference prices in chat.
+1. blocksize-* agent tools registered
+2. Free search before paid quotes
+3. Agent Solana USDC or credits checkout
+4. Partner page at syraa.fun/partner/blocksize
+5. Host: mcp.blocksize.info
 
 syraa.fun/partner/blocksize`,
 
-  comparison: `Before: scrape a mid and hope.
+  metrics: `The numbers on this card describe the Blocksize agent stack.
 
-Now: Blocksize VWAP + bid/ask + pre-trade checks
-inside Syra agents via x402.
+Four tools run on the MCP host mcp.blocksize.info, and checkout uses the same 402 flow as the rest of Syra. There is no Blocksize account form: search stays free, and an agent only pays per quote or pre-trade check.
 
-Try → syraa.fun/chat`,
+syraa.fun/chat`,
 
-  launch: `SHIP LOG · Syra × Blocksize market data is live.
+  featured: `This featured card shows an agent asking for a SOLUSD VWAP.
 
-VWAP. Bid/ask. Pre-trade.
-X → x.com/blocksizecap
+Blocksize answers the query, the agent wallet pays for it, and the reference price shows up directly in chat instead of a separate terminal.
 
-Try → syraa.fun/chat`,
+syraa.fun/partner/blocksize`,
 
-  deepDive: `Blocksize technical surface:
+  comparison: `This before-and-after card compares a scraped mid against the Blocksize tape.
 
-→ Base: mcp.blocksize.info
-→ GET /v1/search · /v1/vwap/{pair} · /v1/bidask/{pair}
-→ POST /v1/checks/pre-trade
-→ Header: X-AGENT-ID · x402 / credits
+Before, an agent had to scrape a mid price and hope the book held under size. Now it can pull VWAP, bid/ask, and a pre-trade check from Blocksize through x402, all inside the same chat.
 
-Docs → mcp.blocksize.info`,
+syraa.fun/chat`,
 
-  split: `Reference price → action.
+  launch: `This partnership card marks Syra x Blocksize as live for institutional market data.
 
-→ Quote: blocksize-vwap / bidask
-→ Guard: blocksize-pre-trade
-→ Act: Syra swap / invest tools
+VWAP, bid/ask, and pre-trade checks are now available to autonomous treasuries running through Syra agents.
 
-Treasuries deserve institutional tape.
+syraa.fun/partner/blocksize`,
 
-Try → syraa.fun/chat`,
+  deepDive: `This deep-dive card lists the technical surface behind the Blocksize integration.
 
-  terminal: `Blocksize from agents:
+GET /v1/search is free discovery. GET /v1/vwap/{pair} and GET /v1/bidask/{pair} are paid. POST /v1/checks/pre-trade runs the guard. Requests carry an X-AGENT-ID header and settle through agent x402.
 
-$ tool blocksize-search q=SOLUSD
-→ pairs + services
-$ tool blocksize-vwap pair=SOLUSD
-→ 402 → pay → VWAP snapshot
+mcp.blocksize.info`,
 
-Try → syraa.fun/chat`,
+  split: `This split card explains how a Blocksize quote turns into an action.
 
-  cta: `Syra × Blocksize. Institutional data for agents.
+Quote comes from blocksize-vwap or blocksize-bidask. Guard comes from blocksize-pre-trade. Act routes the result into Syra's swap or invest tools, with the agent wallet paying in credits along the way.
 
-→ syraa.fun/chat
-→ syraa.fun/partner/blocksize
-→ mcp.blocksize.info
-→ x.com/blocksizecap`,
+syraa.fun/chat`,
+
+  terminal: `This terminal card shows Blocksize called from agent tools.
+
+Calling blocksize-search q=SOLUSD returns pairs and services. Calling blocksize-vwap pair=SOLUSD triggers a 402, the agent wallet settles in USDC, and the VWAP snapshot unlocks.
+
+syraa.fun/chat`,
+
+  cta: `This closing card is the ship summary: ask Syra for a Blocksize VWAP straight from chat.
+
+Search SOLUSD, pull the VWAP, then check bid/ask, all without leaving the conversation.
+
+syraa.fun/chat
+syraa.fun/partner/blocksize
+mcp.blocksize.info`,
 };
