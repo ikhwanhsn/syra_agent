@@ -171,7 +171,7 @@ syraa.fun/wallet`,
     {
       id: "impact",
       kind: "impact",
-      layout: "impact-stat-trio",
+      layout: "metric-strip",
       label: "Impact",
       kicker: "Activation",
       headline: "Fewer steps between signup and first paid call.",
@@ -184,12 +184,13 @@ syraa.fun/wallet`,
         "Keep the zero-KYC path (send USDC yourself). Use card when you want speed. Agents still micropay with x402 after the wallet is funded.",
     },
     {
-      id: "cta",
-      kind: "cta",
-      layout: "cta-links",
-      label: "CTA",
-      kicker: "Try it",
+      id: "closing",
+      kind: "closing",
+      layout: "closing-links",
+      label: "Try it",
       headline: "Fund with a card. Call an API.",
+      subline:
+        "Open your agent wallet, buy USDC with a card, then hit a paid Spend route. Manual transfer still works.",
       links: [
         { label: "Wallet", value: "syraa.fun/wallet", href: "https://www.syraa.fun/wallet" },
         {

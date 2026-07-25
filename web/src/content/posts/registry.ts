@@ -39,6 +39,7 @@ import { GOPLAUSIBLE_SOLANA_BASE_FAILOVER_POST } from "./goplausibleSolanaBaseFa
 import { OKX_GENESIS_FINANCE_POST } from "./okxGenesisFinanceUpdate";
 import { CROSSMINT_ONRAMP_POST } from "./crossmintOnrampUpdate";
 import { FLINT_INTEGRATION_POST } from "./flintIntegrationUpdate";
+import { SETTLEMENT_RECOVERY_POST } from "./settlementRecoveryUpdate";
 import { TEMPLATE_POST } from "./templateUpdate";
 import { AGENTSCORE_PHOTO } from "./photo/agentscorePhoto";
 import { INDICATOR_PHOTO } from "./photo/indicatorPhoto";
@@ -81,6 +82,7 @@ import { GOPLAUSIBLE_SOLANA_BASE_FAILOVER_PHOTO } from "./photo/goplausibleSolan
 import { OKX_GENESIS_FINANCE_PHOTO } from "./photo/okxGenesisFinancePhoto";
 import { CROSSMINT_ONRAMP_PHOTO } from "./photo/crossmintOnrampPhoto";
 import { FLINT_INTEGRATION_PHOTO } from "./photo/flintIntegrationPhoto";
+import { SETTLEMENT_RECOVERY_PHOTO } from "./photo/settlementRecoveryPhoto";
 import { TEMPLATE_PHOTO } from "./photo/templatePhoto";
 import type { PostPhotoUpdate } from "./photo/types";
 import type { PostUpdate } from "./types";
@@ -142,6 +144,7 @@ const POST_UPDATE_BUNDLES: PostUpdateBundle[] = [
   { video: OKX_GENESIS_FINANCE_POST, photo: OKX_GENESIS_FINANCE_PHOTO },
   { video: CROSSMINT_ONRAMP_POST, photo: CROSSMINT_ONRAMP_PHOTO },
   { video: FLINT_INTEGRATION_POST, photo: FLINT_INTEGRATION_PHOTO },
+  { video: SETTLEMENT_RECOVERY_POST, photo: SETTLEMENT_RECOVERY_PHOTO },
 ];
 
 function assertBundleMeta(bundle: PostUpdateBundle): void {
