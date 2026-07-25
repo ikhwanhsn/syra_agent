@@ -109,7 +109,7 @@ import {
 } from './stableenrichAgentTools.js';
 import { resolvePillarForToolId } from './pillars.js';
 
-/** @typedef {{ id: string; path: string; method: string; priceUsd: number; displayPriceUsd?: number; name: string; description: string; pillar?: import('./pillars.js').PillarId; nansenPath?: string; zerionPath?: string; birdeyePath?: string; blocksizePath?: string; dexterPath?: string | null; dexterCatalog?: boolean; topledgerPath?: string; stablecryptoPath?: string; stablesocialPath?: string; stableenrichPath?: string; stableenrichMethod?: 'GET' | 'POST'; stableenrichAsync?: boolean; purchVaultPath?: string; agentDirect?: boolean; tempoPayout?: boolean; tempoPublic?: 'tokenlist' | 'networks'; paysh?: 'discover' | 'endpoints' | 'call'; agentscore?: 'discover' | 'check' | 'passport-status' | 'pay' }} AgentTool */
+/** @typedef {{ id: string; path: string; method: string; priceUsd: number; displayPriceUsd?: number; name: string; description: string; pillar?: import('./pillars.js').PillarId; nansenPath?: string; zerionPath?: string; birdeyePath?: string; blocksizePath?: string; utiliaPath?: string; dexterPath?: string | null; dexterCatalog?: boolean; topledgerPath?: string; stablecryptoPath?: string; stablesocialPath?: string; stableenrichPath?: string; stableenrichMethod?: 'GET' | 'POST'; stableenrichAsync?: boolean; purchVaultPath?: string; agentDirect?: boolean; tempoPayout?: boolean; tempoPublic?: 'tokenlist' | 'networks'; paysh?: 'discover' | 'endpoints' | 'call'; agentscore?: 'discover' | 'check' | 'passport-status' | 'pay' }} AgentTool */
 
 /**
  * List of agent tools (x402 endpoints). Path is relative to API base (e.g. /news). Nansen calls api.nansen.ai; Zerion calls api.zerion.io (x402); Birdeye uses birdeyePath on public-api.birdeye.so (x402).
@@ -1860,6 +1860,18 @@ export const AGENT_TOOLS = [
     description:
       'Submit a task to an external AIP agent via A2A JSON-RPC with agent-wallet x402 payment. Params: capability (required), input (required), did or endpoint or cardUrl. Polls task/status until complete.',
   },
+  {
+    id: 'utilia-priority-fees',
+    utiliaPath: '/v1/fees/priority',
+    path: '/utilia/priority-fees',
+    method: 'GET',
+    priceUsd: 0.002,
+    displayPriceUsd: 0.002,
+    pillar: 'spend',
+    name: 'Utilia: Solana priority fees',
+    description:
+      'Buy timestamped low/medium/high Solana compute-unit price quantiles before a transaction. $0.002 USDC via x402; no API key.',
+  },
   ...STABLECRYPTO_AGENT_TOOLS,
   ...STABLESOCIAL_AGENT_TOOLS,
   ...STABLEENRICH_AGENT_TOOLS,
@@ -2239,6 +2251,13 @@ function collectToolsFromUserMessage(userMessage, maxMatches = 1) {
 
   // Ordered intent patterns: more specific first. Return first match.
   const intents = [
+    {
+      toolId: 'utilia-priority-fees',
+      test: () =>
+        /\b(utilia|solana\s+(priority\s+)?fees?|compute[-\s]?unit\s+price|cu\s+price)\b/i.test(
+          text
+        ),
+    },
     // Partner: RISE
     {
       toolId: 'rise-market-quote',
@@ -2949,6 +2968,7 @@ export function getCapabilitiesList() {
     'arbitrage',
   ];
   const partner = [
+    'utilia-priority-fees',
     'smart-money',
     'token-god-mode',
     'trending-jupiter',
@@ -3045,7 +3065,11 @@ export function getCapabilitiesList() {
       .filter(Boolean);
 
   lines.push('Core:', ...fmt(core), '');
-  lines.push('Partner (Nansen, Zerion, Jupiter, Squid, Bubblemaps, Binance, Giza, GMGN):', ...fmt(partner), '');
+  lines.push(
+    'Partner (Utilia, Nansen, Zerion, Jupiter, Squid, Bubblemaps, Binance, Giza, GMGN):',
+    ...fmt(partner),
+    ''
+  );
   lines.push(
     'Partner pump.fun (Syra /pumpfun/* x402 proxy; fun-block + coins-v2; use mint + user as required):',
     ...fmt(pumpfun),
@@ -3413,6 +3437,10 @@ export function getToolsForLlmSelection() {
     if (t.blocksizePath) {
       const hint = getBlocksizeParamsHintForLlm(t.id);
       if (hint) out.paramsHint = hint;
+    }
+    if (t.utiliaPath) {
+      out.paramsHint =
+        'No required params. Optional account query selects writable-account-localized Solana fee samples.';
     }
     if (t.dexterPath != null || t.dexterCatalog) {
       const hint = getDexterParamsHintForLlm(t.id);
