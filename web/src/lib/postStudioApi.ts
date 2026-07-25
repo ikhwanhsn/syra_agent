@@ -37,7 +37,8 @@ export function isPostStudioAuthError(err: unknown): boolean {
 export function isPostStudioFallbackError(err: unknown): boolean {
   if (isPostStudioAuthError(err)) return true;
   if (err instanceof PostStudioApiError) {
-    return err.status === 503;
+    // 5xx / gateway down → local fallback so /post/video export still works offline.
+    return err.status === 503 || err.status >= 500;
   }
   if (err instanceof TypeError) return true;
   if (err instanceof Error) {

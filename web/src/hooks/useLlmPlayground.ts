@@ -55,6 +55,7 @@ export function useLlmSubmitVideo() {
       duration?: number;
       aspect_ratio?: string;
       resolution?: string;
+      generate_audio?: boolean;
     }) => submitLlmVideo(adminWallet, input),
   });
 }

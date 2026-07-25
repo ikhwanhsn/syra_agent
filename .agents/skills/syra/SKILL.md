@@ -85,6 +85,8 @@ MCP injects `PAYMENT-SIGNATURE` on 402 when a payer is configured.
 | Analytics | `syra_spend_analytics_summary` |
 | Smart money | `syra_spend_nansen_smart_money_netflow` |
 | Health | `syra_spend_health` |
+| Flint book | `syra_spend_flint_book` |
+| Flint pairs | `syra_spend_flint_pairs` |
 
 Full curated table: https://syraa.fun/skills.md
 

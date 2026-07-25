@@ -7,6 +7,7 @@ import { Loader2, ShieldCheck, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FuelAgentModal } from "@/components/chat/FuelAgentModal";
 import { AgentWalletsManager } from "@/components/settings/AgentWalletsManager";
+import { CrossmintOnrampModal } from "@/components/wallet/CrossmintOnrampModal";
 import { OverviewPageBackdrop } from "@/components/dashboard/overview/OverviewPageBackdrop";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 import { useConnectModal } from "@/contexts/ConnectModalContext";
@@ -67,6 +68,11 @@ export default function AgentWalletPage() {
   const { openConnectModal } = useConnectModal();
   const wallets = useManagedAgentWallets();
   const [moveFundsOpen, setMoveFundsOpen] = useState(false);
+  const [onrampOpen, setOnrampOpen] = useState(false);
+  const [onrampTarget, setOnrampTarget] = useState<{
+    anonymousId: string;
+    agentAddress: string;
+  } | null>(null);
 
   const urlTab = useMemo(() => parseFlowTab(searchParams.get("tab")), [searchParams]);
   const urlWallet = useMemo(() => parseWalletPurpose(searchParams.get("wallet")), [searchParams]);
@@ -105,6 +111,17 @@ export default function AgentWalletPage() {
   const openMoveFunds = (tab: "deposit" | "withdraw", wallet: AgentWalletPurpose) => {
     if (!wallets.selectFundTarget(tab, wallet)) return;
     setMoveFundsOpen(true);
+  };
+
+  const openBuyUsdc = (purpose: AgentWalletPurpose) => {
+    const entry =
+      purpose === "spend"
+        ? wallets.managedSpendWallet ?? wallets.managedChatWallet
+        : wallets.pillarEntries?.find((e) => e.purpose === purpose)?.wallet ??
+          (purpose === "lp" ? wallets.managedLpWallet : undefined);
+    if (!entry?.anonymousId || !entry?.agentAddress) return;
+    setOnrampTarget({ anonymousId: entry.anonymousId, agentAddress: entry.agentAddress });
+    setOnrampOpen(true);
   };
 
   const refreshing = wallets.refreshingBalances || wallets.refreshingLpBalances;
@@ -240,6 +257,8 @@ export default function AgentWalletPage() {
                     onFundChat={() => openMoveFunds("deposit", "spend")}
                     onFundLp={() => openMoveFunds("deposit", "lp")}
                     onFundPillar={(p) => openMoveFunds("deposit", p)}
+                    onBuyUsdcSpend={() => openBuyUsdc("spend")}
+                    onBuyUsdcPillar={(p) => openBuyUsdc(p)}
                     onWithdrawSpend={() => openMoveFunds("withdraw", "spend")}
                     onWithdrawChat={() => openMoveFunds("withdraw", "spend")}
                     onWithdrawLp={() => openMoveFunds("withdraw", "lp")}
@@ -259,15 +278,30 @@ export default function AgentWalletPage() {
         </div>
       </div>
       {treasuryReady ? (
-        <FuelAgentModal
-          open={moveFundsOpen}
-          onOpenChange={setMoveFundsOpen}
-          initialFlowTab={wallets.fundTab}
-          initialAgentWallet={wallets.fundWallet}
-          agentWalletTargets={wallets.agentWalletTargets}
-          lockWalletSelection
-          onDepositComplete={() => void wallets.handleRefreshAll()}
-        />
+        <>
+          <FuelAgentModal
+            open={moveFundsOpen}
+            onOpenChange={setMoveFundsOpen}
+            initialFlowTab={wallets.fundTab}
+            initialAgentWallet={wallets.fundWallet}
+            agentWalletTargets={wallets.agentWalletTargets}
+            lockWalletSelection
+            onDepositComplete={() => void wallets.handleRefreshAll()}
+          />
+          {onrampTarget ? (
+            <CrossmintOnrampModal
+              open={onrampOpen}
+              onOpenChange={(open) => {
+                setOnrampOpen(open);
+                if (!open) setOnrampTarget(null);
+              }}
+              anonymousId={onrampTarget.anonymousId}
+              agentAddress={onrampTarget.agentAddress}
+              chain="solana"
+              onCompleted={() => void wallets.handleRefreshAll()}
+            />
+          ) : null}
+        </>
       ) : null}
     </>
   );

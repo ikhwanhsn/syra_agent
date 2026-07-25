@@ -142,6 +142,7 @@ export async function submitLlmVideo(
     duration?: number;
     aspect_ratio?: string;
     resolution?: string;
+    generate_audio?: boolean;
   },
 ): Promise<LlmVideoResult> {
   const res = await fetchLlmJson<ApiEnvelope<LlmVideoResult>>(

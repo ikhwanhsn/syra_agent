@@ -278,7 +278,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "name": "TopLedger: analyze wallet",
     "description": "Full Solana wallet portfolio analysis — net worth, holdings, lending, perps, LP, staking, yield, rewards, governance (20+ protocols)",
     "priceUsd": 0.000004800000000000001,
-    "curated": false,
+    "curated": true,
     "path": "/topledger/wallet/analyze"
   },
   {
@@ -314,7 +314,7 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "name": "TopLedger: lending positions",
     "description": "Lending deposits, borrows, and net value across Kamino, marginfi, Jupiter Lend, Loopscale, and more",
     "priceUsd": 0.000004800000000000001,
-    "curated": false,
+    "curated": true,
     "path": "/topledger/wallet/lending"
   },
   {
@@ -1523,6 +1523,54 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "path": "/birdeye/trader-txs-seek-by-time"
   },
   {
+    "toolName": "syra_spend_blocksize_bidask",
+    "toolId": "blocksize-bidask",
+    "pillar": "spend",
+    "access": "http",
+    "method": "GET",
+    "name": "Blocksize: bid/ask",
+    "description": "Bid/ask snapshot with spread. Params: pair (e.g. SOLUSD).",
+    "priceUsd": 0.000023999999999999997,
+    "curated": false,
+    "path": "/blocksize/bidask"
+  },
+  {
+    "toolName": "syra_spend_blocksize_pre_trade",
+    "toolId": "blocksize-pre-trade",
+    "pillar": "spend",
+    "access": "http",
+    "method": "POST",
+    "name": "Blocksize: pre-trade sanity check",
+    "description": "Quote freshness / spread / reference-drift guardrails (~$0.10). Params: pair (required); optional extra flat string fields for the POST body.",
+    "priceUsd": 0.0012,
+    "curated": false,
+    "path": "/blocksize/pre-trade"
+  },
+  {
+    "toolName": "syra_spend_blocksize_search",
+    "toolId": "blocksize-search",
+    "pillar": "spend",
+    "access": "http",
+    "method": "GET",
+    "name": "Blocksize: instrument search",
+    "description": "Free discovery search for VWAP/bidask pairs (e.g. q=SOLUSD). Use before paid quotes.",
+    "priceUsd": 0.000023999999999999997,
+    "curated": false,
+    "path": "/blocksize/search"
+  },
+  {
+    "toolName": "syra_spend_blocksize_vwap",
+    "toolId": "blocksize-vwap",
+    "pillar": "spend",
+    "access": "http",
+    "method": "GET",
+    "name": "Blocksize: crypto VWAP",
+    "description": "Institutional real-time VWAP snapshot. Params: pair (e.g. SOLUSD, BTCUSD).",
+    "priceUsd": 0.000023999999999999997,
+    "curated": false,
+    "path": "/blocksize/vwap"
+  },
+  {
     "toolName": "syra_spend_browser_use",
     "toolId": "browser-use",
     "pillar": "spend",
@@ -1581,6 +1629,42 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "path": "/dexscreener/pairs"
   },
   {
+    "toolName": "syra_spend_dexter_onchain_activity",
+    "toolId": "dexter-onchain-activity",
+    "pillar": "spend",
+    "access": "http",
+    "method": "GET",
+    "name": "Dexter: onchain activity",
+    "description": "Solana token/wallet trade summary with volumes and top counterparties (x402 ~$0.05). Params: scope=token|wallet|trade, mint and/or wallet, optional timeframe, limit, includeRaw.",
+    "priceUsd": 0.0006,
+    "curated": false,
+    "path": "/dexter/onchain-activity"
+  },
+  {
+    "toolName": "syra_spend_dexter_onchain_entity",
+    "toolId": "dexter-onchain-entity",
+    "pillar": "spend",
+    "access": "http",
+    "method": "GET",
+    "name": "Dexter: onchain entity",
+    "description": "Detailed entity insight (token/wallet/trade) with SOL/token deltas (x402 ~$0.05). Params: scope, mint, wallet, signature (for trade), timeframe, limit, includeRaw.",
+    "priceUsd": 0.0006,
+    "curated": false,
+    "path": "/dexter/onchain-entity"
+  },
+  {
+    "toolName": "syra_spend_dexter_x402_catalog",
+    "toolId": "dexter-x402-catalog",
+    "pillar": "spend",
+    "access": "http",
+    "method": "GET",
+    "name": "Dexter: x402 catalog",
+    "description": "Free list of Dexter paid resources from /.well-known/x402 (activity, entity, shield, …).",
+    "priceUsd": 0,
+    "curated": false,
+    "path": "/dexter/x402-catalog"
+  },
+  {
     "toolName": "syra_spend_equity_intelligence",
     "toolId": "equity-intelligence",
     "pillar": "spend",
@@ -1603,6 +1687,66 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "priceUsd": 0.00005,
     "curated": true,
     "path": "/event"
+  },
+  {
+    "toolName": "syra_spend_flint_book",
+    "toolId": "flint-book",
+    "pillar": "spend",
+    "access": "http",
+    "method": "GET",
+    "name": "Flint Order Book",
+    "description": "Flint L1/L2/L3 virtual order book snapshot — base + quote (default USDC) or baseId/quoteId; level=L1|L2|L3. Not execution.",
+    "priceUsd": 0.00001,
+    "curated": true,
+    "path": "/flint/book"
+  },
+  {
+    "toolName": "syra_spend_flint_candles",
+    "toolId": "flint-candles",
+    "pillar": "spend",
+    "access": "http",
+    "method": "GET",
+    "name": "Flint Candles / Fills",
+    "description": "Flint historical candles (interval 1M|5M|15M|30M|1H|4H|1D) or kind=fills. Pair via base/quote or ids. Not trading.",
+    "priceUsd": 0.00001,
+    "curated": true,
+    "path": "/flint/candles"
+  },
+  {
+    "toolName": "syra_spend_flint_external_tape",
+    "toolId": "flint-external-tape",
+    "pillar": "spend",
+    "access": "http",
+    "method": "GET",
+    "name": "Flint External Tape",
+    "description": "Short snapshot of external aggregator fills (Jupiter/OKX/DFlow/Titan) and venue reference quotes for a Flint pair.",
+    "priceUsd": 0.00005,
+    "curated": true,
+    "path": "/flint/external-tape"
+  },
+  {
+    "toolName": "syra_spend_flint_pairs",
+    "toolId": "flint-pairs",
+    "pillar": "spend",
+    "access": "http",
+    "method": "GET",
+    "name": "Flint Pairs",
+    "description": "Flint Solana multi-maker spot pair catalog — base/quote mints, spot ids, last price. Market data only (not MM or swaps).",
+    "priceUsd": 0.00001,
+    "curated": true,
+    "path": "/flint/pairs"
+  },
+  {
+    "toolName": "syra_spend_flint_stats",
+    "toolId": "flint-stats",
+    "pillar": "spend",
+    "access": "http",
+    "method": "GET",
+    "name": "Flint Venue Stats",
+    "description": "Flint venue summary — active pairs/makers, 1h/24h/30d quote volume, fills, unique traders, total NAV.",
+    "priceUsd": 0.00001,
+    "curated": true,
+    "path": "/flint/stats"
   },
   {
     "toolName": "syra_spend_geckoterminal_pools",
@@ -1845,6 +1989,39 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "method": "GET",
     "name": "Hey.lol follow suggestions",
     "description": "Get hey.lol follow suggestions (optional limit).",
+    "priceUsd": 0.00012,
+    "curated": false
+  },
+  {
+    "toolName": "syra_spend_mevx_pools",
+    "toolId": "mevx-pools",
+    "pillar": "spend",
+    "access": "agent-direct",
+    "method": "GET",
+    "name": "MevX: pools",
+    "description": "Pool lookup via MevX Data API (requires MEVX_API_KEY). Params: address/poolAddress and/or token/mint; optional chain.",
+    "priceUsd": 0.00012,
+    "curated": false
+  },
+  {
+    "toolName": "syra_spend_mevx_token",
+    "toolId": "mevx-token",
+    "pillar": "spend",
+    "access": "agent-direct",
+    "method": "GET",
+    "name": "MevX: token info",
+    "description": "Token market info via MevX Data API (requires MEVX_API_KEY). Params: address or mint; optional chain (default sol).",
+    "priceUsd": 0.00012,
+    "curated": false
+  },
+  {
+    "toolName": "syra_spend_mevx_trades",
+    "toolId": "mevx-trades",
+    "pillar": "spend",
+    "access": "agent-direct",
+    "method": "GET",
+    "name": "MevX: trades",
+    "description": "Recent DEX trades from MevX (requires MEVX_API_KEY). Params: chain (default sol), poolAddress and/or wallet, optional limit/offset/orderBy.",
     "priceUsd": 0.00012,
     "curated": false
   },

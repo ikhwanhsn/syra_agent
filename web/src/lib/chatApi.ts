@@ -393,6 +393,18 @@ export type AgentWalletLpFields = {
   wallets?: AgentWalletSetResponse["wallets"];
 };
 
+/** Public status for Crossmint card → USDC into agent wallets. */
+export type CrossmintOnrampStatus = {
+  enabled: boolean;
+  env?: string;
+  clientApiKeyConfigured?: boolean;
+  defaultAmountUsd?: number;
+  minAmountUsd?: number;
+  maxAmountUsd?: number;
+  supportedChains?: string[];
+  fundingSource?: string;
+};
+
 /** Agent wallet API: get/create agent wallet by anonymousId or by connected wallet. Private key stored on server for permissionless x402. */
 export const agentWalletApi = {
   /** Get or create agent wallet by connected wallet address and chain (checks database first). */
@@ -947,6 +959,65 @@ export const agentWalletApi = {
       retired: Array<{ previousAnonymousId: string; retiredAnonymousId: string; purpose: AgentWalletPurpose }>;
     }>(res);
     return { retired: data.retired ?? [] };
+  },
+
+  /** Public flag for fiat card → USDC into agent wallets (Crossmint). */
+  async getOnrampStatus(): Promise<CrossmintOnrampStatus> {
+    const res = await syraFetch(`${agentWalletBase()}/onramp/status`, {
+      headers: getApiHeaders(),
+    });
+    const data = await handleRes<CrossmintOnrampStatus & { success?: boolean }>(res);
+    return {
+      enabled: data.enabled === true,
+      env: data.env,
+      clientApiKeyConfigured: data.clientApiKeyConfigured,
+      defaultAmountUsd: data.defaultAmountUsd,
+      minAmountUsd: data.minAmountUsd,
+      maxAmountUsd: data.maxAmountUsd,
+      supportedChains: data.supportedChains,
+      fundingSource: data.fundingSource ?? "crossmint_onramp",
+    };
+  },
+
+  /** Create Crossmint onramp order; returns clientSecret for Embedded Checkout. */
+  async createOnrampOrder(
+    anonymousId: string,
+    body: { receiptEmail: string; amountUsd: number; chain?: "solana" | "base" },
+  ): Promise<{
+    orderId: string;
+    clientSecret: string;
+    clientApiKey: string;
+    agentAddress: string;
+    chain: "solana" | "base";
+    amountUsd: string;
+  }> {
+    const res = await syraFetch(
+      `${agentWalletBase()}/${encodeURIComponent(anonymousId)}/onramp`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getApiHeaders() },
+        body: JSON.stringify(body),
+      },
+    );
+    const data = await handleRes<{
+      success: boolean;
+      orderId: string;
+      clientSecret: string;
+      clientApiKey: string;
+      agentAddress: string;
+      chain: "solana" | "base";
+      amountUsd: string;
+      message?: string;
+      error?: string;
+    }>(res);
+    return {
+      orderId: data.orderId,
+      clientSecret: data.clientSecret,
+      clientApiKey: data.clientApiKey,
+      agentAddress: data.agentAddress,
+      chain: data.chain,
+      amountUsd: data.amountUsd,
+    };
   },
 };
 

@@ -57,6 +57,11 @@ export default function BuildMcp() {
           <li>
             Fund a Solana wallet with ≥ $1 USDC (+ a little SOL) and set{" "}
             <code className="text-sm">SYRA_PAYER_KEYPAIR</code>
+            {" — "}or buy USDC with a card into your Syra agent wallet at{" "}
+            <a href="https://syraa.fun/wallet" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+              syraa.fun/wallet
+            </a>
+            {" "}(<Link to="/docs/build/crossmint-x402" className="text-primary hover:underline">Crossmint onramp</Link>)
           </li>
           <li>
             Call <code className="text-sm">syra_spend_news</code> with ticker <code className="text-sm">BTC</code>

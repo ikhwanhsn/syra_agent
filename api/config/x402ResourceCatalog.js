@@ -252,6 +252,56 @@ export const X402_RESOURCE_CATALOG = {
       'Solana token risk report from RugCheck: mint/freeze authority, holder concentration, LP status, and risk score. Use when an agent screens memecoins or new mints before trading. Input: mint (required, Solana base58). Returns riskScore, risks[], topHolders[], mintAuthority, freezeAuthority, lpLocked, marketCap, computedAt.',
     suggestedPriceStx: 0.005,
   },
+  'flint/pairs': {
+    slug: 'flint-pairs',
+    name: 'Flint Pairs',
+    category: 'analytics',
+    methods: ['GET', 'POST'],
+    summary: 'Flint Solana multi-maker spot pair catalog',
+    description:
+      'Listed pairs on Flint (multi-maker on-chain Solana spot DEX) with base/quote mints, spot ids, and last price when available. Use when an agent needs to discover Flint markets or resolve baseId/quoteId before flint/book or flint/candles. No auth. Does not place orders or run market-making.',
+    suggestedPriceStx: 0.001,
+  },
+  'flint/book': {
+    slug: 'flint-book',
+    name: 'Flint Order Book',
+    category: 'analytics',
+    methods: ['GET', 'POST'],
+    summary: 'Flint L1/L2/L3 virtual order book snapshot',
+    description:
+      'One-shot book snapshot from Flint MarketDataService (default L2). Use when an agent needs CLOB-style depth on Flint before sizing a trade elsewhere. Inputs: base + optional quote (default USDC), or baseId/quoteId from flint/pairs; level=L1|L2|L3. Returns bids/asks as decimal price/size strings. Market data only — not execution or maker quoting.',
+    suggestedPriceStx: 0.001,
+  },
+  'flint/stats': {
+    slug: 'flint-stats',
+    name: 'Flint Venue Stats',
+    category: 'analytics',
+    methods: ['GET', 'POST'],
+    summary: 'Flint venue summary stats (volume, makers, NAV)',
+    description:
+      'Cross-venue summary from Flint StatsService: active pairs/makers, 1h/24h/30d quote volume and fill counts, unique traders, total NAV. Use when an agent checks Flint venue health and activity. Market data only.',
+    suggestedPriceStx: 0.001,
+  },
+  'flint/candles': {
+    slug: 'flint-candles',
+    name: 'Flint Candles / Fills',
+    category: 'analytics',
+    methods: ['GET', 'POST'],
+    summary: 'Flint historical candles or public fills',
+    description:
+      'HistoricalService candles (kind=candles, interval 1M|5M|15M|30M|1H|4H|1D) or public fills (kind=fills). Use when an agent needs Flint OHLC or recent public fill tape. Inputs: base/quote or ids; optional startMicros/endMicros (unix µs). Default candles window is last 24h. Not a trading endpoint.',
+    suggestedPriceStx: 0.001,
+  },
+  'flint/external-tape': {
+    slug: 'flint-external-tape',
+    name: 'Flint External Tape',
+    category: 'analytics',
+    methods: ['GET', 'POST'],
+    summary: 'Short snapshot of external aggregator fills and venue quotes',
+    description:
+      'Collects a short-lived stream of external DEX aggregator fills (Jupiter, OKX, DFlow, Titan, …) and per-venue reference quotes for one Flint pair. Use when an agent compares Flint vs aggregator flow or reference spreads. Inputs: base/quote or ids; optional timeoutMs (default 2500), maxEvents. Quotes are poll estimates, not firm executable prices. Not maker/taker execution.',
+    suggestedPriceStx: 0.005,
+  },
   'pyth/price': {
     slug: 'pyth-price',
     name: 'Pyth Oracle Prices',

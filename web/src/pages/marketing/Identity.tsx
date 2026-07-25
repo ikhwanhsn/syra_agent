@@ -339,7 +339,7 @@ export default function Identity() {
               links={[
                 { label: "Syra Agents on 8004market", href: SYRA_8004_COLLECTION_URL },
                 { label: "8004 skill spec", href: "https://8004.qnt.sh/skill.md" },
-                { label: "API playground", href: "https://playground.syraa.fun" },
+                { label: "API playground", href: "https://www.syraa.fun/marketplace?tab=custom" },
               ]}
             />
 

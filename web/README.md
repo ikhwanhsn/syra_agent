@@ -66,7 +66,7 @@ npm run lint     # ESLint
 
 Set environment variables with the `VITE_*` prefix. `VITE_PRIVY_APP_ID` is required for wallet connect in production.
 
-**Production URLs:** [syraa.fun](https://syraa.fun) (agent + marketing), [syraa.fun/marketplace](https://syraa.fun/marketplace), [syraa.fun/articles](https://syraa.fun/articles) (legacy `playground.syraa.fun` aliases redirect).
+**Production URLs:** [syraa.fun](https://syraa.fun) (agent + marketing), [syraa.fun/marketplace](https://syraa.fun/marketplace) (x402 catalog + custom tester at `?tab=custom`), [syraa.fun/articles](https://syraa.fun/articles).
 
 ---
 

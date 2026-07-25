@@ -28,6 +28,7 @@ import SyraAgentCatalog from "./pages/docs/SyraAgentCatalog";
 import BuildMcp from "./pages/docs/BuildMcp";
 import BuildSdk from "./pages/docs/BuildSdk";
 import BuildPricing from "./pages/docs/BuildPricing";
+import CrossmintX402 from "./pages/docs/CrossmintX402";
 import Token from "./pages/docs/Token";
 import NotFound from "./pages/NotFound";
 
@@ -64,6 +65,7 @@ const App = () => (
           <Route path="/docs/build/mcp" element={<BuildMcp />} />
           <Route path="/docs/build/sdk" element={<BuildSdk />} />
           <Route path="/docs/build/pricing" element={<BuildPricing />} />
+          <Route path="/docs/build/crossmint-x402" element={<CrossmintX402 />} />
           <Route path="/docs/x402-agent/getting-started" element={<X402Agent />} />
           <Route path="/docs/x402-agent/agent-catalog" element={<AgentCatalog />} />
           <Route path="/docs/token/tokenomicsv2" element={<Navigate to="/docs/token/tokenomics" replace />} />

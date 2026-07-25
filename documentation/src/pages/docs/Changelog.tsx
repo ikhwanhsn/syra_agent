@@ -11,6 +11,8 @@ const changelogEntries: { period: string; items: string[] }[] = [
   {
     period: "July 2026",
     items: [
+      "Crossmint fiat onramp (card → USDC) into existing Syra agent wallets — Buy USDC CTA on /wallet; webhook at /internal/crossmint/webhook; Privy custody unchanged",
+      "Docs: Crossmint Base wallet → Syra x402 paid-call quickstart (/docs/build/crossmint-x402)",
       "API Marketplace rebrand: /marketplace replaces /playground (legacy URLs redirect); Browse / Integrate / Custom in navbar dropdown",
       "Per-API marketplace detail pages with OpenAPI descriptions, usage snippets, and copyable agent manifest JSON",
       "New x402 data-provider routes: DexScreener pairs, GeckoTerminal pools, DefiLlama TVL, RugCheck report, Pyth Hermes prices ($0.001–$0.005/call)",

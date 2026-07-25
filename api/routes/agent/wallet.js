@@ -34,11 +34,15 @@ import {
 import { resolveSpendBaseForWalletSet } from '../../libs/agentWalletResolve.js';
 import { getAgentWalletSet } from '../../libs/agentWalletSetService.js';
 import { getAdminDashboardWallets, isAdminWalletAddress } from '../../libs/adminWallet.js';
+import { mountCrossmintOnrampRoutes } from './crossmintOnramp.js';
 
 const { AvatarGenerator } = pkg;
 const avatarGenerator = new AvatarGenerator();
 
 const router = express.Router();
+
+// Fiat onramp status + create/order routes (must register before /:anonymousId).
+mountCrossmintOnrampRoutes(router);
 
 const LIST_DEFAULT_LIMIT = 100;
 const LIST_MAX_LIMIT = 200;

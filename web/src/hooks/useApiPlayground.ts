@@ -68,7 +68,7 @@ function getApiBaseUrl(): string {
   return resolveApiBaseUrl();
 }
 
-/** Headers for Syra API. Do not embed API keys in client; the API injects auth for trusted origins (playground.syraa.fun). */
+/** Headers for Syra API. Do not embed API keys in client; the API injects auth for trusted origins (syraa.fun / www.syraa.fun). */
 function getApiHeaders(): Record<string, string> {
   if (import.meta.env.DEV) {
     const leaked = import.meta.env.VITE_API_KEY?.trim();

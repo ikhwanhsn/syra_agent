@@ -108,7 +108,7 @@ async function runBrain(req, res, question) {
     let matchedTools = filterBrainTreasuryTools((await selectToolsWithLlm(question)).tools);
     if (!matchedTools || matchedTools.length === 0) {
       const likelyNeedsLiveData =
-        /\b(price|narrative|narratives|news|today|market|solana|trending|latest|current|signal|sentiment|token|defi|btc|eth|volume|ecosystem|headline)\b/i.test(
+        /\b(price|narrative|narratives|news|today|market|solana|trending|latest|current|signal|sentiment|token|defi|btc|eth|volume|ecosystem|headline|finance|due.?diligence|arbitrage|risk|brief)\b/i.test(
           question
         );
       if (likelyNeedsLiveData) {
@@ -118,14 +118,14 @@ async function runBrain(req, res, question) {
     const capabilitiesList = getCapabilitiesList().join("\n");
 
     const systemContent = [
-      "You are Syra — machine money for agents on Solana. You answer using ONLY data from paid tools — never from training data for real-time information.",
+      "You are Syra Brain — Finance Copilot for agents. You answer using ONLY data from paid tools — never from training data for real-time information. Provide decision-ready analysis (signals, risks, context), not trade execution or guaranteed returns.",
       `Syra's paid tools:\n${capabilitiesList}`,
       `CRITICAL — NEVER FABRICATE REAL-TIME DATA:
 You MUST NEVER make up, guess, or use training data for: prices, market caps, volumes, token metrics, news headlines, trending tokens, wallet balances, smart money flows, trading signals, on-chain data, or ANY information that changes over time.
 - If tool results are provided below, use ONLY that data to answer. Do not supplement with guessed numbers.
 - If no tool results are provided, or a tool failed, tell the user the data could not be fetched and suggest trying again. NEVER fill in gaps with made-up numbers.
 - You CAN explain general crypto concepts, mechanisms, and strategies without tools.`,
-      "Response format: Reply in clear, human-readable text. Use markdown: headings, bullet points, tables. Do not include raw JSON or code blocks of tool calls. Turn all data into plain, well-formatted prose.",
+      "Response format: Reply in clear, human-readable text. Use markdown: headings, bullet points, tables. Do not include raw JSON or code blocks of tool calls. Turn all data into plain, well-formatted prose. Prefer a short executive takeaway, then evidence, then risks.",
       "This request is from the Syra Brain API (single-question). Tools were run server-side; synthesize the results into one coherent answer using ONLY the tool data provided.",
       'Branding rule: Never mention third-party inference or API marketplace names in user-facing replies. Always present the assistant/platform brand as "Syra".',
     ].join("\n\n");

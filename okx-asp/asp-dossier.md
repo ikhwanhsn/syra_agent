@@ -2,6 +2,8 @@
 
 Ready-to-submit profile for registering Syra as an **Agent Service Provider (ASP)** on [OKX.AI](https://www.okx.ai). Covers both **A2MCP** (pay-per-call x402 API catalog) and **A2A** (Syra Brain negotiated research agent).
 
+**Hackathon target:** [OKX.AI Genesis](https://web3.okx.com/xlayer/build-x-series) — **Finance Copilot** category.  
+**Positioning:** Finance Copilot for agents — decision-ready crypto intelligence (not raw market data).  
 **Source of truth in repo:** `api/config/x402ResourceCatalog.js`, `api/config/syraBranding.js`, `api/config/pillars.js`
 
 ---
@@ -11,33 +13,54 @@ Ready-to-submit profile for registering Syra as an **Agent Service Provider (ASP
 | Field | Value |
 |-------|-------|
 | **ASP name** | Syra |
-| **Tagline** | Machine Money for Agents |
-| **Description** | Machine money for agents on Solana — Earn, Treasury, Invest, Spend (x402), Grow. Agent wallets, policy engine, and autonomous capital deployment. |
+| **Tagline** | Finance Copilot for Agents |
+| **Description** | Finance Copilot for agents — pay-per-call crypto intelligence that turns market data into decisions. Signals, indicators, sentiment, arbitrage, Bitcoin hub, tokenized equity, Jupiter quotes, plus Syra Brain for natural-language token due diligence and market briefs. x402 settlement including X Layer. |
 | **Website** | https://syraa.fun |
 | **API base** | https://api.syraa.fun |
 | **Documentation** | https://docs.syraa.fun |
-| **Playground** | https://playground.syraa.fun |
+| **Playground** | https://www.syraa.fun/marketplace?tab=custom |
 | **Agent demo** | https://syraa.fun |
 | **Icon** | https://api.syraa.fun/favicon.ico |
-| **Category** | Crypto |
-| **Tags** | agents, x402, crypto, trading, analytics, machine-money |
+| **Category** | Finance |
+| **Tags** | finance, copilot, agents, x402, crypto, trading, analytics, signals, due-diligence |
 | **Discovery** | `GET https://api.syraa.fun/.well-known/x402` |
 | **OpenAPI** | `GET https://api.syraa.fun/openapi.json` |
 | **Pillars** | `GET https://api.syraa.fun/pillars` |
-| **MCP package** | `@syra-ai/mcp-server` v0.4.0 (`npx -y @syra-ai/mcp-server`) |
+| **MCP package** | `@syra-ai/mcp-server` (`npx -y @syra-ai/mcp-server`) |
 | **SDK** | `@syra-ai/sdk` |
 
-### Product narrative
+### Product narrative (Finance Copilot)
 
-Syra is organized around five pillars:
+**Differentiation vs raw-data ASPs (e.g. CoinAnk):** Syra does not stop at prices and feeds. Agents get **decision-ready** outputs — signals with technical context, risk-scored memecoin DD, arbitrage rankings, and a Brain that synthesizes multi-source research into markdown reports.
 
-| Pillar | Purpose |
+Syra pillars that power the Finance Copilot:
+
+| Pillar | Purpose for finance agents |
 |--------|---------|
-| **Earn** | Agents monetize skills (8004 registry, marketplace) |
-| **Treasury** | Allocate and manage capital (wallets, billing, policy) |
-| **Invest** | Deploy capital autonomously (Jupiter, Giza, RISE) |
-| **Spend** | x402 native pay-per-call APIs |
-| **Grow** | Yield + portfolio optimization |
+| **Spend** | x402 pay-per-call finance APIs (signals, indicators, Brain) |
+| **Invest** | Quotes and scout intel (Jupiter, RISE) before capital moves |
+| **Earn** | 8004 agent registry discovery for agent-economy finance |
+| **Treasury** | Agent wallets, billing caps, policy (supporting layer) |
+| **Grow** | Yield + portfolio recommendations (analysis-first) |
+
+### Finance bundle (spotlight for OKX listing)
+
+Lead with these routes so reviewers and users see **Finance** immediately:
+
+| Route | Why it is finance |
+|-------|-------------------|
+| `/brain` | Natural-language finance research (A2A flagship) |
+| `/signal` | AI trading signal from CEX OHLCV |
+| `/indicator` | RSI, MACD, EMA, Bollinger, 20+ indicators |
+| `/sentiment` | 30-day sentiment by ticker |
+| `/arbitrage` | Cross-CEX spread rankings |
+| `/bitcoin` | Bitcoin intelligence hub + taker flow |
+| `/equity` | Tokenized equity Nasdaq vs on-chain spread |
+| `/spcx` | SpaceX IPO tokenized equity intel |
+| `/jupiter/quote` | Swap quote before deploy |
+| `/rise` | RISE market intel for agents |
+
+Full catalog remains available via OpenAPI / `.well-known/x402` (48+ resources).
 
 ---
 
@@ -132,12 +155,15 @@ If OKX requires per-endpoint registration, use the full tables below.
 ### A2MCP primary service (copy-paste for OKX form)
 
 ```
-Service name: Syra x402 Crypto Intelligence API
-Description: Pay-per-call crypto intelligence APIs for agents. 28 routes covering news, signals, technical indicators, memecoin analysis, tokenized equity spreads, Bitcoin dashboard, Jupiter quotes, OpenRouter chat/image/video, and Solana 8004 agent registry. HTTP 402 (x402 v2) payment on Solana, Base, BSC, or Algoranda USDC. Discovery: https://api.syraa.fun/.well-known/x402. OpenAPI: https://api.syraa.fun/openapi.json. Docs: https://docs.syraa.fun.
-Price: Per-route fixed USDC (see catalog); dynamic for LLM/media routes.
+Service name: Syra Finance Copilot API
+Category: Finance
+Description: Finance Copilot for agents. Pay-per-call crypto intelligence that turns market data into decisions — signals, indicators, sentiment, arbitrage, Bitcoin hub, tokenized equity spreads, Jupiter quotes, RISE scout, plus full OpenAPI catalog. HTTP 402 (x402 v2) on Solana, Base, BSC, Algorand, and X Layer.
+Price: Per-route fixed USDC (see catalog); dynamic for LLM/media routes. Gateway from $0.01/call.
 Endpoint: https://api.syraa.fun
 OpenAPI spec: https://api.syraa.fun/openapi.json
 ```
+
+Note: OKX `validate-listing` **blocks URLs inside serviceDescription**. Put URLs only in endpoint / OpenAPI fields (see `services.json`).
 
 ---
 
@@ -149,9 +175,9 @@ OpenAPI spec: https://api.syraa.fun/openapi.json
 
 | Element | Content |
 |---------|---------|
-| **Service name** | Syra Brain — Crypto Research Agent |
-| **Task types** | Token due diligence, market narrative synthesis, multi-source crypto research, trading context reports, memecoin risk assessment, macro BTC/ETH briefings |
-| **Trigger keywords** | research, analyze, due diligence, what's happening with, market brief, token report, crypto intelligence |
+| **Service name** | Syra Brain Finance Copilot |
+| **Task types** | Token due diligence, market narrative synthesis, multi-source crypto research, trading context reports, memecoin risk assessment, macro BTC/ETH briefings, arbitrage context |
+| **Trigger keywords** | finance, research, analyze, due diligence, what's happening with, market brief, token report, crypto intelligence, signal, risk score |
 | **Input** | Natural-language question or research brief (scope, tickers, mints, time horizon) |
 | **Output** | Markdown report with cited sources, tool usage log (`toolUsages[]`), probabilistic insights — not trade execution |
 | **Tools available** | News, signals, indicators, pump.fun analyzer, assets board, Bitcoin hub, sentiment, Nansen (when configured), on-chain reads — selected server-side |
@@ -186,10 +212,11 @@ OpenAPI spec: https://api.syraa.fun/openapi.json
 ### A2A primary service (copy-paste for OKX form)
 
 ```
-Service name: Syra Brain — Crypto Research Agent
-Description: Expert crypto research agent that answers natural-language questions by autonomously selecting and running Syra intelligence tools (news, signals, on-chain data, memecoin analysis). Delivers grounded markdown reports with tool usage transparency. Multi-round scope negotiation supported. Analysis only — not trade execution or financial advice.
+Service name: Syra Brain Finance Copilot
+Category: Finance
+Description: A2A Finance Copilot — expert crypto research agent that answers natural-language finance questions by autonomously selecting and running Syra intelligence tools (news, signals, on-chain data, memecoin analysis). Delivers grounded markdown reports with tool usage transparency. Multi-round scope negotiation supported. Analysis only — not trade execution or financial advice.
 Default price: $0.50 per standard research task (negotiable $0.08–$5.00 by scope).
-Capabilities: token due diligence, market briefs, narrative synthesis, memecoin risk scoring, macro BTC/ETH reports.
+Capabilities: token due diligence, market briefs, narrative synthesis, memecoin risk scoring, macro BTC/ETH reports, arbitrage context.
 Delivery: Markdown report + toolUsages log within 10 minutes.
 ```
 
@@ -273,6 +300,6 @@ Before submitting to OKX:
 | OKX A2MCP guide | https://web3.okx.com/onchainos/dev-docs/okxai/howtomcp |
 | OKX A2A guide | https://web3.okx.com/onchainos/dev-docs/okxai/how-to-become-a2a |
 | Syra docs | https://docs.syraa.fun |
-| Syra playground | https://playground.syraa.fun |
+| Syra playground | https://www.syraa.fun/marketplace?tab=custom |
 | Syra analytics | https://syraa.fun/analytics |
 | Open tasks (A2A intake) | https://www.okx.ai/tasks |

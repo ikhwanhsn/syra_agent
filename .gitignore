@@ -4,3 +4,9 @@ node_modules
 # B402 keys — keep registered public key only
 api/.keys/*
 !api/.keys/b402_public.pem
+# OKX Genesis LLM demo renders (large binaries)
+okx-asp/video-clips/*.mp4
+okx-asp/video-clips/*.job.json
+okx-asp/out/*.mp4
+okx-asp/out/concat-list.txt
+

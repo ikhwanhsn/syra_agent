@@ -1,5 +1,6 @@
 /**
  * SYRA market-making service — paper trading with Jupiter-quote fills.
+ * Live venue MM (e.g. Flint MakerService) is explicitly deferred — see api/docs/flint-integration.md.
  */
 import MmState from "../../models/MmState.js";
 import MmRun from "../../models/MmRun.js";

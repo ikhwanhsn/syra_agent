@@ -13,6 +13,7 @@ Core value
 - HTTP 402 / x402 micropayments (USDC) for crypto API routes.
 - MCP tools (@syra-ai/mcp-server) and typed SDK (@syra-ai/sdk) for agent builders.
 - Real-time and contextual market data: news, sentiment, signals, smart money, risk.
+- Flint Solana multi-maker spot depth (books, venue stats, candles, external aggregator tape) via paid Spend tools — market data only, not live market-making.
 - Structured JSON output agents can act on immediately.
 
 Design stance

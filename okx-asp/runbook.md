@@ -47,9 +47,10 @@ When the agent asks for details, provide from [asp-dossier.md](./asp-dossier.md)
 
 | Field | Value |
 |-------|-------|
-| **Service name** | Syra x402 Crypto Intelligence API |
-| **Description** | Pay-per-call crypto intelligence APIs for agents. 28 routes covering news, signals, technical indicators, memecoin analysis, tokenized equity spreads, Bitcoin dashboard, Jupiter quotes, OpenRouter chat/image/video, and Solana 8004 agent registry. HTTP 402 (x402 v2) payment. |
-| **Price** | Per-route USDC (see dossier tables); gateway bundle from $0.0001/call |
+| **Service name** | Syra Finance Copilot API |
+| **Category** | Finance |
+| **Description** | Finance Copilot for agents. Pay-per-call crypto intelligence that turns market data into decisions — signals, indicators, sentiment, arbitrage, Bitcoin hub, tokenized equity, Jupiter quotes, RISE scout. HTTP 402 (x402 v2) payment including X Layer. |
+| **Price** | Per-route USDC (see dossier tables); gateway bundle from $0.01/call |
 | **Endpoint** | `https://api.syraa.fun` |
 | **OpenAPI spec** | `https://api.syraa.fun/openapi.json` |
 | **Discovery** | `https://api.syraa.fun/.well-known/x402` |
@@ -94,11 +95,11 @@ When the agent asks for details, provide from [asp-dossier.md Section 3](./asp-d
 
 | Field | Value |
 |-------|-------|
-| **Service name** | Syra Brain — Crypto Research Agent |
-| **Description** | Expert crypto research agent. Answers natural-language questions by autonomously selecting and running Syra intelligence tools. Delivers grounded markdown reports with tool usage transparency. Analysis only — not trade execution. |
+| **Service name** | Syra Brain Finance Copilot |
+| **Description** | A2A Finance Copilot — expert crypto research agent. Answers natural-language finance questions by autonomously selecting and running Syra intelligence tools. Delivers grounded markdown reports with tool usage transparency. Analysis only — not trade execution. |
 | **Default price** | $0.50 per standard research task |
 | **Price range** | $0.08 (quick) – $5.00 (deep dossier) |
-| **Capabilities** | Token due diligence, market briefs, narrative synthesis, memecoin risk scoring, macro BTC/ETH reports |
+| **Capabilities** | Token due diligence, market briefs, narrative synthesis, memecoin risk scoring, macro BTC/ETH reports, arbitrage context |
 | **Delivery format** | Markdown report + JSON metadata |
 | **Turnaround** | < 10 minutes for standard tasks |
 | **Revisions** | 1 free revision within 24h |
@@ -205,7 +206,7 @@ Check okx.ai marketplace for your ASP listing.
 | A2MCP rejected — no payment SDK | Register now; integrate OKX Payment SDK before go-live (dossier Section 5) |
 | A2A rejected — vague capabilities | Paste full capability declaration from Step 3 |
 | Listing not visible after 2 days | Check Agentic Wallet email for rejection reason; revise and resubmit |
-| 402 on Syra API calls | Expected — x402 payment required. Use playground.syraa.fun to test with wallet. |
+| 402 on Syra API calls | Expected — x402 payment required. Use https://www.syraa.fun/marketplace?tab=custom to test with wallet. |
 
 ---
 

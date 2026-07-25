@@ -35,7 +35,8 @@ GET /binance-ticker
 
 Pricing tiers (machine-frequency)
 ---------------------------------
-Tier 1 — $0.001/call: lists, prices, health probes, jupiter/quote, coingecko scout, dexscreener/pairs, geckoterminal/pools, defillama/tvl, pyth/price, assets board, pumpfun trending/movers
+Tier 1 — $0.001/call: lists, prices, health probes, jupiter/quote, coingecko scout, dexscreener/pairs, geckoterminal/pools, defillama/tvl, pyth/price, flint/pairs, flint/book, flint/stats, flint/candles, assets board, pumpfun trending/movers
+Tier 2 — $0.005/call (also): flint/external-tape (short external aggregator tape snapshot)
 Insights (x402 Labs) — on-chain intelligence:
   $0.01/call: insights/network-health, insights/gas-oracle
   $0.02/call: insights/market-pulse
@@ -71,6 +72,7 @@ Paid HTTP resources (see /.well-known/x402 for full list)
 brain, news, signal, sentiment, indicator, event, trending-headline, sundown-digest,
 spcx, equity, arbitrage, jupiter/quote, pumpfun/trending, pumpfun/movers, pumpfun/analyzer,
 pumpfun/scout, rise, coingecko, dexscreener/pairs, geckoterminal/pools, defillama/tvl, rugcheck/report, pyth/price,
+flint/pairs, flint/book, flint/stats, flint/candles, flint/external-tape,
 insights/network-health, insights/gas-oracle, insights/market-pulse, insights/token-metrics, insights/defi-tvl, insights/volatility-index,
 assets, assets/detail, bitcoin,
 chat/completions, images/generations, videos/generations,
@@ -111,4 +113,10 @@ Metrics:    https://syraa.fun/metrics
 Web agent:  https://syraa.fun
 Twitter:    https://x.com/syra_agent
 
-Last updated: 2026-07-09
+Last updated: 2026-07-24
+
+Flint (Spend market data)
+-------------------------
+Paid routes under /flint/* expose Flint multi-maker Solana spot books, stats, candles, and external aggregator tape.
+MCP: syra_spend_flint_pairs | flint_book | flint_stats | flint_candles | flint_external_tape
+Market data only — not live market-making or taker swaps. See api/docs/flint-integration.md.

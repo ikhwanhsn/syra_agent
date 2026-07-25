@@ -166,7 +166,7 @@ export const SYRA_STACK_LAYERS = [
       "Web agent · syraa.fun (this app)",
       "MCP · @syra-ai/mcp-server",
       "Docs · docs.syraa.fun",
-      "API Playground · playground.syraa.fun",
+      "API Playground · syraa.fun/marketplace",
     ],
   },
   {
@@ -205,7 +205,6 @@ export const SYRA_MONOREPO_APPS: SyraMonorepoApp[] = [
   { package: "web", role: "Syra app — agent chat, marketing, marketplace, dashboard", url: "https://syraa.fun" },
   { package: "api", role: "Backend — x402 routes, agent sessions, partner tools", url: "https://api.syraa.fun" },
   { package: "documentation", role: "Public docs site", url: "https://docs.syraa.fun" },
-  { package: "api-playground", role: "x402 API playground", url: "https://playground.syraa.fun" },
   { package: "ai-agent", role: "Legacy/alternate agent package (if deployed separately)" },
   { package: "mcp-server", role: "MCP tools aligned with paid API surface" },
   { package: "staking", role: "Streamflow staking UI" },

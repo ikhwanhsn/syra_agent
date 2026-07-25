@@ -153,6 +153,27 @@ export const SYRA_PARTNERS: readonly SyraPartner[] = [
     },
   },
   {
+    slug: "crossmint",
+    name: "Crossmint",
+    href: "https://www.crossmint.com",
+    category: "wallets",
+    tagline: "Fiat onramp for agent treasuries",
+    summary:
+      "Card → USDC into existing Syra agent wallets so builders reach first paid x402 call faster.",
+    integration: {
+      status: "beta",
+      overview:
+        "Syra keeps Privy custody and x402 merchant settlement. Crossmint powers optional fiat onramp into the agent treasury address and documents Base wallets that can pay Syra’s x402 APIs.",
+      capabilities: [
+        "Buy USDC with card on syraa.fun/wallet (exact-in packs; KYC via Crossmint)",
+        "Webhook-backed order status for delivery confirmation",
+        "Base x402 payer path for Crossmint-funded agents calling api.syraa.fun",
+      ],
+      technical:
+        "Feature-flagged via CROSSMINT_ONRAMP_ENABLED. Does not replace Privy auth/custody. Deferred: Agent Checkouts, offramp, Auth, NFT minting.",
+    },
+  },
+  {
     slug: "nansen",
     name: "Nansen",
     href: "https://nansen.ai",

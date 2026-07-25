@@ -63,7 +63,8 @@ Shipped milestones are tracked in the [Changelog](/docs/changelog). The quarters
 
 ### Treasury
 
-- Fiat → stablecoin onramp (MoonPay / Privy funding) for faster agent wallet funding
+- Fiat → stablecoin onramp via **Crossmint** into existing Syra/Privy agent wallets (`CROSSMINT_ONRAMP_*`; keep manual USDC transfer). Spike: `docs/CROSSMINT_ONRAMP_SPIKE.md`. MoonPay/Privy remains backup.
+- **Deferred** until onramp proves activation: Agent Checkouts/Cards, creator offramp, Crossmint Auth, wallet replacement, NFT minting — `docs/CROSSMINT_DEFERRED.md`
 - Richer policy engine — per-tool budgets, daily caps, and operator alerts
 
 ### Invest

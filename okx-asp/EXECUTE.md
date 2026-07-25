@@ -17,8 +17,8 @@ Everything is prepared. You only need **one interactive step** (email OTP login)
 
 | # | Type | Name | Fee | Endpoint |
 |---|------|------|-----|----------|
-| 1 | A2MCP | Syra x402 Crypto API | 0.01 USDT/call | https://api.syraa.fun |
-| 2 | A2A | Syra Brain Research | 0.50 USDT/task | *(negotiated)* |
+| 1 | A2MCP | Syra Finance Copilot API | 0.01 USDT/call | https://api.syraa.fun |
+| 2 | A2A | Syra Brain Finance Copilot | 0.50 USDT/task | *(negotiated)* |
 
 ---
 

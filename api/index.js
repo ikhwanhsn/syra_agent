@@ -69,6 +69,7 @@ import { createBtcRouter } from "./routes/btc.js";
 import { createSpcxExperimentRouter } from "./routes/experiment/spcx.js";
 import { createSyraTradingTelegramWebhookRouter } from "./routes/syraTradingTelegramWebhook.js";
 import { createSyraTelegramWebhookRouter } from "./routes/syraTelegramWebhook.js";
+import { createCrossmintWebhookRouter } from "./routes/crossmintWebhook.js";
 import { createSentinelDashboardRouter } from "./routes/sentinelDashboard.js";
 import { createDashboardSummaryRouterRegular } from "./routes/dashboardSummary.js";
 import { createXApiRouter } from "./routes/partner/x-api/index.js";
@@ -98,6 +99,7 @@ import { createGeckoterminalPoolsRouter } from "./routes/geckoterminal/pools.js"
 import { createDefillamaTvlRouter } from "./routes/defillama/tvl.js";
 import { createRugcheckReportRouter } from "./routes/rugcheck/report.js";
 import { createPythPriceRouter } from "./routes/pyth/price.js";
+import { createFlintRouter } from "./routes/flint/index.js";
 import { createAssetsX402Router } from "./routes/assets/index.js";
 import { createAssetsDetailX402Router } from "./routes/assets/detail.js";
 import { createBitcoinX402Router } from "./routes/bitcoin/index.js";
@@ -292,8 +294,6 @@ const CORS_ALLOWED_ORIGINS = [
   "https://www.syraa.fun",
   "https://dashboard.syraa.fun",
   "https://www.dashboard.syraa.fun",
-  "https://playground.syraa.fun",
-  "https://www.playground.syraa.fun",
   "https://stake.syraa.fun",
   "https://www.stake.syraa.fun",
   "https://dev-dashboard-syra.vercel.app",
@@ -504,7 +504,7 @@ function isX402Route(p) {
 // Every other route — /agent/*, /api/playground-proxy, /api/signal, /preview/*,
 // /dashboard-summary, /binance-ticker, /streamflow-locks, /staking, etc. —
 // falls through to CORS_OPTIONS_REGULAR which only allows Syra's own origins (syraa.fun,
-// playground.syraa.fun, dashboard.syraa.fun, predict.syraa.fun,
+// dashboard.syraa.fun, predict.syraa.fun,
 // configured dev origins). This prevents external websites from consuming
 // non-x402 Syra APIs while still letting Syra frontends call them transparently
 // (trusted-origin API-key injection covers auth for browser callers).
@@ -844,6 +844,7 @@ app.use(
         p.startsWith("/internal/trend-scout/run") ||
         p.startsWith("/internal/growth-scout/run") ||
         p.startsWith("/internal/syra-telegram/webhook") ||
+        p.startsWith("/internal/crossmint/webhook") ||
         p.startsWith("/internal/partnership-scout/run") ||
         p.startsWith("/internal/buyback/run") ||
         p.startsWith("/internal/buyback/sync") ||
@@ -933,6 +934,12 @@ app.use(
     }
     if (
       p.startsWith("/internal/syra-telegram/webhook") &&
+      String(req.method || "").toUpperCase() === "POST"
+    ) {
+      return true;
+    }
+    if (
+      p.startsWith("/internal/crossmint/webhook") &&
       String(req.method || "").toUpperCase() === "POST"
     ) {
       return true;
@@ -1239,6 +1246,7 @@ app.use("/geckoterminal/pools", await createGeckoterminalPoolsRouter());
 app.use("/defillama/tvl", await createDefillamaTvlRouter());
 app.use("/rugcheck/report", await createRugcheckReportRouter());
 app.use("/pyth/price", await createPythPriceRouter());
+app.use("/flint", await createFlintRouter());
 app.use("/insights", await createInsightsRouter());
 app.use("/labs/x402", createLabsX402Router());
 app.use("/labs/llm", createLlmPlaygroundRouter());
@@ -1334,6 +1342,7 @@ app.use("/internal/sentinel", await createSentinelDashboardRouter());
 app.use("/internal/tester-agent", createInternalTesterAgentRouter());
 app.use("/internal", createSyraTradingTelegramWebhookRouter());
 app.use("/internal", createSyraTelegramWebhookRouter());
+app.use("/internal", createCrossmintWebhookRouter());
 // Internal dashboard: research-store + scouts (API key auth, no x402)
 app.use("/internal", createInternalPartnershipScoutRouter());
 app.use("/internal", createInternalBuybackRouter());

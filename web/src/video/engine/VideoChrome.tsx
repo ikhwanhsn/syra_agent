@@ -1,4 +1,4 @@
-import { AbsoluteFill, Img, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Img, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { SYRA_VIDEO_THEME } from "@/video/style/theme";
 
 /**
@@ -33,7 +33,7 @@ export function VideoChrome() {
         }}
       >
         <Img
-          src="/images/logo.jpg"
+          src={staticFile("images/logo.jpg")}
           alt=""
           width={18}
           height={18}

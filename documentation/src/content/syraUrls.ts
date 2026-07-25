@@ -13,8 +13,8 @@ export const SYRA_WALLET_URL = `${SYRA_WEB_ORIGIN}/wallet`;
 /** x402 API marketplace — browse, detail pages, integrate, and custom tester (Spend module). */
 export const SYRA_MARKETPLACE_URL = `${SYRA_WEB_ORIGIN}/marketplace`;
 
-/** @deprecated `/playground` redirects to `/marketplace` */
-export const SYRA_PLAYGROUND_URL = SYRA_MARKETPLACE_URL;
+/** Custom API tester — marketplace Custom tab. */
+export const SYRA_PLAYGROUND_URL = "https://www.syraa.fun/marketplace?tab=custom";
 
 /** Operator dashboard — usage, spend, monitoring. */
 export const SYRA_OVERVIEW_URL = `${SYRA_WEB_ORIGIN}/overview`;

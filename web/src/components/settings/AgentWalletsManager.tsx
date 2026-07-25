@@ -5,6 +5,7 @@ import {
   Check,
   ChevronDown,
   Copy,
+  CreditCard,
   Droplets,
   KeyRound,
   Loader2,
@@ -139,6 +140,7 @@ function AgentWalletManageCard({
   usdcBalance,
   balanceLoading,
   onFund,
+  onBuyUsdc,
   onWithdraw,
   onRefreshBalance,
   refreshingBalance,
@@ -154,6 +156,7 @@ function AgentWalletManageCard({
   usdcBalance: number | null;
   balanceLoading: boolean;
   onFund: () => void;
+  onBuyUsdc?: () => void;
   onWithdraw?: () => void;
   onRefreshBalance: () => void;
   refreshingBalance: boolean;
@@ -325,6 +328,17 @@ function AgentWalletManageCard({
                 Withdraw
               </Button>
             </div>
+            {onBuyUsdc ? (
+              <Button
+                type="button"
+                variant="secondary"
+                className="mt-2 h-10 w-full rounded-xl gap-1.5 text-sm font-medium"
+                onClick={onBuyUsdc}
+              >
+                <CreditCard className="h-3.5 w-3.5" aria-hidden />
+                Buy USDC with card
+              </Button>
+            ) : null}
 
             <Collapsible className="mt-3">
               <CollapsibleTrigger className="group flex w-full items-center justify-between rounded-lg py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
@@ -510,6 +524,12 @@ function AgentWalletManageCard({
               <Zap className="h-4 w-4" aria-hidden />
               Fund
             </Button>
+            {onBuyUsdc ? (
+              <Button type="button" variant="secondary" className="rounded-xl gap-2" onClick={onBuyUsdc}>
+                <CreditCard className="h-4 w-4" aria-hidden />
+                Buy USDC
+              </Button>
+            ) : null}
             <Button
               type="button"
               variant="outline"
@@ -635,6 +655,8 @@ export function AgentWalletsManager({
   onFundChat,
   onFundLp,
   onFundPillar,
+  onBuyUsdcSpend,
+  onBuyUsdcPillar,
   onWithdrawSpend,
   onWithdrawChat,
   onWithdrawLp,
@@ -681,6 +703,8 @@ export function AgentWalletsManager({
   onFundChat?: () => void;
   onFundLp: () => void;
   onFundPillar?: (purpose: AgentWalletPurpose) => void;
+  onBuyUsdcSpend?: () => void;
+  onBuyUsdcPillar?: (purpose: AgentWalletPurpose) => void;
   onWithdrawSpend?: () => void;
   onWithdrawChat?: () => void;
   onWithdrawLp?: () => void;
@@ -836,6 +860,13 @@ export function AgentWalletsManager({
                     ? onFundPrimary()
                     : onFundPillar?.(entry.purpose)
                 }
+                onBuyUsdc={
+                  entry.purpose === "spend"
+                    ? onBuyUsdcSpend
+                    : onBuyUsdcPillar
+                      ? () => onBuyUsdcPillar(entry.purpose)
+                      : undefined
+                }
                 onWithdraw={() =>
                   entry.purpose === "spend"
                     ? onWithdrawPrimary?.()
@@ -878,6 +909,7 @@ export function AgentWalletsManager({
             usdcBalance={lpUsdcBalance}
             balanceLoading={lpBalanceLoading}
             onFund={onFundLp}
+            onBuyUsdc={onBuyUsdcPillar ? () => onBuyUsdcPillar("lp") : undefined}
             onWithdraw={onWithdrawLp}
             onRefreshBalance={onRefreshLpBalances ?? onRefreshPrimary}
             refreshingBalance={refreshingLpBalances ?? primaryRefreshing}

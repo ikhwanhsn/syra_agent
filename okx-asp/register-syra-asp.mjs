@@ -20,7 +20,7 @@ const onchainos = join(process.env.USERPROFILE ?? "", ".local", "bin", "onchaino
 const avatar = join(root, "..", "web", "public", "images", "logo.jpg");
 const services = JSON.stringify(JSON.parse(readFileSync(join(root, "services.json"), "utf8")));
 const desc =
-  "Machine money for agents on Solana pay-per-call crypto intelligence APIs, agent wallets, and autonomous research. Earn, Treasury, Invest, Spend, Grow.";
+  "Finance Copilot for agents — pay-per-call crypto intelligence that turns market data into decisions. Signals, indicators, sentiment, arbitrage, Bitcoin hub, tokenized equity, Jupiter quotes, plus Syra Brain for natural-language token due diligence and market briefs.";
 
 function explainCreateFailure(error) {
   const msg = String(error || "");
@@ -242,5 +242,6 @@ if (act?.submitApproval || activated.submitApproval) {
 
 console.log("\n=== Done ===");
 console.log(`ASP ID: #${agentId}`);
-console.log("Services: A2MCP Syra x402 Crypto API + A2A Syra Brain Research");
+console.log("Services: A2MCP Syra Finance Copilot API + A2A Syra Brain Finance Copilot");
+console.log("Category target: Finance (OKX.AI Genesis Finance Copilot)");
 console.log("Review email goes to your Agentic Wallet address.");

@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 const root = dirname(fileURLToPath(import.meta.url));
 const services = readFileSync(join(root, "services.json"), "utf8").trim();
 const desc =
-  "Machine money for agents on Solana pay-per-call crypto intelligence APIs, agent wallets, and autonomous research. Earn, Treasury, Invest, Spend, Grow.";
+  "Finance Copilot for agents — pay-per-call crypto intelligence that turns market data into decisions. Signals, indicators, sentiment, arbitrage, Bitcoin hub, tokenized equity, Jupiter quotes, plus Syra Brain for natural-language token due diligence and market briefs.";
 
 const onchainos = join(process.env.USERPROFILE ?? "", ".local", "bin", "onchainos.exe");
 

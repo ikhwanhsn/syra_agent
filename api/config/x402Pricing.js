@@ -402,6 +402,14 @@ export const X402_API_PRICE_RUGCHECK_REPORT_USD = price(X402_TIER_2_USD);
 /** Pyth Hermes oracle prices — free upstream, Tier 1 */
 export const X402_API_PRICE_PYTH_PRICE_USD = price(X402_TIER_1_USD);
 
+/** Flint Solana multi-maker spot market data — free upstream public gRPC-Web */
+export const X402_API_PRICE_FLINT_PAIRS_USD = price(X402_TIER_1_USD);
+export const X402_API_PRICE_FLINT_BOOK_USD = price(X402_TIER_1_USD);
+export const X402_API_PRICE_FLINT_STATS_USD = price(X402_TIER_1_USD);
+export const X402_API_PRICE_FLINT_CANDLES_USD = price(X402_TIER_1_USD);
+/** External aggregator tape snapshot (short stream) — Tier 2 */
+export const X402_API_PRICE_FLINT_EXTERNAL_TAPE_USD = price(X402_TIER_2_USD);
+
 /** x402 Labs /insights/* — on-chain intelligence endpoints */
 export const X402_API_PRICE_INSIGHTS_NETWORK_HEALTH_USD = price(0.01);
 export const X402_API_PRICE_INSIGHTS_GAS_ORACLE_USD = price(0.01);
@@ -481,6 +489,11 @@ export const X402_DISPLAY_PRICE_GECKOTERMINAL_POOLS_USD = displayInternal(X402_T
 export const X402_DISPLAY_PRICE_DEFILLAMA_TVL_USD = displayInternal(X402_TIER_1_USD);
 export const X402_DISPLAY_PRICE_RUGCHECK_REPORT_USD = displayInternal(X402_TIER_2_USD);
 export const X402_DISPLAY_PRICE_PYTH_PRICE_USD = displayInternal(X402_TIER_1_USD);
+export const X402_DISPLAY_PRICE_FLINT_PAIRS_USD = displayInternal(X402_TIER_1_USD);
+export const X402_DISPLAY_PRICE_FLINT_BOOK_USD = displayInternal(X402_TIER_1_USD);
+export const X402_DISPLAY_PRICE_FLINT_STATS_USD = displayInternal(X402_TIER_1_USD);
+export const X402_DISPLAY_PRICE_FLINT_CANDLES_USD = displayInternal(X402_TIER_1_USD);
+export const X402_DISPLAY_PRICE_FLINT_EXTERNAL_TAPE_USD = displayInternal(X402_TIER_2_USD);
 export const X402_DISPLAY_PRICE_INSIGHTS_NETWORK_HEALTH_USD = displayInternal(0.01);
 export const X402_DISPLAY_PRICE_INSIGHTS_GAS_ORACLE_USD = displayInternal(0.01);
 export const X402_DISPLAY_PRICE_INSIGHTS_MARKET_PULSE_USD = displayInternal(0.02);

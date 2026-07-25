@@ -149,7 +149,6 @@ const SYRA_LINK_HOSTS = new Set([
   "syraa.fun",
   "api.syraa.fun",
   "docs.syraa.fun",
-  "playground.syraa.fun",
   "dashboard.syraa.fun",
 ]);
 

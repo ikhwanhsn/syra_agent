@@ -21,6 +21,11 @@ import {
   X402_API_PRICE_DEFILLAMA_TVL_USD,
   X402_API_PRICE_RUGCHECK_REPORT_USD,
   X402_API_PRICE_PYTH_PRICE_USD,
+  X402_API_PRICE_FLINT_PAIRS_USD,
+  X402_API_PRICE_FLINT_BOOK_USD,
+  X402_API_PRICE_FLINT_STATS_USD,
+  X402_API_PRICE_FLINT_CANDLES_USD,
+  X402_API_PRICE_FLINT_EXTERNAL_TAPE_USD,
   X402_API_PRICE_SQUID_ROUTE_USD,
   X402_API_PRICE_SQUID_STATUS_USD,
   X402_API_PRICE_WEB_SEARCH_USD,
@@ -61,6 +66,11 @@ import {
   X402_DISPLAY_PRICE_DEFILLAMA_TVL_USD,
   X402_DISPLAY_PRICE_RUGCHECK_REPORT_USD,
   X402_DISPLAY_PRICE_PYTH_PRICE_USD,
+  X402_DISPLAY_PRICE_FLINT_PAIRS_USD,
+  X402_DISPLAY_PRICE_FLINT_BOOK_USD,
+  X402_DISPLAY_PRICE_FLINT_STATS_USD,
+  X402_DISPLAY_PRICE_FLINT_CANDLES_USD,
+  X402_DISPLAY_PRICE_FLINT_EXTERNAL_TAPE_USD,
   X402_DISPLAY_PRICE_SQUID_ROUTE_USD,
   X402_DISPLAY_PRICE_SQUID_STATUS_USD,
   X402_DISPLAY_PRICE_WEB_SEARCH_USD,
@@ -1346,6 +1356,61 @@ export const AGENT_TOOLS = [
       'Real-time Pyth oracle prices via Hermes — symbols (comma-separated, e.g. BTC/USD,SOL/USD).',
   },
   {
+    id: 'flint-pairs',
+    agentDirect: false,
+    path: '/flint/pairs',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_FLINT_PAIRS_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_FLINT_PAIRS_USD,
+    name: 'Flint Pairs',
+    description:
+      'Flint Solana multi-maker spot pair catalog — base/quote mints, spot ids, last price. Market data only (not MM or swaps).',
+  },
+  {
+    id: 'flint-book',
+    agentDirect: false,
+    path: '/flint/book',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_FLINT_BOOK_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_FLINT_BOOK_USD,
+    name: 'Flint Order Book',
+    description:
+      'Flint L1/L2/L3 virtual order book snapshot — base + quote (default USDC) or baseId/quoteId; level=L1|L2|L3. Not execution.',
+  },
+  {
+    id: 'flint-stats',
+    agentDirect: false,
+    path: '/flint/stats',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_FLINT_STATS_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_FLINT_STATS_USD,
+    name: 'Flint Venue Stats',
+    description:
+      'Flint venue summary — active pairs/makers, 1h/24h/30d quote volume, fills, unique traders, total NAV.',
+  },
+  {
+    id: 'flint-candles',
+    agentDirect: false,
+    path: '/flint/candles',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_FLINT_CANDLES_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_FLINT_CANDLES_USD,
+    name: 'Flint Candles / Fills',
+    description:
+      'Flint historical candles (interval 1M|5M|15M|30M|1H|4H|1D) or kind=fills. Pair via base/quote or ids. Not trading.',
+  },
+  {
+    id: 'flint-external-tape',
+    agentDirect: false,
+    path: '/flint/external-tape',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_FLINT_EXTERNAL_TAPE_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_FLINT_EXTERNAL_TAPE_USD,
+    name: 'Flint External Tape',
+    description:
+      'Short snapshot of external aggregator fills (Jupiter/OKX/DFlow/Titan) and venue reference quotes for a Flint pair.',
+  },
+  {
     id: 'squid-route',
     agentDirect: true,
     path: '/squid/route',
@@ -2250,6 +2315,33 @@ function collectToolsFromUserMessage(userMessage, maxMatches = 1) {
       toolId: 'binance-correlation',
       test: () =>
         /binance\s*correlation|correlation\s*binance|binance\s*correl/i.test(text),
+    },
+    {
+      toolId: 'flint-pairs',
+      test: () =>
+        /flint\s*(pairs?|markets?|catalog)|list\s+flint\s+pairs?/i.test(text),
+    },
+    {
+      toolId: 'flint-book',
+      test: () =>
+        /flint\s*(order\s*)?book|flint\s*l2|flint\s*depth|flint\s*bids?\s*(and|&)?\s*asks?/i.test(text),
+    },
+    {
+      toolId: 'flint-stats',
+      test: () =>
+        /flint\s*(venue\s*)?stats|flint\s*volume|flint\s*summary|flint\s*nav/i.test(text),
+    },
+    {
+      toolId: 'flint-candles',
+      test: () =>
+        /flint\s*(candles?|ohlc|fills?|history)/i.test(text),
+    },
+    {
+      toolId: 'flint-external-tape',
+      test: () =>
+        /flint\s*(external\s*)?(tape|aggregator)|external\s*(fills?|quotes?).*\bflint\b|\bflint\b.*external\s*(fills?|quotes?)/i.test(
+          text,
+        ),
     },
     {
       toolId: 'binance-ticker-24h',

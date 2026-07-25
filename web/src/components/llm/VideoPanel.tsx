@@ -46,6 +46,7 @@ export function VideoPanel() {
   const [model, setModel] = useState("");
   const [prompt, setPrompt] = useState("");
   const [duration, setDuration] = useState(5);
+  const [generateAudio, setGenerateAudio] = useState(true);
   const [generationId, setGenerationId] = useState<string | null>(null);
   const [playUrl, setPlayUrl] = useState<string | null>(null);
   const [loadingContent, setLoadingContent] = useState(false);
@@ -140,6 +141,8 @@ export function VideoPanel() {
         prompt: trimmed,
         model: model || undefined,
         duration,
+        aspect_ratio: "16:9",
+        generate_audio: generateAudio,
       });
       const id =
         (typeof result.id === "string" && result.id) ||
@@ -196,7 +199,20 @@ export function VideoPanel() {
               setDuration(Math.max(1, Math.min(30, Number(e.target.value) || 5)))
             }
           />
+          <p className="text-xs text-muted-foreground">
+            Always submits as 16:9. Max 30s per clip (stitch longer demos offline).
+          </p>
         </div>
+
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            className="h-4 w-4 rounded border-border"
+            checked={generateAudio}
+            onChange={(e) => setGenerateAudio(e.target.checked)}
+          />
+          Generate audio (VO / SFX when the model supports it)
+        </label>
 
         <Button type="button" onClick={() => void onSubmit()} disabled={submit.isPending}>
           {submit.isPending ? (

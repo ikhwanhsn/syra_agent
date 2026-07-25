@@ -1,6 +1,5 @@
-import { Composition, type CalculateMetadataFunction } from "remotion";
-import { ACTIVE_POST } from "@/content/posts";
-import type { PostSlide } from "@/content/posts/types";
+import { Composition } from "remotion";
+import { OKX_GENESIS_FINANCE_POST } from "@/content/posts/okxGenesisFinanceUpdate";
 import {
   AgentsBeatTraders2030,
   AGENTS_BEAT_TRADERS_DURATION,
@@ -8,24 +7,23 @@ import {
   AGENTS_BEAT_TRADERS_HEIGHT,
   AGENTS_BEAT_TRADERS_WIDTH,
 } from "@/video/compositions/AgentsBeatTraders2030";
-import { PostDeckVideo, type PostDeckVideoProps } from "@/video/compositions/PostDeckVideo";
+import { PostDeckVideo } from "@/video/compositions/PostDeckVideo";
 import {
   POST_VIDEO_LAYOUT_HEIGHT,
   POST_VIDEO_LAYOUT_WIDTH,
 } from "@/video/constants";
 import { getDeckDurationInFrames, POST_VIDEO_FPS } from "@/video/engine/timing";
 
-const calculateMetadata: CalculateMetadataFunction<PostDeckVideoProps> = ({ props }) => {
-  const slides = props.slides ?? [];
-  return {
-    durationInFrames: Math.max(1, getDeckDurationInFrames(slides)),
-    fps: POST_VIDEO_FPS,
-    width: POST_VIDEO_LAYOUT_WIDTH,
-    height: POST_VIDEO_LAYOUT_HEIGHT,
-  };
-};
+/**
+ * CLI-safe wrapper: slides (incl. Lucide icons) stay in the bundle.
+ * Passing icons via Composition defaultProps JSON-serializes them to `{}`
+ * and React throws #130 mid-render.
+ */
+function PostDeckGenesis() {
+  return <PostDeckVideo slides={OKX_GENESIS_FINANCE_POST.slides} />;
+}
 
-const defaultSlides: PostSlide[] = ACTIVE_POST.slides;
+const genesisSlides = OKX_GENESIS_FINANCE_POST.slides;
 
 /** Remotion Studio root — Syra cinematic compositions. */
 export function RemotionRoot() {
@@ -33,13 +31,11 @@ export function RemotionRoot() {
     <>
       <Composition
         id="PostDeck"
-        component={PostDeckVideo}
-        durationInFrames={getDeckDurationInFrames(defaultSlides)}
+        component={PostDeckGenesis}
+        durationInFrames={getDeckDurationInFrames(genesisSlides)}
         fps={POST_VIDEO_FPS}
         width={POST_VIDEO_LAYOUT_WIDTH}
         height={POST_VIDEO_LAYOUT_HEIGHT}
-        defaultProps={{ slides: defaultSlides }}
-        calculateMetadata={calculateMetadata}
       />
       <Composition
         id="AgentsBeatTraders2030"
