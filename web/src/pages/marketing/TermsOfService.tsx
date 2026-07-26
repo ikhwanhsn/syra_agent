@@ -73,7 +73,7 @@ const SECTIONS: LegalSection[] = [
     title: "Termination",
     body: (
       <p>
-        We may suspend or terminate your access at any time for violation of these Terms or for any other reason. You may stop using the Services at any time. Provisions that by their nature should survive — including disclaimers, limitation of liability, and indemnification — survive termination.
+        We may suspend or terminate your access at any time for violation of these Terms or for any other reason. You may stop using the Services at any time. Provisions that by their nature should survive, including disclaimers, limitation of liability, and indemnification, survive termination.
       </p>
     ),
   },

@@ -59,7 +59,7 @@ export function ScalperPnlHeader({
           />
           <LpStatTile
             label="Win rate"
-            value={loading ? "…" : ledger?.winRatePct != null ? `${ledger.winRatePct.toFixed(1)}%` : "—"}
+            value={loading ? "…" : ledger?.winRatePct != null ? `${ledger.winRatePct.toFixed(1)}%` : "-"}
             subValue={
               loading ? undefined : `${ledger?.wins ?? 0}W / ${ledger?.losses ?? 0}L · ${ledger?.totalTrades ?? 0} total`
             }
@@ -82,7 +82,7 @@ export function ScalperPnlHeader({
           />
           <LpStatTile
             label="Avg hold"
-            value={loading ? "…" : avgHoldMinutes != null ? `${avgHoldMinutes.toFixed(1)}m` : "—"}
+            value={loading ? "…" : avgHoldMinutes != null ? `${avgHoldMinutes.toFixed(1)}m` : "-"}
             subValue="Short-term scalps"
             icon={Timer}
             tone="default"

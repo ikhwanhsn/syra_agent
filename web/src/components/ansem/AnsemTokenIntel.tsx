@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { AnsemSectionHeader } from "@/components/ansem/AnsemSectionHeader";
 
 function formatDate(ms: number | null | undefined): string {
-  if (ms == null || !Number.isFinite(ms)) return "—";
+  if (ms == null || !Number.isFinite(ms)) return "-";
   return new Date(ms).toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
@@ -110,7 +110,7 @@ export function AnsemTokenIntel({
           </p>
         ) : (
           <p className="mb-5 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-            $ANSEM is a Solana memecoin born on pump.fun — community-driven, high-energy, and tracked
+            $ANSEM is a Solana memecoin born on pump.fun, community-driven, high-energy, and tracked
             live on this hub for holders who want clarity without connecting a wallet.
           </p>
         )}
@@ -130,7 +130,7 @@ export function AnsemTokenIntel({
           <IntelTile
             label="Community replies"
             value={
-              intel?.replyCount != null ? intel.replyCount.toLocaleString() : "—"
+              intel?.replyCount != null ? intel.replyCount.toLocaleString() : "-"
             }
             sub="pump.fun thread"
             icon={MessageCircle}

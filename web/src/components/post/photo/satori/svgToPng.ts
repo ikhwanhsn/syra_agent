@@ -7,7 +7,7 @@ let wasmReady: Promise<void> | null = null;
 async function ensureResvgWasm(): Promise<void> {
   if (!wasmReady) {
     wasmReady = initWasm(fetch(resvgWasmUrl)).catch((err: unknown) => {
-      // initWasm throws if called twice — treat as already ready
+      // initWasm throws if called twice, treat as already ready
       const message = err instanceof Error ? err.message : String(err);
       if (message.includes("Already initialized")) return;
       wasmReady = null;

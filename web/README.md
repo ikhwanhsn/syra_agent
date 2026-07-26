@@ -1,6 +1,6 @@
 # Syra Web App (`web`)
 
-**Pay-per-call crypto APIs for agents** — the unified Syra web application: API marketplace (Spend), agent wallet, operator dashboard, and proof demos.
+**Pay-per-call crypto APIs for agents**, the unified Syra web application: API marketplace (Spend), agent wallet, operator dashboard, and proof demos.
 
 Part of the [Syra monorepo](../README.md). This package is the **Syra-only** web surface (agent, marketplace, dashboard, marketing).
 
@@ -26,10 +26,10 @@ On localhost, API calls go through **`/api`** (Vite proxies to `https://api.syra
 
 | Surface | Route | Role |
 |---------|-------|------|
-| **Marketplace** | `/marketplace` | Primary front door — x402 API catalog, per-API detail pages, SDK/MCP integrate tab (`/playground` redirects) |
+| **Marketplace** | `/marketplace` | Primary front door, x402 API catalog, per-API detail pages, SDK/MCP integrate tab (`/playground` redirects) |
 | **Agent Wallet** | `/wallet` | Treasury, deposits, policy caps |
 | **Dashboard** | `/overview` | Usage, spend, agent monitoring |
-| **Agent chat** | `/` | Reference client — research, tools, onchain actions |
+| **Agent chat** | `/` | Reference client, research, tools, onchain actions |
 | **Proof / experiments** | `/alpha`, experiments routes | Live demos powered by the Syra rail |
 
 ---
@@ -83,7 +83,7 @@ Set environment variables with the `VITE_*` prefix. `VITE_PRIVY_APP_ID` is requi
 
 | Package | Role |
 |---------|------|
-| [`api`](../api) | Backend gateway — x402, agent sessions, partner tools |
+| [`api`](../api) | Backend gateway, x402, agent sessions, partner tools |
 | [`syra-sdk`](../syra-sdk) | Typed HTTP client for integrators |
 | [`mcp-server`](../mcp-server) | MCP distribution for Cursor / Claude |
 
@@ -91,4 +91,4 @@ Set environment variables with the `VITE_*` prefix. `VITE_PRIVY_APP_ID` is requi
 
 ## License
 
-MIT — see [LICENSE](../LICENSE) at repo root.
+MIT, see [LICENSE](../LICENSE) at repo root.

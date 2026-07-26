@@ -70,7 +70,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   if (mode === "production" && !env.VITE_PRIVY_APP_ID?.trim()) {
     console.warn(
-      "[Syra] VITE_PRIVY_APP_ID is missing — wallet connect will be disabled in production builds.",
+      "[Syra] VITE_PRIVY_APP_ID is missing, wallet connect will be disabled in production builds.",
     );
   }
   const useLocalApiGateway = env.VITE_USE_LOCAL_API === "true";
@@ -89,7 +89,7 @@ export default defineConfig(({ mode }) => {
     strictPort: true,
     hmr: { overlay: false },
     proxy: {
-      // Syra API — same-origin in dev (no CORS). Do not capture /api/proxy (playground relay).
+      // Syra API, same-origin in dev (no CORS). Do not capture /api/proxy (playground relay).
       "^/api/(?!proxy(?:/|$))": {
         target: syraApiProxyTarget,
         changeOrigin: true,

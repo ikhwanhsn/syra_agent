@@ -15,7 +15,7 @@ export function getPostPhotoShareCopy(post: PostPhotoUpdate, cardIndex: number):
 }
 
 /**
- * Card-specific footer when the body has no link — keeps each X post ending unique.
+ * Card-specific footer when the body has no link, keeps each X post ending unique.
  * Prefer product/deeplink URLs over the generic post-studio page.
  */
 function getPhotoShareCopyFooter(post: PostPhotoUpdate, cardIndex: number): string | null {
@@ -37,7 +37,7 @@ function getPhotoShareCopyFooter(post: PostPhotoUpdate, cardIndex: number): stri
   return null;
 }
 
-/** Full paste-ready photo post — body plus optional unique footer link. */
+/** Full paste-ready photo post, body plus optional unique footer link. */
 export function getPostPhotoShareCopyWithUrl(post: PostPhotoUpdate, cardIndex: number): string {
   const body = getPostPhotoShareCopy(post, cardIndex).trim();
   if (!body) return body;

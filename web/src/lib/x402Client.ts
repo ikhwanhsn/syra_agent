@@ -53,7 +53,7 @@ export const BSC_TOKEN_DECIMALS = 18;
 // x402 protocol version
 const X402_VERSION = 2;
 
-// Match @x402/svm defaults — the facilitator expects these exact ComputeBudget values.
+// Match @x402/svm defaults, the facilitator expects these exact ComputeBudget values.
 const X402_COMPUTE_UNIT_PRICE_MICROLAMPORTS = 1;
 const X402_COMPUTE_UNIT_LIMIT = 8_000;
 
@@ -963,7 +963,7 @@ export function createEvmPaymentHeader(
  * Execute Base (EVM) payment via EIP-3009 TransferWithAuthorization and return payment header.
  * Requires EVM signer (e.g. from viem createWalletClient) and payment option with extra.name/version for EIP-712.
  */
-/** BSC B402 EIP-3009 payment (United Stables / U — not Base USDC defaults). */
+/** BSC B402 EIP-3009 payment (United Stables / U, not Base USDC defaults). */
 export async function executeBscPayment(
   evmSigner: EvmSigner,
   paymentOption: X402PaymentOption,

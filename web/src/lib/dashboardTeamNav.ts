@@ -11,7 +11,7 @@ export type DashboardTeamNavItem = {
   isActive: (pathname: string) => boolean;
 };
 
-/** Admin-only team tools — Labs, LLM, Organize, Internal. */
+/** Admin-only team tools, Labs, LLM, Organize, Internal. */
 export const DASHBOARD_TEAM_NAV: readonly DashboardTeamNavItem[] = [
   {
     id: "labs",

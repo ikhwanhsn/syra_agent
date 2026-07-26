@@ -106,7 +106,7 @@ export function MmVolumeChart({
       <article className={cn(overviewCardShell, "rounded-2xl p-4 sm:p-5")}>
         <div className="mb-4">
           <h2 className="text-sm font-semibold tracking-tight">Equity curve</h2>
-          <p className="text-xs text-muted-foreground">Paper P&L constraint — must stay non-negative</p>
+          <p className="text-xs text-muted-foreground">Paper P&L constraint, must stay non-negative</p>
         </div>
         {loading ? (
           <p className="text-sm text-muted-foreground">Loading…</p>

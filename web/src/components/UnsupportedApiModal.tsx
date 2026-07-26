@@ -60,7 +60,7 @@ export function UnsupportedApiModal({ isOpen, onClose }: UnsupportedApiModalProp
                 <span className="text-xs text-muted-foreground">Any payment-gated API</span>
               </div>
               <p className="text-xs text-foreground">
-                {`${BRAND_NAME} works with payment-gated APIs: x402 (402 + JSON body) and MPP routes on Syra — same HTTP 402 wallet flow. Syra (api.syraa.fun) and any compatible origin.`}
+                {`${BRAND_NAME} works with payment-gated APIs: x402 (402 + JSON body) and MPP routes on Syra, same HTTP 402 wallet flow. Syra (api.syraa.fun) and any compatible origin.`}
               </p>
             </div>
           </div>

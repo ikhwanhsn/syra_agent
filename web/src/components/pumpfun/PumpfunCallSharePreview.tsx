@@ -18,7 +18,7 @@ export interface PumpfunCallSharePreviewProps {
   frameClassName?: string;
 }
 
-/** Scales the export card for modal/page preview only — not used for capture. */
+/** Scales the export card for modal/page preview only, not used for capture. */
 export function PumpfunCallSharePreview({
   record,
   design,

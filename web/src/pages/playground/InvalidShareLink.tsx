@@ -60,7 +60,7 @@ export function InvalidShareLink({ slug }: InvalidShareLinkProps) {
                 </div>
                 <div className="min-w-0">
                   <span className="text-sm font-medium text-foreground block">{`Open ${BRAND_NAME}`}</span>
-                  <span className="text-xs text-muted-foreground">Main workspace — request, pay, respond</span>
+                  <span className="text-xs text-muted-foreground">Main workspace, request, pay, respond</span>
                 </div>
               </div>
               <Button asChild variant="neon" size="sm" className="w-full gap-1.5 shrink-0 sm:w-auto">

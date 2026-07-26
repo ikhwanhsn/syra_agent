@@ -37,27 +37,27 @@ const HOT_VOLUME_USD = 5_000;
 const NEW_MS = 24 * 60 * 60 * 1000;
 
 function formatTokenPriceUsd(price: number | null | undefined): string {
-  if (price == null || !Number.isFinite(price) || price <= 0) return "—";
+  if (price == null || !Number.isFinite(price) || price <= 0) return "-";
   if (price >= 1) return `$${price.toLocaleString(undefined, { maximumFractionDigits: 4 })}`;
   return `$${formatPortfolioTokenAmount(price).display}`;
 }
 
-/** Always short — prevents vol/liq from wrapping or overflowing card cells. */
+/** Always short, prevents vol/liq from wrapping or overflowing card cells. */
 function formatCardUsd(n: number | null | undefined): string {
-  if (n == null || !Number.isFinite(n) || n < 0) return "—";
+  if (n == null || !Number.isFinite(n) || n < 0) return "-";
   const abs = Math.abs(n);
   if (abs >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(1)}B`;
   if (abs >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
   if (abs >= 1_000) return `$${(n / 1_000).toFixed(abs >= 10_000 ? 0 : 1)}K`;
   if (abs >= 1) return `$${Math.round(n)}`;
   if (abs > 0) return `$${n.toFixed(2)}`;
-  return "—";
+  return "-";
 }
 
 function formatRelativeTime(iso: string | undefined): string {
-  if (!iso) return "—";
+  if (!iso) return "-";
   const t = new Date(iso).getTime();
-  if (!Number.isFinite(t)) return "—";
+  if (!Number.isFinite(t)) return "-";
   const diff = Date.now() - t;
   if (diff < 60_000) return "Just now";
   if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
@@ -201,7 +201,7 @@ function TokenCard({
                   <span>{formatPct(change24)}</span>
                 </p>
               ) : (
-                <p className="shrink-0 font-mono text-sm tabular-nums text-muted-foreground/60">—</p>
+                <p className="shrink-0 font-mono text-sm tabular-nums text-muted-foreground/60">, </p>
               )}
             </div>
 
@@ -367,7 +367,7 @@ export function EarnTokenPanel({
             Tokens
           </h2>
           <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
-            Launch a pump.fun token from your Earn wallet — one per wallet.
+            Launch a pump.fun token from your Earn wallet, one per wallet.
           </p>
         </div>
         {hasExistingToken && existingTokenPath ? (
@@ -445,7 +445,7 @@ export function EarnTokenPanel({
               Launch yours on Syra
             </p>
             <p className="mt-0.5 text-[13px] text-muted-foreground">
-              Join the marketplace — create one token from your Earn wallet.
+              Join the marketplace, create one token from your Earn wallet.
             </p>
           </div>
           <Button

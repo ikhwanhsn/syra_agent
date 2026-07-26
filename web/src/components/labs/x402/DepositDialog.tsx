@@ -25,7 +25,7 @@ export function DepositDialog({ wallet, open, onOpenChange }: DepositDialogProps
     wallet.chain === "base"
         ? "Send ETH (for gas) and USDC to this address on Base mainnet."
         : wallet.chain === "algorand"
-          ? "Send ALGO first (~0.2+) so this wallet can opt into USDC ASA, then send USDC on Algorand mainnet. Sending USDC before opt-in shows a Pera Inbox Router warning — wait for opt-in first."
+          ? "Send ALGO first (~0.2+) so this wallet can opt into USDC ASA, then send USDC on Algorand mainnet. Sending USDC before opt-in shows a Pera Inbox Router warning, wait for opt-in first."
           : "Send SOL (for fees) and USDC to this address on Solana mainnet.";
 
   const copyAddress = async () => {

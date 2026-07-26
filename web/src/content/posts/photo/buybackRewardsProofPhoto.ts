@@ -25,7 +25,7 @@ export const BUYBACK_REWARDS_PROOF_PHOTO = definePhotoUpdate(BUYBACK_REWARDS_PRO
     content: photoContent({
       kicker: "The problem",
       headline: "Token stories without receipts die at microcap.",
-      body: "Syra closes the loop: paid calls → buyback → rewards → hold utility — with Solscan links.",
+      body: "Syra closes the loop: paid calls → buyback → rewards → hold utility, with Solscan links.",
     }),
   },
   {
@@ -77,7 +77,7 @@ export const BUYBACK_REWARDS_PROOF_PHOTO = definePhotoUpdate(BUYBACK_REWARDS_PRO
         { title: "Discounts", subtitle: "Live", detail: "5–30% off x402 by tier.", accent: "gold" },
         { title: "Rewards", subtitle: "Live", detail: "Spend → claimable $SYRA.", accent: "gold" },
         { title: "Buybacks", subtitle: "Live", detail: "Solscan-linked flushes." },
-        { title: "Governance", subtitle: "Roadmap", detail: "Not shipped — labeled as such." },
+        { title: "Governance", subtitle: "Roadmap", detail: "Not shipped, labeled as such." },
       ],
     }),
   },
@@ -89,10 +89,10 @@ export const BUYBACK_REWARDS_PROOF_PHOTO = definePhotoUpdate(BUYBACK_REWARDS_PRO
       kicker: "Verify",
       headline: "Don't trust. Check.",
       highlights: [
-        "/token — buyback proof",
-        "/rewards — claim surface",
-        "/api/metrics — JSON",
-        "Solscan — every flush",
+        "/token, buyback proof",
+        "/rewards, claim surface",
+        "/api/metrics, JSON",
+        "Solscan, every flush",
       ],
     }),
   },

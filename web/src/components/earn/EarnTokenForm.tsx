@@ -174,7 +174,7 @@ export function EarnTokenForm({ open, onOpenChange, onLaunched }: EarnTokenFormP
       }
     >
       <div className="rounded-xl border border-border/45 bg-muted/15 px-3.5 py-3 text-xs leading-relaxed text-muted-foreground">
-        You only pay pump.fun costs — SOL for token creation and your initial buy from the earn wallet. No Syra USDC fee.
+        You only pay pump.fun costs, SOL for token creation and your initial buy from the earn wallet. No Syra USDC fee.
       </div>
 
       <EarnDialogSection title="Token identity">

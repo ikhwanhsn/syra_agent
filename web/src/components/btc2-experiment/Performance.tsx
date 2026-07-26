@@ -37,7 +37,7 @@ export function Performance({ performance }: { performance: PerformanceMetrics }
       <SectionHeader
         kicker="Section 10"
         title="Model Performance"
-        description="Historical analytics — equity curve, drawdown profile, and return distribution."
+        description="Historical analytics, equity curve, drawdown profile, and return distribution."
       />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

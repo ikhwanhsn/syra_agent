@@ -1246,22 +1246,141 @@ export async function getLpRealObservability({ viewerAnonymousId } = {}) {
   };
 }
 
-export async function getLpRealSummary({ viewerAnonymousId } = {}) {
-  const wallet = viewerAnonymousId ? await getViewerAgentWallet(viewerAnonymousId) : null;
-  const config = wallet ? await getOrCreateConfigForWallet(wallet, { createIfMissing: false }) : null;
-  if (!config) {
+function legacyUntaggedAgentClause() {
+  return [{ agentAddress: { $exists: false } }, { agentAddress: null }, { agentAddress: "" }];
+}
+
+/**
+ * Scope PnL to this agent wallet. Prefer agentAddress (new rows); fall back to
+ * experimentId only for legacy rows without agentAddress — and never when the
+ * experimentId is shared across multiple configs (would leak lab/platform PnL).
+ */
+async function buildLpRealPositionMatch(config) {
+  const agentAddress = config?.agentAddress ? String(config.agentAddress) : "";
+  const experimentId = config?.experimentId ? String(config.experimentId) : "";
+  if (!agentAddress && !experimentId) return null;
+
+  if (agentAddress && experimentId) {
+    const sharedCount = await LpRealConfig.countDocuments({ experimentId });
+    if (sharedCount > 1) {
+      return { agentAddress };
+    }
     return {
-      realizedNetPnlSol: 0,
-      realizedNetPnlUsd: 0,
-      wins: 0,
-      losses: 0,
-      openCount: 0,
-      totalFeesClaimedSol: 0,
-      deployedSol: 0,
+      $or: [
+        { agentAddress },
+        {
+          experimentId,
+          $or: legacyUntaggedAgentClause(),
+        },
+      ],
     };
   }
+  if (agentAddress) return { agentAddress };
+  return { experimentId };
+}
 
-  const match = { experimentId: config.experimentId };
+/**
+ * Earn Yield "Your wallet" match — agentAddress only, never experiment-wide lab history.
+ * Closed: opened in this earn session (or tagged live at session start).
+ * Open: current opens tagged to this agent.
+ */
+function buildEarnSessionPositionMatch(config) {
+  const agentAddress = config?.agentAddress ? String(config.agentAddress) : "";
+  if (!agentAddress) return { _id: "__earn_no_agent__" };
+
+  const startedAt = config?.publicEarnStartedAt ? new Date(config.publicEarnStartedAt) : null;
+  const openStatuses = ["open", "opening", "closing"];
+  const closedStatuses = ["closed_win", "closed_loss", "expired", "error", "claim_only"];
+
+  if (!startedAt || !Number.isFinite(startedAt.getTime())) {
+    // No session yet → live opens only (never lifetime closed lab PnL).
+    return { agentAddress, status: { $in: openStatuses } };
+  }
+
+  return {
+    agentAddress,
+    $or: [
+      { status: { $in: openStatuses } },
+      {
+        status: { $in: closedStatuses },
+        $or: [
+          { openedAt: { $gte: startedAt } },
+          { earnSessionStartedAt: { $gte: startedAt } },
+        ],
+      },
+    ],
+  };
+}
+
+/** Bump when earn personal-stat scoping rules change and existing sessions must re-cut over. */
+const EARN_STATS_EPOCH = 2;
+
+/**
+ * Ensure public-earn personal stats have a session start so lab history is excluded.
+ * Cutover: if listed but missing startedAt / stale epoch, set it now.
+ */
+export async function ensurePublicEarnSession(config, { forceRestart = false } = {}) {
+  if (!config?.agentAddress || !config.publicEarnListed) return config;
+  const epochOk = Number(config.earnStatsEpoch) >= EARN_STATS_EPOCH;
+  if (config.publicEarnStartedAt && epochOk && !forceRestart) return config;
+
+  const startedAt = new Date();
+  const set = { publicEarnStartedAt: startedAt, earnStatsEpoch: EARN_STATS_EPOCH };
+
+  // Tag live opens to this wallet + this earn session (so their close counts, lab history does not).
+  if (config.experimentId || config.agentAddress) {
+    const liveMatch = {
+      status: { $in: ["open", "opening", "closing"] },
+      $or: [
+        ...(config.agentAddress ? [{ agentAddress: config.agentAddress }] : []),
+        ...(config.experimentId
+          ? [{ experimentId: config.experimentId, $or: legacyUntaggedAgentClause() }]
+          : []),
+      ],
+    };
+    await LpRealPosition.updateMany(liveMatch, {
+      $set: {
+        agentAddress: config.agentAddress,
+        earnSessionStartedAt: startedAt,
+      },
+    });
+  }
+
+  await LpRealConfig.updateOne({ agentAddress: config.agentAddress }, { $set: set });
+  return { ...config, ...set };
+}
+
+export async function getLpRealSummary({ viewerAnonymousId, session } = {}) {
+  const wallet = viewerAnonymousId ? await getViewerAgentWallet(viewerAnonymousId) : null;
+  let config = wallet ? await getOrCreateConfigForWallet(wallet, { createIfMissing: false }) : null;
+  const empty = {
+    scope: session === "earn" ? "earn_session" : "agent",
+    agentAddress: config?.agentAddress || null,
+    realizedNetPnlSol: 0,
+    realizedNetPnlUsd: 0,
+    wins: 0,
+    losses: 0,
+    winRate: null,
+    winRatePct: null,
+    openCount: 0,
+    totalFeesClaimedSol: 0,
+    deployedSol: 0,
+    publicEarnStartedAt: config?.publicEarnStartedAt
+      ? new Date(config.publicEarnStartedAt).toISOString()
+      : null,
+  };
+  if (!config) return empty;
+
+  if (session === "earn" && config.publicEarnListed) {
+    config = await ensurePublicEarnSession(config);
+  }
+
+  const match =
+    session === "earn"
+      ? buildEarnSessionPositionMatch(config)
+      : await buildLpRealPositionMatch(config);
+  if (!match) return empty;
+
   const [agg, openCount] = await Promise.all([
     LpRealPosition.aggregate([
       { $match: match },
@@ -1271,7 +1390,7 @@ export async function getLpRealSummary({ viewerAnonymousId } = {}) {
           wins: { $sum: { $cond: [{ $eq: ["$status", "closed_win"] }, 1, 0] } },
           losses: {
             $sum: {
-              $cond: [{ $in: ["$status", ["closed_loss", "expired", "error"]] }, 1, 0],
+              $cond: [{ $in: ["$status", ["closed_loss", "expired"]] }, 1, 0],
             },
           },
           realizedNetPnlSol: {
@@ -1306,8 +1425,7 @@ export async function getLpRealSummary({ viewerAnonymousId } = {}) {
       },
     ]),
     LpRealPosition.countDocuments({
-      ...match,
-      status: { $in: ["open", "opening", "closing"] },
+      $and: [match, { status: { $in: ["open", "opening", "closing"] } }],
     }),
   ]);
 
@@ -1315,6 +1433,10 @@ export async function getLpRealSummary({ viewerAnonymousId } = {}) {
   const realizedNetPnlSol = toNum(row.realizedNetPnlSol);
   const solPriceUsd = await fetchSolPriceUsd();
   const realizedNetPnlUsd = realizedNetPnlSol * solPriceUsd;
+  const wins = toNum(row.wins);
+  const losses = toNum(row.losses);
+  const decided = wins + losses;
+  const winRate = decided > 0 ? wins / decided : null;
 
   let unrealizedPnlSol = 0;
   let totalReturnSol = 0;
@@ -1322,34 +1444,49 @@ export async function getLpRealSummary({ viewerAnonymousId } = {}) {
     const walletEquitySol = await getAgentWalletEquitySol(wallet.agentAddress, solPriceUsd);
     const deployedSol = toNum(row.deployedSol);
     const totalCapitalSol = computeTotalCapitalSol(walletEquitySol, deployedSol);
-    const capitalBaselineSol = resolveCapitalBaselineSol(config, totalCapitalSol, realizedNetPnlSol);
+    // Earn session: baseline is session capital, not pre-earn lab history.
+    const capitalBaselineSol =
+      session === "earn" && toNum(config.capitalBaselineSol, 0) > 0
+        ? toNum(config.capitalBaselineSol)
+        : resolveCapitalBaselineSol(config, totalCapitalSol, realizedNetPnlSol);
     totalReturnSol = totalCapitalSol - capitalBaselineSol;
     unrealizedPnlSol = totalReturnSol - realizedNetPnlSol;
   }
 
   return {
+    scope: session === "earn" ? "earn_session" : "agent",
+    agentAddress: config.agentAddress || null,
     realizedNetPnlSol,
     realizedNetPnlUsd,
     unrealizedPnlSol,
     totalReturnSol,
-    wins: toNum(row.wins),
-    losses: toNum(row.losses),
+    wins,
+    losses,
+    winRate,
+    winRatePct: winRate != null ? Math.round(winRate * 1000) / 10 : null,
     openCount,
     totalFeesClaimedSol: toNum(row.totalFeesClaimedSol),
     deployedSol: toNum(row.deployedSol),
     solPriceUsd,
+    publicEarnStartedAt: config.publicEarnStartedAt
+      ? new Date(config.publicEarnStartedAt).toISOString()
+      : null,
   };
 }
 
 export async function listLpRealPositions({ limit, offset, status, experimentId, viewerAnonymousId } = {}) {
   const wallet = viewerAnonymousId ? await getViewerAgentWallet(viewerAnonymousId) : null;
   const config = wallet ? await getOrCreateConfigForWallet(wallet, { createIfMissing: false }) : null;
+  const scopedMatch =
+    !experimentId && config ? await buildLpRealPositionMatch(config) : null;
   const expId = experimentId || config?.experimentId;
-  if (!expId) return { positions: [], total: 0, limit: DEFAULT_LIST_LIMIT, offset: 0 };
+  if (!scopedMatch && !expId) {
+    return { positions: [], total: 0, limit: DEFAULT_LIST_LIMIT, offset: 0 };
+  }
 
   const lim = Math.min(MAX_LIST_LIMIT, Math.max(1, toNum(limit, DEFAULT_LIST_LIMIT)));
   const off = Math.max(0, toNum(offset, 0));
-  const query = { experimentId: expId };
+  const query = scopedMatch || { experimentId: expId };
   if (status) query.status = status;
 
   const [positions, total] = await Promise.all([
@@ -1718,6 +1855,7 @@ async function attemptOpenLpRealPosition({
 
   const pending = await LpRealPosition.create({
     experimentId: config.experimentId,
+    agentAddress: config.agentAddress || null,
     strategyId: strategy.id,
     strategyName: strategy.name,
     lpShape: strategy.lpShape,

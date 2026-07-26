@@ -1,4 +1,4 @@
-# Syra — documentation index (plain Markdown)
+# Syra, documentation index (plain Markdown)
 
 This file mirrors the **structure of the public documentation** published at [docs.syraa.fun](https://docs.syraa.fun). It is a navigational map and summary for humans and for automated tools; the interactive site is the full source of truth for prose and examples.
 
@@ -10,7 +10,7 @@ This file mirrors the **structure of the public documentation** published at [do
 
 ## Start Here
 
-- [Welcome](https://docs.syraa.fun/docs/welcome) — What Syra is: machine money for agents on Solana.
+- [Welcome](https://docs.syraa.fun/docs/welcome), What Syra is: machine money for agents on Solana.
 
 ---
 
@@ -34,8 +34,8 @@ This file mirrors the **structure of the public documentation** published at [do
 
 ## Build with packages
 
-- [Install MCP](https://docs.syraa.fun/docs/build/mcp) — `@syra-ai/mcp-server` for Cursor / Claude / agents
-- [Install SDK](https://docs.syraa.fun/docs/build/sdk) — `@syra-ai/sdk` typed client + auto-pay
+- [Install MCP](https://docs.syraa.fun/docs/build/mcp), `@syra-ai/mcp-server` for Cursor / Claude / agents
+- [Install SDK](https://docs.syraa.fun/docs/build/sdk), `@syra-ai/sdk` typed client + auto-pay
 
 ---
 
@@ -135,9 +135,9 @@ This file mirrors the **structure of the public documentation** published at [do
 
 ## Related technical sources (not the docs app)
 
-- API base: [https://api.syraa.fun](https://api.syraa.fun) — `/.well-known/x402`, `openapi.json`, `mpp-openapi.json`, `llms-full.txt`, `skill.md`
+- API base: [https://api.syraa.fun](https://api.syraa.fun), `/.well-known/x402`, `openapi.json`, `mpp-openapi.json`, `llms-full.txt`, `skill.md`
 - Web agent: [https://syraa.fun](https://syraa.fun)
-- API marketplace: [https://syraa.fun/marketplace](https://syraa.fun/marketplace) — browse x402 APIs, per-route detail pages, SDK/MCP integrate tab (`/playground` redirects here)
+- API marketplace: [https://syraa.fun/marketplace](https://syraa.fun/marketplace), browse x402 APIs, per-route detail pages, SDK/MCP integrate tab (`/playground` redirects here)
 - npm: [`@syra-ai/mcp-server`](https://www.npmjs.com/package/@syra-ai/mcp-server) · [`@syra-ai/sdk`](https://www.npmjs.com/package/@syra-ai/sdk) · [`@syra-ai/x402-payer`](https://www.npmjs.com/package/@syra-ai/x402-payer)
 
 ---

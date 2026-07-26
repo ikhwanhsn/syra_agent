@@ -1,4 +1,4 @@
-/** Short prompts answerable from general knowledge — no live data or on-chain tool calls. */
+/** Short prompts answerable from general knowledge, no live data or on-chain tool calls. */
 export const EXAMPLE_QUESTIONS = [
   "What is slippage in crypto trading?",
   "Explain impermanent loss simply",

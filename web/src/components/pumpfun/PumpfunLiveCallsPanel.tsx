@@ -174,7 +174,7 @@ export function PumpfunLiveCallsPanel({ onScanMint, scanning = false }: PumpfunL
           <div>
             <h2 className="font-display text-lg font-semibold">Live calls</h2>
             <p className="text-xs text-muted-foreground">
-              Latest {PUMPFUN_LIST_LIMIT} community scans — tap a token to analyze.
+              Latest {PUMPFUN_LIST_LIMIT} community scans, tap a token to analyze.
             </p>
           </div>
           <Button

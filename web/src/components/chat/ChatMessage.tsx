@@ -92,7 +92,7 @@ function createSignedPctAccentWalker(options: { skipDeepEnterTags?: readonly str
 const accentSignedPercentagesFull = createSignedPctAccentWalker();
 const accentSignedPercentagesSkipBlockP = createSignedPctAccentWalker({ skipDeepEnterTags: ["p"] });
 
-/** Context-specific step sequences — each tells a short "story" relevant to the user's question. */
+/** Context-specific step sequences, each tells a short "story" relevant to the user's question. */
 const STEP_SEQUENCES: Record<string, string[]> = {
   news: [
     "Understanding your question...",

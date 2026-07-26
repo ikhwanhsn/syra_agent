@@ -99,7 +99,7 @@ export function InfoPageView({ scrollContainerRef }: InfoPageViewProps) {
       <OverviewPageBackdrop />
 
       <div className="relative z-[1] mx-auto flex max-w-6xl flex-col gap-10 px-4 py-10 pb-16 sm:px-6 sm:py-12 sm:pb-20 lg:flex-row lg:gap-12 lg:px-8">
-        {/* Sticky TOC — desktop only */}
+        {/* Sticky TOC, desktop only */}
         <aside className="hidden lg:block lg:w-52 lg:shrink-0">
           <nav className="sticky top-8 space-y-1" aria-label="On this page">
             <p className={cn(overviewKickerClass, "mb-3")}>On this page</p>
@@ -154,7 +154,7 @@ export function InfoPageView({ scrollContainerRef }: InfoPageViewProps) {
               </blockquote>
               <p className="mt-6 font-mono text-[11px] text-muted-foreground/70">
                 Share this URL with your team:{" "}
-                <span className="text-foreground/80">/info</span> — not listed in navigation or search.
+                <span className="text-foreground/80">/info</span>, not listed in navigation or search.
               </p>
             </div>
           </header>
@@ -309,9 +309,7 @@ export function InfoPageView({ scrollContainerRef }: InfoPageViewProps) {
                   <ul className="mt-3 space-y-1.5">
                     {quarter.items.map((item) => (
                       <li key={item} className="flex gap-2 text-[13px] text-muted-foreground">
-                        <span className="text-muted-foreground/50" aria-hidden>
-                          —
-                        </span>
+                        <span className="text-muted-foreground/50" aria-hidden>, </span>
                         {item}
                       </li>
                     ))}
@@ -440,7 +438,7 @@ export function InfoPageView({ scrollContainerRef }: InfoPageViewProps) {
                       {app.url.replace("https://", "")}
                     </a>
                   ) : (
-                    <span className="text-[12px] text-muted-foreground/50 sm:text-right">—</span>
+                    <span className="text-[12px] text-muted-foreground/50 sm:text-right">, </span>
                   )}
                 </div>
               ))}
@@ -458,7 +456,7 @@ export function InfoPageView({ scrollContainerRef }: InfoPageViewProps) {
             ))}
             <ul className="list-disc space-y-1 pl-5 text-[13px] text-muted-foreground">
               <li>Full-time on Syra (2–5 builders)</li>
-              <li>Bootstrapped — no external funding round to date</li>
+              <li>Bootstrapped, no external funding round to date</li>
               <li>Started 2025; live product in market</li>
             </ul>
           </Section>

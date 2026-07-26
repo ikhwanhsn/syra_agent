@@ -20,7 +20,7 @@ export function getVisiblePostUpdateNumbers(): number[] {
   return getVisiblePostBundles().map((bundle) => bundle.video.meta.updateNumber);
 }
 
-/** Latest content update for Video/Photo CTAs — skips the locked format template. */
+/** Latest content update for Video/Photo CTAs, skips the locked format template. */
 export function getLatestVisiblePostUpdateNumber(): number {
   const numbers = getVisiblePostUpdateNumbers().filter((n) => !isLockedShipLogUpdate(n));
   return numbers[numbers.length - 1] ?? 1;

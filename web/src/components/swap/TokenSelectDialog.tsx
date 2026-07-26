@@ -68,9 +68,9 @@ export interface TokenSelectDialogProps {
 /** First paint + each scroll batch size for verified / search results. */
 const TOKEN_LIST_INITIAL = 12;
 const TOKEN_LIST_STEP = 16;
-/** Fixed list body height — modal must not resize when search results load or clear. */
+/** Fixed list body height, modal must not resize when search results load or clear. */
 const TOKEN_LIST_MIN_H = "min-h-[min(400px,55dvh)]";
-/** Avoid skeleton blink on fast API responses — keep visible at least this long once shown. */
+/** Avoid skeleton blink on fast API responses, keep visible at least this long once shown. */
 const LIST_SKELETON_MIN_MS = 450;
 
 /** Once active, show immediately; stay visible for minMs after active ends. */

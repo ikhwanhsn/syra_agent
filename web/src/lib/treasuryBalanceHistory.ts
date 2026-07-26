@@ -216,7 +216,7 @@ export function computeTreasuryBalanceChanges(
 }
 
 export function formatBalanceChangeUsd(delta: number): string {
-  if (!Number.isFinite(delta)) return "—";
+  if (!Number.isFinite(delta)) return "-";
   const sign = delta > 0 ? "+" : delta < 0 ? "−" : "";
   const abs = Math.abs(delta);
   if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(2)}M`;

@@ -180,7 +180,7 @@ export default function Identity() {
             </p>
           </motion.header>
 
-          {/* Summary strip — layout inspired by public agent identity pages */}
+          {/* Summary strip, layout inspired by public agent identity pages */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -248,7 +248,7 @@ export default function Identity() {
               <h2 className="mb-4 text-lg font-semibold tracking-tight text-foreground">
                 8004 & SAP anchor
               </h2>
-              <CopyValue label="8004 creator — Synapse SAP agent pubkey (base58)" value={creator} />
+              <CopyValue label="8004 creator, Synapse SAP agent pubkey (base58)" value={creator} />
               <div className="mt-4 flex flex-wrap gap-3">
                 <a
                   href={syraSolscanAccountUrl(creator)}
@@ -265,7 +265,7 @@ export default function Identity() {
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
                 >
-                  8004market — Syra Agents collection
+                  8004market, Syra Agents collection
                   <ArrowUpRight className="h-4 w-4" />
                 </a>
                 <a
@@ -291,10 +291,10 @@ export default function Identity() {
               subtitle="Solana"
               badge="verified"
               badgeLabel="Verified anchor"
-              description="Syra is listed on the Trustless Agent Registry for Solana (8004). The Syra Agents collection on 8004market ties registered agents to metadata (skills, domains, MCP, x402) pinned off-chain — the same pattern described in the 8004 skill spec."
+              description="Syra is listed on the Trustless Agent Registry for Solana (8004). The Syra Agents collection on 8004market ties registered agents to metadata (skills, domains, MCP, x402) pinned off-chain, the same pattern described in the 8004 skill spec."
               links={[
-                { label: "8004market — collection", href: SYRA_8004_COLLECTION_URL },
-                { label: "Solscan — creator / agent pubkey", href: syraSolscanAccountUrl(creator) },
+                { label: "8004market, collection", href: SYRA_8004_COLLECTION_URL },
+                { label: "Solscan, creator / agent pubkey", href: syraSolscanAccountUrl(creator) },
                 { label: "8004.qnt.sh", href: "https://8004.qnt.sh" },
               ]}
             >
@@ -303,12 +303,12 @@ export default function Identity() {
 
             <RegistryCard
               title="Synapse Agent Protocol"
-              subtitle="SAP — OOBE Protocol Labs"
+              subtitle="SAP, OOBE Protocol Labs"
               badge="integrated"
               badgeLabel="Integrated in Syra API"
               description="Syra ships SAP SDK usage and registration tooling in the monorepo (register + publish tool descriptors). SAP stores agent capabilities, x402 endpoints, and discovery metadata on Solana so other agents and dApps can verify pricing and skills on-chain."
               links={[
-                { label: "Synapse Explorer — Syra agent", href: SYRA_SAP_EXPLORER_AGENT_URL },
+                { label: "Synapse Explorer, Syra agent", href: SYRA_SAP_EXPLORER_AGENT_URL },
                 { label: "SAP register docs", href: "https://explorer.oobeprotocol.ai/docs/examples/register-agent" },
                 { label: "Syra API", href: SYRA_API_PUBLIC_ORIGIN },
               ]}
@@ -318,15 +318,15 @@ export default function Identity() {
 
             <RegistryCard
               title="x402 & OpenAPI discovery"
-              subtitle="HTTP — programmable payments"
+              subtitle="HTTP, programmable payments"
               badge="verified"
               badgeLabel="Production"
-              description="Syra’s API exposes machine-readable discovery (OpenAPI, x402 resource lists, MPP OpenAPI). Agents and clients resolve routes, schemas, and payment requirements without a proprietary portal — aligning with permissionless, pay-per-call access."
+              description="Syra’s API exposes machine-readable discovery (OpenAPI, x402 resource lists, MPP OpenAPI). Agents and clients resolve routes, schemas, and payment requirements without a proprietary portal, aligning with permissionless, pay-per-call access."
               links={[
                 { label: "OpenAPI catalog", href: `${SYRA_API_PUBLIC_ORIGIN}/openapi.json` },
                 { label: "Human docs", href: LINK_DOCS },
-                { label: "x402scan — Syra agent", href: X402SCAN_SYRA_AGENT_URL },
-                { label: "x402scan — Syra server", href: X402SCAN_SYRA_SERVER_URL },
+                { label: "x402scan, Syra agent", href: X402SCAN_SYRA_AGENT_URL },
+                { label: "x402scan, Syra server", href: X402SCAN_SYRA_SERVER_URL },
               ]}
             />
 
@@ -364,7 +364,7 @@ export default function Identity() {
               What is on-chain identity?
             </h2>
             <p className="mt-4 max-w-3xl text-muted-foreground">
-              On-chain identity ties an agent to public ledgers and open metadata — existence and
+              On-chain identity ties an agent to public ledgers and open metadata, existence and
               advertised capabilities become independently auditable instead of website-only claims.
             </p>
             <div className="mt-10 grid gap-8 md:grid-cols-3">

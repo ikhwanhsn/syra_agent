@@ -1,6 +1,6 @@
 /**
  * Injected EVM wallet (MetaMask, Rabby) for x402 EIP-3009 on BSC and Base (API Playground).
- * Uses the MetaMask provider explicitly — not Phantom's shared window.ethereum facade.
+ * Uses the MetaMask provider explicitly, not Phantom's shared window.ethereum facade.
  */
 import { useEffect, useState } from 'react';
 import {
@@ -115,7 +115,7 @@ export interface BscWalletState {
 }
 
 let cachedAddress: string | null = null;
-/** Provider used for eth_requestAccounts / signing — pinned on connect so UI matches MetaMask. */
+/** Provider used for eth_requestAccounts / signing, pinned on connect so UI matches MetaMask. */
 let activeProvider: InjectedEip1193Provider | null = null;
 let boundEventProvider: InjectedEip1193Provider | null = null;
 const evmWalletListeners = new Set<() => void>();
@@ -131,7 +131,7 @@ function normalizeEvmAddress(value: string | null | undefined): string | null {
 
 /**
  * MetaMask can return an old linked account as eth_accounts[0] while the extension UI
- * shows a different selected account — prefer selectedAddress, then requestAccounts order.
+ * shows a different selected account, prefer selectedAddress, then requestAccounts order.
  */
 function resolveActiveAccount(
   accounts: string[],
@@ -172,7 +172,7 @@ async function requestMetaMaskAccountAccess(
     });
   } catch (err: unknown) {
     const code = (err as { code?: number })?.code;
-    // Already pending or already authorized — continue with eth_requestAccounts
+    // Already pending or already authorized, continue with eth_requestAccounts
     if (code === 4001) {
       throw new Error('MetaMask connection cancelled.');
     }
@@ -225,7 +225,7 @@ function listInjectedProviders(): InjectedEip1193Provider[] {
   return [eth];
 }
 
-/** Prefer real MetaMask (or Rabby) — avoid Phantom's ethereum when both are installed. */
+/** Prefer real MetaMask (or Rabby), avoid Phantom's ethereum when both are installed. */
 export function findMetaMaskProvider(): InjectedEip1193Provider | null {
   const providers = listInjectedProviders();
   const metamask = providers.find((p) => p.isMetaMask === true && p.isPhantom !== true);

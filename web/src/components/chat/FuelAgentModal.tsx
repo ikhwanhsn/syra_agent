@@ -864,7 +864,7 @@ export function FuelAgentModal({
   const hasWithdrawAmount = withdrawUsdcHuman > 0 || withdrawNativeHuman > 0;
 
   const formatBalance = (v: number | null | undefined) =>
-    v == null ? "—" : v.toFixed(4);
+    v == null ? "-" : v.toFixed(4);
 
   const nativeLabel = "SOL";
   const nativeBalance = solBalance;
@@ -1060,7 +1060,7 @@ export function FuelAgentModal({
                   {isExternalTarget
                     ? "Deposit SOL or USDC into this dedicated agent wallet from your connected Solana wallet."
                     : showWalletSwitcher
-                      ? `Manage ${displayWalletLabel.toLowerCase()} — deposit from your wallet or withdraw back anytime.`
+                      ? `Manage ${displayWalletLabel.toLowerCase()}, deposit from your wallet or withdraw back anytime.`
                       : lockWalletSelection
                         ? `Deposit SOL or USDC into your ${displayWalletLabel} treasury from your connected wallet, or withdraw back anytime.`
                         : "Deposit from your Solana wallet or withdraw back to the same connected wallet."}
@@ -1070,7 +1070,7 @@ export function FuelAgentModal({
                   {isExternalTarget
                     ? "Deposit SOL or USDC into this dedicated agent wallet from your connected Solana wallet."
                     : showWalletSwitcher
-                      ? `Manage ${displayWalletLabel.toLowerCase()} — deposit from your wallet or withdraw back anytime.`
+                      ? `Manage ${displayWalletLabel.toLowerCase()}, deposit from your wallet or withdraw back anytime.`
                       : lockWalletSelection
                         ? `Deposit SOL or USDC into your ${displayWalletLabel} treasury from your connected wallet, or withdraw back anytime.`
                         : "Deposit from your Solana wallet or withdraw back to the same connected wallet."}

@@ -187,7 +187,7 @@ export default function StocksNewsExperiment({ embedded = false }: { embedded?: 
                 <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
                   Fifteen news-driven agents compete on tokenized xStocks (TSLAx, AAPLx, NVDAx, SPYx,
                   SPCXx). Each agent scores live headlines and sentiment, opens paper positions priced via
-                  Jupiter, and evolves daily — worst performers are culled, elite strategies spawn smarter
+                  Jupiter, and evolves daily, worst performers are culled, elite strategies spawn smarter
                   offspring.
                 </p>
               </div>
@@ -270,7 +270,7 @@ export default function StocksNewsExperiment({ embedded = false }: { embedded?: 
               <div>
                 <h2 className="text-lg font-semibold tracking-tight">News driving trades</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Live sentiment and headlines per xStock — the signal layer behind agent decisions.
+                  Live sentiment and headlines per xStock, the signal layer behind agent decisions.
                 </p>
               </div>
               <StocksNewsPanel news={newsQ.data?.news ?? []} loading={newsQ.isLoading} />

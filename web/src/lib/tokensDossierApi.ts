@@ -327,7 +327,7 @@ export function askSyraPrompt(
   const mint = data.chartMint;
   const intelHint =
     intelligence?.signal?.ok && intelligence.signal.tradingSignal
-      ? ` Recent Syra signal: ${intelligence.signal.tradingSignal} (${intelligence.signal.strength ?? "—"}).`
+      ? ` Recent Syra signal: ${intelligence.signal.tradingSignal} (${intelligence.signal.strength ?? "-"}).`
       : intelligence?.sentiment?.ok
         ? ` Recent news sentiment score: ${intelligence.sentiment.total["Sentiment Score"]?.toFixed(2) ?? "n/a"}.`
         : "";

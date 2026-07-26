@@ -232,7 +232,7 @@ export function AgentSwapInlineForm({
 
     const graduatedNote =
       mode === "pumpfun" && toolId === "jupiter-swap-order"
-        ? "This swap involves a pump.fun token that has graduated (bonding curve complete, liquidity migrated). Use jupiter-swap-order only — not pumpfun-agents-swap — so the route matches the Raydium/DEX pool.\n\n"
+        ? "This swap involves a pump.fun token that has graduated (bonding curve complete, liquidity migrated). Use jupiter-swap-order only, not pumpfun-agents-swap, so the route matches the Raydium/DEX pool.\n\n"
         : "";
 
     const prompt = [
@@ -383,9 +383,7 @@ export function AgentSwapInlineForm({
                   !receiveMetaLoading &&
                   !receiveMeta &&
                   isValidBase58Mint(outputMintResolved) ? (
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted/50 text-[10px] font-semibold text-muted-foreground ring-1 ring-border/50">
-                      —
-                    </div>
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted/50 text-[10px] font-semibold text-muted-foreground ring-1 ring-border/50">, </div>
                   ) : null}
                   <Select
                     value={receiveKind}

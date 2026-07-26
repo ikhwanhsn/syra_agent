@@ -198,7 +198,7 @@ export interface AgentWalletState {
   agentSolBalance: number | null;
   agentUsdcBalance: number | null;
   avatarUrl: string | null;
-  /** LP experiment wallet — separate treasury from chat agent. */
+  /** LP experiment wallet, separate treasury from chat agent. */
   lpReady: boolean;
   lpAnonymousId: string | null;
   lpAgentAddress: string | null;

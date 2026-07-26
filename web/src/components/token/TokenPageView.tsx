@@ -26,7 +26,7 @@ export function TokenPageView() {
           </h1>
           <p className="text-base leading-relaxed text-muted-foreground sm:text-[17px]">
             Mint, buy links, live utility, and verifiable revenue → $SYRA buybacks. Product traction
-            stays on the home metrics page — this page is the token detail + proof surface.
+            stays on the home metrics page, this page is the token detail + proof surface.
           </p>
           <div className="flex flex-wrap gap-2 pt-1">
             <Button variant="outline" size="sm" className="h-9 rounded-lg" asChild>

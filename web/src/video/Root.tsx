@@ -25,7 +25,7 @@ function PostDeckGenesis() {
 
 const genesisSlides = OKX_GENESIS_FINANCE_POST.slides;
 
-/** Remotion Studio root — Syra cinematic compositions. */
+/** Remotion Studio root, Syra cinematic compositions. */
 export function RemotionRoot() {
   return (
     <>

@@ -43,7 +43,7 @@ type SnippetTab = "mcp" | "sdk" | "curl";
 const PAYMENT_STEPS = [
   {
     title: "Wire MCP or SDK",
-    detail: "Install @syra-ai/mcp-server or @syra-ai/x402-payer. Agents discover routes via /.well-known/x402 and /agent/tools — no shopping cart.",
+    detail: "Install @syra-ai/mcp-server or @syra-ai/x402-payer. Agents discover routes via /.well-known/x402 and /agent/tools, no shopping cart.",
   },
   {
     title: "Call the endpoint",
@@ -55,7 +55,7 @@ const PAYMENT_STEPS = [
   },
   {
     title: "Optional: try in-browser",
-    detail: "Use Try in browser below if you want a human preview — Syra handles the 402 → pay → retry loop.",
+    detail: "Use Try in browser below if you want a human preview, Syra handles the 402 → pay → retry loop.",
   },
 ] as const;
 
@@ -523,10 +523,10 @@ export function MarketplaceApiDetailView({ flow }: MarketplaceApiDetailViewProps
                         </span>
                       </td>
                       <td className="px-4 py-3 font-mono text-xs text-primary/90">
-                        {param.example || "—"}
+                        {param.example || "-"}
                       </td>
                       <td className="px-4 py-3 text-xs text-muted-foreground">
-                        {param.description || "—"}
+                        {param.description || "-"}
                       </td>
                     </tr>
                   ))}
@@ -540,7 +540,7 @@ export function MarketplaceApiDetailView({ flow }: MarketplaceApiDetailViewProps
           ) : (
             <p className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
               <SlidersHorizontal className="h-4 w-4 shrink-0" aria-hidden />
-              No query parameters — send a direct {detail.method} request.
+              No query parameters, send a direct {detail.method} request.
             </p>
           )}
         </section>

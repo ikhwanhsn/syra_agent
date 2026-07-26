@@ -6,7 +6,7 @@ import {
   type BtcInterval,
 } from "@/lib/btcApi";
 
-/** Poll DB snapshots — server refreshes on tiered rate-limit-aware schedule. */
+/** Poll DB snapshots, server refreshes on tiered rate-limit-aware schedule. */
 const SNAPSHOT_STALE_MS = 120_000;
 const SNAPSHOT_REFETCH_MS = 120_000;
 

@@ -226,7 +226,7 @@ export function DashboardPillarsHub({
         </div>
       </section>
 
-      {/* How it works — single lightweight strip */}
+      {/* How it works, single lightweight strip */}
       <section
         className={cn(
           overviewCardShell,
@@ -244,7 +244,7 @@ export function DashboardPillarsHub({
               How it flows
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Revenue moves through five steps — from earning to compounding.
+              Revenue moves through five steps, from earning to compounding.
             </p>
           </div>
 

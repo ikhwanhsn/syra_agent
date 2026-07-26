@@ -38,7 +38,7 @@ export function PageLoader({
       aria-busy="true"
       aria-label={label}
     >
-      {/* Animated rings — same structure as original Index boot loader */}
+      {/* Animated rings, same structure as original Index boot loader */}
       <div
         className={cn(
           "relative flex items-center justify-center",
@@ -100,7 +100,7 @@ export function PageLoader({
   );
 }
 
-/** @deprecated Prefer RouteFallback for Suspense — kept for any external imports. */
+/** @deprecated Prefer RouteFallback for Suspense, kept for any external imports. */
 export function RoutePageLoader() {
   return (
     <PageLoader

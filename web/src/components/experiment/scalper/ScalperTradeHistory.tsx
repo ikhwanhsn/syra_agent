@@ -138,7 +138,7 @@ export function ScalperTradeHistory({
                         {formatScalperUsd(run.entryPriceUsd)} → {formatScalperUsd(run.exitPriceUsd)}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        in {run.entryImpactBps ?? "—"}bps · out {run.exitImpactBps ?? "—"}bps
+                        in {run.entryImpactBps ?? "-"}bps · out {run.exitImpactBps ?? "-"}bps
                       </TableCell>
                       <TableCell className={pnlTone}>
                         {formatScalperUsd(run.simPnlUsd)}

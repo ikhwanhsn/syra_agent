@@ -11,7 +11,7 @@ export const ALPHA_SNIPER_LAB_POST = defineVideoUpdate(
     title: "Alpha Sniper Lab",
     published: "July 2026",
     tagline:
-      "Paper lab live: RugCheck-gated snipes on high-quality new pairs from Syra's pump.fun alpha feed. Highest variance — paper mandatory.",
+      "Paper lab live: RugCheck-gated snipes on high-quality new pairs from Syra's pump.fun alpha feed. Highest variance, paper mandatory.",
     shareCopyVideo: `SHIP LOG · New-Pair Alpha Sniper paper lab is live.
 
 Pump.fun alpha → RugCheck gate → adaptive TP / SL / trailing.
@@ -40,7 +40,7 @@ Earn listing after the lab proves out.
       eyebrow: "Ship log",
       title: "New-Pair Alpha Sniper",
       subtitle:
-        "Paper snipes from Syra's pump.fun alpha feed — RugCheck hard gate, adaptive exits. Earn card listed; deposits wait on the lab.",
+        "Paper snipes from Syra's pump.fun alpha feed, RugCheck hard gate, adaptive exits. Earn card listed; deposits wait on the lab.",
       badge: "Paper lab · High risk",
     },
     {
@@ -49,8 +49,8 @@ Earn listing after the lab proves out.
       layout: "statement-gold-frame",
       label: "Context",
       kicker: "Why this matters",
-      headline: "Alpha feeds are useless if nobody executes — and lethal if they do blindly.",
-      body: "Syra already scores new pairs. The sniper turns that into an agent with hard RugCheck rejects, size caps, and trailing exits — proven on paper before any LP-wallet deposits.",
+      headline: "Alpha feeds are useless if nobody executes, and lethal if they do blindly.",
+      body: "Syra already scores new pairs. The sniper turns that into an agent with hard RugCheck rejects, size caps, and trailing exits, proven on paper before any LP-wallet deposits.",
     },
     {
       id: "shipped",
@@ -59,12 +59,12 @@ Earn listing after the lab proves out.
       label: "Shipped",
       kicker: "What we shipped",
       headline: "Six sniper styles competing in paper.",
-      body: "Safe 80+, balanced 70+, fast scalp, graduated-only, smart-money echo, and wide-net — all with TP/SL/trailing and rugged-pool cooldowns.",
+      body: "Safe 80+, balanced 70+, fast scalp, graduated-only, smart-money echo, and wide-net, all with TP/SL/trailing and rugged-pool cooldowns.",
       highlights: [
         "pump.fun scout + RugCheck hard gate",
         "Adaptive take-profit, stop-loss, trailing",
         "Earn product: New-Pair Alpha Sniper (coming soon)",
-        "LP wallet when real opens — tiny caps",
+        "LP wallet when real opens, tiny caps",
       ],
     },
     {
@@ -83,7 +83,7 @@ Earn listing after the lab proves out.
         {
           step: "02",
           title: "RugCheck",
-          description: "Fail closed — dangerous / failed reports never enter.",
+          description: "Fail closed, dangerous / failed reports never enter.",
         },
         {
           step: "03",
@@ -93,7 +93,7 @@ Earn listing after the lab proves out.
         {
           step: "04",
           title: "Adaptive exit",
-          description: "TP, SL, trailing, or time expiry — then cooldown rugs.",
+          description: "TP, SL, trailing, or time expiry, then cooldown rugs.",
         },
       ],
     },
@@ -108,7 +108,7 @@ Earn listing after the lab proves out.
         {
           title: "RugCheck",
           subtitle: "Hard gate",
-          detail: "No pass, no trade — paper and real.",
+          detail: "No pass, no trade, paper and real.",
           accent: "gold",
         },
         {
@@ -182,7 +182,7 @@ Earn listing after the lab proves out.
         { value: "0.5–3", label: "SOL beta cap*" },
       ],
       narrative:
-        "*Planned deposit band when real beta opens. New-pair trading can lose most or all capital. RugCheck reduces risk — it does not eliminate it.",
+        "*Planned deposit band when real beta opens. New-pair trading can lose most or all capital. RugCheck reduces risk, it does not eliminate it.",
     },
     {
       id: "closing",
@@ -191,7 +191,7 @@ Earn listing after the lab proves out.
       label: "CTA",
       kicker: "Next step",
       headline: "Watch the sniper lab. Deposit only after graduation.",
-      body: "Open Earn → Yield for New-Pair Alpha Sniper. Highest variance product on the board — paper first by design.",
+      body: "Open Earn → Yield for New-Pair Alpha Sniper. Highest variance product on the board, paper first by design.",
       links: [
         { label: "Open Earn Yield", href: "https://www.syraa.fun/earn?track=yield" },
         { label: "LP wallet", href: "https://www.syraa.fun/wallet?wallet=lp" },

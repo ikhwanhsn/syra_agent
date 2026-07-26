@@ -293,8 +293,8 @@ function buildMarketMetrics(
     makeMetric("vol", "ATR Volatility", parsePctString(vol?.atrPercent), `${parsePctString(vol?.atrPercent).toFixed(1)}%`, priceSpark),
     makeMetric("fg", "RSI", num(ti?.rsi), String(Math.round(num(ti?.rsi))), priceSpark),
     makeMetric("oracle", "Signal Confidence", num(qs?.confidence), `${num(qs?.confidence).toFixed(0)}%`, priceSpark),
-    makeMetric("regime", "Market Regime", num(trend?.score), String(trend?.trend ?? "—"), priceSpark),
-    makeMetric("liq", "Volume Ratio", volRatioNum(volume), `${String(volume?.volumeRatio ?? "—")}`, volSpark),
+    makeMetric("regime", "Market Regime", num(trend?.score), String(trend?.trend ?? "-"), priceSpark),
+    makeMetric("liq", "Volume Ratio", volRatioNum(volume), `${String(volume?.volumeRatio ?? "-")}`, volSpark),
     makeMetric("spread", "Settled Runs", overview.simulation.settledRuns, String(overview.simulation.settledRuns), priceSpark),
   ];
 }
@@ -458,12 +458,12 @@ function buildLogs(bundle: Btc2RealDataBundle, leader: BtcAgentStats | null): Lo
     {
       timestamp: now,
       level: "success",
-      message: `Leader #${leader?.strategyId ?? "—"} ${leader?.strategyName ?? ""} · equity $${num(leader?.equityUsd).toFixed(0)}`,
+      message: `Leader #${leader?.strategyId ?? "-"} ${leader?.strategyName ?? ""} · equity $${num(leader?.equityUsd).toFixed(0)}`,
     },
     {
       timestamp: now,
       level: "system",
-      message: `Cohort ${bundle.overview.simulation.settledRuns} settled · ${bundle.overview.simulation.openPositions} open · experiment ${bundle.stats.experimentId ?? "—"}`,
+      message: `Cohort ${bundle.overview.simulation.settledRuns} settled · ${bundle.overview.simulation.openPositions} open · experiment ${bundle.stats.experimentId ?? "-"}`,
     },
   ];
   if (bundle.realState?.lastError) {
@@ -533,7 +533,7 @@ export function mapRealToBtc2State(bundle: Btc2RealDataBundle): Btc2AgentState {
 
   const wallet = realState?.agentAddress
     ? `${realState.agentAddress.slice(0, 4)}…${realState.agentAddress.slice(-4)}`
-    : "—";
+    : "-";
 
   const deployed = num(leaderLab?.deployedUsd);
   const cash = num(leader?.cashUsd);

@@ -1,6 +1,6 @@
 import type { PostPhotoCardRole } from "@/content/posts/photo/photoCardSlots";
 
-/** Shared Syra palette — aligned with video style presets. */
+/** Shared Syra palette, aligned with video style presets. */
 export const PHOTO = {
   bg: "#050505",
   fg: "rgba(255,255,255,0.95)",
@@ -32,7 +32,7 @@ export const PHOTO_TYPE = {
   mono: "JetBrains Mono",
 } as const;
 
-/** Per-role ambient tint — keeps the 15-card deck visually distinct. */
+/** Per-role ambient tint, keeps the 15-card deck visually distinct. */
 const ROLE_TINT: Record<PostPhotoCardRole, string> = {
   cover: "rgba(243,186,47,0.22)",
   thesis: "rgba(243,186,47,0.14)",

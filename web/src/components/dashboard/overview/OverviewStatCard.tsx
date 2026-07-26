@@ -27,7 +27,7 @@ export interface OverviewStatCardProps {
   className?: string;
   /** Override inner content padding (default p-5 sm:p-6). */
   contentClassName?: string;
-  /** Tighter KPI strip layout — smaller type, no footer link. */
+  /** Tighter KPI strip layout, smaller type, no footer link. */
   compact?: boolean;
 }
 

@@ -8,10 +8,10 @@ import { articleDetails } from "@/data/marketing/articleContent";
 
 describe("normalizeEmDash", () => {
   it("replaces em dashes with commas", () => {
-    expect(normalizeEmDash("machine money — pay-per-call")).toBe(
+    expect(normalizeEmDash("machine money \u2014 pay-per-call")).toBe(
       "machine money, pay-per-call",
     );
-    expect(normalizeEmDash("a—b")).toBe("a, b");
+    expect(normalizeEmDash("a\u2014b")).toBe("a, b");
   });
 });
 
@@ -26,7 +26,7 @@ describe("buildArticleXContent", () => {
       expect(copy).not.toMatch(/PROMPT_STYLE|Generate this image/i);
       expect(copy).not.toContain("━━━━━━━━");
       expect(copy).not.toContain("🖼️");
-      expect(copy).not.toContain("—");
+      expect(copy).not.toContain("\u2014");
       expect(copy.length).toBeGreaterThan(article.excerpt.length + 400);
     }
   });
@@ -80,11 +80,11 @@ describe("buildArticleXContent", () => {
 
   it("never emits em dashes in source or generated copy", () => {
     for (const article of articleDetails) {
-      expect(article.content).not.toContain("—");
-      expect(article.title).not.toContain("—");
-      expect(article.excerpt).not.toContain("—");
-      expect(buildArticleXContent(article)).not.toContain("—");
-      expect(buildArticleXHtml(article)).not.toContain("—");
+      expect(article.content).not.toContain("\u2014");
+      expect(article.title).not.toContain("\u2014");
+      expect(article.excerpt).not.toContain("\u2014");
+      expect(buildArticleXContent(article)).not.toContain("\u2014");
+      expect(buildArticleXHtml(article)).not.toContain("\u2014");
     }
   });
 });
@@ -106,7 +106,7 @@ describe("buildArticleXHtml", () => {
     expect(html).toContain("<a href=");
     expect(html).toContain(sdk!.title);
 
-    // Unsupported — must never appear
+    // Unsupported, must never appear
     expect(html).not.toContain("<h1>");
     expect(html).not.toContain("<table>");
     expect(html).not.toContain("<pre>");

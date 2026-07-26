@@ -7,7 +7,7 @@ import { BtcSectionShareModal } from "@/components/btc/share/BtcSectionShareModa
 import { BtcShareExportSkin } from "@/components/btc/share/BtcShareExportSkin";
 
 export interface BtcShareableSectionProps {
-  /** Nav anchor id — omit when a parent (e.g. BtcLazySection) owns the anchor. */
+  /** Nav anchor id, omit when a parent (e.g. BtcLazySection) owns the anchor. */
   id?: string;
   kicker: string;
   title: string;

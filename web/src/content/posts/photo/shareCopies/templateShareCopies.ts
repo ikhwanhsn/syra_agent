@@ -1,6 +1,6 @@
 import type { PostPhotoCardRole } from "../photoCardSlots";
 
-/** Per-card X copy for the permanent format template — instructional, not a product ship. */
+/** Per-card X copy for the permanent format template, instructional, not a product ship. */
 export const TEMPLATE_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
   cover: `FORMAT TEMPLATE · Syra ship log (reference, not a product post).
 

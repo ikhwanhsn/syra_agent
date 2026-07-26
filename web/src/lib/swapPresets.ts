@@ -1,14 +1,14 @@
-/** Mainnet mints — keep aligned with `api/routes/agent/chat.js` Jupiter helpers. */
+/** Mainnet mints, keep aligned with `api/routes/agent/chat.js` Jupiter helpers. */
 export const WSOL_MINT = "So11111111111111111111111111111111111111112";
 export const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 export const SYRA_MINT = "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump";
 export const BONK_MINT = "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263";
 
-/** xStocks SPCXx — Backed Finance on Solana (override via live report mint when swapping). */
+/** xStocks SPCXx, Backed Finance on Solana (override via live report mint when swapping). */
 export const SPCXX_MINT = "Xs3oZwbHvqis4NYcf4YKWmEia2eC84wSiVrcYcTqpH8";
 
 /**
- * Jupiter Tokens V2 icon URLs for presets — baked in so the swap UI never flashes a
+ * Jupiter Tokens V2 icon URLs for presets, baked in so the swap UI never flashes a
  * different CoinGecko/CDN logo before the verified list loads.
  */
 export const SWAP_PRESET_TOKENS = [

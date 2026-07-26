@@ -2,7 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import { Coins, Code2, Landmark, Rocket, Sprout } from "lucide-react";
 import type { PillarId } from "@/lib/pillarsApi";
 
-/** Pillars live for all users — not gated behind admin Machine Money preview. */
+/** Pillars live for all users, not gated behind admin Machine Money preview. */
 export const SHIPPED_PILLAR_IDS = [
   "earn",
   "treasury",
@@ -28,7 +28,7 @@ export type DashboardPillarNavItem = {
   isActive: (pathname: string) => boolean;
 };
 
-/** Five-pillar Machine Money — lives in dashboard sidebar only (not top navbar). */
+/** Five-pillar Machine Money, lives in dashboard sidebar only (not top navbar). */
 export const DASHBOARD_PILLAR_NAV: readonly DashboardPillarNavItem[] = [
   {
     id: "earn",

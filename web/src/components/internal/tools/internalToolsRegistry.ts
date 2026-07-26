@@ -51,7 +51,7 @@ export const INTERNAL_TOOLS: InternalToolDefinition[] = [
   {
     id: "narrative",
     label: "Narrative generator",
-    description: "X-ready Syra hype copy — product themes or trending news.",
+    description: "X-ready Syra hype copy, product themes or trending news.",
     category: "content",
     icon: Megaphone,
     status: "live",
@@ -59,7 +59,7 @@ export const INTERNAL_TOOLS: InternalToolDefinition[] = [
   {
     id: "quote-response",
     label: "Quote response",
-    description: "Paste another project's post — get a Syra quote caption with hype + $SYRA pull.",
+    description: "Paste another project's post, get a Syra quote caption with hype + $SYRA pull.",
     category: "content",
     icon: MessageSquareQuote,
     status: "live",
@@ -75,7 +75,7 @@ export const INTERNAL_TOOLS: InternalToolDefinition[] = [
   {
     id: "copy-polisher",
     label: "Copy polisher",
-    description: "Paste your draft — same context, better hype and copywriting.",
+    description: "Paste your draft, same context, better hype and copywriting.",
     category: "content",
     icon: Wand2,
     status: "live",
@@ -107,7 +107,7 @@ export const INTERNAL_TOOLS: InternalToolDefinition[] = [
   {
     id: "holder-pulse",
     label: "Holder pulse",
-    description: "Real $SYRA onchain data — holders, staking, price — into milestone hype posts.",
+    description: "Real $SYRA onchain data, holders, staking, price, into milestone hype posts.",
     category: "project",
     icon: Coins,
     status: "live",
@@ -115,7 +115,7 @@ export const INTERNAL_TOOLS: InternalToolDefinition[] = [
   {
     id: "trend-scanner",
     label: "Trend scanner",
-    description: "Live X trends ranked for Syra relevance — draft posts to ride the narrative.",
+    description: "Live X trends ranked for Syra relevance, draft posts to ride the narrative.",
     category: "project",
     icon: TrendingUp,
     status: "live",
@@ -123,7 +123,7 @@ export const INTERNAL_TOOLS: InternalToolDefinition[] = [
   {
     id: "founder-pulse",
     label: "Founder pulse",
-    description: "Analytics on your personal X — followers, engagement, top tweets, best time to post.",
+    description: "Analytics on your personal X, followers, engagement, top tweets, best time to post.",
     category: "founder",
     icon: Activity,
     status: "live",

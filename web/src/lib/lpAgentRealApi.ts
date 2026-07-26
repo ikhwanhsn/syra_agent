@@ -54,7 +54,7 @@ export interface LpRealState {
   config: LpRealConfig | null;
   /** Native + wSOL only (used for tx fee gates). */
   onChainBalanceSol: number;
-  /** Native SOL + USDC/USDT valued in SOL — use for total capital. */
+  /** Native SOL + USDC/USDT valued in SOL, use for total capital. */
   walletEquitySol: number;
   deployedSol: number;
   /** walletEquitySol + open position deposits (cost basis at open). */
@@ -66,7 +66,7 @@ export interface LpRealState {
   availableSol: number;
   openPositionsCount: number;
   currentStrategy: LpRealCurrentStrategy | null;
-  /** Scale target book (wallet + deployed); matches sim starting bank — not required to run. */
+  /** Scale target book (wallet + deployed); matches sim starting bank, not required to run. */
   minBankSol: number;
   /** Minimum wallet SOL to turn on with zero open positions (~1 slot + fees). */
   minWalletToStartSol: number;

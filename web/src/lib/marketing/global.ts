@@ -1,4 +1,4 @@
-/** Agent chat — same web app at `/`. */
+/** Agent chat, same web app at `/`. */
 const LINK_AGENT = "/";
 
 /** Opens the Syra agent with a prefilled question (`?q=`). Agent app auto-sends after load. */
@@ -49,7 +49,7 @@ function resolveApiBase(): string {
     if (isLocalApiHost(explicit)) {
       if (import.meta.env.DEV) {
         console.warn(
-          "[Syra] VITE_SYRA_API_URL points at localhost but VITE_USE_LOCAL_API is not true — using https://api.syraa.fun. For a local gateway use VITE_USE_LOCAL_API=true (proxied via /api).",
+          "[Syra] VITE_SYRA_API_URL points at localhost but VITE_USE_LOCAL_API is not true, using https://api.syraa.fun. For a local gateway use VITE_USE_LOCAL_API=true (proxied via /api).",
         );
       }
       return PRODUCTION_API_ORIGIN;
@@ -71,7 +71,7 @@ const LINK_TELEGRAM = "https://t.me/syra_ai";
 const LINK_X = "https://x.com/syra_agent";
 const EMAIL_SUPPORT = "support@syraa.fun";
 
-/** Syra staking — same web app at `/staking`. */
+/** Syra staking, same web app at `/staking`. */
 const LINK_STAKING = "/staking";
 
 /** Headers for Syra API. Do not embed API keys in client code; the API injects auth for trusted origins (syraa.fun). */
@@ -80,7 +80,7 @@ function getApiHeaders(): Record<string, string> {
     const leaked = (import.meta.env.VITE_API_KEY as string | undefined)?.trim();
     if (leaked) {
       console.warn(
-        "[Syra] VITE_API_KEY is set but must not be sent from browser bundles. Remove it from .env — api.syraa.fun injects auth for trusted origins.",
+        "[Syra] VITE_API_KEY is set but must not be sent from browser bundles. Remove it from .env, api.syraa.fun injects auth for trusted origins.",
       );
     }
   }

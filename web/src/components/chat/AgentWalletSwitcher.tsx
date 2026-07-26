@@ -94,7 +94,7 @@ export function AgentWalletSwitcher({ value, onChange, available, balances, clas
                   </span>
                   <span className="inline-flex items-center gap-1 text-muted-foreground">
                     <CoinLogo symbol="SOL" size="xs" />
-                    {bal.sol != null && Number.isFinite(bal.sol) ? formatSol(bal.sol) : "—"}
+                    {bal.sol != null && Number.isFinite(bal.sol) ? formatSol(bal.sol) : "-"}
                   </span>
                 </span>
               ) : null}

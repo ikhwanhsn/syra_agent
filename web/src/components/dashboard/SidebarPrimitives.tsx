@@ -580,7 +580,7 @@ type SidebarNavHeaderProps = {
   dismissVariant: "close" | "collapse";
 };
 
-/** Top chrome for dashboard sidebar — label balances the dismiss control. */
+/** Top chrome for dashboard sidebar, label balances the dismiss control. */
 function SidebarNavHeader({ onDismiss, dismissVariant }: SidebarNavHeaderProps) {
   return (
     <div className="relative z-10 flex shrink-0 items-center justify-between gap-3 border-b border-sidebar-border/60 bg-gradient-to-b from-muted/20 to-transparent px-3 py-2.5">
@@ -625,7 +625,7 @@ export function SidebarCollapseHeader({ onCollapse }: { onCollapse: () => void }
   return <SidebarNavHeader onDismiss={onCollapse} dismissVariant="collapse" />;
 }
 
-/** Collapsed icon rail — compact expand control at top. */
+/** Collapsed icon rail, compact expand control at top. */
 export function SidebarExpandRailHeader({ onExpand }: { onExpand: () => void }) {
   return (
     <div className="relative z-10 flex w-full shrink-0 justify-center border-b border-sidebar-border/60 bg-gradient-to-b from-muted/20 to-transparent px-2 py-2.5">

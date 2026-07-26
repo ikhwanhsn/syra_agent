@@ -18,7 +18,7 @@ import { useDelayedMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import { cn } from "@/lib/utils";
 
 function formatPriceUsd(n: number): string {
-  if (!Number.isFinite(n)) return "—";
+  if (!Number.isFinite(n)) return "-";
   if (n >= 1000) return formatCompactUsd(n);
   return new Intl.NumberFormat(undefined, {
     style: "currency",
@@ -182,11 +182,11 @@ export function AnsemChart({
               <>
                 <MetricTile
                   label="Price"
-                  value={stats.price != null ? formatPriceUsd(stats.price) : "—"}
+                  value={stats.price != null ? formatPriceUsd(stats.price) : "-"}
                 />
                 <MetricTile
                   label="24h"
-                  value={change24 != null ? formatPct(change24) : "—"}
+                  value={change24 != null ? formatPct(change24) : "-"}
                   valueClassName={
                     change24 != null
                       ? change24 >= 0

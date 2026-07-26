@@ -22,7 +22,7 @@ const clamp = {
 } as const;
 
 /**
- * Motion-only scene wrapper — no floating panels, brackets, or viewfinder chrome.
+ * Motion-only scene wrapper, no floating panels, brackets, or viewfinder chrome.
  * Those were fighting the slide content and making frames look like empty slides.
  */
 export function SceneFrame({ slide, durationInFrames, children }: SceneFrameProps) {

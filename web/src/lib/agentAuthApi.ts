@@ -101,7 +101,7 @@ function hasSessionHints(): boolean {
   return getSyraSessionWallet() != null;
 }
 
-/** Read wallet address + chain from a Syra access JWT (no signature verify — token came from our API). */
+/** Read wallet address + chain from a Syra access JWT (no signature verify, token came from our API). */
 export function getWalletFromAccessToken(token: string): { address: string; chain: AgentChain } | null {
   try {
     const parts = token.split(".");
@@ -176,7 +176,7 @@ export async function ensureAccessToken(): Promise<string | null> {
     hydrateSyraSessionWalletFromToken(cached);
     return cached;
   }
-  // Guest users have no refresh cookie — skip the network round-trip.
+  // Guest users have no refresh cookie, skip the network round-trip.
   if (!hasSessionHints()) return null;
   return refreshAccessToken();
 }
@@ -223,7 +223,7 @@ export async function signInWithWallet(params: {
   address: string;
   message: string;
   signature: string;
-  /** Guest anonymousId from localStorage — server migrates funded guest wallet on link. */
+  /** Guest anonymousId from localStorage, server migrates funded guest wallet on link. */
   anonymousId?: string | null;
 }): Promise<SyraSignInResult> {
   const res = await fetch(`${AUTH_BASE()}/sign-in`, {
@@ -286,7 +286,7 @@ export async function syraFetch(input: RequestInfo | URL, init?: RequestInit): P
   const doFetch = async (accessToken: string | null) => {
     const headers = new Headers(init?.headers);
     if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
-    // FormData must keep the browser-generated multipart boundary — never force JSON.
+    // FormData must keep the browser-generated multipart boundary, never force JSON.
     const isFormData = typeof FormData !== "undefined" && init?.body instanceof FormData;
     if (isFormData) {
       headers.delete("Content-Type");

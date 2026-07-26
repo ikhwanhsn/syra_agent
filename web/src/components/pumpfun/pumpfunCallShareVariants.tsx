@@ -31,7 +31,7 @@ export interface ShareCardVariantProps {
   className?: string;
 }
 
-/** Institutional agent terminal — default premium layout */
+/** Institutional agent terminal, default premium layout */
 export const PumpfunCallShareCardIntel = forwardRef<HTMLDivElement, ShareCardVariantProps>(
   function PumpfunCallShareCardIntel({ record, className }, ref) {
     const d = deriveShareCardData(record);
@@ -164,7 +164,7 @@ export const PumpfunCallShareCardTerminal = forwardRef<HTMLDivElement, ShareCard
   },
 );
 
-/** Centered mega gain — X screenshot optimized */
+/** Centered mega gain, X screenshot optimized */
 export const PumpfunCallShareCardHero = forwardRef<HTMLDivElement, ShareCardVariantProps>(
   function PumpfunCallShareCardHero({ record, className }, ref) {
     const d = deriveShareCardData(record);

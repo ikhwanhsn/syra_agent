@@ -17,7 +17,7 @@ import { formatCompactUsd } from "@/lib/dashboardOverviewAggregates";
 import { cn } from "@/lib/utils";
 
 function truncateWallet(wallet: string | null): string {
-  if (!wallet) return "—";
+  if (!wallet) return "-";
   if (wallet.length <= 12) return wallet;
   return `${wallet.slice(0, 4)}…${wallet.slice(-4)}`;
 }
@@ -141,11 +141,11 @@ export function PumpfunTradeTapePanel({ mint, enabled = true, className }: Pumpf
                             Sell
                           </Badge>
                         ) : (
-                          <Badge variant="outline">—</Badge>
+                          <Badge variant="outline">, </Badge>
                         )}
                       </TableCell>
                       <TableCell className="text-right font-mono tabular-nums text-xs">
-                        {formatCompactUsd(trade.amountUsd) || "—"}
+                        {formatCompactUsd(trade.amountUsd) || "-"}
                       </TableCell>
                       <TableCell className="font-mono text-xs">
                         {trade.txHash ? (
@@ -162,7 +162,7 @@ export function PumpfunTradeTapePanel({ mint, enabled = true, className }: Pumpf
                         )}
                       </TableCell>
                       <TableCell className="text-right text-xs text-muted-foreground">
-                        {trade.at ? formatRelativeTime(trade.at) : "—"}
+                        {trade.at ? formatRelativeTime(trade.at) : "-"}
                       </TableCell>
                     </TableRow>
                   ))}

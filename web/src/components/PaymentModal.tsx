@@ -291,7 +291,7 @@ export function PaymentModal({
 
   return createPortal(
     <>
-      {/* Backdrop — portaled above playground drawer (z-30) and nav (z-200) */}
+      {/* Backdrop, portaled above playground drawer (z-30) and nav (z-200) */}
       <div
         className={cn(
           'fixed inset-0 animate-in fade-in-0 duration-300 bg-[radial-gradient(ellipse_120%_80%_at_50%_-20%,hsl(var(--ring)/0.12),transparent_55%),hsl(var(--background)/0.88)] backdrop-blur-xl dark:bg-[radial-gradient(ellipse_100%_60%_at_50%_100%,hsl(var(--primary)/0.06),transparent_45%),hsl(220_14%_4%/0.82)]',
@@ -582,7 +582,7 @@ export function PaymentModal({
                   <p className="text-sm font-medium text-warning">MetaMask required for this payment</p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     Your Solana wallet ({walletContext.shortAddress}) is connected separately. Binance/Base
-                    payments use MetaMask on BSC — connect below so the address matches what will sign.
+                    payments use MetaMask on BSC, connect below so the address matches what will sign.
                   </p>
                 </div>
               </div>
@@ -651,7 +651,7 @@ export function PaymentModal({
                           </span>
                         ) : (
                           <>
-                            {displayBscTokenBalance ?? '—'} {paymentDetails.token}
+                            {displayBscTokenBalance ?? '-'} {paymentDetails.token}
                           </>
                         )
                       ) : balancePending ? (

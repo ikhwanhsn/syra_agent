@@ -84,7 +84,7 @@ export function BlogComments() {
         />
         <div className="flex items-center justify-between gap-4">
           <p className="text-xs text-muted-foreground">
-            {posted ? "Thanks — your comment is queued for review." : "Be respectful. No financial advice."}
+            {posted ? "Thanks, your comment is queued for review." : "Be respectful. No financial advice."}
           </p>
           <Button type="submit" size="sm" className="gap-2 rounded-xl" disabled={!draft.trim()}>
             <Send className="h-3.5 w-3.5" />

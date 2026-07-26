@@ -81,7 +81,7 @@ const res = await paidFetch("${absoluteUrl}", {
 
 const data = await res.json();`;
 
-  const mcp = `# Prefer MCP for chat agents — auto-pays on HTTP 402
+  const mcp = `# Prefer MCP for chat agents, auto-pays on HTTP 402
 # Path: ${path}${priceHint}
 
 # Cursor / Claude Desktop mcp.json

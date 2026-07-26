@@ -54,7 +54,7 @@ type PreviewResult =
   | { kind: "signal"; data: PreviewSignalResponse };
 
 function formatCount(n: number): string {
-  if (!Number.isFinite(n)) return "—";
+  if (!Number.isFinite(n)) return "-";
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
   return String(n);
@@ -100,19 +100,19 @@ function PreviewOutput({ result }: { result: PreviewResult }) {
         <div>
           <p className={overviewKickerClass}>Score</p>
           <p className="mt-1 font-mono text-lg font-semibold tabular-nums sm:text-xl">
-            {total["Sentiment Score"] ?? "—"}
+            {total["Sentiment Score"] ?? "-"}
           </p>
         </div>
         <div>
           <p className={overviewKickerClass}>Positive</p>
           <p className="mt-1 font-mono text-lg font-semibold tabular-nums sm:text-xl">
-            {total["Total Positive"] ?? "—"}
+            {total["Total Positive"] ?? "-"}
           </p>
         </div>
         <div>
           <p className={overviewKickerClass}>Negative</p>
           <p className="mt-1 font-mono text-lg font-semibold tabular-nums sm:text-xl">
-            {total["Total Negative"] ?? "—"}
+            {total["Total Negative"] ?? "-"}
           </p>
         </div>
       </div>
@@ -139,7 +139,7 @@ function PreviewOutput({ result }: { result: PreviewResult }) {
           {String(signal.summary)}
         </p>
       ) : null}
-      <p className="text-xs text-muted-foreground/80">Analysis only — not advice.</p>
+      <p className="text-xs text-muted-foreground/80">Analysis only, not advice.</p>
     </div>
   );
 }
@@ -379,7 +379,7 @@ export default function SpendPage() {
                 <div className="relative z-[1] p-4 sm:p-6">
                   <p className={overviewKickerClass}>Try free</p>
                   <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
-                    Live previews — no payment required.
+                    Live previews, no payment required.
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2">
                     {(["news", "sentiment", "signal"] as const).map((kind) => (

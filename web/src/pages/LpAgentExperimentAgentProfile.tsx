@@ -169,7 +169,7 @@ export default function LpAgentExperimentAgentProfile({ embedded = false }: { em
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
             Strategy profile, Meteora pool candidates, and paper-trading runs for this agent. PnL is modeled from live
-            Meteora pool data — not on-chain wallet balance. For real positions, use Live LP on the experiment desk.
+            Meteora pool data, not on-chain wallet balance. For real positions, use Live LP on the experiment desk.
           </p>
         </div>
         <Button
@@ -209,7 +209,7 @@ export default function LpAgentExperimentAgentProfile({ embedded = false }: { em
             <div className="rounded-xl border border-border bg-card p-4">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Win rate</p>
               <p className="mt-1 text-2xl font-semibold tabular-nums">
-                {stats.winRatePct == null ? "—" : `${stats.winRatePct.toFixed(1)}%`}
+                {stats.winRatePct == null ? "-" : `${stats.winRatePct.toFixed(1)}%`}
               </p>
             </div>
             <div className="rounded-xl border border-border bg-card p-4">
@@ -385,7 +385,7 @@ export default function LpAgentExperimentAgentProfile({ embedded = false }: { em
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Notes</p>
-                <p className="font-medium">{strategy.notes || "—"}</p>
+                <p className="font-medium">{strategy.notes || "-"}</p>
               </div>
             </div>
             <div className="mt-4 grid gap-3 lg:grid-cols-3">
@@ -453,7 +453,7 @@ export default function LpAgentExperimentAgentProfile({ embedded = false }: { em
             <div>
               <h2 className="text-sm font-semibold">Run history (paper sim)</h2>
               <p className="mt-1 text-xs text-muted-foreground">
-                PnL uses live Meteora price, active bin, and 24h fee/TVL — extrapolated by the LP economics model. No
+                PnL uses live Meteora price, active bin, and 24h fee/TVL, extrapolated by the LP economics model. No
                 wallet transactions; not comparable to Live LP on-chain returns.
               </p>
             </div>
@@ -510,8 +510,8 @@ export default function LpAgentExperimentAgentProfile({ embedded = false }: { em
                       <TableCell className="text-right tabular-nums text-muted-foreground">
                         {(run.simCloseFeeSol ?? 0).toFixed(4)}
                       </TableCell>
-                      <TableCell>{run.resolution || "—"}</TableCell>
-                      <TableCell>{run.createdAt ? new Date(run.createdAt).toLocaleString() : "—"}</TableCell>
+                      <TableCell>{run.resolution || "-"}</TableCell>
+                      <TableCell>{run.createdAt ? new Date(run.createdAt).toLocaleString() : "-"}</TableCell>
                     </TableRow>
                   ))}
                   {!loading && (runsQ.data?.runs || []).length === 0 ? (

@@ -157,7 +157,7 @@ export function BtcStatCards({
       value:
         overview?.derivatives.openInterestBtc != null
           ? `${formatBtcVolume(overview.derivatives.openInterestBtc)} BTC`
-          : "—",
+          : "-",
       hint:
         overview?.derivatives.markPrice != null
           ? `Mark ${formatBtcUsd(overview.derivatives.markPrice, 0)}`
@@ -166,7 +166,7 @@ export function BtcStatCards({
     },
     {
       label: "Fear & Greed",
-      value: fear != null ? String(Math.round(fear)) : "—",
+      value: fear != null ? String(Math.round(fear)) : "-",
       hint: overview?.sentiment.fearGreedLabel ?? "Alternative.me index",
       icon: Gauge,
       accent: fearGreedAccent(fear),

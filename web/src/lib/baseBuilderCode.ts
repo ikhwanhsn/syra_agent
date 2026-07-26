@@ -1,5 +1,5 @@
 /**
- * Base Builder Code for playground Base (EVM) x402 payments — client service attribution (`s`).
+ * Base Builder Code for playground Base (EVM) x402 payments, client service attribution (`s`).
  * @see https://docs.cdp.coinbase.com/x402/core-concepts/builder-codes
  */
 
@@ -15,7 +15,7 @@ export function getBaseBuilderCode(): string | null {
   if (!raw) return null;
   if (!isValidBaseBuilderCode(raw)) {
     console.warn(
-      `[x402] VITE_BASE_BUILDER_CODE is invalid ("${raw}"). Must match ^[a-z0-9_]{1,32}$ — builder-code attribution disabled.`
+      `[x402] VITE_BASE_BUILDER_CODE is invalid ("${raw}"). Must match ^[a-z0-9_]{1,32}$, builder-code attribution disabled.`
     );
     return null;
   }

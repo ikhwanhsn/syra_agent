@@ -12,13 +12,13 @@ export const SYRA_TOKEN_MINT =
 export const SYRA_8004_CREATOR_ADDRESS =
   "53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t";
 
-/** @deprecated Use SYRA_8004_CREATOR_ADDRESS — kept for imports expecting the old name. */
+/** @deprecated Use SYRA_8004_CREATOR_ADDRESS, kept for imports expecting the old name. */
 export const SYRA_8004_AGENT_ASSET = SYRA_8004_CREATOR_ADDRESS;
 
 export const SYRA_8004_COLLECTION_URL =
   "https://8004market.io/collection/solana/mainnet-beta/31";
 
-/** Synapse Agent Protocol — agent PDA (OOBE). */
+/** Synapse Agent Protocol, agent PDA (OOBE). */
 export const SYRA_SAP_AGENT_PDA =
   "29Mw1QJRYb8BwiR4iPRYGp276PHeoCzSQMHxUYQd3o47";
 

@@ -100,7 +100,7 @@ export function ExperimentFeaturedAgent({
       />
 
       <div className="relative space-y-0">
-        {/* Chart block — first thing visible on page */}
+        {/* Chart block, first thing visible on page */}
         <div className="border-b border-border/45 px-4 py-4 sm:px-6 sm:py-5">
           <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
             <div>
@@ -153,7 +153,7 @@ export function ExperimentFeaturedAgent({
             <div className="min-w-0 flex-1">
               <p className="text-base font-semibold tracking-tight text-foreground">{strategyLabel}</p>
               <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                Highest-PnL strategy —{" "}
+                Highest-PnL strategy, {" "}
                 <span className="font-medium text-foreground">{buyStyle}</span> buys,{" "}
                 <span className="font-medium text-foreground">{sellStyle}</span> sells.
               </p>

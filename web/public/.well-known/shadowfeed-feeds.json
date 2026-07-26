@@ -3,7 +3,7 @@
   "provider": {
     "name": "Syra",
     "handle": "syra",
-    "description": "Machine money for agents on Solana — x402 pay-per-call APIs, agent wallets, and treasury policy.",
+    "description": "Machine money for agents on Solana, x402 pay-per-call APIs, agent wallets, and treasury policy.",
     "website": "https://syraa.fun",
     "api": "https://api.syraa.fun",
     "twitter_handle": "@syraa_ai",
@@ -35,7 +35,7 @@
       "path": "/brain",
       "method": "POST",
       "suggested_price_stx": 0.01,
-      "description": "AI agent with tool selection — ask crypto questions, get grounded answers."
+      "description": "AI agent with tool selection, ask crypto questions, get grounded answers."
     },
     {
       "slug": "news",
@@ -98,7 +98,7 @@
       "path": "/health",
       "method": "GET",
       "suggested_price_stx": 0.003,
-      "description": "Paid liveness probe — verify Syra API is operational."
+      "description": "Paid liveness probe, verify Syra API is operational."
     },
     {
       "slug": "mpp-health",

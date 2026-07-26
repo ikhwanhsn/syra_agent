@@ -61,7 +61,7 @@ export function ModelSelector({ modality, value, onChange, disabled }: ModelSele
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
         <Label htmlFor={`llm-model-${modality}`}>Model</Label>
-        {priceLabel && priceLabel !== "—" && (
+        {priceLabel && priceLabel !== "-" && (
           <Badge variant="secondary" className="font-mono text-xs">
             {priceLabel}
             {selected?.cheapest ? " · cheapest" : ""}

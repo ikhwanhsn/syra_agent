@@ -462,7 +462,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
     window.history.replaceState(state, "", `/c/${chat.shareId}`);
   }, [activeChat, chats, chatMessages, isLoading, location.pathname]);
 
-  // Owner opened /?shareId=xyz — load that chat and clear query
+  // Owner opened /?shareId=xyz, load that chat and clear query
   useEffect(() => {
     if (!shareIdFromQuery?.trim() || !anonymousId || !ready) return;
     const sid = shareIdFromQuery.trim();
@@ -1391,7 +1391,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
           </main>
         </div>
 
-        {/* Mobile: main content — full width, proper flex for keyboard */}
+        {/* Mobile: main content, full width, proper flex for keyboard */}
         <main
           className={cn(
             "flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden lg:hidden",

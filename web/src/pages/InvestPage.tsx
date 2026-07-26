@@ -50,7 +50,7 @@ function formatBestApy(opportunities: InvestOpportunity[]): string {
       if (best == null || o.apyPct > best) best = o.apyPct;
     }
   }
-  return best == null ? "—" : `${apyFmt.format(best)}%`;
+  return best == null ? "-" : `${apyFmt.format(best)}%`;
 }
 
 export default function InvestPage() {
@@ -120,7 +120,7 @@ export default function InvestPage() {
     if (fromSummary != null && fromSummary > 0) {
       return `${solFmt.format(fromSummary)} SOL`;
     }
-    return connected ? "0 SOL" : "—";
+    return connected ? "0 SOL" : "-";
   }, [connected, positions, opportunities]);
 
   const hasActiveFilter = kindFilter !== "All";

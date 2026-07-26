@@ -69,8 +69,7 @@ export function Hero({
                   {hero.title}
                 </h1>
                 <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-                  Evidence-based macro news analysis for Bitcoin spot allocation. Paper sim first —
-                  $1,000 auto-rebalance desk; real Jupiter execution requires approval.
+                  Evidence-based macro news analysis for Bitcoin spot allocation. Paper sim first, $1,000 auto-rebalance desk; real Jupiter execution requires approval.
                 </p>
               </div>
             </div>
@@ -96,8 +95,8 @@ export function Hero({
               { label: "Last Scan", value: formatRelativeTime(hero.lastScanAt) },
               { label: "Articles", value: `${hero.articlesProcessed} / ${hero.articlesTotal}` },
               { label: "Predictions", value: String(hero.predictionsGenerated) },
-              { label: "Paper Equity", value: hero.paperEquityUsd != null ? formatUsd(hero.paperEquityUsd) : "—" },
-              { label: "Paper Return", value: hero.paperReturnPct != null ? `${hero.paperReturnPct >= 0 ? "+" : ""}${hero.paperReturnPct.toFixed(2)}%` : "—" },
+              { label: "Paper Equity", value: hero.paperEquityUsd != null ? formatUsd(hero.paperEquityUsd) : "-" },
+              { label: "Paper Return", value: hero.paperReturnPct != null ? `${hero.paperReturnPct >= 0 ? "+" : ""}${hero.paperReturnPct.toFixed(2)}%` : "-" },
             ].map((kpi) => (
               <div
                 key={kpi.label}

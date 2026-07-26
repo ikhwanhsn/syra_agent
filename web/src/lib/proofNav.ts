@@ -13,12 +13,12 @@ export type ProofNavItem = {
   external?: boolean;
 };
 
-/** Demoted proof-layer routes — live demos powered by the Syra rail. */
+/** Demoted proof-layer routes, live demos powered by the Syra rail. */
 export const PROOF_NAV_ITEMS: ProofNavItem[] = [
   {
     href: "/",
     label: "Reference agent",
-    description: "Try the chat demo — a client of the Syra rail",
+    description: "Try the chat demo, a client of the Syra rail",
     icon: Bot,
   },
   {

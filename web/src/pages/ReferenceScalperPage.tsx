@@ -26,7 +26,7 @@ async function fetchScalperReference(): Promise<ScalperReference> {
   return json.data as ScalperReference;
 }
 
-/** Public Franklin-style reference agent — pays for intelligence via x402. */
+/** Public Franklin-style reference agent, pays for intelligence via x402. */
 export default function ReferenceScalperPage() {
   const refQ = useQuery({
     queryKey: ["scalper-reference"],
@@ -90,7 +90,7 @@ export default function ReferenceScalperPage() {
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <Wallet className="h-3 w-3" /> Treasury wallet
               </p>
-              <p className="truncate font-mono text-xs">{ref.wallet ?? "—"}</p>
+              <p className="truncate font-mono text-xs">{ref.wallet ?? "-"}</p>
             </div>
           </div>
         ) : null}

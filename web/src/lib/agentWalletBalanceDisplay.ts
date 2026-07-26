@@ -27,7 +27,7 @@ export function resolveAgentTreasuryBalance(
   return api ?? ctx;
 }
 
-/** Spot SOL/USD for treasury estimates (Syra API proxy — avoids browser CSP blocks). */
+/** Spot SOL/USD for treasury estimates (Syra API proxy, avoids browser CSP blocks). */
 export async function fetchSolUsdSpot(): Promise<number | null> {
   try {
     const base = getApiBaseUrl().replace(/\/$/, "");
@@ -61,9 +61,9 @@ export function estimateTreasuryUsd(
   return usdcPart + solPart;
 }
 
-/** USDC for agent treasuries — always readable sub-$10k amounts (not overview compact). */
+/** USDC for agent treasuries, always readable sub-$10k amounts (not overview compact). */
 export function formatTreasuryUsd(value: number | null | undefined): string {
-  if (value == null || !Number.isFinite(value)) return "—";
+  if (value == null || !Number.isFinite(value)) return "-";
   const abs = Math.abs(value);
   if (abs >= 1_000_000_000) return `$${(value / 1_000_000_000).toFixed(2)}B`;
   if (abs >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`;

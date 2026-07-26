@@ -10,7 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 
 function formatPrice(usd: number): string {
-  if (!Number.isFinite(usd)) return "—";
+  if (!Number.isFinite(usd)) return "-";
   if (usd < 0.01) return `$${usd.toFixed(4)}`;
   return `$${usd.toFixed(2)}`;
 }

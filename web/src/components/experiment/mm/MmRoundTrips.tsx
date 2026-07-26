@@ -75,7 +75,7 @@ export function MmRoundTrips({ runs, loading, className }: MmRoundTripsProps) {
                       {run.volumeUsd > 0 ? formatMmUsd(run.volumeUsd) : formatMmUsd(run.notionalUsd)}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {run.impactBps != null ? `${run.impactBps} bps` : "—"}
+                      {run.impactBps != null ? `${run.impactBps} bps` : "-"}
                     </TableCell>
                     <TableCell className={pnlTone}>
                       {run.simPnlUsd != null ? (
@@ -84,7 +84,7 @@ export function MmRoundTrips({ runs, loading, className }: MmRoundTripsProps) {
                           <span className="block text-[10px]">{formatMmPct(run.simPnlPct)}</span>
                         </>
                       ) : (
-                        "—"
+                        "-"
                       )}
                     </TableCell>
                     <TableCell>{statusBadge(run.status)}</TableCell>

@@ -51,7 +51,7 @@ const COLUMNS = [
 ] as const;
 
 /**
- * Premium site footer for the growth home — editorial, not marketing-glass CTA block.
+ * Premium site footer for the growth home, editorial, not marketing-glass CTA block.
  */
 export function GrowthFooter() {
   return (

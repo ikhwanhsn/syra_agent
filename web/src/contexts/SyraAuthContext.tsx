@@ -48,7 +48,7 @@ export interface SyraAuthState {
   syraAuthReady: boolean;
   syraAuthenticated: boolean;
   lastSignIn: SyraSignInResult | null;
-  /** Restore session from cookie/storage only — never opens the wallet signature popup. */
+  /** Restore session from cookie/storage only, never opens the wallet signature popup. */
   ensureSyraAuth: () => Promise<SyraSignInResult | null>;
   /** Prompt wallet signature when needed (use on explicit user actions only). */
   requestSyraAuth: () => Promise<SyraSignInResult | null>;
@@ -91,7 +91,7 @@ function mapSignInErrorMessage(message: string): string {
     return "Could not reach the Syra API. Make sure the API server is running and refresh the page.";
   }
   if (lower.includes("internal server error") || lower === "500") {
-    return "Syra API error — if you're running locally, restart the api server (npm run dev in api/).";
+    return "Syra API error, if you're running locally, restart the api server (npm run dev in api/).";
   }
   return message;
 }
@@ -302,7 +302,7 @@ export function SyraAuthProvider({ children }: { children: ReactNode }) {
     });
   }, [syraAuthReady, syraAuthenticated, activeWallet?.address]);
 
-  /** Explicit Connect wallet — prompt sign-in only after user-initiated connect. */
+  /** Explicit Connect wallet, prompt sign-in only after user-initiated connect. */
   useEffect(() => {
     if (!syraAuthReady || !activeWallet) return;
 
@@ -319,7 +319,7 @@ export function SyraAuthProvider({ children }: { children: ReactNode }) {
       wasConnectedRef.current = true;
       return;
     }
-    // Privy reports disconnected while still initializing — don't wipe session yet.
+    // Privy reports disconnected while still initializing, don't wipe session yet.
     if (connecting) return;
 
     if (wasConnectedRef.current) {

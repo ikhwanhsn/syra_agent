@@ -340,7 +340,7 @@ export async function tryExecutePumpfunReturnedTransaction(opts: {
       status: 'failed',
       signature,
       pumpApiHints,
-      error: 'Confirmation timed out; check the signature on an explorer — the transaction may still land.',
+      error: 'Confirmation timed out; check the signature on an explorer, the transaction may still land.',
     };
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Unknown error';

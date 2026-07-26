@@ -4,7 +4,7 @@
 
 @layer base {
   /*
-   * Monochrome — aligned with landing + docs (syraa.fun).
+   * Monochrome, aligned with landing + docs (syraa.fun).
    * Light = :root | Dark = .dark (next-themes).
    */
   :root {
@@ -88,7 +88,7 @@
     --glow-primary: 0 0% 9%;
     --glow-accent: 0 0% 28%;
 
-    /* Legacy aliases — same surfaces as semantic tokens */
+    /* Legacy aliases, same surfaces as semantic tokens */
     --syra-background: hsl(var(--background));
     --syra-card: hsl(var(--card));
     --syra-primary: hsl(var(--foreground));
@@ -275,7 +275,7 @@
 }
 
 @layer components {
-  /* Subtle glow — neutral (landing-aligned) */
+  /* Subtle glow, neutral (landing-aligned) */
   .glow-primary {
     box-shadow:
       0 0 24px hsl(var(--glow-primary) / 0.08),
@@ -508,7 +508,7 @@
     background-size: 24px 24px;
   }
 
-  /* Playground — glass panels & JSON editor (monochrome, matches landing/docs) */
+  /* Playground, glass panels & JSON editor (monochrome, matches landing/docs) */
   .glass-panel {
     @apply rounded-2xl border bg-card/85 backdrop-blur-xl;
     border-color: hsl(var(--glass-border) / 0.9);
@@ -519,7 +519,7 @@
     @apply bg-gradient-to-b from-card/95 to-card/75;
   }
 
-  /* Main request/response surfaces — extra depth without changing modals / other pages */
+  /* Main request/response surfaces, extra depth without changing modals / other pages */
   .glass-panel-playground-main {
     box-shadow:
       var(--glass-shadow),
@@ -1153,7 +1153,7 @@ textarea:focus-visible {
   }
 }
 
-/* Qwerti embedded widget — home route only (see body.syra-qwerti-active) */
+/* Qwerti embedded widget, home route only (see body.syra-qwerti-active) */
 body:not(.syra-qwerti-active) #qwerti-widget-root {
   display: none !important;
   pointer-events: none !important;
@@ -1211,7 +1211,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   }
 }
 
-/* —— Investor pitch deck (/deck) —— */
+/* -- Investor pitch deck (/deck) -- */
 .deck-root {
   font-family: var(--font-inter), system-ui, sans-serif;
 }
@@ -1255,7 +1255,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   transform: translateY(12px);
 }
 
-/* —— Ship log post deck (/post) —— */
+/* -- Ship log post deck (/post) -- */
 .post-root {
   font-family: var(--font-inter), system-ui, sans-serif;
   --post-chrome-block: calc(
@@ -1392,7 +1392,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   pointer-events: none;
 }
 
-/* —— Slide content: centered inside 16:9 frame (container-query typography) —— */
+/* -- Slide content: centered inside 16:9 frame (container-query typography) -- */
 .post-slide-canvas {
   display: flex;
   box-sizing: border-box;
@@ -1488,7 +1488,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   margin-inline: auto;
 }
 
-/* Left-aligned slide bodies — one shared axis for kicker, title, and body */
+/* Left-aligned slide bodies, one shared axis for kicker, title, and body */
 .post-slide-body--align-left {
   align-items: flex-start;
   text-align: left;
@@ -1543,7 +1543,7 @@ body.syra-qwerti-active #qwerti-widget-root {
 
 .post-slide-headline {
   margin-top: clamp(0.25rem, 0.8cqh, 0.5rem);
-  /* px not ch — font-embed export metrics diverge from live preview */
+  /* px not ch, font-embed export metrics diverge from live preview */
   max-width: 520px;
   margin-inline: auto;
   font-family: var(--font-space), sans-serif;
@@ -1668,7 +1668,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   gap: clamp(0.25rem, 1cqh, 0.375rem) clamp(0.25rem, 1cqw, 0.5rem);
 }
 
-/* Hero numbered cards — equal-height boxes regardless of copy length */
+/* Hero numbered cards, equal-height boxes regardless of copy length */
 .post-tmpl-hero-numbered-cards .post-slide-grid {
   align-items: stretch;
 }
@@ -2055,7 +2055,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   grid-column: span 2;
 }
 
-/* Four cards — even 2×2 grid (no featured lead row leaving a gap) */
+/* Four cards, even 2×2 grid (no featured lead row leaving a gap) */
 .post-mosaic--quad {
   align-items: stretch;
 }
@@ -3276,7 +3276,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   margin-inline: auto;
 }
 
-/* Scales the fixed 960×540 stage — same layout box as video export */
+/* Scales the fixed 960×540 stage, same layout box as video export */
 .post-record-frame-wrap {
   position: relative;
   width: 100%;
@@ -3323,7 +3323,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   flex-shrink: 0;
   container-type: size;
   container-name: post-stage;
-  /* Broadcast-style safe area — identical in scaled preview + export */
+  /* Broadcast-style safe area, identical in scaled preview + export */
   --post-frame-inset-inline: clamp(1.125rem, 7cqw, 6.5rem);
   --post-frame-inset-block: clamp(1rem, 8.5cqh, 5.25rem);
 }
@@ -3340,7 +3340,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   z-index: -1;
 }
 
-/* Remotion composition stage — single Syra cinematic style (export + Player). */
+/* Remotion composition stage, single Syra cinematic style (export + Player). */
 .post-remotion-stage {
   /* Do not inherit .post-record-stage / .post-video-export-stage constraints */
   position: absolute !important;
@@ -3384,7 +3384,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   animation: none !important;
 }
 
-/* Full-bleed hero composition — content owns the stage, no floating card look */
+/* Full-bleed hero composition, content owns the stage, no floating card look */
 .post-remotion-stage .post-slide-canvas {
   --post-frame-inset-inline: clamp(2.25rem, 7cqw, 4.5rem);
   --post-frame-inset-block: clamp(2rem, 7.5cqh, 3.75rem);
@@ -3418,7 +3418,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   height: clamp(3.25rem, 9cqh, 4.5rem);
   border-radius: 1.1rem;
   border-color: rgba(243, 186, 47, 0.4) !important;
-  /* Basic box-shadow only — inset / multi-layer glow differ in web-renderer */
+  /* Basic box-shadow only, inset / multi-layer glow differ in web-renderer */
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
 }
 
@@ -3432,7 +3432,7 @@ body.syra-qwerti-active #qwerti-widget-root {
 
 /*
  * web-renderer DOM composer breaks rounded-full capsules and hsl() fills.
- * Skip SVG chips (.post-video-chip / .post-video-cta) — they draw their own pixels.
+ * Skip SVG chips (.post-video-chip / .post-video-cta), they draw their own pixels.
  */
 .post-remotion-stage .post-badge-bnb:not(.post-video-chip),
 .post-remotion-stage a.post-slide-cta-primary:not(.post-video-cta),
@@ -3586,7 +3586,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   animation: none !important;
 }
 
-/* Static photo/video hold frames — flatten reveal transforms that confuse html-to-image. */
+/* Static photo/video hold frames, flatten reveal transforms that confuse html-to-image. */
 .post-export-capturing .post-reveal,
 .post-export-capturing .post-reveal-active {
   animation: none !important;
@@ -3602,7 +3602,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   transform: var(--post-export-fit-transform, none) !important;
 }
 
-/* Batch 3 templates — html-to-image misses backdrop-filter, masks, and nested transforms */
+/* Batch 3 templates, html-to-image misses backdrop-filter, masks, and nested transforms */
 .post-export-active .post-chrome-stage .post-record-stage .post-batch3-glass-card,
 .post-export-capturing .post-batch3-glass-card,
 .post-video-export-root.post-export-active .post-batch3-glass-card,
@@ -3654,7 +3654,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   max-width: none;
 }
 
-/* Photo + video export — html-to-image collapses text-wrap:balance and flex gap */
+/* Photo + video export, html-to-image collapses text-wrap:balance and flex gap */
 .post-photo-export-root .post-photo-title,
 .post-photo-export-root .post-photo-headline,
 .post-photo-export-root .post-photo-copy,
@@ -3881,7 +3881,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   margin-top: clamp(0.5rem, 2.2cqh, 1rem);
 }
 
-/* Off-screen video export — mirror preview-scoped active rules during entrance frames */
+/* Off-screen video export, mirror preview-scoped active rules during entrance frames */
 .post-video-export-root.post-export-active .post-batch3-diamond-inner,
 .post-video-export-root.post-export-capturing .post-batch3-diamond-inner {
   transform: none !important;
@@ -4023,12 +4023,12 @@ body.syra-qwerti-active #qwerti-widget-root {
   }
 }
 
-/* —— Photo post templates (/post/photo) —— */
+/* -- Photo post templates (/post/photo) -- */
 .post-photo-root {
   --post-chrome-block: calc(
     env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px) + 8rem
   );
-  /* Syra logo palette — dark canvas, gold accent only */
+  /* Syra logo palette, dark canvas, gold accent only */
   --syra-gold: 45 88% 56%;
   --syra-bg: #030303;
   --syra-bg-deep: #020202;
@@ -4155,7 +4155,7 @@ body.syra-qwerti-active #qwerti-widget-root {
     0 28px 80px -24px hsl(0 0% 0% / 0.92);
 }
 
-/* —— Alpha underlay — dark base, logo gold as accent —— */
+/* -- Alpha underlay, dark base, logo gold as accent -- */
 .post-photo-alpha-underlay {
   pointer-events: none;
   position: absolute;
@@ -4357,7 +4357,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   user-select: none;
 }
 
-/* Extra underlay layers — toggled per card role */
+/* Extra underlay layers, toggled per card role */
 .post-photo-alpha-layer {
   display: none;
   position: absolute;
@@ -4468,7 +4468,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   mix-blend-mode: screen;
 }
 
-/* —— Per-card background variants (15 ship-log roles) —— */
+/* -- Per-card background variants (15 ship-log roles) -- */
 .post-photo-bg--brag .post-photo-alpha-tag {
   opacity: 1;
 }
@@ -5117,14 +5117,14 @@ body.syra-qwerti-active #qwerti-widget-root {
   letter-spacing: -0.03em;
   color: hsl(0 0% 100%);
   text-shadow: 0 2px 20px hsl(0 0% 0% / 0.45);
-  /* Match export — html-to-image collapses text-wrap:balance */
+  /* Match export, html-to-image collapses text-wrap:balance */
   text-wrap: normal;
   overflow-wrap: normal;
   word-break: normal;
 }
 
 .post-photo-headline {
-  /* px not ch — ch metrics diverge under font-embed export */
+  /* px not ch, ch metrics diverge under font-embed export */
   max-width: 720px;
   font-family: var(--font-space), sans-serif;
   font-size: 36px;
@@ -5740,7 +5740,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   white-space: pre-wrap;
 }
 
-/* —— Photo template batch 2 (50-library variants) —— */
+/* -- Photo template batch 2 (50-library variants) -- */
 .post-photo-canvas--gradient::before {
   content: "";
   position: absolute;
@@ -6011,7 +6011,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   align-self: flex-start;
 }
 
-/* —— Photo template batch 3 — premium context variants (75-library) —— */
+/* -- Photo template batch 3, premium context variants (75-library) -- */
 .post-photo-canvas--aurora::after {
   content: "";
   position: absolute;
@@ -6548,7 +6548,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   background: hsl(45 92% 55% / 0.1);
 }
 
-/* —— Photo deck: premium flow / timeline / checklist / compare / deep-dive / split —— */
+/* -- Photo deck: premium flow / timeline / checklist / compare / deep-dive / split -- */
 .post-photo-tmpl-flow-pipeline .post-photo-pipeline--tracked {
   border-radius: 14px;
   border: 1px solid hsl(0 0% 100% / 0.1);
@@ -6753,7 +6753,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   z-index: 2;
 }
 
-/* —— Photo template batch 4 — partnership & integration dual-brand lockups —— */
+/* -- Photo template batch 4, partnership & integration dual-brand lockups -- */
 .post-photo-canvas--partnership {
   background:
     radial-gradient(
@@ -7195,7 +7195,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   color: hsl(45 92% 55% / 0.7);
 }
 
-/* —— Share copy modal —— */
+/* -- Share copy modal -- */
 .post-share-modal-body {
   max-height: min(50vh, 22rem);
   overflow-y: auto;
@@ -7248,7 +7248,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   }
 }
 
-/* —— About page (/about) —— */
+/* -- About page (/about) -- */
 .about-root {
   font-family: var(--font-inter), system-ui, sans-serif;
 }
@@ -7917,7 +7917,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   }
 }
 
-/* Info page (/info) — scroll container + sidebar anchor smooth scroll */
+/* Info page (/info), scroll container + sidebar anchor smooth scroll */
 .info-scroll-root {
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
@@ -7929,7 +7929,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   }
 }
 
-/* —— Blog / article detail (/articles/:slug) —— */
+/* -- Blog / article detail (/articles/:slug) -- */
 .blog-root {
   font-family: var(--font-inter), system-ui, sans-serif;
 }
@@ -8021,7 +8021,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   );
 }
 
-/* —— Blog scene: icons, 3D illustration, connectors —— */
+/* -- Blog scene: icons, 3D illustration, connectors -- */
 .blog-scene-lines {
   position: absolute;
   inset: 0;
@@ -9974,7 +9974,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   width: 100%;
 }
 
-/* ── Page / route loaders (orb + rings + dots) — original Syra boot effect ── */
+/* ── Page / route loaders (orb + rings + dots), original Syra boot effect ── */
 @keyframes loader-bounce {
   0%,
   80%,
@@ -10005,7 +10005,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   animation-delay: 0.3s;
 }
 
-/* Full-screen app loader: orb + rings (use primary — accent is near-surface in mono theme) */
+/* Full-screen app loader: orb + rings (use primary, accent is near-surface in mono theme) */
 @keyframes loader-orb-pulse {
   0%,
   100% {

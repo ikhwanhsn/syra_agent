@@ -67,10 +67,10 @@ export function StocksUniversePanel({ universe, loading, className }: StocksUniv
               ) : null}
             </div>
             <p className="mt-3 font-mono text-lg font-semibold tabular-nums text-foreground">
-              {entry.priceUsd != null ? formatStocksUsd(entry.priceUsd) : "—"}
+              {entry.priceUsd != null ? formatStocksUsd(entry.priceUsd) : "-"}
             </p>
             <p className="mt-1 text-[10px] text-muted-foreground">
-              {entry.priceSource ?? "—"}
+              {entry.priceSource ?? "-"}
               {spread != null ? ` · ${spread.toFixed(2)}% vs Nasdaq` : ""}
             </p>
           </div>

@@ -101,7 +101,7 @@ export function Btc3RealSection() {
                 <dd className="font-mono font-medium">
                   {wallet
                     ? `${wallet.btcPct.toFixed(1)}% / ${wallet.usdcPct.toFixed(1)}%`
-                    : "—"}
+                    : "-"}
                 </dd>
               </div>
               <div>

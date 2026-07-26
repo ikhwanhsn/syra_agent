@@ -76,7 +76,7 @@ export function VolumeProgressCard({ stats, isLoading }: VolumeProgressCardProps
         <div>
           <dt className="text-muted-foreground">Status</dt>
           <dd className="mt-0.5 font-medium">
-            {pct >= 100 ? "Target hit" : remaining > 0 ? "In progress" : "—"}
+            {pct >= 100 ? "Target hit" : remaining > 0 ? "In progress" : "-"}
           </dd>
         </div>
       </dl>

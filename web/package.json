@@ -14,7 +14,7 @@
     "preview": "vite preview",
     "generate:seo": "node scripts/seo/generate.mjs",
     "generate:favicons": "node scripts/generate-favicons.mjs",
-    "test": "vitest run",
+    "test": "node scripts/check-no-em-dash.mjs && vitest run",
     "test:watch": "vitest",
     "remotion": "remotion studio src/video/remotion-entry.ts",
     "remotion:studio": "remotion studio src/video/remotion-entry.ts"

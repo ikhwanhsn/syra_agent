@@ -4,7 +4,7 @@ import { SYRA_VIDEO_THEME } from "@/video/style/theme";
 /**
  * Full-bleed stage wash as SVG.
  * Preview paints SVG in the DOM; @remotion/web-renderer captures SVG as native
- * pixels — so download matches Player. CSS `background-image` gradients are
+ * pixels, so download matches Player. CSS `background-image` gradients are
  * re-drawn by the DOM composer and look too bold on export.
  */
 export function AmbientBackground() {

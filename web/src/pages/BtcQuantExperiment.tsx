@@ -194,7 +194,7 @@ export default function BtcQuantExperiment({ embedded = false }: { embedded?: bo
               <div>
                 <h2 className="text-lg font-semibold tracking-tight">Strategy roster</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-          Fifteen quant agents — each with unique signal gates on Binance BTCUSDT OHLCV (Jupiter cbBTC spot).
+          Fifteen quant agents, each with unique signal gates on Binance BTCUSDT OHLCV (Jupiter cbBTC spot).
           Execution target: cbBTC on Solana via Jupiter.
                 </p>
               </div>

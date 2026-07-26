@@ -126,7 +126,7 @@ export async function fetchXProjectsAnalyze(options: {
     const msg =
       body.code === "ALPHA_X_BATCH_NOT_READY"
         ? body.error ||
-          "Watchlist is warming up — scores refresh about once every 24 hours."
+          "Watchlist is warming up, scores refresh about once every 24 hours."
         : body.error || "Failed to load batch analysis";
     throw new Error(msg);
   }

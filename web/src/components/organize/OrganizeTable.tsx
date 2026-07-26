@@ -47,14 +47,14 @@ function statusVariant(status: OrganizeEntryStatus) {
 }
 
 function formatDate(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return "-";
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "-";
   return d.toLocaleDateString();
 }
 
 function formatAmount(amount: number | null): string {
-  if (amount == null) return "—";
+  if (amount == null) return "-";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -180,7 +180,7 @@ export function OrganizeTable({
                     </Badge>
                   </TableCell>
                   <TableCell className="max-w-[140px] truncate text-xs text-muted-foreground">
-                    {entry.organizer || "—"}
+                    {entry.organizer || "-"}
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                     {formatDate(entry.deadline)}

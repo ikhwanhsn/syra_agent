@@ -16,7 +16,7 @@ export const BLOCKSIZE_INTEGRATION_PHOTO = definePhotoUpdate(BLOCKSIZE_INTEGRATI
       badge: "VWAP · Bid/Ask · MCP",
       title: "Blocksize × Syra",
       subtitle:
-        "Institutional VWAP and bid/ask for AI agents — mcp.blocksize.info with x402 / credits.",
+        "Institutional VWAP and bid/ask for AI agents, mcp.blocksize.info with x402 / credits.",
     }),
   },
   {
@@ -47,7 +47,7 @@ export const BLOCKSIZE_INTEGRATION_PHOTO = definePhotoUpdate(BLOCKSIZE_INTEGRATI
       headline: "Search. Quote. Guard. Act.",
       steps: [
         { step: "01", title: "Search", description: "blocksize-search q=SOLUSD." },
-        { step: "02", title: "Quote", description: "VWAP or bid/ask — agent pays 402." },
+        { step: "02", title: "Quote", description: "VWAP or bid/ask, agent pays 402." },
         { step: "03", title: "Guard", description: "Optional pre-trade check." },
         { step: "04", title: "Act", description: "Feed into swap / invest logic." },
       ],
@@ -159,9 +159,9 @@ export const BLOCKSIZE_INTEGRATION_PHOTO = definePhotoUpdate(BLOCKSIZE_INTEGRATI
       kicker: "Under the hood",
       headline: "mcp.blocksize.info plumbing.",
       items: [
-        "GET /v1/search — free discovery",
-        "GET /v1/vwap/{pair} — paid VWAP",
-        "GET /v1/bidask/{pair} — paid book",
+        "GET /v1/search, free discovery",
+        "GET /v1/vwap/{pair}, paid VWAP",
+        "GET /v1/bidask/{pair}, paid book",
         "POST /v1/checks/pre-trade",
         "X-AGENT-ID + agent x402 settle",
       ],
@@ -205,7 +205,7 @@ export const BLOCKSIZE_INTEGRATION_PHOTO = definePhotoUpdate(BLOCKSIZE_INTEGRATI
     shareCopy: copies.cta,
     content: photoContent({
       headline: "Ask Syra for a Blocksize VWAP.",
-      subtitle: "Search SOLUSD, pull VWAP, then bid/ask — all from agent chat.",
+      subtitle: "Search SOLUSD, pull VWAP, then bid/ask, all from agent chat.",
       links: [
         { label: "Chat", value: "syraa.fun/chat", href: "https://www.syraa.fun/chat" },
         {

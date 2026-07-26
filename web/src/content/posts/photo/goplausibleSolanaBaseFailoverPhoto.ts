@@ -138,7 +138,7 @@ export const GOPLAUSIBLE_SOLANA_BASE_FAILOVER_PHOTO = definePhotoUpdate(
       content: photoContent({
         headline: "GoPlausible beyond Algorand.",
         stats: [{ value: "3", label: "Chains on one partner" }],
-        narrative: "Algorand AVM + Solana + Base Exact — one facilitator brand, broader Syra rails.",
+        narrative: "Algorand AVM + Solana + Base Exact, one facilitator brand, broader Syra rails.",
       }),
     },
     {
@@ -169,7 +169,7 @@ export const GOPLAUSIBLE_SOLANA_BASE_FAILOVER_PHOTO = definePhotoUpdate(
         partnerLogoSolidBg: true,
         headline: "Syra × GoPlausible",
         subtitle:
-          "Algorand settle plus Labs Solana/Base failover — resilience without client changes.",
+          "Algorand settle plus Labs Solana/Base failover, resilience without client changes.",
       }),
     },
     {
@@ -178,9 +178,9 @@ export const GOPLAUSIBLE_SOLANA_BASE_FAILOVER_PHOTO = definePhotoUpdate(
       shareCopy: copies.deepDive,
       content: photoContent({
         kicker: "Under the hood",
-        headline: "Offer-time only — by design.",
+        headline: "Offer-time only, by design.",
         items: [
-          "goplausibleX402Networks — Solana + Base",
+          "goplausibleX402Networks, Solana + Base",
           "Fee payer 8a8fFNfk… (env override)",
           "GET /supported for Base exact",
           "Settle stays on the offered rail",
@@ -225,7 +225,7 @@ export const GOPLAUSIBLE_SOLANA_BASE_FAILOVER_PHOTO = definePhotoUpdate(
       shareCopy: copies.cta,
       content: photoContent({
         headline: "One partner. Three chains. Failover built in.",
-        subtitle: "Hit Labs on Solana or Base — payment rails choose themselves.",
+        subtitle: "Hit Labs on Solana or Base, payment rails choose themselves.",
         links: [
           { label: "Labs", value: "syraa.fun/labs", href: "https://www.syraa.fun/labs" },
           {

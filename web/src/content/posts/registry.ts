@@ -97,7 +97,7 @@ export interface PostUpdateBundle {
 
 /**
  * Append new ship-log updates here (oldest first).
- * Update #0 (Format Template) is locked and must stay first — cannot be soft-deleted.
+ * Update #0 (Format Template) is locked and must stay first, cannot be soft-deleted.
  * New content must use defineVideoUpdate (8 kinds) + definePhotoUpdate (15 roles).
  * Soft-delete published entries from /post; source files stay until cleaned up manually.
  */

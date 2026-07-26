@@ -51,7 +51,7 @@ export function BtcLazySection({
   children,
   minHeight = 160,
 }: {
-  /** Nav anchor — always in DOM so scroll spy + hash links work before content mounts. */
+  /** Nav anchor, always in DOM so scroll spy + hash links work before content mounts. */
   sectionId?: string;
   children: ReactNode;
   minHeight?: number;

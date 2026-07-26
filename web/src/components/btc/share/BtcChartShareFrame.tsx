@@ -26,7 +26,7 @@ export interface BtcChartShareFrameProps {
 
 export const BtcChartShareFrame = forwardRef<HTMLDivElement, BtcChartShareFrameProps>(
   function BtcChartShareFrame({ data, exchange, interval, variant, rows, shareTheme, className }, ref) {
-    const title = `${exchangeLabel(data.exchange)} — BTC Price with Ratio Bubblemap`;
+    const title = `${exchangeLabel(data.exchange)}, BTC Price with Ratio Bubblemap`;
     const ratioNote = ratioNoteFor(data);
     const variantMeta = BTC_CHART_VARIANTS.find((v) => v.id === variant);
     const lastPrice = rows.at(-1)?.price ?? null;

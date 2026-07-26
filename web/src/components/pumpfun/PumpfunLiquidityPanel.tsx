@@ -53,11 +53,11 @@ export function PumpfunLiquidityPanel({ data, className }: PumpfunLiquidityPanel
         <div className="flex flex-wrap items-center gap-2">
           {isGraduated ? (
             <Badge className="border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-              Graduated — DEX liquidity
+              Graduated, DEX liquidity
             </Badge>
           ) : isBonding ? (
             <Badge variant="outline" className="border-amber-500/30 text-amber-700 dark:text-amber-400">
-              Bonding curve — virtual liquidity
+              Bonding curve, virtual liquidity
             </Badge>
           ) : (
             <Badge variant="outline">Stage unknown</Badge>
@@ -74,7 +74,7 @@ export function PumpfunLiquidityPanel({ data, className }: PumpfunLiquidityPanel
             { label: "24h volume", value: formatCompactUsd(volume24h) },
             {
               label: "Vol / Liq",
-              value: volLiqRatio != null ? `${volLiqRatio.toFixed(1)}x` : "—",
+              value: volLiqRatio != null ? `${volLiqRatio.toFixed(1)}x` : "-",
             },
           ].map((row) => (
             <div

@@ -123,7 +123,7 @@ export function MintDossierView({
                   {asset?.name ?? data.assetId}
                 </CardTitle>
                 <CardDescription className="mt-1 flex flex-wrap items-center gap-2">
-                  <span className="font-mono text-sm text-foreground/85">{asset?.symbol ?? "—"}</span>
+                  <span className="font-mono text-sm text-foreground/85">{asset?.symbol ?? "-"}</span>
                   {asset?.category ? (
                     <Badge variant="secondary" className="font-normal capitalize">
                       {asset.category}
@@ -165,10 +165,10 @@ export function MintDossierView({
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <MetricTile label="Price" value={price != null ? formatPriceUsd(price) : "—"} />
+            <MetricTile label="Price" value={price != null ? formatPriceUsd(price) : "-"} />
             <MetricTile
               label="24h"
-              value={change24 != null ? formatPct(change24) : "—"}
+              value={change24 != null ? formatPct(change24) : "-"}
               valueClassName={
                 change24 != null
                   ? change24 >= 0
@@ -205,7 +205,7 @@ export function MintDossierView({
                   <span className="text-xs font-semibold uppercase tracking-wider">Risk</span>
                 </div>
                 <p className="font-mono text-3xl font-semibold tabular-nums">
-                  {risk.grade ?? "—"}
+                  {risk.grade ?? "-"}
                   {risk.score != null ? (
                     <span className="ml-2 text-lg text-muted-foreground">({Math.round(risk.score)})</span>
                   ) : null}
@@ -369,7 +369,7 @@ export function MintDossierView({
 }
 
 function formatPriceUsd(n: number): string {
-  if (!Number.isFinite(n)) return "—";
+  if (!Number.isFinite(n)) return "-";
   if (n >= 1000) return formatCompactUsd(n);
   return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 6 }).format(n);
 }

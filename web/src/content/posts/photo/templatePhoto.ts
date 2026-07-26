@@ -5,7 +5,7 @@ import { TEMPLATE_PHOTO_SHARE_COPIES } from "./shareCopies/templateShareCopies";
 
 const copies = TEMPLATE_PHOTO_SHARE_COPIES;
 
-/** Photo-format content for the permanent Format Template — 15 cards, instructional copy. */
+/** Photo-format content for the permanent Format Template, 15 cards, instructional copy. */
 export const TEMPLATE_PHOTO = definePhotoUpdate(TEMPLATE_POST.meta, [
   {
     role: "cover",

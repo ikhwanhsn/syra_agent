@@ -164,7 +164,7 @@
     </div>
 
     <h2>Overview</h2>
-    <p>Bundles CoinMarketCap-style top tradable assets (stablecoins skipped) with live cross-venue USDT spot snapshots and ranked buy/sell routes by gross spread. Use when an agent scouts arbitrage ideas before fees/slippage. Input: limit (default 10, max 25). Returns cmcTop, snapshots[], ranked[], best, runnerUp — not financial advice.</p>
+    <p>Bundles CoinMarketCap-style top tradable assets (stablecoins skipped) with live cross-venue USDT spot snapshots and ranked buy/sell routes by gross spread. Use when an agent scouts arbitrage ideas before fees/slippage. Input: limit (default 10, max 25). Returns cmcTop, snapshots[], ranked[], best, runnerUp, not financial advice.</p>
     <p>This is a <strong>pay-per-call</strong> route: unpaid requests return <code>HTTP 402</code> until you settle USDC and retry with <code>PAYMENT-SIGNATURE</code> or <code>X-PAYMENT</code>. See <a href="https://docs.syraa.fun/docs/api/x402-api-standard">x402 wire format</a>.</p>
 
     <h2>Call with the SDK</h2>

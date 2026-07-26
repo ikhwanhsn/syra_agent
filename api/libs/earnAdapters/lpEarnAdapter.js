@@ -10,6 +10,7 @@ import {
   disableLpReal,
   getLpRealState,
   getLpRealSummary,
+  ensurePublicEarnSession,
 } from "../lpRealService.js";
 import { isAdminWalletAddress } from "../adminWallet.js";
 import { lpAnonymousIdFromChat } from "../agentWalletPurpose.js";
@@ -140,6 +141,8 @@ export async function getStats() {
   return {
     productId: product.id,
     denom: product.denom,
+    /** Platform / lab aggregate across all agents — never personal user PnL. */
+    scope: "lab",
     wins,
     losses,
     errors,
@@ -161,7 +164,7 @@ export async function getStats() {
     feesClaimedSol: round(Number(row.feesClaimedSol) || 0),
     aprPctHint,
     paperVsRealNote:
-      "Win rate and PnL are from Syra lab real-money positions. Past performance is not a guarantee. Paper sim can look different.",
+      "Lab track record: win rate and PnL are from all Syra real-money LP positions (not your wallet). Past performance is not a guarantee.",
     settlement24h: settlementSlice(settlement),
     firstPositionAt: row.firstAt ? new Date(row.firstAt).toISOString() : null,
     lastResolvedAt: row.lastAt ? new Date(row.lastAt).toISOString() : null,
@@ -233,24 +236,47 @@ export async function enableForUser({ anonymousId, ownerWallet, maxDeposit, enab
     enabledBy: enabledBy || ownerWallet || anonymousId,
   });
 
-  await LpRealConfig.updateOne(
-    { agentAddress: wallet.agentAddress },
-    {
-      $set: {
-        publicEarnListed: true,
-        depositsPaused: false,
-        publicMaxDepositSol: cap,
-        targetBankSol: cap,
-        maxPositionSol: Math.min(DEFAULT_MAX_POSITION_SOL, cap),
-        maxConcurrentPositions: DEFAULT_MAX_CONCURRENT,
-        performanceFeeBps: product.performanceFeeBps,
-        pausedNoStrategyAt: null,
-        lastError: null,
-      },
-    },
-  );
+  const priorConfig = await LpRealConfig.findOne({ agentAddress: wallet.agentAddress }).lean();
+  const experimentId = priorConfig?.experimentId || state?.config?.experimentId;
+  const openLive = experimentId
+    ? await LpRealPosition.countDocuments({
+        experimentId,
+        status: { $in: ["open", "opening", "closing"] },
+      })
+    : 0;
 
-  const summary = await getLpRealSummary({ viewerAnonymousId: wallet.anonymousId || anonymousId });
+  const earnStartedAt = new Date();
+  const earnSet = {
+    publicEarnListed: true,
+    depositsPaused: false,
+    publicMaxDepositSol: cap,
+    targetBankSol: cap,
+    maxPositionSol: Math.min(DEFAULT_MAX_POSITION_SOL, cap),
+    maxConcurrentPositions: DEFAULT_MAX_CONCURRENT,
+    performanceFeeBps: product.performanceFeeBps,
+    pausedNoStrategyAt: null,
+    lastError: null,
+    publicEarnStartedAt: earnStartedAt,
+    earnStatsEpoch: 2,
+  };
+  // Fresh earn session id when flat — prevents lab experiment history attaching as "Your PnL".
+  if (!openLive) {
+    earnSet.experimentId = `lp-earn-${wallet.agentAddress.slice(0, 8)}-${Date.now()}`;
+  }
+  // Reset capital baseline to current book so total-return math starts at this deposit.
+  if (state?.totalCapitalSol != null && Number.isFinite(Number(state.totalCapitalSol))) {
+    earnSet.capitalBaselineSol = Number(state.totalCapitalSol);
+  }
+
+  await LpRealConfig.updateOne({ agentAddress: wallet.agentAddress }, { $set: earnSet });
+
+  const listed = await LpRealConfig.findOne({ agentAddress: wallet.agentAddress }).lean();
+  if (listed) await ensurePublicEarnSession(listed, { forceRestart: true });
+
+  const summary = await getLpRealSummary({
+    viewerAnonymousId: wallet.anonymousId || anonymousId,
+    session: "earn",
+  });
   const freshState = await getLpRealState({ viewerAnonymousId: wallet.anonymousId || anonymousId });
 
   return {
@@ -297,7 +323,13 @@ export async function getUserStatus({ anonymousId, ownerWallet }) {
   let state = null;
   if (wallet?.agentAddress) {
     config = await LpRealConfig.findOne({ agentAddress: wallet.agentAddress }).lean();
-    summary = await getLpRealSummary({ viewerAnonymousId: wallet.anonymousId || anonymousId });
+    if (config?.publicEarnListed) {
+      config = await ensurePublicEarnSession(config);
+    }
+    summary = await getLpRealSummary({
+      viewerAnonymousId: wallet.anonymousId || anonymousId,
+      session: "earn",
+    });
     state = await getLpRealState({ viewerAnonymousId: wallet.anonymousId || anonymousId });
   }
   return {
@@ -317,13 +349,21 @@ export async function getUserStatus({ anonymousId, ownerWallet }) {
           performanceFeeBps: config.performanceFeeBps,
           lastError: config.lastError,
           pausedNoStrategyAt: config.pausedNoStrategyAt,
+          publicEarnStartedAt: config.publicEarnStartedAt
+            ? new Date(config.publicEarnStartedAt).toISOString()
+            : null,
         }
       : null,
     summary: summary
       ? {
           ...summary,
+          scope: "earn_session",
           netPnl: summary.realizedNetPnlSol,
           netPnlUsd: summary.realizedNetPnlUsd,
+          wins: summary.wins,
+          losses: summary.losses,
+          winRatePct: summary.winRatePct,
+          openCount: summary.openCount,
         }
       : null,
     canEnable: Boolean(allowed && state?.canTurnOn),

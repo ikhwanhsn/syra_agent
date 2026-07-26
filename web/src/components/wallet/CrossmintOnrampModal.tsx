@@ -1,5 +1,5 @@
 /**
- * Crossmint fiat onramp — buy USDC with card into a Syra agent wallet.
+ * Crossmint fiat onramp, buy USDC with card into a Syra agent wallet.
  * Manual crypto transfer remains available via FuelAgentModal.
  */
 import { useCallback, useEffect, useState, type ComponentType } from "react";

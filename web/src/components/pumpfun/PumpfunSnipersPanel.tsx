@@ -128,13 +128,13 @@ export function PumpfunSnipersPanel({ mint, enabled = true, className }: Pumpfun
                         </div>
                       </TableCell>
                       <TableCell className="text-right font-mono tabular-nums text-xs">
-                        {row.holdingPct != null ? `${row.holdingPct.toFixed(2)}%` : "—"}
+                        {row.holdingPct != null ? `${row.holdingPct.toFixed(2)}%` : "-"}
                       </TableCell>
                       <TableCell className="text-right font-mono tabular-nums text-xs">
-                        {formatCompactUsd(row.boughtUsd) || "—"}
+                        {formatCompactUsd(row.boughtUsd) || "-"}
                       </TableCell>
                       <TableCell className="font-mono text-xs tabular-nums">
-                        {row.blockIndex != null ? `#${row.blockIndex}` : "—"}
+                        {row.blockIndex != null ? `#${row.blockIndex}` : "-"}
                       </TableCell>
                     </TableRow>
                   ))}

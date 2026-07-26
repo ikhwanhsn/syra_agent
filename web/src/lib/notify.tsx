@@ -24,7 +24,7 @@ function show(
   );
 }
 
-/** Premium alerts — glass card, icon, accent bar, progress (bottom-left). */
+/** Premium alerts, glass card, icon, accent bar, progress (bottom-left). */
 export const notify = {
   success(title: ReactNode, description?: ReactNode) {
     show("success", title, description);

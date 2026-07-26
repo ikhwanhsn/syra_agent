@@ -66,7 +66,7 @@ const HOW_STEPS = [
   {
     n: "03",
     title: "Call syra_spend_news",
-    body: "First settled paid call in about five minutes — then expand the catalog.",
+    body: "First settled paid call in about five minutes, then expand the catalog.",
     href: "/marketplace",
     external: false,
     icon: Terminal,
@@ -418,7 +418,7 @@ function MetricsBody({
                     <span className="font-mono text-xs text-muted-foreground">{call.path}</span>
                     <span className="tabular-nums text-xs text-foreground/90 sm:text-sm">
                       ${call.amountUsd.toFixed(4)}
-                      <span className="text-muted-foreground"> · {call.payer ?? "—"}</span>
+                      <span className="text-muted-foreground"> · {call.payer ?? "-"}</span>
                     </span>
                   </li>
                 ))}
@@ -442,7 +442,7 @@ function MetricsBody({
 }
 
 /**
- * Public growth home — premium machine-money landing with live x402 proof.
+ * Public growth home, premium machine-money landing with live x402 proof.
  */
 export default function GrowthHomePage() {
   const { data, isLoading, isError, error } = usePublicMetrics();
@@ -474,7 +474,7 @@ export default function GrowthHomePage() {
 
   return (
     <div className={growthRootClass}>
-      {/* Atmosphere — full-bleed plane, not inset cards */}
+      {/* Atmosphere, full-bleed plane, not inset cards */}
       <div
         className="pointer-events-none absolute inset-x-0 top-0 h-[min(92vh,820px)]"
         aria-hidden
@@ -507,7 +507,7 @@ export default function GrowthHomePage() {
       </div>
 
       <div className={cn(growthShellClass, "relative pb-24 pt-10 sm:pb-32 sm:pt-14 lg:pt-16")}>
-        {/* Hero — one wide composition: brand story + live proof */}
+        {/* Hero, one wide composition: brand story + live proof */}
         <header className="grid items-center gap-12 lg:grid-cols-12 lg:gap-14 xl:gap-20">
           <motion.div
             {...fadeUp(0)}
@@ -641,7 +641,7 @@ export default function GrowthHomePage() {
           </motion.div>
         </header>
 
-        {/* How it works — editorial path across full shell */}
+        {/* How it works, editorial path across full shell */}
         <motion.section
           {...fadeUp(0.16)}
           className="mt-24 sm:mt-32"
@@ -662,7 +662,7 @@ export default function GrowthHomePage() {
               </h2>
             </div>
             <p className={cn(growthProseClass, "max-w-md lg:text-right")}>
-              Same three steps as the marketplace Integrate tab — settle your first paid call, then expand.
+              Same three steps as the marketplace Integrate tab, settle your first paid call, then expand.
             </p>
           </div>
 
@@ -741,7 +741,7 @@ export default function GrowthHomePage() {
                 Public proof
               </h2>
               <p className={cn(growthProseClass, "mt-3 max-w-xl")}>
-                Paid volume, unique payers, and activation — the traction line for machine money.
+                Paid volume, unique payers, and activation, the traction line for machine money.
               </p>
             </div>
             <a
@@ -771,12 +771,12 @@ export default function GrowthHomePage() {
           </div>
         </motion.section>
 
-        {/* Token — single panel, no nested cards */}
+        {/* Token, single panel, no nested cards */}
         <motion.div {...fadeUp(0.06)} className="mt-24 sm:mt-32">
           <GrowthTokenSection />
         </motion.div>
 
-        {/* Close — editorial CTA band */}
+        {/* Close, editorial CTA band */}
         <motion.section
           {...fadeUp(0.04)}
           className="mt-24 sm:mt-32"
@@ -832,8 +832,7 @@ export default function GrowthHomePage() {
                   <span className="mt-1.5 block text-foreground/50">Then hold the token.</span>
                 </h2>
                 <p className={cn(growthProseClass, "mt-5 max-w-lg text-pretty")}>
-                  Builders activate on MCP and the marketplace. Token interest follows real usage —
-                  not the other way around.
+                  Builders activate on MCP and the marketplace. Token interest follows real usage, not the other way around.
                 </p>
               </div>
 

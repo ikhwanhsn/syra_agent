@@ -26,7 +26,7 @@ export default function LabsPage() {
             Labs
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Internal experiments and tooling — admin access only.
+            Internal experiments and tooling, admin access only.
           </p>
         </div>
 

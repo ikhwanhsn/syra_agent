@@ -1,4 +1,4 @@
-/** Shared frame for all marketing/blog article images — always 16:9. */
+/** Shared frame for all marketing/blog article images, always 16:9. */
 export const ARTICLE_IMAGE_ASPECT_CLASS = "aspect-video" as const;
 
 /** Intrinsic dimensions for article covers / inline art (matches exported WebPs). */

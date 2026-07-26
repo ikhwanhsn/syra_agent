@@ -25,7 +25,7 @@ export function BlogAmbient() {
 
       <div className="blog-ambient-base absolute inset-0" />
 
-      {/* Orbit rings — same motif as marketing hero, subdued behind content */}
+      {/* Orbit rings, same motif as marketing hero, subdued behind content */}
       <div className="blog-orbit-wrap absolute inset-0 opacity-[0.22]">
         <OrbitRings />
       </div>
@@ -62,7 +62,7 @@ export function BlogAmbient() {
         transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
       />
 
-      {/* Dot constellation — subtle depth nodes */}
+      {/* Dot constellation, subtle depth nodes */}
       <div className="blog-constellation absolute inset-0">
         {[
           { top: "8%", left: "22%", size: 4 },

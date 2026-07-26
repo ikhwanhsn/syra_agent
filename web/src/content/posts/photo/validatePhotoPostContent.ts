@@ -3,7 +3,7 @@ import type { PostPhotoLayoutTemplate } from "./layouts";
 import { POST_PHOTO_LAYOUT_REGISTRY_MAP } from "@/components/post/photo/postPhotoLayoutRegistry";
 import type { PhotoBlockId } from "@/components/post/photo/postPhotoLayoutRegistry";
 
-/** Max characters per content field — tuned for 1200×675 export without overflow. */
+/** Max characters per content field, tuned for 1200×675 export without overflow. */
 export const POST_PHOTO_FIELD_LIMITS: Record<string, number> = {
   eyebrow: 24,
   badge: 42,
@@ -190,7 +190,7 @@ export function validatePhotoCardContent(
   return errors;
 }
 
-/** Dev/build guard — throws when photo copy exceeds safe export limits. */
+/** Dev/build guard, throws when photo copy exceeds safe export limits. */
 export function assertPhotoPostContentValid(
   postId: string,
   cards: { role: string; layout: PostPhotoLayoutTemplate; content: PostPhotoContent }[],

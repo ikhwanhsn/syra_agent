@@ -31,7 +31,7 @@ export function normalizeAgentChain(raw?: string | null): AgentChain {
 }
 
 export function shortenAddress(addr: string, isEvm = false): string {
-  if (!addr) return "—";
+  if (!addr) return "-";
   if (isEvm || addr.startsWith("0x")) {
     return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
   }
@@ -84,7 +84,7 @@ export function chainBadgeClass(chain: AgentChain): string {
 }
 
 export function formatRelativeTime(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return "-";
   try {
     const d = new Date(iso);
     const diff = Date.now() - d.getTime();
@@ -95,16 +95,16 @@ export function formatRelativeTime(iso: string | null): string {
     if (hrs < 48) return `${hrs}h ago`;
     return d.toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
   } catch {
-    return "—";
+    return "-";
   }
 }
 
 export function formatTimestamp(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return "-";
   try {
     return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
   } catch {
-    return "—";
+    return "-";
   }
 }
 

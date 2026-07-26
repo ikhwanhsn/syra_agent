@@ -27,7 +27,7 @@ export function SolAmount({
 }: SolAmountProps) {
   const n = Number(sol);
   if (!Number.isFinite(n)) {
-    return <span className={className}>—</span>;
+    return <span className={className}>, </span>;
   }
 
   const usd =

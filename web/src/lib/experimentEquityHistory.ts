@@ -13,7 +13,7 @@ function formatShortLabel(tsMs: number): string {
   try {
     return new Date(tsMs).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
   } catch {
-    return "—";
+    return "-";
   }
 }
 
@@ -68,18 +68,18 @@ export function buildEquityHistoryFromCell(args: {
 }
 
 export function formatExperimentSol(n: number): string {
-  if (!Number.isFinite(n)) return "—";
+  if (!Number.isFinite(n)) return "-";
   return `${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 3 })} SOL`;
 }
 
 export function formatExperimentPct(n: number): string {
-  if (!Number.isFinite(n)) return "—";
+  if (!Number.isFinite(n)) return "-";
   const sign = n > 0 ? "+" : "";
   return `${sign}${n.toFixed(1)}%`;
 }
 
 export function formatExperimentUsd(n: number): string {
-  if (!Number.isFinite(n)) return "—";
+  if (!Number.isFinite(n)) return "-";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -89,7 +89,7 @@ export function formatExperimentUsd(n: number): string {
 }
 
 export function formatExperimentSpreadPct(n: number): string {
-  if (!Number.isFinite(n)) return "—";
+  if (!Number.isFinite(n)) return "-";
   return `${n.toFixed(4)}%`;
 }
 

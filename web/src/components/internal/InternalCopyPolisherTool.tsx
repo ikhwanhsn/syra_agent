@@ -69,7 +69,7 @@ export function InternalCopyPolisherTool({ wallet }: InternalCopyPolisherToolPro
       setActiveItem(res.data);
       setCopied(false);
       invalidateRecent();
-      toast.success("Draft polished — same context, better copy");
+      toast.success("Draft polished, same context, better copy");
     },
     onError: (err: Error) => toast.error(err.message || "Failed to polish draft"),
   });
@@ -92,7 +92,7 @@ export function InternalCopyPolisherTool({ wallet }: InternalCopyPolisherToolPro
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
-      toast.success("Copied — ready to post on X");
+      toast.success("Copied, ready to post on X");
       window.setTimeout(() => setCopied(false), 2200);
     } catch {
       toast.error("Could not copy to clipboard");
@@ -109,7 +109,7 @@ export function InternalCopyPolisherTool({ wallet }: InternalCopyPolisherToolPro
           id="copy-polish-draft"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="Paste your own X post draft here — we'll keep your message, improve the copy…"
+          placeholder="Paste your own X post draft here, we'll keep your message, improve the copy…"
           className="min-h-[7rem] resize-y rounded-xl border-border/60 bg-background/60 text-[13px] leading-relaxed"
           disabled={isBusy}
         />
@@ -213,7 +213,7 @@ export function InternalCopyPolisherTool({ wallet }: InternalCopyPolisherToolPro
                   className="rounded-xl border-border/60"
                   onClick={() => {
                     setDraft(displayItem.polishedText);
-                    toast.message("Draft updated — polish again to iterate");
+                    toast.message("Draft updated, polish again to iterate");
                   }}
                   disabled={isBusy}
                 >
@@ -234,7 +234,7 @@ export function InternalCopyPolisherTool({ wallet }: InternalCopyPolisherToolPro
             </>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Same context as your draft — better hooks, hype, rhythm, and Syra brand voice when you want it.
+              Same context as your draft, better hooks, hype, rhythm, and Syra brand voice when you want it.
             </p>
           )}
         </div>

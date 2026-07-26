@@ -105,7 +105,7 @@ export function EmptyState({ agentName = "Syra Agent" }: EmptyStateProps) {
           )}
           style={{ animationDelay: "140ms" }}
         >
-          Machine money for agents — ask anything or open the marketplace for your first paid call.
+          Machine money for agents, ask anything or open the marketplace for your first paid call.
         </p>
 
         <div

@@ -8,7 +8,7 @@ export interface ArticleItem {
   comingSoon: boolean;
   /** Attribution line above the title (Syra posts on X). */
   source: string;
-  /** Public URL under `public/` (e.g. `/images/articles/foo.webp`). Omit for coming soon — card shows a placeholder instead. */
+  /** Public URL under `public/` (e.g. `/images/articles/foo.webp`). Omit for coming soon, card shows a placeholder instead. */
   coverImage?: string;
   publishedAt?: string;
   readingTimeMinutes?: number;

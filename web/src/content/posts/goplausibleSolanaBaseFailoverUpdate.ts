@@ -11,7 +11,7 @@ export const GOPLAUSIBLE_SOLANA_BASE_FAILOVER_POST = defineVideoUpdate(
     title: "GoPlausible Solana + Base",
     published: "July 2026",
     tagline:
-      "Labs x402 on Solana and Base now fails over Dexter → GoPlausible → PayAI — same partner that already settles Algorand.",
+      "Labs x402 on Solana and Base now fails over Dexter → GoPlausible → PayAI, same partner that already settles Algorand.",
     shareCopyVideo: `SHIP LOG · GoPlausible just leveled up on Syra.
 
 Algorand was step one. Solana + Base failover is step two.
@@ -23,7 +23,7 @@ When Dexter's fee payer runs dry, GoPlausible picks up Solana and Base. Agents k
 
 → Same facilitator.goplausible.xyz
 → Exact scheme on Solana + Base
-→ Automatic — no client changes
+→ Automatic, no client changes
 
 Resilience is a product feature.
 
@@ -46,7 +46,7 @@ Try → syraa.fun/labs`,
       eyebrow: "Ship log",
       title: "GoPlausible × Solana + Base",
       subtitle:
-        "Labs x402 now fails over through GoPlausible when Dexter is unhealthy — Solana and Base stay payable.",
+        "Labs x402 now fails over through GoPlausible when Dexter is unhealthy, Solana and Base stay payable.",
       badge: "Failover · Solana · Base",
     },
     {
@@ -65,7 +65,7 @@ Try → syraa.fun/labs`,
       label: "Shipped",
       kicker: "What we built",
       headline: "Three-rail offer-time failover",
-      body: "GoPlausible already verifies Algorand for Syra. Now the same facilitator backs Solana and Base as the middle hop when Dexter is unhealthy — before falling back to PayAI.",
+      body: "GoPlausible already verifies Algorand for Syra. Now the same facilitator backs Solana and Base as the middle hop when Dexter is unhealthy, before falling back to PayAI.",
       highlights: [
         "Dexter → GoPlausible → PayAI on Labs Solana/Base",
         "Live /supported: Solana mainnet + Base exact",
@@ -94,7 +94,7 @@ Try → syraa.fun/labs`,
         {
           step: "03",
           title: "Else GoPlausible",
-          description: "Same merchant payTo — GoPlausible fee payer sponsors Solana gas.",
+          description: "Same merchant payTo, GoPlausible fee payer sponsors Solana gas.",
         },
         {
           step: "04",
@@ -131,7 +131,7 @@ Try → syraa.fun/labs`,
         {
           title: "Automatic",
           subtitle: "Offer-time",
-          detail: "Clients pick the accept they get — no new headers required.",
+          detail: "Clients pick the accept they get, no new headers required.",
         },
       ],
     },
@@ -162,7 +162,7 @@ Try → syraa.fun/labs`,
         {
           icon: Wallet,
           title: "Same payTo",
-          description: "Merchant wallets unchanged — only the sponsor rail switches.",
+          description: "Merchant wallets unchanged, only the sponsor rail switches.",
         },
         {
           icon: Terminal,
@@ -190,7 +190,7 @@ Try → syraa.fun/labs`,
         { value: "0", label: "Client changes" },
       ],
       narrative:
-        "GoPlausible is no longer Algorand-only on Syra. Labs Solana and Base inherit a second healthy sponsor before PayAI — so underfunded Dexter fee payers do not strand agent traffic.",
+        "GoPlausible is no longer Algorand-only on Syra. Labs Solana and Base inherit a second healthy sponsor before PayAI, so underfunded Dexter fee payers do not strand agent traffic.",
     },
     {
       id: "closing",
@@ -198,7 +198,7 @@ Try → syraa.fun/labs`,
       layout: "closing-banner",
       label: "Try it",
       headline: "One partner. Three chains. Failover built in.",
-      subline: "Hit Labs on Solana or Base — payment rails choose themselves.",
+      subline: "Hit Labs on Solana or Base, payment rails choose themselves.",
       links: [
         { label: "Labs", value: "syraa.fun/labs", href: "https://www.syraa.fun/labs" },
         {

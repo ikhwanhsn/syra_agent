@@ -17,9 +17,9 @@ import {
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 
 function formatHoldTime(openedAt: string | null): string {
-  if (!openedAt) return "—";
+  if (!openedAt) return "-";
   const ms = Date.now() - new Date(openedAt).getTime();
-  if (!Number.isFinite(ms) || ms < 0) return "—";
+  if (!Number.isFinite(ms) || ms < 0) return "-";
   const mins = Math.floor(ms / 60_000);
   if (mins < 60) return `${mins}m`;
   return `${Math.floor(mins / 60)}h ${mins % 60}m`;

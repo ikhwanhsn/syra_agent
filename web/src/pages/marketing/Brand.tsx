@@ -127,13 +127,13 @@ export default function Brand() {
               <span className="text-foreground"> identity</span>
             </h1>
             <p className="mt-6 text-lg text-muted-foreground text-balance">
-              Visual and verbal identity for Syra — {SYRA_TAGLINE.toLowerCase()} on
+              Visual and verbal identity for Syra, {SYRA_TAGLINE.toLowerCase()} on
               Solana. Use this system so every touchpoint feels precise, neutral, and built for agents
               that ship.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
               <span className="rounded-full border border-border bg-card/50 px-4 py-1.5 font-mono text-xs">
-                v1.0 — April 2026
+                v1.0, April 2026
               </span>
               <span className="rounded-full border border-border bg-card/50 px-4 py-1.5">
                 Public use for partners &amp; press
@@ -160,7 +160,7 @@ export default function Brand() {
               </div>
               <p className="mb-10 max-w-2xl text-muted-foreground">
                 The Syra lockup pairs the mark with a bold wordmark. The gradient wordmark
-                (&quot;neon&quot;) signal is reserved for the name — keep the icon mark clean and
+                (&quot;neon&quot;) signal is reserved for the name, keep the icon mark clean and
                 high-contrast.
               </p>
 
@@ -204,7 +204,7 @@ export default function Brand() {
                 ]}
                 donts={[
                   "Distort, rotate, or add heavy drop shadows to the mark.",
-                  "Recolor the wordmark gradient arbitrarily — it follows theme tokens.",
+                  "Recolor the wordmark gradient arbitrarily, it follows theme tokens.",
                   "Place the mark on low-contrast or noisy backgrounds.",
                   "Replace the official asset with redrawn or alternate letterforms.",
                 ]}
@@ -228,7 +228,7 @@ export default function Brand() {
               </div>
               <p className="mb-10 max-w-2xl text-muted-foreground">
                 Syra uses a monochrome base with subtle &quot;neon&quot; accents driven by CSS
-                variables. Light and dark themes share the same structure — components read
+                variables. Light and dark themes share the same structure, components read
                 semantic tokens, not raw hex.
               </p>
 
@@ -340,7 +340,7 @@ export default function Brand() {
               </div>
               <p className="mb-10 max-w-2xl text-muted-foreground">
                 Space Grotesk is the single family across marketing and product chrome on the landing
-                site. Use weight and size — not extra families — for hierarchy.
+                site. Use weight and size, not extra families, for hierarchy.
               </p>
 
               <div className="glass-card divide-y divide-border overflow-hidden">
@@ -401,7 +401,7 @@ export default function Brand() {
                 </div>
               </div>
               <p className="mb-10 max-w-2xl text-muted-foreground">
-                Direct, technical, and proof-oriented. We speak to traders and builders — clarity
+                Direct, technical, and proof-oriented. We speak to traders and builders, clarity
                 beats hype. Separate analysis from execution; never imply certainty about markets.
               </p>
 
@@ -433,8 +433,8 @@ export default function Brand() {
 
               <DoDont
                 dos={[
-                  `${SYRA_TAGLINE_SHORT} — Solana-native, x402-ready.`,
-                  "Built for Solana with programmable payments — use what you need.",
+                  `${SYRA_TAGLINE_SHORT}, Solana-native, x402-ready.`,
+                  "Built for Solana with programmable payments, use what you need.",
                   "Your agent returned ranked signals in under three seconds.",
                 ]}
                 donts={[
@@ -564,7 +564,7 @@ export default function Brand() {
               </p>
               <ul className="grid gap-4 sm:grid-cols-2">
                 {[
-                  { name: "fade-in", note: "Sections on scroll — opacity + translateY" },
+                  { name: "fade-in", note: "Sections on scroll, opacity + translateY" },
                   { name: "shimmer", note: "Skeletons and loading stripes" },
                   { name: "marquee", note: "Ticker-style content; pause on hover when possible" },
                   { name: "pulse-glow", note: "Soft emphasis on key metrics" },

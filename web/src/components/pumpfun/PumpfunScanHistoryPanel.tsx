@@ -224,7 +224,7 @@ export function PumpfunScanHistoryPanel({
             <div>
               <h2 className="font-display text-lg font-semibold">Your calls</h2>
               <p className="text-xs text-muted-foreground">
-                Latest {PUMPFUN_LIST_LIMIT} calls — peak gain updates on rescan.
+                Latest {PUMPFUN_LIST_LIMIT} calls, peak gain updates on rescan.
               </p>
             </div>
             <Button

@@ -1,4 +1,4 @@
-/** Tailwind `lg` — Qwerti floating launcher is desktop-only. */
+/** Tailwind `lg`, Qwerti floating launcher is desktop-only. */
 export const QWERTI_DESKTOP_MIN_WIDTH_PX = 1024;
 
 export function isQwertiDesktopViewport(): boolean {

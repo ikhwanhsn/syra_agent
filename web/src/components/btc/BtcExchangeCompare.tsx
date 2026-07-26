@@ -78,7 +78,7 @@ export function BtcExchangeCompare({
       id="section-exchanges"
       kicker="Venues"
       title="Exchange price compare"
-      description="Spot BTC on Binance vs Coinbase — premium shows Coinbase relative to Binance."
+      description="Spot BTC on Binance vs Coinbase, premium shows Coinbase relative to Binance."
       shareSlug="exchange-compare"
       loading={loading}
       empty={binance == null && coinbase == null}

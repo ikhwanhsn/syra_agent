@@ -112,7 +112,7 @@ export function InternalProofDropTool({ wallet }: InternalProofDropToolProps) {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
-      toast.success("Copied — pair with proof image on X");
+      toast.success("Copied, pair with proof image on X");
       window.setTimeout(() => setCopied(false), 2200);
     } catch {
       toast.error("Could not copy to clipboard");
@@ -256,7 +256,7 @@ export function InternalProofDropTool({ wallet }: InternalProofDropToolProps) {
             </>
           ) : (
             <p className="text-sm text-muted-foreground">
-              One click pulls live KPIs and writes a hype post with real numbers — then export a matching metrics
+              One click pulls live KPIs and writes a hype post with real numbers, then export a matching metrics
               image.
             </p>
           )}
@@ -301,7 +301,7 @@ export function InternalProofDropTool({ wallet }: InternalProofDropToolProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this proof drop?</AlertDialogTitle>
             <AlertDialogDescription>
-              Removes the saved caption. Metrics stay live — you can regenerate anytime.
+              Removes the saved caption. Metrics stay live, you can regenerate anytime.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

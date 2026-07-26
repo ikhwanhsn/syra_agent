@@ -32,7 +32,7 @@ const WHALE_SUPPLY_PCT = 5;
 const DOLPHIN_SUPPLY_PCT = 1;
 
 function truncateWallet(wallet: string | null): string {
-  if (!wallet) return "—";
+  if (!wallet) return "-";
   if (wallet.length <= 12) return wallet;
   return `${wallet.slice(0, 4)}…${wallet.slice(-4)}`;
 }
@@ -97,9 +97,9 @@ function WalletAvatar({
       )}
       title={
         isMegaWhale
-          ? "Mega whale — large total wallet balance"
+          ? "Mega whale, large total wallet balance"
           : isPortfolioWhale
-            ? "Whale — significant total wallet balance"
+            ? "Whale, significant total wallet balance"
             : `Rank #${rank}`
       }
     >
@@ -124,8 +124,7 @@ function ProfitPill({
   if (inProfit == null) {
     return (
       <Badge variant="outline" className="text-[10px] text-muted-foreground">
-        PnL —
-      </Badge>
+        PnL, </Badge>
     );
   }
   const detail =
@@ -269,7 +268,7 @@ export function AnsemHolderPulse({
       <AnsemSectionHeader
         kicker="On-chain"
         title="Holder intelligence"
-        description="Top wallets, supply concentration, portfolio whales, and holder PnL — built for $ANSEM holders."
+        description="Top wallets, supply concentration, portfolio whales, and holder PnL, built for $ANSEM holders."
       />
 
       <div className={cn(overviewCardShell, "p-5 sm:p-6")}>
@@ -280,7 +279,7 @@ export function AnsemHolderPulse({
               <Skeleton className="mt-2 h-9 w-28" />
             ) : (
               <p className="mt-1 font-mono text-3xl font-semibold tabular-nums">
-                {effectiveHolderCount != null ? formatHolders(effectiveHolderCount) : "—"}
+                {effectiveHolderCount != null ? formatHolders(effectiveHolderCount) : "-"}
               </p>
             )}
           </div>
@@ -296,21 +295,21 @@ export function AnsemHolderPulse({
                     : "text-emerald-500",
               )}
             >
-              {top10 != null ? `${top10.toFixed(1)}%` : "—"}
+              {top10 != null ? `${top10.toFixed(1)}%` : "-"}
             </p>
             {top10 != null ? <Progress value={Math.min(100, top10)} className="mt-3 h-2" /> : null}
           </div>
           <div className="rounded-xl border border-border/40 bg-background/30 p-4">
             <p className={overviewKickerClass}>Decentralization</p>
             <p className="mt-1 font-mono text-3xl font-semibold tabular-nums">
-              {decentralization != null ? `${decentralization}/100` : "—"}
+              {decentralization != null ? `${decentralization}/100` : "-"}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">Higher = more distributed supply</p>
           </div>
           <div className="rounded-xl border border-border/40 bg-background/30 p-4">
             <p className={overviewKickerClass}>Top wallets net worth</p>
             <p className="mt-1 font-mono text-3xl font-semibold tabular-nums">
-              {totalNetWorth != null ? formatCompactUsd(totalNetWorth) : "—"}
+              {totalNetWorth != null ? formatCompactUsd(totalNetWorth) : "-"}
             </p>
             {insights?.summary ? (
               <p className="mt-1 text-xs text-muted-foreground">
@@ -463,7 +462,7 @@ export function AnsemHolderPulse({
 
         {community?.holderInsightsError && !insights ? (
           <p className="mt-3 text-xs text-muted-foreground">
-            Portfolio & PnL enrichment unavailable right now — on-chain balances still shown above.
+            Portfolio & PnL enrichment unavailable right now, on-chain balances still shown above.
           </p>
         ) : null}
 

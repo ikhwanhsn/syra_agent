@@ -19,7 +19,7 @@ const benefits = [
   {
     icon: KeyRound,
     title: "Non-custodial",
-    description: "Streamflow locks on Solana—you sign every position from your wallet.",
+    description: "Streamflow locks on Solana, you sign every position from your wallet.",
     borderHover: "hover:border-accent/40",
     iconShell: "border-accent/25 bg-accent/[0.08] text-foreground",
     glow: "from-accent/[0.12] via-accent/[0.03] to-transparent",

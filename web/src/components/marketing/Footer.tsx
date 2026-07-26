@@ -66,7 +66,7 @@ export const Footer = () => {
               Fund your stack. <span className="neon-text">Run the agent.</span>
             </h2>
             <p className="max-w-2xl mx-auto mb-8 text-muted-foreground">
-              Give Syra a mandate—research, risk, flow, execution—and let it
+              Give Syra a mandate, research, risk, flow, execution, and let it
               work with pay-per-call tools on Solana while you keep custody of
               the keys.
             </p>

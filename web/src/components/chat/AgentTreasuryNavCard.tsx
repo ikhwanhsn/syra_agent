@@ -104,7 +104,7 @@ export function AgentTreasuryNavCard({
                   <CoinLogo symbol="SOL" size="xs" />
                   SOL
                 </span>
-                <span className="text-foreground/90">{sol != null ? sol.toFixed(4) : "—"}</span>
+                <span className="text-foreground/90">{sol != null ? sol.toFixed(4) : "-"}</span>
               </div>
             </div>
 

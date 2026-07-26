@@ -1,4 +1,4 @@
-/** Photo template batch 3 — third style variant per context (75-library tier) */
+/** Photo template batch 3, third style variant per context (75-library tier) */
 export const POST_PHOTO_LAYOUTS_BATCH3 = [
   "photo-cover-aurora",
   "photo-cover-whisper",

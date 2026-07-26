@@ -147,7 +147,7 @@ export function LpExperimentLabSummary({ agents, recentRuns, refSolUsd, loading 
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-foreground">{row.strategyName}</p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    {row.winRatePct != null ? `${row.winRatePct.toFixed(0)}% win` : "—"}
+                    {row.winRatePct != null ? `${row.winRatePct.toFixed(0)}% win` : "-"}
                   </p>
                 </div>
                 <div className="shrink-0 text-right">
@@ -170,7 +170,7 @@ export function LpExperimentLabSummary({ agents, recentRuns, refSolUsd, loading 
       <div className="space-y-3">
         <div>
           <h3 className="text-base font-semibold tracking-tight text-foreground">Recent practice trades</h3>
-          <p className="mt-1 text-sm text-muted-foreground">No real money — same pools and rules as live.</p>
+          <p className="mt-1 text-sm text-muted-foreground">No real money, same pools and rules as live.</p>
         </div>
         <div className={cn(overviewCardShell, "divide-y divide-border/35 overflow-hidden rounded-2xl")}>
           {loading && recent.length === 0 ? (

@@ -150,7 +150,7 @@ export function VideoPanel() {
         null;
       if (!id) {
         toast.message("Video submitted", {
-          description: "No generation id returned — check raw response.",
+          description: "No generation id returned, check raw response.",
         });
         setGenerationId(null);
         return;

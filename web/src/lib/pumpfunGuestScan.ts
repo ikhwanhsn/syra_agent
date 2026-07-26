@@ -8,7 +8,7 @@ function todayUtc(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-/** Stable per-browser id — ties guest quota to localStorage instead of IP alone. */
+/** Stable per-browser id, ties guest quota to localStorage instead of IP alone. */
 export function getOrCreatePumpfunDeviceId(): string {
   if (typeof localStorage === "undefined") {
     return `ephemeral-${crypto.randomUUID()}`;

@@ -1,7 +1,7 @@
 /** Primary route for the x402 API marketplace surface. */
 export const MARKETPLACE_ROUTE = "/marketplace";
 
-/** Legacy playground path — redirects to marketplace. */
+/** Legacy playground path, redirects to marketplace. */
 export const LEGACY_PLAYGROUND_ROUTE = "/playground";
 
 export function isMarketplacePath(pathname: string): boolean {

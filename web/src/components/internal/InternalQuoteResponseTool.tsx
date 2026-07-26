@@ -67,7 +67,7 @@ export function InternalQuoteResponseTool({ wallet }: InternalQuoteResponseToolP
       setActiveItem(res.data);
       setCopied(false);
       invalidateRecent();
-      toast.success("Quote caption ready — paste on X when quoting");
+      toast.success("Quote caption ready, paste on X when quoting");
     },
     onError: (err: Error) => {
       toast.error(err.message || "Failed to generate quote response");
@@ -93,7 +93,7 @@ export function InternalQuoteResponseTool({ wallet }: InternalQuoteResponseToolP
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
-      toast.success("Copied — quote the post on X and paste this as your caption");
+      toast.success("Copied, quote the post on X and paste this as your caption");
       window.setTimeout(() => setCopied(false), 2200);
     } catch {
       toast.error("Could not copy to clipboard");

@@ -195,7 +195,7 @@ export default {
   },
   plugins: [
     tailwindcssAnimate,
-    /** Default `:root` tokens are dark; `html.light` switches to light — pair with `light:` utilities. */
+    /** Default `:root` tokens are dark; `html.light` switches to light, pair with `light:` utilities. */
     plugin(({ addVariant }) => {
       addVariant("light", ".light &");
     }),

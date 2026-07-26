@@ -200,11 +200,11 @@ export const SYRA_PITCH_DECK: DeckSlide[] = [
     kind: "statement",
     label: "Problem",
     kicker: "The gap",
-    headline: "Agents can reason — but they cannot own capital",
+    headline: "Agents can reason, but they cannot own capital",
     body: "AI agents are becoming capable of research, automation, and complex workflows. Most still cannot autonomously earn, manage, invest, or spend onchain without humans handling treasury and economic coordination.",
     bullets: [
       "Agents create value but lack native financial infrastructure",
-      "Treasury management stays manual — a bottleneck on every deployment",
+      "Treasury management stays manual: a bottleneck on every deployment",
       "No standard layer for machines to earn, hold, and deploy capital at scale",
       "The agent economy cannot scale until money moves as autonomously as intelligence",
     ],
@@ -215,9 +215,9 @@ export const SYRA_PITCH_DECK: DeckSlide[] = [
     label: "Solution",
     kicker: "Our answer",
     headline: "Machine money infrastructure on Solana",
-    body: "Syra is machine money for autonomous agents — revenue generation, treasury management, DeFi participation, rewards distribution, and real-time value coordination on Solana.",
+    body: "Syra is machine money for autonomous agents: revenue generation, treasury management, DeFi participation, rewards distribution, and real-time value coordination on Solana.",
     bullets: [
-      "Syra is not building another AI agent — we build the economic layer agents run on",
+      "Syra is not building another AI agent: we build the economic layer agents run on",
       "Solana: low latency, high throughput, composable financial primitives",
       "Non-custodial: operators keep keys; Syra coordinates intelligence and flows",
     ],
@@ -233,7 +233,7 @@ export const SYRA_PITCH_DECK: DeckSlide[] = [
         step: "01",
         title: "Earn",
         description:
-          "Agents capture revenue from work they perform — integrations and onchain paths built for machines, not manual ops teams.",
+          "Agents capture revenue from work they perform: integrations and onchain paths built for machines, not manual ops teams.",
       },
       {
         step: "02",
@@ -245,7 +245,7 @@ export const SYRA_PITCH_DECK: DeckSlide[] = [
         step: "03",
         title: "Deploy",
         description:
-          "DeFi strategies, rewards distribution, and coordinated settlement — agents act as independent economic actors on Solana.",
+          "DeFi strategies, rewards distribution, and coordinated settlement: agents act as independent economic actors on Solana.",
       },
     ],
   },
@@ -274,7 +274,7 @@ export const SYRA_PITCH_DECK: DeckSlide[] = [
       {
         icon: Cpu,
         title: "Agent-native stack",
-        description: "APIs, tools, and workflows designed for autonomous actors — not human dashboards.",
+        description: "APIs, tools, and workflows designed for autonomous actors, not human dashboards.",
       },
       {
         icon: Zap,
@@ -313,7 +313,7 @@ export const SYRA_PITCH_DECK: DeckSlide[] = [
       },
       {
         title: "Pay per capability",
-        description: "x402 and composable HTTP payments — agents discover and fund tools autonomously.",
+        description: "x402 and composable HTTP payments, agents discover and fund tools autonomously.",
       },
       {
         title: "Coordinate at scale",
@@ -371,10 +371,10 @@ export const SYRA_PITCH_DECK: DeckSlide[] = [
     stats: [
       { value: "Millions", label: "AI agents ahead", detail: "Expected scale of the autonomous agent economy" },
       { value: "Solana", label: "Settlement layer", detail: "Speed, fees, and DeFi depth for agent coordination" },
-      { value: "2025", label: "Founded & shipping", detail: "Live product — not a concept deck" },
+      { value: "2025", label: "Founded & shipping", detail: "Live product, not a concept deck" },
     ],
     narrative:
-      "As AI becomes more autonomous, demand for machine-native financial systems becomes unavoidable. The long-term winner will not be the agent with the highest intelligence — it will be the stack that lets agents generate, manage, and deploy capital efficiently.",
+      "As AI becomes more autonomous, demand for machine-native financial systems becomes unavoidable. The long-term winner will not be the agent with the highest intelligence: it will be the stack that lets agents generate, manage, and deploy capital efficiently.",
   },
   {
     id: "business",
@@ -440,7 +440,7 @@ export const SYRA_PITCH_DECK: DeckSlide[] = [
         icon: Layers,
         title: "Full-stack velocity",
         description:
-          "Web, API, docs, playground, and agent experiments shipping in parallel — bootstrapped, founder-led.",
+          "Web, API, docs, playground, and agent experiments shipping in parallel, bootstrapped, founder-led.",
       },
       {
         icon: Network,
@@ -491,11 +491,11 @@ export const SYRA_PITCH_DECK: DeckSlide[] = [
     kind: "moat",
     label: "Moat",
     kicker: "Defensibility",
-    headline: "We build the financial layer — not another chatbot",
+    headline: "We build the financial layer, not another chatbot",
     rows: [
       {
         dimension: "Category focus",
-        syra: "Economic autonomy for agents — not intelligence theater or generic UI",
+        syra: "Economic autonomy for agents, not intelligence theater or generic UI",
       },
       {
         dimension: "Solana-native economics",
@@ -503,15 +503,15 @@ export const SYRA_PITCH_DECK: DeckSlide[] = [
       },
       {
         dimension: "Agent-native payments",
-        syra: "x402 / HTTP 402 — discover, pay, and compose APIs without human billing ops",
+        syra: "x402 / HTTP 402, discover, pay, and compose APIs without human billing ops",
       },
       {
         dimension: "Production stack",
-        syra: "Live web agent, API gateway, and ecosystem integrations — shipping since 2025",
+        syra: "Live web agent, API gateway, and ecosystem integrations, shipping since 2025",
       },
       {
         dimension: "Founder-market fit",
-        syra: "Built at the intersection of AI, Web3, and developer infrastructure — for the machine economy",
+        syra: "Built at the intersection of AI, Web3, and developer infrastructure, for the machine economy",
       },
     ],
   },
@@ -520,7 +520,7 @@ export const SYRA_PITCH_DECK: DeckSlide[] = [
     kind: "closing",
     label: "Contact",
     headline: "Let's build machine money for the agent economy",
-    subline: "Syra — enabling AI agents to become independent economic actors on Solana.",
+    subline: "Syra, enabling AI agents to become independent economic actors on Solana.",
     contacts: [
       { label: "Website", value: "syraa.fun", href: "https://syraa.fun" },
       { label: "Product", value: "syraa.fun", href: "https://syraa.fun" },
@@ -530,7 +530,7 @@ export const SYRA_PITCH_DECK: DeckSlide[] = [
       { label: "X", value: "@syra_agent", href: "https://x.com/syra_agent" },
     ],
     disclaimer:
-      "This deck is for informational purposes only. Syra provides infrastructure and intelligence tools for autonomous agents — not financial advice, guaranteed returns, or custody of your keys. Onchain activity carries risk.",
+      "This deck is for informational purposes only. Syra provides infrastructure and intelligence tools for autonomous agents, not financial advice, guaranteed returns, or custody of your keys. Onchain activity carries risk.",
   },
 ];
 

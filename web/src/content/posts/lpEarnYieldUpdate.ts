@@ -2,7 +2,7 @@ import { Droplets, ExternalLink, Shield, Wallet, Zap } from "lucide-react";
 import { defineVideoUpdate } from "./videoDeck";
 
 /**
- * Ship log: LP Auto live on Earn Yield — deposit SOL, earn Meteora fees.
+ * Ship log: LP Auto live on Earn Yield, deposit SOL, earn Meteora fees.
  * User-facing only: no eng internals, settlement retries, or adapter talk.
  */
 export const LP_EARN_YIELD_POST = defineVideoUpdate(
@@ -12,14 +12,14 @@ export const LP_EARN_YIELD_POST = defineVideoUpdate(
     title: "LP Auto on Earn",
     published: "July 2026",
     tagline:
-      "Deposit SOL into your LP agent wallet. Syra runs Meteora DLMM fee farming for you — non-custodial, capped beta.",
+      "Deposit SOL into your LP agent wallet. Syra runs Meteora DLMM fee farming for you, non-custodial, capped beta.",
     shareCopyVideo: `SHIP LOG · LP Auto is live on Earn.
 
 Deposit SOL into your LP agent wallet.
 Syra opens and manages Meteora DLMM positions.
 You keep the fees (minus a performance fee on net gains).
 
-→ Non-custodial — your agent wallet
+→ Non-custodial, your agent wallet
 → Beta caps 1–5 SOL
 → Lab track record: ~90% win rate on resolved real positions
 
@@ -47,7 +47,7 @@ Beta: 1–5 SOL. Past lab results ≠ future returns.`,
       eyebrow: "Ship log",
       title: "LP Auto on Earn",
       subtitle:
-        "Deposit SOL. Your agent farms Meteora DLMM fees. You keep the yield — Syra takes a cut only on net gains.",
+        "Deposit SOL. Your agent farms Meteora DLMM fees. You keep the yield, Syra takes a cut only on net gains.",
       badge: "Earn · Non-custodial · Beta",
     },
     {
@@ -127,7 +127,7 @@ Beta: 1–5 SOL. Past lab results ≠ future returns.`,
         {
           title: "Fee share",
           subtitle: "10% on gains",
-          detail: "Performance fee only on net-positive realized PnL — not on deposits.",
+          detail: "Performance fee only on net-positive realized PnL, not on deposits.",
         },
         {
           title: "Safety pause",
@@ -189,7 +189,7 @@ Beta: 1–5 SOL. Past lab results ≠ future returns.`,
         { value: "1–5", label: "SOL beta cap" },
       ],
       narrative:
-        "Numbers are from Syra lab real positions — not a promise. You can lose capital from IL, fees, and bad exits. Start with the beta cap.",
+        "Numbers are from Syra lab real positions, not a promise. You can lose capital from IL, fees, and bad exits. Start with the beta cap.",
     },
     {
       id: "closing",

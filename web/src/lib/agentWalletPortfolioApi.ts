@@ -101,7 +101,7 @@ export interface MergedAgentPortfolio {
   fetchedAt: string;
 }
 
-/** Sum priced token rows — keeps header totals aligned with visible holdings. */
+/** Sum priced token rows, keeps header totals aligned with visible holdings. */
 export function sumPortfolioTokenValues(
   tokens: Array<{ valueUsd: number | null }>,
 ): number | null {

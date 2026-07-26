@@ -1,4 +1,4 @@
-/** Photo template batch 4 — partnership & integration lockups */
+/** Photo template batch 4, partnership & integration lockups */
 export const POST_PHOTO_LAYOUTS_BATCH4 = [
   "photo-partnership-union",
   "photo-partnership-beacon",

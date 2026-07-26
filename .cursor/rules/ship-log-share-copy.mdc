@@ -10,7 +10,7 @@ Per-card X captions live in `web/src/content/posts/photo/shareCopies/*ShareCopie
 
 ## Structure (each of 15 roles)
 
-1. Opening paragraph: what this image is about (cover, problem, flow, metrics, etc.).
+1. Opening paragraph: lead with the **subject of the image** (the ship fact, problem, promise, numbers, or steps). Never name the layout role or refer to the PNG as an object.
 2. One or two short paragraphs that explain the visual, using facts from the companion `*Photo.ts` only.
 3. Close with a plain product URL already used by that post (`syraa.fun/...` or full `https://...`) so `shareCopyHasLink` stays true when intended.
 
@@ -30,17 +30,19 @@ Keep export shape: `Record<PostPhotoCardRole, string>`.
 - Staccato slogan stacks (`One partner. Three chains.`)
 - Metric triad one-liners with middle dots (`3 rails · 2 chains · 0 client changes`)
 - Empty mantras unless replaced by a concrete explanation of the image
+- Meta card/chrome talk: `This cover`, `This card`, `This image`, `The line on this card`, `The numbers on this card`, `on this card`, `badge on this card`, `this bento`, `This checklist`, `This timeline`, `featured card`, `launch card`, `closing card`, `deep-dive card`, `split card`, `terminal card`, `before-and-after card`
 
 ## Allowed
 
 - Numbered `1. 2. 3.` lists for flow, timeline, and checklist cards (still wrap with explanatory paragraphs)
 - Plain `syraa.fun/...` or full `https://...` links
 - Factual product and partner names from the photo content
+- Leading with the quote/promise text itself on quote roles (not "The line on this card is…")
 
 ## Checklist
 
 - [ ] All 15 roles present and typed
-- [ ] Each caption explains the matching card image
-- [ ] No forbidden symbols or slogan patterns
+- [ ] Each caption explains the matching card image without naming the card/layout
+- [ ] No forbidden symbols, slogan patterns, or meta card phrases
 - [ ] Facts match companion `*Photo.ts` (no invented features)
 - [ ] At least one paste-ready Syra or product link where the post already used one

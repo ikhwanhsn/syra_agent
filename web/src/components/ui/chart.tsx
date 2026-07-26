@@ -3,7 +3,7 @@ import * as RechartsPrimitive from "recharts";
 
 import { cn } from "@/lib/utils";
 
-// Format: { THEME_NAME: CSS_SELECTOR } — dark is default (:root), light uses .light
+// Format: { THEME_NAME: CSS_SELECTOR }, dark is default (:root), light uses .light
 const THEMES = { light: ".light", dark: "" } as const;
 
 export type ChartConfig = {

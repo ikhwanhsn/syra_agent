@@ -14,7 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 
 export default function LlmPage() {
-  // AdminDashboardGate is applied by the App route — avoid nesting it here.
+  // AdminDashboardGate is applied by the App route, avoid nesting it here.
   return (
     <div
       className={cn(
@@ -30,7 +30,7 @@ export default function LlmPage() {
           LLM Playground
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Internal OpenRouter testing — cheapest model selected by default. Admin access only.
+          Internal OpenRouter testing, cheapest model selected by default. Admin access only.
         </p>
       </div>
 

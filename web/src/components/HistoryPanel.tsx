@@ -394,7 +394,7 @@ export function HistoryPanel({
                             variant={statusVariants[item.status]}
                             className="text-xs px-2 py-0.5 font-mono shrink-0"
                           >
-                            {item.response?.status || (item.status === 'loading' ? '...' : '—')}
+                            {item.response?.status || (item.status === 'loading' ? '...' : '-')}
                           </Badge>
                           <span className="text-xs text-muted-foreground shrink-0">
                             {formatDistanceToNow(item.timestamp, { addSuffix: true })}

@@ -12,7 +12,7 @@ const SECTIONS: LegalSection[] = [
     body: (
       <>
         <p>
-          We may collect information you provide directly — for example when you contact us, use our API with an API key, or subscribe to updates — as well as information collected automatically when you use the Services, such as IP address, device type, usage data, and cookies as described in our{" "}
+          We may collect information you provide directly, for example when you contact us, use our API with an API key, or subscribe to updates, as well as information collected automatically when you use the Services, such as IP address, device type, usage data, and cookies as described in our{" "}
           <Link to="/cookies">Cookie Policy</Link>.
         </p>
       </>

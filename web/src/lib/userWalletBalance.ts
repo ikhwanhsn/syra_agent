@@ -23,7 +23,7 @@ function readTokenUiAmount(tokenAmount: {
 
 /** Human-readable USDC amount for payment UI (supports micropayment balances). */
 export function formatUsdcAmount(value: number | null | undefined): string {
-  if (value == null || !Number.isFinite(value)) return "—";
+  if (value == null || !Number.isFinite(value)) return "-";
   if (value > 0 && value < 0.01) {
     return value.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 6 });
   }
@@ -61,7 +61,7 @@ interface WalletBalanceApiResponse {
   error?: string;
 }
 
-/** Server-side RPC via Syra API — reliable when browser-direct RPC is blocked. */
+/** Server-side RPC via Syra API, reliable when browser-direct RPC is blocked. */
 export async function fetchUserWalletBalancesViaApi(address: string): Promise<UserWalletBalances> {
   const url = `${getApiBaseUrl()}/wallet/solana/balance?address=${encodeURIComponent(address)}`;
   const res = await fetch(url, { credentials: "include" });

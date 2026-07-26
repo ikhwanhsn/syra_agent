@@ -11,7 +11,7 @@ import {
 } from "@/components/growth/growthHomeStyles";
 
 /**
- * Ecosystem trust rankings strip for growth home — static, link-out proof near Buy $SYRA.
+ * Ecosystem trust rankings strip for growth home, static, link-out proof near Buy $SYRA.
  */
 export function GrowthTrustRankings({ className }: { className?: string }) {
   const reduceMotion = useReducedMotion();
@@ -39,7 +39,7 @@ export function GrowthTrustRankings({ className }: { className?: string }) {
 
   return (
     <div className={cn("relative mx-auto w-full max-w-2xl", className)}>
-      {/* Soft spotlight — pulls the strip forward in the hero */}
+      {/* Soft spotlight, pulls the strip forward in the hero */}
       <div
         className="pointer-events-none absolute -inset-x-6 -inset-y-5 -z-10 motion-reduce:hidden"
         aria-hidden
@@ -82,7 +82,7 @@ export function GrowthTrustRankings({ className }: { className?: string }) {
         initial={reduceMotion ? undefined : "hidden"}
         animate={reduceMotion ? undefined : "show"}
       >
-        {/* Inner sheen — static depth, no looping animation */}
+        {/* Inner sheen, static depth, no looping animation */}
         <div
           className="pointer-events-none absolute inset-0 opacity-70 motion-reduce:opacity-40"
           aria-hidden

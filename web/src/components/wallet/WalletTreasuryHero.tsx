@@ -107,7 +107,7 @@ export function WalletTreasuryHero({
                 <p className="text-xs font-medium text-muted-foreground">{item.label}</p>
                 <p className={walletStatValue}>{formatTreasuryUsd(item.usdc)}</p>
                 <p className={walletStatHint}>
-                  {item.sol != null ? `${formatSol(item.sol)} SOL` : "— SOL"}
+                  {item.sol != null ? `${formatSol(item.sol)} SOL` : ", SOL"}
                 </p>
               </div>
             ))}

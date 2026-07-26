@@ -1,0 +1,26 @@
+---
+description: Ban em dashes (U+2014) across web copy, comments, and public HTML so the site does not read as AI-written.
+globs: web/**
+alwaysApply: false
+---
+
+# No em dashes in `web/`
+
+Never use the em dash character `—` (U+2014) anywhere under `web/` (UI copy, content modules, comments, CSS, public HTML, tests).
+
+## Prefer
+
+1. **Comma** for clause breaks (`machine money, pay-per-call APIs`)
+2. **Colon** for label → detail (`Machine money on Solana: Spend live today`)
+3. **Period** when the clauses should be separate sentences
+4. **ASCII hyphen `-`** for empty / missing UI values (tables, stats)
+
+## Do not
+
+- Substitute en dashes (`–`) or other fancy dashes
+- Put a literal `—` in tests; assert with `"\u2014"` if you must mention the code point
+
+## Safety nets
+
+- `normalizeEmDash` in `web/src/lib/marketing/articleXCopy.ts` still strips leftovers for X paste
+- `web/scripts/check-no-em-dash.mjs` (wired into `npm test`) fails if any U+2014 remains under `web/`

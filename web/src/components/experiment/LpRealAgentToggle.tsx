@@ -134,7 +134,7 @@ export function LpRealAgentToggle({ state, solUsd, isLoading, className, layout 
 
             : msg.includes("anonymous_id_mismatch")
 
-              ? "Session mismatch — sign out, reconnect your wallet, and try again."
+              ? "Session mismatch, sign out, reconnect your wallet, and try again."
 
               : msg;
 
@@ -300,9 +300,9 @@ export function LpRealAgentToggle({ state, solUsd, isLoading, className, layout 
 
           {openCount > 0
 
-            ? `${openCount} open position${openCount === 1 ? "" : "s"} — add wallet SOL to open more slots.`
+            ? `${openCount} open position${openCount === 1 ? "" : "s"}, add wallet SOL to open more slots.`
 
-            : `Wallet ${formatSolWithUsd(balance, solUsd)} — deposit ~${formatSolWithUsd(minEntry, solUsd)} to enter a pool.`}
+            : `Wallet ${formatSolWithUsd(balance, solUsd)}, deposit ~${formatSolWithUsd(minEntry, solUsd)} to enter a pool.`}
 
         </p>
 

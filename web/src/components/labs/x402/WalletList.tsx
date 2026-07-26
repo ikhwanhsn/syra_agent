@@ -30,7 +30,7 @@ function nativeSymbolForChain(chain: LabChain): string {
 }
 
 function formatBalance(n: number | null | undefined, decimals = 4): string {
-  if (n == null || !Number.isFinite(n)) return "—";
+  if (n == null || !Number.isFinite(n)) return "-";
   return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: decimals });
 }
 
@@ -118,13 +118,13 @@ export function WalletList({
                 </TableCell>
                 <TableCell
                   className="text-right font-mono text-sm"
-                  title={native == null ? "Balance unavailable — RPC read failed" : undefined}
+                  title={native == null ? "Balance unavailable, RPC read failed" : undefined}
                 >
                   {formatBalance(native)}
                 </TableCell>
                 <TableCell
                   className="text-right font-mono text-sm"
-                  title={w.usdcBalance == null ? "Balance unavailable — RPC read failed" : undefined}
+                  title={w.usdcBalance == null ? "Balance unavailable, RPC read failed" : undefined}
                 >
                   {formatBalance(w.usdcBalance, 2)}
                 </TableCell>

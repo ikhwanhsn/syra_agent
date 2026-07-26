@@ -23,7 +23,7 @@ export function SyraHolderProgressCard({
   className,
 }: SyraHolderProgressCardProps) {
   const balanceLabel =
-    balance == null ? "—" : formatCompactAmount(balance);
+    balance == null ? "-" : formatCompactAmount(balance);
   const thresholdLabel = formatCompactAmount(threshold);
 
   return (
@@ -47,7 +47,7 @@ export function SyraHolderProgressCard({
           ) : isEligible ? (
             <p className="mt-1.5 flex items-center gap-1.5 text-sm font-medium text-success">
               <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              1M+ holder — free agent tools
+              1M+ holder, free agent tools
             </p>
           ) : (
             <>
@@ -56,7 +56,7 @@ export function SyraHolderProgressCard({
                 <span className="text-muted-foreground"> / {thresholdLabel}</span>
               </p>
               <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
-                Hold 1M $SYRA — treasury covers your agent tool fees.
+                Hold 1M $SYRA, treasury covers your agent tool fees.
               </p>
             </>
           )}

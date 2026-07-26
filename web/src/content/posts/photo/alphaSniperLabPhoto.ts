@@ -24,7 +24,7 @@ export const ALPHA_SNIPER_LAB_PHOTO = definePhotoUpdate(ALPHA_SNIPER_LAB_POST.me
     content: photoContent({
       kicker: "The problem",
       headline: "Alpha without gates is how wallets die.",
-      body: "Syra scores new pairs. The sniper executes only after RugCheck — proven on paper first.",
+      body: "Syra scores new pairs. The sniper executes only after RugCheck, proven on paper first.",
     }),
   },
   {
@@ -33,7 +33,7 @@ export const ALPHA_SNIPER_LAB_PHOTO = definePhotoUpdate(ALPHA_SNIPER_LAB_POST.me
     shareCopy: copies.quote,
     content: photoContent({
       quote: "Scout. Gate. Enter. Exit.",
-      narrative: "No RugCheck pass → no trade. Highest variance product — by design.",
+      narrative: "No RugCheck pass → no trade. Highest variance product, by design.",
     }),
   },
   {
@@ -61,7 +61,7 @@ export const ALPHA_SNIPER_LAB_PHOTO = definePhotoUpdate(ALPHA_SNIPER_LAB_POST.me
       steps: [
         { step: "01", title: "Open Yield", description: "See Sniper card." },
         { step: "02", title: "Wait for beta", description: "Paper gate clears." },
-        { step: "03", title: "Fund LP", description: "SOL — keep it tiny." },
+        { step: "03", title: "Fund LP", description: "SOL, keep it tiny." },
         { step: "04", title: "Enable", description: "Daily loss cap applies." },
       ],
     }),
@@ -100,7 +100,7 @@ export const ALPHA_SNIPER_LAB_PHOTO = definePhotoUpdate(ALPHA_SNIPER_LAB_POST.me
     layout: "photo-stat-trio",
     shareCopy: copies.metrics,
     content: photoContent({
-      headline: "Status — not a promise.",
+      headline: "Status, not a promise.",
       stats: [
         { value: "High", label: "variance" },
         { value: "≥50", label: "trades to graduate" },
@@ -136,7 +136,7 @@ export const ALPHA_SNIPER_LAB_PHOTO = definePhotoUpdate(ALPHA_SNIPER_LAB_POST.me
     content: photoContent({
       eyebrow: "Live",
       title: "Alpha Sniper lab",
-      subtitle: "Paper sniping. Highest risk product — deposits after graduation.",
+      subtitle: "Paper sniping. Highest risk product, deposits after graduation.",
     }),
   },
   {

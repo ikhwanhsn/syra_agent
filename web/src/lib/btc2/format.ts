@@ -23,24 +23,24 @@ const compactNum = new Intl.NumberFormat("en-US", {
 });
 
 export function formatUsd(value: number, whole = false): string {
-  if (!Number.isFinite(value)) return "—";
+  if (!Number.isFinite(value)) return "-";
   return whole ? usdWhole.format(value) : usdCompact.format(value);
 }
 
 export function formatPct(value: number, signed = false): string {
-  if (!Number.isFinite(value)) return "—";
+  if (!Number.isFinite(value)) return "-";
   const formatted = pctFmt.format(value / 100);
   if (!signed || value === 0) return formatted;
   return value > 0 ? `+${formatted}` : formatted;
 }
 
 export function formatCompact(value: number): string {
-  if (!Number.isFinite(value)) return "—";
+  if (!Number.isFinite(value)) return "-";
   return compactNum.format(value);
 }
 
 export function formatBtcPrice(value: number): string {
-  if (!Number.isFinite(value)) return "—";
+  if (!Number.isFinite(value)) return "-";
   return `$${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 }
 
@@ -50,7 +50,7 @@ export function formatHash(hash: string, chars = 6): string {
 }
 
 export function formatMs(ms: number): string {
-  if (!Number.isFinite(ms)) return "—";
+  if (!Number.isFinite(ms)) return "-";
   return ms < 1000 ? `${Math.round(ms)}ms` : `${(ms / 1000).toFixed(2)}s`;
 }
 

@@ -61,11 +61,12 @@ export function createInternalBuybackRouter() {
     try {
       const limit = req.body?.limit;
       const requireUsdcSpend = req.body?.requireUsdcSpend;
+      const backfillZeroUsd = req.body?.backfillZeroUsd;
       const out = await syncOnchainBuybacks({
         ...(limit != null ? { limit: Number(limit) } : {}),
-        ...(requireUsdcSpend != null
-          ? { requireUsdcSpend: Boolean(requireUsdcSpend) }
-          : {}),
+        // Default: every treasury $SYRA increase (USDC/SOL/price-estimated).
+        requireUsdcSpend: requireUsdcSpend === true,
+        backfillZeroUsd: backfillZeroUsd !== false,
       });
       const status = out.success ? 200 : 500;
       return res.status(status).json(out);

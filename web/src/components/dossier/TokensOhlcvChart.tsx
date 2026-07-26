@@ -65,7 +65,7 @@ const RANGES_DEFAULT: ChartRange[] = ["24H", "3D", "7D"];
 const RANGES_LOW_TF: ChartRange[] = ["1H", "6H", "24H"];
 
 function formatChartPrice(p: number): string {
-  if (!Number.isFinite(p)) return "—";
+  if (!Number.isFinite(p)) return "-";
   if (p >= 1000) return p.toLocaleString(undefined, { maximumFractionDigits: 2 });
   if (p >= 1) return p.toLocaleString(undefined, { maximumFractionDigits: 4 });
   if (p >= 0.0001) return p.toLocaleString(undefined, { maximumSignificantDigits: 6 });
@@ -73,7 +73,7 @@ function formatChartPrice(p: number): string {
 }
 
 function formatChartPct(n: number): string {
-  if (!Number.isFinite(n)) return "—";
+  if (!Number.isFinite(n)) return "-";
   const sign = n > 0 ? "+" : "";
   return `${sign}${n.toFixed(2)}%`;
 }
@@ -531,7 +531,7 @@ export function TokensOhlcvChart({
 
             <div className="flex flex-wrap items-end gap-x-3 gap-y-1">
               <h3 className="font-mono text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-                {displayPrice != null ? formatChartPrice(displayPrice) : "—"}
+                {displayPrice != null ? formatChartPrice(displayPrice) : "-"}
               </h3>
               {displayChange != null ? (
                 <span
@@ -658,7 +658,7 @@ export function TokensOhlcvChart({
             />
             <TerminalStat
               label="Volume"
-              value={stats.volume > 0 ? formatCompactUsd(stats.volume) : "—"}
+              value={stats.volume > 0 ? formatCompactUsd(stats.volume) : "-"}
               accent="neutral"
             />
           </div>

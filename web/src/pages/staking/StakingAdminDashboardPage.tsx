@@ -56,7 +56,7 @@ export default function StakingAdminDashboardPage() {
   const networkLabel = isDevnet ? "Devnet" : "Mainnet";
 
   const totalLockedFormatted = useMemo(() => {
-    if (!operator) return "—";
+    if (!operator) return "-";
     return `${formatRawAmount(operator.totalAmountRawOpen, decimals)} ${symbol}`;
   }, [operator, decimals, symbol]);
 
@@ -126,7 +126,7 @@ export default function StakingAdminDashboardPage() {
           <p className={stakingKicker}>Operator · {networkLabel}</p>
           <h1 className={stakingSectionTitle}>Staking admin</h1>
           <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-            Registry overview for {symbol} Streamflow locks — staker wallets, open positions, and
+            Registry overview for {symbol} Streamflow locks, staker wallets, open positions, and
             recent activity. Restricted to the approved operator wallet.
           </p>
         </header>
@@ -325,12 +325,12 @@ export default function StakingAdminDashboardPage() {
                                   <span className="break-all font-mono text-xs">{row.wallet}</span>
                                 </td>
                                 <td className="px-4 py-3 tabular-nums">
-                                  {row.amountFormatted ?? "—"}
+                                  {row.amountFormatted ?? "-"}
                                 </td>
                                 <td className="px-4 py-3 text-xs text-muted-foreground">
                                   {row.unlockAtIso
                                     ? new Date(row.unlockAtIso).toLocaleDateString()
-                                    : "—"}
+                                    : "-"}
                                 </td>
                                 <td className="px-4 py-3">
                                   <span

@@ -83,9 +83,7 @@ export function InvestOpportunityCard({
                   {apyFmt.format(opportunity.apyPct)}%
                 </p>
               ) : (
-                <p className="mt-0.5 font-mono text-lg font-semibold tabular-nums text-muted-foreground sm:text-xl">
-                  —
-                </p>
+                <p className="mt-0.5 font-mono text-lg font-semibold tabular-nums text-muted-foreground sm:text-xl">, </p>
               )}
             </div>
           </div>
@@ -96,7 +94,7 @@ export function InvestOpportunityCard({
 
           <p className="text-xs text-muted-foreground/90">
             TVL{" "}
-            {opportunity.tvlUsd != null ? tvlFmt.format(opportunity.tvlUsd) : "—"}
+            {opportunity.tvlUsd != null ? tvlFmt.format(opportunity.tvlUsd) : "-"}
             {opportunity.yieldSource ? (
               <span className="text-muted-foreground/70"> · {opportunity.yieldSource}</span>
             ) : null}

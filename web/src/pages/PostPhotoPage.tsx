@@ -15,7 +15,7 @@ function parseUpdateNumber(raw: string | undefined): number | null {
   return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
-/** Ship-log photo posts for X — static PNG templates at /post/photo/:updateNumber. */
+/** Ship-log photo posts for X, static PNG templates at /post/photo/:updateNumber. */
 export default function PostPhotoPage() {
   const { isLoading } = usePostStudioQuery();
   const { updateNumber: raw } = useParams<{ updateNumber?: string }>();

@@ -133,7 +133,7 @@ export async function fetchPumpfunCallerLeaderboard(
 }
 
 export function formatGainMultiplier(value: number | null | undefined): string {
-  if (value == null || !Number.isFinite(value) || value < 1) return "—";
+  if (value == null || !Number.isFinite(value) || value < 1) return "-";
   if (value >= 1000) return `${Math.round(value)}x`;
   if (value >= 100) return `${Math.round(value)}x`;
   if (value >= 10) return `${value.toFixed(1).replace(/\.0$/, "")}x`;
@@ -141,7 +141,7 @@ export function formatGainMultiplier(value: number | null | undefined): string {
 }
 
 export function formatCompactUsd(value: number | null | undefined): string {
-  if (value == null || !Number.isFinite(value)) return "—";
+  if (value == null || !Number.isFinite(value)) return "-";
   if (value >= 1_000_000_000) return `$${(value / 1_000_000_000).toFixed(2)}B`;
   if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`;
   if (value >= 1_000) return `$${(value / 1_000).toFixed(1)}K`;
@@ -164,7 +164,7 @@ export function buildPumpfunCallShareUrl(callId: string): string {
 export function buildPumpfunCallShareText(record: PumpfunScanRecord): string {
   const gain = formatGainMultiplier(record.peakGainMultiplier ?? record.gainMultiplier);
   const lines = [
-    `🚀 ${gain} on $${record.symbol} — called via Syra Token Analyzer`,
+    `🚀 ${gain} on $${record.symbol}, called via Syra Token Analyzer`,
     "",
     `Called at ${formatCompactUsd(record.scanMarketCapUsd)} mcap`,
     record.peakMarketCapUsd

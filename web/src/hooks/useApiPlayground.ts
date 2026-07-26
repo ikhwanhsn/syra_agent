@@ -74,7 +74,7 @@ function getApiHeaders(): Record<string, string> {
     const leaked = import.meta.env.VITE_API_KEY?.trim();
     if (leaked) {
       console.warn(
-        "[Syra] VITE_API_KEY is set but must not be sent from browser bundles. Remove it from .env — api.syraa.fun injects auth for trusted origins.",
+        "[Syra] VITE_API_KEY is set but must not be sent from browser bundles. Remove it from .env, api.syraa.fun injects auth for trusted origins.",
       );
     }
   }
@@ -1164,7 +1164,7 @@ export function getExampleFlows(): ExampleFlowPreset[] {
         },
       ],
     },
-    // pump.fun (Syra x402 gateway — fun-block + agent payments SDK)
+    // pump.fun (Syra x402 gateway, fun-block + agent payments SDK)
     {
       id: "pumpfun-agents-swap",
       label: "pump.fun: buy/sell (agents/swap)",
@@ -1377,7 +1377,7 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     },
     {
       id: "pumpfun-agent-payments-build",
-      label: "pump.fun: tokenized agent — build-accept (invoice tx)",
+      label: "pump.fun: tokenized agent, build-accept (invoice tx)",
       method: "POST",
       url: `${base}/pumpfun/agent-payments/build-accept`,
       params: [
@@ -1427,7 +1427,7 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     },
     {
       id: "pumpfun-agent-payments-verify",
-      label: "pump.fun: tokenized agent — verify invoice",
+      label: "pump.fun: tokenized agent, verify invoice",
       method: "POST",
       url: `${base}/pumpfun/agent-payments/verify`,
       params: [
@@ -1570,7 +1570,7 @@ export function getExampleFlows(): ExampleFlowPreset[] {
         },
       ],
     },
-    // Purch Vault (api.purch.xyz — marketplace for agent skills, knowledge, personas; x402 payment with wallet)
+    // Purch Vault (api.purch.xyz, marketplace for agent skills, knowledge, personas; x402 payment with wallet)
     {
       id: "purch-vault-search",
       label: "Purch Vault search",
@@ -1630,7 +1630,7 @@ export function getExampleFlows(): ExampleFlowPreset[] {
         },
       ],
     },
-    // Partner (Syra gateway — x402 routes on Syra API: /binance, /bankr, /giza, /neynar, /siwa; Nansen catalog is nansenFlows below)
+    // Partner (Syra gateway, x402 routes on Syra API: /binance, /bankr, /giza, /neynar, /siwa; Nansen catalog is nansenFlows below)
     ...(function syraGatewayPartnerFlows(): ExampleFlowPreset[] {
       const b = getApiBaseUrl();
       return [
@@ -1740,7 +1740,7 @@ export function getExampleFlows(): ExampleFlowPreset[] {
         },
       ];
     })(),
-    // Nansen (Syra gateway POST /nansen/* — same JSON body as api.nansen.ai; avoids browser CORS to nansen.ai)
+    // Nansen (Syra gateway POST /nansen/*, same JSON body as api.nansen.ai; avoids browser CORS to nansen.ai)
     ...(function nansenFlows(): ExampleFlowPreset[] {
       const b = getApiBaseUrl();
       const solWsol = "So11111111111111111111111111111111111111112";
@@ -2707,7 +2707,7 @@ const getProxiedUrl = (url: string): string => {
 };
 
 // In production, cross-origin requests hit CORS. Use the API's playground-proxy when we're not in dev and the target is another origin.
-// Syra /nansen/* shares the API origin (no proxy). api.nansen.ai does not — relay via playground-proxy to avoid browser CORS.
+// Syra /nansen/* shares the API origin (no proxy). api.nansen.ai does not, relay via playground-proxy to avoid browser CORS.
 function useBackendPlaygroundProxy(targetUrl: string): boolean {
   // Always use backend proxy for MPP lanes so the server can relay Tempo challenges.
   if (targetUrl.toLowerCase().includes("/mpp/")) return true;
@@ -4965,7 +4965,7 @@ export function useApiPlayground() {
           /^\s*\{\s*\n?\s*\}\s*$/.test(effectiveBody.trim());
         if (emptyBody && useNansenStylePostBody) {
           // Nansen API (direct or Syra /nansen/*) expects POST with JSON body; build from params (parse JSON-like values).
-          // Skip params with empty values — Nansen returns 422 validation errors for empty strings on optional fields.
+          // Skip params with empty values, Nansen returns 422 validation errors for empty strings on optional fields.
           const bodyObj: Record<string, unknown> = {};
           enabledParams.forEach((p) => {
             const v = p.value?.trim() ?? "";
@@ -5519,7 +5519,7 @@ export function useApiPlayground() {
                 if (chainResult.status === "confirmed" && chainResult.signature) {
                   toast({
                     title: "On-chain transaction submitted",
-                    description: `${chainResult.signature.slice(0, 12)}… — check Solscan for final status.`,
+                    description: `${chainResult.signature.slice(0, 12)}…, check Solscan for final status.`,
                   });
                 } else if (chainResult.status === "failed") {
                   toast({

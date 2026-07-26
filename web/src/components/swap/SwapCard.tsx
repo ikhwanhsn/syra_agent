@@ -453,7 +453,7 @@ export function SwapCard({ onTokensChange }: SwapCardProps) {
                       quoteStale && "opacity-50 transition-opacity duration-200",
                     )}
                   >
-                    {quoteQuery.display ? quoteQuery.display.outFormatted : "—"}
+                    {quoteQuery.display ? quoteQuery.display.outFormatted : "-"}
                   </p>
                 )}
               </div>
@@ -497,7 +497,7 @@ export function SwapCard({ onTokensChange }: SwapCardProps) {
                   </span>{" "}
                   for approximately{" "}
                   <span className="font-mono font-medium text-foreground">
-                    {quoteQuery.display?.outFormatted ?? "—"}{" "}
+                    {quoteQuery.display?.outFormatted ?? "-"}{" "}
                     {outputToken.symbol}
                   </span>
                   {quoteQuery.display?.minReceivedFormatted ? (

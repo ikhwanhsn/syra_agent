@@ -50,7 +50,7 @@ export function LpExperimentRiskAgreementDialog({ blockUntilAccepted = true }: P
               <span className="rounded-md border border-violet-500/35 bg-violet-500/12 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-violet-800 dark:text-violet-200">
                 Beta
               </span>
-              <AlertDialogTitle className="text-lg">Experimental LP desk — full risk</AlertDialogTitle>
+              <AlertDialogTitle className="text-lg">Experimental LP desk, full risk</AlertDialogTitle>
             </div>
             <AlertDialogDescription asChild>
               <p className="text-sm leading-relaxed text-muted-foreground">
@@ -66,7 +66,7 @@ export function LpExperimentRiskAgreementDialog({ blockUntilAccepted = true }: P
             <li className="flex gap-2">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-violet-600 dark:text-violet-400" aria-hidden />
               <span>
-                <strong className="font-medium text-foreground">Simulation</strong> uses modeled PnL — results may not
+                <strong className="font-medium text-foreground">Simulation</strong> uses modeled PnL, results may not
                 match live markets.
               </span>
             </li>
@@ -113,7 +113,7 @@ export function LpExperimentRiskAgreementDialog({ blockUntilAccepted = true }: P
             disabled={!acknowledged}
             onClick={handleAccept}
           >
-            I accept the risks — continue
+            I accept the risks, continue
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -14,7 +14,7 @@ function nodeBuiltin<T>(name: string): T {
   if (typeof getter === "function") {
     return getter(name);
   }
-  // Fallback for older Node — may still work outside polyfill path
+  // Fallback for older Node, may still work outside polyfill path
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   return require(name) as T;
 }

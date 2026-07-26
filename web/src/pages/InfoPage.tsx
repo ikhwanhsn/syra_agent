@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { InfoPageView } from "@/components/info/InfoPageView";
 import { SYRA_TAGLINE } from "@/content/syraInfo";
 
-/** Internal team brief — reachable only via /info (not linked in nav or search). */
+/** Internal team brief, reachable only via /info (not linked in nav or search). */
 export default function InfoPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
 

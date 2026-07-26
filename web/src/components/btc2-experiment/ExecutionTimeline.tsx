@@ -34,7 +34,7 @@ export function ExecutionTimeline({ executions }: { executions: ExecutionEvent[]
       <SectionHeader
         kicker="Section 06"
         title="Execution Engine"
-        description="Spot execution via Jupiter — USDC ↔ cbBTC swaps with slippage and onchain tx proofs."
+        description="Spot execution via Jupiter, USDC ↔ cbBTC swaps with slippage and onchain tx proofs."
       />
 
       <div className={cn(overviewCardShell, "rounded-2xl p-4 sm:p-5")}>

@@ -323,7 +323,7 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
           </div>
           <p className="post-footer-hint relative z-10 mt-3 hidden text-center font-mono text-[10px] text-white/30 sm:block">
             Pick layout A/B/C per card, export PNG, then paste the matching X
-            post — 15 posts per ship log
+            post, 15 posts per ship log
           </p>
         </div>
       </div>

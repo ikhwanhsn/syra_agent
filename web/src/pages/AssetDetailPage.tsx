@@ -77,7 +77,7 @@ export default function AssetDetailPage({ embedded }: { embedded?: boolean }) {
     placeholderData: boardPlaceholder,
   });
 
-  // Stable identity only — do not inject symbol/name (that restarted the query forever).
+  // Stable identity only, do not inject symbol/name (that restarted the query forever).
   const intelligenceLookup = useMemo(() => {
     if (canonicalPath != null || lookup == null) return null;
     return lookup;

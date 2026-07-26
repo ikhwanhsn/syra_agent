@@ -421,7 +421,7 @@ export function AgentBillingDashboard({ className, compact = false }: AgentBilli
             Billing & spend
           </h2>
           <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-            Auditable x402 spend across your agent — caps, volume, and top tools on the Syra rail.
+            Auditable x402 spend across your agent, caps, volume, and top tools on the Syra rail.
           </p>
         </div>
         {data.takeRateNote ? (
@@ -504,7 +504,7 @@ export function AgentBillingDashboard({ className, compact = false }: AgentBilli
                 perTxCapUsd={policy.perTxCapUsd}
               />
             ) : (
-              <p className="text-sm text-muted-foreground">No agent wallet yet — caps apply once funded.</p>
+              <p className="text-sm text-muted-foreground">No agent wallet yet, caps apply once funded.</p>
             )}
           </div>
         </div>

@@ -24,7 +24,7 @@ export function formatSwapExecutionError(raw: string): string {
   return raw;
 }
 
-/** Confirm in background — never block the swap UI on RPC confirmation latency. */
+/** Confirm in background, never block the swap UI on RPC confirmation latency. */
 function confirmInBackground(
   connection: import("@solana/web3.js").Connection,
   signature: string,

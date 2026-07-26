@@ -37,7 +37,7 @@ function emptyStateMessage(
 ): string {
   if (regime && !regime.allowLong) {
     const why = regime.reason || diagnostics?.regimeReason || "longs paused";
-    return `Regime: ${regime.regime.replace("_", " ")} — ${why}. Waiting for a clearer long setup.`;
+    return `Regime: ${regime.regime.replace("_", " ")}, ${why}. Waiting for a clearer long setup.`;
   }
 
   const raw = diagnostics?.rawCandidates ?? 0;

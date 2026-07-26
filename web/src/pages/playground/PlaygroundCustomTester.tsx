@@ -19,7 +19,7 @@ import {
 } from "@/components/playground/playgroundStyles";
 import { cn } from "@/lib/utils";
 
-/** Free-form x402 tester — full-width layout aligned with Syra APIs tab. */
+/** Free-form x402 tester, full-width layout aligned with Syra APIs tab. */
 export function PlaygroundCustomTester() {
   const navigate = useNavigate();
   const { openConnectModal } = useConnectModal();
@@ -137,7 +137,7 @@ export function PlaygroundCustomTester() {
           <PlaygroundHero
             kicker="Custom request"
             title="Send any x402 API call"
-            description="Full control over method, headers, query params, and body — with request history, share links, and live USDC settlement."
+            description="Full control over method, headers, query params, and body, with request history, share links, and live USDC settlement."
             walletConnected={wallet.connected}
             walletBalance={wallet.balance}
             onConnectWallet={() => openConnectModal()}

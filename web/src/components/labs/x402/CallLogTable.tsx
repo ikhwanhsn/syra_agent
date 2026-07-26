@@ -37,7 +37,7 @@ function shortenTx(tx: string): string {
 }
 
 function shortenError(error: string | null): string {
-  if (!error) return "—";
+  if (!error) return "-";
   const cleaned = error.replace(/\s+/g, " ").trim();
   if (cleaned.length <= 72) return cleaned;
   return `${cleaned.slice(0, 69)}…`;
@@ -142,7 +142,7 @@ export function CallLogTable({ calls, isLoading, chain = "solana" }: CallLogTabl
                       ) : null}
                     </div>
                   ) : (
-                    <span className="text-muted-foreground">—</span>
+                    <span className="text-muted-foreground">, </span>
                   )}
                 </TableCell>
                 <TableCell

@@ -35,7 +35,7 @@ export function SwapTokenXPosts({
 }: {
   posts: TokenXPostItem[];
   isLoading: boolean;
-  /** When true, no API call has been made yet — show a load affordance. */
+  /** When true, no API call has been made yet, show a load affordance. */
   idle?: boolean;
   onLoad?: () => void;
   errorMessage?: string;

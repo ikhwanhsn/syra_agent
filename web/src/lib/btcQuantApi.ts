@@ -12,7 +12,7 @@ const usdCompact = new Intl.NumberFormat("en-US", {
 
 export function formatBtcUsd(value: number | null | undefined): string {
   const n = Number(value);
-  if (!Number.isFinite(n)) return "—";
+  if (!Number.isFinite(n)) return "-";
   return usdCompact.format(n);
 }
 

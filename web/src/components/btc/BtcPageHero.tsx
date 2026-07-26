@@ -288,7 +288,7 @@ export function BtcPageHero({
 
                 <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
 
-                  Spot, derivatives, dominance, and sentiment — with taker buy/sell ratio bubblemaps across
+                  Spot, derivatives, dominance, and sentiment, with taker buy/sell ratio bubblemaps across
 
                   major venues.
 
@@ -402,7 +402,7 @@ export function BtcPageHero({
 
               label="24h range"
 
-              value={high != null && low != null ? `${formatBtcUsd(low, 0)} – ${formatBtcUsd(high, 0)}` : "—"}
+              value={high != null && low != null ? `${formatBtcUsd(low, 0)} – ${formatBtcUsd(high, 0)}` : "-"}
 
             />
 
@@ -410,7 +410,7 @@ export function BtcPageHero({
 
               label="Fear & Greed"
 
-              value={overview?.sentiment.fearGreedIndex != null ? String(overview.sentiment.fearGreedIndex) : "—"}
+              value={overview?.sentiment.fearGreedIndex != null ? String(overview.sentiment.fearGreedIndex) : "-"}
 
               hint={overview?.sentiment.fearGreedLabel ?? undefined}
 

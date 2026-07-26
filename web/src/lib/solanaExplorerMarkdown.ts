@@ -11,7 +11,7 @@ const SIG_LEN = { min: 80, max: 92 };
 /** Solana pubkeys / mints in base58 (common 32–44). */
 const ADDR_LEN = { min: 32, max: 44 };
 
-/** Fresh instance each use — avoids `lastIndex` issues with global regex across `.replace()` calls. */
+/** Fresh instance each use, avoids `lastIndex` issues with global regex across `.replace()` calls. */
 function solscanUrlRe(): RegExp {
   return /https:\/\/solscan\.io\/[^\s)>[\]]+/gi;
 }
@@ -35,7 +35,7 @@ export function injectSolscanLinksInMarkdown(markdown: string): string {
   s = s.replace(/```[\s\S]*?```/g, (m) => push(m));
   s = s.replace(/`[^`\n]+`/g, (m) => push(m));
   s = s.replace(/!?\[[^\]]*]\([^)]+\)/g, (m) => push(m));
-  /** GFM autolink literals — keep intact before bare-URL pass (otherwise `https://` inside is re-stripped). */
+  /** GFM autolink literals, keep intact before bare-URL pass (otherwise `https://` inside is re-stripped). */
   s = s.replace(/<https?:\/\/[^>\s]+>/gi, (m) => push(m));
   s = s.replace(/https?:\/\/[^\s)>[\]]+/gi, (m) => push(m));
 

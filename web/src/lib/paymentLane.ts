@@ -43,7 +43,7 @@ export function getPaymentLaneFromUrl(urlString: string): PlaygroundPaymentLane 
     const path = new URL(urlString).pathname.toLowerCase();
     if (path.includes(MPP_URL_PATH_MARKER)) return 'mpp';
   } catch {
-    // invalid URL — treat as standard
+    // invalid URL, treat as standard
   }
   return 'x402';
 }

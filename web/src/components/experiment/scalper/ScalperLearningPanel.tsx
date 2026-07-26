@@ -13,7 +13,7 @@ interface ScalperLearningPanelProps {
 }
 
 function formatWinRate(winRate: number | undefined): string {
-  if (winRate == null || !Number.isFinite(winRate)) return "—";
+  if (winRate == null || !Number.isFinite(winRate)) return "-";
   return `${Math.round(winRate * 100)}%`;
 }
 

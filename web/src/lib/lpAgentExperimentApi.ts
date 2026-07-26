@@ -12,7 +12,7 @@ const usdCompact = new Intl.NumberFormat("en-US", {
 /** Format a USD amount for LP experiment UI (not for on-chain precision). */
 export function formatLpUsd(value: number | null | undefined): string {
   const n = Number(value);
-  if (!Number.isFinite(n)) return "—";
+  if (!Number.isFinite(n)) return "-";
   return usdCompact.format(n);
 }
 
@@ -80,7 +80,7 @@ export interface LpAgentStats {
   cashSol?: number;
   sumNetPnlSol?: number;
   avgNetPnlSol?: number;
-  /** Sum of (simNetPnlSol × depositUsd/depositSol) per run — USD notion at position open. */
+  /** Sum of (simNetPnlSol × depositUsd/depositSol) per run, USD notion at position open. */
   sumNetPnlUsd?: number;
   avgNetPnlUsd?: number;
   sumChainFeesSol?: number;
@@ -108,7 +108,7 @@ export interface LpExperimentLabState {
   activeExperimentId: string | null;
   title: string;
   startedAt: string | null;
-  /** CoinGecko (or cached) SOL/USD — for converting cash/equity to display USD only. */
+  /** CoinGecko (or cached) SOL/USD, for converting cash/equity to display USD only. */
   referenceSolPriceUsd?: number;
   simConfig: LpExperimentSimConfig;
   agents: LpExperimentLabAgentRow[];

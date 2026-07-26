@@ -59,8 +59,8 @@ export function ExecutionPanel({
         <EmptyState message="No execution quotes yet. Pipeline generates quotes when allocation differs." />
       )}
 
-      <Button type="button" className="mt-4" disabled title="Real onchain execution not enabled — paper sim auto-rebalances">
-        Execute on Jupiter (real — disabled)
+      <Button type="button" className="mt-4" disabled title="Real onchain execution not enabled, paper sim auto-rebalances">
+        Execute on Jupiter (real, disabled)
       </Button>
     </PanelShell>
   );

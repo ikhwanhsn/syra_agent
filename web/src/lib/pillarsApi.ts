@@ -378,21 +378,21 @@ export async function fetchEarnSummary(walletOrAnonymousId: string) {
   return res.json();
 }
 
-/** Free x402 tool catalog — browsing does not require payment. */
+/** Free x402 tool catalog, browsing does not require payment. */
 export async function fetchSpendTools(): Promise<SpendToolsResponse> {
   const res = await fetch(`${base()}/agent/tools`, { headers: { Accept: "application/json" } });
   if (!res.ok) throw new Error(`Tools catalog failed (${res.status})`);
   return res.json() as Promise<SpendToolsResponse>;
 }
 
-/** Free KPI endpoint — used for spend social proof. */
+/** Free KPI endpoint, used for spend social proof. */
 export async function fetchAnalyticsKpi(): Promise<AnalyticsKpi> {
   const res = await fetch(`${base()}/analytics/kpi`, { headers: { Accept: "application/json" } });
   if (!res.ok) throw new Error(`Analytics KPI failed (${res.status})`);
   return res.json() as Promise<AnalyticsKpi>;
 }
 
-/** Free preview tier — no x402 payment. */
+/** Free preview tier, no x402 payment. */
 export async function fetchPreviewNews(ticker = "BTC"): Promise<PreviewNewsResponse> {
   const res = await fetch(
     `${base()}/preview/news?ticker=${encodeURIComponent(ticker)}`,
@@ -439,7 +439,7 @@ export const PILLAR_COPY: Record<
 > = {
   earn: {
     headline: "Earn",
-    description: "Monetize agent skills — prompts, campaigns, and API work.",
+    description: "Monetize agent skills, prompts, campaigns, and API work.",
     href: "/earn",
   },
   treasury: {

@@ -3,6 +3,13 @@ import mongoose from "mongoose";
 const lpRealPositionSchema = new mongoose.Schema(
   {
     experimentId: { type: String, required: true, index: true },
+    /** Agent wallet that owns this position — preferred scope key for per-user PnL. */
+    agentAddress: { type: String, default: null, index: true },
+    /**
+     * Set when a public Earn session starts while this position is still open.
+     * Lets the eventual close count toward Earn "Your PnL" without importing lab history.
+     */
+    earnSessionStartedAt: { type: Date, default: null, index: true },
     strategyId: { type: Number, required: true, min: 0, max: 99, index: true },
     strategyName: { type: String, required: true },
     lpShape: { type: String, required: true, enum: ["spot", "bid_ask", "curve", "mixed"] },
@@ -79,6 +86,7 @@ const lpRealPositionSchema = new mongoose.Schema(
 lpRealPositionSchema.index({ status: 1, openedAt: -1 });
 lpRealPositionSchema.index({ experimentId: 1, strategyId: 1, status: 1 });
 lpRealPositionSchema.index({ experimentId: 1, poolAddress: 1, status: 1, createdAt: -1 });
+lpRealPositionSchema.index({ agentAddress: 1, status: 1, openedAt: -1 });
 
 const LpRealPosition =
   mongoose.models.LpRealPosition || mongoose.model("LpRealPosition", lpRealPositionSchema);

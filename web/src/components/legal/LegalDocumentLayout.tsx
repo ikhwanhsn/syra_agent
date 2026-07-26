@@ -195,7 +195,7 @@ export function LegalDocumentLayout({
                     Need help with this policy?
                   </p>
                   <p className={cn(growthProseClass, "mt-2 text-[14px] sm:text-[15px]")}>
-                    Reach the Syra team — we respond to privacy, terms, and cookie requests at the address below.
+                    Reach the Syra team, we respond to privacy, terms, and cookie requests at the address below.
                   </p>
                 </div>
                 <a

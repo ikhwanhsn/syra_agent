@@ -7,7 +7,7 @@ import {
   useVideoConfig,
 } from "remotion";
 
-/** ~90s @ 30fps — dark motion-graphics explainer. */
+/** ~90s @ 30fps, dark motion-graphics explainer. */
 export const AGENTS_BEAT_TRADERS_FPS = 30;
 export const AGENTS_BEAT_TRADERS_DURATION = 90 * AGENTS_BEAT_TRADERS_FPS;
 export const AGENTS_BEAT_TRADERS_WIDTH = 1920;
@@ -497,8 +497,7 @@ function ScenePunchline() {
           for humans to wake up.
         </div>
         <div style={{ color: MUTED, fontSize: 30, marginTop: 32, lineHeight: 1.4 }}>
-          By 2030, the winning trader is not a person —
-          <br />
+          By 2030, the winning trader is not a person, <br />
           it’s an agent stack that never blinks.
         </div>
       </div>
@@ -523,7 +522,7 @@ function SceneEnd() {
         <div style={{ color: FG, fontSize: 64, fontWeight: 850, letterSpacing: "-0.04em", lineHeight: 1.1 }}>
           AI Agents beat traders
           <br />
-          <span style={{ color: GOLD }}>not by guessing —</span>
+          <span style={{ color: GOLD }}>not by guessing, </span>
           <br />
           by outlasting them.
         </div>
@@ -565,7 +564,7 @@ export function AgentsBeatTraders2030() {
       <Scene from={390} to={660}>
         <SceneHumanLimits />
       </Scene>
-      <Caption from={405} to={655} text="Sleep, emotion, and bandwidth — the three hard ceilings." />
+      <Caption from={405} to={655} text="Sleep, emotion, and bandwidth, the three hard ceilings." />
 
       <Scene from={660} to={990}>
         <SceneAgentEdge />
@@ -590,7 +589,7 @@ export function AgentsBeatTraders2030() {
       <Scene from={2100} to={2700}>
         <SceneEnd />
       </Scene>
-      <Caption from={2140} to={2680} text="AI agents can beat all traders in 2030 — by never blinking." />
+      <Caption from={2140} to={2680} text="AI agents can beat all traders in 2030, by never blinking." />
     </AbsoluteFill>
   );
 }

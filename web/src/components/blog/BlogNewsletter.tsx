@@ -5,7 +5,7 @@ import { overviewCardShell, overviewKickerClass } from "@/components/dashboard/o
 import { cn } from "@/lib/utils";
 
 /**
- * Blog CTA — agent activation, not email capture.
+ * Blog CTA, agent activation, not email capture.
  * Email/waitlist is starved per docs/AGENT_BUILDER_GTM.md.
  */
 export function BlogNewsletter() {
@@ -26,7 +26,7 @@ export function BlogNewsletter() {
         First paid call in 5 minutes
       </h2>
       <p className="mt-2 max-w-lg text-sm leading-relaxed text-muted-foreground sm:text-base">
-        Install MCP, fund Solana USDC, call <code className="text-xs">syra_spend_news</code> — same path as
+        Install MCP, fund Solana USDC, call <code className="text-xs">syra_spend_news</code>, same path as
         the marketplace Integrate tab. No waitlist.
       </p>
 

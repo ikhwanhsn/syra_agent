@@ -134,7 +134,7 @@ export function WalletNav(props: WalletNavProps = {}) {
     return () => {
       cancelled = true;
     };
-    // Only refresh when the menu opens — not when refreshTreasuryBalances identity changes.
+    // Only refresh when the menu opens, not when refreshTreasuryBalances identity changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, connected, publicKey, syraAuthReady, syraAuthenticated]);
 
@@ -351,7 +351,7 @@ export function WalletNav(props: WalletNavProps = {}) {
                     {formatTreasuryUsd(totalAgentUsdc)}
                   </p>
                   <p className="mt-0.5 font-mono text-xs tabular-nums text-muted-foreground">
-                    {totalAgentSol != null ? `${formatSol(totalAgentSol)} SOL` : "— SOL"}
+                    {totalAgentSol != null ? `${formatSol(totalAgentSol)} SOL` : ", SOL"}
                   </p>
                   {showLpSplit ? (
                     <div className="mt-3 grid grid-cols-2 gap-2">

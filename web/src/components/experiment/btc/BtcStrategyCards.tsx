@@ -27,7 +27,7 @@ export function BtcStrategyCards({ strategies, loading }: BtcStrategyCardsProps)
               {s.bar}
             </Badge>
           </div>
-          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{s.notes ?? "—"}</p>
+          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{s.notes ?? "-"}</p>
           <div className="mt-3 flex flex-wrap gap-1.5">
             <Badge variant="secondary" className="rounded-md px-1.5 py-0 text-[10px] font-medium">
               {s.dataSource.replace(/_/g, " ")}

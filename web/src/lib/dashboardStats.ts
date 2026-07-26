@@ -43,7 +43,7 @@ export class OperatorStatsFetchError extends Error {
 export async function fetchOperatorRegistryStats(args: {
   network: "mainnet" | "devnet";
   mint: string;
-  /** Connected admin wallet — Syra session must match this address. */
+  /** Connected admin wallet, Syra session must match this address. */
   sessionWallet: string;
 }): Promise<OperatorRegistryStats> {
   const base = getApiBaseUrl();
@@ -140,7 +140,7 @@ export function dashboardNetworkLabel(): "mainnet" | "devnet" {
   return STREAMFLOW_CONFIG.isDevnet ? "devnet" : "mainnet";
 }
 
-/** Streamflow lock mint — must match locks page and protocol summary. */
+/** Streamflow lock mint, must match locks page and protocol summary. */
 export function dashboardStreamflowMint(): string {
   return STREAMFLOW_CONFIG.tokenMint.toBase58();
 }

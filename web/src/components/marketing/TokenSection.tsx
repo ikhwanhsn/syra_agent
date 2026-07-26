@@ -196,7 +196,7 @@ const utilities = [
     title: "Buyback & usage rewards",
     description:
       "In production, ~80% of settled x402 USDC revenue is swapped to $SYRA via Jupiter and held in treasury. Paying wallets accrue claimable usage rewards from that inventory.",
-    highlight: "Live — verify on /token",
+    highlight: "Live, verify on /token",
     href: "/token",
     status: "live" as const,
   },
@@ -222,7 +222,7 @@ const utilities = [
     icon: Vote,
     title: "Governance",
     description:
-      "On-chain / off-chain voting for roadmap and treasury allocations is planned — not shipped yet. Do not treat $SYRA as a governance token today.",
+      "On-chain / off-chain voting for roadmap and treasury allocations is planned, not shipped yet. Do not treat $SYRA as a governance token today.",
     highlight: "Roadmap",
     status: "roadmap" as const,
   },
@@ -272,7 +272,7 @@ export const TokenSection = () => {
           ? "…"
           : stakingDisplay
             ? stakingDisplay.totalLockedCompact
-            : "—",
+            : "-",
         valueClass: stakingDisplay ? ("text-primary" as const) : ("text-muted-foreground" as const),
         subLabel: stakingDisplay
           ? `${stakingDisplay.stakerCount.toLocaleString()} active staker${
@@ -342,7 +342,7 @@ export const TokenSection = () => {
             $SYRA is the alignment token for Syra&apos;s agent economy. Hold or
             stake for live x402 fee discounts; paid API usage funds on-market
             buybacks that feed claimable usage rewards. Governance voting is
-            roadmap — not live yet.
+            roadmap, not live yet.
           </motion.p>
 
           {/* Token Details Card */}
@@ -424,7 +424,7 @@ export const TokenSection = () => {
               {/* Neutral pulse (no gold / amber) */}
               <div className="animate-pulse-glow absolute inset-0 rounded-full bg-foreground/[0.08] blur-3xl" />
 
-              {/* Outer ring — grayscale only */}
+              {/* Outer ring, grayscale only */}
               <div className="relative flex h-64 w-64 items-center justify-center rounded-full border border-foreground/20 bg-gradient-to-b from-muted/50 to-muted/20 shadow-[inset_0_1px_0_0_hsl(var(--foreground)/0.08)]">
                 {/* Inner ring */}
                 <div className="flex h-52 w-52 items-center justify-center rounded-full border border-foreground/25 bg-card/70 p-1.5">

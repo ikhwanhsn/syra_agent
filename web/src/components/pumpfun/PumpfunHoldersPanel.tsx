@@ -29,7 +29,7 @@ import type { HolderLastTrade, HolderNetWorth, MemecoinAnalysisPayload } from "@
 import { cn } from "@/lib/utils";
 
 function truncateWallet(wallet: string | null): string {
-  if (!wallet) return "—";
+  if (!wallet) return "-";
   if (wallet.length <= 12) return wallet;
   return `${wallet.slice(0, 4)}…${wallet.slice(-4)}`;
 }
@@ -169,7 +169,7 @@ function LastTradeBadge({ trade }: { trade: HolderLastTrade | undefined }) {
 
 function NetWorthCell({ netWorth }: { netWorth: HolderNetWorth | undefined }) {
   if (!netWorth?.netWorthUsd && netWorth?.nativeBalanceSol == null) {
-    return <span className="text-xs text-muted-foreground">—</span>;
+    return <span className="text-xs text-muted-foreground">, </span>;
   }
 
   const solLabel =
@@ -453,10 +453,10 @@ export function PumpfunHoldersPanel({ data, className }: PumpfunHoldersPanelProp
                       <TableCell className="text-right font-mono text-xs tabular-nums">
                         {row.balanceHuman != null
                           ? row.balanceHuman.toLocaleString(undefined, { maximumFractionDigits: 2 })
-                          : "—"}
+                          : "-"}
                       </TableCell>
                       <TableCell className="text-right font-mono text-xs tabular-nums">
-                        {row.sharePct != null ? `${row.sharePct.toFixed(2)}%` : "—"}
+                        {row.sharePct != null ? `${row.sharePct.toFixed(2)}%` : "-"}
                       </TableCell>
                       {showProfit ? (
                         <TableCell className="text-right">
@@ -471,7 +471,7 @@ export function PumpfunHoldersPanel({ data, className }: PumpfunHoldersPanelProp
                               />
                             </div>
                           ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
+                            <span className="text-xs text-muted-foreground">, </span>
                           )}
                         </TableCell>
                       ) : null}
@@ -484,7 +484,7 @@ export function PumpfunHoldersPanel({ data, className }: PumpfunHoldersPanelProp
                               <LastTradeBadge trade={insight?.lastTrade} />
                             </div>
                           ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
+                            <span className="text-xs text-muted-foreground">, </span>
                           )}
                         </TableCell>
                       ) : null}
@@ -495,7 +495,7 @@ export function PumpfunHoldersPanel({ data, className }: PumpfunHoldersPanelProp
                           ) : row.wallet ? (
                             <NetWorthCell netWorth={insight?.netWorth} />
                           ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
+                            <span className="text-xs text-muted-foreground">, </span>
                           )}
                         </TableCell>
                       ) : null}

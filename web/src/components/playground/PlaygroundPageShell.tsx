@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-/** Playground page root — content scrolls via AppShell main. */
+/** Playground page root, content scrolls via AppShell main. */
 export function PlaygroundPageShell({
   children,
   className,
@@ -21,7 +21,7 @@ export function PlaygroundPageShell({
   );
 }
 
-/** @deprecated Legacy pages — use natural flow inside scrollable main. */
+/** @deprecated Legacy pages, use natural flow inside scrollable main. */
 export function PlaygroundScrollBody({
   children,
   className,

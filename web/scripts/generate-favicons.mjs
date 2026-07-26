@@ -5,7 +5,7 @@ import { join } from "node:path";
 
 const root = join(import.meta.dirname, "..");
 const publicDir = join(root, "public");
-// Mark-only (no "SYRA" wordmark) — wordmark becomes mush at 16–48px favicon sizes.
+// Mark-only (no "SYRA" wordmark), wordmark becomes mush at 16–48px favicon sizes.
 const SRC = join(publicDir, "images", "logo-transparent-notext.png");
 const BG = { r: 10, g: 10, b: 15, alpha: 1 };
 

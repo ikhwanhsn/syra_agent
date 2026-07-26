@@ -29,7 +29,7 @@ function VariantSwitcher({
     <div className="flex flex-col gap-3 border-t border-border/40 bg-muted/[0.02] px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
       <p className="text-xs text-muted-foreground">
         <span className="font-medium text-foreground">{active?.label}</span>
-        {active ? <span className="hidden sm:inline"> — {active.hint}</span> : null}
+        {active ? <span className="hidden sm:inline">, {active.hint}</span> : null}
       </p>
       <div className={btcPillTrackClass} role="tablist" aria-label="Chart style">
         {BTC_CHART_VARIANTS.map((opt) => (
@@ -71,7 +71,7 @@ export function BtcBubblemapChart({
   const rows = useMemo(() => toChartRows(data), [data]);
   const ratioNote = ratioNoteFor(data);
   const title = data
-    ? `${exchangeLabel(data.exchange)} — BTC ratio bubblemap`
+    ? `${exchangeLabel(data.exchange)}, BTC ratio bubblemap`
     : "BTC ratio bubblemap";
   const chartReady = rows.length >= 2;
 
@@ -81,7 +81,7 @@ export function BtcBubblemapChart({
         id="section-bubblemap"
         kicker="Flow intelligence"
         title="Price + aggressive flow"
-        description="Taker buy/sell ratio overlaid on price — green bubbles mark buy pressure, red marks sell pressure."
+        description="Taker buy/sell ratio overlaid on price, green bubbles mark buy pressure, red marks sell pressure."
         shareSlug={`bubblemap-${exchange}-${interval}`}
         onShare={() => setShareOpen(true)}
         shareDisabled={!chartReady}

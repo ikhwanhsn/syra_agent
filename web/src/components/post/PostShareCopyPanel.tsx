@@ -37,7 +37,7 @@ const FORMAT_LABELS: Record<PostShareFormat, { button: string; title: string; hi
   photo: {
     button: "Post copy",
     title: "X post · photo",
-    hint: "Unique copy per card — paste after attaching your exported image to X.",
+    hint: "Unique copy per card, paste after attaching your exported image to X.",
   },
 };
 
@@ -67,7 +67,7 @@ export function PostShareCopyPanel({
     const ok = await copyPostShareText(meta, format, photoOptions);
     if (ok) {
       setCopied(true);
-      toast.success("Post copy ready — paste on X");
+      toast.success("Post copy ready, paste on X");
       window.setTimeout(() => setCopied(false), 2200);
     } else {
       toast.error("Could not copy to clipboard");

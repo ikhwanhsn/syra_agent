@@ -12,8 +12,7 @@ export function StakingFooter() {
           className="font-medium text-foreground underline decoration-border/70 underline-offset-4 transition hover:decoration-foreground/50"
         >
           Syra
-        </a>
-        — agent intelligence on Solana.
+        </a>, agent intelligence on Solana.
       </p>
     </footer>
   );

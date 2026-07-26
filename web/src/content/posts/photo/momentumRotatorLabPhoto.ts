@@ -100,7 +100,7 @@ export const MOMENTUM_ROTATOR_PHOTO = definePhotoUpdate(MOMENTUM_ROTATOR_POST.me
     layout: "photo-stat-trio",
     shareCopy: copies.metrics,
     content: photoContent({
-      headline: "Status — not a promise.",
+      headline: "Status, not a promise.",
       stats: [
         { value: "3", label: "core assets" },
         { value: "≥50", label: "trades to graduate" },

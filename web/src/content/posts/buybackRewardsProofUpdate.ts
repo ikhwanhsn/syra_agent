@@ -11,7 +11,7 @@ export const BUYBACK_REWARDS_PROOF_POST = defineVideoUpdate(
     title: "Revenue → $SYRA Proof",
     published: "July 2026",
     tagline:
-      "Paid x402 calls fund on-market $SYRA buybacks you can verify — plus usage rewards and live holder fee discounts.",
+      "Paid x402 calls fund on-market $SYRA buybacks you can verify, plus usage rewards and live holder fee discounts.",
     shareCopyVideo: `SHIP LOG · Revenue → $SYRA is now verifiable.
 
 Agents pay USDC per call.
@@ -121,7 +121,7 @@ Agents pay. Buybacks run. You can check the txs.`,
         {
           title: "Governance",
           subtitle: "Roadmap",
-          detail: "Voting is not live — we say so on the token page.",
+          detail: "Voting is not live, we say so on the token page.",
         },
       ],
     },
@@ -184,7 +184,7 @@ Agents pay. Buybacks run. You can check the txs.`,
         { value: "1", label: "Claim surface" },
       ],
       narrative:
-        "Market cap follows attention on a verifiable loop — not another utility claim without code.",
+        "Market cap follows attention on a verifiable loop, not another utility claim without code.",
     },
     {
       id: "closing",

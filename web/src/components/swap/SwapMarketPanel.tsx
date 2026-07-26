@@ -27,7 +27,7 @@ import type { SelectedSwapToken } from "@/components/swap/TokenSelectDialog";
 type FocusSide = "output" | "input";
 
 function formatPriceUsd(n: number): string {
-  if (!Number.isFinite(n)) return "—";
+  if (!Number.isFinite(n)) return "-";
   if (n >= 1000) return formatCompactUsd(n);
   return new Intl.NumberFormat(undefined, {
     style: "currency",
@@ -152,7 +152,7 @@ export function SwapMarketPanel({
   });
 
   const stats = resolveChartStats(chartQ.data);
-  // Always prefer Jupiter/swap logo — dossier images are often missing or wrong.
+  // Always prefer Jupiter/swap logo, dossier images are often missing or wrong.
   const displaySymbol = focusToken.symbol;
   const displayName = focusToken.name || focusToken.symbol;
   const displayIcon = focusToken.icon;
@@ -273,11 +273,11 @@ export function SwapMarketPanel({
               <>
                 <MetricTile
                   label="Price"
-                  value={stats.price != null ? formatPriceUsd(stats.price) : "—"}
+                  value={stats.price != null ? formatPriceUsd(stats.price) : "-"}
                 />
                 <MetricTile
                   label="24h"
-                  value={change24 != null ? formatPct(change24) : "—"}
+                  value={change24 != null ? formatPct(change24) : "-"}
                   valueClassName={
                     change24 != null
                       ? change24 >= 0

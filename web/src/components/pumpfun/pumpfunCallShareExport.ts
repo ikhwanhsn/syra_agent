@@ -12,7 +12,7 @@ import {
 
 export const PUMPFUN_CALL_SHARE_PIXEL_RATIO = 1;
 
-/** Resolve the fixed-size canvas — never the CSS-scaled preview wrapper. */
+/** Resolve the fixed-size canvas, never the CSS-scaled preview wrapper. */
 export function resolvePumpfunCallShareExportNode(node: HTMLElement): HTMLElement {
   if (node.classList.contains("pumpfun-call-share-canvas")) return node;
   if (node.dataset.exportBg) return node;

@@ -1,4 +1,4 @@
-Syra — machine-readable product summary
+Syra, machine-readable product summary
 ========================================
 
 Name: Syra
@@ -6,14 +6,14 @@ Tagline: Pay-per-call crypto APIs for agents (Solana ecosystem).
 
 What Syra is
 ------------
-Syra is pay-per-call crypto intelligence for agents — settle USDC via x402, integrate with MCP or the SDK, no per-vendor API keys. It is not a promise of returns or financial advice. Agents use Syra to pay for intelligence and tools on every call — not a five-pillar wealth OS pitch.
+Syra is pay-per-call crypto intelligence for agents, settle USDC via x402, integrate with MCP or the SDK, no per-vendor API keys. It is not a promise of returns or financial advice. Agents use Syra to pay for intelligence and tools on every call, not a five-pillar wealth OS pitch.
 
 Core value
 ------------
 - HTTP 402 / x402 micropayments (USDC) for crypto API routes.
 - MCP tools (@syra-ai/mcp-server) and typed SDK (@syra-ai/sdk) for agent builders.
 - Real-time and contextual market data: news, sentiment, signals, smart money, risk.
-- Flint Solana multi-maker spot depth (books, venue stats, candles, external aggregator tape) via paid Spend tools — market data only, not live market-making.
+- Flint Solana multi-maker spot depth (books, venue stats, candles, external aggregator tape) via paid Spend tools, market data only, not live market-making.
 - Structured JSON output agents can act on immediately.
 
 Design stance
@@ -42,9 +42,9 @@ Where Syra runs
 
 npm packages (for agents)
 -------------------------
-- @syra-ai/mcp-server — MCP stdio server; curated (~47) or full (257) tools; x402 auto-pay
-- @syra-ai/sdk — typed TypeScript client + createSyraPaidClient auto-pay
-- @syra-ai/x402-payer — lightweight 402 → sign → retry helper for raw fetch
+- @syra-ai/mcp-server, MCP stdio server; curated (~47) or full (257) tools; x402 auto-pay
+- @syra-ai/sdk, typed TypeScript client + createSyraPaidClient auto-pay
+- @syra-ai/x402-payer, lightweight 402 → sign → retry helper for raw fetch
 
 Payments and access
 -------------------
@@ -60,9 +60,9 @@ Tool naming: MCP tools use syra_{pillar}_{toolId} (example: syra_spend_news). Es
 
 API vs browsable web apps
 --------------------------
-- **api.syraa.fun** — programmatic JSON/HTTP API. Non-paid routes require API key or Bearer token; paid routes require x402 settlement. Public discovery without a key: GET /.well-known/x402 and GET /openapi.json. Never embed API keys in client-side JavaScript bundles.
-- **syraa.fun, docs.syraa.fun, syraa.fun/marketplace, stake.syraa.fun** — ordinary web applications. End users open them in a browser without API credentials. Syra-owned frontends rely on server-side trusted-origin auth injection (not keys shipped to the browser).
-- **Crawlers / monitors** — headless crawlers from datacenter IPs may see Vercel Deployment Protection or API 401/402 responses that real browsers do not. That is not the same as the product being down for users.
+- **api.syraa.fun**, programmatic JSON/HTTP API. Non-paid routes require API key or Bearer token; paid routes require x402 settlement. Public discovery without a key: GET /.well-known/x402 and GET /openapi.json. Never embed API keys in client-side JavaScript bundles.
+- **syraa.fun, docs.syraa.fun, syraa.fun/marketplace, stake.syraa.fun**, ordinary web applications. End users open them in a browser without API credentials. Syra-owned frontends rely on server-side trusted-origin auth injection (not keys shipped to the browser).
+- **Crawlers / monitors**, headless crawlers from datacenter IPs may see Vercel Deployment Protection or API 401/402 responses that real browsers do not. That is not the same as the product being down for users.
 
 Ecosystem
 ---------

@@ -439,7 +439,7 @@ export function PostPhotoLinks({
   );
 }
 
-/** Dual-brand lockup — Syra × partner for integration / partnership cards. */
+/** Dual-brand lockup, Syra × partner for integration / partnership cards. */
 export function PostPhotoPartnershipLockup({
   partnerName,
   partnerLogo,

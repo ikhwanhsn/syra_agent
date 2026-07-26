@@ -26,6 +26,8 @@ export type EarnRiskLevel = "lower" | "moderate" | "higher" | "extreme";
 export type EarnYieldProductStats = {
   productId?: string;
   denom?: EarnDenom;
+  /** "lab" = platform aggregate across agents; never personal wallet PnL. */
+  scope?: "lab" | "agent" | "earn_session" | string;
   wins?: number | null;
   losses?: number | null;
   errors?: number;
@@ -122,12 +124,16 @@ export type EarnYieldUserStatus = {
   } | null;
   canEnable: boolean;
   summary: {
+    /** "earn_session" = since Earn enable on this wallet; never lab history. */
+    scope?: "agent" | "lab" | "earn_session" | string;
+    publicEarnStartedAt?: string | null;
     netPnl?: number;
     netPnlUsd?: number;
     realizedNetPnlSol?: number;
     realizedNetPnlUsd?: number;
     wins?: number;
     losses?: number;
+    winRatePct?: number | null;
     openCount?: number;
     equityUsd?: number | null;
     returnPct?: number | null;

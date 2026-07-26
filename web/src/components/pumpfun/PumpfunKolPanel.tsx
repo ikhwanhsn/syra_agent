@@ -171,7 +171,7 @@ export function PumpfunKolPanel({ data, className }: PumpfunKolPanelProps) {
                           </a>
                         </div>
                       ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
+                        <span className="text-xs text-muted-foreground">, </span>
                       )}
                     </TableCell>
                   </TableRow>

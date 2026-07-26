@@ -25,7 +25,7 @@ export interface PostUpdateMeta {
   /** Default X publish flag (overridable in the post studio via local storage). */
   postedOnX?: boolean;
   /**
-   * Locked template / reference ship log — cannot be soft-deleted from the studio.
+   * Locked template / reference ship log, cannot be soft-deleted from the studio.
    * Future content must follow the same video (8) + photo (15) slot format.
    */
   locked?: boolean;

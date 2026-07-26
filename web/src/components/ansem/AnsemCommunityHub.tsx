@@ -39,7 +39,7 @@ export function AnsemCommunityHub({
   const twitterUrl = normalizeTwitterHandle(social?.twitter) ?? ANSEM_VENUES.find((v) => v.id === "x")?.href;
   const pageUrl = "https://www.syraa.fun/ansem";
 
-  const shareText = encodeURIComponent(`$ANSEM — The Black Bull 🐂\n${pageUrl}`);
+  const shareText = encodeURIComponent(`$ANSEM, The Black Bull 🐂\n${pageUrl}`);
 
   if (isLoading && !social) {
     return (

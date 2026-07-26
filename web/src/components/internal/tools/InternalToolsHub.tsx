@@ -87,7 +87,7 @@ export function InternalToolsHub({ wallet }: InternalToolsHubProps) {
       <div>
         <h2 className="text-lg font-semibold tracking-tight text-foreground sm:text-xl">Internal tools</h2>
         <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-          Utilities for content, ops, and growth. Pick a tool from the rail — new ones plug in here as you ship them.
+          Utilities for content, ops, and growth. Pick a tool from the rail, new ones plug in here as you ship them.
         </p>
       </div>
 

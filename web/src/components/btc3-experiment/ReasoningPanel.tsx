@@ -33,7 +33,7 @@ export function ReasoningPanel({ reasoning }: { reasoning: Btc3Reasoning | null 
     <PanelShell
       kicker="Reasoning"
       title="Structured Agent Reasoning"
-      description="Evidence-based analysis — never plain sentiment."
+      description="Evidence-based analysis, never plain sentiment."
     >
       {!reasoning ? (
         <EmptyState message="No reasoning generated yet. Configure OPENROUTER_API_KEY and run pipeline." />
@@ -61,7 +61,7 @@ export function ReasoningPanel({ reasoning }: { reasoning: Btc3Reasoning | null 
               <ul className="space-y-2 text-sm">
                 {reasoning.historicalEvidence.map((ev, i) => (
                   <li key={i} className="rounded-lg border border-border/40 px-3 py-2">
-                    {ev.eventTitle} — similarity {(ev.similarityScore * 100).toFixed(0)}%, BTC{" "}
+                    {ev.eventTitle}, similarity {(ev.similarityScore * 100).toFixed(0)}%, BTC{" "}
                     {(ev.btcReturn * 100).toFixed(1)}%
                   </li>
                 ))}

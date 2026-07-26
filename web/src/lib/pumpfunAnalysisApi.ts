@@ -216,7 +216,7 @@ export interface TokenKolShillsPayload {
 
 export interface MemecoinAnalysisPayload {
   mint: string;
-  /** Chain id — `solana` or DexScreener chainId (ethereum, base, bsc, arbitrum, …). */
+  /** Chain id, `solana` or DexScreener chainId (ethereum, base, bsc, arbitrum, …). */
   chain?: string;
   token?: AnalyzerTokenMeta;
   syraAlpha: SyraAlphaScore;
@@ -356,7 +356,7 @@ export async function fetchMemecoinAnalysis(
   if (!res.ok || body.success !== true || !body.data?.mint) {
     const fallback =
       res.status === 500
-        ? "Scan failed — the API may be starting up or the database is reconnecting. Try again in a few seconds."
+        ? "Scan failed, the API may be starting up or the database is reconnecting. Try again in a few seconds."
         : "Failed to load memecoin analysis";
     throw new Error(body.error || body.message || fallback);
   }

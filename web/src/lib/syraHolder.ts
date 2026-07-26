@@ -2,7 +2,7 @@ import { PublicKey } from "@solana/web3.js";
 import { connection } from "@/contexts/WalletContext";
 import { SYRA_MINT } from "@/lib/swapPresets";
 
-/** Matches `api/libs/syraToken.js` — wallet balance (not staked) for free agent tools. */
+/** Matches `api/libs/syraToken.js`, wallet balance (not staked) for free agent tools. */
 export const SYRA_HOLDER_THRESHOLD = 1_000_000;
 
 export async function fetchSyraWalletBalance(walletAddress: string): Promise<number | null> {

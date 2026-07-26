@@ -82,7 +82,7 @@ export function PillarCard({
               {balance.usdc != null ? (
                 <AnimatedMetric value={balance.usdc} format={(n) => `$${formatUsdc(n)}`} />
               ) : (
-                "—"
+                "-"
               )}
             </p>
           ) : null}

@@ -55,7 +55,7 @@ export function InternalFounderPulseTool({ wallet }: InternalFounderPulseToolPro
             {[
               { label: "Followers", value: fmtFollowers(result.followers), delta: result.followerDelta },
               { label: "Avg engagement", value: String(a.avgEngagement) },
-              { label: "Tweets/day", value: a.tweetsPerDay != null ? String(a.tweetsPerDay) : "—" },
+              { label: "Tweets/day", value: a.tweetsPerDay != null ? String(a.tweetsPerDay) : "-" },
               { label: "Analyzed", value: String(a.tweetsAnalyzed) },
             ].map((chip) => (
               <div key={chip.label} className="rounded-xl border border-border/50 bg-muted/15 px-3 py-2">

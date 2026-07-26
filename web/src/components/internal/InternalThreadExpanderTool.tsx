@@ -58,7 +58,7 @@ export function InternalThreadExpanderTool({ wallet }: InternalThreadExpanderToo
       setActiveItem(res.data);
       setCopied(false);
       invalidateRecent();
-      toast.success(`Thread ready — ${res.data.tweetCount} tweets`);
+      toast.success(`Thread ready, ${res.data.tweetCount} tweets`);
     },
     onError: (err: Error) => {
       toast.error(err.message || "Failed to expand thread");
@@ -82,7 +82,7 @@ export function InternalThreadExpanderTool({ wallet }: InternalThreadExpanderToo
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
-      toast.success("Thread copied — paste tweets in order on X");
+      toast.success("Thread copied, paste tweets in order on X");
       window.setTimeout(() => setCopied(false), 2200);
     } catch {
       toast.error("Could not copy to clipboard");
@@ -101,7 +101,7 @@ export function InternalThreadExpanderTool({ wallet }: InternalThreadExpanderToo
           id="thread-source"
           value={sourceText}
           onChange={(e) => setSourceText(e.target.value)}
-          placeholder="Paste a narrative, quote caption, or draft tweet — AI expands into a full Syra thread…"
+          placeholder="Paste a narrative, quote caption, or draft tweet, AI expands into a full Syra thread…"
           className="min-h-[6rem] resize-y rounded-xl border-border/60 bg-background/60 text-[13px] leading-relaxed"
           disabled={isBusy}
         />

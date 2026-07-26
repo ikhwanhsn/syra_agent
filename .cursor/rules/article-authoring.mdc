@@ -10,10 +10,12 @@ When editing or creating articles under `web/src/data/marketing/articleContent.t
 
 ## Em dash (required)
 
-1. **Never use the em dash character `—`** (U+2014) in titles, excerpts, descriptions, bios, or markdown body.
+1. **Never use the em dash character `—` (U+2014)** in titles, excerpts, descriptions, bios, or markdown body.
 2. Prefer a **comma** for clause breaks (`machine money, pay-per-call APIs`).
 3. Prefer a **colon** for label → value (`Package: Purpose`, table cells).
-4. `articleXCopy` normalizes leftover em dashes as a safety net, but source content must still be clean.
+4. Prefer ASCII **`-`** for empty/missing UI values (not an em dash).
+5. `articleXCopy` normalizes leftover em dashes as a safety net, but source content must still be clean.
+6. Repo-wide: see `.cursor/rules/no-em-dash.mdc` and `web/scripts/check-no-em-dash.mjs`.
 
 ## Structure
 

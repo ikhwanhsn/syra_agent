@@ -21,7 +21,7 @@ const DEXSCREENER_URL = `https://dexscreener.com/solana/${SYRA_TOKEN_MINT}`;
 const PUMPFUN_URL = `https://pump.fun/coin/${SYRA_TOKEN_MINT}`;
 
 /**
- * Single-panel $SYRA acquisition block for the growth home — plus live buyback proof.
+ * Single-panel $SYRA acquisition block for the growth home, plus live buyback proof.
  */
 export function GrowthTokenSection() {
   const [copied, setCopied] = useState(false);
@@ -52,7 +52,7 @@ export function GrowthTokenSection() {
         </h2>
         <p className={cn(growthProseClass, "mt-3 max-w-xl")}>
           Utility for the layer agents settle on. Product growth is paid calls; ~80% of settled revenue
-          buys $SYRA — verify it below.
+          buys $SYRA, verify it below.
         </p>
       </div>
 

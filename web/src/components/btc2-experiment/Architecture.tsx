@@ -25,7 +25,7 @@ export function Architecture() {
       <SectionHeader
         kicker="Section 09"
         title="Solana Spot Infrastructure"
-        description="Spot-only pipeline — onchain cbBTC/USDC data, signal gating, and Jupiter swap execution. No perps or leverage."
+        description="Spot-only pipeline, onchain cbBTC/USDC data, signal gating, and Jupiter swap execution. No perps or leverage."
       />
 
       <div className={cn(overviewCardShell, "rounded-2xl p-6 sm:p-8")}>

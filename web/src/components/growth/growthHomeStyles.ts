@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 
 export const growthRootClass = "relative min-h-full w-full overflow-x-hidden bg-background";
 
-/** Shared with GrowthFooter — keep home content and footer on the same edge. */
+/** Shared with GrowthFooter, keep home content and footer on the same edge. */
 export const growthShellClass =
   "relative mx-auto w-full max-w-[1680px] px-4 sm:px-6 lg:px-8";
 

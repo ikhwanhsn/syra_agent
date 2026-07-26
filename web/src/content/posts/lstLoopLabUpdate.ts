@@ -15,7 +15,7 @@ export const LST_LOOP_LAB_POST = defineVideoUpdate(
     shareCopyVideo: `SHIP LOG · Leveraged LST Loop paper lab is live.
 
 Stake → collateral → borrow → restake.
-Amplify LST yield — with hard LTV and health-factor rules.
+Amplify LST yield, with hard LTV and health-factor rules.
 
 → Paper first (leverage tiers compete)
 → Earn product: coming soon
@@ -40,7 +40,7 @@ Earn listing after the lab proves out.
       eyebrow: "Ship log",
       title: "Leveraged LST Loop",
       subtitle:
-        "Paper loops of mSOL and JitoSOL with borrow amplification. Steady yield — gated hard before real deposits.",
+        "Paper loops of mSOL and JitoSOL with borrow amplification. Steady yield, gated hard before real deposits.",
       badge: "Paper lab · Earn soon",
     },
     {
@@ -49,7 +49,7 @@ Earn listing after the lab proves out.
       layout: "statement-large-type",
       label: "Context",
       kicker: "Why this matters",
-      headline: "LST yield is boring until you loop it — then risk is the product.",
+      headline: "LST yield is boring until you loop it, then risk is the product.",
       body: "Borrowing against staked SOL can amplify APY and amplify liquidations. We simulate leverage tiers and borrow-rate spikes on paper before any depositor capital touches the loop.",
     },
     {
@@ -108,7 +108,7 @@ Earn listing after the lab proves out.
         {
           title: "Leverage caps",
           subtitle: "Tiered strategies",
-          detail: "Paper strategies declare target leverage and LTV — no unbounded loops.",
+          detail: "Paper strategies declare target leverage and LTV, no unbounded loops.",
           accent: "gold",
         },
         {

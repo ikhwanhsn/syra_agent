@@ -310,22 +310,22 @@ export function formatLlmPrice(
 
   switch (modality) {
     case "image":
-      return pick(pricing.image, "/img") ?? pick(pricing.prompt, "/tok") ?? "—";
+      return pick(pricing.image, "/img") ?? pick(pricing.prompt, "/tok") ?? "-";
     case "video":
-      return pick(pricing.video, "/s") ?? pick(pricing.request, "/req") ?? "—";
+      return pick(pricing.video, "/s") ?? pick(pricing.request, "/req") ?? "-";
     case "embeddings":
-      return pick(pricing.prompt, "/tok") ?? "—";
+      return pick(pricing.prompt, "/tok") ?? "-";
     case "rerank":
-      return pick(pricing.request, "/req") ?? pick(pricing.prompt, "/tok") ?? "—";
+      return pick(pricing.request, "/req") ?? pick(pricing.prompt, "/tok") ?? "-";
     case "speech":
     case "transcription":
       return (
         pick(pricing.audio, "/aud") ??
         pick(pricing.prompt, "/tok") ??
         pick(pricing.request, "/req") ??
-        "—"
+        "-"
       );
     default:
-      return "—";
+      return "-";
   }
 }

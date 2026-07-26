@@ -5,7 +5,7 @@ import { BNB_X402_PHOTO_SHARE_COPIES } from "./shareCopies/bnbX402ShareCopies";
 
 const copies = BNB_X402_PHOTO_SHARE_COPIES;
 
-/** Photo-format content for the BNB x402 ship log — 15 cards, 15 X posts. */
+/** Photo-format content for the BNB x402 ship log, 15 cards, 15 X posts. */
 export const BNB_X402_PHOTO = definePhotoUpdate(BNB_X402_POST.meta, [
   {
     role: "cover",

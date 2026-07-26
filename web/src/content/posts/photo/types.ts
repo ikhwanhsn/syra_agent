@@ -66,6 +66,6 @@ export interface PostPhotoCardDef {
 
 export interface PostPhotoUpdate {
   meta: PostUpdateMeta;
-  /** Exactly 15 cards — one per narrative slot in POST_PHOTO_CARD_SLOTS order. */
+  /** Exactly 15 cards, one per narrative slot in POST_PHOTO_CARD_SLOTS order. */
   cards: PostPhotoCardDef[];
 }

@@ -15,7 +15,7 @@ const solFmt = new Intl.NumberFormat("en-US", {
 });
 
 function formatSol(n: number | null | undefined): string {
-  if (n == null || !Number.isFinite(n)) return "—";
+  if (n == null || !Number.isFinite(n)) return "-";
   return `${solFmt.format(n)} SOL`;
 }
 

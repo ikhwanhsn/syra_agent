@@ -33,7 +33,7 @@ function isLikelySolanaAddress(value: string): boolean {
 }
 
 function formatUsd(n: number | null | undefined): string {
-  if (n == null || !Number.isFinite(n)) return "—";
+  if (n == null || !Number.isFinite(n)) return "-";
   if (Math.abs(n) >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`;
   if (Math.abs(n) >= 1_000) return `$${(n / 1_000).toFixed(2)}K`;
   return `$${n.toFixed(2)}`;
@@ -168,7 +168,7 @@ export default function GrowPage() {
       embedded
       title="Grow"
       tagline="Portfolio health"
-      description="Analyze any wallet. Suggestions only — act through Invest."
+      description="Analyze any wallet. Suggestions only, act through Invest."
       actions={
         <Button variant="outline" size="sm" className="h-9 w-full rounded-full px-4 sm:w-auto" asChild>
           <Link to="/invest">Invest</Link>
@@ -251,7 +251,7 @@ export default function GrowPage() {
                 </p>
                 <p className="mt-1.5 max-w-lg text-sm text-muted-foreground leading-relaxed">
                   Enter an address above to unlock net worth, token mix, DeFi exposure, and
-                  actionable suggestions — then deploy through Invest.
+                  actionable suggestions, then deploy through Invest.
                 </p>
               </div>
             </div>
@@ -464,7 +464,7 @@ export default function GrowPage() {
                     No suggestions right now
                   </p>
                   <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-                    This portfolio looks balanced — check Invest for deployment options.
+                    This portfolio looks balanced, check Invest for deployment options.
                   </p>
                   <Button
                     variant="outline"

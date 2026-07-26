@@ -3,7 +3,7 @@ import { ArrowUpRight } from "lucide-react";
 import { useIsRemotionReveal } from "@/video/engine/revealContext";
 import { cn } from "@/lib/utils";
 
-/** Solid hex chip look — CSS path for non-SVG fallbacks. */
+/** Solid hex chip look, CSS path for non-SVG fallbacks. */
 export const REMOTION_CHIP_STYLE: CSSProperties = {
   display: "inline-flex",
   flexDirection: "row",
@@ -54,7 +54,7 @@ function RemotionSvgChip({
   const stroke = 2.5;
   const dotSize = 6;
   const gap = 8;
-  // Mono width estimate — keeps the capsule tight without measuring DOM.
+  // Mono width estimate, keeps the capsule tight without measuring DOM.
   const textWidth = label.length * (fontSize * 0.64) + Math.max(0, label.length - 1) * letterSpacing;
   const contentWidth = (showDot ? dotSize + gap : 0) + textWidth;
   // Extra slack so glyphs / interpuncts never clip the stroke.
@@ -163,7 +163,7 @@ export function PostVideoChip({
   );
 }
 
-/** External-link affordance — unicode arrow (Lucide SVG strokes break in web-renderer). */
+/** External-link affordance, unicode arrow (Lucide SVG strokes break in web-renderer). */
 export function PostVideoLinkArrow({ className }: { className?: string }) {
   const remotion = useIsRemotionReveal();
   if (!remotion) {
@@ -186,7 +186,7 @@ export function PostVideoLinkArrow({ className }: { className?: string }) {
   );
 }
 
-/** Primary CTA — SVG capsule so download matches Player. */
+/** Primary CTA, SVG capsule so download matches Player. */
 export function PostVideoCtaLink({
   href,
   label,

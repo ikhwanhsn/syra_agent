@@ -35,7 +35,7 @@ const ANGLE_OPTIONS: Array<{ id: HolderPulseAngleId | "auto"; label: string }> =
 ];
 
 function fmtNum(n: number | null | undefined, prefix = ""): string {
-  if (n == null || !Number.isFinite(n)) return "—";
+  if (n == null || !Number.isFinite(n)) return "-";
   if (n >= 1_000_000) return `${prefix}${(n / 1_000_000).toFixed(2)}M`;
   if (n >= 1_000) return `${prefix}${(n / 1_000).toFixed(1)}K`;
   return `${prefix}${n.toFixed(n < 1 ? 6 : 2)}`;
@@ -98,7 +98,7 @@ export function InternalHolderPulseTool({ wallet }: InternalHolderPulseToolProps
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
-      toast.success("Copied — post from @syra_agent");
+      toast.success("Copied, post from @syra_agent");
       window.setTimeout(() => setCopied(false), 2200);
     } catch {
       toast.error("Could not copy");
@@ -116,9 +116,9 @@ export function InternalHolderPulseTool({ wallet }: InternalHolderPulseToolProps
             { label: "24h vol", value: fmtNum(snap.price?.volume24h, "$") },
             { label: "Liquidity", value: fmtNum(snap.price?.liquidityUsd, "$") },
             { label: "Mcap", value: fmtNum(snap.marketCapUsd, "$") },
-            { label: "Top10 %", value: snap.holders?.top10ConcentrationPct != null ? `${snap.holders.top10ConcentrationPct.toFixed(1)}%` : "—" },
-            { label: "Stakers", value: String(snap.staking?.uniqueWallets ?? "—") },
-            { label: "Staked", value: snap.staking?.totalStakedFormatted ?? "—" },
+            { label: "Top10 %", value: snap.holders?.top10ConcentrationPct != null ? `${snap.holders.top10ConcentrationPct.toFixed(1)}%` : "-" },
+            { label: "Stakers", value: String(snap.staking?.uniqueWallets ?? "-") },
+            { label: "Staked", value: snap.staking?.totalStakedFormatted ?? "-" },
             { label: "Supply", value: fmtNum(snap.holders?.supplyHuman) },
           ].map((chip) => (
             <div key={chip.label} className="rounded-xl border border-border/50 bg-muted/15 px-3 py-2">

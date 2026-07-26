@@ -145,7 +145,7 @@ export function InternalEngagementRadarTool({ wallet }: InternalEngagementRadarT
       setActiveReply(null);
       setCopied(false);
       if (res.data.opportunities.length === 0) {
-        toast.message("No opportunities found — try broader topics or lower min likes");
+        toast.message("No opportunities found, try broader topics or lower min likes");
       } else {
         toast.success(`Found ${res.data.opportunities.length} engagement opportunities`);
       }
@@ -168,7 +168,7 @@ export function InternalEngagementRadarTool({ wallet }: InternalEngagementRadarT
       setActiveReply(res.data);
       setCopied(false);
       invalidateRecent();
-      toast.success("Reply draft ready — open on X to post from your account");
+      toast.success("Reply draft ready, open on X to post from your account");
     },
     onError: (err: Error) => {
       toast.error(err.message || "Failed to draft reply");
@@ -206,7 +206,7 @@ export function InternalEngagementRadarTool({ wallet }: InternalEngagementRadarT
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
-      toast.success("Copied — paste as your reply on X");
+      toast.success("Copied, paste as your reply on X");
       window.setTimeout(() => setCopied(false), 2200);
     } catch {
       toast.error("Could not copy to clipboard");
@@ -518,7 +518,7 @@ export function InternalEngagementRadarTool({ wallet }: InternalEngagementRadarT
                 </>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Pick an opportunity and draft a reply — tone pills apply to the next draft.
+                  Pick an opportunity and draft a reply, tone pills apply to the next draft.
                 </p>
               )}
             </div>

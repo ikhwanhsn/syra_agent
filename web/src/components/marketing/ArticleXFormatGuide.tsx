@@ -118,7 +118,7 @@ export function ArticleXFormatGuide({ className }: ArticleXFormatGuideProps) {
 [blocks]     > quote      - bullet         1. numbered
 [remapped]   \`\`\`code\`\`\`  --- divider     | table |
 
-Never use em dash (—). Prefer commas in prose; colon for label: value.`}
+Never use em dash (U+2014). Prefer commas in prose; colon for label: value.`}
           </pre>
         </section>
       </div>

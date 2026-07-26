@@ -101,7 +101,7 @@ export const LP_EARN_YIELD_PHOTO = definePhotoUpdate(LP_EARN_YIELD_POST.meta, [
     layout: "photo-stat-trio",
     shareCopy: copies.metrics,
     content: photoContent({
-      headline: "Lab track record — not a guarantee.",
+      headline: "Lab track record, not a guarantee.",
       stats: [
         { value: "~90%", label: "win rate" },
         { value: "+12", label: "SOL lab PnL" },
@@ -153,7 +153,7 @@ export const LP_EARN_YIELD_PHOTO = definePhotoUpdate(LP_EARN_YIELD_POST.meta, [
     content: photoContent({
       kicker: "Fees",
       headline: "10% only on net gains.",
-      body: "Performance fee hits realized net-positive PnL — not your deposit, not flat or losing runs.",
+      body: "Performance fee hits realized net-positive PnL, not your deposit, not flat or losing runs.",
     }),
   },
   {

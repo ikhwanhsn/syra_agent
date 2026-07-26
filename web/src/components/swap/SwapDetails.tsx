@@ -93,7 +93,7 @@ export function SwapDetails({
             <dd
               className={cn("font-mono font-medium tabular-nums", impactClass)}
             >
-              {impact != null ? `${impact.toFixed(2)}%` : "—"}
+              {impact != null ? `${impact.toFixed(2)}%` : "-"}
             </dd>
           </div>
           {display.platformFeeBps > 0 ? (

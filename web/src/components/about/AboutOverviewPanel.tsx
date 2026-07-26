@@ -26,7 +26,7 @@ export function AboutOverviewPanel() {
       <AboutSectionHeader
         kicker="Company"
         title="Building pay-per-call rails on Solana"
-        description="Crypto intelligence APIs agents can fund on every call — live product, open development, bootstrapped team."
+        description="Crypto intelligence APIs agents can fund on every call, live product, open development, bootstrapped team."
       />
 
       <div className="about-bento-grid grid grid-cols-2 gap-3 sm:grid-cols-5 sm:gap-3">

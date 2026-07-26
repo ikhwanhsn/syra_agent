@@ -29,7 +29,7 @@ export function PostDeckVideo({ slides }: PostDeckVideoProps) {
   return (
     <AbsoluteFill
       style={{
-        // Solid base first — web-renderer must paint a full opaque frame.
+        // Solid base first, web-renderer must paint a full opaque frame.
         backgroundColor: theme.bg,
         width: POST_VIDEO_LAYOUT_WIDTH,
         height: POST_VIDEO_LAYOUT_HEIGHT,
@@ -52,7 +52,7 @@ export function PostDeckVideo({ slides }: PostDeckVideoProps) {
       }}
       className="post-remotion-stage"
     >
-      {/* 1. Background — explicit px size, full composition */}
+      {/* 1. Background, explicit px size, full composition */}
       <AmbientBackground />
 
       {/* 2. Slides */}

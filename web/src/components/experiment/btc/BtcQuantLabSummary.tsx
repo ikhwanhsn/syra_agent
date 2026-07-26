@@ -18,7 +18,7 @@ export interface BtcQuantLabSummaryProps {
 }
 
 function formatRunTime(iso?: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return "-";
   try {
     return new Date(iso).toLocaleString(undefined, {
       month: "short",
@@ -27,7 +27,7 @@ function formatRunTime(iso?: string | null): string {
       minute: "2-digit",
     });
   } catch {
-    return "—";
+    return "-";
   }
 }
 
@@ -66,7 +66,7 @@ export function BtcQuantLabSummary({
           strategyLabel: r.strategyName,
           tokenLabel: `cbBTC · ${r.bar}`,
           reasonLabel: r.resolution ?? r.status,
-          pnlLabel: hasPnl ? formatBtcUsd(pnl) : r.status === "open" ? "Open" : "—",
+          pnlLabel: hasPnl ? formatBtcUsd(pnl) : r.status === "open" ? "Open" : "-",
           pnlPositive: hasPnl && pnl > 0,
           pnlNegative: hasPnl && pnl < 0,
         };
@@ -86,7 +86,7 @@ export function BtcQuantLabSummary({
         ) : (
           <ExperimentLeaderboardList
             rows={leaderboardRows}
-            emptyMessage="No agent stats yet — signal tick will populate runs."
+            emptyMessage="No agent stats yet, signal tick will populate runs."
             accentRingClass="ring-amber-500/30 border-amber-500/35"
             onSelect={(key) => onSelectStrategy?.(Number(key))}
           />
@@ -103,7 +103,7 @@ export function BtcQuantLabSummary({
         ) : (
           <ExperimentTradeFeed
             items={feedItems}
-            emptyMessage="No trades yet — agents scan BTC signals every 2 minutes."
+            emptyMessage="No trades yet, agents scan BTC signals every 2 minutes."
           />
         )}
       </section>

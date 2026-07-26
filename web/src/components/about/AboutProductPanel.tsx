@@ -23,7 +23,7 @@ export function AboutProductPanel() {
       <AboutSectionHeader
         kicker="Product"
         title="From install to first paid call"
-        description="Three steps — install MCP or SDK, settle USDC on 402, call crypto intelligence."
+        description="Three steps, install MCP or SDK, settle USDC on 402, call crypto intelligence."
         align="center"
       />
 
@@ -53,8 +53,8 @@ export function AboutProductPanel() {
 
       <AboutSectionHeader
         kicker="Machine money"
-        title="Five pillars — honest status"
-        description={`${SYRA_LIVE_SUBLINE}. Earn, Treasury, Invest, and Grow graduate as they hit production criteria — discover via GET /pillars.`}
+        title="Five pillars, honest status"
+        description={`${SYRA_LIVE_SUBLINE}. Earn, Treasury, Invest, and Grow graduate as they hit production criteria, discover via GET /pillars.`}
       />
 
       <div className="about-pillar-bento grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">

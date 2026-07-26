@@ -23,7 +23,7 @@ export const LST_LOOP_LAB_PHOTO = definePhotoUpdate(LST_LOOP_LAB_POST.meta, [
     shareCopy: copies.thesis,
     content: photoContent({
       kicker: "The problem",
-      headline: "Looping amplifies yield — and liquidations.",
+      headline: "Looping amplifies yield, and liquidations.",
       body: "We simulate leverage tiers and rate spikes on paper before any depositor SOL touches the loop.",
     }),
   },
@@ -100,7 +100,7 @@ export const LST_LOOP_LAB_PHOTO = definePhotoUpdate(LST_LOOP_LAB_POST.meta, [
     layout: "photo-stat-trio",
     shareCopy: copies.metrics,
     content: photoContent({
-      headline: "Status — not a promise.",
+      headline: "Status, not a promise.",
       stats: [
         { value: "~2x", label: "typical leverage" },
         { value: "≥50", label: "trades to graduate" },

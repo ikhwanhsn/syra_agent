@@ -60,11 +60,11 @@ export function useMemecoinAnalysisQuota(enabled = true) {
 }
 
 type UseMemecoinAnalysisOptions = {
-  /** Keep results cached — no refetch on remount, tab switch, or window focus. */
+  /** Keep results cached, no refetch on remount, tab switch, or window focus. */
   sessionCache?: boolean;
   /** Increment to bypass caches and force a fresh scan. */
   bust?: number;
-  /** Wallet + Syra session ready — required before hitting the API when wallet connected. */
+  /** Wallet + Syra session ready, required before hitting the API when wallet connected. */
   scanReady?: boolean;
   /** Allow one wallet-free scan per day (device id quota). */
   guestScanReady?: boolean;

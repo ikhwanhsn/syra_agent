@@ -164,7 +164,7 @@
     </div>
 
     <h2>Overview</h2>
-    <p>Generates a directional trading signal with bias, confidence, entry context, and reasoning from OHLCV candles. Use when an agent needs a technical read on BTC, ETH, SOL, or other supported assets before sizing a trade. Inputs: token (e.g. solana, bitcoin), source (binance default; coingecko if CEX blocked), interval, limit. Returns signal object with recommendation and analysis — probabilistic, not execution.</p>
+    <p>Generates a directional trading signal with bias, confidence, entry context, and reasoning from OHLCV candles. Use when an agent needs a technical read on BTC, ETH, SOL, or other supported assets before sizing a trade. Inputs: token (e.g. solana, bitcoin), source (binance default; coingecko if CEX blocked), interval, limit. Returns signal object with recommendation and analysis, probabilistic, not execution.</p>
     <p>This is a <strong>pay-per-call</strong> route: unpaid requests return <code>HTTP 402</code> until you settle USDC and retry with <code>PAYMENT-SIGNATURE</code> or <code>X-PAYMENT</code>. See <a href="https://docs.syraa.fun/docs/api/x402-api-standard">x402 wire format</a>.</p>
 
     <h2>Call with the SDK</h2>

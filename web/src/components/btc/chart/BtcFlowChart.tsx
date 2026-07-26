@@ -287,7 +287,7 @@ export function BtcFlowChart({
       ro.disconnect();
       disposeChart();
     };
-  // Data updates handled in separate effect — rebuild only on layout/style changes.
+  // Data updates handled in separate effect, rebuild only on layout/style changes.
   // eslint-disable-next-line react-hooks/exhaustive-deps -- priceData/bubblePoints/rows update via data effect
   }, [
     variant,

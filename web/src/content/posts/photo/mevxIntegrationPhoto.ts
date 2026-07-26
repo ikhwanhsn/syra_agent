@@ -26,7 +26,7 @@ export const MEVX_INTEGRATION_PHOTO = definePhotoUpdate(MEVX_INTEGRATION_POST.me
     content: photoContent({
       kicker: "The shift",
       headline: "Agents trade on tape, not vibes.",
-      body: "MevX brings recent DEX trades, token snapshots, and pool markets into Syra agent tools — Solana-first, partner-keyed, delivered in chat.",
+      body: "MevX brings recent DEX trades, token snapshots, and pool markets into Syra agent tools, Solana-first, partner-keyed, delivered in chat.",
     }),
   },
   {
@@ -108,7 +108,7 @@ export const MEVX_INTEGRATION_PHOTO = definePhotoUpdate(MEVX_INTEGRATION_POST.me
         { value: "Solana", label: "DEX focus" },
         { value: "1", label: "Partner key" },
       ],
-      narrative: "Syra agents pull MevX trading data on demand — no terminal tab-switching.",
+      narrative: "Syra agents pull MevX trading data on demand, no terminal tab-switching.",
     }),
   },
   {

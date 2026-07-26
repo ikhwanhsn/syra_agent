@@ -159,7 +159,7 @@ export default function Leaderboard() {
               <span className="neon-text">Agent leaderboard</span>
             </h1>
             <p className="text-lg text-muted-foreground">
-              Auditable rankings by x402 spend and tool usage — proof that agents run on Syra infrastructure.
+              Auditable rankings by x402 spend and tool usage, proof that agents run on Syra infrastructure.
             </p>
           </motion.div>
 

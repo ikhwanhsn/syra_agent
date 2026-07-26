@@ -63,7 +63,7 @@ export function AnsemSocialRadar({
       <AnsemSectionHeader
         kicker="Social radar"
         title="KOL radar"
-        description="Who's talking about $ANSEM on X — cached server-side, refreshed every 15 minutes."
+        description="Who's talking about $ANSEM on X, cached server-side, refreshed every 15 minutes."
       />
 
       <div className={cn(overviewCardShell, "p-5 sm:p-6")}>
@@ -88,7 +88,7 @@ export function AnsemSocialRadar({
             <div className="rounded-xl border border-border/40 bg-background/30 p-3">
               <p className={overviewKickerClass}>Sentiment</p>
               <p className="text-sm font-medium capitalize text-foreground">
-                {summary.overallSentiment || "—"}
+                {summary.overallSentiment || "-"}
               </p>
             </div>
           </div>
@@ -97,7 +97,7 @@ export function AnsemSocialRadar({
         {!kolError && topKols.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-8 text-center">
             <MessageCircle className="h-8 w-8 text-muted-foreground/50" aria-hidden />
-            <p className="text-sm text-muted-foreground">No recent X posts indexed yet — check back soon.</p>
+            <p className="text-sm text-muted-foreground">No recent X posts indexed yet, check back soon.</p>
           </div>
         ) : null}
 

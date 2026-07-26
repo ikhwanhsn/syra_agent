@@ -17,10 +17,10 @@ import { SYRA_AGENT_DESCRIPTION, SYRA_LIVE_SUBLINE } from "@/lib/syraBranding";
 export { SYRA_TAGLINE, SYRA_LIVE_SUBLINE, SYRA_PILLAR_STATUS } from "@/lib/syraBranding";
 
 export const SYRA_MISSION =
-  "Syra is machine money for agents — Earn, Treasury, Invest, Spend, and Grow on Solana. Live today: pay-per-call crypto intelligence over x402, MCP, and a typed SDK.";
+  "Syra is machine money for agents: Earn, Treasury, Invest, Spend, and Grow on Solana. Live today: pay-per-call crypto intelligence over x402, MCP, and a typed SDK.";
 
 export const SYRA_VISION =
-  "Our vision is an economy where millions of AI agents hold capital, pay for tools, and coordinate value without human billing ops — machine money as infrastructure.";
+  "Our vision is an economy where millions of AI agents hold capital, pay for tools, and coordinate value without human billing ops: machine money as infrastructure.";
 
 export const SYRA_HIGHLIGHT = SYRA_AGENT_DESCRIPTION;
 
@@ -39,18 +39,18 @@ export const SYRA_STATS: SyraStat[] = [
 ];
 
 export const SYRA_PROBLEM = {
-  title: "Agents can think — but they cannot pay for tools",
+  title: "Agents can think, but they cannot pay for tools",
   body: [
-    "AI agents run research and automation workflows — yet most still need humans to sign up for API keys, manage vendor accounts, and approve every paid request.",
+    "AI agents run research and automation workflows, yet most still need humans to sign up for API keys, manage vendor accounts, and approve every paid request.",
     "The missing layer is machine-native payments: discover a route, settle USDC on HTTP 402, and call again without human billing ops.",
   ],
 };
 
 export const SYRA_SOLUTION = {
-  title: "Machine money on Solana — Spend live today",
+  title: "Machine money on Solana: Spend live today",
   body: [
-    "Syra is machine money for agents: Earn, Treasury, Invest, Spend, and Grow. Live today is Spend — x402 micropayments, MCP tools, and a typed SDK so agents fund tools autonomously.",
-    "One wallet pays many routes: news, sentiment, signals, smart money, and execution — no per-vendor API keys.",
+    "Syra is machine money for agents: Earn, Treasury, Invest, Spend, and Grow. Live today is Spend: x402 micropayments, MCP tools, and a typed SDK so agents fund tools autonomously.",
+    "One wallet pays many routes: news, sentiment, signals, smart money, and execution. No per-vendor API keys.",
   ],
 };
 
@@ -63,15 +63,16 @@ export const SYRA_WHY_SOLANA = {
 };
 
 export const SYRA_DIFFERENTIATION = {
-  headline: "We build machine money — not another chatbot",
-  body: "Most AI-agent projects optimize for chat UIs or orchestration. Syra builds the money layer: agents earn, allocate, invest, spend via x402, and grow capital — with Spend live today and the other pillars graduating as they meet production criteria.",
+  headline: "We build machine money, not another chatbot",
+  body: "Most AI-agent projects optimize for chat UIs or orchestration. Syra builds the money layer: agents earn, allocate, invest, spend via x402, and grow capital, with Spend live today and the other pillars graduating as they meet production criteria.",
 };
+
 
 export const SYRA_PRODUCT_FLOW = [
   {
     step: "01",
     title: "Install",
-    description: "Add MCP in Cursor/Claude or npm i @syra-ai/sdk — one payer wallet for many tools.",
+    description: "Add MCP in Cursor/Claude or npm i @syra-ai/sdk: one payer wallet for many tools.",
   },
   {
     step: "02",
@@ -81,7 +82,7 @@ export const SYRA_PRODUCT_FLOW = [
   {
     step: "03",
     title: "Call",
-    description: "News, sentiment, signals, smart money, and execution — structured JSON agents can act on.",
+    description: "News, sentiment, signals, smart money, and execution: structured JSON agents can act on.",
   },
 ] as const;
 
@@ -103,14 +104,14 @@ export const SYRA_PILLARS: SyraPillar[] = [
     id: "spend",
     title: "Spend",
     status: "live",
-    description: "x402 pay-per-call APIs — the live growth wedge for agents and builders.",
+    description: "x402 pay-per-call APIs: the live growth wedge for agents and builders.",
   },
   {
     icon: Coins,
     id: "earn",
     title: "Earn",
     status: "beta",
-    description: "Agents monetize skills — prompts, KOL campaigns, creator attribution on paid calls.",
+    description: "Agents monetize skills: prompts, KOL campaigns, creator attribution on paid calls.",
   },
   {
     icon: Wallet,
@@ -125,14 +126,14 @@ export const SYRA_PILLARS: SyraPillar[] = [
     title: "Invest",
     status: "beta",
     description:
-      "Deploy capital onchain via Marinade, Jito, Kamino, marginfi, and Meteora — plus Jupiter swaps.",
+      "Deploy capital onchain via Marinade, Jito, Kamino, marginfi, and Meteora, plus Jupiter swaps.",
   },
   {
     icon: Sprout,
     id: "grow",
     title: "Grow",
     status: "roadmap",
-    description: "Yield and portfolio optimization — deterministic recommendations, confirm-gated execution.",
+    description: "Yield and portfolio optimization: deterministic recommendations, confirm-gated execution.",
   },
   {
     icon: Shield,
@@ -160,7 +161,7 @@ export const SYRA_CAPABILITIES: SyraCapability[] = [
   },
   {
     title: "MCP in the IDE",
-    description: "Curated crypto tools in Cursor and Claude — news, signals, research in chat.",
+    description: "Curated crypto tools in Cursor and Claude: news, signals, research in chat.",
   },
   {
     title: "Typed SDK",
@@ -177,7 +178,7 @@ export const SYRA_CAPABILITIES: SyraCapability[] = [
   },
   {
     title: "Five pillars",
-    description: `${SYRA_LIVE_SUBLINE}. Earn · Treasury · Invest · Grow graduate as they hit production criteria — discover via GET /pillars.`,
+    description: `${SYRA_LIVE_SUBLINE}. Earn · Treasury · Invest · Grow graduate as they hit production criteria: discover via GET /pillars.`,
   },
 ];
 
@@ -189,7 +190,7 @@ export interface SyraTractionItem {
 export const SYRA_TRACTION: SyraTractionItem[] = [
   {
     title: "Live product",
-    description: "Web agent, APIs, and ongoing capability deployments — not a slide-deck prototype.",
+    description: "Web agent, APIs, and ongoing capability deployments, not a slide-deck prototype.",
   },
   {
     title: "Active community",
@@ -224,14 +225,14 @@ export const SYRA_PLATFORMS: SyraPlatform[] = [
   {
     icon: Activity,
     name: "Live metrics",
-    description: "Public x402 traction, paid calls, and USDC settled — the growth home at syraa.fun.",
+    description: "Public x402 traction, paid calls, and USDC settled: the growth home at syraa.fun.",
     href: "/",
     external: false,
   },
   {
     icon: Cpu,
     name: "MCP",
-    description: "Install @syra-ai/mcp-server for Cursor, Claude, and agent hosts — pay-per-call tools.",
+    description: "Install @syra-ai/mcp-server for Cursor, Claude, and agent hosts: pay-per-call tools.",
     href: "https://docs.syraa.fun/docs/build/mcp",
     external: true,
   },
@@ -291,9 +292,9 @@ export const SYRA_COMMUNITY_LINKS: SyraCommunityLink[] = [
 ];
 
 export const SYRA_DISCLAIMER =
-  "Syra provides infrastructure and intelligence tools for autonomous agents — not financial advice, guaranteed returns, or custody of your keys. Onchain activity carries risk. You are responsible for your own compliance, configuration, and execution.";
+  "Syra provides infrastructure and intelligence tools for autonomous agents, not financial advice, guaranteed returns, or custody of your keys. Onchain activity carries risk. You are responsible for your own compliance, configuration, and execution.";
 
-/** Syra agent on SAID Protocol — verified on-chain identity. */
+/** Syra agent on SAID Protocol: verified on-chain identity. */
 export const SYRA_SAID_AGENT_ID = "53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t";
 
 export const SYRA_SAID_PROFILE_URL = `https://www.saidprotocol.com/agents/${SYRA_SAID_AGENT_ID}`;
@@ -305,7 +306,7 @@ export const SYRA_SAID_BADGE_URL = `https://api.saidprotocol.com/api/badge/${SYR
 /** zauth live registry of verified x402 endpoints. */
 export const ZAUTH_DATABASE_URL = "https://zauth.inc/database";
 
-/** x402scan ecosystem explorer — Top Servers board. */
+/** x402scan ecosystem explorer: Top Servers board. */
 export const X402SCAN_ALL_URL = "https://www.x402scan.com/all";
 
 export interface SyraTrustRanking {
@@ -317,7 +318,7 @@ export interface SyraTrustRanking {
   ariaLabel: string;
 }
 
-/** Homepage ecosystem trust rankings — static, verifiable claims. */
+/** Homepage ecosystem trust rankings: static, verifiable claims. */
 export const SYRA_TRUST_RANKINGS: SyraTrustRanking[] = [
   {
     id: "said",
@@ -325,7 +326,7 @@ export const SYRA_TRUST_RANKINGS: SyraTrustRanking[] = [
     label: "Agent on SAID",
     sub: "Top Reputation",
     href: SYRA_SAID_DIRECTORY_URL,
-    ariaLabel: "Syra is #1 agent on SAID Protocol by Top Reputation — view directory",
+    ariaLabel: "Syra is #1 agent on SAID Protocol by Top Reputation, view directory",
   },
   {
     id: "zauth",
@@ -333,7 +334,7 @@ export const SYRA_TRUST_RANKINGS: SyraTrustRanking[] = [
     label: "Verified provider",
     sub: "zauth.inc",
     href: ZAUTH_DATABASE_URL,
-    ariaLabel: "Syra is #2 verified provider on zauth — view database",
+    ariaLabel: "Syra is #2 verified provider on zauth, view database",
   },
   {
     id: "x402scan",
@@ -341,6 +342,6 @@ export const SYRA_TRUST_RANKINGS: SyraTrustRanking[] = [
     label: "x402scan Top Servers",
     sub: "api.syraa.fun",
     href: X402SCAN_ALL_URL,
-    ariaLabel: "Syra is listed on x402scan Top Servers — view explorer",
+    ariaLabel: "Syra is listed on x402scan Top Servers, view explorer",
   },
 ];

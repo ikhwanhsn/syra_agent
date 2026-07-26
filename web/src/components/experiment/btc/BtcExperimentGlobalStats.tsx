@@ -59,7 +59,7 @@ export function BtcExperimentGlobalStats({ overview, loading }: BtcExperimentGlo
       />
       <StatTile
         label="Sim leader"
-        value={leaderId != null ? `#${leaderId}` : "—"}
+        value={leaderId != null ? `#${leaderId}` : "-"}
         sub={leaderPnl != null ? formatBtcUsd(leaderPnl) : "Warming up"}
         icon={Bitcoin}
       />

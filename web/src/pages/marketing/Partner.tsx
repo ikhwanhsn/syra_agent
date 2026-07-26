@@ -108,7 +108,7 @@ export default function Partner() {
               Partner <span className="neon-text">integrations</span>
             </h1>
             <p className="mt-4 text-base text-muted-foreground sm:text-lg max-w-2xl text-balance">
-              The protocols, venues, and data layer Syra connects to—so
+              The protocols, venues, and data layer Syra connects to, so
               research, risk, and execution sit on a single, coherent
               stack.
             </p>

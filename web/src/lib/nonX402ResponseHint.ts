@@ -42,7 +42,7 @@ export function shouldShowNonX402Hint(
 
   if (isValidJsonDocument(body)) {
     if (paymentLane === 'mpp' && responseSignalsMppLane(response)) return false;
-    // Any parseable JSON 2xx — assume intentional API payload (x402-paid or other JSON APIs)
+    // Any parseable JSON 2xx, assume intentional API payload (x402-paid or other JSON APIs)
     return false;
   }
 

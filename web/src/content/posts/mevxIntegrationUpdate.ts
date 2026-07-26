@@ -11,7 +11,7 @@ export const MEVX_INTEGRATION_POST = defineVideoUpdate(
     title: "MevX Trading Data",
     published: "July 2026",
     tagline:
-      "Syra agents pull MevX trades, token, and pool data for Solana DEX workflows — pay via the agent wallet.",
+      "Syra agents pull MevX trades, token, and pool data for Solana DEX workflows, pay via the agent wallet.",
     shareCopyVideo: `SHIP LOG · Syra × MevX is live.
 
 Trading agents need fresh DEX tape, not screenshots.
@@ -26,7 +26,7 @@ Full breakdown in the video ↓`,
     shareCopyPhoto: `SHIP LOG · Syra × MevX trading data.
 
 Agent tools: mevx-trades, mevx-token, mevx-pools.
-Recent DEX history, token lookups, pool markets — Solana-first.
+Recent DEX history, token lookups, pool markets, Solana-first.
 
 X → x.com/MEVX_Official
 Try → syraa.fun/chat`,
@@ -40,7 +40,7 @@ Try → syraa.fun/chat`,
       eyebrow: "Ship log",
       title: "MevX × Syra",
       subtitle:
-        "Trading terminal data inside Syra agents. Trades, tokens, and pools — Solana DEX workflows without leaving chat.",
+        "Trading terminal data inside Syra agents. Trades, tokens, and pools, Solana DEX workflows without leaving chat.",
       badge: "Trading data · 3 tools",
     },
     {
@@ -61,9 +61,9 @@ Try → syraa.fun/chat`,
       headline: "Three MevX agent tools",
       body: "We wired the MevX Trading API behind agentDirect tools. Set MEVX_API_KEY once; agents pay through the Syra wallet path like other partner data rails.",
       highlights: [
-        "mevx-trades — recent DEX history by pool or wallet",
-        "mevx-token — token market lookup (mint / address)",
-        "mevx-pools — pool markets for Solana DEX pairs",
+        "mevx-trades, recent DEX history by pool or wallet",
+        "mevx-token, token market lookup (mint / address)",
+        "mevx-pools, pool markets for Solana DEX pairs",
         "Partner page + Spend pillar routes for discovery",
       ],
     },
@@ -166,7 +166,7 @@ Try → syraa.fun/chat`,
         {
           icon: Layers,
           title: "Partner page",
-          description: "syraa.fun/partner/mevx — capabilities and setup notes.",
+          description: "syraa.fun/partner/mevx, capabilities and setup notes.",
           href: "https://www.syraa.fun/partner/mevx",
         },
       ],

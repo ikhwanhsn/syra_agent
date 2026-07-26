@@ -124,7 +124,7 @@ export function InternalNarrativeTool({ wallet }: InternalNarrativeToolProps) {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
-      toast.success("Copied — paste on X");
+      toast.success("Copied, paste on X");
       window.setTimeout(() => setCopied(false), 2200);
     } catch {
       toast.error("Could not copy to clipboard");
@@ -214,7 +214,7 @@ export function InternalNarrativeTool({ wallet }: InternalNarrativeToolProps) {
               ))}
             </ul>
           ) : (
-            <p className="mt-2 text-[11px] text-muted-foreground">No headlines cached yet — Syra mode still works.</p>
+            <p className="mt-2 text-[11px] text-muted-foreground">No headlines cached yet, Syra mode still works.</p>
           )}
         </div>
       ) : null}

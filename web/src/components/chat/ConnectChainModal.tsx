@@ -93,7 +93,7 @@ export function ConnectChainModal({
                   </span>
                 </span>
                 <span className="block text-[13px] leading-snug text-muted-foreground">
-                  Sign in with email — passwordless, then connect a Solana wallet.
+                  Sign in with email, passwordless, then connect a Solana wallet.
                 </span>
               </span>
               <ChevronRight

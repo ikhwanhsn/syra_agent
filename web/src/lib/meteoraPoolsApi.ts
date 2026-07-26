@@ -64,26 +64,26 @@ export function feeAprFromDailyRatio(feeTvlRatio: number | null | undefined): nu
 
 export function formatUsdCompact(value: number | null | undefined): string {
   const n = Number(value);
-  if (!Number.isFinite(n)) return "—";
+  if (!Number.isFinite(n)) return "-";
   if (Math.abs(n) >= 1_000) return usdCompact.format(n);
   return usdFull.format(n);
 }
 
 export function formatPercent(value: number | null | undefined): string {
   const n = Number(value);
-  if (!Number.isFinite(n)) return "—";
+  if (!Number.isFinite(n)) return "-";
   return percentFmt.format(n);
 }
 
 export function formatDailyFeeYield(value: number | null | undefined): string {
   const n = Number(value);
-  if (!Number.isFinite(n) || n <= 0) return "—";
+  if (!Number.isFinite(n) || n <= 0) return "-";
   return percentDailyFmt.format(n);
 }
 
 export function formatPrice(value: number | null | undefined): string {
   const n = Number(value);
-  if (!Number.isFinite(n) || n <= 0) return "—";
+  if (!Number.isFinite(n) || n <= 0) return "-";
   if (n >= 1) return n.toLocaleString("en-US", { maximumFractionDigits: 4 });
   if (n >= 0.0001) return n.toLocaleString("en-US", { maximumFractionDigits: 6 });
   return n.toExponential(3);

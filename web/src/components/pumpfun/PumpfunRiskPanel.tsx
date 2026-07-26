@@ -60,7 +60,7 @@ export function PumpfunRiskPanel({ data, className }: PumpfunRiskPanelProps) {
         {marketScore ? (
           <div className="flex flex-wrap items-center gap-3">
             <Badge className={cn("px-3 py-1 text-sm font-semibold", riskToneClass(marketScore.tone))}>
-              Grade {marketScore.grade ?? marketScore.label ?? "—"}
+              Grade {marketScore.grade ?? marketScore.label ?? "-"}
             </Badge>
             {marketScore.score != null ? (
               <span className="font-mono text-sm tabular-nums text-muted-foreground">

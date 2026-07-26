@@ -12,7 +12,7 @@ export interface LabWallet {
   /** Native gas token balance (SOL, ETH, or ALGO). null when RPC unavailable. */
   nativeBalance: number | null;
   nativeSymbol: "SOL" | "ETH" | "ALGO";
-  /** @deprecated Prefer nativeBalance — kept for older simulation helpers. */
+  /** @deprecated Prefer nativeBalance, kept for older simulation helpers. */
   solBalance: number | null;
   usdcBalance: number | null;
   balanceAvailable?: boolean;
@@ -55,7 +55,7 @@ export interface LabDepositHub {
   nativeSymbol: "SOL" | "ETH" | "ALGO";
   usdcBalance: number | null;
   balanceAvailable: boolean;
-  /** Algorand only — true once the hub has opted into USDC ASA. */
+  /** Algorand only, true once the hub has opted into USDC ASA. */
   optedInUsdc?: boolean;
   recipientsCount: number;
   depositDistributeEnabled: boolean;

@@ -9,7 +9,7 @@ import {
 import { PAGE_SAFE_AREA_BOTTOM } from "@/lib/layoutConstants";
 import { cn } from "@/lib/utils";
 
-/** Sticky offset for article sidebars — matches playground history panel. */
+/** Sticky offset for article sidebars, matches playground history panel. */
 export const ARTICLE_SIDEBAR_STICKY = PLAYGROUND_SIDEBAR_STICKY_CLASS;
 
 interface ArticlePageShellProps {

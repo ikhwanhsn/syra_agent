@@ -1,6 +1,6 @@
 import type { MetricShareVariantMeta } from "@/components/info/metricsShare/types";
 
-/** Each section has 3 bespoke layouts — no shared template IDs across sections. */
+/** Each section has 3 bespoke layouts, no shared template IDs across sections. */
 export const SECTION_VARIANT_REGISTRY: Record<string, MetricShareVariantMeta[]> = {
   headline: [
     { index: 0, id: "monolith", label: "Monolith", description: "Centered hero stat on full canvas" },

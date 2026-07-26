@@ -22,7 +22,7 @@ type AgentPumpfunCoinResponse =
   | { success: false; error?: string };
 
 /**
- * Pump.fun coin metadata for agent UI — proxied by Syra API (`GET /agent/pumpfun/coin/:mint`).
+ * Pump.fun coin metadata for agent UI, proxied by Syra API (`GET /agent/pumpfun/coin/:mint`).
  */
 export async function fetchPumpfunCoinMetadata(
   mint: string,

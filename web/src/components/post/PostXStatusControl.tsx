@@ -28,7 +28,7 @@ export function PostXStatusControl({
           posted ? "bg-emerald-400/90" : "bg-amber-400/70",
           className,
         )}
-        aria-label={posted ? "Posted on X — click to mark not posted" : "Not on X — click to mark posted"}
+        aria-label={posted ? "Posted on X, click to mark not posted" : "Not on X, click to mark posted"}
         title={posted ? "Posted on X" : "Not posted on X"}
       />
     );
@@ -55,7 +55,7 @@ export function PostXStatusControl({
         <Circle className="h-3 w-3 shrink-0" aria-hidden />
       )}
       <span className="hidden sm:inline">{posted ? "On X" : "Not on X"}</span>
-      <span className="sm:hidden">{posted ? "X" : "—"}</span>
+      <span className="sm:hidden">{posted ? "X" : "-"}</span>
     </button>
   );
 }
@@ -80,7 +80,7 @@ export function PostXStatusLabel({
           ? "bg-emerald-500/12 text-emerald-400/85 hover:bg-emerald-500/18"
           : "bg-amber-500/10 text-amber-300/75 hover:bg-amber-500/16",
       )}
-      title={posted ? "Posted on X — click to change" : "Not posted on X — click to mark posted"}
+      title={posted ? "Posted on X, click to change" : "Not posted on X, click to mark posted"}
     >
       <span
         className={cn("h-1.5 w-1.5 rounded-full", posted ? "bg-emerald-400" : "bg-amber-400/80")}

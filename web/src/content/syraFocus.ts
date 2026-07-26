@@ -1,4 +1,4 @@
-/** Product focus copy — pay-per-call wedge. Tagline lives in syraBranding. */
+/** Product focus copy: pay-per-call wedge. Tagline lives in syraBranding. */
 
 export {
   SYRA_TAGLINE,
@@ -7,19 +7,19 @@ export {
 } from "@/lib/syraBranding";
 
 export const SYRA_ONE_LINER =
-  "Machine money for agents on Solana — live today: pay-per-call crypto APIs over x402.";
+  "Machine money for agents on Solana. Live today: pay-per-call crypto APIs over x402.";
 
 export const SYRA_RAIL_MODULES = [
   {
     title: "Pay-per-call x402 APIs",
     description:
-      "News, sentiment, risk, smart-money flow, signals, and execution — agents discover and fund tools with USDC on HTTP 402.",
+      "News, sentiment, risk, smart-money flow, signals, and execution: agents discover and fund tools with USDC on HTTP 402.",
     features: ["x402 USDC on Solana", "OpenAPI catalog", "Marketplace"],
   },
   {
     title: "MCP + typed SDK",
     description:
-      "Install once in Cursor or Claude, or wire createSyraPaidClient in app code — auto-pay on 402 without per-vendor API keys.",
+      "Install once in Cursor or Claude, or wire createSyraPaidClient in app code: auto-pay on 402 without per-vendor API keys.",
     features: ["@syra-ai/mcp-server", "@syra-ai/sdk", "Auto-pay wallets"],
   },
   {
@@ -35,7 +35,7 @@ export const SYRA_VS_DIY = [
   {
     title: "One wallet, many tools",
     description:
-      "One USDC payer (MCP or SDK) covers news, on-chain intel, and partner routes — no N vendor API keys or billing accounts.",
+      "One USDC payer (MCP or SDK) covers news, on-chain intel, and partner routes: no N vendor API keys or billing accounts.",
   },
   {
     title: "Agent-native install",
@@ -54,7 +54,7 @@ export const SYRA_VS_DIY = [
   },
 ] as const;
 
-/** Honest margin bands — keep in sync with api/config/x402Pricing.js. */
+/** Honest margin bands: keep in sync with api/config/x402Pricing.js. */
 export const SYRA_PRICING_BANDS = {
   passthrough:
     "Partner passthrough APIs (e.g. Birdeye, Nansen, TopLedger): upstream cost × ~1.2 (~+20%).",
@@ -64,7 +64,7 @@ export const SYRA_PRICING_BANDS = {
 } as const;
 
 export const SYRA_PLATFORM_FEE_NOTE =
-  "Includes Syra platform fee over upstream — see pricing docs for bands.";
+  "Includes Syra platform fee over upstream: see pricing docs for bands.";
 
 export const SYRA_PRICING_DOCS_URL = "https://docs.syraa.fun/docs/build/pricing";
 export const SYRA_TOKEN_PAGE_PATH = "/token";

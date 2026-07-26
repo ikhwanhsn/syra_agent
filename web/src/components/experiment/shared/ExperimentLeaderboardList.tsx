@@ -23,7 +23,7 @@ export interface ExperimentLeaderboardListProps {
 }
 
 function formatPct(n: number): string {
-  if (!Number.isFinite(n)) return "—";
+  if (!Number.isFinite(n)) return "-";
   const sign = n > 0 ? "+" : "";
   return `${sign}${n.toFixed(1)}%`;
 }

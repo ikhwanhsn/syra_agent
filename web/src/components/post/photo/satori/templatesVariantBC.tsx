@@ -1,6 +1,6 @@
 /**
  * Layout variants B and C for each photo card role.
- * Same PHOTO palette as variant A — structurally different composition only.
+ * Same PHOTO palette as variant A, structurally different composition only.
  */
 import type { ReactNode } from "react";
 import type { PostPhotoContent } from "@/content/posts/photo/types";
@@ -1974,7 +1974,7 @@ export function TerminalLayoutB({ content }: { content: PostPhotoContent }) {
         <Body>
           {content.body ||
             content.narrative ||
-            "Run the flow — pay, call, verify."}
+            "Run the flow, pay, call, verify."}
         </Body>
       </div>
     </div>

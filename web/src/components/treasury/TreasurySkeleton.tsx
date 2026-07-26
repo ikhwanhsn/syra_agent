@@ -111,7 +111,7 @@ function WalletCardSkeleton() {
   );
 }
 
-/** Full treasury panel skeleton — balance, spend, and wallets. */
+/** Full treasury panel skeleton, balance, spend, and wallets. */
 export function TreasuryPanelSkeleton() {
   return (
     <div

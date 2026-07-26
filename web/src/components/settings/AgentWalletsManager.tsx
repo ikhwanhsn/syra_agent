@@ -58,12 +58,12 @@ export interface ManagedAgentWallet {
 }
 
 function shortenAddress(addr: string): string {
-  if (!addr) return "—";
+  if (!addr) return "-";
   return `${addr.slice(0, 4)}…${addr.slice(-4)}`;
 }
 
 function maskAnonymousId(id: string): string {
-  if (!id) return "—";
+  if (!id) return "-";
   if (id.startsWith("wallet:")) {
     const pubkey = id.slice(7).replace(":lp", "").trim();
     if (pubkey.length <= 8) return pubkey;
@@ -309,7 +309,7 @@ function AgentWalletManageCard({
                 {balanceLoading ? "…" : formatTreasuryUsd(usdcBalance)}
               </p>
               <p className={walletStatHint}>
-                {balanceLoading ? "…" : solBalance != null ? `${formatSol(solBalance)} SOL` : "— SOL"}
+                {balanceLoading ? "…" : solBalance != null ? `${formatSol(solBalance)} SOL` : ", SOL"}
               </p>
             </div>
 
@@ -408,7 +408,7 @@ function AgentWalletManageCard({
         <Dialog open={exportOpen} onOpenChange={handleExportOpenChange}>
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
-              <DialogTitle>{slot.label} — private key</DialogTitle>
+              <DialogTitle>{slot.label}, private key</DialogTitle>
               <DialogDescription>
                 Base58 secret for{" "}
                 <span className="font-mono text-foreground/90">{shortenAddress(wallet.agentAddress)}</span>. Anyone
@@ -507,7 +507,7 @@ function AgentWalletManageCard({
               <div className="flex justify-between font-mono text-sm tabular-nums">
                 <span className="text-muted-foreground">SOL</span>
                 <span className="font-medium text-foreground">
-                  {balanceLoading ? "…" : solBalance != null ? formatSol(solBalance) : "—"}
+                  {balanceLoading ? "…" : solBalance != null ? formatSol(solBalance) : "-"}
                 </span>
               </div>
               <div className="flex justify-between font-mono text-sm tabular-nums">
@@ -585,7 +585,7 @@ function AgentWalletManageCard({
       <Dialog open={exportOpen} onOpenChange={handleExportOpenChange}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{slot.label} — private key</DialogTitle>
+            <DialogTitle>{slot.label}, private key</DialogTitle>
             <DialogDescription>
               Base58 secret for{" "}
               <span className="font-mono text-foreground/90">{shortenAddress(wallet.agentAddress)}</span>. Anyone with
@@ -927,7 +927,7 @@ export function AgentWalletsManager({
             <DialogTitle>Remove agent wallet?</DialogTitle>
             <DialogDescription>
               {removeTarget?.kind === "spend"
-                ? "This retires your spend agent wallet and all pillar siblings. Withdraw any remaining SOL or USDC first — Syra cannot recover funds after removal."
+                ? "This retires your spend agent wallet and all pillar siblings. Withdraw any remaining SOL or USDC first, Syra cannot recover funds after removal."
                 : "This retires this agent wallet. Withdraw any remaining funds first."}
             </DialogDescription>
           </DialogHeader>

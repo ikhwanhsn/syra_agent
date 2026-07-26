@@ -87,7 +87,7 @@ export function mean(values: number[]): number | null {
 }
 
 export function priceLabel(value?: number): string {
-  if (value == null || !Number.isFinite(value)) return "—";
+  if (value == null || !Number.isFinite(value)) return "-";
   return new Intl.NumberFormat(undefined, {
     style: "currency",
     currency: "USD",

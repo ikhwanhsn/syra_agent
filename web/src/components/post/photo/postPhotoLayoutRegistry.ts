@@ -121,7 +121,7 @@ export const POST_PHOTO_LAYOUT_REGISTRY: PhotoTemplateDef[] = [
   { id: "photo-terminal", bodyClassName: "post-photo-tmpl-terminal", align: "terminal", blocks: ["terminal"] },
   { id: "photo-editorial", bodyClassName: "post-photo-tmpl-editorial", align: "editorial", blocks: ["eyebrow", "headline", "body", "badge"] },
 
-  /* Batch 3 — premium third variant per context (75-library tier) */
+  /* Batch 3, premium third variant per context (75-library tier) */
   {
     id: "photo-cover-aurora",
     bodyClassName: "post-photo-tmpl-cover-aurora",
@@ -300,7 +300,7 @@ export const POST_PHOTO_LAYOUT_REGISTRY: PhotoTemplateDef[] = [
     blocks: ["kicker", "headline", "compare"],
   },
 
-  /* Batch 4 — partnership & integration dual-brand lockups */
+  /* Batch 4, partnership & integration dual-brand lockups */
   {
     id: "photo-partnership-union",
     bodyClassName: "post-photo-tmpl-partnership-union",

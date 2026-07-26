@@ -5,7 +5,7 @@ import { LP_AGENT_PHOTO_SHARE_COPIES } from "./shareCopies/lpAgentShareCopies";
 
 const copies = LP_AGENT_PHOTO_SHARE_COPIES;
 
-/** Photo-format content for the LP agent ship log — 15 cards, 15 X posts. */
+/** Photo-format content for the LP agent ship log, 15 cards, 15 X posts. */
 export const LP_AGENT_PHOTO = definePhotoUpdate(LP_AGENT_POST.meta, [
   {
     role: "cover",

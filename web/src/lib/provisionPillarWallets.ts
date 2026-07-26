@@ -68,7 +68,7 @@ export function seedPillarWalletSetCache(
   };
   // Always seed the anonymousId-only key (legacy callers / invalidations).
   queryClient.setQueryData<AgentWalletSetResponse>(["agent-wallet-set", res.anonymousId], payload);
-  // Match usePillarAgentWallets key that includes walletAddress — required for live cards.
+  // Match usePillarAgentWallets key that includes walletAddress, required for live cards.
   const wallet = walletAddress?.trim();
   if (wallet) {
     queryClient.setQueryData<AgentWalletSetResponse>(

@@ -108,13 +108,13 @@ function buildChecks(data: MemecoinAnalysisPayload): SafetyCheck[] {
       id: "mint",
       label: "Mint authority",
       status: mintRenounced == null ? "unknown" : mintRenounced ? "pass" : "fail",
-      detail: mintRenounced == null ? "Unknown" : mintRenounced ? "Renounced" : "Active — can mint more",
+      detail: mintRenounced == null ? "Unknown" : mintRenounced ? "Renounced" : "Active, can mint more",
     },
     {
       id: "freeze",
       label: "Freeze authority",
       status: freezeRenounced == null ? "unknown" : freezeRenounced ? "pass" : "fail",
-      detail: freezeRenounced == null ? "Unknown" : freezeRenounced ? "Renounced" : "Active — can freeze wallets",
+      detail: freezeRenounced == null ? "Unknown" : freezeRenounced ? "Renounced" : "Active, can freeze wallets",
     },
     {
       id: "top10",

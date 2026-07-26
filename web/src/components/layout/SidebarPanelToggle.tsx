@@ -99,7 +99,7 @@ export function SidebarPanelToggle({
   );
 }
 
-/** Chat agent page — same control with conversation-specific labels */
+/** Chat agent page, same control with conversation-specific labels */
 export function ChatSidebarToggle({
   mode,
   onClick,

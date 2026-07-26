@@ -151,7 +151,7 @@ export function StakingStatsStrip({
 
   const totalLockedDisplay = protocolTotalFormatted
     ? `${formatCompactAmount(protocolTotalFormatted)} ${symbol}`
-    : "—";
+    : "-";
 
   const yourLockedDisplay = connected
     ? `${formatCompactAmount(myLockedFormatted)} ${symbol}`
@@ -195,7 +195,7 @@ export function StakingStatsStrip({
               <MetricCell
                 icon={Users}
                 label="Active stakers"
-                value={summary ? summary.uniqueWallets.toLocaleString() : "—"}
+                value={summary ? summary.uniqueWallets.toLocaleString() : "-"}
                 hint="Wallets with open locks"
               />
             </div>

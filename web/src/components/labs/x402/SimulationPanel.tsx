@@ -20,7 +20,7 @@ interface SimulationPanelProps {
   settings: LabX402Settings | undefined;
   endpoints: LabX402Endpoint[];
   chain?: LabChain;
-  /** Draft values from settings form (optional — falls back to saved settings) */
+  /** Draft values from settings form (optional, falls back to saved settings) */
   draft?: {
     intervalMin?: number;
     jitterPct?: number;
@@ -130,7 +130,7 @@ export function SimulationPanel({
             Volume & cost simulation
           </h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            Plan how to hit a 24h USD volume target — calls, interval, price multiplier, and wallet
+            Plan how to hit a 24h USD volume target, calls, interval, price multiplier, and wallet
             funding.
             {priceMultiplier !== 1 ? (
               <>
@@ -217,7 +217,7 @@ export function SimulationPanel({
 
           {!autoCallEnabled ? (
             <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200/90">
-              Auto-call is off — projected volume is 0 until you enable it and save settings.
+              Auto-call is off, projected volume is 0 until you enable it and save settings.
             </p>
           ) : null}
 
@@ -339,7 +339,7 @@ export function SimulationPanel({
                     value={
                       result.suggestedIntervalMin != null
                         ? `${result.suggestedIntervalMin} min`
-                        : "—"
+                        : "-"
                     }
                     hint={`with ${payerCount} payer${payerCount === 1 ? "" : "s"}`}
                   />
@@ -395,7 +395,7 @@ export function SimulationPanel({
                     ? ` at ×${result.priceMultiplier} effective prices`
                     : ""}
                   )
-                  {result.refundEnabled ? " (refund on — USDC is working capital, not net spend)" : ""}
+                  {result.refundEnabled ? " (refund on, USDC is working capital, not net spend)" : ""}
                   .
                   {result.priceMultiplier !== 1
                     ? ` Buffers use max call ${formatSimulationUsd(result.maxPriceUsd)} (base ${formatSimulationUsd(result.baseMaxPriceUsd)} ×${result.priceMultiplier}).`
@@ -457,13 +457,13 @@ export function SimulationPanel({
                               <td className="px-3 py-2 font-medium">{row.label}</td>
                               <td className="px-3 py-2 capitalize text-muted-foreground">{row.role}</td>
                               <td className="px-3 py-2 text-right font-mono tabular-nums">
-                                {row.currentUsdc != null ? row.currentUsdc.toFixed(2) : "—"}
+                                {row.currentUsdc != null ? row.currentUsdc.toFixed(2) : "-"}
                               </td>
                               <td className="px-3 py-2 text-right font-mono tabular-nums">
                                 {row.suggestedUsdc.toFixed(2)}
                               </td>
                               <td className="px-3 py-2 text-right font-mono tabular-nums">
-                                {row.currentSol != null ? row.currentSol.toFixed(4) : "—"}
+                                {row.currentSol != null ? row.currentSol.toFixed(4) : "-"}
                               </td>
                               <td className="px-3 py-2 text-right font-mono tabular-nums">
                                 {row.suggestedSol.toFixed(4)}

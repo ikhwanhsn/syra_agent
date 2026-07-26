@@ -18,7 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 
 function formatUsd(n: number | null | undefined): string {
-  if (n == null || !Number.isFinite(n)) return "—";
+  if (n == null || !Number.isFinite(n)) return "-";
   return `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
@@ -50,7 +50,7 @@ export default function InternalWalletsPage() {
               Agent wallet sets
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              All pillar wallets (earn, treasury, invest, spend, grow) across agents — balances and provisioning source.
+              All pillar wallets (earn, treasury, invest, spend, grow) across agents, balances and provisioning source.
             </p>
           </div>
           <div className="relative w-full sm:max-w-xs">
@@ -113,7 +113,7 @@ export default function InternalWalletsPage() {
                             <p className="text-xs tabular-nums text-muted-foreground">
                               {row.balances?.solBalance != null
                                 ? `${row.balances.solBalance.toFixed(3)} SOL`
-                                : "— SOL"}
+                                : ", SOL"}
                             </p>
                           </>
                         ) : (

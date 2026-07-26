@@ -56,7 +56,7 @@ export function PortfolioPanel({
 
       {latestDecision ? (
         <p className="mt-4 text-sm text-muted-foreground">
-          Latest decision: {latestDecision.headline || "Allocation update"} — status{" "}
+          Latest decision: {latestDecision.headline || "Allocation update"}, status{" "}
           <span className="font-medium text-foreground">{latestDecision.status}</span>
         </p>
       ) : null}

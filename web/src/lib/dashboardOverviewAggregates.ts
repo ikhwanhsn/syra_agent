@@ -31,7 +31,7 @@ export function aggregateLpAgents(agents: LpAgentStats[]) {
 }
 
 export function formatCompactUsd(n: number | null | undefined): string {
-  if (n == null || !Number.isFinite(n)) return "—";
+  if (n == null || !Number.isFinite(n)) return "-";
   const abs = Math.abs(n);
   if (abs >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(1)}B`;
   if (abs >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
@@ -40,14 +40,14 @@ export function formatCompactUsd(n: number | null | undefined): string {
 }
 
 export function formatSol(n: number): string {
-  if (!Number.isFinite(n)) return "—";
+  if (!Number.isFinite(n)) return "-";
   const sign = n < 0 ? "−" : "";
   const v = Math.abs(n);
   return `${sign}${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 3 })}`;
 }
 
 export function formatPct(n: number): string {
-  if (!Number.isFinite(n)) return "—";
+  if (!Number.isFinite(n)) return "-";
   const sign = n > 0 ? "+" : "";
   return `${sign}${n.toFixed(1)}%`;
 }

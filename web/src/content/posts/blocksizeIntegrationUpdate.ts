@@ -14,7 +14,7 @@ export const BLOCKSIZE_INTEGRATION_POST = defineVideoUpdate(
       "Institutional VWAP, bid/ask, instrument search, and pre-trade checks via mcp.blocksize.info x402.",
     shareCopyVideo: `SHIP LOG · Syra × Blocksize is live.
 
-Agents need oracle-grade VWAP — not a random mid.
+Agents need oracle-grade VWAP, not a random mid.
 
 → blocksize-search · blocksize-vwap · blocksize-bidask
 → Pre-trade sanity checks (~$0.10)
@@ -40,7 +40,7 @@ Try → syraa.fun/chat`,
       eyebrow: "Ship log",
       title: "Blocksize × Syra",
       subtitle:
-        "Institutional VWAP and bid/ask snapshots for AI agents — MCP + x402, no API account to open.",
+        "Institutional VWAP and bid/ask snapshots for AI agents, MCP + x402, no API account to open.",
       badge: "VWAP · Bid/Ask · MCP",
     },
     {
@@ -50,7 +50,7 @@ Try → syraa.fun/chat`,
       label: "Context",
       kicker: "Why this matters",
       headline: "Autonomous size needs a reference price.",
-      body: "Retail mids lie under thin liquidity. Blocksize aggregates institutional crypto market data — VWAP, bid/ask, pre-trade guards — so Syra agents can quote and sanity-check before they move size.",
+      body: "Retail mids lie under thin liquidity. Blocksize aggregates institutional crypto market data, VWAP, bid/ask, pre-trade guards, so Syra agents can quote and sanity-check before they move size.",
     },
     {
       id: "shipped",
@@ -61,9 +61,9 @@ Try → syraa.fun/chat`,
       headline: "Four Blocksize agent tools",
       body: "Syra agents call mcp.blocksize.info with an X-AGENT-ID header and settle x402 from the agent wallet. Search is free discovery; quotes and checks are metered.",
       highlights: [
-        "blocksize-search — find pairs before you pay",
-        "blocksize-vwap / blocksize-bidask — live snapshots",
-        "blocksize-pre-trade — freshness / spread guardrails",
+        "blocksize-search, find pairs before you pay",
+        "blocksize-vwap / blocksize-bidask, live snapshots",
+        "blocksize-pre-trade, freshness / spread guardrails",
         "Spend pillar + partner page for operators",
       ],
     },
@@ -83,7 +83,7 @@ Try → syraa.fun/chat`,
         {
           step: "02",
           title: "Pull VWAP or bid/ask",
-          description: "Paid GET on the pair — agent wallet settles 402.",
+          description: "Paid GET on the pair, agent wallet settles 402.",
         },
         {
           step: "03",
@@ -187,7 +187,7 @@ Try → syraa.fun/chat`,
       layout: "closing-gold-banner",
       label: "Try it",
       headline: "Ask Syra for a Blocksize VWAP.",
-      subline: "Search SOLUSD, pull VWAP, then bid/ask — all from agent chat.",
+      subline: "Search SOLUSD, pull VWAP, then bid/ask, all from agent chat.",
       links: [
         { label: "Chat", value: "syraa.fun/chat", href: "https://www.syraa.fun/chat" },
         {

@@ -12,13 +12,13 @@ import {
 } from "@/components/growth/growthHomeStyles";
 
 function formatUsd(n: number | null | undefined) {
-  if (n == null || !Number.isFinite(n)) return "—";
+  if (n == null || !Number.isFinite(n)) return "-";
   if (n >= 1000) return `$${n.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
   return `$${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
 }
 
 function formatSyra(n: number | null | undefined) {
-  if (n == null || !Number.isFinite(n)) return "—";
+  if (n == null || !Number.isFinite(n)) return "-";
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
   return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
@@ -30,7 +30,7 @@ function shortSig(sig: string) {
 }
 
 /**
- * Live "Revenue → $SYRA" proof panel — buyback totals + recent Solscan txs.
+ * Live "Revenue → $SYRA" proof panel, buyback totals + recent Solscan txs.
  */
 export function GrowthBuybackProofPanel({ className }: { className?: string }) {
   const { data, isPending, isError } = usePublicMetrics();
@@ -47,7 +47,7 @@ export function GrowthBuybackProofPanel({ className }: { className?: string }) {
           </h3>
           <p className={cn(growthProseClass, "mt-2 max-w-xl text-sm")}>
             ~80% of settled x402 USDC goes to Jupiter buys. $SYRA acquired is the live treasury holding
-            (verify the wallet on Solscan). Tokens fund usage rewards — not burned.
+            (verify the wallet on Solscan). Tokens fund usage rewards, not burned.
           </p>
         </div>
         <Link
@@ -87,7 +87,7 @@ export function GrowthBuybackProofPanel({ className }: { className?: string }) {
             <div>
               <p className={growthKickerClass}>Reward earners</p>
               <p className={cn(growthStatValueClass, "mt-1 text-2xl")}>
-                {rewards?.uniqueEarners?.toLocaleString() ?? "—"}
+                {rewards?.uniqueEarners?.toLocaleString() ?? "-"}
               </p>
             </div>
           </div>

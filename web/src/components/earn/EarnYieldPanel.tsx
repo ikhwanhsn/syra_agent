@@ -59,7 +59,7 @@ export function EarnYieldPanel({
       queryKey: ["earn", "yield", "status", p.id, anonymousId ?? ""],
       queryFn: () => fetchEarnYieldStatus(anonymousId, p.id),
       enabled: Boolean(anonymousId && syraAuthenticated && p.id),
-      staleTime: 30_000,
+      staleTime: 15_000,
     })),
   });
 
@@ -110,7 +110,7 @@ export function EarnYieldPanel({
   return (
     <div className="space-y-6">
       <EarnPanelHeader
-        title="Yield — multi-product"
+        title="Yield: multi-product"
         action={
           <Button variant="outline" size="sm" asChild>
             <Link to="/wallet?wallet=lp">
@@ -135,41 +135,48 @@ export function EarnYieldPanel({
         </div>
       ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard
-              label="LP win rate"
-              value={
-                flagshipStats?.winRatePct != null ? `${flagshipStats.winRatePct.toFixed(1)}%` : "—"
-              }
-              hint={`${flagshipStats?.wins ?? 0}W / ${flagshipStats?.losses ?? 0}L`}
-            />
-            <StatCard
-              label="LP realized PnL"
-              value={fmtEarnAmount(
-                flagshipStats?.netPnl ?? flagshipStats?.realizedNetPnlSol,
-                "SOL",
-              )}
-              hint={fmtEarnUsd(flagshipStats?.netPnlUsd ?? flagshipStats?.realizedNetPnlUsd)}
-              positive={(flagshipStats?.netPnl ?? flagshipStats?.realizedNetPnlSol ?? 0) > 0}
-            />
-            <StatCard
-              label="Products listed"
-              value={String(products.length)}
-              hint={`${products.filter((p) => p.status === "beta").length} beta · ${products.filter((p) => p.status !== "beta").length} gated`}
-            />
-            <StatCard
-              label="Settlement (24h)"
-              value={
-                flagshipStats?.settlement24h
-                  ? `${(flagshipStats.settlement24h.settleSuccessRate * 100).toFixed(0)}%`
-                  : "—"
-              }
-              hint={
-                flagshipStats?.settlement24h?.meetsLaunchGuardrail
-                  ? "Meets ≥95% guardrail"
-                  : "Below launch guardrail"
-              }
-            />
+          <div className="space-y-2">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              Lab track record · not your wallet
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <StatCard
+                label="Lab win rate"
+                value={
+                  flagshipStats?.winRatePct != null
+                    ? `${flagshipStats.winRatePct.toFixed(1)}%`
+                    : "-"
+                }
+                hint={`${flagshipStats?.wins ?? 0}W / ${flagshipStats?.losses ?? 0}L · all Syra LP`}
+              />
+              <StatCard
+                label="Lab realized PnL"
+                value={fmtEarnAmount(
+                  flagshipStats?.netPnl ?? flagshipStats?.realizedNetPnlSol,
+                  "SOL",
+                )}
+                hint={fmtEarnUsd(flagshipStats?.netPnlUsd ?? flagshipStats?.realizedNetPnlUsd)}
+                positive={(flagshipStats?.netPnl ?? flagshipStats?.realizedNetPnlSol ?? 0) > 0}
+              />
+              <StatCard
+                label="Products listed"
+                value={String(products.length)}
+                hint={`${products.filter((p) => p.status === "beta").length} beta · ${products.filter((p) => p.status !== "beta").length} gated`}
+              />
+              <StatCard
+                label="Settlement (24h)"
+                value={
+                  flagshipStats?.settlement24h
+                    ? `${(flagshipStats.settlement24h.settleSuccessRate * 100).toFixed(0)}%`
+                    : "-"
+                }
+                hint={
+                  flagshipStats?.settlement24h?.meetsLaunchGuardrail
+                    ? "Meets ≥95% guardrail"
+                    : "Below launch guardrail"
+                }
+              />
+            </div>
           </div>
 
           <div className="space-y-4">
@@ -186,6 +193,10 @@ export function EarnYieldPanel({
               const pauseReasons = readinessReasons(product.readiness?.blockers);
               const agentNote = humanizeAgentNote(status?.config?.lastError);
               const detailTo = `/earn/yield/${encodeURIComponent(product.id)}`;
+              const yourPnl =
+                status?.summary?.netPnl ??
+                status?.summary?.realizedNetPnlSol ??
+                status?.summary?.netPnlUsd;
 
               return (
                 <div key={product.id} className={cn(overviewCardShell, "space-y-4 p-5")}>
@@ -230,27 +241,71 @@ export function EarnYieldPanel({
                     </Button>
                   </div>
 
-                  <div className="grid gap-2 sm:grid-cols-3">
-                    <MiniStat
-                      label={stats?.winRatePct != null ? "Win rate" : "Track"}
-                      value={
-                        stats?.winRatePct != null
-                          ? `${stats.winRatePct.toFixed(1)}%`
-                          : stats?.returnPct != null
-                            ? `${stats.returnPct.toFixed(1)}% ret`
-                            : "—"
-                      }
-                    />
-                    <MiniStat
-                      label="Net PnL"
-                      value={fmtEarnAmount(stats?.netPnl ?? stats?.netPnlUsd, denom)}
-                      positive={(stats?.netPnl ?? stats?.netPnlUsd ?? 0) > 0}
-                    />
-                    <MiniStat
-                      label="Open / errors"
-                      value={`${stats?.openCount ?? 0} / ${(stats?.errorRatePct ?? 0).toFixed(0)}%`}
-                    />
-                  </div>
+                  {status?.enabled && status.summary ? (
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                        Your wallet · since Earn enable
+                      </p>
+                      <div className="grid gap-2 sm:grid-cols-3">
+                        <MiniStat
+                          label="Your win rate"
+                          value={
+                            status.summary.winRatePct != null
+                              ? `${status.summary.winRatePct.toFixed(1)}%`
+                              : `${status.summary.wins ?? 0}W / ${status.summary.losses ?? 0}L`
+                          }
+                          hint={`${status.summary.wins ?? 0}W / ${status.summary.losses ?? 0}L closed this session`}
+                        />
+                        <MiniStat
+                          label="Your PnL"
+                          value={fmtEarnAmount(yourPnl, denom)}
+                          hint="Session only: not lab history"
+                          positive={(yourPnl ?? 0) > 0}
+                        />
+                        <MiniStat
+                          label="Your open"
+                          value={String(status.summary.openCount ?? 0)}
+                          hint="Active on your agent"
+                        />
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        Lab (all Syra, not you):{" "}
+                        {stats?.winRatePct != null ? `${stats.winRatePct.toFixed(1)}% win` : "-"} ·{" "}
+                        {fmtEarnAmount(stats?.netPnl ?? stats?.netPnlUsd, denom)} ·{" "}
+                        {stats?.openCount ?? 0} open / {(stats?.errorRatePct ?? 0).toFixed(0)}% err
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                        Lab track record · not your wallet
+                      </p>
+                      <div className="grid gap-2 sm:grid-cols-3">
+                        <MiniStat
+                          label={stats?.winRatePct != null ? "Lab win rate" : "Lab track"}
+                          value={
+                            stats?.winRatePct != null
+                              ? `${stats.winRatePct.toFixed(1)}%`
+                              : stats?.returnPct != null
+                                ? `${stats.returnPct.toFixed(1)}% ret`
+                                : "-"
+                          }
+                          hint={`${stats?.wins ?? 0}W / ${stats?.losses ?? 0}L`}
+                        />
+                        <MiniStat
+                          label="Lab net PnL"
+                          value={fmtEarnAmount(stats?.netPnl ?? stats?.netPnlUsd, denom)}
+                          hint="All Syra LP agents"
+                          positive={(stats?.netPnl ?? stats?.netPnlUsd ?? 0) > 0}
+                        />
+                        <MiniStat
+                          label="Lab open / errors"
+                          value={`${stats?.openCount ?? 0} / ${(stats?.errorRatePct ?? 0).toFixed(0)}%`}
+                          hint="Platform aggregate"
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   {paused && (
                     <div className="rounded-lg border border-border/45 bg-muted/15 px-3.5 py-3">
@@ -299,18 +354,6 @@ export function EarnYieldPanel({
                       <span className="inline-flex items-center gap-1.5 text-sm text-emerald-600 dark:text-emerald-400">
                         <Play className="h-3.5 w-3.5" /> Active
                       </span>
-                      {status.summary && (
-                        <span className="text-xs text-muted-foreground">
-                          Your PnL{" "}
-                          {fmtEarnAmount(
-                            status.summary.netPnl ??
-                              status.summary.realizedNetPnlSol ??
-                              status.summary.netPnlUsd,
-                            denom,
-                          )}{" "}
-                          · Open {status.summary.openCount ?? 0}
-                        </span>
-                      )}
                       <Button
                         size="sm"
                         variant="outline"
@@ -438,10 +481,12 @@ function StatCard({
 function MiniStat({
   label,
   value,
+  hint,
   positive,
 }: {
   label: string;
   value: string;
+  hint?: string;
   positive?: boolean;
 }) {
   return (
@@ -455,6 +500,7 @@ function MiniStat({
       >
         {value}
       </p>
+      {hint ? <p className="mt-0.5 text-[10px] text-muted-foreground">{hint}</p> : null}
     </div>
   );
 }

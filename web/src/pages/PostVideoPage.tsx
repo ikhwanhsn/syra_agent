@@ -15,7 +15,7 @@ function parseUpdateNumber(raw: string | undefined): number | null {
   return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
-/** Ship-log video slides for X — 16:9 auto-play deck at /post/video/:updateNumber. */
+/** Ship-log video slides for X, 16:9 auto-play deck at /post/video/:updateNumber. */
 export default function PostVideoPage() {
   const { isLoading } = usePostStudioQuery();
   const { updateNumber: raw } = useParams<{ updateNumber?: string }>();

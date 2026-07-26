@@ -1,4 +1,4 @@
-/** Layout variant index — 3 structurally different compositions per card role. */
+/** Layout variant index, 3 structurally different compositions per card role. */
 export type PhotoLayoutVariant = 0 | 1 | 2;
 
 export const PHOTO_LAYOUT_VARIANT_COUNT = 3;

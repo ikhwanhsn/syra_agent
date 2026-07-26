@@ -86,7 +86,7 @@ function trimTrailingZeros(value: string): string {
   return value.replace(/(\.\d*?[1-9])0+$/u, "$1").replace(/\.0+$/u, "").replace(/\.$/u, "");
 }
 
-/** Full-precision string for tooltips / copy — never scientific notation. */
+/** Full-precision string for tooltips / copy, never scientific notation. */
 export function formatPortfolioTokenAmountFull(amount: number): string {
   if (!Number.isFinite(amount) || amount <= 0) return "0";
   if (amount >= 1) {

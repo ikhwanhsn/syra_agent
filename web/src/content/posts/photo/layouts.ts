@@ -14,7 +14,7 @@ import {
   type PostPhotoLayoutTemplateBatch4,
 } from "./layoutsBatch4";
 
-/** Batch 1 — original 25 photo templates */
+/** Batch 1, original 25 photo templates */
 export const POST_PHOTO_LAYOUTS_BASE = [
   "photo-cover-spotlight",
   "photo-cover-minimal",

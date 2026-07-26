@@ -28,7 +28,7 @@ export function AnimatedMetric({ value, format, className, deltaMode = false }: 
     prev.current = value;
   }, [value, deltaMode]);
 
-  const display = value != null && Number.isFinite(value) ? format(value) : "—";
+  const display = value != null && Number.isFinite(value) ? format(value) : "-";
 
   return (
     <span

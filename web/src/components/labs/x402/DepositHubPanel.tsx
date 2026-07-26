@@ -19,7 +19,7 @@ interface DepositHubPanelProps {
 }
 
 function formatBalance(n: number | null | undefined, decimals = 4): string {
-  if (n == null || !Number.isFinite(n)) return "—";
+  if (n == null || !Number.isFinite(n)) return "-";
   return n.toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: decimals,
@@ -122,7 +122,7 @@ export function DepositHubPanel({
                 hub shows &quot;USDC ready&quot;, then send USDC. Recipients also need ~0.15 ALGO each
                 to opt into USDC. If the hub is at exactly 0.2 ALGO, Distribute auto-borrows a small
                 fee top-up from PayTo. Sending USDC before hub opt-in triggers a Pera Inbox Router
-                warning — cancel that and wait.
+                warning, cancel that and wait.
               </>
             ) : (
               <>
@@ -201,12 +201,12 @@ export function DepositHubPanel({
               }
             >
               {deposit.optedInUsdc
-                ? "USDC ready — hub is opted into USDC ASA. You can send USDC now."
-                : "USDC not ready yet — send ALGO first (~0.2+). Refresh this page after the ALGO arrives so the hub can opt into USDC."}
+                ? "USDC ready, hub is opted into USDC ASA. You can send USDC now."
+                : "USDC not ready yet, send ALGO first (~0.2+). Refresh this page after the ALGO arrives so the hub can opt into USDC."}
             </p>
           ) : null}
           <p className="text-[11px] text-muted-foreground">
-            Manual distribute only — splits whatever USDC/{nativeSymbol} balance is above zero.
+            Manual distribute only, splits whatever USDC/{nativeSymbol} balance is above zero.
             {lastDist ? ` Last distribute: ${lastDist}.` : " No distribute yet."}
           </p>
         </div>
@@ -251,7 +251,7 @@ export function DepositHubPanel({
         lastResult.reason === "below_threshold") ? (
         <Alert>
           <AlertDescription>
-            Nothing to distribute — deposit USDC and/or more {nativeSymbol} than {gasNoun} for the
+            Nothing to distribute, deposit USDC and/or more {nativeSymbol} than {gasNoun} for the
             sends, then try again.
           </AlertDescription>
         </Alert>
@@ -260,7 +260,7 @@ export function DepositHubPanel({
       {nativeReserved ? (
         <Alert>
           <AlertDescription>
-            USDC was handled, but {nativeSymbol} stayed on the hub — balance is only enough to cover{" "}
+            USDC was handled, but {nativeSymbol} stayed on the hub, balance is only enough to cover{" "}
             {gasNoun}. Add a bit more {nativeSymbol} and distribute again.
           </AlertDescription>
         </Alert>

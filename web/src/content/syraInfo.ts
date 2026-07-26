@@ -1,4 +1,4 @@
-/** Internal team reference — single source for /info (not linked in nav). */
+/** Internal team reference: single source for /info (not linked in nav). */
 
 export {
   SYRA_CAPABILITIES,
@@ -22,33 +22,33 @@ export const SYRA_INFO_EYEBROW = "Internal reference · URL only";
 
 export const SYRA_PROBLEM_BULLETS = [
   "Agents need crypto data mid-loop but hit vendor API-key and billing walls",
-  "Humans still approve every paid tool call — agents cannot settle autonomously",
+  "Humans still approve every paid tool call: agents cannot settle autonomously",
   "No standard layer for machines to discover, pay, and compose paid HTTP APIs",
   "The agent economy cannot scale until payments move as autonomously as intelligence",
 ];
 
 export const SYRA_SOLUTION_BULLETS = [
-  "Syra is not building another AI chatbot — we sell pay-per-call crypto APIs for agents",
+  "Syra is not building another AI chatbot: we sell pay-per-call crypto APIs for agents",
   "x402 + MCP + SDK: one USDC wallet, many tools, no per-vendor API keys",
   "Solana settlement: low fees and fast finality for micropayments",
 ];
 
-/** Live activation flow — public GTM. Pillars live under /pillars roadmap. */
+/** Live activation flow: public GTM. Pillars live under /pillars roadmap. */
 export const SYRA_PRODUCT_FLOW = [
   {
     step: "01",
     title: "Install MCP or SDK",
-    description: "npx @syra-ai/mcp-server or createSyraPaidClient — one payer for many routes.",
+    description: "npx @syra-ai/mcp-server or createSyraPaidClient: one payer for many routes.",
   },
   {
     step: "02",
     title: "Fund USDC",
-    description: "Solana (default), Base, or Algorand payer keys — settle on HTTP 402.",
+    description: "Solana (default), Base, or Algorand payer keys: settle on HTTP 402.",
   },
   {
     step: "03",
     title: "First paid call",
-    description: "News, sentiment, signals — structured JSON agents can act on immediately.",
+    description: "News, sentiment, signals: structured JSON agents can act on immediately.",
   },
 ] as const;
 
@@ -64,7 +64,7 @@ export const SYRA_WHY_NOW = {
 export const SYRA_FOUNDER_FIT = {
   title: "Founder–market fit",
   body: [
-    "Built at the intersection of AI, Web3, and developer infrastructure — not a traditional AI startup or a traditional crypto startup.",
+    "Built at the intersection of AI, Web3, and developer infrastructure: not a traditional AI startup or a traditional crypto startup.",
     "Experience spans full-stack development, blockchain infrastructure, AI systems, Solana ecosystem tools, and startup building.",
     "Focus: product, engineering, growth, and ecosystem development for the emerging machine economy.",
   ],
@@ -72,7 +72,7 @@ export const SYRA_FOUNDER_FIT = {
 
 export const SYRA_COMPETITION = {
   title: "Competition & our bet",
-  body: "Most AI-agent projects focus on intelligence, workflows, or user interactions. Syra focuses on economic autonomy. The long-term winner will be the ecosystem that enables agents to generate, manage, and deploy capital efficiently — not necessarily the agent with the highest intelligence.",
+  body: "Most AI-agent projects focus on intelligence, workflows, or user interactions. Syra focuses on economic autonomy. The long-term winner will be the ecosystem that enables agents to generate, manage, and deploy capital efficiently, not necessarily the agent with the highest intelligence.",
 };
 
 export const SYRA_MARKET = {
@@ -82,7 +82,7 @@ export const SYRA_MARKET = {
   stats: [
     { value: "Millions", label: "AI agents ahead", detail: "Expected scale of the autonomous agent economy" },
     { value: "Solana", label: "Settlement layer", detail: "Speed, fees, and DeFi depth for agent coordination" },
-    { value: "2025", label: "Founded & shipping", detail: "Live product — bootstrapped, founder-led" },
+    { value: "2025", label: "Founded & shipping", detail: "Live product, bootstrapped, founder-led" },
   ],
 };
 
@@ -139,7 +139,7 @@ export const SYRA_ROADMAP = [
 export const SYRA_MOAT = [
   {
     dimension: "Category focus",
-    syra: "Economic autonomy for agents — not intelligence theater or generic UI",
+    syra: "Economic autonomy for agents, not intelligence theater or generic UI",
   },
   {
     dimension: "Solana-native economics",
@@ -147,15 +147,15 @@ export const SYRA_MOAT = [
   },
   {
     dimension: "Agent-native payments",
-    syra: "x402 / HTTP 402 — discover, pay, and compose APIs without human billing ops",
+    syra: "x402 / HTTP 402, discover, pay, and compose APIs without human billing ops",
   },
   {
     dimension: "Production stack",
-    syra: "Live web agent, API gateway, and ecosystem integrations — shipping since 2025",
+    syra: "Live web agent, API gateway, and ecosystem integrations, shipping since 2025",
   },
   {
     dimension: "Founder–market fit",
-    syra: "AI × Web3 × developer infrastructure — built specifically for the machine economy",
+    syra: "AI × Web3 × developer infrastructure, built specifically for the machine economy",
   },
 ];
 
@@ -202,8 +202,8 @@ export interface SyraMonorepoApp {
 }
 
 export const SYRA_MONOREPO_APPS: SyraMonorepoApp[] = [
-  { package: "web", role: "Syra app — agent chat, marketing, marketplace, dashboard", url: "https://syraa.fun" },
-  { package: "api", role: "Backend — x402 routes, agent sessions, partner tools", url: "https://api.syraa.fun" },
+  { package: "web", role: "Syra app, agent chat, marketing, marketplace, dashboard", url: "https://syraa.fun" },
+  { package: "api", role: "Backend, x402 routes, agent sessions, partner tools", url: "https://api.syraa.fun" },
   { package: "documentation", role: "Public docs site", url: "https://docs.syraa.fun" },
   { package: "ai-agent", role: "Legacy/alternate agent package (if deployed separately)" },
   { package: "mcp-server", role: "MCP tools aligned with paid API surface" },
@@ -212,7 +212,7 @@ export const SYRA_MONOREPO_APPS: SyraMonorepoApp[] = [
 ];
 
 export const SYRA_HIDDEN_ROUTES = [
-  { path: "/info", description: "This page — full internal Syra reference (not in nav)" },
+  { path: "/info", description: "This page, full internal Syra reference (not in nav)" },
   { path: "/deck", description: "Investor pitch deck (keyboard/swipe navigation)" },
   { path: "/post", description: "Ship-log social post studio (video + photo)" },
   { path: "/post/video/:updateNumber", description: "Ship-log video slide deck for screen recording (numbered updates)" },

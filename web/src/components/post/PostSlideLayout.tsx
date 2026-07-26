@@ -78,7 +78,7 @@ interface PostSlideGridProps {
   children: ReactNode;
 }
 
-/** Responsive grid — column count follows item count; reflows inside the frame via container queries. */
+/** Responsive grid, column count follows item count; reflows inside the frame via container queries. */
 export function PostSlideGrid({ count, className, children }: PostSlideGridProps) {
   const cols = getPostGridCols(count);
   return (

@@ -1,4 +1,4 @@
-/** Photo template batch 2 — brings library to 50+ layouts */
+/** Photo template batch 2, brings library to 50+ layouts */
 export const POST_PHOTO_LAYOUTS_BATCH2 = [
   "photo-cover-gradient",
   "photo-cover-eyebrow-stack",

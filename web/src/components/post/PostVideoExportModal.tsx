@@ -106,7 +106,7 @@ export function PostVideoExportModal({
         </div>
 
         <p className="text-xs text-white/40">
-          Cinematic depth stage, soft gold bloom, spring reveals — same style for every ship log.
+          Cinematic depth stage, soft gold bloom, spring reveals, same style for every ship log.
         </p>
 
         <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Video export format">

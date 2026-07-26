@@ -12,14 +12,14 @@ const EXPLORER_TX = (sig: string) =>
   `https://explorer.solana.com/tx/${sig}?cluster=${EXPLORER_CLUSTER}`;
 
 function formatDate(blockTime: number | null): string {
-  if (blockTime == null || !Number.isFinite(blockTime)) return "—";
+  if (blockTime == null || !Number.isFinite(blockTime)) return "-";
   try {
     return new Date(blockTime * 1000).toLocaleString(undefined, {
       dateStyle: "short",
       timeStyle: "short",
     });
   } catch {
-    return "—";
+    return "-";
   }
 }
 

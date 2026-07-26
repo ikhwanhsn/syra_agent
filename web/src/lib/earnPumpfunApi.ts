@@ -13,7 +13,7 @@ export type EarnPumpfunLaunch = {
   imageUri?: string | null;
   description?: string | null;
   createdAt: string;
-  /** Live market (DexScreener / pump.fun) — best-effort, may be null. */
+  /** Live market (DexScreener / pump.fun), best-effort, may be null. */
   priceUsd?: number | null;
   marketCapUsd?: number | null;
   liquidityUsd?: number | null;
@@ -99,7 +99,7 @@ export async function fetchEarnPumpfunLaunches(
   return json.data;
 }
 
-/** Public marketplace catalog — launches from all creators. */
+/** Public marketplace catalog, launches from all creators. */
 export async function fetchEarnPumpfunMarketplace(params?: {
   limit?: number;
   skip?: number;

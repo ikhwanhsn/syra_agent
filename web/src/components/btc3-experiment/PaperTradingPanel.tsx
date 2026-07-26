@@ -33,7 +33,7 @@ export function PaperTradingPanel({
       <PanelShell
         kicker="Paper Trading"
         title="Macro Paper Sim"
-        description="$1,000 paper bank — auto-rebalances on macro allocation decisions."
+        description="$1,000 paper bank, auto-rebalances on macro allocation decisions."
       >
         <EmptyState message="Paper trading initializes on first pipeline run." />
       </PanelShell>
@@ -90,7 +90,7 @@ export function PaperTradingPanel({
           Recent paper rebalances
         </p>
         {rebalances.length === 0 ? (
-          <EmptyState message="No paper rebalances yet — pipeline auto-executes when target allocation shifts." />
+          <EmptyState message="No paper rebalances yet, pipeline auto-executes when target allocation shifts." />
         ) : (
           <ul className="space-y-2">
             {rebalances.slice(0, 8).map((r) => (

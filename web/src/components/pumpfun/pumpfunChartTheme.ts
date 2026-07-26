@@ -19,7 +19,7 @@ export function formatPumpChartPrice(p: number): string {
 }
 
 export function formatPumpChartPct(n: number): string {
-  if (!Number.isFinite(n)) return "—";
+  if (!Number.isFinite(n)) return "-";
   const sign = n > 0 ? "+" : "";
   return `${sign}${n.toFixed(2)}%`;
 }

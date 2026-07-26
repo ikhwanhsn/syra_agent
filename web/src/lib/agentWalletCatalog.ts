@@ -160,11 +160,11 @@ export const AGENT_WALLET_ACCENT: Record<
 };
 
 export function shortenAgentAddress(addr: string | null | undefined): string {
-  if (!addr) return "—";
+  if (!addr) return "-";
   return `${addr.slice(0, 4)}…${addr.slice(-4)}`;
 }
 
-/** @deprecated Use spend — chat wallet is now the spend pillar treasury. */
+/** @deprecated Use spend, chat wallet is now the spend pillar treasury. */
 export type LegacyAgentWalletPurpose = "chat";
 
 export function normalizeAgentWalletPurpose(value: string | null | undefined): AgentWalletPurpose {

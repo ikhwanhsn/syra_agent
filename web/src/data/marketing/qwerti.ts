@@ -1,5 +1,5 @@
 /**
- * Qwerti embedded widget — campaign + magic link fallback.
+ * Qwerti embedded widget, campaign + magic link fallback.
  * @see https://partner-demo.qwerti.ai/integration-guide?type=widget
  */
 

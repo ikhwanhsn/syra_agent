@@ -44,7 +44,7 @@ function getStatusIcon(status: number) {
 
 function getStatusMessage(status: number, body?: string): string {
   if (isLocalApiUnreachableBody(body)) {
-    return 'Local API not running — start cd api && npm run dev, or disable VITE_USE_LOCAL_API';
+    return 'Local API not running, start cd api && npm run dev, or disable VITE_USE_LOCAL_API';
   }
   if (status === 402) return 'Payment required to access this resource';
   if (status >= 200 && status < 300) return 'Request completed successfully';
@@ -112,7 +112,7 @@ export function ResponseViewer({
             </div>
             <p className="font-display text-base font-semibold text-foreground mb-2 tracking-tight">Processing request</p>
             <p className="text-sm text-muted-foreground leading-relaxed text-balance">
-              Waiting on the gateway — large payloads can take a few seconds.
+              Waiting on the gateway, large payloads can take a few seconds.
             </p>
           </div>
         </div>
@@ -148,7 +148,7 @@ export function ResponseViewer({
             </div>
             <p className="font-display text-base font-semibold text-foreground mb-2 tracking-tight">Ready to send</p>
             <p className="text-sm text-muted-foreground leading-relaxed text-balance">
-              Configure your request and tap Send — status, timing, and JSON land here.
+              Configure your request and tap Send, status, timing, and JSON land here.
             </p>
           </div>
         </div>

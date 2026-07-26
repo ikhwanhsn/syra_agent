@@ -140,8 +140,7 @@ export function PumpfunSearchHero({
             <p className="text-sm text-foreground">
               <span className="font-medium">1 free scan today</span>
               <span className="text-muted-foreground">
-                {" "}
-                — no wallet needed. Connect to use your remaining daily scans and save call history.
+                {" "}, no wallet needed. Connect to use your remaining daily scans and save call history.
               </span>
             </p>
           </div>

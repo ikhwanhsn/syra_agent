@@ -187,7 +187,7 @@ function PortfolioEmptyState({ walletFilter }: { walletFilter: PortfolioWalletFi
       </span>
       <h3 className="text-sm font-semibold text-foreground">No holdings yet</h3>
       <p className="mt-1.5 max-w-xs text-xs leading-relaxed text-muted-foreground">
-        Fund your {label} or let your agent trade — tokens show up here automatically.
+        Fund your {label} or let your agent trade, tokens show up here automatically.
       </p>
     </div>
   );

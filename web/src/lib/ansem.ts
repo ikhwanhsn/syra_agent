@@ -1,4 +1,4 @@
-/** $ANSEM token hub — single source of truth for mint, identity, and external venues. */
+/** $ANSEM token hub, single source of truth for mint, identity, and external venues. */
 
 export const ANSEM_MINT = "9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump" as const;
 
@@ -74,10 +74,10 @@ export const ANSEM_DOSSIER_QUERY = {
 /** Auto-refresh interval for live market data (ms). */
 export const ANSEM_LIVE_REFETCH_MS = 45_000;
 
-/** Community snapshot (holders, KOL, safety) — server-cached. */
+/** Community snapshot (holders, KOL, safety), server-cached. */
 export const ANSEM_COMMUNITY_REFETCH_MS = 15 * 60_000;
 
-/** Fast holder count — lightweight dedicated endpoint. */
+/** Fast holder count, lightweight dedicated endpoint. */
 export const ANSEM_HOLDER_COUNT_REFETCH_MS = 90_000;
 
 

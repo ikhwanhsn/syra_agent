@@ -24,7 +24,7 @@ export const EMPTY_PHOTO_CONTENT: PostPhotoContent = {
   partnerLogoSolidBg: false,
 };
 
-/** Build card-scoped photo content — only the fields a template needs. */
+/** Build card-scoped photo content, only the fields a template needs. */
 export function photoContent(overrides: Partial<PostPhotoContent>): PostPhotoContent {
   return { ...EMPTY_PHOTO_CONTENT, ...overrides };
 }

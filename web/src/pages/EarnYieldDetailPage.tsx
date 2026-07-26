@@ -232,32 +232,78 @@ export default function EarnYieldDetailPage() {
               ) : null}
             </section>
 
+            {status?.enabled && status.summary ? (
+              <section className="space-y-3">
+                <SectionTitle>Your wallet</SectionTitle>
+                <p className="text-xs text-muted-foreground">
+                  Realized since you enabled Earn, excludes prior lab history.
+                </p>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <MetricCard
+                    label="Your win rate"
+                    value={
+                      status.summary.winRatePct != null
+                        ? `${status.summary.winRatePct.toFixed(1)}%`
+                        : `${status.summary.wins ?? 0}W / ${status.summary.losses ?? 0}L`
+                    }
+                    hint={`${status.summary.wins ?? 0}W / ${status.summary.losses ?? 0}L this session`}
+                  />
+                  <MetricCard
+                    label="Your PnL"
+                    value={fmtEarnAmount(
+                      status.summary.netPnl ??
+                        status.summary.realizedNetPnlSol ??
+                        status.summary.netPnlUsd,
+                      denom,
+                    )}
+                    hint="Session only, not lab history"
+                    positive={
+                      (status.summary.netPnl ??
+                        status.summary.realizedNetPnlSol ??
+                        status.summary.netPnlUsd ??
+                        0) > 0
+                    }
+                  />
+                  <MetricCard
+                    label="Your open"
+                    value={String(status.summary.openCount ?? 0)}
+                    hint="Active on your agent"
+                  />
+                </div>
+              </section>
+            ) : null}
+
             <section className="space-y-3">
-              <SectionTitle>Track record</SectionTitle>
+              <SectionTitle>Lab track record</SectionTitle>
+              <p className="text-xs text-muted-foreground">
+                Platform aggregate across all Syra LP agents, not your deposit or wallet PnL.
+              </p>
               <div className="grid gap-3 sm:grid-cols-3">
                 <MetricCard
-                  label={stats?.winRatePct != null ? "Win rate" : "Return"}
+                  label={stats?.winRatePct != null ? "Lab win rate" : "Lab return"}
                   value={
                     stats?.winRatePct != null
                       ? `${stats.winRatePct.toFixed(1)}%`
                       : stats?.returnPct != null
                         ? `${stats.returnPct.toFixed(1)}%`
-                        : "—"
+                        : "-"
                   }
                   hint={
                     stats?.wins != null || stats?.losses != null
-                      ? `${stats?.wins ?? 0}W / ${stats?.losses ?? 0}L`
+                      ? `${stats?.wins ?? 0}W / ${stats?.losses ?? 0}L · all Syra LP`
                       : stats?.paperVsRealNote
                   }
                 />
                 <MetricCard
-                  label="Net PnL"
+                  label="Lab net PnL"
                   value={fmtEarnAmount(stats?.netPnl ?? stats?.netPnlUsd, denom)}
+                  hint="All Syra LP agents"
                   positive={(stats?.netPnl ?? stats?.netPnlUsd ?? 0) > 0}
                 />
                 <MetricCard
-                  label="Open / errors"
+                  label="Lab open / errors"
                   value={`${stats?.openCount ?? 0} / ${(stats?.errorRatePct ?? 0).toFixed(0)}%`}
+                  hint="Platform aggregate"
                 />
               </div>
               {evidenceLines.length > 0 ? (
@@ -332,18 +378,6 @@ export default function EarnYieldDetailPage() {
                   <span className="inline-flex items-center gap-1.5 text-sm text-emerald-600 dark:text-emerald-400">
                     <Play className="h-3.5 w-3.5" /> Active
                   </span>
-                  {status.summary && (
-                    <span className="text-xs text-muted-foreground">
-                      Your PnL{" "}
-                      {fmtEarnAmount(
-                        status.summary.netPnl ??
-                          status.summary.realizedNetPnlSol ??
-                          status.summary.netPnlUsd,
-                        denom,
-                      )}{" "}
-                      · Open {status.summary.openCount ?? 0}
-                    </span>
-                  )}
                   <Button
                     size="sm"
                     variant="outline"

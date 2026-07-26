@@ -31,7 +31,7 @@ function LeaderboardSkeleton() {
 }
 
 function formatTime(iso: string | null | undefined): string {
-  if (!iso) return "—";
+  if (!iso) return "-";
   try {
     return new Date(iso).toLocaleString(undefined, {
       month: "short",
@@ -40,7 +40,7 @@ function formatTime(iso: string | null | undefined): string {
       minute: "2-digit",
     });
   } catch {
-    return "—";
+    return "-";
   }
 }
 
@@ -86,7 +86,7 @@ export function StocksLabSummary({
       timeLabel: formatTime(isOpen ? r.openedAt : r.resolvedAt ?? r.createdAt),
       strategyLabel: r.strategyName,
       tokenLabel: r.symbol,
-      reasonLabel: r.newsHeadline ?? (r.signalSnapshot ? "News signal triggered" : "—"),
+      reasonLabel: r.newsHeadline ?? (r.signalSnapshot ? "News signal triggered" : "-"),
       pnlLabel: isOpen ? "Open" : `${pnl >= 0 ? "+" : ""}${formatStocksUsd(pnl)}`,
       pnlPositive: !isOpen && pnl > 0,
       pnlNegative: !isOpen && pnl < 0,
@@ -171,7 +171,7 @@ export function StocksLabSummary({
         <h3 className="text-sm font-semibold tracking-tight text-foreground">Recent activity</h3>
         <ExperimentTradeFeed
           items={tradeItems}
-          emptyMessage="No paper trades yet — agents scan news every few minutes."
+          emptyMessage="No paper trades yet, agents scan news every few minutes."
         />
       </div>
     </div>

@@ -99,7 +99,7 @@ export function UserOverviewHero({
                 {walletLabel ? (
                   <>
                     Balances for{" "}
-                    <span className="font-mono text-[13px] text-foreground/90">{walletLabel}</span> — connected
+                    <span className="font-mono text-[13px] text-foreground/90">{walletLabel}</span>, connected
                     wallet, trading agent, and LP treasury.
                   </>
                 ) : (
@@ -125,7 +125,7 @@ export function UserOverviewHero({
                   <span className="inline-block h-4 w-28 animate-pulse rounded bg-muted/40" />
                 ) : (
                   <>
-                    {totalUsdc != null ? `$${formatUsdcPlain(totalUsdc)} USDC` : "— USDC"}
+                    {totalUsdc != null ? `$${formatUsdcPlain(totalUsdc)} USDC` : ", USDC"}
                     {totalSol != null ? ` · ${formatSol(totalSol)} SOL` : ""}
                   </>
                 )}
@@ -185,7 +185,7 @@ export function UserOverviewConnectHero({
         </div>
         <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Your command center</h1>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          Connect a Solana wallet to view your assets, agent treasuries, trading strategies, and LP performance — all in
+          Connect a Solana wallet to view your assets, agent treasuries, trading strategies, and LP performance, all in
           one place.
         </p>
         <Button type="button" className="mt-6 rounded-xl px-6" onClick={onConnect}>

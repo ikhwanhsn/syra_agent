@@ -183,7 +183,7 @@ function buildAgentManifest(input: {
     },
     mcp: {
       server: "@syra-ai/mcp-server",
-      note: "Syra MCP tools mirror paid HTTP routes — use discover_api_endpoints on api.syraa.fun",
+      note: "Syra MCP tools mirror paid HTTP routes, use discover_api_endpoints on api.syraa.fun",
     },
   };
 }

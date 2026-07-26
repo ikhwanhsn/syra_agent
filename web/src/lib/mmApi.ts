@@ -11,13 +11,13 @@ const usdCompact = new Intl.NumberFormat("en-US", {
 
 export function formatMmUsd(value: number | null | undefined): string {
   const n = Number(value);
-  if (!Number.isFinite(n)) return "—";
+  if (!Number.isFinite(n)) return "-";
   return usdCompact.format(n);
 }
 
 export function formatMmPct(value: number | null | undefined): string {
   const n = Number(value);
-  if (!Number.isFinite(n)) return "—";
+  if (!Number.isFinite(n)) return "-";
   return `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
 }
 

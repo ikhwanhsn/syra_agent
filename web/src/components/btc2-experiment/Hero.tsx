@@ -118,7 +118,7 @@ export function Hero({ hero, paused, onTogglePause, onRefresh }: HeroProps) {
                   Bitcoin Quant Agent
                 </h1>
                 <p className="max-w-2xl text-pretty text-[15px] leading-relaxed text-muted-foreground">
-                  Spot-only autonomous Bitcoin intelligence on Solana — cbBTC/USDC via Jupiter swaps.
+                  Spot-only autonomous Bitcoin intelligence on Solana, cbBTC/USDC via Jupiter swaps.
                   No perps, no leverage, no futures.
                 </p>
               </div>

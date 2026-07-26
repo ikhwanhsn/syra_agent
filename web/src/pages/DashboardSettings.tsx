@@ -66,7 +66,7 @@ interface AgentSetupRecord {
 }
 
 function shortenAddress(addr: string, chain: SetupChain): string {
-  if (!addr) return "—";
+  if (!addr) return "-";
   if (chain === "base" || addr.startsWith("0x")) {
     return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
   }
@@ -438,7 +438,7 @@ export default function DashboardSettings({ embedded = false }: DashboardSetting
               <p className={overviewKickerClass}>Agent setup &amp; settings</p>
               <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-[1.65rem]">Agent setup</h1>
               <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                Configure your agent wallet — appearance, treasury, behavior, and app preferences. Link to experiment
+                Configure your agent wallet, appearance, treasury, behavior, and app preferences. Link to experiment
                 desks from your profile when you&apos;re ready to deploy capital.
               </p>
             </div>

@@ -154,7 +154,7 @@ export default function Teams() {
     <div className="min-h-screen overflow-x-hidden bg-background">
       <Navbar />
       <main className="relative z-10 pb-28 pt-28">
-        {/* Depth — aligned with hero ambient treatment */}
+        {/* Depth, aligned with hero ambient treatment */}
         <div className="pointer-events-none absolute inset-0 opacity-50 grid-pattern" />
         <div className="pointer-events-none absolute inset-0 opacity-30 grid-pattern-accent" />
         <div className="pointer-events-none absolute inset-0 section-glow-left opacity-60" />
@@ -479,7 +479,7 @@ export default function Teams() {
                                 <span className="font-semibold text-foreground">
                                   {lastSubmission.platform === "x" ? "X" : "Telegram"}
                                 </span>{" "}
-                                is not listed here. Absence of a match is not proof of impersonation — only
+                                is not listed here. Absence of a match is not proof of impersonation, only
                                 that this roster does not currently include that handle.
                               </p>
                             </div>

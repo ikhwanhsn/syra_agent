@@ -37,7 +37,7 @@ function PillarComingSoon({
       {showAdminPreviewControls ? (
         <div className="mb-4 flex items-center gap-2 rounded-xl border border-amber-500/25 bg-amber-500/5 px-3 py-2 text-xs text-amber-900 dark:text-amber-200">
           <EyePreviewBadge />
-          <span>Admin preview — this is what users see until Machine Money ships.</span>
+          <span>Admin preview, this is what users see until Machine Money ships.</span>
         </div>
       ) : null}
       <div className={cn(overviewCardShell, "p-8 sm:p-10 text-center")}>
@@ -51,7 +51,7 @@ function PillarComingSoon({
           {pillarLabel} is rolling out
         </h2>
         <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground leading-relaxed">
-          Machine Money pillars — Earn, Treasury, Invest, Spend, and Grow — are in active development.
+          Machine Money pillars, Earn, Treasury, Invest, Spend, and Grow, are in active development.
           You&apos;ll get access here when this module ships.
         </p>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-2">

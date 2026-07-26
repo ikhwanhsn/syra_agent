@@ -23,17 +23,17 @@ export const PUMPFUN_CALL_SHARE_DESIGNS: PumpfunCallShareDesignMeta[] = [
   {
     id: "terminal",
     label: "Terminal",
-    description: "Dense monospace feed — Hyperliquid / Nansen style",
+    description: "Dense monospace feed, Hyperliquid / Nansen style",
   },
   {
     id: "hero",
     label: "Hero",
-    description: "Centered mega gain — optimized for X screenshots",
+    description: "Centered mega gain, optimized for X screenshots",
   },
   {
     id: "classic",
     label: "Classic",
-    description: "Clean split layout — token left, alpha right",
+    description: "Clean split layout, token left, alpha right",
   },
   {
     id: "signal",

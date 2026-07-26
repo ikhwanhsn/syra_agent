@@ -158,7 +158,7 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
         href: "/staking/admin",
         label: "Admin",
         icon: LayoutDashboard,
-        description: "Operator registry — stakers and totals",
+        description: "Operator registry, stakers and totals",
         adminOnly: true,
       },
     ],
@@ -225,13 +225,13 @@ export const SITE_NAV_MORE: NavLinkItem[] = [
   },
 ];
 
-/** Hidden routes — visible in More when admin wallet is connected. */
+/** Hidden routes, visible in More when admin wallet is connected. */
 export const SITE_NAV_ADMIN_MORE: NavLinkItem[] = [
   {
     href: "/post",
     label: "Ship log",
     icon: Megaphone,
-    description: "Social post studio — video & photo decks",
+    description: "Social post studio, video & photo decks",
     adminOnly: true,
   },
   {

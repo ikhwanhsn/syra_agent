@@ -7,7 +7,7 @@ import { injectQwertiHeadScript } from "@/lib/qwertiHeadScript";
 
 const BODY_ACTIVE_CLASS = "syra-qwerti-active";
 
-/** Home chat route only (`/`) — floating launcher hidden elsewhere. */
+/** Home chat route only (`/`), floating launcher hidden elsewhere. */
 export function isQwertiHomeRoute(pathname: string): boolean {
   const path = pathname.replace(/\/+$/, "") || "/";
   return path === "/";

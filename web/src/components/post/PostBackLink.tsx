@@ -8,7 +8,7 @@ interface PostBackLinkProps {
 }
 
 /**
- * Fixed back control — stays visible while the ship-log page scrolls.
+ * Fixed back control, stays visible while the ship-log page scrolls.
  * An in-flow spacer keeps header layout from collapsing under the fixed button.
  */
 export function PostBackLink({ className, to = "/" }: PostBackLinkProps) {

@@ -21,7 +21,7 @@ export function RiskDashboard({ risk }: { risk: RiskMetrics }) {
     { label: "Cash Reserve", value: `${(risk.cashReservePct * 100).toFixed(0)}%` },
     {
       label: "Stop Loss",
-      value: risk.stopLossPrice > 0 ? formatBtcPrice(risk.stopLossPrice) : "—",
+      value: risk.stopLossPrice > 0 ? formatBtcPrice(risk.stopLossPrice) : "-",
     },
   ];
 
@@ -35,7 +35,7 @@ export function RiskDashboard({ risk }: { risk: RiskMetrics }) {
       <SectionHeader
         kicker="Section 05"
         title="Risk Engine"
-        description="Spot-only risk controls — position sizing, cash reserves, and stop-loss levels. No leverage."
+        description="Spot-only risk controls, position sizing, cash reserves, and stop-loss levels. No leverage."
       />
 
       <div className="grid gap-4 lg:grid-cols-4">

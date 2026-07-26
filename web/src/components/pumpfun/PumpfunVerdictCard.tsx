@@ -30,7 +30,7 @@ export function PumpfunVerdictCard({ data, className }: PumpfunVerdictCardProps)
   const pumpfun = data.pumpfun.ok ? data.pumpfun.data : null;
   const dossierAsset = data.dossier.ok ? data.dossier.data?.asset : null;
   const name = data.token?.name ?? pumpfun?.name ?? dossierAsset?.name ?? "Unknown token";
-  const symbol = data.token?.symbol ?? pumpfun?.symbol ?? dossierAsset?.symbol ?? "—";
+  const symbol = data.token?.symbol ?? pumpfun?.symbol ?? dossierAsset?.symbol ?? "-";
   const image = data.token?.imageUri ?? pumpfun?.imageUri ?? dossierAsset?.imageUrl;
   const chain = data.chain ?? "solana";
   const isSolana = chain === "solana";

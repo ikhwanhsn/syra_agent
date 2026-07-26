@@ -71,7 +71,7 @@ export function StocksExperimentHero({
               </h1>
               <p className="max-w-xl text-pretty text-[15px] leading-relaxed text-muted-foreground">
                 AI agents paper-trade tokenized stocks on Solana using live headlines, sentiment, and
-                Jupiter prices. The best performer evolves — losers get culled, winners spawn smarter
+                Jupiter prices. The best performer evolves, losers get culled, winners spawn smarter
                 strategies.
               </p>
             </div>

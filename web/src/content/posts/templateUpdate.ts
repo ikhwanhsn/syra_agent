@@ -2,7 +2,7 @@ import { FileImage, Film, LayoutTemplate, Lock, Sparkles, Type } from "lucide-re
 import { defineVideoUpdate } from "./videoDeck";
 
 /**
- * Permanent format template — cannot be deleted from the studio.
+ * Permanent format template, cannot be deleted from the studio.
  * All future ship logs must follow this 8-slide video + 15-card photo structure.
  */
 export const TEMPLATE_POST = defineVideoUpdate(

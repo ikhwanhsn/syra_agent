@@ -148,7 +148,7 @@ function toolBody(tool, siblings) {
       <span class="pill">Pillar: ${escapeHtml(tool.pillar)}</span>
       <span class="pill">MCP</span>
       <span class="pill">x402</span>
-      <p style="margin-top:14px"><strong>${escapeHtml(tool.name)}</strong> — ${escapeHtml(tool.role)}</p>
+      <p style="margin-top:14px"><strong>${escapeHtml(tool.name)}</strong>, ${escapeHtml(tool.role)}</p>
       <p>Part of Syra <strong>Machine Money for Agents</strong>. Spend routes settle USDC via HTTP 402; install once via MCP and call tools without per-vendor API keys.</p>
     </div>
 
@@ -161,9 +161,9 @@ function toolBody(tool, siblings) {
 
     <h2>Why pay-per-call</h2>
     <ul>
-      <li><strong>One wallet</strong> — USDC payer covers news, on-chain intel, and partner routes.</li>
-      <li><strong>Agent-native</strong> — HTTP 402 auto-pay mid-task; no human key pasting.</li>
-      <li><strong>Transparent price</strong> — exact charge in the 402 <code>accepts[]</code> array.</li>
+      <li><strong>One wallet</strong>, USDC payer covers news, on-chain intel, and partner routes.</li>
+      <li><strong>Agent-native</strong>, HTTP 402 auto-pay mid-task; no human key pasting.</li>
+      <li><strong>Transparent price</strong>, exact charge in the 402 <code>accepts[]</code> array.</li>
     </ul>
 
     ${
@@ -235,7 +235,7 @@ function vsBody(comp, toolIndex) {
     .map((id) => {
       const t = toolIndex.get(id);
       if (!t) return null;
-      return `<li><a href="/tools/${escapeHtml(t.toolId)}/">${escapeHtml(t.name)}</a> — ${escapeHtml(t.role)}</li>`;
+      return `<li><a href="/tools/${escapeHtml(t.toolId)}/">${escapeHtml(t.name)}</a>, ${escapeHtml(t.role)}</li>`;
     })
     .filter(Boolean);
 
@@ -304,10 +304,10 @@ function pricingBody() {
 
     <h2>Why not call upstream DIY?</h2>
     <ul>
-      <li><strong>One wallet, many tools</strong> — one USDC payer covers news, on-chain intel, and partner routes.</li>
-      <li><strong>Agent-native install</strong> — curated MCP tools + auto-pay on HTTP 402.</li>
-      <li><strong>Unified discovery</strong> — OpenAPI, marketplace, and <code>/.well-known/x402</code>.</li>
-      <li><strong>Transparent per-call price</strong> — 402 <code>accepts[]</code> shows the exact USDC charge.</li>
+      <li><strong>One wallet, many tools</strong>, one USDC payer covers news, on-chain intel, and partner routes.</li>
+      <li><strong>Agent-native install</strong>, curated MCP tools + auto-pay on HTTP 402.</li>
+      <li><strong>Unified discovery</strong>, OpenAPI, marketplace, and <code>/.well-known/x402</code>.</li>
+      <li><strong>Transparent per-call price</strong>, 402 <code>accepts[]</code> shows the exact USDC charge.</li>
     </ul>
 
     <h2>Where prices appear</h2>
@@ -316,7 +316,7 @@ function pricingBody() {
       <li>Discovery: <a href="${API_ORIGIN}/.well-known/x402">${API_ORIGIN}/.well-known/x402</a></li>
       <li>UI: <a href="/marketplace">syraa.fun/marketplace</a></li>
     </ul>
-    <p>Optional token details are at <a href="/token">/token</a> — not required to make paid API calls. Full write-up: <a href="${DOCS_ORIGIN}/docs/build/pricing">docs pricing vs DIY</a>.</p>
+    <p>Optional token details are at <a href="/token">/token</a>, not required to make paid API calls. Full write-up: <a href="${DOCS_ORIGIN}/docs/build/pricing">docs pricing vs DIY</a>.</p>
   `;
 }
 
@@ -398,7 +398,7 @@ function main() {
     renderSeoPage({
       title: "Syra MCP tools for crypto agents",
       description:
-        "Browse curated Syra MCP tools — news, smart money, DEX, oracles, and more. Pay per call with USDC over x402.",
+        "Browse curated Syra MCP tools, news, smart money, DEX, oracles, and more. Pay per call with USDC over x402.",
       canonicalPath: "/tools/",
       heading: "MCP tools",
       eyebrow: "Programmatic SEO · Spend Live",
@@ -455,7 +455,7 @@ function main() {
     renderSeoPage({
       title: "Syra x402 pay-per-call APIs",
       description:
-        "Catalog of Syra paid API routes. Settle USDC on HTTP 402 — crypto intelligence for agents.",
+        "Catalog of Syra paid API routes. Settle USDC on HTTP 402, crypto intelligence for agents.",
       canonicalPath: "/apis/",
       heading: "Paid APIs",
       eyebrow: "OpenAPI · x402",

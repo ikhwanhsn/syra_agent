@@ -47,7 +47,7 @@ export function isActiveLpRealPosition(status: LpRealPositionStatus): boolean {
   return LP_REAL_ACTIVE_STATUSES.has(status);
 }
 
-/** Open succeeded on-chain but DB status is error (e.g. close tx bug) — resolve will retry. */
+/** Open succeeded on-chain but DB status is error (e.g. close tx bug), resolve will retry. */
 export function isOrphanedLiveLpRealPosition(row: LpRealPosition): boolean {
   return row.status === "error" && Boolean(row.openTxSig) && !row.closeTxSig;
 }
@@ -82,26 +82,26 @@ export function formatLpLastError(
       return `Wallet needs more liquid SOL for the next ${formatSol(1)} slot (reserve kept for fees)`;
     case "insufficient_available_sol":
       return available != null
-        ? `Only ${formatSol(available)} SOL available after fee reserve — need more liquid SOL for the next pool (deposit + tx fees)`
+        ? `Only ${formatSol(available)} SOL available after fee reserve, need more liquid SOL for the next pool (deposit + tx fees)`
         : "Not enough liquid SOL in wallet for a new position (deposit + tx fees)";
     case "low_wallet_fee_reserve":
-      return "Wallet SOL low — add ~0.2 SOL for close/claim fees";
+      return "Wallet SOL low, add ~0.2 SOL for close/claim fees";
     case "no_best_strategy":
-      return "No sim strategy ready yet — waiting for cohort data";
+      return "No sim strategy ready yet, waiting for cohort data";
     case "no_profitable_strategy":
-      return "No sim strategy with positive net PnL yet — waiting for a profitable leader";
+      return "No sim strategy with positive net PnL yet, waiting for a profitable leader";
     case "no_candidate":
-      return "Agent is ticking but no Meteora pool passed screening (or all pools on 90m cooldown) — retrying every ~2 min";
+      return "Agent is ticking but no Meteora pool passed screening (or all pools on 90m cooldown), retrying every ~2 min";
     case "cooldown_or_open":
-      return "Same pool was used recently — waiting for 90m cooldown before re-entry";
+      return "Same pool was used recently, waiting for 90m cooldown before re-entry";
     case "max_positions":
-      return "Max concurrent positions reached — monitoring open slots only";
+      return "Max concurrent positions reached, monitoring open slots only";
     default:
       break;
   }
 
   if (code.includes("Account 'position' not provided") || code.includes("position account")) {
-    return "Close tx misconfigured — will retry on next resolve tick";
+    return "Close tx misconfigured, will retry on next resolve tick";
   }
   if (code.includes("position_width_exceeds") || code.includes("dlmm_error:6040")) {
     return "Meteora rejected position width (bin range too wide)";
@@ -111,7 +111,7 @@ export function formatLpLastError(
     code.includes("spl_token_error") ||
     code.includes("sidecar_swap")
   ) {
-    return "Wallet missing pool token — sidecar swap may retry on next tick";
+    return "Wallet missing pool token, sidecar swap may retry on next tick";
   }
   if (code.includes("simulation_failed") || code.includes("sim_returned_err")) {
     if (code.includes("dlmm_error:")) return code;
@@ -122,7 +122,7 @@ export function formatLpLastError(
     return code.replace(/^dlmm_error:/, "Meteora: ").replace(/_/g, " ");
   }
   if (code.includes("open_tx_not_on_chain") || code.includes("position_not_on_chain")) {
-    return "Open transaction is not on Solana — position was not opened";
+    return "Open transaction is not on Solana, position was not opened";
   }
   if (code.includes("tx_confirm_timeout") || code.includes("tx_blockhash_expired")) {
     return "Transaction was not confirmed on-chain in time";
@@ -134,7 +134,7 @@ export function formatLpLastError(
     return "Strategy bin range too wide for a single Meteora position (max 70 bins)";
   }
   if (code.includes("jupiter_quote_zero")) {
-    return "Jupiter could not quote a sidecar swap for this pool — skipped open";
+    return "Jupiter could not quote a sidecar swap for this pool, skipped open";
   }
   if (code.includes("Wallet hourly spend cap")) {
     return code;
@@ -146,10 +146,10 @@ export function formatLpLastError(
     return code;
   }
   if (code.includes("broker_pending_or_failed") || code.includes("require_confirm")) {
-    return "Broker held transaction for confirmation — LP cron cannot auto-confirm";
+    return "Broker held transaction for confirmation, LP cron cannot auto-confirm";
   }
   if (code.includes("unknown signer")) {
-    return "Close tx signer mismatch — retrying on next resolve tick";
+    return "Close tx signer mismatch, retrying on next resolve tick";
   }
   return code.replace(/_/g, " ");
 }
@@ -159,14 +159,14 @@ export function formatLpPositionError(
   row?: Pick<LpRealPosition, "status" | "openTxSig" | "closeTxSig">,
 ): string {
   if (row && isOrphanedLiveLpRealPosition(row as LpRealPosition)) {
-    return formatLpLastError(message) || "Close pending — position is live on Meteora";
+    return formatLpLastError(message) || "Close pending, position is live on Meteora";
   }
   if (!message) return "Open failed";
   if (row?.status === "opening" && row.openTxSig) {
-    return "Open transaction confirmed — waiting for Meteora position index";
+    return "Open transaction confirmed, waiting for Meteora position index";
   }
   if (message.includes("open_tx_not_on_chain") || message.includes("position_not_on_chain")) {
-    return "Open transaction never confirmed on Solana — no liquidity was deployed";
+    return "Open transaction never confirmed on Solana, no liquidity was deployed";
   }
   if (message.includes("tx_confirm_timeout") || message.includes("tx_blockhash_expired")) {
     return "Transaction timed out before on-chain confirmation";
@@ -268,12 +268,12 @@ export function lpPositionStatusTooltip(row: LpRealPosition): { title: string; b
       };
     case "closed_win":
       return {
-        title: "Closed — win",
+        title: "Closed, win",
         body: "Position closed with positive net PnL after fees. Capital is back in the agent wallet (or was when the close tx confirmed).",
       };
     case "closed_loss":
       return {
-        title: "Closed — loss",
+        title: "Closed, loss",
         body: "Position closed with negative net PnL after fees. Capital returned to the wallet; loss is recorded in realized PnL.",
       };
     case "expired":
@@ -293,7 +293,7 @@ export function lpPositionStatusTooltip(row: LpRealPosition): { title: string; b
         title: row.openTxSig ? "Close error" : "Open failed",
         body: row.openTxSig
           ? `Close did not complete.${errorExtra || " The agent will retry on the next resolve tick."}${policyNote}`
-          : `The open never landed on Meteora — no SOL was locked in this pool.${errorExtra || " The agent can try again on the next signal tick when funded."}${policyNote}`,
+          : `The open never landed on Meteora, no SOL was locked in this pool.${errorExtra || " The agent can try again on the next signal tick when funded."}${policyNote}`,
       };
     }
     default:
@@ -305,10 +305,10 @@ export function lpPositionStatusTooltip(row: LpRealPosition): { title: string; b
 }
 
 export function formatPositionDuration(openedAt: string | null, resolvedAt: string | null): string {
-  if (!openedAt) return "—";
+  if (!openedAt) return "-";
   const start = new Date(openedAt).getTime();
   const end = resolvedAt ? new Date(resolvedAt).getTime() : Date.now();
-  if (!Number.isFinite(start) || !Number.isFinite(end)) return "—";
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return "-";
   const hours = Math.max(0, (end - start) / 3_600_000);
   if (hours < 1) return `${Math.round(hours * 60)}m`;
   if (hours < 48) return `${hours.toFixed(1)}h`;
@@ -316,10 +316,10 @@ export function formatPositionDuration(openedAt: string | null, resolvedAt: stri
 }
 
 export function formatPositionDurationLong(openedAt: string | null, resolvedAt: string | null): string {
-  if (!openedAt) return "—";
+  if (!openedAt) return "-";
   const start = new Date(openedAt).getTime();
   const end = resolvedAt ? new Date(resolvedAt).getTime() : Date.now();
-  if (!Number.isFinite(start) || !Number.isFinite(end)) return "—";
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return "-";
   const totalMin = Math.max(0, Math.round((end - start) / 60_000));
   if (totalMin < 60) return `${totalMin} min`;
   const h = Math.floor(totalMin / 60);

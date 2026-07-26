@@ -16,7 +16,7 @@ function isValidShareSlug(s: string): boolean {
   return /^[a-f0-9]{1,24}$/i.test(s);
 }
 
-/** Share-link route (`/marketplace/s/:slug`) — custom tester with loaded request. */
+/** Share-link route (`/marketplace/s/:slug`), custom tester with loaded request. */
 const Index = () => {
   const location = useLocation();
   const navigate = useNavigate();

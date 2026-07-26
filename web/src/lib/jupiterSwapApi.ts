@@ -71,7 +71,7 @@ type ApiResult<T> =
   | { success: true; data: T }
   | { success: false; error: string };
 
-/** Build Jupiter UI path without `new URL()` — works with relative `/api` dev proxy bases. */
+/** Build Jupiter UI path without `new URL()`, works with relative `/api` dev proxy bases. */
 function jupiterUiUrl(path: string, query?: Record<string, string | number | undefined>): string {
   const base = getApiBaseUrl().replace(/\/$/, "");
   const segment = path.startsWith("/") ? path : `/${path}`;

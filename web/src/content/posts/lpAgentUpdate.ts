@@ -6,7 +6,7 @@ import type { PostUpdate } from "./types";
  * Update this file (or swap ACTIVE_POST in index.ts) when publishing the next build update.
  * Slide copy: avoid em dashes; use commas, periods, or colons instead.
  * Give each slide a unique `layout` from layouts.ts (see validatePostUpdate).
- * Left-aligned templates use PostSlideContent in PostSlideTemplates — do not split kicker/title/body across separate columns.
+ * Left-aligned templates use PostSlideContent in PostSlideTemplates, do not split kicker/title/body across separate columns.
  */
 export const LP_AGENT_POST: PostUpdate = {
   meta: {

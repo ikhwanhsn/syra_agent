@@ -1,6 +1,6 @@
 /**
  * B402 BSC EIP-3009 signing (TransferWithAuthorization).
- * Uses the full `extra` from the 402 accept (name, version from /supported) — not Base USDC defaults.
+ * Uses the full `extra` from the 402 accept (name, version from /supported), not Base USDC defaults.
  */
 import { createPublicClient, getAddress, http, recoverTypedDataAddress, type Address, type Hex } from 'viem';
 import { bsc } from 'viem/chains';
@@ -178,7 +178,7 @@ export async function signB402Eip3009Payment(
         };
       }
     } catch {
-      /* RPC unavailable — B402 settle will surface balance errors */
+      /* RPC unavailable, B402 settle will surface balance errors */
     }
 
     const nonce = createNonce();

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
-/** Fixed logo boxes — same outer size for icon and monogram fallback (no layout shift). */
+/** Fixed logo boxes, same outer size for icon and monogram fallback (no layout shift). */
 const LOGO_SIZE = {
   /** Swap card token picker button */
   sm: "h-7 w-7 min-h-7 min-w-7",

@@ -72,7 +72,7 @@ export function AboutSinglePage() {
             Five pillars for autonomous agents
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            Earn, Treasury, Invest, Spend, and Grow — on Solana. {SYRA_LIVE_SUBLINE}.
+            Earn, Treasury, Invest, Spend, and Grow, on Solana. {SYRA_LIVE_SUBLINE}.
           </p>
         </div>
 

@@ -1,14 +1,14 @@
 {
-  "date": "2026-07-25",
-  "updatedAt": "2026-07-25T00:53:00.000Z",
+  "date": "2026-07-26",
+  "updatedAt": "2026-07-26T16:27:59.567Z",
   "source": "https://api.syraa.fun/api/metrics",
   "northStar": {
-    "paidCallsLast7d": 20620,
-    "uniquePayingWalletsLast7d": 71
+    "paidCallsLast7d": 21972,
+    "uniquePayingWalletsLast7d": 75
   },
   "last7d": {
-    "calls": 20620,
-    "usdSettled": 326.46
+    "calls": 21972,
+    "usdSettled": 608.14
   },
   "buyback": {
     "totalBuybackUsdSpent": 0.48,
@@ -17,13 +17,13 @@
     "lastBuybackSignature": "3jz7qTsz14SQpJVxnaK5UWHVFjGP38GtDDuhGuK6ziNajDZciU62ZqwjYDUPGUMuzoHDAvM6ZxpSj8Mp1S21ED33"
   },
   "rewards": {
-    "uniqueEarners": 61,
+    "uniqueEarners": 75,
     "totalClaimableSyra": 0,
     "totalClaimedSyra": 0
   },
   "settlement": {
-    "settleFailRate24h": 0.0003
+    "settleFailRate24h": 0.0002
   },
-  "oneAction": "Publish one proof ship-log: settleFailRate24h 0.03% recovery + Crossmint/Flint/OKX ships; cite Solscan buyback",
+  "oneAction": "Publish proof ship-log: 24h settlement guardrail-green (99.98%) + $1,177 lifetime GMV / 89 payers + 4 networks; cite Solscan buyback + treasury",
   "bottleneck": "distribution"
 }

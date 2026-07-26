@@ -30,7 +30,7 @@ export function SystemLogs({ logs }: { logs: LogLine[] }) {
       <SectionHeader
         kicker="Section 12"
         title="System Logs"
-        description="Live agent loop telemetry — oracle reads, inference, risk checks, and execution."
+        description="Live agent loop telemetry, oracle reads, inference, risk checks, and execution."
       />
 
       <div
@@ -43,7 +43,7 @@ export function SystemLogs({ logs }: { logs: LogLine[] }) {
           <span className="h-2.5 w-2.5 rounded-full bg-red-500/80" />
           <span className="h-2.5 w-2.5 rounded-full bg-amber-500/80" />
           <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/80" />
-          <span className="ml-2 text-[10px] text-muted-foreground">btc-quant-agent — zsh</span>
+          <span className="ml-2 text-[10px] text-muted-foreground">btc-quant-agent, zsh</span>
         </div>
         <div ref={scrollRef} className="max-h-[280px] overflow-y-auto p-4 space-y-1">
           {logs.map((log) => (

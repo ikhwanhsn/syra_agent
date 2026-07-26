@@ -102,10 +102,14 @@ async function restorePendingRevenueUsd(amount, errorMessage) {
 
 async function syncManualBuysQuietly() {
   try {
-    const sync = await syncOnchainBuybacks({ requireUsdcSpend: true });
-    if (sync.recorded > 0) {
+    // Count every treasury $SYRA increase (USDC/SOL/estimated) + backfill $0 events.
+    const sync = await syncOnchainBuybacks({
+      requireUsdcSpend: false,
+      backfillZeroUsd: true,
+    });
+    if (sync.recorded > 0 || sync.revalued > 0 || sync.backfill?.updated > 0) {
       console.log(
-        `[buyback-scheduler] on-chain sync recorded ${sync.recorded} manual buy(s)`,
+        `[buyback-scheduler] on-chain sync recorded=${sync.recorded} revalued=${sync.revalued} backfill=${sync.backfill?.updated ?? 0}`,
       );
     }
     return sync;

@@ -52,8 +52,7 @@ export function AnsemVibesSection({ className }: { className?: string }) {
               Good vibes for $ANSEM, built on $SYRA infra
             </h2>
             <p className="max-w-lg text-sm leading-relaxed text-muted-foreground">
-              This hub runs on the same agent-grade data stack Syra ships to traders and AI agents —
-              dossier, intelligence, on-chain forensics, and x402 micropayments. Hold $ANSEM with
+              This hub runs on the same agent-grade data stack Syra ships to traders and AI agents, dossier, intelligence, on-chain forensics, and x402 micropayments. Hold $ANSEM with
               clarity; build with Syra.
             </p>
             <Button variant="neon" className="rounded-xl" asChild>

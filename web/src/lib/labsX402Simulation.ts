@@ -307,11 +307,11 @@ export function runLabsX402Simulation(input: LabsX402SimulationInput): LabsX402S
     achievementHints.push(
       `Price multiplier ×${priceMultiplier}: each call transfers ${formatUsd(avgPriceUsd)} (base ${formatUsd(safeBaseAvg)}). ` +
         `Target needs ~${targetCallsPerDay.toLocaleString()} calls instead of ~${callsAtBasePrice.toLocaleString()} at 1×` +
-        (saved > 0 ? ` — ~${saved.toLocaleString()} fewer calls.` : "."),
+        (saved > 0 ? `, ~${saved.toLocaleString()} fewer calls.` : "."),
     );
   }
   if (!input.autoCallEnabled) {
-    achievementHints.push("Enable auto-call and save settings — projected volume is 0 while it is off.");
+    achievementHints.push("Enable auto-call and save settings, projected volume is 0 while it is off.");
   }
   if (payerCount <= 0) {
     achievementHints.push("Add at least one payer wallet so the scheduler can generate volume.");
@@ -341,7 +341,7 @@ export function runLabsX402Simulation(input: LabsX402SimulationInput): LabsX402S
       }
     } else {
       achievementHints.push(
-        `Current config projects ~${formatUsd(grossUsdcPerDay)}/day — on track for the ${formatUsd(targetVolumeUsd)} target.`,
+        `Current config projects ~${formatUsd(grossUsdcPerDay)}/day, on track for the ${formatUsd(targetVolumeUsd)} target.`,
       );
     }
   }

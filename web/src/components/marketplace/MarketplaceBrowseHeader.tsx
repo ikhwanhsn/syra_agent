@@ -144,7 +144,7 @@ export function MarketplaceBrowseHeader({
             </span>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            Preview routes in the browser. Agents should use Integrate / MCP — {tierDescription}
+            Preview routes in the browser. Agents should use Integrate / MCP, {tierDescription}
           </p>
         </div>
 

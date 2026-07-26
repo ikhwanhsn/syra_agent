@@ -40,13 +40,13 @@ const SNIPPET_TABS: {
     id: "mcp",
     label: "MCP server",
     icon: Plug,
-    blurb: "Recommended — first paid call from Cursor or Claude.",
+    blurb: "Recommended, first paid call from Cursor or Claude.",
   },
   {
     id: "sdk",
     label: "TypeScript SDK",
     icon: Package,
-    blurb: "Typed client for agents — handles signing and retries.",
+    blurb: "Typed client for agents, handles signing and retries.",
   },
   {
     id: "curl",
@@ -118,7 +118,7 @@ curl -i "${newsUrl}"
     sdk: `# Install
 npm install @syra-ai/sdk
 
-# First paid call — createSyraPaidClient reads SYRA_PAYER_KEYPAIR from env
+# First paid call, createSyraPaidClient reads SYRA_PAYER_KEYPAIR from env
 
 import { createSyraPaidClient } from "@syra-ai/sdk";
 
@@ -178,7 +178,7 @@ export function PlaygroundQuickstart() {
       <PlaygroundHero
         kicker="First paid call"
         title="First paid call in 5 minutes"
-        description={`${SYRA_LIVE_SUBLINE}. Install MCP, fund ≥ $1 USDC on Solana, call syra_spend_news — settle x402 and get JSON agents can act on.`}
+        description={`${SYRA_LIVE_SUBLINE}. Install MCP, fund ≥ $1 USDC on Solana, call syra_spend_news, settle x402 and get JSON agents can act on.`}
         badges={
           <>
             <span className={playgroundStatPillClass}>
@@ -211,7 +211,7 @@ export function PlaygroundQuickstart() {
 
       <p className={cn("max-w-2xl text-sm leading-relaxed text-muted-foreground", playgroundSectionEnter)}>
         <span className="font-medium text-foreground">{SYRA_ONE_LINER}</span>
-        {" — "}
+        {", "}
         This is the canonical activation path. Catalog browse is optional for humans.
       </p>
 

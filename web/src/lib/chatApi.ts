@@ -13,7 +13,7 @@ function getApiHeaders(): Record<string, string> {
     const leaked = import.meta.env.VITE_API_KEY?.trim();
     if (leaked) {
       console.warn(
-        "[Syra] VITE_API_KEY is set but must not be sent from browser bundles. Remove it from .env — api.syraa.fun injects auth for trusted origins.",
+        "[Syra] VITE_API_KEY is set but must not be sent from browser bundles. Remove it from .env, api.syraa.fun injects auth for trusted origins.",
       );
     }
   }
@@ -54,7 +54,7 @@ export interface ApiToolUsageEntry {
   chartCoinId?: string;
   chartSymbol?: string;
   chartName?: string;
-  /** pump.fun create-coin success — client quick links */
+  /** pump.fun create-coin success, client quick links */
   pumpfunCreateMint?: string;
   pumpfunCreateSignature?: string;
   pumpfunCreateSymbol?: string;
@@ -251,7 +251,7 @@ export const chatApi = {
 
   /** Error message thrown when 402 is received and wallet is not connected (tools/realtime require wallet). Shown as agent's answer. */
   WALLET_REQUIRED_FOR_TOOLS:
-    "To use tools and realtime data, connect your Solana wallet first (Phantom recommended via Connect). You can keep chatting about crypto, web3, and blockchain without a wallet—connect when you need live data or tools.",
+    "To use tools and realtime data, connect your Solana wallet first (Phantom recommended via Connect). You can keep chatting about crypto, web3, and blockchain without a wallet, connect when you need live data or tools.",
 
   /**
    * Get LLM completion from OpenRouter (via API). Playground-style: if completion returns 402 (tool requires payment),
@@ -260,7 +260,7 @@ export const chatApi = {
   async completion(params: {
     messages: Array<{ role: "user" | "assistant" | "system"; content: string }>;
     systemPrompt?: string;
-    /** Persisted Mongo chat id — enables per-thread LLM token budget on the server */
+    /** Persisted Mongo chat id, enables per-thread LLM token budget on the server */
     chatId?: string | null;
     /** OpenRouter model id (e.g. google/gemini-2.5-flash-lite). Omit to use default. */
     model?: string | null;

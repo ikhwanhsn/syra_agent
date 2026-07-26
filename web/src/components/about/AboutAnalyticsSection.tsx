@@ -75,13 +75,13 @@ function formatUsd(value: number, compact = false): string {
 }
 
 function formatPrice(value: number): string {
-  if (!Number.isFinite(value) || value <= 0) return "—";
+  if (!Number.isFinite(value) || value <= 0) return "-";
   if (value >= 1) return formatUsd(value);
   return `$${value.toPrecision(4)}`;
 }
 
 function formatPct(value: number): string {
-  if (!Number.isFinite(value)) return "—";
+  if (!Number.isFinite(value)) return "-";
   return `${value.toFixed(1)}%`;
 }
 
@@ -214,7 +214,7 @@ export function AboutAnalyticsSection({ embedded = false }: { embedded?: boolean
           <AboutSectionHeader
             kicker="On-chain data"
             title="$SYRA analytics"
-            description="Live trading, holder, staking, and treasury buyback metrics — powered by Dune."
+            description="Live trading, holder, staking, and treasury buyback metrics, powered by Dune."
             className="mb-0"
           />
         ) : (
@@ -222,7 +222,7 @@ export function AboutAnalyticsSection({ embedded = false }: { embedded?: boolean
             <p className={aboutKickerClass}>On-chain data</p>
             <h2 className="mt-3 font-display text-2xl font-semibold tracking-[-0.035em] text-foreground">$SYRA analytics</h2>
             <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
-              Live trading, holder, staking, and treasury buyback metrics from Solana — powered by Dune Analytics.
+              Live trading, holder, staking, and treasury buyback metrics from Solana, powered by Dune Analytics.
             </p>
           </div>
         )}
@@ -505,7 +505,7 @@ export function AboutAnalyticsSection({ embedded = false }: { embedded?: boolean
                                         month: "short",
                                         day: "numeric",
                                       })
-                                    : "—"}
+                                    : "-"}
                                 </td>
                                 <td className="px-3 py-2 text-right tabular-nums">{formatCompactAmount(row.syraBought)}</td>
                                 <td className="px-3 py-2 text-right tabular-nums">{formatUsd(row.usdSpent)}</td>

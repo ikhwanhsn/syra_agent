@@ -498,7 +498,7 @@ export function OverviewBalanceChart({
                 ) : null}
                 {!loading && (totalUsdc != null || totalSol != null) ? (
                   <p className="mt-2 text-sm tabular-nums text-muted-foreground">
-                    {totalUsdc != null ? `$${formatUsdcPlain(totalUsdc)} USDC` : "— USDC"}
+                    {totalUsdc != null ? `$${formatUsdcPlain(totalUsdc)} USDC` : ", USDC"}
                     {totalSol != null ? ` · ${formatSol(totalSol)} SOL` : ""}
                   </p>
                 ) : null}

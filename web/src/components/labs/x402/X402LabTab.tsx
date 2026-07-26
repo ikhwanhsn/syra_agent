@@ -106,7 +106,7 @@ export function X402LabTab({ chain }: X402LabTabProps) {
         <div>
           <h2 className="flex items-center gap-2 text-lg font-semibold">
             <FlaskConical className="h-5 w-5 text-primary" aria-hidden />
-            x402 payment lab — {chainLabel}
+            x402 payment lab, {chainLabel}
           </h2>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
             Manage {chainLabel} lab wallets, fund them with {nativeSymbol}/USDC, and run paid calls
@@ -266,10 +266,10 @@ export function X402LabTab({ chain }: X402LabTabProps) {
               const failed = results.filter((r) => !r.success).length;
               const ok = results.filter((r) => r.success).length;
               if (failed > 0 && ok === 0) {
-                return `x402 run finished — ${failed} payment${failed === 1 ? "" : "s"} failed. See Error column in the call log.`;
+                return `x402 run finished, ${failed} payment${failed === 1 ? "" : "s"} failed. See Error column in the call log.`;
               }
               if (failed > 0) {
-                return `x402 run finished — ${ok} succeeded, ${failed} failed. Check the call log.`;
+                return `x402 run finished, ${ok} succeeded, ${failed} failed. Check the call log.`;
               }
               return `x402 run completed${ok > 0 ? ` (${ok} succeeded)` : ""}. Check the call log for results.`;
             })()}

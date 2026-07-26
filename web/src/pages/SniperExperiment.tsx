@@ -10,7 +10,7 @@ export default function SniperExperiment() {
   return (
     <EarnPaperLabPage
       title="New-Pair Alpha Sniper"
-      subtitle="Paper lab sniping high-quality new pairs from pump.fun scout with RugCheck hard gates and adaptive TP/SL/trailing. Highest variance — paper first."
+      subtitle="Paper lab sniping high-quality new pairs from pump.fun scout with RugCheck hard gates and adaptive TP/SL/trailing. Highest variance, paper first."
       queryKey="alpha-sniper"
       walletQuery="lp"
       earnProductHint="Earn product: alpha_sniper"

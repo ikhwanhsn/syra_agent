@@ -32,7 +32,7 @@ function devUsesLocalApiGateway(): boolean {
 
 /**
  * API origin for browser fetches.
- * - Local dev on localhost: /api (same-origin Vite proxy — avoids CORS to api.syraa.fun)
+ * - Local dev on localhost: /api (same-origin Vite proxy, avoids CORS to api.syraa.fun)
  * - VITE_USE_LOCAL_API=true: proxy targets local gateway (localhost:3000)
  * - Production: https://api.syraa.fun (or explicit VITE_SYRA_API_URL)
  */
@@ -46,7 +46,7 @@ function resolveApiBase(): string {
     if (isLocalApiHost(explicit)) {
       if (import.meta.env.DEV) {
         console.warn(
-          "[Syra] VITE_SYRA_API_URL points at localhost — use VITE_USE_LOCAL_API=true with the /api dev proxy instead.",
+          "[Syra] VITE_SYRA_API_URL points at localhost, use VITE_USE_LOCAL_API=true with the /api dev proxy instead.",
         );
       }
       return PRODUCTION_API_DEFAULT;
@@ -96,7 +96,7 @@ export const env = {
 
 /**
  * App-client IDs are for localhost/dev by default. In production, client Allowed origins
- * override app domains — a dev-only client blocks the Privy iframe (frame-ancestors).
+ * override app domains, a dev-only client blocks the Privy iframe (frame-ancestors).
  */
 export function getPrivyClientIdForProvider(): string | undefined {
   const clientId = env.privyClientId;
@@ -105,7 +105,7 @@ export function getPrivyClientIdForProvider(): string | undefined {
   return clientId;
 }
 
-/** Runtime API base — never uses localhost when the site is served from production. */
+/** Runtime API base, never uses localhost when the site is served from production. */
 export function getApiBaseUrl(): string {
   const base = resolveApiBase();
   if (!isBrowserLocalhost() && !import.meta.env.DEV && isLocalApiHost(base)) {

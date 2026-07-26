@@ -11,7 +11,7 @@ export type DashboardExperimentNavItem = {
   badge?: { label: string; className?: string };
 };
 
-/** Internal-team experiment desks — admin wallet only. */
+/** Internal-team experiment desks, admin wallet only. */
 export const DASHBOARD_EXPERIMENT_NAV: readonly DashboardExperimentNavItem[] = [
   {
     id: "lp",

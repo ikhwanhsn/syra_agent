@@ -28,7 +28,7 @@ const HEADLINE_ITEM_COPY: Record<string, (ctx: MetricShareCopyContext) => string
   "Total paid calls": ({ item }) =>
     `Syra just crossed ${item.value} paid x402 calls.
 
-Real agents. Real USDC. Real HTTP-native micropayments — not vaporware.
+Real agents. Real USDC. Real HTTP-native micropayments, not vaporware.
 
 The paid rail is LIVE and compounding.
 
@@ -37,14 +37,14 @@ ${item.hint ? `→ ${item.hint}\n` : ""}→ syraa.fun`,
   "30d paid growth": ({ item }) =>
     `${item.value} paid growth in 30 days on Syra.
 
-x402 micropayments are not a demo anymore — they're a revenue engine shipping in production.
+x402 micropayments are not a demo anymore, they're a revenue engine shipping in production.
 
 ${item.hint ? `→ ${item.hint}\n` : ""}Agents pay per call. Builders get paid per API hit.
 
 → syraa.fun`,
 
   "Unique users": ({ item }) =>
-    `${item.value} unique users on Syra — and climbing.
+    `${item.value} unique users on Syra, and climbing.
 
 AI agents + crypto natives are showing up for x402-native intelligence, swaps, and on-chain tools.
 
@@ -71,7 +71,7 @@ ${item.hint ? `→ ${item.hint}\n` : ""}Micropayments that actually convert.
 → syraa.fun/playground`,
 
   "Playground shares": ({ item }) =>
-    `${item.value} playground shares — devs are spreading Syra API calls like wildfire.
+    `${item.value} playground shares, devs are spreading Syra API calls like wildfire.
 
 One link. One x402 payment. Instant agent-ready endpoints.
 
@@ -93,7 +93,7 @@ ${section.heroHint ? `→ ${section.heroHint}\n` : ""}No gatekeepers. No monthly
   "Paid calls (30d)": ({ item }) =>
     `${item.value} paid x402 calls in the last 30 days.
 
-Agents are spending real USDC on Syra intelligence, tools, and on-chain data — at HTTP speed.
+Agents are spending real USDC on Syra intelligence, tools, and on-chain data, at HTTP speed.
 
 ${item.hint ? `→ ${item.hint}\n` : ""}The meter is running. The product is shipping.
 
@@ -102,14 +102,14 @@ ${item.hint ? `→ ${item.hint}\n` : ""}The meter is running. The product is shi
   "30d paid growth": ({ item }) =>
     `Paid volume up ${item.value} in 30 days on Syra.
 
-x402 micropayments aren't theory — they're a live revenue line compounding week over week.
+x402 micropayments aren't theory, they're a live revenue line compounding week over week.
 
 ${item.hint ? `→ ${item.hint}\n` : ""}Build in public. Get paid in public.
 
 → syraa.fun`,
 
   "Completed tool calls": ({ item }) =>
-    `${item.value} completed paid tool calls — all time on Syra.
+    `${item.value} completed paid tool calls, all time on Syra.
 
 Every successful call = an agent that paid, executed, and got real output back.
 
@@ -120,7 +120,7 @@ This is the infrastructure layer for autonomous finance.
   "Chats w/ paid tools": ({ item }) =>
     `${item.value} chats triggered paid x402 tools on Syra.
 
-Users don't just chat — they execute. Swap. Query. Pay. Done.
+Users don't just chat, they execute. Swap. Query. Pay. Done.
 
 The agent isn't a toy. It's a transaction machine.
 
@@ -129,7 +129,7 @@ The agent isn't a toy. It's a transaction machine.
   "Paid requests (30d)": ({ item }) =>
     `${item.value} monetized API requests in 30 days.
 
-Syra ships HTTP-native paid endpoints that agents can hit without friction — wallet signs, USDC moves, data flows.
+Syra ships HTTP-native paid endpoints that agents can hit without friction, wallet signs, USDC moves, data flows.
 
 ${item.hint ? `→ ${item.hint}\n` : ""}Revenue rail: ON.
 
@@ -140,7 +140,7 @@ const X402_HEADLINE_ITEM_COPY: Record<string, (ctx: MetricShareCopyContext) => s
   "USD volume (30d)": ({ item }) =>
     `${item.value} x402 USD volume in 30 days on Syra.
 
-Real USDC settling on every paid API call. Not subscriptions — per-hit micropayments at HTTP speed.
+Real USDC settling on every paid API call. Not subscriptions, per-hit micropayments at HTTP speed.
 
 ${item.hint ? `→ ${item.hint}\n` : ""}The machine money meter is running.
 
@@ -165,7 +165,7 @@ ${item.hint ? `→ ${item.hint}\n` : ""}Agent economy has buyers.
 → syraa.fun`,
 
   "Failures (7d)": ({ item }) =>
-    `${item.value} x402 failures in the last 7 days — tracked and triaged.
+    `${item.value} x402 failures in the last 7 days, tracked and triaged.
 
 We log every verify fail, settle fail, and upstream error. Know exactly what broke and where.
 
@@ -195,7 +195,7 @@ ${item.hint ? `→ ${item.hint}\n` : ""}Full-stack x402 telemetry.
 const SECTION_COPY: Record<string, (ctx: MetricShareCopyContext) => string> = {
   headline: ({ section }) => {
     const stats = bulletStats(topItems(section, 4));
-    return `Syra production metrics — LIVE.
+    return `Syra production metrics, LIVE.
 
 The x402 agent stack is shipping, paying, and compounding in the wild.
 
@@ -209,7 +209,7 @@ Real users. Real paid calls. Real build-in-public energy.
   monetization: ({ section }) => {
     const hero = section.heroValue ? `${section.heroLabel ?? "Paid conversion"}: ${section.heroValue}` : null;
     const stats = bulletStats(topItems(section, 4));
-    return `Syra x402 monetization — CRUSHING.
+    return `Syra x402 monetization, CRUSHING.
 
 ${hero ? `${hero}\n${section.heroHint ? `→ ${section.heroHint}\n` : ""}` : ""}${stats}
 
@@ -220,7 +220,7 @@ Micropayments per API call. No subscriptions. Agents pay → builders earn.
 
   charts: ({ section }) => {
     const stats = bulletStats(topItems(section, 4));
-    return `Syra growth trends — accelerating.
+    return `Syra growth trends, accelerating.
 
 14-day pulse on paid x402 calls + daily active users. The chart only goes one direction: UP.
 
@@ -234,7 +234,7 @@ Agents arrive. They pay. They come back. Repeat.
 
   revenue: ({ section }) => {
     const stats = bulletStats(topItems(section, 5));
-    return `Syra revenue rail — LIVE breakdown.
+    return `Syra revenue rail, LIVE breakdown.
 
 Paid x402 volume by source and API path. Every bar is real USDC from real agent traffic.
 
@@ -247,7 +247,7 @@ This is what agent-native monetization looks like at scale.
 
   traffic: ({ section }) => {
     const stats = bulletStats(topItems(section, 4));
-    return `Syra API traffic — PUMPING.
+    return `Syra API traffic, PUMPING.
 
 Production request volume, error rates, and path-level pulse. The backend is eating load.
 
@@ -260,9 +260,9 @@ Built for agents. Stress-tested in the wild.
 
   engagement: ({ section }) => {
     const stats = bulletStats(topItems(section, 4));
-    return `Syra engagement — DEEP.
+    return `Syra engagement, DEEP.
 
-Chat depth, message velocity, and session intensity. Users aren't bouncing — they're going deep.
+Chat depth, message velocity, and session intensity. Users aren't bouncing, they're going deep.
 
 ${stats}
 
@@ -273,7 +273,7 @@ Sticky agents. Repeat paid tool use. Real product love.
 
   agents: ({ section }) => {
     const stats = bulletStats(topItems(section, 5));
-    return `Syra agent leaderboard — WHO'S WINNING.
+    return `Syra agent leaderboard, WHO'S WINNING.
 
 Top agents and tools driving paid activity right now. The ecosystem picks its favorites.
 
@@ -286,7 +286,7 @@ Ship an agent. Plug into x402. Watch it climb.
 
   playground: ({ section }) => {
     const stats = bulletStats(topItems(section, 4));
-    return `Syra API Playground — VIRAL among builders.
+    return `Syra API Playground, VIRAL among builders.
 
 Shared request links spreading across chains. Devs test x402 endpoints and ship faster.
 
@@ -299,7 +299,7 @@ Share a link → someone pays → your API gets exercised.
 
   health: ({ section }) => {
     const stats = bulletStats(topItems(section, 4));
-    return `Syra system health — BATTLE-TESTED.
+    return `Syra system health, BATTLE-TESTED.
 
 Latency, reliability, and error spectrum across production endpoints. Fast. Stable. Shipping.
 
@@ -313,7 +313,7 @@ Agents need uptime. We deliver.
   endpoints: ({ section }) => {
     const top = section.items[0];
     const stats = bulletStats(topItems(section, 4));
-    return `Syra top paid endpoints — WHERE THE MONEY FLOWS.
+    return `Syra top paid endpoints, WHERE THE MONEY FLOWS.
 
 ${top ? `#1 ${top.label}: ${top.value} paid calls\n` : ""}${stats}
 
@@ -324,9 +324,9 @@ These API paths are the beating heart of the x402 agent economy.
 
   "x402-headline": ({ section }) => {
     const stats = bulletStats(topItems(section, 4));
-    return `Syra x402 telemetry — LIVE.
+    return `Syra x402 telemetry, LIVE.
 
-Per-call payment rail metrics: USD volume, success rate, conversion, and failures — all in production.
+Per-call payment rail metrics: USD volume, success rate, conversion, and failures, all in production.
 
 ${stats}
 
@@ -338,7 +338,7 @@ HTTP 402 micropayments shipping at scale. Machine money is real.
   "x402-funnel": ({ section }) => {
     const hero = section.heroValue ? `${section.heroLabel ?? "Conversion"}: ${section.heroValue}` : null;
     const stats = bulletStats(topItems(section, 4));
-    return `Syra x402 payment funnel — 402 → PAID.
+    return `Syra x402 payment funnel, 402 → PAID.
 
 ${hero ? `${hero}\n${section.heroHint ? `→ ${section.heroHint}\n` : ""}` : ""}${stats}
 
@@ -349,7 +349,7 @@ Every step tracked: issued, verified, settled. Full visibility into the paid rai
 
   "x402-volume": ({ section }) => {
     const stats = bulletStats(topItems(section, 4));
-    return `Syra x402 daily volume — COMPOUNDING.
+    return `Syra x402 daily volume, COMPOUNDING.
 
 USD settled + call events over 14 days. The revenue pulse of the agent economy.
 
@@ -363,7 +363,7 @@ Agents pay per call. Builders earn per hit. Chart goes up.
   "x402-endpoints": ({ section }) => {
     const top = section.items[0];
     const stats = bulletStats(topItems(section, 5));
-    return `Syra x402 top endpoints — WHERE AGENTS SPEND.
+    return `Syra x402 top endpoints, WHERE AGENTS SPEND.
 
 ${top ? `#1 ${top.label}: ${top.value} calls\n` : ""}${stats}
 
@@ -374,9 +374,9 @@ These are the APIs agents pay for most. Product signal in USDC.
 
   "x402-reliability": ({ section }) => {
     const stats = bulletStats(topItems(section, 5));
-    return `Syra x402 reliability — NETWORK + FACILITATOR HEALTH.
+    return `Syra x402 reliability, NETWORK + FACILITATOR HEALTH.
 
-Success rates by chain and payment facilitator. PayAI, Corbits, Solana, Base — all tracked.
+Success rates by chain and payment facilitator. PayAI, Corbits, Solana, Base, all tracked.
 
 ${stats}
 

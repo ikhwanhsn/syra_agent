@@ -22,7 +22,7 @@ export interface PostVideoPlayerProps {
 }
 
 /**
- * WYSIWYG Remotion Player — same composition as export.
+ * WYSIWYG Remotion Player, same composition as export.
  * Player is loaded on demand so Remotion stays out of the app entry chunk.
  */
 export function PostVideoPlayer({

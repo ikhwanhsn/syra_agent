@@ -20,7 +20,7 @@ import {
 import { usePostRegistryRefresh } from "@/lib/usePostRegistryRefresh";
 import { usePostStudioQuery } from "@/hooks/usePostStudio";
 
-/** Hub for ship-log social formats — video deck or photo templates. */
+/** Hub for ship-log social formats, video deck or photo templates. */
 export default function PostPage() {
   const { isLoading } = usePostStudioQuery();
   const statusTick = usePostRegistryRefresh();

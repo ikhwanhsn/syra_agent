@@ -94,10 +94,10 @@ export function BtcChartShareModal({
       const ok = await copyBtcChartShareToClipboard(exportRef.current);
       if (ok) {
         setCopied(true);
-        toast.success("Chart image copied — paste on X or Telegram");
+        toast.success("Chart image copied, paste on X or Telegram");
         window.setTimeout(() => setCopied(false), 2200);
       } else {
-        toast.error("Copy not supported — try Download PNG");
+        toast.error("Copy not supported, try Download PNG");
       }
     } catch {
       toast.error("Failed to copy image");
@@ -141,11 +141,11 @@ export function BtcChartShareModal({
         await navigator.share(shareData);
         toast.success("Shared");
       } else {
-        toast.error("Native share not available — use Copy or Download");
+        toast.error("Native share not available, use Copy or Download");
       }
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") return;
-      toast.error("Share failed — try Download PNG");
+      toast.error("Share failed, try Download PNG");
     } finally {
       setSharing(false);
     }
@@ -157,7 +157,7 @@ export function BtcChartShareModal({
       const ok = await copyBtcChartShareText(copyContext);
       if (ok) {
         setTextCopied(true);
-        toast.success("Post copy ready — paste after attaching image");
+        toast.success("Post copy ready, paste after attaching image");
         window.setTimeout(() => setTextCopied(false), 2200);
       } else {
         toast.error("Could not copy to clipboard");

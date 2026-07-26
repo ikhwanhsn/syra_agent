@@ -77,7 +77,7 @@ export default function MultiWalletRecoverPage() {
 
     setRecovering(true);
     setResult(null);
-    setStatusText(`Recovering ${preview.walletCount} wallets — selling $ANSEM and sweeping SOL…`);
+    setStatusText(`Recovering ${preview.walletCount} wallets, selling $ANSEM and sweeping SOL…`);
 
     try {
       const authed = await ensureSession();
@@ -86,7 +86,7 @@ export default function MultiWalletRecoverPage() {
       const data = await recoverMultiWalletFunds();
       setResult(data);
       setStatusText(
-        `Done — ${data.succeeded} recovered, ${data.skipped} skipped, ${data.failed} failed. ` +
+        `Done, ${data.succeeded} recovered, ${data.skipped} skipped, ${data.failed} failed. ` +
           `${data.totalSolSwept.toFixed(4)} SOL sent to your wallet.`,
       );
 

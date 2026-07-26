@@ -2,10 +2,10 @@ import type { ExampleFlowPreset } from "@/hooks/useApiPlayground";
 import { getFlowGroup } from "@/hooks/useApiPlayground";
 import { getPlaygroundSyraPathname } from "@/lib/playgroundUrl";
 
-/** Internal classification — data-provider routes roll up into the Partners filter. */
+/** Internal classification, data-provider routes roll up into the Partners filter. */
 export type MarketplaceTier = "core" | "data-provider" | "partner";
 
-/** UI filter tabs — Partners includes data-provider routes (external services). */
+/** UI filter tabs, Partners includes data-provider routes (external services). */
 export type MarketplaceFilter = "core" | "partner" | "all";
 
 /**
@@ -152,8 +152,8 @@ export const MARKETPLACE_FILTER_LABELS: Record<MarketplaceFilter, string> = {
 export const MARKETPLACE_FILTER_DESCRIPTIONS: Record<MarketplaceFilter, string> = {
   core: "Syra-built intelligence (signals, synthesis). No third-party passthrough.",
   partner:
-    "External services — onchain providers (Jupiter, DexScreener, …) and partner gateways.",
-  all: "All x402 endpoints — Core and partners.",
+    "External services, onchain providers (Jupiter, DexScreener, …) and partner gateways.",
+  all: "All x402 endpoints, Core and partners.",
 };
 
 /** Brand / service label for grouping partner-tier APIs in the marketplace. */

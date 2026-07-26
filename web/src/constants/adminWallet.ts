@@ -1,9 +1,9 @@
-/** Hardcoded admin wallet — internal dashboard + admin API routes. */
+/** Hardcoded admin wallet, internal dashboard + admin API routes. */
 export const ADMIN_DASHBOARD_WALLETS = Object.freeze([
   "FiejqEgqQ8bxtUJpZMy5p1wVCcejKyy5PgZ4cwmLBvYD",
 ] as const);
 
-/** Primary admin — shown in access-denied UI. */
+/** Primary admin, shown in access-denied UI. */
 export const ADMIN_DASHBOARD_WALLET = ADMIN_DASHBOARD_WALLETS[0];
 
 /**

@@ -200,7 +200,7 @@ export function buildMetricShareSectionBundle(
     mode,
     updatedAt: section.updatedAt,
     badge: section.badge,
-    cards: mode === "per-item" ? cardsFromItems(sectionId, section.items) : [{ id: sectionId, label: section.title, item: section.items[0] ?? { label: section.title, value: "—" } }],
+    cards: mode === "per-item" ? cardsFromItems(sectionId, section.items) : [{ id: sectionId, label: section.title, item: section.items[0] ?? { label: section.title, value: "-" } }],
     section,
   };
 }

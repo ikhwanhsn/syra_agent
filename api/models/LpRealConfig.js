@@ -37,6 +37,13 @@ const lpRealConfigSchema = new mongoose.Schema(
     publicMaxDepositSol: { type: Number, default: 5, min: 0.1, max: 50 },
     /** When true, agent is listed on the public Earn Yield board (beta allowlist). */
     publicEarnListed: { type: Boolean, default: false, index: true },
+    /**
+     * Earn Yield personal stats start at this timestamp.
+     * Closed lab/history before this is never shown as "Your PnL".
+     */
+    publicEarnStartedAt: { type: Date, default: null, index: true },
+    /** Bump to force a fresh earn-session cutover (excludes prior lab history from Your PnL). */
+    earnStatsEpoch: { type: Number, default: 0, min: 0 },
     /** Kill switch: refuse new deposits / opens even if enabled. */
     depositsPaused: { type: Boolean, default: false },
   },

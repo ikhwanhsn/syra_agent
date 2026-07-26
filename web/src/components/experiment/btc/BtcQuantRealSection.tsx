@@ -102,7 +102,7 @@ export function BtcQuantRealSection({
               <div>
                 <dt className="text-muted-foreground">Leader strategy</dt>
                 <dd className="font-medium">
-                  {state?.leaderStrategyId != null ? `#${state.leaderStrategyId}` : "—"}
+                  {state?.leaderStrategyId != null ? `#${state.leaderStrategyId}` : "-"}
                 </dd>
               </div>
               <div>

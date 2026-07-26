@@ -25,7 +25,7 @@ export function Transparency({ predictions }: { predictions: OnchainPrediction[]
       <SectionHeader
         kicker="Section 08"
         title="Onchain Transparency"
-        description="Every prediction recorded on Solana — verifiable hashes, model versions, and transaction proofs."
+        description="Every prediction recorded on Solana, verifiable hashes, model versions, and transaction proofs."
       />
 
       <div className={cn(overviewCardShell, "rounded-2xl p-4 sm:p-5")}>

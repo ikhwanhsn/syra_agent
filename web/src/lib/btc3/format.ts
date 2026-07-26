@@ -12,26 +12,26 @@ const usd = new Intl.NumberFormat("en-US", {
 
 export function formatPct(value: number | null | undefined): string {
   const n = Number(value);
-  if (!Number.isFinite(n)) return "—";
+  if (!Number.isFinite(n)) return "-";
   return pct.format(n / 100);
 }
 
 export function formatReturn(value: number | null | undefined): string {
   const n = Number(value);
-  if (!Number.isFinite(n)) return "—";
+  if (!Number.isFinite(n)) return "-";
   const sign = n >= 0 ? "+" : "";
   return `${sign}${(n * 100).toFixed(2)}%`;
 }
 
 export function formatConfidence(value: number | null | undefined): string {
   const n = Number(value);
-  if (!Number.isFinite(n)) return "—";
+  if (!Number.isFinite(n)) return "-";
   return `${Math.round(n * 100)}%`;
 }
 
 export function formatUsd(value: number | null | undefined): string {
   const n = Number(value);
-  if (!Number.isFinite(n)) return "—";
+  if (!Number.isFinite(n)) return "-";
   return usd.format(n);
 }
 

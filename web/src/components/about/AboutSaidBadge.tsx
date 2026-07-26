@@ -19,7 +19,7 @@ export function AboutSaidBadge({ className }: { className?: string }) {
         "group block overflow-hidden transition-colors hover:border-border/70",
         className,
       )}
-      aria-label="View Syra on SAID Protocol — #1 verified agent"
+      aria-label="View Syra on SAID Protocol, #1 verified agent"
     >
       <div className="flex flex-col gap-6 p-5 sm:flex-row sm:items-center sm:justify-between sm:gap-8 sm:p-6 lg:p-7">
         <div className="min-w-0 space-y-3 sm:max-w-md">
@@ -34,7 +34,7 @@ export function AboutSaidBadge({ className }: { className?: string }) {
               #1 verified agent on SAID
             </h2>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              Syra leads the SAID agent directory with on-chain verified identity — check our profile and
+              Syra leads the SAID agent directory with on-chain verified identity, check our profile and
               reputation on Solana.
             </p>
           </div>
@@ -48,7 +48,7 @@ export function AboutSaidBadge({ className }: { className?: string }) {
           <div className="rounded-xl border border-border/40 bg-background/40 p-3 shadow-sm transition-shadow group-hover:shadow-md sm:p-4">
             <img
               src={SYRA_SAID_BADGE_URL}
-              alt="SAID Verified — Syra agent badge"
+              alt="SAID Verified, Syra agent badge"
               width={348}
               height={120}
               className="h-auto w-full max-w-[min(100%,280px)] sm:max-w-[300px]"

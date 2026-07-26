@@ -20,7 +20,7 @@ export interface PostVideoSlideSlotDef {
 }
 
 /**
- * Canonical 8-slide video deck — every future ship log must follow this kind order.
+ * Canonical 8-slide video deck, every future ship log must follow this kind order.
  * Layouts may vary per update; kinds and count may not.
  */
 export const POST_VIDEO_SLIDE_SLOTS: readonly PostVideoSlideSlotDef[] = [
@@ -35,7 +35,7 @@ export const POST_VIDEO_SLIDE_SLOTS: readonly PostVideoSlideSlotDef[] = [
     role: "statement",
     kind: "statement",
     label: "Thesis",
-    description: "Why this matters — problem statement",
+    description: "Why this matters, problem statement",
     defaultLayout: "statement-large-type",
   },
   {

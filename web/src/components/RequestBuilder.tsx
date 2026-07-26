@@ -165,7 +165,7 @@ export function RequestBuilder({
                 {paymentLane === 'mpp' ? 'MPP request' : 'Request'}
               </h2>
               <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
-                Build the call — headers, query, and body stay in sync with your URL.
+                Build the call, headers, query, and body stay in sync with your URL.
               </p>
             </div>
           </div>
@@ -351,7 +351,7 @@ export function RequestBuilder({
           </div>
           {pumpfunNeedsSolana && !wallet.connected ? (
             <p className="mt-2 text-xs leading-relaxed text-amber-600 dark:text-amber-400/90">
-              This URL is a pump.fun route — connect a <span className="font-medium">Solana</span> wallet before
+              This URL is a pump.fun route, connect a <span className="font-medium">Solana</span> wallet before
               sending.
             </p>
           ) : null}

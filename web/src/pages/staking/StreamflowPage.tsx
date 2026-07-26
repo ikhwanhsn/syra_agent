@@ -155,7 +155,7 @@ export default function StreamflowStakingPage() {
       const firstError = preflight.issues.find((i) => i.severity === "error");
       notify.error(
         firstError
-          ? `${firstError.title} — ${firstError.fix}`
+          ? `${firstError.title}, ${firstError.fix}`
           : "Fix the checklist items before locking.",
       );
       return;
@@ -264,7 +264,7 @@ export default function StreamflowStakingPage() {
 
                 {walletBalanceExceedsMax ? (
                   <p className={cn(stakingInsetCard, "text-xs text-muted-foreground")}>
-                    Balance exceeds lockable max—use <span className="font-medium text-foreground">Max</span>.
+                    Balance exceeds lockable max, use <span className="font-medium text-foreground">Max</span>.
                   </p>
                 ) : null}
 

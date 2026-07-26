@@ -73,7 +73,7 @@ export default function PumpfunAnalyzer() {
     quotaLoading: quotaQ.isLoading,
   });
 
-  /** Privy connect ≠ Syra JWT — silently restore session when wallet is already linked. */
+  /** Privy connect ≠ Syra JWT, silently restore session when wallet is already linked. */
   useEffect(() => {
     if (!syraAuthReady || !connected || !address) {
       setAuthRestoring(false);

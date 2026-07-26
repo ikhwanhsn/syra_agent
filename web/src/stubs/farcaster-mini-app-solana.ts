@@ -1,2 +1,2 @@
-/** Optional Privy peer — stubbed when package is not installed. */
+/** Optional Privy peer, stubbed when package is not installed. */
 export {};

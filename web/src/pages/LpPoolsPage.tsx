@@ -113,7 +113,7 @@ export default function LpPoolsPage() {
             </h1>
             <p className="mx-auto max-w-md text-sm leading-relaxed text-muted-foreground">
               Earn trading fees by adding liquidity to SYRA pools on Meteora. All listed pools are
-              shown — APR is estimated from the last 24 hours and is not guaranteed.
+              shown, APR is estimated from the last 24 hours and is not guaranteed.
             </p>
           </header>
 

@@ -81,7 +81,7 @@ async function claimRewardsApi(wallet: string, amountSyra?: number) {
 }
 
 function formatNum(n: number | null | undefined, digits = 2) {
-  if (n == null || !Number.isFinite(n)) return "—";
+  if (n == null || !Number.isFinite(n)) return "-";
   return n.toLocaleString(undefined, { maximumFractionDigits: digits });
 }
 
@@ -289,7 +289,7 @@ export default function RewardsPage() {
               {claimMutation.isSuccess && (
                 <p className="text-sm text-emerald-400" role="status">
                   Claimed {formatNum(claimMutation.data.amountSyra)} $SYRA
-                  {claimMutation.data.simulated ? " (simulated — non-production)" : ""}.
+                  {claimMutation.data.simulated ? " (simulated, non-production)" : ""}.
                   {claimMutation.data.solscanUrl && (
                     <>
                       {" "}

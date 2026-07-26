@@ -45,7 +45,7 @@ type Assets = Record<string, string>;
 
 const LOGO_PATH = "/images/logo.jpg";
 
-/** Canvas chrome treatment — paired with layout variant for structural variety. */
+/** Canvas chrome treatment, paired with layout variant for structural variety. */
 type PhotoShellVariant = 0 | 1 | 2;
 
 /* ── Primitives ─────────────────────────────────────────────── */
@@ -423,7 +423,7 @@ function PhotoCanvas({
         overflow: "hidden",
       }}
     >
-      {/* Ambient glow — shell A dual orbs, B/C single softer orb */}
+      {/* Ambient glow, shell A dual orbs, B/C single softer orb */}
       {shell === 0 ? (
         <div
           style={{
@@ -463,7 +463,7 @@ function PhotoCanvas({
         />
       ) : null}
 
-      {/* Top gold rule — A full gradient, B none (left rail instead), C thin full */}
+      {/* Top gold rule, A full gradient, B none (left rail instead), C thin full */}
       {shell !== 1 ? (
         <div
           style={{

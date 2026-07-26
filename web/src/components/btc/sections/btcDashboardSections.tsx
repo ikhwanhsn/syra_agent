@@ -92,19 +92,19 @@ export function BtcDashboardSectionsBlock({
         >
           {t ? (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <BtcMetricTile label="RSI (14)" value={t.rsi != null ? t.rsi.toFixed(1) : "—"} hint={t.rsiSignal ?? undefined} />
+              <BtcMetricTile label="RSI (14)" value={t.rsi != null ? t.rsi.toFixed(1) : "-"} hint={t.rsiSignal ?? undefined} />
               <BtcMetricTile
                 label="MACD hist"
-                value={t.macdHistogram != null ? t.macdHistogram.toFixed(2) : "—"}
+                value={t.macdHistogram != null ? t.macdHistogram.toFixed(2) : "-"}
                 hint={t.macdSignal ?? undefined}
               />
-              <BtcMetricTile label="EMA 21" value={t.ema21 != null ? formatBtcUsd(t.ema21, 0) : "—"} hint={t.emaSignal ?? undefined} />
+              <BtcMetricTile label="EMA 21" value={t.ema21 != null ? formatBtcUsd(t.ema21, 0) : "-"} hint={t.emaSignal ?? undefined} />
               <BtcMetricTile
                 label="Bollinger"
                 value={
                   t.bollingerUpper != null && t.bollingerLower != null
                     ? `${formatBtcUsd(t.bollingerLower, 0)} – ${formatBtcUsd(t.bollingerUpper, 0)}`
-                    : "—"
+                    : "-"
                 }
                 hint={t.bollingerSignal ?? undefined}
               />
@@ -165,12 +165,12 @@ export function BtcDashboardSectionsBlock({
               <div className="grid gap-3 sm:grid-cols-3">
                 <BtcMetricTile
                   label="ATR (14)"
-                  value={vol.atr14 != null ? formatBtcUsd(vol.atr14, 0) : "—"}
+                  value={vol.atr14 != null ? formatBtcUsd(vol.atr14, 0) : "-"}
                   hint={vol.atrPct != null ? `${vol.atrPct.toFixed(2)}% of price` : undefined}
                 />
                 <BtcMetricTile
                   label="24h range position"
-                  value={vol.rangePositionPct != null ? `${vol.rangePositionPct.toFixed(0)}%` : "—"}
+                  value={vol.rangePositionPct != null ? `${vol.rangePositionPct.toFixed(0)}%` : "-"}
                   hint="Where spot sits between 24h low and high"
                 />
                 <BtcMetricTile
@@ -178,7 +178,7 @@ export function BtcDashboardSectionsBlock({
                   value={
                     vol.low24h != null && vol.high24h != null
                       ? `${formatBtcUsd(vol.low24h, 0)} – ${formatBtcUsd(vol.high24h, 0)}`
-                      : "—"
+                      : "-"
                   }
                 />
               </div>
@@ -225,7 +225,7 @@ export function BtcDashboardSectionsBlock({
                 />
                 <BtcMetricTile
                   label="Imbalance"
-                  value={ob.imbalancePct != null ? formatBtcPct(ob.imbalancePct) : "—"}
+                  value={ob.imbalancePct != null ? formatBtcPct(ob.imbalancePct) : "-"}
                   hint={ob.spreadBps != null ? `Spread ${ob.spreadBps.toFixed(1)} bps` : undefined}
                   accent={accentFromPct(ob.imbalancePct)}
                 />
@@ -265,7 +265,7 @@ export function BtcDashboardSectionsBlock({
                 <BtcMetricTile label="Current" value={formatFundingRate(funding.current)} accent={accentFromPct(funding.current)} />
                 <BtcMetricTile
                   label="Annualized est."
-                  value={funding.annualizedPct != null ? `${funding.annualizedPct.toFixed(2)}%` : "—"}
+                  value={funding.annualizedPct != null ? `${funding.annualizedPct.toFixed(2)}%` : "-"}
                 />
               </div>
               <BtcSparkline values={funding.series.map((p) => p.rate * 10000)} color="#a855f7" />
@@ -292,7 +292,7 @@ export function BtcDashboardSectionsBlock({
           {oi ? (
             <div className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-2">
-                <BtcMetricTile label="OI (BTC)" value={oi.latestBtc != null ? `${formatBtcVolume(oi.latestBtc)} BTC` : "—"} />
+                <BtcMetricTile label="OI (BTC)" value={oi.latestBtc != null ? `${formatBtcVolume(oi.latestBtc)} BTC` : "-"} />
                 <BtcMetricTile label="24h change" value={formatBtcPct(oi.change24hPct)} accent={accentFromPct(oi.change24hPct)} />
               </div>
               <BtcSparkline values={oi.series.map((p) => p.oiBtc)} />
@@ -311,7 +311,7 @@ export function BtcDashboardSectionsBlock({
         >
           {ls ? (
             <div className="space-y-4">
-              <BtcMetricTile label="Latest ratio" value={ls.latest != null ? ls.latest.toFixed(2) : "—"} hint=">1 = more longs" />
+              <BtcMetricTile label="Latest ratio" value={ls.latest != null ? ls.latest.toFixed(2) : "-"} hint=">1 = more longs" />
               <BtcSparkline values={ls.series.map((p) => p.ratio)} color="#f59e0b" />
             </div>
           ) : null}
@@ -332,7 +332,7 @@ export function BtcDashboardSectionsBlock({
             <div className="space-y-4">
               <BtcMetricTile
                 label="Aggregate buy %"
-                value={flow.buyPct24h != null ? `${flow.buyPct24h.toFixed(1)}%` : "—"}
+                value={flow.buyPct24h != null ? `${flow.buyPct24h.toFixed(1)}%` : "-"}
                 accent={flow.buyPct24h != null && flow.buyPct24h >= 50 ? "up" : "down"}
               />
               <div className="flex h-16 items-end gap-0.5">
@@ -434,11 +434,11 @@ export function BtcDashboardSectionsBlock({
           {mkt ? (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <BtcMetricTile label="Total crypto mcap" value={formatBtcCompactUsd(mkt.totalMarketCapUsd)} />
-              <BtcMetricTile label="BTC dominance" value={mkt.btcDominancePct != null ? `${mkt.btcDominancePct.toFixed(2)}%` : "—"} />
+              <BtcMetricTile label="BTC dominance" value={mkt.btcDominancePct != null ? `${mkt.btcDominancePct.toFixed(2)}%` : "-"} />
               <BtcMetricTile label="24h crypto volume" value={formatBtcCompactUsd(mkt.totalVolumeUsd24h)} />
               <BtcMetricTile
                 label="Alt season proxy"
-                value={mkt.altSeasonProxy != null ? `${mkt.altSeasonProxy.toFixed(1)}%` : "—"}
+                value={mkt.altSeasonProxy != null ? `${mkt.altSeasonProxy.toFixed(1)}%` : "-"}
                 hint="100 − BTC dominance"
               />
             </div>
@@ -503,7 +503,7 @@ export function BtcDashboardSectionsBlock({
                 <BtcMetricTile label="Bullish" value={String(sent.positive)} accent="up" />
                 <BtcMetricTile label="Bearish" value={String(sent.negative)} accent="down" />
                 <BtcMetricTile label="Neutral" value={String(sent.neutral)} />
-                <BtcMetricTile label="Score" value={sent.score != null ? sent.score.toFixed(2) : "—"} />
+                <BtcMetricTile label="Score" value={sent.score != null ? sent.score.toFixed(2) : "-"} />
               </div>
               <BarRow label="Positive" value={sent.positive} max={sent.total} color="#16a34a" />
               <BarRow label="Negative" value={sent.negative} max={sent.total} color="#dc2626" />
@@ -521,7 +521,7 @@ export function BtcDashboardSectionsBlock({
           shareLines={
             sig
               ? [
-                  `Bias: ${sig.bias ?? "—"}`,
+                  `Bias: ${sig.bias ?? "-"}`,
                   sig.confidence != null ? `Confidence: ${sig.confidence}` : "",
                   sig.reasoning ?? "",
                 ].filter(Boolean)
@@ -532,7 +532,7 @@ export function BtcDashboardSectionsBlock({
             <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-full border border-border/60 bg-muted/30 px-3 py-1 text-sm font-semibold">
-                  {sig.bias ?? "—"}
+                  {sig.bias ?? "-"}
                 </span>
                 {sig.confidence != null ? (
                   <span className="text-sm text-muted-foreground">Confidence {sig.confidence}%</span>
@@ -566,12 +566,12 @@ export function BtcDashboardSectionsBlock({
               <div className="grid gap-3 sm:grid-cols-3">
                 <BtcMetricTile
                   label="Circulating"
-                  value={supply.circulating != null ? `${formatBtcVolume(supply.circulating)} BTC` : "—"}
+                  value={supply.circulating != null ? `${formatBtcVolume(supply.circulating)} BTC` : "-"}
                 />
-                <BtcMetricTile label="Mined" value={supply.pctMined != null ? `${supply.pctMined.toFixed(2)}%` : "—"} />
+                <BtcMetricTile label="Mined" value={supply.pctMined != null ? `${supply.pctMined.toFixed(2)}%` : "-"} />
                 <BtcMetricTile
                   label="Next halving"
-                  value={supply.daysToHalving != null ? `${supply.daysToHalving} days` : "—"}
+                  value={supply.daysToHalving != null ? `${supply.daysToHalving} days` : "-"}
                   hint={new Date(supply.nextHalvingAt).toLocaleDateString()}
                 />
               </div>

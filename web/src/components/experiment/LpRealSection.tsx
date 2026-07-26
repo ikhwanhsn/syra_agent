@@ -67,7 +67,7 @@ function LpPositionTimeCell({ row }: { row: LpRealPosition }) {
   const openedAt = row.openedAt ?? row.createdAt;
 
   if (!openedAt) {
-    return <span className="text-xs text-muted-foreground">—</span>;
+    return <span className="text-xs text-muted-foreground">, </span>;
   }
 
   return (
@@ -406,7 +406,7 @@ export function LpRealSection() {
                   <p className="rounded-2xl border border-dashed border-border/50 bg-background/20 px-4 py-6 text-sm text-muted-foreground">
                     {enabled
                       ? lastErrorMsg ||
-                        "No positions yet — the agent will open pools on the next signal tick (~2 min)."
+                        "No positions yet, the agent will open pools on the next signal tick (~2 min)."
                       : "Turn on the agent to start earning fees."}
                   </p>
                 ) : (
@@ -453,7 +453,7 @@ export function LpRealSection() {
                                   usdClassName={pnlClass(row.realNetPnlSol)}
                                 />
                               ) : (
-                                "—"
+                                "-"
                               )}
                             </TableCell>
                             <TableCell>
@@ -468,7 +468,7 @@ export function LpRealSection() {
                                   <ExternalLink className="h-3 w-3" />
                                 </a>
                               ) : (
-                                <span className="text-xs text-muted-foreground">—</span>
+                                <span className="text-xs text-muted-foreground">, </span>
                               )}
                             </TableCell>
                           </TableRow>

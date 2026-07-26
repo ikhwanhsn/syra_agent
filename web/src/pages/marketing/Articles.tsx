@@ -103,7 +103,7 @@ export default function Articles() {
             </h1>
             <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:text-[17px]">
               Deep dives on machine money, x402 APIs, and agent infrastructure on Solana.
-              Written by the Syra team — also published on{" "}
+              Written by the Syra team, also published on{" "}
               <a
                 href="https://x.com/syra_agent"
                 target="_blank"

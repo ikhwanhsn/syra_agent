@@ -139,7 +139,7 @@ export function OverviewMachineMoneySections({
                     ? "…"
                     : discoveryMeta
                       ? `${discoveryMeta.routeCount} routes`
-                      : "—"}
+                      : "-"}
                 </p>
                 <p className="relative mt-0.5 text-[11px] text-muted-foreground">
                   {discoveryLoading

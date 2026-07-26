@@ -255,9 +255,7 @@ function renderSlideBody(slide: DeckSlide) {
                 <ul className="mt-4 space-y-2">
                   {quarter.items.map((item) => (
                     <li key={item} className="flex gap-2 text-sm leading-relaxed text-white/60">
-                      <span className="text-white/30" aria-hidden>
-                        —
-                      </span>
+                      <span className="text-white/30" aria-hidden>, </span>
                       {item}
                     </li>
                   ))}

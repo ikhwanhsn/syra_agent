@@ -33,26 +33,26 @@ import { notify } from "@/lib/notify";
 import { cn } from "@/lib/utils";
 
 function formatTokenPriceUsd(price: number | null | undefined): string {
-  if (price == null || !Number.isFinite(price) || price <= 0) return "—";
+  if (price == null || !Number.isFinite(price) || price <= 0) return "-";
   if (price >= 1) return `$${price.toLocaleString(undefined, { maximumFractionDigits: 4 })}`;
   return `$${formatPortfolioTokenAmount(price).display}`;
 }
 
 function formatDetailUsd(n: number | null | undefined): string {
-  if (n == null || !Number.isFinite(n) || n < 0) return "—";
+  if (n == null || !Number.isFinite(n) || n < 0) return "-";
   const abs = Math.abs(n);
   if (abs >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(1)}B`;
   if (abs >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
   if (abs >= 1_000) return `$${(n / 1_000).toFixed(abs >= 10_000 ? 0 : 1)}K`;
   if (abs >= 1) return `$${Math.round(n).toLocaleString()}`;
   if (abs > 0) return `$${n.toFixed(2)}`;
-  return "—";
+  return "-";
 }
 
 function formatDate(iso: string | undefined): string {
-  if (!iso) return "—";
+  if (!iso) return "-";
   const d = new Date(iso);
-  if (!Number.isFinite(d.getTime())) return "—";
+  if (!Number.isFinite(d.getTime())) return "-";
   return d.toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
@@ -349,7 +349,7 @@ export default function EarnTokenDetailPage() {
                     {formatPct(change24)}
                   </p>
                 ) : (
-                  <p className="font-mono text-lg tabular-nums text-muted-foreground/50 sm:text-xl">—</p>
+                  <p className="font-mono text-lg tabular-nums text-muted-foreground/50 sm:text-xl">, </p>
                 )}
               </div>
 

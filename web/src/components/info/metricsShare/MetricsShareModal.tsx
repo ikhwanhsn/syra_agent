@@ -118,7 +118,7 @@ export function MetricsShareModal({ bundle, onClose }: MetricsShareModalProps) {
         toast.success("Image copied to clipboard");
         window.setTimeout(() => setCopied(false), 2000);
       } else {
-        toast.error("Copy not supported — try Download PNG");
+        toast.error("Copy not supported, try Download PNG");
       }
     } catch {
       toast.error("Failed to copy image");
@@ -149,7 +149,7 @@ export function MetricsShareModal({ bundle, onClose }: MetricsShareModalProps) {
       const ok = await copyMetricShareText(shareCopyContext);
       if (ok) {
         setTextCopied(true);
-        toast.success("Post copy ready — paste on X");
+        toast.success("Post copy ready, paste on X");
         window.setTimeout(() => setTextCopied(false), 2200);
       } else {
         toast.error("Could not copy to clipboard");

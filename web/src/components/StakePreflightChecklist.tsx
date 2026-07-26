@@ -124,7 +124,7 @@ export function StakePreflightChecklist(props: StakePreflightChecklistProps) {
                 need ~{STREAMFLOW_LOCK_SOL_RECOMMENDED} SOL per lock
               </p>
               <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground/90">
-                Paid by you when signing — not a Syra subscription (~0.16 SOL Streamflow + ~0.015 SOL network).
+                Paid by you when signing, not a Syra subscription (~0.16 SOL Streamflow + ~0.015 SOL network).
               </p>
             </div>
           </li>
@@ -184,7 +184,7 @@ export function StakePreflightChecklist(props: StakePreflightChecklistProps) {
         <div className={cn(stakingInsetCard, "border-success/25 bg-success/5 text-xs text-muted-foreground")}>
           <p className="font-semibold text-success">Ready to lock</p>
           <p className="mt-1 leading-relaxed">
-            SOL and {symbol} look good. Confirm in your wallet — Streamflow will deduct fees automatically.
+            SOL and {symbol} look good. Confirm in your wallet, Streamflow will deduct fees automatically.
           </p>
         </div>
       ) : null}
@@ -228,7 +228,7 @@ export function parseStakeErrorForNotify(err: unknown): {
   if (err instanceof StakeLockError) {
     return {
       title: err.title,
-      description: `${err.message} — ${err.fix}`,
+      description: `${err.message}, ${err.fix}`,
       durationMs: 12_000,
     };
   }

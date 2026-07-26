@@ -36,13 +36,13 @@ type ChartPoint = { time: UTCTimestamp; value: number };
 export interface PumpfunPriceChartProps {
   /** Solana mint (pump.fun / on-chain chart) */
   mint?: string;
-  /** CoinGecko coin id (e.g. bitcoin, solana) — trading signal */
+  /** CoinGecko coin id (e.g. bitcoin, solana), trading signal */
   coinId?: string;
   /** Short label (e.g. symbol or "SOL") */
   title?: string;
   /** Compact chat card vs pro trading terminal (scan results) */
   variant?: "default" | "terminal";
-  /** Data source label — shown in terminal header */
+  /** Data source label, shown in terminal header */
   source?: string;
   /** Default selected range (terminal variant). */
   defaultRange?: PumpChartRange;
@@ -328,7 +328,7 @@ export function PumpfunPriceChart({
               </div>
               <div className="flex flex-wrap items-end gap-x-3 gap-y-1">
                 <h3 className="font-mono text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-                  {rangeStats ? formatPumpChartPrice(rangeStats.close) : status === "loading" ? "—" : heading}
+                  {rangeStats ? formatPumpChartPrice(rangeStats.close) : status === "loading" ? "-" : heading}
                 </h3>
                 {rangeStats ? (
                   <span

@@ -99,8 +99,8 @@ export function BtcChartShareThemePicker({ theme, onChange, className }: BtcChar
       ) : (
         <p className="text-xs text-muted-foreground">
           {theme.mode === "light"
-            ? "Clean light card — great for LinkedIn and light-mode feeds."
-            : "Syra dark card — optimized for X and crypto Twitter."}
+            ? "Clean light card, great for LinkedIn and light-mode feeds."
+            : "Syra dark card, optimized for X and crypto Twitter."}
         </p>
       )}
     </div>

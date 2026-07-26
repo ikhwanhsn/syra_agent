@@ -117,7 +117,7 @@ function statusBadgeClass(status: PartnershipLeadStatus): string {
 type ViewTab = (typeof VIEW_TABS)[number]["id"];
 
 function formatShortDate(iso: string | undefined): string {
-  if (!iso) return "—";
+  if (!iso) return "-";
   try {
     return new Date(iso).toLocaleString(undefined, {
       month: "short",
@@ -308,7 +308,7 @@ function PartnershipTargetDetailSheet({
   );
 }
 
-/** Partnership Scout — targets & integration ideas from latest on-chain scan. */
+/** Partnership Scout, targets & integration ideas from latest on-chain scan. */
 export function InternalPartnershipBoard() {
   const [viewTab, setViewTab] = useState<ViewTab>("targets");
   const [statusTab, setStatusTab] = useState("all");
@@ -831,10 +831,10 @@ export function InternalPartnershipBoard() {
                           </div>
                         </TableCell>
                         <TableCell className="py-3 text-sm text-muted-foreground hidden md:table-cell max-w-[240px]">
-                          <span className="line-clamp-2">{row.utility || "—"}</span>
+                          <span className="line-clamp-2">{row.utility || "-"}</span>
                         </TableCell>
                         <TableCell className="py-3 text-xs text-muted-foreground hidden lg:table-cell max-w-[200px]">
-                          <span className="line-clamp-2">{row.collaborationIdea || "—"}</span>
+                          <span className="line-clamp-2">{row.collaborationIdea || "-"}</span>
                         </TableCell>
                         <TableCell className="py-3 text-right" onClick={(e) => e.stopPropagation()}>
                           {row.link ? (
@@ -849,7 +849,7 @@ export function InternalPartnershipBoard() {
                               </a>
                             </Button>
                           ) : (
-                            <span className="text-xs text-muted-foreground/50">—</span>
+                            <span className="text-xs text-muted-foreground/50">, </span>
                           )}
                         </TableCell>
                       </TableRow>

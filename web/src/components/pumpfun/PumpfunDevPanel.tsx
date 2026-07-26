@@ -14,7 +14,7 @@ import { formatCompactUsd } from "@/lib/dashboardOverviewAggregates";
 import { cn } from "@/lib/utils";
 
 function truncateWallet(wallet: string | null): string {
-  if (!wallet) return "—";
+  if (!wallet) return "-";
   if (wallet.length <= 12) return wallet;
   return `${wallet.slice(0, 4)}…${wallet.slice(-4)}`;
 }
@@ -74,11 +74,11 @@ export function PumpfunDevPanel({ mint, enabled = true, className }: PumpfunDevP
               {
                 label: "Dev holding",
                 value:
-                  devQ.data.devHoldingPct != null ? `${devQ.data.devHoldingPct.toFixed(2)}%` : "—",
+                  devQ.data.devHoldingPct != null ? `${devQ.data.devHoldingPct.toFixed(2)}%` : "-",
               },
               {
                 label: "Dev sold",
-                value: devQ.data.devSoldPct != null ? `${devQ.data.devSoldPct.toFixed(2)}%` : "—",
+                value: devQ.data.devSoldPct != null ? `${devQ.data.devSoldPct.toFixed(2)}%` : "-",
               },
               {
                 label: "Tokens launched",

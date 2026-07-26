@@ -1,5 +1,5 @@
 /**
- * In-chat price charts: CoinGecko USD OHLC by default (via Syra API — no CORS / optional pro key).
+ * In-chat price charts: CoinGecko USD OHLC by default (via Syra API, no CORS / optional pro key).
  * Fallback: Binance SOL/USDT for wrapped SOL; then GeckoTerminal pool OHLC via DexScreener.
  */
 
@@ -11,7 +11,7 @@ const COINGECKO_SOL = "https://api.coingecko.com/api/v3/simple/price?ids=solana&
 const BINANCE_KLINES = "https://api.binance.com/api/v3/klines";
 const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const USDT_MINT = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB";
-/** Wrapped SOL mint — `pumpfun-sol-price` chart. */
+/** Wrapped SOL mint, `pumpfun-sol-price` chart. */
 export const WRAPPED_SOL_MINT = "So11111111111111111111111111111111111111112";
 
 export type PumpChartRange = "1D" | "1W" | "1M" | "1Y";
@@ -58,7 +58,7 @@ async function fetchSolUsd(signal?: AbortSignal): Promise<number> {
 export type AgentChartSeriesOpts = {
   /** Solana token mint (pump.fun, etc.) */
   mint?: string;
-  /** CoinGecko coin id (e.g. bitcoin, solana) — trading signal tool */
+  /** CoinGecko coin id (e.g. bitcoin, solana), trading signal tool */
   coinId?: string;
 };
 
@@ -335,7 +335,7 @@ export async function fetchAgentChartUsdSeries(
   return [];
 }
 
-/** @deprecated Prefer fetchAgentChartUsdSeries — kept for callers that only pass a mint */
+/** @deprecated Prefer fetchAgentChartUsdSeries, kept for callers that only pass a mint */
 export async function fetchPumpMintUsdSeries(
   mint: string,
   range: PumpChartRange,

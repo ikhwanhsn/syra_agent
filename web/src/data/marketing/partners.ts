@@ -184,7 +184,7 @@ export const SYRA_PARTNERS: readonly SyraPartner[] = [
     integration: {
       status: "live",
       overview:
-        "Nansen brings labeled entities and capital-flow context. Syra uses this class of signal to make whale and institutional behavior more legible in research and agent outputs—always as probabilistic context, not certainty.",
+        "Nansen brings labeled entities and capital-flow context. Syra uses this class of signal to make whale and institutional behavior more legible in research and agent outputs, always as probabilistic context, not certainty.",
       capabilities: [
         "Entity-aware views where labels add explanatory power",
         "Complementary to raw transaction and holder statistics",
@@ -241,7 +241,7 @@ export const SYRA_PARTNERS: readonly SyraPartner[] = [
     integration: {
       status: "live",
       overview:
-        "Centralized exchange data remains part of the global price formation story. Syra can incorporate Binance-originated or Binance-sourced market context in modules that compare on-chain and off-venue conditions—without equating CEX activity with on-chain risk.",
+        "Centralized exchange data remains part of the global price formation story. Syra can incorporate Binance-originated or Binance-sourced market context in modules that compare on-chain and off-venue conditions, without equating CEX activity with on-chain risk.",
       capabilities: [
         "Context on broad liquidity and large-venue dynamics where integrated",
         "Complementary to DEX-only views",

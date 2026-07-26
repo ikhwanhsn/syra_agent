@@ -9,7 +9,7 @@ import { useUserDashboardOverview } from "@/hooks/useUserDashboardOverview";
 import { useTreasuryBalanceChange } from "@/hooks/useTreasuryBalanceChange";
 import { cn } from "@/lib/utils";
 
-/** Treasury pillar — balance, allocation, and wallets. */
+/** Treasury pillar, balance, allocation, and wallets. */
 export default function TreasuryPage() {
   const { openConnectModal } = useConnectModal();
   const overview = useUserDashboardOverview();

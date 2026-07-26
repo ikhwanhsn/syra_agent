@@ -2,7 +2,7 @@ import { ExternalLink, RefreshCw, Shield, TrendingUp, Wallet } from "lucide-reac
 import { defineVideoUpdate } from "./videoDeck";
 
 /**
- * Ship log: Momentum Rotator paper lab — majors rotation → Earn Yield (coming soon).
+ * Ship log: Momentum Rotator paper lab, majors rotation → Earn Yield (coming soon).
  */
 export const MOMENTUM_ROTATOR_POST = defineVideoUpdate(
   {
@@ -14,7 +14,7 @@ export const MOMENTUM_ROTATOR_POST = defineVideoUpdate(
       "Paper lab live: rotate USDC across SOL, cbBTC, and JLP on trend signals. Graduates to Earn Yield after the track record proves out.",
     shareCopyVideo: `SHIP LOG · Momentum Rotator paper lab is live.
 
-Trend-follow liquid Solana majors — SOL, cbBTC, JLP.
+Trend-follow liquid Solana majors, SOL, cbBTC, JLP.
 Paper first. No deposit risk while strategies compete.
 
 → Multi-strategy cohort + evolution
@@ -40,7 +40,7 @@ Earn listing after the lab proves out.
       eyebrow: "Ship log",
       title: "Momentum Rotator",
       subtitle:
-        "Paper lab rotating USDC among SOL, cbBTC, and JLP. Earn Yield card listed — beta after the cohort proves out.",
+        "Paper lab rotating USDC among SOL, cbBTC, and JLP. Earn Yield card listed, beta after the cohort proves out.",
       badge: "Paper lab · Earn soon",
     },
     {
@@ -50,7 +50,7 @@ Earn listing after the lab proves out.
       label: "Context",
       kicker: "Why this matters",
       headline: "Directional majors need a lab before your capital.",
-      body: "Spot momentum can earn — or bleed. We run competing strategies on paper first, then graduate winners to a capped invest-wallet beta on Earn Yield.",
+      body: "Spot momentum can earn, or bleed. We run competing strategies on paper first, then graduate winners to a capped invest-wallet beta on Earn Yield.",
     },
     {
       id: "shipped",
@@ -78,7 +78,7 @@ Earn listing after the lab proves out.
         {
           step: "01",
           title: "Paper trades",
-          description: "Strategies open and exit on live prices — no capital at risk.",
+          description: "Strategies open and exit on live prices, no capital at risk.",
         },
         {
           step: "02",
@@ -108,13 +108,13 @@ Earn listing after the lab proves out.
         {
           title: "Majors only",
           subtitle: "Liquid spot",
-          detail: "SOL, cbBTC, JLP — no thin memecoins in this product.",
+          detail: "SOL, cbBTC, JLP, no thin memecoins in this product.",
           accent: "gold",
         },
         {
           title: "Invest wallet",
           subtitle: "USDC",
-          detail: "When live, you fund invest — not a new custody story.",
+          detail: "When live, you fund invest, not a new custody story.",
           accent: "gold",
         },
         {
@@ -125,7 +125,7 @@ Earn listing after the lab proves out.
         {
           title: "Kill switch",
           subtitle: "Auto-pause",
-          detail: "Same Earn Yield guards as LP — error rate and PnL pause.",
+          detail: "Same Earn Yield guards as LP, error rate and PnL pause.",
         },
       ],
     },

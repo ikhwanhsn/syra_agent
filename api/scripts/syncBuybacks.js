@@ -1,9 +1,11 @@
 /**
- * One-shot: scan treasury wallet for manual Jupiter USDC→$SYRA buys and record them.
+ * One-shot: scan treasury wallet for DEX $SYRA buys (USDC/SOL/price-estimated) and record them.
  *
  * Usage (from api/):
  *   node scripts/syncBuybacks.js
  *   node scripts/syncBuybacks.js --limit=120
+ *   node scripts/syncBuybacks.js --require-usdc
+ *   node scripts/syncBuybacks.js --no-backfill
  *   node scripts/syncBuybacks.js --signature=<txSig>
  *   node scripts/syncBuybacks.js --signature=<txSig> --usd=25 --syra=350000
  *
@@ -41,9 +43,11 @@ async function main() {
     if (!out.success) process.exitCode = 1;
   } else {
     const limit = argValue("limit");
+    const requireUsdc = process.argv.includes("--require-usdc");
     const out = await syncOnchainBuybacks({
       ...(limit != null ? { limit: Number(limit) } : {}),
-      requireUsdcSpend: true,
+      requireUsdcSpend: requireUsdc,
+      backfillZeroUsd: !process.argv.includes("--no-backfill"),
     });
     console.log(JSON.stringify(out, null, 2));
     if (!out.success) process.exitCode = 1;

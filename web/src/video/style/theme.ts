@@ -27,7 +27,7 @@ export interface PostVideoTheme {
   };
 }
 
-/** Syra Cinematic — black / white / gold, depth stage, smooth springs. */
+/** Syra Cinematic, black / white / gold, depth stage, smooth springs. */
 export const SYRA_VIDEO_THEME: PostVideoTheme = {
   bg: "#050505",
   fg: "rgba(255,255,255,0.95)",

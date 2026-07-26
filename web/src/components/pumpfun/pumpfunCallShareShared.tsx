@@ -44,13 +44,13 @@ export function formatScanDate(iso: string): string {
 }
 
 export function formatMultiplierDisplay(multiplier: number | null | undefined): string {
-  if (multiplier == null || !Number.isFinite(multiplier) || multiplier < 1) return "—";
+  if (multiplier == null || !Number.isFinite(multiplier) || multiplier < 1) return "-";
   if (multiplier >= 100) return `${Math.round(multiplier)}.0`;
   return multiplier.toFixed(1);
 }
 
 export function formatPercentGain(multiplier: number | null | undefined): string {
-  if (multiplier == null || !Number.isFinite(multiplier) || multiplier < 1) return "—";
+  if (multiplier == null || !Number.isFinite(multiplier) || multiplier < 1) return "-";
   const pct = (multiplier - 1) * 100;
   if (pct >= 10_000) return `+${Math.round(pct).toLocaleString()}%`;
   if (pct >= 1000) return `+${Math.round(pct)}%`;

@@ -196,8 +196,7 @@ export function AutoCallSettingsPanel({
           />
           <p className="text-xs text-muted-foreground">
             Ops goal for gross paid volume today (UTC). Progress is tracked on this tab; simulation
-            uses this to recommend interval and funding. Does not stop the scheduler by itself —
-            use daily call caps for hard limits.
+            uses this to recommend interval and funding. Does not stop the scheduler by itself, use daily call caps for hard limits.
           </p>
         </div>
         <div className="space-y-2 sm:col-span-2">
@@ -216,7 +215,7 @@ export function AutoCallSettingsPanel({
             }
           />
           <p className="text-xs text-muted-foreground">
-            Multiplies base endpoint price for lab calls — reach target volume with fewer calls.
+            Multiplies base endpoint price for lab calls, reach target volume with fewer calls.
             Example: 10× turns a $0.01 call into $0.10 on-chain.
           </p>
         </div>
@@ -240,7 +239,7 @@ export function AutoCallSettingsPanel({
         <div>
           <Label htmlFor="refund">Auto-refund USDC</Label>
           <p className="text-xs text-muted-foreground">
-            PayTo tops up payer only when USDC is too low for the next call — fewer refund txs and less SOL gas
+            PayTo tops up payer only when USDC is too low for the next call, fewer refund txs and less SOL gas
           </p>
         </div>
         <Switch

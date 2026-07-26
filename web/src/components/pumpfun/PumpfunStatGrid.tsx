@@ -6,7 +6,7 @@ import type { MemecoinAnalysisPayload } from "@/lib/pumpfunAnalysisApi";
 import { cn } from "@/lib/utils";
 
 function formatPrice(price: number | null | undefined): string {
-  if (price == null || !Number.isFinite(price)) return "—";
+  if (price == null || !Number.isFinite(price)) return "-";
   if (price >= 1) return `$${price.toLocaleString(undefined, { maximumFractionDigits: 4 })}`;
   return `$${formatPortfolioTokenAmount(price).display}`;
 }
@@ -53,14 +53,14 @@ export function PumpfunStatGrid({ data, className }: PumpfunStatGridProps) {
       />
       <OverviewStatCard
         label="24h change"
-        value={change24 != null ? formatPct(change24) : "—"}
+        value={change24 != null ? formatPct(change24) : "-"}
         icon={change24 != null && change24 < 0 ? TrendingDown : TrendingUp}
         accent={change24 != null && change24 < 0 ? "internal" : "alpha"}
         compact
       />
       <OverviewStatCard
         label="1h change"
-        value={change1h != null ? formatPct(change1h) : "—"}
+        value={change1h != null ? formatPct(change1h) : "-"}
         icon={change1h != null && change1h < 0 ? TrendingDown : TrendingUp}
         accent={change1h != null && change1h < 0 ? "internal" : "alpha"}
         compact

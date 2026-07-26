@@ -21,7 +21,7 @@ export function AgentSidebar({
           <div className="space-y-2 text-sm">
             <p className="font-mono text-lg font-semibold">{formatUsd(paper.equityUsd)}</p>
             <p className="text-xs text-muted-foreground">
-              {paper.returnPct != null ? `${paper.returnPct >= 0 ? "+" : ""}${paper.returnPct.toFixed(2)}%` : "—"} ·{" "}
+              {paper.returnPct != null ? `${paper.returnPct >= 0 ? "+" : ""}${paper.returnPct.toFixed(2)}%` : "-"} ·{" "}
               {paper.rebalanceCount} rebalances
             </p>
             <p className="text-xs">

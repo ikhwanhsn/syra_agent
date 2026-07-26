@@ -16,7 +16,7 @@ export const DEXTER_INTEGRATION_PHOTO = definePhotoUpdate(DEXTER_INTEGRATION_POS
       badge: "x402 · Onchain · Catalog",
       title: "Dexter × Syra",
       subtitle:
-        "Beyond Labs facilitator settle — agents call Dexter activity and entity APIs over Solana x402.",
+        "Beyond Labs facilitator settle, agents call Dexter activity and entity APIs over Solana x402.",
     }),
   },
   {
@@ -35,7 +35,7 @@ export const DEXTER_INTEGRATION_PHOTO = definePhotoUpdate(DEXTER_INTEGRATION_POS
     shareCopy: copies.quote,
     content: photoContent({
       quote: "Pay for the settle. Pay for the signal.",
-      narrative: "Same partner. Two Syra surfaces — Labs facilitator and agent spend tools.",
+      narrative: "Same partner. Two Syra surfaces, Labs facilitator and agent spend tools.",
     }),
   },
   {

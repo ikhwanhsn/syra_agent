@@ -74,7 +74,7 @@ export const PAYAI_MAINNET_NETWORKS: ReadonlyArray<PayaiMainnetNetwork> = [
   },
 ] as const;
 
-/** BSC B402 — Syra lane alongside PayAI (not on PayAI facilitator). */
+/** BSC B402, Syra lane alongside PayAI (not on PayAI facilitator). */
 export const BSC_MAINNET_PLAYGROUND: PayaiMainnetNetwork = {
   id: 'binance',
   label: 'Binance',

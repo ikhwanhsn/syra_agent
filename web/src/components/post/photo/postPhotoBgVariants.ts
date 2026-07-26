@@ -1,6 +1,6 @@
 import type { PostPhotoCardRole } from "@/content/posts/photo/photoCardSlots";
 
-/** Distinct canvas background treatment — one per ship-log card role. */
+/** Distinct canvas background treatment, one per ship-log card role. */
 export type PostPhotoBgVariant =
   | "brag"
   | "beam"

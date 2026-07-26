@@ -66,7 +66,7 @@ function BalanceColumn({
             {nativeLabel}
           </span>
           <span className="text-[13px] font-medium text-foreground sm:text-sm">
-            {sol != null && Number.isFinite(sol) ? `${formatSol(sol)} ${nativeLabel}` : "—"}
+            {sol != null && Number.isFinite(sol) ? `${formatSol(sol)} ${nativeLabel}` : "-"}
           </span>
         </div>
       </div>

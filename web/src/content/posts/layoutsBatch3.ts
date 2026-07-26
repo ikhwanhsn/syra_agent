@@ -1,4 +1,4 @@
-/** Slide layout batch 3 — brings video library to 50+ templates */
+/** Slide layout batch 3, brings video library to 50+ templates */
 export const POST_SLIDE_LAYOUTS_BATCH3 = [
   "cover-gradient-ring",
   "cover-ship-stamp",

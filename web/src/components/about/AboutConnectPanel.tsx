@@ -91,7 +91,7 @@ export function AboutConnectPanel() {
               Stay in the loop
             </h3>
             <p className={cn(aboutProseClass, "mt-3 max-w-md")}>
-              Follow product updates, join the community, or reach support — wherever you operate.
+              Follow product updates, join the community, or reach support, wherever you operate.
             </p>
             <div className="mt-6 flex flex-col gap-2.5 sm:flex-row">
               <Button variant="primary" size="lg" className="about-hero-cta-primary h-11" asChild>

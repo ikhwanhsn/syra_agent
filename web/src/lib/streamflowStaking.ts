@@ -28,7 +28,7 @@ const SYSTEM_PROGRAM_ID_STR = "11111111111111111111111111111111";
 
 /**
  * Streamflow charges ~0.16 SOL service fee + ~0.015 SOL network fee per lock.
- * Paid by the staker's wallet in SOL — not a Syra subscription.
+ * Paid by the staker's wallet in SOL, not a Syra subscription.
  */
 export const STREAMFLOW_LOCK_SOL_RECOMMENDED = 0.18;
 export const STREAMFLOW_LOCK_SOL_MIN_LAMPORTS = Math.floor(
@@ -409,7 +409,7 @@ export function mapStreamflowError(err: unknown, symbol: string): StakeLockError
         message:
           `This wallet does not have enough SOL to pay Streamflow's lock fee ` +
           `(~${STREAMFLOW_LOCK_SOL_RECOMMENDED} SOL per lock: service + network + rent). ` +
-          `Syra does not charge a separate subscription — the staker pays Streamflow in SOL when signing.`,
+          `Syra does not charge a separate subscription, the staker pays Streamflow in SOL when signing.`,
         fix: `Add at least ${STREAMFLOW_LOCK_SOL_RECOMMENDED} SOL to this wallet, then try again.`,
       });
     }
@@ -553,7 +553,7 @@ async function assertStakePreflight(
         `(lock + Streamflow fee ~${feePercent}%), but your account only has ${balanceHuman} ${symbol}.`,
       fix:
         maxDeposit.gt(new BN(2))
-          ? `Tap Max to use ${maxHuman} ${symbol} — the highest amount that fits after fees.`
+          ? `Tap Max to use ${maxHuman} ${symbol}, the highest amount that fits after fees.`
           : `Add more ${symbol} or enter a smaller amount.`,
     });
   }
@@ -927,7 +927,7 @@ export async function evaluateStakeReadiness(
         `Locking ${requestedFormatted} ${symbol} needs ~${getNumberFromBN(required, walletState.decimals)} ${symbol} ` +
         `(includes ~${estimatedSyraFeeFormatted} ${symbol} Streamflow fee). ` +
         `Max lockable: ${maxLockableFormatted} ${symbol}.`,
-      fix: "Tap Max — do not type a rounded number like 936K manually.",
+      fix: "Tap Max, do not type a rounded number like 936K manually.",
     });
   }
 

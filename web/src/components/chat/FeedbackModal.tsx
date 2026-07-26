@@ -86,8 +86,7 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
               </DialogTitle>
               <DialogDescription className="text-[13px] leading-relaxed text-muted-foreground sm:text-sm">
                 Choose a topic. Your email app opens with a draft to{" "}
-                <span className="font-medium text-foreground/90">{SYRA_FEEDBACK_EMAIL}</span>
-                — add details and send when you&apos;re ready.
+                <span className="font-medium text-foreground/90">{SYRA_FEEDBACK_EMAIL}</span>, add details and send when you&apos;re ready.
               </DialogDescription>
             </div>
           </div>

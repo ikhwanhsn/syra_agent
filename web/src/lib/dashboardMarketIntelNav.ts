@@ -8,7 +8,7 @@ export type DashboardMarketIntelNavItem = {
   isActive: (pathname: string) => boolean;
 };
 
-/** Asset research, alpha scouting, and macro intel — dashboard sidebar group. */
+/** Asset research, alpha scouting, and macro intel, dashboard sidebar group. */
 export const DASHBOARD_MARKET_INTEL_NAV: readonly DashboardMarketIntelNavItem[] = [
   {
     id: "assets",

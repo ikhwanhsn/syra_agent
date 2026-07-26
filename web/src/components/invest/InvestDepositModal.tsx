@@ -138,7 +138,7 @@ export function InvestDepositModal({
           <DialogDescription>
             Deposits SOL from your invest agent wallet. You receive the liquid staking
             token ({opportunity?.yieldSymbol || (opportunity?.adapter === "jito" ? "JitoSOL" : "mSOL")})
-            in that wallet. Not financial advice — yields are probabilistic.
+            in that wallet. Not financial advice, yields are probabilistic.
           </DialogDescription>
         </DialogHeader>
 

@@ -69,7 +69,7 @@ export function InternalImagePromptTool({ wallet }: InternalImagePromptToolProps
       setActiveItem(res.data);
       setCopiedField(null);
       invalidateRecent();
-      toast.success("Prompt ready — copy into ChatGPT or your image tool");
+      toast.success("Prompt ready, copy into ChatGPT or your image tool");
     },
     onError: (err: Error) => toast.error(err.message || "Failed to generate prompt"),
   });
@@ -246,7 +246,7 @@ export function InternalImagePromptTool({ wallet }: InternalImagePromptToolProps
             </>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Monochrome Syra noir — detailed image prompt for ChatGPT/DALL·E plus a short X caption. Same theme as
+              Monochrome Syra noir, detailed image prompt for ChatGPT/DALL·E plus a short X caption. Same theme as
               your chart and agent graphics.
             </p>
           )}

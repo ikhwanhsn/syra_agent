@@ -24,7 +24,7 @@ export interface PostPhotoCardSlotDef {
   defaultLayout: PostPhotoLayoutTemplate;
 }
 
-/** Fifteen fixed narrative slots — one image + one X post each per ship log. */
+/** Fifteen fixed narrative slots, one image + one X post each per ship log. */
 export const POST_PHOTO_CARD_SLOTS: readonly PostPhotoCardSlotDef[] = [
   {
     role: "cover",
@@ -35,7 +35,7 @@ export const POST_PHOTO_CARD_SLOTS: readonly PostPhotoCardSlotDef[] = [
   {
     role: "thesis",
     label: "Thesis",
-    description: "Why this matters — problem statement",
+    description: "Why this matters, problem statement",
     defaultLayout: "photo-statement-accent",
   },
   {
@@ -47,7 +47,7 @@ export const POST_PHOTO_CARD_SLOTS: readonly PostPhotoCardSlotDef[] = [
   {
     role: "flow",
     label: "Flow",
-    description: "Horizontal pipeline — how it works",
+    description: "Horizontal pipeline, how it works",
     defaultLayout: "photo-flow-pipeline",
   },
   {

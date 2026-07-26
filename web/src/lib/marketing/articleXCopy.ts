@@ -23,7 +23,7 @@ type ParsedBlock =
 /** Replace em dashes with commas so copy never looks AI-generated. */
 export function normalizeEmDash(text: string): string {
   return text
-    .replace(/\s*—\s*/g, ", ")
+    .replace(/\s*\u2014\s*/g, ", ")
     .replace(/,\s*,+/g, ",")
     .replace(/[ \t]{2,}/g, " ")
     .trim();
@@ -387,7 +387,7 @@ function blockToPlainParts(block: ParsedBlock): string[] {
 function blockToHtml(block: ParsedBlock): string {
   switch (block.type) {
     case "heading": {
-      // X reserves h1 for the article title field — body headings are h2/h3 only
+      // X reserves h1 for the article title field, body headings are h2/h3 only
       const tag = block.level <= 2 ? "h2" : "h3";
       return `<${tag}>${inlineMarkdownToHtml(block.text)}</${tag}>`;
     }
@@ -485,7 +485,7 @@ export function buildArticleXContent(article: ArticleDetail): string {
  */
 export function buildArticleXHtml(article: ArticleDetail): string {
   const blocks = parseMarkdownBlocks(article.content);
-  // Title as bold lead (not h1 — X title field owns h1)
+  // Title as bold lead (not h1, X title field owns h1)
   const parts: string[] = [
     `<p><strong>${escapeHtml(normalizeEmDash(article.title))}</strong></p>`,
   ];

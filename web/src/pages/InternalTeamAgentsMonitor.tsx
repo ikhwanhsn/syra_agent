@@ -335,7 +335,7 @@ export default function InternalTeamAgentsMonitor() {
 
                 <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
 
-                  Automated research that runs every morning — market trends, growth ideas, and partnership targets.
+                  Automated research that runs every morning, market trends, growth ideas, and partnership targets.
 
                 </p>
 

@@ -12,7 +12,7 @@ export { X402_DISCOVERY_RESOURCE_PATHS, isSyraX402DiscoveryPath };
 /**
  * Public Syra HTTP routes advertised in GET /.well-known/x402.
  * Partner gateway paths (/binance/*, most /nansen/*, etc.) and agent-direct tools
- * are x402 on the wire but not listed in discovery — use POST /agent/tools/call instead.
+ * are x402 on the wire but not listed in discovery, use POST /agent/tools/call instead.
  *
  * Keep in sync with api/config/x402DiscoveryResourcePaths.js.
  */
@@ -37,7 +37,7 @@ export function isPlaygroundX402FlowUrl(
     syraBase.startsWith("http://") || syraBase.startsWith("https://");
 
   if (isAbsoluteFlow) {
-    // Local dev uses `/api` proxy base — fully-qualified URLs are external x402 catalogs.
+    // Local dev uses `/api` proxy base, fully-qualified URLs are external x402 catalogs.
     if (!isAbsoluteSyraBase) return true;
     try {
       if (parsed.origin !== new URL(syraBase).origin) return true;

@@ -250,7 +250,7 @@ export async function fetchBtcBubblemap(params: FetchBtcBubblemapParams = {}): P
 }
 
 export function formatBtcUsd(value: number | null | undefined, digits = 0): string {
-  if (value == null || !Number.isFinite(value)) return "—";
+  if (value == null || !Number.isFinite(value)) return "-";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -260,7 +260,7 @@ export function formatBtcUsd(value: number | null | undefined, digits = 0): stri
 }
 
 export function formatBtcCompactUsd(value: number | null | undefined): string {
-  if (value == null || !Number.isFinite(value)) return "—";
+  if (value == null || !Number.isFinite(value)) return "-";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -270,23 +270,23 @@ export function formatBtcCompactUsd(value: number | null | undefined): string {
 }
 
 export function formatBtcPct(value: number | null | undefined, digits = 2): string {
-  if (value == null || !Number.isFinite(value)) return "—";
+  if (value == null || !Number.isFinite(value)) return "-";
   const sign = value > 0 ? "+" : "";
   return `${sign}${value.toFixed(digits)}%`;
 }
 
 export function formatBtcRatio(value: number | null | undefined): string {
-  if (value == null || !Number.isFinite(value)) return "—";
+  if (value == null || !Number.isFinite(value)) return "-";
   return value.toFixed(3);
 }
 
 export function formatFundingRate(value: number | null | undefined): string {
-  if (value == null || !Number.isFinite(value)) return "—";
+  if (value == null || !Number.isFinite(value)) return "-";
   return `${(value * 100).toFixed(4)}%`;
 }
 
 export function formatBtcVolume(value: number | null | undefined): string {
-  if (value == null || !Number.isFinite(value)) return "—";
+  if (value == null || !Number.isFinite(value)) return "-";
   return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(value);
 }
 

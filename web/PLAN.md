@@ -166,7 +166,7 @@ Each phase has **objectives**, **concrete steps**, **metrics**, and **exit crite
 | Metric | Target |
 |--------|--------|
 | Paying integrators (unique wallets/agents with paid calls) | 50+ |
-| Paid API calls / day | 10Ã— baseline |
+| Paid API calls / day | 10× baseline |
 | Time-to-first-paid-call (median developer) | < 30 min |
 | MCP + SDK installs (tracked via npm if published) | 100+ |
 | Agent wallet TVL | $50K+ USDC |
@@ -227,7 +227,7 @@ Each phase has **objectives**, **concrete steps**, **metrics**, and **exit crite
 | Metric | Target |
 |--------|--------|
 | Active integrations | 1,000+ |
-| Paid API calls / day | 100Ã— Phase 0 baseline |
+| Paid API calls / day | 100× Phase 0 baseline |
 | Net revenue / month | $50K+ |
 | Agent wallet TVL | $500K+ USDC |
 | Organic inbound (dev signups from MCP/SDK) | 30%+ of new integrators |
@@ -250,7 +250,7 @@ Each phase has **objectives**, **concrete steps**, **metrics**, and **exit crite
 
 | Step | Action | Detail |
 |------|--------|--------|
-| 3.1 | Route catalog 10Ã— | 50+ high-value paid routes; documented pricing matrix |
+| 3.1 | Route catalog 10×| 50+ high-value paid routes; documented pricing matrix |
 | 3.2 | Agent reputation | Score agents by paid volume, uptime, policy compliance (8004 tie-in) |
 | 3.3 | Cross-agent learning (careful) | Aggregated anonymized signals â€” never financial advice |
 | 3.4 | Backtesting API | Paid historical runs for strategy agents |
@@ -348,7 +348,7 @@ Each phase has **objectives**, **concrete steps**, **metrics**, and **exit crite
 | Platform take-rate | 5â€“15% on third-party routes |
 | Net dollar retention | >120% on enterprise integrators |
 
-**Note:** Multi-billion **company** valuation typically requires **$50M+ ARR** at infra multiples (10â€“20Ã—) or **platform dominance** with strategic premium. This phase is where both become realistic.
+**Note:** Multi-billion **company** valuation typically requires **$50M+ ARR** at infra multiples (10â€“20×) or **platform dominance** with strategic premium. This phase is where both become realistic.
 
 ---
 
@@ -438,7 +438,7 @@ These activities **feel productive** but **do not compound** toward billions:
 ### Metrics
 
 - [ ] Weekly dashboard: paid calls, revenue, integrators, TVL
-- [ ] Baseline â†’ Week 12: 10Ã— paid calls target
+- [ ] Baseline â†’ Week 12: 10× paid calls target
 - [ ] 50 paying integrators
 
 ### Narrative

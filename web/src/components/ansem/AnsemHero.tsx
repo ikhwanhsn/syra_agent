@@ -18,7 +18,7 @@ function truncateMint(mint: string, head = 6, tail = 4): string {
 }
 
 function formatPrice(price: number | null | undefined): string {
-  if (price == null || !Number.isFinite(price)) return "—";
+  if (price == null || !Number.isFinite(price)) return "-";
   if (price >= 1) return `$${price.toLocaleString(undefined, { maximumFractionDigits: 4 })}`;
   if (price >= 0.0001) return `$${price.toLocaleString(undefined, { maximumSignificantDigits: 6 })}`;
   return `$${price.toExponential(2)}`;
@@ -128,7 +128,7 @@ export function AnsemHero({
 
               <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
                 {market?.description?.trim() ||
-                  "The community token catching fire on Solana. Track live stats, sentiment, and on-chain signals — powered by Syra."}
+                  "The community token catching fire on Solana. Track live stats, sentiment, and on-chain signals, powered by Syra."}
               </p>
             </div>
           </div>

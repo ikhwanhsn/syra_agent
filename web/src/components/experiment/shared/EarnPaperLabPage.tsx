@@ -40,7 +40,7 @@ type EarnPaperLabPageProps = {
 };
 
 function fmtUsd(n: number | null | undefined) {
-  if (n == null || !Number.isFinite(n)) return "—";
+  if (n == null || !Number.isFinite(n)) return "-";
   const sign = n > 0 ? "+" : "";
   return `${sign}$${n.toFixed(2)}`;
 }
@@ -125,7 +125,7 @@ export function EarnPaperLabPage({
       </header>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Cohort" value={stateQ.data?.activeExperimentId?.slice(0, 18) ?? "—"} />
+        <Stat label="Cohort" value={stateQ.data?.activeExperimentId?.slice(0, 18) ?? "-"} />
         <Stat
           label="Decided trades"
           value={String(totals.decided)}
@@ -145,7 +145,7 @@ export function EarnPaperLabPage({
           <p className="text-sm text-muted-foreground">Loading stats…</p>
         ) : ranked.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No agents yet — wait for the first signal cron tick.
+            No agents yet, wait for the first signal cron tick.
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -170,7 +170,7 @@ export function EarnPaperLabPage({
                       {a.wins}/{a.losses}
                     </td>
                     <td className="py-2 pr-3 tabular-nums">
-                      {a.winRate != null ? `${(a.winRate * 100).toFixed(0)}%` : "—"}
+                      {a.winRate != null ? `${(a.winRate * 100).toFixed(0)}%` : "-"}
                     </td>
                     <td className="py-2 pr-3 tabular-nums">{a.openPositions}</td>
                     <td
@@ -208,11 +208,11 @@ export function EarnPaperLabPage({
                 className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/40 bg-muted/10 px-3 py-2 text-sm"
               >
                 <span className="font-medium">
-                  {String(r.strategyName ?? "—")} · {String(r.symbol || r.lstSymbol || r.mint || "—")}
+                  {String(r.strategyName ?? "-")} · {String(r.symbol || r.lstSymbol || r.mint || "-")}
                 </span>
                 <span className="text-xs uppercase text-muted-foreground">{String(r.status)}</span>
                 <span className="tabular-nums text-muted-foreground">
-                  {r.simPnlUsd != null ? fmtUsd(Number(r.simPnlUsd)) : "—"}
+                  {r.simPnlUsd != null ? fmtUsd(Number(r.simPnlUsd)) : "-"}
                 </span>
               </li>
             ))}

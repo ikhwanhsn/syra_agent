@@ -11,7 +11,7 @@ export const DEXTER_INTEGRATION_POST = defineVideoUpdate(
     title: "Dexter Onchain x402",
     published: "July 2026",
     tagline:
-      "Beyond Labs facilitator settle — Syra agents call Dexter activity and entity APIs over Solana x402.",
+      "Beyond Labs facilitator settle, Syra agents call Dexter activity and entity APIs over Solana x402.",
     shareCopyVideo: `SHIP LOG · Syra × Dexter goes deeper.
 
 Facilitator settle was step one. Onchain intel is step two.
@@ -40,7 +40,7 @@ Try → syraa.fun/chat`,
       eyebrow: "Ship log",
       title: "Dexter × Syra",
       subtitle:
-        "Solana x402 onchain activity and entity intelligence — plus the facilitator rails Labs already uses.",
+        "Solana x402 onchain activity and entity intelligence, plus the facilitator rails Labs already uses.",
       badge: "x402 · Onchain · Catalog",
     },
     {
@@ -50,7 +50,7 @@ Try → syraa.fun/chat`,
       label: "Context",
       kicker: "Why this matters",
       headline: "Settlement rails without market context are half a stack.",
-      body: "Syra already settles Labs routes through the Dexter facilitator. Agents still needed Dexter’s paid onchain summaries — trade activity, wallet/token entities, counterparties — so we wired x402.dexter.cash into agent tools.",
+      body: "Syra already settles Labs routes through the Dexter facilitator. Agents still needed Dexter’s paid onchain summaries, trade activity, wallet/token entities, counterparties, so we wired x402.dexter.cash into agent tools.",
     },
     {
       id: "shipped",
@@ -61,9 +61,9 @@ Try → syraa.fun/chat`,
       headline: "Facilitator + spend tools",
       body: "Three agent tools sit beside the existing Labs facilitator path: free catalog discovery and two paid onchain routes settled from the agent Solana USDC wallet.",
       highlights: [
-        "dexter-x402-catalog — free /.well-known/x402 list",
-        "dexter-onchain-activity — trade summaries (~$0.05)",
-        "dexter-onchain-entity — token/wallet/trade insight (~$0.05)",
+        "dexter-x402-catalog, free /.well-known/x402 list",
+        "dexter-onchain-activity, trade summaries (~$0.05)",
+        "dexter-onchain-entity, token/wallet/trade insight (~$0.05)",
         "Labs facilitator settlement unchanged",
       ],
     },
@@ -108,7 +108,7 @@ Try → syraa.fun/chat`,
         {
           title: "Facilitator",
           subtitle: "Labs",
-          detail: "Existing Dexter settle path for Labs x402 routes — unchanged.",
+          detail: "Existing Dexter settle path for Labs x402 routes, unchanged.",
           accent: "gold",
         },
         {
@@ -150,7 +150,7 @@ Try → syraa.fun/chat`,
         {
           icon: Wallet,
           title: "Agent wallet",
-          description: "Solana USDC pays x402.dexter.cash — same treasury model.",
+          description: "Solana USDC pays x402.dexter.cash, same treasury model.",
           href: "https://www.syraa.fun/wallet",
         },
         {

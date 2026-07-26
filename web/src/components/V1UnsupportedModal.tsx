@@ -32,7 +32,7 @@ export function V1UnsupportedModal({ isOpen, onClose }: V1UnsupportedModalProps)
                   <AlertCircle className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-base">x402 v1 — cannot pay</h2>
+                  <h2 className="font-semibold text-base">x402 v1, cannot pay</h2>
                   <p className="text-xs text-muted-foreground">This v1 API could not be used</p>
                 </div>
               </div>

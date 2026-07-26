@@ -124,7 +124,7 @@ export async function renderPostVideoOnWeb(
     container,
     videoCodec,
     muted: true,
-    // Opaque frames — avoid unfilled/transparent edges in the downloaded file.
+    // Opaque frames, avoid unfilled/transparent edges in the downloaded file.
     transparent: false,
     scale: POST_VIDEO_EXPORT_SCALE,
     videoBitrate: POST_VIDEO_BITRATE,

@@ -10,9 +10,9 @@ export function isPlaygroundPath(pathname: string): boolean {
   return isMarketplacePath(pathname);
 }
 
-/** Catalog (human preview) — explicit `?tab=syra`. */
+/** Catalog (human preview), explicit `?tab=syra`. */
 export const MARKETPLACE_NAV_BROWSE = `${MARKETPLACE_ROUTE}?tab=syra`;
-/** Integrate (default) — bare `/marketplace`. */
+/** Integrate (default), bare `/marketplace`. */
 export const MARKETPLACE_NAV_BUILD = MARKETPLACE_ROUTE;
 export const MARKETPLACE_NAV_CUSTOM = `${MARKETPLACE_ROUTE}?tab=custom`;
 

@@ -10,14 +10,14 @@ import {
 import type { EarnDenom, EarnRiskLevel, EarnYieldProduct } from "@/lib/earnYieldApi";
 
 export function fmtEarnAmount(n: number | null | undefined, denom: EarnDenom = "SOL") {
-  if (n == null || !Number.isFinite(n)) return "—";
+  if (n == null || !Number.isFinite(n)) return "-";
   const sign = n > 0 ? "+" : "";
   if (denom === "USDC") return `${sign}$${n.toFixed(2)}`;
   return `${sign}${n.toFixed(3)} ${denom}`;
 }
 
 export function fmtEarnUsd(n: number | null | undefined) {
-  if (n == null || !Number.isFinite(n)) return "—";
+  if (n == null || !Number.isFinite(n)) return "-";
   const sign = n > 0 ? "+" : "";
   return `${sign}$${n.toFixed(2)}`;
 }
