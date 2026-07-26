@@ -16,6 +16,11 @@ import { ExpressAdapter } from "@x402/express";
 import { declareDiscoveryExtension, BAZAAR, sanitizeResourceServiceMetadata } from "@x402/extensions/bazaar";
 import { BUILDER_CODE, declareBuilderCodeExtension } from "@x402/extensions/builder-code";
 import { getBaseBuilderCode } from "../config/baseBuilderCode.js";
+import { getPublicApiUrl } from "../config/runtime.js";
+import {
+  B402_BASE_URL as SETTLEMENT_B402_BASE_URL,
+  B402_TOKEN as SETTLEMENT_B402_TOKEN,
+} from "../config/settlement.js";
 import { Connection } from "@solana/web3.js";
 import { VersionedTransaction } from "@solana/web3.js";
 import bs58 from "bs58";
@@ -208,9 +213,9 @@ async function logB402StartupOnce() {
     console.log(
       "[b402] merchant inbound enabled",
       JSON.stringify({
-        token: process.env.B402_TOKEN || "USD1",
+        token: SETTLEMENT_B402_TOKEN,
         payTo: getB402PayTo(),
-        baseUrl: process.env.B402_BASE_URL || "https://api.commonservice.io",
+        baseUrl: SETTLEMENT_B402_BASE_URL,
         keySource: status.keySource,
         debug: isX402Debug() ? "X402_DEBUG=true" : "set X402_DEBUG=true for verbose x402 logs",
       }),
@@ -242,7 +247,7 @@ const X402_SETTLE_FACILITATOR_RETRIES = Math.max(
   Number.parseInt(process.env.X402_SETTLE_FACILITATOR_RETRIES || "1", 10) || 0
 );
 
-const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
+const BASE_URL = getPublicApiUrl();
 const SOLANA_RPC = process.env.SOLANA_RPC_URL || process.env.VITE_SOLANA_RPC_URL || "https://rpc.ankr.com/solana";
 
 /**

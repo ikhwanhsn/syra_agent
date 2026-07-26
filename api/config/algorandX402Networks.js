@@ -5,6 +5,11 @@
  * Challenge requirement: verify + settle on Algorand Mainnet via facilitator.goplausible.xyz
  */
 
+import {
+  ALGORAND_PAYTO as ALGORAND_PAYTO_CONST,
+  GOPLAUSIBLE_FACILITATOR_URL,
+} from "./settlement.js";
+
 function env(name) {
   return String(process.env[name] || "").trim();
 }
@@ -85,16 +90,12 @@ export function getAlgorandNetworkByCaip2(caip2) {
  * @returns {string}
  */
 export function getAlgorandPayTo() {
-  return env("ALGORAND_PAYTO") || env("AVM_ADDRESS") || env("RESOURCE_AVM_ADDRESS");
+  // Merchant address from settlement.js (not env).
+  return ALGORAND_PAYTO_CONST;
 }
 
 export function getGoplausibleFacilitatorUrl() {
-  return (
-    env("GOPLAUSIBLE_FACILITATOR_URL") ||
-    env("ALGORAND_FACILITATOR_URL") ||
-    env("FACILITATOR_URL_ALGORAND") ||
-    DEFAULT_GOPLAUSIBLE_FACILITATOR_URL
-  );
+  return GOPLAUSIBLE_FACILITATOR_URL || DEFAULT_GOPLAUSIBLE_FACILITATOR_URL;
 }
 
 /** Algorand inbound x402 enabled when payTo is configured. */

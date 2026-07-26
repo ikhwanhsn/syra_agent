@@ -2,6 +2,7 @@ import express from 'express';
 import Skill, { VALID_SKILL_CATEGORIES } from '../../models/agent/Skill.js';
 import { requireSession, optionalWalletSession } from '../../utils/requireSession.js';
 import { isMongooseConnected } from '../../config/mongoose.js';
+import { getPublicApiUrl } from '../../config/runtime.js';
 import {
   slugifyTitle,
   resolveCreatorEarnPayTo,
@@ -21,7 +22,7 @@ function requireDb(_req, res, next) {
 }
 
 function getBaseUrl() {
-  return process.env.BASE_URL?.trim() || 'https://api.syraa.fun';
+  return getPublicApiUrl();
 }
 
 function assertCreator(req, res, creatorAnonymousId) {

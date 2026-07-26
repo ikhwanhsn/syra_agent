@@ -174,7 +174,11 @@ function normalizeVideoMime(contentType: string | null): string {
   return "video/mp4";
 }
 
-/** Fetch video bytes via auth proxy (OpenRouter content URLs require API key). */
+/**
+ * Resolve video for playback. API no longer pipes bytes through Render:
+ * - 302 to a direct URL → browser fetches upstream (no Syra egress)
+ * - JSON error when only unsigned/OpenRouter-auth URLs exist
+ */
 export async function fetchLlmVideoContentBlob(
   adminWallet: string,
   generationId: string,
@@ -183,7 +187,37 @@ export async function fetchLlmVideoContentBlob(
   const url = `${getApiBaseUrl()}/labs/llm/video/${encodeURIComponent(generationId)}/content?index=${index}`;
   const headers = new Headers();
   headers.set("x-admin-wallet", adminWallet);
-  const res = await fetch(url, { headers, credentials: "include" });
+  const res = await fetch(url, {
+    headers,
+    credentials: "include",
+    redirect: "follow",
+  });
+  const contentType = res.headers.get("content-type") || "";
+  if (contentType.includes("application/json")) {
+    const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    const data =
+      body.data && typeof body.data === "object"
+        ? (body.data as Record<string, unknown>)
+        : null;
+    const direct =
+      (typeof data?.url === "string" && data.url) ||
+      (typeof body.url === "string" && body.url) ||
+      "";
+    if (direct && !/openrouter\.ai\/api\//i.test(direct)) {
+      const directRes = await fetch(direct);
+      if (!directRes.ok) {
+        throw new Error(`Direct video fetch failed (HTTP ${directRes.status})`);
+      }
+      const raw = await directRes.blob();
+      const type = normalizeVideoMime(directRes.headers.get("content-type") || raw.type);
+      return raw.type === type ? raw : new Blob([raw], { type });
+    }
+    const msg =
+      (typeof body.message === "string" && body.message) ||
+      (typeof body.error === "string" && body.error) ||
+      `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
   if (!res.ok) {
     const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
     const msg =
@@ -193,7 +227,7 @@ export async function fetchLlmVideoContentBlob(
     throw new Error(msg);
   }
   const raw = await res.blob();
-  const type = normalizeVideoMime(res.headers.get("content-type") || raw.type);
+  const type = normalizeVideoMime(contentType || raw.type);
   if (raw.type === type) return raw;
   return new Blob([raw], { type });
 }

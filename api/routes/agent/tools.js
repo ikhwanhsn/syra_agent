@@ -5,6 +5,7 @@
  */
 import express from 'express';
 import { AGENT_TOOLS } from '../../config/agentTools.js';
+import { TEMPO_AGENT_PAYOUT } from '../../config/settlement.js';
 import {
   getDisplayAgentToolPriceUsd,
   getPactPremiumUsd,
@@ -22,7 +23,7 @@ const router = express.Router();
  */
 router.get('/', async (req, res) => {
   try {
-    const tempoAgentPayoutEnabled = String(process.env.TEMPO_AGENT_PAYOUT_ENABLED || '').trim() === 'true';
+    const tempoAgentPayoutEnabled = Boolean(TEMPO_AGENT_PAYOUT.enabled);
     const tools = AGENT_TOOLS.filter((t) => t.id !== 'tempo-send-payout' || tempoAgentPayoutEnabled).map((t) => ({
       id: t.id,
       name: t.name,

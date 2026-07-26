@@ -4,12 +4,12 @@
  */
 import { runTokensAgentTool } from './tokensAgentService.js';
 
-/** Dashboard default — avoids 20 sequential upstream pages on cold load. */
-const DEFAULT_MAX_PAGES = 4;
+/** Dashboard default — keep upstream fan-out small (Render Service-Initiated). */
+const DEFAULT_MAX_PAGES = 2;
 /** Hard cap for paid / x402 callers that pass maxPages. */
-const ABSOLUTE_MAX_PAGES = 20;
+const ABSOLUTE_MAX_PAGES = 3;
 const PAGE_LIMIT = 500;
-const BOARD_CACHE_TTL_MS = 90_000;
+const BOARD_CACHE_TTL_MS = 600_000;
 
 /** @type {Map<string, { expires: number; payload: object }>} */
 const boardCache = new Map();

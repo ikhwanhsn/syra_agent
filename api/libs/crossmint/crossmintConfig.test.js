@@ -20,22 +20,17 @@ describe('crossmintConfig', () => {
     Object.assign(process.env, prev);
   });
 
-  it('defaults to staging and solana staging USDC locator', () => {
-    delete process.env.CROSSMINT_ENV;
+  it('uses settlement staging env (CROSSMINT_ENV env ignored)', () => {
+    process.env.CROSSMINT_ENV = 'production';
     assert.equal(getCrossmintEnv(), 'staging');
     assert.match(getUsdcTokenLocator('solana'), /^solana:/);
-  });
-
-  it('uses production Solana USDC mint locator', () => {
-    process.env.CROSSMINT_ENV = 'production';
     assert.equal(
       getUsdcTokenLocator('solana'),
-      'solana:EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+      'solana:4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
     );
   });
 
-  it('requires enabled flag and both API keys', () => {
-    process.env.CROSSMINT_ONRAMP_ENABLED = 'true';
+  it('enabled when settlement flag is on and both API keys are set', () => {
     process.env.CROSSMINT_SERVER_API_KEY = 'sk_test';
     process.env.CROSSMINT_CLIENT_API_KEY = 'ck_test';
     assert.equal(isCrossmintOnrampEnabled(), true);
@@ -44,9 +39,11 @@ describe('crossmintConfig', () => {
   });
 
   it('exposes public status without secrets', () => {
-    process.env.CROSSMINT_ONRAMP_ENABLED = 'false';
+    delete process.env.CROSSMINT_SERVER_API_KEY;
+    delete process.env.CROSSMINT_CLIENT_API_KEY;
     const status = getCrossmintPublicStatus();
     assert.equal(status.enabled, false);
+    assert.equal(status.env, 'staging');
     assert.equal(status.fundingSource, 'crossmint_onramp');
     assert.ok(status.minAmountUsd >= 1);
     const limits = getOnrampAmountLimits();

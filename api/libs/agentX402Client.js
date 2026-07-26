@@ -16,6 +16,7 @@ import { preferMainnetSolanaAccepts } from '../config/x402NetworkOrder.js';
 import { recordOutboundX402Call } from '../utils/recordX402Call.js';
 import { resolveAgentBaseUrlCandidates, isSelfApiTransportError } from '../routes/agent/utils.js';
 import { isPrivyConfigured } from '../services/privyServerWallet.js';
+import { getCorsExtraOrigins, getPublicApiUrl } from '../config/runtime.js';
 
 /** Server API key (first of API_KEYS or API_KEY) for internal x402 requests so they are not rejected with 403. */
 function getServerApiKey() {
@@ -27,8 +28,15 @@ function getServerApiKey() {
 
 /** Our API base URL (no trailing slash). When set, requests to this host get X-API-Key. */
 function getOwnApiBaseUrl() {
-  const base = (process.env.BASE_URL || '').trim().replace(/\/$/, '');
-  return base || null;
+  return getPublicApiUrl() || null;
+}
+
+function hostnameFromUrl(raw) {
+  try {
+    return raw ? new URL(String(raw).trim()).hostname : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Hosts we treat as our own API (internal tool calls). Add X-API-Key so proxies/auth allow server-to-server. */
@@ -37,15 +45,8 @@ const OWN_API_HOSTS = new Set([
   'www.api.syraa.fun',
   'localhost',
   '127.0.0.1',
-  ...[process.env.INTERNAL_BASE_URL, ...(process.env.CORS_EXTRA_ORIGINS || '').split(',')]
-    .map((o) => {
-      try {
-        return o && new URL(o.trim()).hostname;
-      } catch {
-        return null;
-      }
-    })
-    .filter(Boolean),
+  hostnameFromUrl(getPublicApiUrl()),
+  ...getCorsExtraOrigins().map(hostnameFromUrl).filter(Boolean),
 ]);
 
 /** True when the URL targets our own API (self-call). */

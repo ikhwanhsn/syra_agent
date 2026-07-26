@@ -8,6 +8,7 @@ import {
   isB402Configured,
 } from "../libs/b402FacilitatorClient.js";
 import { isX402BazaarEnabled } from "./x402Bazaar.js";
+import { B402_PAY_TO, B402_TOKEN, X402_B402_ENABLED } from "./settlement.js";
 
 export const BSC_CAIP2 = "eip155:56";
 
@@ -32,10 +33,6 @@ export function x402MicroToBscTokenAtomic(microUnits, tokenDecimals = BSC_TOKEN_
   const scaleExp = Math.max(0, tokenDecimals - X402_MICRO_DECIMALS);
   const native = micro * 10n ** BigInt(scaleExp);
   return native.toString();
-}
-
-function env(name) {
-  return String(process.env[name] || "").trim();
 }
 
 /** @typedef {'eip3009'|'permit2-exact'|'permit2-upto'} B402AssetTransferMethod */
@@ -105,25 +102,26 @@ const EXTRA_CACHE_MS = 3600000;
  * @returns {B402TokenConfig | undefined}
  */
 export function getB402TokenById(tokenId) {
-  const id = String(tokenId || env("B402_TOKEN") || "USD1").trim().toUpperCase();
+  const id = String(tokenId || B402_TOKEN || "USD1").trim().toUpperCase();
   return B402_TOKENS.find((t) => t.id.toUpperCase() === id);
 }
 
 export function isB402Enabled() {
-  return hasB402MerchantCredentials() && Boolean(env("B402_PAY_TO"));
+  return (
+    Boolean(X402_B402_ENABLED) &&
+    hasB402MerchantCredentials() &&
+    Boolean(String(B402_PAY_TO || "").trim())
+  );
 }
 
 /** B402 Bazaar indexing on BSC settles (default ON when B402 merchant + global Bazaar are enabled). */
 export function isB402BazaarEnabled() {
   if (!isX402BazaarEnabled()) return false;
-  const flag = env("B402_BAZAAR_ENABLED").toLowerCase();
-  if (flag === "false" || flag === "0") return false;
-  if (flag === "true" || flag === "1") return true;
   return isB402Enabled();
 }
 
 export function getB402PayTo() {
-  return env("B402_PAY_TO");
+  return String(B402_PAY_TO || "").trim();
 }
 
 /**
@@ -195,7 +193,7 @@ export async function getB402ExtraForToken(token) {
  */
 export async function getActiveB402PaymentKind() {
   if (!isB402Enabled()) return null;
-  const token = getB402TokenById(env("B402_TOKEN"));
+  const token = getB402TokenById(B402_TOKEN);
   if (!token) {
     console.warn("[b402] Unknown B402_TOKEN — supported:", B402_TOKENS.map((t) => t.id).join(", "));
     return null;

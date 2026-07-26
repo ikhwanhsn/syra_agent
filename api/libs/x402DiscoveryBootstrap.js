@@ -2,13 +2,16 @@
  * Probe x402 discovery endpoints after boot so registries (zauth Provider Hub SDK,
  * x402scan crawlers) see valid HTTP 402 challenges on new routes.
  *
- * Uses the public BASE_URL so registered URLs match production (not localhost).
- * Disable with X402_DISCOVERY_BOOTSTRAP=false.
+ * Uses getPublicApiUrl() so registered URLs match production (not localhost).
+ * Always on in production; off otherwise unless ENABLE_DISCOVERY_BOOTSTRAP is true.
  */
 import { X402_DISCOVERY_RESOURCE_PATHS } from '../config/x402DiscoveryResourcePaths.js';
+import { getPublicApiUrl, isProduction } from '../config/runtime.js';
 import { startupVerbose, startupWarn } from '../utils/startupLog.js';
 
-const DEFAULT_PUBLIC_BASE = 'https://api.syraa.fun';
+/** Master switch (replaces X402_DISCOVERY_BOOTSTRAP env). Production-only when true. */
+const ENABLE_DISCOVERY_BOOTSTRAP = true;
+
 const BOOTSTRAP_DELAY_MS = 8_000;
 const PROBE_TIMEOUT_MS = 15_000;
 
@@ -51,18 +54,14 @@ async function probeDiscoverySegment(baseUrl, segment) {
  * @param {{ segmentPrefix?: string; delayMs?: number }} [options]
  */
 export function scheduleX402DiscoveryBootstrap(options = {}) {
-  const envFlag = String(process.env.X402_DISCOVERY_BOOTSTRAP || '').toLowerCase();
-  if (envFlag === 'false') return;
-  const force = envFlag === 'true' || envFlag === 'force';
-  if (!force && process.env.NODE_ENV !== 'production') return;
+  if (!ENABLE_DISCOVERY_BOOTSTRAP) return;
+  if (!isProduction()) return;
 
   const segmentPrefix = options.segmentPrefix ?? 'insights/';
   const segments = listDiscoverySegmentsForBootstrap(segmentPrefix);
   if (segments.length === 0) return;
 
-  const baseUrl = String(
-    process.env.BASE_URL || process.env.SYRA_PUBLIC_API_URL || DEFAULT_PUBLIC_BASE,
-  ).replace(/\/+$/, '');
+  const baseUrl = getPublicApiUrl();
 
   const delayMs =
     typeof options.delayMs === 'number' && Number.isFinite(options.delayMs)

@@ -2,27 +2,34 @@
  * PayAI facilitator (https://facilitator.payai.network) supported x402 v2 networks.
  * @see https://docs.payai.network/x402/supported-networks
  *
- * USDC addresses align with PayAI echo-merchant defaults so verify/settle match the facilitator.
- * Override per chain via env e.g. POLYGON_USDC, ARBITRUM_USDC, SEI_USDC.
+ * USDC + payTo addresses come from settlement.js (not env).
  */
 
 import { sortX402AcceptNetworks } from "./x402NetworkOrder.js";
-
-function env(name) {
-  return String(process.env[name] || "").trim();
-}
+import { isProduction } from "./runtime.js";
+import {
+  SOLANA_DEVNET_USDC,
+  SOLANA_USDC_MINT,
+  BASE_USDC,
+  BASE_SEPOLIA_USDC,
+  POLYGON_USDC,
+  POLYGON_AMOY_USDC,
+  ARBITRUM_USDC,
+  ARBITRUM_SEPOLIA_USDC,
+  getPayToAddresses,
+} from "./settlement.js";
 
 /** @typedef {'solana'|'evm'} PayaiNetworkKind */
 
 /**
  * @typedef {object} PayaiX402Network
- * @property {string} id - Short id for X402_PAYAI_NETWORKS filter
- * @property {string} v1Network - PayAI v1 network string (docs table)
+ * @property {string} id
+ * @property {string} v1Network
  * @property {string} label
- * @property {string} caip2 - CAIP-2 network id (x402 v2)
+ * @property {string} caip2
  * @property {PayaiNetworkKind} kind
  * @property {boolean} testnet
- * @property {string} usdc - USDC mint (Solana) or contract (EVM)
+ * @property {string} usdc
  */
 
 /** @type {readonly PayaiX402Network[]} */
@@ -34,7 +41,7 @@ export const PAYAI_X402_NETWORKS = [
     caip2: "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
     kind: "solana",
     testnet: true,
-    usdc: env("SOLANA_DEVNET_USDC") || "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+    usdc: SOLANA_DEVNET_USDC,
   },
   {
     id: "solana-mainnet",
@@ -43,7 +50,7 @@ export const PAYAI_X402_NETWORKS = [
     caip2: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
     kind: "solana",
     testnet: false,
-    usdc: env("SOLANA_USDC_MINT") || env("USDC_MAINNET") || "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    usdc: SOLANA_USDC_MINT,
   },
   {
     id: "base",
@@ -52,7 +59,7 @@ export const PAYAI_X402_NETWORKS = [
     caip2: "eip155:8453",
     kind: "evm",
     testnet: false,
-    usdc: env("BASE_USDC") || "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    usdc: BASE_USDC,
   },
   {
     id: "base-sepolia",
@@ -61,7 +68,7 @@ export const PAYAI_X402_NETWORKS = [
     caip2: "eip155:84532",
     kind: "evm",
     testnet: true,
-    usdc: env("BASE_SEPOLIA_USDC") || "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    usdc: BASE_SEPOLIA_USDC,
   },
   {
     id: "polygon",
@@ -70,7 +77,7 @@ export const PAYAI_X402_NETWORKS = [
     caip2: "eip155:137",
     kind: "evm",
     testnet: false,
-    usdc: env("POLYGON_USDC") || "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+    usdc: POLYGON_USDC,
   },
   {
     id: "polygon-amoy",
@@ -79,7 +86,7 @@ export const PAYAI_X402_NETWORKS = [
     caip2: "eip155:80002",
     kind: "evm",
     testnet: true,
-    usdc: env("POLYGON_AMOY_USDC") || "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582",
+    usdc: POLYGON_AMOY_USDC,
   },
   {
     id: "arbitrum",
@@ -88,7 +95,7 @@ export const PAYAI_X402_NETWORKS = [
     caip2: "eip155:42161",
     kind: "evm",
     testnet: false,
-    usdc: env("ARBITRUM_USDC") || "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+    usdc: ARBITRUM_USDC,
   },
   {
     id: "arbitrum-sepolia",
@@ -97,7 +104,7 @@ export const PAYAI_X402_NETWORKS = [
     caip2: "eip155:421614",
     kind: "evm",
     testnet: true,
-    usdc: env("ARBITRUM_SEPOLIA_USDC") || "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d",
+    usdc: ARBITRUM_SEPOLIA_USDC,
   },
   {
     id: "avalanche",
@@ -106,7 +113,7 @@ export const PAYAI_X402_NETWORKS = [
     caip2: "eip155:43114",
     kind: "evm",
     testnet: false,
-    usdc: env("AVALANCHE_USDC") || "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+    usdc: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
   },
   {
     id: "avalanche-fuji",
@@ -115,7 +122,7 @@ export const PAYAI_X402_NETWORKS = [
     caip2: "eip155:43113",
     kind: "evm",
     testnet: true,
-    usdc: env("AVALANCHE_FUJI_USDC") || "0x5425890298aed601595a70AB815c96711a31Bc65",
+    usdc: "0x5425890298aed601595a70AB815c96711a31Bc65",
   },
   {
     id: "sei",
@@ -124,7 +131,7 @@ export const PAYAI_X402_NETWORKS = [
     caip2: "eip155:1329",
     kind: "evm",
     testnet: false,
-    usdc: env("SEI_USDC") || "0x3894085Ef7Ff0f0aeDf52E2A2704928d1Ec074F1",
+    usdc: "0x3894085Ef7Ff0f0aeDf52E2A2704928d1Ec074F1",
   },
   {
     id: "sei-testnet",
@@ -133,7 +140,7 @@ export const PAYAI_X402_NETWORKS = [
     caip2: "eip155:713715",
     kind: "evm",
     testnet: true,
-    usdc: env("SEI_TESTNET_USDC") || "0x4E4a29f76cD0dFf2A4e5E56d7a065E0aF33f32e2",
+    usdc: "0x4E4a29f76cD0dFf2A4e5E56d7a065E0aF33f32e2",
   },
   {
     id: "skale-base",
@@ -142,7 +149,7 @@ export const PAYAI_X402_NETWORKS = [
     caip2: "eip155:1187947933",
     kind: "evm",
     testnet: false,
-    usdc: env("SKALE_USDC") || "0x85889c8c714505E0c94b30fcfcF64fE3Ac8FCb20",
+    usdc: "0x85889c8c714505E0c94b30fcfcF64fE3Ac8FCb20",
   },
   {
     id: "skale-base-sepolia",
@@ -151,7 +158,7 @@ export const PAYAI_X402_NETWORKS = [
     caip2: "eip155:324705682",
     kind: "evm",
     testnet: true,
-    usdc: env("SKALE_SEPOLIA_USDC") || "0x2e08028E3C4c2356572E096d8EF835cD5C6030bD",
+    usdc: "0x2e08028E3C4c2356572E096d8EF835cD5C6030bD",
   },
   {
     id: "xlayer",
@@ -160,7 +167,7 @@ export const PAYAI_X402_NETWORKS = [
     caip2: "eip155:196",
     kind: "evm",
     testnet: false,
-    usdc: env("XLAYER_USDC") || "0x74b7f16337b8972027f6196a17a631ac6de26d22",
+    usdc: "0x74b7f16337b8972027f6196a17a631ac6de26d22",
   },
   {
     id: "xlayer-testnet",
@@ -169,7 +176,7 @@ export const PAYAI_X402_NETWORKS = [
     caip2: "eip155:1952",
     kind: "evm",
     testnet: true,
-    usdc: env("XLAYER_TESTNET_USDC") || "0xcb8bf24c6ce16ad21d707c9505421a17f2bec79d",
+    usdc: "0xcb8bf24c6ce16ad21d707c9505421a17f2bec79d",
   },
 ];
 
@@ -184,7 +191,6 @@ export function getPayaiNetworkByCaip2(caip2) {
 }
 
 /**
- * Whether PayAI facilitator lists this CAIP-2 network (v2).
  * @param {string} network
  */
 export function isPayaiSupportedCaip2(network) {
@@ -192,34 +198,13 @@ export function isPayaiSupportedCaip2(network) {
 }
 
 /**
- * Enabled networks for 402 accepts — all PayAI doc networks with configured USDC.
- * Filter via:
- * - X402_PAYAI_NETWORKS=comma-separated ids (subset)
- * - X402_PAYAI_INCLUDE_TESTNETS=false to drop testnets in production
+ * Enabled networks for 402 accepts.
+ * Production drops testnets; non-prod includes them.
  * @returns {PayaiX402Network[]}
  */
 export function getEnabledPayaiNetworks() {
-  const filterRaw = env("X402_PAYAI_NETWORKS");
   let list = PAYAI_X402_NETWORKS.filter((n) => Boolean(n.usdc));
-
-  if (filterRaw) {
-    const allow = new Set(
-      filterRaw
-        .split(",")
-        .map((s) => s.trim().toLowerCase())
-        .filter(Boolean)
-    );
-    list = PAYAI_X402_NETWORKS.filter((n) => allow.has(n.id) && Boolean(n.usdc));
-  }
-
-  const includeTestnetsEnv = env("X402_PAYAI_INCLUDE_TESTNETS").toLowerCase();
-  const includeTestnets =
-    includeTestnetsEnv === "true" ||
-    includeTestnetsEnv === "1" ||
-    (includeTestnetsEnv !== "false" &&
-      includeTestnetsEnv !== "0" &&
-      process.env.NODE_ENV !== "production");
-  if (!includeTestnets) {
+  if (isProduction()) {
     list = list.filter((n) => !n.testnet);
   }
   return sortX402AcceptNetworks(list);
@@ -230,14 +215,10 @@ export function getEnabledPayaiNetworks() {
  * @returns {{ solanaPayTo: string, evmPayTo: string }}
  */
 export function getPayaiPayToAddresses() {
-  const solanaPayTo = env("SOLANA_PAYTO") || env("ADDRESS_PAYAI") || env("ADDRESS");
-  const evmPayTo =
-    env("EVM_PAYTO") || env("BASE_PAYTO") || env("BASE_ADDRESS") || env("EVM_ADDRESS");
-  return { solanaPayTo, evmPayTo };
+  return getPayToAddresses();
 }
 
 /**
- * USDC asset lookup for EVM money parser (ExactEvmScheme).
  * @param {string} caip2
  * @returns {string | null}
  */

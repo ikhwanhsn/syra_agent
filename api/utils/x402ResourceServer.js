@@ -28,6 +28,17 @@ import {
   getPayaiEvmUsdcAsset,
   getEnabledPayaiNetworks,
 } from "../config/payaiX402Networks.js";
+import {
+  FACILITATOR_URL_PAYAI,
+  CORBITS_FACILITATOR_URL,
+  SOLANA_PAYTO,
+  EVM_PAYTO,
+  BASE_PAYTO,
+  SOLANA_USDC_MINT,
+  BASE_USDC,
+  NETWORK_PAYAI,
+} from "../config/settlement.js";
+import { optionalSecret } from "../config/secrets.js";
 
 dotenv.config({ quiet: true });
 
@@ -71,23 +82,22 @@ function normalizeBaseNetwork(raw) {
   return n;
 }
 
-const USDC_MAINNET = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
-const BASE_USDC_MAINNET = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913";
+const USDC_MAINNET = SOLANA_USDC_MINT;
+const BASE_USDC_MAINNET = BASE_USDC;
 
-// Config from env (same names as payai example + existing api names)
-const facilitatorUrl = envAny(["PAYAI_FACILITATOR_URL", "FACILITATOR_URL_PAYAI", "FACILITATOR_URL"]);
-const baseFacilitatorUrl = envAny(["PAYAI_BASE_FACILITATOR_URL", "BASE_FACILITATOR_URL", "FACILITATOR_URL_PAYAI", "FACILITATOR_URL"]);
-const solanaPayTo = envAny(["SOLANA_PAYTO", "ADDRESS_PAYAI", "ADDRESS"]);
-const basePayTo = envAny(["BASE_PAYTO", "BASE_ADDRESS", "EVM_ADDRESS"]);
-const solanaUsdcMint = envAny(["SOLANA_USDC_MINT", "USDC_MINT", "USDC_DEVNET", "USDC_MAINNET"]);
-// Default Base USDC mainnet when Base payTo is set so Base is supported with only BASE_PAYTO
-const baseUsdcAsset = envAny(["BASE_USDC"]) || (basePayTo ? BASE_USDC_MAINNET : "");
+// Settlement constants (secrets stay in env via optionalSecret)
+const facilitatorUrl = FACILITATOR_URL_PAYAI;
+const baseFacilitatorUrl = FACILITATOR_URL_PAYAI;
+const solanaPayTo = SOLANA_PAYTO;
+const basePayTo = BASE_PAYTO || EVM_PAYTO;
+const solanaUsdcMint = SOLANA_USDC_MINT;
+const baseUsdcAsset = basePayTo ? BASE_USDC_MAINNET : "";
 
-const solanaNetwork = normalizeSolanaNetwork(envAny(["SOLANA_NETWORK", "NETWORK_PAYAI", "NETWORK"]) || DEFAULT_SOLANA_NETWORK);
-const baseNetwork = normalizeBaseNetwork(envAny(["BASE_NETWORK"]) || DEFAULT_BASE_NETWORK);
+const solanaNetwork = normalizeSolanaNetwork(NETWORK_PAYAI || DEFAULT_SOLANA_NETWORK);
+const baseNetwork = normalizeBaseNetwork(DEFAULT_BASE_NETWORK);
 
-const payaiApiKeyId = env("PAYAI_API_KEY_ID");
-const payaiApiKeySecret = env("PAYAI_API_KEY_SECRET");
+const payaiApiKeyId = optionalSecret("PAYAI_API_KEY_ID");
+const payaiApiKeySecret = optionalSecret("PAYAI_API_KEY_SECRET");
 const payaiAuthHeaders =
   payaiApiKeyId && payaiApiKeySecret
     ? createPayAiFacilitatorAuthHeaders(payaiApiKeyId, payaiApiKeySecret)
@@ -122,8 +132,7 @@ function newFacilitatorClient(url) {
  * [Corbits facilitator](https://docs.corbits.dev/facilitator/overview) — no PayAI JWT.
  * Payment flow: https://docs.corbits.dev/facilitator/how-it-works.md (`/accepts`, `/settle`). Burst traffic can 429; throttle clients / retries in callers (e.g. tester agent).
  */
-const corbitsFacilitatorUrl =
-  env("CORBITS_FACILITATOR_URL") || "https://facilitator.corbits.dev";
+const corbitsFacilitatorUrl = CORBITS_FACILITATOR_URL;
 
 /**
  * [Dexter facilitator](https://dexter.cash/facilitator) — free public x402 facilitator (no PayAI JWT).

@@ -8,6 +8,7 @@
  */
 
 import { sortX402AcceptNetworks } from "./x402NetworkOrder.js";
+import { getPayToAddresses } from "./settlement.js";
 
 function env(name) {
   return String(process.env[name] || "").trim();
@@ -163,10 +164,7 @@ export function getEnabledDexterNetworks() {
  * @returns {{ solanaPayTo: string, evmPayTo: string }}
  */
 export function getDexterPayToAddresses() {
-  const solanaPayTo = env("SOLANA_PAYTO") || env("ADDRESS_PAYAI") || env("ADDRESS");
-  const evmPayTo =
-    env("EVM_PAYTO") || env("BASE_PAYTO") || env("BASE_ADDRESS") || env("EVM_ADDRESS");
-  return { solanaPayTo, evmPayTo };
+  return getPayToAddresses();
 }
 
 /**

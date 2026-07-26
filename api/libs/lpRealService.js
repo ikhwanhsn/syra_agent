@@ -7,6 +7,7 @@ import LpRealPosition from "../models/LpRealPosition.js";
 import LpExperimentState from "../models/LpExperimentState.js";
 import AgentWallet from "../models/agent/AgentWallet.js";
 import { LP_AGENT_EXPERIMENT_DEFAULTS } from "../config/lpAgentExperimentStrategies.js";
+import { LP_AGENT_REAL } from "../config/settlement.js";
 import { resolveLpStrategyById } from "./lpExperimentStrategyResolve.js";
 import {
   ensureLpExperimentBootstrapped,
@@ -368,8 +369,7 @@ async function assertLpRealOperator(anonymousId) {
 }
 
 function envEnabledDefault() {
-  const raw = (process.env.LP_AGENT_REAL_ENABLED || "").trim().toLowerCase();
-  return raw === "true" || raw === "1";
+  return Boolean(LP_AGENT_REAL.enabled);
 }
 
 function envSlippageBps() {
@@ -378,8 +378,7 @@ function envSlippageBps() {
 }
 
 export function isRealCronEnabled() {
-  const raw = (process.env.LP_AGENT_REAL_ENABLED || "").trim().toLowerCase();
-  return raw !== "false" && raw !== "0";
+  return Boolean(LP_AGENT_REAL.enabled);
 }
 
 /** If last signal tick is older than this, treat the agent as stale (cron may not be running). */

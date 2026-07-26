@@ -1,55 +1,54 @@
 /**
- * Syra Telegram AI bot — env configuration.
- * All flags read at call time (after dotenv.config in index.js).
+ * Syra Telegram AI bot — configuration.
+ * Non-secret knobs are code constants; TOKEN / WEBHOOK_SECRET stay in env.
  */
+import { optionalSecret } from './secrets.js';
+
+const SYRA_TELEGRAM_BOT_USERNAME = '@syra_agent_bot';
+const SYRA_TELEGRAM_WEBHOOK_URL = '';
+const SYRA_TELEGRAM_POLLING_ENABLED = true;
+const SYRA_TELEGRAM_BOT_ENABLED = true;
 
 /**
  * @returns {string}
  */
 export function getSyraTelegramBotToken() {
-  return (process.env.SYRA_TELEGRAM_BOT_TOKEN || '').trim();
+  return optionalSecret('SYRA_TELEGRAM_BOT_TOKEN');
 }
 
 /**
  * @returns {string}
  */
 export function getSyraTelegramBotUsername() {
-  return (process.env.SYRA_TELEGRAM_BOT_USERNAME || '').trim();
+  return SYRA_TELEGRAM_BOT_USERNAME;
 }
 
 /**
  * @returns {string}
  */
 export function getSyraTelegramWebhookSecret() {
-  return (process.env.SYRA_TELEGRAM_WEBHOOK_SECRET || '').trim();
+  return optionalSecret('SYRA_TELEGRAM_WEBHOOK_SECRET');
 }
 
 /**
  * @returns {string}
  */
 export function getSyraTelegramWebhookUrl() {
-  return (process.env.SYRA_TELEGRAM_WEBHOOK_URL || '').trim();
+  return SYRA_TELEGRAM_WEBHOOK_URL;
 }
 
 /**
  * @returns {boolean}
  */
 export function isSyraTelegramPollingEnabled() {
-  const raw = process.env.SYRA_TELEGRAM_POLLING_ENABLED;
-  if (typeof raw !== 'string' || !raw.trim()) {
-    // Default: poll locally when no webhook URL is configured.
-    return !getSyraTelegramWebhookUrl();
-  }
-  return raw.trim().toLowerCase() === 'true';
+  return SYRA_TELEGRAM_POLLING_ENABLED;
 }
 
 /**
  * @returns {boolean}
  */
 export function isSyraTelegramBotEnabled() {
-  const raw = process.env.SYRA_TELEGRAM_BOT_ENABLED;
-  if (typeof raw !== 'string' || !raw.trim()) return true;
-  return raw.trim().toLowerCase() !== 'false';
+  return SYRA_TELEGRAM_BOT_ENABLED;
 }
 
 /**
@@ -64,11 +63,7 @@ export function isSyraTelegramBotConfigured() {
  * @returns {number}
  */
 export function getTelegramFreeToolDailyLimit() {
-  const raw = process.env.TELEGRAM_FREE_TOOL_DAILY_LIMIT;
-  if (raw === undefined || raw === '') return 3;
-  const n = Number(raw);
-  if (!Number.isFinite(n) || n < 0) return 3;
-  return Math.floor(n);
+  return 3;
 }
 
 /**
@@ -77,11 +72,7 @@ export function getTelegramFreeToolDailyLimit() {
  * @returns {number}
  */
 export function getTelegramReferralDailySpendCapUsd() {
-  const raw = process.env.TELEGRAM_REFERRAL_DAILY_SPEND_CAP_USD;
-  if (raw === undefined || raw === '') return 5;
-  const n = Number(raw);
-  if (!Number.isFinite(n) || n < 0) return 5;
-  return n;
+  return 5;
 }
 
 /**
@@ -89,11 +80,7 @@ export function getTelegramReferralDailySpendCapUsd() {
  * @returns {number}
  */
 export function getTelegramReferralMinBalanceUsd() {
-  const raw = process.env.TELEGRAM_REFERRAL_MIN_BALANCE_USD;
-  if (raw === undefined || raw === '') return 0.05;
-  const n = Number(raw);
-  if (!Number.isFinite(n) || n < 0) return 0.05;
-  return n;
+  return 0.05;
 }
 
 /**
@@ -101,11 +88,7 @@ export function getTelegramReferralMinBalanceUsd() {
  * @returns {number}
  */
 export function getTelegramDigestWibHour() {
-  const raw = process.env.TELEGRAM_DIGEST_WIB_HOUR;
-  if (raw === undefined || raw === '') return 8;
-  const n = Number(raw);
-  if (!Number.isFinite(n) || n < 0 || n > 23) return 8;
-  return Math.floor(n);
+  return 8;
 }
 
 /**
@@ -113,33 +96,22 @@ export function getTelegramDigestWibHour() {
  * @returns {number}
  */
 export function getTelegramDigestWibMinute() {
-  const raw = process.env.TELEGRAM_DIGEST_WIB_MINUTE;
-  if (raw === undefined || raw === '') return 0;
-  const n = Number(raw);
-  if (!Number.isFinite(n) || n < 0 || n > 59) return 0;
-  return Math.floor(n);
+  return 0;
 }
 
 /**
  * @returns {boolean}
  */
 export function isTelegramDigestEnabled() {
-  const raw = process.env.TELEGRAM_DIGEST_ENABLED;
-  if (typeof raw !== 'string' || !raw.trim()) return true;
-  return raw.trim().toLowerCase() !== 'false';
+  return true;
 }
 
 /**
  * Canonical public bot username for CTAs (without @).
- * Falls back to SYRA_TELEGRAM_BOT_USERNAME env.
  * @returns {string}
  */
 export function getSyraTelegramPublicBotUsername() {
-  const fromEnv = (process.env.SYRA_TELEGRAM_PUBLIC_BOT_USERNAME || '').trim().replace(/^@/, '');
-  if (fromEnv) return fromEnv;
-  const configured = getSyraTelegramBotUsername().replace(/^@/, '');
-  if (configured) return configured;
-  return 'syra_trading_bot';
+  return getSyraTelegramBotUsername().replace(/^@/, '') || 'syra_agent_bot';
 }
 
 /**
@@ -152,12 +124,12 @@ export function getSyraTelegramPublicBotUrl() {
 /** @deprecated use getSyraTelegramBotToken() */
 export const SYRA_TELEGRAM_BOT_TOKEN = '';
 /** @deprecated use getters */
-export const SYRA_TELEGRAM_BOT_USERNAME = '';
+export { SYRA_TELEGRAM_BOT_USERNAME };
 /** @deprecated use getters */
 export const SYRA_TELEGRAM_WEBHOOK_SECRET = '';
 /** @deprecated use getters */
-export const SYRA_TELEGRAM_WEBHOOK_URL = '';
+export { SYRA_TELEGRAM_WEBHOOK_URL };
 /** @deprecated use isSyraTelegramPollingEnabled() */
-export const SYRA_TELEGRAM_POLLING_ENABLED = false;
+export { SYRA_TELEGRAM_POLLING_ENABLED };
 /** @deprecated use isSyraTelegramBotEnabled() */
-export const SYRA_TELEGRAM_BOT_ENABLED = true;
+export { SYRA_TELEGRAM_BOT_ENABLED };

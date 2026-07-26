@@ -6,23 +6,24 @@
  *   - 'privy'       → keys live in Privy's TEE; we hold only privyWalletId + public address
  *   - 'retired'     → wallet is retired (after sweep migration); no signing allowed
  *
- * Env:
- *   PRIVY_APP_ID         (required for privy mode)
+ * Secrets (env):
  *   PRIVY_APP_SECRET     (required for privy mode)
- *   PRIVY_BASE_URL       (default: https://auth.privy.io)
  *   PRIVY_DEFAULT_POLICY (optional policy id assigned to new wallets)
- *   SYRA_CUSTODY_MODE    ('privy' | 'legacy', default 'legacy' until ops cuts over)
+ * Config (runtime.js):
+ *   PRIVY_APP_ID via getPrivyAppId()
+ *   SYRA_CUSTODY_MODE via getSyraCustodyMode()
  *
  * NOTE: this module is the SOLE module allowed to talk to Privy. The broker uses these named
  * exports; no other code in the repo should import the privy SDK directly.
  */
 import crypto from 'node:crypto';
+import { getPrivyAppId, getSyraCustodyMode } from '../config/runtime.js';
 
 const PRIVY_BASE = (process.env.PRIVY_BASE_URL || 'https://auth.privy.io').replace(/\/$/, '');
 const DEFAULT_TIMEOUT_MS = 12_000;
 
 function getPrivyAuthHeader() {
-  const appId = (process.env.PRIVY_APP_ID || '').trim();
+  const appId = String(getPrivyAppId() || '').trim();
   const appSecret = (process.env.PRIVY_APP_SECRET || '').trim();
   if (!appId || !appSecret) return null;
   const basic = Buffer.from(`${appId}:${appSecret}`).toString('base64');
@@ -44,7 +45,7 @@ export function isPrivyConfigured() {
  * @returns {'privy'|'legacy'}
  */
 export function getDefaultCustodyMode() {
-  const m = String(process.env.SYRA_CUSTODY_MODE || 'legacy').toLowerCase().trim();
+  const m = String(getSyraCustodyMode() || 'legacy').toLowerCase().trim();
   return m === 'privy' && isPrivyConfigured() ? 'privy' : 'legacy';
 }
 

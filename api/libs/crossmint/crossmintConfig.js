@@ -1,16 +1,10 @@
 /**
  * Crossmint onramp configuration.
- *
- * Env:
- *   CROSSMINT_ONRAMP_ENABLED=true|false
- *   CROSSMINT_SERVER_API_KEY=sk_...
- *   CROSSMINT_CLIENT_API_KEY=ck_...   (returned to web for Embedded Checkout)
- *   CROSSMINT_ENV=staging|production (default staging)
- *   CROSSMINT_WEBHOOK_SECRET=whsec_... (Svix signing secret)
- *   CROSSMINT_DEFAULT_AMOUNT_USD=10
- *   CROSSMINT_MIN_AMOUNT_USD=10
- *   CROSSMINT_MAX_AMOUNT_USD=500
+ * Product flags live in config/settlement.js; API keys stay in env (secrets).
  */
+
+import { CROSSMINT_ONRAMP } from '../../config/settlement.js';
+import { optionalSecret } from '../../config/secrets.js';
 
 const USDC_TOKEN_LOCATORS = {
   staging: {
@@ -23,20 +17,8 @@ const USDC_TOKEN_LOCATORS = {
   },
 };
 
-function envFlag(name) {
-  const v = String(process.env[name] || '')
-    .trim()
-    .toLowerCase();
-  return v === '1' || v === 'true' || v === 'yes';
-}
-
-function parseUsd(name, fallback) {
-  const n = Number(process.env[name]);
-  return Number.isFinite(n) && n > 0 ? n : fallback;
-}
-
 export function getCrossmintEnv() {
-  const raw = String(process.env.CROSSMINT_ENV || 'staging')
+  const raw = String(CROSSMINT_ONRAMP.env || 'staging')
     .trim()
     .toLowerCase();
   return raw === 'production' || raw === 'prod' ? 'production' : 'staging';
@@ -49,19 +31,19 @@ export function getCrossmintApiBaseUrl() {
 }
 
 export function getCrossmintServerApiKey() {
-  return String(process.env.CROSSMINT_SERVER_API_KEY || '').trim();
+  return optionalSecret('CROSSMINT_SERVER_API_KEY');
 }
 
 export function getCrossmintClientApiKey() {
-  return String(process.env.CROSSMINT_CLIENT_API_KEY || '').trim();
+  return optionalSecret('CROSSMINT_CLIENT_API_KEY');
 }
 
 export function getCrossmintWebhookSecret() {
-  return String(process.env.CROSSMINT_WEBHOOK_SECRET || '').trim();
+  return optionalSecret('CROSSMINT_WEBHOOK_SECRET');
 }
 
 export function isCrossmintOnrampEnabled() {
-  if (!envFlag('CROSSMINT_ONRAMP_ENABLED')) return false;
+  if (!CROSSMINT_ONRAMP.enabled) return false;
   return Boolean(getCrossmintServerApiKey() && getCrossmintClientApiKey());
 }
 
@@ -73,9 +55,9 @@ export function getUsdcTokenLocator(chain = 'solana') {
 
 export function getOnrampAmountLimits() {
   return {
-    defaultUsd: parseUsd('CROSSMINT_DEFAULT_AMOUNT_USD', 10),
-    minUsd: parseUsd('CROSSMINT_MIN_AMOUNT_USD', 10),
-    maxUsd: parseUsd('CROSSMINT_MAX_AMOUNT_USD', 500),
+    defaultUsd: CROSSMINT_ONRAMP.defaultAmountUsd,
+    minUsd: CROSSMINT_ONRAMP.minAmountUsd,
+    maxUsd: CROSSMINT_ONRAMP.maxAmountUsd,
   };
 }
 

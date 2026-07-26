@@ -5,6 +5,7 @@
 import { readFileSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { getPublicApiUrl } from '../config/runtime.js';
 import { SIGNAL_CEX_SOURCES } from './cexSignalAnalysis.js';
 import {
   X402_DISPLAY_PRICE_USD,
@@ -69,8 +70,6 @@ function loadXAnalyzerOpenApiExample() {
 }
 
 const X_ANALYZER_OPENAPI_EXAMPLE = loadXAnalyzerOpenApiExample();
-
-const DEFAULT_SERVER = 'https://api.syraa.fun';
 
 const CEX_DOC = `${SIGNAL_CEX_SOURCES.join(', ')} (alias: crypto.com → cryptocom)`;
 
@@ -489,7 +488,7 @@ function withPillarTag(op, openApiPath) {
  * @returns {Record<string, unknown>}
  */
 export function buildGatewayOpenApi() {
-  const serverUrl = (process.env.SYRA_PUBLIC_API_URL || DEFAULT_SERVER).replace(/\/$/, '');
+  const serverUrl = getPublicApiUrl();
 
   /** @type {Record<string, Record<string, unknown>>} */
   const paths = {

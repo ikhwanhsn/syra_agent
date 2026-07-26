@@ -1,0 +1,370 @@
+/**
+ * Secrets-only env allowlist for the Syra API.
+ * Non-secret knobs live in runtime.js / settlement.js / domain config modules.
+ * Stale config keys in .env are ignored (warn once at boot).
+ */
+
+/** @type {readonly string[]} */
+export const SECRET_ENV_KEYS = Object.freeze([
+  // Boot / auth / crypto
+  "AGENT_WALLET_SECRET_ENCRYPTION_KEY",
+  "JWT_HS_SECRET",
+  "JWT_PRIVATE_KEY_PEM",
+  "JWT_PUBLIC_KEY_PEM",
+  "RECEIPT_SECRET",
+  "API_KEY",
+  "API_KEYS",
+  "SYRA_API_KEY",
+  "METRICS_TOKEN",
+  "ZAUTH_API_KEY",
+  "ZAUTH_SOLANA_PRIVATE_KEY",
+  "SHADOWFEED_PARTNER_SECRET",
+  "PRIVY_APP_SECRET",
+  "ERC8183_INTERNAL_SECRET",
+  "SYRA_MCP_API_KEY",
+  "AGENTSCORE_API_KEY",
+  "AGENTSCORE_OPERATOR_TOKEN",
+  "STREAMFLOW_LOCKS_OPERATOR_KEY",
+  "FAUCET_SECRET_KEY",
+
+  // Wallets / signers
+  "PAYER_KEYPAIR",
+  "AGENT_PRIVATE_KEY",
+  "AGENT_SECRET_KEY",
+  "SOLANA_PRIVATE_KEY",
+  "ADDRESS_PAYAI_PRIVATE_KEY",
+  "EVM_PRIVATE_KEY",
+  "SVM_PRIVATE_KEY",
+  "BASE_PAYER_PRIVATE_KEY",
+  "SYRA_EVM_PAYER_PRIVATE_KEY",
+  "CMC_PAYER_PRIVATE_KEY",
+  "TEMPO_PAYOUT_PRIVATE_KEY",
+  "ALGORAND_AGENT_PRIVATE_KEY",
+  "ALGORAND_PRIVATE_KEY",
+  "AVM_PRIVATE_KEY",
+  "ALGORAND_MNEMONIC",
+  "KOL_POOL_WALLET_PRIVATE_KEY",
+  "PUMPFUN_AGENT_PRIVATE_KEY",
+  "B402_PRIVATE_KEY_PEM",
+  "B402_PRIVATE_KEY_B64",
+  "B402_ACCESS_TOKEN",
+  "B402_CLIENT_ID",
+  "B402_PRIVATE_KEY_FILE",
+  "CELO_SETTLER_PRIVATE_KEY",
+  "CELO_FACILITATOR_API_KEY",
+  "CELO_BUILDERS_API_KEY",
+  "GMGN_PRIVATE_KEY",
+  "HEYLOL_SOLANA_PRIVATE_KEY",
+  "FAUCET_KEYPAIR_PATH",
+
+  // Partner API keys / tokens
+  "OPENROUTER_API_KEY",
+  "OPENROUTER_API_KEY_x402",
+  "OPENAI_API_KEY",
+  "BTC3_EMBEDDING_API_KEY",
+  "JUPITER_API_KEY",
+  "NANSEN_API_KEY",
+  "NEYNAR_API_KEY",
+  "NEYNAR_SIGNER_UUID",
+  "BANKR_API_KEY",
+  "GIZA_API_KEY",
+  "MEVX_API_KEY",
+  "RISE_API_KEY",
+  "TOKENS_API_KEY",
+  "TOPLEDGER_API_KEY",
+  "TOP_LEDGER_API_KEY",
+  "DUNE_API_KEY",
+  "EIGHTYFOUR_SCAN_API_KEY",
+  "BINANCE_API_KEY",
+  "BINANCE_API_SECRET",
+  "OKX_API_KEY",
+  "OKX_ACCESS_KEY",
+  "OKX_SECRET_KEY",
+  "OKX_PASSPHRASE",
+  "PAYAI_API_KEY_ID",
+  "PAYAI_API_KEY_SECRET",
+  "COINGECKO_API_KEY",
+  "COINGECKO_DEMO_API_KEY",
+  "COINGECKO_API_KEY_TYPE",
+  "COINMARKETCAP_API_KEY",
+  "BUBBLEMAPS_API_KEY",
+  "BROWSER_USE_API_KEY",
+  "CLAWPUMP_API_KEY",
+  "GMGN_API_KEY",
+  "TWITTER_API_KEY",
+  "X_BEARER_TOKEN",
+  "CLOUDFLARE_API_TOKEN",
+  "CLOUDFLARE_BEARER_TOKEN",
+  "PINATA_JWT",
+  "QDRANT_API_KEY",
+  "SENTRY_DSN",
+  "CROSSMINT_SERVER_API_KEY",
+  "CROSSMINT_CLIENT_API_KEY",
+  "CROSSMINT_WEBHOOK_SECRET",
+  "PUMP_FUN_FRONTEND_API_TOKEN",
+  "CRYPTO_NEWS_API_TOKEN",
+  "EXA_API_KEY",
+  "GITHUB_TOKEN",
+  "GMAIL_APP_PASSWORD",
+  "GMAIL_USER",
+  "GRID_CLIENT_ID",
+  "GRID_CLIENT_SECRET",
+  "JATEVO_API_KEY",
+  "KRAKEN_API_KEY",
+  "KRAKEN_PRIVATE_KEY",
+  "SENTINEL_API_KEY",
+  "ATXP_CONNECTION",
+
+  // Bots / webhooks / cron gates
+  "SYRA_TELEGRAM_BOT_TOKEN",
+  "SYRA_TELEGRAM_WEBHOOK_SECRET",
+  "SYRA_TRADING_TELEGRAM_BOT_TOKEN",
+  "SYRA_TRADING_TELEGRAM_WEBHOOK_SECRET",
+  "SYRA_DEV_BOT_TOKEN",
+  "S3LABS_TELEGRAM_BOT_TOKEN",
+  "S3LABS_TELEGRAM_WEBHOOK_SECRET",
+  "BUYBACK_CRON_SECRET",
+  "CRON_SECRET",
+  "BTC3_MACRO_CRON_SECRET",
+  "BTC_QUANT_EXPERIMENT_CRON_SECRET",
+  "LP_AGENT_EXPERIMENT_CRON_SECRET",
+  "LP_AGENT_EXPERIMENT_FINALIZE_UI_TOKEN",
+  "STOCKS_EXPERIMENT_CRON_SECRET",
+  "MM_CRON_SECRET",
+  "SCALPER_CRON_SECRET",
+  "EARN_EXPERIMENT_CRON_SECRET",
+  "TESTER_AGENT_CRON_SECRET",
+  "TESTER_AGENT_SKIP_BUYBACK_SECRET",
+  "SYRA_GROWTH_SCOUT_CRON_SECRET",
+  "SYRA_PARTNERSHIP_SCOUT_CRON_SECRET",
+  "SYRA_TREND_SCOUT_CRON_SECRET",
+  "SYRA_HACKATHON_SCOUT_CRON_SECRET",
+  "BTC3_RESET_UI_TOKEN",
+  "BTC_QUANT_RESET_UI_TOKEN",
+
+  // Stores / RPCs (credential-bearing)
+  "MONGODB_URI",
+  "MONGO_URI",
+  "MONGODB_URI_SOURCE",
+  "MONGODB_URI_TARGET",
+  "SYRA_REDIS_URL",
+  "SOLANA_RPC_URL",
+  "SOLANA_RPC_BLOCKCHAIN_URL",
+  "SOLANA_RPC_READ_ONLY_URL",
+  "SOLANA_RPC_ENDPOINT",
+  "SOLANA_RPC_FALLBACK_URL",
+  "VITE_SOLANA_RPC_URL",
+  "SYRA_SOLANA_RPC_URL",
+  "ARENA_SOLANA_RPC_URL",
+  "OOBE_RPC_URL",
+  "CELO_RPC_URL",
+  "TEMPO_RPC_URL",
+  "BSC_RPC_URL",
+  "ETH_RPC_URL",
+  "SIWA_RPC_URL",
+  "AIP_RPC_URL",
+  "SAID_RPC_URL",
+  "SAP_RPC_URL",
+  "STAKING_RPC_URL",
+  "QUICKNODE_RPC_URL",
+  "ALGOD_TOKEN",
+
+  // Proof / opaque
+  "X402_OWNERSHIP_PROOF",
+  "X402_OWNERSHIP_PROOF_EVM",
+  "X402_OWNERSHIP_PROOF_SVM",
+  "N8N_WEBHOOK_URL_SIGNAL",
+]);
+
+/** @type {ReadonlySet<string>} */
+export const SECRET_ENV_KEY_SET = new Set(SECRET_ENV_KEYS);
+
+/**
+ * Config keys that used to live in .env — now code constants.
+ * Present values are ignored; boot logs a one-time warning.
+ * @type {readonly string[]}
+ */
+export const DEPRECATED_CONFIG_ENV_KEYS = Object.freeze([
+  "PORT",
+  "DB_NAME",
+  "BASE_URL",
+  "SYRA_PUBLIC_API_URL",
+  "INTERNAL_BASE_URL",
+  "TRUST_PROXY",
+  "CORS_EXTRA_ORIGINS",
+  "S3LABS_SITE_URL",
+  "S3LABS_API_URL",
+  "S3LABS_TELEGRAM_CHAT_ID",
+  "S3LABS_TELEGRAM_POLLING_ENABLED",
+  "S3LABS_KOL_TELEGRAM_THREAD_ID",
+  "SOLANA_PAYTO",
+  "ADDRESS_PAYAI",
+  "ADDRESS",
+  "PAYTO",
+  "BASE_PAYTO",
+  "EVM_PAYTO",
+  "EVM_ADDRESS",
+  "BASE_ADDRESS",
+  "SVM_ADDRESS",
+  "ALGORAND_PAYTO",
+  "CELO_PAYTO",
+  "OKX_X402_PAYTO",
+  "B402_PAY_TO",
+  "USDC_MINT",
+  "USDC_MAINNET",
+  "SOLANA_USDC_MINT",
+  "SOLANA_DEVNET_USDC",
+  "BASE_USDC",
+  "BASE_SEPOLIA_USDC",
+  "POLYGON_USDC",
+  "POLYGON_AMOY_USDC",
+  "ARBITRUM_USDC",
+  "ARBITRUM_SEPOLIA_USDC",
+  "CELO_USDC",
+  "B402_TOKEN",
+  "SYRA_TOKEN_MINT",
+  "NETWORK_PAYAI",
+  "FACILITATOR_URL_PAYAI",
+  "CORBITS_FACILITATOR_URL",
+  "GOPLAUSIBLE_FACILITATOR_URL",
+  "B402_BASE_URL",
+  "CELO_FACILITATOR_URL",
+  "BASE_X402_GATEWAY_URL",
+  "X402_USE_PAYAI_FACILITATOR",
+  "X402_B402_ENABLED",
+  "X402_PAYAI_NETWORKS",
+  "X402_PAYAI_INCLUDE_TESTNETS",
+  "X402_PREFERRED_NETWORK",
+  "X402_DISCOVERY_BOOTSTRAP",
+  "OKX_X402_SYNC_SETTLE",
+  "CROSSMINT_ONRAMP_ENABLED",
+  "CROSSMINT_ENV",
+  "CROSSMINT_DEFAULT_AMOUNT_USD",
+  "CROSSMINT_MIN_AMOUNT_USD",
+  "CROSSMINT_MAX_AMOUNT_USD",
+  "LP_AGENT_REAL_ENABLED",
+  "LP_AGENT_REAL_USE_REAL_SIGNALS",
+  "TEMPO_AGENT_PAYOUT_ENABLED",
+  "TEMPO_AGENT_PAYOUT_MAX_USD",
+  "TEMPO_CHAIN_ID",
+  "TEMPO_PAYOUT_ADDRESS",
+  "TEMPO_PAYOUT_TOKEN",
+  "CELO_ALLOW_SELF_SETTLE",
+  "CELO_SETTLE_VIA_FACILITATOR",
+  "CELO_ATTRIBUTION_TAG",
+  "CELO_CREDIT_CIRCUIT_AUTO_OPEN",
+  "CELO_CREDIT_CIRCUIT_COOLDOWN_MS",
+  "SYRA_TELEGRAM_BOT_USERNAME",
+  "SYRA_TELEGRAM_WEBHOOK_URL",
+  "SYRA_TELEGRAM_POLLING_ENABLED",
+  "SYRA_TELEGRAM_BOT_ENABLED",
+  "SYRA_TELEGRAM_PUBLIC_BOT_USERNAME",
+  "SYRA_TELEGRAM_COMMUNITY_URL",
+  "SYRA_TELEGRAM_BOT_PUBLIC_URL",
+  "TELEGRAM_FREE_TOOL_DAILY_LIMIT",
+  "TELEGRAM_REFERRAL_DAILY_SPEND_CAP_USD",
+  "PRIVY_APP_ID",
+  "BASE_BUILDER_CODE",
+  "CLOUDFLARE_ACCOUNT_ID",
+  "SQUID_INTEGRATOR_ID",
+  "SENTINEL_AGENT_ID",
+  "SYRA_ADMIN_WALLETS",
+  "ADMIN_DASHBOARD_WALLET",
+  "KOL_POOL_WALLET_ADDRESS",
+  "KOL_S3LABS_FEE_WALLET",
+  "SAID_AGENT_WALLET",
+  "SAID_API_BASE_URL",
+  "SYRA_CUSTODY_MODE",
+  "SYRA_TREASURY_CUSTODY",
+  "SYRA_TREASURY_MAX_AUTO_USD",
+  "SYRA_TREASURY_PRIVY_WALLET_ID",
+  "IPFS_GATEWAY",
+  "IPFS_GATEWAY_TIMEOUT_MS",
+  "SYRA_COLLECTION_EXTERNAL_URL",
+  "SYRA_COLLECTION_IMAGE_URI",
+  "SYRA_COLLECTION_POINTER",
+  "SYRA_COLLECTION_X_URL",
+  "SYRA_DEV_BOT_CHAT_ID",
+  "PUBKEY",
+  "TRADING_EXPERIMENT_SIGNAL_CRON_MS",
+  "TRADING_EXPERIMENT_VALIDATE_CRON_MS",
+  "SYRA_MCP_BRIDGE_ENABLED",
+  "SYRA_MCP_AGENT_ANONYMOUS_ID",
+  "SYRA_MCP_RATE_LIMIT_PER_MIN",
+  "MEVX_API_BASE_URL",
+  "BLOCKSIZE_API_BASE_URL",
+  "BLOCKSIZE_AGENT_ID_PREFIX",
+  "DEXTER_X402_API_BASE_URL",
+  "EARN_YIELD_BETA_OPEN",
+  "EARN_YIELD_BETA_ALLOWLIST",
+  "EARN_YIELD_KILL_MONITOR_ENABLED",
+  "EARN_YIELD_KILL_MONITOR_INTERVAL_MS",
+  "QDRANT_URL",
+]);
+
+/** Hard-required for API boot (fail fast). */
+export const REQUIRED_BOOT_SECRETS = Object.freeze([
+  "AGENT_WALLET_SECRET_ENCRYPTION_KEY",
+  "MONGODB_URI",
+  "JWT_HS_SECRET",
+]);
+
+/**
+ * @param {string} name
+ * @returns {string}
+ */
+export function optionalSecret(name) {
+  return String(process.env[name] || "").trim();
+}
+
+/**
+ * @param {string} name
+ * @returns {string}
+ * @throws {Error}
+ */
+export function requireSecret(name) {
+  const v = optionalSecret(name);
+  if (!v) {
+    throw new Error(`Missing required secret env: ${name}`);
+  }
+  return v;
+}
+
+/**
+ * @returns {void}
+ * @throws {Error}
+ */
+export function assertRequiredSecretsAtBoot() {
+  const missing = REQUIRED_BOOT_SECRETS.filter((k) => !optionalSecret(k));
+  if (missing.length === 0) return;
+  throw new Error(
+    `FATAL: required secret env missing: ${missing.join(", ")}. ` +
+      `See api/.env.example (secrets only). Config knobs live in api/config/*.`,
+  );
+}
+
+/**
+ * Log once when deprecated config keys are still set in the environment.
+ * @param {{ log?: (msg: string) => void }} [opts]
+ * @returns {string[]} keys that were set (ignored)
+ */
+export function warnDeprecatedConfigEnv(opts = {}) {
+  const log = opts.log || ((msg) => console.warn(msg));
+  const set = DEPRECATED_CONFIG_ENV_KEYS.filter((k) => optionalSecret(k));
+  if (set.length === 0) return [];
+  const preview = set.slice(0, 12).join(", ");
+  const more = set.length > 12 ? ` (+${set.length - 12} more)` : "";
+  log(
+    `[config] Ignoring ${set.length} deprecated config env key(s): ${preview}${more}. ` +
+      `Edit api/config/runtime.js, settlement.js, or domain config modules instead.`,
+  );
+  return set;
+}
+
+/**
+ * @param {string} name
+ * @returns {boolean}
+ */
+export function isSecretEnvKey(name) {
+  return SECRET_ENV_KEY_SET.has(name);
+}

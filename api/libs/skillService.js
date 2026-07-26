@@ -5,6 +5,7 @@ import crypto from 'node:crypto';
 import Skill from '../models/agent/Skill.js';
 import AgentWallet from '../models/agent/AgentWallet.js';
 import { isMongooseConnected } from '../config/mongoose.js';
+import { getPublicApiUrl } from '../config/runtime.js';
 import {
   baseAnonymousIdFrom,
   siblingAnonymousId,
@@ -205,7 +206,7 @@ export async function listPublishedSkills(opts = {}) {
   if (opts.category) filter.category = opts.category;
   const limit = Math.min(Math.max(Number(opts.limit) || 50, 1), 100);
   const skip = Math.max(Number(opts.skip) || 0, 0);
-  const baseUrl = process.env.BASE_URL?.trim() || 'https://api.syraa.fun';
+  const baseUrl = getPublicApiUrl();
 
   const rows = await Skill.find(filter)
     .sort({ useCount: -1, updatedAt: -1 })

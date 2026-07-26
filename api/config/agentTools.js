@@ -2,6 +2,7 @@
  * Agent tools registry: x402 API v2 resources the Syra agent can call.
  * Each tool is paid automatically with the agent wallet; balance is checked first.
  */
+import { TEMPO_AGENT_PAYOUT } from "./settlement.js";
 import {
   X402_API_PRICE_USD,
   X402_API_PRICE_CHECK_STATUS_USD,
@@ -1737,7 +1738,7 @@ export const AGENT_TOOLS = [
     description:
       'Return public Tempo RPC URLs, chain IDs, block explorers, token list endpoints, and documentation links (no on-chain call). No params.',
   },
-  // Tempo payout rail (agent): treasury sends TIP-20 on Tempo to user’s verified EVM address only; gated by TEMPO_AGENT_PAYOUT_ENABLED
+  // Tempo payout rail (agent): treasury sends TIP-20 on Tempo to user’s verified EVM address only; gated by TEMPO_AGENT_PAYOUT.enabled
   {
     id: 'tempo-send-payout',
     path: '/payouts/tempo',
@@ -3153,7 +3154,7 @@ export function getCapabilitiesList() {
  * @returns {Array<{ id: string; name: string; description: string; paramsHint?: string }>}
  */
 export function getToolsForLlmSelection() {
-  const tempoAgentPayoutEnabled = String(process.env.TEMPO_AGENT_PAYOUT_ENABLED || "").trim() === "true";
+  const tempoAgentPayoutEnabled = Boolean(TEMPO_AGENT_PAYOUT.enabled);
   return AGENT_TOOLS.filter((t) => t.id !== "tempo-send-payout" || tempoAgentPayoutEnabled).map((t) => {
     const out = { id: t.id, name: t.name, description: t.description };
     if (t.id === 'news') {

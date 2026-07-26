@@ -12,6 +12,7 @@ import {
   DEFAULT_GOPLAUSIBLE_FACILITATOR_URL,
   getGoplausibleFacilitatorUrl,
 } from "./algorandX402Networks.js";
+import { getPayToAddresses } from "./settlement.js";
 
 function env(name) {
   return String(process.env[name] || "").trim();
@@ -120,10 +121,7 @@ export function getEnabledGoplausibleNetworks() {
  * @returns {{ solanaPayTo: string, evmPayTo: string }}
  */
 export function getGoplausiblePayToAddresses() {
-  const solanaPayTo = env("SOLANA_PAYTO") || env("ADDRESS_PAYAI") || env("ADDRESS");
-  const evmPayTo =
-    env("EVM_PAYTO") || env("BASE_PAYTO") || env("BASE_ADDRESS") || env("EVM_ADDRESS");
-  return { solanaPayTo, evmPayTo };
+  return getPayToAddresses();
 }
 
 /**

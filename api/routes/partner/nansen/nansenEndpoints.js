@@ -37,8 +37,14 @@ import {
   tgmPerpTrades,
   parseNansenErrorStatus,
 } from "../../../request/nansen/nansenX402.js";
+import {
+  NANSEN_RESPONSE_MAX_BYTES,
+  capJsonPayload,
+  createTtlJsonCache,
+} from "../../../utils/bandwidthGuards.js";
 
 const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
+const nansenResponseCache = createTtlJsonCache(120_000, 300);
 
 let _nansenFetch = null;
 
@@ -115,11 +121,22 @@ function getPayload(req) {
 function handler(fn) {
   return async (req, res) => {
     try {
-      const opts = await nansenOptions();
       const payload = getPayload(req);
+      const cacheKey = `${req.method}:${req.path}:${JSON.stringify(payload)}`;
+      const cached = nansenResponseCache.get(cacheKey);
+      if (cached != null) {
+        res.setHeader("X-Syra-Cache", "HIT");
+        await settlePaymentAndSetResponse(res, req);
+        return res.status(200).json(cached);
+      }
+
+      const opts = await nansenOptions();
       const data = await fn(payload, opts);
+      const capped = capJsonPayload(data, NANSEN_RESPONSE_MAX_BYTES);
+      nansenResponseCache.set(cacheKey, capped);
+      res.setHeader("X-Syra-Cache", "MISS");
       await settlePaymentAndSetResponse(res, req);
-      res.status(200).json(data);
+      return res.status(200).json(capped);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
       const upstreamStatus =

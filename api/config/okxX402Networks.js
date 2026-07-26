@@ -3,8 +3,11 @@
  * @see https://web3.okx.com/onchainos/dev-docs/payments/service-seller-sdk
  *
  * Requires OKX Developer Portal API keys (same as OKX DEX / Onchain OS).
- * Env: OKX_API_KEY, OKX_SECRET_KEY, OKX_PASSPHRASE, OKX_X402_PAYTO (or XLAYER_PAYTO).
+ * Env secrets: OKX_API_KEY, OKX_SECRET_KEY, OKX_PASSPHRASE.
+ * PayTo: OKX_X402_PAYTO from settlement.js.
  */
+import { isProduction } from "./runtime.js";
+import { OKX_X402_PAYTO } from "./settlement.js";
 
 function env(name) {
   return String(process.env[name] || "").trim();
@@ -14,12 +17,10 @@ export const XLAYER_MAINNET_CAIP2 = "eip155:196";
 export const XLAYER_TESTNET_CAIP2 = "eip155:1952";
 
 /** USDT0 on X Layer mainnet (OKX facilitator default stablecoin). */
-export const XLAYER_MAINNET_USDT =
-  env("XLAYER_USDT") || "0x779ded0c9e1022225f8e0630b35a9b54be713736";
+export const XLAYER_MAINNET_USDT = "0x779ded0c9e1022225f8e0630b35a9b54be713736";
 
 /** Testnet USD₮0 on X Layer testnet. */
-export const XLAYER_TESTNET_USDT =
-  env("XLAYER_TESTNET_USDT") || "0xcb8bf24c6ce16ad21d707c9505421a17f2bec79d";
+export const XLAYER_TESTNET_USDT = "0xcb8bf24c6ce16ad21d707c9505421a17f2bec79d";
 
 /**
  * @typedef {object} OkxX402Network
@@ -76,14 +77,7 @@ export function hasOkxApiCredentials() {
  * Merchant receive address on X Layer (EVM).
  */
 export function getOkxX402PayTo() {
-  return (
-    env("OKX_X402_PAYTO") ||
-    env("XLAYER_PAYTO") ||
-    env("EVM_PAYTO") ||
-    env("BASE_PAYTO") ||
-    env("EVM_ADDRESS") ||
-    ""
-  );
+  return String(OKX_X402_PAYTO || "").trim();
 }
 
 /**
@@ -91,28 +85,10 @@ export function getOkxX402PayTo() {
  * @returns {OkxX402Network[]}
  */
 export function getEnabledOkxX402Networks() {
-  const filterRaw = env("OKX_X402_NETWORKS");
   let list = [...OKX_X402_NETWORKS];
 
-  if (filterRaw) {
-    const allow = new Set(
-      filterRaw
-        .split(",")
-        .map((s) => s.trim().toLowerCase())
-        .filter(Boolean),
-    );
-    list = OKX_X402_NETWORKS.filter((n) => allow.has(n.id));
-  }
-
-  const includeTestnetsEnv = env("OKX_X402_INCLUDE_TESTNETS").toLowerCase();
-  const includeTestnets =
-    includeTestnetsEnv === "true" ||
-    includeTestnetsEnv === "1" ||
-    (includeTestnetsEnv !== "false" &&
-      includeTestnetsEnv !== "0" &&
-      process.env.NODE_ENV !== "production");
-
-  if (!includeTestnets) {
+  // Dev includes testnets; production mainnet-only.
+  if (isProduction()) {
     list = list.filter((n) => !n.testnet);
   }
 
@@ -138,7 +114,7 @@ export function getOkxX402PublicStatus() {
     missing.push("OKX_API_KEY", "OKX_SECRET_KEY", "OKX_PASSPHRASE");
   }
   if (!payTo) {
-    missing.push("OKX_X402_PAYTO or XLAYER_PAYTO");
+    missing.push("OKX_X402_PAYTO");
   }
   return {
     enabled: isOkxX402Enabled(),

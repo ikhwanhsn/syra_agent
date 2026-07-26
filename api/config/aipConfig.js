@@ -3,6 +3,7 @@
  * @see https://aipagents.xyz
  */
 import { DEFAULT_PROGRAM_ID } from "@aipagents/did-resolver";
+import { getPublicApiUrl } from "./runtime.js";
 
 export const AIP_REGISTRY_PROGRAM_ID =
   process.env.AIP_REGISTRY_PROGRAM_ID?.trim() || DEFAULT_PROGRAM_ID;
@@ -16,11 +17,7 @@ export const AIP_AGENT_VERSION = process.env.SYRA_AIP_VERSION?.trim() || "1.0.0"
 
 /** @returns {string} */
 export function getSyraPublicApiUrl() {
-  return (
-    process.env.SYRA_PUBLIC_API_URL?.trim() ||
-    process.env.BASE_URL?.trim() ||
-    "https://api.syraa.fun"
-  ).replace(/\/+$/, "");
+  return getPublicApiUrl();
 }
 
 /** @returns {string} */

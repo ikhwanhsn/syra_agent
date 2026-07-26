@@ -10,7 +10,7 @@ import {
 } from '../libs/publicMetricsService.js';
 
 const router = express.Router();
-const SSE_INTERVAL_MS = 5_000;
+const SSE_INTERVAL_MS = 30_000;
 
 router.get('/metrics', async (_req, res) => {
   try {

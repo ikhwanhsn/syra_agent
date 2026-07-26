@@ -16,6 +16,7 @@ import {
   computeImageGenerationPriceUsd,
   getImageModelPricingPublic,
 } from '../libs/openrouterMediaPricing.js';
+import { slimImageGenerationResult } from '../utils/bandwidthGuards.js';
 
 const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
 
@@ -194,8 +195,13 @@ export async function createImageGenerationsRouter() {
           })
         );
 
+        const { result: slimmed, stripped } = slimImageGenerationResult(result);
+        if (stripped) {
+          console.log('[images/generations] stripped b64_json from response (egress guard)');
+        }
+
         await settlePaymentAndSetResponse(res, req);
-        return res.json(result);
+        return res.json(slimmed);
       } catch (error) {
         const status = typeof error?.status === 'number' ? error.status : 502;
         return res.status(status).json({

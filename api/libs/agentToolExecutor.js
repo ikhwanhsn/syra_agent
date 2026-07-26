@@ -3,6 +3,7 @@
  */
 import { getAgentTool, normalizeJupiterSwapParams } from '../config/agentTools.js';
 import { X402_PAYSH_FLOOR_USD, PASSTHROUGH_MARGIN } from '../config/x402Pricing.js';
+import { TEMPO_AGENT_PAYOUT } from '../config/settlement.js';
 import { getEffectiveAgentToolPriceUsd } from './pactPricing.js';
 import {
   callX402V2WithAgent,
@@ -152,10 +153,10 @@ export async function executeAgentToolCall(input) {
 
     // Tempo payout: treasury rail; recipient resolved server-side (never from LLM). No agent USDC balance check.
     if (tool.tempoPayout) {
-      if (String(process.env.TEMPO_AGENT_PAYOUT_ENABLED || '').trim() !== 'true') {
+      if (!TEMPO_AGENT_PAYOUT.enabled) {
         return respond(403, {
           success: false,
-          error: 'Tempo agent payouts are disabled. Set TEMPO_AGENT_PAYOUT_ENABLED=true on the server.',
+          error: 'Tempo agent payouts are disabled (TEMPO_AGENT_PAYOUT.enabled in settlement.js).',
           toolId: tool.id,
         });
       }
@@ -166,7 +167,7 @@ export async function executeAgentToolCall(input) {
         ).map(([k, v]) => [k, typeof v === 'string' ? v : String(v)])
       );
 
-      const maxUsdRaw = Number(process.env.TEMPO_AGENT_PAYOUT_MAX_USD || '50');
+      const maxUsdRaw = Number(TEMPO_AGENT_PAYOUT.maxUsd ?? 50);
       const cap = Number.isFinite(maxUsdRaw) && maxUsdRaw > 0 ? maxUsdRaw : 50;
       const amountUsd = Number(params.amountUsd ?? params.amount_usd);
       if (!Number.isFinite(amountUsd) || amountUsd <= 0) {

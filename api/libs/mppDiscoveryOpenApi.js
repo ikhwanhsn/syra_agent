@@ -8,8 +8,7 @@
  */
 import { buildMppOpenApiPaths } from './mppOpenApiPaths.js';
 import { SYRA_META_DESCRIPTION } from '../config/syraBranding.js';
-
-const DEFAULT_SERVER = 'https://api.syraa.fun';
+import { getPublicApiUrl } from '../config/runtime.js';
 
 /**
  * @returns {string[]}
@@ -32,7 +31,7 @@ function discoveryOwnershipProofs() {
  * @returns {Record<string, unknown>}
  */
 export function buildMppDiscoveryOpenApi() {
-  const serverUrl = (process.env.SYRA_PUBLIC_API_URL || DEFAULT_SERVER).replace(/\/$/, '');
+  const serverUrl = getPublicApiUrl();
   const ownershipProofs = discoveryOwnershipProofs();
   const paths = buildMppOpenApiPaths();
 

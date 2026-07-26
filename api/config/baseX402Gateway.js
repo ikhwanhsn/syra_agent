@@ -4,13 +4,10 @@
  */
 import { getPayaiPayToAddresses } from './payaiX402Networks.js';
 import { AMPERSEND_MARKETPLACE_NETWORK } from './x402Bazaar.js';
+import { getPublicApiUrl } from './runtime.js';
+import { BASE_USDC } from './settlement.js';
 
 const BASE_CAIP2 = 'eip155:8453';
-const BASE_USDC = '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913';
-
-function env(name) {
-  return String(process.env[name] || '').trim();
-}
 
 /** Base gateway enabled when EVM payTo is configured. */
 export function isBaseX402GatewayEnabled() {
@@ -21,7 +18,7 @@ export function isBaseX402GatewayEnabled() {
 /** Public Base gateway metadata for discovery manifests and registry scripts. */
 export function getBaseX402GatewayConfig() {
   const { evmPayTo } = getPayaiPayToAddresses();
-  const baseUrl = env('BASE_X402_GATEWAY_URL') || env('BASE_URL') || 'https://api.syraa.fun';
+  const baseUrl = getPublicApiUrl();
   return {
     enabled: isBaseX402GatewayEnabled(),
     network: BASE_CAIP2,

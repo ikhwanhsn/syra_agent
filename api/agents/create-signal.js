@@ -11,6 +11,8 @@ import {
 import bs58 from "bs58";
 import mongoose from "mongoose";
 import connectMongoose from "../config/mongoose.js";
+import { getDbName } from "../config/runtime.js";
+import { SOLANA_PAYTO } from "../config/settlement.js";
 import { confirmSolanaTransaction } from "../libs/solanaConfirm.js";
 
 const connection = new Connection("https://api.devnet.solana.com", "confirmed");
@@ -18,12 +20,8 @@ const connection = new Connection("https://api.devnet.solana.com", "confirmed");
 // Devnet USDC
 const USDC_MINT = new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
 
-// Server's wallet (receives payments) - must be set via env
-const SERVER_WALLET = (() => {
-  const addr = process.env.ADDRESS_PAYAI;
-  if (!addr) throw new Error("ADDRESS_PAYAI env is required");
-  return new PublicKey(addr);
-})();
+// Server's wallet (receives payments) — SOLANA_PAYTO from settlement.js
+const SERVER_WALLET = new PublicKey(SOLANA_PAYTO);
 
 // Price per signal
 const PRICE_PER_SIGNAL = 100; // 0.0001 USDC
@@ -34,7 +32,7 @@ const AGENT_SECRET_KEY = process.env.ADDRESS_PAYAI_PRIVATE_KEY;
 // MongoDB via shared Mongoose pool (no separate MongoClient)
 async function getMongoDb() {
   await connectMongoose({ required: true });
-  return mongoose.connection.getClient().db(process.env.DB_NAME || "syra");
+  return mongoose.connection.getClient().db(getDbName());
 }
 
 // Shared handler function for both GET and POST

@@ -6,6 +6,11 @@ import crypto from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  B402_PAY_TO,
+  B402_TOKEN,
+  X402_B402_ENABLED,
+} from "../config/settlement.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const DEFAULT_B402_PRIVATE_KEY_FILE = path.resolve(__dirname, "../.keys/b402_private.pem");
@@ -126,12 +131,11 @@ export function bootstrapB402PrivateKeyFromEnv() {
  */
 export function getB402PublicStatus() {
   const missing = [];
-  const enabledFlag = env("X402_B402_ENABLED").toLowerCase();
-  if (enabledFlag !== "true" && enabledFlag !== "1") missing.push("X402_B402_ENABLED");
+  if (!X402_B402_ENABLED) missing.push("X402_B402_ENABLED");
 
   if (!env("B402_CLIENT_ID")) missing.push("B402_CLIENT_ID");
   if (!env("B402_ACCESS_TOKEN")) missing.push("B402_ACCESS_TOKEN");
-  if (!env("B402_PAY_TO")) missing.push("B402_PAY_TO");
+  if (!String(B402_PAY_TO || "").trim()) missing.push("B402_PAY_TO");
 
   const keyPath = resolveB402PrivateKeyFilePath();
   const hasEnvKey = Boolean(loadPrivateKeyPemFromEnv());
@@ -178,8 +182,8 @@ export function getB402PublicStatus() {
     configured,
     missing,
     keySource,
-    token: env("B402_TOKEN") || "USD1",
-    payToSet: Boolean(env("B402_PAY_TO")),
+    token: String(B402_TOKEN || "USD1"),
+    payToSet: Boolean(String(B402_PAY_TO || "").trim()),
     network: "eip155:56",
   };
 }

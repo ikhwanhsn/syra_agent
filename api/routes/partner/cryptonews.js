@@ -55,7 +55,7 @@ const MAX_NEWS_RESPONSE = Math.min(
   Math.max(
     20,
     Number.parseInt(
-      process.env.INTERNAL_NEWS_MAX_RESPONSE || process.env.CRYPTONEWS_NEWS_MAX_RESPONSE || "72",
+      process.env.INTERNAL_NEWS_MAX_RESPONSE || process.env.CRYPTONEWS_NEWS_MAX_RESPONSE || "36",
       10,
     ),
   ),
@@ -91,9 +91,22 @@ function setCachedNews(ticker, data) {
   newsCache.set(cacheKey(ticker), { data, expires: Date.now() + CACHE_TTL_MS });
 }
 
+/** Trim article bodies — headlines/sentiment don't need full text over the wire. */
+function slimNewsRows(rows) {
+  if (!Array.isArray(rows)) return rows;
+  return rows.slice(0, MAX_NEWS_RESPONSE).map((row) => {
+    if (!row || typeof row !== "object") return row;
+    const text = typeof row.text === "string" ? row.text : "";
+    return {
+      ...row,
+      text: text.length > 280 ? `${text.slice(0, 280)}…` : text,
+    };
+  });
+}
+
 async function fetchNewsForTicker(ticker) {
   const n = NEWS_LIST_ITEMS;
-  const cap = (rows) => (Array.isArray(rows) ? rows.slice(0, MAX_NEWS_RESPONSE) : rows);
+  const cap = (rows) => slimNewsRows(rows);
   if (ticker === "general" || !ticker) {
     if (GENERAL_NEWS_SINGLE_SECTION) {
       return cap(await fetchNewsCategoryGeneral(n));

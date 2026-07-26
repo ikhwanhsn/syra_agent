@@ -1,3 +1,4 @@
+import compression from "compression";
 import cors from "cors";
 import express from "express";
 import rateLimit from "./utils/rateLimit.js";
@@ -6,6 +7,12 @@ import { requireApiKey } from "./utils/apiKeyAuth.js";
 import { isGatewayOpenApiFreeRoute } from "./config/gatewayOpenApiFreeRoutes.js";
 import { getPreferredX402Networks, getBaseX402GatewayConfig } from "./config/baseX402Gateway.js";
 import { injectTrustedOriginApiKey } from "./utils/trustedOriginAuth.js";
+import {
+  PLAYGROUND_PROXY_MAX_RESPONSE_BYTES,
+  createJsonBodyCache,
+  isBinaryContentType,
+  isDiscoveryBandwidthPath,
+} from "./utils/bandwidthGuards.js";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createSignalRouterRegular } from "./routes/signal.js";
@@ -148,6 +155,11 @@ import { createSiwaRouter } from "./routes/partner/siwa/index.js";
 import dotenv from "dotenv";
 import { zauthProvider } from "@zauthx402/sdk/middleware";
 import { assertAgentWalletSecretEncryptionConfigured } from "./libs/agentWalletSecretCrypto.js";
+import {
+  assertRequiredSecretsAtBoot,
+  warnDeprecatedConfigEnv,
+} from "./config/secrets.js";
+import { getPort, getTrustProxy, getCorsExtraOrigins } from "./config/runtime.js";
 import { metricsHandler } from "./utils/metrics.js";
 import { createPredictionGameRouter } from "./routes/prediction-game/index.js";
 import { create8004Router } from "./routes/8004.js";
@@ -198,12 +210,20 @@ import { withSingleFlight } from "./utils/singleFlight.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Always load api/.env first (so SOLANA_RPC_URL etc. are set even when run from monorepo root)
+// Always load api/.env first (secrets + credential URIs only — see config/secrets.js)
 dotenv.config({ path: path.resolve(__dirname, ".env"), quiet: true });
 // Dev: web/.env.local often defines VITE_ADMIN_DASHBOARD_WALLET — mirror for staking admin gate.
 if (process.env.NODE_ENV !== "production") {
   dotenv.config({ path: path.resolve(__dirname, "../web/.env.local"), quiet: true });
 }
+
+try {
+  assertRequiredSecretsAtBoot();
+} catch (err) {
+  console.error("\n" + (err?.message || String(err)) + "\n");
+  process.exit(1);
+}
+warnDeprecatedConfigEnv({ log: (msg) => startupWarn(msg) });
 
 const b402KeyBootstrap = bootstrapB402PrivateKeyFromEnv();
 if (b402KeyBootstrap.wrote) {
@@ -259,7 +279,7 @@ const { requirePayment: requirePaymentV2, settlePaymentAndSetResponse } =
   await getV2Payment();
 
 // Trust first proxy (e.g. Nginx, Cloudflare) so req.ip / X-Forwarded-For are correct for rate limiting
-if (process.env.TRUST_PROXY === "1" || process.env.TRUST_PROXY === "true") {
+if (getTrustProxy()) {
   app.set("trust proxy", 1);
 }
 
@@ -277,11 +297,7 @@ if (process.env.TRUST_PROXY === "1" || process.env.TRUST_PROXY === "true") {
 // - extra.feePayer field
 
 // CORS: restrictive origins only for regular (non-x402) APIs; x402 routes allow any origin
-// Add production dashboard origin via CORS_EXTRA_ORIGINS (comma-separated, e.g. https://your-app.vercel.app)
-const CORS_EXTRA = (process.env.CORS_EXTRA_ORIGINS || "")
-  .split(",")
-  .map((o) => o.trim())
-  .filter(Boolean);
+const CORS_EXTRA = getCorsExtraOrigins();
 const CORS_ALLOWED_ORIGINS = [
   "http://localhost:8080",
   "http://localhost:5173",
@@ -452,7 +468,8 @@ function isX402Route(p) {
   if (p === "/insights" || p.startsWith("/insights/")) return true;
   if (p === "/assets" || p.startsWith("/assets/")) return true;
   if (p === "/bitcoin" || p.startsWith("/bitcoin/")) return true;
-  if (p.startsWith("/health")) return true;
+  // Paid x402 /health — but /health/live stays free for Render probes (no discovery tax).
+  if (p.startsWith("/health") && p !== "/health/live") return true;
   if (
     p === "/check-status" ||
     (p.startsWith("/check-status/") && !p.startsWith("/check-status-agent"))
@@ -518,8 +535,28 @@ app.use((req, res, next) => {
 // Security: headers (X-Content-Type-Options, X-Frame-Options, etc.) and body size limit
 app.use(securityHeaders);
 
+// Gzip/brotli JSON/text — largest cheap cut to Render HTTP Responses egress.
+app.use(
+  compression({
+    threshold: 1024,
+    filter: (req, res) => {
+      if (req.headers["x-no-compression"]) return false;
+      const type = res.getHeader("Content-Type");
+      if (typeof type === "string" && /event-stream/i.test(type)) return false;
+      return compression.filter(req, res);
+    },
+  }),
+);
+
+// Tiny unpaid probe for Render health checks (avoid fat `/` or paid `/health`).
+app.get("/health/live", (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.status(200).type("text/plain").send("ok");
+});
+
 // Timeout for playground proxy outbound fetch (ms). Prevents hanging so we always return 502 with a clear message.
 const PLAYGROUND_PROXY_TIMEOUT_MS = 28_000;
+const discoveryJsonCache = createJsonBodyCache(3_600_000);
 
 function getHeaderCaseInsensitive(headers, name) {
   if (!headers || typeof headers !== "object") return undefined;
@@ -635,7 +672,44 @@ app.post(
       }
       const proxyRes = await sentinelFetch(targetUrl, fetchOpts);
       clearTimeout(timeoutId);
+
+      const upstreamContentType = proxyRes.headers.get("content-type") || "";
+      const upstreamLen = Number.parseInt(
+        proxyRes.headers.get("content-length") || "",
+        10,
+      );
+      if (isBinaryContentType(upstreamContentType)) {
+        res.status(502).json({
+          error: "Proxy rejected binary upstream response",
+          message:
+            "Playground proxy does not relay image/video/binary bodies (Render egress protection).",
+          contentType: upstreamContentType,
+        });
+        return;
+      }
+      if (
+        Number.isFinite(upstreamLen) &&
+        upstreamLen > PLAYGROUND_PROXY_MAX_RESPONSE_BYTES
+      ) {
+        res.status(502).json({
+          error: "Proxy response too large",
+          message: `Upstream Content-Length ${upstreamLen} exceeds ${PLAYGROUND_PROXY_MAX_RESPONSE_BYTES} byte limit.`,
+        });
+        return;
+      }
+
       const responseText = await proxyRes.text();
+      if (
+        Buffer.byteLength(responseText, "utf8") >
+        PLAYGROUND_PROXY_MAX_RESPONSE_BYTES
+      ) {
+        res.status(502).json({
+          error: "Proxy response too large",
+          message: `Upstream body exceeds ${PLAYGROUND_PROXY_MAX_RESPONSE_BYTES} byte limit.`,
+        });
+        return;
+      }
+
       const forwardedHeaders = {};
       proxyRes.headers.forEach((value, key) => {
         forwardedHeaders[key] = value;
@@ -716,7 +790,28 @@ app.post(
         }
 
         const retryRes = await sentinelFetch(targetUrl, fetchOpts);
+        const retryType = retryRes.headers.get("content-type") || "";
+        if (isBinaryContentType(retryType)) {
+          if (req.x402Payment) await settlePaymentAndSetResponse(res, req);
+          res.status(502).json({
+            error: "Proxy rejected binary upstream response",
+            message:
+              "Playground proxy does not relay image/video/binary bodies after Tempo settle.",
+          });
+          return;
+        }
         const retryText = await retryRes.text();
+        if (
+          Buffer.byteLength(retryText, "utf8") >
+          PLAYGROUND_PROXY_MAX_RESPONSE_BYTES
+        ) {
+          if (req.x402Payment) await settlePaymentAndSetResponse(res, req);
+          res.status(502).json({
+            error: "Proxy response too large",
+            message: `Upstream body exceeds ${PLAYGROUND_PROXY_MAX_RESPONSE_BYTES} byte limit.`,
+          });
+          return;
+        }
         const skipHeaders = [
           "content-encoding",
           "transfer-encoding",
@@ -798,12 +893,25 @@ app.use((req, res, next) => {
   if (!isX402Route(req.path)) return next();
   return shadowfeedPartnerMiddleware()(req, res, next);
 });
-app.use(express.static(path.join(__dirname, "public")));
+app.use(
+  express.static(path.join(__dirname, "public"), {
+    maxAge: "7d",
+    immutable: true,
+    setHeaders(res, filePath) {
+      if (filePath.endsWith("favicon.ico") || filePath.endsWith("og.jpg")) {
+        res.setHeader("Cache-Control", "public, max-age=604800, immutable");
+      }
+    },
+  }),
+);
 
 // Request insight tracking (volume, errors, latency) for dashboard – fire-and-forget on response finish
 app.use((req, res, next) => {
   const start = Date.now();
-  const skip = req.path === "/" || req.path === "/favicon.ico";
+  const skip =
+    req.path === "/" ||
+    req.path === "/favicon.ico" ||
+    req.path === "/health/live";
   res.once("finish", () => {
     if (skip) return;
     const durationMs = Date.now() - start;
@@ -820,8 +928,18 @@ app.use((req, res, next) => {
 
 // Favicon explicit route (important for bots)
 app.get("/favicon.ico", (req, res) => {
+  res.setHeader("Cache-Control", "public, max-age=604800, immutable");
   res.sendFile(path.join(__dirname, "public", "favicon.ico"));
 });
+
+// Discovery scrapers hit openapi/well-known hard — rate-limit even though isX402Route skips the main limiter.
+app.use(
+  rateLimit({
+    windowMs: 60 * 1000,
+    max: 30,
+    skip: (req) => !isDiscoveryBandwidthPath(req.path || ""),
+  }),
+);
 
 // Rate limit all non-x402 routes (preview, dashboard-summary, x, agent, playground, analytics, prediction-game) to prevent spam, DDoS, abuse
 // Strict dual-window: burst 25/10s + sustained 100/min. Only x402 (paid) routes skip.
@@ -836,6 +954,7 @@ app.use(
     skip: (req) => {
       const p = req.path || "";
       return (
+        p === "/health/live" ||
         p.startsWith("/agent/auth/") ||
         p === "/agent/wallet/connect" ||
         isX402Route(p) ||
@@ -959,6 +1078,7 @@ app.use(
       isGatewayOpenApiFreeRoute(p) ||
       p === "/" ||
       p === "/favicon.ico" ||
+      p === "/health/live" ||
       p.startsWith("/og") ||
       p.startsWith("/info") ||
       p.startsWith("/agentscore/") ||
@@ -1425,34 +1545,43 @@ app.use("/staking", await createStakingAppRouter());
 
 // MPP / AgentCash discovery — canonical OpenAPI (https://www.mppscan.com/discovery)
 // OpenAPI 3.1 — gateway catalog (10+ ops: signal, preview, dashboard, x402 news/sentiment, brain, etc.)
-app.get("/openapi.json", (_req, res) => {
-  res.setHeader("Content-Type", "application/json; charset=utf-8");
-  res.setHeader("Cache-Control", "public, max-age=300");
-  res.json(buildGatewayOpenApi());
-});
+app.get("/openapi.json", (req, res) =>
+  discoveryJsonCache.send("openapi", () => buildGatewayOpenApi(), req, res),
+);
 
 // MPP / AgentCash discovery (was previously at /openapi.json)
-app.get("/mpp-openapi.json", (_req, res) => {
-  res.setHeader("Content-Type", "application/json; charset=utf-8");
-  res.setHeader("Cache-Control", "public, max-age=300");
-  res.json(buildMppDiscoveryOpenApi());
-});
+app.get("/mpp-openapi.json", (req, res) =>
+  discoveryJsonCache.send(
+    "mpp-openapi",
+    () => buildMppDiscoveryOpenApi(),
+    req,
+    res,
+  ),
+);
 
 // X402 Jobs verification
-app.get("/.well-known/x402-verification.json", (req, res) => {
-  res.json({ x402: "8ab3d1b3906d" });
-});
+app.get("/.well-known/x402-verification.json", (req, res) =>
+  discoveryJsonCache.send(
+    "x402-verification",
+    () => ({ x402: "8ab3d1b3906d" }),
+    req,
+    res,
+  ),
+);
 
 // ShadowFeed provider discovery manifest (Step 9 onboarding)
 // https://docs.shadowfeed.app/providers/onboarding#step-9--publish-your-discovery-manifest
-app.get("/.well-known/shadowfeed-feeds.json", (_req, res) => {
-  res.setHeader("Content-Type", "application/json; charset=utf-8");
-  res.setHeader("Cache-Control", "public, max-age=300, s-maxage=3600");
-  res.json(buildShadowfeedFeedsManifest());
-});
+app.get("/.well-known/shadowfeed-feeds.json", (req, res) =>
+  discoveryJsonCache.send(
+    "shadowfeed-feeds",
+    () => buildShadowfeedFeedsManifest(),
+    req,
+    res,
+  ),
+);
 
 // AIP-01 Agent Card (https://aipagents.xyz)
-app.get("/.well-known/agent.json", (_req, res) => {
+app.get("/.well-known/agent.json", async (req, res) => {
   const wallet =
     getSyraAipWallet() ||
     process.env.SOLANA_PAYTO?.trim() ||
@@ -1464,9 +1593,12 @@ app.get("/.well-known/agent.json", (_req, res) => {
       message: "Set SYRA_AIP_WALLET or run npm run register-aip",
     });
   }
-  res.setHeader("Content-Type", "application/json; charset=utf-8");
-  res.setHeader("Cache-Control", "public, max-age=300, s-maxage=3600");
-  res.json(buildSyraAipAgentCardDocument(wallet));
+  return discoveryJsonCache.send(
+    `aip-agent:${wallet}`,
+    () => buildSyraAipAgentCardDocument(wallet),
+    req,
+    res,
+  );
 });
 
 // Serve discovery document at /.well-known/x402 (x402scan compatible)
@@ -1544,24 +1676,26 @@ app.get("/.well-known/x402", async (req, res) => {
     );
   }
 
-  res.json({
-    version: 1, // Discovery document version (not x402 protocol version)
-    resources: [...resources, ...creatorSkillResources],
-    resourceDetails,
-    metrics: `${X402_BASE}/api/metrics`,
-    liveFeed: `${X402_BASE}/api/live/calls`,
-    freeTier: {
-      pillars: `${X402_BASE}/free/pillars`,
-      assets: `${X402_BASE}/free/assets`,
-      prices: `${X402_BASE}/free/coingecko/price`,
-      dossierBasic: `${X402_BASE}/free/dossier/basic?mint={solanaMint}`,
-    },
-    baseGateway,
-    // IMPORTANT: Generate ownership proofs by running: node scripts/generateOwnershipProof.js
-    // Sign "https://api.syraa.fun" with both EVM_PRIVATE_KEY and SVM_PRIVATE_KEY
-    // Set X402_OWNERSHIP_PROOF_EVM and X402_OWNERSHIP_PROOF_SVM environment variables
-    ownershipProofs: ownershipProofs,
-    instructions: `# SYRA API Documentation
+  return discoveryJsonCache.send(
+    "well-known-x402",
+    () => ({
+      version: 1, // Discovery document version (not x402 protocol version)
+      resources: [...resources, ...creatorSkillResources],
+      resourceDetails,
+      metrics: `${X402_BASE}/api/metrics`,
+      liveFeed: `${X402_BASE}/api/live/calls`,
+      freeTier: {
+        pillars: `${X402_BASE}/free/pillars`,
+        assets: `${X402_BASE}/free/assets`,
+        prices: `${X402_BASE}/free/coingecko/price`,
+        dossierBasic: `${X402_BASE}/free/dossier/basic?mint={solanaMint}`,
+      },
+      baseGateway,
+      // IMPORTANT: Generate ownership proofs by running: node scripts/generateOwnershipProof.js
+      // Sign "https://api.syraa.fun" with both EVM_PRIVATE_KEY and SVM_PRIVATE_KEY
+      // Set X402_OWNERSHIP_PROOF_EVM and X402_OWNERSHIP_PROOF_SVM environment variables
+      ownershipProofs: ownershipProofs,
+      instructions: `# SYRA API Documentation
 
 Visit https://docs.syraa.fun for full documentation.
 
@@ -1594,7 +1728,10 @@ The free preview tier (\`/preview/*\`, \`/dashboard-summary\`, \`/binance-ticker
 
 - Documentation: https://docs.syraa.fun
 - Twitter: @syraa_ai`,
-  });
+    }),
+    req,
+    res,
+  );
 });
 
 // Public x402 payment network status (no secrets) — verify Binance/B402 before playground testing.
@@ -1638,7 +1775,7 @@ app.use((req, res) => {
   });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = getPort();
 
 // Connect to MongoDB in background with retry (do not block server startup)
 startMongooseConnectionLoop();
@@ -1716,13 +1853,24 @@ app.listen(PORT, () => {
       ),
     );
 
+  // Paper/idle experiment crons: default 2× intervals to cut Service-Initiated egress.
+  // Override with SYRA_PAPER_CRON_MULT=1 to restore prior cadence.
+  const PAPER_CRON_MULT = (() => {
+    const raw = Number(process.env.SYRA_PAPER_CRON_MULT);
+    return Number.isFinite(raw) && raw >= 1 ? Math.min(10, raw) : 2;
+  })();
+  const scalePaperMs = (ms, minMs) =>
+    Math.max(minMs, Math.floor(Number(ms) * PAPER_CRON_MULT));
+
   const LP_AGENT_SIGNAL_INTERVAL_MS = (() => {
     const raw = Number(process.env.LP_EXPERIMENT_SIGNAL_MS);
-    return Number.isFinite(raw) && raw >= 60_000 ? Math.floor(raw) : 180_000;
+    const base = Number.isFinite(raw) && raw >= 60_000 ? Math.floor(raw) : 180_000;
+    return scalePaperMs(base, 60_000);
   })();
   const LP_AGENT_RESOLVE_INTERVAL_MS = (() => {
     const raw = Number(process.env.LP_EXPERIMENT_RESOLVE_MS);
-    return Number.isFinite(raw) && raw >= 5_000 ? Math.floor(raw) : 120_000;
+    const base = Number.isFinite(raw) && raw >= 5_000 ? Math.floor(raw) : 120_000;
+    return scalePaperMs(base, 5_000);
   })();
 
   const runLpSignal = runIfMongoConnected(
@@ -1768,11 +1916,13 @@ app.listen(PORT, () => {
     setInterval(runLpResolve, LP_AGENT_RESOLVE_INTERVAL_MS);
   }
 
-  const STOCKS_SIGNAL_INTERVAL_MS = Number(
-    process.env.STOCKS_EXPERIMENT_SIGNAL_MS || 300_000,
+  const STOCKS_SIGNAL_INTERVAL_MS = scalePaperMs(
+    Number(process.env.STOCKS_EXPERIMENT_SIGNAL_MS || 300_000),
+    60_000,
   );
-  const STOCKS_RESOLVE_INTERVAL_MS = Number(
-    process.env.STOCKS_EXPERIMENT_RESOLVE_MS || 120_000,
+  const STOCKS_RESOLVE_INTERVAL_MS = scalePaperMs(
+    Number(process.env.STOCKS_EXPERIMENT_RESOLVE_MS || 120_000),
+    5_000,
   );
 
   const runStocksSignal = runIfMongoConnected(
@@ -1814,12 +1964,12 @@ app.listen(PORT, () => {
 
   // --- Momentum Rotator / LST Loop / Alpha Sniper paper + real crons ---
   // Intervals + realEnabled live in api/config/onchainEarnExperiments.js (not env).
-  const MOMENTUM_SIGNAL_MS = MOMENTUM_CRON.paperSignalMs;
-  const MOMENTUM_RESOLVE_MS = MOMENTUM_CRON.paperResolveMs;
-  const LST_LOOP_SIGNAL_MS = LST_LOOP_CRON.paperSignalMs;
-  const LST_LOOP_RESOLVE_MS = LST_LOOP_CRON.paperResolveMs;
-  const SNIPER_SIGNAL_MS = SNIPER_CRON.paperSignalMs;
-  const SNIPER_RESOLVE_MS = SNIPER_CRON.paperResolveMs;
+  const MOMENTUM_SIGNAL_MS = scalePaperMs(MOMENTUM_CRON.paperSignalMs, 60_000);
+  const MOMENTUM_RESOLVE_MS = scalePaperMs(MOMENTUM_CRON.paperResolveMs, 5_000);
+  const LST_LOOP_SIGNAL_MS = scalePaperMs(LST_LOOP_CRON.paperSignalMs, 60_000);
+  const LST_LOOP_RESOLVE_MS = scalePaperMs(LST_LOOP_CRON.paperResolveMs, 5_000);
+  const SNIPER_SIGNAL_MS = scalePaperMs(SNIPER_CRON.paperSignalMs, 60_000);
+  const SNIPER_RESOLVE_MS = scalePaperMs(SNIPER_CRON.paperResolveMs, 5_000);
   const MOMENTUM_REAL_SIGNAL_MS = MOMENTUM_CRON.realSignalMs;
   const MOMENTUM_REAL_RESOLVE_MS = MOMENTUM_CRON.realResolveMs;
   const LST_LOOP_REAL_SIGNAL_MS = LST_LOOP_CRON.realSignalMs;

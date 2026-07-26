@@ -1,6 +1,7 @@
 import express from 'express';
 import { getV2Payment } from '../utils/getV2Payment.js';
 import { isMongooseConnected } from '../config/mongoose.js';
+import { getPublicApiUrl } from '../config/runtime.js';
 import {
   getPublishedSkillBySlug,
   listPublishedSkills,
@@ -14,7 +15,7 @@ const { requirePayment, settlePaymentAndSetResponse, usdToMicroUsdc } = await ge
 const router = express.Router();
 
 function getBaseUrl() {
-  return process.env.BASE_URL?.trim() || 'https://api.syraa.fun';
+  return getPublicApiUrl();
 }
 
 /**

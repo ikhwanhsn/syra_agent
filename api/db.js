@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import connectMongoose from "./config/mongoose.js";
+import { getDbName } from "./config/runtime.js";
 
 /**
  * Shared MongoDB database handle via the singleton Mongoose connection.
@@ -10,5 +11,5 @@ export async function getDb() {
   if (!ok || mongoose.connection.readyState !== 1) {
     throw new Error("MongoDB is not connected");
   }
-  return mongoose.connection.getClient().db(process.env.DB_NAME || "syra");
+  return mongoose.connection.getClient().db(getDbName());
 }

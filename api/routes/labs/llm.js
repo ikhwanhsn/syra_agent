@@ -11,13 +11,11 @@ import {
   generateImage,
   submitVideo,
   getVideoStatus,
-  getVideoContentResponse,
   createEmbeddings,
   rerankDocuments,
   synthesizeSpeech,
   transcribeAudio,
 } from '../../libs/labs/llmPlaygroundService.js';
-import { Readable } from 'node:stream';
 
 /**
  * @param {import('express').Request} req
@@ -113,30 +111,33 @@ export function createLlmPlaygroundRouter() {
     }
   });
 
+  /**
+   * Bandwidth: never pipe OpenRouter video bytes through Render (2× egress).
+   * Prefer a public/direct URL from status; otherwise return JSON with redirect hint.
+   */
   router.get('/video/:id/content', async (req, res) => {
     try {
-      const index = req.query?.index != null ? Number(req.query.index) : 0;
-      const { response, contentType } = await getVideoContentResponse(req.params.id, index);
-      res.setHeader('Content-Type', contentType);
-      res.setHeader('Cache-Control', 'private, max-age=300');
-      const len = response.headers.get('content-length');
-      if (len) res.setHeader('Content-Length', len);
+      const data = await getVideoStatus(req.params.id);
+      const directUrl =
+        (typeof data?.url === 'string' && data.url.trim()) ||
+        (typeof data?.video_url === 'string' && data.video_url.trim()) ||
+        null;
 
-      if (!response.body) {
-        const buffer = Buffer.from(await response.arrayBuffer());
-        return res.status(200).send(buffer);
+      if (directUrl && !/unsigned|openrouter\.ai\/api\//i.test(directUrl)) {
+        res.setHeader('Cache-Control', 'private, max-age=60');
+        return res.redirect(302, directUrl);
       }
 
-      const nodeStream = Readable.fromWeb(/** @type {import('stream/web').ReadableStream} */ (response.body));
-      nodeStream.on('error', (err) => {
-        console.warn('[labs/llm] video content stream error:', err?.message || err);
-        if (!res.headersSent) {
-          sendError(err, res, 'Video content failed');
-        } else {
-          res.destroy(err instanceof Error ? err : undefined);
-        }
+      return res.status(200).json({
+        success: false,
+        error: 'video_proxy_disabled',
+        message:
+          'Video byte proxying through Syra is disabled to reduce Render egress. Use a direct video URL from GET /labs/llm/video/:id when the provider returns one.',
+        data: {
+          url: directUrl,
+          content_proxy_disabled: true,
+        },
       });
-      return nodeStream.pipe(res);
     } catch (err) {
       return sendError(err, res, 'Video content failed');
     }

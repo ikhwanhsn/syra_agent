@@ -3,11 +3,9 @@
  * @see https://docs.cdp.coinbase.com/x402/core-concepts/builder-codes
  */
 
-const BUILDER_CODE_PATTERN = /^[a-z0-9_]{1,32}$/;
+import { BASE_BUILDER_CODE } from "./settlement.js";
 
-function trimEnv(name) {
-  return String(process.env[name] || "").trim();
-}
+const BUILDER_CODE_PATTERN = /^[a-z0-9_]{1,32}$/;
 
 /**
  * @param {string} code
@@ -18,15 +16,15 @@ export function isValidBaseBuilderCode(code) {
 }
 
 /**
- * Syra's Base Builder Code from BASE_BUILDER_CODE (seller `a` + optional client `s` when using x402 fetch).
+ * Syra's Base Builder Code (seller `a` + optional client `s` when using x402 fetch).
  * @returns {string | null}
  */
 export function getBaseBuilderCode() {
-  const raw = trimEnv("BASE_BUILDER_CODE");
+  const raw = BASE_BUILDER_CODE;
   if (!raw) return null;
   if (!isValidBaseBuilderCode(raw)) {
     console.warn(
-      `[x402] BASE_BUILDER_CODE is invalid ("${raw}"). Must match ^[a-z0-9_]{1,32}$ — builder-code attribution disabled.`
+      `[x402] BASE_BUILDER_CODE is invalid ("${raw}"). Must match ^[a-z0-9_]{1,32}$ — builder-code attribution disabled.`,
     );
     return null;
   }

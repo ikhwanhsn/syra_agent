@@ -503,12 +503,11 @@ function normalizeVideoStatusResult(data) {
   }
   const unsigned = row.unsigned_urls;
   if (Array.isArray(unsigned) && typeof unsigned[0] === 'string' && unsigned[0].trim()) {
-    const id = typeof row.id === 'string' ? row.id : '';
     return {
       ...row,
       url: unsigned[0],
-      // Playground proxy path (auth via x-admin-wallet) — used by the web UI.
-      content_proxy_path: id ? `/labs/llm/video/${encodeURIComponent(id)}/content` : null,
+      // Byte proxy through Syra disabled (Render egress). Prefer provider-signed public URLs.
+      content_proxy_disabled: true,
     };
   }
   return data;

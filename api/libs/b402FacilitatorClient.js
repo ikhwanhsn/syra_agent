@@ -10,6 +10,7 @@ import {
   loadPrivateKeyPemFromEnv,
   resolveB402PrivateKeyFilePath,
 } from "./b402KeyMaterial.js";
+import { B402_BASE_URL, B402_PAY_TO, X402_B402_ENABLED } from "../config/settlement.js";
 
 function env(name) {
   return String(process.env[name] || "").trim();
@@ -98,7 +99,8 @@ export function validateB402SigningKey() {
 /** Credentials present (402 offers). Does not validate RSA key size. */
 export function hasB402MerchantCredentials() {
   return (
-    truthy("X402_B402_ENABLED") &&
+    Boolean(X402_B402_ENABLED) &&
+    Boolean(String(B402_PAY_TO || "").trim()) &&
     Boolean(env("B402_CLIENT_ID")) &&
     Boolean(env("B402_ACCESS_TOKEN")) &&
     Boolean(loadPrivateKeyPem())
@@ -162,7 +164,7 @@ export function buildTeslaHeaders(bodyJson) {
 }
 
 /** Onboarding base URL (see Binance docs). cb.binanceapi.com is not the B402 host and returns CloudFront 403 HTML. */
-const DEFAULT_BASE = "https://api.commonservice.io";
+const DEFAULT_BASE = B402_BASE_URL || "https://api.commonservice.io";
 const B402_REQUIRED_RSA_BITS = 1024;
 const BSC_RPC = env("BSC_RPC_URL") || "https://bsc-rpc.publicnode.com";
 
@@ -243,7 +245,7 @@ function normalizeB402Response(json) {
  * @param {number} timeoutMs
  */
 async function b402Post(path, bodyObj, timeoutMs) {
-  const base = env("B402_BASE_URL") || DEFAULT_BASE;
+  const base = DEFAULT_BASE;
   const bodyJson = JSON.stringify(bodyObj ?? {});
   const url = `${base.replace(/\/$/, "")}${path}`;
   const headers = buildTeslaHeaders(bodyJson);

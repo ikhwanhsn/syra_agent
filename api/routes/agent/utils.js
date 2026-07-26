@@ -1,11 +1,13 @@
 /**
  * Resolve base URL for internal agent tool calls (server-to-self).
  *
- * Prefers INTERNAL_BASE_URL (bypasses CDN/proxy) → loopback on PORT → public BASE_URL.
+ * Prefers loopback on getPort() → public getPublicApiUrl().
  * Loopback avoids Cloudflare bot checks on server-to-server calls. When loopback is
- * unavailable (some PaaS / reverse-proxy setups), fall back to BASE_URL with X-API-Key
+ * unavailable (some PaaS / reverse-proxy setups), fall back to public URL with X-API-Key
  * (see agentX402Client.addInternalApiKeyIfOwnUrl).
  */
+import { getPort, getPublicApiUrl } from '../../config/runtime.js';
+
 function trimBase(raw) {
   return String(raw || '').trim().replace(/\/$/, '');
 }
@@ -27,14 +29,11 @@ export function resolveAgentBaseUrlCandidates(_req) {
     out.push(u);
   };
 
-  add(process.env.INTERNAL_BASE_URL);
-  add(process.env.SYRA_INTERNAL_API_URL);
-
-  const port = process.env.PORT || '3000';
+  const port = getPort();
   add(`http://127.0.0.1:${port}`);
   add(`http://localhost:${port}`);
 
-  const base = trimBase(process.env.BASE_URL);
+  const base = trimBase(getPublicApiUrl());
   if (base.startsWith('http://') || base.startsWith('https://')) {
     add(base);
   }

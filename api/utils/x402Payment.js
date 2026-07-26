@@ -12,26 +12,25 @@
  * - extra.feePayer for fee payer address
  */
 import { X402PaymentHandler } from "x402-solana/server";
-import dotenv from "dotenv";
 import { X402_API_PRICE_USD } from "../config/x402Pricing.js";
+import {
+  FACILITATOR_URL_PAYAI,
+  SOLANA_PAYTO,
+  SOLANA_USDC_MINT,
+  SOLANA_DEVNET_USDC,
+} from "../config/settlement.js";
+import { getPublicApiUrl } from "../config/runtime.js";
 import { isShadowfeedPartnerRequest, markShadowfeedPartnerBypass } from "./shadowfeedPartner.js";
 
-dotenv.config({ quiet: true });
-
-const { FACILITATOR_URL_PAYAI, ADDRESS_PAYAI, BASE_URL } = process.env;
-
-if (!FACILITATOR_URL_PAYAI || !ADDRESS_PAYAI || !BASE_URL) {
-  throw new Error(
-    "FACILITATOR_URL_PAYAI, ADDRESS_PAYAI, and BASE_URL must be set",
-  );
-}
+const ADDRESS_PAYAI = SOLANA_PAYTO;
+const BASE_URL = getPublicApiUrl();
 
 // USDC token mint addresses
-const USDC_DEVNET = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU";
-const USDC_MAINNET = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+const USDC_DEVNET = SOLANA_DEVNET_USDC;
+const USDC_MAINNET = SOLANA_USDC_MINT;
 
 // Fee payer address (same as treasury for now)
-const FEE_PAYER = process.env.FEE_PAYER_ADDRESS || ADDRESS_PAYAI;
+const FEE_PAYER = ADDRESS_PAYAI;
 
 // Initialize x402 payment handler (singleton)
 const x402 = new X402PaymentHandler({
