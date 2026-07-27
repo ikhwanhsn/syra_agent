@@ -29,6 +29,8 @@ import {
   getLabWalletBalances,
   getBasePublicClient,
   createBaseWalletClient,
+  getXlayerPublicClient,
+  createXlayerWalletClient,
   getAlgorandAlgodClient,
   getAlgorandUsdcAsaId,
   isAlgorandAddressOptedInUsdc,
@@ -42,6 +44,7 @@ import {
   getWeightedAvgLabX402PriceUsd,
 } from './labX402Endpoints.js';
 import { getDexterNetworkByCaip2 } from '../../config/dexterX402Networks.js';
+import { XLAYER_MAINNET_USDT } from '../../config/okxX402Networks.js';
 import { normalizeLabChain } from '../../models/labs/LabX402Settings.js';
 import {
   classifyAlgorandRefundError,
@@ -54,6 +57,7 @@ const BASE_USDC =
   getDexterNetworkByCaip2('eip155:8453')?.usdc ||
   process.env.BASE_USDC ||
   '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913';
+const XLAYER_USDT0 = XLAYER_MAINNET_USDT || '0x779ded0c9e1022225f8e0630b35a9b54be713736';
 
 const ERC20_ABI = [
   {
@@ -82,6 +86,8 @@ export const PAYTO_INSUFFICIENT_FUNDS = 'PAYTO_INSUFFICIENT_FUNDS';
 const PAYTO_MIN_SOL_FOR_REFUND = 0.003;
 /** Minimum ETH the Base PayTo wallet needs for gas on a USDC transfer. */
 const PAYTO_MIN_ETH_FOR_REFUND = 0.00005;
+/** Minimum OKB the X Layer PayTo wallet needs for gas on a USDT0 transfer. */
+const PAYTO_MIN_OKB_FOR_REFUND = 0.00005;
 
 const REFUND_MAX_ATTEMPTS = 3;
 const REFUND_RETRY_DELAY_MS = 800;
@@ -119,7 +125,7 @@ function extractSubmittedTxId(e) {
 /**
  * Before retrying a refund, check whether a previously submitted tx already landed.
  * @param {string | null | undefined} txId
- * @param {'solana' | 'base' | 'algorand'} chain
+ * @param {'solana' | 'base' | 'algorand' | 'xlayer'} chain
  * @param {object} [clients]
  * @returns {Promise<boolean>}
  */
@@ -130,7 +136,7 @@ async function isRefundTxAlreadyConfirmed(txId, chain, clients = {}) {
     if (chain === 'solana') {
       return await isSolanaTxConfirmedOnAnyRpc(id);
     }
-    if (chain === 'base' && clients.publicClient) {
+    if ((chain === 'base' || chain === 'xlayer') && clients.publicClient) {
       const receipt = await clients.publicClient.getTransactionReceipt({
         hash: /** @type {`0x${string}`} */ (id),
       });
@@ -413,6 +419,105 @@ async function refundUsdcToPayerBase(payerAddress, amountUsd) {
 }
 
 /**
+ * Transfer USDT0 from the X Layer PayTo lab wallet to the payer (ERC-20).
+ * @param {string} payerAddress
+ * @param {number} amountUsd
+ * @returns {Promise<{ signature: string; amountUsdc: number } | null>}
+ */
+async function refundUsdt0ToPayerXLayer(payerAddress, amountUsd) {
+  const payer = String(payerAddress || '').trim();
+  const amount = Number(amountUsd);
+  if (!payer || !/^0x[0-9a-fA-F]{40}$/.test(payer) || !Number.isFinite(amount) || amount <= 0) {
+    return null;
+  }
+
+  const payToAccount = await getActivePayToEvmAccount('xlayer');
+  if (!payToAccount) {
+    throw new Error('No active X Layer payTo lab wallet configured');
+  }
+
+  const payToAddr = payToAccount.address;
+  const publicClient = getXlayerPublicClient();
+  const walletClient = createXlayerWalletClient(payToAccount);
+
+  const amountRaw = parseUnits(amount.toFixed(6), 6);
+
+  const [usdt0Bal, okbBal] = await Promise.all([
+    publicClient.readContract({
+      address: /** @type {`0x${string}`} */ (XLAYER_USDT0),
+      abi: ERC20_ABI,
+      functionName: 'balanceOf',
+      args: [/** @type {`0x${string}`} */ (payToAddr)],
+    }),
+    publicClient.getBalance({ address: /** @type {`0x${string}`} */ (payToAddr) }),
+  ]);
+
+  const usdt0Balance = Number(formatUnits(/** @type {bigint} */ (usdt0Bal), 6));
+  const okbBalance = Number(formatEther(okbBal));
+
+  if (usdt0Balance < amount) {
+    throw new Error(
+      `${PAYTO_INSUFFICIENT_FUNDS}: payTo USDT0 ${usdt0Balance.toFixed(4)} < needed ${amount.toFixed(4)}`,
+    );
+  }
+  if (okbBalance < PAYTO_MIN_OKB_FOR_REFUND) {
+    throw new Error(
+      `${PAYTO_INSUFFICIENT_FUNDS}: payTo OKB ${okbBalance.toFixed(6)} < needed ${PAYTO_MIN_OKB_FOR_REFUND} for gas`,
+    );
+  }
+
+  let lastErr;
+  /** @type {string | null} */
+  let submittedHash = null;
+  for (let attempt = 1; attempt <= REFUND_MAX_ATTEMPTS; attempt++) {
+    if (
+      submittedHash &&
+      (await isRefundTxAlreadyConfirmed(submittedHash, 'xlayer', { publicClient }))
+    ) {
+      return { signature: submittedHash, amountUsdc: amount };
+    }
+    try {
+      const hash = await walletClient.writeContract({
+        address: /** @type {`0x${string}`} */ (XLAYER_USDT0),
+        abi: ERC20_ABI,
+        functionName: 'transfer',
+        args: [/** @type {`0x${string}`} */ (payer), amountRaw],
+      });
+      submittedHash = hash;
+      await publicClient.waitForTransactionReceipt({ hash });
+      return { signature: hash, amountUsdc: amount };
+    } catch (e) {
+      lastErr = e;
+      const fromErr = extractSubmittedTxId(e);
+      if (fromErr) submittedHash = fromErr;
+      if (
+        submittedHash &&
+        (await isRefundTxAlreadyConfirmed(submittedHash, 'xlayer', { publicClient }))
+      ) {
+        return { signature: submittedHash, amountUsdc: amount };
+      }
+      if (submittedHash) {
+        console.warn(
+          `[labX402Refund] X Layer refund confirm ambiguous; not retrying send. hash=${submittedHash}`,
+        );
+        throw e;
+      }
+      if (attempt < REFUND_MAX_ATTEMPTS && isRetryableRefundError(e)) {
+        console.warn(
+          `[labX402Refund] X Layer refund attempt ${attempt}/${REFUND_MAX_ATTEMPTS} failed, retrying:`,
+          e?.message || e,
+        );
+        await sleep(REFUND_RETRY_DELAY_MS * attempt);
+        continue;
+      }
+      throw e;
+    }
+  }
+
+  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
+}
+
+/**
  * Transfer USDC ASA from the Algorand PayTo lab wallet to the payer.
  * Payer must already be opted into the USDC ASA.
  * @param {string} payerAddress
@@ -518,10 +623,10 @@ async function refundUsdcToPayerAlgorand(payerAddress, amountUsd) {
 }
 
 /**
- * Transfer USDC from the PayTo lab wallet to the payer (chain-aware).
+ * Transfer USDC/USDT0 from the PayTo lab wallet to the payer (chain-aware).
  * @param {string} payerAddress
  * @param {number} amountUsd
- * @param {'solana' | 'base' | 'algorand'} [chain]
+ * @param {'solana' | 'base' | 'algorand' | 'xlayer'} [chain]
  * @returns {Promise<{ signature: string; amountUsdc: number } | null>}
  */
 export async function refundUsdcToPayer(payerAddress, amountUsd, chain) {
@@ -532,16 +637,17 @@ export async function refundUsdcToPayer(payerAddress, amountUsd, chain) {
         ? 'base'
         : 'solana';
   if (c === 'algorand') return refundUsdcToPayerAlgorand(payerAddress, amountUsd);
+  if (c === 'xlayer') return refundUsdt0ToPayerXLayer(payerAddress, amountUsd);
   if (c === 'base') return refundUsdcToPayerBase(payerAddress, amountUsd);
   return refundUsdcToPayerSolana(payerAddress, amountUsd);
 }
 
 /**
  * Proactively ensure a payer can afford the next call, topping it up from the PayTo wallet
- * when its USDC is too low.
+ * when its USDC/USDT0 is too low.
  *
  * @param {string} payerAddress
- * @param {{ refundEnabled?: boolean; chain?: 'solana' | 'base' | 'algorand'; priceMultiplier?: number }} [opts]
+ * @param {{ refundEnabled?: boolean; chain?: 'solana' | 'base' | 'algorand' | 'xlayer'; priceMultiplier?: number }} [opts]
  * @returns {Promise<{ canPay: boolean; funded: boolean; balanceUsdc: number | null; reason: string; signature?: string | null; amountUsd?: number; error?: string }>}
  */
 export async function ensurePayerFundedForNextCall(payerAddress, opts = {}) {

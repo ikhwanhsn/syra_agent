@@ -1,6 +1,6 @@
 import { getApiBaseUrl } from "@/lib/env";
 
-export type LabChain = "solana" | "base" | "algorand";
+export type LabChain = "solana" | "base" | "algorand" | "xlayer";
 
 export interface LabWallet {
   id: string;
@@ -9,11 +9,12 @@ export interface LabWallet {
   role: "payer" | "payto";
   chain: LabChain;
   active: boolean;
-  /** Native gas token balance (SOL, ETH, or ALGO). null when RPC unavailable. */
+  /** Native gas token balance (SOL, ETH, ALGO, or OKB). null when RPC unavailable. */
   nativeBalance: number | null;
-  nativeSymbol: "SOL" | "ETH" | "ALGO";
+  nativeSymbol: "SOL" | "ETH" | "ALGO" | "OKB";
   /** @deprecated Prefer nativeBalance, kept for older simulation helpers. */
   solBalance: number | null;
+  /** Stablecoin balance: USDC on Solana/Base/Algorand, USDT0 on X Layer. */
   usdcBalance: number | null;
   balanceAvailable?: boolean;
   createdAt: string;
@@ -52,7 +53,7 @@ export interface LabDepositHub {
   chain: LabChain;
   role: "deposit";
   nativeBalance: number | null;
-  nativeSymbol: "SOL" | "ETH" | "ALGO";
+  nativeSymbol: "SOL" | "ETH" | "ALGO" | "OKB";
   usdcBalance: number | null;
   balanceAvailable: boolean;
   /** Algorand only, true once the hub has opted into USDC ASA. */
@@ -66,7 +67,7 @@ export interface LabDepositHub {
 }
 
 export interface LabDepositTransfer {
-  asset: "USDC" | "SOL" | "ETH" | "ALGO";
+  asset: "USDC" | "USDT0" | "SOL" | "ETH" | "ALGO" | "OKB";
   to: string;
   amount: number;
   tx: string | null;
@@ -171,17 +172,21 @@ function normalizeWallet(raw: LabWallet): LabWallet {
   const chain: LabChain =
     raw.chain === "base"
       ? "base"
-      : raw.chain === "algorand"
-        ? "algorand"
-        : "solana";
+      : raw.chain === "xlayer"
+        ? "xlayer"
+        : raw.chain === "algorand"
+          ? "algorand"
+          : "solana";
   const nativeBalance = raw.nativeBalance ?? raw.solBalance ?? null;
   const nativeSymbol: LabWallet["nativeSymbol"] =
     raw.nativeSymbol ??
     (chain === "base"
       ? "ETH"
-      : chain === "algorand"
-        ? "ALGO"
-        : "SOL");
+      : chain === "xlayer"
+        ? "OKB"
+        : chain === "algorand"
+          ? "ALGO"
+          : "SOL");
   return {
     ...raw,
     chain,

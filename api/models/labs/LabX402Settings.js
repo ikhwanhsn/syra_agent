@@ -1,14 +1,14 @@
 /**
  * LabX402Settings — per-chain singleton documents for x402 Labs auto-caller configuration.
- * singletonKey: 'solana' | 'base' | 'algorand' (legacy 'default' migrates to 'solana' at read time).
+ * singletonKey: 'solana' | 'base' | 'algorand' | 'xlayer' (legacy 'default' migrates to 'solana' at read time).
  */
 import mongoose from 'mongoose';
 
-export const LAB_X402_CHAINS = Object.freeze(['solana', 'base', 'algorand']);
+export const LAB_X402_CHAINS = Object.freeze(['solana', 'base', 'algorand', 'xlayer']);
 
 /**
  * @param {string} [chain]
- * @returns {'solana' | 'base' | 'algorand'}
+ * @returns {'solana' | 'base' | 'algorand' | 'xlayer'}
  */
 export function settingsKeyForChain(chain) {
   const c = normalizeLabChain(chain);
@@ -17,25 +17,34 @@ export function settingsKeyForChain(chain) {
 
 /**
  * @param {string} [raw]
- * @returns {'solana' | 'base' | 'algorand'}
+ * @returns {'solana' | 'base' | 'algorand' | 'xlayer'}
  */
 export function normalizeLabChain(raw) {
   const c = String(raw || '').trim().toLowerCase();
   if (c === 'base') return 'base';
   if (c === 'algorand' || c === 'algo' || c === 'avm') return 'algorand';
+  if (c === 'xlayer' || c === 'x-layer' || c === 'okx' || c === '196') return 'xlayer';
   return 'solana';
 }
 
 /**
- * @param {'solana' | 'base' | 'algorand'} chain
+ * @param {'solana' | 'base' | 'algorand' | 'xlayer'} chain
  * @returns {boolean}
  */
 export function isEvmLabChain(chain) {
-  return chain === 'base';
+  return chain === 'base' || chain === 'xlayer';
 }
 
 /**
- * @param {'solana' | 'base' | 'algorand'} chain
+ * @param {'solana' | 'base' | 'algorand' | 'xlayer'} chain
+ * @returns {boolean}
+ */
+export function isXlayerLabChain(chain) {
+  return chain === 'xlayer';
+}
+
+/**
+ * @param {'solana' | 'base' | 'algorand' | 'xlayer'} chain
  * @returns {boolean}
  */
 export function isAvmLabChain(chain) {

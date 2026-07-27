@@ -237,9 +237,10 @@ export function AutoCallSettingsPanel({
 
       <div className="flex items-center justify-between gap-4">
         <div>
-          <Label htmlFor="refund">Auto-refund USDC</Label>
+          <Label htmlFor="refund">Auto-refund stablecoin</Label>
           <p className="text-xs text-muted-foreground">
-            PayTo tops up payer only when USDC is too low for the next call, fewer refund txs and less SOL gas
+            PayTo tops up payer only when balance is too low for the next call, fewer refund txs and
+            less native gas
           </p>
         </div>
         <Switch

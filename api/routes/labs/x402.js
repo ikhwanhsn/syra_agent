@@ -66,11 +66,12 @@ const manualRunCooldown = new Map();
 const MANUAL_RUN_COOLDOWN_MS = 30_000;
 
 /**
- * @param {'solana' | 'base' | 'algorand'} chain
- * @returns {'SOL' | 'ETH' | 'ALGO'}
+ * @param {'solana' | 'base' | 'algorand' | 'xlayer'} chain
+ * @returns {'SOL' | 'ETH' | 'ALGO' | 'OKB'}
  */
 function nativeSymbolForChain(chain) {
   if (chain === 'base') return 'ETH';
+  if (chain === 'xlayer') return 'OKB';
   if (chain === 'algorand') return 'ALGO';
   return 'SOL';
 }

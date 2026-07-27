@@ -15,7 +15,7 @@ export function looksLikeAlgorandAddress(addr) {
 /**
  * @param {string} payer
  * @param {string | null | undefined} labChainHeader
- * @returns {'solana' | 'base' | 'algorand'}
+ * @returns {'solana' | 'base' | 'algorand' | 'xlayer'}
  */
 export function inferLabPayerChain(payer, labChainHeader) {
   const fromHeader = String(labChainHeader || '')
@@ -24,11 +24,16 @@ export function inferLabPayerChain(payer, labChainHeader) {
   if (
     fromHeader === 'base' ||
     fromHeader === 'solana' ||
-    fromHeader === 'algorand'
+    fromHeader === 'algorand' ||
+    fromHeader === 'xlayer'
   ) {
     return fromHeader;
   }
+  if (fromHeader === 'x-layer' || fromHeader === 'okx' || fromHeader === '196') {
+    return 'xlayer';
+  }
   const addr = String(payer || '').trim();
+  // 0x alone cannot distinguish Base vs X Layer — default Base unless header says otherwise.
   if (/^0x/i.test(addr)) return 'base';
   if (looksLikeAlgorandAddress(addr)) return 'algorand';
   return 'solana';

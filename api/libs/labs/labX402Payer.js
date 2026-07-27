@@ -1,6 +1,7 @@
 /**
  * Outbound x402 payer for lab wallets — calls /insights/* endpoints with automatic payment.
- * Supports Solana (ExactSvmScheme), Base (ExactEvmScheme), and Algorand (ExactAvmScheme via GoPlausible).
+ * Supports Solana (ExactSvmScheme), Base (ExactEvmScheme), Algorand (ExactAvmScheme via GoPlausible),
+ * and X Layer (ExactEvmScheme + OKX USDT0 EIP-712 domain).
  */
 import { wrapFetchWithPayment } from '@x402/fetch';
 import { x402Client } from '@x402/core/client';
@@ -32,9 +33,53 @@ import LabX402Settings, {
   isAvmLabChain,
 } from '../../models/labs/LabX402Settings.js';
 import LabX402Call from '../../models/labs/LabX402Call.js';
+import {
+  XLAYER_MAINNET_CAIP2,
+  XLAYER_MAINNET_USDT,
+  XLAYER_USDT0_EIP712_NAME,
+  XLAYER_USDT0_EIP712_VERSION,
+  isOkxX402Network,
+} from '../../config/okxX402Networks.js';
 
 /** @type {Map<string, ReturnType<typeof wrapFetchWithPayment>>} */
 const paymentFetchCache = new Map();
+
+/**
+ * Force USD₮0 / 1 EIP-712 domain on OKX X Layer accepts before ExactEvmScheme signs.
+ * Wrong domain ("USD Coin") → invalid EIP-3009 sig → perpetual 402.
+ * @param {import('@x402/core/client').x402Client} client
+ */
+function registerOkxUsdt0Eip712Hook(client) {
+  client.onBeforePaymentCreation((context) => {
+    const reqs = context?.paymentRequirements;
+    if (!reqs || typeof reqs !== 'object') return;
+    const network = String(reqs.network || '').trim();
+    const asset = String(reqs.asset || reqs?.price?.asset || '').trim().toLowerCase();
+    const usdt0 = String(XLAYER_MAINNET_USDT || '').toLowerCase();
+    const isXlayerUsdt0 =
+      (network === XLAYER_MAINNET_CAIP2 || isOkxX402Network(network)) &&
+      Boolean(usdt0) &&
+      asset === usdt0;
+    if (!isXlayerUsdt0) return;
+    const extra = {
+      ...(reqs.extra && typeof reqs.extra === 'object' ? reqs.extra : {}),
+      name: XLAYER_USDT0_EIP712_NAME,
+      version: XLAYER_USDT0_EIP712_VERSION,
+      eip712: {
+        name: XLAYER_USDT0_EIP712_NAME,
+        version: XLAYER_USDT0_EIP712_VERSION,
+      },
+    };
+    reqs.extra = extra;
+    if (reqs.price && typeof reqs.price === 'object') {
+      reqs.price.extra = {
+        ...(reqs.price.extra && typeof reqs.price.extra === 'object' ? reqs.price.extra : {}),
+        name: XLAYER_USDT0_EIP712_NAME,
+        version: XLAYER_USDT0_EIP712_VERSION,
+      };
+    }
+  });
+}
 
 /**
  * @param {import('@solana/web3.js').Keypair} keypair
@@ -62,10 +107,11 @@ async function getSolanaPaymentFetchForKeypair(keypair) {
 
 /**
  * @param {import('viem').Account} account
+ * @param {'base' | 'xlayer'} [evmChain='base']
  */
-async function getEvmPaymentFetchForAccount(account) {
+async function getEvmPaymentFetchForAccount(account, evmChain = 'base') {
   const addr = account.address;
-  const cacheKey = `base:${addr.toLowerCase()}`;
+  const cacheKey = `${evmChain}:${addr.toLowerCase()}`;
   if (paymentFetchCache.has(cacheKey)) return paymentFetchCache.get(cacheKey);
 
   const scheme = new ExactEvmScheme(account);
@@ -73,6 +119,9 @@ async function getEvmPaymentFetchForAccount(account) {
     schemes: [{ network: 'eip155:*', client: scheme }],
   });
   registerRequiredExtensionsHook(client);
+  if (evmChain === 'xlayer') {
+    registerOkxUsdt0Eip712Hook(client);
+  }
   await registerBuilderCodeClientExtension(client);
   const pf = wrapFetchWithPayment(globalThis.fetch, client);
   paymentFetchCache.set(cacheKey, pf);
@@ -165,7 +214,10 @@ export async function runLabX402Payment(payerAddress, opts = {}) {
   } else if (isEvmLabChain(chain)) {
     const account = evmAccountFromLabWalletDoc(doc);
     payerAddrForLog = account.address;
-    paymentFetch = await getEvmPaymentFetchForAccount(account);
+    paymentFetch = await getEvmPaymentFetchForAccount(
+      account,
+      chain === 'xlayer' ? 'xlayer' : 'base',
+    );
   } else {
     const keypair = keypairFromLabWalletDoc(doc);
     payerAddrForLog = keypair.publicKey.toBase58();

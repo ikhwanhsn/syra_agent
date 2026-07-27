@@ -8,6 +8,7 @@
  *   solanaPayTo?: string | null;
  *   evmPayTo?: string | null;
  *   basePayTo?: string | null;
+ *   xlayerPayTo?: string | null;
  *   algorandPayTo?: string | null;
  * }} addresses
  * @returns {{
@@ -20,6 +21,7 @@
 export function resolveLabsPayToOverride(labChainHeader, addresses = {}) {
   const solanaPayTo = addresses.solanaPayTo ?? null;
   const basePayTo = addresses.basePayTo ?? addresses.evmPayTo ?? null;
+  const xlayerPayTo = addresses.xlayerPayTo ?? null;
   const algorandPayTo = addresses.algorandPayTo ?? null;
   const labChain = String(labChainHeader || '')
     .trim()
@@ -30,6 +32,12 @@ export function resolveLabsPayToOverride(labChainHeader, addresses = {}) {
     // Isolate Base: never pass Solana PayTo (that would enable solanaOnlyOverride
     // when Base PayTo is missing, or mix SVM accepts into Base ExactEvmScheme flows).
     return { solanaPayTo: null, evmPayTo: basePayTo, algorandPayTo: null };
+  }
+
+  if (labChain === 'xlayer' || labChain === 'x-layer' || labChain === 'okx' || labChain === '196') {
+    if (!xlayerPayTo) return null;
+    // Isolate X Layer: lab EVM payTo becomes the OKX accept payTo (not merchant OKX_X402_PAYTO).
+    return { solanaPayTo: null, evmPayTo: xlayerPayTo, algorandPayTo: null };
   }
 
   if (labChain === 'algorand') {
@@ -43,7 +51,7 @@ export function resolveLabsPayToOverride(labChainHeader, addresses = {}) {
   }
 
   // No chain header (public discovery / non-lab clients): offer all configured PayTos.
-  if (!solanaPayTo && !basePayTo && !algorandPayTo) return null;
+  if (!solanaPayTo && !basePayTo && !algorandPayTo && !xlayerPayTo) return null;
   return {
     solanaPayTo,
     evmPayTo: basePayTo,

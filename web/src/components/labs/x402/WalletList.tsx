@@ -18,15 +18,20 @@ import type { LabChain, LabWallet } from "@/lib/labsX402Api";
 
 function shortenAddress(addr: string, chain: LabChain): string {
   if (addr.length <= 12) return addr;
-  if (chain === "base") return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+  if (chain === "base" || chain === "xlayer") return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
   // Solana + Algorand: 4…4
   return `${addr.slice(0, 4)}…${addr.slice(-4)}`;
 }
 
 function nativeSymbolForChain(chain: LabChain): string {
   if (chain === "base") return "ETH";
+  if (chain === "xlayer") return "OKB";
   if (chain === "algorand") return "ALGO";
   return "SOL";
+}
+
+function stableSymbolForChain(chain: LabChain): string {
+  return chain === "xlayer" ? "USDT0" : "USDC";
 }
 
 function formatBalance(n: number | null | undefined, decimals = 4): string {
@@ -54,6 +59,7 @@ export function WalletList({
   const [copied, setCopied] = useState<string | null>(null);
   const showSkeleton = useMinimumSkeleton(isLoading);
   const nativeSymbol = nativeSymbolForChain(chain);
+  const stableSymbol = stableSymbolForChain(chain);
 
   const copy = async (addr: string) => {
     await navigator.clipboard.writeText(addr);
@@ -82,7 +88,7 @@ export function WalletList({
             <TableHead>Role</TableHead>
             <TableHead>Address</TableHead>
             <TableHead className="text-right">{nativeSymbol}</TableHead>
-            <TableHead className="text-right">USDC</TableHead>
+            <TableHead className="text-right">{stableSymbol}</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>

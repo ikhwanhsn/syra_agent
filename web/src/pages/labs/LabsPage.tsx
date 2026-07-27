@@ -35,6 +35,7 @@ export default function LabsPage() {
             <TabsTrigger value="solana">Solana</TabsTrigger>
             <TabsTrigger value="base">Base</TabsTrigger>
             <TabsTrigger value="algorand">Algorand</TabsTrigger>
+            <TabsTrigger value="xlayer">X Layer</TabsTrigger>
           </TabsList>
           <TabsContent value="solana" className="mt-6">
             <X402LabTab chain="solana" />
@@ -44,6 +45,9 @@ export default function LabsPage() {
           </TabsContent>
           <TabsContent value="algorand" className="mt-6">
             <X402LabTab chain="algorand" />
+          </TabsContent>
+          <TabsContent value="xlayer" className="mt-6">
+            <X402LabTab chain="xlayer" />
           </TabsContent>
         </Tabs>
       </div>

@@ -24,12 +24,14 @@ interface CreateWalletDialogProps {
 
 function chainNetworkLabel(chain: LabChain): string {
   if (chain === "base") return "Base";
+  if (chain === "xlayer") return "X Layer";
   if (chain === "algorand") return "Algorand";
   return "Solana";
 }
 
 function roleOptions(chain: LabChain) {
   const network = chainNetworkLabel(chain);
+  const stable = chain === "xlayer" ? "USDT0" : "USDC";
   return [
     {
       value: "payer" as const,
@@ -39,7 +41,7 @@ function roleOptions(chain: LabChain) {
     {
       value: "payto" as const,
       title: "PayTo",
-      description: `Receives payments and refunds USDC back to payers on ${network}`,
+      description: `Receives payments and refunds ${stable} back to payers on ${network}`,
     },
   ];
 }

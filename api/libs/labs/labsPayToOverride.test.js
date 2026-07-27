@@ -7,6 +7,7 @@ import { resolveLabsPayToOverride } from './labsPayToOverride.js';
 
 const SOL = 'So11111111111111111111111111111111111111112';
 const BASE = '0xBasePayTo000000000000000000000000000001';
+const XLAYER = '0xXlayerPayTo0000000000000000000000000002';
 const ALGO = 'ALGORANDPAYTOADDRESS00000000000000000000000000000000000';
 
 describe('resolveLabsPayToOverride', () => {
@@ -22,6 +23,37 @@ describe('resolveLabsPayToOverride', () => {
       evmPayTo: BASE,
       algorandPayTo: null,
     });
+  });
+
+  test('xlayer tab isolates X Layer PayTo as evmPayTo', () => {
+    const out = resolveLabsPayToOverride('xlayer', {
+      solanaPayTo: SOL,
+      basePayTo: BASE,
+      xlayerPayTo: XLAYER,
+      algorandPayTo: ALGO,
+    });
+    assert.deepEqual(out, {
+      solanaPayTo: null,
+      evmPayTo: XLAYER,
+      algorandPayTo: null,
+    });
+  });
+
+  test('xlayer tab without X Layer PayTo returns null', () => {
+    const out = resolveLabsPayToOverride('xlayer', {
+      solanaPayTo: SOL,
+      basePayTo: BASE,
+      xlayerPayTo: null,
+    });
+    assert.equal(out, null);
+  });
+
+  test('x-layer alias maps to xlayer isolation', () => {
+    const out = resolveLabsPayToOverride('x-layer', {
+      xlayerPayTo: XLAYER,
+    });
+    assert.equal(out?.evmPayTo, XLAYER);
+    assert.equal(out?.solanaPayTo, null);
   });
 
   test('base tab without Base PayTo returns null so env BASE_PAYTO can apply (no solanaOnlyOverride)', () => {

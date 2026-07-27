@@ -1,6 +1,6 @@
 /**
  * Scheduler for x402 Labs auto-caller — periodically runs paid / insights/* calls from payer wallets.
- * Runs independently per chain (solana | base | algorand).
+ * Runs independently per chain (solana | base | algorand | xlayer).
  */
 import { listActivePayerWallets } from './labWalletService.js';
 import { runLabX402Payment, getLabX402Settings } from './labX402Payer.js';
@@ -122,7 +122,7 @@ async function scheduleNext(chain) {
  * Start the lab x402 scheduler for all chains. Safe to call once at boot.
  */
 export function startLabX402Scheduler() {
-  startupVerbose('[lab-x402-scheduler] started (solana + base + algorand)');
+  startupVerbose('[lab-x402-scheduler] started (solana + base + algorand + xlayer)');
   for (const chain of LAB_X402_CHAINS) {
     scheduleNext(chain);
   }

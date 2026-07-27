@@ -2,47 +2,66 @@
 
 **Form:** https://forms.gle/mddEUagmDbyV37ws8  
 **Deadline:** Jul 27, 2026 23:59 UTC  
-**Submit only after:** ASP is live (or at least submitted for listing) **and** Post A is published.
-
-Fill fields as they appear (labels may vary slightly):
+**Account:** ikhwanulhusna111@gmail.com  
+**Submit only after:** ASP is listed (or at least submitted) **and** Post A is published with demo.
 
 ---
 
-## Suggested answers
+## Exact form fields (copy-paste)
 
 | Field | Answer |
 |-------|--------|
-| Project / ASP name | Syra |
-| ASP / agent ID | `#2311` (confirm with `onchainos agent get-my-agents` after login) |
-| Category | **Finance** / Finance Copilot |
-| One-liner | Finance Copilot for agents — pay-per-call crypto intelligence that turns market data into decisions |
-| Description | Syra is an Agent Service Provider on OKX.AI offering A2MCP finance APIs (signals, indicators, sentiment, arbitrage, Bitcoin hub, tokenized equity, Jupiter quotes) and A2A Syra Brain for natural-language token due diligence and market briefs. Settlement via x402 including X Layer. Analysis only — not trade execution. |
-| Website | https://syraa.fun |
-| API / endpoint | https://api.syraa.fun |
-| Docs | https://docs.syraa.fun |
-| OpenAPI | https://api.syraa.fun/openapi.json |
-| Discovery | https://api.syraa.fun/.well-known/x402 |
-| Marketplace listing URL | _(paste after live)_ |
-| X participation post URL | _(paste Post A URL with #OKXAI + demo)_ |
-| Demo | Included in X post (under 90s) |
-| Contact email | ikhwanulhusna111@gmail.com |
-| Team / founder | Ikhwanul Husna |
-| Prize track | Finance Copilot |
-| Payment rails | x402 v2 — Solana, Base, BSC, Algorand, X Layer (eip155:196) |
-| A2MCP service | Syra Finance Copilot API |
-| A2A service | Syra Brain Finance Copilot ($0.50 standard task) |
+| **ASP Name** * | `Syra` |
+| **Agent ID** * | `2311` |
+| **ASP Description** * | (paste block below) |
+| **ASP Type** * | Select **both** `A2A` and `A2MCP` if multi-select; if single choice use `A2MCP` |
+| **X Account Handle** * | `@(your X username)` — fill your real handle |
+| **X Participation Post (Link)** * | `(paste https://x.com/... after posting Post A)` |
+| **Telegram Handle** * | `@(your Telegram username)` — fill your real handle |
+
+### ASP Description (full — paste as-is)
+
+```
+Syra is a Finance Copilot for agents on OKX.AI. Agents get decision-ready crypto intelligence — not raw price feeds — via pay-per-call A2MCP APIs (signals, indicators, sentiment, arbitrage, Bitcoin hub, tokenized equity, Jupiter quotes, RISE scout) and A2A Syra Brain for natural-language token due diligence and market briefs with tool-usage transparency. Settlement via x402 including X Layer. Analysis only — not trade execution.
+
+Website: https://syraa.fun
+API: https://api.syraa.fun
+Docs: https://docs.syraa.fun
+OpenAPI: https://api.syraa.fun/openapi.json
+Discovery: https://api.syraa.fun/.well-known/x402
+Playground: https://www.syraa.fun/marketplace?tab=custom
+
+Services:
+• A2MCP — Syra Finance Copilot API ($0.01/call) — https://api.syraa.fun
+• A2A — Syra Brain Finance Copilot ($0.50/task)
+
+Category: Finance / Finance Copilot
+```
+
+### Shorter description (if character limit)
+
+```
+Finance Copilot for agents — pay-per-call crypto intelligence that turns market data into decisions. A2MCP finance APIs (signals, indicators, sentiment, arbitrage, Bitcoin hub, equity, Jupiter) plus A2A Syra Brain for natural-language token DD and market briefs. x402 settlement including X Layer. Analysis only — not trade execution. syraa.fun · api.syraa.fun · docs.syraa.fun
+```
 
 ---
 
+## Before you hit Submit
+
+1. **Publish Post A** on X — copy from [X-POST.md](./X-POST.md), attach `okx-asp/out/syra-okxai-genesis-finance-copilot.mp4`, include `#OKXAI`
+2. Paste the **Post A URL** into the form
+3. Confirm Agent ID still `#2311`: `onchainos agent get-my-agents` (after wallet login)
+4. Fill your real **X** and **Telegram** handles
+
 ## Pre-submit checklist
 
-- [ ] ASP visible / approved on OKX.AI (eligibility)
-- [ ] Post A live with `#OKXAI` and demo video
+- [ ] ASP visible / approved on OKX.AI (eligibility) — #2311 was under review as of 2026-07-24
+- [ ] Post A live with `#OKXAI` and demo video ≤90s
 - [ ] ASP ID confirmed from `get-my-agents`
-- [ ] Marketplace URL copied
+- [ ] X handle + Telegram handle filled
 - [ ] Screenshot of form confirmation saved to `okx-asp/form-confirmation.png` (optional)
 
 ## After submit
 
 - Update [MONITOR.md](./MONITOR.md) "Form submitted" = yes + timestamp
-- Keep driving orders until Jul 27
+- Keep driving orders / social if campaign window still open

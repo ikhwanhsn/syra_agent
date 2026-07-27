@@ -694,6 +694,7 @@ function getB402OfferConfig() {
 
 /**
  * OKX facilitator owns X Layer — append accepts when enabled; PayAI/Corbits must not offer them.
+ * When `ctx.evmPayTo` is set (Labs X Layer tab), that address becomes payTo instead of merchant OKX_X402_PAYTO.
  * @param {object[]} requirements
  * @param {string} microUnits
  * @param {number} maxTimeoutSeconds
@@ -702,7 +703,9 @@ function getB402OfferConfig() {
 async function ensureOkxAcceptInRequirements(requirements, microUnits, maxTimeoutSeconds, ctx) {
   if (!isOkxX402Enabled()) return requirements;
   const list = Array.isArray(requirements) ? [...requirements] : [];
-  const payTo = getOkxX402PayTo();
+  const overridePayTo =
+    ctx?.evmPayTo && String(ctx.evmPayTo).trim() ? String(ctx.evmPayTo).trim() : null;
+  const payTo = overridePayTo || getOkxX402PayTo();
   const networks = getEnabledOkxX402Networks();
   if (!payTo || networks.length === 0) return list;
 
@@ -740,8 +743,10 @@ async function ensureOkxAcceptInRequirements(requirements, microUnits, maxTimeou
           for (const r of okxReqs) {
             if (r && !filtered.some((x) => x?.network === r.network)) {
               // Always stamp USDT0 EIP-712 domain (SDK money parsers often omit it).
+              // Force lab override payTo when present (SDK may stamp merchant payTo).
               filtered.push({
                 ...r,
+                payTo,
                 extra: { ...(r.extra && typeof r.extra === "object" ? r.extra : {}), ...eip712Extra },
               });
             }
@@ -770,11 +775,12 @@ async function ensureOkxAcceptInRequirements(requirements, microUnits, maxTimeou
   return filtered;
 }
 
-/** True when payload.accepted matches configured OKX X Layer merchant offer. */
-function paymentAcceptedMatchesOkx(acc) {
+/** True when payload.accepted matches configured OKX X Layer merchant (or Labs) offer. */
+function paymentAcceptedMatchesOkx(acc, labEvmPayTo = null) {
   if (!acc || !isOkxX402Network(acc.network)) return false;
   if ((acc.scheme || "exact") !== "exact") return false;
-  const payTo = getOkxX402PayTo();
+  const payTo =
+    (labEvmPayTo && String(labEvmPayTo).trim()) || getOkxX402PayTo();
   if (!payTo) return false;
   const net = getEnabledOkxX402Networks().find((n) => n.caip2 === acc.network);
   if (!net) return false;
@@ -789,9 +795,11 @@ function shouldUseOkxFacilitator(acc) {
 }
 
 /** Append OKX X Layer accepted options for paid-request validation. */
-function appendOkxAcceptedOption(acceptedOptions, expectedMicroUnits) {
+function appendOkxAcceptedOption(acceptedOptions, expectedMicroUnits, labEvmPayTo = null) {
   if (!isOkxX402Enabled()) return acceptedOptions;
-  const payTo = getOkxX402PayTo();
+  const payTo =
+    (labEvmPayTo && String(labEvmPayTo).trim()) || getOkxX402PayTo();
+  if (!payTo) return acceptedOptions;
   for (const net of getEnabledOkxX402Networks()) {
     if (acceptedOptions.some((o) => o?.network === net.caip2)) continue;
     acceptedOptions.push({
@@ -1449,6 +1457,7 @@ async function buildPaymentRequired(bundle, req, options, error) {
     method: req.method,
     paymentHeader: getPaymentSignatureHeaderFromReq(req),
     algorandPayTo: payToOverride?.algorandPayTo ?? null,
+    evmPayTo: payToOverride?.evmPayTo ?? null,
   };
 
   const resourceInfo =
@@ -1484,6 +1493,37 @@ async function buildPaymentRequired(bundle, req, options, error) {
         resourceInfo,
         error ||
           "Algorand x402 not configured — create a Labs Algorand PayTo wallet or set ALGORAND_PAYTO",
+        extensions,
+      );
+    }
+    return resourceServer.createPaymentRequiredResponse(
+      requirements,
+      resourceInfo,
+      error,
+      extensions,
+    );
+  }
+
+  // Labs X Layer tab: offer OKX eip155:196 USDT0 accepts only (lab payTo when overridden).
+  if (
+    labChain === "xlayer" ||
+    labChain === "x-layer" ||
+    labChain === "okx" ||
+    labChain === "196"
+  ) {
+    let requirements = await ensureOkxAcceptInRequirements(
+      [],
+      microUnits,
+      maxTimeout,
+      ctx,
+    );
+    requirements = ensureEvmEip712Domain(requirements);
+    if (requirements.length === 0) {
+      return resourceServer.createPaymentRequiredResponse(
+        [],
+        resourceInfo,
+        error ||
+          "X Layer x402 not configured — set OKX_API_KEY/OKX_SECRET_KEY/OKX_PASSPHRASE and create a Labs X Layer PayTo wallet",
         extensions,
       );
     }
@@ -1740,10 +1780,17 @@ export function requirePayment(options) {
       const labChain = String(req?.get?.("x-lab-x402-chain") || "")
         .trim()
         .toLowerCase();
+      const isXlayerLab =
+        labChain === "xlayer" ||
+        labChain === "x-layer" ||
+        labChain === "okx" ||
+        labChain === "196";
       let acceptedOptions =
         labChain === "algorand"
           ? appendAlgorandAcceptedOption([], expectedMicroUnits, payToOverride?.algorandPayTo)
-          : buildAcceptedOptionsForBundle(bundle, expectedMicroUnits, payToOverride, priceUsd);
+          : isXlayerLab
+            ? appendOkxAcceptedOption([], expectedMicroUnits, payToOverride?.evmPayTo)
+            : buildAcceptedOptionsForBundle(bundle, expectedMicroUnits, payToOverride, priceUsd);
       if (labChain === "base") {
         const evmOpts = acceptedOptions.filter((opt) => opt?.isEvm);
         const baseMainnet = evmOpts.filter((opt) => opt.network === "eip155:8453");
@@ -1781,8 +1828,10 @@ export function requirePayment(options) {
         }
       }
 
-      if (!matchingOption && paymentAcceptedMatchesOkx(acc)) {
-        const payTo = getOkxX402PayTo();
+      if (!matchingOption && paymentAcceptedMatchesOkx(acc, payToOverride?.evmPayTo)) {
+        const payTo =
+          (payToOverride?.evmPayTo && String(payToOverride.evmPayTo).trim()) ||
+          getOkxX402PayTo();
         const net = getEnabledOkxX402Networks().find((n) => n.caip2 === acc.network);
         if (payTo && net) {
           matchingOption = {

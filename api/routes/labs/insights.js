@@ -69,7 +69,7 @@ async function labsPayToOverride(req) {
  * Infer lab chain from payer address / request header.
  * @param {string} payer
  * @param {import('express').Request} req
- * @returns {'solana' | 'base' | 'algorand'}
+ * @returns {'solana' | 'base' | 'algorand' | 'xlayer'}
  */
 function inferPayerChain(payer, req) {
   return inferLabPayerChain(payer, req.get('x-lab-x402-chain'));

@@ -39,6 +39,7 @@ function formatRelativeTime(iso: string | null | undefined): string | null {
 
 function chainLabelFor(chain: LabDepositHub["chain"]): string {
   if (chain === "base") return "Base";
+  if (chain === "xlayer") return "X Layer";
   if (chain === "algorand") return "Algorand";
   return "Solana";
 }
@@ -49,6 +50,8 @@ function isNativeReservedError(error: string | undefined, nativeSymbol: string):
   if (nativeSymbol === "SOL") return lower.includes("sol_reserved") || lower.includes("reserved_for_fees");
   if (nativeSymbol === "ALGO")
     return lower.includes("algo_reserved") || lower.includes("reserved_for_fees");
+  if (nativeSymbol === "OKB")
+    return lower.includes("okb_reserved") || lower.includes("reserved_for_gas");
   return lower.includes("eth_reserved") || lower.includes("reserved_for_gas");
 }
 
@@ -86,6 +89,7 @@ export function DepositHubPanel({
   }
 
   const nativeSymbol = deposit.nativeSymbol;
+  const stableSymbol = deposit.chain === "xlayer" ? "USDT0" : "USDC";
   const networkLabel = chainLabelFor(deposit.chain);
   const gasNoun =
     deposit.chain === "solana" || deposit.chain === "algorand" ? "fees" : "gas";
@@ -123,6 +127,13 @@ export function DepositHubPanel({
                 to opt into USDC. If the hub is at exactly 0.2 ALGO, Distribute auto-borrows a small
                 fee top-up from PayTo. Sending USDC before hub opt-in triggers a Pera Inbox Router
                 warning, cancel that and wait.
+              </>
+            ) : deposit.chain === "xlayer" ? (
+              <>
+                Send {nativeSymbol} and {stableSymbol} on {networkLabel} to this address, then click
+                Distribute now. Any non-zero {stableSymbol} and {nativeSymbol} is split equally across
+                all active payer and PayTo wallets (only {gasNoun} for the sends is kept on the
+                deposit wallet).
               </>
             ) : (
               <>
@@ -182,7 +193,7 @@ export function DepositHubPanel({
               <p className="font-mono tabular-nums">{formatBalance(deposit.nativeBalance, 6)}</p>
             </div>
             <div>
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">USDC</p>
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{stableSymbol}</p>
               <p className="font-mono tabular-nums">{formatBalance(deposit.usdcBalance, 2)}</p>
             </div>
             <div>
@@ -206,7 +217,8 @@ export function DepositHubPanel({
             </p>
           ) : null}
           <p className="text-[11px] text-muted-foreground">
-            Manual distribute only, splits whatever USDC/{nativeSymbol} balance is above zero.
+            Manual distribute only, splits whatever {stableSymbol}/{nativeSymbol} balance is above
+            zero.
             {lastDist ? ` Last distribute: ${lastDist}.` : " No distribute yet."}
           </p>
         </div>
@@ -251,8 +263,8 @@ export function DepositHubPanel({
         lastResult.reason === "below_threshold") ? (
         <Alert>
           <AlertDescription>
-            Nothing to distribute, deposit USDC and/or more {nativeSymbol} than {gasNoun} for the
-            sends, then try again.
+            Nothing to distribute, deposit {stableSymbol} and/or more {nativeSymbol} than {gasNoun}{" "}
+            for the sends, then try again.
           </AlertDescription>
         </Alert>
       ) : null}
@@ -260,8 +272,8 @@ export function DepositHubPanel({
       {nativeReserved ? (
         <Alert>
           <AlertDescription>
-            USDC was handled, but {nativeSymbol} stayed on the hub, balance is only enough to cover{" "}
-            {gasNoun}. Add a bit more {nativeSymbol} and distribute again.
+            {stableSymbol} was handled, but {nativeSymbol} stayed on the hub, balance is only enough
+            to cover {gasNoun}. Add a bit more {nativeSymbol} and distribute again.
           </AlertDescription>
         </Alert>
       ) : null}

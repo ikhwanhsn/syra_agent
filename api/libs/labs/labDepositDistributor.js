@@ -1,5 +1,5 @@
 /**
- * Labs deposit hub — equal-split USDC + native (SOL / ETH / ALGO) to active payer/payto wallets.
+ * Labs deposit hub — equal-split USDC/USDT0 + native (SOL / ETH / ALGO / OKB) to active payer/payto wallets.
  * Distribution is manual only (Distribute button) to avoid RPC rate limits from polling.
  */
 import {
@@ -22,6 +22,7 @@ import LabX402Settings, {
   settingsKeyForChain,
 } from '../../models/labs/LabX402Settings.js';
 import { getDexterNetworkByCaip2 } from '../../config/dexterX402Networks.js';
+import { XLAYER_MAINNET_USDT } from '../../config/okxX402Networks.js';
 import { pickSolanaConnectionForReads } from '../solanaServerRpc.js';
 import {
   getActiveDepositWalletDoc,
@@ -32,6 +33,8 @@ import {
   algorandAccountFromLabWalletDoc,
   getBasePublicClient,
   createBaseWalletClient,
+  getXlayerPublicClient,
+  createXlayerWalletClient,
   getLabWalletBalances,
   getAlgorandAlgodClient,
   getAlgorandUsdcAsaId,
@@ -48,6 +51,7 @@ const BASE_USDC =
   getDexterNetworkByCaip2('eip155:8453')?.usdc ||
   process.env.BASE_USDC ||
   '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913';
+const XLAYER_USDT0 = XLAYER_MAINNET_USDT || '0x779ded0c9e1022225f8e0630b35a9b54be713736';
 
 const ERC20_ABI = [
   {
@@ -83,11 +87,12 @@ const runningByChain = new Set();
 const lastRunAtByChain = new Map();
 
 /**
- * @param {'solana' | 'base' | 'algorand'} chain
- * @returns {'SOL' | 'ETH' | 'ALGO'}
+ * @param {'solana' | 'base' | 'algorand' | 'xlayer'} chain
+ * @returns {'SOL' | 'ETH' | 'ALGO' | 'OKB'}
  */
 function nativeSymbolForChain(chain) {
   if (chain === 'base') return 'ETH';
+  if (chain === 'xlayer') return 'OKB';
   if (chain === 'algorand') return 'ALGO';
   return 'SOL';
 }
@@ -251,6 +256,7 @@ export async function distributeLabDeposit(chain = 'base', opts = {}) {
 
     if (c === 'solana') return await distributeSolanaDeposit(depositDoc, recipients, settings);
     if (c === 'algorand') return await distributeAlgorandDeposit(depositDoc, recipients, settings);
+    if (c === 'xlayer') return await distributeXlayerDeposit(depositDoc, recipients, settings);
     return await distributeBaseDeposit(depositDoc, recipients, settings);
   } finally {
     runningByChain.delete(c);
@@ -416,6 +422,169 @@ async function distributeBaseDeposit(depositDoc, recipients, settings) {
     nativeBalanceBefore: ethBalance,
     nativeAfterWeiOrLamports: ethWeiCursor,
     ethGasReserveAll,
+    perUsdc,
+    transfers,
+    settings,
+    n,
+  });
+}
+
+/**
+ * Equal-split USDT0 + OKB from the X Layer deposit hub.
+ * @param {object} depositDoc
+ * @param {object[]} recipients
+ * @param {object} settings
+ */
+async function distributeXlayerDeposit(depositDoc, recipients, settings) {
+  const account = evmAccountFromLabWalletDoc(depositDoc);
+  const publicClient = getXlayerPublicClient();
+  const walletClient = createXlayerWalletClient(account);
+  const depositAddr = /** @type {`0x${string}`} */ (account.address);
+  const n = recipients.length;
+
+  let usdt0Raw;
+  let okbWei;
+  let gasPrice;
+  try {
+    [usdt0Raw, okbWei, gasPrice] = await Promise.all([
+      publicClient.readContract({
+        address: /** @type {`0x${string}`} */ (XLAYER_USDT0),
+        abi: ERC20_ABI,
+        functionName: 'balanceOf',
+        args: [depositAddr],
+      }),
+      publicClient.getBalance({ address: depositAddr }),
+      publicClient.getGasPrice(),
+    ]);
+  } catch (e) {
+    console.warn('[lab-deposit] X Layer balance read failed:', e?.message || e);
+    return {
+      skipped: true,
+      reason: 'rpc_unavailable',
+      depositAddress: depositAddr,
+      error: e?.message || String(e),
+      transfers: [],
+    };
+  }
+
+  const usdt0RawBi = /** @type {bigint} */ (usdt0Raw);
+  const usdcBalance = Number(formatUnits(usdt0RawBi, 6));
+  const okbBalance = Number(formatEther(okbWei));
+  /** @type {object[]} */
+  const transfers = [];
+
+  const gasPriceBi = /** @type {bigint} */ (gasPrice);
+  const ethGasPerTx = 21_000n;
+  const estimateGasWei = (gasUnits) => (gasUnits * gasPriceBi * 125n) / 100n;
+
+  const perUsdc = usdt0RawBi > 0n ? usdt0RawBi / BigInt(n) : 0n;
+  if (perUsdc > 0n) {
+    for (const recipient of recipients) {
+      const to = String(recipient.address || '').trim();
+      if (!/^0x[0-9a-fA-F]{40}$/.test(to)) continue;
+      try {
+        const hash = await walletClient.writeContract({
+          address: /** @type {`0x${string}`} */ (XLAYER_USDT0),
+          abi: ERC20_ABI,
+          functionName: 'transfer',
+          args: [/** @type {`0x${string}`} */ (to), perUsdc],
+        });
+        await publicClient.waitForTransactionReceipt({ hash });
+        transfers.push({
+          asset: 'USDT0',
+          to,
+          amount: Number(formatUnits(perUsdc, 6)),
+          tx: hash,
+          ok: true,
+        });
+      } catch (e) {
+        console.warn(`[lab-deposit] X Layer USDT0 transfer to ${to} failed:`, e?.message || e);
+        transfers.push({
+          asset: 'USDT0',
+          to,
+          amount: Number(formatUnits(perUsdc, 6)),
+          tx: null,
+          ok: false,
+          error: e?.message || String(e),
+        });
+      }
+    }
+  }
+
+  let okbWeiCursor = await publicClient.getBalance({ address: depositAddr });
+  const okbBalanceAfterUsdt0 = Number(formatEther(okbWeiCursor));
+  const validRecipients = recipients.filter((r) =>
+    /^0x[0-9a-fA-F]{40}$/.test(String(r.address || '').trim()),
+  );
+  let remaining = validRecipients.length;
+  const okbGasReserveAll = estimateGasWei(ethGasPerTx * BigInt(Math.max(remaining, 1)));
+
+  if (okbWeiCursor > okbGasReserveAll) {
+    for (const recipient of validRecipients) {
+      const to = String(recipient.address || '').trim();
+      okbWeiCursor = await publicClient.getBalance({ address: depositAddr });
+      const keep = estimateGasWei(ethGasPerTx * BigInt(Math.max(remaining, 1)));
+      const avail = okbWeiCursor > keep ? okbWeiCursor - keep : 0n;
+      const perWei = remaining > 0 ? avail / BigInt(remaining) : 0n;
+      remaining -= 1;
+
+      if (perWei <= 0n) {
+        transfers.push({
+          asset: 'OKB',
+          to,
+          amount: 0,
+          tx: null,
+          ok: false,
+          error: 'insufficient_okb_after_gas',
+        });
+        continue;
+      }
+
+      try {
+        const hash = await walletClient.sendTransaction({
+          to: /** @type {`0x${string}`} */ (to),
+          value: perWei,
+        });
+        await publicClient.waitForTransactionReceipt({ hash });
+        transfers.push({
+          asset: 'OKB',
+          to,
+          amount: Number(formatEther(perWei)),
+          tx: hash,
+          ok: true,
+        });
+      } catch (e) {
+        console.warn(`[lab-deposit] X Layer OKB transfer to ${to} failed:`, e?.message || e);
+        transfers.push({
+          asset: 'OKB',
+          to,
+          amount: Number(formatEther(perWei)),
+          tx: null,
+          ok: false,
+          error: e?.message || String(e),
+        });
+      }
+    }
+  } else if (okbBalanceAfterUsdt0 > 0 && okbWeiCursor <= okbGasReserveAll) {
+    transfers.push({
+      asset: 'OKB',
+      to: depositAddr,
+      amount: okbBalanceAfterUsdt0,
+      tx: null,
+      ok: false,
+      error: 'okb_reserved_for_gas',
+    });
+  }
+
+  void usdcBalance;
+  void okbBalance;
+  return finalizeDistributeResult({
+    chain: 'xlayer',
+    depositAddr,
+    usdcRawBi: usdt0RawBi,
+    nativeBalanceBefore: okbBalance,
+    nativeAfterWeiOrLamports: okbWeiCursor,
+    ethGasReserveAll: okbGasReserveAll,
     perUsdc,
     transfers,
     settings,

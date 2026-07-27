@@ -60,19 +60,25 @@ export function X402LabTab({ chain }: X402LabTabProps) {
   const showEndpointsSkeleton = useMinimumSkeleton(endpointsQ.isLoading);
 
   const isBase = chain === "base";
+  const isXlayer = chain === "xlayer";
   const isAlgorand = chain === "algorand";
-  const isEvm = isBase;
+  const isEvm = isBase || isXlayer;
   const skipPayai = isEvm || isAlgorand;
   const chainLabel = isAlgorand
     ? "Algorand"
-    : isBase
-      ? "Base"
-      : "Solana";
+    : isXlayer
+      ? "X Layer"
+      : isBase
+        ? "Base"
+        : "Solana";
   const nativeSymbol = isAlgorand
     ? "ALGO"
-    : isBase
-      ? "ETH"
-      : "SOL";
+    : isXlayer
+      ? "OKB"
+      : isBase
+        ? "ETH"
+        : "SOL";
+  const stableSymbol = isXlayer ? "USDT0" : "USDC";
 
   const priceMultiplier =
     settingsDraft?.priceMultiplier ??
@@ -109,13 +115,15 @@ export function X402LabTab({ chain }: X402LabTabProps) {
             x402 payment lab, {chainLabel}
           </h2>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Manage {chainLabel} lab wallets, fund them with {nativeSymbol}/USDC, and run paid calls
+            Manage {chainLabel} lab wallets, fund them with {nativeSymbol}/{stableSymbol}, and run paid calls
             against <code className="text-xs">/insights/*</code> endpoints
             {isAlgorand
               ? " settling on Algorand via GoPlausible"
-              : isBase
-                ? " settling on Base via Dexter"
-                : ""}
+              : isXlayer
+                ? " settling on X Layer via OKX"
+                : isBase
+                  ? " settling on Base via Dexter"
+                  : ""}
             .{" "}
             {isAlgorand ? (
               <>
@@ -130,6 +138,19 @@ export function X402LabTab({ chain }: X402LabTabProps) {
                 </a>{" "}
                 on Algorand mainnet (USDC ASA). Recipients must be opted into USDC before transfers.
                 PayAI routes are skipped on this tab.{" "}
+              </>
+            ) : isXlayer ? (
+              <>
+                Settlement uses{" "}
+                <a
+                  href="https://web3.okx.com/onchainos/dev-docs/payments/service-seller-sdk"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-2 hover:text-foreground"
+                >
+                  OKX
+                </a>{" "}
+                on X Layer mainnet (eip155:196, USDT0). PayAI routes are skipped on this tab.{" "}
               </>
             ) : !isBase ? (
               <>
@@ -366,14 +387,18 @@ export function X402LabTab({ chain }: X402LabTabProps) {
                           ? "bg-violet-500/15 text-violet-600 dark:text-violet-400"
                           : isAlgorand
                             ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                            : "bg-sky-500/15 text-sky-600 dark:text-sky-400"
+                            : isXlayer
+                              ? "bg-amber-500/15 text-amber-700 dark:text-amber-400"
+                              : "bg-sky-500/15 text-sky-600 dark:text-sky-400"
                       }`}
                     >
                       {ep.facilitator === "payai"
                         ? "PayAI"
                         : isAlgorand
                           ? "GoPlausible"
-                          : "Dexter"}
+                          : isXlayer
+                            ? "OKX"
+                            : "Dexter"}
                     </span>
                     {ep.facilitator === "payai" && ep.dailyQuota && (
                       <span

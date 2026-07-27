@@ -10,7 +10,7 @@ const labX402CallSchema = new mongoose.Schema(
     priceUsd: { type: Number, required: true },
     chain: {
       type: String,
-      enum: ['solana', 'base', 'celo', 'algorand'],
+      enum: ['solana', 'base', 'celo', 'algorand', 'xlayer'],
       default: 'solana',
       index: true,
     },

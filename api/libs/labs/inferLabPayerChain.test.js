@@ -26,6 +26,9 @@ describe('inferLabPayerChain', () => {
     assert.equal(inferLabPayerChain(SOL, 'algorand'), 'algorand');
     assert.equal(inferLabPayerChain(ALGO, 'solana'), 'solana');
     assert.equal(inferLabPayerChain(EVM, 'base'), 'base');
+    assert.equal(inferLabPayerChain(EVM, 'xlayer'), 'xlayer');
+    assert.equal(inferLabPayerChain(EVM, 'x-layer'), 'xlayer');
+    assert.equal(inferLabPayerChain(EVM, 'okx'), 'xlayer');
   });
 
   test('infers algorand from address shape when header missing', () => {
@@ -33,7 +36,7 @@ describe('inferLabPayerChain', () => {
     assert.equal(inferLabPayerChain(ALGO, null), 'algorand');
   });
 
-  test('infers base from 0x address when header missing', () => {
+  test('infers base from 0x address when header missing (not xlayer)', () => {
     assert.equal(inferLabPayerChain(EVM, ''), 'base');
   });
 

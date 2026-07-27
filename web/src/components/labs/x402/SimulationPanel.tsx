@@ -61,16 +61,19 @@ export function SimulationPanel({
   const nativeSymbol =
     chain === "base"
       ? "ETH"
-      : chain === "algorand"
-        ? "ALGO"
-        : "SOL";
+      : chain === "xlayer"
+        ? "OKB"
+        : chain === "algorand"
+          ? "ALGO"
+          : "SOL";
+  const stableSymbol = chain === "xlayer" ? "USDT0" : "USDC";
 
   useEffect(() => {
     setTargetVolumeUsd(Math.min(100_000, Math.max(1, settingsTarget)));
   }, [settingsTarget]);
 
   const formatNative = (n: number) => {
-    if (chain === "base" || chain === "algorand") {
+    if (chain === "base" || chain === "xlayer" || chain === "algorand") {
       if (n < 0.0001 && n > 0) return `<0.0001 ${nativeSymbol}`;
       return `~${n.toFixed(4)} ${nativeSymbol}`;
     }
@@ -287,7 +290,7 @@ export function SimulationPanel({
                 </p>
                 <dl className="space-y-2">
                   <StatRow
-                    label="Gross USDC moved"
+                    label={`Gross ${stableSymbol} moved`}
                     value={formatSimulationUsd(result.grossUsdcPerDay)}
                     hint={
                       result.priceMultiplier !== 1
@@ -296,12 +299,12 @@ export function SimulationPanel({
                     }
                   />
                   <StatRow
-                    label="Net USDC cost"
+                    label={`Net ${stableSymbol} cost`}
                     value={formatSimulationUsd(result.netUsdcPerDay)}
                     hint={result.refundEnabled ? "refund on" : "refund off"}
                   />
                   <StatRow
-                    label="USDC / payer wallet"
+                    label={`${stableSymbol} / payer wallet`}
                     value={formatSimulationUsd(result.grossUsdcPerWalletPerDay)}
                     hint="gross flow"
                   />
@@ -353,7 +356,7 @@ export function SimulationPanel({
                     hint={result.volumeGapUsd <= 0 ? "on track" : "shortfall"}
                   />
                   <StatRow
-                    label="Payer USDC buffer (each)"
+                    label={`Payer ${stableSymbol} buffer (each)`}
                     value={formatSimulationUsd(result.payerUsdcBuffer)}
                     hint={
                       result.priceMultiplier !== 1
@@ -362,7 +365,7 @@ export function SimulationPanel({
                     }
                   />
                   <StatRow
-                    label="PayTo USDC buffer"
+                    label={`PayTo ${stableSymbol} buffer`}
                     value={formatSimulationUsd(result.paytoUsdcBuffer)}
                     hint={
                       result.priceMultiplier !== 1
@@ -395,7 +398,9 @@ export function SimulationPanel({
                     ? ` at ×${result.priceMultiplier} effective prices`
                     : ""}
                   )
-                  {result.refundEnabled ? " (refund on, USDC is working capital, not net spend)" : ""}
+                  {result.refundEnabled
+                    ? ` (refund on, ${stableSymbol} is working capital, not net spend)`
+                    : ""}
                   .
                   {result.priceMultiplier !== 1
                     ? ` Buffers use max call ${formatSimulationUsd(result.maxPriceUsd)} (base ${formatSimulationUsd(result.baseMaxPriceUsd)} ×${result.priceMultiplier}).`
@@ -412,7 +417,7 @@ export function SimulationPanel({
                       </p>
                       <dl className="mt-2 space-y-1.5">
                         <StatRow
-                          label="USDC"
+                          label={stableSymbol}
                           value={formatSimulationUsd(s.suggestedUsdc)}
                           hint={s.usdcNote}
                         />
@@ -423,7 +428,7 @@ export function SimulationPanel({
                             .replace(/SOL/gi, nativeSymbol)
                             .replace(
                               /rent/gi,
-                              chain === "base"
+                              chain === "base" || chain === "xlayer"
                                 ? "gas"
                                 : chain === "algorand"
                                   ? "min-balance"
@@ -442,8 +447,8 @@ export function SimulationPanel({
                         <tr className="border-b border-border/50 bg-muted/30">
                           <th className="px-3 py-2 font-medium">Wallet</th>
                           <th className="px-3 py-2 font-medium">Role</th>
-                          <th className="px-3 py-2 text-right font-medium">USDC now</th>
-                          <th className="px-3 py-2 text-right font-medium">USDC need</th>
+                          <th className="px-3 py-2 text-right font-medium">{stableSymbol} now</th>
+                          <th className="px-3 py-2 text-right font-medium">{stableSymbol} need</th>
                           <th className="px-3 py-2 text-right font-medium">{nativeSymbol} now</th>
                           <th className="px-3 py-2 text-right font-medium">{nativeSymbol} need</th>
                           <th className="px-3 py-2 text-right font-medium">Deposit</th>
@@ -471,7 +476,7 @@ export function SimulationPanel({
                               <td className="px-3 py-2 text-right font-mono tabular-nums">
                                 {needsDeposit ? (
                                   <span className="text-amber-400">
-                                    +{row.usdcShortfall.toFixed(2)} USDC
+                                    +{row.usdcShortfall.toFixed(2)} {stableSymbol}
                                     {row.solShortfall > 0
                                       ? `, +${row.solShortfall.toFixed(4)} ${nativeSymbol}`
                                       : ""}

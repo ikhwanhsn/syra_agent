@@ -103,6 +103,16 @@ export async function resolveLabsFacilitatorProfile(req, deps = {}) {
   // accept building when x-lab-x402-chain=algorand (see buildPaymentRequired), but
   // keep Dexter so non-Algorand middleware paths stay consistent.
   if (labChain === 'algorand') return 'dexter';
+  // X Layer settles via OKX dedicated rail (early return in buildPaymentRequired).
+  // Dexter profile is unused for accept building on this tab.
+  if (
+    labChain === 'xlayer' ||
+    labChain === 'x-layer' ||
+    labChain === 'okx' ||
+    labChain === '196'
+  ) {
+    return 'dexter';
+  }
 
   return resolveDefaultFacilitatorProfile(req, {
     ...deps,

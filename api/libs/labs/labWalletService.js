@@ -1,6 +1,6 @@
 /**
  * Lab wallet CRUD, keypair/account resolution, and balance reads for x402 Labs
- * (Solana + Base + Algorand).
+ * (Solana + Base + Algorand + X Layer).
  */
 import { Keypair, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import bs58 from 'bs58';
@@ -13,7 +13,7 @@ import {
   formatEther,
   formatUnits,
 } from 'viem';
-import { base } from 'viem/chains';
+import { base, xLayer } from 'viem/chains';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import LabWallet from '../../models/labs/LabWallet.js';
 import {
@@ -29,12 +29,14 @@ import { getMaxBulkCreateCount } from './labX402CallLog.js';
 import { withSolanaRpcFallback } from '../solanaServerRpc.js';
 import { getDexterNetworkByCaip2 } from '../../config/dexterX402Networks.js';
 import { USDC_MAINNET_ASA_ID } from '../../config/algorandX402Networks.js';
+import { XLAYER_MAINNET_USDT } from '../../config/okxX402Networks.js';
 
 const USDC_MAINNET = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 const BASE_USDC =
   getDexterNetworkByCaip2('eip155:8453')?.usdc ||
   process.env.BASE_USDC ||
   '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913';
+const XLAYER_USDT0 = XLAYER_MAINNET_USDT || '0x779ded0c9e1022225f8e0630b35a9b54be713736';
 
 const ERC20_BALANCE_ABI = [
   {
@@ -63,6 +65,13 @@ const BASE_PUBLIC_RPC_FALLBACKS = Object.freeze([
   'https://1rpc.io/base',
   'https://base.drpc.org',
   'https://mainnet.base.org',
+]);
+
+/** Public X Layer RPCs used after configured providers. */
+const XLAYER_PUBLIC_RPC_FALLBACKS = Object.freeze([
+  'https://rpc.xlayer.tech',
+  'https://xlayerrpc.okx.com',
+  'https://rpc.ankr.com/xlayer',
 ]);
 
 /**
@@ -96,6 +105,36 @@ export function getBaseRpcUrlCandidates() {
 }
 
 /**
+ * Ordered X Layer RPC candidates: env providers first, then public fallbacks.
+ * @returns {string[]}
+ */
+export function getXlayerRpcUrlCandidates() {
+  const out = [];
+  const seen = new Set();
+
+  for (const name of [
+    'XLAYER_RPC_URL',
+    'XLAYER_MAINNET_RPC_URL',
+    'OKX_XLAYER_RPC_URL',
+    'XLAYER_RPC_FALLBACK_URL',
+  ]) {
+    pushUniqueUrl(out, seen, trimEnv(name));
+  }
+
+  const extra = trimEnv('XLAYER_RPC_EXTRA_URLS');
+  if (extra) {
+    for (const part of extra.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean)) {
+      pushUniqueUrl(out, seen, part);
+    }
+  }
+
+  for (const url of XLAYER_PUBLIC_RPC_FALLBACKS) {
+    pushUniqueUrl(out, seen, url);
+  }
+  return out;
+}
+
+/**
  * Primary Base RPC URL (first candidate). Prefer getBasePublicClient() for reads.
  * @returns {string}
  */
@@ -104,11 +143,37 @@ export function getBaseRpcUrl() {
 }
 
 /**
+ * Primary X Layer RPC URL (first candidate). Prefer getXlayerPublicClient() for reads.
+ * @returns {string}
+ */
+export function getXlayerRpcUrl() {
+  return getXlayerRpcUrlCandidates()[0] || 'https://rpc.xlayer.tech';
+}
+
+/**
  * Viem transport that fails over across Base RPC candidates on rate-limit / 5xx.
  * @returns {ReturnType<typeof fallback>}
  */
 export function createBaseTransport() {
   const urls = getBaseRpcUrlCandidates();
+  return fallback(
+    urls.map((url) =>
+      http(url, {
+        timeout: 20_000,
+        retryCount: 1,
+        retryDelay: 350,
+      }),
+    ),
+    { rank: false },
+  );
+}
+
+/**
+ * Viem transport that fails over across X Layer RPC candidates.
+ * @returns {ReturnType<typeof fallback>}
+ */
+export function createXlayerTransport() {
+  const urls = getXlayerRpcUrlCandidates();
   return fallback(
     urls.map((url) =>
       http(url, {
@@ -152,6 +217,9 @@ export function getAlgorandUsdcAsaId() {
 /** @type {ReturnType<typeof createPublicClient> | null} */
 let basePublicClient = null;
 
+/** @type {ReturnType<typeof createPublicClient> | null} */
+let xlayerPublicClient = null;
+
 /**
  * Shared Base public client with multi-RPC fallback (handles public endpoint rate limits).
  * @returns {ReturnType<typeof createPublicClient>}
@@ -167,6 +235,20 @@ export function getBasePublicClient() {
 }
 
 /**
+ * Shared X Layer public client with multi-RPC fallback.
+ * @returns {ReturnType<typeof createPublicClient>}
+ */
+export function getXlayerPublicClient() {
+  if (!xlayerPublicClient) {
+    xlayerPublicClient = createPublicClient({
+      chain: xLayer,
+      transport: createXlayerTransport(),
+    });
+  }
+  return xlayerPublicClient;
+}
+
+/**
  * Wallet client for Base writes using the same multi-RPC fallback transport.
  * @param {import('viem').Account} account
  * @returns {ReturnType<typeof createWalletClient>}
@@ -176,6 +258,19 @@ export function createBaseWalletClient(account) {
     account,
     chain: base,
     transport: createBaseTransport(),
+  });
+}
+
+/**
+ * Wallet client for X Layer writes using the same multi-RPC fallback transport.
+ * @param {import('viem').Account} account
+ * @returns {ReturnType<typeof createWalletClient>}
+ */
+export function createXlayerWalletClient(account) {
+  return createWalletClient({
+    account,
+    chain: xLayer,
+    transport: createXlayerTransport(),
   });
 }
 
@@ -279,17 +374,19 @@ export async function getLabWalletKeypairByAddress(address) {
 }
 
 /**
- * Resolve a viem account for an EVM lab wallet address (Base).
+ * Resolve a viem account for an EVM lab wallet address (Base or X Layer).
  * @param {string} address
+ * @param {'base' | 'xlayer'} [chain='base']
  * @returns {Promise<import('viem').Account | null>}
  */
-export async function getLabWalletEvmAccountByAddress(address) {
+export async function getLabWalletEvmAccountByAddress(address, chain = 'base') {
   const addr = String(address || '').trim();
   if (!addr) return null;
+  const c = chain === 'xlayer' ? 'xlayer' : 'base';
   const doc = await LabWallet.findOne({
     address: { $regex: new RegExp(`^${addr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
     active: true,
-    chain: 'base',
+    chain: c,
   })
     .select('+encryptedSecret')
     .lean();
@@ -300,7 +397,7 @@ export async function getLabWalletEvmAccountByAddress(address) {
 /**
  * Load active lab wallet doc (with secret) by address, optionally scoped to chain.
  * @param {string} address
- * @param {'solana' | 'base' | 'algorand'} [chain]
+ * @param {'solana' | 'base' | 'algorand' | 'xlayer'} [chain]
  * @returns {Promise<object | null>}
  */
 export async function getLabWalletDocByAddress(address, chain) {
@@ -308,7 +405,7 @@ export async function getLabWalletDocByAddress(address, chain) {
   if (!addr) return null;
   /** @type {Record<string, unknown>} */
   const filter = { active: true };
-  if (chain === 'base') {
+  if (chain === 'base' || chain === 'xlayer') {
     filter.chain = chain;
     filter.address = { $regex: new RegExp(`^${addr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') };
   } else if (chain === 'solana' || chain === 'algorand') {
@@ -322,13 +419,17 @@ export async function getLabWalletDocByAddress(address, chain) {
         chain: 'base',
         address: { $regex: new RegExp(`^${addr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
       },
+      {
+        chain: 'xlayer',
+        address: { $regex: new RegExp(`^${addr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
+      },
     ];
   }
   return LabWallet.findOne(filter).select('+encryptedSecret').lean();
 }
 
 /**
- * @param {'solana' | 'base' | 'algorand'} [chain]
+ * @param {'solana' | 'base' | 'algorand' | 'xlayer'} [chain]
  * @returns {Promise<string | null>}
  */
 export async function getActivePayToAddress(chain = 'solana') {
@@ -344,19 +445,22 @@ export async function getActivePayToAddress(chain = 'solana') {
  *   solanaPayTo: string | null;
  *   evmPayTo: string | null;
  *   basePayTo: string | null;
+ *   xlayerPayTo: string | null;
  *   algorandPayTo: string | null;
  * }>}
  */
 export async function getActiveLabPayToAddresses() {
-  const [solanaPayTo, basePayTo, algorandPayTo] = await Promise.all([
+  const [solanaPayTo, basePayTo, xlayerPayTo, algorandPayTo] = await Promise.all([
     getActivePayToAddress('solana'),
     getActivePayToAddress('base'),
+    getActivePayToAddress('xlayer'),
     getActivePayToAddress('algorand'),
   ]);
   return {
     solanaPayTo,
     evmPayTo: basePayTo,
     basePayTo,
+    xlayerPayTo,
     algorandPayTo,
   };
 }
@@ -373,10 +477,12 @@ export async function getActivePayToKeypair() {
 }
 
 /**
+ * @param {'base' | 'xlayer'} [chain='base']
  * @returns {Promise<import('viem').Account | null>}
  */
-export async function getActivePayToEvmAccount() {
-  const doc = await LabWallet.findOne({ role: 'payto', active: true, chain: 'base' })
+export async function getActivePayToEvmAccount(chain = 'base') {
+  const c = chain === 'xlayer' ? 'xlayer' : 'base';
+  const doc = await LabWallet.findOne({ role: 'payto', active: true, chain: c })
     .select('+encryptedSecret')
     .lean();
   if (!doc) return null;
@@ -474,6 +580,51 @@ export async function getBaseLabWalletBalances(address) {
     }
   }
   console.warn('[labWalletService] Base balance read failed:', lastErr?.message || lastErr);
+  return null;
+}
+
+/**
+ * Read OKB + USDT0 balances for an X Layer lab wallet.
+ * `usdcBalance` holds the USDT0 balance (6 decimals) for Labs UI compatibility.
+ * @param {string} address
+ * @returns {Promise<{ nativeBalance: number; usdcBalance: number } | null>}
+ */
+export async function getXlayerLabWalletBalances(address) {
+  const addr = String(address || '').trim();
+  if (!addr || !/^0x[0-9a-fA-F]{40}$/.test(addr)) return null;
+
+  const client = getXlayerPublicClient();
+  const MAX_ATTEMPTS = 3;
+  let lastErr;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const [okbWei, usdt0Raw] = await Promise.all([
+        client.getBalance({ address: /** @type {`0x${string}`} */ (addr) }),
+        client.readContract({
+          address: /** @type {`0x${string}`} */ (XLAYER_USDT0),
+          abi: ERC20_BALANCE_ABI,
+          functionName: 'balanceOf',
+          args: [/** @type {`0x${string}`} */ (addr)],
+        }),
+      ]);
+      return {
+        nativeBalance: Number(formatEther(okbWei)),
+        usdcBalance: Number(formatUnits(/** @type {bigint} */ (usdt0Raw), 6)),
+      };
+    } catch (e) {
+      lastErr = e;
+      const msg = e?.message || String(e);
+      const retryable = /rate limit|too many requests|429|503|502|504|timeout|timed out|ECONNRESET/i.test(
+        msg,
+      );
+      if (retryable && attempt < MAX_ATTEMPTS) {
+        await new Promise((r) => setTimeout(r, 400 * attempt));
+        continue;
+      }
+      break;
+    }
+  }
+  console.warn('[labWalletService] X Layer balance read failed:', lastErr?.message || lastErr);
   return null;
 }
 
@@ -595,9 +746,10 @@ export async function ensureAlgorandLabWalletUsdcOptIn(address) {
 
 /**
  * Chain-aware balance read. Normalized to nativeBalance + usdcBalance.
+ * On X Layer, usdcBalance is the USDT0 balance.
  * @param {string} address
- * @param {'solana' | 'base' | 'algorand'} [chain]
- * @returns {Promise<{ nativeBalance: number; usdcBalance: number; chain: 'solana' | 'base' | 'algorand'; optedInUsdc?: boolean } | null>}
+ * @param {'solana' | 'base' | 'algorand' | 'xlayer'} [chain]
+ * @returns {Promise<{ nativeBalance: number; usdcBalance: number; chain: 'solana' | 'base' | 'algorand' | 'xlayer'; optedInUsdc?: boolean } | null>}
  */
 export async function getLabWalletBalances(address, chain) {
   const c = chain
@@ -607,6 +759,7 @@ export async function getLabWalletBalances(address, chain) {
       : 'solana';
   let balances = null;
   if (c === 'base') balances = await getBaseLabWalletBalances(address);
+  else if (c === 'xlayer') balances = await getXlayerLabWalletBalances(address);
   else if (c === 'algorand') balances = await getAlgorandLabWalletBalances(address);
   else balances = await getSolanaLabWalletBalances(address);
   if (!balances) return null;
@@ -732,11 +885,12 @@ function formatLabWalletDoc(doc) {
 }
 
 /**
- * @param {'solana' | 'base' | 'algorand'} chain
- * @returns {'SOL' | 'ETH' | 'ALGO'}
+ * @param {'solana' | 'base' | 'algorand' | 'xlayer'} chain
+ * @returns {'SOL' | 'ETH' | 'ALGO' | 'OKB'}
  */
 function nativeSymbolForChain(chain) {
   if (chain === 'base') return 'ETH';
+  if (chain === 'xlayer') return 'OKB';
   if (chain === 'algorand') return 'ALGO';
   return 'SOL';
 }
@@ -813,14 +967,20 @@ export async function getActiveDepositWalletDoc(chain = 'base') {
 }
 
 /**
- * Get or create the per-chain deposit hub wallet (solana | base | algorand).
- * @param {'solana' | 'base' | 'algorand'} [chain='base']
+ * Get or create the per-chain deposit hub wallet (solana | base | algorand | xlayer).
+ * @param {'solana' | 'base' | 'algorand' | 'xlayer'} [chain='base']
  * @returns {Promise<object>}
  */
 export async function getOrCreateDepositWallet(chain = 'base') {
   const c = normalizeLabChain(chain);
   const chainLabel =
-    c === 'base' ? 'Base' : c === 'algorand' ? 'Algorand' : 'Solana';
+    c === 'base'
+      ? 'Base'
+      : c === 'xlayer'
+        ? 'X Layer'
+        : c === 'algorand'
+          ? 'Algorand'
+          : 'Solana';
 
   const existing = await getActiveDepositWalletDoc(c);
   if (existing) {

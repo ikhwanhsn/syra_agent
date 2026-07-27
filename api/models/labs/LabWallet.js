@@ -1,5 +1,5 @@
 /**
- * LabWallet — self-custody Solana / Base wallets for x402 Labs (admin-only feature).
+ * LabWallet — self-custody Solana / Base / Algorand / X Layer wallets for x402 Labs (admin-only feature).
  * Keys stored encrypted via agentWalletSecretCrypto envelope.
  */
 import mongoose from 'mongoose';
@@ -12,7 +12,7 @@ const labWalletSchema = new mongoose.Schema(
     role: { type: String, enum: ['payer', 'payto', 'deposit'], required: true, index: true },
     chain: {
       type: String,
-      enum: ['solana', 'base', 'celo', 'algorand'],
+      enum: ['solana', 'base', 'celo', 'algorand', 'xlayer'],
       default: 'solana',
       index: true,
     },
