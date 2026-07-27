@@ -16,6 +16,7 @@ import { usePublicMetrics, type PublicMetricsSnapshot } from "@/lib/publicMetric
 import { SYRA_LIVE_SUBLINE, SYRA_TAGLINE } from "@/lib/syraBranding";
 import { SyraBuyButton } from "@/components/syra/SyraBuyButton";
 import { GrowthTokenSection } from "@/components/growth/GrowthTokenSection";
+import { GrowthTestimonials } from "@/components/growth/GrowthTestimonials";
 import { GrowthTrustRankings } from "@/components/growth/GrowthTrustRankings";
 import { GrowthFooter } from "@/components/growth/GrowthFooter";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -49,19 +50,19 @@ function formatUsd(n: number): string {
 const HOW_STEPS = [
   {
     n: "01",
-    title: "Install MCP",
-    body: "One command in Cursor or Claude. Same path as the marketplace Integrate tab.",
-    href: "https://docs.syraa.fun/docs/build/mcp",
-    external: true,
-    icon: Plug,
-  },
-  {
-    n: "02",
     title: "Fund Solana USDC",
-    body: "Set SYRA_PAYER_KEYPAIR with ≥ $1 USDC (and a little SOL for fees).",
+    body: "Put ≥ $1 USDC (and a little SOL for fees) in the wallet you will set as SYRA_PAYER_KEYPAIR.",
     href: "/marketplace",
     external: false,
     icon: Wallet,
+  },
+  {
+    n: "02",
+    title: "Install MCP with payer",
+    body: "Add Syra in Cursor or Claude with SYRA_PAYER_KEYPAIR in env. Same path as the marketplace Integrate tab.",
+    href: "https://docs.syraa.fun/docs/build/mcp",
+    external: true,
+    icon: Plug,
   },
   {
     n: "03",
@@ -719,6 +720,11 @@ export default function GrowthHomePage() {
             })}
           </ol>
         </motion.section>
+
+        {/* Reviews, public social proof from operators */}
+        <motion.div {...fadeUp(0.1)} className="mt-24 sm:mt-32">
+          <GrowthTestimonials />
+        </motion.div>
 
         {/* Metrics */}
         <motion.section

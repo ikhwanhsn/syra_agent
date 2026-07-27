@@ -72,7 +72,7 @@ export function registerSyraTools(server) {
         return { content: [{ type: "text", text: result.text }] };
     });
     // Free facade + AgentScore tools
-    server.tool("syra_pillars", "Discover Syra five pillars: Earn, Treasury, Invest, Spend, Grow. Free GET /pillars.", {}, async () => {
+    server.tool("syra_pillars", "Discover Syra platform modules (Earn, Treasury, Invest, Spend, Grow). Live GTM is Spend/x402 pay-per-call; others are roadmap. Free GET /pillars.", {}, async () => {
         const result = await callFreeRoute("/pillars");
         return { content: [{ type: "text", text: result.text }] };
     });

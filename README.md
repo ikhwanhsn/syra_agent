@@ -25,7 +25,7 @@
 
 | Integrate | How |
 |-----------|-----|
-| **MCP** | `claude mcp add syra -- npx -y @syra-ai/mcp-server@latest` |
+| **MCP** | Fund ≥ $1 Solana USDC, then `claude mcp add syra -e SYRA_API_BASE_URL=https://api.syraa.fun -e SYRA_PAYER_KEYPAIR=your-solana-secret -- npx -y @syra-ai/mcp-server@latest` |
 | **SDK** | `npm i @syra-ai/sdk` → `createSyraPaidClient` |
 | **Marketplace** | [syraa.fun/marketplace](https://syraa.fun/marketplace) — first paid call in ~5 minutes |
 
@@ -53,14 +53,16 @@ Status is also exposed on `GET /pillars` so agents see the same truth.
 
 ### 1. MCP (Cursor / Claude Code)
 
+**Required before paid tools work:** a Solana wallet with **≥ $1 USDC** (and a little SOL for fees) in `SYRA_PAYER_KEYPAIR`.
+
 ```bash
-claude mcp add syra -- npx -y @syra-ai/mcp-server@latest
+claude mcp add syra \
+  -e SYRA_API_BASE_URL=https://api.syraa.fun \
+  -e SYRA_PAYER_KEYPAIR=your-solana-secret \
+  -- npx -y @syra-ai/mcp-server@latest
 ```
 
-Set:
-
-- `SYRA_API_BASE_URL=https://api.syraa.fun`
-- `SYRA_PAYER_KEYPAIR` — Solana wallet with **≥ $1 USDC** (and a little SOL for fees)
+Or paste Cursor `mcp.json` with the same env keys (replace `your-solana-secret` with your keypair).
 
 Then call **`syra_spend_news`** (e.g. ticker `BTC`) from your MCP host.
 

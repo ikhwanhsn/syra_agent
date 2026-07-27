@@ -1,0 +1,34 @@
+{
+  "date": "2026-07-27",
+  "updatedAt": "2026-07-27T01:09:03.313Z",
+  "source": "https://api.syraa.fun/api/metrics",
+  "loopHealth": "Closed-but-quiet",
+  "checklistItem": "Weekly proof content — publish #34 Revenue → $SYRA Proof",
+  "northStar": {
+    "paidCallsLast7d": 24291,
+    "uniquePayingWalletsLast7d": 75,
+    "usdSettled7d": 711.43
+  },
+  "buyback": {
+    "totalBuybackUsdSpent": 25.14,
+    "treasurySyraBalance": 165644.59225,
+    "lastBuybackSolscan": "https://solscan.io/tx/3jz7qTsz14SQpJVxnaK5UWHVFjGP38GtDDuhGuK6ziNajDZciU62ZqwjYDUPGUMuzoHDAvM6ZxpSj8Mp1S21ED33"
+  },
+  "rewards": {
+    "uniqueEarners": 75,
+    "totalClaimableSyra": 0,
+    "totalClaimedSyra": 0,
+    "totalPendingPoints": 704.2825999999989,
+    "fundAttempt": "401 Missing API key — hand off POST /internal/rewards/fund with prod credentials"
+  },
+  "holders": {
+    "marketCapUsd": 65475,
+    "liquidityUsd": 24106.79
+  },
+  "publish": {
+    "postVideo": "https://www.syraa.fun/post/video/34",
+    "postPhoto": "https://www.syraa.fun/post/photo/34",
+    "shareCopyUpdatedInRepo": true
+  },
+  "oneAction": "Publish #34 X post with Solscan + live metrics; then fund rewards epoch with prod API key + cron secret"
+}

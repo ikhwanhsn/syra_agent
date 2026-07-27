@@ -345,3 +345,55 @@ export const SYRA_TRUST_RANKINGS: SyraTrustRanking[] = [
     ariaLabel: "Syra is listed on x402scan Top Servers, view explorer",
   },
 ];
+
+export interface SyraTestimonial {
+  id: "kehaya" | "corbits" | "stanley";
+  quote: string;
+  image: string;
+  author: string;
+  role: string;
+  metric: string;
+  metricLabel: string;
+  href: string;
+  ariaLabel: string;
+}
+
+/** Homepage social proof: public X reviews from builders and operators. */
+export const SYRA_TESTIMONIALS: SyraTestimonial[] = [
+  {
+    id: "kehaya",
+    quote:
+      "Syra ran 25K+ real on-chain transactions to stress-test our system. Flawless execution. Fast, reliable, and powerful.",
+    image: "/images/trust/kehaya.jpg",
+    author: "Kehaya",
+    role: "Ex-Solana Foundation",
+    metric: "+50K",
+    metricLabel: "X Followers",
+    href: "https://x.com/afkehaya/status/1989172829598924956?s=20",
+    ariaLabel: "Read Kehaya's review of Syra on X",
+  },
+  {
+    id: "corbits",
+    quote:
+      "Syra's agents delivered a true 100% success rate. Zero failures. Performance at its best.",
+    image: "/images/trust/corbits.jpg",
+    author: "Corbits",
+    role: "x402 Facilitator",
+    metric: "+3.5K",
+    metricLabel: "X Followers",
+    href: "https://x.com/corbits_dev/status/1989770638555570301?s=20",
+    ariaLabel: "Read Corbits' review of Syra on X",
+  },
+  {
+    id: "stanley",
+    quote:
+      "Syra's modular AI agents deliver real market intelligence. Real-time sentiment and deep research in one system.",
+    image: "/images/trust/stanley.jpg",
+    author: "Stanley",
+    role: "Whales Investor",
+    metric: "+21K",
+    metricLabel: "X Followers",
+    href: "https://x.com/Stanley_Trader/status/1992906485169267009?s=20",
+    ariaLabel: "Read Stanley's review of Syra on X",
+  },
+];

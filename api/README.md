@@ -116,7 +116,7 @@ BlockRun-style traction and onboarding endpoints (no API key):
 
 **Base gateway:** configure `BASE_PAYTO` / `EVM_PAYTO` — see [`config/baseX402Gateway.js`](./config/baseX402Gateway.js).
 
-**MCP one-liner:** `claude mcp add syra -- npx -y @syra-ai/mcp-server@latest`
+**MCP first paid call:** fund ≥ $1 Solana USDC, then `claude mcp add syra -e SYRA_API_BASE_URL=https://api.syraa.fun -e SYRA_PAYER_KEYPAIR=your-solana-secret -- npx -y @syra-ai/mcp-server@latest`
 
 **Open-source payer:** [`packages/syra-x402-payer`](../packages/syra-x402-payer) (`@syra-ai/x402-payer`, MIT).
 

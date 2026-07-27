@@ -97,4 +97,4 @@ Naming: `syra_{pillar}_{toolId}`. Full curated list: https://syraa.fun/skills.md
 - Skills catalog: https://syraa.fun/skills.md
 - Agent skill: https://api.syraa.fun/skill.md
 - Marketplace: https://syraa.fun/marketplace
-- One-line CLI: `claude mcp add syra -- npx -y @syra-ai/mcp-server@latest`
+- One-line CLI: fund ≥ $1 Solana USDC, then `claude mcp add syra -e SYRA_API_BASE_URL=https://api.syraa.fun -e SYRA_PAYER_KEYPAIR=your-solana-secret -- npx -y @syra-ai/mcp-server@latest`

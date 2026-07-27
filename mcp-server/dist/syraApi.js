@@ -6,7 +6,9 @@ const SYRA_MCP_API_KEY = process.env.SYRA_MCP_API_KEY?.trim() || "";
 const SYRA_CONNECTED_WALLET = (process.env.SYRA_CONNECTED_WALLET || process.env.SYRA_DEV_WALLET || "").trim();
 let clientPromise = null;
 function buildDefaultHeaders() {
-    const headers = {};
+    const headers = {
+        "X-Syra-Source": "mcp-server",
+    };
     if (SYRA_CONNECTED_WALLET) {
         headers["X-Connected-Wallet"] = SYRA_CONNECTED_WALLET;
     }
@@ -98,6 +100,7 @@ export async function callBridgeTool(toolId, rawParams = {}) {
         headers: {
             "Content-Type": "application/json",
             Accept: "application/json",
+            "X-Syra-Source": "mcp-server",
             "X-MCP-API-Key": SYRA_MCP_API_KEY,
         },
         body: JSON.stringify({ toolId, params: rawParams }),

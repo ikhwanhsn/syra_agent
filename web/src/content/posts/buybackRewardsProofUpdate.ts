@@ -12,25 +12,24 @@ export const BUYBACK_REWARDS_PROOF_POST = defineVideoUpdate(
     published: "July 2026",
     tagline:
       "Paid x402 calls fund on-market $SYRA buybacks you can verify, plus usage rewards and live holder fee discounts.",
-    shareCopyVideo: `SHIP LOG · Revenue → $SYRA is now verifiable.
+    shareCopyVideo: `Revenue → $SYRA is verifiable.
 
-Agents pay USDC per call.
-~80% of settled revenue buys $SYRA on Jupiter.
-Flushes show on syraa.fun/token with Solscan links.
+7d: 24,291 paid x402 calls · $711.43 settled · 75 paying wallets
+Buybacks: $25.14 spent → 165,644 $SYRA in treasury (not burned)
+Last flush on Solscan:
+https://solscan.io/tx/3jz7qTsz14SQpJVxnaK5UWHVFjGP38GtDDuhGuK6ziNajDZciU62ZqwjYDUPGUMuzoHDAvM6ZxpSj8Mp1S21ED33
 
-→ Hold/stake $SYRA for x402 fee discounts
-→ Use the APIs → earn claimable $SYRA on /rewards
+Holders: live fee discounts · payers: usage rewards on /rewards
+Proof: syraa.fun/token · builders: syraa.fun/marketplace`,
+    shareCopyPhoto: `Revenue → $SYRA is verifiable.
 
-Proof > narrative.
+7d: 24,291 paid x402 calls · $711.43 settled · 75 paying wallets
+Buybacks: $25.14 spent → 165,644 $SYRA in treasury (not burned)
+Last flush on Solscan:
+https://solscan.io/tx/3jz7qTsz14SQpJVxnaK5UWHVFjGP38GtDDuhGuK6ziNajDZciU62ZqwjYDUPGUMuzoHDAvM6ZxpSj8Mp1S21ED33
 
-Full breakdown in the video ↓`,
-    shareCopyPhoto: `SHIP LOG · Revenue → $SYRA.
-
-Verify buybacks on syraa.fun/token.
-Claim usage rewards on syraa.fun/rewards.
-Hold $SYRA for live API fee discounts.
-
-Agents pay. Buybacks run. You can check the txs.`,
+Holders: live fee discounts · payers: usage rewards on /rewards
+Proof: syraa.fun/token · builders: syraa.fun/marketplace`,
   },
   [
     {

@@ -55,7 +55,10 @@ For local API without payment:
 ## One-line alternative (Claude CLI)
 
 ```bash
-claude mcp add syra -- npx -y @syra-ai/mcp-server@latest
+claude mcp add syra \
+  -e SYRA_API_BASE_URL=https://api.syraa.fun \
+  -e SYRA_PAYER_KEYPAIR=your-solana-secret \
+  -- npx -y @syra-ai/mcp-server@latest
 ```
 
 ## References

@@ -1,17 +1,17 @@
 {
-  "date": "2026-07-26",
-  "updatedAt": "2026-07-26T16:27:59.567Z",
+  "date": "2026-07-27",
+  "updatedAt": "2026-07-27T00:35:08.580Z",
   "source": "https://api.syraa.fun/api/metrics",
   "northStar": {
-    "paidCallsLast7d": 21972,
+    "paidCallsLast7d": 24209,
     "uniquePayingWalletsLast7d": 75
   },
   "last7d": {
-    "calls": 21972,
-    "usdSettled": 608.14
+    "calls": 24209,
+    "usdSettled": 704.16
   },
   "buyback": {
-    "totalBuybackUsdSpent": 0.48,
+    "totalBuybackUsdSpent": 25.18,
     "totalSyraAcquired": 165644.59225,
     "treasurySyraBalance": 165644.59225,
     "lastBuybackSignature": "3jz7qTsz14SQpJVxnaK5UWHVFjGP38GtDDuhGuK6ziNajDZciU62ZqwjYDUPGUMuzoHDAvM6ZxpSj8Mp1S21ED33"
@@ -22,8 +22,8 @@
     "totalClaimedSyra": 0
   },
   "settlement": {
-    "settleFailRate24h": 0.0002
+    "settleFailRate24h": 0.0005
   },
-  "oneAction": "Publish proof ship-log: 24h settlement guardrail-green (99.98%) + $1,177 lifetime GMV / 89 payers + 4 networks; cite Solscan buyback + treasury",
-  "bottleneck": "distribution"
+  "oneAction": "Source-tag + install copy shipped; complete one Cursor MCP paid call (syra_spend_news) with funded SYRA_PAYER_KEYPAIR; done when mcpPaidCalls >= 1",
+  "bottleneck": "activation"
 }

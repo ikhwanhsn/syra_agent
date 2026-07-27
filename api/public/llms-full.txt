@@ -90,12 +90,16 @@ GET /experiment/scalper/equity-history — equity curve
 GET /experiment/scalper/reference      — wallet + x402 spend summary
 Web UI: https://syraa.fun/reference/scalper
 
-MCP one-liner (Cursor / Claude Code)
-------------------------------------
-claude mcp add syra -- npx -y @syra-ai/mcp-server@latest
+MCP first paid call (Cursor / Claude Code)
+------------------------------------------
+Fund a Solana wallet with ≥ $1 USDC (+ SOL for fees), then:
 
-Set SYRA_API_BASE_URL=https://api.syraa.fun
-Set SYRA_PAYER_KEYPAIR for auto-pay in production.
+claude mcp add syra \
+  -e SYRA_API_BASE_URL=https://api.syraa.fun \
+  -e SYRA_PAYER_KEYPAIR=your-solana-secret \
+  -- npx -y @syra-ai/mcp-server@latest
+
+Replace your-solana-secret with the funded keypair. Call syra_spend_news (ticker BTC).
 
 SDK
 ---

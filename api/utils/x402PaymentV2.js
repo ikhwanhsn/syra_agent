@@ -124,6 +124,24 @@ function x402Log(event, detail) {
   console.log(`[x402] ${event}${line ? ` ${line}` : ""}`);
 }
 
+/** Allowlisted client sources for inbound x402 telemetry (header: X-Syra-Source). */
+const INBOUND_CLIENT_SOURCES = new Set(["mcp", "mcp-server", "sdk", "api"]);
+
+/**
+ * Resolve inbound call source from X-Syra-Source (case-insensitive allowlist).
+ * Defaults to api when missing or unknown.
+ * @param {import('express').Request | null | undefined} req
+ * @returns {string}
+ */
+export function resolveInboundClientSource(req) {
+  const raw = req?.headers?.["x-syra-source"] ?? req?.headers?.["X-Syra-Source"];
+  const value = String(Array.isArray(raw) ? raw[0] : raw || "")
+    .trim()
+    .toLowerCase();
+  if (value && INBOUND_CLIENT_SOURCES.has(value)) return value;
+  return "api";
+}
+
 /** Fire-and-forget inbound x402 telemetry. */
 function recordInboundX402(req, event) {
   if (!req?.path) return;
@@ -132,8 +150,8 @@ function recordInboundX402(req, event) {
       direction: "inbound",
       path: req.path,
       method: req.method || "GET",
-      source: "api",
       ...event,
+      source: resolveInboundClientSource(req),
     })
   );
 }
@@ -2093,7 +2111,7 @@ export async function settlePaymentAndSetResponse(res, req) {
       amountMicroUsdc: accepted?.amount,
       payer: typeof settle?.payer === "string" ? settle.payer : null,
       txSignature: typeof settle?.transaction === "string" ? settle.transaction : null,
-      source: "api",
+      source: resolveInboundClientSource(req),
       latencyMs: Date.now() - settleStartedAt,
     })
   );

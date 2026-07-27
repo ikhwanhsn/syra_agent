@@ -48,20 +48,21 @@ export default function BuildMcp() {
         </p>
         <ol>
           <li>
-            Install MCP:{" "}
-            <code className="text-sm">claude mcp add syra -- npx -y @syra-ai/mcp-server@latest</code>
-          </li>
-          <li>
-            Set <code className="text-sm">SYRA_API_BASE_URL=https://api.syraa.fun</code>
-          </li>
-          <li>
-            Fund a Solana wallet with ≥ $1 USDC (+ a little SOL) and set{" "}
+            Fund a Solana wallet with ≥ $1 USDC (+ a little SOL). Set that keypair as{" "}
             <code className="text-sm">SYRA_PAYER_KEYPAIR</code>
-            {" — "}or buy USDC with a card into your Syra agent wallet at{" "}
+            {" - "}or buy USDC with a card into your Syra agent wallet at{" "}
             <a href="https://syraa.fun/wallet" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
               syraa.fun/wallet
             </a>
-            {" "}(<Link to="/docs/build/crossmint-x402" className="text-primary hover:underline">Crossmint onramp</Link>)
+            {" "}(<Link to="/docs/build/crossmint-x402" className="text-primary hover:underline">Crossmint onramp</Link>).
+            Paid tools return 402 without a funded payer.
+          </li>
+          <li>
+            Install MCP with payer env:{" "}
+            <code className="text-sm">
+              claude mcp add syra -e SYRA_API_BASE_URL=https://api.syraa.fun -e
+              SYRA_PAYER_KEYPAIR=your-solana-secret -- npx -y @syra-ai/mcp-server@latest
+            </code>
           </li>
           <li>
             Call <code className="text-sm">syra_spend_news</code> with ticker <code className="text-sm">BTC</code>
@@ -83,16 +84,19 @@ export default function BuildMcp() {
       </DocSection>
 
       <DocSection id="install" title="Install" prose>
-        <p>One-line (Claude CLI):</p>
+        <p>Claude CLI (payer env required for paid tools):</p>
         <pre className="rounded-md border bg-muted/40 p-4 text-sm overflow-x-auto">
-          <code>claude mcp add syra -- npx -y @syra-ai/mcp-server@latest</code>
+          <code>{`claude mcp add syra \\
+  -e SYRA_API_BASE_URL=https://api.syraa.fun \\
+  -e SYRA_PAYER_KEYPAIR=your-solana-secret \\
+  -- npx -y @syra-ai/mcp-server@latest`}</code>
         </pre>
-        <p className="mt-4">Or run directly:</p>
+        <p className="mt-4">Or run directly with the same env:</p>
         <pre className="rounded-md border bg-muted/40 p-4 text-sm overflow-x-auto">
-          <code>npx -y @syra-ai/mcp-server</code>
+          <code>{`SYRA_API_BASE_URL=https://api.syraa.fun SYRA_PAYER_KEYPAIR=your-solana-secret npx -y @syra-ai/mcp-server`}</code>
         </pre>
         <p className="mt-4">
-          Requires Node.js ≥ 18. Package:{" "}
+          Requires Node.js ≥ 18 and a funded Solana USDC payer for x402. Package:{" "}
           <a
             href="https://www.npmjs.com/package/@syra-ai/mcp-server"
             className="text-primary hover:underline"

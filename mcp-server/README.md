@@ -42,19 +42,26 @@
 
 ---
 
-## Install (one line)
+## Install (first paid call)
+
+**Fund first:** put **≥ $1 USDC** on Solana (plus a little SOL for fees) in the wallet you will set as `SYRA_PAYER_KEYPAIR`. Without a funded payer, paid tools return HTTP 402.
 
 ```bash
-claude mcp add syra -- npx -y @syra-ai/mcp-server@latest
+claude mcp add syra \
+  -e SYRA_API_BASE_URL=https://api.syraa.fun \
+  -e SYRA_PAYER_KEYPAIR=your-solana-secret \
+  -- npx -y @syra-ai/mcp-server@latest
 ```
 
-Or run directly:
+Or run directly (same env required for production):
 
 ```bash
+SYRA_API_BASE_URL=https://api.syraa.fun \
+SYRA_PAYER_KEYPAIR=your-solana-secret \
 npx -y @syra-ai/mcp-server
 ```
 
-**Requirements:** Node.js ≥ 18
+**Requirements:** Node.js ≥ 18 · funded Solana USDC payer for x402 auto-pay
 
 ---
 
@@ -107,7 +114,7 @@ SYRA_USE_DEV_ROUTES=true
 }
 ```
 
-Restart Cursor or reload MCP. Ask for crypto news, events, or signals — tools such as `syra_spend_news` appear automatically.
+Restart Cursor or reload MCP. Replace `your-solana-secret` with a real keypair whose wallet holds ≥ $1 USDC. Then ask for crypto news — call `syra_spend_news` (ticker `BTC`) for the first settled paid call.
 
 ---
 

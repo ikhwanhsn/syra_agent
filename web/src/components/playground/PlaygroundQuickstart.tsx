@@ -67,13 +67,13 @@ const INTEGRATION_LINKS = [
 const STEPS = [
   {
     n: "01",
-    title: "Install MCP",
-    body: "Add Syra to Cursor or Claude. Copy the mcp.json snippet below (or run the one-liner).",
+    title: "Fund Solana USDC",
+    body: "Put ≥ $1 USDC on Solana (plus a little SOL for fees) in the wallet you will use as SYRA_PAYER_KEYPAIR. Paid tools fail without this.",
   },
   {
     n: "02",
-    title: "Fund the payer wallet",
-    body: "Put ≥ $1 USDC on Solana in the wallet behind SYRA_PAYER_KEYPAIR, plus a little SOL for fees. Phantom or any Solana wallet works.",
+    title: "Install MCP with payer env",
+    body: "Copy the mcp.json snippet below. Paste your Solana secret into SYRA_PAYER_KEYPAIR (do not leave a placeholder).",
   },
   {
     n: "03",
@@ -129,7 +129,9 @@ const syra = await createSyraPaidClient({
 const news = await syra.get("/news", { ticker: "BTC" });
 console.log(news);`,
 
-    mcp: `# Cursor mcp.json (or Claude Desktop MCP config)
+    mcp: `# 1. Fund a Solana wallet with ≥ $1 USDC (+ a little SOL for fees)
+# 2. Paste that wallet's secret into SYRA_PAYER_KEYPAIR below
+# Cursor mcp.json (or Claude Desktop MCP config)
 
 {
   "mcpServers": {
@@ -139,14 +141,14 @@ console.log(news);`,
       "env": {
         "SYRA_API_BASE_URL": "${base}",
         "SYRA_MCP_TOOL_PROFILE": "curated",
-        "SYRA_PAYER_KEYPAIR": "\${SYRA_PAYER_KEYPAIR}"
+        "SYRA_PAYER_KEYPAIR": "your-solana-secret"
       }
     }
   }
 }
 
-# One-liner (Claude Code):
-# claude mcp add syra -- npx -y @syra-ai/mcp-server@latest
+# One-liner (Claude Code), payer env required:
+# claude mcp add syra -e SYRA_API_BASE_URL=${base} -e SYRA_PAYER_KEYPAIR=your-solana-secret -- npx -y @syra-ai/mcp-server@latest
 
 # Then call: syra_spend_news with ticker BTC
 

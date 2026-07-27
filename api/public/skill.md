@@ -13,11 +13,16 @@ Syra is **machine money for agents** on Solana — a pay-per-call x402 API rail 
 
 ### 1. MCP (preferred for chat / IDE agents)
 
+Fund a Solana wallet with **≥ $1 USDC** (+ SOL for fees), then:
+
 ```bash
-claude mcp add syra -- npx -y @syra-ai/mcp-server@latest
+claude mcp add syra \
+  -e SYRA_API_BASE_URL=https://api.syraa.fun \
+  -e SYRA_PAYER_KEYPAIR=your-solana-secret \
+  -- npx -y @syra-ai/mcp-server@latest
 ```
 
-Set `SYRA_PAYER_KEYPAIR` (Solana) for x402 auto-pay. Tools are named `syra_{pillar}_{toolId}` (e.g. `syra_spend_news`). Default profile is **curated** (~47 tools); use `SYRA_MCP_TOOL_PROFILE=full` for 257. Escape hatch: `syra_call_tool` with `{ toolId, params }`.
+Replace `your-solana-secret` with that funded keypair. Without it, paid tools return 402. Tools are named `syra_{pillar}_{toolId}` (e.g. `syra_spend_news`). Default profile is **curated** (~47 tools); use `SYRA_MCP_TOOL_PROFILE=full` for 257. Escape hatch: `syra_call_tool` with `{ toolId, params }`.
 
 Docs: https://docs.syraa.fun/docs/build/mcp
 

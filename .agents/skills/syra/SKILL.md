@@ -29,8 +29,13 @@ Syra is **pay-per-call crypto intelligence** over HTTP x402 (USDC). Prefer the M
 
 ### One-line MCP
 
+Fund ≥ $1 Solana USDC first, then:
+
 ```bash
-claude mcp add syra -- npx -y @syra-ai/mcp-server@latest
+claude mcp add syra \
+  -e SYRA_API_BASE_URL=https://api.syraa.fun \
+  -e SYRA_PAYER_KEYPAIR=your-solana-secret \
+  -- npx -y @syra-ai/mcp-server@latest
 ```
 
 ### Cursor `mcp.json`
@@ -44,7 +49,7 @@ claude mcp add syra -- npx -y @syra-ai/mcp-server@latest
       "env": {
         "SYRA_API_BASE_URL": "https://api.syraa.fun",
         "SYRA_MCP_TOOL_PROFILE": "curated",
-        "SYRA_PAYER_KEYPAIR": "${SYRA_PAYER_KEYPAIR}"
+        "SYRA_PAYER_KEYPAIR": "your-solana-secret"
       }
     }
   }
