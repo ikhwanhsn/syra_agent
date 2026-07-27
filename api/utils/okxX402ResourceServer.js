@@ -12,6 +12,15 @@ import {
   isOkxX402Enabled,
 } from "../config/okxX402Networks.js";
 
+/** @param {import('../config/okxX402Networks.js').OkxX402Network} row */
+function okxAssetAmount(row, amount) {
+  return {
+    asset: row.stablecoin,
+    amount,
+    extra: { name: row.eip712Name, version: row.eip712Version },
+  };
+}
+
 dotenv.config({ quiet: true });
 
 function env(name) {
@@ -62,7 +71,7 @@ export function getOkxX402ResourceServer() {
   const evmScheme = new ExactEvmScheme().registerMoneyParser(async (amount, net) => {
     const row = getOkxNetworkByCaip2(net);
     if (!row) return null;
-    return { asset: row.stablecoin, amount: atomicUsdcFromUsd(amount) };
+    return okxAssetAmount(row, atomicUsdcFromUsd(amount));
   });
 
   for (const net of getEnabledOkxX402Networks()) {

@@ -73,6 +73,18 @@ async function main() {
   }
 
   ok(`402 offers X Layer accept (payTo=${xlayerAccept.payTo}, asset=${xlayerAccept.asset})`);
+
+  const extraName =
+    xlayerAccept?.extra?.eip712?.name || xlayerAccept?.extra?.name || "";
+  const extraVersion =
+    xlayerAccept?.extra?.eip712?.version || xlayerAccept?.extra?.version || "";
+  if (extraName !== "USD\u20AE0" || extraVersion !== "1") {
+    fail(
+      `X Layer EIP-712 domain must be USD₮0/1 (got name=${JSON.stringify(extraName)} version=${JSON.stringify(extraVersion)}) — wrong domain causes perpetual 402 after wallet pay`,
+    );
+  }
+  ok("X Layer accept has correct USDT0 EIP-712 domain (USD₮0 / 1)");
+
   console.log("[validate-okx-x402] done");
 }
 

@@ -23,12 +23,22 @@ export const XLAYER_MAINNET_USDT = "0x779ded0c9e1022225f8e0630b35a9b54be713736";
 export const XLAYER_TESTNET_USDT = "0xcb8bf24c6ce16ad21d707c9505421a17f2bec79d";
 
 /**
+ * EIP-712 domain for USDT0 transferWithAuthorization on X Layer.
+ * Name uses U+20AE TUGRIK SIGN (₮), not ASCII "T" — wrong domain → invalid sig → perpetual 402.
+ * @see @okxweb3/x402-evm DEFAULT_STABLECOINS
+ */
+export const XLAYER_USDT0_EIP712_NAME = "USD\u20AE0";
+export const XLAYER_USDT0_EIP712_VERSION = "1";
+
+/**
  * @typedef {object} OkxX402Network
  * @property {string} id
  * @property {string} label
  * @property {string} caip2
  * @property {boolean} testnet
  * @property {string} stablecoin
+ * @property {string} eip712Name
+ * @property {string} eip712Version
  */
 
 /** @type {readonly OkxX402Network[]} */
@@ -39,6 +49,8 @@ export const OKX_X402_NETWORKS = [
     caip2: XLAYER_MAINNET_CAIP2,
     testnet: false,
     stablecoin: XLAYER_MAINNET_USDT,
+    eip712Name: XLAYER_USDT0_EIP712_NAME,
+    eip712Version: XLAYER_USDT0_EIP712_VERSION,
   },
   {
     id: "xlayer-testnet",
@@ -46,8 +58,22 @@ export const OKX_X402_NETWORKS = [
     caip2: XLAYER_TESTNET_CAIP2,
     testnet: true,
     stablecoin: XLAYER_TESTNET_USDT,
+    eip712Name: XLAYER_USDT0_EIP712_NAME,
+    eip712Version: XLAYER_USDT0_EIP712_VERSION,
   },
 ];
+
+/**
+ * EIP-712 extra block for an OKX X Layer accept (exact / EIP-3009).
+ * @param {OkxX402Network} net
+ */
+export function getOkxEip712Extra(net) {
+  return {
+    name: net.eip712Name,
+    version: net.eip712Version,
+    eip712: { name: net.eip712Name, version: net.eip712Version },
+  };
+}
 
 const OKX_CAIP2_SET = new Set(OKX_X402_NETWORKS.map((n) => n.caip2));
 

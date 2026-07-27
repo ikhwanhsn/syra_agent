@@ -47,6 +47,12 @@ export const BSC_USD1_MAINNET = '0x8d0D000Ee44948FC98c9B98A4FA4921476f08B0d';
 export const BSC_USDC_MAINNET = '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d';
 export const BSC_USDT_MAINNET = '0x55d398326f99059fF775485246999027B3197955';
 
+/** X Layer mainnet USDT0 (OKX facilitator). EIP-712 name is USD₮0 (U+20AE), version 1. */
+export const XLAYER_MAINNET_CAIP2 = 'eip155:196';
+export const XLAYER_MAINNET_USDT0 = '0x779ded0c9e1022225f8e0630b35a9b54be713736';
+export const XLAYER_USDT0_EIP712_NAME = 'USD\u20AE0';
+export const XLAYER_USDT0_EIP712_VERSION = '1';
+
 /** BSC stables (USD1, U, USDC, USDT) use 18 decimals on-chain. */
 export const BSC_TOKEN_DECIMALS = 18;
 
@@ -982,17 +988,33 @@ export async function executeBasePayment(
   serverExtensions?: X402Response['extensions']
 ): Promise<PaymentResult> {
   const { ExactEvmScheme } = await import('@x402/evm/exact/client');
-  const raw = paymentOption as X402PaymentOption & { extra?: { name?: string; version?: string; eip712?: { name?: string; version?: string } } };
-  const name = raw.extra?.eip712?.name ?? raw.extra?.name ?? 'USD Coin';
-  const version = raw.extra?.eip712?.version ?? raw.extra?.version ?? '2';
+  const raw = paymentOption as X402PaymentOption & {
+    price?: { asset?: string; amount?: string };
+    extra?: { name?: string; version?: string; eip712?: { name?: string; version?: string } };
+  };
+  const assetRaw = String(raw.asset ?? raw.price?.asset ?? '').trim();
+  const isXlayerUsdt0 =
+    String(raw.network || '').trim() === XLAYER_MAINNET_CAIP2 &&
+    assetRaw.toLowerCase() === XLAYER_MAINNET_USDT0.toLowerCase();
+  // Prefer server extras; for OKX USDT0 never fall back to USD Coin (invalidates EIP-3009 sigs).
+  const defaultName = isXlayerUsdt0 ? XLAYER_USDT0_EIP712_NAME : 'USD Coin';
+  const defaultVersion = isXlayerUsdt0 ? XLAYER_USDT0_EIP712_VERSION : '2';
+  const name = isXlayerUsdt0
+    ? XLAYER_USDT0_EIP712_NAME
+    : raw.extra?.eip712?.name ?? raw.extra?.name ?? defaultName;
+  const version = isXlayerUsdt0
+    ? XLAYER_USDT0_EIP712_VERSION
+    : raw.extra?.eip712?.version ?? raw.extra?.version ?? defaultVersion;
   const paymentRequirements = {
     payTo: raw.payTo,
     amount: String(raw.amount ?? '0'),
     maxTimeoutSeconds: raw.maxTimeoutSeconds ?? 60,
     network: raw.network,
-    asset: (raw.asset ?? raw.price?.asset ?? BASE_USDC_MAINNET).toLowerCase().startsWith('0x')
-      ? raw.asset ?? raw.price?.asset ?? BASE_USDC_MAINNET
-      : BASE_USDC_MAINNET,
+    asset: assetRaw.toLowerCase().startsWith('0x')
+      ? assetRaw
+      : isXlayerUsdt0
+        ? XLAYER_MAINNET_USDT0
+        : BASE_USDC_MAINNET,
     extra: { name, version },
   };
   const scheme = new ExactEvmScheme(evmSigner);
@@ -1000,6 +1022,15 @@ export async function executeBasePayment(
   const accepted = normalizeAcceptedForHeader(
     paymentOption as X402PaymentOption & { price?: { asset?: string; amount?: string } }
   );
+  // Keep PAYMENT-SIGNATURE accepted.extra aligned with the domain we signed.
+  if (isXlayerUsdt0 && accepted && typeof accepted === 'object') {
+    accepted.extra = {
+      ...(accepted.extra && typeof accepted.extra === 'object' ? accepted.extra : {}),
+      name: XLAYER_USDT0_EIP712_NAME,
+      version: XLAYER_USDT0_EIP712_VERSION,
+      eip712: { name: XLAYER_USDT0_EIP712_NAME, version: XLAYER_USDT0_EIP712_VERSION },
+    };
+  }
   const resource = resolveResourceForPayload(resourceUrl, resourceFrom402);
   let paymentPayload = buildV2PaymentPayload(accepted, result.payload, resource);
   paymentPayload = await enrichPaymentPayloadWithBuilderCode(paymentPayload, serverExtensions);
@@ -1100,6 +1131,7 @@ export function extractPaymentDetails(x402Response: X402Response): {
   if (asset) {
     const a = String(asset).toLowerCase();
     if (a === BSC_USD1_MAINNET.toLowerCase()) token = 'USD1';
+    else if (a === XLAYER_MAINNET_USDT0.toLowerCase()) token = 'USDT0';
     else if (a === BSC_USDC_MAINNET.toLowerCase() || a === BSC_USDT_MAINNET.toLowerCase()) {
       token = a === BSC_USDT_MAINNET.toLowerCase() ? 'USDT' : 'USDC';
     } else if (asset === USDC_MINT_STRING || asset === USDC_DEVNET_STRING || asset === 'USDC') {

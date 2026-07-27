@@ -85,7 +85,11 @@ import {
   isOkxX402Network,
   isOkxX402FacilitatorReady,
 } from "./okxX402ResourceServer.js";
-import { getEnabledOkxX402Networks } from "../config/okxX402Networks.js";
+import {
+  getEnabledOkxX402Networks,
+  getOkxEip712Extra,
+  getOkxNetworkByCaip2,
+} from "../config/okxX402Networks.js";
 import {
   verifyPayment as b402VerifyPayment,
   settlePayment as b402SettlePayment,
@@ -435,6 +439,7 @@ export function getPaymentSignatureHeaderFromReq(req) {
 /**
  * Ensure EVM/EIP-712 domain (name, version) for x402scan (same as payai_example_routes).
  * Dexter networks may override (e.g. Robinhood USDG = "Global Dollar" / "1").
+ * OKX X Layer USDT0 must use USD₮0 / 1 — defaulting to USD Coin invalidates signatures.
  */
 function ensureEvmEip712Domain(requirements) {
   return requirements.map((r) => {
@@ -445,16 +450,27 @@ function ensureEvmEip712Domain(requirements) {
     const b402Token = isB402Network(r.network) ? getB402TokenById(process.env.B402_TOKEN) : null;
     const dexterNet = getDexterNetworkByCaip2(r.network);
     const dexterExtra = getDexterNetworkExtra(dexterNet);
+    const okxNet = getOkxNetworkByCaip2(r.network);
+    const isOkxUsdt0 =
+      Boolean(okxNet) &&
+      normalizeEvmAddress(r.asset) === normalizeEvmAddress(okxNet.stablecoin);
     const defaultName =
       b402Token?.eip712Name ??
+      (isOkxUsdt0 ? okxNet.eip712Name : null) ??
       dexterNet?.assetName ??
       (isB402Network(r.network) ? "World Liberty Financial USD" : "USD Coin");
     const defaultVersion =
       b402Token?.eip712Version ??
+      (isOkxUsdt0 ? okxNet.eip712Version : null) ??
       dexterNet?.assetVersion ??
       (isB402Network(r.network) ? "1" : "2");
-    const name = existingEip712?.name || existing?.name || defaultName;
-    const version = existingEip712?.version || existing?.version || defaultVersion;
+    // Force correct USDT0 domain even if a prior pass stamped USD Coin defaults.
+    const name = isOkxUsdt0
+      ? okxNet.eip712Name
+      : existingEip712?.name || existing?.name || defaultName;
+    const version = isOkxUsdt0
+      ? okxNet.eip712Version
+      : existingEip712?.version || existing?.version || defaultVersion;
     const nextExtra = {
       ...existing,
       ...(dexterExtra || {}),
@@ -698,13 +714,19 @@ async function ensureOkxAcceptInRequirements(requirements, microUnits, maxTimeou
 
   for (const net of networks) {
     if (filtered.some((r) => r?.network === net.caip2)) continue;
+    const eip712Extra = getOkxEip712Extra(net);
     const paymentOptions = [
       {
         scheme: "exact",
-        price: { asset: net.stablecoin, amount: microUnits },
+        price: {
+          asset: net.stablecoin,
+          amount: microUnits,
+          extra: { name: eip712Extra.name, version: eip712Extra.version },
+        },
         network: net.caip2,
         payTo,
         maxTimeoutSeconds,
+        extra: eip712Extra,
       },
     ];
     let built = false;
@@ -717,7 +739,11 @@ async function ensureOkxAcceptInRequirements(requirements, microUnits, maxTimeou
         if (Array.isArray(okxReqs)) {
           for (const r of okxReqs) {
             if (r && !filtered.some((x) => x?.network === r.network)) {
-              filtered.push(r);
+              // Always stamp USDT0 EIP-712 domain (SDK money parsers often omit it).
+              filtered.push({
+                ...r,
+                extra: { ...(r.extra && typeof r.extra === "object" ? r.extra : {}), ...eip712Extra },
+              });
             }
           }
           built = okxReqs.length > 0;
@@ -737,6 +763,7 @@ async function ensureOkxAcceptInRequirements(requirements, microUnits, maxTimeou
         asset: net.stablecoin,
         payTo,
         maxTimeoutSeconds,
+        extra: eip712Extra,
       });
     }
   }
