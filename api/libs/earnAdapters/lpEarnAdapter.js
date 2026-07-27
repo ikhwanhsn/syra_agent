@@ -11,6 +11,7 @@ import {
   getLpRealState,
   getLpRealSummary,
   ensurePublicEarnSession,
+  LP_REAL_STALE_TICK_MS,
 } from "../lpRealService.js";
 import { isAdminWalletAddress } from "../adminWallet.js";
 import { lpAnonymousIdFromChat } from "../agentWalletPurpose.js";
@@ -365,6 +366,32 @@ export async function getUserStatus({ anonymousId, ownerWallet }) {
           winRatePct: summary.winRatePct,
           openCount: summary.openCount,
         }
+      : null,
+    wallet: state
+      ? (() => {
+          const lastSignalAt =
+            state.config?.lastSignalAt ??
+            (config?.lastSignalAt ? new Date(config.lastSignalAt).toISOString() : null);
+          const lastMs = lastSignalAt ? new Date(lastSignalAt).getTime() : 0;
+          const agentEnabled = Boolean(config?.enabled);
+          const stale =
+            agentEnabled && (!lastMs || Date.now() - lastMs > LP_REAL_STALE_TICK_MS);
+          const realized = Number(summary?.realizedNetPnlSol) || 0;
+          const unrealized =
+            summary?.unrealizedPnlSol != null
+              ? Number(summary.unrealizedPnlSol) || 0
+              : (Number(state.totalReturnSol) || 0) - realized;
+          return {
+            onChainBalanceSol: state.onChainBalanceSol ?? 0,
+            deployedSol: state.deployedSol ?? 0,
+            availableSol: state.availableSol ?? 0,
+            unrealizedPnlSol: unrealized,
+            totalReturnSol: summary?.totalReturnSol ?? state.totalReturnSol ?? 0,
+            canOpenNewPositions: Boolean(state.canOpenNewPositions),
+            lastSignalAt,
+            stale,
+          };
+        })()
       : null,
     canEnable: Boolean(allowed && state?.canTurnOn),
     state,

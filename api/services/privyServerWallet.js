@@ -119,14 +119,19 @@ async function findPrivyServerWalletByExternalId(externalId) {
  * Provision a new Privy server wallet for a user.
  *
  * @param {Object} input
- * @param {'solana'|'base'|'bsc'} input.chain
+ * @param {'solana'|'base'|'bsc'|'robinhood'} input.chain
  * @param {string} input.anonymousId
  * @returns {Promise<{ privyWalletId: string; agentAddress: string }>}
  */
 export async function createPrivyServerWallet({ chain, anonymousId }) {
   if (!isPrivyConfigured()) throw new Error('privy_not_configured');
-  const chainType = chain === 'base' || chain === 'bsc' ? 'ethereum' : 'solana';
-  const externalId = privyExternalIdFromAnonymousId(anonymousId);
+  const chainType =
+    chain === 'base' || chain === 'bsc' || chain === 'robinhood' ? 'ethereum' : 'solana';
+  const externalId = privyExternalIdFromAnonymousId(
+    chain === 'robinhood' && anonymousId
+      ? `${String(anonymousId).trim()}:rh_lp`
+      : anonymousId,
+  );
 
   // Re-link wallets orphaned in Privy when a prior Mongo write failed (e.g. stale unique index).
   if (externalId) {
@@ -195,14 +200,19 @@ export async function privySignSolanaTx({ privyWalletId, serializedTxBase64, sub
  * @param {Object} input
  * @param {string} input.privyWalletId
  * @param {string} input.message
- * @param {'solana'|'base'|'bsc'} input.chain
+ * @param {'solana'|'base'|'bsc'|'robinhood'} input.chain
  * @returns {Promise<{ signature: string }>}
  */
 export async function privySignMessage({ privyWalletId, message, chain }) {
   if (!privyWalletId) throw new Error('missing_privy_wallet_id');
-  const caip2 = chain === 'base' ? 'eip155:8453' : 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';
+  const caip2 =
+    chain === 'base'
+      ? 'eip155:8453'
+      : chain === 'robinhood'
+        ? 'eip155:4663'
+        : 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';
   const body = {
-    method: chain === 'base' ? 'personal_sign' : 'signMessage',
+    method: chain === 'base' || chain === 'robinhood' ? 'personal_sign' : 'signMessage',
     caip2,
     params: { message, encoding: 'utf-8' },
   };
@@ -213,6 +223,68 @@ export async function privySignMessage({ privyWalletId, message, chain }) {
   const sig = String(out?.data?.signature || '').trim();
   if (!sig) throw new Error('privy_sign_message_empty');
   return { signature: sig };
+}
+
+/**
+ * Sign and broadcast an EVM transaction via Privy server wallet (eth_sendTransaction).
+ *
+ * @param {Object} input
+ * @param {string} input.privyWalletId
+ * @param {string} input.to
+ * @param {string=} input.data
+ * @param {string|number|bigint=} input.value  Wei as hex string, number, or bigint
+ * @param {number=} input.chainId  Defaults to Robinhood mainnet 4663
+ * @param {string=} input.gas
+ * @param {string=} input.maxFeePerGas
+ * @param {string=} input.maxPriorityFeePerGas
+ * @returns {Promise<{ hash: string; caip2: string }>}
+ */
+export async function privySendEvmTx({
+  privyWalletId,
+  to,
+  data,
+  value,
+  chainId = 4663,
+  gas,
+  maxFeePerGas,
+  maxPriorityFeePerGas,
+}) {
+  if (!privyWalletId) throw new Error('missing_privy_wallet_id');
+  const toAddr = String(to || '').trim();
+  if (!/^0x[0-9a-fA-F]{40}$/.test(toAddr)) throw new Error('invalid_evm_tx_to');
+
+  const caip2 = `eip155:${Number(chainId) || 4663}`;
+  /** @type {Record<string, string>} */
+  const transaction = { to: toAddr };
+  if (data != null && String(data).trim()) {
+    transaction.data = String(data).trim();
+  }
+  if (value != null && value !== '' && value !== 0n && value !== 0) {
+    if (typeof value === 'bigint') {
+      transaction.value = `0x${value.toString(16)}`;
+    } else if (typeof value === 'number') {
+      transaction.value = `0x${BigInt(Math.floor(value)).toString(16)}`;
+    } else {
+      const v = String(value).trim();
+      transaction.value = v.startsWith('0x') ? v : `0x${BigInt(v).toString(16)}`;
+    }
+  }
+  if (gas) transaction.gas = String(gas);
+  if (maxFeePerGas) transaction.max_fee_per_gas = String(maxFeePerGas);
+  if (maxPriorityFeePerGas) transaction.max_priority_fee_per_gas = String(maxPriorityFeePerGas);
+
+  const out = await privyFetch(`/v1/wallets/${encodeURIComponent(privyWalletId)}/rpc`, {
+    method: 'POST',
+    body: {
+      method: 'eth_sendTransaction',
+      caip2,
+      params: { transaction },
+    },
+    timeoutMs: 45_000,
+  });
+  const hash = String(out?.data?.hash || '').trim();
+  if (!hash) throw new Error('privy_send_evm_tx_empty_hash');
+  return { hash, caip2: String(out?.data?.caip2 || caip2) };
 }
 
 /**

@@ -61,6 +61,7 @@ const InfoPage = lazy(() => import("@/pages/InfoPage"));
 
 const LpAgentExperiment = lazy(() => import("@/pages/LpAgentExperiment"));
 const LpAgentExperimentAgentProfile = lazy(() => import("@/pages/LpAgentExperimentAgentProfile"));
+const RobinhoodLpExperiment = lazy(() => import("@/pages/RobinhoodLpExperiment"));
 const BtcQuantExperiment = lazy(() => import("@/pages/BtcQuantExperiment"));
 const Btc2QuantAgentExperiment = lazy(() => import("@/pages/Btc2QuantAgentExperiment"));
 const Btc3MacroAgentExperiment = lazy(() => import("@/pages/Btc3MacroAgentExperiment"));
@@ -267,6 +268,14 @@ function AppRoutes() {
           element={
             <AdminExperimentRoute>
               <LpAgentExperimentAgentProfile />
+            </AdminExperimentRoute>
+          }
+        />
+        <Route
+          path="/lp-robinhood"
+          element={
+            <AdminExperimentRoute>
+              <RobinhoodLpExperiment />
             </AdminExperimentRoute>
           }
         />

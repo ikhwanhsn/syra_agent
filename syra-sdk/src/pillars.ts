@@ -113,6 +113,31 @@ export function createInvestModule(client: SyraClientLike) {
     }) {
       return client.post("/invest/deploy", body);
     },
+    /** Completed-work outcomes catalog (LP Autopilot, Treasury, Yield). */
+    outcomesCatalog() {
+      return client.get("/outcomes/catalog");
+    },
+    outcomesEvGate() {
+      return client.get("/outcomes/ev-gate");
+    },
+    createOutcomeMandate(body: {
+      anonymousId: string;
+      productId: string;
+      chain: string;
+      agentAddress: string;
+      policy?: Record<string, unknown>;
+    }) {
+      return client.post("/outcomes/mandates", body);
+    },
+    runOutcomeJob(body: { mandateId: string; input?: Record<string, unknown> }) {
+      return client.post("/outcomes/jobs", body);
+    },
+    getOutcomeReport(reportId: string) {
+      return client.get(`/outcomes/reports/${reportId}`);
+    },
+    verifyOutcomeReport(reportId: string) {
+      return client.get(`/outcomes/reports/${reportId}/verify`);
+    },
   };
 }
 

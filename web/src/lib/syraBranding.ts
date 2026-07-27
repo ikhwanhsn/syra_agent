@@ -3,7 +3,12 @@
 export const SYRA_TAGLINE = "Machine Money for Agents";
 
 /** Live wedge under the brand: always pair with SYRA_TAGLINE in hero copy. */
-export const SYRA_LIVE_SUBLINE = "Live today: pay-per-call crypto APIs over x402";
+export const SYRA_LIVE_SUBLINE =
+  "Live today: pay-per-call APIs plus completed-work outcomes agents can buy";
+
+/** Outcome products positioning (Sequoia services-as-software for agents). */
+export const SYRA_OUTCOMES_SUBLINE =
+  "Outsource the money work: LP managed, treasury rebalanced, yield deployed. Pay when the job is done.";
 
 /** Default `<title>` / document title restore value. */
 export const SYRA_DOCUMENT_TITLE = "Syra";

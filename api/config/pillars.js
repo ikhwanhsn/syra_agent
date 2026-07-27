@@ -46,7 +46,7 @@ export const PILLARS = {
   invest: {
     id: 'invest',
     label: 'Invest',
-    tagline: 'Deploy capital autonomously',
+    tagline: 'Deploy capital autonomously — buy completed outcomes',
     order: 3,
     status: SYRA_PILLAR_STATUS.invest,
     routePrefixes: [
@@ -55,6 +55,8 @@ export const PILLARS = {
       '/jupiter',
       '/experiment/lp-agent-real',
       '/experiment/lp-agent',
+      '/experiment/lp-robinhood',
+      '/outcomes',
       '/experiment/btc-quant-real',
       '/experiment/btc-quant',
       '/rise',
@@ -66,6 +68,7 @@ export const PILLARS = {
       /^jupiter-swap/,
       /^rise-/,
       /^lp_real_/,
+      /^outcome_/,
       /^lp-real/,
       /^squid-/,
       /^invest-/,

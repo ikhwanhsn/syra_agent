@@ -190,3 +190,14 @@ export async function callFreeRoute(
   const res = await client.get(resolved, params);
   return { ok: res.success, text: formatSyraResult(res.success, res.data, res.error) };
 }
+
+/** Free POST to outcomes / platform facades (no x402). */
+export async function postFreeRoute(
+  path: string,
+  body?: unknown,
+): Promise<{ ok: boolean; text: string }> {
+  const client = await getClient();
+  const resolved = appendDevSuffix(path);
+  const res = await client.post(resolved, body);
+  return { ok: res.success, text: formatSyraResult(res.success, res.data, res.error) };
+}

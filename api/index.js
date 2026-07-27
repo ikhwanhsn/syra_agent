@@ -112,6 +112,7 @@ import { createAssetsDetailX402Router } from "./routes/assets/detail.js";
 import { createBitcoinX402Router } from "./routes/bitcoin/index.js";
 import { createLpAgentExperimentRouter } from "./routes/lpAgentExperiment.js";
 import { createLpAgentRealRouter } from "./routes/lpAgentReal.js";
+import { createRobinhoodLpExperimentRouter } from "./routes/robinhoodLpExperiment.js";
 import { createStocksExperimentRouter } from "./routes/stocksExperiment.js";
 import { createScalperExperimentRouter } from "./routes/scalperExperiment.js";
 import { createMmExperimentRouter } from "./routes/mmExperiment.js";
@@ -175,6 +176,7 @@ import { createStakingAppRouter } from "./routes/stakingApp.js";
 import { createTempoPayoutRouter } from "./routes/payouts/tempo.js";
 import { createAgentscoreRouter } from "./routes/agentscore/index.js";
 import { createPillarsRouter } from "./routes/pillars.js";
+import { createOutcomesRouter } from "./routes/outcomes.js";
 import { createInvestRouter } from "./routes/invest.js";
 import { createGrowRouter } from "./routes/grow.js";
 import { createEarnRouter } from "./routes/earn.js";
@@ -1477,6 +1479,10 @@ app.use("/experiment/spcx", createSpcxExperimentRouter());
 app.use("/experiment/lp-agent", createLpAgentExperimentRouter());
 // LP real agent — on-chain Meteora DLMM from backend-custodied agent wallet
 app.use("/experiment/lp-agent-real", createLpAgentRealRouter());
+// Robinhood Chain LP experiment lab (Uniswap concentrated liquidity, paper sim only)
+app.use("/experiment/lp-robinhood", createRobinhoodLpExperimentRouter());
+// Completed-work outcomes: mandates, jobs, proof reports, outcome billing
+app.use("/outcomes", createOutcomesRouter());
 // BTC onchain quant lab (paper sim + real cbBTC via Jupiter)
 app.use("/experiment/btc-quant", createBtcQuantExperimentRouter());
 app.use("/experiment/btc-quant-real", createBtcQuantRealRouter());
@@ -1916,6 +1922,73 @@ app.listen(PORT, () => {
     setInterval(runLpResolve, LP_AGENT_RESOLVE_INTERVAL_MS);
   }
 
+  const ROBINHOOD_LP_SIGNAL_INTERVAL_MS = (() => {
+    const raw = Number(process.env.ROBINHOOD_LP_EXPERIMENT_SIGNAL_MS);
+    const base = Number.isFinite(raw) && raw >= 60_000 ? Math.floor(raw) : 180_000;
+    return scalePaperMs(base, 60_000);
+  })();
+  const ROBINHOOD_LP_RESOLVE_INTERVAL_MS = (() => {
+    const raw = Number(process.env.ROBINHOOD_LP_EXPERIMENT_RESOLVE_MS);
+    const base = Number.isFinite(raw) && raw >= 5_000 ? Math.floor(raw) : 120_000;
+    return scalePaperMs(base, 5_000);
+  })();
+
+  const runRobinhoodLpSignal = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/robinhoodLpExperimentService.js")
+        .then(({ runRobinhoodLpSignalCycle }) => runRobinhoodLpSignalCycle())
+        .then((out) => {
+          if (out.errors?.length) {
+            console.warn("[Robinhood LP experiment] signal errors:", out.errors.slice(0, 3));
+          }
+        })
+        .catch((err) =>
+          console.warn("[Robinhood LP experiment] signal failed:", err?.message || err),
+        ),
+    ),
+  );
+
+  const runRobinhoodLpResolve = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/robinhoodLpExperimentService.js")
+        .then(({ resolveOpenRobinhoodLpRuns }) => resolveOpenRobinhoodLpRuns())
+        .then((out) => {
+          if (out.errors?.length) {
+            console.warn("[Robinhood LP experiment] resolve errors:", out.errors.slice(0, 3));
+          }
+        })
+        .catch((err) =>
+          console.warn("[Robinhood LP experiment] resolve failed:", err?.message || err),
+        ),
+    ),
+  );
+
+  if (ROBINHOOD_LP_SIGNAL_INTERVAL_MS >= 60_000) {
+    setInterval(runRobinhoodLpSignal, ROBINHOOD_LP_SIGNAL_INTERVAL_MS);
+  }
+  if (ROBINHOOD_LP_RESOLVE_INTERVAL_MS >= 5_000) {
+    setInterval(runRobinhoodLpResolve, ROBINHOOD_LP_RESOLVE_INTERVAL_MS);
+  }
+
+  const OUTCOME_SCHEDULER_INTERVAL_MS = (() => {
+    const raw = Number(process.env.OUTCOME_SCHEDULER_INTERVAL_MS);
+    return Number.isFinite(raw) && raw >= 60_000 ? raw : 15 * 60_000;
+  })();
+
+  const runOutcomeScheduler = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/outcomeJobScheduler.js")
+        .then(({ runOutcomeSchedulerTick }) => runOutcomeSchedulerTick())
+        .catch((err) =>
+          console.warn("[Outcome scheduler] tick failed:", err?.message || err),
+        ),
+    ),
+  );
+
+  if (OUTCOME_SCHEDULER_INTERVAL_MS >= 60_000) {
+    setInterval(runOutcomeScheduler, OUTCOME_SCHEDULER_INTERVAL_MS);
+  }
+
   const STOCKS_SIGNAL_INTERVAL_MS = scalePaperMs(
     Number(process.env.STOCKS_EXPERIMENT_SIGNAL_MS || 300_000),
     60_000,
@@ -2215,10 +2288,9 @@ app.listen(PORT, () => {
   const runLpRealResolve = runIfMongoConnected(
     withSingleFlight(() =>
       import("./libs/lpRealService.js")
-        .then(({ isRealCronEnabled, resolveLpRealPositions }) => {
-          if (!isRealCronEnabled()) return null;
-          return resolveLpRealPositions();
-        })
+        .then(({ isRealResolveEnabled, resolveLpRealPositions }) =>
+          isRealResolveEnabled().then((on) => (on ? resolveLpRealPositions() : null)),
+        )
         .then((out) => {
           if (out?.errors?.length) {
             console.warn("[LP real] resolve errors:", out.errors.slice(0, 3));
@@ -2240,17 +2312,20 @@ app.listen(PORT, () => {
   const bootLpRealCrons = runIfMongoConnected(() =>
     import("./libs/lpRealService.js")
       .then(
-        ({
+        async ({
           isRealCronEnabled,
+          isRealResolveEnabled,
           runLpRealSignalCycle,
           resolveLpRealPositions,
         }) => {
-          if (!isRealCronEnabled()) return null;
+          const cronOn = isRealCronEnabled();
+          const resolveOn = await isRealResolveEnabled();
+          if (!cronOn && !resolveOn) return null;
           startupVerbose("[LP real] boot signal+resolve tick");
-          return Promise.all([
-            runLpRealSignalCycle(),
-            resolveLpRealPositions(),
-          ]);
+          const tasks = [];
+          if (cronOn) tasks.push(runLpRealSignalCycle());
+          if (resolveOn) tasks.push(resolveLpRealPositions());
+          return Promise.all(tasks);
         },
       )
       .catch((err) =>
@@ -2532,6 +2607,44 @@ app.listen(PORT, () => {
                 "[LP experiment evolution failed]",
                 err?.message || err,
               ),
+            ),
+        ),
+      );
+      setInterval(tick, evo.ms);
+    })
+    .catch(() => {});
+
+  import("./libs/robinhoodLpEvolution.js")
+    .then(({ robinhoodLpEvolutionConfigFromEnv, runRobinhoodLpEvolution }) => {
+      const evo = robinhoodLpEvolutionConfigFromEnv();
+      if (!evo.enabled || evo.ms < 60_000) return;
+      const tick = runIfMongoConnected(
+        withSingleFlight(() =>
+          runRobinhoodLpEvolution({
+            removeCount: evo.removeCount,
+            minDecided: evo.minDecided,
+            dailySpawnCount: evo.dailySpawnCount,
+            maxStrategies: evo.maxStrategies,
+            pinned: evo.pinned,
+          })
+            .then((out) => {
+              if (!out.ok) return;
+              if (out.skipped) {
+                startupVerbose("[Robinhood LP experiment evolution] skipped:", out.skipped);
+                return;
+              }
+              startupVerbose(
+                "[Robinhood LP experiment evolution]",
+                "culled",
+                out.culled?.length ?? 0,
+                "spawned",
+                out.spawned?.length ?? 0,
+                "daily",
+                out.dailySpawned?.length ?? 0,
+              );
+            })
+            .catch((err) =>
+              console.warn("[Robinhood LP experiment evolution failed]", err?.message || err),
             ),
         ),
       );

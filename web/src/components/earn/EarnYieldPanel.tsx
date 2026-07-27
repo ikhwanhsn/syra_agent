@@ -197,6 +197,15 @@ export function EarnYieldPanel({
                 status?.summary?.netPnl ??
                 status?.summary?.realizedNetPnlSol ??
                 status?.summary?.netPnlUsd;
+              const wallet = status?.wallet;
+              const deployedSol = wallet?.deployedSol ?? 0;
+              const unrealizedPnl = wallet?.unrealizedPnlSol ?? status?.summary?.unrealizedPnlSol ?? 0;
+              const availableSol = wallet?.availableSol ?? wallet?.onChainBalanceSol;
+              const staleNote =
+                status?.enabled && wallet?.stale
+                  ? "Agent idle: waiting for next cycle"
+                  : null;
+              const statusNote = agentNote || staleNote;
 
               return (
                 <div key={product.id} className={cn(overviewCardShell, "space-y-4 p-5")}>
@@ -248,6 +257,25 @@ export function EarnYieldPanel({
                       </p>
                       <div className="grid gap-2 sm:grid-cols-3">
                         <MiniStat
+                          label="Active SOL"
+                          value={fmtEarnAmount(deployedSol, denom)}
+                          hint="Deployed in Meteora"
+                          positive={deployedSol > 0}
+                        />
+                        <MiniStat
+                          label="Unrealized PnL"
+                          value={fmtEarnAmount(unrealizedPnl, denom)}
+                          hint="Open positions mark"
+                          positive={unrealizedPnl > 0}
+                        />
+                        <MiniStat
+                          label="Your open"
+                          value={String(status.summary.openCount ?? 0)}
+                          hint="Active on your agent"
+                        />
+                      </div>
+                      <div className="grid gap-2 sm:grid-cols-3">
+                        <MiniStat
                           label="Your win rate"
                           value={
                             status.summary.winRatePct != null
@@ -259,13 +287,15 @@ export function EarnYieldPanel({
                         <MiniStat
                           label="Your PnL"
                           value={fmtEarnAmount(yourPnl, denom)}
-                          hint="Session only: not lab history"
+                          hint="Realized only: closed this session"
                           positive={(yourPnl ?? 0) > 0}
                         />
                         <MiniStat
-                          label="Your open"
-                          value={String(status.summary.openCount ?? 0)}
-                          hint="Active on your agent"
+                          label="Wallet SOL"
+                          value={
+                            availableSol != null ? fmtEarnAmount(availableSol, denom) : "-"
+                          }
+                          hint="Available in LP agent"
                         />
                       </div>
                       <p className="text-[11px] text-muted-foreground">
@@ -425,8 +455,8 @@ export function EarnYieldPanel({
                     </div>
                   )}
 
-                  {agentNote && !paused ? (
-                    <p className="text-xs text-muted-foreground">Note: {agentNote}</p>
+                  {statusNote && !paused ? (
+                    <p className="text-xs text-muted-foreground">Note: {statusNote}</p>
                   ) : null}
                 </div>
               );

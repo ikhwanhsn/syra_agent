@@ -13,6 +13,14 @@
  *
  * Display/catalog prices: production level (same as charged in prod).
  */
+import {
+  OUTCOME_MIN_PERFORMANCE_FEE_USD,
+  OUTCOME_FLAT_CYCLE_FEE_USD,
+  computeOutcomeFee,
+} from "./outcomePricing.js";
+
+export { computeOutcomeFee, OUTCOME_MIN_PERFORMANCE_FEE_USD, OUTCOME_FLAT_CYCLE_FEE_USD };
+
 const isProduction = process.env.NODE_ENV === 'production';
 const PRODUCTION_MULT = 1;
 const LOCAL_MULT = 0.01;
@@ -510,3 +518,6 @@ export const X402_DISPLAY_PRICE_TRANSCRIPTION_USD = displayInternal(0.01);
 export const X402_DISPLAY_PRICE_CHAT_COMPLETIONS_USD = displayInternal(0.004);
 export const X402_DISPLAY_PRICE_IMAGES_GENERATIONS_USD = displayInternal(0.02);
 export const X402_DISPLAY_PRICE_VIDEOS_GENERATIONS_USD = displayInternal(0.1);
+
+/** Outcome / completed-work billing floor (performance fee settlement via x402). */
+export const X402_OUTCOME_BILLING_FLOOR_USD = displayInternal(OUTCOME_MIN_PERFORMANCE_FEE_USD);

@@ -111,6 +111,17 @@ export const LP_REAL_AUTO_TOOLS = new Set([
   'lp_real_swap',
 ]);
 
+/** Outcome autopilot tools — standing mandate execution, same soft-rule skip as LP cron. */
+export const OUTCOME_AUTO_TOOLS = new Set([
+  'outcome_lp_open',
+  'outcome_lp_close',
+  'outcome_lp_rebalance',
+  'outcome_treasury_rebalance',
+  'outcome_treasury_deploy',
+  'outcome_yield_deposit',
+  'outcome_yield_withdraw',
+]);
+
 /**
  * Evaluate an intent against a wallet configuration and recent history.
  * Pure function — deterministic given inputs.
@@ -171,6 +182,8 @@ export function evaluate(intent, walletConfig, history) {
   }
 
   const isLpAuto = intent.toolId && LP_REAL_AUTO_TOOLS.has(intent.toolId);
+  const isOutcomeAuto = intent.toolId && OUTCOME_AUTO_TOOLS.has(intent.toolId);
+  const isAutoTool = isLpAuto || isOutcomeAuto;
 
   const agentscoreBoost =
     intent.agentscoreKycVerified === true ||
@@ -183,7 +196,7 @@ export function evaluate(intent, walletConfig, history) {
     const t = h.ts instanceof Date ? h.ts.getTime() : new Date(h.ts).getTime();
     return Number.isFinite(t) && now - t <= VELOCITY_WINDOW_MS && h.status !== 'rejected';
   });
-  if (!isLpAuto && recent.length >= VELOCITY_MAX) {
+  if (!isAutoTool && recent.length >= VELOCITY_MAX) {
     add('velocity_high', String(recent.length));
     return { outcome: 'deny', reasons, riskScore };
   }
@@ -201,7 +214,7 @@ export function evaluate(intent, walletConfig, history) {
   const sumLast24h = sumAmount(history, now - ANOMALY_LOOKBACK_MS);
   const sumLast1h = sumAmount(history, now - 60 * 60 * 1000);
 
-  if (!isLpAuto) {
+  if (!isAutoTool) {
     if (amount > perTxCap) add('over_per_tx_cap', `${amount.toFixed(2)}>${perTxCap}`);
     if (sumLast24h + amount > dailyCap) add('over_daily_cap', `${(sumLast24h + amount).toFixed(2)}>${dailyCap}`);
     if (sumLast1h + amount > hourlyCap) add('over_hourly_cap', `${(sumLast1h + amount).toFixed(2)}>${hourlyCap}`);
@@ -209,7 +222,7 @@ export function evaluate(intent, walletConfig, history) {
 
   // Anomaly: spend > N x last-30-day median (rough proxy: average over lookback) within last 1h
   const median = approxMedianAmount(history);
-  if (!isLpAuto) {
+  if (!isAutoTool) {
     if (median > 0 && sumLast1h + amount > median * ANOMALY_SPIKE_MULT) {
       add('anomaly_spike', `${(sumLast1h + amount).toFixed(2)}>${(median * ANOMALY_SPIKE_MULT).toFixed(2)}`);
     }

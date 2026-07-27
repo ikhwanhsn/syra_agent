@@ -62,6 +62,7 @@ export const navigation: NavItem[] = [
     items: [
       { title: "Install MCP", href: "/docs/build/mcp" },
       { title: "Install SDK", href: "/docs/build/sdk" },
+      { title: "Completed-Work Outcomes", href: "/docs/build/outcomes" },
       { title: "Pricing vs DIY", href: "/docs/build/pricing" },
       { title: "Crossmint → Syra x402", href: "/docs/build/crossmint-x402" },
     ],

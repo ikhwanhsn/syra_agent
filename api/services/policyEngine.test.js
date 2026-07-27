@@ -172,3 +172,23 @@ test('anomaly spike (3x median) -> require_confirm', () => {
   const d = evaluate(baseIntent({ estimatedUsd: 30 }), baseWallet, history);
   assert.notEqual(d.outcome, 'allow');
 });
+
+test('outcome autopilot tool skips velocity soft deny', () => {
+  const now = Date.now();
+  const history = Array.from({ length: 15 }, () => ({
+    ts: new Date(now - 1000),
+    action: 'tx_sign',
+    amountUsd: 1,
+    status: 'ok',
+  }));
+  const wallet = {
+    ...baseWallet,
+    allowedTools: ['outcome_lp_open', 'jupiter-swap-order'],
+  };
+  const d = evaluate(
+    baseIntent({ toolId: 'outcome_lp_open', estimatedUsd: 5 }),
+    wallet,
+    history,
+  );
+  assert.equal(d.outcome, 'allow');
+});

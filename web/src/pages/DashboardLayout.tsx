@@ -48,6 +48,7 @@ function dashboardPageTitle(pathname: string, search: string): string {
   if (parts[0] === "analyzer" || parts[0] === "pumpfun") return "Token Analyzer";
   if (parts[0] === "multiwallet" && parts[1] === "recover") return "Recover farm wallets";
   if (parts[0] === "lp-experiment") return "LP agent experiment";
+  if (parts[0] === "lp-robinhood") return "LP Robinhood experiment";
   if (parts[0] === "btc2-experiment") return "BTC quant agent";
   if (parts[0] === "btc3-experiment") return "Macro Intelligence";
   if (parts[0] === "btc-experiment") return "BTC quant experiment";

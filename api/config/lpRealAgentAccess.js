@@ -115,6 +115,15 @@ export function getLpRealDryRun() {
   return envFlagOn("LP_AGENT_REAL_DRY_RUN", false);
 }
 
+/**
+ * Master open-signal cron for LP real agent (default off).
+ * When true, overrides the hardcoded LP_AGENT_REAL.enabled=false in settlement.js
+ * so ops can enable real opens without a code change.
+ */
+export function getLpRealCronEnabled() {
+  return envFlagOn("LP_AGENT_REAL_ENABLED", false);
+}
+
 export function getLpRealMinHolders() {
   const n = Number(process.env.LP_AGENT_REAL_MIN_HOLDERS || LP_REAL_DEFAULT_MIN_HOLDERS);
   return Number.isFinite(n) && n >= 0 ? Math.floor(n) : LP_REAL_DEFAULT_MIN_HOLDERS;

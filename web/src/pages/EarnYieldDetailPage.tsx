@@ -67,6 +67,13 @@ export default function EarnYieldDetailPage() {
   const paused = product?.readiness?.depositsPaused;
   const pauseReasons = readinessReasons(product?.readiness?.blockers);
   const agentNote = humanizeAgentNote(status?.config?.lastError);
+  const wallet = status?.wallet;
+  const deployedSol = wallet?.deployedSol ?? 0;
+  const unrealizedPnl = wallet?.unrealizedPnlSol ?? status?.summary?.unrealizedPnlSol ?? 0;
+  const availableSol = wallet?.availableSol ?? wallet?.onChainBalanceSol;
+  const staleNote =
+    status?.enabled && wallet?.stale ? "Agent idle: waiting for next cycle" : null;
+  const statusNote = agentNote || staleNote;
   const evidenceLines = formatEvidenceEntries(product?.evidence);
   const howItWorks = product?.howItWorks ?? [];
   const rails = product?.rails ?? [];
@@ -236,8 +243,27 @@ export default function EarnYieldDetailPage() {
               <section className="space-y-3">
                 <SectionTitle>Your wallet</SectionTitle>
                 <p className="text-xs text-muted-foreground">
-                  Realized since you enabled Earn, excludes prior lab history.
+                  Live capital on your LP agent, plus realized closes since you enabled Earn.
                 </p>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <MetricCard
+                    label="Active SOL"
+                    value={fmtEarnAmount(deployedSol, denom)}
+                    hint="Deployed in Meteora"
+                    positive={deployedSol > 0}
+                  />
+                  <MetricCard
+                    label="Unrealized PnL"
+                    value={fmtEarnAmount(unrealizedPnl, denom)}
+                    hint="Open positions mark"
+                    positive={unrealizedPnl > 0}
+                  />
+                  <MetricCard
+                    label="Your open"
+                    value={String(status.summary.openCount ?? 0)}
+                    hint="Active on your agent"
+                  />
+                </div>
                 <div className="grid gap-3 sm:grid-cols-3">
                   <MetricCard
                     label="Your win rate"
@@ -256,7 +282,7 @@ export default function EarnYieldDetailPage() {
                         status.summary.netPnlUsd,
                       denom,
                     )}
-                    hint="Session only, not lab history"
+                    hint="Realized only: closed this session"
                     positive={
                       (status.summary.netPnl ??
                         status.summary.realizedNetPnlSol ??
@@ -265,9 +291,9 @@ export default function EarnYieldDetailPage() {
                     }
                   />
                   <MetricCard
-                    label="Your open"
-                    value={String(status.summary.openCount ?? 0)}
-                    hint="Active on your agent"
+                    label="Wallet SOL"
+                    value={availableSol != null ? fmtEarnAmount(availableSol, denom) : "-"}
+                    hint="Available in LP agent"
                   />
                 </div>
               </section>
@@ -439,8 +465,8 @@ export default function EarnYieldDetailPage() {
                   )}
                 </div>
               )}
-              {agentNote && !paused ? (
-                <p className="text-xs text-muted-foreground">Note: {agentNote}</p>
+              {statusNote && !paused ? (
+                <p className="text-xs text-muted-foreground">Note: {statusNote}</p>
               ) : null}
             </section>
           </div>

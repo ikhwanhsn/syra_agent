@@ -1,0 +1,16 @@
+name: Outcome autopilot cron
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run outcome scheduler tick
+        run: |
+          curl -sf -X POST \
+            -H "x-outcome-cron-secret: ${{ secrets.OUTCOME_CRON_SECRET }}" \
+            "${{ vars.SYRA_API_URL || 'https://api.syraa.fun' }}/outcomes/cron/tick"

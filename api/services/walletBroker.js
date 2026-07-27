@@ -25,6 +25,7 @@ import SignAudit from '../models/agent/SignAudit.js';
 import WalletIntent from '../models/agent/WalletIntent.js';
 import { decryptAgentSecretFromStorage } from '../libs/agentWalletSecretCrypto.js';
 import { evaluate as evaluatePolicy } from './policyEngine.js';
+import { mandateToWalletConfigOverlay, getOutcomeMandate, isMandateExecutable } from '../libs/outcomeMandateService.js';
 import { simulate as simulateTx } from './txSimulator.js';
 import { writeSignAudit } from '../libs/signAudit.js';
 import {
@@ -49,6 +50,7 @@ const HISTORY_LIMIT = 200;
  * @property {string=} ip
  * @property {string=} userAgent
  * @property {boolean=} guest
+ * @property {string=} mandateId — standing outcome mandate for scoped recurring authority
  */
 
 /**
@@ -288,7 +290,18 @@ export async function executeIntent(ctx, intent) {
     return { status: 'denied', reasons: ['missing_anonymous_id'] };
   }
   const { wallet, history } = await loadConfigAndHistory(ctx.anonymousId);
-  const cfg = toWalletConfig(wallet);
+  let cfg = toWalletConfig(wallet);
+
+  if (ctx.mandateId) {
+    const mandate = await getOutcomeMandate(ctx.mandateId);
+    const execCheck = isMandateExecutable(mandate);
+    if (!execCheck.allowed) {
+      return { status: 'denied', reasons: [`mandate_not_executable:${execCheck.reasons.join(',')}`] };
+    }
+    if (mandate && mandate.anonymousId === ctx.anonymousId) {
+      cfg = mandateToWalletConfigOverlay(mandate, cfg || {});
+    }
+  }
 
   const decision = evaluatePolicy(
     { ...intent, guest: !!ctx.guest },

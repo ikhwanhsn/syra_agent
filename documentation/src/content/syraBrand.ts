@@ -10,18 +10,22 @@ import {
 
 export const SYRA_TAGLINE = "Machine Money for Agents";
 
-export const SYRA_LIVE_SUBLINE = "Live today: pay-per-call crypto APIs over x402";
+export const SYRA_LIVE_SUBLINE =
+  "Live today: pay-per-call APIs plus completed-work outcomes agents can buy";
+
+export const SYRA_OUTCOMES_SUBLINE =
+  "Outsource the money work: LP managed, treasury rebalanced, yield deployed. Pay when the job is done.";
 
 export const SYRA_DOCS_BLURB =
-  "Documentation for Syra: machine money for agents — Earn, Treasury, Invest, Spend, Grow. Live today: x402, MCP, and typed SDK on Solana.";
+  "Documentation for Syra: machine money for agents — Earn, Treasury, Invest, Spend, Grow. Live today: x402 pay-per-call and completed-work outcomes via MCP and typed SDK.";
 
-export const SYRA_DOCS_BADGE = "Machine Money · Spend live (x402)";
+export const SYRA_DOCS_BADGE = "Machine Money · Spend live · Outcomes pilot";
 
 export const SYRA_HIGHLIGHT =
-  "Syra is machine money for agents — Earn, Treasury, Invest, Spend, and Grow on Solana. Live today: settle USDC via x402, integrate with MCP or the SDK.";
+  "Syra is machine money for agents — Earn, Treasury, Invest, Spend, and Grow on Solana. Live today: settle USDC via x402, buy completed financial outcomes, integrate with MCP or the SDK.";
 
 export const SYRA_MISSION =
-  "Syra lets autonomous agents earn, allocate, invest, spend, and grow capital — with live pay-per-call crypto intelligence over x402, MCP, and a typed SDK on Solana.";
+  "Syra lets autonomous agents earn, allocate, invest, spend, and grow capital — with live pay-per-call crypto intelligence and completed-work outcomes over x402, MCP, and a typed SDK on Solana.";
 
 export const SYRA_VISION =
   "An economy where millions of AI agents hold capital, pay for tools, and coordinate value without human billing ops — machine money as infrastructure.";
@@ -42,8 +46,13 @@ export const SYRA_LIVE_CAPABILITIES = [
     description: "Settle USDC via x402 on HTTP 402 — no per-vendor API keys or monthly plans.",
   },
   {
+    title: "Completed-work outcomes",
+    description:
+      "Grant a mandate for LP Autopilot, Treasury, or Yield — Syra runs the job and you pay when it is proven done.",
+  },
+  {
     title: "MCP tools",
-    description: "Install @syra-ai/mcp-server in Cursor or Claude and call news, signals, and research in chat.",
+    description: "Install @syra-ai/mcp-server in Cursor or Claude and call news, signals, research, and outcomes.",
   },
   {
     title: "Typed SDK",

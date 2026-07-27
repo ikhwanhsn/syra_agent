@@ -1,0 +1,44 @@
+# Robinhood Chain LP paper sim ticks when API has no persistent setInterval.
+# Repository secrets:
+#   SYRA_API_BASE_URL
+#   ROBINHOOD_LP_EXPERIMENT_CRON_SECRET (optional, must match API env when set)
+name: Robinhood LP experiment cron
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  robinhood-lp-ticks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST signal-tick + resolve-tick
+        env:
+          BASE_URL: ${{ secrets.SYRA_API_BASE_URL }}
+          CRON_SECRET: ${{ secrets.ROBINHOOD_LP_EXPERIMENT_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BASE_URL:-}" ]; then
+            echo "::warning::Set SYRA_API_BASE_URL in repo secrets to enable Robinhood LP cron."
+            exit 0
+          fi
+          ORIGIN="${BASE_URL%/}"
+          HDR=()
+          if [ -n "${CRON_SECRET:-}" ]; then
+            HDR=(-H "x-lp-robinhood-experiment-secret: ${CRON_SECRET}")
+          fi
+          for PATH_SUFFIX in signal-tick resolve-tick; do
+            URL="${ORIGIN}/experiment/lp-robinhood/${PATH_SUFFIX}"
+            echo "POST ${URL}"
+            HTTP_CODE=$(curl -sS -o /tmp/rh-lp.json -w "%{http_code}" -X POST "${URL}" \
+              "${HDR[@]}" \
+              -H "Accept: application/json")
+            echo "HTTP ${HTTP_CODE}"
+            cat /tmp/rh-lp.json
+            if [ "$HTTP_CODE" != "200" ]; then
+              echo "::error::Robinhood LP ${PATH_SUFFIX} returned HTTP ${HTTP_CODE}"
+              exit 1
+            fi
+            node -e "const r=require('/tmp/rh-lp.json'); if(r.success!==true){console.error(r);process.exit(1)}"
+          done

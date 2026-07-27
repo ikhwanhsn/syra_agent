@@ -13,7 +13,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { usePublicMetrics, type PublicMetricsSnapshot } from "@/lib/publicMetricsApi";
-import { SYRA_LIVE_SUBLINE, SYRA_TAGLINE } from "@/lib/syraBranding";
+import { SYRA_LIVE_SUBLINE, SYRA_OUTCOMES_SUBLINE, SYRA_TAGLINE } from "@/lib/syraBranding";
 import { SyraBuyButton } from "@/components/syra/SyraBuyButton";
 import { GrowthTokenSection } from "@/components/growth/GrowthTokenSection";
 import { GrowthTestimonials } from "@/components/growth/GrowthTestimonials";
@@ -549,12 +549,23 @@ export default function GrowthHomePage() {
             <p className={cn(growthProseClass, "mt-5 max-w-md text-pretty lg:max-w-lg")}>
               Earn · Treasury · Invest · Spend · Grow on Solana.
               <span className="mt-1.5 block text-foreground/80">{SYRA_LIVE_SUBLINE}.</span>
+              <span className="mt-2 block text-sm text-muted-foreground">{SYRA_OUTCOMES_SUBLINE}</span>
             </p>
 
             <div className="mt-9 flex w-full max-w-md flex-col gap-3 sm:max-w-none sm:flex-row sm:flex-wrap lg:justify-start">
               <Link to="/marketplace" className={cn(growthCtaPrimaryClass, "w-full sm:w-auto")}>
                 First paid call in 5 minutes
                 <ArrowRight className="h-4 w-4 opacity-90" aria-hidden />
+              </Link>
+              <Link
+                to="/lp-robinhood"
+                className={cn(
+                  growthCtaSecondaryClass,
+                  "w-full border-border/55 bg-background/50 sm:w-auto",
+                )}
+              >
+                LP Autopilot lab
+                <ArrowUpRight className="h-4 w-4 opacity-80" aria-hidden />
               </Link>
               <SyraBuyButton
                 variant="default"

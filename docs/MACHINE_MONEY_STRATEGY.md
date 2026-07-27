@@ -1,10 +1,23 @@
 # Machine Money for Agents — Growth Strategy
 
 **Brand:** Machine Money for Agents  
-**Live wedge:** Pay-per-call crypto APIs over x402 (Spend)  
+**Live wedge:** Pay-per-call crypto APIs over x402 (Spend) + completed-work outcomes pilot  
 **Capital assumption:** Bootstrap now, position to raise seed / Series A within 6–12 months  
 **North star (now):** Weekly paid API calls + unique paying wallets  
-**North star (later):** Agent-managed capital (GMV) with platform take rate
+**North star (later):** Agent-managed capital (GMV) with platform take rate / outcome fees
+
+---
+
+## Completed-work outcomes (Sequoia services-as-software)
+
+Syra remains **machine money for agents**. The wedge evolves from selling agents *data to decide with* to selling *finished financial work*:
+
+- Mandate → managed job runtime → proof report → pay-per-outcome (x402)
+- Flagship: LP Autopilot (Robinhood paper EV gate → Solana/EVM real pilot)
+- Also: Treasury Autopilot, Yield Autopilot
+- Docs: `/docs/build/outcomes` · API: `GET /outcomes/catalog` · Regulatory: `docs/OUTCOMES_REGULATORY.md`
+
+Spend per-call revenue continues. Outcome fees layer on top (performance / AUM / flat cycle).
 
 ---
 

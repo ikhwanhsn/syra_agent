@@ -65,6 +65,7 @@ import {
 import { fetchMeteoraPoolDetail } from "./meteoraDlmmClient.js";
 import {
   getLpRealCapitalUtilization,
+  getLpRealCronEnabled,
   getLpRealDefaultTargetBankSol,
   getLpRealDryRun,
   getLpRealFeeBufferSol,
@@ -377,12 +378,32 @@ function envSlippageBps() {
   return Number.isFinite(n) && n > 0 ? Math.min(300, n) : 100;
 }
 
+/**
+ * Open-signal cron gate: hardcoded settlement flag OR env LP_AGENT_REAL_ENABLED.
+ * Default remains off until ops flips the env.
+ */
 export function isRealCronEnabled() {
-  return Boolean(LP_AGENT_REAL.enabled);
+  return Boolean(LP_AGENT_REAL.enabled) || getLpRealCronEnabled();
+}
+
+/**
+ * Resolve/close cron gate: always manage open positions for enabled agents
+ * (and stranded open rows) even when the open-signal gate is off.
+ */
+export async function isRealResolveEnabled() {
+  if (isRealCronEnabled()) return true;
+  const enabled = await LpRealConfig.findOne({ enabled: true }).select("_id").lean();
+  if (enabled) return true;
+  const open = await LpRealPosition.findOne({
+    status: { $in: ["open", "opening", "closing"] },
+  })
+    .select("_id")
+    .lean();
+  return Boolean(open);
 }
 
 /** If last signal tick is older than this, treat the agent as stale (cron may not be running). */
-const LP_REAL_STALE_TICK_MS = 10 * 60 * 1000;
+export const LP_REAL_STALE_TICK_MS = 10 * 60 * 1000;
 /** Min gap between self-heal kicks triggered from GET /state (per agent). */
 const LP_REAL_KICK_DEBOUNCE_MS = 90 * 1000;
 
@@ -402,26 +423,33 @@ async function repairCloseAllIfIdle(config, agentFilter) {
 
 /**
  * Run one signal + resolve pass for a single enabled agent (enable hook, stale recovery, manual kick).
+ * Signal opens stay gated by isRealCronEnabled; resolve still runs when resolve gate is on.
  */
 export async function kickLpRealAgentTicks(config) {
   if (!config?.agentAddress) {
     return { skipped: true, reason: "no_config" };
   }
-  if (!isRealCronEnabled()) {
+  const cronOn = isRealCronEnabled();
+  const resolveOn = await isRealResolveEnabled();
+  if (!cronOn && !resolveOn) {
     return { skipped: true, reason: "env_disabled" };
   }
   const agentFilter = configAgentFilter(config);
   await repairCloseAllIfIdle(config, agentFilter);
   const [signal, resolve] = await Promise.all([
-    runLpRealSignalCycleForConfig(config),
-    resolveLpRealPositionsForConfig(config),
+    cronOn
+      ? runLpRealSignalCycleForConfig(config)
+      : Promise.resolve({ skipped: true, reason: "env_disabled", opened: 0, errors: [] }),
+    resolveOn || cronOn
+      ? resolveLpRealPositionsForConfig(config)
+      : Promise.resolve({ resolved: 0, openChecked: 0, errors: [], rows: [] }),
   ]);
   return { signal, resolve };
 }
 
 /** Wake a enabled agent when in-process cron has not ticked recently (e.g. API cold start). */
 export function maybeKickStaleLpRealAgent(config) {
-  if (!config?.enabled || !config?.agentAddress || !isRealCronEnabled()) return;
+  if (!config?.enabled || !config?.agentAddress) return;
   const lastMs = config.lastSignalAt ? new Date(config.lastSignalAt).getTime() : 0;
   const stale = !lastMs || Date.now() - lastMs > LP_REAL_STALE_TICK_MS;
   if (!stale) return;
@@ -1604,7 +1632,7 @@ export async function enableLpReal({ anonymousId, enabledBy }) {
   }
   await LpRealConfig.updateOne(configAgentFilter(config), { $set: enableSet });
   const fresh = await LpRealConfig.findOne({ agentAddress: config.agentAddress }).lean();
-  if (fresh?.enabled && isRealCronEnabled()) {
+  if (fresh?.enabled) {
     void kickLpRealAgentTicks(fresh).catch((err) => {
       console.warn(
         "[LP real] enable kick failed:",
@@ -2743,7 +2771,7 @@ async function resolveLpRealPositionsForConfig(config, { forceCloseAll = false }
 }
 
 export async function resolveLpRealPositions({ forceCloseAll = false, agentAddress = null } = {}) {
-  if (!isRealCronEnabled() && !forceCloseAll) {
+  if (!forceCloseAll && !(await isRealResolveEnabled())) {
     return { resolved: 0, openChecked: 0, errors: [], rows: [], agents: 0 };
   }
 

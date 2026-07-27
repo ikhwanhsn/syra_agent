@@ -131,12 +131,26 @@ export type EarnYieldUserStatus = {
     netPnlUsd?: number;
     realizedNetPnlSol?: number;
     realizedNetPnlUsd?: number;
+    unrealizedPnlSol?: number;
+    totalReturnSol?: number;
     wins?: number;
     losses?: number;
     winRatePct?: number | null;
     openCount?: number;
     equityUsd?: number | null;
     returnPct?: number | null;
+  } | null;
+  /** Live LP agent wallet capital (deployed + liquid). Null when no LP wallet. */
+  wallet?: {
+    onChainBalanceSol: number;
+    deployedSol: number;
+    availableSol: number;
+    unrealizedPnlSol: number;
+    totalReturnSol: number;
+    canOpenNewPositions: boolean;
+    lastSignalAt: string | null;
+    /** True when agent is enabled but last signal tick is older than the stale window. */
+    stale: boolean;
   } | null;
 };
 

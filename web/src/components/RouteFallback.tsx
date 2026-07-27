@@ -283,6 +283,7 @@ function skeletonForPath(pathname: string) {
   if (root === "internal" && parts[1]) return <ProfileDetailSkeleton />;
   if (root === "internal") return <InternalTableSkeleton />;
   if (root === "lp-experiment" && parts[1] === "agent") return <ProfileDetailSkeleton />;
+  if (root === "lp-robinhood") return <BtcAgentExperimentPageSkeleton panelCount={8} />;
   if (
     root === "btc-experiment" ||
     root === "btc2-experiment" ||

@@ -23,6 +23,15 @@ export const DASHBOARD_EXPERIMENT_NAV: readonly DashboardExperimentNavItem[] = [
     badge: { label: "Beta" },
   },
   {
+    id: "lp-robinhood",
+    label: "LP Robinhood",
+    description: "Robinhood Chain · Uniswap paper sim",
+    icon: Droplets,
+    to: "/lp-robinhood",
+    isActive: (p) => p.startsWith("/lp-robinhood"),
+    badge: { label: "Experimental" },
+  },
+  {
     id: "btc",
     label: "BTC quant",
     description: "Onchain cbBTC quant agents",
