@@ -59,7 +59,9 @@ export const SYRA_BAZAAR_TAGS = [
   "machine-money",
 ];
 export const SYRA_BAZAAR_ICON_URL =
-  String(process.env.SYRA_BAZAAR_ICON_URL || "https://api.syraa.fun/favicon.ico").trim();
+  String(
+    process.env.SYRA_BAZAAR_ICON_URL || "https://api.syraa.fun/android-chrome-192x192.png",
+  ).trim();
 export const SYRA_BAZAAR_DOCS_URL = "https://docs.syraa.fun";
 
 /** @deprecated Use SYRA_BAZAAR_* (kept for existing imports) */

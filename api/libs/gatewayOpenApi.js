@@ -202,20 +202,15 @@ const RATE_LIMIT_429_RESPONSE = {
 /**
  * Machine-readable description of the optional `x-payment-info` per-operation OpenAPI extension.
  *
- * Some x402 ecosystems (notably MPP / AgentCash registries) expect a per-operation extension
- * named `x-payment-info` to describe price + protocol metadata. The Syra **gateway** OpenAPI
- * (this document) deliberately does NOT emit it — gateway integrators get the full, canonical
- * payment shape from the **402 response body's `accepts` array** at runtime (that's the real
- * x402 V1 wire spec, not an OpenAPI annotation). The Syra **MPP discovery** doc at
- * `/mpp-openapi.json` DOES emit it because the MPP registry validator requires it.
- *
- * Exposed at the OpenAPI root as `x-payment-info-spec` so SDK generators and registries can
- * read the explanation programmatically instead of scraping `info.description`.
+ * AgentCash / x402scan read this catalog hint from OpenAPI; runtime truth remains the HTTP 402
+ * `accepts` array + Payment-Required header. Gateway OpenAPI advertises **x402 only** (no empty
+ * MPP stubs — AgentCash flags `{ mpp: { method: "", ... } }` as L2_MPP_MALFORMED). Full MPP
+ * registry shape lives at `/mpp-openapi.json`.
  */
 const X_PAYMENT_INFO_SPEC = {
   emittedHere: true,
   reason:
-    'Each paid operation in this document includes x-payment-info (catalog hint for x402scan / tryponcho). Canonical payment metadata is still returned at runtime in the HTTP 402 response body `accepts` array and the Payment-Required header (x402 v2). Pay one offer and retry with PAYMENT-SIGNATURE or X-PAYMENT. See: https://docs.syraa.fun/docs/api/x402-api-standard',
+    'Each paid operation in this document includes x-payment-info (catalog hint for x402scan / AgentCash). Canonical payment metadata is still returned at runtime in the HTTP 402 response body `accepts` array and the Payment-Required header (x402 v2). Pay one offer and retry with PAYMENT-SIGNATURE or X-PAYMENT. See: https://docs.syraa.fun/docs/api/x402-api-standard',
   alsoEmittedAt: {
     document: 'https://api.syraa.fun/mpp-openapi.json',
     description:
@@ -228,8 +223,8 @@ const X_PAYMENT_INFO_SPEC = {
       protocols: {
         type: 'array',
         items: { type: 'object' },
-        description: 'Protocol objects, e.g. [{ "x402": {} }, { "mpp": { ... } }].',
-        example: [{ x402: {} }, { mpp: { method: '', intent: '', currency: '' } }],
+        description: 'Protocol objects. Gateway catalog: [{ "x402": {} }].',
+        example: [{ x402: {} }],
       },
       price: {
         type: 'object',
@@ -245,7 +240,7 @@ const X_PAYMENT_INFO_SPEC = {
   },
   example: {
     'x-payment-info': {
-      protocols: [{ x402: {} }, { mpp: { method: '', intent: '', currency: '' } }],
+      protocols: [{ x402: {} }],
       price: { mode: 'fixed', currency: 'USD', amount: '0.01' },
     },
   },
@@ -366,8 +361,9 @@ function usdPriceString(n) {
 /** @param {number} usd */
 function xPaymentInfo(usd) {
   const amount = usdPriceString(usd);
+  // x402 only — never emit empty MPP stubs (AgentCash L2_MPP_MALFORMED).
   return {
-    protocols: [{ x402: {} }, { mpp: { method: '', intent: '', currency: '' } }],
+    protocols: [{ x402: {} }],
     price: { mode: 'fixed', currency: 'USD', amount },
   };
 }
@@ -438,7 +434,8 @@ function opGet(tag, summary, operationId, parameters = [], paid = false, priceUs
     operationId,
     security: paid ? SECURITY_PAID : SECURITY_FREE,
     ...(paid ? { 'x-payment-info': xPaymentInfo(priceUsd) } : {}),
-    ...(parameters.length ? { parameters } : {}),
+    // Always emit parameters (including []) so AgentCash sees an explicit input schema.
+    parameters: Array.isArray(parameters) ? parameters : [],
     responses: responsesFor(paid),
   };
 }
@@ -1247,6 +1244,14 @@ export function buildGatewayOpenApi() {
     },
   };
 
+  // AgentCash L2_ROUTE_COUNT_HIGH fires above 40 operations. Prefer GET in the gateway
+  // catalog; POST mirrors stay available at runtime but are omitted here for agent budgets.
+  for (const item of Object.values(paths)) {
+    if (item && typeof item === 'object' && item.get && item.post) {
+      delete item.post;
+    }
+  }
+
   const ownershipProofs = discoveryOwnershipProofs();
 
   /** @type {Record<string, unknown>} */
@@ -1259,9 +1264,9 @@ export function buildGatewayOpenApi() {
       'x-guidance':
         'Free routes (security: []) include /info and /prediction-game/health. Paid routes return HTTP 402 until settled via x402 (Solana/Base USDC) — pay an offer from the 402 body accepts array and retry with PAYMENT-SIGNATURE or X-PAYMENT. Docs: https://docs.syraa.fun',
       description: [
-        'Syra gateway: routes with `security: []` are free (no payment). Trading signals are at **GET/POST /signal** (x402).',
+        'Syra gateway: routes with `security: []` are free (no payment). Prefer **GET** endpoints in this catalog (e.g. **GET /signal**); matching POST mirrors may still work at runtime.',
         '**x402** routes return **HTTP 402** until paid (Solana/Base USDC). The full payment offer (network, asset, price in micro-USDC, `payTo`, etc.) is returned at runtime in the 402 response body\'s `accepts` array and the `Payment-Required` header (x402 v2). Pay one offer and retry with `PAYMENT-SIGNATURE` or `X-PAYMENT`. See https://docs.syraa.fun/docs/api/x402-api-standard for the wire format and signing examples.',
-        'Paid operations declare `x-payment-info` (catalog hint) and `security: [{ x402: [] }]`. The **MPP discovery** document at `GET /mpp-openapi.json` mirrors the full x402 catalog.',
+        'Paid operations declare `x-payment-info` with `protocols: [{ x402: {} }]` and `security: [{ x402: [] }]`. For MPP registry metadata see `GET /mpp-openapi.json`.',
         '**Rate limits** (per IP, applied to non-x402 / non-cron routes not listed as free in this spec): burst **25 req / 10s** + sustained **100 req / 60s**. Exceeding either returns **HTTP 429** with `Retry-After: <seconds>` and `{ success: false, message }`. x402 paid routes and openapi free routes bypass this throttle. See the `x-ratelimit` extension below.',
       ].join('\n\n'),
     },

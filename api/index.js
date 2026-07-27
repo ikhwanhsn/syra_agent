@@ -208,6 +208,7 @@ import { getOkxX402PublicStatus } from "./config/okxX402Networks.js";
 import { startupInfo, startupVerbose, startupWarn } from "./utils/startupLog.js";
 import { startMemoryHygiene } from "./utils/memoryHygiene.js";
 import { withSingleFlight } from "./utils/singleFlight.js";
+import { SYRA_META_DESCRIPTION, SYRA_TAGLINE } from "./config/syraBranding.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -448,6 +449,7 @@ const CORS_OPTIONS_REGULAR = {
 function isX402Route(p) {
   if (!p) return false;
   if (p === "/openapi.json" || p === "/mpp-openapi.json") return true;
+  if (p === "/llms.txt" || p === "/llms-full.txt" || p === "/skill.md") return true;
   if (p.startsWith("/.well-known")) return true;
   if (p.startsWith("/news")) return true;
   if (p.startsWith("/signal")) return true;
@@ -900,7 +902,13 @@ app.use(
     maxAge: "7d",
     immutable: true,
     setHeaders(res, filePath) {
-      if (filePath.endsWith("favicon.ico") || filePath.endsWith("og.jpg")) {
+      if (
+        filePath.endsWith("favicon.ico") ||
+        filePath.endsWith("favicon-96x96.png") ||
+        filePath.endsWith("apple-touch-icon.png") ||
+        filePath.endsWith("android-chrome-192x192.png") ||
+        filePath.endsWith("og.jpg")
+      ) {
         res.setHeader("Cache-Control", "public, max-age=604800, immutable");
       }
     },
@@ -1080,6 +1088,9 @@ app.use(
       isGatewayOpenApiFreeRoute(p) ||
       p === "/" ||
       p === "/favicon.ico" ||
+      p === "/favicon-96x96.png" ||
+      p === "/apple-touch-icon.png" ||
+      p === "/android-chrome-192x192.png" ||
       p === "/health/live" ||
       p.startsWith("/og") ||
       p.startsWith("/info") ||
@@ -1260,8 +1271,13 @@ app.get("/", (req, res) => {
 `;
 
   const ogImageUrl = "https://www.syraa.fun/images/og-banner.png";
+  // Absolute brand assets so scrapers (x402scan) resolve icons even if relative paths fail.
+  const faviconSvgUrl = "https://www.syraa.fun/favicon.svg";
+  const faviconPngUrl = "https://api.syraa.fun/favicon-96x96.png";
+  const appleTouchIconUrl = "https://api.syraa.fun/apple-touch-icon.png";
 
   res.setHeader("Content-Type", "text/html");
+  res.setHeader("Cache-Control", "public, max-age=300");
 
   return res.send(`
     <!DOCTYPE html>
@@ -1269,9 +1285,10 @@ app.get("/", (req, res) => {
     <head>
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <meta name="description" content="${SYRA_META_DESCRIPTION}" />
 
       <!-- OG Metadata -->
-      <meta property="og:title" content="Syra API Gateway" />
+      <meta property="og:title" content="Syra" />
       <meta property="og:description" content="${SYRA_META_DESCRIPTION}" />
       <meta property="og:image" content="${ogImageUrl}" />
       <meta property="og:image:type" content="image/png" />
@@ -1279,19 +1296,24 @@ app.get("/", (req, res) => {
       <meta property="og:image:height" content="628" />
       <meta property="og:image:alt" content="Syra — ${SYRA_TAGLINE}" />
       <meta property="og:type" content="website" />
+      <meta property="og:url" content="https://api.syraa.fun/" />
 
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:site" content="@syra_agent" />
       <meta name="twitter:creator" content="@syra_agent" />
-      <meta name="twitter:title" content="Syra API Gateway" />
+      <meta name="twitter:title" content="Syra" />
       <meta name="twitter:description" content="${SYRA_META_DESCRIPTION}" />
       <meta name="twitter:image" content="${ogImageUrl}" />
       <meta name="twitter:image:alt" content="Syra — ${SYRA_TAGLINE}" />
 
-      <!-- Favicon -->
+      <!-- Favicons: x402scan priority = SVG > large PNG (≥96) > apple-touch > ico -->
+      <link rel="icon" href="${faviconSvgUrl}" type="image/svg+xml" />
+      <link rel="icon" type="image/png" sizes="96x96" href="${faviconPngUrl}" />
+      <link rel="apple-touch-icon" sizes="180x180" href="${appleTouchIconUrl}" />
+      <link rel="shortcut icon" href="/favicon.ico" />
       <link rel="icon" href="/favicon.ico" />
 
-      <title>Syra API Gateway</title>
+      <title>Syra — ${SYRA_TAGLINE}</title>
 
       <style>
         body {
@@ -1506,6 +1528,12 @@ app.use("/analytics", await createAnalyticsRouter());
 app.use("/api", createPublicMetricsRouter());
 app.use("/free", createFreeTierRouter());
 
+app.get("/llms.txt", (_req, res) => {
+  res.setHeader("Content-Type", "text/plain; charset=utf-8");
+  res.setHeader("Cache-Control", "public, max-age=300, s-maxage=3600");
+  res.sendFile(path.join(__dirname, "public", "llms.txt"));
+});
+
 app.get("/llms-full.txt", (_req, res) => {
   res.setHeader("Content-Type", "text/plain; charset=utf-8");
   res.setHeader("Cache-Control", "public, max-age=300, s-maxage=3600");
@@ -1709,6 +1737,10 @@ Visit https://docs.syraa.fun for full documentation.
 
 ${paymentNetworkLines.join("\n")}
 
+## Facilitator failover
+
+Default verify/settle: **Dexter** → **GoPlausible** → **PayAI** (health-based). Same API URL; settlement address and live gas floor come from the active facilitator.
+
 ## Rate Limits (per IP)
 
 - **Burst**: 25 requests / 10 seconds
@@ -1755,7 +1787,10 @@ app.get("/x402/capabilities", (_req, res) => {
         binance: b402.enabled,
         algorand: algorand.enabled,
         xlayer: okx.enabled,
+        // Dexter-primary multi-chain (World, Monad, Robinhood, Optimism, …)
+        dexter: true,
       },
+      defaultFacilitatorFailover: ["dexter", "goplausible", "payai"],
       baseGateway,
       preferredNetworks: getPreferredX402Networks(),
       b402,

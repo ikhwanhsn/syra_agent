@@ -16,7 +16,10 @@ GET /mpp-openapi.json          — MPP / AgentCash discovery
 GET /x402/capabilities         — supported payment networks
 GET /api/metrics               — public traction metrics (calls, USDC, wallets)
 GET /api/live/calls            — SSE feed of recent paid calls (sanitized)
+GET /llms.txt                  — short agent summary
 GET /llms-full.txt             — this file
+GET /skill.md                  — agent skill brief
+GET /favicon.ico               — brand mark
 
 Free tier (no USDC — onboarding funnel)
 ---------------------------------------

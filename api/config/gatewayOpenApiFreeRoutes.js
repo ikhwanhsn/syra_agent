@@ -11,6 +11,8 @@ export function isGatewayOpenApiFreeRoute(p) {
   if (path.startsWith('/rewards')) return true;
   if (path.startsWith('/free/')) return true;
   if (path === '/llms-full.txt') return true;
+  if (path === '/llms.txt') return true;
+  if (path === '/skill.md') return true;
   if (path.startsWith('/reference/')) return true;
   if (path === '/experiment/scalper/overview') return true;
   if (path === '/experiment/scalper/equity-history') return true;

@@ -34,7 +34,7 @@ import {
   getX402ResourceServerGoplausible,
   ensureX402GoplausibleResourceServerInitialized,
 } from "./x402ResourceServer.js";
-import { X402_API_PRICE_USD, resolveEffectivePriceUsdAsync, applyDexterPriceFloor } from "../config/x402Pricing.js";
+import { X402_API_PRICE_USD, resolveEffectivePriceUsdAsync, applyDexterNetworkPriceFloor } from "../config/x402Pricing.js";
 import {
   getCorbitsPayToAddresses,
   getEnabledCorbitsNetworks,
@@ -42,6 +42,11 @@ import {
 import {
   getDexterPayToAddresses,
   getEnabledDexterNetworks,
+  getDexterNetworkByCaip2,
+  getDexterNetworkDecimals,
+  getDexterNetworkExtra,
+  usdToDexterAtomic,
+  DEXTER_DEFAULT_DECIMALS,
 } from "../config/dexterX402Networks.js";
 import {
   getGoplausiblePayToAddresses,
@@ -104,6 +109,11 @@ import {
   isPlaceholderResourceDescription,
   resolveResourceDescription,
 } from "../config/x402ResourceCatalog.js";
+import {
+  isDefaultFacilitatorFailoverEnabled,
+  resolveDefaultFacilitatorProfile,
+} from "./labsFacilitatorFailover.js";
+import { getDexterNetworkFloorUsd } from "./dexterSolanaFeePayerHealth.js";
 import dotenv from "dotenv";
 
 dotenv.config({ quiet: true });
@@ -424,6 +434,7 @@ export function getPaymentSignatureHeaderFromReq(req) {
 
 /**
  * Ensure EVM/EIP-712 domain (name, version) for x402scan (same as payai_example_routes).
+ * Dexter networks may override (e.g. Robinhood USDG = "Global Dollar" / "1").
  */
 function ensureEvmEip712Domain(requirements) {
   return requirements.map((r) => {
@@ -432,16 +443,21 @@ function ensureEvmEip712Domain(requirements) {
     const existing = r.extra && typeof r.extra === "object" ? r.extra : {};
     const existingEip712 = existing?.eip712 && typeof existing.eip712 === "object" ? existing.eip712 : {};
     const b402Token = isB402Network(r.network) ? getB402TokenById(process.env.B402_TOKEN) : null;
+    const dexterNet = getDexterNetworkByCaip2(r.network);
+    const dexterExtra = getDexterNetworkExtra(dexterNet);
     const defaultName =
       b402Token?.eip712Name ??
+      dexterNet?.assetName ??
       (isB402Network(r.network) ? "World Liberty Financial USD" : "USD Coin");
     const defaultVersion =
       b402Token?.eip712Version ??
+      dexterNet?.assetVersion ??
       (isB402Network(r.network) ? "1" : "2");
     const name = existingEip712?.name || existing?.name || defaultName;
     const version = existingEip712?.version || existing?.version || defaultVersion;
     const nextExtra = {
       ...existing,
+      ...(dexterExtra || {}),
       name,
       version,
       eip712: { ...existingEip712, name, version },
@@ -764,8 +780,8 @@ function appendOkxAcceptedOption(acceptedOptions, expectedMicroUnits) {
 }
 
 /** Corbits/PayAI facilitators do not support BSC — never pass B402 options into @x402 resource server. */
-function paymentOptionsForFacilitator(bundle, microUnits, maxTimeout, payToOverride = null) {
-  return buildPaymentOptionsForBundle(bundle, microUnits, maxTimeout, payToOverride).filter(
+function paymentOptionsForFacilitator(bundle, microUnits, maxTimeout, payToOverride = null, priceUsd = null) {
+  return buildPaymentOptionsForBundle(bundle, microUnits, maxTimeout, payToOverride, priceUsd).filter(
     (o) =>
       o &&
       !isB402Network(o.network) &&
@@ -858,42 +874,87 @@ function normalizePayToOverride(raw) {
 }
 
 /**
- * Build x402 payment options for a request (multi-network PayAI/Corbits or legacy Solana+Base).
+ * True when a multi-network profile row should be omitted because a dedicated
+ * rail (B402 BSC / OKX X Layer) owns that CAIP-2.
+ * @param {string} caip2
+ */
+function isOwnedByDedicatedRail(caip2) {
+  if (isB402Network(caip2)) return true;
+  if (isOkxX402Enabled() && isOkxX402Network(caip2)) return true;
+  return false;
+}
+
+/**
+ * Atomic amount for a multi-network accept, with Dexter per-chain floor when profile=dexter.
+ * @param {'payai'|'corbits'|'dexter'|'goplausible'} profile
+ * @param {{ caip2: string, kind: string, decimals?: number }} net
+ * @param {string} microUnits - 6-decimal baseline from route price
+ * @param {number} priceUsd - route price before per-chain floor
+ * @returns {{ amount: string, extra?: Record<string, string | number> }}
+ */
+function resolveNetworkOfferAmount(profile, net, microUnits, priceUsd) {
+  if (profile !== "dexter") {
+    return { amount: String(microUnits) };
+  }
+  const dexterNet = getDexterNetworkByCaip2(net.caip2) || net;
+  const decimals = getDexterNetworkDecimals(dexterNet);
+  const floorUsd = getDexterNetworkFloorUsd(net.caip2);
+  const offerUsd = applyDexterNetworkPriceFloor(priceUsd, floorUsd);
+  const amount =
+    decimals === DEXTER_DEFAULT_DECIMALS
+      ? usdToMicroUsdc(offerUsd)
+      : usdToDexterAtomic(offerUsd, decimals);
+  const extra = getDexterNetworkExtra(dexterNet);
+  return extra ? { amount, extra } : { amount };
+}
+
+/**
+ * Build x402 payment options for a request (multi-network PayAI/Corbits/Dexter or legacy Solana+Base).
  * @param {object} bundle
  * @param {string} microUnits
  * @param {number} maxTimeout
  * @param {{ solanaPayTo?: string | null, evmPayTo?: string | null } | null} [payToOverride]
+ * @param {number} [priceUsd] - route USD price (used for Dexter per-chain floors)
  */
-function buildPaymentOptionsForBundle(bundle, microUnits, maxTimeout, payToOverride = null) {
+function buildPaymentOptionsForBundle(bundle, microUnits, maxTimeout, payToOverride = null, priceUsd = null) {
   const { config, assets } = bundle;
   const overrideSolana = payToOverride?.solanaPayTo ?? null;
   const overrideEvm = payToOverride?.evmPayTo ?? null;
   const solanaOnlyOverride = Boolean(overrideSolana && !overrideEvm);
+  const routeUsd =
+    Number.isFinite(Number(priceUsd)) && Number(priceUsd) >= 0
+      ? Number(priceUsd)
+      : microUsdcToUsd(microUnits);
 
   if (config.multiNetwork && config.networkProfile) {
-    const { solanaPayTo: solFromEnv, evmPayTo: evmFromEnv } = getPayToAddressesForProfile(
-      config.networkProfile
-    );
+    const profile = config.networkProfile;
+    const { solanaPayTo: solFromEnv, evmPayTo: evmFromEnv } = getPayToAddressesForProfile(profile);
     const solanaPayTo = overrideSolana || config.solanaPayTo || solFromEnv;
     const evmPayTo = overrideEvm || config.basePayTo || evmFromEnv;
     const options = [];
-    for (const net of getEnabledNetworksForProfile(config.networkProfile)) {
+    for (const net of getEnabledNetworksForProfile(profile)) {
+      if (isOwnedByDedicatedRail(net.caip2)) continue;
+      const { amount, extra } = resolveNetworkOfferAmount(profile, net, microUnits, routeUsd);
       if (net.kind === "solana" && solanaPayTo) {
-        options.push({
+        const opt = {
           scheme: "exact",
-          price: { asset: net.usdc, amount: microUnits },
+          price: { asset: net.usdc, amount },
           network: net.caip2,
           payTo: solanaPayTo,
           maxTimeoutSeconds: maxTimeout,
-        });
+        };
+        if (extra) opt.extra = extra;
+        options.push(opt);
       } else if (net.kind === "evm" && evmPayTo && !solanaOnlyOverride) {
-        options.push({
+        const opt = {
           scheme: "exact",
-          price: { asset: net.usdc, amount: microUnits },
+          price: { asset: net.usdc, amount },
           network: net.caip2,
           payTo: evmPayTo,
           maxTimeoutSeconds: maxTimeout,
-        });
+        };
+        if (extra) opt.extra = extra;
+        options.push(opt);
       }
     }
     return options;
@@ -926,27 +987,34 @@ function buildPaymentOptionsForBundle(bundle, microUnits, maxTimeout, payToOverr
  * @param {object} bundle
  * @param {string} expectedMicroUnits
  * @param {{ solanaPayTo?: string | null, evmPayTo?: string | null } | null} [payToOverride]
+ * @param {number} [priceUsd]
  */
-function buildAcceptedOptionsForBundle(bundle, expectedMicroUnits, payToOverride = null) {
+function buildAcceptedOptionsForBundle(bundle, expectedMicroUnits, payToOverride = null, priceUsd = null) {
   const { config, assets } = bundle;
   const overrideSolana = payToOverride?.solanaPayTo ?? null;
   const overrideEvm = payToOverride?.evmPayTo ?? null;
   const solanaOnlyOverride = Boolean(overrideSolana && !overrideEvm);
+  const routeUsd =
+    Number.isFinite(Number(priceUsd)) && Number(priceUsd) >= 0
+      ? Number(priceUsd)
+      : microUsdcToUsd(expectedMicroUnits);
 
   if (config.multiNetwork && config.networkProfile) {
-    const { solanaPayTo: solFromEnv, evmPayTo: evmFromEnv } = getPayToAddressesForProfile(
-      config.networkProfile
-    );
+    const profile = config.networkProfile;
+    const { solanaPayTo: solFromEnv, evmPayTo: evmFromEnv } = getPayToAddressesForProfile(profile);
     const solanaPayTo = overrideSolana || config.solanaPayTo || solFromEnv;
     const evmPayTo = overrideEvm || config.basePayTo || evmFromEnv;
     const out = [];
-    for (const net of getEnabledNetworksForProfile(config.networkProfile)) {
+    for (const net of getEnabledNetworksForProfile(profile)) {
+      if (isOwnedByDedicatedRail(net.caip2)) continue;
+      const { amount } = resolveNetworkOfferAmount(profile, net, expectedMicroUnits, routeUsd);
       if (net.kind === "solana" && solanaPayTo) {
         out.push({
           network: net.caip2,
           payTo: solanaPayTo,
           asset: net.usdc,
           isEvm: false,
+          amount,
         });
       } else if (net.kind === "evm" && evmPayTo && !solanaOnlyOverride) {
         out.push({
@@ -954,16 +1022,16 @@ function buildAcceptedOptionsForBundle(bundle, expectedMicroUnits, payToOverride
           payTo: evmPayTo,
           asset: net.usdc,
           isEvm: true,
+          amount,
         });
       }
     }
-    const withAmount = out.map((o) => ({ ...o, amount: expectedMicroUnits }));
     if (solanaOnlyOverride) {
-      return withAmount;
+      return out;
     }
     return appendAlgorandAcceptedOption(
       appendOkxAcceptedOption(
-        appendB402AcceptedOption(withAmount, expectedMicroUnits),
+        appendB402AcceptedOption(out, expectedMicroUnits),
         expectedMicroUnits,
       ),
       expectedMicroUnits,
@@ -1050,17 +1118,19 @@ function getPayerOrConnectedWalletForPrice(req) {
 }
 
 /**
- * Effective USD price for a request, including holder/staker discount + Dexter floor.
+ * Effective USD price for a request, including holder/staker discount.
+ * Dexter per-chain dynamic floors are applied later in resolveNetworkOfferAmount
+ * (not here — a global bump would overcharge cheap chains and inflate B402/AVM rails).
  * @param {number} rawPrice
  * @param {import('express').Request} req
- * @param {object} [options]
+ * @param {object} [_options]
  */
-async function resolveEffectivePriceUsd(rawPrice, req, options) {
+async function resolveEffectivePriceUsd(rawPrice, req, _options) {
   const priced = await resolveEffectivePriceUsdAsync(
     rawPrice,
     getPayerOrConnectedWalletForPrice(req),
   );
-  let priceUsd = priced.priceUsd;
+  const priceUsd = priced.priceUsd;
   if (priced.tier && priced.discount > 0) {
     req.x402SyraDiscount = {
       tier: priced.tier,
@@ -1068,16 +1138,18 @@ async function resolveEffectivePriceUsd(rawPrice, req, options) {
       syraAmount: priced.syraAmount,
     };
   }
-  if (resolveResourceServerProfile(req, options) === "dexter") {
-    priceUsd = applyDexterPriceFloor(priceUsd);
-  }
   return priceUsd;
 }
 
 /**
- * Default x402 verify/settle: PayAI (https://facilitator.payai.network).
- * Opt in per-request via `options.resourceServerProfile` / `req.x402ResourceServerProfile`,
- * or globally via X402_USE_CORBITS_FACILITATOR / X402_USE_DEXTER_FACILITATOR.
+ * Default x402 verify/settle: health-based Dexter → GoPlausible → PayAI when
+ * X402_DEFAULT_FACILITATOR_FAILOVER is enabled (default). Opt in per-request via
+ * `options.resourceServerProfile` / `req.x402ResourceServerProfile`, or globally via
+ * X402_USE_CORBITS_FACILITATOR / X402_USE_DEXTER_FACILITATOR.
+ *
+ * Note: the health-based default is applied asynchronously in requirePayment by setting
+ * `req.x402ResourceServerProfile` before this sync resolver runs. Without that, and without
+ * env overrides, this returns "payai" (legacy default / kill-switch path).
  * @returns {'payai'|'corbits'|'dexter'|'goplausible'}
  */
 function resolveResourceServerProfile(req, options) {
@@ -1107,6 +1179,39 @@ function resolveResourceServerProfile(req, options) {
   if (truthy(process.env.X402_USE_CORBITS_FACILITATOR)) return "corbits";
   if (truthy(process.env.X402_USE_DEXTER_FACILITATOR)) return "dexter";
   return "payai";
+}
+
+/**
+ * Whether an explicit facilitator profile is already pinned (options, req, or env).
+ * When true, requirePayment skips the health-based Dexter→GoPlausible→PayAI default.
+ */
+function hasExplicitResourceServerProfile(req, options) {
+  const fromOptions =
+    options?.resourceServerProfile != null
+      ? String(options.resourceServerProfile).trim().toLowerCase()
+      : "";
+  const fromReq =
+    req?.x402ResourceServerProfile != null
+      ? String(req.x402ResourceServerProfile).trim().toLowerCase()
+      : "";
+  const explicit = fromOptions || fromReq;
+  if (
+    explicit === "corbits" ||
+    explicit === "dexter" ||
+    explicit === "goplausible" ||
+    explicit === "payai" ||
+    explicit === "default"
+  ) {
+    return true;
+  }
+  const truthy = (v) => {
+    const s = String(v || "").trim().toLowerCase();
+    return s === "true" || s === "1";
+  };
+  return (
+    truthy(process.env.X402_USE_CORBITS_FACILITATOR) ||
+    truthy(process.env.X402_USE_DEXTER_FACILITATOR)
+  );
 }
 
 function getX402BundleForReq(req, options) {
@@ -1368,6 +1473,7 @@ async function buildPaymentRequired(bundle, req, options, error) {
     microUnits,
     maxTimeout,
     payToOverride,
+    priceUsd,
   );
 
   let requirements;
@@ -1543,6 +1649,12 @@ export function requirePayment(options) {
       options = normalizePaymentOptions(req, options);
       if (options.resourceServerProfile) {
         req.x402ResourceServerProfile = options.resourceServerProfile;
+      } else if (
+        !hasExplicitResourceServerProfile(req, options) &&
+        isDefaultFacilitatorFailoverEnabled()
+      ) {
+        // Global default: Dexter → GoPlausible → PayAI (health-based).
+        req.x402ResourceServerProfile = await resolveDefaultFacilitatorProfile(req);
       }
 
       await ensureX402ForReq(req, options);
@@ -1604,7 +1716,7 @@ export function requirePayment(options) {
       let acceptedOptions =
         labChain === "algorand"
           ? appendAlgorandAcceptedOption([], expectedMicroUnits, payToOverride?.algorandPayTo)
-          : buildAcceptedOptionsForBundle(bundle, expectedMicroUnits, payToOverride);
+          : buildAcceptedOptionsForBundle(bundle, expectedMicroUnits, payToOverride, priceUsd);
       if (labChain === "base") {
         const evmOpts = acceptedOptions.filter((opt) => opt?.isEvm);
         const baseMainnet = evmOpts.filter((opt) => opt.network === "eip155:8453");

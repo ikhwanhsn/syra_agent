@@ -83,8 +83,28 @@ async function main() {
   }
   ok(`Dexter facilitator reachable (${kinds.length} kinds)`);
 
-  // 2) Local Dexter resource server init
+  // Assert every enabled Dexter CAIP-2 (except BNB which settles via B402) appears in live /supported
+  const supportedExact = new Set(
+    kinds
+      .filter((k) => k?.scheme === "exact")
+      .map((k) => String(k?.network || "").trim())
+      .filter(Boolean),
+  );
   const networks = getEnabledDexterNetworks();
+  for (const net of networks) {
+    if (net.caip2 === "eip155:56") {
+      // BNB listed for Dexter parity; Syra settles via B402 rail
+      continue;
+    }
+    if (!supportedExact.has(net.caip2)) {
+      fail(`Dexter /supported missing exact kind for configured network ${net.id} (${net.caip2})`);
+    }
+  }
+  ok(
+    `all configured Dexter networks present in /supported (${networks.filter((n) => n.caip2 !== "eip155:56").length} checked)`,
+  );
+
+  // 2) Local Dexter resource server init
   console.log(
     `[validate-dexter-labs] enabled Dexter networks: ${networks.map((n) => n.id).join(",")}`,
   );
@@ -130,7 +150,7 @@ async function main() {
     `insights 402 ok (accepts=${accepts.length}, solana payTo=${solAccept.payTo}, amount=${solAccept.amount})`,
   );
 
-  // 4) Control: a non-labs route should still 402 (PayAI path)
+  // 4) Control: a non-labs route should still 402 (now Dexter-primary by default)
   const controlPath = "/news";
   const controlRes = await fetchWithTimeout(`${BASE_URL}${controlPath}`, {
     method: "GET",
@@ -140,9 +160,16 @@ async function main() {
     // Some deployments may gate differently; don't hard-fail on 401/403 from API key
     warn(`${controlPath} returned ${controlRes.status} (expected 402 unpaid or 200)`);
   } else if (controlRes.status === 402) {
-    ok(`${controlPath} still returns 402 (PayAI path intact)`);
+    const controlPr = decodePaymentRequired(controlRes);
+    const controlAccepts = controlPr?.accepts || controlPr?.paymentRequirements || [];
+    const hasWorldOrOptimism = (controlAccepts || []).some((a) =>
+      ["eip155:480", "eip155:10", "eip155:143", "eip155:4663"].includes(String(a?.network || "")),
+    );
+    ok(
+      `${controlPath} returns 402 (default facilitator failover; dexterChains=${hasWorldOrOptimism ? "expanded" : "legacy-or-failover"})`,
+    );
   } else {
-    warn(`${controlPath} returned 200 without payment — skipping PayAI control assert`);
+    warn(`${controlPath} returned 200 without payment — skipping control assert`);
   }
 
   // 5) Optional paid E2E

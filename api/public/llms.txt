@@ -1,0 +1,48 @@
+Syra — machine-readable API summary (llms.txt)
+==============================================
+
+Name: Syra
+Tagline: Machine Money for Agents — pay-per-call crypto APIs (x402 USDC).
+
+Base URL
+--------
+https://api.syraa.fun
+
+Discovery (public, no API key)
+------------------------------
+GET /openapi.json              — OpenAPI 3.1 gateway catalog (AgentCash / x402scan)
+GET /mpp-openapi.json          — MPP registry companion document
+GET /.well-known/x402          — x402 resource catalog + payment instructions
+GET /llms.txt                  — this file
+GET /llms-full.txt             — full route / pricing reference
+GET /skill.md                  — agent skill brief
+GET /favicon.ico               — brand mark
+
+How to pay
+----------
+Paid routes return HTTP 402 with Payment-Required + JSON `accepts`.
+Settle USDC (Solana / Base / other rails in accepts), retry with PAYMENT-SIGNATURE or X-PAYMENT.
+Docs: https://docs.syraa.fun/docs/api/x402-api-standard
+
+Start here (flagship paid GETs)
+-------------------------------
+GET /health                    — paid connectivity probe ($0.001)
+GET /news?ticker=BTC           — crypto news
+GET /sentiment?ticker=BTC      — sentiment
+GET /signal?token=bitcoin      — trading signal
+GET /coingecko                 — market scout brief
+GET /insights/market-pulse     — SOL/BTC/ETH oracle pulse
+GET /brain?question=...        — Syra Brain Q&A
+
+Free onboarding
+---------------
+GET /free/pillars
+GET /free/assets
+GET /api/metrics
+
+MCP / SDK
+---------
+MCP: npx -y @syra-ai/mcp-server@latest
+SDK: @syra-ai/sdk — createSyraPaidClient({ baseUrl: "https://api.syraa.fun" })
+Docs: https://docs.syraa.fun
+Contact: support@syraa.fun

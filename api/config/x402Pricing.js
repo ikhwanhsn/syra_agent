@@ -208,6 +208,7 @@ export async function resolveEffectivePriceUsdAsync(priceUsd, payerAddress) {
 
 /**
  * Clamp price to Dexter facilitator minimum (covers Base dynamic floor + buffer).
+ * Prefer per-network floors via applyDexterNetworkPriceFloor when CAIP-2 is known.
  * @param {number} priceUsd
  * @returns {number}
  */
@@ -215,6 +216,21 @@ export function applyDexterPriceFloor(priceUsd) {
   const n = Number(priceUsd);
   if (!Number.isFinite(n) || n < 0) return X402_DEXTER_MIN_PAYMENT_USD;
   return Math.max(n, X402_DEXTER_MIN_PAYMENT_USD);
+}
+
+/**
+ * Clamp route price to a network's Dexter dynamic floor (or static fallback).
+ * @param {number} priceUsd
+ * @param {number} floorUsd - From getDexterNetworkFloorUsd(caip2)
+ * @returns {number}
+ */
+export function applyDexterNetworkPriceFloor(priceUsd, floorUsd) {
+  const n = Number(priceUsd);
+  const floor = Number(floorUsd);
+  const safeFloor =
+    Number.isFinite(floor) && floor >= 0 ? floor : X402_DEXTER_MIN_PAYMENT_USD;
+  if (!Number.isFinite(n) || n < 0) return safeFloor;
+  return Math.max(n, safeFloor);
 }
 
 /** Internal Syra route price (base × env mult). */

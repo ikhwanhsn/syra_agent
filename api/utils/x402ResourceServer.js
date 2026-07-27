@@ -18,6 +18,9 @@ import {
 import {
   getDexterEvmUsdcAsset,
   getEnabledDexterNetworks,
+  getDexterNetworkByCaip2,
+  getDexterNetworkDecimals,
+  usdToDexterAtomic,
 } from "../config/dexterX402Networks.js";
 import {
   getGoplausibleEvmUsdcAsset,
@@ -182,7 +185,11 @@ function buildResourceServerBundle(
         (n) => n.kind === "solana" && n.caip2 === net
       );
       if (!row) return null;
-      return { asset: row.usdc, amount: atomicUsdcFromUsd(amount) };
+      const decimals = profile === "dexter" ? getDexterNetworkDecimals(row) : 6;
+      return {
+        asset: row.usdc,
+        amount: profile === "dexter" ? usdToDexterAtomic(amount, decimals) : atomicUsdcFromUsd(amount),
+      };
     }
     const mint = solanaUsdcMint || USDC_MAINNET;
     return { asset: mint, amount: atomicUsdcFromUsd(amount) };
@@ -196,6 +203,11 @@ function buildResourceServerBundle(
       if (profile) {
         const asset = getEvmUsdcForProfile(profile, net);
         if (!asset) return null;
+        if (profile === "dexter") {
+          const row = getDexterNetworkByCaip2(net);
+          const decimals = getDexterNetworkDecimals(row);
+          return { asset, amount: usdToDexterAtomic(amount, decimals) };
+        }
         return { asset, amount: atomicUsdcFromUsd(amount) };
       }
       return { asset: baseUsdcAsset, amount: atomicUsdcFromUsd(amount) };

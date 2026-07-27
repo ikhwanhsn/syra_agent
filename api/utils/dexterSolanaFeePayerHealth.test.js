@@ -6,9 +6,11 @@ import {
   getDexterSolanaFeePayerAddress,
   getDexterSolanaFeePayerMinSol,
   getDexterSupportedHealth,
+  getDexterNetworkFloorUsd,
   isDexterHealthyForLabChain,
   resetDexterSolanaFeePayerHealthCache,
 } from './dexterSolanaFeePayerHealth.js';
+import { X402_DEXTER_MIN_PAYMENT_USD } from '../config/x402Pricing.js';
 
 describe('dexterSolanaFeePayerHealth', () => {
   beforeEach(() => {
@@ -78,6 +80,44 @@ describe('dexter Base /supported health', () => {
       assert.equal(status.healthy, false);
       assert.equal(status.reason, 'missing_base_exact');
       assert.equal(await isDexterHealthyForLabChain('base', true), false);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('caches per-network minPaymentAmountUsd floors from /supported', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = mock.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        kinds: [
+          {
+            scheme: 'exact',
+            network: DEXTER_BASE_CAIP2,
+            extra: { minPaymentAmountUsd: 0.00111 },
+          },
+          {
+            scheme: 'exact',
+            network: 'eip155:42161',
+            extra: { minPaymentAmountUsd: 0.00447 },
+          },
+          {
+            scheme: 'exact',
+            network: 'eip155:4663',
+            extra: { minPaymentAmountUsd: 0.00878 },
+          },
+        ],
+      }),
+    }));
+    try {
+      resetDexterSolanaFeePayerHealthCache();
+      const status = await getDexterSupportedHealth(true);
+      assert.equal(status.floorsByCaip2?.[DEXTER_BASE_CAIP2], 0.00111);
+      assert.equal(getDexterNetworkFloorUsd('eip155:42161'), 0.00447);
+      assert.equal(getDexterNetworkFloorUsd('eip155:4663'), 0.00878);
+      // Unknown network still falls back to static floor
+      assert.equal(getDexterNetworkFloorUsd('eip155:99999'), X402_DEXTER_MIN_PAYMENT_USD);
     } finally {
       globalThis.fetch = originalFetch;
     }

@@ -13,6 +13,7 @@
  */
 import { PublicKey } from '@solana/web3.js';
 import { pickSolanaConnectionForReads } from '../libs/solanaServerRpc.js';
+import { X402_DEXTER_MIN_PAYMENT_USD } from '../config/x402Pricing.js';
 
 /** Known Dexter mainnet fee payer (from https://x402.dexter.cash/supported). */
 export const DEXTER_SOLANA_FEE_PAYER_DEFAULT = 'DeXterR2kQm8AvRHnNPatWkE46TfAcMeBDjb6FySoAb8';
@@ -56,6 +57,7 @@ let backgroundRefreshInFlight = null;
  *   kindsCount: number;
  *   reason: string;
  *   checkedAt: number;
+ *   floorsByCaip2?: Record<string, number>,
  * }} DexterSupportedHealth
  */
 
@@ -63,6 +65,30 @@ let backgroundRefreshInFlight = null;
 let feePayerCache = null;
 /** @type {DexterSupportedHealth | null} */
 let supportedCache = null;
+
+/**
+ * Parse per-network minPaymentAmountUsd from Dexter /supported exact kinds.
+ * @param {unknown[]} kinds
+ * @returns {Record<string, number>}
+ */
+function parseDexterFloorsByCaip2(kinds) {
+  /** @type {Record<string, number>} */
+  const floors = {};
+  for (const k of kinds) {
+    if (!k || typeof k !== 'object') continue;
+    const scheme = String(/** @type {{ scheme?: string }} */ (k).scheme || '').trim();
+    if (scheme !== 'exact') continue;
+    const network = String(/** @type {{ network?: string }} */ (k).network || '').trim();
+    if (!network) continue;
+    const extra = /** @type {{ extra?: { minPaymentAmountUsd?: unknown } }} */ (k).extra;
+    const raw = Number(extra?.minPaymentAmountUsd);
+    if (!Number.isFinite(raw) || raw < 0) continue;
+    // Keep the max floor if multiple exact kinds share a network.
+    const prev = floors[network];
+    floors[network] = prev == null ? raw : Math.max(prev, raw);
+  }
+  return floors;
+}
 
 function envFloat(name, fallback) {
   const raw = String(process.env[name] ?? '').trim();
@@ -195,6 +221,7 @@ export async function getDexterSupportedHealth(forceRefresh = false) {
         hasBaseExact: false,
         hasSolanaExact: false,
         kindsCount: 0,
+        floorsByCaip2: {},
         reason: `supported_http_${res.status}`,
         checkedAt,
       };
@@ -206,6 +233,7 @@ export async function getDexterSupportedHealth(forceRefresh = false) {
 
     const body = await res.json().catch(() => ({}));
     const kinds = Array.isArray(body?.kinds) ? body.kinds : [];
+    const floorsByCaip2 = parseDexterFloorsByCaip2(kinds);
     const hasBaseExact = kinds.some(
       (k) =>
         k?.scheme === 'exact' &&
@@ -223,6 +251,7 @@ export async function getDexterSupportedHealth(forceRefresh = false) {
       hasBaseExact,
       hasSolanaExact,
       kindsCount: kinds.length,
+      floorsByCaip2,
       reason: healthy ? 'ok' : 'missing_base_exact',
       checkedAt,
     };
@@ -234,12 +263,15 @@ export async function getDexterSupportedHealth(forceRefresh = false) {
     return supportedCache;
   } catch (e) {
     // Fail open on transient network errors so we don't flap to PayAI on blips.
+    // Preserve prior floors when available so offer pricing stays warm across blips.
+    const priorFloors = supportedCache?.floorsByCaip2 || {};
     supportedCache = {
       healthy: true,
       reachable: false,
       hasBaseExact: false,
       hasSolanaExact: false,
       kindsCount: 0,
+      floorsByCaip2: priorFloors,
       reason: `supported_unreachable:${e?.message || e}`,
       checkedAt,
     };
@@ -260,6 +292,35 @@ export async function getDexterSupportedHealth(forceRefresh = false) {
 export async function isDexterBaseHealthy(forceRefresh = false) {
   const status = await getDexterSupportedHealth(forceRefresh);
   return status.healthy;
+}
+
+/**
+ * Live Dexter dynamic floor (USD) for a CAIP-2 network from cached GET /supported.
+ * Fail-open to the static X402_DEXTER_MIN_PAYMENT_USD when the cache is cold/missing.
+ *
+ * @param {string} caip2
+ * @param {number} [fallbackUsd] - Override static fallback (default from x402Pricing)
+ * @returns {number}
+ */
+export function getDexterNetworkFloorUsd(caip2, fallbackUsd) {
+  const network = String(caip2 || '').trim();
+  const floors = supportedCache?.floorsByCaip2;
+  if (network && floors && typeof floors === 'object' && Number.isFinite(floors[network])) {
+    return Math.max(0, floors[network]);
+  }
+  if (Number.isFinite(fallbackUsd) && /** @type {number} */ (fallbackUsd) >= 0) {
+    return /** @type {number} */ (fallbackUsd);
+  }
+  const n = Number(X402_DEXTER_MIN_PAYMENT_USD);
+  return Number.isFinite(n) && n >= 0 ? n : 0.002;
+}
+
+/**
+ * Cached floors map (may be empty when cold). For tests / diagnostics.
+ * @returns {Record<string, number>}
+ */
+export function getDexterCachedFloorsByCaip2() {
+  return { ...(supportedCache?.floorsByCaip2 || {}) };
 }
 
 /**
