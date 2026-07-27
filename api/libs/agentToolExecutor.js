@@ -27,6 +27,7 @@ import { callZerionWithAgent } from './agentZerionClient.js';
 import { callTopledgerWithAgent } from './topledgerClient.js';
 import { callBirdeyeWithAgent } from './agentBirdeyeClient.js';
 import { callBlocksizeWithAgent } from './agentBlocksizeClient.js';
+import { callUtiliaPriorityFeesWithAgent } from './agentUtiliaClient.js';
 import { callDexterWithAgent, fetchDexterX402Catalog } from './agentDexterClient.js';
 import { callStablecryptoWithAgent } from './agentStablecryptoClient.js';
 import { callStablesocialWithAgent } from './agentStablesocialClient.js';
@@ -676,6 +677,24 @@ export async function executeAgentToolCall(input) {
         tool.method || 'GET',
         params
       );
+      if (!result.success) {
+        const status = result.budgetExceeded ? 402 : 502;
+        return respond(status, {
+          success: false,
+          error: result.error,
+          toolId: tool.id,
+          ...(result.budgetExceeded && { budgetExceeded: true }),
+        });
+      }
+      return respond(200, {
+        success: true,
+        toolId: tool.id,
+        data: result.data,
+      });
+    }
+
+    if (tool.utiliaPath) {
+      const result = await callUtiliaPriorityFeesWithAgent(anonymousId, params);
       if (!result.success) {
         const status = result.budgetExceeded ? 402 : 502;
         return respond(status, {
