@@ -18,6 +18,7 @@ import {
   OUTCOME_FLAT_CYCLE_FEE_USD,
   computeOutcomeFee,
 } from "./outcomePricing.js";
+import { createBoundedTtlCache } from "../utils/boundedTtlCache.js";
 
 export { computeOutcomeFee, OUTCOME_MIN_PERFORMANCE_FEE_USD, OUTCOME_FLAT_CYCLE_FEE_USD };
 
@@ -28,6 +29,20 @@ const mult = isProduction ? PRODUCTION_MULT : LOCAL_MULT;
 
 /** Margin over documented upstream cost for passthrough x402 providers. */
 export const PASSTHROUGH_MARGIN = 1.2;
+
+/** Cache SYRA balance/stake lookups used for holder discount pricing (~60s). */
+const SYRA_DISCOUNT_CACHE_TTL_MS = Math.max(
+  5_000,
+  Number.parseInt(process.env.X402_SYRA_DISCOUNT_CACHE_TTL_MS || "60000", 10) || 60_000,
+);
+const syraDiscountAmountCache = createBoundedTtlCache({
+  name: "syra-discount-amount",
+  maxEntries: Math.min(
+    5000,
+    Math.max(64, Number.parseInt(process.env.X402_SYRA_DISCOUNT_CACHE_MAX || "1000", 10) || 1000),
+  ),
+  defaultTtlMs: SYRA_DISCOUNT_CACHE_TTL_MS,
+});
 
 /**
  * Machine-frequency pricing tiers (BlockRun-aligned).
@@ -180,16 +195,19 @@ export async function resolveEffectivePriceUsdAsync(priceUsd, payerAddress) {
   }
 
   try {
-    const [{ getSyraBalance, resolveUtilityTierFromAmount }, { getActiveStakedSyra }] =
-      await Promise.all([
-        import('../libs/syraToken.js'),
-        import('../libs/syraStakingEligibility.js'),
+    let amount = syraDiscountAmountCache.get(payer);
+    const { getSyraBalance, resolveUtilityTierFromAmount } = await import('../libs/syraToken.js');
+    if (amount === null) {
+      const { getActiveStakedSyra } = await import('../libs/syraStakingEligibility.js');
+      const [bal, staked] = await Promise.all([
+        getSyraBalance(payer),
+        getActiveStakedSyra(payer),
       ]);
-    const [bal, staked] = await Promise.all([
-      getSyraBalance(payer),
-      getActiveStakedSyra(payer),
-    ]);
-    const amount = Math.max(Number(bal?.balance) || 0, Number(staked?.amount) || 0);
+      amount = Math.max(Number(bal?.balance) || 0, Number(staked?.amount) || 0);
+      syraDiscountAmountCache.set(payer, amount, SYRA_DISCOUNT_CACHE_TTL_MS);
+    } else {
+      amount = Number(amount) || 0;
+    }
     const tier = resolveUtilityTierFromAmount(amount);
     if (!tier || !(tier.discount > 0)) {
       return { priceUsd: base, discount: 0, tier: null, syraAmount: amount };

@@ -57,6 +57,43 @@ function explorerTxUrl(chain: LabChain, tx: string): string {
   }
 }
 
+function facilitatorLabel(
+  facilitator: LabX402Call["facilitator"] | undefined,
+  chain: LabChain,
+  endpoint: string,
+): string {
+  switch (facilitator) {
+    case "payai":
+      return "PayAI";
+    case "okx":
+      return "OKX";
+    case "goplausible":
+      return "GoPlausible";
+    case "dexter":
+      return "Dexter";
+    default:
+      break;
+  }
+  // Legacy rows without facilitator: infer from endpoint / chain rail.
+  if (endpoint.includes("ecosystem-brief")) return "PayAI";
+  if (chain === "xlayer") return "OKX";
+  if (chain === "algorand") return "GoPlausible";
+  return "Dexter";
+}
+
+function facilitatorBadgeClass(label: string): string {
+  switch (label) {
+    case "PayAI":
+      return "bg-violet-500/15 text-violet-600 dark:text-violet-400";
+    case "OKX":
+      return "bg-amber-500/15 text-amber-700 dark:text-amber-400";
+    case "GoPlausible":
+      return "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400";
+    default:
+      return "bg-sky-500/15 text-sky-600 dark:text-sky-400";
+  }
+}
+
 interface CallLogTableProps {
   calls: LabX402Call[];
   isLoading: boolean;
@@ -92,6 +129,7 @@ export function CallLogTable({ calls, isLoading, chain = "solana" }: CallLogTabl
             <TableHead>Payer</TableHead>
             <TableHead className="text-right">Price</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Facilitator</TableHead>
             <TableHead>Tx</TableHead>
             <TableHead>Error</TableHead>
             <TableHead>Trigger</TableHead>
@@ -102,6 +140,7 @@ export function CallLogTable({ calls, isLoading, chain = "solana" }: CallLogTabl
             const rowChain = c.chain ?? chain;
             const paymentTx = c.paymentTx?.trim() || null;
             const refundTx = c.refundTx?.trim() || null;
+            const facLabel = facilitatorLabel(c.facilitator, rowChain, c.endpoint);
             return (
               <TableRow key={c.id}>
                 <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
@@ -116,6 +155,16 @@ export function CallLogTable({ calls, isLoading, chain = "solana" }: CallLogTabl
                 </TableCell>
                 <TableCell>
                   <Badge variant={statusVariant(c.status)}>{c.status}</Badge>
+                </TableCell>
+                <TableCell>
+                  <span
+                    className={cn(
+                      "rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                      facilitatorBadgeClass(facLabel),
+                    )}
+                  >
+                    {facLabel}
+                  </span>
                 </TableCell>
                 <TableCell className="font-mono text-xs">
                   {paymentTx || refundTx ? (
@@ -144,7 +193,7 @@ export function CallLogTable({ calls, isLoading, chain = "solana" }: CallLogTabl
                       ) : null}
                     </div>
                   ) : (
-                    <span className="text-muted-foreground">, </span>
+                    <span className="text-muted-foreground">-</span>
                   )}
                 </TableCell>
                 <TableCell

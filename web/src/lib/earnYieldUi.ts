@@ -7,7 +7,74 @@ import {
   Shield,
   type LucideIcon,
 } from "lucide-react";
-import type { EarnDenom, EarnRiskLevel, EarnYieldProduct } from "@/lib/earnYieldApi";
+import type {
+  EarnDenom,
+  EarnRiskLevel,
+  EarnYieldProduct,
+  EarnYieldProductStats,
+} from "@/lib/earnYieldApi";
+
+/** Plain-language glossary for Earn yield UI (no jargon without a tooltip). */
+export const EARN_GLOSSARY = {
+  winRate:
+    "Share of closed trades that made money. Past results do not guarantee future ones.",
+  profitLoss:
+    "Profit or loss: how much money the strategy made or lost after fees.",
+  realized:
+    "Locked in from closed trades. This amount will not change.",
+  unrealized:
+    "Still open and can go up or down until the trade closes.",
+  trackRecord:
+    "Results across all Syra users of this strategy, not your personal wallet.",
+  reliability:
+    "How often on-chain settlements completed successfully in the last 24 hours.",
+  performanceFee:
+    "Syra only charges when you make a profit. No fee on losses.",
+  nonCustodial:
+    "Your funds stay in your own agent wallet. Syra runs the strategy; you can stop anytime.",
+  sol: "SOL: the main coin on Solana. This is what you deposit for this strategy.",
+  usdc: "USDC: a dollar-pegged stablecoin. One USDC is meant to equal about one US dollar.",
+} as const;
+
+export type EarnGlossaryKey = keyof typeof EARN_GLOSSARY;
+
+export function denomHelp(denom: EarnDenom): string {
+  return denom === "USDC" ? EARN_GLOSSARY.usdc : EARN_GLOSSARY.sol;
+}
+
+/**
+ * One friendly sentence for a product's lab/platform track record.
+ * Safe for beginners: never dumps raw W/L codes.
+ */
+export function summarizeTrackRecord(
+  stats: EarnYieldProductStats | null | undefined,
+  _denom: EarnDenom = "SOL",
+): string {
+  if (!stats) return "Still building a track record.";
+
+  if (stats.winRatePct != null && Number.isFinite(stats.winRatePct)) {
+    const wins = stats.wins ?? 0;
+    const losses = stats.losses ?? 0;
+    const total = wins + losses;
+    if (total > 0) {
+      return `${stats.winRatePct.toFixed(0)}% of trades made money across all Syra users (${wins} wins, ${losses} losses).`;
+    }
+    return `${stats.winRatePct.toFixed(0)}% of trades made money across all Syra users.`;
+  }
+
+  if (stats.returnPct != null && Number.isFinite(stats.returnPct)) {
+    const sign = stats.returnPct > 0 ? "+" : "";
+    return `Return so far: ${sign}${stats.returnPct.toFixed(1)}% across all Syra users.`;
+  }
+
+  const wins = stats.wins ?? 0;
+  const losses = stats.losses ?? 0;
+  if (wins + losses > 0) {
+    return `${wins} wins and ${losses} losses across all Syra users so far.`;
+  }
+
+  return "Still building a track record.";
+}
 
 export function fmtEarnAmount(n: number | null | undefined, denom: EarnDenom = "SOL") {
   if (n == null || !Number.isFinite(n)) return "-";

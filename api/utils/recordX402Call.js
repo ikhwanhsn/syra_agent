@@ -73,6 +73,8 @@ export function resolveInboundFacilitator(req) {
  * @param {string} [event.agentId]
  * @param {string} [event.source]
  * @param {number} [event.latencyMs]
+ * @param {number|null} [event.verifyLatencyMs]
+ * @param {number|null} [event.totalLatencyMs]
  * @param {number} [event.retries]
  * @param {unknown} [event.errorReason]
  * @param {string} [event.txSignature]
@@ -95,6 +97,14 @@ export async function recordX402Call(event) {
       agentId: event.agentId ? String(event.agentId).slice(0, 64) : null,
       source: event.source || (event.direction === 'outbound' ? 'agent' : 'api'),
       latencyMs: Number.isFinite(event.latencyMs) && event.latencyMs >= 0 ? Math.round(event.latencyMs) : 0,
+      verifyLatencyMs:
+        Number.isFinite(event.verifyLatencyMs) && event.verifyLatencyMs >= 0
+          ? Math.round(event.verifyLatencyMs)
+          : null,
+      totalLatencyMs:
+        Number.isFinite(event.totalLatencyMs) && event.totalLatencyMs >= 0
+          ? Math.round(event.totalLatencyMs)
+          : null,
       retries: Number.isFinite(event.retries) && event.retries >= 0 ? event.retries : 0,
       errorReason: sanitizeX402Error(event.errorReason),
       txSignature: event.txSignature ? String(event.txSignature).slice(0, 128) : null,

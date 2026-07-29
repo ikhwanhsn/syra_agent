@@ -31,6 +31,8 @@ import {
 import {
   getMaxLabX402PriceUsd,
   getWeightedAvgLabX402PriceUsd,
+  findLabX402Endpoint,
+  resolveLabSettlementFacilitator,
 } from '../../libs/labs/labX402Endpoints.js';
 import { getLabX402Settings } from '../../libs/labs/labX402Payer.js';
 import {
@@ -48,8 +50,8 @@ import {
   fetchEcosystemBriefInsight,
 } from '../../libs/labs/insightsDataService.js';
 import { payaiEndpointDailyLimitMiddleware, recordPayaiEndpointDailyCall } from '../../libs/labs/labPayaiEndpointDailyLimit.js';
-import { findLabX402Endpoint } from '../../libs/labs/labX402Endpoints.js';
 import { resolveLabsFacilitatorProfile } from '../../utils/labsFacilitatorFailover.js';
+import { resolveInboundFacilitator } from '../../utils/recordX402Call.js';
 import { resolveLabsPayToOverride } from '../../libs/labs/labsPayToOverride.js';
 import { inferLabPayerChain } from '../../libs/labs/inferLabPayerChain.js';
 
@@ -136,6 +138,14 @@ async function handleInsightRoute(req, res, endpointPath, catalogSegment, fetchD
     const paymentTx = typeof settle?.transaction === 'string' ? settle.transaction : null;
     const trigger = req.get('x-lab-x402-trigger') === 'scheduler' ? 'scheduler' : 'manual';
     const chain = inferPayerChain(payer, req);
+    const facilitator = resolveLabSettlementFacilitator({
+      chain,
+      endpoint: endpointPath,
+      facilitator:
+        resolveInboundFacilitator(req) ||
+        req.x402ResourceServerProfile ||
+        findLabX402Endpoint(endpointPath)?.facilitator,
+    });
 
     runAfterResponse(async () => {
       if (!payer) return;
@@ -171,6 +181,7 @@ async function handleInsightRoute(req, res, endpointPath, catalogSegment, fetchD
           endpoint: endpointPath,
           priceUsd,
           chain,
+          facilitator,
           status: 'success',
           paymentTx,
           refundTx: refund?.signature ?? null,
@@ -192,6 +203,7 @@ async function handleInsightRoute(req, res, endpointPath, catalogSegment, fetchD
           endpoint: endpointPath,
           priceUsd,
           chain,
+          facilitator,
           status: underfunded ? 'refund_skipped' : 'refund_failed',
           paymentTx,
           responseSnippet: underfunded ? 'payto_underfunded' : undefined,

@@ -266,17 +266,17 @@ async function logB402StartupOnce() {
 
 /** Cap slow facilitator HTTP calls so paid routes fail fast. 0 = no timeout. */
 const X402_VERIFY_FACILITATOR_TIMEOUT_MS = Number.parseInt(
-  process.env.X402_VERIFY_FACILITATOR_TIMEOUT_MS || "4000",
+  process.env.X402_VERIFY_FACILITATOR_TIMEOUT_MS || "2500",
   10
 );
 const X402_SETTLE_FACILITATOR_TIMEOUT_MS = Number.parseInt(
-  process.env.X402_SETTLE_FACILITATOR_TIMEOUT_MS || "4000",
+  process.env.X402_SETTLE_FACILITATOR_TIMEOUT_MS || "3000",
   10
 );
-/** Extra facilitator settle attempts after the first (transient flake only). Default 1 → 2 total tries. */
+/** Extra facilitator settle attempts after the first (transient flake only). Default 0 — local Solana RPC fallback covers facilitator flake; retries stacked settle latency on the paid path. */
 const X402_SETTLE_FACILITATOR_RETRIES = Math.max(
   0,
-  Number.parseInt(process.env.X402_SETTLE_FACILITATOR_RETRIES || "1", 10) || 0
+  Number.parseInt(process.env.X402_SETTLE_FACILITATOR_RETRIES || "0", 10) || 0
 );
 
 const BASE_URL = getPublicApiUrl();
@@ -1873,6 +1873,7 @@ export function requirePayment(options) {
       const useOkxFacilitator =
         !useAlgorandFacilitator && !useB402Facilitator && shouldUseOkxFacilitator(acc);
       const payloadWithResource = enrichPaymentPayloadResource(payload, req, options);
+      const paidPathStartedAt = Date.now();
       x402Log("payment_retry", {
         method: req.method,
         path: req.path,
@@ -1980,6 +1981,11 @@ export function requirePayment(options) {
         ? buildBazaarExtensions(resourceServer, req, options)
         : undefined;
 
+      const verifyLatencyMs = Date.now() - paidPathStartedAt;
+
+      // Start settle in parallel with the route's upstream data fetch so paid
+      // latency is verify + max(settle, data) instead of verify + data + settle.
+      // Tradeoff: settle may complete even if the handler later returns 500.
       req.x402Payment = {
         payload: payloadWithResource,
         accepted: acc,
@@ -1992,7 +1998,14 @@ export function requirePayment(options) {
           payToOverride?.solanaPayTo || payToOverride?.evmPayTo || payToOverride?.algorandPayTo,
         ),
         bazaarExtensions,
+        verifyLatencyMs,
+        paidPathStartedAt,
+        settleStartedAt: Date.now(),
       };
+      const settlePromise = settlePaymentWithFallback(payloadWithResource, acc, req);
+      settlePromise.catch(() => {});
+      req.x402Payment.settlePromise = settlePromise;
+
       x402Log("verify_ok", {
         method: req.method,
         path: req.path,
@@ -2000,6 +2013,7 @@ export function requirePayment(options) {
         algorand: useAlgorandFacilitator,
         okx: useOkxFacilitator,
         network: acc?.network,
+        verifyLatencyMs,
       });
       next();
     } catch (error) {
@@ -2217,11 +2231,27 @@ export async function settlePaymentAndSetResponse(res, req) {
     req._requestInsightPaid = true;
     return { success: true, scheme: "shadowfeed-partner" };
   }
-  const settleStartedAt = Date.now();
+  const settleStartedAt =
+    Number.isFinite(req.x402Payment?.settleStartedAt) && req.x402Payment.settleStartedAt > 0
+      ? req.x402Payment.settleStartedAt
+      : Date.now();
+  const paidPathStartedAt =
+    Number.isFinite(req.x402Payment?.paidPathStartedAt) && req.x402Payment.paidPathStartedAt > 0
+      ? req.x402Payment.paidPathStartedAt
+      : null;
+  const verifyLatencyMs =
+    Number.isFinite(req.x402Payment?.verifyLatencyMs) && req.x402Payment.verifyLatencyMs >= 0
+      ? Math.round(req.x402Payment.verifyLatencyMs)
+      : null;
   const { payload, accepted } = req.x402Payment;
   let settle;
   try {
-    settle = await settlePaymentWithFallback(payload, accepted, req);
+    // Prefer the eager settle kicked off after verify (overlaps upstream work).
+    if (req.x402Payment?.settlePromise) {
+      settle = await req.x402Payment.settlePromise;
+    } else {
+      settle = await settlePaymentWithFallback(payload, accepted, req);
+    }
   } catch (e) {
     const msg = getErrorMessage(e);
     const isAlgorandSettle =
@@ -2264,6 +2294,8 @@ export async function settlePaymentAndSetResponse(res, req) {
       }
     }
   }
+  const settleLatencyMs = Date.now() - settleStartedAt;
+  const totalLatencyMs = paidPathStartedAt != null ? Date.now() - paidPathStartedAt : settleLatencyMs;
   if (!settle?.success) {
     const reason = settle?.errorReason || settle?.error || "Settlement failed";
     res.setHeader(
@@ -2278,7 +2310,9 @@ export async function settlePaymentAndSetResponse(res, req) {
       amountUsd: req.x402Payment?.priceUsd,
       amountMicroUsdc: accepted?.amount,
       errorReason: reason,
-      latencyMs: Date.now() - settleStartedAt,
+      latencyMs: settleLatencyMs,
+      verifyLatencyMs,
+      totalLatencyMs,
       retries: Number.isFinite(settle?.retries) ? settle.retries : 0,
     });
     return settle;
@@ -2300,7 +2334,9 @@ export async function settlePaymentAndSetResponse(res, req) {
       payer: typeof settle?.payer === "string" ? settle.payer : null,
       txSignature: typeof settle?.transaction === "string" ? settle.transaction : null,
       source: resolveInboundClientSource(req),
-      latencyMs: Date.now() - settleStartedAt,
+      latencyMs: settleLatencyMs,
+      verifyLatencyMs,
+      totalLatencyMs,
     })
   );
   runAfterResponse(() => {

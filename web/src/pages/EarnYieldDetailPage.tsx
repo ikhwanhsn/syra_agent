@@ -3,6 +3,7 @@ import { ArrowLeft, Clock, ExternalLink, Pause, Play } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
 import { EarnTokenDetailSkeleton } from "@/components/RouteFallback";
+import { InfoHint } from "@/components/earn/InfoHint";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 import { Button } from "@/components/ui/button";
 import { useAgentWallet } from "@/contexts/AgentWalletContext";
@@ -16,12 +17,15 @@ import {
   type EarnDenom,
 } from "@/lib/earnYieldApi";
 import {
+  EARN_GLOSSARY,
+  denomHelp,
   earnProductIcon,
   formatEvidenceEntries,
   fmtEarnAmount,
   humanizeAgentNote,
   readinessReasons,
   riskLevelLabel,
+  summarizeTrackRecord,
 } from "@/lib/earnYieldUi";
 import { DASHBOARD_CONTENT_SHELL } from "@/lib/layoutConstants";
 import { notify } from "@/lib/notify";
@@ -51,6 +55,7 @@ export default function EarnYieldDetailPage() {
   const denom = (product?.denom || "SOL") as EarnDenom;
   const minDep = product?.minDeposit ?? 1;
   const maxDep = product?.maxDeposit ?? 5;
+  const feePct = product?.performanceFeePct ?? 10;
   const cap = depositCap ?? maxDep;
   const walletQ = product?.walletQuery || (denom === "SOL" ? "lp" : "invest");
 
@@ -72,12 +77,19 @@ export default function EarnYieldDetailPage() {
   const unrealizedPnl = wallet?.unrealizedPnlSol ?? status?.summary?.unrealizedPnlSol ?? 0;
   const availableSol = wallet?.availableSol ?? wallet?.onChainBalanceSol;
   const staleNote =
-    status?.enabled && wallet?.stale ? "Agent idle: waiting for next cycle" : null;
+    status?.enabled && wallet?.stale ? "Waiting for the next automated cycle" : null;
   const statusNote = agentNote || staleNote;
   const evidenceLines = formatEvidenceEntries(product?.evidence);
   const howItWorks = product?.howItWorks ?? [];
   const rails = product?.rails ?? [];
   const Icon = product ? earnProductIcon(product) : null;
+  const trackSummary = summarizeTrackRecord(stats, denom);
+  const statusLabel =
+    product?.status === "coming_soon"
+      ? "Coming soon"
+      : product?.status === "beta"
+        ? "Open"
+        : product?.status?.replace("_", " ") ?? "";
 
   const enableM = useMutation({
     mutationFn: async (maxDeposit: number) => {
@@ -89,24 +101,24 @@ export default function EarnYieldDetailPage() {
     },
     onSuccess: (data) => {
       notify.success(
-        `${product?.label ?? "Yield"} enabled`,
+        `${product?.label ?? "Strategy"} started`,
         (data as { nextStep?: string })?.nextStep ?? "Fund your agent wallet to start.",
       );
       void queryClient.invalidateQueries({ queryKey: ["earn", "yield"] });
     },
     onError: (e: Error) => {
-      notify.error("Could not enable yield product", e.message);
+      notify.error("Could not start this strategy", e.message);
     },
   });
 
   const disableM = useMutation({
     mutationFn: (closeAll: boolean) => disableEarnYield(closeAll, productId),
     onSuccess: () => {
-      notify.success(`${product?.label ?? "Yield"} stopped`);
+      notify.success(`${product?.label ?? "Strategy"} stopped`);
       void queryClient.invalidateQueries({ queryKey: ["earn", "yield"] });
     },
     onError: (e: Error) => {
-      notify.error("Could not stop yield product", e.message);
+      notify.error("Could not stop this strategy", e.message);
     },
   });
 
@@ -126,26 +138,26 @@ export default function EarnYieldDetailPage() {
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
           )}
         >
-          <ArrowLeft className="h-4 w-4" />
-          Yield
+          <ArrowLeft className="h-4 w-4" aria-hidden />
+          Back to earn
         </Link>
 
         {!productId ? (
           <EmptyState
-            title="Missing product"
-            body="This link is missing a yield product id."
+            title="Missing strategy"
+            body="This link is missing a strategy id."
           />
         ) : boardQ.isLoading ? (
           <EarnTokenDetailSkeleton />
         ) : boardQ.isError ? (
           <EmptyState
-            title="Could not load yield"
-            body="Failed to load the yield board. Try again from Earn."
+            title="Couldn't load this strategy"
+            body="Something went wrong loading yield strategies. Try again from Earn."
           />
         ) : !product ? (
           <EmptyState
-            title="Product not found"
-            body="This yield product isn’t listed, or the link is invalid."
+            title="Strategy not found"
+            body="This strategy is not listed, or the link is invalid."
           />
         ) : (
           <div className="space-y-10">
@@ -160,10 +172,15 @@ export default function EarnYieldDetailPage() {
                       {product.label}
                     </h1>
                     <span className="rounded-full border border-border/60 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                      {product.status.replace("_", " ")}
+                      {statusLabel}
                     </span>
-                    <span className="rounded-full border border-border/40 px-2.5 py-0.5 text-[11px] text-muted-foreground">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-border/40 px-2.5 py-0.5 text-[11px] text-muted-foreground">
                       {denom}
+                      <InfoHint
+                        label={`What is ${denom}?`}
+                        text={denomHelp(denom)}
+                        className="h-4 w-4"
+                      />
                     </span>
                     <span className="rounded-full border border-border/40 px-2.5 py-0.5 text-[11px] text-muted-foreground">
                       {riskLevelLabel(product.riskLevel)}
@@ -177,8 +194,8 @@ export default function EarnYieldDetailPage() {
 
               <Button variant="outline" className="h-11 shrink-0 gap-2 rounded-full px-5" asChild>
                 <Link to={`/wallet?wallet=${walletQ}`}>
-                  Fund {walletQ} wallet
-                  <ExternalLink className="h-3.5 w-3.5 opacity-70" />
+                  Fund your wallet
+                  <ExternalLink className="h-3.5 w-3.5 opacity-70" aria-hidden />
                 </Link>
               </Button>
             </header>
@@ -202,27 +219,29 @@ export default function EarnYieldDetailPage() {
             </section>
 
             <section className="space-y-3">
-              <SectionTitle>Mechanics</SectionTitle>
+              <SectionTitle>The basics</SectionTitle>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <MetricCard
-                  label="Deposit"
-                  value={`${minDep}–${maxDep} ${denom}`}
-                  hint={`Agent wallet: ${walletQ}`}
+                  label="Your deposit"
+                  value={`${minDep}-${maxDep} ${denom}`}
+                  hint="Range you can put in"
                 />
                 <MetricCard
-                  label="Performance fee"
-                  value={`${product.performanceFeePct ?? 10}%`}
-                  hint="Of net-positive PnL only"
+                  label="Fee on profit"
+                  infoLabel="How does the fee work?"
+                  infoText={EARN_GLOSSARY.performanceFee}
+                  value={`${feePct}%`}
+                  hint="Charged only when you make a profit"
                 />
                 <MetricCard
-                  label="Chain"
-                  value={product.chain || "solana"}
-                  hint={rails.length > 0 ? rails.join(" · ") : "On-chain strategy"}
+                  label="Network"
+                  value={product.chain || "Solana"}
+                  hint={rails.length > 0 ? rails.join(", ") : "Runs on-chain"}
                 />
                 <MetricCard
                   label="Status"
-                  value={product.status.replace("_", " ")}
-                  hint={product.actionable ? "Open for enable" : "Not actionable yet"}
+                  value={statusLabel}
+                  hint={product.actionable ? "Ready to start" : "Not open yet"}
                 />
               </div>
               {rails.length > 0 ? (
@@ -243,23 +262,25 @@ export default function EarnYieldDetailPage() {
               <section className="space-y-3">
                 <SectionTitle>Your wallet</SectionTitle>
                 <p className="text-xs text-muted-foreground">
-                  Live capital on your LP agent, plus realized closes since you enabled Earn.
+                  Live capital on your agent wallet, plus locked-in results since you started.
                 </p>
                 <div className="grid gap-3 sm:grid-cols-3">
                   <MetricCard
-                    label="Active SOL"
+                    label="Currently invested"
                     value={fmtEarnAmount(deployedSol, denom)}
-                    hint="Deployed in Meteora"
+                    hint="In open positions"
                     positive={deployedSol > 0}
                   />
                   <MetricCard
-                    label="Unrealized PnL"
+                    label="Open profit / loss"
+                    infoLabel="What is open profit or loss?"
+                    infoText={EARN_GLOSSARY.unrealized}
                     value={fmtEarnAmount(unrealizedPnl, denom)}
-                    hint="Open positions mark"
+                    hint="Can still change"
                     positive={unrealizedPnl > 0}
                   />
                   <MetricCard
-                    label="Your open"
+                    label="Open positions"
                     value={String(status.summary.openCount ?? 0)}
                     hint="Active on your agent"
                   />
@@ -267,22 +288,26 @@ export default function EarnYieldDetailPage() {
                 <div className="grid gap-3 sm:grid-cols-3">
                   <MetricCard
                     label="Your win rate"
+                    infoLabel="What is your win rate?"
+                    infoText={EARN_GLOSSARY.winRate}
                     value={
                       status.summary.winRatePct != null
                         ? `${status.summary.winRatePct.toFixed(1)}%`
-                        : `${status.summary.wins ?? 0}W / ${status.summary.losses ?? 0}L`
+                        : `${status.summary.wins ?? 0} wins / ${status.summary.losses ?? 0} losses`
                     }
-                    hint={`${status.summary.wins ?? 0}W / ${status.summary.losses ?? 0}L this session`}
+                    hint={`${status.summary.wins ?? 0} wins / ${status.summary.losses ?? 0} losses this session`}
                   />
                   <MetricCard
-                    label="Your PnL"
+                    label="Your profit / loss"
+                    infoLabel="What is your profit or loss?"
+                    infoText={EARN_GLOSSARY.realized}
                     value={fmtEarnAmount(
                       status.summary.netPnl ??
                         status.summary.realizedNetPnlSol ??
                         status.summary.netPnlUsd,
                       denom,
                     )}
-                    hint="Realized only: closed this session"
+                    hint="Locked in from closed trades"
                     positive={
                       (status.summary.netPnl ??
                         status.summary.realizedNetPnlSol ??
@@ -291,22 +316,31 @@ export default function EarnYieldDetailPage() {
                     }
                   />
                   <MetricCard
-                    label="Wallet SOL"
+                    label="Available in wallet"
                     value={availableSol != null ? fmtEarnAmount(availableSol, denom) : "-"}
-                    hint="Available in LP agent"
+                    hint="Ready to invest or withdraw"
                   />
                 </div>
               </section>
             ) : null}
 
             <section className="space-y-3">
-              <SectionTitle>Lab track record</SectionTitle>
+              <div className="flex items-center gap-1.5">
+                <SectionTitle>Track record (all Syra users)</SectionTitle>
+                <InfoHint
+                  label="What does this track record mean?"
+                  text={EARN_GLOSSARY.trackRecord}
+                />
+              </div>
+              <p className="text-sm leading-relaxed text-foreground">{trackSummary}</p>
               <p className="text-xs text-muted-foreground">
-                Platform aggregate across all Syra LP agents, not your deposit or wallet PnL.
+                These numbers cover everyone using this strategy on Syra, not your personal deposit.
               </p>
               <div className="grid gap-3 sm:grid-cols-3">
                 <MetricCard
-                  label={stats?.winRatePct != null ? "Lab win rate" : "Lab return"}
+                  label={stats?.winRatePct != null ? "Win rate" : "Return"}
+                  infoLabel="What does win rate mean?"
+                  infoText={EARN_GLOSSARY.winRate}
                   value={
                     stats?.winRatePct != null
                       ? `${stats.winRatePct.toFixed(1)}%`
@@ -316,18 +350,20 @@ export default function EarnYieldDetailPage() {
                   }
                   hint={
                     stats?.wins != null || stats?.losses != null
-                      ? `${stats?.wins ?? 0}W / ${stats?.losses ?? 0}L · all Syra LP`
+                      ? `${stats?.wins ?? 0} wins / ${stats?.losses ?? 0} losses · all Syra users`
                       : stats?.paperVsRealNote
                   }
                 />
                 <MetricCard
-                  label="Lab net PnL"
+                  label="Net profit / loss"
+                  infoLabel="What is net profit or loss?"
+                  infoText={EARN_GLOSSARY.profitLoss}
                   value={fmtEarnAmount(stats?.netPnl ?? stats?.netPnlUsd, denom)}
-                  hint="All Syra LP agents"
+                  hint="Across all Syra users"
                   positive={(stats?.netPnl ?? stats?.netPnlUsd ?? 0) > 0}
                 />
                 <MetricCard
-                  label="Lab open / errors"
+                  label="Open / errors"
                   value={`${stats?.openCount ?? 0} / ${(stats?.errorRatePct ?? 0).toFixed(0)}%`}
                   hint="Platform aggregate"
                 />
@@ -343,7 +379,7 @@ export default function EarnYieldDetailPage() {
 
             {(paused || pauseReasons.length > 0) && (
               <section className="space-y-3">
-                <SectionTitle>Guardrails</SectionTitle>
+                <SectionTitle>Why deposits may be closed</SectionTitle>
                 <div className="rounded-lg border border-border/45 bg-muted/15 px-3.5 py-3">
                   <div className="flex items-start gap-2.5">
                     <Clock
@@ -358,11 +394,13 @@ export default function EarnYieldDetailPage() {
                       </p>
                       <p className="text-xs leading-relaxed text-muted-foreground">
                         {product.status === "coming_soon"
-                          ? "This strategy is still proving itself in the lab. Funding unlocks after it clears the readiness checks below."
+                          ? "This strategy is still proving itself. Funding unlocks after it clears the safety checks below."
                           : "New deposits are on hold until the strategy clears the safety checks below."}
                       </p>
                       {pauseReasons.length === 0 ? (
-                        <p className="text-xs text-muted-foreground">Waiting on lab graduation.</p>
+                        <p className="text-xs text-muted-foreground">
+                          Still being proven before it opens.
+                        </p>
                       ) : (
                         <ul className="list-disc space-y-0.5 pl-4 text-xs leading-relaxed text-muted-foreground">
                           {pauseReasons.map((reason) => (
@@ -390,37 +428,42 @@ export default function EarnYieldDetailPage() {
             ) : null}
 
             <section className={cn(overviewCardShell, "space-y-4 p-5")}>
-              <SectionTitle>Enable this product</SectionTitle>
+              <SectionTitle>Start earning</SectionTitle>
+              <p className="text-xs text-muted-foreground">
+                You deposit: {minDep} to {maxDep} {denom}. Fee: {feePct}%, only on profit.
+              </p>
               {!connected ? (
-                <p className="text-sm text-muted-foreground">Connect wallet to enable.</p>
+                <p className="text-sm text-muted-foreground">Connect your wallet to get started.</p>
               ) : !syraAuthReady ? (
-                <p className="text-sm text-muted-foreground">Checking session…</p>
+                <p className="text-sm text-muted-foreground">Checking your session…</p>
               ) : !syraAuthenticated ? (
-                <Button size="sm" onClick={() => void requestSyraAuth()}>
+                <Button size="sm" className="min-h-10" onClick={() => void requestSyraAuth()}>
                   Sign in to continue
                 </Button>
               ) : status?.enabled ? (
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="inline-flex items-center gap-1.5 text-sm text-emerald-600 dark:text-emerald-400">
-                    <Play className="h-3.5 w-3.5" /> Active
+                    <Play className="h-3.5 w-3.5" aria-hidden /> Active
                   </span>
                   <Button
                     size="sm"
                     variant="outline"
+                    className="min-h-10"
                     disabled={disableM.isPending}
                     onClick={() => disableM.mutate(false)}
                   >
-                    <Pause className="mr-1.5 h-3.5 w-3.5" />
+                    <Pause className="mr-1.5 h-3.5 w-3.5" aria-hidden />
                     Pause
                   </Button>
                   <Button
                     size="sm"
                     variant="destructive"
+                    className="min-h-10"
                     disabled={disableM.isPending}
                     onClick={() => {
                       if (
                         window.confirm(
-                          `Stop ${product.label} and request close of open exposure? This may realize losses.`,
+                          `Stop ${product.label} and close open positions? This may lock in losses.`,
                         )
                       ) {
                         disableM.mutate(true);
@@ -433,7 +476,7 @@ export default function EarnYieldDetailPage() {
               ) : (
                 <div className="flex flex-wrap items-end gap-3">
                   <label className="space-y-1 text-xs text-muted-foreground">
-                    Max deposit ({denom})
+                    How much to deposit (max, {denom})
                     <input
                       type="number"
                       min={minDep}
@@ -441,12 +484,14 @@ export default function EarnYieldDetailPage() {
                       step={denom === "SOL" ? 0.5 : 5}
                       value={cap}
                       onChange={(e) => setDepositCap(Number(e.target.value))}
-                      className="block h-9 w-28 rounded-md border border-border/60 bg-background px-2 text-sm text-foreground"
+                      className="block h-10 w-32 rounded-md border border-border/60 bg-background px-2 text-sm text-foreground"
                       disabled={!product.actionable}
+                      aria-label={`Maximum deposit in ${denom}`}
                     />
                   </label>
                   <Button
                     size="sm"
+                    className="min-h-10"
                     disabled={
                       enableM.isPending ||
                       !board?.beta.allowed ||
@@ -455,13 +500,15 @@ export default function EarnYieldDetailPage() {
                     }
                     onClick={() => enableM.mutate(cap)}
                   >
-                    Enable {product.label.split(" ")[0]}
+                    Start earning
                   </Button>
                   {!board?.beta.allowed && (
-                    <span className="text-xs text-muted-foreground">Not on beta allowlist.</span>
+                    <span className="text-xs text-muted-foreground">Not open to you yet.</span>
                   )}
                   {product.status !== "beta" && !paused && (
-                    <span className="text-xs text-muted-foreground">Waiting for lab graduation.</span>
+                    <span className="text-xs text-muted-foreground">
+                      Still being proven before it opens.
+                    </span>
                   )}
                 </div>
               )}
@@ -489,15 +536,24 @@ function MetricCard({
   value,
   hint,
   positive,
+  infoLabel,
+  infoText,
 }: {
   label: string;
   value: string;
   hint?: string;
   positive?: boolean;
+  infoLabel?: string;
+  infoText?: string;
 }) {
   return (
     <div className={cn(overviewCardShell, "p-4")}>
-      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <div className="flex items-center gap-1">
+        <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          {label}
+        </p>
+        {infoLabel && infoText ? <InfoHint label={infoLabel} text={infoText} /> : null}
+      </div>
       <p
         className={cn(
           "mt-1 text-lg font-semibold tabular-nums capitalize",
@@ -517,7 +573,7 @@ function EmptyState({ title, body }: { title: string; body: string }) {
       <p className="font-display text-lg font-semibold tracking-tight">{title}</p>
       <p className="mt-2 max-w-sm text-sm text-muted-foreground">{body}</p>
       <Button asChild className="mt-6 rounded-full" variant="outline">
-        <Link to="/earn?track=yield">Back to yield</Link>
+        <Link to="/earn?track=yield">Back to earn</Link>
       </Button>
     </div>
   );

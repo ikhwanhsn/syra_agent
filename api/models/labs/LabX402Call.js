@@ -22,6 +22,13 @@ const labX402CallSchema = new mongoose.Schema(
     },
     paymentTx: { type: String, default: null },
     refundTx: { type: String, default: null },
+    /** Settlement facilitator that handled the paid call (Dexter / PayAI / OKX / GoPlausible). */
+    facilitator: {
+      type: String,
+      enum: ['dexter', 'payai', 'okx', 'goplausible'],
+      default: null,
+      index: true,
+    },
     error: { type: String, default: null },
     responseSnippet: { type: String, default: null },
     trigger: { type: String, enum: ['manual', 'scheduler'], default: 'manual' },

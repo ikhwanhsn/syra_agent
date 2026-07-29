@@ -112,6 +112,8 @@ export interface LabX402Call {
   status: "success" | "payment_failed" | "refund_failed" | "refund_skipped" | "error";
   paymentTx: string | null;
   refundTx: string | null;
+  /** Settlement facilitator: Dexter, PayAI, OKX, or GoPlausible. */
+  facilitator?: "dexter" | "payai" | "okx" | "goplausible" | null;
   error: string | null;
   trigger: "manual" | "scheduler";
   createdAt: string;

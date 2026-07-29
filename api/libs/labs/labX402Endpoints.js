@@ -2,8 +2,10 @@
  * Registry of x402 Labs paid insight endpoints — shared by scheduler and management API.
  */
 import { checkPayaiEndpointDailyBudget } from './labPayaiEndpointDailyLimit.js';
+import { normalizeLabChain } from '../../models/labs/LabX402Settings.js';
 
 /** @typedef {'dexter' | 'payai'} LabX402Facilitator */
+/** @typedef {'dexter' | 'payai' | 'okx' | 'goplausible'} LabSettlementFacilitator */
 
 /**
  * @typedef {{
@@ -183,6 +185,39 @@ export function findLabX402Endpoint(pathOrId) {
     LAB_X402_ENDPOINTS.find((e) => e.id === key || e.path === key || e.path.endsWith(`/${key}`)) ??
     null
   );
+}
+
+const SETTLEMENT_FACILITATORS = new Set(['dexter', 'payai', 'okx', 'goplausible']);
+
+/**
+ * Resolve the settlement facilitator shown in Labs call logs.
+ * Prefer an explicit label; else PayAI-only endpoints; else chain rail defaults.
+ *
+ * @param {{
+ *   chain?: string | null;
+ *   facilitator?: string | null;
+ *   endpoint?: string | null;
+ * }} [opts]
+ * @returns {LabSettlementFacilitator | null}
+ */
+export function resolveLabSettlementFacilitator(opts = {}) {
+  const explicit = String(opts.facilitator || '').trim().toLowerCase();
+  if (SETTLEMENT_FACILITATORS.has(explicit)) {
+    return /** @type {LabSettlementFacilitator} */ (explicit);
+  }
+  // Inbound settle flags / legacy aliases
+  if (explicit === 'algorand' || explicit === 'avm') return 'goplausible';
+  if (explicit === 'xlayer' || explicit === 'x-layer') return 'okx';
+
+  const ep = opts.endpoint ? findLabX402Endpoint(opts.endpoint) : null;
+  if (ep?.facilitator === 'payai') return 'payai';
+
+  const chain = normalizeLabChain(opts.chain);
+  if (chain === 'xlayer') return 'okx';
+  if (chain === 'algorand') return 'goplausible';
+  if (ep?.facilitator === 'dexter') return 'dexter';
+  if (chain === 'base' || chain === 'solana') return 'dexter';
+  return null;
 }
 
 /**

@@ -58,8 +58,12 @@ const x402CallLogSchema = new mongoose.Schema(
     agentId: { type: String, default: null },
     /** Source channel: api | agent. */
     source: { type: String, default: 'api' },
-    /** End-to-end latency in milliseconds. */
+    /** End-to-end settle latency in milliseconds (facilitator settle duration). */
     latencyMs: { type: Number, default: 0 },
+    /** Facilitator verify duration in milliseconds (inbound paid path). */
+    verifyLatencyMs: { type: Number, default: null },
+    /** Full paid-path duration: verify start → settle complete (inbound). */
+    totalLatencyMs: { type: Number, default: null },
     /** Retry count for outbound calls. */
     retries: { type: Number, default: 0 },
     /** Sanitized error reason (truncated). */

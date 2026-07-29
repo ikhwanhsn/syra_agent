@@ -130,6 +130,9 @@ export function CallLogTableSkeleton({ rows = 5 }: { rows?: number }) {
           { label: "Payer" },
           { label: "Price", align: "right" },
           { label: "Status" },
+          { label: "Facilitator" },
+          { label: "Tx" },
+          { label: "Error" },
           { label: "Trigger" },
         ]}
       />

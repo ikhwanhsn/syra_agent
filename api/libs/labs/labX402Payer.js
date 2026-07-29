@@ -19,7 +19,7 @@ import {
   evmAccountFromLabWalletDoc,
   algorandAccountFromLabWalletDoc,
 } from './labWalletService.js';
-import { pickRandomAvailableLabX402Endpoint, findLabX402Endpoint } from './labX402Endpoints.js';
+import { pickRandomAvailableLabX402Endpoint, findLabX402Endpoint, resolveLabSettlementFacilitator } from './labX402Endpoints.js';
 import { checkPayaiEndpointDailyBudget } from './labPayaiEndpointDailyLimit.js';
 import {
   logLabX402Call,
@@ -272,6 +272,11 @@ export async function runLabX402Payment(payerAddress, opts = {}) {
         endpoint: endpoint.path,
         priceUsd: effectivePriceUsd,
         chain,
+        facilitator: resolveLabSettlementFacilitator({
+          chain,
+          facilitator: endpoint.facilitator,
+          endpoint: endpoint.path,
+        }),
         status: looksLikeUpstreamData ? 'error' : 'payment_failed',
         paymentTx,
         error: String(errorMsg).slice(0, 500),
@@ -293,6 +298,11 @@ export async function runLabX402Payment(payerAddress, opts = {}) {
       endpoint: endpoint.path,
       priceUsd: effectivePriceUsd,
       chain,
+      facilitator: resolveLabSettlementFacilitator({
+        chain,
+        facilitator: endpoint.facilitator,
+        endpoint: endpoint.path,
+      }),
       status: 'success',
       paymentTx,
       trigger,
@@ -313,6 +323,11 @@ export async function runLabX402Payment(payerAddress, opts = {}) {
       endpoint: endpoint.path,
       priceUsd: effectivePriceUsd,
       chain,
+      facilitator: resolveLabSettlementFacilitator({
+        chain,
+        facilitator: endpoint.facilitator,
+        endpoint: endpoint.path,
+      }),
       status: 'error',
       error: errorMsg.slice(0, 500),
       trigger,
@@ -488,19 +503,25 @@ export async function listLabX402Calls(opts = {}) {
   const filter = {};
   if (opts.chain) filter.chain = normalizeLabChain(opts.chain);
   const docs = await LabX402Call.find(filter).sort({ createdAt: -1 }).limit(limit).lean();
-  return docs.map((d) => ({
-    id: d._id.toString(),
-    payerAddress: d.payerAddress,
-    endpoint: d.endpoint,
-    priceUsd: d.priceUsd,
-    chain: d.chain || 'solana',
-    status: d.status,
-    paymentTx: d.paymentTx,
-    refundTx: d.refundTx,
-    error: d.error,
-    trigger: d.trigger,
-    createdAt: d.createdAt,
-  }));
+  return docs.map((d) => {
+    const chain = d.chain || 'solana';
+    return {
+      id: d._id.toString(),
+      payerAddress: d.payerAddress,
+      endpoint: d.endpoint,
+      priceUsd: d.priceUsd,
+      chain,
+      status: d.status,
+      paymentTx: d.paymentTx,
+      refundTx: d.refundTx,
+      facilitator:
+        d.facilitator ||
+        resolveLabSettlementFacilitator({ chain, endpoint: d.endpoint }),
+      error: d.error,
+      trigger: d.trigger,
+      createdAt: d.createdAt,
+    };
+  });
 }
 
 /**

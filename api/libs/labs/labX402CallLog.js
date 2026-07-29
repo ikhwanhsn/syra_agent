@@ -1,13 +1,15 @@
 /**
  * Lab x402 call logging with daily caps, document pruning, and lab-payer-only writes.
- * Scoped per chain (solana | base).
+ * Scoped per chain (solana | base | algorand | xlayer).
  */
 import LabX402Call from '../../models/labs/LabX402Call.js';
 import LabWallet from '../../models/labs/LabWallet.js';
 import LabX402Settings, {
+  isEvmLabChain,
   normalizeLabChain,
   settingsKeyForChain,
 } from '../../models/labs/LabX402Settings.js';
+import { resolveLabSettlementFacilitator } from './labX402Endpoints.js';
 
 const MAX_CALL_LOG_DOCS = Number(process.env.LAB_X402_MAX_CALL_LOG_DOCS) || 5_000;
 const DEFAULT_MAX_DAILY_CALLS = Number(process.env.LAB_X402_MAX_DAILY_CALLS) || 2_000;
@@ -67,7 +69,7 @@ export function resolveDailyCallCapRange(doc) {
 
 /**
  * Load settings doc for a chain, migrating legacy `default` -> `solana` on first read.
- * @param {'solana' | 'base'} [chain]
+ * @param {'solana' | 'base' | 'algorand' | 'xlayer'} [chain]
  * @returns {Promise<object | null>}
  */
 export async function findLabX402SettingsDoc(chain = 'solana') {
@@ -85,7 +87,7 @@ export async function findLabX402SettingsDoc(chain = 'solana') {
 
 /**
  * Pick (and persist) today's random daily call cap within the configured range for a chain.
- * @param {'solana' | 'base'} [chain]
+ * @param {'solana' | 'base' | 'algorand' | 'xlayer'} [chain]
  * @returns {Promise<{ max: number; min: number; maxBound: number; day: string; rolled: boolean }>}
  */
 export async function resolveActiveDailyCallCap(chain = 'solana') {
@@ -128,7 +130,7 @@ export async function resolveActiveDailyCallCap(chain = 'solana') {
 
 /**
  * @param {string} address
- * @param {'solana' | 'base' | 'algorand'} [chain]
+ * @param {'solana' | 'base' | 'algorand' | 'xlayer'} [chain]
  * @returns {Promise<boolean>}
  */
 export async function isActiveLabPayer(address, chain) {
@@ -141,11 +143,16 @@ export async function isActiveLabPayer(address, chain) {
   const cachedFalse = labPayerCache.get(`!${cacheKey}`);
   if (cachedFalse && cachedFalse > Date.now()) return false;
 
+  const evmAddress = {
+    $regex: new RegExp(`^${addr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'),
+  };
+
   /** @type {Record<string, unknown>} */
   const filter = { role: 'payer', active: true };
-  if (c === 'base') {
+  if (c && isEvmLabChain(c)) {
+    // Base and X Layer both use 0x addresses; match case-insensitively.
     filter.chain = c;
-    filter.address = { $regex: new RegExp(`^${addr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') };
+    filter.address = evmAddress;
   } else if (c === 'solana' || c === 'algorand') {
     filter.chain = c;
     filter.address = addr;
@@ -153,10 +160,8 @@ export async function isActiveLabPayer(address, chain) {
     filter.$or = [
       { address: addr, chain: 'solana' },
       { address: addr, chain: 'algorand' },
-      {
-        chain: 'base',
-        address: { $regex: new RegExp(`^${addr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
-      },
+      { chain: 'base', address: evmAddress },
+      { chain: 'xlayer', address: evmAddress },
     ];
   }
 
@@ -171,7 +176,7 @@ export function getMaxBulkCreateCount() {
 }
 
 /**
- * @param {'solana' | 'base'} [chain]
+ * @param {'solana' | 'base' | 'algorand' | 'xlayer'} [chain]
  * @returns {Promise<number>}
  */
 export async function countLabCallsToday(chain) {
@@ -181,7 +186,7 @@ export async function countLabCallsToday(chain) {
 }
 
 /**
- * @param {'solana' | 'base'} [chain]
+ * @param {'solana' | 'base' | 'algorand' | 'xlayer'} [chain]
  * @returns {Promise<{ allowed: boolean; count: number; max: number; min: number; maxBound: number }>}
  */
 export async function checkLabDailyCallBudget(chain = 'solana') {
@@ -230,6 +235,12 @@ export async function logLabX402Call(doc) {
     return false;
   }
 
+  const facilitator = resolveLabSettlementFacilitator({
+    chain,
+    facilitator: doc.facilitator,
+    endpoint: doc.endpoint,
+  });
+
   await LabX402Call.create({
     payerAddress,
     endpoint: doc.endpoint,
@@ -238,6 +249,7 @@ export async function logLabX402Call(doc) {
     status: doc.status,
     paymentTx: doc.paymentTx ?? null,
     refundTx: doc.refundTx ?? null,
+    facilitator,
     error: doc.error ? String(doc.error).slice(0, 500) : null,
     responseSnippet: doc.responseSnippet ? String(doc.responseSnippet).slice(0, 300) : null,
     trigger: doc.trigger === 'scheduler' ? 'scheduler' : 'manual',
