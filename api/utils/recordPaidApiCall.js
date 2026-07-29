@@ -7,6 +7,19 @@
 import PaidApiCall from '../models/PaidApiCall.js';
 import { recordSkillAttribution } from '../libs/earnService.js';
 
+const INBOUND_CLIENT_SOURCES = new Set(['mcp', 'mcp-server', 'sdk', 'api', 'agent']);
+
+/** Prefer options.source; else X-Syra-Source header; else api. */
+function resolvePaidCallSource(req, options = {}) {
+  if (options.source) return String(options.source);
+  const raw = req?.headers?.['x-syra-source'] ?? req?.headers?.['X-Syra-Source'];
+  const value = String(Array.isArray(raw) ? raw[0] : raw || '')
+    .trim()
+    .toLowerCase();
+  if (value && INBOUND_CLIENT_SOURCES.has(value)) return value;
+  return 'api';
+}
+
 export async function recordPaidApiCall(req, options = {}) {
   if (!req?.path) return;
   const network =
@@ -17,7 +30,7 @@ export async function recordPaidApiCall(req, options = {}) {
   try {
     const doc = await PaidApiCall.create({
       path: req.path,
-      source: options.source || 'api',
+      source: resolvePaidCallSource(req, options),
       ...(network ? { network: String(network) } : {}),
     });
 

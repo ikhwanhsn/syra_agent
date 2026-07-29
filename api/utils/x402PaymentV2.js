@@ -2319,7 +2319,9 @@ export async function settlePaymentAndSetResponse(res, req) {
   }
   res.setHeader("Payment-Response", encodePaymentResponseHeader(settle));
   req._requestInsightPaid = true;
-  runAfterResponse(() => recordPaidApiCall(req));
+  runAfterResponse(() =>
+    recordPaidApiCall(req, { source: resolveInboundClientSource(req) }),
+  );
   runAfterResponse(() =>
     recordX402Call({
       direction: "inbound",

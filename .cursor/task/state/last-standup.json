@@ -1,29 +1,29 @@
 {
-  "date": "2026-07-27",
-  "updatedAt": "2026-07-27T00:35:08.580Z",
+  "date": "2026-07-29",
+  "updatedAt": "2026-07-29T02:42:16.231Z",
   "source": "https://api.syraa.fun/api/metrics",
   "northStar": {
-    "paidCallsLast7d": 24209,
-    "uniquePayingWalletsLast7d": 75
+    "paidCallsLast7d": 32129,
+    "uniquePayingWalletsLast7d": 94
   },
   "last7d": {
-    "calls": 24209,
-    "usdSettled": 704.16
+    "calls": 32129,
+    "usdSettled": 2548.02
   },
   "buyback": {
-    "totalBuybackUsdSpent": 25.18,
-    "totalSyraAcquired": 165644.59225,
-    "treasurySyraBalance": 165644.59225,
-    "lastBuybackSignature": "3jz7qTsz14SQpJVxnaK5UWHVFjGP38GtDDuhGuK6ziNajDZciU62ZqwjYDUPGUMuzoHDAvM6ZxpSj8Mp1S21ED33"
+    "totalBuybackUsdSpent": 24.89,
+    "totalSyraAcquired": 172452.066761,
+    "treasurySyraBalance": 172452.066761,
+    "lastBuybackSignature": "s3n9W9kLMMu1xZTBooGdENoznfF38bbieZMrTY13TunK6bgG3uepFQTN1C9s3R1bnHwTi7a5VjKYNGcLfszykVG"
   },
   "rewards": {
-    "uniqueEarners": 75,
+    "uniqueEarners": 93,
     "totalClaimableSyra": 0,
     "totalClaimedSyra": 0
   },
   "settlement": {
     "settleFailRate24h": 0.0005
   },
-  "oneAction": "Source-tag + install copy shipped; complete one Cursor MCP paid call (syra_spend_news) with funded SYRA_PAYER_KEYPAIR; done when mcpPaidCalls >= 1",
+  "oneAction": "DONE: MCP paid /news settled; mcpPaidCalls=1. Deploy recordPaidApiCall source fix so future MCP calls count without backfill. Fund payer 9Vsu…tGCm with >=$1 USDC.",
   "bottleneck": "activation"
 }
