@@ -195,7 +195,7 @@ const utilities = [
     icon: Gift,
     title: "Buyback & usage rewards",
     description:
-      "In production, ~80% of settled x402 USDC revenue is swapped to $SYRA via Jupiter and held in treasury. Paying wallets accrue claimable usage rewards from that inventory.",
+      "When x402 revenue settles to Syra treasury, ~80% is queued for Jupiter buys and held for rewards. Labs/partner payTo routes skip the queue. Paying wallets accrue claimable usage rewards from that inventory.",
     highlight: "Live, verify on /token",
     href: "/token",
     status: "live" as const,

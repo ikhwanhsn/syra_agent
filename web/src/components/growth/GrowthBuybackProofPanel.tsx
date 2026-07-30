@@ -46,8 +46,9 @@ export function GrowthBuybackProofPanel({ className }: { className?: string }) {
             Revenue → $SYRA
           </h3>
           <p className={cn(growthProseClass, "mt-2 max-w-xl text-sm")}>
-            ~80% of settled x402 USDC goes to Jupiter buys. $SYRA acquired is the live treasury holding
-            (verify the wallet on Solscan). Tokens fund usage rewards, not burned.
+            When x402 revenue settles to Syra treasury, ~80% is queued for Jupiter buys. Labs routes that
+            pay lab wallets skip the queue. $SYRA acquired is the live treasury holding (verify on Solscan).
+            Tokens fund usage rewards, not burned.
           </p>
         </div>
         <Link
@@ -71,11 +72,17 @@ export function GrowthBuybackProofPanel({ className }: { className?: string }) {
 
       {buyback && (
         <>
-          <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
             <div>
               <p className={growthKickerClass}>Buyback spent</p>
               <p className={cn(growthStatValueClass, "mt-1 text-2xl")}>
                 {formatUsd(buyback.totalBuybackUsdSpent)}
+              </p>
+            </div>
+            <div>
+              <p className={growthKickerClass}>Queue flushed</p>
+              <p className={cn(growthStatValueClass, "mt-1 text-2xl")}>
+                {formatUsd(buyback.totalFlushedUsd)}
               </p>
             </div>
             <div>

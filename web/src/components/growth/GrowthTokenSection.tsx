@@ -51,8 +51,8 @@ export function GrowthTokenSection() {
           The machine-money token
         </h2>
         <p className={cn(growthProseClass, "mt-3 max-w-xl")}>
-          Utility for the layer agents settle on. Product growth is paid calls; ~80% of settled revenue
-          buys $SYRA, verify it below.
+          Utility for the layer agents settle on. Product growth is paid calls; treasury-settled revenue
+          (~80%) queues into $SYRA buybacks. Verify it below.
         </p>
       </div>
 

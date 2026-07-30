@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { MCP_TOOL_CATALOG } from "./generated/toolCatalog.js";
-import { callCatalogTool, callFreeRoute, callToolById } from "./syraApi.js";
+import { callCatalogTool, callFreeRoute, callToolById, postFreeRoute } from "./syraApi.js";
 import { getPaidFetchNetworkLabel, hasPaidFetchConfigured } from "./payment/createPaidFetch.js";
 const PILLAR_LABEL = {
     earn: "[Earn] ",
@@ -126,6 +126,37 @@ export function registerSyraTools(server) {
         method: z.string().optional().default("GET"),
     }, async ({ url, method }) => {
         const result = await callFreeRoute("/agentscore/check", { url, method: method ?? "GET" });
+        return { content: [{ type: "text", text: result.text }] };
+    });
+    server.tool("syra_outcomes_catalog", "[Invest] Completed-work outcome products agents can buy (LP Autopilot, Treasury, Yield). Free GET /outcomes/catalog.", {}, async () => {
+        const result = await callFreeRoute("/outcomes/catalog");
+        return { content: [{ type: "text", text: result.text }] };
+    });
+    server.tool("syra_outcomes_ev_gate", "[Invest] EV gate status for outcome products before real capital deployment. Free GET /outcomes/ev-gate.", {}, async () => {
+        const result = await callFreeRoute("/outcomes/ev-gate");
+        return { content: [{ type: "text", text: result.text }] };
+    });
+    server.tool("syra_outcomes_create_mandate", "[Invest] Grant standing mandate for completed-work outcome. POST /outcomes/mandates.", {
+        anonymousId: z.string(),
+        productId: z.string(),
+        chain: z.string(),
+        agentAddress: z.string(),
+        policy: z.record(z.unknown()).optional(),
+    }, async ({ anonymousId, productId, chain, agentAddress, policy }) => {
+        const result = await postFreeRoute("/outcomes/mandates", {
+            anonymousId,
+            productId,
+            chain,
+            agentAddress,
+            policy,
+        });
+        return { content: [{ type: "text", text: result.text }] };
+    });
+    server.tool("syra_outcomes_run_job", "[Invest] Run one completed-work job cycle for a mandate. POST /outcomes/jobs.", {
+        mandateId: z.string(),
+        input: z.record(z.unknown()).optional(),
+    }, async ({ mandateId, input }) => {
+        const result = await postFreeRoute("/outcomes/jobs", { mandateId, input });
         return { content: [{ type: "text", text: result.text }] };
     });
 }

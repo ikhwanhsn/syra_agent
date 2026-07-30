@@ -21,6 +21,7 @@ export const SYRA_PILLAR_ROUTES: Record<SyraPillarId, readonly string[]> = {
     "/rise",
     "/bankr",
     "/squid",
+    "/yield",
   ],
   spend: [
     "/brain",

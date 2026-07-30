@@ -43,6 +43,8 @@ import {
 import { MIGRATED_TOOL_IDS, runMigratedTool } from "./agentMigratedTools.js";
 import { runGmgnAgentTool } from "./gmgnAgentService.js";
 import { runTokensAgentTool } from "./tokensAgentService.js";
+import { runYieldAgentTool, hasYieldConfig } from "./yieldMcpClient.js";
+import { getYieldGateMissing } from "../config/yieldAgentTools.js";
 
 function binanceCreds(params) {
   const fromEnv =
@@ -114,6 +116,25 @@ export async function runAgentPartnerDirectTool(toolId, params, opts = {}) {
 
   if (typeof toolId === "string" && toolId.startsWith("tokens-")) {
     return runTokensAgentTool(toolId, params);
+  }
+
+  if (typeof toolId === "string" && toolId.startsWith("yield-")) {
+    if (!hasYieldConfig()) {
+      return {
+        ok: false,
+        error: "Yield.xyz MCP is disabled (YIELD_MCP_ENABLED=false).",
+        status: 503,
+      };
+    }
+    const missing = getYieldGateMissing(toolId, params || {});
+    if (missing?.length) {
+      return {
+        ok: false,
+        error: `Missing required params: ${missing.join(", ")}`,
+        status: 400,
+      };
+    }
+    return runYieldAgentTool(toolId, params || {});
   }
 
   try {

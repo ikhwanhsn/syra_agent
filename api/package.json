@@ -53,6 +53,7 @@
     "@gizatech/agent-sdk": "^0.0.4",
     "@marinade.finance/marinade-ts-sdk": "^6.0.0",
     "@meteora-ag/dlmm": "^1.9.10",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "@okxweb3/x402-core": "^0.1.0",
     "@okxweb3/x402-evm": "^0.2.1",
     "@oobe-protocol-labs/synapse-sap-sdk": "^0.6.3",

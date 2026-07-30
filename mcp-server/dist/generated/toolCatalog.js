@@ -805,6 +805,94 @@ export const MCP_TOOL_CATALOG = [
         "curated": true
     },
     {
+        "toolName": "syra_invest_yield_balances",
+        "toolId": "yield-balances",
+        "pillar": "invest",
+        "access": "agent-direct",
+        "method": "GET",
+        "name": "Yield.xyz: wallet balances",
+        "description": "Active positions, pending actions, and claimable rewards for a wallet on a network. Params: address (required), network (required, e.g. base|ethereum|solana).",
+        "priceUsd": 0.00005,
+        "curated": true
+    },
+    {
+        "toolName": "syra_invest_yield_find",
+        "toolId": "yield-find",
+        "pillar": "invest",
+        "access": "agent-direct",
+        "method": "GET",
+        "name": "Yield.xyz: find opportunities",
+        "description": "Search 3,000+ onchain yield opportunities across 80+ networks (lending, vaults, staking, RWAs, LST). Params: token, search, networks[], types[], inputTokens[], providers[], yieldIds[], sort (rewardRateDesc|rewardRateAsc|statusEnterAsc|statusEnterDesc|statusExitAsc|statusExitDesc), hasCooldownPeriod, hasWarmupPeriod, limit (1-50), offset.",
+        "priceUsd": 0.00005,
+        "curated": true
+    },
+    {
+        "toolName": "syra_invest_yield_get",
+        "toolId": "yield-get",
+        "pillar": "invest",
+        "access": "agent-direct",
+        "method": "GET",
+        "name": "Yield.xyz: get opportunity",
+        "description": "Full metadata for one yield: fees, lockup/cooldown, reward mechanics, entry/exit status, risk summary. Param: yieldId (required), e.g. \"base-usdc-aave-v3\".",
+        "priceUsd": 0.00005,
+        "curated": true
+    },
+    {
+        "toolName": "syra_invest_yield_networks",
+        "toolId": "yield-networks",
+        "pillar": "invest",
+        "access": "agent-direct",
+        "method": "GET",
+        "name": "Yield.xyz: list networks",
+        "description": "List all networks supported by Yield.xyz AgentKit (id, name, category).",
+        "priceUsd": 0.00005,
+        "curated": true
+    },
+    {
+        "toolName": "syra_invest_yield_providers",
+        "toolId": "yield-providers",
+        "pillar": "invest",
+        "access": "agent-direct",
+        "method": "GET",
+        "name": "Yield.xyz: list providers",
+        "description": "List yield protocols and validator providers (id, name, type, tvlUsd). Params: limit, offset.",
+        "priceUsd": 0.00005,
+        "curated": true
+    },
+    {
+        "toolName": "syra_invest_yield_reward_history",
+        "toolId": "yield-reward-history",
+        "pillar": "invest",
+        "access": "agent-direct",
+        "method": "GET",
+        "name": "Yield.xyz: reward-rate history",
+        "description": "Historical APY / reward-rate snapshots for a yield. Params: yieldId (required); optional period (1d–all), interval (day|week|month), limit, offset.",
+        "priceUsd": 0.00005,
+        "curated": true
+    },
+    {
+        "toolName": "syra_invest_yield_risk",
+        "toolId": "yield-risk",
+        "pillar": "invest",
+        "access": "agent-direct",
+        "method": "GET",
+        "name": "Yield.xyz: risk rating",
+        "description": "Aggregate risk rating for a yield (letter grade, numeric score, provider URL). Strongest coverage for vault-type yields. Param: yieldId (required).",
+        "priceUsd": 0.00005,
+        "curated": true
+    },
+    {
+        "toolName": "syra_invest_yield_tvl_history",
+        "toolId": "yield-tvl-history",
+        "pillar": "invest",
+        "access": "agent-direct",
+        "method": "GET",
+        "name": "Yield.xyz: TVL history",
+        "description": "Historical TVL snapshots for a yield. Params: yieldId (required); optional period, interval, limit, offset. Strongest coverage for vault-type yields.",
+        "priceUsd": 0.00005,
+        "curated": true
+    },
+    {
         "toolName": "syra_spend_aip_delegate",
         "toolId": "aip-delegate",
         "pillar": "spend",

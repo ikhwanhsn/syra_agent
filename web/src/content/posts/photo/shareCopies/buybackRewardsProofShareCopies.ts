@@ -53,9 +53,7 @@ syraa.fun/token`,
 
 syraa.fun/token`,
 
-  metrics: `The numbers on this card describe the loop as it runs today.
-
-Roughly 80% of settled revenue converts into $SYRA buybacks. Four discount tiers exist based on holdings, and there is one claim page for rewards.
+  metrics: `Treasury-settled x402 revenue (~80%) queues into $SYRA buybacks. Labs routes that pay lab wallets skip that queue. Four discount tiers exist based on holdings, and there is one claim page for rewards.
 
 syraa.fun/token`,
 

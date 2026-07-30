@@ -76,6 +76,14 @@ const CURATED_TOOL_IDS = new Set([
   'bankr-prompt',
   'neynar-user',
   'siwa-nonce',
+  'yield-find',
+  'yield-get',
+  'yield-networks',
+  'yield-providers',
+  'yield-risk',
+  'yield-reward-history',
+  'yield-tvl-history',
+  'yield-balances',
 ]);
 
 for (const segment of X402_DISCOVERY_RESOURCE_PATHS) {

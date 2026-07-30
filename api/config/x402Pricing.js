@@ -396,6 +396,12 @@ export const X402_API_PRICE_X_ANALYZER_USD = passthrough(0.02);
 /** Giza Agent SDK */
 export const X402_API_PRICE_GIZA_USD = passthrough(0.01);
 
+/**
+ * Yield.xyz AgentKit (MCP read-only discovery/diligence).
+ * Free allowance upstream, then Base USDC x402 via CDP; Syra re-charges agents at Tier 2.
+ */
+export const X402_API_PRICE_YIELD_USD = price(X402_TIER_2_USD);
+
 /** Purch Vault — upstream ~$0.01 × 1.2 */
 export const X402_API_PRICE_PURCH_VAULT_USD = passthrough(0.01);
 
@@ -514,6 +520,9 @@ export const X402_DISPLAY_PRICE_BRAIN_USD = displayInternal(X402_TIER_4_USD);
 export const X402_DISPLAY_PRICE_X_USD = displayPassthrough(0.01);
 export const X402_DISPLAY_PRICE_X_ANALYZER_USD = displayPassthrough(0.02);
 export const X402_DISPLAY_PRICE_GIZA_USD = displayPassthrough(0.01);
+
+/** Yield.xyz AgentKit — catalog/display (production Tier 2). */
+export const X402_DISPLAY_PRICE_YIELD_USD = displayInternal(X402_TIER_2_USD);
 export const X402_DISPLAY_PRICE_PURCH_VAULT_USD = displayPassthrough(0.01);
 export const X402_DISPLAY_PRICE_QUICKNODE_USD = displayPassthrough(0.01);
 export const X402_DISPLAY_PRICE_BANKR_USD = displayPassthrough(0.02);

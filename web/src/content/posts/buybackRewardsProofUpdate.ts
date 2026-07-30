@@ -83,7 +83,7 @@ Proof: syraa.fun/token · builders: syraa.fun/marketplace`,
         {
           step: "02",
           title: "Queue revenue",
-          description: "~80% batched into Jupiter USDC→$SYRA.",
+          description: "~80% of treasury-settled revenue queued for Jupiter USDC→$SYRA (Labs lab-wallet routes skip).",
         },
         {
           step: "03",

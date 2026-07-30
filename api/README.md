@@ -434,7 +434,7 @@ Logic lives in `api/libs/jupiterReferral.js`. The **jupiter-swap-order** agent t
 
 ### x402 → SYRA buyback (batched)
 
-~80% of settled x402 revenue is **queued** in MongoDB (`buyback_accumulator`) and swapped to $SYRA **once every 24h** via `api/libs/buybackScheduler.js` (not per transaction).
+When settled x402 revenue is paid to the **Syra treasury** (not Labs/partner `payTo` overrides), ~80% is **queued** in MongoDB (`buyback_accumulator`) and swapped to $SYRA **once every 24h** via `api/libs/buybackScheduler.js` (not per transaction). Labs insight routes that pay lab wallets set `skipRevenueBuyback` and do not fund this queue — so `totalFlushedUsd` is not ~80% of all `lifetime.totalUsdSettled`.
 
 | Env | Purpose |
 |-----|---------|

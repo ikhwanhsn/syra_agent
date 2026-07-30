@@ -96,7 +96,7 @@ async function fetchTreasuryBalances(wallet) {
 export async function buildPublicBuybackSnapshot() {
   const treasuryWallet = resolveTreasuryWallet();
   const note =
-    "In production, ~80% of settled x402 revenue is batched into Jupiter/DEX $SYRA buys. Buyback spent is the greater of recorded swap USD and the live treasury wallet portfolio (SYRA + USDC + SOL). $SYRA acquired is the live treasury holding. Tokens fund usage rewards / airdrops — not burned.";
+    "When settled x402 revenue is paid to the Syra treasury (not Labs/partner payTo overrides), ~80% is queued and batched into Jupiter/DEX $SYRA buys about every 24h. Labs insight routes that pay to lab wallets intentionally skip this queue (skipRevenueBuyback). Buyback spent is the greater of recorded swap USD and the live treasury wallet portfolio (SYRA + USDC + SOL). pendingRevenueUsd / totalFlushedUsd are the queue proof; totalBuybackUsdSpent may be higher because it includes the live portfolio. $SYRA acquired is the live treasury holding. Tokens fund usage rewards / airdrops - not burned.";
   const empty = {
     buybackShareOfRevenue: BUYBACK_SHARE,
     note,

@@ -96,6 +96,7 @@ import { BIRDEYE_AGENT_TOOLS, getBirdeyeParamsHintForLlm } from './birdeyeAgentT
 import { BLOCKSIZE_AGENT_TOOLS, getBlocksizeParamsHintForLlm } from './blocksizeAgentTools.js';
 import { DEXTER_AGENT_TOOLS, getDexterParamsHintForLlm } from './dexterAgentTools.js';
 import { TOKENS_AGENT_TOOLS, getTokensParamsHintForLlm } from './tokensAgentTools.js';
+import { YIELD_AGENT_TOOLS, getYieldParamsHintForLlm } from './yieldAgentTools.js';
 import {
   STABLECRYPTO_AGENT_TOOLS,
   getStablecryptoParamsHintForLlm,
@@ -1868,6 +1869,7 @@ export const AGENT_TOOLS = [
   ...BLOCKSIZE_AGENT_TOOLS,
   ...DEXTER_AGENT_TOOLS,
   ...TOKENS_AGENT_TOOLS,
+  ...YIELD_AGENT_TOOLS,
 ];
 
 /** Legacy LLM/frontend ids for generic Solana swap — routed to pump.fun fun-block swap. */
@@ -3413,6 +3415,10 @@ export function getToolsForLlmSelection() {
     }
     if (t.blocksizePath) {
       const hint = getBlocksizeParamsHintForLlm(t.id);
+      if (hint) out.paramsHint = hint;
+    }
+    if (typeof t.id === 'string' && t.id.startsWith('yield-')) {
+      const hint = getYieldParamsHintForLlm(t.id);
       if (hint) out.paramsHint = hint;
     }
     if (t.dexterPath != null || t.dexterCatalog) {

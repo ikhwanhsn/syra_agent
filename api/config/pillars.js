@@ -62,6 +62,7 @@ export const PILLARS = {
       '/rise',
       '/bankr',
       '/squid',
+      '/yield',
     ],
     toolIdPatterns: [
       /^giza-/,
@@ -72,6 +73,7 @@ export const PILLARS = {
       /^lp-real/,
       /^squid-/,
       /^invest-/,
+      /^yield-/,
     ],
   },
   spend: {

@@ -22,3 +22,8 @@ export declare function callFreeRoute(path: string, params?: Record<string, stri
     ok: boolean;
     text: string;
 }>;
+/** Free POST to outcomes / platform facades (no x402). */
+export declare function postFreeRoute(path: string, body?: unknown): Promise<{
+    ok: boolean;
+    text: string;
+}>;
