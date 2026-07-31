@@ -60,6 +60,7 @@ Discovery: `GET /pillars` on [api.syraa.fun](https://api.syraa.fun) includes a `
 |--------|-----------|---------|
 | Spend markup | Upstream × ~1.2 (passthrough) or × ~1.4 (media/chat floors) | Yes — with volume; thin moat without DX |
 | Jupiter referral | ~100 bps default | Yes with swap GMV |
+| Meteora Referral Staking | Up to 8% of DLMM protocol fees from LPs who link Syra code `VUDCXUSRXA` (USDC); **capped at 0.1 USDC per staked MET per cycle**; only SOL/USDC-quote pools | Yes with referred LP volume **until stake cap**; human deep-link + panel live; agent-wallet auto-link deferred ([runbook](./METEORA_REFERRAL_AGENT_WALLET.md)) |
 | Invest/Grow take | Not productized yet | Primary path to capital-scale AUM fees |
 | $SYRA buyback | ~80% of settled Spend revenue | Narrative / token; **do not lead GTM** |
 

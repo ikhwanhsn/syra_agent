@@ -7,6 +7,7 @@ import {
   overviewKickerClass,
 } from "@/components/dashboard/overview/overviewStyles";
 import { Button } from "@/components/ui/button";
+import { meteoraReferralUrl } from "@/lib/meteoraReferral";
 import type { InvestOpportunity } from "@/lib/pillarsApi";
 import { cn } from "@/lib/utils";
 
@@ -40,6 +41,8 @@ export function InvestOpportunityCard({
   const executable = Boolean(opportunity.executable);
   const deepLink = opportunity.deepLinkUrl?.trim() || null;
   const accent = executable ? "marketplace" : "neutral";
+  const isMeteora = String(opportunity.adapter || "").toLowerCase() === "meteora";
+  const referralHref = isMeteora ? meteoraReferralUrl() : null;
 
   return (
     <li
@@ -110,16 +113,30 @@ export function InvestOpportunityCard({
             <ArrowRight className="ml-1.5 h-3.5 w-3.5" aria-hidden />
           </Button>
         ) : deepLink ? (
-          <Button
-            variant="outline"
-            className="h-10 w-full rounded-full sm:h-9 sm:w-auto"
-            asChild
-          >
-            <a href={deepLink} target="_blank" rel="noopener noreferrer">
-              Open {opportunity.label}
-              <ExternalLink className="ml-1.5 h-3.5 w-3.5" aria-hidden />
-            </a>
-          </Button>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+            {referralHref ? (
+              <Button
+                variant="default"
+                className="h-10 w-full rounded-full bg-violet-600 text-white hover:bg-violet-500 sm:h-9 sm:w-auto"
+                asChild
+              >
+                <a href={referralHref} target="_blank" rel="noopener noreferrer">
+                  Link referral
+                  <ExternalLink className="ml-1.5 h-3.5 w-3.5" aria-hidden />
+                </a>
+              </Button>
+            ) : null}
+            <Button
+              variant="outline"
+              className="h-10 w-full rounded-full sm:h-9 sm:w-auto"
+              asChild
+            >
+              <a href={deepLink} target="_blank" rel="noopener noreferrer">
+                Open {opportunity.label}
+                <ExternalLink className="ml-1.5 h-3.5 w-3.5" aria-hidden />
+              </a>
+            </Button>
+          </div>
         ) : (
           <Button
             variant="outline"

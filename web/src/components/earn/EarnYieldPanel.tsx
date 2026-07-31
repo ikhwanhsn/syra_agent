@@ -6,6 +6,7 @@ import { EarnPanelHeader } from "@/components/earn/EarnPanelHeader";
 import { EarnYieldPanelSkeleton } from "@/components/earn/EarnSkeleton";
 import { InfoHint } from "@/components/earn/InfoHint";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
+import { MeteoraReferralPanel } from "@/components/growth/MeteoraReferralPanel";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
@@ -155,6 +156,8 @@ export function EarnYieldPanel({
       </p>
 
       <HowItWorksStrip />
+
+      <MeteoraReferralPanel compact />
 
       {boardQ.isLoading ? (
         <EarnYieldPanelSkeleton includeHeader={false} />
