@@ -49,9 +49,23 @@ async function check402OffersNews() {
       `GET /news 402 has no Algorand accept. Networks: ${accepts.map((a) => a.network).join(", ")}`
     );
   }
+  for (const a of algo) {
+    if (a?.extra?.tag !== "x402-global-challenge") {
+      throw new Error(
+        `Algorand accept missing extra.tag=x402-global-challenge. Got extra=${JSON.stringify(a?.extra)} network=${a?.network}`
+      );
+    }
+  }
   console.log(
     "[validate-algorand-x402] 402 offers include Algorand",
-    JSON.stringify(algo.map((a) => ({ network: a.network, asset: a.asset, payTo: a.payTo })))
+    JSON.stringify(
+      algo.map((a) => ({
+        network: a.network,
+        asset: a.asset,
+        payTo: a.payTo,
+        tag: a?.extra?.tag,
+      }))
+    )
   );
   if (prHeader) {
     console.log("[validate-algorand-x402] Payment-Required header present");

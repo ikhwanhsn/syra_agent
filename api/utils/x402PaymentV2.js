@@ -72,6 +72,7 @@ import {
   isAlgorandEnabled,
   isAlgorandNetwork,
   USDC_DECIMALS,
+  withAlgorandChallengeExtra,
 } from "../config/algorandX402Networks.js";
 import {
   ensureX402AvmResourceServerInitialized,
@@ -585,6 +586,8 @@ async function ensureAlgorandAcceptInRequirements(requirements, microUnits, maxT
       if (Array.isArray(algorandReqs)) {
         for (const r of algorandReqs) {
           if (r && !list.some((x) => x?.network === r.network)) {
+            // Challenge attribution: GoPlausible leaderboard requires extra.tag.
+            r.extra = withAlgorandChallengeExtra(r.extra);
             list.push(r);
           }
         }
@@ -601,7 +604,7 @@ async function ensureAlgorandAcceptInRequirements(requirements, microUnits, maxT
         asset: net.usdcAsa,
         payTo,
         maxTimeoutSeconds,
-        extra: { decimals: USDC_DECIMALS },
+        extra: withAlgorandChallengeExtra({ decimals: USDC_DECIMALS }),
       });
     }
   }
@@ -627,6 +630,7 @@ function appendAlgorandAcceptedOption(acceptedOptions, expectedMicroUnits, algor
       isEvm: false,
       isAlgorand: true,
       amount: expectedMicroUnits,
+      extra: withAlgorandChallengeExtra({ decimals: USDC_DECIMALS }),
     });
   }
   return acceptedOptions;
@@ -1852,6 +1856,10 @@ export function requirePayment(options) {
             isEvm: false,
             isAlgorand: true,
             amount: String(acc.amount ?? expectedMicroUnits),
+            // Preserve client-echoed challenge tag when present; otherwise inject default.
+            extra: withAlgorandChallengeExtra(
+              acc?.extra && typeof acc.extra === "object" ? acc.extra : { decimals: USDC_DECIMALS },
+            ),
           };
         }
       }
@@ -2011,12 +2019,25 @@ export function requirePayment(options) {
 
       const verifyLatencyMs = Date.now() - paidPathStartedAt;
 
+      // Ensure Algorand settle requirements keep the challenge tag even if the
+      // client omitted/stripped accepts[].extra.tag from the payment payload.
+      const acceptedForSettle = useAlgorandFacilitator
+        ? {
+            ...acc,
+            extra: withAlgorandChallengeExtra(
+              acc?.extra && typeof acc.extra === "object"
+                ? acc.extra
+                : { decimals: USDC_DECIMALS },
+            ),
+          }
+        : acc;
+
       // Start settle in parallel with the route's upstream data fetch so paid
       // latency is verify + max(settle, data) instead of verify + data + settle.
       // Tradeoff: settle may complete even if the handler later returns 500.
       req.x402Payment = {
         payload: payloadWithResource,
-        accepted: acc,
+        accepted: acceptedForSettle,
         priceUsd,
         resourceServerProfile: resolveResourceServerProfile(req, options),
         useB402Facilitator,
@@ -2030,7 +2051,7 @@ export function requirePayment(options) {
         paidPathStartedAt,
         settleStartedAt: Date.now(),
       };
-      const settlePromise = settlePaymentWithFallback(payloadWithResource, acc, req);
+      const settlePromise = settlePaymentWithFallback(payloadWithResource, acceptedForSettle, req);
       settlePromise.catch(() => {});
       req.x402Payment.settlePromise = settlePromise;
 

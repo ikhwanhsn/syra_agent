@@ -30,6 +30,38 @@ export const USDC_TESTNET_ASA_ID = env("ALGORAND_TESTNET_USDC_ASA") || "10458941
 
 export const USDC_DECIMALS = 6;
 
+/**
+ * Required tag for x402 Global Challenge leaderboard attribution.
+ * GoPlausible indexes Algorand settlements under SOURCE=x402-GLOBAL-CHALLENGE
+ * when accepts[].extra.tag is this value.
+ * @see https://algorand.co/blog/the-x402-global-challenge-is-live-how-to-build-submit-your-entry
+ */
+export const X402_GLOBAL_CHALLENGE_TAG = "x402-global-challenge";
+
+/**
+ * Challenge tag for Algorand accepts (env override for post-competition).
+ * Set X402_ALGORAND_CHALLENGE_TAG=false to disable; any other non-empty value overrides the default tag.
+ * @returns {string | null}
+ */
+export function getAlgorandChallengeTag() {
+  const override = env("X402_ALGORAND_CHALLENGE_TAG").toLowerCase();
+  if (override === "false" || override === "0") return null;
+  if (override) return env("X402_ALGORAND_CHALLENGE_TAG");
+  return X402_GLOBAL_CHALLENGE_TAG;
+}
+
+/**
+ * Merge challenge tag into an Algorand payment-requirement `extra` object.
+ * @param {object | null | undefined} extra
+ * @returns {object}
+ */
+export function withAlgorandChallengeExtra(extra) {
+  const base = extra && typeof extra === "object" ? { ...extra } : {};
+  const tag = getAlgorandChallengeTag();
+  if (!tag) return base;
+  return { ...base, tag };
+}
+
 /** Default GoPlausible facilitator (challenge leaderboard). */
 export const DEFAULT_GOPLAUSIBLE_FACILITATOR_URL = "https://facilitator.goplausible.xyz";
 
@@ -176,6 +208,7 @@ export function getAlgorandPublicStatus() {
     enabled,
     payTo: payTo || null,
     facilitatorUrl: getGoplausibleFacilitatorUrl(),
+    challengeTag: getAlgorandChallengeTag(),
     networks,
     missing: enabled ? [] : ["ALGORAND_PAYTO or AVM_ADDRESS"],
   };
