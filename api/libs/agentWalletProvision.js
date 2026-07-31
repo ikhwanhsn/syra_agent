@@ -1,5 +1,6 @@
 /**
- * Shared agent wallet provisioning (five pillar treasuries + internal LP).
+ * Shared agent wallet provisioning (five pillar treasuries).
+ * Legacy :lp wallet system is retired — LP Autopilot signs with the earn pillar.
  */
 import { Keypair } from '@solana/web3.js';
 import bs58 from 'bs58';
@@ -9,16 +10,14 @@ import { defaultAllocationConfigForPurpose } from '../config/walletAllocations.j
 import { encryptAgentSecretForStorage } from './agentWalletSecretCrypto.js';
 import { isPrivyConfigured, createPrivyServerWallet, getDefaultCustodyMode } from '../services/privyServerWallet.js';
 import { LP_REAL_TOOL_IDS } from '../services/policyEngine.js';
-import { isAdminWalletAddress } from './adminWallet.js';
 import {
   baseAnonymousIdFrom,
-  lpAnonymousIdFromChat,
   normalizeAgentWalletPurpose,
   PILLAR_WALLET_PURPOSES,
   purposeQuery,
   siblingAnonymousId,
 } from './agentWalletPurpose.js';
-import { canonicalAnonymousId, resolveAgentWalletForUser, resolveSpendBaseForWalletSet, walletAddressQuery } from './agentWalletResolve.js';
+import { canonicalAnonymousId, resolveSpendBaseForWalletSet, walletAddressQuery } from './agentWalletResolve.js';
 
 const { AvatarGenerator } = pkg;
 const avatarGenerator = new AvatarGenerator();
@@ -55,14 +54,6 @@ function policyDefaultsForPurpose(purpose, provisionedVia = 'guest') {
       hourlySpendCapUsd: 100,
     };
   }
-  if (p === 'lp') {
-    return {
-      allowedTools: [...LP_DEFAULT_TOOLS],
-      perTxCapUsd: 250,
-      dailySpendCapUsd: 2500,
-      hourlySpendCapUsd: 400,
-    };
-  }
   if (p === 'spend') {
     return {
       allowedTools: [...SPEND_DEFAULT_TOOLS],
@@ -86,10 +77,12 @@ function policyDefaultsForPurpose(purpose, provisionedVia = 'guest') {
         'purch-vault',
         'pumpfun-agents-create-coin',
         'pumpfun-collect-fees',
+        ...LP_DEFAULT_TOOLS,
       ],
-      perTxCapUsd: 25,
-      dailySpendCapUsd: 500,
-      hourlySpendCapUsd: 100,
+      // Caps raised so LP Autopilot (now on earn) can open/close Meteora positions.
+      perTxCapUsd: 250,
+      dailySpendCapUsd: 2500,
+      hourlySpendCapUsd: 400,
     };
   }
   if (p === 'treasury') {
@@ -184,7 +177,7 @@ export async function createAgentWalletRecord({
  *   chain?: 'solana' | 'base' | 'bsc';
  *   provisionedVia?: 'guest' | 'connect' | 'signin' | 'x402' | 'migration' | 'telegram';
  *   payerAddress?: string | null;
- *   includeLp?: boolean;
+ *   includeLp?: boolean; // ignored — LP wallet system retired
  * }} params
  */
 export async function ensureAgentWalletSet({
@@ -193,7 +186,6 @@ export async function ensureAgentWalletSet({
   chain = 'solana',
   provisionedVia = 'guest',
   payerAddress = null,
-  includeLp = false,
 }) {
   const resolved = await resolveSpendBaseForWalletSet({
     anonymousId: baseAnonymousId,
@@ -204,8 +196,6 @@ export async function ensureAgentWalletSet({
   const linkedWalletAddress = walletAddress || resolved.spendDoc?.walletAddress || null;
 
   const purposes = [...PILLAR_WALLET_PURPOSES];
-  if (includeLp) purposes.push('lp');
-
   const wallets = {};
 
   for (const purpose of purposes) {
@@ -296,120 +286,11 @@ export function walletSetResponseFields(set) {
         },
       ]),
     ),
-    lpAnonymousId: w.lp?.anonymousId ?? null,
-    lpAgentAddress: w.lp?.agentAddress ?? null,
-    lpAvatarUrl: w.lp?.avatarUrl ?? null,
+    // Legacy LP fields always null — :lp wallet system retired (use earn).
+    lpAnonymousId: null,
+    lpAgentAddress: null,
+    lpAvatarUrl: null,
   };
-}
-
-/**
- * Whether LP wallet should be auto-provisioned for this user.
- * @param {string | null | undefined} walletAddress
- */
-export function shouldIncludeLpWallet(walletAddress) {
-  return isAdminWalletAddress(walletAddress);
-}
-
-/**
- * Get or create LP wallet for a spend anonymousId (guest or linked).
- * @param {string} chatAnonymousId
- */
-export async function getOrCreateLpAgentWallet(chatAnonymousId) {
-  const chatId = typeof chatAnonymousId === 'string' ? chatAnonymousId.trim() : '';
-  if (!chatId) throw new Error('chat_anonymous_id_required');
-  const lpId = lpAnonymousIdFromChat(chatId);
-  if (!lpId) throw new Error('lp_anonymous_id_invalid');
-
-  let doc = await AgentWallet.findOne({ anonymousId: lpId, status: { $ne: 'retired' } }).lean();
-  if (doc) {
-    return { anonymousId: lpId, agentAddress: doc.agentAddress, avatarUrl: doc.avatarUrl || null, isNewWallet: false };
-  }
-
-  const spendWallet = await AgentWallet.findOne({
-    anonymousId: baseAnonymousIdFrom(chatId) || chatId,
-    status: { $ne: 'retired' },
-    ...purposeQuery('spend'),
-  }).lean();
-
-  await createAgentWalletRecord({
-    anonymousId: lpId,
-    purpose: 'lp',
-    walletAddress: spendWallet?.walletAddress ?? null,
-    chain: spendWallet?.chain || 'solana',
-    avatarSeed: lpId,
-    provisionedVia: spendWallet?.provisionedVia || 'guest',
-  });
-
-  doc = await AgentWallet.findOne({ anonymousId: lpId }).lean();
-  return {
-    anonymousId: lpId,
-    agentAddress: doc.agentAddress,
-    avatarUrl: doc.avatarUrl || null,
-    isNewWallet: true,
-  };
-}
-
-/**
- * LP wallet fields for API responses (connect / guest create / sign-in).
- * Only returns LP fields when includeLp is true (internal/admin).
- * @param {string} chatAnonymousId
- * @param {{ includeLp?: boolean }} [options]
- */
-export async function lpWalletResponseFields(chatAnonymousId, options = {}) {
-  const { includeLp = false } = options;
-  if (!includeLp) {
-    return {
-      lpAnonymousId: null,
-      lpAgentAddress: null,
-      lpAvatarUrl: null,
-      lpIsNewWallet: false,
-    };
-  }
-  const out = await getOrCreateLpAgentWallet(chatAnonymousId);
-  return {
-    lpAnonymousId: out.anonymousId,
-    lpAgentAddress: out.agentAddress,
-    lpAvatarUrl: out.avatarUrl || null,
-    lpIsNewWallet: out.isNewWallet,
-  };
-}
-
-/**
- * Ensure LP wallet exists after linked sign-in (internal team only).
- * @param {{ address: string; chain?: string; guestChatAnonymousId?: string | null }} params
- */
-export async function ensureLpAgentWalletForUser({ address, chain = 'solana', guestChatAnonymousId = null }) {
-  if (!shouldIncludeLpWallet(address)) return null;
-
-  const spendWallet = await resolveAgentWalletForUser({
-    address,
-    chain,
-    guestAnonymousId: guestChatAnonymousId,
-    purpose: 'spend',
-  });
-  if (!spendWallet?.anonymousId) return null;
-
-  const lpId = lpAnonymousIdFromChat(spendWallet.anonymousId);
-  const existing = await AgentWallet.findOne({ anonymousId: lpId }).lean();
-  if (existing) {
-    if (spendWallet.walletAddress && existing.walletAddress !== spendWallet.walletAddress) {
-      await AgentWallet.updateOne(
-        { _id: existing._id },
-        { $set: { walletAddress: spendWallet.walletAddress, chain: spendWallet.chain || chain } },
-      );
-    }
-    return existing;
-  }
-
-  await createAgentWalletRecord({
-    anonymousId: lpId,
-    purpose: 'lp',
-    walletAddress: spendWallet.walletAddress || address,
-    chain: spendWallet.chain || chain,
-    avatarSeed: lpId,
-    provisionedVia: 'signin',
-  });
-  return AgentWallet.findOne({ anonymousId: lpId }).lean();
 }
 
 /**
@@ -429,14 +310,6 @@ export async function findLinkedChatWallet(walletAddress, chain = 'solana') {
             $or: [{ chain: 'solana' }, { chain: { $exists: false } }, { chain: null }],
           };
   return AgentWallet.findOne({ ...base, status: { $ne: 'retired' } }).lean();
-}
-
-/**
- * Find linked LP wallet by user wallet address.
- */
-export async function findLinkedLpWallet(walletAddress, chain = 'solana') {
-  const lpId = `${canonicalAnonymousId(walletAddress, chain)}:lp`;
-  return AgentWallet.findOne({ anonymousId: lpId, status: { $ne: 'retired' } }).lean();
 }
 
 /**
@@ -472,7 +345,7 @@ export async function retireAgentWalletRecord(anonymousId) {
 }
 
 /**
- * Retire spend wallet and all pillar siblings (+ LP when present).
+ * Retire spend wallet and all pillar siblings (and legacy :lp if still present).
  * @param {string} chatOrSiblingAnonymousId
  */
 export async function retireAgentWalletWithSibling(chatOrSiblingAnonymousId) {
@@ -483,7 +356,7 @@ export async function retireAgentWalletWithSibling(chatOrSiblingAnonymousId) {
   const ids = [
     base,
     ...PILLAR_WALLET_PURPOSES.filter((p) => p !== 'spend').map((p) => siblingAnonymousId(base, p)),
-    lpAnonymousIdFromChat(base),
+    `${base}:lp`, // retire legacy LP sibling if it still exists
   ].filter(Boolean);
 
   for (const id of ids) {
@@ -509,8 +382,37 @@ export async function provisionWalletsForX402Payer({ payerAddress, chain = 'sola
     chain,
     provisionedVia: 'x402',
     payerAddress: address,
-    includeLp: shouldIncludeLpWallet(address),
   });
 
   return set;
+}
+
+/** @deprecated LP wallet system retired — always false. */
+export function shouldIncludeLpWallet() {
+  return false;
+}
+
+/** @deprecated LP wallet system retired. */
+export async function getOrCreateLpAgentWallet() {
+  throw new Error('lp_wallet_retired — use earn wallet for LP Autopilot');
+}
+
+/** @deprecated LP wallet system retired — returns null fields. */
+export async function lpWalletResponseFields() {
+  return {
+    lpAnonymousId: null,
+    lpAgentAddress: null,
+    lpAvatarUrl: null,
+    lpIsNewWallet: false,
+  };
+}
+
+/** @deprecated LP wallet system retired. */
+export async function ensureLpAgentWalletForUser() {
+  return null;
+}
+
+/** @deprecated LP wallet system retired. */
+export async function findLinkedLpWallet() {
+  return null;
 }

@@ -369,7 +369,7 @@ export type AgentWalletSetRow = {
   provisionedVia?: string | null;
 };
 
-/** Full five-pillar wallet set (+ optional LP). */
+/** Full five-pillar wallet set. */
 export type AgentWalletSetResponse = {
   anonymousId: string;
   agentAddress: string | null;
@@ -379,16 +379,23 @@ export type AgentWalletSetResponse = {
   balances?: Partial<
     Record<AgentWalletPurpose, { agentAddress: string; solBalance: number; usdcBalance: number }>
   > | null;
+  /** @deprecated Dedicated LP wallet retired; always null. */
   lpAnonymousId?: string | null;
+  /** @deprecated Dedicated LP wallet retired; always null. */
   lpAgentAddress?: string | null;
+  /** @deprecated Dedicated LP wallet retired; always null. */
   lpAvatarUrl?: string | null;
 };
 
-/** LP wallet fields returned alongside spend wallet provisioning. */
+/** @deprecated Dedicated LP wallet fields retired; prefer `wallets.earn`. */
 export type AgentWalletLpFields = {
+  /** @deprecated Always null; LP Autopilot uses earn. */
   lpAnonymousId?: string | null;
+  /** @deprecated Always null; LP Autopilot uses earn. */
   lpAgentAddress?: string | null;
+  /** @deprecated Always null. */
   lpAvatarUrl?: string | null;
+  /** @deprecated Always false/undefined. */
   lpIsNewWallet?: boolean;
   wallets?: AgentWalletSetResponse["wallets"];
 };
@@ -431,10 +438,6 @@ export const agentWalletApi = {
       isNewWallet?: boolean;
       chain?: AgentChain;
       wallets?: AgentWalletSetResponse["wallets"];
-      lpAnonymousId?: string;
-      lpAgentAddress?: string;
-      lpAvatarUrl?: string | null;
-      lpIsNewWallet?: boolean;
     }>(res);
     return {
       anonymousId: data.anonymousId,
@@ -443,10 +446,10 @@ export const agentWalletApi = {
       isNewWallet: data.isNewWallet,
       chain: data.chain ? normalizeAgentChain(data.chain) : chain,
       wallets: data.wallets,
-      lpAnonymousId: data.lpAnonymousId,
-      lpAgentAddress: data.lpAgentAddress,
-      lpAvatarUrl: data.lpAvatarUrl ?? null,
-      lpIsNewWallet: data.lpIsNewWallet,
+      lpAnonymousId: null,
+      lpAgentAddress: null,
+      lpAvatarUrl: null,
+      lpIsNewWallet: false,
     };
   },
 
@@ -471,10 +474,6 @@ export const agentWalletApi = {
       isNewWallet?: boolean;
       purpose?: AgentWalletPurpose;
       wallets?: AgentWalletSetResponse["wallets"];
-      lpAnonymousId?: string;
-      lpAgentAddress?: string;
-      lpAvatarUrl?: string | null;
-      lpIsNewWallet?: boolean;
     }>(res);
     return {
       anonymousId: data.anonymousId,
@@ -483,65 +482,35 @@ export const agentWalletApi = {
       isNewWallet: data.isNewWallet,
       purpose: data.purpose ?? "spend",
       wallets: data.wallets,
-      lpAnonymousId: data.lpAnonymousId,
-      lpAgentAddress: data.lpAgentAddress,
-      lpAvatarUrl: data.lpAvatarUrl ?? null,
-      lpIsNewWallet: data.lpIsNewWallet,
+      lpAnonymousId: null,
+      lpAgentAddress: null,
+      lpAvatarUrl: null,
+      lpIsNewWallet: false,
     };
   },
 
-  /** Get or create LP agent wallet tied to the chat wallet anonymousId. */
-  async getOrCreateLp(chatAnonymousId: string): Promise<{
+  /**
+   * @deprecated Dedicated LP wallets are retired. Use earn pillar (`wallets.earn` / purpose earn).
+   */
+  async getOrCreateLp(_chatAnonymousId: string): Promise<{
     anonymousId: string;
     agentAddress: string;
     avatarUrl?: string | null;
     isNewWallet?: boolean;
   }> {
-    const res = await fetch(agentWalletBase(), {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...getApiHeaders() },
-      body: JSON.stringify({ anonymousId: chatAnonymousId, purpose: "lp" }),
-    });
-    const data = await handleRes<{
-      success: boolean;
-      anonymousId: string;
-      agentAddress: string;
-      avatarUrl?: string | null;
-      isNewWallet?: boolean;
-    }>(res);
-    return {
-      anonymousId: data.anonymousId,
-      agentAddress: data.agentAddress,
-      avatarUrl: data.avatarUrl ?? null,
-      isNewWallet: data.isNewWallet,
-    };
+    throw new Error("lp_wallet_retired: use earn pillar wallet (/wallet?wallet=earn)");
   },
 
-  /** Get or create linked LP wallet for a connected Solana wallet (requires session). */
-  async getOrCreateLpByWallet(walletAddress: string): Promise<{
+  /**
+   * @deprecated Dedicated LP wallets are retired. Use earn pillar via getOrCreateByWallet / getWalletSet.
+   */
+  async getOrCreateLpByWallet(_walletAddress: string): Promise<{
     anonymousId: string;
     agentAddress: string;
     avatarUrl?: string | null;
     isNewWallet?: boolean;
   }> {
-    const res = await syraFetch(`${agentWalletBase()}/connect/lp`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...getApiHeaders() },
-      body: JSON.stringify({ walletAddress }),
-    });
-    const data = await handleRes<{
-      success: boolean;
-      anonymousId: string;
-      agentAddress: string;
-      avatarUrl?: string | null;
-      isNewWallet?: boolean;
-    }>(res);
-    return {
-      anonymousId: data.anonymousId,
-      agentAddress: data.agentAddress,
-      avatarUrl: data.avatarUrl ?? null,
-      isNewWallet: data.isNewWallet,
-    };
+    throw new Error("lp_wallet_retired: use earn pillar wallet (/wallet?wallet=earn)");
   },
 
   /** List agent wallets linked to user wallets (flat, paginated by agent). */

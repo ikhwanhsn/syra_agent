@@ -122,9 +122,6 @@ export default function DashboardSettings({ embedded = false }: DashboardSetting
     updateAvatarUrl,
     agentSolBalance,
     agentUsdcBalance,
-    lpReady,
-    lpAnonymousId,
-    lpAgentAddress,
     lpAgentSolBalance,
     lpAgentUsdcBalance,
   } = useAgentWallet();
@@ -227,7 +224,6 @@ export default function DashboardSettings({ embedded = false }: DashboardSetting
   const [generatingAvatar, setGeneratingAvatar] = useState(false);
   const [refreshingBalances, setRefreshingBalances] = useState(false);
   const [creatingChat, setCreatingChat] = useState(false);
-  const [creatingLp, setCreatingLp] = useState(false);
   const [refreshingLpBalances, setRefreshingLpBalances] = useState(false);
 
   const saveIdentity = useCallback(() => {
@@ -309,34 +305,23 @@ export default function DashboardSettings({ embedded = false }: DashboardSetting
     if (connectedChain !== "solana") {
       toast({
         title: "Connect Solana wallet",
-        description: "Connect your Solana wallet in the header to fund the LP agent treasury.",
+        description: "Connect your Solana wallet in the header to fund the Earn agent treasury.",
       });
       void connectForChain("solana");
       return;
     }
-    navigate("/wallet?tab=deposit&wallet=lp#move-funds");
+    navigate("/wallet?tab=deposit&wallet=earn#move-funds");
   }, [connectedChain, connectForChain, navigate, toast]);
 
   const handleRefreshLpBalances = useCallback(async () => {
     setRefreshingLpBalances(true);
     try {
       await refetchLpBalance();
-      toast({ title: "LP balances updated" });
+      toast({ title: "Earn balances updated" });
     } finally {
       setRefreshingLpBalances(false);
     }
   }, [refetchLpBalance, toast]);
-
-  const lpAgent: AgentSetupRecord | undefined = useMemo(() => {
-    if (!lpReady || !lpAnonymousId || !lpAgentAddress) return undefined;
-    return {
-      anonymousId: lpAnonymousId,
-      agentAddress: lpAgentAddress,
-      avatarUrl: null,
-      chain: "solana",
-      walletAddress: activeAgent?.walletAddress ?? connectedWalletAddress ?? "",
-    };
-  }, [lpReady, lpAnonymousId, lpAgentAddress, activeAgent?.walletAddress, connectedWalletAddress]);
 
   const handleCreateChatWallet = useCallback(async () => {
     setCreatingChat(true);
@@ -368,53 +353,11 @@ export default function DashboardSettings({ embedded = false }: DashboardSetting
     }
   }, [hasSolana, requestSyraAuth, solanaAddress, toast]);
 
-  const handleCreateLpWallet = useCallback(async () => {
-    if (!activeAgent?.anonymousId) {
-      toast({ title: "Create chat wallet first", variant: "destructive" });
-      return;
-    }
-    setCreatingLp(true);
-    try {
-      if (hasSolana && solanaAddress) {
-        const ok = await requestSyraAuth();
-        if (!ok) {
-          toast({
-            title: "Sign in required",
-            description: "Approve the wallet sign-in prompt to create your LP agent wallet.",
-            variant: "destructive",
-          });
-          return;
-        }
-        await agentWalletApi.getOrCreateLpByWallet(solanaAddress);
-      } else {
-        await agentWalletApi.getOrCreateLp(activeAgent.anonymousId);
-      }
-      toast({ title: "LP wallet created", description: "Reloading your agent setup…" });
-      window.setTimeout(() => window.location.reload(), 400);
-    } catch (err) {
-      toast({
-        title: "Could not create LP wallet",
-        description: err instanceof Error ? err.message : "Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setCreatingLp(false);
-    }
-  }, [activeAgent?.anonymousId, hasSolana, requestSyraAuth, solanaAddress, toast]);
-
   const managedChatWallet = activeAgent
     ? {
         anonymousId: activeAgent.anonymousId,
         agentAddress: activeAgent.agentAddress,
         walletAddress: activeAgent.walletAddress,
-      }
-    : undefined;
-
-  const managedLpWallet = lpAgent
-    ? {
-        anonymousId: lpAgent.anonymousId,
-        agentAddress: lpAgent.agentAddress,
-        walletAddress: lpAgent.walletAddress,
       }
     : undefined;
 
@@ -490,13 +433,10 @@ export default function DashboardSettings({ embedded = false }: DashboardSetting
               balanceLoading={balanceQ.isLoading}
               refreshingLpBalances={refreshingLpBalances}
               managedChatWallet={managedChatWallet}
-              managedLpWallet={managedLpWallet}
               hasLinkedWallet={hasSolana}
               syraAuthenticated={syraAuthenticated}
               onCreateChatWallet={() => void handleCreateChatWallet()}
-              onCreateLpWallet={() => void handleCreateLpWallet()}
               creatingChat={creatingChat}
-              creatingLp={creatingLp}
             />
 
             <Card className={cn(overviewCardShell, "overflow-hidden")}>
@@ -602,13 +542,10 @@ function AgentSetupSections({
   balanceLoading,
   refreshingLpBalances,
   managedChatWallet,
-  managedLpWallet,
   hasLinkedWallet,
   syraAuthenticated,
   onCreateChatWallet,
-  onCreateLpWallet,
   creatingChat,
-  creatingLp,
 }: {
   activeAgent: AgentSetupRecord | undefined;
   setupLoading: boolean;
@@ -637,13 +574,10 @@ function AgentSetupSections({
   balanceLoading: boolean;
   refreshingLpBalances: boolean;
   managedChatWallet: { anonymousId: string; agentAddress: string; walletAddress: string } | undefined;
-  managedLpWallet: { anonymousId: string; agentAddress: string; walletAddress: string } | undefined;
   hasLinkedWallet: boolean;
   syraAuthenticated: boolean;
   onCreateChatWallet: () => void;
-  onCreateLpWallet: () => void;
   creatingChat: boolean;
-  creatingLp: boolean;
 }) {
   if (setupLoading && !activeAgent) {
     return (
@@ -671,15 +605,10 @@ function AgentSetupSections({
     return (
       <AgentWalletsManager
         chatWallet={managedChatWallet}
-        lpWallet={managedLpWallet}
         chatSolBalance={solBalance}
         chatUsdcBalance={usdcBalance}
-        lpSolBalance={lpSolBalance}
-        lpUsdcBalance={lpUsdcBalance}
         chatBalanceLoading={balanceLoading}
-        lpBalanceLoading={false}
         refreshingChatBalances={refreshingBalances}
-        refreshingLpBalances={refreshingLpBalances}
         hasLinkedWallet={hasLinkedWallet}
         syraAuthenticated={syraAuthenticated}
         onCopy={onCopy}
@@ -689,9 +618,7 @@ function AgentSetupSections({
         onRefreshChatBalances={onRefreshBalances}
         onRefreshLpBalances={onRefreshLpBalances}
         onCreateChatWallet={onCreateChatWallet}
-        onCreateLpWallet={onCreateLpWallet}
         creatingChat={creatingChat}
-        creatingLp={creatingLp}
       />
     );
   }
@@ -764,15 +691,10 @@ function AgentSetupSections({
 
       <AgentWalletsManager
         chatWallet={managedChatWallet}
-        lpWallet={managedLpWallet}
         chatSolBalance={solBalance}
         chatUsdcBalance={usdcBalance}
-        lpSolBalance={lpSolBalance}
-        lpUsdcBalance={lpUsdcBalance}
         chatBalanceLoading={balanceLoading}
-        lpBalanceLoading={false}
         refreshingChatBalances={refreshingBalances}
-        refreshingLpBalances={refreshingLpBalances}
         hasLinkedWallet={hasLinkedWallet}
         syraAuthenticated={syraAuthenticated}
         onCopy={onCopy}
@@ -782,9 +704,7 @@ function AgentSetupSections({
         onRefreshChatBalances={onRefreshBalances}
         onRefreshLpBalances={onRefreshLpBalances}
         onCreateChatWallet={onCreateChatWallet}
-        onCreateLpWallet={onCreateLpWallet}
         creatingChat={creatingChat}
-        creatingLp={creatingLp}
       />
 
       <Card className={cn(overviewCardShell, "overflow-hidden")}>

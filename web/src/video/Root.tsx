@@ -9,6 +9,20 @@ import {
 } from "@/video/compositions/AgentsBeatTraders2030";
 import { PostDeckVideo } from "@/video/compositions/PostDeckVideo";
 import {
+  WhatIsSyra,
+  WHAT_IS_SYRA_DURATION,
+  WHAT_IS_SYRA_FPS,
+  WHAT_IS_SYRA_HEIGHT,
+  WHAT_IS_SYRA_WIDTH,
+} from "@/video/compositions/WhatIsSyra";
+import {
+  WhatIsSyraVertical,
+  WHAT_IS_SYRA_V_DURATION,
+  WHAT_IS_SYRA_V_FPS,
+  WHAT_IS_SYRA_V_HEIGHT,
+  WHAT_IS_SYRA_V_WIDTH,
+} from "@/video/compositions/WhatIsSyraVertical";
+import {
   POST_VIDEO_LAYOUT_HEIGHT,
   POST_VIDEO_LAYOUT_WIDTH,
 } from "@/video/constants";
@@ -44,6 +58,22 @@ export function RemotionRoot() {
         fps={AGENTS_BEAT_TRADERS_FPS}
         width={AGENTS_BEAT_TRADERS_WIDTH}
         height={AGENTS_BEAT_TRADERS_HEIGHT}
+      />
+      <Composition
+        id="WhatIsSyra"
+        component={WhatIsSyra}
+        durationInFrames={WHAT_IS_SYRA_DURATION}
+        fps={WHAT_IS_SYRA_FPS}
+        width={WHAT_IS_SYRA_WIDTH}
+        height={WHAT_IS_SYRA_HEIGHT}
+      />
+      <Composition
+        id="WhatIsSyraVertical"
+        component={WhatIsSyraVertical}
+        durationInFrames={WHAT_IS_SYRA_V_DURATION}
+        fps={WHAT_IS_SYRA_V_FPS}
+        width={WHAT_IS_SYRA_V_WIDTH}
+        height={WHAT_IS_SYRA_V_HEIGHT}
       />
     </>
   );

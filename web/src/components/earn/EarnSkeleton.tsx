@@ -73,9 +73,9 @@ export function EarnStatsGridSkeleton({ cols = 2 }: { cols?: 2 | 3 }) {
   );
 }
 
-/** Yield-shaped default panel (matches EarnYieldPanel: header + 4 stats + product cards). */
+/** Yield-shaped default panel (matches EarnYieldPanel: header + browse card grid). */
 export function EarnYieldPanelSkeleton({
-  count = 2,
+  count = 4,
   includeHeader = true,
 }: {
   count?: number;
@@ -92,37 +92,24 @@ export function EarnYieldPanelSkeleton({
           <Skeleton className="h-4 w-full max-w-2xl" />
         </>
       ) : null}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className={cn(overviewCardShell, "space-y-2 p-4")}>
-            <Skeleton className="h-3 w-20" />
-            <Skeleton className="h-6 w-16" />
-            <Skeleton className="h-3 w-24" />
-          </div>
-        ))}
-      </div>
-      <div className="space-y-4">
-        {Array.from({ length: count }).map((_, i) => (
-          <div key={i} className={cn(overviewCardShell, "space-y-4 p-4 sm:p-5")}>
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0 flex-1 space-y-2">
-                <Skeleton className="h-5 w-40 max-w-full" />
-                <Skeleton className="h-4 w-full max-w-md" />
-                <Skeleton className="h-3 w-48" />
-              </div>
-              <Skeleton className="h-8 w-16 shrink-0 rounded-md" />
-            </div>
-            <div className="grid gap-2 sm:grid-cols-3">
-              {Array.from({ length: 3 }).map((_, j) => (
-                <div key={j} className="space-y-1.5 rounded-lg border border-border/40 p-3">
-                  <Skeleton className="h-3 w-14" />
-                  <Skeleton className="h-5 w-16" />
+      <div className="space-y-3">
+        <Skeleton className="h-3 w-24" />
+        <div className="grid gap-3 sm:grid-cols-2">
+          {Array.from({ length: count }).map((_, i) => (
+            <div key={i} className={cn(overviewCardShell, "space-y-4 p-5")}>
+              <div className="flex items-start gap-3">
+                <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
+                <div className="min-w-0 flex-1 space-y-2">
+                  <Skeleton className="h-4 w-36 max-w-full" />
+                  <Skeleton className="h-3 w-full max-w-xs" />
                 </div>
-              ))}
+              </div>
+              <Skeleton className="h-4 w-full max-w-sm" />
+              <Skeleton className="h-3 w-48" />
+              <Skeleton className="h-10 w-full rounded-md sm:w-36" />
             </div>
-            <Skeleton className="h-10 w-full rounded-full sm:w-36" />
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );

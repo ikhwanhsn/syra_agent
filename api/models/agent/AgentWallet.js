@@ -63,8 +63,9 @@ const agentWalletSchema = new mongoose.Schema(
     avatarUrl: { type: String, required: false },
 
     /**
-     * Wallet role: spend (primary, pays chat/tools/x402), earn/treasury/invest/grow pillar treasuries,
-     * lp for internal-team LP experiments. `chat` is a deprecated alias for spend.
+     * Wallet role: spend (primary, pays chat/tools/x402), earn/treasury/invest/grow pillar treasuries.
+     * `lp` is deprecated/retired (historical rows only — LP Autopilot now uses earn).
+     * `chat` is a deprecated alias for spend.
      */
     purpose: {
       type: String,

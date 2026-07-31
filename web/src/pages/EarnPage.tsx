@@ -105,7 +105,7 @@ export default function EarnPage() {
       description="Run LP Auto on your agent wallet, share playbooks, publish APIs, or launch a pump.fun token."
       actions={
         <Button variant="outline" size="sm" asChild>
-          <Link to="/wallet?wallet=lp">LP / Earn wallet</Link>
+          <Link to="/wallet?wallet=earn">Earn wallet</Link>
         </Button>
       }
     >

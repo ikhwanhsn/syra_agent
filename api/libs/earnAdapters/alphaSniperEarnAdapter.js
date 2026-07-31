@@ -1,5 +1,5 @@
 /**
- * Earn Yield adapter — New-Pair Alpha Sniper real (LP wallet, pump.fun + Jupiter).
+ * Earn Yield adapter — New-Pair Alpha Sniper real (earn wallet, pump.fun + Jupiter).
  */
 import SniperRealConfig from '../../models/SniperRealConfig.js';
 import SniperRealPosition from '../../models/SniperRealPosition.js';
@@ -13,7 +13,7 @@ import {
 } from '../sniperRealService.js';
 import { getSniperStats } from '../sniperService.js';
 import { isAdminWalletAddress } from '../adminWallet.js';
-import { lpAnonymousIdFromChat, purposeQuery } from '../agentWalletPurpose.js';
+import { lpAgentAnonymousIdFrom, purposeQuery } from '../agentWalletPurpose.js';
 import {
   getEarnProduct,
   EARN_PRODUCT_SNIPER,
@@ -36,18 +36,19 @@ const PRODUCT = () => getEarnProduct(EARN_PRODUCT_SNIPER);
 const PAPER_GRAD_MIN = 50;
 
 async function resolveLpWallet(anonymousId) {
-  const lpId = lpAnonymousIdFromChat(anonymousId) || String(anonymousId || '').trim();
-  if (!lpId) return null;
+  // Alpha Sniper signs with the earn pillar wallet (legacy :lp retired).
+  const earnId = lpAgentAnonymousIdFrom(anonymousId) || String(anonymousId || '').trim();
+  if (!earnId) return null;
   let wallet = await AgentWallet.findOne({
-    anonymousId: lpId,
+    anonymousId: earnId,
     chain: 'solana',
     status: 'active',
-    ...purposeQuery('lp'),
+    ...purposeQuery('earn'),
   })
     .select('anonymousId agentAddress chain status purpose')
     .lean();
   if (!wallet) {
-    wallet = await AgentWallet.findOne({ anonymousId: lpId, chain: 'solana', status: 'active' })
+    wallet = await AgentWallet.findOne({ anonymousId: earnId, chain: 'solana', status: 'active' })
       .select('anonymousId agentAddress chain status purpose')
       .lean();
   }
@@ -261,8 +262,8 @@ export async function enableForUser({ anonymousId, ownerWallet, maxDeposit, enab
 
   const wallet = await resolveLpWallet(anonymousId);
   if (!wallet?.agentAddress) {
-    const err = new Error('lp_agent_wallet_required');
-    err.code = 'lp_agent_wallet_required';
+    const err = new Error('earn_agent_wallet_required');
+    err.code = 'earn_agent_wallet_required';
     throw err;
   }
 
@@ -299,7 +300,7 @@ export async function enableForUser({ anonymousId, ownerWallet, maxDeposit, enab
     maxDepositSol: cap,
     performanceFeeBps: product.performanceFeeBps,
     state: freshState || state,
-    nextStep: `Deposit ${product.minDeposit}–${cap} SOL to your LP agent wallet (/wallet?wallet=lp).`,
+    nextStep: `Deposit ${product.minDeposit}–${cap} SOL to your Earn agent wallet (/wallet?wallet=earn).`,
   };
 }
 

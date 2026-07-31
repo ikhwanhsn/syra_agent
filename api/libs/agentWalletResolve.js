@@ -2,7 +2,6 @@ import AgentWallet from '../models/agent/AgentWallet.js';
 import { normalizeAgentChain } from './syraChains.js';
 import {
   baseAnonymousIdFrom,
-  lpAnonymousIdFromChat,
   normalizeAgentWalletPurpose,
   purposeQuery,
   siblingAnonymousId,

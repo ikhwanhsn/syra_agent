@@ -18,7 +18,7 @@ import {
   PAGE_SAFE_AREA_BOTTOM,
 } from "@/lib/layoutConstants";
 import { cn } from "@/lib/utils";
-import type { AgentWalletPurpose } from "@/lib/agentWalletCatalog";
+import { normalizeAgentWalletPurpose, type AgentWalletPurpose } from "@/lib/agentWalletCatalog";
 import { AgentBillingDashboard } from "@/components/wallet/AgentBillingDashboard";
 import { AgentPortfolioPanel } from "@/components/wallet/AgentPortfolioPanel";
 import { WalletPageHeader, type WalletPageView } from "@/components/wallet/WalletPageHeader";
@@ -30,9 +30,7 @@ function parseFlowTab(value: string | null): "deposit" | "withdraw" {
 }
 
 function parseWalletPurpose(value: string | null): AgentWalletPurpose {
-  if (value === "lp") return "lp";
-  if (value === "earn" || value === "treasury" || value === "invest" || value === "grow") return value;
-  return "spend";
+  return normalizeAgentWalletPurpose(value);
 }
 
 function parsePageView(value: string | null): WalletPageView {
@@ -117,14 +115,14 @@ export default function AgentWalletPage() {
     const entry =
       purpose === "spend"
         ? wallets.managedSpendWallet ?? wallets.managedChatWallet
-        : wallets.pillarEntries?.find((e) => e.purpose === purpose)?.wallet ??
-          (purpose === "lp" ? wallets.managedLpWallet : undefined);
+        : wallets.pillarEntries?.find((e) => e.purpose === purpose)?.wallet;
     if (!entry?.anonymousId || !entry?.agentAddress) return;
     setOnrampTarget({ anonymousId: entry.anonymousId, agentAddress: entry.agentAddress });
     setOnrampOpen(true);
   };
 
-  const refreshing = wallets.refreshingBalances || wallets.refreshingLpBalances;
+  const earnEntry = wallets.pillarEntries?.find((e) => e.purpose === "earn");
+  const refreshing = wallets.refreshingBalances;
 
   return (
     <>
@@ -191,7 +189,7 @@ export default function AgentWalletPage() {
               <div id="wallet-panel-portfolio" role="tabpanel" aria-labelledby="wallet-view-portfolio">
                 <AgentPortfolioPanel
                   chatAddress={wallets.managedChatWallet?.agentAddress}
-                  lpAddress={wallets.managedLpWallet?.agentAddress}
+                  earnAddress={earnEntry?.wallet.agentAddress}
                   enabled={treasuryReady}
                 />
               </div>
@@ -209,9 +207,9 @@ export default function AgentWalletPage() {
                   solPriceUsd={wallets.solPriceUsd}
                   chatUsdc={wallets.chatUsdcBalance}
                   chatSol={wallets.chatSolBalance}
-                  lpUsdc={wallets.lpAgentUsdcBalance}
-                  lpSol={wallets.lpAgentSolBalance}
-                  hasLpWallet={Boolean(wallets.managedLpWallet)}
+                  earnUsdc={earnEntry?.balances.usdcBalance ?? null}
+                  earnSol={earnEntry?.balances.solBalance ?? null}
+                  hasEarnWallet={Boolean(earnEntry)}
                   refreshing={refreshing}
                   onRefresh={() => void wallets.handleRefreshAll()}
                 />
@@ -227,45 +225,33 @@ export default function AgentWalletPage() {
                     layout="simple"
                     spendWallet={wallets.managedSpendWallet}
                     chatWallet={wallets.managedChatWallet}
-                    lpWallet={wallets.managedLpWallet}
                     pillarEntries={wallets.pillarEntries}
                     spendSolBalance={wallets.spendSolBalance}
                     spendUsdcBalance={wallets.spendUsdcBalance}
                     chatSolBalance={wallets.chatSolBalance}
                     chatUsdcBalance={wallets.chatUsdcBalance}
-                    lpSolBalance={wallets.lpAgentSolBalance}
-                    lpUsdcBalance={wallets.lpAgentUsdcBalance}
                     spendBalanceLoading={wallets.setupLoading || wallets.pillarLoading}
                     chatBalanceLoading={wallets.setupLoading || wallets.pillarLoading}
-                    lpBalanceLoading={
-                      !wallets.managedLpWallet
-                        ? false
-                        : !wallets.lpWalletReady || wallets.lpAgentSolBalance == null
-                    }
                     pillarLoading={wallets.pillarLoading}
                     pillarSetComplete={wallets.pillarSetComplete}
                     pillarProvisionError={wallets.pillarProvisionError}
                     onRetryProvision={() => void wallets.handleRetryProvision()}
                     refreshingBalances={wallets.refreshingBalances}
                     refreshingChatBalances={wallets.refreshingBalances}
-                    refreshingLpBalances={wallets.refreshingBalances}
                     hasLinkedWallet={wallets.hasSolana}
                     syraAuthenticated={wallets.syraAuthenticated}
                     onCopy={wallets.copyToClipboard}
                     copiedField={wallets.copiedField}
                     onFundSpend={() => openMoveFunds("deposit", "spend")}
                     onFundChat={() => openMoveFunds("deposit", "spend")}
-                    onFundLp={() => openMoveFunds("deposit", "lp")}
                     onFundPillar={(p) => openMoveFunds("deposit", p)}
                     onBuyUsdcSpend={() => openBuyUsdc("spend")}
                     onBuyUsdcPillar={(p) => openBuyUsdc(p)}
                     onWithdrawSpend={() => openMoveFunds("withdraw", "spend")}
                     onWithdrawChat={() => openMoveFunds("withdraw", "spend")}
-                    onWithdrawLp={() => openMoveFunds("withdraw", "lp")}
                     onWithdrawPillar={(p) => openMoveFunds("withdraw", p)}
                     onRefreshBalances={() => void wallets.handleRefreshAll()}
                     onRefreshChatBalances={() => void wallets.handleRefreshAll()}
-                    onRefreshLpBalances={() => void wallets.handleRefreshAll()}
                     onCreateSpendWallet={() => void wallets.handleCreateSpendWallet()}
                     onCreateChatWallet={() => void wallets.handleCreateSpendWallet()}
                     creatingSpend={wallets.creatingSpend}

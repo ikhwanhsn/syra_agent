@@ -42,10 +42,8 @@ import {
 } from '../../services/privyServerWallet.js';
 import { canonicalAnonymousId, resolveAgentWalletForUser } from '../../libs/agentWalletResolve.js';
 import {
-  lpWalletResponseFields,
   ensureAgentWalletSet,
   walletSetResponseFields,
-  shouldIncludeLpWallet,
 } from '../../libs/agentWalletProvision.js';
 import { normalizeAgentChain } from '../../libs/syraChains.js';
 
@@ -160,7 +158,6 @@ router.post('/sign-in', async (req, res) => {
       return res.status(403).json({ success: false, error: `wallet_${wallet.status}` });
     }
 
-    const includeLp = shouldIncludeLpWallet(address);
     let walletSetFields = {};
     try {
       const walletSet = await ensureAgentWalletSet({
@@ -168,7 +165,6 @@ router.post('/sign-in', async (req, res) => {
         walletAddress: address,
         chain,
         provisionedVia: 'signin',
-        includeLp,
       });
       walletSetFields = walletSetResponseFields(walletSet);
     } catch (err) {
@@ -204,13 +200,6 @@ router.post('/sign-in', async (req, res) => {
       userAgent: req.get('user-agent') || undefined,
     });
 
-    let lpFields = {};
-    try {
-      lpFields = await lpWalletResponseFields(sessionAnonymousId, { includeLp });
-    } catch (err) {
-      console.warn('[agent/auth] LP wallet provision failed:', err?.message ?? err);
-    }
-
     return res.json({
       success: true,
       accessToken,
@@ -219,7 +208,6 @@ router.post('/sign-in', async (req, res) => {
       agentAddress: wallet.agentAddress,
       chain,
       ...walletSetFields,
-      ...lpFields,
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err?.message || 'sign_in_failed' });

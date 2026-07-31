@@ -28,7 +28,7 @@ export async function getAgentWalletSet(params) {
     return { ...fields, balances: null };
   }
 
-  const purposes = [...PILLAR_WALLET_PURPOSES, ...(params.includeLp ? ['lp'] : [])];
+  const purposes = [...PILLAR_WALLET_PURPOSES];
   const balanceRows = await Promise.all(
     purposes.map(async (purpose) => {
       const row = set.wallets[purpose];
@@ -78,7 +78,7 @@ export async function listAgentWalletSetsForAdmin(options = {}) {
 
   const baseIds = primaryRows.map((row) => baseAnonymousIdFrom(row.anonymousId) || row.anonymousId);
   const siblingIds = baseIds.flatMap((base) =>
-    [...PILLAR_WALLET_PURPOSES.filter((p) => p !== 'spend'), 'lp'].map((p) => siblingAnonymousId(base, p)).filter(Boolean),
+    PILLAR_WALLET_PURPOSES.filter((p) => p !== 'spend').map((p) => siblingAnonymousId(base, p)).filter(Boolean),
   );
 
   const siblings = await AgentWallet.find({
@@ -95,7 +95,7 @@ export async function listAgentWalletSetsForAdmin(options = {}) {
       const base = baseAnonymousIdFrom(primary.anonymousId) || primary.anonymousId;
       const wallets = {};
 
-      for (const purpose of [...PILLAR_WALLET_PURPOSES, 'lp']) {
+      for (const purpose of PILLAR_WALLET_PURPOSES) {
         const id = purpose === 'spend' ? base : siblingAnonymousId(base, purpose);
         const doc = purpose === 'spend' ? primary : siblingById.get(id);
         if (!doc) continue;

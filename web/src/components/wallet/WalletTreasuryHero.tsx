@@ -25,9 +25,15 @@ type WalletTreasuryHeroProps = {
   solPriceUsd?: number | null;
   chatUsdc?: number | null;
   chatSol?: number | null;
+  earnUsdc?: number | null;
+  earnSol?: number | null;
+  /** @deprecated Use earnUsdc */
   lpUsdc?: number | null;
+  /** @deprecated Use earnSol */
   lpSol?: number | null;
-  hasLpWallet: boolean;
+  hasEarnWallet?: boolean;
+  /** @deprecated Use hasEarnWallet */
+  hasLpWallet?: boolean;
   refreshing?: boolean;
   onRefresh?: () => void;
 };
@@ -39,17 +45,23 @@ export function WalletTreasuryHero({
   solPriceUsd,
   chatUsdc,
   chatSol,
+  earnUsdc,
+  earnSol,
   lpUsdc,
   lpSol,
+  hasEarnWallet,
   hasLpWallet,
   refreshing,
   onRefresh,
 }: WalletTreasuryHeroProps) {
   const heroUsd = estimatedTreasuryUsd ?? totalUsdc;
+  const showEarn = hasEarnWallet ?? hasLpWallet ?? false;
+  const earnUsdcResolved = earnUsdc ?? lpUsdc ?? null;
+  const earnSolResolved = earnSol ?? lpSol ?? null;
 
   const breakdowns: WalletBreakdown[] = [
     { label: "Spend", usdc: chatUsdc ?? null, sol: chatSol ?? null },
-    ...(hasLpWallet ? [{ label: "LP", usdc: lpUsdc ?? null, sol: lpSol ?? null }] : []),
+    ...(showEarn ? [{ label: "Earn", usdc: earnUsdcResolved, sol: earnSolResolved }] : []),
   ];
 
   const solLine =

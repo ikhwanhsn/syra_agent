@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Clock, ExternalLink, Pause, Play } from "lucide-react";
+import { ArrowLeft, Clock, ExternalLink, Lock, Pause, Play } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
 import { EarnTokenDetailSkeleton } from "@/components/RouteFallback";
@@ -20,7 +20,6 @@ import {
   EARN_GLOSSARY,
   denomHelp,
   earnProductIcon,
-  formatEvidenceEntries,
   fmtEarnAmount,
   humanizeAgentNote,
   readinessReasons,
@@ -79,11 +78,11 @@ export default function EarnYieldDetailPage() {
   const staleNote =
     status?.enabled && wallet?.stale ? "Waiting for the next automated cycle" : null;
   const statusNote = agentNote || staleNote;
-  const evidenceLines = formatEvidenceEntries(product?.evidence);
   const howItWorks = product?.howItWorks ?? [];
   const rails = product?.rails ?? [];
   const Icon = product ? earnProductIcon(product) : null;
   const trackSummary = summarizeTrackRecord(stats, denom);
+  const isComingSoon = product?.status === "coming_soon" || product?.status === "lab";
   const statusLabel =
     product?.status === "coming_soon"
       ? "Coming soon"
@@ -192,13 +191,35 @@ export default function EarnYieldDetailPage() {
                 </div>
               </div>
 
-              <Button variant="outline" className="h-11 shrink-0 gap-2 rounded-full px-5" asChild>
-                <Link to={`/wallet?wallet=${walletQ}`}>
-                  Fund your wallet
-                  <ExternalLink className="h-3.5 w-3.5 opacity-70" aria-hidden />
-                </Link>
-              </Button>
+              {isComingSoon ? (
+                <div className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full border border-border/50 bg-muted/20 px-5 text-sm text-muted-foreground">
+                  <Lock className="h-3.5 w-3.5" aria-hidden />
+                  Coming soon
+                </div>
+              ) : (
+                <Button variant="outline" className="h-11 shrink-0 gap-2 rounded-full px-5" asChild>
+                  <Link to={`/wallet?wallet=${walletQ}`}>
+                    Fund your wallet
+                    <ExternalLink className="h-3.5 w-3.5 opacity-70" aria-hidden />
+                  </Link>
+                </Button>
+              )}
             </header>
+
+            {isComingSoon ? (
+              <div className="rounded-xl border border-border/45 bg-muted/15 px-4 py-3.5">
+                <div className="flex items-start gap-2.5">
+                  <Lock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                  <div className="min-w-0 space-y-1">
+                    <p className="text-sm font-medium text-foreground">Not open for deposits yet</p>
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      This strategy is still being proven. You can read how it will work below.
+                      Deposits unlock after it clears safety checks.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : null}
 
             <section className="space-y-3">
               <SectionTitle>How it works</SectionTitle>
@@ -326,7 +347,7 @@ export default function EarnYieldDetailPage() {
 
             <section className="space-y-3">
               <div className="flex items-center gap-1.5">
-                <SectionTitle>Track record (all Syra users)</SectionTitle>
+                <SectionTitle>Track record</SectionTitle>
                 <InfoHint
                   label="What does this track record mean?"
                   text={EARN_GLOSSARY.trackRecord}
@@ -334,7 +355,7 @@ export default function EarnYieldDetailPage() {
               </div>
               <p className="text-sm leading-relaxed text-foreground">{trackSummary}</p>
               <p className="text-xs text-muted-foreground">
-                These numbers cover everyone using this strategy on Syra, not your personal deposit.
+                Across all Syra users of this strategy, not your personal wallet.
               </p>
               <div className="grid gap-3 sm:grid-cols-3">
                 <MetricCard
@@ -350,8 +371,8 @@ export default function EarnYieldDetailPage() {
                   }
                   hint={
                     stats?.wins != null || stats?.losses != null
-                      ? `${stats?.wins ?? 0} wins / ${stats?.losses ?? 0} losses · all Syra users`
-                      : stats?.paperVsRealNote
+                      ? `${stats?.wins ?? 0} wins / ${stats?.losses ?? 0} losses`
+                      : "Still building history"
                   }
                 />
                 <MetricCard
@@ -359,27 +380,24 @@ export default function EarnYieldDetailPage() {
                   infoLabel="What is net profit or loss?"
                   infoText={EARN_GLOSSARY.profitLoss}
                   value={fmtEarnAmount(stats?.netPnl ?? stats?.netPnlUsd, denom)}
-                  hint="Across all Syra users"
+                  hint="All Syra users combined"
                   positive={(stats?.netPnl ?? stats?.netPnlUsd ?? 0) > 0}
                 />
                 <MetricCard
-                  label="Open / errors"
-                  value={`${stats?.openCount ?? 0} / ${(stats?.errorRatePct ?? 0).toFixed(0)}%`}
-                  hint="Platform aggregate"
+                  label="Open positions"
+                  value={String(stats?.openCount ?? 0)}
+                  hint={
+                    stats?.errorRatePct != null
+                      ? `${stats.errorRatePct.toFixed(0)}% error rate`
+                      : "Currently running"
+                  }
                 />
               </div>
-              {evidenceLines.length > 0 ? (
-                <ul className="list-disc space-y-1 pl-4 text-xs leading-relaxed text-muted-foreground">
-                  {evidenceLines.map((line) => (
-                    <li key={line}>{line}</li>
-                  ))}
-                </ul>
-              ) : null}
             </section>
 
-            {(paused || pauseReasons.length > 0) && (
+            {!isComingSoon && (paused || pauseReasons.length > 0) ? (
               <section className="space-y-3">
-                <SectionTitle>Why deposits may be closed</SectionTitle>
+                <SectionTitle>Why deposits are paused</SectionTitle>
                 <div className="rounded-lg border border-border/45 bg-muted/15 px-3.5 py-3">
                   <div className="flex items-start gap-2.5">
                     <Clock
@@ -388,18 +406,14 @@ export default function EarnYieldDetailPage() {
                     />
                     <div className="min-w-0 space-y-1.5">
                       <p className="text-sm font-medium text-foreground">
-                        {product.status === "coming_soon"
-                          ? "Not open for deposits yet"
-                          : "Deposits are paused for now"}
+                        Deposits are paused for now
                       </p>
                       <p className="text-xs leading-relaxed text-muted-foreground">
-                        {product.status === "coming_soon"
-                          ? "This strategy is still proving itself. Funding unlocks after it clears the safety checks below."
-                          : "New deposits are on hold until the strategy clears the safety checks below."}
+                        New deposits are on hold until the strategy clears the safety checks below.
                       </p>
                       {pauseReasons.length === 0 ? (
                         <p className="text-xs text-muted-foreground">
-                          Still being proven before it opens.
+                          Still being proven before it reopens.
                         </p>
                       ) : (
                         <ul className="list-disc space-y-0.5 pl-4 text-xs leading-relaxed text-muted-foreground">
@@ -412,7 +426,7 @@ export default function EarnYieldDetailPage() {
                   </div>
                 </div>
               </section>
-            )}
+            ) : null}
 
             {product.disclosures && product.disclosures.length > 0 ? (
               <section className="space-y-3">
@@ -427,17 +441,40 @@ export default function EarnYieldDetailPage() {
               </section>
             ) : null}
 
-            <section className={cn(overviewCardShell, "space-y-4 p-5")}>
-              <SectionTitle>Start earning</SectionTitle>
-              <p className="text-xs text-muted-foreground">
-                You deposit: {minDep} to {maxDep} {denom}. Fee: {feePct}%, only on profit.
-              </p>
-              {!connected ? (
+            <section className={cn(overviewCardShell, "space-y-4 p-5 sm:p-6")}>
+              <div className="space-y-1">
+                <h2 className="text-base font-semibold text-foreground">
+                  {status?.enabled ? "Manage this strategy" : "Start earning"}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Deposit {minDep} to {maxDep} {denom}. Fee {feePct}%, only on profit.
+                </p>
+              </div>
+
+              {isComingSoon ? (
+                <div className="flex items-start gap-2.5 rounded-lg border border-border/40 bg-muted/10 px-3.5 py-3">
+                  <Lock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-foreground">Coming soon</p>
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                      Deposits are not open yet. Check back once this strategy clears its safety
+                      checks.
+                    </p>
+                    {pauseReasons.length > 0 ? (
+                      <ul className="list-disc space-y-0.5 pl-4 pt-1 text-xs leading-relaxed text-muted-foreground">
+                        {pauseReasons.map((reason) => (
+                          <li key={reason}>{reason}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                </div>
+              ) : !connected ? (
                 <p className="text-sm text-muted-foreground">Connect your wallet to get started.</p>
               ) : !syraAuthReady ? (
                 <p className="text-sm text-muted-foreground">Checking your session…</p>
               ) : !syraAuthenticated ? (
-                <Button size="sm" className="min-h-10" onClick={() => void requestSyraAuth()}>
+                <Button className="min-h-11" onClick={() => void requestSyraAuth()}>
                   Sign in to continue
                 </Button>
               ) : status?.enabled ? (
@@ -446,9 +483,8 @@ export default function EarnYieldDetailPage() {
                     <Play className="h-3.5 w-3.5" aria-hidden /> Active
                   </span>
                   <Button
-                    size="sm"
                     variant="outline"
-                    className="min-h-10"
+                    className="min-h-11"
                     disabled={disableM.isPending}
                     onClick={() => disableM.mutate(false)}
                   >
@@ -456,9 +492,8 @@ export default function EarnYieldDetailPage() {
                     Pause
                   </Button>
                   <Button
-                    size="sm"
                     variant="destructive"
-                    className="min-h-10"
+                    className="min-h-11"
                     disabled={disableM.isPending}
                     onClick={() => {
                       if (
@@ -472,11 +507,17 @@ export default function EarnYieldDetailPage() {
                   >
                     Stop & close
                   </Button>
+                  <Button variant="outline" className="min-h-11" asChild>
+                    <Link to={`/wallet?wallet=${walletQ}`}>
+                      Wallet
+                      <ExternalLink className="ml-1.5 h-3.5 w-3.5 opacity-70" aria-hidden />
+                    </Link>
+                  </Button>
                 </div>
               ) : (
-                <div className="flex flex-wrap items-end gap-3">
-                  <label className="space-y-1 text-xs text-muted-foreground">
-                    How much to deposit (max, {denom})
+                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+                  <label className="space-y-1.5 text-sm text-muted-foreground">
+                    Max deposit ({denom})
                     <input
                       type="number"
                       min={minDep}
@@ -484,14 +525,13 @@ export default function EarnYieldDetailPage() {
                       step={denom === "SOL" ? 0.5 : 5}
                       value={cap}
                       onChange={(e) => setDepositCap(Number(e.target.value))}
-                      className="block h-10 w-32 rounded-md border border-border/60 bg-background px-2 text-sm text-foreground"
+                      className="block h-11 w-full rounded-md border border-border/60 bg-background px-3 text-sm text-foreground sm:w-36"
                       disabled={!product.actionable}
                       aria-label={`Maximum deposit in ${denom}`}
                     />
                   </label>
                   <Button
-                    size="sm"
-                    className="min-h-10"
+                    className="min-h-11"
                     disabled={
                       enableM.isPending ||
                       !board?.beta.allowed ||
@@ -502,17 +542,17 @@ export default function EarnYieldDetailPage() {
                   >
                     Start earning
                   </Button>
-                  {!board?.beta.allowed && (
+                  {!board?.beta.allowed ? (
                     <span className="text-xs text-muted-foreground">Not open to you yet.</span>
-                  )}
-                  {product.status !== "beta" && !paused && (
+                  ) : null}
+                  {paused ? (
                     <span className="text-xs text-muted-foreground">
-                      Still being proven before it opens.
+                      Deposits are paused right now.
                     </span>
-                  )}
+                  ) : null}
                 </div>
               )}
-              {statusNote && !paused ? (
+              {statusNote && !paused && !isComingSoon ? (
                 <p className="text-xs text-muted-foreground">Note: {statusNote}</p>
               ) : null}
             </section>

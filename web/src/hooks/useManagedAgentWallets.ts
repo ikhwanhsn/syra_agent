@@ -55,9 +55,6 @@ export function useManagedAgentWallets() {
     avatarUrl: contextAvatarUrl,
     connectedChain,
     connectedWalletAddress,
-    lpReady,
-    lpAnonymousId,
-    lpAgentAddress,
   } = useAgentWallet();
   const { syraAuthReady, syraAuthenticated, ensureSyraAuth, requestSyraAuth } = useSyraAuth();
 
@@ -168,8 +165,6 @@ export function useManagedAgentWallets() {
 
   const {
     spendBalances,
-    lpWallet: pillarLpWallet,
-    lpBalances: pillarLpBalances,
     pillarEntries,
     visibleSlots,
     refreshSet,
@@ -186,8 +181,6 @@ export function useManagedAgentWallets() {
 
   const spendSolBalance = spendBalances.solBalance ?? legacyTreasury.chatSolBalance;
   const spendUsdcBalance = spendBalances.usdcBalance ?? legacyTreasury.chatUsdcBalance;
-  const lpSolResolved = pillarLpBalances.solBalance ?? legacyTreasury.lpSolBalance;
-  const lpUsdcResolved = pillarLpBalances.usdcBalance ?? legacyTreasury.lpUsdcBalance;
 
   const managedSpendWallet: ManagedAgentWallet | undefined =
     pillar.spendWallet ??
@@ -196,16 +189,6 @@ export function useManagedAgentWallets() {
           anonymousId: activeAgent.anonymousId,
           agentAddress: activeAgent.agentAddress,
           walletAddress: activeAgent.walletAddress,
-        }
-      : undefined);
-
-  const managedLpWallet: ManagedAgentWallet | undefined =
-    pillarLpWallet ??
-    (lpAnonymousId && lpAgentAddress
-      ? {
-          anonymousId: lpAnonymousId,
-          agentAddress: lpAgentAddress,
-          walletAddress: activeAgent?.walletAddress ?? connectedWalletAddress ?? "",
         }
       : undefined);
 
@@ -255,9 +238,7 @@ export function useManagedAgentWallets() {
   );
 
   const handleFundSpend = useCallback(() => selectFundTarget("deposit", "spend"), [selectFundTarget]);
-  const handleFundLp = useCallback(() => selectFundTarget("deposit", "lp"), [selectFundTarget]);
   const handleWithdrawSpend = useCallback(() => selectFundTarget("withdraw", "spend"), [selectFundTarget]);
-  const handleWithdrawLp = useCallback(() => selectFundTarget("withdraw", "lp"), [selectFundTarget]);
 
   const handleFundPillar = useCallback(
     (purpose: AgentWalletPurpose) => selectFundTarget("deposit", purpose),
@@ -387,16 +368,8 @@ export function useManagedAgentWallets() {
         usdcBalance: entry.balances.usdcBalance,
       };
     }
-    if (managedLpWallet?.agentAddress && managedLpWallet.anonymousId) {
-      out.lp = {
-        agentAddress: managedLpWallet.agentAddress,
-        anonymousId: managedLpWallet.anonymousId,
-        solBalance: lpSolResolved,
-        usdcBalance: lpUsdcResolved,
-      };
-    }
     return out;
-  }, [pillarEntries, managedLpWallet, lpSolResolved, lpUsdcResolved]);
+  }, [pillarEntries]);
 
   return {
     connected,
@@ -410,8 +383,6 @@ export function useManagedAgentWallets() {
     activeAgent,
     managedSpendWallet,
     managedChatWallet: managedSpendWallet,
-    managedLpWallet,
-    lpWalletReady: lpReady || Boolean(managedLpWallet),
     pillarEntries,
     agentWalletTargets,
     pillarSetComplete,
@@ -421,8 +392,6 @@ export function useManagedAgentWallets() {
     spendUsdcBalance,
     chatSolBalance: spendSolBalance,
     chatUsdcBalance: spendUsdcBalance,
-    lpAgentSolBalance: lpSolResolved,
-    lpAgentUsdcBalance: lpUsdcResolved,
     totalUsdc,
     totalSol,
     solPriceUsd: legacyTreasury.solPriceUsd,
@@ -445,10 +414,8 @@ export function useManagedAgentWallets() {
     handleRetryLoad,
     handleFundSpend,
     handleFundChat: handleFundSpend,
-    handleFundLp,
     handleWithdrawSpend,
     handleWithdrawChat: handleWithdrawSpend,
-    handleWithdrawLp,
     handleFundPillar,
     handleWithdrawPillar,
     handleRefreshAll,

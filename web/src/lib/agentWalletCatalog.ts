@@ -1,7 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowUpRight,
-  Droplets,
   Landmark,
   PiggyBank,
   Sprout,
@@ -9,7 +8,7 @@ import {
 } from "lucide-react";
 
 /** Active pillar treasury roles (fundable today). */
-export type AgentWalletPurpose = "spend" | "earn" | "treasury" | "invest" | "grow" | "lp";
+export type AgentWalletPurpose = "spend" | "earn" | "treasury" | "invest" | "grow";
 
 /** Primary spend wallet (chat/x402 uses this base anonymousId). */
 export type AgentWalletPrimaryPurpose = "spend";
@@ -20,7 +19,7 @@ export interface AgentWalletSlotMeta {
   shortLabel: string;
   description: string;
   icon: LucideIcon;
-  /** Internal-team only (LP experiments). */
+  /** Internal-team only. */
   internalOnly?: boolean;
 }
 
@@ -36,7 +35,7 @@ export const AGENT_WALLET_SLOTS: readonly AgentWalletSlotMeta[] = [
     id: "earn",
     label: "Earn agent",
     shortLabel: "Earn",
-    description: "Skill monetization & payouts",
+    description: "Skill monetization, payouts & LP Autopilot",
     icon: PiggyBank,
   },
   {
@@ -59,13 +58,6 @@ export const AGENT_WALLET_SLOTS: readonly AgentWalletSlotMeta[] = [
     shortLabel: "Grow",
     description: "Portfolio growth & rebalancing",
     icon: Sprout,
-  },
-  {
-    id: "lp",
-    label: "LP agent",
-    shortLabel: "LP",
-    description: "Meteora DLMM auto-LP (Earn Yield)",
-    icon: Droplets,
   },
 ] as const;
 
@@ -148,15 +140,6 @@ export const AGENT_WALLET_ACCENT: Record<
     glow: "shadow-[0_0_24px_-8px_rgba(139,92,246,0.35)]",
     pill: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
   },
-  lp: {
-    icon: "text-fuchsia-600 dark:text-fuchsia-400",
-    border: "border-fuchsia-500/20",
-    borderActive: "border-fuchsia-500/35",
-    bg: "bg-fuchsia-500/[0.04]",
-    bgActive: "bg-fuchsia-500/[0.09]",
-    glow: "shadow-[0_0_24px_-8px_rgba(217,70,239,0.35)]",
-    pill: "bg-fuchsia-500/10 text-fuchsia-700 dark:text-fuchsia-400",
-  },
 };
 
 export function shortenAgentAddress(addr: string | null | undefined): string {
@@ -169,7 +152,8 @@ export type LegacyAgentWalletPurpose = "chat";
 
 export function normalizeAgentWalletPurpose(value: string | null | undefined): AgentWalletPurpose {
   if (!value || value === "chat") return "spend";
-  if (value === "lp") return "lp";
+  /** Legacy dedicated LP wallet retired; LP Autopilot uses earn. */
+  if (value === "lp") return "earn";
   if (isPillarWalletPurpose(value)) return value;
   return "spend";
 }

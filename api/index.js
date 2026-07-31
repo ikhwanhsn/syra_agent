@@ -181,6 +181,7 @@ import { createInvestRouter } from "./routes/invest.js";
 import { createGrowRouter } from "./routes/grow.js";
 import { createEarnRouter } from "./routes/earn.js";
 import { createMultiWalletRecoveryRouter } from "./routes/multiWalletRecovery.js";
+import { createAdminLpMigrationRouter } from "./routes/adminLpMigration.js";
 import { getV2Payment } from "./utils/getV2Payment.js";
 import { sendTempoPayout } from "./libs/tempoPayout.js";
 import {
@@ -992,6 +993,7 @@ app.use("/invest", createInvestRouter());
 app.use("/grow", createGrowRouter());
 app.use("/earn", createEarnRouter());
 app.use("/multiwallet-recover", createMultiWalletRecoveryRouter());
+app.use("/admin/lp-migration", createAdminLpMigrationRouter());
 
 // API key / Bearer auth when API_KEY or API_KEYS is set in env.
 // Skip auth for:

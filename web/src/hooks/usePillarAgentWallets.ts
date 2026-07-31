@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { agentWalletApi, type AgentWalletSetResponse } from "@/lib/chatApi";
-import { hasCompletePillarSet, linkedWalletAnonymousId, provisionLinkedPillarWallets, seedPillarWalletSetCache } from "@/lib/provisionPillarWallets";
+import { hasCompletePillarSet, provisionLinkedPillarWallets, seedPillarWalletSetCache } from "@/lib/provisionPillarWallets";
 import {
   AGENT_WALLET_SLOTS,
   PILLAR_WALLET_PURPOSES,
@@ -107,13 +107,6 @@ export function usePillarAgentWallets(
   }, [baseAnonymousId, queryEnabled, setQ, setQ.data, setQ.isFetching]);
 
   const spendEntry = pillarEntries.find((e) => e.purpose === "spend");
-  const lpRow = setQ.data?.wallets?.lp;
-  const lpBalances = setQ.data?.balances?.lp;
-
-  const lpWallet: ManagedAgentWallet | undefined =
-    isInternal && lpRow?.anonymousId && lpRow.agentAddress
-      ? toManagedWallet(lpRow, walletAddress)
-      : undefined;
 
   const totals = useMemo(() => {
     let usdc = 0;
@@ -130,21 +123,11 @@ export function usePillarAgentWallets(
         hasSol = true;
       }
     }
-    if (lpWallet && lpBalances) {
-      if (lpBalances.usdcBalance != null) {
-        usdc += lpBalances.usdcBalance;
-        hasUsdc = true;
-      }
-      if (lpBalances.solBalance != null) {
-        sol += lpBalances.solBalance;
-        hasSol = true;
-      }
-    }
     return {
       totalUsdc: hasUsdc ? usdc : null,
       totalSol: hasSol ? sol : null,
     };
-  }, [pillarEntries, lpWallet, lpBalances]);
+  }, [pillarEntries]);
 
   const refreshSet = useCallback(async () => {
     if (!baseAnonymousId) return;
@@ -154,24 +137,17 @@ export function usePillarAgentWallets(
 
   const getBalanceForPurpose = useCallback(
     (purpose: AgentWalletPurpose): PillarWalletBalance => {
-      if (purpose === "lp") {
-        return {
-          solBalance: lpBalances?.solBalance ?? null,
-          usdcBalance: lpBalances?.usdcBalance ?? null,
-        };
-      }
       const entry = pillarEntries.find((e) => e.purpose === purpose);
       return entry?.balances ?? { solBalance: null, usdcBalance: null };
     },
-    [pillarEntries, lpBalances],
+    [pillarEntries],
   );
 
   const getWalletForPurpose = useCallback(
     (purpose: AgentWalletPurpose): ManagedAgentWallet | undefined => {
-      if (purpose === "lp") return lpWallet;
       return pillarEntries.find((e) => e.purpose === purpose)?.wallet;
     },
-    [pillarEntries, lpWallet],
+    [pillarEntries],
   );
 
   return {
@@ -181,11 +157,6 @@ export function usePillarAgentWallets(
     pillarEntries,
     spendWallet: spendEntry?.wallet,
     spendBalances: spendEntry?.balances ?? { solBalance: null, usdcBalance: null },
-    lpWallet,
-    lpBalances: {
-      solBalance: lpBalances?.solBalance ?? null,
-      usdcBalance: lpBalances?.usdcBalance ?? null,
-    },
     isInternal,
     loading: queryEnabled && setQ.isLoading && !setQ.data,
     isFetched: setQ.isFetched,

@@ -1,12 +1,16 @@
 /**
- * Agent wallet purpose — five pillar treasuries + internal LP.
+ * Agent wallet purpose — five pillar treasuries + legacy LP (retired).
  */
 
 /** @typedef {'spend' | 'earn' | 'treasury' | 'invest' | 'grow' | 'lp' | 'chat'} AgentWalletPurpose */
 
 export const PILLAR_WALLET_PURPOSES = Object.freeze(['spend', 'earn', 'treasury', 'invest', 'grow']);
 
-export const AGENT_WALLET_PURPOSES = Object.freeze([...PILLAR_WALLET_PURPOSES, 'lp']);
+/** Active provisionable purposes (LP wallet system retired — use earn for LP agent). */
+export const AGENT_WALLET_PURPOSES = Object.freeze([...PILLAR_WALLET_PURPOSES]);
+
+/** Legacy purposes still accepted for historical rows / id parsing. */
+export const LEGACY_AGENT_WALLET_PURPOSES = Object.freeze(['lp', 'chat']);
 
 /** Suffixes stripped when resolving base anonymousId. */
 const SIBLING_SUFFIXES = Object.freeze([...PILLAR_WALLET_PURPOSES.filter((p) => p !== 'spend'), 'lp', 'chat']);
@@ -22,6 +26,8 @@ export function normalizeAgentWalletPurpose(value) {
   if (AGENT_WALLET_PURPOSES.includes(/** @type {AgentWalletPurpose} */ (v))) {
     return /** @type {AgentWalletPurpose} */ (v);
   }
+  // Keep 'lp' recognizable for historical rows / migration (not a provisionable purpose).
+  if (v === 'lp') return 'lp';
   return 'spend';
 }
 
@@ -78,7 +84,8 @@ export function siblingAnonymousId(baseAnonymousId, purpose) {
 }
 
 /**
- * Derive LP wallet anonymousId from spend (primary) wallet id.
+ * Derive legacy LP wallet anonymousId from spend (primary) wallet id.
+ * Kept for retirement/migration only — new LP agent traffic uses {@link lpAgentAnonymousIdFrom}.
  * @param {string | null | undefined} chatAnonymousId
  * @returns {string | null}
  */
@@ -89,6 +96,15 @@ export function lpAnonymousIdFromChat(chatAnonymousId) {
 }
 
 /**
+ * AnonymousId of the wallet that signs LP / Meteora DLMM agent txs (earn pillar).
+ * @param {string | null | undefined} chatOrSiblingAnonymousId
+ * @returns {string | null}
+ */
+export function lpAgentAnonymousIdFrom(chatOrSiblingAnonymousId) {
+  return siblingAnonymousId(chatOrSiblingAnonymousId, 'earn');
+}
+
+/**
  * Resolve LP viewer id from session + optional explicit request.
  * @param {{ anonymousId?: string | null }} user
  * @param {string | null | undefined} requested
@@ -96,8 +112,8 @@ export function lpAnonymousIdFromChat(chatAnonymousId) {
  */
 export function resolveLpViewerAnonymousId(user, requested) {
   const explicit = typeof requested === 'string' && requested.trim() ? requested.trim() : null;
-  if (explicit) return lpAnonymousIdFromChat(explicit);
-  if (user?.anonymousId) return lpAnonymousIdFromChat(user.anonymousId);
+  if (explicit) return lpAgentAnonymousIdFrom(explicit);
+  if (user?.anonymousId) return lpAgentAnonymousIdFrom(user.anonymousId);
   return null;
 }
 

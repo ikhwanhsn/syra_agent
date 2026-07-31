@@ -6,7 +6,6 @@ import {
   ChevronDown,
   Copy,
   CreditCard,
-  Droplets,
   KeyRound,
   Loader2,
   MessageSquareText,
@@ -38,13 +37,9 @@ import {
 import { agentWalletApi } from "@/lib/chatApi";
 import {
   AGENT_WALLET_ACCENT,
-  AGENT_WALLET_SLOTS,
   getAgentWalletSlot,
-  PILLAR_WALLET_PURPOSES,
   type AgentWalletPurpose,
 } from "@/lib/agentWalletCatalog";
-import { isAdminWallet } from "@/constants/adminWallet";
-import { useWalletContext } from "@/contexts/WalletContext";
 import { clearAgentWalletLocalSession } from "@/lib/agentWalletSession";
 import { formatTreasuryUsd } from "@/lib/agentWalletBalanceDisplay";
 import { formatSol } from "@/lib/dashboardOverviewAggregates";
@@ -65,9 +60,14 @@ function shortenAddress(addr: string): string {
 function maskAnonymousId(id: string): string {
   if (!id) return "-";
   if (id.startsWith("wallet:")) {
-    const pubkey = id.slice(7).replace(":lp", "").trim();
-    if (pubkey.length <= 8) return pubkey;
-    return `${pubkey.slice(0, 4)}…${pubkey.slice(-4)}${id.endsWith(":lp") ? ":lp" : ""}`;
+    const pubkey = id
+      .slice(7)
+      .replace(/:(lp|earn|treasury|invest|grow)$/, "")
+      .trim();
+    const suffixMatch = id.match(/:(lp|earn|treasury|invest|grow)$/);
+    const suffix = suffixMatch ? suffixMatch[0] : "";
+    if (pubkey.length <= 8) return `${pubkey}${suffix}`;
+    return `${pubkey.slice(0, 4)}…${pubkey.slice(-4)}${suffix}`;
   }
   if (id.length <= 10) return id;
   return `${id.slice(0, 6)}…${id.slice(-4)}`;
@@ -260,8 +260,8 @@ function AgentWalletManageCard({
     wallet.walletAddress,
   ]);
 
-  const addressLabel = kind === "lp" ? "LP agent address" : `${slot.shortLabel} agent address`;
-  const sessionLabel = kind === "lp" ? "LP session ID" : `${slot.shortLabel} session ID`;
+  const addressLabel = `${slot.shortLabel} agent address`;
+  const sessionLabel = `${slot.shortLabel} session ID`;
 
   if (layout === "simple") {
     return (
@@ -677,7 +677,7 @@ export function AgentWalletsManager({
 }: {
   spendWallet?: ManagedAgentWallet;
   chatWallet?: ManagedAgentWallet;
-  lpWallet: ManagedAgentWallet | undefined;
+  lpWallet?: ManagedAgentWallet;
   pillarEntries?: Array<{
     purpose: AgentWalletPurpose;
     wallet: ManagedAgentWallet;
@@ -687,13 +687,17 @@ export function AgentWalletsManager({
   spendUsdcBalance: number | null;
   chatSolBalance?: number | null;
   chatUsdcBalance?: number | null;
-  lpSolBalance: number | null;
-  lpUsdcBalance: number | null;
+  /** @deprecated Dedicated LP wallet retired — ignored. */
+  lpSolBalance?: number | null;
+  /** @deprecated Dedicated LP wallet retired — ignored. */
+  lpUsdcBalance?: number | null;
   spendBalanceLoading?: boolean;
   chatBalanceLoading?: boolean;
-  lpBalanceLoading: boolean;
+  /** @deprecated Dedicated LP wallet retired — ignored. */
+  lpBalanceLoading?: boolean;
   refreshingBalances?: boolean;
   refreshingChatBalances?: boolean;
+  /** @deprecated Dedicated LP wallet retired — ignored. */
   refreshingLpBalances?: boolean;
   hasLinkedWallet: boolean;
   syraAuthenticated: boolean;
@@ -701,16 +705,19 @@ export function AgentWalletsManager({
   copiedField: string | null;
   onFundSpend?: () => void;
   onFundChat?: () => void;
-  onFundLp: () => void;
+  /** @deprecated Dedicated LP wallet retired — ignored. */
+  onFundLp?: () => void;
   onFundPillar?: (purpose: AgentWalletPurpose) => void;
   onBuyUsdcSpend?: () => void;
   onBuyUsdcPillar?: (purpose: AgentWalletPurpose) => void;
   onWithdrawSpend?: () => void;
   onWithdrawChat?: () => void;
+  /** @deprecated Dedicated LP wallet retired — ignored. */
   onWithdrawLp?: () => void;
   onWithdrawPillar?: (purpose: AgentWalletPurpose) => void;
   onRefreshBalances?: () => void;
   onRefreshChatBalances?: () => void;
+  /** @deprecated Dedicated LP wallet retired — ignored. */
   onRefreshLpBalances?: () => void;
   onCreateSpendWallet?: () => void;
   onCreateChatWallet?: () => void;
@@ -733,9 +740,6 @@ export function AgentWalletsManager({
   const onRefreshPrimary = onRefreshBalances ?? onRefreshChatBalances ?? (() => {});
   const onCreatePrimary = onCreateSpendWallet ?? onCreateChatWallet ?? (() => {});
   const creatingPrimary = creatingSpend ?? creatingChat ?? false;
-
-  const { connected, address } = useWalletContext();
-  const showLp = isAdminWallet(connected, address);
 
   const expectFullPillarSet = hasLinkedWallet && syraAuthenticated;
 
@@ -899,26 +903,6 @@ export function AgentWalletsManager({
               </CardContent>
             </Card>
           )}
-
-        {showLp && lpWallet ? (
-          <AgentWalletManageCard
-            kind="lp"
-            layout={layout}
-            wallet={lpWallet}
-            solBalance={lpSolBalance}
-            usdcBalance={lpUsdcBalance}
-            balanceLoading={lpBalanceLoading}
-            onFund={onFundLp}
-            onBuyUsdc={onBuyUsdcPillar ? () => onBuyUsdcPillar("lp") : undefined}
-            onWithdraw={onWithdrawLp}
-            onRefreshBalance={onRefreshLpBalances ?? onRefreshPrimary}
-            refreshingBalance={refreshingLpBalances ?? primaryRefreshing}
-            onCopy={onCopy}
-            copiedField={copiedField}
-            removing={removing && removeTarget?.kind === "lp"}
-            onRemove={() => setRemoveTarget({ wallet: lpWallet, kind: "lp" })}
-          />
-        ) : null}
       </div>
 
       <Dialog open={Boolean(removeTarget)} onOpenChange={(open) => !open && !removing && setRemoveTarget(null)}>

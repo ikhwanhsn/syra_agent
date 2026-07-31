@@ -14,7 +14,7 @@ import {
   LP_REAL_STALE_TICK_MS,
 } from "../lpRealService.js";
 import { isAdminWalletAddress } from "../adminWallet.js";
-import { lpAnonymousIdFromChat } from "../agentWalletPurpose.js";
+import { lpAgentAnonymousIdFrom } from "../agentWalletPurpose.js";
 import { getEarnProduct, EARN_PRODUCT_LP, isEarnYieldBetaAllowed, isEarnYieldBetaOpen } from "../../config/earnProducts.js";
 import {
   assertBetaAllowed,
@@ -33,13 +33,14 @@ const DEFAULT_MAX_POSITION_SOL = 1;
 const DEFAULT_MAX_CONCURRENT = 3;
 
 async function resolveLpAgentWallet(anonymousId) {
-  const lpId = lpAnonymousIdFromChat(anonymousId) || String(anonymousId || "").trim();
-  if (!lpId) return null;
-  let wallet = await AgentWallet.findOne({ anonymousId: lpId, purpose: "lp" })
+  // LP Autopilot now runs on the earn pillar wallet.
+  const earnId = lpAgentAnonymousIdFrom(anonymousId) || String(anonymousId || "").trim();
+  if (!earnId) return null;
+  let wallet = await AgentWallet.findOne({ anonymousId: earnId, purpose: "earn" })
     .select("anonymousId agentAddress chain status purpose")
     .lean();
   if (!wallet) {
-    wallet = await AgentWallet.findOne({ anonymousId: lpId })
+    wallet = await AgentWallet.findOne({ anonymousId: earnId })
       .select("anonymousId agentAddress chain status purpose")
       .lean();
   }
@@ -225,8 +226,8 @@ export async function enableForUser({ anonymousId, ownerWallet, maxDeposit, enab
 
   const wallet = await resolveLpAgentWallet(anonymousId);
   if (!wallet?.agentAddress) {
-    const err = new Error("lp_agent_wallet_required — create / fund your LP agent wallet first");
-    err.code = "lp_agent_wallet_required";
+    const err = new Error("earn_agent_wallet_required — create / fund your Earn agent wallet first");
+    err.code = "earn_agent_wallet_required";
     throw err;
   }
 
@@ -289,7 +290,7 @@ export async function enableForUser({ anonymousId, ownerWallet, maxDeposit, enab
     performanceFeeBps: product.performanceFeeBps,
     state: freshState || state,
     summary,
-    nextStep: `Deposit ${product.minDeposit}–${cap} SOL to your LP agent wallet (/wallet?wallet=lp), then the agent opens Meteora positions automatically.`,
+    nextStep: `Deposit ${product.minDeposit}–${cap} SOL to your Earn agent wallet (/wallet?wallet=earn), then the agent opens Meteora positions automatically.`,
   };
 }
 

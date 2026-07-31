@@ -11,8 +11,9 @@ import {
 import { PublicKey } from "@solana/web3.js";
 import { useWalletContext } from "@/contexts/WalletContext";
 import { useSyraAuth } from "@/contexts/SyraAuthContext";
-import { agentWalletApi, type AgentWalletLpFields } from "@/lib/chatApi";
+import { agentWalletApi } from "@/lib/chatApi";
 import { provisionLinkedPillarWallets } from "@/lib/provisionPillarWallets";
+import { lpAgentAnonymousIdFrom } from "@/lib/agentWalletPurpose";
 import { resolveUserAvatarUrl } from "@/lib/agentAvatar";
 
 async function persistAvatarIfMissing(
@@ -164,9 +165,15 @@ async function fetchAgentBalanceFromChain(
   return { solBalance, usdcBalance };
 }
 
-async function hydrateLpWalletFromFields(
+type EarnWalletRow = { anonymousId?: string | null; agentAddress?: string | null };
+
+/** Alias LP Autopilot fields onto the earn pillar wallet (dedicated `:lp` retired). */
+async function hydrateEarnAsLpAlias(
   connection: import("@solana/web3.js").Connection,
-  lp: AgentWalletLpFields,
+  source: {
+    anonymousId?: string | null;
+    wallets?: Partial<Record<string, EarnWalletRow>> | null;
+  },
   setters: {
     setLpAnonymousId: (v: string | null) => void;
     setLpAgentAddress: (v: string | null) => void;
@@ -175,12 +182,17 @@ async function hydrateLpWalletFromFields(
     setLpReady: (v: boolean) => void;
   },
 ): Promise<boolean> {
-  if (!lp.lpAnonymousId?.trim() || !lp.lpAgentAddress?.trim()) return false;
-  setters.setLpAnonymousId(lp.lpAnonymousId);
-  setters.setLpAgentAddress(lp.lpAgentAddress);
+  const earn = source.wallets?.earn;
+  const earnId =
+    earn?.anonymousId?.trim() ||
+    (source.anonymousId?.trim() ? lpAgentAnonymousIdFrom(source.anonymousId) : null);
+  const earnAddr = earn?.agentAddress?.trim() || null;
+  if (!earnId || !earnAddr) return false;
+  setters.setLpAnonymousId(earnId);
+  setters.setLpAgentAddress(earnAddr);
   setters.setLpReady(true);
   try {
-    const bal = await fetchAgentBalanceFromChain(connection, lp.lpAgentAddress);
+    const bal = await fetchAgentBalanceFromChain(connection, earnAddr);
     setters.setLpAgentSolBalance(bal.solBalance);
     setters.setLpAgentUsdcBalance(bal.usdcBalance);
   } catch {
@@ -198,7 +210,10 @@ export interface AgentWalletState {
   agentSolBalance: number | null;
   agentUsdcBalance: number | null;
   avatarUrl: string | null;
-  /** LP experiment wallet, separate treasury from chat agent. */
+  /**
+   * LP Autopilot aliases onto the earn pillar wallet (`:earn`).
+   * Dedicated `:lp` wallets are retired; keep these names for LpReal* consumers.
+   */
   lpReady: boolean;
   lpAnonymousId: string | null;
   lpAgentAddress: string | null;
@@ -307,7 +322,7 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
               setAnonymousId(storedId);
               setAgentAddress(res.agentAddress);
               const resolvedAvatar = syncAvatarFromApi(storedId, res.avatarUrl, setAvatarUrl);
-              await hydrateLpWalletFromFields(connection, res, lpSetters);
+              await hydrateEarnAsLpAlias(connection, res, lpSetters);
               let sol: number | null = null;
               let usdc: number | null = null;
               try {
@@ -357,7 +372,7 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
         setAnonymousId(id);
         setAgentAddress(addr);
         const resolvedAvatar = syncAvatarFromApi(id, avatar, setAvatarUrl);
-        await hydrateLpWalletFromFields(connection, res, lpSetters);
+        await hydrateEarnAsLpAlias(connection, res, lpSetters);
         if (typeof localStorage !== "undefined") {
           try {
             localStorage.setItem(STORAGE_KEY, id);
@@ -471,7 +486,7 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
           const { agentAddress: addr, avatarUrl: avatar } = res;
           setAgentAddress(addr);
           const resolvedAvatar = syncAvatarFromApi(id, avatar, setAvatarUrl);
-          await hydrateLpWalletFromFields(connection, res, lpSetters);
+          await hydrateEarnAsLpAlias(connection, res, lpSetters);
           let sol: number | null = null;
           let usdc: number | null = null;
           try {
@@ -535,7 +550,7 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
           setAnonymousId(newId);
           setAgentAddress(addr);
           const resolvedAvatar = syncAvatarFromApi(newId, avatar, setAvatarUrl);
-          await hydrateLpWalletFromFields(connection, res, lpSetters);
+          await hydrateEarnAsLpAlias(connection, res, lpSetters);
           let sol: number | null = null;
           let usdc: number | null = null;
           try {
@@ -620,25 +635,38 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
     }
 
     let cancelled = false;
-    const loadLpWallet = async () => {
+    const loadEarnAsLpAlias = async () => {
       try {
-        const res =
-          connectedWalletAddress && syraAuthenticated
-            ? await agentWalletApi.getOrCreateLpByWallet(connectedWalletAddress)
-            : await agentWalletApi.getOrCreateLp(anonymousId);
+        const set = await agentWalletApi.getWalletSet(anonymousId, { includeBalances: true });
         if (cancelled) return;
-        setLpAnonymousId(res.anonymousId);
-        setLpAgentAddress(res.agentAddress);
-        try {
-          const bal = await fetchAgentBalanceFromChain(connection, res.agentAddress);
-          if (!cancelled) {
-            setLpAgentSolBalance(bal.solBalance);
-            setLpAgentUsdcBalance(bal.usdcBalance);
-          }
-        } catch {
-          if (!cancelled) {
-            setLpAgentSolBalance(null);
-            setLpAgentUsdcBalance(null);
+        const earn = set.wallets?.earn;
+        const earnId = earn?.anonymousId?.trim() || lpAgentAnonymousIdFrom(anonymousId);
+        const earnAddr = earn?.agentAddress?.trim() || null;
+        if (!earnAddr) {
+          setLpAnonymousId(null);
+          setLpAgentAddress(null);
+          setLpAgentSolBalance(null);
+          setLpAgentUsdcBalance(null);
+          return;
+        }
+        setLpAnonymousId(earnId);
+        setLpAgentAddress(earnAddr);
+        const balFromSet = set.balances?.earn;
+        if (balFromSet) {
+          setLpAgentSolBalance(balFromSet.solBalance ?? null);
+          setLpAgentUsdcBalance(balFromSet.usdcBalance ?? null);
+        } else {
+          try {
+            const bal = await fetchAgentBalanceFromChain(connection, earnAddr);
+            if (!cancelled) {
+              setLpAgentSolBalance(bal.solBalance);
+              setLpAgentUsdcBalance(bal.usdcBalance);
+            }
+          } catch {
+            if (!cancelled) {
+              setLpAgentSolBalance(null);
+              setLpAgentUsdcBalance(null);
+            }
           }
         }
       } catch {
@@ -656,11 +684,11 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
     if (!lpAnonymousId && !lpAgentAddress) {
       setLpReady(false);
     }
-    void loadLpWallet();
+    void loadEarnAsLpAlias();
     return () => {
       cancelled = true;
     };
-  }, [anonymousId, connectedWalletAddress, syraAuthenticated, connection, lpAnonymousId, lpAgentAddress]);
+  }, [anonymousId, connection, lpAnonymousId, lpAgentAddress]);
 
   useEffect(() => {
     if (!lpAgentAddress) return;

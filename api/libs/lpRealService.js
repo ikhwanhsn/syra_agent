@@ -78,7 +78,7 @@ import {
 } from "../config/lpRealAgentAccess.js";
 import { appendLpRealDecision, listLpRealDecisions } from "./lpRealDecisionLog.js";
 import { getLpRealEvolutionSnapshot, isPoolOnEvolutionCooldown } from "./lpRealEvolution.js";
-import { lpAnonymousIdFromChat } from "./agentWalletPurpose.js";
+import { lpAgentAnonymousIdFrom } from "./agentWalletPurpose.js";
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
 const OPEN_POSITION_COOLDOWN_MS = 90 * 60 * 1000;
@@ -232,23 +232,24 @@ function configAgentFilter(config) {
 }
 
 async function getViewerAgentWallet(anonymousId) {
-  const lpId = lpAnonymousIdFromChat(anonymousId);
-  if (!lpId) return null;
-  let wallet = await AgentWallet.findOne({ anonymousId: lpId, purpose: "lp" })
+  // LP Autopilot signs with the earn pillar wallet (legacy :lp retired).
+  const earnId = lpAgentAnonymousIdFrom(anonymousId);
+  if (!earnId) return null;
+  let wallet = await AgentWallet.findOne({ anonymousId: earnId, purpose: "earn" })
     .select("anonymousId agentAddress chain status")
     .lean();
   if (!wallet) {
-    wallet = await AgentWallet.findOne({ anonymousId: lpId })
+    wallet = await AgentWallet.findOne({ anonymousId: earnId })
       .select("anonymousId agentAddress chain status")
       .lean();
   }
   return wallet;
 }
 
-/** Keep LpRealConfig.anonymousId aligned with the LP AgentWallet row (broker signs by anonymousId). */
+/** Keep LpRealConfig.anonymousId aligned with the agent wallet row (broker signs by anonymousId). */
 async function syncConfigAnonymousId(config) {
   if (!config?.agentAddress) return config;
-  let wallet = await AgentWallet.findOne({ agentAddress: config.agentAddress, purpose: "lp" })
+  let wallet = await AgentWallet.findOne({ agentAddress: config.agentAddress, purpose: "earn" })
     .select("anonymousId")
     .lean();
   if (!wallet) {

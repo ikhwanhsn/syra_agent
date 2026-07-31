@@ -20,7 +20,9 @@ interface WalletTarget {
 
 interface UseAgentWalletPortfolioArgs {
   chatAddress?: string | null;
+  /** @deprecated Use earnAddress. Kept as alias for earn pillar portfolio. */
   lpAddress?: string | null;
+  earnAddress?: string | null;
   enabled?: boolean;
   walletFilter?: PortfolioWalletFilter;
 }
@@ -60,15 +62,17 @@ async function fetchPortfoliosForTargets(
 export function useAgentWalletPortfolio({
   chatAddress,
   lpAddress,
+  earnAddress,
   enabled = true,
   walletFilter = "all",
 }: UseAgentWalletPortfolioArgs) {
   const targets = useMemo((): WalletTarget[] => {
     const out: WalletTarget[] = [];
     if (chatAddress) out.push({ purpose: "spend", address: chatAddress });
-    if (lpAddress) out.push({ purpose: "lp", address: lpAddress });
+    const earn = earnAddress ?? lpAddress;
+    if (earn) out.push({ purpose: "earn", address: earn });
     return out;
-  }, [chatAddress, lpAddress]);
+  }, [chatAddress, earnAddress, lpAddress]);
 
   const filteredTargets = useMemo(() => {
     if (walletFilter === "all") return targets;
