@@ -628,11 +628,38 @@ export async function getXlayerLabWalletBalances(address) {
   return null;
 }
 
+/** Base account min-balance for a fresh Algorand account (0.1 ALGO). */
+const ALGO_BASE_MIN_BALANCE_MICRO = 100_000n;
+/** Per-ASA min-balance bump when opting into one more ASA (0.1 ALGO). */
+const ALGO_ASA_MIN_BALANCE_BUMP_MICRO = 100_000n;
+/** Fee cushion for the opt-in axfer (microAlgos). */
+const ALGO_OPT_IN_FEE_CUSHION_MICRO = 2_000n;
+/**
+ * Fallback floor when live min-balance is unknown (~0.21 ALGO).
+ * Covers base (0.1) + USDC ASA bump (0.1) + fee cushion.
+ */
+export const ALGO_MIN_FOR_USDC_OPT_IN = 0.21;
+
+/**
+ * MicroAlgos required before a USDC ASA opt-in can succeed.
+ * Formula: current min-balance + 0.1 ALGO ASA bump + fee cushion.
+ * Fresh account (min 100_000) → 202_000 micro ≈ 0.202 ALGO.
+ * @param {bigint | number | string} [minBalanceMicro]
+ * @returns {bigint}
+ */
+export function computeAlgorandUsdcOptInNeedMicro(minBalanceMicro) {
+  const minBal =
+    minBalanceMicro == null || minBalanceMicro === ''
+      ? ALGO_BASE_MIN_BALANCE_MICRO
+      : BigInt(minBalanceMicro);
+  return minBal + ALGO_ASA_MIN_BALANCE_BUMP_MICRO + ALGO_OPT_IN_FEE_CUSHION_MICRO;
+}
+
 /**
  * Read ALGO + USDC ASA balances for an Algorand lab wallet.
  * Not opted-in to USDC ⇒ usdcBalance 0.
  * @param {string} address
- * @returns {Promise<{ nativeBalance: number; usdcBalance: number; optedInUsdc: boolean } | null>}
+ * @returns {Promise<{ nativeBalance: number; usdcBalance: number; optedInUsdc: boolean; amountMicro: bigint; minBalanceMicro: bigint } | null>}
  */
 export async function getAlgorandLabWalletBalances(address) {
   const addr = String(address || '').trim();
@@ -641,25 +668,42 @@ export async function getAlgorandLabWalletBalances(address) {
   try {
     const client = getAlgorandAlgodClient();
     const info = await client.accountInformation(addr).do();
-    const microAlgos = Number(info?.amount ?? 0);
-    const nativeBalance = microAlgos / MICRO_ALGO;
+    const amountMicro = BigInt(info?.amount ?? 0);
+    const minBalanceMicro = BigInt(
+      info?.minBalance ?? info?.['min-balance'] ?? ALGO_BASE_MIN_BALANCE_MICRO,
+    );
+    const nativeBalance = Number(amountMicro) / MICRO_ALGO;
     const asaId = getAlgorandUsdcAsaId();
     const assets = Array.isArray(info?.assets) ? info.assets : [];
     const holding = assets.find((a) => Number(a?.assetId ?? a?.['asset-id'] ?? a?.asset_id) === asaId);
     if (!holding) {
-      return { nativeBalance, usdcBalance: 0, optedInUsdc: false };
+      return {
+        nativeBalance,
+        usdcBalance: 0,
+        optedInUsdc: false,
+        amountMicro,
+        minBalanceMicro,
+      };
     }
     const raw = Number(holding.amount ?? 0);
     return {
       nativeBalance,
       usdcBalance: raw / 1e6,
       optedInUsdc: true,
+      amountMicro,
+      minBalanceMicro,
     };
   } catch (e) {
     const msg = e?.message || String(e);
     // Fresh wallets often 404 until funded — treat as zero balances.
     if (/not found|no accounts|404/i.test(msg)) {
-      return { nativeBalance: 0, usdcBalance: 0, optedInUsdc: false };
+      return {
+        nativeBalance: 0,
+        usdcBalance: 0,
+        optedInUsdc: false,
+        amountMicro: 0n,
+        minBalanceMicro: ALGO_BASE_MIN_BALANCE_MICRO,
+      };
     }
     console.warn('[labWalletService] Algorand balance read failed:', msg);
     return null;
@@ -676,12 +720,35 @@ export async function isAlgorandAddressOptedInUsdc(address) {
   return Boolean(balances?.optedInUsdc);
 }
 
-/** Min ALGO needed to submit a USDC ASA opt-in txn (fee + min-balance bump). */
-const ALGO_MIN_FOR_USDC_OPT_IN = 0.11;
+/**
+ * Pure ALGO sufficiency gate for USDC ASA opt-in.
+ * @param {{ amountMicro?: bigint | number | string | null; minBalanceMicro?: bigint | number | string | null }} input
+ * @returns {{ ok: true; requiredMicro: bigint } | { ok: false; error: string; requiredMicro: bigint }}
+ */
+export function evaluateAlgorandUsdcOptInAlgoGate(input = {}) {
+  const amountMicro = BigInt(input.amountMicro ?? 0);
+  const minBalanceMicro =
+    input.minBalanceMicro == null || input.minBalanceMicro === ''
+      ? ALGO_BASE_MIN_BALANCE_MICRO
+      : BigInt(input.minBalanceMicro);
+  const needFromMin = computeAlgorandUsdcOptInNeedMicro(minBalanceMicro);
+  const floorMicro = BigInt(Math.round(ALGO_MIN_FOR_USDC_OPT_IN * MICRO_ALGO));
+  const requiredMicro = needFromMin > floorMicro ? needFromMin : floorMicro;
+  if (amountMicro < requiredMicro) {
+    const needAlgo = Number(requiredMicro) / MICRO_ALGO;
+    const haveAlgo = Number(amountMicro) / MICRO_ALGO;
+    return {
+      ok: false,
+      requiredMicro,
+      error: `insufficient_algo_for_opt_in (need ~${needAlgo.toFixed(2)} ALGO first; have ${haveAlgo.toFixed(4)})`,
+    };
+  }
+  return { ok: true, requiredMicro };
+}
 
 /**
  * Opt an Algorand account into USDC ASA (0-amount self-transfer).
- * Requires the account to already hold ~0.11 ALGO for fees + ASA min-balance.
+ * Requires amount ≥ live min-balance + 0.1 ALGO ASA bump + fee (~0.21 ALGO for a fresh account).
  * @param {{ address: string; sk: Uint8Array }} account
  * @returns {Promise<{ ok: boolean; already?: boolean; tx?: string; error?: string }>}
  */
@@ -690,16 +757,30 @@ export async function ensureAlgorandUsdcOptInForAccount(account) {
   if (!address || !account?.sk) {
     return { ok: false, error: 'invalid_account' };
   }
-  if (await isAlgorandAddressOptedInUsdc(address)) {
+
+  const balances = await getAlgorandLabWalletBalances(address);
+  if (balances?.optedInUsdc) {
     return { ok: true, already: true };
   }
 
-  const balances = await getAlgorandLabWalletBalances(address);
-  if (!balances || balances.nativeBalance < ALGO_MIN_FOR_USDC_OPT_IN) {
+  if (!balances) {
     return {
       ok: false,
-      error: `insufficient_algo_for_opt_in (need ~${ALGO_MIN_FOR_USDC_OPT_IN} ALGO first)`,
+      error: `insufficient_algo_for_opt_in (need ~${ALGO_MIN_FOR_USDC_OPT_IN} ALGO first; balance unavailable)`,
     };
+  }
+
+  const amountMicro =
+    balances.amountMicro != null
+      ? BigInt(balances.amountMicro)
+      : BigInt(Math.round(Number(balances.nativeBalance || 0) * MICRO_ALGO));
+  const minBalanceMicro =
+    balances.minBalanceMicro != null
+      ? BigInt(balances.minBalanceMicro)
+      : ALGO_BASE_MIN_BALANCE_MICRO;
+  const gate = evaluateAlgorandUsdcOptInAlgoGate({ amountMicro, minBalanceMicro });
+  if (!gate.ok) {
+    return { ok: false, error: gate.error };
   }
 
   try {

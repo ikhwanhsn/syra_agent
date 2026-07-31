@@ -101,8 +101,11 @@ function nativeSymbolForChain(chain) {
 const ALGO_FEE_MICRO_PER_TX = 1_000n;
 const ALGO_MIN_BALANCE_RESERVE_MICRO = 200_000n;
 const MICRO_ALGO = 1_000_000n;
-/** Min ALGO per recipient so they can opt into USDC ASA (~0.1 locked + fee). */
-const ALGO_OPT_IN_FUND_MICRO = 150_000n;
+/**
+ * Min ALGO per recipient so they can opt into USDC ASA and retain spendable fees.
+ * 0.2 ALGO locked after opt-in (base + ASA) + ~0.1 spendable for payment fees ≈ 0.3 ALGO.
+ */
+const ALGO_OPT_IN_FUND_MICRO = 300_000n;
 
 /**
  * @param {'solana' | 'base' | 'algorand'} chain

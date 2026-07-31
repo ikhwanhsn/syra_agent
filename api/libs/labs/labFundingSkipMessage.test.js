@@ -15,10 +15,10 @@ describe('formatFundingSkipError', () => {
   test('includes opt-in failure detail', () => {
     const msg = formatFundingSkipError({
       reason: 'insufficient_algo_for_opt_in',
-      error: 'insufficient_algo_for_opt_in (need ~0.11 ALGO first)',
+      error: 'insufficient_algo_for_opt_in (need ~0.21 ALGO first; have 0.1500)',
     });
     assert.match(msg, /insufficient_algo_for_opt_in/);
-    assert.match(msg, /0\.11 ALGO/);
+    assert.match(msg, /0\.21 ALGO/);
   });
 
   test('scheduler variant omits top-up hint when requested', () => {

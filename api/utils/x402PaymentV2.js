@@ -132,7 +132,7 @@ function isX402Debug() {
 function x402Log(event, detail) {
   // Routine flow (payment_required / payment_retry / verify_ok) is opt-in via X402_DEBUG.
   // Always keep genuine problems so failures remain visible without the flag.
-  const always = /verify_failed|mismatch|decode_failed/i.test(event);
+  const always = /verify_failed|mismatch|decode_failed|payment_error/i.test(event);
   if (!always && !isX402Debug()) return;
   const line = detail && typeof detail === "object" ? JSON.stringify(detail) : String(detail ?? "");
   console.log(`[x402] ${event}${line ? ` ${line}` : ""}`);
@@ -1259,15 +1259,43 @@ function getX402BundleForReq(req, options) {
 
 async function ensureX402ForReq(req, options) {
   const profile = resolveResourceServerProfile(req, options);
-  if (profile === "corbits") {
-    await ensureX402CorbitsResourceServerInitialized();
-  } else if (profile === "dexter") {
-    await ensureX402DexterResourceServerInitialized();
-  } else if (profile === "goplausible") {
-    await ensureX402GoplausibleResourceServerInitialized();
-  } else {
-    await ensureX402ResourceServerInitialized();
+  /** @type {Array<'payai'|'corbits'|'dexter'|'goplausible'>} */
+  const order =
+    profile === "corbits"
+      ? ["corbits"]
+      : profile === "payai"
+        ? ["payai", "goplausible", "dexter"]
+        : profile === "goplausible"
+          ? ["goplausible", "payai", "dexter"]
+          : ["dexter", "goplausible", "payai"];
+
+  /** @type {Error | null} */
+  let lastErr = null;
+  for (const candidate of order) {
+    try {
+      if (candidate === "corbits") {
+        await ensureX402CorbitsResourceServerInitialized();
+      } else if (candidate === "dexter") {
+        await ensureX402DexterResourceServerInitialized();
+      } else if (candidate === "goplausible") {
+        await ensureX402GoplausibleResourceServerInitialized();
+      } else {
+        await ensureX402ResourceServerInitialized();
+      }
+      if (candidate !== profile) {
+        req.x402ResourceServerProfile = candidate;
+        console.warn(
+          `[x402] facilitator init failover: ${profile} → ${candidate}` +
+            `${lastErr ? ` (${lastErr.message})` : ""}`,
+        );
+      }
+      return;
+    } catch (e) {
+      lastErr = e instanceof Error ? e : new Error(String(e ?? "init failed"));
+      console.warn(`[x402] facilitator init failed for ${candidate}:`, lastErr.message);
+    }
   }
+  throw lastErr || new Error("x402 facilitator initialization failed");
 }
 
 /**
@@ -2017,9 +2045,55 @@ export function requirePayment(options) {
       });
       next();
     } catch (error) {
-      res.status(500).json({
-        error: "Internal server error",
-        message: error instanceof Error ? error.message : "Unknown error",
+      const message = error instanceof Error ? error.message : String(error ?? "Unknown error");
+      const labChain = String(req?.get?.("x-lab-x402-chain") || "")
+        .trim()
+        .toLowerCase();
+      const hasPayment = Boolean(getPaymentSignatureHeaderFromReq(req));
+      x402Log("payment_error", {
+        method: req.method,
+        path: req.path,
+        labChain: labChain || null,
+        network: req?.x402Payment?.accepted?.network ?? null,
+        hasPayment,
+        message: message.slice(0, 500),
+        stack:
+          error instanceof Error && typeof error.stack === "string"
+            ? error.stack.split("\n").slice(0, 8).join(" | ").slice(0, 800)
+            : null,
+      });
+      console.error(
+        `[x402] payment_error ${req.method} ${req.path}` +
+          `${labChain ? ` chain=${labChain}` : ""}: ${message}`,
+      );
+      if (error instanceof Error && error.stack) {
+        console.error(error.stack);
+      }
+      recordInboundX402(req, {
+        outcome: "error",
+        httpStatus: hasPayment ? 502 : 503,
+        network: req?.x402Payment?.accepted?.network ?? null,
+        facilitator: resolveInboundFacilitator(req),
+        errorReason: message.slice(0, 500),
+        amountUsd: req?.x402Payment?.priceUsd,
+      });
+      if (res.headersSent) return;
+      // Never return a bare opaque 500 — Labs scheduler / @x402 clients need an actionable
+      // reason, and 503 lets offer-time failover recover on the next tick.
+      const facilitatorDown =
+        /facilitator|initialize|supported|ECONN|ENOTFOUND|502|503|Bad Gateway|fetch failed|timeout/i.test(
+          message,
+        );
+      if (!hasPayment || facilitatorDown) {
+        res.status(503).json({
+          error: "Payment facilitator temporarily unavailable",
+          message: message.slice(0, 500),
+        });
+        return;
+      }
+      res.status(502).json({
+        error: "Payment processing failed",
+        message: message.slice(0, 500),
       });
     }
   };

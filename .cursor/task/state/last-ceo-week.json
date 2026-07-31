@@ -1,69 +1,72 @@
 {
-  "weekEnding": "2026-07-24",
-  "updatedAt": "2026-07-24T00:28:38.598Z",
+  "weekEnding": "2026-07-31",
+  "updatedAt": "2026-07-30T17:05:52.275Z",
   "outcomes": [
-    "settlement.last24h.settleFailRate < 0.05 and meetsLaunchGuardrail true for 48h continuous",
-    "uniquePayingWalletsLast7d >= 50 OR firstPaidPayersLast30d >= 55 (net new payers after settlement green)",
-    "Publish one proof post with settled 7d USD + Solscan buyback tx; mcpPaidCalls > 0 from at least one external agent"
+    "External demand proof: >=1 net-new mcpPaidCall from a wallet that is not founder/treasury, OR >=3 design-partner agents contacted with logged replies",
+    "Buyback truth: /api/metrics buyback claim matches on-chain reality — pendingRevenueUsd tracks ~80% of settled on next flush, OR the public note is corrected",
+    "Hold the green + convert: settleFailRate24h < 0.05 sustained all week AND publish one honest proof post (settled 7d USD + real Solscan buyback tx) once outcome 2 is true"
   ],
   "scorecard": {
-    "productClarity": 6,
-    "technicalLeverage": 5,
+    "productClarity": 7,
+    "technicalLeverage": 6,
     "distribution": 3,
     "moat": 4,
-    "executionFocus": 4,
-    "fundability": 3
+    "executionFocus": 6,
+    "fundability": 4
   },
   "killList": [
-    "Token-led homepage GTM / KOL blasts while settleFailRate24h > 5%",
+    "Token-led homepage GTM / KOL blasts before buyback claim matches on-chain",
     "Telegram as hero CTA (per TELEGRAM_MAINTENANCE_POLICY)",
-    "Five-pillar feature parity theater before Spend settlement trust",
-    "New experiment desks / s3labs surface expansion this week",
-    "CEX/listing applications before settlement green + payer trend"
+    "Five-pillar feature parity theater before external MCP demand proof",
+    "New experiment desks / Outcomes surface expansion this week",
+    "CEX/listing applications before settlement green + external payer trend",
+    "Self-generated mcpPaidCalls counted as distribution proof"
   ],
   "metricsSnapshot": {
     "northStar": {
-      "paidCallsLast7d": 22065,
-      "uniquePayingWalletsLast7d": 43
+      "paidCallsLast7d": 36119,
+      "uniquePayingWalletsLast7d": 101
     },
     "last7d": {
-      "usdSettled": 387.87,
-      "uniquePayingWallets": 43
+      "usdSettled": 3587.2,
+      "uniquePayingWallets": 101
     },
     "lifetime": {
-      "totalUsdSettled": 599.86,
-      "uniquePayingWallets": 48
+      "totalUsdSettled": 4163.23,
+      "uniquePayingWallets": 116
     },
     "funnel": {
       "paymentRequiredToPaidRate": 1,
-      "d7RepeatRate": 0.611,
-      "firstPaidPayersLast30d": 48
+      "d7RepeatRate": 0.636,
+      "firstPaidPayersLast30d": 116
     },
     "settlement": {
-      "settleFailRate24h": 0.6212,
-      "settleFailRate7d": 0.7404,
-      "meetsLaunchGuardrail24h": false,
-      "topFail": "Labs Celo facilitator insufficient_credits"
+      "settleFailRate24h": 0.0052,
+      "settleFailRate7d": 0.0014,
+      "meetsLaunchGuardrail24h": true,
+      "topFail": "Facilitator settle_timeout; local Solana settle did not confirm"
     },
     "buyback": {
-      "totalBuybackUsdSpent": 0.26,
-      "totalSyraAcquired": 0,
-      "treasurySyraBalance": 165644.59225
+      "totalBuybackUsdSpent": 24.43,
+      "totalSyraAcquired": 172452.066761,
+      "treasurySyraBalance": 172452.066761,
+      "totalFlushedUsd": 0.87,
+      "pendingRevenueUsd": 0.28
     },
     "rewards": {
-      "uniqueEarners": 29,
+      "uniqueEarners": 102,
       "totalClaimableSyra": 0,
       "totalClaimedSyra": 0
     },
     "holders": {
-      "marketCapUsd": 68035,
-      "liquidityUsd": 24442.19,
+      "marketCapUsd": 64140,
+      "liquidityUsd": 23574.44,
       "uniqueStakers": 1
     },
     "bySource": {
-      "api": 48061,
-      "mcpPaidCalls": 0
+      "api": 83422,
+      "mcpPaidCalls": 1
     }
   },
-  "lastWeekOutcomesGrade": "unknown — no prior last-ceo-week.json"
+  "lastWeekOutcomesGrade": "2 MET / 1 MISSED — (1) settleFailRate+guardrail MET (0.0052/24h); (2) uniquePayingWallets7d>=50 MET (101); (3) proof post + external mcpPaidCalls MISSED (mcpPaidCalls=1 was self-generated; no proof post evidence)"
 }

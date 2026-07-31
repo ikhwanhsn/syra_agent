@@ -3,6 +3,8 @@
  * Payments route to the lab payTo wallet when configured (buyback skipped via payToOverride).
  * Dexter routes settle via Dexter facilitator (Solana + Base multi-network);
  * when Dexter is unhealthy, Labs falls back to GoPlausible then PayAI.
+ * Algorand uses GoPlausible AVM accepts; X Layer uses OKX — both still require a live
+ * SVM/EVM profile for createPaymentRequiredResponse (same Dexter→GoPlausible→PayAI failover).
  * PayAI-only routes stay on PayAI.
  * Listed in GET /.well-known/x402 for x402scan discovery.
  */
@@ -118,9 +120,16 @@ async function handleInsightRoute(req, res, endpointPath, catalogSegment, fetchD
       settlePaymentAndSetResponse(res, req),
     ]);
     if (settle?.success === false) {
+      const reason = String(settle.errorReason || settle.error || 'Payment settlement failed');
+      const alt = String(settle.error || '');
+      // Prefer actionable copy when facilitator returns opaque "Internal server error".
+      const error =
+        /^internal server error$/i.test(reason) && alt && !/^internal server error$/i.test(alt)
+          ? alt
+          : reason;
       return res.status(502).json({
         success: false,
-        error: settle.errorReason || settle.error || 'Payment settlement failed',
+        error,
       });
     }
 
@@ -228,8 +237,8 @@ function labsPaymentMiddleware(priceUsd, resource, catalogSegment, outputSchema 
       if (profile !== 'dexter') {
         req.x402ResourceServerProfile = profile;
       }
-      // Algorand Labs settles via GoPlausible (appended accept); Dexter/GoPlausible/PayAI profile still
-      // builds Solana/Base offers that the Algorand client ignores when selecting payment.
+      // Algorand/X Layer settle on dedicated rails; profile still needs a live facilitator
+      // for createPaymentRequiredResponse (Dexter→GoPlausible→PayAI health failover).
       return requirePayment({
         price: priceUsd,
         getPriceUsd: async (r) => {
@@ -250,7 +259,7 @@ function labsPaymentMiddleware(priceUsd, resource, catalogSegment, outputSchema 
         inputSchema: { type: 'object', properties: {}, additionalProperties: false },
         outputSchema,
         getPayTo: labsPayToOverride,
-        /** Dexter primary; GoPlausible then PayAI when Dexter unhealthy for Solana/Base. */
+        /** Dexter primary; GoPlausible then PayAI when Dexter unhealthy. */
         resourceServerProfile: profile,
       })(req, res, next);
     } catch (e) {

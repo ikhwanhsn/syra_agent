@@ -122,4 +122,47 @@ describe('dexter Base /supported health', () => {
       globalThis.fetch = originalFetch;
     }
   });
+
+  it('marks Solana unhealthy when /supported is HTTP 502 even if fee payer would be funded', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = mock.fn(async () => ({
+      ok: false,
+      status: 502,
+      json: async () => ({}),
+    }));
+    try {
+      resetDexterSolanaFeePayerHealthCache();
+      const status = await getDexterSupportedHealth(true);
+      assert.equal(status.reachable, false);
+      assert.equal(status.hasSolanaExact, false);
+      // Solana health ANDs /supported reachability — do not keep Dexter when API is down.
+      const solanaOk = await isDexterHealthyForLabChain('solana', true);
+      assert.equal(solanaOk, false);
+      assert.equal(await isDexterHealthyForLabChain('base', true), false);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('marks Solana unhealthy when /supported omits Solana exact', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = mock.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        kinds: [{ scheme: 'exact', network: DEXTER_BASE_CAIP2 }],
+      }),
+    }));
+    try {
+      resetDexterSolanaFeePayerHealthCache();
+      const status = await getDexterSupportedHealth(true);
+      assert.equal(status.reachable, true);
+      assert.equal(status.hasSolanaExact, false);
+      assert.equal(status.hasBaseExact, true);
+      assert.equal(await isDexterHealthyForLabChain('base', true), true);
+      assert.equal(await isDexterHealthyForLabChain('solana', true), false);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
 });

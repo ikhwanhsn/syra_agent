@@ -90,8 +90,12 @@ export async function resolveDefaultFacilitatorProfile(req, deps = {}) {
 }
 
 /**
- * Labs `/insights/*` facilitator profile selection for Solana/Base.
- * Algorand keeps Dexter profile (AVM accepts appended separately via GoPlausible AVM).
+ * Labs `/insights/*` facilitator profile selection for Solana/Base/Algorand/X Layer.
+ *
+ * Algorand and X Layer build accepts on dedicated rails (GoPlausible AVM / OKX), but the
+ * selected profile still drives `ensureX402ForReq` + `createPaymentRequiredResponse`.
+ * Pinning Dexter when its API is down makes every Labs tab return HTTP 500 before those
+ * rails run — use the same Dexter→GoPlausible→PayAI health failover as Solana/Base.
  *
  * @param {import('express').Request | { get?: (name: string) => string | undefined }} req
  * @param {FacilitatorFailoverDeps} [deps]
@@ -99,19 +103,20 @@ export async function resolveDefaultFacilitatorProfile(req, deps = {}) {
  */
 export async function resolveLabsFacilitatorProfile(req, deps = {}) {
   const labChain = String(req?.get?.('x-lab-x402-chain') || '').trim().toLowerCase();
-  // Algorand settles via GoPlausible AVM (appended accepts). Profile is unused for
-  // accept building when x-lab-x402-chain=algorand (see buildPaymentRequired), but
-  // keep Dexter so non-Algorand middleware paths stay consistent.
-  if (labChain === 'algorand') return 'dexter';
-  // X Layer settles via OKX dedicated rail (early return in buildPaymentRequired).
-  // Dexter profile is unused for accept building on this tab.
+  // AVM/OKX accepts ignore the SVM/EVM profile, but init must still hit a live facilitator.
+  // Prefer Base /supported health so a Dexter Solana-fee-payer-only blip does not matter here.
   if (
+    labChain === 'algorand' ||
     labChain === 'xlayer' ||
     labChain === 'x-layer' ||
     labChain === 'okx' ||
     labChain === '196'
   ) {
-    return 'dexter';
+    return resolveDefaultFacilitatorProfile(req, {
+      ...deps,
+      healthChain: 'base',
+      logContext: 'insights',
+    });
   }
 
   return resolveDefaultFacilitatorProfile(req, {

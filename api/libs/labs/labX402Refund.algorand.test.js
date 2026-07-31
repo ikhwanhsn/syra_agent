@@ -12,6 +12,11 @@ import {
   spendableFromAccountInfo,
 } from './labAlgorandFeeBuffer.js';
 import { evaluateLowBalanceRefund, PAYTO_INSUFFICIENT_FUNDS } from './labX402Refund.js';
+import {
+  ALGO_MIN_FOR_USDC_OPT_IN,
+  computeAlgorandUsdcOptInNeedMicro,
+  evaluateAlgorandUsdcOptInAlgoGate,
+} from './labWalletService.js';
 
 describe('computeAlgorandSpendableMicro', () => {
   test('returns 0 when amount is below min-balance (PayTo MBR stuck)', () => {
@@ -72,6 +77,54 @@ describe('evaluateLowBalanceRefund (regression)', () => {
   test('skips refund when USDC covers max price', () => {
     const decision = evaluateLowBalanceRefund(0.2, 0.05, 0.02);
     assert.equal(decision.shouldRefund, false);
+  });
+});
+
+describe('computeAlgorandUsdcOptInNeedMicro', () => {
+  test('fresh account (min 100_000) needs ~0.202 ALGO', () => {
+    assert.equal(computeAlgorandUsdcOptInNeedMicro(100_000n), 202_000n);
+  });
+
+  test('account already holding an ASA (min 200_000) needs ~0.302 ALGO', () => {
+    assert.equal(computeAlgorandUsdcOptInNeedMicro(200_000n), 302_000n);
+  });
+
+  test('defaults to base min when min-balance omitted', () => {
+    assert.equal(computeAlgorandUsdcOptInNeedMicro(), 202_000n);
+  });
+
+  test('floor constant is at least 0.21 ALGO', () => {
+    assert.ok(ALGO_MIN_FOR_USDC_OPT_IN >= 0.21);
+  });
+});
+
+describe('evaluateAlgorandUsdcOptInAlgoGate', () => {
+  test('rejects 0.15 ALGO fresh account (old broken threshold)', () => {
+    const gate = evaluateAlgorandUsdcOptInAlgoGate({
+      amountMicro: 150_000n,
+      minBalanceMicro: 100_000n,
+    });
+    assert.equal(gate.ok, false);
+    assert.match(String(gate.error), /insufficient_algo_for_opt_in/);
+    assert.match(String(gate.error), /0\.21 ALGO/);
+    assert.match(String(gate.error), /0\.1500/);
+  });
+
+  test('accepts ~0.25 ALGO fresh account', () => {
+    const gate = evaluateAlgorandUsdcOptInAlgoGate({
+      amountMicro: 250_000n,
+      minBalanceMicro: 100_000n,
+    });
+    assert.equal(gate.ok, true);
+  });
+
+  test('rejects when live min-balance already elevated and ALGO is short', () => {
+    const gate = evaluateAlgorandUsdcOptInAlgoGate({
+      amountMicro: 250_000n,
+      minBalanceMicro: 200_000n,
+    });
+    assert.equal(gate.ok, false);
+    assert.match(String(gate.error), /0\.30 ALGO/);
   });
 });
 

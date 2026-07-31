@@ -1,29 +1,29 @@
 {
-  "date": "2026-07-29",
-  "updatedAt": "2026-07-29T02:42:16.231Z",
+  "date": "2026-07-31",
+  "updatedAt": "2026-07-30T17:05:52.275Z",
   "source": "https://api.syraa.fun/api/metrics",
   "northStar": {
-    "paidCallsLast7d": 32129,
-    "uniquePayingWalletsLast7d": 94
+    "paidCallsLast7d": 36119,
+    "uniquePayingWalletsLast7d": 101
   },
   "last7d": {
-    "calls": 32129,
-    "usdSettled": 2548.02
+    "calls": 36119,
+    "usdSettled": 3587.2
   },
   "buyback": {
-    "totalBuybackUsdSpent": 24.89,
+    "totalBuybackUsdSpent": 24.43,
     "totalSyraAcquired": 172452.066761,
     "treasurySyraBalance": 172452.066761,
     "lastBuybackSignature": "s3n9W9kLMMu1xZTBooGdENoznfF38bbieZMrTY13TunK6bgG3uepFQTN1C9s3R1bnHwTi7a5VjKYNGcLfszykVG"
   },
   "rewards": {
-    "uniqueEarners": 93,
+    "uniqueEarners": 102,
     "totalClaimableSyra": 0,
     "totalClaimedSyra": 0
   },
   "settlement": {
-    "settleFailRate24h": 0.0005
+    "settleFailRate24h": 0.0052
   },
-  "oneAction": "DONE: MCP paid /news settled; mcpPaidCalls=1. Deploy recordPaidApiCall source fix so future MCP calls count without backfill. Fund payer 9Vsu…tGCm with >=$1 USDC.",
-  "bottleneck": "activation"
+  "oneAction": "DONE: Corrected public buyback claim. Labs payToOverride sets skipRevenueBuyback (dominates volume), so ~80% applies only to Syra-treasury-settled revenue. Updated publicBuybackMetrics note + growth/token UI. Deploy to refresh live /api/metrics note.",
+  "bottleneck": "token-loop"
 }

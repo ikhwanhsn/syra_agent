@@ -335,8 +335,37 @@ export async function getDexterHealthForLabChain(chain, forceRefresh = false) {
     const status = await getDexterSupportedHealth(forceRefresh);
     return { healthy: status.healthy, reason: status.reason, chain: 'base' };
   }
-  const status = await getDexterSolanaFeePayerHealth(forceRefresh);
-  return { healthy: status.healthy, reason: status.reason, chain: 'solana' };
+
+  // Solana Exact SVM payments bind to Dexter's fee payer at offer time. Fee-payer SOL
+  // alone is not enough: when Dexter's API is down (e.g. /supported 502) Base correctly
+  // fails over via getDexterSupportedHealth, but Solana used to keep selecting Dexter and
+  // then blow up in ensureX402ForReq / settle with opaque 500s. Require a reachable
+  // facilitator that advertises Solana exact, then a funded fee payer.
+  // Check /supported first so a dead facilitator fails fast without an RPC round-trip.
+  const supported = await getDexterSupportedHealth(forceRefresh);
+  if (!supported.reachable) {
+    return {
+      healthy: false,
+      reason: `supported_unreachable:${supported.reason}`,
+      chain: 'solana',
+    };
+  }
+  if (!supported.hasSolanaExact) {
+    return {
+      healthy: false,
+      reason:
+        supported.reason === 'missing_base_exact'
+          ? 'missing_solana_exact'
+          : supported.reason || 'missing_solana_exact',
+      chain: 'solana',
+    };
+  }
+
+  const fee = await getDexterSolanaFeePayerHealth(forceRefresh);
+  if (!fee.healthy) {
+    return { healthy: false, reason: fee.reason, chain: 'solana' };
+  }
+  return { healthy: true, reason: 'ok', chain: 'solana' };
 }
 
 /**

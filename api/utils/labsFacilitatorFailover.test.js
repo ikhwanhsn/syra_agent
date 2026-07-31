@@ -24,11 +24,32 @@ describe('resolveLabsFacilitatorProfile', () => {
     resetLabsFacilitatorFailoverLogFlags();
   });
 
-  it('returns dexter for algorand regardless of health', async () => {
+  it('fails over for algorand when Dexter is down (profile must init a live facilitator)', async () => {
     const profile = await resolveLabsFacilitatorProfile(fakeReq('algorand'), {
+      isDexterHealthyForLabChain: async () => false,
+      isGoplausibleHealthyForLabChain: async () => true,
+    });
+    assert.equal(profile, 'goplausible');
+  });
+
+  it('fails over to payai for xlayer when Dexter and GoPlausible are down', async () => {
+    const profile = await resolveLabsFacilitatorProfile(fakeReq('xlayer'), {
       isDexterHealthyForLabChain: async () => false,
       isGoplausibleHealthyForLabChain: async () => false,
     });
+    assert.equal(profile, 'payai');
+  });
+
+  it('probes base health for algorand/xlayer profile selection', async () => {
+    let seenChain = null;
+    const profile = await resolveLabsFacilitatorProfile(fakeReq('xlayer'), {
+      isDexterHealthyForLabChain: async (chain) => {
+        seenChain = chain;
+        return true;
+      },
+      isGoplausibleHealthyForLabChain: async () => false,
+    });
+    assert.equal(seenChain, 'base');
     assert.equal(profile, 'dexter');
   });
 

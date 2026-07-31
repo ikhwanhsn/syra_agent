@@ -256,7 +256,25 @@ export async function runLabX402Payment(payerAddress, opts = {}) {
     }
 
     if (!res.ok) {
-      errorMsg = responseBody?.error || responseBody?.message || `HTTP ${res.status}`;
+      const bodyError = typeof responseBody?.error === 'string' ? responseBody.error.trim() : '';
+      const bodyMessage =
+        typeof responseBody?.message === 'string' ? responseBody.message.trim() : '';
+      // Prefer the specific message when the body only has a generic failure label —
+      // otherwise Labs UI shows opaque errors with no root cause.
+      const isGenericInternal =
+        !bodyError ||
+        /^internal server error$/i.test(bodyError) ||
+        /^payment processing failed$/i.test(bodyError) ||
+        /^payment facilitator temporarily unavailable$/i.test(bodyError) ||
+        /^HTTP 5\d\d$/i.test(bodyError);
+      if (isGenericInternal && bodyMessage) {
+        errorMsg =
+          bodyError && !/^HTTP 5\d\d$/i.test(bodyError)
+            ? `${bodyError}: ${bodyMessage}`
+            : bodyMessage;
+      } else {
+        errorMsg = bodyError || bodyMessage || `HTTP ${res.status}`;
+      }
       const errText = String(errorMsg);
       const looksLikeUpstreamData =
         /pyth|hermes|upstream|oracle|not found|timeout|ECONN|ENOTFOUND|502|503/i.test(errText);
