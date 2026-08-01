@@ -1,6 +1,5 @@
 import { OverviewPageBackdrop } from "@/components/dashboard/overview/OverviewPageBackdrop";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
-import { MeteoraReferralPanel } from "@/components/growth/MeteoraReferralPanel";
 import { LpPoolsContentSkeleton } from "@/components/lp/LpPoolsContentSkeleton";
 import { Button } from "@/components/ui/button";
 import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
@@ -117,8 +116,6 @@ export default function LpPoolsPage() {
               shown, APR is estimated from the last 24 hours and is not guaranteed.
             </p>
           </header>
-
-          <MeteoraReferralPanel compact />
 
           {showSkeleton ? (
             <LpPoolsContentSkeleton poolCount={Math.max(pools.length, 3)} />

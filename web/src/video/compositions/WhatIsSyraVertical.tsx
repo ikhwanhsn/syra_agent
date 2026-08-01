@@ -13,21 +13,25 @@ import {
   PROBLEM,
   SYRA_EXPLAINER_FPS,
   TOKEN,
+  VERTICAL_REVEALS,
   VERTICAL_SCENES,
   WHAT_IS_SYRA_V_DURATION,
   WHAT_IS_SYRA_V_HEIGHT,
   WHAT_IS_SYRA_V_WIDTH,
   X402_STEPS,
 } from "@/video/content/syraExplainer";
+import { ExplainerAudio } from "@/video/compositions/whatIsSyraAudio";
 import {
   Background,
   Caption,
+  CountUp,
   CYAN,
   Eyebrow,
   FG,
   FONT,
   GlassCard,
   GOLD,
+  GradientText,
   MUTED,
   Scene,
   StatusPill,
@@ -47,11 +51,18 @@ function scene(id: string) {
   return s;
 }
 
+function reveals(id: string) {
+  const r = VERTICAL_REVEALS[id];
+  if (!r) throw new Error(`Missing vertical reveals ${id}`);
+  return r;
+}
+
 function VHook() {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const r = reveals("hook");
   const titleIn = spring({
-    frame: frame - 10,
+    frame: frame - r.title,
     fps,
     config: { damping: 200, stiffness: 110, mass: 1 },
   });
@@ -64,26 +75,21 @@ function VHook() {
         padding: "0 56px",
       }}
     >
-      <SyraLogoMark size={140} delay={0} />
-      <div style={{ height: 40 }} />
+      <SyraLogoMark size={140} delay={r.elements[0]} />
+      <div style={{ height: 36 }} />
       <Eyebrow text={HOOK.eyebrow} fontSize={18} />
       <div
         style={{
           opacity: titleIn,
           transform: `translateY(${(1 - titleIn) * 28}px)`,
-          color: FG,
-          fontSize: 64,
-          fontWeight: 850,
-          letterSpacing: "-0.04em",
           textAlign: "center",
-          lineHeight: 1.08,
         }}
       >
-        {HOOK.title}
+        <GradientText fontSize={64}>{HOOK.title}</GradientText>
       </div>
       <div
         style={{
-          marginTop: 24,
+          marginTop: 22,
           color: MUTED,
           fontSize: 26,
           textAlign: "center",
@@ -99,28 +105,37 @@ function VHook() {
 
 function VProblem() {
   const start = scene("problem").from;
+  const r = reveals("problem");
   return (
     <AbsoluteFill
-      style={{ fontFamily: FONT, padding: "140px 56px 120px" }}
+      style={{
+        fontFamily: FONT,
+        padding: "100px 56px 120px",
+        justifyContent: "center",
+        display: "flex",
+        flexDirection: "column",
+      }}
     >
       <Eyebrow text={PROBLEM.eyebrow} fontSize={18} />
-      <div
-        style={{
-          color: FG,
-          fontSize: 48,
-          fontWeight: 850,
-          letterSpacing: "-0.035em",
-          lineHeight: 1.1,
-          whiteSpace: "pre-line",
-          marginBottom: 28,
-        }}
-      >
-        {PROBLEM.title}
+      <div style={{ whiteSpace: "pre-line", marginBottom: 24 }}>
+        <GradientText fontSize={46}>{PROBLEM.title}</GradientText>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {PROBLEM.painPoints.map((item, i) => (
-          <GlassCard key={item.title} delay={start + 12 + i * 12} padding="22px 24px">
-            <div style={{ color: GOLD, fontSize: 26, fontWeight: 800, marginBottom: 8 }}>
+          <GlassCard
+            key={item.title}
+            delay={start + r.elements[i]}
+            padding="22px 24px"
+            glow={i === 0 ? "rgba(255,92,106,0.25)" : "rgba(243,186,47,0.22)"}
+          >
+            <div
+              style={{
+                color: GOLD,
+                fontSize: 26,
+                fontWeight: 800,
+                marginBottom: 8,
+              }}
+            >
               {item.title}
             </div>
             <div style={{ color: MUTED, fontSize: 22, lineHeight: 1.35 }}>
@@ -135,36 +150,39 @@ function VProblem() {
 
 function VIdea() {
   const start = scene("idea").from;
+  const r = reveals("idea");
   return (
     <AbsoluteFill
-      style={{ fontFamily: FONT, padding: "160px 56px 120px" }}
+      style={{
+        fontFamily: FONT,
+        padding: "100px 56px 120px",
+        justifyContent: "center",
+        display: "flex",
+        flexDirection: "column",
+      }}
     >
       <Eyebrow text={IDEA.eyebrow} color={CYAN} fontSize={18} />
-      <div
-        style={{
-          color: FG,
-          fontSize: 48,
-          fontWeight: 850,
-          letterSpacing: "-0.035em",
-          lineHeight: 1.1,
-          marginBottom: 22,
-        }}
-      >
-        {IDEA.title}
+      <div style={{ marginBottom: 18 }}>
+        <GradientText fontSize={46}>{IDEA.title}</GradientText>
       </div>
       <div
         style={{
           color: MUTED,
           fontSize: 24,
           lineHeight: 1.45,
-          marginBottom: 36,
+          marginBottom: 28,
         }}
       >
         Pay tiny USDC per call, automatically. No per-vendor API keys.
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         {IDEA.bullets.map((b, i) => (
-          <GlassCard key={b} delay={start + 16 + i * 12} padding="20px 24px">
+          <GlassCard
+            key={b}
+            delay={start + r.elements[i]}
+            padding="20px 24px"
+            glow="rgba(62,224,184,0.22)"
+          >
             <div style={{ color: FG, fontSize: 24, fontWeight: 700 }}>{b}</div>
           </GlassCard>
         ))}
@@ -175,26 +193,48 @@ function VIdea() {
 
 function VX402() {
   const start = scene("x402").from;
+  const r = reveals("x402");
   return (
     <AbsoluteFill
-      style={{ fontFamily: FONT, padding: "130px 48px 110px" }}
+      style={{
+        fontFamily: FONT,
+        padding: "90px 48px 110px",
+        justifyContent: "center",
+        display: "flex",
+        flexDirection: "column",
+      }}
     >
       <Eyebrow text="How x402 Works" fontSize={18} />
+      <div style={{ marginBottom: 12 }}>
+        <GradientText fontSize={42}>Call. Pay. Get data.</GradientText>
+      </div>
       <div
         style={{
-          color: FG,
-          fontSize: 42,
-          fontWeight: 850,
-          letterSpacing: "-0.03em",
-          marginBottom: 28,
-          lineHeight: 1.1,
+          marginBottom: 18,
+          display: "flex",
+          alignItems: "baseline",
+          gap: 8,
         }}
       >
-        Call. Pay. Get data.
+        <span style={{ color: MUTED, fontSize: 18 }}>Sample</span>
+        <CountUp
+          target={0.01}
+          delay={start + (r.counts?.[0] ?? 6)}
+          duration={28}
+          prefix="$"
+          suffix=" USDC"
+          decimals={2}
+          fontSize={24}
+          color={CYAN}
+        />
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {X402_STEPS.map((s, i) => (
-          <GlassCard key={s.step} delay={start + 10 + i * 12} padding="18px 22px">
+          <GlassCard
+            key={s.step}
+            delay={start + r.elements[i]}
+            padding="18px 22px"
+          >
             <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
               <div
                 style={{
@@ -231,33 +271,43 @@ function VX402() {
 
 function VCapabilities() {
   const start = scene("capabilities").from;
+  const r = reveals("capabilities");
   const items = CAPABILITIES.slice(0, 4);
   return (
     <AbsoluteFill
-      style={{ fontFamily: FONT, padding: "140px 48px 120px" }}
+      style={{
+        fontFamily: FONT,
+        padding: "100px 48px 120px",
+        justifyContent: "center",
+        display: "flex",
+        flexDirection: "column",
+      }}
     >
       <Eyebrow text="What You Get" fontSize={18} />
-      <div
-        style={{
-          color: FG,
-          fontSize: 42,
-          fontWeight: 850,
-          letterSpacing: "-0.03em",
-          marginBottom: 28,
-        }}
-      >
-        Crypto intelligence
+      <div style={{ marginBottom: 24 }}>
+        <GradientText fontSize={42}>Crypto intelligence</GradientText>
       </div>
       <div
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
-          gap: 16,
+          gap: 14,
         }}
       >
         {items.map((c, i) => (
-          <GlassCard key={c.title} delay={start + 10 + i * 10} padding="22px 20px">
-            <div style={{ color: GOLD, fontSize: 24, fontWeight: 800, marginBottom: 8 }}>
+          <GlassCard
+            key={c.title}
+            delay={start + r.elements[i]}
+            padding="22px 20px"
+          >
+            <div
+              style={{
+                color: GOLD,
+                fontSize: 24,
+                fontWeight: 800,
+                marginBottom: 8,
+              }}
+            >
               {c.title}
             </div>
             <div style={{ color: MUTED, fontSize: 18, lineHeight: 1.35 }}>
@@ -272,25 +322,28 @@ function VCapabilities() {
 
 function VPillars() {
   const start = scene("pillars").from;
+  const r = reveals("pillars");
   return (
     <AbsoluteFill
-      style={{ fontFamily: FONT, padding: "130px 48px 110px" }}
+      style={{
+        fontFamily: FONT,
+        padding: "90px 48px 110px",
+        justifyContent: "center",
+        display: "flex",
+        flexDirection: "column",
+      }}
     >
       <Eyebrow text="Five Pillars" fontSize={18} />
-      <div
-        style={{
-          color: FG,
-          fontSize: 40,
-          fontWeight: 850,
-          letterSpacing: "-0.03em",
-          marginBottom: 24,
-        }}
-      >
-        Honest maturity
+      <div style={{ marginBottom: 20 }}>
+        <GradientText fontSize={40}>Honest maturity</GradientText>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {PILLARS.map((p, i) => (
-          <GlassCard key={p.name} delay={start + 8 + i * 10} padding="16px 20px">
+          <GlassCard
+            key={p.name}
+            delay={start + r.elements[i]}
+            padding="16px 20px"
+          >
             <div
               style={{
                 display: "flex",
@@ -323,25 +376,28 @@ function VPillars() {
 
 function VHowTo() {
   const start = scene("howto").from;
+  const r = reveals("howto");
   return (
     <AbsoluteFill
-      style={{ fontFamily: FONT, padding: "160px 48px 120px" }}
+      style={{
+        fontFamily: FONT,
+        padding: "100px 48px 120px",
+        justifyContent: "center",
+        display: "flex",
+        flexDirection: "column",
+      }}
     >
       <Eyebrow text={HOW_TO.eyebrow} color={CYAN} fontSize={18} />
-      <div
-        style={{
-          color: FG,
-          fontSize: 42,
-          fontWeight: 850,
-          letterSpacing: "-0.03em",
-          marginBottom: 28,
-        }}
-      >
-        Start in minutes
+      <div style={{ marginBottom: 24 }}>
+        <GradientText fontSize={42}>Start in minutes</GradientText>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         {HOW_TO.paths.map((path, i) => (
-          <GlassCard key={path.name} delay={start + 10 + i * 12} padding="20px 22px">
+          <GlassCard
+            key={path.name}
+            delay={start + r.elements[i]}
+            padding="20px 22px"
+          >
             <div
               style={{
                 color: GOLD,
@@ -353,7 +409,14 @@ function VHowTo() {
             >
               {path.name}
             </div>
-            <div style={{ color: FG, fontSize: 26, fontWeight: 800, marginBottom: 10 }}>
+            <div
+              style={{
+                color: FG,
+                fontSize: 26,
+                fontWeight: 800,
+                marginBottom: 10,
+              }}
+            >
               {path.detail}
             </div>
             <div
@@ -374,26 +437,80 @@ function VHowTo() {
 
 function VToken() {
   const start = scene("token").from;
+  const r = reveals("token");
+  const stats = r.elements.slice(0, 3);
+  const utilities = r.elements.slice(3, 6);
   return (
     <AbsoluteFill
-      style={{ fontFamily: FONT, padding: "130px 48px 110px" }}
+      style={{
+        fontFamily: FONT,
+        padding: "90px 48px 110px",
+        justifyContent: "center",
+        display: "flex",
+        flexDirection: "column",
+      }}
     >
       <Eyebrow text={TOKEN.eyebrow} fontSize={18} />
+      <div style={{ marginBottom: 16 }}>
+        <GradientText fontSize={40}>{TOKEN.title}</GradientText>
+      </div>
       <div
         style={{
-          color: FG,
-          fontSize: 40,
-          fontWeight: 850,
-          letterSpacing: "-0.03em",
-          marginBottom: 18,
+          display: "flex",
+          gap: 12,
+          marginBottom: 16,
+          justifyContent: "space-between",
         }}
       >
-        {TOKEN.title}
+        {[
+          { target: 1, suffix: "B", label: "Supply" },
+          { target: 995, suffix: "M", label: "Circ." },
+          { target: 5, suffix: "M+", label: "Burned" },
+        ].map((s, i) => (
+          <GlassCard
+            key={s.label}
+            delay={start + stats[i]}
+            padding="14px 12px"
+            style={{ flex: 1, textAlign: "center" }}
+            glow="rgba(243,186,47,0.28)"
+          >
+            <CountUp
+              target={s.target}
+              delay={start + (r.counts?.[i] ?? stats[i] + 2)}
+              duration={24}
+              suffix={s.suffix}
+              fontSize={26}
+              color={GOLD}
+            />
+            <div style={{ color: MUTED, fontSize: 12, marginTop: 4 }}>
+              {s.label}
+            </div>
+          </GlassCard>
+        ))}
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 24 }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
+          marginBottom: 20,
+        }}
+      >
         {TOKEN.utilities.map((u, i) => (
-          <GlassCard key={u.title} delay={start + 10 + i * 10} padding="18px 20px">
-            <div style={{ color: GOLD, fontSize: 22, fontWeight: 800, marginBottom: 6 }}>
+          <GlassCard
+            key={u.title}
+            delay={start + utilities[i]}
+            padding="18px 20px"
+            glow="rgba(243,186,47,0.25)"
+          >
+            <div
+              style={{
+                color: GOLD,
+                fontSize: 22,
+                fontWeight: 800,
+                marginBottom: 6,
+              }}
+            >
               {u.title}
             </div>
             <div style={{ color: MUTED, fontSize: 18, lineHeight: 1.35 }}>
@@ -420,6 +537,7 @@ function VCta() {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const start = scene("cta").from;
+  const r = reveals("cta");
   const enter = spring({
     frame: frame - start,
     fps,
@@ -431,7 +549,7 @@ function VCta() {
         justifyContent: "center",
         alignItems: "center",
         fontFamily: FONT,
-        padding: "0 48px",
+        padding: "0 48px 48px",
       }}
     >
       <div
@@ -439,22 +557,22 @@ function VCta() {
           opacity: enter,
           transform: `translateY(${(1 - enter) * 20}px)`,
           textAlign: "center",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
         }}
       >
-        <SyraLogoMark size={120} delay={start} />
-        <div style={{ height: 28 }} />
+        <SyraLogoMark size={120} delay={start + r.elements[0]} />
+        <div style={{ height: 24 }} />
+        <GradientText fontSize={52}>{CTA.title}</GradientText>
         <div
           style={{
-            color: FG,
-            fontSize: 52,
-            fontWeight: 850,
-            letterSpacing: "-0.04em",
-            lineHeight: 1.1,
+            color: MUTED,
+            fontSize: 24,
+            marginTop: 16,
+            marginBottom: 28,
           }}
         >
-          {CTA.title}
-        </div>
-        <div style={{ color: MUTED, fontSize: 24, marginTop: 16, marginBottom: 32 }}>
           {CTA.subtitle}
         </div>
         <div
@@ -466,13 +584,15 @@ function VCta() {
             fontSize: 26,
             fontWeight: 800,
             display: "inline-block",
+            boxShadow: "0 0 36px rgba(243,186,47,0.55)",
+            transform: `scale(${1 + 0.03 * Math.sin((frame - start) / 12)})`,
           }}
         >
           {CTA.primary}
         </div>
         <div
           style={{
-            marginTop: 20,
+            marginTop: 18,
             color: GOLD,
             fontSize: 18,
             fontWeight: 700,
@@ -482,7 +602,7 @@ function VCta() {
         </div>
         <div
           style={{
-            marginTop: 36,
+            marginTop: 32,
             color: GOLD,
             fontSize: 14,
             fontWeight: 700,
@@ -506,6 +626,12 @@ export function WhatIsSyraVertical() {
   return (
     <AbsoluteFill style={{ backgroundColor: "#050505", overflow: "hidden" }}>
       <Background />
+      <ExplainerAudio
+        scenes={scenes}
+        reveals={VERTICAL_REVEALS}
+        durationInFrames={WHAT_IS_SYRA_V_DURATION}
+        hookHitFrame={10}
+      />
 
       <Scene from={scenes[0].from} to={scenes[0].to}>
         <VHook />

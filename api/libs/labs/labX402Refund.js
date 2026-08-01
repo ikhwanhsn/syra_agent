@@ -48,6 +48,7 @@ import { XLAYER_MAINNET_USDT } from '../../config/okxX402Networks.js';
 import { normalizeLabChain } from '../../models/labs/LabX402Settings.js';
 import {
   classifyAlgorandRefundError,
+  ensureAlgorandPayerAlgoForOptInAndFees,
   ensurePayToAlgoForUsdcRefund,
   PAYTO_USDC_REFUND_FEE_NEED_MICRO,
 } from './labAlgorandFeeBuffer.js';
@@ -209,6 +210,47 @@ export function evaluateLowBalanceRefund(usdcBalance, maxPriceUsd, avgPriceUsd) 
   }
 
   return { shouldRefund: true, refundAmountUsd, reason: 'low_balance', thresholdUsd, targetUsd };
+}
+
+/**
+ * Pure: clamp an Algorand PayTo→payer USDC top-up to what PayTo can send.
+ * Only fails when PayTo USDC is below the cheapest call price (true underfund).
+ *
+ * @param {{
+ *   requestedUsd: number;
+ *   payToUsdcBalance: number;
+ *   minPriceUsd: number;
+ * }} input
+ * @returns {{
+ *   ok: boolean;
+ *   amountUsd: number;
+ *   partial: boolean;
+ *   reason: 'full' | 'partial' | 'payto_underfunded' | 'invalid';
+ * }}
+ */
+export function clampAlgorandPayToUsdcRefundAmount(input = {}) {
+  const requested = Number(input.requestedUsd);
+  const payToUsdc = Number(input.payToUsdcBalance);
+  const minPrice = Number(input.minPriceUsd);
+
+  if (!Number.isFinite(requested) || requested <= 0 || !Number.isFinite(payToUsdc) || payToUsdc < 0) {
+    return { ok: false, amountUsd: 0, partial: false, reason: 'invalid' };
+  }
+
+  const floor = Number.isFinite(minPrice) && minPrice > 0 ? minPrice : 0;
+  if (payToUsdc < floor) {
+    return { ok: false, amountUsd: 0, partial: false, reason: 'payto_underfunded' };
+  }
+
+  if (payToUsdc >= requested) {
+    return { ok: true, amountUsd: requested, partial: false, reason: 'full' };
+  }
+
+  const amountUsd = Math.round(payToUsdc * 1e6) / 1e6;
+  if (amountUsd <= 0) {
+    return { ok: false, amountUsd: 0, partial: false, reason: 'payto_underfunded' };
+  }
+  return { ok: true, amountUsd, partial: true, reason: 'partial' };
 }
 
 /**
@@ -542,10 +584,24 @@ async function refundUsdcToPayerAlgorand(payerAddress, amountUsd) {
   }
 
   const payToBalances = await getLabWalletBalances(payToAccount.address, 'algorand');
-  if (payToBalances && payToBalances.usdcBalance < amount) {
-    throw new Error(
-      `${PAYTO_INSUFFICIENT_FUNDS}: payTo USDC ${payToBalances.usdcBalance.toFixed(4)} < needed ${amount.toFixed(4)}`,
-    );
+  let sendAmount = amount;
+  if (payToBalances) {
+    const clamp = clampAlgorandPayToUsdcRefundAmount({
+      requestedUsd: amount,
+      payToUsdcBalance: payToBalances.usdcBalance,
+      minPriceUsd: getMinLabX402PriceUsd(),
+    });
+    if (!clamp.ok) {
+      throw new Error(
+        `${PAYTO_INSUFFICIENT_FUNDS}: payTo USDC ${Number(payToBalances.usdcBalance).toFixed(4)} < needed ${getMinLabX402PriceUsd().toFixed(4)} (min call)`,
+      );
+    }
+    sendAmount = clamp.amountUsd;
+    if (clamp.partial) {
+      console.info(
+        `[labX402Refund] Algorand partial top-up: requested ${amount.toFixed(4)} USDC, sending ${sendAmount.toFixed(4)} (PayTo balance)`,
+      );
+    }
   }
 
   const client = getAlgorandAlgodClient();
@@ -565,7 +621,7 @@ async function refundUsdcToPayerAlgorand(payerAddress, amountUsd) {
   }
 
   const asaId = getAlgorandUsdcAsaId();
-  const amountMicro = Math.round(amount * 1e6);
+  const amountMicro = Math.round(sendAmount * 1e6);
 
   let lastErr;
   /** @type {string | null} */
@@ -575,7 +631,7 @@ async function refundUsdcToPayerAlgorand(payerAddress, amountUsd) {
       submittedTxid &&
       (await isRefundTxAlreadyConfirmed(submittedTxid, 'algorand', { algod: client }))
     ) {
-      return { signature: submittedTxid, amountUsdc: amount };
+      return { signature: submittedTxid, amountUsdc: sendAmount };
     }
     try {
       const sp = await client.getTransactionParams().do();
@@ -590,7 +646,7 @@ async function refundUsdcToPayerAlgorand(payerAddress, amountUsd) {
       const { txid } = await client.sendRawTransaction(signed).do();
       submittedTxid = txid;
       await algosdk.waitForConfirmation(client, txid, 8);
-      return { signature: txid, amountUsdc: amount };
+      return { signature: txid, amountUsdc: sendAmount };
     } catch (e) {
       lastErr = classifyAlgorandRefundError(e, PAYTO_INSUFFICIENT_FUNDS);
       const fromErr = extractSubmittedTxId(e);
@@ -599,7 +655,7 @@ async function refundUsdcToPayerAlgorand(payerAddress, amountUsd) {
         submittedTxid &&
         (await isRefundTxAlreadyConfirmed(submittedTxid, 'algorand', { algod: client }))
       ) {
-        return { signature: submittedTxid, amountUsdc: amount };
+        return { signature: submittedTxid, amountUsdc: sendAmount };
       }
       if (submittedTxid) {
         console.warn(
@@ -662,8 +718,20 @@ export async function ensurePayerFundedForNextCall(payerAddress, opts = {}) {
     Number.isFinite(rawMult) ? Math.min(100, Math.max(1, rawMult)) : 1;
   const minPriceUsd = getMinLabX402PriceUsd() * priceMultiplier;
 
-  // Algorand payers must opt into USDC ASA before balance/top-up can succeed.
+  // Algorand payers must hold enough ALGO to opt into USDC ASA, then opt in,
+  // before PayTo can top them up with USDC.
   if (chain === 'algorand') {
+    const algoSeed = await ensureAlgorandPayerAlgoForOptInAndFees(payerAddress);
+    if (algoSeed.funded) {
+      console.info(
+        `[labX402Refund] Payer ALGO seed ${algoSeed.amount} ALGO from ${algoSeed.from}`,
+      );
+    } else if (!algoSeed.ok && !algoSeed.already) {
+      console.warn(
+        `[labX402Refund] Payer ALGO seed skipped for ${payerAddress}: ${algoSeed.error || 'unknown'}`,
+      );
+    }
+
     const optIn = await ensureAlgorandLabWalletUsdcOptIn(payerAddress);
     if (!optIn.ok && !optIn.already) {
       const balancesAfterFail = await getLabWalletBalances(payerAddress, chain);
@@ -716,13 +784,22 @@ export async function ensurePayerFundedForNextCall(payerAddress, opts = {}) {
     const refund = await refundUsdcToPayer(payerAddress, decision.refundAmountUsd, chain);
     // Re-read after top-up so Algorand opt-in + ASA balance are current.
     balances = (await getLabWalletBalances(payerAddress, chain)) ?? balances;
+    if (!refund) {
+      return {
+        canPay: balances.usdcBalance >= minPriceUsd,
+        funded: false,
+        balanceUsdc: balances.usdcBalance,
+        reason: balances.usdcBalance >= minPriceUsd ? decision.reason : 'topup_failed',
+      };
+    }
     return {
-      canPay: true,
+      // Partial Algorand top-ups must report canPay from the real post-top-up balance.
+      canPay: balances.usdcBalance >= minPriceUsd,
       funded: true,
       balanceUsdc: balances.usdcBalance,
       reason: 'topped_up',
-      signature: refund?.signature ?? null,
-      amountUsd: decision.refundAmountUsd,
+      signature: refund.signature ?? null,
+      amountUsd: refund.amountUsdc ?? decision.refundAmountUsd,
     };
   } catch (e) {
     const msg = e?.message || String(e);

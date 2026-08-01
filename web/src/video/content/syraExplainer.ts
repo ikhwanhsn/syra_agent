@@ -5,10 +5,10 @@
 
 export const SYRA_EXPLAINER_FPS = 30;
 
-/** Landscape 16:9 (~150s). */
+/** Landscape 16:9 (~105s). */
 export const WHAT_IS_SYRA_WIDTH = 1920;
 export const WHAT_IS_SYRA_HEIGHT = 1080;
-export const WHAT_IS_SYRA_DURATION_SEC = 150;
+export const WHAT_IS_SYRA_DURATION_SEC = 105;
 export const WHAT_IS_SYRA_DURATION =
   WHAT_IS_SYRA_DURATION_SEC * SYRA_EXPLAINER_FPS;
 
@@ -26,60 +26,60 @@ export type SceneTiming = {
   caption: string;
 };
 
-/** Landscape scene frames (30fps). */
+/** Landscape scene frames (30fps, 105s). */
 export const LANDSCAPE_SCENES: SceneTiming[] = [
   {
     id: "hook",
     from: 0,
-    to: 240,
+    to: 180,
     caption: "Syra: machine money for agents on Solana.",
   },
   {
     id: "problem",
-    from: 240,
-    to: 780,
+    from: 180,
+    to: 570,
     caption: "Agents are smart. Paying for APIs still blocks them.",
   },
   {
     id: "idea",
-    from: 780,
-    to: 1260,
+    from: 570,
+    to: 930,
     caption: "Pay tiny USDC per call, automatically. No vendor keys.",
   },
   {
     id: "x402",
-    from: 1260,
-    to: 1980,
+    from: 930,
+    to: 1380,
     caption: "HTTP 402: call, pay USDC on Solana, get the data.",
   },
   {
     id: "capabilities",
-    from: 1980,
-    to: 2580,
+    from: 1380,
+    to: 1740,
     caption: "Crypto intelligence: news, signals, smart money, more.",
   },
   {
     id: "pillars",
-    from: 2580,
-    to: 3240,
+    from: 1740,
+    to: 2100,
     caption: "Five pillars. Spend is live. The rest ship honestly.",
   },
   {
     id: "howto",
-    from: 3240,
-    to: 3840,
+    from: 2100,
+    to: 2490,
     caption: "MCP, SDK, or Marketplace. First paid call in about 5 minutes.",
   },
   {
     id: "token",
-    from: 3840,
-    to: 4380,
+    from: 2490,
+    to: 2910,
     caption: "$SYRA utility: fee discounts, buybacks to rewards, staking.",
   },
   {
     id: "cta",
-    from: 4380,
-    to: 4500,
+    from: 2910,
+    to: 3150,
     caption: "Start at syraa.fun. Build with docs.syraa.fun.",
   },
 ];
@@ -107,36 +107,36 @@ export const VERTICAL_SCENES: SceneTiming[] = [
   {
     id: "x402",
     from: 570,
-    to: 900,
+    to: 810,
     caption: "402 Payment Required. Auto-pay. Get data.",
   },
   {
     id: "capabilities",
-    from: 900,
-    to: 1140,
+    from: 810,
+    to: 1020,
     caption: "News, sentiment, signals, smart money.",
   },
   {
     id: "pillars",
-    from: 1140,
-    to: 1380,
+    from: 1020,
+    to: 1230,
     caption: "Spend live. Invest and Earn in beta.",
   },
   {
     id: "howto",
-    from: 1380,
-    to: 1560,
+    from: 1230,
+    to: 1410,
     caption: "MCP, SDK, or Marketplace in minutes.",
   },
   {
     id: "token",
-    from: 1560,
-    to: 1740,
+    from: 1410,
+    to: 1620,
     caption: "$SYRA: discounts, rewards, staking. Not advice.",
   },
   {
     id: "cta",
-    from: 1740,
+    from: 1620,
     to: 1800,
     caption: "syraa.fun · first paid call in ~5 min",
   },
@@ -273,3 +273,51 @@ export const CTA = {
   secondary: "docs.syraa.fun",
   badge: "MACHINE MONEY FOR AGENTS",
 } as const;
+
+/**
+ * Reveal offsets (frames from scene.from) for visuals + SFX sync.
+ * elements: cards / bullets / steps / pillars that spring in.
+ * counts: count-up starts. keys: typed mono lines.
+ */
+export type SceneRevealTiming = {
+  title: number;
+  elements: number[];
+  counts?: number[];
+  keys?: number[];
+};
+
+export const LANDSCAPE_REVEALS: Record<string, SceneRevealTiming> = {
+  hook: { title: 12, elements: [0] },
+  problem: { title: 8, elements: [20, 36, 52] },
+  idea: { title: 8, elements: [24, 38, 52] },
+  x402: { title: 8, elements: [16, 34, 52, 70], counts: [8] },
+  capabilities: { title: 8, elements: [14, 26, 38, 50, 62, 74] },
+  pillars: { title: 8, elements: [16, 30, 44, 58, 72] },
+  howto: {
+    title: 8,
+    elements: [18, 34, 50],
+    keys: [28, 44, 60],
+  },
+  token: {
+    title: 8,
+    elements: [10, 20, 30, 16, 30, 44],
+    counts: [14, 24, 34],
+  },
+  cta: { title: 6, elements: [0, 18] },
+};
+
+export const VERTICAL_REVEALS: Record<string, SceneRevealTiming> = {
+  hook: { title: 10, elements: [0] },
+  problem: { title: 6, elements: [12, 24, 36] },
+  idea: { title: 6, elements: [16, 28, 40] },
+  x402: { title: 6, elements: [10, 22, 34, 46], counts: [6] },
+  capabilities: { title: 6, elements: [10, 20, 30, 40] },
+  pillars: { title: 6, elements: [8, 18, 28, 38, 48] },
+  howto: { title: 6, elements: [10, 22, 34] },
+  token: {
+    title: 6,
+    elements: [8, 16, 24, 10, 20, 30],
+    counts: [10, 18, 26],
+  },
+  cta: { title: 4, elements: [0, 14] },
+};

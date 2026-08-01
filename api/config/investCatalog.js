@@ -2,7 +2,6 @@
  * Public Invest opportunities catalog — onchain Solana protocols only.
  * Single source of truth for the Invest page board + deposit adapters.
  */
-import { withMeteoraRef } from "../libs/meteoraReferral.js";
 
 /** @typedef {'liquid_staking' | 'lending' | 'lp'} InvestKind */
 
@@ -89,12 +88,12 @@ export const INVEST_CATALOG = Object.freeze([
     chain: 'solana',
     kind: 'lp',
     executable: false,
-    deepLinkUrl: withMeteoraRef('https://app.meteora.ag/dlmm'),
+    deepLinkUrl: 'https://app.meteora.ag/dlmm',
     defillamaProject: 'meteora',
     defillamaProtocol: 'meteora',
     toolId: 'invest-meteora-link',
     description:
-      'DLMM liquidity pools on Solana. Browse live APY here, provide liquidity on Meteora via Syra referral for +2% protocol-fee bonus on eligible pools.',
+      'DLMM liquidity pools on Solana. Browse live APY here, provide liquidity on Meteora.',
     riskNote: 'LP risk: impermanent loss and smart-contract risk. Not executed from this Invest board.',
   },
 ]);

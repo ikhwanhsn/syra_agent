@@ -5,7 +5,6 @@ import { useMemo } from "react";
 import { EarnPanelHeader } from "@/components/earn/EarnPanelHeader";
 import { EarnYieldPanelSkeleton } from "@/components/earn/EarnSkeleton";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
-import { MeteoraReferralPanel } from "@/components/growth/MeteoraReferralPanel";
 import { Button } from "@/components/ui/button";
 import {
   fetchEarnYieldBoard,
@@ -110,8 +109,6 @@ export function EarnYieldPanel({
       </p>
 
       <HowItWorksStrip />
-
-      <MeteoraReferralPanel compact />
 
       {boardQ.isLoading ? (
         <EarnYieldPanelSkeleton includeHeader={false} />

@@ -1,5 +1,4 @@
 import { getApiBaseUrl } from "@/lib/chatApi";
-import { withMeteoraRef } from "@/lib/meteoraReferral";
 import { SYRA_MINT } from "@/lib/swapPresets";
 
 const base = () => `${getApiBaseUrl().replace(/\/$/, "")}/experiment/lp-agent`;
@@ -96,9 +95,7 @@ export function volumeToTvlRatio(volume24hUsd: number, tvlUsd: number): number |
 }
 
 export function meteoraDeepLink(poolAddress: string): string {
-  return withMeteoraRef(
-    `https://app.meteora.ag/dlmm/${encodeURIComponent(poolAddress.trim())}`,
-  );
+  return `https://app.meteora.ag/dlmm/${encodeURIComponent(poolAddress.trim())}`;
 }
 
 export function poolPairLabel(pool: Pick<MeteoraLpPool, "baseSymbol" | "quoteSymbol" | "poolName">): string {

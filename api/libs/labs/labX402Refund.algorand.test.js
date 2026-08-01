@@ -5,13 +5,21 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   classifyAlgorandRefundError,
+  computeAlgorandPayerAlgoSeedNeedMicro,
   computeAlgorandSpendableMicro,
+  ensureAlgorandPayerAlgoForOptInAndFees,
   ensurePayToAlgoForUsdcRefund,
   isAlgorandBelowMinBalanceError,
+  PAYER_ALGO_SEED_FEE_CUSHION_MICRO,
+  PAYTO_USDC_REFUND_BATCH_SIZE,
   PAYTO_USDC_REFUND_FEE_NEED_MICRO,
   spendableFromAccountInfo,
 } from './labAlgorandFeeBuffer.js';
-import { evaluateLowBalanceRefund, PAYTO_INSUFFICIENT_FUNDS } from './labX402Refund.js';
+import {
+  clampAlgorandPayToUsdcRefundAmount,
+  evaluateLowBalanceRefund,
+  PAYTO_INSUFFICIENT_FUNDS,
+} from './labX402Refund.js';
 import {
   ALGO_MIN_FOR_USDC_OPT_IN,
   computeAlgorandUsdcOptInNeedMicro,
@@ -128,12 +136,99 @@ describe('evaluateAlgorandUsdcOptInAlgoGate', () => {
   });
 });
 
+describe('PAYTO_USDC_REFUND_FEE_NEED_MICRO (batch cushion)', () => {
+  test('covers multiple refunds per scheduler tick', () => {
+    assert.ok(PAYTO_USDC_REFUND_BATCH_SIZE >= 8n);
+    const singleRefund = 1_000n * 2n + 20_000n;
+    assert.equal(PAYTO_USDC_REFUND_FEE_NEED_MICRO, singleRefund * PAYTO_USDC_REFUND_BATCH_SIZE);
+    assert.ok(PAYTO_USDC_REFUND_FEE_NEED_MICRO > singleRefund);
+  });
+});
+
+describe('clampAlgorandPayToUsdcRefundAmount', () => {
+  test('sends full amount when PayTo has enough USDC', () => {
+    const clamp = clampAlgorandPayToUsdcRefundAmount({
+      requestedUsd: 0.2,
+      payToUsdcBalance: 0.71,
+      minPriceUsd: 0.01,
+    });
+    assert.equal(clamp.ok, true);
+    assert.equal(clamp.partial, false);
+    assert.equal(clamp.amountUsd, 0.2);
+    assert.equal(clamp.reason, 'full');
+  });
+
+  test('partial top-up when PayTo USDC is below request but above min call', () => {
+    const clamp = clampAlgorandPayToUsdcRefundAmount({
+      requestedUsd: 0.2,
+      payToUsdcBalance: 0.05,
+      minPriceUsd: 0.01,
+    });
+    assert.equal(clamp.ok, true);
+    assert.equal(clamp.partial, true);
+    assert.equal(clamp.amountUsd, 0.05);
+    assert.equal(clamp.reason, 'partial');
+  });
+
+  test('underfunded only when PayTo USDC is below min call price', () => {
+    const clamp = clampAlgorandPayToUsdcRefundAmount({
+      requestedUsd: 0.2,
+      payToUsdcBalance: 0.005,
+      minPriceUsd: 0.01,
+    });
+    assert.equal(clamp.ok, false);
+    assert.equal(clamp.amountUsd, 0);
+    assert.equal(clamp.reason, 'payto_underfunded');
+  });
+
+  test('rejects invalid inputs', () => {
+    const clamp = clampAlgorandPayToUsdcRefundAmount({
+      requestedUsd: 0,
+      payToUsdcBalance: 1,
+      minPriceUsd: 0.01,
+    });
+    assert.equal(clamp.ok, false);
+    assert.equal(clamp.reason, 'invalid');
+  });
+});
+
+describe('computeAlgorandPayerAlgoSeedNeedMicro', () => {
+  test('fresh empty payer needs opt-in floor + fee cushion', () => {
+    const seed = computeAlgorandPayerAlgoSeedNeedMicro({
+      amountMicro: 0n,
+      minBalanceMicro: 100_000n,
+    });
+    assert.equal(seed.alreadyOk, false);
+    assert.equal(seed.requiredForOptInMicro, 210_000n);
+    assert.equal(seed.targetMicro, 210_000n + PAYER_ALGO_SEED_FEE_CUSHION_MICRO);
+    assert.equal(seed.deficitMicro, seed.targetMicro);
+  });
+
+  test('alreadyOk when payer already holds target ALGO', () => {
+    const seed = computeAlgorandPayerAlgoSeedNeedMicro({
+      amountMicro: 300_000n,
+      minBalanceMicro: 100_000n,
+    });
+    assert.equal(seed.alreadyOk, true);
+    assert.equal(seed.deficitMicro, 0n);
+  });
+
+  test('deficit equals target minus have', () => {
+    const seed = computeAlgorandPayerAlgoSeedNeedMicro({
+      amountMicro: 150_000n,
+      minBalanceMicro: 100_000n,
+    });
+    assert.equal(seed.alreadyOk, false);
+    assert.equal(seed.deficitMicro, seed.targetMicro - 150_000n);
+  });
+});
+
 describe('ensurePayToAlgoForUsdcRefund', () => {
   test('already ok when PayTo has spendable above need', async () => {
     const client = {
       accountInformation() {
         return {
-          do: async () => ({ amount: 250000, minBalance: 200000 }),
+          do: async () => ({ amount: 400000, minBalance: 200000 }),
         };
       },
     };
@@ -160,7 +255,7 @@ describe('ensurePayToAlgoForUsdcRefund', () => {
             if (addr === payTo) {
               return { amount: 199638, minBalance: 200000 };
             }
-            return { amount: 1_000_000, minBalance: 200000 };
+            return { amount: 2_000_000, minBalance: 200000 };
           },
         };
       },
@@ -201,5 +296,80 @@ describe('ensurePayToAlgoForUsdcRefund', () => {
     assert.equal(result.ok, false);
     assert.match(String(result.error), /insufficient_algo_for_usdc_refund/);
     assert.equal(result.spendable, 0);
+  });
+});
+
+describe('ensureAlgorandPayerAlgoForOptInAndFees', () => {
+  test('already ok when payer has opt-in + cushion ALGO', async () => {
+    const client = {
+      accountInformation() {
+        return {
+          do: async () => ({ amount: 300000, minBalance: 100000 }),
+        };
+      },
+    };
+    const result = await ensureAlgorandPayerAlgoForOptInAndFees('PAYERADDR', {
+      client,
+      funders: [],
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.already, true);
+  });
+
+  test('borrows deficit from PayTo/funder when payer ALGO is short', async () => {
+    const payer = 'PAYERADDR';
+    const funderAddr = 'PAYTOADDR';
+    /** @type {{ funder: string; amountMicro: bigint } | null} */
+    let sent = null;
+
+    const client = {
+      accountInformation(addr) {
+        return {
+          do: async () => {
+            if (addr === payer) {
+              return { amount: 100000, minBalance: 100000 };
+            }
+            return { amount: 2_000_000, minBalance: 200000 };
+          },
+        };
+      },
+    };
+
+    const expectedDeficit = computeAlgorandPayerAlgoSeedNeedMicro({
+      amountMicro: 100_000n,
+      minBalanceMicro: 100_000n,
+    }).deficitMicro;
+
+    const result = await ensureAlgorandPayerAlgoForOptInAndFees(payer, {
+      client,
+      funders: [{ address: funderAddr, sk: new Uint8Array(64) }],
+      sendPayment: async ({ funder, amountMicro }) => {
+        sent = { funder: funder.address, amountMicro };
+        return { txid: 'MOCKSEEDTX' };
+      },
+    });
+
+    assert.equal(result.ok, true);
+    assert.equal(result.funded, true);
+    assert.equal(result.from, funderAddr);
+    assert.ok(sent);
+    assert.equal(sent.funder, funderAddr);
+    assert.equal(sent.amountMicro, expectedDeficit);
+  });
+
+  test('fails clearly when no funder can seed opt-in ALGO', async () => {
+    const client = {
+      accountInformation() {
+        return {
+          do: async () => ({ amount: 0, minBalance: 0 }),
+        };
+      },
+    };
+    const result = await ensureAlgorandPayerAlgoForOptInAndFees('PAYERADDR', {
+      client,
+      funders: [],
+    });
+    assert.equal(result.ok, false);
+    assert.match(String(result.error), /insufficient_algo_for_opt_in_seed/);
   });
 });
