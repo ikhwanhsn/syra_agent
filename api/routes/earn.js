@@ -20,6 +20,7 @@ import {
   getEarnYieldLaunchReadiness,
   getEarnYieldProductReadiness,
   getEarnYieldUserStatus,
+  updateEarnYieldDepositForUser,
 } from '../libs/earnYieldService.js';
 import { EARN_PRODUCT_LP, getEarnProduct } from '../config/earnProducts.js';
 import { isAdminWalletAddress } from '../libs/adminWallet.js';
@@ -395,8 +396,11 @@ export function createEarnRouter() {
     if (
       code === 'insufficient_balance' ||
       code === 'lp_agent_wallet_required' ||
+      code === 'earn_agent_wallet_required' ||
       code === 'invest_agent_wallet_required' ||
-      code === 'unknown_earn_product'
+      code === 'unknown_earn_product' ||
+      code === 'strategy_not_enabled' ||
+      code === 'deposit_update_unsupported'
     ) {
       return 400;
     }
@@ -510,6 +514,43 @@ export function createEarnRouter() {
       res.json({ success: true, data });
     } catch (e) {
       const code = e?.code || 'disable_failed';
+      res.status(enableErrorStatus(code)).json({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+        code,
+      });
+    }
+  });
+
+  router.post('/yield/deposit', requireSession(), async (req, res) => {
+    try {
+      const anonymousId = req.user?.anonymousId;
+      if (!anonymousId) {
+        return res.status(401).json({ success: false, error: 'Authentication required' });
+      }
+      const productId =
+        (typeof req.body?.productId === 'string' && req.body.productId.trim()) ||
+        EARN_PRODUCT_LP;
+      const ownerWallet =
+        (typeof req.user?.walletAddress === 'string' && req.user.walletAddress.trim()) || null;
+      const maxDeposit =
+        req.body?.maxDeposit != null
+          ? Number(req.body.maxDeposit)
+          : req.body?.maxDepositSol != null
+            ? Number(req.body.maxDepositSol)
+            : req.body?.deposit != null
+              ? Number(req.body.deposit)
+              : undefined;
+      const data = await updateEarnYieldDepositForUser({
+        productId,
+        anonymousId,
+        ownerWallet,
+        maxDeposit,
+        maxDepositSol: maxDeposit,
+      });
+      res.json({ success: true, data });
+    } catch (e) {
+      const code = e?.code || (e instanceof Error ? e.message : 'deposit_update_failed');
       res.status(enableErrorStatus(code)).json({
         success: false,
         error: e instanceof Error ? e.message : String(e),

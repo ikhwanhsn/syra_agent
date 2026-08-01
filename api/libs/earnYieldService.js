@@ -218,6 +218,30 @@ export async function disableEarnYieldForUser({
 }
 
 /**
+ * Update the allocated deposit for an already-enabled product.
+ */
+export async function updateEarnYieldDepositForUser({
+  productId = EARN_PRODUCT_LP,
+  anonymousId,
+  ownerWallet,
+  maxDeposit,
+  maxDepositSol,
+}) {
+  const { adapter } = requireAdapter(productId);
+  if (typeof adapter.updateDepositForUser !== "function") {
+    const err = new Error(`deposit_update_unsupported:${productId}`);
+    err.code = "deposit_update_unsupported";
+    throw err;
+  }
+  const cap = maxDeposit != null ? maxDeposit : maxDepositSol;
+  return adapter.updateDepositForUser({
+    anonymousId,
+    ownerWallet,
+    maxDeposit: cap,
+  });
+}
+
+/**
  * Per-user status for a product (default LP).
  */
 export async function getEarnYieldUserStatus({

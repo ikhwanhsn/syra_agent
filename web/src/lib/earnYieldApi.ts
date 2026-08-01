@@ -118,6 +118,8 @@ export type EarnYieldUserStatus = {
     publicMaxDeposit?: number;
     publicMaxDepositSol?: number;
     publicMaxDepositUsdc?: number;
+    /** Amount allocated to this product (SOL products). */
+    earnDepositSol?: number | null;
     performanceFeeBps: number;
     lastError: string | null;
     pausedNoStrategyAt: string | null;
@@ -140,11 +142,15 @@ export type EarnYieldUserStatus = {
     equityUsd?: number | null;
     returnPct?: number | null;
   } | null;
-  /** Live LP agent wallet capital (deployed + liquid). Null when no LP wallet. */
+  /** Live agent wallet capital for this product. Null when no wallet. */
   wallet?: {
     onChainBalanceSol: number;
     deployedSol: number;
     availableSol: number;
+    /** Amount you allocated to this strategy (not the whole wallet). */
+    strategyDepositSol?: number;
+    /** Full agent wallet book (open positions + liquid SOL). */
+    walletTotalSol?: number;
     unrealizedPnlSol: number;
     totalReturnSol: number;
     canOpenNewPositions: boolean;
@@ -191,6 +197,21 @@ export async function disableEarnYield(closeAll = false, productId?: string | nu
   const body: Record<string, unknown> = { closeAll };
   if (productId) body.productId = productId;
   const res = await syraFetch(`${base()}/disable`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(body),
+  });
+  return parseJson(res);
+}
+
+/** Update allocated deposit for an already-enabled strategy. */
+export async function updateEarnYieldDeposit(
+  deposit: number,
+  productId?: string | null,
+): Promise<EarnYieldUserStatus> {
+  const body: Record<string, unknown> = { maxDeposit: deposit, deposit };
+  if (productId) body.productId = productId;
+  const res = await syraFetch(`${base()}/deposit`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify(body),

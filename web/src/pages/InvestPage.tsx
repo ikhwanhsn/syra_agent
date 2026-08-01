@@ -143,7 +143,7 @@ export default function InvestPage() {
       }
     >
       {showSkeleton ? (
-        <InvestPageSkeleton />
+        <InvestPageSkeleton connected={connected} />
       ) : (
         <div className="w-full space-y-6 sm:space-y-8">
           {!connected ? (

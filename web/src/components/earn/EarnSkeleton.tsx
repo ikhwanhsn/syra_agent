@@ -73,7 +73,17 @@ export function EarnStatsGridSkeleton({ cols = 2 }: { cols?: 2 | 3 }) {
   );
 }
 
-/** Yield-shaped default panel (matches EarnYieldPanel: header + browse card grid). */
+function EarnMetricCardSkeleton() {
+  return (
+    <div className={cn(overviewCardShell, "p-4")}>
+      <Skeleton className="h-3 w-20" />
+      <Skeleton className="mt-2 h-5 w-24" />
+      <Skeleton className="mt-1.5 h-3 w-28" />
+    </div>
+  );
+}
+
+/** Yield-shaped default panel (matches EarnYieldPanel: header + how-it-works + browse card grid). */
 export function EarnYieldPanelSkeleton({
   count = 4,
   includeHeader = true,
@@ -90,6 +100,23 @@ export function EarnYieldPanelSkeleton({
             <Skeleton className="h-9 w-28 rounded-md" />
           </div>
           <Skeleton className="h-4 w-full max-w-2xl" />
+          <div
+            className={cn(
+              overviewCardShell,
+              "grid gap-4 p-4 sm:grid-cols-3 sm:gap-3 sm:p-5",
+            )}
+            aria-hidden
+          >
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="flex gap-3 sm:flex-col sm:gap-2">
+                <Skeleton className="h-7 w-7 shrink-0 rounded-full" />
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-3 w-full max-w-[11rem]" />
+                </div>
+              </div>
+            ))}
+          </div>
         </>
       ) : null}
       <div className="space-y-3">
@@ -111,6 +138,75 @@ export function EarnYieldPanelSkeleton({
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Matches EarnYieldDetailPage body (back link is rendered above by the page). */
+export function EarnYieldDetailSkeleton() {
+  return (
+    <div
+      className="space-y-10 animate-in fade-in duration-300"
+      aria-busy="true"
+      aria-label="Loading strategy"
+      role="status"
+    >
+      <header className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between sm:gap-10">
+        <div className="flex min-w-0 items-start gap-4 sm:gap-5">
+          <Skeleton className="h-12 w-12 shrink-0 rounded-full" />
+          <div className="min-w-0 flex-1 space-y-2 pt-0.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <Skeleton className="h-8 w-56 max-w-full" />
+              <Skeleton className="h-5 w-14 rounded-full" />
+              <Skeleton className="h-5 w-12 rounded-full" />
+              <Skeleton className="h-5 w-20 rounded-full" />
+            </div>
+            <Skeleton className="h-4 w-full max-w-2xl" />
+            <Skeleton className="h-4 w-3/4 max-w-xl" />
+          </div>
+        </div>
+        <Skeleton className="h-11 w-36 shrink-0 rounded-full" />
+      </header>
+
+      <section className="space-y-3">
+        <Skeleton className="h-3 w-24" />
+        <ol className="space-y-3" aria-hidden>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <li key={i} className="flex gap-3">
+              <Skeleton className="mt-0.5 h-6 w-6 shrink-0 rounded-full" />
+              <Skeleton className="h-4 w-full max-w-lg" />
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section className="space-y-3">
+        <Skeleton className="h-3 w-20" />
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <EarnMetricCardSkeleton key={i} />
+          ))}
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-4 w-full max-w-xl" />
+        <Skeleton className="h-3 w-64 max-w-full" />
+        <div className="grid gap-3 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <EarnMetricCardSkeleton key={i} />
+          ))}
+        </div>
+      </section>
+
+      <section className={cn(overviewCardShell, "space-y-4 p-5 sm:p-6")}>
+        <div className="space-y-2">
+          <Skeleton className="h-5 w-36" />
+          <Skeleton className="h-4 w-64 max-w-full" />
+        </div>
+        <Skeleton className="h-11 w-40 rounded-md" />
+      </section>
     </div>
   );
 }

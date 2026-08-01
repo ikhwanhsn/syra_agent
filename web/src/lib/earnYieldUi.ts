@@ -32,6 +32,16 @@ export const EARN_GLOSSARY = {
     "Syra only charges when you make a profit. No fee on losses.",
   nonCustodial:
     "Your funds stay in your own agent wallet. Syra runs the strategy; you can stop anytime.",
+  strategyDeposit:
+    "The amount you allocated to this strategy when you started or last updated it. This is not the same as your full agent wallet balance.",
+  walletTotal:
+    "Everything currently in this strategy's agent wallet: open positions plus liquid balance. Can be higher than your deposit if the wallet already had funds.",
+  waitingToInvest:
+    "Cash in your agent wallet that is not in an open position yet. The strategy deploys it on the next cycle when a good opportunity exists.",
+  inOpenPositions:
+    "Capital currently locked in live positions for this strategy. It moves back to your wallet when positions close.",
+  depositLimit:
+    "How much you are allowed to allocate to this strategy in beta. Set your deposit within this range.",
   sol: "SOL: the main coin on Solana. This is what you deposit for this strategy.",
   usdc: "USDC: a dollar-pegged stablecoin. One USDC is meant to equal about one US dollar.",
 } as const;
@@ -81,6 +91,13 @@ export function fmtEarnAmount(n: number | null | undefined, denom: EarnDenom = "
   const sign = n > 0 ? "+" : "";
   if (denom === "USDC") return `${sign}$${n.toFixed(2)}`;
   return `${sign}${n.toFixed(3)} ${denom}`;
+}
+
+/** Absolute balance / deposit (no + sign — that reads as profit). */
+export function fmtEarnBalance(n: number | null | undefined, denom: EarnDenom = "SOL") {
+  if (n == null || !Number.isFinite(n)) return "-";
+  if (denom === "USDC") return `$${Math.abs(n).toFixed(2)}`;
+  return `${Math.abs(n).toFixed(3)} ${denom}`;
 }
 
 export function fmtEarnUsd(n: number | null | undefined) {

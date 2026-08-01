@@ -37,6 +37,7 @@ import { overviewAccentBackground, overviewCardShell, overviewKickerClass } from
 import { useWalletContext } from "@/contexts/WalletContext";
 import { useSyraAuth } from "@/contexts/SyraAuthContext";
 import { useAgentWallet } from "@/contexts/AgentWalletContext";
+import { isAdminWallet } from "@/constants/adminWallet";
 import { useToast } from "@/hooks/use-toast";
 import { agentWalletApi } from "@/lib/chatApi";
 import { DEFAULT_SYSTEM_PROMPT } from "@/lib/systemPrompt";
@@ -579,6 +580,9 @@ function AgentSetupSections({
   onCreateChatWallet: () => void;
   creatingChat: boolean;
 }) {
+  const { address, connected } = useWalletContext();
+  const showAdminExperimentDesks = isAdminWallet(connected, address);
+
   if (setupLoading && !activeAgent) {
     return (
       <div className="space-y-4">
@@ -728,35 +732,36 @@ function AgentSetupSections({
             className="min-h-[140px] resize-y rounded-xl border-border/80 bg-background/80 font-mono text-xs leading-relaxed"
           />
           <p className="text-xs text-muted-foreground">
-            Applies to agent chat sessions started after you save. Experiment follow and treasury deploy controls are
-            coming next.
+            Applies to agent chat sessions started after you save.
           </p>
         </CardContent>
       </Card>
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        <Card className={overviewCardShell}>
-          <CardHeader className="border-b border-border/40 pb-4">
-            <CardTitle className="text-base font-semibold">Experiment desks</CardTitle>
-            <CardDescription>Where this agent will deploy capital when live.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-2 pt-5">
-            {[
-              { to: "/lp-experiment#real-agent", label: "LP agents (sim + real)", icon: Droplets },
-            ].map(({ to, label, icon: Icon }) => (
-              <Link
-                key={to}
-                to={to}
-                className="flex items-center gap-3 rounded-xl border border-border/45 px-3 py-3 transition-colors hover:bg-muted/25"
-              >
-                <Icon className="h-4 w-4 text-muted-foreground" aria-hidden />
-                <span className="text-sm font-medium">{label}</span>
-                <ExternalLink className="ml-auto h-3.5 w-3.5 text-muted-foreground/50" aria-hidden />
-              </Link>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
+      {showAdminExperimentDesks ? (
+        <div className="grid gap-5 lg:grid-cols-2">
+          <Card className={overviewCardShell}>
+            <CardHeader className="border-b border-border/40 pb-4">
+              <CardTitle className="text-base font-semibold">Experiment desks</CardTitle>
+              <CardDescription>Where this agent will deploy capital when live.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-2 pt-5">
+              {[
+                { to: "/lp-experiment#real-agent", label: "LP agents (sim + real)", icon: Droplets },
+              ].map(({ to, label, icon: Icon }) => (
+                <Link
+                  key={to}
+                  to={to}
+                  className="flex items-center gap-3 rounded-xl border border-border/45 px-3 py-3 transition-colors hover:bg-muted/25"
+                >
+                  <Icon className="h-4 w-4 text-muted-foreground" aria-hidden />
+                  <span className="text-sm font-medium">{label}</span>
+                  <ExternalLink className="ml-auto h-3.5 w-3.5 text-muted-foreground/50" aria-hidden />
+                </Link>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+      ) : null}
 
       <div className="flex flex-wrap gap-3">
         <Button type="button" className="rounded-xl" onClick={onSave}>

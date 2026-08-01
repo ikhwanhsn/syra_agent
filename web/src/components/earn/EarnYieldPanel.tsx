@@ -15,6 +15,7 @@ import {
 } from "@/lib/earnYieldApi";
 import {
   earnProductIcon,
+  fmtEarnBalance,
   riskLevelLabel,
   summarizeTrackRecord,
 } from "@/lib/earnYieldUi";
@@ -139,7 +140,7 @@ export function EarnYieldPanel({
                   <StrategyBrowseCard
                     key={product.id}
                     product={product}
-                    active={Boolean(statusByProduct.get(product.id)?.enabled)}
+                    status={statusByProduct.get(product.id)}
                   />
                 ))}
               </div>
@@ -182,10 +183,10 @@ export function EarnYieldPanel({
 
 function StrategyBrowseCard({
   product,
-  active,
+  status,
 }: {
   product: EarnYieldProduct;
-  active: boolean;
+  status?: EarnYieldUserStatus;
 }) {
   const Icon = earnProductIcon(product);
   const denom = (product.denom || "SOL") as EarnDenom;
@@ -195,6 +196,16 @@ function StrategyBrowseCard({
   const detailTo = `/earn/yield/${encodeURIComponent(product.id)}`;
   const pitch = product.summary || product.description;
   const trackSummary = summarizeTrackRecord(product.stats, denom);
+  const active = Boolean(status?.enabled);
+  const deployed = status?.wallet?.deployedSol ?? 0;
+  const onChain = status?.wallet?.onChainBalanceSol ?? 0;
+  const deposit =
+    status?.wallet?.strategyDepositSol ??
+    status?.config?.earnDepositSol ??
+    status?.config?.publicMaxDepositSol ??
+    null;
+  const walletTotal =
+    status?.wallet?.walletTotalSol ?? (status?.wallet != null ? deployed + onChain : null);
   const ctaLabel = active ? "Manage" : "View strategy";
 
   return (
@@ -234,10 +245,38 @@ function StrategyBrowseCard({
         </div>
       </div>
 
-      <p className="text-sm leading-relaxed text-foreground">{trackSummary}</p>
+      {active && deposit != null && deposit > 0 ? (
+        <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/[0.06] px-3 py-2.5">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                Your deposit
+              </p>
+              <p className="mt-0.5 text-lg font-semibold tabular-nums text-foreground">
+                {fmtEarnBalance(deposit, denom)}
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                Wallet total
+              </p>
+              <p className="mt-0.5 text-lg font-semibold tabular-nums text-foreground">
+                {fmtEarnBalance(walletTotal, denom)}
+              </p>
+            </div>
+          </div>
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            {deployed > 0
+              ? `${fmtEarnBalance(deployed, denom)} in positions · rest waiting`
+              : "Deposit allocated · waiting to invest"}
+          </p>
+        </div>
+      ) : (
+        <p className="text-sm leading-relaxed text-foreground">{trackSummary}</p>
+      )}
 
       <p className="text-xs text-muted-foreground">
-        Deposit {minDep}-{maxDep} {denom} · Fee {feePct}% on profit only
+        Limit {minDep}-{maxDep} {denom} · Fee {feePct}% on profit only
       </p>
 
       <span

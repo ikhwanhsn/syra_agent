@@ -54,6 +54,19 @@ function SidePanelSkeleton() {
   );
 }
 
+/** Matches InvestPositionsPanel loading shell (connected wallet). */
+function PositionsPanelSkeleton() {
+  return (
+    <div className={cn(overviewCardShell, "p-4 sm:p-6")}>
+      <Skeleton className="h-3 w-24" />
+      <div className="mt-4 space-y-3" aria-hidden>
+        <Skeleton className="h-12 w-full rounded-xl" />
+        <Skeleton className="h-12 w-full rounded-xl" />
+      </div>
+    </div>
+  );
+}
+
 function SpendToolCardSkeleton() {
   return (
     <li className={cn(overviewCardShell, "min-h-[9.5rem] min-w-0")}>
@@ -101,17 +114,28 @@ function ProgressRowSkeleton() {
 
 function SuggestionCardSkeleton() {
   return (
-    <li className={cn(overviewCardShell, "min-w-0 p-4 sm:p-5")}>
-      <Skeleton className="h-3 w-24" />
-      <Skeleton className="mt-2 h-5 w-3/4 max-w-[14rem]" />
-      <Skeleton className="mt-2 h-4 w-full" />
-      <Skeleton className="mt-1 h-4 w-5/6" />
+    <li className={cn(overviewCardShell, "min-h-[10rem] min-w-0")}>
+      <div className="flex h-full flex-col justify-between gap-3 p-4 sm:p-5">
+        <div className="min-w-0">
+          <div className="mb-2.5 flex flex-wrap items-center gap-1.5">
+            <Skeleton className="h-5 w-16 rounded-md" />
+            <Skeleton className="h-5 w-12 rounded-md" />
+          </div>
+          <Skeleton className="h-5 w-3/4 max-w-[14rem]" />
+          <Skeleton className="mt-1 h-4 w-full" />
+          <Skeleton className="mt-1 h-4 w-5/6" />
+        </div>
+      </div>
     </li>
   );
 }
 
 /** Full Invest page body skeleton. */
-export function InvestPageSkeleton() {
+export function InvestPageSkeleton({
+  connected = false,
+}: {
+  connected?: boolean;
+} = {}) {
   return (
     <div
       className="w-full space-y-6 animate-in fade-in duration-300 sm:space-y-8"
@@ -143,7 +167,7 @@ export function InvestPageSkeleton() {
           </ul>
         </section>
         <aside className="min-w-0 lg:col-span-4">
-          <SidePanelSkeleton />
+          {connected ? <PositionsPanelSkeleton /> : <SidePanelSkeleton />}
         </aside>
       </div>
     </div>
@@ -174,7 +198,7 @@ export function SpendPageSkeleton() {
             <Skeleton className="h-10 w-full rounded-full sm:h-9 sm:w-64" />
           </div>
           <div className="mb-4 flex gap-1.5 overflow-hidden">
-            {Array.from({ length: 5 }).map((_, i) => (
+            {Array.from({ length: 6 }).map((_, i) => (
               <Skeleton key={i} className="h-8 w-16 shrink-0 rounded-full" />
             ))}
           </div>
@@ -229,6 +253,7 @@ export function GrowAnalysisSkeleton() {
       aria-busy="true"
       aria-label="Loading portfolio analysis"
     >
+      <ConnectBannerSkeleton />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-12 lg:gap-4">
         <div
           className={cn(

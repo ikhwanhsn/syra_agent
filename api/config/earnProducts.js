@@ -51,10 +51,10 @@ export const EARN_PRODUCTS = [
     status: "beta",
     chain: "solana",
     description:
-      "Automated Meteora DLMM liquidity — earn trading fees from your LP agent wallet. Non-custodial; you fund the agent, Syra runs the strategy.",
+      "Automated Meteora DLMM liquidity — earn trading fees from your Earn agent wallet. Non-custodial; you fund the agent, Syra runs the strategy.",
     summary: "Earn trading fees by providing automated liquidity on Meteora DLMM pools.",
     howItWorks: [
-      "You deposit SOL into your LP agent wallet (Syra never takes custody of your keys).",
+      "You deposit SOL into your Earn agent wallet for this strategy (Syra never takes custody of your keys).",
       "Syra opens and manages Meteora DLMM positions that collect trading fees from swaps.",
       "Positions rebalance and exit based on a sim-qualified strategy leader and risk limits.",
       "A performance fee applies only on net-positive realized PnL; principal stays in your wallet.",
@@ -64,8 +64,9 @@ export const EARN_PRODUCTS = [
     riskLevel: "moderate",
     adapterKey: "lp",
     denom: "SOL",
-    walletPurpose: "lp",
-    walletQuery: "lp",
+    /** LP Autopilot signs with the earn pillar wallet (dedicated :lp retired). */
+    walletPurpose: "earn",
+    walletQuery: "earn",
     minDeposit: 1,
     maxDeposit: 5,
     performanceFeeBps: 1000,
@@ -78,7 +79,7 @@ export const EARN_PRODUCTS = [
       paperSample: "27k+ paper positions",
     },
     disclosures: [
-      "Non-custodial: you deposit SOL into your LP agent wallet. Syra does not take custody of your principal.",
+      "Non-custodial: you deposit SOL into your Earn agent wallet for this strategy. Syra does not take custody of your principal.",
       "Past lab performance is not a guarantee of future returns. You can lose capital from IL, fees, and bad exits.",
       "Strategy opens may pause when no qualified sim leader exists; open positions are still managed.",
       "Beta is capped (1–5 SOL). Kill switch auto-pauses new deposits if error rate or PnL guardrails trip.",

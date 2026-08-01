@@ -2,7 +2,7 @@ import { useLocation } from "react-router-dom";
 import { ArticlesPageSkeleton } from "@/components/marketing/ArticlesSkeleton";
 import { AssetsTableSkeleton } from "@/components/assets/AssetsTableSkeleton";
 import { AssetDetailSkeleton } from "@/components/assets/AssetDetailSkeleton";
-import { EarnPageSkeleton } from "@/components/earn/EarnSkeleton";
+import { EarnPageSkeleton, EarnYieldDetailSkeleton } from "@/components/earn/EarnSkeleton";
 import { OrganizeSummarySkeleton, OrganizeTableSkeleton } from "@/components/organize/OrganizeSkeleton";
 import {
   GrowAnalysisSkeleton,
@@ -255,7 +255,7 @@ function skeletonForPath(pathname: string) {
   const root = parts[0] ?? "";
 
   if (root === "earn" && parts[1] === "token") return <EarnTokenDetailSkeleton />;
-  if (root === "earn" && parts[1] === "yield") return <EarnTokenDetailSkeleton />;
+  if (root === "earn" && parts[1] === "yield") return <EarnYieldDetailSkeleton />;
   if (root === "earn") return <EarnPageSkeleton />;
   if (root === "invest") return <InvestPageSkeleton />;
   if (root === "spend") return <SpendPageSkeleton />;

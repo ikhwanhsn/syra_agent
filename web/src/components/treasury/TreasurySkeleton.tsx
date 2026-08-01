@@ -19,10 +19,10 @@ function BalanceCardSkeleton() {
         }}
       />
       <div className="relative flex min-h-0 flex-1 flex-col justify-between gap-6 p-5 sm:gap-8 sm:p-7 lg:p-8">
-        <div className="space-y-3">
+        <div className="min-w-0">
           <Skeleton className="h-3.5 w-24" />
-          <Skeleton className="h-11 w-44 rounded-xl sm:h-14 sm:w-56" />
-          <Skeleton className="h-6 w-20 rounded-full" />
+          <Skeleton className="mt-2 h-11 w-44 rounded-xl sm:h-14 sm:w-56" />
+          <Skeleton className="mt-3 h-6 w-20 rounded-full sm:mt-4" />
         </div>
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
@@ -69,10 +69,13 @@ function SpendCardSkeleton({
           }}
         />
         <div className="relative z-[1] flex h-full min-h-0 flex-1 flex-col gap-4 p-4 sm:gap-5 sm:p-6 lg:p-7">
-          <div className="shrink-0 space-y-2">
-            <Skeleton className="h-3.5 w-14" />
-            <Skeleton className="h-8 w-28 rounded-lg sm:h-9" />
-            <Skeleton className="h-3 w-24" />
+          <div className="flex shrink-0 items-start justify-between gap-3">
+            <div className="min-w-0 space-y-2">
+              <Skeleton className="h-3.5 w-14" />
+              <Skeleton className="h-8 w-28 rounded-lg sm:h-9" />
+              <Skeleton className="h-3 w-24" />
+            </div>
+            <Skeleton className="h-6 w-16 shrink-0 rounded-full" />
           </div>
           <div className="flex min-h-[4.5rem] flex-1 items-end gap-1.5">
             {Array.from({ length: 7 }).map((_, i) => (
@@ -101,10 +104,16 @@ function WalletCardSkeleton() {
     <div className={cn(overviewCardShell, "rounded-2xl p-3.5 sm:p-5")}>
       <div className="flex items-center gap-3.5 sm:block">
         <Skeleton className="h-10 w-10 shrink-0 rounded-xl sm:mb-5 sm:h-9 sm:w-9" />
-        <div className="min-w-0 flex-1 space-y-2">
-          <Skeleton className="h-3.5 w-16" />
-          <Skeleton className="h-5 w-24 sm:h-6" />
-          <Skeleton className="mt-3 hidden h-1 w-full rounded-full sm:block" />
+        <div className="flex min-w-0 flex-1 items-center justify-between gap-3 sm:block sm:flex-none">
+          <div className="min-w-0 space-y-2">
+            <Skeleton className="h-3.5 w-16" />
+            <Skeleton className="h-5 w-24 sm:h-6" />
+          </div>
+          <div className="flex shrink-0 items-center gap-2 sm:hidden">
+            <Skeleton className="h-3 w-8" />
+            <Skeleton className="h-4 w-4 rounded" />
+          </div>
+          <Skeleton className="mt-3 hidden h-1 w-full rounded-full sm:mt-5 sm:block" />
         </div>
       </div>
     </div>

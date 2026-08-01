@@ -92,7 +92,13 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
       { href: "/overview", label: "Overview", icon: LayoutDashboard },
       { href: "/assets", label: "Assets", icon: FileSearch },
       { href: "/analyzer", label: "Token Analyzer", icon: Rocket },
-      { href: "/lp-experiment", label: "LP agents", icon: Droplets },
+      {
+        href: "/lp-experiment",
+        label: "LP agents",
+        icon: Droplets,
+        description: "Meteora DLMM liquidity agents",
+        adminOnly: true,
+      },
       {
         href: "/labs",
         label: "Labs",

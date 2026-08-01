@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Clock, ExternalLink, Lock, Pause, Play } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
-import { EarnTokenDetailSkeleton } from "@/components/RouteFallback";
+import { EarnYieldDetailSkeleton } from "@/components/earn/EarnSkeleton";
 import { InfoHint } from "@/components/earn/InfoHint";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
   enableEarnYield,
   fetchEarnYieldBoard,
   fetchEarnYieldStatus,
+  updateEarnYieldDeposit,
   type EarnDenom,
 } from "@/lib/earnYieldApi";
 import {
@@ -21,6 +22,7 @@ import {
   denomHelp,
   earnProductIcon,
   fmtEarnAmount,
+  fmtEarnBalance,
   humanizeAgentNote,
   readinessReasons,
   riskLevelLabel,
@@ -55,8 +57,8 @@ export default function EarnYieldDetailPage() {
   const minDep = product?.minDeposit ?? 1;
   const maxDep = product?.maxDeposit ?? 5;
   const feePct = product?.performanceFeePct ?? 10;
-  const cap = depositCap ?? maxDep;
-  const walletQ = product?.walletQuery || (denom === "SOL" ? "lp" : "invest");
+  const defaultDeposit = Math.round(((minDep + maxDep) / 2) * 2) / 2;
+  const walletQ = product?.walletQuery || (denom === "SOL" ? "earn" : "invest");
 
   const statusQ = useQuery({
     queryKey: ["earn", "yield", "status", productId, anonymousId ?? ""],
@@ -73,11 +75,38 @@ export default function EarnYieldDetailPage() {
   const agentNote = humanizeAgentNote(status?.config?.lastError);
   const wallet = status?.wallet;
   const deployedSol = wallet?.deployedSol ?? 0;
+  const onChainBalanceSol = wallet?.onChainBalanceSol ?? 0;
+  const waitingSol =
+    wallet?.availableSol ?? (wallet?.onChainBalanceSol != null ? wallet.onChainBalanceSol : null);
+  const walletTotalSol =
+    wallet?.walletTotalSol ?? (wallet != null ? deployedSol + onChainBalanceSol : null);
+  const strategyDepositSol =
+    wallet?.strategyDepositSol ??
+    status?.config?.earnDepositSol ??
+    status?.config?.publicMaxDepositSol ??
+    null;
+  const cap =
+    depositCap ??
+    (strategyDepositSol != null && strategyDepositSol > 0 ? strategyDepositSol : defaultDeposit);
   const unrealizedPnl = wallet?.unrealizedPnlSol ?? status?.summary?.unrealizedPnlSol ?? 0;
-  const availableSol = wallet?.availableSol ?? wallet?.onChainBalanceSol;
   const staleNote =
     status?.enabled && wallet?.stale ? "Waiting for the next automated cycle" : null;
-  const statusNote = agentNote || staleNote;
+  const fundingGap =
+    strategyDepositSol != null &&
+    walletTotalSol != null &&
+    strategyDepositSol > walletTotalSol + 1e-9
+      ? strategyDepositSol - walletTotalSol
+      : 0;
+  const waitingHint =
+    strategyDepositSol != null &&
+    strategyDepositSol > 0 &&
+    deployedSol <= 0 &&
+    (waitingSol ?? 0) > 0
+      ? fundingGap > 0
+        ? `Deposit ${fmtEarnBalance(fundingGap, denom)} more to reach your allocated amount.`
+        : "Your deposit is in the wallet and waiting for the next open."
+      : null;
+  const statusNote = agentNote || staleNote || waitingHint;
   const howItWorks = product?.howItWorks ?? [];
   const rails = product?.rails ?? [];
   const Icon = product ? earnProductIcon(product) : null;
@@ -121,6 +150,17 @@ export default function EarnYieldDetailPage() {
     },
   });
 
+  const updateDepositM = useMutation({
+    mutationFn: (deposit: number) => updateEarnYieldDeposit(deposit, productId),
+    onSuccess: () => {
+      notify.success("Deposit updated", `Your ${product?.label ?? "strategy"} deposit is now set.`);
+      void queryClient.invalidateQueries({ queryKey: ["earn", "yield"] });
+    },
+    onError: (e: Error) => {
+      notify.error("Could not update deposit", e.message);
+    },
+  });
+
   return (
     <div className="relative flex min-h-0 flex-col">
       <div
@@ -147,7 +187,7 @@ export default function EarnYieldDetailPage() {
             body="This link is missing a strategy id."
           />
         ) : boardQ.isLoading ? (
-          <EarnTokenDetailSkeleton />
+          <EarnYieldDetailSkeleton />
         ) : boardQ.isError ? (
           <EmptyState
             title="Couldn't load this strategy"
@@ -243,9 +283,11 @@ export default function EarnYieldDetailPage() {
               <SectionTitle>The basics</SectionTitle>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <MetricCard
-                  label="Your deposit"
+                  label="Deposit limit"
+                  infoLabel="What is the deposit limit?"
+                  infoText={EARN_GLOSSARY.depositLimit}
                   value={`${minDep}-${maxDep} ${denom}`}
-                  hint="Range you can put in"
+                  hint="Max you can fund in beta"
                 />
                 <MetricCard
                   label="Fee on profit"
@@ -281,16 +323,104 @@ export default function EarnYieldDetailPage() {
 
             {status?.enabled && status.summary ? (
               <section className="space-y-3">
-                <SectionTitle>Your wallet</SectionTitle>
-                <p className="text-xs text-muted-foreground">
-                  Live capital on your agent wallet, plus locked-in results since you started.
-                </p>
+                <div className="flex flex-wrap items-end justify-between gap-2">
+                  <div className="space-y-1">
+                    <SectionTitle>Your capital in this strategy</SectionTitle>
+                    <p className="text-xs text-muted-foreground">
+                      Funds for {product.label} only. Other Earn products keep their own balances.
+                    </p>
+                  </div>
+                  <Button variant="outline" size="sm" className="h-8 gap-1.5 rounded-full" asChild>
+                    <Link to={`/wallet?wallet=${walletQ}`}>
+                      Earn wallet
+                      <ExternalLink className="h-3 w-3 opacity-70" aria-hidden />
+                    </Link>
+                  </Button>
+                </div>
+
+                <div
+                  className={cn(
+                    overviewCardShell,
+                    "space-y-4 p-5",
+                    strategyDepositSol != null && strategyDepositSol > 0
+                      ? "border-emerald-500/25 bg-emerald-500/[0.04]"
+                      : null,
+                  )}
+                >
+                  <div className="grid gap-4 sm:grid-cols-2 sm:gap-6">
+                    <div className="min-w-0 space-y-1">
+                      <div className="flex items-center gap-1">
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                          Your deposit
+                        </p>
+                        <InfoHint
+                          label="What is your deposit?"
+                          text={EARN_GLOSSARY.strategyDeposit}
+                        />
+                      </div>
+                      <p className="font-display text-3xl font-semibold tracking-tight tabular-nums text-foreground">
+                        {fmtEarnBalance(strategyDepositSol, denom)}
+                      </p>
+                      <p className="text-sm leading-relaxed text-muted-foreground">
+                        Amount you allocated to {product.label}
+                      </p>
+                    </div>
+                    <div className="min-w-0 space-y-1 border-t border-border/40 pt-4 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0">
+                      <div className="flex items-center gap-1">
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                          Wallet total
+                        </p>
+                        <InfoHint
+                          label="What is wallet total?"
+                          text={EARN_GLOSSARY.walletTotal}
+                        />
+                      </div>
+                      <p className="font-display text-3xl font-semibold tracking-tight tabular-nums text-foreground">
+                        {fmtEarnBalance(walletTotalSol, denom)}
+                      </p>
+                      <p className="text-sm leading-relaxed text-muted-foreground">
+                        {walletTotalSol != null &&
+                        strategyDepositSol != null &&
+                        walletTotalSol > strategyDepositSol + 1e-9
+                          ? "Includes SOL that was already in this wallet"
+                          : "Open positions + liquid balance"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 border-t border-border/40 pt-3">
+                    {deployedSol <= 0 && (waitingSol ?? 0) > 0 ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-amber-800 dark:text-amber-300">
+                        <Clock className="h-3 w-3" aria-hidden />
+                        Waiting to invest
+                      </span>
+                    ) : null}
+                    <p className="text-xs text-muted-foreground">
+                      {deployedSol > 0
+                        ? `${fmtEarnBalance(deployedSol, denom)} in open positions · ${fmtEarnBalance(waitingSol, denom)} waiting`
+                        : strategyDepositSol != null && strategyDepositSol > 0
+                          ? "Not in a position yet. The strategy opens on the next cycle."
+                          : "Set your deposit below, then fund your Earn wallet."}
+                    </p>
+                  </div>
+                </div>
+
                 <div className="grid gap-3 sm:grid-cols-3">
                   <MetricCard
-                    label="Currently invested"
-                    value={fmtEarnAmount(deployedSol, denom)}
-                    hint="In open positions"
+                    label="In open positions"
+                    infoLabel="What is in open positions?"
+                    infoText={EARN_GLOSSARY.inOpenPositions}
+                    value={fmtEarnBalance(deployedSol, denom)}
+                    hint={`${status.summary.openCount ?? 0} active position${(status.summary.openCount ?? 0) === 1 ? "" : "s"}`}
                     positive={deployedSol > 0}
+                  />
+                  <MetricCard
+                    label="Waiting to invest"
+                    infoLabel="What is waiting to invest?"
+                    infoText={EARN_GLOSSARY.waitingToInvest}
+                    value={waitingSol != null ? fmtEarnBalance(waitingSol, denom) : "-"}
+                    hint="In wallet, not in a position yet"
+                    positive={(waitingSol ?? 0) > 0 && deployedSol <= 0}
                   />
                   <MetricCard
                     label="Open profit / loss"
@@ -300,13 +430,8 @@ export default function EarnYieldDetailPage() {
                     hint="Can still change"
                     positive={unrealizedPnl > 0}
                   />
-                  <MetricCard
-                    label="Open positions"
-                    value={String(status.summary.openCount ?? 0)}
-                    hint="Active on your agent"
-                  />
                 </div>
-                <div className="grid gap-3 sm:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-2">
                   <MetricCard
                     label="Your win rate"
                     infoLabel="What is your win rate?"
@@ -335,11 +460,6 @@ export default function EarnYieldDetailPage() {
                         status.summary.netPnlUsd ??
                         0) > 0
                     }
-                  />
-                  <MetricCard
-                    label="Available in wallet"
-                    value={availableSol != null ? fmtEarnAmount(availableSol, denom) : "-"}
-                    hint="Ready to invest or withdraw"
                   />
                 </div>
               </section>
@@ -447,7 +567,8 @@ export default function EarnYieldDetailPage() {
                   {status?.enabled ? "Manage this strategy" : "Start earning"}
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  Deposit {minDep} to {maxDep} {denom}. Fee {feePct}%, only on profit.
+                  Allocate {minDep} to {maxDep} {denom} for this strategy. Fee {feePct}%, only on
+                  profit. Wallet total can differ if the wallet already had funds.
                 </p>
               </div>
 
@@ -478,46 +599,77 @@ export default function EarnYieldDetailPage() {
                   Sign in to continue
                 </Button>
               ) : status?.enabled ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 text-sm text-emerald-600 dark:text-emerald-400">
-                    <Play className="h-3.5 w-3.5" aria-hidden /> Active
-                  </span>
-                  <Button
-                    variant="outline"
-                    className="min-h-11"
-                    disabled={disableM.isPending}
-                    onClick={() => disableM.mutate(false)}
-                  >
-                    <Pause className="mr-1.5 h-3.5 w-3.5" aria-hidden />
-                    Pause
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    className="min-h-11"
-                    disabled={disableM.isPending}
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          `Stop ${product.label} and close open positions? This may lock in losses.`,
-                        )
-                      ) {
-                        disableM.mutate(true);
+                <div className="space-y-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+                    <label className="space-y-1.5 text-sm text-muted-foreground">
+                      Your deposit ({denom})
+                      <input
+                        type="number"
+                        min={minDep}
+                        max={maxDep}
+                        step={denom === "SOL" ? 0.5 : 5}
+                        value={cap}
+                        onChange={(e) => setDepositCap(Number(e.target.value))}
+                        className="block h-11 w-full rounded-md border border-border/60 bg-background px-3 text-sm text-foreground sm:w-36"
+                        aria-label={`Your deposit in ${denom}`}
+                      />
+                    </label>
+                    <Button
+                      variant="outline"
+                      className="min-h-11"
+                      disabled={
+                        updateDepositM.isPending ||
+                        !Number.isFinite(cap) ||
+                        cap < minDep ||
+                        cap > maxDep ||
+                        (strategyDepositSol != null && Math.abs(cap - strategyDepositSol) < 1e-9)
                       }
-                    }}
-                  >
-                    Stop & close
-                  </Button>
-                  <Button variant="outline" className="min-h-11" asChild>
-                    <Link to={`/wallet?wallet=${walletQ}`}>
-                      Wallet
-                      <ExternalLink className="ml-1.5 h-3.5 w-3.5 opacity-70" aria-hidden />
-                    </Link>
-                  </Button>
+                      onClick={() => updateDepositM.mutate(cap)}
+                    >
+                      Update deposit
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 text-sm text-emerald-600 dark:text-emerald-400">
+                      <Play className="h-3.5 w-3.5" aria-hidden /> Active
+                    </span>
+                    <Button
+                      variant="outline"
+                      className="min-h-11"
+                      disabled={disableM.isPending}
+                      onClick={() => disableM.mutate(false)}
+                    >
+                      <Pause className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+                      Pause
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      className="min-h-11"
+                      disabled={disableM.isPending}
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            `Stop ${product.label} and close open positions? This may lock in losses.`,
+                          )
+                        ) {
+                          disableM.mutate(true);
+                        }
+                      }}
+                    >
+                      Stop & close
+                    </Button>
+                    <Button variant="outline" className="min-h-11" asChild>
+                      <Link to={`/wallet?wallet=${walletQ}`}>
+                        Wallet
+                        <ExternalLink className="ml-1.5 h-3.5 w-3.5 opacity-70" aria-hidden />
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
                   <label className="space-y-1.5 text-sm text-muted-foreground">
-                    Max deposit ({denom})
+                    Your deposit ({denom})
                     <input
                       type="number"
                       min={minDep}
@@ -527,7 +679,7 @@ export default function EarnYieldDetailPage() {
                       onChange={(e) => setDepositCap(Number(e.target.value))}
                       className="block h-11 w-full rounded-md border border-border/60 bg-background px-3 text-sm text-foreground sm:w-36"
                       disabled={!product.actionable}
-                      aria-label={`Maximum deposit in ${denom}`}
+                      aria-label={`Your deposit in ${denom}`}
                     />
                   </label>
                   <Button
@@ -596,7 +748,7 @@ function MetricCard({
       </div>
       <p
         className={cn(
-          "mt-1 text-lg font-semibold tabular-nums capitalize",
+          "mt-1 text-lg font-semibold tabular-nums",
           positive ? "text-emerald-600 dark:text-emerald-400" : "text-foreground",
         )}
       >

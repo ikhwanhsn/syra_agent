@@ -252,6 +252,7 @@ export async function enableForUser({ anonymousId, ownerWallet, maxDeposit, enab
     publicEarnListed: true,
     depositsPaused: false,
     publicMaxDepositSol: cap,
+    earnDepositSol: cap,
     targetBankSol: cap,
     maxPositionSol: Math.min(DEFAULT_MAX_POSITION_SOL, cap),
     maxConcurrentPositions: DEFAULT_MAX_CONCURRENT,
@@ -315,6 +316,42 @@ export async function disableForUser({ anonymousId, closeAll = false }) {
   };
 }
 
+/** Update the user's allocated deposit for this strategy (not wallet total). */
+export async function updateDepositForUser({ anonymousId, ownerWallet, maxDeposit }) {
+  const product = PRODUCT();
+  assertBetaAllowed(ownerWallet, anonymousId);
+
+  const wallet = await resolveLpAgentWallet(anonymousId);
+  if (!wallet?.agentAddress) {
+    const err = new Error("earn_agent_wallet_required — create / fund your Earn agent wallet first");
+    err.code = "earn_agent_wallet_required";
+    throw err;
+  }
+
+  const config = await LpRealConfig.findOne({ agentAddress: wallet.agentAddress }).lean();
+  if (!config?.publicEarnListed || !config?.enabled) {
+    const err = new Error("enable_strategy_before_updating_deposit");
+    err.code = "strategy_not_enabled";
+    throw err;
+  }
+
+  const cap = clampDepositCap(product, maxDeposit);
+  await LpRealConfig.updateOne(
+    { agentAddress: wallet.agentAddress },
+    {
+      $set: {
+        publicMaxDepositSol: cap,
+        earnDepositSol: cap,
+        targetBankSol: cap,
+        maxPositionSol: Math.min(DEFAULT_MAX_POSITION_SOL, cap),
+        lastError: null,
+      },
+    },
+  );
+
+  return getUserStatus({ anonymousId: wallet.anonymousId || anonymousId, ownerWallet });
+}
+
 export async function getUserStatus({ anonymousId, ownerWallet }) {
   const product = PRODUCT();
   const isAdmin = isAdminWalletAddress(ownerWallet);
@@ -348,6 +385,7 @@ export async function getUserStatus({ anonymousId, ownerWallet }) {
           depositsPaused: config.depositsPaused,
           publicMaxDeposit: config.publicMaxDepositSol,
           publicMaxDepositSol: config.publicMaxDepositSol,
+          earnDepositSol: config.earnDepositSol ?? config.publicMaxDepositSol ?? null,
           performanceFeeBps: config.performanceFeeBps,
           lastError: config.lastError,
           pausedNoStrategyAt: config.pausedNoStrategyAt,
@@ -382,10 +420,20 @@ export async function getUserStatus({ anonymousId, ownerWallet }) {
             summary?.unrealizedPnlSol != null
               ? Number(summary.unrealizedPnlSol) || 0
               : (Number(state.totalReturnSol) || 0) - realized;
+          const onChainBalanceSol = Number(state.onChainBalanceSol) || 0;
+          const deployedSol = Number(state.deployedSol) || 0;
+          const walletTotalSol = round(deployedSol + onChainBalanceSol);
+          const strategyDepositSol = round(
+            Number(config?.earnDepositSol ?? config?.publicMaxDepositSol) || 0,
+          );
           return {
-            onChainBalanceSol: state.onChainBalanceSol ?? 0,
-            deployedSol: state.deployedSol ?? 0,
+            onChainBalanceSol,
+            deployedSol,
             availableSol: state.availableSol ?? 0,
+            /** Amount user allocated to this product (not the whole wallet). */
+            strategyDepositSol,
+            /** Full agent wallet book for this product (positions + liquid). */
+            walletTotalSol,
             unrealizedPnlSol: unrealized,
             totalReturnSol: summary?.totalReturnSol ?? state.totalReturnSol ?? 0,
             canOpenNewPositions: Boolean(state.canOpenNewPositions),
@@ -406,6 +454,7 @@ export const lpEarnAdapter = {
   getUserStatus,
   enableForUser,
   disableForUser,
+  updateDepositForUser,
   enforceKill,
 };
 

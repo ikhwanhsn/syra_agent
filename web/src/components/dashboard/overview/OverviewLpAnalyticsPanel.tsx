@@ -6,6 +6,8 @@ import { AnimatedMetric } from "@/components/assets/AnimatedMetric";
 import { cn } from "@/lib/utils";
 import { formatSol } from "@/lib/dashboardOverviewAggregates";
 import type { LpRealSummary } from "@/lib/lpAgentRealApi";
+import { isAdminWallet } from "@/constants/adminWallet";
+import { useWalletContext } from "@/contexts/WalletContext";
 import {
   overviewAccentBackground,
   overviewCardShell,
@@ -34,6 +36,9 @@ export function OverviewLpAnalyticsPanel({
   loading?: boolean;
   className?: string;
 }) {
+  const { address, connected } = useWalletContext();
+  const showExperimentLinks = isAdminWallet(connected, address);
+
   const wlData = summary
     ? [
         { name: "Wins", value: summary.wins, fill: "hsl(142 71% 45%)" },
@@ -67,13 +72,15 @@ export function OverviewLpAnalyticsPanel({
             <h2 className="mt-1 text-base font-semibold tracking-tight text-foreground">Meteora agent P&amp;L</h2>
             <p className="mt-0.5 text-xs text-muted-foreground">Realized, unrealized, and fee income in SOL</p>
           </div>
-          <Link
-            to="/lp-experiment"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-background/40 text-muted-foreground transition-colors hover:text-foreground"
-            aria-label="Open LP experiment"
-          >
-            <Droplets className="h-4 w-4" aria-hidden />
-          </Link>
+          {showExperimentLinks ? (
+            <Link
+              to="/lp-experiment"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-background/40 text-muted-foreground transition-colors hover:text-foreground"
+              aria-label="Open LP experiment"
+            >
+              <Droplets className="h-4 w-4" aria-hidden />
+            </Link>
+          ) : null}
         </header>
 
         {loading ? (
@@ -84,13 +91,15 @@ export function OverviewLpAnalyticsPanel({
         ) : !summary ? (
           <div className="flex flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-border/60 bg-muted/10 px-4 py-12 text-center">
             <p className="text-sm text-muted-foreground">LP agent not set up yet.</p>
-            <Link
-              to="/lp-experiment"
-              className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-foreground hover:underline"
-            >
-              Deploy LP agent
-              <ArrowUpRight className="h-3.5 w-3.5" />
-            </Link>
+            {showExperimentLinks ? (
+              <Link
+                to="/lp-experiment"
+                className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-foreground hover:underline"
+              >
+                Deploy LP agent
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            ) : null}
           </div>
         ) : (
           <>

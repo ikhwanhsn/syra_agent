@@ -35,6 +35,11 @@ const lpRealConfigSchema = new mongoose.Schema(
     performanceFeeBps: { type: Number, default: 1000, min: 0, max: 5000 },
     /** Cap deposit for public Earn Yield beta (SOL). */
     publicMaxDepositSol: { type: Number, default: 5, min: 0.1, max: 50 },
+    /**
+     * Amount the user allocated to this Earn product (SOL).
+     * Distinct from wallet total — the agent wallet may hold extra SOL.
+     */
+    earnDepositSol: { type: Number, default: null, min: 0.1, max: 50 },
     /** When true, agent is listed on the public Earn Yield board (beta allowlist). */
     publicEarnListed: { type: Boolean, default: false, index: true },
     /**

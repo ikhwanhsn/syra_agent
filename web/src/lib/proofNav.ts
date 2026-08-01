@@ -2,8 +2,8 @@ import type { LucideIcon } from "lucide-react";
 import {
   Bot,
   FileSearch,
-  Droplets,
 } from "lucide-react";
+import { isDashboardPillarRoute } from "@/lib/dashboardPillarNav";
 
 export type ProofNavItem = {
   href: string;
@@ -27,23 +27,15 @@ export const PROOF_NAV_ITEMS: ProofNavItem[] = [
     description: "Market dossiers and token lookup",
     icon: FileSearch,
   },
-  {
-    href: "/lp-experiment",
-    label: "LP agents",
-    description: "Meteora DLMM liquidity agents",
-    icon: Droplets,
-  },
 ];
 
 export function isProofRoute(pathname: string): boolean {
   if (pathname === "/") return true;
   if (pathname.startsWith("/c/")) return true;
   if (pathname === "/about" || pathname === "/settings") return true;
-  const prefixes = ["/assets", "/lp-experiment"];
+  const prefixes = ["/assets"];
   return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 }
-
-import { isDashboardPillarRoute } from "@/lib/dashboardPillarNav";
 
 export function isDashboardRoute(pathname: string): boolean {
   return (
