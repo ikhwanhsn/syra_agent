@@ -1665,8 +1665,8 @@ function enrichPaymentPayloadResource(payload, req, options) {
 
 /**
  * Fallback when PayAI facilitator returns 500: verify Solana payment locally.
- * - Reject only if the tx is known to have failed on-chain (status.err).
- * - Accept valid signed tx even if not yet confirmed (payment came from our pay-402; avoids long waits).
+ * SECURITY: only accept confirmed/finalized on-chain status. Unconfirmed / null /
+ * "processed" txs are rejected so resources are not served before settlement.
  */
 async function verifySolanaPaymentLocally(payload, acc) {
   if (!acc || !isSolanaNetwork(acc)) {
@@ -1688,20 +1688,26 @@ async function verifySolanaPaymentLocally(payload, acc) {
     }
     const sigBase58 = typeof sig === "string" ? sig : bs58.encode(Buffer.from(sig));
     const connection = new Connection(SOLANA_RPC, "confirmed");
-    const { value } = await connection.getSignatureStatuses([sigBase58]);
+    const { value } = await connection.getSignatureStatuses([sigBase58], {
+      searchTransactionHistory: true,
+    });
     const status = value?.[0];
-    if (status?.err) {
+    if (!status) {
+      return { isValid: false, invalidReason: "Transaction not found or unconfirmed" };
+    }
+    if (status.err) {
       return { isValid: false, invalidReason: `Transaction failed: ${String(status.err)}` };
     }
     if (
-      status?.confirmationStatus === "confirmed" ||
-      status?.confirmationStatus === "finalized" ||
-      status?.confirmationStatus === "processed"
+      status.confirmationStatus === "confirmed" ||
+      status.confirmationStatus === "finalized"
     ) {
       return { isValid: true };
     }
-    // Not yet confirmed (or RPC returned null): accept anyway — payment is a valid signed tx from our pay-402.
-    return { isValid: true };
+    return {
+      isValid: false,
+      invalidReason: `Transaction not confirmed (status=${status.confirmationStatus || "unknown"})`,
+    };
   } catch (e) {
     return null;
   }

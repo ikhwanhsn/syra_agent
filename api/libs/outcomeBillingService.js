@@ -7,9 +7,80 @@ import OutcomeReport from "../models/OutcomeReport.js";
 import { computeOutcomeFee } from "../config/outcomePricing.js";
 import { recordX402Call } from "../utils/recordX402Call.js";
 import { queueBuybackRevenue } from "../libs/buybackScheduler.js";
+import { SOLANA_PAYTO, SOLANA_USDC_MINT } from "../config/settlement.js";
+import { withSolanaRpcFallback } from "./solanaServerRpc.js";
 
 function newBillingEventId() {
   return `bill_${crypto.randomBytes(12).toString("hex")}`;
+}
+
+/**
+ * Verify a Solana USDC payment to the Syra merchant payTo for the expected USD amount.
+ * @param {string} txSignature
+ * @param {{ amountUsd: number; payer?: string | null }} opts
+ */
+async function verifyOutcomeBillingSolanaUsdcTx(txSignature, opts) {
+  const signature = String(txSignature || "").trim();
+  if (!signature) throw new Error("txSignature required");
+
+  const amountUsd = Number(opts.amountUsd);
+  if (!Number.isFinite(amountUsd) || amountUsd <= 0) {
+    throw new Error("invalid_billing_amount");
+  }
+  // USDC 6 decimals; allow 1 micro-USDC tolerance for rounding
+  const expectedMicro = Math.round(amountUsd * 1_000_000);
+  const minMicro = Math.max(1, expectedMicro - 1);
+
+  const tx = await withSolanaRpcFallback(
+    (connection) =>
+      connection.getParsedTransaction(signature, {
+        maxSupportedTransactionVersion: 0,
+        commitment: "confirmed",
+      }),
+    "outcome billing tx verify",
+  );
+
+  if (!tx) throw new Error("tx_not_found_or_unconfirmed");
+  if (tx.meta?.err) throw new Error("tx_failed_onchain");
+
+  const pre = tx.meta?.preTokenBalances || [];
+  const post = tx.meta?.postTokenBalances || [];
+  /** @type {Map<string, number>} */
+  const preByIndex = new Map();
+  for (const b of pre) {
+    if (b.mint !== SOLANA_USDC_MINT) continue;
+    preByIndex.set(String(b.accountIndex), Number(b.uiTokenAmount?.amount || 0));
+  }
+
+  let creditedToPayTo = 0;
+  for (const b of post) {
+    if (b.mint !== SOLANA_USDC_MINT) continue;
+    const owner = b.owner || "";
+    if (owner !== SOLANA_PAYTO) continue;
+    const before = preByIndex.get(String(b.accountIndex)) ?? 0;
+    const after = Number(b.uiTokenAmount?.amount || 0);
+    const delta = after - before;
+    if (delta > 0) creditedToPayTo += delta;
+  }
+
+  if (creditedToPayTo < minMicro) {
+    throw new Error(
+      `tx_amount_or_recipient_mismatch: expected>=${minMicro} microUSDC to ${SOLANA_PAYTO}, got ${creditedToPayTo}`,
+    );
+  }
+
+  if (opts.payer) {
+    const accountKeys = tx.transaction?.message?.accountKeys || [];
+    const feePayer =
+      typeof accountKeys[0]?.pubkey === "string"
+        ? accountKeys[0].pubkey
+        : accountKeys[0]?.pubkey?.toBase58?.() || null;
+    if (feePayer && feePayer !== String(opts.payer).trim()) {
+      // Soft check — x402 may use intermediate ATAs; do not hard-fail on fee payer alone
+    }
+  }
+
+  return { signature, creditedMicroUsdc: creditedToPayTo };
 }
 
 /**
@@ -67,18 +138,56 @@ export async function createOutcomeBillingEvent(reportId, opts = {}) {
 }
 
 /**
- * Mark billing event as paid after x402 settlement.
+ * Mark billing event as paid after verified on-chain settlement.
+ * Idempotent on the same txSignature; rejects unverified client-supplied signatures.
  * @param {string} billingEventId
  * @param {{ txSignature: string; network?: string; payer?: string }} settlement
  */
 export async function markOutcomeBillingPaid(billingEventId, settlement) {
+  const txSignature = String(settlement?.txSignature || "").trim();
+  if (!txSignature) throw new Error("txSignature required");
+
+  const existing = await OutcomeBillingEvent.findOne({ billingEventId }).lean();
+  if (!existing) throw new Error(`Billing event not found: ${billingEventId}`);
+
+  // Idempotency: same tx already recorded as paid
+  if (existing.status === "paid") {
+    if (existing.x402TxSignature && existing.x402TxSignature === txSignature) {
+      return existing;
+    }
+    throw new Error(`Billing event already paid: ${billingEventId}`);
+  }
+
+  if (!["pending", "payment_required"].includes(existing.status)) {
+    throw new Error(`Billing event not payable (status=${existing.status})`);
+  }
+
+  const network = String(settlement.network || "solana").toLowerCase();
+  if (network !== "solana" && network !== "solana-mainnet" && network !== "solana:mainnet") {
+    throw new Error(`unsupported_billing_network:${network}`);
+  }
+
+  // Unique tx reuse guard across billing events
+  const reused = await OutcomeBillingEvent.findOne({
+    x402TxSignature: txSignature,
+    billingEventId: { $ne: billingEventId },
+  }).lean();
+  if (reused) {
+    throw new Error("tx_signature_already_used");
+  }
+
+  await verifyOutcomeBillingSolanaUsdcTx(txSignature, {
+    amountUsd: existing.amountUsd,
+    payer: settlement.payer,
+  });
+
   const doc = await OutcomeBillingEvent.findOneAndUpdate(
     { billingEventId, status: { $in: ["pending", "payment_required"] } },
     {
       $set: {
         status: "paid",
-        x402TxSignature: settlement.txSignature,
-        x402Network: settlement.network ?? "solana",
+        x402TxSignature: txSignature,
+        x402Network: "solana",
         payer: settlement.payer ?? null,
         paidAt: new Date(),
       },
@@ -90,7 +199,7 @@ export async function markOutcomeBillingPaid(billingEventId, settlement) {
 
   await OutcomeReport.updateOne(
     { reportId: doc.reportId },
-    { $set: { x402TxSignature: settlement.txSignature } },
+    { $set: { x402TxSignature: txSignature } },
   );
 
   recordX402Call({
@@ -98,9 +207,9 @@ export async function markOutcomeBillingPaid(billingEventId, settlement) {
     path: `/outcomes/billing/${billingEventId}/settle`,
     outcome: "paid",
     amountUsd: doc.amountUsd,
-    network: settlement.network ?? "solana",
+    network: "solana",
     payer: settlement.payer,
-    txSignature: settlement.txSignature,
+    txSignature,
     source: "outcome_billing",
   }).catch(() => {});
 

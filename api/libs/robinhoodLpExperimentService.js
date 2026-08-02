@@ -20,6 +20,7 @@ import {
   computeDlmmFeeShareMultiplier,
   computeFeeYieldPct,
   computeLpNetPnlPct,
+  getLpSimFeeCalibrationMult,
   computeLpRiskRewardProfile,
   computePoolRiskScore,
   computePriceDriftPct,
@@ -140,7 +141,8 @@ function evaluateRunResolution(run, detail, strategyExit, hoursElapsed, simDefau
     binsAbove: run.binsAbove,
     inRange,
   });
-  const feeShareMult = applyRiskAdjustedFeeMultiplier(rawFeeShareMult, riskScore);
+  const feeShareMult =
+    applyRiskAdjustedFeeMultiplier(rawFeeShareMult, riskScore) * getLpSimFeeCalibrationMult();
   const feeYieldPct = inRange ? baseFeeYieldPct * feeShareMult : baseFeeYieldPct * feeShareMult * 0.25;
   const netPnlPct = computeLpNetPnlPct(priceDriftPct, feeYieldPct, inRange, riskScore);
   const simFeesEarnedUsd = toNum(run.depositUsd) * (feeYieldPct / 100);
@@ -182,6 +184,15 @@ function evaluateRunResolution(run, detail, strategyExit, hoursElapsed, simDefau
   const closeFeeUsd = txCosts.closeFeeUsd;
   const grossPnlUsd = toNum(run.depositUsd) * (netPnlPct / 100);
   const simNetPnlUsd = grossPnlUsd - openFeeUsd - closeFeeUsd;
+
+  if (status === "win" && simNetPnlUsd < 0) {
+    status = "loss";
+    resolution = resolution === "take_profit" ? "tp_below_cost" : resolution || "net_negative";
+  } else if (status === "loss" && simNetPnlUsd > 0) {
+    status = "win";
+  } else if (status === "expired" && simNetPnlUsd > 0) {
+    status = "win";
+  }
 
   return {
     status,
@@ -328,6 +339,19 @@ export async function resetRobinhoodLpFromScratch(opts = {}) {
   const cfg = mergedSimConfig(state);
   await RobinhoodLpExperimentRun.deleteMany({});
   await RobinhoodLpExperimentAgentState.deleteMany({});
+  // Wipe evolvable degen-herd overrides so the next cohort starts from static DNA.
+  const RobinhoodLpExperimentStrategyOverride = (
+    await import("../models/RobinhoodLpExperimentStrategyOverride.js")
+  ).default;
+  const clearedOverrides = await RobinhoodLpExperimentStrategyOverride.deleteMany({});
+  try {
+    const { invalidateRobinhoodLpStrategyCache } = await import(
+      "./robinhoodLpExperimentStrategyResolve.js"
+    );
+    invalidateRobinhoodLpStrategyCache();
+  } catch {
+    /* optional */
+  }
   const nextId = `rh-lp-cohort-${Date.now()}`;
   state.activeExperimentId = nextId;
   state.title =
@@ -347,7 +371,11 @@ export async function resetRobinhoodLpFromScratch(opts = {}) {
     });
   }
   bootPromise = null;
-  return { nextExperimentId: nextId };
+  return {
+    nextExperimentId: nextId,
+    clearedOverrides: clearedOverrides?.deletedCount ?? 0,
+    strategyCount: strategies.length,
+  };
 }
 
 export function isQuotePairPool(pool) {
@@ -361,14 +389,33 @@ export function isQuotePairPool(pool) {
   );
 }
 
+/** Cohort-wide cap: stop all agents herding into one meme pool (JPORK failure mode). */
+export const ROBINHOOD_MAX_AGENTS_PER_POOL = Number(
+  process.env.ROBINHOOD_LP_MAX_AGENTS_PER_POOL || 3,
+);
+/** Reject casino vol/TVL ratios unless strategy is explicitly degen. */
+export const ROBINHOOD_MAX_VOL_TVL_RATIO = Number(process.env.ROBINHOOD_LP_MAX_VOL_TVL_RATIO || 6);
+export const ROBINHOOD_MIN_TVL_USD = Number(process.env.ROBINHOOD_LP_MIN_TVL_USD || 25_000);
+
+export function isRobinhoodDegenStrategy(strategy) {
+  const name = String(strategy?.name || "").toLowerCase();
+  if (name.includes("degen")) return true;
+  const maxTvl = Number(strategy?.screeningOverrides?.maxTvlUsd);
+  const minFee = Number(strategy?.screeningOverrides?.minFeeTvlRatio);
+  // Aggressive spawn templates clamp maxTvlUsd into the degen band with high fee/TVL floors.
+  return Number.isFinite(maxTvl) && maxTvl > 0 && maxTvl <= 520_000 && minFee >= 0.03;
+}
+
 export function passesRobinhoodSimPoolScreen(pool, { binsBelow = 30, binsAbove = 30 } = {}) {
   const feeTvl = toNum(pool.feeTvlRatio);
   const tvl = toNum(pool.tvlUsd);
   const vol = toNum(pool.volume24hUsd);
-  if (tvl < 6_000 || vol < 12_000) return false;
+  if (tvl < ROBINHOOD_MIN_TVL_USD || vol < 12_000) return false;
   if (feeTvl < 0.00012) return false;
   const volTvl = tvl > 0 ? vol / tvl : 0;
   if (volTvl < 0.3 && feeTvl < 0.0007) return false;
+  // Extreme churn without fee support = meme dump risk; hard reject at universe screen.
+  if (volTvl > ROBINHOOD_MAX_VOL_TVL_RATIO * 1.5 && feeTvl < 0.01) return false;
 
   const rr = computeLpRiskRewardProfile({
     tvlUsd: tvl,
@@ -382,6 +429,24 @@ export function passesRobinhoodSimPoolScreen(pool, { binsBelow = 30, binsAbove =
   if (rr.ratio < LP_MIN_SIM_RISK_REWARD_RATIO) return false;
   if (rr.tier === "extreme" && rr.ratio < LP_MIN_EXTREME_RISK_REWARD_RATIO) return false;
   return true;
+}
+
+/**
+ * Per-strategy risk gate: non-degen agents cannot enter high/extreme pools or casino vol/TVL.
+ */
+export function passesRobinhoodStrategyRiskGate(strategy, pool, riskTier, volTvlRatio) {
+  const degen = isRobinhoodDegenStrategy(strategy);
+  if (!degen) {
+    if (riskTier === "high" || riskTier === "extreme") {
+      return { pass: false, reason: "risk_tier_blocked_for_non_degen" };
+    }
+    if (volTvlRatio > ROBINHOOD_MAX_VOL_TVL_RATIO) {
+      return { pass: false, reason: "vol_tvl_too_high_for_non_degen" };
+    }
+  } else if (riskTier === "extreme" && volTvlRatio > ROBINHOOD_MAX_VOL_TVL_RATIO * 1.25) {
+    return { pass: false, reason: "extreme_casino_pool" };
+  }
+  return { pass: true, reason: null };
 }
 
 function simPoolSizeMultiplier(tvlUsd) {
@@ -516,6 +581,16 @@ export async function runRobinhoodLpSignalCycle() {
   const blockedPoolKeys = new Set(
     recentPoolRows.map((row) => `${Number(row.strategyId)}:${row.poolAddress}`),
   );
+  // Cohort-wide occupancy: count how many agents already sit on each pool.
+  const poolOccupancy = new Map();
+  for (const row of recentPoolRows) {
+    if (!row.poolAddress) continue;
+    const key = String(row.poolAddress).toLowerCase();
+    poolOccupancy.set(key, (poolOccupancy.get(key) || 0) + 1);
+  }
+  const maxAgentsPerPool = Number.isFinite(ROBINHOOD_MAX_AGENTS_PER_POOL)
+    ? Math.max(1, Math.floor(ROBINHOOD_MAX_AGENTS_PER_POOL))
+    : 3;
 
   for (const strategy of strategies) {
     try {
@@ -558,6 +633,25 @@ export async function runRobinhoodLpSignalCycle() {
               signalSnapshot: null,
             };
           }
+          const tvl = toNum(pool.tvlUsd);
+          const vol = toNum(pool.volume24hUsd);
+          const volTvl = tvl > 0 ? vol / tvl : 0;
+          const riskGate = passesRobinhoodStrategyRiskGate(
+            strategy,
+            pool,
+            rrMeta.profile.tier,
+            volTvl,
+          );
+          if (!riskGate.pass) {
+            return {
+              pool,
+              synthetic,
+              score: 0,
+              gatePassed: false,
+              gateReasons: [riskGate.reason],
+              signalSnapshot: null,
+            };
+          }
           const enriched = {
             ...pool,
             ...synthetic,
@@ -568,6 +662,9 @@ export async function runRobinhoodLpSignalCycle() {
           const scoredRow = scorePool(strategy, enriched);
           const compoundBoost = 1 + Math.log1p(Math.max(0, cashUsd - simCfg.startingBankUsd)) / 20;
           const sizeBoost = simPoolSizeMultiplier(pool.tvlUsd);
+          // Penalize crowded pools so agents diversify instead of cloning JPORK entries.
+          const occ = poolOccupancy.get(String(pool.poolAddress || "").toLowerCase()) || 0;
+          const crowdingPenalty = occ >= maxAgentsPerPool ? 0 : 1 / (1 + occ * 0.55);
           const adaptiveExit = resolveAdaptiveExitRules(
             strategy.exit || {},
             {
@@ -584,19 +681,28 @@ export async function runRobinhoodLpSignalCycle() {
             synthetic: enriched,
             adaptiveExit,
             ...scoredRow,
-            score: scoredRow.score * compoundBoost * rrMeta.boost * sizeBoost,
+            score: scoredRow.score * compoundBoost * rrMeta.boost * sizeBoost * crowdingPenalty,
+            gatePassed: scoredRow.gatePassed && crowdingPenalty > 0,
           };
         })
         .filter((x) => x.gatePassed)
         .sort((a, b) => b.score - a.score);
 
-      const best = scored[0];
-      if (!best) {
-        skipped.push({ strategyId: strategy.id, reason: "no_candidate" });
-        continue;
+      // Pick first candidate that isn't at cohort occupancy cap / per-strategy cooldown.
+      let best = null;
+      for (const candidate of scored) {
+        const poolKey = String(candidate.pool.poolAddress || "").toLowerCase();
+        const occ = poolOccupancy.get(poolKey) || 0;
+        if (occ >= maxAgentsPerPool) continue;
+        if (blockedPoolKeys.has(`${strategy.id}:${candidate.pool.poolAddress}`)) continue;
+        best = candidate;
+        break;
       }
-      if (blockedPoolKeys.has(`${strategy.id}:${best.pool.poolAddress}`)) {
-        skipped.push({ strategyId: strategy.id, reason: "cooldown_or_open" });
+      if (!best) {
+        skipped.push({
+          strategyId: strategy.id,
+          reason: scored.length === 0 ? "no_candidate" : "pool_cap_or_cooldown",
+        });
         continue;
       }
 
@@ -660,6 +766,8 @@ export async function runRobinhoodLpSignalCycle() {
           poolName: created.poolName,
         });
         blockedPoolKeys.add(`${strategy.id}:${created.poolAddress}`);
+        const occKey = String(created.poolAddress || "").toLowerCase();
+        poolOccupancy.set(occKey, (poolOccupancy.get(occKey) || 0) + 1);
         openCountByStrategy.set(strategy.id, (openCountByStrategy.get(strategy.id) ?? 0) + 1);
         cashByStrategy.set(strategy.id, cashUsd - costUsd);
       } catch (createErr) {
@@ -985,10 +1093,12 @@ export async function listRobinhoodLpRuns({
     q.status = status.trim();
   }
   if (typeof symbol === "string" && symbol.trim()) {
+    // Escape metacharacters to prevent ReDoS / overly broad $regex matches
+    const escaped = symbol.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     q.$or = [
-      { baseSymbol: new RegExp(symbol.trim(), "i") },
-      { quoteSymbol: new RegExp(symbol.trim(), "i") },
-      { poolName: new RegExp(symbol.trim(), "i") },
+      { baseSymbol: new RegExp(escaped, "i") },
+      { quoteSymbol: new RegExp(escaped, "i") },
+      { poolName: new RegExp(escaped, "i") },
     ];
   }
   const safeLimit = normalizeLimit(limit);
@@ -1050,6 +1160,10 @@ export async function getRobinhoodLpGlobalOverview() {
     };
   }
 
+  const champion = await import("./experimentChampions.js")
+    .then((m) => m.getDeskChampion("lp_robinhood"))
+    .catch(() => null);
+
   return {
     chain: "Robinhood Chain",
     chainId: 4663,
@@ -1060,5 +1174,6 @@ export async function getRobinhoodLpGlobalOverview() {
       scanVolume24hUsd,
     },
     simulation,
+    champion,
   };
 }

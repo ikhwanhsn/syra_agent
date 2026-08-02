@@ -7,8 +7,11 @@ import {
 import type { McpToolCatalogEntry } from "./generated/toolCatalog.js";
 
 const SYRA_API_BASE_URL = (process.env.SYRA_API_BASE_URL || "https://api.syraa.fun").replace(/\/$/, "");
+const IS_PRODUCTION = String(process.env.NODE_ENV || "").toLowerCase() === "production";
+// SECURITY: never append /dev route suffixes in production even if env is set
 const SYRA_USE_DEV_ROUTES =
-  process.env.SYRA_USE_DEV_ROUTES === "true" || process.env.SYRA_USE_DEV_ROUTES === "1";
+  !IS_PRODUCTION &&
+  (process.env.SYRA_USE_DEV_ROUTES === "true" || process.env.SYRA_USE_DEV_ROUTES === "1");
 const SYRA_MCP_API_KEY = process.env.SYRA_MCP_API_KEY?.trim() || "";
 const SYRA_CONNECTED_WALLET = (
   process.env.SYRA_CONNECTED_WALLET || process.env.SYRA_DEV_WALLET || ""

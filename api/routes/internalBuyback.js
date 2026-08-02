@@ -15,8 +15,29 @@ import {
 import BuybackAccumulator from "../models/BuybackAccumulator.js";
 import { BUYBACK_ACCUMULATOR_ID } from "../config/buybackSchedulerConfig.js";
 
+function isProduction() {
+  return String(process.env.NODE_ENV || "").toLowerCase() === "production";
+}
+
+/** SECURITY: require buyback cron secret; fail closed in production when unset. */
+function requireBuybackCronSecret(req, res, next) {
+  const secret = (process.env.BUYBACK_CRON_SECRET || process.env.CRON_SECRET || "").trim();
+  if (!secret) {
+    if (isProduction()) {
+      return res.status(403).json({ success: false, error: "cron_secret_not_configured" });
+    }
+    return next();
+  }
+  const got = (req.get("x-buyback-cron-secret") || req.get("x-cron-secret") || "").trim();
+  if (got !== secret) {
+    return res.status(401).json({ success: false, error: "unauthorized" });
+  }
+  return next();
+}
+
 export function createInternalBuybackRouter() {
   const router = Router();
+  router.use(requireBuybackCronSecret);
 
   router.get("/buyback/status", async (_req, res) => {
     try {

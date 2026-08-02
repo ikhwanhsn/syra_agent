@@ -22,20 +22,37 @@ export function usdToRawAmount(usd, decimals = 6) {
 }
 
 /**
+ * Price in USDC per SYRA from a Jupiter quote.
+ * - Buy (USDC → SYRA): usdIn / syraOut
+ * - Sell (SYRA → USDC): usdOut / syraIn
+ *
  * @param {string} amountRaw
- * @param {number} outAmountRaw
+ * @param {number|string} outAmountRaw
  * @param {number} inDecimals
  * @param {number} outDecimals
+ * @param {'buy'|'sell'} side
  * @returns {number | null}
  */
-export function computePriceUsdFromQuote(amountRaw, outAmountRaw, inDecimals, outDecimals) {
+export function computePriceUsdFromQuote(
+  amountRaw,
+  outAmountRaw,
+  inDecimals,
+  outDecimals,
+  side = "buy",
+) {
   const inRaw = Number(amountRaw);
   const outRaw = Number(outAmountRaw);
   if (!Number.isFinite(inRaw) || !Number.isFinite(outRaw) || inRaw <= 0 || outRaw <= 0) return null;
   const inTokens = inRaw / 10 ** inDecimals;
   const outTokens = outRaw / 10 ** outDecimals;
   if (!(inTokens > 0) || !(outTokens > 0)) return null;
-  return outTokens / inTokens;
+  // Always return USDC-per-SYRA so mid/spread math is consistent.
+  if (side === "sell") {
+    // in = SYRA, out = USDC
+    return outTokens / inTokens;
+  }
+  // in = USDC, out = SYRA
+  return inTokens / outTokens;
 }
 
 /**
@@ -44,6 +61,13 @@ export function computePriceUsdFromQuote(amountRaw, outAmountRaw, inDecimals, ou
  */
 export function computeMidAndSpread(buyPriceUsd, sellPriceUsd) {
   if (!(buyPriceUsd > 0) || !(sellPriceUsd > 0)) return null;
+  // Sanity: reject absurd crossed/inverted books that poison the MM (seen: mid $6 vs reservation $12).
+  const ratio = Math.max(buyPriceUsd, sellPriceUsd) / Math.min(buyPriceUsd, sellPriceUsd);
+  if (ratio > 1.08) {
+    // Collapse to the more liquid (buy) probe rather than averaging garbage.
+    const mid = buyPriceUsd;
+    return { midPriceUsd: mid, halfSpreadBps: 35, buyPriceUsd, sellPriceUsd: buyPriceUsd * 0.997 };
+  }
   const mid = (buyPriceUsd + sellPriceUsd) / 2;
   const halfSpreadBps = Math.round(Math.abs(sellPriceUsd - buyPriceUsd) / (2 * mid) * 10_000);
   return { midPriceUsd: mid, halfSpreadBps, buyPriceUsd, sellPriceUsd };
@@ -103,7 +127,13 @@ export async function fetchMmMarketSnapshot(probeUsd = 10) {
       slippageBps,
     });
     const buyOut = String(buyQuote?.quote?.outAmount ?? "0");
-    buyPriceUsd = computePriceUsdFromQuote(usdcRaw, buyOut, MM_USDC_DECIMALS, MM_SYRA_DECIMALS);
+    buyPriceUsd = computePriceUsdFromQuote(
+      usdcRaw,
+      buyOut,
+      MM_USDC_DECIMALS,
+      MM_SYRA_DECIMALS,
+      "buy",
+    );
 
     const syraRaw = buyOut;
     if (syraRaw && syraRaw !== "0") {
@@ -114,11 +144,15 @@ export async function fetchMmMarketSnapshot(probeUsd = 10) {
         slippageBps,
       });
       const sellOut = String(sellQuote?.quote?.outAmount ?? "0");
-      sellPriceUsd = computePriceUsdFromQuote(syraRaw, sellOut, MM_SYRA_DECIMALS, MM_USDC_DECIMALS);
-      if (sellPriceUsd > 0) {
-        const tokens = Number(syraRaw) / 10 ** MM_SYRA_DECIMALS;
-        sellPriceUsd = tokens > 0 ? probeUsd / tokens : sellPriceUsd;
-      }
+      // Correct sell price = USDC out / SYRA in. Do NOT overwrite with probeUsd/tokens
+      // (that recycled the buy-side implied price and produced $6 vs $12 mid splits).
+      sellPriceUsd = computePriceUsdFromQuote(
+        syraRaw,
+        sellOut,
+        MM_SYRA_DECIMALS,
+        MM_USDC_DECIMALS,
+        "sell",
+      );
     }
   } catch {
     source = "fallback";
@@ -135,13 +169,17 @@ export async function fetchMmMarketSnapshot(probeUsd = 10) {
   const spread = computeMidAndSpread(buyPriceUsd, sellPriceUsd);
   if (!spread) throw new Error("mm_spread_compute_failed");
 
-  const impactBps = Math.round(Math.abs(buyPriceUsd - spread.midPriceUsd) / spread.midPriceUsd * 10_000);
+  const rawImpact = Math.round(
+    Math.abs(buyPriceUsd - spread.midPriceUsd) / spread.midPriceUsd * 10_000,
+  );
+  // Cap reported impact — Jupiter thin-book probes can produce absurd 9000+ bps figures.
+  const impactBps = Math.min(rawImpact, 250);
 
   return {
     midPriceUsd: spread.midPriceUsd,
     buyPriceUsd: spread.buyPriceUsd ?? buyPriceUsd,
     sellPriceUsd: spread.sellPriceUsd ?? sellPriceUsd,
-    halfSpreadBps: spread.halfSpreadBps,
+    halfSpreadBps: Math.min(spread.halfSpreadBps, 200),
     impactBps,
     probedAt: new Date().toISOString(),
     source,

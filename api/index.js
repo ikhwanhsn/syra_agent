@@ -2718,6 +2718,25 @@ app.listen(PORT, () => {
     })
     .catch(() => {});
 
+  // Nightly champion promotion + profitability audit heartbeat
+  import("./libs/experimentChampions.js")
+    .then(({ promoteAllExperimentChampions }) => {
+      const ms = Number(process.env.EXPERIMENT_CHAMPION_MS || 86_400_000);
+      if (!(ms >= 60_000)) return;
+      const tick = runIfMongoConnected(
+        withSingleFlight(() =>
+          promoteAllExperimentChampions()
+            .then((out) => startupVerbose("[Experiment champions]", Object.keys(out || {}).length, "desks"))
+            .catch((err) =>
+              console.warn("[Experiment champions failed]", err?.message || err),
+            ),
+        ),
+      );
+      setTimeout(tick, 120_000);
+      setInterval(tick, ms);
+    })
+    .catch(() => {});
+
   for (const [mod, label] of [
     ["./libs/momentumRotatorEvolution.js", "Momentum"],
     ["./libs/lstLoopEvolution.js", "LST loop"],

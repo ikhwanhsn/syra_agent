@@ -9,8 +9,23 @@ import { wrapPaidFetchWithRetries } from "./paidFetchRetry.js";
 
 let cachedPaidFetch: typeof fetch | null = null;
 
+/**
+ * Per-call credential overrides — avoids writing private keys into process.env
+ * (which is visible to the whole Node process and any child modules).
+ */
+/** @type {Record<string, string>} */
+const credentialOverrides: Record<string, string> = {};
+
+function resolveCredential(...keys: string[]): string | undefined {
+  for (const key of keys) {
+    const fromOverride = credentialOverrides[key];
+    if (fromOverride && fromOverride.trim()) return fromOverride.trim();
+  }
+  return firstNonEmptyEnv(...keys);
+}
+
 async function createSolanaPaidFetch(fetchFn: typeof fetch): Promise<typeof fetch> {
-  const keypairRaw = firstNonEmptyEnv("SYRA_PAYER_KEYPAIR", "PAYER_KEYPAIR");
+  const keypairRaw = resolveCredential("SYRA_PAYER_KEYPAIR", "PAYER_KEYPAIR");
   if (!keypairRaw) throw new Error("SYRA_PAYER_KEYPAIR (or PAYER_KEYPAIR) must be set for Solana x402 auto-pay");
 
   const secretBytes = parseSolanaKeypairBytes(keypairRaw);
@@ -37,7 +52,7 @@ async function createSolanaPaidFetch(fetchFn: typeof fetch): Promise<typeof fetc
 }
 
 async function createBasePaidFetch(fetchFn: typeof fetch): Promise<typeof fetch> {
-  const raw = firstNonEmptyEnv("SYRA_EVM_PAYER_PRIVATE_KEY", "CMC_PAYER_PRIVATE_KEY");
+  const raw = resolveCredential("SYRA_EVM_PAYER_PRIVATE_KEY", "CMC_PAYER_PRIVATE_KEY");
   if (!raw) {
     throw new Error("SYRA_EVM_PAYER_PRIVATE_KEY (or CMC_PAYER_PRIVATE_KEY) must be set for Base x402 auto-pay");
   }
@@ -61,7 +76,7 @@ async function createBasePaidFetch(fetchFn: typeof fetch): Promise<typeof fetch>
 }
 
 async function createAlgorandPaidFetch(fetchFn: typeof fetch): Promise<typeof fetch> {
-  const key = firstNonEmptyEnv(
+  const key = resolveCredential(
     "SYRA_ALGORAND_PAYER_PRIVATE_KEY",
     "ALGORAND_AGENT_PRIVATE_KEY",
     "AVM_PRIVATE_KEY",
@@ -80,7 +95,9 @@ async function createAlgorandPaidFetch(fetchFn: typeof fetch): Promise<typeof fe
 
   const DEFAULT_ALGOD_MAINNET = "https://mainnet-api.algonode.cloud";
   const DEFAULT_ALGOD_TESTNET = "https://testnet-api.algonode.cloud";
-  const preferred = String(process.env.X402_PREFERRED_NETWORK || "").toLowerCase();
+  const preferred = String(
+    credentialOverrides.X402_PREFERRED_NETWORK || process.env.X402_PREFERRED_NETWORK || "",
+  ).toLowerCase();
   const algodUrl =
     preferred === "algorand-testnet"
       ? String(process.env.ALGOD_TESTNET_URL || DEFAULT_ALGOD_TESTNET).trim()
@@ -118,12 +135,23 @@ async function createX402PaidFetch(
   fetchFn: typeof fetch = globalThis.fetch,
   options: CreatePaidFetchOptions = {},
 ): Promise<typeof fetch> {
-  if (options.solanaKeypair) process.env.SYRA_PAYER_KEYPAIR = options.solanaKeypair;
-  if (options.evmPrivateKey) process.env.SYRA_EVM_PAYER_PRIVATE_KEY = options.evmPrivateKey;
-  if (options.network) process.env.X402_PREFERRED_NETWORK = options.network;
+  // Prefer in-memory overrides over mutating process.env (keys stay out of global env).
+  if (options.solanaKeypair) credentialOverrides.SYRA_PAYER_KEYPAIR = options.solanaKeypair;
+  if (options.evmPrivateKey) credentialOverrides.SYRA_EVM_PAYER_PRIVATE_KEY = options.evmPrivateKey;
+  if (options.network) credentialOverrides.X402_PREFERRED_NETWORK = options.network;
 
-  if (shouldUseAlgorandX402()) return createAlgorandPaidFetch(fetchFn);
-  if (shouldUseBaseX402()) return createBasePaidFetch(fetchFn);
+  const preferredNetwork = (
+    credentialOverrides.X402_PREFERRED_NETWORK ||
+    process.env.X402_PREFERRED_NETWORK ||
+    ""
+  ).toLowerCase();
+
+  if (preferredNetwork.startsWith("algorand") || shouldUseAlgorandX402()) {
+    return createAlgorandPaidFetch(fetchFn);
+  }
+  if (preferredNetwork === "base" || shouldUseBaseX402()) {
+    return createBasePaidFetch(fetchFn);
+  }
   return createSolanaPaidFetch(fetchFn);
 }
 

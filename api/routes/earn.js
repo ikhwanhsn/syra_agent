@@ -59,19 +59,29 @@ export function createEarnRouter() {
     }
   });
 
+  /**
+   * SECURITY: payout target is always the session anonymousId.
+   * Client-supplied creatorAnonymousId is rejected when it differs (IDOR).
+   */
   router.post('/payout', requireSession(), async (req, res) => {
     try {
       const anonymousId = req.user?.anonymousId;
       if (!anonymousId) {
         return res.status(401).json({ success: false, error: 'Authentication required' });
       }
-      const targetAnonymousId =
-        (typeof req.body?.creatorAnonymousId === 'string' && req.body.creatorAnonymousId.trim()) ||
-        anonymousId;
+      const bodyCreator =
+        typeof req.body?.creatorAnonymousId === 'string' ? req.body.creatorAnonymousId.trim() : '';
+      if (bodyCreator && bodyCreator !== anonymousId) {
+        return res.status(403).json({
+          success: false,
+          error: 'creator_anonymous_id_mismatch',
+          message: 'Payout may only target the authenticated session creator.',
+        });
+      }
       const maxPayoutMicroUsdc =
         req.body?.maxPayoutMicroUsdc != null ? Number(req.body.maxPayoutMicroUsdc) : undefined;
       const result = await processEarnPayout({
-        creatorAnonymousId: targetAnonymousId,
+        creatorAnonymousId: anonymousId,
         maxPayoutMicroUsdc,
       });
       if (!result.success) {

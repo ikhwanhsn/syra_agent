@@ -618,6 +618,10 @@ async function refundUsdcToPayerAlgorand(payerAddress, amountUsd) {
     console.info(
       `[labX402Refund] PayTo fee top-up ${feeReady.amount} ALGO from ${feeReady.from}`,
     );
+  } else if (feeReady.belowBatch) {
+    console.info(
+      `[labX402Refund] PayTo ALGO below batch cushion (spendable ${feeReady.spendable}); proceeding with single-refund fee floor`,
+    );
   }
 
   const asaId = getAlgorandUsdcAsaId();

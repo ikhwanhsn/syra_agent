@@ -112,9 +112,9 @@ async function scanBtcQuantRuns(btcBars, regime) {
       const wins = settled[0]?.wins ?? 0;
       const total = settled[0]?.total ?? 0;
       const winRate = total > 0 ? wins / total : 0.5;
-      // Only follow agents that already show edge
-      if (total >= 4 && winRate < 0.48) continue;
-      if (total >= 8 && winRate < 0.52) continue;
+      // Follow agents with non-terrible edge; allow cold-start agents with few samples.
+      if (total >= 6 && winRate < 0.4) continue;
+      if (total >= 12 && winRate < 0.45) continue;
 
       const weight = strategyWeight(winRate, total);
       const confidence = Number(run.confidence ?? 0.5);

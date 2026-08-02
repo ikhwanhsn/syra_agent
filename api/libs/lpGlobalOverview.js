@@ -145,6 +145,10 @@ export async function getLpGlobalOverview() {
     .filter((a) => (a.decided ?? 0) >= 3)
     .sort((a, b) => (b.winRatePct ?? -1) - (a.winRatePct ?? -1))[0];
 
+  const champion = await import("./experimentChampions.js")
+    .then((m) => m.getDeskChampion("lp_meteora"))
+    .catch(() => null);
+
   return {
     solPriceUsd,
     meteora: {
@@ -163,6 +167,7 @@ export async function getLpGlobalOverview() {
       topWinRateStrategyId: bestByWinRate?.strategyId ?? null,
       topWinRatePct: bestByWinRate?.winRatePct ?? null,
     },
+    champion,
     realAgent: real,
   };
 }

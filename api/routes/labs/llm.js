@@ -4,7 +4,7 @@
  */
 import express from 'express';
 import { getAdminDashboardWallets, isAdminWalletAddress } from '../../libs/adminWallet.js';
-import { optionalWalletSession } from '../../utils/requireSession.js';
+import { requireSession } from '../../utils/requireSession.js';
 import { isLlmModality, LLM_MODALITIES } from '../../config/openrouterLlmModels.js';
 import {
   listModelsForModality,
@@ -18,6 +18,8 @@ import {
 } from '../../libs/labs/llmPlaygroundService.js';
 
 /**
+ * Admin gate (SECURITY): previous `x-admin-wallet` / `x-wallet-address` header fallback was
+ * spoofable. Require a Syra session JWT whose verified wallet is on the admin allowlist.
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  * @param {import('express').NextFunction} next
@@ -28,22 +30,12 @@ function requireAdminWallet(req, res, next) {
     return res.status(403).json({ success: false, error: 'admin_disabled' });
   }
 
-  let walletAddress = req.user?.walletAddress ?? null;
-  if (!walletAddress) {
-    const fromHeader = req.get('x-admin-wallet') || req.get('x-wallet-address');
-    if (typeof fromHeader === 'string' && fromHeader.trim()) {
-      walletAddress = fromHeader.trim();
-    }
+  if (!req.user || req.user.guest || !req.user.walletAddress) {
+    return res.status(401).json({ success: false, error: 'auth_required' });
   }
-
-  if (!walletAddress) {
-    return res.status(403).json({ success: false, error: 'admin_required' });
-  }
-  if (!isAdminWalletAddress(walletAddress)) {
+  if (!isAdminWalletAddress(req.user.walletAddress)) {
     return res.status(403).json({ success: false, error: 'not_admin' });
   }
-
-  req.user = { ...(req.user || {}), walletAddress, guest: false };
   next();
 }
 
@@ -66,7 +58,7 @@ function sendError(err, res, fallback) {
 
 export function createLlmPlaygroundRouter() {
   const router = express.Router();
-  router.use(optionalWalletSession(), requireAdminWallet);
+  router.use(requireSession(), requireAdminWallet);
 
   router.get('/models', async (req, res) => {
     try {

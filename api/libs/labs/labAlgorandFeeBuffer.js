@@ -27,6 +27,12 @@ export const PAYTO_USDC_REFUND_FEE_NEED_MICRO =
   (ALGO_FEE_MICRO_PER_TX * 2n + 20_000n) * PAYTO_USDC_REFUND_BATCH_SIZE;
 
 /**
+ * MicroAlgos PayTo needs to cover a single USDC ASA refund fee (with buffer).
+ * Batch cushion is best-effort; this floor is the hard gate.
+ */
+export const PAYTO_USDC_REFUND_MIN_FEE_MICRO = ALGO_FEE_MICRO_PER_TX * 2n + 2_000n; // ~0.004 ALGO
+
+/**
  * Extra spendable ALGO cushion after a payer can opt into USDC ASA
  * (covers a few payment / axfer fees).
  */
@@ -259,17 +265,20 @@ async function loadDefaultAlgorandAlgoFunders(receiverAddress, opts = {}) {
 
 /**
  * Ensure PayTo has enough spendable ALGO for USDC ASA refunds.
- * Borrows deficit from deposit hub, then active Algorand payers.
+ * Tries to top up to the batch cushion (borrows from deposit hub, then active payers).
+ * If borrow fails but PayTo can still cover a single refund fee (`minMicro`), returns
+ * `{ ok: true, belowBatch: true }` so refunds proceed. Hard-fails only below that floor.
  *
  * @param {string} payToAddress
- * @param {{ needMicro?: bigint; client?: algosdk.Algodv2; funders?: { address: string; sk: Uint8Array }[]; sendPayment?: (args: { funder: { address: string; sk: Uint8Array }; receiver: string; amountMicro: bigint; client: algosdk.Algodv2 }) => Promise<{ txid: string }> }} [opts]
- * @returns {Promise<{ ok: boolean; already?: boolean; funded?: boolean; from?: string; amount?: number; spendable?: number; error?: string }>}
+ * @param {{ needMicro?: bigint; minMicro?: bigint; client?: algosdk.Algodv2; funders?: { address: string; sk: Uint8Array }[]; sendPayment?: (args: { funder: { address: string; sk: Uint8Array }; receiver: string; amountMicro: bigint; client: algosdk.Algodv2 }) => Promise<{ txid: string }> }} [opts]
+ * @returns {Promise<{ ok: boolean; already?: boolean; funded?: boolean; belowBatch?: boolean; from?: string; amount?: number; spendable?: number; error?: string }>}
  */
 export async function ensurePayToAlgoForUsdcRefund(payToAddress, opts = {}) {
   const payTo = String(payToAddress || '').trim();
   if (!payTo) return { ok: false, error: 'missing_payto' };
 
   const needMicro = opts.needMicro ?? PAYTO_USDC_REFUND_FEE_NEED_MICRO;
+  const minMicro = opts.minMicro ?? PAYTO_USDC_REFUND_MIN_FEE_MICRO;
   const client = opts.client || getAlgorandAlgodClient();
 
   let payInfo;
@@ -306,6 +315,16 @@ export async function ensurePayToAlgoForUsdcRefund(payToAddress, opts = {}) {
     logPrefix: '[labAlgorandFeeBuffer] PayTo',
   });
   if (borrowed.ok) return borrowed;
+
+  // Batch cushion unreachable, but if PayTo can still cover a single refund fee, proceed.
+  if (payInfo.spendableMicro >= minMicro) {
+    return {
+      ok: true,
+      funded: false,
+      belowBatch: true,
+      spendable: Number(payInfo.spendableMicro) / Number(MICRO_ALGO),
+    };
+  }
 
   const spendableAlgo = Number(payInfo.spendableMicro) / Number(MICRO_ALGO);
   const needAlgo = Number(needMicro) / Number(MICRO_ALGO);

@@ -744,6 +744,9 @@ export async function resolveOpenScalperRuns() {
     runScalperLearning().catch((err) => {
       console.warn("[Scalper] post-resolve learning failed:", err?.message || err);
     });
+  } else {
+    // Always heartbeat resolve loop so ops can tell the cron is alive even with 0 opens.
+    await ScalperState.updateOne({ _id: "singleton" }, { $set: { lastResolveAt: new Date() } });
   }
 
   const stillOpen = openRuns.length - bulkOps.length;

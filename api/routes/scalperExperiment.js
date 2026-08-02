@@ -18,9 +18,19 @@ function parsePositiveInt(value, fallback, { min = 1, max = 500 } = {}) {
   return Math.min(max, Math.max(min, Math.floor(n)));
 }
 
+function isProduction() {
+  return String(process.env.NODE_ENV || "").toLowerCase() === "production";
+}
+
 function requireCronSecret(req, res, next) {
   const secret = (process.env.SCALPER_CRON_SECRET || "").trim();
-  if (!secret) return next();
+  // SECURITY: fail closed in production when secret is unset
+  if (!secret) {
+    if (isProduction()) {
+      return res.status(403).json({ success: false, error: "cron_secret_not_configured" });
+    }
+    return next();
+  }
   const got = (req.get("x-scalper-cron-secret") || "").trim();
   if (got !== secret) {
     return res.status(403).json({
@@ -35,7 +45,12 @@ function requireResetAuth(req, res, next) {
   const secret = (process.env.SCALPER_CRON_SECRET || "").trim();
   const got = (req.get("x-scalper-cron-secret") || "").trim();
   if (secret && got === secret) return next();
-  if (!secret) return next();
+  if (!secret) {
+    if (isProduction()) {
+      return res.status(403).json({ success: false, error: "cron_secret_not_configured" });
+    }
+    return next();
+  }
   return res.status(403).json({
     success: false,
     error: "Missing or invalid reset credentials (x-scalper-cron-secret)",

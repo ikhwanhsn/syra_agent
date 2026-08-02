@@ -68,6 +68,14 @@ function corsProxyPlugin(): Plugin {
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
+  // SECURITY: VITE_* vars are embedded in the browser bundle. Never ship API keys.
+  if (env.VITE_API_KEY?.trim() || env.VITE_SYRA_API_KEY?.trim()) {
+    throw new Error(
+      "[Syra] VITE_API_KEY / VITE_SYRA_API_KEY must not be set. " +
+        "Vite would embed the gateway key in the client bundle. " +
+        "Remove it from web/.env* — the API injects keys for trusted origins server-side.",
+    );
+  }
   if (mode === "production" && !env.VITE_PRIVY_APP_ID?.trim()) {
     console.warn(
       "[Syra] VITE_PRIVY_APP_ID is missing, wallet connect will be disabled in production builds.",

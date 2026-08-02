@@ -127,24 +127,31 @@ function passesScreeningOverrides(strategy, pool) {
   return { pass: true, reason: null };
 }
 
+/** Soft curve so max-looking inputs (organic 100, narrative 10) do not all collapse to 1.0. */
+function softNormalize(value, min, max, power = 0.7) {
+  const linear = normalizeLinear(value, min, max);
+  return clamp01(Math.pow(linear, power));
+}
+
 export function buildLpSignals(pool) {
   const tvl = toNum(pool.tvlUsd);
   const vol = toNum(pool.volume24hUsd);
   const volTvlRatio = tvl > 0 ? vol / tvl : vol > 0 ? 8 : 0;
-  const organic = normalizeLinear(toNum(pool.organicScore), 0, 100);
-  const feeTvl = normalizeLinear(toNum(pool.feeTvlRatio), 0, 0.15);
-  const feeVelocity = normalizeLinear(toNum(pool.feeTvlRatio) * volTvlRatio, 0, 0.35);
-  const volume = normalizeLinear(vol, 0, 300_000);
-  const holders = normalizeLinear(toNum(pool.holderCount), 0, 10_000);
-  const studyWinRate = normalizeLinear(toNum(pool.studyWinRate), 0, 1);
-  const narrative = normalizeLinear(toNum(pool.narrativeScore), 0, 10);
-  const volatility = normalizeLinear(toNum(pool.volatilityScore), 0, 1);
-  const hiveConsensus = normalizeLinear(toNum(pool.hiveConsensus), 0, 1);
+  // Wider ceilings + soft power keep relative ranking when synthetic signals sit near "max".
+  const organic = softNormalize(toNum(pool.organicScore), 0, 140, 0.75);
+  const feeTvl = softNormalize(toNum(pool.feeTvlRatio), 0, 0.2, 0.8);
+  const feeVelocity = softNormalize(toNum(pool.feeTvlRatio) * volTvlRatio, 0, 0.5, 0.75);
+  const volume = softNormalize(vol, 0, 2_500_000, 0.65);
+  const holders = softNormalize(toNum(pool.holderCount), 0, 25_000, 0.7);
+  const studyWinRate = softNormalize(toNum(pool.studyWinRate), 0, 1, 0.85);
+  const narrative = softNormalize(toNum(pool.narrativeScore), 0, 14, 0.7);
+  const volatility = softNormalize(toNum(pool.volatilityScore), 0, 1.2, 0.85);
+  const hiveConsensus = softNormalize(toNum(pool.hiveConsensus), 0, 1.15, 0.85);
   const smartMoney = Boolean(pool.smartWalletsPresent);
   const freshnessScore = clamp01(
-    normalizeLinear(volTvlRatio, 0.8, 6) * 0.65 + normalizeInverse(tvl, 60_000, 550_000) * 0.35,
+    softNormalize(volTvlRatio, 0.8, 10, 0.7) * 0.65 + normalizeInverse(tvl, 60_000, 550_000) * 0.35,
   );
-  const riskReward = normalizeLinear(toNum(pool.riskRewardRatio), LP_MIN_SIM_RISK_REWARD_RATIO, 2.4);
+  const riskReward = softNormalize(toNum(pool.riskRewardRatio), LP_MIN_SIM_RISK_REWARD_RATIO, 3.2, 0.8);
   const safetyScore = 1 - clamp01(toNum(pool.riskScore));
   return {
     organic_score: organic,

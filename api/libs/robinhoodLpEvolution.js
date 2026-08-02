@@ -22,6 +22,8 @@ import {
   buildRandomLpStrategy,
   mutateLpStrategyFromElite,
 } from "./lpExperimentEvolution.js";
+import { computeRiskAdjustedLeaderScore } from "./earnExperimentKit.js";
+import { isRobinhoodDegenStrategy } from "./robinhoodLpExperimentService.js";
 
 export const ROBINHOOD_LP_EVOLUTION_SCHEDULE = Object.freeze({
   enabled: true,
@@ -68,15 +70,31 @@ export function robinhoodLpEvolutionConfigFromEnv() {
   };
 }
 
-function computeLeaderScore(row) {
-  const decided = Number(row.decided) || 0;
-  const winRate = row.winRate ?? 0;
-  const sumPnl = Number(row.sumNetPnlUsd) || 0;
-  if (sumPnl <= 0 || decided <= 0) return -999;
-  const sampleFactor = Math.min(1, decided / 12);
-  const winFactor = Math.max(0, Math.min(1, (winRate - 0.4) / 0.55));
-  const pnlFactor = Math.log1p(Math.max(0, sumPnl) * 0.012);
-  return pnlFactor * (0.5 + winFactor * 0.5) * (0.3 + sampleFactor * 0.7);
+function gateFingerprint(strategy) {
+  const s = strategy?.screeningOverrides || {};
+  const g = strategy?.signalGate || {};
+  return JSON.stringify({
+    shape: strategy?.lpShape,
+    bins: [strategy?.binsBelow, strategy?.binsAbove],
+    minFee: s.minFeeTvlRatio ?? null,
+    minVol: s.minVolume24hUsd ?? null,
+    maxTvl: s.maxTvlUsd ?? null,
+    minOrg: s.minOrganic ?? null,
+    gateAll: g.all ?? null,
+  });
+}
+
+function computeLeaderScore(row, opts = {}) {
+  return computeRiskAdjustedLeaderScore({
+    sumPnl: row.sumNetPnlUsd,
+    winRate: row.winRate,
+    decided: row.decided,
+    wins: row.wins,
+    losses: row.losses,
+    expired: row.expired,
+    diversityBonus: opts.diversityBonus ?? 0,
+    clonePenalty: opts.clonePenalty ?? 0,
+  });
 }
 
 async function pickEliteParent(experimentId, strategyList) {
@@ -138,20 +156,30 @@ async function allocateNewStrategyIds(count, currentTotal, maxStrategies) {
 
 async function spawnSmarterStrategy(experimentId, strategyList, strategyId, reason) {
   const elite = await pickEliteParent(experimentId, strategyList);
+  const degenCount = strategyList.filter((s) => isRobinhoodDegenStrategy(s)).length;
+  const degenShare = strategyList.length > 0 ? degenCount / strategyList.length : 0;
+  // When cohort is dominated by degen clones, force diversified (non-aggressive) spawns.
+  const forceDiversify = degenShare >= 0.35;
   let strat;
-  if (elite) {
+  if (elite && !forceDiversify) {
     strat = mutateLpStrategyFromElite(elite.strategy, strategyId, {
       parentStrategyId: elite.stats.strategyId,
       parentWinRate: elite.stats.winRate,
       parentNetPnlSol: elite.stats.sumNetPnlUsd,
     });
     strat.notes = `${strat.notes} · Robinhood Chain`;
-  } else if (reason === "daily_spawn" || Math.random() < 0.45) {
+  } else if (!forceDiversify && (reason === "daily_spawn" || Math.random() < 0.25)) {
     strat = buildAggressiveLpStrategy(strategyId);
     strat.notes = `${strat.notes} · Robinhood Chain`;
   } else {
     strat = buildRandomLpStrategy(strategyId);
-    strat.notes = `${strat.notes} · Robinhood Chain`;
+    strat.notes = `${strat.notes} · Robinhood Chain · diversity spawn`;
+  }
+  // Reject near-clone fingerprints — mutate once more toward random if needed.
+  const fps = new Set(strategyList.map((s) => gateFingerprint(s)));
+  if (fps.has(gateFingerprint(strat))) {
+    strat = buildRandomLpStrategy(strategyId);
+    strat.notes = `${strat.notes} · Robinhood Chain · anti-clone`;
   }
   await upsertRobinhoodStrategyOverride(strat);
   return { strategyId, reason, strategy: strat, parentStrategyId: elite?.stats.strategyId ?? null };
@@ -195,15 +223,49 @@ export async function runRobinhoodLpEvolution(opts = {}) {
     rows.push({ strategyId: s.id, wins, losses, expired, decided, winRate, openPositions, sumNetPnlUsd });
   }
 
+  // Diversity: fingerprint strategies; clones of losing parents get extra cull pressure.
+  const fpCounts = new Map();
+  for (const s of strategies) {
+    const fp = gateFingerprint(s);
+    fpCounts.set(fp, (fpCounts.get(fp) || 0) + 1);
+  }
+  const byStrategyId = new Map(strategies.map((s) => [s.id, s]));
+  const scoreOpts = (row) => {
+    const strat = byStrategyId.get(row.strategyId);
+    const fp = gateFingerprint(strat);
+    const clones = fpCounts.get(fp) || 1;
+    const isDegen = strat ? isRobinhoodDegenStrategy(strat) : false;
+    return {
+      diversityBonus: clones === 1 ? 0.08 : 0,
+      clonePenalty: clones > 1 ? Math.min(0.45, (clones - 1) * 0.12) : 0,
+      // Extra cull weight for underwater degen herd.
+      clonePenaltyExtra: isDegen && row.sumNetPnlUsd < 0 ? 0.25 : 0,
+    };
+  };
+
   const experienced = rows.filter((r) => r.decided >= minDecided && r.openPositions === 0);
   const fresh = rows.filter((r) => r.decided < minDecided && r.openPositions === 0);
   experienced.sort((a, b) => {
-    const scoreA = computeLeaderScore(a);
-    const scoreB = computeLeaderScore(b);
+    const oa = scoreOpts(a);
+    const ob = scoreOpts(b);
+    const scoreA = computeLeaderScore(a, {
+      diversityBonus: oa.diversityBonus,
+      clonePenalty: oa.clonePenalty + oa.clonePenaltyExtra,
+    });
+    const scoreB = computeLeaderScore(b, {
+      diversityBonus: ob.diversityBonus,
+      clonePenalty: ob.clonePenalty + ob.clonePenaltyExtra,
+    });
     if (scoreA !== scoreB) return scoreA - scoreB;
-    return (a.winRate ?? 0) - (b.winRate ?? 0);
+    return (a.sumNetPnlUsd ?? 0) - (b.sumNetPnlUsd ?? 0);
   });
-  fresh.sort((a, b) => a.decided - b.decided);
+  // Prefer culling underwater degens among fresh strategies too.
+  fresh.sort((a, b) => {
+    const aDegen = isRobinhoodDegenStrategy(byStrategyId.get(a.strategyId));
+    const bDegen = isRobinhoodDegenStrategy(byStrategyId.get(b.strategyId));
+    if (aDegen !== bDegen) return aDegen ? -1 : 1;
+    return (a.sumNetPnlUsd ?? 0) - (b.sumNetPnlUsd ?? 0) || a.decided - b.decided;
+  });
   const ordered = [...experienced, ...fresh];
   const victims = ordered.slice(0, removeCount);
 

@@ -1,5 +1,6 @@
 import { PublicKey } from '@solana/web3.js';
 import { fetchWithRetry } from '../utils/resilientFetch.js';
+import { validateUpstreamUrl } from './skillUpstreamGuard.js';
 
 const METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
 const JUPITER_TOKENS_SEARCH = 'https://api.jup.ag/tokens/v2/search';
@@ -44,10 +45,17 @@ function decodeMetaplexMetadata(data) {
 async function fetchImageFromMetadataUri(uri) {
   const trimmed = typeof uri === 'string' ? uri.trim() : '';
   if (!trimmed || !/^https?:\/\//i.test(trimmed)) return null;
+  const urlCheck = await validateUpstreamUrl(trimmed);
+  if (!urlCheck.ok) return null;
+  const safeUrl = urlCheck.url.toString();
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 5000);
   try {
-    const res = await fetch(trimmed, { signal: ctrl.signal, headers: { Accept: 'application/json' } });
+    const res = await fetch(safeUrl, {
+      signal: ctrl.signal,
+      headers: { Accept: 'application/json' },
+      redirect: 'manual',
+    });
     if (!res.ok) return null;
     const json = await res.json().catch(() => null);
     const image = typeof json?.image === 'string' ? json.image.trim() : '';

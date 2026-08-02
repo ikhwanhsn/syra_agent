@@ -49,6 +49,7 @@ import {
 import { runBrowserTask } from "./browserUseClient.js";
 import { run8004Stats, run8004Leaderboard, run8004AgentsSearch } from "./8004ReadApi.js";
 import { searchWeb } from "./research/webSearchService.js";
+import { validateUpstreamUrl } from "./skillUpstreamGuard.js";
 
 const JUPITER_API_BASE = process.env.JUPITER_API_KEY
   ? "https://api.jup.ag"
@@ -129,6 +130,11 @@ async function handleWebSearch(params) {
 async function handleWebsiteCrawl(params) {
   const url = parseUrlStrict(params.url);
   if (!url) return { ok: false, error: "url is required (valid http(s) URL)", status: 400 };
+  const urlCheck = await validateUpstreamUrl(url);
+  if (!urlCheck.ok) {
+    return { ok: false, error: `SSRF blocked: ${urlCheck.error}`, status: 400 };
+  }
+  const safeUrl = urlCheck.url.toString();
   const config = getCloudflareCrawlConfig();
   if (!config) {
     return {
@@ -143,7 +149,7 @@ async function handleWebsiteCrawl(params) {
   const render = renderRaw === false || renderRaw === "false" ? false : true;
   try {
     const jobId = await startCrawl(config.accountId, config.apiToken, {
-      url,
+      url: safeUrl,
       limit,
       depth,
       formats: ["markdown"],

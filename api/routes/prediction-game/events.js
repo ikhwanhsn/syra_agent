@@ -1,8 +1,40 @@
 import express from 'express';
 import PredictionEvent from '../../models/prediction-game/Event.js';
 import PredictionCreator from '../../models/prediction-game/Creator.js';
+import { requireSession } from '../../utils/requireSession.js';
+import { verifyPredictionGameSolPayment } from '../../libs/predictionGameTxVerify.js';
 
 const router = express.Router();
+
+function isProduction() {
+  return String(process.env.NODE_ENV || '').toLowerCase() === 'production';
+}
+
+/** Fail-closed cron gate for auto-resolve / phase transitions. */
+function requirePredictionCronSecret(req, res, next) {
+  const secret = (process.env.PREDICTION_GAME_CRON_SECRET || process.env.CRON_SECRET || '').trim();
+  if (!secret) {
+    if (isProduction()) {
+      return res.status(403).json({ error: 'cron_secret_not_configured' });
+    }
+    return next();
+  }
+  const got = (
+    req.get('x-prediction-game-cron-secret') ||
+    req.get('x-cron-secret') ||
+    ''
+  ).trim();
+  if (got !== secret) {
+    return res.status(403).json({ error: 'Invalid or missing cron secret' });
+  }
+  return next();
+}
+
+function sessionWallet(req) {
+  return req.user?.walletAddress ? String(req.user.walletAddress).trim() : null;
+}
+
+const USER_EVENTS_LIMIT = 100;
 
 // Token data for reference
 const tokenData = {
@@ -128,7 +160,7 @@ router.get('/stats', async (req, res) => {
 });
 
 // POST /api/prediction-game/events/process-transitions - Process phase transitions
-router.post('/process-transitions', async (req, res) => {
+router.post('/process-transitions', requirePredictionCronSecret, async (req, res) => {
   try {
     const result = await PredictionEvent.processPhaseTransitions();
     res.json({
@@ -181,11 +213,14 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/prediction-game/events - Create new event
-router.post('/', async (req, res) => {
+router.post('/', requireSession(), async (req, res) => {
   try {
+    const creatorWallet = sessionWallet(req);
+    if (!creatorWallet) {
+      return res.status(401).json({ error: 'auth_required' });
+    }
     const {
       token,
-      creatorWallet,
       creatorDeposit,
       joiningDuration = 48,
       predictionPhaseDuration = 4,
@@ -199,10 +234,25 @@ router.post('/', async (req, res) => {
     } = req.body;
     
     // Validate required fields
-    if (!token || !creatorWallet || !creatorDeposit) {
+    if (!token || !creatorDeposit) {
       return res.status(400).json({ 
-        error: 'Missing required fields: token, creatorWallet, creatorDeposit' 
+        error: 'Missing required fields: token, creatorDeposit' 
       });
+    }
+    if (!creationTxSignature) {
+      return res.status(400).json({ error: 'creationTxSignature required' });
+    }
+
+    const escrow =
+      (process.env.PREDICTION_GAME_ESCROW_WALLET || process.env.PREDICTION_GAME_PLATFORM_WALLET || '').trim() ||
+      null;
+    const verified = await verifyPredictionGameSolPayment(creationTxSignature, {
+      expectedSigner: creatorWallet,
+      minSol: Number(creatorDeposit),
+      recipient: escrow,
+    });
+    if (!verified.ok) {
+      return res.status(400).json({ error: 'invalid_creation_payment', detail: verified.error });
     }
     
     // Validate token
@@ -289,20 +339,35 @@ router.post('/', async (req, res) => {
 });
 
 // POST /api/prediction-game/events/:id/join - Join an event (pay entry fee)
-router.post('/:id/join', async (req, res) => {
+router.post('/:id/join', requireSession(), async (req, res) => {
   try {
-    const { walletAddress, txSignature } = req.body;
-    
+    const walletAddress = sessionWallet(req);
     if (!walletAddress) {
-      return res.status(400).json({ error: 'Missing required field: walletAddress' });
+      return res.status(401).json({ error: 'auth_required' });
+    }
+    const { txSignature } = req.body;
+    if (!txSignature) {
+      return res.status(400).json({ error: 'txSignature required' });
     }
     
     const event = await PredictionEvent.findById(req.params.id);
     if (!event) {
       return res.status(404).json({ error: 'Event not found' });
     }
+
+    const escrow =
+      (process.env.PREDICTION_GAME_ESCROW_WALLET || process.env.PREDICTION_GAME_PLATFORM_WALLET || '').trim() ||
+      event.creatorWallet;
+    const verified = await verifyPredictionGameSolPayment(txSignature, {
+      expectedSigner: walletAddress,
+      minSol: Number(event.entryFee) || 0,
+      recipient: escrow,
+    });
+    if (!verified.ok) {
+      return res.status(400).json({ error: 'invalid_entry_payment', detail: verified.error });
+    }
     
-    await event.addParticipant(walletAddress, txSignature);
+    await event.addParticipant(walletAddress, verified.signature);
     
     res.json(event);
   } catch (error) {
@@ -311,13 +376,17 @@ router.post('/:id/join', async (req, res) => {
 });
 
 // POST /api/prediction-game/events/:id/predict - Add prediction to event
-router.post('/:id/predict', async (req, res) => {
+router.post('/:id/predict', requireSession(), async (req, res) => {
   try {
-    const { walletAddress, predictedPrice } = req.body;
+    const walletAddress = sessionWallet(req);
+    if (!walletAddress) {
+      return res.status(401).json({ error: 'auth_required' });
+    }
+    const { predictedPrice } = req.body;
     
-    if (!walletAddress || predictedPrice === undefined) {
+    if (predictedPrice === undefined) {
       return res.status(400).json({ 
-        error: 'Missing required fields: walletAddress, predictedPrice' 
+        error: 'Missing required fields: predictedPrice' 
       });
     }
     
@@ -344,9 +413,13 @@ router.post('/:id/predict', async (req, res) => {
   }
 });
 
-// PUT /api/prediction-game/events/:id/resolve - Resolve event with final price
-router.put('/:id/resolve', async (req, res) => {
+// PUT /api/prediction-game/events/:id/resolve - Resolve event with final price (creator or cron)
+router.put('/:id/resolve', requireSession(), async (req, res) => {
   try {
+    const walletAddress = sessionWallet(req);
+    if (!walletAddress) {
+      return res.status(401).json({ error: 'auth_required' });
+    }
     const { finalPrice, resolutionTxSignature } = req.body;
     
     if (!finalPrice) {
@@ -356,6 +429,10 @@ router.put('/:id/resolve', async (req, res) => {
     const event = await PredictionEvent.findById(req.params.id);
     if (!event) {
       return res.status(404).json({ error: 'Event not found' });
+    }
+
+    if (event.creatorWallet !== walletAddress) {
+      return res.status(403).json({ error: 'Only the creator can resolve this event' });
     }
     
     // Check if we need to transition from predicting to waiting
@@ -391,9 +468,12 @@ router.put('/:id/resolve', async (req, res) => {
 });
 
 // PUT /api/prediction-game/events/:id/start-prediction - Manually start prediction phase
-router.put('/:id/start-prediction', async (req, res) => {
+router.put('/:id/start-prediction', requireSession(), async (req, res) => {
   try {
-    const { walletAddress } = req.body;
+    const walletAddress = sessionWallet(req);
+    if (!walletAddress) {
+      return res.status(401).json({ error: 'auth_required' });
+    }
     
     const event = await PredictionEvent.findById(req.params.id);
     if (!event) {
@@ -453,19 +533,20 @@ router.get('/user/:walletAddress', async (req, res) => {
   try {
     const { walletAddress } = req.params;
     const { type } = req.query;
+    const limit = USER_EVENTS_LIMIT;
     
     let events;
     
     if (type === 'created') {
-      events = await PredictionEvent.find({ creatorWallet: walletAddress }).sort({ createdAt: -1 });
+      events = await PredictionEvent.find({ creatorWallet: walletAddress }).sort({ createdAt: -1 }).limit(limit);
     } else if (type === 'joined') {
-      events = await PredictionEvent.find({ 'participants.walletAddress': walletAddress }).sort({ createdAt: -1 });
+      events = await PredictionEvent.find({ 'participants.walletAddress': walletAddress }).sort({ createdAt: -1 }).limit(limit);
     } else if (type === 'predicted') {
-      events = await PredictionEvent.find({ 'predictions.walletAddress': walletAddress }).sort({ createdAt: -1 });
+      events = await PredictionEvent.find({ 'predictions.walletAddress': walletAddress }).sort({ createdAt: -1 }).limit(limit);
     } else {
-      const created = await PredictionEvent.find({ creatorWallet: walletAddress });
-      const joined = await PredictionEvent.find({ 'participants.walletAddress': walletAddress });
-      const predicted = await PredictionEvent.find({ 'predictions.walletAddress': walletAddress });
+      const created = await PredictionEvent.find({ creatorWallet: walletAddress }).sort({ createdAt: -1 }).limit(limit);
+      const joined = await PredictionEvent.find({ 'participants.walletAddress': walletAddress }).sort({ createdAt: -1 }).limit(limit);
+      const predicted = await PredictionEvent.find({ 'predictions.walletAddress': walletAddress }).sort({ createdAt: -1 }).limit(limit);
       events = { created, joined, predicted };
     }
     
@@ -476,9 +557,13 @@ router.get('/user/:walletAddress', async (req, res) => {
 });
 
 // DELETE /api/prediction-game/events/:id - Cancel event
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireSession(), async (req, res) => {
   try {
-    const { walletAddress, reason } = req.body;
+    const walletAddress = sessionWallet(req);
+    if (!walletAddress) {
+      return res.status(401).json({ error: 'auth_required' });
+    }
+    const { reason } = req.body;
     
     const event = await PredictionEvent.findById(req.params.id);
     if (!event) {
@@ -535,7 +620,7 @@ async function fetchTokenPrice(token) {
 }
 
 // POST /api/prediction-game/events/auto-resolve - Auto-resolve waiting events past their resolution time
-router.post('/auto-resolve', async (req, res) => {
+router.post('/auto-resolve', requirePredictionCronSecret, async (req, res) => {
   try {
     const now = new Date();
     const waitingEvents = await PredictionEvent.find({

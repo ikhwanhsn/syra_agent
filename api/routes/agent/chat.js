@@ -2569,15 +2569,16 @@ router.get('/share/:shareId', async (req, res) => {
   }
 });
 
-// GET / - List chats for the given anonymousId (newest first). Scoped by wallet/user.
+// GET / - List chats for the authenticated session (newest first).
+// SECURITY: bound to session anonymousId — query anonymousId cannot enumerate other users' chats.
 // Backfill shareId for any chat that doesn't have one (e.g. created before share feature).
-router.get('/', async (req, res) => {
+router.get('/', requireSession({ allowGuest: true }), async (req, res) => {
   try {
-    const { anonymousId, limit = 50 } = req.query;
-    if (!anonymousId || typeof anonymousId !== 'string' || !anonymousId.trim()) {
-      return res.status(400).json({ success: false, error: 'anonymousId is required' });
+    const { limit = 50 } = req.query;
+    const ownerId = req.user?.anonymousId;
+    if (!ownerId) {
+      return res.status(401).json({ success: false, error: 'auth_required' });
     }
-    const ownerId = anonymousId.trim();
     const limitNum = Math.min(parseInt(limit, 10) || 50, 100);
     const chats = await Chat.find({ anonymousId: ownerId })
       .sort({ updatedAt: -1 })

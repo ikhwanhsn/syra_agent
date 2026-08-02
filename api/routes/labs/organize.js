@@ -4,7 +4,7 @@
 import express from 'express';
 import { getAdminDashboardWallets, isAdminWalletAddress } from '../../libs/adminWallet.js';
 import { requireMongooseConnection } from '../../config/mongoose.js';
-import { optionalWalletSession } from '../../utils/requireSession.js';
+import { requireSession } from '../../utils/requireSession.js';
 import {
   anonymousIdFromWallet,
   createEntry,
@@ -17,34 +17,28 @@ import {
   ORGANIZE_ENTRY_TYPES,
 } from '../../models/labs/OrganizeEntry.js';
 
+/**
+ * Admin gate (SECURITY): previous `x-admin-wallet` / `x-wallet-address` header fallback was
+ * spoofable. Require a Syra session JWT whose verified wallet is on the admin allowlist.
+ */
 function requireAdminWallet(req, res, next) {
   const allow = getAdminDashboardWallets();
   if (allow.length === 0) {
     return res.status(403).json({ success: false, error: 'admin_disabled' });
   }
 
-  let walletAddress = req.user?.walletAddress ?? null;
-  if (!walletAddress) {
-    const fromHeader = req.get('x-admin-wallet') || req.get('x-wallet-address');
-    if (typeof fromHeader === 'string' && fromHeader.trim()) {
-      walletAddress = fromHeader.trim();
-    }
+  if (!req.user || req.user.guest || !req.user.walletAddress) {
+    return res.status(401).json({ success: false, error: 'auth_required' });
   }
-
-  if (!walletAddress) {
-    return res.status(403).json({ success: false, error: 'admin_required' });
-  }
-  if (!isAdminWalletAddress(walletAddress)) {
+  if (!isAdminWalletAddress(req.user.walletAddress)) {
     return res.status(403).json({ success: false, error: 'not_admin' });
   }
-
-  req.user = { ...(req.user || {}), walletAddress, guest: false };
   next();
 }
 
 export function createOrganizeRouter() {
   const router = express.Router();
-  router.use(optionalWalletSession(), requireAdminWallet, requireMongooseConnection);
+  router.use(requireSession(), requireAdminWallet, requireMongooseConnection);
 
   router.get('/entries', async (req, res) => {
     try {

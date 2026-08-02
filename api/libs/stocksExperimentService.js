@@ -319,6 +319,10 @@ export async function getStocksOverview() {
     status: "open",
   });
 
+  const champion = await import("./experimentChampions.js")
+    .then((m) => m.getDeskChampion("stocks"))
+    .catch(() => null);
+
   return {
     activeExperimentId: labState.activeExperimentId,
     startedAt: labState.startedAt,
@@ -333,6 +337,7 @@ export async function getStocksOverview() {
     leaderSumPnlUsd: leader?.sumPnlUsd ?? null,
     leaderWinRatePct: leader?.winRatePct ?? null,
     leaderReturnPct: leader?.returnPct ?? null,
+    champion,
   };
 }
 
@@ -598,7 +603,15 @@ export async function resolveOpenStocksRuns() {
         exitPx = entry * (1 + stopLossPct / 100);
       } else if (run.openedAt) {
         const holdMs = maxHoldHours * 3_600_000;
-        if (Date.now() - new Date(run.openedAt).getTime() > holdMs) {
+        const heldMs = Date.now() - new Date(run.openedAt).getTime();
+        // Time-stop: cut underwater positions at 50% of max hold instead of bleeding to expiry.
+        // This was the -$2.7k "expired" dump root cause.
+        const timeStopMs = holdMs * 0.5;
+        if (heldMs > timeStopMs && pnlPct < 0) {
+          status = "loss";
+          resolution = "time_stop";
+          exitPx = px;
+        } else if (heldMs > holdMs) {
           status = pnlPct >= 0 ? "win" : "expired";
           resolution = "max_hold";
           exitPx = px;
@@ -622,14 +635,24 @@ export async function resolveOpenStocksRuns() {
         entry > 0 && exitPx > 0 ? roundUsd(notional * (exitPx / entry - 1)) : 0;
       const costUsd = roundUsd(notional * (Math.max(0, roundTripCostBps) / 10_000));
       const simPnlUsd = roundUsd(grossPnl - costUsd);
-      const simPnlPct = entry > 0 ? roundUsd(((exitPx - entry) / entry) * 100) : 0;
+      const simPnlPct = entry > 0
+        ? roundUsd(((exitPx - entry) / entry) * 100 - roundTripCostBps / 100)
+        : 0;
+      // Relabel by net PnL after costs (same bug class as BTC quant).
+      let labeledStatus = status;
+      if (status === "win" || status === "loss" || status === "expired") {
+        if (simPnlUsd > 0) labeledStatus = "win";
+        else if (status === "expired") labeledStatus = "expired";
+        else labeledStatus = "loss";
+      }
       bulkOps.push({
         updateOne: {
           filter: { _id: run._id, status: "open" },
           update: {
             $set: {
-              status,
-              resolution,
+              status: labeledStatus,
+              resolution:
+                status === "win" && labeledStatus === "loss" ? "tp_below_cost" : resolution,
               simExitPrice: exitPx,
               simPnlUsd,
               simPnlPct,

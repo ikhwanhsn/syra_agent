@@ -44,16 +44,20 @@ export const SCALPER_DEFAULTS = Object.freeze({
   stopLossPct: 0.45,
   maxHoldMinutes: 15,
   /** Active-demo floor — high enough to skip junk, low enough to trade. */
-  minOpportunityScore: 0.6,
+  minOpportunityScore: 0.55,
   /**
    * Extra edge (%) above estimated round-trip fill cost before entry.
    * Round-trip ≈ 2 × quoteSlippageBps / 100.
    */
-  minEdgeBufferPct: 0.18,
+  minEdgeBufferPct: 0.15,
   /** Cooldown after closing same symbol (ms). */
-  symbolCooldownMs: 10 * 60_000,
-  /** How long experiment signals stay valid (ms) — fresh only. */
-  experimentSignalMaxAgeMs: 3 * 60_000,
+  symbolCooldownMs: 4 * 60_000,
+  /** How long experiment signals stay valid (ms) — long enough for slow BTC desks. */
+  experimentSignalMaxAgeMs: 20 * 60_000,
+  /** After this many idle hours without opens, auto-lower minOpportunityScore. */
+  idleAdaptHours: 6,
+  /** Floor for adaptive minOpportunityScore when desk is idle. */
+  adaptiveMinScoreFloor: 0.48,
   /** Momentum scan thresholds — active-demo friendly, still reject near-zero noise. */
   momentumMinPct: 0.05,
   momentumMaxVolatilityPct: 1.45,

@@ -109,14 +109,25 @@ export async function runBtc3Learning() {
       `Recent rebalances underperformed (avg return ${avgReturn.toFixed(2)}%) — raising min rebalance threshold.`,
     );
     thresholdOverrides.minRebalancePct = Math.min(
-      cfg.minRebalancePct + 1,
-      cfg.minRebalancePct * 1.5,
-      8,
+      cfg.minRebalancePct + 1.5,
+      cfg.minRebalancePct * 1.6,
+      10,
     );
-    thresholdOverrides.minConfidence = Math.max(0.55, toNum(cfg.minConfidence, 0));
+    // Require clearer edge before paying round-trip costs on a losing book.
+    thresholdOverrides.minConfidence = Math.max(0.58, toNum(cfg.minConfidence, 0));
   } else if (avgReturn > 2 && hurtfulCount <= 3) {
     lessons.push(
       `Paper rebalances are profitable (avg return ${avgReturn.toFixed(2)}%) — current allocation policy is working.`,
+    );
+  } else if (avgReturn < 0.5) {
+    // Mildly losing / flat desk: nudge toward net-of-cost EV > 0 before executing.
+    lessons.push(
+      `Desk near breakeven (avg return ${avgReturn.toFixed(2)}%) — prefer higher-confidence, larger tilts only.`,
+    );
+    thresholdOverrides.minConfidence = Math.max(0.5, toNum(cfg.minConfidence, 0));
+    thresholdOverrides.minRebalancePct = Math.min(
+      Math.max(cfg.minRebalancePct, 5.5),
+      8,
     );
   }
 
@@ -127,7 +138,7 @@ export async function runBtc3Learning() {
     lessons.push(
       `${lowConfidenceLosses.length} low-confidence rebalances hurt returns — require higher confidence.`,
     );
-    thresholdOverrides.minConfidence = 0.6;
+    thresholdOverrides.minConfidence = 0.62;
   }
 
   const largeTilts = executed.filter((r) => {

@@ -5,7 +5,7 @@
 import express from 'express';
 import { getAdminDashboardWallets, isAdminWalletAddress } from '../../libs/adminWallet.js';
 import { requireMongooseConnection } from '../../config/mongoose.js';
-import { optionalWalletSession } from '../../utils/requireSession.js';
+import { requireSession } from '../../utils/requireSession.js';
 import {
   createLabWallet,
   createLabWalletsBulk,
@@ -86,7 +86,7 @@ function parseChain(req) {
 }
 
 function requireManualRunCooldown(req, res, next) {
-  const wallet = req.user?.walletAddress ?? req.get('x-admin-wallet') ?? '';
+  const wallet = req.user?.walletAddress ?? '';
   const chain = parseChain(req);
   const key = `${String(wallet).trim()}:${chain}`;
   if (!key.startsWith(':')) {
@@ -103,34 +103,28 @@ function requireManualRunCooldown(req, res, next) {
   next();
 }
 
+/**
+ * Admin gate (SECURITY): previous `x-admin-wallet` / `x-wallet-address` header fallback was
+ * spoofable. Require a Syra session JWT whose verified wallet is on the admin allowlist.
+ */
 function requireAdminWallet(req, res, next) {
   const allow = getAdminDashboardWallets();
   if (allow.length === 0) {
     return res.status(403).json({ success: false, error: 'admin_disabled' });
   }
 
-  let walletAddress = req.user?.walletAddress ?? null;
-  if (!walletAddress) {
-    const fromHeader = req.get('x-admin-wallet') || req.get('x-wallet-address');
-    if (typeof fromHeader === 'string' && fromHeader.trim()) {
-      walletAddress = fromHeader.trim();
-    }
+  if (!req.user || req.user.guest || !req.user.walletAddress) {
+    return res.status(401).json({ success: false, error: 'auth_required' });
   }
-
-  if (!walletAddress) {
-    return res.status(403).json({ success: false, error: 'admin_required' });
-  }
-  if (!isAdminWalletAddress(walletAddress)) {
+  if (!isAdminWalletAddress(req.user.walletAddress)) {
     return res.status(403).json({ success: false, error: 'not_admin' });
   }
-
-  req.user = { ...(req.user || {}), walletAddress, guest: false };
   next();
 }
 
 export function createLabsX402Router() {
   const router = express.Router();
-  router.use(optionalWalletSession(), requireAdminWallet, requireMongooseConnection);
+  router.use(requireSession(), requireAdminWallet, requireMongooseConnection);
 
   router.get('/wallets', async (req, res) => {
     try {

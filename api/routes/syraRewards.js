@@ -1,8 +1,8 @@
 /**
  * Public + authenticated $SYRA usage rewards routes.
  *
- * GET  /rewards/me?wallet=...     — wallet rewards status
- * POST /rewards/claim             — { wallet, amountSyra? } claim claimable $SYRA
+ * GET  /rewards/me?wallet=...     — wallet rewards status (read-only)
+ * POST /rewards/claim             — session-bound claim of claimable $SYRA
  * POST /internal/rewards/fund     — epoch fund (cron / admin)
  */
 import { Router } from "express";
@@ -12,6 +12,7 @@ import {
   fundRewardsEpoch,
   buildPublicRewardsSnapshot,
 } from "../libs/syraUsageRewards.js";
+import { requireSession } from "../utils/requireSession.js";
 
 export function createSyraRewardsRouter() {
   const router = Router();
@@ -48,17 +49,18 @@ export function createSyraRewardsRouter() {
     }
   });
 
-  router.post("/claim", async (req, res) => {
+  /**
+   * SECURITY: claim must be bound to a verified session wallet.
+   * Body/header wallet fields are ignored to prevent unauthorized treasury drains.
+   */
+  router.post("/claim", requireSession({ requireOwnership: false }), async (req, res) => {
     try {
-      const wallet =
-        (typeof req.body?.wallet === "string" && req.body.wallet.trim()) ||
-        (req.get("x-connected-wallet") || "").trim() ||
-        "";
+      if (!req.user || req.user.guest || !req.user.walletAddress) {
+        return res.status(401).json({ success: false, error: "auth_required" });
+      }
+      const wallet = String(req.user.walletAddress).trim();
       const amountSyra =
         req.body?.amountSyra != null ? Number(req.body.amountSyra) : undefined;
-      if (!wallet) {
-        return res.status(400).json({ success: false, error: "wallet_required" });
-      }
       const out = await claimRewards(wallet, amountSyra);
       const status = out.success ? 200 : 400;
       return res.status(status).json(out);
@@ -79,7 +81,13 @@ export function createInternalRewardsRouter() {
   router.post("/rewards/fund", async (req, res) => {
     try {
       const secret = (process.env.BUYBACK_CRON_SECRET || process.env.CRON_SECRET || "").trim();
-      if (secret) {
+      const isProd = String(process.env.NODE_ENV || "").toLowerCase() === "production";
+      // SECURITY: fail closed in production when secret is unset
+      if (!secret) {
+        if (isProd) {
+          return res.status(403).json({ success: false, error: "cron_secret_not_configured" });
+        }
+      } else {
         const got = (req.get("x-buyback-cron-secret") || req.get("x-cron-secret") || "").trim();
         if (got !== secret) {
           return res.status(401).json({ success: false, error: "unauthorized" });

@@ -221,6 +221,17 @@ function resolveTradeLevels(strategy, signal) {
     firstTarget = entry * (1 + Number(exit.takeProfitPct) / 100);
   }
 
+  // Ensure TP clears round-trip cost + buffer so "wins" can actually be profitable.
+  const roundTripCostBps = Number(process.env.BTC_QUANT_PAPER_ROUND_TRIP_BPS || 110);
+  const minEdgeBps = Number(process.env.BTC_QUANT_MIN_TP_EDGE_BPS || 40);
+  const minTpPct = (Math.max(0, roundTripCostBps) + Math.max(0, minEdgeBps)) / 100;
+  if (entry > 0 && firstTarget > 0) {
+    const tpPct = ((firstTarget - entry) / entry) * 100;
+    if (tpPct < minTpPct) {
+      firstTarget = entry * (1 + minTpPct / 100);
+    }
+  }
+
   const valid =
     entry > 0 &&
     stopLoss > 0 &&
@@ -449,6 +460,10 @@ export async function getBtcQuantOverview(lane = "btc1") {
     // real module optional at boot
   }
 
+  const champion = await import("./experimentChampions.js")
+    .then((m) => m.getDeskChampion(`btc_quant_${laneDef.lane}`))
+    .catch(() => null);
+
   return {
     lane: laneDef.lane,
     btcSpotPriceUsd: await fetchBtcSpotPrice(),
@@ -472,6 +487,7 @@ export async function getBtcQuantOverview(lane = "btc1") {
       topWinRateStrategyId: topWin?.strategyId ?? null,
       topWinRatePct: topWin?.winRatePct ?? null,
     },
+    champion,
     realAgent,
   };
 }
@@ -720,16 +736,30 @@ export async function resolveOpenBtcQuantRuns(lane = "btc1") {
         entry > 0 && exitPx > 0 ? roundUsd(notional * (exitPx / entry - 1)) : 0;
       const costUsd = roundUsd(notional * (Math.max(0, roundTripCostBps) / 10_000));
       const simPnlUsd = roundUsd(grossPnl - costUsd);
+      // Label win/loss from NET PnL after costs — a TP touch that loses money is a loss.
+      // Preserve "expired" for max-hold exits; flip only win/loss by sign of simPnlUsd.
+      let labeledStatus = status;
+      let labeledResolution = status === "expired" ? "max_hold" : status;
+      if (status === "expired") {
+        labeledStatus = simPnlUsd > 0 ? "win" : simPnlUsd < 0 ? "expired" : "expired";
+        labeledResolution = "max_hold";
+      } else {
+        labeledStatus = simPnlUsd > 0 ? "win" : "loss";
+        labeledResolution =
+          status === "win" && labeledStatus === "loss"
+            ? "tp_below_cost"
+            : labeledStatus;
+      }
       bulkOps.push({
         updateOne: {
           filter: { _id: run._id, status: "open" },
           update: {
             $set: {
-              status,
+              status: labeledStatus,
               simExitPrice: exitPx,
               simPnlUsd,
               resolvedAt: new Date(),
-              resolution: status === "expired" ? "max_hold" : status,
+              resolution: labeledResolution,
             },
           },
         },

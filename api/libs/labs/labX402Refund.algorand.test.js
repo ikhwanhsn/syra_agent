@@ -13,6 +13,7 @@ import {
   PAYER_ALGO_SEED_FEE_CUSHION_MICRO,
   PAYTO_USDC_REFUND_BATCH_SIZE,
   PAYTO_USDC_REFUND_FEE_NEED_MICRO,
+  PAYTO_USDC_REFUND_MIN_FEE_MICRO,
   spendableFromAccountInfo,
 } from './labAlgorandFeeBuffer.js';
 import {
@@ -142,6 +143,11 @@ describe('PAYTO_USDC_REFUND_FEE_NEED_MICRO (batch cushion)', () => {
     const singleRefund = 1_000n * 2n + 20_000n;
     assert.equal(PAYTO_USDC_REFUND_FEE_NEED_MICRO, singleRefund * PAYTO_USDC_REFUND_BATCH_SIZE);
     assert.ok(PAYTO_USDC_REFUND_FEE_NEED_MICRO > singleRefund);
+  });
+
+  test('single-fee floor is well below batch cushion', () => {
+    assert.equal(PAYTO_USDC_REFUND_MIN_FEE_MICRO, 1_000n * 2n + 2_000n);
+    assert.ok(PAYTO_USDC_REFUND_MIN_FEE_MICRO < PAYTO_USDC_REFUND_FEE_NEED_MICRO);
   });
 });
 
@@ -291,6 +297,48 @@ describe('ensurePayToAlgoForUsdcRefund', () => {
     const result = await ensurePayToAlgoForUsdcRefund('PAYTOADDR', {
       client,
       needMicro: PAYTO_USDC_REFUND_FEE_NEED_MICRO,
+      funders: [],
+    });
+    assert.equal(result.ok, false);
+    assert.match(String(result.error), /insufficient_algo_for_usdc_refund/);
+    assert.equal(result.spendable, 0);
+  });
+
+  test('proceeds belowBatch when spendable covers single fee but not batch cushion', async () => {
+    // Real Labs shape: ~0.259 ALGO total, 0.2 ALGO MBR → ~0.059 spendable
+    // (enough for many single refunds, below 0.176 batch cushion).
+    const client = {
+      accountInformation() {
+        return {
+          do: async () => ({ amount: 259000, minBalance: 200000 }),
+        };
+      },
+    };
+    const result = await ensurePayToAlgoForUsdcRefund('PAYTOADDR', {
+      client,
+      needMicro: PAYTO_USDC_REFUND_FEE_NEED_MICRO,
+      funders: [],
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.belowBatch, true);
+    assert.equal(result.funded, false);
+    assert.ok(result.spendable > 0);
+    assert.ok(result.spendable * 1e6 >= Number(PAYTO_USDC_REFUND_MIN_FEE_MICRO));
+    assert.ok(result.spendable * 1e6 < Number(PAYTO_USDC_REFUND_FEE_NEED_MICRO));
+  });
+
+  test('still fails when spendable is below single-fee floor and no funders', async () => {
+    const client = {
+      accountInformation() {
+        return {
+          do: async () => ({ amount: 199638, minBalance: 200000 }),
+        };
+      },
+    };
+    const result = await ensurePayToAlgoForUsdcRefund('PAYTOADDR', {
+      client,
+      needMicro: PAYTO_USDC_REFUND_FEE_NEED_MICRO,
+      minMicro: PAYTO_USDC_REFUND_MIN_FEE_MICRO,
       funders: [],
     });
     assert.equal(result.ok, false);

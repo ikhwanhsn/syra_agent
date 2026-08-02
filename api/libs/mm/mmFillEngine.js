@@ -16,7 +16,8 @@ import {
  */
 export function computeImpactBps(fillPrice, midPrice) {
   if (!(fillPrice > 0) || !(midPrice > 0)) return null;
-  return Math.round(Math.abs(fillPrice / midPrice - 1) * 10_000);
+  // Cap so thin SYRA book probes cannot mark 9000+ bps and poison learning.
+  return Math.min(500, Math.round(Math.abs(fillPrice / midPrice - 1) * 10_000));
 }
 
 /**
@@ -40,8 +41,13 @@ export async function quoteBuyFill({ notionalUsd, limitPriceUsd, midPriceUsd }) 
     });
     const outAmountRaw = String(quote?.outAmount ?? "0");
     const fillPriceUsd =
-      computePriceUsdFromQuote(amountRaw, outAmountRaw, MM_USDC_DECIMALS, MM_SYRA_DECIMALS) ??
-      limitPriceUsd;
+      computePriceUsdFromQuote(
+        amountRaw,
+        outAmountRaw,
+        MM_USDC_DECIMALS,
+        MM_SYRA_DECIMALS,
+        "buy",
+      ) ?? limitPriceUsd;
 
     if (fillPriceUsd > limitPriceUsd * 1.02) {
       return { filled: false, reason: "price_above_limit" };
@@ -102,8 +108,13 @@ export async function quoteSellFill({
     const outAmountRaw = String(quote?.outAmount ?? "0");
     const outUsd = Number(outAmountRaw) / 10 ** MM_USDC_DECIMALS;
     const fillPriceUsd =
-      computePriceUsdFromQuote(syraAmountRaw, outAmountRaw, MM_SYRA_DECIMALS, MM_USDC_DECIMALS) ??
-      midPriceUsd;
+      computePriceUsdFromQuote(
+        syraAmountRaw,
+        outAmountRaw,
+        MM_SYRA_DECIMALS,
+        MM_USDC_DECIMALS,
+        "sell",
+      ) ?? midPriceUsd;
     const pnlUsd = outUsd - entryNotionalUsd;
 
     if (fillPriceUsd < limitPriceUsd * 0.98) {

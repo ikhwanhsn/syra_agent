@@ -42,10 +42,21 @@ import {
 import { evaluateTreasuryPolicy } from "../libs/treasuryAutopilotService.js";
 import { evaluateYieldOpportunity, listYieldVenues } from "../libs/yieldAutopilotService.js";
 import { runOutcomeSchedulerTick } from "../libs/outcomeJobScheduler.js";
+import { requireSession } from "../utils/requireSession.js";
+
+function isProduction() {
+  return String(process.env.NODE_ENV || "").toLowerCase() === "production";
+}
 
 function requireCronSecret(req, res, next) {
   const secret = (process.env.OUTCOME_CRON_SECRET || process.env.ROBINHOOD_LP_EXPERIMENT_CRON_SECRET || "").trim();
-  if (!secret) return next();
+  // SECURITY: fail closed in production when secret is unset
+  if (!secret) {
+    if (isProduction()) {
+      return res.status(403).json({ success: false, error: "cron_secret_not_configured" });
+    }
+    return next();
+  }
   const got = (req.get("x-outcome-cron-secret") || req.get("x-lp-robinhood-experiment-secret") || "").trim();
   if (got !== secret) {
     return res.status(403).json({ success: false, error: "Invalid or missing cron secret" });
@@ -53,14 +64,26 @@ function requireCronSecret(req, res, next) {
   return next();
 }
 
+/** Session-bound identity only — never trust body/query/header anonymousId. */
 function resolveAnonymousId(req) {
-  return (
-    req.body?.anonymousId ||
-    req.query?.anonymousId ||
-    req.headers["x-anonymous-id"] ||
-    req.session?.anonymousId ||
-    null
-  );
+  return req.user?.anonymousId || null;
+}
+
+/**
+ * Load mandate and enforce ownership against the authenticated session.
+ * @returns {Promise<object | null>} mandate lean doc, or null if response already sent
+ */
+async function requireMandateOwner(req, res) {
+  const mandate = await getOutcomeMandate(req.params.mandateId);
+  if (!mandate) {
+    res.status(404).json({ success: false, error: "Not found" });
+    return null;
+  }
+  if (mandate.anonymousId !== req.user?.anonymousId) {
+    res.status(403).json({ success: false, error: "mandate_ownership_required" });
+    return null;
+  }
+  return mandate;
 }
 
 export function createOutcomesRouter() {
@@ -122,11 +145,11 @@ export function createOutcomesRouter() {
     }
   });
 
-  router.post("/mandates", async (req, res) => {
+  router.post("/mandates", requireSession(), async (req, res) => {
     try {
       const anonymousId = resolveAnonymousId(req);
       if (!anonymousId) {
-        return res.status(400).json({ success: false, error: "anonymousId required" });
+        return res.status(401).json({ success: false, error: "auth_required" });
       }
       const { productId, chain, agentAddress, policy, expiresAt, perTxCapUsd, dailySpendCapUsd, maxManagedCapitalUsd } =
         req.body ?? {};
@@ -150,11 +173,11 @@ export function createOutcomesRouter() {
     }
   });
 
-  router.get("/mandates", async (req, res) => {
+  router.get("/mandates", requireSession(), async (req, res) => {
     try {
       const anonymousId = resolveAnonymousId(req);
       if (!anonymousId) {
-        return res.status(400).json({ success: false, error: "anonymousId required" });
+        return res.status(401).json({ success: false, error: "auth_required" });
       }
       const mandates = await listOutcomeMandates(anonymousId, {
         productId: req.query.productId,
@@ -166,27 +189,31 @@ export function createOutcomesRouter() {
     }
   });
 
-  router.get("/mandates/:mandateId", async (req, res) => {
+  router.get("/mandates/:mandateId", requireSession(), async (req, res) => {
     try {
-      const mandate = await getOutcomeMandate(req.params.mandateId);
-      if (!mandate) return res.status(404).json({ success: false, error: "Not found" });
+      const mandate = await requireMandateOwner(req, res);
+      if (!mandate) return;
       res.json({ success: true, data: mandate });
     } catch (e) {
       res.status(500).json({ success: false, error: e instanceof Error ? e.message : String(e) });
     }
   });
 
-  router.post("/mandates/:mandateId/revoke", async (req, res) => {
+  router.post("/mandates/:mandateId/revoke", requireSession(), async (req, res) => {
     try {
-      const mandate = await revokeOutcomeMandate(req.params.mandateId, req.body?.revokedBy);
+      const owned = await requireMandateOwner(req, res);
+      if (!owned) return;
+      const mandate = await revokeOutcomeMandate(req.params.mandateId, req.body?.revokedBy || req.user.anonymousId);
       res.json({ success: true, data: mandate });
     } catch (e) {
       res.status(400).json({ success: false, error: e instanceof Error ? e.message : String(e) });
     }
   });
 
-  router.post("/mandates/:mandateId/kill", async (req, res) => {
+  router.post("/mandates/:mandateId/kill", requireSession(), async (req, res) => {
     try {
+      const owned = await requireMandateOwner(req, res);
+      if (!owned) return;
       const mandate = await killOutcomeMandate(req.params.mandateId, req.body?.reason);
       res.json({ success: true, data: mandate });
     } catch (e) {
@@ -194,8 +221,10 @@ export function createOutcomesRouter() {
     }
   });
 
-  router.post("/mandates/:mandateId/pause", async (req, res) => {
+  router.post("/mandates/:mandateId/pause", requireSession(), async (req, res) => {
     try {
+      const owned = await requireMandateOwner(req, res);
+      if (!owned) return;
       const mandate = await pauseOutcomeMandate(req.params.mandateId);
       res.json({ success: true, data: mandate });
     } catch (e) {
@@ -203,8 +232,10 @@ export function createOutcomesRouter() {
     }
   });
 
-  router.post("/mandates/:mandateId/resume", async (req, res) => {
+  router.post("/mandates/:mandateId/resume", requireSession(), async (req, res) => {
     try {
+      const owned = await requireMandateOwner(req, res);
+      if (!owned) return;
       const mandate = await resumeOutcomeMandate(req.params.mandateId);
       res.json({ success: true, data: mandate });
     } catch (e) {
@@ -212,10 +243,10 @@ export function createOutcomesRouter() {
     }
   });
 
-  router.post("/mandates/:mandateId/enable", async (req, res) => {
+  router.post("/mandates/:mandateId/enable", requireSession(), async (req, res) => {
     try {
-      const mandate = await getOutcomeMandate(req.params.mandateId);
-      if (!mandate) return res.status(404).json({ success: false, error: "Not found" });
+      const mandate = await requireMandateOwner(req, res);
+      if (!mandate) return;
       if (mandate.productId === "robinhood_lp_autopilot") {
         const config = await enableRobinhoodLpAutopilot(req.params.mandateId);
         return res.json({ success: true, data: { mandate, config } });
@@ -232,10 +263,10 @@ export function createOutcomesRouter() {
     }
   });
 
-  router.post("/mandates/:mandateId/disable", async (req, res) => {
+  router.post("/mandates/:mandateId/disable", requireSession(), async (req, res) => {
     try {
-      const mandate = await getOutcomeMandate(req.params.mandateId);
-      if (!mandate) return res.status(404).json({ success: false, error: "Not found" });
+      const mandate = await requireMandateOwner(req, res);
+      if (!mandate) return;
       if (mandate.productId === "robinhood_lp_autopilot") {
         const config = await disableRobinhoodLpAutopilot(req.params.mandateId);
         return res.json({ success: true, data: { mandate, config } });
@@ -252,10 +283,10 @@ export function createOutcomesRouter() {
     }
   });
 
-  router.get("/mandates/:mandateId/status", async (req, res) => {
+  router.get("/mandates/:mandateId/status", requireSession(), async (req, res) => {
     try {
-      const mandate = await getOutcomeMandate(req.params.mandateId);
-      if (!mandate) return res.status(404).json({ success: false, error: "Not found" });
+      const mandate = await requireMandateOwner(req, res);
+      if (!mandate) return;
       let productStatus = null;
       if (mandate.productId === "robinhood_lp_autopilot") {
         productStatus = await getRobinhoodLpAutopilotStatus(req.params.mandateId);
@@ -266,10 +297,15 @@ export function createOutcomesRouter() {
     }
   });
 
-  router.post("/jobs", async (req, res) => {
+  router.post("/jobs", requireSession(), async (req, res) => {
     try {
       const { mandateId, input } = req.body ?? {};
       if (!mandateId) return res.status(400).json({ success: false, error: "mandateId required" });
+      const mandate = await getOutcomeMandate(mandateId);
+      if (!mandate) return res.status(404).json({ success: false, error: "Not found" });
+      if (mandate.anonymousId !== req.user?.anonymousId) {
+        return res.status(403).json({ success: false, error: "mandate_ownership_required" });
+      }
       const job = await createOutcomeJob(mandateId, input ?? {});
       const completed = await runOutcomeJob(job.jobId);
       res.status(201).json({ success: true, data: completed });
@@ -278,20 +314,23 @@ export function createOutcomesRouter() {
     }
   });
 
-  router.get("/jobs/:jobId", async (req, res) => {
+  router.get("/jobs/:jobId", requireSession(), async (req, res) => {
     try {
       const job = await getOutcomeJob(req.params.jobId);
       if (!job) return res.status(404).json({ success: false, error: "Not found" });
+      if (job.anonymousId !== req.user?.anonymousId) {
+        return res.status(403).json({ success: false, error: "job_ownership_required" });
+      }
       res.json({ success: true, data: job });
     } catch (e) {
       res.status(500).json({ success: false, error: e instanceof Error ? e.message : String(e) });
     }
   });
 
-  router.get("/jobs", async (req, res) => {
+  router.get("/jobs", requireSession(), async (req, res) => {
     try {
       const anonymousId = resolveAnonymousId(req);
-      if (!anonymousId) return res.status(400).json({ success: false, error: "anonymousId required" });
+      if (!anonymousId) return res.status(401).json({ success: false, error: "auth_required" });
       const jobs = await listOutcomeJobs(anonymousId, {
         mandateId: req.query.mandateId,
         limit: req.query.limit,
@@ -302,18 +341,26 @@ export function createOutcomesRouter() {
     }
   });
 
-  router.get("/reports/:reportId", async (req, res) => {
+  router.get("/reports/:reportId", requireSession(), async (req, res) => {
     try {
       const report = await getOutcomeReport(req.params.reportId);
       if (!report) return res.status(404).json({ success: false, error: "Not found" });
+      if (report.anonymousId !== req.user?.anonymousId) {
+        return res.status(403).json({ success: false, error: "report_ownership_required" });
+      }
       res.json({ success: true, data: report });
     } catch (e) {
       res.status(500).json({ success: false, error: e instanceof Error ? e.message : String(e) });
     }
   });
 
-  router.get("/reports/:reportId/verify", async (req, res) => {
+  router.get("/reports/:reportId/verify", requireSession(), async (req, res) => {
     try {
+      const report = await getOutcomeReport(req.params.reportId);
+      if (!report) return res.status(404).json({ success: false, error: "Not found" });
+      if (report.anonymousId !== req.user?.anonymousId) {
+        return res.status(403).json({ success: false, error: "report_ownership_required" });
+      }
       const verification = await verifyOutcomeReport(req.params.reportId);
       res.json({ success: true, data: verification });
     } catch (e) {
@@ -321,10 +368,10 @@ export function createOutcomesRouter() {
     }
   });
 
-  router.get("/reports", async (req, res) => {
+  router.get("/reports", requireSession(), async (req, res) => {
     try {
       const anonymousId = resolveAnonymousId(req);
-      if (!anonymousId) return res.status(400).json({ success: false, error: "anonymousId required" });
+      if (!anonymousId) return res.status(401).json({ success: false, error: "auth_required" });
       const reports = await listOutcomeReports(anonymousId, {
         mandateId: req.query.mandateId,
         limit: req.query.limit,
@@ -335,18 +382,26 @@ export function createOutcomesRouter() {
     }
   });
 
-  router.get("/billing/:billingEventId", async (req, res) => {
+  router.get("/billing/:billingEventId", requireSession(), async (req, res) => {
     try {
       const billing = await getOutcomeBillingEvent(req.params.billingEventId);
       if (!billing) return res.status(404).json({ success: false, error: "Not found" });
+      if (billing.anonymousId !== req.user?.anonymousId) {
+        return res.status(403).json({ success: false, error: "billing_ownership_required" });
+      }
       res.json({ success: true, data: billing });
     } catch (e) {
       res.status(500).json({ success: false, error: e instanceof Error ? e.message : String(e) });
     }
   });
 
-  router.post("/billing/:billingEventId/settle", async (req, res) => {
+  router.post("/billing/:billingEventId/settle", requireSession(), async (req, res) => {
     try {
+      const existing = await getOutcomeBillingEvent(req.params.billingEventId);
+      if (!existing) return res.status(404).json({ success: false, error: "Not found" });
+      if (existing.anonymousId !== req.user?.anonymousId) {
+        return res.status(403).json({ success: false, error: "billing_ownership_required" });
+      }
       const { txSignature, network, payer } = req.body ?? {};
       if (!txSignature) {
         return res.status(400).json({ success: false, error: "txSignature required" });
@@ -362,10 +417,10 @@ export function createOutcomesRouter() {
     }
   });
 
-  router.get("/billing", async (req, res) => {
+  router.get("/billing", requireSession(), async (req, res) => {
     try {
       const anonymousId = resolveAnonymousId(req);
-      if (!anonymousId) return res.status(400).json({ success: false, error: "anonymousId required" });
+      if (!anonymousId) return res.status(401).json({ success: false, error: "auth_required" });
       const events = await listOutcomeBillingEvents(anonymousId, Number(req.query.limit) || 20);
       res.json({ success: true, data: { events } });
     } catch (e) {
@@ -373,10 +428,15 @@ export function createOutcomesRouter() {
     }
   });
 
-  router.post("/treasury/evaluate", async (req, res) => {
+  router.post("/treasury/evaluate", requireSession(), async (req, res) => {
     try {
       const { mandateId, portfolio } = req.body ?? {};
       if (!mandateId) return res.status(400).json({ success: false, error: "mandateId required" });
+      const mandate = await getOutcomeMandate(mandateId);
+      if (!mandate) return res.status(404).json({ success: false, error: "Not found" });
+      if (mandate.anonymousId !== req.user?.anonymousId) {
+        return res.status(403).json({ success: false, error: "mandate_ownership_required" });
+      }
       const result = await evaluateTreasuryPolicy(mandateId, portfolio ?? {});
       res.json({ success: true, data: result });
     } catch (e) {
@@ -388,10 +448,15 @@ export function createOutcomesRouter() {
     res.json({ success: true, data: { venues: listYieldVenues() } });
   });
 
-  router.post("/yield/evaluate", async (req, res) => {
+  router.post("/yield/evaluate", requireSession(), async (req, res) => {
     try {
       const { mandateId, idleCapitalUsd } = req.body ?? {};
       if (!mandateId) return res.status(400).json({ success: false, error: "mandateId required" });
+      const mandate = await getOutcomeMandate(mandateId);
+      if (!mandate) return res.status(404).json({ success: false, error: "Not found" });
+      if (mandate.anonymousId !== req.user?.anonymousId) {
+        return res.status(403).json({ success: false, error: "mandate_ownership_required" });
+      }
       const result = await evaluateYieldOpportunity(mandateId, Number(idleCapitalUsd) || 0);
       res.json({ success: true, data: result });
     } catch (e) {

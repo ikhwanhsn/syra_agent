@@ -40,9 +40,19 @@ function matchesPoolSearch(pool, query) {
   return haystack.includes(q);
 }
 
+function isProduction() {
+  return String(process.env.NODE_ENV || "").toLowerCase() === "production";
+}
+
 function requireCronSecret(req, res, next) {
   const secret = (process.env.LP_AGENT_EXPERIMENT_CRON_SECRET || "").trim();
-  if (!secret) return next();
+  // SECURITY: fail closed in production when secret is unset
+  if (!secret) {
+    if (isProduction()) {
+      return res.status(403).json({ success: false, error: "cron_secret_not_configured" });
+    }
+    return next();
+  }
   const got = (req.get("x-lp-experiment-secret") || "").trim();
   if (got !== secret) {
     return res.status(403).json({
@@ -61,7 +71,12 @@ function requireResetAuth(req, res, next) {
   const cronHdr = (req.get("x-lp-experiment-secret") || "").trim();
   if (ui && uiHdr === ui) return next();
   if (cron && cronHdr === cron) return next();
-  if (!ui && !cron) return next();
+  if (!ui && !cron) {
+    if (isProduction()) {
+      return res.status(403).json({ success: false, error: "cron_secret_not_configured" });
+    }
+    return next();
+  }
   return res.status(403).json({
     success: false,
     error: "Missing or invalid reset credentials (x-lp-experiment-finalize-ui or x-lp-experiment-secret)",

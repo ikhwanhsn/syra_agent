@@ -93,12 +93,37 @@ export async function getEffectiveScalperConfig(baseCfg) {
   const doc = await getLearningDoc();
   const overrides = doc?.thresholdOverrides ?? {};
 
+  let minOpportunityScore = toNum(overrides.minOpportunityScore, baseCfg.minOpportunityScore);
+
+  // Adaptive idle relaxation: if no opens for N hours, lower the bar so the desk trades again.
+  try {
+    const ScalperRun = (await import("../../models/ScalperRun.js")).default;
+    const ScalperState = (await import("../../models/ScalperState.js")).default;
+    const latestOpen = await ScalperRun.findOne({})
+      .sort({ openedAt: -1 })
+      .select({ openedAt: 1, createdAt: 1 })
+      .lean();
+    const state = await ScalperState.findById("singleton").select({ startedAt: 1, lastSignalAt: 1 }).lean();
+    const lastTradeAt = latestOpen?.openedAt || latestOpen?.createdAt || state?.startedAt;
+    const idleHours = lastTradeAt
+      ? (Date.now() - new Date(lastTradeAt).getTime()) / 3_600_000
+      : 999;
+    const idleAdaptHours = toNum(baseCfg.idleAdaptHours, SCALPER_DEFAULTS.idleAdaptHours);
+    const floor = toNum(baseCfg.adaptiveMinScoreFloor, SCALPER_DEFAULTS.adaptiveMinScoreFloor);
+    if (idleHours >= idleAdaptHours) {
+      const steps = Math.min(4, Math.floor(idleHours / idleAdaptHours));
+      minOpportunityScore = Math.max(floor, minOpportunityScore - steps * 0.04);
+    }
+  } catch {
+    /* keep override / default */
+  }
+
   return {
     ...baseCfg,
     takeProfitPct: toNum(overrides.takeProfitPct, baseCfg.takeProfitPct),
     stopLossPct: toNum(overrides.stopLossPct, baseCfg.stopLossPct),
     maxHoldMinutes: toNum(overrides.maxHoldMinutes, baseCfg.maxHoldMinutes),
-    minOpportunityScore: toNum(overrides.minOpportunityScore, baseCfg.minOpportunityScore),
+    minOpportunityScore,
     notionalSlicePct: toNum(overrides.notionalSlicePct, baseCfg.notionalSlicePct),
     minEdgeBufferPct: toNum(
       overrides.minEdgeBufferPct,
@@ -464,16 +489,34 @@ export async function runScalperLearning() {
     }
   }
 
+  // Only cooldown symbols based on RECENT losses (48h). Historical wipeouts must not
+  // permanently freeze the only liquid scalp symbol (cbBTC failure mode).
+  const recentCutoff = Date.now() - 48 * 60 * 60_000;
   for (const [symbol, stats] of Object.entries(symbolStats)) {
-    if (stats.decided >= 3 && stats.losses >= 2 && stats.winRate < 0.35) {
+    const recentSymbolRuns = decided.filter(
+      (r) =>
+        r.symbol === symbol &&
+        r.resolvedAt &&
+        new Date(r.resolvedAt).getTime() >= recentCutoff,
+    );
+    const recentStats = computeWinRateStats(recentSymbolRuns);
+    if (
+      recentStats.decided >= 3 &&
+      recentStats.losses >= 2 &&
+      recentStats.winRate < 0.35
+    ) {
       lessons.push(
-        `Symbol ${symbol} win rate ${(stats.winRate * 100).toFixed(0)}% — on 8h cooldown.`,
+        `Symbol ${symbol} recent win rate ${(recentStats.winRate * 100).toFixed(0)}% — on 2h cooldown.`,
       );
       symbolCooldowns.push({
         symbol,
-        reason: `repeated_symbol_losses:${stats.losses}`,
-        until: new Date(Date.now() + 8 * 60 * 60_000),
+        reason: `repeated_symbol_losses:${recentStats.losses}`,
+        until: new Date(Date.now() + 2 * 60 * 60_000),
       });
+    } else if (stats.decided >= 3 && stats.winRate < 0.35) {
+      lessons.push(
+        `Symbol ${symbol} historical win rate weak (${(stats.winRate * 100).toFixed(0)}%) — score haircut only, no freeze.`,
+      );
     }
   }
 

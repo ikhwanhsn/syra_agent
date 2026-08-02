@@ -7,6 +7,7 @@ import { getAgentKeypair } from './agentWallet.js';
 import { pay402AndRetry } from './agentX402Client.js';
 import { getAgentFetch } from './agentFetch.js';
 import { getAgentscoreApiKey, getAgentscoreOperatorToken } from './agentscoreConfig.js';
+import { validateUpstreamUrl } from './skillUpstreamGuard.js';
 
 /** @typedef {{ success: true; data: unknown } | { success: false; error: string; status?: number; identityRequired?: boolean; budgetExceeded?: boolean }} AgentscoreToolResult */
 
@@ -130,6 +131,12 @@ export async function runAgentscoreCheck(params = {}) {
     return { success: false, error: 'url is required (https://...)', status: 400 };
   }
 
+  const urlCheck = await validateUpstreamUrl(url);
+  if (!urlCheck.ok) {
+    return { success: false, error: `SSRF blocked: ${urlCheck.error}`, status: 400 };
+  }
+  const safeUrl = urlCheck.url.toString();
+
   const method = String(params.method || 'GET').trim().toUpperCase();
   const bodyRaw = params.body;
   /** @type {Record<string, unknown> | undefined} */
@@ -154,7 +161,7 @@ export async function runAgentscoreCheck(params = {}) {
   if (wallet) headers['X-Wallet-Address'] = wallet;
 
   try {
-    const res = await fetch(url, {
+    const res = await fetch(safeUrl, {
       method,
       headers,
       redirect: 'manual',
@@ -258,6 +265,12 @@ export async function runAgentscoreToolForAgent(kind, params, ctx) {
       return { success: false, error: 'url is required (https://...)', status: 400 };
     }
 
+    const urlCheck = await validateUpstreamUrl(url);
+    if (!urlCheck.ok) {
+      return { success: false, error: `SSRF blocked: ${urlCheck.error}`, status: 400 };
+    }
+    const safeUrl = urlCheck.url.toString();
+
     const method = String(params.method || 'POST').trim().toUpperCase();
     /** @type {Record<string, unknown> | undefined} */
     let body;
@@ -287,6 +300,7 @@ export async function runAgentscoreToolForAgent(kind, params, ctx) {
 
     const probe = await runAgentscoreCheck({
       ...params,
+      url: safeUrl,
       operatorToken,
       walletAddress: ctx.connectedWalletAddress || '',
     });
@@ -307,7 +321,7 @@ export async function runAgentscoreToolForAgent(kind, params, ctx) {
     const result = await pay402AndRetry(
       keypair,
       {
-        url,
+        url: safeUrl,
         method,
         body,
         connectedWalletAddress: ctx.connectedWalletAddress,

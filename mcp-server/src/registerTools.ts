@@ -74,10 +74,11 @@ export function registerSyraTools(server: McpServer): void {
     });
   }
 
-  // Escape hatch — always available
+  // Escape hatch — restricted to the active profile (curated/full). Does NOT bypass profile.
+  // Set SYRA_MCP_TOOL_PROFILE=full to expose money-adjacent tools via this hatch.
   server.tool(
     "syra_call_tool",
-    `[Spend] Call any Syra agent tool by toolId (from GET /agent/tools). Params as key-value.${paymentSuffix()}`,
+    `[Spend] Call a Syra agent tool by toolId within the active MCP profile (${TOOL_PROFILE}). Params as key-value.${paymentSuffix()}`,
     {
       toolId: z.string().describe("Syra agent tool id, e.g. news, web-search, giza-protocols"),
       params: z
@@ -86,7 +87,7 @@ export function registerSyraTools(server: McpServer): void {
         .describe("Tool parameters"),
     },
     async ({ toolId, params }) => {
-      const result = await callToolById(toolId, (params as Record<string, unknown>) ?? {}, catalog);
+      const result = await callToolById(toolId, (params as Record<string, unknown>) ?? {}, active);
       return { content: [{ type: "text" as const, text: result.text }] };
     },
   );

@@ -242,6 +242,12 @@ export async function runMomentumSignalCycle() {
     for (const sym of allowed) {
       const signal = signalBySym.get(sym);
       if (!signal || !gatePass(strategy, signal)) continue;
+      // Skip chop: high vol + weak directional momentum is where this desk bled.
+      const mom = toNum(signal.momentumScore ?? signal.momentum_score, 0);
+      const vol = toNum(signal.volatilityScore ?? signal.volatility_score, 0.5);
+      if (vol < 0.35 && Math.abs(mom) < 0.4) {
+        continue;
+      }
       candidates.push({
         ...signal,
         score: scoreSignal(strategy.signalWeights, signal),

@@ -1758,10 +1758,12 @@ export async function listLpExperimentRuns({
     q.status = status.trim();
   }
   if (typeof symbol === "string" && symbol.trim()) {
+    // Escape metacharacters to prevent ReDoS / overly broad $regex matches
+    const escaped = symbol.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     q.$or = [
-      { baseSymbol: new RegExp(symbol.trim(), "i") },
-      { quoteSymbol: new RegExp(symbol.trim(), "i") },
-      { poolName: new RegExp(symbol.trim(), "i") },
+      { baseSymbol: new RegExp(escaped, "i") },
+      { quoteSymbol: new RegExp(escaped, "i") },
+      { poolName: new RegExp(escaped, "i") },
     ];
   }
   const safeLimit = normalizeLimit(limit);

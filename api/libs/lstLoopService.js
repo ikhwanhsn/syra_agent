@@ -8,10 +8,14 @@ import { LST_LOOP_DEFAULTS } from '../config/lstLoopStrategies.js';
 import { resolveLstLoopStrategies } from './lstLoopStrategyResolve.js';
 import { aggregateStrategyStats, newCohortId, toNum, clamp } from './earnExperimentKit.js';
 import { riseGetMarkets, hasRiseConfig } from './riseClient.js';
+import { fetchSolPriceUsd } from './lpExperimentService.js';
 
 /** Fallback APYs when live fetch fails. */
 const DEFAULT_LST_APY = { mSOL: 0.078, JitoSOL: 0.082 };
 const DEFAULT_BORROW_APR = 0.06;
+/** Paper depeg / borrow-spike noise so daily marks are not risk-free. */
+const LST_PAPER_DEPEG_VOL = Number(process.env.LST_LOOP_PAPER_DEPEG_VOL || 0.0015);
+const LST_PAPER_BORROW_SPIKE_CHANCE = Number(process.env.LST_LOOP_PAPER_BORROW_SPIKE || 0.08);
 
 async function fetchMarketRates() {
   let borrowApr = DEFAULT_BORROW_APR;
@@ -51,6 +55,34 @@ function netApr(lstApy, borrowApr, leverage, ltv) {
   // Approx: earn lstApy on full exposure, pay borrowApr on borrowed portion
   const borrowedFrac = Math.max(0, 1 - 1 / Math.max(leverage, 1));
   return lstApy * leverage - borrowApr * borrowedFrac * leverage * (ltv || 0.5) * 2;
+}
+
+/**
+ * Convert annualized net APR into percent return over `days` of hold.
+ * Previously this accidentally treated APR as a daily rate (365× overstatement).
+ */
+export function realizedPctFromApr(apr, days) {
+  const d = Math.max(0, toNum(days));
+  return (toNum(apr) * d * 100) / 365;
+}
+
+/**
+ * Paper downside: small LST depeg noise + occasional borrow-rate spike haircut.
+ * Liquidation-style penalty when health factor breaches strategy min.
+ */
+function applyLstDownsideAdjustments({ realizedPct, leverage, ltv, health, minHealth, borrowApr, maxBorrow }) {
+  let pct = toNum(realizedPct);
+  // Symmetric-ish depeg noise scaled by leverage (higher loop = more LST exposure risk).
+  const depegShock = (Math.random() - 0.55) * LST_PAPER_DEPEG_VOL * 100 * Math.max(1, toNum(leverage, 2));
+  pct += depegShock;
+  if (Math.random() < LST_PAPER_BORROW_SPIKE_CHANCE) {
+    pct -= 0.05 * Math.max(1, toNum(leverage, 2)) * Math.max(0.3, toNum(ltv, 0.5));
+  }
+  if (health < minHealth || borrowApr > maxBorrow) {
+    // Forced deleverage costs: slip + interest realization.
+    pct -= 0.35 + Math.max(0, minHealth - health) * 2;
+  }
+  return pct;
 }
 
 export async function ensureLstLoopBootstrapped() {
@@ -147,7 +179,7 @@ export async function runLstLoopSignalCycle() {
   const strategies = await resolveLstLoopStrategies();
   const opened = [];
   const skipped = [];
-  const solPriceUsd = 150;
+  const solPriceUsd = await fetchSolPriceUsd();
 
   for (const strategy of strategies) {
     const openCount = await LstLoopRun.countDocuments({
@@ -218,29 +250,38 @@ export async function resolveOpenLstLoopRuns() {
   const strategies = await resolveLstLoopStrategies();
   const byId = new Map(strategies.map((s) => [s.id, s]));
   let resolved = 0;
-  const solPriceUsd = 150;
+  const solPriceUsd = await fetchSolPriceUsd();
 
   for (const run of open) {
     const strategy = byId.get(run.strategyId);
     const holdH = (Date.now() - new Date(run.openedAt).getTime()) / 3_600_000;
+    const days = holdH / 24;
     const lstApy = rates.lstApy[run.lstSymbol] || toNum(run.lstApy, 0.08);
     const borrowApr = rates.borrowApr;
-    const apr = netApr(lstApy, borrowApr, toNum(run.leverage, 2), toNum(run.entryLtv, 0.5));
-    // Accrue PnL over hold period
-    const pnlPct = (apr * holdH) / 24 / 365 * 100 * 365; // simplify: apr * days
-    const days = holdH / 24;
-    const realizedPct = apr * days * 100;
+    const leverage = toNum(run.leverage, 2);
+    const ltv = toNum(run.entryLtv, 0.5);
+    const apr = netApr(lstApy, borrowApr, leverage, ltv);
+    // Honest day-fraction of annualized APR (was previously apr * days * 100 = daily APR abuse).
+    let realizedPct = realizedPctFromApr(apr, days);
+    const health = 1 / Math.max(ltv, 0.1);
+    const minHealth = toNum(strategy?.minHealthFactor, 1.3);
+    const maxBorrow = toNum(strategy?.maxBorrowRateApr, 0.18);
+    const forceDeleverage = health < minHealth || borrowApr > maxBorrow;
 
     let status = null;
     let resolution = null;
-    const health = 1 / Math.max(toNum(run.entryLtv, 0.5), 0.1);
-    if (health < toNum(strategy?.minHealthFactor, 1.3) || borrowApr > toNum(strategy?.maxBorrowRateApr, 0.18)) {
+    if (forceDeleverage || days >= 1) {
+      realizedPct = applyLstDownsideAdjustments({
+        realizedPct,
+        leverage,
+        ltv,
+        health,
+        minHealth,
+        borrowApr,
+        maxBorrow,
+      });
       status = realizedPct >= 0 ? 'win' : 'loss';
-      resolution = 'deleverage';
-    } else if (days >= 1) {
-      // Resolve daily for paper feedback
-      status = realizedPct >= 0 ? 'win' : 'loss';
-      resolution = 'daily_mark';
+      resolution = forceDeleverage ? 'deleverage' : 'daily_mark';
     }
     if (!status) {
       await LstLoopRun.updateOne(
@@ -286,7 +327,15 @@ export async function resetLstLoopFromScratch() {
     },
     { upsert: true },
   );
+  // Drop corrupted runs that used annual-APR-as-daily PnL.
+  await LstLoopRun.deleteMany({});
   await LstLoopAgentState.deleteMany({});
+  try {
+    const LstLoopStrategyOverride = (await import('../models/LstLoopStrategyOverride.js')).default;
+    await LstLoopStrategyOverride.deleteMany({});
+  } catch {
+    /* optional */
+  }
   await ensureLstLoopBootstrapped();
   return { experimentId };
 }

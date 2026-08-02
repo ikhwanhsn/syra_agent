@@ -6,7 +6,8 @@ import SniperRun from '../models/SniperRun.js';
 import SniperAgentState from '../models/SniperAgentState.js';
 import { SNIPER_DEFAULTS } from '../config/sniperStrategies.js';
 import { resolveSniperStrategies } from './sniperStrategyResolve.js';
-import { aggregateStrategyStats, newCohortId, toNum, clamp } from './earnExperimentKit.js';
+import { aggregateStrategyStats, newCohortId, toNum } from './earnExperimentKit.js';
+import { fetchSolPriceUsd } from './lpExperimentService.js';
 
 /** In-memory rugged cooldown by mint. */
 const ruggedCooldowns = new Map();
@@ -16,8 +17,8 @@ async function fetchScoutCandidates() {
     const { getPumpfunScout, parsePumpfunScoutParams } = await import('./pumpfunScoutService.js');
     const params =
       typeof parsePumpfunScoutParams === 'function'
-        ? parsePumpfunScoutParams({ query: { segment: 'alpha', limit: '20' } })
-        : { segment: 'alpha', period: '1h', limit: 20, minPumpScore: 0, llm: false };
+        ? parsePumpfunScoutParams({ query: { segment: 'alpha', limit: '30' } })
+        : { segment: 'alpha', period: '1h', limit: 30, minPumpScore: 0, llm: false };
     const scout = await getPumpfunScout(params).catch(() => null);
     const rows =
       scout?.items ||
@@ -25,7 +26,7 @@ async function fetchScoutCandidates() {
       scout?.alphaTokens ||
       scout?.data?.items ||
       (Array.isArray(scout) ? scout : []);
-    return (Array.isArray(rows) ? rows : []).slice(0, 30).map((t) => ({
+    return (Array.isArray(rows) ? rows : []).slice(0, 40).map((t) => ({
       mint: String(t.mint || t.address || t.tokenAddress || ''),
       symbol: String(t.symbol || t.ticker || 'UNK').slice(0, 16),
       mcapUsd: toNum(t.marketCapUsd ?? t.mcap ?? t.marketCap, 0),
@@ -149,10 +150,17 @@ export async function runSniperSignalCycle() {
   const strategies = await resolveSniperStrategies();
   const opened = [];
   const skipped = [];
-  const solPriceUsd = 150;
+  const skipReasons = { no_scout_candidates: 0 };
+  const solPriceUsd = await fetchSolPriceUsd();
 
   if (!candidates.length) {
-    return { opened: 0, skipped: strategies.length, openedRows: [], skippedRows: [{ reason: 'no_scout_candidates' }] };
+    return {
+      opened: 0,
+      skipped: strategies.length,
+      openedRows: [],
+      skippedRows: [{ reason: 'no_scout_candidates' }],
+      diagnostics: { candidateCount: 0, skipReasons: { no_scout_candidates: strategies.length } },
+    };
   }
 
   for (const strategy of strategies) {
@@ -163,6 +171,7 @@ export async function runSniperSignalCycle() {
     });
     if (openCount >= toNum(cfg.maxConcurrentPositions, 5)) {
       skipped.push({ strategyId: strategy.id, reason: 'max_concurrent' });
+      skipReasons.max_concurrent = (skipReasons.max_concurrent || 0) + 1;
       continue;
     }
     const ledger = await SniperAgentState.findOne({
@@ -173,20 +182,55 @@ export async function runSniperSignalCycle() {
     const size = Math.min(toNum(cfg.maxPositionSol, 0.5), cash * 0.25);
     if (size < SNIPER_DEFAULTS.minTradeSol) {
       skipped.push({ strategyId: strategy.id, reason: 'insufficient_cash' });
+      skipReasons.insufficient_cash = (skipReasons.insufficient_cash || 0) + 1;
       continue;
     }
 
     let picked = null;
+    const candidateSkips = {
+      cooldown: 0,
+      alpha: 0,
+      mcap: 0,
+      liq: 0,
+      graduated: 0,
+      smart_money: 0,
+      rugcheck: 0,
+      no_price: 0,
+      dup: 0,
+    };
     for (const c of candidates) {
-      if (ruggedCooldowns.has(c.mint) && ruggedCooldowns.get(c.mint) > Date.now()) continue;
-      if (c.syraAlphaScore < toNum(strategy.minAlphaScore, 70)) continue;
-      if (c.mcapUsd > 0 && c.mcapUsd > toNum(strategy.maxMcapUsd, 3e6)) continue;
-      if (c.liqUsd > 0 && c.liqUsd < toNum(strategy.minLiqUsd, 20_000)) continue;
-      if (strategy.requireGraduated && !c.graduated) continue;
-      if (strategy.requireSmartMoney && !c.smartMoney) continue;
+      if (ruggedCooldowns.has(c.mint) && ruggedCooldowns.get(c.mint) > Date.now()) {
+        candidateSkips.cooldown += 1;
+        continue;
+      }
+      if (c.syraAlphaScore < toNum(strategy.minAlphaScore, 55)) {
+        candidateSkips.alpha += 1;
+        continue;
+      }
+      if (c.mcapUsd > 0 && c.mcapUsd > toNum(strategy.maxMcapUsd, 5e6)) {
+        candidateSkips.mcap += 1;
+        continue;
+      }
+      if (c.liqUsd > 0 && c.liqUsd < toNum(strategy.minLiqUsd, 8_000)) {
+        candidateSkips.liq += 1;
+        continue;
+      }
+      if (!(c.priceUsd > 0)) {
+        candidateSkips.no_price += 1;
+        continue;
+      }
+      if (strategy.requireGraduated && !c.graduated) {
+        candidateSkips.graduated += 1;
+        continue;
+      }
+      if (strategy.requireSmartMoney && !c.smartMoney) {
+        candidateSkips.smart_money += 1;
+        continue;
+      }
       if (strategy.requireRugcheckPass !== false) {
         const rug = await rugcheckPass(c.mint);
         if (!rug.pass) {
+          candidateSkips.rugcheck += 1;
           if (rug.dangerous) ruggedCooldowns.set(c.mint, Date.now() + 6 * 3600_000);
           continue;
         }
@@ -198,16 +242,20 @@ export async function runSniperSignalCycle() {
         mint: c.mint,
         status: 'open',
       }).lean();
-      if (dup) continue;
+      if (dup) {
+        candidateSkips.dup += 1;
+        continue;
+      }
       picked = c;
       break;
     }
     if (!picked) {
-      skipped.push({ strategyId: strategy.id, reason: 'no_qualified_pair' });
+      skipped.push({ strategyId: strategy.id, reason: 'no_qualified_pair', candidateSkips });
+      skipReasons.no_qualified_pair = (skipReasons.no_qualified_pair || 0) + 1;
       continue;
     }
 
-    const entryPx = picked.priceUsd > 0 ? picked.priceUsd : 0.00001;
+    const entryPx = picked.priceUsd;
     await SniperRun.create({
       experimentId,
       strategyId: strategy.id,
@@ -232,7 +280,13 @@ export async function runSniperSignalCycle() {
     opened.push({ strategyId: strategy.id, mint: picked.mint, symbol: picked.symbol });
   }
 
-  return { opened: opened.length, skipped: skipped.length, openedRows: opened, skippedRows: skipped };
+  return {
+    opened: opened.length,
+    skipped: skipped.length,
+    openedRows: opened,
+    skippedRows: skipped,
+    diagnostics: { candidateCount: candidates.length, skipReasons, solPriceUsd },
+  };
 }
 
 export async function resolveOpenSniperRuns() {
@@ -242,21 +296,50 @@ export async function resolveOpenSniperRuns() {
   const strategies = await resolveSniperStrategies();
   const byId = new Map(strategies.map((s) => [s.id, s]));
   let resolved = 0;
-  const solPriceUsd = 150;
+  let skippedNoPrice = 0;
+  const solPriceUsd = await fetchSolPriceUsd();
 
-  // Refresh scout prices for open mints
+  // Refresh scout prices for open mints — never fabricate prices.
   const candidates = await fetchScoutCandidates();
   const priceByMint = new Map(candidates.map((c) => [c.mint, c.priceUsd]));
 
   for (const run of open) {
     const strategy = byId.get(run.strategyId);
     const exit = strategy?.exit || { stopLossPct: -15, takeProfitPct: 30 };
-    const px = priceByMint.get(run.mint) || 0;
-    // If price missing, use random-walk paper sim around entry for lab progress
-    const simPx =
-      px > 0
-        ? px
-        : run.entryPriceUsd * (1 + (Math.random() - 0.48) * 0.1);
+    const px = toNum(priceByMint.get(run.mint), 0);
+    if (!(px > 0)) {
+      // Honest skip: do not random-walk synthetic PnL when scout price is missing.
+      skippedNoPrice += 1;
+      await SniperRun.updateOne(
+        { _id: run._id },
+        { $set: { lastEvaluatedAt: new Date() } },
+      );
+      const holdMinNoPx = (Date.now() - new Date(run.openedAt).getTime()) / 60_000;
+      // If price stays missing past 2× max hold, expire flat (no fabricated PnL).
+      if (holdMinNoPx >= toNum(strategy?.maxHoldMinutes, 90) * 2) {
+        await SniperRun.updateOne(
+          { _id: run._id },
+          {
+            $set: {
+              status: 'expired',
+              resolution: 'price_unavailable',
+              simPnlPct: 0,
+              simPnlSol: 0,
+              simPnlUsd: 0,
+              resolvedAt: new Date(),
+              lastEvaluatedAt: new Date(),
+            },
+          },
+        );
+        await SniperAgentState.updateOne(
+          { experimentId, strategyId: run.strategyId },
+          { $inc: { cashSol: toNum(run.notionalSol, 0) } },
+        );
+        resolved += 1;
+      }
+      continue;
+    }
+    const simPx = px;
     const pnlPct = ((simPx - run.entryPriceUsd) / run.entryPriceUsd) * 100;
     const peak = Math.max(toNum(run.peakPnlPct, 0), pnlPct);
     const holdMin = (Date.now() - new Date(run.openedAt).getTime()) / 60_000;
@@ -312,7 +395,7 @@ export async function resolveOpenSniperRuns() {
     );
     resolved += 1;
   }
-  return { resolved };
+  return { resolved, skippedNoPrice };
 }
 
 export async function resetSniperFromScratch() {
