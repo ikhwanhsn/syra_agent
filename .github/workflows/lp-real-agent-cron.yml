@@ -1,9 +1,10 @@
 # Keeps LP Real agent ticks running when the API process has no persistent setInterval
 # (serverless, restarts, or scaled workers). Matches in-process intervals: signal ~2m, resolve ~30s.
 #
-# Repository secrets (same as other Syra cron jobs):
+# Repository secrets:
 #   SYRA_API_BASE_URL — e.g. https://api.syraa.fun
-#   LP_AGENT_EXPERIMENT_CRON_SECRET — must match API LP_AGENT_EXPERIMENT_CRON_SECRET when set
+#   SYRA_API_KEY — gateway API key (X-API-Key); required when API_KEY is set on the API
+#   LP_AGENT_EXPERIMENT_CRON_SECRET — optional; must match API LP_AGENT_EXPERIMENT_CRON_SECRET when set
 name: LP real agent cron
 
 on:
@@ -19,6 +20,7 @@ jobs:
       - name: POST signal-tick + resolve-tick
         env:
           BASE_URL: ${{ secrets.SYRA_API_BASE_URL }}
+          API_KEY: ${{ secrets.SYRA_API_KEY }}
           CRON_SECRET: ${{ secrets.LP_AGENT_EXPERIMENT_CRON_SECRET }}
         run: |
           set -euo pipefail
@@ -26,22 +28,28 @@ jobs:
             echo "::warning::Set SYRA_API_BASE_URL in repo secrets to enable LP real cron."
             exit 0
           fi
+          if [ -z "${API_KEY:-}" ]; then
+            echo "::warning::Set SYRA_API_KEY in repo secrets (API gateway requires X-API-Key)."
+            exit 0
+          fi
           ORIGIN="${BASE_URL%/}"
-          HDR=()
+          HDR=(-H "X-API-Key: ${API_KEY}" -H "Accept: application/json")
           if [ -n "${CRON_SECRET:-}" ]; then
-            HDR=(-H "x-lp-experiment-secret: ${CRON_SECRET}")
+            HDR+=(-H "x-lp-experiment-secret: ${CRON_SECRET}")
           fi
           for PATH_SUFFIX in signal-tick resolve-tick; do
             URL="${ORIGIN}/experiment/lp-agent-real/${PATH_SUFFIX}"
             echo "POST ${URL}"
             HTTP_CODE=$(curl -sS -o /tmp/lp-real.json -w "%{http_code}" -X POST "${URL}" \
-              "${HDR[@]}" \
-              -H "Accept: application/json")
+              "${HDR[@]}")
             echo "HTTP ${HTTP_CODE}"
             cat /tmp/lp-real.json
+            echo
             if [ "$HTTP_CODE" != "200" ]; then
               echo "::error::LP real ${PATH_SUFFIX} returned HTTP ${HTTP_CODE}"
               exit 1
             fi
             node -e "const r=require('/tmp/lp-real.json'); if(r.success!==true){console.error(r);process.exit(1)}"
+            # Surface skip reasons in the Actions log (env_disabled, no leaders, etc.)
+            node -e "const r=require('/tmp/lp-real.json'); const d=r.data||{}; console.log(JSON.stringify({skipped:d.skipped,reason:d.reason,agents:d.agents,opened:d.opened,errors:(d.errors||[]).slice(0,3)},null,2))"
           done

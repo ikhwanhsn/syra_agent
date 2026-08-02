@@ -169,8 +169,23 @@ export function humanizeAgentNote(lastError: string | null | undefined): string 
     return reasons.join(" · ");
   }
   if (/^[a-z0-9_,:.-]+$/i.test(lastError) && lastError.includes("_")) {
-    const reasons = readinessReasons(lastError.split(","));
-    return reasons.length > 0 ? reasons.join(" · ") : null;
+    const readiness = readinessReasons(lastError.split(","));
+    if (readiness.length > 0) return readiness.join(" · ");
+    // Fall through to LP signal skip codes (safe_fallback_*, no_candidate, …)
+    switch (lastError) {
+      case "safe_fallback_deposit_too_small":
+        return "Strategy is in safe mode; rebalancing capital for the next open";
+      case "insufficient_available_sol":
+        return "Waiting for enough liquid SOL after fee reserves to open";
+      case "no_profitable_strategy":
+        return "Waiting for a sim-qualified profitable strategy leader";
+      case "no_candidate":
+        return "No Meteora pool passed screening this cycle; retrying soon";
+      case "env_disabled":
+        return "Position opens are temporarily paused by ops";
+      default:
+        return null;
+    }
   }
   return lastError;
 }

@@ -116,12 +116,26 @@ export function getLpRealDryRun() {
 }
 
 /**
- * Master open-signal cron for LP real agent (default off).
- * When true, overrides the hardcoded LP_AGENT_REAL.enabled=false in settlement.js
- * so ops can enable real opens without a code change.
+ * Explicit env override for the open-signal cron.
+ * - unset → null (caller falls back to LP_AGENT_REAL.enabled in settlement.js)
+ * - true/1/on/yes → force on
+ * - false/0/off/no → force off (kill-switch without redeploy)
+ */
+export function getLpRealCronEnabledOverride() {
+  const raw = (process.env.LP_AGENT_REAL_ENABLED || "").trim().toLowerCase();
+  if (!raw) return null;
+  if (raw === "true" || raw === "1" || raw === "on" || raw === "yes") return true;
+  if (raw === "false" || raw === "0" || raw === "off" || raw === "no") return false;
+  return null;
+}
+
+/**
+ * @deprecated Prefer getLpRealCronEnabledOverride() + isRealCronEnabled().
+ * Kept for callers that treated unset as "off".
  */
 export function getLpRealCronEnabled() {
-  return envFlagOn("LP_AGENT_REAL_ENABLED", false);
+  const override = getLpRealCronEnabledOverride();
+  return override == null ? false : override;
 }
 
 export function getLpRealMinHolders() {

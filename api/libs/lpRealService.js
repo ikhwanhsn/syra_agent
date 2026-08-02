@@ -65,7 +65,7 @@ import {
 import { fetchMeteoraPoolDetail } from "./meteoraDlmmClient.js";
 import {
   getLpRealCapitalUtilization,
-  getLpRealCronEnabled,
+  getLpRealCronEnabledOverride,
   getLpRealDefaultTargetBankSol,
   getLpRealDryRun,
   getLpRealFeeBufferSol,
@@ -380,11 +380,14 @@ function envSlippageBps() {
 }
 
 /**
- * Open-signal cron gate: hardcoded settlement flag OR env LP_AGENT_REAL_ENABLED.
- * Default remains off until ops flips the env.
+ * Open-signal cron gate.
+ * - Explicit LP_AGENT_REAL_ENABLED env wins (true enables, false is kill-switch).
+ * - When env is unset, fall back to LP_AGENT_REAL.enabled in settlement.js.
  */
 export function isRealCronEnabled() {
-  return Boolean(LP_AGENT_REAL.enabled) || getLpRealCronEnabled();
+  const envOverride = getLpRealCronEnabledOverride();
+  if (envOverride != null) return envOverride;
+  return Boolean(LP_AGENT_REAL.enabled);
 }
 
 /**
@@ -992,19 +995,31 @@ function canTurnOnAgent({ onChainBalanceSol, openPositions, config }) {
   return onChainBalanceSol >= minWalletToStartSol(config) - 1e-9;
 }
 
-/** How many concurrent slots deployable capital can support (schema max 20). */
-function computeEffectiveMaxConcurrent(_config, availableSol) {
+/**
+ * How many concurrent slots deployable capital can support (schema max 20).
+ * Uses maxPositionSol (not bare minDeposit) as the slot yardstick so a ~4 SOL Earn
+ * wallet stays at ~3×1 SOL slots instead of fragmenting into 9×0.44 SOL crumbs that
+ * then fail the safeFallback half-size gate.
+ * @param {{ maxPositionSol?: number, publicEarnListed?: boolean, maxConcurrentPositions?: number }} config
+ * @param {number} availableSol
+ */
+export function computeEffectiveMaxConcurrent(config, availableSol) {
   const minDeposit = getLpRealMinDepositSol();
   const feeHeadroom = lpOpenFeeHeadroomSol();
   const deployable = Math.max(0, toNum(availableSol) - feeHeadroom);
-  return Math.min(20, Math.max(1, Math.floor(deployable / minDeposit)));
+  const targetSlotSol = Math.max(minDeposit, toNum(config?.maxPositionSol, 1));
+  const byCapital = Math.min(20, Math.max(1, Math.floor(deployable / targetSlotSol)));
+  // Public Earn beta hard-cap (matches lpEarnAdapter DEFAULT_MAX_CONCURRENT=3).
+  if (config?.publicEarnListed) return Math.min(3, byCapital);
+  return byCapital;
 }
 
 /**
  * Split remaining deployable SOL across open slots — targets full utilization up to per-slot cap.
  * Reserves fee headroom so sidecar swap + Meteora open txs do not fail with spl_insufficient_funds.
+ * @param {{ config: { maxPositionSol?: number }, availableSol: number, remainingSlots: number }} args
  */
-function computeCapitalDeploymentPlan({ config, availableSol, remainingSlots }) {
+export function computeCapitalDeploymentPlan({ config, availableSol, remainingSlots }) {
   const slots = Math.max(0, Math.floor(remainingSlots));
   const minDeposit = getLpRealMinDepositSol();
   const configuredMax = toNum(config?.maxPositionSol, 1);
@@ -1028,11 +1043,21 @@ function computeCapitalDeploymentPlan({ config, availableSol, remainingSlots }) 
   return { depositSol, affordableSlots, deployableSol };
 }
 
+/**
+ * Align maxConcurrentPositions to capital.
+ * May shrink over-fragmented configs (e.g. Earn wallets raised to 9 slots) back down
+ * so per-slot deposits stay above minDeposit even after safeFallback half-sizing.
+ */
 async function alignConfigMaxConcurrentToCapital(config, nativeSolBalanceSol) {
   const availableSol = computeAvailableSol(nativeSolBalanceSol, config?.reserveSolForFees);
   const effective = computeEffectiveMaxConcurrent(config, availableSol);
   const current = Math.max(1, Math.floor(toNum(config.maxConcurrentPositions, 10)));
-  const target = Math.max(current, effective);
+  // For public Earn, always re-anchor to the healthier effective (allow shrink).
+  // For lab/operator agents, never shrink below current (preserve prior intent) but
+  // still allow raise within computeEffectiveMaxConcurrent caps.
+  const target = config?.publicEarnListed
+    ? effective
+    : Math.max(current, effective);
   if (target === current) return current;
   const agentFilter = configAgentFilter(config);
   if (agentFilter) {
@@ -2247,15 +2272,22 @@ async function runLpRealSignalCycleForConfig(config) {
       if (!strategyLeader) break;
 
       const feeHeadroom = lpOpenFeeHeadroomSol();
+      const minDep = getLpRealMinDepositSol();
       let cappedDepositSol = Math.min(
         plan.depositSol,
         Math.max(0, availableSol - feeHeadroom),
       );
-      // Safe-fallback leaders (thin sample / temporary gate miss): half size to protect capital.
+      // Safe-fallback leaders (win-rate gate miss but positive PnL): prefer half size.
+      // If half falls below minDeposit, open at minDeposit instead of starving forever
+      // (previously guaranteed skip when maxConcurrent was over-fragmented).
       if (strategyLeader.safeFallback || strategyLeader.softFallback) {
-        cappedDepositSol = Math.min(cappedDepositSol, plan.depositSol * 0.5);
+        const half = plan.depositSol * 0.5;
+        cappedDepositSol = Math.min(
+          cappedDepositSol,
+          half >= minDep - 1e-9 ? half : minDep,
+        );
       }
-      if (cappedDepositSol < getLpRealMinDepositSol() - 1e-9) {
+      if (cappedDepositSol < minDep - 1e-9) {
         if (opensThisTick === 0) {
           skipped.push({
             reason: strategyLeader.safeFallback

@@ -73,10 +73,16 @@ export const CROSSMINT_ONRAMP = Object.freeze({
   maxAmountUsd: 500,
 });
 
-/** LP real agent gate (match prior prod .env). */
+/**
+ * LP real agent gate.
+ * enabled=true turns on the open-signal cron (every ~2m + GitHub safety-net cron)
+ * so Earn LP Auto can deploy deposited SOL into Meteora DLMM positions.
+ * Override / kill-switch: set env LP_AGENT_REAL_ENABLED=false (or redeploy with enabled:false).
+ * useRealSignals is also controlled by env LP_AGENT_REAL_USE_REAL_SIGNALS (default on).
+ */
 export const LP_AGENT_REAL = Object.freeze({
-  enabled: false,
-  useRealSignals: false,
+  enabled: true,
+  useRealSignals: true,
 });
 
 /**

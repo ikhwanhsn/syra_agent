@@ -108,9 +108,10 @@ async function main() {
 
   if (!anyNotReady && productIds.includes(EARN_PRODUCT_LP)) {
     console.log('\nLP ops reminders:');
-    console.log('  1. Set LP_AGENT_REAL_ENABLED=true');
-    console.log('  2. POST /experiment/lp-agent-real/enable with operator session');
-    console.log('  3. Or POST /earn/yield/enable for public beta (capped deposits)');
+    console.log('  1. Opens follow LP_AGENT_REAL.enabled (settlement.js) unless LP_AGENT_REAL_ENABLED env overrides');
+    console.log('  2. Kill-switch without redeploy: LP_AGENT_REAL_ENABLED=false');
+    console.log('  3. Dry-run canary: LP_AGENT_REAL_DRY_RUN=true (screens/decides, no on-chain open)');
+    console.log('  4. POST /earn/yield/enable for public beta (capped deposits)');
   }
 
   console.log('\nNew experiment ops:');

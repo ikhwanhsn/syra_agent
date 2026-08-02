@@ -90,12 +90,16 @@ export function formatLpLastError(
       return "No sim strategy ready yet, waiting for cohort data";
     case "no_profitable_strategy":
       return "No sim strategy with positive net PnL yet, waiting for a profitable leader";
+    case "safe_fallback_deposit_too_small":
+      return "Strategy leader is in safe mode but the slot size is below the minimum, retrying with rebalanced capital";
     case "no_candidate":
       return "Agent is ticking but no Meteora pool passed screening (or all pools on 90m cooldown), retrying every ~2 min";
     case "cooldown_or_open":
       return "Same pool was used recently, waiting for 90m cooldown before re-entry";
     case "max_positions":
       return "Max concurrent positions reached, monitoring open slots only";
+    case "env_disabled":
+      return "Position opens are paused by ops (signal cron disabled)";
     default:
       break;
   }

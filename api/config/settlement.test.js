@@ -43,4 +43,9 @@ describe("settlement.js", () => {
     assert.equal(typeof CROSSMINT_ONRAMP.enabled, "boolean");
     assert.equal(typeof LP_AGENT_REAL.enabled, "boolean");
   });
+
+  it("LP real open-signal cron is enabled by default (Earn LP Auto)", () => {
+    assert.equal(LP_AGENT_REAL.enabled, true);
+    assert.equal(LP_AGENT_REAL.useRealSignals, true);
+  });
 });
