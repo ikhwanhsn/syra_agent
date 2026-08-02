@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSyraAuth } from "@/contexts/SyraAuthContext";
 import { useWalletContext } from "@/contexts/WalletContext";
 import { isAdminWallet } from "@/constants/adminWallet";
 import {
@@ -22,13 +23,15 @@ const POLL_MS = 30_000;
 
 export function useLabsX402(chain: LabChain = "solana") {
   const { connected, address } = useWalletContext();
+  const { syraAuthReady, syraAuthenticated } = useSyraAuth();
   const allowed = isAdminWallet(connected, address);
   const adminWallet = address ?? "";
+  const canFetch = allowed && Boolean(adminWallet) && syraAuthReady && syraAuthenticated;
 
   const walletsQ = useQuery({
     queryKey: ["labs-x402", "wallets", chain, adminWallet],
     queryFn: () => fetchLabWallets(adminWallet, chain),
-    enabled: allowed && Boolean(adminWallet),
+    enabled: canFetch,
     staleTime: STALE_MS,
     refetchInterval: POLL_MS,
   });
@@ -36,14 +39,14 @@ export function useLabsX402(chain: LabChain = "solana") {
   const settingsQ = useQuery({
     queryKey: ["labs-x402", "settings", chain, adminWallet],
     queryFn: () => fetchLabX402Settings(adminWallet, chain),
-    enabled: allowed && Boolean(adminWallet),
+    enabled: canFetch,
     staleTime: STALE_MS,
   });
 
   const callsQ = useQuery({
     queryKey: ["labs-x402", "calls", chain, adminWallet],
     queryFn: () => fetchLabX402Calls(adminWallet, 10, chain),
-    enabled: allowed && Boolean(adminWallet),
+    enabled: canFetch,
     staleTime: STALE_MS,
     refetchInterval: POLL_MS,
   });
@@ -51,7 +54,7 @@ export function useLabsX402(chain: LabChain = "solana") {
   const volumeQ = useQuery({
     queryKey: ["labs-x402", "volume", chain, adminWallet],
     queryFn: () => fetchLabX402Volume(adminWallet, chain),
-    enabled: allowed && Boolean(adminWallet),
+    enabled: canFetch,
     staleTime: STALE_MS,
     refetchInterval: POLL_MS,
   });
@@ -59,14 +62,14 @@ export function useLabsX402(chain: LabChain = "solana") {
   const endpointsQ = useQuery({
     queryKey: ["labs-x402", "endpoints", adminWallet],
     queryFn: () => fetchLabX402Endpoints(adminWallet),
-    enabled: allowed && Boolean(adminWallet),
+    enabled: canFetch,
     staleTime: 60_000,
   });
 
   const depositQ = useQuery({
     queryKey: ["labs-x402", "deposit", chain, adminWallet],
     queryFn: () => fetchLabDeposit(adminWallet, chain),
-    enabled: allowed && Boolean(adminWallet),
+    enabled: canFetch,
     staleTime: STALE_MS,
     refetchInterval: POLL_MS,
   });

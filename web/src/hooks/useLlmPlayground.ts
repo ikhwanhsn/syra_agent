@@ -1,4 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useSyraAuth } from "@/contexts/SyraAuthContext";
 import { useWalletContext } from "@/contexts/WalletContext";
 import { isAdminWallet } from "@/constants/adminWallet";
 import {
@@ -17,17 +18,19 @@ const MODELS_STALE_MS = 5 * 60_000;
 
 function useAdminWallet() {
   const { connected, address } = useWalletContext();
+  const { syraAuthReady, syraAuthenticated } = useSyraAuth();
   const allowed = isAdminWallet(connected, address);
   const adminWallet = address ?? "";
-  return { allowed, adminWallet };
+  const canFetch = allowed && Boolean(adminWallet) && syraAuthReady && syraAuthenticated;
+  return { allowed, adminWallet, canFetch };
 }
 
 export function useLlmModels(modality: LlmModality) {
-  const { allowed, adminWallet } = useAdminWallet();
+  const { adminWallet, canFetch } = useAdminWallet();
   return useQuery({
     queryKey: ["llm-playground", "models", modality, adminWallet],
     queryFn: () => fetchLlmModels(adminWallet, modality),
-    enabled: allowed && Boolean(adminWallet),
+    enabled: canFetch,
     staleTime: MODELS_STALE_MS,
   });
 }
@@ -61,11 +64,11 @@ export function useLlmSubmitVideo() {
 }
 
 export function useLlmVideoStatus(generationId: string | null, enabled: boolean) {
-  const { allowed, adminWallet } = useAdminWallet();
+  const { adminWallet, canFetch } = useAdminWallet();
   return useQuery({
     queryKey: ["llm-playground", "video-status", generationId, adminWallet],
     queryFn: () => fetchLlmVideoStatus(adminWallet, generationId!),
-    enabled: allowed && Boolean(adminWallet) && Boolean(generationId) && enabled,
+    enabled: canFetch && Boolean(generationId) && enabled,
     refetchInterval: (query) => {
       const status = String(query.state.data?.status ?? "").toLowerCase();
       if (status === "completed" || status === "complete" || status === "failed" || status === "error") {

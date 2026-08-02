@@ -1,3 +1,4 @@
+import { ensureAccessTokenForWallet, syraFetch } from "@/lib/agentAuthApi";
 import { getApiBaseUrl } from "@/lib/env";
 
 export type LlmModality =
@@ -86,13 +87,16 @@ async function fetchLlmJson<T>(
   adminWallet: string,
   init?: RequestInit,
 ): Promise<T> {
+  const token = await ensureAccessTokenForWallet(adminWallet);
+  if (!token) {
+    throw new Error("auth_required");
+  }
   const url = `${getApiBaseUrl()}${path}`;
   const headers = new Headers(init?.headers);
-  headers.set("x-admin-wallet", adminWallet);
   if (init?.body && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
-  const res = await fetch(url, { ...init, headers, credentials: "include" });
+  const res = await syraFetch(url, { ...init, headers });
   const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   if (!res.ok) {
     const msg =
@@ -184,12 +188,12 @@ export async function fetchLlmVideoContentBlob(
   generationId: string,
   index = 0,
 ): Promise<Blob> {
+  const token = await ensureAccessTokenForWallet(adminWallet);
+  if (!token) {
+    throw new Error("auth_required");
+  }
   const url = `${getApiBaseUrl()}/labs/llm/video/${encodeURIComponent(generationId)}/content?index=${index}`;
-  const headers = new Headers();
-  headers.set("x-admin-wallet", adminWallet);
-  const res = await fetch(url, {
-    headers,
-    credentials: "include",
+  const res = await syraFetch(url, {
     redirect: "follow",
   });
   const contentType = res.headers.get("content-type") || "";

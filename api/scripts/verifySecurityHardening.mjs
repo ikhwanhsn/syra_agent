@@ -28,6 +28,18 @@ assert(!/req\.get\(\s*['"]x-admin-wallet['"]/.test(labsLlm), "labs/llm: no spoof
 const labsOrg = read("api/routes/labs/organize.js");
 assert(!/req\.get\(\s*['"]x-admin-wallet['"]/.test(labsOrg), "labs/organize: no spoofable x-admin-wallet header read");
 
+const labsX402Client = read("web/src/lib/labsX402Api.ts");
+assert(labsX402Client.includes("syraFetch"), "labs/x402 client: sends Syra session via syraFetch");
+assert(!labsX402Client.includes("x-admin-wallet"), "labs/x402 client: no spoofable x-admin-wallet header");
+
+const labsLlmClient = read("web/src/lib/llmPlaygroundApi.ts");
+assert(labsLlmClient.includes("syraFetch"), "labs/llm client: sends Syra session via syraFetch");
+assert(!labsLlmClient.includes("x-admin-wallet"), "labs/llm client: no spoofable x-admin-wallet header");
+
+const labsOrgClient = read("web/src/lib/organizeApi.ts");
+assert(labsOrgClient.includes("syraFetch"), "labs/organize client: sends Syra session via syraFetch");
+assert(!labsOrgClient.includes("x-admin-wallet"), "labs/organize client: no spoofable x-admin-wallet header");
+
 const rewards = read("api/routes/syraRewards.js");
 assert(rewards.includes("requireSession"), "rewards: requireSession imported");
 assert(rewards.includes("req.user.walletAddress"), "rewards: claim bound to session wallet");

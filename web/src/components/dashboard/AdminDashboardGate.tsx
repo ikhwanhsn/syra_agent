@@ -1,9 +1,10 @@
-import type { ReactNode } from "react";
-import { Lock, ShieldAlert } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { KeyRound, Lock, ShieldAlert } from "lucide-react";
 import { Link } from "@/lib/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { ADMIN_DASHBOARD_WALLET, isAdminWallet } from "@/constants/adminWallet";
+import { useSyraAuth } from "@/contexts/SyraAuthContext";
 import { useWalletContext } from "@/contexts/WalletContext";
 import { DASHBOARD_CONTENT_SHELL, PAGE_PADDING_TOP_MEDIUM } from "@/lib/layoutConstants";
 
@@ -18,6 +19,8 @@ export function AdminDashboardGate({
   featureLabel = "This page",
 }: AdminDashboardGateProps) {
   const { address, connected, connectSolana } = useWalletContext();
+  const { syraAuthReady, syraAuthenticated, requestSyraAuthForWallet } = useSyraAuth();
+  const [signingIn, setSigningIn] = useState(false);
   const allowed = isAdminWallet(connected, address);
 
   if (!connected) {
@@ -54,6 +57,53 @@ export function AdminDashboardGate({
               <p className="break-all font-mono text-xs opacity-90">{ADMIN_DASHBOARD_WALLET}</p>
               <Button variant="outline" size="sm" className="mt-2" asChild>
                 <Link to="/overview">Go to overview</Link>
+              </Button>
+            </AlertDescription>
+          </Alert>
+        </div>
+      </div>
+    );
+  }
+
+  if (!syraAuthReady) {
+    return (
+      <div className={DASHBOARD_CONTENT_SHELL}>
+        <div className={PAGE_PADDING_TOP_MEDIUM}>
+          <Alert className="max-w-xl border-border/80 bg-muted/20">
+            <KeyRound className="h-4 w-4" />
+            <AlertTitle>Checking session</AlertTitle>
+            <AlertDescription className="pt-1 text-sm text-muted-foreground">
+              Restoring your Syra admin session…
+            </AlertDescription>
+          </Alert>
+        </div>
+      </div>
+    );
+  }
+
+  if (!syraAuthenticated) {
+    return (
+      <div className={DASHBOARD_CONTENT_SHELL}>
+        <div className={PAGE_PADDING_TOP_MEDIUM}>
+          <Alert className="max-w-xl border-border/80 bg-muted/20">
+            <KeyRound className="h-4 w-4" />
+            <AlertTitle>Sign in required</AlertTitle>
+            <AlertDescription className="space-y-3 pt-1">
+              <p className="text-sm text-muted-foreground">
+                {featureLabel} now requires a verified Syra session. Approve the wallet signature
+                prompt to continue.
+              </p>
+              <Button
+                type="button"
+                size="sm"
+                disabled={signingIn || !address}
+                onClick={() => {
+                  if (!address) return;
+                  setSigningIn(true);
+                  void requestSyraAuthForWallet(address).finally(() => setSigningIn(false));
+                }}
+              >
+                {signingIn ? "Waiting for signature…" : "Sign in with wallet"}
               </Button>
             </AlertDescription>
           </Alert>

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSyraAuth } from "@/contexts/SyraAuthContext";
 import { useWalletContext } from "@/contexts/WalletContext";
 import { isAdminWallet } from "@/constants/adminWallet";
 import {
@@ -20,13 +21,15 @@ export interface OrganizeFilters {
 
 export function useOrganize(filters?: OrganizeFilters) {
   const { connected, address } = useWalletContext();
+  const { syraAuthReady, syraAuthenticated } = useSyraAuth();
   const allowed = isAdminWallet(connected, address);
   const adminWallet = address ?? "";
+  const canFetch = allowed && Boolean(adminWallet) && syraAuthReady && syraAuthenticated;
 
   const entriesQ = useQuery({
     queryKey: ["organize", "entries", adminWallet, filters?.type, filters?.status],
     queryFn: () => fetchOrganizeEntries(adminWallet, filters),
-    enabled: allowed && Boolean(adminWallet),
+    enabled: canFetch,
     staleTime: STALE_MS,
   });
 
