@@ -20,10 +20,10 @@ export const LP_REAL_DEFAULT_FEE_BUFFER_SOL = 0.25;
 /** Minimum wallet SOL while positions are open (fees only — capital may be deployed). */
 export const LP_REAL_DEFAULT_MIN_WALLET_WHILE_LIVE_SOL = 0.25;
 
-/** Real pool screen: minimum TVL (USD). */
-export const LP_REAL_DEFAULT_MIN_TVL_USD = 250_000;
+/** Real pool screen: minimum TVL (USD). Was 250k — lowered so fee-active mid pools qualify. */
+export const LP_REAL_DEFAULT_MIN_TVL_USD = 150_000;
 /** Real pool screen: minimum 24h volume (USD). */
-export const LP_REAL_DEFAULT_MIN_VOL_24H_USD = 150_000;
+export const LP_REAL_DEFAULT_MIN_VOL_24H_USD = 100_000;
 /** Real pool screen: max vol/TVL churn ratio — rejects hyper-volatile meme pools. */
 export const LP_REAL_DEFAULT_MAX_VOL_TVL_RATIO = 8;
 /** Real pool screen: max daily fee/TVL ratio — rejects one-off fee spikes. */

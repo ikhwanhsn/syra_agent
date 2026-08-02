@@ -172,6 +172,18 @@ export function computeLpRiskRewardProfile(params = {}) {
   };
 }
 
+/**
+ * Paper-sim fee haircut calibrated against closed real LP positions
+ * (paper was ~10–20× too optimistic vs ~+12.7 SOL realized on 285 real closes).
+ * Apply ONLY in paper resolve paths — not in real EV gates or RR screening.
+ * Override with LP_SIM_FEE_CALIBRATION_MULT (0–1.5].
+ */
+export function getLpSimFeeCalibrationMult() {
+  const raw = Number(process.env.LP_SIM_FEE_CALIBRATION_MULT);
+  if (Number.isFinite(raw) && raw > 0 && raw <= 1.5) return raw;
+  return 0.22;
+}
+
 /** Cap fee boost on degen pools — keeps sim PnL realistic while still rewarding hot pools. */
 export function applyRiskAdjustedFeeMultiplier(rawMultiplier, riskScore) {
   const mult = toNum(rawMultiplier, 1);

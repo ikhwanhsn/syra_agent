@@ -1710,6 +1710,7 @@ async function attemptOpenLpRealPosition({
   opened,
   skipped,
   errors,
+  excludePoolAddresses = [],
 }) {
   const strategy = strategyLeader.strategy;
   const leaderId = strategyLeader.strategyId;
@@ -1718,6 +1719,7 @@ async function attemptOpenLpRealPosition({
     leaderStrategyId: leaderId,
     experimentId: config.experimentId,
     rankedStrategyIds: rankedIds,
+    excludePoolAddresses,
     hasRecentPositionFn: (_expId, _strategyId, poolAddress) =>
       hasRecentRealPosition(config.experimentId, poolAddress),
   });
@@ -1732,7 +1734,7 @@ async function attemptOpenLpRealPosition({
       summary: "No eligible pool after real screening",
       reason: "no_candidate",
     });
-    return { opened: false, stop: false };
+    return { opened: false, stop: false, excludePool: null };
   }
 
   if (await isPoolOnEvolutionCooldown(poolCandidate.poolAddress)) {
@@ -1833,7 +1835,7 @@ async function attemptOpenLpRealPosition({
       metrics: evDecision,
       signals: poolCandidate.signalSnapshot,
     });
-    return { opened: false, stop: false };
+    return { opened: false, stop: false, excludePool: poolCandidate.poolAddress };
   }
 
   if (expectedFeeSol < roundTripCostSol * LP_REAL_MIN_FEE_TO_COST_RATIO) {
@@ -1854,7 +1856,7 @@ async function attemptOpenLpRealPosition({
       metrics: evDecision,
       signals: poolCandidate.signalSnapshot,
     });
-    return { opened: false, stop: false };
+    return { opened: false, stop: false, excludePool: poolCandidate.poolAddress };
   }
 
   console.info("[lpReal] ev_open", evDecision);
@@ -2254,8 +2256,10 @@ async function runLpRealSignalCycleForConfig(config) {
     const maxOpensThisTick = getLpRealMaxOpensPerTick();
     let opensThisTick = 0;
     let consecutiveSkips = 0;
+    /** Pools that failed EV this tick — try the next candidate instead of re-picking the same one. */
+    const excludePoolAddresses = [];
 
-    while (opensThisTick < maxOpensThisTick && consecutiveSkips < qualified.length * 2) {
+    while (opensThisTick < maxOpensThisTick && consecutiveSkips < qualified.length * 3) {
       const openPositions = await LpRealPosition.find({
         experimentId: config.experimentId,
         status: { $in: ["open", "opening", "closing"] },
@@ -2334,6 +2338,7 @@ async function runLpRealSignalCycleForConfig(config) {
         opened,
         skipped,
         errors,
+        excludePoolAddresses,
       });
 
       if (result.opened) {
@@ -2345,6 +2350,9 @@ async function runLpRealSignalCycleForConfig(config) {
         continue;
       }
 
+      if (result.excludePool) {
+        excludePoolAddresses.push(result.excludePool);
+      }
       consecutiveSkips += 1;
       if (result.stop) break;
     }

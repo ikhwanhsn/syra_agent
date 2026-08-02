@@ -27,6 +27,7 @@ import {
   computeDlmmFeeShareMultiplier,
   computeFeeYieldPct,
   computeLpNetPnlPct,
+  getLpSimFeeCalibrationMult,
   computeLpRiskRewardProfile,
   computePoolRiskScore,
   computePriceDriftPct,
@@ -35,6 +36,7 @@ import {
   LP_MIN_EXTREME_RISK_REWARD_RATIO,
   LP_MIN_REAL_RISK_REWARD_RATIO,
   LP_MIN_SIM_RISK_REWARD_RATIO,
+  LP_REAL_EV_HOLD_HOURS,
   mergeRealExitRules,
   REAL_MIN_BINS_PER_SIDE,
   resolveAdaptiveExitRules,
@@ -178,7 +180,8 @@ function evaluateRunResolution(run, detail, strategyExit, hoursElapsed, simDefau
     binsAbove: run.binsAbove,
     inRange,
   });
-  const feeShareMult = applyRiskAdjustedFeeMultiplier(rawFeeShareMult, riskScore);
+  const feeShareMult =
+    applyRiskAdjustedFeeMultiplier(rawFeeShareMult, riskScore) * getLpSimFeeCalibrationMult();
   const feeYieldPct = inRange ? baseFeeYieldPct * feeShareMult : baseFeeYieldPct * feeShareMult * 0.25;
   const netPnlPct = computeLpNetPnlPct(priceDriftPct, feeYieldPct, inRange, riskScore);
   const simFeesEarnedSol = toNum(run.depositSol) * (feeYieldPct / 100);
@@ -220,6 +223,16 @@ function evaluateRunResolution(run, detail, strategyExit, hoursElapsed, simDefau
   const closeFeeSol = txCosts.closeFeeSol;
   const grossPnlSol = toNum(run.depositSol) * (netPnlPct / 100);
   const simNetPnlSol = grossPnlSol - openFeeSol - closeFeeSol;
+
+  // Relabel by net-after-fees so "wins" cannot be money-losing (audit found 36 such rows).
+  if (status === "win" && simNetPnlSol < 0) {
+    status = "loss";
+    resolution = resolution === "take_profit" ? "tp_below_cost" : resolution || "net_negative";
+  } else if (status === "loss" && simNetPnlSol > 0) {
+    status = "win";
+  } else if (status === "expired" && simNetPnlSol > 0) {
+    status = "win";
+  }
 
   return {
     status,
@@ -517,10 +530,12 @@ export async function selectRealStylePoolCandidate({
   hasRecentPositionFn,
   maxCandidates = 24,
   rankedStrategyIds = [],
+  excludePoolAddresses = [],
 }) {
   const simState = await getSingletonStateDoc();
   const simExperimentId = simState?.activeExperimentId ?? null;
   const allCandidates = await getLpCandidatePools({ realMode: true });
+  const excluded = new Set((excludePoolAddresses || []).map((a) => String(a)));
 
   const tryIds = [
     Number(leaderStrategyId),
@@ -533,15 +548,15 @@ export async function selectRealStylePoolCandidate({
       realExperimentId: experimentId,
       simExperimentId,
       hasRecentPositionFn,
-      allCandidates,
+      allCandidates: allCandidates.filter((c) => !excluded.has(String(c.poolAddress))),
       maxCandidates,
     });
-    if (picked) return picked;
+    if (picked && !excluded.has(String(picked.poolAddress))) return picked;
   }
 
   // Last resort: best gate-passed SOL pool from any strategy (still real-screened).
   const anySol = allCandidates
-    .filter((c) => c.gatePassed && isSolPairCandidate(c))
+    .filter((c) => c.gatePassed && isSolPairCandidate(c) && !excluded.has(String(c.poolAddress)))
     .sort((a, b) => b.score - a.score)
     .slice(0, maxCandidates);
   for (const c of anySol) {
@@ -684,13 +699,15 @@ export function passesRealPoolScreen(pool, { tokenSignals = null } = {}) {
   if (volTvl > maxVolTvl) return false;
 
   // Risk/reward hurdle at real bin geometry — expected fees must exceed IL budget (positive EV).
+  // Use the same hold window as the open EV gate so pools are not screened out on a
+  // shorter (4h) projection than the deploy decision (12h).
   const rr = computeLpRiskRewardProfile({
     tvlUsd: tvl,
     volume24hUsd: vol,
     feeTvlRatio: feeTvl,
     binsBelow: REAL_MIN_BINS_PER_SIDE,
     binsAbove: REAL_MIN_BINS_PER_SIDE,
-    holdHours: 4,
+    holdHours: LP_REAL_EV_HOLD_HOURS,
   });
   // Conservative grind: only low/medium risk tiers qualify for on-chain capital.
   if (rr.tier === "extreme" || rr.tier === "high") return false;
@@ -712,14 +729,23 @@ export function isSolPairPool(pool) {
 export async function getLpCandidatePools({ realMode = false } = {}) {
   await ensureLpExperimentBootstrapped();
   const strategies = await resolveLpExperimentStrategies();
+  // Real mode: merge TVL + fee + volume sorts. Top-TVL-only scans miss fee-active mid
+  // pools and then fail open with no_candidate / fees_below_chain_costs on blue chips.
   const pools = realMode
-    ? await fetchMeteoraPools({
-        page: 1,
-        limit: 120,
-        sortKey: "tvl",
-        order: "desc",
-        hideLowTvl: true,
-      })
+    ? await (async () => {
+        const pages = await Promise.all([
+          fetchMeteoraPools({ page: 1, limit: 80, sortKey: "tvl", order: "desc", hideLowTvl: true }),
+          fetchMeteoraPools({ page: 1, limit: 80, sortKey: "fee", order: "desc", hideLowTvl: true }),
+          fetchMeteoraPools({ page: 1, limit: 80, sortKey: "volume", order: "desc", hideLowTvl: true }),
+        ]);
+        const byAddr = new Map();
+        for (const batch of pages) {
+          for (const p of batch || []) {
+            if (p?.poolAddress && !byAddr.has(p.poolAddress)) byAddr.set(p.poolAddress, p);
+          }
+        }
+        return [...byAddr.values()];
+      })()
     : await fetchSimCandidatePools();
 
   let poolList = realMode
