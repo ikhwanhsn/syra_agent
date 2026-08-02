@@ -1375,6 +1375,18 @@ const EARN_STATS_EPOCH = 2;
  */
 export async function ensurePublicEarnSession(config, { forceRestart = false } = {}) {
   if (!config?.agentAddress || !config.publicEarnListed) return config;
+
+  // Heal over-fragmented Earn configs (alignConfig historically raised slots to 9+
+  // on ~4 SOL wallets, which then failed safeFallback half-size opens).
+  const EARN_MAX_CONCURRENT = 3;
+  if (toNum(config.maxConcurrentPositions, 10) > EARN_MAX_CONCURRENT) {
+    await LpRealConfig.updateOne(
+      { agentAddress: config.agentAddress },
+      { $set: { maxConcurrentPositions: EARN_MAX_CONCURRENT } },
+    );
+    config = { ...config, maxConcurrentPositions: EARN_MAX_CONCURRENT };
+  }
+
   const epochOk = Number(config.earnStatsEpoch) >= EARN_STATS_EPOCH;
   if (config.publicEarnStartedAt && epochOk && !forceRestart) return config;
 

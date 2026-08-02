@@ -344,6 +344,9 @@ export async function updateDepositForUser({ anonymousId, ownerWallet, maxDeposi
         earnDepositSol: cap,
         targetBankSol: cap,
         maxPositionSol: Math.min(DEFAULT_MAX_POSITION_SOL, cap),
+        // Re-anchor concurrent slots so deposit updates heal over-fragmented configs
+        // that previously blocked safeFallback opens (safe_fallback_deposit_too_small).
+        maxConcurrentPositions: DEFAULT_MAX_CONCURRENT,
         lastError: null,
       },
     },
