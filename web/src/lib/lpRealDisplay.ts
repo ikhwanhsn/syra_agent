@@ -92,6 +92,10 @@ export function formatLpLastError(
       return "No sim strategy with positive net PnL yet, waiting for a profitable leader";
     case "safe_fallback_deposit_too_small":
       return "Strategy leader is in safe mode but the slot size is below the minimum, retrying with rebalanced capital";
+    case "fees_below_chain_costs":
+      return "Candidate pool fees would not cover open/close costs this cycle, scanning for a better pool";
+    case "risk_reward_below_threshold":
+      return "Candidate pool risk/reward below threshold this cycle, scanning for a better pool";
     case "no_candidate":
       return "Agent is ticking but no Meteora pool passed screening (or all pools on 90m cooldown), retrying every ~2 min";
     case "cooldown_or_open":

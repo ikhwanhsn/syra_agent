@@ -55,8 +55,15 @@ export const LP_MIN_REAL_RISK_REWARD_RATIO = envNum("LP_AGENT_REAL_MIN_RR_RATIO"
 /** Real LP: hard price stop multiplier vs strategy stop — caps catastrophic IL even when fees offset the soft stop. */
 export const LP_REAL_HARD_STOP_MULT = envNum("LP_AGENT_REAL_HARD_STOP_MULT", 1.4);
 
-/** Real LP: expected fees over the projected hold must exceed round-trip chain costs by this factor before open. */
-export const LP_REAL_MIN_FEE_TO_COST_RATIO = envNum("LP_AGENT_REAL_MIN_FEE_TO_COST_RATIO", 3.0);
+/**
+ * Real LP: expected fees over the projected hold must exceed round-trip chain costs by this factor before open.
+ * Default 1.25 (was 3.0) — 3× starved Earn opens on liquid mid-fee pools (e.g. CATE-SOL) while
+ * historical real closes still cleared positive fee yields at ~1×–2× cost cover.
+ */
+export const LP_REAL_MIN_FEE_TO_COST_RATIO = envNum("LP_AGENT_REAL_MIN_FEE_TO_COST_RATIO", 1.25);
+
+/** Hold window (hours) used when projecting expected fees for the real open EV gate. */
+export const LP_REAL_EV_HOLD_HOURS = envNum("LP_AGENT_REAL_EV_HOLD_HOURS", 12);
 
 export function computePriceDriftPct(entry, current) {
   if (!Number.isFinite(entry) || entry <= 0 || !Number.isFinite(current) || current <= 0) return 0;

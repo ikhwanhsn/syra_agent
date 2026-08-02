@@ -177,6 +177,10 @@ export function humanizeAgentNote(lastError: string | null | undefined): string 
         return "Strategy is in safe mode; rebalancing capital for the next open";
       case "insufficient_available_sol":
         return "Waiting for enough liquid SOL after fee reserves to open";
+      case "fees_below_chain_costs":
+        return "Scanning for a pool where fees cover trade costs";
+      case "risk_reward_below_threshold":
+        return "Scanning for a pool with better risk/reward";
       case "no_profitable_strategy":
         return "Waiting for a sim-qualified profitable strategy leader";
       case "no_candidate":

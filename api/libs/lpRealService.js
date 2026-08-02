@@ -35,6 +35,7 @@ import {
   LP_MIN_REAL_RISK_REWARD_RATIO,
   LP_REAL_HARD_STOP_MULT,
   LP_REAL_MIN_FEE_TO_COST_RATIO,
+  LP_REAL_EV_HOLD_HOURS,
   mergeRealExitRules,
   MAX_METEORA_POSITION_BINS,
   REAL_CLAIM_FEES_BEFORE_CLOSE_SOL,
@@ -1787,7 +1788,8 @@ async function attemptOpenLpRealPosition({
     ...poolContext,
     binsBelow: clampedRange.binsBelow,
     binsAbove: clampedRange.binsAbove,
-    holdHours: 4,
+    // Project fees over a realistic hold (not a 4h flash) so EV matches how resolve exits run.
+    holdHours: LP_REAL_EV_HOLD_HOURS,
   });
 
   // Chain-cost viability gate (before any sidecar swap spends real SOL):
@@ -2289,15 +2291,21 @@ async function runLpRealSignalCycleForConfig(config) {
         plan.depositSol,
         Math.max(0, availableSol - feeHeadroom),
       );
-      // Safe-fallback leaders (win-rate gate miss but positive PnL): prefer half size.
-      // If half falls below minDeposit, open at minDeposit instead of starving forever
-      // (previously guaranteed skip when maxConcurrent was over-fragmented).
+      // Safe-fallback sizing:
+      // - Thin sample (decided < 12): half size (floor at minDeposit) to protect capital.
+      // - PnL-qualified (decided >= 12 + positive sumNetPnl): full size — these leaders only
+      //   miss the win-rate gate; halving them made EV fail fees_below_chain_costs on mid-fee pools.
       if (strategyLeader.safeFallback || strategyLeader.softFallback) {
-        const half = plan.depositSol * 0.5;
-        cappedDepositSol = Math.min(
-          cappedDepositSol,
-          half >= minDep - 1e-9 ? half : minDep,
-        );
+        const decided = toNum(strategyLeader.decided, 0);
+        const pnl = toNum(strategyLeader.sumNetPnlSol, 0);
+        const pnlQualified = decided >= 12 && pnl > 0;
+        if (!pnlQualified) {
+          const half = plan.depositSol * 0.5;
+          cappedDepositSol = Math.min(
+            cappedDepositSol,
+            half >= minDep - 1e-9 ? half : minDep,
+          );
+        }
       }
       if (cappedDepositSol < minDep - 1e-9) {
         if (opensThisTick === 0) {
