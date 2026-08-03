@@ -43,8 +43,50 @@ export interface LabX402Settings {
   depositMinEth?: number;
   depositEthGasReserve?: number;
   depositLastDistributedAt?: string | null;
+  /** Treasury circuit-breaker pause reason (null when healthy). */
+  autoCallPausedReason?: string | null;
+  autoCallPausedAt?: string | null;
+  treasuryLastAlertAt?: string | null;
   chain?: LabChain;
   updatedAt?: string;
+}
+
+export interface LabTreasuryStatus {
+  chain: LabChain;
+  canFundAny: boolean;
+  fundableCalls: number;
+  hubHasFunds: boolean;
+  shortfallUsdc: number;
+  shortfallNative: number;
+  shortfallAlgo: number;
+  reason: string | null;
+  recommendedTopUpUsdc: number;
+  recommendedTopUpNative: number;
+  recommendedTopUpAlgo: number;
+  payToAddress: string | null;
+  payToUsdc: number | null;
+  payToSpendableNative: number | null;
+  payToSpendableAlgo: number | null;
+  payToOptedInUsdc: boolean | null;
+  hubAddress: string | null;
+  hubUsdc: number | null;
+  hubNative: number | null;
+  minPriceUsd: number;
+  payerCount: number;
+  autoCallEnabled: boolean;
+  autoCallPausedReason: string | null;
+  autoCallPausedAt: string | null;
+  treasuryLastAlertAt: string | null;
+  paused: boolean;
+  topUp: {
+    payToAddress: string | null;
+    hubAddress: string | null;
+    usdcUsd: number;
+    native: number;
+    algo: number;
+    instructions: string | null;
+  };
+  error?: string;
 }
 
 export interface LabDepositHub {
@@ -324,6 +366,31 @@ export async function fetchLabDeposit(
     withChain("/labs/x402/deposit", chain),
     adminWallet,
   );
+  return res.data;
+}
+
+export async function fetchLabTreasury(
+  adminWallet: string,
+  chain: LabChain = "solana",
+): Promise<LabTreasuryStatus> {
+  const res = await fetchLabsJson<{ success: boolean; data: LabTreasuryStatus }>(
+    withChain("/labs/x402/treasury", chain),
+    adminWallet,
+  );
+  return res.data;
+}
+
+export async function resumeLabTreasury(
+  adminWallet: string,
+  chain: LabChain = "solana",
+): Promise<{ resumed: boolean; settings: LabX402Settings; treasury: LabTreasuryStatus }> {
+  const res = await fetchLabsJson<{
+    success: boolean;
+    data: { resumed: boolean; settings: LabX402Settings; treasury: LabTreasuryStatus };
+  }>(withChain("/labs/x402/treasury/resume", chain), adminWallet, {
+    method: "POST",
+    body: JSON.stringify({ chain }),
+  });
   return res.data;
 }
 

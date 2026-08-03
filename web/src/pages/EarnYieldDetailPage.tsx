@@ -25,6 +25,7 @@ import {
   fmtEarnBalance,
   humanizeAgentNote,
   readinessReasons,
+  resolveFlatInvestStatus,
   riskLevelLabel,
   summarizeTrackRecord,
 } from "@/lib/earnYieldUi";
@@ -54,7 +55,7 @@ export default function EarnYieldDetailPage() {
 
   const product = boardQ.data?.products.find((p) => p.id === productId);
   const denom = (product?.denom || "SOL") as EarnDenom;
-  const minDep = product?.minDeposit ?? 1;
+  const minDep = product?.minDeposit ?? 0.25;
   const maxDep = product?.maxDeposit ?? 5;
   const feePct = product?.performanceFeePct ?? 10;
   const defaultDeposit = Math.round(((minDep + maxDep) / 2) * 2) / 2;
@@ -106,7 +107,23 @@ export default function EarnYieldDetailPage() {
         ? `Deposit ${fmtEarnBalance(fundingGap, denom)} more to reach your allocated amount.`
         : "Your deposit is in the wallet and waiting for the next open."
       : null;
-  const statusNote = agentNote || staleNote || waitingHint;
+  const flatInvest = resolveFlatInvestStatus({
+    deployedSol,
+    waitingSol,
+    strategyDepositSol,
+    canOpenNewPositions: wallet?.canOpenNewPositions,
+    lastError: status?.config?.lastError,
+    lossPausedAt: status?.config?.lossPausedAt,
+    depositsPaused: status?.config?.depositsPaused,
+    stale: Boolean(wallet?.stale),
+  });
+  const statusNote =
+    agentNote ||
+    staleNote ||
+    (flatInvest.badge === "needs_funding" || flatInvest.badge === "paused_after_losses"
+      ? flatInvest.message
+      : null) ||
+    waitingHint;
   const howItWorks = product?.howItWorks ?? [];
   const rails = product?.rails ?? [];
   const Icon = product ? earnProductIcon(product) : null;
@@ -389,18 +406,25 @@ export default function EarnYieldDetailPage() {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2 border-t border-border/40 pt-3">
-                    {deployedSol <= 0 && (waitingSol ?? 0) > 0 ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-amber-800 dark:text-amber-300">
+                    {flatInvest.badge && flatInvest.badgeLabel ? (
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium",
+                          flatInvest.badge === "paused_after_losses"
+                            ? "border-destructive/30 bg-destructive/10 text-destructive"
+                            : flatInvest.badge === "needs_funding"
+                              ? "border-amber-500/40 bg-amber-500/15 text-amber-900 dark:text-amber-200"
+                              : "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300",
+                        )}
+                      >
                         <Clock className="h-3 w-3" aria-hidden />
-                        Waiting to invest
+                        {flatInvest.badgeLabel}
                       </span>
                     ) : null}
                     <p className="text-xs text-muted-foreground">
                       {deployedSol > 0
                         ? `${fmtEarnBalance(deployedSol, denom)} in open positions · ${fmtEarnBalance(waitingSol, denom)} waiting`
-                        : strategyDepositSol != null && strategyDepositSol > 0
-                          ? "Not in a position yet. The strategy opens on the next cycle."
-                          : "Set your deposit below, then fund your Earn wallet."}
+                        : flatInvest.message}
                     </p>
                   </div>
                 </div>
@@ -607,7 +631,7 @@ export default function EarnYieldDetailPage() {
                         type="number"
                         min={minDep}
                         max={maxDep}
-                        step={denom === "SOL" ? 0.5 : 5}
+                        step={denom === "SOL" ? 0.25 : 5}
                         value={cap}
                         onChange={(e) => setDepositCap(Number(e.target.value))}
                         className="block h-11 w-full rounded-md border border-border/60 bg-background px-3 text-sm text-foreground sm:w-36"
@@ -674,7 +698,7 @@ export default function EarnYieldDetailPage() {
                       type="number"
                       min={minDep}
                       max={maxDep}
-                      step={denom === "SOL" ? 0.5 : 5}
+                      step={denom === "SOL" ? 0.25 : 5}
                       value={cap}
                       onChange={(e) => setDepositCap(Number(e.target.value))}
                       className="block h-11 w-full rounded-md border border-border/60 bg-background px-3 text-sm text-foreground sm:w-36"

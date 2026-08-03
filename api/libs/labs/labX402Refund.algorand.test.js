@@ -421,3 +421,26 @@ describe('ensureAlgorandPayerAlgoForOptInAndFees', () => {
     assert.match(String(result.error), /insufficient_algo_for_opt_in_seed/);
   });
 });
+
+describe('clampAlgorandPayToUsdcRefundAmount (treasury floor)', () => {
+  test('fails payto_underfunded when PayTo USDC is below min call price', () => {
+    const clamp = clampAlgorandPayToUsdcRefundAmount({
+      requestedUsd: 0.2,
+      payToUsdcBalance: 0,
+      minPriceUsd: 0.01,
+    });
+    assert.equal(clamp.ok, false);
+    assert.equal(clamp.reason, 'payto_underfunded');
+  });
+
+  test('allows partial top-up when PayTo has enough for at least one call', () => {
+    const clamp = clampAlgorandPayToUsdcRefundAmount({
+      requestedUsd: 0.2,
+      payToUsdcBalance: 0.05,
+      minPriceUsd: 0.01,
+    });
+    assert.equal(clamp.ok, true);
+    assert.equal(clamp.partial, true);
+    assert.equal(clamp.amountUsd, 0.05);
+  });
+});

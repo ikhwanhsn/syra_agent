@@ -7,11 +7,13 @@ import {
   createLabWalletsBulk,
   distributeLabDeposit,
   fetchLabDeposit,
+  fetchLabTreasury,
   fetchLabWallets,
   fetchLabX402Calls,
   fetchLabX402Endpoints,
   fetchLabX402Settings,
   fetchLabX402Volume,
+  resumeLabTreasury,
   runLabX402,
   updateLabX402Settings,
   type LabChain,
@@ -74,6 +76,14 @@ export function useLabsX402(chain: LabChain = "solana") {
     refetchInterval: POLL_MS,
   });
 
+  const treasuryQ = useQuery({
+    queryKey: ["labs-x402", "treasury", chain, adminWallet],
+    queryFn: () => fetchLabTreasury(adminWallet, chain),
+    enabled: canFetch,
+    staleTime: STALE_MS,
+    refetchInterval: POLL_MS,
+  });
+
   const qc = useQueryClient();
 
   const createWalletM = useMutation({
@@ -81,6 +91,7 @@ export function useLabsX402(chain: LabChain = "solana") {
       createLabWallet(adminWallet, { ...input, chain }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["labs-x402", "wallets", chain] });
+      void qc.invalidateQueries({ queryKey: ["labs-x402", "treasury", chain] });
     },
   });
 
@@ -89,6 +100,7 @@ export function useLabsX402(chain: LabChain = "solana") {
       createLabWalletsBulk(adminWallet, { ...input, chain }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["labs-x402", "wallets", chain] });
+      void qc.invalidateQueries({ queryKey: ["labs-x402", "treasury", chain] });
     },
   });
 
@@ -98,6 +110,7 @@ export function useLabsX402(chain: LabChain = "solana") {
     onSuccess: (data) => {
       qc.setQueryData(["labs-x402", "settings", chain, adminWallet], data);
       void qc.invalidateQueries({ queryKey: ["labs-x402", "volume", chain] });
+      void qc.invalidateQueries({ queryKey: ["labs-x402", "treasury", chain] });
     },
   });
 
@@ -108,6 +121,7 @@ export function useLabsX402(chain: LabChain = "solana") {
       void qc.invalidateQueries({ queryKey: ["labs-x402", "calls", chain] });
       void qc.invalidateQueries({ queryKey: ["labs-x402", "wallets", chain] });
       void qc.invalidateQueries({ queryKey: ["labs-x402", "volume", chain] });
+      void qc.invalidateQueries({ queryKey: ["labs-x402", "treasury", chain] });
     },
   });
 
@@ -117,6 +131,16 @@ export function useLabsX402(chain: LabChain = "solana") {
       void qc.invalidateQueries({ queryKey: ["labs-x402", "deposit", chain] });
       void qc.invalidateQueries({ queryKey: ["labs-x402", "wallets", chain] });
       void qc.invalidateQueries({ queryKey: ["labs-x402", "settings", chain] });
+      void qc.invalidateQueries({ queryKey: ["labs-x402", "treasury", chain] });
+    },
+  });
+
+  const resumeTreasuryM = useMutation({
+    mutationFn: () => resumeLabTreasury(adminWallet, chain),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["labs-x402", "treasury", chain] });
+      void qc.invalidateQueries({ queryKey: ["labs-x402", "settings", chain] });
+      void qc.invalidateQueries({ queryKey: ["labs-x402", "calls", chain] });
     },
   });
 
@@ -130,10 +154,12 @@ export function useLabsX402(chain: LabChain = "solana") {
     volumeQ,
     endpointsQ,
     depositQ,
+    treasuryQ,
     createWalletM,
     createWalletsBulkM,
     updateSettingsM,
     runM,
     distributeDepositM,
+    resumeTreasuryM,
   };
 }

@@ -44,6 +44,8 @@ export const EARN_GLOSSARY = {
     "How much you are allowed to allocate to this strategy in beta. Set your deposit within this range.",
   sol: "SOL: the main coin on Solana. This is what you deposit for this strategy.",
   usdc: "USDC: a dollar-pegged stablecoin. One USDC is meant to equal about one US dollar.",
+  modelError:
+    "How often the paper model invented unrealistic gains (over 200% peak). High values mean paper results are not a forecast of live returns.",
 } as const;
 
 export type EarnGlossaryKey = keyof typeof EARN_GLOSSARY;
@@ -62,14 +64,23 @@ export function summarizeTrackRecord(
 ): string {
   if (!stats) return "Still building a track record.";
 
+  const modelWarn =
+    stats.modelErrorFactor != null &&
+    Number.isFinite(stats.modelErrorFactor) &&
+    stats.modelErrorFactor >= 0.1
+      ? ` Model caution: ${(stats.modelErrorFactor * 100).toFixed(0)}% of closes had unrealistic modeled peaks; paper APY is not a live forecast.`
+      : stats.fakeTakeProfitLossCount != null && stats.fakeTakeProfitLossCount > 0
+        ? ` Model caution: ${stats.fakeTakeProfitLossCount} closes were marked take-profit but lost money on-chain.`
+        : "";
+
   if (stats.winRatePct != null && Number.isFinite(stats.winRatePct)) {
     const wins = stats.wins ?? 0;
     const losses = stats.losses ?? 0;
     const total = wins + losses;
     if (total > 0) {
-      return `${stats.winRatePct.toFixed(0)}% of trades made money across all Syra users (${wins} wins, ${losses} losses).`;
+      return `${stats.winRatePct.toFixed(0)}% of trades made money across all Syra users (${wins} wins, ${losses} losses).${modelWarn}`;
     }
-    return `${stats.winRatePct.toFixed(0)}% of trades made money across all Syra users.`;
+    return `${stats.winRatePct.toFixed(0)}% of trades made money across all Syra users.${modelWarn}`;
   }
 
   if (stats.returnPct != null && Number.isFinite(stats.returnPct)) {
@@ -93,7 +104,7 @@ export function fmtEarnAmount(n: number | null | undefined, denom: EarnDenom = "
   return `${sign}${n.toFixed(3)} ${denom}`;
 }
 
-/** Absolute balance / deposit (no + sign — that reads as profit). */
+/** Absolute balance / deposit (no + sign - that reads as profit). */
 export function fmtEarnBalance(n: number | null | undefined, denom: EarnDenom = "SOL") {
   if (n == null || !Number.isFinite(n)) return "-";
   if (denom === "USDC") return `$${Math.abs(n).toFixed(2)}`;
@@ -161,6 +172,9 @@ export function readinessReasons(blockers: string[] | undefined): string[] {
   return out;
 }
 
+/** Default liquid SOL needed to open one LP slot (min deposit 0.4 + fee buffer 0.25). */
+export const LP_MIN_AVAILABLE_SOL_TO_OPEN = 0.65;
+
 export function humanizeAgentNote(lastError: string | null | undefined): string | null {
   if (!lastError) return null;
   if (lastError.startsWith("auto_pause:")) {
@@ -176,7 +190,15 @@ export function humanizeAgentNote(lastError: string | null | undefined): string 
       case "safe_fallback_deposit_too_small":
         return "Strategy is in safe mode; rebalancing capital for the next open";
       case "insufficient_available_sol":
-        return "Waiting for enough liquid SOL after fee reserves to open";
+        return `Needs about ${LP_MIN_AVAILABLE_SOL_TO_OPEN} SOL free to open. Add SOL to your Earn wallet to resume.`;
+      case "stopped_after_losses":
+        return "Paused after repeated losses. Review results, then re-enable the strategy explicitly to resume.";
+      case "drawdown_stop":
+        return "Paused after a large session drawdown. Review results, then re-enable the strategy explicitly to resume.";
+      case "absolute_kill":
+        return "Hard stop: session losses hit the capital-protection floor. Review results, then re-enable explicitly if you want to continue.";
+      case "containment_pause:plan_lp_agent_loss_fix":
+        return "Trading paused for safety review after a concentrated loss. Contact support or re-enable only after the fix is verified.";
       case "fees_below_chain_costs":
         return "Scanning for a pool where fees cover trade costs";
       case "risk_reward_below_threshold":
@@ -192,6 +214,118 @@ export function humanizeAgentNote(lastError: string | null | undefined): string 
     }
   }
   return lastError;
+}
+
+export type FlatInvestBadgeKind = "waiting" | "needs_funding" | "paused_after_losses" | null;
+
+/**
+ * Truthful badge + message when flat (no open positions) with liquid SOL waiting.
+ * Prefer explicit loss-pause / funding blockers over the optimistic "next cycle" copy.
+ */
+export function resolveFlatInvestStatus(input: {
+  deployedSol: number;
+  waitingSol: number | null | undefined;
+  strategyDepositSol: number | null | undefined;
+  canOpenNewPositions?: boolean;
+  lastError?: string | null;
+  lossPausedAt?: string | null;
+  depositsPaused?: boolean;
+  stale?: boolean;
+}): { badge: FlatInvestBadgeKind; badgeLabel: string | null; message: string } {
+  const deployed = Number(input.deployedSol) || 0;
+  const waiting = input.waitingSol != null && Number.isFinite(Number(input.waitingSol))
+    ? Number(input.waitingSol)
+    : null;
+  const strategyDeposit =
+    input.strategyDepositSol != null && Number.isFinite(Number(input.strategyDepositSol))
+      ? Number(input.strategyDepositSol)
+      : null;
+  const lastError = String(input.lastError || "").trim();
+  const lossPaused =
+    Boolean(input.lossPausedAt) ||
+    lastError === "stopped_after_losses" ||
+    lastError === "drawdown_stop" ||
+    lastError === "absolute_kill" ||
+    (typeof lastError === "string" && lastError.startsWith("containment_pause"));
+  const needsFunding =
+    lastError === "insufficient_available_sol" ||
+    lastError === "safe_fallback_deposit_too_small" ||
+    input.canOpenNewPositions === false;
+
+  if (deployed > 0) {
+    return { badge: null, badgeLabel: null, message: "" };
+  }
+
+  if (strategyDeposit == null || strategyDeposit <= 0) {
+    return {
+      badge: null,
+      badgeLabel: null,
+      message: "Set your deposit below, then fund your Earn wallet.",
+    };
+  }
+
+  if (lossPaused) {
+    return {
+      badge: "paused_after_losses",
+      badgeLabel: "Paused after losses",
+      message:
+        humanizeAgentNote(lastError || "stopped_after_losses") ||
+        "Paused after repeated losses. Re-enable or update your deposit to resume trading.",
+    };
+  }
+
+  if (needsFunding && (waiting == null || waiting > 0 || waiting === 0)) {
+    const shortfall =
+      waiting != null && waiting < LP_MIN_AVAILABLE_SOL_TO_OPEN
+        ? Math.max(0, LP_MIN_AVAILABLE_SOL_TO_OPEN - waiting)
+        : null;
+    const fundingMsg =
+      shortfall != null && shortfall > 1e-6
+        ? `Needs about ${LP_MIN_AVAILABLE_SOL_TO_OPEN.toFixed(2)} SOL free to open (short ~${shortfall.toFixed(3)} SOL). Add SOL to your Earn wallet to resume.`
+        : humanizeAgentNote(lastError || "insufficient_available_sol") ||
+          `Needs about ${LP_MIN_AVAILABLE_SOL_TO_OPEN} SOL free to open. Add SOL to your Earn wallet to resume.`;
+    return {
+      badge: waiting != null && waiting > 0 ? "needs_funding" : "needs_funding",
+      badgeLabel: "Needs funding",
+      message: fundingMsg,
+    };
+  }
+
+  if (waiting != null && waiting > 0) {
+    const note = humanizeAgentNote(lastError);
+    if (note) {
+      return {
+        badge: "waiting",
+        badgeLabel: "Waiting to invest",
+        message: note,
+      };
+    }
+    if (input.stale) {
+      return {
+        badge: "waiting",
+        badgeLabel: "Waiting to invest",
+        message: "Waiting for the next automated cycle.",
+      };
+    }
+    if (input.canOpenNewPositions !== false) {
+      return {
+        badge: "waiting",
+        badgeLabel: "Waiting to invest",
+        message: "Not in a position yet. The strategy opens on the next cycle.",
+      };
+    }
+    return {
+      badge: "needs_funding",
+      badgeLabel: "Needs funding",
+      message: `Needs about ${LP_MIN_AVAILABLE_SOL_TO_OPEN} SOL free to open. Add SOL to your Earn wallet to resume.`,
+    };
+  }
+
+  return {
+    badge: null,
+    badgeLabel: null,
+    message: "Set your deposit below, then fund your Earn wallet.",
+  };
 }
 
 export function earnProductIcon(product: Pick<EarnYieldProduct, "id">): LucideIcon {

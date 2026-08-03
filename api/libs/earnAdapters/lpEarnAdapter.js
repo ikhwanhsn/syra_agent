@@ -29,7 +29,7 @@ import {
 
 const PRODUCT = () => getEarnProduct(EARN_PRODUCT_LP);
 
-const DEFAULT_MAX_POSITION_SOL = 1;
+const DEFAULT_MAX_POSITION_SOL = 0.25;
 const DEFAULT_MAX_CONCURRENT = 3;
 
 async function resolveLpAgentWallet(anonymousId) {
@@ -50,7 +50,7 @@ async function resolveLpAgentWallet(anonymousId) {
 export async function getStats() {
   const product = PRODUCT();
   const recentSince = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-  const [agg, recentAgg, openCount, settlement] = await Promise.all([
+  const [agg, recentAgg, openCount, settlement, absurdPeakCount, fakeTpLossCount] = await Promise.all([
     LpRealPosition.aggregate([
       {
         $group: {
@@ -109,6 +109,15 @@ export async function getStats() {
     buildSettlementHealth(new Date(Date.now() - 24 * 60 * 60 * 1000), {
       networkRegex: /^solana/i,
     }).catch(() => null),
+    // Model vs reality diagnostic: absurd peakPnlPct means modeled exit math went haywire.
+    LpRealPosition.countDocuments({
+      status: { $in: ["closed_win", "closed_loss", "expired"] },
+      peakPnlPct: { $gt: 200 },
+    }),
+    LpRealPosition.countDocuments({
+      status: "closed_loss",
+      resolution: "take_profit",
+    }),
   ]);
 
   const row = agg[0] || {};
@@ -166,7 +175,15 @@ export async function getStats() {
     feesClaimedSol: round(Number(row.feesClaimedSol) || 0),
     aprPctHint,
     paperVsRealNote:
-      "Lab track record: win rate and PnL are from all Syra real-money LP positions (not your wallet). Past performance is not a guarantee.",
+      "Lab track record: win rate and PnL are from all Syra real-money LP positions (not your wallet). Past performance is not a guarantee. Paper-sim numbers are not used as expected returns.",
+    /**
+     * Share of closed positions where the old model recorded peakPnlPct > 200%
+     * (thin-pool fee math explosion). High values mean do not trust paper APY.
+     */
+    modelErrorFactor:
+      decided > 0 ? round(Number(absurdPeakCount || 0) / decided, 3) : null,
+    absurdModeledPeakCount: Number(absurdPeakCount) || 0,
+    fakeTakeProfitLossCount: Number(fakeTpLossCount) || 0,
     settlement24h: settlementSlice(settlement),
     firstPositionAt: row.firstAt ? new Date(row.firstAt).toISOString() : null,
     lastResolvedAt: row.lastAt ? new Date(row.lastAt).toISOString() : null,
@@ -248,6 +265,8 @@ export async function enableForUser({ anonymousId, ownerWallet, maxDeposit, enab
     : 0;
 
   const earnStartedAt = new Date();
+  // Honest baseline = user-allocated deposit (not wallet total which may include leftover dust).
+  const honestBaseline = cap;
   const earnSet = {
     publicEarnListed: true,
     depositsPaused: false,
@@ -258,17 +277,17 @@ export async function enableForUser({ anonymousId, ownerWallet, maxDeposit, enab
     maxConcurrentPositions: DEFAULT_MAX_CONCURRENT,
     performanceFeeBps: product.performanceFeeBps,
     pausedNoStrategyAt: null,
+    // Explicit re-enable clears the loss pause — user must call enable after acknowledging losses.
+    lossPausedAt: null,
+    closeAllRequested: false,
     lastError: null,
     publicEarnStartedAt: earnStartedAt,
     earnStatsEpoch: 2,
+    capitalBaselineSol: honestBaseline,
   };
   // Fresh earn session id when flat — prevents lab experiment history attaching as "Your PnL".
   if (!openLive) {
     earnSet.experimentId = `lp-earn-${wallet.agentAddress.slice(0, 8)}-${Date.now()}`;
-  }
-  // Reset capital baseline to current book so total-return math starts at this deposit.
-  if (state?.totalCapitalSol != null && Number.isFinite(Number(state.totalCapitalSol))) {
-    earnSet.capitalBaselineSol = Number(state.totalCapitalSol);
   }
 
   await LpRealConfig.updateOne({ agentAddress: wallet.agentAddress }, { $set: earnSet });
@@ -336,6 +355,17 @@ export async function updateDepositForUser({ anonymousId, ownerWallet, maxDeposi
   }
 
   const cap = clampDepositCap(product, maxDeposit);
+
+  // Never silently clear a loss-breaker pause on deposit update (CATE post-mortem).
+  // User must explicitly re-enable via enableForUser after acknowledging losses.
+  if (config.lossPausedAt) {
+    const err = new Error(
+      "loss_breaker_active — re-enable the strategy explicitly after reviewing losses before updating deposit",
+    );
+    err.code = "loss_breaker_active";
+    throw err;
+  }
+
   await LpRealConfig.updateOne(
     { agentAddress: wallet.agentAddress },
     {
@@ -347,7 +377,8 @@ export async function updateDepositForUser({ anonymousId, ownerWallet, maxDeposi
         // Re-anchor concurrent slots so deposit updates heal over-fragmented configs
         // that previously blocked safeFallback opens (safe_fallback_deposit_too_small).
         maxConcurrentPositions: DEFAULT_MAX_CONCURRENT,
-        lastError: null,
+        // Honest drawdown baseline tracks the allocated deposit, not wallet total.
+        capitalBaselineSol: cap,
       },
     },
   );
@@ -392,6 +423,9 @@ export async function getUserStatus({ anonymousId, ownerWallet }) {
           performanceFeeBps: config.performanceFeeBps,
           lastError: config.lastError,
           pausedNoStrategyAt: config.pausedNoStrategyAt,
+          lossPausedAt: config.lossPausedAt
+            ? new Date(config.lossPausedAt).toISOString()
+            : null,
           publicEarnStartedAt: config.publicEarnStartedAt
             ? new Date(config.publicEarnStartedAt).toISOString()
             : null,

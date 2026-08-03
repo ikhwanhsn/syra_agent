@@ -327,6 +327,95 @@ function isSolanaNetwork(accepted) {
   return /^solana/i.test(String(accepted?.network || ""));
 }
 
+/** True if payment is on an EVM CAIP-2 network (eip155:...). */
+function isEvmNetwork(accepted) {
+  return /^eip155:/i.test(String(accepted?.network || ""));
+}
+
+/**
+ * Ordered EVM verify failover list excluding the profile that just failed.
+ * Mirrors ensureX402ForReq preference: Dexter → GoPlausible → PayAI.
+ * @param {string} currentProfile
+ * @returns {Array<'dexter'|'goplausible'|'payai'>}
+ */
+function evmVerifyFailoverOrder(currentProfile) {
+  const p = String(currentProfile || "dexter").trim().toLowerCase();
+  if (p === "goplausible") return ["payai", "dexter"];
+  if (p === "payai") return ["goplausible", "dexter"];
+  // dexter (default) and unknown → GoPlausible then PayAI
+  return ["goplausible", "payai"];
+}
+
+/**
+ * Re-verify an EVM payment via the next facilitator when the primary verify
+ * times out or flakes. Verify is read-only; EIP-3009 nonce prevents double-charge
+ * if settle later uses the same authorization on another facilitator.
+ *
+ * @param {object} payload - x402 payment payload (enriched with resource when available)
+ * @param {object} acc - accepted payment requirements
+ * @param {string} currentProfile - profile that just failed verify
+ * @param {{
+ *   ensureProfile?: (profile: 'dexter'|'goplausible'|'payai') => Promise<void>,
+ *   getBundle?: (profile: 'dexter'|'goplausible'|'payai') => { resourceServer: { verifyPayment: Function } },
+ *   verifyTimeoutMs?: number,
+ * }} [deps] - injectable for unit tests (defaults hit live resource servers)
+ * @returns {Promise<{ profile: string, resourceServer: object, verify: object } | null>}
+ */
+async function tryEvmVerifyFailover(payload, acc, currentProfile, deps = {}) {
+  const order = evmVerifyFailoverOrder(currentProfile);
+  const timeoutMs =
+    Number.isFinite(deps.verifyTimeoutMs) && deps.verifyTimeoutMs > 0
+      ? deps.verifyTimeoutMs
+      : X402_VERIFY_FACILITATOR_TIMEOUT_MS;
+
+  const ensureProfile =
+    deps.ensureProfile ||
+    (async (profile) => {
+      if (profile === "dexter") await ensureX402DexterResourceServerInitialized();
+      else if (profile === "goplausible") await ensureX402GoplausibleResourceServerInitialized();
+      else await ensureX402ResourceServerInitialized();
+    });
+
+  const getBundle =
+    deps.getBundle ||
+    ((profile) => {
+      if (profile === "dexter") return getX402ResourceServerDexter();
+      if (profile === "goplausible") return getX402ResourceServerGoplausible();
+      return getX402ResourceServer();
+    });
+
+  for (const candidate of order) {
+    try {
+      await ensureProfile(candidate);
+      const { resourceServer } = getBundle(candidate);
+      if (!resourceServer?.verifyPayment) continue;
+      const verify = await withTimeout(
+        resourceServer.verifyPayment(payload, acc),
+        timeoutMs,
+        "verify_timeout",
+      );
+      if (verify?.isValid) {
+        return { profile: candidate, resourceServer, verify };
+      }
+    } catch (e) {
+      const msg = e?.message || String(e ?? "verify failed");
+      // Skip transient facilitator errors; try next candidate.
+      if (isFacilitatorError(msg)) {
+        console.warn(
+          `[x402] EVM verify failover candidate ${candidate} failed:`,
+          String(msg).slice(0, 160),
+        );
+        continue;
+      }
+      console.warn(
+        `[x402] EVM verify failover candidate ${candidate} error:`,
+        String(msg).slice(0, 160),
+      );
+    }
+  }
+  return null;
+}
+
 /** True if message/reason indicates facilitator flake (recover via local verify/settle when Solana). */
 function isFacilitatorError(msg) {
   const s = String(msg || "");
@@ -1764,7 +1853,9 @@ export function requirePayment(options) {
 
       await ensureX402ForReq(req, options);
       const bundle = getX402BundleForReq(req, options);
-      const { resourceServer, config, assets } = bundle;
+      // `let` so EVM verify failover can reassign to the fallback facilitator's server.
+      let { resourceServer } = bundle;
+      const { config, assets } = bundle;
       logB402StartupOnce();
       logAlgorandStartupOnce();
       logOkxStartupOnce();
@@ -1976,6 +2067,31 @@ export function requirePayment(options) {
             );
             json402(res, pr);
             return;
+          }
+        }
+        // Base/EVM: no local verify — re-verify via GoPlausible → PayAI when Dexter flakes.
+        // Skip dedicated rails (B402/OKX/Algorand) which bind to a specific facilitator.
+        if (
+          !verify &&
+          isFacilitatorError(msg) &&
+          isEvmNetwork(acc) &&
+          !useB402Facilitator &&
+          !useOkxFacilitator &&
+          !useAlgorandFacilitator
+        ) {
+          const fromProfile = resolveResourceServerProfile(req, options);
+          const fb = await tryEvmVerifyFailover(payloadWithResource, acc, fromProfile);
+          if (fb?.verify?.isValid) {
+            verify = fb.verify;
+            resourceServer = fb.resourceServer;
+            req.x402ResourceServerProfile = fb.profile;
+            x402Log("verify_failover_ok", {
+              method: req.method,
+              path: req.path,
+              from: fromProfile,
+              to: fb.profile,
+              network: acc?.network,
+            });
           }
         }
         if (!verify) {
@@ -2492,6 +2608,8 @@ export { encodePaymentResponseHeader };
 export { getX402ResourceServer };
 export { isB402Network };
 export { isAlgorandNetwork };
+/** @internal exported for unit tests */
+export { isEvmNetwork, evmVerifyFailoverOrder, tryEvmVerifyFailover };
 
 export function usdToMicroUsdc(usd) {
   const n = Number(usd);

@@ -47,6 +47,13 @@ export type EarnYieldProductStats = {
   drawdownPct?: number | null;
   aprPctHint?: number | null;
   paperVsRealNote?: string;
+  /**
+   * Fraction of closed positions where modeled peak PnL exceeded 200%
+   * (thin-pool fee math explosion). High = do not trust paper APY.
+   */
+  modelErrorFactor?: number | null;
+  absurdModeledPeakCount?: number | null;
+  fakeTakeProfitLossCount?: number | null;
   settlement24h?: {
     settleSuccessRate: number;
     settleFailRate: number;
@@ -123,6 +130,8 @@ export type EarnYieldUserStatus = {
     performanceFeeBps: number;
     lastError: string | null;
     pausedNoStrategyAt: string | null;
+    /** Set when consecutive losses or session drawdown tripped the circuit breaker. */
+    lossPausedAt?: string | null;
   } | null;
   canEnable: boolean;
   summary: {

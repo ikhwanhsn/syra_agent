@@ -12,7 +12,7 @@ function envNum(key, fallback) {
 }
 
 /** Real LP: minimum minutes in-range before OOR exit is allowed (collect fees first). */
-export const REAL_MIN_HOLD_MINUTES = envNum("LP_AGENT_REAL_MIN_HOLD_MINUTES", 20);
+export const REAL_MIN_HOLD_MINUTES = envNum("LP_AGENT_REAL_MIN_HOLD_MINUTES", 45);
 
 /** Real LP: floor on strategy oorWaitMin — faster OOR rotation on mainnet. */
 export const REAL_MIN_OOR_WAIT_MIN = envNum("LP_AGENT_REAL_MIN_OOR_WAIT_MIN", 12);
@@ -21,7 +21,7 @@ export const REAL_MIN_OOR_WAIT_MIN = envNum("LP_AGENT_REAL_MIN_OOR_WAIT_MIN", 12
 export const REAL_FAST_OOR_DRIFT_PCT = envNum("LP_AGENT_REAL_FAST_OOR_DRIFT_PCT", -12);
 
 /** Real LP: minimum bins each side after overrides (wider = fewer OOR exits). */
-export const REAL_MIN_BINS_PER_SIDE = envNum("LP_AGENT_REAL_MIN_BINS_PER_SIDE", 34);
+export const REAL_MIN_BINS_PER_SIDE = envNum("LP_AGENT_REAL_MIN_BINS_PER_SIDE", 45);
 
 /** Claim accumulated swap fees before close when above this SOL threshold. */
 export const REAL_CLAIM_FEES_BEFORE_CLOSE_SOL = 0.000_05;
@@ -50,17 +50,16 @@ export const LP_MIN_SIM_RISK_REWARD_RATIO = 0.38;
 export const LP_MIN_EXTREME_RISK_REWARD_RATIO = 0.72;
 
 /** Real LP: stricter expected-fee : IL-budget hurdle than sim — fees must exceed IL budget (positive EV). */
-export const LP_MIN_REAL_RISK_REWARD_RATIO = envNum("LP_AGENT_REAL_MIN_RR_RATIO", 1.1);
+export const LP_MIN_REAL_RISK_REWARD_RATIO = envNum("LP_AGENT_REAL_MIN_RR_RATIO", 1.6);
 
 /** Real LP: hard price stop multiplier vs strategy stop — caps catastrophic IL even when fees offset the soft stop. */
 export const LP_REAL_HARD_STOP_MULT = envNum("LP_AGENT_REAL_HARD_STOP_MULT", 1.4);
 
 /**
  * Real LP: expected fees over the projected hold must exceed round-trip chain costs by this factor before open.
- * Default 1.25 (was 3.0) — 3× starved Earn opens on liquid mid-fee pools (e.g. CATE-SOL) while
- * historical real closes still cleared positive fee yields at ~1×–2× cost cover.
+ * Default 2.0 — small beta positions need clear fee cover vs fixed open/close costs.
  */
-export const LP_REAL_MIN_FEE_TO_COST_RATIO = envNum("LP_AGENT_REAL_MIN_FEE_TO_COST_RATIO", 1.25);
+export const LP_REAL_MIN_FEE_TO_COST_RATIO = envNum("LP_AGENT_REAL_MIN_FEE_TO_COST_RATIO", 2.0);
 
 /** Hold window (hours) used when projecting expected fees for the real open EV gate. */
 export const LP_REAL_EV_HOLD_HOURS = envNum("LP_AGENT_REAL_EV_HOLD_HOURS", 12);
@@ -81,6 +80,12 @@ export function computeFeeYieldPct(feeTvlRatio, hoursElapsed) {
  * DLMM active-bin share boost — narrow positions on hot, thin pools earn above pool-average fee/TVL.
  * @param {{ volTvlRatio?: number, tvlUsd?: number, binsBelow?: number, binsAbove?: number, inRange?: boolean }} params
  */
+/** Hard ceiling on fee-share multiplier — prevents 5-digit-% modeled peaks on thin pools. */
+export const LP_MAX_FEE_SHARE_MULT = 2.5;
+
+/** Hard ceiling on modeled fee yield % over a single hold (guards sim + real exit math). */
+export const LP_MAX_MODELED_FEE_YIELD_PCT = 50;
+
 export function computeDlmmFeeShareMultiplier({
   volTvlRatio = 0,
   tvlUsd = 0,
@@ -90,13 +95,14 @@ export function computeDlmmFeeShareMultiplier({
 } = {}) {
   if (!inRange) return 0.25;
   const width = Math.max(1, toNum(binsBelow) + toNum(binsAbove) + 1);
-  // Conservative caps — combined boost ~3–4x max (was ~21x), aligned with on-chain fee accrual.
-  const narrowBoost = Math.min(1.8, Math.max(1, 42 / width));
-  const hotBoost = Math.min(1.5, 1 + Math.log1p(Math.max(0, toNum(volTvlRatio))) * 0.28);
+  // Conservative caps — combined boost ~2.5x max (was ~21x then ~3–4x).
+  // Small-pool boost removed: it rewarded exactly the thin memecoin pools that lost real money.
+  const narrowBoost = Math.min(1.6, Math.max(1, 42 / width));
+  const hotBoost = Math.min(1.35, 1 + Math.log1p(Math.max(0, toNum(volTvlRatio))) * 0.22);
   const tvl = toNum(tvlUsd);
-  const smallPoolBoost =
-    tvl > 0 && tvl < 280_000 ? Math.min(1.4, 1 + 55_000 / Math.max(tvl, 18_000)) : 1;
-  return narrowBoost * hotBoost * smallPoolBoost;
+  // Mild discount on thin pools (was a boost) — real fills are worse there.
+  const thinPoolHaircut = tvl > 0 && tvl < 400_000 ? 0.85 : 1;
+  return Math.min(LP_MAX_FEE_SHARE_MULT, narrowBoost * hotBoost * thinPoolHaircut);
 }
 
 /**
@@ -268,14 +274,21 @@ export function isPositionOutOfRange(activeAtOpen, activeNow, binsBelow, binsAbo
  * @param {number} [riskScore] 0–1 pool risk — scales IL on out-of-range exits.
  */
 export function computeLpNetPnlPct(priceDriftPct, feeYieldPct, inRange, riskScore = 0.35) {
+  // Clamp fee yield so a bad feeTvlRatio × mult cannot invent 97,000% peaks.
+  const cappedFee = Math.min(LP_MAX_MODELED_FEE_YIELD_PCT, Math.max(0, toNum(feeYieldPct, 0)));
+  let raw;
   if (inRange) {
     // Less optimistic price drift attribution — fees dominate in-range PnL on conservative pools.
-    return priceDriftPct * 0.12 + feeYieldPct;
+    raw = toNum(priceDriftPct, 0) * 0.12 + cappedFee;
+  } else {
+    const ilScale = 1 + clamp01(riskScore) * 0.85;
+    const ilPenalty =
+      (-Math.abs(toNum(priceDriftPct, 0)) * 0.52 - Math.max(0, -toNum(priceDriftPct, 0)) * 0.24) *
+      ilScale;
+    raw = ilPenalty + cappedFee * 0.45;
   }
-  const ilScale = 1 + clamp01(riskScore) * 0.85;
-  const ilPenalty =
-    (-Math.abs(priceDriftPct) * 0.52 - Math.max(0, -priceDriftPct) * 0.24) * ilScale;
-  return ilPenalty + feeYieldPct * 0.45;
+  // Absolute sanity clamp: no single hold models >100% gain or <-100% loss.
+  return Math.max(-100, Math.min(100, raw));
 }
 
 /** Widen bin range for on-chain positions — sim strategies can be too tight for mainnet volatility. */
@@ -361,19 +374,22 @@ export function strategyLikelyNeedsSidecarSwap(binsBelow, binsAbove) {
 }
 
 export function computeSimOpenCostSol(depositSol, { needsSidecarSwap = false } = {}) {
-  const slippage = needsSidecarSwap
-    ? (toNum(depositSol) * LP_SIM_TX_COST.sidecarSlippageBps) / 10_000
-    : 0;
+  // Always charge a fraction of sidecar risk: most real SOL-pair opens still rebalance.
+  const fraction = needsSidecarSwap ? 0.32 : 0.12;
+  const slippage =
+    (toNum(depositSol) * fraction * LP_SIM_TX_COST.sidecarSlippageBps) / 10_000;
   return LP_SIM_TX_COST.openBaseSol + slippage;
 }
 
-export function computeSimCloseCostSol() {
-  return LP_SIM_TX_COST.closeBaseSol;
+export function computeSimCloseCostSol(depositSol = 0) {
+  // Close always needs claim + remove + optional token→SOL sweep (~1% of residual).
+  const sweepSlippage = (toNum(depositSol) * 0.5 * LP_SIM_TX_COST.sidecarSlippageBps) / 10_000;
+  return LP_SIM_TX_COST.closeBaseSol + sweepSlippage;
 }
 
 export function computeSimTransactionCostsSol(depositSol, { needsSidecarSwap = false } = {}) {
   return {
     openFeeSol: computeSimOpenCostSol(depositSol, { needsSidecarSwap }),
-    closeFeeSol: computeSimCloseCostSol(),
+    closeFeeSol: computeSimCloseCostSol(depositSol),
   };
 }

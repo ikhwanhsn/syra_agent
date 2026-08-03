@@ -95,6 +95,23 @@ const REFUND_RETRY_DELAY_MS = 800;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/**
+ * @param {Promise<T>} promise
+ * @param {number} ms
+ * @param {string} [label]
+ * @returns {Promise<T>}
+ * @template T
+ */
+function withTimeout(promise, ms, label = 'timeout') {
+  const n = Number(ms);
+  if (!Number.isFinite(n) || n <= 0) return promise;
+  let timer;
+  const timeoutPromise = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(label)), n);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timer));
+}
+
 /** Transient send errors worth retrying with a fresh blockhash / RPC. */
 function isRetryableRefundError(e) {
   const msg = e?.message || String(e);
@@ -247,6 +264,53 @@ export function clampAlgorandPayToUsdcRefundAmount(input = {}) {
   }
 
   const amountUsd = Math.round(payToUsdc * 1e6) / 1e6;
+  if (amountUsd <= 0) {
+    return { ok: false, amountUsd: 0, partial: false, reason: 'payto_underfunded' };
+  }
+  return { ok: true, amountUsd, partial: true, reason: 'partial' };
+}
+
+/**
+ * Pure: clamp an X Layer PayTo→payer USDT0 top-up to what PayTo can send.
+ * Only fails when PayTo USDT0 is below the cheapest call price (true underfund).
+ * Mirrors {@link clampAlgorandPayToUsdcRefundAmount}.
+ *
+ * @param {{
+ *   requestedUsd: number;
+ *   payToUsdt0Balance: number;
+ *   minPriceUsd: number;
+ * }} input
+ * @returns {{
+ *   ok: boolean;
+ *   amountUsd: number;
+ *   partial: boolean;
+ *   reason: 'full' | 'partial' | 'payto_underfunded' | 'invalid';
+ * }}
+ */
+export function clampXlayerPayToUsdt0RefundAmount(input = {}) {
+  const requested = Number(input.requestedUsd);
+  const payToUsdt0 = Number(input.payToUsdt0Balance);
+  const minPrice = Number(input.minPriceUsd);
+
+  if (
+    !Number.isFinite(requested) ||
+    requested <= 0 ||
+    !Number.isFinite(payToUsdt0) ||
+    payToUsdt0 < 0
+  ) {
+    return { ok: false, amountUsd: 0, partial: false, reason: 'invalid' };
+  }
+
+  const floor = Number.isFinite(minPrice) && minPrice > 0 ? minPrice : 0;
+  if (payToUsdt0 < floor) {
+    return { ok: false, amountUsd: 0, partial: false, reason: 'payto_underfunded' };
+  }
+
+  if (payToUsdt0 >= requested) {
+    return { ok: true, amountUsd: requested, partial: false, reason: 'full' };
+  }
+
+  const amountUsd = Math.round(payToUsdt0 * 1e6) / 1e6;
   if (amountUsd <= 0) {
     return { ok: false, amountUsd: 0, partial: false, reason: 'payto_underfunded' };
   }
@@ -462,11 +526,13 @@ async function refundUsdcToPayerBase(payerAddress, amountUsd) {
 
 /**
  * Transfer USDT0 from the X Layer PayTo lab wallet to the payer (ERC-20).
+ * Supports partial top-up when PayTo holds at least minAmountUsd but less than the full request.
  * @param {string} payerAddress
  * @param {number} amountUsd
+ * @param {{ minAmountUsd?: number }} [opts]
  * @returns {Promise<{ signature: string; amountUsdc: number } | null>}
  */
-async function refundUsdt0ToPayerXLayer(payerAddress, amountUsd) {
+async function refundUsdt0ToPayerXLayer(payerAddress, amountUsd, opts = {}) {
   const payer = String(payerAddress || '').trim();
   const amount = Number(amountUsd);
   if (!payer || !/^0x[0-9a-fA-F]{40}$/.test(payer) || !Number.isFinite(amount) || amount <= 0) {
@@ -482,7 +548,9 @@ async function refundUsdt0ToPayerXLayer(payerAddress, amountUsd) {
   const publicClient = getXlayerPublicClient();
   const walletClient = createXlayerWalletClient(payToAccount);
 
-  const amountRaw = parseUnits(amount.toFixed(6), 6);
+  const rawMin = Number(opts.minAmountUsd);
+  const minAmountUsd =
+    Number.isFinite(rawMin) && rawMin > 0 ? rawMin : getMinLabX402PriceUsd();
 
   const [usdt0Bal, okbBal] = await Promise.all([
     publicClient.readContract({
@@ -497,16 +565,30 @@ async function refundUsdt0ToPayerXLayer(payerAddress, amountUsd) {
   const usdt0Balance = Number(formatUnits(/** @type {bigint} */ (usdt0Bal), 6));
   const okbBalance = Number(formatEther(okbBal));
 
-  if (usdt0Balance < amount) {
-    throw new Error(
-      `${PAYTO_INSUFFICIENT_FUNDS}: payTo USDT0 ${usdt0Balance.toFixed(4)} < needed ${amount.toFixed(4)}`,
-    );
-  }
   if (okbBalance < PAYTO_MIN_OKB_FOR_REFUND) {
     throw new Error(
       `${PAYTO_INSUFFICIENT_FUNDS}: payTo OKB ${okbBalance.toFixed(6)} < needed ${PAYTO_MIN_OKB_FOR_REFUND} for gas`,
     );
   }
+
+  const clamp = clampXlayerPayToUsdt0RefundAmount({
+    requestedUsd: amount,
+    payToUsdt0Balance: usdt0Balance,
+    minPriceUsd: minAmountUsd,
+  });
+  if (!clamp.ok) {
+    throw new Error(
+      `${PAYTO_INSUFFICIENT_FUNDS}: payTo USDT0 ${usdt0Balance.toFixed(4)} < needed ${minAmountUsd.toFixed(4)} (min call)`,
+    );
+  }
+  const sendAmount = clamp.amountUsd;
+  if (clamp.partial) {
+    console.info(
+      `[labX402Refund] X Layer partial top-up: requested ${amount.toFixed(4)} USDT0, sending ${sendAmount.toFixed(4)} (PayTo balance)`,
+    );
+  }
+
+  const amountRaw = parseUnits(sendAmount.toFixed(6), 6);
 
   let lastErr;
   /** @type {string | null} */
@@ -516,7 +598,7 @@ async function refundUsdt0ToPayerXLayer(payerAddress, amountUsd) {
       submittedHash &&
       (await isRefundTxAlreadyConfirmed(submittedHash, 'xlayer', { publicClient }))
     ) {
-      return { signature: submittedHash, amountUsdc: amount };
+      return { signature: submittedHash, amountUsdc: sendAmount };
     }
     try {
       const hash = await walletClient.writeContract({
@@ -527,7 +609,7 @@ async function refundUsdt0ToPayerXLayer(payerAddress, amountUsd) {
       });
       submittedHash = hash;
       await publicClient.waitForTransactionReceipt({ hash });
-      return { signature: hash, amountUsdc: amount };
+      return { signature: hash, amountUsdc: sendAmount };
     } catch (e) {
       lastErr = e;
       const fromErr = extractSubmittedTxId(e);
@@ -536,7 +618,7 @@ async function refundUsdt0ToPayerXLayer(payerAddress, amountUsd) {
         submittedHash &&
         (await isRefundTxAlreadyConfirmed(submittedHash, 'xlayer', { publicClient }))
       ) {
-        return { signature: submittedHash, amountUsdc: amount };
+        return { signature: submittedHash, amountUsdc: sendAmount };
       }
       if (submittedHash) {
         console.warn(
@@ -638,7 +720,11 @@ async function refundUsdcToPayerAlgorand(payerAddress, amountUsd) {
       return { signature: submittedTxid, amountUsdc: sendAmount };
     }
     try {
-      const sp = await client.getTransactionParams().do();
+      const sp = await withTimeout(
+        client.getTransactionParams().do(),
+        12_000,
+        'algod_params_timeout',
+      );
       const txn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
         sender: payToAccount.address,
         receiver: payer,
@@ -647,9 +733,17 @@ async function refundUsdcToPayerAlgorand(payerAddress, amountUsd) {
         suggestedParams: sp,
       });
       const signed = txn.signTxn(payToAccount.sk);
-      const { txid } = await client.sendRawTransaction(signed).do();
+      const { txid } = await withTimeout(
+        client.sendRawTransaction(signed).do(),
+        12_000,
+        'algod_send_timeout',
+      );
       submittedTxid = txid;
-      await algosdk.waitForConfirmation(client, txid, 8);
+      await withTimeout(
+        algosdk.waitForConfirmation(client, txid, 8),
+        24_000,
+        'algod_confirm_timeout',
+      );
       return { signature: txid, amountUsdc: sendAmount };
     } catch (e) {
       lastErr = classifyAlgorandRefundError(e, PAYTO_INSUFFICIENT_FUNDS);
@@ -687,9 +781,10 @@ async function refundUsdcToPayerAlgorand(payerAddress, amountUsd) {
  * @param {string} payerAddress
  * @param {number} amountUsd
  * @param {'solana' | 'base' | 'algorand' | 'xlayer'} [chain]
+ * @param {{ minAmountUsd?: number }} [opts] Floor for partial X Layer top-ups (min call price).
  * @returns {Promise<{ signature: string; amountUsdc: number } | null>}
  */
-export async function refundUsdcToPayer(payerAddress, amountUsd, chain) {
+export async function refundUsdcToPayer(payerAddress, amountUsd, chain, opts = {}) {
   const c =
     chain != null
       ? normalizeLabChain(chain)
@@ -697,7 +792,7 @@ export async function refundUsdcToPayer(payerAddress, amountUsd, chain) {
         ? 'base'
         : 'solana';
   if (c === 'algorand') return refundUsdcToPayerAlgorand(payerAddress, amountUsd);
-  if (c === 'xlayer') return refundUsdt0ToPayerXLayer(payerAddress, amountUsd);
+  if (c === 'xlayer') return refundUsdt0ToPayerXLayer(payerAddress, amountUsd, opts);
   if (c === 'base') return refundUsdcToPayerBase(payerAddress, amountUsd);
   return refundUsdcToPayerSolana(payerAddress, amountUsd);
 }
@@ -785,8 +880,10 @@ export async function ensurePayerFundedForNextCall(payerAddress, opts = {}) {
   }
 
   try {
-    const refund = await refundUsdcToPayer(payerAddress, decision.refundAmountUsd, chain);
-    // Re-read after top-up so Algorand opt-in + ASA balance are current.
+    const refund = await refundUsdcToPayer(payerAddress, decision.refundAmountUsd, chain, {
+      minAmountUsd: minPriceUsd,
+    });
+    // Re-read after top-up so Algorand opt-in + ASA / X Layer USDT0 balances are current.
     balances = (await getLabWalletBalances(payerAddress, chain)) ?? balances;
     if (!refund) {
       return {

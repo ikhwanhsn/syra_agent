@@ -1,6 +1,6 @@
 /**
- * Regression: Earn ~4 SOL wallets must not fragment into sub-minDeposit slots
- * that fail safeFallback half-sizing (safe_fallback_deposit_too_small).
+ * Regression: Earn beta wallets must respect small maxPositionSol caps
+ * (0.25 SOL/slot) and not inflate slots via the global max-position ceiling.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
@@ -10,9 +10,9 @@ import {
 } from "./lpRealService.js";
 import { getLpRealMinDepositSol } from "../config/lpRealAgentAccess.js";
 
-describe("lpReal capital plan (Earn anti-starvation)", () => {
+describe("lpReal capital plan (Earn beta safe mode)", () => {
   const earnConfig = {
-    maxPositionSol: 1,
+    maxPositionSol: 0.25,
     maxConcurrentPositions: 9, // previously over-expanded
     publicEarnListed: true,
     reserveSolForFees: 0.05,
@@ -24,7 +24,7 @@ describe("lpReal capital plan (Earn anti-starvation)", () => {
     assert.equal(slots, 3);
   });
 
-  it("sizes each Earn slot above minDeposit even after safeFallback half", () => {
+  it("sizes each Earn slot at maxPositionSol (0.25), not the global 3 SOL cap", () => {
     const slots = computeEffectiveMaxConcurrent(earnConfig, availableSol);
     const plan = computeCapitalDeploymentPlan({
       config: earnConfig,
@@ -33,12 +33,20 @@ describe("lpReal capital plan (Earn anti-starvation)", () => {
     });
     const minDep = getLpRealMinDepositSol();
     assert.ok(plan.depositSol >= minDep - 1e-9, `depositSol=${plan.depositSol}`);
-    const half = plan.depositSol * 0.5;
-    const safeOpen = half >= minDep - 1e-9 ? half : minDep;
     assert.ok(
-      safeOpen >= minDep - 1e-9,
-      `safeFallback open size ${safeOpen} below min ${minDep}`,
+      plan.depositSol <= 0.25 + 1e-9,
+      `depositSol=${plan.depositSol} exceeds maxPositionSol 0.25`,
     );
-    assert.ok(safeOpen >= 0.4, "expected ~0.4+ SOL open under safeFallback");
+    assert.equal(Number(plan.depositSol.toFixed(6)), 0.25);
+  });
+
+  it("with ~3 SOL available still opens 0.25 SOL slots under Earn concurrent cap", () => {
+    const plan = computeCapitalDeploymentPlan({
+      config: earnConfig,
+      availableSol: 3,
+      remainingSlots: 3,
+    });
+    assert.equal(Number(plan.depositSol.toFixed(6)), 0.25);
+    assert.ok(plan.affordableSlots >= 1);
   });
 });

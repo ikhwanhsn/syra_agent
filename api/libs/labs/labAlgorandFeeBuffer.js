@@ -16,6 +16,26 @@ import {
 export const ALGO_FEE_MICRO_PER_TX = 1_000n;
 export const MICRO_ALGO = 1_000_000n;
 
+/** Bounded Algod RPC timeout for fee-buffer reads/sends. */
+const ALGOD_TIMEOUT_MS = 12_000;
+
+/**
+ * @param {Promise<T>} promise
+ * @param {number} ms
+ * @param {string} [label]
+ * @returns {Promise<T>}
+ * @template T
+ */
+function withTimeout(promise, ms, label = 'algod_timeout') {
+  const n = Number(ms);
+  if (!Number.isFinite(n) || n <= 0) return promise;
+  let timer;
+  const timeoutPromise = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(label)), n);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timer));
+}
+
 /**
  * How many USDC refunds one PayTo fee top-up should cover in a scheduler tick.
  * Keeps PayTo from pinning at ASA min-balance and re-borrowing (or failing) per payer.
@@ -106,7 +126,11 @@ export function spendableFromAccountInfo(info) {
  */
 export async function getAlgorandAccountSpendableMicro(address, client) {
   const algod = client || getAlgorandAlgodClient();
-  const info = await algod.accountInformation(String(address || '').trim()).do();
+  const info = await withTimeout(
+    algod.accountInformation(String(address || '').trim()).do(),
+    ALGOD_TIMEOUT_MS,
+    'algod_account_info_timeout',
+  );
   return spendableFromAccountInfo(info);
 }
 
@@ -179,7 +203,11 @@ async function borrowAlgorandAlgoFromFunders(args) {
           client,
         });
       } else {
-        const sp = await client.getTransactionParams().do();
+        const sp = await withTimeout(
+          client.getTransactionParams().do(),
+          ALGOD_TIMEOUT_MS,
+          'algod_params_timeout',
+        );
         const txn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
           sender: funder.address,
           receiver,
@@ -187,8 +215,16 @@ async function borrowAlgorandAlgoFromFunders(args) {
           suggestedParams: sp,
         });
         const signed = txn.signTxn(funder.sk);
-        const { txid } = await client.sendRawTransaction(signed).do();
-        await algosdk.waitForConfirmation(client, txid, 8);
+        const { txid } = await withTimeout(
+          client.sendRawTransaction(signed).do(),
+          ALGOD_TIMEOUT_MS,
+          'algod_send_timeout',
+        );
+        await withTimeout(
+          algosdk.waitForConfirmation(client, txid, 8),
+          ALGOD_TIMEOUT_MS * 2,
+          'algod_confirm_timeout',
+        );
       }
 
       return {
@@ -206,9 +242,11 @@ async function borrowAlgorandAlgoFromFunders(args) {
 }
 
 /**
- * Default funder order for Algorand labs: PayTo → deposit hub → other active payers.
+ * Default funder order for Algorand labs: PayTo → deposit hub only.
+ * Sibling payers are intentionally excluded so ticks do not shuffle ALGO
+ * between payers and churn them toward min-balance.
  * @param {string} receiverAddress
- * @param {{ includePayTo?: boolean }} [opts]
+ * @param {{ includePayTo?: boolean; includeSiblingPayers?: boolean }} [opts]
  * @returns {Promise<{ address: string; sk: Uint8Array }[]>}
  */
 async function loadDefaultAlgorandAlgoFunders(receiverAddress, opts = {}) {
@@ -216,6 +254,7 @@ async function loadDefaultAlgorandAlgoFunders(receiverAddress, opts = {}) {
   /** @type {{ address: string; sk: Uint8Array }[]} */
   const funders = [];
   const includePayTo = opts.includePayTo !== false;
+  const includeSiblingPayers = opts.includeSiblingPayers === true;
 
   if (includePayTo) {
     try {
@@ -239,25 +278,27 @@ async function loadDefaultAlgorandAlgoFunders(receiverAddress, opts = {}) {
     /* ignore */
   }
 
-  try {
-    const payerDocs = await LabWallet.find({
-      chain: 'algorand',
-      role: 'payer',
-      active: true,
-    })
-      .select('+encryptedSecret')
-      .lean();
-    for (const doc of payerDocs || []) {
-      if (!doc?.encryptedSecret || doc.address === receiver) continue;
-      if (funders.some((f) => f.address === doc.address)) continue;
-      try {
-        funders.push(algorandAccountFromLabWalletDoc(doc));
-      } catch {
-        /* ignore */
+  if (includeSiblingPayers) {
+    try {
+      const payerDocs = await LabWallet.find({
+        chain: 'algorand',
+        role: 'payer',
+        active: true,
+      })
+        .select('+encryptedSecret')
+        .lean();
+      for (const doc of payerDocs || []) {
+        if (!doc?.encryptedSecret || doc.address === receiver) continue;
+        if (funders.some((f) => f.address === doc.address)) continue;
+        try {
+          funders.push(algorandAccountFromLabWalletDoc(doc));
+        } catch {
+          /* ignore */
+        }
       }
+    } catch {
+      /* ignore */
     }
-  } catch {
-    /* ignore */
   }
 
   return funders;
@@ -337,7 +378,7 @@ export async function ensurePayToAlgoForUsdcRefund(payToAddress, opts = {}) {
 
 /**
  * Ensure an Algorand payer has enough ALGO to opt into USDC ASA and retain fee cushion.
- * Borrows deficit from PayTo → deposit hub → other active payers.
+ * Borrows deficit from PayTo → deposit hub only (sibling payers excluded by default).
  *
  * @param {string} payerAddress
  * @param {{

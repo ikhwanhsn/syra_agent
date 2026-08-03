@@ -70,19 +70,32 @@ import {
   getLpRealDefaultTargetBankSol,
   getLpRealDryRun,
   getLpRealFeeBufferSol,
+  getLpRealMaxModeledPeakPnlPct,
   getLpRealMaxOpensPerTick,
+  getLpRealMaxPoolLossesBeforeBlock,
   getLpRealMaxPositionCapSol,
   getLpRealMinDepositSol,
   getLpRealMinWalletWhileLiveSol,
+  getLpRealPoolLossBlockDays,
   getLpRealSafetyThresholds,
   getLpRealStrictExits,
 } from "../config/lpRealAgentAccess.js";
 import { appendLpRealDecision, listLpRealDecisions } from "./lpRealDecisionLog.js";
+import {
+  countConsecutiveLosses,
+  evaluateLossBreaker,
+  sumRealizedNetPnlSol,
+} from "./lpRealLossBreaker.js";
 import { getLpRealEvolutionSnapshot, isPoolOnEvolutionCooldown } from "./lpRealEvolution.js";
 import { lpAgentAnonymousIdFrom } from "./agentWalletPurpose.js";
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
-const OPEN_POSITION_COOLDOWN_MS = 90 * 60 * 1000;
+/** Minutes between opens on the same agent (env: LP_AGENT_REAL_OPEN_COOLDOWN_MIN). Default 180. */
+const OPEN_POSITION_COOLDOWN_MS = (() => {
+  const raw = Number(process.env.LP_AGENT_REAL_OPEN_COOLDOWN_MIN);
+  const minutes = Number.isFinite(raw) && raw >= 1 ? raw : 180;
+  return minutes * 60 * 1000;
+})();
 /** Grace period before declaring an opening position failed (RPC / Meteora index lag). */
 const OPEN_POSITION_RECONCILE_GRACE_MS = 10 * 60 * 1000;
 /** Per-tx broker confirm window for Meteora multi-tx opens (env override). */
@@ -488,14 +501,15 @@ async function fetchSolPriceUsd() {
 }
 
 /**
- * Exit decision for a live position. Grounds fee yield in real on-chain fees when available,
- * extends the price stop by fees already earned (bounded by a hard stop), and locks winners
- * via trailing stop — same economics model as the sim lab.
- * @param {object|null} [onChain] fetchOnChainPosition result (unclaimedFeeSol) when available
+ * Exit decision for a live position.
+ * Take-profit and trailing stops require real on-chain value / fees when strict exits are on.
+ * Modeled peak PnL is clamped so thin-pool fee math cannot invent 5-digit-% "gains".
+ * @param {object|null} [onChain] fetchOnChainPosition result when available
  */
-function evaluateRealPositionExit(position, detail, hoursElapsed, onChain = null) {
+export function evaluateRealPositionExit(position, detail, hoursElapsed, onChain = null) {
   const exit = position.exitRules || {};
   const strictExits = getLpRealStrictExits();
+  const maxModeledPeak = getLpRealMaxModeledPeakPnlPct();
   const priceDriftPct = computePriceDriftPct(toNum(position.entryPriceUsd), toNum(detail.currentPrice));
   const inRange = !isPositionOutOfRange(
     position.activeBinAtOpen,
@@ -530,27 +544,40 @@ function evaluateRealPositionExit(position, detail, hoursElapsed, onChain = null
     }),
     riskScore,
   );
-  const modeledFeeYieldPct = inRange
-    ? baseFeeYieldPct * feeShareMult
-    : baseFeeYieldPct * feeShareMult * 0.25;
+  const modeledFeeYieldPct = Math.min(
+    maxModeledPeak,
+    inRange ? baseFeeYieldPct * feeShareMult : baseFeeYieldPct * feeShareMult * 0.25,
+  );
 
   const depositSol = toNum(position.depositSol);
   const realFeeSol = toNum(position.realFeesClaimedSol, 0) + toNum(onChain?.unclaimedFeeSol, 0);
   const realFeeYieldPct = depositSol > 0 && realFeeSol > 0 ? (realFeeSol / depositSol) * 100 : 0;
+  // Prefer real fees; never let modeled fees invent take-profit when strict.
   const feeYieldPct = realFeeYieldPct > 0 ? realFeeYieldPct : modeledFeeYieldPct;
 
-  let netPnlPct = computeLpNetPnlPct(priceDriftPct, feeYieldPct, inRange, riskScore);
+  let modeledNetPnlPct = computeLpNetPnlPct(priceDriftPct, feeYieldPct, inRange, riskScore);
+  if (Number.isFinite(modeledNetPnlPct)) {
+    modeledNetPnlPct = Math.max(-maxModeledPeak, Math.min(maxModeledPeak, modeledNetPnlPct));
+  }
 
   const positionValueSol = toNum(onChain?.positionValueSol, 0);
   const realValuePnlPct =
-    strictExits && depositSol > 0 && positionValueSol > 0
+    depositSol > 0 && positionValueSol > 0
       ? ((positionValueSol + toNum(position.realFeesClaimedSol, 0) - depositSol) / depositSol) * 100
       : null;
-  if (realValuePnlPct != null && Number.isFinite(realValuePnlPct)) {
-    netPnlPct = realValuePnlPct;
-  }
 
-  const peakPnlPct = Math.max(toNum(position.peakPnlPct), netPnlPct);
+  // Decision PnL: real on-chain value when available; otherwise clamped model.
+  let netPnlPct =
+    realValuePnlPct != null && Number.isFinite(realValuePnlPct) ? realValuePnlPct : modeledNetPnlPct;
+
+  // Peak for trailing: only track real value peaks when strict; clamp stored modeled peaks.
+  const priorPeak = toNum(position.peakPnlPct);
+  const sanePriorPeak = priorPeak > maxModeledPeak ? 0 : priorPeak;
+  const peakSource =
+    strictExits && realValuePnlPct != null && Number.isFinite(realValuePnlPct)
+      ? realValuePnlPct
+      : netPnlPct;
+  const peakPnlPct = Math.max(sanePriorPeak, Math.min(maxModeledPeak, peakSource));
   const winThresholdPct = LP_AGENT_EXPERIMENT_DEFAULTS.winThresholdPct;
 
   const stopLossPct = toNum(exit.stopLossPct, -15);
@@ -565,7 +592,6 @@ function evaluateRealPositionExit(position, detail, hoursElapsed, onChain = null
   let finalStatus = "open";
 
   const hardStopTriggered =
-    strictExits &&
     realValuePnlPct != null &&
     Number.isFinite(realValuePnlPct) &&
     realValuePnlPct <= effectiveStopPct;
@@ -575,7 +601,11 @@ function evaluateRealPositionExit(position, detail, hoursElapsed, onChain = null
     finalStatus = netPnlPct >= winThresholdPct ? "closed_win" : "closed_loss";
     resolution = hardStopTriggered ? "real_value_stop" : "stop_loss";
   } else if (
-    netPnlPct >= toNum(exit.takeProfitPct, 10) &&
+    // Take-profit: require real on-chain value above TP AND real fees when strict.
+    // Never fire TP on modeled-only fantasy PnL (CATE post-mortem: TP at -30% real).
+    realValuePnlPct != null &&
+    Number.isFinite(realValuePnlPct) &&
+    realValuePnlPct >= toNum(exit.takeProfitPct, 10) &&
     (!strictExits || realFeeYieldPct > 0)
   ) {
     shouldClose = true;
@@ -584,11 +614,14 @@ function evaluateRealPositionExit(position, detail, hoursElapsed, onChain = null
   } else {
     const trailingTrigger = toNum(exit.trailingTriggerPct);
     const trailingGiveback = Math.max(toNum(exit.trailingGivebackPct, trailingTrigger * 0.4), 1.1);
-    if (
+    const trailingOk =
       trailingTrigger > 0 &&
       peakPnlPct >= trailingTrigger &&
-      netPnlPct <= peakPnlPct - trailingGiveback
-    ) {
+      peakPnlPct <= maxModeledPeak &&
+      netPnlPct <= peakPnlPct - trailingGiveback &&
+      // Strict: trailing only when we have real on-chain value (not modeled peak).
+      (!strictExits || (realValuePnlPct != null && Number.isFinite(realValuePnlPct)));
+    if (trailingOk) {
       shouldClose = true;
       finalStatus = netPnlPct >= winThresholdPct ? "closed_win" : "closed_loss";
       resolution = "trailing_stop";
@@ -649,6 +682,75 @@ async function hasRecentRealPosition(experimentId, poolAddress) {
   const anchorMs = new Date(latest.resolvedAt || latest.openedAt || latest.createdAt).getTime();
   if (!Number.isFinite(anchorMs)) return false;
   return Date.now() - anchorMs < OPEN_POSITION_COOLDOWN_MS;
+}
+
+/**
+ * Block re-entry into pools (or non-SOL mints) that already lost money for this agent.
+ * Prevents the CATE-SOL loop: 8 consecutive redeploys into the same losing memecoin.
+ * @returns {{ blocked: boolean, reason: string|null, lossCount: number }}
+ */
+export async function checkPoolLossConcentration({
+  agentAddress,
+  poolAddress,
+  baseMint = null,
+  quoteMint = null,
+} = {}) {
+  const addr = String(agentAddress || "").trim();
+  const pool = String(poolAddress || "").trim();
+  if (!addr || !pool) return { blocked: false, reason: null, lossCount: 0 };
+
+  const maxLosses = getLpRealMaxPoolLossesBeforeBlock();
+  const days = getLpRealPoolLossBlockDays();
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+  const poolLossCount = await LpRealPosition.countDocuments({
+    agentAddress: addr,
+    poolAddress: pool,
+    status: "closed_loss",
+    resolvedAt: { $gte: since },
+  });
+  if (poolLossCount >= maxLosses) {
+    return {
+      blocked: true,
+      reason: "pool_repeat_loss_block",
+      lossCount: poolLossCount,
+    };
+  }
+
+  // Also block the non-SOL mint if it has repeated losses across any pool.
+  const tokenMints = [baseMint, quoteMint]
+    .map((m) => String(m || "").trim())
+    .filter((m) => m && !isSolMint(m));
+  for (const mint of tokenMints) {
+    const tokenLossCount = await LpRealPosition.countDocuments({
+      agentAddress: addr,
+      status: "closed_loss",
+      resolvedAt: { $gte: since },
+      $or: [{ baseMint: mint }, { quoteMint: mint }],
+    });
+    if (tokenLossCount >= maxLosses) {
+      return {
+        blocked: true,
+        reason: "token_repeat_loss_block",
+        lossCount: tokenLossCount,
+      };
+    }
+  }
+
+  return { blocked: false, reason: null, lossCount: poolLossCount };
+}
+
+/**
+ * Hard-clamp a planned deposit to config.maxPositionSol and the global env cap.
+ * Prevents oversizing (CATE post-mortem: deposits up to 1.96 SOL while maxPositionSol=1).
+ */
+export function clampDepositToMaxPositionSol(depositSol, config) {
+  const minDeposit = getLpRealMinDepositSol();
+  const configuredMax = toNum(config?.maxPositionSol, minDeposit);
+  const slotCap = Math.min(getLpRealMaxPositionCapSol(), Math.max(minDeposit, configuredMax));
+  const raw = toNum(depositSol, 0);
+  if (raw <= 0) return 0;
+  return Math.min(slotCap, raw);
 }
 
 async function noteLpRealSignalSkip(agentFilter, reason) {
@@ -998,9 +1100,9 @@ function canTurnOnAgent({ onChainBalanceSol, openPositions, config }) {
 
 /**
  * How many concurrent slots deployable capital can support (schema max 20).
- * Uses maxPositionSol (not bare minDeposit) as the slot yardstick so a ~4 SOL Earn
- * wallet stays at ~3×1 SOL slots instead of fragmenting into 9×0.44 SOL crumbs that
- * then fail the safeFallback half-size gate.
+ * Uses maxPositionSol (not bare minDeposit) as the slot yardstick so Earn beta
+ * stays at ~3×0.25 SOL slots instead of fragmenting into crumbs that then fail
+ * the safeFallback half-size gate.
  * @param {{ maxPositionSol?: number, publicEarnListed?: boolean, maxConcurrentPositions?: number }} config
  * @param {number} availableSol
  */
@@ -1008,7 +1110,7 @@ export function computeEffectiveMaxConcurrent(config, availableSol) {
   const minDeposit = getLpRealMinDepositSol();
   const feeHeadroom = lpOpenFeeHeadroomSol();
   const deployable = Math.max(0, toNum(availableSol) - feeHeadroom);
-  const targetSlotSol = Math.max(minDeposit, toNum(config?.maxPositionSol, 1));
+  const targetSlotSol = Math.max(minDeposit, toNum(config?.maxPositionSol, 0.25));
   const byCapital = Math.min(20, Math.max(1, Math.floor(deployable / targetSlotSol)));
   // Public Earn beta hard-cap (matches lpEarnAdapter DEFAULT_MAX_CONCURRENT=3).
   if (config?.publicEarnListed) return Math.min(3, byCapital);
@@ -1016,15 +1118,16 @@ export function computeEffectiveMaxConcurrent(config, availableSol) {
 }
 
 /**
- * Split remaining deployable SOL across open slots — targets full utilization up to per-slot cap.
+ * Split remaining deployable SOL across open slots — targets utilization up to per-slot cap.
+ * `maxPositionSol` is the true per-slot ceiling; the global env cap is only an upper safety bound.
  * Reserves fee headroom so sidecar swap + Meteora open txs do not fail with spl_insufficient_funds.
  * @param {{ config: { maxPositionSol?: number }, availableSol: number, remainingSlots: number }} args
  */
 export function computeCapitalDeploymentPlan({ config, availableSol, remainingSlots }) {
   const slots = Math.max(0, Math.floor(remainingSlots));
   const minDeposit = getLpRealMinDepositSol();
-  const configuredMax = toNum(config?.maxPositionSol, 1);
-  const slotCap = Math.max(configuredMax, getLpRealMaxPositionCapSol());
+  const configuredMax = toNum(config?.maxPositionSol, 0.25);
+  const slotCap = Math.min(getLpRealMaxPositionCapSol(), Math.max(minDeposit, configuredMax));
   const util = getLpRealCapitalUtilization();
   const feeHeadroom = lpOpenFeeHeadroomSol();
   const maxDeployable = Math.max(0, toNum(availableSol) - feeHeadroom);
@@ -1749,7 +1852,33 @@ async function attemptOpenLpRealPosition({
       summary: "Pool on evolution cooldown after repeated real losses",
       reason: "evolution_pool_cooldown",
     });
-    return { opened: false, stop: false };
+    return { opened: false, stop: false, excludePool: poolCandidate.poolAddress };
+  }
+
+  const concentration = await checkPoolLossConcentration({
+    agentAddress: config.agentAddress,
+    poolAddress: poolCandidate.poolAddress,
+    baseMint: poolCandidate.baseMint,
+    quoteMint: poolCandidate.quoteMint,
+  });
+  if (concentration.blocked) {
+    skipped.push({
+      reason: concentration.reason,
+      pool: poolCandidate.poolAddress,
+      lossCount: concentration.lossCount,
+    });
+    await appendLpRealDecision({
+      experimentId: config.experimentId,
+      agentAddress: config.agentAddress,
+      action: "skip",
+      poolAddress: poolCandidate.poolAddress,
+      poolName: poolCandidate.poolName,
+      strategyId: leaderId,
+      summary: `Blocked re-entry after ${concentration.lossCount} recent losses (${concentration.reason})`,
+      reason: concentration.reason,
+      metrics: { lossCount: concentration.lossCount },
+    });
+    return { opened: false, stop: false, excludePool: poolCandidate.poolAddress };
   }
 
   if (poolCandidate.strategyId != null && poolCandidate.strategyId !== leaderId) {
@@ -2175,6 +2304,26 @@ async function runLpRealSignalCycleForConfig(config) {
   await repairCloseAllIfIdle(config, agentFilter);
 
   try {
+  // Loss circuit breaker / deposit kill: pause opens; resolve still runs.
+  if (config.lossPausedAt || config.depositsPaused) {
+    const reason = String(
+      config.lastError || (config.lossPausedAt ? "stopped_after_losses" : "deposits_paused"),
+    );
+    await LpRealConfig.updateOne(agentFilter, {
+      $set: { lastSignalAt: new Date(), lastError: reason },
+    });
+    return {
+      agentAddress: config.agentAddress,
+      opened: 0,
+      skipped: 1,
+      errors: [reason],
+      openedRows: opened,
+      skippedRows: [{ reason: config.lossPausedAt ? "loss_paused" : "deposits_paused", lastError: reason }],
+      paused: true,
+      pauseReason: reason,
+    };
+  }
+
   const onChainBalance = await getAgentSolBalance(config.agentAddress);
   const openPositionsEarly = await LpRealPosition.find({
     experimentId: config.experimentId,
@@ -2295,6 +2444,8 @@ async function runLpRealSignalCycleForConfig(config) {
         plan.depositSol,
         Math.max(0, availableSol - feeHeadroom),
       );
+      // Hard enforce maxPositionSol (never let plan/availableSol oversize a slot).
+      cappedDepositSol = clampDepositToMaxPositionSol(cappedDepositSol, config);
       // Safe-fallback sizing:
       // - Thin sample (decided < 12): half size (floor at minDeposit) to protect capital.
       // - PnL-qualified (decided >= 12 + positive sumNetPnl): full size — these leaders only
@@ -2309,6 +2460,7 @@ async function runLpRealSignalCycleForConfig(config) {
             cappedDepositSol,
             half >= minDep - 1e-9 ? half : minDep,
           );
+          cappedDepositSol = clampDepositToMaxPositionSol(cappedDepositSol, config);
         }
       }
       if (cappedDepositSol < minDep - 1e-9) {
@@ -2414,6 +2566,95 @@ export async function runLpRealSignalCycle() {
 function lpSweepPreserveUsdc() {
   const raw = (process.env.LP_REAL_PRESERVE_USDC_ON_SWEEP || "").trim().toLowerCase();
   return raw === "true" || raw === "1";
+}
+
+/**
+ * After a closed_loss, trip the per-agent circuit breaker when consecutive
+ * losses or session drawdown exceed thresholds. Resolve still runs.
+ * @param {object} config
+ * @param {object} agentFilter
+ */
+async function maybeTripLossBreaker(config, agentFilter) {
+  if (!config?.agentAddress || config.lossPausedAt) return null;
+
+  // Prefer agentAddress + earn-session window; fall back to all agent closed rows so the
+  // breaker cannot miss losses when session filters are stale/misconfigured (CATE post-mortem).
+  const sessionMatch = buildEarnSessionPositionMatch(config);
+  let closedNewestFirst = await LpRealPosition.find({
+    ...sessionMatch,
+    status: { $in: ["closed_win", "closed_loss", "expired"] },
+  })
+    .sort({ resolvedAt: -1, openedAt: -1 })
+    .limit(64)
+    .select({ status: 1, realNetPnlSol: 1 })
+    .lean();
+
+  if (closedNewestFirst.length === 0) {
+    closedNewestFirst = await LpRealPosition.find({
+      agentAddress: config.agentAddress,
+      status: { $in: ["closed_win", "closed_loss", "expired"] },
+    })
+      .sort({ resolvedAt: -1, openedAt: -1 })
+      .limit(64)
+      .select({ status: 1, realNetPnlSol: 1 })
+      .lean();
+  }
+
+  const consecutiveLosses = countConsecutiveLosses(closedNewestFirst);
+  // Ground-truth wallet deltas — never use getLpRealSummary here (can diverge via epoch filters).
+  const realizedNetPnlSol = sumRealizedNetPnlSol(closedNewestFirst);
+  // Prefer earnDepositSol as honest baseline when set; else capitalBaselineSol.
+  const capitalBaselineSol = Math.max(
+    0,
+    toNum(config.earnDepositSol, 0) || toNum(config.capitalBaselineSol, 0),
+  );
+
+  const decision = evaluateLossBreaker({
+    consecutiveLosses,
+    realizedNetPnlSol,
+    capitalBaselineSol,
+  });
+
+  if (!decision.shouldPause || !decision.reason) return null;
+
+  const pauseAt = new Date();
+  const setFields = {
+    lossPausedAt: pauseAt,
+    lastError: decision.reason,
+    depositsPaused: true,
+  };
+  // Force-close open positions — pause alone left capital bleeding on CATE.
+  if (decision.forceClose) {
+    setFields.closeAllRequested = true;
+  }
+
+  await LpRealConfig.updateOne(agentFilter, { $set: setFields });
+  config.lossPausedAt = pauseAt;
+  config.lastError = decision.reason;
+  config.depositsPaused = true;
+  if (decision.forceClose) config.closeAllRequested = true;
+
+  console.warn(
+    `[LP real] loss breaker for ${config.agentAddress}: ${decision.reason}` +
+      ` (consecutiveLosses=${decision.consecutiveLosses}, drawdownPct=${decision.drawdownPct.toFixed(1)}, forceClose=${Boolean(decision.forceClose)})`,
+  );
+
+  await appendLpRealDecision({
+    experimentId: config.experimentId,
+    agentAddress: config.agentAddress,
+    action: "pause",
+    summary: `Loss breaker: ${decision.reason}${decision.forceClose ? " (force-close requested)" : ""}`,
+    reason: decision.reason,
+    metrics: {
+      consecutiveLosses: decision.consecutiveLosses,
+      drawdownPct: decision.drawdownPct,
+      realizedNetPnlSol,
+      capitalBaselineSol,
+      forceClose: Boolean(decision.forceClose),
+    },
+  });
+
+  return decision;
 }
 
 async function resolveLpRealPositionsForConfig(config, { forceCloseAll = false } = {}) {
@@ -2669,7 +2910,7 @@ async function resolveLpRealPositionsForConfig(config, { forceCloseAll = false }
 
       try {
         const solPrice = await fetchSolPriceUsd();
-        const poolSweep = await sweepPoolTokensToSolAfterClose({
+        let poolSweep = await sweepPoolTokensToSolAfterClose({
           anonymousId: config.anonymousId,
           agentAddress: config.agentAddress,
           baseMint: position.baseMint,
@@ -2679,6 +2920,25 @@ async function resolveLpRealPositionsForConfig(config, { forceCloseAll = false }
             : position.baseSymbol,
           solPriceUsd: solPrice,
         });
+        // Retry stranded tokens once with wider slippage — failed sweeps silently
+        // undercounted PnL on CATE closes.
+        if (poolSweep.errors.length > 0) {
+          await new Promise((r) => setTimeout(r, 1500));
+          const retry = await sweepPoolTokensToSolAfterClose({
+            anonymousId: config.anonymousId,
+            agentAddress: config.agentAddress,
+            baseMint: position.baseMint,
+            quoteMint: position.quoteMint,
+            otherSymbol: isSolMint(position.baseMint)
+              ? position.quoteSymbol
+              : position.baseSymbol,
+            solPriceUsd: solPrice,
+          });
+          poolSweep = {
+            swapped: [...poolSweep.swapped, ...retry.swapped],
+            errors: retry.errors,
+          };
+        }
         for (const sweepErr of poolSweep.errors) {
           errors.push(`sweep_pool:${String(position._id)}:${sweepErr}`);
         }
@@ -2774,6 +3034,15 @@ async function resolveLpRealPositionsForConfig(config, { forceCloseAll = false }
         resolution: exitEval.resolution,
         realNetPnlSol,
       });
+
+      if (finalStatus === "closed_loss" && !config.lossPausedAt) {
+        try {
+          await maybeTripLossBreaker(config, agentFilter);
+        } catch (breakerErr) {
+          const bmsg = breakerErr instanceof Error ? breakerErr.message : String(breakerErr);
+          errors.push(`loss_breaker:${bmsg}`);
+        }
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       errors.push(`resolve:${String(position._id)}:${msg}`);

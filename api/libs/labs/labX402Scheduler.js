@@ -1,12 +1,25 @@
 /**
- * Scheduler for x402 Labs auto-caller — periodically runs paid / insights/* calls from payer wallets.
+ * Scheduler for x402 Labs auto-caller — periodically runs paid /insights/* calls from payer wallets.
  * Runs independently per chain (solana | base | algorand | xlayer).
+ *
+ * Treasury circuit breaker: preflight assessLabTreasury once per tick. When PayTo cannot fund
+ * any call, optionally self-heal via deposit distribute, then auto-pause with a single
+ * aggregated (treasury) log instead of N per-payer (funding) errors.
  */
 import { listActivePayerWallets } from './labWalletService.js';
 import { runLabX402Payment, getLabX402Settings } from './labX402Payer.js';
 import { checkLabDailyCallBudget, logLabX402Call } from './labX402CallLog.js';
 import { formatFundingSkipError } from './labFundingSkipMessage.js';
 import { ensurePayerFundedForNextCall } from './labX402Refund.js';
+import { distributeLabDeposit } from './labDepositDistributor.js';
+import {
+  assessLabTreasury,
+  markTreasuryAlertLogged,
+  pauseLabAutoCallForTreasury,
+  resumeLabAutoCallFromTreasury,
+  shouldLogTreasuryAlert,
+  TREASURY_PAUSE_RECHECK_MS,
+} from './labTreasuryGuard.js';
 import { LAB_X402_CHAINS, normalizeLabChain } from '../../models/labs/LabX402Settings.js';
 import { startupVerbose } from '../../utils/startupLog.js';
 
@@ -15,6 +28,14 @@ const timerByChain = new Map();
 /** @type {Set<string>} */
 const runningByChain = new Set();
 
+/** Reasons that indicate shared treasury exhaustion (not payer-specific). */
+const TREASURY_SKIP_REASONS = new Set([
+  'payto_underfunded',
+  'payto_native_underfunded',
+  'payto_not_opted_in_usdc',
+  'no_payto_wallet',
+]);
+
 function computeJitteredDelay(baseMs, jitterPct) {
   const jitter = (jitterPct / 100) * baseMs;
   const offset = (Math.random() * 2 - 1) * jitter;
@@ -22,12 +43,98 @@ function computeJitteredDelay(baseMs, jitterPct) {
 }
 
 /**
- * @param {'solana' | 'base' | 'algorand'} chain
+ * Log a single aggregated treasury alert (throttled).
+ * @param {{
+ *   chain: string;
+ *   assessment: object;
+ *   settings: object;
+ *   payerCount: number;
+ * }} args
+ */
+async function logAggregatedTreasuryAlert(args) {
+  const { chain, assessment, settings, payerCount } = args;
+  if (!shouldLogTreasuryAlert(settings.treasuryLastAlertAt)) return;
+
+  const payers = await listActivePayerWallets(chain);
+  const representative = payers[0]?.address;
+  if (!representative) return;
+
+  const detail = [
+    assessment.reason || 'payto_underfunded',
+    `payers=${payerCount}`,
+    `payToUsdc=${Number(assessment.payToUsdc ?? 0).toFixed(4)}`,
+    assessment.payToAddress ? `payTo=${assessment.payToAddress.slice(0, 8)}…` : null,
+    assessment.recommendedTopUpUsdc > 0
+      ? `needUsdc~${Number(assessment.recommendedTopUpUsdc).toFixed(2)}`
+      : null,
+    assessment.recommendedTopUpNative > 0
+      ? `needNative~${Number(assessment.recommendedTopUpNative).toFixed(4)}`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  await logLabX402Call({
+    payerAddress: representative,
+    endpoint: '(treasury)',
+    priceUsd: 0,
+    chain,
+    status: 'error',
+    error: formatFundingSkipError({
+      reason: assessment.reason || 'payto_underfunded',
+      error: detail,
+      includeTopUpHint: true,
+    }),
+    trigger: 'scheduler',
+  }).catch(() => {});
+
+  await markTreasuryAlertLogged(chain).catch(() => {});
+}
+
+/**
+ * @param {'solana' | 'base' | 'algorand' | 'xlayer'} chain
+ * @param {{ forceSlowRecheck?: boolean }} [opts]
+ */
+async function scheduleNext(chain, opts = {}) {
+  const c = normalizeLabChain(chain);
+  const existing = timerByChain.get(c);
+  if (existing) {
+    clearTimeout(existing);
+    timerByChain.delete(c);
+  }
+  try {
+    const settings = await getLabX402Settings(c);
+    if (!settings.autoCallEnabled) return;
+    const delay = opts.forceSlowRecheck
+      ? TREASURY_PAUSE_RECHECK_MS
+      : settings.autoCallPausedReason
+        ? TREASURY_PAUSE_RECHECK_MS
+        : computeJitteredDelay(settings.intervalMs, settings.jitterPct);
+    timerByChain.set(
+      c,
+      setTimeout(() => {
+        void tick(c);
+      }, delay),
+    );
+  } catch {
+    timerByChain.set(
+      c,
+      setTimeout(() => {
+        void tick(c);
+      }, 300_000),
+    );
+  }
+}
+
+/**
+ * @param {'solana' | 'base' | 'algorand' | 'xlayer'} chain
  */
 async function tick(chain) {
   const c = normalizeLabChain(chain);
   if (runningByChain.has(c)) return;
   runningByChain.add(c);
+  /** When true, next schedule uses the slow treasury re-check cadence. */
+  let forceSlowRecheck = false;
   try {
     const settings = await getLabX402Settings(c);
     if (!settings.autoCallEnabled) return;
@@ -43,6 +150,51 @@ async function tick(chain) {
     const payers = await listActivePayerWallets(c);
     if (payers.length === 0) return;
 
+    let assessment = await assessLabTreasury(c, {
+      payerCount: payers.length,
+      priceMultiplier: settings.priceMultiplier,
+    });
+
+    // Self-heal: if PayTo is empty but the deposit hub has funds, distribute once and re-assess.
+    if (!assessment.canFundAny && assessment.hubHasFunds) {
+      console.info(
+        `[lab-x402-scheduler] ${c} treasury empty but hub has funds; auto-distributing`,
+      );
+      try {
+        await distributeLabDeposit(c, { force: true });
+      } catch (e) {
+        console.warn(
+          `[lab-x402-scheduler] ${c} auto-distribute failed:`,
+          e?.message || e,
+        );
+      }
+      assessment = await assessLabTreasury(c, {
+        payerCount: payers.length,
+        priceMultiplier: settings.priceMultiplier,
+      });
+    }
+
+    if (!assessment.canFundAny) {
+      console.warn(
+        `[lab-x402-scheduler] ${c} treasury underfunded (${assessment.reason}); pausing auto-call`,
+      );
+      await pauseLabAutoCallForTreasury(c, assessment.reason || 'payto_underfunded');
+      await logAggregatedTreasuryAlert({
+        chain: c,
+        assessment,
+        settings,
+        payerCount: payers.length,
+      });
+      forceSlowRecheck = true;
+      return;
+    }
+
+    // Treasury healthy: clear any prior pause so we run at normal cadence.
+    if (settings.autoCallPausedReason) {
+      console.info(`[lab-x402-scheduler] ${c} treasury recovered; resuming auto-call`);
+      await resumeLabAutoCallFromTreasury(c);
+    }
+
     for (const payer of payers) {
       const remaining = await checkLabDailyCallBudget(c);
       if (!remaining.allowed) break;
@@ -53,6 +205,26 @@ async function tick(chain) {
           priceMultiplier: settings.priceMultiplier,
         });
         if (!funding.canPay) {
+          // Shared treasury exhaustion: break the loop and pause (do not spam N rows).
+          if (TREASURY_SKIP_REASONS.has(String(funding.reason || ''))) {
+            console.warn(
+              `[lab-x402-scheduler] ${c} mid-tick treasury exhaustion (${funding.reason}); pausing`,
+            );
+            await pauseLabAutoCallForTreasury(c, funding.reason || 'payto_underfunded');
+            await logAggregatedTreasuryAlert({
+              chain: c,
+              assessment: {
+                ...assessment,
+                reason: funding.reason,
+                payToUsdc: funding.balanceUsdc,
+              },
+              settings: await getLabX402Settings(c),
+              payerCount: payers.length,
+            });
+            forceSlowRecheck = true;
+            break;
+          }
+          // Payer-specific failure (e.g. opt-in): log once for that payer and continue.
           console.warn(
             `[lab-x402-scheduler] skipping ${c} ${payer.address}: insufficient USDC (${funding.reason})`,
           );
@@ -84,37 +256,7 @@ async function tick(chain) {
     console.warn(`[lab-x402-scheduler] ${c} tick failed:`, e?.message || e);
   } finally {
     runningByChain.delete(c);
-    scheduleNext(c);
-  }
-}
-
-/**
- * @param {'solana' | 'base' | 'algorand'} chain
- */
-async function scheduleNext(chain) {
-  const c = normalizeLabChain(chain);
-  const existing = timerByChain.get(c);
-  if (existing) {
-    clearTimeout(existing);
-    timerByChain.delete(c);
-  }
-  try {
-    const settings = await getLabX402Settings(c);
-    if (!settings.autoCallEnabled) return;
-    const delay = computeJitteredDelay(settings.intervalMs, settings.jitterPct);
-    timerByChain.set(
-      c,
-      setTimeout(() => {
-        void tick(c);
-      }, delay),
-    );
-  } catch {
-    timerByChain.set(
-      c,
-      setTimeout(() => {
-        void tick(c);
-      }, 300_000),
-    );
+    scheduleNext(c, { forceSlowRecheck });
   }
 }
 
@@ -130,7 +272,7 @@ export function startLabX402Scheduler() {
 
 /**
  * Restart scheduler after settings change (e.g. interval updated).
- * @param {'solana' | 'base' | 'algorand'} [chain] - when omitted, restart all chains
+ * @param {'solana' | 'base' | 'algorand' | 'xlayer'} [chain] - when omitted, restart all chains
  */
 export function restartLabX402Scheduler(chain) {
   if (chain) {
@@ -141,3 +283,11 @@ export function restartLabX402Scheduler(chain) {
     scheduleNext(c);
   }
 }
+
+/** @internal Exported for unit tests. */
+export const __test = {
+  tick,
+  scheduleNext,
+  TREASURY_SKIP_REASONS,
+  computeJitteredDelay,
+};

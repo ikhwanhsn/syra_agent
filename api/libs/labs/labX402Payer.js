@@ -411,6 +411,9 @@ function formatLabX402Settings(doc) {
     depositEthGasReserve:
       typeof doc.depositEthGasReserve === 'number' ? doc.depositEthGasReserve : 0.0002,
     depositLastDistributedAt: doc.depositLastDistributedAt ?? null,
+    autoCallPausedReason: doc.autoCallPausedReason ?? null,
+    autoCallPausedAt: doc.autoCallPausedAt ?? null,
+    treasuryLastAlertAt: doc.treasuryLastAlertAt ?? null,
     chain,
     updatedAt: doc.updatedAt,
   };
@@ -450,7 +453,15 @@ export async function updateLabX402Settings(patch, chain = 'solana') {
   const key = settingsKeyForChain(c);
   const update = {};
   let clearActiveCap = false;
-  if (typeof patch.autoCallEnabled === 'boolean') update.autoCallEnabled = patch.autoCallEnabled;
+  if (typeof patch.autoCallEnabled === 'boolean') {
+    update.autoCallEnabled = patch.autoCallEnabled;
+    // Operator re-enabling auto-call clears a prior treasury pause so the scheduler
+    // can re-assess on the next tick (it will re-pause if still underfunded).
+    if (patch.autoCallEnabled === true) {
+      update.autoCallPausedReason = null;
+      update.autoCallPausedAt = null;
+    }
+  }
   if (typeof patch.intervalMs === 'number' && patch.intervalMs >= 60_000 && patch.intervalMs <= 3_600_000) {
     update.intervalMs = Math.round(patch.intervalMs);
   }

@@ -282,7 +282,7 @@ export async function buildClosePositionTx({
   activeBinAtOpen,
   binsBelow,
   binsAbove,
-  slippageBps: _slippageBps = 50,
+  slippageBps = 100,
 }) {
   const user = new PublicKey(agentPubkey);
   const positionPk = new PublicKey(positionPubkey);
@@ -297,6 +297,9 @@ export async function buildClosePositionTx({
     lbPosition,
   });
 
+  // Meteora SDK expects percent points (1 = 1%); match open-path convention.
+  const slippagePct = Math.max(0.01, toNum(slippageBps, 100) / 100);
+
   let rawTx;
   try {
     rawTx = await dlmmPool.removeLiquidity({
@@ -306,14 +309,28 @@ export async function buildClosePositionTx({
       toBinId,
       bps: new BN(10_000),
       shouldClaimAndClose: true,
+      slippage: slippagePct,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    if (!msg.includes("No liquidity to remove")) throw err;
-    rawTx = await dlmmPool.closePosition({
-      owner: user,
-      position: lbPosition,
-    });
+    // Older SDK builds may reject unknown slippage — retry without it.
+    if (msg.includes("slippage") || msg.includes("Unexpected") || msg.includes("unknown")) {
+      rawTx = await dlmmPool.removeLiquidity({
+        user,
+        position: positionPk,
+        fromBinId,
+        toBinId,
+        bps: new BN(10_000),
+        shouldClaimAndClose: true,
+      });
+    } else if (!msg.includes("No liquidity to remove")) {
+      throw err;
+    } else {
+      rawTx = await dlmmPool.closePosition({
+        owner: user,
+        position: lbPosition,
+      });
+    }
   }
 
   const txs = normalizeTxArray(rawTx);

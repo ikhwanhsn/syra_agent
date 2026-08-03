@@ -67,7 +67,7 @@ export const EARN_PRODUCTS = [
     /** LP Autopilot signs with the earn pillar wallet (dedicated :lp retired). */
     walletPurpose: "earn",
     walletQuery: "earn",
-    minDeposit: 1,
+    minDeposit: 0.25,
     maxDeposit: 5,
     performanceFeeBps: 1000,
     maxErrorRate: 0.05,
@@ -75,14 +75,14 @@ export const EARN_PRODUCTS = [
     minSettleSuccessRate: 0.95,
     minSample: 10,
     evidence: {
-      realWinRateHint: "~90% on resolved real positions (historical lab)",
+      realWinRateHint: "Paper lab only — on-chain results vary; beta uses small positions",
       paperSample: "27k+ paper positions",
     },
     disclosures: [
       "Non-custodial: you deposit SOL into your Earn agent wallet for this strategy. Syra does not take custody of your principal.",
       "Past lab performance is not a guarantee of future returns. You can lose capital from IL, fees, and bad exits.",
       "Strategy opens may pause when no qualified sim leader exists; open positions are still managed.",
-      "Beta is capped (1–5 SOL). Kill switch auto-pauses new deposits if error rate or PnL guardrails trip.",
+      "Beta is capped (0.25–5 SOL) with small per-position sizing. Kill switch auto-pauses new deposits if error rate or PnL guardrails trip.",
     ],
   },
   {

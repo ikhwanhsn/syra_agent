@@ -16,12 +16,16 @@ import { enrichPoolsWithRealSignals } from "./lpRealSignals.js";
 import { passesRealTokenSafety } from "./lpRealTokenSafety.js";
 import {
   getLpRealMaxFeeTvlRatio,
+  getLpRealMaxModeledPeakPnlPct,
   getLpRealMaxVolTvlRatio,
+  getLpRealMinRealClosedForDeploy,
+  getLpRealMinRealWinRate,
   getLpRealMinTvlUsd,
   getLpRealMinValidatedSimRuns,
   getLpRealMinVol24hUsd,
   getLpRealUseRealSignals,
 } from "../config/lpRealAgentAccess.js";
+import LpRealPosition from "../models/LpRealPosition.js";
 import {
   applyRiskAdjustedFeeMultiplier,
   computeDlmmFeeShareMultiplier,
@@ -186,7 +190,9 @@ function evaluateRunResolution(run, detail, strategyExit, hoursElapsed, simDefau
   const netPnlPct = computeLpNetPnlPct(priceDriftPct, feeYieldPct, inRange, riskScore);
   const simFeesEarnedSol = toNum(run.depositSol) * (feeYieldPct / 100);
 
-  const peakPnlPct = Math.max(toNum(snapshot.peakPnlPct), netPnlPct);
+  const maxPeak = getLpRealMaxModeledPeakPnlPct();
+  const priorPeak = Math.min(maxPeak, toNum(snapshot.peakPnlPct));
+  const peakPnlPct = Math.min(maxPeak, Math.max(priorPeak, netPnlPct));
   let status = "open";
   let resolution = null;
   if (priceDriftPct <= toNum(exit.stopLossPct, -15)) {
@@ -1443,9 +1449,100 @@ async function applyRealShadowGate(rows, experimentId) {
   return validated.length > 0 ? validated : [];
 }
 
+/**
+ * Real closed-position track record for a strategy (ground truth, not paper).
+ * Strategies with no real closes cannot take live capital.
+ */
+export async function getRealTrackRecordByStrategy(strategyIds = []) {
+  const ids = [...new Set((strategyIds || []).map((id) => Number(id)).filter((n) => Number.isFinite(n)))];
+  if (ids.length === 0) return new Map();
+
+  const rows = await LpRealPosition.aggregate([
+    {
+      $match: {
+        strategyId: { $in: ids },
+        status: { $in: ["closed_win", "closed_loss", "expired"] },
+        realNetPnlSol: { $ne: null },
+      },
+    },
+    {
+      $group: {
+        _id: "$strategyId",
+        closed: { $sum: 1 },
+        wins: {
+          $sum: {
+            $cond: [{ $gt: ["$realNetPnlSol", 0] }, 1, 0],
+          },
+        },
+        sumNetPnlSol: { $sum: "$realNetPnlSol" },
+      },
+    },
+  ]);
+
+  const out = new Map();
+  for (const row of rows) {
+    const closed = Number(row.closed) || 0;
+    const wins = Number(row.wins) || 0;
+    out.set(Number(row._id), {
+      closed,
+      wins,
+      losses: Math.max(0, closed - wins),
+      winRate: closed > 0 ? wins / closed : 0,
+      sumNetPnlSol: Number(row.sumNetPnlSol) || 0,
+    });
+  }
+  return out;
+}
+
+/**
+ * Gate: strategy must have enough real closes with positive net PnL and min win rate.
+ * Paper-only leaders are rejected — that is what lost the CATE capital.
+ */
+export function passesRealTrackRecordGate(track, {
+  minClosed = getLpRealMinRealClosedForDeploy(),
+  minWinRate = getLpRealMinRealWinRate(),
+} = {}) {
+  if (!track || track.closed < minClosed) return false;
+  if (track.sumNetPnlSol <= 0) return false;
+  if (track.winRate < minWinRate) return false;
+  return true;
+}
+
 async function filterQualifiedRealStrategyRows(ranked, experimentId) {
   const eligible = ranked.filter((row) => isLpRealEligibleStrategyId(row.strategyId));
+  if (eligible.length === 0) return [];
 
+  const realTracks = await getRealTrackRecordByStrategy(eligible.map((r) => r.strategyId));
+  const minClosed = getLpRealMinRealClosedForDeploy();
+  const minWinRate = getLpRealMinRealWinRate();
+
+  // Prefer strategies that already proved themselves on real wallet deltas.
+  const realQualified = eligible.filter((row) =>
+    passesRealTrackRecordGate(realTracks.get(row.strategyId), { minClosed, minWinRate }),
+  );
+  if (realQualified.length > 0) {
+    const sorted = [...realQualified].sort((a, b) => {
+      const ta = realTracks.get(a.strategyId);
+      const tb = realTracks.get(b.strategyId);
+      const pnlDiff = (tb?.sumNetPnlSol || 0) - (ta?.sumNetPnlSol || 0);
+      if (Math.abs(pnlDiff) > 1e-9) return pnlDiff;
+      return b.realLeaderScore - a.realLeaderScore;
+    });
+    const shadowed = await applyRealShadowGate(sorted, experimentId);
+    return (shadowed.length > 0 ? shadowed : sorted).map((row) => ({
+      ...row,
+      realTrack: realTracks.get(row.strategyId) || null,
+      realTrackQualified: true,
+    }));
+  }
+
+  // No strategy has a real track record yet → paper-only. Do not deploy live capital.
+  // Dry-run / lab can still inspect paper leaders; live opens must wait for evidence.
+  if (minClosed > 0) {
+    return [];
+  }
+
+  // minClosed=0 escape hatch (tests / emergency): fall back to prior paper gates.
   const qualified = eligible.filter(
     (row) =>
       row.decided >= LP_REAL_MIN_DECIDED_FOR_PROFIT_GATE &&
@@ -1456,36 +1553,6 @@ async function filterQualifiedRealStrategyRows(ranked, experimentId) {
     const sorted = [...qualified].sort((a, b) => b.realLeaderScore - a.realLeaderScore);
     const shadowed = await applyRealShadowGate(sorted, experimentId);
     return shadowed.length > 0 ? shadowed : sorted;
-  }
-
-  if (
-    eligible.length > 0 &&
-    eligible[0].decided < LP_REAL_MIN_DECIDED_FOR_PROFIT_GATE &&
-    eligible[0].sumNetPnlSol >= 0
-  ) {
-    const warming = [eligible[0]];
-    const shadowed = await applyRealShadowGate(warming, experimentId);
-    return shadowed.length > 0 ? shadowed : warming;
-  }
-
-  const warming = eligible.filter(
-    (row) => row.sumNetPnlSol > 0 && row.decided >= 6 && (row.winRate ?? 0) >= 0.55,
-  );
-  if (warming.length > 0) {
-    const sorted = [...warming].sort((a, b) => b.realLeaderScore - a.realLeaderScore);
-    const shadowed = await applyRealShadowGate(sorted, experimentId);
-    return shadowed.length > 0 ? shadowed : sorted;
-  }
-
-  // Safe fallback: best eligible with positive net PnL and ≥3 decided — prevents starvation
-  // when win-rate gate is temporarily unmet. Prefer highest realLeaderScore.
-  const safeFallback = eligible
-    .filter((row) => row.sumNetPnlSol > 0 && row.decided >= 3)
-    .sort((a, b) => b.realLeaderScore - a.realLeaderScore);
-  if (safeFallback.length > 0) {
-    const top = [{ ...safeFallback[0], safeFallback: true }];
-    const shadowed = await applyRealShadowGate(top, experimentId);
-    return shadowed.length > 0 ? shadowed : top;
   }
 
   return [];
@@ -1500,10 +1567,37 @@ async function filterQualifiedRealStrategyRows(ranked, experimentId) {
 export async function selectSafeFallbackStrategyLeader(ranked) {
   const eligible = (ranked || []).filter((row) => isLpRealEligibleStrategyId(row.strategyId));
   if (eligible.length === 0) return null;
+
+  // Safe fallback still requires a real track record — paper-only leaders must not spend SOL.
+  const minClosed = getLpRealMinRealClosedForDeploy();
+  if (minClosed > 0) {
+    const realTracks = await getRealTrackRecordByStrategy(eligible.map((r) => r.strategyId));
+    const realOk = eligible
+      .filter((row) =>
+        passesRealTrackRecordGate(realTracks.get(row.strategyId), {
+          minClosed,
+          minWinRate: getLpRealMinRealWinRate(),
+        }),
+      )
+      .sort((a, b) => {
+        const ta = realTracks.get(a.strategyId);
+        const tb = realTracks.get(b.strategyId);
+        return (tb?.sumNetPnlSol || 0) - (ta?.sumNetPnlSol || 0);
+      });
+    if (realOk.length > 0) {
+      return {
+        ...realOk[0],
+        safeFallback: true,
+        realTrack: realTracks.get(realOk[0].strategyId) || null,
+        realTrackQualified: true,
+      };
+    }
+    return null;
+  }
+
   const byScore = [...eligible].sort((a, b) => b.realLeaderScore - a.realLeaderScore);
   const positive = byScore.find((row) => row.sumNetPnlSol > 0 && row.decided >= 3);
   if (positive) return { ...positive, safeFallback: true };
-  // Soft (negative) fallback — marked for size cut or skip by caller; do not prefer it.
   const leastBad = byScore.find((row) => row.decided >= 6 && (row.winRate ?? 0) >= 0.55);
   if (leastBad && leastBad.sumNetPnlSol > -0.05) {
     return { ...leastBad, softFallback: true };

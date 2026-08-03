@@ -31,6 +31,11 @@ const lpRealConfigSchema = new mongoose.Schema(
     capitalBaselineSol: { type: Number, default: null, min: 0 },
     /** Set when strategy selector finds no qualified leader — opens paused, resolve still runs. */
     pausedNoStrategyAt: { type: Date, default: null },
+    /**
+     * Circuit breaker: consecutive losses or session drawdown tripped.
+     * Opens paused until user re-enables or updates deposit; resolve still runs.
+     */
+    lossPausedAt: { type: Date, default: null },
     /** Public Earn Yield beta: performance fee on net-positive realized PnL (0–1). */
     performanceFeeBps: { type: Number, default: 1000, min: 0, max: 5000 },
     /** Cap deposit for public Earn Yield beta (SOL). */

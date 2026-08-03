@@ -11,6 +11,7 @@ import {
   createLabWalletsBulk,
   listLabWallets,
   getLabWalletBalances,
+  listActivePayerWallets,
 } from '../../libs/labs/labWalletService.js';
 import {
   runLabX402Payment,
@@ -28,6 +29,10 @@ import {
 } from '../../libs/labs/labDepositDistributor.js';
 import { getMaxBulkCreateCount, logLabX402Call } from '../../libs/labs/labX402CallLog.js';
 import { formatFundingSkipError } from '../../libs/labs/labFundingSkipMessage.js';
+import {
+  assessLabTreasury,
+  resumeLabAutoCallFromTreasury,
+} from '../../libs/labs/labTreasuryGuard.js';
 import { normalizeLabChain } from '../../models/labs/LabX402Settings.js';
 
 /**
@@ -219,6 +224,85 @@ export function createLabsX402Router() {
     }
   });
 
+  router.get('/treasury', async (req, res) => {
+    try {
+      const chain = parseChain(req);
+      const [settings, payers] = await Promise.all([
+        getLabX402Settings(chain),
+        listActivePayerWallets(chain),
+      ]);
+      const assessment = await assessLabTreasury(chain, {
+        payerCount: payers.length,
+        priceMultiplier: settings.priceMultiplier,
+      });
+      return res.json({
+        success: true,
+        data: {
+          ...assessment,
+          autoCallEnabled: settings.autoCallEnabled,
+          autoCallPausedReason: settings.autoCallPausedReason ?? null,
+          autoCallPausedAt: settings.autoCallPausedAt ?? null,
+          treasuryLastAlertAt: settings.treasuryLastAlertAt ?? null,
+          paused: Boolean(settings.autoCallPausedReason),
+          topUp: {
+            payToAddress: assessment.payToAddress,
+            hubAddress: assessment.hubAddress,
+            usdcUsd: assessment.recommendedTopUpUsdc,
+            native: assessment.recommendedTopUpNative,
+            algo: assessment.recommendedTopUpAlgo,
+            instructions: assessment.canFundAny
+              ? null
+              : assessment.hubHasFunds
+                ? `Deposit hub has funds. Click Distribute, or POST /labs/x402/deposit/distribute?chain=${chain}.`
+                : `Fund PayTo ${assessment.payToAddress || '(create a payto wallet)'} with ~$${Number(assessment.recommendedTopUpUsdc || 0).toFixed(2)} USDC` +
+                  (assessment.recommendedTopUpNative > 0
+                    ? ` and ~${Number(assessment.recommendedTopUpNative).toFixed(4)} ${chain === 'algorand' ? 'ALGO' : chain === 'base' ? 'ETH' : chain === 'xlayer' ? 'OKB' : 'SOL'}`
+                    : '') +
+                  (assessment.hubAddress
+                    ? `, or fund deposit hub ${assessment.hubAddress} then Distribute.`
+                    : '.'),
+          },
+        },
+      });
+    } catch (e) {
+      return res
+        .status(500)
+        .json({ success: false, error: e?.message || 'Failed to assess treasury' });
+    }
+  });
+
+  router.post('/treasury/resume', express.json(), async (req, res) => {
+    try {
+      const chain = parseChain(req);
+      const assessment = await assessLabTreasury(chain, {
+        payerCount: (await listActivePayerWallets(chain)).length,
+      });
+      if (!assessment.canFundAny) {
+        return res.status(409).json({
+          success: false,
+          error: 'treasury_still_underfunded',
+          message: `Cannot resume: ${assessment.reason || 'payto_underfunded'}. Top up PayTo first.`,
+          data: assessment,
+        });
+      }
+      await resumeLabAutoCallFromTreasury(chain);
+      restartLabX402Scheduler(chain);
+      const settings = await getLabX402Settings(chain);
+      return res.json({
+        success: true,
+        data: {
+          resumed: true,
+          settings,
+          treasury: assessment,
+        },
+      });
+    } catch (e) {
+      return res
+        .status(500)
+        .json({ success: false, error: e?.message || 'Failed to resume auto-call' });
+    }
+  });
+
   router.post('/deposit/distribute', express.json(), async (req, res) => {
     try {
       const chain = parseChain(req);
@@ -295,7 +379,6 @@ export function createLabsX402Router() {
         return res.json({ success: true, data: result });
       }
 
-      const { listActivePayerWallets } = await import('../../libs/labs/labWalletService.js');
       const payers = await listActivePayerWallets(chain);
       if (payers.length === 0) {
         return res.status(400).json({ success: false, error: 'No active payer wallets' });

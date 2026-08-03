@@ -85,6 +85,14 @@ const labX402SettingsSchema = new mongoose.Schema(
     depositDistributeLockUntil: { type: Date, default: null },
     /** Optional owner label for the lock (pid / host). */
     depositDistributeLockOwner: { type: String, default: null },
+    /**
+     * Treasury circuit-breaker pause (does not flip autoCallEnabled).
+     * Scheduler treats autoCallEnabled && !autoCallPausedReason as active.
+     */
+    autoCallPausedReason: { type: String, default: null },
+    autoCallPausedAt: { type: Date, default: null },
+    /** Last throttled (treasury) call-log alert timestamp. */
+    treasuryLastAlertAt: { type: Date, default: null },
   },
   { timestamps: true },
 );

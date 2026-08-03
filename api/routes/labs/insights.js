@@ -32,6 +32,7 @@ import {
 } from '../../libs/labs/labX402Refund.js';
 import {
   getMaxLabX402PriceUsd,
+  getMinLabX402PriceUsd,
   getWeightedAvgLabX402PriceUsd,
   findLabX402Endpoint,
   resolveLabSettlementFacilitator,
@@ -184,7 +185,9 @@ async function handleInsightRoute(req, res, endpointPath, catalogSegment, fetchD
 
         if (!decision.shouldRefund) return;
 
-        const refund = await refundUsdcToPayer(payer, decision.refundAmountUsd, chain);
+        const refund = await refundUsdcToPayer(payer, decision.refundAmountUsd, chain, {
+          minAmountUsd: getMinLabX402PriceUsd() * mult,
+        });
         await logLabX402Call({
           payerAddress: payer,
           endpoint: endpointPath,
@@ -194,7 +197,7 @@ async function handleInsightRoute(req, res, endpointPath, catalogSegment, fetchD
           status: 'success',
           paymentTx,
           refundTx: refund?.signature ?? null,
-          responseSnippet: `topup:${decision.refundAmountUsd.toFixed(4)}→${decision.targetUsd}`,
+          responseSnippet: `topup:${(refund?.amountUsdc ?? decision.refundAmountUsd).toFixed(4)}→${decision.targetUsd}`,
           trigger,
         });
       } catch (e) {

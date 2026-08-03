@@ -8,7 +8,7 @@ const lpRealDecisionLogSchema = new mongoose.Schema(
     action: {
       type: String,
       required: true,
-      enum: ["deploy", "close", "skip", "no_deploy", "evolve"],
+      enum: ["deploy", "close", "skip", "no_deploy", "evolve", "pause"],
       index: true,
     },
     poolAddress: { type: String, default: null, index: true },

@@ -12,6 +12,7 @@ import { AutoCallSettingsPanel } from "@/components/labs/x402/AutoCallSettingsPa
 import { SimulationPanel } from "@/components/labs/x402/SimulationPanel";
 import { VolumeProgressCard } from "@/components/labs/x402/VolumeProgressCard";
 import { CallLogTable } from "@/components/labs/x402/CallLogTable";
+import { TreasuryHealthBanner } from "@/components/labs/x402/TreasuryHealthBanner";
 import { EndpointsGridSkeleton } from "@/components/labs/LabsSkeleton";
 import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import type { LabChain, LabDepositDistributeResult, LabWallet } from "@/lib/labsX402Api";
@@ -31,11 +32,13 @@ export function X402LabTab({ chain }: X402LabTabProps) {
     volumeQ,
     endpointsQ,
     depositQ,
+    treasuryQ,
     createWalletM,
     createWalletsBulkM,
     updateSettingsM,
     runM,
     distributeDepositM,
+    resumeTreasuryM,
   } = useLabsX402(chain);
 
   const [createOpen, setCreateOpen] = useState(false);
@@ -424,6 +427,20 @@ export function X402LabTab({ chain }: X402LabTabProps) {
         <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Call log
         </h3>
+        <TreasuryHealthBanner
+          treasury={treasuryQ.data}
+          isLoading={treasuryQ.isLoading}
+          chain={chain}
+          onDistribute={() => {
+            distributeDepositM.mutate(undefined, {
+              onSuccess: (data) => setLastDistributeResult(data),
+            });
+          }}
+          isDistributing={distributeDepositM.isPending}
+          onResume={() => resumeTreasuryM.mutate()}
+          isResuming={resumeTreasuryM.isPending}
+          resumeError={resumeTreasuryM.error?.message ?? null}
+        />
         <CallLogTable calls={callsQ.data ?? []} isLoading={callsQ.isLoading} chain={chain} />
       </section>
 
