@@ -1,6 +1,7 @@
 /**
- * Labs treasury circuit breaker — assess PayTo + deposit-hub capacity before
- * scheduler ticks so an empty treasury never spams per-payer (funding) errors.
+ * Labs treasury circuit breaker — assess richest funder (PayTo or payer) + deposit-hub
+ * capacity before scheduler ticks so an empty PayTo never pauses while another wallet
+ * can still top up, and empty treasury never spams per-payer (funding) errors.
  */
 import LabX402Settings, {
   normalizeLabChain,
@@ -15,6 +16,10 @@ import {
   getLabWalletBalances,
   isAlgorandAddressOptedInUsdc,
 } from './labWalletService.js';
+import {
+  loadFunderCandidates,
+  pickRichestFunder,
+} from './labFunderSelector.js';
 import {
   getAlgorandAccountSpendableMicro,
   MICRO_ALGO,
@@ -188,34 +193,12 @@ async function resolvePayToAddress(chain) {
 }
 
 /**
- * Assess Labs treasury capacity for a chain.
+ * Assess Labs treasury capacity for a chain using the richest funder wallet
+ * (PayTo or any payer) rather than PayTo alone.
  *
  * @param {'solana' | 'base' | 'algorand' | 'xlayer'} chain
  * @param {{ payerCount?: number; priceMultiplier?: number; minPriceUsd?: number }} [opts]
- * @returns {Promise<{
- *   chain: string;
- *   canFundAny: boolean;
- *   fundableCalls: number;
- *   hubHasFunds: boolean;
- *   shortfallUsdc: number;
- *   shortfallNative: number;
- *   shortfallAlgo: number;
- *   reason: string | null;
- *   recommendedTopUpUsdc: number;
- *   recommendedTopUpNative: number;
- *   recommendedTopUpAlgo: number;
- *   payToAddress: string | null;
- *   payToUsdc: number | null;
- *   payToSpendableNative: number | null;
- *   payToSpendableAlgo: number | null;
- *   payToOptedInUsdc: boolean | null;
- *   hubAddress: string | null;
- *   hubUsdc: number | null;
- *   hubNative: number | null;
- *   minPriceUsd: number;
- *   payerCount: number;
- *   error?: string;
- * }>}
+ * @returns {Promise<object>}
  */
 export async function assessLabTreasury(chain, opts = {}) {
   const c = normalizeLabChain(chain);
@@ -233,83 +216,110 @@ export async function assessLabTreasury(chain, opts = {}) {
   let payToAddress = null;
   /** @type {string | null} */
   let hubAddress = null;
-  /** @type {number | null} */
-  let payToUsdc = null;
-  /** @type {number | null} */
-  let payToSpendableNative = null;
+  /** @type {number} */
+  let payToUsdc = 0;
+  /** @type {number} */
+  let payToSpendableNative = 0;
   /** @type {boolean | null} */
-  let payToOptedInUsdc = null;
-  /** @type {number | null} */
-  let hubUsdc = null;
-  /** @type {number | null} */
-  let hubNative = null;
+  let payToOptedInUsdc = c === 'algorand' ? false : null;
+  /** @type {string | null} */
+  let funderAddress = null;
+  /** @type {number} */
+  let funderUsdc = 0;
+  /** @type {number} */
+  let funderNative = 0;
+  /** @type {string | null} */
+  let funderRole = null;
+  /** @type {boolean | null} */
+  let funderOptedInUsdc = null;
+  /** @type {number} */
+  let hubUsdc = 0;
+  /** @type {number} */
+  let hubNative = 0;
   /** @type {string | undefined} */
   let error;
 
   try {
     payToAddress = await resolvePayToAddress(c);
-    if (!payToAddress) {
-      const empty = evaluateTreasuryCapacity({
-        payToUsdc: 0,
-        payToSpendableNative: 0,
-        minNativeForFee: feeFloor,
-        hubUsdc: 0,
-        hubNative: 0,
-        minPriceUsd,
-        payerCount,
-        payToOptedIn: c === 'algorand' ? false : null,
-        chain: c,
-      });
-      return {
-        chain: c,
-        ...empty,
-        shortfallAlgo: empty.shortfallNative,
-        recommendedTopUpAlgo: empty.recommendedTopUpNative,
-        payToAddress: null,
-        payToUsdc: 0,
-        payToSpendableNative: 0,
-        payToSpendableAlgo: 0,
-        payToOptedInUsdc: c === 'algorand' ? false : null,
-        hubAddress: null,
-        hubUsdc: 0,
-        hubNative: 0,
-        minPriceUsd,
-        payerCount,
-        reason: 'no_payto_wallet',
-      };
+    const candidates = await loadFunderCandidates(c);
+
+    const payToCand = payToAddress
+      ? candidates.find(
+          (x) =>
+            String(x.address || '').toLowerCase() ===
+            String(payToAddress || '').toLowerCase(),
+        )
+      : null;
+    if (payToCand) {
+      payToUsdc = payToCand.usdc;
+      payToSpendableNative = payToCand.native;
+      payToOptedInUsdc = c === 'algorand' ? Boolean(payToCand.optedInUsdc) : null;
+    } else if (payToAddress) {
+      const payToBal = await withTimeout(
+        getLabWalletBalances(payToAddress, c),
+        ALGOD_TIMEOUT_MS,
+        'payto_balance_timeout',
+      );
+      payToUsdc = payToBal?.usdcBalance ?? 0;
+      if (c === 'algorand') {
+        try {
+          const spendable = await withTimeout(
+            getAlgorandAccountSpendableMicro(payToAddress),
+            ALGOD_TIMEOUT_MS,
+            'payto_spendable_timeout',
+          );
+          payToSpendableNative = Number(spendable.spendableMicro) / Number(MICRO_ALGO);
+        } catch (e) {
+          payToSpendableNative = payToBal?.nativeBalance ?? 0;
+          error = e?.message || String(e);
+        }
+        try {
+          payToOptedInUsdc = await withTimeout(
+            isAlgorandAddressOptedInUsdc(payToAddress),
+            ALGOD_TIMEOUT_MS,
+            'payto_optin_timeout',
+          );
+        } catch {
+          payToOptedInUsdc = Boolean(payToBal?.optedInUsdc);
+        }
+      } else {
+        payToSpendableNative = payToBal?.nativeBalance ?? 0;
+      }
     }
 
-    const payToBal = await withTimeout(
-      getLabWalletBalances(payToAddress, c),
-      ALGOD_TIMEOUT_MS,
-      'payto_balance_timeout',
-    );
-    payToUsdc = payToBal?.usdcBalance ?? 0;
-
-    if (c === 'algorand') {
-      try {
-        const spendable = await withTimeout(
-          getAlgorandAccountSpendableMicro(payToAddress),
-          ALGOD_TIMEOUT_MS,
-          'payto_spendable_timeout',
-        );
-        payToSpendableNative = Number(spendable.spendableMicro) / Number(MICRO_ALGO);
-      } catch (e) {
-        payToSpendableNative = payToBal?.nativeBalance ?? 0;
-        error = e?.message || String(e);
-      }
-      try {
-        payToOptedInUsdc = await withTimeout(
-          isAlgorandAddressOptedInUsdc(payToAddress),
-          ALGOD_TIMEOUT_MS,
-          'payto_optin_timeout',
-        );
-      } catch {
-        payToOptedInUsdc = Boolean(payToBal?.optedInUsdc);
-      }
-    } else {
-      payToSpendableNative = payToBal?.nativeBalance ?? 0;
-      payToOptedInUsdc = null;
+    // Prefer a wallet that can fund ≥1 call; otherwise track richest for shortfall messaging.
+    const canFundPick = pickRichestFunder(candidates, {
+      minUsdc: minPriceUsd,
+      minNative: feeFloor,
+      reserveUsdc: 0,
+      chain: c,
+      requireOptedIn: c === 'algorand',
+    });
+    const richestAny = pickRichestFunder(candidates, {
+      minUsdc: 0,
+      minNative: 0,
+      reserveUsdc: 0,
+      chain: c,
+      requireOptedIn: false,
+    });
+    const funder = canFundPick || richestAny;
+    if (funder) {
+      funderAddress = funder.address;
+      funderUsdc = funder.usdc;
+      funderNative = funder.native;
+      funderRole = funder.role ?? null;
+      funderOptedInUsdc =
+        c === 'algorand'
+          ? canFundPick
+            ? true
+            : funder.optedInUsdc ?? null
+          : null;
+    } else if (payToAddress) {
+      funderAddress = payToAddress;
+      funderUsdc = payToUsdc;
+      funderNative = payToSpendableNative;
+      funderRole = 'payto';
+      funderOptedInUsdc = payToOptedInUsdc;
     }
 
     const hubDoc = await getActiveDepositWalletDoc(c);
@@ -322,27 +332,56 @@ export async function assessLabTreasury(chain, opts = {}) {
       );
       hubUsdc = hubBal?.usdcBalance ?? 0;
       hubNative = hubBal?.nativeBalance ?? 0;
-    } else {
-      hubUsdc = 0;
-      hubNative = 0;
     }
   } catch (e) {
     error = e?.message || String(e);
-    if (payToUsdc == null) payToUsdc = 0;
-    if (payToSpendableNative == null) payToSpendableNative = 0;
-    if (hubUsdc == null) hubUsdc = 0;
-    if (hubNative == null) hubNative = 0;
+  }
+
+  if (!payToAddress && !funderAddress) {
+    const empty = evaluateTreasuryCapacity({
+      payToUsdc: 0,
+      payToSpendableNative: 0,
+      minNativeForFee: feeFloor,
+      hubUsdc,
+      hubNative,
+      minPriceUsd,
+      payerCount,
+      payToOptedIn: c === 'algorand' ? false : null,
+      chain: c,
+    });
+    return {
+      chain: c,
+      ...empty,
+      shortfallAlgo: empty.shortfallNative,
+      recommendedTopUpAlgo: empty.recommendedTopUpNative,
+      payToAddress: null,
+      payToUsdc: 0,
+      payToSpendableNative: 0,
+      payToSpendableAlgo: 0,
+      payToOptedInUsdc: c === 'algorand' ? false : null,
+      funderAddress: null,
+      funderUsdc: 0,
+      funderNative: 0,
+      funderRole: null,
+      hubAddress,
+      hubUsdc,
+      hubNative,
+      minPriceUsd,
+      payerCount,
+      reason: 'no_payto_wallet',
+      ...(error ? { error } : {}),
+    };
   }
 
   const capacity = evaluateTreasuryCapacity({
-    payToUsdc: payToUsdc ?? 0,
-    payToSpendableNative: payToSpendableNative ?? 0,
+    payToUsdc: funderUsdc,
+    payToSpendableNative: funderNative,
     minNativeForFee: feeFloor,
-    hubUsdc: hubUsdc ?? 0,
-    hubNative: hubNative ?? 0,
+    hubUsdc,
+    hubNative,
     minPriceUsd,
     payerCount,
-    payToOptedIn: payToOptedInUsdc,
+    payToOptedIn: c === 'algorand' ? funderOptedInUsdc : null,
     chain: c,
   });
 
@@ -356,6 +395,10 @@ export async function assessLabTreasury(chain, opts = {}) {
     payToSpendableNative,
     payToSpendableAlgo: c === 'algorand' ? payToSpendableNative : null,
     payToOptedInUsdc,
+    funderAddress,
+    funderUsdc,
+    funderNative,
+    funderRole,
     hubAddress,
     hubUsdc,
     hubNative,

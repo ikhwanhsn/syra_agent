@@ -13,7 +13,7 @@ export function formatFundingSkipError(input = {}) {
   const error = detail
     ? `Payer cannot pay (${reason}): ${detail}`
     : includeTopUpHint
-      ? `Payer cannot pay (${reason}). Top up the PayTo/payer wallet.`
+      ? `Payer cannot pay (${reason}). Top up any lab wallet or the deposit hub.`
       : `Payer cannot pay (${reason}).`;
   return error.slice(0, 500);
 }

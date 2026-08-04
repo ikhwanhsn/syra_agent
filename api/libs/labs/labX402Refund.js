@@ -23,9 +23,6 @@ import {
 } from 'viem';
 import algosdk from 'algosdk';
 import {
-  getActivePayToKeypair,
-  getActivePayToEvmAccount,
-  getActivePayToAlgorandAccount,
   getLabWalletBalances,
   getBasePublicClient,
   createBaseWalletClient,
@@ -36,6 +33,7 @@ import {
   isAlgorandAddressOptedInUsdc,
   ensureAlgorandLabWalletUsdcOptIn,
 } from './labWalletService.js';
+import { resolveRichestFunder } from './labFunderSelector.js';
 import { pickSolanaConnectionForReads, isSolanaRpcRetryableError } from '../solanaServerRpc.js';
 import { confirmSolanaTransaction, isSolanaTxConfirmedOnAnyRpc } from '../solanaConfirm.js';
 import {
@@ -51,6 +49,8 @@ import {
   ensureAlgorandPayerAlgoForOptInAndFees,
   ensurePayToAlgoForUsdcRefund,
   PAYTO_USDC_REFUND_FEE_NEED_MICRO,
+  PAYTO_USDC_REFUND_MIN_FEE_MICRO,
+  MICRO_ALGO,
 } from './labAlgorandFeeBuffer.js';
 
 const USDC_MAINNET = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
@@ -83,12 +83,41 @@ const ERC20_ABI = [
 /** Distinguishable error so callers can skip (not hard-fail) when the PayTo wallet is underfunded. */
 export const PAYTO_INSUFFICIENT_FUNDS = 'PAYTO_INSUFFICIENT_FUNDS';
 
-/** Minimum SOL the PayTo wallet needs to cover fees + possible ATA rent for a refund transfer. */
-const PAYTO_MIN_SOL_FOR_REFUND = 0.003;
-/** Minimum ETH the Base PayTo wallet needs for gas on a USDC transfer. */
-const PAYTO_MIN_ETH_FOR_REFUND = 0.00005;
-/** Minimum OKB the X Layer PayTo wallet needs for gas on a USDT0 transfer. */
-const PAYTO_MIN_OKB_FOR_REFUND = 0.00005;
+/** Minimum SOL a funder needs to cover fees + possible ATA rent for a refund transfer. */
+const FUNDER_MIN_SOL_FOR_REFUND = 0.003;
+/** Minimum ETH a Base funder needs for gas on a USDC transfer. */
+const FUNDER_MIN_ETH_FOR_REFUND = 0.00005;
+/** Minimum OKB an X Layer funder needs for gas on a USDT0 transfer. */
+const FUNDER_MIN_OKB_FOR_REFUND = 0.00005;
+
+/**
+ * @param {'solana' | 'base' | 'algorand' | 'xlayer'} chain
+ * @returns {number}
+ */
+function minNativeForFunder(chain) {
+  if (chain === 'algorand') {
+    return Number(PAYTO_USDC_REFUND_MIN_FEE_MICRO) / Number(MICRO_ALGO);
+  }
+  if (chain === 'base') return FUNDER_MIN_ETH_FOR_REFUND;
+  if (chain === 'xlayer') return FUNDER_MIN_OKB_FOR_REFUND;
+  return FUNDER_MIN_SOL_FOR_REFUND;
+}
+
+/**
+ * Resolve richest funder wallet for a top-up (excludes the recipient payer).
+ * @param {'solana' | 'base' | 'algorand' | 'xlayer'} chain
+ * @param {string} excludePayer
+ * @param {number} minPriceUsd
+ */
+async function resolveFunderForTopUp(chain, excludePayer, minPriceUsd) {
+  const minPrice = Number.isFinite(minPriceUsd) && minPriceUsd > 0 ? minPriceUsd : getMinLabX402PriceUsd();
+  return resolveRichestFunder(chain, {
+    excludePayer,
+    minUsdc: minPrice,
+    minNative: minNativeForFunder(chain),
+    reserveUsdc: minPrice,
+  });
+}
 
 const REFUND_MAX_ATTEMPTS = 3;
 const REFUND_RETRY_DELAY_MS = 800;
@@ -318,7 +347,7 @@ export function clampXlayerPayToUsdt0RefundAmount(input = {}) {
 }
 
 /**
- * Transfer USDC from the Solana PayTo lab wallet to the payer.
+ * Transfer USDC from the richest Solana lab wallet to the payer.
  * @param {string} payerAddress
  * @param {number} amountUsd
  * @returns {Promise<{ signature: string; amountUsdc: number } | null>}
@@ -328,31 +357,40 @@ async function refundUsdcToPayerSolana(payerAddress, amountUsd) {
   const amount = Number(amountUsd);
   if (!payer || !Number.isFinite(amount) || amount <= 0) return null;
 
-  const payToKeypair = await getActivePayToKeypair();
-  if (!payToKeypair) {
-    throw new Error('No active Solana payTo lab wallet configured');
+  const minPriceUsd = getMinLabX402PriceUsd();
+  const funder = await resolveFunderForTopUp('solana', payer, minPriceUsd);
+  if (!funder?.account) {
+    throw new Error(`${PAYTO_INSUFFICIENT_FUNDS}: no lab wallet with enough USDC to fund payer`);
   }
 
+  const funderKeypair = /** @type {import('@solana/web3.js').Keypair} */ (funder.account);
   const payerPk = new PublicKey(payer);
-  const payToPk = payToKeypair.publicKey;
-  const payToAddr = payToPk.toBase58();
-  const amountMicro = BigInt(Math.round(amount * 1e6));
+  const funderPk = funderKeypair.publicKey;
+  const funderAddr = funderPk.toBase58();
+  const lendable = Math.min(amount, funder.lendableUsdc);
+  if (lendable < minPriceUsd) {
+    throw new Error(
+      `${PAYTO_INSUFFICIENT_FUNDS}: funder USDC lendable ${Number(funder.lendableUsdc).toFixed(4)} < needed ${minPriceUsd.toFixed(4)}`,
+    );
+  }
+  const sendAmount = lendable < amount ? lendable : amount;
+  const amountMicro = BigInt(Math.round(sendAmount * 1e6));
 
-  const payToBalances = await getLabWalletBalances(payToAddr, 'solana');
-  if (payToBalances) {
-    if (payToBalances.usdcBalance < amount) {
+  const funderBalances = await getLabWalletBalances(funderAddr, 'solana');
+  if (funderBalances) {
+    if (funderBalances.usdcBalance < sendAmount) {
       throw new Error(
-        `${PAYTO_INSUFFICIENT_FUNDS}: payTo USDC ${payToBalances.usdcBalance.toFixed(4)} < needed ${amount.toFixed(4)}`,
+        `${PAYTO_INSUFFICIENT_FUNDS}: funder USDC ${funderBalances.usdcBalance.toFixed(4)} < needed ${sendAmount.toFixed(4)}`,
       );
     }
-    if (payToBalances.nativeBalance < PAYTO_MIN_SOL_FOR_REFUND) {
+    if (funderBalances.nativeBalance < FUNDER_MIN_SOL_FOR_REFUND) {
       throw new Error(
-        `${PAYTO_INSUFFICIENT_FUNDS}: payTo SOL ${payToBalances.nativeBalance.toFixed(5)} < needed ${PAYTO_MIN_SOL_FOR_REFUND} for fees`,
+        `${PAYTO_INSUFFICIENT_FUNDS}: funder SOL ${funderBalances.nativeBalance.toFixed(5)} < needed ${FUNDER_MIN_SOL_FOR_REFUND} for fees`,
       );
     }
   }
 
-  const sourceAta = await getAssociatedTokenAddress(USDC_MAINNET, payToPk);
+  const sourceAta = await getAssociatedTokenAddress(USDC_MAINNET, funderPk);
   const destAta = await getAssociatedTokenAddress(USDC_MAINNET, payerPk);
 
   let lastErr;
@@ -360,27 +398,27 @@ async function refundUsdcToPayerSolana(payerAddress, amountUsd) {
   let submittedSig = null;
   for (let attempt = 1; attempt <= REFUND_MAX_ATTEMPTS; attempt++) {
     if (submittedSig && (await isRefundTxAlreadyConfirmed(submittedSig, 'solana'))) {
-      return { signature: submittedSig, amountUsdc: amount };
+      return { signature: submittedSig, amountUsdc: sendAmount };
     }
     try {
-      const { connection } = await pickSolanaConnectionForReads(payToPk);
+      const { connection } = await pickSolanaConnectionForReads(funderPk);
 
       const tx = new Transaction();
       const destInfo = await connection.getAccountInfo(destAta);
       if (!destInfo) {
         tx.add(
-          createAssociatedTokenAccountInstruction(payToPk, destAta, payerPk, USDC_MAINNET),
+          createAssociatedTokenAccountInstruction(funderPk, destAta, payerPk, USDC_MAINNET),
         );
       }
       tx.add(
-        createTransferInstruction(sourceAta, destAta, payToPk, amountMicro, [], TOKEN_PROGRAM_ID),
+        createTransferInstruction(sourceAta, destAta, funderPk, amountMicro, [], TOKEN_PROGRAM_ID),
       );
 
       const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
       tx.recentBlockhash = blockhash;
       tx.lastValidBlockHeight = lastValidBlockHeight;
-      tx.feePayer = payToPk;
-      tx.sign(payToKeypair);
+      tx.feePayer = funderPk;
+      tx.sign(funderKeypair);
 
       const signature = await connection.sendRawTransaction(tx.serialize(), {
         skipPreflight: false,
@@ -390,13 +428,13 @@ async function refundUsdcToPayerSolana(payerAddress, amountUsd) {
       submittedSig = signature;
 
       await confirmSolanaTransaction(connection, signature, { lastValidBlockHeight });
-      return { signature, amountUsdc: amount };
+      return { signature, amountUsdc: sendAmount };
     } catch (e) {
       lastErr = e;
       const fromErr = extractSubmittedTxId(e);
       if (fromErr) submittedSig = fromErr;
       if (submittedSig && (await isRefundTxAlreadyConfirmed(submittedSig, 'solana'))) {
-        return { signature: submittedSig, amountUsdc: amount };
+        return { signature: submittedSig, amountUsdc: sendAmount };
       }
       // Ambiguous confirm — do NOT re-broadcast a new transfer
       const msg = e?.message || String(e);
@@ -426,7 +464,7 @@ async function refundUsdcToPayerSolana(payerAddress, amountUsd) {
 }
 
 /**
- * Transfer USDC from the Base PayTo lab wallet to the payer (ERC-20).
+ * Transfer USDC from the richest Base lab wallet to the payer (ERC-20).
  * @param {string} payerAddress
  * @param {number} amountUsd
  * @returns {Promise<{ signature: string; amountUsdc: number } | null>}
@@ -438,38 +476,46 @@ async function refundUsdcToPayerBase(payerAddress, amountUsd) {
     return null;
   }
 
-  const payToAccount = await getActivePayToEvmAccount();
-  if (!payToAccount) {
-    throw new Error('No active Base payTo lab wallet configured');
+  const minPriceUsd = getMinLabX402PriceUsd();
+  const funder = await resolveFunderForTopUp('base', payer, minPriceUsd);
+  if (!funder?.account) {
+    throw new Error(`${PAYTO_INSUFFICIENT_FUNDS}: no lab wallet with enough USDC to fund payer`);
   }
 
-  const payToAddr = payToAccount.address;
+  const funderAccount = /** @type {import('viem').Account} */ (funder.account);
+  const funderAddr = funderAccount.address;
   const publicClient = getBasePublicClient();
-  const walletClient = createBaseWalletClient(payToAccount);
+  const walletClient = createBaseWalletClient(funderAccount);
 
-  const amountRaw = parseUnits(amount.toFixed(6), 6);
+  const sendAmount = Math.min(amount, funder.lendableUsdc);
+  if (sendAmount < minPriceUsd) {
+    throw new Error(
+      `${PAYTO_INSUFFICIENT_FUNDS}: funder USDC lendable ${Number(funder.lendableUsdc).toFixed(4)} < needed ${minPriceUsd.toFixed(4)}`,
+    );
+  }
+  const amountRaw = parseUnits(sendAmount.toFixed(6), 6);
 
   const [usdcBal, ethBal] = await Promise.all([
     publicClient.readContract({
       address: /** @type {`0x${string}`} */ (BASE_USDC),
       abi: ERC20_ABI,
       functionName: 'balanceOf',
-      args: [/** @type {`0x${string}`} */ (payToAddr)],
+      args: [/** @type {`0x${string}`} */ (funderAddr)],
     }),
-    publicClient.getBalance({ address: /** @type {`0x${string}`} */ (payToAddr) }),
+    publicClient.getBalance({ address: /** @type {`0x${string}`} */ (funderAddr) }),
   ]);
 
   const usdcBalance = Number(formatUnits(/** @type {bigint} */ (usdcBal), 6));
   const ethBalance = Number(formatEther(ethBal));
 
-  if (usdcBalance < amount) {
+  if (usdcBalance < sendAmount) {
     throw new Error(
-      `${PAYTO_INSUFFICIENT_FUNDS}: payTo USDC ${usdcBalance.toFixed(4)} < needed ${amount.toFixed(4)}`,
+      `${PAYTO_INSUFFICIENT_FUNDS}: funder USDC ${usdcBalance.toFixed(4)} < needed ${sendAmount.toFixed(4)}`,
     );
   }
-  if (ethBalance < PAYTO_MIN_ETH_FOR_REFUND) {
+  if (ethBalance < FUNDER_MIN_ETH_FOR_REFUND) {
     throw new Error(
-      `${PAYTO_INSUFFICIENT_FUNDS}: payTo ETH ${ethBalance.toFixed(6)} < needed ${PAYTO_MIN_ETH_FOR_REFUND} for gas`,
+      `${PAYTO_INSUFFICIENT_FUNDS}: funder ETH ${ethBalance.toFixed(6)} < needed ${FUNDER_MIN_ETH_FOR_REFUND} for gas`,
     );
   }
 
@@ -481,7 +527,7 @@ async function refundUsdcToPayerBase(payerAddress, amountUsd) {
       submittedHash &&
       (await isRefundTxAlreadyConfirmed(submittedHash, 'base', { publicClient }))
     ) {
-      return { signature: submittedHash, amountUsdc: amount };
+      return { signature: submittedHash, amountUsdc: sendAmount };
     }
     try {
       const hash = await walletClient.writeContract({
@@ -492,7 +538,7 @@ async function refundUsdcToPayerBase(payerAddress, amountUsd) {
       });
       submittedHash = hash;
       await publicClient.waitForTransactionReceipt({ hash });
-      return { signature: hash, amountUsdc: amount };
+      return { signature: hash, amountUsdc: sendAmount };
     } catch (e) {
       lastErr = e;
       const fromErr = extractSubmittedTxId(e);
@@ -501,7 +547,7 @@ async function refundUsdcToPayerBase(payerAddress, amountUsd) {
         submittedHash &&
         (await isRefundTxAlreadyConfirmed(submittedHash, 'base', { publicClient }))
       ) {
-        return { signature: submittedHash, amountUsdc: amount };
+        return { signature: submittedHash, amountUsdc: sendAmount };
       }
       if (submittedHash) {
         console.warn(
@@ -525,8 +571,8 @@ async function refundUsdcToPayerBase(payerAddress, amountUsd) {
 }
 
 /**
- * Transfer USDT0 from the X Layer PayTo lab wallet to the payer (ERC-20).
- * Supports partial top-up when PayTo holds at least minAmountUsd but less than the full request.
+ * Transfer USDT0 from the richest X Layer lab wallet to the payer (ERC-20).
+ * Supports partial top-up when funder holds at least minAmountUsd but less than the full request.
  * @param {string} payerAddress
  * @param {number} amountUsd
  * @param {{ minAmountUsd?: number }} [opts]
@@ -539,52 +585,55 @@ async function refundUsdt0ToPayerXLayer(payerAddress, amountUsd, opts = {}) {
     return null;
   }
 
-  const payToAccount = await getActivePayToEvmAccount('xlayer');
-  if (!payToAccount) {
-    throw new Error('No active X Layer payTo lab wallet configured');
-  }
-
-  const payToAddr = payToAccount.address;
-  const publicClient = getXlayerPublicClient();
-  const walletClient = createXlayerWalletClient(payToAccount);
-
   const rawMin = Number(opts.minAmountUsd);
   const minAmountUsd =
     Number.isFinite(rawMin) && rawMin > 0 ? rawMin : getMinLabX402PriceUsd();
+
+  const funder = await resolveFunderForTopUp('xlayer', payer, minAmountUsd);
+  if (!funder?.account) {
+    throw new Error(`${PAYTO_INSUFFICIENT_FUNDS}: no lab wallet with enough USDT0 to fund payer`);
+  }
+
+  const funderAccount = /** @type {import('viem').Account} */ (funder.account);
+  const funderAddr = funderAccount.address;
+  const publicClient = getXlayerPublicClient();
+  const walletClient = createXlayerWalletClient(funderAccount);
 
   const [usdt0Bal, okbBal] = await Promise.all([
     publicClient.readContract({
       address: /** @type {`0x${string}`} */ (XLAYER_USDT0),
       abi: ERC20_ABI,
       functionName: 'balanceOf',
-      args: [/** @type {`0x${string}`} */ (payToAddr)],
+      args: [/** @type {`0x${string}`} */ (funderAddr)],
     }),
-    publicClient.getBalance({ address: /** @type {`0x${string}`} */ (payToAddr) }),
+    publicClient.getBalance({ address: /** @type {`0x${string}`} */ (funderAddr) }),
   ]);
 
   const usdt0Balance = Number(formatUnits(/** @type {bigint} */ (usdt0Bal), 6));
   const okbBalance = Number(formatEther(okbBal));
 
-  if (okbBalance < PAYTO_MIN_OKB_FOR_REFUND) {
+  if (okbBalance < FUNDER_MIN_OKB_FOR_REFUND) {
     throw new Error(
-      `${PAYTO_INSUFFICIENT_FUNDS}: payTo OKB ${okbBalance.toFixed(6)} < needed ${PAYTO_MIN_OKB_FOR_REFUND} for gas`,
+      `${PAYTO_INSUFFICIENT_FUNDS}: funder OKB ${okbBalance.toFixed(6)} < needed ${FUNDER_MIN_OKB_FOR_REFUND} for gas`,
     );
   }
 
+  const reserve = funder.role === 'payto' ? 0 : minAmountUsd;
+  const availableForLend = Math.max(0, Math.min(usdt0Balance, funder.lendableUsdc, usdt0Balance - reserve));
   const clamp = clampXlayerPayToUsdt0RefundAmount({
     requestedUsd: amount,
-    payToUsdt0Balance: usdt0Balance,
+    payToUsdt0Balance: availableForLend > 0 ? availableForLend : usdt0Balance,
     minPriceUsd: minAmountUsd,
   });
   if (!clamp.ok) {
     throw new Error(
-      `${PAYTO_INSUFFICIENT_FUNDS}: payTo USDT0 ${usdt0Balance.toFixed(4)} < needed ${minAmountUsd.toFixed(4)} (min call)`,
+      `${PAYTO_INSUFFICIENT_FUNDS}: funder USDT0 ${usdt0Balance.toFixed(4)} < needed ${minAmountUsd.toFixed(4)} (min call)`,
     );
   }
   const sendAmount = clamp.amountUsd;
   if (clamp.partial) {
     console.info(
-      `[labX402Refund] X Layer partial top-up: requested ${amount.toFixed(4)} USDT0, sending ${sendAmount.toFixed(4)} (PayTo balance)`,
+      `[labX402Refund] X Layer partial top-up from ${funderAddr.slice(0, 8)}…: requested ${amount.toFixed(4)} USDT0, sending ${sendAmount.toFixed(4)}`,
     );
   }
 
@@ -642,7 +691,7 @@ async function refundUsdt0ToPayerXLayer(payerAddress, amountUsd, opts = {}) {
 }
 
 /**
- * Transfer USDC ASA from the Algorand PayTo lab wallet to the payer.
+ * Transfer USDC ASA from the richest Algorand lab wallet to the payer.
  * Payer must already be opted into the USDC ASA.
  * @param {string} payerAddress
  * @param {number} amountUsd
@@ -653,10 +702,15 @@ async function refundUsdcToPayerAlgorand(payerAddress, amountUsd) {
   const amount = Number(amountUsd);
   if (!payer || !Number.isFinite(amount) || amount <= 0) return null;
 
-  const payToAccount = await getActivePayToAlgorandAccount();
-  if (!payToAccount) {
-    throw new Error('No active Algorand payTo lab wallet configured');
+  const minPriceUsd = getMinLabX402PriceUsd();
+  const funder = await resolveFunderForTopUp('algorand', payer, minPriceUsd);
+  if (!funder?.account) {
+    throw new Error(`${PAYTO_INSUFFICIENT_FUNDS}: no lab wallet with enough USDC to fund payer`);
   }
+
+  const funderAccount = /** @type {{ address: string; keyB64: string; sk: Uint8Array }} */ (
+    funder.account
+  );
 
   const optedIn = await isAlgorandAddressOptedInUsdc(payer);
   if (!optedIn) {
@@ -665,44 +719,49 @@ async function refundUsdcToPayerAlgorand(payerAddress, amountUsd) {
     );
   }
 
-  const payToBalances = await getLabWalletBalances(payToAccount.address, 'algorand');
+  const funderBalances = await getLabWalletBalances(funderAccount.address, 'algorand');
   let sendAmount = amount;
-  if (payToBalances) {
+  if (funderBalances) {
+    const available = Math.min(
+      funderBalances.usdcBalance,
+      funder.lendableUsdc,
+    );
     const clamp = clampAlgorandPayToUsdcRefundAmount({
       requestedUsd: amount,
-      payToUsdcBalance: payToBalances.usdcBalance,
-      minPriceUsd: getMinLabX402PriceUsd(),
+      payToUsdcBalance: available,
+      minPriceUsd: minPriceUsd,
     });
     if (!clamp.ok) {
       throw new Error(
-        `${PAYTO_INSUFFICIENT_FUNDS}: payTo USDC ${Number(payToBalances.usdcBalance).toFixed(4)} < needed ${getMinLabX402PriceUsd().toFixed(4)} (min call)`,
+        `${PAYTO_INSUFFICIENT_FUNDS}: funder USDC ${Number(funderBalances.usdcBalance).toFixed(4)} < needed ${minPriceUsd.toFixed(4)} (min call)`,
       );
     }
     sendAmount = clamp.amountUsd;
     if (clamp.partial) {
       console.info(
-        `[labX402Refund] Algorand partial top-up: requested ${amount.toFixed(4)} USDC, sending ${sendAmount.toFixed(4)} (PayTo balance)`,
+        `[labX402Refund] Algorand partial top-up from ${funderAccount.address.slice(0, 8)}…: requested ${amount.toFixed(4)} USDC, sending ${sendAmount.toFixed(4)}`,
       );
     }
   }
 
   const client = getAlgorandAlgodClient();
-  const feeReady = await ensurePayToAlgoForUsdcRefund(payToAccount.address, {
+  // Reuse fee buffer: top up funder's ALGO for ASA transfer fees (same as former PayTo path).
+  const feeReady = await ensurePayToAlgoForUsdcRefund(funderAccount.address, {
     needMicro: PAYTO_USDC_REFUND_FEE_NEED_MICRO,
     client,
   });
   if (!feeReady.ok) {
     throw new Error(
-      `${PAYTO_INSUFFICIENT_FUNDS}: ${feeReady.error || 'payTo ALGO insufficient for USDC refund fees'}`,
+      `${PAYTO_INSUFFICIENT_FUNDS}: ${feeReady.error || 'funder ALGO insufficient for USDC refund fees'}`,
     );
   }
   if (feeReady.funded) {
     console.info(
-      `[labX402Refund] PayTo fee top-up ${feeReady.amount} ALGO from ${feeReady.from}`,
+      `[labX402Refund] Funder fee top-up ${feeReady.amount} ALGO from ${feeReady.from}`,
     );
   } else if (feeReady.belowBatch) {
     console.info(
-      `[labX402Refund] PayTo ALGO below batch cushion (spendable ${feeReady.spendable}); proceeding with single-refund fee floor`,
+      `[labX402Refund] Funder ALGO below batch cushion (spendable ${feeReady.spendable}); proceeding with single-refund fee floor`,
     );
   }
 
@@ -726,13 +785,13 @@ async function refundUsdcToPayerAlgorand(payerAddress, amountUsd) {
         'algod_params_timeout',
       );
       const txn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-        sender: payToAccount.address,
+        sender: funderAccount.address,
         receiver: payer,
         amount: amountMicro,
         assetIndex: asaId,
         suggestedParams: sp,
       });
-      const signed = txn.signTxn(payToAccount.sk);
+      const signed = txn.signTxn(funderAccount.sk);
       const { txid } = await withTimeout(
         client.sendRawTransaction(signed).do(),
         12_000,
@@ -777,7 +836,7 @@ async function refundUsdcToPayerAlgorand(payerAddress, amountUsd) {
 }
 
 /**
- * Transfer USDC/USDT0 from the PayTo lab wallet to the payer (chain-aware).
+ * Transfer USDC/USDT0 from the richest lab wallet to the payer (chain-aware).
  * @param {string} payerAddress
  * @param {number} amountUsd
  * @param {'solana' | 'base' | 'algorand' | 'xlayer'} [chain]
@@ -798,8 +857,8 @@ export async function refundUsdcToPayer(payerAddress, amountUsd, chain, opts = {
 }
 
 /**
- * Proactively ensure a payer can afford the next call, topping it up from the PayTo wallet
- * when its USDC/USDT0 is too low.
+ * Proactively ensure a payer can afford the next call, topping it up from the
+ * richest lab wallet (PayTo or another payer) when its USDC/USDT0 is too low.
  *
  * @param {string} payerAddress
  * @param {{ refundEnabled?: boolean; chain?: 'solana' | 'base' | 'algorand' | 'xlayer'; priceMultiplier?: number }} [opts]
@@ -907,7 +966,7 @@ export async function ensurePayerFundedForNextCall(payerAddress, opts = {}) {
     const underfunded = String(msg).includes(PAYTO_INSUFFICIENT_FUNDS);
     const notOptedIn = /not opted into USDC ASA/i.test(String(msg));
     console.warn(
-      `[labX402Refund] proactive top-up failed for ${payerAddress} (${underfunded ? 'payTo underfunded' : msg})`,
+      `[labX402Refund] proactive top-up failed for ${payerAddress} (${underfunded ? 'funder underfunded' : msg})`,
     );
     return {
       canPay: balances.usdcBalance >= minPriceUsd,

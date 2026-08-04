@@ -43,7 +43,7 @@ export function TreasuryHealthBanner({
       <Alert>
         <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
         <AlertTitle>Treasury</AlertTitle>
-        <AlertDescription>Checking PayTo and deposit hub balances…</AlertDescription>
+        <AlertDescription>Checking lab wallet and deposit hub balances…</AlertDescription>
       </Alert>
     );
   }
@@ -52,6 +52,11 @@ export function TreasuryHealthBanner({
 
   const native = nativeLabel(chain);
   const healthy = treasury.canFundAny && !treasury.paused;
+  const funderAddr = treasury.funderAddress || treasury.payToAddress;
+  const funderUsdc = Number(treasury.funderUsdc ?? treasury.payToUsdc ?? 0);
+  const funderNative = Number(
+    treasury.funderNative ?? treasury.payToSpendableNative ?? treasury.payToSpendableAlgo ?? 0,
+  );
 
   if (healthy) {
     return (
@@ -60,16 +65,12 @@ export function TreasuryHealthBanner({
         <AlertTitle>Treasury healthy</AlertTitle>
         <AlertDescription className="space-y-1">
           <p>
-            PayTo {truncateAddr(treasury.payToAddress)} holds{" "}
-            <span className="font-mono">${Number(treasury.payToUsdc ?? 0).toFixed(4)}</span> USDC
+            Richest funder {truncateAddr(funderAddr)} holds{" "}
+            <span className="font-mono">${funderUsdc.toFixed(4)}</span> USDC
             {chain === "algorand" ? (
               <>
                 {" "}
-                and{" "}
-                <span className="font-mono">
-                  {Number(treasury.payToSpendableAlgo ?? 0).toFixed(4)}
-                </span>{" "}
-                spendable {native}
+                and <span className="font-mono">{funderNative.toFixed(4)}</span> spendable {native}
               </>
             ) : null}
             . About {treasury.fundableCalls} call
@@ -97,20 +98,23 @@ export function TreasuryHealthBanner({
       <AlertDescription className="space-y-3">
         <p>
           {treasury.topUp?.instructions ||
-            `PayTo cannot fund payers (${treasury.reason || "payto_underfunded"}). Top up PayTo ${truncateAddr(treasury.payToAddress)} with ~$${needUsdc.toFixed(2)} USDC` +
+            `No lab wallet can fund payers (${treasury.reason || "payto_underfunded"}). Fund any wallet or the deposit hub with ~$${needUsdc.toFixed(2)} USDC` +
               (needNative > 0 ? ` and ~${needNative.toFixed(4)} ${native}` : "") +
               "."}
         </p>
         <p className="text-xs opacity-90">
-          PayTo USDC:{" "}
-          <span className="font-mono">${Number(treasury.payToUsdc ?? 0).toFixed(4)}</span>
+          Funder USDC: <span className="font-mono">${funderUsdc.toFixed(4)}</span>
           {chain === "algorand" ? (
             <>
               {" "}
-              · spendable {native}:{" "}
-              <span className="font-mono">
-                {Number(treasury.payToSpendableAlgo ?? 0).toFixed(4)}
-              </span>
+              · spendable {native}: <span className="font-mono">{funderNative.toFixed(4)}</span>
+            </>
+          ) : null}
+          {treasury.payToAddress ? (
+            <>
+              {" "}
+              · PayTo USDC:{" "}
+              <span className="font-mono">${Number(treasury.payToUsdc ?? 0).toFixed(4)}</span>
             </>
           ) : null}
           {treasury.hubAddress ? (
@@ -148,7 +152,7 @@ export function TreasuryHealthBanner({
               title={
                 treasury.canFundAny
                   ? "Clear treasury pause and resume auto-call"
-                  : "Top up PayTo before resuming"
+                  : "Fund any lab wallet or the deposit hub before resuming"
               }
             >
               {isResuming ? (

@@ -246,6 +246,7 @@ export function createLabsX402Router() {
           paused: Boolean(settings.autoCallPausedReason),
           topUp: {
             payToAddress: assessment.payToAddress,
+            funderAddress: assessment.funderAddress ?? assessment.payToAddress,
             hubAddress: assessment.hubAddress,
             usdcUsd: assessment.recommendedTopUpUsdc,
             native: assessment.recommendedTopUpNative,
@@ -254,12 +255,12 @@ export function createLabsX402Router() {
               ? null
               : assessment.hubHasFunds
                 ? `Deposit hub has funds. Click Distribute, or POST /labs/x402/deposit/distribute?chain=${chain}.`
-                : `Fund PayTo ${assessment.payToAddress || '(create a payto wallet)'} with ~$${Number(assessment.recommendedTopUpUsdc || 0).toFixed(2)} USDC` +
+                : `Fund any lab wallet (or deposit hub ${assessment.hubAddress || 'once created'}) with ~$${Number(assessment.recommendedTopUpUsdc || 0).toFixed(2)} USDC` +
                   (assessment.recommendedTopUpNative > 0
                     ? ` and ~${Number(assessment.recommendedTopUpNative).toFixed(4)} ${chain === 'algorand' ? 'ALGO' : chain === 'base' ? 'ETH' : chain === 'xlayer' ? 'OKB' : 'SOL'}`
                     : '') +
                   (assessment.hubAddress
-                    ? `, or fund deposit hub ${assessment.hubAddress} then Distribute.`
+                    ? `, then Distribute from the hub if needed.`
                     : '.'),
           },
         },
@@ -281,7 +282,7 @@ export function createLabsX402Router() {
         return res.status(409).json({
           success: false,
           error: 'treasury_still_underfunded',
-          message: `Cannot resume: ${assessment.reason || 'payto_underfunded'}. Top up PayTo first.`,
+          message: `Cannot resume: ${assessment.reason || 'payto_underfunded'}. Fund any lab wallet or the deposit hub first.`,
           data: assessment,
         });
       }

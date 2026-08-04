@@ -46,7 +46,7 @@ describe('scheduler treasury circuit-breaker contracts', () => {
     assert.equal(assessment.hubHasFunds, true);
   });
 
-  test('after refill, canFundAny flips true so auto-resume clears pause', () => {
+  test('after refill (richest funder holds USDC), canFundAny flips true so auto-resume clears pause', () => {
     const before = evaluateTreasuryCapacity({
       payToUsdc: 0,
       payToSpendableNative: 0,
@@ -58,6 +58,7 @@ describe('scheduler treasury circuit-breaker contracts', () => {
       payToOptedIn: true,
       chain: 'algorand',
     });
+    // Richest funder may be a payer wallet, not PayTo — still feeds evaluateTreasuryCapacity.
     const after = evaluateTreasuryCapacity({
       payToUsdc: 2,
       payToSpendableNative: 0.1,
@@ -71,6 +72,23 @@ describe('scheduler treasury circuit-breaker contracts', () => {
     });
     assert.equal(before.canFundAny, false);
     assert.equal(after.canFundAny, true);
+  });
+
+  test('richest funder with balance allows run even if dedicated PayTo is empty (capacity model)', () => {
+    // assessLabTreasury feeds funderUsdc into payToUsdc slot of evaluateTreasuryCapacity
+    const withRichestPayer = evaluateTreasuryCapacity({
+      payToUsdc: 3,
+      payToSpendableNative: 0.1,
+      minNativeForFee: 0.004,
+      hubUsdc: 0,
+      hubNative: 0,
+      minPriceUsd: 0.01,
+      payerCount: 5,
+      payToOptedIn: true,
+      chain: 'base',
+    });
+    assert.equal(withRichestPayer.canFundAny, true);
+    assert.ok(withRichestPayer.fundableCalls >= 1);
   });
 
   test('treasury alert throttle prevents N identical alerts within window', () => {

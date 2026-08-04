@@ -9,7 +9,7 @@ describe('formatFundingSkipError', () => {
   test('includes reason and actionable top-up copy when no detail', () => {
     const msg = formatFundingSkipError({ reason: 'payto_underfunded' });
     assert.match(msg, /payto_underfunded/);
-    assert.match(msg, /Top up/);
+    assert.match(msg, /Top up any lab wallet/);
   });
 
   test('includes opt-in failure detail', () => {

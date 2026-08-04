@@ -68,6 +68,11 @@ export interface LabTreasuryStatus {
   payToSpendableNative: number | null;
   payToSpendableAlgo: number | null;
   payToOptedInUsdc: boolean | null;
+  /** Richest funder used for top-ups (PayTo or any payer). */
+  funderAddress?: string | null;
+  funderUsdc?: number | null;
+  funderNative?: number | null;
+  funderRole?: string | null;
   hubAddress: string | null;
   hubUsdc: number | null;
   hubNative: number | null;
@@ -80,6 +85,7 @@ export interface LabTreasuryStatus {
   paused: boolean;
   topUp: {
     payToAddress: string | null;
+    funderAddress?: string | null;
     hubAddress: string | null;
     usdcUsd: number;
     native: number;
