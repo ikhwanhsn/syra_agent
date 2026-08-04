@@ -7,6 +7,7 @@
  */
 import path from "path";
 import { fileURLToPath } from "url";
+import dns from "dns";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import connectMongoose from "../config/mongoose.js";
@@ -26,6 +27,8 @@ import {
   runRobinhoodLpSignalCycle,
 } from "../libs/robinhoodLpExperimentService.js";
 import { getRobinhoodLpEvGateStatus } from "../libs/outcomeEvGateService.js";
+
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, "../.env") });

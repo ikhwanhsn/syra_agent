@@ -19,5 +19,9 @@ export function isGatewayOpenApiFreeRoute(p) {
   if (path === '/experiment/scalper/runs') return true;
   if (path === '/experiment/scalper/learning') return true;
   if (path === '/experiment/scalper/reference') return true;
+  // Outcomes discovery / EV gate (mutations stay session-protected on the router).
+  if (path === '/outcomes/catalog' || path.startsWith('/outcomes/catalog/')) return true;
+  if (path === '/outcomes/ev-gate' || path.startsWith('/outcomes/ev-gate/')) return true;
+  if (path === '/pillars' || path.startsWith('/pillars/')) return true;
   return false;
 }

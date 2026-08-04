@@ -20,7 +20,6 @@ import {
   computeDlmmFeeShareMultiplier,
   computeFeeYieldPct,
   computeLpNetPnlPct,
-  getLpSimFeeCalibrationMult,
   computeLpRiskRewardProfile,
   computePoolRiskScore,
   computePriceDriftPct,
@@ -30,12 +29,14 @@ import {
   mergeRealExitRules,
   resolveAdaptiveExitRules,
   resolveEffectiveBins,
-  shouldCloseByOor,
   strategyLikelyNeedsSidecarSwap,
 } from "./lpEconomicsModel.js";
 import {
   computeRobinhoodSimTransactionCostsUsd,
+  getRobinhoodLpSimFeeCalibrationMult,
+  isRobinhoodSimPositionInRange,
   robinhoodStrategyNeedsSidecarSwap,
+  shouldCloseRobinhoodSimByOor,
 } from "./robinhoodLpEconomics.js";
 import { getHeartbeatMinMs, isHeartbeatDue, numChanged } from "../utils/mongoHeartbeatWrite.js";
 
@@ -99,12 +100,8 @@ function shouldWriteRobinhoodRunResolve(run, fields) {
 
 function evaluateRunResolution(run, detail, strategyExit, hoursElapsed, simDefaults) {
   const priceDriftPct = computePriceDriftPct(toNum(run.entryPriceUsd), toNum(detail.currentPrice));
-  const inRange = !isPositionOutOfRange(
-    run.activeBinAtOpen,
-    detail.activeBinId,
-    run.binsBelow,
-    run.binsAbove,
-  );
+  // Uniswap ticks ≠ Meteora bins: compare against bins × tickSpacing range.
+  const inRange = isRobinhoodSimPositionInRange(run, detail);
   const tvlUsd = toNum(detail.tvlUsd, run.tvlUsd);
   const volume24hUsd = toNum(detail.volume24hUsd, run.volume24hUsd);
   const volTvlRatio = tvlUsd > 0 ? volume24hUsd / tvlUsd : 0;
@@ -141,9 +138,10 @@ function evaluateRunResolution(run, detail, strategyExit, hoursElapsed, simDefau
     binsAbove: run.binsAbove,
     inRange,
   });
+  // computeDlmmFeeShareMultiplier already returns 0.25 when OOR — do not haircut again.
   const feeShareMult =
-    applyRiskAdjustedFeeMultiplier(rawFeeShareMult, riskScore) * getLpSimFeeCalibrationMult();
-  const feeYieldPct = inRange ? baseFeeYieldPct * feeShareMult : baseFeeYieldPct * feeShareMult * 0.25;
+    applyRiskAdjustedFeeMultiplier(rawFeeShareMult, riskScore) * getRobinhoodLpSimFeeCalibrationMult();
+  const feeYieldPct = baseFeeYieldPct * feeShareMult;
   const netPnlPct = computeLpNetPnlPct(priceDriftPct, feeYieldPct, inRange, riskScore);
   const simFeesEarnedUsd = toNum(run.depositUsd) * (feeYieldPct / 100);
 
@@ -166,7 +164,7 @@ function evaluateRunResolution(run, detail, strategyExit, hoursElapsed, simDefau
     ) {
       status = netPnlPct >= simDefaults.winThresholdPct ? "win" : "loss";
       resolution = "trailing_stop";
-    } else if (shouldCloseByOor(run, detail, exit, hoursElapsed)) {
+    } else if (shouldCloseRobinhoodSimByOor(run, detail, exit, hoursElapsed)) {
       status = netPnlPct >= simDefaults.winThresholdPct ? "win" : "loss";
       resolution = "oor";
     } else if (hoursElapsed >= simDefaults.maxRunAgeHours) {

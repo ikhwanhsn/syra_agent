@@ -345,7 +345,14 @@ export function RobinhoodLpLiveAgentPanel() {
     onError: (e: Error) => setActionError(e.message),
   });
 
-  const canStart = ready && Boolean(anonymousId) && unlocked && !killSwitch && !agentOn;
+  // Dry-run starts after EV gate clears; live funds still need the operator pilot flag.
+  const canStart =
+    ready &&
+    Boolean(anonymousId) &&
+    unlocked &&
+    !killSwitch &&
+    !agentOn &&
+    (dryRun || pilotEnabled);
   const busy = startMutation.isPending || stopMutation.isPending;
 
   return (
@@ -413,11 +420,11 @@ export function RobinhoodLpLiveAgentPanel() {
                 {!confirmLive ? (
                   <button
                     type="button"
-                    disabled={!canStart || busy || !pilotEnabled}
+                    disabled={!canStart || busy}
                     onClick={() => setConfirmLive(true)}
                     className={cn(
                       "min-h-11 rounded-xl px-4 text-sm font-semibold transition",
-                      canStart && pilotEnabled
+                      canStart
                         ? "bg-primary text-primary-foreground hover:opacity-90"
                         : "cursor-not-allowed bg-muted text-muted-foreground",
                     )}
@@ -469,9 +476,9 @@ export function RobinhoodLpLiveAgentPanel() {
             {killSwitch ? (
               <p className="text-[11px] text-destructive">Operator kill switch is on. Starts are blocked.</p>
             ) : null}
-            {safety && !pilotEnabled ? (
+            {safety && !dryRun && !pilotEnabled ? (
               <p className="text-[11px] text-muted-foreground">
-                Pilot flag is off (ROBINHOOD_LP_REAL_PILOT_ENABLED). Ask an operator to enable it.
+                Live funds need ROBINHOOD_LP_REAL_PILOT_ENABLED=true. Dry-run can start without it.
               </p>
             ) : null}
             {actionError ? <p className="text-[11px] text-destructive">{actionError}</p> : null}

@@ -119,12 +119,15 @@ export async function enableRobinhoodLpAutopilot(mandateId) {
   if (getRobinhoodLpRealKillSwitch()) {
     throw new Error("Robinhood LP real kill switch is active");
   }
-  if (!getRobinhoodLpRealPilotEnabled()) {
-    throw new Error("Robinhood LP real pilot not enabled (set ROBINHOOD_LP_REAL_PILOT_ENABLED=true)");
-  }
   const unlocked = await isRealExecutionUnlocked("robinhood_lp_autopilot");
   if (!unlocked) {
     throw new Error("EV gate not passed for robinhood_lp_autopilot");
+  }
+
+  const dryRun = getRobinhoodLpRealDryRun();
+  // Dry-run may start after EV gate clears. Live funds still need the pilot flag.
+  if (!dryRun && !getRobinhoodLpRealPilotEnabled()) {
+    throw new Error("Robinhood LP real pilot not enabled (set ROBINHOOD_LP_REAL_PILOT_ENABLED=true)");
   }
 
   const mandate = await getOutcomeMandate(mandateId);
@@ -132,7 +135,6 @@ export async function enableRobinhoodLpAutopilot(mandateId) {
 
   let config = await ensureRobinhoodLpRealConfig(mandate);
 
-  const dryRun = getRobinhoodLpRealDryRun();
   if (!dryRun) {
     config = await ensurePrivyWalletForConfig(config, {
       anonymousId: config.anonymousId,

@@ -64,7 +64,12 @@ export function isBrowserCallablePath(path) {
     path.startsWith("/post/studio") ||
     path.startsWith("/btc") ||
     path.startsWith("/jupiter/ui") ||
-    path.startsWith("/labs")
+    path.startsWith("/labs") ||
+    path.startsWith("/outcomes") ||
+    path.startsWith("/pillars") ||
+    path.startsWith("/invest") ||
+    path.startsWith("/grow") ||
+    path.startsWith("/earn")
   );
 }
 

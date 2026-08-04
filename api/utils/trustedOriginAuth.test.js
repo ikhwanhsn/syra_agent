@@ -32,6 +32,16 @@ test("isBrowserCallablePath allows Labs admin routes", () => {
   assert.equal(isBrowserCallablePath("/labs/organize/meta"), true);
 });
 
+test("isBrowserCallablePath allows outcomes and pillar facades", () => {
+  assert.equal(isBrowserCallablePath("/outcomes/ev-gate"), true);
+  assert.equal(isBrowserCallablePath("/outcomes/ev-gate/robinhood-lp"), true);
+  assert.equal(isBrowserCallablePath("/outcomes/mandates"), true);
+  assert.equal(isBrowserCallablePath("/pillars"), true);
+  assert.equal(isBrowserCallablePath("/invest/opportunities"), true);
+  assert.equal(isBrowserCallablePath("/grow/recommendations"), true);
+  assert.equal(isBrowserCallablePath("/earn/summary"), true);
+});
+
 test("isBrowserCallablePath rejects unrelated paths", () => {
   assert.equal(isBrowserCallablePath("/post/other"), false);
   assert.equal(isBrowserCallablePath("/"), false);

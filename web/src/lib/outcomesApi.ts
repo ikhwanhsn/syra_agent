@@ -1,28 +1,37 @@
 /**
  * Client helpers for Syra completed-work outcomes API.
  */
-const API_BASE = import.meta.env.VITE_API_URL || "https://api.syraa.fun";
+import { getApiBaseUrl } from "@/lib/chatApi";
+import { syraFetch } from "@/lib/agentAuthApi";
+
+const base = () => `${getApiBaseUrl().replace(/\/$/, "")}/outcomes`;
 
 async function fetchJson(path: string, init?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await syraFetch(`${base()}${path}`, {
     ...init,
     headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
   });
-  const body = await res.json();
-  if (!res.ok) throw new Error(body?.error || `HTTP ${res.status}`);
+  const body = (await res.json().catch(() => ({}))) as {
+    success?: boolean;
+    data?: unknown;
+    error?: string;
+  };
+  if (!res.ok || body.success === false) {
+    throw new Error(body.error || `HTTP ${res.status}`);
+  }
   return body.data;
 }
 
 export async function fetchOutcomeCatalog() {
-  return fetchJson("/outcomes/catalog");
+  return fetchJson("/catalog");
 }
 
 export async function fetchEvGateStatus() {
-  return fetchJson("/outcomes/ev-gate");
+  return fetchJson("/ev-gate");
 }
 
 export async function fetchRobinhoodLpEvGateStatus() {
-  return fetchJson("/outcomes/ev-gate/robinhood-lp");
+  return fetchJson("/ev-gate/robinhood-lp");
 }
 
 export async function createOutcomeMandate(payload: {
@@ -34,10 +43,9 @@ export async function createOutcomeMandate(payload: {
   perTxCapUsd?: number;
   maxManagedCapitalUsd?: number;
 }) {
-  return fetchJson("/outcomes/mandates", {
+  return fetchJson("/mandates", {
     method: "POST",
     body: JSON.stringify(payload),
-    headers: { "x-anonymous-id": payload.anonymousId },
   });
 }
 
@@ -49,60 +57,59 @@ export async function listOutcomeMandates(
   if (opts?.productId) qs.set("productId", opts.productId);
   if (opts?.status) qs.set("status", opts.status);
   const q = qs.toString();
-  return fetchJson(`/outcomes/mandates${q ? `?${q}` : ""}`, {
-    headers: { "x-anonymous-id": anonymousId },
-  });
+  return fetchJson(`/mandates${q ? `?${q}` : ""}`);
 }
 
 export async function enableOutcomeMandate(mandateId: string) {
-  return fetchJson(`/outcomes/mandates/${encodeURIComponent(mandateId)}/enable`, {
+  return fetchJson(`/mandates/${encodeURIComponent(mandateId)}/enable`, {
     method: "POST",
     body: JSON.stringify({}),
   });
 }
 
 export async function disableOutcomeMandate(mandateId: string) {
-  return fetchJson(`/outcomes/mandates/${encodeURIComponent(mandateId)}/disable`, {
+  return fetchJson(`/mandates/${encodeURIComponent(mandateId)}/disable`, {
     method: "POST",
     body: JSON.stringify({}),
   });
 }
 
 export async function fetchOutcomeMandateStatus(mandateId: string) {
-  return fetchJson(`/outcomes/mandates/${encodeURIComponent(mandateId)}/status`);
+  return fetchJson(`/mandates/${encodeURIComponent(mandateId)}/status`);
 }
 
 export async function runOutcomeJob(mandateId: string, input?: Record<string, unknown>) {
-  return fetchJson("/outcomes/jobs", {
+  return fetchJson("/jobs", {
     method: "POST",
     body: JSON.stringify({ mandateId, input }),
   });
 }
 
 export async function fetchOutcomeReport(reportId: string) {
-  return fetchJson(`/outcomes/reports/${reportId}`);
+  return fetchJson(`/reports/${reportId}`);
 }
 
 export async function verifyOutcomeReport(reportId: string) {
-  return fetchJson(`/outcomes/reports/${reportId}/verify`);
+  return fetchJson(`/reports/${reportId}/verify`);
 }
 
 export type RobinhoodLpEvGate = {
-  unlocked?: boolean;
-  passed?: boolean;
-  decided?: number;
-  winRate?: number;
-  sumNetPnlUsd?: number;
-  reasons?: string[];
-  requirements?: Record<string, unknown>;
-  leader?: {
+  productId?: string;
+  qualified?: boolean;
+  realExecutionUnlocked?: boolean;
+  error?: string;
+  poolCheck?: { ok?: boolean; eligibleCount?: number; reason?: string };
+  simLeader?: {
     strategyId?: number;
-    strategyName?: string;
     decided?: number;
     winRate?: number;
     sumNetPnlUsd?: number;
+  } | null;
+  gate?: {
+    minDecided?: number;
+    minWinRate?: number;
+    minSumNetPnlUsd?: number;
   };
-  poolUniverse?: { ok?: boolean; eligibleCount?: number };
 };
 
 export type RobinhoodLpLivePosition = {
