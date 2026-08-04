@@ -1094,6 +1094,7 @@ app.use(
       p === "/apple-touch-icon.png" ||
       p === "/android-chrome-192x192.png" ||
       p === "/health/live" ||
+      p === "/x402/capabilities" ||
       p.startsWith("/og") ||
       p.startsWith("/info") ||
       p.startsWith("/agentscore/") ||
