@@ -5,8 +5,9 @@
  * X402_DEFAULT_FACILITATOR_FAILOVER is enabled, which is the default),
  * and by Labs `/insights/*` via resolveLabsFacilitatorProfile.
  *
- * Settle-time cross-facilitator retry is intentionally NOT done — Exact SVM payments
- * bind to each facilitator's fee payer.
+ * Solana settle-time cross-facilitator retry is intentionally NOT done — Exact SVM
+ * payments bind to each facilitator's fee payer (local on-chain confirm is used instead).
+ * EVM verify/settle may retry Dexter → GoPlausible → PayAI (same merchant payTo).
  */
 import { isDexterHealthyForLabChain as defaultIsDexterHealthy } from './dexterSolanaFeePayerHealth.js';
 import { isGoplausibleHealthyForLabChain as defaultIsGoplausibleHealthy } from './goplausibleFacilitatorHealth.js';

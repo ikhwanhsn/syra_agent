@@ -96,7 +96,10 @@ const FUNDER_MIN_OKB_FOR_REFUND = 0.00005;
  */
 function minNativeForFunder(chain) {
   if (chain === 'algorand') {
-    return Number(PAYTO_USDC_REFUND_MIN_FEE_MICRO) / Number(MICRO_ALGO);
+    // Algorand: do not gate funder selection on own spendable ALGO.
+    // ensurePayToAlgoForUsdcRefund borrows gas from sibling payers/PayTo/hub
+    // after the USDC-rich funder is chosen (see labAlgorandFeeBuffer).
+    return 0;
   }
   if (chain === 'base') return FUNDER_MIN_ETH_FOR_REFUND;
   if (chain === 'xlayer') return FUNDER_MIN_OKB_FOR_REFUND;
@@ -766,7 +769,6 @@ async function refundUsdcToPayerAlgorand(payerAddress, amountUsd) {
   }
 
   const asaId = getAlgorandUsdcAsaId();
-  const amountMicro = Math.round(sendAmount * 1e6);
 
   let lastErr;
   /** @type {string | null} */
@@ -779,6 +781,28 @@ async function refundUsdcToPayerAlgorand(payerAddress, amountUsd) {
       return { signature: submittedTxid, amountUsdc: sendAmount };
     }
     try {
+      // Re-read funder USDC immediately before send — concurrent top-ups / payments
+      // can drain the wallet between the initial clamp and this axfer.
+      const freshBal = await getLabWalletBalances(funderAccount.address, 'algorand');
+      if (freshBal) {
+        const freshClamp = clampAlgorandPayToUsdcRefundAmount({
+          requestedUsd: sendAmount,
+          payToUsdcBalance: freshBal.usdcBalance,
+          minPriceUsd: minPriceUsd,
+        });
+        if (!freshClamp.ok) {
+          throw new Error(
+            `${PAYTO_INSUFFICIENT_FUNDS}: funder USDC ${Number(freshBal.usdcBalance).toFixed(4)} < needed ${minPriceUsd.toFixed(4)} (min call, pre-send)`,
+          );
+        }
+        if (freshClamp.amountUsd < sendAmount) {
+          console.info(
+            `[labX402Refund] Algorand pre-send reclamp ${sendAmount.toFixed(4)} → ${freshClamp.amountUsd.toFixed(4)} USDC`,
+          );
+          sendAmount = freshClamp.amountUsd;
+        }
+      }
+      const amountMicro = Math.round(sendAmount * 1e6);
       const sp = await withTimeout(
         client.getTransactionParams().do(),
         12_000,

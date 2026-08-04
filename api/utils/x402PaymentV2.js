@@ -133,7 +133,10 @@ function isX402Debug() {
 function x402Log(event, detail) {
   // Routine flow (payment_required / payment_retry / verify_ok) is opt-in via X402_DEBUG.
   // Always keep genuine problems so failures remain visible without the flag.
-  const always = /verify_failed|mismatch|decode_failed|payment_error/i.test(event);
+  const always =
+    /verify_failed|mismatch|decode_failed|payment_error|verify_failover_ok|settle_failover_ok/i.test(
+      event,
+    );
   if (!always && !isX402Debug()) return;
   const line = detail && typeof detail === "object" ? JSON.stringify(detail) : String(detail ?? "");
   console.log(`[x402] ${event}${line ? ` ${line}` : ""}`);
@@ -332,18 +335,33 @@ function isEvmNetwork(accepted) {
   return /^eip155:/i.test(String(accepted?.network || ""));
 }
 
+/** Global facilitator preference (same as Labs): Dexter → GoPlausible → PayAI. */
+const DEFAULT_FACILITATOR_ORDER = Object.freeze(["dexter", "goplausible", "payai"]);
+
 /**
- * Ordered EVM verify failover list excluding the profile that just failed.
- * Mirrors ensureX402ForReq preference: Dexter → GoPlausible → PayAI.
+ * Init / offer order: preferred profile first, then remaining in Dexter→GoPlausible→PayAI.
+ * Corbits stays pinned (dedicated rail).
+ * @param {string} profile
+ * @returns {Array<'payai'|'corbits'|'dexter'|'goplausible'>}
+ */
+function facilitatorInitOrder(profile) {
+  const p = String(profile || "dexter").trim().toLowerCase();
+  if (p === "corbits") return ["corbits"];
+  const preferred = DEFAULT_FACILITATOR_ORDER.includes(/** @type {'dexter'|'goplausible'|'payai'} */ (p))
+    ? p
+    : "dexter";
+  return [preferred, ...DEFAULT_FACILITATOR_ORDER.filter((x) => x !== preferred)];
+}
+
+/**
+ * Ordered EVM verify/settle failover list excluding the profile that just failed.
+ * Always prefers remaining facilitators in Dexter → GoPlausible → PayAI order.
  * @param {string} currentProfile
  * @returns {Array<'dexter'|'goplausible'|'payai'>}
  */
 function evmVerifyFailoverOrder(currentProfile) {
   const p = String(currentProfile || "dexter").trim().toLowerCase();
-  if (p === "goplausible") return ["payai", "dexter"];
-  if (p === "payai") return ["goplausible", "dexter"];
-  // dexter (default) and unknown → GoPlausible then PayAI
-  return ["goplausible", "payai"];
+  return DEFAULT_FACILITATOR_ORDER.filter((x) => x !== p);
 }
 
 /**
@@ -397,6 +415,14 @@ async function tryEvmVerifyFailover(payload, acc, currentProfile, deps = {}) {
       if (verify?.isValid) {
         return { profile: candidate, resourceServer, verify };
       }
+      const reason = verify?.invalidReason || "Payment verification failed";
+      // Facilitator-looking soft failures (500 body) — try next candidate.
+      if (isFacilitatorError(reason)) {
+        console.warn(
+          `[x402] EVM verify failover candidate ${candidate} invalid:`,
+          String(reason).slice(0, 160),
+        );
+      }
     } catch (e) {
       const msg = e?.message || String(e ?? "verify failed");
       // Skip transient facilitator errors; try next candidate.
@@ -409,6 +435,85 @@ async function tryEvmVerifyFailover(payload, acc, currentProfile, deps = {}) {
       }
       console.warn(
         `[x402] EVM verify failover candidate ${candidate} error:`,
+        String(msg).slice(0, 160),
+      );
+    }
+  }
+  return null;
+}
+
+/**
+ * Re-settle an EVM payment via the next facilitator when the primary settle
+ * times out or flakes. Same payTo across Dexter/GoPlausible/PayAI; EIP-3009
+ * nonce prevents double-charge.
+ *
+ * @param {object} payload
+ * @param {object} acc
+ * @param {string} currentProfile
+ * @param {{
+ *   ensureProfile?: (profile: 'dexter'|'goplausible'|'payai') => Promise<void>,
+ *   getBundle?: (profile: 'dexter'|'goplausible'|'payai') => { resourceServer: { settlePayment: Function } },
+ *   settleTimeoutMs?: number,
+ *   settlePayload?: object,
+ * }} [deps]
+ * @returns {Promise<{ profile: string, settle: object } | null>}
+ */
+async function tryEvmSettleFailover(payload, acc, currentProfile, deps = {}) {
+  const order = evmVerifyFailoverOrder(currentProfile);
+  const timeoutMs =
+    Number.isFinite(deps.settleTimeoutMs) && deps.settleTimeoutMs > 0
+      ? deps.settleTimeoutMs
+      : X402_SETTLE_FACILITATOR_TIMEOUT_MS;
+  const settlePayload = deps.settlePayload || payload;
+
+  const ensureProfile =
+    deps.ensureProfile ||
+    (async (profile) => {
+      if (profile === "dexter") await ensureX402DexterResourceServerInitialized();
+      else if (profile === "goplausible") await ensureX402GoplausibleResourceServerInitialized();
+      else await ensureX402ResourceServerInitialized();
+    });
+
+  const getBundle =
+    deps.getBundle ||
+    ((profile) => {
+      if (profile === "dexter") return getX402ResourceServerDexter();
+      if (profile === "goplausible") return getX402ResourceServerGoplausible();
+      return getX402ResourceServer();
+    });
+
+  for (const candidate of order) {
+    try {
+      await ensureProfile(candidate);
+      const { resourceServer } = getBundle(candidate);
+      if (!resourceServer?.settlePayment) continue;
+      const settle = await withTimeout(
+        resourceServer.settlePayment(settlePayload, acc),
+        timeoutMs,
+        "settle_timeout",
+      );
+      if (settle?.success) {
+        return { profile: candidate, settle };
+      }
+      const reason = settle?.errorReason || settle?.error || "Settlement failed";
+      if (isFacilitatorError(reason)) {
+        console.warn(
+          `[x402] EVM settle failover candidate ${candidate} failed:`,
+          String(reason).slice(0, 160),
+        );
+        continue;
+      }
+    } catch (e) {
+      const msg = e?.message || String(e ?? "settle failed");
+      if (isFacilitatorError(msg)) {
+        console.warn(
+          `[x402] EVM settle failover candidate ${candidate} error:`,
+          String(msg).slice(0, 160),
+        );
+        continue;
+      }
+      console.warn(
+        `[x402] EVM settle failover candidate ${candidate} error:`,
         String(msg).slice(0, 160),
       );
     }
@@ -1276,8 +1381,8 @@ async function resolveEffectivePriceUsd(rawPrice, req, _options) {
  * X402_USE_CORBITS_FACILITATOR / X402_USE_DEXTER_FACILITATOR.
  *
  * Note: the health-based default is applied asynchronously in requirePayment by setting
- * `req.x402ResourceServerProfile` before this sync resolver runs. Without that, and without
- * env overrides, this returns "payai" (legacy default / kill-switch path).
+ * `req.x402ResourceServerProfile` before this sync resolver runs. Sync fallback is Dexter
+ * when failover is enabled; kill switch (`X402_DEFAULT_FACILITATOR_FAILOVER=false`) keeps PayAI.
  * @returns {'payai'|'corbits'|'dexter'|'goplausible'}
  */
 function resolveResourceServerProfile(req, options) {
@@ -1298,7 +1403,9 @@ function resolveResourceServerProfile(req, options) {
   ) {
     return explicit;
   }
-  if (explicit === "default") return "payai";
+  if (explicit === "default") {
+    return isDefaultFacilitatorFailoverEnabled() ? "dexter" : "payai";
+  }
 
   const truthy = (v) => {
     const s = String(v || "").trim().toLowerCase();
@@ -1306,7 +1413,7 @@ function resolveResourceServerProfile(req, options) {
   };
   if (truthy(process.env.X402_USE_CORBITS_FACILITATOR)) return "corbits";
   if (truthy(process.env.X402_USE_DEXTER_FACILITATOR)) return "dexter";
-  return "payai";
+  return isDefaultFacilitatorFailoverEnabled() ? "dexter" : "payai";
 }
 
 /**
@@ -1353,14 +1460,7 @@ function getX402BundleForReq(req, options) {
 async function ensureX402ForReq(req, options) {
   const profile = resolveResourceServerProfile(req, options);
   /** @type {Array<'payai'|'corbits'|'dexter'|'goplausible'>} */
-  const order =
-    profile === "corbits"
-      ? ["corbits"]
-      : profile === "payai"
-        ? ["payai", "goplausible", "dexter"]
-        : profile === "goplausible"
-          ? ["goplausible", "payai", "dexter"]
-          : ["dexter", "goplausible", "payai"];
+  const order = facilitatorInitOrder(profile);
 
   /** @type {Error | null} */
   let lastErr = null;
@@ -2104,20 +2204,47 @@ export function requirePayment(options) {
         }
       }
 
+      // Soft facilitator failures (HTTP 200 + isValid:false with 500-ish reason):
+      // try the next EVM facilitator before rejecting the payment.
+      if (
+        verify &&
+        !verify.isValid &&
+        isFacilitatorError(verify.invalidReason || "") &&
+        isEvmNetwork(acc) &&
+        !useB402Facilitator &&
+        !useOkxFacilitator &&
+        !useAlgorandFacilitator
+      ) {
+        const fromProfile = resolveResourceServerProfile(req, options);
+        const fb = await tryEvmVerifyFailover(payloadWithResource, acc, fromProfile);
+        if (fb?.verify?.isValid) {
+          verify = fb.verify;
+          resourceServer = fb.resourceServer;
+          req.x402ResourceServerProfile = fb.profile;
+          x402Log("verify_failover_ok", {
+            method: req.method,
+            path: req.path,
+            from: fromProfile,
+            to: fb.profile,
+            network: acc?.network,
+            via: "invalid_reason",
+          });
+        }
+      }
+
       if (!verify?.isValid) {
+        const failReason = verify?.invalidReason || "Payment verification failed";
         x402Log("verify_failed", {
           method: req.method,
           path: req.path,
           b402: useB402Facilitator,
           algorand: useAlgorandFacilitator,
-          reason: verify?.invalidReason || "Payment verification failed",
+          reason: failReason,
         });
-        const pr = await buildPaymentRequired(
-          bundle,
-          req,
-          options,
-          verify?.invalidReason || "Payment verification failed"
-        );
+        const userMessage = isFacilitatorError(failReason)
+          ? "Payment verification is temporarily unavailable. Please try again in a moment."
+          : failReason;
+        const pr = await buildPaymentRequired(bundle, req, options, userMessage);
         json402(res, pr);
         recordInboundX402(req, {
           outcome: "verify_failed",
@@ -2128,7 +2255,7 @@ export function requirePayment(options) {
             useB402Facilitator,
             useOkxFacilitator,
           }),
-          errorReason: verify?.invalidReason || "Payment verification failed",
+          errorReason: failReason,
           amountUsd: priceUsd,
           amountMicroUsdc: acc?.amount,
         });
@@ -2349,6 +2476,25 @@ async function tryFacilitatorThenLocalSettle(payload, accepted, req) {
   } catch (e) {
     const msg = getErrorMessage(e);
     if (isFacilitatorError(msg)) {
+      // EVM: cross-facilitator settle (Dexter → GoPlausible → PayAI). Same merchant payTo.
+      if (isEvmNetwork(accepted)) {
+        const fromProfile = String(profile || resolveResourceServerProfile(req) || "dexter");
+        const fb = await tryEvmSettleFailover(settlePayload, accepted, fromProfile, {
+          settlePayload,
+        });
+        if (fb?.settle?.success) {
+          if (req?.x402Payment) req.x402Payment.resourceServerProfile = fb.profile;
+          req.x402ResourceServerProfile = fb.profile;
+          x402Log("settle_failover_ok", {
+            method: req?.method,
+            path: req?.path,
+            from: fromProfile,
+            to: fb.profile,
+            network: accepted?.network,
+          });
+          return { ...fb.settle, retries: settleRetries };
+        }
+      }
       try {
         const local = await settleSolanaPaymentLocally(payload, accepted);
         if (local?.success) {
@@ -2374,6 +2520,24 @@ async function tryFacilitatorThenLocalSettle(payload, accepted, req) {
   if (!settle?.success) {
     const reason = settle?.errorReason || settle?.error || "";
     if (isFacilitatorError(reason)) {
+      if (isEvmNetwork(accepted)) {
+        const fromProfile = String(profile || resolveResourceServerProfile(req) || "dexter");
+        const fb = await tryEvmSettleFailover(settlePayload, accepted, fromProfile, {
+          settlePayload,
+        });
+        if (fb?.settle?.success) {
+          if (req?.x402Payment) req.x402Payment.resourceServerProfile = fb.profile;
+          req.x402ResourceServerProfile = fb.profile;
+          x402Log("settle_failover_ok", {
+            method: req?.method,
+            path: req?.path,
+            from: fromProfile,
+            to: fb.profile,
+            network: accepted?.network,
+          });
+          return { ...fb.settle, retries: settleRetries };
+        }
+      }
       try {
         const local = await settleSolanaPaymentLocally(payload, accepted);
         if (local?.success) {
@@ -2609,7 +2773,14 @@ export { getX402ResourceServer };
 export { isB402Network };
 export { isAlgorandNetwork };
 /** @internal exported for unit tests */
-export { isEvmNetwork, evmVerifyFailoverOrder, tryEvmVerifyFailover };
+export {
+  isEvmNetwork,
+  evmVerifyFailoverOrder,
+  tryEvmVerifyFailover,
+  tryEvmSettleFailover,
+  facilitatorInitOrder,
+  DEFAULT_FACILITATOR_ORDER,
+};
 
 export function usdToMicroUsdc(usd) {
   const n = Number(usd);

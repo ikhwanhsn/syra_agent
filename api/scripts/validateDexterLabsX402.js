@@ -5,7 +5,7 @@
  * 1. Dexter facilitator GET /supported is reachable
  * 2. Local Dexter resource server initializes
  * 3. Unpaid GET /insights/network-health returns 402 (Dexter-backed)
- * 4. Unpaid GET /news (or /health) still returns 402 via PayAI (control)
+ * 4. Unpaid GET /news (or /health) returns 402 via default Dexter→GoPlausible→PayAI failover
  * 5. Optional paid E2E when PAYER_KEYPAIR is set
  *
  * Usage:

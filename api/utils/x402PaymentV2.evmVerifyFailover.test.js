@@ -8,6 +8,8 @@ import {
   isEvmNetwork,
   evmVerifyFailoverOrder,
   tryEvmVerifyFailover,
+  facilitatorInitOrder,
+  DEFAULT_FACILITATOR_ORDER,
 } from "./x402PaymentV2.js";
 
 const baseAcc = {
@@ -47,12 +49,12 @@ describe("evmVerifyFailoverOrder", () => {
     assert.deepEqual(evmVerifyFailoverOrder("dexter"), ["goplausible", "payai"]);
   });
 
-  it("from goplausible → payai, dexter", () => {
-    assert.deepEqual(evmVerifyFailoverOrder("goplausible"), ["payai", "dexter"]);
+  it("from goplausible → dexter, payai (Dexter preferred)", () => {
+    assert.deepEqual(evmVerifyFailoverOrder("goplausible"), ["dexter", "payai"]);
   });
 
-  it("from payai → goplausible, dexter", () => {
-    assert.deepEqual(evmVerifyFailoverOrder("payai"), ["goplausible", "dexter"]);
+  it("from payai → dexter, goplausible (Dexter preferred)", () => {
+    assert.deepEqual(evmVerifyFailoverOrder("payai"), ["dexter", "goplausible"]);
   });
 
   it("unknown defaults like dexter", () => {
@@ -139,7 +141,7 @@ describe("tryEvmVerifyFailover", () => {
     assert.equal(result.profile, "payai");
   });
 
-  it("from goplausible order prefers payai first", async () => {
+  it("from goplausible order prefers dexter first", async () => {
     /** @type {string[]} */
     const order = [];
     await tryEvmVerifyFailover(payload, baseAcc, "goplausible", {
@@ -152,6 +154,21 @@ describe("tryEvmVerifyFailover", () => {
           throw new Error("verify_timeout");
         }),
     });
-    assert.deepEqual(order, ["payai", "dexter"]);
+    assert.deepEqual(order, ["dexter", "payai"]);
+  });
+});
+
+describe("facilitatorInitOrder", () => {
+  it("dexter preferred: dexter → goplausible → payai", () => {
+    assert.deepEqual(DEFAULT_FACILITATOR_ORDER, ["dexter", "goplausible", "payai"]);
+    assert.deepEqual(facilitatorInitOrder("dexter"), ["dexter", "goplausible", "payai"]);
+    assert.deepEqual(facilitatorInitOrder("goplausible"), [
+      "goplausible",
+      "dexter",
+      "payai",
+    ]);
+    assert.deepEqual(facilitatorInitOrder("payai"), ["payai", "dexter", "goplausible"]);
+    assert.deepEqual(facilitatorInitOrder("corbits"), ["corbits"]);
+    assert.deepEqual(facilitatorInitOrder(""), ["dexter", "goplausible", "payai"]);
   });
 });

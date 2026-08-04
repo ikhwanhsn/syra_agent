@@ -406,8 +406,23 @@ export async function ensurePayToAlgoForUsdcRefund(payToAddress, opts = {}) {
   });
   if (borrowed.ok) return borrowed;
 
-  // Batch cushion unreachable, but if PayTo can still cover a single refund fee, proceed.
-  if (payInfo.spendableMicro >= minMicro) {
+  // Batch cushion unreachable from one sibling (each keeps FUNDER_SPARE).
+  // Borrow only enough for a single refund fee floor so top-ups can proceed.
+  if (payInfo.spendableMicro < minMicro) {
+    const minDeficit = minMicro - payInfo.spendableMicro;
+    const borrowedMin = await borrowAlgorandAlgoFromFunders({
+      receiver: payTo,
+      deficitMicro: minDeficit,
+      client,
+      funders,
+      sendPayment: opts.sendPayment,
+      logPrefix: '[labAlgorandFeeBuffer] PayTo(min)',
+    });
+    if (borrowedMin.ok) {
+      return { ...borrowedMin, belowBatch: true };
+    }
+  } else {
+    // Already at/above single-refund floor — proceed without batch cushion.
     return {
       ok: true,
       funded: false,

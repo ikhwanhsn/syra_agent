@@ -1,34 +1,41 @@
 {
-  "date": "2026-07-27",
-  "updatedAt": "2026-07-27T01:09:03.313Z",
+  "date": "2026-08-04",
+  "updatedAt": "2026-08-04T14:39:10.020Z",
   "source": "https://api.syraa.fun/api/metrics",
   "loopHealth": "Closed-but-quiet",
-  "checklistItem": "Weekly proof content — publish #34 Revenue → $SYRA Proof",
+  "checklistItem": "Hold weekly proof publish until settleFailRate24h <5%; post-ready #34 draft prepared. Secondary: fund rewards epoch after settlement green.",
   "northStar": {
-    "paidCallsLast7d": 24291,
-    "uniquePayingWalletsLast7d": 75,
-    "usdSettled7d": 711.43
+    "paidCallsLast7d": 31195,
+    "uniquePayingWalletsLast7d": 95,
+    "usdSettled7d": 3758.47
   },
   "buyback": {
-    "totalBuybackUsdSpent": 25.14,
-    "treasurySyraBalance": 165644.59225,
-    "lastBuybackSolscan": "https://solscan.io/tx/3jz7qTsz14SQpJVxnaK5UWHVFjGP38GtDDuhGuK6ziNajDZciU62ZqwjYDUPGUMuzoHDAvM6ZxpSj8Mp1S21ED33"
+    "totalBuybackUsdSpent": 23.69,
+    "treasurySyraBalance": 172452.066761,
+    "lastBuybackSolscan": "https://solscan.io/tx/mC1hT19KDutbeo4W3qxwJ3H21GFvvt92HyFjGcidC9osbSaiacF5DoMnDCBDNFLHBUfy7mdopfagWPZySvzS2Y7"
   },
   "rewards": {
-    "uniqueEarners": 75,
+    "uniqueEarners": 102,
     "totalClaimableSyra": 0,
     "totalClaimedSyra": 0,
-    "totalPendingPoints": 704.2825999999989,
-    "fundAttempt": "401 Missing API key — hand off POST /internal/rewards/fund with prod credentials"
+    "totalPendingPoints": 5643.4011499999915,
+    "fundAttempt": "deferred — needs prod x-buyback-cron-secret on POST /internal/rewards/fund; prior run was 401"
   },
   "holders": {
-    "marketCapUsd": 65475,
-    "liquidityUsd": 24106.79
+    "marketCapUsd": 60118,
+    "liquidityUsd": 22675.84,
+    "volume24hUsd": 130.94,
+    "liqToMcapPct": 37.7
+  },
+  "settlement": {
+    "settleFailRate24h": 0.0677,
+    "topFailReason": "Facilitator settle failed (settle_timeout); local Solana settle did not confirm"
   },
   "publish": {
+    "status": "held_for_settlement",
     "postVideo": "https://www.syraa.fun/post/video/34",
     "postPhoto": "https://www.syraa.fun/post/photo/34",
-    "shareCopyUpdatedInRepo": true
+    "draftReady": true
   },
-  "oneAction": "Publish #34 X post with Solscan + live metrics; then fund rewards epoch with prod API key + cron secret"
+  "oneAction": "Restore settlement: facilitate settle_timeout + local confirm path until last24h settleFailRate <5%; then publish #34 proof post and fund rewards epoch"
 }

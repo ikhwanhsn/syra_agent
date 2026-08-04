@@ -1,17 +1,17 @@
 {
-  "date": "2026-07-31",
-  "updatedAt": "2026-07-30T17:05:52.275Z",
+  "date": "2026-08-04",
+  "updatedAt": "2026-08-04T14:39:10.020Z",
   "source": "https://api.syraa.fun/api/metrics",
   "northStar": {
-    "paidCallsLast7d": 36119,
-    "uniquePayingWalletsLast7d": 101
+    "paidCallsLast7d": 31195,
+    "uniquePayingWalletsLast7d": 95
   },
   "last7d": {
-    "calls": 36119,
-    "usdSettled": 3587.2
+    "calls": 31195,
+    "usdSettled": 3758.47
   },
   "buyback": {
-    "totalBuybackUsdSpent": 24.43,
+    "totalBuybackUsdSpent": 23.69,
     "totalSyraAcquired": 172452.066761,
     "treasurySyraBalance": 172452.066761,
     "lastBuybackSignature": "s3n9W9kLMMu1xZTBooGdENoznfF38bbieZMrTY13TunK6bgG3uepFQTN1C9s3R1bnHwTi7a5VjKYNGcLfszykVG"
@@ -22,8 +22,8 @@
     "totalClaimedSyra": 0
   },
   "settlement": {
-    "settleFailRate24h": 0.0052
+    "settleFailRate24h": 0.0677
   },
-  "oneAction": "DONE: Corrected public buyback claim. Labs payToOverride sets skipRevenueBuyback (dominates volume), so ~80% applies only to Syra-treasury-settled revenue. Updated publicBuybackMetrics note + growth/token UI. Deploy to refresh live /api/metrics note.",
-  "bottleneck": "token-loop"
+  "oneAction": "Triage facilitator settle_timeouts (179/24h): inspect RPC/facilitator health, local Solana settle fallback confirm path in x402PaymentV2, restore last24h settleFailRate <5%. Defer token proof posts until under guardrail.",
+  "bottleneck": "settlement"
 }
