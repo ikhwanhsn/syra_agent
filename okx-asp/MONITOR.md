@@ -4,9 +4,11 @@
 
 | Gate | Status | Updated | Notes |
 |------|--------|---------|-------|
-| Agentic Wallet logged in | NO | 2026-07-24 | Session expired — re-login required |
+| API/ASP endpoint testable | YES | 2026-08-04 | `/health` 402 + X Layer accept; `/x402/capabilities` 200 public; `validate-okx-x402` PASS |
+| Agentic Wallet logged in | NO | 2026-08-04 | Session expired — re-login required |
 | ASP create / activate | READY | 2026-07-24 | `validate-listing` **pass** with Finance Copilot services.json |
-| ASP LIVE on OKX.AI | UNKNOWN | | Run register after OTP login — eligibility blocker |
+| ASP LIVE on OKX.AI | UNKNOWN | 2026-08-04 | Blocked on OTP login; last known: under review #2311 |
+| X Layer delist email reply | READY | 2026-08-04 | Draft: [EMAIL-REPLY-XLAYER.md](./EMAIL-REPLY-XLAYER.md) |
 | Finance Copilot positioning in repo | YES | 2026-07-24 | services.json + dossier + ship-log #40 |
 | Brain Finance Copilot tune | YES | 2026-07-24 | api/routes/brain.js + BRAIN-FINANCE.md |
 | Demo video recorded | YES | 2026-07-24 | Post-page Remotion #40 → `okx-asp/out/syra-okxai-genesis-finance-copilot.mp4` |
