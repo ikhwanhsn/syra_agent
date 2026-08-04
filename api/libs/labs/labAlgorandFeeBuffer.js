@@ -242,9 +242,41 @@ async function borrowAlgorandAlgoFromFunders(args) {
 }
 
 /**
- * Default funder order for Algorand labs: PayTo → deposit hub only.
- * Sibling payers are intentionally excluded so ticks do not shuffle ALGO
- * between payers and churn them toward min-balance.
+ * Pure: order ALGO funder candidates by spendable microAlgos (desc).
+ * Used so the richest sibling lends first and we minimize fee-hop churn.
+ *
+ * @param {Array<{ address: string; spendableMicro?: bigint | number | string; [k: string]: unknown }>} candidates
+ * @returns {Array<{ address: string; spendableMicro: bigint; [k: string]: unknown }>}
+ */
+export function orderAlgorandAlgoFundersBySpendable(candidates) {
+  const list = Array.isArray(candidates) ? candidates : [];
+  /** @type {Array<{ address: string; spendableMicro: bigint; [k: string]: unknown }>} */
+  const normalized = [];
+  for (const c of list) {
+    if (!c || typeof c !== 'object') continue;
+    const address = String(c.address || '').trim();
+    if (!address) continue;
+    let spendableMicro = 0n;
+    try {
+      spendableMicro = BigInt(c.spendableMicro ?? 0);
+    } catch {
+      spendableMicro = 0n;
+    }
+    if (spendableMicro < 0n) spendableMicro = 0n;
+    normalized.push({ ...c, address, spendableMicro });
+  }
+  normalized.sort((a, b) => {
+    if (a.spendableMicro === b.spendableMicro) {
+      return String(a.address).localeCompare(String(b.address));
+    }
+    return a.spendableMicro < b.spendableMicro ? 1 : -1;
+  });
+  return normalized;
+}
+
+/**
+ * Default funder order for Algorand labs: PayTo → deposit hub → sibling payers
+ * (richest spendable ALGO first when siblings are included).
  * @param {string} receiverAddress
  * @param {{ includePayTo?: boolean; includeSiblingPayers?: boolean }} [opts]
  * @returns {Promise<{ address: string; sk: Uint8Array }[]>}
@@ -287,14 +319,28 @@ async function loadDefaultAlgorandAlgoFunders(receiverAddress, opts = {}) {
       })
         .select('+encryptedSecret')
         .lean();
+      /** @type {Array<{ address: string; sk: Uint8Array; spendableMicro: bigint }>} */
+      const siblings = [];
       for (const doc of payerDocs || []) {
         if (!doc?.encryptedSecret || doc.address === receiver) continue;
         if (funders.some((f) => f.address === doc.address)) continue;
         try {
-          funders.push(algorandAccountFromLabWalletDoc(doc));
+          const account = algorandAccountFromLabWalletDoc(doc);
+          let spendableMicro = 0n;
+          try {
+            const info = await getAlgorandAccountSpendableMicro(account.address);
+            spendableMicro = info.spendableMicro;
+          } catch {
+            /* keep 0 — still try later if borrow path can read again */
+          }
+          siblings.push({ ...account, spendableMicro });
         } catch {
           /* ignore */
         }
+      }
+      const ordered = orderAlgorandAlgoFundersBySpendable(siblings);
+      for (const s of ordered) {
+        funders.push({ address: s.address, sk: s.sk });
       }
     } catch {
       /* ignore */
@@ -343,8 +389,11 @@ export async function ensurePayToAlgoForUsdcRefund(payToAddress, opts = {}) {
   let funders = Array.isArray(opts.funders) ? opts.funders : [];
 
   if (!Array.isArray(opts.funders)) {
-    // PayTo is the receiver — borrow from hub then payers (not from itself).
-    funders = await loadDefaultAlgorandAlgoFunders(payTo, { includePayTo: false });
+    // PayTo is the receiver — borrow from hub then sibling payers (not from itself).
+    funders = await loadDefaultAlgorandAlgoFunders(payTo, {
+      includePayTo: false,
+      includeSiblingPayers: true,
+    });
   }
 
   const borrowed = await borrowAlgorandAlgoFromFunders({
@@ -378,7 +427,7 @@ export async function ensurePayToAlgoForUsdcRefund(payToAddress, opts = {}) {
 
 /**
  * Ensure an Algorand payer has enough ALGO to opt into USDC ASA and retain fee cushion.
- * Borrows deficit from PayTo → deposit hub only (sibling payers excluded by default).
+ * Borrows deficit from PayTo → deposit hub → sibling payers (richest ALGO first).
  *
  * @param {string} payerAddress
  * @param {{
@@ -425,7 +474,10 @@ export async function ensureAlgorandPayerAlgoForOptInAndFees(payerAddress, opts 
   /** @type {{ address: string; sk: Uint8Array }[]} */
   let funders = Array.isArray(opts.funders) ? opts.funders : [];
   if (!Array.isArray(opts.funders)) {
-    funders = await loadDefaultAlgorandAlgoFunders(payer, { includePayTo: true });
+    funders = await loadDefaultAlgorandAlgoFunders(payer, {
+      includePayTo: true,
+      includeSiblingPayers: true,
+    });
   }
 
   const borrowed = await borrowAlgorandAlgoFromFunders({

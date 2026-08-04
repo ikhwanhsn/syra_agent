@@ -59,7 +59,8 @@ function withTimeout(promise, ms, label = 'timeout') {
 }
 
 /**
- * Pure: decide whether PayTo can fund at least one call, and how many.
+ * Pure: decide whether the richest funder (or borrowable pool gas) can fund at least
+ * one call, and how many.
  *
  * @param {{
  *   payToUsdc: number;
@@ -71,6 +72,7 @@ function withTimeout(promise, ms, label = 'timeout') {
  *   payerCount: number;
  *   payToOptedIn?: boolean | null;
  *   chain?: string;
+ *   borrowableNative?: number;
  * }} input
  * @returns {{
  *   canFundAny: boolean;
@@ -93,9 +95,15 @@ export function evaluateTreasuryCapacity(input = {}) {
   const payerCount = Math.max(0, Math.floor(Number(input.payerCount) || 0));
   const chain = String(input.chain || '').toLowerCase();
   const payToOptedIn = input.payToOptedIn;
+  const borrowableNativeRaw = Number(input.borrowableNative);
 
   const usdcOk = Number.isFinite(payToUsdc) ? Math.max(0, payToUsdc) : 0;
   const nativeOk = Number.isFinite(payToSpendableNative) ? Math.max(0, payToSpendableNative) : 0;
+  const borrowableOk = Number.isFinite(borrowableNativeRaw)
+    ? Math.max(0, borrowableNativeRaw)
+    : 0;
+  // Gas can sit on a sibling/hub and be borrowed onto the funder mid-tick.
+  const effectiveNative = Math.max(nativeOk, borrowableOk);
   const feeFloor = Number.isFinite(minNativeForFee) && minNativeForFee > 0 ? minNativeForFee : 0;
   const minPrice = Number.isFinite(minPriceUsd) && minPriceUsd > 0 ? minPriceUsd : 0.01;
   const hubU = Number.isFinite(hubUsdc) ? Math.max(0, hubUsdc) : 0;
@@ -118,7 +126,7 @@ export function evaluateTreasuryCapacity(input = {}) {
     };
   }
 
-  if (nativeOk < feeFloor) {
+  if (effectiveNative < feeFloor) {
     return {
       canFundAny: false,
       fundableCalls: 0,
@@ -238,10 +246,12 @@ export async function assessLabTreasury(chain, opts = {}) {
   let hubNative = 0;
   /** @type {string | undefined} */
   let error;
+  /** @type {Array<{ address: string; usdc: number; native: number; role?: string; optedInUsdc?: boolean | null }>} */
+  let candidates = [];
 
   try {
     payToAddress = await resolvePayToAddress(c);
-    const candidates = await loadFunderCandidates(c);
+    candidates = await loadFunderCandidates(c);
 
     const payToCand = payToAddress
       ? candidates.find(
@@ -348,6 +358,7 @@ export async function assessLabTreasury(chain, opts = {}) {
       payerCount,
       payToOptedIn: c === 'algorand' ? false : null,
       chain: c,
+      borrowableNative: c === 'algorand' ? hubNative : 0,
     });
     return {
       chain: c,
@@ -373,6 +384,21 @@ export async function assessLabTreasury(chain, opts = {}) {
     };
   }
 
+  // Algorand: gas can be borrowed onto the funder from siblings / hub mid-tick.
+  let borrowableNative = 0;
+  if (c === 'algorand') {
+    const funderNorm = String(funderAddress || '').toLowerCase();
+    for (const cand of candidates) {
+      const addr = String(cand.address || '').toLowerCase();
+      if (!addr || (funderNorm && addr === funderNorm)) continue;
+      const n = Number(cand.native);
+      if (Number.isFinite(n) && n > 0) borrowableNative += n;
+    }
+    if (Number.isFinite(hubNative) && hubNative > 0) {
+      borrowableNative += hubNative;
+    }
+  }
+
   const capacity = evaluateTreasuryCapacity({
     payToUsdc: funderUsdc,
     payToSpendableNative: funderNative,
@@ -383,6 +409,7 @@ export async function assessLabTreasury(chain, opts = {}) {
     payerCount,
     payToOptedIn: c === 'algorand' ? funderOptedInUsdc : null,
     chain: c,
+    borrowableNative,
   });
 
   return {

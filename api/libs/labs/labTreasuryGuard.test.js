@@ -67,6 +67,62 @@ describe('evaluateTreasuryCapacity', () => {
     assert.ok(r.shortfallNative > 0);
   });
 
+  test('canFundAny when funder ALGO is low but borrowableNative meets fee floor', () => {
+    const r = evaluateTreasuryCapacity({
+      payToUsdc: 10,
+      payToSpendableNative: 0,
+      borrowableNative: ALGO_FEE_FLOOR,
+      minNativeForFee: ALGO_FEE_FLOOR,
+      hubUsdc: 0,
+      hubNative: 0,
+      minPriceUsd: 0.01,
+      payerCount: 3,
+      payToOptedIn: true,
+      chain: 'algorand',
+    });
+    assert.equal(r.canFundAny, true);
+    assert.equal(r.reason, null);
+    assert.equal(r.fundableCalls, 1000);
+    // Shortfall messaging still reflects the funder's own native (not pool gas).
+    assert.equal(r.shortfallNative, 0);
+  });
+
+  test('payto_native_underfunded when funder and borrowableNative are both below fee floor', () => {
+    const r = evaluateTreasuryCapacity({
+      payToUsdc: 10,
+      payToSpendableNative: ALGO_FEE_FLOOR / 2,
+      borrowableNative: ALGO_FEE_FLOOR / 2,
+      minNativeForFee: ALGO_FEE_FLOOR,
+      hubUsdc: 0,
+      hubNative: 0,
+      minPriceUsd: 0.01,
+      payerCount: 2,
+      payToOptedIn: true,
+      chain: 'algorand',
+    });
+    // Gate uses Math.max(own, borrowable) — half + half still fails if each alone is below floor.
+    assert.equal(r.canFundAny, false);
+    assert.equal(r.reason, 'payto_native_underfunded');
+    assert.ok(r.shortfallNative > 0);
+  });
+
+  test('borrowableNative does not waive payto_not_opted_in_usdc', () => {
+    const r = evaluateTreasuryCapacity({
+      payToUsdc: 10,
+      payToSpendableNative: 0,
+      borrowableNative: 1,
+      minNativeForFee: ALGO_FEE_FLOOR,
+      hubUsdc: 0,
+      hubNative: 0,
+      minPriceUsd: 0.01,
+      payerCount: 1,
+      payToOptedIn: false,
+      chain: 'algorand',
+    });
+    assert.equal(r.canFundAny, false);
+    assert.equal(r.reason, 'payto_not_opted_in_usdc');
+  });
+
   test('payto_not_opted_in_usdc blocks Algorand even with balances', () => {
     const r = evaluateTreasuryCapacity({
       payToUsdc: 10,

@@ -2,16 +2,15 @@
  * Scheduler for x402 Labs auto-caller — periodically runs paid /insights/* calls from payer wallets.
  * Runs independently per chain (solana | base | algorand | xlayer).
  *
- * Treasury circuit breaker: preflight assessLabTreasury once per tick. When no lab wallet
- * can fund any call, optionally self-heal via deposit distribute, then auto-pause with a single
- * aggregated (treasury) log instead of N per-payer (funding) errors.
+ * Treasury circuit breaker: preflight assessLabTreasury once per tick. When no payer/payto
+ * funder can fund any call, auto-pause with a single aggregated (treasury) log instead of
+ * N per-payer (funding) errors. Deposit-hub distribution is manual-only (UI/route).
  */
 import { listActivePayerWallets } from './labWalletService.js';
 import { runLabX402Payment, getLabX402Settings } from './labX402Payer.js';
 import { checkLabDailyCallBudget, logLabX402Call } from './labX402CallLog.js';
 import { formatFundingSkipError } from './labFundingSkipMessage.js';
 import { ensurePayerFundedForNextCall } from './labX402Refund.js';
-import { distributeLabDeposit } from './labDepositDistributor.js';
 import {
   assessLabTreasury,
   markTreasuryAlertLogged,
@@ -154,29 +153,10 @@ async function tick(chain) {
     const payers = await listActivePayerWallets(c);
     if (payers.length === 0) return;
 
-    let assessment = await assessLabTreasury(c, {
+    const assessment = await assessLabTreasury(c, {
       payerCount: payers.length,
       priceMultiplier: settings.priceMultiplier,
     });
-
-    // Self-heal: if treasury is empty but the deposit hub has funds, distribute once and re-assess.
-    if (!assessment.canFundAny && assessment.hubHasFunds) {
-      console.info(
-        `[lab-x402-scheduler] ${c} treasury empty but hub has funds; auto-distributing`,
-      );
-      try {
-        await distributeLabDeposit(c, { force: true });
-      } catch (e) {
-        console.warn(
-          `[lab-x402-scheduler] ${c} auto-distribute failed:`,
-          e?.message || e,
-        );
-      }
-      assessment = await assessLabTreasury(c, {
-        payerCount: payers.length,
-        priceMultiplier: settings.priceMultiplier,
-      });
-    }
 
     if (!assessment.canFundAny) {
       console.warn(

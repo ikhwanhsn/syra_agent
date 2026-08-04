@@ -30,7 +30,7 @@ describe('scheduler treasury circuit-breaker contracts', () => {
     assert.equal(shouldSpamPerPayer, false);
   });
 
-  test('underfunded PayTo + funded hub => self-heal path is available', () => {
+  test('underfunded funder + funded hub => hubHasFunds is informational only (no auto-distribute)', () => {
     const assessment = evaluateTreasuryCapacity({
       payToUsdc: 0,
       payToSpendableNative: 0.01,
@@ -42,6 +42,7 @@ describe('scheduler treasury circuit-breaker contracts', () => {
       payToOptedIn: true,
       chain: 'algorand',
     });
+    // Deposit hub may have funds; scheduler still pauses (distribution is manual-only).
     assert.equal(assessment.canFundAny, false);
     assert.equal(assessment.hubHasFunds, true);
   });
