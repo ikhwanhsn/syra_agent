@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 import { AMPERSEND_MARKETPLACE_NETWORK } from "../config/x402Bazaar.js";
 import { X402_DISCOVERY_RESOURCE_PATHS } from "../config/x402DiscoveryResourcePaths.js";
 import { getResourceDescription, getResourceMeta } from "../config/x402ResourceCatalog.js";
-import { getPayaiPayToAddresses } from "../config/payaiX402Networks.js";
+import { getBaseX402GatewayConfig } from "../config/baseX402Gateway.js";
 import {
   SYRA_AGENT_DESCRIPTION,
   SYRA_BAZAAR_CATEGORY,
@@ -54,7 +54,7 @@ function usdToMicroUsdc(usd) {
 }
 
 function buildCatalogPayload() {
-  const { evmPayTo } = getPayaiPayToAddresses();
+  const { payTo: basePayTo } = getBaseX402GatewayConfig();
   const endpoints = X402_DISCOVERY_RESOURCE_PATHS.map((slug) => {
     const meta = getResourceMeta(slug);
     const priceUsd = meta?.suggestedPriceStx ?? 0.01;
@@ -72,7 +72,7 @@ function buildCatalogPayload() {
         currency: "USDC",
         networkCaip2ID: AMPERSEND_MARKETPLACE_NETWORK,
         assetAddress: BASE_USDC,
-        payTo: evmPayTo,
+        payTo: basePayTo,
         x402Schema: "exact",
       },
     };

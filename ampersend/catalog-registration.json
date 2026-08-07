@@ -1,0 +1,1096 @@
+{
+  "name": "Syra",
+  "description": "Machine money for agents: Earn, Treasury, Invest, Spend, and Grow on Solana. Live today: pay-per-call crypto APIs via x402, MCP, and typed SDK.",
+  "source": "catalog",
+  "category": "Crypto",
+  "tags": [
+    "agents",
+    "x402",
+    "crypto",
+    "trading",
+    "analytics",
+    "machine-money"
+  ],
+  "url": "https://syraa.fun",
+  "logo_url": "https://api.syraa.fun/android-chrome-192x192.png",
+  "docs_url": "https://docs.syraa.fun",
+  "skillmd_url": "https://api.syraa.fun/skill.md",
+  "openapi_url": "https://api.syraa.fun/openapi.json",
+  "discovery_url": "https://api.syraa.fun/.well-known/x402",
+  "endpoints": [
+    {
+      "url": "https://api.syraa.fun/brain",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Answers one natural-language crypto question by selecting and running Syra tools (news, signals, on-chain reads) server-side. Use when an agent needs a grounded synthesis instead of calling many APIs manually. Input: question (required). Returns success, markdown/plain response, and toolUsages[] showing which tools ran. Treasury-paid tool calls included; not trade execution.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "80000",
+        "amountAtomicUnit": "80000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/news",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Curated crypto news articles with titles, sources, and URLs. Use when an agent needs recent headlines for a token, sector, or the whole market before trading or posting. Input: optional ticker (BTC, ETH, SOL, or general). Returns news[] with title, url, date, source.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "5000",
+        "amountAtomicUnit": "5000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/signal",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Generates a directional trading signal with bias, confidence, entry context, and reasoning from OHLCV candles. Use when an agent needs a technical read on BTC, ETH, SOL, or other supported assets before sizing a trade. Inputs: token (e.g. solana, bitcoin), source (binance default; coingecko if CEX blocked), interval, limit. Returns signal object with recommendation and analysis — probabilistic, not execution.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "5000",
+        "amountAtomicUnit": "5000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/spcx",
+      "methods": [
+        "GET"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Tokenized equity intelligence for SpaceX IPO exposure (SPCXx). Use when an agent compares Nasdaq reference price vs on-chain SPCX venues for premium/discount and agent bias. Input: symbol (default SPCXx). Returns nasdaqPriceUsd, venues[], agentBias, agentTake, riskNotes[], opportunities[], disclaimer.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "20000",
+        "amountAtomicUnit": "20000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/equity",
+      "methods": [
+        "GET"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Parametric tokenized equity intelligence for xStocks symbols. Use when an agent needs Nasdaq vs on-chain premium/discount, venue prices, and narrative bias for stocks like TSLAx or NVDAx. Input: symbol (required, e.g. TSLAx). Returns same report shape as /spcx: venues, agentBias, agentTake, riskNotes, opportunities.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "20000",
+        "amountAtomicUnit": "20000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/indicator",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Computes multiple technical indicators from OHLCV candles in one agent-readable response. Use when an agent needs RSI/MACD/EMA/Bollinger (or custom combos) without building indicator math. Inputs: symbol, source (binance/coinbase/coingecko), interval, limit, indicators (comma-separated), optional series=true. Returns indicators{} map, lastClose, candleCount, asOf.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "5000",
+        "amountAtomicUnit": "5000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/sentiment",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Daily sentiment breakdown (positive/negative/neutral/score) over ~30 days from news-derived analysis. Use when an agent gauges crowd mood on BTC, ETH, or a ticker before narrative trades. Input: optional ticker. Returns sentimentAnalysis[] with per-day scores.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "5000",
+        "amountAtomicUnit": "5000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/event",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Lists conferences, launches, listings, and macro events affecting crypto. Use when an agent schedules research around catalysts or filters noise by ticker. Input: optional ticker. Returns event[] with titles, dates, and metadata.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "5000",
+        "amountAtomicUnit": "5000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/trending-headline",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Hot headlines and viral crypto stories currently moving the market. Use when an agent needs the top narrative of the day rather than a full news archive. Input: optional ticker filter. Returns trendingHeadline[].",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "5000",
+        "amountAtomicUnit": "5000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/sundown-digest",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Daily wrap-up of key market moves, headlines, and themes. Use when an agent summarizes the session for reports or next-day planning. No required inputs. Returns sundownDigest[] items.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "5000",
+        "amountAtomicUnit": "5000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/health",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Minimal paid health check confirming Syra API is up and x402 settlement works. Use when an agent or monitor verifies connectivity before batch calls. No inputs. Returns ok, status, service, message, timestamp.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "1000",
+        "amountAtomicUnit": "1000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/mpp/health",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "MPP-compatible health endpoint with same x402 v2 flow as /health. Use when testing Tempo/Stripe-style machine payment clients against Syra. Returns ok, protocol mpp-test, paymentCompatibility x402-v2, plus /health sibling reference.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "1000",
+        "amountAtomicUnit": "1000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/arbitrage",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Bundles CoinMarketCap-style top tradable assets (stablecoins skipped) with live cross-venue USDT spot snapshots and ranked buy/sell routes by gross spread. Use when an agent scouts arbitrage ideas before fees/slippage. Input: limit (default 10, max 25). Returns cmcTop, snapshots[], ranked[], best, runnerUp — not financial advice.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "40000",
+        "amountAtomicUnit": "40000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/jupiter/quote",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Fetches a Jupiter Swap V1 quoteResponse for ExactIn swaps with Syra referral platform fee when configured on-chain. Use when an agent prices a Solana swap before building a transaction. Inputs: inputMint, outputMint, amount (raw units), optional slippageBps. Returns quote object and referral metadata.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "1000",
+        "amountAtomicUnit": "1000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/pumpfun/trending",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Returns trending pump.fun coins from frontend-api-v3 top-runners (falls back to currently-live). Use when an agent scans hot memecoin launches or social momentum on pump.fun. Inputs: limit (default 20, max 50), offset, includeNsfw. Returns normalized coins[], count, upstream metadata.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "1000",
+        "amountAtomicUnit": "1000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/pumpfun/movers",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Returns pump.fun market movers from frontend-api-v3 currently-live (falls back to top-runners). Use when an agent finds coins with unusual short-term price/volume action. Inputs: limit, offset, includeNsfw. Returns coins[], count, upstream metadata.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "1000",
+        "amountAtomicUnit": "1000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/pumpfun/analyzer",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Deep memecoin analysis for pump.fun or graduated tokens. Use when an agent must score risk/reward before trading. Input: mint (base58). Returns syraAlpha score/verdict, market stats, dossier risk, holders, distribution, onChainSecurity, kolShills — probabilistic, not financial advice.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "20000",
+        "amountAtomicUnit": "20000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/pumpfun/scout",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Live pump.fun intelligence with selector param segment=alpha|beta|predicted|utility. Use when an agent needs scored live pump.fun candidates. Optional period, limit, minPumpScore, llm. Returns scored tokens, analysis, and meta — deterministic by default.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "5000",
+        "amountAtomicUnit": "5000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/rise",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Live RISE intelligence with view=intel|markets|targets. Use when an agent needs ranked RISE markets or agent-ready mint targets. Optional mint, limit, tier=ready|watch. Returns top-market snapshot, market lens, ranked markets, and mint targets.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "5000",
+        "amountAtomicUnit": "5000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/coingecko",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Live CoinGecko scout with view=brief|gainers|predictions. Use when an agent needs top gainers or a short market brief. Optional topN, minMarketCap, includeNews, llm. Returns top gainers, digests, predictions, and narrative meta — deterministic by default.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "1000",
+        "amountAtomicUnit": "1000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/dexscreener/pairs",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Onchain DEX pair data from DexScreener across 80+ chains. Use when an agent needs live price, liquidity, volume, and txn counts for a token before trading or scouting. Inputs: chainId + tokenAddress OR q (search). Returns normalized pairs[] with priceUsd, liquidityUsd, volume24h, txns24h, fdv, pairAddress, dexId.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "1000",
+        "amountAtomicUnit": "1000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/geckoterminal/pools",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Trending or newly listed DEX pools from GeckoTerminal across 100+ networks. Use when an agent scouts fresh liquidity or momentum pools on Solana, Base, Ethereum, etc. Inputs: network (default solana), kind=trending|new, limit (max 50). Returns pools[] with priceUsd, priceChange24h, volume24h, reserveUsd, poolAddress, dex.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "1000",
+        "amountAtomicUnit": "1000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/defillama/tvl",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Total value locked for a DeFi protocol or blockchain from DefiLlama. Use when an agent assesses protocol scale, chain dominance, or macro DeFi health. Inputs: protocol (slug e.g. aave) OR chain (e.g. Solana, Ethereum). Returns currentTvlUsd, tvlHistory summary, name, category, chains[] when protocol.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "1000",
+        "amountAtomicUnit": "1000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/rugcheck/report",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Solana token risk report from RugCheck: mint/freeze authority, holder concentration, LP status, and risk score. Use when an agent screens memecoins or new mints before trading. Input: mint (required, Solana base58). Returns riskScore, risks[], topHolders[], mintAuthority, freezeAuthority, lpLocked, marketCap, computedAt.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "5000",
+        "amountAtomicUnit": "5000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/pyth/price",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Latest Pyth oracle prices from Hermes for major crypto feeds. Use when an agent needs authoritative onchain-derived spot prices (BTC, ETH, SOL, etc.) with confidence intervals. Input: symbols (comma-separated, e.g. BTC/USD,SOL/USD). Returns prices[] with symbol, priceUsd, confidenceUsd, publishTime, feedId.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "1000",
+        "amountAtomicUnit": "1000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/flint/pairs",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Listed pairs on Flint (multi-maker on-chain Solana spot DEX) with base/quote mints, spot ids, and last price when available. Use when an agent needs to discover Flint markets or resolve baseId/quoteId before flint/book or flint/candles. No auth. Does not place orders or run market-making.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "1000",
+        "amountAtomicUnit": "1000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/flint/book",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "One-shot book snapshot from Flint MarketDataService (default L2). Use when an agent needs CLOB-style depth on Flint before sizing a trade elsewhere. Inputs: base + optional quote (default USDC), or baseId/quoteId from flint/pairs; level=L1|L2|L3. Returns bids/asks as decimal price/size strings. Market data only — not execution or maker quoting.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "1000",
+        "amountAtomicUnit": "1000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/flint/stats",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Cross-venue summary from Flint StatsService: active pairs/makers, 1h/24h/30d quote volume and fill counts, unique traders, total NAV. Use when an agent checks Flint venue health and activity. Market data only.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "1000",
+        "amountAtomicUnit": "1000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/flint/candles",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "HistoricalService candles (kind=candles, interval 1M|5M|15M|30M|1H|4H|1D) or public fills (kind=fills). Use when an agent needs Flint OHLC or recent public fill tape. Inputs: base/quote or ids; optional startMicros/endMicros (unix µs). Default candles window is last 24h. Not a trading endpoint.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "1000",
+        "amountAtomicUnit": "1000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/flint/external-tape",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Collects a short-lived stream of external DEX aggregator fills (Jupiter, OKX, DFlow, Titan, …) and per-venue reference quotes for one Flint pair. Use when an agent compares Flint vs aggregator flow or reference spreads. Inputs: base/quote or ids; optional timeoutMs (default 2500), maxEvents. Quotes are poll estimates, not firm executable prices. Not maker/taker execution.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "5000",
+        "amountAtomicUnit": "5000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/insights/network-health",
+      "methods": [
+        "GET"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Real-time Solana mainnet health metrics: current slot, epoch progress, average TPS from recent performance samples, and median priority fee. Use when an agent needs chain liveness and congestion signals before submitting transactions.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "10000",
+        "amountAtomicUnit": "10000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/insights/gas-oracle",
+      "methods": [
+        "GET"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Priority fee oracle derived from recent Solana mainnet samples. Returns min, p25, p50, p75, p95, and max priority fees in lamports. Use when an agent needs data-driven fee estimation for reliable transaction landing.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "10000",
+        "amountAtomicUnit": "10000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/insights/market-pulse",
+      "methods": [
+        "GET"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Cross-asset market pulse with latest Pyth oracle prices for SOL/USD, BTC/USD, and ETH/USD including confidence intervals and publish times. Use when an agent needs a quick multi-asset price snapshot from authoritative feeds.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "20000",
+        "amountAtomicUnit": "20000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/insights/token-metrics",
+      "methods": [
+        "GET"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Token liquidity and trading metrics for SOL across major DEX pairs from DexScreener. Returns top pairs with price, 24h volume, price change, and liquidity. Use when an agent screens on-chain liquidity before execution.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "30000",
+        "amountAtomicUnit": "30000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/insights/defi-tvl",
+      "methods": [
+        "GET"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Solana DeFi total value locked overview from DefiLlama. Use when an agent assesses macro DeFi health and capital allocation on the Solana ecosystem.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "50000",
+        "amountAtomicUnit": "50000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/insights/volatility-index",
+      "methods": [
+        "GET"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Volatility index computed from Pyth price feed confidence intervals across SOL, BTC, and ETH. Returns index score and per-asset uncertainty metrics. Use when an agent gauges market uncertainty for risk-adjusted decisions.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "100000",
+        "amountAtomicUnit": "100000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/insights/ecosystem-brief",
+      "methods": [
+        "GET"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Premium PayAI-facilitated Labs endpoint combining Solana network health, cross-asset market pulse (SOL/BTC/ETH), and DeFi TVL in one response. Strictly limited to 5–10 calls per UTC day. Use when an agent needs a concise macro Solana briefing with PayAI settlement.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "50000",
+        "amountAtomicUnit": "50000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/assets",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Paginated curated assets board (crypto + tokenized stocks) from Tokens.xyz — same data as the Syra Assets page. Use when an agent needs a ranked market universe, not a single asset. Inputs: list (all|majors|stocks|…), assetClass, q, sort, order, limit, offset. Returns items[] with price, marketCap, volume, assetClass.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "1000",
+        "amountAtomicUnit": "1000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/assets/detail",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Full asset dossier: profile, risk, markets, and 1H OHLCV for a canonical asset. Use when an agent researches BTC, SOL, a stock token, or any Tokens.xyz asset by ref/mint/assetId. Inputs: ref, mint, assetId, or q. Returns asset, includes (profile/risk/markets), ohlcv candles, mintRisk.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "5000",
+        "amountAtomicUnit": "5000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/bitcoin",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Complete Bitcoin intelligence bundle from the Syra BTC page. Use when an agent needs macro BTC context: price, derivatives, technicals, sentiment, news, signal, and taker buy/sell bubblemap in one call. Inputs: exchange (binance|coinbase), interval, limit for bubblemap. Returns dashboard (overview + sections) and bubblemap points[].",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "5000",
+        "amountAtomicUnit": "5000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/chat/completions",
+      "methods": [
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "OpenAI-compatible POST /chat/completions backed by 15 curated agentic OpenRouter text models. Use when an agent needs LLM reasoning, tool calling (tools/tool_choice), or structured output (response_format) with x402 pay-per-call. Inputs: messages (required), optional model, max_tokens, temperature, tools, response_format, seed. Price is dynamic per request from live token rates (prompt + max completion budget) with margin — GET /chat/completions/models for allowlist and rates. Returns standard OpenAI chat.completion JSON with usage.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "4000",
+        "amountAtomicUnit": "4000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/images/generations",
+      "methods": [
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Paid POST /images/generations using OpenRouter Unified Image API (POST /api/v1/images). Use when an agent needs to generate marketing assets, thumbnails, or reference images from a text prompt with x402 pay-per-call. Inputs: prompt (required), optional model, n (1–10), resolution, aspect_ratio, quality, output_format, seed, input_references. Price is dynamic from live prompt + per-image rates with margin — GET /images/generations/models for allowlist and rates. Returns generated images array and usage with cost.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "20000",
+        "amountAtomicUnit": "20000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/videos/generations",
+      "methods": [
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Paid POST /videos/generations submits an async OpenRouter video job (POST /api/v1/videos). Use when an agent needs short-form video clips from a text prompt with x402 pay-per-call. Inputs: prompt (required), optional model, duration (1–60s), resolution, aspect_ratio, generate_audio, frame_images, input_references. Price is charged upfront at submit from model duration + resolution rates with margin — GET /videos/generations/models for allowlist. Returns generation_id, polling_url, and statusUrl; poll free GET /videos/generations/:id until completed for video_url. No auto-refund if upstream job fails after payment.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "100000",
+        "amountAtomicUnit": "100000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/embeddings",
+      "methods": [
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Paid POST /embeddings for vector embeddings from curated OpenRouter embedding models. Use when an agent needs semantic search, clustering, or RAG indexing with x402 pay-per-call. Inputs: input (string or string[], required), optional model, dimensions. Price is dynamic from live prompt rates × margin — GET /embeddings/models for allowlist. Returns OpenAI-style embeddings data[] + usage.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "1000",
+        "amountAtomicUnit": "1000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/rerank",
+      "methods": [
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Paid POST /rerank ranks candidate documents against a query using curated OpenRouter rerank models. Use when an agent needs relevance scoring for search, RAG, or retrieval with x402 pay-per-call. Inputs: query (required), documents (string[], required, max 100), optional model, top_n. Price is dynamic from live rates × margin — GET /rerank/models for allowlist. Returns ranked results with relevance_score.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "2000",
+        "amountAtomicUnit": "2000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/audio/speech",
+      "methods": [
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Paid POST /audio/speech synthesizes speech from text via curated OpenRouter TTS models (Kokoro, Voxtral, MAI, Gemini). Use when an agent needs voice output with x402 pay-per-call. Inputs: input (required), optional model, voice (provider-specific), response_format (mp3|pcm), speed. Returns JSON { audioBase64, contentType, model, voice, generationId }. Gemini pcm is wrapped as wav. GET /audio/speech/models for allowlist. Price is dynamic from live character/token rates × margin.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "5000",
+        "amountAtomicUnit": "5000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/audio/transcriptions",
+      "methods": [
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Paid POST /audio/transcriptions for speech-to-text via curated OpenRouter STT models (Whisper / GPT-4o Transcribe). Use when an agent needs transcript text from audio with x402 pay-per-call. Inputs: input_audio { data: base64, format } (required), optional model, language, temperature. Returns { text, … }. GET /audio/transcriptions/models for allowlist. Price is dynamic from payload size / live rates × margin.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "10000",
+        "amountAtomicUnit": "10000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/8004/stats",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Global stats for the Solana 8004 trustless agent registry: total agents, feedback counts, trust tiers. Use when an agent surveys the Syra/8004 ecosystem size before marketplace or discovery tasks. No required inputs. Returns registry-wide counters and tier breakdown.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "12000",
+        "amountAtomicUnit": "12000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/8004/leaderboard",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Leaderboard of registered 8004 agents sorted by trust/reputation. Use when an agent picks high-trust counterparts or benchmarks agent quality. Inputs: optional minTier, limit, offset. Returns ranked agent rows with scores and metadata.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "12000",
+        "amountAtomicUnit": "12000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/8004/agents/search",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Search the 8004 agent index by owner wallet, creator, or collection pointer. Use when an agent discovers agents to hire, verify, or compose with. Inputs: owner, creator, collectionPointer, limit, offset. Returns matching agent records.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "12000",
+        "amountAtomicUnit": "12000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/topledger/wallet/analyze",
+      "methods": [
+        "GET"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Analyze a Solana wallet net worth including lending, perps, LP, staking, yield, rewards, and governance via TopLedger MPP. Use when an agent needs a full DeFi portfolio breakdown. Input: wallet (base58). Returns total_net_worth_usd and per-category breakdown.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "480",
+        "amountAtomicUnit": "480",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
+      "url": "https://api.syraa.fun/topledger/wallet/lending",
+      "methods": [
+        "GET"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "Return lending deposits, borrows, and net value for a Solana wallet across Kamino, marginfi, Jupiter Lend, Loopscale, and more. Use when an agent needs Solana lending exposure. Input: wallet (base58).",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "480",
+        "amountAtomicUnit": "480",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    }
+  ]
+}

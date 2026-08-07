@@ -1,0 +1,10 @@
+[
+  {
+    "serviceName": "Syra Signal Copy-Trade",
+    "serviceDescription": "Automated on-chain trading signals powered by Syra crypto intelligence for agents that want high-conviction momentum setups on liquid majors with hard risk controls (stop-loss, trailing take-profit, daily loss breaker).\nContinuous trading-signal delivery during the subscription so subscribers can mirror or auto-copy under their own wallet settings. Analysis and signals only — not financial advice.",
+    "serviceType": "A2A",
+    "fee": "",
+    "subscription": [{ "interval": "month", "fee": "5" }],
+    "freeTrial": "72"
+  }
+]

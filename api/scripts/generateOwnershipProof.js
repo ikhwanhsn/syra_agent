@@ -69,7 +69,12 @@ async function generateSolanaOwnershipProof() {
  * Generate EVM (Base) ownership proof
  */
 async function generateEvmOwnershipProof() {
-  const privateKey = process.env.EVM_PRIVATE_KEY;
+  // Prefer the live Base settler key (BASE_PAYTO). CMC/CELO aliases match that wallet in prod.
+  const privateKey =
+    process.env.EVM_PRIVATE_KEY ||
+    process.env.CMC_PAYER_PRIVATE_KEY ||
+    process.env.CELO_SETTLER_PRIVATE_KEY ||
+    process.env.BASE_PAYER_PRIVATE_KEY;
 
   if (!privateKey) {
     return null;

@@ -131,6 +131,7 @@ import {
 } from "./config/onchainEarnExperiments.js";
 import { createBtc3MacroRouter } from "./routes/btc3Macro.js";
 import { createBtc3RealRouter } from "./routes/btc3Real.js";
+import { createOkxTradingRouter } from "./routes/okxTrading.js";
 import { createShipLogStudioRouter } from "./routes/shipLogStudio.js";
 import { createHealthRouter } from "./routes/health.js";
 import { createInsightsRouter } from "./routes/labs/insights.js";
@@ -1519,6 +1520,8 @@ app.use("/experiment/sniper", createSniperExperimentRouter());
 app.use("/experiment/sniper-real", createSniperRealRouter());
 app.use("/experiment/btc3-macro", createBtc3MacroRouter());
 app.use("/experiment/btc3-real", createBtc3RealRouter());
+// OKX.AI Trading Hackathon — Syra Trading ASP (automated on-chain trading loop)
+app.use("/experiment/okx-trading", createOkxTradingRouter());
 // Stocks news experiment — paper xStocks trading via Jupiter + news signals
 app.use("/experiment/stocks", createStocksExperimentRouter());
 // Scalper agent — hybrid opportunity feed, Jupiter-quote paper fills
@@ -2493,6 +2496,28 @@ app.listen(PORT, () => {
   }
   if (BTC_QUANT_SIGNAL_INTERVAL_MS >= 60_000) {
     setInterval(runBtc3RealRebalance, BTC_QUANT_SIGNAL_INTERVAL_MS);
+  }
+
+  // OKX.AI Trading Hackathon — automated trading loop (paper by default; live
+  // when OKX_TRADING_LIVE=true and a funded Agentic Wallet is bound).
+  const runOkxTradingTick = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/okxTrading/okxTradingService.js")
+        .then(({ isOkxTradingCronEnabled, runOkxTradingCycle }) => {
+          if (!isOkxTradingCronEnabled()) return null;
+          return runOkxTradingCycle();
+        })
+        .then((out) => {
+          if (out?.error) console.warn("[OKX trading] cycle:", out.error);
+        })
+        .catch((err) => console.warn("[OKX trading] cycle failed:", err?.message || err)),
+    ),
+  );
+  {
+    const okxIntervalMs = Number(process.env.OKX_TRADING_INTERVAL_MS) || 300_000;
+    if (okxIntervalMs >= 60_000) {
+      setInterval(runOkxTradingTick, okxIntervalMs);
+    }
   }
 
   import("./libs/btc3/macroIntelligenceScheduler.js").then(({ startBtc3MacroScheduler }) => {

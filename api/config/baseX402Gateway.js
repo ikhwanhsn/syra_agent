@@ -9,21 +9,29 @@ import { getPayaiPayToAddresses } from './payaiX402Networks.js';
 import { getEnabledDexterNetworks } from './dexterX402Networks.js';
 import { AMPERSEND_MARKETPLACE_NETWORK } from './x402Bazaar.js';
 import { getPublicApiUrl } from './runtime.js';
-import { BASE_USDC } from './settlement.js';
+import { BASE_PAYTO, BASE_USDC } from './settlement.js';
 import { isB402Network } from './b402Networks.js';
 import { isOkxX402Enabled, isOkxX402Network } from './okxX402Networks.js';
 
 const BASE_CAIP2 = 'eip155:8453';
 
-/** Base gateway enabled when EVM payTo is configured. */
-export function isBaseX402GatewayEnabled() {
+/**
+ * Wallet that actually receives Base mainnet x402 USDC (matches 402 accepts).
+ * Prefer BASE_PAYTO over legacy EVM_PAYTO so CDP Bazaar / AgentScore index the live settler.
+ */
+function resolveBaseGatewayPayTo() {
   const { evmPayTo } = getPayaiPayToAddresses();
-  return Boolean(evmPayTo);
+  return BASE_PAYTO || evmPayTo || null;
+}
+
+/** Base gateway enabled when a Base/EVM payTo is configured. */
+export function isBaseX402GatewayEnabled() {
+  return Boolean(resolveBaseGatewayPayTo());
 }
 
 /** Public Base gateway metadata for discovery manifests and registry scripts. */
 export function getBaseX402GatewayConfig() {
-  const { evmPayTo } = getPayaiPayToAddresses();
+  const payTo = resolveBaseGatewayPayTo();
   const baseUrl = getPublicApiUrl();
   return {
     enabled: isBaseX402GatewayEnabled(),
@@ -31,7 +39,7 @@ export function getBaseX402GatewayConfig() {
     networkLabel: 'Base Mainnet',
     asset: BASE_USDC,
     assetLabel: 'USDC',
-    payTo: evmPayTo || null,
+    payTo,
     gatewayUrl: baseUrl.replace(/\/+$/, ''),
     discoveryUrl: `${baseUrl.replace(/\/+$/, '')}/.well-known/x402`,
     openapiUrl: `${baseUrl.replace(/\/+$/, '')}/openapi.json`,

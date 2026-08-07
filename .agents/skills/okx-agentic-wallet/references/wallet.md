@@ -1,0 +1,92 @@
+# Wallet
+
+Wallet lifecycle: authentication, balance, addresses, token transfers, transaction history, contract calls, and message signing. Shared Confirming / display / security policy is in SKILL.md.
+
+## Authentication
+
+Commands that need auth (balance, send, contract-call, history, sign-message) require login. **Social login opens a browser login page where the user completes sign-in.**
+
+1. **Check state.** When the user's request this turn itself asks to log in or check login status (including as one part of a compound request, but excluding an explicit re-login), run `wallet status --include-subscriptions`; otherwise run plain `wallet status`. If `data.loggedIn` is `true` and this is not a re-login, confirm the session to the user, render an existing `data.postLoginSubscriptions` per §Post-login subscription display in [task-user-playbook.md](../../okx-ai/references/task-user-playbook.md), then continue with the rest of a compound request; an absent field means render nothing OKX.AI-related. When status runs only as an internal precondition for another action (balance, send, …), never pass `--include-subscriptions` and never render the subscription display. If not logged in, or on an explicit re-login request, continue.
+2. **Log in** — orchestrate `init` → auto-poll:
+   a. **Get the link.** Run `wallet login --phase init` — it returns `{ loginUrl, authSessionId, opened, nextSteps }` immediately and best-effort opens the browser. `nextSteps.completeLogin` is the exact poll command with `authSessionId` interpolated; when `opened == false`, `nextSteps.openLoginUrl` (equal to `loginUrl`) is the URL to open first. Keep `authSessionId` for the poll.
+   b. **Show the link + reminder** (translate to the user's language; keep the structure, substitute `authSessionId` and `loginUrl`):
+      > Your login link is ready — I'll open it in your browser.
+      > • Session ID (session_id): `<authSessionId>`
+      > • Login link (if the browser didn't open, click to open it manually): `<loginUrl>`
+      >
+      > Fetching the login result will block your other operations for up to 5 minutes.
+   c. **Auto-poll.** Immediately run `wallet login --phase poll --session-id <authSessionId>` (the id from step a) — don't wait for the user. On timeout / no result, tell the user you couldn't get it yet: finish login on the already-open page and tell you to re-check (same id), or start over from `--phase init` (new id); don't guess whether a previous session is still valid.
+3. **After login.** Render the Account Info template (below) from the `poll` response. If the response has `"isNew": true`, output the Policy Settings template then the Wallet Export template ([portal-actions.md](wallet-portal-actions.md)); if `false`, skip. Before returning, the CLI always sends the device-registration heartbeat. When the pre-registration probe safely proves this is a new device, the CLI adds it to every explicit subscription receive list using environment-scoped durable progress and only then produces the mandatory post-login snapshot. An existing or unclassifiable device is never automatically re-enabled. When `data.postLoginSubscriptions` is present, render it per §Post-login subscription display in [task-user-playbook.md](../../okx-ai/references/task-user-playbook.md); when absent, render nothing OKX.AI-related. **Never run a separate `my-subscriptions` or `device-list` command after a successful poll.**
+
+Login creates the first account automatically — never call `wallet add` for it. Use `wallet add` only when already logged in and the user explicitly wants another account (then output the Policy Settings template, see [portal-actions.md](wallet-portal-actions.md)).
+
+### Template: Account Info (login success)
+
+Render verbatim from the `wallet login --phase poll` response `data`:
+
+> **Account Info**
+> - Login method: {method}{ ({email}) }
+> - Current account: OKX Wallet - {accountName} ({accountCount} accounts total)
+> - Total assets: ${totalValueUsd}
+>
+> **Addresses**
+> - EVM: {evmAddress}
+> - Solana: {solAddress}
+
+Field rules:
+- `{method}` ← `loginType`: `email`→"Email", `google`→"Google", `apple`→"Apple", `ak`→"API Key".
+- Append ` ({email})` only if `email` is non-empty; otherwise omit the parentheses.
+- Omit the "Total assets" line if `totalValueUsd` is empty; omit an address line if its value (`evmAddress` / `solAddress`) is empty.
+
+## Parameter Rules
+
+**`--chain`** accepts numeric IDs (`1`, `501`, `196`) and names (`ethereum`, `solana`, `xlayer`). If <100% confident, run `wallet chains`. On `"unsupported chain: ..."`, ask the user to confirm.
+
+**Amounts** — `wallet send`: pass `--readable-amount <human_amount>` (CLI converts; use `--amt` only for raw minimal units). `wallet contract-call`: `--amt` is the native value for payable functions in minimal units (default `"0"`; EVM 18, SOL 9 decimals). Never compute minimal units manually.
+
+## Send vs Contract Call (funds-loss risk — determine intent first)
+
+| Intent | Command | Example |
+|---|---|---|
+| Send native token (ETH, SOL, BNB…) | `wallet send --chain <chain>` | "Send 0.1 ETH to 0xAbc" |
+| Send ERC-20 / SPL token (USDC, USDT…) | `wallet send --chain <chain> --contract-token` | "Transfer 100 USDC to 0xAbc" |
+| Interact with a contract (approve, deposit, withdraw, custom call) | `wallet contract-call --chain <chain>` | "Approve USDC for spender" |
+
+If ambiguous, ask the user to clarify — never guess. `contract-call` is for non-swap interactions only; never broadcast a DEX swap with it (use `swap execute`). Run `onchainos security tx-scan` before any `contract-call`.
+
+## Approvals (via contract-call)
+
+Never execute unlimited approvals. Do not set the approve amount to `type(uint256).max` / `2^256-1` / any "infinite" value, and do not call `setApprovalForAll(operator, true)`. If the user explicitly requests unlimited approval: warn it is irreversible and lets the spender drain all tokens, require a second explicit confirmation, and even then cap the amount to what is needed (e.g. swap amount + 10%). If the user still insists, refuse and suggest they execute manually via a block explorer.
+
+## MEV Protection
+
+`--mev-protection` is a `contract-call` flag only (`wallet send` does not support it). Load [mev-protection.md](wallet-mev-protection.md) when the user requests MEV protection, or before a high-value / DEX-swap `contract-call` — it holds the supported-chain table and the Solana `--jito-unsigned-tx` requirement.
+
+## Policy & Wallet Export (Web portal)
+
+Policy config and wallet export are completed by the user on the Web portal — the Agent only detects the trigger, explains the risk, and gives the jump link. On any trigger below, load [portal-actions.md](wallet-portal-actions.md) and follow its Trigger flows exactly:
+- New user login (`isNew: true`) — also in Authentication step 5
+- After a successful `wallet add`
+- User asks about Policy (spending / daily limit, whitelist)
+- User asks about wallet export (export mnemonic, migrate, import to hardware wallet)
+
+Never display mnemonic phrases, seed phrases, or private keys in the conversation.
+
+## Third-Party Plugin Pre-flight (Solana)
+
+Before dispatching a third-party Solana DeFi plugin (kamino-plugin, raydium-plugin, …) that internally calls `wallet contract-call --force`, run the Gas Station pre-flight in [plugin-preflight.md](wallet-plugin-preflight.md).
+
+## Notes
+
+- **X Layer Testnet faucet**: when the user asks for testnet tokens, or `wallet balance --chain xlayer_test` shows OKB = 0, point them to https://web3.okx.com/xlayer/faucet.
+- **XKO address**: if a user-supplied address starts with `XKO` / `xko`, display verbatim:
+  > "XKO address format is not supported yet. Please find the 0x address by switching to your commonly used address, then you can continue."
+- **TEE signing**: the private key is generated and stored inside a server-side secure enclave and never leaves the TEE — the Agent cannot export or locally sign with it.
+
+## Additional Resources
+
+- Full parameter tables, return-field schemas, and worked examples → [wallet-cli-reference.md](wallet-cli-reference.md), or run `onchainos wallet <subcommand> --help`. Load only when you need exact syntax the flow above doesn't spell out.
+
+## Edge Cases
+
+> Load on error: [wallet-troubleshooting.md](wallet-troubleshooting.md)

@@ -1,0 +1,81 @@
+{
+  "service": "Syra",
+  "tagline": "Pay-per-call crypto APIs for agents — x402, MCP, SDK on Solana",
+  "discovery_url": "https://api.syraa.fun/.well-known/x402",
+  "openapi_url": "https://api.syraa.fun/openapi.json",
+  "metrics_url": "https://api.syraa.fun/api/metrics",
+  "llms_full_url": "https://api.syraa.fun/llms-full.txt",
+  "networks": [
+    {
+      "caip2": "eip155:8453",
+      "asset": "USDC",
+      "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+      "label": "Base"
+    },
+    {
+      "caip2": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+      "asset": "USDC",
+      "payTo": "53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t",
+      "label": "Solana"
+    }
+  ],
+  "base_gateway": {
+    "enabled": true,
+    "network": "eip155:8453",
+    "networkLabel": "Base Mainnet",
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "assetLabel": "USDC",
+    "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+    "gatewayUrl": "https://api.syraa.fun",
+    "discoveryUrl": "https://api.syraa.fun/.well-known/x402",
+    "openapiUrl": "https://api.syraa.fun/openapi.json",
+    "bazaarNetwork": "eip155:8453",
+    "facilitators": [
+      "dexter",
+      "goplausible",
+      "payai",
+      "coinbase-cdp",
+      "thirdweb"
+    ],
+    "defaultFacilitatorFailover": [
+      "dexter",
+      "goplausible",
+      "payai"
+    ],
+    "note": "Same API surface as Solana — pay via Dexter (primary) with GoPlausible/PayAI failover"
+  },
+  "registries": {
+    "cdp_bazaar": {
+      "note": "List at https://portal.cdp.coinbase.com — Bazaar discovers payTo from on-chain settlements",
+      "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+      "network": "eip155:8453"
+    },
+    "payai": {
+      "note": "Submit seller profile at https://payai.network",
+      "facilitator": "https://facilitator.payai.network"
+    },
+    "agent402": {
+      "note": "Auto-indexed from CDP Bazaar + on-chain USDC to payTo",
+      "leaderboard": "https://agent402.tools/leaderboard"
+    },
+    "x402stats": {
+      "note": "Auto-indexed from facilitator registries",
+      "url": "https://x402stats.io"
+    },
+    "ampersend": {
+      "script": "node -r dotenv/config scripts/registerAmpersendMarketplace.js --write-payload",
+      "marketplace": "https://api.ampersend.ai/api/v1/agents/marketplace"
+    },
+    "zauth": {
+      "note": "Provider Hub SDK auto-registers endpoints on traffic; database at https://zauth.inc/database",
+      "provider_hub": "https://zauth.inc/provider-hub",
+      "directory_api": "https://api.zauth.inc/api/directory",
+      "sdk": "@zauthx402/sdk"
+    },
+    "x402scan": {
+      "note": "Register at https://www.x402scan.com/resources/register — requires openapi.json listing",
+      "discovery": "https://api.syraa.fun/openapi.json"
+    }
+  },
+  "updatedAt": "2026-08-07T01:03:41.371Z"
+}

@@ -188,7 +188,9 @@ async function validateDiscovery() {
 
 function writeRegistryManifest() {
   const baseGateway = getBaseX402GatewayConfig();
-  const { solanaPayTo, evmPayTo } = getPayaiPayToAddresses();
+  const { solanaPayTo } = getPayaiPayToAddresses();
+  // Prefer the live Base settler (BASE_PAYTO) — matches /.well-known baseGateway + 402 accepts.
+  const basePayTo = baseGateway.payTo || null;
   const manifest = {
     service: "Syra",
     tagline: "Pay-per-call crypto APIs for agents — x402, MCP, SDK on Solana",
@@ -197,8 +199,8 @@ function writeRegistryManifest() {
     metrics_url: `${BASE_URL}/api/metrics`,
     llms_full_url: `${BASE_URL}/llms-full.txt`,
     networks: [
-      ...(evmPayTo
-        ? [{ caip2: "eip155:8453", asset: "USDC", payTo: evmPayTo, label: "Base" }]
+      ...(basePayTo
+        ? [{ caip2: "eip155:8453", asset: "USDC", payTo: basePayTo, label: "Base" }]
         : []),
       ...(solanaPayTo
         ? [
@@ -215,7 +217,7 @@ function writeRegistryManifest() {
     registries: {
       cdp_bazaar: {
         note: "List at https://portal.cdp.coinbase.com — Bazaar discovers payTo from on-chain settlements",
-        payTo: evmPayTo,
+        payTo: basePayTo,
         network: "eip155:8453",
       },
       payai: {
