@@ -6,29 +6,24 @@ import {
   PILLAR_WALLET_PURPOSES,
   siblingAnonymousId,
 } from './agentWalletPurpose.js';
-import { ensureAgentWalletSet, walletSetResponseFields } from './agentWalletProvision.js';
+import {
+  ensureAgentWalletSet,
+  loadAgentWalletSet,
+  walletSetResponseFields,
+} from './agentWalletProvision.js';
 
 /**
- * Load or provision the five pillar wallets for a base anonymousId.
- * @param {{
- *   baseAnonymousId: string;
- *   walletAddress?: string | null;
- *   chain?: 'solana' | 'base' | 'bsc';
- *   provisionedVia?: 'guest' | 'connect' | 'signin' | 'x402' | 'migration';
- *   payerAddress?: string | null;
- *   includeLp?: boolean;
- *   includeBalances?: boolean;
- * }} params
+ * Attach optional balances to a wallet-set response.
+ * @param {Awaited<ReturnType<typeof loadAgentWalletSet>>} set
+ * @param {boolean} includeBalances
  */
-export async function getAgentWalletSet(params) {
-  const set = await ensureAgentWalletSet(params);
+async function withOptionalBalances(set, includeBalances) {
   const fields = walletSetResponseFields(set);
-
-  if (!params.includeBalances) {
+  if (!includeBalances) {
     return { ...fields, balances: null };
   }
 
-  const purposes = [...PILLAR_WALLET_PURPOSES];
+  const purposes = Object.keys(set.wallets || {});
   const balanceRows = await Promise.all(
     purposes.map(async (purpose) => {
       const row = set.wallets[purpose];
@@ -44,6 +39,41 @@ export async function getAgentWalletSet(params) {
   }
 
   return { ...fields, balances };
+}
+
+/**
+ * Load existing pillar wallets without creating missing ones.
+ * @param {{
+ *   baseAnonymousId: string;
+ *   walletAddress?: string | null;
+ *   chain?: 'solana' | 'base' | 'bsc';
+ *   includeBalances?: boolean;
+ * }} params
+ */
+export async function loadExistingAgentWalletSet(params) {
+  const set = await loadAgentWalletSet(params);
+  return withOptionalBalances(set, Boolean(params.includeBalances));
+}
+
+/**
+ * Load or provision pillar wallets for a base anonymousId.
+ * @param {{
+ *   baseAnonymousId: string;
+ *   walletAddress?: string | null;
+ *   chain?: 'solana' | 'base' | 'bsc';
+ *   provisionedVia?: 'guest' | 'connect' | 'signin' | 'x402' | 'migration';
+ *   payerAddress?: string | null;
+ *   includeLp?: boolean;
+ *   includeBalances?: boolean;
+ *   ensure?: boolean;
+ * }} params
+ */
+export async function getAgentWalletSet(params) {
+  if (params.ensure === false) {
+    return loadExistingAgentWalletSet(params);
+  }
+  const set = await ensureAgentWalletSet(params);
+  return withOptionalBalances(set, Boolean(params.includeBalances));
 }
 
 /**

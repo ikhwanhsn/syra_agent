@@ -2,7 +2,6 @@
  * Momentum Rotator real agent — USDC→major spot via Jupiter on invest wallet.
  */
 import { LAMPORTS_PER_SOL } from '@solana/web3.js';
-import AgentWallet from '../models/agent/AgentWallet.js';
 import MomentumRotatorRealConfig from '../models/MomentumRotatorRealConfig.js';
 import MomentumRotatorRealPosition from '../models/MomentumRotatorRealPosition.js';
 import { MOMENTUM_DEFAULTS, MOMENTUM_UNIVERSE } from '../config/momentumRotatorStrategies.js';
@@ -12,7 +11,8 @@ import {
   getMomentumStats,
 } from './momentumRotatorService.js';
 import { resolveMomentumStrategies } from './momentumRotatorStrategyResolve.js';
-import { siblingAnonymousId, purposeQuery } from './agentWalletPurpose.js';
+import { siblingAnonymousId } from './agentWalletPurpose.js';
+import { findOrEnsurePurposeWallet } from './agentWalletProvision.js';
 import {
   executeJupiterBrokerSwap,
   EARN_MINTS,
@@ -44,12 +44,7 @@ export function isMomentumRealCronEnabled() {
 async function resolveInvestWallet(anonymousId) {
   const investAid = siblingAnonymousId(anonymousId, 'invest');
   if (!investAid) throw new Error('Invalid anonymous id');
-  const wallet = await AgentWallet.findOne({
-    anonymousId: investAid,
-    chain: 'solana',
-    status: 'active',
-    ...purposeQuery('invest'),
-  }).lean();
+  const wallet = await findOrEnsurePurposeWallet(anonymousId, 'invest');
   if (!wallet?.agentAddress) throw new Error('Invest wallet not provisioned for this user');
   return wallet;
 }

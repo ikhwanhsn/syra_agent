@@ -2044,7 +2044,7 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
             /rate limit|too many requests|throttl|way too many|\b429\b|\b418\b|-1003|-1015/i.test(err) ||
             /Binance klines|Failed to fetch news|News service is temporarily/i.test(err) ||
             /Failed to create payment payload|Failed to decode account data|payment payload/i.test(err) ||
-            /Agent wallet not found|privy_not_configured|missing_privy_wallet_id/i.test(err);
+            /Agent wallet not found|privy_not_configured|missing_privy_wallet_id|privy_rate_limited|privy_quota_exceeded|privy_unavailable|privy_auth_failed/i.test(err);
           let instruction = `[Paid tool "${tool.name}" failed: ${err}. Explain what went wrong in plain language.`;
           if (budgetExceeded) {
             instruction += ` This was blocked by the agent's spend limit (Sentinel budget). Tell the user their agent has hit its hourly/daily budget cap; they can try again later or adjust limits in settings.`;

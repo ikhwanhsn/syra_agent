@@ -3,7 +3,6 @@
  */
 import Btc3RealConfig from "../../models/btc3/Btc3RealConfig.js";
 import Btc3RealRebalance from "../../models/btc3/Btc3RealRebalance.js";
-import AgentWallet from "../../models/agent/AgentWallet.js";
 import { buildSettlementHealth } from "../settlementHealthService.js";
 import {
   enableBtc3Real,
@@ -11,7 +10,7 @@ import {
   getBtc3RealState,
 } from "../btc3/btc3RealService.js";
 import { isAdminWalletAddress } from "../adminWallet.js";
-import { siblingAnonymousId, purposeQuery } from "../agentWalletPurpose.js";
+import { findOrEnsurePurposeWallet } from "../agentWalletProvision.js";
 import {
   getEarnProduct,
   EARN_PRODUCT_BTC3,
@@ -35,17 +34,15 @@ const PRODUCT = () => getEarnProduct(EARN_PRODUCT_BTC3);
 const MAX_DRAWDOWN_FOR_READY = 0.25;
 
 async function resolveInvestWallet(anonymousId) {
-  const investAid = siblingAnonymousId(anonymousId, "invest");
-  if (!investAid) return null;
-  const wallet = await AgentWallet.findOne({
-    anonymousId: investAid,
-    chain: "solana",
-    status: "active",
-    ...purposeQuery("invest"),
-  })
-    .select("anonymousId agentAddress chain status purpose")
-    .lean();
-  return wallet;
+  const wallet = await findOrEnsurePurposeWallet(anonymousId, "invest");
+  if (!wallet?.agentAddress) return null;
+  return {
+    anonymousId: wallet.anonymousId,
+    agentAddress: wallet.agentAddress,
+    chain: wallet.chain || "solana",
+    status: wallet.status,
+    purpose: wallet.purpose || "invest",
+  };
 }
 
 export async function getStats() {

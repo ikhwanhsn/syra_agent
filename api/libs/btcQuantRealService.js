@@ -2,7 +2,6 @@
  * BTC quant real agent — onchain cbBTC spot-long via Jupiter from custodial invest wallet.
  * Supports paper-sim lanes btc1 and btc2 (separate config + positions per lane).
  */
-import AgentWallet from "../models/agent/AgentWallet.js";
 import BtcQuantRealConfig from "../models/BtcQuantRealConfig.js";
 import BtcQuantRealPosition from "../models/BtcQuantRealPosition.js";
 import TradingExperimentRun from "../models/TradingExperimentRun.js";
@@ -24,7 +23,8 @@ import {
 import { resolveBtcQuantStrategyById } from "./btcQuantStrategyResolve.js";
 import { executeBtcQuantJupiterSwap, BTC_QUANT_SWAP_MINTS } from "./btcQuantJupiterSwap.js";
 import BtcQuantExperimentState from "../models/BtcQuantExperimentState.js";
-import { siblingAnonymousId, purposeQuery } from "./agentWalletPurpose.js";
+import { siblingAnonymousId } from "./agentWalletPurpose.js";
+import { findOrEnsurePurposeWallet } from "./agentWalletProvision.js";
 import { fetchCbbtcSpotPriceUsd } from "./btcQuantOnchainMarket.js";
 import {
   BTC_QUANT_LANE_IDS,
@@ -105,12 +105,7 @@ async function getOrCreateRealConfig(lane = "btc1") {
 async function resolveInvestWallet(anonymousId) {
   const investAid = siblingAnonymousId(anonymousId, "invest");
   if (!investAid) throw new Error("Invalid anonymous id");
-  const wallet = await AgentWallet.findOne({
-    anonymousId: investAid,
-    chain: "solana",
-    status: "active",
-    ...purposeQuery("invest"),
-  }).lean();
+  const wallet = await findOrEnsurePurposeWallet(anonymousId, "invest");
   if (!wallet?.agentAddress) {
     throw new Error("Invest wallet not provisioned for this user");
   }

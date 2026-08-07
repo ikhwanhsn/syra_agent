@@ -3,6 +3,7 @@ import {
   useContext,
   useState,
   useCallback,
+  useEffect,
   type ReactNode,
 } from "react";
 import { useWalletContext } from "@/contexts/WalletContext";
@@ -29,30 +30,52 @@ export function useConnectModal(): ConnectModalContextValue {
 
 export function ConnectModalProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
+  const [booting, setBooting] = useState(false);
   const {
     requestConnect,
     isPrivyMounted,
+    privyBooting,
     openLoginModal,
     connectForChain,
   } = useWalletContext();
 
   const openConnectModal = useCallback(() => setOpen(true), []);
 
-  const handleClose = useCallback(() => setOpen(false), []);
+  const handleClose = useCallback(() => {
+    if (booting || privyBooting) return;
+    setOpen(false);
+  }, [booting, privyBooting]);
 
   const handlePick = useCallback(
     (option: ConnectOption) => {
-      if (!isPrivyMounted) {
+      if (!isPrivyMounted || privyBooting) {
+        setBooting(true);
         requestConnect(option);
-      } else if (option === "email") {
+        return;
+      }
+      if (option === "email") {
         openLoginModal();
       } else {
         void connectForChain("solana");
       }
       setOpen(false);
     },
-    [isPrivyMounted, requestConnect, openLoginModal, connectForChain]
+    [
+      isPrivyMounted,
+      privyBooting,
+      requestConnect,
+      openLoginModal,
+      connectForChain,
+    ]
   );
+
+  useEffect(() => {
+    if (!booting) return;
+    if (isPrivyMounted && !privyBooting) {
+      setBooting(false);
+      setOpen(false);
+    }
+  }, [booting, isPrivyMounted, privyBooting]);
 
   return (
     <ConnectModalContext.Provider value={{ openConnectModal }}>
@@ -61,6 +84,7 @@ export function ConnectModalProvider({ children }: { children: ReactNode }) {
         isOpen={open}
         onClose={handleClose}
         onPick={handlePick}
+        booting={booting || (open && privyBooting)}
       />
     </ConnectModalContext.Provider>
   );

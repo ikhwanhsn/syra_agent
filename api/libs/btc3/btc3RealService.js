@@ -2,7 +2,6 @@
  * BTC3 Macro Intelligence — real USDC ↔ cbBTC allocation via Jupiter.
  * Mirrors paper target allocation onto the user's custodial invest wallet.
  */
-import AgentWallet from "../../models/agent/AgentWallet.js";
 import Btc3RealConfig from "../../models/btc3/Btc3RealConfig.js";
 import Btc3RealRebalance from "../../models/btc3/Btc3RealRebalance.js";
 import Btc3AllocationDecision from "../../models/btc3/AllocationDecision.js";
@@ -14,7 +13,8 @@ import {
 } from "../../config/tradingExperimentStrategies.js";
 import { executeBtcQuantJupiterSwap, BTC_QUANT_SWAP_MINTS } from "../btcQuantJupiterSwap.js";
 import { fetchAgentWalletPortfolio } from "../agentWalletPortfolio.js";
-import { siblingAnonymousId, purposeQuery } from "../agentWalletPurpose.js";
+import { siblingAnonymousId } from "../agentWalletPurpose.js";
+import { findOrEnsurePurposeWallet } from "../agentWalletProvision.js";
 import { fetchCbbtcSpotPriceUsd } from "../btcQuantOnchainMarket.js";
 import { ensureBtc3PaperBootstrapped } from "./btc3PaperTradingService.js";
 import { getEffectiveBtc3PaperConfig } from "./btc3LearningService.js";
@@ -68,12 +68,7 @@ async function finishSkip(cfg, skipDoc, lastError) {
 async function resolveInvestWallet(anonymousId) {
   const investAid = siblingAnonymousId(anonymousId, "invest");
   if (!investAid) throw new Error("Invalid anonymous id");
-  const wallet = await AgentWallet.findOne({
-    anonymousId: investAid,
-    chain: "solana",
-    status: "active",
-    ...purposeQuery("invest"),
-  }).lean();
+  const wallet = await findOrEnsurePurposeWallet(anonymousId, "invest");
   if (!wallet?.agentAddress) {
     throw new Error("Invest wallet not provisioned for this user");
   }

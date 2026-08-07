@@ -59,7 +59,7 @@ export function isSelfApiTransportError(err) {
   const s = String(err || '').toLowerCase();
   if (!s) return false;
   if (
-    /agent wallet not found|privy_not_configured|missing_privy_wallet_id|insufficient|budget exceeded|sentinelbudget/i.test(
+    /agent wallet not found|privy_not_configured|missing_privy_wallet_id|privy_rate_limited|privy_quota_exceeded|privy_unavailable|privy_auth_failed|insufficient|budget exceeded|sentinelbudget/i.test(
       s,
     )
   ) {

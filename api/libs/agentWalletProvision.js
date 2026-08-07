@@ -150,13 +150,30 @@ export async function createAgentWalletRecord({
   };
 
   if (custody === 'privy' && isPrivyConfigured()) {
-    const out = await createPrivyServerWallet({ chain, anonymousId });
-    return AgentWallet.create({
-      ...commonFields,
-      agentAddress: out.agentAddress,
-      custody: 'privy',
-      privyWalletId: out.privyWalletId,
-    });
+    try {
+      const out = await createPrivyServerWallet({ chain, anonymousId });
+      return AgentWallet.create({
+        ...commonFields,
+        agentAddress: out.agentAddress,
+        custody: 'privy',
+        privyWalletId: out.privyWalletId,
+      });
+    } catch (err) {
+      // Solana only: degrade to legacy on Privy rate/quota/outage so guests still get a wallet.
+      // BSC/Base have no legacy path.
+      const code = String(err?.code || err?.message || '');
+      const canFallback =
+        chain === 'solana' &&
+        (code === 'privy_rate_limited' ||
+          code === 'privy_quota_exceeded' ||
+          code === 'privy_unavailable' ||
+          err?.status === 429 ||
+          (typeof err?.status === 'number' && err.status >= 500));
+      if (!canFallback) throw err;
+      console.warn(
+        `[agentWalletProvision] Privy create failed (${code || err?.status}); falling back to legacy for ${anonymousId}`,
+      );
+    }
   }
 
   const keypair = Keypair.generate();
@@ -170,13 +187,141 @@ export async function createAgentWalletRecord({
 }
 
 /**
- * Ensure all five pillar wallets exist for a base anonymousId.
+ * Load existing pillar wallets without creating missing ones.
+ * @param {{
+ *   baseAnonymousId: string;
+ *   walletAddress?: string | null;
+ *   chain?: 'solana' | 'base' | 'bsc';
+ * }} params
+ */
+export async function loadAgentWalletSet({
+  baseAnonymousId,
+  walletAddress = null,
+  chain = 'solana',
+}) {
+  const resolved = await resolveSpendBaseForWalletSet({
+    anonymousId: baseAnonymousId,
+    walletAddress,
+    chain,
+  });
+  const base = resolved.baseAnonymousId;
+  const linkedWalletAddress = walletAddress || resolved.spendDoc?.walletAddress || null;
+  const wallets = {};
+
+  for (const purpose of PILLAR_WALLET_PURPOSES) {
+    const id = siblingAnonymousId(base, purpose);
+    if (!id) continue;
+    let doc = await AgentWallet.findOne({ anonymousId: id, status: { $ne: 'retired' } }).lean();
+    if (!doc && linkedWalletAddress) {
+      doc = await AgentWallet.findOne({
+        ...walletAddressQuery(linkedWalletAddress, chain, purpose),
+        status: { $ne: 'retired' },
+      }).lean();
+    }
+    if (!doc) continue;
+    wallets[purpose] = {
+      anonymousId: doc.anonymousId,
+      agentAddress: doc.agentAddress,
+      avatarUrl: doc.avatarUrl || null,
+      purpose: doc.purpose || purpose,
+      provisionedVia: doc.provisionedVia || null,
+      isNewWallet: false,
+    };
+  }
+
+  return { baseAnonymousId: base, wallets };
+}
+
+/**
+ * Ensure one pillar wallet exists for a base anonymousId.
+ * @param {{
+ *   baseAnonymousId: string;
+ *   purpose: import('./agentWalletPurpose.js').AgentWalletPurpose;
+ *   walletAddress?: string | null;
+ *   chain?: 'solana' | 'base' | 'bsc';
+ *   provisionedVia?: 'guest' | 'connect' | 'signin' | 'x402' | 'migration' | 'telegram';
+ *   payerAddress?: string | null;
+ * }} params
+ */
+export async function ensureAgentWalletPurpose({
+  baseAnonymousId,
+  purpose,
+  walletAddress = null,
+  chain = 'solana',
+  provisionedVia = 'guest',
+  payerAddress = null,
+}) {
+  const normalizedPurpose = normalizeAgentWalletPurpose(purpose);
+  const set = await ensureAgentWalletSet({
+    baseAnonymousId,
+    walletAddress,
+    chain,
+    provisionedVia,
+    payerAddress,
+    purposes: [normalizedPurpose],
+  });
+  return {
+    baseAnonymousId: set.baseAnonymousId,
+    purpose: normalizedPurpose,
+    wallet: set.wallets[normalizedPurpose] || null,
+    wallets: set.wallets,
+  };
+}
+
+/**
+ * Find a purpose wallet, creating that pillar only if missing.
+ * @param {string} anonymousId
+ * @param {import('./agentWalletPurpose.js').AgentWalletPurpose} purpose
+ * @param {{ chain?: 'solana'|'base'|'bsc'; provisionedVia?: string }} [opts]
+ * @returns {Promise<object|null>} lean AgentWallet doc or null
+ */
+export async function findOrEnsurePurposeWallet(anonymousId, purpose, opts = {}) {
+  const chain = opts.chain || 'solana';
+  const provisionedVia = opts.provisionedVia || 'connect';
+  const aid = siblingAnonymousId(anonymousId, purpose);
+  if (!aid) return null;
+
+  let wallet = await AgentWallet.findOne({
+    anonymousId: aid,
+    status: { $ne: 'retired' },
+    ...(chain === 'solana'
+      ? { $or: [{ chain: 'solana' }, { chain: { $exists: false } }, { chain: null }] }
+      : { chain }),
+  }).lean();
+
+  if (wallet?.agentAddress) return wallet;
+
+  const base = baseAnonymousIdFrom(anonymousId) || anonymousId;
+  try {
+    await ensureAgentWalletPurpose({
+      baseAnonymousId: base,
+      purpose,
+      chain,
+      provisionedVia,
+    });
+  } catch (err) {
+    console.error(
+      `[agentWalletProvision] findOrEnsurePurposeWallet failed purpose=${purpose}:`,
+      err?.message || err,
+    );
+    return null;
+  }
+
+  return AgentWallet.findOne({
+    anonymousId: aid,
+    status: { $ne: 'retired' },
+  }).lean();
+}
+
+/**
+ * Ensure pillar wallets exist for a base anonymousId.
  * @param {{
  *   baseAnonymousId: string;
  *   walletAddress?: string | null;
  *   chain?: 'solana' | 'base' | 'bsc';
  *   provisionedVia?: 'guest' | 'connect' | 'signin' | 'x402' | 'migration' | 'telegram';
  *   payerAddress?: string | null;
+ *   purposes?: import('./agentWalletPurpose.js').AgentWalletPurpose[];
  *   includeLp?: boolean; // ignored — LP wallet system retired
  * }} params
  */
@@ -186,6 +331,7 @@ export async function ensureAgentWalletSet({
   chain = 'solana',
   provisionedVia = 'guest',
   payerAddress = null,
+  purposes: purposesFilter = null,
 }) {
   const resolved = await resolveSpendBaseForWalletSet({
     anonymousId: baseAnonymousId,
@@ -195,7 +341,10 @@ export async function ensureAgentWalletSet({
   const base = resolved.baseAnonymousId;
   const linkedWalletAddress = walletAddress || resolved.spendDoc?.walletAddress || null;
 
-  const purposes = [...PILLAR_WALLET_PURPOSES];
+  const purposes =
+    Array.isArray(purposesFilter) && purposesFilter.length > 0
+      ? purposesFilter.map((p) => normalizeAgentWalletPurpose(p))
+      : [...PILLAR_WALLET_PURPOSES];
   const wallets = {};
 
   for (const purpose of purposes) {
@@ -261,6 +410,27 @@ export async function ensureAgentWalletSet({
   }
 
   return { baseAnonymousId: base, wallets };
+}
+
+/**
+ * Build a wallet-set shaped response from a single spend doc (guest spend-only path).
+ * @param {{ anonymousId: string; agentAddress: string; avatarUrl?: string | null; provisionedVia?: string | null }} doc
+ */
+export function spendOnlyWalletSet(doc) {
+  const base = baseAnonymousIdFrom(doc.anonymousId) || doc.anonymousId;
+  return {
+    baseAnonymousId: base,
+    wallets: {
+      spend: {
+        anonymousId: doc.anonymousId,
+        agentAddress: doc.agentAddress,
+        avatarUrl: doc.avatarUrl || null,
+        purpose: 'spend',
+        provisionedVia: doc.provisionedVia || 'guest',
+        isNewWallet: false,
+      },
+    },
+  };
 }
 
 /**

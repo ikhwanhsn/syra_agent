@@ -634,6 +634,16 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
       return;
     }
 
+    // Guests only have spend until first earn/invest use — do not call GET /set to hydrate earn.
+    if (!syraAuthenticated) {
+      setLpAnonymousId(null);
+      setLpAgentAddress(null);
+      setLpAgentSolBalance(null);
+      setLpAgentUsdcBalance(null);
+      setLpReady(true);
+      return;
+    }
+
     let cancelled = false;
     const loadEarnAsLpAlias = async () => {
       try {
@@ -688,7 +698,7 @@ function AgentWalletContextInner({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [anonymousId, connection, lpAnonymousId, lpAgentAddress]);
+  }, [anonymousId, connection, lpAnonymousId, lpAgentAddress, syraAuthenticated]);
 
   useEffect(() => {
     if (!lpAgentAddress) return;

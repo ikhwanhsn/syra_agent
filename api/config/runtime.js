@@ -93,7 +93,7 @@ export function getIpfsGatewayTimeoutMs() {
 }
 
 export function getPrivyAppId() {
-  return "cmkyouq4a00kwi20c4rbsl1ce";
+  return (process.env.PRIVY_APP_ID || "").trim() || "cmkyouq4a00kwi20c4rbsl1ce";
 }
 
 export function getCloudflareAccountId() {

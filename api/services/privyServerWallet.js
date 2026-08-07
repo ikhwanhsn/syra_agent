@@ -18,6 +18,7 @@
  */
 import crypto from 'node:crypto';
 import { getPrivyAppId, getSyraCustodyMode } from '../config/runtime.js';
+import { alertPrivyFailure } from '../libs/privyAlert.js';
 
 const PRIVY_BASE = (process.env.PRIVY_BASE_URL || 'https://auth.privy.io').replace(/\/$/, '');
 const DEFAULT_TIMEOUT_MS = 12_000;
@@ -49,6 +50,56 @@ export function getDefaultCustodyMode() {
   return m === 'privy' && isPrivyConfigured() ? 'privy' : 'legacy';
 }
 
+/**
+ * Map Privy HTTP failures to stable error codes.
+ * @param {number} status
+ * @param {unknown} body
+ * @returns {string}
+ */
+export function classifyPrivyHttpError(status, body) {
+  const rawMsg = String(
+    (body && typeof body === 'object' && (body.error || body.message)) ||
+      (typeof body === 'string' ? body : '') ||
+      '',
+  ).toLowerCase();
+  if (
+    /quota|plan.?limit|usage.?limit|mau|monthly.?active|signature.?limit|rate.?limit.?exceeded/.test(
+      rawMsg,
+    )
+  ) {
+    return 'privy_quota_exceeded';
+  }
+  if (status === 429) return 'privy_rate_limited';
+  if (status === 401 || status === 403) return 'privy_auth_failed';
+  if (typeof status === 'number' && status >= 500) return 'privy_unavailable';
+  return `privy_http_${status || 'unknown'}`;
+}
+
+/**
+ * @param {number} status
+ * @param {unknown} body
+ * @param {string} path
+ * @returns {Error & { status?: number; body?: unknown; code?: string }}
+ */
+function makePrivyHttpError(status, body, path) {
+  const code = classifyPrivyHttpError(status, body);
+  const msg =
+    (body && typeof body === 'object' && (body.error || body.message)) ||
+    code;
+  const err = new Error(String(msg));
+  err.status = status;
+  err.body = body;
+  err.code = code;
+  console.warn('[privy]', code, status, path);
+  void alertPrivyFailure({
+    code,
+    status,
+    path,
+    message: String(msg),
+  }).catch(() => {});
+  return err;
+}
+
 async function privyFetch(path, options = {}) {
   const headers = getPrivyAuthHeader();
   if (!headers) throw new Error('privy_not_configured');
@@ -66,13 +117,24 @@ async function privyFetch(path, options = {}) {
     let body;
     try { body = text ? JSON.parse(text) : null; } catch { body = text; }
     if (!res.ok) {
-      const msg = (body && (body.error || body.message)) || `privy_http_${res.status}`;
-      const err = new Error(String(msg));
-      err.status = res.status;
-      err.body = body;
-      throw err;
+      throw makePrivyHttpError(res.status, body, path);
     }
     return body;
+  } catch (err) {
+    if (err?.name === 'AbortError') {
+      const timeoutErr = new Error('privy_unavailable');
+      timeoutErr.code = 'privy_unavailable';
+      timeoutErr.status = 504;
+      console.warn('[privy]', 'privy_unavailable', 'timeout', path);
+      void alertPrivyFailure({
+        code: 'privy_unavailable',
+        status: 504,
+        path,
+        message: 'request_timeout',
+      }).catch(() => {});
+      throw timeoutErr;
+    }
+    throw err;
   } finally {
     clearTimeout(timer);
   }

@@ -70,7 +70,7 @@ function buildLiveDataFailureText(err, result, billingReferral) {
   const needsUsdc = result.budgetExceeded || /USDC|insufficient|no USDC|token account/i.test(err);
   const needsSol = /SOL|transaction fee|debit an account|no record of a prior credit/i.test(err);
   const isWalletConfig =
-    /Agent wallet not found|privy_not_configured|missing_privy_wallet_id/i.test(err);
+    /Agent wallet not found|privy_not_configured|missing_privy_wallet_id|privy_rate_limited|privy_quota_exceeded|privy_unavailable|privy_auth_failed/i.test(err);
 
   if (isWalletConfig) {
     return 'Your Syra agent wallet is not ready yet. Open **Wallet** in the bot menu, then try again.';
@@ -467,7 +467,7 @@ async function askSyraBrainInner({ anonymousId, payerAnonymousId, question, tele
         const needsUsdc = /USDC|insufficient|no USDC|token account/i.test(err);
         const needsSol = /SOL|transaction fee|debit an account|no record of a prior credit/i.test(err);
         const isWalletConfig =
-          /Agent wallet not found|privy_not_configured|missing_privy_wallet_id/i.test(err);
+          /Agent wallet not found|privy_not_configured|missing_privy_wallet_id|privy_rate_limited|privy_quota_exceeded|privy_unavailable|privy_auth_failed/i.test(err);
         let hint = 'Do not invent data.';
         if (result.referralCap) {
           hint =

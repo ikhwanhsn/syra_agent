@@ -9,7 +9,7 @@ import {
   baseAnonymousIdFrom,
   siblingAnonymousId,
 } from './agentWalletPurpose.js';
-import { ensureAgentWalletSet } from './agentWalletProvision.js';
+import { ensureAgentWalletPurpose } from './agentWalletProvision.js';
 import { getSolanaAgentKeypair } from './agentWallet.js';
 import {
   MIN_SOL_FOR_SAID_VERIFY,
@@ -219,8 +219,9 @@ export async function resolveEarnWalletForSession(sessionAnonymousId, walletAddr
 
   let wallet = await AgentWallet.findOne({ anonymousId: earnId, status: { $ne: 'retired' } }).lean();
   if (!wallet?.agentAddress) {
-    await ensureAgentWalletSet({
+    await ensureAgentWalletPurpose({
       baseAnonymousId: base,
+      purpose: 'earn',
       walletAddress: walletAddress?.trim() || undefined,
       provisionedVia: 'connect',
     });

@@ -45,6 +45,18 @@ export const DASHBOARD_CONTENT_SHELL =
   "w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8";
 
 /**
+ * Growth / home content measure (home, footer, playground, legal, articles, about).
+ * Narrower than full-bleed so large desktops keep proportional side margins.
+ */
+export const GROWTH_CONTENT_MAX_WIDTH = "max-w-[1400px]";
+
+export const GROWTH_CONTENT_GUTTERS = "px-4 sm:px-6 lg:px-8";
+
+/** Centered content shell for growth-aligned pages and GlobalNav inner row. */
+export const GROWTH_CONTENT_SHELL =
+  `relative mx-auto w-full ${GROWTH_CONTENT_MAX_WIDTH} ${GROWTH_CONTENT_GUTTERS}`;
+
+/**
  * Bottom padding for scrollable page bodies so content clears taskbars and the iOS home indicator.
  * Pair with an explicit `pt-*` (not `py-*`) so the bottom is never undersized vs the top.
  */

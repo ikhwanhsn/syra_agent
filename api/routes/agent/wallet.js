@@ -22,6 +22,7 @@ import {
   retireAgentWalletRecord,
   retireAgentWalletWithSibling,
   ensureAgentWalletSet,
+  spendOnlyWalletSet,
   walletSetResponseFields,
 } from '../../libs/agentWalletProvision.js';
 import { resolveSpendBaseForWalletSet } from '../../libs/agentWalletResolve.js';
@@ -282,7 +283,8 @@ router.get('/list', optionalWalletSession(), requireListScope, async (req, res) 
 
 /**
  * GET /agent/wallet/set
- * Returns all five pillar wallets (+ LP for internal team) for a base anonymousId.
+ * Returns pillar wallets for a base anonymousId.
+ * Guests: read-only (no auto-create). Authenticated: ensure full set.
  */
 router.get('/set', requireSession({ allowGuest: true }), async (req, res) => {
   try {
@@ -300,12 +302,14 @@ router.get('/set', requireSession({ allowGuest: true }), async (req, res) => {
       chain: req.user?.chain || 'solana',
     });
 
+    const isGuest = Boolean(req.user?.guest) || !req.user?.walletAddress;
     const data = await getAgentWalletSet({
       baseAnonymousId: base,
       walletAddress: spendDoc?.walletAddress || req.user?.walletAddress || null,
       chain: spendDoc?.chain || req.user?.chain || 'solana',
-      provisionedVia: spendDoc?.provisionedVia || 'guest',
+      provisionedVia: spendDoc?.provisionedVia || (isGuest ? 'guest' : 'connect'),
       includeBalances: req.query?.balances === 'true',
+      ensure: !isGuest,
     });
 
     return res.json({ success: true, data });
@@ -861,17 +865,13 @@ router.post('/', async (req, res) => {
       if (!avatarUrl) {
         avatarUrl = avatarGenerator.generateRandomAvatar(anonymousId);
         await AgentWallet.updateOne({ anonymousId }, { $set: { avatarUrl } });
+        doc = { ...doc, avatarUrl };
       }
-      const set = await ensureAgentWalletSet({
-        baseAnonymousId: anonymousId,
-        walletAddress: doc.walletAddress,
-        chain: doc.chain || 'solana',
-        provisionedVia: doc.provisionedVia || 'guest',
-      });
+      // Guests: spend-only. Other pillars are created lazily on first use.
       return res.json({
         success: true,
-        ...walletSetResponseFields(set),
-        avatarUrl,
+        ...walletSetResponseFields(spendOnlyWalletSet(doc)),
+        avatarUrl: doc.avatarUrl || null,
         purpose: 'spend',
         isNewWallet: false,
       });
@@ -884,15 +884,9 @@ router.post('/', async (req, res) => {
       provisionedVia: 'guest',
     });
 
-    const set = await ensureAgentWalletSet({
-      baseAnonymousId: anonymousId,
-      chain: 'solana',
-      provisionedVia: 'guest',
-    });
-
     return res.status(201).json({
       success: true,
-      ...walletSetResponseFields(set),
+      ...walletSetResponseFields(spendOnlyWalletSet(doc)),
       avatarUrl: doc.avatarUrl || null,
       isNewWallet: true,
       purpose: 'spend',
@@ -914,7 +908,16 @@ router.post('/', async (req, res) => {
         });
       }
     }
-    return res.status(500).json({ success: false, error: error.message });
+    const code = String(error?.code || error?.message || '');
+    const privyDown =
+      code === 'privy_rate_limited' ||
+      code === 'privy_quota_exceeded' ||
+      code === 'privy_unavailable' ||
+      code === 'privy_auth_failed';
+    return res.status(privyDown ? 503 : 500).json({
+      success: false,
+      error: typeof error?.code === 'string' ? error.code : error.message,
+    });
   }
 });
 

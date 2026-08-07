@@ -3,7 +3,6 @@
  * Falls back to Jupiter SOL→mSOL/JitoSOL when Marinade/Jito executors are unavailable.
  */
 import { LAMPORTS_PER_SOL } from '@solana/web3.js';
-import AgentWallet from '../models/agent/AgentWallet.js';
 import LstLoopRealConfig from '../models/LstLoopRealConfig.js';
 import LstLoopRealPosition from '../models/LstLoopRealPosition.js';
 import { LST_LOOP_DEFAULTS } from '../config/lstLoopStrategies.js';
@@ -13,7 +12,8 @@ import {
   getLstLoopStats,
 } from './lstLoopService.js';
 import { resolveLstLoopStrategies } from './lstLoopStrategyResolve.js';
-import { siblingAnonymousId, purposeQuery } from './agentWalletPurpose.js';
+import { siblingAnonymousId } from './agentWalletPurpose.js';
+import { findOrEnsurePurposeWallet } from './agentWalletProvision.js';
 import {
   executeJupiterBrokerSwap,
   EARN_MINTS,
@@ -50,12 +50,7 @@ export function isLstLoopRealCronEnabled() {
 async function resolveInvestWallet(anonymousId) {
   const investAid = siblingAnonymousId(anonymousId, 'invest');
   if (!investAid) throw new Error('Invalid anonymous id');
-  const wallet = await AgentWallet.findOne({
-    anonymousId: investAid,
-    chain: 'solana',
-    status: 'active',
-    ...purposeQuery('invest'),
-  }).lean();
+  const wallet = await findOrEnsurePurposeWallet(anonymousId, 'invest');
   if (!wallet?.agentAddress) throw new Error('Invest wallet not provisioned for this user');
   return wallet;
 }

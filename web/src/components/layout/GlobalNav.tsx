@@ -30,6 +30,10 @@ import { useWalletContext } from "@/contexts/WalletContext";
 import { NavbarLogo } from "@/components/NavbarLogo";
 import { GlobalNavMobileSheet } from "@/components/layout/GlobalNavMobileSheet";
 import { SyraBuyButton } from "@/components/syra/SyraBuyButton";
+import {
+  GROWTH_CONTENT_GUTTERS,
+  GROWTH_CONTENT_MAX_WIDTH,
+} from "@/lib/layoutConstants";
 
 const navDropdownPanelClass = cn(
   "overflow-hidden rounded-2xl border border-border/50 bg-popover/95 text-popover-foreground",
@@ -232,7 +236,13 @@ export function GlobalNav() {
       className="sticky top-0 z-[200] overflow-visible border-b border-border/40 bg-background/80 shadow-[0_1px_0_0_hsl(var(--border)/0.35)] backdrop-blur-2xl backdrop-saturate-150 supports-[backdrop-filter]:bg-background/70"
       style={{ height: "var(--syra-global-nav-height, 3.5rem)" }}
     >
-      <div className="flex h-full w-full items-center gap-2 px-3 sm:gap-3 sm:px-4 lg:px-6">
+      <div
+        className={cn(
+          "mx-auto flex h-full w-full items-center gap-2 sm:gap-3",
+          GROWTH_CONTENT_MAX_WIDTH,
+          GROWTH_CONTENT_GUTTERS,
+        )}
+      >
         <GlobalNavMobileSheet
           pathname={pathname}
           search={search}

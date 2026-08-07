@@ -3,7 +3,6 @@
  */
 import LstLoopRealConfig from '../../models/LstLoopRealConfig.js';
 import LstLoopRealPosition from '../../models/LstLoopRealPosition.js';
-import AgentWallet from '../../models/agent/AgentWallet.js';
 import { buildSettlementHealth } from '../settlementHealthService.js';
 import {
   enableLstLoopReal,
@@ -13,7 +12,7 @@ import {
 } from '../lstLoopRealService.js';
 import { getLstLoopStats } from '../lstLoopService.js';
 import { isAdminWalletAddress } from '../adminWallet.js';
-import { siblingAnonymousId, purposeQuery } from '../agentWalletPurpose.js';
+import { findOrEnsurePurposeWallet } from '../agentWalletProvision.js';
 import {
   getEarnProduct,
   EARN_PRODUCT_LST_LOOP,
@@ -36,16 +35,15 @@ const PRODUCT = () => getEarnProduct(EARN_PRODUCT_LST_LOOP);
 const PAPER_GRAD_MIN = 50;
 
 async function resolveInvestWallet(anonymousId) {
-  const investAid = siblingAnonymousId(anonymousId, 'invest');
-  if (!investAid) return null;
-  return AgentWallet.findOne({
-    anonymousId: investAid,
-    chain: 'solana',
-    status: 'active',
-    ...purposeQuery('invest'),
-  })
-    .select('anonymousId agentAddress chain status purpose')
-    .lean();
+  const wallet = await findOrEnsurePurposeWallet(anonymousId, 'invest');
+  if (!wallet?.agentAddress) return null;
+  return {
+    anonymousId: wallet.anonymousId,
+    agentAddress: wallet.agentAddress,
+    chain: wallet.chain || 'solana',
+    status: wallet.status,
+    purpose: wallet.purpose || 'invest',
+  };
 }
 
 export async function getStats() {

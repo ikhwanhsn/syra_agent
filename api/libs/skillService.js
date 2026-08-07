@@ -10,7 +10,7 @@ import {
   baseAnonymousIdFrom,
   siblingAnonymousId,
 } from './agentWalletPurpose.js';
-import { ensureAgentWalletSet } from './agentWalletProvision.js';
+import { ensureAgentWalletPurpose } from './agentWalletProvision.js';
 import {
   encryptAgentSecretForStorage,
   decryptAgentSecretFromStorage,
@@ -51,7 +51,11 @@ export async function resolveCreatorEarnPayTo(creatorAnonymousId) {
 
   let wallet = await AgentWallet.findOne({ anonymousId: earnId, status: { $ne: 'retired' } }).lean();
   if (!wallet?.agentAddress) {
-    await ensureAgentWalletSet({ baseAnonymousId: base, provisionedVia: 'skill_publish' });
+    await ensureAgentWalletPurpose({
+      baseAnonymousId: base,
+      purpose: 'earn',
+      provisionedVia: 'connect',
+    });
     wallet = await AgentWallet.findOne({ anonymousId: earnId, status: { $ne: 'retired' } }).lean();
   }
 

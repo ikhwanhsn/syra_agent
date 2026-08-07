@@ -2,7 +2,6 @@
  * Alpha Sniper real agent — RugCheck-gated entries on earn wallet, exits via Jupiter.
  */
 import { LAMPORTS_PER_SOL } from '@solana/web3.js';
-import AgentWallet from '../models/agent/AgentWallet.js';
 import SniperRealConfig from '../models/SniperRealConfig.js';
 import SniperRealPosition from '../models/SniperRealPosition.js';
 import { SNIPER_DEFAULTS } from '../config/sniperStrategies.js';
@@ -12,7 +11,8 @@ import {
   getSniperStats,
 } from './sniperService.js';
 import { resolveSniperStrategies } from './sniperStrategyResolve.js';
-import { lpAgentAnonymousIdFrom, purposeQuery } from './agentWalletPurpose.js';
+import { baseAnonymousIdFrom } from './agentWalletPurpose.js';
+import { findOrEnsurePurposeWallet } from './agentWalletProvision.js';
 import {
   executeJupiterBrokerSwap,
   EARN_MINTS,
@@ -44,21 +44,9 @@ export function isSniperRealCronEnabled() {
 
 async function resolveLpWallet(anonymousId) {
   // Alpha Sniper signs with the earn pillar wallet (legacy :lp retired).
-  const earnAid = lpAgentAnonymousIdFrom(anonymousId) || String(anonymousId || '').trim();
-  if (!earnAid) throw new Error('Invalid anonymous id');
-  let wallet = await AgentWallet.findOne({
-    anonymousId: earnAid,
-    chain: 'solana',
-    status: 'active',
-    ...purposeQuery('earn'),
-  }).lean();
-  if (!wallet) {
-    wallet = await AgentWallet.findOne({
-      anonymousId: earnAid,
-      chain: 'solana',
-      status: 'active',
-    }).lean();
-  }
+  const base = baseAnonymousIdFrom(anonymousId) || String(anonymousId || '').trim();
+  if (!base) throw new Error('Invalid anonymous id');
+  const wallet = await findOrEnsurePurposeWallet(base, 'earn');
   if (!wallet?.agentAddress) throw new Error('Earn wallet not provisioned for this user');
   return wallet;
 }

@@ -41,6 +41,7 @@ import { CROSSMINT_ONRAMP_POST } from "./crossmintOnrampUpdate";
 import { FLINT_INTEGRATION_POST } from "./flintIntegrationUpdate";
 import { SETTLEMENT_RECOVERY_POST } from "./settlementRecoveryUpdate";
 import { YIELD_XYZ_INTEGRATION_POST } from "./yieldXyzIntegrationUpdate";
+import { PRIVY_WALLETS_PROOF_POST } from "./privyWalletsProofUpdate";
 import { TEMPLATE_POST } from "./templateUpdate";
 import { AGENTSCORE_PHOTO } from "./photo/agentscorePhoto";
 import { INDICATOR_PHOTO } from "./photo/indicatorPhoto";
@@ -85,6 +86,7 @@ import { CROSSMINT_ONRAMP_PHOTO } from "./photo/crossmintOnrampPhoto";
 import { FLINT_INTEGRATION_PHOTO } from "./photo/flintIntegrationPhoto";
 import { SETTLEMENT_RECOVERY_PHOTO } from "./photo/settlementRecoveryPhoto";
 import { YIELD_XYZ_INTEGRATION_PHOTO } from "./photo/yieldXyzIntegrationPhoto";
+import { PRIVY_WALLETS_PROOF_PHOTO } from "./photo/privyWalletsProofPhoto";
 import { TEMPLATE_PHOTO } from "./photo/templatePhoto";
 import type { PostPhotoUpdate } from "./photo/types";
 import type { PostUpdate } from "./types";
@@ -148,6 +150,7 @@ const POST_UPDATE_BUNDLES: PostUpdateBundle[] = [
   { video: FLINT_INTEGRATION_POST, photo: FLINT_INTEGRATION_PHOTO },
   { video: SETTLEMENT_RECOVERY_POST, photo: SETTLEMENT_RECOVERY_PHOTO },
   { video: YIELD_XYZ_INTEGRATION_POST, photo: YIELD_XYZ_INTEGRATION_PHOTO },
+  { video: PRIVY_WALLETS_PROOF_POST, photo: PRIVY_WALLETS_PROOF_PHOTO },
 ];
 
 function assertBundleMeta(bundle: PostUpdateBundle): void {

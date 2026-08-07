@@ -15,6 +15,8 @@ interface ConnectChainModalProps {
   isOpen: boolean;
   onClose: () => void;
   onPick: (option: ConnectOption) => void;
+  /** True while Privy SDK is mounting after first Connect. */
+  booting?: boolean;
 }
 
 const optionRowClass =
@@ -24,10 +26,10 @@ export function ConnectChainModal({
   isOpen,
   onClose,
   onPick,
+  booting = false,
 }: ConnectChainModalProps) {
   const handlePick = (option: ConnectOption) => {
     onPick(option);
-    onClose();
   };
 
   return (
@@ -55,26 +57,37 @@ export function ConnectChainModal({
               <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-muted/60 ring-1 ring-border/60 shadow-inner">
                 <Wallet className="h-5 w-5 text-foreground" strokeWidth={1.75} />
               </span>
-              <span className="text-balance">Connect your wallet</span>
+              <span className="text-balance">
+                {booting ? "Starting wallet..." : "Connect your wallet"}
+              </span>
             </DialogTitle>
             <DialogDescription className="space-y-3 text-pretty text-[13px] leading-relaxed text-muted-foreground sm:text-sm">
-              <span className="block">
-                Pick a path to continue. Email uses Privy; Solana opens Phantom,
-                Solflare, and other Solana wallets.
-              </span>
-              <span className="flex flex-wrap items-center gap-x-1 rounded-lg border border-border/40 bg-muted/25 px-3 py-2.5 text-[12px] leading-snug sm:text-[13px]">
-                <span className="text-muted-foreground">Solana x402:</span>
-                <span className="font-medium text-foreground">Phantom</span>
-                <span className="text-muted-foreground">
-                  is recommended. Enable it in your Privy dashboard if needed.
+              {booting ? (
+                <span className="block" role="status" aria-live="polite">
+                  Loading secure wallet session. This only takes a moment.
                 </span>
-              </span>
+              ) : (
+                <>
+                  <span className="block">
+                    Pick a path to continue. Email uses Privy; Solana opens Phantom,
+                    Solflare, and other Solana wallets.
+                  </span>
+                  <span className="flex flex-wrap items-center gap-x-1 rounded-lg border border-border/40 bg-muted/25 px-3 py-2.5 text-[12px] leading-snug sm:text-[13px]">
+                    <span className="text-muted-foreground">Solana x402:</span>
+                    <span className="font-medium text-foreground">Phantom</span>
+                    <span className="text-muted-foreground">
+                      is recommended. Enable it in your Privy dashboard if needed.
+                    </span>
+                  </span>
+                </>
+              )}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-2.5 min-w-0">
+          <div className={cn("grid gap-2.5 min-w-0", booting && "pointer-events-none opacity-50")}>
             <button
               type="button"
+              disabled={booting}
               className={cn(
                 buttonVariants({ variant: "ghost" }),
                 optionRowClass,
@@ -104,6 +117,7 @@ export function ConnectChainModal({
 
             <button
               type="button"
+              disabled={booting}
               className={cn(
                 buttonVariants({ variant: "ghost" }),
                 optionRowClass,

@@ -1,3 +1,4 @@
+import { GROWTH_CONTENT_SHELL } from "@/lib/layoutConstants";
 import { cn } from "@/lib/utils";
 import { overviewCardShell, overviewKickerClass } from "@/components/dashboard/overview/overviewStyles";
 
@@ -6,8 +7,7 @@ export const PLAYGROUND_DRAWER_Z = "z-[250]";
 export const PLAYGROUND_MODAL_Z = "z-[500]";
 
 /** Shared playground page width + horizontal padding (Syra APIs + Custom API). */
-export const PLAYGROUND_CONTENT_SHELL =
-  "relative z-[1] mx-auto w-full max-w-[1680px] px-4 sm:px-6 lg:px-8";
+export const PLAYGROUND_CONTENT_SHELL = cn(GROWTH_CONTENT_SHELL, "z-[1]");
 
 export const PLAYGROUND_PAGE_CLASS = cn(
   PLAYGROUND_CONTENT_SHELL,

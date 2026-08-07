@@ -37,6 +37,20 @@ Set for the **web** project (build-time `VITE_*`):
 
 Prefer a **separate Privy App ID** for local/dev vs production. Redeploy after changing env vars.
 
+### 3b. API server Privy App ID (server wallets)
+
+The API creates Privy server wallets for agent custody. Set on the **API** host only (never `VITE_*`):
+
+| Variable | Required | Notes |
+|----------|----------|--------|
+| `PRIVY_APP_ID` | Recommended | Overrides the runtime default. Use a **different** App ID for local/staging vs production so test traffic does not share the free-plan MAU/signature pool. |
+| `PRIVY_APP_SECRET` | Yes for privy custody | Dashboard secret for that App ID |
+| `PRIVY_DEFAULT_POLICY` | Optional | Policy id assigned to new server wallets |
+
+Guest product visits create **spend-only** server wallets. Other pillars (earn/invest/treasury/grow) are created lazily on first use. Connect/sign-in still provisions the full set.
+
+Privy free Developer plan limits are **MAU** (monthly active users) and **signatures**, not pageviews. Track both in the Privy Dashboard; Syra also sends throttled Telegram alerts on Privy 429/5xx/auth failures when `SYRA_DEV_BOT_*` is configured.
+
 ### 4. Production security checklist (Dashboard)
 
 Do these in [Privy Dashboard](https://dashboard.privy.io) for the production app:
@@ -49,11 +63,11 @@ Do these in [Privy Dashboard](https://dashboard.privy.io) for the production app
 | MFA | Authentication → MFA | Enable passkey / authenticator for high-value flows |
 | App clients | Configuration → Clients | Separate localhost vs production clients if needed |
 
-API server: keep `PRIVY_APP_ID` / `PRIVY_APP_SECRET` on the API only (never in `VITE_*`). Optional `PRIVY_DEFAULT_POLICY` for server wallets.
+API server: keep `PRIVY_APP_ID` / `PRIVY_APP_SECRET` on the API only (never in `VITE_*`). Optional `PRIVY_DEFAULT_POLICY` for server wallets. See section 3b.
 
 ### 5. Phantom workaround
 
 1. Connect with **email** first.
 2. Then **Connect wallet** → Phantom.
 
-See also `api-playground/PRIVY_SETUP.md` for more detail.
+The web app defers loading the Privy SDK until Connect (or until an existing Privy session token is found). Marketing pages do not initialize Privy on first paint.

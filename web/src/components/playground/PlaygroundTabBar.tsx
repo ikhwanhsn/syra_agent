@@ -1,4 +1,8 @@
 import type { ReactNode } from "react";
+import {
+  GROWTH_CONTENT_GUTTERS,
+  GROWTH_CONTENT_MAX_WIDTH,
+} from "@/lib/layoutConstants";
 import { cn } from "@/lib/utils";
 import { Code2, Layers, Wrench } from "lucide-react";
 import {
@@ -47,7 +51,13 @@ export function PlaygroundTabBar({ active, onChange }: PlaygroundTabBarProps) {
       role="tablist"
       aria-label="API sections"
     >
-      <div className="mx-auto flex w-full max-w-[1680px] items-center gap-4 px-4 py-2.5 sm:px-6 lg:px-8">
+      <div
+        className={cn(
+          "mx-auto flex w-full items-center gap-4 py-2.5",
+          GROWTH_CONTENT_MAX_WIDTH,
+          GROWTH_CONTENT_GUTTERS,
+        )}
+      >
         <p className="hidden shrink-0 font-display text-sm font-semibold tracking-tight text-foreground sm:block">
           APIs
         </p>

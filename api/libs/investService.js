@@ -11,7 +11,8 @@ import {
   getInvestCatalogEntry,
 } from '../config/investCatalog.js';
 import { getAgentTool } from '../config/agentTools.js';
-import { siblingAnonymousId, purposeQuery } from './agentWalletPurpose.js';
+import { siblingAnonymousId } from './agentWalletPurpose.js';
+import { findOrEnsurePurposeWallet } from './agentWalletProvision.js';
 import { fetchInvestYieldsByAdapter } from './investYieldsService.js';
 import { buildMarinadeDepositTx } from './invest/marinadeExecutor.js';
 import { buildJitoDepositTx } from './invest/jitoStakePoolExecutor.js';
@@ -29,12 +30,7 @@ async function resolveInvestWallet(anonymousId) {
   if (!investAid) {
     return { error: 'Invalid anonymous id' };
   }
-  const wallet = await AgentWallet.findOne({
-    anonymousId: investAid,
-    chain: 'solana',
-    status: 'active',
-    ...purposeQuery('invest'),
-  }).lean();
+  const wallet = await findOrEnsurePurposeWallet(anonymousId, 'invest');
   if (!wallet?.agentAddress) {
     return { error: 'Invest wallet not provisioned. Fund Invest from Wallet first.' };
   }
