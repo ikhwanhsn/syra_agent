@@ -56,6 +56,41 @@ export const GROWTH_CONTENT_GUTTERS = "px-4 sm:px-6 lg:px-8";
 export const GROWTH_CONTENT_SHELL =
   `relative mx-auto w-full ${GROWTH_CONTENT_MAX_WIDTH} ${GROWTH_CONTENT_GUTTERS}`;
 
+/** Smooth max-width change when GlobalNav switches growth ↔ dashboard measure. */
+export const NAV_CONTENT_MAX_WIDTH_TRANSITION =
+  `transition-[max-width] ${CHAT_SIDEBAR_TRANSITION}`;
+
+const GROWTH_NAV_EXACT_PATHS = new Set([
+  "/",
+  "/about",
+  "/token",
+  "/rewards",
+  "/privacy",
+  "/terms",
+  "/cookies",
+]);
+
+const GROWTH_NAV_PREFIXES = [
+  "/articles",
+  "/marketplace",
+  "/playground",
+] as const;
+
+/** Growth / marketing shells that keep the narrower GlobalNav measure. */
+export function isGrowthNavRoute(pathname: string): boolean {
+  if (GROWTH_NAV_EXACT_PATHS.has(pathname)) return true;
+  return GROWTH_NAV_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
+
+/** Max-width class for the GlobalNav inner row, matched to page content measure. */
+export function getGlobalNavMaxWidthClass(pathname: string): string {
+  return isGrowthNavRoute(pathname)
+    ? GROWTH_CONTENT_MAX_WIDTH
+    : DASHBOARD_CONTENT_MAX_WIDTH;
+}
+
 /**
  * Bottom padding for scrollable page bodies so content clears taskbars and the iOS home indicator.
  * Pair with an explicit `pt-*` (not `py-*`) so the bottom is never undersized vs the top.

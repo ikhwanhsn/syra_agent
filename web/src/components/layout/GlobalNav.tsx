@@ -32,22 +32,28 @@ import { GlobalNavMobileSheet } from "@/components/layout/GlobalNavMobileSheet";
 import { SyraBuyButton } from "@/components/syra/SyraBuyButton";
 import {
   GROWTH_CONTENT_GUTTERS,
-  GROWTH_CONTENT_MAX_WIDTH,
+  NAV_CONTENT_MAX_WIDTH_TRANSITION,
+  getGlobalNavMaxWidthClass,
 } from "@/lib/layoutConstants";
 
+/** Visual panel only — keep this off NavigationMenuContent so `pt-2` can bridge the trigger gap. */
 const navDropdownPanelClass = cn(
   "overflow-hidden rounded-2xl border border-border/50 bg-popover/95 text-popover-foreground",
   "shadow-[0_16px_48px_-12px_rgba(0,0,0,0.18)] backdrop-blur-xl backdrop-saturate-150",
   "dark:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.55)]",
-  "data-[state=open]:animate-in data-[state=closed]:animate-out",
-  "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-  "data-[state=closed]:zoom-out-[0.98] data-[state=open]:zoom-in-[0.98]",
-  "duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
 );
 
+/**
+ * Positioning shell for dropdowns. Uses padding (not margin) under the trigger so the
+ * pointer never leaves the menu while moving into the panel (avoids hover blink).
+ */
 const navDropdownContentClass = cn(
-  "absolute left-0 top-full z-50 mt-2 origin-top-left p-0 md:w-auto",
-  navDropdownPanelClass,
+  "absolute left-0 top-full z-50 origin-top-left border-0 bg-transparent p-0 pt-2 shadow-none md:w-auto",
+  "data-[motion^=from-]:animate-in data-[motion^=to-]:animate-out",
+  "data-[motion^=from-]:fade-in-0 data-[motion^=to-]:fade-out-0",
+  "data-[motion^=from-]:duration-150 data-[motion^=to-]:duration-100",
+  "data-[motion=from-end]:slide-in-from-right-2 data-[motion=from-start]:slide-in-from-left-2",
+  "data-[motion=to-end]:slide-out-to-right-2 data-[motion=to-start]:slide-out-to-left-2",
 );
 
 const navTriggerClass = cn(
@@ -192,6 +198,7 @@ function NavMenuGroup({
         <ul
           className={cn(
             "p-2",
+            navDropdownPanelClass,
             isWide
               ? "grid w-[min(100vw-2rem,32rem)] grid-cols-1 gap-0.5 sm:grid-cols-2"
               : "w-[min(100vw-2rem,17.5rem)]",
@@ -239,7 +246,8 @@ export function GlobalNav() {
       <div
         className={cn(
           "mx-auto flex h-full w-full items-center gap-2 sm:gap-3",
-          GROWTH_CONTENT_MAX_WIDTH,
+          NAV_CONTENT_MAX_WIDTH_TRANSITION,
+          getGlobalNavMaxWidthClass(pathname),
           GROWTH_CONTENT_GUTTERS,
         )}
       >
@@ -264,8 +272,8 @@ export function GlobalNav() {
         </Link>
 
         <NavigationMenu
-          delayDuration={60}
-          skipDelayDuration={120}
+          delayDuration={80}
+          skipDelayDuration={300}
           viewport={false}
           className="relative z-10 hidden shrink-0 lg:flex"
         >
@@ -287,7 +295,7 @@ export function GlobalNav() {
                 More
               </NavigationMenuTrigger>
               <NavigationMenuContent className={navDropdownContentClass}>
-                <ul className="w-[min(100vw-2rem,17.5rem)] p-2">
+                <ul className={cn("w-[min(100vw-2rem,17.5rem)] p-2", navDropdownPanelClass)}>
                   {SITE_NAV_MORE.map((item) => (
                     <NavMenuLink
                       key={item.href}

@@ -263,8 +263,11 @@ export function WalletNav(props: WalletNavProps = {}) {
         <DropdownMenuContent
           align="end"
           sideOffset={10}
+          collisionPadding={12}
           className={cn(
-            "z-[250] w-[min(21rem,calc(100vw-1.25rem))] overflow-hidden p-0",
+            "z-[250] w-[min(21rem,calc(100vw-1.25rem))] p-0",
+            "max-h-[min(36rem,var(--radix-dropdown-menu-content-available-height))]",
+            "overflow-x-hidden overflow-y-auto overscroll-contain",
             "rounded-2xl border border-border/50 bg-popover/95",
             "shadow-[0_24px_64px_-16px_rgba(0,0,0,0.35)] backdrop-blur-xl backdrop-saturate-150",
             "dark:shadow-[0_24px_64px_-16px_rgba(0,0,0,0.7)]",
