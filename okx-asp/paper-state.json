@@ -1,0 +1,21 @@
+{
+  "mode": "paper",
+  "startEquityUsd": 300,
+  "cashUsd": 300,
+  "dayStartEquityUsd": 300,
+  "dayStartAt": "2026-08-07T02:33:39.265Z",
+  "positions": [],
+  "trades": [],
+  "snapshots": [
+    {
+      "at": "2026-08-07T02:33:39.853Z",
+      "equityUsd": 300,
+      "cashUsd": 300,
+      "positionsUsd": 0,
+      "openPositions": 0,
+      "pnlUsd": 0,
+      "pnlPct": 0
+    }
+  ],
+  "cycles": 1
+}
