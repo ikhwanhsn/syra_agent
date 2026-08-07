@@ -1,29 +1,29 @@
 {
-  "date": "2026-08-04",
-  "updatedAt": "2026-08-04T14:39:10.020Z",
+  "date": "2026-08-07",
+  "updatedAt": "2026-08-07T03:23:06.459Z",
   "source": "https://api.syraa.fun/api/metrics",
   "northStar": {
-    "paidCallsLast7d": 31195,
-    "uniquePayingWalletsLast7d": 95
+    "paidCallsLast7d": 27335,
+    "uniquePayingWalletsLast7d": 102
   },
   "last7d": {
-    "calls": 31195,
-    "usdSettled": 3758.47
+    "calls": 27335,
+    "usdSettled": 2574.05
   },
   "buyback": {
-    "totalBuybackUsdSpent": 23.69,
+    "totalBuybackUsdSpent": 24.2,
     "totalSyraAcquired": 172452.066761,
     "treasurySyraBalance": 172452.066761,
     "lastBuybackSignature": "s3n9W9kLMMu1xZTBooGdENoznfF38bbieZMrTY13TunK6bgG3uepFQTN1C9s3R1bnHwTi7a5VjKYNGcLfszykVG"
   },
   "rewards": {
-    "uniqueEarners": 102,
+    "uniqueEarners": 104,
     "totalClaimableSyra": 0,
     "totalClaimedSyra": 0
   },
   "settlement": {
-    "settleFailRate24h": 0.0677
+    "settleFailRate24h": 0.0823
   },
-  "oneAction": "Triage facilitator settle_timeouts (179/24h): inspect RPC/facilitator health, local Solana settle fallback confirm path in x402PaymentV2, restore last24h settleFailRate <5%. Defer token proof posts until under guardrail.",
+  "oneAction": "Triage Solana facilitator settle_timeouts (255/24h) + local settle confirm path: restore settlement.last24h.settleFailRate <0.05 and meetsLaunchGuardrail=true. Defer token proof posts and Earn/OKX polish until green.",
   "bottleneck": "settlement"
 }

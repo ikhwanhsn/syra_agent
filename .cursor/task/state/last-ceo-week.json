@@ -1,72 +1,75 @@
 {
-  "weekEnding": "2026-07-31",
-  "updatedAt": "2026-07-30T17:05:52.275Z",
+  "weekEnding": "2026-08-07",
+  "updatedAt": "2026-08-07T03:23:06.459Z",
   "outcomes": [
-    "External demand proof: >=1 net-new mcpPaidCall from a wallet that is not founder/treasury, OR >=3 design-partner agents contacted with logged replies",
-    "Buyback truth: /api/metrics buyback claim matches on-chain reality — pendingRevenueUsd tracks ~80% of settled on next flush, OR the public note is corrected",
-    "Hold the green + convert: settleFailRate24h < 0.05 sustained all week AND publish one honest proof post (settled 7d USD + real Solscan buyback tx) once outcome 2 is true"
+    "Restore settlement.last24h.settleFailRate < 0.05 and meetsLaunchGuardrail=true; hold green for ≥5 consecutive calendar days (top fail: facilitator settle_timeout / local Solana confirm)",
+    "External demand proof: ≥1 net-new mcpPaidCall from a wallet that is not founder/treasury, OR ≥3 design-partner agents contacted with logged replies in docs/AGENT_BUILDER_GTM.md",
+    "One honest proof post (settled 7d USD from /api/metrics + real Solscan buyback tx) — only after outcome 1 is green"
   ],
   "scorecard": {
     "productClarity": 7,
-    "technicalLeverage": 6,
-    "distribution": 3,
+    "technicalLeverage": 5,
+    "distribution": 2,
     "moat": 4,
-    "executionFocus": 6,
-    "fundability": 4
+    "executionFocus": 3,
+    "fundability": 3
   },
   "killList": [
-    "Token-led homepage GTM / KOL blasts before buyback claim matches on-chain",
+    "Token-led homepage GTM / KOL blasts while settleFailRate24h > 0.05",
+    "Earn LP Autopilot feature expansion as primary eng priority until settlement green",
+    "OKX Trading Hackathon polish as founder default workstream while settle is red (cap to time-boxed registration only)",
     "Telegram as hero CTA (per TELEGRAM_MAINTENANCE_POLICY)",
     "Five-pillar feature parity theater before external MCP demand proof",
-    "New experiment desks / Outcomes surface expansion this week",
     "CEX/listing applications before settlement green + external payer trend",
-    "Self-generated mcpPaidCalls counted as distribution proof"
+    "Self-generated mcpPaidCalls counted as distribution proof",
+    "New experiment desks / Outcomes surface expansion next week"
   ],
   "metricsSnapshot": {
     "northStar": {
-      "paidCallsLast7d": 36119,
-      "uniquePayingWalletsLast7d": 101
+      "paidCallsLast7d": 27335,
+      "uniquePayingWalletsLast7d": 102
     },
     "last7d": {
-      "usdSettled": 3587.2,
-      "uniquePayingWallets": 101
+      "usdSettled": 2574.05,
+      "uniquePayingWallets": 102
     },
     "lifetime": {
-      "totalUsdSettled": 4163.23,
-      "uniquePayingWallets": 116
+      "totalUsdSettled": 6803.78,
+      "uniquePayingWallets": 126
     },
     "funnel": {
       "paymentRequiredToPaidRate": 1,
-      "d7RepeatRate": 0.636,
-      "firstPaidPayersLast30d": 116
+      "d7RepeatRate": 0.73,
+      "firstPaidPayersLast30d": 126
     },
     "settlement": {
-      "settleFailRate24h": 0.0052,
-      "settleFailRate7d": 0.0014,
-      "meetsLaunchGuardrail24h": true,
-      "topFail": "Facilitator settle_timeout; local Solana settle did not confirm"
+      "settleFailRate24h": 0.0823,
+      "settleFailRate7d": 0.0293,
+      "meetsLaunchGuardrail24h": false,
+      "topFail": "Facilitator settle failed (settle_timeout); local Solana settle did not confirm",
+      "settleFailed24h": 255
     },
     "buyback": {
-      "totalBuybackUsdSpent": 24.43,
+      "totalBuybackUsdSpent": 24.2,
       "totalSyraAcquired": 172452.066761,
       "treasurySyraBalance": 172452.066761,
       "totalFlushedUsd": 0.87,
-      "pendingRevenueUsd": 0.28
+      "pendingRevenueUsd": 0.49
     },
     "rewards": {
-      "uniqueEarners": 102,
+      "uniqueEarners": 104,
       "totalClaimableSyra": 0,
       "totalClaimedSyra": 0
     },
     "holders": {
-      "marketCapUsd": 64140,
-      "liquidityUsd": 23574.44,
+      "marketCapUsd": 63953,
+      "liquidityUsd": 23236.92,
       "uniqueStakers": 1
     },
     "bySource": {
-      "api": 83422,
+      "api": 111659,
       "mcpPaidCalls": 1
     }
   },
-  "lastWeekOutcomesGrade": "2 MET / 1 MISSED — (1) settleFailRate+guardrail MET (0.0052/24h); (2) uniquePayingWallets7d>=50 MET (101); (3) proof post + external mcpPaidCalls MISSED (mcpPaidCalls=1 was self-generated; no proof post evidence)"
+  "lastWeekOutcomesGrade": "0 MET / 2 MISSED / 1 PARTIAL — (1) External mcpPaidCall/design partners MISSED (mcpPaidCalls still 1); (2) Buyback truth PARTIAL (note clarifies Labs skipRevenueBuyback + portfolio accounting, but pendingRevenueUsd 0.49 vs $2574 7d settled still looks broken without a public correction post); (3) settleFail24h <0.05 + proof post MISSED (0.0823, 255 settle_failed/24h, meetsLaunchGuardrail false; no proof-post evidence in git)"
 }
