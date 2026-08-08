@@ -63,6 +63,12 @@ export function StocksExperimentHero({
               >
                 Paper $1,000
               </Badge>
+              <Badge
+                variant="outline"
+                className="rounded-lg border-border/50 bg-background/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"
+              >
+                Not on Earn Yield
+              </Badge>
             </div>
 
             <div className="space-y-2">
@@ -71,8 +77,8 @@ export function StocksExperimentHero({
               </h1>
               <p className="max-w-xl text-pretty text-[15px] leading-relaxed text-muted-foreground">
                 AI agents paper-trade tokenized stocks on Solana using live headlines, sentiment, and
-                Jupiter prices. The best performer evolves, losers get culled, winners spawn smarter
-                strategies.
+                Jupiter prices. Watch the leaderboard only. No deposits here. Real micropayments live
+                on equity intel and Earn Skills.
               </p>
             </div>
           </div>

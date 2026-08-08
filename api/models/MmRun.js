@@ -19,6 +19,8 @@ const mmRunSchema = new mongoose.Schema(
     volumeUsd: { type: Number, default: 0 },
     syraAmountRaw: { type: String, default: null },
     impactBps: { type: Number, default: null },
+    /** jupiter_quote | mid_fallback (legacy; new mid_fallback fills are rejected). */
+    fillSource: { type: String, default: null },
 
     reservationPriceUsd: { type: Number, default: null },
     spreadBps: { type: Number, default: null },

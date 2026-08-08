@@ -7,6 +7,7 @@ import { StocksExperimentHero } from "@/components/experiment/stocks/StocksExper
 import { StocksGlobalStats } from "@/components/experiment/stocks/StocksGlobalStats";
 import { StocksLabSummary } from "@/components/experiment/stocks/StocksLabSummary";
 import { StocksNewsPanel } from "@/components/experiment/stocks/StocksNewsPanel";
+import { StocksRealMoneyCta } from "@/components/experiment/stocks/StocksRealMoneyCta";
 import { StocksUniversePanel } from "@/components/experiment/stocks/StocksUniversePanel";
 import { cn } from "@/lib/utils";
 import {
@@ -158,6 +159,8 @@ export default function StocksNewsExperiment({ embedded = false }: { embedded?: 
         )}
       >
         <StocksExperimentHero embedded={embedded} loading={loading} failed={failed} onRefresh={refreshAll} />
+
+        <StocksRealMoneyCta />
 
         <ExperimentAgentBalancePanel
           platformLabel="Stocks news lab"

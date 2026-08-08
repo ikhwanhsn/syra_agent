@@ -119,6 +119,16 @@ async function main() {
   console.log('  Paper labs: /momentum-rotator /lst-loop /alpha-sniper (admin)');
   console.log('  API: /experiment/momentum-rotator|/lst-loop|/sniper (+ -real)');
 
+  const { EARN_YIELD_BLOCKED_EXPERIMENTS, assertNoBlockedEarnProducts } = await import(
+    '../config/earnProducts.js'
+  );
+  assertNoBlockedEarnProducts();
+  console.log('\nBlocked from Earn Yield (do not register):');
+  for (const b of EARN_YIELD_BLOCKED_EXPERIMENTS) {
+    console.log(`  - ${b.id}: ${b.label}`);
+  }
+  console.log('  Stocks paper dossier: node scripts/stocksPaperEdgeDossier.js');
+
   if (anyNotReady) process.exitCode = 2;
   await mongoose.disconnect();
 }

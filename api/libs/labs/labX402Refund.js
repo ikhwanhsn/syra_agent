@@ -96,14 +96,38 @@ const FUNDER_MIN_OKB_FOR_REFUND = 0.00005;
  */
 function minNativeForFunder(chain) {
   if (chain === 'algorand') {
-    // Algorand: do not gate funder selection on own spendable ALGO.
-    // ensurePayToAlgoForUsdcRefund borrows gas from sibling payers/PayTo/hub
-    // after the USDC-rich funder is chosen (see labAlgorandFeeBuffer).
+    // Fallback floor for two-pass Algorand selection in resolveRichestFunder:
+    // prefer gas-ready wallets first; only then allow USDC-rich / ALGO-poor
+    // and borrow fee ALGO via ensurePayToAlgoForUsdcRefund.
     return 0;
   }
   if (chain === 'base') return FUNDER_MIN_ETH_FOR_REFUND;
   if (chain === 'xlayer') return FUNDER_MIN_OKB_FOR_REFUND;
   return FUNDER_MIN_SOL_FOR_REFUND;
+}
+
+/**
+ * Map a proactive top-up exception to a stable funding skip reason.
+ * ALGO fee / min-balance failures must not look like USDC underfunding.
+ *
+ * @param {unknown} errOrMsg
+ * @returns {'usdc_opt_in_required' | 'payto_native_underfunded' | 'payto_underfunded' | 'topup_failed'}
+ */
+export function classifyLabTopUpFailureReason(errOrMsg) {
+  const msg =
+    typeof errOrMsg === 'string'
+      ? errOrMsg
+      : errOrMsg?.message || String(errOrMsg || '');
+  if (/not opted into USDC ASA/i.test(msg)) return 'usdc_opt_in_required';
+  if (
+    /insufficient_algo_for_usdc_refund/i.test(msg) ||
+    /funder ALGO insufficient for USDC refund fees/i.test(msg) ||
+    /payTo ALGO below min-balance/i.test(msg)
+  ) {
+    return 'payto_native_underfunded';
+  }
+  if (String(msg).includes(PAYTO_INSUFFICIENT_FUNDS)) return 'payto_underfunded';
+  return 'topup_failed';
 }
 
 /**
@@ -987,20 +1011,15 @@ export async function ensurePayerFundedForNextCall(payerAddress, opts = {}) {
     };
   } catch (e) {
     const msg = e?.message || String(e);
-    const underfunded = String(msg).includes(PAYTO_INSUFFICIENT_FUNDS);
-    const notOptedIn = /not opted into USDC ASA/i.test(String(msg));
+    const reason = classifyLabTopUpFailureReason(msg);
     console.warn(
-      `[labX402Refund] proactive top-up failed for ${payerAddress} (${underfunded ? 'funder underfunded' : msg})`,
+      `[labX402Refund] proactive top-up failed for ${payerAddress} (${reason === 'payto_underfunded' || reason === 'payto_native_underfunded' ? reason : msg})`,
     );
     return {
       canPay: balances.usdcBalance >= minPriceUsd,
       funded: false,
       balanceUsdc: balances.usdcBalance,
-      reason: notOptedIn
-        ? 'usdc_opt_in_required'
-        : underfunded
-          ? 'payto_underfunded'
-          : 'topup_failed',
+      reason,
       error: msg,
     };
   }

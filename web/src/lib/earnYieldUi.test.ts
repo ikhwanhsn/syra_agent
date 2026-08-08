@@ -12,7 +12,13 @@ describe("humanizeAgentNote loss/funding codes", () => {
   });
 
   it("maps insufficient_available_sol to funding guidance", () => {
-    expect(humanizeAgentNote("insufficient_available_sol")).toMatch(/0\.65 SOL/i);
+    expect(humanizeAgentNote("insufficient_available_sol")).toMatch(/0\.5(?:0)? SOL/i);
+  });
+
+  it("maps no_profitable_strategy to real track-record gate, not sim-qualified", () => {
+    const note = humanizeAgentNote("no_profitable_strategy");
+    expect(note).toMatch(/real on-chain/i);
+    expect(note).not.toMatch(/sim-qualified/i);
   });
 });
 

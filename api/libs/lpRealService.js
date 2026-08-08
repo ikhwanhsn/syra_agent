@@ -1031,12 +1031,18 @@ function minBankSolForConfig(config) {
   return toNum(config?.targetBankSol, getLpRealDefaultTargetBankSol());
 }
 
+/**
+ * Native SOL required to turn on with no open positions.
+ * Slot yardstick is max(maxPositionSol, minDeposit) so Earn beta (0.25) and opens agree:
+ * available >= minDeposit + feeBuffer  ⇒  native >= slot + reserve + feeBuffer (~0.55 SOL).
+ */
+export function computeMinWalletToStartSol(config) {
+  const slotSol = Math.max(toNum(config?.maxPositionSol, 1), getLpRealMinDepositSol());
+  return slotSol + toNum(config?.reserveSolForFees, 0.05) + getLpRealFeeBufferSol();
+}
+
 function minWalletToStartSol(config) {
-  return (
-    toNum(config?.maxPositionSol, 1) +
-    toNum(config?.reserveSolForFees, 0.05) +
-    getLpRealFeeBufferSol()
-  );
+  return computeMinWalletToStartSol(config);
 }
 
 function minWalletWhileLiveSol() {
@@ -1735,8 +1741,14 @@ async function bumpWalletPolicyForLpReal(anonymousId, lpConfig = {}) {
   );
 }
 
-export async function enableLpReal({ anonymousId, enabledBy }) {
-  const config = await assertLpRealOperator(anonymousId);
+export async function enableLpReal({ anonymousId, enabledBy, preEnableConfigSet = null }) {
+  let config = await assertLpRealOperator(anonymousId);
+  // Earn (and similar) paths apply trial sizing before the balance gate so fresh
+  // configs are not stuck on lab default maxPositionSol=1 (~1.30 SOL).
+  if (preEnableConfigSet && typeof preEnableConfigSet === "object") {
+    await LpRealConfig.updateOne(configAgentFilter(config), { $set: preEnableConfigSet });
+    config = await LpRealConfig.findOne({ agentAddress: config.agentAddress }).lean();
+  }
   const solPriceUsd = await fetchSolPriceUsd();
   const nativeSolBalanceSol = await getAgentSolBalance(config.agentAddress);
   const walletEquitySol = await getAgentWalletEquitySol(config.agentAddress, solPriceUsd);

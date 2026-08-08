@@ -53,6 +53,13 @@ const robinhoodLpExperimentRunSchema = new mongoose.Schema(
     openedAt: { type: Date, required: true, default: Date.now, index: true },
     lastEvaluatedAt: { type: Date, default: null },
     resolvedAt: { type: Date, default: null },
+
+    /**
+     * When set, this run belongs to a culled strategy generation.
+     * Kept for lineage / credit assignment; excluded from active ranking.
+     */
+    archivedAt: { type: Date, default: null, index: true },
+    archiveReason: { type: String, default: null },
   },
   { timestamps: true, collection: "robinhood_lp_experiment_runs" },
 );

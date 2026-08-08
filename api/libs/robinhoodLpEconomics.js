@@ -19,12 +19,16 @@ function toNum(value, fallback = 0) {
  * Paper-sim fee haircut for Robinhood Uniswap v3.
  * Do not reuse Solana Meteora's LP_SIM_FEE_CALIBRATION_MULT=0.22 default —
  * that calibration was against Meteora closes and makes RH fee income vanish.
+ *
+ * Default 0.65 is intentionally conservative vs prior 0.9: concentrated-liquidity
+ * fee share is overstated by the shared DLMM-style multiplier. Paper PnL remains
+ * untrusted for Earn unlock until calibrated against live Uniswap fee growth.
  * Override with ROBINHOOD_LP_SIM_FEE_CALIBRATION_MULT (0–1.5].
  */
 export function getRobinhoodLpSimFeeCalibrationMult() {
   const raw = Number(process.env.ROBINHOOD_LP_SIM_FEE_CALIBRATION_MULT);
   if (Number.isFinite(raw) && raw > 0 && raw <= 1.5) return raw;
-  return 0.9;
+  return 0.65;
 }
 
 /** Tick spacing stored as binStep on RH paper runs (Uniswap fee-tier spacing). */

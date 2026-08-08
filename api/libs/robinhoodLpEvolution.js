@@ -1,5 +1,6 @@
 /**
  * Robinhood Chain LP lab evolution — daily cull + elite mutation spawns.
+ * Elite bar matches stocks lab sample depth (no cloning lucky 3-trade streaks).
  */
 import RobinhoodLpExperimentRun from "../models/RobinhoodLpExperimentRun.js";
 import RobinhoodLpExperimentState from "../models/RobinhoodLpExperimentState.js";
@@ -12,7 +13,10 @@ import {
   LP_AGENT_MAX_STRATEGIES,
   LP_AGENT_STATIC_STRATEGY_COUNT,
 } from "../config/robinhoodLpStrategies.js";
-import { rankRobinhoodLpStrategiesByNetPnl } from "./robinhoodLpExperimentService.js";
+import {
+  activeRobinhoodRunMatch,
+  rankRobinhoodLpStrategiesByNetPnl,
+} from "./robinhoodLpExperimentService.js";
 import {
   invalidateRobinhoodLpStrategyCache,
   resolveRobinhoodLpExperimentStrategies,
@@ -25,11 +29,16 @@ import {
 import { computeRiskAdjustedLeaderScore } from "./earnExperimentKit.js";
 import { isRobinhoodDegenStrategy } from "./robinhoodLpExperimentService.js";
 
+/** Prefer well-sampled parents — lucky short streaks must not dominate DNA. */
+export const ROBINHOOD_LP_ELITE_MIN_DECIDED = 12;
+export const ROBINHOOD_LP_ELITE_MIN_WIN_RATE = 0.52;
+
 export const ROBINHOOD_LP_EVOLUTION_SCHEDULE = Object.freeze({
   enabled: true,
   intervalMs: 86_400_000,
   removeCount: 5,
-  minDecided: 5,
+  /** Cull only after enough settled sample (aligned with elite bar). */
+  minDecided: 12,
   dailySpawnCount: LP_AGENT_DAILY_SPAWN_COUNT,
   maxStrategies: LP_AGENT_MAX_STRATEGIES,
   pinnedStrategyIds: Object.freeze([]),
@@ -97,11 +106,21 @@ function computeLeaderScore(row, opts = {}) {
   });
 }
 
+export function isRobinhoodLpEliteParent(row) {
+  const decided = Number(row?.decided) || 0;
+  const winRate = Number(row?.winRate);
+  const sumNetPnlUsd = Number(row?.sumNetPnlUsd) || 0;
+  return (
+    decided >= ROBINHOOD_LP_ELITE_MIN_DECIDED &&
+    sumNetPnlUsd > 0 &&
+    Number.isFinite(winRate) &&
+    winRate >= ROBINHOOD_LP_ELITE_MIN_WIN_RATE
+  );
+}
+
 async function pickEliteParent(experimentId, strategyList) {
   const ranked = await rankRobinhoodLpStrategiesByNetPnl(experimentId);
-  const elites = ranked.filter(
-    (row) => row.decided >= 3 && row.sumNetPnlUsd > 0 && (row.winRate ?? 0) >= 0.48,
-  );
+  const elites = ranked.filter((row) => isRobinhoodLpEliteParent(row));
   if (elites.length === 0) return null;
   elites.sort((a, b) => computeLeaderScore(b) - computeLeaderScore(a));
   const pickIdx = Math.min(elites.length - 1, Math.floor(Math.random() * Math.random() * elites.length));
@@ -109,6 +128,19 @@ async function pickEliteParent(experimentId, strategyList) {
   const strategy = strategyList.find((s) => s.id === stats.strategyId) ?? null;
   if (!strategy) return null;
   return { strategy, stats };
+}
+
+/** Archive (do not delete) runs so lineage survives cull/replace. */
+async function archiveStrategyRuns(experimentId, strategyId, reason) {
+  await RobinhoodLpExperimentRun.updateMany(
+    activeRobinhoodRunMatch({ experimentId, strategyId }),
+    {
+      $set: {
+        archivedAt: new Date(),
+        archiveReason: reason || "cull_replace",
+      },
+    },
+  );
 }
 
 async function upsertRobinhoodStrategyOverride(strat) {
@@ -204,22 +236,26 @@ export async function runRobinhoodLpEvolution(opts = {}) {
 
   for (const s of strategies) {
     if (pinned.has(s.id)) continue;
-    const settled = await RobinhoodLpExperimentRun.find({
-      experimentId,
-      strategyId: s.id,
-      status: { $in: ["win", "loss", "expired"] },
-    }).lean();
+    const settled = await RobinhoodLpExperimentRun.find(
+      activeRobinhoodRunMatch({
+        experimentId,
+        strategyId: s.id,
+        status: { $in: ["win", "loss", "expired"] },
+      }),
+    ).lean();
     const wins = settled.filter((r) => r.status === "win").length;
     const losses = settled.filter((r) => r.status === "loss").length;
     const expired = settled.filter((r) => r.status === "expired").length;
     const decided = wins + losses + expired;
     const winRate = decided > 0 ? wins / decided : null;
     const sumNetPnlUsd = settled.reduce((acc, r) => acc + Number(r.simNetPnlUsd || 0), 0);
-    const openPositions = await RobinhoodLpExperimentRun.countDocuments({
-      experimentId,
-      strategyId: s.id,
-      status: "open",
-    });
+    const openPositions = await RobinhoodLpExperimentRun.countDocuments(
+      activeRobinhoodRunMatch({
+        experimentId,
+        strategyId: s.id,
+        status: "open",
+      }),
+    );
     rows.push({ strategyId: s.id, wins, losses, expired, decided, winRate, openPositions, sumNetPnlUsd });
   }
 
@@ -272,13 +308,15 @@ export async function runRobinhoodLpEvolution(opts = {}) {
   const culled = [];
   const spawned = [];
   for (const v of victims) {
-    await RobinhoodLpExperimentRun.deleteMany({ experimentId, strategyId: v.strategyId });
+    // Preserve run history for lineage; exclude from active ranking via archivedAt.
+    await archiveStrategyRuns(experimentId, v.strategyId, "cull_replace");
     const entry = await spawnSmarterStrategy(experimentId, strategies, v.strategyId, "cull_replace");
     culled.push({
       strategyId: v.strategyId,
       previousWinRate: v.winRate,
       previousDecided: v.decided,
       previousNetPnlUsd: v.sumNetPnlUsd,
+      archived: true,
     });
     spawned.push(entry);
   }

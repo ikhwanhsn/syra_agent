@@ -103,28 +103,47 @@ function extractAssistantTextFromChoice(choice) {
 }
 
 /**
+ * @param {unknown} value
+ * @param {number} [fallback]
+ * @returns {number}
+ */
+function resolveMaxTokens(value, fallback = 2000) {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+    return Math.floor(value);
+  }
+  return fallback;
+}
+
+/**
  * @param {Array<{ role: string; content: string }>} messages
- * @param {{ max_tokens?: number; temperature?: number; model?: string; _retryAttempt?: number }} [options]
+ * @param {{ max_tokens?: number; temperature?: number; model?: string; response_format?: unknown; timeoutMs?: number; _retryAttempt?: number }} [options]
  * @returns {Promise<{ response: string; raw: object; truncated: boolean; finishReason: string | null; usage: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | null }>}
  */
 export async function callOpenRouter(messages, options = {}) {
   const requestedId = options.model && typeof options.model === 'string' ? options.model.trim() : null;
   const model = resolveOpenRouterModelId(requestedId || OPENROUTER_DEFAULT_MODEL);
   const headers = buildOpenRouterHeaders();
+  const maxTokens = resolveMaxTokens(options.max_tokens, 2000);
+
+  /** @type {Record<string, unknown>} */
+  const body = {
+    model,
+    messages,
+    stream: false,
+    top_p: 1,
+    max_tokens: maxTokens,
+    temperature: options.temperature ?? 0.7,
+    presence_penalty: 0,
+    frequency_penalty: 0,
+  };
+  if (options.response_format != null) {
+    body.response_format = options.response_format;
+  }
 
   const response = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({
-      model,
-      messages,
-      stream: false,
-      top_p: 1,
-      max_tokens: options.max_tokens ?? 2000,
-      temperature: options.temperature ?? 0.7,
-      presence_penalty: 0,
-      frequency_penalty: 0,
-    }),
+    body: JSON.stringify(body),
     ...(typeof options.timeoutMs === 'number' && options.timeoutMs > 0
       ? { signal: AbortSignal.timeout(options.timeoutMs) }
       : {}),
@@ -171,10 +190,17 @@ export async function callOpenRouter(messages, options = {}) {
         }
       : null;
 
+  // Keep raw JSON intact for structured-output callers; chat UX still gets a truncation note.
+  const wantsJsonObject =
+    options.response_format &&
+    typeof options.response_format === 'object' &&
+    /** @type {{ type?: string }} */ (options.response_format).type === 'json_object';
+
   return {
-    response: truncated
-      ? `${content}\n\n[Response was cut off due to length limit. You can ask for more or rephrase.]`
-      : content,
+    response:
+      truncated && !wantsJsonObject
+        ? `${content}\n\n[Response was cut off due to length limit. You can ask for more or rephrase.]`
+        : content,
     raw: data,
     truncated,
     finishReason: finishReason ?? null,

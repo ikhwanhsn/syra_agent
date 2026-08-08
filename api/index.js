@@ -2624,7 +2624,7 @@ app.listen(PORT, () => {
       if (!evo.enabled || evo.ms < 60_000) return;
       const tick = runIfMongoConnected(
         withSingleFlight(() =>
-          runMmLearning()
+          runMmLearning({ force: true })
             .then((out) => {
               if (!out || out.skipped) return;
               startupVerbose("[MM learning]", out.summary || "completed");

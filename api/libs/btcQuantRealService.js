@@ -20,6 +20,10 @@ import {
   getBtcQuantEvolutionSnapshot,
   getEvolutionCooldownStrategyIds,
 } from "./btcQuantExperimentEvolution.js";
+import {
+  meetsBtcQuantMinConfidence,
+  resolveBtcQuantLearningThresholds,
+} from "./btcQuantLearningGates.js";
 import { resolveBtcQuantStrategyById } from "./btcQuantStrategyResolve.js";
 import { executeBtcQuantJupiterSwap, BTC_QUANT_SWAP_MINTS } from "./btcQuantJupiterSwap.js";
 import BtcQuantExperimentState from "../models/BtcQuantExperimentState.js";
@@ -343,10 +347,8 @@ export async function runBtcQuantRealSignalCycle(lane = "btc1") {
   }
 
   const evoSnap = await getBtcQuantEvolutionSnapshot(laneKey);
-  const notionalMult = Math.min(
-    1,
-    Math.max(0.25, toNum(evoSnap?.thresholdOverrides?.maxNotionalMultiplier, 1)),
-  );
+  const learningThresholds = resolveBtcQuantLearningThresholds(evoSnap?.thresholdOverrides);
+  const notionalMult = learningThresholds.maxNotionalMultiplier;
 
   const strategy = await resolveBtcQuantStrategyById(laneKey, cfg.leaderStrategyId ?? 14);
   if (!strategy) {
@@ -383,6 +385,22 @@ export async function runBtcQuantRealSignalCycle(lane = "btc1") {
       );
     }
     return { lane: laneKey, skipped: true, reason: "no_sim_buy_signal" };
+  }
+
+  if (!meetsBtcQuantMinConfidence(simOpen.confidence, learningThresholds.minConfidence)) {
+    if (shouldTouchRealConfigMeta(cfg, "below_min_confidence", "signal")) {
+      await BtcQuantRealConfig.updateOne(
+        { _id: configId },
+        { $set: { lastSignalAt: new Date(), lastError: "below_min_confidence" } },
+      );
+    }
+    return {
+      lane: laneKey,
+      skipped: true,
+      reason: "below_min_confidence",
+      confidence: simOpen.confidence ?? null,
+      minConfidence: learningThresholds.minConfidence,
+    };
   }
 
   const notionalUsd =

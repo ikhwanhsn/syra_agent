@@ -62,6 +62,8 @@ function facilitatorLabel(
   chain: LabChain,
   endpoint: string,
 ): string {
+  // Synthetic treasury / funding rows are not settled payments.
+  if (endpoint === "(treasury)" || endpoint === "(funding)") return "-";
   switch (facilitator) {
     case "payai":
       return "PayAI";
@@ -83,6 +85,8 @@ function facilitatorLabel(
 
 function facilitatorBadgeClass(label: string): string {
   switch (label) {
+    case "-":
+      return "bg-muted text-muted-foreground";
     case "PayAI":
       return "bg-violet-500/15 text-violet-600 dark:text-violet-400";
     case "OKX":

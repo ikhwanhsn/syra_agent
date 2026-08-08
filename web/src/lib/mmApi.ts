@@ -44,6 +44,28 @@ export interface MmStrategyStat {
   volumePerDollar: number;
 }
 
+export interface MmPaperEdgeEvaluation {
+  pass: boolean;
+  checks: Record<string, boolean>;
+  currentStage: string;
+  nextBlockedUntil: string;
+  earnYieldAllowed: boolean;
+  note: string;
+}
+
+export interface MmPaperEdgeMetrics {
+  honestRoundTrips: number;
+  closedSample: number;
+  midFallbackCount: number;
+  midFallbackFrac: number;
+  promotedStrategyId: MmStrategyId;
+  promotedNetPnlUsd: number;
+  winRate: number | null;
+  inventoryDriftFrac: number;
+  promotionStability: number;
+  evaluation: MmPaperEdgeEvaluation;
+}
+
 export interface MmLearningSnapshot {
   lessons: string[];
   thresholdOverrides: Record<string, unknown>;
@@ -60,6 +82,7 @@ export interface MmLearningSnapshot {
     gridLevels: number;
     maxInventoryUsd: number;
     minEdgeBufferPct: number;
+    inventorySkewFactor?: number;
     deploySlicePct: number;
   };
   effectiveConfig: {
@@ -68,8 +91,10 @@ export interface MmLearningSnapshot {
     gridLevels: number;
     maxInventoryUsd: number;
     minEdgeBufferPct: number;
+    inventorySkewFactor?: number;
     deploySlicePct: number;
   };
+  paperEdge?: MmPaperEdgeMetrics;
 }
 
 export interface MmLedger {

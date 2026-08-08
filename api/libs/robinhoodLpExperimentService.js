@@ -13,8 +13,6 @@ import {
   isRobinhoodQuoteMint,
   isRobinhoodQuoteSymbol,
 } from "./robinhoodUniswapClient.js";
-import { scorePool } from "./lpExperimentScoring.js";
-import { derivePoolSignals } from "./lpPoolSignalsSynthetic.js";
 import {
   applyRiskAdjustedFeeMultiplier,
   computeDlmmFeeShareMultiplier,
@@ -38,9 +36,28 @@ import {
   robinhoodStrategyNeedsSidecarSwap,
   shouldCloseRobinhoodSimByOor,
 } from "./robinhoodLpEconomics.js";
+import {
+  deriveRobinhoodPoolSignals,
+  ROBINHOOD_PAPER_METRICS_DISCLAIMER,
+  ROBINHOOD_PAPER_METRICS_UNTRUSTED,
+  scoreRobinhoodPool,
+} from "./robinhoodLpSignals.js";
+import {
+  getRobinhoodPoolScoreMultipliers,
+  recordRobinhoodLpClosedTrade,
+  resetRobinhoodLpLearningState,
+} from "./robinhoodLpLearning.js";
 import { getHeartbeatMinMs, isHeartbeatDue, numChanged } from "../utils/mongoHeartbeatWrite.js";
 
-export { computeLpNetPnlPct, isPositionOutOfRange, derivePoolSignals };
+export { computeLpNetPnlPct, isPositionOutOfRange, deriveRobinhoodPoolSignals };
+
+/** Match runs that still belong to the active strategy generation (not cull-archived). */
+export function activeRobinhoodRunMatch(extra = {}) {
+  return {
+    ...extra,
+    archivedAt: null,
+  };
+}
 
 const OPEN_POSITION_COOLDOWN_MS = 45 * 60 * 1000;
 const SIM_POOL_SCAN_PAGES = 4;
@@ -247,16 +264,20 @@ export async function ensureRobinhoodLpExperimentBootstrapped() {
         strategyId: s.id,
       }).lean();
       if (exists) continue;
-      const settled = await RobinhoodLpExperimentRun.find({
-        experimentId: activeId,
-        strategyId: s.id,
-        status: { $in: ["win", "loss", "expired"] },
-      }).lean();
-      const openRuns = await RobinhoodLpExperimentRun.find({
-        experimentId: activeId,
-        strategyId: s.id,
-        status: "open",
-      }).lean();
+      const settled = await RobinhoodLpExperimentRun.find(
+        activeRobinhoodRunMatch({
+          experimentId: activeId,
+          strategyId: s.id,
+          status: { $in: ["win", "loss", "expired"] },
+        }),
+      ).lean();
+      const openRuns = await RobinhoodLpExperimentRun.find(
+        activeRobinhoodRunMatch({
+          experimentId: activeId,
+          strategyId: s.id,
+          status: "open",
+        }),
+      ).lean();
       let cash = cfg.startingBankUsd;
       for (const r of settled) {
         const txFallback = computeRobinhoodSimTransactionCostsUsd(r.depositUsd, {
@@ -307,7 +328,12 @@ export async function getRobinhoodLpExperimentLabState() {
     .sort({ strategyId: 1 })
     .lean();
   const openAgg = await RobinhoodLpExperimentRun.aggregate([
-    { $match: { experimentId: state.activeExperimentId, status: "open" } },
+    {
+      $match: activeRobinhoodRunMatch({
+        experimentId: state.activeExperimentId,
+        status: "open",
+      }),
+    },
     { $group: { _id: "$strategyId", count: { $sum: 1 }, deployedUsd: { $sum: "$depositUsd" } } },
   ]);
   const openMap = new Map(openAgg.map((x) => [x._id, x]));
@@ -337,6 +363,7 @@ export async function resetRobinhoodLpFromScratch(opts = {}) {
   const cfg = mergedSimConfig(state);
   await RobinhoodLpExperimentRun.deleteMany({});
   await RobinhoodLpExperimentAgentState.deleteMany({});
+  await resetRobinhoodLpLearningState().catch(() => {});
   // Wipe evolvable degen-herd overrides so the next cohort starts from static DNA.
   const RobinhoodLpExperimentStrategyOverride = (
     await import("../models/RobinhoodLpExperimentStrategyOverride.js")
@@ -393,7 +420,8 @@ export const ROBINHOOD_MAX_AGENTS_PER_POOL = Number(
 );
 /** Reject casino vol/TVL ratios unless strategy is explicitly degen. */
 export const ROBINHOOD_MAX_VOL_TVL_RATIO = Number(process.env.ROBINHOOD_LP_MAX_VOL_TVL_RATIO || 6);
-export const ROBINHOOD_MIN_TVL_USD = Number(process.env.ROBINHOOD_LP_MIN_TVL_USD || 25_000);
+/** Align paper universe closer to live screen ($50k) — thin $25k pools taught noise. */
+export const ROBINHOOD_MIN_TVL_USD = Number(process.env.ROBINHOOD_LP_MIN_TVL_USD || 50_000);
 
 export function isRobinhoodDegenStrategy(strategy) {
   const name = String(strategy?.name || "").toLowerCase();
@@ -516,9 +544,7 @@ export async function getRobinhoodLpCandidatePools() {
   const candidates = [];
   for (const strategy of strategies) {
     const scored = pools.map((pool) => {
-      const synthetic = derivePoolSignals(pool);
-      const merged = { ...pool, ...synthetic };
-      const scoredRow = scorePool(strategy, merged);
+      const scoredRow = scoreRobinhoodPool(strategy, pool);
       return {
         strategyId: strategy.id,
         strategyName: strategy.name,
@@ -532,6 +558,7 @@ export async function getRobinhoodLpCandidatePools() {
         gatePassed: scoredRow.gatePassed,
         gateReasons: scoredRow.gateReasons,
         signalSnapshot: scoredRow.signalSnapshot,
+        signalsMode: scoredRow.signalsMode,
         tvlUsd: pool.tvlUsd,
         volume24hUsd: pool.volume24hUsd,
         feeTvlRatio: pool.feeTvlRatio,
@@ -561,18 +588,21 @@ export async function runRobinhoodLpSignalCycle() {
   const errors = [];
 
   const recentCutoff = new Date(Date.now() - OPEN_POSITION_COOLDOWN_MS);
-  const [openAgg, agentRows, recentPoolRows] = await Promise.all([
+  const [openAgg, agentRows, recentPoolRows, poolLearning] = await Promise.all([
     RobinhoodLpExperimentRun.aggregate([
-      { $match: { experimentId, status: "open" } },
+      { $match: activeRobinhoodRunMatch({ experimentId, status: "open" }) },
       { $group: { _id: "$strategyId", count: { $sum: 1 } } },
     ]),
     RobinhoodLpExperimentAgentState.find({ experimentId }).select({ strategyId: 1, cashUsd: 1 }).lean(),
-    RobinhoodLpExperimentRun.find({
-      experimentId,
-      $or: [{ status: "open" }, { createdAt: { $gte: recentCutoff } }],
-    })
+    RobinhoodLpExperimentRun.find(
+      activeRobinhoodRunMatch({
+        experimentId,
+        $or: [{ status: "open" }, { createdAt: { $gte: recentCutoff } }],
+      }),
+    )
       .select({ strategyId: 1, poolAddress: 1 })
       .lean(),
+    getRobinhoodPoolScoreMultipliers(pools.map((p) => p.poolAddress)),
   ]);
   const openCountByStrategy = new Map(openAgg.map((r) => [Number(r._id), toNum(r.count)]));
   const cashByStrategy = new Map(agentRows.map((a) => [Number(a.strategyId), toNum(a.cashUsd)]));
@@ -614,17 +644,17 @@ export async function runRobinhoodLpSignalCycle() {
 
       const scored = pools
         .map((pool) => {
-          const synthetic = derivePoolSignals(pool);
+          const observables = deriveRobinhoodPoolSignals(pool);
           const rrMeta = simRiskRewardBoost(
             pool,
-            synthetic,
+            observables,
             effectiveBins.binsBelow,
             effectiveBins.binsAbove,
           );
           if (!rrMeta.eligible) {
             return {
               pool,
-              synthetic,
+              observables,
               score: 0,
               gatePassed: false,
               gateReasons: ["risk_reward:below_minimum"],
@@ -643,43 +673,66 @@ export async function runRobinhoodLpSignalCycle() {
           if (!riskGate.pass) {
             return {
               pool,
-              synthetic,
+              observables,
               score: 0,
               gatePassed: false,
               gateReasons: [riskGate.reason],
               signalSnapshot: null,
             };
           }
-          const enriched = {
-            ...pool,
-            ...synthetic,
+          const poolKey = String(pool.poolAddress || "").toLowerCase();
+          const learn = poolLearning.get(poolKey) || { multiplier: 1, onCooldown: false };
+          if (learn.onCooldown || learn.multiplier <= 0) {
+            return {
+              pool,
+              observables,
+              score: 0,
+              gatePassed: false,
+              gateReasons: ["pool_learning_cooldown"],
+              signalSnapshot: null,
+            };
+          }
+          const scoredRow = scoreRobinhoodPool(strategy, pool, {
             riskScore: rrMeta.profile.riskScore,
             riskRewardRatio: rrMeta.profile.ratio,
             riskTier: rrMeta.profile.tier,
-          };
-          const scoredRow = scorePool(strategy, enriched);
+          });
           const compoundBoost = 1 + Math.log1p(Math.max(0, cashUsd - simCfg.startingBankUsd)) / 20;
           const sizeBoost = simPoolSizeMultiplier(pool.tvlUsd);
           // Penalize crowded pools so agents diversify instead of cloning JPORK entries.
-          const occ = poolOccupancy.get(String(pool.poolAddress || "").toLowerCase()) || 0;
+          const occ = poolOccupancy.get(poolKey) || 0;
           const crowdingPenalty = occ >= maxAgentsPerPool ? 0 : 1 / (1 + occ * 0.55);
+          const learnBoost = toNum(learn.multiplier, 1);
           const adaptiveExit = resolveAdaptiveExitRules(
             strategy.exit || {},
             {
               tvlUsd: pool.tvlUsd,
               volume24hUsd: pool.volume24hUsd,
               feeTvlRatio: pool.feeTvlRatio,
-              volatilityScore: synthetic.volatilityScore,
+              volatilityScore: observables.volatilityScore,
             },
             effectiveBins.binsBelow,
             effectiveBins.binsAbove,
           );
+          const enrichedSnapshot = {
+            ...observables,
+            riskScore: rrMeta.profile.riskScore,
+            riskRewardRatio: rrMeta.profile.ratio,
+            riskTier: rrMeta.profile.tier,
+            poolLearnMultiplier: learnBoost,
+          };
           return {
             pool,
-            synthetic: enriched,
+            observables: enrichedSnapshot,
             adaptiveExit,
             ...scoredRow,
-            score: scoredRow.score * compoundBoost * rrMeta.boost * sizeBoost * crowdingPenalty,
+            score:
+              scoredRow.score *
+              compoundBoost *
+              rrMeta.boost *
+              sizeBoost *
+              crowdingPenalty *
+              learnBoost,
             gatePassed: scoredRow.gatePassed && crowdingPenalty > 0,
           };
         })
@@ -730,9 +783,9 @@ export async function runRobinhoodLpSignalCycle() {
           binStep: best.pool.binStep,
           tvlUsd: best.pool.tvlUsd,
           volume24hUsd: best.pool.volume24hUsd,
-          organicScore: best.synthetic.organicScore,
-          holderCount: best.synthetic.holderCount,
-          mcapUsd: best.synthetic.mcapUsd,
+          organicScore: null,
+          holderCount: null,
+          mcapUsd: null,
           feeTvlRatio: best.pool.feeTvlRatio,
           binsBelow: effectiveBins.binsBelow,
           binsAbove: effectiveBins.binsAbove,
@@ -741,13 +794,14 @@ export async function runRobinhoodLpSignalCycle() {
           depositUsd,
           signalSnapshot: best.signalSnapshot,
           screeningSnapshot: {
-            ...best.synthetic,
+            ...best.observables,
             score: best.score,
             binsClamped: effectiveBins.clamped,
             adaptiveExit: best.adaptiveExit,
-            riskTier: best.synthetic.riskTier,
-            riskScore: best.synthetic.riskScore,
-            riskRewardRatio: best.synthetic.riskRewardRatio,
+            riskTier: best.observables.riskTier,
+            riskScore: best.observables.riskScore,
+            riskRewardRatio: best.observables.riskRewardRatio,
+            signalsMode: "uniswap_observables",
             peakPnlPct: 0,
           },
           status: "open",
@@ -790,12 +844,15 @@ export async function resolveOpenRobinhoodLpRuns() {
   if (!experimentId) {
     return { resolved: 0, openChecked: 0, errors: [], rows: [] };
   }
-  const openRuns = await RobinhoodLpExperimentRun.find({ status: "open", experimentId })
+  const openRuns = await RobinhoodLpExperimentRun.find(
+    activeRobinhoodRunMatch({ status: "open", experimentId }),
+  )
     .sort({ createdAt: 1 })
     .lean();
   const resolvedRows = [];
   const errors = [];
   const bulkOps = [];
+  const learningJobs = [];
   const strategies = await resolveRobinhoodLpExperimentStrategies();
   const strategyById = new Map(strategies.map((s) => [s.id, s]));
 
@@ -879,6 +936,14 @@ export async function resolveOpenRobinhoodLpRuns() {
           resolution: fields.resolution,
           strategyId: run.strategyId,
         });
+        // Online learning: every closed trade updates pool multipliers.
+        learningJobs.push(
+          recordRobinhoodLpClosedTrade({
+            poolAddress: run.poolAddress,
+            status: fields.status,
+            simNetPnlUsd: fields.simNetPnlUsd,
+          }),
+        );
       }
     } catch (err) {
       errors.push(`run:${String(run._id)}:${err instanceof Error ? err.message : String(err)}`);
@@ -901,6 +966,14 @@ export async function resolveOpenRobinhoodLpRuns() {
   if (bulkOps.length > 0) {
     await RobinhoodLpExperimentRun.bulkWrite(bulkOps, { ordered: false });
   }
+  if (learningJobs.length > 0) {
+    const learnResults = await Promise.allSettled(learningJobs);
+    for (const r of learnResults) {
+      if (r.status === "rejected") {
+        errors.push(`learning:${r.reason instanceof Error ? r.reason.message : String(r.reason)}`);
+      }
+    }
+  }
 
   return {
     resolved: resolvedRows.length,
@@ -914,10 +987,10 @@ export async function rankRobinhoodLpStrategiesByNetPnl(experimentId) {
   if (!experimentId) return [];
   const rows = await RobinhoodLpExperimentRun.aggregate([
     {
-      $match: {
+      $match: activeRobinhoodRunMatch({
         experimentId,
         status: { $in: ["win", "loss", "expired", "open"] },
-      },
+      }),
     },
     {
       $group: {
@@ -995,10 +1068,17 @@ export async function getRobinhoodLpExperimentStats() {
       avgNetPnlUsd: 0,
       sumChainFeesUsd: 0,
     }));
-    return { agents: zeros, experimentId: null };
+    return {
+      agents: zeros,
+      experimentId: null,
+      paperMetricsUntrusted: ROBINHOOD_PAPER_METRICS_UNTRUSTED,
+      paperMetricsDisclaimer: ROBINHOOD_PAPER_METRICS_DISCLAIMER,
+      feeCalibrationMult: getRobinhoodLpSimFeeCalibrationMult(),
+      signalsMode: "uniswap_observables",
+    };
   }
 
-  const match = { experimentId };
+  const match = activeRobinhoodRunMatch({ experimentId });
   const [statsRows, openRows, agentRows] = await Promise.all([
     RobinhoodLpExperimentRun.aggregate([
       { $match: match },
@@ -1063,6 +1143,10 @@ export async function getRobinhoodLpExperimentStats() {
       return (b.winRate ?? -1) - (a.winRate ?? -1);
     }),
     experimentId,
+    paperMetricsUntrusted: ROBINHOOD_PAPER_METRICS_UNTRUSTED,
+    paperMetricsDisclaimer: ROBINHOOD_PAPER_METRICS_DISCLAIMER,
+    feeCalibrationMult: getRobinhoodLpSimFeeCalibrationMult(),
+    signalsMode: "uniswap_observables",
   };
 }
 
@@ -1073,6 +1157,7 @@ export async function listRobinhoodLpRuns({
   status,
   symbol,
   experimentId: experimentIdOverride,
+  includeArchived = false,
 } = {}) {
   await ensureRobinhoodLpExperimentBootstrapped();
   const state = await getSingletonStateDoc();
@@ -1086,6 +1171,10 @@ export async function listRobinhoodLpRuns({
   }
   if (strategyId != null && Number.isInteger(Number(strategyId))) {
     q.strategyId = Number(strategyId);
+  }
+  // Default list shows active-generation runs only; pass includeArchived for lineage.
+  if (!includeArchived) {
+    q.archivedAt = null;
   }
   if (typeof status === "string" && status.trim()) {
     q.status = status.trim();
@@ -1171,7 +1260,15 @@ export async function getRobinhoodLpGlobalOverview() {
       scanTvlUsd,
       scanVolume24hUsd,
     },
-    simulation,
+    simulation: {
+      ...simulation,
+      paperMetricsUntrusted: ROBINHOOD_PAPER_METRICS_UNTRUSTED,
+      paperMetricsDisclaimer: ROBINHOOD_PAPER_METRICS_DISCLAIMER,
+      feeCalibrationMult: getRobinhoodLpSimFeeCalibrationMult(),
+      signalsMode: "uniswap_observables",
+    },
+    paperMetricsUntrusted: ROBINHOOD_PAPER_METRICS_UNTRUSTED,
+    paperMetricsDisclaimer: ROBINHOOD_PAPER_METRICS_DISCLAIMER,
     champion,
   };
 }

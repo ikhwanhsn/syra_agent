@@ -133,7 +133,7 @@ export function createMmExperimentRouter() {
 
   router.post("/learning-tick", requireCronSecret, async (_req, res) => {
     try {
-      const data = await runMmLearning();
+      const data = await runMmLearning({ force: true });
       res.json({ success: true, data });
     } catch (e) {
       res.status(500).json({

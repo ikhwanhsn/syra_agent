@@ -3,7 +3,27 @@
  */
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { orderAlgorandAlgoFundersBySpendable } from './labAlgorandFeeBuffer.js';
+import {
+  FUNDER_SPARE_MICRO,
+  FUNDER_SPARE_MIN_FEE_MICRO,
+  lendableAlgorandMicro,
+  orderAlgorandAlgoFundersBySpendable,
+  PAYTO_USDC_REFUND_MIN_FEE_MICRO,
+} from './labAlgorandFeeBuffer.js';
+
+describe('lendableAlgorandMicro', () => {
+  test('returns 0 when spendable is at or below spare', () => {
+    assert.equal(lendableAlgorandMicro(FUNDER_SPARE_MICRO, FUNDER_SPARE_MICRO), 0n);
+    assert.equal(lendableAlgorandMicro(30_000n, FUNDER_SPARE_MICRO), 0n);
+  });
+
+  test('screenshot sibling 0.036 cannot lend under batch spare but can under min-fee spare', () => {
+    const siblingSpendable = 36_000n; // 0.036 ALGO
+    assert.equal(lendableAlgorandMicro(siblingSpendable, FUNDER_SPARE_MICRO), 0n);
+    const lendableMin = lendableAlgorandMicro(siblingSpendable, FUNDER_SPARE_MIN_FEE_MICRO);
+    assert.ok(lendableMin >= PAYTO_USDC_REFUND_MIN_FEE_MICRO);
+  });
+});
 
 describe('orderAlgorandAlgoFundersBySpendable', () => {
   test('sorts by spendableMicro descending', () => {

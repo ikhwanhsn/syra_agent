@@ -106,6 +106,7 @@ export const GROWTH_SECTOR_MAX_TWEETS_LLM = 32;
 
 /**
  * OpenRouter completion caps for internal pipelines (lower bill, JSON still fits with retry).
+ * Growth/trend/partnership scouts emit large action arrays — keep headroom so finish_reason≠length.
  * @type {Readonly<{
  *   internalResearch: number;
  *   businessStrategy: number;
@@ -113,6 +114,8 @@ export const GROWTH_SECTOR_MAX_TWEETS_LLM = 32;
  *   growthSyraSocial: number;
  *   growthSectorNarrative: number;
  *   growthScout: number;
+ *   trendScout: number;
+ *   partnershipScout: number;
  *   x402XTrends: number;
  *   hrTeamCoach: number;
  *   hackathonScout: number;
@@ -124,7 +127,9 @@ export const INTERNAL_PIPELINE_MAX_COMPLETION_TOKENS = Object.freeze({
   growthSyraMarket: 1150,
   growthSyraSocial: 1200,
   growthSectorNarrative: 1200,
-  growthScout: 1400,
+  growthScout: 2400,
+  trendScout: 1800,
+  partnershipScout: 1800,
   x402XTrends: 1250,
   hackathonScout: 1200,
   hrTeamCoach: 300,

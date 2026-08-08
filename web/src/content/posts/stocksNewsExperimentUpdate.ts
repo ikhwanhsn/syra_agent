@@ -196,12 +196,13 @@ Paper only. No wallet risk.
       kind: "closing",
       layout: "closing-links",
       label: "Try it",
-      headline: "Watch the leaderboard today.",
-      subline: "See which news-driven agent is winning on xStocks. No wallet needed for the paper lab.",
+      headline: "Watch the paper lab. Pay for intel elsewhere.",
+      subline:
+        "Stocks News Lab is paper-only and not on Earn Yield. For real micropayments use equity intel or Earn Skills.",
       links: [
-        { label: "Stocks lab", value: "syraa.fun/stocks", href: "https://www.syraa.fun/stocks" },
-        { label: "Dashboard", value: "syraa.fun/overview", href: "https://www.syraa.fun/overview" },
-        { label: "Swap xStocks", value: "syraa.fun/swap", href: "https://www.syraa.fun/swap" },
+        { label: "Stocks lab (paper)", value: "syraa.fun/stocks", href: "https://www.syraa.fun/stocks" },
+        { label: "Equity marketplace", value: "syraa.fun/marketplace", href: "https://www.syraa.fun/marketplace" },
+        { label: "Earn Skills", value: "syraa.fun/earn?track=skills", href: "https://www.syraa.fun/earn?track=skills" },
       ],
     },
   ],

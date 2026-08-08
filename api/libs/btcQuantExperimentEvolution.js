@@ -7,20 +7,19 @@ import BtcQuantExperimentState from "../models/BtcQuantExperimentState.js";
 import BtcQuantStrategyOverride from "../models/BtcQuantStrategyOverride.js";
 import BtcQuantEvolutionState from "../models/BtcQuantEvolutionState.js";
 import BtcQuantRealPosition from "../models/BtcQuantRealPosition.js";
-import {
-  EXPERIMENT_SUITE_BTC_ONCHAIN,
-  BTC_QUANT_STATIC_STRATEGY_COUNT,
-} from "../config/tradingExperimentStrategies.js";
+import { EXPERIMENT_SUITE_BTC_ONCHAIN } from "../config/tradingExperimentStrategies.js";
 import { getBtcQuantLaneDef } from "../config/btcQuantLanes.js";
 import {
   invalidateBtcQuantStrategyCache,
   resolveBtcQuantStrategies,
 } from "./btcQuantStrategyResolve.js";
+import {
+  computeBtcLeaderScore,
+  isBtcEliteParent,
+  pickWeightedElite,
+} from "./btcQuantExperimentScoring.js";
 
-/** @template T @param {readonly T[]} arr @returns {T} */
-function pick(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
+export { computeBtcLeaderScore } from "./btcQuantExperimentScoring.js";
 
 function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
@@ -35,6 +34,15 @@ function toNum(value, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+/** Match active (non-archived) paper runs for a cohort. */
+function activeRunMatch(experimentId) {
+  return {
+    suite: EXPERIMENT_SUITE_BTC_ONCHAIN,
+    "summary.experimentId": experimentId,
+    "summary.evolutionArchived": { $ne: true },
+  };
+}
+
 export const BTC_QUANT_MIN_DECIDED_FOR_LEADER = (() => {
   const n = Number(process.env.BTC_QUANT_MIN_DECIDED);
   return Number.isFinite(n) && n >= 1 ? Math.floor(n) : 8;
@@ -46,23 +54,6 @@ export const BTC_QUANT_MIN_WIN_RATE = (() => {
 })();
 
 /**
- * Score leaders on *decided* PnL only (open rows at 0 inflate sumPnlUsd).
- * @param {{ decided?: number; winRate?: number | null; sumPnlUsd?: number; sumDecidedPnlUsd?: number }} row
- */
-export function computeBtcLeaderScore(row) {
-  const decided = toNum(row.decided);
-  const winRate = row.winRate ?? 0;
-  const sumPnl =
-    row.sumDecidedPnlUsd != null ? toNum(row.sumDecidedPnlUsd) : toNum(row.sumPnlUsd);
-  if (sumPnl <= 0 || decided <= 0) return -999;
-
-  const sampleFactor = Math.min(1, decided / BTC_QUANT_MIN_DECIDED_FOR_LEADER);
-  const winFactor = Math.max(0, Math.min(1, (winRate - 0.4) / 0.55));
-  const pnlFactor = Math.log1p(Math.max(0, sumPnl) * 8);
-  return pnlFactor * (0.5 + winFactor * 0.5) * (0.3 + sampleFactor * 0.7);
-}
-
-/**
  * @param {string} experimentId
  */
 export async function rankBtcQuantStrategiesByPnl(experimentId) {
@@ -71,8 +62,7 @@ export async function rankBtcQuantStrategiesByPnl(experimentId) {
   const rows = await TradingExperimentRun.aggregate([
     {
       $match: {
-        suite: EXPERIMENT_SUITE_BTC_ONCHAIN,
-        "summary.experimentId": experimentId,
+        ...activeRunMatch(experimentId),
         status: { $in: ["win", "loss", "expired", "open"] },
       },
     },
@@ -82,6 +72,8 @@ export async function rankBtcQuantStrategiesByPnl(experimentId) {
         sumPnlUsd: { $sum: { $ifNull: ["$simPnlUsd", 0] } },
         runCount: { $sum: 1 },
         wins: { $sum: { $cond: [{ $eq: ["$status", "win"] }, 1, 0] } },
+        losses: { $sum: { $cond: [{ $eq: ["$status", "loss"] }, 1, 0] } },
+        expired: { $sum: { $cond: [{ $eq: ["$status", "expired"] }, 1, 0] } },
         decided: {
           $sum: { $cond: [{ $in: ["$status", ["win", "loss", "expired"]] }, 1, 0] },
         },
@@ -90,6 +82,29 @@ export async function rankBtcQuantStrategiesByPnl(experimentId) {
             $cond: [
               { $in: ["$status", ["win", "loss", "expired"]] },
               { $ifNull: ["$simPnlUsd", 0] },
+              0,
+            ],
+          },
+        },
+        grossWinUsd: {
+          $sum: {
+            $cond: [
+              { $and: [{ $eq: ["$status", "win"] }, { $gt: ["$simPnlUsd", 0] }] },
+              { $ifNull: ["$simPnlUsd", 0] },
+              0,
+            ],
+          },
+        },
+        grossLossUsd: {
+          $sum: {
+            $cond: [
+              {
+                $and: [
+                  { $in: ["$status", ["loss", "expired"]] },
+                  { $lt: ["$simPnlUsd", 0] },
+                ],
+              },
+              { $abs: { $ifNull: ["$simPnlUsd", 0] } },
               0,
             ],
           },
@@ -105,22 +120,37 @@ export async function rankBtcQuantStrategiesByPnl(experimentId) {
     .map((row) => {
       const decided = toNum(row.decided);
       const wins = toNum(row.wins);
+      const losses = toNum(row.losses);
+      const expired = toNum(row.expired);
+      // Include expired in denominator so expire-heavy agents cannot clear the 52% leader bar.
       const winRate = decided > 0 ? wins / decided : null;
       const sumPnlUsd = toNum(row.sumPnlUsd);
       const sumDecidedPnlUsd = toNum(row.sumDecidedPnlUsd);
+      const avgPnlUsd = decided > 0 ? sumDecidedPnlUsd / decided : null;
       const leaderScore = computeBtcLeaderScore({
         decided,
+        wins,
+        losses,
+        expired,
         winRate,
         sumPnlUsd,
         sumDecidedPnlUsd,
+        avgPnlUsd,
+        grossWinUsd: toNum(row.grossWinUsd),
+        grossLossUsd: toNum(row.grossLossUsd),
       });
       return {
         strategyId: row._id,
         decided,
         wins,
+        losses,
+        expired,
         winRate,
         sumPnlUsd,
         sumDecidedPnlUsd,
+        avgPnlUsd,
+        grossWinUsd: toNum(row.grossWinUsd),
+        grossLossUsd: toNum(row.grossLossUsd),
         openPositions: toNum(row.openPositions),
         leaderScore,
       };
@@ -317,19 +347,12 @@ export function mutateBtcStrategyFromElite(parent, strategyId, meta = {}) {
  */
 async function pickEliteParent(experimentId, strategyList, lane) {
   const ranked = await rankBtcQuantStrategiesByPnl(experimentId);
-  // Elite bar aligned closer to leader bar — weak parents spawn weak mutations.
-  const elites = ranked.filter(
-    (row) =>
-      row.decided >= Math.min(6, BTC_QUANT_MIN_DECIDED_FOR_LEADER) &&
-      toNum(row.sumDecidedPnlUsd, row.sumPnlUsd) > 0 &&
-      (row.winRate ?? 0) >= 0.5 &&
-      row.leaderScore > 0,
-  );
+  const elites = ranked.filter((row) => isBtcEliteParent(row));
   if (elites.length === 0) return null;
 
   elites.sort((a, b) => b.leaderScore - a.leaderScore);
-  const pickIdx = Math.min(elites.length - 1, Math.floor(Math.random() * Math.random() * elites.length));
-  const stats = elites[pickIdx];
+  const stats = pickWeightedElite(elites, (row) => row.leaderScore, 3);
+  if (!stats) return null;
   const strategy = strategyList.find((s) => s.id === stats.strategyId) ?? null;
   if (!strategy) return null;
   return { strategy: { ...strategy, lane }, stats };
@@ -425,6 +448,8 @@ export const BTC_QUANT_EXPERIMENT_EVOLUTION_SCHEDULE = Object.freeze({
   intervalMs: 86_400_000,
   removeCount: 3,
   minDecided: 4,
+  /** Fraction of spawns that explore randomly instead of mutating elites. */
+  exploreRate: 0.3,
   pinnedStrategyIds: Object.freeze([14]),
 });
 
@@ -436,6 +461,7 @@ export function btcQuantEvolutionConfigFromEnv() {
   const ms = Number(process.env.BTC_QUANT_EVOLUTION_MS || sched.intervalMs);
   const removeCount = Number(process.env.BTC_QUANT_EVOLUTION_REMOVE_COUNT || sched.removeCount);
   const minDecided = Number(process.env.BTC_QUANT_EVOLUTION_MIN_DECIDED || sched.minDecided);
+  const exploreRate = Number(process.env.BTC_QUANT_EVOLUTION_EXPLORE_RATE || sched.exploreRate);
   const pinnedRaw = (process.env.BTC_QUANT_EVOLUTION_PINNED || "").trim();
   const pinned = new Set(sched.pinnedStrategyIds);
   if (pinnedRaw) {
@@ -454,6 +480,10 @@ export function btcQuantEvolutionConfigFromEnv() {
         : sched.removeCount,
     minDecided:
       Number.isFinite(minDecided) && minDecided >= 0 ? Math.floor(minDecided) : sched.minDecided,
+    exploreRate:
+      Number.isFinite(exploreRate) && exploreRate >= 0 && exploreRate <= 1
+        ? exploreRate
+        : sched.exploreRate,
     pinned,
   };
 }
@@ -463,37 +493,73 @@ export function btcQuantEvolutionConfigFromEnv() {
  * @param {object[]} strategyList
  * @param {number} strategyId
  * @param {string} lane
+ * @param {{ exploreRate?: number }} [opts]
  */
-async function spawnSmarterBtcStrategy(experimentId, strategyList, strategyId, lane) {
-  const elite = await pickEliteParent(experimentId, strategyList, lane);
+async function spawnSmarterBtcStrategy(experimentId, strategyList, strategyId, lane, opts = {}) {
+  const exploreRate = Number.isFinite(Number(opts.exploreRate)) ? Number(opts.exploreRate) : 0.3;
+  const explore = Math.random() < exploreRate;
+  const elite = explore ? null : await pickEliteParent(experimentId, strategyList, lane);
   let strat;
   if (elite) {
     strat = mutateBtcStrategyFromElite(elite.strategy, strategyId, {
       parentStrategyId: elite.stats.strategyId,
       parentWinRate: elite.stats.winRate,
-      parentPnlUsd: elite.stats.sumPnlUsd,
+      parentPnlUsd: toNum(elite.stats.sumDecidedPnlUsd, elite.stats.sumPnlUsd),
     });
     strat.lane = lane;
   } else {
     const base = strategyList.find((s) => s.id === strategyId) ?? strategyList[0];
     strat = mutateBtcStrategyFromElite(base, strategyId, { parentStrategyId: base?.id });
     strat.lane = lane;
-    strat.name = `evo #${strategyId} · reset · ${Math.floor(100 + Math.random() * 900)}`;
-    strat.notes = "Evolution spawn — randomized from baseline (no elite yet)";
+    strat.name = `evo #${strategyId} · ${explore ? "explore" : "reset"} · ${Math.floor(100 + Math.random() * 900)}`;
+    strat.notes = explore
+      ? "Evolution spawn — random explore (not elite mutation)"
+      : "Evolution spawn — randomized from baseline (no elite yet)";
   }
   await upsertBtcStrategyOverride(strat);
-  return { strategyId, strategy: strat, parentStrategyId: elite?.stats.strategyId ?? null };
+  return {
+    strategyId,
+    strategy: strat,
+    parentStrategyId: elite?.stats.strategyId ?? null,
+    explore: Boolean(explore),
+  };
+}
+
+/**
+ * Archive culled strategy runs so the slot can respawn without wiping history.
+ * Archived runs are excluded from ranking / leader selection.
+ * @param {string} experimentId
+ * @param {number} strategyId
+ */
+async function archiveCulledStrategyRuns(experimentId, strategyId) {
+  const now = new Date();
+  const res = await TradingExperimentRun.updateMany(
+    {
+      ...activeRunMatch(experimentId),
+      agentId: strategyId,
+      status: { $in: ["win", "loss", "expired", "error", "skipped_invalid_levels"] },
+    },
+    {
+      $set: {
+        "summary.evolutionArchived": true,
+        "summary.evolutionArchivedAt": now,
+        "summary.evolutionArchivedFromAgentId": strategyId,
+      },
+    },
+  );
+  return res?.modifiedCount ?? 0;
 }
 
 /**
  * @param {unknown} [lane]
- * @param {{ removeCount?: number; minDecided?: number; pinned?: Set<number> }} [opts]
+ * @param {{ removeCount?: number; minDecided?: number; exploreRate?: number; pinned?: Set<number> }} [opts]
  */
 export async function runBtcQuantEvolution(lane = "btc1", opts = {}) {
   const laneDef = getBtcQuantLaneDef(lane);
   const envCfg = btcQuantEvolutionConfigFromEnv();
   const removeCount = opts.removeCount ?? envCfg.removeCount;
   const minDecided = opts.minDecided ?? envCfg.minDecided;
+  const exploreRate = opts.exploreRate ?? envCfg.exploreRate;
   const pinned = new Set(opts.pinned ?? envCfg.pinned);
 
   // Pin any live real leaders so cull cannot wipe/mutate mid-trade.
@@ -520,54 +586,41 @@ export async function runBtcQuantEvolution(lane = "btc1", opts = {}) {
   }
 
   const strategies = await resolveBtcQuantStrategies(laneDef.lane);
-  /** @type {{ strategyId: number; wins: number; losses: number; expired: number; decided: number; winRate: number | null; openPositions: number; sumPnlUsd: number }[]} */
+  const ranked = await rankBtcQuantStrategiesByPnl(experimentId);
+  const rankedById = new Map(ranked.map((r) => [r.strategyId, r]));
+
+  /** @type {{ strategyId: number; wins: number; losses: number; expired: number; decided: number; winRate: number | null; openPositions: number; sumPnlUsd: number; sumDecidedPnlUsd: number; avgPnlUsd: number | null; grossWinUsd: number; grossLossUsd: number; leaderScore: number }[]} */
   const rows = [];
 
   for (const s of strategies) {
     if (pinned.has(s.id)) continue;
-
-    const settled = await TradingExperimentRun.find({
-      suite: EXPERIMENT_SUITE_BTC_ONCHAIN,
-      "summary.experimentId": experimentId,
-      agentId: s.id,
-      status: { $in: ["win", "loss", "expired"] },
-    }).lean();
-    const wins = settled.filter((r) => r.status === "win").length;
-    const losses = settled.filter((r) => r.status === "loss").length;
-    const expired = settled.filter((r) => r.status === "expired").length;
-    const decided = wins + losses + expired;
-    const winRate = decided > 0 ? wins / decided : null;
-    const sumPnlUsd = settled.reduce((acc, r) => acc + toNum(r.simPnlUsd, 0), 0);
-
-    const openPositions = await TradingExperimentRun.countDocuments({
-      suite: EXPERIMENT_SUITE_BTC_ONCHAIN,
-      "summary.experimentId": experimentId,
-      agentId: s.id,
-      status: "open",
+    const r = rankedById.get(s.id);
+    rows.push({
+      strategyId: s.id,
+      wins: r?.wins ?? 0,
+      losses: r?.losses ?? 0,
+      expired: r?.expired ?? 0,
+      decided: r?.decided ?? 0,
+      winRate: r?.winRate ?? null,
+      openPositions: r?.openPositions ?? 0,
+      sumPnlUsd: r?.sumPnlUsd ?? 0,
+      sumDecidedPnlUsd: r?.sumDecidedPnlUsd ?? 0,
+      avgPnlUsd: r?.avgPnlUsd ?? null,
+      grossWinUsd: r?.grossWinUsd ?? 0,
+      grossLossUsd: r?.grossLossUsd ?? 0,
+      leaderScore: r?.leaderScore ?? -999,
     });
-
-    rows.push({ strategyId: s.id, wins, losses, expired, decided, winRate, openPositions, sumPnlUsd });
   }
 
   const experienced = rows.filter((r) => r.decided >= minDecided && r.openPositions === 0);
   const fresh = rows.filter((r) => r.decided < minDecided && r.openPositions === 0);
 
   experienced.sort((a, b) => {
-    const scoreA = computeBtcLeaderScore({
-      decided: a.decided,
-      winRate: a.winRate,
-      sumPnlUsd: a.sumPnlUsd,
-    });
-    const scoreB = computeBtcLeaderScore({
-      decided: b.decided,
-      winRate: b.winRate,
-      sumPnlUsd: b.sumPnlUsd,
-    });
-    if (scoreA !== scoreB) return scoreA - scoreB;
+    if (a.leaderScore !== b.leaderScore) return a.leaderScore - b.leaderScore;
     const ra = a.winRate ?? 0;
     const rb = b.winRate ?? 0;
     if (ra !== rb) return ra - rb;
-    return a.sumPnlUsd - b.sumPnlUsd;
+    return a.sumDecidedPnlUsd - b.sumDecidedPnlUsd;
   });
 
   fresh.sort((a, b) => {
@@ -582,29 +635,33 @@ export async function runBtcQuantEvolution(lane = "btc1", opts = {}) {
 
   /** @type {Awaited<ReturnType<typeof spawnSmarterBtcStrategy>>[]} */
   const spawned = [];
-  /** @type {{ strategyId: number; previousWinRate: number | null; previousDecided: number; previousPnlUsd: number }[]} */
+  /** @type {{ strategyId: number; previousWinRate: number | null; previousDecided: number; previousPnlUsd: number; archivedRuns: number }[]} */
   const culled = [];
 
   for (const v of victims) {
-    await TradingExperimentRun.deleteMany({
-      suite: EXPERIMENT_SUITE_BTC_ONCHAIN,
-      "summary.experimentId": experimentId,
-      agentId: v.strategyId,
-    });
-    const entry = await spawnSmarterBtcStrategy(experimentId, strategies, v.strategyId, laneDef.lane);
+    const archivedRuns = await archiveCulledStrategyRuns(experimentId, v.strategyId);
+    const entry = await spawnSmarterBtcStrategy(
+      experimentId,
+      strategies,
+      v.strategyId,
+      laneDef.lane,
+      { exploreRate },
+    );
     culled.push({
       strategyId: v.strategyId,
       previousWinRate: v.winRate,
       previousDecided: v.decided,
-      previousPnlUsd: v.sumPnlUsd,
+      previousPnlUsd: v.sumDecidedPnlUsd,
+      archivedRuns,
     });
     spawned.push(entry);
   }
 
   const lessons = [];
   if (culled.length > 0) {
+    const exploreCount = spawned.filter((s) => s.explore).length;
     lessons.push(
-      `Evolution culled ${culled.length} strategies on ${laneDef.lane} — worst performer was #${culled[0]?.strategyId} with $${culled[0]?.previousPnlUsd.toFixed(2)} net.`,
+      `Evolution culled ${culled.length} strategies on ${laneDef.lane} — worst was #${culled[0]?.strategyId} with $${toNum(culled[0]?.previousPnlUsd).toFixed(2)} net (history archived, not deleted; ${exploreCount} explore spawns).`,
     );
   }
 
@@ -615,7 +672,7 @@ export async function runBtcQuantEvolution(lane = "btc1", opts = {}) {
       $set: {
         lessons: [...lessons, ...(existing?.lessons ?? [])].slice(0, 30),
         lastEvolutionAt: new Date(),
-        lastEvolutionSummary: `Culled ${culled.length}, spawned ${spawned.length} mutations`,
+        lastEvolutionSummary: `Culled ${culled.length}, spawned ${spawned.length} (${spawned.filter((s) => s.explore).length} explore); archived prior runs`,
         decidedRunsAnalyzed: rows.reduce((s, r) => s + r.decided, 0),
       },
     },
@@ -672,18 +729,25 @@ export async function runBtcQuantRealEvolution() {
     : 0;
 
   const lessons = [];
+  /** @type {Record<string, unknown>} */
   const thresholdOverrides = {};
 
   if (winRate < 0.45) {
     lessons.push(
       `Real win rate ${(winRate * 100).toFixed(0)}% is below target — tighten signal gates and reduce max notional.`,
     );
+    // Consumed by paper + real signal cycles via btcQuantLearningGates.js
     thresholdOverrides.minConfidence = "HIGH";
     thresholdOverrides.maxNotionalMultiplier = 0.85;
+    thresholdOverrides.minPassesDelta = 1;
   } else if (winRate > 0.55 && avgWin > Math.abs(avgLoss)) {
     lessons.push(
       `Real win rate ${(winRate * 100).toFixed(0)}% with positive avg win — current strategy selection is working.`,
     );
+    // Relax learned tightening so gates do not stay locked after recovery.
+    thresholdOverrides.minConfidence = null;
+    thresholdOverrides.maxNotionalMultiplier = 1;
+    thresholdOverrides.minPassesDelta = 0;
   }
 
   const losingStrategies = new Map();

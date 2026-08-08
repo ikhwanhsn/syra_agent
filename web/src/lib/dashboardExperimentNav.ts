@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { BarChart3, Bitcoin, BrainCircuit, Droplets, Globe, Waves, Zap } from "lucide-react";
+import { Bitcoin, BrainCircuit, Droplets, Globe, Waves, Zap } from "lucide-react";
 
 export type DashboardExperimentNavItem = {
   id: string;
@@ -58,15 +58,7 @@ export const DASHBOARD_EXPERIMENT_NAV: readonly DashboardExperimentNavItem[] = [
     isActive: (p) => p.startsWith("/btc3-experiment"),
     badge: { label: "Experimental" },
   },
-  {
-    id: "stocks",
-    label: "Stocks (news)",
-    description: "xStocks paper trading via Jupiter + news signals",
-    icon: BarChart3,
-    to: "/stocks",
-    isActive: (p) => p.startsWith("/stocks"),
-    badge: { label: "Beta" },
-  },
+  // Stocks News Lab is public paper-watch under Market Intel (/stocks), not admin-only.
   {
     id: "scalper",
     label: "Scalper agent",

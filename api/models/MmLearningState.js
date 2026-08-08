@@ -15,6 +15,16 @@ const mmLearningStateSchema = new mongoose.Schema(
     },
     /** Winning strategy id promoted by learning. */
     promotedStrategyId: { type: String, default: "adaptive" },
+    /** Recent promotions for stability scoring. */
+    promotedHistory: {
+      type: [
+        {
+          strategyId: { type: String, required: true },
+          at: { type: Date, required: true },
+        },
+      ],
+      default: [],
+    },
     /** Strategies temporarily blocked after losses. */
     strategyCooldowns: {
       type: [

@@ -60,6 +60,12 @@ export interface ScalperLearningCooldown {
   until: string;
 }
 
+export interface ScalperDeskPause {
+  paused: boolean;
+  reason: string | null;
+  until: string | null;
+}
+
 export interface ScalperLearningSnapshot {
   lessons: string[];
   thresholdOverrides: Record<string, unknown>;
@@ -67,6 +73,7 @@ export interface ScalperLearningSnapshot {
   symbolStats: Record<string, ScalperSymbolStat>;
   sourceCooldowns: Array<{ source: string; reason: string | null; until: string }>;
   symbolCooldowns: Array<{ symbol: string; reason: string | null; until: string }>;
+  deskPause?: ScalperDeskPause;
   lastEvolutionAt: string | null;
   lastEvolutionSummary: string | null;
   runsAnalyzed: number;
@@ -77,6 +84,7 @@ export interface ScalperLearningSnapshot {
     notionalSlicePct: number;
     maxHoldMinutes: number;
     minEdgeBufferPct: number;
+    minSoloMomentumScore?: number;
   };
   effectiveConfig: {
     takeProfitPct: number;
@@ -85,6 +93,9 @@ export interface ScalperLearningSnapshot {
     notionalSlicePct: number;
     maxHoldMinutes: number;
     minEdgeBufferPct: number;
+    minSoloMomentumScore?: number;
+    confluenceOnly?: boolean;
+    disableIdleRelaxation?: boolean;
   };
 }
 

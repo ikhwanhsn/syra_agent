@@ -483,12 +483,26 @@ export function shouldCutStaleLoser(entryPriceUsd, currentPriceUsd, maxHoldUntil
  * @param {string} source
  * @param {number} confluenceCount
  * @param {number} minOpportunityScore
+ * @param {{ confluenceOnly?: boolean; minSoloMomentumScore?: number; minSoloScore?: number }} [options]
  */
-export function passesSelectivityGate(score, source, confluenceCount, minOpportunityScore) {
+export function passesSelectivityGate(
+  score,
+  source,
+  confluenceCount,
+  minOpportunityScore,
+  options = {},
+) {
   if (!(score >= minOpportunityScore)) return false;
+  if (options.confluenceOnly && confluenceCount < 2) return false;
   if (confluenceCount >= 2) return true;
   // Solo stocks: never — news alone is noise for 15-min scalps
   if (source === "stocks") return false;
-  if (source === "momentum") return score >= SCALPER_DEFAULTS.minSoloMomentumScore;
-  return score >= SCALPER_DEFAULTS.minSoloScore;
+  const momFloor = Number.isFinite(options.minSoloMomentumScore)
+    ? options.minSoloMomentumScore
+    : SCALPER_DEFAULTS.minSoloMomentumScore;
+  const soloFloor = Number.isFinite(options.minSoloScore)
+    ? options.minSoloScore
+    : SCALPER_DEFAULTS.minSoloScore;
+  if (source === "momentum") return score >= momFloor;
+  return score >= soloFloor;
 }

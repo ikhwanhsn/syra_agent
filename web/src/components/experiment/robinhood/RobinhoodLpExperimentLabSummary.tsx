@@ -48,22 +48,44 @@ export interface RobinhoodLpExperimentLabSummaryProps {
   agents: RobinhoodLpAgentStats[];
   recentRuns: RobinhoodLpRunRow[];
   loading?: boolean;
+  paperMetricsUntrusted?: boolean;
+  paperMetricsDisclaimer?: string | null;
 }
 
 export function RobinhoodLpExperimentLabSummary({
   agents,
   recentRuns,
   loading,
+  paperMetricsUntrusted = true,
+  paperMetricsDisclaimer,
 }: RobinhoodLpExperimentLabSummaryProps) {
   const topAgents = [...agents]
     .sort((a, b) => (b.sumNetPnlUsd ?? 0) - (a.sumNetPnlUsd ?? 0))
     .slice(0, 5);
   const recent = recentRuns.slice(0, 6);
   const leader = topAgents[0];
+  const disclaimer =
+    paperMetricsDisclaimer?.trim() ||
+    "Paper PnL is simulated (fee share model), not live Uniswap fee capture. Do not treat lab APY as Earn unlock evidence.";
 
   return (
     <div className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
       <div className="space-y-3">
+        {paperMetricsUntrusted ? (
+          <div
+            role="status"
+            className={cn(
+              overviewCardShell,
+              "rounded-2xl border border-amber-500/25 bg-amber-500/[0.06] px-4 py-3",
+            )}
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-200">
+              Paper metrics untrusted
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{disclaimer}</p>
+          </div>
+        ) : null}
+
         {loading && topAgents.length === 0 ? <LeaderboardSkeleton /> : null}
 
         {!loading && topAgents.length === 0 ? (

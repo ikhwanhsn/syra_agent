@@ -3,7 +3,12 @@
  */
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { pickRichestFunder, normalizeLabAddress } from './labFunderSelector.js';
+import {
+  pickRichestFunder,
+  pickAlgorandFunderPreferGasReady,
+  normalizeLabAddress,
+  ALGORAND_FUNDER_MIN_FEE_ALGO,
+} from './labFunderSelector.js';
 
 describe('normalizeLabAddress', () => {
   test('lowercases EVM addresses', () => {
@@ -119,5 +124,77 @@ describe('pickRichestFunder', () => {
       },
     );
     assert.equal(r.address, 'opted');
+  });
+});
+
+describe('pickAlgorandFunderPreferGasReady', () => {
+  test('prefers gas-ready $0.76 over ALGO-poor $1.64 PayTo (screenshot shape)', () => {
+    const r = pickAlgorandFunderPreferGasReady(
+      [
+        {
+          address: 'PAYTO_RICH_USDC',
+          usdc: 1.64,
+          native: 0,
+          role: 'payto',
+          optedInUsdc: true,
+        },
+        {
+          address: 'PAYER_GAS_READY',
+          usdc: 0.76,
+          native: 0.036,
+          role: 'payer',
+          optedInUsdc: true,
+        },
+      ],
+      { minUsdc: 0.01, minNative: 0, reserveUsdc: 0.01 },
+    );
+    assert.equal(r.address, 'PAYER_GAS_READY');
+    assert.ok(r.native >= ALGORAND_FUNDER_MIN_FEE_ALGO);
+  });
+
+  test('falls back to USDC-rich ALGO-poor when no gas-ready funder exists', () => {
+    const r = pickAlgorandFunderPreferGasReady(
+      [
+        {
+          address: 'PAYTO_RICH_USDC',
+          usdc: 1.64,
+          native: 0,
+          role: 'payto',
+          optedInUsdc: true,
+        },
+        {
+          address: 'PAYER_NO_USDC',
+          usdc: 0,
+          native: 0.036,
+          role: 'payer',
+          optedInUsdc: true,
+        },
+      ],
+      { minUsdc: 0.01, minNative: 0, reserveUsdc: 0 },
+    );
+    assert.equal(r.address, 'PAYTO_RICH_USDC');
+  });
+
+  test('still picks PayTo when it is both richest and gas-ready', () => {
+    const r = pickAlgorandFunderPreferGasReady(
+      [
+        {
+          address: 'PAYTO_OK',
+          usdc: 1.64,
+          native: 0.05,
+          role: 'payto',
+          optedInUsdc: true,
+        },
+        {
+          address: 'PAYER_OK',
+          usdc: 0.76,
+          native: 0.036,
+          role: 'payer',
+          optedInUsdc: true,
+        },
+      ],
+      { minUsdc: 0.01, minNative: 0, reserveUsdc: 0 },
+    );
+    assert.equal(r.address, 'PAYTO_OK');
   });
 });

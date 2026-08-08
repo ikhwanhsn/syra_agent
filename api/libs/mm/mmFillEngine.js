@@ -6,7 +6,6 @@ import { mmConfigFromEnv, MM_SYRA_DECIMALS, MM_USDC_DECIMALS, resolveMmUniverse 
 import {
   computePriceUsdFromQuote,
   usdToRawAmount,
-  usdToSyraRaw,
 } from "./mmPriceEngine.js";
 
 /**
@@ -62,18 +61,8 @@ export async function quoteBuyFill({ notionalUsd, limitPriceUsd, midPriceUsd }) 
       impactBps: computeImpactBps(fillPriceUsd, midPriceUsd),
     };
   } catch {
-    if (midPriceUsd <= limitPriceUsd) {
-      const syraRaw = usdToSyraRaw(notionalUsd, midPriceUsd);
-      return {
-        filled: true,
-        fillPriceUsd: midPriceUsd,
-        syraAmountRaw: syraRaw,
-        volumeUsd: notionalUsd,
-        fillSource: "mid_fallback",
-        impactBps: 0,
-      };
-    }
-    return { filled: false, reason: "quote_failed" };
+    // Fail closed: mid_fallback invented zero-impact PnL and poisoned learning.
+    return { filled: false, reason: "quote_failed_no_mid_fallback" };
   }
 }
 
@@ -131,21 +120,8 @@ export async function quoteSellFill({
       impactBps: computeImpactBps(fillPriceUsd, midPriceUsd),
     };
   } catch {
-    if (midPriceUsd >= limitPriceUsd) {
-      const tokens = Number(syraAmountRaw) / 10 ** MM_SYRA_DECIMALS;
-      const outUsd = tokens * midPriceUsd;
-      const pnlUsd = outUsd - entryNotionalUsd;
-      return {
-        filled: true,
-        fillPriceUsd: midPriceUsd,
-        outUsd,
-        volumeUsd: outUsd,
-        pnlUsd,
-        fillSource: "mid_fallback",
-        impactBps: 0,
-      };
-    }
-    return { filled: false, reason: "quote_failed" };
+    // Fail closed: mid_fallback invented zero-impact PnL and poisoned learning.
+    return { filled: false, reason: "quote_failed_no_mid_fallback" };
   }
 }
 

@@ -4,7 +4,13 @@
  */
 import { test, describe, mock, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluateTreasuryCapacity, shouldLogTreasuryAlert } from './labTreasuryGuard.js';
+import {
+  evaluateTreasuryCapacity,
+  shouldChronicDisableAutoCall,
+  shouldLogTreasuryAlert,
+  shouldLogTreasuryEpisodeAlert,
+  TREASURY_CHRONIC_DISABLE_MS,
+} from './labTreasuryGuard.js';
 
 /**
  * Behavioral contract tests for the circuit breaker logic used by the scheduler.
@@ -30,7 +36,7 @@ describe('scheduler treasury circuit-breaker contracts', () => {
     assert.equal(shouldSpamPerPayer, false);
   });
 
-  test('underfunded funder + funded hub => hubHasFunds is informational only (no auto-distribute)', () => {
+  test('underfunded funder + funded hub => hubHasFunds is informational only until distribute', () => {
     const assessment = evaluateTreasuryCapacity({
       payToUsdc: 0,
       payToSpendableNative: 0.01,
@@ -42,7 +48,7 @@ describe('scheduler treasury circuit-breaker contracts', () => {
       payToOptedIn: true,
       chain: 'algorand',
     });
-    // Deposit hub may have funds; scheduler still pauses (distribution is manual-only).
+    // Deposit hub may have funds; scheduler auto-distributes then re-assesses.
     assert.equal(assessment.canFundAny, false);
     assert.equal(assessment.hubHasFunds, true);
   });
@@ -92,10 +98,33 @@ describe('scheduler treasury circuit-breaker contracts', () => {
     assert.ok(withRichestPayer.fundableCalls >= 1);
   });
 
-  test('treasury alert throttle prevents N identical alerts within window', () => {
+  test('once-per-episode gate suppresses repeated (treasury) logs while paused', () => {
+    assert.equal(
+      shouldLogTreasuryEpisodeAlert({
+        autoCallPausedReason: null,
+        newReason: 'payto_underfunded',
+      }),
+      true,
+    );
+    assert.equal(
+      shouldLogTreasuryEpisodeAlert({
+        autoCallPausedReason: 'payto_underfunded',
+        newReason: 'payto_underfunded',
+      }),
+      false,
+    );
+    // Legacy time throttle is no longer the primary spam control.
     const now = Date.now();
-    assert.equal(shouldLogTreasuryAlert(null, now), true);
     assert.equal(shouldLogTreasuryAlert(new Date(now), now + 60_000), false);
+  });
+
+  test('chronic disable fires after TREASURY_CHRONIC_DISABLE_MS of continuous pause', () => {
+    const now = Date.now();
+    assert.equal(shouldChronicDisableAutoCall(new Date(now - 60_000), now), false);
+    assert.equal(
+      shouldChronicDisableAutoCall(new Date(now - TREASURY_CHRONIC_DISABLE_MS - 1), now),
+      true,
+    );
   });
 
   test('TREASURY_SKIP_REASONS includes payto_underfunded for mid-tick break', async () => {
@@ -147,5 +176,34 @@ describe('aggregation: one treasury row not N funding rows', () => {
     }
 
     assert.equal(logCount, 1);
+  });
+
+  test('simulates once-per-episode: second tick while paused does not re-log', () => {
+    let settings = { autoCallPausedReason: null };
+    const reason = 'payto_underfunded';
+    let logs = 0;
+    for (let tick = 0; tick < 5; tick++) {
+      if (
+        shouldLogTreasuryEpisodeAlert({
+          autoCallPausedReason: settings.autoCallPausedReason,
+          newReason: reason,
+        })
+      ) {
+        logs += 1;
+      }
+      settings = { autoCallPausedReason: reason };
+    }
+    assert.equal(logs, 1);
+  });
+});
+
+describe('handleTreasuryUnderfunded recovery paths', () => {
+  afterEach(() => {
+    mock.restoreAll();
+  });
+
+  test('exports handleTreasuryUnderfunded for integration-style unit tests', async () => {
+    const { __test } = await import('./labX402Scheduler.js');
+    assert.equal(typeof __test.handleTreasuryUnderfunded, 'function');
   });
 });

@@ -207,7 +207,7 @@ export function SidebarIconRail({
               key={item.id}
               to={item.to}
               icon={item.icon}
-              label={item.label}
+              label={item.badge ? `${item.label} (${item.badge.label})` : item.label}
               end
               matchActive={item.isActive}
             />

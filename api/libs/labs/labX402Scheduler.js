@@ -3,20 +3,24 @@
  * Runs independently per chain (solana | base | algorand | xlayer).
  *
  * Treasury circuit breaker: preflight assessLabTreasury once per tick. When no payer/payto
- * funder can fund any call, auto-pause with a single aggregated (treasury) log instead of
- * N per-payer (funding) errors. Deposit-hub distribution is manual-only (UI/route).
+ * funder can fund any call, try deposit-hub distribute (if enabled + hub funded), then
+ * auto-pause with a single once-per-episode (treasury) log. Chronic underfund disables
+ * autoCallEnabled after TREASURY_CHRONIC_DISABLE_MS.
  */
 import { listActivePayerWallets } from './labWalletService.js';
 import { runLabX402Payment, getLabX402Settings } from './labX402Payer.js';
 import { checkLabDailyCallBudget, logLabX402Call } from './labX402CallLog.js';
 import { formatFundingSkipError } from './labFundingSkipMessage.js';
 import { ensurePayerFundedForNextCall } from './labX402Refund.js';
+import { distributeLabDeposit } from './labDepositDistributor.js';
 import {
   assessLabTreasury,
+  disableLabAutoCallForChronicTreasury,
   markTreasuryAlertLogged,
   pauseLabAutoCallForTreasury,
   resumeLabAutoCallFromTreasury,
-  shouldLogTreasuryAlert,
+  shouldChronicDisableAutoCall,
+  shouldLogTreasuryEpisodeAlert,
   TREASURY_PAUSE_RECHECK_MS,
 } from './labTreasuryGuard.js';
 import { LAB_X402_CHAINS, normalizeLabChain } from '../../models/labs/LabX402Settings.js';
@@ -42,7 +46,7 @@ function computeJitteredDelay(baseMs, jitterPct) {
 }
 
 /**
- * Log a single aggregated treasury alert (throttled).
+ * Log a single aggregated treasury alert (once per underfund episode).
  * @param {{
  *   chain: string;
  *   assessment: object;
@@ -52,14 +56,22 @@ function computeJitteredDelay(baseMs, jitterPct) {
  */
 async function logAggregatedTreasuryAlert(args) {
   const { chain, assessment, settings, payerCount } = args;
-  if (!shouldLogTreasuryAlert(settings.treasuryLastAlertAt)) return;
+  const reason = assessment.reason || 'payto_underfunded';
+  if (
+    !shouldLogTreasuryEpisodeAlert({
+      autoCallPausedReason: settings.autoCallPausedReason,
+      newReason: reason,
+    })
+  ) {
+    return;
+  }
 
   const payers = await listActivePayerWallets(chain);
   const representative = payers[0]?.address;
   if (!representative) return;
 
   const detail = [
-    assessment.reason || 'payto_underfunded',
+    reason,
     `payers=${payerCount}`,
     `funderUsdc=${Number(assessment.funderUsdc ?? assessment.payToUsdc ?? 0).toFixed(4)}`,
     assessment.funderAddress
@@ -84,7 +96,7 @@ async function logAggregatedTreasuryAlert(args) {
     chain,
     status: 'error',
     error: formatFundingSkipError({
-      reason: assessment.reason || 'payto_underfunded',
+      reason,
       error: detail,
       includeTopUpHint: true,
     }),
@@ -92,6 +104,93 @@ async function logAggregatedTreasuryAlert(args) {
   }).catch(() => {});
 
   await markTreasuryAlertLogged(chain).catch(() => {});
+}
+
+/**
+ * When treasury cannot fund: try hub distribute, chronic-disable, or pause + once-per-episode log.
+ *
+ * `allowAlreadyFundedRecovery` (default true): an already-fundable assessment counts as
+ * recovered. Mid-tick PayTo exhaustion sets this false so a rich sibling payer cannot
+ * unblock the loop while PayTo top-ups are still failing.
+ *
+ * @param {{
+ *   chain: string;
+ *   assessment: object;
+ *   settings: object;
+ *   payerCount: number;
+ *   priceMultiplier?: number;
+ *   allowAlreadyFundedRecovery?: boolean;
+ * }} args
+ * @returns {Promise<{
+ *   recovered: boolean;
+ *   disabled: boolean;
+ *   assessment: object;
+ * }>}
+ */
+async function handleTreasuryUnderfunded(args) {
+  const { chain, settings, payerCount, priceMultiplier } = args;
+  const allowAlreadyFundedRecovery = args.allowAlreadyFundedRecovery !== false;
+  let assessment = args.assessment;
+
+  if (assessment.canFundAny && allowAlreadyFundedRecovery) {
+    if (settings.autoCallPausedReason) {
+      await resumeLabAutoCallFromTreasury(chain);
+    }
+    return { recovered: true, disabled: false, assessment };
+  }
+
+  if (assessment.hubHasFunds && settings.depositDistributeEnabled !== false) {
+    console.info(
+      `[lab-x402-scheduler] ${chain} hub has funds; auto-distributing before pause`,
+    );
+    try {
+      await distributeLabDeposit(chain, { force: true });
+    } catch (e) {
+      console.warn(
+        `[lab-x402-scheduler] ${chain} auto-distribute failed:`,
+        e?.message || e,
+      );
+    }
+    assessment = await assessLabTreasury(chain, {
+      payerCount,
+      priceMultiplier,
+    });
+    if (assessment.canFundAny) {
+      if (settings.autoCallPausedReason) {
+        console.info(
+          `[lab-x402-scheduler] ${chain} treasury recovered via hub distribute; resuming`,
+        );
+        await resumeLabAutoCallFromTreasury(chain);
+      }
+      return { recovered: true, disabled: false, assessment };
+    }
+  }
+
+  if (
+    settings.autoCallPausedReason &&
+    shouldChronicDisableAutoCall(settings.autoCallPausedAt)
+  ) {
+    console.warn(
+      `[lab-x402-scheduler] ${chain} chronic treasury underfund; disabling auto-call`,
+    );
+    await disableLabAutoCallForChronicTreasury(
+      chain,
+      assessment.reason || 'payto_underfunded',
+    );
+    return { recovered: false, disabled: true, assessment };
+  }
+
+  console.warn(
+    `[lab-x402-scheduler] ${chain} treasury underfunded (${assessment.reason}); pausing auto-call`,
+  );
+  await pauseLabAutoCallForTreasury(chain, assessment.reason || 'payto_underfunded');
+  await logAggregatedTreasuryAlert({
+    chain,
+    assessment,
+    settings,
+    payerCount,
+  });
+  return { recovered: false, disabled: false, assessment };
 }
 
 /**
@@ -153,24 +252,25 @@ async function tick(chain) {
     const payers = await listActivePayerWallets(c);
     if (payers.length === 0) return;
 
-    const assessment = await assessLabTreasury(c, {
+    let assessment = await assessLabTreasury(c, {
       payerCount: payers.length,
       priceMultiplier: settings.priceMultiplier,
     });
 
     if (!assessment.canFundAny) {
-      console.warn(
-        `[lab-x402-scheduler] ${c} treasury underfunded (${assessment.reason}); pausing auto-call`,
-      );
-      await pauseLabAutoCallForTreasury(c, assessment.reason || 'payto_underfunded');
-      await logAggregatedTreasuryAlert({
+      const result = await handleTreasuryUnderfunded({
         chain: c,
         assessment,
         settings,
         payerCount: payers.length,
+        priceMultiplier: settings.priceMultiplier,
       });
-      forceSlowRecheck = true;
-      return;
+      if (result.disabled) return;
+      if (!result.recovered) {
+        forceSlowRecheck = true;
+        return;
+      }
+      assessment = result.assessment;
     }
 
     // Treasury healthy: clear any prior pause so we run at normal cadence.
@@ -194,17 +294,30 @@ async function tick(chain) {
             console.warn(
               `[lab-x402-scheduler] ${c} mid-tick treasury exhaustion (${funding.reason}); pausing`,
             );
-            await pauseLabAutoCallForTreasury(c, funding.reason || 'payto_underfunded');
-            await logAggregatedTreasuryAlert({
+            const midSettings = await getLabX402Settings(c);
+            const midAssessment = await assessLabTreasury(c, {
+              payerCount: payers.length,
+              priceMultiplier: settings.priceMultiplier,
+            });
+            const result = await handleTreasuryUnderfunded({
               chain: c,
               assessment: {
-                ...assessment,
-                reason: funding.reason,
-                payToUsdc: funding.balanceUsdc,
+                ...midAssessment,
+                canFundAny: false,
+                reason: midAssessment.reason || funding.reason,
+                hubHasFunds: midAssessment.hubHasFunds,
               },
-              settings: await getLabX402Settings(c),
+              settings: midSettings,
               payerCount: payers.length,
+              priceMultiplier: settings.priceMultiplier,
+              // PayTo top-up path failed; do not treat a rich sibling payer as recovery.
+              allowAlreadyFundedRecovery: false,
             });
+            if (result.recovered) {
+              // Only via successful hub distribute.
+              assessment = result.assessment;
+              continue;
+            }
             forceSlowRecheck = true;
             break;
           }
@@ -272,6 +385,8 @@ export function restartLabX402Scheduler(chain) {
 export const __test = {
   tick,
   scheduleNext,
+  handleTreasuryUnderfunded,
+  logAggregatedTreasuryAlert,
   TREASURY_SKIP_REASONS,
   computeJitteredDelay,
 };

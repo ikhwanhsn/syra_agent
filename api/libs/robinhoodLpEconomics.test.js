@@ -69,10 +69,10 @@ test("shouldCloseRobinhoodSimByOor respects hold floors and tick range", () => {
   assert.equal(shouldCloseRobinhoodSimByOor(run, { activeBinId: 80_000 }, exit, 2), true);
 });
 
-test("getRobinhoodLpSimFeeCalibrationMult defaults above Solana 0.22 haircut", () => {
+test("getRobinhoodLpSimFeeCalibrationMult defaults conservative vs Solana 0.22", () => {
   const prev = process.env.ROBINHOOD_LP_SIM_FEE_CALIBRATION_MULT;
   delete process.env.ROBINHOOD_LP_SIM_FEE_CALIBRATION_MULT;
-  assert.equal(getRobinhoodLpSimFeeCalibrationMult(), 0.9);
+  assert.equal(getRobinhoodLpSimFeeCalibrationMult(), 0.65);
   process.env.ROBINHOOD_LP_SIM_FEE_CALIBRATION_MULT = "1.1";
   assert.equal(getRobinhoodLpSimFeeCalibrationMult(), 1.1);
   if (prev == null) delete process.env.ROBINHOOD_LP_SIM_FEE_CALIBRATION_MULT;

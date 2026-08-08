@@ -61,13 +61,27 @@ node api/scripts/validate-earn-yield-launch.js --all
 
 These stay **out of Earn** until they have a real executor + lab track record.
 
+**Hard rule:** do **not** add them to [`api/config/earnProducts.js`](../api/config/earnProducts.js) as `coming_soon` or `beta`. Fake scarcity without an executor path is worse than silence. `EARN_YIELD_BLOCKED_EXPERIMENTS` fails tests/boot if a blocked id is registered.
+
 | Experiment | Main service | Gap to earn-ready |
 |---|---|---|
 | Scalper | `api/libs/scalper/scalperService.js` | Paper only. `scalperFillEngine.js` has an adapter boundary — wire `walletBroker` / Jupiter, add `scalper_real_config`, cron, then `scalperEarnAdapter`. |
-| Market Maker | `api/libs/mm/mmService.js` | Paper Jupiter-quote fills. Need real two-sided inventory + risk limits before any public deposits. |
-| Stocks (xStocks) | `api/libs/stocksExperimentService.js` | Paper via Jupiter price feeds. Need real swap path + compliance review for equity-like tokens. |
+| Market Maker | `api/libs/mm/mmService.js` | Paper Jupiter-quote fills. Need real two-sided inventory + risk limits before any public deposits. **Dossier:** [MM_PAPER_EDGE.md](./MM_PAPER_EDGE.md). |
+| Stocks (xStocks) | `api/libs/stocksExperimentService.js` | Paper via Jupiter price feeds. Need real swap path + compliance review for equity-like tokens. **Public paper watch OK at `/stocks`. Earn Yield blocked.** Dossier: [STOCKS_NEWS_PAPER_EDGE.md](./STOCKS_NEWS_PAPER_EDGE.md). |
 | Legacy trading suites (`primary` / `secondary`) | retired | Do not revive — use BTC quant / BTC3 instead. |
 | Arbitrage CEX spread | `arbitrageExperimentAggregate.js` | Read-only feed — no execution. |
+
+### Stocks News — current hold
+
+- Stage: `paper_watch` ([`stocksEarnGraduation.js`](../api/config/stocksEarnGraduation.js))
+- Paper dossier: `cd api && node scripts/stocksPaperEdgeDossier.js` (≥50 decided, net-positive champion)
+- Real-money UX: point to `/equity` / `/spcx` or `/earn?track=skills`, not Stocks Yield deposits
+
+### SYRA MM — current hold
+
+- Stage: `paper_lab` ([`mmPaperEdge.js`](../api/config/mmPaperEdge.js))
+- Paper dossier: `cd api && node scripts/mmPaperEdgeDossier.js` (≥50 honest trips, net-positive promoted, low mid_fallback)
+- Earn Yield blocked until real two-sided executor + risk limits
 
 ### Graduation steps for a paper experiment
 
@@ -87,6 +101,15 @@ These stay **out of Earn** until they have a real executor + lab track record.
 - Settlement guardrail is Solana-scoped; do not mix Celo Labs credit outages into Earn readiness.
 - Performance fee collection metering for USDC products is stamped on config (`performanceFeeBps`) but fee sweep automation may still be ops-manual.
 
+## LP Lab metric semantics (do not regress)
+
+Meteora LP Lab `simulation.sumNetPnlSol` is the **sum of every paper agent’s simulated net PnL** (cohort research scoreboard). It must **not** be labeled “Best practice”, “Top strategy”, or presented as Earn expectancy.
+
+- UI source of truth: [`web/src/lib/lpLabStatsCopy.ts`](../web/src/lib/lpLabStatsCopy.ts) (`Paper cohort sim PnL`) + banner on [`LpExperimentGlobalStats`](../web/src/components/experiment/lp/LpExperimentGlobalStats.tsx)
+- Leader’s own sim PnL is `leaderSumNetPnlSol` / per-agent stats, distinct from the cohort sum
+- Earn opens use `passesRealTrackRecordGate` (real closes), not paper leaders; degen evo strategies stay sim-only
+- Regression: `web/src/lib/lpLabStatsCopy.test.ts`, `api/config/earnProducts.test.js` (LP copy honesty)
+
 ## Profitability hardening (shipped)
 
 Real-agent edge leaks closed:
@@ -95,7 +118,8 @@ Real-agent edge leaks closed:
 |-----|--------|
 | Refresh + pin live BTC Quant leader; no negative `pickBest` fallback; score decided PnL | `btcQuantRealService` / `btcQuantExperimentEvolution` |
 | Paper round-trip cost (~110 bps) so barely-green sim stays out of real | `btcQuantExperimentService`, `stocksExperimentService` |
-| Honor real evolution notional multiplier + cooldowns | `btcQuantRealService` |
+| Honor real evolution notional multiplier, minConfidence, minPassesDelta + cooldowns | `btcQuantRealService`, `btcQuantLearningGates` |
+| BTC quant paper-edge dossier | [BTC_QUANT_PAPER_EDGE.md](./BTC_QUANT_PAPER_EDGE.md) |
 | BTC3 learning gates on real; paper fee + 5% min rebalance; clamp LLM returns | `btc3RealService`, `btc3PaperTradingService`, `portfolioOptimizer` |
 | LP refuse softFallback; safeFallback ≤50% size | `lpExperimentService`, `lpRealService` |
 
@@ -104,5 +128,10 @@ Scalper/MM remain paper-only — do not list on Earn until a real executor exist
 ## Related docs
 
 - [EARN_YIELD_CBBTC_EVAL.md](./EARN_YIELD_CBBTC_EVAL.md) — original cbBTC evaluation notes
-- `api/config/earnProducts.js` — product registry
+- [BTC_QUANT_PAPER_EDGE.md](./BTC_QUANT_PAPER_EDGE.md) — BTC quant (btc1/btc2) paper dossier, kill criteria, learning honesty
+- [STOCKS_NEWS_PAPER_EDGE.md](./STOCKS_NEWS_PAPER_EDGE.md) — Stocks paper dossier, kill criteria, Earn hold
+- [MM_PAPER_EDGE.md](./MM_PAPER_EDGE.md) — SYRA MM paper dossier, Earn hold
+- `api/config/earnProducts.js` — product registry + blocked experiment guard
+- `api/config/btcQuantPaperEdge.js` — BTC quant paper-edge gates
+- `api/config/stocksEarnGraduation.js` — Stocks stage gates (config-only until executor exists)
 - `api/libs/earnAdapters/` — adapters

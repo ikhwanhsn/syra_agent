@@ -23,12 +23,14 @@ export function MmLearningPanel({ learning, loading = false, className }: MmLear
     learning?.baseConfig &&
     learning?.effectiveConfig &&
     JSON.stringify(learning.baseConfig) !== JSON.stringify(learning.effectiveConfig);
+  const paperEdge = learning?.paperEdge;
   const hasContent =
     lessons.length > 0 ||
     learning?.lastEvolutionSummary ||
     strategyEntries.length > 0 ||
     hasOverrides ||
-    (learning?.strategyCooldowns?.length ?? 0) > 0;
+    (learning?.strategyCooldowns?.length ?? 0) > 0 ||
+    Boolean(paperEdge);
 
   if (loading && !learning) {
     return (
@@ -46,9 +48,34 @@ export function MmLearningPanel({ learning, loading = false, className }: MmLear
       <div className="space-y-1">
         <h3 className="text-sm font-semibold text-foreground">Agent learning</h3>
         <p className="text-xs text-muted-foreground">
-          Maximizes volume while keeping PnL ≥ 0 · tunes spread, size, and grid daily.
+          Maximizes volume while keeping PnL ≥ 0. Batch heuristic learning (rate-limited), not
+          per-trade ML. Honest Jupiter fills only.
         </p>
       </div>
+
+      {paperEdge ? (
+        <div className="mt-3 rounded-xl border border-border/50 bg-background/35 px-4 py-3">
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Paper edge readiness
+          </p>
+          <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+            <span>
+              Status:{" "}
+              <span
+                className={
+                  paperEdge.evaluation.pass ? "font-medium text-emerald-400" : "font-medium text-amber-400"
+                }
+              >
+                {paperEdge.evaluation.pass ? "pass" : "not ready"}
+              </span>
+            </span>
+            <span>Honest trips: {paperEdge.honestRoundTrips}</span>
+            <span>mid_fallback: {(paperEdge.midFallbackFrac * 100).toFixed(1)}%</span>
+            <span>Promotion stability: {paperEdge.promotionStability}</span>
+            <span>Drift: {(paperEdge.inventoryDriftFrac * 100).toFixed(0)}%</span>
+          </div>
+        </div>
+      ) : null}
 
       {learning?.promotedStrategyId ? (
         <p className="mt-3 text-sm">
@@ -84,6 +111,9 @@ export function MmLearningPanel({ learning, loading = false, className }: MmLear
             <span>Max inventory: {formatMmUsd(learning.effectiveConfig.maxInventoryUsd)}</span>
             <span>Edge buffer: {learning.effectiveConfig.minEdgeBufferPct.toFixed(2)}%</span>
             <span>Deploy slice: {(learning.effectiveConfig.deploySlicePct * 100).toFixed(0)}%</span>
+            {learning.effectiveConfig.inventorySkewFactor != null ? (
+              <span>Inventory skew: {learning.effectiveConfig.inventorySkewFactor.toFixed(2)}</span>
+            ) : null}
           </div>
         </div>
       ) : null}

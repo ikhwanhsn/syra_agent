@@ -249,10 +249,22 @@ export async function enableForUser({ anonymousId, ownerWallet, maxDeposit, enab
   }
 
   const cap = clampDepositCap(product, maxDeposit);
+  const earnMaxPositionSol = Math.min(DEFAULT_MAX_POSITION_SOL, cap);
+
+  // Size Earn beta slots before enableLpReal's balance gate. Lab default maxPositionSol=1
+  // would require ~1.30 SOL; Earn 0.25 slots need ~0.55 SOL (matches open affordability).
+  const preEnableConfigSet = {
+    maxPositionSol: earnMaxPositionSol,
+    maxConcurrentPositions: DEFAULT_MAX_CONCURRENT,
+    publicMaxDepositSol: cap,
+    earnDepositSol: cap,
+    targetBankSol: cap,
+  };
 
   const state = await enableLpReal({
     anonymousId: wallet.anonymousId || anonymousId,
     enabledBy: enabledBy || ownerWallet || anonymousId,
+    preEnableConfigSet,
   });
 
   const priorConfig = await LpRealConfig.findOne({ agentAddress: wallet.agentAddress }).lean();
@@ -273,7 +285,7 @@ export async function enableForUser({ anonymousId, ownerWallet, maxDeposit, enab
     publicMaxDepositSol: cap,
     earnDepositSol: cap,
     targetBankSol: cap,
-    maxPositionSol: Math.min(DEFAULT_MAX_POSITION_SOL, cap),
+    maxPositionSol: earnMaxPositionSol,
     maxConcurrentPositions: DEFAULT_MAX_CONCURRENT,
     performanceFeeBps: product.performanceFeeBps,
     pausedNoStrategyAt: null,

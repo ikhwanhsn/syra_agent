@@ -251,17 +251,39 @@ export function createLabsX402Router() {
             usdcUsd: assessment.recommendedTopUpUsdc,
             native: assessment.recommendedTopUpNative,
             algo: assessment.recommendedTopUpAlgo,
-            instructions: assessment.canFundAny
-              ? null
-              : assessment.hubHasFunds
-                ? `Deposit hub has funds. Click Distribute, or POST /labs/x402/deposit/distribute?chain=${chain}.`
-                : `Fund any lab wallet (or deposit hub ${assessment.hubAddress || 'once created'}) with ~$${Number(assessment.recommendedTopUpUsdc || 0).toFixed(2)} USDC` +
-                  (assessment.recommendedTopUpNative > 0
-                    ? ` and ~${Number(assessment.recommendedTopUpNative).toFixed(4)} ${chain === 'algorand' ? 'ALGO' : chain === 'base' ? 'ETH' : chain === 'xlayer' ? 'OKB' : 'SOL'}`
-                    : '') +
-                  (assessment.hubAddress
-                    ? `, then Distribute from the hub if needed.`
-                    : '.'),
+            instructions: (() => {
+              if (assessment.canFundAny) return null;
+              if (assessment.hubHasFunds) {
+                return `Deposit hub has funds. Click Distribute, or POST /labs/x402/deposit/distribute?chain=${chain}. The scheduler also auto-distributes when deposit distribute is enabled.`;
+              }
+              const stableSym = chain === 'xlayer' ? 'USDT0' : 'USDC';
+              const nativeSym =
+                chain === 'algorand'
+                  ? 'ALGO'
+                  : chain === 'base'
+                    ? 'ETH'
+                    : chain === 'xlayer'
+                      ? 'OKB'
+                      : 'SOL';
+              const needUsdc = Number(assessment.recommendedTopUpUsdc || 0);
+              const needNative = Number(assessment.recommendedTopUpNative || 0);
+              const hubHint = assessment.hubAddress
+                ? `, then Distribute from the hub if needed.`
+                : '.';
+              const dest = `any lab wallet (or deposit hub ${assessment.hubAddress || 'once created'})`;
+              if (assessment.reason === 'payto_native_underfunded' && needNative > 0) {
+                return (
+                  `Fund ${dest} with ~${needNative.toFixed(4)} spendable ${nativeSym}` +
+                  (needUsdc > 0 ? ` and ~$${needUsdc.toFixed(2)} ${stableSym}` : '') +
+                  hubHint
+                );
+              }
+              return (
+                `Fund ${dest} with ~$${needUsdc.toFixed(2)} ${stableSym}` +
+                (needNative > 0 ? ` and ~${needNative.toFixed(4)} ${nativeSym}` : '') +
+                hubHint
+              );
+            })(),
           },
         },
       });

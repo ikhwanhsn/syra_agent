@@ -40,6 +40,9 @@ const scalperLearningStateSchema = new mongoose.Schema(
       ],
       default: [],
     },
+    /** When set and in the future, signal cycle opens no new positions. */
+    deskPausedUntil: { type: Date, default: null },
+    deskPauseReason: { type: String, default: null },
     lastEvolutionAt: { type: Date, default: null },
     lastEvolutionSummary: { type: String, default: null },
     runsAnalyzed: { type: Number, default: 0 },

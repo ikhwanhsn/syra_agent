@@ -58,8 +58,31 @@ export const PAYTO_USDC_REFUND_MIN_FEE_MICRO = ALGO_FEE_MICRO_PER_TX * 2n + 2_00
  */
 export const PAYER_ALGO_SEED_FEE_CUSHION_MICRO = 50_000n;
 
-/** Keep this much spendable on a funder after lending. */
-const FUNDER_SPARE_MICRO = ALGO_FEE_MICRO_PER_TX + 50_000n;
+/**
+ * Keep this much spendable on a funder after lending batch fee cushions.
+ * (~0.051 ALGO = 1 fee + 0.05 cushion)
+ */
+export const FUNDER_SPARE_MICRO = ALGO_FEE_MICRO_PER_TX + 50_000n;
+
+/**
+ * Spare for single-fee (min) borrows only: one payment fee.
+ * Typical payer wallets hold ~0.03–0.05 spendable ALGO — below FUNDER_SPARE_MICRO —
+ * but can still lend the ~0.004 ALGO PayTo needs for one USDC ASA refund.
+ */
+export const FUNDER_SPARE_MIN_FEE_MICRO = ALGO_FEE_MICRO_PER_TX;
+
+/**
+ * Pure: how much of `spendableMicro` can be lent after keeping `spareMicro`.
+ * @param {bigint | number | string} spendableMicro
+ * @param {bigint | number | string} spareMicro
+ * @returns {bigint}
+ */
+export function lendableAlgorandMicro(spendableMicro, spareMicro) {
+  const spendable = BigInt(spendableMicro ?? 0);
+  const spare = BigInt(spareMicro ?? 0);
+  if (spendable <= spare) return 0n;
+  return spendable - spare;
+}
 
 /**
  * Pure: spendable microAlgos given account amount and min-balance.
@@ -169,6 +192,7 @@ export function classifyAlgorandRefundError(err, paytoInsufficientFundsTag) {
  *   deficitMicro: bigint;
  *   client: algosdk.Algodv2;
  *   funders: { address: string; sk: Uint8Array }[];
+ *   spareMicro?: bigint;
  *   sendPayment?: (args: {
  *     funder: { address: string; sk: Uint8Array };
  *     receiver: string;
@@ -185,6 +209,7 @@ async function borrowAlgorandAlgoFromFunders(args) {
     deficitMicro,
     client,
     funders,
+    spareMicro = FUNDER_SPARE_MICRO,
     sendPayment,
     logPrefix = '[labAlgorandFeeBuffer]',
   } = args;
@@ -193,7 +218,7 @@ async function borrowAlgorandAlgoFromFunders(args) {
     if (!funder?.address || funder.address === receiver) continue;
     try {
       const finfo = await getAlgorandAccountSpendableMicro(funder.address, client);
-      if (finfo.spendableMicro < deficitMicro + FUNDER_SPARE_MICRO) continue;
+      if (lendableAlgorandMicro(finfo.spendableMicro, spareMicro) < deficitMicro) continue;
 
       if (typeof sendPayment === 'function') {
         await sendPayment({
@@ -401,6 +426,7 @@ export async function ensurePayToAlgoForUsdcRefund(payToAddress, opts = {}) {
     deficitMicro: deficit,
     client,
     funders,
+    spareMicro: FUNDER_SPARE_MICRO,
     sendPayment: opts.sendPayment,
     logPrefix: '[labAlgorandFeeBuffer] PayTo',
   });
@@ -408,6 +434,7 @@ export async function ensurePayToAlgoForUsdcRefund(payToAddress, opts = {}) {
 
   // Batch cushion unreachable from one sibling (each keeps FUNDER_SPARE).
   // Borrow only enough for a single refund fee floor so top-ups can proceed.
+  // Use a lower spare so typical payer wallets (~0.03–0.05 spendable) can lend.
   if (payInfo.spendableMicro < minMicro) {
     const minDeficit = minMicro - payInfo.spendableMicro;
     const borrowedMin = await borrowAlgorandAlgoFromFunders({
@@ -415,6 +442,7 @@ export async function ensurePayToAlgoForUsdcRefund(payToAddress, opts = {}) {
       deficitMicro: minDeficit,
       client,
       funders,
+      spareMicro: FUNDER_SPARE_MIN_FEE_MICRO,
       sendPayment: opts.sendPayment,
       logPrefix: '[labAlgorandFeeBuffer] PayTo(min)',
     });

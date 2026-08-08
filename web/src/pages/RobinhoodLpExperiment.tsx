@@ -44,7 +44,7 @@ function RobinhoodGlobalStats({
           value: loading ? "…" : formatRobinhoodLpUsd(uni?.scanVolume24hUsd ?? 0),
         },
         {
-          label: "Lab net PnL",
+          label: sim?.paperMetricsUntrusted === false ? "Lab net PnL" : "Lab net PnL (sim)",
           value: loading ? "…" : formatRobinhoodLpUsd(sim?.sumNetPnlUsd ?? 0),
         },
       ].map((tile) => (
@@ -174,13 +174,15 @@ export default function RobinhoodLpExperiment({ embedded = false }: { embedded?:
           <LpSectionHeader
             kicker="Paper sim"
             title="Uniswap strategy lab"
-            description="77 strategies compete on Robinhood Chain Uniswap pools. No wallet risk. Leaderboard ranks by net USD PnL after L2 gas costs."
+            description="Strategies compete on Robinhood Chain Uniswap pools using real fee/volume/TVL observables. Paper PnL is simulated and marked untrusted for Earn unlock."
           />
 
           <RobinhoodLpExperimentLabSummary
             agents={statsQ.data?.agents ?? []}
             recentRuns={runsQ.data?.runs ?? []}
             loading={loading}
+            paperMetricsUntrusted={statsQ.data?.paperMetricsUntrusted ?? true}
+            paperMetricsDisclaimer={statsQ.data?.paperMetricsDisclaimer}
           />
         </section>
 

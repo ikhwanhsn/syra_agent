@@ -1,5 +1,6 @@
 /**
  * Stocks lab evolution: daily cull of worst performers, elite-mutation spawns.
+ * Prefers well-sampled, risk-adjusted elites over short lucky streaks.
  */
 import StocksExperimentRun from "../models/StocksExperimentRun.js";
 import StocksExperimentState from "../models/StocksExperimentState.js";
@@ -12,7 +13,12 @@ import {
   STOCKS_MAX_STRATEGIES,
   STOCKS_STATIC_STRATEGY_COUNT,
 } from "../config/stocksExperimentStrategies.js";
-import { computeStocksLeaderScore } from "./stocksExperimentScoring.js";
+import {
+  computeStocksLeaderScore,
+  ELITE_MIN_DECIDED,
+  isStocksEliteParent,
+  pickWeightedElite,
+} from "./stocksExperimentScoring.js";
 import {
   invalidateStocksStrategyCache,
   resolveStocksExperimentStrategies,
@@ -22,9 +28,14 @@ export const STOCKS_EXPERIMENT_EVOLUTION_SCHEDULE = Object.freeze({
   enabled: true,
   intervalMs: 86_400_000,
   removeCount: 3,
-  minDecided: 5,
+  /** Align with smarter leader bar — do not cull/score on tiny samples. */
+  minDecided: ELITE_MIN_DECIDED,
   dailySpawnCount: STOCKS_DAILY_SPAWN_COUNT,
   maxStrategies: STOCKS_MAX_STRATEGIES,
+  /** Fraction of daily spawns that explore randomly instead of mutating elites. */
+  exploreRate: 0.3,
+  /** Protect this many top elites from cull. */
+  protectTopElites: 3,
 });
 
 /** @template T @param {readonly T[]} arr @returns {T} */
@@ -73,6 +84,10 @@ export function stocksEvolutionConfigFromEnv() {
     process.env.STOCKS_DAILY_SPAWN_COUNT || sched.dailySpawnCount,
   );
   const maxStrategies = Number(process.env.STOCKS_MAX_STRATEGIES || sched.maxStrategies);
+  const exploreRate = Number(process.env.STOCKS_EXPERIMENT_EVOLUTION_EXPLORE_RATE || sched.exploreRate);
+  const protectTopElites = Number(
+    process.env.STOCKS_EXPERIMENT_EVOLUTION_PROTECT_TOP || sched.protectTopElites,
+  );
 
   return {
     enabled,
@@ -91,6 +106,14 @@ export function stocksEvolutionConfigFromEnv() {
       Number.isFinite(maxStrategies) && maxStrategies >= STOCKS_STATIC_STRATEGY_COUNT
         ? Math.min(99, Math.floor(maxStrategies))
         : sched.maxStrategies,
+    exploreRate:
+      Number.isFinite(exploreRate) && exploreRate >= 0 && exploreRate <= 1
+        ? exploreRate
+        : sched.exploreRate,
+    protectTopElites:
+      Number.isFinite(protectTopElites) && protectTopElites >= 0
+        ? Math.min(10, Math.floor(protectTopElites))
+        : sched.protectTopElites,
   };
 }
 
@@ -155,8 +178,9 @@ export function buildRandomStocksStrategy(strategyId) {
 /**
  * @param {object} parent
  * @param {number} strategyId
+ * @param {{ expireRate?: number; winRate?: number | null; avgPnlUsd?: number | null }} [stats]
  */
-export function mutateStocksStrategyFromElite(parent, strategyId) {
+export function mutateStocksStrategyFromElite(parent, strategyId, stats = {}) {
   const signalWeights = { ...(parent.signalWeights || STOCKS_EXPERIMENT_DEFAULT_SIGNAL_WEIGHTS) };
   const keys = Object.keys(signalWeights);
   for (let i = 0; i < 2; i += 1) {
@@ -164,25 +188,64 @@ export function mutateStocksStrategyFromElite(parent, strategyId) {
     signalWeights[k] = clamp(mutateNum(signalWeights[k], 0.15, 0.3, 2.5), 0.3, 2.5);
   }
 
+  const expireRate = Number(stats.expireRate) || 0;
+  const winRate = stats.winRate == null ? null : Number(stats.winRate);
+  const avgPnl = stats.avgPnlUsd == null ? null : Number(stats.avgPnlUsd);
+
+  // High expire rate → shorter holds + tighter TP so paper doesn't bleed on timeouts.
+  let holdLo = Math.max(12, (parent.maxHoldHours ?? 48) - 12);
+  let holdHi = (parent.maxHoldHours ?? 48) + 24;
+  if (expireRate >= 0.35) {
+    holdLo = 12;
+    holdHi = Math.max(18, Math.min(36, parent.maxHoldHours ?? 24));
+  }
+
+  let minSentiment = mutateNum(parent.minSentiment ?? 0.1, 0.2, -0.3, 0.5);
+  let signalGate = parent.signalGate ?? pick(GATE_PRESETS);
+  // Soft win rate → tighten entry gates instead of randomizing exits only.
+  if (winRate != null && winRate < 0.5) {
+    minSentiment = clamp(Math.max(minSentiment, 0.12), -0.3, 0.5);
+    signalGate = {
+      all: [{ field: "sentiment_score", op: "gte", value: 0.15 }],
+      minPasses: 1,
+    };
+    signalWeights.sentiment_score = clamp(
+      Number(signalWeights.sentiment_score || 1) + 0.2,
+      0.3,
+      2.5,
+    );
+  }
+
+  let takeProfitPct = mutateNum(parent.exit?.takeProfitPct ?? 8, 0.15, 4, 20);
+  let stopLossPct = mutateNum(parent.exit?.stopLossPct ?? -5, 0.15, -12, -2);
+  if (avgPnl != null && avgPnl < 5 && expireRate < 0.35) {
+    takeProfitPct = clamp(takeProfitPct * 0.9, 4, 20);
+    stopLossPct = clamp(stopLossPct * 0.95, -12, -2);
+  }
+
+  // Occasional universe diversify so elites don't overfit one symbol set.
+  const universeFilter =
+    Math.random() < 0.25
+      ? { symbols: pick(UNIVERSE_PRESETS) }
+      : (parent.universeFilter ?? { symbols: pick(UNIVERSE_PRESETS) });
+
   const tag = Math.floor(1000 + Math.random() * 9000);
   return {
     strategyId,
     name: `${parent.name?.slice(0, 24) ?? "Elite"} · evo ${tag}`,
-    minSentiment: mutateNum(parent.minSentiment ?? 0.1, 0.2, -0.3, 0.5),
+    minSentiment,
     eventWeight: mutateNum(parent.eventWeight ?? 1, 0.2, 0.3, 2.5),
-    momentumConfirm: parent.momentumConfirm ?? false,
-    maxHoldHours: randInt(
-      Math.max(12, (parent.maxHoldHours ?? 48) - 12),
-      (parent.maxHoldHours ?? 48) + 24,
-    ),
-    universeFilter: parent.universeFilter ?? { symbols: pick(UNIVERSE_PRESETS) },
-    signalGate: parent.signalGate ?? pick(GATE_PRESETS),
+    momentumConfirm:
+      winRate != null && winRate < 0.5 ? true : (parent.momentumConfirm ?? false),
+    maxHoldHours: randInt(holdLo, Math.max(holdLo, holdHi)),
+    universeFilter,
+    signalGate,
     signalWeights,
     exit: {
-      stopLossPct: mutateNum(parent.exit?.stopLossPct ?? -5, 0.15, -12, -2),
-      takeProfitPct: mutateNum(parent.exit?.takeProfitPct ?? 8, 0.15, 4, 20),
+      stopLossPct,
+      takeProfitPct,
     },
-    notes: `Evolved from agent #${parent.id} (${parent.name})`,
+    notes: `Evolved from agent #${parent.id} (${parent.name}); expire=${expireRate.toFixed(2)}`,
   };
 }
 
@@ -205,6 +268,20 @@ export async function rankStocksStrategiesByPnl(experimentId) {
         expired: { $sum: { $cond: [{ $eq: ["$status", "expired"] }, 1, 0] } },
         sumPnlUsd: { $sum: { $ifNull: ["$simPnlUsd", 0] } },
         avgPnlUsd: { $avg: { $ifNull: ["$simPnlUsd", 0] } },
+        grossWinUsd: {
+          $sum: {
+            $cond: [{ $gt: [{ $ifNull: ["$simPnlUsd", 0] }, 0] }, { $ifNull: ["$simPnlUsd", 0] }, 0],
+          },
+        },
+        grossLossUsd: {
+          $sum: {
+            $cond: [
+              { $lt: [{ $ifNull: ["$simPnlUsd", 0] }, 0] },
+              { $abs: { $ifNull: ["$simPnlUsd", 0] } },
+              0,
+            ],
+          },
+        },
       },
     },
   ]);
@@ -221,18 +298,24 @@ export async function rankStocksStrategiesByPnl(experimentId) {
     const row = agg.find((a) => a._id === s.id);
     const wins = row?.wins ?? 0;
     const losses = row?.losses ?? 0;
+    const expired = row?.expired ?? 0;
     const decided = wins + losses;
+    const closed = decided + expired;
     const winRate = decided > 0 ? wins / decided : null;
     const base = {
       strategyId: s.id,
       strategyName: s.name,
       wins,
       losses,
-      expired: row?.expired ?? 0,
+      expired,
       decided,
+      closed,
+      expireRate: closed > 0 ? expired / closed : 0,
       winRate,
       sumPnlUsd: row?.sumPnlUsd ?? 0,
       avgPnlUsd: row?.avgPnlUsd ?? 0,
+      grossWinUsd: row?.grossWinUsd ?? 0,
+      grossLossUsd: row?.grossLossUsd ?? 0,
       openPositions: openMap.get(s.id) ?? 0,
     };
     return { ...base, leaderScore: computeStocksLeaderScore(base) };
@@ -249,21 +332,18 @@ export async function rankStocksStrategiesByPnl(experimentId) {
 
 /**
  * @param {string} experimentId
+ * @returns {Promise<{ strategy: object; stats: object } | null>}
  */
 async function pickEliteParent(experimentId) {
   const ranked = await rankStocksStrategiesByPnl(experimentId);
-  const elites = ranked.filter(
-    (row) =>
-      row.decided >= 6 &&
-      row.sumPnlUsd > 0 &&
-      (row.winRate ?? 0) >= 0.5 &&
-      computeStocksLeaderScore(row) > 0,
-  );
+  const elites = ranked.filter((row) => isStocksEliteParent(row));
   elites.sort((a, b) => (b.leaderScore ?? 0) - (a.leaderScore ?? 0));
-  if (elites.length === 0) return null;
-  const elite = elites[0];
+  const picked = pickWeightedElite(elites, (r) => r.leaderScore ?? 0, 3);
+  if (!picked) return null;
   const strategies = await resolveStocksExperimentStrategies();
-  return strategies.find((s) => s.id === elite.strategyId) ?? null;
+  const strategy = strategies.find((s) => s.id === picked.strategyId) ?? null;
+  if (!strategy) return null;
+  return { strategy, stats: picked };
 }
 
 /**
@@ -290,14 +370,31 @@ export async function runStocksExperimentEvolution() {
   const strategies = await resolveStocksExperimentStrategies();
   const usedIds = new Set(strategies.map((s) => s.id));
 
+  const protectedIds = new Set(
+    ranked
+      .filter((r) => isStocksEliteParent(r))
+      .slice(0, cfg.protectTopElites)
+      .map((r) => r.strategyId),
+  );
+
+  // Cull worst risk-adjusted scores (not just raw sum PnL), never touch protected elites / statics.
   const cullCandidates = ranked
-    .filter((r) => r.decided >= cfg.minDecided && r.openPositions === 0)
-    .sort((a, b) => (a.sumPnlUsd ?? 0) - (b.sumPnlUsd ?? 0));
+    .filter(
+      (r) =>
+        r.decided >= cfg.minDecided &&
+        r.openPositions === 0 &&
+        r.strategyId >= STOCKS_EVOLVABLE_MIN_ID &&
+        !protectedIds.has(r.strategyId),
+    )
+    .sort((a, b) => {
+      const scoreDiff = (a.leaderScore ?? -999) - (b.leaderScore ?? -999);
+      if (scoreDiff !== 0) return scoreDiff;
+      return (a.sumPnlUsd ?? 0) - (b.sumPnlUsd ?? 0);
+    });
 
   const culled = [];
   for (let i = 0; i < cfg.removeCount && i < cullCandidates.length; i += 1) {
     const victim = cullCandidates[i];
-    if (victim.strategyId < STOCKS_EVOLVABLE_MIN_ID) continue;
     await StocksExperimentRun.deleteMany({
       experimentId,
       strategyId: victim.strategyId,
@@ -308,16 +405,25 @@ export async function runStocksExperimentEvolution() {
   }
 
   const spawned = [];
-  const eliteParent = await pickEliteParent(experimentId);
+  const eliteParentsUsed = [];
 
   for (let i = 0; i < cfg.dailySpawnCount; i += 1) {
     if (usedIds.size >= cfg.maxStrategies) break;
     const newId = nextFreeStrategyId(STOCKS_EVOLVABLE_MIN_ID, STOCKS_EVOLVABLE_MAX_ID, usedIds);
     if (newId == null) break;
 
-    const row = eliteParent
-      ? mutateStocksStrategyFromElite(eliteParent, newId)
+    const explore = Math.random() < cfg.exploreRate;
+    const elitePick = explore ? null : await pickEliteParent(experimentId);
+
+    const row = elitePick
+      ? mutateStocksStrategyFromElite(elitePick.strategy, newId, {
+          expireRate: elitePick.stats.expireRate,
+          winRate: elitePick.stats.winRate,
+          avgPnlUsd: elitePick.stats.avgPnlUsd,
+        })
       : buildRandomStocksStrategy(newId);
+
+    if (elitePick?.strategy?.id != null) eliteParentsUsed.push(elitePick.strategy.id);
 
     await StocksExperimentStrategyOverride.findOneAndUpdate(
       { strategyId: newId },
@@ -333,7 +439,9 @@ export async function runStocksExperimentEvolution() {
     experimentId,
     culled,
     spawned,
-    eliteParentId: eliteParent?.id ?? null,
+    eliteParentId: eliteParentsUsed[0] ?? null,
+    eliteParentIds: eliteParentsUsed,
+    protectedEliteIds: [...protectedIds],
     strategyCount: usedIds.size,
   };
 }

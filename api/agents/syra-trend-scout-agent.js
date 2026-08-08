@@ -205,13 +205,32 @@ export async function runSyraTrendScoutAgent(input) {
     model,
   );
 
-  const result = await callOpenRouter(messages, {
-    model,
-    max_tokens: INTERNAL_PIPELINE_MAX_COMPLETION_TOKENS,
-    temperature: 0.35,
-    response_format: { type: "json_object" },
-  });
+  const baseMax = INTERNAL_PIPELINE_MAX_COMPLETION_TOKENS.trendScout;
+  /** @type {unknown} */
+  let parsed;
+  /** @type {Error | null} */
+  let lastParseErr = null;
 
-  const parsed = parseJsonObjectFromLlm(result.response);
+  for (const maxTokens of [baseMax, Math.min(baseMax * 2, 4000)]) {
+    const result = await callOpenRouter(messages, {
+      model,
+      max_tokens: maxTokens,
+      temperature: 0.35,
+      response_format: { type: "json_object" },
+    });
+    try {
+      parsed = parseJsonObjectFromLlm(result.response);
+      lastParseErr = null;
+      break;
+    } catch (e) {
+      lastParseErr = e instanceof Error ? e : new Error(String(e));
+      if (maxTokens >= Math.min(baseMax * 2, 4000)) break;
+    }
+  }
+
+  if (lastParseErr || parsed == null) {
+    throw lastParseErr || new Error("Trend scout failed to parse model JSON");
+  }
+
   return coerceOutput(parsed, stats);
 }

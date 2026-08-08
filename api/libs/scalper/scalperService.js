@@ -24,6 +24,7 @@ import {
   applySourceScoreMultiplier,
   computeConvictionNotionalSlice,
   getEffectiveScalperConfig,
+  getScalperDeskPause,
   getScalperLearningSnapshot,
   isOnLearnedCooldown,
   passesCostAwareEdgeGate,
@@ -348,6 +349,18 @@ export async function runScalperSignalCycle() {
   const state = await ScalperState.findById("singleton");
   if (!state) return { skipped: true, reason: "no_state" };
 
+  const deskPause = await getScalperDeskPause();
+  if (deskPause.paused) {
+    return {
+      skipped: true,
+      reason: "desk_paused",
+      pauseReason: deskPause.reason,
+      pausedUntil: deskPause.until,
+      opened: [],
+      skippedOpportunities: [],
+    };
+  }
+
   const baseCfg = mergedSimConfig(state);
   const cfg = await getEffectiveScalperConfig(baseCfg);
   const scan = await scanScalperOpportunities();
@@ -390,12 +403,22 @@ export async function runScalperSignalCycle() {
     const confluenceBoost = confluenceCount >= 2 ? 0.05 : confluenceCount >= 3 ? 0.08 : 0;
     const effectiveScore = Math.min(0.99, adjustedScore + confluenceBoost);
 
+    if (cfg.confluenceOnly && confluenceCount < 2) {
+      skipped.push({ symbol: opp.symbol, reason: "confluence_only_mode" });
+      continue;
+    }
+
     if (
       !passesSelectivityGate(
         effectiveScore,
         opp.source,
         confluenceCount,
         cfg.minOpportunityScore,
+        {
+          confluenceOnly: cfg.confluenceOnly === true,
+          minSoloMomentumScore: cfg.minSoloMomentumScore,
+          minSoloScore: cfg.minSoloScore ?? SCALPER_DEFAULTS.minSoloScore,
+        },
       )
     ) {
       skipped.push({ symbol: opp.symbol, reason: "selectivity_gate" });

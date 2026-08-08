@@ -11,7 +11,15 @@ import {
   algorandAccountFromLabWalletDoc,
   getLabWalletBalances,
 } from './labWalletService.js';
-import { getAlgorandAccountSpendableMicro, MICRO_ALGO } from './labAlgorandFeeBuffer.js';
+import {
+  getAlgorandAccountSpendableMicro,
+  MICRO_ALGO,
+  PAYTO_USDC_REFUND_MIN_FEE_MICRO,
+} from './labAlgorandFeeBuffer.js';
+
+/** Min spendable ALGO for a "gas-ready" Algorand USDC funder (~0.004). */
+export const ALGORAND_FUNDER_MIN_FEE_ALGO =
+  Number(PAYTO_USDC_REFUND_MIN_FEE_MICRO) / Number(MICRO_ALGO);
 
 /**
  * Normalize address for equality (EVM is case-insensitive).
@@ -110,6 +118,47 @@ export function pickRichestFunder(candidates, opts = {}) {
   });
 
   return eligible[0];
+}
+
+/**
+ * Algorand: prefer a USDC funder that already has spendable ALGO for one ASA refund,
+ * then fall back to richest USDC (fee ALGO borrowed onto that wallet mid-tick).
+ *
+ * Avoids picking PayTo with high USDC / near-zero ALGO when a sibling can fund both.
+ *
+ * @param {Parameters<typeof pickRichestFunder>[0]} candidates
+ * @param {Omit<Parameters<typeof pickRichestFunder>[1], 'chain' | 'requireOptedIn'> & {
+ *   preferredMinNative?: number;
+ * }} [opts]
+ * @returns {ReturnType<typeof pickRichestFunder>}
+ */
+export function pickAlgorandFunderPreferGasReady(candidates, opts = {}) {
+  const preferredMinNative = Number.isFinite(Number(opts.preferredMinNative))
+    ? Math.max(0, Number(opts.preferredMinNative))
+    : ALGORAND_FUNDER_MIN_FEE_ALGO;
+  const fallbackMinNative = Number.isFinite(Number(opts.minNative))
+    ? Math.max(0, Number(opts.minNative))
+    : 0;
+
+  const base = {
+    excludeAddress: opts.excludeAddress,
+    minUsdc: opts.minUsdc,
+    reserveUsdc: opts.reserveUsdc,
+    zeroReserveForPayTo: opts.zeroReserveForPayTo,
+    chain: 'algorand',
+    requireOptedIn: true,
+  };
+
+  const gasReady = pickRichestFunder(candidates, {
+    ...base,
+    minNative: preferredMinNative,
+  });
+  if (gasReady) return gasReady;
+
+  return pickRichestFunder(candidates, {
+    ...base,
+    minNative: fallbackMinNative,
+  });
 }
 
 /**
@@ -268,14 +317,18 @@ export async function resolveRichestFunder(chain, opts = {}) {
     }
   }
 
-  const picked = pickRichestFunder(candidates, {
+  const pickOpts = {
     excludeAddress: opts.excludePayer,
     minUsdc: opts.minUsdc,
     minNative: opts.minNative,
     reserveUsdc: opts.reserveUsdc,
     chain: c,
     requireOptedIn: c === 'algorand',
-  });
+  };
+  const picked =
+    c === 'algorand'
+      ? pickAlgorandFunderPreferGasReady(candidates, pickOpts)
+      : pickRichestFunder(candidates, pickOpts);
 
   if (!picked) return null;
 

@@ -172,8 +172,8 @@ export function readinessReasons(blockers: string[] | undefined): string[] {
   return out;
 }
 
-/** Default liquid SOL needed to open one LP slot (min deposit 0.4 + fee buffer 0.25). */
-export const LP_MIN_AVAILABLE_SOL_TO_OPEN = 0.65;
+/** Default liquid SOL needed to open one LP slot (min deposit 0.25 + fee buffer 0.25). */
+export const LP_MIN_AVAILABLE_SOL_TO_OPEN = 0.5;
 
 export function humanizeAgentNote(lastError: string | null | undefined): string | null {
   if (!lastError) return null;
@@ -204,7 +204,7 @@ export function humanizeAgentNote(lastError: string | null | undefined): string 
       case "risk_reward_below_threshold":
         return "Scanning for a pool with better risk/reward";
       case "no_profitable_strategy":
-        return "Waiting for a sim-qualified profitable strategy leader";
+        return "Waiting for a strategy with enough real on-chain wins (paper leaders alone do not unlock opens)";
       case "no_candidate":
         return "No Meteora pool passed screening this cycle; retrying soon";
       case "env_disabled":

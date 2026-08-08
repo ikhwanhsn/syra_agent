@@ -61,6 +61,22 @@ export function getRobinhoodLpStrategyById(strategyId) {
   return ROBINHOOD_LP_STRATEGIES.find((s) => s.id === id) ?? null;
 }
 
+/** Real Uniswap-observable weights (synthetic Meteora slots zeroed). */
 export function getRobinhoodDefaultSignalWeights() {
-  return { ...LP_AGENT_EXPERIMENT_DEFAULT_SIGNAL_WEIGHTS };
+  return {
+    ...LP_AGENT_EXPERIMENT_DEFAULT_SIGNAL_WEIGHTS,
+    organic_score: 0,
+    holder_count: 0,
+    smart_wallets_present: 0,
+    narrative_quality: 0,
+    study_win_rate: 0,
+    hive_consensus: 0,
+    fee_tvl_ratio: 1.7,
+    volume: 1.25,
+    volatility: 0.95,
+    freshness_score: 1.35,
+    fee_velocity: 1.55,
+    risk_reward: 2.1,
+    safety_score: 1.7,
+  };
 }

@@ -6,8 +6,16 @@ Status: **coming_soon** until adapter readiness passes, then auto-graduates to *
 
 | Source | Metric | Value |
 |--------|--------|-------|
-| Paper (`tradingexperimentruns`, suite `btc_onchain`) | Win rate / net | ~76% / ~+$441 on ~51 trades |
+| Paper (`tradingexperimentruns`, suite `btc_onchain`) | Win rate / net | ~76% / ~+$441 on ~51 trades (historical hint — re-measure with dossier) |
 | Real (`btc_quant_real_positions`, lane btc1) | Live track record | Accrues when `BTC_QUANT_REAL_CRON_ENABLED` + lab config enabled |
+
+Paper edge dossier (measure current cohort, not the hint above):
+
+```bash
+cd api && node scripts/btcQuantPaperEdgeDossier.js
+```
+
+See [BTC_QUANT_PAPER_EDGE.md](./BTC_QUANT_PAPER_EDGE.md).
 
 ## Wiring (shipped)
 
@@ -46,9 +54,17 @@ See registry: `api/config/earnProducts.js`.
 
 Real-agent PnL leaks fixed in code:
 
-1. **BTC Quant** — refresh live leader each signal; pin live leaders from cull; score decided PnL only; no negative fallback; paper debits ~110 bps round-trip; real honors evolution notional multiplier + cooldowns.
+1. **BTC Quant** — refresh live leader each signal; pin live leaders from cull; score decided PnL only; no negative fallback; paper debits ~110 bps round-trip; real honors evolution notional multiplier, `minConfidence`, `minPassesDelta`, and cooldowns.
 2. **BTC3** — learning gates (`minConfidence`, `maxBtcTiltPct`, learned `minRebalancePct`) apply to real; paper min rebalance 5% + fee debit; optimizer clamps LLM return scale.
 3. **LP** — softFallback (negative) no longer opens; safeFallback opens at ≤50% size.
-4. **Stocks paper** — round-trip cost debit + tighter elite parent bar (still paper-only).
+4. **Stocks paper** — round-trip cost debit + tighter elite parent bar (still paper-only; Earn Yield blocked — see [STOCKS_NEWS_PAPER_EDGE.md](./STOCKS_NEWS_PAPER_EDGE.md)).
 
 Lab activation remains required before Earn graduation — see [EARN_YIELD_GRADUATION.md](./EARN_YIELD_GRADUATION.md).
+
+Paper-edge measure (btc1/btc2):
+
+```bash
+cd api && node scripts/btcQuantPaperEdgeDossier.js --lane=all
+```
+
+See [BTC_QUANT_PAPER_EDGE.md](./BTC_QUANT_PAPER_EDGE.md). Learning is daily batch evolution (not per-trade ML); real evolution `minConfidence` / `minPassesDelta` are enforced on paper + real signal paths.

@@ -100,7 +100,7 @@ export function LpExperimentLabSummary({ agents, recentRuns, refSolUsd, loading 
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-800/80 dark:text-amber-200/90">
-                  Best strategy
+                  Paper leader (sim only)
                 </p>
                 <p className="mt-1 truncate text-base font-semibold text-foreground">{leader.strategyName}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -170,7 +170,9 @@ export function LpExperimentLabSummary({ agents, recentRuns, refSolUsd, loading 
       <div className="space-y-3">
         <div>
           <h3 className="text-base font-semibold tracking-tight text-foreground">Recent practice trades</h3>
-          <p className="mt-1 text-sm text-muted-foreground">No real money, same pools and rules as live.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            No real money. Simulated fee/IL model on live pool snapshots; not wallet fills.
+          </p>
         </div>
         <div className={cn(overviewCardShell, "divide-y divide-border/35 overflow-hidden rounded-2xl")}>
           {loading && recent.length === 0 ? (

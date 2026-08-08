@@ -130,10 +130,13 @@ export interface LpGlobalOverview {
     strategyCount: number;
     settledRuns: number;
     openPositions: number;
+    /** Sum of every paper agent's sim PnL (cohort scoreboard, not one strategy). */
     sumNetPnlSol: number;
     sumEquitySol: number;
     sumDeployedSol: number;
     leaderStrategyId: number | null;
+    /** Leader strategy's own sim net PnL sum (distinct from sumNetPnlSol). */
+    leaderSumNetPnlSol: number | null;
     leaderAvgNetPnlSol: number | null;
     leaderWinRate: number | null;
     topWinRateStrategyId: number | null;

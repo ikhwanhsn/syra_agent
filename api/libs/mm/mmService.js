@@ -470,6 +470,8 @@ export async function runMmQuoteCycle() {
         maxInventoryUsd: effectiveCfg.maxInventoryUsd,
         minEdgeBufferPct: effectiveCfg.minEdgeBufferPct,
         deploySlicePct: effectiveCfg.deploySlicePct,
+        inventorySkewFactor: effectiveCfg.inventorySkewFactor,
+        targetInventoryUsd: effectiveCfg.targetInventoryUsd,
       },
     );
 
@@ -613,6 +615,7 @@ export async function resolveOpenMmOrders() {
               syraAmountRaw: fill.syraAmountRaw,
               volumeUsd: fill.volumeUsd,
               impactBps: fill.impactBps,
+              fillSource: fill.fillSource ?? "jupiter_quote",
               filledAt: new Date(),
               roundTripId,
               inventoryUsdAfter: inventoryUsd,
@@ -675,6 +678,7 @@ export async function resolveOpenMmOrders() {
               syraAmountRaw: syraToSell,
               volumeUsd: roundTripVolume,
               impactBps: fill.impactBps,
+              fillSource: fill.fillSource ?? "jupiter_quote",
               simPnlUsd,
               simPnlPct,
               filledAt: new Date(),

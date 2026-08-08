@@ -37,4 +37,11 @@ describe('formatFundingSkipError', () => {
     });
     assert.equal(msg.length, 500);
   });
+
+  test('native underfunded hint mentions ALGO / gas not USDC', () => {
+    const msg = formatFundingSkipError({ reason: 'payto_native_underfunded' });
+    assert.match(msg, /payto_native_underfunded/);
+    assert.match(msg, /spendable ALGO|native gas/i);
+    assert.doesNotMatch(msg, /Top up any lab wallet or the deposit hub\.$/);
+  });
 });

@@ -31,11 +31,13 @@ export function ScalperLearningPanel({
     learning?.baseConfig &&
     learning?.effectiveConfig &&
     JSON.stringify(learning.baseConfig) !== JSON.stringify(learning.effectiveConfig);
+  const deskPaused = learning?.deskPause?.paused === true;
   const hasContent =
     lessons.length > 0 ||
     learning?.lastEvolutionSummary ||
     sourceEntries.length > 0 ||
     hasOverrides ||
+    deskPaused ||
     (learning?.sourceCooldowns?.length ?? 0) > 0 ||
     (learning?.symbolCooldowns?.length ?? 0) > 0;
 
@@ -55,9 +57,22 @@ export function ScalperLearningPanel({
       <div className="space-y-1">
         <h3 className="text-sm font-semibold text-foreground">Agent learning</h3>
         <p className="text-xs text-muted-foreground">
-          Adaptive thresholds, source weights, confluence tracking, and cooldowns.
+          Expectancy-first thresholds, source cooldowns, and desk pause when edge is negative.
         </p>
       </div>
+
+      {deskPaused ? (
+        <div className="mt-4 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3">
+          <p className="text-sm font-medium text-foreground">Desk paused</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            No new opens until{" "}
+            {learning?.deskPause?.until
+              ? new Date(learning.deskPause.until).toLocaleString()
+              : "recovery"}
+            {learning?.deskPause?.reason ? ` (${learning.deskPause.reason})` : ""}.
+          </p>
+        </div>
+      ) : null}
 
       {learning?.lastEvolutionSummary ? (
         <p className="mt-4 text-sm text-muted-foreground">{learning.lastEvolutionSummary}</p>
@@ -76,6 +91,9 @@ export function ScalperLearningPanel({
         {(learning?.symbolCooldowns?.length ?? 0) > 0 ? (
           <span>{learning?.symbolCooldowns?.length} symbol cooldowns</span>
         ) : null}
+        {learning?.effectiveConfig?.confluenceOnly ? (
+          <span>Confluence-only mode</span>
+        ) : null}
       </div>
 
       {hasOverrides && learning?.effectiveConfig ? (
@@ -90,6 +108,11 @@ export function ScalperLearningPanel({
             <span>Max hold: {learning.effectiveConfig.maxHoldMinutes}m</span>
             <span>Size cap: {(learning.effectiveConfig.notionalSlicePct * 100).toFixed(0)}%</span>
             <span>Edge buffer: {learning.effectiveConfig.minEdgeBufferPct.toFixed(2)}%</span>
+            {learning.effectiveConfig.minSoloMomentumScore != null ? (
+              <span>
+                Solo momentum floor: {learning.effectiveConfig.minSoloMomentumScore.toFixed(2)}
+              </span>
+            ) : null}
           </div>
         </div>
       ) : null}

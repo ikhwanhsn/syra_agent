@@ -35,7 +35,8 @@ export function BtcQuantLearningPanel({
       <div className="space-y-1">
         <h3 className="text-sm font-semibold text-foreground">Agent learning</h3>
         <p className="text-xs text-muted-foreground">
-          Lessons from closed trades and evolved strategy parameters.
+          Daily batch evolution from closed decided trades (not per-trade ML): cull/mutate
+          strategy gates, real-loss cooldowns, and learned size/confidence thresholds.
         </p>
       </div>
 

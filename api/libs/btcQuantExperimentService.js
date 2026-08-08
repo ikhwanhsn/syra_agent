@@ -40,10 +40,16 @@ import {
 import { resolveBtcQuantStrategies, resolveBtcQuantStrategyById } from "./btcQuantStrategyResolve.js";
 import {
   getEvolutionCooldownStrategyIds,
+  getBtcQuantEvolutionSnapshot,
   pickBestBtcQuantStrategy,
   rankBtcQuantStrategiesByPnl,
   ensureBtcQuantLaneStrategyVariants,
 } from "./btcQuantExperimentEvolution.js";
+import {
+  meetsBtcQuantMinConfidence,
+  resolveBtcQuantLearningThresholds,
+  withBtcQuantLearningGateTighten,
+} from "./btcQuantLearningGates.js";
 import BtcQuantStrategyOverride from "../models/BtcQuantStrategyOverride.js";
 import BtcQuantEvolutionState from "../models/BtcQuantEvolutionState.js";
 
@@ -132,6 +138,8 @@ function experimentFilter(experimentId, lane) {
   const filter = {
     suite: EXPERIMENT_SUITE_BTC_ONCHAIN,
     "summary.experimentId": experimentId,
+    // Culled slots archive prior runs; keep ledgers/scores on active DNA only.
+    "summary.evolutionArchived": { $ne: true },
   };
   if (lane) filter["summary.lane"] = lane;
   return filter;
@@ -555,10 +563,12 @@ export async function runBtcQuantSignalCycle(lane = "btc1") {
   const errors = [];
 
   const strategies = await resolveBtcQuantStrategies(laneDef.lane);
-  const [cooldownIds, ledgers] = await Promise.all([
+  const [cooldownIds, ledgers, evoSnap] = await Promise.all([
     getEvolutionCooldownStrategyIds(laneDef.lane),
     computeAllAgentLedgers(experimentId, laneDef.lane, strategies, cfg),
+    getBtcQuantEvolutionSnapshot(laneDef.lane),
   ]);
+  const learningThresholds = resolveBtcQuantLearningThresholds(evoSnap?.thresholdOverrides);
   const ledgerById = new Map(ledgers.map((l) => [l.agentId, l]));
 
   for (const strategy of strategies) {
@@ -597,7 +607,8 @@ export async function runBtcQuantSignalCycle(lane = "btc1") {
         signalCache.set(cacheKey, cached);
       }
 
-      const gate = applyBtcQuantSignalGate(strategy, cached.gateSignals);
+      const gatedStrategy = withBtcQuantLearningGateTighten(strategy, learningThresholds);
+      const gate = applyBtcQuantSignalGate(gatedStrategy, cached.gateSignals);
       if (!gate.pass) {
         skipped.push({ strategyId: strategy.id, reason: "gate_failed", details: gate.reasons });
         continue;
@@ -605,6 +616,18 @@ export async function runBtcQuantSignalCycle(lane = "btc1") {
 
       if (cached.fields.clearSignal !== "BUY") {
         skipped.push({ strategyId: strategy.id, reason: "not_buy" });
+        continue;
+      }
+
+      if (!meetsBtcQuantMinConfidence(cached.fields.confidence, learningThresholds.minConfidence)) {
+        skipped.push({
+          strategyId: strategy.id,
+          reason: "below_min_confidence",
+          details: {
+            confidence: cached.fields.confidence ?? null,
+            minConfidence: learningThresholds.minConfidence,
+          },
+        });
         continue;
       }
 

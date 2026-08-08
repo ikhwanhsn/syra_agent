@@ -87,6 +87,106 @@ function deriveScoreMultiplier(winRate, sampleSize) {
 }
 
 /**
+ * Expectancy-first: idle score relaxation must not undo learning while losing.
+ * @param {{ winRate: number; avgPnlPct: number; decided?: number }} overall
+ * @param {Record<string, unknown>} [overrides]
+ */
+export function shouldDisableIdleRelaxation(overall, overrides = {}) {
+  if (overrides.disableIdleRelaxation === true) return true;
+  if (!overall || !Number.isFinite(overall.avgPnlPct)) return false;
+  return overall.avgPnlPct < 0 || overall.winRate < 0.45;
+}
+
+/**
+ * Hard desk pause when decided expectancy is negative.
+ * Recovery clears pause when WR and avg PnL recover.
+ * @param {{ winRate: number; avgPnlPct: number; decided: number }} overall
+ * @param {number} minRuns
+ * @param {Date | string | null | undefined} existingUntil
+ * @param {number} [nowMs]
+ * @param {number} [pauseHours]
+ */
+export function computeDeskPauseDecision(
+  overall,
+  minRuns,
+  existingUntil = null,
+  nowMs = Date.now(),
+  pauseHours = SCALPER_DEFAULTS.deskPauseHours,
+) {
+  const recovered = overall.decided >= minRuns && overall.winRate >= 0.5 && overall.avgPnlPct >= 0;
+  if (recovered) {
+    return { paused: false, until: null, reason: null, cleared: Boolean(existingUntil) };
+  }
+
+  const existingMs = existingUntil ? new Date(existingUntil).getTime() : 0;
+  if (existingMs > nowMs) {
+    return {
+      paused: true,
+      until: new Date(existingMs),
+      reason: "existing_pause",
+      cleared: false,
+    };
+  }
+
+  const negativeExpectancy =
+    overall.decided >= minRuns && overall.avgPnlPct < 0 && overall.winRate < 0.45;
+  if (!negativeExpectancy) {
+    return { paused: false, until: null, reason: null, cleared: false };
+  }
+
+  const hours = overall.winRate < 0.35 ? Math.max(pauseHours, 18) : pauseHours;
+  return {
+    paused: true,
+    until: new Date(nowMs + hours * 60 * 60_000),
+    reason: `negative_expectancy:wr_${(overall.winRate * 100).toFixed(0)}:avg_${overall.avgPnlPct.toFixed(2)}`,
+    cleared: false,
+  };
+}
+
+/**
+ * Threshold nudges while underperforming (expectancy-first, not demo-alive).
+ * @param {typeof SCALPER_DEFAULTS} baseCfg
+ * @param {{ winRate: number; avgPnlPct: number; decided: number }} overall
+ */
+export function computeUnderperformanceOverrides(baseCfg, overall) {
+  /** @type {Record<string, unknown>} */
+  const thresholdOverrides = {};
+  /** @type {string[]} */
+  const lessons = [];
+
+  if (!(overall.winRate < 0.45 || overall.avgPnlPct < 0)) {
+    return { thresholdOverrides, lessons, underperforming: false };
+  }
+
+  const ceiling = toNum(baseCfg.underperfMinScoreCeiling, SCALPER_DEFAULTS.underperfMinScoreCeiling);
+  const momFloor = toNum(
+    baseCfg.underperfMinSoloMomentumScore,
+    SCALPER_DEFAULTS.underperfMinSoloMomentumScore,
+  );
+
+  lessons.push(
+    `Recent scalps underperformed (win rate ${(overall.winRate * 100).toFixed(0)}%, avg PnL ${overall.avgPnlPct.toFixed(2)}%) — raising entry bar and pausing weak solo flow.`,
+  );
+  thresholdOverrides.minOpportunityScore = Math.min(
+    Math.max(baseCfg.minOpportunityScore + 0.08, 0.66),
+    ceiling,
+  );
+  thresholdOverrides.minEdgeBufferPct = Math.min(
+    (baseCfg.minEdgeBufferPct ?? SCALPER_DEFAULTS.minEdgeBufferPct) + 0.08,
+    0.35,
+  );
+  thresholdOverrides.notionalSlicePct = Math.max(baseCfg.notionalSlicePct * 0.6, 0.08);
+  thresholdOverrides.disableIdleRelaxation = true;
+  thresholdOverrides.confluenceOnly = true;
+  thresholdOverrides.minSoloMomentumScore = Math.max(
+    baseCfg.minSoloMomentumScore ?? SCALPER_DEFAULTS.minSoloMomentumScore,
+    momFloor,
+  );
+
+  return { thresholdOverrides, lessons, underperforming: true };
+}
+
+/**
  * @param {Record<string, unknown>} baseCfg
  */
 export async function getEffectiveScalperConfig(baseCfg) {
@@ -94,28 +194,51 @@ export async function getEffectiveScalperConfig(baseCfg) {
   const overrides = doc?.thresholdOverrides ?? {};
 
   let minOpportunityScore = toNum(overrides.minOpportunityScore, baseCfg.minOpportunityScore);
+  const deskPausedUntil = doc?.deskPausedUntil ? new Date(doc.deskPausedUntil) : null;
+  const deskPaused = Boolean(deskPausedUntil && deskPausedUntil.getTime() > Date.now());
 
-  // Adaptive idle relaxation: if no opens for N hours, lower the bar so the desk trades again.
-  try {
-    const ScalperRun = (await import("../../models/ScalperRun.js")).default;
-    const ScalperState = (await import("../../models/ScalperState.js")).default;
-    const latestOpen = await ScalperRun.findOne({})
-      .sort({ openedAt: -1 })
-      .select({ openedAt: 1, createdAt: 1 })
-      .lean();
-    const state = await ScalperState.findById("singleton").select({ startedAt: 1, lastSignalAt: 1 }).lean();
-    const lastTradeAt = latestOpen?.openedAt || latestOpen?.createdAt || state?.startedAt;
-    const idleHours = lastTradeAt
-      ? (Date.now() - new Date(lastTradeAt).getTime()) / 3_600_000
-      : 999;
-    const idleAdaptHours = toNum(baseCfg.idleAdaptHours, SCALPER_DEFAULTS.idleAdaptHours);
-    const floor = toNum(baseCfg.adaptiveMinScoreFloor, SCALPER_DEFAULTS.adaptiveMinScoreFloor);
-    if (idleHours >= idleAdaptHours) {
-      const steps = Math.min(4, Math.floor(idleHours / idleAdaptHours));
-      minOpportunityScore = Math.max(floor, minOpportunityScore - steps * 0.04);
+  const sourceStats = doc?.sourceStats ?? {};
+  const aggregate = Object.values(sourceStats);
+  const decided = aggregate.reduce((n, s) => n + toNum(s?.decided), 0);
+  const wins = aggregate.reduce((n, s) => n + toNum(s?.wins), 0);
+  const losses = aggregate.reduce((n, s) => n + toNum(s?.losses), 0);
+  const decidedN = wins + losses;
+  const winRate = decidedN > 0 ? wins / decidedN : 1;
+  const avgPnlPct =
+    decidedN > 0
+      ? aggregate.reduce((sum, s) => sum + toNum(s?.avgPnlPct) * toNum(s?.decided), 0) /
+        Math.max(1, decided)
+      : 0;
+  const idleBlocked = shouldDisableIdleRelaxation(
+    { winRate, avgPnlPct, decided: decidedN },
+    overrides,
+  );
+
+  // Idle relaxation only when expectancy is not negative (and desk not paused).
+  if (!idleBlocked && !deskPaused) {
+    try {
+      const ScalperRun = (await import("../../models/ScalperRun.js")).default;
+      const ScalperState = (await import("../../models/ScalperState.js")).default;
+      const latestOpen = await ScalperRun.findOne({})
+        .sort({ openedAt: -1 })
+        .select({ openedAt: 1, createdAt: 1 })
+        .lean();
+      const state = await ScalperState.findById("singleton")
+        .select({ startedAt: 1, lastSignalAt: 1 })
+        .lean();
+      const lastTradeAt = latestOpen?.openedAt || latestOpen?.createdAt || state?.startedAt;
+      const idleHours = lastTradeAt
+        ? (Date.now() - new Date(lastTradeAt).getTime()) / 3_600_000
+        : 999;
+      const idleAdaptHours = toNum(baseCfg.idleAdaptHours, SCALPER_DEFAULTS.idleAdaptHours);
+      const floor = toNum(baseCfg.adaptiveMinScoreFloor, SCALPER_DEFAULTS.adaptiveMinScoreFloor);
+      if (idleHours >= idleAdaptHours) {
+        const steps = Math.min(4, Math.floor(idleHours / idleAdaptHours));
+        minOpportunityScore = Math.max(floor, minOpportunityScore - steps * 0.04);
+      }
+    } catch {
+      /* keep override / default */
     }
-  } catch {
-    /* keep override / default */
   }
 
   return {
@@ -129,6 +252,28 @@ export async function getEffectiveScalperConfig(baseCfg) {
       overrides.minEdgeBufferPct,
       baseCfg.minEdgeBufferPct ?? SCALPER_DEFAULTS.minEdgeBufferPct,
     ),
+    minSoloMomentumScore: toNum(
+      overrides.minSoloMomentumScore,
+      baseCfg.minSoloMomentumScore ?? SCALPER_DEFAULTS.minSoloMomentumScore,
+    ),
+    confluenceOnly: overrides.confluenceOnly === true,
+    disableIdleRelaxation: idleBlocked || deskPaused,
+  };
+}
+
+/**
+ * @returns {Promise<{ paused: boolean; reason: string | null; until: string | null }>}
+ */
+export async function getScalperDeskPause() {
+  const doc = await getLearningDoc();
+  const until = doc?.deskPausedUntil ? new Date(doc.deskPausedUntil) : null;
+  if (!until || until.getTime() <= Date.now()) {
+    return { paused: false, reason: null, until: null };
+  }
+  return {
+    paused: true,
+    reason: doc?.deskPauseReason ?? "desk_paused",
+    until: until.toISOString(),
   };
 }
 
@@ -172,6 +317,7 @@ export async function getScalperLearningSnapshot(baseCfg) {
   const doc = await getLearningDoc();
   const adjustments = await getSourceAdjustments();
   const effectiveConfig = await getEffectiveScalperConfig(baseCfg);
+  const deskPause = await getScalperDeskPause();
 
   return {
     lessons: doc?.lessons ?? [],
@@ -180,6 +326,7 @@ export async function getScalperLearningSnapshot(baseCfg) {
     symbolStats: doc?.symbolStats ?? {},
     sourceCooldowns: adjustments.sourceCooldowns,
     symbolCooldowns: adjustments.symbolCooldowns,
+    deskPause,
     lastEvolutionAt: doc?.lastEvolutionAt?.toISOString?.() ?? doc?.lastEvolutionAt ?? null,
     lastEvolutionSummary: doc?.lastEvolutionSummary ?? null,
     runsAnalyzed: doc?.runsAnalyzed ?? 0,
@@ -190,6 +337,7 @@ export async function getScalperLearningSnapshot(baseCfg) {
       notionalSlicePct: baseCfg.notionalSlicePct,
       maxHoldMinutes: baseCfg.maxHoldMinutes,
       minEdgeBufferPct: baseCfg.minEdgeBufferPct ?? SCALPER_DEFAULTS.minEdgeBufferPct,
+      minSoloMomentumScore: baseCfg.minSoloMomentumScore ?? SCALPER_DEFAULTS.minSoloMomentumScore,
     },
     effectiveConfig: {
       takeProfitPct: effectiveConfig.takeProfitPct,
@@ -198,6 +346,9 @@ export async function getScalperLearningSnapshot(baseCfg) {
       notionalSlicePct: effectiveConfig.notionalSlicePct,
       maxHoldMinutes: effectiveConfig.maxHoldMinutes,
       minEdgeBufferPct: effectiveConfig.minEdgeBufferPct,
+      minSoloMomentumScore: effectiveConfig.minSoloMomentumScore,
+      confluenceOnly: effectiveConfig.confluenceOnly === true,
+      disableIdleRelaxation: effectiveConfig.disableIdleRelaxation === true,
     },
   };
 }
@@ -319,6 +470,7 @@ export async function runScalperLearning() {
   const sourceCooldowns = [];
   /** @type {Array<{ symbol: string; reason: string; until: Date }>} */
   const symbolCooldowns = [];
+  const priorLearning = await getLearningDoc();
 
   const overall = computeWinRateStats(decided);
   const pnlUsd = decided.map((r) => toNum(r.simPnlUsd)).filter((v) => Number.isFinite(v));
@@ -367,13 +519,22 @@ export async function runScalperLearning() {
     const momStats = computeWinRateStats(momentumOnly);
     if (momStats.winRate < 0.45 || momStats.avgPnlPct < 0) {
       lessons.push(
-        `Solo momentum scalps underperforming (${(momStats.winRate * 100).toFixed(0)}% WR) — slightly raising entry bar.`,
+        `Solo momentum scalps underperforming (${(momStats.winRate * 100).toFixed(0)}% WR) — confluence-only + higher solo momentum floor.`,
       );
-      // Cap raise so active-demo cadence is not choked off
+      const ceiling = toNum(
+        baseCfg.underperfMinScoreCeiling,
+        SCALPER_DEFAULTS.underperfMinScoreCeiling,
+      );
       thresholdOverrides.minOpportunityScore = Math.max(
         thresholdOverrides.minOpportunityScore ?? baseCfg.minOpportunityScore,
-        Math.min(0.64, baseCfg.minOpportunityScore + 0.04),
+        Math.min(ceiling, baseCfg.minOpportunityScore + 0.1),
       );
+      thresholdOverrides.confluenceOnly = true;
+      thresholdOverrides.minSoloMomentumScore = Math.max(
+        toNum(thresholdOverrides.minSoloMomentumScore, baseCfg.minSoloMomentumScore),
+        SCALPER_DEFAULTS.underperfMinSoloMomentumScore,
+      );
+      thresholdOverrides.disableIdleRelaxation = true;
     }
   }
 
@@ -394,28 +555,46 @@ export async function runScalperLearning() {
     }
   }
 
-  if (overall.winRate < 0.45 || overall.avgPnlPct < 0) {
-    lessons.push(
-      `Recent scalps underperformed (win rate ${(overall.winRate * 100).toFixed(0)}%, avg PnL ${overall.avgPnlPct.toFixed(2)}%) — raising entry bar.`,
-    );
-    // Soft raise only — keep active-demo trading alive
-    thresholdOverrides.minOpportunityScore = Math.min(
-      Math.max(baseCfg.minOpportunityScore + 0.04, 0.6),
-      0.68,
-    );
-    thresholdOverrides.minEdgeBufferPct = Math.min(
-      (baseCfg.minEdgeBufferPct ?? SCALPER_DEFAULTS.minEdgeBufferPct) + 0.05,
-      0.3,
-    );
-    thresholdOverrides.notionalSlicePct = Math.max(baseCfg.notionalSlicePct * 0.75, 0.1);
+  const underperf = computeUnderperformanceOverrides(baseCfg, overall);
+  if (underperf.underperforming) {
+    Object.assign(thresholdOverrides, underperf.thresholdOverrides);
+    lessons.push(...underperf.lessons);
   } else if (overall.winRate >= 0.6 && overall.avgPnlPct > 0.4) {
     lessons.push(
       `Scalper is profitable (win rate ${(overall.winRate * 100).toFixed(0)}%, avg PnL ${overall.avgPnlPct.toFixed(2)}%) — increasing size on strong confluence.`,
     );
     thresholdOverrides.notionalSlicePct = Math.min(baseCfg.notionalSlicePct * 1.15, 0.28);
+    thresholdOverrides.confluenceOnly = false;
+    thresholdOverrides.disableIdleRelaxation = false;
   } else if (overall.winRate >= 0.55 && overall.avgPnlPct > 0.25) {
     lessons.push(
       `Scalper is profitable (win rate ${(overall.winRate * 100).toFixed(0)}%, avg PnL ${overall.avgPnlPct.toFixed(2)}%) — current policy is working.`,
+    );
+    thresholdOverrides.confluenceOnly = false;
+    thresholdOverrides.disableIdleRelaxation = false;
+  }
+
+  const pauseDecision = computeDeskPauseDecision(
+    overall,
+    minRuns,
+    priorLearning?.deskPausedUntil ?? null,
+    Date.now(),
+    toNum(baseCfg.deskPauseHours, SCALPER_DEFAULTS.deskPauseHours),
+  );
+  let deskPausedUntil = pauseDecision.until;
+  let deskPauseReason =
+    pauseDecision.reason === "existing_pause"
+      ? priorLearning?.deskPauseReason ?? "desk_paused"
+      : pauseDecision.reason;
+  if (pauseDecision.paused && pauseDecision.reason !== "existing_pause") {
+    lessons.push(
+      `Desk paused until ${pauseDecision.until?.toISOString?.() ?? "n/a"} — negative expectancy (no new opens).`,
+    );
+  } else if (pauseDecision.cleared) {
+    lessons.push("Desk pause cleared — expectancy recovered.");
+  } else if (pauseDecision.paused) {
+    lessons.push(
+      `Desk remains paused until ${pauseDecision.until?.toISOString?.() ?? "n/a"} (${deskPauseReason}).`,
     );
   }
 
@@ -433,9 +612,13 @@ export async function runScalperLearning() {
     lessons.push(
       `${lowScoreLosses.length} losses came from sub-0.58 score entries — tightening min score.`,
     );
-    thresholdOverrides.minOpportunityScore = Math.max(
-      thresholdOverrides.minOpportunityScore ?? baseCfg.minOpportunityScore,
-      0.62,
+    const ceiling = toNum(
+      baseCfg.underperfMinScoreCeiling,
+      SCALPER_DEFAULTS.underperfMinScoreCeiling,
+    );
+    thresholdOverrides.minOpportunityScore = Math.min(
+      ceiling,
+      Math.max(thresholdOverrides.minOpportunityScore ?? baseCfg.minOpportunityScore, 0.68),
     );
   }
 
@@ -459,16 +642,9 @@ export async function runScalperLearning() {
   }
 
   for (const [source, stats] of Object.entries(sourceStats)) {
-    // Never long-cool momentum — it is the primary 24/7 active-demo signal source
-    if (source === "momentum") {
-      if (stats.decided >= 5 && stats.winRate < 0.3) {
-        lessons.push(
-          `Source "momentum" win rate ${(stats.winRate * 100).toFixed(0)}% — score multiplier reduced (no long cooldown).`,
-        );
-      }
-      continue;
-    }
-    if (stats.decided >= 3 && stats.winRate < 0.35) {
+    // Momentum can be long-cooled when expectancy-first policy is active.
+    const minDecidedForCooldown = source === "momentum" ? 4 : 3;
+    if (stats.decided >= minDecidedForCooldown && stats.winRate < 0.35) {
       lessons.push(
         `Source "${source}" win rate ${(stats.winRate * 100).toFixed(0)}% — on 18h cooldown.`,
       );
@@ -520,7 +696,10 @@ export async function runScalperLearning() {
     }
   }
 
-  const summary = `Analyzed ${decided.length} decided scalps — win rate ${(overall.winRate * 100).toFixed(0)}%, avg PnL $${avgPnlUsd.toFixed(2)}, ${sourceCooldowns.length} source cooldowns, ${symbolCooldowns.length} symbol cooldowns.`;
+  const pauseNote = deskPausedUntil
+    ? `, desk paused until ${deskPausedUntil.toISOString()}`
+    : "";
+  const summary = `Analyzed ${decided.length} decided scalps — win rate ${(overall.winRate * 100).toFixed(0)}%, avg PnL $${avgPnlUsd.toFixed(2)}, ${sourceCooldowns.length} source cooldowns, ${symbolCooldowns.length} symbol cooldowns${pauseNote}.`;
 
   await ScalperLearningState.updateOne(
     { _id: GLOBAL_ID },
@@ -532,6 +711,8 @@ export async function runScalperLearning() {
         symbolStats,
         sourceCooldowns,
         symbolCooldowns,
+        deskPausedUntil,
+        deskPauseReason,
         lastEvolutionAt: new Date(),
         lastEvolutionSummary: summary,
         runsAnalyzed: decided.length,
@@ -550,6 +731,8 @@ export async function runScalperLearning() {
     symbolStats,
     sourceCooldowns: sourceCooldowns.length,
     symbolCooldowns: symbolCooldowns.length,
+    deskPausedUntil,
+    deskPauseReason,
     summary,
   };
 }

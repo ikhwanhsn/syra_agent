@@ -54,11 +54,17 @@ export const SCALPER_DEFAULTS = Object.freeze({
   symbolCooldownMs: 4 * 60_000,
   /** How long experiment signals stay valid (ms) — long enough for slow BTC desks. */
   experimentSignalMaxAgeMs: 20 * 60_000,
-  /** After this many idle hours without opens, auto-lower minOpportunityScore. */
+  /** After this many idle hours without opens, auto-lower minOpportunityScore (skipped when expectancy is negative). */
   idleAdaptHours: 6,
   /** Floor for adaptive minOpportunityScore when desk is idle. */
   adaptiveMinScoreFloor: 0.48,
-  /** Momentum scan thresholds — active-demo friendly, still reject near-zero noise. */
+  /** Ceiling for learned minOpportunityScore while underperforming. */
+  underperfMinScoreCeiling: 0.78,
+  /** Solo momentum floor while desk is underperforming. */
+  underperfMinSoloMomentumScore: 0.72,
+  /** Hours to pause new opens when decided expectancy is negative. */
+  deskPauseHours: 12,
+  /** Momentum scan thresholds — reject near-zero noise. */
   momentumMinPct: 0.05,
   momentumMaxVolatilityPct: 1.45,
   /** Jupiter quote slippage for paper fills (bps) — liquid cbBTC/USDC. */

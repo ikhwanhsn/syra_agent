@@ -51,13 +51,14 @@ export const EARN_PRODUCTS = [
     status: "beta",
     chain: "solana",
     description:
-      "Automated Meteora DLMM liquidity — earn trading fees from your Earn agent wallet. Non-custodial; you fund the agent, Syra runs the strategy.",
-    summary: "Earn trading fees by providing automated liquidity on Meteora DLMM pools.",
+      "Automated Meteora DLMM liquidity on your Earn agent wallet. Fees can offset IL and costs, but principal is at risk. Non-custodial; you fund the agent, Syra runs the strategy.",
+    summary:
+      "Provide automated Meteora DLMM liquidity from your Earn wallet. Fees are possible; IL, slippage, and chain costs can lose SOL.",
     howItWorks: [
       "You deposit SOL into your Earn agent wallet for this strategy (Syra never takes custody of your keys).",
       "Syra opens and manages Meteora DLMM positions that collect trading fees from swaps.",
-      "Positions rebalance and exit based on a sim-qualified strategy leader and risk limits.",
-      "A performance fee applies only on net-positive realized PnL; principal stays in your wallet.",
+      "Opens use strategies that pass a real on-chain track-record gate (paper lab ranking alone is not enough). Risk limits still apply.",
+      "A performance fee applies only on net-positive realized PnL; principal stays in your wallet and can still decline from IL and costs.",
       "If error-rate or PnL guardrails trip, new deposits pause automatically while open positions are still managed.",
     ],
     rails: ["Meteora DLMM"],
@@ -75,13 +76,14 @@ export const EARN_PRODUCTS = [
     minSettleSuccessRate: 0.95,
     minSample: 10,
     evidence: {
-      realWinRateHint: "Paper lab only — on-chain results vary; beta uses small positions",
-      paperSample: "27k+ paper positions",
+      realWinRateHint:
+        "Board stats are Syra lab real-money closes, not paper APY and not your personal expectancy. Beta uses small positions.",
+      paperSample: "Paper lab is research-only; Earn does not treat paper cohort PnL as expected return",
     },
     disclosures: [
       "Non-custodial: you deposit SOL into your Earn agent wallet for this strategy. Syra does not take custody of your principal.",
-      "Past lab performance is not a guarantee of future returns. You can lose capital from IL, fees, and bad exits.",
-      "Strategy opens may pause when no qualified sim leader exists; open positions are still managed.",
+      "Past lab performance is not a guarantee of future returns. You can lose capital from IL, fees, slippage, sidecar swaps, and bad exits.",
+      "Paper cohort sim PnL (LP Lab) is not comparable to Earn wallet results. Strategy opens pause when no strategy passes the real track-record gate; open positions are still managed.",
       "Beta is capped (0.25–5 SOL) with small per-position sizing. Kill switch auto-pauses new deposits if error rate or PnL guardrails trip.",
     ],
   },
@@ -282,6 +284,75 @@ export const EARN_PRODUCTS = [
     ],
   },
 ];
+
+/**
+ * Paper-only desks that must never appear in EARN_PRODUCTS (no beta, no coming_soon tease).
+ * Stocks News Lab stays here until real executor + compliance clear graduation.
+ * @see docs/EARN_YIELD_GRADUATION.md
+ * @see docs/STOCKS_NEWS_PAPER_EDGE.md
+ *
+ * Match rule: product id equals `id` or starts with `${id}_`.
+ */
+export const EARN_YIELD_BLOCKED_EXPERIMENTS = Object.freeze([
+  {
+    id: "stocks",
+    label: "Stocks (xStocks news lab)",
+    reason:
+      "Paper-only via Jupiter price feeds. Needs real swap executor + equity-token compliance review before any Earn Yield listing.",
+  },
+  {
+    id: "scalper",
+    label: "Scalper",
+    reason: "Paper-only. Wire real executor before Earn.",
+  },
+  {
+    id: "mm",
+    label: "Market Maker",
+    reason: "Paper Jupiter-quote fills. Needs real inventory + risk limits before Earn.",
+  },
+  {
+    id: "syra_mm",
+    label: "SYRA MM",
+    reason: "Paper Jupiter-quote fills. Needs real inventory + risk limits before Earn.",
+  },
+]);
+
+/**
+ * @param {string} productId
+ * @returns {{ blocked: true, label: string, reason: string } | null}
+ */
+export function getEarnYieldBlockReason(productId) {
+  const id = String(productId || "").trim().toLowerCase();
+  if (!id) return null;
+  for (const blocked of EARN_YIELD_BLOCKED_EXPERIMENTS) {
+    const key = blocked.id.toLowerCase();
+    if (id === key || id.startsWith(`${key}_`)) {
+      return { blocked: true, label: blocked.label, reason: blocked.reason };
+    }
+  }
+  return null;
+}
+
+/**
+ * Throws if any registered Earn product id matches a blocked experiment.
+ * Call at module load so a mistaken registry row fails fast in tests and boot.
+ * @param {EarnProductDef[]} [products]
+ */
+export function assertNoBlockedEarnProducts(products = EARN_PRODUCTS) {
+  const hits = [];
+  for (const p of products) {
+    const block = getEarnYieldBlockReason(p?.id);
+    if (block) hits.push({ productId: p.id, blocked: block.label, reason: block.reason });
+  }
+  if (hits.length > 0) {
+    const detail = hits.map((h) => `${h.productId} (${h.blocked})`).join("; ");
+    throw new Error(
+      `Earn Yield registry includes blocked paper-only experiment(s): ${detail}. Remove from EARN_PRODUCTS until graduation clears.`,
+    );
+  }
+}
+
+assertNoBlockedEarnProducts();
 
 /** @type {Map<string, EarnProductDef>} */
 const BY_ID = new Map(EARN_PRODUCTS.map((p) => [p.id, p]));

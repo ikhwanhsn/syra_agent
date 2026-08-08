@@ -211,7 +211,10 @@ function buildFeatures(report: Record<string, unknown>): EngineeredFeature[] {
   return features.sort((a, b) => b.importance - a.importance);
 }
 
-/** Only factors backed by onchain signal report fields. */
+/**
+ * Only factors backed by onchain signal report fields.
+ * Weights are fixed display mix for the desk UI, not updated by evolution / learning.
+ */
 function buildFactors(report: Record<string, unknown>): QuantFactor[] {
   const trend = report.trendAnalysis as Record<string, unknown> | undefined;
   const mom = report.momentumAnalysis as Record<string, unknown> | undefined;

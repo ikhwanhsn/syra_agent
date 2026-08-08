@@ -2,6 +2,7 @@ import { AlertTriangle, CheckCircle2, Loader2, RefreshCw, Wallet } from "lucide-
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import type { LabChain, LabTreasuryStatus } from "@/lib/labsX402Api";
+import { getTreasuryBannerView } from "@/lib/labsTreasuryBannerCopy";
 
 function truncateAddr(addr: string | null | undefined, head = 6, tail = 4): string {
   const a = String(addr || "").trim();
@@ -51,18 +52,21 @@ export function TreasuryHealthBanner({
   if (!treasury) return null;
 
   const native = nativeLabel(chain);
-  const healthy = treasury.canFundAny && !treasury.paused;
+  const view = getTreasuryBannerView(treasury, chain);
   const funderAddr = treasury.funderAddress || treasury.payToAddress;
   const funderUsdc = Number(treasury.funderUsdc ?? treasury.payToUsdc ?? 0);
   const funderNative = Number(
     treasury.funderNative ?? treasury.payToSpendableNative ?? treasury.payToSpendableAlgo ?? 0,
   );
+  const payToNative = Number(
+    treasury.payToSpendableNative ?? treasury.payToSpendableAlgo ?? 0,
+  );
 
-  if (healthy) {
+  if (view.tone === "healthy") {
     return (
       <Alert className="border-emerald-500/30 bg-emerald-500/5">
         <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden />
-        <AlertTitle>Treasury healthy</AlertTitle>
+        <AlertTitle>{view.title}</AlertTitle>
         <AlertDescription className="space-y-1">
           <p>
             Richest funder {truncateAddr(funderAddr)} holds{" "}
@@ -73,35 +77,74 @@ export function TreasuryHealthBanner({
                 and <span className="font-mono">{funderNative.toFixed(4)}</span> spendable {native}
               </>
             ) : null}
-            . About {treasury.fundableCalls} call
-            {treasury.fundableCalls === 1 ? "" : "s"} fundable.
+            . {view.body}
           </p>
         </AlertDescription>
       </Alert>
     );
   }
 
-  const needUsdc = Number(treasury.recommendedTopUpUsdc || treasury.topUp?.usdcUsd || 0);
-  const needNative = Number(
-    treasury.recommendedTopUpNative ||
-      treasury.recommendedTopUpAlgo ||
-      treasury.topUp?.native ||
-      0,
-  );
+  if (view.tone === "recoverable") {
+    return (
+      <Alert className="border-amber-500/40 bg-amber-500/5">
+        <RefreshCw className="h-4 w-4 text-amber-700 dark:text-amber-400" aria-hidden />
+        <AlertTitle>{view.title}</AlertTitle>
+        <AlertDescription className="space-y-3">
+          <p>{view.body}</p>
+          <p className="text-xs opacity-90">
+            Funder USDC: <span className="font-mono">${funderUsdc.toFixed(4)}</span>
+            {chain === "algorand" ? (
+              <>
+                {" "}
+                · spendable {native}: <span className="font-mono">{funderNative.toFixed(4)}</span>
+              </>
+            ) : null}
+            {treasury.payToAddress ? (
+              <>
+                {" "}
+                · PayTo USDC:{" "}
+                <span className="font-mono">${Number(treasury.payToUsdc ?? 0).toFixed(4)}</span>
+                {chain === "algorand" ? (
+                  <>
+                    {" "}
+                    · PayTo {native}:{" "}
+                    <span className="font-mono">{payToNative.toFixed(4)}</span>
+                  </>
+                ) : null}
+              </>
+            ) : null}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5"
+              disabled={isResuming || !treasury.canFundAny}
+              onClick={onResume}
+              title="Clear treasury pause and resume auto-call"
+            >
+              {isResuming ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+              ) : (
+                <RefreshCw className="h-3.5 w-3.5" aria-hidden />
+              )}
+              Resume auto-call
+            </Button>
+          </div>
+          {resumeError ? <p className="text-xs">{resumeError}</p> : null}
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  const isNativeReason = treasury.reason === "payto_native_underfunded";
 
   return (
     <Alert variant="destructive">
       <AlertTriangle className="h-4 w-4" aria-hidden />
-      <AlertTitle>
-        {treasury.paused ? "Auto-call paused: treasury underfunded" : "Treasury underfunded"}
-      </AlertTitle>
+      <AlertTitle>{view.title}</AlertTitle>
       <AlertDescription className="space-y-3">
-        <p>
-          {treasury.topUp?.instructions ||
-            `No lab wallet can fund payers (${treasury.reason || "payto_underfunded"}). Fund any wallet or the deposit hub with ~$${needUsdc.toFixed(2)} USDC` +
-              (needNative > 0 ? ` and ~${needNative.toFixed(4)} ${native}` : "") +
-              "."}
-        </p>
+        <p>{view.body}</p>
         <p className="text-xs opacity-90">
           Funder USDC: <span className="font-mono">${funderUsdc.toFixed(4)}</span>
           {chain === "algorand" ? (
@@ -115,6 +158,12 @@ export function TreasuryHealthBanner({
               {" "}
               · PayTo USDC:{" "}
               <span className="font-mono">${Number(treasury.payToUsdc ?? 0).toFixed(4)}</span>
+              {chain === "algorand" || isNativeReason ? (
+                <>
+                  {" "}
+                  · PayTo {native}: <span className="font-mono">{payToNative.toFixed(4)}</span>
+                </>
+              ) : null}
             </>
           ) : null}
           {treasury.hubAddress ? (

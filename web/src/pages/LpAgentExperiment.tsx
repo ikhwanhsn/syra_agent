@@ -144,7 +144,7 @@ export default function LpAgentExperiment({ embedded = false }: { embedded?: boo
           <LpSectionHeader
             kicker="Practice mode"
             title="Paper trading lab"
-            description="AI strategies compete on live Meteora pools with no wallet risk. The best performer guides your live agent."
+            description="AI strategies compete on live Meteora pools with simulated PnL only. Earn opens require a real track-record gate; paper leaders (including degens) are not live expectancy."
           />
 
           <LpExperimentLabSummary

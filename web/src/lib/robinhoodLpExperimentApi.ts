@@ -90,7 +90,13 @@ export interface RobinhoodLpGlobalOverview {
     leaderStrategyId: number | null;
     leaderAvgNetPnlUsd: number | null;
     leaderWinRate: number | null;
+    paperMetricsUntrusted?: boolean;
+    paperMetricsDisclaimer?: string;
+    feeCalibrationMult?: number;
+    signalsMode?: string;
   };
+  paperMetricsUntrusted?: boolean;
+  paperMetricsDisclaimer?: string;
 }
 
 export interface RobinhoodLpRunRow {
@@ -120,17 +126,36 @@ async function parseJson<T>(res: Response): Promise<{ ok: boolean; body: T }> {
 export async function fetchRobinhoodLpStats(): Promise<{
   agents: RobinhoodLpAgentStats[];
   experimentId: string | null;
+  paperMetricsUntrusted: boolean;
+  paperMetricsDisclaimer: string | null;
+  feeCalibrationMult: number | null;
+  signalsMode: string | null;
 }> {
   const res = await fetch(`${base()}/stats`, { credentials: "include" });
   const { ok, body } = await parseJson<{
     success?: boolean;
-    data?: { agents?: RobinhoodLpAgentStats[]; experimentId?: string | null };
+    data?: {
+      agents?: RobinhoodLpAgentStats[];
+      experimentId?: string | null;
+      paperMetricsUntrusted?: boolean;
+      paperMetricsDisclaimer?: string;
+      feeCalibrationMult?: number;
+      signalsMode?: string;
+    };
     error?: string;
   }>(res);
   if (!ok || !body.success || !body.data?.agents) {
     throw new Error(body.error || "Failed to load Robinhood LP stats");
   }
-  return { agents: body.data.agents, experimentId: body.data.experimentId ?? null };
+  return {
+    agents: body.data.agents,
+    experimentId: body.data.experimentId ?? null,
+    paperMetricsUntrusted: body.data.paperMetricsUntrusted !== false,
+    paperMetricsDisclaimer: body.data.paperMetricsDisclaimer ?? null,
+    feeCalibrationMult:
+      typeof body.data.feeCalibrationMult === "number" ? body.data.feeCalibrationMult : null,
+    signalsMode: body.data.signalsMode ?? null,
+  };
 }
 
 export async function fetchRobinhoodLpGlobalOverview(): Promise<RobinhoodLpGlobalOverview> {

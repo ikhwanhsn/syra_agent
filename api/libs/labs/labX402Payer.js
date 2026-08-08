@@ -460,6 +460,7 @@ export async function updateLabX402Settings(patch, chain = 'solana') {
     if (patch.autoCallEnabled === true) {
       update.autoCallPausedReason = null;
       update.autoCallPausedAt = null;
+      update.treasuryLastAlertAt = null;
     }
   }
   if (typeof patch.intervalMs === 'number' && patch.intervalMs >= 60_000 && patch.intervalMs <= 3_600_000) {

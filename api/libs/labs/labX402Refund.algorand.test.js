@@ -9,6 +9,8 @@ import {
   computeAlgorandSpendableMicro,
   ensureAlgorandPayerAlgoForOptInAndFees,
   ensurePayToAlgoForUsdcRefund,
+  FUNDER_SPARE_MICRO,
+  FUNDER_SPARE_MIN_FEE_MICRO,
   isAlgorandBelowMinBalanceError,
   PAYER_ALGO_SEED_FEE_CUSHION_MICRO,
   PAYTO_USDC_REFUND_BATCH_SIZE,
@@ -18,6 +20,7 @@ import {
 } from './labAlgorandFeeBuffer.js';
 import {
   clampAlgorandPayToUsdcRefundAmount,
+  classifyLabTopUpFailureReason,
   evaluateLowBalanceRefund,
   PAYTO_INSUFFICIENT_FUNDS,
 } from './labX402Refund.js';
@@ -344,6 +347,92 @@ describe('ensurePayToAlgoForUsdcRefund', () => {
     assert.equal(result.ok, false);
     assert.match(String(result.error), /insufficient_algo_for_usdc_refund/);
     assert.equal(result.spendable, 0);
+  });
+
+  test('min-fee borrow succeeds from sibling with 0.036 spendable (below batch spare)', async () => {
+    const payTo = 'PAYTOADDR';
+    const funderAddr = 'SIBLING036';
+    /** @type {{ funder: string; amountMicro: bigint } | null} */
+    let sent = null;
+    const minBal = 200_000;
+    // PayTo: 0 spendable. Sibling: 0.036 spendable (< FUNDER_SPARE ~0.051, > min fee).
+    const siblingAmount = minBal + 36_000;
+
+    const client = {
+      accountInformation(addr) {
+        return {
+          do: async () => {
+            if (addr === payTo) {
+              return { amount: minBal - 362, minBalance: minBal };
+            }
+            return { amount: siblingAmount, minBalance: minBal };
+          },
+        };
+      },
+    };
+
+    assert.ok(36_000n < FUNDER_SPARE_MICRO);
+    assert.ok(36_000n - FUNDER_SPARE_MIN_FEE_MICRO >= PAYTO_USDC_REFUND_MIN_FEE_MICRO);
+
+    const result = await ensurePayToAlgoForUsdcRefund(payTo, {
+      client,
+      needMicro: PAYTO_USDC_REFUND_FEE_NEED_MICRO,
+      minMicro: PAYTO_USDC_REFUND_MIN_FEE_MICRO,
+      funders: [{ address: funderAddr, sk: new Uint8Array(64) }],
+      sendPayment: async ({ funder, amountMicro }) => {
+        sent = { funder: funder.address, amountMicro };
+        return { txid: 'MOCKTXID036' };
+      },
+    });
+
+    assert.equal(result.ok, true);
+    assert.equal(result.funded, true);
+    assert.equal(result.belowBatch, true);
+    assert.equal(result.from, funderAddr);
+    assert.ok(sent);
+    assert.equal(sent.funder, funderAddr);
+    assert.equal(sent.amountMicro, PAYTO_USDC_REFUND_MIN_FEE_MICRO);
+  });
+});
+
+describe('classifyLabTopUpFailureReason', () => {
+  test('maps ALGO fee failures to payto_native_underfunded', () => {
+    assert.equal(
+      classifyLabTopUpFailureReason(
+        `${PAYTO_INSUFFICIENT_FUNDS}: insufficient_algo_for_usdc_refund (payTo spendable 0 ALGO; need ~0.176 above min-balance)`,
+      ),
+      'payto_native_underfunded',
+    );
+    assert.equal(
+      classifyLabTopUpFailureReason(
+        `${PAYTO_INSUFFICIENT_FUNDS}: funder ALGO insufficient for USDC refund fees`,
+      ),
+      'payto_native_underfunded',
+    );
+    assert.equal(
+      classifyLabTopUpFailureReason(
+        `${PAYTO_INSUFFICIENT_FUNDS}: payTo ALGO below min-balance (need spendable fees): balance 1 below min 2`,
+      ),
+      'payto_native_underfunded',
+    );
+  });
+
+  test('maps true USDC shortfalls to payto_underfunded', () => {
+    assert.equal(
+      classifyLabTopUpFailureReason(
+        `${PAYTO_INSUFFICIENT_FUNDS}: no lab wallet with enough USDC to fund payer`,
+      ),
+      'payto_underfunded',
+    );
+  });
+
+  test('maps opt-in failures', () => {
+    assert.equal(
+      classifyLabTopUpFailureReason(
+        `${PAYTO_INSUFFICIENT_FUNDS}: payer not opted into USDC ASA (opt-in required before refund)`,
+      ),
+      'usdc_opt_in_required',
+    );
   });
 });
 

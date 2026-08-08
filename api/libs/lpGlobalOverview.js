@@ -107,10 +107,13 @@ async function aggregateSimCohortGlobal(experimentId, agents, statsAgents) {
   return {
     settledRuns: settledCount,
     openPositions: openCount || openFromStats,
+    /** Sum of every paper agent's simNetPnlSol — research scoreboard, not one strategy wallet. */
     sumNetPnlSol,
     sumEquitySol,
     sumDeployedSol,
     leaderStrategyId: leader?.strategyId ?? null,
+    /** Leader strategy's own sum of sim net PnL (not the cohort sum). */
+    leaderSumNetPnlSol: leader?.sumNetPnlSol ?? null,
     leaderAvgNetPnlSol: leader?.avgDecidedNetPnlSol ?? null,
     leaderWinRate: leader?.winRate ?? null,
   };

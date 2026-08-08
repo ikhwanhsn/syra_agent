@@ -21,7 +21,9 @@ import {
   pickRichestFunder,
 } from './labFunderSelector.js';
 import {
+  FUNDER_SPARE_MIN_FEE_MICRO,
   getAlgorandAccountSpendableMicro,
+  lendableAlgorandMicro,
   MICRO_ALGO,
   PAYTO_USDC_REFUND_MIN_FEE_MICRO,
 } from './labAlgorandFeeBuffer.js';
@@ -29,8 +31,15 @@ import {
 /** Slow re-check when treasury is paused (15 min). */
 export const TREASURY_PAUSE_RECHECK_MS = 15 * 60_000;
 
-/** Throttle aggregated (treasury) call-log alerts (once per 30 min). */
+/**
+ * Legacy throttle for aggregated (treasury) call-log alerts.
+ * Scheduler now uses once-per-episode gating via shouldLogTreasuryEpisodeAlert;
+ * this remains for tests / Telegram-adjacent callers.
+ */
 export const TREASURY_ALERT_THROTTLE_MS = 30 * 60_000;
+
+/** After continuous treasury pause this long, flip autoCallEnabled off. */
+export const TREASURY_CHRONIC_DISABLE_MS = 6 * 60 * 60_000;
 
 /** Min native gas reserve for Solana PayTo refunds (SOL). */
 const PAYTO_MIN_SOL = 0.003;
@@ -127,14 +136,17 @@ export function evaluateTreasuryCapacity(input = {}) {
   }
 
   if (effectiveNative < feeFloor) {
+    const usdcShort = Math.max(0, minPrice - usdcOk);
     return {
       canFundAny: false,
       fundableCalls: 0,
       hubHasFunds,
-      shortfallUsdc: Math.max(0, minPrice - usdcOk),
-      shortfallNative: Math.max(0, feeFloor - nativeOk),
+      shortfallUsdc: usdcShort,
+      shortfallNative: Math.max(0, feeFloor - Math.max(nativeOk, borrowableOk)),
       reason: 'payto_native_underfunded',
-      recommendedTopUpUsdc: Math.max(minPrice * Math.max(payerCount, 1), 1),
+      // Do not send operators chasing USDC when only fee ALGO is missing.
+      recommendedTopUpUsdc:
+        usdcShort > 0 ? Math.max(minPrice * Math.max(payerCount, 1), 1) : 0,
       recommendedTopUpNative: Math.max(feeFloor - nativeOk + feeFloor, feeFloor * 2),
     };
   }
@@ -385,6 +397,7 @@ export async function assessLabTreasury(chain, opts = {}) {
   }
 
   // Algorand: gas can be borrowed onto the funder from siblings / hub mid-tick.
+  // Count only lendable ALGO after min-fee spare (matches PayTo(min) borrow path).
   let borrowableNative = 0;
   if (c === 'algorand') {
     const funderNorm = String(funderAddress || '').toLowerCase();
@@ -392,10 +405,19 @@ export async function assessLabTreasury(chain, opts = {}) {
       const addr = String(cand.address || '').toLowerCase();
       if (!addr || (funderNorm && addr === funderNorm)) continue;
       const n = Number(cand.native);
-      if (Number.isFinite(n) && n > 0) borrowableNative += n;
+      if (!Number.isFinite(n) || n <= 0) continue;
+      const lendableMicro = lendableAlgorandMicro(
+        BigInt(Math.round(n * Number(MICRO_ALGO))),
+        FUNDER_SPARE_MIN_FEE_MICRO,
+      );
+      borrowableNative += Number(lendableMicro) / Number(MICRO_ALGO);
     }
     if (Number.isFinite(hubNative) && hubNative > 0) {
-      borrowableNative += hubNative;
+      const hubLendableMicro = lendableAlgorandMicro(
+        BigInt(Math.round(hubNative * Number(MICRO_ALGO))),
+        FUNDER_SPARE_MIN_FEE_MICRO,
+      );
+      borrowableNative += Number(hubLendableMicro) / Number(MICRO_ALGO);
     }
   }
 
@@ -437,27 +459,45 @@ export async function assessLabTreasury(chain, opts = {}) {
 
 /**
  * Persist treasury auto-pause on settings (does not flip autoCallEnabled).
+ * Same reason while already paused keeps the original autoCallPausedAt (chronic timer).
+ *
  * @param {'solana' | 'base' | 'algorand' | 'xlayer'} chain
  * @param {string} reason
+ * @returns {Promise<{ isTransition: boolean; pausedAt: Date | null }>}
  */
 export async function pauseLabAutoCallForTreasury(chain, reason) {
   const key = settingsKeyForChain(chain);
   const now = new Date();
+  const reasonStr = String(reason || 'payto_underfunded').slice(0, 200);
+  const existing = await LabX402Settings.findOne({ singletonKey: key }).lean();
+  if (
+    existing?.autoCallPausedReason &&
+    String(existing.autoCallPausedReason) === reasonStr &&
+    existing.autoCallPausedAt
+  ) {
+    const pausedAt =
+      existing.autoCallPausedAt instanceof Date
+        ? existing.autoCallPausedAt
+        : new Date(existing.autoCallPausedAt);
+    return { isTransition: false, pausedAt };
+  }
   await LabX402Settings.findOneAndUpdate(
     { singletonKey: key },
     {
       $set: {
-        autoCallPausedReason: String(reason || 'payto_underfunded').slice(0, 200),
+        autoCallPausedReason: reasonStr,
         autoCallPausedAt: now,
       },
       $setOnInsert: { singletonKey: key },
     },
     { upsert: true },
   );
+  return { isTransition: true, pausedAt: now };
 }
 
 /**
  * Clear treasury pause so scheduler resumes at normal cadence.
+ * Also clears the episode alert gate so a future underfund can log once again.
  * @param {'solana' | 'base' | 'algorand' | 'xlayer'} chain
  */
 export async function resumeLabAutoCallFromTreasury(chain) {
@@ -468,13 +508,34 @@ export async function resumeLabAutoCallFromTreasury(chain) {
       $set: {
         autoCallPausedReason: null,
         autoCallPausedAt: null,
+        treasuryLastAlertAt: null,
       },
     },
   );
 }
 
 /**
- * Record that a treasury alert was logged (throttle subsequent ones).
+ * Disable auto-call after chronic treasury underfunding (stops 15-min rechecks).
+ * @param {'solana' | 'base' | 'algorand' | 'xlayer'} chain
+ * @param {string} [reason]
+ */
+export async function disableLabAutoCallForChronicTreasury(chain, reason) {
+  const key = settingsKeyForChain(chain);
+  await LabX402Settings.findOneAndUpdate(
+    { singletonKey: key },
+    {
+      $set: {
+        autoCallEnabled: false,
+        autoCallPausedReason: String(reason || 'payto_underfunded').slice(0, 200),
+      },
+      $setOnInsert: { singletonKey: key },
+    },
+    { upsert: true },
+  );
+}
+
+/**
+ * Record that a treasury alert was logged (episode marker).
  * @param {'solana' | 'base' | 'algorand' | 'xlayer'} chain
  */
 export async function markTreasuryAlertLogged(chain) {
@@ -490,6 +551,41 @@ export async function markTreasuryAlertLogged(chain) {
 }
 
 /**
+ * Once-per-underfund-episode gate for (treasury) call-log rows.
+ * Logs only when entering pause, or when the pause reason changes.
+ *
+ * @param {{
+ *   autoCallPausedReason?: string | null;
+ *   newReason?: string | null;
+ * }} input
+ * @returns {boolean}
+ */
+export function shouldLogTreasuryEpisodeAlert(input = {}) {
+  const next = String(input.newReason || 'payto_underfunded').trim() || 'payto_underfunded';
+  const prev = input.autoCallPausedReason
+    ? String(input.autoCallPausedReason).trim()
+    : '';
+  if (prev && prev === next) return false;
+  return true;
+}
+
+/**
+ * @param {Date | string | null | undefined} autoCallPausedAt
+ * @param {number} [nowMs]
+ * @returns {boolean}
+ */
+export function shouldChronicDisableAutoCall(autoCallPausedAt, nowMs = Date.now()) {
+  if (!autoCallPausedAt) return false;
+  const t =
+    autoCallPausedAt instanceof Date
+      ? autoCallPausedAt.getTime()
+      : new Date(autoCallPausedAt).getTime();
+  if (!Number.isFinite(t)) return false;
+  return nowMs - t >= TREASURY_CHRONIC_DISABLE_MS;
+}
+
+/**
+ * Legacy time-based throttle (kept for unit tests / callers that still use it).
  * @param {Date | string | null | undefined} lastAlertAt
  * @param {number} [nowMs]
  * @returns {boolean}

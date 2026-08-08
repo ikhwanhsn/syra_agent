@@ -1,11 +1,12 @@
 import type { LucideIcon } from "lucide-react";
-import { Bitcoin, FileSearch, Search } from "lucide-react";
+import { BarChart3, Bitcoin, FileSearch, Search } from "lucide-react";
 export type DashboardMarketIntelNavItem = {
   id: string;
   label: string;
   to: string;
   icon: LucideIcon;
   isActive: (pathname: string) => boolean;
+  badge?: { label: string; className?: string };
 };
 
 /** Asset research, alpha scouting, and macro intel, dashboard sidebar group. */
@@ -30,6 +31,14 @@ export const DASHBOARD_MARKET_INTEL_NAV: readonly DashboardMarketIntelNavItem[] 
     to: "/btc",
     icon: Bitcoin,
     isActive: (p) => p === "/btc",
+  },
+  {
+    id: "stocks",
+    label: "Stocks (news)",
+    to: "/stocks",
+    icon: BarChart3,
+    isActive: (p) => p.startsWith("/stocks"),
+    badge: { label: "Paper" },
   },
 ];
 export function isDashboardMarketIntelRoute(pathname: string): boolean {

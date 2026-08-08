@@ -29,7 +29,7 @@ export function SignalEngine({ factors }: { factors: QuantFactor[] }) {
         <SectionHeader
           kicker="Section 02"
           title="Quant Signal Engine"
-          description="Multi-factor scoring with weighted confidence across market microstructure signals."
+          description="Live onchain factor scores. Display weights are fixed for the desk UI, not learned from trades. Strategy gates evolve on a daily batch loop."
         />
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">Composite Signal</span>
